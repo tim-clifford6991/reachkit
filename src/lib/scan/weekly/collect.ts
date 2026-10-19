@@ -14,7 +14,7 @@
 // question's SERP that was not ready stays unmeasured for the week.
 import { dbAdmin } from "@/lib/db";
 import { readPromptAnswer } from "@/lib/market/prompts/answer";
-import { PROMPT_ENGINES, readStoredReport, type PromptAnswer, type PromptEngine, type PromptsSection } from "../report";
+import { PROMPT_ENGINES, localeOfReport, readStoredReport, type PromptAnswer, type PromptEngine, type PromptsSection } from "../report";
 
 /** A ledger row of an ask that was posted, billed and left in the queue. */
 export interface LateRow {
@@ -127,13 +127,16 @@ export async function collectLateAnswers(a: {
     if (error !== null) throw new Error(error.message);
     if (data === null || data.length === 0) return NOTHING;
 
-    const section = (await readRawReport(a.scanId))?.prompts;
+    const first = await readRawReport(a.scanId);
+    const section = first?.prompts;
     if (!isSection(section)) return NOTHING;
     const asks = lateAsksOf(section, data, AI_ANSWER_SOURCES);
     if (asks.length === 0) return NOTHING;
 
     const { readSiteMarket } = await import("@/lib/market/infer/stored");
     const rivals = (await readSiteMarket(a.siteId))?.stored.current?.rivals ?? [];
+    // Issue 1539: the language the prompts were asked in, as the pass stored it.
+    const language = first === null ? "en" : localeOfReport(readStoredReport(first)).language;
 
     const late: PromptAnswer[] = [];
     const settled: { rowId: string; payload: unknown }[] = [];
@@ -161,6 +164,7 @@ export async function collectLateAnswers(a: {
           ownDomain: a.domain,
           siteName: section.siteName,
           rivals,
+          language,
         });
         late.push({
           promptId: ask.promptId,
@@ -171,6 +175,7 @@ export async function collectLateAnswers(a: {
           ownUrls: reading.ownUrls,
           rivals: reading.rivals,
           ...(reading.alternatives.length === 0 ? {} : { alternatives: reading.alternatives }),
+          ...(reading.states.length === 0 ? {} : { states: reading.states }),
         });
       })
     );

@@ -401,6 +401,32 @@ describe("issue 1420: a mention is read again from whatever answer text was stor
   });
 });
 
+describe("issue 1539: what a tracked-prompt answer states of the business is read again from its stored text", () => {
+  it("a stored answer that names the site and gives a price gains it at its own path, and nothing else moves for it", () => {
+    const scan = fixture("zapier.com");
+    const report = structuredClone(scan.report) as Record<string, unknown>;
+    report.prompts = {
+      siteName: "Zapier",
+      asked: [{ id: "p1", kind: "branded", text: "How much does Zapier cost?" }],
+      asks: 2,
+      answers: [{ promptId: "p1", engine: "chatgpt", run: 2, named: true, linked: false, ownUrls: [], rivals: [] }],
+    };
+    const db = storeOf([{ ...scan, report }]);
+    const row = { ...[...db.rows.values()][0]!, siteId: "site", isCurrent: true };
+    const text = "Zapier plans start at $19.99 a month.";
+    const answers = [
+      { source: "ai_optimization/chat_gpt/llm_scraper", key: "How much does Zapier cost?|United States|en|site:x", text: "Make costs $9.", citedUrls: [] },
+      { source: "ai_optimization/chat_gpt/llm_scraper", key: "How much does Zapier cost?|United States|en|site:x|run:2", text: text.slice(0, 10), whole: text, citedUrls: [] },
+    ];
+    const again = rescoreRow(row, [], { siteName: "Zapier", answers });
+    const change = "result" in again ? again.result.changes.find((c) => c.path[0] === "prompts") : undefined;
+    expect(change).toEqual({
+      path: ["prompts", "answers", 0, "states"],
+      value: [{ kind: "price", raw: "$19.99", says: text, key: "$", values: ["19.99"] }],
+    });
+  });
+});
+
 describe("issue 1441: a stored SERP whose local pack shows the site counts that search toward search presence", () => {
   // gusto.com's scan, with a small business's footprint: three searches,
   // none on the first page.

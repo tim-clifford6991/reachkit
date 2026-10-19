@@ -257,9 +257,12 @@ function marketOfSite(market: Record<string, unknown> | null): NonNullable<Resco
   if (market === null) return null;
   const current = (market.current ?? null) as { kind?: unknown; serves?: unknown } | null;
   const area = market.area as { place?: unknown } | undefined;
+  // Issue 1539: the rivals a tracked-prompt answer's lines are read against.
+  const rivals = rivalsOf(market)?.map((rival) => ({ name: rival.name, domain: rival.domain }));
   return {
     ...(current?.kind === undefined ? {} : { kind: current.kind }),
     ...(current?.serves === undefined ? {} : { serves: current.serves }),
+    ...(rivals === undefined ? {} : { rivals }),
     ...(area === undefined || area === null ? {} : { area }),
   };
 }
@@ -753,6 +756,7 @@ export function databaseRescore(): RescoreQueue & RescoreStore {
           source: r.source,
           key: r.cache_key,
           text: typeof answer?.text === "string" ? answer.text.slice(0, AI_OVERVIEW_TEXT_MAX_CHARS) : null,
+          whole: typeof answer?.text === "string" ? answer.text : null,
           citedUrls: Array.isArray(answer?.citedUrls) ? (answer.citedUrls as string[]) : null,
         };
       });

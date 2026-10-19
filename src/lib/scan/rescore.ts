@@ -18,6 +18,10 @@
 // `src/lib/scan/rescore-run.ts` reads the stored rows in production (the
 // `scan/rescore` job, issue 1433), writes the before and after, and on apply
 // writes the change, keeping the original report under `report.previous`.
+//
+// Issue 1539: what each tracked-prompt answer states of the business is read
+// again from the answer's stored text (`statementsOf`), so a stored report
+// carries it without a new pass.
 import { retrofitReading, type Retrofit } from "@/lib/business/retrofit";
 import { aiPresenceOf, aiPresenceRangeOf, aiSampleOf, classifyReferences, foundationsOf, localPackSearches, searchPresenceOf } from "@/lib/measure/drivers";
 import { isProtectionName } from "@/lib/measure/challenge";
@@ -33,6 +37,8 @@ import type { RivalConclusion } from "@/lib/market/infer/types";
 import type { RivalSizeBand } from "@/lib/market/rivals/band";
 import type { RivalCandidate } from "@/lib/market/rivals/derive";
 import { isOwnDomain, registrableDomain } from "@/lib/market/rivals/domains";
+import { brandOf } from "@/lib/market/questions/select";
+import { statementsOf } from "@/lib/market/prompts/misstated";
 import type { Profile } from "@/lib/market/questions/profile-types";
 import type { PresenceCard } from "@/lib/market/rivals/presence";
 import type { MarketSerp, QuestionView } from "@/lib/market/views";
@@ -40,7 +46,7 @@ import { AI_ANSWER_SOURCES, type RankedRow } from "@/lib/vendors/dataforseo/type
 import { cardsOf, placeStands, reachOfReport } from "./cards";
 import { readAsProtection, unreadByProtection } from "./challenged";
 import { marketEvidence, type EvidenceReport } from "./market-evidence";
-import type { AnswerCell, EngineCell, StoredReport } from "./report";
+import { localeOfReport, type AnswerCell, type EngineCell, type PromptAnswer, type StoredReport } from "./report";
 import { rivalCellsOf } from "./sections";
 import type { ScanStatus } from "./store";
 
@@ -79,6 +85,7 @@ export interface RescoreReport extends Pick<
   | "measuredCategory"
   | "marketPrompts"
   | "locale"
+  | "prompts"
 > {
   ownRankedRows: readonly (Pick<RankedRow, "position"> & { keyword?: string })[];
   serps: readonly Measured<MarketSerp>[];
@@ -111,7 +118,7 @@ export interface RescoreScan {
   answers: readonly StoredAnswer[];
   /** A paying site's market (`sites.market`): the kind and place its pass
    *  concluded and the place the founder gave; absent on a free scan. */
-  market?: { kind?: unknown; serves?: unknown; area?: { place?: unknown } } | null;
+  market?: { kind?: unknown; serves?: unknown; area?: { place?: unknown }; rivals?: readonly { name: string; domain: string }[] } | null;
   /** When the scan was asked for (`scans.created_at`): a report dated
    *  before it was dated by a stored read of a page (issue 1392), and is
    *  dated again by it (issue 1479). Absent, the stored date stands. */
@@ -124,6 +131,9 @@ export interface StoredAnswer {
   key: string;
   text: string | null;
   citedUrls: readonly string[] | null;
+  /** The whole text, where `text` is cut to the AI Overview's length: a
+   *  tracked prompt's answer is read whole (issue 1539). */
+  whole?: string | null;
 }
 
 /** The members a re-score may rewrite, as the scan would now store them. */
@@ -378,7 +388,7 @@ export function rescoreScan(scan: RescoreScan): Rescored {
   }
 
   const before = membersOf(r);
-  const changes = [...changesOf(before, after), ...profileChanges(r, profile, reading)];
+  const changes = [...changesOf(before, after), ...profileChanges(r, profile, reading), ...promptChanges(r, scan)];
   // A new date is a change though `same` reads past dates: the whole
   // verdict is written again, every member of it carrying that date.
   if (at.getTime() !== new Date(r.verdict.measuredAt).getTime() && !changes.some((c) => c.path.length === 1 && c.path[0] === "verdict")) {
@@ -386,6 +396,39 @@ export function rescoreScan(scan: RescoreScan): Rescored {
   }
   const score = after.verdict.scoreAndBand.kind === "unmeasured" ? null : after.verdict.scoreAndBand.value.score;
   return { before, after, changes, drivers, score, status: statusAfter(scan.status, before.verdict, after.verdict), kept, stale, reading };
+}
+
+/**
+ * Issue 1539: each tracked-prompt answer's statements of the business, read
+ * again from its stored text as the pass reads them (`readPromptAnswer`).
+ * An answer whose text is no longer stored stands as stored.
+ */
+function promptChanges(r: RescoreReport, scan: Pick<RescoreScan, "siteName" | "answers" | "market">): ReportChange[] {
+  const section = r.prompts;
+  // A stored blob is not checked by its type: a section that lost a list is
+  // left as stored.
+  const answers: readonly PromptAnswer[] = Array.isArray(section?.answers) ? section.answers : [];
+  if (section === undefined || !Array.isArray(section.asked)) return [];
+  const language = localeOfReport(r).language;
+  const changes: ReportChange[] = [];
+  answers.forEach((answer, i) => {
+    const asked = section.asked.find((prompt) => prompt.id === answer.promptId);
+    const stored =
+      asked === undefined
+        ? undefined
+        : scan.answers.find(
+            (each) =>
+              each.source === AI_ANSWER_SOURCES[answer.engine] &&
+              each.key.startsWith(`${asked.text}|`) &&
+              Number(/\|run:(\d+)$/.exec(each.key)?.[1] ?? 1) === answer.run
+          );
+    const text = stored?.whole ?? stored?.text ?? null;
+    if (text === null) return;
+    const rivals = scan.market?.rivals ?? answer.rivals.map((domain) => ({ name: brandOf(domain), domain }));
+    const states = answer.named ? statementsOf({ text, siteName: section.siteName, ownDomain: r.domain, rivals, language }) : [];
+    if (!same(answer.states ?? [], states)) changes.push({ path: ["prompts", "answers", i, "states"], value: states });
+  });
+  return changes;
 }
 
 /** The date the report wears: the scan's start (issue 1392). A stored date

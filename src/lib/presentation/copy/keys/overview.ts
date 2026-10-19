@@ -1414,4 +1414,17 @@ export const OVERVIEW_COPY = Object.freeze({
     "Optional. Publishing goes on either way, and this goes away once the link is found.",
     { slots: {}, fixedBy: "SPEC §7 2026-10-18 · issue 1511 (drafted)" },
   ],
+  // SPEC §4 (2026-10-19, issue 1539): what AI answers misstate of the
+  // business, a finding and never a needs-you item. Drafted (#759); the
+  // owner may correct it.
+  "overview.misstated.title": ["What AI answers get wrong", { slots: {}, fixedBy: "SPEC §4 2026-10-19 · issue 1539 (drafted)" }],
+  "overview.misstated.row": [
+    "An AI answer says {ai}. Your site says: {site}.",
+    { slots: { ai: "text", site: "text" }, fixedBy: "SPEC §4 2026-10-19 · issue 1539 (drafted)" },
+  ],
+  "overview.misstated.source": ["Where your site says it", { slots: {}, fixedBy: "SPEC §4 2026-10-19 · issue 1539 (drafted)" }],
+  "overview.misstated.next": [
+    "Your next page on each of these topics states what your site says, plainly.",
+    { slots: {}, fixedBy: "SPEC §4 2026-10-19 · issue 1539 (drafted)" },
+  ],
 }) satisfies CopyPartition;

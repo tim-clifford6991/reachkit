@@ -50,6 +50,7 @@ import { DoneThisWeek } from "../_overview/DoneThisWeek";
 import { ProcessTimeline } from "../_shell/ProcessTimeline";
 import { WhatWeRead } from "@/app/_business/WhatWeRead";
 import { MainSiteLink } from "../_overview/MainSiteLink";
+import { MisstatedFacts } from "../_overview/MisstatedFacts";
 import { OVERVIEW, REGION, WEEK_ROW } from "../_overview/frame";
 
 /** /app's own `<title>` (#945). Without it this screen announced
@@ -65,7 +66,7 @@ export default async function OverviewPage(): Promise<React.JSX.Element> {
   // the shell's own request-cached provider rather than restated here: two
   // readers of a customer's time zone is how two parts of one screen come to
   // state two different days.
-  const [shell, overview, onboarding, prompts, google, published, done, understanding, mainLink] = await Promise.all([
+  const [shell, overview, onboarding, prompts, google, published, done, understanding, mainLink, misstated] = await Promise.all([
     readShell(),
     readOverview(),
     readOnboarding(),
@@ -95,6 +96,12 @@ export default async function OverviewPage(): Promise<React.JSX.Element> {
     import("../_overview/main-link-provider")
       .then((provider) => provider.readMainSiteLink())
       .catch(() => null),
+    // Issue 1539: what the newest AI answers misstate of the business, read
+    // from the stored report against the knowledge base; where it cannot be
+    // read it is not drawn.
+    import("../_overview/misstated-provider")
+      .then((provider) => provider.readMisstated())
+      .catch(() => []),
   ]);
   // issue 784: the founder's reason when the pass released them short — what the
   // shell's panel is not already saying.
@@ -199,6 +206,10 @@ export default async function OverviewPage(): Promise<React.JSX.Element> {
       {/* Issue 1511: the main site's link to the articles, said once and
           optional; gone once the scan finds the link. */}
       {mainLink === null ? null : <MainSiteLink finding={mainLink} />}
+
+      {/* Issue 1539: a fact an AI answer gave the business that its own
+          site contradicts, both said; gone once no answer misstates one. */}
+      {misstated.length === 0 ? null : <MisstatedFacts findings={misstated} />}
 
       {/* While the first pass runs there is no week to report, so the
           screen says what the pass is working through instead (SPEC §4,

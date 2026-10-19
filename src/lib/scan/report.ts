@@ -158,6 +158,7 @@ import type { CorrectionState } from "@/lib/market/coherence/state";
 import type { EngineCell } from "@/lib/market/questions/matrix";
 import type { MarketSet } from "@/lib/market/questions/market-set";
 import type { PromptKind } from "@/lib/market/prompts/generate";
+import type { AnswerStatement } from "@/lib/market/prompts/misstated-types";
 import type { Question } from "@/lib/market/questions/phrase";
 import type { RivalCandidate } from "@/lib/market/rivals/derive";
 import type { RivalSize } from "@/lib/market/rivals/size";
@@ -622,6 +623,10 @@ export interface PromptAnswer {
    *  says buyers asking it were shown a rival's alternatives. Absent where
    *  it cited none, and on every answer stored before. */
   alternatives?: readonly string[];
+  /** The prices, counts and countries it gave the business (issue 1539),
+   *  each with the few words around it. Absent where it gave none, and on
+   *  every answer stored before. */
+  states?: readonly AnswerStatement[];
 }
 
 /** One weekly pass's tracked prompts (SPEC §6, D19, #1162). */

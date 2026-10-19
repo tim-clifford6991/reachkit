@@ -8,7 +8,13 @@
 //
 // Pure: no I/O. *Named* is `namesSite`, the one rule the score's AI
 // presence also reads (issue 1420).
+//
+// Issue 1539: what the answer states of the business — a price, a count, a
+// country — is read here too (`./misstated.ts`), so the stored row can be
+// held against the site's own facts later without the answer's prose.
+import type { Language } from "@/lib/locale/locales";
 import { namesSite, says } from "@/lib/measure/drivers";
+import { statementsOf, type AnswerStatement } from "./misstated";
 
 export interface PromptAnswerReading {
   named: boolean;
@@ -22,6 +28,8 @@ export interface PromptAnswerReading {
   alternatives: readonly string[];
   /** The answer named or cited any product at all — D33's pre-check. */
   namesABrand: boolean;
+  /** Issue 1539: the prices, counts and countries it gave the business. */
+  states: readonly AnswerStatement[];
 }
 
 function bare(host: string): string {
@@ -54,6 +62,8 @@ export function readPromptAnswer(a: {
   ownDomain: string;
   siteName: string;
   rivals: readonly { name: string; domain: string }[];
+  /** The language the answer was asked in; absent is English. */
+  language?: Language;
 }): PromptAnswerReading {
   const own = bare(a.ownDomain);
   const cited = a.citedDomains.map(bare);
@@ -81,5 +91,6 @@ export function readPromptAnswer(a: {
     rivals,
     alternatives,
     namesABrand: named || linked || rivals.length > 0 || cited.length > 0,
+    states: named ? statementsOf({ text: a.text, siteName: a.siteName, ownDomain: own, rivals: a.rivals, language: a.language ?? "en" }) : [],
   };
 }
