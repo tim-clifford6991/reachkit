@@ -7,6 +7,10 @@
 /** Whether the main site's own pages link the content host. */
 export type MainSiteLink = "linked" | "not_followed" | "not_linked";
 
+/** The kinds of page a hosted page's about card links on the main site. */
+export const MAIN_SITE_ACTIONS = ["book", "quote"] as const;
+export type MainSiteActionKind = (typeof MAIN_SITE_ACTIONS)[number];
+
 export interface MainSite {
   /** The main site's canonical home. */
   home: string;
@@ -23,6 +27,10 @@ export interface MainSite {
    *  whether the main site's own pages link it. Empty where the domain has
    *  none, or where which pages are ours could not be read. */
   links: readonly { host: string; state: MainSiteLink }[];
+  /** The book and quote pages the home's own header or nav links, on the
+   *  business's own site, at most one of each and never two at one address.
+   *  Empty where it links none, or on a reading stored before. */
+  actions: readonly { kind: MainSiteActionKind; url: string }[];
 }
 
 /** One about or team page of the main site, as the scan read it. */
@@ -81,6 +89,14 @@ export function mainSiteOf(value: unknown): MainSite | null {
           const link = entry as Record<string, unknown> | null;
           return typeof link?.host === "string" && states.includes(link.state as MainSiteLink)
             ? [{ host: link.host, state: link.state as MainSiteLink }]
+            : [];
+        })
+      : [],
+    actions: Array.isArray(row.actions)
+      ? row.actions.flatMap((entry) => {
+          const action = entry as Record<string, unknown> | null;
+          return isHttp(action?.url) && MAIN_SITE_ACTIONS.includes(action.kind as MainSiteActionKind)
+            ? [{ kind: action.kind as MainSiteActionKind, url: action.url }]
             : [];
         })
       : [],

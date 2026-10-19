@@ -137,3 +137,60 @@ describe("issue 1509 — the about and team pages, where a page's author may be 
   });
 });
 
+
+describe("the book and quote pages the main site's own header or nav links", () => {
+  const actionsOf = (domain: string, homeUrl: string, body: string) =>
+    readMainSite({ domain, homeUrl, homeHtml: `<html><body>${body}</body></html>`, pages: [], ours: OURS }).actions;
+
+  it("a local plumber: its own book and estimate pages, book first, with no tracking parameter", () => {
+    const nav = [
+      "<header><nav>",
+      '<a href="tel:+15125550142">Call (512) 555-0142</a>',
+      '<a href="/get-a-quote">Free estimate</a>',
+      '<a href="https://www.harborplumbing.com/schedule?utm_source=nav&amp;zip=78701#form">Book online</a>',
+      "</nav></header>",
+    ].join("");
+    expect(actionsOf("harborplumbing.com", "https://www.harborplumbing.com/", nav)).toEqual([
+      { kind: "book", url: "https://www.harborplumbing.com/schedule?zip=78701" },
+      { kind: "quote", url: "https://www.harborplumbing.com/get-a-quote" },
+    ]);
+  });
+
+  it("a German Handwerker: Termin and Kostenvoranschlag, by its own words", () => {
+    const nav = '<nav><a href="/kontakt">Kontakt</a><a href="/termin">Jetzt Termin vereinbaren</a><a href="/anfrage">Angebot anfordern</a></nav>';
+    expect(actionsOf("mueller-sanitaer.de", "https://mueller-sanitaer.de/", nav)).toEqual([
+      { kind: "book", url: "https://mueller-sanitaer.de/termin" },
+      { kind: "quote", url: "https://mueller-sanitaer.de/anfrage" },
+    ]);
+  });
+
+  it("a SaaS whose demo is booked on a scheduling host links nothing: the page is not on its own site", () => {
+    const nav = '<header><a href="/pricing">Pricing</a><a href="https://calendly.com/acme/demo">Book a demo</a><a href="/login">Log in</a></header>';
+    expect(actionsOf("acmescheduling.io", "https://acmescheduling.io/", nav)).toEqual([]);
+  });
+
+  it("an address is linked once, under the first kind that names it", () => {
+    const nav = '<nav><a href="/contact">Book a visit</a><a href="/contact#quote">Get a quote</a></nav>';
+    expect(actionsOf("example.com", "https://example.com/", nav)).toEqual([{ kind: "book", url: "https://example.com/contact" }]);
+  });
+
+  it("a link outside the header and nav, or a word inside another word, is none", () => {
+    const body = '<nav><a href="https://www.facebook.com/example">Facebook</a><a href="/ebooks">Free eBook</a></nav><main><a href="/book">Book now</a></main>';
+    expect(actionsOf("example.com", "https://example.com/", body)).toEqual([]);
+  });
+
+  it("reads back what it stored; a reading stored before, or an entry that does not parse, has none", () => {
+    const read = readMainSite({
+      domain: "example.com",
+      homeUrl: "https://example.com/",
+      homeHtml: '<nav><a href="/book">Book</a></nav>',
+      pages: [],
+      ours: OURS,
+    });
+    expect(mainSiteOf(JSON.parse(JSON.stringify(read)))).toEqual(read);
+    expect(mainSiteOf({ home: "https://example.com/" })?.actions).toEqual([]);
+    expect(
+      mainSiteOf({ home: "https://example.com/", actions: [{ kind: "book", url: "javascript:x" }, { kind: "call", url: "https://example.com/" }] })?.actions
+    ).toEqual([]);
+  });
+});

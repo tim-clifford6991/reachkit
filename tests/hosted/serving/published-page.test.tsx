@@ -67,6 +67,8 @@ vi.mock("@/lib/publish/destinations/hosted", async () => {
 
 const Page = (await import("@/app/(hosted)/hosted-page/[[...slug]]/page")).default;
 const { COPY } = await import("@/lib/presentation/copy");
+const { readMainSite } = await import("@/lib/site-profile/main-site");
+const { mainSiteOf } = await import("@/lib/site-profile/main-site-row");
 
 const PASSAGE = "a non-engineer can ship a change";
 
@@ -363,5 +365,71 @@ describe("nothing of ours is on a domain that is not ours", () => {
       '<script type="application/ld+json">',
       '<script type="application/ld+json">',
     ]);
+  });
+});
+
+describe("the about card links the main site's own book and quote pages, and nothing else", () => {
+  /** The main site as the scan reads its home and the hosted page reads it back from the stored row. */
+  const stored = (nav: string): unknown =>
+    mainSiteOf(
+      JSON.parse(
+        JSON.stringify(
+          readMainSite({ domain: "example.com", homeUrl: "https://example.com/", homeHtml: `<html><body>${nav}</body></html>`, pages: [], ours: null })
+        )
+      )
+    );
+  const PLUMBER = '<header><nav><a href="tel:+15125550142">Call us</a><a href="/book?utm_source=nav">Book online</a><a href="/get-a-quote">Free estimate</a></nav></header>';
+  const SAAS = '<header><a href="/pricing">Pricing</a><a href="https://calendly.com/example/demo">Book a demo</a><a href="/signup">Start free</a></header>';
+  const parsed = (html: string): Document => new DOMParser().parseFromString(html, "text/html");
+
+  it("a local business that links both draws two plain links in the card, and none in the header or footer", async () => {
+    state.identity = { mainSite: stored(PLUMBER) };
+    const doc = parsed(await render());
+    const links = [...doc.querySelectorAll("aside ul[role=list] a")];
+    expect(links.map((a) => [a.textContent, a.getAttribute("href")])).toEqual([
+      ["Book an appointment", "https://example.com/book"],
+      ["Ask for a quote", "https://example.com/get-a-quote"],
+    ]);
+    for (const a of links) expect(a.getAttributeNames().sort()).toEqual(["class", "href"]);
+    for (const part of ["header", "footer"]) {
+      expect(doc.querySelector(`${part} a[href$="/book"], ${part} a[href$="/get-a-quote"]`)).toBeNull();
+    }
+  });
+
+  it("the links add no script: the page still carries only its data blocks", async () => {
+    state.identity = { mainSite: stored(PLUMBER) };
+    const scripts = [...parsed(await render()).querySelectorAll("script")].map((script) => script.getAttribute("type"));
+    expect(scripts).toEqual(["application/ld+json", "application/ld+json"]);
+  });
+
+  it("a SaaS whose demo is booked elsewhere, and a site with no reading, draw no link and no empty list", async () => {
+    for (const mainSite of [stored(SAAS), undefined]) {
+      state.identity = mainSite === undefined ? {} : { mainSite };
+      const html = await render();
+      expect(parsed(html).querySelector("aside ul")).toBeNull();
+      expect(html).not.toContain("Book an appointment");
+      expect(html).not.toContain("Ask for a quote");
+    }
+  });
+});
+
+describe("lists in the body are styled, and nothing is drawn that the body does not say", () => {
+  it("a list in the body, in the short answer and in the takeaways each keeps its markers, and the body holds no picture", async () => {
+    state.page = livePage({
+      bodyMd: [
+        ":::answer\nShut the main valve first.\n\n- Turn it clockwise.\n- Open the lowest tap.\n:::",
+        ":::takeaways\n1. Find the valve.\n2. Drain the pipes.\n:::",
+        "## Where is the valve?\n\nIn one of three places.\n\n- In the garage.\n- Beside the water heater.\n\n1. Look indoors.\n2. Then outside.",
+      ].join("\n\n"),
+    });
+    const body = new DOMParser().parseFromString(await render(), "text/html").querySelector(".prose")!;
+    const lists = [...body.querySelectorAll("ul, ol")];
+    expect(lists.length).toBe(4);
+    for (const list of lists) {
+      const box = list.closest(".not-prose");
+      // Outside a box `prose` sets the marker; inside one the box must name it.
+      if (box !== null) expect(box.classList).toContain(list.tagName === "OL" ? "[&_ol]:list-decimal" : "[&_ul]:list-disc");
+    }
+    expect(body.querySelectorAll("img, svg, picture, canvas")).toHaveLength(0);
   });
 });

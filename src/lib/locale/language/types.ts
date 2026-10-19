@@ -87,7 +87,7 @@ export interface PromptWording {
 /** The kinds of page a site's own address or heading can name. */
 export type PageKind =
   | "legal" | "contact" | "pricing" | "about" | "blog" | "features" | "product"
-  | "docs" | "changelog" | "customers" | "reviews";
+  | "docs" | "changelog" | "customers" | "reviews" | "book" | "quote";
 
 export interface LanguagePack {
   language: Language;

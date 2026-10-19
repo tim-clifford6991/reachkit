@@ -49,6 +49,7 @@ import type { PromptAnswer, PromptsSection } from "../../../src/lib/scan/report"
 import { bandRivalSize } from "@/lib/market/rivals/band";
 import { measured } from "@/lib/measure/measured";
 import type { CanonicalDomain } from "@/lib/scan/domain";
+import type { MainSite } from "@/lib/site-profile/main-site-row";
 import { assembleReport } from "@/lib/scan/store";
 import { previousWeekStart, weekStartFor } from "@/lib/scan/weekly";
 import type { AppAccount } from "@/app/(account)/app/_session/account";
@@ -534,12 +535,24 @@ export function seedHostedPublisher(): void {
 
   // The business as its blog draws it (issue 1140): a name, a kept logo and
   // one line, so the header, the about card and the index are measured with
-  // the picture and the sentence rather than the first-letter fallback.
+  // the picture and the sentence rather than the first-letter fallback. Its
+  // main site links a book and a quote page, so the card draws both links.
+  const mainSite: MainSite = {
+    home: `https://${PUBLISHER_ACCOUNT.domain}/`,
+    organization: { id: null, name: null, logo: null },
+    sameAs: [],
+    aboutPages: [],
+    links: [],
+    actions: [
+      { kind: "book", url: `https://${PUBLISHER_ACCOUNT.domain}/book` },
+      { kind: "quote", url: `https://${PUBLISHER_ACCOUNT.domain}/get-a-quote` },
+    ],
+  };
   sql(
-    `insert into site_profiles (domain, site_name, claims, logo_image, logo_type) values ` +
+    `insert into site_profiles (domain, site_name, claims, logo_image, logo_type, main_site) values ` +
       `('${PUBLISHER_ACCOUNT.domain}', 'Publisher & Sons Onboarding Software', ` +
       `'["Onboarding checklists with one owner for every step, so a new hire reaches their first real task in the first week"]'::jsonb, ` +
-      `'\\x${ONE_PIXEL_PNG}'::bytea, 'image/png');`
+      `'\\x${ONE_PIXEL_PNG}'::bytea, 'image/png', '${JSON.stringify(mainSite)}'::jsonb);`
   );
 
   // Three more live pages, older than the first, so the article draws its
