@@ -24,6 +24,7 @@ describe("#1121 — the mail head shows the logo in every inbox", () => {
     expect(img[0]).toContain('src="https://reachkit.app/brand/mark-96.png"');
     expect(img[0]).toContain('alt="ReachKit"');
     expect(img[0]).toContain('width="28"');
+    expect(img[0]).toContain('height="28"');
     expect(html).not.toContain("<svg");
   });
 });

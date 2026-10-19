@@ -515,7 +515,10 @@ describe('"Email me the full page" → lead → first page → a follow-up that 
     // vendor transport, and there were exactly four of them.
     expect(inbox).toHaveLength(1 + NURTURE_MAX_TOUCHES);
     // #81: the From is the `MAIL_FROM` binding, not a local part derived
-    // from the app URL's host.
-    expect(new Set(inbox.map((mail) => mail.from))).toEqual(new Set([ENV_FIXTURE.MAIL_FROM]));
+    // from the app URL's host — and since #1568 it carries the product's
+    // name in front of it (this journey's copy stand-in answers the key).
+    expect(new Set(inbox.map((mail) => mail.from))).toEqual(
+      new Set([`mail.shell.wordmark <${ENV_FIXTURE.MAIL_FROM}>`])
+    );
   });
 });

@@ -50,7 +50,8 @@ describe("BUILD §12 — the one request", () => {
     expect(request.text).toBe(SEND.text);
     expect(request.subject).toBe(SEND.subject);
     expect(request.to).toEqual([SEND.to]);
-    expect(request.from).toBe(ENV_FIXTURE.MAIL_FROM);
+    expect(request.from).toBe(`ReachKit <${ENV_FIXTURE.MAIL_FROM}>`);
+    expect(request.reply_to).toBe(ENV_FIXTURE.MAIL_FROM);
   });
 
   it("the plain-text alternative is a property of the request, not of a second send", async () => {
@@ -68,7 +69,7 @@ describe("BUILD §12 — the one request", () => {
     respond(200, JSON.stringify({ id: "vendor-1" }));
     await sendViaVendor(SEND);
     const request = JSON.parse(captured[0] as string) as { from?: string };
-    expect(request.from).toBe("post@mailbox.example");
+    expect(request.from).toBe("ReachKit <post@mailbox.example>");
     expect(request.from).not.toContain(new URL(ENV_FIXTURE.NEXT_PUBLIC_APP_URL as string).hostname);
   });
 });
