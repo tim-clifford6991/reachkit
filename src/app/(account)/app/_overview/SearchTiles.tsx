@@ -100,8 +100,10 @@ function Tile(p: {
         >
           {value.text}
         </span>
+        {/* "of 30 searches your pages target" is a phrase, not a token:
+            it folds between words inside its row (`num-phrase`). */}
         {against === null ? null : (
-          <span className={`num text-sm ${ink}`}>{against}</span>
+          <span className={`num num-phrase min-w-0 text-sm ${ink}`}>{against}</span>
         )}
       </div>
     </>
