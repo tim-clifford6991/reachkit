@@ -37,6 +37,7 @@ vi.mock("@/lib/scan/removal", () => ({ isDomainRemoved: async () => false }));
 
 import { existsSync, readdirSync } from "node:fs";
 import path from "node:path";
+import nextConfig from "../../next.config";
 import { middleware, PUBLIC_PATHS, GUARDED_SEGMENTS, config, isMetadataAsset } from "@/middleware";
 import { setIdentityAuth, type IdentityAuth } from "@/lib/account/identity/auth";
 import {
@@ -405,11 +406,19 @@ describe("#405 — an unmatched address falls through to the root 404, signed ou
   });
 
   it("the root not-found screen an unmatched address lands on is on disk", () => {
-    // A fall-through with no root `not-found.tsx` is Next's own built-in
+    // A fall-through with no root screen of ours is Next's own built-in
     // page, which is what #405 found: neither `rk-fallback` nor S8's
     // heading. `tests/app/fallback/screens.test.tsx` is where the screen
     // itself is asserted.
-    expect(existsSync(path.join(APP_DIR, "not-found.tsx"))).toBe(true);
+    //
+    // 2026-10-18, issue 1514: the root layout split into one per group (the
+    // hosted pages own their document), so there is no single layout for a
+    // root `not-found.tsx` to render in. The root screen is now
+    // `global-not-found.tsx`, which Next reads only with the
+    // `globalNotFound` flag on, so the guard holds both: without the flag
+    // the file is ignored and #405 is back.
+    expect(existsSync(path.join(APP_DIR, "global-not-found.tsx"))).toBe(true);
+    expect(nextConfig.experimental?.globalNotFound).toBe(true);
   });
 });
 

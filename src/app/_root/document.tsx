@@ -1,7 +1,13 @@
-// src/app/layout.tsx
+// src/app/_root/document.tsx
 //
 // BP-001 `## Module / boundary`: "`src/app/layout.tsx`" — the one root
-// document every ReachKit-addressed surface renders inside. It carries
+// document every ReachKit-addressed surface renders inside. It was that
+// file until issue 1514: a customer's hosted page states its own language
+// on `<html>` and carries none of ReachKit's scripts, which only a root
+// layout of its own can do, so `src/app` has one root layout per group and the two
+// ReachKit groups, `(public)` and `(account)`, each render this document
+// (as does `global-not-found.tsx`). A move between the two groups is a full
+// page load, as Next makes any move between root layouts. It carries
 // BP-018's theme and fonts and holds no product copy of its own (BP-018
 // decision 2: "no component has a default string"): this file renders
 // `{children}` and nothing else — no navigation, no heading, no string.
@@ -64,9 +70,9 @@ import "@/ui/type.css";
 import "@/ui/layout/layout.css";
 import "@/ui/layout/surface.css";
 import { fontVariables } from "@/ui/fonts";
-import { THEME_SCRIPT } from "./_theme/theme";
-import { BANNER_SCRIPT } from "./(public)/_chrome/banner";
-import { Answers } from "./_toast/Answers";
+import { THEME_SCRIPT } from "../_theme/theme";
+import { BANNER_SCRIPT } from "../(public)/_chrome/banner";
+import { Answers } from "../_toast/Answers";
 
 /**
  * **Every ReachKit render is a request's own** (issue #331).
@@ -86,20 +92,13 @@ import { Answers } from "./_toast/Answers";
  *
  * **The declaration is on the two group layouts, not here** (issue 1242):
  * `(public)/layout.tsx` and `(account)/layout.tsx` each export
- * `dynamic = "force-dynamic"`, and every `(hosted)` route declares its own.
- * It was on this file until one route had to be cached. Next applies a
- * layout's `force-dynamic` when it reaches that layout, whatever the page
- * under it declares, so on the root it made the cached hosted article
- * (`(hosted)/hosted-live/[host]/[slug]`) fail instead of render. That
- * route is `force-static`, under which the `headers()` read below is empty
- * and the script is drawn with no nonce — and the middleware answers it
- * under `script-src 'none'`, so it is a page with no nonce on which no
- * script runs. The screen this file serves with no group above it,
- * `not-found.tsx`, is still rendered per request: the `headers()` read
- * below is itself what makes it so.
+ * `dynamic = "force-dynamic"`. The screen this document serves with no
+ * group around it, `global-not-found.tsx`, is still rendered per request:
+ * the `headers()` read below is itself what makes it so. The hosted pages
+ * have a document of their own (`(hosted)/document.tsx`), with no script.
  */
 
-export default async function RootLayout({
+export default async function ReachKitDocument({
   children,
 }: {
   children: React.ReactNode;

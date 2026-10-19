@@ -32,7 +32,7 @@ import { dismissBanner } from "./banner";
  * The arm this render is at.
  *
  * `usePathname()` answers `null` where there is no router — a bar rendered
- * on its own by `src/app/not-found.tsx`'s own test, and by anything else
+ * on its own by `src/app/global-not-found.tsx`'s own test, and by anything else
  * that draws the chrome outside a route. No address is not the landing and
  * not a report, so it takes the plain pair, which is the arm every public
  * route but those two takes anyway.

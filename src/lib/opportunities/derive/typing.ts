@@ -22,6 +22,7 @@ import { z } from "zod";
 import { EFFORT_BY_TYPE } from "@/lib/config/constants";
 import type { CostContext } from "@/lib/costs";
 import { llm } from "@/lib/llm";
+import type { Language } from "@/lib/locale/locales";
 import { FAMILY_OF, OPPORTUNITY_TYPES, type OpportunityType } from "../types";
 import { slugify, type Candidate } from "./candidate";
 
@@ -52,10 +53,10 @@ function promptFor(candidate: Candidate): Record<string, unknown> {
 }
 
 /** A slug that is not URL-safe, or empty, is not a slug. Re-slugified
- *  rather than rejected: the model's words are the contribution, the shape
- *  is ours. */
-function safeSlug(proposed: string, fallback: string): string {
-  const slug = slugify(proposed);
+ *  rather than rejected, in the site's language (issue 1514): the model's
+ *  words are the contribution, the shape is ours. */
+function safeSlug(proposed: string, fallback: string, language: Language): string {
+  const slug = slugify(proposed, language);
   return slug === "" ? fallback : slug;
 }
 
@@ -68,7 +69,7 @@ function safeSlug(proposed: string, fallback: string): string {
  * page the customer already has, whose url and title are theirs, and a
  * proposed slug for it would be a page they did not ask for.
  */
-export async function refineType(c: CostContext, candidate: Candidate): Promise<Candidate> {
+export async function refineType(c: CostContext, candidate: Candidate, language: Language = "en"): Promise<Candidate> {
   // Earn publishes a page the way Write does, so it is labelled the same
   // way — within its own family, which holds one type (issue 478).
   if (candidate.family !== "write" && candidate.family !== "earn") return candidate;
@@ -91,7 +92,7 @@ export async function refineType(c: CostContext, candidate: Candidate): Promise<
     ...candidate,
     type: refined,
     effort: EFFORT_BY_TYPE[refined as Exclude<OpportunityType, "unblock" | "fix_page">],
-    targetRef: safeSlug(slug, candidate.targetRef),
+    targetRef: safeSlug(slug, candidate.targetRef, language),
     title: title.trim() === "" ? null : title,
   };
 }

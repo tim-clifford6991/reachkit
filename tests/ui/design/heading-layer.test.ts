@@ -22,7 +22,7 @@
 // browser:
 //
 //   * **The stylesheet is the real one.** Not `type.css` read as text — the
-//     whole chain, in the order `src/app/layout.tsx` imports it, through
+//     whole chain, in the order `src/app/_root/document.tsx` imports it, through
 //     `@tailwindcss/postcss`. Tailwind's preflight, daisyUI's components and
 //     the `text-*` utilities are all in it, emitted exactly as the browser
 //     gets them. A test that parsed `type.css` alone would have passed on
@@ -74,7 +74,7 @@ interface Candidate {
  *  off `layout.tsx` itself, so this file cannot disagree with the app about
  *  what the cascade is. */
 function importedSheets(): string[] {
-  const layout = readFileSync(path.join(ROOT, "src/app/layout.tsx"), "utf8");
+  const layout = readFileSync(path.join(ROOT, "src/app/_root/document.tsx"), "utf8");
   return [...layout.matchAll(/^import "@\/(ui\/[^"]+\.css)";$/gm)].map(
     (m) => `src/${m[1]}`,
   );

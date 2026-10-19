@@ -63,6 +63,15 @@ describe("a search's shape, in German and in English", () => {
     expect(slugify("Bäckerei Düsseldorf: Brötchen & Süßes")).toBe("backerei-dusseldorf-brotchen-susses");
   });
 
+  it("writes a German site's new address as German does without umlauts (issue 1514)", () => {
+    expect(slugify("Bäckerei Düsseldorf: Brötchen & Süßes", "de")).toBe("baeckerei-duesseldorf-broetchen-suesses");
+    expect(slugify("ÖLWECHSEL Übersicht", "de")).toBe("oelwechsel-uebersicht");
+    // An accent German has no convention for is dropped, as in English.
+    expect(slugify("Café Crème", "de")).toBe("cafe-creme");
+    // A decomposed "ä" (a + U+0308) is the same letter.
+    expect(slugify("Ba\u0308ckerei Du\u0308sseldorf", "de")).toBe("baeckerei-duesseldorf");
+  });
+
   it("knows a German compound and a plural as the business's own words", () => {
     expect(passesRelevanceGuard("sauerteigbrot kaufen düsseldorf", BAKERY)).toBe(true);
     expect(passesRelevanceGuard("brote und kuchen in düsseldorf", BAKERY)).toBe(true);

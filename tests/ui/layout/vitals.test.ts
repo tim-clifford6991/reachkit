@@ -26,7 +26,7 @@
 // route can produce and so the honest thing to budget.
 //
 // **Warm the server, keep the browser cold.** Every route in this product
-// renders per request (`src/app/layout.tsx`'s `force-dynamic`, issue #331),
+// renders per request (`src/app/_root/document.tsx`'s `force-dynamic`, issue #331),
 // so the first hit after `next start` pays for a cold process and a cold
 // connection to the substrate — a runner artefact, not a page-speed one.
 // One throwaway navigation per route absorbs it. The *browser* is the other

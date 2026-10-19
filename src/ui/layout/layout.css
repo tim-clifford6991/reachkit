@@ -20,7 +20,7 @@
  * `--t-eyebrow` in the approved set: the same 11px rung under its approved
  * name, and what conformance check 4 reads off every route.
  *
- * The file itself stays because `src/app/layout.tsx` imports it and the
+ * The file itself stays because `src/app/_root/document.tsx` imports it and the
  * layout module is entitled to a stylesheet — the next rule that belongs to
  * the module rather than to a screen goes here, and a test asserts this
  * sheet starts no second token home.

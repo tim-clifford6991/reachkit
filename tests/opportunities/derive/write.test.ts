@@ -141,6 +141,19 @@ describe('§7: `keyword_page` — "Rival top-20 for a query >=10/mo; customer ab
     });
   });
 
+  it("a German site's new address writes its umlauts as German does; an English site's drops them (issue 1514)", () => {
+    const questions = [question({ search: search({ keyword: "bäckerei düsseldorf" }) })];
+    const german = reportOf({ questions, serps: [noAnswer] });
+    german.locale = { country: "DE", language: "de" };
+    expect(writeCandidates({ ...base, report: german, rankedCounts: smallCounts() }).candidates[0]!.targetRef).toBe(
+      "baeckerei-duesseldorf"
+    );
+    const english = reportOf({ questions, serps: [noAnswer] });
+    expect(writeCandidates({ ...base, report: english, rankedCounts: smallCounts() }).candidates[0]!.targetRef).toBe(
+      "backerei-dusseldorf"
+    );
+  });
+
   it("a search the customer already holds a place in yields none", () => {
     const present = serp({
       organic: [

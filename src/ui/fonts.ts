@@ -42,7 +42,7 @@
 // **One call per family per subset, and the subsets are the vendor's.**
 // `unicode-range` is a `@font-face` property, and `declarations` applies to
 // every `src` entry in one call — so a subset is a call (latin Jakarta takes
-// three, because preloading is decided per call). The faces below are
+// two, because preloading is decided per call). The faces below are
 // exactly the ones the six `@fontsource/*.css` stylesheets for these weights
 // ship: same families, same weights, same ranges, so no codepoint that
 // rendered in Jakarta or JetBrains Mono yesterday falls through to the
@@ -53,11 +53,13 @@
 // refuses anything that is not a literal.
 //
 // **What preloads (an internal parameter, rule 1.1 — reversal cost: one
-// boolean).** Only the latin faces the product renders above the fold:
-// Jakarta 400 (body), 600 (every label, button and big figure, #1062) and
-// 700 (`type.css`'s one heading weight), JetBrains
-// Mono 400 (every numeral), and Jakarta 800, which the public header's
-// wordmark and the landing's headline spend, the first two things `/` paints.
+// boolean).** Two faces, on every page the product serves (SPEC §7,
+// 2026-10-18, issue 1514): Jakarta 400 (body) and Jakarta 800, which the
+// public header's wordmark, the landing's headline and a customer's page
+// title spend, the first things a page paints. A customer's hosted page may
+// preload two, and Turbopack serves every route's font CSS as one chunk, so
+// what preloads here preloads there; 600, 700 and JetBrains Mono 400, which
+// preloaded until then, are fetched when a rule first matches.
 // Until issue #494 the 800 face did not preload, on the premise that no rule
 // spent it; those two do, so the browser learned of the face only
 // once the first frame had been laid out in the fallback, then swapped it
@@ -98,12 +100,9 @@
 // reaches these faces by name, through `--font-ui` and `--font-mono`.
 import localFont from "next/font/local";
 
-/** Plus Jakarta Sans, latin — the body weight, the label weight and the
- *  heading weight, the three faces every screen in the product renders, so
- *  the three that preload. 600 joined on 2026-09-24 (#1062): `font-semibold`
- *  is every button, tab and card label and every big figure, and before it
- *  loaded each one fell through to 700. Discovered late, it would swap in
- *  under a laid-out button and move it, as the 800 note below records. */
+/** Plus Jakarta Sans 400, latin — the body of every screen and of every
+ *  customer's page. One of the two faces that preload (SPEC §7, 2026-10-18,
+ *  issue 1514). */
 export const jakartaLatin = localFont({
   src: [
     {
@@ -111,6 +110,30 @@ export const jakartaLatin = localFont({
       weight: "400",
       style: "normal",
     },
+  ],
+  display: "swap",
+  preload: true,
+  adjustFontFallback: false,
+  declarations: [
+    { prop: "font-family", value: "'Plus Jakarta Sans'" },
+    {
+      prop: "unicode-range",
+      value:
+        "U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD",
+    },
+  ],
+});
+
+/** Plus Jakarta Sans 600 and 700, latin — the label weight (`font-semibold`,
+ *  every button, tab and card label and every big figure, #1062) and
+ *  `type.css`'s heading weight. Loaded so each renders as itself, and **not
+ *  preloaded since issue 1514**: a customer's hosted page may preload two
+ *  faces, and Turbopack serves every route's font CSS as one chunk, so a
+ *  face preloaded for ReachKit's screens is preloaded on a customer's page
+ *  too. They are fetched when a rule first matches, which on `/` is the
+ *  first paint. */
+export const jakartaLatinStrong = localFont({
+  src: [
     {
       path: "../../node_modules/@fontsource/plus-jakarta-sans/files/plus-jakarta-sans-latin-600-normal.woff2",
       weight: "600",
@@ -123,7 +146,7 @@ export const jakartaLatin = localFont({
     },
   ],
   display: "swap",
-  preload: true,
+  preload: false,
   adjustFontFallback: false,
   declarations: [
     { prop: "font-family", value: "'Plus Jakarta Sans'" },
@@ -315,7 +338,9 @@ export const jakartaCyrillicExt = localFont({
 });
 
 /** JetBrains Mono, latin — every numeral, date, URL and code-like string
- *  (BP-018 error behaviour), so it preloads beside the UI face. */
+ *  (BP-018 error behaviour). It preloaded beside the UI face until issue
+ *  1514 held every page to two preloads; it is fetched when `.num` first
+ *  matches. */
 export const monoLatin = localFont({
   src: [
     {
@@ -325,7 +350,7 @@ export const monoLatin = localFont({
     },
   ],
   display: "swap",
-  preload: true,
+  preload: false,
   adjustFontFallback: false,
   declarations: [
     { prop: "font-family", value: "'JetBrains Mono'" },

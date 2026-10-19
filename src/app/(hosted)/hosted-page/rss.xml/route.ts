@@ -19,6 +19,10 @@
 // (`publish/destinations/hosted/announce.ts`), so a subscriber hears of a
 // change without polling.
 //
+// **It is in the site's language** (D66; issue 1514): `<language>` is the
+// site's tag, the one the pages state as `inLanguage`, `og:locale` and
+// `<html lang>`, never a fixed English.
+//
 // The document is the `feed` package's, not ours. It names no generator:
 // nothing on a customer's host names what wrote it.
 import { Feed } from "feed";
@@ -27,7 +31,8 @@ import { copy } from "@/lib/presentation/copy";
 import { hostedIdentity, livePagesForSite } from "@/lib/publish/destinations/hosted";
 import { WEBSUB_HUB } from "@/lib/publish/destinations/hosted/announce";
 import { resolveHost } from "../../resolve-host";
-import { PAGE_LOCALE } from "../[[...slug]]/present";
+import { localeTag } from "@/lib/locale/locales";
+import { siteLocale } from "@/lib/locale/site";
 import { FEED_PATH, indexDescription, indexTitle } from "../[[...slug]]/seo";
 
 export const dynamic = "force-dynamic";
@@ -43,9 +48,10 @@ export async function GET(request: Request): Promise<Response> {
     return new Response(null, { status: 404, headers: { "Cache-Control": "no-store" } });
   }
 
-  const [identity, pages] = await Promise.all([
+  const [identity, pages, locale] = await Promise.all([
     hostedIdentity(disposition),
     livePagesForSite(disposition.siteId, disposition.host),
+    siteLocale(disposition.siteId),
   ]);
   const business = { ...identity, domain: disposition.domain };
   const index = `https://${disposition.host}/`;
@@ -55,7 +61,7 @@ export async function GET(request: Request): Promise<Response> {
     link: index,
     title: indexTitle(business),
     description: indexDescription(business),
-    language: PAGE_LOCALE,
+    language: localeTag(locale),
     copyright: copy("hosted.footer", { publisher: business.name }),
     updated: pages[0]?.publishedAt ?? now(),
     generator: false,

@@ -29,6 +29,7 @@
 import { EFFORT_BY_TYPE } from "@/lib/config/constants";
 import { isOwnDomain, isPlatformDomain, registrableDomain } from "@/lib/market/rivals/domains";
 import { measured } from "@/lib/measure/measured";
+import { measuredLocale } from "@/lib/locale/locales";
 import type { StoredReport } from "@/lib/scan/report";
 import { assess } from "../winnability/band";
 import { rankedCountsFor, type RankedCounts } from "../winnability/counts";
@@ -142,7 +143,7 @@ export function earnCandidates(a: EarnInput): DerivationResult {
       type: "listed_page",
       family: FAMILY_OF.listed_page,
       targetQuery: query,
-      targetRef: slugify(query),
+      targetRef: slugify(query, measuredLocale(a.report).language),
       title: null,
       volume,
       evidence,

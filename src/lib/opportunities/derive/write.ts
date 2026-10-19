@@ -38,6 +38,7 @@ import { WRITE_VOLUME_FLOOR_PER_MONTH } from "@/lib/config/constants";
 import { EFFORT_BY_TYPE } from "@/lib/config/constants";
 import { isOwnDomain, registrableDomain } from "@/lib/market/rivals/domains";
 import { measured, type Measured } from "@/lib/measure/measured";
+import { measuredLocale } from "@/lib/locale/locales";
 import type { StoredReport } from "@/lib/scan/report";
 import type { SerpResult } from "@/lib/vendors/dataforseo/types";
 import { assess, rightSizedBand } from "../winnability/band";
@@ -218,7 +219,7 @@ export function writeCandidates(a: WriteInput): DerivationResult {
       type,
       family: FAMILY_OF[type],
       targetQuery: query,
-      targetRef: slugify(query),
+      targetRef: slugify(query, measuredLocale(a.report).language),
       title: null,
       volume,
       evidence,

@@ -49,7 +49,7 @@ const read = (root, rel) => readFileSync(path.join(root, rel), "utf8");
 // the fallback screens). Longest prefix wins.
 const SCREEN_PATHS = [
   ["src/lib/mail/", "mail"], //                       S20 — the ten kinds, one shell
-  ["src/app/(hosted)/not-found.tsx", "notfound"], //   S8  — no page at this address
+  ["src/app/(hosted)/hosted-page/not-found.tsx", "notfound"], //   S8  — no page at this address
   ["src/app/(hosted)/", "hosted"], //                  S19
   ["src/app/(account)/app/settings/", "settings"], //  S18
   ["src/app/(account)/app/draft/", "draft"], //        S16 (edit is S17, same route)
@@ -74,7 +74,7 @@ const SCREEN_PATHS = [
   ["src/app/(public)/_seo/routes.ts", null],
   ["src/app/(public)/", "landing"], //                 S1 — the page, its chrome, its head
   ["src/app/_fallback/", "notfound"], //               S8 — and §4 rule 3's waiting line
-  ["src/app/not-found.tsx", "notfound"], //            S8
+  ["src/app/global-not-found.tsx", "notfound"], //            S8
   ["src/app/global-error.tsx", "notfound"], //         S8
   ["src/app/manifest.ts", "landing"], //               S1 — the manifest describes the product
 ];

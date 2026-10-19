@@ -22,14 +22,21 @@
 // GIF; any other kept format, a read that fails and a read that is slow all
 // draw the first-letter tile the header draws for a business with no logo.
 // A share image is never the reason a link has no card.
+//
+// **One card, three shapes** (issue 1514): the 1200×630 a pasted link
+// unfurls as, and `?shape=4x3` and `?shape=1x1`, which the article's
+// structured data offers beside it as Google's article markup asks. The
+// same card at each: only the canvas is taller. Any other `shape` is the
+// card's own.
 import type React from "react";
 import { ImageResponse } from "next/og";
 import { copy } from "@/lib/presentation/copy";
 import { token } from "@/lib/mail/shell/tokens";
 import { hostedIdentity, livePagesForSite } from "@/lib/publish/destinations/hosted";
 import { readSiteLogo } from "@/lib/site-profile";
-import { OG_SIZE, OgAddress } from "@/app/(public)/_seo/og-card";
+import { OgAddress } from "@/app/(public)/_seo/og-card";
 import { resolveHost } from "../../../resolve-host";
+import { SHARE_SHAPES, SHARE_SHAPE_PARAM, type ShareShape } from "../../[[...slug]]/seo";
 
 export const dynamic = "force-dynamic";
 
@@ -77,7 +84,14 @@ const MARK = 64;
 /** Decorative: the name is written beside it. */
 const LOGO_ALT = "";
 
+/** The shape a request asks for, or the card's own. */
+function shapeOf(request: Request): { width: number; height: number } {
+  const asked = new URL(request.url).searchParams.get(SHARE_SHAPE_PARAM) ?? "";
+  return Object.hasOwn(SHARE_SHAPES, asked) ? SHARE_SHAPES[asked as ShareShape] : SHARE_SHAPES.wide;
+}
+
 function Card(p: {
+  size: { width: number; height: number };
   name: string;
   logo: string | null;
   title: string;
@@ -91,8 +105,8 @@ function Card(p: {
         display: "flex",
         flexDirection: "column",
         justifyContent: "space-between",
-        width: OG_SIZE.width,
-        height: OG_SIZE.height,
+        width: p.size.width,
+        height: p.size.height,
         padding: 72,
         background: token("--color-base-100"),
         color: token("--color-base-content"),
@@ -161,10 +175,11 @@ export async function GET(
     card = { title: page.title, line: null };
   }
 
+  const size = shapeOf(request);
   return new ImageResponse(
-    <Card name={identity.name} logo={logo} host={disposition.host} {...card} />,
+    <Card size={size} name={identity.name} logo={logo} host={disposition.host} {...card} />,
     {
-      ...OG_SIZE,
+      ...size,
       // An hour, as the logo beside it: a refreshed title reaches a new
       // share within it, and `ImageResponse`'s own default is a year.
       headers: { "Cache-Control": "public, max-age=3600" },

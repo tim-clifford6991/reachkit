@@ -85,7 +85,7 @@ import { livePagesForSite, type HostedPage } from "@/lib/publish/destinations/ho
 import { resolveHost } from "../../resolve-host";
 import { HostedArticle, articleHead, businessOf, loadArticle, type Resolved } from "./article";
 import type { HostedBusiness } from "./chrome";
-import { HostedIndex, pageOf, queryOf } from "./listing";
+import { HostedIndex, indexPageCount, pageOf, queryOf } from "./listing";
 import { indexMetadata } from "./seo";
 
 /** This route is not cached: it reads the Host header and the index's
@@ -132,16 +132,32 @@ const loadIndex = cache(async (): Promise<IndexResolved | null> => {
   return { business, canonical: `https://${disposition.host}/`, pages };
 });
 
+type Search = Promise<Record<string, string | string[] | undefined>> | undefined;
+
+/** The search and the page of the index this address asks for. A page past
+ *  the last one is `null`: it answers 404 (issue 1514), never the last
+ *  page under another address. */
+async function listOf(index: IndexResolved, searchParams: Search): Promise<{ query: string; page: number } | null> {
+  const search = await searchParams;
+  const query = queryOf(search?.q);
+  const page = pageOf(search?.page);
+  return page > indexPageCount(index.pages, query) ? null : { query, page };
+}
+
 export async function generateMetadata({
   params,
+  searchParams,
 }: {
   params: Promise<{ slug?: string[] }>;
+  searchParams?: Search;
 }): Promise<Metadata> {
   const { slug } = await params;
   if (isIndex(slug)) {
     const index = await loadIndex();
     if (index === null) return {};
-    return indexMetadata(index);
+    const list = await listOf(index, searchParams);
+    if (list === null) return {};
+    return indexMetadata({ ...index, ...list });
   }
   if (slug === undefined) return {};
   const segment = oneSegment(slug);
@@ -155,15 +171,16 @@ export default async function HostedPageRoute({
   searchParams,
 }: {
   params: Promise<{ slug?: string[] }>;
-  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+  searchParams?: Search;
 }): Promise<React.JSX.Element> {
   const { slug } = await params;
   if (isIndex(slug)) {
     const index = await loadIndex();
     // An unknown or stopped Host has no index either: the same 404.
     if (index === null) notFound();
-    const search = await searchParams;
-    return <HostedIndex {...index} query={queryOf(search?.q)} page={pageOf(search?.page)} />;
+    const list = await listOf(index, searchParams);
+    if (list === null) notFound();
+    return <HostedIndex {...index} {...list} />;
   }
   if (slug === undefined) notFound();
   const segment = oneSegment(slug);

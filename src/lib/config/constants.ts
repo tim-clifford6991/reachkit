@@ -1422,6 +1422,14 @@ export const AI_REFERRER_SOURCES = Object.freeze({           // issue 921
 export const BLOG_READS_WINDOW_D = 7 as const;               // issue 921
 export const BLOG_READS_RETENTION_W = 4 as const;            // issue 921
 
+/** SPEC §7 (2026-10-18, issue 1514): how long a cached hosted article may
+ *  take to its first byte, read by `scripts/smoke.sh` from where it runs.
+ *  Measured at 0.42–0.89 s from the EU on 2026-10-18; a text page's largest
+ *  paint is mostly this and its fonts. */
+export const HOSTED_TTFB_BUDGET_MS = 1000 as const;
+/** And how many fonts a hosted page may preload (the same ruling). */
+export const HOSTED_FONT_PRELOADS = 2 as const;
+
 // The free path's own bounds
 export const FREE_RESCAN_WINDOW_D = 7 as const;              // BP-023 · BUILD §6.4
 export const FAILURE_COOLDOWN_H = 24 as const;               // BP-023 · BUILD §6.4

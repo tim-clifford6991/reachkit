@@ -27,7 +27,7 @@
 // the operator of a stranger's domain nor its voice belongs on it. The
 // document's `<title>` is HTTP's own word for HTTP's own status, which HTML
 // requires an element for and a browser tab shows; the body is empty, the
-// same as `(hosted)/not-found.tsx`.
+// same as `(hosted)/hosted-page/not-found.tsx`.
 //
 // **Never cached.** A takedown is immediate (WO-028's NFR): `no-store`
 // means no proxy between us and the visitor can keep serving the page this

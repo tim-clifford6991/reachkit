@@ -628,7 +628,7 @@ function matchesPublicPath(pathname: string): boolean {
  *  answered `307 /signin`, and the S8 screen issue #372 built was
  *  unreachable. After it, a request is denied when it stands under a
  *  segment this product actually serves and is not public; anything else is
- *  no address at all, and Next answers it from `src/app/not-found.tsx` with
+ *  no address at all, and Next answers it from `src/app/global-not-found.tsx` with
  *  the status a missing page carries.
  *
  *  **What the difference discloses, and why it is nothing.** BP-001's
@@ -899,7 +899,7 @@ export async function middleware(
   // An address this product does not have (#405): not public, and under no
   // segment `src/app/` serves. There is nothing here to guard, so the
   // request falls through to Next, which matches no route and renders
-  // `src/app/not-found.tsx` — S8's screen, inside ruling 3a's header and
+  // `src/app/global-not-found.tsx` — S8's screen, inside ruling 3a's header and
   // footer, with the status a 404 carries. Decided **before** the session
   // check rather than after it, so a stranger and a signed-in customer are
   // told the same thing at the same address. Sealed like every other

@@ -86,6 +86,7 @@ export const EN: LanguagePack = {
     ).split(" "),
   },
   numberWords: "zero one two three four five six seven eight nine ten eleven twelve".split(" "),
+  slugLetters: {},
   title: {
     filler: new Set(
       "a an and are as at be best but by can do does for from how i in is it my of on or our that the to top vs was we what when which who why will with you your".split(" ")

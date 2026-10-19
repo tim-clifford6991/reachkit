@@ -48,7 +48,6 @@ describe("German templates", () => {
     const rules = languageRules("de").join(" ");
     expect(rules).toMatch(/whole page in German/);
     expect(rules).toMatch(/"Sie"/);
-    expect(rules).toMatch(/ae, oe, ue and ss/);
   });
 
   it("the writer of a German page is told the German banned patterns, an English one the English", () => {

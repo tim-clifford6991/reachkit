@@ -11,7 +11,7 @@ import { applyEnvFixture } from "../../mail/env-fixture";
 
 applyEnvFixture();
 
-const NotFound = (await import("@/app/(hosted)/not-found")).default;
+const NotFound = (await import("@/app/(hosted)/hosted-page/not-found")).default;
 const gone = await import("@/app/(hosted)/hosted-gone/route");
 const { HOSTED_GONE_STATUS } = await import("@/lib/config/constants");
 

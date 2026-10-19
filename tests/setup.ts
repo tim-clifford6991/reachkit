@@ -13,7 +13,7 @@
 // package ships an empty `index.js` on purpose: the call is erased at build
 // by Next's own font transform, which emits the `@font-face` CSS and the
 // preload links in its place. Imported by anything else — a vitest worker
-// rendering `src/app/layout.tsx`, say — the export is simply not a
+// rendering `src/app/_root/document.tsx`, say — the export is simply not a
 // function. So the loader is stubbed here, once, rather than in each of the
 // test files that reach the root layout: the stub is about the *toolchain*,
 // not about any one test's subject, and a suite added tomorrow that renders

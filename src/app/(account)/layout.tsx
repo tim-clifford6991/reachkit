@@ -54,6 +54,7 @@ import { NuqsAdapter } from "nuqs/adapters/next/app";
 import { GATE_PATH_HEADER, setupRedirectFor } from "./setup/gate";
 import { readSetupGateState } from "./setup/gate-state";
 import { BrowserZone } from "./_zone/BrowserZone";
+import ReachKitDocument from "../_root/document";
 
 export const metadata: Metadata = { title: copy("chrome.wordmark") };
 
@@ -97,10 +98,13 @@ export default async function AccountLayout({
   // public route as well, which is 17.8 kB of script a stranger reading the
   // landing page downloaded for URL state that page does not have. It still
   // wraps every screen that reads one, which is what the adapter is for.
+  // A root layout since issue 1514, so it renders ReachKit's document.
   return (
-    <NuqsAdapter>
-      <BrowserZone />
-      {children}
-    </NuqsAdapter>
+    <ReachKitDocument>
+      <NuqsAdapter>
+        <BrowserZone />
+        {children}
+      </NuqsAdapter>
+    </ReachKitDocument>
   );
 }
