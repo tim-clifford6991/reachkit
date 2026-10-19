@@ -96,7 +96,7 @@ import type { WeeklyPoint } from "./growth";
 import type { RivalFact, RivalFacts } from "./rivals";
 import { needsYouOf, waitsOnCustomer } from "@/lib/publish/record/needs-you";
 import type { State } from "@/lib/publish/types";
-import { waitingIssues, type WaitingItem } from "./alerts";
+import { waitingIssues, type WaitingIssue, type WaitingItem } from "./alerts";
 import type { WaitingPageFacts, WaitingTarget } from "./waiting";
 import type { CopyKey } from "@/lib/presentation/copy";
 import { STAGE_FILTER_COPY_KEY, STAGE_OF } from "../calendar/stages";
@@ -616,6 +616,50 @@ interface WeeklyFacts {
   searchesWeekZero?: Measured<number>;
 }
 
+/** Which stored report stands as the latest in a window, and the deep pass
+ *  as week 0 where it precedes every weekly week — one rule, so Overview's
+ *  figures and its needs-you, and the Technical issues view behind them,
+ *  read the same report. */
+function standingOf(
+  weeks: readonly string[],
+  scans: Awaited<ReturnType<typeof readWeekScans>>,
+  deep: DeepPass | undefined,
+  timeZone: string
+): {
+  measured: readonly string[];
+  first: number;
+  weekZero: { report: StoredReport; weekStart: string } | null;
+  latest: StoredReport | null;
+} {
+  const measured = weeks.filter((week) => scans.get(week)?.report != null);
+  const first = weeks.findIndex((week) => scans.has(week));
+  const firstScanned = weeks[first];
+  const deepWeek = deep === undefined ? null : weekStartFor({ at: deep.on, zone: timeZone });
+  const weekZero =
+    deep !== undefined && deepWeek !== null && (firstScanned === undefined || deepWeek < firstScanned)
+      ? { report: deep.report, weekStart: deepWeek }
+      : null;
+  const latest = scans.get(measured.at(-1) ?? "")?.report ?? weekZero?.report ?? null;
+  return { measured, first, weekZero, latest };
+}
+
+/**
+ * Issue 1550: the checks waiting on the customer, from the same report
+ * Overview's needs-you reads them from — so an item there and the view it
+ * opens hold the same issues. Empty where no report is stored yet.
+ */
+export async function readWaitingIssues(site: OverviewSite): Promise<readonly WaitingIssue[]> {
+  const now = clock();
+  const weeks = windowWeeks(now, site.timeZone);
+  const [scans, deep] = await Promise.all([
+    readWeekScans({ siteId: site.siteId, weekStarts: weeks }),
+    deepPassReading(site.siteId),
+  ]);
+  const report = standingOf(weeks, scans, deep, site.timeZone).latest ?? deep?.report ?? null;
+  if (report === null) return [];
+  return waitingIssues(report.siteIssues, { measuredAt: report.verdict.measuredAt });
+}
+
 async function weeklySeries(
   site: OverviewSite,
   now: Date,
@@ -640,15 +684,7 @@ async function weeklySeries(
   // is the one that week's deltas compare against. It stands only where its
   // week precedes every weekly week this window read: a deep pass re-run
   // after the weeklies began is not where the customer started.
-  const measured = weeks.filter((week) => scans.get(week)?.report != null);
-  const first = weeks.findIndex((week) => scans.has(week));
-  const firstScanned = weeks[first];
-  const deepWeek = deep === undefined ? null : weekStartFor({ at: deep.on, zone: site.timeZone });
-  const weekZero =
-    deep !== undefined && deepWeek !== null && (firstScanned === undefined || deepWeek < firstScanned)
-      ? { report: deep.report, weekStart: deepWeek }
-      : null;
-  const latest = scans.get(measured.at(-1) ?? "")?.report ?? weekZero?.report ?? null;
+  const { measured, first, weekZero, latest } = standingOf(weeks, scans, deep, site.timeZone);
   const previousWeek =
     measured.length >= 2
       ? (scans.get(measured.at(-2) ?? "")?.report ?? null)
@@ -945,7 +981,7 @@ export async function readOverviewFacts(site: OverviewSite): Promise<OverviewFac
     waiting: [
       ...connect,
       ...waiting,
-      ...issuesWaiting(series.latest ?? deepPass?.report ?? null, site.domain),
+      ...issuesWaiting(series.latest ?? deepPass?.report ?? null),
     ],
     // Issue 867: which engines this site's pages are measured on, and what
     // this week's pages are aimed at.
@@ -987,10 +1023,7 @@ async function connectWaiting(siteId: string, now: Date): Promise<readonly Waiti
  *  newest stored report — Monday's, or the deep pass before the first
  *  Monday. A fault fixed before Monday reads as a zero on that report and so
  *  is not here. Nothing is re-checked for the screen. */
-function issuesWaiting(report: StoredReport | null, domain: string): readonly WaitingItem[] {
+function issuesWaiting(report: StoredReport | null): readonly WaitingItem[] {
   if (report === null) return [];
-  return waitingIssues(report.siteIssues, {
-    measuredAt: report.verdict.measuredAt,
-    reportHref: `/scan/${encodeURIComponent(domain)}`,
-  });
+  return waitingIssues(report.siteIssues, { measuredAt: report.verdict.measuredAt });
 }

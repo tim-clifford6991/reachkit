@@ -188,6 +188,7 @@ describe("the veto window the panel's line states (S12)", () => {
 });
 
 // ── SPEC §9 on the dashboard (#572) ───────────────────────────────────
+const addresses = (count: number): string[] => Array.from({ length: count }, (_, i) => `https://example.com/${i}`);
 const ran = (check: SiteIssue["check"], count: number, over: Partial<SiteIssue> = {}): SiteIssue =>
   ({
     check,
@@ -197,7 +198,8 @@ const ran = (check: SiteIssue["check"], count: number, over: Partial<SiteIssue> 
     unit: "pages",
     severity: count === 0 ? "nothing_to_fix" : "worth_fixing",
     doer: "free_fix",
-    pages: null,
+    pages: addresses(count),
+    ...(check === "slow_pages" ? { ms: addresses(count).map(() => 3_500) } : {}),
     ...over,
   }) as SiteIssue;
 const section = (issues: SiteIssue[]): SiteIssuesSection => ({
@@ -206,7 +208,7 @@ const section = (issues: SiteIssue[]): SiteIssuesSection => ({
   stoppedBy: "complete",
   issues,
 });
-const MONDAY = { measuredAt: AT, reportHref: "/scan/example.com" };
+const MONDAY = { measuredAt: AT };
 
 describe("technical issues in Needs you", () => {
   it("only the customer's own open issues wait: not a zero, not ReachKit's, not one that could not run", () => {
@@ -220,7 +222,7 @@ describe("technical issues in Needs you", () => {
       MONDAY
     );
     expect(waiting.map((w) => w.check)).toEqual(["slow_pages"]);
-    expect(waiting[0]).toMatchObject({ count: 3, over: 40, href: "/scan/example.com" });
+    expect(waiting[0]).toMatchObject({ count: 3, over: 40, href: "/app/issues#slow_pages" });
   });
 
   it("a fault fixed by Monday is a zero on Monday's report, so it is gone", () => {
@@ -233,13 +235,45 @@ describe("technical issues in Needs you", () => {
 
   it("drafts outrank issues, Critical outranks Worth fixing, and the issue remainder is counted on its own line", () => {
     const issues = waitingIssues(
-      section([ran("slow_pages", 3), ran("sitemap", 1, { severity: "critical", unit: "site", over: 1 }), ran("broken_links", 7)]),
+      section([ran("slow_pages", 3), ran("sitemap", 1, { severity: "critical", unit: "site", over: 1, pages: null }), ran("broken_links", 7)]),
       MONDAY
     );
     const { alerts, overflow, issuesOverflow } = readAlerts([...issues, item()], AT);
     expect(alerts.map((a) => a.kind)).toEqual(["pending_veto", "site_issue"]);
-    expect(alerts[1]).toMatchObject({ severity: "critical", figure: { count: 1, over: 1 }, href: "/scan/example.com" });
+    expect(alerts[1]).toMatchObject({ severity: "critical", figure: { count: 1, over: 1 }, href: "/app/issues#sitemap" });
     expect(overflow).toBeUndefined();
     expect(issuesOverflow).toEqual({ remaining: 2, whereKey: ISSUE_OVERFLOW_WHERE_KEY });
   });
 });
+
+// Issue 1550: an item is something the customer can act on, from where it
+// lands.
+describe("a technical issue in Needs you is one the customer can act on", () => {
+  it("opens the account's own view at its check, never the public report", () => {
+    const [issue] = waitingIssues(section([ran("noindex_pages", 2)]), MONDAY);
+    expect(issue?.href.startsWith("/app/")).toBe(true);
+    expect(issue?.href).not.toContain("/scan/");
+    expect(issue).toMatchObject({ fix: "check.noindex-pages.fix", pages: addresses(2) });
+  });
+
+  it("a check with nothing to name or no fix line is never an item", () => {
+    const waiting = waitingIssues(
+      section([
+        // Counted before addresses were kept: nothing to name.
+        ran("noindex_pages", 2, { pages: null }),
+        ran("broken_links", 3, { unit: "links", pages: null }),
+        ran("phone_usability", 4),
+      ]),
+      MONDAY
+    );
+    expect(waiting.map((w) => w.check)).toEqual(["phone_usability"]);
+  });
+
+  it("slow pages from one read are not an item; confirmed ones carry their time", () => {
+    const once = waitingIssues(section([ran("slow_pages", 1, { ms: undefined })]), MONDAY);
+    expect(once).toEqual([]);
+    const twice = waitingIssues(section([ran("slow_pages", 1, { ms: [4_200] })]), MONDAY);
+    expect(twice[0]).toMatchObject({ pages: addresses(1), ms: [4_200] });
+  });
+});
+

@@ -349,17 +349,29 @@ describe("needs you — a technical issue the customer fixes (#572)", () => {
   const model = assembleOverview(
     facts({
       waiting: [
-        { kind: "site_issue", check: "slow_pages", count: 3, over: 40, severity: "critical", since: AT(31), href: "/scan/example.com" },
+        {
+          kind: "site_issue",
+          check: "slow_pages",
+          count: 3,
+          over: 40,
+          severity: "critical",
+          since: AT(31),
+          fix: "check.slow-pages.fix",
+          pages: ["https://example.com/a", "https://example.com/b", "https://example.com/c"],
+          ms: [3_100, 3_400, 5_000],
+          href: "/app/issues#slow_pages",
+        },
       ],
     })
   );
   const markup = html(<NeedsYouModule alerts={model.alerts} overflow={model.overflow} issuesOverflow={model.issuesOverflow} />);
 
-  it("names the check, its stored count over its set and its severity, and links to the fix lines", () => {
+  it("names the check, its stored count over its set and its severity, and opens the account's view of it", () => {
     expect(markup).toContain("check.slow-pages.title");
     expect(markup).toContain(">3/40<");
     expect(markup).toContain("severity.high");
-    expect(markup).toContain('href="/scan/example.com"');
+    expect(markup).toContain('href="/app/issues#slow_pages"');
+    expect(markup).not.toContain("/scan/");
     expect(markup).toContain("alert-error");
   });
 });

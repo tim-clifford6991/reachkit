@@ -67,7 +67,7 @@
 // it, which is the contradiction §9's `noindex` check exists to name. One
 // variant of a path is read to learn which it is; its siblings are then
 // dropped unread, so a gallery's forty filters cost one fetch, not forty.
-import { CACHE_WINDOWS_D, SITE_PROFILE } from "@/lib/config/constants";
+import { CACHE_WINDOWS_D, SITE_ISSUES, SITE_PROFILE } from "@/lib/config/constants";
 import { refusalOf, type CostContext, type FetchRefusal } from "@/lib/costs";
 import { crawlDelayMs, readRobots, robotsAllows } from "@/lib/egress/robots";
 import type { SafeFetchOpts } from "@/lib/egress/safe-fetch";
@@ -111,6 +111,10 @@ export interface CrawledPage {
   /** How long this crawl's own fetch of the document took, or `null` where
    *  no fetch was timed (a document handed over or served from the cache). */
   fetchMs: number | null;
+  /** Issue 1550: a second timed read of a page whose first read reached
+   *  `SITE_ISSUES.SLOW_PAGE_MS` — `null` where it did not come back. Absent
+   *  on every page whose first read was quick or untimed. */
+  againMs?: number | null;
 }
 
 export interface CrawlOutcome {
@@ -435,6 +439,16 @@ async function crawl(c: CostContext, a: CrawlArgs, reader: BoundedReader): Promi
   }
 
   if (stoppedBy === "complete" && pages.length >= SITE_PROFILE.MAX_PAGES) stoppedBy = "page_cap";
+
+  // Issue 1550: one slow read is not a slow page — a cold start reads the
+  // same. A page whose read reached the bar is read once more, under the
+  // same bounds, and the checks count it only where both reads agree.
+  for (const page of pages) {
+    if (page.fetchMs === null || page.fetchMs < SITE_ISSUES.SLOW_PAGE_MS) continue;
+    if (reader.expired()) break;
+    const again = await reader.read(page.url);
+    page.againMs = again.outcome !== "aborted" && again.outcome.ok ? again.fetchMs : null;
+  }
 
   return {
     pages,

@@ -21,7 +21,7 @@ import { Bell, Check, FileText, Globe, Plug, Wrench } from "lucide-react";
 import { copy } from "@/lib/presentation/copy";
 import { writtenLine } from "../_shell/written";
 import { formatCount } from "./present";
-import type { Alert, AlertKind, Overflow } from "./alerts";
+import { ISSUES_HREF, type Alert, type AlertKind, type Overflow } from "./alerts";
 
 const PANEL: Readonly<Record<AlertKind, { alert: string; cta: string; Icon: typeof Bell }>> = {
   // #924: the hosted blog's address, waiting for its record. The accent
@@ -35,7 +35,8 @@ const PANEL: Readonly<Record<AlertKind, { alert: string; cta: string; Icon: type
   needs_you: { alert: "alert alert-soft", cta: "btn btn-soft btn-primary btn-sm", Icon: Plug },
   // A technical issue the customer fixes (SPEC §9): error ground when
   // Critical, warning when Worth fixing, and the outline control to the
-  // report's fix lines. Its count over its set is the stored one.
+  // account's own view of the fix (issue 1550). Its count over its set is
+  // the stored one.
   site_issue: { alert: "alert alert-warning alert-soft", cta: "btn btn-soft btn-primary btn-sm", Icon: Wrench },
 };
 
@@ -143,7 +144,9 @@ export function NeedsYouModule(p: {
         )}
         {issuesOverflowLine === null ? null : (
           <p className="text-xs text-base-content/70" data-testid="overview-issues-overflow">
-            {issuesOverflowLine}
+            <Link className="link" href={ISSUES_HREF}>
+              {issuesOverflowLine}
+            </Link>
           </p>
         )}
       </div>

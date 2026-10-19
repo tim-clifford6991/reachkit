@@ -218,6 +218,14 @@ export const ROUTE_REFERENCE: Readonly<Record<string, `S${number}`>> = {
    */
   "/app/costs": "S18",
   /**
+   * REFERENCE: S18 — Settings, the nearest approved screen (issue 1550).
+   *
+   * Technical issues is newer than the approved set: inside the shell, a
+   * card per check with its fix line and its pages. The reserved account's
+   * fixture holds a page address longer than a phone is wide.
+   */
+  "/app/issues": "S18",
+  /**
    * REFERENCE: S19 — Hosted page (§S19; REQ-059).
    *
    * The route is swept through **two** hosts (issue #418): the default

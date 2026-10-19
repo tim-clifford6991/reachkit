@@ -31,9 +31,9 @@
 import type { CopyKey } from "@/lib/presentation/copy";
 import { NEEDS_YOU_COPY } from "@/lib/publish/record/lines";
 import { waitsOnDestination, type NeedsYouCause } from "@/lib/publish/record/needs-you";
-import { SITE_CHECK_TITLE, SITE_SEVERITY_WORD } from "@/lib/presentation/site-issues";
+import { SITE_CHECK_FIX, SITE_CHECK_TITLE, SITE_SEVERITY_WORD } from "@/lib/presentation/site-issues";
 import { OVERVIEW_ALERT_CAP } from "@/lib/config/constants";
-import { SITE_CHECKS, type SiteCheck, type SiteIssuesSection } from "@/lib/site-issues/types";
+import { SITE_CHECKS, type SiteCheck, type SiteIssue, type SiteIssuesSection } from "@/lib/site-issues/types";
 
 /** The kinds, in the order they outrank each other.
  *
@@ -74,7 +74,15 @@ export interface WaitingIssue {
   severity: "worth_fixing" | "critical";
   /** When it was measured. */
   since: Date;
-  /** The free report, where the fix lines are. */
+  /** Issue 1550: the one sentence that says what to do. */
+  fix: CopyKey;
+  /** The addresses it is about, as stored — empty for a fault of the whole
+   *  site (no sitemap, a reader blocked in `robots.txt`). */
+  pages: readonly string[];
+  /** Slow pages only: each page's measured time, in `pages` order. */
+  ms?: readonly number[];
+  /** The account's own view of this check (issue 1550), never the public
+   *  report, which is a sales page with a checkout on it. */
   href: string;
 }
 
@@ -155,16 +163,35 @@ const PENDING_NO_WINDOW_KEY = "overview.alert.pending-veto.no-window" satisfies 
  *  already points there. */
 const NEEDS_YOU_READ_ACTION_KEY = "overview.alert.needs-you.read" satisfies CopyKey;
 
+/** Issue 1550: the account's view of the checks waiting on the customer. */
+export const ISSUES_HREF = "/app/issues";
+
+/** What the customer can act on, or `null` where the stored reading gives
+ *  them nothing to act on (issue 1550): a check with no fix sentence, a
+ *  count of pages or links with no address kept, or slow pages read once. */
+function actionable(
+  issue: Extract<SiteIssue, { ran: true }>
+): { fix: CopyKey; pages: readonly string[]; ms?: readonly number[] } | null {
+  const fix = SITE_CHECK_FIX[issue.check];
+  if (fix === undefined) return null;
+  const pages = issue.pages ?? [];
+  const named = issue.unit === "pages" || issue.unit === "links";
+  if (named && pages.length === 0) return null;
+  if (issue.check !== "slow_pages") return { fix, pages };
+  if (issue.ms === undefined || issue.ms.length !== pages.length) return null;
+  return { fix, pages, ms: issue.ms };
+}
+
 /** The stored section's issues that wait on the customer: ran, counted at
- *  least one, and theirs to fix. A projection — nothing is re-checked. */
-export function waitingIssues(
-  section: SiteIssuesSection | null,
-  at: { measuredAt: Date; reportHref: string }
-): readonly WaitingIssue[] {
+ *  least one, theirs to fix, and stated with a fix and what it applies to.
+ *  A projection — nothing is re-checked. */
+export function waitingIssues(section: SiteIssuesSection | null, at: { measuredAt: Date }): readonly WaitingIssue[] {
   const out: WaitingIssue[] = [];
   for (const issue of section?.issues ?? []) {
     if (!issue.ran || issue.count === 0 || issue.doer !== "free_fix") continue;
     if (issue.severity === "nothing_to_fix") continue;
+    const act = actionable(issue);
+    if (act === null) continue;
     out.push({
       kind: "site_issue",
       check: issue.check,
@@ -172,7 +199,8 @@ export function waitingIssues(
       over: issue.over,
       severity: issue.severity,
       since: at.measuredAt,
-      href: at.reportHref,
+      ...act,
+      href: `${ISSUES_HREF}#${issue.check}`,
     });
   }
   return out;
