@@ -96,8 +96,8 @@ jobs:
       # between runs of a pull request. A checkout resets every mtime, so
       # eslint compares content, not metadata. The key carries the lockfile,
       # so a plugin upgrade starts cold. The runner is pinned to two CPUs,
-      # where vitest's default is one worker; two keep peak memory under
-      # 5 GB on the 7.6 GB box.
+      # where vitest's default is one worker; peak memory must stay under
+      # 5 GB on the 7.6 GB box, or this falls back to `--pool=threads`.
       - uses: actions/cache@v4
         with:
           path: |
