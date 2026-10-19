@@ -1,0 +1,791 @@
+{
+  "_source": "Drafted for issue 1561, not bought: a German Sanitär- und Heizungsbetrieb in Köln. The panel (docs/walk/panel/sites.json) has no German tradesman and production holds no German trade SERP (fetches read SELECT-only on 2026-10-19), so the searches, volumes and top tens are written in the shape scripts/panel/evidence/ stores, after the panel's German bakery and its Austin plumber. A how-to or cost question is judged fit 3, the rest fit 2.",
+  "profile": {
+    "category": "Sanitär und Heizung",
+    "offeringType": "Sanitärinstallation",
+    "job": "Bad, Heizung und Rohre reparieren und erneuern",
+    "audienceTerms": [
+      "Hausbesitzer in Köln"
+    ],
+    "namedRivals": [],
+    "vocabulary": [
+      "klempner",
+      "installateur",
+      "sanitär",
+      "heizung",
+      "heizungsbauer",
+      "badsanierung",
+      "rohrreinigung",
+      "wasserrohrbruch"
+    ],
+    "brandTokens": [
+      "rheinwerk haustechnik"
+    ],
+    "kind": "local-service",
+    "town": "Köln",
+    "language": "de"
+  },
+  "market": {
+    "buyer": "Hausbesitzer und Mieter in Köln",
+    "job": "Bad, Heizung und Rohre reparieren lassen",
+    "category": "Sanitär und Heizung",
+    "synonyms": [
+      "Klempner",
+      "Installateur",
+      "Heizungsbauer",
+      "Badsanierung"
+    ],
+    "differentiators": [],
+    "notOurMarket": [],
+    "categoryReason": "",
+    "rivals": [],
+    "kind": "local-service",
+    "serves": {
+      "name": "Köln",
+      "region": "Nordrhein-Westfalen"
+    }
+  },
+  "searches": [
+    {
+      "search": "klempner köln",
+      "volume": 880,
+      "organic": [
+        {
+          "domain": "www.mueller-haustechnik-koeln.de",
+          "url": "https://www.mueller-haustechnik-koeln.de/",
+          "title": "Klempner & Sanitär in Köln – Müller Haustechnik"
+        },
+        {
+          "domain": "www.gelbeseiten.de",
+          "url": "https://www.gelbeseiten.de/branchen/klempner/köln",
+          "title": "Klempner in Köln ⇒ in Das Örtliche"
+        },
+        {
+          "domain": "www.11880.com",
+          "url": "https://www.11880.com/suche/installateur/koeln",
+          "title": "Installateur Köln – 11880.com"
+        },
+        {
+          "domain": "www.becker-sanitaer.koeln",
+          "url": "https://www.becker-sanitaer.koeln/",
+          "title": "Becker Sanitär und Heizung Köln"
+        },
+        {
+          "domain": "www.myhammer.de",
+          "url": "https://www.myhammer.de/handwerker/klempner/koeln",
+          "title": "Klempner in Köln finden | MyHammer"
+        },
+        {
+          "domain": "www.schmitz-bad-heizung.de",
+          "url": "https://www.schmitz-bad-heizung.de/notdienst/",
+          "title": "Sanitär-Notdienst Köln 24h – Schmitz Bad & Heizung"
+        },
+        {
+          "domain": "www.yelp.de",
+          "url": "https://www.yelp.de/search?find_desc=Klempner&find_loc=Köln",
+          "title": "Die besten 10 Klempner in Köln – Yelp"
+        },
+        {
+          "domain": "www.wagner-haustechnik.de",
+          "url": "https://www.wagner-haustechnik.de/koeln/",
+          "title": "Wagner Haustechnik – Heizung, Sanitär, Bad in Köln"
+        },
+        {
+          "domain": "www.rheinland-installateur.de",
+          "url": "https://www.rheinland-installateur.de/",
+          "title": "Ihr Installateur im Rheinland | Köln & Umgebung"
+        },
+        {
+          "domain": "www.koch-heizungsbau.de",
+          "url": "https://www.koch-heizungsbau.de/",
+          "title": "Koch Heizungsbau GmbH Köln"
+        }
+      ],
+      "fit": 2
+    },
+    {
+      "search": "installateur köln",
+      "volume": 720,
+      "organic": [
+        {
+          "domain": "www.mueller-haustechnik-koeln.de",
+          "url": "https://www.mueller-haustechnik-koeln.de/",
+          "title": "Klempner & Sanitär in Köln – Müller Haustechnik"
+        },
+        {
+          "domain": "www.gelbeseiten.de",
+          "url": "https://www.gelbeseiten.de/branchen/klempner/köln",
+          "title": "Klempner in Köln ⇒ in Das Örtliche"
+        },
+        {
+          "domain": "www.11880.com",
+          "url": "https://www.11880.com/suche/installateur/koeln",
+          "title": "Installateur Köln – 11880.com"
+        },
+        {
+          "domain": "www.becker-sanitaer.koeln",
+          "url": "https://www.becker-sanitaer.koeln/",
+          "title": "Becker Sanitär und Heizung Köln"
+        },
+        {
+          "domain": "www.myhammer.de",
+          "url": "https://www.myhammer.de/handwerker/klempner/koeln",
+          "title": "Klempner in Köln finden | MyHammer"
+        },
+        {
+          "domain": "www.schmitz-bad-heizung.de",
+          "url": "https://www.schmitz-bad-heizung.de/notdienst/",
+          "title": "Sanitär-Notdienst Köln 24h – Schmitz Bad & Heizung"
+        },
+        {
+          "domain": "www.yelp.de",
+          "url": "https://www.yelp.de/search?find_desc=Klempner&find_loc=Köln",
+          "title": "Die besten 10 Klempner in Köln – Yelp"
+        },
+        {
+          "domain": "www.wagner-haustechnik.de",
+          "url": "https://www.wagner-haustechnik.de/koeln/",
+          "title": "Wagner Haustechnik – Heizung, Sanitär, Bad in Köln"
+        },
+        {
+          "domain": "www.rheinland-installateur.de",
+          "url": "https://www.rheinland-installateur.de/",
+          "title": "Ihr Installateur im Rheinland | Köln & Umgebung"
+        },
+        {
+          "domain": "www.koch-heizungsbau.de",
+          "url": "https://www.koch-heizungsbau.de/",
+          "title": "Koch Heizungsbau GmbH Köln"
+        }
+      ],
+      "fit": 2
+    },
+    {
+      "search": "sanitär notdienst köln",
+      "volume": 170,
+      "organic": [
+        {
+          "domain": "www.mueller-haustechnik-koeln.de",
+          "url": "https://www.mueller-haustechnik-koeln.de/",
+          "title": "Klempner & Sanitär in Köln – Müller Haustechnik"
+        },
+        {
+          "domain": "www.gelbeseiten.de",
+          "url": "https://www.gelbeseiten.de/branchen/klempner/köln",
+          "title": "Klempner in Köln ⇒ in Das Örtliche"
+        },
+        {
+          "domain": "www.11880.com",
+          "url": "https://www.11880.com/suche/installateur/koeln",
+          "title": "Installateur Köln – 11880.com"
+        },
+        {
+          "domain": "www.becker-sanitaer.koeln",
+          "url": "https://www.becker-sanitaer.koeln/",
+          "title": "Becker Sanitär und Heizung Köln"
+        },
+        {
+          "domain": "www.myhammer.de",
+          "url": "https://www.myhammer.de/handwerker/klempner/koeln",
+          "title": "Klempner in Köln finden | MyHammer"
+        },
+        {
+          "domain": "www.schmitz-bad-heizung.de",
+          "url": "https://www.schmitz-bad-heizung.de/notdienst/",
+          "title": "Sanitär-Notdienst Köln 24h – Schmitz Bad & Heizung"
+        },
+        {
+          "domain": "www.yelp.de",
+          "url": "https://www.yelp.de/search?find_desc=Klempner&find_loc=Köln",
+          "title": "Die besten 10 Klempner in Köln – Yelp"
+        },
+        {
+          "domain": "www.wagner-haustechnik.de",
+          "url": "https://www.wagner-haustechnik.de/koeln/",
+          "title": "Wagner Haustechnik – Heizung, Sanitär, Bad in Köln"
+        },
+        {
+          "domain": "www.rheinland-installateur.de",
+          "url": "https://www.rheinland-installateur.de/",
+          "title": "Ihr Installateur im Rheinland | Köln & Umgebung"
+        },
+        {
+          "domain": "www.koch-heizungsbau.de",
+          "url": "https://www.koch-heizungsbau.de/",
+          "title": "Koch Heizungsbau GmbH Köln"
+        }
+      ],
+      "fit": 2
+    },
+    {
+      "search": "heizung reparatur köln",
+      "volume": 90,
+      "organic": [
+        {
+          "domain": "www.mueller-haustechnik-koeln.de",
+          "url": "https://www.mueller-haustechnik-koeln.de/",
+          "title": "Klempner & Sanitär in Köln – Müller Haustechnik"
+        },
+        {
+          "domain": "www.gelbeseiten.de",
+          "url": "https://www.gelbeseiten.de/branchen/klempner/köln",
+          "title": "Klempner in Köln ⇒ in Das Örtliche"
+        },
+        {
+          "domain": "www.11880.com",
+          "url": "https://www.11880.com/suche/installateur/koeln",
+          "title": "Installateur Köln – 11880.com"
+        },
+        {
+          "domain": "www.becker-sanitaer.koeln",
+          "url": "https://www.becker-sanitaer.koeln/",
+          "title": "Becker Sanitär und Heizung Köln"
+        },
+        {
+          "domain": "www.myhammer.de",
+          "url": "https://www.myhammer.de/handwerker/klempner/koeln",
+          "title": "Klempner in Köln finden | MyHammer"
+        },
+        {
+          "domain": "www.schmitz-bad-heizung.de",
+          "url": "https://www.schmitz-bad-heizung.de/notdienst/",
+          "title": "Sanitär-Notdienst Köln 24h – Schmitz Bad & Heizung"
+        },
+        {
+          "domain": "www.yelp.de",
+          "url": "https://www.yelp.de/search?find_desc=Klempner&find_loc=Köln",
+          "title": "Die besten 10 Klempner in Köln – Yelp"
+        },
+        {
+          "domain": "www.wagner-haustechnik.de",
+          "url": "https://www.wagner-haustechnik.de/koeln/",
+          "title": "Wagner Haustechnik – Heizung, Sanitär, Bad in Köln"
+        },
+        {
+          "domain": "www.rheinland-installateur.de",
+          "url": "https://www.rheinland-installateur.de/",
+          "title": "Ihr Installateur im Rheinland | Köln & Umgebung"
+        },
+        {
+          "domain": "www.koch-heizungsbau.de",
+          "url": "https://www.koch-heizungsbau.de/",
+          "title": "Koch Heizungsbau GmbH Köln"
+        }
+      ],
+      "fit": 2
+    },
+    {
+      "search": "rohrreinigung köln",
+      "volume": 1300,
+      "organic": [
+        {
+          "domain": "www.mueller-haustechnik-koeln.de",
+          "url": "https://www.mueller-haustechnik-koeln.de/",
+          "title": "Klempner & Sanitär in Köln – Müller Haustechnik"
+        },
+        {
+          "domain": "www.gelbeseiten.de",
+          "url": "https://www.gelbeseiten.de/branchen/klempner/köln",
+          "title": "Klempner in Köln ⇒ in Das Örtliche"
+        },
+        {
+          "domain": "www.11880.com",
+          "url": "https://www.11880.com/suche/installateur/koeln",
+          "title": "Installateur Köln – 11880.com"
+        },
+        {
+          "domain": "www.becker-sanitaer.koeln",
+          "url": "https://www.becker-sanitaer.koeln/",
+          "title": "Becker Sanitär und Heizung Köln"
+        },
+        {
+          "domain": "www.myhammer.de",
+          "url": "https://www.myhammer.de/handwerker/klempner/koeln",
+          "title": "Klempner in Köln finden | MyHammer"
+        },
+        {
+          "domain": "www.schmitz-bad-heizung.de",
+          "url": "https://www.schmitz-bad-heizung.de/notdienst/",
+          "title": "Sanitär-Notdienst Köln 24h – Schmitz Bad & Heizung"
+        },
+        {
+          "domain": "www.yelp.de",
+          "url": "https://www.yelp.de/search?find_desc=Klempner&find_loc=Köln",
+          "title": "Die besten 10 Klempner in Köln – Yelp"
+        },
+        {
+          "domain": "www.wagner-haustechnik.de",
+          "url": "https://www.wagner-haustechnik.de/koeln/",
+          "title": "Wagner Haustechnik – Heizung, Sanitär, Bad in Köln"
+        },
+        {
+          "domain": "www.rheinland-installateur.de",
+          "url": "https://www.rheinland-installateur.de/",
+          "title": "Ihr Installateur im Rheinland | Köln & Umgebung"
+        },
+        {
+          "domain": "www.koch-heizungsbau.de",
+          "url": "https://www.koch-heizungsbau.de/",
+          "title": "Koch Heizungsbau GmbH Köln"
+        }
+      ],
+      "fit": 2
+    },
+    {
+      "search": "badsanierung köln",
+      "volume": 1000,
+      "organic": [
+        {
+          "domain": "www.mueller-haustechnik-koeln.de",
+          "url": "https://www.mueller-haustechnik-koeln.de/",
+          "title": "Klempner & Sanitär in Köln – Müller Haustechnik"
+        },
+        {
+          "domain": "www.gelbeseiten.de",
+          "url": "https://www.gelbeseiten.de/branchen/klempner/köln",
+          "title": "Klempner in Köln ⇒ in Das Örtliche"
+        },
+        {
+          "domain": "www.11880.com",
+          "url": "https://www.11880.com/suche/installateur/koeln",
+          "title": "Installateur Köln – 11880.com"
+        },
+        {
+          "domain": "www.becker-sanitaer.koeln",
+          "url": "https://www.becker-sanitaer.koeln/",
+          "title": "Becker Sanitär und Heizung Köln"
+        },
+        {
+          "domain": "www.myhammer.de",
+          "url": "https://www.myhammer.de/handwerker/klempner/koeln",
+          "title": "Klempner in Köln finden | MyHammer"
+        },
+        {
+          "domain": "www.schmitz-bad-heizung.de",
+          "url": "https://www.schmitz-bad-heizung.de/notdienst/",
+          "title": "Sanitär-Notdienst Köln 24h – Schmitz Bad & Heizung"
+        },
+        {
+          "domain": "www.yelp.de",
+          "url": "https://www.yelp.de/search?find_desc=Klempner&find_loc=Köln",
+          "title": "Die besten 10 Klempner in Köln – Yelp"
+        },
+        {
+          "domain": "www.wagner-haustechnik.de",
+          "url": "https://www.wagner-haustechnik.de/koeln/",
+          "title": "Wagner Haustechnik – Heizung, Sanitär, Bad in Köln"
+        },
+        {
+          "domain": "www.rheinland-installateur.de",
+          "url": "https://www.rheinland-installateur.de/",
+          "title": "Ihr Installateur im Rheinland | Köln & Umgebung"
+        },
+        {
+          "domain": "www.koch-heizungsbau.de",
+          "url": "https://www.koch-heizungsbau.de/",
+          "title": "Koch Heizungsbau GmbH Köln"
+        }
+      ],
+      "fit": 2
+    },
+    {
+      "search": "heizungsbauer köln",
+      "volume": 390,
+      "organic": [
+        {
+          "domain": "www.mueller-haustechnik-koeln.de",
+          "url": "https://www.mueller-haustechnik-koeln.de/",
+          "title": "Klempner & Sanitär in Köln – Müller Haustechnik"
+        },
+        {
+          "domain": "www.gelbeseiten.de",
+          "url": "https://www.gelbeseiten.de/branchen/klempner/köln",
+          "title": "Klempner in Köln ⇒ in Das Örtliche"
+        },
+        {
+          "domain": "www.11880.com",
+          "url": "https://www.11880.com/suche/installateur/koeln",
+          "title": "Installateur Köln – 11880.com"
+        },
+        {
+          "domain": "www.becker-sanitaer.koeln",
+          "url": "https://www.becker-sanitaer.koeln/",
+          "title": "Becker Sanitär und Heizung Köln"
+        },
+        {
+          "domain": "www.myhammer.de",
+          "url": "https://www.myhammer.de/handwerker/klempner/koeln",
+          "title": "Klempner in Köln finden | MyHammer"
+        },
+        {
+          "domain": "www.schmitz-bad-heizung.de",
+          "url": "https://www.schmitz-bad-heizung.de/notdienst/",
+          "title": "Sanitär-Notdienst Köln 24h – Schmitz Bad & Heizung"
+        },
+        {
+          "domain": "www.yelp.de",
+          "url": "https://www.yelp.de/search?find_desc=Klempner&find_loc=Köln",
+          "title": "Die besten 10 Klempner in Köln – Yelp"
+        },
+        {
+          "domain": "www.wagner-haustechnik.de",
+          "url": "https://www.wagner-haustechnik.de/koeln/",
+          "title": "Wagner Haustechnik – Heizung, Sanitär, Bad in Köln"
+        },
+        {
+          "domain": "www.rheinland-installateur.de",
+          "url": "https://www.rheinland-installateur.de/",
+          "title": "Ihr Installateur im Rheinland | Köln & Umgebung"
+        },
+        {
+          "domain": "www.koch-heizungsbau.de",
+          "url": "https://www.koch-heizungsbau.de/",
+          "title": "Koch Heizungsbau GmbH Köln"
+        }
+      ],
+      "fit": 2
+    },
+    {
+      "search": "wasserrohrbruch notdienst köln",
+      "volume": 50,
+      "organic": [
+        {
+          "domain": "www.mueller-haustechnik-koeln.de",
+          "url": "https://www.mueller-haustechnik-koeln.de/",
+          "title": "Klempner & Sanitär in Köln – Müller Haustechnik"
+        },
+        {
+          "domain": "www.gelbeseiten.de",
+          "url": "https://www.gelbeseiten.de/branchen/klempner/köln",
+          "title": "Klempner in Köln ⇒ in Das Örtliche"
+        },
+        {
+          "domain": "www.11880.com",
+          "url": "https://www.11880.com/suche/installateur/koeln",
+          "title": "Installateur Köln – 11880.com"
+        },
+        {
+          "domain": "www.becker-sanitaer.koeln",
+          "url": "https://www.becker-sanitaer.koeln/",
+          "title": "Becker Sanitär und Heizung Köln"
+        },
+        {
+          "domain": "www.myhammer.de",
+          "url": "https://www.myhammer.de/handwerker/klempner/koeln",
+          "title": "Klempner in Köln finden | MyHammer"
+        },
+        {
+          "domain": "www.schmitz-bad-heizung.de",
+          "url": "https://www.schmitz-bad-heizung.de/notdienst/",
+          "title": "Sanitär-Notdienst Köln 24h – Schmitz Bad & Heizung"
+        },
+        {
+          "domain": "www.yelp.de",
+          "url": "https://www.yelp.de/search?find_desc=Klempner&find_loc=Köln",
+          "title": "Die besten 10 Klempner in Köln – Yelp"
+        },
+        {
+          "domain": "www.wagner-haustechnik.de",
+          "url": "https://www.wagner-haustechnik.de/koeln/",
+          "title": "Wagner Haustechnik – Heizung, Sanitär, Bad in Köln"
+        },
+        {
+          "domain": "www.rheinland-installateur.de",
+          "url": "https://www.rheinland-installateur.de/",
+          "title": "Ihr Installateur im Rheinland | Köln & Umgebung"
+        },
+        {
+          "domain": "www.koch-heizungsbau.de",
+          "url": "https://www.koch-heizungsbau.de/",
+          "title": "Koch Heizungsbau GmbH Köln"
+        }
+      ],
+      "fit": 2
+    },
+    {
+      "search": "heizungswartung köln",
+      "volume": 110,
+      "organic": [
+        {
+          "domain": "www.mueller-haustechnik-koeln.de",
+          "url": "https://www.mueller-haustechnik-koeln.de/",
+          "title": "Klempner & Sanitär in Köln – Müller Haustechnik"
+        },
+        {
+          "domain": "www.gelbeseiten.de",
+          "url": "https://www.gelbeseiten.de/branchen/klempner/köln",
+          "title": "Klempner in Köln ⇒ in Das Örtliche"
+        },
+        {
+          "domain": "www.11880.com",
+          "url": "https://www.11880.com/suche/installateur/koeln",
+          "title": "Installateur Köln – 11880.com"
+        },
+        {
+          "domain": "www.becker-sanitaer.koeln",
+          "url": "https://www.becker-sanitaer.koeln/",
+          "title": "Becker Sanitär und Heizung Köln"
+        },
+        {
+          "domain": "www.myhammer.de",
+          "url": "https://www.myhammer.de/handwerker/klempner/koeln",
+          "title": "Klempner in Köln finden | MyHammer"
+        },
+        {
+          "domain": "www.schmitz-bad-heizung.de",
+          "url": "https://www.schmitz-bad-heizung.de/notdienst/",
+          "title": "Sanitär-Notdienst Köln 24h – Schmitz Bad & Heizung"
+        },
+        {
+          "domain": "www.yelp.de",
+          "url": "https://www.yelp.de/search?find_desc=Klempner&find_loc=Köln",
+          "title": "Die besten 10 Klempner in Köln – Yelp"
+        },
+        {
+          "domain": "www.wagner-haustechnik.de",
+          "url": "https://www.wagner-haustechnik.de/koeln/",
+          "title": "Wagner Haustechnik – Heizung, Sanitär, Bad in Köln"
+        },
+        {
+          "domain": "www.rheinland-installateur.de",
+          "url": "https://www.rheinland-installateur.de/",
+          "title": "Ihr Installateur im Rheinland | Köln & Umgebung"
+        },
+        {
+          "domain": "www.koch-heizungsbau.de",
+          "url": "https://www.koch-heizungsbau.de/",
+          "title": "Koch Heizungsbau GmbH Köln"
+        }
+      ],
+      "fit": 2
+    },
+    {
+      "search": "heizung entlüften anleitung",
+      "volume": 1900,
+      "organic": [
+        {
+          "domain": "www.heizsparer.de",
+          "url": "https://www.heizsparer.de/blog/heizung-entlueften",
+          "title": "Heizung entlüften: Anleitung in 5 Schritten"
+        },
+        {
+          "domain": "www.energieheld.de",
+          "url": "https://www.energieheld.de/blog/heizung/heizung-warten",
+          "title": "Heizungswartung: Wie oft, was kostet sie?"
+        },
+        {
+          "domain": "www.hausjournal.net",
+          "url": "https://www.hausjournal.net/news/badsanierung-kosten",
+          "title": "Was kostet eine Badsanierung 2026?"
+        },
+        {
+          "domain": "www.obi.de",
+          "url": "https://www.obi.de/magazin/bad/badsanierung-kosten",
+          "title": "Badsanierung Kosten – OBI Magazin"
+        },
+        {
+          "domain": "www.test.de",
+          "url": "https://www.test.de/guide/durchlauferhitzer",
+          "title": "Durchlauferhitzer: So entkalken Sie ihn"
+        },
+        {
+          "domain": "www.chip.de",
+          "url": "https://www.chip.de/news/heizung-entlueften",
+          "title": "Heizung entlüften – so geht's"
+        },
+        {
+          "domain": "www.bauen.de",
+          "url": "https://www.bauen.de/blog/bad/sanierung",
+          "title": "Badsanierung: Ablauf, Kosten, Tipps"
+        },
+        {
+          "domain": "www.mueller-haustechnik-koeln.de",
+          "url": "https://www.mueller-haustechnik-koeln.de/ratgeber/",
+          "title": "Ratgeber – Müller Haustechnik Köln"
+        },
+        {
+          "domain": "www.verbraucherzentrale.de",
+          "url": "https://www.verbraucherzentrale.de/wissen/energie/heizen",
+          "title": "Heizung warten lassen: das sollten Sie wissen"
+        },
+        {
+          "domain": "www.myhomebook.de",
+          "url": "https://www.myhomebook.de/guide/heizung",
+          "title": "Heizung: der große Guide"
+        }
+      ],
+      "fit": 3
+    },
+    {
+      "search": "was kostet eine badsanierung",
+      "volume": 2400,
+      "organic": [
+        {
+          "domain": "www.heizsparer.de",
+          "url": "https://www.heizsparer.de/blog/heizung-entlueften",
+          "title": "Heizung entlüften: Anleitung in 5 Schritten"
+        },
+        {
+          "domain": "www.energieheld.de",
+          "url": "https://www.energieheld.de/blog/heizung/heizung-warten",
+          "title": "Heizungswartung: Wie oft, was kostet sie?"
+        },
+        {
+          "domain": "www.hausjournal.net",
+          "url": "https://www.hausjournal.net/news/badsanierung-kosten",
+          "title": "Was kostet eine Badsanierung 2026?"
+        },
+        {
+          "domain": "www.obi.de",
+          "url": "https://www.obi.de/magazin/bad/badsanierung-kosten",
+          "title": "Badsanierung Kosten – OBI Magazin"
+        },
+        {
+          "domain": "www.test.de",
+          "url": "https://www.test.de/guide/durchlauferhitzer",
+          "title": "Durchlauferhitzer: So entkalken Sie ihn"
+        },
+        {
+          "domain": "www.chip.de",
+          "url": "https://www.chip.de/news/heizung-entlueften",
+          "title": "Heizung entlüften – so geht's"
+        },
+        {
+          "domain": "www.bauen.de",
+          "url": "https://www.bauen.de/blog/bad/sanierung",
+          "title": "Badsanierung: Ablauf, Kosten, Tipps"
+        },
+        {
+          "domain": "www.mueller-haustechnik-koeln.de",
+          "url": "https://www.mueller-haustechnik-koeln.de/ratgeber/",
+          "title": "Ratgeber – Müller Haustechnik Köln"
+        },
+        {
+          "domain": "www.verbraucherzentrale.de",
+          "url": "https://www.verbraucherzentrale.de/wissen/energie/heizen",
+          "title": "Heizung warten lassen: das sollten Sie wissen"
+        },
+        {
+          "domain": "www.myhomebook.de",
+          "url": "https://www.myhomebook.de/guide/heizung",
+          "title": "Heizung: der große Guide"
+        }
+      ],
+      "fit": 3
+    },
+    {
+      "search": "wie oft heizung warten",
+      "volume": 320,
+      "organic": [
+        {
+          "domain": "www.heizsparer.de",
+          "url": "https://www.heizsparer.de/blog/heizung-entlueften",
+          "title": "Heizung entlüften: Anleitung in 5 Schritten"
+        },
+        {
+          "domain": "www.energieheld.de",
+          "url": "https://www.energieheld.de/blog/heizung/heizung-warten",
+          "title": "Heizungswartung: Wie oft, was kostet sie?"
+        },
+        {
+          "domain": "www.hausjournal.net",
+          "url": "https://www.hausjournal.net/news/badsanierung-kosten",
+          "title": "Was kostet eine Badsanierung 2026?"
+        },
+        {
+          "domain": "www.obi.de",
+          "url": "https://www.obi.de/magazin/bad/badsanierung-kosten",
+          "title": "Badsanierung Kosten – OBI Magazin"
+        },
+        {
+          "domain": "www.test.de",
+          "url": "https://www.test.de/guide/durchlauferhitzer",
+          "title": "Durchlauferhitzer: So entkalken Sie ihn"
+        },
+        {
+          "domain": "www.chip.de",
+          "url": "https://www.chip.de/news/heizung-entlueften",
+          "title": "Heizung entlüften – so geht's"
+        },
+        {
+          "domain": "www.bauen.de",
+          "url": "https://www.bauen.de/blog/bad/sanierung",
+          "title": "Badsanierung: Ablauf, Kosten, Tipps"
+        },
+        {
+          "domain": "www.mueller-haustechnik-koeln.de",
+          "url": "https://www.mueller-haustechnik-koeln.de/ratgeber/",
+          "title": "Ratgeber – Müller Haustechnik Köln"
+        },
+        {
+          "domain": "www.verbraucherzentrale.de",
+          "url": "https://www.verbraucherzentrale.de/wissen/energie/heizen",
+          "title": "Heizung warten lassen: das sollten Sie wissen"
+        },
+        {
+          "domain": "www.myhomebook.de",
+          "url": "https://www.myhomebook.de/guide/heizung",
+          "title": "Heizung: der große Guide"
+        }
+      ],
+      "fit": 3
+    },
+    {
+      "search": "durchlauferhitzer entkalken anleitung",
+      "volume": 260,
+      "organic": [
+        {
+          "domain": "www.heizsparer.de",
+          "url": "https://www.heizsparer.de/blog/heizung-entlueften",
+          "title": "Heizung entlüften: Anleitung in 5 Schritten"
+        },
+        {
+          "domain": "www.energieheld.de",
+          "url": "https://www.energieheld.de/blog/heizung/heizung-warten",
+          "title": "Heizungswartung: Wie oft, was kostet sie?"
+        },
+        {
+          "domain": "www.hausjournal.net",
+          "url": "https://www.hausjournal.net/news/badsanierung-kosten",
+          "title": "Was kostet eine Badsanierung 2026?"
+        },
+        {
+          "domain": "www.obi.de",
+          "url": "https://www.obi.de/magazin/bad/badsanierung-kosten",
+          "title": "Badsanierung Kosten – OBI Magazin"
+        },
+        {
+          "domain": "www.test.de",
+          "url": "https://www.test.de/guide/durchlauferhitzer",
+          "title": "Durchlauferhitzer: So entkalken Sie ihn"
+        },
+        {
+          "domain": "www.chip.de",
+          "url": "https://www.chip.de/news/heizung-entlueften",
+          "title": "Heizung entlüften – so geht's"
+        },
+        {
+          "domain": "www.bauen.de",
+          "url": "https://www.bauen.de/blog/bad/sanierung",
+          "title": "Badsanierung: Ablauf, Kosten, Tipps"
+        },
+        {
+          "domain": "www.mueller-haustechnik-koeln.de",
+          "url": "https://www.mueller-haustechnik-koeln.de/ratgeber/",
+          "title": "Ratgeber – Müller Haustechnik Köln"
+        },
+        {
+          "domain": "www.verbraucherzentrale.de",
+          "url": "https://www.verbraucherzentrale.de/wissen/energie/heizen",
+          "title": "Heizung warten lassen: das sollten Sie wissen"
+        },
+        {
+          "domain": "www.myhomebook.de",
+          "url": "https://www.myhomebook.de/guide/heizung",
+          "title": "Heizung: der große Guide"
+        }
+      ],
+      "fit": 3
+    }
+  ]
+}

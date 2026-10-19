@@ -145,7 +145,7 @@ export function liveTopicFailure(page: LiveTopicPage, site: LiveTopicSite): Live
   const evidence = { brands: site.brands, prompts: site.prompts, asked: site.asked, answers: site.answers, composed: site.composed };
   if (comparisonWithoutAsking(row, evidence)) return { rule: "no_demand" };
   const topTen = site.topTen(query);
-  const other = topTen === null ? null : otherKindTopTen(topTen, site.business);
+  const other = topTen === null ? null : otherKindTopTen(topTen, site.business, row);
   return other === null ? null : { rule: "other_kind", kind: other };
 }
 

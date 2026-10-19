@@ -54,7 +54,7 @@
 // is a question about the destination, not about the market.
 import { SHAPES } from "@/lib/locale/language";
 import { KEYWORD_PAGE_MIN_VOLUME, TOPIC_FIT } from "@/lib/config/constants";
-import { classifyIntent } from "@/lib/market/questions/select";
+import { classifyIntent, type PlacedBusiness } from "@/lib/market/questions/select";
 import type { Profile } from "@/lib/market/questions/profile";
 import { isOwnDomain, registrableDomain } from "@/lib/market/rivals/domains";
 import type { StoredReport } from "@/lib/scan/report";
@@ -69,7 +69,7 @@ import { hasGoal, intentFor, type IntentPrompt } from "./intent";
 import type { KnownMatch } from "@/lib/known-content/types";
 import { queryKey } from "./cluster";
 import { comparisonBrands, comparisonUnasked, composedSearch, type AskedBeside, type ComparisonBrands, type MeasuredAnswer } from "./derive/topics";
-import { freshTopTen, otherKindTopTen, OTHER_KIND_TOP_TEN, type KindOfBusiness, type TopTenRead, type TopTenRow } from "./derive/top-ten-kind";
+import { freshTopTen, otherKindTopTen, OTHER_KIND_TOP_TEN, servedPlace, type KindOfBusiness, type TopTenRead, type TopTenRow } from "./derive/top-ten-kind";
 import type { Opportunity, UnreadyReason } from "./types";
 
 export interface ReadinessContext {
@@ -115,6 +115,16 @@ export interface ReadinessContext {
    *  was stored, and the business it is read against. */
   topTen?: (o: Opportunity) => readonly TopTenRow[] | null;
   business?: KindOfBusiness | null;
+}
+
+/** The business the classifier reads a local search against (issue 1561). */
+function placedBusiness(business: KindOfBusiness | null | undefined): PlacedBusiness | null {
+  if (business == null) return null;
+  return {
+    kind: business.kind ?? null,
+    serves: servedPlace(business),
+    ...(business.words === undefined ? {} : { marketWords: business.words }),
+  };
 }
 
 /** SPEC §6's commercial and transactional searches, in §6.7's classifier's
@@ -185,14 +195,16 @@ export function opportunityReady(o: Opportunity, ctx: ReadinessContext): Unready
   if (o.family !== "fix" && fit !== null && fit < TOPIC_FIT.gate) return "low_fit";
   // Issue 1506: the same reason where the stored top ten says it.
   const topTen = o.family === "fix" ? null : (ctx.topTen?.(o) ?? null);
-  if (topTen !== null && otherKindTopTen(topTen, ctx.business ?? null) !== null) return "low_fit";
+  if (topTen !== null && otherKindTopTen(topTen, ctx.business ?? null, o) !== null) return "low_fit";
   if (!ctx.grounded) return "no_grounding_fact";
   if (o.evidence.family === "earn" && !ctx.earnGrounding[o.evidence.asset]) return "no_grounding_fact";
 
   const query = o.targetQuery ?? "";
   if (o.family !== "fix" && comparisonWithoutAsking(o, ctx)) return "no_intent";
   if (o.type === "keyword_page") {
-    const intent = ctx.profile === null ? null : classifyIntent(query, ctx.profile);
+    // Issue 1561: a placed business's service asked for in its place is
+    // commercial, read by the same classifier.
+    const intent = ctx.profile === null ? null : classifyIntent(query, ctx.profile, placedBusiness(ctx.business));
     // The band the keyword gate asks for is `winnable` — tighter than the
     // shared rule above, which admits `reach` too. It stays here because it
     // is this type's own gate (§6, 2026-09-15) and not the right-sizing law.
@@ -405,7 +417,10 @@ export async function assessReadiness(
     answers: report?.prompts?.answers ?? [],
     composed: (query) => composedSearch(query, market),
     topTen: (o) => (o.targetQuery === null ? null : freshTopTen(topTens.get(queryKey(o.targetQuery)), now)),
-    business: market === null ? null : { kind: market.kind ?? null, serves: market.serves ?? null },
+    business:
+      market === null
+        ? null
+        : { kind: market.kind ?? null, serves: market.serves ?? null, words: [market.category, ...market.synonyms].join(" ") },
   };
 
   // Issue 884: the row's band is brought up to today's law before its
