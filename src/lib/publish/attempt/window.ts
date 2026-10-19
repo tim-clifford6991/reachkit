@@ -135,7 +135,7 @@ export async function enterReview(a: { draftId: string; at: Date; by?: Actor }):
 
   const { sendDraftReadyMail } = await import("@/lib/mail/draft-ready");
   const told = await sendDraftReadyMail({ draftId: a.draftId, destination: destination.kind, at: a.at });
-  return told.sent ? { kind: "told" } : { kind: "untold", reason: told.reason };
+  return told.sent || told.reason === "preference-off" ? { kind: "told" } : { kind: "untold", reason: told.reason };
 }
 
 const MS_PER_DAY = 24 * MS_PER_HOUR;

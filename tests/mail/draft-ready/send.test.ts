@@ -180,7 +180,9 @@ describe("the customer is told a page is in review", () => {
     expect(toldCurrentPair(draft!).told).toBe(false);
   });
 
-  it.each(["not-composable", "preference-off", "suppressed", "vendor"])(
+  // `preference-off` left this list on purpose: a customer's own switch is a
+  // telling they declined, not one still owed, and it must not hold the page.
+  it.each(["not-composable", "preference-unreadable", "suppressed", "vendor"])(
     "a send refused for %s records nothing — every refusal leaves the telling owed",
     async (reason) => {
       sendAnswer = { sent: false, reason };
@@ -188,6 +190,22 @@ describe("the customer is told a page is in review", () => {
       expect(theDraft().told).toBeNull();
     }
   );
+});
+
+describe("the customer's switch never holds a page", () => {
+  it("with the draft-ready mail off, the telling is recorded and the page publishes on its day", async () => {
+    sendAnswer = { sent: false, reason: "preference-off" };
+    const outcome = await sendDraftReadyMail({ draftId: "d1", destination: "hosted", at: AT });
+    expect(outcome).toEqual({ sent: false, reason: "preference-off" });
+
+    const { installTransitionRpc } = await import("../../publish/harness");
+    installTransitionRpc(db);
+    db.seed("destinations", [{ id: "dest-1", site_id: "site-1", kind: "hosted", deleted_at: null }]);
+    (db.rows("sites")[0] as Row).publishing_enabled = true;
+    const { dueApprovals } = await import("@/lib/publish/attempt/window");
+    const afterWindow = new Date(DEADLINE.getTime() + 24 * 3_600_000);
+    expect(await dueApprovals(afterWindow)).toEqual([{ draftId: "d1", destinationId: "dest-1" }]);
+  });
 });
 
 describe("once per page, and the natural key is the record itself", () => {
