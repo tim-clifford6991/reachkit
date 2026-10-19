@@ -1,0 +1,237 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Plumbing guides · Harbor Plumbing</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#ffffff}
+a{color:#1d4e89;text-decoration:underline;text-underline-offset:2px}a:hover{color:#163d6b}
+.muted{color:#5d6070}
+.wrap{max-width:1120px;margin:0 auto;padding:0 32px;box-sizing:border-box}
+.mono{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:13px;word-break:break-all}
+.eyebrow{margin:0;font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#5d6070}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:0 18px;border-radius:9px;font-weight:600;text-decoration:none;box-sizing:border-box}
+.btn:hover{text-decoration:none}
+.btn-primary{background:#1d4e89;color:#ffffff}.btn-primary:hover{background:#163d6b;color:#ffffff}
+.btn-ghost{background:#ffffff;color:#1d4e89;border:1px solid #c6d2e4}
+.ico{width:18px;height:18px;stroke:currentColor;stroke-width:1.75;fill:none;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.brand{display:inline-flex;align-items:center;gap:12px;color:#1e2233;text-decoration:none;font-weight:700;font-size:18px;letter-spacing:-0.01em}
+.brand:hover{color:#1e2233;text-decoration:none}
+.logo{display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:9px;background:#1d4e89;color:#ffffff;font-weight:800;font-size:17px}
+.card{background:#ffffff;border:1px solid #e3e6ee;border-radius:14px;padding:20px}
+.well{background:#f4f6fa;border-radius:9px}
+.sample{display:inline-block;vertical-align:middle;margin-left:6px;padding:1px 8px;border-radius:999px;background:#fff3e6;color:#945c22;font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;line-height:1.6;word-spacing:0}
+.note{margin:0;padding:8px 12px;border:1px dashed #e7b98a;border-radius:9px;background:#fffaf3;color:#7a4b1b;font-size:12.5px;line-height:1.5}
+.note b{font-weight:700}
+.browser{background:#eceef3;border-bottom:1px solid #dcdfe7}
+.urlbar{display:flex;flex-wrap:wrap;gap:12px;align-items:center;padding:10px 0}
+.tab{font-size:12.5px;font-weight:600;color:#3b3e4f;background:#ffffff;border-radius:8px 8px 0 0;padding:6px 14px}
+.url{flex:1 1 280px;min-width:0;background:#ffffff;border-radius:999px;padding:5px 14px;color:#3b3e4f}
+.prose h2{margin:0;font-size:25px;font-weight:700;letter-spacing:-0.02em;line-height:1.3}
+.prose h3{margin:0;font-size:18px;font-weight:700;letter-spacing:-0.01em;line-height:1.35}
+.prose p{margin:0}
+.prose section{display:flex;flex-direction:column;gap:12px}
+.list{margin:0;padding-left:22px;display:flex;flex-direction:column;gap:8px}
+.footer{border-top:1px solid #e3e6ee;padding:24px 0;font-size:14px}
+.crumbs{font-size:14px;color:#5d6070;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.ic{stroke:currentColor;stroke-width:1.75;fill:none;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.tile{display:inline-flex;align-items:center;justify-content:center;flex:none}
+.fig{margin:0;padding:18px;border:1px solid #e3e6ee;border-radius:14px;display:flex;flex-direction:column;gap:14px;background:#ffffff}
+.figcap{margin:0;font-size:12.5px;color:#5d6070}
+.check{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:0}
+.check li{display:flex;gap:12px;align-items:flex-start;padding:11px 0;border-top:1px solid #e3e6ee}
+.check li:first-child{border-top:0;padding-top:0}
+.steps{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,180px),1fr));gap:12px;counter-reset:s}
+.steps>li{position:relative;display:flex;flex-direction:column;gap:8px;padding:16px;border-radius:12px;background:#f4f6fa;min-width:0}
+.stepn{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:999px;background:#1d4e89;color:#ffffff;font-weight:700;font-size:13px;flex:none}
+.callmain{display:inline-flex;gap:10px;align-items:center;justify-content:center;align-self:flex-start;min-height:52px;box-sizing:border-box;padding:12px 22px;border-radius:12px;text-decoration:none;background:#1d4e89;color:#ffffff;font-weight:700;font-size:16px;font-variant-numeric:tabular-nums}
+.callmain:hover{text-decoration:none;background:#173f6f}
+.quiet{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:4px 22px}
+.quiet a{display:inline-flex;gap:8px;align-items:center;min-height:44px;font-size:15px;font-weight:600;color:#1d4e89}
+.ico{width:20px;height:20px}
+.mono{word-spacing:0}
+a[href^="tel:"]{white-space:nowrap}
+.sample{font-size:11px}
+.note{font-size:12px}
+.figcap{font-size:12px}
+h1,h2,h3{text-wrap:balance}
+p,li{text-wrap:pretty}
+.reach{display:flex;flex-wrap:wrap;gap:20px 32px;align-items:flex-start;justify-content:space-between}
+.reach>.who{flex:1 1 340px;min-width:0}
+.reach>.act{flex:0 1 auto;display:flex;flex-direction:column;gap:10px}
+@media (max-width: 640px){
+.wrap{padding-left:16px;padding-right:16px}
+h1{font-size:31px !important}
+}
+</style>
+</helmet>
+<div style="min-height: 2561px; box-sizing: border-box; font-family: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif; color: #1e2233; font-size: 15px; line-height: 1.55; word-spacing: .06em; background: #ffffff; display: flex; flex-direction: column">
+  <div data-mockup="browser-bar" style="min-height: 38px; box-sizing: border-box; padding: 6px 12px; display: flex; align-items: center; gap: 14px; background: #f3f4fb; border-bottom: 1px solid #e8e9f3;"><span aria-hidden="true" style="display: flex; gap: 8px; flex: none"><span style="width: 12px; height: 12px; border-radius: 999px; background: #dcdeec"></span><span style="width: 12px; height: 12px; border-radius: 999px; background: #dcdeec"></span><span style="width: 12px; height: 12px; border-radius: 999px; background: #dcdeec"></span></span><span style="flex: 1; min-width: 0; min-height: 26px; box-sizing: border-box; display: flex; align-items: center; gap: 6px; padding: 2px 12px; background: #ffffff; border: 1px solid #e8e9f3; border-radius: 999px"><svg viewBox="0 0 24 24" style="width: 16px; height: 16px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; color: #646579;" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg><span style="font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 13px; line-height: 1.4; color: #3a3d52; word-break: break-all; word-spacing: 0; min-width: 0">help.harborplumbing.com/</span></span></div>
+<header style="border-bottom: 1px solid #e3e6ee">
+  <div class="wrap" style="display: flex; flex-wrap: wrap; gap: 16px; align-items: center; justify-content: space-between; padding-top: 16px; padding-bottom: 16px">
+    <a class="brand" href="HostedIndex.dc.html"><span class="logo" aria-hidden="true">H</span><span>Harbor Plumbing</span></a>
+    <nav aria-label="Contact Harbor Plumbing" style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center">
+      <a class="btn btn-primary" href="tel:+15125550142"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg><span style="font-variant-numeric: tabular-nums">(512) 555-0142</span></a>
+      <a class="btn btn-ghost" href="https://harborplumbing.com">Visit harborplumbing.com</a>
+    </nav>
+  </div>
+</header>
+
+  <main class="wrap" style="flex: 1; width: 100%; padding-top: 48px; padding-bottom: 56px; display: flex; flex-direction: column; gap: 44px">
+    <p class="note"><b>Design note.</b> Every name, figure, date and title here is a sample for the fictional Harbor Plumbing; the 555 number is fictional. Tab title is “Plumbing guides · Harbor Plumbing” (category stored), else “Guides · {name}” (R6). No ReachKit mark anywhere.</p>
+
+    <section aria-labelledby="hub" style="display: flex; flex-direction: column; gap: 14px; max-width: 760px">
+      <h1 id="hub" style="margin: 0; font-size: 40px; font-weight: 800; letter-spacing: -0.03em; line-height: 1.15">Guides from Harbor Plumbing</h1>
+      <p class="muted" style="margin: 0; font-size: 17px">Licensed plumbers in Austin, TX: repairs, water heaters and 24-hour emergency calls.<span class="sample">Sample</span></p>
+      <form action="#" method="get" role="search" style="display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; margin-top: 8px">
+        <div style="display: flex; flex-direction: column; gap: 6px; flex: 1 1 320px">
+          <label for="q" style="font-size: 14px; font-weight: 600">Search the guides</label>
+          <input id="q" name="q" type="search" placeholder="e.g. water heater leak" style="min-height: 44px; box-sizing: border-box; border: 1px solid #c9cfdc; border-radius: 9px; padding: 0 14px; font: inherit; color: #1e2233; background: #ffffff">
+        </div>
+        <button type="button" class="btn btn-ghost" style="font: inherit; font-weight: 600; cursor: pointer"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg>Search</button>
+      </form>
+    </section>
+
+    <section aria-labelledby="latest" style="display: flex; flex-direction: column; gap: 14px">
+      <h2 id="latest" class="eyebrow" style="font-size: 11px">Latest</h2>
+      <article class="card" style="padding: 28px; display: flex; flex-direction: column; gap: 10px; border-color: #c6d2e4; background: #f7f9fc">
+        <p class="mono muted" style="margin: 0">19 Oct 2026</p>
+        <h3 style="margin: 0; font-size: 25px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.3"><a href="HostedArticle.dc.html" style="color: #1e2233; text-decoration: none">How to shut off water to a house in an emergency: 3 steps</a></h3>
+        <p class="muted" style="margin: 0; max-width: 760px">Burst pipe? Find the main shut-off valve, close it (a quarter turn for a lever, clockwise for a wheel), then drain the pipes. Three steps and when to call.</p>
+      </article>
+    </section>
+
+    <section aria-labelledby="recent" style="display: flex; flex-direction: column; gap: 16px">
+      <h2 id="recent" style="margin: 0; font-size: 25px; font-weight: 700; letter-spacing: -0.02em">Recent guides</h2>
+      <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px">
+        <article class="card" style="display: flex; flex-direction: column; gap: 8px">
+          <p class="mono muted" style="margin: 0; font-size: 12px">18 Oct 2026</p>
+          <h3 style="margin: 0; font-size: 16px; font-weight: 700; line-height: 1.4"><a href="HostedService.dc.html" style="color: #1e2233; text-decoration: none">Emergency plumber in Austin: 24-hour call-outs from $149</a></h3>
+          <p class="muted" style="margin: 0; font-size: 14px">Call-outs from $149, a written quote before work starts, and what to do while you wait.</p>
+        </article>
+        <article class="card" style="display: flex; flex-direction: column; gap: 8px">
+          <p class="mono muted" style="margin: 0; font-size: 12px">17 Oct 2026</p>
+          <h3 style="margin: 0; font-size: 16px; font-weight: 700; line-height: 1.4"><a href="#" style="color: #1e2233; text-decoration: none">What to do when a pipe bursts in a freeze</a></h3>
+          <p class="muted" style="margin: 0; font-size: 14px">Shut the water off, open the taps and find the split before the thaw.</p>
+        </article>
+        <article class="card" style="display: flex; flex-direction: column; gap: 8px">
+          <p class="mono muted" style="margin: 0; font-size: 12px">16 Oct 2026</p>
+          <h3 style="margin: 0; font-size: 16px; font-weight: 700; line-height: 1.4"><a href="#" style="color: #1e2233; text-decoration: none">Water heater leaking from the bottom: 5 causes</a></h3>
+          <p class="muted" style="margin: 0; font-size: 14px">From a loose drain valve to a rusted tank, and which ones you can fix.</p>
+        </article>
+        <article class="card" style="display: flex; flex-direction: column; gap: 8px">
+          <p class="mono muted" style="margin: 0; font-size: 12px">15 Oct 2026</p>
+          <h3 style="margin: 0; font-size: 16px; font-weight: 700; line-height: 1.4"><a href="#" style="color: #1e2233; text-decoration: none">How much does an emergency plumber cost in Austin?</a></h3>
+          <p class="muted" style="margin: 0; font-size: 14px">What goes into the price of a night or weekend call-out.</p>
+        </article>
+        <article class="card" style="display: flex; flex-direction: column; gap: 8px">
+          <p class="mono muted" style="margin: 0; font-size: 12px">14 Oct 2026</p>
+          <h3 style="margin: 0; font-size: 16px; font-weight: 700; line-height: 1.4"><a href="#" style="color: #1e2233; text-decoration: none">Why is my water bill so high? 6 hidden leaks to check</a></h3>
+          <p class="muted" style="margin: 0; font-size: 14px">A meter test you can do in ten minutes, then the usual suspects.</p>
+        </article>
+        <article class="card" style="display: flex; flex-direction: column; gap: 8px">
+          <p class="mono muted" style="margin: 0; font-size: 12px">13 Oct 2026</p>
+          <h3 style="margin: 0; font-size: 16px; font-weight: 700; line-height: 1.4"><a href="#" style="color: #1e2233; text-decoration: none">Tank or tankless water heater for a family of four</a></h3>
+          <p class="muted" style="margin: 0; font-size: 14px">Hot water demand, space and running costs compared.</p>
+        </article>
+        <article class="card" style="display: flex; flex-direction: column; gap: 8px">
+          <p class="mono muted" style="margin: 0; font-size: 12px">12 Oct 2026</p>
+          <h3 style="margin: 0; font-size: 16px; font-weight: 700; line-height: 1.4"><a href="#" style="color: #1e2233; text-decoration: none">How to unclog a kitchen sink without chemicals</a></h3>
+          <p class="muted" style="margin: 0; font-size: 14px">Boiling water, a plunger and the trap under the sink, in that order.</p>
+        </article>
+        <article class="card" style="display: flex; flex-direction: column; gap: 8px">
+          <p class="mono muted" style="margin: 0; font-size: 12px">11 Oct 2026</p>
+          <h3 style="margin: 0; font-size: 16px; font-weight: 700; line-height: 1.4"><a href="#" style="color: #1e2233; text-decoration: none">Toilet keeps running: how to fix the flapper and fill valve</a></h3>
+          <p class="muted" style="margin: 0; font-size: 14px">Find which part is leaking and replace it in under an hour.</p>
+        </article>
+        <article class="card" style="display: flex; flex-direction: column; gap: 8px">
+          <p class="mono muted" style="margin: 0; font-size: 12px">10 Oct 2026</p>
+          <h3 style="margin: 0; font-size: 16px; font-weight: 700; line-height: 1.4"><a href="#" style="color: #1e2233; text-decoration: none">How to find a slab leak in a house on a slab</a></h3>
+          <p class="muted" style="margin: 0; font-size: 14px">Warm floor spots, a moving meter and other signs to look for.</p>
+        </article>
+        <article class="card" style="display: flex; flex-direction: column; gap: 8px">
+          <p class="mono muted" style="margin: 0; font-size: 12px">9 Oct 2026</p>
+          <h3 style="margin: 0; font-size: 16px; font-weight: 700; line-height: 1.4"><a href="#" style="color: #1e2233; text-decoration: none">How long does a water heater last in hard water?</a></h3>
+          <p class="muted" style="margin: 0; font-size: 14px">Why central Texas water shortens tank life, and how to slow it.</p>
+        </article>
+        <article class="card" style="display: flex; flex-direction: column; gap: 8px">
+          <p class="mono muted" style="margin: 0; font-size: 12px">8 Oct 2026</p>
+          <h3 style="margin: 0; font-size: 16px; font-weight: 700; line-height: 1.4"><a href="#" style="color: #1e2233; text-decoration: none">Low water pressure in the whole house: causes and fixes</a></h3>
+          <p class="muted" style="margin: 0; font-size: 14px">Check the main valve and the pressure regulator before anything else.</p>
+        </article>
+        <article class="card" style="display: flex; flex-direction: column; gap: 8px">
+          <p class="mono muted" style="margin: 0; font-size: 12px">7 Oct 2026</p>
+          <h3 style="margin: 0; font-size: 16px; font-weight: 700; line-height: 1.4"><a href="#" style="color: #1e2233; text-decoration: none">Should you drain your water heater every year?</a></h3>
+          <p class="muted" style="margin: 0; font-size: 14px">What flushing does, how to do it, and when to skip it.</p>
+        </article>
+
+      </div>
+      <nav aria-label="Pages" style="display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; font-size: 14px">
+        <span class="muted">Page 1 of 2</span>
+        <a class="btn btn-ghost" href="#">Next page</a>
+      </nav>
+    </section>
+
+    <section aria-labelledby="all" style="display: flex; flex-direction: column; gap: 16px">
+      <div style="display: flex; flex-direction: column; gap: 6px">
+        <h2 id="all" style="margin: 0; font-size: 25px; font-weight: 700; letter-spacing: -0.02em">All guides</h2>
+        <p class="muted" style="margin: 0">Every guide on this site, by topic.</p>
+      </div>
+      <p class="note"><b>New (R2, needs an owner ruling).</b> Every live page is one link from here, grouped by cluster; an offering page is listed first in its group. Paging above stays. Titles are samples.</p>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr)); gap: 16px">
+        <div style="display: flex; flex-direction: column; gap: 12px; padding: 18px; border: 1px solid #e3e6ee; border-radius: 14px">
+          <h3 style="margin: 0; font-size: 16px; font-weight: 700; display: flex; gap: 10px; align-items: center"><span class="tile" style="width: 34px; height: 34px; border-radius: 9px; background: #eef3fa; color: #1d4e89"><svg class="ic" viewBox="0 0 24 24" style="width: 20px; height: 20px;" aria-hidden="true"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"></path><path d="M12 9v4"></path><path d="M12 17h.01"></path></svg></span><span>Emergencies &amp; leaks</span><span class="muted" style="font-size: 13px; font-weight: 500">5 guides</span></h3>
+          <ul role="list" class="list" style="font-size: 15px"><li><a href="HostedService.dc.html">Emergency plumber in Austin: 24-hour call-outs from $149</a></li><li><a href="HostedArticle.dc.html">How to shut off water to a house in an emergency: 3 steps</a></li><li><a href="#">What to do when a pipe bursts in a freeze</a></li><li><a href="#">How much does an emergency plumber cost in Austin?</a></li><li><a href="#">How to find a slab leak in a house on a slab</a></li></ul>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 12px; padding: 18px; border: 1px solid #e3e6ee; border-radius: 14px">
+          <h3 style="margin: 0; font-size: 16px; font-weight: 700; display: flex; gap: 10px; align-items: center"><span class="tile" style="width: 34px; height: 34px; border-radius: 9px; background: #eef3fa; color: #1d4e89"><svg class="ic" viewBox="0 0 24 24" style="width: 20px; height: 20px;" aria-hidden="true"><path d="M14 4v10.54a4 4 0 1 1-4 0V4a2 2 0 0 1 4 0Z"></path></svg></span><span>Water heaters</span><span class="muted" style="font-size: 13px; font-weight: 500">4 guides</span></h3>
+          <ul role="list" class="list" style="font-size: 15px"><li><a href="#">Water heater leaking from the bottom: 5 causes</a></li><li><a href="#">Tank or tankless water heater for a family of four</a></li><li><a href="#">How long does a water heater last in hard water?</a></li><li><a href="#">Should you drain your water heater every year?</a></li></ul>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 12px; padding: 18px; border: 1px solid #e3e6ee; border-radius: 14px">
+          <h3 style="margin: 0; font-size: 16px; font-weight: 700; display: flex; gap: 10px; align-items: center"><span class="tile" style="width: 34px; height: 34px; border-radius: 9px; background: #eef3fa; color: #1d4e89"><svg class="ic" viewBox="0 0 24 24" style="width: 20px; height: 20px;" aria-hidden="true"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path></svg></span><span>Drains &amp; toilets</span><span class="muted" style="font-size: 13px; font-weight: 500">2 guides</span></h3>
+          <ul role="list" class="list" style="font-size: 15px"><li><a href="#">How to unclog a kitchen sink without chemicals</a></li><li><a href="#">Toilet keeps running: how to fix the flapper and fill valve</a></li></ul>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 12px; padding: 18px; border: 1px solid #e3e6ee; border-radius: 14px">
+          <h3 style="margin: 0; font-size: 16px; font-weight: 700; display: flex; gap: 10px; align-items: center"><span class="tile" style="width: 34px; height: 34px; border-radius: 9px; background: #eef3fa; color: #1d4e89"><svg class="ic" viewBox="0 0 24 24" style="width: 20px; height: 20px;" aria-hidden="true"><path d="M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3-5.5s-3.5-4-4-6.5c-.5 2.5-2 4.9-4 6.5C6 11.1 5 13 5 15a7 7 0 0 0 7 7z"></path></svg></span><span>Water supply</span><span class="muted" style="font-size: 13px; font-weight: 500">2 guides</span></h3>
+          <ul role="list" class="list" style="font-size: 15px"><li><a href="#">Low water pressure in the whole house: causes and fixes</a></li><li><a href="#">Why is my water bill so high? 6 hidden leaks to check</a></li></ul>
+        </div>
+
+      </div>
+    </section>
+
+    <section aria-labelledby="biz-compact" class="card" style="padding: 22px 24px; display: flex; flex-wrap: wrap; gap: 16px; align-items: center; justify-content: space-between; background: #f7f9fc">
+      <div style="display: flex; flex-direction: column; gap: 4px; flex: 1 1 360px; min-width: 0">
+        <h2 id="biz-compact" style="margin: 0; font-size: 18px; font-weight: 700">Need a plumber in Austin?</h2>
+        <p class="muted" style="margin: 0">Licensed plumbers in Austin, TX: repairs, water heaters and 24-hour emergency calls. Serves Austin, TX.<span class="sample">Sample</span></p>
+      </div>
+      <div style="display: flex; flex-wrap: wrap; gap: 10px">
+        <a class="btn btn-primary" href="tel:+15125550142"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg><span>Call (512) 555-0142</span></a>
+        <a class="btn btn-ghost" href="https://harborplumbing.com">Visit harborplumbing.com</a>
+      </div>
+    </section>
+    <p class="note"><b>E8.</b> This short block carries the one solid action and Visit only. Book and quote links never appear here or in the header; they live only in the full business block at the foot of a guide or offering page, and on the 410 page.</p>
+  </main>
+<footer class="footer">
+  <div class="wrap muted" style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center">
+    <span>© Harbor Plumbing</span><span aria-hidden="true">·</span>
+    <a href="https://harborplumbing.com">harborplumbing.com</a><span aria-hidden="true">·</span>
+    <a href="#" style="display: inline-flex; align-items: center; gap: 6px"><svg class="ico" style="width: 16px; height: 16px" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11a9 9 0 0 1 9 9"></path><path d="M4 4a16 16 0 0 1 16 16"></path><circle cx="5" cy="19" r="1"></circle></svg>RSS</a>
+  </div>
+</footer>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":2561}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,320 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Stop a page from the mail</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#f3f4fb}
+a{color:#5b4be0;text-decoration:none}a:hover{color:#4a3bc9;text-decoration:underline}
+.card{background:#ffffff;border:1px solid #e8e9f3;border-radius:14px;box-shadow:0 0 0 1px rgba(24,24,48,.06),0 1px 2px rgba(24,24,48,.04)}
+.eyebrow{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#6a6b80;margin:0}
+.fig{font-size:36px;font-weight:600;line-height:1;font-variant-numeric:tabular-nums;margin:0}
+.muted{color:#646579}
+.num{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:13px;word-break:break-all;word-spacing:0}
+.badge{display:inline-flex;align-items:center;gap:4px;padding:2px 9px;border-radius:999px;font-size:12px;font-weight:600;white-space:nowrap}
+.tick{display:flex;gap:10px;align-items:flex-start;margin:0}
+.tick svg{flex:none;width:20px;height:20px;margin-top:2px;stroke:#1b765b;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.ic{width:20px;height:20px;stroke:currentColor;stroke-width:1.75;fill:none;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:0 18px;border-radius:9px;background:#5b4be0;color:#ffffff;font-weight:600;font-size:15px;border:0;font-family:inherit;cursor:pointer;text-decoration:none;box-sizing:border-box;white-space:nowrap}
+.btn:hover{background:#4a3bc9;color:#ffffff;text-decoration:none}
+.ghost{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:0 18px;border-radius:9px;background:transparent;color:#5b4be0;font-weight:600;font-size:15px;border:1px solid #5b4be0;font-family:inherit;cursor:pointer;text-decoration:none;box-sizing:border-box;white-space:nowrap}
+.ghost:hover{background:#eeecfd;text-decoration:none}
+.tag{display:inline-block;margin-left:6px;padding:0 7px;border-radius:999px;background:#eef0f8;border:1px solid #e8e9f3;color:#6a6b80;font-size:11px;font-weight:600;line-height:18px;white-space:nowrap;vertical-align:middle;word-spacing:0;letter-spacing:.01em}
+.slot{border:1.5px dashed #c4c6dc;border-radius:14px;padding:16px 18px;color:#6a6b80;font-size:13px;line-height:1.5;background:rgba(255,255,255,.45);box-sizing:border-box}
+.wrap{max-width:1120px;margin:0 auto;padding-left:24px;padding-right:24px;box-sizing:border-box;width:100%}
+.h2{margin:0;font-size:25px;font-weight:700;letter-spacing:-0.02em;line-height:1.3}
+.h3{margin:0;font-size:20px;font-weight:700;letter-spacing:-0.02em;line-height:1.35}
+.h4{margin:0;font-size:16px;font-weight:700;line-height:1.4;letter-spacing:-0.005em}
+.pnav a{color:#1e2233;font-weight:600;font-size:14px;padding:8px 10px;border-radius:9px}
+.pnav a:hover{background:#eef0f8;text-decoration:none}
+.pnav a[aria-current]{color:#5b4be0;background:#eeecfd}
+.iconbtn{display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;border-radius:9px;border:1px solid #e8e9f3;background:#ffffff;color:#1e2233;cursor:pointer;padding:0}
+.ftr h2{margin:0 0 10px}
+.ftr ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.ftr a{color:#646579;font-size:14px}
+.ftr a:hover{color:#5b4be0}
+.qa{display:flex;flex-direction:column;gap:6px}
+.qa p{margin:0}
+.well{background:#eef0f8;border-radius:9px}
+.row{display:flex;align-items:center;gap:12px;padding:10px 0;border-top:1px solid #e8e9f3}
+input.field{min-height:48px;border:1px solid #d6d8e8;border-radius:9px;padding:0 14px;font-family:"JetBrains Mono",ui-monospace,monospace;font-size:15px;color:#1e2233;background:#ffffff;box-sizing:border-box;min-width:0}
+input.field::placeholder{color:#8a8ba0}
+.sec{padding:72px 0}
+.band{background:#ffffff;border-top:1px solid #e8e9f3;border-bottom:1px solid #e8e9f3}
+.h2big{margin:0;font-size:31px;font-weight:700;letter-spacing:-0.03em;line-height:1.2}
+.lead{margin:0;font-size:18px;color:#3a3d52}
+.tile{display:inline-flex;width:36px;height:36px;border-radius:10px;background:#eeecfd;color:#5b4be0;align-items:center;justify-content:center;flex:none}
+.chipn{display:inline-flex;width:40px;height:40px;border-radius:12px;background:#5b4be0;color:#ffffff;align-items:center;justify-content:center;font-weight:800;font-size:16px;font-variant-numeric:tabular-nums;flex:none}
+.cap{margin:0;font-size:12px;color:#646579}
+.det{border-top:1px solid #e8e9f3;padding-top:4px}
+.det summary{list-style:none;cursor:pointer;display:inline-flex;align-items:center;gap:8px;min-height:44px;font-weight:600;font-size:14px;color:#5b4be0}
+.det summary::-webkit-details-marker{display:none}
+.faq summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:14px;padding:18px 22px;min-height:44px}
+.faq summary::-webkit-details-marker{display:none}
+.faq summary svg:last-child{flex:none;color:#646579}
+.det .body{display:flex;flex-direction:column;gap:10px;padding:4px 0 8px;font-size:14px;color:#3a3d52;max-width:680px}
+.det .body p{margin:0}
+.seg{display:inline-flex;gap:2px;padding:3px;background:#eef0f8;border-radius:999px}
+.seg button{font:inherit;font-size:12px;font-weight:600;padding:4px 11px;border-radius:999px;cursor:pointer;border:0;background:transparent;color:#646579;word-spacing:0}
+.seg button[aria-selected="true"]{background:#ffffff;color:#1e2233;box-shadow:0 0 0 1px rgba(24,24,48,.08),0 1px 2px rgba(24,24,48,.06)}
+.src{display:inline-flex;align-items:center;gap:4px;font-family:"JetBrains Mono",ui-monospace,monospace;font-size:11px;color:#5b4be0;background:#eeecfd;border:1px solid #ddd8fa;border-radius:999px;padding:1px 8px;white-space:nowrap;word-spacing:0;vertical-align:middle}
+.pill{display:inline-flex;align-items:center;gap:4px;padding:1px 8px;border-radius:999px;font-size:11px;font-weight:700;letter-spacing:.02em;white-space:nowrap;word-spacing:0}
+.qrow{display:grid;grid-template-columns:290px minmax(0,1fr) 250px 104px;gap:16px;align-items:center;padding:12px 0;border-top:1px solid #e8e9f3}
+.daycell{background:#ffffff;border:1px solid #e8e9f3;border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:8px;min-width:0;box-sizing:border-box}
+.thumb{height:46px;border-radius:6px;background:#eef0f8;display:flex;flex-direction:column;gap:5px;padding:9px 8px;box-sizing:border-box}
+.thumb span{height:5px;border-radius:3px;background:#dcdeec;display:block}
+.vrow{display:flex;flex-direction:column;gap:3px;padding:10px 0;border-top:1px solid #eef0f8}
+.vlab{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#6a6b80}
+mark{background:#fff3c4;color:inherit;padding:1px 2px;border-radius:3px}
+h1,h2,h3,.h2big,.h3,.h4{text-wrap:balance}
+p,li{text-wrap:pretty}
+.weekgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px}
+.barrow{display:grid;grid-template-columns:150px minmax(0,1fr) 210px;gap:16px;align-items:center}
+.axis{position:relative;height:16px}
+.axis span{position:absolute;top:0;transform:translateX(-50%);white-space:nowrap}
+.axis span:first-child{transform:none}
+.axis span:last-child{transform:translateX(-100%)}
+.steps3{display:flex;gap:10px}
+@media (max-width:640px){
+.hero-h1{font-size:34px !important;line-height:1.12 !important}
+.h2big{font-size:25px}
+.qrow{grid-template-columns:minmax(0,1fr) auto;gap:6px 12px}
+.qrow > :nth-child(2),.qrow > :nth-child(3){grid-column:1 / -1}
+.qrow > :nth-child(4){grid-row:1;grid-column:2}
+.barrow{grid-template-columns:minmax(0,1fr);gap:6px}
+.steps3{flex-direction:column}
+.faqgrid{grid-template-columns:minmax(0,1fr) !important}
+.faqgrid > :last-child{grid-column:auto !important}
+.stepar{display:none !important}
+.stamp5{display:none !important}
+.fixbadge{position:static !important;margin-top:6px}
+}
+
+/* public chrome */
+.mnav{display:none !important}
+@media (max-width:560px){header .pnav,header .thm{display:none !important}header .mnav{display:inline-flex !important}.wrap{padding-left:16px;padding-right:16px}}
+/* end public chrome */
+.fld{display:flex;flex-direction:column;gap:6px;border:0;margin:0;padding:0;min-width:0}
+.fld label,.fld legend{font-weight:600;font-size:14px;padding:0}
+.inp{min-height:44px;box-sizing:border-box;width:100%;padding:0 12px;border:1px solid #d6d8e8;border-radius:9px;font:inherit;color:#1e2233;background:#ffffff;min-width:0}
+.inp:focus{outline:2px solid #5b4be0;outline-offset:1px}
+textarea.inp{padding:10px 12px;min-height:84px;resize:vertical}
+.block{width:100%}
+.soft{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:0 18px;border-radius:9px;background:#eeecfd;color:#5b4be0;font-weight:600;font-size:15px;border:0;font-family:inherit;cursor:pointer;text-decoration:none;box-sizing:border-box;white-space:nowrap}
+.soft:hover{background:#ddd8fa;text-decoration:none}
+.statetag{display:inline-flex;align-self:flex-start;align-items:center;gap:6px;padding:3px 10px;border-radius:999px;background:#eef0f8;color:#646579;font-size:12px;font-weight:600;word-spacing:0}
+.stateh{display:flex;align-items:center;gap:10px;margin:0 0 10px}
+.sq{display:inline-flex;width:44px;height:44px;border-radius:12px;align-items:center;justify-content:center;flex:none}
+.err{display:flex;gap:8px;align-items:flex-start;color:#b84029;font-size:13px;margin:0}
+.ok{color:#1b765b}
+.spin{animation:none}
+.node{display:flex;gap:12px;align-items:flex-start;padding:12px 14px;border-radius:12px;border:1px solid #e8e9f3;background:#ffffff}
+.vline{width:2px;background:#ddd8fa;margin-left:31px;height:22px}
+.tl{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.tl li{display:grid;grid-template-columns:28px minmax(0,1fr);column-gap:12px;position:relative;padding-bottom:16px}
+.tl li:last-child{padding-bottom:0}
+.tl li::before{content:"";position:absolute;left:13px;top:28px;bottom:2px;width:2px;background:#e8e9f3}
+.tl li:last-child::before{display:none}
+.dot{width:28px;height:28px;border-radius:999px;display:inline-flex;align-items:center;justify-content:center;background:#eef0f8;color:#646579;font-size:12px;font-weight:700;font-variant-numeric:tabular-nums;position:relative;z-index:1;box-sizing:border-box}
+.dot.on{background:#5b4be0;color:#ffffff}
+.dot.done{background:#e7f6f0;color:#1b765b}
+.kv{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:4px 12px;align-items:center}
+.copyb{display:inline-flex;align-items:center;gap:6px;min-height:44px;min-width:44px;padding:0 10px;border-radius:9px;border:1px solid #ddd8fa;background:#ffffff;color:#5b4be0;font:inherit;font-size:13px;font-weight:600;cursor:pointer;justify-content:center}
+.wcell{flex:1 1 0;min-width:0;border-radius:10px;padding:8px 6px;display:flex;flex-direction:column;gap:5px;align-items:center;text-align:center;box-sizing:border-box}
+.toc a{display:flex;gap:10px;align-items:baseline;color:#3a3d52;font-size:14px;padding:6px 10px;border-radius:8px}
+.toc a:hover{background:#eef0f8;text-decoration:none}
+.toc a[aria-current]{background:#eeecfd;color:#5b4be0;font-weight:600}
+.legal h2{margin:0;font-size:20px;font-weight:700;letter-spacing:-0.02em;line-height:1.35}
+.legal p{margin:0;max-width:35em}
+.legal li{max-width:35em}
+.legal ul{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:8px}
+.legal section{display:flex;flex-direction:column;gap:12px;padding:28px 0;border-top:1px solid #e8e9f3;scroll-margin-top:24px}
+.legal section:first-child{border-top:0;padding-top:0}
+@media (max-width: 560px){.wlab{display:none}.t3fig{font-size:24px !important}.t3 .muted{display:none}.t3 .ic{display:none}.stepar{display:none}.t3lab{display:block;min-height:33px}}
+.ph{background:#fff3e6;border:1px dashed #e0a867;color:#945c22;border-radius:6px;padding:1px 6px;font-weight:600}
+/* QA sizing pass 19 Oct: one pill height (20px), one stroke, balanced headings, phone gutters */
+.pill,.badge,.statetag{box-sizing:border-box;min-height:20px;line-height:18px;padding:1px 8px;font-size:11px;font-weight:700;letter-spacing:.02em;border-radius:999px;gap:4px}
+.statetag{font-weight:600;letter-spacing:0}
+.tag{line-height:18px}
+.tick svg{stroke-width:1.75;stroke:currentColor;color:#1b765b}
+h1,h2,h3,.h3,.h4{text-wrap:balance}
+p,li,dd{text-wrap:pretty}
+.hero1{margin:0;font-size:46px;line-height:1.1;font-weight:800;letter-spacing:-0.035em}
+.lead{font-size:18px}
+.chip{display:inline-flex;align-items:center;gap:0;min-height:44px;padding:0 0 0 14px;border-radius:999px;background:#eef0f8;font-size:13px;font-weight:600;box-sizing:border-box}
+.chipx{position:relative;width:44px;height:44px;border:0;background:transparent;border-radius:999px;display:inline-flex;align-items:center;justify-content:center;color:#646579;cursor:pointer;padding:0}
+.fold{position:absolute;left:0;right:0;height:0;border-top:2px dashed #5b4be0;z-index:20;pointer-events:none}
+.fold span{position:absolute;right:0;top:-11px;border-radius:999px 0 0 999px !important;background:#5b4be0;color:#ffffff;font-size:11px;font-weight:700;line-height:18px;padding:1px 8px;border-radius:999px;font-family:"JetBrains Mono",ui-monospace,monospace;word-spacing:0}
+.mnav{display:none !important}
+@media (max-width:560px){header .pnav,.thm{display:none !important}.mnav{display:inline-flex !important}.wrap{padding-left:16px;padding-right:16px}.hero1{font-size:34px;line-height:1.12;letter-spacing:-0.035em}.lead{font-size:15px !important}.cardpad{padding:20px !important}}
+
+</style>
+</helmet>
+<div style="min-height: 2527px; display: flex; flex-direction: column; font-family: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif; color: #1e2233; font-size: 15px; line-height: 1.55; word-spacing: .06em; background: #f3f4fb">
+<header style="background: #ffffff; border-bottom: 1px solid #e8e9f3">
+  <div class="wrap" style="display: flex; align-items: center; min-height: 60px">
+    <a href="PubLanding.dc.html" style="display: flex; align-items: center; gap: 8px; color: #1e2233; font-weight: 800; font-size: 18px; letter-spacing: -0.01em; text-decoration: none; min-height: 44px"><svg viewBox="0 0 64 64" style="width: 28px; height: 28px; flex: none" aria-hidden="true"><defs><linearGradient id="hqf" x1="0.15" y1="1" x2="0.95" y2="0.1"><stop offset="0.38" stop-color="#ffffff"></stop><stop offset="1" stop-color="#ffffff" stop-opacity="0.12"></stop></linearGradient><clipPath id="hqc"><rect width="64" height="64" rx="15"></rect></clipPath></defs><g clip-path="url(#hqc)"><rect width="64" height="64" fill="#5b4be0"></rect><path d="M8 50 A24 24 0 0 1 56 50 Z" fill="url(#hqf)"></path></g></svg>ReachKit</a>
+  </div>
+</header>
+<main style="padding: 40px 0 64px">
+  <div class="wrap" style="display: flex; flex-direction: column; gap: 28px">
+    <section aria-labelledby="ask-h" class="card cardpad" style="padding: 28px; display: flex; flex-wrap: wrap; gap: 32px">
+  <div style="flex: 1 1 380px; min-width: 0; display: flex; flex-direction: column; gap: 16px">
+    <p class="eyebrow" style="display: flex; align-items: center; gap: 8px"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="width: 16px; height: 16px;" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v6l4 2"></path></svg>Goes live Mon 19 Oct, 4:00 PM</p>
+    <h1 id="ask-h" style="margin: 0; font-size: 31px; line-height: 1.2; font-weight: 700; letter-spacing: -0.03em">Emergency plumber in Austin: what to do in the first hour</h1>
+    <div class="well" style="padding: 12px 16px; display: flex; gap: 12px; align-items: flex-start"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="width: 20px; height: 20px; color: #5b4be0;margin-top: 2px" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path></svg><p style="margin: 0; font-size: 14px"><strong>Why ReachKit chose it:</strong> it’s your core service, and AI answers mention a competitor for it.</p></div>
+    <dl style="margin: 0; display: grid; grid-template-columns: auto minmax(0,1fr); gap: 8px 16px; font-size: 14px">
+      <dt class="muted">Search</dt><dd style="margin: 0"><span class="num" style="font-size: 13px">emergency plumber austin</span> · searched about 1,300 times a month</dd>
+      <dt class="muted">Address</dt><dd style="margin: 0" class="num"><span class="num" style="font-size: 13px">help.harborplumbing.com</span></dd>
+    </dl>
+    <div style="display: flex; flex-direction: column; gap: 8px" aria-label="You can stop this page from 8:00 AM, when the mail was sent, until 4:00 PM today, when it goes live">
+  <div aria-hidden="true" style="position: relative; height: 8px; border-radius: 999px; background: #eef0f8">
+    <span style="position: absolute; left: 0; top: 0; bottom: 0; width: 100%; border-radius: 999px; background: #ddd8fa"></span>
+    <span style="position: absolute; left: 0; top: -4px; width: 16px; height: 16px; border-radius: 999px; background: #ffffff; border: 2px solid #5b4be0; box-sizing: border-box"></span>
+    <span style="position: absolute; right: 0; top: -4px; width: 16px; height: 16px; border-radius: 999px; background: #5b4be0"></span>
+  </div>
+  <div style="display: flex; justify-content: space-between; gap: 8px; font-size: 12px"><span class="muted">Mail sent <span class="num" style="font-size: 12px">8:00 AM</span></span><span style="font-weight: 600">Goes live <span class="num" style="font-size: 12px">4:00 PM</span></span></div>
+  <p class="cap">You can stop it any time before then.</p>
+</div>
+    <button type="button" class="btn block" ><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="width: 20px; height: 20px;" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><rect x="9" y="9" width="6" height="6" rx="1"></rect></svg>Stop this page</button>
+    <p class="muted" style="margin: -8px 0 0; font-size: 13px">It won’t go live, and this topic is dropped. Your other pages are not affected.</p>
+    <p class="muted" style="margin: 0; font-size: 14px; padding-top: 12px; border-top: 1px solid #e8e9f3">Do nothing and it goes live on its own. You can edit or stop it until then. <a href="AuthSignIn.dc.html" style="font-weight: 600">Sign in to read or change it</a></p>
+  </div>
+  <div style="flex: 1 1 380px; min-width: 0"><figure aria-label="The page as it will look when it goes live" style="margin: 0; border-radius: 14px; background: #eeecfd; border: 1px solid #ddd8fa; padding: 20px; display: flex; flex-direction: column; gap: 12px; min-width: 0">
+  <p style="margin: 0; font-weight: 700; font-size: 14px; color: #5b4be0">Goes live on Monday</p>
+  <div data-mockup="browser" role="img" aria-label="The page in a browser, as it will look when it goes live" style="position: relative; display: flex; flex-direction: column; background: #ffffff; border: 1px solid #e8e9f3; border-radius: 12px; overflow: hidden; box-shadow: 0 0 0 1px rgba(24,24,48,.06),0 1px 2px rgba(24,24,48,.04); min-width: 0; -webkit-mask-image: linear-gradient(#000 calc(100% - 64px), transparent); mask-image: linear-gradient(#000 calc(100% - 64px), transparent);"><div data-mockup="browser-bar" style="min-height: 38px; box-sizing: border-box; padding: 6px 12px; display: flex; align-items: center; gap: 14px; background: #f3f4fb; border-bottom: 1px solid #e8e9f3;"><span aria-hidden="true" style="display: flex; gap: 8px; flex: none"><span style="width: 12px; height: 12px; border-radius: 999px; background: #dcdeec"></span><span style="width: 12px; height: 12px; border-radius: 999px; background: #dcdeec"></span><span style="width: 12px; height: 12px; border-radius: 999px; background: #dcdeec"></span></span><span style="flex: 1; min-width: 0; min-height: 26px; box-sizing: border-box; display: flex; align-items: center; gap: 6px; padding: 2px 12px; background: #ffffff; border: 1px solid #e8e9f3; border-radius: 999px"><svg viewBox="0 0 24 24" style="width: 16px; height: 16px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; color: #646579;" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg><span style="font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 13px; line-height: 1.4; color: #3a3d52; word-break: break-all; min-width: 0">help.harborplumbing.com</span></span></div><div style="position: relative; flex: 1; min-height: 0; overflow: hidden"><div style="padding: 16px 16px 48px; display: flex; flex-direction: column; gap: 8px">
+      
+      <p style="margin: 0; font-weight: 700; font-size: 16px; line-height: 1.35; ">Emergency plumber in Austin: what to do in the first hour</p>
+      <p class="muted" style="margin: 0; font-size: 13px; ">A burst pipe or a backed-up drain does most of its damage in the first hour. Here’s what to do before the plumber arrives, starting with the main shut-off valve.</p>
+      <div aria-hidden="true" style="display: flex; flex-direction: column; gap: 8px; padding-top: 4px"><span style="height: 6px; width: 92%; border-radius: 3px; background: #eef0f8"></span><span style="height: 6px; width: 80%; border-radius: 3px; background: #eef0f8"></span><span style="height: 6px; width: 86%; border-radius: 3px; background: #eef0f8"></span><span style="height: 6px; width: 74%; border-radius: 3px; background: #eef0f8"></span></div>
+    </div></div></div>
+  <p class="cap" style="font-size: 12px">Written for people who search “emergency plumber austin”, about 1,300 times a month.</p>
+</figure></div>
+</section>
+    <section aria-labelledby="fork-h" class="card cardpad" style="padding: 24px; display: flex; flex-direction: column; gap: 20px">
+  <h2 id="fork-h" class="h4">Your two choices, and what each does</h2>
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px">
+    <div style="border: 1.5px solid #5b4be0; border-radius: 12px; padding: 16px; display: flex; flex-direction: column; gap: 12px">
+      <p style="margin: 0; display: flex; align-items: center; gap: 8px; font-weight: 700"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="width: 20px; height: 20px; color: #5b4be0;" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><rect x="9" y="9" width="6" height="6" rx="1"></rect></svg>You press Stop this page</p>
+      <ul style="list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; font-size: 14px">
+        <li class="tick"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="width: 20px; height: 20px; color: #646579;" aria-hidden="true"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg><span>It won’t go live.</span></li>
+        <li class="tick"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="width: 20px; height: 20px; color: #646579;" aria-hidden="true"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg><span>This topic is dropped. ReachKit won’t write it again.</span></li>
+        <li class="tick"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="width: 20px; height: 20px; color: #1b765b;" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg><span>Your other pages go ahead as usual.</span></li>
+      </ul>
+    </div>
+    <div style="border: 1px solid #e8e9f3; border-radius: 12px; padding: 16px; display: flex; flex-direction: column; gap: 12px; background: #fafafe">
+      <p style="margin: 0; display: flex; align-items: center; gap: 8px; font-weight: 700"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="width: 20px; height: 20px; color: #1b765b;" aria-hidden="true"><path d="M10 2v2"></path><path d="M14 2v2"></path><path d="M16 8a1 1 0 0 1 1 1v8a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4V9a1 1 0 0 1 1-1h14a4 4 0 1 1 0 8h-1"></path><path d="M6 2v2"></path></svg>You do nothing</p>
+      <ul style="list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; font-size: 14px">
+        <li class="tick"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="width: 20px; height: 20px; color: #1b765b;" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg><span>It goes live Mon 19 Oct, 4:00 PM, on its own.</span></li>
+        <li class="tick"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="width: 20px; height: 20px; color: #1b765b;" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg><span>You can still edit or stop it until then.</span></li>
+        <li class="tick"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="width: 20px; height: 20px; color: #1b765b;" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg><span>Nothing is needed from you.</span></li>
+      </ul>
+    </div>
+  </div>
+</section>
+    <h2 class="eyebrow" style="padding-top: 16px">Every answer this page can give</h2>
+    <div style="display: flex; flex-direction: column; gap: 12px">
+  <p class="statetag" style="margin: 0">Stopped: shown only when the page really is stopped</p>
+  <section aria-labelledby="st-h" class="card cardpad" style="padding: 28px; display: flex; flex-wrap: wrap; gap: 32px">
+    <div style="flex: 1 1 380px; min-width: 0; display: flex; flex-direction: column; gap: 16px">
+      <span class="sq" style="background: #e7f6f0; color: #1b765b"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="width: 24px; height: 24px;" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg></span>
+      <h2 id="st-h" style="margin: 0; font-size: 31px; line-height: 1.2; font-weight: 700; letter-spacing: -0.03em">Stopped</h2>
+      <p role="status" style="margin: 0; font-size: 17px">This page won’t go live.</p>
+      <p style="margin: 0; color: #3a3d52">Nothing else changes. Your other pages go ahead as usual. ReachKit won’t write this topic again.</p>
+      <div style="display: flex; flex-direction: column; gap: 8px"><p style="margin: 0; font-size: 13px; font-weight: 700">This week, after your stop</p><div style="display: flex; gap: 8px" aria-label="Monday is stopped. Tuesday to Sunday go ahead as planned."><div class="wcell" style="background: #eef0f8; border: 1px dashed #c4c6dc"><span class="num muted" style="font-size: 11px">Mon</span><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="width: 16px; height: 16px; color: #646579;" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><rect x="9" y="9" width="6" height="6" rx="1"></rect></svg><span style="font-size: 11px; font-weight: 600; color: #3a3d52">Stopped</span></div><div class="wcell" style="background: #ffffff; border: 1px solid #e8e9f3"><span class="num muted" style="font-size: 11px">Tue</span><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="width: 16px; height: 16px; color: #5b4be0;" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><path d="M14 2v6h6"></path><path d="M16 13H8"></path><path d="M16 17H8"></path><path d="M10 9H8"></path></svg><span class="wlab" style="font-size: 11px; color: #3a3d52">Goes ahead</span></div><div class="wcell" style="background: #ffffff; border: 1px solid #e8e9f3"><span class="num muted" style="font-size: 11px">Wed</span><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="width: 16px; height: 16px; color: #5b4be0;" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><path d="M14 2v6h6"></path><path d="M16 13H8"></path><path d="M16 17H8"></path><path d="M10 9H8"></path></svg><span class="wlab" style="font-size: 11px; color: #3a3d52">Goes ahead</span></div><div class="wcell" style="background: #ffffff; border: 1px solid #e8e9f3"><span class="num muted" style="font-size: 11px">Thu</span><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="width: 16px; height: 16px; color: #5b4be0;" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><path d="M14 2v6h6"></path><path d="M16 13H8"></path><path d="M16 17H8"></path><path d="M10 9H8"></path></svg><span class="wlab" style="font-size: 11px; color: #3a3d52">Goes ahead</span></div><div class="wcell" style="background: #ffffff; border: 1px solid #e8e9f3"><span class="num muted" style="font-size: 11px">Fri</span><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="width: 16px; height: 16px; color: #5b4be0;" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><path d="M14 2v6h6"></path><path d="M16 13H8"></path><path d="M16 17H8"></path><path d="M10 9H8"></path></svg><span class="wlab" style="font-size: 11px; color: #3a3d52">Goes ahead</span></div><div class="wcell" style="background: #ffffff; border: 1px solid #e8e9f3"><span class="num muted" style="font-size: 11px">Sat</span><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="width: 16px; height: 16px; color: #5b4be0;" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><path d="M14 2v6h6"></path><path d="M16 13H8"></path><path d="M16 17H8"></path><path d="M10 9H8"></path></svg><span class="wlab" style="font-size: 11px; color: #3a3d52">Goes ahead</span></div><div class="wcell" style="background: #ffffff; border: 1px solid #e8e9f3"><span class="num muted" style="font-size: 11px">Sun</span><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="width: 16px; height: 16px; color: #5b4be0;" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><path d="M14 2v6h6"></path><path d="M16 13H8"></path><path d="M16 17H8"></path><path d="M10 9H8"></path></svg><span class="wlab" style="font-size: 11px; color: #3a3d52">Goes ahead</span></div></div></div>
+      <a class="soft" href="AuthSignIn.dc.html" style="align-self: flex-start">Sign in to open your plan</a>
+    </div>
+    <div style="flex: 1 1 380px; min-width: 0"><figure aria-label="The page you stopped" style="margin: 0; border-radius: 14px; background: #eeecfd; border: 1px solid #ddd8fa; padding: 20px; display: flex; flex-direction: column; gap: 12px; min-width: 0">
+  <p style="margin: 0; font-weight: 700; font-size: 14px; color: #1b765b">This is the page you stopped.</p>
+  <div data-mockup="browser" role="img" aria-label="The page you stopped, in a browser" style="position: relative; display: flex; flex-direction: column; background: #ffffff; border: 1px solid #e8e9f3; border-radius: 12px; overflow: hidden; box-shadow: 0 0 0 1px rgba(24,24,48,.06),0 1px 2px rgba(24,24,48,.04); min-width: 0; -webkit-mask-image: linear-gradient(#000 calc(100% - 64px), transparent); mask-image: linear-gradient(#000 calc(100% - 64px), transparent);"><div data-mockup="browser-bar" style="min-height: 38px; box-sizing: border-box; padding: 6px 12px; display: flex; align-items: center; gap: 14px; background: #f3f4fb; border-bottom: 1px solid #e8e9f3;"><span aria-hidden="true" style="display: flex; gap: 8px; flex: none"><span style="width: 12px; height: 12px; border-radius: 999px; background: #dcdeec"></span><span style="width: 12px; height: 12px; border-radius: 999px; background: #dcdeec"></span><span style="width: 12px; height: 12px; border-radius: 999px; background: #dcdeec"></span></span><span style="flex: 1; min-width: 0; min-height: 26px; box-sizing: border-box; display: flex; align-items: center; gap: 6px; padding: 2px 12px; background: #ffffff; border: 1px solid #e8e9f3; border-radius: 999px"><svg viewBox="0 0 24 24" style="width: 16px; height: 16px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; color: #646579;" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg><span style="font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 13px; line-height: 1.4; color: #3a3d52; word-break: break-all; min-width: 0">help.harborplumbing.com</span></span></div><div style="position: relative; flex: 1; min-height: 0; overflow: hidden"><div style="padding: 16px 16px 48px; display: flex; flex-direction: column; gap: 8px">
+      <span class="pill" style="background: #eef0f8; color: #3a3d52; align-self: flex-start; opacity: 1"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="width: 16px; height: 16px;" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><rect x="9" y="9" width="6" height="6" rx="1"></rect></svg>Won’t go live</span>
+      <p style="margin: 0; font-weight: 700; font-size: 16px; line-height: 1.35; opacity: .55;">Emergency plumber in Austin: what to do in the first hour</p>
+      <p class="muted" style="margin: 0; font-size: 13px; opacity: .55;">A burst pipe or a backed-up drain does most of its damage in the first hour. Here’s what to do before the plumber arrives, starting with the main shut-off valve.</p>
+      <div aria-hidden="true" style="display: flex; flex-direction: column; gap: 8px; padding-top: 4px"><span style="height: 6px; width: 92%; border-radius: 3px; background: #eef0f8"></span><span style="height: 6px; width: 80%; border-radius: 3px; background: #eef0f8"></span><span style="height: 6px; width: 86%; border-radius: 3px; background: #eef0f8"></span><span style="height: 6px; width: 74%; border-radius: 3px; background: #eef0f8"></span></div>
+    </div></div></div>
+  <p class="cap" style="font-size: 12px">Written for people who search “emergency plumber austin”, about 1,300 times a month.</p>
+</figure></div>
+  </section>
+</div>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 24px; align-items: start">
+      <div style="display: flex; flex-direction: column; gap: 12px; min-width: 0">
+  <p class="statetag" style="margin: 0">While stopping, after the press</p>
+  <div class="card" style="padding: 24px; display: flex; flex-direction: column; gap: 12px; box-sizing: border-box">
+    <button type="button" class="btn block" disabled style="opacity: .75; cursor: default"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="width: 20px; height: 20px;" aria-hidden="true"><path d="M21 12a9 9 0 1 1-6.219-8.56"></path></svg>Stop this page</button>
+    <p class="muted" style="margin: 0; font-size: 13px">The button is disabled and spins. It never says Stopped until the page is stopped.</p>
+  </div>
+</div>
+      <div style="display: flex; flex-direction: column; gap: 12px; min-width: 0">
+  <p class="statetag" style="margin: 0">Stop pressed, but it failed</p>
+  <div class="card" style="padding: 24px; display: flex; flex-direction: column; gap: 12px; height: 100%; box-sizing: border-box">
+    <span class="sq" style="background: #fbe9e5; color: #b84029"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="width: 24px; height: 24px;" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M12 8v4"></path><path d="M12 16h.01"></path></svg></span>
+    <h2 class="h3">Not stopped yet</h2>
+    <p style="margin: 0; color: #3a3d52">That didn’t go through, so the page is not stopped. Press Stop this page again, or sign in and stop it from Plan.</p>
+    <p class="well" style="margin: 0; padding: 8px 12px; font-size: 13px; display: flex; gap: 8px; align-items: center"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="width: 16px; height: 16px; color: #646579;" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v6l4 2"></path></svg><span>Still goes live Mon 19 Oct, 4:00 PM, unless stopped.</span></p>
+    <div style="display: flex; flex-wrap: wrap; gap: 12px; margin-top: auto; padding-top: 4px"><button type="button" class="btn"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="width: 20px; height: 20px;" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><rect x="9" y="9" width="6" height="6" rx="1"></rect></svg>Stop this page</button><a class="soft" href="AuthSignIn.dc.html">Sign in to open your plan</a></div>
+  </div>
+</div>
+    </div>
+    <p class="cap" style="font-size: 13px; margin-top: -8px">Could not stop: these two say what happened and what to do. Neither says Stopped.</p>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 24px">
+      <div style="display: flex; flex-direction: column; gap: 12px; min-width: 0">
+  <p class="statetag" style="margin: 0">Link already used</p>
+  <div class="card" style="padding: 24px; display: flex; flex-direction: column; gap: 12px; height: 100%; box-sizing: border-box">
+    <span class="sq" style="background: #eef0f8; color: #646579"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="width: 24px; height: 24px;" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><rect x="9" y="9" width="6" height="6" rx="1"></rect></svg></span>
+    <h2 class="h3">Already stopped</h2>
+    <p style="margin: 0; color: #3a3d52">This link was already used. The page is stopped.</p>
+    
+    <div style="display: flex; flex-wrap: wrap; gap: 12px; margin-top: auto; padding-top: 4px"><a class="soft" href="AuthSignIn.dc.html">Sign in to open your plan</a></div>
+  </div>
+</div>
+      <div style="display: flex; flex-direction: column; gap: 12px; min-width: 0">
+  <p class="statetag" style="margin: 0">Link expired or page already live</p>
+  <div class="card" style="padding: 24px; display: flex; flex-direction: column; gap: 12px; height: 100%; box-sizing: border-box">
+    <span class="sq" style="background: #fff3e6; color: #945c22"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="width: 24px; height: 24px;" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v6l4 2"></path></svg></span>
+    <h2 class="h3">This link has closed</h2>
+    <p style="margin: 0; color: #3a3d52">The time to stop this page from your mail has passed, so it may be live now. Sign in to see it. A live page can be taken down from its page in Plan.</p>
+    <div style="display: flex; flex-direction: column; gap: 8px" aria-label="The time to stop from the mail ended at 4:00 PM. It is now later than that.">
+  <div aria-hidden="true" style="position: relative; height: 8px; border-radius: 999px; background: #eef0f8">
+    <span style="position: absolute; left: 0; top: 0; bottom: 0; width: 70%; border-radius: 999px; background: #e3e5f0"></span>
+    <span style="position: absolute; left: 70%; top: -4px; width: 3px; height: 16px; border-radius: 2px; background: #945c22"></span>
+    <span style="position: absolute; left: 88%; top: -4px; width: 16px; height: 16px; border-radius: 999px; background: #ffffff; border: 2px solid #945c22; box-sizing: border-box"></span>
+  </div>
+  <div style="display: flex; justify-content: space-between; gap: 8px; font-size: 12px"><span class="muted">Mail sent</span><span style="color: #945c22; font-weight: 600">Went live <span class="num" style="font-size: 12px">4:00 PM</span></span><span class="muted">now</span></div>
+</div>
+    <div style="display: flex; flex-wrap: wrap; gap: 12px; margin-top: auto; padding-top: 4px"><a class="soft" href="AuthSignIn.dc.html">Sign in to open your plan</a></div>
+  </div>
+</div>
+      <div style="display: flex; flex-direction: column; gap: 12px; min-width: 0">
+  <p class="statetag" style="margin: 0">Link not recognised</p>
+  <div class="card" style="padding: 24px; display: flex; flex-direction: column; gap: 12px; height: 100%; box-sizing: border-box">
+    <span class="sq" style="background: #eef0f8; color: #646579"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="width: 24px; height: 24px;" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><path d="M12 17h.01"></path></svg></span>
+    <h2 class="h3">We can’t use this link</h2>
+    <p style="margin: 0; color: #3a3d52">This isn’t a link ReachKit can act on. Sign in to stop or edit a page from Plan.</p>
+    
+    <div style="display: flex; flex-wrap: wrap; gap: 12px; margin-top: auto; padding-top: 4px"><a class="soft" href="AuthSignIn.dc.html">Sign in to open your plan</a></div>
+  </div>
+</div>
+    </div>
+  </div>
+</main>
+<footer style="margin-top: auto; border-top: 1px solid #e8e9f3; background: #ffffff">
+  <div class="wrap" style="padding-top: 8px; padding-bottom: 8px; display: flex; flex-wrap: wrap; gap: 0 20px; font-size: 13px">
+    <span class="muted" style="display: inline-flex; align-items: center; min-height: 44px">© 2026 ReachKit</span><a href="Legal.dc.html" style="display: inline-flex; align-items: center; min-height: 44px">Privacy</a><a href="#" style="display: inline-flex; align-items: center; min-height: 44px">Terms</a><a href="#" style="display: inline-flex; align-items: center; min-height: 44px">hello@reachkit.app</a>
+  </div>
+</footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":2527}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

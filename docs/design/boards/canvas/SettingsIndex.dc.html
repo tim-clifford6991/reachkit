@@ -1,0 +1,238 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Settings, your business</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#f3f4fb}
+a{color:#5b4be0;text-decoration:none}a:hover{color:#4a3bc9;text-decoration:underline}
+.card{background:#ffffff;border:1px solid #e8e9f3;border-radius:14px;box-shadow:0 0 0 1px rgba(24,24,48,.06),0 1px 2px rgba(24,24,48,.04)}
+.eyebrow{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#6a6b80;margin:0}
+.muted{color:#646579}
+.num{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:13px;word-break:break-all;word-spacing:0}
+.nav a{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:9px;color:#646579;font-weight:600;font-size:14px}
+.nav a:hover{background:#eef0f8;text-decoration:none}
+.nav svg{width:20px;height:20px;stroke:currentColor;stroke-width:1.75;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.ic{stroke:currentColor;stroke-width:1.75;fill:none;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.tile{display:inline-flex;align-items:center;justify-content:center;flex:none}
+.badge{align-self:flex-start;display:inline-flex;align-items:center;gap:4px;padding:2px 9px;border-radius:999px;font-size:12px;font-weight:600;white-space:nowrap;word-spacing:0}
+.pill{display:inline-flex;align-items:center;gap:4px;padding:2px 9px;border-radius:999px;font-size:12px;font-weight:600;white-space:nowrap;word-spacing:0}
+.tabs{display:flex;flex-wrap:wrap;gap:4px;border-bottom:1px solid #e8e9f3}
+.tabs a{padding:10px 14px;font-weight:600;font-size:14px;color:#646579;border-bottom:2px solid transparent;margin-bottom:-1px}
+.h1{margin:0;font-size:31px;font-weight:700;letter-spacing:-0.03em;line-height:1.25}
+.sr{position:absolute;left:0;top:0;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+h1,h2,h3,legend,summary{text-wrap:balance}
+p,li,label{text-wrap:pretty}
+main p{max-width:72ch}
+main p[style*="border-top"],main p.state-x{max-width:none}
+.more{display:inline-flex;align-items:center;min-height:24px;font-size:14px;font-weight:600;white-space:nowrap}
+.tabs a:hover{color:#1e2233;text-decoration:none}
+.tabs a[aria-current="page"]{color:#5b4be0;border-bottom-color:#5b4be0}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:0 18px;border-radius:9px;font:inherit;font-weight:600;font-size:15px;cursor:pointer;box-sizing:border-box;word-spacing:0}
+.btn-primary{background:#5b4be0;color:#ffffff;border:0}
+.btn-soft{background:#eeecfd;color:#5b4be0;border:1px solid #ddd8fa}
+.btn-ghost{background:transparent;color:#5b4be0;border:1px solid #ddd8fa}
+.btn-warn{background:transparent;color:#945c22;border:1px solid #fbe1c6}
+.btn-error{background:#b84029;color:#ffffff;border:0}
+.btn-sm{min-height:36px;padding:0 12px;font-size:14px}
+.chip{display:inline-flex;align-items:center;gap:2px;padding:2px 2px 2px 11px;border-radius:999px;background:#eef0f8;font-size:14px}
+.icon-btn{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;padding:0;border:0;border-radius:999px;background:transparent;color:#646579;cursor:pointer}
+.icon-btn svg{width:14px;height:14px}
+.field{font:inherit;font-size:15px;color:#1e2233;min-height:44px;box-sizing:border-box;padding:0 12px;border:1px solid #e8e9f3;border-radius:9px;background:#ffffff}
+.row{display:flex;flex-wrap:wrap;gap:8px 24px;padding:16px 0;border-top:1px solid #e8e9f3}
+.row:first-child{border-top:0;padding-top:0}
+.row>.k{flex:0 0 200px;font-weight:600;font-size:14px}
+.row>.v{flex:1 1 280px;min-width:0;display:flex;flex-direction:column;gap:8px}
+.h2{margin:0;font-size:20px;font-weight:700;letter-spacing:-0.02em;line-height:1.35}
+.h3{margin:0;font-size:16px;font-weight:700;letter-spacing:-0.01em;line-height:1.35}
+.lead{margin:0;font-size:14px;color:#646579}
+.switch{appearance:none;-webkit-appearance:none;margin:0;flex:0 0 auto;width:44px;height:26px;border-radius:999px;background:#d9dbe8;box-shadow:inset 0 0 0 1px #8a8ca3;position:relative;cursor:pointer}
+.switch::after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:999px;background:#ffffff;box-shadow:0 1px 2px rgba(24,24,48,.2)}
+.switch:checked{background:#5b4be0;box-shadow:none}
+.switch:checked::after{left:21px}
+.well{background:#eef0f8;border-radius:9px}
+.cap{margin:0;font-size:12px;color:#646579}
+details.fold{padding:0}
+details.fold>summary{list-style:none;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:18px 20px;min-height:44px;box-sizing:border-box;font-size:16px;font-weight:700}
+details.fold>summary::-webkit-details-marker{display:none}
+details.fold>summary>.chev{width:20px;height:20px;color:#646579}
+details.fold[open]>summary>.chev{transform:rotate(180deg)}
+.det{border-top:1px solid #e8e9f3;padding-top:2px}
+.det summary{list-style:none;cursor:pointer;display:inline-flex;align-items:center;gap:8px;min-height:44px;font-weight:600;font-size:14px;color:#5b4be0}
+.det summary::-webkit-details-marker{display:none}
+.det .body{display:flex;flex-direction:column;gap:8px;padding:2px 0 8px;font-size:14px;color:#3a3d52;max-width:680px}
+.det .body p{margin:0}
+.states{border:1px dashed #d4d6e4;border-radius:14px;padding:20px;display:flex;flex-direction:column;gap:14px}
+.state{display:flex;flex-direction:column;gap:6px;padding:14px;background:#eef0f8;border-radius:9px;min-width:0}
+.toast{display:inline-flex;align-items:center;gap:8px;padding:10px 14px;border-radius:9px;background:#1e2233;color:#ffffff;font-size:14px;align-self:flex-start}
+.tl{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(0,1.5fr) minmax(0,1fr);gap:0}
+.tl>li{display:flex;flex-direction:column;gap:8px;min-width:0}
+.tl .bar{display:flex;align-items:center;height:36px}
+.tl .line{flex:1;height:2px;background:#d4d6e4;margin:0 6px}
+.tl .band{flex:1;height:10px;border-radius:999px;background:#ddd8fa;margin:0 6px}
+.tl .txt{display:flex;flex-direction:column;gap:2px;padding-right:12px}
+.wk{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px}
+.wk>div{display:flex;flex-direction:column;align-items:center;gap:6px;padding:10px 4px;border-radius:9px;background:#ffffff;border:1px solid #e8e9f3;min-width:0}
+.mono-tile{display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;border-radius:12px;font-weight:800;font-size:16px;letter-spacing:-0.01em;flex:none;word-spacing:0}
+.meter{display:block;height:8px;border-radius:999px;background:#eef0f8;overflow:hidden}
+.meter>span{display:block;height:8px;border-radius:999px}
+mark{background:#fff3c4;color:inherit;padding:1px 2px;border-radius:3px}
+.cmp{width:100%;border-collapse:collapse;font-size:14px}
+.cmp th,.cmp td{text-align:left;padding:10px 12px 10px 0;border-top:1px solid #e8e9f3;vertical-align:top}
+.cmp thead th{border-top:0;font-size:13px}
+@media (max-width: 700px){
+.tl{grid-template-columns:minmax(0,1fr)}
+.tl .bar{height:auto}
+.tl .line,.tl .band{display:none}
+.tl>li{flex-direction:row;align-items:flex-start;gap:12px;padding:8px 0;border-top:1px solid #eef0f8}
+.tl>li.bandrow{padding:10px 12px;background:#eeecfd;border-radius:9px;border-top:0}
+.wk{grid-template-columns:repeat(4,minmax(0,1fr))}
+}
+
+/* app shell (SHELL-SPEC.md) */
+/* app shell: sidebar from 1024px; navbar + bottom dock below it (DESIGN.md › The shell) */
+.mbar,.dock{display:none}
+.mbar{flex:1 1 100%;position:sticky;top:0;z-index:5;box-sizing:border-box;height:84px;padding:8px 16px;background:#ffffff;border-bottom:1px solid #e8e9f3;flex-direction:column;gap:4px}
+.mbar .row{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:44px}
+.mbar .brand{display:flex;align-items:center;gap:8px;color:#1e2233;font-weight:800;font-size:18px;letter-spacing:-0.01em}
+.mbar .theme{display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;border-radius:9px;border:0;background:transparent;color:#646579;cursor:pointer}
+.mbar .theme svg{width:20px;height:20px;stroke:currentColor;stroke-width:1.75;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.mbar .line{display:flex;align-items:center;gap:6px 12px;flex-wrap:wrap;font-size:13px;min-height:20px}
+.mbar .line .num{word-break:break-all}
+.publine{display:inline-flex;align-items:center;gap:8px;color:#1e2233;font-size:13px;font-weight:600}
+.publine i{width:8px;height:8px;border-radius:999px;flex:none;display:block}
+.dock{flex:1 1 100%;position:sticky;bottom:0;z-index:5;box-sizing:border-box;height:64px;background:#ffffff;border-top:1px solid #e8e9f3;align-items:stretch}
+.dock a{flex:1 1 0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;color:#646579;font-size:12px;font-weight:600;position:relative;text-decoration:none}
+.dock a svg{width:20px;height:20px;stroke:currentColor;stroke-width:1.75;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.dock a[aria-current="page"]{color:#5b4be0}
+.dock a[aria-current="page"]::after{content:"";position:absolute;bottom:8px;width:24px;height:3px;border-radius:999px;background:#5b4be0}
+@media (max-width: 1023px){
+  nav.nav{display:none !important}
+  .mbar,.dock{display:flex}
+  main{padding:24px !important;max-width:none !important}
+  .tabs{position:sticky;top:84px;z-index:4;background:#f3f4fb}
+}
+@media (max-width: 640px){
+  main{padding:16px 16px 24px !important}
+}
+.hrow{display:flex;align-items:center;gap:8px;min-height:24px;margin:0}
+.hback{display:inline-flex;align-items:center;gap:6px;font-size:14px;font-weight:600;line-height:24px;min-height:24px}
+.hback .ic{width:16px;height:16px}
+.leadrow{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;min-height:24px;margin:0;color:#3a3d52}
+.publine{display:inline-flex;align-items:center;gap:8px;color:#1e2233;font-size:13px;font-weight:600}
+.publine i{width:8px;height:8px;border-radius:999px;flex:none;display:block}
+.mbar .row{padding:0;border-top:0;flex-wrap:nowrap}
+.tabsel{display:none}
+@media (max-width: 640px){.stabs{display:none}.tabsel{display:block;position:sticky;top:84px;z-index:4;background:#f3f4fb;padding:0 0 8px}}
+</style>
+</helmet>
+<div style="min-height: 2243px; display: flex; flex-wrap: wrap; font-family: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif; color: #1e2233; font-size: 15px; line-height: 1.55; word-spacing: .06em; background: #f3f4fb">
+  <nav class="nav" aria-label="Main" style="flex: 1 1 220px; max-width: 240px; box-sizing: border-box; padding: 24px 16px; background: #ffffff; border-right: 1px solid #e8e9f3; display: flex; flex-direction: column; gap: 4px">
+    <a href="Main.dc.html" style="display: flex; align-items: center; gap: 8px; padding: 0 12px 20px; color: #1e2233; font-weight: 800; font-size: 18px; letter-spacing: -0.01em">
+      <svg viewBox="0 0 64 64" style="width: 28px; height: 28px; stroke: none" aria-hidden="true"><defs><linearGradient id="mf" x1="0.15" y1="1" x2="0.95" y2="0.1"><stop offset="0.38" stop-color="#ffffff"></stop><stop offset="1" stop-color="#ffffff" stop-opacity="0.12"></stop></linearGradient><clipPath id="mc"><rect width="64" height="64" rx="15"></rect></clipPath></defs><g clip-path="url(#mc)"><rect width="64" height="64" fill="#5b4be0"></rect><path d="M8 50 A24 24 0 0 1 56 50 Z" fill="url(#mf)"></path></g></svg>ReachKit</a>
+    <a href="Main.dc.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 10l9-7 9 7v10a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"></path></svg>Overview</a>
+    <a href="Plan.dc.html"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"></rect><path d="M16 2v4M8 2v4M3 10h18"></path></svg>Plan</a>
+    <a href="#" aria-current="page" style="background: #eeecfd; color: #5b4be0"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"></path></svg>Settings</a>
+    <div style="margin-top: auto; padding: 12px; font-size: 13px; display: flex; flex-direction: column; gap: 6px">
+      <a href="SettingsPublishing.dc.html" class="publine"><i style="background: #1b765b"></i>Publishing on</a>
+      <span class="num muted">harborplumbing.com</span>
+    </div>
+  </nav>
+  <header class="mbar" aria-label="ReachKit">
+    <div class="row"><a href="Main.dc.html" class="brand"><svg viewBox="0 0 64 64" style="width: 28px; height: 28px; stroke: none" aria-hidden="true"><defs><linearGradient id="mmf" x1="0.15" y1="1" x2="0.95" y2="0.1"><stop offset="0.38" stop-color="#ffffff"></stop><stop offset="1" stop-color="#ffffff" stop-opacity="0.12"></stop></linearGradient><clipPath id="mmc"><rect width="64" height="64" rx="15"></rect></clipPath></defs><g clip-path="url(#mmc)"><rect width="64" height="64" fill="#5b4be0"></rect><path d="M8 50 A24 24 0 0 1 56 50 Z" fill="url(#mmf)"></path></g></svg>ReachKit</a><button type="button" class="theme" aria-label="Theme: light"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"></path></svg></button></div>
+    <div class="line"><span class="num muted">harborplumbing.com</span><a href="SettingsPublishing.dc.html" class="publine"><i style="background: #1b765b"></i>Publishing on</a></div>
+  </header>
+
+  <main style="flex: 999 1 560px; min-width: 0; box-sizing: border-box; padding: 40px; display: flex; flex-direction: column; gap: 28px; max-width: 1040px">
+    <header style="display: flex; flex-direction: column; gap: 6px"><div class="hrow"><span class="eyebrow">Harbor Plumbing · Austin</span></div><h1 class="h1">Settings</h1><div class="leadrow">What you’re measured as, how pages go out, and your account.</div></header>
+    <nav class="tabs stabs" aria-label="Settings sections"><a href="#" aria-current="page">Your business</a><a href="SettingsMarket.dc.html">Market and competitors</a><a href="SettingsPublishing.dc.html">Publishing</a><a href="SettingsVoice.dc.html">Your voice</a><a href="SettingsMail.dc.html">Mail</a><a href="SettingsBilling.dc.html">Billing</a><a href="SettingsAccount.dc.html">Account</a></nav>
+    <div class="tabsel"><label for="settings-section" class="sr">Settings section</label><select id="settings-section" style="width: 100%; min-height: 44px; box-sizing: border-box; border-radius: 9px; border: 1px solid #e8e9f3; background: #ffffff; padding: 0 12px; font: inherit; font-size: 15px; color: #1e2233"><option selected>Your business</option><option>Market and competitors</option><option>Publishing</option><option>Your voice</option><option>Mail</option><option>Billing</option><option>Account</option></select></div>
+    <section class="card" aria-labelledby="flow-h" style="padding: 20px 24px; display: flex; flex-direction: column; gap: 14px">
+      <h2 id="flow-h" class="eyebrow">How this tab shapes your pages</h2>
+      <ol style="list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr)); gap: 12px">
+        <li class="well" style="padding: 14px; display: flex; gap: 12px; align-items: flex-start"><span class="tile" style="width: 36px; height: 36px; border-radius: 10px; background: #ffffff; color: #5b4be0"><svg class="ic" viewBox="0 0 24 24" style="width: 20px; height: 20px;" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M2 12h20"></path><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg></span><span style="display: flex; flex-direction: column; gap: 2px; min-width: 0"><strong style="font-size: 14px">We read your site</strong><span class="muted" style="font-size: 13px">34 pages of your site, last on Mon 12 Oct</span></span></li>
+        <li class="well" style="padding: 14px; display: flex; gap: 12px; align-items: flex-start"><span class="tile" style="width: 36px; height: 36px; border-radius: 10px; background: #ffffff; color: #5b4be0"><svg class="ic" viewBox="0 0 24 24" style="width: 20px; height: 20px;" aria-hidden="true"><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"></path><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"></path><path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"></path><path d="M10 6h4M10 10h4M10 14h4M10 18h4"></path></svg></span><span style="display: flex; flex-direction: column; gap: 2px; min-width: 0"><strong style="font-size: 14px">You check what we learned</strong><span class="muted" style="font-size: 13px">Change any line below. Nothing here is required.</span></span></li>
+        <li class="well" style="padding: 14px; display: flex; gap: 12px; align-items: flex-start"><span class="tile" style="width: 36px; height: 36px; border-radius: 10px; background: #ffffff; color: #5b4be0"><svg class="ic" viewBox="0 0 24 24" style="width: 20px; height: 20px;" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><path d="M14 2v6h6"></path><path d="M16 13H8M16 17H8M10 9H8"></path></svg></span><span style="display: flex; flex-direction: column; gap: 2px; min-width: 0"><strong style="font-size: 14px">Every page is written from it</strong><span class="muted" style="font-size: 13px">Next: Tue 20 Oct, 4:00 PM. <a href="Plan.dc.html" style="white-space: nowrap">See the plan</a></span></span></li>
+      </ol>
+    </section>
+    <section class="card" aria-labelledby="biz" style="padding: 24px; display: flex; flex-direction: column; gap: 16px">
+      <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-start; gap: 8px 16px"><div style="display: flex; flex-direction: column; gap: 4px; min-width: 0; flex: 1 1 320px"><h2 id="biz" class="h2">What we know about Harbor Plumbing</h2><p class="lead">Learned from your site. Change anything; your next page is written from what’s here.</p></div></div>
+      <div><div class="row"><div class="k">What you do<span class="muted" style="display: block; font-weight: 400; font-size: 13px">one sentence</span></div><div class="v"><p style="margin: 0">Plumbing repair, drain cleaning and water heater work for homes in Austin.</p><button type="button" class="btn btn-ghost btn-sm" style="align-self: flex-start">Reword</button></div></div><div class="row"><div class="k">Kind of business</div><div class="v"><p style="margin: 0">Local service business</p></div></div><div class="row"><div class="k">What you sell</div><div class="v"><div style="display: flex; flex-wrap: wrap; gap: 6px"><span class="chip">Emergency plumbing<button type="button" class="icon-btn" aria-label="Remove Emergency plumbing"><svg class="ic" viewBox="0 0 24 24" style="width: 16px; height: 16px;" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"></path></svg></button></span><span class="chip">Drain cleaning<button type="button" class="icon-btn" aria-label="Remove Drain cleaning"><svg class="ic" viewBox="0 0 24 24" style="width: 16px; height: 16px;" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"></path></svg></button></span><span class="chip">Water heaters<button type="button" class="icon-btn" aria-label="Remove Water heaters"><svg class="ic" viewBox="0 0 24 24" style="width: 16px; height: 16px;" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"></path></svg></button></span><span class="chip">Leak repair<button type="button" class="icon-btn" aria-label="Remove Leak repair"><svg class="ic" viewBox="0 0 24 24" style="width: 16px; height: 16px;" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"></path></svg></button></span><span class="chip">Repiping<button type="button" class="icon-btn" aria-label="Remove Repiping"><svg class="ic" viewBox="0 0 24 24" style="width: 16px; height: 16px;" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"></path></svg></button></span></div></div></div><div class="row"><div class="k">Who you serve</div><div class="v"><div style="display: flex; flex-wrap: wrap; gap: 6px"><span class="chip">Homeowners in Austin<button type="button" class="icon-btn" aria-label="Remove Homeowners in Austin"><svg class="ic" viewBox="0 0 24 24" style="width: 16px; height: 16px;" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"></path></svg></button></span><span class="chip">Landlords<button type="button" class="icon-btn" aria-label="Remove Landlords"><svg class="ic" viewBox="0 0 24 24" style="width: 16px; height: 16px;" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"></path></svg></button></span><span class="chip">Property managers<button type="button" class="icon-btn" aria-label="Remove Property managers"><svg class="ic" viewBox="0 0 24 24" style="width: 16px; height: 16px;" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"></path></svg></button></span></div></div></div><div class="row"><div class="k">What you promise<span class="muted" style="display: block; font-weight: 400; font-size: 13px">we may repeat these</span></div><div class="v"><div style="display: flex; flex-wrap: wrap; gap: 6px"><span class="chip">Licensed in Texas<button type="button" class="icon-btn" aria-label="Remove Licensed in Texas"><svg class="ic" viewBox="0 0 24 24" style="width: 16px; height: 16px;" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"></path></svg></button></span><span class="chip">Upfront prices before work starts<button type="button" class="icon-btn" aria-label="Remove Upfront prices before work starts"><svg class="ic" viewBox="0 0 24 24" style="width: 16px; height: 16px;" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"></path></svg></button></span><span class="chip">Same-day visits on weekdays<button type="button" class="icon-btn" aria-label="Remove Same-day visits on weekdays"><svg class="ic" viewBox="0 0 24 24" style="width: 16px; height: 16px;" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"></path></svg></button></span></div></div></div><div class="row"><div class="k">Words you use<span class="muted" style="display: block; font-weight: 400; font-size: 13px">so pages sound like you</span></div><div class="v"><div style="display: flex; flex-wrap: wrap; gap: 6px"><span class="chip">tankless<button type="button" class="icon-btn" aria-label="Remove tankless"><svg class="ic" viewBox="0 0 24 24" style="width: 16px; height: 16px;" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"></path></svg></button></span><span class="chip">slab leak<button type="button" class="icon-btn" aria-label="Remove slab leak"><svg class="ic" viewBox="0 0 24 24" style="width: 16px; height: 16px;" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"></path></svg></button></span><span class="chip">service call<button type="button" class="icon-btn" aria-label="Remove service call"><svg class="ic" viewBox="0 0 24 24" style="width: 16px; height: 16px;" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"></path></svg></button></span><span class="chip">shut-off valve<button type="button" class="icon-btn" aria-label="Remove shut-off valve"><svg class="ic" viewBox="0 0 24 24" style="width: 16px; height: 16px;" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"></path></svg></button></span></div></div></div><div class="row"><div class="k">Tone</div><div class="v"><p style="margin: 0">Plain, calm and practical</p></div></div><div class="row"><div class="k">How you refer to yourself</div><div class="v"><p style="margin: 0">“We”</p></div></div></div>
+      <figure class="well" aria-label="Example: how these lines show up on a page" style="margin: 0; padding: 16px; display: flex; flex-direction: column; gap: 10px">
+          <div style="display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; align-items: center"><p class="eyebrow">How it shows on a page</p><span class="pill" style="background: #ffffff; color: #646579">Tue 20 Oct</span></div>
+          <div style="background: #ffffff; border: 1px solid #e8e9f3; border-radius: 9px; padding: 14px 16px; display: flex; flex-direction: column; gap: 8px">
+            <p style="margin: 0; font-weight: 700; font-size: 15px">Tankless water heater installation in Austin</p>
+            <p style="margin: 0; font-size: 14px; color: #3a3d52">Most <mark>tankless</mark> swaps take one day. <mark>We give you the price before we start</mark>, and we can usually come the same day on weekdays.</p>
+          </div>
+          <p class="cap" style="display: flex; flex-wrap: wrap; gap: 6px 14px"><span style="display: inline-flex; gap: 6px; align-items: center"><span style="width: 10px; height: 10px; border-radius: 3px; background: #fff3c4; box-shadow: inset 0 0 0 1px #c9a227; display: inline-block"></span>from What you promise and Words you use</span><span>Example. Change a line above and your next page follows it.</span></p>
+        </figure>
+      <div style="display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; padding-top: 16px; border-top: 1px solid #e8e9f3">
+        <p class="muted" style="margin: 0; font-size: 13px">Last read <span class="num">Mon 12 Oct 2026</span> · 34 pages read</p>
+        <button type="button" class="btn btn-soft">Read my site again now</button>
+      </div>
+    </section>
+    <section aria-label="More about your business" style="display: flex; flex-direction: column; gap: 12px">
+    <details class="card fold">
+      <summary><span>What buyers ask and why you</span><svg class="ic chev" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></summary>
+      <div style="padding: 0 20px 20px; display: flex; flex-direction: column; gap: 14px"><p class="muted" style="margin: 0; font-size: 14px">Read from your own pages, each with the page it came from. Your pages are written from this.</p>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); gap: 12px">
+          <div class="state"><p class="eyebrow">Problems you solve</p><p style="margin: 0; font-size: 14px">Burst pipes, blocked drains, no hot water, slab leaks</p></div>
+          <div class="state"><p class="eyebrow">How you differ</p><p style="margin: 0; font-size: 14px">Prices given before work starts</p></div>
+          <div class="state"><p class="eyebrow">What buyers ask</p><p style="margin: 0; font-size: 14px">How fast can you come? Do you fix tankless heaters?</p></div>
+          <div class="state"><p class="eyebrow">Places</p><p style="margin: 0; font-size: 14px">Austin, Round Rock, Pflugerville</p></div>
+        </div>
+        <h3 class="h3" style="margin-top: 4px">Five things only you know</h3>
+        <p class="muted" style="margin: 0; font-size: 13px">Optional. Each one you add can appear on a page.</p>
+        <ol style="margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 8px; font-size: 14px">
+          <li><label for="k1" class="muted">Thing 1</label><br><input id="k1" class="field" style="width: 100%; margin-top: 4px" value="Tankless parts on every van."></li>
+          <li><label for="k2" class="muted">Thing 2</label><br><input id="k2" class="field" style="width: 100%; margin-top: 4px" value=""></li>
+          <li><label for="k3" class="muted">Thing 3</label><br><input id="k3" class="field" style="width: 100%; margin-top: 4px" value=""></li>
+          <li><label for="k4" class="muted">Thing 4</label><br><input id="k4" class="field" style="width: 100%; margin-top: 4px" value=""></li>
+          <li><label for="k5" class="muted">Thing 5</label><br><input id="k5" class="field" style="width: 100%; margin-top: 4px" value=""></li>
+        </ol></div>
+    </details>
+    <details class="card fold">
+      <summary><span>Facts we can quote</span><svg class="ic chev" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></summary>
+      <div style="padding: 0 20px 20px; display: flex; flex-direction: column; gap: 14px"><p class="muted" style="margin: 0; font-size: 14px">Word for word, each linked to where we read it.</p><ul style="list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; font-size: 14px">
+          <li style="display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; padding-top: 10px; border-top: 1px solid #e8e9f3"><span style="display: flex; gap: 8px; align-items: flex-start; min-width: 0; flex: 1 1 300px"><svg class="ic" viewBox="0 0 24 24" style="width: 16px; height: 16px; color: #646579; margin-top: 3px" aria-hidden="true"><path d="M3 21c3 0 7-1 7-8V5c0-1.25-.76-2.02-2-2H4c-1.25 0-2 .75-2 1.97V11c0 1.25.75 2 2 2 1 0 1 0 1 1v1c0 1-1 2-2 2s-1 .01-1 1.03V20c0 1 0 1 1 1z"></path><path d="M15 21c3 0 7-1 7-8V5c0-1.25-.76-2.02-2-2h-4c-1.25 0-2 .75-2 1.97V11c0 1.25.75 2 2 2h.75c0 2.25.25 4-2.75 4v3c0 1 0 1 1 1z"></path></svg><span>“Licensed master plumber, Texas license on file.” <a href="#" class="num">harborplumbing.com/about</a></span></span><button type="button" class="btn btn-ghost btn-sm">Don’t quote this</button></li>
+          <li style="display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; padding-top: 10px; border-top: 1px solid #e8e9f3"><span style="display: flex; gap: 8px; align-items: flex-start; min-width: 0; flex: 1 1 300px"><svg class="ic" viewBox="0 0 24 24" style="width: 16px; height: 16px; color: #646579; margin-top: 3px" aria-hidden="true"><path d="M3 21c3 0 7-1 7-8V5c0-1.25-.76-2.02-2-2H4c-1.25 0-2 .75-2 1.97V11c0 1.25.75 2 2 2 1 0 1 0 1 1v1c0 1-1 2-2 2s-1 .01-1 1.03V20c0 1 0 1 1 1z"></path><path d="M15 21c3 0 7-1 7-8V5c0-1.25-.76-2.02-2-2h-4c-1.25 0-2 .75-2 1.97V11c0 1.25.75 2 2 2h.75c0 2.25.25 4-2.75 4v3c0 1 0 1 1 1z"></path></svg><span>“We give you the price before we start.” <span class="muted">· on 3 pages</span></span></span><button type="button" class="btn btn-ghost btn-sm">Don’t quote this</button></li>
+        </ul></div>
+    </details>
+    <details class="card fold">
+      <summary><span>Content we already know about</span><svg class="ic chev" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></summary>
+      <div style="padding: 0 20px 20px; display: flex; flex-direction: column; gap: 14px"><p class="muted" style="margin: 0; font-size: 14px">Checked before every page, so we link to what exists and never write it twice.</p><div style="display: flex; flex-direction: column; gap: 8px">
+          <p style="margin: 0; font-size: 14px"><strong>46 pages</strong>, from three places:</p>
+          <span class="meter" style="height: 12px; display: flex; gap: 2px; background: transparent" aria-hidden="true"><span style="width: 26%; height: 12px; background: #5b4be0"></span><span style="width: 74%; height: 12px; background: #b9bbd0"></span></span>
+          <ul style="margin: 0; padding: 0; list-style: none; display: flex; flex-wrap: wrap; gap: 6px 20px; font-size: 14px">
+            <li style="display: inline-flex; gap: 6px; align-items: center"><span style="width: 10px; height: 10px; border-radius: 3px; background: #5b4be0; display: inline-block"></span>12 pages we wrote</li>
+            <li style="display: inline-flex; gap: 6px; align-items: center"><span style="width: 10px; height: 10px; border-radius: 3px; background: #b9bbd0; display: inline-block"></span>34 pages on your site</li>
+            <li class="muted">0 posts on your blog</li>
+          </ul>
+        </div></div>
+    </details>
+    </section>
+    <section class="states" aria-label="Other states of this tab">
+      <p class="eyebrow">Other states (design note, not on the page)</p>
+<div class="state"><p class="eyebrow">Site not read yet</p><p style="margin: 0; font-size: 14px">We haven’t read your site yet. The next read fills this in.</p></div>
+<div class="state"><p class="eyebrow">Facts we can quote, none found</p><p style="margin: 0; font-size: 14px">No page of your site has given us a fact to quote yet.</p></div>
+<div class="state"><p class="eyebrow">Read my site again now, pressed</p><button type="button" class="btn btn-soft" style="align-self: flex-start" disabled><svg class="ic" viewBox="0 0 24 24" style="width: 16px; height: 16px;" aria-hidden="true"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"></path><path d="M21 3v5h-5"></path><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"></path><path d="M8 16H3v5"></path></svg>Read my site again now</button><p style="margin: 0; font-size: 14px">Reading your site. This line shows the step and when it started; the tab refreshes when it ends.</p></div>
+<div class="state"><p class="eyebrow">After a save</p><p style="margin: 0; font-size: 14px; display: flex; gap: 6px; align-items: center"><svg class="ic" viewBox="0 0 24 24" style="width: 16px; height: 16px; color: #1b765b;" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg>Saved. It takes effect straight away.</p><p style="margin: 0; font-size: 14px">That didn’t save. Nothing changed.</p></div>
+    </section>
+  </main>
+  <nav class="dock" aria-label="Main"><a href="Main.dc.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 10l9-7 9 7v10a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"></path></svg>Overview</a><a href="Plan.dc.html"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"></rect><path d="M16 2v4M8 2v4M3 10h18"></path></svg>Plan</a><a href="#" aria-current="page"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"></path></svg>Settings</a></nav>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":2243}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

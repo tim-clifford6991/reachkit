@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Technical issues</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#f3f4fb}
+a{color:#5b4be0;text-decoration:none}a:hover{color:#4a3bc9;text-decoration:underline}
+.card{background:#ffffff;border:1px solid #e8e9f3;border-radius:14px;box-shadow:0 0 0 1px rgba(24,24,48,.06),0 1px 2px rgba(24,24,48,.04)}
+.eyebrow{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#6a6b80;margin:0}
+.fig{font-size:36px;font-weight:600;line-height:1;font-variant-numeric:tabular-nums;margin:0;letter-spacing:-0.01em}
+.muted{color:#646579}
+.num{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:13px;word-break:normal;overflow-wrap:anywhere;word-spacing:0}
+.nav a{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:9px;color:#646579;font-weight:600;font-size:14px}
+.nav a:hover{background:#eef0f8;text-decoration:none}
+.nav svg{width:20px;height:20px;stroke:currentColor;stroke-width:1.75;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.badge{display:inline-flex;align-items:center;gap:4px;padding:2px 9px;border-radius:999px;font-size:12px;font-weight:600;line-height:19px;white-space:nowrap;word-spacing:0;box-sizing:border-box}
+.ic{width:16px;height:16px;stroke:currentColor;stroke-width:1.75;fill:none;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.tabs{display:flex;flex-wrap:wrap;gap:4px;border-bottom:1px solid #e8e9f3}
+.tabs a{padding:10px 14px;font-weight:600;font-size:14px;color:#646579;border-bottom:2px solid transparent;margin-bottom:-1px}
+.tabs a:hover{color:#1e2233;text-decoration:none}
+.tabs a[aria-current="page"]{color:#5b4be0;border-bottom-color:#5b4be0}
+.h1{margin:0;font-size:31px;font-weight:700;letter-spacing:-0.03em;line-height:1.25}
+.h2{margin:0;font-size:20px;font-weight:700;letter-spacing:-0.02em;line-height:1.35}
+.h3{margin:0;font-size:16px;font-weight:700;line-height:1.4}
+.lead{margin:0;color:#3a3d52}
+.itile{display:inline-flex;width:36px;height:36px;border-radius:10px;background:#eeecfd;color:#5b4be0;align-items:center;justify-content:center;flex:none}
+.itile .ic{width:20px;height:20px}
+.chipn{display:inline-flex;width:28px;height:28px;border-radius:9px;background:#5b4be0;color:#ffffff;align-items:center;justify-content:center;font-weight:800;font-size:14px;font-variant-numeric:tabular-nums;flex:none}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:0 18px;border-radius:9px;font:inherit;font-weight:600;font-size:15px;cursor:pointer;box-sizing:border-box;white-space:nowrap;text-decoration:none;word-spacing:0}
+.btn:hover{text-decoration:none}
+.primary{background:#5b4be0;color:#ffffff;border:0}.primary:hover{background:#4a3bc9;color:#ffffff}
+.soft{background:#eeecfd;color:#5b4be0;border:0}.soft:hover{background:#e3dffb}
+.stop{background:transparent;color:#945c22;border:1px solid #fbe1c6}.stop:hover{background:#fff3e6;color:#945c22}
+.quiet{background:transparent;color:#646579;border:0}
+.btn .ic{width:16px;height:16px}
+.sm{min-height:36px;padding:0 12px;font-size:14px}
+.well{background:#eef0f8;border-radius:9px}
+.cap{margin:0;font-size:12px;color:#646579}
+.det>summary{list-style:none;cursor:pointer;display:inline-flex;align-items:center;gap:8px;min-height:44px;font-weight:600;font-size:14px;color:#5b4be0}
+.det>summary::-webkit-details-marker{display:none}
+.det .body{display:flex;flex-direction:column;gap:10px;padding:0 0 8px;font-size:14px;color:#3a3d52}
+.det .body p{margin:0}
+.closed>summary{list-style:none;cursor:pointer;padding:16px 20px;font-weight:600;display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center;min-height:24px}
+.closed>summary::-webkit-details-marker{display:none}
+.closed>summary .chev{margin-left:auto;color:#646579}
+.tile summary{list-style:none;cursor:pointer;padding:20px;display:flex;flex-direction:column;gap:12px}
+.tile summary::-webkit-details-marker{display:none}
+.tile:not([open]) summary{box-sizing:border-box;height:100%}.tile .more{margin-top:auto}
+.more{display:inline-flex;align-items:center;gap:4px;font-size:13px;font-weight:600;color:#5b4be0}
+.lrow{display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px 16px;padding:14px 20px;border-top:1px solid #e8e9f3;align-items:center}
+.tbl{width:100%;border-collapse:collapse;font-size:14px}
+.tbl th{text-align:left;font-size:12px;font-weight:700;color:#6a6b80;padding:10px 12px;border-bottom:1px solid #e8e9f3;white-space:nowrap}
+.tbl td{padding:12px;border-top:1px solid #e8e9f3;vertical-align:top}
+.tbl td.n,.tbl th.n{text-align:right;font-variant-numeric:tabular-nums}
+.pill{display:inline-flex;align-items:center;min-height:32px;padding:0 12px;border-radius:999px;border:1px solid #e8e9f3;background:#ffffff;font:inherit;font-size:13px;font-weight:600;color:#646579;cursor:pointer;word-spacing:0}
+.pill[aria-pressed="true"]{background:#1e2233;border-color:#1e2233;color:#ffffff}
+.lbl{display:inline-flex;align-items:center;gap:4px;padding:2px 9px;border-radius:999px;font-size:12px;font-weight:600;line-height:19px;white-space:nowrap;word-spacing:0}
+.states{border:1px dashed #c9cbe0;border-radius:14px;padding:20px;display:flex;flex-direction:column;gap:12px}
+.state{display:flex;flex-direction:column;gap:4px;padding:12px 14px;background:#eef0f8;border-radius:9px;font-size:14px}
+.sub{display:none;font-size:13px;color:#646579;margin-top:2px}
+@media (max-width: 640px){.tbl .opt{display:none}.sub{display:block} }
+.daycell{background:#ffffff;border:1px solid #e8e9f3;border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:8px;min-width:0;box-sizing:border-box}
+.thumb{height:40px;border-radius:6px;background:#eef0f8;display:flex;flex-direction:column;gap:5px;padding:8px;box-sizing:border-box}
+.thumb span{height:5px;border-radius:3px;background:#dcdeec;display:block}
+.clamp2{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.clamp3{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.sr{position:absolute;left:0;top:0;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.tag{display:inline-block;padding:2px 9px;border-radius:999px;background:#eef0f8;color:#6a6b80;font-size:12px;font-weight:600;line-height:19px;white-space:nowrap;vertical-align:middle;word-spacing:0}
+.slot{border:1.5px dashed #c4c6dc;border-radius:12px;padding:12px 14px;color:#6a6b80;font-size:13px;line-height:1.5;background:rgba(255,255,255,.45)}
+.track{display:block;height:10px;border-radius:999px;background:#eef0f8;overflow:hidden}
+.track>span{display:block;height:10px;border-radius:999px}
+
+.hrow{display:flex;align-items:center;gap:8px;min-height:24px;margin:0}
+.hback{display:inline-flex;align-items:center;gap:6px;font-size:14px;font-weight:600;line-height:24px;min-height:24px}
+.hback .ic{width:16px;height:16px}
+.leadrow{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;min-height:24px;margin:0;color:#3a3d52}
+h1,h2,h3,.h1{text-wrap:balance}p,li{text-wrap:pretty}
+.bframe{border:1px solid #e8e9f3;border-radius:12px;overflow:hidden;background:#ffffff;display:flex;flex-direction:column;position:relative;box-sizing:border-box;min-width:0;box-shadow:0 0 0 1px rgba(24,24,48,.06),0 1px 2px rgba(24,24,48,.04)}
+.bframe.crop{-webkit-mask-image:linear-gradient(#000 calc(100% - 64px),transparent);mask-image:linear-gradient(#000 calc(100% - 64px),transparent)}
+.bbar{min-height:38px;flex:none;box-sizing:border-box;display:flex;align-items:center;gap:14px;padding:6px 12px;background:#f3f4fb;border-bottom:1px solid #e8e9f3}
+.bdots{display:inline-flex;gap:8px;flex:none}
+.bdots span{width:12px;height:12px;border-radius:999px;background:#dcdeec;display:block}
+.burl{flex:1 1 auto;min-width:0;min-height:26px;box-sizing:border-box;display:flex;align-items:center;gap:6px;padding:2px 12px;border-radius:999px;background:#ffffff;border:1px solid #e8e9f3;color:#646579}
+.burl b{font-weight:400;min-width:0;font-family:"JetBrains Mono",ui-monospace,monospace;font-size:13px;line-height:1.4;color:#3a3d52;word-break:break-all;word-spacing:0}
+.burl .ic{width:16px;height:16px}
+.bbody{flex:1 1 auto;min-height:0;overflow:hidden;position:relative}
+.bfade{position:absolute;left:0;right:0;bottom:0;height:56px;background:linear-gradient(rgba(255,255,255,0),#ffffff);pointer-events:none}
+.lad{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+@media (max-width: 640px){.lad{grid-template-columns:repeat(2,minmax(0,1fr))} }
+.daygrid{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+.daygrid>li{display:grid;grid-template-rows:subgrid;row-gap:8px}
+/* app shell: sidebar from 1024px; navbar + bottom dock below it (DESIGN.md › The shell) */
+.mbar,.dock{display:none}
+.mbar{flex:1 1 100%;position:sticky;top:0;z-index:5;box-sizing:border-box;height:84px;padding:8px 16px;background:#ffffff;border-bottom:1px solid #e8e9f3;flex-direction:column;gap:4px}
+.mbar .row{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:44px}
+.mbar .brand{display:flex;align-items:center;gap:8px;color:#1e2233;font-weight:800;font-size:18px;letter-spacing:-0.01em}
+.mbar .theme{display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;border-radius:9px;border:0;background:transparent;color:#646579;cursor:pointer}
+.mbar .theme svg{width:20px;height:20px;stroke:currentColor;stroke-width:1.75;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.mbar .line{display:flex;align-items:center;gap:6px 12px;flex-wrap:wrap;font-size:13px;min-height:20px}
+.mbar .line .num{word-break:break-all}
+.publine{display:inline-flex;align-items:center;gap:8px;color:#1e2233;font-size:13px;font-weight:600}
+.publine i{width:8px;height:8px;border-radius:999px;flex:none;display:block}
+.dock{flex:1 1 100%;position:sticky;bottom:0;z-index:5;box-sizing:border-box;height:64px;background:#ffffff;border-top:1px solid #e8e9f3;align-items:stretch}
+.dock a{flex:1 1 0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;color:#646579;font-size:12px;font-weight:600;position:relative;text-decoration:none}
+.dock a svg{width:20px;height:20px;stroke:currentColor;stroke-width:1.75;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.dock a[aria-current="page"]{color:#5b4be0}
+.dock a[aria-current="page"]::after{content:"";position:absolute;bottom:8px;width:24px;height:3px;border-radius:999px;background:#5b4be0}
+@media (max-width: 1023px){
+  nav.nav{display:none !important}
+  .mbar,.dock{display:flex}
+  main{padding:24px !important;max-width:none !important}
+  .tabs{position:sticky;top:84px;z-index:4;background:#f3f4fb}
+}
+@media (max-width: 640px){
+  main{padding:16px 16px 24px !important}
+}
+</style>
+</helmet>
+<div style="min-height: 1489px; display: flex; flex-wrap: wrap; font-family: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif; color: #1e2233; font-size: 15px; line-height: 1.55; word-spacing: .06em; background: #f3f4fb">
+  <nav class="nav" aria-label="Main" style="flex: 1 1 220px; max-width: 240px; box-sizing: border-box; padding: 24px 16px; background: #ffffff; border-right: 1px solid #e8e9f3; display: flex; flex-direction: column; gap: 4px">
+    <a href="Main.dc.html" style="display: flex; align-items: center; gap: 8px; padding: 0 12px 20px; color: #1e2233; font-weight: 800; font-size: 18px; letter-spacing: -0.01em">
+      <svg viewBox="0 0 64 64" style="width: 28px; height: 28px; stroke: none" aria-hidden="true"><defs><linearGradient id="aif" x1="0.15" y1="1" x2="0.95" y2="0.1"><stop offset="0.38" stop-color="#ffffff"></stop><stop offset="1" stop-color="#ffffff" stop-opacity="0.12"></stop></linearGradient><clipPath id="aic"><rect width="64" height="64" rx="15"></rect></clipPath></defs><g clip-path="url(#aic)"><rect width="64" height="64" fill="#5b4be0"></rect><path d="M8 50 A24 24 0 0 1 56 50 Z" fill="url(#aif)"></path></g></svg>ReachKit</a>
+    <a href="#" aria-current="page" style="background: #eeecfd; color: #5b4be0"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 10l9-7 9 7v10a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"></path></svg>Overview</a>
+    <a href="Plan.dc.html"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"></rect><path d="M16 2v4M8 2v4M3 10h18"></path></svg>Plan</a>
+    <a href="SettingsIndex.dc.html"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"></path></svg>Settings</a>
+    <div style="margin-top: auto; padding: 12px; font-size: 13px; display: flex; flex-direction: column; gap: 6px">
+      <a href="SettingsPublishing.dc.html" class="publine"><i style="background: #1b765b"></i>Publishing on</a>
+      <span class="num muted">harborplumbing.com</span>
+    </div>
+  </nav>
+  <header class="mbar" aria-label="ReachKit">
+    <div class="row"><a href="Main.dc.html" class="brand"><svg viewBox="0 0 64 64" style="width: 28px; height: 28px; stroke: none" aria-hidden="true"><defs><linearGradient id="aimf" x1="0.15" y1="1" x2="0.95" y2="0.1"><stop offset="0.38" stop-color="#ffffff"></stop><stop offset="1" stop-color="#ffffff" stop-opacity="0.12"></stop></linearGradient><clipPath id="aimc"><rect width="64" height="64" rx="15"></rect></clipPath></defs><g clip-path="url(#aimc)"><rect width="64" height="64" fill="#5b4be0"></rect><path d="M8 50 A24 24 0 0 1 56 50 Z" fill="url(#aimf)"></path></g></svg>ReachKit</a><button type="button" class="theme" aria-label="Theme: light"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"></path></svg></button></div>
+    <div class="line"><span class="num muted">harborplumbing.com</span><a href="SettingsPublishing.dc.html" class="publine"><i style="background: #1b765b"></i>Publishing on</a></div>
+  </header>
+
+  <main style="flex: 999 1 560px; min-width: 0; box-sizing: border-box; padding: 40px; display: flex; flex-direction: column; gap: 28px; max-width: 1040px">
+
+    <header style="display: flex; flex-direction: column; gap: 6px"><div class="hrow"><a href="Main.dc.html" class="hback"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H5M12 19l-7-7 7-7"></path></svg>Back to Overview</a></div><h1 class="h1">Technical issues</h1><div class="leadrow">Problems on your own site that ReachKit can’t change. Fixing them is optional. Found by the scan on Monday 19 October.</div></header>
+
+    <section class="card" aria-labelledby="sum" style="padding: 22px 24px; display: flex; flex-wrap: wrap; gap: 20px 32px; align-items: center">
+      <div style="flex: 1 1 260px; min-width: 0; display: flex; flex-direction: column; gap: 6px">
+        <p class="eyebrow" id="sum">Your site, 40 pages read</p>
+        <div style="display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap"><span class="fig">31</span><span class="muted" style="font-size: 14px">pages with nothing to fix</span></div>
+        <p style="margin: 0; font-size: 14px">9 pages have one of 3 problems. Your ReachKit pages are not affected: they live on <span class="num">help.harborplumbing.com</span> and are checked before they go live.</p>
+      </div>
+      <div style="flex: 1 1 300px; min-width: 0; display: flex; flex-direction: column; gap: 10px">
+        <div role="img" aria-label="40 pages: 3 hard to use on a phone, 4 slow, 2 with broken links, 31 fine." style="display: grid; grid-template-columns: repeat(10, minmax(0, 1fr)); gap: 4px"><span style="height: 18px; border-radius: 4px; background: #945c22"></span><span style="height: 18px; border-radius: 4px; background: #945c22"></span><span style="height: 18px; border-radius: 4px; background: #945c22"></span><span style="height: 18px; border-radius: 4px; background: #9aa0bd"></span><span style="height: 18px; border-radius: 4px; background: #9aa0bd"></span><span style="height: 18px; border-radius: 4px; background: #9aa0bd"></span><span style="height: 18px; border-radius: 4px; background: #9aa0bd"></span><span style="height: 18px; border-radius: 4px; background: #c9cbe0"></span><span style="height: 18px; border-radius: 4px; background: #c9cbe0"></span><span style="height: 18px; border-radius: 4px; background: #e7f6f0; border: 1px solid #c9e8db; box-sizing: border-box"></span><span style="height: 18px; border-radius: 4px; background: #e7f6f0; border: 1px solid #c9e8db; box-sizing: border-box"></span><span style="height: 18px; border-radius: 4px; background: #e7f6f0; border: 1px solid #c9e8db; box-sizing: border-box"></span><span style="height: 18px; border-radius: 4px; background: #e7f6f0; border: 1px solid #c9e8db; box-sizing: border-box"></span><span style="height: 18px; border-radius: 4px; background: #e7f6f0; border: 1px solid #c9e8db; box-sizing: border-box"></span><span style="height: 18px; border-radius: 4px; background: #e7f6f0; border: 1px solid #c9e8db; box-sizing: border-box"></span><span style="height: 18px; border-radius: 4px; background: #e7f6f0; border: 1px solid #c9e8db; box-sizing: border-box"></span><span style="height: 18px; border-radius: 4px; background: #e7f6f0; border: 1px solid #c9e8db; box-sizing: border-box"></span><span style="height: 18px; border-radius: 4px; background: #e7f6f0; border: 1px solid #c9e8db; box-sizing: border-box"></span><span style="height: 18px; border-radius: 4px; background: #e7f6f0; border: 1px solid #c9e8db; box-sizing: border-box"></span><span style="height: 18px; border-radius: 4px; background: #e7f6f0; border: 1px solid #c9e8db; box-sizing: border-box"></span><span style="height: 18px; border-radius: 4px; background: #e7f6f0; border: 1px solid #c9e8db; box-sizing: border-box"></span><span style="height: 18px; border-radius: 4px; background: #e7f6f0; border: 1px solid #c9e8db; box-sizing: border-box"></span><span style="height: 18px; border-radius: 4px; background: #e7f6f0; border: 1px solid #c9e8db; box-sizing: border-box"></span><span style="height: 18px; border-radius: 4px; background: #e7f6f0; border: 1px solid #c9e8db; box-sizing: border-box"></span><span style="height: 18px; border-radius: 4px; background: #e7f6f0; border: 1px solid #c9e8db; box-sizing: border-box"></span><span style="height: 18px; border-radius: 4px; background: #e7f6f0; border: 1px solid #c9e8db; box-sizing: border-box"></span><span style="height: 18px; border-radius: 4px; background: #e7f6f0; border: 1px solid #c9e8db; box-sizing: border-box"></span><span style="height: 18px; border-radius: 4px; background: #e7f6f0; border: 1px solid #c9e8db; box-sizing: border-box"></span><span style="height: 18px; border-radius: 4px; background: #e7f6f0; border: 1px solid #c9e8db; box-sizing: border-box"></span><span style="height: 18px; border-radius: 4px; background: #e7f6f0; border: 1px solid #c9e8db; box-sizing: border-box"></span><span style="height: 18px; border-radius: 4px; background: #e7f6f0; border: 1px solid #c9e8db; box-sizing: border-box"></span><span style="height: 18px; border-radius: 4px; background: #e7f6f0; border: 1px solid #c9e8db; box-sizing: border-box"></span><span style="height: 18px; border-radius: 4px; background: #e7f6f0; border: 1px solid #c9e8db; box-sizing: border-box"></span><span style="height: 18px; border-radius: 4px; background: #e7f6f0; border: 1px solid #c9e8db; box-sizing: border-box"></span><span style="height: 18px; border-radius: 4px; background: #e7f6f0; border: 1px solid #c9e8db; box-sizing: border-box"></span><span style="height: 18px; border-radius: 4px; background: #e7f6f0; border: 1px solid #c9e8db; box-sizing: border-box"></span><span style="height: 18px; border-radius: 4px; background: #e7f6f0; border: 1px solid #c9e8db; box-sizing: border-box"></span><span style="height: 18px; border-radius: 4px; background: #e7f6f0; border: 1px solid #c9e8db; box-sizing: border-box"></span><span style="height: 18px; border-radius: 4px; background: #e7f6f0; border: 1px solid #c9e8db; box-sizing: border-box"></span><span style="height: 18px; border-radius: 4px; background: #e7f6f0; border: 1px solid #c9e8db; box-sizing: border-box"></span></div>
+        <p class="cap" style="display: flex; flex-wrap: wrap; gap: 4px 14px"><span style="display: inline-flex; gap: 5px; align-items: center"><span style="width: 10px; height: 10px; border-radius: 3px; background: #945c22"></span>3 phone</span><span style="display: inline-flex; gap: 5px; align-items: center"><span style="width: 10px; height: 10px; border-radius: 3px; background: #9aa0bd"></span>4 slow</span><span style="display: inline-flex; gap: 5px; align-items: center"><span style="width: 10px; height: 10px; border-radius: 3px; background: #c9cbe0"></span>2 broken links</span><span style="display: inline-flex; gap: 5px; align-items: center"><span style="width: 10px; height: 10px; border-radius: 3px; background: #e7f6f0; border: 1px solid #c9e8db; box-sizing: border-box"></span>31 fine</span></p>
+      </div>
+    </section>
+
+    <div style="display: flex; flex-direction: column; gap: 16px">
+      <article class="card" style="padding: 20px 22px; display: flex; flex-direction: column; gap: 14px; box-shadow: inset 4px 0 0 #e9b884, 0 0 0 1px rgba(24,24,48,.06), 0 1px 2px rgba(24,24,48,.04);">
+          <div style="display: flex; flex-wrap: wrap; gap: 12px; align-items: center">
+            <span class="itile" style="background: #fff3e6; color: #945c22; width: 36px; height: 36px"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="2" width="14" height="20" rx="2"></rect><path d="M12 18h.01"></path></svg></span>
+            <h2 class="h3" style="flex: 1 1 200px; min-width: 0">Hard to use on a phone</h2>
+            <span class="badge" style="background: #fff3e6; color: #945c22; gap: 6px"><span aria-hidden="true" style="display: inline-flex; align-items: flex-end; gap: 2px; height: 14px"><span style="width: 6px; height: 6px; border-radius: 2px; background: #945c22"></span><span style="width: 6px; height: 10px; border-radius: 2px; background: #945c22"></span><span style="width: 6px; height: 14px; border-radius: 2px; background: #945c22"></span></span>Critical</span>
+          </div>
+          <div style="display: flex; align-items: center; gap: 10px; font-size: 14px"><span aria-hidden="true" class="track" style="flex: 0 1 200px; height: 8px"><span style="width: 8%; height: 8px; background: #945c22"></span></span><span><strong>3 of 40</strong> pages</span></div>
+          <div class="well" style="padding: 12px 14px; display: flex; gap: 10px; align-items: flex-start; font-size: 14px"><span style="color: #5b4be0; display: inline-flex; margin-top: 2px"><svg class="ic" viewBox="0 0 24 24" style="width: 16px; height: 16px;" aria-hidden="true"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.8-3.8a6 6 0 0 1-7.9 7.9l-6.9 6.9a2.1 2.1 0 0 1-3-3l6.9-6.9a6 6 0 0 1 7.9-7.9z"></path></svg></span><span><strong>The fix:</strong> Add a viewport line to the head of these pages’ template, so phones draw them at their own width.<br><span class="muted">Who can do it: whoever looks after your website.</span></span></div>
+          <details class="det"><summary><svg class="ic" viewBox="0 0 24 24" style="width: 16px; height: 16px;" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg>Show the 3 pages</summary><div class="body"><ul style="list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px"><li><a href="#" style="display: inline-flex; gap: 6px; align-items: center; min-width: 0"><span class="num">harborplumbing.com/coupons</span><svg class="ic" viewBox="0 0 24 24" style="width: 16px; height: 16px;" aria-hidden="true"><path d="M15 3h6v6M10 14 21 3M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path></svg><span class="sr">opens in a new tab</span></a></li><li><a href="#" style="display: inline-flex; gap: 6px; align-items: center; min-width: 0"><span class="num">harborplumbing.com/financing</span><svg class="ic" viewBox="0 0 24 24" style="width: 16px; height: 16px;" aria-hidden="true"><path d="M15 3h6v6M10 14 21 3M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path></svg><span class="sr">opens in a new tab</span></a></li><li><a href="#" style="display: inline-flex; gap: 6px; align-items: center; min-width: 0"><span class="num">harborplumbing.com/careers</span><svg class="ic" viewBox="0 0 24 24" style="width: 16px; height: 16px;" aria-hidden="true"><path d="M15 3h6v6M10 14 21 3M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path></svg><span class="sr">opens in a new tab</span></a></li></ul></div></details>
+        </article><article class="card" style="padding: 20px 22px; display: flex; flex-direction: column; gap: 14px; ">
+          <div style="display: flex; flex-wrap: wrap; gap: 12px; align-items: center">
+            <span class="itile" style="background: #eef0f8; color: #646579; width: 36px; height: 36px"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="m12 14 4-4"></path><path d="M3.3 19a10 10 0 1 1 17.4 0"></path></svg></span>
+            <h2 class="h3" style="flex: 1 1 200px; min-width: 0">Slow pages</h2>
+            <span class="badge" style="background: #eef0f8; color: #646579; gap: 6px"><span aria-hidden="true" style="display: inline-flex; align-items: flex-end; gap: 2px; height: 14px"><span style="width: 6px; height: 6px; border-radius: 2px; background: #646579"></span><span style="width: 6px; height: 10px; border-radius: 2px; background: #646579"></span><span style="width: 6px; height: 14px; border-radius: 2px; background: #dcdeec"></span></span>Worth fixing</span>
+          </div>
+          <div style="display: flex; align-items: center; gap: 10px; font-size: 14px"><span aria-hidden="true" class="track" style="flex: 0 1 200px; height: 8px"><span style="width: 10%; height: 8px; background: #9aa0bd"></span></span><span><strong>4 of 40</strong> pages</span></div>
+          <div class="well" style="padding: 12px 14px; display: flex; gap: 10px; align-items: flex-start; font-size: 14px"><span style="color: #5b4be0; display: inline-flex; margin-top: 2px"><svg class="ic" viewBox="0 0 24 24" style="width: 16px; height: 16px;" aria-hidden="true"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.8-3.8a6 6 0 0 1-7.9 7.9l-6.9 6.9a2.1 2.1 0 0 1-3-3l6.9-6.9a6 6 0 0 1 7.9-7.9z"></path></svg></span><span><strong>The fix:</strong> Turn on page caching with your host or site builder, and shrink the largest images on these pages.<br><span class="muted">Who can do it: whoever looks after your website.</span></span></div>
+          <details class="det"><summary><svg class="ic" viewBox="0 0 24 24" style="width: 16px; height: 16px;" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg>Show the 4 pages</summary><div class="body"><ul style="list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px"><li><a href="#" style="display: inline-flex; gap: 6px; align-items: center; min-width: 0"><span class="num">harborplumbing.com/</span><svg class="ic" viewBox="0 0 24 24" style="width: 16px; height: 16px;" aria-hidden="true"><path d="M15 3h6v6M10 14 21 3M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path></svg><span class="sr">opens in a new tab</span></a></li><li><a href="#" style="display: inline-flex; gap: 6px; align-items: center; min-width: 0"><span class="num">harborplumbing.com/services/water-heaters</span><svg class="ic" viewBox="0 0 24 24" style="width: 16px; height: 16px;" aria-hidden="true"><path d="M15 3h6v6M10 14 21 3M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path></svg><span class="sr">opens in a new tab</span></a></li><li><a href="#" style="display: inline-flex; gap: 6px; align-items: center; min-width: 0"><span class="num">harborplumbing.com/gallery</span><svg class="ic" viewBox="0 0 24 24" style="width: 16px; height: 16px;" aria-hidden="true"><path d="M15 3h6v6M10 14 21 3M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path></svg><span class="sr">opens in a new tab</span></a></li><li><a href="#" style="display: inline-flex; gap: 6px; align-items: center; min-width: 0"><span class="num">harborplumbing.com/reviews</span><svg class="ic" viewBox="0 0 24 24" style="width: 16px; height: 16px;" aria-hidden="true"><path d="M15 3h6v6M10 14 21 3M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path></svg><span class="sr">opens in a new tab</span></a></li></ul><p class="cap">Each page took 4 seconds or more on two reads; the time shown is the quicker one.</p></div></details>
+        </article><article class="card" style="padding: 20px 22px; display: flex; flex-direction: column; gap: 14px; ">
+          <div style="display: flex; flex-wrap: wrap; gap: 12px; align-items: center">
+            <span class="itile" style="background: #eef0f8; color: #646579; width: 36px; height: 36px"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="m18.8 13.4 1.7-1.7a5 5 0 0 0-7.1-7.1l-1.7 1.7M5.2 10.6l-1.7 1.7a5 5 0 0 0 7.1 7.1l1.7-1.7M8 2v3M2 8h3M16 22v-3M22 16h-3"></path></svg></span>
+            <h2 class="h3" style="flex: 1 1 200px; min-width: 0">Broken internal links</h2>
+            <span class="badge" style="background: #eef0f8; color: #646579; gap: 6px"><span aria-hidden="true" style="display: inline-flex; align-items: flex-end; gap: 2px; height: 14px"><span style="width: 6px; height: 6px; border-radius: 2px; background: #646579"></span><span style="width: 6px; height: 10px; border-radius: 2px; background: #646579"></span><span style="width: 6px; height: 14px; border-radius: 2px; background: #dcdeec"></span></span>Worth fixing</span>
+          </div>
+          <div style="display: flex; align-items: center; gap: 10px; font-size: 14px"><span aria-hidden="true" class="track" style="flex: 0 1 200px; height: 8px"><span style="width: 5%; height: 8px; background: #9aa0bd"></span></span><span><strong>2 of 40</strong> pages</span></div>
+          <div class="well" style="padding: 12px 14px; display: flex; gap: 10px; align-items: flex-start; font-size: 14px"><span style="color: #5b4be0; display: inline-flex; margin-top: 2px"><svg class="ic" viewBox="0 0 24 24" style="width: 16px; height: 16px;" aria-hidden="true"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.8-3.8a6 6 0 0 1-7.9 7.9l-6.9 6.9a2.1 2.1 0 0 1-3-3l6.9-6.9a6 6 0 0 1 7.9-7.9z"></path></svg></span><span><strong>The fix:</strong> Change or remove the links on your site that point to these addresses; each one answers with an error.<br><span class="muted">Who can do it: whoever looks after your website.</span></span></div>
+          <details class="det"><summary><svg class="ic" viewBox="0 0 24 24" style="width: 16px; height: 16px;" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg>Show the 2 pages</summary><div class="body"><ul style="list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px"><li><a href="#" style="display: inline-flex; gap: 6px; align-items: center; min-width: 0"><span class="num">harborplumbing.com/specials-2024</span><svg class="ic" viewBox="0 0 24 24" style="width: 16px; height: 16px;" aria-hidden="true"><path d="M15 3h6v6M10 14 21 3M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path></svg><span class="sr">opens in a new tab</span></a></li><li><a href="#" style="display: inline-flex; gap: 6px; align-items: center; min-width: 0"><span class="num">harborplumbing.com/blog/old-post</span><svg class="ic" viewBox="0 0 24 24" style="width: 16px; height: 16px;" aria-hidden="true"><path d="M15 3h6v6M10 14 21 3M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path></svg><span class="sr">opens in a new tab</span></a></li></ul></div></details>
+        </article>
+    </div>
+
+    <section class="states" aria-label="Other states of this screen"><p class="eyebrow">Other states</p><div class="state"><span class="eyebrow">Empty · a quiet tick and one line</span><span>Nothing on your site needs fixing. We check again on Monday.</span></div><div class="state"><span class="eyebrow">Unreadable</span><span>Your latest scan could not be read just now. Open this page again in a minute.</span></div></section>
+
+  </main>
+  <nav class="dock" aria-label="Main"><a href="#" aria-current="page"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 10l9-7 9 7v10a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"></path></svg>Overview</a><a href="Plan.dc.html"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"></rect><path d="M16 2v4M8 2v4M3 10h18"></path></svg>Plan</a><a href="SettingsIndex.dc.html"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"></path></svg>Settings</a></nav>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1489}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

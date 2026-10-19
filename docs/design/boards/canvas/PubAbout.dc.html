@@ -1,0 +1,274 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>About ReachKit</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#f3f4fb}
+a{color:#5b4be0;text-decoration:none}a:hover{color:#4a3bc9;text-decoration:underline}
+.card{background:#ffffff;border:1px solid #e8e9f3;border-radius:14px;box-shadow:0 0 0 1px rgba(24,24,48,.06),0 1px 2px rgba(24,24,48,.04)}
+.eyebrow{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#6a6b80;margin:0}
+.fig{font-size:36px;font-weight:600;line-height:1;font-variant-numeric:tabular-nums;margin:0}
+.muted{color:#646579}
+.num{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:13px;word-break:break-all;word-spacing:0}
+.badge{display:inline-flex;align-items:center;gap:4px;padding:2px 9px;border-radius:999px;font-size:12px;font-weight:600;white-space:nowrap}
+.tick{display:flex;gap:10px;align-items:flex-start;margin:0}
+.tick svg{flex:none;width:20px;height:20px;margin-top:2px;stroke:#1b765b;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.ic{width:20px;height:20px;stroke:currentColor;stroke-width:1.75;fill:none;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:0 18px;border-radius:9px;background:#5b4be0;color:#ffffff;font-weight:600;font-size:15px;border:0;font-family:inherit;cursor:pointer;text-decoration:none;box-sizing:border-box;white-space:nowrap}
+.btn:hover{background:#4a3bc9;color:#ffffff;text-decoration:none}
+.ghost{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:0 18px;border-radius:9px;background:transparent;color:#5b4be0;font-weight:600;font-size:15px;border:1px solid #5b4be0;font-family:inherit;cursor:pointer;text-decoration:none;box-sizing:border-box;white-space:nowrap}
+.ghost:hover{background:#eeecfd;text-decoration:none}
+.tag{display:inline-block;margin-left:6px;padding:0 7px;border-radius:999px;background:#eef0f8;border:1px solid #e8e9f3;color:#6a6b80;font-size:11px;font-weight:600;line-height:18px;white-space:nowrap;vertical-align:middle;word-spacing:0;letter-spacing:.01em}
+.slot{border:1.5px dashed #c4c6dc;border-radius:14px;padding:16px 18px;color:#6a6b80;font-size:13px;line-height:1.5;background:rgba(255,255,255,.45);box-sizing:border-box}
+.wrap{max-width:1120px;margin:0 auto;padding-left:24px;padding-right:24px;box-sizing:border-box;width:100%}
+.h2{margin:0;font-size:25px;font-weight:700;letter-spacing:-0.02em;line-height:1.3}
+.h3{margin:0;font-size:20px;font-weight:700;letter-spacing:-0.02em;line-height:1.35}
+.h4{margin:0;font-size:16px;font-weight:700;line-height:1.4;letter-spacing:-0.005em}
+.pnav a{color:#1e2233;font-weight:600;font-size:14px;padding:8px 10px;border-radius:9px}
+.pnav a:hover{background:#eef0f8;text-decoration:none}
+.pnav a[aria-current]{color:#5b4be0;background:#eeecfd}
+.iconbtn{display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;border-radius:9px;border:1px solid #e8e9f3;background:#ffffff;color:#1e2233;cursor:pointer;padding:0}
+.ftr h2{margin:0 0 10px}
+.ftr ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.ftr a{color:#646579;font-size:14px}
+.ftr a:hover{color:#5b4be0}
+.qa{display:flex;flex-direction:column;gap:6px}
+.qa p{margin:0}
+.well{background:#eef0f8;border-radius:9px}
+.row{display:flex;align-items:center;gap:12px;padding:10px 0;border-top:1px solid #e8e9f3}
+input.field{min-height:48px;border:1px solid #d6d8e8;border-radius:9px;padding:0 14px;font-family:"JetBrains Mono",ui-monospace,monospace;font-size:15px;color:#1e2233;background:#ffffff;box-sizing:border-box;min-width:0}
+input.field::placeholder{color:#8a8ba0}
+.lead{margin:0;color:#3a3d52}
+h1,h2,h3,.h2,.h3{text-wrap:balance}
+p,li,.mini span,.sbrow span{text-wrap:pretty}
+.tile{display:inline-flex;width:36px;height:36px;border-radius:10px;background:#eeecfd;color:#5b4be0;align-items:center;justify-content:center;flex:none}
+.chipn{display:inline-flex;width:40px;height:40px;border-radius:12px;background:#5b4be0;color:#ffffff;align-items:center;justify-content:center;font-weight:800;font-size:16px;font-variant-numeric:tabular-nums;flex:none}
+.cap{margin:0;font-size:12px;color:#646579}
+.pill{display:inline-flex;align-items:center;gap:4px;padding:1px 8px;border-radius:999px;font-size:11px;font-weight:700;letter-spacing:.02em;white-space:nowrap;word-spacing:0}
+.faq summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:14px;padding:18px 22px;min-height:44px}
+.faq summary::-webkit-details-marker{display:none}
+.faq summary svg:last-child{flex:none;color:#646579}
+details[open] > summary .chev-rot{transform:rotate(180deg)}
+.chev-rot{transition:transform .15s}
+.sk{display:block;height:5px;border-radius:3px;background:#dcdeec}
+.mini{background:#ffffff;border:1px solid #e8e9f3;border-radius:10px;box-sizing:border-box;min-width:0}
+.sbrow{display:grid;grid-template-columns:34px minmax(0,1fr) 268px;gap:6px 14px;align-items:start;padding:8px 0;position:relative}
+.sbrow .line{position:absolute;left:16px;top:46px;bottom:-8px;width:2px;background:#ddd8fa}
+.sbp .sbrow{grid-template-columns:34px minmax(0,1fr);padding:10px 0}
+.sbp .sbrow > :last-child{grid-column:2}
+@media (max-width:640px){.sbrow{grid-template-columns:34px minmax(0,1fr)}.sbrow > :last-child{grid-column:2}}
+.seg{display:inline-flex;gap:2px;padding:3px;background:#eef0f8;border-radius:999px}
+.seg button{font:inherit;font-size:12px;font-weight:600;padding:4px 11px;border-radius:999px;cursor:pointer;border:0;background:transparent;color:#646579;word-spacing:0;min-height:24px}
+.seg button[aria-selected="true"]{background:#ffffff;color:#1e2233;box-shadow:0 0 0 1px rgba(24,24,48,.08),0 1px 2px rgba(24,24,48,.06)}
+.daycell{background:#ffffff;border:1px solid #e8e9f3;border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:8px;min-width:0;box-sizing:border-box}
+.thumb{height:40px;border-radius:6px;background:#eef0f8;display:flex;flex-direction:column;gap:5px;padding:8px;box-sizing:border-box}
+/* public chrome */
+.mnav{display:none !important}
+@media (max-width:560px){header .pnav,header .thm{display:none !important}header .mnav{display:inline-flex !important}.wrap{padding-left:16px;padding-right:16px}}
+/* end public chrome */
+
+.sec{padding:72px 0}
+.band{background:#ffffff;border-top:1px solid #e8e9f3;border-bottom:1px solid #e8e9f3}
+.h2big{margin:0;font-size:31px;font-weight:700;letter-spacing:-0.03em;line-height:1.2}
+.lead{margin:0;font-size:18px;color:#3a3d52}
+.tile{display:inline-flex;width:36px;height:36px;border-radius:10px;background:#eeecfd;color:#5b4be0;align-items:center;justify-content:center;flex:none}
+.chipn{display:inline-flex;width:40px;height:40px;border-radius:12px;background:#5b4be0;color:#ffffff;align-items:center;justify-content:center;font-weight:800;font-size:16px;font-variant-numeric:tabular-nums;flex:none}
+.cap{margin:0;font-size:12px;color:#646579}
+.det{border-top:1px solid #e8e9f3;padding-top:4px}
+.det summary{list-style:none;cursor:pointer;display:inline-flex;align-items:center;gap:8px;min-height:44px;font-weight:600;font-size:14px;color:#5b4be0}
+.det summary::-webkit-details-marker{display:none}
+.faq summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:14px;padding:18px 22px;min-height:44px}
+.faq summary::-webkit-details-marker{display:none}
+.faq summary svg:last-child{flex:none;color:#646579}
+.det .body{display:flex;flex-direction:column;gap:10px;padding:4px 0 8px;font-size:14px;color:#3a3d52;max-width:680px}
+.det .body p{margin:0}
+.seg{display:inline-flex;gap:2px;padding:3px;background:#eef0f8;border-radius:999px}
+.seg button{font:inherit;font-size:12px;font-weight:600;padding:4px 11px;border-radius:999px;cursor:pointer;border:0;background:transparent;color:#646579;word-spacing:0}
+.seg button[aria-selected="true"]{background:#ffffff;color:#1e2233;box-shadow:0 0 0 1px rgba(24,24,48,.08),0 1px 2px rgba(24,24,48,.06)}
+.src{display:inline-flex;align-items:center;gap:4px;font-family:"JetBrains Mono",ui-monospace,monospace;font-size:11px;color:#5b4be0;background:#eeecfd;border:1px solid #ddd8fa;border-radius:999px;padding:1px 8px;white-space:nowrap;word-spacing:0;vertical-align:middle}
+.pill{display:inline-flex;align-items:center;gap:4px;padding:1px 8px;border-radius:999px;font-size:11px;font-weight:700;letter-spacing:.02em;white-space:nowrap;word-spacing:0}
+.qrow{display:grid;grid-template-columns:290px minmax(0,1fr) 250px 104px;gap:16px;align-items:center;padding:12px 0;border-top:1px solid #e8e9f3}
+.daycell{background:#ffffff;border:1px solid #e8e9f3;border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:8px;min-width:0;box-sizing:border-box}
+.thumb{height:46px;border-radius:6px;background:#eef0f8;display:flex;flex-direction:column;gap:5px;padding:9px 8px;box-sizing:border-box}
+.thumb span{height:5px;border-radius:3px;background:#dcdeec;display:block}
+.vrow{display:flex;flex-direction:column;gap:3px;padding:10px 0;border-top:1px solid #eef0f8}
+.vlab{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#6a6b80}
+mark{background:#fff3c4;color:inherit;padding:1px 2px;border-radius:3px}
+h1,h2,h3,.h2big,.h3,.h4{text-wrap:balance}
+p,li{text-wrap:pretty}
+.weekgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px}
+.barrow{display:grid;grid-template-columns:150px minmax(0,1fr) 210px;gap:16px;align-items:center}
+.axis{position:relative;height:16px}
+.axis span{position:absolute;top:0;transform:translateX(-50%);white-space:nowrap}
+.axis span:first-child{transform:none}
+.axis span:last-child{transform:translateX(-100%)}
+.steps3{display:flex;gap:10px}
+@media (max-width:640px){
+.hero-h1{font-size:34px !important;line-height:1.12 !important}
+.h2big{font-size:25px}
+.qrow{grid-template-columns:minmax(0,1fr) auto;gap:6px 12px}
+.qrow > :nth-child(2),.qrow > :nth-child(3){grid-column:1 / -1}
+.qrow > :nth-child(4){grid-row:1;grid-column:2}
+.barrow{grid-template-columns:minmax(0,1fr);gap:6px}
+.steps3{flex-direction:column}
+.faqgrid{grid-template-columns:minmax(0,1fr) !important}
+.faqgrid > :last-child{grid-column:auto !important}
+.stepar{display:none !important}
+.stamp5{display:none !important}
+.fixbadge{position:static !important;margin-top:6px}
+}
+
+/* public chrome */
+.mnav{display:none !important}
+@media (max-width:560px){header .pnav,header .thm{display:none !important}header .mnav{display:inline-flex !important}.wrap{padding-left:16px;padding-right:16px}}
+/* end public chrome */
+h1,h2,h3,.h2big{text-wrap:balance}
+p,.lead,li{text-wrap:pretty}
+.tick svg{stroke-width:1.75}
+.domh1{margin:0;font-family:"JetBrains Mono",ui-monospace,monospace;font-size:31px;font-weight:500;letter-spacing:-0.02em;line-height:1.2;word-break:normal;overflow-wrap:anywhere}
+@media (max-width:600px){.domh1{font-size:25px}.skipcell{grid-column:1/-1}.flowarrow{width:100%;justify-content:center !important}.flowarrow svg{transform:rotate(90deg)}.gaprow > *{flex-basis:100% !important}}
+.pill{min-height:23px;box-sizing:border-box;padding:0 9px}
+article.card > details.det:last-child{margin-top:auto}
+.steps3{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.fill{display:flex;flex-direction:column}
+.dsum{list-style:none;cursor:pointer}
+.dsum::-webkit-details-marker{display:none}
+details[open] > summary .chev-rot{transform:rotate(180deg)}
+.chev-rot{transition:transform .15s}
+.sk{display:block;border-radius:6px;background:#e8e9f3}
+.cell{width:14px;height:14px;border-radius:4px;flex:none}
+.trow{display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center;padding:8px 0;border-top:1px solid #eef0f8}.trow > :first-child{flex:1 1 170px;min-width:0}.trow > :nth-child(2){flex:0 0 201px}.trow > :last-child{flex:0 0 28px}
+.inc{background:#ffffff;border:1px solid #e8e9f3;border-radius:14px;padding:18px;display:flex;flex-direction:column;gap:8px;min-width:0;box-sizing:border-box}
+.vt{position:relative;padding-left:46px}
+.vt:before{content:"";position:absolute;left:17px;top:38px;bottom:-6px;width:2px;background:#e8e9f3}
+.vt:last-child:before{display:none}
+</style>
+</helmet>
+<div style="min-height: 4122px; display: flex; flex-direction: column; font-family: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif; color: #1e2233; font-size: 15px; line-height: 1.55; word-spacing: .06em; background: #f3f4fb">
+<header style="background: #ffffff; border-bottom: 1px solid #e8e9f3">
+  <div class="wrap" style="display: flex; align-items: center; gap: 12px 24px; min-height: 68px; padding-top: 12px; padding-bottom: 12px">
+    <a href="PubLanding.dc.html" style="display: flex; align-items: center; gap: 8px; color: #1e2233; font-weight: 800; font-size: 18px; letter-spacing: -0.01em; text-decoration: none; min-height: 44px"><svg viewBox="0 0 64 64" style="width: 28px; height: 28px; flex: none" aria-hidden="true"><defs><linearGradient id="hmf" x1="0.15" y1="1" x2="0.95" y2="0.1"><stop offset="0.38" stop-color="#ffffff"></stop><stop offset="1" stop-color="#ffffff" stop-opacity="0.12"></stop></linearGradient><clipPath id="hmc"><rect width="64" height="64" rx="15"></rect></clipPath></defs><g clip-path="url(#hmc)"><rect width="64" height="64" fill="#5b4be0"></rect><path d="M8 50 A24 24 0 0 1 56 50 Z" fill="url(#hmf)"></path></g></svg>ReachKit</a>
+    <nav class="pnav" aria-label="Main" style="display: flex; flex-wrap: wrap; gap: 2px"><a href="PubHowItWorks.dc.html">How it works</a><a href="Pricing.dc.html">Pricing</a><a href="PubScans.dc.html">Free scans</a></nav>
+    <div style="display: flex; align-items: center; gap: 8px; margin-left: auto">
+      <button type="button" class="iconbtn thm" aria-label="Switch to dark theme"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="width: 20px; height: 20px" aria-hidden="true"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9z"></path></svg></button>
+      <a href="AuthSignIn.dc.html" style="display: inline-flex; align-items: center; min-height: 44px; white-space: nowrap; font-weight: 600; font-size: 14px; padding: 0 8px; color: #1e2233">Sign in</a>
+      <a class="btn" href="PubLanding.dc.html#landing-field">Free scan</a>
+      <button type="button" class="iconbtn mnav" aria-label="Open menu" aria-expanded="false"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="width: 20px; height: 20px" aria-hidden="true"><path d="M4 6h16"></path><path d="M4 12h16"></path><path d="M4 18h16"></path></svg></button>
+    </div>
+  </div>
+</header>
+<main>
+<section aria-labelledby="top-h" id="top" style="padding: 64px 0 64px">
+  <div class="wrap" style="display: flex; flex-wrap: wrap; gap: 40px 56px; align-items: center">
+    <div style="flex: 1.4 1 480px; min-width: 0; display: flex; flex-direction: column; gap: 20px">
+      <p class="eyebrow">About</p>
+      <h1 id="top-h" style="margin: 0; font-size: 46px; line-height: 1.1; font-weight: 800; letter-spacing: -0.035em">About ReachKit</h1>
+      <p style="margin: 0; font-size: 18px; color: #1e2233; max-width: 600px; font-weight: 500">ReachKit works on getting your business found on Google and in AI answers. It finds what your buyers ask, writes pages that answer them from facts on your own site, and publishes them for you, every week, on autopilot.</p>
+      <p class="muted" style="margin: 0; font-size: 13px; display: flex; flex-wrap: wrap; gap: 4px 16px"><span style="display: inline-flex; align-items: center; gap: 5px"><svg class="ic" viewBox="0 0 24 24" style="width: 16px; height: 16px; color: #1b765b;" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg>one plan, €49 a month</span><span style="display: inline-flex; align-items: center; gap: 5px"><svg class="ic" viewBox="0 0 24 24" style="width: 16px; height: 16px; color: #1b765b;" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg>about 10 minutes of your time, once</span><span style="display: inline-flex; align-items: center; gap: 5px"><svg class="ic" viewBox="0 0 24 24" style="width: 16px; height: 16px; color: #1b765b;" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg>you can edit or stop any page</span></p>
+    </div>
+    <section aria-labelledby="who-h" class="card" style="flex: 1 1 340px; min-width: 0; padding: 24px; display: flex; flex-direction: column; gap: 16px">
+  <div style="display: flex; gap: 16px; align-items: center"><span class="slot" style="width: 72px; height: 72px; padding: 0; border-radius: 999px; display: inline-flex; align-items: center; justify-content: center; flex: none"><svg class="ic" viewBox="0 0 24 24" style="width: 24px; height: 24px;" aria-hidden="true"><circle cx="12" cy="8" r="4"></circle><path d="M4 21v-1a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v1"></path></svg></span>
+    <div style="display: flex; flex-direction: column; gap: 4px; min-width: 0"><h2 id="who-h" class="h3">Who builds it</h2><span class="muted" style="font-size: 13px">A real person you can write to</span></div></div>
+  <p style="margin: 0">ReachKit is built by <span class="slot" style="display: inline; padding: 1px 8px; border-radius: 6px">[name, from the stored byline]</span> in <span class="slot" style="display: inline; padding: 1px 8px; border-radius: 6px">[place]</span>. The company that runs it is named on the imprint.<span class="tag">[after launch gate]</span></p>
+  <a href="#contact" class="well" style="padding: 12px 14px; display: flex; align-items: center; gap: 10px; color: #1e2233; text-decoration: none"><span class="tile" style="width: 32px; height: 32px; background: #ffffff; color: #5b4be0"><svg class="ic" viewBox="0 0 24 24" style="width: 16px; height: 16px;" aria-hidden="true"><rect x="2" y="4" width="20" height="16" rx="2"></rect><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"></path></svg></span><span style="flex: 1; min-width: 0"><span style="display: block; font-weight: 600; font-size: 14px">Questions?</span><span class="muted" style="font-size: 13px">hello@reachkit.app</span></span><svg class="ic" viewBox="0 0 24 24" style="width: 16px; height: 16px; color: #646579;" aria-hidden="true"><path d="m9 18 6-6-6-6"></path></svg></a>
+</section>
+  </div>
+</section>
+<section aria-labelledby="why-h" id="why" class="sec band">
+  <div class="wrap" style="display: flex; flex-direction: column; gap: 32px">
+    <div style="display: flex; flex-direction: column; gap: 10px"><p class="eyebrow">Why it exists</p><h2 id="why-h" class="h2big" style="max-width: 720px">Why ReachKit exists</h2><p class="lead" style="max-width: 640px">Buyers now ask ChatGPT and Google’s AI what to use, and the answer mentions a handful of companies. A small business can’t see whether it’s one of them, and has no time to write a page for every question buyers ask. ReachKit checks where you stand every week and writes those pages for you.</p></div>
+    <div style="display: flex; flex-wrap: wrap; gap: 16px; align-items: stretch"><figure class="card" aria-label="Before: a page of links" style="margin: 0; padding: 20px; display: flex; flex-direction: column; gap: 12px; flex: 1 1 280px; min-width: 0">
+  <p class="eyebrow">Before</p>
+  <p style="margin: 0; font-weight: 700">A buyer searched, and got a page of links</p>
+  <div style="display: flex; align-items: center; gap: 8px; min-height: 37px; box-sizing: border-box; padding: 0 14px; border: 1px solid #e8e9f3; border-radius: 999px; background: #ffffff"><svg class="ic" viewBox="0 0 24 24" style="width: 16px; height: 16px; color: #646579;" aria-hidden="true"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg><span style="font-size: 13px">emergency plumber austin</span></div>
+  <div aria-hidden="true"><div style="padding: 10px 0; border-top: 1px solid #eef0f8"><div data-mockup="google-result" style="display: flex; flex-direction: column; gap: 3px; min-width: 0;"><span style="display: flex; align-items: center; gap: 10px; min-width: 0"><span aria-hidden="true" style="width: 22px; height: 22px; flex: none; border-radius: 999px; background: #eef0f8; border: 1px solid #e8e9f3; box-sizing: border-box; display: inline-flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; color: #646579">A</span><span style="display: flex; flex-direction: column; min-width: 0; line-height: 1.3"><span style="font-size: 11px; color: #1e2233">A national plumbing chain</span><span style="font-size: 10px; color: #646579; word-break: break-all">a national chain’s site › emergency</span></span></span><span style="font-size: 16px; line-height: 1.3; color: #5b4be0; font-weight: 400">Emergency plumber in Austin, day and night</span><span aria-hidden="true" style="display: block; height: 6px; margin-top: 6px; border-radius: 3px; background: #e8e9f3; width: 92%"></span></div></div><div style="padding: 10px 0; border-top: 1px solid #eef0f8"><div data-mockup="google-result" style="display: flex; flex-direction: column; gap: 3px; min-width: 0;"><span style="display: flex; align-items: center; gap: 10px; min-width: 0"><span aria-hidden="true" style="width: 22px; height: 22px; flex: none; border-radius: 999px; background: #eef0f8; border: 1px solid #e8e9f3; box-sizing: border-box; display: inline-flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; color: #646579">A</span><span style="display: flex; flex-direction: column; min-width: 0; line-height: 1.3"><span style="font-size: 11px; color: #1e2233">Austin Pipeworks</span><span style="font-size: 10px; color: #646579; word-break: break-all">austinpipeworks.example › services</span></span></span><span style="font-size: 16px; line-height: 1.3; color: #5b4be0; font-weight: 400">Plumbing repair across Austin</span><span aria-hidden="true" style="display: block; height: 6px; margin-top: 6px; border-radius: 3px; background: #e8e9f3; width: 92%"></span></div></div><div style="padding: 10px 0; border-top: 1px solid #eef0f8"><div data-mockup="google-result" style="display: flex; flex-direction: column; gap: 3px; min-width: 0;"><span style="display: flex; align-items: center; gap: 10px; min-width: 0"><span aria-hidden="true" style="width: 22px; height: 22px; flex: none; border-radius: 999px; background: #eef0f8; border: 1px solid #e8e9f3; box-sizing: border-box; display: inline-flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; color: #646579">C</span><span style="display: flex; flex-direction: column; min-width: 0; line-height: 1.3"><span style="font-size: 11px; color: #1e2233">Capitol Rooter</span><span style="font-size: 10px; color: #646579; word-break: break-all">capitolrooter.example › plumbing</span></span></span><span style="font-size: 16px; line-height: 1.3; color: #5b4be0; font-weight: 400">Austin plumbers for burst pipes and leaks</span><span aria-hidden="true" style="display: block; height: 6px; margin-top: 6px; border-radius: 3px; background: #e8e9f3; width: 92%"></span></div></div></div>
+  <figcaption class="cap">They clicked around and compared. Every business on the page had a chance.</figcaption>
+</figure><span aria-hidden="true" class="flowarrow" style="flex: 0 0 auto; display: flex; align-items: center; justify-content: center; color: #a3a5bb; padding: 0 2px"><svg class="ic" viewBox="0 0 24 24" style="width: 24px; height: 24px;" aria-hidden="true"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg></span><figure class="card" aria-label="Now: one answer that mentions a few businesses" style="margin: 0; padding: 20px; display: flex; flex-direction: column; gap: 12px; flex: 1 1 280px; min-width: 0; border-color: #ddd8fa">
+  <p class="eyebrow" style="color: #5b4be0">Now</p>
+  <p style="margin: 0; font-weight: 700">A buyer asks AI, and gets one answer</p>
+  <p style="margin: 0 0 0 auto; max-width: 82%; padding: 10px 14px; background: #eef0f8; border-radius: 14px 14px 4px 14px; font-size: 13px">Who’s a good emergency plumber in Austin?</p>
+  <div style="max-width: 92%; padding: 12px 14px; background: #ffffff; border: 1px solid #e8e9f3; border-radius: 14px 14px 14px 4px; font-size: 13px; display: flex; flex-direction: column; gap: 6px"><span style="display: flex; align-items: center; gap: 6px; color: #5b4be0; font-size: 12px; font-weight: 700"><svg class="ic" viewBox="0 0 24 24" style="width: 16px; height: 16px;" aria-hidden="true"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"></path><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"></path></svg>AI answer</span><span>Many Austin homeowners call <strong>Austin Pipeworks</strong> or <strong>Capitol Rooter</strong>.</span></div>
+  <p style="margin: 0; display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 9px; background: #fbeae6; color: #b84029; font-weight: 700; font-size: 13px"><svg class="ic" viewBox="0 0 24 24" style="width: 16px; height: 16px;" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="m15 9-6 6M9 9l6 6"></path></svg>Everyone else: not mentioned</p>
+  <figcaption class="cap" style="margin-top: auto">They call a business from the answer. Everyone else never gets the chance.</figcaption>
+</figure></div>
+    <div style="display: flex; flex-direction: column; gap: 10px"><p class="eyebrow">The problem, and what ReachKit does about it</p><ul style="list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 16px"><li class="gaprow" style="display: flex; flex-wrap: wrap; align-items: stretch; gap: 10px">
+  <span class="card" style="flex: 1 1 260px; min-width: 0; padding: 14px 16px; display: flex; gap: 12px; align-items: flex-start; box-shadow: none"><span class="tile" style="width: 34px; height: 34px; background: #fff3e6; color: #945c22"><svg class="ic" viewBox="0 0 24 24" style="width: 20px; height: 20px;" aria-hidden="true"><path d="M2.06 12.35a1 1 0 0 1 0-.7 10.75 10.75 0 0 1 19.88 0 1 1 0 0 1 0 .7 10.75 10.75 0 0 1-19.88 0"></path><circle cx="12" cy="12" r="3"></circle></svg></span><span style="display: flex; flex-direction: column; gap: 2px"><span style="font-weight: 700">Can’t see it</span><span class="muted" style="font-size: 14px">A small business can’t see whether it’s one of them.</span></span></span>
+  <span aria-hidden="true" class="flowarrow" style="flex: 0 0 auto; display: flex; align-items: center; justify-content: center; color: #5b4be0"><svg class="ic" viewBox="0 0 24 24" style="width: 20px; height: 20px;" aria-hidden="true"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg></span>
+  <span style="flex: 1 1 260px; min-width: 0; padding: 14px 16px; display: flex; gap: 12px; align-items: center; border-radius: 14px; background: #eeecfd; border: 1px solid #ddd8fa"><span class="tile" style="width: 34px; height: 34px; background: #5b4be0; color: #ffffff"><svg class="ic" viewBox="0 0 24 24" style="width: 20px; height: 20px;" aria-hidden="true"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg></span><span style="font-weight: 700">We check where you stand, every week</span></span>
+</li><li class="gaprow" style="display: flex; flex-wrap: wrap; align-items: stretch; gap: 10px">
+  <span class="card" style="flex: 1 1 260px; min-width: 0; padding: 14px 16px; display: flex; gap: 12px; align-items: flex-start; box-shadow: none"><span class="tile" style="width: 34px; height: 34px; background: #fff3e6; color: #945c22"><svg class="ic" viewBox="0 0 24 24" style="width: 20px; height: 20px;" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v6l4 2"></path></svg></span><span style="display: flex; flex-direction: column; gap: 2px"><span style="font-weight: 700">No time</span><span class="muted" style="font-size: 14px">And has no time to write a page for every question buyers ask.</span></span></span>
+  <span aria-hidden="true" class="flowarrow" style="flex: 0 0 auto; display: flex; align-items: center; justify-content: center; color: #5b4be0"><svg class="ic" viewBox="0 0 24 24" style="width: 20px; height: 20px;" aria-hidden="true"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg></span>
+  <span style="flex: 1 1 260px; min-width: 0; padding: 14px 16px; display: flex; gap: 12px; align-items: center; border-radius: 14px; background: #eeecfd; border: 1px solid #ddd8fa"><span class="tile" style="width: 34px; height: 34px; background: #5b4be0; color: #ffffff"><svg class="ic" viewBox="0 0 24 24" style="width: 20px; height: 20px;" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><path d="M14 2v6h6"></path><path d="M16 13H8M16 17H8M10 9H8"></path></svg></span><span style="font-weight: 700">We write those pages for you</span></span>
+</li></ul></div>
+    <p class="cap">Example business, Harbor Plumbing in Austin. The answer is a sample.</p>
+  </div>
+</section>
+<section aria-labelledby="does-h" id="does" class="sec">
+  <div class="wrap" style="display: flex; flex-direction: column; gap: 28px">
+    <div style="display: flex; flex-direction: column; gap: 10px"><p class="eyebrow">What it does</p><h2 id="does-h" class="h2big" style="max-width: 720px">What ReachKit does, in four steps</h2><p class="lead" style="max-width: 640px">You run your business. ReachKit works on getting it found, every week, without you.</p></div>
+    <ol style="list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); gap: 16px"><li style="min-width: 0"><a class="card" href="PubHowItWorks.dc.html#research" style="height: 100%; box-sizing: border-box; padding: 18px; display: flex; flex-direction: column; gap: 10px; color: #1e2233; text-decoration: none"><span style="display: flex; align-items: center; justify-content: space-between"><span class="chipn" aria-hidden="true" style="width: 34px; height: 34px; font-size: 15px">1</span><span class="tile" style="width: 36px; height: 36px; background: #eeecfd; color: #5b4be0"><svg class="ic" viewBox="0 0 24 24" style="width: 20px; height: 20px;" aria-hidden="true"><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"></path><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"></path><path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"></path><path d="M10 6h4M10 10h4M10 14h4M10 18h4"></path></svg></span></span><h3 class="h4">We research you</h3><span class="muted" style="font-size: 14px">Your business, your buyers and who they choose instead.</span><span style="margin-top: auto; color: #5b4be0; font-weight: 600; font-size: 14px">See how →</span></a></li><li style="min-width: 0"><a class="card" href="PubHowItWorks.dc.html#questions" style="height: 100%; box-sizing: border-box; padding: 18px; display: flex; flex-direction: column; gap: 10px; color: #1e2233; text-decoration: none"><span style="display: flex; align-items: center; justify-content: space-between"><span class="chipn" aria-hidden="true" style="width: 34px; height: 34px; font-size: 15px">2</span><span class="tile" style="width: 36px; height: 36px; background: #eeecfd; color: #5b4be0"><svg class="ic" viewBox="0 0 24 24" style="width: 20px; height: 20px;" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg></span></span><h3 class="h4">We pick what buyers ask</h3><span class="muted" style="font-size: 14px">The questions you can win on Google and in AI answers.</span><span style="margin-top: auto; color: #5b4be0; font-weight: 600; font-size: 14px">See how →</span></a></li><li style="min-width: 0"><a class="card" href="PubHowItWorks.dc.html#pages" style="height: 100%; box-sizing: border-box; padding: 18px; display: flex; flex-direction: column; gap: 10px; color: #1e2233; text-decoration: none"><span style="display: flex; align-items: center; justify-content: space-between"><span class="chipn" aria-hidden="true" style="width: 34px; height: 34px; font-size: 15px">3</span><span class="tile" style="width: 36px; height: 36px; background: #eeecfd; color: #5b4be0"><svg class="ic" viewBox="0 0 24 24" style="width: 20px; height: 20px;" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><path d="M14 2v6h6"></path><path d="M16 13H8M16 17H8M10 9H8"></path></svg></span></span><h3 class="h4">We write your pages</h3><span class="muted" style="font-size: 14px">Up to 7 a week, from your own site, live on your website.</span><span style="margin-top: auto; color: #5b4be0; font-weight: 600; font-size: 14px">See how →</span></a></li><li style="min-width: 0"><a class="card" href="PubHowItWorks.dc.html#found" style="height: 100%; box-sizing: border-box; padding: 18px; display: flex; flex-direction: column; gap: 10px; color: #1e2233; text-decoration: none"><span style="display: flex; align-items: center; justify-content: space-between"><span class="chipn" aria-hidden="true" style="width: 34px; height: 34px; font-size: 15px">4</span><span class="tile" style="width: 36px; height: 36px; background: #eeecfd; color: #5b4be0"><svg class="ic" viewBox="0 0 24 24" style="width: 20px; height: 20px;" aria-hidden="true"><path d="M22 7 13.5 15.5 8.5 10.5 2 17"></path><path d="M16 7h6v6"></path></svg></span></span><h3 class="h4">You see it working</h3><span class="muted" style="font-size: 14px">A Monday email shows what went live and what moved.</span><span style="margin-top: auto; color: #5b4be0; font-weight: 600; font-size: 14px">See how →</span></a></li></ol>
+    <div class="well" style="padding: 14px 18px; display: flex; flex-wrap: wrap; gap: 10px 36px"><p style="margin: 0; display: flex; gap: 10px; align-items: center"><svg class="ic" viewBox="0 0 24 24" style="width: 20px; height: 20px; color: #5b4be0;" aria-hidden="true"><circle cx="12" cy="8" r="4"></circle><path d="M4 21v-1a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v1"></path></svg><span><strong>Your part:</strong> about 10 minutes, once.</span></p><p style="margin: 0; display: flex; gap: 10px; align-items: center"><svg class="ic" viewBox="0 0 24 24" style="width: 20px; height: 20px; color: #5b4be0;" aria-hidden="true"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"></path><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"></path></svg><span>Pages are written with Claude, an AI model, from your own site.</span></p></div>
+  </div>
+</section>
+<section aria-labelledby="rules-h" id="rules" class="sec band">
+  <div class="wrap" style="display: flex; flex-direction: column; gap: 24px">
+    <div style="display: flex; flex-direction: column; gap: 10px"><p class="eyebrow">Honest by design</p><h2 id="rules-h" class="h2big" style="max-width: 720px">The rules we keep</h2><p class="lead" style="max-width: 640px">These hold for every page, for every business, in every language.</p></div>
+    <div style="display: flex; flex-direction: column; gap: 10px"><h3 class="h4" style="display: flex; align-items: center; gap: 8px; color: #b84029"><svg class="ic" viewBox="0 0 24 24" style="width: 20px; height: 20px;" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="m4.9 4.9 14.2 14.2"></path></svg>We never</h3><ul style="list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); gap: 12px"><li class="card" style="padding: 16px; display: flex; flex-direction: column; gap: 10px; box-shadow: none; min-width: 0"><span class="tile" style="width: 34px; height: 34px; background: #fbeae6; color: #b84029"><svg class="ic" viewBox="0 0 24 24" style="width: 20px; height: 20px;" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="m4.9 4.9 14.2 14.2"></path></svg></span><span style="font-weight: 600; font-size: 15px; line-height: 1.4">invent people, reviews, tests or numbers</span></li><li class="card" style="padding: 16px; display: flex; flex-direction: column; gap: 10px; box-shadow: none; min-width: 0"><span class="tile" style="width: 34px; height: 34px; background: #fbeae6; color: #b84029"><svg class="ic" viewBox="0 0 24 24" style="width: 20px; height: 20px;" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="m4.9 4.9 14.2 14.2"></path></svg></span><span style="font-weight: 600; font-size: 15px; line-height: 1.4">hide text on a page</span></li><li class="card" style="padding: 16px; display: flex; flex-direction: column; gap: 10px; box-shadow: none; min-width: 0"><span class="tile" style="width: 34px; height: 34px; background: #fbeae6; color: #b84029"><svg class="ic" viewBox="0 0 24 24" style="width: 20px; height: 20px;" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="m4.9 4.9 14.2 14.2"></path></svg></span><span style="font-weight: 600; font-size: 15px; line-height: 1.4">promise a top spot on Google</span></li><li class="card" style="padding: 16px; display: flex; flex-direction: column; gap: 10px; box-shadow: none; min-width: 0"><span class="tile" style="width: 34px; height: 34px; background: #fbeae6; color: #b84029"><svg class="ic" viewBox="0 0 24 24" style="width: 20px; height: 20px;" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="m4.9 4.9 14.2 14.2"></path></svg></span><span style="font-weight: 600; font-size: 15px; line-height: 1.4">put filler live</span></li></ul></div>
+    <div style="display: flex; flex-direction: column; gap: 10px"><h3 class="h4" style="display: flex; align-items: center; gap: 8px; color: #1b765b"><svg class="ic" viewBox="0 0 24 24" style="width: 20px; height: 20px;" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="m9 12 2 2 4-4"></path></svg>We always</h3><ul style="list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: 12px"><li style="padding: 16px; display: flex; gap: 12px; align-items: flex-start; border-radius: 14px; background: #e7f6f0; min-width: 0"><span class="tile" style="width: 34px; height: 34px; background: #ffffff; color: #1b765b"><svg class="ic" viewBox="0 0 24 24" style="width: 20px; height: 20px;" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></span><span style="font-weight: 600; font-size: 15px; line-height: 1.4; padding-top: 6px">Every figure on a page matches a source.</span></li><li style="padding: 16px; display: flex; gap: 12px; align-items: flex-start; border-radius: 14px; background: #e7f6f0; min-width: 0"><span class="tile" style="width: 34px; height: 34px; background: #ffffff; color: #1b765b"><svg class="ic" viewBox="0 0 24 24" style="width: 20px; height: 20px;" aria-hidden="true"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"></path><path d="m9 12 2 2 4-4"></path></svg></span><span style="font-weight: 600; font-size: 15px; line-height: 1.4; padding-top: 6px">A page that fails its checks twice never goes live.</span></li><li style="padding: 16px; display: flex; gap: 12px; align-items: flex-start; border-radius: 14px; background: #e7f6f0; min-width: 0"><span class="tile" style="width: 34px; height: 34px; background: #ffffff; color: #1b765b"><svg class="ic" viewBox="0 0 24 24" style="width: 20px; height: 20px;" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4M12 8h.01"></path></svg></span><span style="font-weight: 600; font-size: 15px; line-height: 1.4; padding-top: 6px">Something we couldn’t measure is shown as not measured, never as zero.</span></li></ul></div>
+  </div>
+</section>
+<section aria-labelledby="proof-h" id="proof" class="sec" style="padding-bottom: 40px">
+  <div class="wrap" style="display: flex; flex-direction: column; gap: 24px">
+    <div style="display: flex; flex-direction: column; gap: 10px"><p class="eyebrow">Proof</p><h2 id="proof-h" class="h2big" style="max-width: 720px">See it on a real site</h2><p class="lead" style="max-width: 640px">ReachKit’s own blog is written by ReachKit, the same way it writes yours.</p></div>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); gap: 16px">
+      <div class="card" style="padding: 20px; display: flex; gap: 14px; align-items: flex-start"><span class="tile" style="width: 40px; height: 40px; background: #eeecfd; color: #5b4be0"><svg class="ic" viewBox="0 0 24 24" style="width: 20px; height: 20px;" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><path d="M14 2v6h6"></path><path d="M16 13H8M16 17H8M10 9H8"></path></svg></span><span style="display: flex; flex-direction: column; gap: 6px; min-width: 0; flex: 1"><span class="eyebrow">The newest page on ReachKit’s own blog</span><span class="slot" style="padding: 8px 12px; border-radius: 8px">[Title of the newest page on ReachKit’s own blog, read from rows]</span></span></div>
+      <a class="card" href="PubReport.dc.html" style="padding: 20px; display: flex; gap: 14px; align-items: flex-start; color: #1e2233; text-decoration: none"><span class="tile" style="width: 40px; height: 40px; background: #eeecfd; color: #5b4be0"><svg class="ic" viewBox="0 0 24 24" style="width: 20px; height: 20px;" aria-hidden="true"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg></span><span style="display: flex; flex-direction: column; gap: 4px"><span class="eyebrow">A real free report</span><span class="num" style="font-size: 15px">podia.com</span><span style="color: #5b4be0; font-weight: 600; font-size: 14px">Open the report →</span></span></a>
+    </div>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); gap: 12px"><div class="slot"><strong style="color: #4a4b60; font-size: 14px">[Customer quote — none yet]</strong></div><div class="slot"><strong style="color: #4a4b60; font-size: 14px">[Customer result — none yet]</strong></div></div>
+  </div>
+</section>
+<div class="wrap" style="padding: 24px 24px 80px; display: flex; flex-direction: column; gap: 20px">
+  <section aria-labelledby="contact-h" id="contact" class="card" style="padding: 24px 28px; display: flex; gap: 16px; align-items: center; flex-wrap: wrap"><span class="tile" style="width: 44px; height: 44px; background: #eeecfd; color: #5b4be0"><svg class="ic" viewBox="0 0 24 24" style="width: 24px; height: 24px;" aria-hidden="true"><rect x="2" y="4" width="20" height="16" rx="2"></rect><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"></path></svg></span><div style="flex: 1 1 260px; min-width: 0"><h2 id="contact-h" class="h4">Contact</h2><p style="margin: 0">Questions? Write to <a href="#">hello@reachkit.app</a>.</p></div></section>
+  <section aria-labelledby="start-h" id="start" style="background: #eeecfd; border: 1px solid #ddd8fa; border-radius: 14px; padding: 40px; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 14px">
+    <h2 id="start-h" style="margin: 0; font-size: 31px; font-weight: 700; letter-spacing: -0.03em; line-height: 1.25">See who gets your buyers today</h2>
+    <p style="margin: 0; max-width: 540px">Type your website. In under a minute you’ll see who Google and AI send your buyers to, and your first page, proposed free.</p>
+    <div style="display: flex; flex-direction: column; gap: 8px; width: 100%; max-width: 560px; text-align: left">
+    <label for="about-site" style="font-weight: 600; font-size: 14px">Your website</label>
+    <div style="display: flex; flex-wrap: wrap; gap: 8px; padding: 6px; background: #ffffff; border: 1px solid #d6d8e8; border-radius: 12px; box-shadow: 0 1px 2px rgba(24,24,48,.05)">
+      <input id="about-site" class="field" type="text" inputmode="url" autocomplete="url" placeholder="yourdomain.com" style="flex: 1 1 200px; border: 0">
+      <a class="btn" href="PubScanning.dc.html" style="flex: 0 0 auto; min-height: 48px; padding: 0 22px">Scan my site for free <svg class="ic" viewBox="0 0 24 24" style="width: 20px; height: 20px;" aria-hidden="true"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg></a>
+    </div>
+  </div>
+    <p class="muted" style="margin: 0; font-size: 13px">free · no account · under a minute · <a href="PubHowItWorks.dc.html" style="font-weight: 600">How ReachKit works, step by step →</a></p>
+  </section>
+</div>
+</main>
+<footer class="ftr" style="background: #ffffff; border-top: 1px solid #e8e9f3; margin-top: auto">
+  <div class="wrap" style="padding-top: 48px; padding-bottom: 32px; display: flex; flex-direction: column; gap: 36px">
+    <div style="display: flex; flex-wrap: wrap; gap: 32px">
+      <div style="flex: 1.4 1 200px"><a href="PubLanding.dc.html" style="display: inline-flex; align-items: center; gap: 8px; color: #1e2233; font-weight: 800; font-size: 18px; text-decoration: none; min-height: 44px"><svg viewBox="0 0 64 64" style="width: 28px; height: 28px; flex: none" aria-hidden="true"><defs><linearGradient id="fmf" x1="0.15" y1="1" x2="0.95" y2="0.1"><stop offset="0.38" stop-color="#ffffff"></stop><stop offset="1" stop-color="#ffffff" stop-opacity="0.12"></stop></linearGradient><clipPath id="fmc"><rect width="64" height="64" rx="15"></rect></clipPath></defs><g clip-path="url(#fmc)"><rect width="64" height="64" fill="#5b4be0"></rect><path d="M8 50 A24 24 0 0 1 56 50 Z" fill="url(#fmf)"></path></g></svg>ReachKit</a></div>
+<div style="flex: 1 1 150px; min-width: 0"><h2 class="eyebrow">Product</h2><ul><li><a href="PubLanding.dc.html#landing-field">Free scan</a></li><li><a href="PubHowItWorks.dc.html">How it works</a></li><li><a href="Pricing.dc.html">Pricing</a></li><li><a href="PubAbout.dc.html">About</a></li><li><a href="AuthSignIn.dc.html">Sign in</a></li></ul></div>
+<div style="flex: 1 1 150px; min-width: 0"><h2 class="eyebrow">Learn</h2><ul><li><a href="PubScans.dc.html">Free scans</a></li><li><a href="PubCompare.dc.html">Compare</a></li><li><a href="PubTools.dc.html">Free tools</a></li><li><a href="PubTeardowns.dc.html">Teardowns</a></li><li><a href="#">Articles</a></li></ul></div>
+<div style="flex: 1 1 150px; min-width: 0"><h2 class="eyebrow">Legal</h2><ul><li><a href="Legal.dc.html">Privacy</a></li><li><a href="#">Terms</a></li><li><a href="#">Imprint</a><span class="tag">[after launch gate]</span></li><li><a href="#">Cancel your contract</a><span class="tag">[after launch gate]</span></li></ul></div>
+<div style="flex: 1 1 150px; min-width: 0"><h2 class="eyebrow">Contact</h2><ul><li><a href="#">hello@reachkit.app</a></li></ul></div>
+    </div>
+    <p class="muted" style="margin: 0; padding-top: 20px; border-top: 1px solid #e8e9f3; font-size: 13px">© 2026 ReachKit. All rights reserved. · Own this site and want its report taken down? Write to <a href="#">remove@reachkit.app</a>.</p>
+  </div>
+</footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":4122}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

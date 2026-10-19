@@ -1,0 +1,240 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Scanning harborplumbing.com</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#f3f4fb}
+a{color:#5b4be0;text-decoration:none}a:hover{color:#4a3bc9;text-decoration:underline}
+.card{background:#ffffff;border:1px solid #e8e9f3;border-radius:14px;box-shadow:0 0 0 1px rgba(24,24,48,.06),0 1px 2px rgba(24,24,48,.04)}
+.eyebrow{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#6a6b80;margin:0}
+.fig{font-size:36px;font-weight:600;line-height:1;font-variant-numeric:tabular-nums;margin:0}
+.muted{color:#646579}
+.num{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:13px;word-break:break-all;word-spacing:0}
+.badge{display:inline-flex;align-items:center;gap:4px;padding:2px 9px;border-radius:999px;font-size:12px;font-weight:600;white-space:nowrap}
+.tick{display:flex;gap:10px;align-items:flex-start;margin:0}
+.tick svg{flex:none;width:20px;height:20px;margin-top:2px;stroke:#1b765b;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.ic{width:20px;height:20px;stroke:currentColor;stroke-width:1.75;fill:none;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:0 18px;border-radius:9px;background:#5b4be0;color:#ffffff;font-weight:600;font-size:15px;border:0;font-family:inherit;cursor:pointer;text-decoration:none;box-sizing:border-box;white-space:nowrap}
+.btn:hover{background:#4a3bc9;color:#ffffff;text-decoration:none}
+.ghost{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:0 18px;border-radius:9px;background:transparent;color:#5b4be0;font-weight:600;font-size:15px;border:1px solid #5b4be0;font-family:inherit;cursor:pointer;text-decoration:none;box-sizing:border-box;white-space:nowrap}
+.ghost:hover{background:#eeecfd;text-decoration:none}
+.tag{display:inline-block;margin-left:6px;padding:0 7px;border-radius:999px;background:#eef0f8;border:1px solid #e8e9f3;color:#6a6b80;font-size:11px;font-weight:600;line-height:18px;white-space:nowrap;vertical-align:middle;word-spacing:0;letter-spacing:.01em}
+.slot{border:1.5px dashed #c4c6dc;border-radius:14px;padding:16px 18px;color:#6a6b80;font-size:13px;line-height:1.5;background:rgba(255,255,255,.45);box-sizing:border-box}
+.wrap{max-width:1120px;margin:0 auto;padding-left:24px;padding-right:24px;box-sizing:border-box;width:100%}
+.h2{margin:0;font-size:25px;font-weight:700;letter-spacing:-0.02em;line-height:1.3}
+.h3{margin:0;font-size:20px;font-weight:700;letter-spacing:-0.02em;line-height:1.35}
+.h4{margin:0;font-size:16px;font-weight:700;line-height:1.4;letter-spacing:-0.005em}
+.pnav a{color:#1e2233;font-weight:600;font-size:14px;padding:8px 10px;border-radius:9px}
+.pnav a:hover{background:#eef0f8;text-decoration:none}
+.pnav a[aria-current]{color:#5b4be0;background:#eeecfd}
+.iconbtn{display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;border-radius:9px;border:1px solid #e8e9f3;background:#ffffff;color:#1e2233;cursor:pointer;padding:0}
+.ftr h2{margin:0 0 10px}
+.ftr ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.ftr a{color:#646579;font-size:14px}
+.ftr a:hover{color:#5b4be0}
+.qa{display:flex;flex-direction:column;gap:6px}
+.qa p{margin:0}
+.well{background:#eef0f8;border-radius:9px}
+.row{display:flex;align-items:center;gap:12px;padding:10px 0;border-top:1px solid #e8e9f3}
+input.field{min-height:48px;border:1px solid #d6d8e8;border-radius:9px;padding:0 14px;font-family:"JetBrains Mono",ui-monospace,monospace;font-size:15px;color:#1e2233;background:#ffffff;box-sizing:border-box;min-width:0}
+input.field::placeholder{color:#8a8ba0}
+.lead{margin:0;color:#3a3d52}
+h1,h2,h3,.h2,.h3{text-wrap:balance}
+p,li,.mini span,.sbrow span{text-wrap:pretty}
+.tile{display:inline-flex;width:36px;height:36px;border-radius:10px;background:#eeecfd;color:#5b4be0;align-items:center;justify-content:center;flex:none}
+.chipn{display:inline-flex;width:40px;height:40px;border-radius:12px;background:#5b4be0;color:#ffffff;align-items:center;justify-content:center;font-weight:800;font-size:16px;font-variant-numeric:tabular-nums;flex:none}
+.cap{margin:0;font-size:12px;color:#646579}
+.pill{display:inline-flex;align-items:center;gap:4px;padding:1px 8px;border-radius:999px;font-size:11px;font-weight:700;letter-spacing:.02em;white-space:nowrap;word-spacing:0}
+.faq summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:14px;padding:18px 22px;min-height:44px}
+.faq summary::-webkit-details-marker{display:none}
+.faq summary svg:last-child{flex:none;color:#646579}
+details[open] > summary .chev-rot{transform:rotate(180deg)}
+.chev-rot{transition:transform .15s}
+.sk{display:block;height:5px;border-radius:3px;background:#dcdeec}
+.mini{background:#ffffff;border:1px solid #e8e9f3;border-radius:10px;box-sizing:border-box;min-width:0}
+.sbrow{display:grid;grid-template-columns:34px minmax(0,1fr) 268px;gap:6px 14px;align-items:start;padding:8px 0;position:relative}
+.sbrow .line{position:absolute;left:16px;top:46px;bottom:-8px;width:2px;background:#ddd8fa}
+.sbp .sbrow{grid-template-columns:34px minmax(0,1fr);padding:10px 0}
+.sbp .sbrow > :last-child{grid-column:2}
+@media (max-width:640px){.sbrow{grid-template-columns:34px minmax(0,1fr)}.sbrow > :last-child{grid-column:2}}
+.seg{display:inline-flex;gap:2px;padding:3px;background:#eef0f8;border-radius:999px}
+.seg button{font:inherit;font-size:12px;font-weight:600;padding:4px 11px;border-radius:999px;cursor:pointer;border:0;background:transparent;color:#646579;word-spacing:0;min-height:24px}
+.seg button[aria-selected="true"]{background:#ffffff;color:#1e2233;box-shadow:0 0 0 1px rgba(24,24,48,.08),0 1px 2px rgba(24,24,48,.06)}
+.daycell{background:#ffffff;border:1px solid #e8e9f3;border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:8px;min-width:0;box-sizing:border-box}
+.thumb{height:40px;border-radius:6px;background:#eef0f8;display:flex;flex-direction:column;gap:5px;padding:8px;box-sizing:border-box}
+/* public chrome */
+.mnav{display:none !important}
+@media (max-width:560px){header .pnav,header .thm{display:none !important}header .mnav{display:inline-flex !important}.wrap{padding-left:16px;padding-right:16px}}
+/* end public chrome */
+
+.sec{padding:72px 0}
+.band{background:#ffffff;border-top:1px solid #e8e9f3;border-bottom:1px solid #e8e9f3}
+.h2big{margin:0;font-size:31px;font-weight:700;letter-spacing:-0.03em;line-height:1.2}
+.lead{margin:0;font-size:18px;color:#3a3d52}
+.tile{display:inline-flex;width:36px;height:36px;border-radius:10px;background:#eeecfd;color:#5b4be0;align-items:center;justify-content:center;flex:none}
+.chipn{display:inline-flex;width:40px;height:40px;border-radius:12px;background:#5b4be0;color:#ffffff;align-items:center;justify-content:center;font-weight:800;font-size:16px;font-variant-numeric:tabular-nums;flex:none}
+.cap{margin:0;font-size:12px;color:#646579}
+.det{border-top:1px solid #e8e9f3;padding-top:4px}
+.det summary{list-style:none;cursor:pointer;display:inline-flex;align-items:center;gap:8px;min-height:44px;font-weight:600;font-size:14px;color:#5b4be0}
+.det summary::-webkit-details-marker{display:none}
+.faq summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:14px;padding:18px 22px;min-height:44px}
+.faq summary::-webkit-details-marker{display:none}
+.faq summary svg:last-child{flex:none;color:#646579}
+.det .body{display:flex;flex-direction:column;gap:10px;padding:4px 0 8px;font-size:14px;color:#3a3d52;max-width:680px}
+.det .body p{margin:0}
+.seg{display:inline-flex;gap:2px;padding:3px;background:#eef0f8;border-radius:999px}
+.seg button{font:inherit;font-size:12px;font-weight:600;padding:4px 11px;border-radius:999px;cursor:pointer;border:0;background:transparent;color:#646579;word-spacing:0}
+.seg button[aria-selected="true"]{background:#ffffff;color:#1e2233;box-shadow:0 0 0 1px rgba(24,24,48,.08),0 1px 2px rgba(24,24,48,.06)}
+.src{display:inline-flex;align-items:center;gap:4px;font-family:"JetBrains Mono",ui-monospace,monospace;font-size:11px;color:#5b4be0;background:#eeecfd;border:1px solid #ddd8fa;border-radius:999px;padding:1px 8px;white-space:nowrap;word-spacing:0;vertical-align:middle}
+.pill{display:inline-flex;align-items:center;gap:4px;padding:1px 8px;border-radius:999px;font-size:11px;font-weight:700;letter-spacing:.02em;white-space:nowrap;word-spacing:0}
+.qrow{display:grid;grid-template-columns:290px minmax(0,1fr) 250px 104px;gap:16px;align-items:center;padding:12px 0;border-top:1px solid #e8e9f3}
+.daycell{background:#ffffff;border:1px solid #e8e9f3;border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:8px;min-width:0;box-sizing:border-box}
+.thumb{height:46px;border-radius:6px;background:#eef0f8;display:flex;flex-direction:column;gap:5px;padding:9px 8px;box-sizing:border-box}
+.thumb span{height:5px;border-radius:3px;background:#dcdeec;display:block}
+.vrow{display:flex;flex-direction:column;gap:3px;padding:10px 0;border-top:1px solid #eef0f8}
+.vlab{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#6a6b80}
+mark{background:#fff3c4;color:inherit;padding:1px 2px;border-radius:3px}
+h1,h2,h3,.h2big,.h3,.h4{text-wrap:balance}
+p,li{text-wrap:pretty}
+.weekgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px}
+.barrow{display:grid;grid-template-columns:150px minmax(0,1fr) 210px;gap:16px;align-items:center}
+.axis{position:relative;height:16px}
+.axis span{position:absolute;top:0;transform:translateX(-50%);white-space:nowrap}
+.axis span:first-child{transform:none}
+.axis span:last-child{transform:translateX(-100%)}
+.steps3{display:flex;gap:10px}
+@media (max-width:640px){
+.hero-h1{font-size:34px !important;line-height:1.12 !important}
+.h2big{font-size:25px}
+.qrow{grid-template-columns:minmax(0,1fr) auto;gap:6px 12px}
+.qrow > :nth-child(2),.qrow > :nth-child(3){grid-column:1 / -1}
+.qrow > :nth-child(4){grid-row:1;grid-column:2}
+.barrow{grid-template-columns:minmax(0,1fr);gap:6px}
+.steps3{flex-direction:column}
+.faqgrid{grid-template-columns:minmax(0,1fr) !important}
+.faqgrid > :last-child{grid-column:auto !important}
+.stepar{display:none !important}
+.stamp5{display:none !important}
+.fixbadge{position:static !important;margin-top:6px}
+}
+
+/* public chrome */
+.mnav{display:none !important}
+@media (max-width:560px){header .pnav,header .thm{display:none !important}header .mnav{display:inline-flex !important}.wrap{padding-left:16px;padding-right:16px}}
+/* end public chrome */
+h1,h2,h3,.h2big{text-wrap:balance}
+p,.lead,li{text-wrap:pretty}
+.tick svg{stroke-width:1.75}
+.domh1{margin:0;font-family:"JetBrains Mono",ui-monospace,monospace;font-size:31px;font-weight:500;letter-spacing:-0.02em;line-height:1.2;word-break:normal;overflow-wrap:anywhere}
+@media (max-width:600px){.domh1{font-size:25px}.skipcell{grid-column:1/-1}.flowarrow{width:100%;justify-content:center !important}.flowarrow svg{transform:rotate(90deg)}.gaprow > *{flex-basis:100% !important}}
+.pill{min-height:23px;box-sizing:border-box;padding:0 9px}
+article.card > details.det:last-child{margin-top:auto}
+.steps3{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.fill{display:flex;flex-direction:column}
+.dsum{list-style:none;cursor:pointer}
+.dsum::-webkit-details-marker{display:none}
+details[open] > summary .chev-rot{transform:rotate(180deg)}
+.chev-rot{transition:transform .15s}
+.sk{display:block;border-radius:6px;background:#e8e9f3}
+.cell{width:14px;height:14px;border-radius:4px;flex:none}
+.trow{display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center;padding:8px 0;border-top:1px solid #eef0f8}.trow > :first-child{flex:1 1 170px;min-width:0}.trow > :nth-child(2){flex:0 0 201px}.trow > :last-child{flex:0 0 28px}
+.inc{background:#ffffff;border:1px solid #e8e9f3;border-radius:14px;padding:18px;display:flex;flex-direction:column;gap:8px;min-width:0;box-sizing:border-box}
+.vt{position:relative;padding-left:46px}
+.vt:before{content:"";position:absolute;left:17px;top:38px;bottom:-6px;width:2px;background:#e8e9f3}
+.vt:last-child:before{display:none}
+</style>
+</helmet>
+<div style="min-height: 1708px; display: flex; flex-direction: column; font-family: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif; color: #1e2233; font-size: 15px; line-height: 1.55; word-spacing: .06em; background: #f3f4fb">
+<header style="background: #ffffff; border-bottom: 1px solid #e8e9f3">
+  <div class="wrap" style="display: flex; align-items: center; gap: 12px 24px; min-height: 68px; padding-top: 12px; padding-bottom: 12px">
+    <a href="PubLanding.dc.html" style="display: flex; align-items: center; gap: 8px; color: #1e2233; font-weight: 800; font-size: 18px; letter-spacing: -0.01em; text-decoration: none; min-height: 44px"><svg viewBox="0 0 64 64" style="width: 28px; height: 28px; flex: none" aria-hidden="true"><defs><linearGradient id="hmf" x1="0.15" y1="1" x2="0.95" y2="0.1"><stop offset="0.38" stop-color="#ffffff"></stop><stop offset="1" stop-color="#ffffff" stop-opacity="0.12"></stop></linearGradient><clipPath id="hmc"><rect width="64" height="64" rx="15"></rect></clipPath></defs><g clip-path="url(#hmc)"><rect width="64" height="64" fill="#5b4be0"></rect><path d="M8 50 A24 24 0 0 1 56 50 Z" fill="url(#hmf)"></path></g></svg>ReachKit</a>
+    <nav class="pnav" aria-label="Main" style="display: flex; flex-wrap: wrap; gap: 2px"><a href="PubHowItWorks.dc.html">How it works</a><a href="Pricing.dc.html">Pricing</a><a href="PubScans.dc.html">Free scans</a></nav>
+    <div style="display: flex; align-items: center; gap: 8px; margin-left: auto">
+      <button type="button" class="iconbtn thm" aria-label="Switch to dark theme"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="width: 20px; height: 20px" aria-hidden="true"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9z"></path></svg></button>
+      <a href="AuthSignIn.dc.html" style="display: inline-flex; align-items: center; min-height: 44px; white-space: nowrap; font-weight: 600; font-size: 14px; padding: 0 8px; color: #1e2233">Sign in</a>
+      <a class="btn" href="PubLanding.dc.html#landing-field">Free scan</a>
+      <button type="button" class="iconbtn mnav" aria-label="Open menu" aria-expanded="false"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="width: 20px; height: 20px" aria-hidden="true"><path d="M4 6h16"></path><path d="M4 12h16"></path><path d="M4 18h16"></path></svg></button>
+    </div>
+  </div>
+</header>
+<main>
+<div class="wrap" style="padding-top: 48px; padding-bottom: 80px; display: flex; flex-direction: column; gap: 28px">
+<header style="display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 16px 32px">
+  <div style="display: flex; flex-direction: column; gap: 8px; min-width: 0; flex: 1 1 420px"><p class="eyebrow">Your free scan</p><h1 style="margin: 0; font-size: 31px; font-weight: 700; letter-spacing: -0.03em; line-height: 1.3">Scanning <span class="domh1" style="display: inline-block">harborplumbing.com</span></h1><p class="muted" style="margin: 0">Under a minute. This address is permanent, so you can come back to it.</p></div>
+  <p style="margin: 0; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; min-width: 0"><span class="num" style="padding: 6px 10px; background: #eef0f8; border-radius: 9px; min-width: 0">reachkit.app/scan/harborplumbing.com</span><button type="button" class="ghost" style="min-height: 44px; padding: 0 14px; font-size: 14px"><svg class="ic" viewBox="0 0 24 24" style="width: 16px; height: 16px;" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>Copy link</button></p>
+</header>
+<div style="display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start"><div style="flex: 1 1 360px; min-width: 0; display: flex; flex-direction: column; gap: 20px"><section aria-labelledby="stages-h" class="card" style="padding: 10px 22px 12px; min-width: 0">
+  <div style="display: flex; align-items: center; justify-content: space-between; padding: 12px 0 8px"><h2 id="stages-h" class="eyebrow">Progress</h2><span class="num muted" style="font-size: 12px">started 14:02</span></div>
+  <ol role="list" aria-live="polite" style="list-style: none; margin: 0; padding: 0"><li style="display: flex; align-items: center; gap: 12px; padding: 12px 0; border-top: 1px solid #e8e9f3; "><span style="display: inline-flex; width: 32px; height: 32px; border-radius: 999px; background: #e7f6f0; color: #1b765b; align-items: center; justify-content: center; flex: none"><svg class="ic" viewBox="0 0 24 24" style="width: 16px; height: 16px;" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg></span><span style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px"><span style="font-weight: 600">Reading your site</span><span class="muted" style="font-size: 12px">What you sell, who buys it and where.</span></span><span style="display: flex; flex-direction: column; align-items: flex-end; gap: 2px"><span class="badge" style="background: #e7f6f0; color: #1b765b">Done</span><span class="num muted" style="font-size: 11px">4 s</span></span></li><li style="display: flex; align-items: center; gap: 12px; padding: 12px 0; border-top: 1px solid #e8e9f3; "><span style="display: inline-flex; width: 32px; height: 32px; border-radius: 999px; background: #e7f6f0; color: #1b765b; align-items: center; justify-content: center; flex: none"><svg class="ic" viewBox="0 0 24 24" style="width: 16px; height: 16px;" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg></span><span style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px"><span style="font-weight: 600">Checking what Google and AI may read</span><span class="muted" style="font-size: 12px">Whether your site lets them in.</span></span><span style="display: flex; flex-direction: column; align-items: flex-end; gap: 2px"><span class="badge" style="background: #e7f6f0; color: #1b765b">Done</span><span class="num muted" style="font-size: 11px">2 s</span></span></li><li style="display: flex; align-items: center; gap: 12px; padding: 12px 0; border-top: 1px solid #e8e9f3; "><span style="display: inline-flex; width: 32px; height: 32px; border-radius: 999px; background: #e7f6f0; color: #1b765b; align-items: center; justify-content: center; flex: none"><svg class="ic" viewBox="0 0 24 24" style="width: 16px; height: 16px;" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg></span><span style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px"><span style="font-weight: 600">Finding your market and competitors</span><span class="muted" style="font-size: 12px">Who shows up when your buyers search.</span></span><span style="display: flex; flex-direction: column; align-items: flex-end; gap: 2px"><span class="badge" style="background: #e7f6f0; color: #1b765b">Done</span><span class="num muted" style="font-size: 11px">6 s</span></span></li><li aria-current="step" style="display: flex; align-items: center; gap: 12px; padding: 12px 0; border-top: 1px solid #e8e9f3; background: #eeecfd; margin: 0 -14px; padding-left: 14px; padding-right: 14px; border-radius: 10px; border-top-color: transparent;"><span style="display: inline-flex; width: 32px; height: 32px; border-radius: 999px; background: #5b4be0; color: #ffffff; align-items: center; justify-content: center; flex: none"><svg class="ic" viewBox="0 0 24 24" style="width: 16px; height: 16px;" aria-hidden="true"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg></span><span style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px"><span style="font-weight: 700">Checking 12 searches buyers make</span><span class="muted" style="font-size: 12px">Who is on Google’s first page for each.</span></span><span style="display: flex; flex-direction: column; align-items: flex-end; gap: 2px"><span class="badge" style="background: #eeecfd; color: #5b4be0">Working on it</span><span class="num muted" style="font-size: 11px">started 0:12</span></span></li><li style="display: flex; align-items: center; gap: 12px; padding: 12px 0; border-top: 1px solid #e8e9f3; "><span style="display: inline-flex; width: 32px; height: 32px; border-radius: 999px; border: 1.5px solid #c9cbdc; color: #a3a5bb; box-sizing: border-box; align-items: center; justify-content: center; flex: none"><svg class="ic" viewBox="0 0 24 24" style="width: 16px; height: 16px;" aria-hidden="true"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"></path><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"></path></svg></span><span style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px"><span style="color: #646579">Asking Google’s AI the same searches</span><span class="muted" style="font-size: 12px">Which businesses the answers mention.</span></span><span class="badge" style="background: #eef0f8; color: #646579">Next</span></li><li style="display: flex; align-items: center; gap: 12px; padding: 12px 0; border-top: 1px solid #e8e9f3; "><span style="display: inline-flex; width: 32px; height: 32px; border-radius: 999px; border: 1.5px solid #c9cbdc; color: #a3a5bb; box-sizing: border-box; align-items: center; justify-content: center; flex: none"><svg class="ic" viewBox="0 0 24 24" style="width: 16px; height: 16px;" aria-hidden="true"><path d="M22 7 13.5 15.5 8.5 10.5 2 17"></path><path d="M16 7h6v6"></path></svg></span><span style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px"><span style="color: #646579">Working out your score</span><span class="muted" style="font-size: 12px">One number for how easy you are to find.</span></span><span class="badge" style="background: #eef0f8; color: #646579">Next</span></li></ol>
+  <p class="muted" style="margin: 10px 0 2px; font-size: 12px">Each stage ticks off as it finishes. No percentage, no countdown.</p>
+</section><section aria-labelledby="get-h" class="card" style="padding: 22px 24px; display: flex; flex-direction: column; gap: 16px">
+  <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px"><h2 id="get-h" class="h4">What you’ll get</h2><ol aria-label="What happens after" class="steps3">
+  <li class="badge" style="background: #eeecfd; color: #5b4be0; padding: 0 12px; min-height: 28px; box-sizing: border-box"><svg class="ic" viewBox="0 0 24 24" style="width: 16px; height: 16px;" aria-hidden="true"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg>1 You scan</li>
+  <li class="badge" style="background: #ffffff; color: #1e2233; border: 1px solid #e8e9f3; padding: 0 12px; min-height: 28px; box-sizing: border-box"><svg class="ic" viewBox="0 0 24 24" style="width: 16px; height: 16px; color: #5b4be0;" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><path d="M14 2v6h6"></path><path d="M16 13H8M16 17H8M10 9H8"></path></svg>2 We choose and write</li>
+  <li class="badge" style="background: #ffffff; color: #1e2233; border: 1px solid #e8e9f3; padding: 0 12px; min-height: 28px; box-sizing: border-box"><svg class="ic" viewBox="0 0 24 24" style="width: 16px; height: 16px; color: #5b4be0;" aria-hidden="true"><path d="M22 7 13.5 15.5 8.5 10.5 2 17"></path><path d="M16 7h6v6"></path></svg>3 You see progress every Monday</li></ol></div>
+  <ul style="list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 190px), 1fr)); gap: 14px"><li style="display: flex; gap: 10px; align-items: flex-start; min-width: 0"><span class="tile" style="width: 32px; height: 32px; background: #eeecfd; color: #5b4be0"><svg class="ic" viewBox="0 0 24 24" style="width: 16px; height: 16px;" aria-hidden="true"><path d="M22 7 13.5 15.5 8.5 10.5 2 17"></path><path d="M16 7h6v6"></path></svg></span><span style="display: flex; flex-direction: column; min-width: 0"><span style="font-weight: 600">Your Visibility Score</span><span class="muted" style="font-size: 13px">one number for how easy you are to find</span></span></li><li style="display: flex; gap: 10px; align-items: flex-start; min-width: 0"><span class="tile" style="width: 32px; height: 32px; background: #eeecfd; color: #5b4be0"><svg class="ic" viewBox="0 0 24 24" style="width: 16px; height: 16px;" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M22 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg></span><span style="display: flex; flex-direction: column; min-width: 0"><span style="font-weight: 600">Who shows up instead of you</span><span class="muted" style="font-size: 13px">on Google and in AI answers</span></span></li><li style="display: flex; gap: 10px; align-items: flex-start; min-width: 0"><span class="tile" style="width: 32px; height: 32px; background: #eeecfd; color: #5b4be0"><svg class="ic" viewBox="0 0 24 24" style="width: 16px; height: 16px;" aria-hidden="true"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path></svg></span><span style="display: flex; flex-direction: column; min-width: 0"><span style="font-weight: 600">What holds your site back</span><span class="muted" style="font-size: 13px">each with its fix</span></span></li><li style="display: flex; gap: 10px; align-items: flex-start; min-width: 0"><span class="tile" style="width: 32px; height: 32px; background: #eeecfd; color: #5b4be0"><svg class="ic" viewBox="0 0 24 24" style="width: 16px; height: 16px;" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><path d="M14 2v6h6"></path><path d="M16 13H8M16 17H8M10 9H8"></path></svg></span><span style="display: flex; flex-direction: column; min-width: 0"><span style="font-weight: 600">Your first page, proposed free</span><span class="muted" style="font-size: 13px">and how many more you’re missing</span></span></li></ul>
+  <p class="muted" style="margin: 0; font-size: 13px; padding-top: 12px; border-top: 1px solid #e8e9f3">After the report, ReachKit can write the missing pages for you. <a href="PubHowItWorks.dc.html" style="font-weight: 600">How it works →</a></p>
+</section></div><section aria-labelledby="fill-h" style="flex: 1.4 1 480px; min-width: 0; display: flex; flex-direction: column; gap: 12px">
+  <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 8px; flex-wrap: wrap"><h2 id="fill-h" class="eyebrow">Your report, filling in</h2><span class="muted" style="font-size: 12px">grey shapes are still coming</span></div>
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap: 12px; align-items: start">
+    <div style="display: flex; flex-direction: column; gap: 12px; min-width: 0"><div class="card" style="padding: 16px 18px; display: flex; flex-direction: column; gap: 10px">
+  <p style="margin: 0; display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 14px"><span class="tile" style="width: 28px; height: 28px; background: #e7f6f0; color: #1b765b"><svg class="ic" viewBox="0 0 24 24" style="width: 16px; height: 16px;" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M2 12h20"></path><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg></span>What we read<span class="badge" style="margin-left: auto; background: #e7f6f0; color: #1b765b"><svg class="ic" viewBox="0 0 24 24" style="width: 16px; height: 16px;" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="m9 12 2 2 4-4"></path></svg>found</span></p>
+  <div style="display: flex; align-items: center; gap: 10px"><span aria-hidden="true" style="display: flex; flex-wrap: wrap; gap: 3px; flex: 1"><span style="width: 7px; height: 11px; border-radius: 2px; background: #5b4be0"></span><span style="width: 7px; height: 11px; border-radius: 2px; background: #5b4be0"></span><span style="width: 7px; height: 11px; border-radius: 2px; background: #5b4be0"></span><span style="width: 7px; height: 11px; border-radius: 2px; background: #5b4be0"></span><span style="width: 7px; height: 11px; border-radius: 2px; background: #5b4be0"></span><span style="width: 7px; height: 11px; border-radius: 2px; background: #5b4be0"></span><span style="width: 7px; height: 11px; border-radius: 2px; background: #5b4be0"></span><span style="width: 7px; height: 11px; border-radius: 2px; background: #5b4be0"></span><span style="width: 7px; height: 11px; border-radius: 2px; background: #5b4be0"></span><span style="width: 7px; height: 11px; border-radius: 2px; background: #5b4be0"></span><span style="width: 7px; height: 11px; border-radius: 2px; background: #5b4be0"></span><span style="width: 7px; height: 11px; border-radius: 2px; background: #5b4be0"></span><span style="width: 7px; height: 11px; border-radius: 2px; background: #5b4be0"></span><span style="width: 7px; height: 11px; border-radius: 2px; background: #5b4be0"></span><span style="width: 7px; height: 11px; border-radius: 2px; background: #5b4be0"></span><span style="width: 7px; height: 11px; border-radius: 2px; background: #5b4be0"></span><span style="width: 7px; height: 11px; border-radius: 2px; background: #5b4be0"></span><span style="width: 7px; height: 11px; border-radius: 2px; background: #5b4be0"></span><span style="width: 7px; height: 11px; border-radius: 2px; background: #5b4be0"></span><span style="width: 7px; height: 11px; border-radius: 2px; background: #5b4be0"></span><span style="width: 7px; height: 11px; border-radius: 2px; background: #5b4be0"></span><span style="width: 7px; height: 11px; border-radius: 2px; background: #5b4be0"></span><span style="width: 7px; height: 11px; border-radius: 2px; background: #5b4be0"></span><span style="width: 7px; height: 11px; border-radius: 2px; background: #5b4be0"></span><span style="width: 7px; height: 11px; border-radius: 2px; background: #5b4be0"></span><span style="width: 7px; height: 11px; border-radius: 2px; background: #5b4be0"></span><span style="width: 7px; height: 11px; border-radius: 2px; background: #5b4be0"></span><span style="width: 7px; height: 11px; border-radius: 2px; background: #5b4be0"></span><span style="width: 7px; height: 11px; border-radius: 2px; background: #5b4be0"></span><span style="width: 7px; height: 11px; border-radius: 2px; background: #5b4be0"></span><span style="width: 7px; height: 11px; border-radius: 2px; background: #5b4be0"></span><span style="width: 7px; height: 11px; border-radius: 2px; background: #5b4be0"></span><span style="width: 7px; height: 11px; border-radius: 2px; background: #5b4be0"></span><span style="width: 7px; height: 11px; border-radius: 2px; background: #5b4be0"></span><span style="width: 7px; height: 11px; border-radius: 2px; background: #5b4be0"></span><span style="width: 7px; height: 11px; border-radius: 2px; background: #5b4be0"></span><span style="width: 7px; height: 11px; border-radius: 2px; background: #5b4be0"></span><span style="width: 7px; height: 11px; border-radius: 2px; background: #5b4be0"></span></span><span style="font-size: 13px; font-weight: 600; white-space: nowrap">38 pages read</span></div>
+  <ul style="list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px"><li class="badge" style="background: #ffffff; border: 1px solid #e8e9f3; color: #1e2233; padding: 0 12px; min-height: 28px; box-sizing: border-box"><svg class="ic" viewBox="0 0 24 24" style="width: 16px; height: 16px; color: #646579;" aria-hidden="true"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path></svg>Plumber</li><li class="badge" style="background: #ffffff; border: 1px solid #e8e9f3; color: #1e2233; padding: 0 12px; min-height: 28px; box-sizing: border-box"><svg class="ic" viewBox="0 0 24 24" style="width: 16px; height: 16px; color: #646579;" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M22 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>Homeowners</li><li class="badge" style="background: #ffffff; border: 1px solid #e8e9f3; color: #1e2233; padding: 0 12px; min-height: 28px; box-sizing: border-box"><svg class="ic" viewBox="0 0 24 24" style="width: 16px; height: 16px; color: #646579;" aria-hidden="true"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"></path><circle cx="12" cy="10" r="3"></circle></svg>In and around Austin</li></ul>
+</div><div class="card" style="padding: 16px 18px; display: flex; flex-direction: column; gap: 8px">
+  <p style="margin: 0; display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 14px"><span class="tile" style="width: 28px; height: 28px; background: #e7f6f0; color: #1b765b"><svg class="ic" viewBox="0 0 24 24" style="width: 16px; height: 16px;" aria-hidden="true"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"></path><path d="m9 12 2 2 4-4"></path></svg></span>Who may read your site<span class="badge" style="margin-left: auto; background: #e7f6f0; color: #1b765b"><svg class="ic" viewBox="0 0 24 24" style="width: 16px; height: 16px;" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="m9 12 2 2 4-4"></path></svg>found</span></p>
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 170px), 1fr)); gap: 8px">
+    <span class="well" style="padding: 9px 12px; display: flex; align-items: center; gap: 8px; font-size: 13px"><svg class="ic" viewBox="0 0 24 24" style="width: 16px; height: 16px; color: #646579;" aria-hidden="true"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg><span style="flex: 1">Google</span><span style="color: #1b765b; font-weight: 700; display: inline-flex; gap: 4px; align-items: center"><svg class="ic" viewBox="0 0 24 24" style="width: 16px; height: 16px;" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg>let in</span></span>
+    <span class="well" style="padding: 9px 12px; display: flex; align-items: center; gap: 8px; font-size: 13px; background: #fff3e6"><svg class="ic" viewBox="0 0 24 24" style="width: 16px; height: 16px; color: #945c22;" aria-hidden="true"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"></path><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"></path></svg><span style="flex: 1">AI</span><span style="color: #945c22; font-weight: 700; display: inline-flex; gap: 4px; align-items: center"><svg class="ic" viewBox="0 0 24 24" style="width: 16px; height: 16px;" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="m4.9 4.9 14.2 14.2"></path></svg>shut out</span></span>
+  </div>
+  <p class="muted" style="margin: 0; font-size: 12px">Your report will show the free fix.</p>
+</div><div class="card" style="padding: 16px 18px; display: flex; flex-direction: column; gap: 10px">
+  <p style="margin: 0; display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 14px"><span class="tile" style="width: 28px; height: 28px; background: #e7f6f0; color: #1b765b"><svg class="ic" viewBox="0 0 24 24" style="width: 16px; height: 16px;" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M22 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg></span>Your competitors<span class="badge" style="margin-left: auto; background: #e7f6f0; color: #1b765b"><svg class="ic" viewBox="0 0 24 24" style="width: 16px; height: 16px;" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="m9 12 2 2 4-4"></path></svg>3 found</span></p>
+  <ul style="list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px"><li class="badge" style="background: #ffffff; border: 1px solid #e8e9f3; color: #1e2233; padding: 0 12px; min-height: 28px; box-sizing: border-box"><span class="" style="font-size: 12px">a national plumbing chain</span></li><li class="badge" style="background: #ffffff; border: 1px solid #e8e9f3; color: #1e2233; padding: 0 12px; min-height: 28px; box-sizing: border-box"><span class="num" style="font-size: 12px">austinpipeworks.example</span></li><li class="badge" style="background: #ffffff; border: 1px solid #e8e9f3; color: #1e2233; padding: 0 12px; min-height: 28px; box-sizing: border-box"><span class="num" style="font-size: 12px">capitolrooter.example</span></li></ul>
+</div><div class="card" style="padding: 16px 18px; display: flex; align-items: center; gap: 14px; box-shadow: none; background: #f8f8fd">
+  <svg viewBox="0 0 120 70" style="width: 84px; height: 49px; flex: none" aria-hidden="true"><path d="M10 62 A50 50 0 0 1 110 62" fill="none" stroke="#e8e9f3" stroke-width="12" stroke-linecap="round"></path></svg>
+  <span style="display: flex; flex-direction: column; gap: 6px; flex: 1; min-width: 0"><span style="font-weight: 700; font-size: 14px; color: #646579">Your Visibility Score</span><span aria-hidden="true" class="sk" style="height: 8px; width: 60%"></span></span>
+</div></div>
+    <div style="display: flex; flex-direction: column; gap: 12px; min-width: 0"><div class="card" style="padding: 16px 18px; display: flex; flex-direction: column; gap: 6px; border: 1.5px solid #5b4be0">
+  <p style="margin: 0 0 4px; display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 14px"><span class="tile" style="width: 28px; height: 28px; background: #5b4be0; color: #ffffff"><svg class="ic" viewBox="0 0 24 24" style="width: 16px; height: 16px;" aria-hidden="true"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg></span>12 searches buyers make<span class="badge" style="margin-left: auto; background: #eeecfd; color: #5b4be0">working on it</span></p>
+  <ol style="list-style: none; margin: 0; padding: 0"><li style="display: flex; align-items: center; gap: 10px; padding: 6px 0; border-top: 1px solid #eef0f8"><svg class="ic" viewBox="0 0 24 24" style="width: 16px; height: 16px; color: #1b765b;" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg><span class="num" style="font-size: 12px; flex: 1; min-width: 0; word-break: normal">emergency plumber austin</span><span class="pill" style="background: #eef0f8; color: #646579">not on page 1</span></li><li style="display: flex; align-items: center; gap: 10px; padding: 6px 0; border-top: 1px solid #eef0f8"><svg class="ic" viewBox="0 0 24 24" style="width: 16px; height: 16px; color: #1b765b;" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg><span class="num" style="font-size: 12px; flex: 1; min-width: 0; word-break: normal">water heater repair austin</span><span class="pill" style="background: #eef0f8; color: #646579">not on page 1</span></li><li style="display: flex; align-items: center; gap: 10px; padding: 6px 0; border-top: 1px solid #eef0f8"><svg class="ic" viewBox="0 0 24 24" style="width: 16px; height: 16px; color: #1b765b;" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg><span class="num" style="font-size: 12px; flex: 1; min-width: 0; word-break: normal">drain cleaning austin</span><span class="pill" style="background: #eef0f8; color: #646579">not on page 1</span></li><li style="display: flex; align-items: center; gap: 10px; padding: 6px 0; border-top: 1px solid #eef0f8"><svg class="ic" viewBox="0 0 24 24" style="width: 16px; height: 16px; color: #1b765b;" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg><span class="num" style="font-size: 12px; flex: 1; min-width: 0; word-break: normal">slab leak repair austin</span><span class="pill" style="background: #eef0f8; color: #646579">not on page 1</span></li><li style="display: flex; align-items: center; gap: 10px; padding: 6px 8px; margin: 0 -8px; border-radius: 8px; background: #eeecfd"><svg class="ic" viewBox="0 0 24 24" style="width: 16px; height: 16px; color: #5b4be0;" aria-hidden="true"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg><span class="num" style="font-size: 12px; flex: 1; min-width: 0; word-break: normal">tankless water heater installation austin</span><span style="font-size: 12px; font-weight: 600; color: #5b4be0">checking</span></li><li aria-hidden="true" style="display: flex; align-items: center; gap: 10px; padding: 8px 0; border-top: 1px solid #eef0f8"><span class="sk" style="width: 14px; height: 14px; border-radius: 4px"></span><span class="sk" style="height: 8px; flex: 1; max-width: 220px"></span></li><li aria-hidden="true" style="display: flex; align-items: center; gap: 10px; padding: 8px 0; border-top: 1px solid #eef0f8"><span class="sk" style="width: 14px; height: 14px; border-radius: 4px"></span><span class="sk" style="height: 8px; flex: 1; max-width: 220px"></span></li><li aria-hidden="true" style="display: flex; align-items: center; gap: 10px; padding: 8px 0; border-top: 1px solid #eef0f8"><span class="sk" style="width: 14px; height: 14px; border-radius: 4px"></span><span class="sk" style="height: 8px; flex: 1; max-width: 220px"></span></li><li aria-hidden="true" style="display: flex; align-items: center; gap: 10px; padding: 8px 0; border-top: 1px solid #eef0f8"><span class="sk" style="width: 14px; height: 14px; border-radius: 4px"></span><span class="sk" style="height: 8px; flex: 1; max-width: 220px"></span></li><li aria-hidden="true" style="display: flex; align-items: center; gap: 10px; padding: 8px 0; border-top: 1px solid #eef0f8"><span class="sk" style="width: 14px; height: 14px; border-radius: 4px"></span><span class="sk" style="height: 8px; flex: 1; max-width: 220px"></span></li><li aria-hidden="true" style="display: flex; align-items: center; gap: 10px; padding: 8px 0; border-top: 1px solid #eef0f8"><span class="sk" style="width: 14px; height: 14px; border-radius: 4px"></span><span class="sk" style="height: 8px; flex: 1; max-width: 220px"></span></li><li aria-hidden="true" style="display: flex; align-items: center; gap: 10px; padding: 8px 0; border-top: 1px solid #eef0f8"><span class="sk" style="width: 14px; height: 14px; border-radius: 4px"></span><span class="sk" style="height: 8px; flex: 1; max-width: 220px"></span></li></ol>
+</div><div class="card" style="padding: 16px 18px; display: flex; flex-direction: column; gap: 10px; box-shadow: none; background: #f8f8fd">
+  <p style="margin: 0; display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 14px; color: #646579"><span class="tile" style="width: 28px; height: 28px; background: #eef0f8; color: #a3a5bb"><svg class="ic" viewBox="0 0 24 24" style="width: 16px; height: 16px;" aria-hidden="true"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"></path><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"></path></svg></span>What AI answers say<span class="badge" style="margin-left: auto; background: #eef0f8; color: #646579">next</span></p>
+  <span aria-hidden="true" style="align-self: flex-end; width: 55%; height: 26px; border-radius: 12px 12px 4px 12px" class="sk"></span>
+  <span aria-hidden="true" style="width: 80%; height: 44px; border-radius: 12px 12px 12px 4px" class="sk"></span>
+</div></div>
+  </div>
+</section></div>
+
+<p class="muted" style="margin: 0; font-size: 13px">Sample: a scan of Harbor Plumbing, Austin, part way through. Each section of the report fills in as its stage finishes; grey shapes hold the place of what’s still coming.</p>
+</div>
+</main>
+<footer class="ftr" style="background: #ffffff; border-top: 1px solid #e8e9f3; margin-top: auto">
+  <div class="wrap" style="padding-top: 48px; padding-bottom: 32px; display: flex; flex-direction: column; gap: 36px">
+    <div style="display: flex; flex-wrap: wrap; gap: 32px">
+      <div style="flex: 1.4 1 200px"><a href="PubLanding.dc.html" style="display: inline-flex; align-items: center; gap: 8px; color: #1e2233; font-weight: 800; font-size: 18px; text-decoration: none; min-height: 44px"><svg viewBox="0 0 64 64" style="width: 28px; height: 28px; flex: none" aria-hidden="true"><defs><linearGradient id="fmf" x1="0.15" y1="1" x2="0.95" y2="0.1"><stop offset="0.38" stop-color="#ffffff"></stop><stop offset="1" stop-color="#ffffff" stop-opacity="0.12"></stop></linearGradient><clipPath id="fmc"><rect width="64" height="64" rx="15"></rect></clipPath></defs><g clip-path="url(#fmc)"><rect width="64" height="64" fill="#5b4be0"></rect><path d="M8 50 A24 24 0 0 1 56 50 Z" fill="url(#fmf)"></path></g></svg>ReachKit</a></div>
+<div style="flex: 1 1 150px; min-width: 0"><h2 class="eyebrow">Product</h2><ul><li><a href="PubLanding.dc.html#landing-field">Free scan</a></li><li><a href="PubHowItWorks.dc.html">How it works</a></li><li><a href="Pricing.dc.html">Pricing</a></li><li><a href="PubAbout.dc.html">About</a></li><li><a href="AuthSignIn.dc.html">Sign in</a></li></ul></div>
+<div style="flex: 1 1 150px; min-width: 0"><h2 class="eyebrow">Learn</h2><ul><li><a href="PubScans.dc.html">Free scans</a></li><li><a href="PubCompare.dc.html">Compare</a></li><li><a href="PubTools.dc.html">Free tools</a></li><li><a href="PubTeardowns.dc.html">Teardowns</a></li><li><a href="#">Articles</a></li></ul></div>
+<div style="flex: 1 1 150px; min-width: 0"><h2 class="eyebrow">Legal</h2><ul><li><a href="Legal.dc.html">Privacy</a></li><li><a href="#">Terms</a></li><li><a href="#">Imprint</a><span class="tag">[after launch gate]</span></li><li><a href="#">Cancel your contract</a><span class="tag">[after launch gate]</span></li></ul></div>
+<div style="flex: 1 1 150px; min-width: 0"><h2 class="eyebrow">Contact</h2><ul><li><a href="#">hello@reachkit.app</a></li></ul></div>
+    </div>
+    <p class="muted" style="margin: 0; padding-top: 20px; border-top: 1px solid #e8e9f3; font-size: 13px">© 2026 ReachKit. All rights reserved. · Own this site and want its report taken down? Write to <a href="#">remove@reachkit.app</a>.</p>
+  </div>
+</footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1708}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

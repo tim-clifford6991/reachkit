@@ -1,0 +1,248 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>A page in review</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#f3f4fb}
+a{color:#5b4be0;text-decoration:none}a:hover{color:#4a3bc9;text-decoration:underline}
+.card{background:#ffffff;border:1px solid #e8e9f3;border-radius:14px;box-shadow:0 0 0 1px rgba(24,24,48,.06),0 1px 2px rgba(24,24,48,.04)}
+.eyebrow{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#6a6b80;margin:0}
+.fig{font-size:36px;font-weight:600;line-height:1;font-variant-numeric:tabular-nums;margin:0;letter-spacing:-0.01em}
+.muted{color:#646579}
+.num{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:13px;word-break:normal;overflow-wrap:anywhere;word-spacing:0}
+.nav a{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:9px;color:#646579;font-weight:600;font-size:14px}
+.nav a:hover{background:#eef0f8;text-decoration:none}
+.nav svg{width:20px;height:20px;stroke:currentColor;stroke-width:1.75;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.badge{display:inline-flex;align-items:center;gap:4px;padding:2px 9px;border-radius:999px;font-size:12px;font-weight:600;line-height:19px;white-space:nowrap;word-spacing:0;box-sizing:border-box}
+.ic{width:16px;height:16px;stroke:currentColor;stroke-width:1.75;fill:none;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.tabs{display:flex;flex-wrap:wrap;gap:4px;border-bottom:1px solid #e8e9f3}
+.tabs a{padding:10px 14px;font-weight:600;font-size:14px;color:#646579;border-bottom:2px solid transparent;margin-bottom:-1px}
+.tabs a:hover{color:#1e2233;text-decoration:none}
+.tabs a[aria-current="page"]{color:#5b4be0;border-bottom-color:#5b4be0}
+.h1{margin:0;font-size:31px;font-weight:700;letter-spacing:-0.03em;line-height:1.25}
+.h2{margin:0;font-size:20px;font-weight:700;letter-spacing:-0.02em;line-height:1.35}
+.h3{margin:0;font-size:16px;font-weight:700;line-height:1.4}
+.lead{margin:0;color:#3a3d52}
+.itile{display:inline-flex;width:36px;height:36px;border-radius:10px;background:#eeecfd;color:#5b4be0;align-items:center;justify-content:center;flex:none}
+.itile .ic{width:20px;height:20px}
+.chipn{display:inline-flex;width:28px;height:28px;border-radius:9px;background:#5b4be0;color:#ffffff;align-items:center;justify-content:center;font-weight:800;font-size:14px;font-variant-numeric:tabular-nums;flex:none}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:0 18px;border-radius:9px;font:inherit;font-weight:600;font-size:15px;cursor:pointer;box-sizing:border-box;white-space:nowrap;text-decoration:none;word-spacing:0}
+.btn:hover{text-decoration:none}
+.primary{background:#5b4be0;color:#ffffff;border:0}.primary:hover{background:#4a3bc9;color:#ffffff}
+.soft{background:#eeecfd;color:#5b4be0;border:0}.soft:hover{background:#e3dffb}
+.stop{background:transparent;color:#945c22;border:1px solid #fbe1c6}.stop:hover{background:#fff3e6;color:#945c22}
+.quiet{background:transparent;color:#646579;border:0}
+.btn .ic{width:16px;height:16px}
+.sm{min-height:36px;padding:0 12px;font-size:14px}
+.well{background:#eef0f8;border-radius:9px}
+.cap{margin:0;font-size:12px;color:#646579}
+.det>summary{list-style:none;cursor:pointer;display:inline-flex;align-items:center;gap:8px;min-height:44px;font-weight:600;font-size:14px;color:#5b4be0}
+.det>summary::-webkit-details-marker{display:none}
+.det .body{display:flex;flex-direction:column;gap:10px;padding:0 0 8px;font-size:14px;color:#3a3d52}
+.det .body p{margin:0}
+.closed>summary{list-style:none;cursor:pointer;padding:16px 20px;font-weight:600;display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center;min-height:24px}
+.closed>summary::-webkit-details-marker{display:none}
+.closed>summary .chev{margin-left:auto;color:#646579}
+.tile summary{list-style:none;cursor:pointer;padding:20px;display:flex;flex-direction:column;gap:12px}
+.tile summary::-webkit-details-marker{display:none}
+.tile:not([open]) summary{box-sizing:border-box;height:100%}.tile .more{margin-top:auto}
+.more{display:inline-flex;align-items:center;gap:4px;font-size:13px;font-weight:600;color:#5b4be0}
+.lrow{display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px 16px;padding:14px 20px;border-top:1px solid #e8e9f3;align-items:center}
+.tbl{width:100%;border-collapse:collapse;font-size:14px}
+.tbl th{text-align:left;font-size:12px;font-weight:700;color:#6a6b80;padding:10px 12px;border-bottom:1px solid #e8e9f3;white-space:nowrap}
+.tbl td{padding:12px;border-top:1px solid #e8e9f3;vertical-align:top}
+.tbl td.n,.tbl th.n{text-align:right;font-variant-numeric:tabular-nums}
+.pill{display:inline-flex;align-items:center;min-height:32px;padding:0 12px;border-radius:999px;border:1px solid #e8e9f3;background:#ffffff;font:inherit;font-size:13px;font-weight:600;color:#646579;cursor:pointer;word-spacing:0}
+.pill[aria-pressed="true"]{background:#1e2233;border-color:#1e2233;color:#ffffff}
+.lbl{display:inline-flex;align-items:center;gap:4px;padding:2px 9px;border-radius:999px;font-size:12px;font-weight:600;line-height:19px;white-space:nowrap;word-spacing:0}
+.states{border:1px dashed #c9cbe0;border-radius:14px;padding:20px;display:flex;flex-direction:column;gap:12px}
+.state{display:flex;flex-direction:column;gap:4px;padding:12px 14px;background:#eef0f8;border-radius:9px;font-size:14px}
+.sub{display:none;font-size:13px;color:#646579;margin-top:2px}
+@media (max-width: 640px){.tbl .opt{display:none}.sub{display:block} }
+.daycell{background:#ffffff;border:1px solid #e8e9f3;border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:8px;min-width:0;box-sizing:border-box}
+.thumb{height:40px;border-radius:6px;background:#eef0f8;display:flex;flex-direction:column;gap:5px;padding:8px;box-sizing:border-box}
+.thumb span{height:5px;border-radius:3px;background:#dcdeec;display:block}
+.clamp2{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.clamp3{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.sr{position:absolute;left:0;top:0;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.tag{display:inline-block;padding:2px 9px;border-radius:999px;background:#eef0f8;color:#6a6b80;font-size:12px;font-weight:600;line-height:19px;white-space:nowrap;vertical-align:middle;word-spacing:0}
+.slot{border:1.5px dashed #c4c6dc;border-radius:12px;padding:12px 14px;color:#6a6b80;font-size:13px;line-height:1.5;background:rgba(255,255,255,.45)}
+.track{display:block;height:10px;border-radius:999px;background:#eef0f8;overflow:hidden}
+.track>span{display:block;height:10px;border-radius:999px}
+
+.hrow{display:flex;align-items:center;gap:8px;min-height:24px;margin:0}
+.hback{display:inline-flex;align-items:center;gap:6px;font-size:14px;font-weight:600;line-height:24px;min-height:24px}
+.hback .ic{width:16px;height:16px}
+.leadrow{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;min-height:24px;margin:0;color:#3a3d52}
+h1,h2,h3,.h1{text-wrap:balance}p,li{text-wrap:pretty}
+.bframe{border:1px solid #e8e9f3;border-radius:12px;overflow:hidden;background:#ffffff;display:flex;flex-direction:column;position:relative;box-sizing:border-box;min-width:0;box-shadow:0 0 0 1px rgba(24,24,48,.06),0 1px 2px rgba(24,24,48,.04)}
+.bframe.crop{-webkit-mask-image:linear-gradient(#000 calc(100% - 64px),transparent);mask-image:linear-gradient(#000 calc(100% - 64px),transparent)}
+.bbar{min-height:38px;flex:none;box-sizing:border-box;display:flex;align-items:center;gap:14px;padding:6px 12px;background:#f3f4fb;border-bottom:1px solid #e8e9f3}
+.bdots{display:inline-flex;gap:8px;flex:none}
+.bdots span{width:12px;height:12px;border-radius:999px;background:#dcdeec;display:block}
+.burl{flex:1 1 auto;min-width:0;min-height:26px;box-sizing:border-box;display:flex;align-items:center;gap:6px;padding:2px 12px;border-radius:999px;background:#ffffff;border:1px solid #e8e9f3;color:#646579}
+.burl b{font-weight:400;min-width:0;font-family:"JetBrains Mono",ui-monospace,monospace;font-size:13px;line-height:1.4;color:#3a3d52;word-break:break-all;word-spacing:0}
+.burl .ic{width:16px;height:16px}
+.bbody{flex:1 1 auto;min-height:0;overflow:hidden;position:relative}
+.bfade{position:absolute;left:0;right:0;bottom:0;height:56px;background:linear-gradient(rgba(255,255,255,0),#ffffff);pointer-events:none}
+.lad{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+@media (max-width: 640px){.lad{grid-template-columns:repeat(2,minmax(0,1fr))} }
+.daygrid{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+.daygrid>li{display:grid;grid-template-rows:subgrid;row-gap:8px}
+/* app shell: sidebar from 1024px; navbar + bottom dock below it (DESIGN.md › The shell) */
+.mbar,.dock{display:none}
+.mbar{flex:1 1 100%;position:sticky;top:0;z-index:5;box-sizing:border-box;height:84px;padding:8px 16px;background:#ffffff;border-bottom:1px solid #e8e9f3;flex-direction:column;gap:4px}
+.mbar .row{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:44px}
+.mbar .brand{display:flex;align-items:center;gap:8px;color:#1e2233;font-weight:800;font-size:18px;letter-spacing:-0.01em}
+.mbar .theme{display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;border-radius:9px;border:0;background:transparent;color:#646579;cursor:pointer}
+.mbar .theme svg{width:20px;height:20px;stroke:currentColor;stroke-width:1.75;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.mbar .line{display:flex;align-items:center;gap:6px 12px;flex-wrap:wrap;font-size:13px;min-height:20px}
+.mbar .line .num{word-break:break-all}
+.publine{display:inline-flex;align-items:center;gap:8px;color:#1e2233;font-size:13px;font-weight:600}
+.publine i{width:8px;height:8px;border-radius:999px;flex:none;display:block}
+.dock{flex:1 1 100%;position:sticky;bottom:0;z-index:5;box-sizing:border-box;height:64px;background:#ffffff;border-top:1px solid #e8e9f3;align-items:stretch}
+.dock a{flex:1 1 0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;color:#646579;font-size:12px;font-weight:600;position:relative;text-decoration:none}
+.dock a svg{width:20px;height:20px;stroke:currentColor;stroke-width:1.75;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.dock a[aria-current="page"]{color:#5b4be0}
+.dock a[aria-current="page"]::after{content:"";position:absolute;bottom:8px;width:24px;height:3px;border-radius:999px;background:#5b4be0}
+@media (max-width: 1023px){
+  nav.nav{display:none !important}
+  .mbar,.dock{display:flex}
+  main{padding:24px !important;max-width:none !important}
+  .tabs{position:sticky;top:84px;z-index:4;background:#f3f4fb}
+}
+@media (max-width: 640px){
+  main{padding:16px 16px 24px !important}
+}
+</style>
+</helmet>
+<div style="min-height: 2851px; display: flex; flex-wrap: wrap; font-family: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif; color: #1e2233; font-size: 15px; line-height: 1.55; word-spacing: .06em; background: #f3f4fb">
+  <nav class="nav" aria-label="Main" style="flex: 1 1 220px; max-width: 240px; box-sizing: border-box; padding: 24px 16px; background: #ffffff; border-right: 1px solid #e8e9f3; display: flex; flex-direction: column; gap: 4px">
+    <a href="Main.dc.html" style="display: flex; align-items: center; gap: 8px; padding: 0 12px 20px; color: #1e2233; font-weight: 800; font-size: 18px; letter-spacing: -0.01em">
+      <svg viewBox="0 0 64 64" style="width: 28px; height: 28px; stroke: none" aria-hidden="true"><defs><linearGradient id="drf" x1="0.15" y1="1" x2="0.95" y2="0.1"><stop offset="0.38" stop-color="#ffffff"></stop><stop offset="1" stop-color="#ffffff" stop-opacity="0.12"></stop></linearGradient><clipPath id="drc"><rect width="64" height="64" rx="15"></rect></clipPath></defs><g clip-path="url(#drc)"><rect width="64" height="64" fill="#5b4be0"></rect><path d="M8 50 A24 24 0 0 1 56 50 Z" fill="url(#drf)"></path></g></svg>ReachKit</a>
+    <a href="Main.dc.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 10l9-7 9 7v10a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"></path></svg>Overview</a>
+    <a href="#" aria-current="page" style="background: #eeecfd; color: #5b4be0"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"></rect><path d="M16 2v4M8 2v4M3 10h18"></path></svg>Plan</a>
+    <a href="SettingsIndex.dc.html"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"></path></svg>Settings</a>
+    <div style="margin-top: auto; padding: 12px; font-size: 13px; display: flex; flex-direction: column; gap: 6px">
+      <a href="SettingsPublishing.dc.html" class="publine"><i style="background: #1b765b"></i>Publishing on</a>
+      <span class="num muted">harborplumbing.com</span>
+    </div>
+  </nav>
+  <header class="mbar" aria-label="ReachKit">
+    <div class="row"><a href="Main.dc.html" class="brand"><svg viewBox="0 0 64 64" style="width: 28px; height: 28px; stroke: none" aria-hidden="true"><defs><linearGradient id="drmf" x1="0.15" y1="1" x2="0.95" y2="0.1"><stop offset="0.38" stop-color="#ffffff"></stop><stop offset="1" stop-color="#ffffff" stop-opacity="0.12"></stop></linearGradient><clipPath id="drmc"><rect width="64" height="64" rx="15"></rect></clipPath></defs><g clip-path="url(#drmc)"><rect width="64" height="64" fill="#5b4be0"></rect><path d="M8 50 A24 24 0 0 1 56 50 Z" fill="url(#drmf)"></path></g></svg>ReachKit</a><button type="button" class="theme" aria-label="Theme: light"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"></path></svg></button></div>
+    <div class="line"><span class="num muted">harborplumbing.com</span><a href="SettingsPublishing.dc.html" class="publine"><i style="background: #1b765b"></i>Publishing on</a></div>
+  </header>
+
+  <main style="flex: 999 1 560px; min-width: 0; box-sizing: border-box; padding: 40px; display: flex; flex-direction: column; gap: 28px; max-width: 1040px">
+
+    <header style="display: flex; flex-direction: column; gap: 6px"><div class="hrow"><a href="Plan.dc.html" class="hback"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H5M12 19l-7-7 7-7"></path></svg>Back to Plan</a></div><h1 class="h1">Emergency plumber in Austin: what to do in the first hour</h1><div class="leadrow"><span class="badge" style="background: #eeecfd; color: #5b4be0"><svg class="ic" viewBox="0 0 24 24" style="width: 16px; height: 16px;" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="m9 12 2 2 4-4"></path></svg>Ready</span><span class="badge" style="background: #eef0f8; color: #646579"><svg class="ic" viewBox="0 0 24 24" style="width: 16px; height: 16px;" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>New page</span><span class="muted" style="font-size: 14px">Written Monday 19 October, 6:10 AM · about 1,400 words</span></div></header>
+
+    <div style="display: flex; flex-wrap: wrap-reverse; gap: 24px; align-items: flex-end">
+      <div style="flex: 999 1 460px; min-width: 0; display: flex; flex-direction: column; gap: 20px">
+        <section class="card" aria-labelledby="why" style="padding: 20px 22px; display: flex; gap: 14px; align-items: flex-start">
+          <span class="itile" style="background: #eeecfd; color: #5b4be0; width: 36px; height: 36px"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg></span>
+          <div style="min-width: 0; flex: 1 1 auto; display: flex; flex-direction: column; gap: 4px">
+            <h2 id="why" class="h3">Why this page</h2>
+            <p style="margin: 0">Your core service, and AI answers link to a competitor’s service page for it.</p>
+            <details class="det"><summary><svg class="ic" viewBox="0 0 24 24" style="width: 16px; height: 16px;" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg>The search and who answers it</summary><div class="body"><dl style="margin: 0; display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 6px 16px"><dt class="muted">The search</dt><dd style="margin: 0" class="num">emergency plumber austin</dd><dt class="muted">Searched a month</dt><dd style="margin: 0">about 1,300 in the US</dd><dt class="muted">Who answers it today</dt><dd style="margin: 0"><span class="num">austinpipeworks.example</span>, then a national plumbing chain’s page</dd></dl></div></details>
+          </div>
+        </section>
+
+        <section aria-label="Preview, as it will look on your site" style="display: flex; flex-direction: column; gap: 8px">
+          <p class="cap" style="display: flex; align-items: center; gap: 6px; font-size: 13px"><span style="color: #5b4be0; display: inline-flex"><svg class="ic" viewBox="0 0 24 24" style="width: 16px; height: 16px;" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v6l4 2"></path></svg></span>Preview, as it will look on your site. Goes live today, 4:00 PM.</p>
+          <div class="bframe crop" data-mock="browser" style="box-shadow: 0 0 0 1px rgba(24,24,48,.06),0 1px 2px rgba(24,24,48,.04)"><div class="bbar" data-bar><span class="bdots" aria-hidden="true"><span></span><span></span><span></span></span><span class="burl" data-url><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg><b>help.harborplumbing.com/emergency-plumber-austin</b></span></div><div class="bbody"><article style="padding: 32px; max-width: 72ch; box-sizing: border-box">
+            <p class="eyebrow" style="margin-bottom: 8px">Harbor Plumbing · Austin</p>
+            <h2 style="margin: 0 0 12px; font-size: 25px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.3">Emergency plumber in Austin: what to do in the first hour</h2>
+            <p style="margin: 0 0 14px">If water is spreading, shut off the main valve first. In most Austin homes it sits where the water line enters the house, often in the garage or near the front hose bib. Turn it clockwise until it stops.</p>
+            <h3 style="margin: 20px 0 8px; font-size: 20px; font-weight: 700; letter-spacing: -0.02em">1. Stop the water</h3>
+            <p style="margin: 0 0 14px">If you can’t find the house valve, the city meter box at the curb has one too. You need a meter key for it, which most hardware stores sell.</p>
+            <h3 style="margin: 20px 0 8px; font-size: 20px; font-weight: 700; letter-spacing: -0.02em">2. Turn off the water heater</h3>
+            <p style="margin: 0 0 14px">With the supply off, a gas heater should go to “pilot” and an electric one should be switched off at the breaker, so it doesn’t heat an empty tank.</p>
+            <h3 style="margin: 20px 0 8px; font-size: 20px; font-weight: 700; letter-spacing: -0.02em">3. Call, and say what you see</h3>
+            <p style="margin: 0">Tell the plumber where the water is coming from and whether it has reached outlets or the ceiling. Harbor Plumbing answers emergency calls in Austin around the clock.</p>
+            <h3 style="margin: 20px 0 8px; font-size: 20px; font-weight: 700; letter-spacing: -0.02em">4. While you wait</h3>
+            <p style="margin: 0">Move rugs and boxes away from the water, and take photos for your insurer before anything is moved.</p>
+          </article></div></div>
+        </section>
+
+        <div style="display: flex; flex-direction: column; gap: 10px">
+          <details class="card closed"><summary>Checks: 14 of 14 passed <span class="badge" style="background: #e7f6f0; color: #1b765b"><svg class="ic" viewBox="0 0 24 24" style="width: 16px; height: 16px;" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path><path d="m9 12 2 2 4-4"></path></svg>all passed</span><span class="chev"><svg class="ic" viewBox="0 0 24 24" style="width: 20px; height: 20px;" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></span></summary><div style="padding: 0 20px 20px; display: flex; flex-direction: column; gap: 12px; font-size: 14px"><ul style="list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px"><li style="display: flex; gap: 8px; align-items: center"><span style="color: #1b765b; display: inline-flex"><svg class="ic" viewBox="0 0 24 24" style="width: 16px; height: 16px;" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="m9 12 2 2 4-4"></path></svg></span>Every fact links to your site</li><li style="display: flex; gap: 8px; align-items: center"><span style="color: #1b765b; display: inline-flex"><svg class="ic" viewBox="0 0 24 24" style="width: 16px; height: 16px;" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="m9 12 2 2 4-4"></path></svg></span>No invented people, reviews or prices</li><li style="display: flex; gap: 8px; align-items: center"><span style="color: #1b765b; display: inline-flex"><svg class="ic" viewBox="0 0 24 24" style="width: 16px; height: 16px;" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="m9 12 2 2 4-4"></path></svg></span>Nothing from your never-say list</li><li style="display: flex; gap: 8px; align-items: center"><span style="color: #1b765b; display: inline-flex"><svg class="ic" viewBox="0 0 24 24" style="width: 16px; height: 16px;" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="m9 12 2 2 4-4"></path></svg></span>Answers its own question in the first lines</li><li style="display: flex; gap: 8px; align-items: center"><span style="color: #1b765b; display: inline-flex"><svg class="ic" viewBox="0 0 24 24" style="width: 16px; height: 16px;" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="m9 12 2 2 4-4"></path></svg></span>Reads at a plain level</li><li class="muted">and 9 more</li></ul><p class="muted" style="margin: 0">How we decided: a page that fails a check twice is held back and never goes live.</p></div></details>
+          <details class="card closed"><summary>In search results<span class="chev"><svg class="ic" viewBox="0 0 24 24" style="width: 20px; height: 20px;" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></span></summary><div style="padding: 0 20px 20px; display: flex; flex-direction: column; gap: 12px; font-size: 14px"><div style="padding: 16px 18px; display: flex; flex-direction: column; gap: 4px; max-width: 600px; background: #ffffff; border: 1px solid #e8e9f3; border-radius: 9px"><span style="display: flex; align-items: center; gap: 10px"><span aria-hidden="true" style="width: 28px; height: 28px; border-radius: 999px; background: #eef0f8; flex: none"></span><span style="display: flex; flex-direction: column; line-height: 1.3"><span style="font-size: 14px; color: #1e2233">Harbor Plumbing</span><span style="font-size: 12px; color: #646579">https://help.harborplumbing.com › emergency-plumber-austin</span></span></span><span style="color: #5b4be0; font-size: 20px; line-height: 1.3">Emergency plumber in Austin: what to do in the first hour</span><span style="font-size: 14px; line-height: 1.55; color: #646579">Water spreading? Shut off the main valve, turn off the water heater, then call. What to do in the first hour, from an Austin plumber.</span></div><p class="cap">An example of how Google may show it. Google can choose other words.</p></div></details>
+          <details class="card closed"><summary>Written from your business<span class="chev"><svg class="ic" viewBox="0 0 24 24" style="width: 20px; height: 20px;" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></span></summary><div style="padding: 0 20px 20px; display: flex; flex-direction: column; gap: 12px; font-size: 14px"><p class="muted" style="margin: 0">The facts this page uses, each with the page of your site it came from.</p></div></details>
+          <details class="card closed"><summary>What this page adds<span class="chev"><svg class="ic" viewBox="0 0 24 24" style="width: 20px; height: 20px;" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></span></summary><div style="padding: 0 20px 20px; display: flex; flex-direction: column; gap: 12px; font-size: 14px"><p class="muted" style="margin: 0">What it says that the pages ranking today don’t.</p></div></details>
+          <details class="card closed"><summary>Links on this page<span class="chev"><svg class="ic" viewBox="0 0 24 24" style="width: 20px; height: 20px;" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></span></summary><div style="padding: 0 20px 20px; display: flex; flex-direction: column; gap: 12px; font-size: 14px"><p class="muted" style="margin: 0">Links to your service pages and to your other live pages.</p></div></details>
+        </div>
+      </div>
+
+      <aside class="card" aria-labelledby="this-page" style="flex: 1 1 260px; max-width: 320px; min-width: 0; padding: 20px; display: flex; flex-direction: column; gap: 14px; position: sticky; top: 24px">
+        <h2 id="this-page" class="h3">This page</h2>
+        <div style="padding: 14px; background: #eeecfd; border-radius: 10px; display: flex; flex-direction: column; gap: 2px">
+          <span class="eyebrow" style="color: #5b4be0">Goes live</span>
+          <span style="font-size: 24px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.3; font-variant-numeric: tabular-nums">Today, 4:00 PM</span>
+          <span style="font-size: 14px; color: #3a3d52">Nothing is needed from you.</span>
+        </div>
+        <button type="button" class="btn soft" style="width: 100%"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"></path></svg>Edit this page</button>
+        <button type="button" class="btn stop" aria-describedby="stop-note" style="width: 100%"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><rect x="9" y="9" width="6" height="6" rx="1"></rect></svg>Stop this page</button>
+        <p id="stop-note" class="cap" style="font-size: 13px">It won’t go live, and this topic is dropped. Tomorrow’s page is not affected.</p>
+        <div style="padding-top: 14px; border-top: 1px solid #e8e9f3">
+          <ol aria-label="This page’s day" style="list-style: none; margin: 0; padding: 0"><li style="display: grid; grid-template-columns: 22px minmax(0, 1fr); gap: 10px; position: relative; padding-bottom: 14px"><span style="width: 22px; height: 22px; border-radius: 999px; background: #1b765b; border: 1.5px solid #1b765b; box-sizing: border-box; color: #ffffff; display: inline-flex; align-items: center; justify-content: center; z-index: 1"><svg class="ic" viewBox="0 0 24 24" style="width: 16px; height: 16px;" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg></span><span aria-hidden="true" style="position: absolute; left: 10px; top: 22px; bottom: 0; width: 2px; background: #e8e9f3"></span><span style="font-size: 13px; line-height: 1.4"><span style="font-weight: 600">Written and checked</span><br><span class="muted">6:10 AM</span></span></li><li style="display: grid; grid-template-columns: 22px minmax(0, 1fr); gap: 10px; position: relative; padding-bottom: 14px"><span style="width: 22px; height: 22px; border-radius: 999px; background: #1b765b; border: 1.5px solid #1b765b; box-sizing: border-box; color: #ffffff; display: inline-flex; align-items: center; justify-content: center; z-index: 1"><svg class="ic" viewBox="0 0 24 24" style="width: 16px; height: 16px;" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg></span><span aria-hidden="true" style="position: absolute; left: 10px; top: 22px; bottom: 0; width: 2px; background: #e8e9f3"></span><span style="font-size: 13px; line-height: 1.4"><span style="font-weight: 600">Emailed to you</span><br><span class="muted">6:15 AM</span></span></li><li style="display: grid; grid-template-columns: 22px minmax(0, 1fr); gap: 10px; position: relative; padding-bottom: 14px"><span style="width: 22px; height: 22px; border-radius: 999px; background: #5b4be0; border: 1.5px solid #5b4be0; box-sizing: border-box; color: #ffffff; display: inline-flex; align-items: center; justify-content: center; z-index: 1"><svg class="ic" viewBox="0 0 24 24" style="width: 16px; height: 16px;" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v6l4 2"></path></svg></span><span aria-hidden="true" style="position: absolute; left: 10px; top: 22px; bottom: 0; width: 2px; background: #e8e9f3"></span><span style="font-size: 13px; line-height: 1.4"><span style="font-weight: 700">Goes live on your site</span><br><span class="muted">today, 4:00 PM</span></span></li><li style="display: grid; grid-template-columns: 22px minmax(0, 1fr); gap: 10px; position: relative; padding-bottom: 0px"><span style="width: 22px; height: 22px; border-radius: 999px; background: #ffffff; border: 1.5px solid #c9cbe0; box-sizing: border-box; color: #ffffff; display: inline-flex; align-items: center; justify-content: center; z-index: 1"></span><span style="font-size: 13px; line-height: 1.4"><span style="font-weight: 600">First reading in Google and AI</span><br><span class="muted">Monday 26 October</span></span></li></ol>
+        </div>
+      </aside>
+    </div>
+
+    <section aria-labelledby="editing" style="display: flex; flex-direction: column; gap: 14px; padding-top: 12px; border-top: 1px dashed #c9cbe0">
+      <p class="eyebrow">After Edit this page is pressed</p>
+      <h2 id="editing" class="h2">Editing</h2>
+      <section class="card" aria-label="Editor" style="padding: 24px; display: flex; flex-direction: column; gap: 16px">
+        <div style="display: flex; flex-wrap: wrap; justify-content: space-between; gap: 10px; align-items: center">
+          <a href="#" class="btn quiet sm" style="margin-left: -12px; color: #5b4be0"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H5M12 19l-7-7 7-7"></path></svg>Back to the page</a>
+          <span class="muted" role="status" style="font-size: 13px; display: inline-flex; gap: 6px; align-items: center"><span style="color: #1b765b; display: inline-flex"><svg class="ic" viewBox="0 0 24 24" style="width: 16px; height: 16px;" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="m9 12 2 2 4-4"></path></svg></span>Saved 9:42 AM</span>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 6px">
+          <label for="ed-title" style="font-size: 14px; font-weight: 600">Title</label>
+          <input id="ed-title" type="text" value="Emergency plumber in Austin: what to do in the first hour" style="min-height: 44px; border-radius: 9px; border: 1px solid #d6d8e8; padding: 0 12px; font: inherit; color: #1e2233">
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 6px">
+          <label for="ed-desc" style="font-size: 14px; font-weight: 600">Description in search results</label>
+          <textarea id="ed-desc" rows="2" style="border-radius: 9px; border: 1px solid #d6d8e8; padding: 10px 12px; font: inherit; color: #1e2233; resize: vertical">Water spreading? Shut off the main valve, turn off the water heater, then call. What to do in the first hour, from an Austin plumber.</textarea>
+          <span class="muted" style="font-size: 13px">138 characters</span>
+        </div>
+        <div role="tablist" aria-label="Editor views" class="tabs">
+          <a href="#" role="tab" aria-selected="true" aria-current="page">Markdown</a><a href="#" role="tab" aria-selected="false">Preview</a><a href="#" role="tab" aria-selected="false">Search result</a>
+        </div>
+        <pre style="margin: 0; padding: 16px; background: #eef0f8; border-radius: 9px; font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 13px; line-height: 1.7; white-space: pre-wrap; word-break: normal; overflow-wrap: anywhere; word-spacing: 0; color: #1e2233"># Emergency plumber in Austin: what to do in the first hour
+
+If water is spreading, shut off the main valve first. In most Austin homes it sits where the water line enters the house, often in the garage or near the front hose bib.
+
+## 1. Stop the water
+
+If you can’t find the house valve, the city meter box at the curb has one too.</pre>
+        <div role="alert" style="display: flex; gap: 10px; align-items: flex-start; padding: 12px 14px; background: #fff3e6; border: 1px solid #fbe1c6; border-radius: 9px; color: #945c22; font-size: 14px"><svg class="ic" viewBox="0 0 24 24" style="width: 20px; height: 20px;margin-top: 2px" aria-hidden="true"><path d="m21.7 18-8-14a2 2 0 0 0-3.4 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.7-3z"></path><path d="M12 9v4M12 17h.01"></path></svg><span>Your edit breaks one of the page rules, so this page won’t publish until the text passes them. Your words are saved.</span></div>
+        <div style="display: flex; flex-wrap: wrap; gap: 12px">
+          <button type="button" class="btn primary">Done editing</button>
+          <button type="button" class="btn quiet">Discard changes</button>
+        </div>
+      </section>
+    </section>
+
+    <section class="states" aria-label="Other states of this screen"><p class="eyebrow">Other states</p><div class="state"><span class="eyebrow">After Stop · toast</span><span>Stopped. This page won’t go live. The controls leave, the stage badge reads “Stopped”, and one line remains: Tomorrow’s page goes live as planned.</span></div><div class="state"><span class="eyebrow">Writing again</span><span>We’re writing this page again. It’s ready within the hour, and this screen updates itself when it is.</span></div><div class="state"><span class="eyebrow">Save failed</span><span>Couldn’t save. Your text is kept here, and nothing unsaved goes live.</span></div><div class="state"><span class="eyebrow">Not found · button Back to Plan</span><span>This page isn’t here. It may have been stopped or replaced.</span></div><div class="state"><span class="eyebrow">Refused</span><span>That didn’t go through. The page is as it was.</span></div></section>
+
+  </main>
+  <nav class="dock" aria-label="Main"><a href="Main.dc.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 10l9-7 9 7v10a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"></path></svg>Overview</a><a href="#" aria-current="page"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"></rect><path d="M16 2v4M8 2v4M3 10h18"></path></svg>Plan</a><a href="SettingsIndex.dc.html"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"></path></svg>Settings</a></nav>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":2851}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>
