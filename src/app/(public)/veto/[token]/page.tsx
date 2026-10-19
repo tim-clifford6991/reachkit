@@ -166,7 +166,8 @@ const ROW_LABEL = "text-xs font-semibold uppercase tracking-wide text-base-conte
 const CHIP_OK = "grid size-12 flex-none place-items-center rounded-box bg-success/10 text-success";
 
 /**
- * The line for a link that cannot be spent. Total over `VetoRefusal` — a
+ * The heading and line for a link that cannot be spent; only a spent link
+ * says "Stopped", because only there was something stopped. Total over `VetoRefusal` — a
  * refusal that grows a fifth member fails to compile here rather than
  * falling through to a blank page.
  *
@@ -175,15 +176,15 @@ const CHIP_OK = "grid size-12 flex-none place-items-center rounded-box bg-succes
  * difference between them is a fact about the page that this screen holds no
  * session to be told.
  */
-function refusalLine(reason: Exclude<PreviewResult, { ok: true }>["reason"]): string {
+function refusal(reason: Exclude<PreviewResult, { ok: true }>["reason"]): { head: string; line: string } {
   switch (reason) {
     case "used":
-      return copy("publish.veto.alreadyUsed");
+      return { head: copy("publish.veto.done.head"), line: copy("publish.veto.alreadyUsed") };
     case "expired":
     case "not_in_review":
-      return copy("publish.veto.expired");
+      return { head: copy("publish.veto.closed.head"), line: copy("publish.veto.expired") };
     case "unknown":
-      return copy("publish.veto.unknown");
+      return { head: copy("publish.veto.unknown.head"), line: copy("publish.veto.unknown") };
   }
 }
 
@@ -496,9 +497,10 @@ export default async function VetoPage(p: {
   }
 
   if (!result.ok) {
+    const { head, line } = refusal(result.reason);
     return (
       <Surface arms={ARMS}>
-        <Told head={copy("publish.veto.done.head")} page={null} message={refusalLine(result.reason)} />
+        <Told head={head} page={null} message={line} />
       </Surface>
     );
   }
