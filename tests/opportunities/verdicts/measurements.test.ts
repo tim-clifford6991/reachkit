@@ -81,6 +81,15 @@ describe("positions — each search's rows, from which a page takes its own plac
     expect(both?.kind === "measured" && both.value).toBe(6);
   });
 
+  it("issue 1537 — a page in neither the ten-deep SERP nor capped ranked rows is not measured, never a measured zero", () => {
+    const elsewhere = Array.from({ length: 300 }, (_, i) => ({ keyword: `other search ${i}`, position: 1 + (i % 50), searchVolume: 90, url: `https://${DOMAIN}/p${i}` }));
+    expect(placeAt(reportWithOwnPlace(null, { ownRanked: measured(1200, AT), ownRankedRows: elsewhere }))?.kind).toBe("unmeasured");
+    // A count the week did not measure cannot say the rows are complete either.
+    expect(placeAt(reportWithOwnPlace(null, { ownRanked: unmeasured("undeterminable", AT), ownRankedRows: [] }))?.kind).toBe("unmeasured");
+    // Where the rows are every search the site ranks for, absence is measured.
+    expect(placeAt(reportWithOwnPlace(null, { ownRanked: measured(300, AT), ownRankedRows: elsewhere }))?.kind).toBe("zero");
+  });
+
   it("an earlier address of the same page counts as the page (issue 1487)", () => {
     const report = reportOf({
       questions: [question()],

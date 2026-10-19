@@ -43,7 +43,6 @@ const DATAFORSEO_BASE_URL = "https://api.dataforseo.com";
  *  SERPs and, since D48 (SPEC §7, 2026-10-04), the news search, which is
  *  billed by the ten results like the organic one. */
 const DEPTH_PATH_PREFIXES = ["/v3/serp/google/organic/", "/v3/serp/google/news/"] as const;
-const SERP_DEPTH = 10;
 
 /** LLM Mentions (SPEC §6, 2026-09-22, #1004) — the one path family whose
  *  tasks take **no locale fields at all**, and the reason the two pins
@@ -175,7 +174,7 @@ export function buildRequest(spec: DataForSeoRequestSpec): DataForSeoRequest {
     task.location_name = locationName(spec.path, { ...locale, ...(spec.locale?.place === undefined ? {} : { place: spec.locale.place }) });
     task.language_code = locale.language;
   }
-  if (DEPTH_PATH_PREFIXES.some((prefix) => spec.path.startsWith(prefix))) task.depth = SERP_DEPTH;
+  if (DEPTH_PATH_PREFIXES.some((prefix) => spec.path.startsWith(prefix))) task.depth = VENDOR.serpDepth;
 
   return {
     url: `${DATAFORSEO_BASE_URL}${spec.path}`,

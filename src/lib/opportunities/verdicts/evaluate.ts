@@ -98,7 +98,7 @@ export function addressOf(url: string): string {
 }
 
 /** The best place a page's test counts: `top20` names the top twenty. */
-const TRACKED_DEPTH = 20;
+export const TRACKED_DEPTH = 20;
 
 /**
  * One page's own place on one search (issue 1518): the best place a row
