@@ -2,10 +2,11 @@
 // `title` check.
 //
 // A page's `<title>` is its search form and its H1 is the same words. Code
-// holds the title to nine things: its length, the search's own wording near
+// holds the title to ten things: its length, the search's own wording near
 // its head, one specific the pack holds, a question only where the search is
 // one, the year's place, no banned pattern, not the title of another page of
-// the site, an H1 that is the title, and the meta description's length —
+// the site, the business on a page that compares products, an H1 that is
+// the title, and the meta description's length —
 // which rides with it, because a page has one fix call and the two are
 // written together.
 //
@@ -44,6 +45,11 @@
 //     alternatives", "Top 5 …", "Die 5 besten …") is how many it counts.
 //     It must be the options the page counts, the baseline of an
 //     alternatives page not among them.
+//   * **The business** (issue 1552): a page whose search sets products
+//     against each other, or asks for one's alternatives, names the
+//     business — its name or its domain's label — as one of them. A search
+//     that compares category terms ("aeo vs geo") names no product, and is
+//     not held to it.
 //
 // Deterministic, no I/O. A failure carries handles, never a sentence.
 import { languagePack } from "@/lib/locale/language";
@@ -64,6 +70,8 @@ export type TitleFault =
   | "banned"
   | "overlap"
   | "count"
+  /** Issue 1552: a comparison's title does not name the business. */
+  | "business"
   | "heading"
   | "description"
   /** Issue 1507: the description states a figure the body does not. */
@@ -102,6 +110,9 @@ export interface TitleRuleInputs {
   /** Issue 1508: the options a comparison counts, the business among them
    *  and an alternatives page's baseline not. Absent on any other page. */
   options?: number;
+  /** Issue 1552: on a page whose search compares products, the names the
+   *  business goes by; the title names one. Absent on any other page. */
+  business?: readonly string[];
 }
 
 const YEAR_RE = /\b(?:19|20)\d\d\b/g;
@@ -150,9 +161,10 @@ function leadsWith(title: string, term: string, language: Language): boolean | n
   );
 }
 
-function names(title: string, phrase: string): boolean {
+/** Whether `text` names `phrase`, as a whole word, in any case. */
+export function names(text: string, phrase: string): boolean {
   const escaped = phrase.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  return escaped !== "" && new RegExp(`(?<![\\p{L}\\p{N}])${escaped}(?![\\p{L}\\p{N}])`, "iu").test(title);
+  return escaped !== "" && new RegExp(`(?<![\\p{L}\\p{N}])${escaped}(?![\\p{L}\\p{N}])`, "iu").test(text);
 }
 
 /** The rivals and the place a title may name as its specific: a name the
@@ -242,6 +254,7 @@ function wordingFaults(title: string, a: TitleRuleInputs): TitleFault[] {
     hasBanned(title, a) && "banned",
     closestTitle(title, a.titles) !== null && "overlap",
     a.options !== undefined && countedIn(title) !== null && countedIn(title) !== a.options && "count",
+    a.business !== undefined && a.business.length > 0 && !a.business.some((name) => names(title, name)) && "business",
   ];
   return faults.filter((fault) => fault !== false);
 }
@@ -383,6 +396,7 @@ export function titleNotes(title: string, a: TitleRuleInputs, faults: readonly T
     banned: `title: it must not use ${pack.title.banned.map((phrase) => `"${phrase}"`).join(", ")}, a filler verb or stock phrase like ${pack.title.tropeSamples.map((phrase) => `"${phrase}"`).join(", ")}, two things joined by "and" after "How to", a square bracket, a pipe, or the same word twice`,
     overlap: `title: it reads almost the same as this site's page "${close ?? ""}"; lead with what this page has that one does not`,
     count: `title: it counts ${countedIn(title) ?? 0} options and the page counts ${a.options ?? 0}: state ${a.options ?? 0}, the number \`options\` holds, or no count`,
+    business: `title: the search compares products, and this page is the business's own: the title names it, as "${a.business?.[0] ?? ""}", beside the products the search names`,
     heading: "heading: the H1 is the title itself",
     description: `description: it has ${[...a.description.trim()].length} characters and must have ${TITLE.description.min} to ${TITLE.description.max}, opening with the answer`,
     description_figures: `description: every figure it states is one the body states; ${descriptionFiguresMissing(a.description, markdown, figureReading(a))

@@ -461,7 +461,10 @@ export type MeasuredAnswer = Pick<PromptAnswer, "promptId" | "named" | "linked" 
  *   - a "vs" between products, where the AI answer it was found in
  *     (`answeredRival`, a rival's domain) named one of its rivals, or a
  *     tracked prompt that names one of them was answered, in a measured
- *     answer, by one naming every side;
+ *     answer, by one naming every side. A tracked prompt is ReachKit's own
+ *     wording, and its comparison prompts set the rivals against each other
+ *     by template, so a "vs" the business is no side of is not observed by
+ *     one (issue 1552);
  *   - "{rival} alternatives", where a measured answer named the rival and
  *     cited an address that holds "alternative";
  *   - a search ReachKit composed (`composed`), by nothing more.
@@ -488,6 +491,7 @@ export function comparisonUnasked(a: {
   if (versus !== null) {
     const named = (text: string) => versus.rivals.some((rival) => namesBrand(text, rival));
     if (a.answeredRival != null && named(brandOf(a.answeredRival))) return false;
+    if (!versus.own) return true;
     // A product no answer can name — one that is not a rival — is a side no
     // answer attests.
     const sides = new Set(versus.rivals.map(domainOf));
