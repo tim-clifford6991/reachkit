@@ -5,10 +5,10 @@
 // writer proposes by it, and stage 4 checks it (`../rules/title.ts`) — from
 // this one reading, so the title a writer is asked for, the title code picks
 // and the title the check passes are one description.
-import { languagePack } from "@/lib/locale/language";
+import { languagePack, SHAPES } from "@/lib/locale/language";
 import { TITLE } from "@/lib/config/constants";
 import { brandOf } from "@/lib/market/questions/select";
-import { addedNames, asksQuestion, withoutSerials, type TitleRuleInputs } from "../rules/title";
+import { addedNames, asksQuestion, names, withoutSerials, type TitleRuleInputs } from "../rules/title";
 import { packStatements, type ContextPack } from "./pack";
 import { comparisonTable } from "./table";
 import { TEMPLATES } from "../templates";
@@ -46,6 +46,12 @@ export function titleRuleFor(pack: ContextPack, page: TitledPage): TitleRuleInpu
   // baseline.
   const rivalsMin = TEMPLATES[pack.type].blocks.table?.rivals;
   const options = pack.type === "listicle" && rivalsMin !== undefined ? comparisonTable(pack, rivalsMin)?.options.length : undefined;
+  // Issue 1552: a search that sets products against each other, or asks for
+  // one's alternatives, is answered by the business's own page, so its title
+  // names the business, whatever the page's type.
+  const products = [...named, ...domains.map(brandOf), ...(pack.baseline === undefined ? [] : [brandOf(pack.baseline)])].filter((name) => name.length > 2);
+  const compares = searches.some((search) => SHAPES.comparison.test(search.toLowerCase()) && products.some((product) => names(search, product)));
+  const business = [...new Set([...text(pack.business.name), brandOf(pack.business.domain)])].filter((name) => name.length > 2);
   return {
     type: pack.type,
     terms: [...new Set([...searches, pack.target.question])],
@@ -67,6 +73,7 @@ export function titleRuleFor(pack: ContextPack, page: TitledPage): TitleRuleInpu
     description: page.description,
     ...(pack.locale === undefined ? {} : { language }),
     ...(options === undefined ? {} : { options }),
+    ...(compares && business.length > 0 ? { business } : {}),
   };
 }
 
@@ -115,6 +122,7 @@ export function titleBrief(pack: ContextPack): Record<string, unknown> {
         : "It carries no year.",
       `Never ${words.banned.map((phrase) => `"${phrase}"`).join(", ")}, a filler verb or stock phrase like ${words.tropeSamples.map((phrase) => `"${phrase}"`).join(", ")}, two things joined by "and" after "How to", a square bracket, a pipe, or the same word twice.`,
       "It does not read like the title of any page in `pack.pages`.",
+      ...(rule.business === undefined ? [] : [`The search compares products and this page is the business's own, so it names the business, as "${rule.business[0]}", beside the products the search names.`]),
     ],
   };
 }
