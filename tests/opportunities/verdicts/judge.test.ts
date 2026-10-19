@@ -181,7 +181,7 @@ describe("REQ-063 c6 — the three causes this node supplies, from stored state"
     const { standings } = await judgeWeek({ siteId: SITE_ID, week: WEEK });
     expect(
       standings.map((s) => (s.standing.kind === "not_judgeable" ? s.standing.cause : s.standing.kind))
-    ).toEqual(["unpublished", "page_not_found", "domain_changed", "question_left_set"]);
+    ).toEqual(["unpublished", "page_not_found", "domain_changed", "not_measured"]);
   });
 
   it("lastJudgedWeek is the last verdict's week, and null where the page never received one", async () => {

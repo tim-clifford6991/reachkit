@@ -100,12 +100,10 @@ export async function judgeWeek(a: {
   }
   // Every page's own target search is read this week, in the twelve or not
   // (issue 795): a search that left the set is still measured, never untracked.
-  const targets = pages.flatMap((page) => (page.acceptance.form === "top20" ? [page.acceptance.query] : []));
+  const targets = pages.flatMap((page) => searchOf(page) ?? []);
   // Issue 1548: the targets the keyword database measured demand for — the
   // only ones whose silence in its ranked rows is a measured zero.
-  const withDemand = pages.flatMap((page) =>
-    page.acceptance.form === "top20" && (page.volume ?? 0) > 0 ? [page.acceptance.query] : []
-  );
+  const withDemand = pages.flatMap((page) => ((page.volume ?? 0) > 0 ? (searchOf(page) ?? []) : []));
   const measurements = weekMeasurementsFrom({ report: week.report, week: a.week, targets, withDemand });
 
   // Issue 1518: the previous place a movement compares with is the page's
@@ -275,6 +273,7 @@ function judgeOne(a: {
     week: a.measurements,
     pageUrl: page.liveUrl,
     earlierUrls: page.earlierUrls,
+    search: searchOf(page),
   });
   const citation = citationOf(page, a.intent, a.measurements);
   const cited = citation !== null && citation.cited.kind === "measured";
@@ -378,6 +377,13 @@ function measurementOf(page: PublishedPage, week: WeekMeasurements): Measured<nu
   if (page.acceptance.form !== "top20") return null;
   const reading = week.positions.get(page.acceptance.query);
   return reading === undefined ? null : placeOf(reading, addressesOf(page));
+}
+
+/** The search a page is placed on: its `top20` test's, or the target a
+ *  `named_on` page's opportunity recorded. */
+function searchOf(page: PublishedPage): string | null {
+  if (page.acceptance.form === "top20") return page.acceptance.query;
+  return page.acceptance.form === "named_on" ? (page.targetQuery ?? null) : null;
 }
 
 /** Every address a page's rows are counted at: where it answers now, and

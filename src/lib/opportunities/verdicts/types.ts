@@ -67,7 +67,9 @@ export type NotJudgeableCause =
    *  c4). Read from what that check recorded and derived nowhere: this
    *  module makes no request of any kind (ADR-085). */
   | "page_not_found"
-  /** The question it named left the tracked set (REQ-071 c7). */
+  /** The question it named left the tracked set (REQ-071 c7). **No longer
+   *  produced**: a question not asked this week is `not_measured`, since the
+   *  asked set is capped. Kept because `page_verdicts` rows hold it. */
   | "question_left_set"
   /** The customer changed the domain the site is measured under, so every
    *  measurement the test was written against is about a different
@@ -228,8 +230,8 @@ export interface WeekMeasurements {
    *  any page of the domain. A key absent is `search_untracked`. */
   readonly positions: ReadonlyMap<string, Measured<SearchRows>>;
   /** Whether this week's AI answer for a question names the customer,
-   *  keyed by the question a `named_on` test records. A key absent is
-   *  `question_left_set` (REQ-071 c7). */
+   *  keyed by the question a `named_on` test records. A key absent is a
+   *  question this week did not ask, which is `not_measured`. */
   readonly namesCustomer: ReadonlyMap<string, Measured<boolean>>;
   /** The site's own pages this week's AI answer for a question cited,
    *  keyed as `namesCustomer` is and holding exactly its keys (SPEC §4

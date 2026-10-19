@@ -6,11 +6,10 @@
 // invariant), including where it can no longer be evaluated. REQ-063 c6:
 // "its recorded test is not rewritten to something that could be judged."
 //
-// **It produces exactly two of the five causes** — `search_untracked` and
-// `question_left_set`, each read as an *absent key* in the week's
-// measurements. The other three are the caller's, from stored state this
-// function's inputs do not carry: `unpublished` is the publication's own
-// state, `domain_changed` is the publication's domain against the week's,
+// **It produces one of the five causes** — `search_untracked`, read as an
+// *absent key* in the week's measurements. The other three are the
+// caller's, from stored state this function's inputs do not carry:
+// `unpublished` is the publication's own state, `domain_changed` is the publication's domain against the week's,
 // and `page_not_found` is what the one check at 24 hours recorded.
 //
 // **A code path here that returns `page_not_found` is the ADR-085 merge
@@ -144,6 +143,9 @@ export function evaluateAcceptance(a: {
   /** The addresses the page answered at before (issue 1487). A `top20`
    *  test counts a row at any of them as this page's. */
   earlierUrls?: readonly string[];
+  /** The search a `named_on` page targets; a place in its top twenty also
+   *  passes the test. */
+  search?: string | null;
 }): Evaluation {
   switch (a.acceptance.form) {
     case "top20": {
@@ -159,13 +161,17 @@ export function evaluateAcceptance(a: {
     }
     case "named_on": {
       const cited = a.week.ownPagesCited.get(a.acceptance.question);
-      // Absent: the question left the tracked set when the market changed.
-      if (cited === undefined) return retired("question_left_set");
+      // Absent: the question was not asked this week. The asked set is
+      // capped, so that is this week's miss and never a retirement.
       // SPEC §4 2026-09-29 (D16): the page is credited only where the
-      // answer to its own tracked question cites this page. An answer that
-      // names the site and cites another of its pages does not pass it.
+      // answer to its own tracked question cites this page.
       const page = addressOf(a.pageUrl);
-      return decide(cited, (m) => m.value.some((url) => addressOf(url) === page));
+      const answer = cited === undefined ? NOT_MEASURED : decide(cited, (m) => m.value.some((url) => addressOf(url) === page));
+      const reading = a.search == null ? undefined : a.week.positions.get(a.search);
+      if (reading === undefined) return answer;
+      const placed = decide(placeOf(reading, [a.pageUrl, ...(a.earlierUrls ?? [])]), (m) => m.kind === "measured" && m.value <= TRACKED_DEPTH);
+      // Either goal passes the page; only its question's answer fails it.
+      return placed.decided && placed.passes ? placed : answer;
     }
     case "gate_cleared": {
       const cleared = a.week.gatesCleared.get(a.acceptance.gate);
