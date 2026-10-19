@@ -404,7 +404,8 @@ function answerable(
  * alike for stage 4 (`../rules/headings.ts`), the first is.
  *
  * Each goes in only where the pack holds a fact that answers it. None is
- * written here.
+ * written here. One that another live or planned page of the site targets
+ * is that page's to answer (issue 1544): it is left out here.
  */
 function buyerQuestions(a: {
   report: StoredReport;
@@ -416,7 +417,15 @@ function buyerQuestions(a: {
   claims: readonly PackClaim[];
   knowledge: PromptKnowledge | undefined;
   language: Language;
+  /** The targets of the site's other live and planned pages. */
+  reserved: readonly string[];
 }): string[] {
+  const flat = (text: string): string => ` ${text.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim()} `;
+  // A target is a search or a question; either is reserved as worded and as
+  // the question it asks, and a related search by its search too.
+  const reserved = new Set(a.reserved.flatMap((target) => [flat(target), flat(templateQuestion(target, a.language))]));
+  const free = (question: { text: string; search: string }): boolean =>
+    !reserved.has(flat(question.text)) && (question.search === "" || !reserved.has(flat(question.search)));
   // Every product a question could name: the rivals in force, the ones the
   // conclusion names beside them, and the stored report's. Only a rival in
   // force is researched, so a question naming any other has no claim.
@@ -434,6 +443,7 @@ function buyerQuestions(a: {
   const buyerAsks = (text: string) => !otherSenseOfRival(text, rivals);
   const measured = (a.report.questions.kind === "unmeasured" ? [] : a.report.questions.value)
     .filter((question) => onMarket({ text: question.text, search: question.search.keyword }, a.market))
+    .filter((question) => free({ text: question.text, search: question.search.keyword }))
     .map((question) => question.text)
     .filter(buyerAsks);
   // A related search is a search, not a sentence: it is worded as the
@@ -447,12 +457,11 @@ function buyerQuestions(a: {
   // off it ("What is the 30% rule for AI?"): each is held to the market, as
   // a measured question is.
   const seen = [...(a.asked?.peopleAlsoAsk ?? []).map((text) => ({ text, search: "" })), ...related]
-    .filter((question) => onMarket(question, a.market))
+    .filter((question) => onMarket(question, a.market) && free(question))
     .map((question) => question.text)
     .filter(buyerAsks);
   // SPEC §6 (D49, issue 1270): a label of the market nobody searches is
   // never printed.
-  const flat = (text: string): string => ` ${text.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim()} `;
   const labels = (a.market?.unsearched ?? []).map(flat);
   const printable = (text: string): boolean => !labels.some((label) => flat(text).includes(label));
   // The stored report may carry a tracked prompt among its questions; it is
@@ -777,6 +786,7 @@ export function buildPack(a: PackInputs): ContextPack {
             claims,
             knowledge: a.profile?.knowledge,
             language: a.locale?.language ?? "en",
+            reserved: a.sitePages.flatMap((page) => (page.question === null ? [] : [page.question])),
           })
         : [],
     voice: chooseVoice({
