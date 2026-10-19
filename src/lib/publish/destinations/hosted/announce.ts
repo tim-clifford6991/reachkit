@@ -19,6 +19,12 @@
 // dropped: no retry, no loop, and the publish it follows has already
 // happened. Both services are free and public, so this is 0¢.
 //
+// **Recorded** (issue 1553). An accepted IndexNow request stamps
+// `publications.announced_at` on every live page whose address it carried,
+// and `announceUnannounced` sends once for the live hosted pages that have
+// no stamp: the pages published before issue 1511, and any whose request
+// was dropped. A stamped page is never sent again by it.
+//
 // The key is not a secret. IndexNow publishes it at the host's root by
 // design; it only has to be stable per site, so it is derived from the
 // site's id and never stored.
@@ -81,7 +87,7 @@ function statusOf(outcome: FetchOutcome | null): number | string {
  * Tells IndexNow and the WebSub hub that `urls` changed on the site's hosted
  * host. Never throws, and never retries.
  */
-export async function announceHosted(a: { siteId: string; urls: readonly string[]; send?: AnnounceSend }): Promise<void> {
+export async function announceHosted(a: { siteId: string; urls: readonly string[]; send?: AnnounceSend; at?: Date }): Promise<void> {
   try {
     const live = await hostedHostFor(a.siteId);
     if (live === null || live.state !== "live") return;
@@ -97,8 +103,15 @@ export async function announceHosted(a: { siteId: string; urls: readonly string[
       headers: { "Content-Type": "application/json; charset=utf-8" },
       body: JSON.stringify({ host, key: indexNowKey(a.siteId), keyLocation: keyLocation(host, a.siteId), urlList }),
     }).catch(() => null);
-    if (accepted(indexNow)) log("indexnow_sent", { siteId: a.siteId, urls: urlList.length });
-    else log("indexnow_dropped", { siteId: a.siteId, status: statusOf(indexNow) });
+    if (accepted(indexNow)) {
+      log("indexnow_sent", { siteId: a.siteId, urls: urlList.length });
+      await publishDb()
+        .from("publications")
+        .update({ announced_at: (a.at ?? new Date()).toISOString() })
+        .eq("site_id", a.siteId)
+        .in("live_url", urlList)
+        .is("unpublished_at", null);
+    } else log("indexnow_dropped", { siteId: a.siteId, status: statusOf(indexNow) });
 
     const feed = `https://${host}${HOSTED_FEED_PATH}`;
     const hub = await send(WEBSUB_HUB, {
@@ -122,5 +135,26 @@ export async function announceForDraft(a: { draftId: string; urls: readonly stri
     await announceHosted({ siteId, urls: a.urls, ...(a.send === undefined ? {} : { send: a.send }) });
   } catch (error) {
     log("announce_failed", { draftId: a.draftId, message: String(error) });
+  }
+}
+
+/** Announces, in one request, every live hosted page of the site that
+ *  IndexNow has never accepted. Never throws; a site with none sends
+ *  nothing. */
+export async function announceUnannounced(a: { siteId: string; send?: AnnounceSend; at?: Date }): Promise<void> {
+  try {
+    const { data } = await publishDb()
+      .from<{ live_url: string | null }>("publications")
+      .select("live_url")
+      .eq("site_id", a.siteId)
+      .eq("destination", "hosted")
+      .not("published_at", "is", null)
+      .is("unpublished_at", null)
+      .is("announced_at", null);
+    const urls = (data ?? []).map((row) => row.live_url).filter((url): url is string => typeof url === "string");
+    if (urls.length === 0) return;
+    await announceHosted({ siteId: a.siteId, urls, ...(a.send === undefined ? {} : { send: a.send }), ...(a.at === undefined ? {} : { at: a.at }) });
+  } catch (error) {
+    log("announce_failed", { siteId: a.siteId, message: String(error) });
   }
 }

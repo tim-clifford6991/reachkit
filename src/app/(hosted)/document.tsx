@@ -81,6 +81,26 @@ export function hostedHead(host: string): Metadata {
   return name === "" ? head : { title: name, ...head };
 }
 
+/**
+ * The host's Search Console and Bing Webmaster meta tags (issue 1553):
+ * ReachKit verifies every hosted host under its own account by the meta
+ * method, which reads the host's index. Nothing for a host that serves no
+ * site, or one no token was issued for.
+ */
+export const hostedVerification = cache(async (host: string): Promise<Metadata> => {
+  const disposition = await resolveHost(host).catch(() => null);
+  if (disposition?.kind !== "site") return {};
+  const { searchVerificationOfSite } = await import("@/lib/publish/destinations/hosted/store");
+  const held = await searchVerificationOfSite(disposition.siteId).catch(() => null);
+  if (held === null || (held.google === null && held.bing === null)) return {};
+  return {
+    verification: {
+      ...(held.google === null ? {} : { google: held.google }),
+      ...(held.bing === null ? {} : { other: { "msvalidate.01": held.bing } }),
+    },
+  };
+});
+
 export function HostedDocument({
   lang,
   children,

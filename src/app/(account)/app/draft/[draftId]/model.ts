@@ -22,6 +22,7 @@ import type { CopyKey } from "@/lib/presentation/copy";
 import type { RecordedFact } from "@/lib/generate/fact";
 import type { PackNeed } from "@/lib/generate/templates/types";
 import type { PageRecord } from "@/lib/publish/record";
+import type { Ladder } from "@/lib/publish/reads/ladder";
 import type { TakeDownStanding } from "@/lib/publish/take-down/standing";
 import type { PageTarget } from "../../_shell/page-target";
 import type { SetAside } from "../../_overview/done";
@@ -326,6 +327,9 @@ export interface DraftView {
    * draft — a shape, not a placeholder, and the block is simply absent.
    */
   record: PageRecord | null;
+  /** How far the live page has got toward being found (issue 1553);
+   *  `null` for a page that is not live or whose ladder could not be read. */
+  ladder: Ladder | null;
   /** *Take down* on a live page, *Put back* inside its window (issue 1532). */
   takeDown: TakeDownStanding;
   /** The Checks list: the last battery, rule by rule. Empty where none is
@@ -439,6 +443,8 @@ export interface DraftFacts {
   lastSavedAt: Date | null;
   /** The page's own record, or `null` where none could be read (#217). */
   record: PageRecord | null;
+  /** Issue 1553; absent for a page that is not live. */
+  ladder?: Ladder | null;
   /** *Take down* or *Put back* (issue 1532); absent offers neither. */
   takeDown?: TakeDownStanding;
   /** §8's battery, as generation recorded it. Empty is the honest answer
@@ -531,6 +537,7 @@ export function assembleDraft(facts: DraftFacts): DraftView {
     doNothing: doNothingOf(facts),
     lastSavedAt: facts.lastSavedAt,
     record: facts.record,
+    ladder: facts.ladder ?? null,
     takeDown: facts.takeDown ?? null,
     recordedChecks: facts.recordedChecks,
     knownCheck: facts.knownCheck,

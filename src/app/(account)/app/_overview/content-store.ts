@@ -3,6 +3,7 @@
 // hosted sitemap and Settings' count read. Reached only through
 // `content-provider.ts`, which imports it at the call.
 import { dbAdmin } from "@/lib/db";
+import { readLadders } from "@/lib/publish/reads/store";
 import type { PublishedPage } from "./content";
 
 interface PublicationRow {
@@ -41,6 +42,9 @@ export async function readPublishedPages(siteId: string): Promise<readonly Publi
     return null;
   }
   if (read.error !== null || read.data === null) return null;
+  // Issue 1553: each page's ladder. Pages whose ladder could not be read
+  // are listed without one.
+  const ladders = new Map((await readLadders(siteId).catch(() => null))?.map((row) => [row.publicationId, row.ladder]) ?? []);
   const pages: PublishedPage[] = [];
   for (const row of read.data) {
     if (row.unpublished_at !== null || row.published_at === null) continue;
@@ -49,7 +53,15 @@ export async function readPublishedPages(siteId: string): Promise<readonly Publi
     // neither cannot be listed, so it is counted nowhere.
     const title = row.drafts?.title?.trim() || row.live_url || "";
     if (Number.isNaN(publishedAt.getTime()) || title === "") continue;
-    pages.push({ id: row.id, title, url: row.live_url, publishedAt, ...(typeof row.draft_id === "string" ? { draftId: row.draft_id } : {}) });
+    const ladder = ladders.get(row.id);
+    pages.push({
+      id: row.id,
+      title,
+      url: row.live_url,
+      publishedAt,
+      ...(typeof row.draft_id === "string" ? { draftId: row.draft_id } : {}),
+      ...(ladder === undefined ? {} : { ladder }),
+    });
   }
   return pages;
 }

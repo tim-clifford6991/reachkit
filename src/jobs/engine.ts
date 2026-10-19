@@ -212,6 +212,13 @@ export async function startWeeklyScan(
     }
   }
 
+  // Issue 1553: Search Console, Bing and the stored rows, per page, before
+  // the week is judged — #1538's `seen` reads URL Inspection. Never throws.
+  await step(`search-${a.siteId}`, async () => {
+    const { readSearchEngines } = await import("@/lib/publish/destinations/hosted/search-engines");
+    await readSearchEngines({ siteId: a.siteId, now: a.now });
+  });
+
   return step(`tell-${a.siteId}`, () => tellWeek(a, outcome));
 }
 

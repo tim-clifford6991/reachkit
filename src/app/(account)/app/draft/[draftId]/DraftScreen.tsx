@@ -75,6 +75,7 @@ import { Editor, type EditorPane, type PreviewFrame } from "./Editor";
 import { liveBreaks, type MarkInputs } from "./marks";
 import { Check } from "lucide-react";
 import { PageRecordBlock } from "./PageRecordBlock";
+import { FoundSteps } from "./FoundSteps";
 import { TargetBlock } from "./TargetBlock";
 import { TargetNumbers } from "./TargetNumbers";
 import { factPresentIn } from "./grounded";
@@ -891,6 +892,8 @@ export function DraftScreen(p: {
 
           {/* What became of this page (issue #217) — absent rather than empty
               for a draft whose record could not be read. */}
+          {/* How far the live page has got toward being found (issue 1553). */}
+          {view.ladder === null ? null : <FoundSteps ladder={view.ladder} />}
           {view.record === null ? null : (
             <PageRecordBlock record={view.record} timeZone={view.timeZone} />
           )}

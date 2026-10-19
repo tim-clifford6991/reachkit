@@ -71,6 +71,10 @@ const BINDING_NAMES = [
   // Issue 1478 — reads Anthropic's cost report. Optional: without it AI
   // spend is shown as estimated.
   "ANTHROPIC_ADMIN_KEY",
+  // Issue 1553 — Search Console and Bing Webmaster. Optional: without them
+  // neither engine is read.
+  "GOOGLE_SEARCH_CONSOLE_KEYS",
+  "BING_WEBMASTER_API_KEY",
 ] as const;
 
 /** Issue #315's pair, named once here. */
@@ -97,7 +101,9 @@ const NO_DEFAULT_BINDING_NAMES = BINDING_NAMES.filter(
     !(DOMAIN_BINDING_NAMES as readonly string[]).includes(name) &&
     !(ANALYTICS_BINDING_NAMES as readonly string[]).includes(name) &&
     name !== "HOSTED_TEST_HOST" &&
-    name !== "ANTHROPIC_ADMIN_KEY"
+    name !== "ANTHROPIC_ADMIN_KEY" &&
+    name !== "GOOGLE_SEARCH_CONSOLE_KEYS" &&
+    name !== "BING_WEBMASTER_API_KEY"
 );
 
 // WO-005 file plan's closed set of server-only bindings, moved onto 6a.
@@ -120,6 +126,9 @@ const SERVER_ONLY_NAMES = [
   "POSTHOG_API_KEY",
   // Issue 1478: an admin key reads the organisation's billing.
   "ANTHROPIC_ADMIN_KEY",
+  // Issue 1553: both act on every verified host.
+  "GOOGLE_SEARCH_CONSOLE_KEYS",
+  "BING_WEBMASTER_API_KEY",
 ] as const;
 
 // A complete, validly-shaped set of bindings. Values are fixtures, never
@@ -152,6 +161,8 @@ const VALID_ENV: Record<(typeof BINDING_NAMES)[number], string> = {
   POSTHOG_HOST: "https://eu.i.posthog.com",
   HOSTED_TEST_HOST: "reachkit-git-main-fixture.vercel.app",
   ANTHROPIC_ADMIN_KEY: "sk-ant-admin-fixture",
+  GOOGLE_SEARCH_CONSOLE_KEYS: "[]",
+  BING_WEBMASTER_API_KEY: "bing-key-fixture",
 };
 
 const ORIGINAL_ENV = { ...process.env };

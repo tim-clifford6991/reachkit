@@ -14,6 +14,10 @@ import { memoryStore, newMemoryState, type MemoryState } from "../opportunities/
 const weekly = vi.hoisted(() => ({
   outcome: { ran: true, scanId: "scan-1", status: "done" } as unknown,
 }));
+// Issue 1553's search-engine step reaches the database and the vendors;
+// these suites judge the week, so it is a no-op here (its own suite is
+// `tests/hosted/indexing/search-engines.test.ts`).
+vi.mock("@/lib/publish/destinations/hosted/search-engines", () => ({ readSearchEngines: async () => undefined }));
 vi.mock("@/lib/scan/weekly", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/lib/scan/weekly")>();
   return { ...actual, runWeekly: async () => weekly.outcome };

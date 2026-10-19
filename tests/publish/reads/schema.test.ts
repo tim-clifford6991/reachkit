@@ -30,6 +30,7 @@ const APPLIED = [
   "00000000000001_baseline.sql",
   "00000000000002_rls.sql",
   "20260922120000_publications_reads.sql",
+  "20261019140000_search_ladder.sql",
 ];
 
 function raises(sql: string): boolean {
@@ -217,6 +218,13 @@ describe("the closed sets, refused by the database", () => {
           `('${OWNED.siteId}', '${OWNED.pageId}', '2026-09-22'::date, 'chatgpt', 'sentiment');`
       )
     ).toBe(true);
+  });
+
+  it("a verified Googlebot or Bingbot fetch is counted as a crawl (issue 1553)", () => {
+    count(OWNED.siteId, OWNED.pageId, "2026-09-23", "google", "crawl");
+    count(OWNED.siteId, OWNED.pageId, "2026-09-23", "bing", "crawl");
+    expect(hits(OWNED.pageId, "2026-09-23", "google", "crawl")).toBe(1);
+    expect(hits(OWNED.pageId, "2026-09-23", "bing", "crawl")).toBe(1);
   });
 
   it("a zero count is refused — a row exists because something was counted", () => {

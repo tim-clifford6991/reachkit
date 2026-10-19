@@ -1422,6 +1422,36 @@ export const AI_REFERRER_SOURCES = Object.freeze({           // issue 921
 export const BLOG_READS_WINDOW_D = 7 as const;               // issue 921
 export const BLOG_READS_RETENTION_W = 4 as const;            // issue 921
 
+/** The two search crawlers a hosted page counts (issue 1553), by the token
+ *  each engine documents for its agent string. An agent claiming one is
+ *  counted only from an address inside that engine's published ranges
+ *  (`SEARCH_CRAWLER_RANGES`): the agent string is free text, the address
+ *  is not. Case-sensitive, as the AI tokens above are. */
+export const SEARCH_CRAWLERS = Object.freeze({               // issue 1553
+  Googlebot: "google",
+  bingbot: "bing",
+} as const);
+
+/** Where each engine publishes its crawler's addresses, as JSON
+ *  `{ prefixes: [{ ipv4Prefix } | { ipv6Prefix }] }` (Google, "Verifying
+ *  Googlebot"; Bing, "Verifying Bingbot"). Read at most once a day per
+ *  process. */
+export const SEARCH_CRAWLER_RANGES = Object.freeze({         // issue 1553
+  google: "https://developers.google.com/static/search/apis/ipranges/googlebot.json",
+  bing: "https://www.bing.com/toolbox/bingbot.json",
+} as const);
+export const SEARCH_CRAWLER_RANGES_TTL_H = 24 as const;      // issue 1553
+
+/** Search Console's limit of properties per account (Google, "Usage
+ *  limits"). The pool hands a new host to the first account below it. */
+export const GSC_PROPERTIES_PER_ACCOUNT = 1000 as const;      // issue 1553
+
+/** The window impressions and the best place are read over, ending the
+ *  day the pass runs: the four weeks every other measure on Overview uses
+ *  (`ANSWER_RATE_WEEKS`). Search Console's newest days are still filling,
+ *  which a sum over four weeks absorbs. */
+export const SEARCH_READING_WINDOW_D = 28 as const;           // issue 1553
+
 /** SPEC §7 (2026-10-18, issue 1514): how long a cached hosted article may
  *  take to its first byte, read by `scripts/smoke.sh` from where it runs.
  *  Measured at 0.42–0.89 s from the EU on 2026-10-18; a text page's largest

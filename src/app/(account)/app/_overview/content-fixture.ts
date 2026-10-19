@@ -1,6 +1,7 @@
 // The reserved fixture account's published pages (issue 1457): seventeen,
 // one every other day up to the Overview fixture's own last page, so the
 // Content tile has a total, a last-four-weeks count below it and a newest.
+import type { Ladder } from "@/lib/publish/reads/ladder";
 import type { PublishedPage } from "./content";
 
 /** The Overview fixture's own today (`fixture.ts`). */
@@ -28,11 +29,25 @@ const TITLES = [
 
 const LAST = Date.UTC(2026, 8, 4, 13, 0, 0);
 
+/** Issue 1553: the older a page, the further it has got. The newest two
+ *  are not crawled yet; Search Console has shown the oldest ones. */
+function ladderAt(index: number): Ladder {
+  const shown = index >= 6;
+  return {
+    crawled: index >= 2,
+    indexed: index >= 4,
+    impressions: shown ? (index - 5) * 9 : 0,
+    bestPlace: shown ? 52 - index * 2 : null,
+    cited: index === 12,
+  };
+}
+
 export const FIXTURE_PUBLISHED: readonly PublishedPage[] = Object.freeze(
   TITLES.map((title, index) => ({
     id: `fixture-published-${index + 1}`,
     title,
     url: `https://content.example.com/p/${index + 1}`,
     publishedAt: new Date(LAST - index * 2 * 86_400_000),
+    ladder: ladderAt(index),
   }))
 );

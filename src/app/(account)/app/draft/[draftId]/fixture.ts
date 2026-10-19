@@ -388,6 +388,8 @@ const PUBLISHED: DraftFacts = {
   state: "published",
   autoApprovesAt: null,
   record: DELIVERED,
+  // Issue 1553: crawled and indexed, shown in search, not yet cited.
+  ladder: { crawled: true, indexed: true, impressions: 37, bestPlace: 34, cited: false },
 };
 
 export const FIXTURE_DRAFTS: Readonly<Record<string, DraftFacts>> = Object.freeze({
