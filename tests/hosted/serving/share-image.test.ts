@@ -127,6 +127,8 @@ describe("issue 1141 — a hosted page's share image", () => {
     expect(await sizeOf(await get("content.example.com", ["a-page"], "?shape=4x3"))).toEqual({ width: 1200, height: 900 });
     expect(await sizeOf(await get("content.example.com", ["a-page"], "?shape=1x1"))).toEqual({ width: 1200, height: 1200 });
     expect(await sizeOf(await get("content.example.com", undefined, "?shape=1x1"))).toEqual({ width: 1200, height: 1200 });
+    // Issue 1545: a 16:9 for the article markup, beside the 1200×630 card.
+    expect(await sizeOf(await get("content.example.com", ["a-page"], "?shape=16x9"))).toEqual({ width: 1200, height: 675 });
     // A shape it does not draw is the card's own.
     expect(await sizeOf(await get("content.example.com", ["a-page"], "?shape=toString"))).toEqual({ width: 1200, height: 630 });
   });

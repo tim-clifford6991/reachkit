@@ -57,3 +57,26 @@ export function slugify(query: string, language: Language = "en"): string {
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
 }
+
+/**
+ * A stored slug written again in its site's language (issue 1545): the slug
+ * an open topic was given before its language's letters were known
+ * (issue 1514) — `backerei-dusseldorf` — is `baeckerei-duesseldorf`.
+ *
+ * The slug may be the model's (`refineType`), not the search's, so it is not
+ * derived again: each word the search wrote in English letters is swapped
+ * for the same word in the language's, and every other word stays. The two
+ * spellings of a search differ only inside its words, so they split into
+ * the same number of words. A slug already in the language's letters, and
+ * any slug in English, is returned as it is.
+ */
+export function reslugged(a: { targetQuery: string; slug: string; language: Language }): string {
+  const plain = slugify(a.targetQuery).split("-");
+  const own = slugify(a.targetQuery, a.language).split("-");
+  if (plain.length !== own.length) return a.slug;
+  const swap = new Map(plain.flatMap((word, at): [string, string][] => (own[at] === word ? [] : [[word, own[at] ?? word]])));
+  return a.slug
+    .split("-")
+    .map((word) => swap.get(word) ?? word)
+    .join("-");
+}

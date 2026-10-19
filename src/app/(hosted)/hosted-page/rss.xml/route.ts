@@ -21,13 +21,15 @@
 //
 // **It is in the site's language** (D66; issue 1514): `<language>` is the
 // site's tag, the one the pages state as `inLanguage`, `og:locale` and
-// `<html lang>`, never a fixed English.
+// `<html lang>`, never a fixed English; and its channel's title and
+// description are that language's words (issue 1545). A route handler is not
+// a render, so the language is handed over, not read from `readIn`.
 //
 // The document is the `feed` package's, not ours. It names no generator:
 // nothing on a customer's host names what wrote it.
 import { Feed } from "feed";
 import { now } from "@/lib/config/now";
-import { copy } from "@/lib/presentation/copy";
+import { copyInto } from "@/lib/presentation/copy/reader";
 import { hostedIdentity, livePagesForSite } from "@/lib/publish/destinations/hosted";
 import { WEBSUB_HUB } from "@/lib/publish/destinations/hosted/announce";
 import { resolveHost } from "../../resolve-host";
@@ -59,10 +61,10 @@ export async function GET(request: Request): Promise<Response> {
   const feed = new Feed({
     id: index,
     link: index,
-    title: indexTitle(business),
-    description: indexDescription(business),
+    title: indexTitle(business, locale.language),
+    description: indexDescription(business, locale.language),
     language: localeTag(locale),
-    copyright: copy("hosted.footer", { publisher: business.name }),
+    copyright: copyInto(locale.language, "hosted.footer", { publisher: business.name }),
     updated: pages[0]?.publishedAt ?? now(),
     generator: false,
     feedLinks: { rss: `https://${disposition.host}${FEED_PATH}` },

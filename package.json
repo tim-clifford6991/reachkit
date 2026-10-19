@@ -26,6 +26,7 @@
     "free-scan": "node scripts/free-scan.mjs",
     "costs": "node scripts/costs.mjs",
     "box": "node scripts/box.mjs",
+    "reslug": "node scripts/reslug.mjs",
     "retarget": "node scripts/retarget.mjs",
     "eval:content": "node scripts/eval-content.mjs"
   },
