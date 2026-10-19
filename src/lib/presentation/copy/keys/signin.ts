@@ -54,6 +54,7 @@ export const SIGNIN_COPY = Object.freeze({
     "Enter the email you paid with and we'll send you a sign-in link. No password: accounts are created by payment.",
     { slots: {}, fixedBy: "REQ-098 c2" },
   ],
+  "signin.field.label": ["Your email", { slots: {}, fixedBy: "issue 1574" }],
   "signin.field.placeholder": ["you@company.com", { slots: {}, fixedBy: "REQ-098 c2" }],
   /** Changed 2026-09-21 (#937): "Send my link" → the board's own word,
    *  which says which link. Drafted (#759). */

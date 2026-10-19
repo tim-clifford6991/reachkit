@@ -398,21 +398,22 @@ describe("issue #1025 — the Round 7 full-width split, and the address is the f
     expect(html).not.toMatch(/class="btn btn-primary/);
   });
 
-  it("the address is the input's placeholder, in the mono face, and still names the field", async () => {
+  it("the field is a labelled email field: a visible label, the email keyboard and autofill", async () => {
     vi.resetModules();
     const { copy } = await import("@/lib/presentation/copy");
     const { default: SignInPage } = (await import("@/app/(public)/signin/page.tsx")) as {
       default: (p: { searchParams?: { link?: string } }) => React.JSX.Element;
     };
     const html = renderToStaticMarkup(<SignInPage searchParams={{}} />);
-    const address = copy("signin.field.placeholder");
-    // The one approved string reaches the screen once, as the field's own
-    // placeholder — and the accessible name is that same string, carried by
-    // `aria-label` rather than by a label element standing above the field.
-    expect(html).toContain(`placeholder="${address}"`);
-    expect(html).toContain(`aria-label="${address}"`);
-    expect(html).not.toContain(`<span>${address}</span>`);
-    // The mono face, at Tailwind's small step.
-    expect(html).toMatch(/<input[^>]*class="input w-full font-mono text-sm"/);
+    const label = /<label[^>]*>(.*?)<\/label>/s.exec(html)?.[1] ?? "";
+    const input = /<input[^>]*>/.exec(label)?.[0] ?? "";
+    expect(input).toContain('type="email"');
+    expect(input).toContain('autoComplete="email"');
+    expect(input).toContain('inputMode="email"');
+    // The placeholder stays a hint; the name is the visible label around it.
+    expect(input).toContain(`placeholder="${copy("signin.field.placeholder")}"`);
+    expect(label.replace(/<input[^>]*>/, "").replace(/<[^>]+>/g, "")).toBe(copy("signin.field.label"));
+    expect(input).not.toContain("aria-label");
+    expect(input).toContain('class="input w-full font-mono text-sm"');
   });
 });
