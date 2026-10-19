@@ -18,11 +18,13 @@ vi.mock("next/navigation", () => ({
 import OverviewPage from "@/app/(account)/app/(tabs)/page";
 import { SearchTable } from "@/app/(account)/app/_overview/SearchTable";
 import { readSearch } from "@/app/(account)/app/_overview/search-provider";
+import { rowsFor } from "@/app/(account)/app/_overview/search-model";
 import { PromptCards } from "@/app/(account)/app/_overview/PromptCards";
 import { readPrompts } from "@/app/(account)/app/_overview/prompts-provider";
 import { PublishedList } from "@/app/(account)/app/calendar/PublishedList";
 import { readPublished } from "@/app/(account)/app/_overview/content-provider";
 import { contentOf } from "@/app/(account)/app/_overview/content";
+import { copy } from "@/lib/presentation/copy";
 import { resetAccount, signedInAs } from "../account-door";
 
 beforeEach(() => signedInAs());
@@ -45,17 +47,27 @@ function figure(el: Element, id: string): number {
 }
 
 describe("issue 1457 — a tile's count is its detail screen's row count", () => {
-  it("Google opens the Google tab's first-page rows, and counts exactly them", async () => {
+  it("Google opens the rows of the searches the live pages target, and is read out of exactly them (issue 1551)", async () => {
     const google = await tile("google");
-    expect(google.getAttribute("href")).toBe("/app/search?show=first_page");
+    expect(google.getAttribute("href")).toBe("/app/search?show=live");
+    const model = await readSearch();
     const table = render(
-      <NuqsTestingAdapter searchParams={{ show: "first_page" }}>
-        <SearchTable model={await readSearch()} />
+      <NuqsTestingAdapter searchParams={{ show: "live" }}>
+        <SearchTable model={model} />
       </NuqsTestingAdapter>
     );
-    const rows = table.querySelectorAll('[data-testid="search-row"]').length;
-    expect(rows).toBeGreaterThan(0);
-    expect(figure(google, "google")).toBe(rows);
+    // The table pages nine at a time; the chip's count is the whole set.
+    expect(table.querySelectorAll('[data-testid="search-row"]').length).toBeGreaterThan(0);
+    const rows = rowsFor(model.rows, "live").length;
+    expect(model.counts.live).toBe(rows);
+    expect(google.textContent).toContain(copy("overview.search.tile.your-pages.of", { of: String(rows) }));
+    const split = model.tiles.pages.reading;
+    if (split?.kind !== "pages") throw new Error("no split");
+    expect(split.firstPage + split.further + split.unseen).toBe(rows);
+    expect(figure(google, "google")).toBe(split.firstPage + split.further);
+    expect(google.textContent).toContain(
+      copy("overview.search.tile.your-pages.split", { first: String(split.firstPage), further: String(split.further), unseen: String(split.unseen) })
+    );
   });
 
   it("AI opens the AI tab's list, and counts exactly the rows marked there", async () => {

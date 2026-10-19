@@ -89,6 +89,9 @@ export interface RescoreReport extends Pick<
   | "locale"
   | "prompts"
 > {
+  /** The page questions beside the twelve (#919), whose AI-Overview cells
+   *  count toward AI presence (issue 1551). Absent or `null`: none. */
+  pageQuestions?: StoredReport["pageQuestions"];
   ownRankedRows: readonly (Pick<RankedRow, "position"> & { keyword?: string })[];
   serps: readonly Measured<MarketSerp>[];
   questions: Measured<QuestionView[]>;
@@ -362,7 +365,11 @@ export function rescoreScan(scan: RescoreScan): Rescored {
 
   const searchPresence = searchPresenceFrom(r, at);
   if (searchPresence === null) kept.push("search presence: the report kept its ranked count but not the rows");
-  const aiPresence = aiPresenceOf({ serps: r.serps, ownDomain: r.domain, siteName: scan.siteName, at });
+  // Issue 1551: the page questions' stored AI-Overview cells count beside
+  // the twelve's, read as stored. A report written before the section has
+  // none.
+  const pageCells = r.pageQuestions?.rows.map((row) => row.cell) ?? [];
+  const aiPresence = aiPresenceOf({ serps: r.serps, pageCells, ownDomain: r.domain, siteName: scan.siteName, at });
   const textless = r.serps.some(
     (serp) => serp.kind !== "unmeasured" && serp.value.aiOverview.present && serp.value.aiOverview.unread !== true && serp.value.aiOverview.text === undefined
   );
@@ -394,7 +401,7 @@ export function rescoreScan(scan: RescoreScan): Rescored {
     own_ranked_rows: outcomeOf(drivers.searchPresence),
     question_serps: outcomeOf(foldSerps(r.serps, at)),
   };
-  const aiSample = aiSampleOf({ serps: r.serps, ownDomain: r.domain, siteName: scan.siteName });
+  const aiSample = aiSampleOf({ serps: r.serps, pageCells, ownDomain: r.domain, siteName: scan.siteName });
   const verdict = verdictOf({
     domain: r.verdict.domain,
     measuredAt: at,

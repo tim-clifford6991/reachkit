@@ -151,7 +151,7 @@ describe("the Monday digest goes out for a week that was measured", () => {
     expect(top20?.change).toMatchObject({ value: 1 });
     // No pass asked the prompts: the rate says it was not measured rather
     // than reading 0%. And this site has no hosted blog, so no fourth row.
-    expect(stats.items[0]).toMatchObject({ label: "mail.weekly.number.mentionRate", value: { kind: "unmeasured" } });
+    expect(stats.items.find((item) => item.label === "mail.weekly.number.mentionRate")).toMatchObject({ value: { kind: "unmeasured" } });
     expect(stats.items.map((item) => item.label)).not.toContain("mail.weekly.number.aiVisits");
   });
 

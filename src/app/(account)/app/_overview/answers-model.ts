@@ -62,6 +62,12 @@ export function reachesYou(mark: AnswerMark): boolean {
   return mark === "links_to_you" || mark === "names_you";
 }
 
+/** A tracked question an engine answered with a link to the site: what
+ *  "cited" means on this tab, and in the Monday mail's first number. */
+export function citesYou(question: Pick<AnswerQuestion, "marks">): boolean {
+  return question.marks.includes("links_to_you");
+}
+
 /** A cell the pass actually read. The denominator of every rate on this
  *  screen is exactly these — "an unmeasured cell leaves the denominator". */
 export function wasAsked(mark: AnswerMark): boolean {
@@ -141,7 +147,19 @@ export interface AnswerWeek {
   engine: AnswerEngine;
 }
 
+/** Issue 1551 (owner, 2026-10-19; SEO review R5.1): the published pages'
+ *  own questions whose AI answer links the site, this week — the AI signal
+ *  a page moves first, so the tab leads with it. */
+export interface PagesCited {
+  /** Page questions an engine answered linking the site. Unmeasured where
+   *  the latest pass read none of them. */
+  value: Measured<number>;
+  /** Page questions the latest pass read. */
+  of: number;
+}
+
 export interface AnswersModel {
+  pagesCited: PagesCited;
   rate: AnswerRate;
   week: AnswerWeek;
   /** The latest measured pass's **twelve**, in the pass's own order. Empty
@@ -238,7 +256,16 @@ export function assembleAnswers(facts: AnswersFacts, at: Date): AnswersModel {
   // the market. The cap line below says how many questions are tracked in
   // all, which is the fact §6 asks this screen to state.
   const pageQuestions = latest?.pageQuestions ?? [];
+  const pagesAsked = pageQuestions.filter((q) => q.marks.some(wasAsked));
+  const pagesCited: PagesCited = {
+    value:
+      pagesAsked.length === 0
+        ? unmeasured<number>("not_attempted", at)
+        : counted(pagesAsked.filter(citesYou).length, at),
+    of: pagesAsked.length,
+  };
   return {
+    pagesCited,
     rate,
     week,
     questions: thisWeek,

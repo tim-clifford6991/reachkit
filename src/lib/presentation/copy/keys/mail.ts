@@ -212,7 +212,15 @@ export const MAIL_COPY = Object.freeze({
   // words are the Overview tiles' own (`overview.tile.*`), kept here so the
   // mail has its German: a second spelling of a number's name would be the
   // second place the product speaks (ADR-001). Drafted (#759).
-  "mail.weekly.number.mentionRate": ["AI mention rate", { slots: {}, fixedBy: "SPEC §8 2026-10-07 (drafted)" }],
+  // Issue 1551 (SEO review R5.1): the published pages' own questions an AI
+  // answer linked lead, in the AI tab's words; the mention rate is named as
+  // the brand reputation it measures. Drafted (#759).
+  "mail.weekly.number.pageQuestions": ["Your pages cited", { slots: {}, fixedBy: "issue 1551 (drafted)" }],
+  "mail.weekly.number.pageQuestions.of": [
+    "of {asked} pages asked, this week",
+    { slots: { asked: "text" }, fixedBy: "issue 1551 (drafted)" },
+  ],
+  "mail.weekly.number.mentionRate": ["Brand reputation: AI mention rate", { slots: {}, fixedBy: "issue 1551 (drafted)" }],
   "mail.weekly.number.mentionRate.band": [
     "likely {low}–{high}%",
     { slots: { low: "text", high: "text" }, fixedBy: "SPEC §8 2026-10-07 (drafted)" },

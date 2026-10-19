@@ -141,7 +141,7 @@ export const CLOSED = Object.freeze({
  *  waits for it read the same string (issue 1324). */
 export const TILE_GRID = Object.freeze({
   search: "sm:grid-cols-2 xl:grid-cols-4",
-  answers: "sm:grid-cols-2",
+  answers: "sm:grid-cols-2 xl:grid-cols-3",
 });
 
 /** A number tile's figure row: one height whatever the tile reads. */
