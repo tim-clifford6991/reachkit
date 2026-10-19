@@ -77,6 +77,14 @@ describe("issue 1514 — a hosted page is in its site's language", () => {
     expect(await response.text()).toContain("<language>de-DE</language>");
   });
 
+  it("the feed's channel title and description are in the site's language (issue 1545)", async () => {
+    const response = await feed(new Request("https://ignored.example/hosted-page/rss.xml", { headers: { host: state.host } }));
+    const channel = (await response.text()).split("<item>")[0]!;
+    expect(channel).toContain("<title>Artikel · Bäckerei Beispiel</title>");
+    expect(channel).toContain("<description>Artikel und Ratgeber von Bäckerei Beispiel.</description>");
+    expect(channel).not.toMatch(/Articles|guides from/);
+  });
+
   it("the document carries no script of ReachKit's", async () => {
     const markup = renderToStaticMarkup(await HostedPageLayout({ children: null }));
     expect(markup).not.toContain("<script");

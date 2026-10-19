@@ -23,9 +23,9 @@
 // draw the first-letter tile the header draws for a business with no logo.
 // A share image is never the reason a link has no card.
 //
-// **One card, three shapes** (issue 1514): the 1200×630 a pasted link
-// unfurls as, and `?shape=4x3` and `?shape=1x1`, which the article's
-// structured data offers beside it as Google's article markup asks. The
+// **One card, four shapes** (issues 1514, 1545): the 1200×630 a pasted link
+// unfurls as, and `?shape=16x9`, `?shape=4x3` and `?shape=1x1`, which the
+// article's structured data offers as Google's article markup asks. The
 // same card at each: only the canvas is taller. Any other `shape` is the
 // card's own.
 import type React from "react";
