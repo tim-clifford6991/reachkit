@@ -75,7 +75,9 @@ describe("positions — each search's rows, from which a page takes its own plac
     const ranked = (position: number, url = PAGE_URL) => ({ keyword: SEARCH, position, searchVolume: 90, url });
     const at14 = placeAt(reportWithOwnPlace(null, { ownRanked: measured(2, AT), ownRankedRows: [ranked(14), ranked(2, `https://${DOMAIN}/`)] }));
     expect(at14?.kind === "measured" && at14.value).toBe(14);
-    expect(placeAt(reportWithOwnPlace(null, { ownRanked: measured(1, AT), ownRankedRows: [ranked(24)] }))?.kind).toBe("zero");
+    // Issue 1548: a row past twenty is the page's place, outside the top twenty.
+    const at24 = placeAt(reportWithOwnPlace(null, { ownRanked: measured(1, AT), ownRankedRows: [ranked(24)] }));
+    expect(at24?.kind === "measured" && at24.value).toBe(24);
     // The SERP is the week's own reading of Google, and is read first.
     const both = placeAt(reportWithOwnPlace(6, { ownRanked: measured(1, AT), ownRankedRows: [ranked(4)] }));
     expect(both?.kind === "measured" && both.value).toBe(6);

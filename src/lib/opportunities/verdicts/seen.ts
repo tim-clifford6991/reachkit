@@ -1,7 +1,8 @@
 // Issue 1538 — whether a published page has ever been seen in search.
 //
 // A page whose address is in any SERP or ranked row the site's scans
-// stored, for any search and in any week, is `seen`. Otherwise it is
+// stored, for any search and in any week — the Google results bought for
+// the page questions included (issue 1548) — is `seen`. Otherwise it is
 // `not_verified`: none of the results ReachKit read held it. That is never
 // "not indexed". Google says a `site:` search does not list every page it
 // has indexed, and the rows read here are fewer than that, so not seeing a
@@ -14,9 +15,10 @@ import { addressOf } from "./evaluate";
 export type IndexState = "seen" | "not_verified";
 
 /** Every address in one stored report's SERPs and ranked rows, read off the
- *  stored JSON as it is (`report->serps`, `report->ownRankedRows`). A shape
- *  this cannot read adds nothing. */
-export function urlsIn(stored: { serps: unknown; ranked: unknown }): string[] {
+ *  stored JSON as it is (`report->serps`, `report->ownRankedRows`), and the
+ *  Google results bought for the page questions (`report->pageQuestions->rows`,
+ *  issue 1548). A shape this cannot read adds nothing. */
+export function urlsIn(stored: { serps: unknown; ranked: unknown; pages?: unknown }): string[] {
   const urls: string[] = [];
   const add = (row: unknown) => {
     const url = (row as { url?: unknown } | null)?.url;
@@ -29,6 +31,12 @@ export function urlsIn(stored: { serps: unknown; ranked: unknown }): string[] {
     }
   }
   if (Array.isArray(stored.ranked)) stored.ranked.forEach(add);
+  if (Array.isArray(stored.pages)) {
+    for (const row of stored.pages) {
+      const organic = (row as { organic?: unknown } | null)?.organic;
+      if (Array.isArray(organic)) organic.forEach(add);
+    }
+  }
   return urls;
 }
 

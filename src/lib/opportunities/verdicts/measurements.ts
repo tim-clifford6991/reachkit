@@ -40,6 +40,10 @@ export function weekMeasurementsFrom(a: {
    *  or not it is among this week's twelve, read from the site's own ranked
    *  rows where it is not — so no page's search is ever absent. */
   targets?: readonly string[];
+  /** Issue 1548: the targets the outside keyword database measured demand
+   *  for. Its ranked rows can say a page holds no place only on a search
+   *  it tracks; on any other, a page no row holds is not measured. */
+  withDemand?: readonly string[];
 }): WeekMeasurements {
   const { report } = a;
   const at = report.verdict.measuredAt;
@@ -105,8 +109,27 @@ export function weekMeasurementsFrom(a: {
     ownPagesCited.set(wording, ownPagesBy(row.cell, at));
   }
 
+  // Issue 1548: a page's own question is bought a Google result each week.
+  // Its rows are the week's SERP for a target outside the twelve, read to
+  // the depth bought, before the ranked rows.
+  const pageSerps = new Map<string, readonly PlacedUrl[] | null>();
+  for (const row of report.pageQuestions?.rows ?? []) {
+    if (row.organic === undefined) continue;
+    const key = normalised(row.question.search);
+    const held = pageSerps.get(key);
+    if (held === undefined || held === null) pageSerps.set(key, row.organic);
+  }
+  const tracked = new Set([
+    ...(a.withDemand ?? []).map(normalised),
+    ...(report.market.kind === "unmeasured" ? [] : report.market.value.suggestions)
+      .filter((row) => row.volume > 0)
+      .map((row) => normalised(row.keyword)),
+  ]);
+
   for (const target of a.targets ?? []) {
-    if (!positions.has(target)) positions.set(target, rankedRows(report, target, at));
+    if (positions.has(target)) continue;
+    const key = normalised(target);
+    positions.set(target, rankedRows(report, target, at, pageSerps.get(key) ?? null, tracked.has(key)));
   }
 
   // SPEC §6 (D60, issue 1288): what each tracked prompt's answers cited,
@@ -148,14 +171,28 @@ export function weekMeasurementsFrom(a: {
  * - Otherwise the rows that name the search, and whether they are every
  *   search the site ranks for: a page missing from a capped purchase, or
  *   from a report that kept none, is not measured rather than absent.
+ * - Issue 1548: the Google result bought for the page's own question is
+ *   read first, where the week kept it. The ranked rows are complete for a
+ *   target only where the keyword database tracks it: its silence on a
+ *   search it does not track is not a measured zero.
  */
-function rankedRows(report: StoredReport, target: string, at: Date): Measured<SearchRows> {
-  if (report.ownRanked.kind === "unmeasured") return unmeasured<SearchRows>(report.ownRanked.reason, at);
+function rankedRows(
+  report: StoredReport,
+  target: string,
+  at: Date,
+  serp: readonly PlacedUrl[] | null,
+  tracked: boolean
+): Measured<SearchRows> {
+  const complete = tracked && rankedComplete(report);
+  if (report.ownRanked.kind === "unmeasured") {
+    if (serp === null) return unmeasured<SearchRows>(report.ownRanked.reason, at);
+    return measured<SearchRows>({ serp, ranked: [], complete: false }, at);
+  }
   return measured<SearchRows>(
     {
-      serp: null,
+      serp,
       ranked: rankedRowsFor(report, target),
-      complete: rankedComplete(report),
+      complete,
     },
     at
   );
