@@ -5,10 +5,12 @@ import { readFileSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import { offline } from "../../../src/lib/egress/offline";
-import { KEPT_NO_OVERVIEW_TEXT, KEPT_TOWN_BOUGHT, rehomeSite } from "../../../src/lib/scan/rescore";
+import { KEPT_CONTENT_PAGES, KEPT_NO_OVERVIEW_TEXT, KEPT_TOWN_BOUGHT, rehomeSite } from "../../../src/lib/scan/rescore";
 import {
   answerRequest,
   claimRequest,
+  livePagesAt,
+  measuredOf,
   rescoreRow,
   rescoreStored,
   type RescoreQueue,
@@ -63,6 +65,7 @@ function storeOf(scans: readonly FixtureScan[], sites: StoredSiteRow[] = [], pro
   const store: RescoreStore = {
     scans: async () => [...rows.values()].map((r) => structuredClone(r)),
     homeReads: async (domain) => reads.get(domain) ?? [],
+    ownReads: async () => ({ own: [], ours: [], oursReads: [] }),
     sites: async () => sites,
     profiles: async () => profiles.map((p) => ({ ...p })),
     answers: async () => [],
@@ -652,5 +655,75 @@ describe("issue 1504: a free scan's town its profile no longer reads stands wher
     expect(check.scansChanged).toBe(0);
     expect(check.stale).toEqual([close.id]);
     expect((db.rows.get(close.id)!.report as { locale: unknown }).locale).toEqual(close.report.locale);
+  });
+});
+
+describe("issue 1551: a paid scan's Content is read again over its measured pages, from their stored reads", () => {
+  const scan = fixture("zapier.com");
+  const home = scan.home!;
+  const page = (url: string, html: string, created_at = "2026-10-06T03:44:00Z") => ({
+    url,
+    created_at,
+    payload: { url, status: 200, html, bytes: html.length, readAt: created_at },
+  });
+  const ARTICLE = "<html><body><h2>How do I connect two apps?</h2><p>Pick 2 apps and 1 trigger.</p><h2>Is it free?</h2><p>Yes, for 100 tasks.</p></body></html>";
+  const own = [
+    { url: "https://zapier.com/", created_at: home.created_at, payload: home.payload },
+    page("https://zapier.com/sitemap.xml", '<?xml version="1.0"?><urlset><url><loc>https://zapier.com/apps</loc></url></urlset>'),
+    ...Array.from({ length: 4 }, (_, i) => page(`https://zapier.com/guide-${i}`, ARTICLE)),
+  ];
+  const ours = "https://content.zapier.com/how-to-connect-apps";
+  const homeRead = [{ source: "egress.safeFetch" as const, ...home }];
+  const paid = () => {
+    const report = { ...structuredClone(scan.report), tier: "weekly" };
+    const db = storeOf([{ ...scan, report }]);
+    const row = [...db.rows.values()][0]!;
+    db.rows.set(row.id, { ...row, siteId: "site" });
+    return { db, row: { ...row, siteId: "site" } };
+  };
+
+  it("names ReachKit's live pages first, then the pages the scan read, and no sitemap", () => {
+    const measured = measuredOf({ own, ours: [ours], oursReads: [page(ours, ARTICLE, "2026-10-05T07:00:00Z"), page(ours, "<html></html>", "2026-10-07T00:00:00Z")] })!;
+    // The fixture's stored home keeps no bytes; the home is never a measured page either way.
+    expect(measured.pages).toEqual([ours, ...own.slice(2).map((r) => r.url)]);
+    expect(measured.reads.get(ours)).toEqual(page(ours, ARTICLE, "2026-10-05T07:00:00Z").payload);
+    expect(measuredOf({ own: [], ours: [ours], oursReads: [] })).toBeUndefined();
+  });
+
+  it("reads a page as live where it was published before the scan and not taken down until after", () => {
+    const at = "2026-10-10T00:00:00Z";
+    expect(
+      livePagesAt(
+        [
+          { live_url: "https://c.x/a", published_at: "2026-10-03T00:00:00Z", unpublished_at: null },
+          { live_url: "https://c.x/b", published_at: "2026-10-05T00:00:00Z", unpublished_at: "2026-10-12T00:00:00Z" },
+          { live_url: "https://c.x/c", published_at: "2026-10-06T00:00:00Z", unpublished_at: "2026-10-08T00:00:00Z" },
+          { live_url: "https://c.x/d", published_at: "2026-10-11T00:00:00Z", unpublished_at: null },
+        ],
+        at
+      )
+    ).toEqual(["https://c.x/b", "https://c.x/a"]);
+  });
+
+  it("five measured pages beside the home move Content, and so the score; home alone stands as stored", async () => {
+    const { db, row } = paid();
+    const stored = rescoreRow(row, homeRead);
+    const reads = { own, ours: [ours], oursReads: [page(ours, ARTICLE, "2026-10-05T07:00:00Z")] };
+    const read = rescoreRow(row, homeRead, { siteName: null, answers: [], measured: measuredOf(reads) });
+    if (!("result" in stored) || !("result" in read)) throw new Error("unreadable");
+    const valueOf = (m: { kind: string; value?: number }): number | undefined => m.value;
+    expect(valueOf(stored.result.drivers.answerability)).toBeCloseTo(20.543433689506923, 9);
+    expect(read.result.drivers.answerability.kind).toBe("measured");
+    expect(valueOf(read.result.drivers.answerability)).not.toBeCloseTo(20.543433689506923, 3);
+    expect(read.result.kept).not.toContain(KEPT_CONTENT_PAGES);
+
+    const answer = await rescoreStored({ ...db.store, ownReads: async () => reads }, dry);
+    expect(answer.scansChanged).toBe(1);
+  });
+
+  it("a measured page with no stored read is named, and the rest are read", () => {
+    const { row } = paid();
+    const read = rescoreRow(row, homeRead, { siteName: null, answers: [], measured: measuredOf({ own, ours: [ours], oursReads: [] }) });
+    expect("result" in read && read.result.kept).toContain(KEPT_CONTENT_PAGES);
   });
 });

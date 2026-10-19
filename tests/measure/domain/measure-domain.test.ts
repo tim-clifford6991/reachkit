@@ -47,6 +47,7 @@ import type { RankedResult } from "@/lib/vendors/dataforseo/types";
 import {
   detectPricingUrl,
   measureDomain,
+  withMeasuredPages,
   type DomainMeasurement,
   type MeasurePorts,
   type Tier,
@@ -190,7 +191,10 @@ async function measure(
 ): Promise<{ result: DomainMeasurement; cost: ReturnType<typeof fakeCost>; ports: ReturnType<typeof fakePorts> }> {
   const cost = fakeCost(costOpts);
   const ports = fakePorts(documents, portOver);
-  const result = await measureDomain(cost, { domain: DOMAIN, at: SCAN_AT, tier: a.tier ?? "free", pages: a.pages }, ports);
+  const tier = a.tier ?? "free";
+  const read = await measureDomain(cost, { domain: DOMAIN, at: SCAN_AT, tier }, ports);
+  // Issue 1551: the measured pages are read after the crawl, over this measurement.
+  const result = a.pages === undefined ? read : await withMeasuredPages(cost, { measurement: read, domain: DOMAIN, tier, at: SCAN_AT, pages: a.pages }, ports);
   return { result, cost, ports };
 }
 
@@ -359,7 +363,8 @@ describe('BP-012 `## Error & edge behavior`, governing its callee — "The pipel
   it("no `tier` comparison appears outside the three lookup tables", () => {
     expect(CODE_ONLY).not.toMatch(/tier\s*===/);
     expect(CODE_ONLY).not.toMatch(/===\s*"(free|deep|weekly)"/);
-    // The only three reads of `tier` are the three table lookups.
+    // The only reads of `tier` are the two table lookups here and the one
+    // handed to the measured pages' own lookup (`pages.ts`, issue 1551).
     expect([...CODE_ONLY.matchAll(/a\.tier/g)]).toHaveLength(3);
   });
 });
@@ -391,6 +396,20 @@ describe('BP-010 `## NFR budget` — the spend, the page cap and the ceiling', (
       pages: [extra],
     });
     expect(ports.log.fetched).toEqual([HOME, "https://reachkit.app/pricing"]);
+  });
+
+  it("Content reads the site's measured pages: five pages beside the home score differently from the home alone (issue 1551)", async () => {
+    const five = Array.from({ length: 5 }, (_, i) => `https://content.reachkit.app/guide-${i}`);
+    const documents: Record<string, FetchOutcome> = { ...FULL_SITE };
+    for (const url of five) {
+      documents[url] = okOutcome(url, `<html><body><h2>How do I start?</h2><p>Start with step 1 of 3.</p><h2>Is there a free plan?</h2><p>Yes, there is.</p></body></html>`);
+    }
+    const alone = await measure(documents, { tier: "weekly" });
+    const withPages = await measure(documents, { tier: "weekly", pages: five });
+    expect(withPages.ports.log.fetched).toEqual([HOME, "https://reachkit.app/pricing", ...five]);
+    expect(withPages.result.drivers.answerability.kind).toBe("measured");
+    expect(withPages.result.drivers.answerability).not.toEqual(alone.result.drivers.answerability);
+    expect(withPages.result.drivers.answerability.at).toEqual(SCAN_AT);
   });
 
   it("a page already read is never read twice", async () => {

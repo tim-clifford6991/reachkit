@@ -46,6 +46,7 @@ import { measured, measuredZero, unmeasured, type Measured } from "@/lib/measure
 import { intentFor, type IntentPrompt, type PageIntent } from "../intent";
 import { addressOf, evaluateAcceptance, placeOf } from "./evaluate";
 import { weekMeasurementsFrom } from "./measurements";
+import { indexStateOf } from "./seen";
 import { movementFor } from "./movement";
 import {
   noteFor,
@@ -100,7 +101,12 @@ export async function judgeWeek(a: {
   // Every page's own target search is read this week, in the twelve or not
   // (issue 795): a search that left the set is still measured, never untracked.
   const targets = pages.flatMap((page) => (page.acceptance.form === "top20" ? [page.acceptance.query] : []));
-  const measurements = weekMeasurementsFrom({ report: week.report, week: a.week, targets });
+  // Issue 1548: the targets the keyword database measured demand for — the
+  // only ones whose silence in its ranked rows is a measured zero.
+  const withDemand = pages.flatMap((page) =>
+    page.acceptance.form === "top20" && (page.volume ?? 0) > 0 ? [page.acceptance.query] : []
+  );
+  const measurements = weekMeasurementsFrom({ report: week.report, week: a.week, targets, withDemand });
 
   // Issue 1518: the previous place a movement compares with is the page's
   // own, read again from that week's stored report by the rule this week is
@@ -115,13 +121,17 @@ export async function judgeWeek(a: {
   const earlier = new Map<WeekStart, WeekMeasurements | null>();
   for (const previous of previousWeeks) {
     const stored = await store.weekReport({ siteId: a.siteId, week: previous });
-    earlier.set(previous, stored === null ? null : weekMeasurementsFrom({ report: stored.report, week: previous, targets }));
+    earlier.set(previous, stored === null ? null : weekMeasurementsFrom({ report: stored.report, week: previous, targets, withDemand }));
   }
 
   // SPEC §6 (D60, issue 1288): each page's intent, against the prompts
   // tracked today. A set that could not be read matches nothing and
   // changes nothing stored.
   const prompts = store.trackedPrompts === undefined ? [] : await store.trackedPrompts(a.siteId).catch(() => []);
+
+  // Issue 1548: every address the site's stored results held, this week's
+  // included. `null` where it cannot be read, which states no page unseen.
+  const seenUrls = store.seenUrls === undefined ? null : await store.seenUrls(a.siteId).catch(() => null);
 
   const standings: PageStanding[] = [];
   const rows: VerdictInsert[] = [];
@@ -132,7 +142,8 @@ export async function judgeWeek(a: {
     if (intent !== null && !sameIntent(intent, page.intent ?? null) && page.draftId != null) {
       await store.recordIntent?.({ draftId: page.draftId, intent });
     }
-    const decided = judgeOne({ page, intent, measurements, earlier, week: a.week, priorRows });
+    const unseen = seenUrls !== null && indexStateOf(addressesOf(page), seenUrls) === "not_verified";
+    const decided = judgeOne({ page, intent, measurements, earlier, week: a.week, priorRows, unseen });
     standings.push({ publicationId: page.publicationId, standing: decided.standing });
     if (decided.row !== null) {
       rows.push({ ...decided.row, siteId: a.siteId, week: a.week, scanId: week.scanId });
@@ -223,6 +234,8 @@ function judgeOne(a: {
   earlier: ReadonlyMap<WeekStart, WeekMeasurements | null>;
   week: WeekStart;
   priorRows: readonly VerdictRecord[];
+  /** Issue 1538's `not_verified`: no stored result has held this page. */
+  unseen?: boolean;
 }): OnePage {
   const { page } = a;
   const lastJudgedWeek = lastVerdictWeek(a.priorRows);
@@ -289,11 +302,15 @@ function judgeOne(a: {
     return { standing: NOT_MEASURED, row: null };
   }
 
-  const verdict = verdictFor({
+  const judged = verdictFor({
     passes: evaluation.passes,
     publishedAt: page.publishedAt,
     week: a.week,
   });
+  // Issue 1548: a page no stored result has ever held was never seen to
+  // fail its search or its question, so it is too early, never not working —
+  // which is what keeps its cluster open and its page unrewritten.
+  const verdict = judged === "not_working" && a.unseen === true && seenTest(page) ? "too_early" : judged;
 
   const place = measurementOf(page, a.measurements);
   const movement =
@@ -323,6 +340,13 @@ function judgeOne(a: {
       movement,
     },
   };
+}
+
+/** The tests a page is judged on in search: its place on a search, and an
+ *  AI answer to its question citing it. A gate or a site check is decided
+ *  without the page being found. */
+function seenTest(page: PublishedPage): boolean {
+  return page.acceptance.form === "top20" || page.acceptance.form === "named_on";
 }
 
 function notJudgeable(cause: NotJudgeableCause, lastJudgedWeek: WeekStart | null): WeekStanding {

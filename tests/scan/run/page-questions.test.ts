@@ -311,17 +311,27 @@ describe("SPEC §6 — beside the twelve, never inside them", () => {
     expect(withPages.aiAnswers?.measuredSearches).toBe(BATTERY_PINS.QUESTIONS);
 
     // And the proof that nothing leaked: the same pass with no published
-    // page at all scores identically.
+    // page at all reads the same presence and the same AI answers. Its
+    // Content differs, because the published pages are measured pages of
+    // the site (issue 1551).
     vi.clearAllMocks();
     livePages = 0;
     db.rows.set("scans", [{ id: CLAIMED_ID, fromIncompleteRescan: false }]);
     await runScan({ domain: DOMAIN, siteId: SITE_ID, scanId: CLAIMED_ID, tier: "weekly" });
     const without = storedReport();
 
-    expect(withPages.verdict.scoreAndBand).toEqual(without.verdict.scoreAndBand);
-    expect(withPages.verdict.factors).toEqual(without.verdict.factors);
+    expect(withPages.verdict.factors.presence).toEqual(without.verdict.factors.presence);
+    expect(withPages.verdict.factors.foundations).toEqual(without.verdict.factors.foundations);
     expect(withPages.aiAnswers).toEqual(without.aiAnswers);
     expect(without.pageQuestions).toBeNull();
+  });
+
+  it("reads ReachKit's live pages as measured pages of the site, up to the allowance (issue 1551)", async () => {
+    const log = vi.spyOn(console, "log");
+    await runScan({ domain: DOMAIN, siteId: SITE_ID, scanId: CLAIMED_ID, tier: "weekly" });
+    const events = log.mock.calls.map(([line]) => (typeof line === "string" && line.startsWith("{") ? (JSON.parse(line) as { event?: string; pages?: number }) : {}));
+    log.mockRestore();
+    expect(events.find((e) => e.event === "measured_pages")).toMatchObject({ domain: DOMAIN, pages: BATTERY_PINS.MEASURED_PAGES_MAX });
   });
 
   it("numbers the page questions on from the twelve, and carries each page's own address", async () => {

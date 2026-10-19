@@ -95,7 +95,7 @@ import { freePageOf } from "@/lib/opportunities/free-page";
 import { DEFAULT_LOCALE, type Locale, type Place } from "@/lib/locale/locales";
 import { localSearch, placeCandidates, placeOf, statedPlace as statedPlaceOf, type PlaceFrom } from "@/lib/locale/place";
 import { readStoredLocale, writeSiteLocale } from "@/lib/locale/site";
-import { aiPresenceOf, aiSampleOf, BOT_PROTECTION, classifyReferences, localPackSearches, measureDomain, searchPresenceOf, type DomainMeasurement } from "@/lib/measure";
+import { aiPresenceOf, aiSampleOf, BOT_PROTECTION, classifyReferences, localPackSearches, measureDomain, searchPresenceOf, withMeasuredPages, type DomainMeasurement } from "@/lib/measure";
 import { aiPresenceRangeOf } from "@/lib/measure/drivers";
 import { measured, measuredZero, unmeasured, type Measured } from "@/lib/measure/measured";
 import { foldSerps, outcomeOf, type InputOutcome, type ScanInput } from "@/lib/measure/partition";
@@ -1465,6 +1465,34 @@ async function runStages(a: StageArgs): Promise<void> {
   }
 }
 
+/**
+ * Issue 1551: the score's Content over the site's measured pages — the
+ * pages ReachKit has live for it, newest first, then the pages its crawl
+ * read — up to the tier's allowance (`withMeasuredPages`). A free scan has
+ * no site and an allowance of none, so it reads nothing here. A list of our
+ * pages that cannot be read leaves the crawl's pages to stand alone.
+ */
+async function measuredContent(a: StageArgs, m: DomainMeasurement, crawled: readonly string[]): Promise<DomainMeasurement["drivers"]["answerability"]> {
+  let ours: readonly string[] = [];
+  if (a.siteId !== undefined) {
+    try {
+      const { readLivePages } = await import("@/lib/known-content/ours");
+      ours = await readLivePages(a.siteId);
+    } catch (error) {
+      console.log(JSON.stringify({ event: "live_pages_unread", because: error instanceof Error ? error.message : String(error) }));
+    }
+  }
+  const read = await withMeasuredPages(a.cost, {
+    measurement: m,
+    domain: a.domain,
+    tier: a.tier,
+    at: a.startedAt,
+    pages: [...ours, ...crawled],
+    ...(a.sinceDays === undefined ? {} : { ownWindowDays: a.sinceDays }),
+  });
+  return read.drivers.answerability;
+}
+
 /** The crawl of the customer's own site, while it runs (issue 1419). */
 interface SiteCrawl {
   reading: Promise<void>;
@@ -1603,9 +1631,13 @@ async function stagesOf(a: StageArgs, crawl: SiteCrawl): Promise<void> {
         tier: a.tier,
         locale: measurement.locale,
       });
+      const content = await measuredContent(a, measurement, crawl.pages.map((page) => page.url));
       // SPEC §9: the technical-issue checks run over exactly this crawl —
       // the one run, nothing fetched beyond its set (2026-09-12).
       if (!bounds.abandoned() && !sections.sealed) {
+        if (sections.measurement !== null) {
+          sections.measurement = { ...sections.measurement, drivers: { ...sections.measurement.drivers, answerability: content } };
+        }
         if (profile !== null) sections.siteName = promptSiteName(profile.siteName, domain);
         sections.siteCrawl = readingOf(crawl);
         sections.pagesRead = crawl.pages.map((page) => ({
