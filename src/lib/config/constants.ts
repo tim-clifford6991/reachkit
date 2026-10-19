@@ -1658,6 +1658,9 @@ export const ASYNC_AIO_SURCHARGE_MULTIPLIER = 2 as const;      // ADR-094 d3 · 
 export const VENDOR = Object.freeze({                         // #23 · BUILD §6.1 · DATA-COSTS §1
   suggestionsRows: 50,          // BUILD §6.1: "SUGGESTIONS_COST | 1.8¢ / call @ 50 rows"
   competitorsDomainRows: 25,
+  /** How deep an organic or news SERP is bought. A page past it is read
+   *  from the site's ranked rows (issues 1518, 1537). */
+  serpDepth: 10,
   stdQueuePollIntervalS: 10,
   stdQueueDeadlineMin: 45,
   /** How often a pass somebody is waiting for asks whether its queued

@@ -17,8 +17,10 @@
 // dropping the key for a SERP that failed would retire a live page
 // forever on the strength of one missed request (ADR-072 decision 5).
 import { measured, measuredZero, unmeasured, type Measured } from "@/lib/measure/measured";
+import { VENDOR } from "@/lib/config/constants";
 import type { AnswerCell, StoredReport } from "@/lib/scan/report";
 import type { Barrier } from "../types";
+import { TRACKED_DEPTH } from "./evaluate";
 import type { PlacedUrl, SearchRows, WeekMeasurements, WeekStart } from "./types";
 
 /**
@@ -73,7 +75,10 @@ export function weekMeasurementsFrom(a: {
                 // Issue 1518: the SERP is bought ten deep, so a page at 11–20
                 // is read from the ranked rows before it reads as absent.
                 ranked: report.ownRanked.kind === "unmeasured" ? [] : rankedRowsFor(report, query),
-                complete: true,
+                // Issue 1537: a ten-deep SERP cannot say a page is not at
+                // 11–20, so a page in neither is a measured zero only where
+                // the ranked rows are every search the site ranks for.
+                complete: VENDOR.serpDepth >= TRACKED_DEPTH || rankedComplete(report),
               },
               at
             )
@@ -150,10 +155,16 @@ function rankedRows(report: StoredReport, target: string, at: Date): Measured<Se
     {
       serp: null,
       ranked: rankedRowsFor(report, target),
-      complete: report.ownRanked.value <= report.ownRankedRows.length,
+      complete: rankedComplete(report),
     },
     at
   );
+}
+
+/** Whether the ranked rows are every search the site ranks for: a capped
+ *  purchase, or a count the week did not measure, is not. */
+function rankedComplete(report: StoredReport): boolean {
+  return report.ownRanked.kind !== "unmeasured" && report.ownRanked.value <= report.ownRankedRows.length;
 }
 
 function rankedRowsFor(report: StoredReport, query: string): PlacedUrl[] {

@@ -187,8 +187,9 @@ export interface PlacedUrl {
  *   its count and which reach depth 20 and beyond. A page on page two is
  *   seen here.
  * - `complete`: whether a page found in neither holds no place, as a
- *   measurement. True where the SERP was read, or where the ranked rows are
- *   every search the site ranks for; false where the purchase was capped.
+ *   measurement. True where the ranked rows are every search the site ranks
+ *   for, or where the SERP is bought twenty deep; false where the purchase
+ *   was capped, since a ten-deep SERP cannot see 11–20 (issue 1537).
  */
 export interface SearchRows {
   readonly serp: readonly PlacedUrl[] | null;

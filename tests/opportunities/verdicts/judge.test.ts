@@ -318,6 +318,14 @@ describe("issue 1518 — a page's Google verdict is about that page's own addres
     expect(store.inserted[0]?.measured).toMatchObject({ kind: "measured", value: 14 });
   });
 
+  it("issue 1537 — on a site whose ranked rows were capped, an article in neither the SERP nor the rows is not_measured", async () => {
+    const elsewhere = Array.from({ length: 300 }, (_, i) => ({ keyword: `other search ${i}`, position: 1 + (i % 50), searchVolume: 90, url: `https://${DOMAIN}/p${i}` }));
+    const store = fakeStore({ report: weekOf([HOME], { ownRanked: measured(1200, AT), ownRankedRows: elsewhere }) });
+    const { standings } = await judgeWeek({ siteId: SITE_ID, week: WEEK });
+    expect(standings[0]?.standing).toEqual({ kind: "not_measured" });
+    expect(store.rows).toHaveLength(0);
+  });
+
   it("the movement compares the page's own places, read again from the previous week's stored report", async () => {
     const store = fakeStore({
       report: weekOf([HOME], { ownRanked: measured(1, AT), ownRankedRows: [ranked(12)] }),
