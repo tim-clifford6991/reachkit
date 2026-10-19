@@ -15,7 +15,7 @@
 //
 // **Tier changes parameters, never arithmetic.** `tier` is read exactly
 // twice, both as a table lookup: how many ranked rows to buy and how many
-// extra pages `pages?` may carry. No formula, parser or driver differs by
+// measured pages Content reads beyond the home and pricing page. No formula, parser or driver differs by
 // tier — the free and paid readings of the same bytes are identical.
 //
 // **No clock.** Every figure this file computes carries one date, the
@@ -34,10 +34,9 @@
 // `aiPresenceOf` (`drivers.ts`) over SERPs it has already bought, then
 // hands the completed `Drivers` to `verdictOf`. Buying a SERP here would
 // spend the free path's ceiling twice on the same rows (§6.4).
-import { pagePathAlternation } from "@/lib/locale/language";
 import { readLocale, type Locale, type ResolvedLocale } from "@/lib/locale";
 import { readPlaceSignals, type PlaceSignals } from "@/lib/locale/place";
-import { BATTERY, CACHE_WINDOWS_D, CHALLENGE_RENDER_MS, HOME_RETRY, PRICE_BOOK, SLOW_HOME } from "@/lib/config/constants";
+import { CACHE_WINDOWS_D, CHALLENGE_RENDER_MS, HOME_RETRY, PRICE_BOOK, SLOW_HOME } from "@/lib/config/constants";
 import {
   isFetchRefusal,
   refusalOf,
@@ -55,7 +54,8 @@ import { BOT_PROTECTION, challengeOf, HOME_TIMEOUT, notTheSiteOf, type Protectio
 import { answerabilityOf, foundationsOf, ownRankedOf, searchPresenceOf } from "./drivers";
 import { measured, measuredZero, unmeasured, type Measured } from "./measured";
 import { OWN_FETCH_OPTS, OWN_FETCH_SOURCE, isStoredDocument, toStoredDocument, type StoredDocument } from "./own-fetch";
-import { parseOnPage, visibleText, type OnPageFacts } from "./parse";
+import { visibleText, type OnPageFacts } from "./parse";
+import { contentOf, detectPricingUrl, factsOf, homeUrlOf, measuredPagesOf, stampedAt, type Tier } from "./pages";
 import type { Drivers } from "./score";
 
 export type { Drivers } from "./score";
@@ -65,22 +65,18 @@ export { parseOnPage, visibleText, type OnPageFacts } from "./parse";
 export type { Measured, UnmeasuredReason } from "./measured";
 export { BOT_PROTECTION, HOME_TIMEOUT, type ProtectionVendor } from "./challenge";
 
-export type Tier = "free" | "deep" | "weekly";
+export type { Tier } from "./pages";
+export { contentOf, detectPricingUrl, measuredPagesOf, storedFactsOf } from "./pages";
 
 /** The one place `tier` is read: three parameter tables. Free buys the free
  *  row count, measures the home and the detected pricing page only, and
  *  gives up on a slow home page sooner (issue 1449); the paid tiers buy the
- *  paid row count, may carry up to the battery's page cap in `pages?`, and
+ *  paid row count, measure up to the battery's page cap beyond them, and
  *  wait the fetcher's own time for the home page. */
 const RANKED_ROWS_BY_TIER: Readonly<Record<Tier, 50 | 100 | 300>> = Object.freeze({
   free: PRICE_BOOK.RANKED_FREE_ROWS,
   deep: PRICE_BOOK.RANKED_PAID_ROWS,
   weekly: PRICE_BOOK.RANKED_PAID_ROWS,
-});
-const EXTRA_PAGES_BY_TIER: Readonly<Record<Tier, number>> = Object.freeze({
-  free: 0,
-  deep: BATTERY.MEASURED_PAGES_MAX,
-  weekly: BATTERY.MEASURED_PAGES_MAX,
 });
 const HOME_READ_MS_BY_TIER: Readonly<Record<Tier, number | undefined>> = Object.freeze({
   free: SLOW_HOME.FREE_READ_MS,
@@ -153,13 +149,6 @@ interface DocumentRead {
   error: { status: number; retryAfterMs: number | null; fresh: boolean } | null;
 }
 
-/** A read document as its facts: `zero` when it parsed to nothing (no
- *  headings, no visible text — REQ-004 c7's "read it; it contained none"). */
-function factsOf(document: StoredDocument, at: Date): Measured<OnPageFacts> {
-  const facts = parseOnPage({ url: document.url, html: document.html });
-  const isEmpty = facts.headings === 0 && facts.visibleChars === 0;
-  return isEmpty ? measuredZero(facts, at) : measured(facts, at);
-}
 
 /** One own-document read, through `recordFetch` at zero cents so the bytes
  *  are ledgered under `OWN_FETCH_SOURCE`. Maps the outcome to the
@@ -278,54 +267,7 @@ async function renderedHome(
   }
 }
 
-/** Re-stamps a read's `at` to the pass's one date. The document's own
- *  `readAt` survives in the `fetches` row; the verdict carries one date. */
-function stampedAt<T>(m: Measured<T>, at: Date): Measured<T> {
-  return m.kind === "unmeasured" ? { kind: "unmeasured", reason: m.reason, at } : { kind: m.kind, value: m.value, at };
-}
 
-// ── Pricing-page detection over the home document's own links ───────────
-//
-// BUILD §6.4: "no crawling — the page set is only URLs we already hold …
-// or construct by name". The pricing page is the one page §6.7 step 1
-// reads beside the home, found by its link on the home document: the
-// first same-host anchor whose path's last segment is a pricing word.
-// Deterministic — document order, first match.
-const ANCHOR_HREF_RE = /<a\b[^>]*?\bhref\s*=\s*(?:"([^"]*)"|'([^']*)')[^>]*>/gi;
-// The other supported languages name the same page in their own words (D66).
-const PRICING_PATH_RE = new RegExp(`(?:^|/)(?:pricing|prices?|plans|${pagePathAlternation("pricing")})/?$`, "i");
-
-export function detectPricingUrl(html: string, homeUrl: string): string | null {
-  let home: URL;
-  try {
-    home = new URL(homeUrl);
-  } catch {
-    return null;
-  }
-  ANCHOR_HREF_RE.lastIndex = 0;
-  let match: RegExpExecArray | null;
-  while ((match = ANCHOR_HREF_RE.exec(html)) !== null) {
-    const href = match[1] ?? match[2] ?? "";
-    if (!href) continue;
-    try {
-      const resolved = new URL(href, home);
-      if (resolved.hostname !== home.hostname) continue;
-      if (resolved.protocol !== "http:" && resolved.protocol !== "https:") continue;
-      if (!PRICING_PATH_RE.test(resolved.pathname)) continue;
-      resolved.hash = "";
-      const candidate = resolved.toString();
-      if (candidate === home.toString()) continue;
-      return candidate;
-    } catch {
-      // Not a resolvable URL — never a candidate, never a throw.
-    }
-  }
-  return null;
-}
-
-function homeUrlOf(domain: string): string {
-  return `https://${domain}/`;
-}
 
 export interface DomainMeasurement {
   drivers: Drivers;
@@ -390,8 +332,7 @@ export interface DomainMeasurement {
   homeTimedOut?: true;
 }
 
-/** Reads a domain — home document, detected pricing page, up to the tier's
- *  page allowance of `pages?`, robots policy, the customer's own ranked
+/** Reads a domain — home document, detected pricing page, robots policy, the customer's own ranked
  *  rows — and returns BUILD §5's four measured quantities with the facts
  *  the verdict rests on. Never throws for a domain that cannot be read:
  *  every failure is an `unmeasured` arm with its reason.
@@ -412,7 +353,6 @@ export async function measureDomain(
      *  on a site that has not answered, which are read from the address and
      *  the home document. */
     locale?: Locale;
-    pages?: readonly string[];
     /** SPEC §6 (issue 1170): how old a stored read may be and still be this
      *  pass's own, so a weekly pass is served no read from the week before.
      *  Narrows
@@ -490,22 +430,11 @@ export async function measureDomain(
   //    before anything else is read.
   const pricingUrl = home.html === null ? null : detectPricingUrl(home.html, homeUrl);
 
-  // 3. The caller's pages, capped by the tier's allowance, deduplicated
-  //    against what was already read, in the order given.
-  const seen = new Set<string>([homeUrl, ...(pricingUrl === null ? [] : [pricingUrl])]);
-  const extra: string[] = [];
-  for (const url of a.pages ?? []) {
-    if (extra.length >= EXTRA_PAGES_BY_TIER[a.tier]) break;
-    if (seen.has(url)) continue;
-    seen.add(url);
-    extra.push(url);
-  }
-
   // 4–5. The reads that do not depend on each other, concurrently (issue
   //      #539).
   //
   // Nothing below the home document depends on anything else below it: the
-  // pricing page and the caller's extra pages are other documents, the
+  // pricing page is another document, the
   // robots policy is a different URL at the same origin, and
   // `ranked_keywords` is a vendor call about the domain that reads no
   // document at all. They were awaited one after another, so a slow robots
@@ -522,17 +451,9 @@ export async function measureDomain(
   // ranked task below decides exactly what it decided when this was
   // sequential.
   //
-  // The customer's own extra pages stay sequential *within* their own task:
-  // they are one server, and asking it for twenty-five pages at once is a
-  // load this product has no business putting on it.
-  const [pricingRead, extraFacts, robots, presence] = await Promise.all([
+  // The site's measured pages are read after its crawl (`withMeasuredPages`).
+  const [pricingRead, robots, presence] = await Promise.all([
     pricingUrl === null ? Promise.resolve(null) : readDocument(c, ports, pricingUrl, windowDays),
-
-    (async (): Promise<Measured<OnPageFacts>[]> => {
-      const facts: Measured<OnPageFacts>[] = [];
-      for (const url of extra) facts.push(stampedAt((await readDocument(c, ports, url, windowDays)).facts, at));
-      return facts;
-    })(),
 
     // The robots policy at the origin. `absent` is a read with nothing in
     // it (the `zero` arm); a reader that cannot determine is
@@ -647,10 +568,9 @@ export async function measureDomain(
   const { searchPresence, ownRanked, ownRankedRows } = presence;
 
   // 6. The four measured quantities.
-  const pages: Measured<OnPageFacts>[] = [onPage, ...(pricing === null ? [] : [pricing.facts]), ...extraFacts];
   const drivers: Drivers = {
     foundations: foundationsOf({ onPage, robots, at }),
-    answerability: answerabilityOf({ pages, at }),
+    answerability: contentOf({ onPage, pricing: pricing?.facts ?? null, pages: [], at }),
     searchPresence,
     aiPresence: unmeasured("not_attempted", at), // filled by the pipeline from `aiPresenceOf` — see the header
   };
@@ -679,4 +599,26 @@ export async function measureDomain(
     homeRefusal: null,
     ...guarded,
   };
+}
+
+/** The measurement with Content read again over its site's measured pages:
+ *  `pages` as `measuredPagesOf` caps them, read one at a time, because they
+ *  are one server and twenty-five at once is no load to put on it. A site
+ *  whose home was not read, or a tier that measures no page beyond it, is
+ *  returned as it was. */
+export async function withMeasuredPages(
+  c: CostContext,
+  a: { measurement: DomainMeasurement; domain: string; tier: Tier; at: Date; pages: readonly string[]; ownWindowDays?: number },
+  ports: MeasurePorts = DEFAULT_PORTS
+): Promise<DomainMeasurement> {
+  const m = a.measurement;
+  if (m.homeRefusal !== null || m.onPage.kind === "unmeasured") return m;
+  const urls = measuredPagesOf({ tier: a.tier, domain: a.domain, pricingUrl: m.pricing?.url ?? null, pages: a.pages });
+  if (urls.length === 0) return m;
+  const windowDays = a.ownWindowDays === undefined ? CACHE_WINDOWS_D.own : Math.min(CACHE_WINDOWS_D.own, a.ownWindowDays);
+  const pages: Measured<OnPageFacts>[] = [];
+  for (const url of urls) pages.push(stampedAt((await readDocument(c, ports, url, windowDays)).facts, a.at));
+  const answerability = contentOf({ onPage: m.onPage, pricing: m.pricing?.facts ?? null, pages, at: a.at });
+  logDriver("measured_pages", { domain: a.domain, pages: urls.length, read: pages.filter((p) => p.kind !== "unmeasured").length });
+  return { ...m, drivers: { ...m.drivers, answerability } };
 }
