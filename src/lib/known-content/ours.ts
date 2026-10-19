@@ -118,3 +118,20 @@ export async function readOurPages(a: { siteId: string } | { domain: string }): 
 export function withoutOurPages<P extends { url: string }>(pages: readonly P[], ours: OurPages): P[] {
   return pages.filter((page) => !isOurPage(ours, page.url));
 }
+
+/** The addresses of the site's pages ReachKit has live now, newest first
+ *  (issue 1551): what the score's Content reads beside the site's own. */
+export async function readLivePages(siteId: string): Promise<string[]> {
+  const rows = rowsOf(
+    await table<{ live_url: string | null; published_at: string | null }>("publications")
+      .select("live_url, published_at")
+      .eq("site_id", siteId)
+      .not("live_url", "is", null)
+      .is("unpublished_at", null),
+    "publications"
+  );
+  return rows
+    .filter((row): row is { live_url: string; published_at: string | null } => row.live_url !== null)
+    .sort((a, b) => (b.published_at ?? "").localeCompare(a.published_at ?? ""))
+    .map((row) => row.live_url);
+}

@@ -11,9 +11,9 @@
 // asks no model and reaches no network: every function here is pure.
 //
 // What a pass never kept is not re-bought; it stands as stored and the scan
-// says so (`kept`). Answerability is the standing case: it is read from the
-// home page *and* the pages beyond it, and a report keeps only the home
-// page's facts, so its stored value stands on every scan.
+// says so (`kept`). Answerability (Content) is read from the home page, the
+// pricing page and the site's measured pages (issue 1551): from their reads
+// in `fetches` where they are stored, and as stored where they are not.
 //
 // `src/lib/scan/rescore-run.ts` reads the stored rows in production (the
 // `scan/rescore` job, issue 1433), writes the before and after, and on apply
@@ -25,6 +25,8 @@
 import { retrofitReading, type Retrofit } from "@/lib/business/retrofit";
 import { aiPresenceOf, aiPresenceRangeOf, aiSampleOf, classifyReferences, foundationsOf, localPackSearches, searchPresenceOf } from "@/lib/measure/drivers";
 import { isProtectionName } from "@/lib/measure/challenge";
+import { contentOf, detectPricingUrl, measuredPagesOf, storedFactsOf } from "@/lib/measure/pages";
+import { isStoredDocument } from "@/lib/measure/own-fetch";
 import { measured, unmeasured, type Measured } from "@/lib/measure/measured";
 import { foldSerps, outcomeOf, type InputOutcome, type ScanInput } from "@/lib/measure/partition";
 import type { OnPageFacts } from "@/lib/measure/parse";
@@ -119,6 +121,12 @@ export interface RescoreScan {
   /** A paying site's market (`sites.market`): the kind and place its pass
    *  concluded and the place the founder gave; absent on a free scan. */
   market?: { kind?: unknown; serves?: unknown; area?: { place?: unknown }; rivals?: readonly { name: string; domain: string }[] } | null;
+  /** Issue 1551: the site's measured pages as this scan's own reads hold
+   *  them — the pages ReachKit had live when it ran, newest first, then the
+   *  pages it read itself, in the order it read them — and each address's
+   *  stored read, the home's and the pricing page's among them. Absent where
+   *  the scan ledgered no read of its own: Content stands as stored. */
+  measured?: { pages: readonly string[]; reads: ReadonlyMap<string, unknown> };
   /** When the scan was asked for (`scans.created_at`): a report dated
    *  before it was dated by a stored read of a page (issue 1392), and is
    *  dated again by it (issue 1479). Absent, the stored date stands. */
@@ -264,6 +272,40 @@ function cardsAfter(
   };
 }
 
+export const KEPT_CONTENT_UNREAD = "content: the reads of its home or pricing page are not stored under this scan, so its stored value stands";
+export const KEPT_CONTENT_PAGES = "content: some of the pages it would read have no stored read, so it reads the ones that do";
+
+/**
+ * Issue 1551: Content over the home page, the pricing page and the site's
+ * measured pages, from their stored reads, as `withMeasuredPages` reads them
+ * on a pass. `null` where this cannot be read from what is stored.
+ */
+function contentFrom(r: RescoreReport, scan: RescoreScan, at: Date, kept: string[]): Measured<number> | null {
+  const m = scan.measured;
+  if (m === undefined || r.onPage.kind === "unmeasured") return null;
+  const home = scan.home?.payload;
+  // A home read as the vendor's browser drew it is not the stored read here.
+  if (!isStoredDocument(home) || scan.rendered.length > 0) {
+    kept.push(KEPT_CONTENT_UNREAD);
+    return null;
+  }
+  const pricingUrl = detectPricingUrl(home.html, `https://${r.domain}/`);
+  const pricing = pricingUrl === null ? null : m.reads.get(pricingUrl);
+  if (pricing === undefined) {
+    kept.push(KEPT_CONTENT_UNREAD);
+    return null;
+  }
+  const wanted = measuredPagesOf({ tier: r.tier, domain: r.domain, pricingUrl, pages: m.pages });
+  if (wanted.some((url) => !m.reads.has(url))) kept.push(KEPT_CONTENT_PAGES);
+  const urls = measuredPagesOf({ tier: r.tier, domain: r.domain, pricingUrl, pages: m.pages.filter((url) => m.reads.has(url)) });
+  return contentOf({
+    onPage: r.onPage,
+    pricing: pricing === null ? null : storedFactsOf(pricing, at),
+    pages: urls.map((url) => storedFactsOf(m.reads.get(url), at)),
+    at,
+  });
+}
+
 /** What `kept` says of a scan whose AI Overviews were stored without their
  *  text, and of a battery answer whose text is no longer stored. */
 export const KEPT_NO_OVERVIEW_TEXT = "AI presence: its AI Overviews were stored without their text, so a brand they name only in words is not counted";
@@ -314,8 +356,9 @@ export function rescoreScan(scan: RescoreScan): Rescored {
       ? dated(stored?.foundations ?? r.verdict.factors.foundations, at)
       : foundationsOf({ onPage: r.onPage, robots, at });
 
-  // Answerability reads pages the report does not keep: it stands.
-  const answerability = dated(stored?.answerability ?? r.verdict.factors.answerability, at);
+  // Content, from the stored reads of the pages it reads; where they are
+  // not stored, the stored value stands.
+  const answerability = contentFrom(r, scan, at, kept) ?? dated(stored?.answerability ?? r.verdict.factors.answerability, at);
 
   const searchPresence = searchPresenceFrom(r, at);
   if (searchPresence === null) kept.push("search presence: the report kept its ranked count but not the rows");
