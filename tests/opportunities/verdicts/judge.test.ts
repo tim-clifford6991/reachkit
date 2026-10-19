@@ -223,7 +223,7 @@ describe("#795 — a page's search is read every week, in the twelve or not", ()
     fakeStore({
       pages: [
         pageOf({ publicationId: "deep", acceptance: OUTSIDE, liveUrl: CHECKLIST }),
-        pageOf({ publicationId: "absent", acceptance: { form: "top20", query: "a search the site holds no place on" } }),
+        pageOf({ publicationId: "absent", acceptance: { form: "top20", query: "a search the site holds no place on" }, volume: 90 }),
       ],
       report: reportWithOwnPlace(3, {
         ownRanked: measured(1, AT),

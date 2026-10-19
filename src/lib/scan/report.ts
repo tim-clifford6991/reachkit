@@ -375,6 +375,11 @@ export interface PageQuestionRow {
   question: StoredQuestion;
   cell: AnswerCell;
   engines: readonly EngineCell[];
+  /** Issue 1548: the organic rows of the Google result bought for this
+   *  question, to the depth bought — what the page's own verdict reads its
+   *  place from. `null` where that result could not be read this week;
+   *  absent on a row stored before the rows were kept. */
+  organic?: readonly { url: string; position: number }[] | null;
 }
 
 export interface RetiredPageQuestion {

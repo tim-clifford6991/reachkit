@@ -108,9 +108,10 @@ export const TRACKED_DEPTH = 20;
  *
  * The week's SERP is read first. Where it holds no row for the page, the
  * ranked rows are read, to depth 20 and beyond, before the page reads as
- * absent: a page at 14 is in the top twenty. A row past twenty is a
- * measured absence from it. A page in no row is a measured zero where the
- * rows are complete, and not measured where they are not.
+ * absent: a page at 14 is in the top twenty. A row past twenty is the
+ * page's measured place, and outside the top twenty (issue 1548). A page
+ * in no row is a measured zero where the rows are complete, and not
+ * measured where they are not.
  */
 export function placeOf(reading: Measured<SearchRows>, addresses: readonly string[]): Measured<number> {
   if (reading.kind === "unmeasured") return unmeasured<number>(reading.reason, reading.at, reading.because);
@@ -124,7 +125,7 @@ export function placeOf(reading: Measured<SearchRows>, addresses: readonly strin
     return found;
   };
   const place = best(reading.value.serp ?? []) ?? best(reading.value.ranked);
-  if (place !== null) return place <= TRACKED_DEPTH ? measured(place, reading.at) : measuredZero(0, reading.at);
+  if (place !== null) return measured(place, reading.at);
   return reading.value.complete ? measuredZero(0, reading.at) : unmeasured<number>("undeterminable", reading.at);
 }
 
@@ -149,13 +150,12 @@ export function evaluateAcceptance(a: {
       const reading = a.week.positions.get(a.acceptance.query);
       // Absent: the search this test names is no longer measured.
       if (reading === undefined) return retired("search_untracked");
-      // `placeOf` gives a measured place only inside the top twenty, so
-      // holding one *is* passing, and the rank rides along for the
-      // movement. The `zero` arm — measured, and this page holds no place —
-      // fails it, which is a measured result and not a missing one (§6.6's
-      // cold-start law).
+      // A measured place inside the top twenty passes it, and the rank
+      // rides along for the movement. A place past twenty, and the `zero`
+      // arm — measured, and this page holds no place — fail it, which is a
+      // measured result and not a missing one (§6.6's cold-start law).
       const place = placeOf(reading, [a.pageUrl, ...(a.earlierUrls ?? [])]);
-      return decide(place, (m) => m.kind === "measured");
+      return decide(place, (m) => m.kind === "measured" && m.value <= TRACKED_DEPTH);
     }
     case "named_on": {
       const cited = a.week.ownPagesCited.get(a.acceptance.question);
