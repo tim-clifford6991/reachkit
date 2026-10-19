@@ -22,6 +22,7 @@ import type { RivalConclusion } from "@/lib/market/infer/types";
 import { promptSiteName } from "@/lib/market/prompts/generate";
 import { rewrittenSiteName, storedSiteName } from "@/lib/site-profile/site-name";
 import { AI_ANSWER_SOURCES, AI_OVERVIEW_TEXT_MAX_CHARS } from "@/lib/vendors/dataforseo/types";
+import { OWN_FETCH_SOURCE, siteDocumentOf } from "@/lib/measure/own-fetch";
 import { readStoredReport } from "./report";
 import {
   rehomeSite,
@@ -57,6 +58,67 @@ export interface StoredRead {
   source: "egress.safeFetch" | "on_page/instant_pages";
   created_at: string;
   payload: unknown;
+}
+
+/** One own-document read as `fetches` keeps it: its address and payload. */
+export interface OwnRead {
+  url: string;
+  created_at: string;
+  payload: unknown;
+}
+
+/** What `measuredOf` reads a scan's measured pages from. */
+export interface OwnReads {
+  /** The scan's own reads, in the order it read them. */
+  own: readonly OwnRead[];
+  /** The site's pages ReachKit had live when the scan ran, newest first. */
+  ours: readonly string[];
+  /** Stored reads of those pages from before the scan's last own read. */
+  oursReads: readonly OwnRead[];
+}
+
+/** A publication as `livePagesAt` reads it. */
+export interface StoredPublication {
+  live_url: string | null;
+  published_at: string | null;
+  unpublished_at: string | null;
+}
+
+/** The pages that were live at `at`, newest first. */
+export function livePagesAt(publications: readonly StoredPublication[], at: string): string[] {
+  const t = Date.parse(at);
+  return publications
+    .filter((p): p is StoredPublication & { live_url: string; published_at: string } => p.live_url !== null && p.published_at !== null)
+    .filter((p) => Date.parse(p.published_at) <= t && (p.unpublished_at === null || Date.parse(p.unpublished_at) > t))
+    .sort((a, b) => b.published_at.localeCompare(a.published_at))
+    .map((p) => p.live_url);
+}
+
+/** A sitemap or feed is a document the crawl read, not a page of the site. */
+const NOT_A_PAGE_RE = /^\s*(?:<\?xml|<urlset|<sitemapindex|<rss|<feed)/i;
+
+/**
+ * Issue 1551: a scan's measured pages as its own reads hold them, in the
+ * order a pass names them — ReachKit's live pages first, then the pages the
+ * scan read itself — with each address's read: the scan's own where it read
+ * it, else the newest stored read before its last one. `undefined` where the
+ * scan ledgered no read of its own (its reads were served from an earlier
+ * pass's rows, which are not this scan's pages).
+ */
+export function measuredOf(r: OwnReads): RescoreScan["measured"] {
+  if (r.own.length === 0) return undefined;
+  const reads = new Map<string, unknown>();
+  for (const read of r.own) reads.set(read.url, read.payload);
+  const last = r.own.reduce((max, read) => (read.created_at > max ? read.created_at : max), r.own[0]!.created_at);
+  const older = [...r.oursReads].filter((read) => read.created_at <= last).sort((a, b) => b.created_at.localeCompare(a.created_at));
+  for (const read of older) if (!reads.has(read.url)) reads.set(read.url, read.payload);
+  const crawled = r.own
+    .filter((read) => {
+      const document = siteDocumentOf(read.payload);
+      return document !== null && !NOT_A_PAGE_RE.test(document.html);
+    })
+    .map((read) => read.url);
+  return { pages: [...new Set([...r.ours, ...crawled])], reads };
 }
 
 export interface StoredSiteRow {
@@ -105,6 +167,10 @@ export interface RescoreStore {
   homeReads(domain: string): Promise<readonly StoredRead[]>;
   sites(): Promise<readonly StoredSiteRow[]>;
   profiles(): Promise<readonly StoredProfileName[]>;
+  /** Issue 1551: a paying site's scan's own-document reads (`fetches` under
+   *  its id, in the order it read them), and the stored reads of the pages
+   *  ReachKit had live for the site when it ran (`livePagesAt`). */
+  ownReads(scan: Pick<StoredScanRow, "id" | "siteId" | "createdAt">): Promise<OwnReads>;
   /** The AI Mode and ChatGPT answers a scan bought, as `fetches` keeps them
    *  under it (issue 1420). Asked only for a site's current scan, the one
    *  whose report carries those engines' cells. */
@@ -221,7 +287,7 @@ function homeOf(report: RescoreReport, reads: readonly StoredRead[]): { created_
 export function rescoreRow(
   scan: StoredScanRow,
   reads: readonly StoredRead[],
-  said: { siteName: string | null; answers: readonly StoredAnswer[]; market?: RescoreScan["market"] } = { siteName: null, answers: [] }
+  said: { siteName: string | null; answers: readonly StoredAnswer[]; market?: RescoreScan["market"]; measured?: RescoreScan["measured"] } = { siteName: null, answers: [] }
 ): Row | { id: string; because: string } {
   let report: RescoreReport;
   try {
@@ -241,6 +307,7 @@ export function rescoreRow(
     answers: said.answers,
     startedAt: scan.createdAt,
     ...(said.market === undefined ? {} : { market: said.market }),
+    ...(said.measured === undefined ? {} : { measured: said.measured }),
   });
   return { scan, report, result };
 }
@@ -431,7 +498,7 @@ function keptLines(rows: readonly Row[], unreadable: readonly { id: string; beca
     for (const reason of result.kept) byReason.set(reason, [...(byReason.get(reason) ?? []), `${report.domain} (${scan.id.slice(0, 8)})`]);
   }
   const lines = [
-    "- Answerability, on every scan: it is read from the home page and the pages beyond it, and a report keeps only the home page's facts. Its stored value stands.",
+    "- Answerability on a free scan, and on a paid scan that ledgered no read of its own: its stored value stands.",
   ];
   for (const [reason, scans] of byReason) lines.push(`- ${reason}: ${scans.length} — ${scans.join(", ")}`);
   for (const u of unreadable) lines.push(`- ${u.id.slice(0, 8)}: not readable by this build — ${u.because}`);
@@ -516,7 +583,13 @@ export async function rescoreStored(store: RescoreStore, o: RescoreOptions): Pro
     for (const scan of ofDomain) {
       const answers = scan.siteId !== null && scan.isCurrent ? await store.answers(scan.id) : [];
       const market = scan.siteId === null ? undefined : markets.get(scan.siteId);
-      const said = { siteName: names.get(domain) ?? null, answers, ...(market === undefined ? {} : { market }) };
+      const measured = scan.siteId === null ? undefined : measuredOf(await store.ownReads(scan));
+      const said = {
+        siteName: names.get(domain) ?? null,
+        answers,
+        ...(market === undefined ? {} : { market }),
+        ...(measured === undefined ? {} : { measured }),
+      };
       const row = quietly(() => rescoreRow(scan, reads, said));
       if ("result" in row) rows.push(row);
       else unreadable.push(row);
@@ -741,6 +814,38 @@ export function databaseRescore(): RescoreQueue & RescoreStore {
         await (await client()).from<StoredProfileName>("site_profiles").select("domain, site_name, home_title:inventory->0->>title")
       );
       return rows ?? [];
+    },
+    async ownReads(scan) {
+      const db = await client();
+      const own = checked(
+        await db
+          .from<{ cache_key: string; created_at: string; payload: unknown }>("fetches")
+          .select("cache_key, created_at, payload")
+          .eq("scan_id", scan.id)
+          .eq("source", OWN_FETCH_SOURCE)
+          .order("created_at", { ascending: true })
+      );
+      if (scan.siteId === null || (own ?? []).length === 0) return { own: [], ours: [], oursReads: [] };
+      const publications = checked(
+        await db
+          .from<StoredPublication>("publications")
+          .select("live_url, published_at, unpublished_at")
+          .eq("site_id", scan.siteId)
+          .not("live_url", "is", null)
+      );
+      const ours = livePagesAt(publications ?? [], scan.createdAt);
+      const oursReads =
+        ours.length === 0
+          ? []
+          : checked(
+              await db
+                .from<{ cache_key: string; created_at: string; payload: unknown }>("fetches")
+                .select("cache_key, created_at, payload")
+                .eq("source", OWN_FETCH_SOURCE)
+                .in("cache_key", ours)
+            );
+      const read = (row: { cache_key: string; created_at: string; payload: unknown }): OwnRead => ({ url: row.cache_key, created_at: row.created_at, payload: row.payload });
+      return { own: (own ?? []).map(read), ours, oursReads: (oursReads ?? []).map(read) };
     },
     async answers(scanId) {
       const rows = checked(

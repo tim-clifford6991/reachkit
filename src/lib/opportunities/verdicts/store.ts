@@ -147,7 +147,7 @@ export interface VerdictStore {
   /** Writes a page's intent onto its draft (`drafts.meta.intent`). */
   recordIntent?(a: { draftId: string; intent: PageIntent }): Promise<void>;
   /** Issue 1538: every address any of the site's stored scans held in a
-   *  SERP or a ranked row. Optional: a store without it states no page's
+   *  SERP or a ranked row, the page questions' results included (1548). Optional: a store without it states no page's
    *  index state. */
   seenUrls?(siteId: string): Promise<readonly string[]>;
 }
@@ -461,8 +461,8 @@ export function supabaseVerdictStore(): VerdictStore {
 
     async seenUrls(siteId) {
       const { data, error } = await untyped()
-        .from<{ serps: unknown; ranked: unknown }>("scans")
-        .select("serps:report->serps, ranked:report->ownRankedRows")
+        .from<{ serps: unknown; ranked: unknown; pages: unknown }>("scans")
+        .select("serps:report->serps, ranked:report->ownRankedRows, pages:report->pageQuestions->rows")
         .eq("site_id", siteId)
         .not("report", "is", null);
       if (error) throw new Error(`page_verdicts.seenUrls: ${error.message}`);

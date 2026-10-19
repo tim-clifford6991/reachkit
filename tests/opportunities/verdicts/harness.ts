@@ -126,6 +126,9 @@ export function fakeStore(a: {
    *  the previous week's place from its own report). A week not named
    *  here reads `report`. */
   reports?: Readonly<Record<string, StoredReport | null>>;
+  /** Issue 1538's stored addresses. Absent: the double states no page's
+   *  index state. */
+  seen?: readonly string[];
 }): Fake {
   const inserted: VerdictInsert[] = [];
   const rows: VerdictInsert[] = [];
@@ -163,6 +166,7 @@ export function fakeStore(a: {
     async historyBefore(q) {
       return (a.history ?? []).filter((row) => row.week < q.week);
     },
+    ...(a.seen === undefined ? {} : { seenUrls: async () => a.seen as readonly string[] }),
     async insert(next) {
       for (const row of next) {
         inserted.push(row);
