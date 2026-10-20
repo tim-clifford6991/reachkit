@@ -281,6 +281,9 @@
     "/scan/x.com": {
       "status": 200
     },
+    "/scans": {
+      "status": 200
+    },
     "/signup": {
       "status": 301,
       "location": "/"
