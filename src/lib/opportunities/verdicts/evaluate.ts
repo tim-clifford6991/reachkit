@@ -1,60 +1,22 @@
-// BUILD §9 — can this week decide the test this page was created with?
+// BUILD §9 — can this week decide a fix page's recorded test?
 //
-// Pure: no clock, no database, no network, no model. It reads the recorded
-// `Acceptance` and never writes it — §7's test is written once at creation
-// (`opportunities.acceptance`'s own `before update` trigger is that
-// invariant), including where it can no longer be evaluated. REQ-063 c6:
-// "its recorded test is not rewritten to something that could be judged."
-//
-// **It produces one of the five causes** — `search_untracked`, read as an
-// *absent key* in the week's measurements. The other three are the
-// caller's, from stored state this function's inputs do not carry:
-// `unpublished` is the publication's own state, `domain_changed` is the publication's domain against the week's,
-// and `page_not_found` is what the one check at 24 hours recorded.
-//
-// **A code path here that returns `page_not_found` is the ADR-085 merge
-// arriving by the back door.** This module makes no request and reads no
-// publication row, so it cannot know a page's absence; a value it cannot
-// observe is a value it must not name. The negative sweep in
-// `evaluate.test.ts` is what holds that line — a positive-only suite is
-// green either way.
+// Pure: no clock, no database, no network, no model. A page placed on a
+// search or a question is labelled from its reading (`verdict.ts`); only a
+// gate or a site check is decided from the week's own measurement here.
 import { measured, type Measured } from "@/lib/measure/measured";
 import type { SiteIssuesSection } from "@/lib/site-issues/types";
-import { addressOf, placeOf, TRACKED_DEPTH } from "@/lib/measure/page-reading";
 import type { Acceptance, PageFix } from "../types";
-import type { NotJudgeableCause, WeekMeasurements } from "./types";
+import type { WeekMeasurements } from "./types";
 
-/**
- * What one week can say about one recorded test. **Three arms, not two.**
- *
- * WO-204 declared this as a two-arm return — decided, or a
- * `NotJudgeableCause` — and a two-arm return cannot express REQ-063 c5's
- * transient case at all: "each remaining page stating that it was not
- * measured this week" is `not_measured`, which ADR-071 forbids merging
- * into `not_judgeable` precisely because one is a week's miss and the
- * other retires a page forever. Folding the two would write a transient
- * miss down as a permanent state, which is the whole of what this
- * subsystem is shaped to prevent. So the third arm is declared, and the
- * `cause` arm still carries only the two causes this function can observe.
- */
+/** Decided, or this week's transient miss, which writes no row. */
 export type Evaluation =
   | { readonly decided: true; readonly passes: boolean; readonly measuredAt: Date }
-  /** REQ-063 c5 — the week reached this reading and this page's test is
-   *  still tracked; it simply was not measured. Transient. No row. */
-  | { readonly decided: false; readonly because: "not_measured" }
-  /** REQ-063 c6 — the test itself has stopped being evaluable. Terminal. */
-  | { readonly decided: false; readonly cause: NotJudgeableCause };
+  | { readonly decided: false; readonly because: "not_measured" };
 
-/**
- * The reading, once the key was found. A measurement this week did not
- * reach decides nothing, and says so as the transient arm — never as a
- * cause. `passes` is handed the whole arm rather than the value, because
- * for a search position the *arm* is the answer: `zero` is "measured, and
- * the customer holds no place", which is a result and not a gap.
- */
+/** A measurement this week did not reach decides nothing. */
 function decide<T>(
   value: Measured<T>,
-  passes: (m: { kind: "measured" | "zero"; value: T }) => boolean
+  passes: (m: { value: T }) => boolean
 ): Evaluation {
   if (value.kind === "unmeasured") return { decided: false, because: "not_measured" };
   return { decided: true, passes: passes(value), measuredAt: value.at };
@@ -62,11 +24,6 @@ function decide<T>(
 
 /** REQ-063 c5's transient arm, written once. */
 const NOT_MEASURED: Evaluation = Object.freeze({ decided: false, because: "not_measured" as const });
-
-/** REQ-063 c6's terminal arm, from an *absent key* and from nothing else. */
-function retired(cause: NotJudgeableCause): Evaluation {
-  return { decided: false, cause };
-}
 
 /**
  * Whether every named check passes for one page this week. Decided only
@@ -89,57 +46,16 @@ export function pageFixesCleared(
   return measured(true, at);
 }
 
-/**
- * Pure. Can this recorded test be decided from what this week measured?
- *
- * The three forms are §7's own — "top 20 for Q" / "named on question P" /
- * "gate passes" — and each is decided from one reading and no other.
- */
+/** Pure. Whether this week decides a gate or a site check, and how. */
 export function evaluateAcceptance(a: {
-  acceptance: Acceptance;
+  acceptance: Extract<Acceptance, { form: "gate_cleared" | "issues_cleared" }>;
   week: WeekMeasurements;
-  /** The address the page answers at. A `named_on` test and a `top20`
-   *  test read it. */
-  pageUrl: string;
-  /** The addresses the page answered at before (issue 1487). A `top20`
-   *  test counts a row at any of them as this page's. */
-  earlierUrls?: readonly string[];
-  /** The search a `named_on` page targets; a place in its top twenty also
-   *  passes the test. */
-  search?: string | null;
 }): Evaluation {
   switch (a.acceptance.form) {
-    case "top20": {
-      const reading = a.week.positions.get(a.acceptance.query);
-      // Absent: the search this test names is no longer measured.
-      if (reading === undefined) return retired("search_untracked");
-      // A measured place inside the top twenty passes it, and the rank
-      // rides along for the movement. A place past twenty, and the `zero`
-      // arm — measured, and this page holds no place — fail it, which is a
-      // measured result and not a missing one (§6.6's cold-start law).
-      const place = placeOf(reading, [a.pageUrl, ...(a.earlierUrls ?? [])]);
-      return decide(place, (m) => m.kind === "measured" && m.value <= TRACKED_DEPTH);
-    }
-    case "named_on": {
-      const cited = a.week.ownPagesCited.get(a.acceptance.question);
-      // Absent: the question was not asked this week. The asked set is
-      // capped, so that is this week's miss and never a retirement.
-      // SPEC §4 2026-09-29 (D16): the page is credited only where the
-      // answer to its own tracked question cites this page.
-      const page = addressOf(a.pageUrl);
-      const answer = cited === undefined ? NOT_MEASURED : decide(cited, (m) => m.value.some((url) => addressOf(url) === page));
-      const reading = a.search == null ? undefined : a.week.positions.get(a.search);
-      if (reading === undefined) return answer;
-      const placed = decide(placeOf(reading, [a.pageUrl, ...(a.earlierUrls ?? [])]), (m) => m.kind === "measured" && m.value <= TRACKED_DEPTH);
-      // Either goal passes the page; only its question's answer fails it.
-      return placed.decided && placed.passes ? placed : answer;
-    }
     case "gate_cleared": {
       const cleared = a.week.gatesCleared.get(a.acceptance.gate);
-      // A barrier belongs to a closed set (`BARRIERS`) and cannot leave a
-      // tracked set, so a gate this week did not look at is
-      // `not_measured` — never one of the five causes, and this branch
-      // names none.
+      // A barrier belongs to a closed set and cannot leave a tracked set, so
+      // a gate this week did not look at is this week's miss.
       if (cleared === undefined) return NOT_MEASURED;
       return decide(cleared, (m) => m.value);
     }

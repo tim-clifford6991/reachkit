@@ -34,6 +34,9 @@ import type { Barrier } from "../types";
 /** The three §9 names. */
 export type Verdict = "working" | "too_early" | "not_working";
 
+/** The four labels a page is shown with; `VERDICT_OF` stores them as three. */
+export type Label = "working" | "climbing" | "too_early" | "not_moving";
+
 /** The site-local Monday a standing belongs to, `YYYY-MM-DD` — the same
  *  calendar date `scans.week_start` carries, never an instant. A customer
  *  who moves time zone moves no verdict they have already been given. */
@@ -204,17 +207,6 @@ export interface WeekMeasurements {
    *  its own addresses (`placeOf`, issue 1518), never as the best place of
    *  any page of the domain. A key absent is `search_untracked`. */
   readonly positions: ReadonlyMap<string, Measured<SearchRows>>;
-  /** Whether this week's AI answer for a question names the customer,
-   *  keyed by the question a `named_on` test records. A key absent is a
-   *  question this week did not ask, which is `not_measured`. */
-  readonly namesCustomer: ReadonlyMap<string, Measured<boolean>>;
-  /** The site's own pages this week's AI answer for a question cited,
-   *  keyed as `namesCustomer` is and holding exactly its keys (SPEC §4
-   *  2026-09-29, D16). A `named_on` test is decided from this and not from
-   *  `namesCustomer`: an answer that names the site and cites another of
-   *  its pages is not a result of this page. `unmeasured` where the
-   *  answer's addresses were not read. */
-  readonly ownPagesCited: ReadonlyMap<string, Measured<readonly string[]>>;
   /** The site's own pages the week's answers to each tracked prompt cited,
    *  keyed by the prompt's id (SPEC §6, D60, issue 1288). `unmeasured` where
    *  none of the week's asks of it answered; a key absent is a prompt this

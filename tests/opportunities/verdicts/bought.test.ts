@@ -4,14 +4,14 @@
 import "../env";
 import { afterEach, describe, expect, it } from "vitest";
 import { weekMeasurementsFrom } from "../../../src/lib/opportunities/verdicts/measurements";
-import { placeOf } from "../../../src/lib/measure/page-reading";
+import { placeOf, type PageReading } from "../../../src/lib/measure/page-reading";
 import { judgeWeek } from "../../../src/lib/opportunities/verdicts/judge";
 import { urlsIn } from "../../../src/lib/opportunities/verdicts/seen";
 import { pageQuestionsSectionOf } from "../../../src/lib/scan/sections";
 import { measured } from "../../../src/lib/measure/measured";
 import type { StoredReport } from "../../../src/lib/scan/report";
 import { serp } from "../fixtures";
-import { AT, DOMAIN, SITE_ID, WEEK, fakeStore, pageOf, releaseStore, reportWithOwnPlace } from "./harness";
+import { AT, DOMAIN, SITE_ID, WEEK, fakeStore, pageOf, readingAt, releaseStore, reportWithOwnPlace } from "./harness";
 
 afterEach(releaseStore);
 
@@ -64,18 +64,17 @@ describe("condition 2 — a target the keyword database does not track is not me
 });
 
 describe("condition 3 — a page never seen in any stored result is never not working", () => {
-  const OLD_PAGE = pageOf({ acceptance: { form: "top20", query: TARGET }, liveUrl: PAGE, volume: 90 });
   const week = weekWithPageSerp([{ position: 1, url: "https://appcues.com/a" }]);
+  const page = (reading: PageReading) => pageOf({ acceptance: { form: "top20", query: TARGET }, liveUrl: PAGE, volume: 90, reading });
 
-  it("unseen: too early in week 4 and later, so its cluster is not suppressed and no refresh is due; seen, it is not working", async () => {
-    const store = fakeStore({ pages: [OLD_PAGE], report: week, seen: ["https://appcues.com/a"] });
+  it("never held: too early, so its cluster is not suppressed and no refresh is due; held at 40 for 8 weeks, it is not working", async () => {
+    const store = fakeStore({ pages: [page(readingAt(null))], report: week });
     const { standings } = await judgeWeek({ siteId: SITE_ID, week: WEEK });
     expect(standings[0]?.standing).toMatchObject({ kind: "verdict", verdict: "too_early" });
     expect(store.inserted[0]).toMatchObject({ verdict: "too_early", measured: { kind: "zero" } });
     releaseStore();
 
-    // Seen once, in any stored result: the same week is not working.
-    fakeStore({ pages: [OLD_PAGE], report: week, seen: [`${PAGE}/`] });
+    fakeStore({ pages: [page(readingAt(40, { weeksAgo: 8 }))], report: week });
     const seen = await judgeWeek({ siteId: SITE_ID, week: WEEK });
     expect(seen.standings[0]?.standing).toMatchObject({ kind: "verdict", verdict: "not_working" });
   });

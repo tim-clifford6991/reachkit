@@ -47,7 +47,6 @@ import { intentFor, type IntentPrompt, type PageIntent } from "../intent";
 import { addressOf, placeOf } from "@/lib/measure/page-reading";
 import { evaluateAcceptance } from "./evaluate";
 import { weekMeasurementsFrom } from "./measurements";
-import { indexStateOf } from "./seen";
 import { movementFor } from "./movement";
 import {
   noteFor,
@@ -64,7 +63,7 @@ import type {
   WeekStanding,
   WeekStart,
 } from "./types";
-import { verdictFor } from "./verdict";
+import { verdict, VERDICT_OF } from "./verdict";
 
 export interface PageStanding {
   readonly publicationId: string;
@@ -128,10 +127,6 @@ export async function judgeWeek(a: {
   // changes nothing stored.
   const prompts = store.trackedPrompts === undefined ? [] : await store.trackedPrompts(a.siteId).catch(() => []);
 
-  // Issue 1548: every address the site's stored results held, this week's
-  // included. `null` where it cannot be read, which states no page unseen.
-  const seenUrls = store.seenUrls === undefined ? null : await store.seenUrls(a.siteId).catch(() => null);
-
   const standings: PageStanding[] = [];
   const rows: VerdictInsert[] = [];
 
@@ -141,8 +136,7 @@ export async function judgeWeek(a: {
     if (intent !== null && !sameIntent(intent, page.intent ?? null) && page.draftId != null) {
       await store.recordIntent?.({ draftId: page.draftId, intent });
     }
-    const unseen = seenUrls !== null && indexStateOf(addressesOf(page), seenUrls) === "not_verified";
-    const decided = judgeOne({ page, intent, measurements, earlier, week: a.week, priorRows, unseen });
+    const decided = judgeOne({ page, intent, measurements, earlier, week: a.week, priorRows });
     standings.push({ publicationId: page.publicationId, standing: decided.standing });
     if (decided.row !== null) {
       rows.push({ ...decided.row, siteId: a.siteId, week: a.week, scanId: week.scanId });
@@ -233,8 +227,6 @@ function judgeOne(a: {
   earlier: ReadonlyMap<WeekStart, WeekMeasurements | null>;
   week: WeekStart;
   priorRows: readonly VerdictRecord[];
-  /** Issue 1538's `not_verified`: no stored result has held this page. */
-  unseen?: boolean;
 }): OnePage {
   const { page } = a;
   const lastJudgedWeek = lastVerdictWeek(a.priorRows);
@@ -265,54 +257,30 @@ function judgeOne(a: {
     };
   }
 
-  // 3. The recorded test, against what this week measured.
-  //    A page with a tracked prompt has a second goal (D60, issue 1288): the
-  //    week's answers to that prompt citing it. Either goal is the page
-  //    working, so a citation decides a week whose search was not read.
-  const tested = evaluateAcceptance({
-    acceptance: page.acceptance,
-    week: a.measurements,
-    pageUrl: page.liveUrl,
-    earlierUrls: page.earlierUrls,
-    search: searchOf(page),
-  });
+  // 3. A fix page's gate or site check is decided from the week; every page
+  //    is otherwise labelled from its own reading. The week's answers to its
+  //    tracked prompt citing it are an AI link too (D60).
+  const acceptance = page.acceptance;
+  const fix =
+    acceptance.form === "gate_cleared" || acceptance.form === "issues_cleared"
+      ? evaluateAcceptance({ acceptance, week: a.measurements })
+      : null;
   const citation = citationOf(page, a.intent, a.measurements);
   const cited = citation !== null && citation.cited.kind === "measured";
-  const evaluation =
-    !cited || "cause" in tested
-      ? tested
-      : { decided: true as const, passes: true, measuredAt: tested.decided ? tested.measuredAt : a.measurements.measuredAt };
-  if (!evaluation.decided) {
-    if ("cause" in evaluation) {
-      return {
-        standing: notJudgeable(evaluation.cause, lastJudgedWeek),
-        row: {
-          publicationId: page.publicationId,
-          verdict: "not_judgeable",
-          cause: evaluation.cause,
-          measuredAt: null,
-          measured: null,
-          movement: null,
-        },
-      };
-    }
-    // REQ-063 c5's second half: this week measured too little to decide
-    // this page. **No row** — a transient miss has nowhere to be written
-    // down, so it cannot become permanent.
-    return { standing: NOT_MEASURED, row: null };
-  }
-
-  const judged = verdictFor({
-    passes: evaluation.passes,
-    publishedAt: page.publishedAt,
-    week: a.week,
-  });
-  // Issue 1548: a page no stored result has ever held was never seen to
-  // fail its search or its question, so it is too early, never not working —
-  // which is what keeps its cluster open and its page unrewritten.
-  const verdict = judged === "not_working" && a.unseen === true && seenTest(page) ? "too_early" : judged;
-
+  const reading = page.reading ?? null;
+  const label =
+    cited || (fix?.decided === true && fix.passes)
+      ? "working"
+      : fix?.decided === false || reading === null
+        ? null
+        : verdict(reading, a.measurements.measuredAt);
   const place = measurementOf(page, a.measurements);
+  // A page this week cannot label, or would call not moving on a place it did
+  // not read, writes no row, so a miss is never permanent (ADR-071 point 2).
+  if (label === null || (label === "not_moving" && place?.kind === "unmeasured")) return { standing: NOT_MEASURED, row: null };
+  const judged = VERDICT_OF[label];
+  const measuredAt = fix?.decided === true ? fix.measuredAt : a.measurements.measuredAt;
+
   const movement =
     place === null
       ? null
@@ -323,8 +291,8 @@ function judgeOne(a: {
   return {
     standing: {
       kind: "verdict",
-      verdict,
-      measuredAt: evaluation.measuredAt,
+      verdict: judged,
+      measuredAt,
       movement,
       // c1: shown beside the verdict and never in place of one. It is
       // composed after the verdict, from the stored record, and is never
@@ -333,20 +301,13 @@ function judgeOne(a: {
     },
     row: {
       publicationId: page.publicationId,
-      verdict,
+      verdict: judged,
       cause: null,
-      measuredAt: evaluation.measuredAt,
+      measuredAt,
       measured,
       movement,
     },
   };
-}
-
-/** The tests a page is judged on in search: its place on a search, and an
- *  AI answer to its question citing it. A gate or a site check is decided
- *  without the page being found. */
-function seenTest(page: PublishedPage): boolean {
-  return page.acceptance.form === "top20" || page.acceptance.form === "named_on";
 }
 
 function notJudgeable(cause: NotJudgeableCause, lastJudgedWeek: WeekStart | null): WeekStanding {

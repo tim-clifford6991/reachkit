@@ -19,6 +19,7 @@ import {
   WEEK,
   fakeStore,
   pageOf,
+  readingAt,
   record,
   releaseStore,
   reportWithOwnPlace,
@@ -26,6 +27,9 @@ import {
 } from "./harness";
 import { measured, unmeasured } from "../../../src/lib/measure/measured";
 import { AT, DOMAIN, SITE_ID, question, reportOf, serp } from "../fixtures";
+import { assembleReading, readingOf, type PageReading } from "../../../src/lib/measure/page-reading";
+import { readStoredReport, type StoredReport } from "../../../src/lib/scan/report";
+import { LOCAL, SAAS, stored, weekWith } from "../../measure/reading-fixture";
 
 afterEach(releaseStore);
 
@@ -38,7 +42,7 @@ describe("REQ-063 c1 — every publicly served published page is judged against 
   });
 
   it("a page absent from a SERP the week did read is judged, not withheld", async () => {
-    fakeStore({ report: reportWithOwnPlace(null) });
+    fakeStore({ pages: [pageOf({ reading: readingAt(50, { weeksAgo: 8 }) })], report: reportWithOwnPlace(null) });
     const { standings } = await judgeWeek({ siteId: SITE_ID, week: WEEK });
     expect(standings[0]?.standing).toMatchObject({ kind: "verdict", verdict: "not_working" });
   });
@@ -174,7 +178,7 @@ describe("REQ-063 c6 — the three causes this node supplies, from stored state"
         pageOf({ publicationId: "unpublished", unpublishedAt: AT }),
         pageOf({ publicationId: "missing", verification: verification("page_not_found") }),
         pageOf({ publicationId: "moved", domain: "elsewhere.com" }),
-        pageOf({ publicationId: "left", acceptance: { form: "named_on", question: "a question nobody asks" } }),
+        pageOf({ publicationId: "unread", reading: null }),
       ],
       report: reportWithOwnPlace(3),
     });
@@ -220,10 +224,10 @@ describe("#795 — a page's search is read every week, in the twelve or not", ()
   });
 
   it("a site that ranks for it outside the top twenty, or not at all, is judged — never untracked", async () => {
-    fakeStore({
+    const store = fakeStore({
       pages: [
-        pageOf({ publicationId: "deep", acceptance: OUTSIDE, liveUrl: CHECKLIST }),
-        pageOf({ publicationId: "absent", acceptance: { form: "top20", query: "a search the site holds no place on" }, volume: 90 }),
+        pageOf({ publicationId: "deep", acceptance: OUTSIDE, liveUrl: CHECKLIST, reading: readingAt(35, { weeksAgo: 8 }) }),
+        pageOf({ publicationId: "absent", acceptance: { form: "top20", query: "a search the site holds no place on" }, volume: 90, reading: readingAt(null) }),
       ],
       report: reportWithOwnPlace(3, {
         ownRanked: measured(1, AT),
@@ -233,11 +237,12 @@ describe("#795 — a page's search is read every week, in the twelve or not", ()
     const { standings } = await judgeWeek({ siteId: SITE_ID, week: WEEK });
     expect(standings.map((s) => s.standing)).toMatchObject([
       { kind: "verdict", verdict: "not_working" },
-      { kind: "verdict", verdict: "not_working" },
+      { kind: "verdict", verdict: "too_early" },
     ]);
+    expect(store.inserted.map((row) => row.measured?.kind)).toEqual(["measured", "zero"]);
   });
 
-  it("rows that were not read, or that are fewer than the site ranks for, decide nothing this week and write nothing", async () => {
+  it("rows that were not read, or that are fewer than the site ranks for, record no place: the label is the reading's", async () => {
     for (const over of [
       { ownRanked: unmeasured<number>("not_attempted", AT), ownRankedRows: [] },
       { ownRanked: measured(500, AT), ownRankedRows: [row("something else", 4)] },
@@ -247,8 +252,8 @@ describe("#795 — a page's search is read every week, in the twelve or not", ()
         report: reportWithOwnPlace(3, over),
       });
       const { standings } = await judgeWeek({ siteId: SITE_ID, week: WEEK });
-      expect(standings[0]?.standing).toEqual({ kind: "not_measured" });
-      expect(store.inserted).toEqual([]);
+      expect(standings[0]?.standing).toMatchObject({ kind: "verdict", verdict: "working" });
+      expect(store.inserted[0]?.measured?.kind).toBe("unmeasured");
       releaseStore();
     }
   });
@@ -302,10 +307,10 @@ describe("issue 1518 — a page's Google verdict is about that page's own addres
   const weekOf = (organic: readonly (typeof HOME)[], over: Parameters<typeof reportOf>[1] = {}) =>
     reportOf({ questions: [question()], serps: [serp({ organic: [...organic] })] }, over);
 
-  it("the home page at #3 with the article absent is not_working, and records no place", async () => {
-    const store = fakeStore({ report: weekOf([HOME]) });
+  it("the home page at #3 with the article never held is too early, and records no place", async () => {
+    const store = fakeStore({ pages: [pageOf({ reading: readingAt(null) })], report: weekOf([HOME]) });
     const { standings } = await judgeWeek({ siteId: SITE_ID, week: WEEK });
-    expect(standings[0]?.standing).toMatchObject({ kind: "verdict", verdict: "not_working" });
+    expect(standings[0]?.standing).toMatchObject({ kind: "verdict", verdict: "too_early" });
     expect(store.inserted[0]?.measured).toMatchObject({ kind: "zero" });
   });
 
@@ -318,12 +323,12 @@ describe("issue 1518 — a page's Google verdict is about that page's own addres
     expect(store.inserted[0]?.measured).toMatchObject({ kind: "measured", value: 14 });
   });
 
-  it("issue 1537 — on a site whose ranked rows were capped, an article in neither the SERP nor the rows is not_measured", async () => {
+  it("issue 1537 — on a site whose ranked rows were capped, an article in neither the SERP nor the rows records no place", async () => {
     const elsewhere = Array.from({ length: 300 }, (_, i) => ({ keyword: `other search ${i}`, position: 1 + (i % 50), searchVolume: 90, url: `https://${DOMAIN}/p${i}` }));
     const store = fakeStore({ report: weekOf([HOME], { ownRanked: measured(1200, AT), ownRankedRows: elsewhere }) });
     const { standings } = await judgeWeek({ siteId: SITE_ID, week: WEEK });
-    expect(standings[0]?.standing).toEqual({ kind: "not_measured" });
-    expect(store.rows).toHaveLength(0);
+    expect(standings[0]?.standing).toMatchObject({ kind: "verdict" });
+    expect(store.rows[0]?.measured?.kind).toBe("unmeasured");
   });
 
   it("the movement compares the page's own places, read again from the previous week's stored report", async () => {
@@ -381,5 +386,33 @@ describe("issue 1518 — the addresses a page answered at before", () => {
     const refresh = row("r", "https://content.example.com/a", "https://content.example.com/a");
     expect(earlierAddresses(write, [write], "https://content.example.com/a")).toEqual([]);
     expect(earlierAddresses(refresh, [refresh, write], "https://content.example.com/a")).toEqual([]);
+  });
+});
+
+describe("ADR-071 point 2 — a week whose place was not read is never stored as not moving", () => {
+  const WEEK_MS = 7 * 86_400_000;
+
+  it("15 for 9 weeks, then a week whose ranked rows were capped, writes no not_working row (SaaS and local)", async () => {
+    for (const panel of [SAAS, LOCAL]) {
+      const weekAt = (place: number | null): StoredReport =>
+        weekWith({ domain: panel.domain, asked: [{ publicationId: "pub-1", liveUrl: panel.page, search: panel.search, place }] });
+      // The capped week: the site ranks for more searches than the rows kept.
+      const capped: StoredReport = { ...weekAt(null), ownRanked: measured(1200, AT) };
+      const weeks = [...Array<StoredReport>(9).fill(weekAt(15)), capped];
+      const page = { id: "pub-1", liveUrl: panel.page, search: panel.search, crawled: false, aiReads: 0, aiVisits: 0, google: null, bing: null };
+      let reading: PageReading | null = null;
+      weeks.forEach((report, n) => {
+        const now = new Date(AT.getTime() - (weeks.length - 1 - n) * WEEK_MS);
+        reading = readingOf(stored(assembleReading({ before: reading, report: readStoredReport(stored(report)), page, now }) as never));
+      });
+      const store = fakeStore({
+        pages: [pageOf({ domain: panel.domain, liveUrl: panel.page, acceptance: { form: "top20", query: panel.search }, reading })],
+        report: capped,
+      });
+      const { standings } = await judgeWeek({ siteId: SITE_ID, week: WEEK });
+      expect(standings[0]?.standing).toEqual({ kind: "not_measured" });
+      expect(store.rows).toHaveLength(0);
+      releaseStore();
+    }
   });
 });

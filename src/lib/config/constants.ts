@@ -1464,7 +1464,10 @@ export const FIT_WEIGHT = Object.freeze({ winnable: 1.0, reach: 0.5, "not-yet": 
 export const WEEK_PLAN = Object.freeze({ days: 7, spares: 3 } as const);
 export const PLAN_DEPTH = WEEK_PLAN.days + WEEK_PLAN.spares;  // BP-041 d4 · REQ-095 c1
 export const SUPPLY_SHORT_BELOW = WEEK_PLAN.days;            // BP-041 d4 · REQ-095 c5
-export const TOO_EARLY_WEEKS = 3 as const;                   // BP-051 d4 · REQ-063 c2
+/** A page's window: a gain counts inside it, and a page whose best place is
+ *  this old with no AI link is not moving (owner, 2026-10-19, B1 · M-a). */
+export const TOO_EARLY_WEEKS = 8 as const;                   // BP-051 d4 · REQ-063 c2
+export const CLIMB_PLACES = 10 as const;                     // owner 2026-10-19 B1
 
 // Generation
 export const SHINGLE_SIZE = 5 as const;                      // BP-042 · REQ-050 c9

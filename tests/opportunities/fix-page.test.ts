@@ -147,20 +147,18 @@ describe("the recorded test — issues_cleared", () => {
     measuredAt: AT,
     domain: "example.com",
     positions: new Map(),
-    namesCustomer: new Map(),
-    ownPagesCited: new Map(),
     promptCitations: new Map(),
     gatesCleared: new Map(),
     siteIssues,
   });
 
   it("passes when the page was checked and is no longer affected, fails while it still is", () => {
-    expect(evaluateAcceptance({ acceptance, pageUrl: PRICING, week: week(section({ titles: [] })) })).toMatchObject({ decided: true, passes: true });
-    expect(evaluateAcceptance({ acceptance, pageUrl: PRICING, week: week(section({ titles: [PRICING] })) })).toMatchObject({ decided: true, passes: false });
+    expect(evaluateAcceptance({ acceptance, week: week(section({ titles: [] })) })).toMatchObject({ decided: true, passes: true });
+    expect(evaluateAcceptance({ acceptance, week: week(section({ titles: [PRICING] })) })).toMatchObject({ decided: true, passes: false });
   });
 
   it("is this week's miss — never a pass — where the page was not checked or no checks were recorded", () => {
-    expect(evaluateAcceptance({ acceptance, pageUrl: PRICING, week: week(section({ checked: [ABOUT] })) })).toEqual({ decided: false, because: "not_measured" });
-    expect(evaluateAcceptance({ acceptance, pageUrl: PRICING, week: week(null) })).toEqual({ decided: false, because: "not_measured" });
+    expect(evaluateAcceptance({ acceptance, week: week(section({ checked: [ABOUT] })) })).toEqual({ decided: false, because: "not_measured" });
+    expect(evaluateAcceptance({ acceptance, week: week(null) })).toEqual({ decided: false, because: "not_measured" });
   });
 });
