@@ -43,6 +43,7 @@
 // this file** (ADR-050). `state` is derived from `cancelled_at`, which is
 // the fact the card is actually asking about.
 import { PRICE_COPY_KEYS } from "../checkout/copy-keys";
+import { earlierRefunds, REFUND_WINDOW_DAYS } from "./refund";
 import { billingStore } from "./store";
 
 /** Whether the plan is running or has been cancelled. It selects which of
@@ -69,6 +70,10 @@ export interface BillingSummary {
    *  control to it rather than a list of its own. A literal, so a second
    *  destination cannot be introduced by a call site. */
   readonly invoicesVia: "portal";
+  /** D4: a cancel now would be refunded by itself — inside the first 14
+   *  days and with no earlier refund for this web address. False where
+   *  either could not be read: a promise is never made on a guess. */
+  readonly refundAutomatic: boolean;
 }
 
 export type BillingSummaryResult =
@@ -83,6 +88,9 @@ export async function billingSummary(userId: string): Promise<BillingSummaryResu
   if (read.account === null) return { ok: false, reason: "no_account" };
 
   const account = read.account;
+  const windowEnds = Date.parse(account.created_at) + REFUND_WINDOW_DAYS * 24 * 60 * 60 * 1000;
+  const inWindow = Date.now() < windowEnds;
+  const refunds = inWindow ? await earlierRefunds(userId) : null;
   return {
     ok: true,
     summary: {
@@ -93,6 +101,7 @@ export async function billingSummary(userId: string): Promise<BillingSummaryResu
       cancelledAt: account.cancelled_at === null ? null : new Date(account.cancelled_at),
       planStatus: account.plan_status,
       invoicesVia: "portal",
+      refundAutomatic: refunds !== null && refunds.length === 0,
     },
   };
 }

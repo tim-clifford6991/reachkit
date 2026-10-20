@@ -28,6 +28,9 @@ export interface MemoryBilling {
   /** Delivered publications and finished scans, as `period` filters them. */
   publications: (PeriodPageRow & { site_id: string; published_at: string; unpublished_at: string | null })[];
   scans: { site_id: string; created_at: string; status: "running" | "done" | "degraded" | "failed" }[];
+  /** `sites.domain` as stored, per owner. */
+  domains: { user_id: string; domain: string | null }[];
+  refunds: { invoice_id: string; user_id: string; domains: readonly string[]; refunded_at: string }[];
   failAccountRead: boolean;
   failHostingRead: boolean;
   failWrite: boolean;
@@ -39,6 +42,8 @@ export function newMemoryBilling(): MemoryBilling {
     sites: [],
     publications: [],
     scans: [],
+    domains: [],
+    refunds: [],
     failAccountRead: false,
     failHostingRead: false,
     failWrite: false,
@@ -58,6 +63,7 @@ export function account(a: Partial<BillingRow> & { id: string }): BillingRow {
     cancelled_at: null,
     last_subscription_event_id: null,
     deleted_at: null,
+    created_at: new Date().toISOString(),
     ...a,
     id: a.id,
   };
@@ -251,6 +257,30 @@ export function memoryBillingStore(state: MemoryBilling): BillingStore {
           ? { hosting_end_notice_at: at.toISOString() }
           : { hosting_end_reminder_at: at.toISOString() };
       return patchSite(siteId, patch) ? { ok: true } : { ok: false };
+    },
+
+    async siteDomains(userId) {
+      if (state.failHostingRead) return { ok: false };
+      return {
+        ok: true,
+        domains: state.domains.flatMap((d) => (d.user_id === userId && d.domain !== null ? [d.domain] : [])),
+      };
+    },
+
+    async refundsFor(userId, domains) {
+      if (state.failAccountRead) return { ok: false };
+      return {
+        ok: true,
+        refunds: state.refunds.filter((r) => r.user_id === userId || r.domains.some((d) => domains.includes(d))),
+      };
+    },
+
+    async recordRefund(a) {
+      if (state.failWrite) return { ok: false };
+      if (!state.refunds.some((r) => r.invoice_id === a.invoiceId)) {
+        state.refunds.push({ invoice_id: a.invoiceId, user_id: a.userId, domains: a.domains, refunded_at: a.at.toISOString() });
+      }
+      return { ok: true };
     },
 
     async period(siteId, from, to) {

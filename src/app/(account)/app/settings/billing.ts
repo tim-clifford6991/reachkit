@@ -113,4 +113,7 @@ export interface BillingCard {
    * to the surface where the real card lives.
    */
   cardLast4: string | null;
+  /** D4: inside the first 14 days, with no refund yet for this web
+   *  address, the card says a cancel is refunded by itself. */
+  refundAutomatic: boolean;
 }

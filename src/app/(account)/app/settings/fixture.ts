@@ -56,6 +56,8 @@ const FIXTURE_BILLING: BillingFacts = Object.freeze({
   // card — so the row is drawn here and nowhere else until a Stripe read
   // exists; `billing.ts` states why it is not invented in between.
   cardLast4: "4242",
+  // Shown in the specimen so the layout sweep measures the refund line.
+  refundAutomatic: true,
 });
 
 export const FIXTURE_SETTINGS_FACTS: SettingsFacts = Object.freeze({

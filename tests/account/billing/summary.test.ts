@@ -54,6 +54,8 @@ describe("REQ-076 c1 — what the card reads", () => {
       cancelledAt: null,
       planStatus: "active",
       invoicesVia: "portal",
+      // Opened today, and no refund for this account.
+      refundAutomatic: true,
     });
   });
 

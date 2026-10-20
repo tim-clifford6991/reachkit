@@ -106,6 +106,7 @@ async function readBilling(userId: string): Promise<BillingFacts> {
     // card row is not drawn for a real account until a Stripe read exists
     // (#374; `billing.ts` states why it is never invented in between).
     cardLast4: null,
+    refundAutomatic: summary.value.summary.refundAutomatic,
   };
 }
 

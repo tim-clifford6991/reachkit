@@ -170,6 +170,7 @@ describe("REQ-097 — the model carries no billing value at all", () => {
       "accessUntil",
       "cardLast4",
       "readable",
+      "refundAutomatic",
       "state",
       "surfaceHref",
     ]);
@@ -187,6 +188,7 @@ describe("REQ-097 — the model carries no billing value at all", () => {
         paidThrough: new Date("2026-10-01T00:00:00.000Z"),
         surfaceHref: "https://billing.example/session",
         cardLast4: null,
+        refundAutomatic: false,
       },
     }).billing;
     expect(billing.readable && billing.cardLast4).toBeNull();

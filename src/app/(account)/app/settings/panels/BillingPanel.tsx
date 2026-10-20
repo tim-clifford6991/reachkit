@@ -216,6 +216,14 @@ export function BillingPanel(p: { billing: BillingSummary }): React.JSX.Element 
         <p className="text-xs text-base-content/70 wrap-anywhere" data-testid="billing-manage-note">
           {copy("settings.billing.manage.note")}
         </p>
+        <p className="text-xs text-base-content/70 wrap-anywhere" data-testid="billing-route">
+          {copy("settings.billing.route")}
+        </p>
+        {billing.readable && billing.refundAutomatic ? (
+          <p className="text-xs text-base-content/70 wrap-anywhere" data-testid="billing-refund">
+            {copy("settings.billing.refund")}
+          </p>
+        ) : null}
 
         {billing.readable ? null : (
           <div className="flex min-w-0 flex-col gap-1" data-testid="billing-unreadable">

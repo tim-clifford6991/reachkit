@@ -708,6 +708,16 @@ export const SETTINGS_COPY = Object.freeze({
     { slots: { date: "date" }, fixedBy: "BUILD §4.7" },
   ],
 
+  // The cancel route and the first-14-days refund (owner E13 and D4, 2026-10-19). Drafted.
+  "settings.billing.route": [
+    "Reply to any ReachKit email or use Cancel in Settings.",
+    { slots: {}, fixedBy: "E13 · drafted" },
+  ],
+  "settings.billing.refund": [
+    "Cancel within 14 days of your first payment and it is refunded in full, automatically.",
+    { slots: {}, fixedBy: "D4 · drafted" },
+  ],
+
   // Billing's "What you got this month" (owner E3, 2026-10-19). Drafted.
   "settings.month.title": ["What you got this month", { slots: {}, fixedBy: "E3 · drafted" }],
   "settings.month.period": ["Billing period {from} to {to}.", { slots: { from: "date", to: "date" }, fixedBy: "E3 · drafted" }],
