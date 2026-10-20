@@ -5,6 +5,7 @@
 // project, `renderToStaticMarkup`, the real registry.
 import { describe, expect, it, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
+import { createElement } from "react";
 import { applyEnvFixture } from "../../mail/env-fixture";
 
 applyEnvFixture();
@@ -21,6 +22,7 @@ vi.mock("@/app/(public)/_how/examples", () => ({
 
 const { default: HowItWorksPage } = await import("@/app/(public)/how-it-works/page");
 const { default: AboutPage } = await import("@/app/(public)/about/page");
+const { default: LandingPage } = await import("@/app/(public)/page");
 const { CHECK_LINES, ENGINES_NAMED, ENGINES_NAMED_COUNT, HOW_FACTS, MODEL_DECIDED, checksIn } = await import(
   "@/app/(public)/_how/facts"
 );
@@ -88,7 +90,10 @@ describe("the head, the four steps and eleven sections in the board's order", ()
   });
 
   it("every anchor the landing links to is on the page", () => {
-    for (const id of ["research", "pages", "found", "value"]) expect(html).toContain(`<section id="${id}"`);
+    const landing = renderToStaticMarkup(createElement(LandingPage, { searchParams: {} }));
+    const ids = new Set([...landing.matchAll(/href="\/how-it-works#([^"]+)"/g)].map((m) => m[1]));
+    expect(ids.size).toBeGreaterThan(0);
+    for (const id of ids) expect(html).toContain(`<section id="${id}"`);
   });
 });
 
