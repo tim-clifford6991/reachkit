@@ -101,6 +101,16 @@ describe("a page that clears every check", () => {
     });
     // What the page was written from is kept with it.
     expect((row?.meta as { pack: unknown }).pack).toEqual(pack());
+    // A page no week committed states no why.
+    expect((row?.meta as { why?: unknown }).why).toBeUndefined();
+  });
+
+  it("a page the week committed keeps why it holds the slot", async () => {
+    const why = { points: 5, parts: [{ part: "fit" as const, n: 3 }, { part: "demand" as const, n: 2 }], rule: "best" as const };
+    answers(pageParts());
+    const outcome = await run({ opportunity: { ...opportunity(), planReason: why } });
+    const row = outcome.ok ? store.rows.get(outcome.draftId) : undefined;
+    expect((row?.meta as { why?: unknown }).why).toEqual(why);
   });
 
   it("stays in `generating` with `hard_rules_passed` — the edge into review and the veto clock are the publishing engine's", async () => {

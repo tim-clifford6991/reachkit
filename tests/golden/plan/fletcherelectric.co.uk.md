@@ -4,8 +4,8 @@ From `docs/walk/panel/2026-10-10.json`: 6 stored topics, 0 committed from 2026-1
 
 **Held:** readiness: its only stored run (2026-10-10) has every topic ready: false, reason not stored (#1127).
 
-| Place | Day | Search | Type | Fit | Volume | Rule | Written as |
-|---|---|---|---|---|---|---|---|
+| Place | Day | Search | Type | Fit | Volume | Points | Parts | Rule | Written as |
+|---|---|---|---|---|---|---|---|---|---|
 
 | Not chosen | Type | Fit | Volume | Reason |
 |---|---|---|---|---|

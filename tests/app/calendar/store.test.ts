@@ -11,6 +11,7 @@ applyEnvFixture();
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { measured, unmeasured } from "@/lib/measure/measured";
+import { COPY } from "@/lib/presentation/copy";
 import type { Choice } from "@/lib/opportunities";
 import type { Opportunity } from "@/lib/opportunities";
 
@@ -226,6 +227,19 @@ describe("a planned date is planned, and claims nothing more", () => {
     expect(page.why.bestRival?.domain).toBe("rival.example");
     expect(page.why.winnability).toBe("winnable");
     expect(page.measuredAt).toEqual(AT);
+  });
+
+  it("its one why line is the reason the commit stored, most specific part first; none stored, none said", async () => {
+    withSupply(2);
+    explainChoice.mockImplementation(async (id: string) => ({
+      ...choiceFor(Number(id.replace("opp-", ""))),
+      planReason:
+        id === "opp-0"
+          ? { points: 8, parts: [{ part: "fit", n: 3 }, { part: "demand", n: 2 }, { part: "near_page_one", n: 3 }], rule: "best" }
+          : null,
+    }));
+    const facts = await readCalendarFacts({ site: SITE, month: "2026-09", now: NOW });
+    expect(facts.drafts.map((page) => page.whyLine)).toEqual([COPY["calendar.week.why.near-page-one"], null]);
   });
 
   it("a Write target's 'you' is undeterminable, never a zero — the evidence records the rival's position, not theirs", async () => {

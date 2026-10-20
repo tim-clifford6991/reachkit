@@ -299,6 +299,7 @@ export function memoryStore(state: MemoryState): OpportunityStore {
         row.plan_place = null;
         row.planned_for = null;
         row.plan_write_as = null;
+        row.plan_reason = null;
       }
       for (const entry of entries) {
         const row = state.rows.find((r) => r.id === entry.opportunityId && r.site_id === siteId);
@@ -306,6 +307,7 @@ export function memoryStore(state: MemoryState): OpportunityStore {
         row.plan_place = entry.place;
         row.planned_for = entry.plannedFor;
         row.plan_write_as = entry.writeAs;
+        row.plan_reason = entry.reason;
       }
     },
 

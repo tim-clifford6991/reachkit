@@ -213,6 +213,8 @@ export async function generateDraft(c: CostContext, a: GenerateInputs): Promise<
     // D60: the search the page should rank for and the prompt it should be
     // cited for, as decided with its topic.
     ...(a.intent === undefined || a.intent === null ? {} : { intent: a.intent }),
+    // Why the week committed the slot this page fills.
+    ...(a.opportunity.planReason == null ? {} : { why: a.opportunity.planReason }),
     ...(priorRepairs.length === 0 ? {} : { repairs: priorRepairs }),
   };
   /** The date's row, written or rewritten. `attribution` is the byline the

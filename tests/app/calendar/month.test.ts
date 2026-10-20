@@ -48,6 +48,7 @@ function draft(day: string, state: DraftOnDay["state"]): DraftOnDay {
     needsYou: null,
     standing: null,
     update: false,
+    whyLine: null,
   };
 }
 

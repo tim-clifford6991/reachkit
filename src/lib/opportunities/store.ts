@@ -33,6 +33,7 @@ import type {
   Opportunity,
   OpportunityStatus,
   OpportunityType,
+  PlanReason,
   TopicSource,
   UnreadyReason,
   Winnability,
@@ -82,6 +83,8 @@ export interface OpportunityRow {
   plan_place?: number | null;
   planned_for?: string | null;
   plan_write_as?: string | null;
+  /** Why the commit placed it: its points, their parts and the rule. */
+  plan_reason?: PlanReason | null;
   created_at: string;
 }
 
@@ -125,6 +128,7 @@ export interface PlanEntry {
   /** The site-local date, `YYYY-MM-DD`; `null` for a spare. */
   plannedFor: string | null;
   writeAs: "qa" | null;
+  reason: PlanReason;
 }
 
 /** One of the site's own pages, as `draftedPages` returns it. */
@@ -370,6 +374,7 @@ export function readOpportunity(row: OpportunityRow): Opportunity {
     unreadyReason: row.unready_reason as UnreadyReason | null,
     restUntil: typeof row.rest_until === "string" ? new Date(row.rest_until) : null,
     createdAt: new Date(row.created_at),
+    ...(row.plan_reason == null ? {} : { planReason: row.plan_reason }),
   };
 }
 
@@ -476,7 +481,7 @@ function evidenceAt(evidence: unknown, now: (url: string) => string): unknown {
 export const COLUMNS =
   "id, site_id, scan_id, type, family, target_query, target_ref, proposed_slug, " +
   "title, volume, evidence, acceptance, fit_band, business_fit, source, page_type, effort, status, cluster_key, " +
-  "absorbed_queries, ready, unready_reason, rest_until, plan_place, planned_for, plan_write_as, created_at";
+  "absorbed_queries, ready, unready_reason, rest_until, plan_place, planned_for, plan_write_as, plan_reason, created_at";
 
 export function supabaseOpportunityStore(): OpportunityStore {
   return {
@@ -813,14 +818,14 @@ export function supabaseOpportunityStore(): OpportunityStore {
     async commitPlan(siteId, entries) {
       const cleared = await untyped()
         .from<OpportunityRow>("opportunities")
-        .update({ plan_place: null, planned_for: null, plan_write_as: null })
+        .update({ plan_place: null, planned_for: null, plan_write_as: null, plan_reason: null })
         .eq("site_id", siteId)
         .not("plan_place", "is", null);
       if (cleared.error) throw new Error(`opportunities.commitPlan: ${cleared.error.message}`);
       for (const entry of entries) {
         const { error } = await untyped()
           .from<OpportunityRow>("opportunities")
-          .update({ plan_place: entry.place, planned_for: entry.plannedFor, plan_write_as: entry.writeAs })
+          .update({ plan_place: entry.place, planned_for: entry.plannedFor, plan_write_as: entry.writeAs, plan_reason: entry.reason })
           .eq("id", entry.opportunityId)
           .eq("site_id", siteId);
         if (error) throw new Error(`opportunities.commitPlan: ${error.message}`);

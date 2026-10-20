@@ -148,6 +148,7 @@ describe("REQ-045 c4 — the controls, offered where the state allows them", () 
             needsYou: null,
             standing: null,
             update: false,
+            whyLine: null,
           },
         };
         const commands = (list: readonly { kind: string; command?: string }[]) =>

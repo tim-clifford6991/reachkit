@@ -47,9 +47,7 @@ export async function planWeek(siteId: string, a: { now?: Date; from?: string } 
   // first date with no page.
   const from =
     a.from ?? new Date(mixOf(await store.draftedPages(siteId, 1), now).from * DAY_MS).toISOString().slice(0, 10);
-  const entries: PlanEntry[] = choose({ ...(await loadRanking(siteId, now)), at: now, from }).committed.map(
-    ({ opportunityId, place, plannedFor, writeAs }) => ({ opportunityId, place, plannedFor, writeAs })
-  );
+  const entries: PlanEntry[] = choose({ ...(await loadRanking(siteId, now)), at: now, from }).committed;
   await store.commitPlan(siteId, entries);
   console.log(
     JSON.stringify({

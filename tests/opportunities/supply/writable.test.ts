@@ -91,8 +91,8 @@ describe("pages left are writable days, not ready topics", () => {
 
   it("a topic another row already absorbed is counted once", () => {
     const scored = [
-      { opportunity: row("a", "keyword_page", "best generative engine optimization tools for agencies", ["how to choose geo software"]), score: 2 },
-      { opportunity: row("b", "keyword_page", "how to choose geo software"), score: 1 },
+      { opportunity: row("a", "keyword_page", "best generative engine optimization tools for agencies", ["how to choose geo software"]), points: 2, parts: [] },
+      { opportunity: row("b", "keyword_page", "how to choose geo software"), points: 1, parts: [] },
     ];
     expect(countWritable(scored, { mix: { from: 0, recent: [] } }, 30)).toBe(1);
   });

@@ -8,7 +8,6 @@ import { measured } from "../../../src/lib/measure/measured";
 import type { MarketConclusion } from "../../../src/lib/market/infer/types";
 import { setOpportunityStore } from "../../../src/lib/opportunities/store";
 import { opportunityReady, type ReadinessContext } from "../../../src/lib/opportunities/readiness";
-import { orderRanked } from "../../../src/lib/opportunities/rank/open";
 import type { Opportunity } from "../../../src/lib/opportunities/types";
 import { memoryStore, newMemoryState, type MemoryState } from "../memory-store";
 import { AT, PROFILE, SCAN_ID, SITE_ID, defaultReport, question, reportOf, search, serp, smallCounts } from "../fixtures";
@@ -245,22 +244,6 @@ describe("readiness reads the stored fit", () => {
 
   it("an update of a page at fit 1 is low_fit too", () => {
     expect(opportunityReady(row({ family: "improve", type: "refresh_page", businessFit: 1 }), READY)).toBe("low_fit");
-  });
-});
-
-describe("ranking is fit first", () => {
-  const order = (scored: { opportunity: Opportunity; score: number }[]) =>
-    orderRanked(scored).map((entry) => entry.opportunityId);
-
-  it("volume never lifts a lower fit, and a best-X ranks last in its fit whatever its score", () => {
-    expect(
-      order([
-        { opportunity: row({ id: "fit2-loud", businessFit: 2, targetQuery: "a" }), score: 0.9 },
-        { opportunity: row({ id: "best-x", businessFit: 3, source: "best_x", targetQuery: "b" }), score: 0.8 },
-        { opportunity: row({ id: "product", businessFit: 3, source: "product", targetQuery: "c" }), score: 0 },
-        { opportunity: row({ id: "gap", businessFit: 3, source: "ai_gap", targetQuery: "d" }), score: 0.1 },
-      ])
-    ).toEqual(["gap", "product", "best-x", "fit2-loud"]);
   });
 });
 

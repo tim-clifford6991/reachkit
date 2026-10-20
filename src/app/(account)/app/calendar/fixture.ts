@@ -24,6 +24,7 @@
 // carries every state the grid can draw, including both weekend columns, so
 // one screenshot exercises the whole of §4.6.
 import { measured, measuredZero, unmeasured } from "@/lib/measure/measured";
+import { whyLineOf } from "./card-lines";
 import type { CalendarFacts, DraftOnDay, WhyThisPage } from "./month";
 import type { DayKey } from "./dates";
 import type { State } from "./stages";
@@ -237,6 +238,8 @@ const DRAFTS: readonly DraftOnDay[] = Object.entries(SCHEDULE).map(([day, state]
     // Every third specimen is an update of a page the site already has, so
     // the mark and its absence are both on the owner's own preview.
     update: index % 3 === 2,
+    // A planned page states why the week holds it, so the preview shows the line.
+    whyLine: state === "planned" ? whyLineOf({ points: 5, parts: [{ part: "fit", n: 3 }, { part: "demand", n: 2 }], rule: "best" }) : null,
   };
 });
 

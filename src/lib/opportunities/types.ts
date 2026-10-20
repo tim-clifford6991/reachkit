@@ -305,8 +305,7 @@ export const OUTSIZED: Winnability = "not-yet";
  * Whether a target may fill a publishing day at all (issue 881).
  *
  * SPEC §6's right-sizing law, as a predicate rather than a weight. It was a
- * weight — `FIT_WEIGHT["not-yet"]` is 0, "so the formula cannot surface a
- * target the winnability rule bars" — and a weight does not bar anything:
+ * weight — the band's fit weight was 0 for `not-yet` — and a weight does not bar anything:
  * on the owner's own site every candidate scored 0, the order was a tie,
  * the tie-break took the biggest keyword, and ReachKit wrote "best seo
  * software" (1 000/mo) for a site ranking for three. A zero multiplicand
@@ -463,6 +462,8 @@ export interface Opportunity {
    *  is not the row's own — a comparison over D52's cap is written as a
    *  Q&A of its buyer question. Set by the ranking, never stored. */
   writeAs?: "qa";
+  /** Why the week committed it, where it is in the committed week. */
+  planReason?: PlanReason | null;
 }
 
 /** Why a candidate did not become an opportunity. Three counters, and the
@@ -491,26 +492,31 @@ export function addRejections(a: RejectionCount, b: RejectionCount): RejectionCo
 
 /** Which of the one list's rules placed a row, so a plan can say why. */
 export type PlaceRule =
-  | "update due"
   | "paced: own refresh"
   | "paced: own refresh, same topic"
   | "paced: update"
   | "paced: update, same topic"
-  | "answer owed"
-  | "answer owed, same kind"
-  | "answer owed, kind full"
   | "best"
-  | "best, kind full"
-  | "best, same kind"
+  | "best, offering full"
   | "best, same topic"
   | "over the D52 cap, as a Q&A"
   | "fix ahead of its cluster"
   | "fix, no page to precede";
 
+/** One part of a row's points, as the plan stores it. */
+export type PointPart = "fit" | "demand" | "ai_gap" | "near_page_one" | "linked_by_ai" | "not_moving";
+
+/** `opportunities.plan_reason`: the points a committed row ranked by, the
+ *  parts they sum from, and the rule that placed it. */
+export interface PlanReason {
+  points: number;
+  parts: { part: PointPart; n: number }[];
+  rule: PlaceRule | null;
+}
+
 export interface Ranked {
   opportunityId: string;
-  score: number;
-  rule?: PlaceRule;
+  reason: PlanReason;
   /** Where the day writes the topic as another type (issue 1455). */
   writeAs?: "qa";
 }

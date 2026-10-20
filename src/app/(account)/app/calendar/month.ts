@@ -114,6 +114,9 @@ export interface DraftOnDay {
    * a mark and decides nothing.
    */
   update: boolean;
+  /** The one line saying why the week holds this page, from the reason its
+   *  commit stored; `null` where none is stored. */
+  whyLine: string | null;
 }
 
 export interface PageOnDay extends DraftOnDay {

@@ -2,7 +2,7 @@
 // refresh causes.
 import "./env";
 import { describe, expect, it } from "vitest";
-import { isCloseUpdate } from "../../src/lib/opportunities/close";
+import { pointsOf } from "../../src/lib/opportunities/rank/points";
 import {
   absorbedBy,
   oldestPriceOf,
@@ -67,7 +67,7 @@ describe("a page of ours close to page one is due a `close` refresh", () => {
   it("ranks as a close update, and takes the place of the page's own `answerable_page`", () => {
     const [refresh] = refreshCandidates([livePage({ age: 40 })], ranked(URL, 9), AT);
     expect(refresh?.evidence).toMatchObject({ shortfall: { kind: "due", cause: "close" } });
-    expect(isCloseUpdate(refresh as unknown as Opportunity)).toBe(true);
+    expect(pointsOf(refresh as unknown as Opportunity, { cited: new Set(), prompts: [] }).parts).toContainEqual({ part: "near_page_one", n: 3 });
     const open = [
       { id: "same-page", type: "answerable_page" as const, targetRef: "https://www.content.example.com/crm-pricing" },
       { id: "other-page", type: "answerable_page" as const, targetRef: "https://example.com/" },

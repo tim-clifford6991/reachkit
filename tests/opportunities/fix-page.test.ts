@@ -87,9 +87,9 @@ function opportunity(id: string, family: Opportunity["family"], clusterKey: stri
 describe("ranking — a ready fix outranks new writing for its cluster", () => {
   it("goes ahead of the first Write row, and leaves a higher-scored Improve where it was", () => {
     const scored = [
-      { opportunity: opportunity("improve", "improve", null), score: 0.9 },
-      { opportunity: opportunity("write-a", "write", null), score: 0.8 },
-      { opportunity: opportunity("write-b", "write", null), score: 0.5 },
+      { opportunity: opportunity("improve", "improve", null), points: 9, parts: [] },
+      { opportunity: opportunity("write-a", "write", null), points: 8, parts: [] },
+      { opportunity: opportunity("write-b", "write", null), points: 5, parts: [] },
     ];
     const order = placeFixPages(scored, [opportunity("fix", "fix", null)]).map((r) => r.opportunityId);
     expect(order).toEqual(["improve", "fix", "write-a", "write-b"]);
@@ -97,8 +97,8 @@ describe("ranking — a ready fix outranks new writing for its cluster", () => {
 
   it("once clusters exist, only ahead of Write rows in its own cluster; with none to precede it goes last", () => {
     const scored = [
-      { opportunity: opportunity("write-other", "write", "pricing"), score: 0.8 },
-      { opportunity: opportunity("write-own", "write", "onboarding"), score: 0.5 },
+      { opportunity: opportunity("write-other", "write", "pricing"), points: 8, parts: [] },
+      { opportunity: opportunity("write-own", "write", "onboarding"), points: 5, parts: [] },
     ];
     expect(placeFixPages(scored, [opportunity("fix", "fix", "onboarding")]).map((r) => r.opportunityId)).toEqual([
       "write-other",

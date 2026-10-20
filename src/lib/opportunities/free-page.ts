@@ -7,7 +7,7 @@
 // refused there) — and nothing here adds one.
 //
 // **The order.** The owner's Write type order first (`comparePrecedence`,
-// 2026-09-15), then the search's right-sized band, then §7's score. The free
+// 2026-09-15), then the search's right-sized band, then §7's points. The free
 // path sizes no rival (§6.4), so a free report's competition band is
 // unmeasured; its band here is the demand band — the search against the
 // site's own footprint, which is the half of right-sizing a free scan can
@@ -21,7 +21,7 @@ import { comparePrecedence } from "./cluster";
 import type { Candidate } from "./derive/candidate";
 import { writeCandidates } from "./derive/write";
 import type { Opportunity, Winnability } from "./types";
-import { rankScore } from "./rank/score";
+import { pointsOf, volumeOrder } from "./rank/points";
 import { demandBand } from "./winnability/band";
 import { rankedCountsFromSizes } from "./winnability/counts";
 
@@ -48,7 +48,6 @@ function bandOf(candidate: Candidate, ownRanked: number, sized: boolean): Winnab
  *  measured none. Pure. */
 export function bestFreePage(report: Omit<StoredReport, "freePage">): FreePagePick | null {
   if (report.questions.kind === "unmeasured" || report.market.kind === "unmeasured") return null;
-  const profile = report.market.value.profile;
   const ownRanked = ownRankedOf(report);
   const sized = report.rivalSizes.kind !== "unmeasured";
   const rankedCounts = rankedCountsFromSizes(
@@ -66,21 +65,16 @@ export function bestFreePage(report: Omit<StoredReport, "freePage">): FreePagePi
   const ranked = candidates
     .map((candidate) => {
       const band = bandOf(candidate, ownRanked, sized);
-      const score = rankScore({
-        volume: candidate.volume,
-        query: candidate.targetQuery ?? "",
-        type: candidate.type,
-        fit: band,
-        profile,
-      });
-      return { candidate, band, score };
+      const { points } = pointsOf(candidate, { cited: new Set(), prompts: [] });
+      return { candidate, band, points };
     })
     .filter((entry) => entry.band !== "not-yet")
     .sort(
       (a, b) =>
         comparePrecedence(a.candidate, b.candidate) ||
         BAND_ORDER[a.band] - BAND_ORDER[b.band] ||
-        b.score - a.score
+        b.points - a.points ||
+        volumeOrder(b.candidate) - volumeOrder(a.candidate)
     );
 
   const best = ranked[0];
