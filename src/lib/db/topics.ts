@@ -108,9 +108,8 @@ export const MIGRATION_SUBTOKENS: readonly MigrationSubtoken[] = [
   // index is a fact about one site's own pages, narrows that topic, and owns
   // its own file by rule 2's precedence.
   { token: "sites_content", parent: "sites", owner: "SPEC.md §7 2026-09-20" },
-  // The site's own LLM Mentions week (#1004) — `llm_mention_reads` and
-  // `llm_mentions`, written by the Monday pass and read by the AI answers
-  // tab's two cards. A sub-token of `sites` under rule 3a: a week's
+  // The site's own LLM Mentions weeks — `llm_mention_reads` and
+  // `llm_mentions`, kept but no longer bought or shown. A sub-token of `sites` under rule 3a: a week's
   // mentions are a fact about one site, narrow that topic, and own their
   // own file by rule 2's precedence.
   { token: "sites_mentions", parent: "sites", owner: "SPEC.md §6 2026-09-22" },

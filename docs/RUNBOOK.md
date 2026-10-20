@@ -1058,7 +1058,7 @@ appends a line to **`/root/ops/reachkit/spend.jsonl`** instead (SPEC §6, D57, #
 book's figure. `billed` is the vendor's own charge for that call (#1408), and is absent where the
 response carried none, which is every model call. A call that settled at nothing and was billed
 nothing writes no line. The scripts that write it are `npm run page`, `npm run pass -- --live`, `npm run panel`, `npm run free-scan`, `scripts/market-inference.mjs`,
-`npm run eval:content`, `scripts/d19-cost.mjs` and `scripts/llm-mentions-pilot.mjs`; they all go
+`npm run eval:content` and `scripts/d19-cost.mjs`; they all go
 through `appendSpend()` in `scripts/spend-log.mjs`, and **a new script that calls a vendor or a
 model calls it too**. `RK_SPEND_LOG=<file>` writes to another file. The file is not in the
 repository and is not rotated: to recreate it, nothing is needed — the first paid call creates it.

@@ -116,3 +116,11 @@ describe("the parts that are one shape in two places", () => {
     expect(screen.querySelectorAll('[data-testid="overview-rivals"] li').length).toBeGreaterThan(0);
   });
 });
+
+describe("/app/ai-answers without LLM Mentions", () => {
+  it("draws the head, the numbers, the blog reads, the grid and the prompts, and no mention card", async () => {
+    const screen = dom(await AnswersPage());
+    expect(regions(screen)).toEqual(["ai-answers-title", "answers-tiles", "blog-reads", "answers-grid", "prompts-cards"]);
+    expect(screen.querySelector('[data-testid^="mentions-"]')).toBeNull();
+  });
+});

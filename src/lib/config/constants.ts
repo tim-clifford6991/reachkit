@@ -50,20 +50,7 @@ export const PRICE_BOOK = Object.freeze({
    *  pages with JavaScript on. The vendor charged 0.15 cents a page on the
    *  cost check of 2026-10-10, and nothing for the read of the HTML it kept. */
   RENDERED_PAGE_C: 0.15,
-  LLM_MENTIONS_ROWS: 100, LLM_MENTIONS_REQUEST_C: 10, LLM_MENTIONS_ROW_C: 0.1,
 } as const);
-
-/** LLM Mentions' worst case for one site's week, in cents: the flat request
- *  charge plus the row cap (SPEC §6, 2026-09-22 — owner ruling after the
- *  #920 pilot). It is the **reservation** `recordFetch` checks the weekly
- *  cap against; the settlement is the rows that actually came back, which
- *  the pilot measured at 16.6c a domain on average.
- *
- *  Written here rather than at the call site because the arithmetic is the
- *  price book's: two pins multiplied is still the price, and a second copy
- *  in `mentions.ts` is a figure that can drift from the rows it prices. */
-export const LLM_MENTIONS_WORST_CASE_C =
-  PRICE_BOOK.LLM_MENTIONS_REQUEST_C + PRICE_BOOK.LLM_MENTIONS_ROWS * PRICE_BOOK.LLM_MENTIONS_ROW_C;
 
 /** The four per-scan/per-draft ceilings BUILD §6.1 pins, plus the
  *  product-wide one BUILD §6.5 does not yet name (issue #329).
@@ -862,12 +849,6 @@ export const TRACKED_PROMPTS = Object.freeze({
   ROTATION_WEEKS: 13,
 } as const);
 
-/** SPEC §6 (owner, D32 of 2026-10-03, #1162): LLM Mentions is bought only
- *  for a site whose own ranked footprint is at least this many keywords,
- *  and then once in this many weeks. */
-export const LLM_MENTIONS_MIN_FOOTPRINT = 30 as const;
-export const LLM_MENTIONS_EVERY_WEEKS = 4 as const;
-
 /**
  * SPEC §6 (2026-09-20, #908) — how many AI questions this product tracks
  * for one site, in all. Both numbers were drafted there and **confirmed as
@@ -941,15 +922,6 @@ export const CACHE_WINDOWS_D = Object.freeze({
    *  `serpWeeklyRecheck` above, which is the archive's own ruling
    *  transcribed rather than this issue's to change. */
   aiBattery: 6,
-  /** SPEC §6 (2026-09-22, #1004) — DataForSEO's LLM Mentions, bought once a
-   *  week per site inside the Monday pass. Six days, for exactly the reason
-   *  `aiBattery` above is six: the Monday trigger is hourly and a DST shift
-   *  can land a run an hour early, and at seven the early run would be
-   *  served last week's rows wearing this week's date. Six leaves 24 hours
-   *  of slack and still refuses to buy the same site twice in one week —
-   *  which is what makes a re-run of a Monday pass free rather than a
-   *  second 10c request charge. */
-  llmMentions: 6,
 } as const);
 
 /** BUILD §11's free-path bounds, plus the two that issue 885 adds so a

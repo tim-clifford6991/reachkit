@@ -781,6 +781,35 @@ describe("Monday: the week is re-measured, judged, and told (JN-005)", () => {
     JOURNEY_TIMEOUT_MS
   );
 
+  it(
+    "the pass buys no LLM Mentions, even for a site that ranks for forty searches",
+    async () => {
+      ownRankedItems = Array.from({ length: 40 }, (_, i) => ({
+        keyword_data: { keyword: `agency search ${i}`, keyword_info: { search_volume: 50 } },
+        ranked_serp_element: { serp_item: { rank_group: 8, url: `https://${DOMAIN}/p${i}` } },
+      }));
+      // No read in the last four weeks, so nothing but the deletion stops a purchase.
+      db.answer = (query) =>
+        ["domain_blocks", "fetches", "llm_mention_reads"].includes(query.table) ? [] : null;
+      const answer = vi.mocked(globalThis.fetch).getMockImplementation()!;
+      vi.mocked(globalThis.fetch).mockImplementation(async (url, init) => {
+        if (String(url).includes("llm_mentions")) {
+          vendorRequests.push({ url: String(url), task: {} });
+          throw new Error("the pass asked for LLM Mentions");
+        }
+        return answer(url, init);
+      });
+
+      const outcome = await measureTheWeek();
+
+      expect(outcome).toMatchObject({ ran: true });
+      expect(vendorRequests.filter((r) => r.url.includes("llm_mentions"))).toEqual([]);
+      expect(db.queries.filter((q) => q.table === "llm_mention_reads" || q.table === "llm_mentions")).toEqual([]);
+      expect(ledger().every((row) => !row.source.includes("llm_mentions"))).toBe(true);
+    },
+    JOURNEY_TIMEOUT_MS
+  );
+
   it("the digest states what moved, and omits the sections the week did not measure", async () => {
     const page = verdictDoubles.pageOf();
     verdictDoubles.fakeStore({

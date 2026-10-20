@@ -1,35 +1,27 @@
 // BUILD §6.3 — the closed DataForSEO endpoint list, and nothing else (issue #23; WO-023 landed the shape)
 //
-// This file's exported set is exactly the **eleven** functions the owner has
+// This file's exported set is exactly the **ten** functions the owner has
 // approved — no generic `dataforseo(endpoint, params)`, no re-export of
 // `transport.ts` or `envelope.ts`. `tests/vendors/never-list.test.ts`
-// asserts the exported key set is exactly these eleven names; adding a
-// twelfth export of any shape fails it by construction.
+// asserts the exported key set is exactly these ten names; adding an
+// eleventh export of any shape fails it by construction. LLM Mentions is
+// not bought (SPEC §6 decision of 2026-10-19), so it has no function here.
 //
-// **The seventh is `llmMentions`** (SPEC §6, 2026-09-22, #1004): DataForSEO
-// LLM Mentions, bought weekly per site inside the Monday pass on the
-// owner's ruling of that date, after the #920 pilot. The list is closed
-// against endpoints the owner has not approved, not against the owner
-// approving one: what it guarantees is that every DataForSEO call in the
-// product passes one credential read, one ledger seam and one cap check,
-// and an approved endpoint reached from anywhere else would break all
-// three. `mentions.ts`'s header carries the decision in full.
-//
-// **The eighth is `serpNews`** (SPEC §7, owner D48, 2026-10-04, issue 1259):
+// **The seventh is `serpNews`** (SPEC §7, owner D48, 2026-10-04, issue 1259):
 // Google News, which *current insights* reads for what its market published
 // in the last 30 days. `news.ts`'s header carries it.
 //
-// **The ninth is `keywordOverview`** (SPEC §6, owner D49, 2026-10-05, issue
+// **The eighth is `keywordOverview`** (SPEC §6, owner D49, 2026-10-05, issue
 // 1270): Labs keyword overview, one call a pass for the search volume of a
 // market's candidate terms.
 //
-// **The tenth is `placeLocation`** (SPEC §6, owner D67, 2026-10-07, issue
+// **The ninth is `placeLocation`** (SPEC §6, owner D67, 2026-10-07, issue
 // 1318): the vendor's own list of the cities Google's results can be read
 // from, looked up once for a site that serves one place. The vendor charges
 // nothing for it, so it is the one export that takes no `CostContext`.
 // `locations.ts`'s header carries it.
 //
-// **The eleventh is `renderedPage`** (SPEC §6, 2026-10-10, issue 1374): one
+// **The tenth is `renderedPage`** (SPEC §6, 2026-10-10, issue 1374): one
 // page of the customer's own site as a browser draws it, bought only for a
 // site that serves an empty JavaScript shell. `rendered.ts`'s header
 // carries it.
@@ -48,6 +40,5 @@ export { competitorsDomain, keywordOverview, keywordSuggestions, rankedKeywords 
 export { serpOrganic } from "./serp";
 export { serpNews } from "./news";
 export { aiMode, llmScraper } from "./ai";
-export { llmMentions } from "./mentions";
 export { placeLocation } from "./locations";
 export { renderedPage } from "./rendered";
