@@ -43,7 +43,7 @@ export function MonthPanel(p: { got: MonthGot; timeZone: string }): React.JSX.El
             <Figure key={count} label={label} value={got[count]} testId={`billing-month-${count}`} />
           ))}
         </div>
-        <h3 className="text-sm font-semibold">{copy("settings.month.checks")}</h3>
+        <h3 className="eyebrow">{copy("settings.month.checks")}</h3>
         {got.pages.length === 0 ? (
           <p className={`text-sm ${INK}`}>{copy("settings.month.no-pages")}</p>
         ) : (
