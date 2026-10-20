@@ -3,7 +3,8 @@
 // `tests/setup.ts` refuses a real network call, so the database client is
 // mocked at its own module boundary (`@/lib/db`) rather than reached. This
 // is the narrowest stand-in that still exercises the real query chain the
-// store writes: `.select().eq().limit()` and `.update().eq()`.
+// store writes: `.select().eq().limit()` and `.update().eq()`. Any other
+// table answers empty: no site has had a Monday mail.
 export interface FakeDbState {
   rows: Record<string, { notify: Record<string, unknown> | null } | undefined>;
   failRead?: boolean;
@@ -18,7 +19,7 @@ export function newState(rows: FakeDbState["rows"] = {}): FakeDbState {
 
 export function fakeDb(state: FakeDbState) {
   return () => ({
-    from() {
+    from(table = "users") {
       let id = "";
       let patch: { notify: Record<string, unknown> } | null = null;
       const builder = {
@@ -32,6 +33,12 @@ export function fakeDb(state: FakeDbState) {
         limit() {
           return builder;
         },
+        in() {
+          return builder;
+        },
+        not() {
+          return builder;
+        },
         update(next: { notify: Record<string, unknown> }) {
           patch = next;
           return builder;
@@ -43,6 +50,7 @@ export function fakeDb(state: FakeDbState) {
             state.rows[id] = { notify: patch.notify };
             return resolve({ data: [], error: null });
           }
+          if (table !== "users") return resolve({ data: [], error: null });
           state.reads.push(id);
           if (state.failRead) return resolve({ data: null, error: { message: "read failed" } });
           const row = state.rows[id];

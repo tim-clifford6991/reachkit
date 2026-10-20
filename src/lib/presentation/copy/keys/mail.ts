@@ -616,7 +616,7 @@ export const MAIL_COPY = Object.freeze({
     { slots: {}, fixedBy: "S20 (11a)" },
   ],
   "mail.reason.published": [
-    "Published-page mail · switch off in Settings › Notifications.",
+    "Sent when your first page goes live · switch off in Settings › Notifications.",
     { slots: {}, fixedBy: "S20 (11a)" },
   ],
   "mail.reason.weekly": [
@@ -799,28 +799,6 @@ export const MAIL_COPY = Object.freeze({
   // 568. `sendEmail` refuses a mail that still carries the marker, so none of
   // these kinds sends until its sentences are written ("Unwritten keys send
   // nothing"). Slots are named for what the sequence can supply.
-  "mail.inactivity.subject": ["Your pages are still going out", { slots: {}, fixedBy: "SPEC §8 · issue 569" }],
-  "mail.inactivity.line": [
-    "You haven’t signed in for a week. ReachKit is still writing and publishing your pages, and every page goes live on its own unless you stop it first.",
-    { slots: {}, fixedBy: "SPEC §8 · issue 569" },
-  ],
-  "mail.inactivity.action": ["Sign in", { slots: {}, fixedBy: "SPEC §8 · issue 569" }],
-  "mail.reason.inactivity": [
-    "Sent after 7 days without a sign-in · signing in stops it.",
-    { slots: {}, fixedBy: "SPEC §8 · issue 569" },
-  ],
-  /** `{page}` is the draft's title; `{closesAt}` the moment its veto window
-   *  closes, in the customer's zone. */
-  "mail.vetoReminder.subject": ["A page publishes soon", { slots: {}, fixedBy: "SPEC §8 · issue 569" }],
-  "mail.vetoReminder.line": [
-    "“{page}” goes live on its own at {closesAt}. You can edit or stop it until then.",
-    { slots: { page: "text", closesAt: "date" }, fixedBy: "SPEC §8 · issue 569" },
-  ],
-  "mail.vetoReminder.action": ["Stop this page", { slots: {}, fixedBy: "SPEC §8 · issue 569" }],
-  "mail.reason.vetoReminder": [
-    "Sent when a page has less than 6 hours left to stop it.",
-    { slots: {}, fixedBy: "SPEC §8 · issue 569" },
-  ],
   "mail.paymentFailed.subject": ["Your payment didn’t go through", { slots: {}, fixedBy: "SPEC §8 · issue 569" }],
   "mail.paymentFailed.line": [
     "Your latest €49 payment for ReachKit didn’t go through. Update your payment details to settle it.",

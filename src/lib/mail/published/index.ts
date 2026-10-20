@@ -14,6 +14,9 @@
 // BP-016's, consulted inside `sendEmail` — a different mechanism, and one
 // the outcome likewise never reaches.
 //
+// **Page 1 only** (SPEC §8, decision 2026-10-19-1593): the site's first
+// live publication is told; every later page is told in the Monday mail.
+//
 // This module lives under `src/lib/mail/` and not under
 // `src/lib/publish/verify/` on purpose: the verification leaf records what
 // it saw and stops, and putting the send inside it would make the
@@ -29,7 +32,7 @@ import { buildPublished } from "../templates/published";
  *  skip, and not one of them is "a check failed". */
 export type PublishedTellingOutcome =
   | { sent: true; id: string }
-  | { sent: false; reason: "no-check-recorded" | "no-account" | "mail" };
+  | { sent: false; reason: "no-check-recorded" | "not-first-page" | "no-account" | "mail" };
 
 interface SiteRow {
   id: string;
@@ -44,6 +47,8 @@ interface MinimalResult<T> {
 interface MinimalQuery<T> extends PromiseLike<MinimalResult<T>> {
   select(columns: string): MinimalQuery<T>;
   eq(column: string, value: unknown): MinimalQuery<T>;
+  not(column: string, operator: string, value: unknown): MinimalQuery<T>;
+  order(column: string, options: { ascending: boolean }): MinimalQuery<T>;
   limit(n: number): MinimalQuery<T>;
 }
 interface MinimalClient {
@@ -71,6 +76,7 @@ const FALLBACK_ZONE = "UTC";
 export async function sendPublishedMail(publicationId: string): Promise<PublishedTellingOutcome> {
   const telling = await tellingFor(publicationId);
   if (telling === null) return { sent: false, reason: "no-check-recorded" };
+  if (!(await isFirstLivePage(publicationId, telling.siteId))) return { sent: false, reason: "not-first-page" };
 
   const { data: sites, error: siteError } = await untyped()
     .from<SiteRow>("sites")
@@ -105,4 +111,19 @@ export async function sendPublishedMail(publicationId: string): Promise<Publishe
   });
 
   return result.sent ? { sent: true, id: result.id } : { sent: false, reason: "mail" };
+}
+
+/** Whether no other publication of the site went live before this one. A
+ *  page taken down later still counts: the customer was told about page 1. */
+async function isFirstLivePage(publicationId: string, siteId: string): Promise<boolean> {
+  const { data, error } = await untyped()
+    .from<{ id: string }>("publications")
+    .select("id")
+    .eq("site_id", siteId)
+    .not("published_at", "is", null)
+    .order("published_at", { ascending: true })
+    .limit(1);
+  if (error !== null) throw new Error(`sendPublishedMail(${publicationId}): ${error.message}`);
+  const first = data?.[0];
+  return first === undefined || first.id === publicationId;
 }

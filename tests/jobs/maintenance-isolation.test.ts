@@ -37,19 +37,15 @@ vi.mock("@/lib/scan/deep/backstop", () => ({
 }));
 // Issue 1478's vendor readings, stood in with nothing due.
 vi.mock("@/lib/costs/vendor-days", () => ({ vendorDaysDue: async () => [], readVendorDay: async () => ({ done: true }) }));
-const dueInactive = vi.fn();
-const nudged = vi.fn();
+const dueWinback = vi.fn();
+const wonBack = vi.fn();
 vi.mock("@/lib/mail/retention", () => ({
-  accountsDueInactivity: () => dueInactive(),
-  draftsDueVetoReminder: async () => [],
   accountsDuePaymentFailed: async () => [],
   accountsDueCancellation: async () => [],
-  accountsDueWinback: async () => [],
-  sendInactivityNudge: async (id: string) => nudged(id),
-  sendVetoReminder: async () => ({ sent: false, reason: "not-due" }),
+  accountsDueWinback: () => dueWinback(),
   sendPaymentFailed: async () => ({ sent: false, reason: "not-due" }),
   sendCancellation: async () => ({ sent: false, reason: "not-due" }),
-  sendWinback: async () => ({ sent: false, reason: "not-due" }),
+  sendWinback: async (id: string) => wonBack(id),
 }));
 
 // Issue #791's hosted-health refresh reads `destinations`; stood in with
@@ -182,8 +178,8 @@ beforeEach(() => {
     expiresAt: new Date(),
   }));
   dueStuckScans.mockReset().mockResolvedValue([]);
-  dueInactive.mockReset().mockResolvedValue([]);
-  nudged.mockReset().mockResolvedValue({ sent: true });
+  dueWinback.mockReset().mockResolvedValue([]);
+  wonBack.mockReset().mockResolvedValue({ sent: true });
 });
 
 afterEach(() => {
@@ -198,7 +194,7 @@ describe("every check runs, whatever the one before it did", () => {
   it("a degraded backstop no longer holds the setup reminder or the retention mail behind it", async () => {
     secondPurchase();
     unfinishedSetup();
-    dueInactive.mockResolvedValue(["user-5"]);
+    dueWinback.mockResolvedValue(["user-5"]);
 
     const outcome = await accountMaintenance.run({ data: {}, now: NOW });
 
@@ -207,23 +203,23 @@ describe("every check runs, whatever the one before it did", () => {
     expect(outcome).toEqual({ outcome: "degraded", subjectId: null, step: "backstop:second_purchase" });
     // …and the obligations after it in the list still ran.
     expect(reminders()).toHaveLength(1);
-    expect(nudged).toHaveBeenCalledWith("user-5");
+    expect(wonBack).toHaveBeenCalledWith("user-5");
   });
 
   it("a check that throws fails the run only after every other check has had its turn", async () => {
     unfinishedSetup();
     dueStuckScans.mockRejectedValue(new Error("scans is unreachable"));
-    dueInactive.mockResolvedValue(["user-5"]);
+    dueWinback.mockResolvedValue(["user-5"]);
 
     await expect(accountMaintenance.run({ data: {}, now: NOW })).rejects.toThrow(/unreachable/);
     // Before the throw: the setup reminder. After it: retention.
     expect(reminders()).toHaveLength(1);
-    expect(nudged).toHaveBeenCalledWith("user-5");
+    expect(wonBack).toHaveBeenCalledWith("user-5");
   });
 
   it("two checks that throw are both reported", async () => {
     dueStuckScans.mockRejectedValue(new Error("scans is unreachable"));
-    dueInactive.mockRejectedValue(new Error("users is unreachable"));
+    dueWinback.mockRejectedValue(new Error("users is unreachable"));
 
     const failure = await accountMaintenance.run({ data: {}, now: NOW }).catch((e: unknown) => e);
     expect(failure).toBeInstanceOf(AggregateError);
