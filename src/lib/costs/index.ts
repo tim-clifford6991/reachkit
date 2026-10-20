@@ -1,51 +1,12 @@
-// src/lib/costs/index.ts — BP-007's public interface (WO-022, folded into
-// WO-276), verbatim from `## Public interface`.
+// The cost seam. A cache hit is free and skips the caps; a miss reserves `costCents` against every ceiling before
+// `run()`, and settles the ledgered figure afterwards, never above the reservation. Reservations in flight
+// accumulate, so concurrent calls are checked against the cap together.
 //
-// `withCostContext()` opens the context, runs `body`, and at close writes
-// the roll-up (`spentCents()`, `degraded()`) to `scans.cost_cents` and
-// `scans.status` (BP-007 `## NFR budget`). `recordFetch` is cache-first,
-// ledger-always (`cache.ts`, `ledger.ts`): a cache hit costs nothing and
-// touches neither the cap nor the ledger; a miss **reserves** `costCents`
-// before `run()` — the cap is checked against the reservation, never a
-// figure that does not exist yet — and, where the call site supplies
-// `settleCents`, **settles** the ledgered figure from the response
-// afterwards, clamped to the reservation (ADR-094 decision 3a, BP-007
-// decision 4).
-//
-// **Concurrent calls are reserved against the cap together (issue #539).**
-// This seam used to track one in-flight reservation at a time, on the
-// stated assumption that every caller `await`ed one `recordFetch` before
-// starting the next: `inFlightReserved` was *assigned* the current call's
-// figure and zeroed after it, so two calls in flight left the cap checked
-// against one of them and the other's money invisible. That assumption was
-// the reason the free pass bought its twelve SERPs one after another, and
-// buying them one after another is why the pass never finished inside its
-// ceiling (`src/lib/scan/budgets.ts`). The reversal that header named is
-// the one taken here: reservations now *accumulate* — `+=` on the way in,
-// `-=` in the `finally` — so `spentCents()` is the sum of everything
-// ledgered plus everything in flight, and the cap is checked against all
-// of it. Nothing else about the contract moves: a call whose reservation
-// would cross the cap is still refused rather than throwing, and the
-// re-check-between-calls discipline still holds for callers that are
-// sequential. No lock is needed — the runtime is single-threaded, and the
-// two arithmetic statements below never interleave.
-//
-// **Three ceilings stand over a call, not two (issue 885).** This pass's
-// own cap, the product's day, and — for a call made against a scan row
-// that carries a `site_id` — that site's day (`CAPS.DAILY_SITE_C`). The
-// site is read off the row when the context opens rather than passed in,
-// so no call site can spend around its own customer's cap by leaving an
-// argument out. What each protects is different and they are not
-// interchangeable: the pass cap bounds one measurement, the product's day
-// bounds the company's exposure, and the site's day is what stops one
-// customer from being the reason every other customer's pass is refused.
+// Three ceilings stand over a call: this pass's cap bounds one measurement, the product's day bounds the company's
+// exposure, and the site's day (read off the scan row, so no caller can leave it out) keeps one customer from
+// spending everyone else's day.
 import { dbAdmin } from "@/lib/db";
-// §6.4's first rule — "nothing is fetched that no rendered surface reads"
-// and, with it, nothing fetched twice that one scan already holds. A cost
-// context is the one thing in this codebase whose lifetime *is* a scan, so
-// it is what opens the robots memo (#73). This seam learns nothing about
-// robots: it opens a scope and closes it, and `src/lib/egress/` decides
-// everything inside.
+// A cost context lives exactly as long as a scan, so it scopes the robots memo; `src/lib/egress/` decides what is in it.
 import { withRobotsMemo } from "@/lib/egress/robots-memo";
 import { CAPS } from "@/lib/config/constants";
 import { now } from "@/lib/config/now";
@@ -71,40 +32,28 @@ const CAP_VALUES: Record<CapName, number> = {
   DRAFT: CAPS.DRAFT_C,
 };
 
-/** Why a call was refused. The per-pass cap is the one BP-007 wrote; the
- *  day's ceiling is the product-wide one (issue #329); the site cap is one
- *  customer's share of that day (issue 885). All three refuse the same
- *  way — `{ skipped: "cap" }`, degrade, never throw — and a stage that has
- *  been told to stop spending has no use for the difference. It is recorded
- *  rather than returned: what needs to know why is whoever reads the logs
- *  after a day the product went quiet. */
+/** Why a call was refused. All three refuse alike (`{ skipped: "cap" }`,
+ *  degrade, never throw), so the reason is logged rather than returned. */
 type CapReason = "scan_cap" | "daily_ceiling" | "site_cap";
 
-/** The seam's own log channel, the shape `logClampedSettlement` already
- *  uses. One line the first time a context refuses, naming which ceiling
- *  did it — a second line per skipped call would say nothing new and would
- *  bury the first under a twelve-SERP stage. */
+/** One line the first time a context refuses, naming the ceiling; a line per
+ *  skipped call would bury it. */
 function logCapHit(a: {
   reason: CapReason;
   source: string;
   cap: CapName;
   spentCents: number;
   ceilingCents: number;
-  /** Whose cap, where the refusal is a site's (issue 885): a day the
-   *  product went quiet because one customer used its share is only
-   *  readable afterwards if the line says which customer. */
+  /** Whose cap, where the refusal is a site's, so the log says which customer. */
   siteId?: string;
 }): void {
   console.warn(JSON.stringify({ event: "cap_hit", ...a }));
 }
 
 export interface CostContext {
-  /** Which ceiling this context runs under. Read by the one call site that
-   *  must refuse under a ceiling regardless of headroom: BUILD §6.2/§6.3 —
-   *  "the free path makes **zero** AI Optimization API calls" — is enforced
-   *  in `src/lib/vendors/dataforseo/ai.ts` by reading this, since no
-   *  compile-time shape can tell a free context from a paid one. Added
-   *  with issue #23; every other member is unchanged. */
+  /** Which ceiling this context runs under. `src/lib/vendors/dataforseo/ai.ts`
+   *  reads it to keep the free path at zero AI Optimization calls (BUILD
+   *  §6.2/§6.3): no compile-time shape tells a free context from a paid one. */
   readonly cap: CapName;
 
   /** Cache-first, ledger-always. `fresh` false means the payload came from
@@ -118,18 +67,13 @@ export interface CostContext {
      *  runs. The cap is checked against this, so no call is made against
      *  money the context has not got. */
     costCents: number;
-    /** Optional **settlement** (ADR-094 decision 3a). Where a vendor's own
-     *  documented rule makes the final charge a function of the response,
-     *  the call site supplies it and the ledger records the settled
-     *  figure instead of the reservation. `settled <= reserved` is
-     *  enforced here, not trusted: a closure returning more is clamped to
-     *  the reservation and logged, since the excess would be money the
-     *  cap never authorised. One call site uses it today — BP-008's
-     *  flagged `serpOrganic`. Omitting it is the ordinary case and
-     *  behaves exactly as before this argument existed. */
+    /** Optional **settlement**, where a vendor's documented rule makes the
+     *  charge a function of the response. `settled <= reserved` is enforced,
+     *  not trusted: more is clamped and logged, since the cap never
+     *  authorised the excess. */
     settleCents?: (payload: P) => number;
-    /** What the vendor says it charged for this call, in cents (issue
-     *  1408), asked once `run` has answered. Stored beside the settled
+    /** What the vendor says it charged for this call, in cents, asked once
+     *  `run` has answered. Stored beside the settled
      *  figure as `fetches.billed_cents` and read by nothing that decides
      *  whether to call. `undefined` where the response carried no charge,
      *  which is stored as null and never as a guess. */
@@ -142,19 +86,15 @@ export interface CostContext {
   // supplied, the reservation otherwise — one number, and it is the one
   // the row carries.
   //
-  // `storedAt` is the moment the served row was bought, and is non-`null`
-  // exactly when `fresh` is `false` (SPEC §2, issue 715): a caller that
-  // must tell a reader an answer was *reused*, and from when, has the one
-  // fact that says so here rather than guessing it from a clock.
+  // `storedAt` is when the served row was bought, non-`null` exactly when `fresh` is `false` (SPEC §2).
 
-  /** True once *any* ceiling over this call is reached — this pass's own
-   *  cap, the product's daily one (issue #329), or this site's daily one
-   *  (issue 885). Re-checked between calls in any multi-call step. */
+  /** True once any of the three ceilings is reached. Re-checked between calls
+   *  in any multi-call step. */
   capHit(): boolean;
   spentCents(): number;
   degraded(): boolean;
 
-  /** Issue 1478: the draft this context's calls are for, once it has a row.
+  /** The draft this context's calls are for, once it has a row.
    *  The calls made since the context opened, or since the last `null`,
    *  that name no draft are named for it, and so is every call after it, so
    *  `drafts.cost_cents` is the ledger's sum over the draft. `null` starts
@@ -164,13 +104,7 @@ export interface CostContext {
   forDraft?(draftId: string | null): Promise<void>;
 }
 
-/** `console.warn` is this seam's own log channel for the one invariant it
- *  enforces rather than trusts (rule 1.1 — parameter: no logging seam is
- *  in this WO's file plan or `depends-on`, and `console.warn` is what
- *  every other module in this corpus reaches for absent one — e.g.
- *  `src/lib/scan/admission.ts`'s `logAdmission`, `console.log`).
- *  Reversal cost: swap the one call site for a real logger once BP-016 or
- *  an observability seam exists. */
+/** The log line for a settlement the seam clamped rather than trusted. */
 function logClampedSettlement(source: string, reservedCents: number, proposedCents: number): void {
   console.warn(
     JSON.stringify({
@@ -191,68 +125,43 @@ export async function withCostContext<T>(
      *  and every caller's behaviour before this argument existed) writes
      *  `scans.cost_cents` and `scans.status`; `"none"` writes nothing.
      *
-     *  `"none"` exists for the generation pipeline (BUILD §8), which spends
-     *  under `CAP_DRAFT` against the scan that grounds the day's page:
-     *  `fetches.scan_id` is `not null`, so every ledger row a draft writes
-     *  is keyed to that scan — but the draft's spend is the *draft's*
-     *  (`drafts.cost_cents`, BUILD §10), and rolling it into the scan's
-     *  total would overstate what the scan cost and would flip a scan that
-     *  degraded back to `done`. Every ledgered `fetches` row stands either
-     *  way: the roll-up is a cached summary, `fetches` is the source of
-     *  truth.
+     *  `"none"` is a draft's (BUILD §8): its rows are keyed to the grounding
+     *  scan, but its spend is `drafts.cost_cents` (BUILD §10), and rolling it
+     *  in would overstate the scan and flip a degraded one to `done`.
      *
-     *  `"add"` is for spend made against a row outside the pass that
-     *  closes it (issue 798): setup's rival suggestion before the
-     *  onboarding pass runs, and the opportunity typing after its report is
-     *  stored. The row's `cost_cents` is read when the context opens —
-     *  counted against the cap, as `priorCents` is — and the close writes
-     *  the total back to `cost_cents` alone, leaving the status the pass
-     *  wrote, or will write, standing. */
+     *  `"add"` is spend against a row outside the pass that closes it, such
+     *  as setup's rival suggestion: the row's `cost_cents` counts against the
+     *  cap and the close writes the total back, leaving the status alone. */
     rollUp?: "scan" | "add" | "none";
-    /** Spend already ledgered against this row by an earlier context (issue
-     *  798): the claimed onboarding row carries setup's rival suggestion.
+    /** Spend already ledgered against this row by an earlier context: the
+     *  claimed onboarding row carries setup's rival suggestion.
      *  It counts against this cap and is part of the roll-up, so the row's
      *  `cost_cents` is every paid call made against it, not only this
      *  context's. `rollUp: "add"` reads it from the row instead. */
     priorCents?: number;
-    /** Issue 1478: the draft this context spends for, where it already has
+    /** The draft this context spends for, where it already has
      *  a row — an edit, or a rewrite of the date's row. */
     draftId?: string;
   },
   body: (cost: CostContext) => Promise<T>
 ): Promise<T> {
   const capValue = CAP_VALUES[ctx.cap];
-  // One read of the row this context spends against, for the two facts the
-  // row holds: what it has already been charged (the `"add"` roll-up), and
-  // **whose** money this is (issue 885). The site is read here rather than
-  // taken as an argument on purpose — a per-site cap a caller could name,
-  // or omit, is a cap a caller can walk past, and this seam is the one
-  // place every paid call in the product passes through.
+  // The site is read off the row, never taken as an argument: a cap a caller could omit is one it could walk past.
   const row = await readScanRow(ctx.scanId);
   if (ctx.rollUp === "add" && row.costCents === null) {
-    // What `rowCostCents` promised before this read was folded into it: a
-    // context that counted an unreadable row as nothing would open with
-    // headroom the pass has already spent, and its close would write that
-    // spend away.
+    // Counting an unreadable row as nothing would open with headroom already spent, and the close would erase it.
     throw new Error(`withCostContext: could not read ${ctx.scanId}'s cost: ${row.unreadable}`);
   }
   let ledgeredCents = ctx.rollUp === "add" ? (row.costCents ?? 0) : (ctx.priorCents ?? 0);
   let inFlightReserved = 0;
   let isDegraded = false;
-  // What the whole product has spent today (issue #329), read when the
-  // context opens and again before every paid call (issue 792) — see
-  // `daily.ts` for why, and for what an unreadable ledger means.
+  // Read now and again before every paid call; `daily.ts` says what an unreadable ledger means.
   const day = await openDayLedger(now());
-  // And what *this site* has spent today (issue 885). `null` where the row
-  // carries no site: a free scan has no customer to charge, and its own
-  // bounds are `FREE_BOUNDS`, checked at the door in `admission.ts`.
+  // `null` for a free scan: no customer to charge, and its bounds are checked at the door in `admission.ts`.
   const site: SiteDayLedger | null =
     row.siteId === null ? null : await openSiteDayLedger(row.siteId, now());
   let capHitLogged = false;
-  // Issue 1478: a context that writes no roll-up is a draft's (`withDraftCost`,
-  // and the free lead's page), and its calls say so on their rows, with the
-  // draft once there is one. Every other context's activity is the scan's,
-  // which the database reads.
+  // A context that writes no roll-up is a draft's, and its rows say so; any other's activity the database reads off the scan.
   const isDraft = ctx.rollUp === "none";
   let draftId = ctx.draftId;
   /** This context's rows written while no draft was named. */
@@ -297,9 +206,7 @@ export async function withCostContext<T>(
     }): Promise<
       { payload: P; fresh: boolean; costCents: number; storedAt: Date | null } | { skipped: "cap" }
     > {
-      // Cache-first: a hit is free and bypasses the cap entirely — it
-      // never reaches the vendor, so there is nothing for the cap to
-      // protect against.
+      // A hit never reaches the vendor, so there is nothing for the cap to protect.
       const cached = await readCache({
         source: call.source,
         cacheKey: call.cacheKey,
@@ -310,29 +217,14 @@ export async function withCostContext<T>(
         return { payload: cached.payload as P, fresh: false, costCents: 0, storedAt: cached.storedAt };
       }
 
-      // The product-wide ceiling first: it is the one that outranks this
-      // pass's own budget. A pass with headroom of its own still stops when
-      // the day has none, which is the whole point of a ceiling above the
-      // caps — and it stops the way §6.5 says every cap stops, by skipping
-      // the remaining work and marking the pass `degraded`, never by
-      // throwing. A free scan never gets this far on a day that is already
-      // over: `admitFreeScan` refuses it at the door (`admission.ts`), so
-      // what this arm holds is the paid pass, which holds rather than fails.
-      // Read again here, so a pass running beside this one is counted, and
-      // with this pass's other calls in flight, which the ledger has not
-      // seen. This call may still carry the day over — the ceiling is spent
-      // up to, and the crossing it makes is the one the alert reports.
+      // The product's day outranks this pass's headroom. Re-read so a pass beside this one is counted, with this
+      // pass's in-flight calls added; this call may still carry the day over, and that crossing is the alert.
       await day.refresh(now());
       if (day.ceilingReached(inFlightReserved)) {
         return refuse("daily_ceiling", call.source, day.ceilingCents());
       }
 
-      // Then this site's own share of the day (issue 885), read the same
-      // way and for the same reason: another pass for the same site may be
-      // running beside this one, and this pass's other calls are in flight
-      // and not yet ledgered. A site at its cap is refused here and
-      // nowhere else — which is what leaves every *other* site's call
-      // untouched, the property the product-wide ceiling cannot give.
+      // Then this site's share, re-read the same way; refusing only here leaves every other site's call untouched.
       if (site !== null) {
         await site.refresh(now());
         if (site.capReached(inFlightReserved)) {
@@ -340,51 +232,30 @@ export async function withCostContext<T>(
         }
       }
 
-      // The cap is checked against the **reservation** — the settlement
-      // does not exist yet (BP-007 `## Public interface`).
+      // Checked against the reservation: the settlement does not exist yet.
       if (spentCents() + call.costCents > capValue) {
         return refuse("scan_cap", call.source, capValue);
       }
 
-      // Between the reservation and the settlement the context is
-      // charged the higher (reserved) figure, so a cap can never be
-      // exceeded by a call in flight (BP-007 `## Error & edge behavior`).
-      // Accumulated, not assigned: several calls may be in flight at once
-      // (issue #539) and the cap is checked against the sum of them.
-      // **The reservation is held until the settlement reaches the ledger**
-      // (#539 review). It used to be released the moment `call.run()`
-      // returned, which left a window — the settlement, and the `await` on
-      // the ledger write — where this call's money was in neither figure
-      // `spentCents()` sums: no longer reserved, not yet ledgered. With the
-      // twelve bought together that window is the ordinary
-      // case, so a concurrent worker's check above read a stale total and
-      // the pass could cross its cap by as many calls as were in it. The
-      // `finally` releases on every path, a ledger write that raises
-      // included.
+      // Accumulated, since several calls may be in flight, and held until the settlement reaches the ledger so the
+      // money is always in one of the two figures `spentCents()` sums. The `finally` releases it on every path.
       inFlightReserved += call.costCents;
-      // Issue 877: what this call took, timed around the call itself and
-      // stored on its row — for a call that was abandoned, the time waited
-      // before giving up. The vendor's own failures come back as a payload
-      // rather than a raise, so one clock covers both.
+      // Vendor failures come back as a payload, not a raise, so one clock times both.
       const startedMs = Date.now();
       try {
         const payload = await call.run();
 
         let settledCents = call.costCents;
         if (isFetchRefusal(payload)) {
-          // A refused fetch bought nothing: its row is ledgered at 0 cents
-          // (issue #479), whatever was reserved for it.
+          // A refused fetch bought nothing, whatever was reserved for it.
           settledCents = 0;
         } else if (isVendorFailure(payload) && !payload.billed) {
-          // A vendor call that failed in a way the vendor does not charge for
-          // (the call site says which — issue #504) is ledgered at 0 cents.
+          // A failure the vendor does not charge for, by the call site's word, is ledgered at 0 cents.
           settledCents = 0;
         } else if (call.settleCents) {
           const proposedCents = call.settleCents(payload);
           if (proposedCents > call.costCents) {
-            // A settlement never raises a charge (BP-007 `## Error & edge
-            // behavior`) — clamp to the reservation and log, never trust
-            // the closure.
+            // A settlement never raises a charge.
             logClampedSettlement(call.source, call.costCents, proposedCents);
           } else {
             settledCents = proposedCents;
@@ -427,12 +298,7 @@ export async function withCostContext<T>(
     },
 
     capHit(): boolean {
-      // Any of the three ceilings: this pass's own cap, the product's day,
-      // or this site's day (issue 885). A multi-call step re-checks this
-      // between calls and stops on it, so a step that would otherwise keep
-      // asking and keep being refused stops on the first refusal instead —
-      // and the pass ends `spend_ceiling` (`src/lib/scan/ceilings.ts`),
-      // which is where the reason reaches the stored report and the screen.
+      // A step stops on the first refusal, and the pass ends `spend_ceiling` (`src/lib/scan/ceilings.ts`).
       return spentCents() >= capValue || day.ceilingReached() || (site?.capReached() ?? false);
     },
 
@@ -455,30 +321,13 @@ export async function withCostContext<T>(
       : {}),
   };
 
-  // Money already spent inside `body` is kept regardless of how `body`
-  // itself concludes — the roll-up below only reflects a *clean* close,
-  // per BP-007 `## NFR budget`, "a per-scan roll-up ... is written to
-  // `scans.cost_cents` and `scans.status` at close". Setting a terminal
-  // `scans.status` on an error path (e.g. `failed`) is BP-012's own
-  // scan-lifecycle decision, not this seam's (`## Out of scope`: this
-  // order opens the context it is given, nothing about the pipeline
-  // around it) — an exception from `body` therefore propagates untouched,
-  // leaving `scans.cost_cents`/`scans.status` for BP-012's own error path
-  // to set. Every already-ledgered `fetches` row stands regardless: the
-  // roll-up is a cached summary, `fetches` is the source of truth.
-  // `withRobotsMemo` scopes one robots.txt read per origin to this
-  // context (#73): opened here so it cannot outlive the pass, and closed
-  // by the same `await` — an exception from `body` still propagates
-  // untouched, and takes the memo with it.
+  // The roll-up is written on a clean close only: an exception from `body` propagates untouched for the scan's own
+  // error path, and every ledgered row stands, since `fetches` is the source of truth. The robots memo closes with it.
   const result = await withRobotsMemo(() => body(cost));
 
   if (ctx.rollUp === "none") return result;
 
-  // Issue 1478: the database replaces the `cost_cents` written here with
-  // the ledger's own sum over the row (`scans_cost_from_ledger`), so a call
-  // still in flight at this close cannot leave the two disagreeing. The
-  // figure is still written: it is the roll-up on a database the migration
-  // has not reached.
+  // The database replaces this with the ledger's sum (`scans_cost_from_ledger`); it stands where that migration is absent.
   const { error } = await dbAdmin()
     .from("scans")
     .update(
@@ -502,12 +351,9 @@ export async function withCostContext<T>(
  *  is `null` both for a row that carries no site (every free scan) and for
  *  a row that could not be read: an unreadable row is not evidence of a
  *  site whose cap could be reached, and the product's own ceiling still
- *  stands over the call either way. That asymmetry is deliberate and is
- *  not the fail-closed rule of issue 792 being bent — a site's *spend
- *  total* that cannot be read does hold the call (`SiteDayLedger`); this
- *  is the prior question of whether there is a site at all, and answering
- *  it wrong in the closed direction would stop the free path too. The line
- *  below is what makes it visible when it happens. */
+ *  stands over the call either way. An unreadable site *total* does hold the
+ *  call (`SiteDayLedger`); failing closed on whether there is a site at all
+ *  would stop the free path too. The log line makes it visible. */
 async function readScanRow(
   scanId: string
 ): Promise<{ costCents: number | null; siteId: string | null; unreadable: string | null }> {

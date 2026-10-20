@@ -1,0 +1,22 @@
+#!/usr/bin/env node
+// Proves a change touched comments only: each file's esbuild output, with comments stripped, is byte-identical to the base ref's.
+// Usage: node scripts/comments-only.mjs [base-ref] [file ...]   (defaults: origin/main, every .ts/.tsx changed since it)
+import { execFileSync } from "node:child_process";
+import { readFileSync } from "node:fs";
+import { transformSync } from "esbuild";
+
+const [base = "origin/main", ...named] = process.argv.slice(2);
+const git = (...args) => execFileSync("git", args, { encoding: "utf8", maxBuffer: 64 * 1024 * 1024 });
+const files = named.length > 0 ? named : git("diff", "--name-only", "--diff-filter=M", base, "--", "*.ts", "*.tsx").split("\n").filter(Boolean);
+
+const strip = (source, file) =>
+  transformSync(source, { loader: file.endsWith(".tsx") ? "tsx" : "ts", format: "esm", legalComments: "none", jsx: "preserve" }).code;
+
+let differs = 0;
+for (const file of files) {
+  const same = strip(git("show", `${base}:${file}`), file) === strip(readFileSync(file, "utf8"), file);
+  if (!same) differs += 1;
+  console.log(`${same ? "identical" : "DIFFERS  "} ${file}`);
+}
+console.log(`${files.length} file(s), ${differs} differ`);
+process.exit(differs === 0 ? 0 : 1);
