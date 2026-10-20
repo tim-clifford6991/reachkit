@@ -2149,6 +2149,24 @@ export const RESEARCH = Object.freeze({
   freshnessDays: 7,
 } as const);
 
+/** SPEC §7 (owner 2026-10-18, issue 1521; amends D42 #7) — a refresh closes
+ *  the gap to the pages above it. The research step records the H2 and H3
+ *  headings of the top results it reads; a subtopic `coveredBy` of them
+ *  head and the live page does not is a gap. A `close`, `unmet` or
+ *  `lost_position` refresh may add up to `sectionsMax` sections from the
+ *  gaps, each on a claim of the pack, and grow up to `growShare` of the live
+ *  page, where its own place is `nearPageOne` (owner 2026-10-19: the write
+ *  and fix it grows cost up to 3.7¢ more). The owner's are 2, 3, 40% and
+ *  11–20; `headingsPerPage` is a drafted bound on what one page's markup
+ *  yields. */
+export const HEADING_GAPS = Object.freeze({
+  coveredBy: 2,
+  sectionsMax: 3,
+  growShare: 0.4,
+  headingsPerPage: 40,
+  nearPageOne: Object.freeze({ min: 11, max: 20 } as const),
+} as const);
+
 /** SPEC §7 (2026-09-29, D12; issue 1143) — *a new page adds what the web
  *  does not say*.
  *

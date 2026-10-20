@@ -26,6 +26,7 @@
 import { PAGE_BLOCKS } from "@/lib/config/constants";
 import { bodyWords, sectionWords, type LengthRange } from "../length";
 import type { Template } from "../templates";
+import { newSectionsHold } from "./gaps";
 import { hasLink, headingKey, sourceBlocksOf, type SourceBlock } from "./text";
 import type { RuleFailure } from "./types";
 
@@ -49,6 +50,9 @@ export type RequiredBlock =
   /** Issue 1486: more of a how-to's steps are the business's own than its
    *  template allows. */
   | "own_steps"
+  /** Issue 1521: a growing refresh added more sections than three, or one
+   *  that is on none of its pack's gaps or links none of the gap's claims. */
+  | "new_sections"
   | "dated_sources"
   | "verdict"
   | "business_section"
@@ -79,6 +83,9 @@ export interface BlockRuleInputs {
   /** The business's name: a step that names it, or links its own site, is
    *  the business's own (issue 1486). */
   businessName?: string | null;
+  /** Issue 1521: on a refresh that may add sections, the live page and the
+   *  gaps its pack carries. Absent, no section is read as new. */
+  growth?: { live: string; gaps: readonly { heading: string; claims: readonly string[] }[] };
 }
 
 /** A prompt's label for a fact — `[F7]`, `[M39]`, `[F7, F8]` — which is the
@@ -386,6 +393,15 @@ export function missingBlock(a: { markdown: string; title: string; blocks: Block
   // An update's headings are the live page's own.
   if (template.type !== "update" && asked.some((section) => !section.heading.endsWith("?"))) return "question_headings";
   if (asked.some((section) => !isParagraph(section.blocks[0]))) return "section_opening";
+  if (
+    blocks.growth !== undefined &&
+    !newSectionsHold(
+      asked.map((section) => ({ heading: section.heading, text: section.blocks.map((block) => block.raw).join("\n\n") })),
+      blocks.growth
+    )
+  ) {
+    return "new_sections";
+  }
 
   const keyed = asked.map((section, index) => ({ ...section, key: blocks.sections[index]!.key }));
   if (template.blocks.table !== undefined) {
