@@ -28,6 +28,10 @@ export const DE_TEMPLATES: TemplateWords = {
     qa: { titles: ["{The buyer's question as typed, in German} {its answer's number, price or place from pack}", "{the search as typed}: {the answer's number, price or place from pack}"] },
     insights: { titles: ["{platform} {change} ({Monat Jahr}): {die Zahl, der Preis oder das Produkt, das sich geändert hat}"] },
     update: { titles: ["The live page's own title."] },
+    offering: {
+      titles: ["{das Angebot in den Worten der Suche}: {sein Preis, seine Zeiten oder sein Ort aus pack}"],
+      titleNever: "Never name a place the business's own pages do not state it serves.",
+    },
   },
   rules: [
     "Write the whole page in German: the title, the heading, the description, and every section, takeaway and FAQ entry. Address the reader as the business's own pages and `voice` do, with \"Sie\" or with \"du\"; where they do not show, use \"Sie\", and never mix the two.",

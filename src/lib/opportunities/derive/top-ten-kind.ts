@@ -31,7 +31,7 @@
 // Pure, and stored evidence only: it buys nothing.
 import { SHAPES } from "@/lib/locale/language";
 import type { BusinessKind } from "@/lib/market/kinds";
-import { isArticleRow, isListingHost, isRoundupPage } from "@/lib/market/rivals/domains";
+import { isArticleRow, isExplainerTitle, isListingAddress, isListingHost, isMarketplaceHost, isOwnContentUrl, isRoundupPage } from "@/lib/market/rivals/domains";
 import { CONTENT_MIX } from "@/lib/config/constants";
 import { isLocalSearch, saysNearMe } from "@/lib/locale/place";
 import type { Place } from "@/lib/locale/locales";
@@ -66,13 +66,20 @@ export const OTHER_KIND_TOP_TEN = Object.freeze({ min: 6, maxAgeDays: 30 });
 export interface TopTenRead {
   at: Date;
   rows: readonly TopTenRow[];
+  /** Whether the SERP showed a local pack. Absent reads as none. */
+  localPack?: boolean;
 }
 
 /** The rows of a stored top ten still young enough to say anything at
  *  `now`, or `null`. */
 export function freshTopTen(read: TopTenRead | null | undefined, now: Date): readonly TopTenRow[] | null {
+  return freshRead(read, now)?.rows ?? null;
+}
+
+/** A stored top ten still young enough to say anything at `now`, or `null`. */
+export function freshRead(read: TopTenRead | null | undefined, now: Date): TopTenRead | null {
   if (read == null) return null;
-  return now.getTime() - read.at.getTime() <= OTHER_KIND_TOP_TEN.maxAgeDays * 86_400_000 ? read.rows : null;
+  return now.getTime() - read.at.getTime() <= OTHER_KIND_TOP_TEN.maxAgeDays * 86_400_000 ? read : null;
 }
 
 export interface TopTenRow {
@@ -142,4 +149,29 @@ export function otherKindTopTen(
   if (other === "publisher" && page !== undefined && answersQuestion(page, business)) return null;
   const held = rows.slice(0, 10).filter((row) => resultIs(row, other)).length;
   return held >= OTHER_KIND_TOP_TEN.min ? other : null;
+}
+
+/** How many of a top ten's results must be providers' own pages for its
+ *  search to ask for one (SEO review C1, owner ruling B6, 2026-10-19). */
+export const OFFERING_TOP_TEN = Object.freeze({ min: 5 });
+
+/** Whether a result is a provider's own service or product page: not a
+ *  listing, a marketplace, a round-up, an article, an explainer or a page
+ *  of its own blog, in any language's words. */
+export function isProviderPage(row: TopTenRow): boolean {
+  const address = row.url ?? row.domain;
+  if (isListingAddress(address) || isListingHost(row.domain) || isMarketplaceHost(row.domain)) return false;
+  if (isRoundupPage(row) || isArticleRow(row) || rankedList(row.title)) return false;
+  if (row.title !== undefined && (isExplainerTitle(row.title) || SHAPES.guide.test(words(row.title)))) return false;
+  return row.url === undefined || !isOwnContentUrl(row.url);
+}
+
+/**
+ * Whether a stored results page asks for the business's own offering page:
+ * a local pack, for a business that serves one place, or providers' own
+ * pages for `OFFERING_TOP_TEN.min` or more of its first ten results.
+ */
+export function offeringTopTen(read: Pick<TopTenRead, "rows" | "localPack">, business: KindOfBusiness | null): boolean {
+  if (read.localPack === true && servedPlace(business) !== null) return true;
+  return read.rows.slice(0, 10).filter(isProviderPage).length >= OFFERING_TOP_TEN.min;
 }

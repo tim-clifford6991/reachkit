@@ -235,6 +235,10 @@ export interface OpportunityStore {
    *  D64, issue 1301): the column, and the same figure in its evidence.
    *  Optional: a store that cannot write it leaves the row unmeasured. */
   setVolume?(opportunityId: string, volume: number, evidence: Evidence): Promise<void>;
+  /** The row's evidence with the shape its stored results page gives it
+   *  (`readiness.ts`). Optional: a store that cannot write it keeps the
+   *  shape the row was typed by. */
+  setEvidence?(opportunityId: string, evidence: Evidence): Promise<void>;
   /** Stores the pass's business-fit judgement on a row it already held
    *  (issue 1134): judged once, read by readiness and the ranking. */
   setBusinessFit(
@@ -643,7 +647,7 @@ export function supabaseOpportunityStore(): OpportunityStore {
       if (error) throw new Error(`opportunities.topTenRows: ${error.message}`);
       for (const report of data ?? []) {
         const at = new Date(report.created_at);
-        for (const [query, rows] of topTenRowsOf(report)) topTens.set(query, { at, rows });
+        for (const [query, read] of topTenRowsOf(report)) topTens.set(query, { at, ...read });
       }
       return topTens;
     },
@@ -781,6 +785,14 @@ export function supabaseOpportunityStore(): OpportunityStore {
         .update({ volume, evidence })
         .eq("id", opportunityId);
       if (error) throw new Error(`opportunities.setVolume: ${error.message}`);
+    },
+
+    async setEvidence(opportunityId, evidence) {
+      const { error } = await untyped()
+        .from<OpportunityRow>("opportunities")
+        .update({ evidence })
+        .eq("id", opportunityId);
+      if (error) throw new Error(`opportunities.setEvidence: ${error.message}`);
     },
 
     async setBusinessFit(opportunityId, fit, source, pageType) {

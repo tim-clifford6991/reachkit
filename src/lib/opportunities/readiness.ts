@@ -50,6 +50,10 @@
 // business than this one is `low_fit` (`derive/top-ten-kind.ts`), as a fit
 // below the gate is.
 //
+// And SPEC §7's offering page (owner ruling B6, 2026-10-19): the same fresh
+// top ten decides whether a new Write page is written as one, stored on the
+// row's evidence (`shapedEvidence`) so every reader types it alike.
+//
 // The Fix family keeps its own predicate (`fixPageReadiness`): its readiness
 // is a question about the destination, not about the market.
 import { SHAPES } from "@/lib/locale/language";
@@ -68,9 +72,10 @@ import { suppressionOf, verdictReason, type Suppression } from "./suppression";
 import { hasGoal, intentFor, type IntentPrompt } from "./intent";
 import type { KnownMatch } from "@/lib/known-content/types";
 import { queryKey } from "./cluster";
+import { SHAPED } from "./content-type";
 import { comparisonBrands, comparisonUnasked, composedSearch, type AskedBeside, type ComparisonBrands, type MeasuredAnswer } from "./derive/topics";
-import { freshTopTen, otherKindTopTen, OTHER_KIND_TOP_TEN, servedPlace, type KindOfBusiness, type TopTenRead, type TopTenRow } from "./derive/top-ten-kind";
-import type { Opportunity, UnreadyReason } from "./types";
+import { freshRead, freshTopTen, offeringTopTen, otherKindTopTen, OTHER_KIND_TOP_TEN, servedPlace, type KindOfBusiness, type TopTenRead, type TopTenRow } from "./derive/top-ten-kind";
+import type { Evidence, Opportunity, UnreadyReason } from "./types";
 
 export interface ReadinessContext {
   /** The site's own measured pages yield at least one passage. */
@@ -254,6 +259,18 @@ export function opportunityReady(o: Opportunity, ctx: ReadinessContext): Unready
   return null;
 }
 
+/** The evidence a new page carries once its fresh stored results page
+ *  is read: `shape: "offering"` where that page asks for a provider's own
+ *  page, none where it does not. With no fresh read the row is left as it
+ *  is. Pure. */
+export function shapedEvidence(o: Opportunity, read: TopTenRead | null, business: KindOfBusiness | null): Evidence {
+  const evidence = o.evidence;
+  if (read === null || !SHAPED.has(o.type) || (evidence.family !== "write" && evidence.family !== "earn")) return evidence;
+  const rest = { ...evidence };
+  delete rest.shape;
+  return offeringTopTen(read, business) ? { ...rest, shape: "offering" } : rest;
+}
+
 /** An owned URL ranks for a search where the report's own SERP for it holds
  *  an organic row on the customer's domain. A search the report did not
  *  measure has no such row. */
@@ -414,6 +431,7 @@ export async function assessReadiness(
   // be covered, before the loop — so the predicate the decision reads is a
   // resolved answer and `opportunityReady` stays pure and synchronous.
   const covered = await coveredTopics(siteId, rows.map(readOpportunity));
+  const readOf = (o: Opportunity) => (o.targetQuery === null ? null : (topTens.get(queryKey(o.targetQuery)) ?? null));
   const ctx: ReadinessContext = {
     grounded,
     earnGrounding,
@@ -427,12 +445,14 @@ export async function assessReadiness(
     asked,
     answers: report?.prompts?.answers ?? [],
     composed: (query) => composedSearch(query, market),
-    topTen: (o) => (o.targetQuery === null ? null : freshTopTen(topTens.get(queryKey(o.targetQuery)), now)),
+    topTen: (o) => freshTopTen(readOf(o), now),
     business:
       market === null
         ? null
         : { kind: market.kind ?? null, serves: market.serves ?? null, words: [market.category, ...market.synonyms].join(" ") },
   };
+
+  const fresh = (o: Opportunity) => freshRead(readOf(o), now);
 
   // Issue 884: the row's band is brought up to today's law before its
   // readiness is decided, so a row banded under an older one is corrected
@@ -441,7 +461,11 @@ export async function assessReadiness(
 
   let ready = 0;
   for (const row of rows) {
-    const stored = readOpportunity(row);
+    const read = readOpportunity(row);
+    const evidence = shapedEvidence(read, fresh(read), ctx.business ?? null);
+    const reshaped = JSON.stringify(evidence) !== JSON.stringify(read.evidence) && store.setEvidence !== undefined;
+    if (reshaped) await store.setEvidence!(read.id, evidence);
+    const stored = reshaped ? { ...read, evidence } : read;
     const band = ownRanked === null ? null : rebandFor(stored, ownRanked);
     if (band !== null && band !== stored.fitBand) await store.setFitBand(stored.id, band);
     const opportunity = band === null ? stored : { ...stored, fitBand: band };
