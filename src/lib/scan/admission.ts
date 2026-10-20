@@ -95,6 +95,7 @@ import { now } from "@/lib/config/now";
 import {
   ceilingReached,
   publishFreeScanBoundReached,
+  readDayCeilingCents,
   readDaySpendCents,
   secondsUntilDayRollsOver,
   type FreeScanBound,
@@ -327,9 +328,9 @@ async function checkCooldown(client: Client, domain: CanonicalDomain): Promise<A
  */
 async function checkDailySpend(): Promise<Admission | null> {
   const at = now();
-  const spentCents = await readDaySpendCents(at);
+  const [spentCents, ceilingCents] = await Promise.all([readDaySpendCents(at), readDayCeilingCents(at)]);
   if (spentCents === null) throw new Error("daily spend unreadable");
-  if (!ceilingReached(spentCents)) return null;
+  if (!ceilingReached(spentCents, ceilingCents)) return null;
   return { refuse: "daily", retryAfterSeconds: secondsUntilDayRollsOver(at) };
 }
 
