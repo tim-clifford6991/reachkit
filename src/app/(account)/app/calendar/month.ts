@@ -23,7 +23,7 @@ import type { NeedsYouCause } from "@/lib/publish/record/needs-you";
 import { accountFor, isLawCause, isSupplyCause, type EmptyAccount, type EmptyFacts, type HeldBySetting } from "./empty";
 import type { PageStanding } from "./day-number";
 import type { WorkStop } from "@/lib/presentation/stopped";
-import { STAGE_OF, type State, type Stage, type StageFilter } from "./stages";
+import { STAGE_OF, type DayState, type State, type Stage, type StageFilter } from "./stages";
 import { dayKeyOf, monthGrid, monthOf, planHorizonEnd, planWeek, type DayKey, type MonthKey } from "./dates";
 
 /** REQ-043 criterion 8's evidence, and §7's day-panel rows.
@@ -384,4 +384,18 @@ export function weekOf(months: readonly MonthModel[], today: DayKey): WeekModel 
  *  the month that was assembled — never for a date the grid drew. */
 export function cellFor(model: MonthModel, day: DayKey): DayCell | undefined {
   return model.cells.find((cell) => cell.day === day && cell.inMonth);
+}
+
+/** A day's state, or `null` where its own line says more (a page held, a
+ *  day no commit covers yet, a past day with nothing on it). A page someone
+ *  stopped, and a day ReachKit or an instruction stopped, is `stopped`; a
+ *  day supply had nothing worth writing for is `skipped`. */
+export function dayStateOf(cell: DayCell): DayState | null {
+  if (cell.page !== null) {
+    return cell.page.stage === "live" ? "live" : cell.page.stage === "planned" ? "planned" : "written";
+  }
+  const cause = cell.empty?.cause;
+  if (cause === "page_cannot_go_live" || cause === "reachkit_stopped" || cause === "instruction") return "stopped";
+  if (cause === "supply_exhausted" || cause === "supply_unmeasured") return "skipped";
+  return null;
 }

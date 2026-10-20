@@ -15,8 +15,8 @@ import { cardLabel, shortCauseFor } from "./card-lines";
 import { dayNumberOf } from "./day-number";
 import { dayNumber, weekdayShort, type DayKey } from "./dates";
 import { WEEK_GRID } from "./frame";
-import type { DayCell } from "./month";
-import { DAY_STATE_COPY_KEY, DAY_STATE_TONE, TONE_BADGE, dayStateOf, type StageFilter } from "./stages";
+import { dayStateOf, type DayCell } from "./month";
+import { DAY_STATE_COPY_KEY, DAY_STATE_TONE, TONE_BADGE, type StageFilter } from "./stages";
 
 /** A day's state as a badge, or nothing for a day with nothing to say. */
 export function DayStateBadge(p: { cell: DayCell; filter: StageFilter }): React.JSX.Element | null {

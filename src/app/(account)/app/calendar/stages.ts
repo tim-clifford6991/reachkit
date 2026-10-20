@@ -18,7 +18,6 @@ import type { CopyKey } from "@/lib/presentation/copy";
 import { STATES } from "@/lib/publish/machine/table";
 import type { State } from "@/lib/publish/types";
 import type { Tone } from "@/ui/types";
-import type { DayCell } from "./month";
 
 /** REQ-043 criterion 2's five stages. Closed — a sixth is a requirement
  *  change, not a new member. */
@@ -179,17 +178,3 @@ export const DAY_STATE_TONE: Readonly<Record<DayState, Tone>> = Object.freeze({
   stopped: "warn",
   skipped: "neutral",
 });
-
-/** A day's state, or `null` where its own line says more (a page held, a
- *  day no commit covers yet, a past day with nothing on it). A page someone
- *  stopped, and a day ReachKit or an instruction stopped, is `stopped`; a
- *  day supply had nothing worth writing for is `skipped`. */
-export function dayStateOf(cell: DayCell): DayState | null {
-  if (cell.page !== null) {
-    return cell.page.stage === "live" ? "live" : cell.page.stage === "planned" ? "planned" : "written";
-  }
-  const cause = cell.empty?.cause;
-  if (cause === "page_cannot_go_live" || cause === "reachkit_stopped" || cause === "instruction") return "stopped";
-  if (cause === "supply_exhausted" || cause === "supply_unmeasured") return "skipped";
-  return null;
-}
