@@ -11,13 +11,27 @@
 // every request to a live page is counted — the first and the ones after
 // it — and that the write is handed to `waitUntil` rather than awaited in
 // front of the response.
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
 import "../../scan/run/harness";
 
 vi.mock("@/lib/scan/removal", () => ({ isDomainRemoved: async () => false }));
 
-const state: { live: boolean; retired: boolean } = { live: true, retired: false };
+const state: { live: boolean; retired: boolean; lookup: "answers" | "hangs" } = {
+  live: true,
+  retired: false,
+  lookup: "answers",
+};
+
+/** What the engines' published crawler ranges answer: the network edge of
+ *  `crawler.ts`, so its own verdict is what the middleware logs. */
+const ranges: { answer: { ok: boolean; status: number; html: string } } = {
+  answer: { ok: true, status: 200, html: JSON.stringify({ prefixes: [{ ipv4Prefix: "66.249.64.0/27" }] }) },
+};
+vi.mock("@/lib/egress", async (original) => ({
+  ...(await original<typeof import("@/lib/egress")>()),
+  safeFetch: async () => ranges.answer,
+}));
 
 vi.mock("@/lib/account/billing", () => ({
   hostedServingState: async () => ({ serve: true }),
@@ -30,6 +44,7 @@ vi.mock("@/lib/publish/destinations/hosted", () => ({
     domain === "example.com" ? { siteId: "site-1", domain, host: `content.${domain}` } : null,
   hostedSiteForHostname: async () => null,
   hostedAddress: async () => {
+    if (state.lookup === "hangs") await new Promise(() => undefined);
     if (state.live) return { state: "live", publicationId: "pub-1" };
     return { state: state.retired ? "retired" : "none", publicationId: null };
   },
@@ -45,6 +60,7 @@ vi.mock("@/lib/publish/reads/store", () => ({
 }));
 
 const { middleware } = await import("@/middleware");
+const { forgetCrawlerRanges } = await import("@/lib/publish/reads/crawler");
 
 /** One request to the live page, as Next hands it to the middleware: the
  *  request and the event whose `waitUntil` keeps the write alive. Returns
@@ -75,8 +91,26 @@ async function counted(headers: Record<string, string> = {}, path = "/a-page"): 
 beforeEach(() => {
   state.live = true;
   state.retired = false;
+  state.lookup = "answers";
+  ranges.answer = { ok: true, status: 200, html: JSON.stringify({ prefixes: [{ ipv4Prefix: "66.249.64.0/27" }] }) };
   recorded.length = 0;
+  forgetCrawlerRanges();
 });
+
+afterEach(() => {
+  vi.restoreAllMocks();
+  vi.useRealTimers();
+});
+
+/** Every `blog_read_skipped` line written while `work` runs. */
+async function skipLines(work: () => Promise<unknown>): Promise<string[]> {
+  const lines: string[] = [];
+  vi.spyOn(console, "warn").mockImplementation((line: unknown) => {
+    if (typeof line === "string" && line.includes("blog_read_skipped")) lines.push(line);
+  });
+  await work();
+  return lines;
+}
 
 describe("the done-when — a ChatGPT-User request raises that page's count by one", () => {
   it("counts one answer fetch against this page and this site", async () => {
@@ -178,5 +212,99 @@ describe("what else is counted, and what is not", () => {
     const { rewrittenTo, waiting } = await visit({ "user-agent": "ChatGPT-User/1.0" });
     expect(rewrittenTo).toBe("/hosted-gone");
     expect(waiting).toHaveLength(0);
+  });
+});
+
+describe("D6 — a visitor from Google or Bing search is counted, and only counted", () => {
+  const browser = "Mozilla/5.0 (Macintosh) Chrome/140 Safari/537.36";
+
+  it("a Google search referrer is a google referral; a Bing one a bing referral", async () => {
+    await counted({ "user-agent": browser, referer: "https://www.google.de/" });
+    await counted({ "user-agent": browser, referer: "https://www.bing.com/search?q=plumber" });
+    expect(recorded.map((call) => call.read)).toEqual([
+      { engine: "google", kind: "referral" },
+      { engine: "bing", kind: "referral" },
+    ]);
+  });
+
+  it("the write holds the day, the page and the engine — never the host, the query or the visitor", async () => {
+    await counted(
+      {
+        "user-agent": browser,
+        referer: "https://www.google.co.uk/search?q=secret-term",
+        "x-forwarded-for": "203.0.113.9",
+      },
+      "/a-page?ref=campaign-7"
+    );
+    const serialised = JSON.stringify(recorded[0]);
+    for (const leaked of ["google.co.uk", "secret-term", "203.0.113.9", "Chrome", "campaign-7"]) {
+      expect(serialised).not.toContain(leaked);
+    }
+  });
+
+  it("the page a search visitor gets runs no script and sets no cookie", async () => {
+    const response = await middleware(
+      new NextRequest(new URL("/a-page", "http://localhost"), {
+        headers: { host: "content.example.com", "user-agent": browser, referer: "https://www.google.com/" },
+      }),
+      { waitUntil: () => undefined }
+    );
+    expect(response.headers.get("content-security-policy") ?? "").toContain("script-src 'none'");
+    expect(response.headers.get("set-cookie")).toBeNull();
+    expect(response.cookies.getAll()).toEqual([]);
+  });
+});
+
+describe("every classified read that is not written says why, and says nothing else", () => {
+  const request = {
+    "user-agent": "Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)",
+    referer: "https://www.google.com/search?q=secret-term",
+    "x-forwarded-for": "203.0.113.9",
+  };
+  const path = "/a-page?utm_source=campaign-7";
+
+  function onlyReason(lines: string[]): unknown {
+    expect(lines).toHaveLength(1);
+    const line = lines[0] ?? "";
+    for (const leaked of ["203.0.113.9", "secret-term", "google.com", "Googlebot", "a-page", "campaign-7"]) {
+      expect(line).not.toContain(leaked);
+    }
+    return JSON.parse(line);
+  }
+
+  it("a crawler claim from an address outside its engine's ranges", async () => {
+    const lines = await skipLines(() => counted(request, path));
+    expect(onlyReason(lines)).toEqual({ event: "blog_read_skipped", reason: "unverified_crawler" });
+    expect(recorded).toHaveLength(0);
+  });
+
+  it("a crawler claim when the engine's ranges could not be read", async () => {
+    ranges.answer = { ok: false, status: 503, html: "" };
+    const lines = await skipLines(() => counted({ ...request, "x-forwarded-for": "66.249.64.7" }, path));
+    expect(onlyReason(lines)).toEqual({ event: "blog_read_skipped", reason: "ranges_unreadable" });
+    expect(recorded).toHaveLength(0);
+  });
+
+  it("a read whose page lookup outlasted its deadline", async () => {
+    vi.useFakeTimers({ toFake: ["setTimeout"] });
+    state.lookup = "hangs";
+    const lines = await skipLines(async () => {
+      const pending = counted({ "user-agent": "ChatGPT-User/1.0" }, path);
+      await vi.advanceTimersByTimeAsync(5000);
+      await pending;
+    });
+    expect(onlyReason(lines)).toEqual({ event: "blog_read_skipped", reason: "page_lookup_deadline" });
+    expect(recorded).toHaveLength(0);
+  });
+
+  it("ordinary traffic whose lookup timed out logs nothing: it was never a read", async () => {
+    vi.useFakeTimers({ toFake: ["setTimeout"] });
+    state.lookup = "hangs";
+    const lines = await skipLines(async () => {
+      const pending = counted({ "user-agent": "Mozilla/5.0 Chrome/140" }, path);
+      await vi.advanceTimersByTimeAsync(5000);
+      await pending;
+    });
+    expect(lines).toEqual([]);
   });
 });

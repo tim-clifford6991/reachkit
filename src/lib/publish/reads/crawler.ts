@@ -56,28 +56,32 @@ export function forgetCrawlerRanges(): void {
   held.clear();
 }
 
+/** Why a crawl claim was not counted, as the skip line names it. */
+export type CrawlerVerdict = "verified" | "unverified_crawler" | "ranges_unreadable";
+
 /**
  * Whether `ip` is inside the published ranges of `engine`'s crawler.
- * Never throws: a list that could not be read answers `false`.
+ * Never throws: a list that could not be read answers `ranges_unreadable`.
  */
-export async function isVerifiedCrawler(
+export async function crawlerVerdict(
   engine: CrawlEngine,
   ip: string | null,
   read: RangesFetch = fetchJson,
   at: number = Date.now()
-): Promise<boolean> {
-  if (ip === null) return false;
+): Promise<CrawlerVerdict> {
+  if (ip === null) return "unverified_crawler";
   const family = isIP(ip);
-  if (family === 0) return false;
+  if (family === 0) return "unverified_crawler";
   try {
     let entry = held.get(engine);
     if (entry === undefined || at - entry.at > SEARCH_CRAWLER_RANGES_TTL_H * HOUR_MS) {
       entry = { list: rangesFrom(await read(SEARCH_CRAWLER_RANGES[engine])), at };
       // An empty answer is kept for no day: the next crawl asks again.
-      if (entry.list.rules.length > 0) held.set(engine, entry);
+      if (entry.list.rules.length === 0) return "ranges_unreadable";
+      held.set(engine, entry);
     }
-    return entry.list.check(ip, family === 4 ? "ipv4" : "ipv6");
+    return entry.list.check(ip, family === 4 ? "ipv4" : "ipv6") ? "verified" : "unverified_crawler";
   } catch {
-    return false;
+    return "ranges_unreadable";
   }
 }
