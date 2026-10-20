@@ -20,7 +20,7 @@ let bad = 0;
 for (const [pathname, expected] of Object.entries(paths)) {
   let got;
   try {
-    const res = await fetch(new URL(pathname, origin), { redirect: "manual" });
+    const res = await fetch(new URL(pathname, origin), { redirect: "manual", signal: AbortSignal.timeout(30_000) });
     const location = res.headers.get("location");
     got = { status: res.status, location: location === null ? undefined : new URL(location, origin).pathname };
   } catch (error) {

@@ -10,6 +10,7 @@ import { NextRequest } from "next/server";
 import { describe, expect, it } from "vitest";
 import { middleware } from "@/middleware";
 import { movedAnswer } from "@/app/(public)/_seo/moved";
+import { sitemapPaths } from "@/app/(public)/_seo/routes";
 import { ANSWERS, COMPARISONS, TEARDOWNS } from "@/app/(public)/_library";
 import fixture from "./old-paths.json";
 
@@ -55,7 +56,17 @@ function served(pathname: string): boolean {
   );
 }
 
+/** The sitemap's paths the list does not hold as a page. */
+function unlisted(sitemap: readonly string[]): string[] {
+  return sitemap.filter((pathname) => PATHS[pathname]?.status !== 200);
+}
+
 describe("every old address answers what the list says (issue 1458)", () => {
+  it("every page the sitemap names is on the list, so dropping one needs a 301 or 410", () => {
+    expect(unlisted(sitemapPaths())).toEqual([]);
+    expect(unlisted([...sitemapPaths(), "/compare/a-later-tool"])).toEqual(["/compare/a-later-tool"]);
+  });
+
   it("the list holds the issue's addresses, the eight old reports and their cards", () => {
     expect(Object.keys(PATHS).length).toBeGreaterThanOrEqual(103);
     expect(Object.keys(PATHS).filter((p) => p.startsWith("/r/"))).toHaveLength(17);
