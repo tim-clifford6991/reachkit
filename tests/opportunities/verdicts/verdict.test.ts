@@ -62,6 +62,15 @@ describe("condition 1 — the four labels, from the reading alone", () => {
     expect(verdict(readingOver(SAAS, [80, ...flat(45, 8)]), week(9))).toBe("not_moving");
   });
 
+  it("working is this week's place: 18, then 45 for 8 weeks, is not moving", () => {
+    expect(verdict(readingOver(SAAS, [18, ...flat(45, 7)]), week(8))).toBe("not_moving");
+    expect(verdict(readingOver(LOCAL, [18, ...flat(45, 7)]), week(8))).toBe("not_moving");
+  });
+
+  it("a week its search was not read keeps a recent top-twenty best working", () => {
+    expect(verdict(readingOver(LOCAL, [45, 18, null]), week(2))).toBe("working");
+  });
+
   it("a gain short of ten places is too early, never climbing", () => {
     expect(verdict(readingOver(LOCAL, [60, 55, 51]), week(2))).toBe("too_early");
   });
