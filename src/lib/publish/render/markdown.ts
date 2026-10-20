@@ -203,6 +203,22 @@ function unwrap(text: string): string {
   return text.replace(/\n/g, " ");
 }
 
+const WORD_START = /^[\p{L}\p{N}]/u;
+const WORD_END = /[\p{L}\p{N}]$/u;
+
+/** A link glued into a word ("B[2](u)B") is that word, not a link: a body
+ *  stored before the link step unwrapped them renders whole. */
+function unglued(inlines: readonly Inline[]): Inline[] {
+  return inlines.flatMap((node, i) => {
+    if (node.kind !== "link") return [node];
+    const before = inlines[i - 1];
+    const after = inlines[i + 1];
+    const glued =
+      (before?.kind === "text" && WORD_END.test(before.text)) || (after?.kind === "text" && WORD_START.test(after.text));
+    return glued ? [...node.children] : [node];
+  });
+}
+
 function inlinesOf(nodes: readonly PhrasingContent[], src: string): Inline[] {
   const out: Inline[] = [];
   for (const node of nodes) {
@@ -237,7 +253,7 @@ function inlinesOf(nodes: readonly PhrasingContent[], src: string): Inline[] {
         out.push({ kind: "text", text: unwrap(sourceOf(node, src)) });
     }
   }
-  return out;
+  return unglued(out);
 }
 
 /** The inline grammar on its own, over a fragment. The same parse the

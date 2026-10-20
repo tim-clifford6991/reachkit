@@ -263,6 +263,18 @@ describe("Settings — a change is stored and says so", () => {
     expect(said[0]?.text).toBe(COPY["settings.answer.saved"]);
   });
 
+  it("with the draft-ready mail off, the switch says pages still go live on their day", async () => {
+    const off = (on: boolean) => ({
+      ...SETTINGS,
+      notifications: SETTINGS.notifications.map((row) => (row.kind === "draft-ready" ? { ...row, on } : row)),
+    });
+    const line = '[data-testid="notification-draft-ready-off"]';
+    expect((await mount(<NotificationsPanel settings={off(false)} />)).querySelector(line)?.textContent).toBe(
+      COPY["settings.notifications.draft-ready.off"]
+    );
+    expect((await mount(<NotificationsPanel settings={off(true)} />)).querySelector(line)).toBeNull();
+  });
+
   it("the veto stepper writes whole days, in the hours the column stores", async () => {
     const root = await mount(<PublishingPanel settings={SETTINGS} />);
     await press(root.querySelector('[data-testid="veto-more"]'));

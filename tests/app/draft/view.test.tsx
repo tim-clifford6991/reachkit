@@ -40,6 +40,7 @@ import { AUTOSAVE_DEBOUNCE_MS, PREVIEW_DEBOUNCE_MS } from "@/lib/config/constant
  *  number, named here so the one test that has to wait it out says why. */
 const CODEMIRROR_TYPING_LATCH_MS = 200;
 import { copy } from "@/lib/presentation/copy";
+import { formatDateTime } from "@/app/(account)/app/_shell/format";
 import { HARD_RULES, NO_CHECKS } from "@/lib/generate/rules/types";
 import { renderMarkdownHtml } from "@/lib/publish/render/markdown";
 import { DraftScreen } from "@/app/(account)/app/draft/[draftId]/DraftScreen";
@@ -278,7 +279,7 @@ describe("REQ-045 c4 — told when the page goes live on its own, and able to ed
   it("an untouched page in review shows its go-live time and Stop, and nothing asks for an approval", () => {
     const root = markup();
     // The go-live time, in the site's zone: on the rail and on the phone bar.
-    expect(textOf(root, "draft-do-nothing-at")).toContain("Sep 16, 2026");
+    expect(textOf(root, "draft-goes-live")).toContain("Sep 16, 2026");
     expect(textOf(root, "draft-do-nothing-bar")).toContain("Sep 16, 2026");
     // Stop is there; Approve is not.
     expect(textOf(root, "draft-action-draft.action.veto")).toBe(copy("draft.action.veto"));
@@ -316,10 +317,13 @@ describe("REQ-045 c4 — told when the page goes live on its own, and able to ed
     expect(edit?.className).not.toContain("btn-primary");
   });
 
-  it("the panel counts down to a stated time, and says what doing nothing means", () => {
+  it("the panel states the time it goes live, in a neutral box, and says what doing nothing means", () => {
     const root = markup();
-    expect(textOf(root, "draft-countdown")).toContain(copy("draft.decide.goes-live-in"));
-    expect(textOf(root, "draft-do-nothing-at")).toContain("Sep 16, 2026");
+    const at = VIEW.doNothing.publishesAt;
+    if (at === null) throw new Error("the fixture is on autopilot with a window");
+    const box = root.querySelector('[data-testid="draft-goes-live"]');
+    expect(box?.textContent).toBe(copy("draft.decide.goes-live", { at: formatDateTime(at, VIEW.timeZone) }));
+    expect(box?.className).not.toMatch(/warning|error/);
     expect(textOf(root, "draft-do-nothing")).toBe(copy("draft.do-nothing.schedule"));
     // The phone bar has no countdown, so its one line carries the time.
     expect(textOf(root, "draft-do-nothing-bar")).toContain("Sep 16, 2026");
@@ -486,7 +490,7 @@ describe("a published page on an autopilot site renders at all", () => {
     expect(root.querySelector('[data-testid="draft-body"]')).not.toBeNull();
     expect(root.querySelector('[data-testid="draft-do-nothing"]')).toBeNull();
     expect(root.querySelector('[data-testid="draft-do-nothing-bar"]')).toBeNull();
-    expect(root.querySelector('[data-testid="draft-countdown"]')).toBeNull();
+    expect(root.querySelector('[data-testid="draft-goes-live"]')).toBeNull();
   });
 });
 
@@ -651,16 +655,14 @@ describe("REQ-045 c5-c9 — the editor, its live preview, its autosave and its i
     expect(save).not.toHaveBeenCalled();
   });
 
-  it("the countdown to going live ticks down each second (board R12-6-Page)", () => {
-    const at = VIEW.doNothing.publishesAt;
-    if (at === null) throw new Error("the fixture is on autopilot with a window");
-    vi.setSystemTime(at.getTime() - (6 * 3600 + 12 * 60 + 9) * 1000);
+  it("nothing on the rail ticks: no clock runs while the page waits to go live", () => {
+    const interval = vi.spyOn(globalThis, "setInterval");
     mount();
-    const left = (): string =>
-      container.querySelector('[data-testid="draft-countdown-left"]')?.textContent ?? "";
-    expect(left()).toBe(copy("draft.decide.countdown", { h: "6", m: "12", s: "09" }));
-    act(() => vi.advanceTimersByTime(1000));
-    expect(left()).toBe(copy("draft.decide.countdown", { h: "6", m: "12", s: "08" }));
+    const before = container.querySelector('[data-testid="draft-goes-live"]')?.textContent;
+    act(() => vi.advanceTimersByTime(5_000));
+    expect(container.querySelector('[data-testid="draft-goes-live"]')?.textContent).toBe(before);
+    expect(interval.mock.calls.filter(([, ms]) => ms === 1000)).toEqual([]);
+    interval.mockRestore();
   });
 
   it("there is no save control anywhere in either arm", () => {

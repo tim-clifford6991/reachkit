@@ -144,19 +144,19 @@ const CODE_OR_NUMBER_LINK_RE = /(`[^`]+`)|\[(\s*[\d.,]+%?\s*)\]\(([^)\s]+)\)/g;
 const AFTER_RE = /^((?:[ \t]+[\p{L}\p{N}][\p{L}\p{N}'’%-]*){1,5})/u;
 const BEFORE_RE = /((?:[\p{L}\p{N}][\p{L}\p{N}'’-]*[ \t]+){1,3})$/u;
 
-/** A link around digits glued to a letter on either side: the "2" of
- *  "B[2](u)B" is part of the word "B2B", never a figure (issue 1507). */
-const GLUED_NUMBER_LINK_RE = /(`[^`]+`)|(?<=\p{L})\[([\d.,]+%?)\]\([^)\s]+\)|\[([\d.,]+%?)\]\([^)\s]+\)(?=\p{L})/gu;
+/** A link whose words touch a letter or digit on either side: the "2" of
+ *  "B[2](u)B" is part of the word "B2B", and no word fragment is a link. */
+const GLUED_LINK_RE = /(`[^`]+`)|(?<=[\p{L}\p{N}])\[([^\]\n]*)\]\([^)\s]+\)|\[([^\]\n]*)\]\([^)\s]+\)(?=[\p{L}\p{N}])/gu;
 
-/** Whether a line links digits that are glued into a word. */
-export function hasGluedNumberLink(line: string): boolean {
-  return [...line.matchAll(GLUED_NUMBER_LINK_RE)].some((match) => match[1] === undefined);
+/** Whether a line links a fragment of a word. */
+export function hasGluedLink(line: string): boolean {
+  return [...line.matchAll(GLUED_LINK_RE)].some((match) => match[1] === undefined);
 }
 
-/** The line with every link around glued digits unwrapped: "B[2](u)B" is
- *  "B2B" again. The words are the line's own; only the link goes. */
-export function unglueNumberLinks(line: string): string {
-  return line.replace(GLUED_NUMBER_LINK_RE, (token: string, code: string | undefined, left: string | undefined, right: string | undefined) =>
+/** The line with every link inside a word unwrapped: "B[2](u)B" is "B2B"
+ *  again. The words are the line's own; only the link goes. */
+export function unglueLinks(line: string): string {
+  return line.replace(GLUED_LINK_RE, (token: string, code: string | undefined, left: string | undefined, right: string | undefined) =>
     code !== undefined ? token : (left ?? right ?? "")
   );
 }
@@ -165,11 +165,11 @@ export function unglueNumberLinks(line: string): string {
  * A link whose text is a bare figure takes in the words the figure counts:
  * `[1](u) of the 11 buyer questions` becomes `[1 of the 11 buyer
  * questions](u)`. A figure alone in a table cell has no words beside it and
- * stands: its column's heading says what it counts. Digits glued into a word
- * are not a figure, and their link is unwrapped first (issue 1507).
+ * stands: its column's heading says what it counts. A link glued into a word
+ * is not a figure, and is unwrapped first.
  */
 export function widenNumberLinks(given: string): string {
-  const line = unglueNumberLinks(given);
+  const line = unglueLinks(given);
   let out = "";
   let from = 0;
   CODE_OR_NUMBER_LINK_RE.lastIndex = 0;

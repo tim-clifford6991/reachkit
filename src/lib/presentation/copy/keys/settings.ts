@@ -633,7 +633,12 @@ export const SETTINGS_COPY = Object.freeze({
   // stoppable kind arrives as a missing-key compile error rather than as a
   // mail a customer cannot stop.
   "settings.notifications.title": ["Notifications", { slots: {}, fixedBy: "BUILD §4.7" }],
-  "settings.notifications.draft-ready": ["Daily draft-ready mail", { slots: {}, fixedBy: "BUILD §12" }],
+  "settings.notifications.draft-ready": ["A page is ready, before it goes live", { slots: {}, fixedBy: "issue 1574" }],
+  // Under the switch while it is off: turning the mail off never holds a page.
+  "settings.notifications.draft-ready.off": [
+    "Pages still go live on their day. You can stop them from Plan.",
+    { slots: {}, fixedBy: "issue 1574" },
+  ],
   "settings.notifications.published": ["Published-page mail", { slots: {}, fixedBy: "BUILD §12" }],
   "settings.notifications.weekly": ["Monday movement mail", { slots: {}, fixedBy: "BUILD §12" }],
 

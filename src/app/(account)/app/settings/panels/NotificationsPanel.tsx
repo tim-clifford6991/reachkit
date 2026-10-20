@@ -64,7 +64,14 @@ export function NotificationsPanel(p: { settings: SettingsModel }): React.JSX.El
               className="border-base-300 flex min-w-0 cursor-pointer flex-wrap items-center justify-between gap-2 border-t py-3 first:border-t-0 first:pt-0"
               data-testid={`notification-${row.kind}`}
             >
-              <span className="min-w-0 text-sm wrap-anywhere">{copy(row.copyKey)}</span>
+              <span className="flex min-w-0 flex-col gap-1">
+                <span className="text-sm wrap-anywhere">{copy(row.copyKey)}</span>
+                {row.kind === "draft-ready" && !row.on ? (
+                  <span className="text-xs text-base-content/70 wrap-anywhere" data-testid="notification-draft-ready-off">
+                    {copy("settings.notifications.draft-ready.off")}
+                  </span>
+                ) : null}
+              </span>
               <input
                 type="checkbox"
                 className="toggle toggle-primary"

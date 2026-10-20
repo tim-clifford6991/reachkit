@@ -149,3 +149,26 @@ describe("the conversion is deterministic", () => {
     expect(renderMarkdownHtml("")).toBe("");
   });
 });
+
+describe("a link inside a word renders as the word", () => {
+  it("the stored reachkit-vs-aeo-engine body reads 'B2B' live, without its row being edited", async () => {
+    const { readFileSync } = await import("node:fs");
+    const path = await import("node:path");
+    const stored = JSON.parse(readFileSync(path.join(__dirname, "../../generate/live-structure-pages-1507.json"), "utf8")) as {
+      pages: { liveUrl: string; markdown: string }[];
+    };
+    const page = stored.pages.find((each) => each.liveUrl.endsWith("/reachkit-vs-aeo-engine"))!;
+    expect(page.markdown).toContain("For a B[2](https://reachkit.app/pricing)B SaaS");
+
+    const html = renderMarkdownHtml(page.markdown);
+    expect(html).toContain("For a B2B SaaS");
+    expect(html).not.toMatch(/<a [^>]*>2<\/a>/);
+    // A link with a space either side still renders as one.
+    expect(html).toContain('href="https://aeoengine.ai/pricing"');
+  });
+
+  it("any label glued to a letter or digit is unwrapped, at either edge", () => {
+    expect(renderMarkdownHtml("Rival[Co](https://rival.example/a) sells it")).toBe("<p>RivalCo sells it</p>");
+    expect(renderMarkdownHtml("the [plan](https://rival.example/p)s compared")).toBe("<p>the plans compared</p>");
+  });
+});

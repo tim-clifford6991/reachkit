@@ -358,6 +358,9 @@ export const PUBLISH_COPY = Object.freeze({
   "publish.veto.alreadyUsed": ["This link was already used. The page is stopped.", { slots: {}, fixedBy: "REQ-057 c1" }],
   "publish.veto.expired": ["The moment to stop this page has passed.", { slots: {}, fixedBy: "REQ-057 c1" }],
   "publish.veto.unknown": ["This isn’t a link ReachKit can act on.", { slots: {}, fixedBy: "REQ-057 c1" }],
+  // The heads of the arms where nothing was stopped; the line under each says why.
+  "publish.veto.closed.head": ["This page can no longer be stopped here", { slots: {}, fixedBy: "issue 1574" }],
+  "publish.veto.unknown.head": ["This link doesn’t work", { slots: {}, fixedBy: "issue 1574" }],
 
   // 2026-09-06, issue #54 (BUILD §9 · REQ-060). The two sentences the
   // WordPress destination speaks, and they are the only two: everything

@@ -15,7 +15,9 @@
 // on the strength of a mail that never left, and the guard would then let
 // it publish in silence — which is precisely the failure §9's clause
 // exists to prevent. A refused send leaves the page untold and held, and
-// the next tick owes the telling again.
+// the next tick owes the telling again. The one exception is the customer's
+// own switch: a mail they turned off is a telling they declined, so it is
+// recorded and the page still goes live on its day.
 //
 // **Once per page, and the natural key is the record itself.** The seam
 // this module calls is not idempotent (`send.ts` says so), so this module
@@ -75,6 +77,7 @@ export type DraftReadyOutcome =
         | "already-told"
         | "not-yet-tellable"
         | "no-account"
+        | "preference-off"
         | "mail";
     };
 
@@ -195,6 +198,11 @@ export async function sendDraftReadyMail(a: {
     ...(isUnsuppressible(telling) ? { suppressible: false as const } : {}),
   });
 
+  // A switched-off mail must never hold the page it would have announced.
+  if (!result.sent && result.reason === "preference-off") {
+    await recordTold(a.draftId, telling, draft.governing, at);
+    return { sent: false, reason: "preference-off" };
+  }
   if (!result.sent) return { sent: false, reason: "mail" };
 
   // After, and only after. See the module header.

@@ -410,6 +410,18 @@ describe("the done arm, and the refusals that wear its shape", () => {
     }
   });
 
+  it.each([
+    ["expired", "publish.veto.closed.head"],
+    ["not_in_review", "publish.veto.closed.head"],
+    ["unknown", "publish.veto.unknown.head"],
+  ] as const)("a %s link says nothing was stopped, and offers the way to the plan", async (reason, head) => {
+    previewAnswer = async () => ({ ok: false, reason });
+    const tree = await ask();
+    expect(headingsOf(tree, "h1")).toEqual([COPY[head]]);
+    expect(headingsOf(tree, "h1")).not.toContain(COPY["publish.veto.done.head"]);
+    expect(linksOf(tree)).toHaveLength(1);
+  });
+
   it("`?done=1` typed against a live link shows the ask, and stops nothing", async () => {
     // The marker is not a claim on its own: the done arm needs the store to
     // agree. Without this, anyone could be told their page was stopped.

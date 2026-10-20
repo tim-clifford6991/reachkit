@@ -17,6 +17,9 @@ import { sendLink } from "./actions";
 import { EMAIL_FIELD, SIGN_IN_INITIAL, type SignInState } from "./state";
 import { SPECIMEN_SIGNIN } from "../_landing/specimen";
 
+/** The autofill token and the keyboard the field asks for. */
+const EMAIL_HINT = "email";
+
 /** The layout, named once: two halves edge to edge, no border and no
  *  radius (#1025 — #986 drew them as one rounded card at the wide measure,
  *  which the owner rejected). The surface declares its own edges, so the
@@ -131,19 +134,21 @@ export default function SignInPage(props: {
    *  and this is the other half of it: the same door, however you arrived. */
   function askForLink(label: string): React.JSX.Element {
     return (
-      <form action={formAction} className="flex flex-col gap-3">
-        {/* The address is the field's own placeholder, in the mono face at
-            the `--t-sm` rung, and the same approved string is the field's
-            accessible name. */}
-        <input
-          type="text"
-          aria-label={copy("signin.field.placeholder")}
-          placeholder={copy("signin.field.placeholder")}
-          className="input w-full font-mono text-sm"
-          name={EMAIL_FIELD}
-          value={fieldValue}
-          onChange={(e) => setTyped(e.target.value)}
-        />
+      // `noValidate`: a malformed address gets the product's own sentence, not the browser's bubble.
+      <form action={formAction} className="flex flex-col gap-3" noValidate>
+        <label className="flex flex-col gap-1">
+          <span className="text-sm font-medium">{copy("signin.field.label")}</span>
+          <input
+            type="email"
+            autoComplete={EMAIL_HINT}
+            inputMode={EMAIL_HINT}
+            placeholder={copy("signin.field.placeholder")}
+            className="input w-full font-mono text-sm"
+            name={EMAIL_FIELD}
+            value={fieldValue}
+            onChange={(e) => setTyped(e.target.value)}
+          />
+        </label>
         {/* The screen's one solid primary, full width — and the only solid
             button on it. */}
         <button type="submit" className="btn btn-primary btn-block" disabled={pending} aria-busy={pending || undefined}>

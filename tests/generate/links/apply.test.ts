@@ -90,3 +90,20 @@ describe("the one serialiser reads the links back", () => {
     );
   });
 });
+
+describe("a link inside a word is that word, not a link", () => {
+  it.each([
+    ["For a B[2](/pricing)B SaaS", "For a B2B SaaS"],
+    // Off the site, where a link's address is otherwise kept.
+    ["Rival[Co](https://rival.example/about) sells it", "RivalCo sells it"],
+    ["the [plan](https://rival.example/pricing)s compared", "the plans compared"],
+  ])("%s → %s", (body, plain) => {
+    expect(apply(body, [])).toBe(plain);
+  });
+
+  it("a link with a space or punctuation either side stands", () => {
+    expect(apply("See [their plans](https://rival.example/pricing), then decide.", [])).toBe(
+      "See [their plans](https://rival.example/pricing), then decide."
+    );
+  });
+});
