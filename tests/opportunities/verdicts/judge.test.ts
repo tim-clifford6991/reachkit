@@ -27,6 +27,9 @@ import {
 } from "./harness";
 import { measured, unmeasured } from "../../../src/lib/measure/measured";
 import { AT, DOMAIN, SITE_ID, question, reportOf, serp } from "../fixtures";
+import { assembleReading, readingOf, type PageReading } from "../../../src/lib/measure/page-reading";
+import { readStoredReport, type StoredReport } from "../../../src/lib/scan/report";
+import { LOCAL, SAAS, stored, weekWith } from "../../measure/reading-fixture";
 
 afterEach(releaseStore);
 
@@ -383,5 +386,33 @@ describe("issue 1518 — the addresses a page answered at before", () => {
     const refresh = row("r", "https://content.example.com/a", "https://content.example.com/a");
     expect(earlierAddresses(write, [write], "https://content.example.com/a")).toEqual([]);
     expect(earlierAddresses(refresh, [refresh, write], "https://content.example.com/a")).toEqual([]);
+  });
+});
+
+describe("ADR-071 point 2 — a week whose place was not read is never stored as not moving", () => {
+  const WEEK_MS = 7 * 86_400_000;
+
+  it("15 for 9 weeks, then a week whose ranked rows were capped, writes no not_working row (SaaS and local)", async () => {
+    for (const panel of [SAAS, LOCAL]) {
+      const weekAt = (place: number | null): StoredReport =>
+        weekWith({ domain: panel.domain, asked: [{ publicationId: "pub-1", liveUrl: panel.page, search: panel.search, place }] });
+      // The capped week: the site ranks for more searches than the rows kept.
+      const capped: StoredReport = { ...weekAt(null), ownRanked: measured(1200, AT) };
+      const weeks = [...Array<StoredReport>(9).fill(weekAt(15)), capped];
+      const page = { id: "pub-1", liveUrl: panel.page, search: panel.search, crawled: false, aiReads: 0, aiVisits: 0, google: null, bing: null };
+      let reading: PageReading | null = null;
+      weeks.forEach((report, n) => {
+        const now = new Date(AT.getTime() - (weeks.length - 1 - n) * WEEK_MS);
+        reading = readingOf(stored(assembleReading({ before: reading, report: readStoredReport(stored(report)), page, now }) as never));
+      });
+      const store = fakeStore({
+        pages: [pageOf({ domain: panel.domain, liveUrl: panel.page, acceptance: { form: "top20", query: panel.search }, reading })],
+        report: capped,
+      });
+      const { standings } = await judgeWeek({ siteId: SITE_ID, week: WEEK });
+      expect(standings[0]?.standing).toEqual({ kind: "not_measured" });
+      expect(store.rows).toHaveLength(0);
+      releaseStore();
+    }
   });
 });

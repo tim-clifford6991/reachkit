@@ -274,12 +274,13 @@ function judgeOne(a: {
       : fix?.decided === false || reading === null
         ? null
         : verdict(reading, a.measurements.measuredAt);
-  // A page this week cannot label writes no row, so a miss is never permanent.
-  if (label === null) return { standing: NOT_MEASURED, row: null };
+  const place = measurementOf(page, a.measurements);
+  // A page this week cannot label, or would call not moving on a place it did
+  // not read, writes no row, so a miss is never permanent (ADR-071 point 2).
+  if (label === null || (label === "not_moving" && place?.kind === "unmeasured")) return { standing: NOT_MEASURED, row: null };
   const judged = VERDICT_OF[label];
   const measuredAt = fix?.decided === true ? fix.measuredAt : a.measurements.measuredAt;
 
-  const place = measurementOf(page, a.measurements);
   const movement =
     place === null
       ? null
