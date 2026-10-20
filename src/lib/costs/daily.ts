@@ -2,57 +2,10 @@
 // site, may spend in one UTC day, over and above what any one pass may
 // spend.
 //
-// The four caps in `CAPS` each bound *one* pass. Nothing bounded their
-// sum, so the product's exposure for a day was whatever the day's traffic
-// multiplied them by — the free path alone can bring 200 scans (BUILD §11)
-// and a runaway anywhere else adds to that unopposed. `DAILY_PRODUCT_CEILING`
-// is the missing figure and this module is the whole of its machinery
-// (issue #329):
-//
-//  - **the day** is UTC. There is no site whose clock this could keep: one
-//    figure for the whole product has no customer to be local to.
-//  - **the ledger is `fetches`**, the same rows the per-scan caps are
-//    settled from — "money already spent is always ledgered" — summed in
-//    the database by `fetches_spend_since()`, never row by row in this
-//    process (a busy day is thousands of rows and this is asked once a
-//    pass).
-//  - **what it reads is exact, in cents.** `fetches.cost_cents` is
-//    `numeric(12,4)` and `fetches_spend_since()` sums into `numeric`
-//    (issue #449), so a day of 0.06¢ SERPs totals 0.06¢ × n rather than
-//    the 0¢ an `integer` column recorded for every one of them. The unit
-//    is the one `DAILY_PRODUCT_CEILING` is written in, so the comparison
-//    below needs no conversion. Until #449 this paragraph said the
-//    opposite — the stored total was a floor, and the guard erred toward
-//    spending slightly over the ceiling; that was the ledger's own defect,
-//    named under *Adjacent* on issue #329's PR, and it is gone.
-//  - **it degrades, it never throws.** §6.5's own rule. A ceiling that is
-//    reached skips remaining work, and so does a ledger that cannot be
-//    *read* (issue 792): a figure nobody has is not room to spend. The
-//    call is skipped, `daily_spend_unreadable` says why, and the next call
-//    or tick asks the ledger again.
-//
-// **Why the alert leaves through a port rather than a call.**
-// ARCHITECTURE rule 2 puts `src/lib/costs` at the bottom of the dependency
-// order (`src/lib/` → `src/lib/{config,egress,costs,db}`), so this module
-// cannot reach `src/lib/mail` and must not learn how to. It publishes the
-// crossing and knows nothing about what is done with it; the mail side
-// registers itself at boot (`src/instrumentation.ts`), the shape
-// `registerActiveAccessGate` and `registerSuppressionReader` already use.
-// Nothing registered means nothing is told — never a throw, and never a
-// scan that fails because an alert could not go out.
-//
-// **The per-site ceiling (issue 885) is the same machinery, one predicate
-// narrower.** The product's ceiling is shared by everyone and so
-// does not care whose spend reached it: one site in a retry loop could
-// consume the day and every other customer was refused until midnight
-// UTC, silently. `CAPS.DAILY_SITE_C` is read off the same `fetches` rows
-// through `fetches_site_spend_since(site_id, since)` — the same shape as
-// the product's read, the same UTC day, the same exact `numeric` unit, the
-// same "unreadable is not room to spend" rule — and it is checked in the
-// same seam (`src/lib/costs/index.ts`), so no caller can spend around it.
-// What the two protect is not the same thing and they are not
-// interchangeable: the product's ceiling is the company's exposure for a
-// day, and the site's is one customer's share of it.
+// The day is UTC: one figure for the whole product has no customer to be local to. Each ledger is `fetches`,
+// summed exactly in `numeric` cents by the database. A ledger that cannot be read is not room to spend: the call
+// degrades and `*_spend_unreadable` says why. The alert leaves through a port the mail side registers at boot,
+// since `src/lib/costs` sits below `src/lib/mail`; nothing registered means nothing is told, never a throw.
 import { CAPS, DAILY_PRODUCT_CEILING, SPEND_ALERT_AT } from "@/lib/config/constants";
 import { dbAdmin } from "@/lib/db";
 
@@ -61,23 +14,15 @@ import { dbAdmin } from "@/lib/db";
  *  the seam stops authorising calls. */
 export type SpendCrossing = "warn" | "ceiling";
 
-/** Whose ceiling an alert is about (issue 885). Absent on an alert is the
- *  product's — what every alert was before this field existed, and what a
- *  caller that names no subject still means.
- *
- *  `site` carries the site's own id, which is the whole point of the
- *  per-site cap: an owner told that *a* ceiling was reached cannot act,
- *  and an owner told which site can. `free-scan` names the bound, never
- *  the network key and never the domain — the ops mails' own closed-name
- *  rule (`src/lib/mail/templates/ops/`), and a bound name is what the
- *  owner acts on. */
+/** Whose ceiling an alert is about; absent is the product's. `site` carries
+ *  the id so the owner can act; `free-scan` names the bound, never the
+ *  network key or the domain (`src/lib/mail/templates/ops/`). */
 export type SpendSubject =
   | { readonly kind: "product" }
   | { readonly kind: "site"; readonly siteId: string }
   | { readonly kind: "free-scan"; readonly bound: FreeScanBound };
 
-/** Which free-path bound reached its figure (issue 885). One network's
- *  day, or one domain's. */
+/** Which free-path bound reached its figure: one network's day, or one domain's. */
 export type FreeScanBound = "network-day" | "domain-day";
 
 export interface SpendAlert {
@@ -85,16 +30,14 @@ export interface SpendAlert {
   /** What the day's ledger stood at when the crossing was noticed. */
   readonly spentCents: number;
   readonly ceilingCents: number;
-  /** Whose ceiling (issue 885). Absent is the product's. */
+  /** Whose ceiling. Absent is the product's. */
   readonly subject?: SpendSubject;
 }
 
 export type SpendAlertSink = (alert: SpendAlert) => void;
 
-/** Kept on `globalThis`, not in a module variable (issue 863): Next
- *  bundles `src/instrumentation.ts` apart from every route, so a sink it
- *  registered into its own copy of this module was never seen by the
- *  routes that spend. One process, one slot. */
+/** On `globalThis`, not a module variable: Next bundles `src/instrumentation.ts`
+ *  apart from the routes, and each bundle has its own copy of this module. */
 const SINK = Symbol.for("reachkit.costs.spendAlertSink");
 const slot = globalThis as { [SINK]?: SpendAlertSink | null };
 
@@ -199,11 +142,8 @@ export function dayStartedAt(now: Date): Date {
   return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
 }
 
-/** How long until the ceiling lifts, as an **elapsed duration in seconds**
- *  and never a clock time — the shape every refusal in `admission.ts`
- *  promises (REQ-003's third assumption). The day's spend is the only
- *  bound in this product that can promise a time honestly: it goes to zero
- *  at the next UTC midnight whatever anyone does. */
+/** How long until the ceiling lifts, in elapsed seconds, never a clock time:
+ *  the shape every refusal in `admission.ts` promises. */
 export function secondsUntilDayRollsOver(now: Date): number {
   const next = dayStartedAt(now).getTime() + 24 * 60 * 60 * 1000;
   return Math.max(0, Math.ceil((next - now.getTime()) / 1000));
@@ -258,10 +198,7 @@ interface MinimalRpcClient {
   ): PromiseLike<{ data: unknown; error: { message: string } | null }>;
 }
 
-/** The one cast boundary this module needs: `fetches_spend_since` is this
- *  migration's own function and `src/lib/db/types.generated.ts` is BP-002's
- *  generated artifact, the same gap `ledger.ts` and `scan/store.ts` already
- *  name and work around the same way. */
+/** The one cast this module needs, for spend functions the generated types do not hold. */
 function untypedRpc(client: ReturnType<typeof dbAdmin>): MinimalRpcClient {
   return client as unknown as MinimalRpcClient;
 }
@@ -271,7 +208,7 @@ function untypedRpc(client: ReturnType<typeof dbAdmin>): MinimalRpcClient {
  *
  * `null` means the ledger could not be read — not zero. The caller decides
  * what an unreadable ledger means, and every caller here decides the same
- * thing: nothing is spent on a number nobody has (issue 792).
+ * thing: nothing is spent on a number nobody has.
  */
 export async function readDaySpendCents(now: Date): Promise<number | null> {
   try {
@@ -300,12 +237,8 @@ function logUnreadable(reason: string): void {
 
 /**
  * The day's ledger as one pass sees it: read when a cost context opens, and
- * read again before every paid call (issue 792).
- *
- * Once a pass was not enough: two passes running together each read the
- * day once at their start and each spent up to the ceiling on its own. The
- * re-read sees what every other pass has ledgered since. What this pass
- * has in flight is not in the ledger yet, so the caller hands it in.
+ * again before every paid call, so what every other pass has ledgered since
+ * is counted. What this pass has in flight the caller hands in.
  */
 export interface DayLedger {
   /** The day's total as this pass last read it, plus what it has ledgered
@@ -366,7 +299,7 @@ export async function openDayLedger(now: Date): Promise<DayLedger> {
   };
 }
 
-// ── The per-site ceiling (issue 885) ───────────────────────────────────
+// ── The per-site ceiling ───────────────────────────────────────────────
 
 /** Whether a site's day, standing at `spentCents`, has reached its own
  *  cap. `>=`, like the product's: a figure spent up to, never through. */
@@ -386,8 +319,8 @@ export function siteCrossingOf(beforeCents: number, afterCents: number): SpendCr
  * What one site has spent since midnight UTC, in cents.
  *
  * `null` means the ledger could not be read — not zero, and the caller
- * decides the same thing every caller of `readDaySpendCents` decides
- * (issue 792): nothing is spent on a number nobody has.
+ * decides the same thing every caller of `readDaySpendCents` decides:
+ * nothing is spent on a number nobody has.
  */
 export async function readSiteDaySpendCents(siteId: string, now: Date): Promise<number | null> {
   try {
@@ -468,7 +401,7 @@ export async function openSiteDayLedger(siteId: string, now: Date): Promise<Site
 }
 
 /**
- * The owner's telling that a free-path bound has been reached (issue 885).
+ * The owner's telling that a free-path bound has been reached.
  *
  * The bounds are counts of scans, not sums of money, so what the alert
  * carries is what those counts hold back: `scans x CAPS.FREE_C`, the most

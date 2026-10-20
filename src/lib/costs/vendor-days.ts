@@ -1,8 +1,7 @@
-// src/lib/costs/vendor-days.ts — issue 1478, SPEC §6: what the vendors
-// billed, one row per vendor per UTC day.
+// SPEC §6: what the vendors billed, one row per vendor per UTC day.
 //
 // The ledger's figures are the price book's estimate, and DataForSEO's own
-// charge where a response carried one (#1408). This is the vendors' side,
+// charge where a response carried one. This is the vendors' side,
 // stored where the owner's cost page and `npm run costs` read it, and read by
 // `account/maintenance` with no owner step (`src/jobs/vendor-days.ts`):
 //

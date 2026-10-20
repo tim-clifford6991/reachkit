@@ -1,9 +1,8 @@
-// src/lib/costs/site-day.ts — issue 1478, SPEC §6: what each site cost, each
-// UTC day and the week, estimated beside billed.
+// SPEC §6: what each site cost, each UTC day and the week, estimated beside billed.
 //
 // The owner's cost page (`/app/costs`) reads this and nothing else. Every
 // figure is a sum of `cost_site_day` rows (the ledger, grouped) or of
-// `vendor_days` rows, so each one equals the rows it was read from (#1457).
+// `vendor_days` rows, so each one equals the rows it was read from.
 // Money stays in US cents, the ledger's unit, until a figure is set against
 // a euro one: D34's two euros a day and a site's month against its net
 // price, converted at `USD_PER_EUR`.
