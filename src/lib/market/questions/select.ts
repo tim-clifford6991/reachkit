@@ -407,8 +407,7 @@ export function selectTwelve(a: {
   /** How many to return; the twelve unless a caller wants the runners-up
    *  too, to have them judged with the twelve. */
   limit?: number;
-  /** Issue 1549: the searches this site measured in the last
-   *  `SELECTION.freshWeeks` weeks. Absent, or empty, every search is new. */
+  /** Ignored: the same market selects the same twelve, whatever was measured before. */
   recent?: readonly string[];
 }): SelectedSearch[] {
   const { profile } = a;
@@ -512,17 +511,6 @@ export function selectTwelve(a: {
     (!candidate.howTo || count((c) => c.howTo) < SELECTION.maxHowTo);
 
   const answering = (candidate: Candidate): boolean => candidate.intent === "problem" || candidate.intent === "informational";
-  // Issue 1549: at least `SELECTION.minFresh` searches the site has not
-  // measured in the last weeks, answering ones first, so a week's pass reads
-  // something of its market it did not read the week before.
-  const recent = new Set((a.recent ?? []).map((keyword) => stemKey(keyword, profile.language)));
-  const fresh = (candidate: Candidate): boolean => !recent.has(stemKey(candidate.keyword, profile.language));
-  if (recent.size > 0) {
-    for (const candidate of [...ranked.filter(answering), ...ranked]) {
-      if (count(fresh) >= SELECTION.minFresh || picked.size >= limit) break;
-      if (fresh(candidate) && admits(candidate)) picked.add(candidate);
-    }
-  }
   // D65: the market's terms first, most searched first, in up to
   // `SELECTION.maxMarketTerms` of the places; then everything by score.
   const terms = ranked.filter((candidate) => candidate.term).sort((x, y) => y.volume - x.volume || byRank(x, y));
