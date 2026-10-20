@@ -131,6 +131,50 @@ const noPlainAppLink = {
   },
 };
 
+/**
+ * The daily job reads the week the weekly pass committed and never ranks
+ * (SPEC §7, issue 1559): from the plan it may take only the date's page and
+ * the committed week, and it may not reach the ranking or the choice.
+ */
+const DAILY_READS = new Set(["pageForDay", "committedWeek"]);
+const DAILY_NEVER = new Set(["planWeek", "rankOpen", "rankScore", "rankedCountsOf"]);
+const DAILY_MESSAGE =
+  "SPEC §7 (issue 1559): src/lib/generate reads the committed week — only pageForDay and committedWeek from opportunities/plan, and nothing that ranks.";
+
+const dailyReadsCommit = {
+  meta: { type: "problem", docs: { description: DAILY_MESSAGE } },
+  create(context) {
+    const check = (node, spec, names) => {
+      if (/^@\/lib\/opportunities\/(rank|choose)(\/|$)/.test(spec)) return context.report({ node, message: DAILY_MESSAGE });
+      const plan = /(^@\/lib\/opportunities|\/opportunities)\/plan$/.test(spec);
+      const barrel = spec === "@/lib/opportunities";
+      if (!plan && !barrel) return;
+      // A namespace or default import from the plan could reach any of it.
+      if (names === null) return plan ? context.report({ node, message: DAILY_MESSAGE }) : undefined;
+      if (names.some((name) => (plan ? !DAILY_READS.has(name) : DAILY_NEVER.has(name)))) context.report({ node, message: DAILY_MESSAGE });
+    };
+    return {
+      ImportDeclaration(node) {
+        if (node.importKind === "type" || typeof node.source.value !== "string") return;
+        const named = node.specifiers.filter((s) => s.type === "ImportSpecifier" && s.importKind !== "type");
+        const whole = node.specifiers.some((s) => s.type !== "ImportSpecifier");
+        check(node, node.source.value, whole ? null : named.map((s) => s.imported.name ?? s.imported.value));
+      },
+      // `const { x } = await import("…")`, the lazy form this tree uses.
+      ImportExpression(node) {
+        if (node.source.type !== "Literal" || typeof node.source.value !== "string") return;
+        const holder = node.parent?.type === "AwaitExpression" ? node.parent.parent : node.parent;
+        const pattern = holder?.type === "VariableDeclarator" ? holder.id : null;
+        const names =
+          pattern?.type === "ObjectPattern" && pattern.properties.every((p) => p.type === "Property" && p.key.type === "Identifier")
+            ? pattern.properties.map((p) => p.key.name)
+            : null;
+        check(node, node.source.value, names);
+      },
+    };
+  },
+};
+
 // Exported (not just used below) so tests/app/lint-rules.test.ts and
 // tests/egress/policy.test.ts can be pointed at the exact rule objects this
 // file defines, without needing a second copy of the invariant text.
@@ -190,6 +234,9 @@ export const localImportRules = {
 
     // (g) SPEC §4 (2026-10-08, issue 1341): an in-app link is next/link.
     "no-plain-app-link": noPlainAppLink,
+
+    // (j) SPEC §7 (issue 1559): the daily job reads the commit.
+    "daily-reads-commit": dailyReadsCommit,
   },
 };
 
@@ -247,6 +294,12 @@ export default tseslint.config(
     files: ["src/app/(account)/**/*.tsx"],
     plugins: { local: localImportRules },
     rules: { "local/no-plain-app-link": ["error", { names: true }] },
+  },
+  {
+    // (j) — the daily path.
+    files: ["src/lib/generate/**/*.{ts,tsx}"],
+    plugins: { local: localImportRules },
+    rules: { "local/daily-reads-commit": "error" },
   },
   {
     // (h) Issue 1479: a stored site name is read by the name rule, never

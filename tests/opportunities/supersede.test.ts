@@ -28,7 +28,7 @@ import { marketSetOf } from "../../src/lib/market/questions/market-set";
 import { setOpportunityStore, type OpportunityRow } from "../../src/lib/opportunities/store";
 import { deriveOpportunities } from "../../src/lib/opportunities/derive";
 import { assessReadiness } from "../../src/lib/opportunities/readiness";
-import { supplyDepth } from "../../src/lib/opportunities/supply/depth";
+import { supplyDepth } from "../../src/lib/opportunities/plan";
 import { coveredTopics } from "../../src/lib/opportunities/cluster";
 import { fakeCost } from "./cost";
 import { memoryStore, newMemoryState, type MemoryState } from "./memory-store";

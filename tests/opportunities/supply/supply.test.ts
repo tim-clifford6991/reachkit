@@ -8,8 +8,7 @@ import {
 } from "../../../src/lib/config/constants";
 import { measured } from "../../../src/lib/measure/measured";
 import { setOpportunityStore } from "../../../src/lib/opportunities/store";
-import { supplyDepth } from "../../../src/lib/opportunities/supply/depth";
-import { supplyNotice } from "../../../src/lib/opportunities/supply/notice";
+import { supplyDepth, supplyNotice } from "../../../src/lib/opportunities/plan";
 import { deriveForPass } from "../../../src/lib/opportunities/pass";
 import { cappedCost, fakeCost } from "../cost";
 import { memoryStore, newMemoryState, setStatus, type MemoryState } from "../memory-store";

@@ -22,7 +22,7 @@
 //     left in `generating` — and its topic rests for 28 days (owner, D26,
 //     issue 1179);
 //   * a stopped draft does not cost its day (D26): the same run writes the
-//     week's best spare for the date (`takeSpare`), at most once more and
+//     week's next spare in committed order (`pageForDay`), at most once more and
 //     inside the one `CAP_DRAFT` context;
 //   * a pack short of what its template asks, or a new page whose pack adds
 //     too little (D12), writes nothing, and the day goes to the next topic
@@ -41,7 +41,6 @@ import {
   queueForDraft,
   restTopic,
   sitePagesFor,
-  takeSpare,
   updateInstead,
   type Opportunity,
 } from "@/lib/opportunities";
@@ -217,8 +216,8 @@ export async function generateDayPage(a: {
         if (short && stopped === null) await restTopic(opportunity.id, now);
         // And only while the job's invocation has the time for a second page.
         if ((stopped === null && !short) || written >= DAY_TOPICS_MAX || cost.capHit() || Date.now() - startedAt > PIPELINE.nextTopicBeforeMs) return outcome;
-        // The stopped topic rests by now; the day takes the week's best spare.
-        const next = await takeSpare(a.siteId, now);
+        // The stopped topic rests by now, so the date's page is the week's next spare.
+        const next = await pageForDay(a.siteId, a.publishDate, now);
         if (next === null || next.id === first.id || next.id === opportunity.id) return outcome;
         // It keeps its row and gives up its date to the page written next.
         if (stopped !== null) await store.patchDraft(stopped, { scheduled_for: null });
