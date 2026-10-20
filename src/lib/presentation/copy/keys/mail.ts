@@ -789,6 +789,11 @@ export const MAIL_COPY = Object.freeze({
   "mail.ops.incident.fact.draft": ["Draft", { slots: {}, fixedBy: "issue 1187" }],
   "mail.ops.incident.fact.rule": ["Rule", { slots: {}, fixedBy: "issue 1187" }],
   "mail.ops.incident.fact.sentence": ["Sentence", { slots: {}, fixedBy: "issue 1187" }],
+  // Issue 1587: DataForSEO credit runs out within a week, or is under ten dollars.
+  "mail.ops.incident.vendor-low": ["DataForSEO credit is running low. When it reaches zero every draft fails, so top up or turn on auto-recharge in the dashboard.", { slots: {}, fixedBy: "issue 1587 (drafted)" }],
+  "mail.ops.incident.fact.balance": ["Balance", { slots: {}, fixedBy: "issue 1587 (drafted)" }],
+  "mail.ops.incident.fact.days-left": ["Days left at last week's spend", { slots: {}, fixedBy: "issue 1587 (drafted)" }],
+  "mail.ops.incident.fact.dashboard": ["Dashboard", { slots: {}, fixedBy: "issue 1587 (drafted)" }],
 
   // ── SPEC §8, Retention (issue 569). Owner-owed: the copy sheet is issue
   // 568. `sendEmail` refuses a mail that still carries the marker, so none of

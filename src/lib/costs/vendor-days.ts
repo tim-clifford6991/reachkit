@@ -17,9 +17,12 @@
 //     euro cents. Vercel, Supabase, the job platform and Resend report no bill this
 //     product can read, so their row is written with no figure — "not
 //     reported", never 0.
+//   * **DataForSEO running out.** The day's balance under `VENDOR_LOW` tells
+//     the owner once a Berlin day; a balance not read tells nobody.
 //
 // Every reading is free. A vendor that does not answer leaves its row
 // unwritten and the next tick asks again.
+import { VENDOR_LOW } from "@/lib/config/constants";
 import { env } from "@/lib/config/env";
 import { dbAdmin } from "@/lib/db";
 
@@ -56,6 +59,8 @@ interface MinimalQueryBuilder<T> extends PromiseLike<QueryResult<T>> {
   in(column: string, values: readonly string[]): MinimalQueryBuilder<T>;
   upsert(rows: readonly object[], options: { onConflict: string }): MinimalQueryBuilder<T>;
   update(values: object): MinimalQueryBuilder<T>;
+  gte(column: string, value: string): MinimalQueryBuilder<T>;
+  lt(column: string, value: string): MinimalQueryBuilder<T>;
 }
 
 interface MinimalClient {
@@ -131,14 +136,46 @@ async function upsert(rows: readonly VendorDayRow[]): Promise<void> {
   if (error) throw new Error(`vendor_days: ${error.message}`);
 }
 
+const DASHBOARD = "https://app.dataforseo.com/";
+const SPEND_DAYS = 7;
+
+/** The days a balance lasts at the trailing week's spend, `null` where the
+ *  spend was not measured or was nothing, and whether the owner is told. */
+export function runwayOf(balanceCents: number, weekSpendCents: number | null): { low: boolean; daysLeft: number | null } {
+  const perDay = weekSpendCents === null ? 0 : weekSpendCents / SPEND_DAYS;
+  const daysLeft = perDay > 0 ? balanceCents / perDay : null;
+  return { low: balanceCents < VENDOR_LOW.floorC || (daysLeft !== null && daysLeft < VENDOR_LOW.runwayDays), daysLeft };
+}
+
+/** The ledger's DataForSEO estimate over the seven UTC days before `day`, or
+ *  `null` where it could not be read. */
+async function weekSpendCents(day: string): Promise<number | null> {
+  const from = utcDay(new Date(Date.parse(`${day}T00:00:00.000Z`) - SPEND_DAYS * DAY_MS));
+  const { data, error } = await untyped()
+    .from<{ estimated_cents: number | string | null }>("cost_site_day")
+    .select("estimated_cents")
+    .eq("vendor", "dataforseo")
+    .gte("day", from)
+    .lt("day", day);
+  if (error) return null;
+  const sum = (data ?? []).reduce((total, row) => total + Number(row.estimated_cents ?? 0), 0);
+  return Number.isFinite(sum) ? sum : null;
+}
+
+function berlinDay(at: Date): string {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Berlin", year: "numeric", month: "2-digit", day: "2-digit" }).format(at);
+}
+
 async function readUsage(day: string, now: Date): Promise<{ done: true } | { degraded: string }> {
   const { readAccount } = await import("@/lib/vendors/dataforseo/account");
-  const reading = await readAccount();
+  const reading = await readAccount().catch(() => null);
+  // Not measured is never a balance of 0, so nothing is told.
+  if (reading === null) console.warn(JSON.stringify({ event: "vendor_balance_unread", vendor: "dataforseo" }));
   if (reading !== null) {
     const before = dayBefore(day);
     const { data, error } = await untyped()
-      .from<{ balance_cents: number | string | null; deposited_cents: number | string | null }>("vendor_days")
-      .select("balance_cents, deposited_cents")
+      .from<{ balance_cents: number | string | null; deposited_cents: number | string | null; read_at: string | null }>("vendor_days")
+      .select("balance_cents, deposited_cents, read_at")
       .eq("vendor", "dataforseo")
       .eq("kind", "usage")
       .eq("day", before);
@@ -151,6 +188,19 @@ async function readUsage(day: string, now: Date): Promise<{ done: true } | { deg
         ? []
         : [{ vendor: "dataforseo", day: before, kind: "usage" as const, billed_cents: billed, balance_cents: Number(opening.balance_cents), deposited_cents: Number(opening.deposited_cents), source: "balance", read_at: now.toISOString() }]),
     ]);
+    const spend = await weekSpendCents(day);
+    const runway = runwayOf(reading.balanceCents, spend);
+    console.log(JSON.stringify({ event: "vendor_balance", vendor: "dataforseo", balanceCents: reading.balanceCents, weekSpendCents: spend, daysLeft: runway.daysLeft }));
+    // The day's row is the stamp; a late read of yesterday's row on the same Berlin day already told it.
+    const toldToday =
+      typeof opening?.read_at === "string" &&
+      opening.balance_cents !== null &&
+      berlinDay(new Date(opening.read_at)) === berlinDay(now) &&
+      runwayOf(Number(opening.balance_cents), spend).low;
+    if (runway.low && !toldToday) {
+      const { reportIncident } = await import("@/lib/mail/ops");
+      await reportIncident({ occasion: "vendor-low", balanceCents: reading.balanceCents, daysLeft: runway.daysLeft, dashboard: DASHBOARD });
+    }
   }
 
   if (env.ANTHROPIC_ADMIN_KEY !== undefined) {

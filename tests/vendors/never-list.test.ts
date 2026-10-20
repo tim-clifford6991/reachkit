@@ -346,3 +346,29 @@ describe('BP-008 error behaviour — "Credentials come from BP-005\'s env and ne
     assertNoSecretIn(outcome);
   });
 });
+
+describe("the account balance is a free read, outside every cap", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("reads the recorded user_data answer with one GET, no cost context and no ledger row, priced 0", async () => {
+    const { readFileSync } = await import("node:fs");
+    const { readAccount } = await import("../../src/lib/vendors/dataforseo/account.ts");
+    const { PRICE_BOOK } = await import("../../src/lib/config/constants.ts");
+    const recorded = JSON.parse(readFileSync(new URL("./fixtures/user-data.json", import.meta.url), "utf8")) as unknown;
+    const urls: string[] = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string) => {
+        urls.push(url);
+        return { ok: true, status: 200, statusText: "OK", json: async () => recorded };
+      })
+    );
+
+    await expect(readAccount()).resolves.toEqual({ balanceCents: 2443, depositedCents: 10100 });
+    // A ledger write or a cap check would be a second request here.
+    expect(urls).toEqual(["https://api.dataforseo.com/v3/appendix/user_data"]);
+    expect(PRICE_BOOK.USER_DATA_C).toBe(0);
+  });
+});

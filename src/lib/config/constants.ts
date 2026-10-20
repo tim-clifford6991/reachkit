@@ -50,6 +50,9 @@ export const PRICE_BOOK = Object.freeze({
    *  pages with JavaScript on. The vendor charged 0.15 cents a page on the
    *  cost check of 2026-10-10, and nothing for the read of the HTML it kept. */
   RENDERED_PAGE_C: 0.15,
+  /** The account's balance, `GET /v3/appendix/user_data`: "Your account will
+   *  not be charged for using this API" (https://docs.dataforseo.com/v3/appendix/user_data/). */
+  USER_DATA_C: 0,
 } as const);
 
 /** The four per-scan/per-draft ceilings BUILD §6.1 pins, plus the
@@ -113,6 +116,11 @@ export const CAPS = Object.freeze({
  *  the ceiling itself. Fractions rather than two more cent figures, so the
  *  warning cannot drift away from the ceiling it warns about. */
 export const SPEND_ALERT_AT = Object.freeze({ warn: 0.8, ceiling: 1 } as const);
+
+/** When the owner is told DataForSEO credit is running out: fewer days left
+ *  than `runwayDays` at the trailing week's spend, or under `floorC` cents,
+ *  since at zero every draft fails. */
+export const VENDOR_LOW = Object.freeze({ runwayDays: 7, floorC: 1000 } as const);
 
 /**
  * US dollars for one euro (issue 1408, owner 2026-10-11).

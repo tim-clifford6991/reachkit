@@ -87,7 +87,10 @@ export type OpsIncident =
       draftId: string;
       attempts: number;
       failed: readonly { rule: string; sentences: readonly string[] }[];
-    };
+    }
+  // Issue 1587: no error — DataForSEO credit runs out within a week. Days
+  // left is null where last week's spend was not measured.
+  | { occasion: "vendor-low"; balanceCents: number; daysLeft: number | null; dashboard: string };
 
 const SUBJECT = "mail.ops.incident.subject" satisfies CopyKey;
 const HEADING = "mail.ops.incident.heading" satisfies CopyKey;
@@ -105,6 +108,7 @@ const BODY: Readonly<Record<OpsIncident["occasion"], CopyKey>> = Object.freeze({
   "no-draft-at-publish": "mail.ops.incident.no-draft-at-publish",
   "autopilot-stalled": "mail.ops.incident.autopilot-stalled",
   "draft-stopped-twice": "mail.ops.incident.draft-stopped-twice",
+  "vendor-low": "mail.ops.incident.vendor-low",
 });
 
 /** A sentence of the stopped page, on one line and cut where a mail row
@@ -181,6 +185,13 @@ function factsOf(incident: OpsIncident): FactRow[] {
       { label: "mail.ops.incident.fact.site", value: closedDomain(incident.domain) },
       { label: "mail.ops.incident.fact.last-delivered", value: closedDate(incident.lastDelivered) },
       { label: "mail.ops.incident.fact.days-without", value: count(incident.days) },
+    ];
+  }
+  if (incident.occasion === "vendor-low") {
+    return [
+      { label: "mail.ops.incident.fact.balance", value: `$${(incident.balanceCents / 100).toFixed(2)}` },
+      ...(incident.daysLeft === null ? [] : [{ label: "mail.ops.incident.fact.days-left", value: count(Math.floor(incident.daysLeft)) } as const]),
+      { label: "mail.ops.incident.fact.dashboard", value: incident.dashboard },
     ];
   }
   if (incident.occasion === "market-too-small") {
