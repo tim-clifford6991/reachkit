@@ -11,7 +11,7 @@ import { opportunityReady, type ReadinessContext } from "../../src/lib/opportuni
 import { rankOpen } from "../../src/lib/opportunities/rank/open";
 import { setOpportunityStore, type OpportunityRow } from "../../src/lib/opportunities/store";
 import { restTopic } from "../../src/lib/opportunities/drafted";
-import { supplyDepth } from "../../src/lib/opportunities/supply/depth";
+import { supplyDepth } from "../../src/lib/opportunities/plan";
 import { assessReadiness, canUpdateFrom } from "../../src/lib/opportunities/readiness";
 import type { Opportunity } from "../../src/lib/opportunities/types";
 import { memoryStore, newMemoryState, type MemoryState } from "./memory-store";

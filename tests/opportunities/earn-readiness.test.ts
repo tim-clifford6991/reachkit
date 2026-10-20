@@ -14,7 +14,7 @@ import { earnGroundingOf } from "../../src/lib/opportunities/earn-grounding";
 import { assessReadiness, opportunityReady, type ReadinessContext } from "../../src/lib/opportunities/readiness";
 import { rankOpen } from "../../src/lib/opportunities/rank/open";
 import { setOpportunityStore, type OpportunityRow } from "../../src/lib/opportunities/store";
-import { supplyDepth } from "../../src/lib/opportunities/supply/depth";
+import { supplyDepth } from "../../src/lib/opportunities/plan";
 import type { EarnAsset, Evidence, Opportunity } from "../../src/lib/opportunities/types";
 import type { InventoryRow } from "../../src/lib/site-profile/types";
 import { memoryStore, newMemoryState, type MemoryState } from "./memory-store";

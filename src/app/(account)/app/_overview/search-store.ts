@@ -338,7 +338,7 @@ function rawValue(m: unknown): number | null {
  *  which is a different and alarming thing to tell a customer. */
 async function readReadyDepth(siteId: string, at: Date): Promise<Measured<number>> {
   try {
-    const { supplyDepth } = await import("@/lib/opportunities/supply/depth");
+    const { supplyDepth } = await import("@/lib/opportunities/plan");
     const { unused } = await supplyDepth(siteId);
     return unused === 0 ? measuredZero(0, at) : measured(unused, at);
   } catch {

@@ -44,7 +44,18 @@ export { assessReadiness, opportunityReady, ownRanksFrom, type ReadinessContext 
 export { canonicalUrl, clusterKey, collapse, comparePrecedence } from "./cluster";
 export { suppressionOf, verdictReason, type NotWorkingVerdict, type Suppression } from "./suppression";
 export { opportunityById } from "./next";
-export { committedWeek, pageForDay, planWeek, takeSpare } from "./plan";
+export {
+  committedWeek,
+  pageForDay,
+  planWeek,
+  supplyDepth,
+  supplyMeasured,
+  supplyNotice,
+  supplyState,
+  type Depth,
+  type SupplyNotice,
+  type SupplyState,
+} from "./plan";
 export { contentTypeOf, CONTENT_TYPES, type ContentType } from "./content-type";
 export { pageTypeOf, PAGE_TYPES, type PageType } from "./page-type";
 export { sitePagesFor, type SitePage } from "./site-pages";
@@ -54,8 +65,6 @@ export { updateInstead } from "./update-instead";
 export { deriveOpportunities, type DeriveInput, type DeriveOutcome } from "./derive";
 export { explainChoice, type Choice } from "./derive/explain";
 
-export { supplyDepth, supplyMeasured, supplyState, type Depth, type SupplyState } from "./supply/depth";
-export { supplyNotice, type SupplyNotice } from "./supply/notice";
 export { refillSupply } from "./supply/refill";
 
 export { setOpportunityStore, type OpportunityStore } from "./store";

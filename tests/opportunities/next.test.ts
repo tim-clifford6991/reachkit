@@ -5,11 +5,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AI_READER_AGENTS } from "../../src/lib/config/constants";
 import { measured } from "../../src/lib/measure/measured";
 import { deriveOpportunities } from "../../src/lib/opportunities/derive";
-import { pageForDay } from "../../src/lib/opportunities/plan";
+import { pageForDay, supplyDepth } from "../../src/lib/opportunities/plan";
 import { assessReadiness } from "../../src/lib/opportunities/readiness";
 import { isPausedType, rankOpen } from "../../src/lib/opportunities/rank/open";
 import { setOpportunityStore, type OpportunityRow } from "../../src/lib/opportunities/store";
-import { supplyDepth } from "../../src/lib/opportunities/supply/depth";
 import { fakeCost } from "./cost";
 import { memoryStore, newMemoryState, setStatus, type MemoryState } from "./memory-store";
 import {

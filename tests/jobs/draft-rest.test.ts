@@ -70,7 +70,6 @@ vi.mock("@/lib/mail/draft-ready", () => ({ sendDraftReadyMail: draftReadyMock })
 vi.mock("@/lib/opportunities", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/opportunities")>()),
   pageForDay: (siteId: string, date: string, now?: Date) => pickMock(siteId, date, now),
-  takeSpare: (siteId: string) => pickMock(siteId),
   assessFixPages: async () => ({ done: 0, ready: 0 }),
   assessReadiness: async () => ({ ready: 1, unready: 0 }),
 }));
@@ -282,9 +281,7 @@ describe("D26 (issue 1179) — a stopped draft does not cost its day, and its to
     const market = fixtures.report().market;
     if (market.kind !== "measured") throw new Error("the fixture report has no measured market");
     opportunities.profile = market.value.profile;
-    pickMock.mockImplementation((siteId: string, date?: string, now?: Date) =>
-      date === undefined ? actualOpportunities.takeSpare(siteId, now) : actualOpportunities.pageForDay(siteId, date, now)
-    );
+    pickMock.mockImplementation((siteId: string, date: string, now?: Date) => actualOpportunities.pageForDay(siteId, date, now));
     for (const row of opportunities.rows) {
       row.ready = true;
       // D46: a "best …" search is a listicle, which the mix leaves out for

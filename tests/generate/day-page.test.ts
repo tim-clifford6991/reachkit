@@ -68,7 +68,6 @@ vi.mock("@/lib/measure/text", () => ({ readMeasuredText: readMeasuredTextMock })
 vi.mock("@/lib/generate/pipeline/report-facts", () => ({ readReportPage: async () => null }));
 vi.mock("@/lib/opportunities", () => ({
   pageForDay: (siteId: string, date: string, now?: Date) => pickMock(siteId, date, now),
-  takeSpare: (siteId: string) => pickMock(siteId),
   queueForDraft: queueForDraftMock,
   restTopic: restTopicMock,
   updateInstead: updateInsteadMock,

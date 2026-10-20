@@ -7,7 +7,7 @@ import { PLAN_DEPTH } from "../../../src/lib/config/constants";
 import { measured } from "../../../src/lib/measure/measured";
 import { countWritable, writableDays } from "../../../src/lib/opportunities/rank/open";
 import { setOpportunityStore } from "../../../src/lib/opportunities/store";
-import { supplyDepth } from "../../../src/lib/opportunities/supply/depth";
+import { supplyDepth } from "../../../src/lib/opportunities/plan";
 import { deriveForPass } from "../../../src/lib/opportunities/pass";
 import type { Opportunity } from "../../../src/lib/opportunities/types";
 import { fakeCost } from "../cost";

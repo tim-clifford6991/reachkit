@@ -48,8 +48,8 @@ import type { KnownMatch } from "@/lib/known-content/types";
 import { deriveOpportunities, type DeriveInput } from "./derive";
 import { assessReadiness, canUpdateFrom } from "./readiness";
 import { opportunityStore } from "./store";
-import { supplyDepth } from "./supply/depth";
 import { refillSupply } from "./supply/refill";
+import { writableDays } from "./rank/open";
 import { rankedCountsFromSizes, type RankedCounts } from "./winnability/counts";
 
 /** Which pass is asking. The free tier is absent by construction: §6.6
@@ -190,7 +190,7 @@ export async function deriveForPass(
   // beside its own closed row. The fixes that stand have their readiness
   // recorded with the week's (`planWeek`).
   await assessFixPages(a.siteId, { report: a.report });
-  if (a.tier === "weekly" && !a.hasActiveAccess) return { tier: a.tier, added: 0, unused: (await supplyDepth(a.siteId)).unused };
+  if (a.tier === "weekly" && !a.hasActiveAccess) return { tier: a.tier, added: 0, unused: await writableDays(a.siteId) };
 
   // One derivation, not a loop: the report is a fixed set of measurements,
   // and a pass with no money left spends none here. Its new rows have their

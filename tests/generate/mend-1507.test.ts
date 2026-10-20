@@ -16,7 +16,6 @@ const { llmMock, pickMock, queueForDraftMock, publications } = vi.hoisted(() => 
 vi.mock("@/lib/llm", () => ({ llm: llmMock }));
 vi.mock("@/lib/opportunities", () => ({
   pageForDay: (siteId: string, date: string, now?: Date) => pickMock(siteId, date, now),
-  takeSpare: (siteId: string) => pickMock(siteId),
   queueForDraft: queueForDraftMock,
   restTopic: async () => undefined,
   updateInstead: async () => null,

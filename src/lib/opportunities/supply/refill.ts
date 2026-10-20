@@ -38,10 +38,10 @@ import {
   type AskedBeside,
   type ProposedTopic,
 } from "../derive/topics";
+import { writableDays } from "../rank/open";
 import { assessReadiness } from "../readiness";
 import { opportunityStore, readOpportunity } from "../store";
 import type { BusinessFit } from "../types";
-import { supplyDepth } from "./depth";
 
 /** A topic the refill may write, with the fit the pass judged for it —
  *  `null` where no pass has judged it. */
@@ -140,7 +140,7 @@ export async function refillSupply(
 ): Promise<{ added: number; unused: number }> {
   const target = a.target ?? PLAN_DEPTH;
   const at = a.report.verdict.measuredAt;
-  let { unused } = await supplyDepth(a.siteId, at);
+  let unused = await writableDays(a.siteId, at);
   if (unused >= target) return { added: 0, unused };
 
   const store = opportunityStore();
@@ -190,7 +190,7 @@ export async function refillSupply(
     const { created } = await persist({ candidates: batch });
     added += created.length;
     await assessReadiness(a.siteId, { at, only: new Set(created.map((row) => row.id)) });
-    unused = (await supplyDepth(a.siteId, at)).unused;
+    unused = await writableDays(a.siteId, at);
   }
   return logRefill(a, { added, unused, target });
 }
