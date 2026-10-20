@@ -202,7 +202,7 @@ export async function deriveForPass(
   const refilled = await refillSupply({ ...input, spare: derived?.spare ?? [], refused: derived?.refused ?? [] });
   // A deep pass (onboarding, or the customer's re-measure) changed what the
   // site holds: its next evening commits the week again.
-  if (a.tier === "deep") await store.commitPlan?.(a.siteId, []);
+  if (a.tier === "deep") await store.commitPlan(a.siteId, []);
   const added = (derived?.created.length ?? 0) + refilled.added;
   console.log(JSON.stringify({ event: "supply_pass", tier: a.tier, siteId: a.siteId, scanId: a.report.scanId, added, unused: refilled.unused }));
   return { tier: a.tier, added, unused: refilled.unused };

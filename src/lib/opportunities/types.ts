@@ -474,9 +474,28 @@ export function addRejections(a: RejectionCount, b: RejectionCount): RejectionCo
   };
 }
 
+/** Which of the one list's rules placed a row, so a plan can say why. */
+export type PlaceRule =
+  | "update due"
+  | "paced: own refresh"
+  | "paced: own refresh, same topic"
+  | "paced: update"
+  | "paced: update, same topic"
+  | "answer owed"
+  | "answer owed, same kind"
+  | "answer owed, kind full"
+  | "best"
+  | "best, kind full"
+  | "best, same kind"
+  | "best, same topic"
+  | "over the D52 cap, as a Q&A"
+  | "fix ahead of its cluster"
+  | "fix, no page to precede";
+
 export interface Ranked {
   opportunityId: string;
   score: number;
+  rule?: PlaceRule;
   /** Where the day writes the topic as another type (issue 1455). */
   writeAs?: "qa";
 }
