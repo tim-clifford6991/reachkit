@@ -915,4 +915,16 @@ export const REPORT_COPY = Object.freeze({
     "Measured in Google, {place}, in {language}. Search volumes are for all of {country}.",
     { slots: { place: "text", language: "text", country: "text" }, fixedBy: "SPEC §6 · D67 · issue 1480" },
   ],
+
+  // SPEC §2, owner A3 and E1 (2026-10-19): the offer leads with the pages
+  // the report found missing, lists every one, and tallies each
+  // competitor's. A3's heading is the owner's; the rest is drafted (#759).
+  "report.offer.found": ["This report found {count} pages your site is missing", { slots: { count: "text" }, fixedBy: "owner A3 2026-10-19 · issue 1599" }],
+  "report.offer.found.one": ["This report found {count} page your site is missing", { slots: { count: "text" }, fixedBy: "owner A3 2026-10-19 · issue 1599" }],
+  "report.offer.free-path": ["Not ready? Keep the free report, and get your first page free ↓", { slots: {}, fixedBy: "owner A3 2026-10-19 · issue 1599 · drafted" }],
+  "report.missing.volume": ["searched {volume} times a month", { slots: { volume: "text" }, fixedBy: "owner E1 2026-10-19 · issue 1599 · drafted" }],
+  "report.missing.holder": ["answered today by {holder}", { slots: { holder: "text" }, fixedBy: "owner E1 2026-10-19 · issue 1599 · drafted" }],
+  "report.missing.more": ["{count} more pages you’re missing", { slots: { count: "text" }, fixedBy: "owner E1 2026-10-19 · issue 1599 · drafted" }],
+  "presence.rival.pages": ["Has {count} of the pages you’re missing", { slots: { count: "text" }, fixedBy: "owner E1 2026-10-19 · issue 1599 · drafted" }],
+  "presence.rival.pages.unmeasured": ["Pages you’re missing: not measured", { slots: {}, fixedBy: "owner E1 2026-10-19 · issue 1599 · drafted" }],
 }) satisfies CopyPartition;

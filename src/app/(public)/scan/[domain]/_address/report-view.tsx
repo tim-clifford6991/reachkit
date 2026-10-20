@@ -41,10 +41,11 @@ import {
 } from "../_modules/google-presence";
 import { FreePageAbsent, FreePageCard } from "../_modules/free-page";
 import { PricingCard } from "../_modules/pricing";
+import { MissingPagesList } from "../_modules/missing-pages";
 import { CheckCards, ProblemCards } from "../_problems/cards";
 import { checkCardsOf, readingsOf } from "../_problems/checks";
 import { MethodSections } from "../_problems/method";
-import { answerReadersOf, cardsOf, PROBLEM_ORDER, type ProblemCard, type ProblemName } from "../_problems/model";
+import { answerReadersOf, cardsOf, missingPagesOf, PROBLEM_ORDER, type MissingPage, type ProblemCard, type ProblemName } from "../_problems/model";
 import { unblockLines } from "../_problems/unblock";
 import { RemovalAddressLine } from "./removal";
 import type { AddressControl, AddressNotice } from "./state";
@@ -365,6 +366,21 @@ function pasteLinesOf(cards: readonly ProblemCard[], problem: ProblemName): read
   return fix?.kind === "paste" ? fix.lines : undefined;
 }
 
+/** Owner A3 (2026-10-19): the offer leads with the count the report found,
+ *  and keeps a free path to the first page beside it. */
+function offerOf(report: StoredReport, pages: readonly MissingPage[] | null): { heading?: string; free?: React.ReactNode } {
+  const found = pages?.length ?? 0;
+  if (report.freePage === null || found === 0) return {};
+  return {
+    heading: copy(found === 1 ? "report.offer.found.one" : "report.offer.found", { count: String(found) }),
+    free: (
+      <a href="#first-page" className="link link-primary text-center text-sm" data-testid="report-free-path">
+        {copy("report.offer.free-path")}
+      </a>
+    ),
+  };
+}
+
 /** SPEC §2: a part is cut off when the pass stopped at one of its two
  *  ceilings — not when it finished, failed, or could not read the site. */
 function cutByCeiling(report: StoredReport): boolean {
@@ -386,6 +402,7 @@ export function ReportView(p: {
   const measurement = measurementLine(report);
   const cards = cardsOf(report, unblockLines(report.blockedAgents));
   const cutOff = cutByCeiling(report);
+  const missingPages = missingPagesOf(report);
   const profile = profileOfReport(report);
   const understanding =
     profile === null ? null : understandBusiness({ domain: report.domain, profile, locale: measuredLocale(report) });
@@ -479,7 +496,7 @@ export function ReportView(p: {
         {report.presence === null ? (
           <GooglePresenceAbsent cutOff={cutOff} domain={report.domain} />
         ) : (
-          <GooglePresenceCard section={report.presence} />
+          <GooglePresenceCard section={report.presence} missingPages={missingPages} />
         )}
 
         {/* Issue 1454: what the scan read of the business, in four short
@@ -502,7 +519,10 @@ export function ReportView(p: {
             startAction={startReportCheckout.bind(null, report.domain, report.scanId)}
             refused={p.checkoutRefused === true}
             close
-          />
+            {...offerOf(report, missingPages)}
+          >
+            {missingPages === null ? null : <MissingPagesList pages={missingPages} />}
+          </PricingCard>
         </div>
 
         {/* What holds you back (#1068): the three that cost most as cards,
