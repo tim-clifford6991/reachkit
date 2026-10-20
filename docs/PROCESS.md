@@ -141,6 +141,7 @@ The milestone **Launch** is the launch queue. Take an open Launch issue that is 
 - Spawn an implementation agent as a subagent of the orchestration session. It is a Herdr tab in the reachkit workspace, one issue, then the tab is closed.
 - Keep a second copy of these rules in a memory file, a settings note, or `/root/ops`.
 - Schedule a standing agent to re-read these pages. The hygiene check is the daily pass. The coherence witness, once its script is named in Coherence, is the same kind of pass. An engineer starts only from the issue either one files.
+  2026-10-19  **One weekly review run is the exception** (owner, C7, #1631). `.claude/skills/weekly-review/` reads code, CI and production read-only at 0¢ on Mondays and files at most five unready `from-weekly` issues, classified under Coherence; it never edits the tree, merges, deploys or spends. No other scheduled agent.
 
 ## History
 
