@@ -7,6 +7,8 @@
 import { readFileSync, readdirSync, statSync, existsSync } from "node:fs";
 import path from "node:path";
 import { readDecisions, specSections } from "./spec-decisions.mjs";
+import { MEASUREMENT_DOC, measurementDoc } from "./measurement-doc.mjs";
+import { PROCESS_DOC, processMap } from "./process-map.mjs";
 
 const rootAt = process.argv.indexOf("--root");
 const ROOT = rootAt > 0
@@ -245,6 +247,23 @@ if (process.argv.includes("--require-pr-body")) {
   }
 }
 
+// ---------------------------------------------------------------- generated
+// Each generated document equals what its registry generates now.
+for (const [doc, generate, script] of [
+  [MEASUREMENT_DOC, measurementDoc, "scripts/measurement-doc.mjs"],
+  [PROCESS_DOC, processMap, "scripts/process-map.mjs"],
+]) {
+  let want;
+  try {
+    want = generate(ROOT);
+  } catch (e) {
+    add("generated", "MALFORMED", doc, `node ${script} cannot run: ${String(e.message).replace(/\n/g, "; ")}`, true);
+    continue;
+  }
+  if (read(doc) === want) add("generated", "OK", doc, `matches node ${script}`);
+  else add("generated", "MISMATCH", doc, `differs from its registry: run node ${script}`, true);
+}
+
 // -------------------------------------------------------------------- output
 const order = { MALFORMED: 0, MISSING: 1, MISMATCH: 2, TODO: 3, OK: 9 };
 rows.sort((a, b) => (order[a.status] ?? 8) - (order[b.status] ?? 8) || a.area.localeCompare(b.area) || a.subject.localeCompare(b.subject));
@@ -252,5 +271,5 @@ const findings = rows.filter((r) => r.status !== "OK");
 console.log(`## Drift audit — ${findings.length} finding(s), ${rows.length - findings.length} OK${strict ? " (strict)" : ""}\n`);
 console.log("| Area | Status | Subject | Detail |\n|---|---|---|---|");
 for (const r of rows) console.log(`| ${r.area} | ${r.status} | ${r.subject.replace(/\|/g, "\\|")} | ${r.detail.replace(/\|/g, "\\|")} |`);
-console.log(`\n_Hard failures: ${hard}. A MISMATCH is a sentence docs/SPEC.md quotes that the copy registry no longer holds — change the spec or the key. MISSING is a SPEC-named copy key, route or journey with nothing behind it; TODO is a journey that is a stub; MALFORMED is a dated ruling marker that is not a real date._`);
+console.log(`\n_Hard failures: ${hard}. A MISMATCH is a sentence docs/SPEC.md quotes that the copy registry no longer holds — change the spec or the key — or a generated document that differs from its registry — run its script. MISSING is a SPEC-named copy key, route or journey with nothing behind it; TODO is a journey that is a stub; MALFORMED is a dated ruling marker that is not a real date._`);
 process.exit(hard > 0 ? 1 : 0);
