@@ -35,7 +35,7 @@ vi.mock("@/lib/db", () => ({
 }));
 
 import { dbAdmin } from "@/lib/db";
-import { CAPS } from "@/lib/config/constants";
+import { DAILY_PRODUCT_CEILING } from "@/lib/config/constants";
 import type { CanonicalDomain } from "../../../src/lib/scan/domain.ts";
 import type { Admission, NetworkKey } from "../../../src/lib/scan/admission.ts";
 
@@ -554,7 +554,7 @@ describe("networkKeyOf · a network key is opaque, salted and stable", () => {
 // "Free scans refuse first, paid passes hold." A paid pass that meets the
 // ceiling mid-flight degrades and keeps its report — that half is
 // `tests/costs/spend-guard.test.ts`. This half is the door: on a day whose
-// ledger has reached `CAPS.DAILY_PRODUCT_C`, a free scan is not started at
+// ledger has reached `DAILY_PRODUCT_CEILING.baseC`, a free scan is not started at
 // all.
 //
 // It refuses under the existing `daily` arm rather than a seventh one.
@@ -564,7 +564,7 @@ describe("networkKeyOf · a network key is opaque, salted and stable", () => {
 // the next UTC midnight whatever anyone does.
 describe("issue #329 — the day's spend ceiling refuses a free scan at the door", () => {
   it("a day at the ceiling refuses `daily`, with a duration and not an instant", async () => {
-    daySpendCents = CAPS.DAILY_PRODUCT_C;
+    daySpendCents = DAILY_PRODUCT_CEILING.baseC;
     const result = await admitFreeScan({ domain: DOMAIN, network: NETWORK });
     expect(result).toEqual({
       refuse: "daily",
@@ -576,19 +576,19 @@ describe("issue #329 — the day's spend ceiling refuses a free scan at the door
   });
 
   it("a day under the ceiling admits, and the free-scan count is still what bounds it", async () => {
-    daySpendCents = CAPS.DAILY_PRODUCT_C - 1;
+    daySpendCents = DAILY_PRODUCT_CEILING.baseC - 1;
     expect(await admitFreeScan({ domain: DOMAIN, network: NETWORK })).toEqual({ admit: true });
   });
 
   it("it outranks the count: a day at the ceiling refuses before a single scan has been counted", async () => {
-    daySpendCents = CAPS.DAILY_PRODUCT_C;
+    daySpendCents = DAILY_PRODUCT_CEILING.baseC;
     scenarios.scans = scansScenario({ daily: [] });
     const result = await admitFreeScan({ domain: DOMAIN, network: NETWORK });
     expect(result).toMatchObject({ refuse: "daily" });
   });
 
   it("removal and cooldown still outrank it — the step keeps its place in the order", async () => {
-    daySpendCents = CAPS.DAILY_PRODUCT_C;
+    daySpendCents = DAILY_PRODUCT_CEILING.baseC;
     scenarios.domain_blocks = { rows: [{ domain: DOMAIN }] };
     expect(await admitFreeScan({ domain: DOMAIN, network: NETWORK })).toEqual({ refuse: "removed" });
 
@@ -605,7 +605,7 @@ describe("issue #329 — the day's spend ceiling refuses a free scan at the door
   });
 
   it("it consumes nothing: a refusal on spend writes no row, as every render of a report address must not", async () => {
-    daySpendCents = CAPS.DAILY_PRODUCT_C;
+    daySpendCents = DAILY_PRODUCT_CEILING.baseC;
     await admitFreeScan({ domain: DOMAIN, network: NETWORK });
     expect(writeCalls).toEqual([]);
   });

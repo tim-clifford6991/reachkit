@@ -89,6 +89,10 @@ export interface BillingStore {
    *  date. `null` where there is no such site. */
   paidThroughForSite(siteId: string): Promise<{ ok: true; paidThrough: Date | null } | { ok: false }>;
 
+  /** How many sites' owners are paid through past `at`: the gate's own
+   *  comparison, counted at one instant for the day's spend ceiling. */
+  payingSiteCount(at: Date): Promise<{ ok: true; count: number } | { ok: false }>;
+
   account(userId: string): Promise<{ ok: true; account: BillingRow | null } | { ok: false }>;
 
   accountBySubscription(
@@ -156,10 +160,12 @@ export interface BillingStore {
 interface QueryResult<T> {
   data: T[] | null;
   error: { message: string; code?: string } | null;
+  count?: number | null;
 }
 
 interface MinimalQueryBuilder<T> extends PromiseLike<QueryResult<T>> {
-  select(columns: string): MinimalQueryBuilder<T>;
+  select(columns: string, options?: { count: "exact"; head: true }): MinimalQueryBuilder<T>;
+  gt(column: string, value: string): MinimalQueryBuilder<T>;
   update(patch: object): MinimalQueryBuilder<T>;
   eq(column: string, value: string): MinimalQueryBuilder<T>;
   is(column: string, value: null): MinimalQueryBuilder<T>;
@@ -266,6 +272,15 @@ export function supabaseBillingStore(): BillingStore {
       // `TypeError` inside the one gate three loops call.
       const paidThrough = data?.[0]?.users?.paid_through ?? null;
       return { ok: true, paidThrough: paidThrough === null ? null : new Date(paidThrough) };
+    },
+
+    async payingSiteCount(at) {
+      const { count, error } = await untyped()
+        .from("sites")
+        .select("id, users!inner(paid_through)", { count: "exact", head: true })
+        .gt("users.paid_through", at.toISOString());
+      if (error || typeof count !== "number") return { ok: false };
+      return { ok: true, count };
     },
 
     account: (userId) => oneAccount("id", userId),

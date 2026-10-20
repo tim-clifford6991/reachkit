@@ -22,6 +22,7 @@ const { hasActiveAccess, installActiveAccessGate, setBillingStore } = await impo
 const { ActiveAccessGateNotRegistered, registerActiveAccessGate, sitesWithActiveAccess } =
   await import("@/lib/scan/weekly/access");
 const { memoryBillingStore, newMemoryBilling, site } = await import("./memory-store");
+const { readDayCeilingCents, registerPayingSiteCounter } = await import("@/lib/costs/daily");
 
 let state = newMemoryBilling();
 const NOW = new Date("2026-09-06T12:00:00.000Z");
@@ -40,6 +41,7 @@ afterEach(() => {
   vi.useRealTimers();
   setBillingStore(null);
   registerActiveAccessGate(null);
+  registerPayingSiteCounter(null);
 });
 
 function given(id: string, paidThrough: Date): string {
@@ -115,5 +117,25 @@ describe("what is installed is ADR-050's one reader, asked once per site", () =>
     await installActiveAccessGate();
     setBillingStore(null);
     await expect(sitesWithActiveAccess("dueSites", [])).resolves.toEqual(new Set());
+  });
+});
+
+describe("the day's spend ceiling counts who pays, through billing", () => {
+  it("counts the sites with access at the day's midnight: a SaaS and a local site paid up, one lapsed", async () => {
+    given("saas-site", IN_A_MONTH);
+    given("local-cafe", new Date("2026-09-06T08:00:00.000Z"));
+    given("lapsed-site", LAST_MONTH);
+    await installActiveAccessGate();
+    // The cafe's access ended at 08:00, after the day began, so it counts today.
+    expect(await readDayCeilingCents(NOW)).toBe(1000 + 2 * 100);
+  });
+
+  it("a store that cannot answer is the 1,000¢ day", async () => {
+    given("saas-site", IN_A_MONTH);
+    state.failHostingRead = true;
+    await installActiveAccessGate();
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    expect(await readDayCeilingCents(NOW)).toBe(1000);
+    warn.mockRestore();
   });
 });
