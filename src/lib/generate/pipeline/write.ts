@@ -25,7 +25,8 @@ import type { PageType } from "@/lib/opportunities/types";
 import { REGISTER_FLOOR } from "../rules/figures";
 import { HONESTY_INSTRUCTION } from "../rules/honest";
 import { AVOID_LIST } from "../rules/prose-english";
-import { languageRules, titleFormulas, type Template } from "../templates";
+import type { LengthRange } from "../length";
+import { languageRules, sectionBounds, titleFormulas, type Template } from "../templates";
 import { voiceRules } from "../voice/register";
 import type { ContextPack } from "./pack";
 import type { FixNote } from "./repair";
@@ -215,8 +216,9 @@ export interface WriteInputs {
   pack: ContextPack;
   /** How the business appears on a page of this type (issue 1136). */
   pageType: PageType | null;
-  /** The words of body text the page is held to. */
-  length: { floor: number; ceiling: number };
+  /** The words of body text the page is held to, and aims for where a
+   *  target is given. */
+  length: Pick<LengthRange, "floor" | "ceiling"> & { target?: number };
   /** The customer's page on the writer tier; a tier is named only by a
    *  caller with another ceiling. */
   tier?: Tier;
@@ -240,6 +242,19 @@ function templateFor(a: WriteInputs): Record<string, unknown> {
   };
 }
 
+/** What the writer is told of the page's length. A new page has no floor:
+ *  each section it answers is given an equal share of the maximum. */
+function lengthTask(a: WriteInputs): string {
+  const { floor, ceiling } = a.length;
+  const target = a.length.target ?? Math.round((floor + ceiling) / 2);
+  const counted = a.pack.type === "update" ? "The page's sections together — the short answer and the takeaways are not counted —" : "The page's body — the short answer, the takeaways and every section together —";
+  const sections = Math.max(1, a.template.sections.reduce((sum, slot) => sum + (slot.repeat?.min ?? 1), 0));
+  const each = floor > 0 ? Math.round(target / sections) : Math.round(ceiling / sectionBounds(a.template).max);
+  const range = floor > 0 ? `between ${floor} and ${ceiling}` : `at most ${ceiling}`;
+  const least = floor > 0 ? `, and no section under ${Math.ceil((floor * 1.15) / sections)}` : "";
+  return `${counted} must be ${range} words, counted. Write about ${target} words — about ${each} a section${least}: a page ${floor > 0 ? `under ${floor} or ` : ""}over ${ceiling} is stopped. Give every paragraph something the reader can use — detail, an example, a comparison or a consequence drawn from \`pack\` — and never pad or restate a point to reach the length.`;
+}
+
 function taskFor(a: WriteInputs): string {
   const faq = a.template.blocks.faq;
   return [
@@ -249,7 +264,7 @@ function taskFor(a: WriteInputs): string {
       ? "`titles` is one entry: `pack.live.title`."
       : `\`titles\` is ${TITLE.candidates} different titles for the page, each one you would publish: the page's \`<title>\` and its H1 are the one of them that best holds \`titleRules\`, chosen in code. Each is the form a searcher types, follows one of \`template.titles\` and holds every rule in \`titleRules\`; make them differ in the specific they carry or in how they lead, not in a word.`,
     `\`description\` is the meta description: ${TITLE.description.min} to ${TITLE.description.max} characters, counted — write about 140 — in whole sentences, and its first sentence answers the target.`,
-    `${a.pack.type === "update" ? "The page's sections together — the short answer and the takeaways are not counted —" : "The page's body — the short answer, the takeaways and every section together —"} must be between ${a.length.floor} and ${a.length.ceiling} words, counted. Write about ${Math.round((a.length.floor + a.length.ceiling) / 2)} words — about ${Math.round((a.length.floor + a.length.ceiling) / 2 / Math.max(1, a.template.sections.reduce((sum, slot) => sum + (slot.repeat?.min ?? 1), 0)))} a section, and no section under ${Math.ceil((a.length.floor * 1.15) / Math.max(1, a.template.sections.reduce((sum, slot) => sum + (slot.repeat?.min ?? 1), 0)))}: a page under ${a.length.floor} or over ${a.length.ceiling} is stopped. Give every paragraph something the reader can use — detail, an example, a comparison or a consequence drawn from \`pack\` — and never pad or restate a point to reach the length.`,
+    lengthTask(a),
     faq === null
       ? "`faq` is empty: this page's own questions are its buyer questions."
       : `\`faq\`: ${faq.min} to ${faq.max} questions buyers ask about the target that the headings do not already ask, each answered in two or three sentences under the same \`rules\`; they are stored with the page, not printed in it.`,

@@ -144,7 +144,7 @@ export const writeLeadPage: DraftWriter = async (a) => {
   }
   const type = pack.type;
   const template = TEMPLATES[type];
-  const length = lengthRangeFor(template, null);
+  const length = lengthRangeFor(template, { questions: pack.questions.length });
   const pageType = pageTypeOf(opportunity);
 
   return withCostContext(
@@ -155,7 +155,7 @@ export const writeLeadPage: DraftWriter = async (a) => {
         template,
         pack,
         pageType,
-        length: length ?? { floor: 0, ceiling: Number.MAX_SAFE_INTEGER },
+        length: length ?? { floor: 0, target: 0, ceiling: Number.MAX_SAFE_INTEGER },
         free: true,
       });
       if (written.kind === "unmeasured") return stepFailed(a.leadId, "write");
