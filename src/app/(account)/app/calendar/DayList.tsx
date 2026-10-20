@@ -8,8 +8,8 @@
 // the day's one number on the right. It is the card's own parts
 // (`DayCard.tsx`) laid out along a row instead of down a card.
 //
-// **This week, not the month.** The rows are the site-local week that
-// contains today, Monday through the plan horizon (`month.ts`'s `weekOf`).
+// **The same seven days as the cells, in the same order** (E5): Monday to
+// Sunday of the site-local week that contains today (`month.ts`'s `weekOf`).
 // Which week that is, is decided there and not here: this file draws the
 // cells it is handed.
 //
@@ -39,7 +39,8 @@
 "use client";
 
 import type React from "react";
-import { CardNumber, StageMark, UpdateMark, cardLineFor, pageShownBy } from "./DayCard";
+import { CardNumber, UpdateMark, cardLineFor, pageShownBy } from "./DayCard";
+import { DayStateBadge } from "./WeekGrid";
 import { cardLabel, shortCauseFor } from "./card-lines";
 import { dayNumberOf } from "./day-number";
 import { dayNumber, weekdayShort, type DayKey } from "./dates";
@@ -95,7 +96,7 @@ export function DayList(p: {
                 </span>
               </span>
 
-              <span className="flex min-w-0 flex-col gap-1">
+              <span className="flex min-w-0 flex-col items-start gap-1">
                 {page === null ? (
                   line === null ? null : (
                     <span
@@ -106,18 +107,14 @@ export function DayList(p: {
                     </span>
                   )
                 ) : (
-                  <>
-                    <span
-                      className="rk-cal-label line-clamp-2 min-w-0 text-sm font-semibold leading-tight"
-                      data-testid="list-label"
-                    >
-                      {page.title}
-                    </span>
-                    {/* The mark is the right-hand column's, not the
-                        stage row's — see the header. */}
-                    <StageMark page={page} mark={false} />
-                  </>
+                  <span
+                    className="rk-cal-label line-clamp-2 min-w-0 text-sm font-semibold leading-tight"
+                    data-testid="list-label"
+                  >
+                    {page.title}
+                  </span>
                 )}
+                <DayStateBadge cell={cell} filter={p.filter} />
               </span>
 
               {/* The row's own column: the number, right-aligned, and the

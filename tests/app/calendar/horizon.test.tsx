@@ -76,12 +76,9 @@ async function open(a: { at: Date; timeZone: string; month: string }) {
   provider.setCalendarSiteReader(async () => ({ siteId: "site-1", timeZone: a.timeZone }));
   const model = await provider.readMonth(a.month);
   const root = document.createElement("div");
-  root.innerHTML = renderToStaticMarkup(withNuqs(await CalendarPage({ searchParams: Promise.resolve({ month: a.month }) })));
+  root.innerHTML = renderToStaticMarkup(withNuqs(await CalendarPage()));
   const cell = (day: string) => root.querySelector(`[data-testid="calendar-cell-${day}"]`);
-  const markers = [...root.querySelectorAll('[data-testid="calendar-horizon-marker"]')].map(
-    (n) => n.closest('[data-testid^="calendar-cell-"]')?.getAttribute("data-testid")?.replace("calendar-cell-", "")
-  );
-  return { model, root, cell, markers };
+  return { model, root, cell };
 }
 
 afterEach(() => {
@@ -112,24 +109,13 @@ describe("issue 857 — a thin market on a Wednesday", () => {
     expect(model.horizonEnd).toBe("2026-09-22");
     for (const c of model.cells.filter((x) => x.inMonth && x.when !== "plan")) {
       expect(c.empty, c.day).toBeNull();
-      if (c.horizonMarker) continue;
-      expect(cell(c.day)?.textContent, c.day).toBe(String(Number(c.day.slice(8))));
     }
-  });
-
-  it("one quiet marker, on the first date past the seven days", async () => {
-    const { markers, cell } = await open(WEDNESDAY);
-    expect(markers).toEqual(["2026-09-23"]);
-    // Issue 930: the card has room for two words and the panel carries the
-    // sentence they stand for. Both are the registry's.
-    expect(cell("2026-09-23")?.textContent).toContain(COPY["calendar.horizon.short"]);
-  });
-
-  it("a month wholly after the horizon is blank but for the marker on its first date", async () => {
-    const { model, markers, root } = await open({ ...WEDNESDAY, month: "2026-10" });
-    expect(model.cells.every((c) => c.page === null && c.empty === null)).toBe(true);
-    expect(markers).toEqual(["2026-10-01"]);
-    expect(root.querySelectorAll('[data-testid="calendar-supply-statement"]')).toHaveLength(1);
+    // The week's past days, Monday and Tuesday, state nothing.
+    for (const day of ["2026-09-14", "2026-09-15"]) {
+      expect(cell(day), day).not.toBeNull();
+      expect(cell(day)?.querySelector('[data-testid="day-state"]'), day).toBeNull();
+      expect(cell(day)?.querySelector('[data-testid="cell-empty-line"]'), day).toBeNull();
+    }
   });
 });
 
@@ -140,10 +126,9 @@ describe("issue 857 — Monday, before and after the weekly pass", () => {
     ["after", new Date(Date.UTC(2026, 8, 21, 11, 0, 0))],
   ] as const) {
     it(`${when} the pass: the plan runs Monday through Sunday`, async () => {
-      const { model, markers } = await open({ at, timeZone: "America/New_York", month: "2026-09" });
+      const { model } = await open({ at, timeZone: "America/New_York", month: "2026-09" });
       expect(model.today).toBe("2026-09-21");
       expect(model.horizonEnd).toBe("2026-09-27");
-      expect(markers).toEqual(["2026-09-28"]);
     });
   }
 });
@@ -153,16 +138,14 @@ describe("issue 857 — the horizon is counted from the site's own today", () =>
   const AT_EDGE = new Date(Date.UTC(2026, 8, 20, 20, 0, 0));
 
   it("Europe/London: still Sunday, so the plan runs to Saturday — never one day (issue 1455)", async () => {
-    const { model, markers } = await open({ at: AT_EDGE, timeZone: "Europe/London", month: "2026-09" });
+    const { model } = await open({ at: AT_EDGE, timeZone: "Europe/London", month: "2026-09" });
     expect(model.today).toBe("2026-09-20");
     expect(model.horizonEnd).toBe("2026-09-26");
-    expect(markers).toEqual(["2026-09-27"]);
   });
 
   it("Pacific/Auckland: already Monday, so the plan runs to the next Sunday", async () => {
-    const { model, markers } = await open({ at: AT_EDGE, timeZone: "Pacific/Auckland", month: "2026-09" });
+    const { model } = await open({ at: AT_EDGE, timeZone: "Pacific/Auckland", month: "2026-09" });
     expect(model.today).toBe("2026-09-21");
     expect(model.horizonEnd).toBe("2026-09-27");
-    expect(markers).toEqual(["2026-09-28"]);
   });
 });

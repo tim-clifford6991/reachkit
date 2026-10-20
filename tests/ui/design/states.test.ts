@@ -22,7 +22,6 @@ const THEME = "src/ui/tailwind.css";
 // `docs/DESIGN.md` takes every state "from daisyUI's own state selectors with
 // the theme's colours". What stays asserted here is what the product still
 // declares: the calendar cell, the shell's nav row, and the one motion token.
-const DAY_CARD = "src/app/(account)/app/calendar/DayCard.tsx";
 
 function walk(dir: string, keep: (file: string) => boolean, out: string[] = []): string[] {
   for (const entry of readdirSync(dir)) {
@@ -40,27 +39,6 @@ describe("§0 4–5 — the field's disabled and invalid states", () => {
     expect(form).not.toMatch(/\bDIMMED\b/);
   });
 
-});
-
-describe("§0 10 — the calendar cell open in the panel", () => {
-  // The cell is `DayCard.tsx` since issue 930: SPEC §7 (2026-09-20, #908)
-  // makes it a fixed-height card with five rules of its own, and
-  // `CalendarView` is now the screen's state around it.
-  //
-  it("the open day carries the 2px accent ring, and today is tinted (issue 1071)", () => {
-    const cell = read(DAY_CARD);
-    // `ring-inset` since issue 930: the card is 88px at its narrowest and
-    // every pixel of it is spoken for, so the ring is drawn inside the
-    // border box rather than outside it.
-    expect(cell).toContain('p.selected ? "ring-2 ring-inset ring-primary"');
-    expect(cell).toContain('"bg-primary/10"');
-  });
-
-  it('carries aria-current="date", and no longer aria-pressed', () => {
-    const cell = read(DAY_CARD);
-    expect(cell).toContain('aria-current={p.selected ? "date" : undefined}');
-    expect(cell).not.toContain("aria-pressed={p.selected}");
-  });
 });
 
 describe("SPEC §4 (2026-09-20) — the compact band keeps all three, as a dock", () => {

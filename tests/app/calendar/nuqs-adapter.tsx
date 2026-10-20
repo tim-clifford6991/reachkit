@@ -16,11 +16,11 @@ import React from "react";
 import { NuqsTestingAdapter } from "nuqs/adapters/testing";
 import { weekOf, type MonthModel, type WeekModel } from "@/app/(account)/app/calendar/month";
 
-/** What the page hands `CalendarView` for a month: the month, and this
- *  week as that month holds it (issue 1340). The fixture's week lies inside
- *  its month, so one model is every month the week touches. */
-export function shown(model: MonthModel): { model: MonthModel; week: WeekModel } {
-  return { model, week: weekOf([model], model.today) };
+/** What the page hands `CalendarView`: this week as the month holds it.
+ *  The fixture's week lies inside its month, so one model is every month
+ *  the week touches. */
+export function shown(model: MonthModel): { week: WeekModel } {
+  return { week: weekOf([model], model.today) };
 }
 
 /** Wrap an element in the testing adapter, with the address it should

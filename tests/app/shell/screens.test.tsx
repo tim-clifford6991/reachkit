@@ -112,7 +112,7 @@ async function markup(el: React.ReactElement | Promise<React.ReactElement>): Pro
 // ── Calendar, which is no longer a placeholder (issue #16, BUILD §4.6) ────
 describe("calendar — the built screen keeps the three contracts the frame set", () => {
   async function calendarMarkup(): Promise<string> {
-    return markup(await CalendarPage({ searchParams: Promise.resolve({}) }));
+    return markup(await CalendarPage());
   }
 
   it("renders, and names itself from the destination's own registry key", async () => {

@@ -319,6 +319,31 @@ export default tseslint.config(
     },
   },
   {
+    // (i) Plan shows the week the weekly pass committed and never ranks
+    // again, so a view cannot disagree with the job that writes the days.
+    files: ["src/app/(account)/app/calendar/**/*.{ts,tsx}"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          paths: [
+            {
+              name: "@/lib/opportunities",
+              importNames: ["rankOpen", "rankScore", "rankedCountsOf"],
+              message: "Plan reads committedWeek and never ranks (SPEC §7, E5).",
+            },
+          ],
+          patterns: [
+            {
+              group: ["@/lib/opportunities/rank", "@/lib/opportunities/rank/*"],
+              message: "Plan reads committedWeek and never ranks (SPEC §7, E5).",
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
     ignores: [".next/**", "node_modules/**", "coverage/**", "src/**/*.generated.ts"],
   }
 );

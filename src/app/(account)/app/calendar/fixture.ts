@@ -256,6 +256,8 @@ export const FIXTURE_CALENDAR_FACTS: CalendarFacts = Object.freeze({
   now: FIXTURE_NOW,
   stop: FIXTURE_STOP,
   drafts: Object.freeze(DRAFTS),
+  // The committed week's spares, by the search each targets.
+  spares: Object.freeze(["crm onboarding checklist", "crm for freelancers"]),
   // REQ-047 c5: while an instruction stands against a date, it is that
   // date's one account — outranking even ReachKit's own stop (ADR-061 point 3).
   instructions: Object.freeze({ "2026-09-19": "opportunity-19" }),

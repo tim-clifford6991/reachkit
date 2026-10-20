@@ -171,7 +171,7 @@ describe("#765 — zero supply says which zero it is", () => {
 
 describe("#784 — the calendar's one supply statement says which zero it is", () => {
   async function statement(): Promise<string | null> {
-    const page = await CalendarPage({ searchParams: Promise.resolve({ month: MONTH }) });
+    const page = await CalendarPage();
     return render(page).querySelector('[data-testid="calendar-supply-statement"]')?.textContent ?? null;
   }
 
@@ -191,7 +191,7 @@ describe("#784 — the calendar's one supply statement says which zero it is", (
 
   it("a market never measured carries its two ways to measure again inline (issues 837, 1071)", async () => {
     setOpportunityStore(storeWith({ questions: 0, everHeld: false }));
-    const page = render(await CalendarPage({ searchParams: Promise.resolve({ month: MONTH }) }));
+    const page = render(await CalendarPage());
     const notice = page.querySelector('[data-testid="calendar-supply-notice"]');
     const choice = notice?.querySelector('[data-testid="calendar-market-choice"]');
     const tries = [...(choice?.querySelectorAll('[data-testid="category-suggestion"]') ?? [])];
@@ -201,13 +201,13 @@ describe("#784 — the calendar's one supply statement says which zero it is", (
     expect(page.querySelector('[data-testid="calendar-supply-statement"]')?.textContent).not.toMatch(/Monday/);
 
     setOpportunityStore(storeWith({ questions: 12, everHeld: true }));
-    const used = render(await CalendarPage({ searchParams: Promise.resolve({ month: MONTH }) }));
+    const used = render(await CalendarPage());
     expect(used.querySelector('[data-testid="calendar-market-choice"]')).toBeNull();
   });
 
   it("issue 855: a pass stopped on its time ceiling is still being measured — never 'too small', and no broader category is offered", async () => {
     setOpportunityStore(storeWith({ questions: 12, everHeld: false, stoppedReason: "time_ceiling" }));
-    const page = render(await CalendarPage({ searchParams: Promise.resolve({ month: MONTH }) }));
+    const page = render(await CalendarPage());
     expect(page.querySelector('[data-testid="calendar-supply-statement"]')?.textContent).toBe(
       COPY["calendar.supply.measuring"]
     );

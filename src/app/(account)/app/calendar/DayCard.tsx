@@ -1,60 +1,19 @@
-// SPEC §7 (2026-09-20, #908, issue 930) — the day card, and the five rules
-// it obeys at every width.
-//
-//   1  Top: the date, and **exactly one** number — searches a month before
-//      the page is live, its place and change once it is, the day it is
-//      first measured when that has not happened yet. Which one is
-//      `day-number.ts`'s decision, not this file's.
-//   2  Middle: the page title, cut to two lines. Never a sentence, a reason
-//      or a rival's name.
-//   3  Bottom: one stage word with its dot, and a mark when the page is an
-//      update.
-//   4  A date with no page gets at most two words; the day panel carries
-//      the whole reason (`card-lines.ts`).
-//   5  The card is a **fixed height** at every width. Nothing wraps past it
-//      and nothing scrolls inside it.
-//
-// Rule 5 is the one the markup has to earn, and it is earned by giving
-// every part a box it cannot grow out of: a head row of fixed height, a
-// title that clamps to two lines, a foot row that truncates, and `min-w-0`
-// on every flex child so a long word shrinks its own box instead of
-// widening its parent's. The one thing that used to defeat it was a
-// daisyUI `badge` (#944); `stages.ts` says why the stage is a dot and a
-// word now.
+// SPEC §7 (2026-09-20, #908, issue 930) — the parts a day draws, shared by
+// the week's cells (`WeekGrid`) and the phone list (`DayList`): the page a
+// stage filter leaves, the two words an empty day says, the day's one
+// number (`day-number.ts` decides which) and the mark for an update.
 //
 // The clamped title carries `rk-cal-label` and the two-word reason
 // `rk-cal-empty` — the truncations this screen declared to the layout sweep
-// in #354. The whole string stays reachable on the card's own `title`, so a
-// cut line is a cut line and never a lost value.
-//
-// **The `<button>` is `react-day-picker`'s.** The library owns the roving
-// focus and the arrow keys across the month, so the card renders inside the
-// button the library hands it rather than drawing one of its own; the props
-// come in whole and only the label is replaced, because the card states
-// more than a date. The phone list, which is not a grid, draws its own row
-// from the same parts (`DayList.tsx`).
+// in #354.
 "use client";
 
 import type React from "react";
 import { RefreshCw } from "lucide-react";
-import { copy } from "@/lib/presentation/copy";
-import { cardLabel, horizonShortFor, kindWord, shortCauseFor } from "./card-lines";
-import { dayNumberOf, type DayNumber } from "./day-number";
-import { dayNumber } from "./dates";
-import {
-  STAGE_BEACON,
-  STAGE_FILTER_COPY_KEY,
-  STAGE_MARK_AT,
-  STAGE_TONE,
-  TONE_DOT,
-  TONE_INK,
-  type StageFilter,
-} from "./stages";
+import { horizonShortFor, kindWord, shortCauseFor } from "./card-lines";
+import type { DayNumber } from "./day-number";
+import type { StageFilter } from "./stages";
 import type { DayCell, PageOnDay } from "./month";
-
-/** The card's fixed height. One number, in one place, so no state of the
- *  card can be a different height from another. */
-export const CARD_HEIGHT = "h-26";
 
 /**
  * The page a card draws under the stage filter that is on.
@@ -124,53 +83,6 @@ export function CardNumber(p: { value: DayNumber }): React.JSX.Element | null {
   );
 }
 
-/**
- * Rule 3's foot: one stage word with its dot, and a mark for an update.
- *
- * **The word is never cut** (owner, PR #961). It takes its own width and
- * does not clamp, so `scrollWidth` can never exceed `clientWidth` on it.
- * When the row is tight it is the *mark* that goes — `STAGE_MARK_AT` says
- * at what width each stage's word has room for one beside it, and the
- * panel says "Update" in full whatever the card can fit.
- */
-export function StageMark(p: {
-  page: PageOnDay;
-  /** Whether this row may drop the mark on a narrow card. True on the
-   *  month grid, where a card is one of seven equal columns; false in the
-   *  phone list, whose row is the width of the screen. */
-  narrowable?: boolean;
-  /** Whether the mark for an update is drawn **here**. `false` in the
-   *  phone list, where it is drawn in the row's own right-hand column
-   *  beneath the number rather than wherever the stage word happens to end
-   *  (issue 965). */
-  mark?: boolean;
-}): React.JSX.Element {
-  const tone = STAGE_TONE[p.page.stage];
-  const word = copy(STAGE_FILTER_COPY_KEY[p.page.stage]);
-  return (
-    <span className="flex min-w-0 items-center gap-1" data-testid="card-stage">
-      <span className={`size-1.5 shrink-0 rounded-full ${TONE_DOT[tone]} ${STAGE_BEACON[p.page.stage]}`} aria-hidden />
-      <span
-        className={`shrink-0 whitespace-nowrap text-[11px]/4 font-semibold ${TONE_INK[tone]}`}
-        data-testid="card-stage-word"
-      >
-        {word}
-      </span>
-      {p.page.update && p.mark !== false ? (
-        <RefreshCw
-          size={12}
-          strokeWidth={1.75}
-          className={`ml-auto shrink-0 opacity-70 ${
-            p.narrowable === true ? `hidden ${STAGE_MARK_AT[p.page.stage]}` : ""
-          }`}
-          aria-label={kindWord(true)}
-          data-testid="card-update-mark"
-        />
-      ) : null}
-    </span>
-  );
-}
-
 /** The mark for an update, drawn outside the stage row. The phone list
  *  puts it in the row's right-hand column, under the number (issue 965);
  *  the card draws it inside `StageMark`, where there is no column to put
@@ -184,115 +96,5 @@ export function UpdateMark(): React.JSX.Element {
       aria-label={kindWord(true)}
       data-testid="card-update-mark"
     />
-  );
-}
-
-export function DayCard(p: {
-  cell: DayCell;
-  filter: StageFilter;
-  selected: boolean;
-  /** `react-day-picker`'s own button props, kept whole. */
-  buttonProps: React.ButtonHTMLAttributes<HTMLButtonElement>;
-}): React.JSX.Element {
-  const { cell } = p;
-  const page = pageShownBy(cell, p.filter);
-  const line = cardLineFor(cell, p.filter);
-  const isCause = line !== null && shortCauseFor(cell) !== null;
-
-  if (!cell.inMonth) {
-    // A column position in the first or last week, and nothing else: not a
-    // date this calendar has anything to say about, and emphatically not
-    // padding. It keeps the card's height so the row's baseline does not
-    // move, and the library has already disabled it, so nothing can be
-    // pressed on it. `block`, as a card is a flex box: an inline button
-    // sits on a text baseline and made its week 5.6px taller than a week
-    // of cards (issue 1320).
-    return (
-      <button
-        {...p.buttonProps}
-        className={`rounded-box block w-full ${CARD_HEIGHT}`}
-        aria-hidden="true"
-        tabIndex={-1}
-        aria-label={undefined}
-        data-testid="calendar-placeholder"
-      />
-    );
-  }
-
-  return (
-    <button
-      {...p.buttonProps}
-      className={[
-        // `@container/day`: the mark for an update is shown or dropped on
-        // **this card's** own width, not on the viewport's. The column a
-        // card sits in narrows with the side panel, the day panel and the
-        // window, and none of those is a media query.
-        "@container/day rounded-box flex w-full min-w-0 flex-col gap-1 overflow-hidden p-1 text-left transition-[background-color,box-shadow] duration-150",
-        CARD_HEIGHT,
-        // The calm layer (issue 1071, board R12-5-Plan): a day with a page
-        // is a white card on the card's own ring edge; an empty day is a
-        // flat grey cell with no border; today is tinted.
-        cell.today
-          ? "bg-primary/10"
-          : cell.page === null
-            ? "bg-base-200"
-            : "bg-base-100 shadow-(--shadow-card)",
-        // The open day is a 2px accent ring. `ring-inset` draws it inside
-        // the border box, so it costs a column that is 88px at its
-        // narrowest nothing (UI-SPEC §0 10); hover draws a hairline ring on
-        // every other day.
-        p.selected ? "ring-2 ring-inset ring-primary" : "hover:ring-1 hover:ring-inset hover:ring-base-content/20",
-      ].join(" ")}
-      data-testid={`calendar-cell-${cell.day}`}
-      data-today={cell.today ? "" : undefined}
-      data-empty={page === null ? "" : undefined}
-      // The day the panel is open on, for a reader. `react-day-picker`
-      // writes `aria-selected` on the grid cell from the same value; this
-      // is the date the screen is *showing*, which is what `aria-current`
-      // is for, and the two are one fact because both come from `selected`.
-      aria-current={p.selected ? "date" : undefined}
-      aria-label={cardLabel({ cell, page, line })}
-      title={page?.title ?? line ?? undefined}
-    >
-      {/* Rule 1 — the date and at most one number, on one row of fixed
-          height, so a card with a number and one without are the same
-          shape. */}
-      <span className="flex h-4 min-w-0 items-center gap-1">
-        <span className="num shrink-0 text-xs font-semibold" data-testid="cell-date">
-          {dayNumber(cell.day)}
-        </span>
-        <CardNumber value={dayNumberOf(page)} />
-      </span>
-
-      {/* Rule 2 — the title, two lines. */}
-      {page === null ? null : (
-        <span
-          className="rk-cal-label line-clamp-2 min-w-0 text-xs leading-tight"
-          data-testid="cell-label"
-        >
-          {page.title}
-        </span>
-      )}
-
-      {/* Rules 3 and 4 — the foot: a stage word, or the date's two words. */}
-      <span className="mt-auto min-w-0">
-        {page !== null ? (
-          <StageMark page={page} narrowable />
-        ) : line === null ? (
-          cell.today ? (
-            <span className="block text-[11px] font-semibold text-primary" data-testid="cell-today">
-              {copy("calendar.month.today")}
-            </span>
-          ) : null
-        ) : (
-          <span
-            className="rk-cal-empty block min-w-0 truncate text-[11px] font-semibold opacity-70"
-            data-testid={isCause ? "cell-empty-line" : "calendar-horizon-marker"}
-          >
-            {line}
-          </span>
-        )}
-      </span>
-    </button>
   );
 }

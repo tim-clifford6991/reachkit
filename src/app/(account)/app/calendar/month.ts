@@ -23,7 +23,7 @@ import type { NeedsYouCause } from "@/lib/publish/record/needs-you";
 import { accountFor, isLawCause, isSupplyCause, type EmptyAccount, type EmptyFacts, type HeldBySetting } from "./empty";
 import type { PageStanding } from "./day-number";
 import type { WorkStop } from "@/lib/presentation/stopped";
-import { STAGE_OF, type State, type Stage, type StageFilter } from "./stages";
+import { STAGE_OF, type DayState, type State, type Stage, type StageFilter } from "./stages";
 import { dayKeyOf, monthGrid, monthOf, planHorizonEnd, planWeek, type DayKey, type MonthKey } from "./dates";
 
 /** REQ-043 criterion 8's evidence, and §7's day-panel rows.
@@ -171,6 +171,7 @@ export interface MonthModel {
   cells: readonly DayCell[];
   /** REQ-043 c6, from the same result as the grid. */
   counts: Readonly<Record<StageFilter, number>>;
+  spares: readonly string[];
 }
 
 /** Everything the calendar reads, before it is a model. One shape, so the
@@ -185,6 +186,8 @@ export interface CalendarFacts {
    *  names. */
   now: Date;
   drafts: readonly DraftOnDay[];
+  /** The committed week's spares: the search each targets, in place order. */
+  spares: readonly string[];
   /** REQ-047 c5's outstanding instructions, by the date each stands
    *  against. */
   instructions: Readonly<Record<DayKey, string>>;
@@ -317,6 +320,7 @@ export function assembleMonth(facts: CalendarFacts, month: MonthKey): MonthModel
     horizonEnd,
     cells,
     counts: countsOf(cells),
+    spares: facts.spares,
   };
 }
 
@@ -340,9 +344,9 @@ function countsOf(cells: readonly DayCell[]): Record<StageFilter, number> {
   return counts;
 }
 
-/** What Plan lists on a phone (SPEC §7, 2026-10-08, issue 1340): this
- *  week's days, and the counts the stage filter shows beside them. */
-export interface WeekModel {
+/** Plan (SPEC §7, E5): this week's seven days, the counts the stage filter
+ *  shows beside them, and the week's spares. */
+export interface WeekModel extends Pick<MonthModel, "timeZone" | "stopped" | "destination" | "today" | "spares"> {
   cells: readonly DayCell[];
   counts: Readonly<Record<StageFilter, number>>;
 }
@@ -369,11 +373,29 @@ export function weekOf(months: readonly MonthModel[], today: DayKey): WeekModel 
     cells.push(law && lawStated ? { ...cell, statesLine: false } : cell);
     lawStated ||= law;
   }
-  return { cells, counts: countsOf(cells) };
+  // The month today falls in carries the site's facts; the first week of a
+  // month starts in the month before it.
+  const home = months.find((model) => cellFor(model, today) !== undefined) ?? months[0]!;
+  const { timeZone, stopped, destination, spares } = home;
+  return { cells, counts: countsOf(cells), timeZone, stopped, destination, today, spares };
 }
 
 /** The cell a day panel is opened on. `undefined` only for a day outside
  *  the month that was assembled — never for a date the grid drew. */
 export function cellFor(model: MonthModel, day: DayKey): DayCell | undefined {
   return model.cells.find((cell) => cell.day === day && cell.inMonth);
+}
+
+/** A day's state, or `null` where its own line says more (a page held, a
+ *  day no commit covers yet, a past day with nothing on it). A page someone
+ *  stopped, and a day ReachKit or an instruction stopped, is `stopped`; a
+ *  day supply had nothing worth writing for is `skipped`. */
+export function dayStateOf(cell: DayCell): DayState | null {
+  if (cell.page !== null) {
+    return cell.page.stage === "live" ? "live" : cell.page.stage === "planned" ? "planned" : "written";
+  }
+  const cause = cell.empty?.cause;
+  if (cause === "page_cannot_go_live" || cause === "reachkit_stopped" || cause === "instruction") return "stopped";
+  if (cause === "supply_exhausted" || cause === "supply_unmeasured") return "skipped";
+  return null;
 }

@@ -3,7 +3,7 @@
 //
 // WO-168 `## Test plan`: today selected on open, the five "Why this page"
 // facts, the provenance line, the empty arm, and the action projection
-// rendered. Same rendering and mocking convention as `grid.test.tsx`.
+// rendered.
 import { describe, expect, it, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import React from "react";
@@ -42,8 +42,8 @@ function panel(day: string): Element {
 
 describe("REQ-043 c7, read as 'from lg up' — an absent ?day is open on a desktop and closed on a phone", () => {
   // Owner, PR #961. "There is no month in which nothing is selected" is
-  // unchanged from `lg` up (issue 1340), where the panel stands beside the
-  // month. Below it the panel is a sheet **over** the list, and the same default meant
+  // unchanged from `lg` up (issue 1340), where the panel stands under the
+  // week. Below it the panel is a sheet **over** the list, and the same default meant
   // a customer who tapped Plan landed on a sheet covering their plan.
   //
   // One DOM: the difference is `hidden lg:flex` on the implicitly-open
@@ -56,7 +56,7 @@ describe("REQ-043 c7, read as 'from lg up' — an absent ?day is open on a deskt
     expect(panel?.hasAttribute("data-implicit")).toBe(true);
     // The grid is drawn from `lg` up, where this day *is* open.
     expect(
-      root.querySelector(`[data-testid="calendar-cell-${MODEL.today}"]`)?.getAttribute("aria-current")
+      root.querySelector(`[data-testid="calendar-cell-${MODEL.today}"] > div > button`)?.getAttribute("aria-current")
     ).toBe("date");
     // The list is drawn below it, where it is not — today is still marked
     // as today, and no row claims to be the open one.
@@ -82,13 +82,13 @@ describe("REQ-043 c7, read as 'from lg up' — an absent ?day is open on a deskt
     const root = render(withNuqs(<CalendarView {...shown(MODEL)} />, { day: "none" }));
     expect(root.querySelector('[data-testid="day-panel"]')).toBeNull();
     expect(
-      root.querySelectorAll('[data-testid^="calendar-cell-"][aria-current="date"]')
+      root.querySelectorAll('[data-testid^="calendar-cell-"] [aria-current="date"]')
     ).toHaveLength(0);
   });
 });
 
 describe("REQ-043 c7 — today is the selected day when the calendar opens", () => {
-  it("the panel the view renders on open is today's, not the month's first date", () => {
+  it("the panel the view renders on open is today's, not the week's first date", () => {
     const root = render(withNuqs(<CalendarView {...shown(MODEL)} />));
     const title = root.querySelector('[data-testid="day-title"]')?.textContent;
     const todayCell = cellFor(MODEL, MODEL.today);
@@ -96,7 +96,7 @@ describe("REQ-043 c7 — today is the selected day when the calendar opens", () 
     expect(title).toBe(todayCell?.page?.title);
     // And the grid marks the same day as the selected one.
     expect(
-      root.querySelector(`[data-testid="calendar-cell-${MODEL.today}"]`)?.getAttribute("aria-current")
+      root.querySelector(`[data-testid="calendar-cell-${MODEL.today}"] > div > button`)?.getAttribute("aria-current")
     ).toBe("date");
   });
 
@@ -109,18 +109,8 @@ describe("REQ-043 c7 — today is the selected day when the calendar opens", () 
     expect(nz.today).toBe("2026-09-16");
     const root = render(withNuqs(<CalendarView {...shown(nz)} />));
     expect(
-      root.querySelector('[data-testid="calendar-cell-2026-09-16"]')?.getAttribute("aria-current")
+      root.querySelector('[data-testid="calendar-cell-2026-09-16"] > div > button')?.getAttribute("aria-current")
     ).toBe("date");
-  });
-
-  it("a month that does not hold today still opens on a day — never on none", () => {
-    const november = assembleMonth(FIXTURE_CALENDAR_FACTS, "2026-11");
-    const root = render(withNuqs(<CalendarView {...shown(november)} />));
-    const pressed = [...root.querySelectorAll('[data-testid^="calendar-cell-"]')].filter(
-      (c) => c.getAttribute("aria-current") === "date"
-    );
-    expect(pressed).toHaveLength(1);
-    expect(pressed[0]?.getAttribute("data-testid")).toBe("calendar-cell-2026-11-01");
   });
 });
 
