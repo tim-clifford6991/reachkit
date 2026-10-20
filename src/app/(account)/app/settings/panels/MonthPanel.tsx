@@ -21,7 +21,7 @@ function Figure(p: { label: CopyKey; value: number | null; testId: string }): Re
       ) : (
         <span className="stat-value figure text-3xl">{p.value}</span>
       )}
-      <span className="stat-desc text-sm wrap-anywhere">{copy(p.label)}</span>
+      <span className={`stat-desc text-sm wrap-anywhere ${INK}`}>{copy(p.label)}</span>
     </div>
   );
 }
