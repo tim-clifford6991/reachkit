@@ -72,6 +72,15 @@ describe("the record, on its own step", () => {
   });
 });
 
+describe("the step's name", () => {
+  it("is the name setup's Connect step gives it, in the heading and the tab title", async () => {
+    const { metadata } = await import("@/app/(account)/setup/connect/page");
+    const name = COPY["setup.step.publishing.question"];
+    expect((await render()).querySelector("h1")?.textContent).toBe(name);
+    expect(metadata.title).toBe(`${name} · ReachKit`);
+  });
+});
+
 describe("what happens as you do it", () => {
   it("is three states — reserved, waiting, live — with waiting the current one", async () => {
     const stages = [...(await render()).querySelectorAll('[data-testid="setup-connect-stage"]')];
