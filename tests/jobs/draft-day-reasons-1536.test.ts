@@ -12,9 +12,14 @@ vi.mock("@/lib/publish/daily", () => ({
   recordDraftDay,
   alertMissingDrafts: async () => 0,
   alertStalledSites: async () => 0,
+  missedDays: async () => [],
 }));
 vi.mock("@/lib/publish/destinations/health", () => ({ sendBreakageMail: async () => ({ sent: false }) }));
-vi.mock("@/lib/generate", () => ({ generateDayPage, restartedDrafts: async () => [] }));
+vi.mock("@/lib/generate", () => ({
+  decideDayPage: async () => ({ ok: true, opportunityId: "o1" }),
+  generateDayPage,
+  restartedDrafts: async () => [],
+}));
 const { draftGenerate } = await import("@/jobs/draft-generate");
 
 describe("issue 1536: no due hour ends without a page silently", () => {

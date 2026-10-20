@@ -61,15 +61,24 @@ async function loadRoute() {
     sendWeeklyDigest: async () => ({ sent: false, reason: "not-measured" }),
   }));
   const route = await import("@/app/api/jobs/[[...slug]]/route");
+  // A tick sends each site on as an event; recorded here, never queued.
+  const { client } = await import("@/jobs/client");
+  vi.spyOn(client, "send").mockImplementation((async (events: { name: string; data: unknown }[]) => {
+    sent.push(...events);
+    return { ids: [] };
+  }) as never);
   return { route };
 }
 
-/** One delivery of a scheduled function, as the platform sends it. */
-function tick(fnSlug: string, steps: Record<string, unknown> = {}): NextRequest {
+const sent: { name: string; data: unknown }[] = [];
+
+/** One delivery of a function, as the platform sends it: a scheduled tick,
+ *  or the event a tick sent. */
+function tick(fnSlug: string, steps: Record<string, unknown> = {}, event: { name: string; data: unknown } = { name: "inngest/scheduled.timer", data: {} }): NextRequest {
   const stack = Object.keys(steps);
   const body = {
     version: 1,
-    event: { name: "inngest/scheduled.timer", data: {}, ts: Date.now() },
+    event: { ...event, ts: Date.now() },
     events: [],
     steps,
     ctx: {
@@ -103,6 +112,7 @@ beforeEach(() => {
   db.reset();
   logged = [];
   weeklyRuns.length = 0;
+  sent.length = 0;
   vi.spyOn(console, "log").mockImplementation((line: unknown) => void logged.push(String(line)));
   vi.spyOn(console, "warn").mockImplementation(() => {});
   vi.spyOn(console, "error").mockImplementation((line: unknown) => void logged.push(String(line)));
@@ -150,18 +160,23 @@ describe("issue 863 — /api/jobs answers who is paying without instrumentation'
     db.seed("scans", []);
 
     const { route } = await loadRoute();
-    // The tick is steps since issue 1160: the due list, then each site's
+    // The tick sends each due site on, and the site's own run is steps: its
     // pass, its late answers and its telling. Each delivery runs one, and
     // the platform hands back what the earlier ones answered.
-    const steps: Record<string, unknown> = {};
-    let response = await route.POST(tick("weekly-refresh"), { params: Promise.resolve({}) });
-    for (let delivery = 0; response.status === 206 && delivery < 10; delivery += 1) {
-      for (const op of (await response.json()) as { id: string; data?: unknown }[]) {
-        steps[op.id] = { type: "data", data: op.data ?? null };
+    async function deliver(fnSlug: string, event?: { name: string; data: unknown }) {
+      const steps: Record<string, unknown> = {};
+      let response = await route.POST(tick(fnSlug, steps, event), { params: Promise.resolve({}) });
+      for (let delivery = 0; response.status === 206 && delivery < 10; delivery += 1) {
+        for (const op of (await response.json()) as { id: string; data?: unknown }[]) {
+          steps[op.id] = { type: "data", data: op.data ?? null };
+        }
+        response = await route.POST(tick(fnSlug, steps, event), { params: Promise.resolve({}) });
       }
-      response = await route.POST(tick("weekly-refresh", steps), { params: Promise.resolve({}) });
+      return response;
     }
-    expect(response.status).toBe(200);
+    expect((await deliver("weekly-refresh")).status).toBe(200);
+    expect(sent).toHaveLength(1);
+    expect((await deliver("weekly-refresh-subject", sent[0])).status).toBe(200);
 
     expect(lines("weekly_due_selection")).toEqual([{ event: "weekly_due_selection", candidates: 2, due: 1 }]);
     expect(weeklyRuns).toEqual([PAYING]);

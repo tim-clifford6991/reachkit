@@ -25,9 +25,8 @@
 // ends at or before the publish time however late the tick is delivered.
 //
 // A tick lands once an hour, so "due" means "this is the site's due hour".
-// Two ticks inside one such hour cannot happen; a tick the platform missed
-// is a run the site does not get that day, which the engine's own
-// constraint tolerates.
+// A due hour a tick missed is still owed while its window is open
+// (`openDraftDays`), and is written in the window that hour opened.
 // The leaf, not the module's index: the index reaches the database, and
 // the gate needs none of that to read a clock.
 import { nextPublishTimeAtOrAfter, publishDateAtOrAfter } from "@/lib/publish/settings/clock";
@@ -77,4 +76,19 @@ export function isDraftDue(tick: Date, site: DraftClock): boolean {
  *  is at least the window away. */
 export function nextPublishDate(instant: Date, site: DraftClock): string {
   return publishDateAtOrAfter(windowEnd(instant, site), settingsOf(site));
+}
+
+/** Every date whose due hour came before this tick's hour while its publish
+ *  time is still to come: a page a missed or late tick still owes, written
+ *  in the window its own due hour opened. */
+export function openDraftDays(tick: Date, site: DraftClock): readonly { readonly hour: Date; readonly publishDate: string }[] {
+  const hour = tickHour(tick);
+  const open: { hour: Date; publishDate: string }[] = [];
+  let publishAt = nextPublishTimeAtOrAfter(new Date(hour.getTime() + 1), settingsOf(site));
+  for (;;) {
+    const due = tickHour(new Date(publishAt.getTime() - site.vetoHours * MS_PER_HOUR));
+    if (due.getTime() >= hour.getTime()) return open;
+    open.push({ hour: due, publishDate: nextPublishDate(due, site) });
+    publishAt = nextPublishTimeAtOrAfter(new Date(publishAt.getTime() + MS_PER_HOUR), settingsOf(site));
+  }
 }

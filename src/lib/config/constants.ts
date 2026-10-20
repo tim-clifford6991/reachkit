@@ -1756,6 +1756,12 @@ export const REPORT_REMOVED_STATUS = 410 as const;
  *  site and narrow enough that one tick cannot open more vendor work than
  *  the cost seam's caps were sized for. Reversal cost: one number. */
 export const JOB_FAN_OUT_CONCURRENCY = 10 as const;           // BP-003 · BUILD §11
+/** How many per-site runs of one job go at once, across every site; one
+ *  site runs one at a time whatever the job. Reversal cost: one number. */
+export const JOB_SUBJECT_CONCURRENCY = 5 as const;
+/** Per-site runs that call a model start at most this often, so a zone's
+ *  due hour does not arrive at the model vendor as one burst. */
+export const LLM_RUN_THROTTLE = Object.freeze({ limit: 10, periodSeconds: 60 } as const);
 /** BUILD §11: `publish/verify` runs "+24h" after a publish. Distinct from
  *  `DAILY_WINDOW_H`, which is BP-023's free-scan rate-limit window and
  *  happens to share the number; the two move independently. */

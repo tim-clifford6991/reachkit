@@ -31,6 +31,12 @@ const MS_PER_HOUR = 3_600_000;
 /** How a due hour ended for one site. */
 export type DayOutcome = "drafted" | "no_page" | "failed";
 
+/** One site's page for one date. */
+export interface DraftDay {
+  readonly siteId: string;
+  readonly publishDate: string;
+}
+
 /** The states a date's page holds when the day is accounted for: going out,
  *  out, or stopped or taken down by the customer. A page still generating,
  *  stopped by the checks, or failed at the destination is not. */
@@ -44,6 +50,8 @@ export interface DraftDayStore {
   draftedBefore(siteId: string, publishDate: string): Promise<boolean>;
   /** The reason the date's due hour recorded, or `null`. */
   reasonOn(siteId: string, publishDate: string): Promise<string | null>;
+  /** Of these days, the ones whose due hour recorded how it ended. */
+  decidedOn(days: readonly DraftDay[]): Promise<readonly DraftDay[]>;
   domainOf(siteId: string): Promise<string | null>;
   /** Marks the date told about, only if it has not been. True for the one
    *  caller that made the claim — the one that sends the mail. */
@@ -92,6 +100,28 @@ export async function recordDraftDay(a: {
     await draftDays().record(a);
   } catch {
     warn("record-failed");
+  }
+}
+
+/** Of these days, the ones a site was owed and no due hour recorded an
+ *  ending for: a tick the platform missed, or a run killed before it
+ *  recorded. A site's first day, before it has any page dated earlier, was
+ *  not owed. On an unreadable store, none — the next tick asks again. Never
+ *  throws. */
+export async function missedDays<T extends DraftDay>(days: readonly T[]): Promise<readonly T[]> {
+  if (days.length === 0) return [];
+  try {
+    const store = draftDays();
+    const decided = new Set((await store.decidedOn(days)).map((day) => `${day.siteId}/${day.publishDate}`));
+    const missed: T[] = [];
+    for (const day of days) {
+      if (decided.has(`${day.siteId}/${day.publishDate}`)) continue;
+      if (await store.draftedBefore(day.siteId, day.publishDate)) missed.push(day);
+    }
+    return missed;
+  } catch {
+    warn("missed-read-failed");
+    return [];
   }
 }
 
@@ -216,6 +246,16 @@ function databaseDraftDayStore(): DraftDayStore {
       const row = data?.[0];
       if (row === undefined || row.outcome === null) return null;
       return row.reason === null ? row.outcome : `${row.outcome}:${row.reason}`;
+    },
+    async decidedOn(days) {
+      const { data, error } = await publishDb()
+        .from<{ site_id: string; publish_date: string }>("draft_days")
+        .select("site_id, publish_date")
+        .in("site_id", [...new Set(days.map((day) => day.siteId))])
+        .in("publish_date", [...new Set(days.map((day) => day.publishDate))])
+        .not("outcome", "is", null);
+      if (error !== null) throw new Error(error.message);
+      return (data ?? []).map((row) => ({ siteId: row.site_id, publishDate: row.publish_date }));
     },
     async domainOf(siteId) {
       const { data, error } = await publishDb().from<{ domain: string }>("sites").select("domain").eq("id", siteId).limit(1);

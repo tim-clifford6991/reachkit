@@ -37,7 +37,7 @@
 import { Inngest } from "inngest";
 import { serve as serveFunctions } from "inngest/next";
 import { reportDeadLettered, runJob } from "./run";
-import type { JobDefinition, JobEvent } from "./types";
+import type { JobDefinition, JobEvent, SubjectEvent } from "./types";
 
 /** The application id, stable across deployments — renaming it orphans
  *  every function's history, so it is written once, here. */
@@ -61,25 +61,57 @@ function triggerOf(definition: JobDefinition): { event: string } | { cron: strin
     : { event: definition.trigger.event };
 }
 
-/** Maps one `JobDefinition` onto the platform. The body is always
- *  `runJob()`, so the kill-switch guard and the one log line are applied to
- *  every job by construction rather than by each definition remembering. */
-export function defineJob(definition: JobDefinition): PlatformFunction {
-  const idempotency = idempotencyExpression(definition.idempotencyKey);
+/** The event a tick sends for each of its subjects. */
+export function subjectEventName(jobId: JobDefinition["id"]): string {
+  return `${jobId}/subject`;
+}
+
+/** A tick's subjects as platform events: the key is the event's id, so a
+ *  second send of it inside the platform's window is dropped. */
+export function subjectEvents(jobId: JobDefinition["id"], events: readonly SubjectEvent[]) {
+  return events.map((event) => ({ id: event.key, name: subjectEventName(jobId), data: { ...event.data, key: event.key } }));
+}
+
+/** The neutral bounds as the platform's options. The platform takes at
+ *  most two concurrency bounds. */
+export function boundsOf(definition: JobDefinition) {
+  const [first, second] = (definition.concurrency ?? []).map((bound) => ({
+    limit: bound.limit,
+    ...(bound.key === undefined ? {} : { key: `event.data.${bound.key}` }),
+    ...(bound.shared === true ? { scope: "env" as const } : {}),
+  }));
+  return {
+    ...(first === undefined ? {} : { concurrency: second === undefined ? first : ([first, second] as [typeof first, typeof first]) }),
+    ...(definition.throttle === undefined
+      ? {}
+      : { throttle: { limit: definition.throttle.limit, period: `${definition.throttle.periodSeconds}s` as const } }),
+  };
+}
+
+/** Maps one `JobDefinition` onto the platform: one function, and a second
+ *  for a tick that sends each subject to a run of its own. The body is
+ *  always `runJob()`, so the kill-switch guard and the one log line are
+ *  applied to every run by construction rather than by each definition
+ *  remembering. */
+export function defineJobs(definition: JobDefinition): PlatformFunction[] {
   const afterHours =
     definition.trigger.kind === "event" ? definition.trigger.afterHours : undefined;
+  // Issue 330: every retry failed — the platform's dead-letter. The owner is
+  // told the job and the error's class, never the event.
+  const onFailure = async ({ error }: { error: unknown }) => {
+    await reportDeadLettered(definition.id, error);
+  };
+  const perSubject = definition.perSubject;
+  const idempotency = idempotencyExpression(definition.idempotencyKey);
 
-  return client.createFunction(
+  const job = client.createFunction(
     {
       id: definition.id.replace("/", "-"),
       name: definition.id,
       triggers: [triggerOf(definition)],
       ...(idempotency === undefined ? {} : { idempotency }),
-      // Issue 330: every retry failed — the platform's dead-letter. The
-      // owner is told the job and the error's class, never the event.
-      onFailure: async ({ error }: { error: unknown }) => {
-        await reportDeadLettered(definition.id, error);
-      },
+      ...(perSubject === undefined ? boundsOf(definition) : {}),
+      onFailure,
     },
     async ({ event, step, attempt }) => {
       if (afterHours !== undefined) {
@@ -96,9 +128,37 @@ export function defineJob(definition: JobDefinition): PlatformFunction {
         now: new Date(),
         attempt,
         step: (name, body) => step.run(name, body) as Promise<Awaited<ReturnType<typeof body>>>,
+        // Not a step: the key is the event's id, so a body run again sends
+        // nothing the platform has not already dropped.
+        send: async (events) => {
+          if (events.length > 0) await client.send(subjectEvents(definition.id, events));
+        },
       });
     }
   );
+  if (perSubject === undefined) return [job];
+
+  const subject = client.createFunction(
+    {
+      id: `${definition.id.replace("/", "-")}-subject`,
+      name: subjectEventName(definition.id),
+      triggers: [{ event: subjectEventName(definition.id) }],
+      idempotency: idempotencyExpression(["key"]) as string,
+      ...boundsOf(definition),
+      onFailure,
+    },
+    async ({ event, step, attempt }) =>
+      runJob(
+        { ...definition, run: perSubject },
+        {
+          data: (event?.data ?? {}) as Readonly<Record<string, unknown>>,
+          now: new Date(),
+          attempt,
+          step: (name, body) => step.run(name, body) as Promise<Awaited<ReturnType<typeof body>>>,
+        }
+      )
+  );
+  return [job, subject];
 }
 
 /**
@@ -133,5 +193,5 @@ export async function sendJobEvent(
 /** The HTTP handler set the `/api/jobs` route mounts. It serves exactly the
  *  definitions it is given — an unregistered job is unreachable. */
 export function serveJobs(definitions: readonly JobDefinition[]) {
-  return serveFunctions({ client, functions: definitions.map(defineJob) });
+  return serveFunctions({ client, functions: definitions.flatMap(defineJobs) });
 }

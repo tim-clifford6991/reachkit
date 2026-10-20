@@ -61,6 +61,7 @@ vi.mock("@/lib/publish/daily", () => ({
   recordDraftDay: async () => {},
   alertMissingDrafts: async () => 0,
   alertStalledSites: async () => 0,
+  missedDays: async () => [],
 }));
 vi.mock("@/lib/publish/destinations/health", () => ({ sendBreakageMail: async () => ({ sent: false }) }));
 vi.mock("@/lib/mail/draft-ready", () => ({ sendDraftReadyMail: draftReadyMock }));

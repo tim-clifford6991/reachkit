@@ -73,7 +73,7 @@ describe("the registry is closed over those ten", () => {
     }
   });
 
-  it("serve() exposes exactly GET, POST and PUT, over exactly the registered ten", async () => {
+  it("serve() exposes exactly GET, POST and PUT, over exactly the registered ten and their per-subject runs", async () => {
     const served: unknown[][] = [];
     vi.resetModules();
     vi.doMock("inngest/next", () => ({
@@ -86,7 +86,8 @@ describe("the registry is closed over those ten", () => {
     const handlers = serve();
     expect(Object.keys(handlers).sort()).toEqual(["GET", "POST", "PUT"]);
     expect(served).toHaveLength(1);
-    expect(served[0]).toHaveLength(jobs.length);
+    // A tick that sends each subject on is served with its per-subject run.
+    expect(served[0]).toHaveLength(jobs.length + jobs.filter((job) => job.perSubject !== undefined).length);
     vi.doUnmock("inngest/next");
     vi.resetModules();
   });

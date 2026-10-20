@@ -47,9 +47,20 @@ interface TransportResponse {
 
 /** The one HTTP call, isolated so a test can stand in for it without
  *  standing in for this module's own mapping of outcomes to values. */
-export type VendorTransport = (payload: string) => Promise<TransportResponse>;
+export type VendorTransport = (payload: string, idempotencyKey: string) => Promise<TransportResponse>;
 
-function httpsTransport(payload: string): Promise<TransportResponse> {
+/** `{template}:{subject}:{period}`: the kind, this recipient's mail as
+ *  rendered, and the UTC day. The vendor sends one mail per key for a day,
+ *  so a retry, or the same alert from the next tick, is not a second mail. */
+export function idempotencyKeyOf(v: VendorSend, now: Date): string {
+  const subject = createHash("sha256")
+    .update([v.to.trim().toLowerCase(), v.subject, v.html, v.text].join("\n"))
+    .digest("hex")
+    .slice(0, 32);
+  return `${v.kind}:${subject}:${now.toISOString().slice(0, 10)}`;
+}
+
+function httpsTransport(payload: string, idempotencyKey: string): Promise<TransportResponse> {
   return new Promise((resolve, reject) => {
     const request = https.request(
       {
@@ -61,6 +72,7 @@ function httpsTransport(payload: string): Promise<TransportResponse> {
           Authorization: `Bearer ${env.RESEND_API_KEY}`,
           "Content-Type": "application/json",
           "Content-Length": Buffer.byteLength(payload),
+          "Idempotency-Key": idempotencyKey,
         },
       },
       (response) => {
@@ -180,7 +192,7 @@ export async function sendViaVendor(v: VendorSend): Promise<VendorResult> {
 
   let response: TransportResponse;
   try {
-    response = await transport(payload);
+    response = await transport(payload, idempotencyKeyOf(v, new Date()));
   } catch {
     // A refused socket, a DNS failure, a timeout, or a transport that
     // rejected for any other reason. Nothing about the address is known

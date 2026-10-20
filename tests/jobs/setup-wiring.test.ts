@@ -27,8 +27,12 @@ vi.mock("@/lib/publish/daily", () => ({
   recordDraftDay: async () => {},
   alertMissingDrafts: async () => 0,
   alertStalledSites: async () => 0,
+  missedDays: async () => [],
 }));
-vi.mock("@/lib/generate", () => ({ generateDayPage: (a: { siteId: string; publishDate: string }) => dayPage(a) }));
+vi.mock("@/lib/generate", () => ({
+  decideDayPage: async () => ({ ok: true, opportunityId: "opportunity-1" }),
+  generateDayPage: (a: { siteId: string; publishDate: string }) => dayPage(a),
+}));
 vi.mock("@/lib/mail/setup/reminders", () => ({
   sitesDueSetupReminder: () => dueReminders(),
   sendSetupReminder: (id: string) => sendReminder(id),
@@ -191,13 +195,13 @@ describe("§4.3 — the deep pass is `scan/run` at tier deep", () => {
   });
 
   it("issue 798 — the platform's steps reach the pass: each of its pieces is a durable step of its own", async () => {
-    const { client, defineJob } = await import("../../src/jobs/client");
+    const { client, defineJobs } = await import("../../src/jobs/client");
     let handler: ((ctx: unknown) => Promise<unknown>) | undefined;
     const create = vi.spyOn(client, "createFunction").mockImplementation(((_options: unknown, fn: never) => {
       handler = fn;
       return {} as never;
     }) as never);
-    defineJob(scanRun);
+    defineJobs(scanRun);
     create.mockRestore();
 
     const platformSteps: string[] = [];
@@ -249,7 +253,7 @@ describe("§4.3 — the deep pass is `scan/run` at tier deep", () => {
     const outcome = await engine.kickOffFirstDraft({ siteId: "site-1", now: NOW });
     // 12:00 UTC is 08:00 in New York on 6 Sep: a 24 h window ends at 08:00
     // on the 7th, before that day's 09:00 publish time.
-    expect(dayPage).toHaveBeenCalledWith({ siteId: "site-1", publishDate: "2026-09-07", now: NOW });
+    expect(dayPage).toHaveBeenCalledWith({ siteId: "site-1", publishDate: "2026-09-07", now: NOW, opportunityId: "opportunity-1" });
     expect(outcome).toEqual({ degraded: "first-draft:generate:no_opportunity" });
   });
 

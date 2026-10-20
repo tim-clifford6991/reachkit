@@ -110,6 +110,32 @@ export interface JobInput {
    *  has answered. Absent where the caller has no platform — a test, a
    *  direct call — and the piece then runs inline. */
   readonly step?: StepRunner;
+  /** Queues one run per subject (`JobDefinition.perSubject`), each keyed so
+   *  a second send of the same key starts nothing. Absent where the caller
+   *  has no platform, and the subjects then run inline. */
+  readonly send?: (events: readonly SubjectEvent[]) => Promise<void>;
+}
+
+/** One subject a tick hands to its own run: `key` names the subject and its
+ *  period (`draft:{site}:{date}`), and is the event's id and the run's
+ *  idempotency key. */
+export interface SubjectEvent {
+  readonly key: string;
+  readonly data: Readonly<Record<string, unknown>>;
+}
+
+/** At most `limit` runs at once, per value of the `key` field where one is
+ *  named; `shared` counts runs of every job keyed the same way together. */
+export interface JobConcurrency {
+  readonly limit: number;
+  readonly key?: string;
+  readonly shared?: true;
+}
+
+/** At most `limit` run starts per `periodSeconds`; later starts wait. */
+export interface JobThrottle {
+  readonly limit: number;
+  readonly periodSeconds: number;
 }
 
 /** A named, durable piece of a job body, stated without the platform's
@@ -130,4 +156,12 @@ export interface JobDefinition {
    *  engine, not by the trigger. */
   readonly idempotencyKey: readonly string[];
   readonly run: (input: JobInput) => Promise<Outcome>;
+  /** One subject's run, for a tick that sends its subjects on (`input.send`)
+   *  rather than running them in its own invocation. Keyed by the event's
+   *  `key`; `concurrency` and `throttle` bound it. */
+  readonly perSubject?: (input: JobInput) => Promise<Outcome>;
+  /** On the function that carries event data: `perSubject` where there is
+   *  one, the job itself otherwise. */
+  readonly concurrency?: readonly JobConcurrency[];
+  readonly throttle?: JobThrottle;
 }

@@ -9,18 +9,23 @@
 // publishes on its calendar day.
 //
 // In the kill switch's scope: `runJob()` stops it before this body's first
-// spend and first write.
+// spend and first write, and again before each site's own run.
+//
+// **One run per site.** The tick selects and sends; each due site is an
+// event keyed `draft:{site}:{date}` and a run of its own, bounded to one at
+// a time per site and five in all, so one zone's due hour is never one
+// invocation's work. A site whose due hour passed with no day recorded — a
+// tick the platform missed, a run killed before it wrote — is sent on the
+// next tick while its window is still open, under the same key.
 //
 // It is also where the customer's Regenerate is carried out (#788): the
 // restart only moves the page back into `generating`, and every tick —
 // not only a site's due hour — writes one restarted page a site again.
 //
-// **What makes a second delivery of one tick harmless** (issue 886).
-// Delivery is at-least-once and a clock tick carries no payload, so there
-// is no natural key to dedupe on and `idempotencyKey` is empty, exactly as
-// `types.ts` describes for a tick: "whose idempotency is a database
-// constraint owned by the engine, not by the trigger". Two things hold it,
-// and neither is in this file:
+// **What makes a second delivery of one tick harmless** (issue 886). The
+// key: a re-sent `draft:{site}:{date}` is dropped by the platform, and a
+// second delivery of one is refused by the per-site run's idempotency. And
+// behind it, two things in the engine:
 //
 //   * **The day's page.** `generateDayPage()` asks first whether the site
 //     already holds a draft for the date, before the cost context is opened
@@ -45,18 +50,60 @@ import {
   recordDraftDay,
   regenerateDraft,
   restartedDrafts,
+  missedDays,
 } from "@/jobs/engine";
-import { fanOut, settle } from "./fan-out";
-import { isDraftDue, nextPublishDate, tickHour } from "./site-clock";
-import type { JobDefinition, Outcome } from "./types";
+import { JOB_SUBJECT_CONCURRENCY, LLM_RUN_THROTTLE } from "@/lib/config/constants";
+import { fanOut, sendSubjects, settle } from "./fan-out";
+import { isDraftDue, nextPublishDate, openDraftDays, tickHour } from "./site-clock";
+import type { JobDefinition, JobInput, Outcome } from "./types";
 
 /** Hourly, on the hour; due-ness is per site, inside the run. */
 export const DRAFT_TICK_CRON = "0 * * * *";
+
+/** One site's due hour, as its run reads it from the event. */
+function siteDay(data: JobInput["data"]): { siteId: string; publishDate: string; hour: Date } {
+  const { siteId, publishDate, hour } = data;
+  if (typeof siteId !== "string" || typeof publishDate !== "string" || typeof hour !== "string") {
+    throw new TypeError("draft/generate: a site run needs siteId, publishDate and hour");
+  }
+  return { siteId, publishDate, hour: new Date(hour) };
+}
+
+/** One site's page for one date: the breakage notice, the page in its own
+ *  steps, and how the day ended. The window is counted from the due hour
+ *  the event names, so a queued or caught-up run still ends it at or
+ *  before the publish time. */
+async function draftSite(input: JobInput): Promise<Outcome> {
+  const { siteId, publishDate, hour } = siteDay(input.data);
+  const step = input.step ?? ((_name, body) => body());
+  try {
+    // BUILD §9's one mail per breakage, before the page this site's broken
+    // destination would be holding is prepared. First, and not last: a
+    // generation that falls over must not also cost the customer the only
+    // telling they get that their pages are going nowhere.
+    await step("notice", () => noticeBrokenDestination({ siteId, now: input.now }));
+    const result = await generateDraft({ siteId, publishDate, now: hour, ...(input.step === undefined ? {} : { step: input.step }) });
+    // Issue 1455: the day keeps its reason after the next tick has run.
+    await recordDraftDay(
+      "degraded" in result
+        ? { siteId, publishDate, outcome: "no_page", reason: result.degraded, at: hour }
+        : { siteId, publishDate, outcome: "drafted", reason: null, at: hour }
+    );
+    return "degraded" in result ? { outcome: "degraded", subjectId: siteId, step: result.degraded } : { outcome: "ran", subjectId: siteId };
+  } catch (error) {
+    const reason = error instanceof Error ? error.name : "unknown";
+    await recordDraftDay({ siteId, publishDate, outcome: "failed", reason, at: hour });
+    throw error;
+  }
+}
 
 export const draftGenerate: JobDefinition = {
   id: "draft/generate",
   trigger: { kind: "cron", cron: DRAFT_TICK_CRON },
   idempotencyKey: [],
+  perSubject: draftSite,
+  concurrency: [{ key: "siteId", shared: true, limit: 1 }, { limit: JOB_SUBJECT_CONCURRENCY }],
+  throttle: LLM_RUN_THROTTLE,
   async run(input): Promise<Outcome> {
     const selection = await activeSites();
     // A tick that could not decide who is paying prepares no page and says
@@ -81,35 +128,27 @@ export const draftGenerate: JobDefinition = {
     // Issue 1536: and one that has gone twice its cadence with no page
     // delivered, which no single day's mail says.
     await alertStalledSites({ sites: selection.sites, hour });
-    const due = selection.sites.filter((site) => isDraftDue(hour, site));
+    const dueNow = selection.sites
+      .filter((site) => isDraftDue(hour, site))
+      .map((site) => ({ siteId: site.siteId, publishDate: nextPublishDate(hour, site), hour }));
+    const missed = await missedDays(
+      selection.sites.flatMap((site) => openDraftDays(hour, site).map((day) => ({ siteId: site.siteId, ...day })))
+    );
+    const due = [...dueNow, ...missed];
     if (due.length === 0) {
       return restarted.length === 0
         ? { outcome: "skipped", subjectId: null, reason: "not-due" }
         : settle(regenerated, null);
     }
 
-    const results = await fanOut(due, async (site) => {
-      const publishDate = nextPublishDate(hour, site);
-      try {
-        // BUILD §9's one mail per breakage, before the page this site's
-        // broken destination would be holding is prepared. First, and not
-        // last: a generation that falls over must not also cost the customer
-        // the only telling they get that their pages are going nowhere.
-        await noticeBrokenDestination({ siteId: site.siteId, now: input.now });
-        const result = await generateDraft({ siteId: site.siteId, publishDate, now: hour });
-        // Issue 1455: the day keeps its reason after the next tick has run.
-        await recordDraftDay(
-          "degraded" in result
-            ? { siteId: site.siteId, publishDate, outcome: "no_page", reason: result.degraded, at: hour }
-            : { siteId: site.siteId, publishDate, outcome: "drafted", reason: null, at: hour }
-        );
-        return result;
-      } catch (error) {
-        const reason = error instanceof Error ? error.name : "unknown";
-        await recordDraftDay({ siteId: site.siteId, publishDate, outcome: "failed", reason, at: hour });
-        throw error;
-      }
-    });
-    return settle([...regenerated, ...results], null);
+    const sent = await sendSubjects(
+      input,
+      due.map((day) => ({
+        key: `draft:${day.siteId}:${day.publishDate}`,
+        data: { siteId: day.siteId, publishDate: day.publishDate, hour: day.hour.toISOString() },
+      })),
+      draftSite
+    );
+    return settle([...regenerated, ...sent], null);
   },
 };

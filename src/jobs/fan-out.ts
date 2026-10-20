@@ -8,6 +8,7 @@
 // is one site's failure, and the rest of Monday still runs. Results come
 // back in the order the subjects were given, whatever order they finished.
 import { JOB_FAN_OUT_CONCURRENCY } from "@/lib/config/constants";
+import type { JobInput, Outcome, SubjectEvent } from "./types";
 
 export type FanOutResult<T> = { readonly ok: true; readonly value: T } | { readonly ok: false; readonly error: unknown };
 
@@ -58,4 +59,22 @@ export function settle<T extends { readonly done: true } | { readonly degraded: 
   const failure = results.find((result) => !result.ok);
   if (failure !== undefined && !failure.ok) throw failure.error;
   return { outcome: "ran", subjectId };
+}
+
+/** Hands a tick's subjects to their own runs, each under its key. With no
+ *  platform to send through — a test, a direct call — each runs here
+ *  instead, and its result is the tick's to settle. */
+export async function sendSubjects(
+  input: JobInput,
+  events: readonly SubjectEvent[],
+  run: (input: JobInput) => Promise<Outcome>
+): Promise<readonly FanOutResult<{ readonly done: true } | { readonly degraded: string }>[]> {
+  if (input.send !== undefined) {
+    await input.send(events);
+    return [];
+  }
+  return fanOut(events, async (event) => {
+    const outcome = await run({ data: { ...event.data, key: event.key }, now: input.now });
+    return outcome.outcome === "degraded" ? { degraded: outcome.step } : { done: true as const };
+  });
 }

@@ -124,6 +124,36 @@ export type DayPageOutcome =
     }
   | { ok: false; because: "step_failed"; draftId: string | null; step: string };
 
+type NoPage = Extract<DayPageOutcome, { because: "no_site" | "no_scan" | "already_drafted" | "no_opportunity" }>;
+
+/** What a day's page needs before any topic is read: the site, no page yet
+ *  on the date, and a scan to ground it. */
+async function dayReady(siteId: string, publishDate: string): Promise<NoPage | { ok: true; site: SiteFacts; report: StoredReport }> {
+  const store = generateStore();
+  const site = await store.siteFacts(siteId);
+  if (site === null) return { ok: false, because: "no_site" };
+  // Issue 886: the tick that delivers this twice stops here, before the
+  // first paid call. The read is not the whole protection — two deliveries
+  // running together both pass it — so the day's row is unique in the
+  // database too, and the loser of that race is caught below.
+  if (await store.draftOnDate(siteId, publishDate)) return { ok: false, because: "already_drafted" };
+  // §8: "the day's page is generated the evening before from the freshest
+  // scan." No scan, no measured pages — and no measured pages is no
+  // grounded fact, which §8 leaves no way around.
+  const report = await store.latestReport(siteId);
+  if (report === null) return { ok: false, because: "no_scan" };
+  return { ok: true, site, report };
+}
+
+/** D41's decide stage alone, at 0¢: the topic the day's page is written on,
+ *  or why the day has none. */
+export async function decideDayPage(a: { siteId: string; publishDate: string; now: Date }): Promise<NoPage | { ok: true; opportunityId: string }> {
+  const ready = await dayReady(a.siteId, a.publishDate);
+  if (!ready.ok) return ready;
+  const first = await pageForDay(a.siteId, a.publishDate, a.now);
+  return first === null ? { ok: false, because: "no_opportunity" } : { ok: true, opportunityId: first.id };
+}
+
 /** #813: a write call that did not answer is tried once more. The one fix
  *  call of D41 is the pipeline's own and is not an attempt of these. */
 const MAX_AUTOMATIC_ATTEMPTS = 2;
@@ -134,28 +164,19 @@ export async function generateDayPage(a: {
   publishDate: string;
   /** The run's clock: what a topic's rest is counted from and read against. */
   now?: Date;
+  /** The day's topic as `decideDayPage` chose it, where a step of its own did. */
+  opportunityId?: string;
 }): Promise<DayPageOutcome> {
   const store = generateStore();
   const now = a.now ?? new Date();
   const startedAt = Date.now();
-
-  const site = await store.siteFacts(a.siteId);
-  if (site === null) return { ok: false, because: "no_site" };
-  // Issue 886: the tick that delivers this twice stops here, before the
-  // first paid call. The read is not the whole protection — two deliveries
-  // running together both pass it — so the day's row is unique in the
-  // database too, and the loser of that race is caught below.
-  if (await store.draftOnDate(a.siteId, a.publishDate)) return { ok: false, because: "already_drafted" };
-
-  // §8: "the day's page is generated the evening before from the freshest
-  // scan." No scan, no measured pages — and no measured pages is no
-  // grounded fact, which §8 leaves no way around.
-  const report = await store.latestReport(a.siteId);
-  if (report === null) return { ok: false, because: "no_scan" };
+  const ready = await dayReady(a.siteId, a.publishDate);
+  if (!ready.ok) return ready;
+  const { site, report } = ready;
 
   // The week's page for the date, after a 0¢ check that it still stands —
   // never a re-ranking of the open pool (issue 1559).
-  const first = await pageForDay(a.siteId, a.publishDate, now);
+  const first = a.opportunityId === undefined ? await pageForDay(a.siteId, a.publishDate, now) : await opportunityById(a.opportunityId);
   if (first === null) return { ok: false, because: "no_opportunity" };
 
   try {
