@@ -118,6 +118,15 @@ describe("only a page near page one grows on the gaps (owner 2026-10-19)", () =>
     // A page with no place read is not near page one either.
     expect(packOf(page({ declined: true }), []).pack.gaps).toBeUndefined();
   });
+
+  it("a close page at place 8, above the near-page-one band, keeps today's refresh: no gaps and no +40%", () => {
+    for (const position of [8, 10]) {
+      const { cause, place, pack } = packOf(page({}), [{ keyword: target, url, position }]);
+      expect({ cause, place }).toEqual({ cause: "close", place: position });
+      expect(pack.gaps).toBeUndefined();
+      expect(lengthRangeFor(TEMPLATES.update, 1000, pack.gaps !== undefined)).toEqual({ floor: 800, ceiling: 1200 });
+    }
+  });
 });
 
 const TIDY = { facts: [GROUNDED.passage], promises: [], queries: ["best crm for small teams"], names: ["Acme"] };
