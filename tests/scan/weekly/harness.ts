@@ -13,7 +13,7 @@ setEnvFixture();
 
 export interface Statement {
   table: string;
-  verb: "select" | "insert" | "delete";
+  verb: "select" | "insert" | "update" | "delete";
   values?: Record<string, unknown>;
   filters: [string, unknown][];
 }
@@ -58,6 +58,11 @@ export function fakeDb(): FakeDb {
         statement.values = values;
         return self;
       },
+      update(values: Record<string, unknown>) {
+        statement.verb = "update";
+        statement.values = values;
+        return self;
+      },
       delete() {
         statement.verb = "delete";
         return self;
@@ -68,6 +73,10 @@ export function fakeDb(): FakeDb {
       },
       not(column: string, operator: string, value: unknown) {
         statement.filters.push([`not.${column}.${operator}`, value]);
+        return self;
+      },
+      is(column: string, value: unknown) {
+        statement.filters.push([`is.${column}`, value]);
         return self;
       },
       in(column: string, values: readonly unknown[]) {

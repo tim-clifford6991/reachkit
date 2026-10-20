@@ -107,7 +107,6 @@ export async function runWeekly(a: {
   //    standard queue, the `WEEKLY` cap, which stages degrade — is
   //    `TIER_PARAMETERS.weekly`'s and is not restated here.
   let status: "done" | "degraded" | "failed";
-  let rivalsChanged = false;
   try {
     ({ status } = await runScan({
       scanId: claim.scanId,
@@ -120,10 +119,11 @@ export async function runWeekly(a: {
       ...(category === undefined ? {} : { category }),
       concludesMarket: true,
       afterReport: async ({ report, cost }) => {
-        // SPEC §6 (owner D28, #1185): the rivals, re-checked from this
-        // week's own answers before anything is derived against them.
-        const { recheckRivalsOf } = await import("../market-conclusion");
-        rivalsChanged = await recheckRivalsOf({ siteId: a.siteId, domain: a.domain, cost, report });
+        // SPEC §6 (D28; monthly, ruling B5): the rivals are re-checked on the month's first weekly pass only.
+        if (firstWeekOfMonth(weekStart)) {
+          const { recheckRivalsOf } = await import("../market-conclusion");
+          await recheckRivalsOf({ siteId: a.siteId, domain: a.domain, cost, report });
+        }
         try {
           await deriveForPass(cost, {
             tier: "weekly",
@@ -152,13 +152,6 @@ export async function runWeekly(a: {
     return { ran: true, scanId: claim.scanId, status: "failed" };
   }
 
-  // #1185 point 4: a rival change is measured at once, as a founder's own
-  // change is (§6, #837), under the same daily bound.
-  if (rivalsChanged) {
-    const { remeasureForRivals } = await import("../market-conclusion");
-    await remeasureForRivals({ siteId: a.siteId, domain: a.domain, scanId: claim.scanId });
-  }
-
   // 3. What came back, read through the one account of the week — so the
   //    parts a degraded run did not reach are named in exactly one place.
   const account = await accountForWeek({ siteId: a.siteId, weekStart, now: a.now });
@@ -182,6 +175,11 @@ export async function runWeekly(a: {
 function hasBegun(a: { at: Date; zone: string }): boolean {
   if (isWeeklyDue(a)) return true;
   return localClock(a.at, a.zone).date > weekStartFor(a);
+}
+
+/** The site-local week starts on the month's first seven days. */
+function firstWeekOfMonth(weekStart: string): boolean {
+  return Number(weekStart.slice(8, 10)) <= 7;
 }
 
 function refuse(siteId: string, because: WeeklyRefusal): WeeklyOutcome {
