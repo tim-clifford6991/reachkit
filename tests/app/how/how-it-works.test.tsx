@@ -1,15 +1,15 @@
 // tests/app/how/how-it-works.test.tsx
 //
-// SPEC §1 (2026-10-10, issue 1396): `/how-it-works` and `/about` state only
-// what the constants and the stored rows state. The "node" project,
-// `renderToStaticMarkup`, the real registry.
+// `/how-it-works` (board *How it works*) and `/about` state only what the
+// constants, the rules registry and the stored rows state. The "node"
+// project, `renderToStaticMarkup`, the real registry.
 import { describe, expect, it, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import { applyEnvFixture } from "../../mail/env-fixture";
 
 applyEnvFixture();
 
-import { BATTERY, CROSS_LINKS, PACE, TRACKED_PROMPTS, VETO } from "@/lib/config/constants";
+import { BATTERY, CROSS_LINKS, PACE, TRACKED_PROMPTS, VETO, WEEK_PLAN } from "@/lib/config/constants";
 import { HARD_RULES } from "@/lib/generate/rules/types";
 import { COPY, copy, type CopyKey } from "@/lib/presentation/copy";
 import type { LiveExamples } from "@/app/(public)/_how/examples";
@@ -24,6 +24,7 @@ const { default: AboutPage } = await import("@/app/(public)/about/page");
 const { CHECK_LINES, ENGINES_NAMED, ENGINES_NAMED_COUNT, HOW_FACTS, MODEL_DECIDED, checksIn } = await import(
   "@/app/(public)/_how/facts"
 );
+const { EXAMPLES } = await import("@/app/(public)/_how/specimen");
 
 const NOTHING: LiveExamples = { report: null, page: null, founder: null };
 const STORED: LiveExamples = {
@@ -32,12 +33,109 @@ const STORED: LiveExamples = {
   founder: { name: "Ada", place: "Lisbon" },
 };
 
-async function render(Page: () => Promise<React.JSX.Element>, examples: LiveExamples): Promise<string> {
+const html = renderToStaticMarkup(HowItWorksPage());
+
+async function renderAbout(examples: LiveExamples): Promise<string> {
   live.now = examples;
-  return renderToStaticMarkup(await Page());
+  return renderToStaticMarkup(await AboutPage());
 }
 
-const text = (html: string): string => html.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ");
+const text = (markup: string): string =>
+  markup
+    .replace(/<[^>]*>/g, " ")
+    .replace(/&#x27;/g, "'")
+    .replace(/&amp;/g, "&")
+    .replace(/&quot;/g, '"')
+    .replace(/\s+/g, " ");
+const count = (markup: string, needle: string): number => markup.split(needle).length - 1;
+
+/** Each section's markup, by its id, in page order. */
+function sections(): { id: string; markup: string }[] {
+  const starts = [...html.matchAll(/<section id="([^"]+)"/g)];
+  return starts.map((match, i) => ({
+    id: match[1] ?? "",
+    markup: html.slice(match.index, starts[i + 1]?.index ?? html.length),
+  }));
+}
+const section = (id: string): string => sections().find((s) => s.id === id)?.markup ?? "";
+
+describe("the head, the four steps and eleven sections in the board's order", () => {
+  it("opens on the headline", () => {
+    expect(html).toContain(`<h1 id="top-h" class="t-hero">${copy("how.headline")}</h1>`);
+  });
+
+  it("has the eleven anchors in order", () => {
+    expect(sections().map((s) => s.id)).toEqual([
+      "top",
+      "research",
+      "competitors",
+      "questions",
+      "pages",
+      "true",
+      "found",
+      "you-do",
+      "value",
+      "faq",
+      "start",
+    ]);
+  });
+
+  it("the four-step strip opens the sections that tell each step", () => {
+    const strip = section("top").slice(section("top").indexOf(copy("how.steps.title")));
+    const cards = [...strip.matchAll(/<a [^>]*>/g)].map((m) => m[0]).filter((a) => a.includes('class="card '));
+    const hrefs = cards.map((a) => /href="([^"]+)"/.exec(a)?.[1]);
+    expect(hrefs).toEqual(["#research", "#questions", "#pages", "#found"]);
+  });
+
+  it("every anchor the landing links to is on the page", () => {
+    for (const id of ["research", "pages", "found", "value"]) expect(html).toContain(`<section id="${id}"`);
+  });
+});
+
+describe("each section has a picture and a closed detail", () => {
+  it("every section holds one *Show the detail*, and nothing on the page starts open", () => {
+    const summary = `>${copy("how.detail")}</summary>`;
+    for (const s of sections()) expect(count(s.markup, summary), s.id).toBe(1);
+    expect(count(html, summary)).toBe(11);
+    expect(html).not.toMatch(/<details[^>]*\sopen/);
+  });
+
+  it("every section draws a picture from daisyUI parts", () => {
+    const PARTS = /class="[^"]*\b(card|mockup-browser|mockup-phone|stats|timeline|steps|collapse)\b/;
+    const detail = new RegExp(`<details[^>]*><summary[^>]*>${copy("how.detail")}</summary>[\\s\\S]*?</details>`, "g");
+    for (const s of sections()) expect(s.markup.replace(detail, ""), s.id).toMatch(PARTS);
+  });
+
+  it("draws no chart of its own: every svg is a lucide icon", () => {
+    const svgs = [...html.matchAll(/<svg[^>]*>/g)].map((m) => m[0]);
+    expect(svgs.length).toBeGreaterThan(0);
+    for (const svg of svgs) expect(svg).toMatch(/class="lucide/);
+  });
+});
+
+describe("the Plumber · Software switch, without JavaScript", () => {
+  it("the server markup draws the plumber and not the software firm", () => {
+    const shown = text(html);
+    expect(shown).toContain(EXAMPLES.plumber.search);
+    expect(shown).toContain(EXAMPLES.plumber.page.title);
+    expect(shown).not.toContain(EXAMPLES.software.business);
+    expect(shown).not.toContain(EXAMPLES.software.search);
+    expect(count(html, 'aria-pressed="true"')).toBe(count(html, `>${copy("how.switch.plumber")}</button>`));
+  });
+});
+
+describe("the calls to action", () => {
+  it("the free scan appears four times: the head, after the week, the value and the start", () => {
+    expect(count(html, 'data-testid="how-scan"')).toBe(4);
+    for (const id of ["top", "pages", "value", "start"]) expect(count(section(id), 'data-testid="how-scan"'), id).toBe(1);
+    expect(count(html, `>${copy("landing.start.cta")}`)).toBe(4);
+  });
+
+  it("the €49 checkout appears once, in the value section", () => {
+    expect(count(html, copy("offer.start.priced"))).toBe(1);
+    expect(count(section("value"), 'data-testid="how-checkout"')).toBe(1);
+  });
+});
 
 describe("no figure is typed into copy", () => {
   it("no sentence of the two pages or the landing's eight steps holds a digit", () => {
@@ -48,11 +146,11 @@ describe("no figure is typed into copy", () => {
     expect(typed).toEqual([]);
   });
 
-  it("the page states the constants' figures, and leaves no slot unfilled", async () => {
-    const page = text(await render(HowItWorksPage, NOTHING));
+  it("the page states the constants' figures, and leaves no slot unfilled", () => {
+    const page = text(html);
     expect(page).not.toMatch(/\{[a-zA-Z]+\}/);
     expect(page).toContain(copy("how.measure.search", { searches: BATTERY.QUESTIONS }));
-    expect(page).toContain(copy("how.choose.pace", { newPages: PACE.NEW_PAGES_PER_WEEK }));
+    expect(page).toContain(copy("how.week.detail.plan", { weekPages: WEEK_PLAN.days, newPages: PACE.NEW_PAGES_PER_WEEK }));
     expect(page).toContain(
       copy("how.control.window", { hours: VETO.defaultHours, min: VETO.minDays, max: VETO.maxDays })
     );
@@ -66,49 +164,44 @@ describe("no figure is typed into copy", () => {
     );
   });
 
-  it("the plain lines account for every check, and code runs all but the model's", async () => {
-    expect(CHECK_LINES.reduce((sum, line) => sum + checksIn(line), 0)).toBe(HARD_RULES.length);
-    const page = text(await render(HowItWorksPage, NOTHING));
-    expect(page).toContain(
+  it("the check count shown is the rules registry's (E10)", () => {
+    const shown = text(section("true"));
+    expect(shown).toContain(`up to ${HARD_RULES.length} checks`);
+    expect(shown).toContain(`${HARD_RULES.length} checks passed`);
+    expect(shown).toContain(
       copy("how.checks.count", { checks: HARD_RULES.length, coded: HARD_RULES.length - MODEL_DECIDED.length })
     );
+  });
+
+  it("the plain lines account for every check, and code runs all but the model's", () => {
+    expect(CHECK_LINES.reduce((sum, line) => sum + checksIn(line), 0)).toBe(HARD_RULES.length);
     expect(MODEL_DECIDED).toHaveLength(1);
   });
 });
 
 describe("what the page says about itself", () => {
-  it("says once that pages are written with an AI model, and names no version", async () => {
-    const page = text(await render(HowItWorksPage, NOTHING));
+  it("says once that pages are written with an AI model, and names no version", () => {
+    const page = text(html);
     expect(page.split(copy("how.disclosure"))).toHaveLength(2);
     expect(page).not.toMatch(/\b(opus|sonnet|haiku|gpt-|prompt)\b/i);
   });
 
-  it("states the links a page carries in the constants' own figures", async () => {
-    const html = await render(HowItWorksPage, NOTHING);
-    const links = text(html.slice(html.indexOf('id="links"'), html.indexOf('id="control"')));
+  it("states the links a page carries in the constants' own figures", () => {
+    const links = text(section("true"));
     expect(links).toContain(`${CROSS_LINKS.SITE_MIN} to ${CROSS_LINKS.SITE_MAX} links`);
     expect(links).toContain(`up to ${CROSS_LINKS.BACK_PAGES_MAX} of your earlier pages`);
   });
+
+  it("still links every free report", () => {
+    expect(section("start")).toContain('href="/scans"');
+  });
 });
 
-describe("the live examples and the founder are stored rows", () => {
-  it("links the listed report and the live page", async () => {
-    const html = await render(HowItWorksPage, STORED);
-    expect(html).toContain('href="/scan/listed.example"');
-    expect(html).toContain('href="https://content.example.com/a-page"');
-  });
-
-  it("draws neither where none is stored, and still links the gallery", async () => {
-    const html = await render(HowItWorksPage, NOTHING);
-    expect(html).not.toContain('href="/scan/');
-    expect(html).not.toContain(copy("how.examples.page"));
-    expect(html).toContain('href="/scans"');
-  });
-
-  it("/about names the founder the byline names, and no one where there is none", async () => {
-    const named = text(await render(AboutPage, STORED));
+describe("/about reads the founder from stored rows", () => {
+  it("names the founder the byline names, and no one where there is none", async () => {
+    const named = text(await renderAbout(STORED));
     expect(named).toContain(copy("about.who.founder.place", { name: "Ada", place: "Lisbon" }));
-    const unnamed = await render(AboutPage, NOTHING);
+    const unnamed = await renderAbout(NOTHING);
     expect(text(unnamed)).not.toContain("built by");
     expect(unnamed).toContain('href="/imprint"');
     expect(unnamed).toContain('href="/how-it-works"');
