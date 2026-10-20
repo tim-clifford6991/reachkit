@@ -103,44 +103,6 @@ describe("positions — each search's rows, from which a page takes its own plac
   });
 });
 
-describe("namesCustomer — this week's AI answer, keyed by the question a named_on test records", () => {
-  it("the key is the question's own wording, which is what the acceptance test recorded", () => {
-    const week = weekMeasurementsFrom({ report: reportWithOwnPlace(3), week: WEEK });
-    expect(week.namesCustomer.has(question().text)).toBe(true);
-  });
-});
-
-describe("ownPagesCited — the site's own pages this week's answer cited (SPEC §4 2026-09-29, D16)", () => {
-  const cited = (referenceUrls?: string[]) =>
-    weekMeasurementsFrom({
-      report: reportOf({
-        questions: [question()],
-        serps: [
-          serp({
-            aiOverview: {
-              present: true,
-              asynchronousAiOverview: true,
-              referenceDomains: [DOMAIN, "appcues.com"],
-              ...(referenceUrls === undefined ? {} : { referenceUrls }),
-            },
-          }),
-        ],
-      }),
-      week: WEEK,
-    }).ownPagesCited.get(question().text);
-
-  it("keeps the site's own addresses and no one else's", () => {
-    expect(cited([`https://${DOMAIN}/guides/p`, "https://appcues.com/a"])).toMatchObject({
-      kind: "measured",
-      value: [`https://${DOMAIN}/guides/p`],
-    });
-  });
-
-  it("an answer stored without its addresses names the site and says nothing about which page", () => {
-    expect(cited()?.kind).toBe("unmeasured");
-  });
-});
-
 describe("gatesCleared — the barriers the scan can observe, and only those", () => {
   it("robots and noindex are read off the same facts a Fix opportunity is derived from", () => {
     const week = weekMeasurementsFrom({ report: reportWithOwnPlace(3), week: WEEK });
@@ -168,6 +130,5 @@ describe("the week's own identity", () => {
   it("a report that measured no question at all yields no search and no question — which judgeWeek never reaches, because such a week is no_week", () => {
     const week = weekMeasurementsFrom({ report: emptyReport(), week: WEEK });
     expect(week.positions.size).toBe(0);
-    expect(week.namesCustomer.size).toBe(0);
   });
 });

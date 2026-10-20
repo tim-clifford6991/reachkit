@@ -1,37 +1,14 @@
-// BUILD §9 — one week's stored report, read as the three readings the
-// three acceptance forms are decided from.
-//
-// A projection and nothing else: no measurement is made here, nothing is
-// re-counted, and no value is invented. Every reading is copied out of the
-// week's own `StoredReport` with the arm and the date it was measured
-// under, so a page is judged against this week's measurement and never
-// against a figure derived a second way.
-//
-// **The distinction this file exists to keep is absent-key versus
-// `unmeasured` value.** A key that is absent says the thing the test names
-// left the tracked set — terminal, and `evaluateAcceptance` reads it as
-// one of the five causes. A key that is present carrying an `unmeasured`
-// value says this week did not reach it — transient, `not_measured`, and
-// nothing is written down. So every question and every search the week
-// still tracks gets a key, whether or not the measurement came back:
-// dropping the key for a SERP that failed would retire a live page
-// forever on the strength of one missed request (ADR-072 decision 5).
+// BUILD §9 — one week's stored report, read as the place each page's row
+// records, what each tracked prompt's answers cited, and the gates and site
+// checks a fix page is decided from. A projection: nothing is measured or
+// re-counted, and a reading the week did not reach stays `unmeasured`.
 import { measured, measuredZero, unmeasured, type Measured } from "@/lib/measure/measured";
 import { searchRowsFor, type SearchRows } from "@/lib/measure/page-reading";
-import type { AnswerCell, StoredReport } from "@/lib/scan/report";
+import type { StoredReport } from "@/lib/scan/report";
 import type { Barrier } from "../types";
 import type { WeekMeasurements, WeekStart } from "./types";
 
-/**
- * REQ-063 c1's "the week beginning on Monday in the time zone the customer
- * set", as the three maps a recorded test is decided from.
- *
- * The `questions` / `serps` / `aiAnswers.rows` arrays are the scan's own
- * parallel record of one battery and are paired positionally — the same
- * pairing `src/lib/opportunities/derive/write.ts` reads, and the same one
- * the acceptance tests were written under, so a test recorded from index
- * *i* is decided from index *i*.
- */
+/** One site-local week's readings, keyed as the judgement reads them. */
 export function weekMeasurementsFrom(a: {
   report: StoredReport;
   week: WeekStart;
@@ -48,41 +25,13 @@ export function weekMeasurementsFrom(a: {
   const at = report.verdict.measuredAt;
 
   const positions = new Map<string, Measured<SearchRows>>();
-  const namesCustomer = new Map<string, Measured<boolean>>();
-  const ownPagesCited = new Map<string, Measured<readonly string[]>>();
 
-  // `questions` is what says which searches and which questions the week
-  // still tracks. Where it was not measured at all, no search and no
-  // question has a key — every page whose test names a search reads
-  // `search_untracked`… which would be wrong, and
-  // is why the caller never reaches this function for a week with no
-  // report at all: a week that measured no questions is `no_week`, and
-  // `judgeWeek` answers that before it asks for measurements.
   const questions = report.questions.kind === "unmeasured" ? [] : report.questions.value;
-  const answerRows = report.aiAnswers?.rows ?? [];
 
-  questions.forEach((question, index) => {
+  for (const question of questions) {
     // Present whatever came back: a SERP the week could not read is an
     // `unmeasured` position, not a search that left the set.
     positions.set(question.search.keyword, searchRowsFor(report, question.search.keyword, { tracked: false }));
-
-    const cell = answerRows[index]?.cell;
-    namesCustomer.set(question.text, namedBy(cell, at));
-    ownPagesCited.set(question.text, ownPagesBy(cell, at));
-  });
-
-  // **A page's own question is a tracked question** (SPEC §6 2026-09-20,
-  // #919). The page questions are stored beside the twelve, and a page
-  // whose acceptance test names its own question is decided from the row
-  // this pass asked for it — without this, every such page would read
-  // `not_measured` in a week that asked its question. The twelve win a
-  // collision, because a question the market also selected was measured as
-  // one of the twelve and that is the reading the test was recorded under.
-  for (const row of report.pageQuestions?.rows ?? []) {
-    const wording = row.question.wording.text;
-    if (namesCustomer.has(wording)) continue;
-    namesCustomer.set(wording, namedBy(row.cell, at));
-    ownPagesCited.set(wording, ownPagesBy(row.cell, at));
   }
 
   // Issue 1548: a target outside the twelve reads its page question's
@@ -121,8 +70,6 @@ export function weekMeasurementsFrom(a: {
     measuredAt: at,
     domain: report.domain,
     positions,
-    namesCustomer,
-    ownPagesCited,
     promptCitations,
     gatesCleared: gatesFrom(report, at),
     siteIssues: report.siteIssues,
@@ -131,41 +78,6 @@ export function weekMeasurementsFrom(a: {
 
 function normalised(query: string): string {
   return query.trim().toLowerCase().replace(/\s+/g, " ");
-}
-
-/** One matrix cell, as the `named_on` form reads it. An `unmeasured` cell
- *  "lowers the denominator and is never counted as a place the customer
- *  was ignored" (`AnswerCell`'s own words), so it is carried as an
- *  unmeasured reading and never as a measured `false`. "No answer" is the
- *  opposite: the AI answered nobody, which is a measured result. */
-function namedBy(cell: AnswerCell | undefined, at: Date): Measured<boolean> {
-  if (cell === undefined) return unmeasured<boolean>("not_attempted", at);
-  switch (cell.kind) {
-    case "unmeasured":
-      return unmeasured<boolean>(cell.reason, at);
-    case "no_answer":
-      return measuredZero(false, at);
-    case "answered":
-      return measured(cell.namesCustomer, at);
-  }
-}
-
-/** The same cell, as the site's own pages its answer cited (SPEC §4
- *  2026-09-29, D16). "No answer" cited nothing, which is measured. An
- *  answered cell that kept no addresses — one stored before they were read
- *  — is unmeasured: it cannot say which page was cited, so it credits none
- *  and fails none. */
-function ownPagesBy(cell: AnswerCell | undefined, at: Date): Measured<readonly string[]> {
-  if (cell === undefined) return unmeasured<readonly string[]>("not_attempted", at);
-  switch (cell.kind) {
-    case "unmeasured":
-      return unmeasured<readonly string[]>(cell.reason, at);
-    case "no_answer":
-      return measuredZero<readonly string[]>([], at);
-    case "answered":
-      if (cell.ownUrls === undefined) return unmeasured<readonly string[]>("undeterminable", at);
-      return cell.ownUrls.length === 0 ? measuredZero<readonly string[]>([], at) : measured(cell.ownUrls, at);
-  }
 }
 
 /**

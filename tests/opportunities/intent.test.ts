@@ -11,7 +11,8 @@ import { judgeWeek } from "../../src/lib/opportunities/verdicts/judge";
 import type { PageIntent } from "../../src/lib/opportunities/intent";
 import type { StoredReport } from "../../src/lib/scan/report";
 import { AT, SITE_ID } from "./fixtures";
-import { WEEK, fakeStore, pageOf, releaseStore, reportWithOwnPlace } from "./verdicts/harness";
+import { WEEK, fakeStore, pageOf, readingAt, releaseStore, reportWithOwnPlace } from "./verdicts/harness";
+import type { PageReading } from "../../src/lib/measure/page-reading";
 
 // Five of the prompts reachkit.app tracked on 2026-10-06.
 const PROMPTS = [
@@ -94,9 +95,9 @@ describe("D60 — the Monday verdict checks the ranking and the AI citation", ()
     };
   }
 
-  async function judge(a: { report: StoredReport; intent?: PageIntent | null }) {
+  async function judge(a: { report: StoredReport; intent?: PageIntent | null; reading?: PageReading }) {
     const recorded: { draftId: string; intent: PageIntent }[] = [];
-    const store = fakeStore({ pages: [{ ...page, intent: a.intent ?? null }], report: a.report });
+    const store = fakeStore({ pages: [{ ...page, intent: a.intent ?? null, ...(a.reading === undefined ? {} : { reading: a.reading }) }], report: a.report });
     Object.assign(store, {
       trackedPrompts: async () => [PROMPT],
       recordIntent: async (row: { draftId: string; intent: PageIntent }) => void recorded.push(row),
@@ -112,7 +113,7 @@ describe("D60 — the Monday verdict checks the ranking and the AI citation", ()
   });
 
   it("answers that cite another of the site's pages are not this page's result", async () => {
-    const { standing, row } = await judge({ report: week(null, ["https://content.example.com/another-page"]), intent: INTENT });
+    const { standing, row } = await judge({ report: week(null, ["https://content.example.com/another-page"]), intent: INTENT, reading: readingAt(null) });
     expect(standing).toMatchObject({ kind: "verdict", verdict: "too_early" });
     expect(row?.measured).toMatchObject({ ai: { cited: { kind: "zero", value: false } } });
   });

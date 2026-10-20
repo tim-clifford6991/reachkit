@@ -9,7 +9,9 @@ import { rankOpen } from "../../src/lib/opportunities/rank/open";
 import { setOpportunityStore, type OpportunityRow } from "../../src/lib/opportunities/store";
 import { suppressionOf, type NotWorkingVerdict } from "../../src/lib/opportunities/suppression";
 import { assessReadiness } from "../../src/lib/opportunities/readiness";
+import { judgeWeek } from "../../src/lib/opportunities/verdicts/judge";
 import { memoryStore, newMemoryState, type MemoryState } from "./memory-store";
+import { WEEK, fakeStore, pageOf, readingAt, releaseStore } from "./verdicts/harness";
 import { AT, PROFILE, SITE_ID } from "./fixtures";
 
 const OWNED = "https://example.com/onboarding-guide";
@@ -118,5 +120,37 @@ describe("an owned URL whose Improve was judged not working twice", () => {
       ["improve-other", null],
     ]);
     expect((await rankOpen(SITE_ID)).map((r) => r.opportunityId)).toEqual(["improve-other"]);
+  });
+});
+
+describe("suppression follows the label a page's reading gives", () => {
+  afterEach(releaseStore);
+
+  it("a climbing page stores working and holds nothing back; a page not moving for 8 weeks suppresses its cluster", async () => {
+    const verdicts = fakeStore({
+      pages: [
+        pageOf({ publicationId: "climbing", reading: readingAt(45, { first: 80, weeksAgo: 2 }) }),
+        pageOf({ publicationId: "flat", reading: readingAt(50, { weeksAgo: 8 }) }),
+      ],
+    });
+    await judgeWeek({ siteId: SITE_ID, week: WEEK });
+    expect(verdicts.rows.map((r) => [r.publicationId, r.verdict])).toEqual([
+      ["climbing", "working"],
+      ["flat", "not_working"],
+    ]);
+
+    const clusterOf: Record<string, string> = { climbing: "onboarding", flat: "pricing" };
+    state.notWorking = verdicts.rows
+      .filter((r) => r.verdict === "not_working")
+      .map((r) => notWorking({ week: r.week, clusterKey: clusterOf[r.publicationId] ?? null }));
+    state.rows.push(
+      row({ id: "write-climbing", family: "write", type: "answer_page", target_ref: "onboarding-faq" }),
+      row({ id: "write-flat", family: "write", type: "answer_page", target_ref: "pricing-faq", cluster_key: "pricing" })
+    );
+    await assessReadiness(SITE_ID, { at: NEXT_WEEK });
+    expect(state.rows.map((r) => [r.id, r.unready_reason])).toEqual([
+      ["write-climbing", null],
+      ["write-flat", "cluster_suppressed"],
+    ]);
   });
 });

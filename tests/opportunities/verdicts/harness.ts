@@ -19,6 +19,7 @@ import type { ReportSections } from "../../../src/lib/scan/store";
 import type { StoredReport } from "../../../src/lib/scan/report";
 import { measured, measuredZero, type Measured } from "../../../src/lib/measure/measured";
 import type { Acceptance } from "../../../src/lib/opportunities/types";
+import type { PageReading } from "../../../src/lib/measure/page-reading";
 import type {
   PublishedPage,
   VerdictInsert,
@@ -38,6 +39,27 @@ export const PREVIOUS_WEEK = "2026-08-24";
  *  places it with (issue 1518: a page's place is its own address's). */
 export const PAGE_URL = "https://content.example.com/best-user-onboarding-software";
 
+/** The page's stored reading: its best place `best`, first held `weeksAgo`
+ *  weeks before the week's measurement at `first` (default `best`); `null`
+ *  where no result has ever held it. */
+export function readingAt(best: number | null, a: { weeksAgo?: number; first?: number; linked?: boolean } = {}): PageReading {
+  const at = new Date(AT.getTime() - (a.weeksAgo ?? 0) * 7 * 86_400_000).toISOString();
+  return {
+    at: AT.toISOString(),
+    crawled: false,
+    place: best === null ? null : { value: best, source: "serp", query: "best user onboarding software" },
+    first: best === null ? null : { at, place: a.first ?? best },
+    best: best === null ? null : { place: best, at },
+    prev: null,
+    linkedBy: a.linked === true ? ["ai_overview"] : [],
+    aiReads: null,
+    variants: [],
+    reached: {},
+    google: null,
+    bing: null,
+  };
+}
+
 export function pageOf(over: Partial<PublishedPage> = {}): PublishedPage {
   return {
     publicationId: "pub-1",
@@ -47,6 +69,7 @@ export function pageOf(over: Partial<PublishedPage> = {}): PublishedPage {
     domain: DOMAIN,
     liveUrl: PAGE_URL,
     verification: null,
+    reading: readingAt(3),
     ...over,
   };
 }
@@ -126,9 +149,6 @@ export function fakeStore(a: {
    *  the previous week's place from its own report). A week not named
    *  here reads `report`. */
   reports?: Readonly<Record<string, StoredReport | null>>;
-  /** Issue 1538's stored addresses. Absent: the double states no page's
-   *  index state. */
-  seen?: readonly string[];
 }): Fake {
   const inserted: VerdictInsert[] = [];
   const rows: VerdictInsert[] = [];
@@ -166,7 +186,6 @@ export function fakeStore(a: {
     async historyBefore(q) {
       return (a.history ?? []).filter((row) => row.week < q.week);
     },
-    ...(a.seen === undefined ? {} : { seenUrls: async () => a.seen as readonly string[] }),
     async insert(next) {
       for (const row of next) {
         inserted.push(row);
