@@ -111,7 +111,13 @@ export interface DataForSeoRequestSpec {
    *  twelve takes. It is per call and never per module because one process
    *  serves every tier. */
   timeoutMs?: number;
+  /** How deep a SERP family's result is read; absent is `VENDOR.serpDepth`.
+   *  The vendor bills each ten results as one page. */
+  depth?: SerpDepth;
 }
+
+/** The depths a SERP may be bought at: whole pages of ten, at most a hundred. */
+export type SerpDepth = 10 | 20 | 30 | 40 | 50 | 60 | 70 | 80 | 90 | 100;
 
 /** A locale as every cache key of this package spells it: the vendor's
  *  country name and the language, so a read bought in one country is never
@@ -153,7 +159,7 @@ export function buildRequest(spec: DataForSeoRequestSpec): DataForSeoRequest {
     task.location_name = locationName(spec.path, { ...locale, ...(spec.locale?.place === undefined ? {} : { place: spec.locale.place }) });
     task.language_code = locale.language;
   }
-  if (DEPTH_PATH_PREFIXES.some((prefix) => spec.path.startsWith(prefix))) task.depth = VENDOR.serpDepth;
+  if (DEPTH_PATH_PREFIXES.some((prefix) => spec.path.startsWith(prefix))) task.depth = spec.depth ?? VENDOR.serpDepth;
 
   return {
     url: `${DATAFORSEO_BASE_URL}${spec.path}`,

@@ -23,8 +23,6 @@ export interface MeasuredFacts {
   questions: number;
   /** The engines whose answers it stored, in the report's own order. */
   engines: readonly AnswerEngine[];
-  /** How many times each prompt was asked of each engine. */
-  runs: number;
   at: Date;
 }
 
@@ -123,7 +121,7 @@ function measuredLine(measured: MeasuredFacts | null): DoneLine {
       asked
         ? {
             key: "overview.done.measured",
-            vars: { searches: measured.searches, questions: measured.questions, runs: measured.runs },
+            vars: { searches: measured.searches, questions: measured.questions },
             engines: measured.engines,
             at: { at: measured.at },
           }

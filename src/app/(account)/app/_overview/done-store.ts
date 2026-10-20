@@ -18,7 +18,6 @@
 //
 // **Each read stands alone.** One that fails leaves its field `undefined`
 // and `done.ts` then draws no line for it; the rest of the screen stands.
-import { TRACKED_PROMPTS } from "@/lib/config/constants";
 import { now as clock } from "@/lib/config/now";
 import { dbAdmin } from "@/lib/db";
 import { HARD_RULES } from "@/lib/generate/rules/types";
@@ -73,7 +72,6 @@ export function measuredOf(report: StoredReport): MeasuredFacts {
     searches: report.serps.filter((serp) => serp.kind !== "unmeasured").length,
     questions: report.prompts?.asked.length ?? 0,
     engines,
-    runs: TRACKED_PROMPTS.RUNS,
     at: report.verdict.measuredAt,
   };
 }

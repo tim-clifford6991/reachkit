@@ -6,6 +6,7 @@
 // change a constant and the page says the new number.
 import {
   ADDS,
+  ANSWER_RATE_WEEKS,
   BATTERY,
   CROSS_LINKS,
   MARKET_TERMS,
@@ -77,7 +78,7 @@ const prompts = Object.values(TRACKED_PROMPTS.SPLIT).reduce((sum, n) => sum + n,
 export const HOW_FACTS = Object.freeze({
   searches: BATTERY.QUESTIONS,
   prompts,
-  runs: TRACKED_PROMPTS.RUNS,
+  answerWeeks: ANSWER_RATE_WEEKS,
   terms: MARKET_TERMS.MAX,
   rivals: BATTERY.COMPETITORS_MAX,
   rivalsHeld: RIVAL_PRESENCE.FIRST_PAGE_PLACES,

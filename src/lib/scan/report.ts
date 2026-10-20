@@ -380,6 +380,8 @@ export interface PageQuestionRow {
    *  place from. `null` where that result could not be read this week;
    *  absent on a row stored before the rows were kept. */
   organic?: readonly { url: string; position: number }[] | null;
+  /** How deep `organic` was bought; absent on a row bought ten deep. */
+  depth?: number;
 }
 
 export interface RetiredPageQuestion {

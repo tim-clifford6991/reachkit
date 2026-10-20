@@ -92,6 +92,46 @@ describe("positions — each search's rows, from which a page takes its own plac
     expect(placeAt(reportWithOwnPlace(null, { ownRanked: measured(300, AT), ownRankedRows: elsewhere }))?.kind).toBe("zero");
   });
 
+  it("issue 1537 — on its own question's result, read past twenty, a page on page two is seen there on a site of any size", () => {
+    const TARGET = "water heater repair austin";
+    const capped = { ownRanked: measured(1200, AT), ownRankedRows: Array.from({ length: 300 }, (_, i) => ({ keyword: `other search ${i}`, position: 1 + (i % 50), searchVolume: 90, url: `https://${DOMAIN}/p${i}` })) };
+    const rival = { url: "https://rival.test/a", position: 1 };
+    const withRow = (organic: { url: string; position: number }[], depth?: number) =>
+      reportWithOwnPlace(null, {
+        ...capped,
+        pageQuestions: {
+          measuredAt: AT,
+          ownDomain: DOMAIN,
+          tracked: 13,
+          cap: 24,
+          retired: [],
+          rows: [
+            {
+              publicationId: "pub-1",
+              liveUrl: PAGE_URL,
+              question: { n: 13, wording: { source: "model", text: "Who repairs water heaters in Austin?" }, search: TARGET },
+              cell: { kind: "no_answer" },
+              engines: [],
+              organic,
+              ...(depth === undefined ? {} : { depth }),
+            },
+          ],
+        } as never,
+      });
+    const placeOn = (report: ReturnType<typeof withRow>) => {
+      const reading = weekMeasurementsFrom({ report, week: WEEK, targets: [TARGET] }).positions.get(TARGET);
+      return reading === undefined ? undefined : placeOf(reading, [PAGE_URL]);
+    };
+    const at14 = placeOn(withRow([rival, { url: PAGE_URL, position: 14 }], 100));
+    expect(at14?.kind === "measured" && at14.value).toBe(14);
+    // Absent from a result read past the verdict's line is a measured zero.
+    expect(placeOn(withRow([rival], 30))?.kind).toBe("zero");
+    // A ten-deep row stored before cannot say the page is not at 11–20.
+    expect(placeOn(withRow([rival]))?.kind).toBe("unmeasured");
+    // Nor can a thin market's slot past the deep twelve, which says it read ten.
+    expect(placeOn(withRow([rival], 10))?.kind).toBe("unmeasured");
+  });
+
   it("an earlier address of the same page counts as the page (issue 1487)", () => {
     const report = reportOf({
       questions: [question()],

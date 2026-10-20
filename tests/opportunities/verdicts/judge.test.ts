@@ -396,8 +396,10 @@ describe("ADR-071 point 2 — a week whose place was not read is never stored as
     for (const panel of [SAAS, LOCAL]) {
       const weekAt = (place: number | null): StoredReport =>
         weekWith({ domain: panel.domain, asked: [{ publicationId: "pub-1", liveUrl: panel.page, search: panel.search, place }] });
-      // The capped week: the site ranks for more searches than the rows kept.
-      const capped: StoredReport = { ...weekAt(null), ownRanked: measured(1200, AT) };
+      // The capped week: the site ranks for more searches than the rows kept,
+      // and the page's own result was bought ten deep.
+      const tenDeep = weekWith({ domain: panel.domain, asked: [{ publicationId: "pub-1", liveUrl: panel.page, search: panel.search, place: null, depth: 10 }] });
+      const capped: StoredReport = { ...tenDeep, ownRanked: measured(1200, AT) };
       const weeks = [...Array<StoredReport>(9).fill(weekAt(15)), capped];
       const page = { id: "pub-1", liveUrl: panel.page, search: panel.search, crawled: false, aiReads: 0, aiVisits: 0, google: null, bing: null };
       let reading: PageReading | null = null;

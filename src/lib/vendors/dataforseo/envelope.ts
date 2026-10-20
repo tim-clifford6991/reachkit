@@ -49,7 +49,7 @@ import { isVendorFailure } from "@/lib/costs";
 import { VENDOR } from "@/lib/config/constants";
 import { measured, measuredZero, unmeasured, type Measured } from "@/lib/measure/measured";
 import type { Locale } from "@/lib/locale/locales";
-import { sendGet, sendRequest, type DataForSeoMode, type TransportFailure } from "./transport";
+import { sendGet, sendRequest, type DataForSeoMode, type SerpDepth, type TransportFailure } from "./transport";
 
 /** Task-level status codes the queue flow reads, vendor-documented. */
 const TASK_OK = 20000;
@@ -307,12 +307,14 @@ export async function callEndpoint(
   /** How long the queue's poll waits between asks (issue 1352) — the
    *  caller's, where somebody is waiting on it. Absent is
    *  `VENDOR.stdQueuePollIntervalS`. */
-  pollMs?: number
+  pollMs?: number,
+  /** How deep a SERP is read; absent is the transport's default. */
+  depth?: SerpDepth
 ): Promise<VendorOutcome> {
-  const abort = timeoutMs === undefined ? {} : { timeoutMs };
+  const extra = { ...(timeoutMs === undefined ? {} : { timeoutMs }), ...(depth === undefined ? {} : { depth }) };
   if (mode === "live") {
     if (!paths.live) return failure("no_surface", false, "dataforseo: endpoint has no live surface");
-    const out = await sendRequest<unknown>({ path: paths.live, mode, locale, fields, ...abort });
+    const out = await sendRequest<unknown>({ path: paths.live, mode, locale, fields, ...extra });
     if (!out.ok) return fromTransport(out);
     const answer = withCharge(firstResult(out.payload, false), out.payload);
     const taskId = asString(firstTask(out.payload)?.id);
@@ -327,7 +329,7 @@ export async function callEndpoint(
     return failure("deadline", false, "dataforseo: the caller's ceiling ran out before the task was posted");
   }
   const std = paths.std;
-  const posted = await sendRequest<unknown>({ path: std.taskPost, mode, locale, fields, ...abort });
+  const posted = await sendRequest<unknown>({ path: std.taskPost, mode, locale, fields, ...extra });
   if (!posted.ok) return fromTransport(posted);
   const task = firstTask(posted.payload);
   const id = task ? asString(task.id) : undefined;

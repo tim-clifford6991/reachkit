@@ -18,8 +18,8 @@ const MONDAY = new Date(Date.UTC(2026, 9, 5, 4, 0, 0));
 /** A SaaS site in a full week: every step ran. */
 const SAAS: DoneFacts = {
   checks: 19,
-  measured: { searches: 12, questions: 25, engines: ["ai_mode", "chatgpt"], runs: 2, at: MONDAY },
-  lastMeasured: { searches: 12, questions: 25, engines: ["ai_mode", "chatgpt"], runs: 2, at: MONDAY },
+  measured: { searches: 12, questions: 25, engines: ["ai_mode", "chatgpt"], at: MONDAY },
+  lastMeasured: { searches: 12, questions: 25, engines: ["ai_mode", "chatgpt"], at: MONDAY },
   rivals: 5,
   wrote: { pages: 5, fresh: 4, updated: 1, held: 0 },
   published: 4,
@@ -35,7 +35,7 @@ const SAAS: DoneFacts = {
  *  been written or published yet. */
 const CAFE: DoneFacts = {
   checks: 19,
-  measured: { searches: 7, questions: 0, engines: [], runs: 2, at: MONDAY },
+  measured: { searches: 7, questions: 0, engines: [], at: MONDAY },
   rivals: 3,
   wrote: { pages: 0, fresh: 0, updated: 0, held: null },
   published: 0,
@@ -55,7 +55,8 @@ describe("this week's lines state the stored figures", () => {
     const html = week(SAAS);
     expect(html).toContain("Measured 12 searches in Google and 25 AI questions");
     expect(html).toContain(`${COPY["ai-answers.engine.ai-mode"]} + ${COPY["ai-answers.engine.chatgpt"]}`);
-    expect(html).toContain("each asked 2 times");
+    // The line claims no run count: branded and unbranded prompts are asked a different number of times.
+    expect(html).not.toContain("each asked");
     // 04:00 UTC on a Monday is 06:00 in Berlin.
     expect(html).toContain("Mon 6:00 AM");
     expect(html).toContain("Pages written: 5 · 4 new, 1 updated · all passed 19 checks");

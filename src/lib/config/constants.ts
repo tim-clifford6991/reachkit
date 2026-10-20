@@ -828,16 +828,18 @@ export const RIVAL_PRESENCE = Object.freeze({ FIRST_PAGE_PLACES: 2, HOLDERS: 3 }
  * SPEC §6 (owner, D19 final, D32 and D33 of 2026-10-03, #1162) — the tracked
  * buyer prompts, which are the weekly AI measure.
  *
- * `SPLIT` is the set's shape, 25 in all. `ENGINES × RUNS` is how often each
- * prompt is asked in one weekly pass: at the measured 0.12¢ an ask that is
- * 0.48¢ a prompt and 12¢ a full set (`docs/walk/d19-cost.md`). At most
- * `ROTATION_SHARE` of the set is replaced in any `ROTATION_WEEKS`, and only
- * a prompt added that way is pre-checked (D33).
+ * `SPLIT` is the set's shape, 25 in all. Each engine asks an unbranded
+ * prompt `RUNS` times and a branded one `BRANDED_RUNS` times in one weekly
+ * pass (owner B2, 2026-10-19): 23 + 4 asks an engine, 54 at the measured
+ * 0.12¢ each, 6.48¢ a set. At most `ROTATION_SHARE` of the set is replaced
+ * in any `ROTATION_WEEKS`, and only a prompt added that way is pre-checked
+ * (D33).
  */
 export const TRACKED_PROMPTS = Object.freeze({
   SPLIT: Object.freeze({ category: 5, "use-case": 7, persona: 4, comparison: 4, problem: 3, branded: 2 }),
   ENGINES: 2,
-  RUNS: 2,
+  RUNS: 1,
+  BRANDED_RUNS: 2,
   ROTATION_SHARE: 0.2,
   ROTATION_WEEKS: 13,
 } as const);
@@ -872,6 +874,21 @@ export const TRACKED_PROMPTS = Object.freeze({
  */
 export const TRACKED_QUESTIONS_MAX = 24 as const;             // SPEC §6 2026-09-20
 export const PAGE_QUESTION_RETIRE_WEEKS = 8 as const;         // SPEC §6 2026-09-20
+
+/**
+ * How a page question's Google result is read (owner B2 and D2, 2026-10-19).
+ * A page is due on its first Monday and in its `DUE_WEEKS`; its result is
+ * read `DEPTH_MAX` deep until it is first seen, then `DEPTH_PAST` places past
+ * where it was last seen, never under `DEPTH_MIN`. `CLIMBING` is the band of
+ * places a slot is given to after the due pages.
+ */
+export const PAGE_QUESTION_READ = Object.freeze({
+  DUE_WEEKS: Object.freeze([0, 2, 4, 8] as const),
+  DEPTH_MAX: 100,
+  DEPTH_MIN: 20,
+  DEPTH_PAST: 10,
+  CLIMBING: Object.freeze({ from: 11, to: 30 }),
+} as const);
 
 
 /** `BUILD.md` §6.1's price-book row: "`PLATFORM_DOMAINS` | reddit, quora,

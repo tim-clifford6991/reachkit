@@ -17,7 +17,6 @@ const FIXTURE_PASS = Object.freeze({
   searches: 12,
   questions: 25,
   engines: Object.freeze(["ai_mode", "chatgpt"] as const),
-  runs: 2,
   at: new Date(Date.UTC(2026, 7, 31, 6, 0, 0)),
 });
 

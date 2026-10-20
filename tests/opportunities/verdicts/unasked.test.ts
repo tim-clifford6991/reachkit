@@ -29,6 +29,8 @@ function thirteenPagesTwelveAsked() {
       question: `How do I run onboarding step ${i + 1}?`,
       search: `onboarding step ${i + 1}`,
       position: null,
+      publishedAt: null,
+      linked: false,
     })),
     // Each answer read its sources, and cited a rival.
     serps: asked.map(() =>
