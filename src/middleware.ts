@@ -452,6 +452,22 @@ function isHostedEdgeHost(req: NextRequest): boolean {
   return !LOCAL_HOSTS.has(name);
 }
 
+function blogReadOf(req: NextRequest): ReturnType<typeof classifyBlogRead> {
+  return classifyBlogRead({
+    userAgent: req.headers.get("user-agent"),
+    referer: req.headers.get("referer"),
+    utmSource: req.nextUrl.searchParams.get("utm_source"),
+  });
+}
+
+/** A classified read that was not written. The reason and nothing else:
+ *  no header, address or path of the request reaches a log. */
+function blogReadSkipped(
+  reason: "unverified_crawler" | "ranges_unreadable" | "page_lookup_deadline"
+): void {
+  console.warn(JSON.stringify({ event: "blog_read_skipped", reason }));
+}
+
 /**
  * SPEC §6 (2026-09-20, #908) measure (d) · SPEC §7 of the same date, issue
  * #921 — count this read of this page, after the response has gone.
@@ -481,18 +497,18 @@ function countBlogRead(
   live: LiveAnswer,
   event: Pick<NextFetchEvent, "waitUntil"> | undefined
 ): void {
-  const read = classifyBlogRead({
-    userAgent: req.headers.get("user-agent"),
-    referer: req.headers.get("referer"),
-    utmSource: req.nextUrl.searchParams.get("utm_source"),
-  });
+  const read = blogReadOf(req);
   if (read === null) return;
 
   const ip = req.headers.get("x-real-ip") ?? req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null;
   const write = (async (): Promise<void> => {
     if (read.kind === "crawl") {
-      const { isVerifiedCrawler } = await import("@/lib/publish/reads/crawler");
-      if (!(await isVerifiedCrawler(read.engine, ip))) return;
+      const { crawlerVerdict } = await import("@/lib/publish/reads/crawler");
+      const verdict = await crawlerVerdict(read.engine, ip);
+      if (verdict !== "verified") {
+        blogReadSkipped(verdict);
+        return;
+      }
     }
     const { recordBlogRead } = await import("@/lib/publish/reads/store");
     const { now } = await import("@/lib/config/now");
@@ -563,6 +579,8 @@ async function hostedRewrite(
     );
   } catch {
     answer = "page";
+    // `hostedAnswer` answers its own failures, so what lands here is the deadline.
+    if (blogReadOf(req) !== null) blogReadSkipped("page_lookup_deadline");
   }
 
   const destination = req.nextUrl.clone();
