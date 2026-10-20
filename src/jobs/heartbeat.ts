@@ -86,30 +86,61 @@ export function scheduleOf(definitions: readonly JobDefinition[]): readonly Sche
 }
 
 /**
- * The scheduled jobs, other than `self`, whose last run is more than twice
- * their interval ago and whose silence has not been told about. A job with
- * no row has never run on this database and is not judged: there is no
- * last run to be late against (RUNBOOK §4 reads a missing row).
+ * The scheduled jobs whose last run is more than twice their interval ago.
+ * A job with no row has never run on this database and is not judged: there
+ * is no last run to be late against (RUNBOOK §4 reads a missing row).
  */
+export function overdueJobs(
+  schedule: readonly ScheduledJob[],
+  rows: readonly JobRunRow[],
+  now: Date
+): readonly StaleJob[] {
+  const byId = new Map(rows.map((row) => [row.jobId, row]));
+  const overdue: StaleJob[] = [];
+  for (const { jobId, intervalMinutes } of schedule) {
+    const row = byId.get(jobId);
+    if (row === undefined) continue;
+    const lastRun = Date.parse(row.lastRunAt);
+    if (Number.isNaN(lastRun)) continue;
+    if (now.getTime() - lastRun <= 2 * intervalMinutes * 60_000) continue;
+    overdue.push({ row, intervalMinutes });
+  }
+  return overdue;
+}
+
+/** The overdue jobs, other than `self`, whose silence has not been told about. */
 export function staleJobs(
   schedule: readonly ScheduledJob[],
   rows: readonly JobRunRow[],
   now: Date,
   self: JobId
 ): readonly StaleJob[] {
-  const byId = new Map(rows.map((row) => [row.jobId, row]));
-  const stale: StaleJob[] = [];
-  for (const { jobId, intervalMinutes } of schedule) {
-    if (jobId === self) continue;
-    const row = byId.get(jobId);
-    if (row === undefined) continue;
-    const lastRun = Date.parse(row.lastRunAt);
-    if (Number.isNaN(lastRun)) continue;
-    if (now.getTime() - lastRun <= 2 * intervalMinutes * 60_000) continue;
-    if (row.staleAlertedAt !== null && Date.parse(row.staleAlertedAt) >= lastRun) continue;
-    stale.push({ row, intervalMinutes });
+  return overdueJobs(schedule, rows, now).filter(
+    ({ row }) =>
+      row.jobId !== self &&
+      (row.staleAlertedAt === null || !(Date.parse(row.staleAlertedAt) >= Date.parse(row.lastRunAt)))
+  );
+}
+
+export type JobsHealth =
+  | { readonly ok: true }
+  | { readonly ok: false; readonly stale: readonly string[] }
+  | { readonly ok: false; readonly reason: "no-runs" | "read-failed" };
+
+/** What the outside monitor reads: the one check that still sees every job
+ *  stopping, because it runs on a request rather than on a job. Reads only;
+ *  an alert already mailed does not hide a job here. */
+export async function jobsHealth(definitions: readonly JobDefinition[], now: Date): Promise<JobsHealth> {
+  const schedule = scheduleOf(definitions);
+  let rows: readonly JobRunRow[];
+  try {
+    rows = await (installed?.store ?? databaseHeartbeatStore()).readAll();
+  } catch {
+    return { ok: false, reason: "read-failed" };
   }
-  return stale;
+  if (!schedule.some(({ jobId }) => rows.some((row) => row.jobId === jobId))) return { ok: false, reason: "no-runs" };
+  const overdue = overdueJobs(schedule, rows, now);
+  return overdue.length === 0 ? { ok: true } : { ok: false, stale: overdue.map(({ row }) => row.jobId) };
 }
 
 let installed: { store: HeartbeatStore; schedule: readonly ScheduledJob[] } | null = null;

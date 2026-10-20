@@ -131,6 +131,7 @@ describe(
         "/api/scan/:scanId/progress": "/api/scan/abc123/progress",
         "/api/report/:domain/correct": "/api/report/example.com/correct",
         "/api/lead": "/api/lead",
+        "/api/health": "/api/health",
         "/opt-out/:token": "/opt-out/abc123",
         // Issue 889 — RFC 8058's one-click endpoint, over the same token.
         // Reachable with no session because the request is a mail client's,
@@ -293,6 +294,11 @@ describe(
   () => {
     it("/api/stripe/webhook is reachable without a session", async () => {
       expect(await isDenied("/api/stripe/webhook")).toBe(false);
+    });
+
+    it("/api/health is reachable without a session, and only that exact path", async () => {
+      expect(await isDenied("/api/health")).toBe(false);
+      expect(await isDenied("/api/health/extra")).toBe(true);
     });
 
     it.each(["/api/jobs", "/api/jobs/inngest", "/api/jobs/some/nested/slug"])(

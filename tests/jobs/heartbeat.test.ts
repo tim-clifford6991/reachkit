@@ -204,3 +204,20 @@ describe("#799 — a scheduled job quiet for twice its interval is told to the o
     expect(heartbeat.cronIntervalMinutes("0 6 1 * *")).toBeNull();
   });
 });
+
+describe("one 2×-interval rule, read by the mail and by /api/health", () => {
+  it("overdueJobs names a job past twice its interval whether or not it was told, and judges no missing row", async () => {
+    const { heartbeat } = await load();
+    const schedule = [
+      { jobId: "account/maintenance" as const, intervalMinutes: 15 },
+      { jobId: "draft/generate" as const, intervalMinutes: 60 },
+      { jobId: "publish/retry" as const, intervalMinutes: 60 },
+    ];
+    const rows: JobRunRow[] = [
+      { jobId: "account/maintenance", lastRunAt: "2026-09-16T11:29:00.000Z", staleAlertedAt: "2026-09-16T11:45:00.000Z" },
+      { jobId: "draft/generate", lastRunAt: "2026-09-16T10:00:00.000Z", staleAlertedAt: null },
+    ];
+    expect(heartbeat.overdueJobs(schedule, rows, NOON).map(({ row }) => row.jobId)).toEqual(["account/maintenance"]);
+    expect(heartbeat.staleJobs(schedule, rows, NOON, "publish/retry")).toEqual([]);
+  });
+});

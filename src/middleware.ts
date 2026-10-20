@@ -208,6 +208,8 @@ export const PUBLIC_PATHS: readonly string[] = [
   "/api/scan/:scanId/progress",
   "/api/report/:domain/correct",
   "/api/lead",
+  // The outside uptime monitor has no session; the route reads job_runs only.
+  "/api/health",
   "/opt-out/:token",
   // Issue 889: RFC 8058's one-click unsubscribe endpoint, over the same
   // token as the page above it. Public by necessity and for the same
