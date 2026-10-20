@@ -98,6 +98,7 @@ jobs:
       # so a plugin upgrade starts cold. The runner is pinned to two CPUs,
       # where vitest's default is one worker; peak memory must stay under
       # 5 GB on the 7.6 GB box, or this falls back to `--pool=threads`.
+      # Two workers push the whole-tree scans past vitest's 5 s default.
       - uses: actions/cache@v4
         with:
           path: |
@@ -107,7 +108,7 @@ jobs:
           restore-keys: check-${{ runner.os }}-${{ hashFiles('package-lock.json') }}-
       - run: npm run typecheck
       - run: npm run lint -- --cache --cache-strategy content
-      - run: npx vitest run --project node --project ui --maxWorkers=2
+      - run: npx vitest run --project node --project ui --maxWorkers=2 --testTimeout=20000
 
   no-overflow:
     name: no overflow · axe (390 / 768 / 1280, light and dark)
