@@ -148,7 +148,6 @@ const SCREEN_KEYS: readonly CopyKey[] = [
   "price.amount",
   "price.interval",
   "offer.cadence.page",
-  "offer.cadence.page.value",
   "offer.cadence.measure",
   "offer.cadence.measure.value",
   "offer.cadence.movement",

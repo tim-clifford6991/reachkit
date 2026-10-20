@@ -38,6 +38,7 @@
 // document, so it has no `<head>` to fill. The 404 and error pages take no row either — they are not routes,
 // they have no address of their own, and Next reads no `metadata` export
 // from `not-found.tsx` or `error.tsx`.
+import { WEEK_PLAN } from "@/lib/config/constants";
 import type { CopyKey } from "@/lib/presentation/copy";
 import { ANSWERS, COMPARISONS, TEARDOWNS } from "../_library";
 
@@ -49,6 +50,8 @@ export interface PublicRouteSeo {
   /** Named in the app host's sitemap, and free of a `noindex` directive.
    *  The two move together; see this file's header. */
   readonly indexable: boolean;
+  /** The slots a static row's sentences declare, filled from the constants. */
+  readonly vars?: Readonly<Record<string, string>>;
   /** Every address an indexable `{param}` route serves, for the sitemap
    *  (issue 1458). A pattern is not an address; this list is. */
   readonly addresses?: () => readonly string[];
@@ -60,12 +63,14 @@ export const PUBLIC_ROUTE_SEO = Object.freeze({
     title: "meta.landing.title",
     description: "meta.landing.description",
     indexable: true,
+    vars: { weekPages: String(WEEK_PLAN.days) },
   },
   pricing: {
     route: "/pricing",
     title: "meta.pricing.title",
     description: "meta.pricing.description",
     indexable: true,
+    vars: { weekPages: String(WEEK_PLAN.days) },
   },
   // SPEC §2 2026-09-24 (#1058): the gallery is indexed — canonical and a
   // sitemap entry for `/scans` itself — while every report it links to

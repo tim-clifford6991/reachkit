@@ -11,7 +11,7 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import React from "react";
-import { BATTERY, CONTENT_MIX, RATE_LIMITS, TRACKED_PROMPTS, WEEK_PLAN } from "@/lib/config/constants";
+import { BATTERY, CONTENT_MIX, HOSTED_RETENTION_DAYS, RATE_LIMITS, TRACKED_PROMPTS, WEEK_PLAN } from "@/lib/config/constants";
 import { COPY, copy, type CopyKey } from "@/lib/presentation/copy";
 import { FLOAT } from "@/ui/lift";
 import LandingPage from "@/app/(public)/page";
@@ -126,6 +126,11 @@ describe("plain links into How it works", () => {
     const answer = between(drawn(copy("landing.faq.results.q")), "</details>");
     expect(hrefsIn(answer)).toEqual(["/how-it-works#found"]);
     expect(answer).toContain(drawn(copy("landing.faq.results.a")));
+  });
+
+  it("What if I want to stop? says how long hosted pages stay live, from the pin", () => {
+    const answer = between(drawn(copy("landing.faq.stop.q")), "</details>");
+    expect(answer).toContain(`stay live for ${HOSTED_RETENTION_DAYS} days after your access ends`);
   });
 
   it("each link is plain text, never a button", () => {

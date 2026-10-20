@@ -51,9 +51,9 @@ export const META_COPY = Object.freeze({
   /** Spent twice: the landing's `<meta name="description">` and the web
    *  manifest's `description`, which describe the same product to two
    *  readers. Read from one key rather than written twice (rule 2.4). */
-  "meta.landing.description": ["Free scan, no account: see where Google and AI send buyers to your competitors, then let ReachKit publish a page every day, new or updated, to close the gap.", { slots: {}, fixedBy: "issue 326" }],
+  "meta.landing.description": ["Free scan, no account: see where Google and AI send buyers to your competitors, then let ReachKit publish up to {weekPages} pages a week, new or updated, to close the gap.", { slots: { weekPages: "text" }, fixedBy: "issue 326 · owner A1 2026-10-19" }],
   "meta.pricing.title": ["Pricing · €49 a month · ReachKit", { slots: {}, fixedBy: "issue 326" }],
-  "meta.pricing.description": ["One plan at €49 a month, VAT included: a page every day for your site, new or updated, a weekly scan of your market, and time to stop any page before it goes live.", { slots: {}, fixedBy: "issue 326" }],
+  "meta.pricing.description": ["One plan at €49 a month, VAT included: up to {weekPages} pages a week for your site, new or updated, a weekly scan of your market, and time to stop any page before it goes live.", { slots: { weekPages: "text" }, fixedBy: "issue 326 · owner A1 2026-10-19" }],
 
   /* ── The three legal pages ────────────────────────────────────────────
      Their on-screen headings are `legal.*.title` and are approved as

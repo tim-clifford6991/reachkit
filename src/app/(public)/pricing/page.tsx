@@ -35,6 +35,7 @@
 import React, { use } from "react";
 import type { Metadata } from "next";
 import { Surface } from "@/ui/layout";
+import { WEEK_PLAN } from "@/lib/config/constants";
 import { copy } from "@/lib/presentation/copy";
 import { PricingCard } from "../scan/[domain]/_modules/pricing";
 import { PUBLIC_ROUTE_SEO } from "../_seo/routes";
@@ -100,8 +101,8 @@ export default function PricingPage(props: {
               `eyebrow-rung.test.ts` could not find an eyebrow on at all
               (#976). */}
           <p className="eyebrow">{copy("chrome.nav.pricing")}</p>
-          <h1 className="text-3xl font-semibold">{copy("pricing.heading")}</h1>
-          <p className="text-base-content/70">{copy("pricing.subline")}</p>
+          <h1 className="text-3xl font-semibold">{copy("pricing.heading", { weekPages: WEEK_PLAN.days })}</h1>
+          <p className="text-base-content/70">{copy("pricing.subline", { weekPages: WEEK_PLAN.days })}</p>
         </div>
 
         {/* REQ-021 c4's "exactly one offer": one card, and it is the

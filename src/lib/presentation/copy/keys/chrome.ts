@@ -92,8 +92,8 @@ export const CHROME_COPY = Object.freeze({
   // words, from the key that owns them — so only three strings are new
   // here: the heading and the subline the set brackets, and the footnote it
   // spells out.
-  "pricing.heading": ["One plan. A page every day.", { slots: {}, fixedBy: "REQ-021 c4" }],
-  "pricing.subline": ["€49 a month, VAT included. A page for your site every day, new or updated, and your market scanned every week. Cancel any time.", { slots: {}, fixedBy: "REQ-021 c4" }],
+  "pricing.heading": ["Up to {weekPages} pages a week.", { slots: { weekPages: "text" }, fixedBy: "REQ-021 c4 · owner A1 2026-10-19" }],
+  "pricing.subline": ["€49 a month, VAT included. Up to {weekPages} pages a week for your site, new or updated, and your market scanned every week. Cancel any time.", { slots: { weekPages: "text" }, fixedBy: "REQ-021 c4 · owner A1 2026-10-19" }],
   /** REQ-020 c1's promise, in the set's own words: nothing is asked for
    *  before payment, and the site comes after. */
   "pricing.footnote": [

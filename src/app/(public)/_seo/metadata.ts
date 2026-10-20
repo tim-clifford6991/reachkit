@@ -121,5 +121,5 @@ export function publicMetadata(a: {
  * one route's row at another route's path.
  */
 export function staticMetadata(seo: PublicRouteSeo): Metadata {
-  return publicMetadata({ seo, path: seo.route });
+  return publicMetadata({ seo, path: seo.route, vars: seo.vars });
 }
