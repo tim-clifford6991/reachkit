@@ -104,56 +104,27 @@ export const SIGNIN_COPY = Object.freeze({
   "signin.expired.head": ["This link no longer works", { slots: {}, fixedBy: "REQ-098 c7" }],
   "signin.expired.submit": ["Send a new link", { slots: {}, fixedBy: "REQ-098 c7" }],
 
-  // ── The accent panel beside the form (issue #266) ────────────────────
-  //
-  // The card idiom's sign-in screen is two panels: the one action on the
-  // left, and on the right an accent ground carrying a glass card with a
-  // score. Every sentence below is **owner-supplied and transcribed** from
-  // the page the owner endorsed by pointing at it ("this has always looked
-  // clean → https://reachkit.app/login") — the same footing REQ-098 c2's
-  // six already stand on, and the archive's `idiom/copy.ts` records them
-  // under the same rule. Not paraphrased, not improved.
-  "signin.panel.heading": [
-    "How easily buyers find you",
-    { slots: {}, fixedBy: "owner-supplied, 2026-09-02" },
-  ],
-  "signin.panel.score-label": [
-    "Visibility Score",
-    { slots: {}, fixedBy: "owner-supplied, 2026-09-02" },
-  ],
-  "signin.panel.line": [
-    "Hard to find, and we'll show you the fixes that move it.",
-    { slots: {}, fixedBy: "owner-supplied, 2026-09-02" },
-  ],
-  /** The caption under the specimen tile (#937). Ruling 5c of 2026-09-08
-   *  removed the "example" line from the *hero* component, on the footing
-   *  that the approved set draws none there. This panel is not that
-   *  component: #937 asks for these figures to be "captioned as an
-   *  example", and the 2026-09-20 board draws the caption. The domain is a
-   *  slot so the sentence and the figures cannot come to name two
-   *  different sites. Drafted (#759). */
-  "signin.panel.example": [
-    "An example on {domain}. It measures no site.",
-    { slots: { domain: "text" }, fixedBy: "issue 937" },
-  ],
-  /** Beside the specimen tile's dot grid (#1025): what the sixteen dots
-   *  are, and which one is the reader's. Drafted on the Round 7 board
-   *  `R7-S1`; transcribed from it, for the owner to confirm. */
-  "signin.panel.answers": [
-    "Who AI answers mention for your buyers’ searches. The violet dot is you.",
-    { slots: {}, fixedBy: "issue 1025" },
-  ],
+  // ── The preview beside the form: what is waiting inside, on an example
+  // business (owner, E6, #1581). Drafted (#759).
+  "signin.preview.eyebrow": ["Waiting inside", { slots: {}, fixedBy: "issue 1601 · drafted" }],
+  "signin.preview.running": ["Running by itself", { slots: {}, fixedBy: "issue 1601 · drafted" }],
+  "signin.preview.week": ["Week {week}", { slots: { week: "text" }, fixedBy: "issue 1601 · drafted" }],
+  "signin.preview.google": ["Found by Google", { slots: {}, fixedBy: "issue 1601 · drafted" }],
+  "signin.preview.google.of": ["of {live} live pages", { slots: { live: "text" }, fixedBy: "issue 1601 · drafted" }],
+  "signin.preview.showing": ["Showing", { slots: {}, fixedBy: "issue 1601 · drafted" }],
+  "signin.preview.showing.of": ["in Google’s top 100", { slots: {}, fixedBy: "issue 1601 · drafted" }],
+  "signin.preview.ai": ["Linked by AI", { slots: {}, fixedBy: "issue 1601 · drafted" }],
+  "signin.preview.ai.of": ["of {asked} pages asked", { slots: { asked: "text" }, fixedBy: "issue 1601 · drafted" }],
+  "signin.preview.days.title": ["This week’s pages", { slots: {}, fixedBy: "issue 1601 · drafted" }],
+  "signin.preview.days.pace": ["up to {pages}, new or updated", { slots: { pages: "text" }, fixedBy: "issue 1601 · drafted" }],
+  "signin.preview.calm.head": ["Nothing needs you.", { slots: {}, fixedBy: "issue 1601 · drafted" }],
+  "signin.preview.calm.line": ["You can edit or stop any page before it goes live.", { slots: {}, fixedBy: "issue 1601 · drafted" }],
+  "signin.preview.example": ["Example business. It measures no site.", { slots: {}, fixedBy: "issue 1601 · drafted" }],
   /** Under the sent alert (#937): what the link is good for, before a
    *  reader goes looking in a spam folder. Drafted (#759). */
   "signin.sent.terms": [
     "It works for 24 hours, and a newer link replaces an older one. Check your spam folder if it isn’t there in a minute.",
     { slots: {}, fixedBy: "issue 937" },
   ],
-
-  // The glass card's pill, drawn on the specimen (ruling 5c). Approved as
-  // written: it is one of the figures REQ-098 c4 quotes verbatim, and 5c
-  // settles what it is a figure *of* — the reserved domain's example, not a
-  // stranger's measurement.
-  "signin.panel.delta": ["+6 pts est.", { slots: {}, fixedBy: "REQ-098 c4" }],
 
 }) satisfies CopyPartition;

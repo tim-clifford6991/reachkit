@@ -41,42 +41,29 @@ import { copy, type CopyKey } from "@/lib/presentation/copy";
    drawing is how a rejected drawing gets drawn again. The ruling's figures
    are `SPECIMEN_HERO` at the foot of this file; git holds the others. */
 
-/**
- * The sign-in panel's own specimen (#937).
- *
- * It lives here, with the landing's, because this module is the product's
- * one home for a drawn figure that measures nothing — and the sign-in
- * screen was carrying its own three literals in the route file, which is
- * two places for "the number the product shows a stranger" to be edited
- * and to drift.
- *
- * **These are not the hero's figures, and must not be.** The owner's
- * ruling 5c of 2026-09-08 fixes the sign-in card at 47/100 with `+6 pts
- * est.`, and the hero at its own; two approved drawings, two sets of
- * figures, one module that holds both. That the two scores now agree at 47
- * is the Round 11 board's doing and not a shared value: neither reads the
- * other, and correcting one must not move the other. The delta is a copy key
- * (`signin.panel.delta`) rather than a number here, because the owner
- * wrote it with its unit and its hedge in one string.
- *
- * The domain is the IANA-reserved name, never a stranger's real one.
- */
+/** The sign-in preview's example business: what a customer finds inside,
+ *  drawn on a reserved domain so no stranger's site is ever shown. */
 export const SPECIMEN_SIGNIN = Object.freeze({
-  domain: "example.com",
-  score: 47,
-  /** The score is out of one hundred. */
-  max: 100,
-  /** The tile's second row (#1025, Round 7 `R7-S1`): four questions by
-   *  four answers, read row by row — who each AI answer names. `you` is
-   *  the example site, `named` is a rival the answer names, `unnamed` is
-   *  an answer that names nobody here. The board's own sixteen cells. */
-  answers: Object.freeze([
-    "unnamed", "named", "named", "unnamed",
-    "unnamed", "named", "named", "named",
-    "you", "named", "unnamed", "unnamed",
-    "unnamed", "named", "unnamed", "named",
-  ] as const),
+  business: "Harbor Plumbing",
+  address: "help.harborplumbing.example",
+  week: 3,
+  found: 11,
+  live: 12,
+  showing: 5,
+  linked: 2,
+  asked: 12,
+  liveAt: "4:00 PM",
 });
+
+/** A fixed Monday, so the preview's weekday names never move. */
+const SIGNIN_WEEK_MONDAY = Date.UTC(2026, 9, 19);
+
+/** The seven weekday names of the preview's week, Monday first. */
+export function specimenSigninWeek(): readonly string[] {
+  return Array.from({ length: 7 }, (_, day) =>
+    new Date(SIGNIN_WEEK_MONDAY + day * 86_400_000).toLocaleDateString("en-US", { weekday: "short", timeZone: "UTC" })
+  );
+}
 
 /** The seven days of the specimen week.
  *
