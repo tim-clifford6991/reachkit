@@ -72,7 +72,7 @@ import { builtFromOutside, packStatements, type ContextPack, type PackClaim } fr
 import { fixNotes, repairable, repairMechanical, type FixNote, type RepairRecord } from "./repair";
 import { completeTables, withSources } from "./sources";
 import { comparisonTable, withTable } from "./table";
-import { titleRuleFor } from "./title";
+import { titleRuleFor, unclaimedSuperlatives } from "./title";
 import { fixPage, writePage, type PageParts } from "./write";
 
 /** The stages a page can stop at without a rule failing. */
@@ -293,6 +293,7 @@ export async function generateDraft(c: CostContext, a: GenerateInputs): Promise<
     promises: pack.profile?.promises ?? [],
     queries: searches,
     names: [...names, ...pack.products.map((product) => product.domain.split(".")[0] ?? "")],
+    unclaimed: unclaimedSuperlatives(pack),
     // D51: an update keeps its live title.
     ...(pack.type === "update" && pack.live !== null
       ? { live: { title: pack.live.title, markdown: pack.live.markdown, year: new Date(pack.builtAt).getUTCFullYear() } }

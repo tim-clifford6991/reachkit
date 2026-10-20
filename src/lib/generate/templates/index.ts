@@ -1,4 +1,4 @@
-// SPEC §7 (D42) — the seven templates, by type. Total over the type, so a
+// SPEC §7 (D42) — the templates, by type. Total over the type, so a
 // new type is a compile error here.
 import type { ContentType } from "@/lib/opportunities/content-type";
 import type { Language } from "@/lib/locale/locales";
@@ -7,6 +7,7 @@ import { documentation } from "./documentation";
 import { howTo } from "./how-to";
 import { insights } from "./insights";
 import { listicle } from "./listicle";
+import { offering } from "./offering";
 import { qa } from "./qa";
 import { research } from "./research";
 import type { Template, TemplateWords } from "./types";
@@ -22,6 +23,7 @@ export const TEMPLATES: Readonly<Record<ContentType, Template>> = Object.freeze(
   qa,
   insights,
   update,
+  offering,
 });
 
 /** Each language's own template words. English has none: the templates are

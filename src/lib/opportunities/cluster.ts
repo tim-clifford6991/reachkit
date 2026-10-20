@@ -32,17 +32,18 @@ export function queryKey(query: string): string {
 }
 
 /** The same top tens with each result's domain, address and title (issue
- *  1506): what tells the kind of business a search is answered by. */
+ *  1506), and whether it showed a local pack: what tells the kind of
+ *  business a search is answered by. */
 export function topTenRowsOf(
   report: Pick<StoredReport, "questions" | "serps">
-): Map<string, { domain: string; url: string; title: string }[]> {
-  const topTens = new Map<string, { domain: string; url: string; title: string }[]>();
+): Map<string, { rows: { domain: string; url: string; title: string }[]; localPack: boolean }> {
+  const topTens = new Map<string, { rows: { domain: string; url: string; title: string }[]; localPack: boolean }>();
   if (report.questions?.kind !== "measured") return topTens;
   report.questions.value.forEach((question, index) => {
     const serp = report.serps?.[index];
     if (serp === undefined || serp.kind !== "measured") return;
     const rows = serp.value.organic.slice(0, 10).map(({ domain, url, title }) => ({ domain, url, title }));
-    if (rows.length > 0) topTens.set(queryKey(question.search.keyword), rows);
+    if (rows.length > 0) topTens.set(queryKey(question.search.keyword), { rows, localPack: (serp.value.localPack ?? []).length > 0 });
   });
   return topTens;
 }
