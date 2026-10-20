@@ -25,6 +25,8 @@ import { EXAMPLES, LIVE_AT, REASON_COPY, weekDays, type Example } from "./specim
 const ICON = { size: 16, strokeWidth: 1.75, "aria-hidden": true } as const;
 const CARD = "card card-border bg-base-100 min-w-0";
 const SMALL = "text-base-content/70 text-xs";
+// A step's text column is min-content wide, so an unbroken domain would push past its item on a phone.
+const STEP_TEXT = "flex min-w-0 flex-col items-start text-start wrap-anywhere";
 const LABEL = "text-primary text-xs font-semibold";
 const WELL = "rounded-box bg-base-200 flex min-w-0 flex-col gap-1 p-3";
 
@@ -440,13 +442,13 @@ export function YourPart(e: Example): React.JSX.Element {
         </p>
         <ol className="steps steps-vertical min-w-0">
           <li className="step step-primary">
-            <span className="flex min-w-0 flex-col items-start text-start">
+            <span className={STEP_TEXT}>
               <span className="font-semibold">{copy("how.part.one")}</span>
               <span className="num text-base-content/70 text-xs">{`${e.site} · ${e.area}`}</span>
             </span>
           </li>
           <li className="step step-primary">
-            <span className="flex min-w-0 flex-col items-start text-start">
+            <span className={STEP_TEXT}>
               <span className="flex flex-wrap items-center gap-1 font-semibold">
                 {copy("how.part.two")}
                 <span className="badge badge-ghost badge-sm">{copy("how.part.optional")}</span>
@@ -455,7 +457,7 @@ export function YourPart(e: Example): React.JSX.Element {
             </span>
           </li>
           <li className="step step-primary">
-            <span className="flex min-w-0 flex-col items-start text-start">
+            <span className={STEP_TEXT}>
               <span className="font-semibold">{copy("how.part.three")}</span>
               <span className={SMALL}>{copy("how.part.three.line")}</span>
             </span>
@@ -498,7 +500,7 @@ export function ReportGlance(e: Example): React.JSX.Element {
           <div className="stat px-0">
             <div className="stat-value text-3xl">{copy("how.start.score", { score: e.report.score, max: 100 })}</div>
             <div className="stat-title text-base-content font-semibold">{copy("band.score.hard-to-find")}</div>
-            <div className="stat-desc whitespace-normal">{copy("how.start.score.name")}</div>
+            <div className="stat-desc text-base-content/70 whitespace-normal">{copy("how.start.score.name")}</div>
           </div>
           <div className="stat px-0">
             <div className="stat-desc text-base-content text-sm whitespace-normal">
