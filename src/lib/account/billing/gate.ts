@@ -38,3 +38,12 @@ export async function hasActiveAccess(siteId: string): Promise<boolean> {
   if (!read.ok || read.paidThrough === null) return false;
   return read.paidThrough.getTime() > Date.now();
 }
+
+/** How many sites had active access at `at`, by the same comparison. Throws
+ *  where the store cannot answer: the spend ceiling's reader falls back to
+ *  its smallest day, and a count of 0 would be a guess. */
+export async function payingSitesAt(at: Date): Promise<number> {
+  const read = await billingStore().payingSiteCount(at);
+  if (!read.ok) throw new Error("paying sites unreadable");
+  return read.count;
+}

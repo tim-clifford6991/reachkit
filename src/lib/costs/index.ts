@@ -324,7 +324,7 @@ export async function withCostContext<T>(
       // up to, and the crossing it makes is the one the alert reports.
       await day.refresh(now());
       if (day.ceilingReached(inFlightReserved)) {
-        return refuse("daily_ceiling", call.source, CAPS.DAILY_PRODUCT_C);
+        return refuse("daily_ceiling", call.source, day.ceilingCents());
       }
 
       // Then this site's own share of the day (issue 885), read the same

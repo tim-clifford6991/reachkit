@@ -5,7 +5,7 @@
 // The four caps in `CAPS` each bound *one* pass. Nothing bounded their
 // sum, so the product's exposure for a day was whatever the day's traffic
 // multiplied them by — the free path alone can bring 200 scans (BUILD §11)
-// and a runaway anywhere else adds to that unopposed. `CAPS.DAILY_PRODUCT_C`
+// and a runaway anywhere else adds to that unopposed. `DAILY_PRODUCT_CEILING`
 // is the missing figure and this module is the whole of its machinery
 // (issue #329):
 //
@@ -20,7 +20,7 @@
 //    `numeric(12,4)` and `fetches_spend_since()` sums into `numeric`
 //    (issue #449), so a day of 0.06¢ SERPs totals 0.06¢ × n rather than
 //    the 0¢ an `integer` column recorded for every one of them. The unit
-//    is the one `CAPS.DAILY_PRODUCT_C` is written in, so the comparison
+//    is the one `DAILY_PRODUCT_CEILING` is written in, so the comparison
 //    below needs no conversion. Until #449 this paragraph said the
 //    opposite — the stored total was a floor, and the guard erred toward
 //    spending slightly over the ceiling; that was the ledger's own defect,
@@ -42,7 +42,7 @@
 // scan that fails because an alert could not go out.
 //
 // **The per-site ceiling (issue 885) is the same machinery, one predicate
-// narrower.** `CAPS.DAILY_PRODUCT_C` is one figure for everyone and so
+// narrower.** The product's ceiling is shared by everyone and so
 // does not care whose spend reached it: one site in a retry loop could
 // consume the day and every other customer was refused until midnight
 // UTC, silently. `CAPS.DAILY_SITE_C` is read off the same `fetches` rows
@@ -53,7 +53,7 @@
 // What the two protect is not the same thing and they are not
 // interchangeable: the product's ceiling is the company's exposure for a
 // day, and the site's is one customer's share of it.
-import { CAPS, SPEND_ALERT_AT } from "@/lib/config/constants";
+import { CAPS, DAILY_PRODUCT_CEILING, SPEND_ALERT_AT } from "@/lib/config/constants";
 import { dbAdmin } from "@/lib/db";
 
 /** Which of the two crossings happened. `warn` is `SPEND_ALERT_AT.warn` of
@@ -105,13 +105,92 @@ export function registerSpendAlertSink(next: SpendAlertSink | null): void {
   slot[SINK] = next;
 }
 
-/** The two figures in cents, derived from the one pinned ceiling so the
+/** The two figures in cents, derived from the day's ceiling so the
  *  warning can never drift away from what it warns about. */
-export function alertThresholdsCents(): { readonly warn: number; readonly ceiling: number } {
+export function alertThresholdsCents(
+  ceilingCents: number
+): { readonly warn: number; readonly ceiling: number } {
   return {
-    warn: CAPS.DAILY_PRODUCT_C * SPEND_ALERT_AT.warn,
-    ceiling: CAPS.DAILY_PRODUCT_C * SPEND_ALERT_AT.ceiling,
+    warn: ceilingCents * SPEND_ALERT_AT.warn,
+    ceiling: ceilingCents * SPEND_ALERT_AT.ceiling,
   };
+}
+
+/** The day's ceiling for this many paying sites. */
+export function dayCeilingCents(payingSites: number): number {
+  return DAILY_PRODUCT_CEILING.baseC + DAILY_PRODUCT_CEILING.perPayingSiteC * payingSites;
+}
+
+/** How many sites had active access at `at`. Billing registers it at boot:
+ *  this module sits below billing and cannot ask it directly. */
+export type PayingSiteCounter = (at: Date) => Promise<number>;
+
+/** On `globalThis` for the reason the alert sink is: one process, one slot,
+ *  whichever bundle registered it. The day's count is cached beside it. */
+const CEILING = Symbol.for("reachkit.costs.dayCeiling");
+const ceilingSlot = globalThis as {
+  [CEILING]?: {
+    counter: PayingSiteCounter | null;
+    cached: { day: number; cents: Promise<number | null> } | null;
+  };
+};
+
+function ceilingState() {
+  return (ceilingSlot[CEILING] ??= { counter: null, cached: null });
+}
+
+export function registerPayingSiteCounter(next: PayingSiteCounter | null): void {
+  ceilingSlot[CEILING] = { counter: next, cached: null };
+}
+
+async function countDayCeiling(dayStart: Date): Promise<number | null> {
+  const counter = ceilingState().counter;
+  // A process without billing has no paying sites to count: the base day, decided rather than failed.
+  if (counter === null) {
+    const ceilingCents: number = DAILY_PRODUCT_CEILING.baseC;
+    console.info(
+      JSON.stringify({ event: "daily_ceiling", day: dayStart.toISOString(), payingSites: null, ceilingCents })
+    );
+    return ceilingCents;
+  }
+  try {
+    const payingSites = await counter(dayStart);
+    if (!Number.isInteger(payingSites) || payingSites < 0) {
+      throw new Error(`paying-site count was ${String(payingSites)}`);
+    }
+    const ceilingCents = dayCeilingCents(payingSites);
+    console.info(
+      JSON.stringify({ event: "daily_ceiling", day: dayStart.toISOString(), payingSites, ceilingCents })
+    );
+    return ceilingCents;
+  } catch (error) {
+    console.warn(
+      JSON.stringify({
+        event: "daily_ceiling_unreadable",
+        reason: String(error),
+        ceilingCents: DAILY_PRODUCT_CEILING.baseC,
+      })
+    );
+    return null;
+  }
+}
+
+/**
+ * The product's ceiling for the UTC day `now` falls in, in cents: read once
+ * a day and cached. A count that cannot be read is the base figure — a
+ * smaller day, never an unlimited one — and is asked again on the next call.
+ */
+export async function readDayCeilingCents(now: Date): Promise<number> {
+  const state = ceilingState();
+  const dayStart = dayStartedAt(now);
+  if (state.cached?.day !== dayStart.getTime()) {
+    state.cached = { day: dayStart.getTime(), cents: countDayCeiling(dayStart) };
+  }
+  const entry = state.cached;
+  const cents = await entry.cents;
+  if (cents !== null) return cents;
+  if (state.cached === entry) state.cached = null;
+  return DAILY_PRODUCT_CEILING.baseC;
 }
 
 /** Midnight UTC of the day `now` falls in — the instant the day's ledger
@@ -133,8 +212,8 @@ export function secondsUntilDayRollsOver(now: Date): number {
 /** Whether a day's ledger standing at `spentCents` has reached the
  *  ceiling. `>=`, so the ceiling is a figure the product spends *up to*,
  *  never through. */
-export function ceilingReached(spentCents: number): boolean {
-  return spentCents >= alertThresholdsCents().ceiling;
+export function ceilingReached(spentCents: number, ceilingCents: number): boolean {
+  return spentCents >= alertThresholdsCents(ceilingCents).ceiling;
 }
 
 /**
@@ -146,8 +225,12 @@ export function ceilingReached(spentCents: number): boolean {
  * pass both lines at once reports the ceiling — the more serious of the
  * two, and the one that changes what the product does.
  */
-export function crossingOf(beforeCents: number, afterCents: number): SpendCrossing | null {
-  const { warn, ceiling } = alertThresholdsCents();
+export function crossingOf(
+  beforeCents: number,
+  afterCents: number,
+  ceilingCents: number
+): SpendCrossing | null {
+  const { warn, ceiling } = alertThresholdsCents(ceilingCents);
   if (beforeCents < ceiling && afterCents >= ceiling) return "ceiling";
   if (beforeCents < warn && afterCents >= warn) return "warn";
   return null;
@@ -230,6 +313,8 @@ export interface DayLedger {
   spentCents(): number;
   /** Reads the day's total again, for the day `at` falls in. */
   refresh(at: Date): Promise<void>;
+  /** The day's ceiling, in cents, as this pass last read it. */
+  ceilingCents(): number;
   /** Whether the day's ceiling is reached, counting `pendingCents` this
    *  pass has reserved and not yet ledgered — the seam's refusal. Always
    *  true where the ledger could not be read on its last read. */
@@ -242,10 +327,12 @@ export interface DayLedger {
 export async function openDayLedger(now: Date): Promise<DayLedger> {
   let readable = false;
   let spent = 0;
+  let ceiling: number = DAILY_PRODUCT_CEILING.baseC;
   let day = dayStartedAt(now).getTime();
 
   async function refresh(at: Date): Promise<void> {
-    const read = await readDaySpendCents(at);
+    const [read, ceilingCents] = await Promise.all([readDaySpendCents(at), readDayCeilingCents(at)]);
+    ceiling = ceilingCents;
     readable = read !== null;
     if (read === null) return;
     // Within one day the total only grows. A read that began before this
@@ -260,19 +347,20 @@ export async function openDayLedger(now: Date): Promise<DayLedger> {
 
   return {
     spentCents: () => spent,
+    ceilingCents: () => ceiling,
     refresh,
-    ceilingReached: (pendingCents = 0) => !readable || ceilingReached(spent + pendingCents),
+    ceilingReached: (pendingCents = 0) => !readable || ceilingReached(spent + pendingCents, ceiling),
     add(cents: number): void {
       // No alert off a figure nobody has.
       if (!readable) return;
       const before = spent;
       spent += cents;
-      const crossed = crossingOf(before, spent);
+      const crossed = crossingOf(before, spent, ceiling);
       if (crossed === null) return;
       publishSpendAlert({
         crossed,
         spentCents: spent,
-        ceilingCents: alertThresholdsCents().ceiling,
+        ceilingCents: alertThresholdsCents(ceiling).ceiling,
       });
     },
   };

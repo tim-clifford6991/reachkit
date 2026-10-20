@@ -33,6 +33,7 @@
 // square the owner saw. The maskable one is the chip to the edge with the
 // dome inside the 80% safe zone, for launchers that crop to their shape.
 import type { MetadataRoute } from "next";
+import { WEEK_PLAN } from "@/lib/config/constants";
 import { copy } from "@/lib/presentation/copy";
 import { token } from "@/lib/mail/shell/tokens";
 
@@ -40,7 +41,7 @@ export default function manifest(): MetadataRoute.Manifest {
   return {
     name: copy("chrome.wordmark"),
     short_name: copy("chrome.wordmark"),
-    description: copy("meta.landing.description"),
+    description: copy("meta.landing.description", { weekPages: WEEK_PLAN.days }),
     start_url: "/",
     display: "standalone",
     background_color: token("--bg"),

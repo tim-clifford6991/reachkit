@@ -17,10 +17,16 @@
 # runner from the repository variable `CI_LIGHT_RUNNER`: unset, or
 # `"ubuntu-latest"`, they run GitHub-hosted and in parallel; set to
 # `["self-hosted","reachkit-light"]` they run on the box's memory-capped
-# second runner. The browser job always runs on `reachkit`, the one runner
-# that takes it, so two browser sweeps never run at once (#1035, revised
-# 2026-09-25). When the month's hosted minutes run out the hosted jobs fail
-# with a billing error; the switch is one command, no code change:
+# second runner. On a pull request the browser sweep runs GitHub-hosted, each
+# on its own VM (owner, 2026-10-20). It runs on `reachkit-box`, the one runner
+# labelled `reachkit`, so two box sweeps never run at once (#1035), when
+# `CI_LIGHT_RUNNER` is set or when one variable sends it there:
+#   gh variable set CI_BROWSER_ON_BOX --body 1
+# and `gh variable delete CI_BROWSER_ON_BOX` puts it back. Off a pull request
+# (the nightly, a dispatch) every job runs on `reachkit-box`, so the nightly
+# costs no hosted minutes. `scripts/ci-runners/where.sh` makes all three
+# choices and prints why. When the month's hosted minutes run out the hosted
+# jobs fail with a billing error; the switch is one command, no code change:
 #   gh variable set CI_LIGHT_RUNNER --body '["self-hosted","reachkit-light"]'
 # and `gh variable delete CI_LIGHT_RUNNER` puts them back. `docs/RUNBOOK.md`
 # describes the timer that does this by itself. Every job has a timeout so a
@@ -67,17 +73,25 @@ jobs:
   # through no import; then, and off a pull request, it is `full`.
   changes:
     name: what changed
-    runs-on: ${{ fromJSON(vars.CI_LIGHT_RUNNER || '"ubuntu-latest"') }}
+    runs-on: ${{ fromJSON(github.event_name != 'pull_request' && '["self-hosted","reachkit"]' || vars.CI_LIGHT_RUNNER || '"ubuntu-latest"') }}
     timeout-minutes: 5
     outputs:
       code: ${{ steps.filter.outputs.code }}
       ui: ${{ steps.filter.outputs.ui }}
       db: ${{ steps.filter.outputs.db }}
       unit: ${{ steps.filter.outputs.unit }}
+      light: ${{ steps.where.outputs.light }}
+      browser_hosted: ${{ steps.where.outputs.browser_hosted }}
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 2
+      - id: where
+        env:
+          EVENT: ${{ github.event_name }}
+          LIGHT: ${{ vars.CI_LIGHT_RUNNER }}
+          ON_BOX: ${{ vars.CI_BROWSER_ON_BOX }}
+        run: bash scripts/ci-runners/where.sh
       - id: filter
         env:
           EVENT: ${{ github.event_name }}
@@ -91,7 +105,7 @@ jobs:
     name: typecheck · lint · unit
     needs: changes
     if: ${{ !cancelled() && needs.changes.outputs.code != 'false' }}
-    runs-on: ${{ fromJSON(vars.CI_LIGHT_RUNNER || '"ubuntu-latest"') }}
+    runs-on: ${{ fromJSON(needs.changes.outputs.light || vars.CI_LIGHT_RUNNER || '"ubuntu-latest"') }}
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
@@ -138,9 +152,26 @@ jobs:
     needs: changes
     if: ${{ !cancelled() }}
     # Where no screen can change it is a light job that says so and passes,
-    # so it never waits for the one browser runner to print that line.
-    runs-on: ${{ needs.changes.outputs.ui == 'false' && fromJSON(vars.CI_LIGHT_RUNNER || '"ubuntu-latest"') || fromJSON('["self-hosted","reachkit"]') }}
+    # so it never waits for a browser runner to print that line. Otherwise
+    # hosted only on `browser_hosted=true`; anything else is `reachkit-box`.
+    runs-on: ${{ needs.changes.outputs.ui == 'false' && fromJSON(needs.changes.outputs.light || vars.CI_LIGHT_RUNNER || '"ubuntu-latest"') || needs.changes.outputs.browser_hosted == 'true' && 'ubuntu-latest' || fromJSON('["self-hosted","reachkit"]') }}
     timeout-minutes: 45
+    # Hosted, the sweep's PostgreSQL 18 is this service, as in `db`; on the
+    # box the image is empty and the box's own cluster answers.
+    services:
+      postgres:
+        image: ${{ needs.changes.outputs.ui != 'false' && needs.changes.outputs.browser_hosted == 'true' && 'postgres:18' || '' }}
+        env:
+          POSTGRES_USER: reachkit
+          POSTGRES_PASSWORD: reachkit
+          POSTGRES_DB: reachkit_scratch
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U reachkit -d reachkit_scratch"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
     # **The fourth merge gate** (owner's ruling of 2026-09-21, closing #910;
     # `docs/PROCESS.md`'s Gates table is where it is written down), and the
     # one browser job there is. It runs the whole `layout` project: the
@@ -157,8 +188,9 @@ jobs:
     # unit job, as docs/DESIGN.md states. The owner looks for taste.
     #
     # **Where the data comes from.**
-    # `scripts/db-substrate/up.sh --run` against the box's own PostgreSQL 18,
-    # in a database of this job's own (#1013), with `tests/ui/layout/seed.ts`
+    # `scripts/db-substrate/up.sh --run` against the `postgres:18` service
+    # hosted, or the box's own PostgreSQL 18, in a database of this job's own
+    # (#1013), with `tests/ui/layout/seed.ts`
     # applying the migrations and seeding the four accounts, and
     # `tests/ui/layout/auth-stub.ts` answering `getUser()` — the substrate
     # has no GoTrue. Nothing reaches a vendor.
@@ -195,7 +227,7 @@ jobs:
     name: schema · RLS (live Postgres)
     needs: changes
     if: ${{ !cancelled() && needs.changes.outputs.db != 'false' }}
-    runs-on: ${{ fromJSON(vars.CI_LIGHT_RUNNER || '"ubuntu-latest"') }}
+    runs-on: ${{ fromJSON(needs.changes.outputs.light || vars.CI_LIGHT_RUNNER || '"ubuntu-latest"') }}
     timeout-minutes: 25
     # The `db` project asserts the schema against a live, migrated database.
     # `scripts/db-substrate/` is that database and the two services around it
@@ -208,7 +240,7 @@ jobs:
     # dropped by the last step.
     services:
       postgres:
-        image: ${{ !contains(vars.CI_LIGHT_RUNNER, 'self-hosted') && 'postgres:18' || '' }}
+        image: ${{ !contains(needs.changes.outputs.light || vars.CI_LIGHT_RUNNER, 'self-hosted') && 'postgres:18' || '' }}
         env:
           POSTGRES_USER: reachkit
           POSTGRES_PASSWORD: reachkit

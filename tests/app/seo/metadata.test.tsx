@@ -424,6 +424,27 @@ describe("the favicon set and the manifest ship, and no file is owed to the owne
   });
 });
 
+describe("the landing and pricing heads state the owner's A1 week (2026-10-19)", () => {
+  it("the description, og and twitter tags, the manifest and llms.txt say up to a week's pages, never every day", async () => {
+    const { WEEK_PLAN } = await import("@/lib/config/constants");
+    const week = `up to ${WEEK_PLAN.days} pages a week`;
+    for (const route of ["/", "/pricing"]) {
+      const meta = await metadataOf(route);
+      for (const said of [meta.description, og(meta).description, tw(meta).description]) {
+        expect(String(said), route).toContain(week);
+        expect(String(said), route).not.toMatch(/every day/i);
+      }
+    }
+    const { default: manifest } = (await import("@/app/manifest")) as { default: () => { description?: string } };
+    expect(manifest().description).toContain(week);
+    const { llmsText } = await import("@/app/(public)/_library/feeds");
+    const llms = llmsText(ORIGIN!);
+    const { copy } = await import("@/lib/presentation/copy");
+    expect(llms).toContain(copy("pricing.subline", { weekPages: WEEK_PLAN.days }));
+    expect(llms).toContain(week);
+  });
+});
+
 describe("the two indexing documents the app host serves", () => {
   it("robots allows the whole site and names the sitemap, with no Disallow", async () => {
     const { appRobotsDocument } = await import("@/app/(public)/_seo/policies");

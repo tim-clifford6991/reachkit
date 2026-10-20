@@ -124,7 +124,7 @@ describe("only a page near page one grows on the gaps (owner 2026-10-19)", () =>
       const { cause, place, pack } = packOf(page({}), [{ keyword: target, url, position }]);
       expect({ cause, place }).toEqual({ cause: "close", place: position });
       expect(pack.gaps).toBeUndefined();
-      expect(lengthRangeFor(TEMPLATES.update, 1000, pack.gaps !== undefined)).toEqual({ floor: 800, ceiling: 1200 });
+      expect(lengthRangeFor(TEMPLATES.update, { liveWords: 1000, grown: pack.gaps !== undefined })).toMatchObject({ floor: 800, ceiling: 1200 });
     }
   });
 });
@@ -210,7 +210,7 @@ describe("a growing refresh adds at most three sections, each on a gap and its c
   });
 
   it("its sections may grow to 40% over the live page's; every other update keeps 20%", () => {
-    expect(lengthRangeFor(TEMPLATES.update, 1000, true)).toEqual({ floor: 800, ceiling: 1400 });
-    expect(lengthRangeFor(TEMPLATES.update, 1000)).toEqual({ floor: 800, ceiling: 1200 });
+    expect(lengthRangeFor(TEMPLATES.update, { liveWords: 1000, grown: true })).toMatchObject({ floor: 800, ceiling: 1400 });
+    expect(lengthRangeFor(TEMPLATES.update, { liveWords: 1000 })).toMatchObject({ floor: 800, ceiling: 1200 });
   });
 });

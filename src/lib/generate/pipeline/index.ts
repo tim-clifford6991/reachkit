@@ -257,10 +257,10 @@ export async function generateDraft(c: CostContext, a: GenerateInputs): Promise<
   }
 
   const liveWords = pack.live === null ? null : sectionWords(pack.live.markdown);
-  // Issue 1390: a short answer is held to its own length, not its type's.
+  // Issue 1390: a short answer is capped at its own length, not its type's.
   // Issue 1521: a refresh that may add sections on what the pages above it
   // cover may grow to the update's grown share.
-  const length = voiceLength(pack.voice) ?? lengthRangeFor(template, liveWords, pack.gaps !== undefined);
+  const length = lengthRangeFor(template, { questions: pack.questions.length, cap: voiceLength(pack.voice)?.ceiling, liveWords, grown: pack.gaps !== undefined });
   // D47: a comparison written as a Q&A for want of two rivals compares
   // nobody, so it is told to answer, not to compare.
   const becameQa = pack.type === "qa" && contentTypeOf(a.opportunity) === "listicle";
@@ -274,7 +274,7 @@ export async function generateDraft(c: CostContext, a: GenerateInputs): Promise<
     pageType,
     // An update with no live page to measure against never reaches here: its
     // pack is short. The fallback keeps the type total.
-    length: length ?? { floor: 0, ceiling: Number.MAX_SAFE_INTEGER },
+    length: length ?? { floor: 0, target: 0, ceiling: Number.MAX_SAFE_INTEGER },
     ...(a.tier === undefined ? {} : { tier: a.tier }),
   };
 
@@ -376,7 +376,7 @@ export async function generateDraft(c: CostContext, a: GenerateInputs): Promise<
       // Issue 1391: the pages code chose for this page to link, each with
       // why — what the draft screen's *Links on this page* reads.
       links: a.links.map((link) => ({ url: link.url, label: link.label, source: link.source, why: link.why ?? null })),
-      length: { words: bodyWords(page.markdown), floor: length?.floor ?? null, ceiling: length?.ceiling ?? null },
+      length: { words: bodyWords(page.markdown), floor: length?.floor ?? null, target: length?.target ?? null, ceiling: length?.ceiling ?? null },
       ...(repairs.length === 0 ? {} : { repairs: [...priorRepairs, ...repairs] }),
       // Issue 1394: the rules this run asked of the page and the ones it
       // failed first and then cleared, for the draft screen's Checks list.
@@ -533,7 +533,7 @@ export async function generateDraft(c: CostContext, a: GenerateInputs): Promise<
     const words = pack.type === "update" ? sectionWords(stopped.page.markdown) : bodyWords(stopped.page.markdown);
     return fixNotes(stopped.page.markdown, stopped.outcome.failed, briefRead, a.site, stopped.page.laid.body.title).map((note) => {
       if (note.rule === "required_blocks" && note.sentences.includes("length") && length !== null) {
-        return { ...note, sentences: [`length: ${pack.type === "update" ? "the sections have" : "the body has"} ${words} words and must have between ${length.floor} and ${length.ceiling}`] };
+        return { ...note, sentences: [`length: ${pack.type === "update" ? "the sections have" : "the body has"} ${words} words and must have ${length.floor > 0 ? `between ${length.floor} and ` : "at most "}${length.ceiling}`] };
       }
       if (note.rule === "required_blocks" && note.sentences.includes("new_sections")) {
         return { ...note, sentences: [`new sections: at most ${HEADING_GAPS.sectionsMax} sections may be new, each headed by one of \`pack.gaps\` and linking a url of that gap's \`claims\`; return every other section under its live heading`] };

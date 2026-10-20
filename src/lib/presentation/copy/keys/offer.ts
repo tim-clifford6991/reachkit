@@ -33,7 +33,7 @@ export const OFFER_COPY = Object.freeze({
   "price.amount": ["€49", { slots: {}, fixedBy: "REQ-022 c1" }],
   "price.vat_included": ["VAT included", { slots: {}, fixedBy: "REQ-022 c1" }],
   "price.interval": ["per month, VAT included", { slots: {}, fixedBy: "REQ-022 c1" }],
-  "offer.cadence.page": ["A page for your site {value}, new or updated", { slots: { value: "text" }, fixedBy: "REQ-021 c2" }],
+  "offer.cadence.page": ["Up to {weekPages} pages a week for your site, new or updated", { slots: { weekPages: "text" }, fixedBy: "REQ-021 c2 · owner A1 2026-10-19" }],
   "offer.cadence.measure": ["Your market scanned {value}", { slots: { value: "text" }, fixedBy: "REQ-021 c2" }],
   "offer.cadence.movement": ["What moved, in your inbox {value}", { slots: { value: "text" }, fixedBy: "REQ-021 c2" }],
   "offer.veto.window": ["Every page goes live on its own after {value}. You can edit or stop it before then, and cancel any time, yourself", { slots: { value: "text" }, fixedBy: "REQ-021 c2" }],
@@ -51,7 +51,7 @@ export const OFFER_COPY = Object.freeze({
   "offer.cancel_self_service": ["Cancel in one click, yourself.", { slots: {}, fixedBy: "REQ-021 c2" }],
   // Issue 1068, board R12-2: the price close's heading on the report.
   // Drafted; the owner corrects the wording.
-  "offer.close.heading": ["Gain ground, a page every day.", { slots: {}, fixedBy: "issue 1068" }],
+  "offer.close.heading": ["Gain ground every week.", { slots: {}, fixedBy: "issue 1068 · owner A1 2026-10-19" }],
   "offer.start": ["Start ReachKit", { slots: {}, fixedBy: "REQ-021 c4" }],
   /** The **control's** own label, and the one the approved set draws on it:
    *  "Start ReachKit €49" (11a). `offer.start` stays exactly as the owner
@@ -82,8 +82,8 @@ export const OFFER_COPY = Object.freeze({
   // set draws it, so the window is written down once, in
   // `src/lib/config/constants.ts`, and never twice.
   "offer.pricing.page": [
-    "A page every day, new or updated, published for you",
-    { slots: {}, fixedBy: "S4 · REQ-021 c2" },
+    "Up to {weekPages} pages a week, new or updated, published for you",
+    { slots: { weekPages: "text" }, fixedBy: "S4 · REQ-021 c2 · owner A1 2026-10-19" },
   ],
   "offer.pricing.measure": [
     "A weekly scan of your whole market",
@@ -105,7 +105,7 @@ export const OFFER_COPY = Object.freeze({
   // in `settings.*` because it is the same public product fact the price
   // surfaces state, not a sentence about one customer's account —
   // REQ-097's own non-goal draws that line.
-  "plan.single": ["A page every day", { slots: {}, fixedBy: "REQ-022 c1" }],
+  "plan.single": ["Up to {weekPages} pages a week", { slots: { weekPages: "text" }, fixedBy: "REQ-022 c1 · owner A1 2026-10-19" }],
 
   // 2026-09-13, issue #624: what the offer says when the vendor refuses to
   // open checkout. Owner-owed — the approved set draws no refused state on
@@ -115,15 +115,8 @@ export const OFFER_COPY = Object.freeze({
     { slots: {}, fixedBy: "SPEC.md §3 (2026-09-13)" },
   ],
 
-  // 2026-09-05, issue #13: the four values the four slotted lines above
-  // take. BP-031's `offerTerms()` was to supply them and does not exist;
-  // the free report's pricing card (`BUILD.md` §4.1 module 6) needs them
-  // now. Three are pure owner words with no number in them. The fourth
-  // carries the number from its pin — `VETO.defaultHours`
-  // (`src/lib/config/constants.ts`) — through an `{hours}` slot, so the
-  // veto window is written down once, in the pin, and the owner supplies
-  // only the unit around it.
-  "offer.cadence.page.value": ["every day", { slots: {}, fixedBy: "REQ-021 c2" }],
+  // The values the `{value}` lines above take. The veto window carries its
+  // number from `VETO.defaultHours` through `{hours}`, so it is written once.
   "offer.cadence.measure.value": ["every week", { slots: {}, fixedBy: "REQ-021 c2" }],
   "offer.cadence.movement.value": ["every Monday", { slots: {}, fixedBy: "REQ-021 c2" }],
   "offer.veto.window.value": ["{hours} hours", { slots: { hours: "text" }, fixedBy: "REQ-021 c2" }],

@@ -15,7 +15,7 @@
 // longer has.
 import "../generate/env";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { CAPS, SPEND_ALERT_AT } from "@/lib/config/constants";
+import { DAILY_PRODUCT_CEILING, SPEND_ALERT_AT } from "@/lib/config/constants";
 
 const { rpcMock } = vi.hoisted(() => ({ rpcMock: vi.fn() }));
 vi.mock("@/lib/db", () => ({ dbAdmin: () => ({ rpc: rpcMock }) }));
@@ -38,10 +38,12 @@ beforeEach(async () => {
   ledgerHolds(0);
   daily = await import("../../src/lib/costs/daily");
   daily.registerSpendAlertSink(null);
+  daily.registerPayingSiteCounter(null);
 });
 
-const CEILING = CAPS.DAILY_PRODUCT_C;
-const WARN = CAPS.DAILY_PRODUCT_C * SPEND_ALERT_AT.warn;
+// No counter is registered here, so every day is the base day.
+const CEILING = DAILY_PRODUCT_CEILING.baseC;
+const WARN = CEILING * SPEND_ALERT_AT.warn;
 
 describe("the day is UTC, and what it promises is a duration", () => {
   it("`dayStartedAt` is midnight UTC of the instant's own day, whatever hour it is", () => {
@@ -67,32 +69,32 @@ describe("the day is UTC, and what it promises is a duration", () => {
 
 describe("the two crossings, derived from the one pinned ceiling", () => {
   it("`alertThresholdsCents` is four fifths of the ceiling, and the ceiling", () => {
-    expect(daily.alertThresholdsCents()).toEqual({ warn: WARN, ceiling: CEILING });
+    expect(daily.alertThresholdsCents(CEILING)).toEqual({ warn: WARN, ceiling: CEILING });
   });
 
   it("the ceiling is a figure the product spends up to, never through", () => {
-    expect(daily.ceilingReached(CEILING - 1)).toBe(false);
-    expect(daily.ceilingReached(CEILING)).toBe(true);
-    expect(daily.ceilingReached(CEILING + 1)).toBe(true);
+    expect(daily.ceilingReached(CEILING - 1, CEILING)).toBe(false);
+    expect(daily.ceilingReached(CEILING, CEILING)).toBe(true);
+    expect(daily.ceilingReached(CEILING + 1, CEILING)).toBe(true);
   });
 
   it("a crossing belongs to the one call whose spend carried the total over it", () => {
-    expect(daily.crossingOf(WARN - 1, WARN)).toBe("warn");
-    expect(daily.crossingOf(CEILING - 1, CEILING)).toBe("ceiling");
+    expect(daily.crossingOf(WARN - 1, WARN, CEILING)).toBe("warn");
+    expect(daily.crossingOf(CEILING - 1, CEILING, CEILING)).toBe("ceiling");
     // The second call past the same line reports nothing: `before` is
     // already over, so there is no crossing left to make. This is the whole
     // of the at-most-once rule — nothing remembers that an alert was sent.
-    expect(daily.crossingOf(WARN, WARN + 10)).toBe(null);
-    expect(daily.crossingOf(CEILING, CEILING + 10)).toBe(null);
+    expect(daily.crossingOf(WARN, WARN + 10, CEILING)).toBe(null);
+    expect(daily.crossingOf(CEILING, CEILING + 10, CEILING)).toBe(null);
   });
 
   it("a call large enough to pass both lines at once reports the ceiling, the more serious", () => {
-    expect(daily.crossingOf(0, CEILING)).toBe("ceiling");
+    expect(daily.crossingOf(0, CEILING, CEILING)).toBe("ceiling");
   });
 
   it("no movement, no crossing", () => {
-    expect(daily.crossingOf(0, 0)).toBe(null);
-    expect(daily.crossingOf(WARN - 2, WARN - 1)).toBe(null);
+    expect(daily.crossingOf(0, 0, CEILING)).toBe(null);
+    expect(daily.crossingOf(WARN - 2, WARN - 1, CEILING)).toBe(null);
   });
 });
 
@@ -213,5 +215,58 @@ describe("the day ledger a pass carries", () => {
     expect(day.spentCents()).toBe(WARN);
     day.add(1);
     expect(seen).toEqual(["warn"]);
+  });
+});
+
+describe("the day's ceiling grows with paying sites: 1,000¢ plus 100¢ each", () => {
+  const MIDDAY = new Date("2026-10-20T13:00:00.000Z");
+
+  it.each([
+    [0, 1000],
+    [40, 5000],
+    [100, 11000],
+  ])("%i paying sites give a %i¢ day, and the seam's ledger refuses at it", async (sites, cents) => {
+    daily.registerPayingSiteCounter(async () => sites);
+    expect(await daily.readDayCeilingCents(MIDDAY)).toBe(cents);
+    ledgerHolds(cents - 1);
+    const day = await daily.openDayLedger(MIDDAY);
+    expect(day.ceilingCents()).toBe(cents);
+    expect(day.ceilingReached()).toBe(false);
+    expect(day.ceilingReached(1)).toBe(true);
+  });
+
+  it("counts the sites paying at the day's own midnight, once a day", async () => {
+    const asked: string[] = [];
+    daily.registerPayingSiteCounter(async (at) => {
+      asked.push(at.toISOString());
+      return 40;
+    });
+    await daily.readDayCeilingCents(MIDDAY);
+    await daily.openDayLedger(new Date("2026-10-20T23:59:00.000Z"));
+    await daily.readDayCeilingCents(new Date("2026-10-21T00:01:00.000Z"));
+    expect(asked).toEqual(["2026-10-20T00:00:00.000Z", "2026-10-21T00:00:00.000Z"]);
+  });
+
+  it("a count that throws is the 1,000¢ day, is logged, and is asked again on the next call", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    let calls = 0;
+    daily.registerPayingSiteCounter(async () => {
+      calls += 1;
+      if (calls === 1) throw new Error("stubbed count failure");
+      return 40;
+    });
+    expect(await daily.readDayCeilingCents(MIDDAY)).toBe(1000);
+    expect(warn.mock.calls.map((c) => JSON.parse(String(c[0])))).toContainEqual(
+      expect.objectContaining({ event: "daily_ceiling_unreadable", ceilingCents: 1000 })
+    );
+    expect(await daily.readDayCeilingCents(MIDDAY)).toBe(5000);
+    warn.mockRestore();
+  });
+
+  it("nothing registered is the 1,000¢ day, never an unlimited one", async () => {
+    ledgerHolds(1000);
+    const day = await daily.openDayLedger(MIDDAY);
+    expect(day.ceilingCents()).toBe(1000);
+    expect(day.ceilingReached()).toBe(true);
   });
 });

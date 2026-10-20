@@ -149,7 +149,7 @@ describe('REQ-021 c4 — "Given a surface that offers ReachKit away from any rep
   it("every sentence the surface speaks resolves through copy() in that one component", async () => {
     const html = await render();
     const { copy } = await import("@/lib/presentation/copy");
-    const { VETO } = await import("@/lib/config/constants");
+    const { VETO, WEEK_PLAN } = await import("@/lib/config/constants");
     expect(html).toContain(copy("price.amount"));
     expect(html).toContain(copy("price.interval"));
     expect(html).toContain(copy("offer.start"));
@@ -158,7 +158,11 @@ describe('REQ-021 c4 — "Given a surface that offers ReachKit away from any rep
     // the assertion is that this surface speaks the pricing wording and not
     // the report's, and the veto line still carries the pin from
     // `constants.ts` through its slot.
-    expect(html).toContain(copy("offer.pricing.page"));
+    expect(html).toContain(copy("offer.pricing.page", { weekPages: WEEK_PLAN.days }));
+    // The heading, the subline and the card say the owner's A1 week (2026-10-19).
+    expect(html).toContain(`Up to ${WEEK_PLAN.days} pages a week.`);
+    expect(html).toContain(copy("pricing.subline", { weekPages: WEEK_PLAN.days }));
+    expect(html).not.toMatch(/every day/i);
     expect(html).toContain(copy("offer.pricing.measure"));
     expect(html).toContain(copy("offer.pricing.movement"));
     expect(html).toContain(copy("offer.pricing.veto", { hours: String(VETO.defaultHours) }));

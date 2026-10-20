@@ -32,6 +32,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowRight, Check } from "lucide-react";
 import { Surface } from "@/ui/layout";
+import { HOSTED_RETENTION_DAYS } from "@/lib/config/constants";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { ScanForm } from "./_landing/ScanForm";
 import { scanFormWords } from "./_landing/scan-form-words";
@@ -77,7 +78,7 @@ function questions(): readonly { id: string; vars?: Record<string, string>; more
       vars: { hours: String(HOW_FACTS.windowHours), min: String(HOW_FACTS.windowMinDays), max: String(HOW_FACTS.windowMaxDays) },
     },
     { id: "results", more: "/how-it-works#found" },
-    { id: "stop" },
+    { id: "stop", vars: { days: String(HOSTED_RETENTION_DAYS) } },
     { id: "local", vars: { weekPages: WEEK_PAGES } },
     { id: "start" },
     { id: "german" },

@@ -27,7 +27,7 @@ export interface MemoryBilling {
   sites: HostingRow[];
   /** Delivered publications and finished scans, as `period` filters them. */
   publications: (PeriodPageRow & { site_id: string; published_at: string; unpublished_at: string | null })[];
-  scans: { site_id: string; created_at: string; status: "running" | "done" | "degraded" }[];
+  scans: { site_id: string; created_at: string; status: "running" | "done" | "degraded" | "failed" }[];
   failAccountRead: boolean;
   failHostingRead: boolean;
   failWrite: boolean;
@@ -135,6 +135,12 @@ export function memoryBillingStore(state: MemoryBilling): BillingStore {
   }
 
   return {
+    async payingSiteCount(at) {
+      if (state.failHostingRead) return { ok: false };
+      const count = state.sites.filter((s) => new Date(joined(s).owner_paid_through) > at).length;
+      return { ok: true, count };
+    },
+
     async paidThroughForSite(siteId) {
       if (state.failHostingRead) return { ok: false };
       const found = state.sites.find((s) => s.id === siteId);
@@ -255,7 +261,7 @@ export function memoryBillingStore(state: MemoryBilling): BillingStore {
         pages: state.publications.filter(
           (p) => p.site_id === siteId && p.unpublished_at === null && within(p.published_at)
         ),
-        scans: state.scans.filter((s) => s.site_id === siteId && s.status !== "running" && within(s.created_at)).length,
+        scans: state.scans.filter((s) => s.site_id === siteId && (s.status === "done" || s.status === "degraded") && within(s.created_at)).length,
       };
     },
   };
