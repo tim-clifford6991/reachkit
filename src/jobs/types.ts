@@ -37,7 +37,7 @@ export type JobId =
   | "publish/verify" // +24h after a publish
   | "publish/retry" // hourly tick; the retries and the veto windows whose moment has come round
   | "weekly/refresh" // hourly tick, due per site-local Monday (ADR-060)
-  | "lead/nurture" // event plus delay: 24h / 72h / 168h
+  | "lead/nurture" // hourly tick; the free first page, then each nurture mail when it is due
   | "account/maintenance" // every MAINTENANCE_TICK_MINUTES; five due-work queries
   | "scan/rescore" // every 15 minutes; answers a re-score the master session asked for (issue 1433)
   | "scan/finish-reads"; // sent by a free pass that left searches unread (issue 1440)
