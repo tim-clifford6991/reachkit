@@ -45,6 +45,7 @@ import {
   type Choice,
 } from "@/lib/opportunities";
 import { writtenLine } from "../_shell/written";
+import { whyLineOf } from "./card-lines";
 import { pageTargetOf } from "../_shell/page-target";
 import { dayKeyOf, daysOfMonth, planHorizonEnd, type DayKey, type MonthKey } from "./dates";
 import {
@@ -208,6 +209,7 @@ function pageOn(a: {
     // Issue 930: this week's place, read and never re-measured.
     standing: a.standing,
     update: isUpdate(a.choice),
+    whyLine: whyLineOf(a.choice.planReason),
   };
 }
 
@@ -242,6 +244,7 @@ function plannedOn(day: DayKey, choice: Choice, now: Date): DraftOnDay {
     // against, which is `day-number.ts`'s `volume` arm.
     standing: null,
     update: isUpdate(choice),
+    whyLine: whyLineOf(choice.planReason),
   };
 }
 

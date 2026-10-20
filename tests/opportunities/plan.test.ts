@@ -71,6 +71,22 @@ describe("the weekly pass ends with one commit", () => {
     expect(new Set(stored.map((row) => row.id)).size).toBe(WEEK_PLAN.days + WEEK_PLAN.spares);
   });
 
+  it("each committed row stores why it was placed, its points the sum of its parts, and the day's page carries it", async () => {
+    await weeklyPass();
+    const entries = await planWeek(SITE_ID, { now: AT });
+    for (const entry of entries) {
+      const stored = state.rows.find((row) => row.id === entry.opportunityId)!.plan_reason!;
+      expect(stored).toEqual(entry.reason);
+      expect(stored.parts.length).toBeGreaterThan(0);
+      expect(stored.points).toBe(stored.parts.reduce((sum, part) => sum + part.n, 0));
+      expect(stored.rule).not.toBeNull();
+    }
+    expect((await pageForDay(SITE_ID, DAY(0), AT))?.planReason).toEqual(entries[0]!.reason);
+    // A row a later commit leaves out keeps no reason.
+    await planWeek(SITE_ID, { now: AT, from: DAY(7) });
+    expect(state.rows.filter((row) => row.plan_place == null && row.plan_reason != null)).toEqual([]);
+  });
+
   it("a new commit replaces the last one", async () => {
     await weeklyPass();
     await planWeek(SITE_ID, { now: AT });

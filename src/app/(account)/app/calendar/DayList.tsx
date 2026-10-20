@@ -107,12 +107,19 @@ export function DayList(p: {
                     </span>
                   )
                 ) : (
-                  <span
-                    className="rk-cal-label line-clamp-2 min-w-0 text-sm font-semibold leading-tight"
-                    data-testid="list-label"
-                  >
-                    {page.title}
-                  </span>
+                  <>
+                    <span
+                      className="rk-cal-label line-clamp-2 min-w-0 text-sm font-semibold leading-tight"
+                      data-testid="list-label"
+                    >
+                      {page.title}
+                    </span>
+                    {page.whyLine === null ? null : (
+                      <span className="min-w-0 text-xs wrap-anywhere opacity-70" data-testid="list-why">
+                        {page.whyLine}
+                      </span>
+                    )}
+                  </>
                 )}
                 <DayStateBadge cell={cell} filter={p.filter} />
               </span>

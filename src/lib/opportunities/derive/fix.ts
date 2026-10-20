@@ -61,10 +61,7 @@ function unblockCandidate(a: FixInput, barrier: Barrier, foundOnUrl: string): Ca
     evidence: { family: "fix", barrier, foundOnUrl },
     acceptance: { form: "gate_cleared", gate: barrier },
     fitBand: null,
-    // Written so the column's `not null` holds and the row is well-formed.
-    // Nothing reads it: `rankScore` returns 0 for an `unblock` before it
-    // ever reaches an effort term, and the Fix family is excluded from the
-    // ranked set upstream of that.
+    // Written so the column's `not null` holds; the Fix family is never ranked.
     effort: EFFORT_BY_TYPE.answerable_page,
   };
 }

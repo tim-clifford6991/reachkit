@@ -315,12 +315,14 @@ describe("D26 (issue 1179) — a stopped draft does not cost its day, and its to
     return other.row.id;
   }
 
+  const WHY = { points: 3, parts: [{ part: "fit" as const, n: 3 }], rule: "best" as const };
+
   /** Issue 1559: the week the Monday committed — the first topic is the
    *  evening's date, the others its spares. */
   async function week(spares: readonly string[]): Promise<void> {
     await opportunityDoubles.memoryStore(opportunities).commitPlan!(fixtures.SITE_ID, [
-      { opportunityId, place: 0, plannedFor: "2026-09-08", writeAs: null },
-      ...spares.map((id, n) => ({ opportunityId: id, place: 7 + n, plannedFor: null, writeAs: null })),
+      { opportunityId, place: 0, plannedFor: "2026-09-08", writeAs: null, reason: WHY },
+      ...spares.map((id, n) => ({ opportunityId: id, place: 7 + n, plannedFor: null, writeAs: null, reason: WHY })),
     ]);
   }
 

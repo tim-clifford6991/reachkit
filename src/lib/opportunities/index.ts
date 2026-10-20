@@ -36,7 +36,6 @@ export {
   type RankedCounts,
 } from "./winnability/counts";
 
-export { rankScore } from "./rank/score";
 export { rankOpen } from "./rank/open";
 export { planLinkBacks, planMovedLinks, planRefreshes } from "./refresh";
 export { assessFixPages, fixPageReadiness, type FixDelivery } from "./fix-page";

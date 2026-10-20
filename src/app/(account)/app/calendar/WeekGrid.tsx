@@ -106,9 +106,16 @@ function WeekCell(p: {
               </span>
             )
           ) : (
-            <span className="rk-cal-label line-clamp-3 min-w-0 text-sm font-semibold leading-tight wrap-anywhere" data-testid="cell-label">
-              {page.title}
-            </span>
+            <>
+              <span className="rk-cal-label line-clamp-3 min-w-0 text-sm font-semibold leading-tight wrap-anywhere" data-testid="cell-label">
+                {page.title}
+              </span>
+              {page.whyLine === null ? null : (
+                <span className="min-w-0 text-xs wrap-anywhere opacity-70" data-testid="cell-why">
+                  {page.whyLine}
+                </span>
+              )}
+            </>
           )}
         </button>
         <div className="mt-auto flex min-w-0 flex-wrap items-center gap-1">

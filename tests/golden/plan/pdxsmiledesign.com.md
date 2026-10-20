@@ -2,12 +2,12 @@
 
 From `docs/walk/panel/2026-10-10.json`: 7 stored topics, 4 committed from 2026-10-19.
 
-| Place | Day | Search | Type | Fit | Volume | Rule | Written as |
-|---|---|---|---|---|---|---|---|
-| 0 | 2026-10-19 | dental implants in portland oregon | keyword_page | 3 | 480 | best | — |
-| 1 | 2026-10-20 | cosmetic dentist in portland oregon | listed_page | 3 | 320 | best | — |
-| 2 | 2026-10-21 | dentist near me in portland | keyword_page | 3 | — | best | — |
-| 3 | 2026-10-22 | cosmetic teeth straightening options portland | keyword_page | 3 | — | best, same kind | — |
+| Place | Day | Search | Type | Fit | Volume | Points | Parts | Rule | Written as |
+|---|---|---|---|---|---|---|---|---|---|
+| 0 | 2026-10-19 | dental implants in portland oregon | keyword_page | 3 | 480 | 5 | fit 3 + demand 2 | best | — |
+| 1 | 2026-10-20 | cosmetic dentist in portland oregon | listed_page | 3 | 320 | 5 | fit 3 + demand 2 | best | — |
+| 2 | 2026-10-21 | dentist near me in portland | keyword_page | 3 | — | 3 | fit 3 | best | — |
+| 3 | 2026-10-22 | cosmetic teeth straightening options portland | keyword_page | 3 | — | 3 | fit 3 | best | — |
 
 | Not chosen | Type | Fit | Volume | Reason |
 |---|---|---|---|---|

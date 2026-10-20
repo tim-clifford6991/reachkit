@@ -74,6 +74,7 @@ function pageOn(day: string, state: State, publishAt: Date | null) {
     needsYou: null,
     standing: null,
     update: false,
+    whyLine: null,
     scheduledFor: day,
     why: {
       search: "a search",

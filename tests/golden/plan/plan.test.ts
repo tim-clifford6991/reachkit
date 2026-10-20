@@ -5,6 +5,7 @@
 import "../../opportunities/env";
 import { readdirSync } from "node:fs";
 import { describe, expect, it } from "vitest";
+import { WEEK_PLAN } from "@/lib/config/constants";
 import { choose, type Choice } from "@/lib/opportunities/choose";
 import { AT, panelDomains, panelSite, type PanelSite } from "./panel";
 
@@ -36,11 +37,12 @@ function week(site: PanelSite, choice: Choice): string[] {
   const byId = new Map(site.rows.map((row) => [row.id, row]));
   const cell = (value: unknown) => (value === null || value === undefined ? "—" : String(value));
   const lines = [
-    "| Place | Day | Search | Type | Fit | Volume | Rule | Written as |",
-    "|---|---|---|---|---|---|---|---|",
+    "| Place | Day | Search | Type | Fit | Volume | Points | Parts | Rule | Written as |",
+    "|---|---|---|---|---|---|---|---|---|---|",
     ...choice.committed.map((entry) => {
       const row = byId.get(entry.opportunityId)!;
-      return `| ${entry.place} | ${entry.plannedFor ?? "spare"} | ${row.target_query} | ${row.type} | ${cell(row.business_fit)} | ${cell(row.volume)} | ${cell(entry.rule)} | ${cell(entry.writeAs)} |`;
+      const parts = entry.reason.parts.map((part) => `${part.part} ${part.n}`).join(" + ");
+      return `| ${entry.place} | ${entry.plannedFor ?? "spare"} | ${row.target_query} | ${row.type} | ${cell(row.business_fit)} | ${cell(row.volume)} | ${entry.reason.points} | ${parts || "—"} | ${cell(entry.reason.rule)} | ${cell(entry.writeAs)} |`;
     }),
     "",
     "| Not chosen | Type | Fit | Volume | Reason |",
@@ -63,6 +65,28 @@ describe("the golden week of each panel site", () => {
       // Every kind of business gets a first-day page, unless a named hold says why not.
       if (HELD[domain] === undefined) expect(choice.committed.length).toBeGreaterThanOrEqual(1);
       else expect(choice.committed).toHaveLength(0);
+    });
+  }
+});
+
+/** One panel site of each kind the week must hold for. */
+const KINDS: Readonly<Record<string, string>> = {
+  saas: "savvycal.com",
+  local: "austinplumbery.com",
+  shop: "tattly.com",
+  agency: "clearleft.com",
+  "multi-line": "wesbos.com",
+};
+
+describe("every kind of business commits a full week from its stored supply", () => {
+  for (const [kind, domain] of Object.entries(KINDS)) {
+    it(`${kind} (${domain}): seven days where seven topics are ready, and every ready topic where fewer are`, () => {
+      const site = panelSite(domain);
+      const choice = chosen(site);
+      const ready = site.rows.filter((row) => row.ready).length;
+      const days = choice.committed.filter((entry) => entry.plannedFor !== null);
+      expect(days).toHaveLength(Math.min(WEEK_PLAN.days, ready));
+      for (const entry of choice.committed) expect(entry.reason.points).toBe(entry.reason.parts.reduce((sum, part) => sum + part.n, 0));
     });
   }
 });
