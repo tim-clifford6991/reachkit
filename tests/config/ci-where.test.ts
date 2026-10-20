@@ -10,7 +10,8 @@ const LIGHT_BOX = '["self-hosted","reachkit-light"]';
 
 function where(env: Record<string, string>) {
   // Without GITHUB_OUTPUT, so a run inside CI does not write this job's outputs.
-  const r = spawnSync("bash", [SCRIPT], { encoding: "utf8", env: { PATH: process.env.PATH ?? "", GITHUB_OUTPUT: "", ...env } });
+  const base = { ...process.env, EVENT: undefined, LIGHT: undefined, ON_BOX: undefined, GITHUB_OUTPUT: "" };
+  const r = spawnSync("bash", [SCRIPT], { encoding: "utf8", env: { ...base, ...env } });
   const out = (name: string) => new RegExp(`^${name}=(.*)$`, "m").exec(r.stdout)?.[1];
   return { status: r.status, light: out("light"), browser_hosted: out("browser_hosted"), stdout: r.stdout };
 }
@@ -21,7 +22,7 @@ describe("where ci.yml's jobs run", () => {
   });
 
   it.each(["schedule", "workflow_dispatch"])("off a pull request (%s) every job runs on reachkit-box", (EVENT) => {
-    for (const env of [{ EVENT }, { EVENT, LIGHT: LIGHT_BOX }, { EVENT, ON_BOX: "1" }]) {
+    for (const env of [{ EVENT }, { EVENT, LIGHT: LIGHT_BOX }, { EVENT, ON_BOX: "1" }] as Record<string, string>[]) {
       expect(where(env)).toMatchObject({ status: 0, light: BOX, browser_hosted: "false" });
     }
   });
