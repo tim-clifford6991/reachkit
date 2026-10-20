@@ -57,7 +57,7 @@ export const LISTING_HOSTS: ReadonlySet<string> = new Set(
     "goodfirms.co designrush.com angi.com angieslist.com homeadvisor.com thumbtack.com houzz.com " +
     "bbb.org yellowpages.com nextdoor.com checkatrade.com trustatrader.com mybuilder.com ratedpeople.com bark.com yell.com " +
     "freeindex.co.uk which.co.uk gelbeseiten.de dasoertliche.de 11880.com golocal.de kennstdueinen.de jameda.de " +
-    "myhammer.de healthgrades.com webmd.com eater.com timeout.com infatuation.com michelin.com " +
+    "myhammer.de healthgrades.com webmd.com eater.com timeout.com theinfatuation.com michelin.com " +
     "apps.apple.com play.google.com forbes.com nytimes.com theguardian.com techcrunch.com nerdwallet.com " +
     "legal500.com chambers.com lawsociety.org.uk icaew.com unbiased.co.uk " +
     "apps.microsoft.com apps.shopify.com marketplace.atlassian.com alternativeto.net saasworthy.com f-droid.org " +
@@ -65,7 +65,9 @@ export const LISTING_HOSTS: ReadonlySet<string> = new Set(
     // films, and hosts of personal blogs, as the stored scans held them.
     "imdb.com rottentomatoes.com letterboxd.com netflix.com tv.apple.com merriam-webster.com collinsdictionary.com " +
     "dictionary.cambridge.org dictionary.com stackexchange.com study.com investopedia.com pcmag.com cnet.com " +
-    "indeed.com ziprecruiter.com glassdoor.com huffpost.com mapquest.com livejournal.com github.io"
+    "indeed.com ziprecruiter.com glassdoor.com huffpost.com mapquest.com livejournal.com github.io " +
+    // Directories and listings the panel's stored local searches held.
+    "cylex.de cylex-uk.co.uk werkenntdenbesten.de hamuch.com practo.com carecredit.com wlw.de dastelefonbuch.de kaufda.de feinschmecker.de"
   ).split(" ")
 );
 

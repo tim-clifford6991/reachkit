@@ -31,7 +31,17 @@
 // Pure, and stored evidence only: it buys nothing.
 import { SHAPES } from "@/lib/locale/language";
 import type { BusinessKind } from "@/lib/market/kinds";
-import { isArticleRow, isExplainerTitle, isListingAddress, isListingHost, isMarketplaceHost, isOwnContentUrl, isRoundupPage } from "@/lib/market/rivals/domains";
+import {
+  isAcademicDomain,
+  isArticleRow,
+  isExplainerTitle,
+  isListingAddress,
+  isListingHost,
+  isMarketplaceHost,
+  isOwnContentUrl,
+  isRoundupPage,
+  registrableDomain,
+} from "@/lib/market/rivals/domains";
 import { CONTENT_MIX } from "@/lib/config/constants";
 import { isLocalSearch, saysNearMe } from "@/lib/locale/place";
 import type { Place } from "@/lib/locale/locales";
@@ -151,27 +161,111 @@ export function otherKindTopTen(
   return held >= OTHER_KIND_TOP_TEN.min ? other : null;
 }
 
-/** How many of a top ten's results must be providers' own pages for its
- *  search to ask for one (SEO review C1, owner ruling B6, 2026-10-19). */
-export const OFFERING_TOP_TEN = Object.freeze({ min: 5 });
+/** The drafted thresholds of an offering results page (SEO ruling on
+ *  issue 1618, 2026-10-20); the owner may correct them. */
+export const OFFERING_TOP_TEN = Object.freeze({
+  /** Fewer organic results than this say nothing. */
+  minRows: 6,
+  /** More job pages than this make it a job seeker's search. */
+  maxJobs: 2,
+  /** Providers' own pages, and more of them than articles. */
+  minProviders: 4,
+  /** Beside a local pack, at most this many articles. */
+  maxArticlesBesidePack: 3,
+});
 
-/** Whether a result is a provider's own service or product page: not a
- *  listing, a marketplace, a round-up, an article, an explainer or a page
- *  of its own blog, in any language's words. */
-export function isProviderPage(row: TopTenRow): boolean {
-  const address = row.url ?? row.domain;
-  if (isListingAddress(address) || isListingHost(row.domain) || isMarketplaceHost(row.domain)) return false;
-  if (isRoundupPage(row) || isArticleRow(row) || rankedList(row.title)) return false;
-  if (row.title !== undefined && (isExplainerTitle(row.title) || SHAPES.guide.test(words(row.title)))) return false;
-  return row.url === undefined || !isOwnContentUrl(row.url);
+/** What one top-ten result is: a job page, a public body or a school, a
+ *  third party that lists others, an article, or a provider's own page. */
+export type ResultClass = "job" | "public" | "third_party" | "article" | "provider";
+
+const JOB_HOST = /^(jobs|careers|karriere|stellen)\./;
+const JOB_SEGMENT = /^(jobs?|job-details|vacanc(y|ies)|careers?|stellen(angebote)?|stellenmarkt|jobsuche)$/;
+const JOB_TITLE = /(?<![\p{L}\p{N}])(jobs?|vacanc(y|ies)|salary|salaries|stellenangebote?|gehalt)(?![\p{L}\p{N}])/iu;
+const PUBLIC_HOST = /(^|\.)(gov|mil)(\.[a-z]{2})?$|(^|\.)(gc\.ca|nhs\.uk|police\.uk|bund\.de|gv\.at|admin\.ch|europa\.eu)$/;
+const SEARCH_PARAM = /^(find_desc|find_loc|q|query|search|s|k|keyword|what|where)$/;
+const DIRECTORY_SEGMENT =
+  /^(search|suche|find|directory|verzeichnis|branchen|firmen|companies|categories|listings?|profiles?|biz|doctor-locator|filialen|threads?|forums?|community|groups|questions)$/;
+const DIRECTORY_NAME = /agencies|companies|firms|directory|listings|branchenbuch|telefonbuch|^(best|top)\p{L}+s$/u;
+const ARTICLE_SEGMENT = /^(stories|story|features|maps|magazin(e)?|journal|news|presse|ratgeber|wissen|lexikon)$/;
+const QUESTION_TITLE = /\?\s*$|^(what|why|how|where|who|which|wie|was|warum|wo|welche)(?![\p{L}\p{N}])/iu;
+const NUMBERED_TITLE = /^\d+\s+(?!(hours?|stunden?)(?![\p{L}\p{N}]))\p{L}/iu;
+const BYLINE = /(?<![\p{L}\p{N}])(by|von)\s+\p{Lu}/u;
+const ARTICLE_HOST = /\.(blog|news|media|magazine)$|^(blog|news|magazin(e)?|journal)\./;
+
+function segmentsOf(url: string | undefined): { path: string[]; params: string[] } {
+  if (url === undefined) return { path: [], params: [] };
+  try {
+    const parsed = new URL(url);
+    return { path: parsed.pathname.toLowerCase().split("/").filter(Boolean), params: [...parsed.searchParams.keys()].map((key) => key.toLowerCase()) };
+  } catch {
+    return { path: [], params: [] };
+  }
+}
+
+/** The words of an address's last segment: its file ending and any part
+ *  holding a digit (an id, a page number) are not words. */
+function slugWords(segment: string): number {
+  return segment.replace(/\.[a-z0-9]+$/, "").split("-").filter((part) => /^\p{L}+$/u.test(part)).length;
+}
+
+/**
+ * One top-ten result's class, from its stored address and title alone: the
+ * first that matches wins, so a directory's "THE BEST 10 PLUMBING" is a
+ * third party, not an article. A provider's own page is what is left.
+ */
+export function resultClass(row: TopTenRow): ResultClass {
+  const host = row.domain.toLowerCase().replace(/^www\./, "");
+  const { path, params } = segmentsOf(row.url);
+  const title = row.title ?? "";
+  if (JOB_HOST.test(host) || path.some((segment) => JOB_SEGMENT.test(segment)) || JOB_TITLE.test(title)) return "job";
+  if (PUBLIC_HOST.test(host) || isAcademicDomain(host)) return "public";
+  const name = (registrableDomain(host) ?? host).split(".")[0] ?? "";
+  if (
+    isListingAddress(row.url ?? row.domain) ||
+    isListingHost(row.domain) ||
+    isMarketplaceHost(row.domain) ||
+    params.some((key) => SEARCH_PARAM.test(key)) ||
+    path.some((segment) => DIRECTORY_SEGMENT.test(segment)) ||
+    DIRECTORY_NAME.test(name)
+  )
+    return "third_party";
+  const last = path.at(-1) ?? "";
+  if (
+    isRoundupPage(row) ||
+    isArticleRow(row) ||
+    rankedList(row.title) ||
+    (title !== "" && (isExplainerTitle(title) || SHAPES.guide.test(words(title)))) ||
+    (row.url !== undefined && isOwnContentUrl(row.url)) ||
+    path.some((segment) => ARTICLE_SEGMENT.test(segment)) ||
+    /\/20\d\d\//.test(row.url ?? "") ||
+    slugWords(last) >= 6 ||
+    QUESTION_TITLE.test(title.trim()) ||
+    NUMBERED_TITLE.test(title.trim()) ||
+    BYLINE.test(title) ||
+    ARTICLE_HOST.test(host)
+  )
+    return "article";
+  return "provider";
 }
 
 /**
  * Whether a stored results page asks for the business's own offering page:
- * a local pack, for a business that serves one place, or providers' own
- * pages for `OFFERING_TOP_TEN.min` or more of its first ten results.
+ * at least `minRows` results, not a job seeker's search, not a search to
+ * learn something, and either providers' own pages outnumber articles, or
+ * a local pack, for a business that serves one place, on a search that is
+ * not a list, beside few articles. Directories, social and public pages
+ * count for neither side.
  */
-export function offeringTopTen(read: Pick<TopTenRead, "rows" | "localPack">, business: KindOfBusiness | null): boolean {
-  if (read.localPack === true && servedPlace(business) !== null) return true;
-  return read.rows.slice(0, 10).filter(isProviderPage).length >= OFFERING_TOP_TEN.min;
+export function offeringTopTen(read: Pick<TopTenRead, "rows" | "localPack">, business: KindOfBusiness | null, query: string): boolean {
+  const rows = read.rows.slice(0, 10);
+  if (rows.length < OFFERING_TOP_TEN.minRows) return false;
+  const classes = rows.map(resultClass);
+  const count = (kind: ResultClass) => classes.filter((each) => each === kind).length;
+  if (count("job") > OFFERING_TOP_TEN.maxJobs) return false;
+  const text = words(query);
+  if ([SHAPES.howTo, SHAPES.guide, SHAPES.informational, SHAPES.insights].some((shape) => shape.test(text))) return false;
+  const providers = count("provider");
+  const articles = count("article");
+  if (providers >= OFFERING_TOP_TEN.minProviders && providers > articles) return true;
+  return read.localPack === true && servedPlace(business) !== null && !SHAPES.listicle.test(text) && articles <= OFFERING_TOP_TEN.maxArticlesBesidePack;
 }

@@ -78,6 +78,8 @@ import type { WritingMarket } from "../voice/market";
 import { languagePack, pagePathAlternation, SHAPES } from "@/lib/locale/language";
 import { brandOf, GENERIC_TOKENS } from "@/lib/market/questions/select";
 import { topicWords } from "@/lib/opportunities/intent";
+import { queryKey } from "@/lib/opportunities/cluster";
+import { askedOfReport } from "@/lib/opportunities/derive/topics";
 import { isPlatformDomain, nameLetters, registrableDomain } from "@/lib/market/rivals/domains";
 import type { Locale } from "@/lib/locale/locales";
 import type { NewsRow } from "@/lib/vendors/dataforseo/types";
@@ -168,6 +170,15 @@ export interface MarketResearch {
 }
 
 export const NO_RESEARCH: MarketResearch = Object.freeze({ facts: [], products: [] });
+
+/** No research bought: only the "People also ask" the stored report's SERPs
+ *  for `searches` already hold, for a page built from the business's own
+ *  facts (the offering page). */
+export function storedAsk(report: Pick<StoredReport, "questions" | "serps">, searches: readonly string[]): MarketResearch {
+  const wanted = new Set(searches.map(queryKey));
+  const peopleAlsoAsk = askedOfReport(report).filter((serp) => wanted.has(queryKey(serp.term))).flatMap((serp) => serp.peopleAlsoAsk);
+  return { ...NO_RESEARCH, asked: { peopleAlsoAsk: [...new Set(peopleAlsoAsk)], related: [] } };
+}
 
 interface ReadPage {
   url: string;

@@ -68,7 +68,7 @@ import { allowedFacts, readAllFacts, readDemoPhrases, type SourcedFact } from ".
 import { buildPack, builtFromOutside, questionsHeld, readPack, type ContextPack, type PackLivePage, type PackMeasurements } from "./pipeline/pack";
 import { generatePageFix } from "./pipeline/page-fix";
 import type { FixNote } from "./pipeline/repair";
-import { NO_RESEARCH, researchMarket, type MarketResearch } from "./pipeline/research";
+import { NO_RESEARCH, researchMarket, storedAsk, type MarketResearch } from "./pipeline/research";
 import { namedRivals } from "./rules/rivals";
 import { TEMPLATES } from "./templates";
 import { marketSearches, writingMarket } from "./voice/market";
@@ -657,7 +657,9 @@ async function writePage(a: PageInput & { attempts: number; startedAt?: number }
     //    read beside the market's searched terms too (owner, D62; issue
     //    1297): the pack says when it holds enough.
     const market = !template.research
-      ? NO_RESEARCH
+      ? type === "offering"
+        ? storedAsk(report, targetSearches(o))
+        : NO_RESEARCH
       : await researchMarket(cost, {
           siteId: a.siteId,
           locale,

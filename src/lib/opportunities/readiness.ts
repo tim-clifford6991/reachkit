@@ -268,8 +268,10 @@ export function shapedEvidence(o: Opportunity, read: TopTenRead | null, business
   if (read === null || !SHAPED.has(o.type) || (evidence.family !== "write" && evidence.family !== "earn")) return evidence;
   const rest = { ...evidence };
   delete rest.shape;
-  return offeringTopTen(read, business) ? { ...rest, shape: "offering" } : rest;
+  return offeringTopTen(read, business, o.targetQuery ?? "") ? { ...rest, shape: "offering" } : rest;
 }
+
+const shapeOf = (evidence: Evidence): string | undefined => ("shape" in evidence ? evidence.shape : undefined);
 
 /** An owned URL ranks for a search where the report's own SERP for it holds
  *  an organic row on the customer's domain. A search the report did not
@@ -462,8 +464,10 @@ export async function assessReadiness(
   let ready = 0;
   for (const row of rows) {
     const read = readOpportunity(row);
-    const evidence = shapedEvidence(read, fresh(read), ctx.business ?? null);
-    const reshaped = JSON.stringify(evidence) !== JSON.stringify(read.evidence) && store.setEvidence !== undefined;
+    // A row committed to a date is reshaped only by the week's full pass,
+    // so the evening check never makes more of a chosen week offering pages.
+    const evidence = a.only === undefined || row.planned_for == null ? shapedEvidence(read, fresh(read), ctx.business ?? null) : read.evidence;
+    const reshaped = shapeOf(evidence) !== shapeOf(read.evidence) && store.setEvidence !== undefined;
     if (reshaped) await store.setEvidence!(read.id, evidence);
     const stored = reshaped ? { ...read, evidence } : read;
     const band = ownRanked === null ? null : rebandFor(stored, ownRanked);

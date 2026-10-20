@@ -81,7 +81,7 @@ export function panelSite(domain: string): PanelSite {
 }
 
 /** The newest stored organic SERP for each search the site's passes bought. */
-function storedSerps(domain: string): Map<string, TopTenRead> {
+export function storedSerps(domain: string): Map<string, TopTenRead> {
   const file = `scripts/panel/evidence/${domain}.json`;
   const serps = new Map<string, TopTenRead>();
   if (!existsSync(file)) return serps;
@@ -96,7 +96,7 @@ function storedSerps(domain: string): Map<string, TopTenRead> {
 }
 
 /** The business as the panel lists it: its first kind and its one place. */
-function businessOf(domain: string): KindOfBusiness {
+export function businessOf(domain: string): KindOfBusiness {
   const panel: { sites: { domain: string; kinds: KindOfBusiness["kind"][]; place?: string[] }[] } = JSON.parse(readFileSync(`${PANEL}/sites.json`, "utf8"));
   const site = panel.sites.find((entry) => entry.domain === domain);
   return { kind: site?.kinds[0] ?? null, serves: site?.place === undefined ? null : { name: site.place[0] } };

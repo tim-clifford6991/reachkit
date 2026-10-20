@@ -46,6 +46,9 @@ export interface TidyInputs {
   /** Which of the titles the writer proposed is the page's (issue 1389),
    *  told the page they are for. Absent, it is the first. */
   pickTitle?: (proposed: readonly string[], on: { description: string; sections: readonly LaidSection[] }) => string;
+  /** What the business does not claim, taken out of each proposed title and
+   *  the description (`unclaimedSuperlatives`). Absent, nothing is. */
+  unclaimed?: (line: string) => string;
 }
 
 const collapse = (text: string): string => text.replace(/\s+/g, " ").trim();
@@ -501,12 +504,13 @@ export function layoutPage(parts: PageParts, template: Template, a: TidyInputs):
   const lead = [kept === null ? answerBox(parts.answer) : `:::answer\n${kept.answer}\n:::`, `:::takeaways\n${takeaways.map((item) => `- ${item}`).join("\n")}\n:::`];
   const text = sections.map((section) => `## ${section.heading}${section.body === "" ? "" : `\n\n${section.body}`}`);
   const cleaned = (text: string): string => recased(sentenceCase(tidyText(collapse(text)), proper), cased);
-  const description = fitDescription(tidyText(collapse(parts.description)));
+  const unclaimed = a.unclaimed ?? ((line: string) => line);
+  const description = fitDescription(tidyText(collapse(unclaimed(parts.description))));
   const laid = sections.map(({ key, heading, body }) => {
     const items = body.split("\n").filter((line) => /^\d+[.)]\s/.test(line)).length;
     return { key, heading, ...(items > 1 ? { items } : {}) };
   });
-  const proposed = parts.titles.map(cleaned).filter((each) => each !== "");
+  const proposed = parts.titles.map((each) => cleaned(unclaimed(each))).filter((each) => each !== "");
   const title =
     a.live === undefined
       ? (a.pickTitle?.(proposed, { description, sections: laid }) ?? proposed[0] ?? "")

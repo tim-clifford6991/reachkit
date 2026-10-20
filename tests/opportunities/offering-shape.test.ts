@@ -1,58 +1,113 @@
-// SPEC §7 (owner ruling B6, 2026-10-19; SEO review C1) — a search whose
-// stored results are mostly providers' own service or product pages is
-// written as the business's own offering page. Read on the customer panel's
+// SPEC §7 (owner ruling B6, 2026-10-19; SEO review C1 and its shape ruling
+// of 2026-10-20) — a search whose stored results ask for a provider's own
+// page is written as the business's own offering page. Read on the customer panel's
 // stored SERPs (`scripts/panel/evidence/`), through readiness and the
 // memory store. 0¢.
 import "./env";
-import { readFileSync } from "node:fs";
 import { afterEach, describe, expect, it } from "vitest";
 import type { MarketConclusion } from "../../src/lib/market/infer/types";
 import type { Profile } from "../../src/lib/market/questions/profile";
 import { queryKey } from "../../src/lib/opportunities/cluster";
 import { contentTypeOf } from "../../src/lib/opportunities/content-type";
-import { offeringTopTen, type KindOfBusiness, type TopTenRead, type TopTenRow } from "../../src/lib/opportunities/derive/top-ten-kind";
+import { offeringTopTen, resultClass, type KindOfBusiness, type TopTenRead } from "../../src/lib/opportunities/derive/top-ten-kind";
 import { pageTypeOf } from "../../src/lib/opportunities/page-type";
+import { pageForDay } from "../../src/lib/opportunities/plan";
 import { assessReadiness } from "../../src/lib/opportunities/readiness";
 import { readOpportunity, setOpportunityStore, type OpportunityRow } from "../../src/lib/opportunities/store";
 import { TEMPLATES } from "../../src/lib/generate/templates";
 import { memoryStore, newMemoryState } from "./memory-store";
 import { AT, SITE_ID } from "./fixtures";
+import { businessOf, storedSerps } from "../golden/plan/panel";
 
 /** The newest stored SERP a panel site's passes bought for `search`. */
 function storedSerp(domain: string, search: string): TopTenRead {
-  const evidence: { source: string; cache_key: string; created_at: string; payload: { organic?: TopTenRow[]; localPack?: unknown[] }[] | null }[] =
-    JSON.parse(readFileSync(`scripts/panel/evidence/${domain}.json`, "utf8"));
-  const held = evidence
-    .filter((row) => row.source === "serp/google/organic" && row.cache_key.split("|")[0] === search && (row.payload?.[0]?.organic ?? []).length > 0)
-    .sort((a, b) => b.created_at.localeCompare(a.created_at))[0];
+  const held = storedSerps(domain).get(queryKey(search));
   if (held === undefined) throw new Error(`no stored SERP for ${domain}: ${search}`);
-  const serp = held.payload![0]!;
-  return { at: AT, rows: serp.organic!, localPack: (serp.localPack ?? []).length > 0 };
+  return { ...held, at: AT };
 }
 
-const PLUMBER: KindOfBusiness = { kind: "local-service", serves: { name: "Austin" } };
-const BAKERY: KindOfBusiness = { kind: "local-service", serves: { name: "Düsseldorf" } };
-const SAAS: KindOfBusiness = { kind: "software", serves: null };
-const SHOP: KindOfBusiness = { kind: "shop", serves: null };
+const shapeOf = (domain: string, search: string, business: KindOfBusiness | null = businessOf(domain)) =>
+  offeringTopTen(storedSerp(domain, search), business, search) ? "offering" : "article";
 
 describe("the stored results page decides an offering page, for each kind of business", () => {
   it.each([
-    ["local service", "austinplumbery.com", "emergency plumber austin texas", PLUMBER],
-    ["local service, in German", "baeckerei-hinkel.de", "bäckerei düsseldorf", BAKERY],
-    ["SaaS feature", "savvycal.com", "find a time to meet", SAAS],
-    ["shop category", "tattly.com", "custom temporary tattoos", SHOP],
-  ] as const)("%s: %s asks for one", (_kind, domain, search, business) => {
-    expect(offeringTopTen(storedSerp(domain, search), business)).toBe(true);
+    // List-shaped, with few providers' pages among articles.
+    ["zunicafe.com", "best brunch place in san francisco", "article"],
+    ["zunicafe.com", "top restaurants in san francisco ca", "article"],
+    ["austinplumbery.com", "best plumber in austin texas", "article"],
+    // A job seeker's search, whatever the local pack.
+    ["alexander.co.uk", "financial accountant manchester", "article"],
+    // The local path: a pack, one place served, no list words, at most 3 articles.
+    ["fletcherelectric.co.uk", "eicr electrical leeds", "offering"],
+    ["pdxsmiledesign.com", "cosmetic dentist in portland oregon", "offering"],
+    // The organic path: a directory and a public body count for neither side.
+    ["clearleft.com", "user research agency", "offering"],
+    ["pdxsmiledesign.com", "dentist portland tn", "offering"],
+    // A list-shaped search the results themselves overrule.
+    ["pdxsmiledesign.com", "best dentist portland", "offering"],
+    ["austinplumbery.com", "emergency plumber austin texas", "offering"],
+    ["baeckerei-hinkel.de", "bäckerei düsseldorf", "offering"],
+    ["savvycal.com", "find a time to meet", "offering"],
+    ["tattly.com", "custom temporary tattoos", "offering"],
+    ["savvycal.com", "best appointment scheduling software", "article"],
+    ["streaksapp.com", "best habit tracker app", "article"],
+    ["baeckerei-hinkel.de", "what is artisan bakery", "article"],
+    // A local pack for a shop that sells everywhere.
+    ["tattly.com", "temporary tattoos near me", "article"],
+  ] as const)("%s: %s → %s", (domain, search, shape) => {
+    expect(shapeOf(domain, search)).toBe(shape);
   });
 
-  it.each([
-    ["a SaaS round-up", "savvycal.com", "best appointment scheduling software", SAAS],
-    ["a SaaS category of lists", "streaksapp.com", "best habit tracker app", SAAS],
-    ["an explainer", "baeckerei-hinkel.de", "what is artisan bakery", BAKERY],
-    // A local pack is a provider's page only for a business that serves one place.
-    ["a local pack beside articles, for a shop that sells everywhere", "tattly.com", "temporary tattoos near me", SHOP],
-  ] as const)("%s: %s does not", (_kind, domain, search, business) => {
-    expect(offeringTopTen(storedSerp(domain, search), business)).toBe(false);
+  it("the first class that matches wins", () => {
+    expect(resultClass({ domain: "www.yelp.com", url: "https://www.yelp.com/biz/austins-best-plumbing", title: "THE BEST 10 PLUMBING in Austin" })).toBe("third_party");
+    expect(resultClass({ domain: "www.indeed.com", url: "https://www.indeed.com/q-plumber-jobs.html", title: "Plumber Jobs in Austin" })).toBe("job");
+    expect(resultClass({ domain: "www.tn.gov", url: "https://www.tn.gov/health/dentists", title: "Dentists" })).toBe("public");
+    expect(resultClass({ domain: "www.bestplumbers.com", url: "https://www.bestplumbers.com/austin", title: "Plumbers in Austin" })).toBe("third_party");
+    expect(resultClass({ domain: "7x7.com", url: "https://www.7x7.com/brunch", title: "8 Excellent New Restaurants" })).toBe("article");
+    expect(resultClass({ domain: "rotorooter.com", url: "https://www.rotorooter.com/austin/", title: "24 Hour Plumber in Austin" })).toBe("provider");
+  });
+});
+
+describe("each threshold, at its edge", () => {
+  const provider = (n: number) => ({ domain: `provider${n}.com`, url: `https://provider${n}.com/services/`, title: "Emergency plumbing in Leeds" });
+  const article = (n: number) => ({ domain: `press${n}.com`, url: `https://press${n}.com/blog/leeds`, title: "Plumbing in Leeds" });
+  const listing = (n: number) => ({ domain: "www.yelp.com", url: `https://www.yelp.com/biz/plumber-${n}`, title: "Plumber" });
+  const job = (n: number) => ({ domain: `hire${n}.com`, url: `https://hire${n}.com/jobs/plumber`, title: "Plumber vacancy" });
+  const rows = (p: number, a: number, t: number, j = 0) => [
+    ...Array.from({ length: p }, (_, n) => provider(n)),
+    ...Array.from({ length: a }, (_, n) => article(n)),
+    ...Array.from({ length: t }, (_, n) => listing(n)),
+    ...Array.from({ length: j }, (_, n) => job(n)),
+  ];
+  const LEEDS: KindOfBusiness = { kind: "local-service", serves: { name: "Leeds" } };
+  const EVERYWHERE: KindOfBusiness = { kind: "software", serves: null };
+  const offering = (read: Pick<TopTenRead, "rows" | "localPack">, query = "emergency plumber", business = EVERYWHERE) => offeringTopTen(read, business, query);
+
+  it("organic: 4 providers ahead of the articles is one, 3 is not, and 4 beside 4 articles is not", () => {
+    expect(offering({ rows: rows(4, 3, 3) })).toBe(true);
+    expect(offering({ rows: rows(3, 0, 7) })).toBe(false);
+    expect(offering({ rows: rows(4, 4, 2) })).toBe(false);
+  });
+
+  it("2 job pages leave it a buyer's search and 3 make it a job seeker's", () => {
+    expect(offering({ rows: rows(5, 0, 3, 2) })).toBe(true);
+    expect(offering({ rows: rows(5, 0, 2, 3) })).toBe(false);
+  });
+
+  it("6 results say something and 5 say nothing", () => {
+    expect(offering({ rows: rows(6, 0, 0) })).toBe(true);
+    expect(offering({ rows: rows(5, 0, 0) })).toBe(false);
+  });
+
+  it("a search to learn something is never one", () => {
+    expect(offering({ rows: rows(7, 0, 3) }, "how to fix a leaking pipe")).toBe(false);
+  });
+
+  it("local: 3 articles beside the pack is one, 4 is not, a list-shaped search is not, a business that serves everywhere is not", () => {
+    expect(offering({ rows: rows(0, 3, 7), localPack: true }, "plumber leeds", LEEDS)).toBe(true);
+    expect(offering({ rows: rows(0, 4, 6), localPack: true }, "plumber leeds", LEEDS)).toBe(false);
+    expect(offering({ rows: rows(0, 0, 10), localPack: true }, "best plumber leeds", LEEDS)).toBe(false);
+    expect(offering({ rows: rows(0, 3, 7), localPack: true }, "plumber leeds", EVERYWHERE)).toBe(false);
   });
 });
 
@@ -138,5 +193,29 @@ describe("readiness stores the shape, and every reader types the row by it", () 
     const state = standUp([{ ...row("c", "emergency plumber austin texas", "keyword_page"), type: "comparison_page" }], new Map([[queryKey("emergency plumber austin texas"), emergency]]));
     await assessReadiness(SITE_ID, { at: AT, now: AT });
     expect(typed(state.rows[0]!)).toBe("listicle");
+  });
+
+  it("a week already committed keeps its types through the evening check, and only the week's full pass reshapes it", async () => {
+    const searches = ["emergency plumber austin texas", "austin emergency plumber", "plumbing services austin tx"];
+    const week = searches.map((search, n) => ({ ...row(`d${n}`, search, "keyword_page"), plan_place: n, planned_for: `2026-10-2${n}` }));
+    const state = standUp(week, new Map(searches.map((search) => [queryKey(search), storedSerp("austinplumbery.com", search)])));
+
+    await pageForDay(SITE_ID, "2026-10-20", AT);
+    expect(state.rows.map(typed)).toEqual(["qa", "qa", "qa"]);
+
+    await assessReadiness(SITE_ID, { at: AT, now: AT });
+    expect(state.rows.map(typed)).toEqual(["offering", "offering", "offering"]);
+  });
+
+  it("a row that already holds its shape is not written again, whatever order its stored keys come back in", async () => {
+    const held = row("k", "emergency plumber austin texas", "keyword_page");
+    // jsonb hands keys back in its own order, not the order they were written.
+    const state = standUp([{ ...held, evidence: { shape: "offering", ...(held.evidence as object) } }], new Map([[queryKey("emergency plumber austin texas"), emergency]]));
+    const writes: string[] = [];
+    const store = memoryStore(state);
+    setOpportunityStore({ ...store, topTenRows: async () => new Map([[queryKey("emergency plumber austin texas"), emergency]]), setEvidence: async (id) => void writes.push(id) });
+    await assessReadiness(SITE_ID, { at: AT, now: AT });
+    expect(writes).toEqual([]);
+    expect(typed(state.rows[0]!)).toBe("offering");
   });
 });
