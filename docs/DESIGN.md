@@ -132,7 +132,7 @@ The owner looks at `dev.reachkit.app` for taste: voice, and an asset only the ow
 | Draft: a page in review, and editing | `/app/draft/{draftId}` | [board](design/boards/canvas/AppDraft.dc.html) · [render](design/boards/canvas/renders/AppDraft.jpg) |
 | Technical issues | `/app/issues` | [board](design/boards/canvas/AppIssues.dc.html) · [render](design/boards/canvas/renders/AppIssues.jpg) |
 | Costs (owner only) | `/app/costs` | [board](design/boards/canvas/AppCosts.dc.html) · [render](design/boards/canvas/renders/AppCosts.jpg) |
-| Review (owner only) | not built | [board](design/boards/canvas/Review.dc.html) · [render](design/boards/canvas/renders/Review.jpg) |
+| Review (owner only) | `/app/review` | [board](design/boards/canvas/Review.dc.html) · [render](design/boards/canvas/renders/Review.jpg) |
 | Settings, Your business | `/app/settings` | [board](design/boards/canvas/SettingsIndex.dc.html) · [render](design/boards/canvas/renders/SettingsIndex.jpg) |
 | Settings, Market and competitors | `/app/settings/market` | [board](design/boards/canvas/SettingsMarket.dc.html) · [render](design/boards/canvas/renders/SettingsMarket.jpg) |
 | Settings, Publishing | `/app/settings/publishing` | [board](design/boards/canvas/SettingsPublishing.dc.html) · [render](design/boards/canvas/renders/SettingsPublishing.jpg) |

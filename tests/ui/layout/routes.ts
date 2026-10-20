@@ -225,6 +225,8 @@ export const ROUTE_REFERENCE: Readonly<Record<string, `S${number}`>> = {
    * fixture holds a page address longer than a phone is wide.
    */
   "/app/issues": "S18",
+  /** REFERENCE: S18 — Settings, the nearest approved screen: the owner's review, cards of rows; the sweep's account is an owner in CI. */
+  "/app/review": "S18",
   /**
    * REFERENCE: S19 — Hosted page (§S19; REQ-059).
    *
