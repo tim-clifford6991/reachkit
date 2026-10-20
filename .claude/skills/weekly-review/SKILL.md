@@ -20,7 +20,7 @@ One run a week. It reads, it classifies, it files at most five issues, it republ
 - `dry-run` (the argument): do every read, write the report and the page to `.review/weekly/`, and run no `gh issue create`, `comment`, `edit`, `pin` or `label` command. The report lists what a live run would file. The wrapper gives a dry run no tool that writes to GitHub.
 - live (the timer): as above, then file, comment and republish.
 
-Read `date -u +%F` (DAY) and `date -u -d '7 days ago' +%F` (SINCE) once and write both as literal dates in every later command: the wrapper allows plain commands, not shell expansion or redirection. Write files with the Write tool. Work from `/root/projects/reachkitv3` after `git fetch -q origin`; read `origin/main`, never change the checkout.
+Read `date -u +%F` (DAY) and `date -u -d '7 days ago' +%F` (SINCE) once and write both as literal dates in every later command: the wrapper allows each command only exactly as this page writes it, with no other option, shell expansion or redirection. Write files with the Write tool. Work from `/root/projects/reachkitv3` after `git fetch -q origin`; read `origin/main`, never change the checkout.
 
 ## 1. Five lenses
 
