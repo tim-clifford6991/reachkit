@@ -108,7 +108,7 @@ export const PUBLISH_COPY = Object.freeze({
   "record.ladder.indexed": ["Indexed", { slots: {}, fixedBy: "issue 1553 (drafted)" }],
   "record.ladder.impressions": ["Shown", { slots: {}, fixedBy: "issue 1553 (drafted)" }],
   "record.ladder.place": ["Placed", { slots: {}, fixedBy: "issue 1553 (drafted)" }],
-  "record.ladder.cited": ["Cited", { slots: {}, fixedBy: "issue 1553 (drafted)" }],
+  "record.ladder.cited": ["Linked by AI", { slots: {}, fixedBy: "issue 1582 (drafted)" }],
   "record.ladder.shown": ["Shown {count} times in Google and Bing in the last {days} days", { slots: { count: "text", days: "text" }, fixedBy: "issue 1553 (drafted)" }],
   "record.ladder.best": ["Best place {place}", { slots: { place: "text" }, fixedBy: "issue 1553 (drafted)" }],
   "record.ladder.note": [

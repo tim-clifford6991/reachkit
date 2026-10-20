@@ -115,6 +115,8 @@ function drawer(html: string): string {
 const LANDING = "/";
 const ELSEWHERE = "/pricing";
 const REPORT = "/scan/example.com";
+// The button's own text node, so the nav's "Free scans" never counts as it.
+const START = `>${COPY["chrome.cta.start"]}<`;
 
 const LANDING_ACTION: HeaderAction = { kind: "landing" };
 const ELSEWHERE_ACTION: HeaderAction = { kind: "cta" };
@@ -152,7 +154,7 @@ describe("SPEC §1, 2026-09-24 (#1066) — the banner and the nav", () => {
 
   it("the nav is Why it matters · How it works · How to start · Free scans · Pricing, then Sign in and Start free (#1069, issue 1396)", () => {
     const bar = withoutDrawer(markup(ELSEWHERE));
-    const words = [COPY["chrome.nav.why"], COPY["chrome.nav.works"], COPY["chrome.nav.how"], COPY["chrome.nav.scans"], COPY["chrome.nav.pricing"], COPY["chrome.nav.signin"], COPY["chrome.cta.start"]];
+    const words = [COPY["chrome.nav.why"], COPY["chrome.nav.works"], COPY["chrome.nav.how"], COPY["chrome.nav.scans"], COPY["chrome.nav.pricing"], COPY["chrome.nav.signin"], START];
     const at = words.map((w) => bar.indexOf(w));
     expect(at.every((i) => i > 0)).toBe(true);
     expect([...at].sort((x, y) => x - y)).toEqual(at);
@@ -202,8 +204,8 @@ describe("SPEC §1, 2026-09-24 (#1066) — the banner and the nav", () => {
     const menu = drawer(html);
     for (const href of ["/#why", "/#how", "/pricing", "/signin"]) expect(menu).toContain(`href="${href}"`);
     expect(menu).toContain('data-testid="theme-switch"');
-    expect(menu).not.toContain(COPY["chrome.cta.start"]);
-    expect(withoutDrawer(html)).toContain(COPY["chrome.cta.start"]);
+    expect(menu).not.toContain(START);
+    expect(withoutDrawer(html)).toContain(START);
   });
 });
 
@@ -220,7 +222,7 @@ describe("owner 2026-09-26 (#1125) — signed in, one button into the app", () =
       expect(withoutDrawer(html)).toContain(`href="/app"`);
       expect(withoutDrawer(html)).toContain(COPY["chrome.cta.app"]);
       expect(html).not.toContain(COPY["chrome.nav.signin"]);
-      expect(html).not.toContain(COPY["chrome.cta.start"]);
+      expect(html).not.toContain(START);
       expect(html).not.toContain('href="/signin"');
     }
   });
