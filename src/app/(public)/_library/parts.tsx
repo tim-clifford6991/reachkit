@@ -125,7 +125,7 @@ export function Sketch(p: { domain: string; marks: readonly SketchMark[]; captio
         <ol className="bg-base-100 flex min-w-0 flex-col gap-3 p-4">
           {p.marks.map((mark, i) => (
             <li key={mark.title} className="flex min-w-0 items-start gap-3">
-              <span className="badge badge-neutral badge-sm shrink-0">{i + 1}</span>
+              <span className="badge badge-ghost badge-sm shrink-0">{i + 1}</span>
               <div className="flex min-w-0 flex-col gap-1">
                 {mark.quotes.map((quote) => (
                   <q key={quote} className="break-words">
