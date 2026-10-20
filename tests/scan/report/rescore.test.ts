@@ -727,3 +727,28 @@ describe("issue 1551: a paid scan's Content is read again over its measured page
     expect("result" in read && read.result.kept).toContain(KEPT_CONTENT_PAGES);
   });
 });
+
+describe("the other markets a stored home read declares are counted at 0¢", () => {
+  const declaring = (scan: FixtureScan): FixtureScan => {
+    const payload = scan.home!.payload as Record<string, unknown>;
+    const alternates = ["en", "de-de", "fr-fr"].map((tag) => `<link rel="alternate" hreflang="${tag}" href="https://zapier.com/${tag === "en" ? "" : `${tag}/`}">`).join("");
+    return { ...scan, home: { ...scan.home!, payload: { ...payload, html: `<html lang="en"><head>${alternates}</head><body></body></html>` } } };
+  };
+
+  it("a report whose stored home read declares them gains them, and a second apply changes nothing", async () => {
+    const scan = declaring(fixture("zapier.com"));
+    expect(String((scan.home!.payload as { html: string }).html)).toContain('hreflang="de-de"');
+    const db = storeOf([scan]);
+    await rescoreStored(db.store, apply);
+    expect((db.rows.get(scan.id)!.report as { locale?: unknown }).locale).toEqual({ country: "US", language: "en", alsoServes: ["de-de", "fr-fr"] });
+    const again = await rescoreStored(db.store, apply);
+    expect(again).toMatchObject({ scansChanged: 0 });
+  });
+
+  it("a report whose home read is gone keeps what it has, until its next scan", async () => {
+    const scan = { ...declaring(fixture("zapier.com")), home: null };
+    const db = storeOf([scan]);
+    await rescoreStored(db.store, apply);
+    expect((db.rows.get(scan.id)!.report as { locale?: unknown }).locale).toBeUndefined();
+  });
+});

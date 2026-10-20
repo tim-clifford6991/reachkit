@@ -33,6 +33,7 @@ import Link from "next/link";
 import { ArrowRight, Check } from "lucide-react";
 import { Surface } from "@/ui/layout";
 import { HOSTED_RETENTION_DAYS } from "@/lib/config/constants";
+import { countriesMeasuredIn } from "@/lib/locale/locales";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { ScanForm } from "./_landing/ScanForm";
 import { scanFormWords } from "./_landing/scan-form-words";
@@ -68,6 +69,11 @@ const INCLUDED: readonly { key: CopyKey; vars?: Record<string, string> }[] = [
   { key: "landing.price.site" },
 ];
 
+/** "Germany, Austria, and Switzerland". */
+function listed(names: readonly string[]): string {
+  return new Intl.ListFormat("en", { type: "conjunction" }).format(names);
+}
+
 /** The questions, in the board's order. The guarantee and *Cancel your
  *  contract* wait for the launch gate and are not drawn. */
 function questions(): readonly { id: string; vars?: Record<string, string>; more?: string }[] {
@@ -81,7 +87,10 @@ function questions(): readonly { id: string; vars?: Record<string, string>; more
     { id: "stop", vars: { days: String(HOSTED_RETENTION_DAYS) } },
     { id: "local", vars: { weekPages: WEEK_PAGES } },
     { id: "start" },
-    { id: "german" },
+    {
+      id: "german",
+      vars: { germanCountries: listed(countriesMeasuredIn("de")), englishCountries: listed(countriesMeasuredIn("en")) },
+    },
     { id: "trial", vars: { price: PRICE() } },
   ];
 }

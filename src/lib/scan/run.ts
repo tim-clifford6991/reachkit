@@ -1312,7 +1312,8 @@ interface StageArgs {
 function reportLocale(m: DomainMeasurement): ReportLocale | null {
   const usual = m.locale.country === DEFAULT_LOCALE.country && m.locale.language === DEFAULT_LOCALE.language;
   const place = m.locale.place;
-  if (usual && m.localeFellBack === null && place === undefined) return null;
+  const alsoServes = m.alsoServes ?? [];
+  if (usual && m.localeFellBack === null && place === undefined && alsoServes.length === 0) return null;
   return {
     country: m.locale.country,
     language: m.locale.language,
@@ -1320,6 +1321,7 @@ function reportLocale(m: DomainMeasurement): ReportLocale | null {
     // measurement line names.
     ...(place === undefined ? {} : { place }),
     ...(m.localeFellBack === null ? {} : { fellBack: m.localeFellBack }),
+    ...(alsoServes.length === 0 ? {} : { alsoServes }),
   };
 }
 

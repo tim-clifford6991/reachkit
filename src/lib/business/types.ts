@@ -21,6 +21,8 @@ export interface BusinessUnderstanding {
     /** The town or city a local business serves. */
     place: Place | null;
     country: Country;
+    /** How many other markets the site's home page declares. */
+    alsoServes?: number;
   };
   kind: BusinessKind | null;
   /** The language its buyers search in. */

@@ -777,7 +777,10 @@ export const REPORT_COPY = Object.freeze({
   "landing.faq.start.q": ["What do I need to start?", { slots: {}, fixedBy: "board Landing · issue 1596" }],
   "landing.faq.start.a": ["A website you can connect. You pay first, with no account form, then spend about 10 minutes on setup. Connecting is one setting where your web address is managed, for a blog address such as blog.yourdomain.com (we show you what to copy), or your WordPress login. Your first page is written while you do it.", { slots: {}, fixedBy: "board Landing · issue 1596" }],
   "landing.faq.german.q": ["Does it work in German?", { slots: {}, fixedBy: "board Landing · issue 1596" }],
-  "landing.faq.german.a": ["Yes. Your site is measured in its own country and language, and pages are written in English or German. This website and your dashboard are in English.", { slots: {}, fixedBy: "board Landing · issue 1596" }],
+  "landing.faq.german.a": [
+    "Yes. Sites in {germanCountries} are measured in German and get pages in German. Sites in {englishCountries} are measured and written in English. A site anywhere else is measured in the nearest of these countries, in English, and its report says so. This website and your dashboard are in English.",
+    { slots: { germanCountries: "text", englishCountries: "text" }, fixedBy: "board Landing · issue 1689" },
+  ],
   "landing.faq.trial.q": ["Why is there no free trial?", { slots: {}, fixedBy: "board Landing · issue 1596" }],
   "landing.faq.trial.a": ["The scan and your first page are free, so you can see what ReachKit would do before you pay. After that there’s one plan at {price} a month, and you can cancel any time.", { slots: { price: "text" }, fixedBy: "board Landing · issue 1596" }],
   "landing.faq.results.more": ["See it week by week", { slots: {}, fixedBy: "board Landing · issue 1596" }],
@@ -871,6 +874,35 @@ export const REPORT_COPY = Object.freeze({
   "report.locale.fell-back": [
     "Measured as searched in {country}, in {language}. ReachKit does not measure {unmeasured} yet.",
     { slots: { country: "text", language: "text", unmeasured: "text" }, fixedBy: "SPEC §6 · D66 · issue 1311" },
+  ],
+  // A country or language on the list is never called unmeasured: the line
+  // names the pair the site read as and what ReachKit measures instead.
+  // Drafted (#759).
+  "report.locale.pair-fell-back": [
+    "Measured as searched in {country}, in {language}. Your site reads as {readLanguage}; ReachKit measures {readCountry} in {ownLanguage}.",
+    { slots: { country: "text", language: "text", readLanguage: "text", readCountry: "text", ownLanguage: "text" }, fixedBy: "SPEC §6 · D66 · issue 1689" },
+  ],
+  "report.locale.country-read-as": [
+    "Measured as searched in {country}, in {language}, because your site read as {readLanguage}. ReachKit measures {readCountry} in {ownLanguage}: scan again to see it.",
+    { slots: { country: "text", language: "text", readLanguage: "text", readCountry: "text", ownLanguage: "text" }, fixedBy: "SPEC §6 · D66 · issue 1689" },
+  ],
+  // A site that declares other markets: one is measured, chosen at setup.
+  // Drafted (#759).
+  "report.locale.also-serves": [
+    "Your site also serves {n} other markets. We measure the one this address is for; choose another at setup.",
+    { slots: { n: "text" }, fixedBy: "SPEC §6 · D66 · issue 1689" },
+  ],
+  "report.locale.also-serves.one": [
+    "Your site also serves one other market. We measure the one this address is for; choose another at setup.",
+    { slots: {}, fixedBy: "SPEC §6 · D66 · issue 1689" },
+  ],
+  "app.locale.also-serves": [
+    "Your site also serves {n} other markets; we measure one. Change it at setup.",
+    { slots: { n: "text" }, fixedBy: "SPEC §6 · D66 · issue 1689" },
+  ],
+  "app.locale.also-serves.one": [
+    "Your site also serves one other market; we measure one. Change it at setup.",
+    { slots: {}, fixedBy: "SPEC §6 · D66 · issue 1689" },
   ],
   "report.locale.site.pair": ["{country} in {language}", { slots: { country: "text", language: "text" }, fixedBy: "SPEC §6 · D66 · issue 1311" }],
   // The measurement line of a report measured anywhere but in US Google in

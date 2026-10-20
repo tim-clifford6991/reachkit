@@ -590,6 +590,10 @@ export interface StoredReport {
 
 export interface ReportLocale extends Locale {
   fellBack?: { country: string | null; language: string | null };
+  /** The other markets the site's home page declares, as BCP-47 tags
+   *  without the measured one (`marketsServed`). Absent where it declares
+   *  none, and on every report read before it was counted. */
+  alsoServes?: readonly string[];
   /** Which evidence named the town a free scan measured in (issue 1441):
    *  `PLACE_FROM`. Absent where it measured in none, or a paid pass settled
    *  the place. */

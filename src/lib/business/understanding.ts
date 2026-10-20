@@ -39,6 +39,8 @@ export function understandBusiness(a: {
   profile: Profile | null;
   /** Where the latest scan measured. */
   locale: Locale;
+  /** How many other markets the newest pass read the site declares. */
+  alsoServes?: number;
   /** A paying site's stored market and its confirmed category. */
   market?: StoredMarket | null;
   category?: string | null;
@@ -78,7 +80,7 @@ export function understandBusiness(a: {
     job,
     sells,
     buyers,
-    where: { reach, place, country: a.locale.country },
+    where: { reach, place, country: a.locale.country, ...(a.alsoServes === undefined || a.alsoServes === 0 ? {} : { alsoServes: a.alsoServes }) },
     kind: isBusinessKind(kind) ? kind : null,
     language: a.locale.language,
   };
