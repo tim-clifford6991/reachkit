@@ -21,7 +21,7 @@ import { publishingStatement } from "../_shell/PublishingCard";
 import type { ShellModel } from "../_shell/model";
 import { dayKeyOf, type DayKey } from "../calendar/dates";
 
-export type AutopilotState = "due" | "writing" | "paused" | "stopped" | "nothing_planned" | "unexplained";
+export type AutopilotState = "due" | "writing" | "address_waiting" | "paused" | "stopped" | "nothing_planned" | "unexplained";
 
 export interface AutopilotHead {
   state: AutopilotState;
@@ -31,6 +31,7 @@ export interface AutopilotHead {
 
 const STATE_OF = {
   reachkit_stopped: "stopped",
+  address_waiting: "address_waiting",
   publishing_paused: "paused",
   not_written: "writing",
   nothing_planned: "nothing_planned",

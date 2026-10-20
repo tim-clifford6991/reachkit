@@ -359,6 +359,7 @@ describe(`connect state — ${unconnectedRoutes.length} route(s) × ${sweepWidth
                 connect: await page.locator('[data-testid="overview-connect"]').count(),
                 record: await page.locator(`[data-testid="dns-record"][data-host="${UNCONNECTED_HOST}"]`).count(),
                 tiles: await page.locator('[data-testid="overview-tiles"]').count(),
+                when: await page.locator('[data-testid="shell-waiting-when"]').count(),
               };
               const results = [
                 await page.evaluate(checkNoHorizontalScroll),
@@ -376,7 +377,7 @@ describe(`connect state — ${unconnectedRoutes.length} route(s) × ${sweepWidth
             },
             headersFor(route)
           );
-          expect(drawn).toEqual({ connect: 1, record: 1, tiles: 0 });
+          expect(drawn).toEqual({ connect: 1, record: 1, tiles: 0, when: 0 });
           expect(offenders).toEqual([]);
         },
         PER_ROUTE_BROWSER_MS

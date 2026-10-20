@@ -89,6 +89,8 @@ vi.mock("@/lib/db", () => {
 
 const { readShellFacts } = await import("@/app/(account)/app/_shell/store");
 const { dayCeilingCents, registerPayingSiteCounter } = await import("@/lib/costs/daily");
+const { assembleShell } = await import("@/app/(account)/app/_shell/model");
+const { publishingStatement } = await import("@/app/(account)/app/_shell/PublishingCard");
 
 /** Paying sites at the day's start; the day's ceiling is read off them. */
 const PAYING_SITES = 3;
@@ -311,5 +313,46 @@ describe("the site's own facts are carried through, never a fixture's", () => {
   it("the weeks come from §11's own rows, asked for this site", async () => {
     await readShellFacts(SITE);
     expect(measuredWeeksOf).toHaveBeenCalledWith(expect.objectContaining({ site: SITE }));
+  });
+});
+
+describe("until the hosted address is live, the shell names no go-live time", () => {
+  const inReview = {
+    id: "d1",
+    site_id: "site-1",
+    state: "in_review",
+    title: "What a boiler service costs",
+    scheduled_for: "2026-10-21",
+    veto_deadline: "2026-10-21T16:00:00.000Z",
+  };
+  const hosted = (hostname_state: string) => [
+    { id: "dest-1", site_id: "site-1", kind: "hosted", hostname: "blog.acme.test", hostname_state, deleted_at: null },
+  ];
+
+  it("pending DNS: the waiting page has no time, there is no next publish, and the line says why", async () => {
+    rows.set("drafts", [inReview]);
+    rows.set("destinations", hosted("pending_dns"));
+    const facts = await readShellFacts(SITE);
+    expect(facts.review).toEqual({ draftId: "d1", title: inReview.title, goesLiveAt: null });
+    expect(facts.next).toBeNull();
+    const shell = assembleShell(facts);
+    expect(shell.publishing).toEqual({ mode: "autopilot", next: null, because: "address_waiting" });
+    expect(publishingStatement(shell).line).toBe("Waiting for your domain");
+  });
+
+  it("live: the same page keeps its time and is the next publish", async () => {
+    rows.set("drafts", [inReview]);
+    rows.set("destinations", hosted("live"));
+    const facts = await readShellFacts(SITE);
+    expect(facts.review?.goesLiveAt).toEqual(new Date(inReview.veto_deadline));
+    expect(facts.next).toEqual(new Date(inReview.veto_deadline));
+    expect(facts.noPublishCauses.address_waiting).toBe(false);
+  });
+
+  it("a site with no hosted address is not waiting for one", async () => {
+    rows.set("drafts", [inReview]);
+    const facts = await readShellFacts(SITE);
+    expect(facts.next).toEqual(new Date(inReview.veto_deadline));
+    expect(facts.noPublishCauses.address_waiting).toBe(false);
   });
 });

@@ -219,6 +219,14 @@ function goesLiveAtOf(row: ScheduledDraftRow): Date | null {
   return Number.isNaN(moment.getTime()) ? null : moment;
 }
 
+/** Whether this site's hosted address is still waiting for its DNS record.
+ *  A site with no hosted address, or a read that fails, is not waiting. */
+async function hostedAddressWaiting(siteId: string): Promise<boolean> {
+  const { hostedHostFor } = await import("@/lib/publish/destinations/hosted/hostname");
+  const host = await hostedHostFor(siteId).catch(() => null);
+  return host !== null && host.state !== "live";
+}
+
 /** How many pages this site has planned and not written yet, and how many
  *  it has that a publish could still reach at all — §4.4's `not_written`
  *  and `nothing_planned`, from one read. */
@@ -247,16 +255,19 @@ export async function readShellFacts(site: ShellSite): Promise<ShellFacts> {
   // signed-in baseline whatever the screen under it did.
   const now = clock();
 
-  // The switch is read first: whether there is a next publish at all
-  // depends on it (see `nextScheduled`), so it cannot be read beside it.
-  const publishingOn = await isPublishingOn(site.siteId);
+  // The switch and the address are read first: whether there is a next
+  // publish at all depends on both (see `nextScheduled`).
+  const [publishingOn, addressWaiting] = await Promise.all([
+    isPublishingOn(site.siteId),
+    hostedAddressWaiting(site.siteId),
+  ]);
 
   const [weeks, firstDueOn, waits, blog, next, planned, stopped] = await Promise.all([
     measuredWeeksOf({ site, now }),
     nextDueOn({ siteId: site.siteId, now }),
     waiting(site.siteId),
     blogAddress(site.siteId),
-    nextScheduled(site.siteId, publishingOn),
+    nextScheduled(site.siteId, publishingOn && !addressWaiting),
     plannedCounts(site.siteId),
     readStop(),
   ]);
@@ -268,7 +279,9 @@ export async function readShellFacts(site: ShellSite): Promise<ShellFacts> {
     weeks,
     firstDueOn,
     waiting: waits.count,
-    review: waits.review,
+    // The day's hold keeps every page back until the address is live, so
+    // no go-live time is true until then.
+    review: waits.review === null || !addressWaiting ? waits.review : { ...waits.review, goesLiveAt: null },
     blog,
     next,
     stopped,
@@ -277,6 +290,7 @@ export async function readShellFacts(site: ShellSite): Promise<ShellFacts> {
     // tested first.
     noPublishCauses: {
       reachkit_stopped: stopped !== null,
+      address_waiting: addressWaiting,
       publishing_paused: !publishingOn,
       not_written: next === null && planned.unwritten > 0,
       nothing_planned: planned.reachable === 0,
