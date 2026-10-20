@@ -1528,3 +1528,4 @@ deployment (`dpl_2NEUXishMXAkzXG4Ti85yTy7NDda`, 23 Aug 2026).
 ## 11. History
 
 Do not extend this section. Cutover and incident narrative live in git. Rollback to v2 is §9.
+
