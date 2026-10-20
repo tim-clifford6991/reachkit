@@ -15,6 +15,9 @@ export interface LengthRange {
   ceiling: number;
 }
 
+/** The share of its maximum a new page aims at: below the stop line, as the old midpoint was. */
+export const AIM = 0.8;
+
 /** The words a page of this template is written to and held to. A new page
  *  answers its fixed sections and the pack's `questions`, each given the
  *  same share of the type's maximum, which caps it; a short, complete page
@@ -32,7 +35,7 @@ export function lengthRangeFor(
     const bounds = sectionBounds(template);
     const fixed = template.sections.filter((section) => section.repeat === undefined).length;
     const answered = Math.min(bounds.max, Math.max(bounds.min, fixed + (a.questions ?? 0)));
-    return { floor: 0, target: Math.round((ceiling * answered) / bounds.max), ceiling };
+    return { floor: 0, target: Math.round((AIM * ceiling * answered) / bounds.max), ceiling };
   }
   const live = a.liveWords ?? null;
   if (live === null || live <= 0) return null;

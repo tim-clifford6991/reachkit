@@ -39,13 +39,13 @@ const NEW_TYPES = ["qa", "how_to", "documentation", "listicle", "insights", "res
 
 describe("a new page's length follows the questions it answers", () => {
   for (const [site, questions] of Object.entries(PANEL)) {
-    it(`${site}: a page answering 3 questions aims shorter than one answering 9, which aims at its type's maximum`, () => {
-      for (const type of ["qa", "listicle", "insights"] as const) {
+    it(`${site}: a page answering 1 question aims shorter than one answering 9, which aims below its type's maximum`, () => {
+      for (const type of ["qa", "how_to", "documentation", "listicle", "insights"] as const) {
         const template = TEMPLATES[type];
-        const few = lengthRangeFor(template, { questions: questions.slice(0, 3).length })!;
+        const few = lengthRangeFor(template, { questions: questions.slice(0, 1).length })!;
         const many = lengthRangeFor(template, { questions: questions.length })!;
         expect(few.target).toBeLessThan(many.target);
-        expect(many.target).toBe(many.ceiling);
+        expect(many.target).toBe(Math.round(0.8 * many.ceiling));
       }
     });
   }
@@ -71,7 +71,7 @@ describe("a new page's length follows the questions it answers", () => {
     const cap = VOICE.short.words.ceiling;
     const few = lengthRangeFor(TEMPLATES.qa, { questions: 5, cap })!;
     const many = lengthRangeFor(TEMPLATES.qa, { questions: 8, cap })!;
-    expect(many).toEqual({ floor: 0, target: cap, ceiling: cap });
+    expect(many).toEqual({ floor: 0, target: Math.round(0.8 * cap), ceiling: cap });
     expect(few.target).toBeLessThan(many.target);
   });
 

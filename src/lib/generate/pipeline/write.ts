@@ -25,7 +25,7 @@ import type { PageType } from "@/lib/opportunities/types";
 import { REGISTER_FLOOR } from "../rules/figures";
 import { HONESTY_INSTRUCTION } from "../rules/honest";
 import { AVOID_LIST } from "../rules/prose-english";
-import type { LengthRange } from "../length";
+import { AIM, type LengthRange } from "../length";
 import { languageRules, sectionBounds, titleFormulas, type Template } from "../templates";
 import { voiceRules } from "../voice/register";
 import type { ContextPack } from "./pack";
@@ -249,7 +249,7 @@ function lengthTask(a: WriteInputs): string {
   const target = a.length.target ?? Math.round((floor + ceiling) / 2);
   const counted = a.pack.type === "update" ? "The page's sections together — the short answer and the takeaways are not counted —" : "The page's body — the short answer, the takeaways and every section together —";
   const sections = Math.max(1, a.template.sections.reduce((sum, slot) => sum + (slot.repeat?.min ?? 1), 0));
-  const each = floor > 0 ? Math.round(target / sections) : Math.round(ceiling / sectionBounds(a.template).max);
+  const each = floor > 0 ? Math.round(target / sections) : Math.round((AIM * ceiling) / sectionBounds(a.template).max);
   const range = floor > 0 ? `between ${floor} and ${ceiling}` : `at most ${ceiling}`;
   const least = floor > 0 ? `, and no section under ${Math.ceil((floor * 1.15) / sections)}` : "";
   return `${counted} must be ${range} words, counted. Write about ${target} words — about ${each} a section${least}: a page ${floor > 0 ? `under ${floor} or ` : ""}over ${ceiling} is stopped. Give every paragraph something the reader can use — detail, an example, a comparison or a consequence drawn from \`pack\` — and never pad or restate a point to reach the length.`;
