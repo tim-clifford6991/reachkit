@@ -46,6 +46,8 @@ export const PAGE_COPY_DE = {
   "hosted.readingTime": "{minutes} Min. Lesezeit",
   "hosted.about": "Über {publisher}",
   "hosted.about.author": "Geschrieben von {author}",
+  "hosted.action.book": "Termin vereinbaren",
+  "hosted.action.quote": "Angebot anfragen",
   "hosted.made": "Mit KI geschrieben, aus {facts} Fakten von {site}, und vor der Veröffentlichung anhand von {rules} Regeln geprüft.",
   "hosted.made.one": "Mit KI geschrieben, aus einem Fakt von {site}, und vor der Veröffentlichung anhand von {rules} Regeln geprüft.",
   "hosted.made.sources": "Die Quellen stehen unten.",

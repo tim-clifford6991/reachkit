@@ -8,6 +8,9 @@
 import { MARK_CLASS } from "@/app/(account)/app/draft/[draftId]/present";
 import type { HtmlClasses } from "@/lib/publish/render/markdown";
 
+/** A list inside a `not-prose` box keeps the markers `prose` gives the rest. */
+const BOX_LISTS = "[&_ul]:list-disc [&_ol]:list-decimal [&_ul]:space-y-1 [&_ol]:space-y-1 [&_ul]:pl-5 [&_ol]:pl-5";
+
 /**
  * What `prose` does not decide, and this page does (issue 929).
  *
@@ -49,11 +52,10 @@ export const HOSTED_BODY_CLASSES: HtmlClasses = Object.freeze({
   table: "min-w-[36rem]",
   pre: "bg-base-200 rounded-box overflow-x-auto p-3",
   mark: MARK_CLASS,
-  answer: "not-prose bg-base-200 rounded-box my-6 p-5",
+  answer: `not-prose bg-base-200 rounded-box my-6 p-5 ${BOX_LISTS}`,
   answerLabel: "eyebrow mb-2",
-  // The key takeaways (SPEC §7, 2026-09-29, D4): the same box. Its list is
-  // inside `not-prose`, so the markers `prose` would have set are named.
-  takeaways: "not-prose bg-base-200 rounded-box my-6 p-5 [&_ul]:list-disc [&_ul]:space-y-1 [&_ul]:pl-5",
+  // The key takeaways (SPEC §7, 2026-09-29, D4): the same box.
+  takeaways: `not-prose bg-base-200 rounded-box my-6 p-5 ${BOX_LISTS}`,
   takeawaysLabel: "eyebrow mb-2",
 });
 

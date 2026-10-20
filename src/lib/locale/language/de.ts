@@ -70,6 +70,8 @@ export const DE: LanguagePack = {
       docs: ["dokumentation", "anleitung", "anleitungen", "hilfe"],
       customers: ["kunden", "referenzen", "fallstudien", "erfolgsgeschichten"],
       reviews: ["bewertungen", "kundenstimmen", "erfahrungen"],
+      book: ["termin", "terminvereinbarung", "termin-buchen", "termin-vereinbaren", "buchen", "online-buchen"],
+      quote: ["kostenvoranschlag", "angebot-anfordern", "angebot-anfragen"],
     },
     headings: {
       legal: ["datenschutzerklärung", "datenschutz", "allgemeine geschäftsbedingungen", "agb", "widerrufsbelehrung", "nutzungsbedingungen"],
@@ -79,6 +81,8 @@ export const DE: LanguagePack = {
       blog: ["aktuelles", "neuigkeiten", "pressemitteilung", "fallstudie"],
       features: ["funktionen", "so funktioniert", "leistungen"],
       product: ["unsere produkte", "unser sortiment", "lösungen", "unsere leistungen"],
+      book: ["termin vereinbaren", "termin buchen", "online buchen", "jetzt buchen", "terminvereinbarung"],
+      quote: ["kostenvoranschlag", "angebot anfordern", "angebot anfragen", "angebot einholen"],
     },
   },
   shapes: {

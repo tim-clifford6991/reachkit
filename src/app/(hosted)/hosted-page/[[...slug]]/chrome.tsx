@@ -5,7 +5,7 @@
 // two ways. daisyUI classes and lucide only, no client JavaScript, and no
 // primary colour: the product's colour would be our branding on their page.
 import type React from "react";
-import { ArrowUpRight } from "lucide-react";
+import { ArrowUpRight, CalendarCheck, ClipboardCheck } from "lucide-react";
 import { copy } from "@/lib/presentation/copy/reader";
 import type { HostedIdentity } from "@/lib/publish/destinations/hosted";
 import { QUIET_LINE } from "./present";
@@ -69,6 +69,12 @@ function VisitButton({ business, width }: { business: HostedBusiness; width: str
   );
 }
 
+/** The main site's own book and quote pages, as the scan stored them. */
+const ACTIONS = {
+  book: { label: "hosted.action.book", Icon: CalendarCheck },
+  quote: { label: "hosted.action.quote", Icon: ClipboardCheck },
+} as const;
+
 /** Half the header at most, so the name beside it keeps the other half. */
 const HEADER_BUTTON = "max-w-[50%]";
 const CARD_BUTTON = "max-w-full";
@@ -98,6 +104,7 @@ export function AboutCard({
   author?: { name: string; url: string | null } | null;
 }): React.JSX.Element {
   const written = author === null ? null : copy("hosted.about.author", { author: author.name });
+  const actions = business.mainSite?.actions ?? [];
   return (
     <aside className="card card-border bg-base-100 mt-10" aria-label={copy("hosted.about", { publisher: business.name })}>
       <div className="card-body flex-row flex-wrap items-center gap-4">
@@ -118,6 +125,22 @@ export function AboutCard({
           )}
         </div>
         <VisitButton business={business} width={CARD_BUTTON} />
+        {/* Plain links only where the main site links the page itself; `role` keeps a styled list a list in Safari. */}
+        {actions.length === 0 ? null : (
+          <ul role="list" className="flex basis-full flex-wrap gap-x-5 gap-y-1 text-sm">
+            {actions.map(({ kind, url }) => {
+              const { label, Icon } = ACTIONS[kind];
+              return (
+                <li key={kind}>
+                  <a href={url} className="link link-hover inline-flex items-center gap-1.5">
+                    <Icon size={16} strokeWidth={1.75} aria-hidden className="flex-none" />
+                    {copy(label)}
+                  </a>
+                </li>
+              );
+            })}
+          </ul>
+        )}
       </div>
     </aside>
   );
