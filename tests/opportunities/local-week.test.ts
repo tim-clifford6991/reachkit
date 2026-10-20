@@ -12,10 +12,11 @@ import type { MarketConclusion } from "../../src/lib/market/infer/types";
 import type { Profile } from "../../src/lib/market/questions/profile";
 import { queryKey } from "../../src/lib/opportunities/cluster";
 import type { TopTenRead, TopTenRow } from "../../src/lib/opportunities/derive/top-ten-kind";
+import { committedWeek, planFirstWeek } from "../../src/lib/opportunities/plan";
 import { rankOpen } from "../../src/lib/opportunities/rank/open";
 import { assessReadiness } from "../../src/lib/opportunities/readiness";
 import { setOpportunityStore, type OpportunityRow } from "../../src/lib/opportunities/store";
-import { memoryStore, newMemoryState } from "./memory-store";
+import { memoryStore, newMemoryState, type MemoryState } from "./memory-store";
 import { AT, SITE_ID } from "./fixtures";
 import handwerker from "./fixtures/handwerker-1561.json";
 
@@ -122,11 +123,17 @@ function topic(n: number, at: StoredSearch): OpportunityRow {
   } as OpportunityRow;
 }
 
-async function week(site: LocalSite): Promise<{ ranked: number; held: Record<string, string[]> }> {
+/** The site's stored searches as open rows, behind the store. */
+function standUp(site: LocalSite): MemoryState {
   const state = newMemoryState({ profile: site.profile, market: site.market, now: AT });
   state.rows.push(...site.searches.map((at, n) => topic(n, at)));
   const topTens = new Map<string, TopTenRead>(site.searches.map((at) => [queryKey(at.search), { at: AT, rows: at.organic }]));
   setOpportunityStore({ ...memoryStore(state), topTenRows: async () => topTens });
+  return state;
+}
+
+async function week(site: LocalSite): Promise<{ ranked: number; held: Record<string, string[]> }> {
+  const state = standUp(site);
   await assessReadiness(SITE_ID, { at: AT, now: AT });
   const held: Record<string, string[]> = {};
   for (const row of state.rows.filter((row) => !row.ready)) (held[row.unready_reason ?? ""] ??= []).push(row.target_query ?? "");
@@ -143,5 +150,22 @@ describe("a local business fills seven days and three spares from its own stored
   ] as const)("%s", async (_name, site) => {
     const { ranked, held } = await week(site);
     expect(ranked, `held: ${JSON.stringify(held)}`).toBeGreaterThanOrEqual(WEEK);
+  });
+});
+
+describe("a brand-new local business has its first week when setup ends", () => {
+  it.each([
+    ["a plumber in Austin", PLUMBER],
+    ["a restaurant in San Francisco", RESTAURANT],
+    ["a German tradesman in Köln", HANDWERKER],
+  ] as const)("%s: seven days and three spares, committed once", async (_name, site) => {
+    const state = standUp(site);
+    const entries = await planFirstWeek(SITE_ID, AT);
+    expect(entries.map((entry) => entry.plannedFor).filter((date) => date !== null)).toHaveLength(7);
+    expect((await committedWeek(SITE_ID)).days).toHaveLength(7);
+
+    const committed = state.rows.map((row) => [row.id, row.plan_place, row.planned_for]);
+    expect(await planFirstWeek(SITE_ID, new Date(AT.getTime() + 86_400_000))).toEqual([]);
+    expect(state.rows.map((row) => [row.id, row.plan_place, row.planned_for])).toEqual(committed);
   });
 });

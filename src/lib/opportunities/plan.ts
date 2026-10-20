@@ -14,9 +14,10 @@
 // order (`takeSpare`). Nothing ranks the open pool again until the next
 // commit.
 //
-// A date no commit covers — a new site, or one before its first Monday —
-// is committed on demand by that evening's run, once: the commit then
-// covers the dates after it.
+// A new site's first week is committed when setup's pass ends
+// (`planFirstWeek`). A date no commit covers after that is committed on
+// demand by that evening's run, once: the commit then covers the dates
+// after it.
 import { PLAN_DEPTH, SUPPLY_SHORT_BELOW, WEEK_PLAN } from "@/lib/config/constants";
 import { stoppedOnCeiling } from "@/lib/scan/market-floor";
 import { choose } from "./choose";
@@ -60,6 +61,16 @@ export async function planWeek(siteId: string, a: { now?: Date; from?: string } 
     })
   );
   return entries;
+}
+
+/**
+ * A new site's first week, committed when setup's pass ends so Plan shows
+ * it before the first evening. Only where the site has no commit yet: a
+ * week the first draft already committed is never replaced.
+ */
+export async function planFirstWeek(siteId: string, now: Date = new Date()): Promise<readonly PlanEntry[]> {
+  if ((await opportunityStore().plannedRows(siteId)).length > 0) return [];
+  return planWeek(siteId, { now });
 }
 
 /**
