@@ -94,6 +94,9 @@ export interface PublishedPage {
    *  fill it from. */
   readonly draftId?: string | null;
   readonly volume?: number | null;
+  /** The search the page's opportunity targets. A `named_on` page also
+   *  passes on its top twenty. */
+  readonly targetQuery?: string | null;
 }
 
 /** One row of `page_verdicts`, as this module reads it back. */
@@ -415,6 +418,7 @@ export function supabaseVerdictStore(): VerdictStore {
           intent: readIntent(row.drafts?.meta?.intent),
           draftId: row.draft_id,
           volume: row.drafts?.opportunities?.volume ?? null,
+          targetQuery: row.drafts?.opportunities?.target_query?.trim() || null,
         });
       }
       return pages;

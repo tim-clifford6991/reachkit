@@ -24,7 +24,7 @@ function serpWith(position: number | null): Measured<SearchRows> {
 }
 
 /** Every case here judges the one page. */
-function evaluateAcceptance(a: { acceptance: Acceptance; week: WeekMeasurements; pageUrl?: string }) {
+function evaluateAcceptance(a: { acceptance: Acceptance; week: WeekMeasurements; pageUrl?: string; search?: string }) {
   return evaluate({ pageUrl: PAGE, ...a });
 }
 
@@ -114,23 +114,39 @@ describe("named_on — whether this week's AI answer to the page's question cite
     ).toEqual({ decided: false, because: "not_measured" });
   });
 
-  it("a question that left the tracked set returns question_left_set", () => {
+  it("a question this week did not ask is not_measured, never a cause", () => {
+    expect(evaluateAcceptance({ acceptance, week: week() })).toEqual({ decided: false, because: "not_measured" });
+  });
+});
+
+describe("named_on — a place in the top twenty of the page's target search also passes it", () => {
+  const acceptance = { form: "named_on", question: "p" } as const;
+  const placed = (position: number | null, urls?: Measured<readonly string[]>) =>
+    week({
+      positions: new Map([["t", serpWith(position)]]),
+      ownPagesCited: urls === undefined ? new Map() : new Map([["p", urls]]),
+    });
+
+  it("a page at 14 on its target passes, whether its question was asked or its answer cited another page", () => {
+    const passes = { decided: true, passes: true, measuredAt: AT };
+    expect(evaluateAcceptance({ acceptance, week: placed(14), search: "t" })).toEqual(passes);
     expect(
-      evaluateAcceptance({ acceptance: { form: "named_on", question: "p" }, week: week() })
-    ).toEqual({ decided: false, cause: "question_left_set" });
+      evaluateAcceptance({ acceptance, week: placed(14, measuredZero<readonly string[]>([], AT)), search: "t" })
+    ).toEqual(passes);
   });
 
-  it("the two causes are returned distinctly and neither is substituted for the other", () => {
-    const untracked = evaluateAcceptance({
-      acceptance: { form: "top20", query: "q" },
-      week: week({ ownPagesCited: new Map([["q", measured([PAGE], AT)]]) }),
+  it("a place past twenty passes nothing: the answer still decides, and an unasked question stays not measured", () => {
+    expect(
+      evaluateAcceptance({ acceptance, week: placed(21, measuredZero<readonly string[]>([], AT)), search: "t" })
+    ).toEqual({ decided: true, passes: false, measuredAt: AT });
+    expect(evaluateAcceptance({ acceptance, week: placed(21), search: "t" })).toEqual({
+      decided: false,
+      because: "not_measured",
     });
-    const left = evaluateAcceptance({
-      acceptance: { form: "named_on", question: "q" },
-      week: week({ positions: new Map([["q", serpWith(1)]]) }),
-    });
-    expect(untracked).toEqual({ decided: false, cause: "search_untracked" });
-    expect(left).toEqual({ decided: false, cause: "question_left_set" });
+  });
+
+  it("without a target search the place is not read", () => {
+    expect(evaluateAcceptance({ acceptance, week: placed(3) })).toEqual({ decided: false, because: "not_measured" });
   });
 });
 
@@ -189,7 +205,7 @@ describe("the three causes this function must never produce", () => {
         }
       }
     }
-    expect([...seen].sort()).toEqual(["question_left_set", "search_untracked"]);
+    expect([...seen].sort()).toEqual(["search_untracked"]);
     expect(seen.has("page_not_found")).toBe(false);
     expect(seen.has("unpublished")).toBe(false);
     expect(seen.has("domain_changed")).toBe(false);

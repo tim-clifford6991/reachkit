@@ -54,8 +54,8 @@ export function weekMeasurementsFrom(a: {
 
   // `questions` is what says which searches and which questions the week
   // still tracks. Where it was not measured at all, no search and no
-  // question has a key — every page whose test names one reads
-  // `search_untracked` or `question_left_set`… which would be wrong, and
+  // question has a key — every page whose test names a search reads
+  // `search_untracked`… which would be wrong, and
   // is why the caller never reaches this function for a week with no
   // report at all: a week that measured no questions is `no_week`, and
   // `judgeWeek` answers that before it asks for measurements.
@@ -96,12 +96,10 @@ export function weekMeasurementsFrom(a: {
   // **A page's own question is a tracked question** (SPEC §6 2026-09-20,
   // #919). The page questions are stored beside the twelve, and a page
   // whose acceptance test names its own question is decided from the row
-  // this pass asked for it — without this, every such page read
-  // `question_left_set`, which is terminal: the page would be retired for
-  // asking the one question the product now puts to the engines on its
-  // behalf. The twelve win a collision, because a question the market also
-  // selected was measured as one of the twelve and that is the reading the
-  // test was recorded under.
+  // this pass asked for it — without this, every such page would read
+  // `not_measured` in a week that asked its question. The twelve win a
+  // collision, because a question the market also selected was measured as
+  // one of the twelve and that is the reading the test was recorded under.
   for (const row of report.pageQuestions?.rows ?? []) {
     const wording = row.question.wording.text;
     if (namesCustomer.has(wording)) continue;
