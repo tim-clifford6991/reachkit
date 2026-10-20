@@ -331,13 +331,9 @@ export const SETUP_COPY = Object.freeze({
 
   // ── Your voice (SPEC.md §5, 2026-09-12; renamed 2026-09-17, issue 839) ─
   //
-  // §5's "The site profile is confirmed here": the page inventory and the
-  // site name are shown as read, and the brand-voice summary is shown and
-  // editable before anything is written. Every sentence below is the
-  // owner's and unwritten today, so each lands as the renderable
-  // `TODO(copy)` marker rather than a sentence composed here — the
-  // artboard (`docs/design/canvas/OnboardingMarket.dc.html`) carries the
-  // same lines as bracketed placeholders.
+  // §5's "The site profile is confirmed here": the page inventory, the site
+  // name and the editable brand voice, drawn on the Check board
+  // (`docs/design/boards/canvas/Setup2.dc.html`).
   //
   // The eight purpose words are keys and not raw tokens for the same
   // reason the band words are: `pricing` is an identifier the engine
@@ -474,9 +470,10 @@ export const SETUP_COPY = Object.freeze({
     "We wrote down how you talk. Change the words and every page we write follows them.",
     { slots: {}, fixedBy: "SPEC §5 (2026-09-20, issue 908)" },
   ],
+  /** No hour: each site sets its own publish time. */
   "setup.step.publishing.line": [
-    "Nothing goes live until you’ve had a day to read the first page. You can change this later in Settings.",
-    { slots: {}, fixedBy: "SPEC §5 (2026-09-20, issue 908)" },
+    "Your first page goes live on its day, once your website is connected. We’re already writing it.",
+    { slots: {}, fixedBy: "owner E11 · issue 1601" },
   ],
 
   /** The two controls at the foot of every step, and the two the last two
@@ -735,7 +732,7 @@ export const SETUP_COPY = Object.freeze({
     "One last thing · about 5 minutes",
     { slots: {}, fixedBy: "SPEC §5 2026-09-20" },
   ],
-  "setup.connect.title": ["Connect your blog’s address", { slots: {}, fixedBy: "SPEC §5 2026-09-20" }],
+  "setup.connect.title": ["Connect your website", { slots: {}, fixedBy: "owner E11 · issue 1601" }],
   "setup.connect.lead": [
     "One DNS record points your blog’s address at it. Your first page is being written while you do this.",
     { slots: {}, fixedBy: "SPEC §5 2026-09-20" },

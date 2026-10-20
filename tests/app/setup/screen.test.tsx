@@ -100,6 +100,12 @@ describe("SPEC §5 (2026-09-20) — five saved steps, one question each", () => 
     expect(COPY["meta.app.setup.connect.title"]).toMatch(/^Connect\b/);
   });
 
+  it("the Connect step says the first page waits for the connection, and names no hour a site may change", () => {
+    const line = screenFor("publishing").querySelector('[data-testid="setup-step-line"]')?.textContent ?? "";
+    expect(line).toMatch(/\bconnected\b/);
+    expect(line).not.toMatch(/\d/);
+  });
+
   it("each step asks its own question, and draws only its own decision", () => {
     const only = {
       site: "setup-site-and-market",

@@ -1,4 +1,4 @@
-// SPEC §5 (2026-09-20, #908, #924) — "Connect your blog's address".
+// SPEC §5 (2026-09-20, #908, #924) — the DNS record, after setup.
 //
 // The DNS record as its own step **after** setup, with *Do this later*.
 // This reverses the 2026-09-16 ruling (#757) that it be completed on the

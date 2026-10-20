@@ -170,8 +170,8 @@ export const META_COPY = Object.freeze({
   // #924: the DNS step after setup is its own address, so it says which
   // screen it is rather than falling back to the account layout's floor.
   "meta.app.setup.connect.title": [
-    "Connect your blog · ReachKit",
-    { slots: {}, fixedBy: "issue 945" },
+    "Connect your website · ReachKit",
+    { slots: {}, fixedBy: "owner E11 · issue 1601" },
   ],
 
   /* ── Settings' six sibling tabs (#925) ────────────────────────────────
