@@ -9,8 +9,9 @@
 import type React from "react";
 import type { Metadata } from "next";
 import { copy } from "@/lib/presentation/copy";
-import { readSettings } from "../provider";
+import { readMonthGot, readSettings } from "../provider";
 import { BillingPanel } from "../panels/BillingPanel";
+import { MonthPanel } from "../panels/MonthPanel";
 
 /** This tab's own `<title>` (#945, #925). Each sibling names itself
  *  inside Settings — `account-title.test.ts` forbids two screens
@@ -19,10 +20,11 @@ import { BillingPanel } from "../panels/BillingPanel";
 export const metadata: Metadata = { title: copy("meta.app.settings.billing.title") };
 
 export default async function SettingsBillingTab(): Promise<React.JSX.Element> {
-  const settings = await readSettings();
+  const [settings, month] = await Promise.all([readSettings(), readMonthGot()]);
 
   return (
     <div className="flex min-w-0 flex-col gap-6" data-testid="settings-tab-panel-billing">
+      <MonthPanel got={month.got} timeZone={month.timeZone} />
       <BillingPanel billing={settings.billing} />
     </div>
   );

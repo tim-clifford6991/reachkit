@@ -71,6 +71,15 @@ export interface HostingRow {
   readonly hasHostedPages: boolean;
 }
 
+/** One page delivered to a site, as the month's card counts it: the draft's
+ *  title and its last recorded battery, and whether it was a refresh. */
+export interface PeriodPageRow {
+  readonly title: string | null;
+  readonly refresh: boolean;
+  readonly rule_failures: unknown;
+  readonly meta: unknown;
+}
+
 /** Which of the two notices REQ-076 c11 requires. Two names, never a
  *  count: which one is missing is what an operator needs to know. */
 export type HostingNotice = "access_ended" | "seven_days";
@@ -132,6 +141,14 @@ export interface BillingStore {
     which: HostingNotice,
     at: Date
   ): Promise<{ ok: true } | { ok: false }>;
+
+  /** The pages delivered to a site in `[from, to)` that are still up, and
+   *  how many of its scans finished in that span. */
+  period(
+    siteId: string,
+    from: Date,
+    to: Date
+  ): Promise<{ ok: true; pages: readonly PeriodPageRow[]; scans: number } | { ok: false }>;
 }
 
 // ── The Supabase implementation
@@ -148,6 +165,9 @@ interface MinimalQueryBuilder<T> extends PromiseLike<QueryResult<T>> {
   is(column: string, value: null): MinimalQueryBuilder<T>;
   not(column: string, operator: string, value: null): MinimalQueryBuilder<T>;
   lte(column: string, value: string): MinimalQueryBuilder<T>;
+  gte(column: string, value: string): MinimalQueryBuilder<T>;
+  lt(column: string, value: string): MinimalQueryBuilder<T>;
+  neq(column: string, value: string): MinimalQueryBuilder<T>;
   limit(count: number): MinimalQueryBuilder<T>;
 }
 
@@ -204,6 +224,10 @@ function toHostingRow(row: HostingJoinRow): HostingRow {
     owner_paid_through: row.users.paid_through,
     hasHostedPages: (row.destinations ?? []).some((d) => d.kind === "hosted"),
   };
+}
+
+interface PeriodJoinRow {
+  drafts: { title: string | null; rule_failures: unknown; meta: unknown; opportunities: { type: string } };
 }
 
 const NOTICE_COLUMN: Readonly<Record<HostingNotice, string>> = Object.freeze({
@@ -331,6 +355,37 @@ export function supabaseBillingStore(): BillingStore {
         .update({ [NOTICE_COLUMN[which]]: at.toISOString() })
         .eq("id", siteId);
       return error ? { ok: false } : { ok: true };
+    },
+
+    async period(siteId, from, to) {
+      const [pages, scans] = await Promise.all([
+        untyped()
+          .from<PeriodJoinRow>("publications")
+          .select("drafts!inner(title, rule_failures, meta, opportunities!inner(type))")
+          .eq("site_id", siteId)
+          .eq("delivery_state", "delivered")
+          .is("unpublished_at", null)
+          .gte("published_at", from.toISOString())
+          .lt("published_at", to.toISOString()),
+        untyped()
+          .from<{ id: string }>("scans")
+          .select("id")
+          .eq("site_id", siteId)
+          .neq("status", "running")
+          .gte("created_at", from.toISOString())
+          .lt("created_at", to.toISOString()),
+      ]);
+      if (pages.error || scans.error) return { ok: false };
+      return {
+        ok: true,
+        pages: (pages.data ?? []).map(({ drafts }) => ({
+          title: drafts.title,
+          refresh: drafts.opportunities.type === "refresh_page",
+          rule_failures: drafts.rule_failures,
+          meta: drafts.meta,
+        })),
+        scans: (scans.data ?? []).length,
+      };
     },
   };
 }
