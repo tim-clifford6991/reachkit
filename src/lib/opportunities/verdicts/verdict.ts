@@ -20,11 +20,18 @@ export const VERDICT_OF: Readonly<Record<Label, Verdict>> = Object.freeze({
 /** Pure. Weeks are rounded, so a pass that runs minutes later on a Monday
  *  does not move a page across the window. */
 export function verdict(reading: PageReading, now: Date): Label {
-  const { best, first } = reading;
+  const { best } = reading;
   if ((reading.place !== null && reading.place.value <= TRACKED_DEPTH) || (reading.linkedBy ?? []).length > 0) return "working";
   if (best === null) return "too_early";
   const weeksSinceBest = Math.round((now.getTime() - Date.parse(best.at)) / MS_PER_WEEK);
   if (weeksSinceBest >= TOO_EARLY_WEEKS) return "not_moving";
   if (best.place <= TRACKED_DEPTH) return "working";
-  return first !== null && first.place - best.place >= CLIMB_PLACES ? "climbing" : "too_early";
+  return climbing(reading, now) ? "climbing" : "too_early";
+}
+
+/** A gain of `CLIMB_PLACES` since first seen, its best inside the window. */
+export function climbing(reading: Pick<PageReading, "first" | "best">, now: Date): boolean {
+  const { best, first } = reading;
+  if (best === null || first === null) return false;
+  return Math.round((now.getTime() - Date.parse(best.at)) / MS_PER_WEEK) < TOO_EARLY_WEEKS && first.place - best.place >= CLIMB_PLACES;
 }

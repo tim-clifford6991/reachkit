@@ -19,6 +19,7 @@
 import type { RefreshInputs } from "./refresh";
 import type { KnowledgeDigest } from "@/lib/site-profile/knowledge/read";
 import { dbAdmin } from "@/lib/db";
+import { canonicalUrl } from "@/lib/measure/page-reading";
 import type { KnownPage } from "@/lib/known-content/types";
 import type { Profile } from "@/lib/market/questions/profile";
 import type { HostedOwnPages } from "@/lib/publish/destinations/hosted/own-page";
@@ -178,6 +179,9 @@ export interface OpportunityStore {
    *  weeks ending at `at` (SPEC §6, D15, issue 1146), read from the stored
    *  passes. Nothing is bought. */
   citedPages(siteId: string, at: Date): Promise<readonly string[]>;
+  /** The clusters of the site's live pages at any of `urls`. Optional: a
+   *  store that cannot answer reads none. */
+  clustersAt?(siteId: string, urls: readonly string[]): Promise<readonly string[]>;
   /** The top tens the given scans bought, by `queryKey`, a later scan's
    *  over an earlier one's (#1131) — what a held row's search is compared
    *  by. Only the questions and SERPs are read, never the whole report. */
@@ -621,6 +625,26 @@ export function supabaseOpportunityStore(): OpportunityStore {
       if (zone === null) return [];
       const window = await readPromptWindow({ siteId, zone, weekStart: weekStartFor({ at, zone }) });
       return [...new Set(window.weeks.flatMap((week) => week.samples.flatMap((sample) => sample.ownUrls)))];
+    },
+
+    async clustersAt(siteId, urls) {
+      const { data, error } = await untyped()
+        .from<{ live_url: string | null; drafts: { opportunities: { cluster_key: string | null } | null } | null }>("publications")
+        .select("live_url, drafts(opportunities(cluster_key))")
+        .eq("site_id", siteId)
+        .not("live_url", "is", null)
+        .is("unpublished_at", null);
+      if (error) throw new Error(`opportunities.clustersAt: ${error.message}`);
+      // An AI answer links the address a page answers at now (issue 1182).
+      const { storedAddressesNow } = await import("@/lib/publish/destinations/hosted/store");
+      const now = await storedAddressesNow(siteId);
+      const wanted = new Set(urls.map(canonicalUrl));
+      const keys = (data ?? []).flatMap((row) => {
+        const key = row.drafts?.opportunities?.cluster_key ?? null;
+        if (key === null || row.live_url === null) return [];
+        return wanted.has(canonicalUrl(row.live_url)) || wanted.has(canonicalUrl(now(row.live_url))) ? [key] : [];
+      });
+      return [...new Set(keys)];
     },
 
     async topTens(scanIds) {

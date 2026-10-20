@@ -507,7 +507,11 @@ export type PlaceRule =
   | "best, same topic"
   | "over the D52 cap, as a Q&A"
   | "fix ahead of its cluster"
-  | "fix, no page to precede";
+  | "fix, no page to precede"
+  // What a page's own results planned (issue 1611), named in place of the tier.
+  | "stalled near page one: gap refresh"
+  | "not moving: refreshed once"
+  | "linked by AI: one more in its cluster";
 
 /** One part of a row's points, as the plan stores it. */
 export type PointPart = "fit" | "demand" | "ai_gap" | "near_page_one" | "linked_by_ai" | "not_moving";

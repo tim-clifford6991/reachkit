@@ -129,7 +129,7 @@ export const CALENDAR_COPY = Object.freeze({
   "calendar.week.why.near-page-one": ["Close to page one", { slots: {}, fixedBy: "SPEC §7 2026-10-19 C3 (drafted)" }],
   "calendar.week.why.not-moving": ["No movement in 8 weeks", { slots: {}, fixedBy: "SPEC §7 2026-10-19 C3 (drafted)" }],
   "calendar.week.why.ai-gap": ["AI answers link a competitor", { slots: {}, fixedBy: "SPEC §7 2026-10-19 C3 (drafted)" }],
-  "calendar.week.why.linked-by-ai": ["AI answers link this page", { slots: {}, fixedBy: "SPEC §7 2026-10-19 C3 (drafted)" }],
+  "calendar.week.why.linked-by-ai": ["AI answers link your page on this topic", { slots: {}, fixedBy: "SPEC §7 2026-10-19 C3 (drafted)" }],
   "calendar.week.why.searched": ["Searched every month", { slots: {}, fixedBy: "SPEC §7 2026-10-19 C3 (drafted)" }],
   "calendar.week.why.asked": ["Buyers ask this", { slots: {}, fixedBy: "SPEC §7 2026-10-19 C3 (drafted)" }],
   "calendar.week.why.fit": ["A close fit for your business", { slots: {}, fixedBy: "SPEC §7 2026-10-19 C3 (drafted)" }],
