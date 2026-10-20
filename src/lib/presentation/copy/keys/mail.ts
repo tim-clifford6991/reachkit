@@ -215,7 +215,7 @@ export const MAIL_COPY = Object.freeze({
   // Issue 1551 (SEO review R5.1): the published pages' own questions an AI
   // answer linked lead, in the AI tab's words; the mention rate is named as
   // the brand reputation it measures. Drafted (#759).
-  "mail.weekly.number.pageQuestions": ["Your pages cited", { slots: {}, fixedBy: "issue 1551 (drafted)" }],
+  "mail.weekly.number.pageQuestions": ["Your pages linked by AI", { slots: {}, fixedBy: "issue 1582 (drafted)" }],
   "mail.weekly.number.pageQuestions.of": [
     "of {asked} pages asked, this week",
     { slots: { asked: "text" }, fixedBy: "issue 1551 (drafted)" },

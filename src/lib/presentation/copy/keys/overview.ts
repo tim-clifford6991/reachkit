@@ -209,7 +209,7 @@ export const OVERVIEW_COPY = Object.freeze({
   "overview.tile.content.indexed": ["{count} indexed", { slots: { count: "text" }, fixedBy: "issue 1553 (drafted)" }],
   "overview.tile.content.impressions": ["{count} impressions", { slots: { count: "text" }, fixedBy: "issue 1553 (drafted)" }],
   "overview.tile.content.place": ["best place {place}", { slots: { place: "text" }, fixedBy: "issue 1553 (drafted)" }],
-  "overview.tile.content.cited": ["{count} cited by AI", { slots: { count: "text" }, fixedBy: "issue 1553 (drafted)" }],
+  "overview.tile.content.cited": ["{count} linked by AI", { slots: { count: "text" }, fixedBy: "issue 1582 (drafted)" }],
 
   // ── How far ahead each rival is.
   "overview.rivals.title": ["How far ahead competitors are", { slots: {}, fixedBy: "BUILD §4.5" }],
@@ -654,7 +654,7 @@ export const OVERVIEW_COPY = Object.freeze({
   // Issue 1551 (owner, 2026-10-19; SEO review R5.1): the tab leads with the
   // published pages' own questions whose AI answer links the site — the
   // signal a page moves first. Drafted (#759).
-  "overview.answers.pages-cited.label": ["Your pages cited", { slots: {}, fixedBy: "issue 1551 (drafted)" }],
+  "overview.answers.pages-cited.label": ["Your pages linked by AI", { slots: {}, fixedBy: "issue 1582 (drafted)" }],
   "overview.answers.pages-cited.of": ["of {of} pages asked", { slots: { of: "text" }, fixedBy: "issue 1551 (drafted)" }],
   "overview.answers.pages-cited.means": [
     "Pages whose own question got an AI answer linking to your site this week. Usually the first AI result to move.",

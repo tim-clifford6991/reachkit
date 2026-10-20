@@ -42,7 +42,7 @@ describe("issue 1553 — the page screen's ladder", () => {
       ["Indexed", "yes"],
       ["Shown", "yes"],
       ["Placed", "yes"],
-      ["Cited", "not-yet"],
+      ["Linked by AI", "not-yet"],
     ]);
   });
 
@@ -62,8 +62,8 @@ describe("issue 1553 — Overview's Content tile counts the pages at each step",
     const tile = dom(await OverviewPage()).querySelector('[data-testid="overview-tile-content"]');
     // The reserved account's seventeen pages (`content-fixture.ts`): fifteen
     // crawled, thirteen indexed, eleven shown 9, 18 … 99 times, the best at
-    // place 20, and one cited.
-    expect(tile?.textContent).toContain("15 crawled · 13 indexed · 594 impressions · best place 20 · 1 cited by AI");
+    // place 20, and one linked.
+    expect(tile?.textContent).toContain("15 crawled · 13 indexed · 594 impressions · best place 20 · 1 linked by AI");
   });
 
   it("leaves out every step nothing can read", () => {

@@ -34,6 +34,17 @@ const RETIRED: readonly { name: string; pattern: RegExp }[] = [
   { name: "Foundations", pattern: /\bFoundations\b/i },
   { name: "Answerability", pattern: /\bAnswerability\b/i },
   { name: "rival(s)", pattern: /\brivals?\b/i },
+  // A4 (Free scan), the 19 Oct ladder ruling (no Listed rung) and #1444: AI
+  // mentions or links, never names, cites or quotes. Plain "named" and
+  // "listed" stay legal outside the AI and ladder sense.
+  { name: "Start free", pattern: /\bStart free\b/i },
+  { name: "cited", pattern: /\bcited\b/i },
+  { name: "Listed", pattern: /\bListed\b/ },
+  { name: "Listed", pattern: /\blisted (in|on|by) (Google|Bing)\b/i },
+  { name: "named by AI", pattern: /\bnamed (by|in) (AI|ChatGPT|Gemini|Perplexity|an AI|AI answers?)\b/i },
+  { name: "named by AI", pattern: /\bNamed by\b/ },
+  { name: "quoted by AI", pattern: /\bquoted (by|in) (AI|ChatGPT|Gemini|Perplexity|an AI|AI answers?)\b/i },
+  { name: "quoted by AI", pattern: /\bQuoted by\b/ },
 ];
 
 /** The attributes whose value a customer reads or hears. */
@@ -148,6 +159,24 @@ describe("UI strategy: titles and retired names (#1463)", () => {
       return dash || words.length > 6 ? [`${entry.key} (${words.length}${dash ? ", em-dash" : ""}): ${entry.sentence}`] : [];
     });
     expect(offenders).toEqual([]);
+  });
+
+  it("knows the AI and ladder words, and leaves their plain sense alone", () => {
+    expect(["Start free", "Your pages cited", "Listed", "listed on Google", "named by AI", "Named by", "quoted in ChatGPT", "Quoted by"].map(retiredIn)).toEqual([
+      "Start free",
+      "cited",
+      "Listed",
+      "Listed",
+      "named by AI",
+      "named by AI",
+      "quoted by AI",
+      "quoted by AI",
+    ]);
+    expect(["The company that operates it is named on the imprint", "They are listed below", "This quotes a named person"].map(retiredIn)).toEqual([
+      undefined,
+      undefined,
+      undefined,
+    ]);
   });
 
   it("customer copy does not use a retired name", () => {

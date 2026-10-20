@@ -55,7 +55,7 @@ export const CHROME_COPY = Object.freeze({
   /** The gallery's place in the nav, between *How to start* and *Pricing*
    *  (SPEC §1 2026-09-24; boards `R12-1` / `R12-3`, #1069). */
   "chrome.nav.scans": ["Free scans", { slots: {}, fixedBy: "issue 1069" }],
-  "chrome.cta.start": ["Start free", { slots: {}, fixedBy: "issue 1066" }],
+  "chrome.cta.start": ["Free scan", { slots: {}, fixedBy: "issue 1582" }],
   /** Signed in, the header's one solid button into the app, in place of
    *  *Sign in* and *Start free* (owner 2026-09-26, #1125). Drafted; the
    *  owner's word is "dashboard". The arrow is the button's icon. */
