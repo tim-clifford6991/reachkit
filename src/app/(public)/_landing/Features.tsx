@@ -14,26 +14,29 @@ import { Bot, Check, FileText, Search, ShieldCheck } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { Num } from "../scan/[domain]/_address/measured";
-import { SPECIMEN_FEATURES, specimenWeek, type WeekDay } from "./specimen";
+import { HOW_FACTS } from "../_how/facts";
+import { SPECIMEN_FEATURES, SPECIMEN_HERO_BUSINESS, SPECIMEN_HERO_RIVAL, specimenWeek, type WeekDay } from "./specimen";
 
 /** `10/12`: a numeric format, not a sentence. */
 function ofTotal(n: number, total: number): string {
   return `${n}/${total}`;
 }
 
-/** The buyer prompts, the ones whose answers name the business filled. */
+/** One AI answer: the businesses it mentions, and the example business it leaves out. */
 function AnswersDrawing(): React.JSX.Element {
-  const { named, total, prompts, named_prompts: filled } = SPECIMEN_FEATURES.answers;
   return (
-    <div className="flex flex-col gap-2">
-      <div className="grid grid-cols-[repeat(25,minmax(0,1fr))] gap-0.5">
-        {Array.from({ length: prompts }, (_, i) => (
-          <span key={i} aria-hidden className={`h-3 rounded-sm ${i < filled ? "bg-primary" : "bg-base-200"}`} />
-        ))}
-      </div>
-      <p className="text-base-content/70 font-mono text-xs">
-        {copy("landing.feature.ai.meter", { named: String(named), total: String(total) })}
-      </p>
+    <div className="flex flex-col gap-2 text-sm">
+      <p className="rounded-box bg-base-200 px-3 py-2 font-semibold">{copy("landing.feature.ai.ask")}</p>
+      <p className="text-base-content/70 text-xs">{copy("landing.feature.ai.mentions")}</p>
+      <ul className="flex flex-col gap-1">
+        <li>{copy("landing.feature.ai.chain")}</li>
+        <li>
+          <Num>{SPECIMEN_HERO_RIVAL}</Num>
+        </li>
+        <li>
+          <span className="badge badge-soft badge-warning">{copy("landing.feature.ai.you", { you: SPECIMEN_HERO_BUSINESS })}</span>
+        </li>
+      </ul>
     </div>
   );
 }
@@ -115,19 +118,21 @@ function DailyDrawing(): React.JSX.Element {
 const FEATURES: readonly {
   title: CopyKey;
   body: CopyKey;
+  vars?: Record<string, string>;
   Icon: LucideIcon;
   Drawing: () => React.JSX.Element;
 }[] = [
   { title: "landing.feature.ai.title", body: "landing.feature.ai.body", Icon: Bot, Drawing: AnswersDrawing },
   { title: "landing.feature.google.title", body: "landing.feature.google.body", Icon: Search, Drawing: GoogleDrawing },
   { title: "landing.feature.fix.title", body: "landing.feature.fix.body", Icon: ShieldCheck, Drawing: FixDrawing },
-  { title: "landing.feature.daily.title", body: "landing.feature.daily.body", Icon: FileText, Drawing: DailyDrawing },
+  { title: "landing.feature.daily.title", body: "landing.feature.daily.body", Icon: FileText, Drawing: DailyDrawing,
+    vars: { weekPages: String(HOW_FACTS.weekPages), hours: String(HOW_FACTS.windowHours) } },
 ];
 
 export function Features(): React.JSX.Element {
   return (
     <ul className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-      {FEATURES.map(({ title, body, Icon, Drawing }) => (
+      {FEATURES.map(({ title, body, vars, Icon, Drawing }) => (
         <li key={title} className="card card-border bg-base-100 min-w-0">
           <div className="card-body gap-3">
             <h3 className="card-title gap-3">
@@ -136,7 +141,7 @@ export function Features(): React.JSX.Element {
               </span>
               {copy(title)}
             </h3>
-            <p className="text-base-content/70 text-sm">{copy(body)}</p>
+            <p className="text-base-content/70 text-sm">{copy(body, vars)}</p>
             {/* Marked as a demo (issue 1249): the drawing's figures are a
                 specimen, and are never read as facts about the business. */}
             <div className="mt-auto hidden pt-2 sm:block" data-demo>

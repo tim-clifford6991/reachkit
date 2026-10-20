@@ -552,13 +552,13 @@ export const REPORT_COPY = Object.freeze({
   //
   // L7–L10 were the demo video block. Issue 1396 replaced the frame with
   // *What happens every day* (`landing.day.*` in `chrome.ts`).
-  "landing.subline": ["A free scan shows where Google and AI send buyers to your competitors instead of you. Then ReachKit publishes a page every day, new or updated, to change that.", { slots: {}, fixedBy: "issue 266 · L1" }],
+  "landing.subline": ["We research your business and your competitors, then put up to {weekPages} pages a week live on your site, while you get on with business.", { slots: { weekPages: "text" }, fixedBy: "board Landing · issue 1596" }],
   "landing.why.eyebrow": ["Why you should care", { slots: {}, fixedBy: "issue 266 · L11" }],
   "landing.why.heading": ["Your competitors are being found.", { slots: {}, fixedBy: "issue 266 · L12" }],
   "landing.why.body": ["Buyers now ask ChatGPT and Google’s AI what to use, and the answer mentions a handful of companies. If yours isn’t one of them, that buyer never meets you — and nothing on your side tells you it happened.", { slots: {}, fixedBy: "issue 266 · L13" }],
-  "landing.start.eyebrow": ["What to do next", { slots: {}, fixedBy: "issue 266 · L22" }],
-  "landing.start.heading": ["Start with the scan.", { slots: {}, fixedBy: "issue 266 · L23" }],
-  "landing.start.body": ["Free, under a minute. Then five minutes, once — and ReachKit does the rest.", { slots: {}, fixedBy: "issue 266 · L24" }],
+  "landing.start.eyebrow": ["How it works", { slots: {}, fixedBy: "board Landing · issue 1596" }],
+  "landing.start.heading": ["You scan. We write. You watch.", { slots: {}, fixedBy: "board Landing · issue 1596" }],
+  "landing.start.body": ["Three steps. The first is free and takes under a minute.", { slots: {}, fixedBy: "board Landing · issue 1596" }],
   "landing.start.cta": ["Scan my site for free", { slots: {}, fixedBy: "issue 266 · L25" }],
 
   // ── S1, the owner-approved screen set (2026-09-08) ────────────────────
@@ -578,26 +578,49 @@ export const REPORT_COPY = Object.freeze({
   /** The field's placeholder. Approved (11a) — the set writes it. */
   "landing.field.placeholder": ["yourdomain.com", { slots: {}, fixedBy: "approved set S1 · 11a" }],
   /** The line under the field. Approved (11a). */
-  "landing.hero.assurance": ["free · no account · permanent link", { slots: {}, fixedBy: "approved set S1 · 11a" }],
+  "landing.hero.assurance": ["free · no account · under a minute", { slots: {}, fixedBy: "board Landing · issue 1596" }],
+  /** Under the field: what the free click gives, who it is for, and the way to read more. */
+  "landing.hero.what": ["See who Google and AI send your buyers to instead of you.", { slots: {}, fixedBy: "board Landing · issue 1596" }],
+  "landing.hero.for": ["Works for local services, shops, restaurants, firms, software and creators.", { slots: {}, fixedBy: "board Landing · issue 1596" }],
+  "landing.hero.how": ["See how it works", { slots: {}, fixedBy: "board Landing · issue 1596" }],
+  /** The strip under the hero. The guarantee joins it only once refunds are live (#1042). */
+  "landing.trust": ["{price} a month, VAT included · Cancel any time · Up to {checks} checks before any page goes live", { slots: { price: "text", checks: "text" }, fixedBy: "board Landing · issue 1596" }],
+  /** The pace (owner, A1, 2026-10-19). The number is `WEEK_PLAN.days`. */
+  "landing.pace": ["Up to {weekPages} pages a week, new or updated. Never filler.", { slots: { weekPages: "text" }, fixedBy: "owner A1 · 2026-10-19" }],
+  /** The hero's story card: five frames, one example business. */
+  "landing.story.title": ["How ReachKit works for you", { slots: {}, fixedBy: "board Landing · issue 1596" }],
+  "landing.story.1.title": ["Your business", { slots: {}, fixedBy: "board Landing · issue 1596" }],
+  "landing.story.1.line": ["Your website is the start. Nothing to fill in.", { slots: {}, fixedBy: "board Landing · issue 1596" }],
+  "landing.story.2.title": ["We research it", { slots: {}, fixedBy: "board Landing · issue 1596" }],
+  "landing.story.2.line": ["What you do, who buys, and who they pick instead.", { slots: {}, fixedBy: "board Landing · issue 1596" }],
+  "landing.story.3.title": ["Pages go live every week", { slots: {}, fixedBy: "board Landing · issue 1596" }],
+  "landing.story.3.line": ["Written from your site. Never filler.", { slots: {}, fixedBy: "board Landing · issue 1596" }],
+  "landing.story.4.title": ["Found on Google and AI", { slots: {}, fixedBy: "board Landing · issue 1596" }],
+  "landing.story.4.line": ["An example of the goal, not a promise.", { slots: {}, fixedBy: "board Landing · issue 1596" }],
+  "landing.story.5.title": ["You get on with business", { slots: {}, fixedBy: "board Landing · issue 1596" }],
+  "landing.story.5.line": ["A Monday email shows what moved. Nothing needs you.", { slots: {}, fixedBy: "board Landing · issue 1596" }],
 
 
   /** Section 03's three Step cards. The eyebrow and the three titles are
    *  approved (11a); the three bodies are bracketed in the set, and are the
    *  owner's approved sentences (2026-09-10, #459). */
-  "landing.step.1.title": ["Scan your domain", { slots: {}, fixedBy: "approved set S1 · 11a" }],
-  "landing.step.1.body": ["Free, no account. You get your score, your competitors and your first page, at a permanent link.", { slots: {}, fixedBy: "approved set S1" }],
+  "landing.step.1.title": ["Scan your site", { slots: {}, fixedBy: "board Landing · issue 1596" }],
+  "landing.step.1.body": ["Type your website. See who Google and AI send your buyers to instead of you, what holds your site back, and your first page, proposed free.", { slots: {}, fixedBy: "board Landing · issue 1596" }],
+  "landing.step.1.more": ["See what we research", { slots: {}, fixedBy: "board Landing · issue 1596" }],
   // Step 2's approved-set pair told a founder to pick and confirm the market
   // and the rivals. SPEC §5 (2026-10-02, D28) rules that out: ReachKit
   // identifies both, and the founder may override them but never has to.
   // Both sentences are drafted (issue 1308) for the owner to correct.
-  "landing.step.2.title": ["We find your market and competitors", { slots: {}, fixedBy: "issue 1308 · drafted" }],
-  "landing.step.2.body": ["You can change them, and you never have to. Site, business, competitors, voice, publishing — then straight to the app.", { slots: {}, fixedBy: "issue 1308 · drafted" }],
+  "landing.step.2.title": ["We choose and write your pages", { slots: {}, fixedBy: "board Landing · issue 1596" }],
+  "landing.step.2.body": ["ReachKit checks what your buyers search and ask AI, and who answers them today. With what your site says about your business, it plans up to {weekPages} pages for the week. Each one is written from facts on your own site, checked, and put live on your own web address or your WordPress.", { slots: { weekPages: "text" }, fixedBy: "board Landing · issue 1596" }],
+  "landing.step.2.more": ["See how we pick and write your pages", { slots: {}, fixedBy: "board Landing · issue 1596" }],
   // Step 3's title is the one approved-set string on this screen the owner
   // has since replaced: the set promised a page a day, and the Autopilot
   // brief (DECISIONS 2026-09-10) rules that out — a page goes live when one
   // is ready, at most one a day. Approved 2026-09-11 (#516).
-  "landing.step.3.title": ["Pages go live on your domain", { slots: {}, fixedBy: "approved set S1 · 11a" }],
-  "landing.step.3.body": ["A page every day, new or updated. Each goes live on its own unless you stop it, and every Monday you see what moved.", { slots: {}, fixedBy: "approved set S1" }],
+  "landing.step.3.title": ["You see progress", { slots: {}, fixedBy: "board Landing · issue 1596" }],
+  "landing.step.3.body": ["Each page goes live on its own day. Every Monday an email shows what went live, where your pages sit in Google, and whether AI answers now link to them.", { slots: {}, fixedBy: "board Landing · issue 1596" }],
+  "landing.step.3.more": ["See what you’ll see each Monday", { slots: {}, fixedBy: "board Landing · issue 1596" }],
 
   /* ── The hero component: "one week, one card" (#935) ──────────────────
      Owner ruling 2026-09-21: the landing hero is Round 11 `R11-H4-Week`.
@@ -627,35 +650,35 @@ export const REPORT_COPY = Object.freeze({
   /** Monday's cell: the one day of the six that measures rather than
    *  publishes, which is why it is the only cell that carries no page. */
   "landing.hero.week.measured": [
-    "Scanned {searches} searches, asked AI {questions} questions",
-    { slots: { searches: "text", questions: "text" }, fixedBy: "issue 935 · drafted" },
+    "Checked {searches} searches, asked AI {questions} questions",
+    { slots: { searches: "text", questions: "text" }, fixedBy: "issue 1596 · drafted" },
   ],
   /** Tuesday to Saturday: five page titles, as this example business's
    *  week would produce them. Titles and not sentences — they are what the
    *  calendar shows, so they read as the product's own rows. */
-  "landing.hero.page.1": ["How much does a bike service cost in 2026?", { slots: {}, fixedBy: "issue 935 · drafted" }],
-  "landing.hero.page.2": ["Tubeless or inner tubes for city commuting?", { slots: {}, fixedBy: "issue 935 · drafted" }],
-  "landing.hero.page.3": ["How often should a commuter bike be serviced?", { slots: {}, fixedBy: "issue 935 · drafted" }],
-  "landing.hero.page.4": ["Bike fitting: what it fixes and what it costs", { slots: {}, fixedBy: "issue 935 · drafted" }],
-  "landing.hero.page.5": ["E-bike service: what is different", { slots: {}, fixedBy: "issue 935 · drafted" }],
+  "landing.hero.page.1": ["How much does slab leak repair cost in Austin?", { slots: {}, fixedBy: "board Landing · issue 1596" }],
+  "landing.hero.page.2": ["Tankless or tank: which suits an Austin home?", { slots: {}, fixedBy: "board Landing · issue 1596" }],
+  "landing.hero.page.3": ["Emergency plumber in Austin: what to do in the first hour", { slots: {}, fixedBy: "board Landing · issue 1596" }],
+  "landing.hero.page.4": ["Why a water heater pops, and when to call", { slots: {}, fixedBy: "board Landing · issue 1596" }],
+  "landing.hero.page.5": ["Drain cleaning prices in Austin", { slots: {}, fixedBy: "board Landing · issue 1596" }],
   /** The AI answer the week earned. `{you}` is the example business's own
    *  name, so the card can draw it as the reader's own and the sentence
    *  still reads whole without the drawing. */
   "landing.hero.ai.answer": [
-    "…near the harbor: {you} — a basic service is $85 — as well as Cyclefix and Spokeworks.",
-    { slots: { you: "text" }, fixedBy: "issue 935 · drafted" },
+    "…for a slab leak in Austin, try {you}, which lists its prices, or Austin Pipeworks.",
+    { slots: { you: "text" }, fixedBy: "issue 1596 · drafted" },
   ],
   /** The work line: the ruling's "how little the customer has to do",
    *  said as two halves of one trade rather than a claim about effort. */
-  "landing.hero.work.you": ["You: five minutes, once", { slots: {}, fixedBy: "issue 935 · drafted" }],
+  "landing.hero.work.you": ["You: about 10 minutes, once", { slots: {}, fixedBy: "board Landing · issue 1596" }],
   "landing.hero.work.reachkit": [
-    "ReachKit: a page every day, scanned every Monday",
-    { slots: {}, fixedBy: "issue 935 · drafted" },
+    "ReachKit: up to {weekPages} pages a week, checked every Monday",
+    { slots: { weekPages: "text" }, fixedBy: "board Landing · issue 1596" },
   ],
   /** Under the card. `landing.hero.specimen.caption` above says the same
    *  thing of a card that named `example.com` and no business; this card
    *  names a business, so it says so of a business. */
-  "landing.hero.example": ["An example business. It measures no site.", { slots: {}, fixedBy: "issue 935 · drafted" }],
+  "landing.hero.example": ["Example business. It measures no site.", { slots: {}, fixedBy: "board Landing · issue 1596" }],
 
   /* ── The landing in its 2026-09-24 order (#1067) ─────────────────────
      Boards `R12-1-Landing`, `R12-8-Phone-landing`, `R12-10-Dark-landing`
@@ -664,13 +687,13 @@ export const REPORT_COPY = Object.freeze({
   /** The hero preview's name and its three tabs. The app shows no weekly
    *  score (SPEC §1, D22), so the preview draws none (issue 1393). */
   "landing.inside.title": ["Inside ReachKit", { slots: {}, fixedBy: "board R12-1 · issue 1067" }],
-  "landing.inside.tab.week": ["Your week", { slots: {}, fixedBy: "board R12-1 · issue 1067" }],
-  "landing.inside.tab.answers": ["AI", { slots: {}, fixedBy: "board R12-1 · issue 1067" }],
-  "landing.inside.tab.page": ["Your page", { slots: {}, fixedBy: "board R12-1 · issue 1067" }],
+  "landing.inside.tab.week": ["This week", { slots: {}, fixedBy: "board R12-1 · issue 1067" }],
+  "landing.inside.tab.answers": ["AI answers", { slots: {}, fixedBy: "board R12-1 · issue 1067" }],
+  "landing.inside.tab.page": ["A page", { slots: {}, fixedBy: "board R12-1 · issue 1067" }],
   /** *AI answers*: the line over the answer, and the one under it. */
-  "landing.inside.answers.head": ["What Google’s AI Overview says now", { slots: {}, fixedBy: "board R12-1 · issue 1067" }],
+  "landing.inside.answers.head": ["What Google’s AI answers say now", { slots: {}, fixedBy: "board R12-1 · issue 1067" }],
   "landing.inside.answers.monday": [
-    "Every Monday: how often AI mentions you when buyers ask about your market, and which competitors it mentions instead.",
+    "Every month: how often AI answers mention you when buyers ask about your market, and which competitors they mention instead.",
     { slots: {}, fixedBy: "board R12-1 · issue 1067" },
   ],
   /** *Your page*: the page waiting for the owner's read. */
@@ -682,15 +705,19 @@ export const REPORT_COPY = Object.freeze({
   ],
   /** *Why you should care*: four features, each a title, a line and a
    *  small drawing whose words follow it. */
-  "landing.feature.ai.title": ["Get mentioned by AI", { slots: {}, fixedBy: "board R12-1 · issue 1067" }],
+  "landing.feature.ai.title": ["Pages AI answers can link to", { slots: {}, fixedBy: "board R12-1 · issue 1067" }],
   "landing.feature.ai.body": [
-    "We put about 25 questions your buyers ask to Google AI Mode and ChatGPT every week, twice each, and show how often they mention you and which competitors they mention instead. Then we write the page that earns the mention. Some call this GEO, generative engine optimisation.",
+    "Every month we check what AI answers say about you. You see which competitors the answers mention, and whether they mention you. Then we write pages that give AI something true to link to.",
     { slots: {}, fixedBy: "board R12-1 · issue 1067" },
   ],
-  "landing.feature.ai.meter": ["mentioned in {named} of {total} answers this week", { slots: { named: "text", total: "text" }, fixedBy: "SPEC §6 2026-10-03 D19" }],
-  "landing.feature.google.title": ["Get on Google’s first page", { slots: {}, fixedBy: "board R12-1 · issue 1067" }],
+  /** The AI card's drawing: one answer, who it mentions, and the business it leaves out. */
+  "landing.feature.ai.ask": ["Who’s a good emergency plumber in Austin?", { slots: {}, fixedBy: "board Landing · issue 1596" }],
+  "landing.feature.ai.mentions": ["An AI answer mentions", { slots: {}, fixedBy: "board Landing · issue 1596" }],
+  "landing.feature.ai.chain": ["a national plumbing chain", { slots: {}, fixedBy: "board Landing · issue 1596" }],
+  "landing.feature.ai.you": ["{you}: not mentioned", { slots: { you: "text" }, fixedBy: "board Landing · issue 1596" }],
+  "landing.feature.google.title": ["Get found on Google", { slots: {}, fixedBy: "board R12-1 · issue 1067" }],
   "landing.feature.google.body": [
-    "We find the searches your buyers make that competitors rank for and you don’t, and go after the ones you can win, one page at a time.",
+    "We find the searches buyers in your market make where competitors show up and you don’t, and write pages for the ones a site your size can win, one page at a time.",
     { slots: {}, fixedBy: "board R12-1 · issue 1067" },
   ],
   "landing.feature.google.rival": ["your competitor", { slots: {}, fixedBy: "board R12-1 · issue 1067" }],
@@ -701,30 +728,60 @@ export const REPORT_COPY = Object.freeze({
   ],
   "landing.feature.fix.title": ["Fix what holds you back", { slots: {}, fixedBy: "board R12-1 · issue 1067" }],
   "landing.feature.fix.body": [
-    "Blocked AI readers, missing titles, no sitemap, slow pages. The report shows each one, free. Where your site runs on WordPress, ReachKit rewrites missing titles and descriptions for you.",
+    "AI shut out of your site, missing titles, no page list for Google, slow pages. The free report shows each one with a 10-minute fix. On WordPress, ReachKit rewrites missing titles and descriptions for you.",
     { slots: {}, fixedBy: "board R12-1 · issue 1067" },
   ],
-  "landing.feature.fix.readers": ["AI readers unblocked", { slots: {}, fixedBy: "board R12-1 · issue 1067" }],
+  "landing.feature.fix.readers": ["AI is let into your site", { slots: {}, fixedBy: "board R12-1 · issue 1067" }],
   "landing.feature.fix.titles": ["Missing titles rewritten", { slots: {}, fixedBy: "board R12-1 · issue 1067" }],
-  "landing.feature.fix.sitemap": ["Sitemap in place", { slots: {}, fixedBy: "board R12-1 · issue 1067" }],
+  "landing.feature.fix.sitemap": ["A page list for Google", { slots: {}, fixedBy: "board R12-1 · issue 1067" }],
   "landing.feature.fix.free": ["Free fix · 10 min", { slots: {}, fixedBy: "board R12-1 · issue 1067" }],
   "landing.feature.fix.ours": ["ReachKit, on WordPress", { slots: {}, fixedBy: "board R12-1 · issue 1067" }],
-  "landing.feature.daily.title": ["Content, a page every day", { slots: {}, fixedBy: "board R12-1 · issue 1067" }],
+  "landing.feature.daily.title": ["Pages written for you, every week", { slots: {}, fixedBy: "board R12-1 · issue 1067" }],
   "landing.feature.daily.body": [
-    "Written from facts on your own site, in your voice, and published on your domain. Some days it is a new page, other days an update to one already live. Each goes live on its own, and you can edit or stop it before it does.",
-    { slots: {}, fixedBy: "board R12-1 · issue 1067" },
+    "Up to {weekPages} a week, new or updated, written from facts on your own site and live on your own web address. Each goes live on its own after {hours} hours. You can edit or stop it first, and you never have to.",
+    { slots: { weekPages: "text", hours: "text" }, fixedBy: "board Landing · issue 1596" },
   ],
   /** *What to do next*: the time each step takes. */
-  "landing.step.1.tag": ["under a minute", { slots: {}, fixedBy: "board R12-1 · issue 1067" }],
-  "landing.step.2.tag": ["five minutes, once", { slots: {}, fixedBy: "board R12-1 · issue 1067" }],
-  "landing.step.3.tag": ["from tomorrow", { slots: {}, fixedBy: "board R12-1 · issue 1067" }],
+  "landing.step.1.tag": ["free · under a minute", { slots: {}, fixedBy: "board R12-1 · issue 1067" }],
+  "landing.step.2.tag": ["every Monday", { slots: {}, fixedBy: "board R12-1 · issue 1067" }],
+  "landing.step.3.tag": ["from week 1", { slots: {}, fixedBy: "board R12-1 · issue 1067" }],
   /** The closing band: its heading, its line, and the line under its button. */
-  "landing.close.heading": ["See where you stand today.", { slots: {}, fixedBy: "board R12-1 · issue 1067" }],
+  "landing.close.heading": ["See who gets your buyers today.", { slots: {}, fixedBy: "board R12-1 · issue 1067" }],
   "landing.close.body": [
     "The report is free and yours to keep. ReachKit is €49 a month, VAT included, when you want the pages written.",
     { slots: {}, fixedBy: "board R12-1 · issue 1067" },
   ],
-  "landing.close.assurance": ["free · no account · cancel in one click", { slots: {}, fixedBy: "board R12-1 · issue 1067" }],
+  /** *What {price} a month gets you*: what the one plan holds, and its card. */
+  "landing.price.heading": ["What {price} a month gets you", { slots: { price: "text" }, fixedBy: "board Landing · issue 1596" }],
+  "landing.price.facts": ["Each page is written from facts on your site, with every fact linked to where it came from.", { slots: {}, fixedBy: "board Landing · issue 1596" }],
+  "landing.price.ready": ["An email when each page is ready, saying which search it answers and who answers it today.", { slots: {}, fixedBy: "board Landing · issue 1596" }],
+  "landing.price.monday": ["Every Monday: where your pages sit in Google, which of your pages AI answers link to, and what is planned next.", { slots: {}, fixedBy: "board Landing · issue 1596" }],
+  "landing.price.competitors": ["Your competitors, up to {rivals}, checked every week.", { slots: { rivals: "text" }, fixedBy: "board Landing · issue 1596" }],
+  "landing.price.site": ["Your whole site checked for problems, with the fix for each.", { slots: {}, fixedBy: "board Landing · issue 1596" }],
+  "landing.price.plan": ["ReachKit · one plan", { slots: {}, fixedBy: "board Landing · issue 1596" }],
+  "landing.price.terms": ["{price} a month, VAT included. One plan. Cancel any time.", { slots: { price: "text" }, fixedBy: "board Landing · issue 1596" }],
+  "landing.price.more": ["See the full value, and how it compares", { slots: {}, fixedBy: "board Landing · issue 1596" }],
+  /** The questions owners ask, each a question and its answer. */
+  "landing.faq.eyebrow": ["Questions", { slots: {}, fixedBy: "board Landing · issue 1596" }],
+  "landing.faq.heading": ["Questions owners ask", { slots: {}, fixedBy: "board Landing · issue 1596" }],
+  "landing.faq.spam.q": ["Is this AI spam?", { slots: {}, fixedBy: "board Landing · issue 1596" }],
+  "landing.faq.spam.a": ["No. Pages are written with an AI model, but only from facts on your own site and from sources each page links to. Before a page goes live it is read against up to {checks} checks: no invented people, reviews or numbers, and nothing your site doesn’t back up. A page that fails twice never goes live. We plan a page only where your market has a real question to answer, so some weeks have fewer than {weekPages}. Google’s own guidance is that using AI is fine and using it mainly to game Google’s results is not. We write to answer your buyers.", { slots: { checks: "text", weekPages: "text" }, fixedBy: "board Landing · issue 1596" }],
+  "landing.faq.approve.q": ["Do I have to approve each page?", { slots: {}, fixedBy: "board Landing · issue 1596" }],
+  "landing.faq.approve.a": ["No. Each page goes live on its own {hours} hours after it is written. We email it to you first, and you can read it, edit it or stop it, or do nothing at all. You can set that window anywhere from {min} to {max} days.", { slots: { hours: "text", min: "text", max: "text" }, fixedBy: "board Landing · issue 1596" }],
+  "landing.faq.results.q": ["How long until I see results?", { slots: {}, fixedBy: "board Landing · issue 1596" }],
+  "landing.faq.results.a": ["In week 1 you see your pages go live on your site. From the first Monday you see where they sit in Google and whether AI answers link to them. Each page climbs at the search engines’ pace, not ours. Bing usually finds a new page within days. Google takes from a few days to a few weeks, and doesn’t list every page. Showing in results takes weeks. Reaching the first page takes months, and not every page gets there. No one can guarantee a top spot on Google, and we never promise one.", { slots: {}, fixedBy: "board Landing · issue 1596" }],
+  "landing.faq.stop.q": ["What if I want to stop?", { slots: {}, fixedBy: "board Landing · issue 1596" }],
+  "landing.faq.stop.a": ["Cancel any time from Settings. You keep access until the end of the month you’ve paid for, and you’re not charged again. Pages on your WordPress stay where they are. Pages on the blog address we run for you stay live until your access ends, and we email you a week before. Your export of every page stays available, with no end date.", { slots: {}, fixedBy: "board Landing · issue 1596" }],
+  "landing.faq.local.q": ["Will it work for a local business?", { slots: {}, fixedBy: "board Landing · issue 1596" }],
+  "landing.faq.local.a": ["Yes. ReachKit reads what kind of business you are and measures the searches where your buyers are, including the ones with your town in them. Pages answer what local buyers ask: prices, what’s included, how long a job takes. One honest limit: for searches that show a map, Google lists businesses from Google Maps first, and your Google Maps listing (Business Profile) and reviews count most there. ReachKit’s pages help your website, not your Maps listing. In a small local market some weeks have fewer than {weekPages} good pages to write, and we never fill a week with filler.", { slots: { weekPages: "text" }, fixedBy: "board Landing · issue 1596" }],
+  "landing.faq.start.q": ["What do I need to start?", { slots: {}, fixedBy: "board Landing · issue 1596" }],
+  "landing.faq.start.a": ["A website you can connect. You pay first, with no account form, then spend about 10 minutes on setup. Connecting is one setting where your web address is managed, for a blog address such as blog.yourdomain.com (we show you what to copy), or your WordPress login. Your first page is written while you do it.", { slots: {}, fixedBy: "board Landing · issue 1596" }],
+  "landing.faq.german.q": ["Does it work in German?", { slots: {}, fixedBy: "board Landing · issue 1596" }],
+  "landing.faq.german.a": ["Yes. Your site is measured in its own country and language, and pages are written in English or German. This website and your dashboard are in English.", { slots: {}, fixedBy: "board Landing · issue 1596" }],
+  "landing.faq.trial.q": ["Why is there no free trial?", { slots: {}, fixedBy: "board Landing · issue 1596" }],
+  "landing.faq.trial.a": ["The scan and your first page are free, so you can see what ReachKit would do before you pay. After that there’s one plan at {price} a month, and you can cancel any time.", { slots: { price: "text" }, fixedBy: "board Landing · issue 1596" }],
+  "landing.faq.results.more": ["See it week by week", { slots: {}, fixedBy: "board Landing · issue 1596" }],
+  "landing.close.assurance": ["free · no account · under a minute", { slots: {}, fixedBy: "board R12-1 · issue 1067" }],
 
   /* ── The quiet pages (#936) ───────────────────────────────────────────
      A refusal, a scan that stopped, a removed report: the screens a
@@ -807,10 +864,6 @@ export const REPORT_COPY = Object.freeze({
     { slots: {}, fixedBy: "issue 1069 · R12-3" },
   ],
   "gallery.empty.cta": ["Scan this site", { slots: {}, fixedBy: "issue 1069 · R12-3" }],
-  // The landing's logo strip (SPEC §1, owner on #1058): *Recently scanned*,
-  // never *Trusted by*.
-  "landing.strip.label": ["Recently scanned", { slots: {}, fixedBy: "issue 1069 · R12-1" }],
-  "landing.strip.all": ["See all free scans", { slots: {}, fixedBy: "issue 1069 · R12-1" }],
 
   // SPEC §6, owner D66 (issue 1311): the one line a report owes its reader
   // where the site named a country or a language that is not measured yet.

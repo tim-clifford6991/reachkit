@@ -3,6 +3,7 @@
 // composed from the articles and from copy keys, never typed twice.
 import { copy } from "@/lib/presentation/copy";
 import { ANSWERS, COMPARISONS, TEARDOWNS } from ".";
+import { HOW_FACTS } from "../_how/facts";
 
 function xmlEscape(value: string): string {
   return value
@@ -53,7 +54,7 @@ export function llmsText(origin: string): string {
   return [
     `# ${copy("chrome.wordmark")}`,
     "",
-    `> ${copy("landing.subline")}`,
+    `> ${copy("landing.subline", { weekPages: HOW_FACTS.weekPages })}`,
     "",
     copy("about.why.problem"),
     "",
