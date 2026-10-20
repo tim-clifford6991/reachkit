@@ -17,20 +17,13 @@
 // 2026-09-24, #1070): a tick and one line, never a green alert.
 import type React from "react";
 import Link from "next/link";
-import { Bell, Check, FileText, Globe, Plug, Wrench } from "lucide-react";
+import { Bell, Check, FileText, Plug, Wrench } from "lucide-react";
 import { copy } from "@/lib/presentation/copy";
 import { writtenLine } from "../_shell/written";
 import { formatCount } from "./present";
 import { ISSUES_HREF, type Alert, type AlertKind, type Overflow } from "./alerts";
 
 const PANEL: Readonly<Record<AlertKind, { alert: string; cta: string; Icon: typeof Bell }>> = {
-  // #924: the hosted blog's address, waiting for its record. The accent
-  // ground and an outline control — never the error tone, because an
-  // address nobody has connected yet is work to do rather than a fault
-  // (§2.5 keeps red for the customer's own problem shown to them).
-  // The base tone, not a warning: connecting the blog is a thing to do,
-  // not a fault. (§2.2 names four tones and no `info` one.)
-  connect_blog: { alert: "alert alert-soft", cta: "btn btn-soft btn-primary btn-sm", Icon: Globe },
   pending_veto: { alert: "alert alert-warning alert-soft", cta: "btn btn-soft btn-warning btn-sm", Icon: FileText },
   needs_you: { alert: "alert alert-soft", cta: "btn btn-soft btn-primary btn-sm", Icon: Plug },
   // A technical issue the customer fixes (SPEC §9): error ground when
@@ -81,8 +74,8 @@ function Panel(p: { alert: Alert }): React.JSX.Element | null {
   );
 }
 
-/** The line's slots: the alert's own (#1174: the connect-blog line's
- *  `{host}`), plus the veto line's one, from the model's own numbers. */
+/** The line's slots: the alert's own, plus the veto line's one, from the
+ *  model's own numbers. */
 function lineVars(alert: Alert): Record<string, string | number> {
   const vars = { ...alert.vars };
   if (alert.timeLeft === undefined) return vars;

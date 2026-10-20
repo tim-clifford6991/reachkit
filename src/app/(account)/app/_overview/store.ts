@@ -90,7 +90,7 @@ import {
   weekStartFor,
   type WeekScan,
 } from "@/lib/scan/weekly";
-import type { AnswerEngine, LastLive, OverviewFacts } from "./model";
+import type { AddressWaiting, AnswerEngine, LastLive, OverviewFacts } from "./model";
 import { CALENDAR_DAY_ZONE } from "./week";
 import type { WeeklyPoint } from "./growth";
 import type { RivalFact, RivalFacts } from "./rivals";
@@ -923,10 +923,10 @@ export async function readOverviewFacts(site: OverviewSite): Promise<OverviewFac
     deepRead,
     // SPEC §4 (2026-09-20): the page the screen leads with.
     waitingPageFacts(site, now),
-    // SPEC §5 (2026-09-20, #924): the hosted blog's address, while it is
-    // still waiting for its record. One row read, no vendor call — a
-    // screen deciding which item to draw may not spend one.
-    connectWaiting(site.siteId, now),
+    // SPEC §5 (2026-09-20): the hosted address, while it is still waiting
+    // for its record. One row read, no vendor call — a screen deciding what
+    // to draw may not spend one.
+    addressWaiting(site.siteId),
     lastLiveOf(site.siteId),
   ]);
   // issue 765/issue 784: a zero is either a market used up or one never measured, and
@@ -978,8 +978,8 @@ export async function readOverviewFacts(site: OverviewSite): Promise<OverviewFac
       // is not that arrival.
       firstArrivalShortfall: false,
     },
+    connect,
     waiting: [
-      ...connect,
       ...waiting,
       ...issuesWaiting(series.latest ?? deepPass?.report ?? null),
     ],
@@ -992,30 +992,22 @@ export async function readOverviewFacts(site: OverviewSite): Promise<OverviewFac
 }
 
 /**
- * SPEC §5 (2026-09-20, #924): the hosted blog's address while it waits for
- * its DNS record — "it stays reachable from Overview's needs-you and from
- * Settings until the host is live".
- *
- * Empty the moment the host is live, which is a state the row already
- * carries, and empty for a site with no hosted destination at all. A read
- * that fails is empty too: an item the screen cannot justify is one it does
- * not draw.
- *
- * `since` is the clock rather than a stored instant, and that is honest
- * here: nothing records when a record *started* being missing, and the
- * field is only ever a tie-break between two items of the same rank — of
- * which there is at most one of these.
+ * SPEC §5 (2026-09-20): the hosted address while it waits for its DNS record,
+ * with the one record that connects it. `null` once the host is live, for a
+ * site with no hosted destination, for a host the record would not name
+ * exactly, and where the read fails: a state the screen cannot justify is
+ * one it does not draw.
  */
-async function connectWaiting(siteId: string, now: Date): Promise<readonly WaitingItem[]> {
+async function addressWaiting(siteId: string): Promise<AddressWaiting | null> {
   try {
     const { hostedHostFor } = await import("@/lib/publish/destinations/hosted/hostname");
     const host = await hostedHostFor(siteId);
-    if (host === null || host.state === "live") return [];
-    return [
-      { kind: "connect_blog", hostname: host.hostname, since: now, href: "/setup/connect" },
-    ];
+    if (host === null || host.state === "live") return null;
+    const [{ recordForHost }, { env }] = await Promise.all([import("@/lib/publish/setup/cards"), import("@/lib/config/env")]);
+    const record = recordForHost({ hostname: host.hostname, cnameTarget: env.HOSTED_EDGE_CNAME_TARGET });
+    return record === null ? null : { hostname: host.hostname, record };
   } catch {
-    return [];
+    return null;
   }
 }
 

@@ -35,7 +35,6 @@ import { FIXTURE_SETUP_FACTS } from "@/app/(account)/setup/_setup/fixture";
 import { SETUP_STEPS, type SetupStepId } from "@/app/(account)/setup/steps";
 import { BUSINESS_GROUPS } from "@/app/(account)/setup/_setup/business";
 import { COPY } from "@/lib/presentation/copy";
-import { readAlerts } from "@/app/(account)/app/_overview/alerts";
 import { BATTERY } from "@/lib/config/constants";
 
 function render(el: React.ReactElement): Element {
@@ -106,11 +105,7 @@ describe("SPEC §5 (2026-09-20) — five saved steps, one question each", () => 
       screenFor("publishing").querySelector('[data-testid="setup-panel-title"]')?.textContent ?? "";
     expect(panelTitle).toMatch(/\bwebsite\b/);
     expect(panelTitle).not.toMatch(/\bblog/i);
-    const { alerts } = readAlerts(
-      [{ kind: "connect_blog", hostname: "help.example.com", since: new Date(0), href: "/setup/connect" }],
-      new Date(0),
-    );
-    expect(alerts[0] && COPY[alerts[0].key]).toBe(COPY["setup.connect.title"]);
+    expect(COPY["overview.connect.title"]).toBe(COPY["setup.connect.title"]);
   });
 
   it("the Connect step says the first page waits for the connection, and names no hour a site may change", () => {

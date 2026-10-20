@@ -1042,23 +1042,23 @@ export const OVERVIEW_COPY = Object.freeze({
     "Show all {total}",
     { slots: { total: "text" }, fixedBy: "SPEC §4 2026-09-20" },
   ],
-  // ── SPEC §5 (2026-09-20, #924): the hosted blog's address, still waiting
-  // for its DNS record. It leads the needs-you list because until the
-  // record exists nothing written can go live at all, and it leaves the
-  // list the moment the host is live.
-  //
-  // Drafted under the owner's 2026-09-16 ruling (#759); the PR names it.
-  "overview.alert.connect-blog": [
-    "Connect your website",
-    { slots: {}, fixedBy: "SPEC §5 2026-09-20" },
+  // SPEC §5 (2026-09-20): Overview while the address waits for its DNS
+  // record. No line names a go-live time: none is true until it is live.
+  // Drafted (#759); the PR names each.
+  "overview.connect.head": ["Your pages wait for your website", { slots: {}, fixedBy: "SPEC §5 2026-09-20 (drafted)" }],
+  "overview.connect.lead": [
+    "They go live once your website is connected. Everything else runs on its own.",
+    { slots: {}, fixedBy: "SPEC §5 2026-09-20 (drafted)" },
   ],
-  "overview.alert.connect-blog.line": [
-    "One DNS record for {host}, about 5 minutes. Pages wait until it exists.",
-    { slots: { host: "text" }, fixedBy: "SPEC §5 2026-09-20" },
+  "overview.connect.eyebrow": ["Needs you · about 10 minutes, once", { slots: {}, fixedBy: "SPEC §5 2026-09-20 (drafted)" }],
+  "overview.connect.title": ["Connect your website", { slots: {}, fixedBy: "owner E11 · issue 1601" }],
+  "overview.connect.line": [
+    "Add this one setting where your web address is managed, such as the company you bought it from. We check every hour on our own, and your pages go live at {host} once it works.",
+    { slots: { host: "text" }, fixedBy: "SPEC §5 2026-09-20 (drafted)" },
   ],
-  "overview.alert.connect-blog.action": [
-    "Connect it",
-    { slots: {}, fixedBy: "SPEC §5 2026-09-20" },
+  "overview.connect.progress": [
+    "Your progress starts here once your first page is live.",
+    { slots: {}, fixedBy: "SPEC §5 2026-09-20 (drafted)" },
   ],
 
   // SPEC §4 (2026-09-20, #908), issue 912 — the first day after setup.

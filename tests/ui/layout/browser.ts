@@ -40,6 +40,8 @@ import {
   seedFreeScans,
   seedLedger,
   seedWeekZeroAccount,
+  seedUnconnectedAccount,
+  UNCONNECTED_ACCOUNT,
   SETUP_ACCOUNT,
   waitForSchemaCache,
 } from "./seed";
@@ -88,6 +90,8 @@ interface BrowserState {
    *  toggled on one of the others: the arm is a property of what has been
    *  measured, and an account cannot have both a weekly week and none. */
   weekZeroAccountCookie: string;
+  /** The same, for a customer whose hosted address waits for its record. */
+  unconnectedAccountCookie: string;
 }
 
 /** ADR-093 decision 6, amended 2026-09-03: "the viewport carries a height …
@@ -210,6 +214,7 @@ export default async function setup(): Promise<() => Promise<void>> {
   seedLiveAccount();
   seedSetupAccount();
   seedWeekZeroAccount();
+  seedUnconnectedAccount();
   seedFreeScans();
   seedLedger();
   // The customer the hosted edge serves (#418). No cookie is minted for it
@@ -221,6 +226,7 @@ export default async function setup(): Promise<() => Promise<void>> {
   const liveAccountCookie = seededSessionCookie(authStub, LIVE_ACCOUNT);
   const setupAccountCookie = seededSessionCookie(authStub, SETUP_ACCOUNT);
   const weekZeroAccountCookie = seededSessionCookie(authStub, WEEK_ZERO_ACCOUNT);
+  const unconnectedAccountCookie = seededSessionCookie(authStub, UNCONNECTED_ACCOUNT);
 
   const routes = enumerateRoutes(path.join(ROOT, "src/app"), { accountCookie });
   let baseURL: string | null = null;
@@ -240,6 +246,7 @@ export default async function setup(): Promise<() => Promise<void>> {
     liveAccountCookie,
     setupAccountCookie,
     weekZeroAccountCookie,
+    unconnectedAccountCookie,
   };
   const stateDir = mkdtempSync(path.join(os.tmpdir(), STATE_DIR_PREFIX));
   const stateFile = path.join(stateDir, "browser-state.json");
@@ -314,6 +321,12 @@ export function getSetupAccountCookie(): string {
  *  stating when sizing arrives. */
 export function getWeekZeroAccountCookie(): string {
   return readState().weekZeroAccountCookie;
+}
+
+/** The seeded session for the customer whose address is not connected yet:
+ *  `/app` is the connect state. */
+export function getUnconnectedAccountCookie(): string {
+  return readState().unconnectedAccountCookie;
 }
 
 /**

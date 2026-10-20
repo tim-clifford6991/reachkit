@@ -20,7 +20,7 @@
 // per-test timeout so a slow read fails as a slow read.
 import path from "node:path";
 import { describe, expect, it } from "vitest";
-import { getBaseURL, getLiveAccountCookie, getWeekZeroAccountCookie, withPage } from "./browser";
+import { getBaseURL, getLiveAccountCookie, getUnconnectedAccountCookie, getWeekZeroAccountCookie, withPage } from "./browser";
 import {
   checkContainment,
   checkNoClippingOrTruncation,
@@ -37,6 +37,8 @@ import {
   LIVE_PUBLISHING,
   RESERVED_ACCOUNT,
   SETUP_ACCOUNT,
+  UNCONNECTED_ACCOUNT,
+  UNCONNECTED_HOST,
   WEEK_ZERO_ACCOUNT,
 } from "./seed";
 import { FIXTURE_SETTINGS_FACTS } from "@/app/(account)/app/settings/fixture";
@@ -69,6 +71,13 @@ const routes = enumerateRoutes(APP_ROOT, {
 const weekZeroRoutes = enumerateRoutes(APP_ROOT, {
   segmentFixtures: LIVE_SEGMENTS,
   accountCookie: getWeekZeroAccountCookie(),
+}).filter((route) => route.path === "/app");
+
+/** `/app` for a customer whose hosted address waits for its record: the
+ *  connect state in place of the tiles. */
+const unconnectedRoutes = enumerateRoutes(APP_ROOT, {
+  segmentFixtures: LIVE_SEGMENTS,
+  accountCookie: getUnconnectedAccountCookie(),
 }).filter((route) => route.path === "/app");
 
 console.log(
@@ -282,13 +291,13 @@ describe(`week-0 sweep — S13, ${weekZeroRoutes.length} route(s) × ${sweepWidt
     expect(WEEK_ZERO_ACCOUNT.domain).not.toBe("example.com");
   });
 
-  it("the four seeded accounts are four distinct users, sites and domains", () => {
+  it("the seeded accounts are distinct users, sites and domains", () => {
     // Not pedantry: this account first shipped carrying `SETUP_ACCOUNT`'s
     // own user id, site id *and* domain, and the way that surfaced was a
     // duplicate-key error from inside `seedSite` at global setup — a
     // failure that names Postgres rather than the mistake. Three sets of
     // four say which field collided, before any suite runs.
-    const accounts = [RESERVED_ACCOUNT, LIVE_ACCOUNT, SETUP_ACCOUNT, WEEK_ZERO_ACCOUNT];
+    const accounts = [RESERVED_ACCOUNT, LIVE_ACCOUNT, SETUP_ACCOUNT, WEEK_ZERO_ACCOUNT, UNCONNECTED_ACCOUNT];
     expect(new Set(accounts.map((a) => a.userId)).size).toBe(accounts.length);
     expect(new Set(accounts.map((a) => a.siteId)).size).toBe(accounts.length);
     expect(new Set(accounts.map((a) => a.domain)).size).toBe(accounts.length);
@@ -324,6 +333,50 @@ describe(`week-0 sweep — S13, ${weekZeroRoutes.length} route(s) × ${sweepWidt
             },
             headersFor(route)
           );
+          expect(offenders).toEqual([]);
+        },
+        PER_ROUTE_BROWSER_MS
+      );
+    }
+  }
+});
+
+describe(`connect state — ${unconnectedRoutes.length} route(s) × ${sweepWidths().length} width(s)`, () => {
+  it("Overview is what is swept, and it is enumerated not listed", () => {
+    expect(unconnectedRoutes.map((route) => route.path)).toEqual(["/app"]);
+  });
+
+  for (const route of unconnectedRoutes) {
+    for (const width of sweepWidths()) {
+      it(
+        `${route.path} @ ${width}px draws the connect state and reports no offender on checks 1-4`,
+        async () => {
+          const { drawn, offenders } = await withPage(
+            width,
+            async (page) => {
+              await page.goto(urlFor(route), { timeout: LIVE_NAVIGATION_MS });
+              const drawn = {
+                connect: await page.locator('[data-testid="overview-connect"]').count(),
+                record: await page.locator(`[data-testid="dns-record"][data-host="${UNCONNECTED_HOST}"]`).count(),
+                tiles: await page.locator('[data-testid="overview-tiles"]').count(),
+              };
+              const results = [
+                await page.evaluate(checkNoHorizontalScroll),
+                await page.evaluate(checkContainment, {
+                  scrollContainerAllowlist: SCROLL_CONTAINER_ALLOWLIST,
+                }),
+                await page.evaluate(checkNoClippingOrTruncation, {
+                  scrollContainerAllowlist: SCROLL_CONTAINER_ALLOWLIST,
+                  truncationAllowlist: TRUNCATION_ALLOWLIST,
+                  monoFontFamily: MONO_FONT_FAMILY,
+                }),
+                await page.evaluate(checkTypeFloor),
+              ];
+              return { drawn, offenders: results.flat() };
+            },
+            headersFor(route)
+          );
+          expect(drawn).toEqual({ connect: 1, record: 1, tiles: 0 });
           expect(offenders).toEqual([]);
         },
         PER_ROUTE_BROWSER_MS

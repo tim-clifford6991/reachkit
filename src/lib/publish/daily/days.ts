@@ -64,7 +64,7 @@ export interface DraftDayStore {
    *  been (issue 1536). Absent, no stall is checked. */
   lastDeliveredAt?(siteId: string): Promise<Date | null>;
   /** Whether the site's destination is not connected yet: Overview's
-   *  `connect_blog` reading for hosted, no credential for WordPress. Absent,
+   *  connect state for hosted, no credential for WordPress. Absent,
    *  never. */
   waitingForAddress?(siteId: string): Promise<boolean>;
 }

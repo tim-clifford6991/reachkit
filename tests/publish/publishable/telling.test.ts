@@ -75,6 +75,9 @@ function seedDestination(kind: DestinationKind | "ftp", health: string, over: Ro
       // (#54). A plaintext object here would be a fixture of a shape the
       // database never carries.
       config: seal({ siteUrl: "https://example.com" }),
+      // No hosted address named, as a WordPress row and a hosted row with
+      // no host both hold it.
+      hostname: null,
       ...over,
     },
   ]);
@@ -224,6 +227,19 @@ describe('REQ-057 c9 — the destination clause', () => {
     seedDestination("hosted", "ok");
     const t = await tellingFor({ draft: view(), destination: "hosted" });
     expect(t.kind === "interval" && t.destination).toBeNull();
+  });
+
+  it("a hosted address waiting for its record cannot go live there, worded for the address; a live one carries none", async () => {
+    seedDestination("hosted", "ok", { hostname: "help.acmecrm.com", hostname_state: "pending_dns" });
+    const waiting = await tellingFor({ draft: view(), destination: "hosted" });
+    expect(waiting.kind === "interval" && waiting.destination).toEqual({
+      says: "cannot_go_live_there",
+      site: "help.acmecrm.com",
+      copy: "mail.draftReady.dest.addressNotConnected",
+    });
+    seedDestination("hosted", "ok", { hostname: "help.acmecrm.com", hostname_state: "live" });
+    const live = await tellingFor({ draft: view(), destination: "hosted" });
+    expect(live.kind === "interval" && live.destination).toBeNull();
   });
 
   it("a page bound for the customer's own site carries one — decided from `hostedByUs`, over three adapter kinds", async () => {

@@ -77,6 +77,8 @@ import type { Telling } from "@/lib/publish/publishable";
 import type { FactRow, MailBlock } from "../../blocks/types";
 
 const SUBJECT = "mail.draftReady.subject" satisfies CopyKey;
+const WAITING_SUBJECT = "mail.draftReady.waiting.subject" satisfies CopyKey;
+const ADDRESS_NOT_CONNECTED = "mail.draftReady.dest.addressNotConnected" satisfies CopyKey;
 const HEADING = "mail.draftReady.heading" satisfies CopyKey;
 const READY = "mail.draftReady.ready" satisfies CopyKey;
 const REASON = "mail.reason.draftReady" satisfies CopyKey;
@@ -159,6 +161,9 @@ export function buildDraftReady(a: {
   readHref?: string;
 }): DraftReadyMail {
   const blocks: MailBlock[] = [];
+  // No page goes live before the hosted address is connected, so this mail
+  // names no moment for it.
+  const waitsForAddress = a.telling.destination?.copy === ADDRESS_NOT_CONNECTED;
 
   // #933's opening line, above the title: what this mail is.
   blocks.push({ block: "paragraph", text: READY });
@@ -178,7 +183,9 @@ export function buildDraftReady(a: {
   // §12's "publishes tomorrow 09:00 unless you say no" — whichever of the
   // two that is for this page. Both name the moment; no arm asks for an
   // approval (owner 2026-10-08, issue 1337).
-  blocks.push({ block: "paragraph", text: a.telling.copy, vars: { publishesAt: a.publishesAt ?? "" } });
+  if (!waitsForAddress) {
+    blocks.push({ block: "paragraph", text: a.telling.copy, vars: { publishesAt: a.publishesAt ?? "" } });
+  }
 
   // REQ-057 c9's destination clause, where the page is bound for a site
   // ReachKit does not serve. A `notice` and not a second paragraph: it is
@@ -245,8 +252,10 @@ export function buildDraftReady(a: {
   // the same two values the telling's own line spends — so a mail that
   // could be composed cannot fail on its subject.
   return {
-    subject: SUBJECT,
-    subjectVars: { publishesAt: a.publishesAt ?? "", title: a.page?.title ?? "" },
+    subject: waitsForAddress ? WAITING_SUBJECT : SUBJECT,
+    subjectVars: waitsForAddress
+      ? { title: a.page?.title ?? "" }
+      : { publishesAt: a.publishesAt ?? "", title: a.page?.title ?? "" },
     reason: REASON,
     blocks,
   };
