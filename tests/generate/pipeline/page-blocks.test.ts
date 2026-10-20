@@ -158,11 +158,13 @@ describe("required_blocks — the first block a generated page lacks", () => {
     expect(check(verdict("Pick Acme for one plan; a team that needs single sign-on is better served by Globex."))).toBeNull();
   });
 
-  it("a page under its template's floor is stopped for its length, and one inside it is not", () => {
+  it("a short, complete page is not stopped for its length, and one over its type's maximum is", () => {
     const short = page(pageParts(CLEAN_MARKDOWN, { sections: pageParts().sections.map((s) => ({ ...s, body: withoutBrokenLinks(s.body.slice(0, 200)) })) }));
-    expect(bodyWords(short.markdown)).toBeLessThan(short.blocks.length!.floor);
-    expect(short.missing()).toBe("length");
-        expect(missing()).toBeNull();
+    expect(bodyWords(short.markdown)).toBeLessThan(500);
+    expect(short.missing()).toBeNull();
+    const long = page(pageParts(CLEAN_MARKDOWN, { sections: pageParts().sections.map((s) => ({ ...s, body: `${s.body}\n\n${"Seat counts decide the plan a small team needs. ".repeat(40)}` })) }));
+    expect(bodyWords(long.markdown)).toBeGreaterThan(long.blocks.length!.ceiling);
+    expect(long.missing()).toBe("length");
   });
 
   it("a page with fewer questions than its template asks is stopped for its sections", () => {
