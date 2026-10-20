@@ -44,10 +44,9 @@ function bandOf(candidate: Candidate, ownRanked: number, sized: boolean): Winnab
   return demandBand({ volume, ownRanked });
 }
 
-/** The best right-sized Write target the report measured, or `null` where it
- *  measured none. Pure. */
-export function bestFreePage(report: Omit<StoredReport, "freePage">): FreePagePick | null {
-  if (report.questions.kind === "unmeasured" || report.market.kind === "unmeasured") return null;
+/** The right-sized Write targets the report measured, best first. Pure. */
+export function rankedFreePages(report: Omit<StoredReport, "freePage">): Candidate[] {
+  if (report.questions.kind === "unmeasured" || report.market.kind === "unmeasured") return [];
   const ownRanked = ownRankedOf(report);
   const sized = report.rivalSizes.kind !== "unmeasured";
   const rankedCounts = rankedCountsFromSizes(
@@ -77,11 +76,31 @@ export function bestFreePage(report: Omit<StoredReport, "freePage">): FreePagePi
         volumeOrder(b.candidate) - volumeOrder(a.candidate)
     );
 
-  const best = ranked[0];
-  if (best === undefined) return null;
-  const question = report.questions.value.find((q) => q.search.keyword === best.candidate.targetQuery);
-  if (question === undefined) return null;
-  return { candidate: best.candidate, question, total: ranked.length };
+  return ranked.map((entry) => entry.candidate);
+}
+
+function pickOf(report: Omit<StoredReport, "freePage">, candidate: Candidate | undefined, total: number): FreePagePick | null {
+  if (candidate === undefined || report.questions.kind === "unmeasured") return null;
+  const question = report.questions.value.find((q) => q.search.keyword === candidate.targetQuery);
+  return question === undefined ? null : { candidate, question, total };
+}
+
+/** The best right-sized Write target the report measured, or `null` where it
+ *  measured none. Pure. */
+export function bestFreePage(report: Omit<StoredReport, "freePage">): FreePagePick | null {
+  const ranked = rankedFreePages(report);
+  return pickOf(report, ranked[0], ranked.length);
+}
+
+/** The page the stored report proposed, so the lead gets the card it was
+ *  shown even after the order changes; recomputed only where none is stored. */
+export function proposedFreePage(report: StoredReport): FreePagePick | null {
+  const ranked = rankedFreePages(report);
+  const stored = report.freePage?.opportunityId;
+  const pick = pickOf(report, ranked.find((candidate) => freePageId(report.scanId, candidate.targetRef) === stored), ranked.length);
+  if (pick !== null) return pick;
+  console.log(JSON.stringify({ event: "free_page_pick", scanId: report.scanId, pick: "recomputed" }));
+  return bestFreePage(report);
 }
 
 /** The pick as the report's card reads it. The id is the scan's and the

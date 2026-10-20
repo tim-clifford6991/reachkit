@@ -97,6 +97,26 @@ describe("at most two offering pages in any seven days", () => {
     // A week on, the window has room again.
     expect(orderRanked([offering("a", 10), answer], { mix: { from: 105, recent } })[0]?.opportunityId).toBe("a");
   });
+
+  it("with the offering pages full, a capped comparison is written as a Q&A before a third offering page", () => {
+    const recent = [
+      { day: 97, kind: "qa" as const, offering: true },
+      { day: 98, kind: "qa" as const, offering: true },
+      { day: 99, kind: "listicle" as const, offering: false },
+    ];
+    const comparison = { opportunity: opportunity("vs", "comparison_page", "acme vs globex"), points: 1, parts: [] };
+    const [today] = orderRanked([offering("c", 10), comparison], { mix: { from: 100, recent } });
+    expect(today).toMatchObject({ opportunityId: "vs", writeAs: "qa", reason: { rule: "over the D52 cap, as a Q&A" } });
+  });
+
+  it("with only offering pages left, the day still takes one", () => {
+    const recent = [
+      { day: 97, kind: "qa" as const, offering: true },
+      { day: 98, kind: "qa" as const, offering: true },
+    ];
+    const [today] = orderRanked([offering("c", 10)], { mix: { from: 100, recent } });
+    expect(today).toMatchObject({ opportunityId: "c", reason: { rule: "best, offering full" } });
+  });
 });
 
 describe("self-promoting pages are capped (D52, issue 1267)", () => {

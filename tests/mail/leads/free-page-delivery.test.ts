@@ -50,8 +50,8 @@ const { jobs } = await import("@/jobs");
 const { setLeadStore } = await import("@/lib/mail/leads/store");
 const { unwireSuppressionReader } = await import("@/lib/mail/leads/wire");
 const { POST } = await import("@/app/api/lead/route");
-const { freePageOf } = await import("@/lib/opportunities/free-page");
-const { defaultReport } = await import("../../opportunities/fixtures");
+const { freePageId, freePageOf, rankedFreePages } = await import("@/lib/opportunities/free-page");
+const { defaultReport, question, reportOf, search, serp } = await import("../../opportunities/fixtures");
 const { CLEAN_MARKDOWN, GROUNDED, SOURCE_TEXT, packAnswer, pageParts } = await import("../../generate/fixtures");
 
 const SCAN_ID = "11111111-1111-4111-8111-111111111111";
@@ -153,6 +153,24 @@ describe("an address on the report's card becomes a written, mailed first page a
     expect(llmMock).not.toHaveBeenCalled();
     expect(sendCalls.map((mail) => mail.kind)).toEqual(["first-page-unavailable"]);
     expect(state.leads[0]!.first_page_failure).toBe("writing-refused");
+  });
+
+  it("the page written is the one the stored report proposed, even where today's order ranks another first", async () => {
+    const first = question({ id: "q1", text: "What is the best onboarding checklist tool?", search: search({ keyword: "best onboarding checklist tool", volume: 60 }) });
+    const second = question({ id: "q2", text: "Which onboarding platform do teams pick?", search: search({ keyword: "onboarding platform for teams", volume: 70 }) });
+    const report = reportOf({ questions: [first, second], serps: [serp(), serp()] });
+    const ranked = rankedFreePages(report);
+    expect(ranked).toHaveLength(2);
+    const proposed = { ...freePageOf(report)!, opportunityId: freePageId(SCAN_ID, ranked[1]!.targetRef) };
+    state.reports.set(SCAN_ID, JSON.parse(JSON.stringify({ ...report, freePage: proposed })));
+
+    await submit("anna@example.com");
+    queuePage(CLEAN_MARKDOWN);
+    await tick();
+
+    const call = JSON.stringify(llmMock.mock.calls[0]);
+    expect(call).toContain(ranked[1]!.targetQuery);
+    expect(call).not.toContain(ranked[0]!.targetQuery);
   });
 
   it("a report with no page to offer writes nothing and says so", async () => {

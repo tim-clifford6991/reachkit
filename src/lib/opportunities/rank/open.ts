@@ -54,7 +54,7 @@ function isOffering(o: Parameters<typeof pageTypeOf>[0]): boolean {
  *  our own live pages first. D52: a listicle or comparison, whose template
  *  includes the business, is taken only where the seven days hold fewer than
  *  `SELF_PROMOTING_MAX`; where only such rows are left, the best is written
- *  as a Q&A of its buyer question rather than leave the day empty. The
+ *  as a Q&A of its buyer question before the offering count gives way. The
  *  topic's rotation and the offering count give way before a day goes empty. */
 export function orderRanked(
   scored: readonly Scored[],
@@ -91,6 +91,7 @@ export function orderRanked(
     const capped = (entry: Entry) =>
       kindOf(entry) === "listicle" && window.filter((page) => page.kind === "listicle").length >= CONTENT_MIX.SELF_PROMOTING_MAX;
     type Tier = readonly [PlaceRule, (entry: Entry) => boolean];
+    const qa: PlaceRule = "over the D52 cap, as a Q&A";
     const tiers: Tier[] = [
       ...(paced
         ? ([
@@ -101,21 +102,23 @@ export function orderRanked(
           ] satisfies Tier[])
         : []),
       ["best", (entry) => fresh(entry) && room(entry)],
+      ["best, same topic", room],
+      // The offering cap holds until D52's Q&A has been tried; a Q&A tier reads only capped rows.
+      ...(rotation.holdCapped === true ? [] : ([[qa, fresh], [qa, () => true]] satisfies Tier[])),
       ["best, offering full", fresh],
-      ["best, same topic", () => true],
+      ["best, offering full", () => true],
     ];
     let at = -1;
-    let rule: PlaceRule = "over the D52 cap, as a Q&A";
+    let rule: PlaceRule = qa;
     for (const [name, tier] of tiers) {
-      at = left.findIndex((entry) => !capped(entry) && tier(entry));
+      at = left.findIndex((entry) => (name === qa) === capped(entry) && tier(entry));
       if (at !== -1) {
         rule = name;
         break;
       }
     }
-    const asQa = at === -1;
-    if (asQa && rotation.holdCapped === true) continue;
-    if (asQa) at = Math.max(0, left.findIndex(fresh));
+    if (at === -1) continue;
+    const asQa = rule === qa;
     const [entry] = left.splice(at, 1);
     out.push({
       opportunityId: entry!.opportunity.id,
