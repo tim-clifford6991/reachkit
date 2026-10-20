@@ -349,6 +349,14 @@ export function memoryStore(state: MemoryState): OpportunityStore {
       state.statusChangedAt.set(row.id, state.now);
     },
 
+    async dismissIfOpen(opportunityId) {
+      const row = state.rows.find((r) => r.id === opportunityId);
+      if (row === undefined || row.status !== "open") return false;
+      row.status = "dismissed";
+      state.statusChangedAt.set(row.id, state.now);
+      return true;
+    },
+
     async rest(opportunityId, until) {
       const row = state.rows.find((r) => r.id === opportunityId);
       if (row === undefined || (row.status !== "open" && row.status !== "queued")) return;

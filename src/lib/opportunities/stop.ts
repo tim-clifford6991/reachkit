@@ -1,13 +1,12 @@
 // SPEC §8 — the Monday mail's stop link for a page the week planned but has
 // not written yet. No draft exists to bind a veto token to, so the token is
-// signed over (site, opportunity, day) and stores nothing. Stopping does what
-// stopping the page's draft does (`dismissForVeto`), and that day then takes
-// the week's next spare (`pageForDay`). No draft moves, so ADR-080 is not
-// reached. Once the page is written, its own draft-bound link applies.
+// signed over (site, opportunity, day) and stores nothing. Stopping dismisses
+// the page while it is still `open`, and that day then takes the week's next
+// spare (`pageForDay`). No draft moves, so ADR-080 is not reached. Once the
+// page is written, its own draft-bound link applies.
 import { createHmac, hkdfSync, timingSafeEqual } from "node:crypto";
 import { env } from "@/lib/config/env";
 import { dbAdmin } from "@/lib/db";
-import { dismissForVeto } from "./drafted";
 import { opportunityStore } from "./store";
 
 const HKDF_INFO = "reachkit/planned-stop-token/v1";
@@ -70,8 +69,9 @@ export async function previewPlannedStop(token: string, at: Date = new Date()): 
 export async function stopPlannedPage(token: string, at: Date = new Date()): Promise<PlannedPreview> {
   const preview = await previewPlannedStop(token, at);
   if (!preview.ok) return preview;
-  await dismissForVeto(readToken(token)!.opportunityId);
-  return preview;
+  // A draft saved since the read has taken the page out of `open`, so it is not stopped.
+  if (await opportunityStore().dismissIfOpen(readToken(token)!.opportunityId)) return preview;
+  return previewPlannedStop(token, at);
 }
 
 async function domainOf(siteId: string): Promise<string | null> {

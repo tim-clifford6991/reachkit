@@ -269,6 +269,9 @@ export interface OpportunityStore {
   /** A row whose draft the customer stopped: `open` or `queued` moves to
    *  `dismissed`, and `done` stays done (SPEC §7, 2026-09-15 — issue 712). */
   markDismissed(opportunityId: string): Promise<void>;
+  /** A planned page the customer stopped: `open` moves to `dismissed` in one
+   *  conditional update, and `true` says it moved. */
+  dismissIfOpen(opportunityId: string): Promise<boolean>;
   /** A row whose draft the generator stopped for the last time, or whose
    *  stopped draft the founder skipped (SPEC §7, D26, issue 1179): it is
    *  `open` and not ready (`resting`) until `until`. `open` and `queued`
@@ -900,6 +903,17 @@ export function supabaseOpportunityStore(): OpportunityStore {
         .eq("id", opportunityId)
         .in("status", ["open", "queued"]);
       if (error) throw new Error(`opportunities.markDismissed: ${error.message}`);
+    },
+
+    async dismissIfOpen(opportunityId) {
+      const { data, error } = await untyped()
+        .from<{ id: string }>("opportunities")
+        .update({ status: "dismissed" })
+        .eq("id", opportunityId)
+        .eq("status", "open")
+        .select("id");
+      if (error) throw new Error(`opportunities.dismissIfOpen: ${error.message}`);
+      return (data ?? []).length > 0;
     },
 
     async rest(opportunityId, until) {

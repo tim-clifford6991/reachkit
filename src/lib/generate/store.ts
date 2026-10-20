@@ -259,6 +259,14 @@ export class DraftDateTaken extends Error {
   }
 }
 
+/** The page was stopped before its draft was saved, so no row was written. */
+export class PageStopped extends Error {
+  constructor(readonly opportunityId: string) {
+    super(`generate/store: ${opportunityId} was stopped before its draft was saved`);
+    this.name = "PageStopped";
+  }
+}
+
 interface MinimalQueryBuilder<T> extends PromiseLike<QueryResult<T>> {
   select(columns: string, options?: { count: "exact"; head: true }): MinimalQueryBuilder<T>;
   insert(rows: object): MinimalQueryBuilder<T>;
@@ -350,6 +358,9 @@ export function supabaseGenerateStore(): GenerateStore {
     },
 
     async insertDraft(row) {
+      // Claimed as it is saved: a stop that came first drops the draft, and one that comes later is refused.
+      const { claimForDraft } = await import("@/lib/opportunities");
+      if (!(await claimForDraft(row.opportunity_id))) throw new PageStopped(row.opportunity_id);
       const result = await untyped()
         .from<{ id: string }>("drafts")
         .insert(row)
