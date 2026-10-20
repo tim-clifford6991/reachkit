@@ -266,6 +266,9 @@ export const MAIL_COPY = Object.freeze({
   "mail.weekly.spares": ["spares, if a day’s page cannot be written", { slots: {}, fixedBy: "SPEC §7 2026-10-19 (drafted)" }],
   "mail.weekly.next.none": ["Nothing next: no open opportunity is left, and the plan is never padded.", { slots: {}, fixedBy: "SPEC §8 2026-09-20" }],
   "mail.weekly.next.item": ["{search}", { slots: { search: "text" }, fixedBy: "§12" }],
+  // Issue 1674: a committed day's row is its stop link (drafted).
+  "mail.weekly.next.day": ["{day}: {search} · Stop this page", { slots: { day: "text", search: "text" }, fixedBy: "issue 1674 (drafted)" }],
+  "mail.weekly.next.skipped": ["Days this week with no page planned: {count}", { slots: { count: "text" }, fixedBy: "issue 1674 (drafted)" }],
 
   // The three forms a judged page's row takes. Three sentences and not one
   // with a conditional: "this page" and "this page, which moved from here

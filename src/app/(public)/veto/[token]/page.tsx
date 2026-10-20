@@ -44,7 +44,9 @@ import Link from "next/link";
 import { CircleCheck, Clock } from "lucide-react";
 import { copy } from "@/lib/presentation/copy";
 import { previewVetoLink, redeemVetoLink, vetoLinkPath } from "@/lib/publish/publishable";
-import type { PreviewResult, RedeemResult, VetoPreview } from "@/lib/publish/publishable";
+import type { PreviewResult, VetoPreview } from "@/lib/publish/publishable";
+import { isPlannedStopToken, previewPlannedStop, stopPlannedPage, type PlannedPreview } from "@/lib/opportunities/stop";
+import { formatMailDay } from "@/lib/mail/blocks/format";
 import { PUBLIC_ROUTE_SEO } from "../../_seo/routes";
 import { staticMetadata } from "../../_seo/metadata";
 import { Surface } from "@/ui/layout";
@@ -110,19 +112,39 @@ async function withDeadline<T>(work: Promise<T>): Promise<T> {
  * says this is not a link ReachKit can act on, and a link it could not act on
  * is exactly what the reader is holding.
  */
-async function preview(token: string): Promise<PreviewResult> {
+/** A veto link, or the Monday mail's link to a page not written yet. */
+type Read =
+  | { ok: true; preview: Omit<VetoPreview, "draftId"> }
+  | Exclude<PreviewResult, { ok: true }>
+  | { ok: false; reason: "written" };
+
+async function preview(token: string): Promise<Read> {
   try {
-    return await withDeadline(previewVetoLink(token));
+    return isPlannedStopToken(token)
+      ? asRead(await withDeadline(previewPlannedStop(token)))
+      : await withDeadline(previewVetoLink(token));
   } catch {
     return { ok: false, reason: "unknown" };
   }
 }
 
-async function redeem(token: string): Promise<RedeemResult> {
+/** A planned page has no title or opening yet: its day names it. */
+function asRead(read: PlannedPreview): Read {
+  if (read.ok) {
+    const { day, ...rest } = read.planned;
+    return {
+      ok: true,
+      preview: { ...rest, title: copy("publish.veto.planned.title", { day: formatMailDay(day) }), excerpt: null, publishes: null },
+    };
+  }
+  return read.reason === "used" ? { ok: false, reason: "used", title: null, domain: read.domain, excerpt: null } : read;
+}
+
+async function redeem(token: string): Promise<void> {
   try {
-    return await withDeadline(redeemVetoLink(token));
+    await withDeadline<unknown>(isPlannedStopToken(token) ? stopPlannedPage(token) : redeemVetoLink(token));
   } catch {
-    return { ok: false, reason: "unknown" };
+    // The page re-reads the token on the way back and says what is true.
   }
 }
 
@@ -176,13 +198,15 @@ const CHIP_OK = "grid size-12 flex-none place-items-center rounded-box bg-succes
  * difference between them is a fact about the page that this screen holds no
  * session to be told.
  */
-function refusal(reason: Exclude<PreviewResult, { ok: true }>["reason"]): { head: string; line: string } {
+function refusal(reason: Exclude<Read, { ok: true }>["reason"]): { head: string; line: string } {
   switch (reason) {
     case "used":
       return { head: copy("publish.veto.done.head"), line: copy("publish.veto.alreadyUsed") };
     case "expired":
     case "not_in_review":
       return { head: copy("publish.veto.closed.head"), line: copy("publish.veto.expired") };
+    case "written":
+      return { head: copy("publish.veto.closed.head"), line: copy("publish.veto.written") };
     case "unknown":
       return { head: copy("publish.veto.unknown.head"), line: copy("publish.veto.unknown") };
   }
@@ -321,7 +345,7 @@ function pagePanel(p: {
 }
 
 /** The ask arm: what the set draws, in its own order. */
-function Ask(p: { token: string; it: VetoPreview }): React.JSX.Element {
+function Ask(p: { token: string; it: Omit<VetoPreview, "draftId"> }): React.JSX.Element {
   async function stop(): Promise<void> {
     "use server";
     // The write, behind an act. Its result is not read here: the page

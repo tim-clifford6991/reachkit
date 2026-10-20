@@ -102,7 +102,7 @@ beforeEach(() => {
   engine.standings = [];
   engine.measuredAt = new Date(Date.UTC(2026, 8, 7, 6, 0, 0));
   engine.week = {
-    days: ["o1", "o2", "o3"].map((id, n) => ({ date: `2026-09-0${8 + n}`, opportunity: { targetQuery: `search ${id}` } })),
+    days: ["o1", "o2", "o3"].map((id, n) => ({ date: `2026-09-${String(8 + n).padStart(2, "0")}`, opportunity: { targetQuery: `search ${id}` } })),
     spares: [],
   };
   seed();
@@ -120,7 +120,8 @@ describe("the Monday digest goes out for a week that was measured", () => {
     // SPEC §8 (2026-10-07, issue 1329): the four headline numbers lead,
     // straight under the heading; the pages, the next three and the one
     // button follow. No score and no sentence about one.
-    expect(sent[0]!.blocks.map((b) => b.block)).toEqual(["heading", "stats", "verdicts", "list", "action"]);
+    // A three-page week also says how many of its days have no page.
+    expect(sent[0]!.blocks.map((b) => b.block)).toEqual(["heading", "stats", "verdicts", "list", "paragraph", "action"]);
   });
 
   it("issue 1329 — the top-20 number is counted from the week's stored verdict rows, with its change", async () => {
