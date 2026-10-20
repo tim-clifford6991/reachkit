@@ -458,7 +458,8 @@ function servedChanges(r: RescoreReport, scan: Pick<RescoreScan, "home">): Repor
   const alsoServes = marketsServed({ domain: r.domain, html: home.html, measured });
   const stored = r.locale?.alsoServes ?? [];
   if (alsoServes.length === stored.length && alsoServes.every((tag, i) => tag === stored[i])) return [];
-  const { alsoServes: _was, ...locale } = r.locale ?? { country: measured.country, language: measured.language };
+  const locale: Record<string, unknown> = { ...(r.locale ?? { country: measured.country, language: measured.language }) };
+  delete locale.alsoServes;
   return [{ path: ["locale"], value: alsoServes.length === 0 ? locale : { ...locale, alsoServes } }];
 }
 
