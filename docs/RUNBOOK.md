@@ -89,18 +89,25 @@ what an older build silently loses. It buys back one click that has never been n
 Owner, 2026-09-25 (#1113); the rules are in `docs/PROCESS.md` Gates. The light jobs — `what
 changed`, `typecheck · lint · unit`, `schema · RLS` and `audit` — take their runner from the
 repository variable `CI_LIGHT_RUNNER`. Unset, they run GitHub-hosted and in parallel. Set to
-`["self-hosted","reachkit-light"]`, they run on the box's second runner. The browser job always
-runs on `reachkit-box` (label `reachkit`), the only runner that takes it, when the pull request
-can change a screen. Where it cannot (`scripts/ci-changes.mjs`), the browser job is a light job
-that prints its reason and passes, and `Layout nightly` (`.github/workflows/layout-nightly.yml`)
-sweeps `main` on `reachkit-box` at 02:41 UTC and opens or comments on one issue titled
-`[layout] nightly sweep on main is red` when it fails (owner, 2026-10-18, #1525).
+`["self-hosted","reachkit-light"]`, they run on the box's second runner. On a pull request that
+can change a screen, the browser job runs GitHub-hosted (`ubuntu-latest`, owner 2026-10-20). It
+runs on `reachkit-box` (label `reachkit`, the only box runner that takes it, so two box sweeps
+never run at once) when `CI_LIGHT_RUNNER` is set or `CI_BROWSER_ON_BOX` is set. Where no screen
+can change (`scripts/ci-changes.mjs`), the browser job is a light job that prints its reason and
+passes. `Nightly` (`.github/workflows/layout-nightly.yml`) runs every job on `main` at 02:41 UTC,
+and every job off a pull request (the nightly, a dispatch) runs on `reachkit-box`, so it costs no
+hosted minutes. A red nightly opens or comments on one issue titled `[nightly] full run on main
+is red`. `what changed` runs `scripts/ci-runners/where.sh`, which prints where each job goes
+and why.
 
 | Do | Command |
 |---|---|
 | light jobs to the box (hosted jobs fail with *"recent account payments have failed or your spending limit needs to be increased"*) | `gh variable set CI_LIGHT_RUNNER --body '["self-hosted","reachkit-light"]'` |
 | light jobs back to hosted | `gh variable delete CI_LIGHT_RUNNER` |
 | see which | `gh variable list` (no `CI_LIGHT_RUNNER` = hosted) |
+| browser sweep to the box (hosted sweeps queue, fail or cost too much) | `gh variable set CI_BROWSER_ON_BOX --body 1` |
+| browser sweep back to hosted | `gh variable delete CI_BROWSER_ON_BOX` |
+| see where the sweep went | `gh variable list` (no `CI_BROWSER_ON_BOX` and no `CI_LIGHT_RUNNER` = hosted on a pull request), or the `browser_hosted=` line of `what changed` |
 
 **The runners on the box.** Both run as `ghrunner`, one directory each under `/home/ghrunner`:
 

@@ -7,8 +7,9 @@
 #
 # It is not a merge gate and nothing waits on it: a red run opens one issue
 # titled `[nightly] full run on main is red`, or comments on the open one, and
-# an engineer starts from that issue. The browser job runs on `reachkit`, the
-# one browser runner (#1035), at an hour when no pull request is waiting.
+# an engineer starts from that issue. Off a pull request every job, this
+# workflow's own included, runs on `reachkit-box` (#1035), so the run costs no
+# hosted minutes, at an hour when no pull request is waiting.
 name: Nightly
 
 on:
@@ -35,7 +36,7 @@ jobs:
     name: open or comment on the [nightly] issue
     needs: ci
     if: ${{ failure() || inputs.dry_run }}
-    runs-on: ${{ fromJSON(vars.CI_LIGHT_RUNNER || '"ubuntu-latest"') }}
+    runs-on: [self-hosted, reachkit]
     timeout-minutes: 5
     permissions:
       issues: write
