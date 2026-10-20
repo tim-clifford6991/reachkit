@@ -43,9 +43,10 @@
 // reaches Postgres and resolves DNS for a hosted destination, and neither
 // is a measurement, a vendor call or a model call.
 import type { LinkMap } from "@/lib/known-content/link-map";
+import type { MonthGot } from "@/lib/account/billing";
 import { cache } from "react";
 import { assembleSettings, type SettingsModel } from "./model";
-import { FIXTURE_SETTINGS_FACTS } from "./fixture";
+import { FIXTURE_MONTH_GOT, FIXTURE_SETTINGS_FACTS } from "./fixture";
 import { isReservedFixtureAccount, requireSetUpAccount } from "../_session/account";
 
 // **Every read moved to `./store` in #228.** They lived here while this
@@ -94,4 +95,15 @@ export const readLinkMap = cache(async function readLinkMap(): Promise<LinkMap> 
   }
   const { siteLinkMap } = await import("@/lib/known-content/link-map");
   return siteLinkMap(account.siteId);
+});
+
+/** Billing's "What you got this month" (SPEC §4, E3). The reserved account
+ *  reads the densest fixture; a read that fails is the screen's failure. */
+export const readMonthGot = cache(async function readMonthGot(): Promise<{ got: MonthGot; timeZone: string }> {
+  const account = await requireSetUpAccount();
+  if (isReservedFixtureAccount(account)) return { got: FIXTURE_MONTH_GOT, timeZone: account.timeZone };
+  const { monthGot } = await import("@/lib/account/billing");
+  const got = await monthGot(account.userId, account.siteId);
+  if (got === null) throw new Error("billing month could not be read");
+  return { got, timeZone: account.timeZone };
 });

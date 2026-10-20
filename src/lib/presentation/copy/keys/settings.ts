@@ -708,6 +708,22 @@ export const SETTINGS_COPY = Object.freeze({
     { slots: { date: "date" }, fixedBy: "BUILD §4.7" },
   ],
 
+  // Billing's "What you got this month" (owner E3, 2026-10-19). Drafted.
+  "settings.month.title": ["What you got this month", { slots: {}, fixedBy: "E3 · drafted" }],
+  "settings.month.period": ["Billing period {from} to {to}.", { slots: { from: "date", to: "date" }, fixedBy: "E3 · drafted" }],
+  "settings.month.live": ["pages went live", { slots: {}, fixedBy: "E3 · drafted" }],
+  "settings.month.refreshed": ["pages refreshed", { slots: {}, fixedBy: "E3 · drafted" }],
+  "settings.month.scans": ["scans run", { slots: {}, fixedBy: "E3 · drafted" }],
+  "settings.month.not-measured": ["not measured", { slots: {}, fixedBy: "E3 · drafted" }],
+  "settings.month.checks": ["Checks each page passed", { slots: {}, fixedBy: "E3 · drafted" }],
+  "settings.month.refresh": ["refresh", { slots: {}, fixedBy: "E3 · drafted" }],
+  "settings.month.untitled": ["A page with no title", { slots: {}, fixedBy: "E3 · drafted" }],
+  "settings.month.no-pages": ["No page went live in this period yet.", { slots: {}, fixedBy: "E3 · drafted" }],
+  "settings.month.note": [
+    "Counted from your own pages and scans. A page that went live is one that is on your address today.",
+    { slots: {}, fixedBy: "E3 · drafted" },
+  ],
+
   // ── Account ────────────────────────────────────────────────────────────
   "settings.account.title": ["Account", { slots: {}, fixedBy: "BUILD §4.7" }],
   "settings.account.name": ["name", { slots: {}, fixedBy: "BUILD §4.7" }],

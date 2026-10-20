@@ -13,6 +13,7 @@ import type {
   BillingRow,
   BillingStore,
   HostingRow,
+  PeriodPageRow,
   SubscriptionFacts,
 } from "../../../src/lib/account/billing";
 
@@ -24,6 +25,9 @@ type Writable<T> = { -readonly [K in keyof T]: T[K] };
 export interface MemoryBilling {
   users: BillingRow[];
   sites: HostingRow[];
+  /** Delivered publications and finished scans, as `period` filters them. */
+  publications: (PeriodPageRow & { site_id: string; published_at: string; unpublished_at: string | null })[];
+  scans: { site_id: string; created_at: string; status: "running" | "done" | "degraded" }[];
   failAccountRead: boolean;
   failHostingRead: boolean;
   failWrite: boolean;
@@ -33,6 +37,8 @@ export function newMemoryBilling(): MemoryBilling {
   return {
     users: [],
     sites: [],
+    publications: [],
+    scans: [],
     failAccountRead: false,
     failHostingRead: false,
     failWrite: false,
@@ -239,6 +245,18 @@ export function memoryBillingStore(state: MemoryBilling): BillingStore {
           ? { hosting_end_notice_at: at.toISOString() }
           : { hosting_end_reminder_at: at.toISOString() };
       return patchSite(siteId, patch) ? { ok: true } : { ok: false };
+    },
+
+    async period(siteId, from, to) {
+      if (state.failHostingRead) return { ok: false };
+      const within = (at: string): boolean => Date.parse(at) >= from.getTime() && Date.parse(at) < to.getTime();
+      return {
+        ok: true,
+        pages: state.publications.filter(
+          (p) => p.site_id === siteId && p.unpublished_at === null && within(p.published_at)
+        ),
+        scans: state.scans.filter((s) => s.site_id === siteId && s.status !== "running" && within(s.created_at)).length,
+      };
     },
   };
 }

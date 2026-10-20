@@ -31,6 +31,8 @@
 // the sidebar beside it would be the one bug this file can cause.
 import { ACCOUNT_NOTE_KEYS } from "@/lib/account/identity/notes";
 import { destinationView } from "@/lib/publish/destinations/view";
+import type { MonthGot } from "@/lib/account/billing";
+import { HARD_RULES } from "@/lib/generate/rules/types";
 import type { BillingFacts, SettingsFacts } from "./model";
 import { FIXTURE_DOMAIN } from "../_shell/fixture";
 
@@ -147,4 +149,19 @@ export const FIXTURE_SETTINGS_FACTS: SettingsFacts = Object.freeze({
   notifyPrefs: Object.freeze({ weekly: false }),
   billing: FIXTURE_BILLING,
   publishedPages: 17,
+});
+
+/** The period ending on `FIXTURE_BILLING.paidThrough`, with a long title and
+ *  a page whose checks were not recorded, so both arms of a row are drawn. */
+export const FIXTURE_MONTH_GOT: MonthGot = Object.freeze({
+  from: new Date("2026-09-01T00:00:00.000Z"),
+  to: new Date("2026-10-01T00:00:00.000Z"),
+  live: 2,
+  refreshed: 1,
+  scans: 4,
+  pages: [
+    { title: "Best onboarding tools for a small support team that answers every ticket itself", refresh: false, checks: { passed: HARD_RULES.length - 2, total: HARD_RULES.length } },
+    { title: "How teams pick an onboarding tool", refresh: false, checks: null },
+    { title: "Onboarding checklist", refresh: true, checks: { passed: HARD_RULES.length, total: HARD_RULES.length } },
+  ],
 });

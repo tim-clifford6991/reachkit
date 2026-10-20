@@ -28,6 +28,7 @@ export {
   type BillingSummaryResult,
   type PlanState,
 } from "./summary";
+export { monthGot, periodEnding, type MonthGot, type MonthPage } from "./month";
 export {
   PORTAL_FEATURES,
   portalLink,
@@ -58,5 +59,6 @@ export {
   type BillingRow,
   type HostingRow,
   type HostingNotice,
+  type PeriodPageRow,
   type SubscriptionFacts,
 } from "./store";
