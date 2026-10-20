@@ -99,4 +99,6 @@ export const HOW_FACTS = Object.freeze({
   windowHours: VETO.defaultHours,
   windowMinDays: VETO.minDays,
   windowMaxDays: VETO.maxDays,
+  /** The setup time the public pages state; setup's three steps take it. */
+  setupMinutes: 10,
 });

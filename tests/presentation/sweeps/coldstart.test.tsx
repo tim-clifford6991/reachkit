@@ -493,6 +493,11 @@ const MORE_THAN_ONE_PRIMARY_PUBLIC: Readonly<Record<string, string>> = Object.fr
     "and the two that are not the submit focus that same field (REQ-099 c3) " +
     "rather than offering a second action. This sweep sees two of them: the " +
     "header is the group layout's and does not render here.",
+  "/how-it-works":
+    "board How it works (2026-10-19). One action, the free scan, stated " +
+    "once in each of four sections (the head, the week, the value and the " +
+    "start), which is DESIGN's one solid button per section; each goes to " +
+    "the landing's one field rather than offering a second action.",
 });
 
 function primariesPerScreen(rendered: RenderedRoute[], group: string): Map<string, number> {
