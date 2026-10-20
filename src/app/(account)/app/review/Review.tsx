@@ -144,7 +144,7 @@ function Site(p: { site: ReviewSite }): React.JSX.Element {
       <div className="card-body min-w-0 gap-4 p-4">
         <h2 className="card-title font-mono text-base break-all">{p.site.domain}</h2>
         <div className="flex min-w-0 flex-col gap-2">
-          <h3 className="text-sm font-semibold">{copy("review.week.title")}</h3>
+          <h3 className="eyebrow">{copy("review.week.title")}</h3>
           {week.committed.length === 0 ? (
             <p className="text-sm text-base-content/70">{copy("review.week.empty")}</p>
           ) : (
@@ -153,7 +153,7 @@ function Site(p: { site: ReviewSite }): React.JSX.Element {
           {week.rejected.length === 0 ? null : <NotChosen rows={week.rejected} />}
         </div>
         <div className="flex min-w-0 flex-col gap-2">
-          <h3 className="text-sm font-semibold">{copy("review.pages.title")}</h3>
+          <h3 className="eyebrow">{copy("review.pages.title")}</h3>
           <Pages pages={p.site.pages} />
         </div>
       </div>
