@@ -59,12 +59,16 @@ import {
   NO_OVERFLOW_SCROLL_CONTAINERS,
   NO_OVERFLOW_THEMES,
   NO_OVERFLOW_WIDTHS,
+  noOverflowCasesFor,
   noOverflowRoutes,
-  noOverflowWidthsFor,
+  PR_SWEEP,
   RECHARTS_CLASS,
   settleForMeasurement,
 } from "./no-overflow";
 import { headersFor, urlFor as routeUrl, type EnumeratedRoute } from "./routes";
+
+/** A pull request sweeps one theme per width; the nightly run sweeps both. */
+const SWEPT_THEMES = PR_SWEEP ? "one theme per width (pull request)" : `${NO_OVERFLOW_THEMES.length} theme(s)`;
 
 const APP_ROOT = path.resolve(__dirname, "../../../src/app");
 
@@ -75,7 +79,7 @@ const routes = noOverflowRoutes(APP_ROOT, {
 
 console.log(
   `tests/ui/layout/no-overflow.test.ts: ${routes.length} route(s) × ` +
-    `${NO_OVERFLOW_WIDTHS.length} width(s) (and /app at ${APP_SHELL_MD_LG_WIDTH}px) × ${NO_OVERFLOW_THEMES.length} theme(s)`,
+    `${NO_OVERFLOW_WIDTHS.length} width(s) (and /app at ${APP_SHELL_MD_LG_WIDTH}px) × ${SWEPT_THEMES}`,
 );
 
 /** One browser launch, two navigations, two axe runs and three checks on
@@ -176,7 +180,7 @@ async function reportOn(
  *  the last one. */
 const stillThere = new Set<number>();
 
-describe(`no overflow, no clipping, axe clean — ${routes.length} route(s) × ${NO_OVERFLOW_WIDTHS.length} width(s) (and /app at ${APP_SHELL_MD_LG_WIDTH}px) × ${NO_OVERFLOW_THEMES.length} theme(s)`, () => {
+describe(`no overflow, no clipping, axe clean — ${routes.length} route(s) × ${NO_OVERFLOW_WIDTHS.length} width(s) (and /app at ${APP_SHELL_MD_LG_WIDTH}px) × ${SWEPT_THEMES}`, () => {
   it("states what it swept, explicitly, and sweeps the tree rather than a list of its own (rule 5.5)", () => {
     // The premise, as an assertion: this gate is in scope for a screen added
     // later because it asks `routes.ts`, exactly as the two sweeps beside it
@@ -214,15 +218,15 @@ describe(`no overflow, no clipping, axe clean — ${routes.length} route(s) × $
   for (const route of routes) {
     // An `/app` screen is swept once more between `md` and `lg`, where it
     // wears the phone shell (issue 1484, `noOverflowWidthsFor`).
-    for (const width of noOverflowWidthsFor(route.path)) {
+    for (const { width, themes } of noOverflowCasesFor(route.path)) {
       it(
-        `${route.path} @ ${width}px, light and dark`,
+        `${route.path} @ ${width}px, ${themes.join(" and ")}`,
         async () => {
           const found = await withPage(
             width,
             async (page) => {
               const lines: string[] = [];
-              for (const theme of NO_OVERFLOW_THEMES) {
+              for (const theme of themes) {
                 lines.push(...(await reportOn(page, route, urlFor(route), theme)));
               }
               return lines;
