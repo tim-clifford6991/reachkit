@@ -24,10 +24,9 @@
 // families that have a `depth` parameter — organic SERPs and the news
 // search; Labs, AI Mode and the LLM scraper have no such field and the
 // vendor rejects unknown fields (`40501 Invalid Field`), so on those paths
-// the key is stripped and left unset. The same is true of the locale on one
-// family: LLM Mentions declares neither field, and its dataset is
-// US/English by construction, so `NO_LOCALE_PATH_PREFIX` below leaves them
-// unset there (SPEC §6, 2026-09-22, #1004) and its spec carries `null`.
+// the key is stripped and left unset. The same is true of the locale on
+// On-Page, which declares neither field, so `NO_LOCALE_PATH_PREFIXES` below
+// leaves them unset there and its spec carries `null`.
 //
 // **Two request shapes, both built here.** Live endpoints are one `POST`.
 // The standard queue (`mode: "std"`, BUILD §6.4 "everything scheduled =
@@ -44,25 +43,10 @@ const DATAFORSEO_BASE_URL = "https://api.dataforseo.com";
  *  billed by the ten results like the organic one. */
 const DEPTH_PATH_PREFIXES = ["/v3/serp/google/organic/", "/v3/serp/google/news/"] as const;
 
-/** LLM Mentions (SPEC §6, 2026-09-22, #1004) — the one path family whose
- *  tasks take **no locale fields at all**, and the reason the two pins
- *  below are set per family rather than unconditionally.
- *
- *  `search_mentions` declares neither `location_name` nor `language_code`,
- *  and the vendor rejects a field an endpoint does not declare with
- *  `40501 Invalid Field` at $0.00 — the same refusal the pilot's own
- *  `search_scope` mistake drew (#1003). The database is US/English by
- *  construction, so there is no locale to select and nothing is lost by
- *  omitting them; the pilot's successful run of 2026-09-22 sent neither.
- *
- *  This is the `depth` rule again, one family further: a pin is set where
- *  the vendor has a field for it, and stripped everywhere else, and a
- *  caller can still set none of them. */
-const NO_LOCALE_PATH_PREFIX = "/v3/ai_optimization/llm_mentions";
-
-/** On-Page (SPEC §6, issue 1374) is the second: it reads one address in a
- *  browser, and an address has no country to be searched from. */
-const NO_LOCALE_PATH_PREFIXES = [NO_LOCALE_PATH_PREFIX, "/v3/on_page/"] as const;
+/** On-Page (SPEC §6) reads one address in a browser, and an address has no
+ *  country to be searched from; the vendor rejects a field it does not
+ *  declare, so its tasks carry no locale at all. */
+const NO_LOCALE_PATH_PREFIXES = ["/v3/on_page/"] as const;
 
 /** The path families that are read from a city (SPEC §6, owner D67 of
  *  2026-10-07, issue 1318): Google's own results, organic and AI Mode,
@@ -90,11 +74,6 @@ export function placeCacheKey(locale: Locale): string {
   const city = locationName(PLACE_PATH_PREFIXES[0], locale);
   return city === COUNTRIES[locale.country].location ? localeCacheKey(locale) : `${localeCacheKey(locale)}|${city}`;
 }
-
-/** The LLM Mentions family, for the endpoint module that builds its paths
- *  (`mentions.ts`) — one spelling, so the prefix that is exempted and the
- *  path that is exempted cannot drift apart. */
-export const LLM_MENTIONS_PATH_PREFIX = NO_LOCALE_PATH_PREFIX;
 
 /** BP-008 decision 2's pattern, applied here at the transport level too:
  *  every request this module builds states which vendor API surface it

@@ -544,18 +544,6 @@ export async function ledgeredWithTotal<T>(
     cacheKey: string;
     freshnessDays: number;
     costCents: number;
-    /** The settlement, where the vendor's own rule makes the final charge a
-     *  function of what came back — `ledgered`'s argument above, with the
-     *  same contract: it sees the rows, or `null` for a failure the vendor
-     *  bills, and the seam clamps anything over the reservation.
-     *
-     *  LLM Mentions is why it is here (#1004): its price is a flat request
-     *  charge plus a tenth of a cent a row, so a site with nothing to say
-     *  must give the weekly cap back the half of the reservation it did not
-     *  spend. The zero-row answer settles from `[]`, which is the shape the
-     *  cache reads as a zero — so the figure is right on the arm that
-     *  matters most. */
-    settleCents?: (rows: readonly T[] | null) => number;
     fetch: () => Promise<VendorOutcome>;
     parse: (result: unknown) => { rows: T[]; total: number | null } | undefined;
     onFailure?: OnVendorFailure;
@@ -568,18 +556,11 @@ export async function ledgeredWithTotal<T>(
 
   type Payload = { rows: T[]; total: number | null } | [] | VendorFailure;
 
-  const settle = call.settleCents;
   const result = await c.recordFetch<Payload>({
     source: call.source,
     cacheKey: call.cacheKey,
     freshnessDays: call.freshnessDays,
     costCents: call.costCents,
-    ...(settle
-      ? {
-          settleCents: (p: Payload) =>
-            settle(isVendorFailure(p) ? null : Array.isArray(p) ? [] : p.rows),
-        }
-      : {}),
     billedCents: () => vendorCents,
     run: async (): Promise<Payload> => {
       const out = await call.fetch();

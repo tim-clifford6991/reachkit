@@ -24,16 +24,6 @@
 // measured week that says what it missed (REQ-065 c4), never a failure to
 // repeat.
 //
-// **The week also buys what the engines already answer with this site**
-// (SPEC §6, 2026-09-22, #1004). One `search_mentions` request per site per
-// week, inside the same `afterReport` hook and the same `WEEKLY` cap, and
-// **after** the supply step: a pass with no cap left loses the
-// supplementary list rather than the calendar. The read writes its own row
-// whatever happened — bought, skipped for the cap, or failed — because a
-// week nobody bought and a week the engines named nobody in are two
-// different sentences on the AI answers tab, and only a stored row can
-// tell them apart.
-//
 // **What the week found becomes supply, before the account is read.**
 // §7's derivation and 0¢ refill are additive and run inside this pass's own cost
 // context and `WEEKLY` cap (§6.3 puts opportunity typing in the paid
@@ -141,38 +131,6 @@ export async function runWeekly(a: {
             report,
             hasActiveAccess: true,
           });
-          // SPEC §6 (2026-09-22, #1004) — this week's LLM Mentions, on the
-          // pass's own money and under the same `WEEKLY` cap. Last, and
-          // that ordering is the decision: a tight week loses the
-          // supplementary list before it loses the calendar, so the
-          // derivation above is asked first and this is what the 40c cap
-          // refuses when there is no room left. A refusal writes its own row
-          // and says so; it never stops the pass.
-          //
-          // Imported at the call, as `src/jobs/run.ts` does: this module is
-          // reached by the hourly tick, and a static edge into the vendor
-          // barrel would pull the DataForSEO transport — and the binding
-          // parse behind it — into every importer of the weekly seam.
-          try {
-            const { readWeeklyMentions } = await import("@/lib/mentions");
-            await readWeeklyMentions(cost, {
-              siteId: a.siteId,
-              domain: a.domain,
-              weekStart,
-              scanId: claim.scanId,
-              // D32 (#1162): bought only at a footprint of 30 or more.
-              ownRanked: report.ownRanked.kind === "unmeasured" ? null : report.ownRanked.value,
-            });
-          } catch (error) {
-            console.log(
-              JSON.stringify({
-                event: "llm_mentions_week_failed",
-                siteId: a.siteId,
-                weekStart,
-                because: error instanceof Error ? error.message : String(error),
-              })
-            );
-          }
         } finally {
           // SPEC §6 (owner D58, issue 1287): the pass checks its own health
           // last, against the rivals it leaves in force. It never throws.
