@@ -78,6 +78,32 @@ export function noOverflowWidthsFor(routePath: string): readonly number[] {
  *  pass is for. */
 export const NO_OVERFLOW_THEMES: readonly ["light", "dark"] = ["light", "dark"];
 
+/** Set by `ci.yml` on a pull request; the nightly run on `main` leaves it unset. */
+export const PR_SWEEP = process.env.RK_LAYOUT_PR === "1";
+
+/**
+ * The one theme each width is swept in on a pull request (owner C3,
+ * 2026-10-19): every width once and both themes, half the cases. The
+ * nightly run sweeps every width in both.
+ */
+export const NO_OVERFLOW_PR_THEME: ReadonlyMap<number, "light" | "dark"> = new Map([
+  [NO_OVERFLOW_WIDTHS[0], "light"],
+  [NO_OVERFLOW_WIDTHS[1], "dark"],
+  [APP_SHELL_MD_LG_WIDTH, "light"],
+  [NO_OVERFLOW_WIDTHS[2], "light"],
+]);
+
+/** Each width a route is swept at, with the themes it is swept in there. */
+export function noOverflowCasesFor(
+  routePath: string,
+  pr: boolean = PR_SWEEP,
+): readonly { width: number; themes: readonly ("light" | "dark")[] }[] {
+  return noOverflowWidthsFor(routePath).map((width) => ({
+    width,
+    themes: pr ? [NO_OVERFLOW_PR_THEME.get(width) ?? "light"] : NO_OVERFLOW_THEMES,
+  }));
+}
+
 /**
  * The wrappers this pass does not measure a box against.
  *
