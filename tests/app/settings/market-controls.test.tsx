@@ -61,6 +61,10 @@ vi.mock("@/app/(account)/app/settings/change-actions", () => {
     saveCategoryAction: record("category", "market_category"),
     addRivalAction: record("add", "rival_domain"),
     removeRivalAction: record("remove", "rival_domain"),
+    saveLocaleAction: async (form: FormData) => {
+      pressed.push({ action: "locale", value: String(form.get("market_locale") ?? "") });
+      return { answer: "saved", remeasure: { started: true } };
+    },
     remeasureNowAction: async () => {
       pressed.push({ action: "remeasure", value: "" });
       return remeasureReply.next;
@@ -459,5 +463,42 @@ describe("REQ-071 c2 and c4 — the competitors control", () => {
       .map((el) => el.getAttribute("data-testid") ?? "")
       .filter((id) => id.startsWith("setting-"));
     expect(offered).toEqual(["setting-competitors"]);
+  });
+});
+
+describe("SPEC §6 (D66) — the country and language, in Settings", () => {
+  async function withLocale(over: Partial<SettingsFacts>): Promise<HTMLElement> {
+    const model = settings(over);
+    return mount(<MarketPanel market={model.market} domain={model.domain} locale={model.locale} timeZone={ZONE} />);
+  }
+
+  it("offers setup's list with the measured pair and the markets the site declares first", async () => {
+    const root = await withLocale({ locale: { current: { country: "GB", language: "en" }, alsoServes: ["de-at", "und-ch", "en", "fr-fr"] } });
+    const select = within(root, "setting-locale").querySelector("select") as HTMLSelectElement;
+    expect([...select.options].map((option) => option.value)).toEqual(["GB/en", "AT/de", "CH/de", "US/en", "IE/en", "AU/en", "CA/en", "DE/de"]);
+    expect(select.value).toBe("GB/en");
+  });
+
+  it("a site with no stored pair reads as the United States in English", async () => {
+    const root = await withLocale({});
+    expect((within(root, "setting-locale").querySelector("select") as HTMLSelectElement).value).toBe("US/en");
+  });
+
+  it("Save sends the chosen pair and states that a scan started", async () => {
+    const root = await withLocale({});
+    const row = within(root, "setting-locale");
+    await act(async () => {
+      const select = row.querySelector("select") as HTMLSelectElement;
+      select.value = "DE/de";
+      select.dispatchEvent(new Event("change", { bubbles: true }));
+    });
+    await submit(row.querySelector("form"));
+    expect(pressed).toEqual([{ action: "locale", value: "DE/de" }]);
+    expect(row.querySelector('[data-testid="locale-answer"]')?.textContent).toBe("settings.market.remeasuring");
+  });
+
+  it("the card offers no country and language where none is handed to it", async () => {
+    const root = await market();
+    expect(root.querySelector('[data-testid="setting-locale"]')).toBeNull();
   });
 });

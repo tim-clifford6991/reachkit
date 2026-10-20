@@ -74,6 +74,8 @@ import type { SafeFetchOpts } from "@/lib/egress/safe-fetch";
 import { robotsTokensFor, safeFetch } from "@/lib/egress/safe-fetch";
 import type { FetchOutcome, RobotsPolicy } from "@/lib/egress/types";
 import { registrableDomain } from "@/lib/market/rivals/domains";
+import { outsideMarket } from "@/lib/locale/read";
+import type { Locale } from "@/lib/locale/locales";
 import { proseText } from "@/lib/measure/prose";
 import { readPageFacts, type PageIssueFacts } from "@/lib/site-issues/facts";
 import { readFirstRank } from "./knowledge/priority";
@@ -191,6 +193,9 @@ export interface CrawlArgs {
    *  `www.`). Their pages are ours, so they do not spend the site's page
    *  budget. */
   skipHosts?: ReadonlySet<string>;
+  /** The market the pass measures (D66). On a site split by market, the
+   *  crawl reads that market's section and the unprefixed pages only. */
+  locale?: Locale;
 }
 
 /**
@@ -251,6 +256,10 @@ async function crawl(c: CostContext, a: CrawlArgs, reader: BoundedReader): Promi
   // The home document is held like any other, whoever fetched it.
   reader.hold(Buffer.byteLength(home.html, "utf8"));
 
+  // Buyers in the measured market read its section, so the others' pages
+  // never reach the profile, the inventory or the link targets.
+  const outside = a.locale === undefined ? () => false : outsideMarket({ domain: a.domain, html: home.html, measured: a.locale });
+
   // The site's pace, from the home origin's own document.
   await reader.paceBy(home.url);
 
@@ -288,7 +297,7 @@ async function crawl(c: CostContext, a: CrawlArgs, reader: BoundedReader): Promi
   };
   const enqueue = (raw: string, from: string): void => {
     const url = inScopeUrl(raw, from, site);
-    if (url === null || skipped(url, a.skipHosts)) return;
+    if (url === null || skipped(url, a.skipHosts) || outside(url)) return;
     const key = dedupeKey(url);
     if (key === null || seen.has(key)) return;
     seen.add(key);

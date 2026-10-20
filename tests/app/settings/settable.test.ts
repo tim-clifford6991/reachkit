@@ -23,6 +23,7 @@ describe("REQ-070 c1 — SETTABLE is closed", () => {
       "category",
       "competitors",
       "domain",
+      "locale",
       "veto_hours",
       "publish_time",
       "time_zone",

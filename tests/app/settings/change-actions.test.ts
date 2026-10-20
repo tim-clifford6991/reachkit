@@ -382,3 +382,62 @@ describe("REQ-071 c2 and c16 — removing a rival", () => {
     expect(saveRivals).toHaveBeenCalledWith({ siteId: "site-1", rivals: [] });
   });
 });
+
+const { registerSiteLocaleStore } = await import("@/lib/locale/site");
+
+describe("SPEC §6 (D66) — Settings changes the country and language", () => {
+  const stored = new Map<string, { country: string; language: string }>();
+  const localeForm = (key: string): FormData => form({ [state.MARKET_LOCALE_FIELD]: key });
+
+  beforeEach(() => {
+    stored.clear();
+    stored.set("site-1", { country: "GB", language: "en" });
+    registerSiteLocaleStore({
+      async read(siteId) {
+        return stored.get(siteId) ?? null;
+      },
+      async write(siteId, locale) {
+        stored.set(siteId, { country: locale.country, language: locale.language });
+      },
+    });
+    return () => registerSiteLocaleStore(null);
+  });
+
+  it("writes the session site's country and language and starts a pass for it", async () => {
+    const answer = await actions.saveLocaleAction(localeForm("DE/de"));
+    expect(stored.get("site-1")).toEqual({ country: "DE", language: "de" });
+    expect(startRemeasure).toHaveBeenCalledWith({ siteId: "site-1", domain: "acme.com" });
+    expect(answer).toEqual({ answer: "saved", remeasure: { started: true } });
+    expect(revalidated).toContain(DESTINATION_HREF.settings);
+  });
+
+  it("refuses a pair off the list and writes nothing", async () => {
+    for (const key of ["DE/en", "FR/fr", "GB", ""]) {
+      expect(await actions.saveLocaleAction(localeForm(key))).toEqual({ answer: "refused" });
+    }
+    expect(stored.get("site-1")).toEqual({ country: "GB", language: "en" });
+    expect(startRemeasure).not.toHaveBeenCalled();
+  });
+
+  it("the pair already measured starts nothing", async () => {
+    expect(await actions.saveLocaleAction(localeForm("GB/en"))).toEqual({ answer: "unchanged" });
+    expect(startRemeasure).not.toHaveBeenCalled();
+  });
+
+  it("a start the daily bound refuses keeps the saved pair and says when to ask again", async () => {
+    startRemeasure.mockResolvedValue({ started: false, because: "daily_limit", nextAt: EFFECTIVE });
+    const answer = await actions.saveLocaleAction(localeForm("AT/de"));
+    expect(stored.get("site-1")).toEqual({ country: "AT", language: "de" });
+    expect(answer).toEqual({
+      answer: "saved",
+      remeasure: {
+        started: false,
+        line: COPY["setup.remeasure.refused.daily-limit"].replace("{time}", formatDateTime(EFFECTIVE, "America/New_York")),
+      },
+    });
+  });
+
+  it("takes one argument, the form", () => {
+    expect(actions.saveLocaleAction).toHaveLength(1);
+  });
+});
