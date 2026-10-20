@@ -88,6 +88,12 @@ export function countriesMeasuredIn(
     .map((row) => row.location);
 }
 
+/** The slots of the German FAQ answer: "Germany, Austria, and Switzerland". */
+export function measuredCountryLists(): { germanCountries: string; englishCountries: string } {
+  const listed = (names: readonly string[]): string => new Intl.ListFormat("en", { type: "conjunction" }).format(names);
+  return { germanCountries: listed(countriesMeasuredIn("de")), englishCountries: listed(countriesMeasuredIn("en")) };
+}
+
 export function isCountry(value: unknown): value is Country {
   return typeof value === "string" && Object.prototype.hasOwnProperty.call(COUNTRIES, value);
 }

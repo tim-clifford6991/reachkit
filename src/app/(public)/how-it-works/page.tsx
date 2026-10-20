@@ -18,6 +18,7 @@ import { HOSTED_RETENTION_DAYS } from "@/lib/config/constants";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { HARD_RULES } from "@/lib/generate/rules/types";
 import { FIELD_SECTION_ID } from "../_landing/sections";
+import { measuredCountryLists } from "@/lib/locale/locales";
 import { PUBLIC_ROUTE_SEO } from "../_seo/routes";
 import { staticMetadata } from "../_seo/metadata";
 import { startCheckout } from "../pricing/actions";
@@ -320,7 +321,7 @@ function questions(): readonly Question[] {
     landing("stop", { days: String(HOSTED_RETENTION_DAYS) }),
     landing("local", weekPages),
     { q: "how.faq.software.q", a: "how.faq.software.a" },
-    landing("german"),
+    landing("german", measuredCountryLists()),
     landing("trial", { price: PRICE() }),
   ];
 }

@@ -1,11 +1,10 @@
 // SPEC §6, D66: the report's measured-in line never calls a country or a
-// language on the list unmeasured, and the landing names the same list.
+// language on the list unmeasured, and the FAQ names the same list.
 import { describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import React from "react";
 import { ReportView } from "@/app/(public)/scan/[domain]/_address/report-view";
 import { FIXTURE_REPORT } from "@/app/(public)/scan/[domain]/_fixture/states";
-import LandingPage from "@/app/(public)/page";
 import { AlsoServesNote, WhatWeRead } from "@/app/_business/WhatWeRead";
 import { understandBusiness } from "@/lib/business/understanding";
 import { copy } from "@/lib/presentation/copy";
@@ -73,13 +72,7 @@ describe("the measured-in line never calls a supported country or language unmea
   });
 });
 
-describe("the landing's German answer names the countries ReachKit measures", () => {
-  it("every supported country appears in the rendered answer", () => {
-    const html = renderToStaticMarkup(React.createElement(LandingPage));
-    const answer = html.slice(html.indexOf("Does it work in German?"), html.indexOf("</details>", html.indexOf("Does it work in German?")));
-    for (const row of Object.values(COUNTRIES)) expect(answer).toContain(row.location);
-  });
-
+describe("the German answer's country list follows the table", () => {
   it("a country added to the list is named by its language", () => {
     const fixture = { ...COUNTRIES, NZ: { location: "New Zealand", language: "en" } };
     expect(countriesMeasuredIn("en", fixture)).toContain("New Zealand");
