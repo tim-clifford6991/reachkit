@@ -130,8 +130,10 @@ hourly, beside `rk-deployer` and `rk-guard`, and logs every flip to
 - **Back to hosted, after billing: by hand only**, once Billing & plans is fixed. Run
   `gh variable delete CI_LIGHT_RUNNER` and `rm /root/ops/reachkit/state/ci-switch`. A failed
   payment does not reset with the month.
-- **A value set by hand is left alone.** Since 2026-10-20 07:54Z (owner) it is
-  `["self-hosted","reachkit-light"]`, with `reachkit-light` installed.
+- **A value set by hand is left alone.** The owner set `["self-hosted","reachkit-light"]` on
+  2026-10-20 07:54Z. The orchestrator deleted it at ~08:12Z and light jobs run GitHub-hosted
+  again; a unit job also ran out of memory on `reachkit-light` at `MemoryMax=3G` (08:19Z).
+  `reachkit-light` stays installed as the fallback only.
 
 To recreate it, run `sudo bash scripts/ci-runners/install-minutes-switch.sh`. It ends with a dry
 run, which says what the switch can read.
