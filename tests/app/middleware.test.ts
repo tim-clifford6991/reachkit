@@ -183,6 +183,7 @@ describe(
         "/gone": "/gone",
         "/share-card": "/share-card",
         "/llms.txt": "/llms.txt",
+        "/.well-known/security.txt": "/.well-known/security.txt",
       };
       expect(Object.keys(instances).sort()).toEqual([...PUBLIC_PATHS].sort());
       for (const pattern of PUBLIC_PATHS) {

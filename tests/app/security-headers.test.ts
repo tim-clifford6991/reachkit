@@ -215,6 +215,27 @@ describe("issue #331 — no path out of `src/middleware.ts` answers without the 
   });
 });
 
+describe("the preview toolbar's origins are allowed on a preview and never on production", () => {
+  afterEach(() => vi.unstubAllEnvs());
+
+  it("on the policy the middleware answers with", async () => {
+    vi.stubEnv("VERCEL_ENV", "production");
+    const production = (await middleware(requestTo("/pricing"))).headers.get(CSP);
+    vi.stubEnv("VERCEL_ENV", "preview");
+    const preview = (await middleware(requestTo("/pricing"))).headers.get(CSP);
+
+    expect(production).toContain("frame-ancestors 'none'");
+    expect(production).not.toContain("vercel.live");
+    expect(production).not.toContain("pusher.com");
+    expect(preview).toContain("https://vercel.live");
+  });
+
+  it("on the cached hosted article's script-free policy", () => {
+    expect(contentSecurityPolicy(null, false, false, false)).not.toContain("vercel.live");
+    expect(contentSecurityPolicy(null, false, false, true)).toContain("https://vercel.live");
+  });
+});
+
 // ── 2. The two cookies, and the Server Functions' origin check ────────────
 
 describe("issue #331 — the session cookie's flags (Supabase Auth's cookie since #468)", () => {
