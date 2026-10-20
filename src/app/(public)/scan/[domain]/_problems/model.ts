@@ -13,7 +13,6 @@
 import { SEVERITY_THRESHOLDS } from "@/lib/config/constants";
 import { NOT_BUILT } from "../_address/measured";
 import { combine, mapMeasured, measured, measuredZero, type Measured } from "@/lib/measure/measured";
-import { registrableDomain } from "@/lib/market/rivals/domains";
 import { rankedFreePages } from "@/lib/opportunities/free-page";
 import type { CopyKey } from "@/lib/presentation/copy";
 import type { StoredReport } from "@/lib/scan/report";
@@ -134,9 +133,6 @@ export interface MissingPage {
   volume: number | null;
   /** The competitor first in the search today, where one is. */
   holder: string | null;
-  /** Every site on the search's first page, as the report stored it; `null`
-   *  where that search was not read. */
-  firstPage: readonly string[] | null;
 }
 
 /** Every page the report found missing, read from what it stored at 0¢: the
@@ -144,28 +140,11 @@ export interface MissingPage {
  *  questions or its market, so nothing can say what is missing. */
 export function missingPagesOf(report: StoredReport): readonly MissingPage[] | null {
   if (report.questions.kind === "unmeasured" || report.market.kind === "unmeasured") return null;
-  const questions = report.questions.value;
-  return rankedFreePages(report).map((page) => {
-    const serp = report.serps[questions.findIndex((q) => q.search.keyword === page.targetQuery)];
-    return {
-      search: page.targetQuery ?? "",
-      volume: page.volume === null || page.volume.kind === "unmeasured" ? null : page.volume.value,
-      holder: page.evidence.family === "write" ? page.evidence.rival.domain : null,
-      firstPage:
-        serp === undefined || serp.kind === "unmeasured"
-          ? null
-          : serp.value.organic.map((row) => registrableDomain(row.domain) ?? row.domain),
-    };
-  });
-}
-
-/** How many of the missing pages `domain` is on the first page for; `null`
- *  where no missing page's search was read, never 0. */
-export function pagesHeldBy(pages: readonly MissingPage[] | null, domain: string): number | null {
-  const read = (pages ?? []).filter((page) => page.firstPage !== null);
-  if (read.length === 0) return null;
-  const own = registrableDomain(domain) ?? domain;
-  return read.filter((page) => page.firstPage!.includes(own)).length;
+  return rankedFreePages(report).map((page) => ({
+    search: page.targetQuery ?? "",
+    volume: page.volume === null || page.volume.kind === "unmeasured" ? null : page.volume.value,
+    holder: page.evidence.family === "write" ? page.evidence.rival.domain : null,
+  }));
 }
 
 /** The missing-pages card's count: the supply section's where a scan built

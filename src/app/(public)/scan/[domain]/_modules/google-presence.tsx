@@ -44,7 +44,6 @@ import type { CanonicalDomain } from "@/lib/scan/domain";
 import type { RetryPart } from "@/lib/scan/retry";
 import { dash, Num } from "../_address/measured";
 import { RetryPartControl } from "../_address/retry-part";
-import { pagesHeldBy, type MissingPage } from "../_problems/model";
 
 /** This card's retry part, bound rather than inline — see
  *  `ai-answers.tsx` for why the sweep requires it. */
@@ -73,16 +72,7 @@ function Head(p: { right: React.ReactNode; heading?: boolean }): React.JSX.Eleme
   );
 }
 
-/** A competitor's tally of the missing pages it has; not measured is never 0. */
-function heldLine(held: number | null): string {
-  if (held === null) return copy("presence.rival.pages.unmeasured");
-  return copy("presence.rival.pages", { count: String(held) });
-}
-
-export function GooglePresenceCard(p: {
-  section: PresenceSection;
-  missingPages?: readonly MissingPage[] | null;
-}): React.JSX.Element {
+export function GooglePresenceCard(p: { section: PresenceSection }): React.JSX.Element {
   const { section } = p;
   // Issue 1309: the list's heading names five only where it holds five.
   const absentTitle = copy(
@@ -135,7 +125,6 @@ export function GooglePresenceCard(p: {
               rivals={section.rivals.map((rival) => ({
                 name: rival.domain,
                 value: rival.top10Count,
-                ...(p.missingPages === undefined ? {} : { note: heldLine(pagesHeldBy(p.missingPages, rival.domain)) }),
               }))}
               measured={section.measuredSearches}
               label={copy("presence.title")}

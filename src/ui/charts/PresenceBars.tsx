@@ -46,8 +46,6 @@ const KEY = {
 export interface PresenceBar {
   readonly name: string;
   readonly value: number;
-  /** One line under the bar, where the caller has more to say of the row. */
-  readonly note?: string;
 }
 
 interface Row {
@@ -57,7 +55,6 @@ interface Row {
   length: number;
   ringed: boolean;
   ratio: string;
-  note: string | undefined;
 }
 
 /** The track's height, in CSS px — the board's own 10. The chart is exactly
@@ -85,7 +82,6 @@ export function PresenceBars(p: {
       length: ringed ? p.measured : Math.min(Math.max(bar.value, 0), p.measured),
       ringed,
       ratio: `${bar.value}/${p.measured}`,
-      note: bar.note,
     };
   });
   const domain: [number, number] = [0, Math.max(p.measured, 1)];
@@ -138,12 +134,11 @@ export function PresenceBars(p: {
               />
             </Bar>
           </BarChart>
-          {row.note === undefined ? null : <span className="text-base-content/70 text-xs">{row.note}</span>}
         </div>
       ))}
       <ul className="sr-only">
         {rows.map((row) => (
-          <li key={`${row.kind}-${row.name}`}>{[row.name, row.ratio, row.note].filter(Boolean).join(" · ")}</li>
+          <li key={`${row.kind}-${row.name}`}>{`${row.name} · ${row.ratio}`}</li>
         ))}
       </ul>
     </figure>

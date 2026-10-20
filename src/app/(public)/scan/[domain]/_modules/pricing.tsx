@@ -129,6 +129,8 @@ export function PricingCard(
      *  the terms on the left, the price and Start in a panel on the right.
      *  The same component and the same facts; only the shape is wider. */
     close?: boolean;
+    /** The close's eyebrow, above its heading. */
+    eyebrow?: string;
     /** The close's heading, where the report has a sharper one than the offer's. */
     heading?: string;
     /** What the close holds under its heading, above the terms. */
@@ -151,6 +153,7 @@ export function PricingCard(
       <section className={`card bg-base-100 ${FLOAT}`}>
         <div className="card-body gap-8 p-6 md:p-10 lg:flex-row lg:items-center lg:gap-12">
           <div className="flex min-w-0 flex-1 flex-col gap-4">
+            {p.eyebrow === undefined ? null : <p className="eyebrow">{p.eyebrow}</p>}
             <h2 className="text-3xl font-bold">{p.heading ?? copy("offer.close.heading")}</h2>
             {p.children}
             <Terms specs={specs} />

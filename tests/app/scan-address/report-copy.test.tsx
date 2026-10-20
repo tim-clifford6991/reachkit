@@ -157,15 +157,15 @@ const SCREEN_KEYS: readonly CopyKey[] = [
   "offer.veto.window.value",
   "offer.start",
   "offer.cancel_self_service",
-  // the missing pages, the competitors' tallies, an unbuilt count (owner A3, E1)
+  // the missing pages, an unbuilt count (owner A3, E1)
   "report.offer.found",
   "report.offer.found.one",
   "report.offer.free-path",
   "report.missing.volume",
   "report.missing.holder",
   "report.missing.more",
-  "presence.rival.pages",
-  "presence.rival.pages.unmeasured",
+  "report.missing.eyebrow",
+  "report.missing.lead",
   "unmeasured.not-yet",
   // the notices, the controls, the foot, the scanning stages
   "notice.incomplete",

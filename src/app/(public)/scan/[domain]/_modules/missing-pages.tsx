@@ -28,6 +28,7 @@ export function MissingPagesList(p: { pages: readonly MissingPage[] }): React.JS
   const rest = p.pages.slice(SHOWN_OPEN);
   return (
     <div className="flex min-w-0 flex-col gap-3" data-testid="report-missing-pages">
+      <p className="max-w-prose">{copy("report.missing.lead")}</p>
       <ol className="flex list-decimal flex-col gap-3 ps-5">
         {open.map((page, i) => (
           <Page key={`${i}-${page.search}`} page={page} />

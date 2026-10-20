@@ -368,10 +368,14 @@ function pasteLinesOf(cards: readonly ProblemCard[], problem: ProblemName): read
 
 /** Owner A3 (2026-10-19): the offer leads with the count the report found,
  *  and keeps a free path to the first page beside it. */
-function offerOf(report: StoredReport, pages: readonly MissingPage[] | null): { heading?: string; free?: React.ReactNode } {
+function offerOf(
+  report: StoredReport,
+  pages: readonly MissingPage[] | null
+): { eyebrow?: string; heading?: string; free?: React.ReactNode } {
   const found = pages?.length ?? 0;
   if (report.freePage === null || found === 0) return {};
   return {
+    eyebrow: copy("report.missing.eyebrow"),
     heading: copy(found === 1 ? "report.offer.found.one" : "report.offer.found", { count: String(found) }),
     free: (
       <a href="#first-page" className="link link-primary text-center text-sm" data-testid="report-free-path">
@@ -496,7 +500,7 @@ export function ReportView(p: {
         {report.presence === null ? (
           <GooglePresenceAbsent cutOff={cutOff} domain={report.domain} />
         ) : (
-          <GooglePresenceCard section={report.presence} missingPages={missingPages} />
+          <GooglePresenceCard section={report.presence} />
         )}
 
         {/* Issue 1454: what the scan read of the business, in four short

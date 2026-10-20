@@ -1,5 +1,5 @@
-// Owner E1 (2026-10-19): the report lists every page it found missing, and
-// tallies each competitor's, from the stored report at 0¢. A count no scan
+// Owner E1 (2026-10-19): the report lists every page it found missing, from
+// the stored report at 0¢. A count no scan
 // builds reads as not measured yet, never as a scan that stopped early.
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
@@ -18,7 +18,6 @@ describe("every missing page is listed", () => {
       search: `search ${i + 1}`,
       volume: 100 + i,
       holder: null,
-      firstPage: null,
     }));
     const html = renderToStaticMarkup(<MissingPagesList pages={pages} />);
     expect(html.match(/<li/g)).toHaveLength(14);
@@ -39,30 +38,19 @@ describe("every missing page is listed", () => {
   });
 });
 
-describe("each competitor's tally of the pages the site is missing", () => {
-  // Golden: read once from the stored reports, the searches each competitor
-  // is on the first page for, among the pages the site is missing.
-  it.each([
-    ["saas", { "calendly.com": 3, "cloudwell.io": 2, "microsoft.com": 2, "virtosoftware.com": 2 }],
-    ["local", { "comfort-air.com": 1, "dmcserviceinc.com": 1, "kesslerplumbingllc.com": 1, "nicksplumbing.com": 1, "allensplumbinghi.com": 0 }],
-  ] as const)("the %s panel report shows each competitor row's tally", (which, tallies) => {
+describe("the section is named and says what each page is", () => {
+  it.each(["saas", "local"] as const)("the %s panel report names the section above its heading and leads the list", (which) => {
     const report = panelReport(which);
     const html = renderReport(report);
-    expect(report.presence!.rivals.map((r) => r.domain).sort()).toEqual(Object.keys(tallies).sort());
-    for (const [domain, count] of Object.entries(tallies)) {
-      expect(html).toContain(htmlText(`${domain} · `));
-      expect(html).toMatch(new RegExp(`${domain.replace(/\./g, "\\.")} · \\d+/\\d+ · ${htmlText(copy("presence.rival.pages", { count: String(count) }))}<`));
-    }
-  });
-
-  it("where the stored report cannot say, a tally is not measured, never 0", () => {
-    const stored = panelReport("saas");
-    const report = { ...stored, questions: unmeasured<never>("undeterminable", stored.verdict.measuredAt) };
-    const html = renderReport(report);
-    for (const rival of report.presence!.rivals) {
-      expect(html).toContain(htmlText(`${rival.domain} · ${rival.top10Count}/${report.presence!.measuredSearches} · ${copy("presence.rival.pages.unmeasured")}`));
-    }
-    expect(html).not.toContain(htmlText(copy("presence.rival.pages", { count: "0" })));
+    const heading = copy("report.offer.found", { count: String(report.freePage!.totalPages) });
+    const eyebrow = html.indexOf(`>${htmlText(copy("report.missing.eyebrow"))}</p>`);
+    const h2 = html.indexOf(`>${heading}</h2>`);
+    const lead = html.indexOf(`>${htmlText(copy("report.missing.lead"))}</p>`);
+    const list = html.indexOf("<li", html.indexOf('data-testid="report-missing-pages"'));
+    expect(eyebrow).toBeGreaterThan(-1);
+    expect(eyebrow).toBeLessThan(h2);
+    expect(h2).toBeLessThan(lead);
+    expect(lead).toBeLessThan(list);
   });
 });
 
