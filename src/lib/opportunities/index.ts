@@ -47,6 +47,7 @@ export { opportunityById } from "./next";
 export {
   committedWeek,
   pageForDay,
+  planFirstWeek,
   planWeek,
   supplyDepth,
   supplyMeasured,

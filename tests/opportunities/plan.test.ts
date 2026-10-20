@@ -7,7 +7,7 @@ import { WEEK_PLAN } from "../../src/lib/config/constants";
 import type { Profile } from "../../src/lib/market/questions/profile";
 import { measured } from "../../src/lib/measure/measured";
 import { deriveForPass } from "../../src/lib/opportunities/pass";
-import { committedWeek, pageForDay, planWeek } from "../../src/lib/opportunities/plan";
+import { committedWeek, pageForDay, planFirstWeek, planWeek } from "../../src/lib/opportunities/plan";
 import { restTopic } from "../../src/lib/opportunities/drafted";
 import { setOpportunityStore } from "../../src/lib/opportunities/store";
 import { fakeCost } from "./cost";
@@ -140,6 +140,25 @@ describe("the daily job takes its slot", () => {
     expect((await pageForDay(SITE_ID, DAY(1), AT))?.id).toBe(committed[1]![0]);
     expect(state.rows.filter((row) => row.planned_for != null).map((row) => [row.id, row.planned_for])).toEqual(committed);
     expect(state.rows).toHaveLength(before);
+  });
+});
+
+describe("setup commits a new site's first week", () => {
+  it("a site with no commit gets seven days and three spares", async () => {
+    await weeklyPass();
+    const entries = await planFirstWeek(SITE_ID, AT);
+    expect(entries.map((entry) => entry.plannedFor)).toEqual([...[0, 1, 2, 3, 4, 5, 6].map(DAY), null, null, null]);
+    expect((await committedWeek(SITE_ID)).days).toHaveLength(WEEK_PLAN.days);
+  });
+
+  it("the week the first draft committed from its own date is kept, and the evening reads it", async () => {
+    await weeklyPass();
+    const first = await pageForDay(SITE_ID, DAY(1), AT);
+    const committed = state.rows.map((row) => [row.id, row.plan_place, row.planned_for]);
+
+    expect(await planFirstWeek(SITE_ID, AT)).toEqual([]);
+    expect(state.rows.map((row) => [row.id, row.plan_place, row.planned_for])).toEqual(committed);
+    expect((await pageForDay(SITE_ID, DAY(1), AT))?.id).toBe(first?.id);
   });
 });
 

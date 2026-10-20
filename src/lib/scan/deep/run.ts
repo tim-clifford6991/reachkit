@@ -38,7 +38,7 @@
 // and "zero proposals is legal, never faked".
 import { FIRST_DRAFT_STAGE, type OnboardingStage } from "./progress";
 import { dbAdmin } from "@/lib/db";
-import { deriveForPass } from "@/lib/opportunities";
+import { deriveForPass, planFirstWeek } from "@/lib/opportunities";
 import { claimOnboardingPass, runScan, spendOnStoredReport } from "../run";
 import type { ScanStatus } from "../store";
 import { readSiteCategory } from "../site-category";
@@ -213,6 +213,14 @@ export async function runDeepPass(a: {
       } catch (error) {
         console.warn(JSON.stringify({ event: "before_release_failed", siteId: a.siteId, detail: String(error) }));
       }
+    }
+    // After the first draft, which commits from its own date where it ran,
+    // so Plan has a week before the first evening either way. Never holds
+    // the release.
+    try {
+      await planFirstWeek(a.siteId, new Date());
+    } catch (error) {
+      console.warn(JSON.stringify({ event: "first_week_not_planned", siteId: a.siteId, detail: String(error) }));
     }
 
     const released = reasonFor(result.status);

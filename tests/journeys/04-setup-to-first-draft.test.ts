@@ -478,7 +478,7 @@ function answerQuery(query: DbQuery): unknown[] | null {
 
 // ── The modules, after the fixtures above are in place ──────────────────
 
-const { CAPS, PRICE_BOOK, TIMING, VETO } = await import("../../src/lib/config/constants");
+const { CAPS, PRICE_BOOK, TIMING, VETO, WEEK_PLAN } = await import("../../src/lib/config/constants");
 const { setOpportunityStore } = await import("../../src/lib/opportunities");
 const { setCalendarSiteReader } = await import(
   "../../src/app/(account)/app/calendar/provider"
@@ -503,7 +503,7 @@ const { isReleased, deadlineFrom } = await import("../../src/lib/scan/deep/relea
 const { destinationFor, APP_PATH } = await import(
   "../../src/app/(account)/setup/waiting/release"
 );
-const { opportunityById, planWeek, rankOpen, supplyDepth } = await import("../../src/lib/opportunities");
+const { committedWeek, opportunityById, planFirstWeek, supplyDepth } = await import("../../src/lib/opportunities");
 const { SetupForm } = await import("../../src/app/(account)/setup/SetupForm");
 const { assembleSetup } = await import("../../src/app/(account)/setup/_setup/facts");
 const { FIXTURE_SETUP_FACTS } = await import(
@@ -979,18 +979,24 @@ describe("three decisions → deep pass → the first page already on the calend
     async () => {
       await untilTheFounderIsReleased();
 
-      // No week is committed before the first evening, and Plan never
-      // ranks (SPEC §7, E5): until the commit no date carries a page.
-      expect((await readTheCalendar()).facts.drafts).toEqual([]);
-      // The first evening commits the week from the one ranked list.
-      const [ranked] = await rankOpen(SITE_ID);
-      const head = ranked === undefined ? null : await opportunityById(ranked.opportunityId);
-      expect(head).not.toBeNull();
+      // Setup's pass ends with the first week committed from the one ranked
+      // list, before any evening has run, and Plan never ranks (SPEC §7, E5).
+      // A week, never padded past the supply the pass found.
       const depth = await supplyDepth(SITE_ID);
       expect(depth.unused).toBe(opportunities.rows.length);
-      await planWeek(SITE_ID, { now: new Date("2026-09-06T12:00:00.000Z") });
+      const week = await committedWeek(SITE_ID);
+      expect(week.days.length).toBeGreaterThan(0);
+      expect(week.days).toHaveLength(Math.min(WEEK_PLAN.days, depth.unused));
+      const firstDate = week.days[0]!.date;
+      const head = await opportunityById(week.days[0]!.opportunity.id);
+      expect(head).not.toBeNull();
 
-      const { month, facts, model } = await readTheCalendar();
+      // Never twice: the setup commit is not replaced by a second one.
+      const committed = opportunities.rows.map((row) => [row.id, row.plan_place, row.planned_for]);
+      expect(await planFirstWeek(SITE_ID)).toEqual([]);
+      expect(opportunities.rows.map((row) => [row.id, row.plan_place, row.planned_for])).toEqual(committed);
+
+      const { month, facts, model } = await readTheCalendar(new Date(`${firstDate}T16:00:00.000Z`));
       expect(facts.drafts.length).toBeGreaterThan(0);
 
       // The head of §7's one ranked list is the page on the first fillable
