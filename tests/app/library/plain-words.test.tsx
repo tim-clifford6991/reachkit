@@ -64,6 +64,9 @@ describe("ReachKit's own claims use the plain words", () => {
     // The provider guide keeps the words each dashboard prints.
     const setup = keysUnder("setup.").filter(([key]) => !key.startsWith("setup.destination.guide."));
     expect(setup.filter(([, v]) => /DNS record|\bthis record\b|\bthe record\b|Brand voice|byline|Measuring your market/.test(v)).map(([k]) => k)).toEqual([]);
+    // ReachKit's own lines in setup say check and put live, never measure or publish.
+    const claims = ["setup.address.assurance", "setup.competitors.none-found", "setup.release.unmeasured"];
+    expect(claims.filter((k) => /\bpublish|\bmeasur/i.test(KEYS[k]!))).toEqual([]);
     expect(keysUnder("publish.veto.").filter(([, v]) => /Tomorrow’s page|\/mo\b/.test(v)).map(([k]) => k)).toEqual([]);
     expect(KEYS["optout.unavailable"]).not.toMatch(/opt-out/i);
   });

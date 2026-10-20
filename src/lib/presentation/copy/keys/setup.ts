@@ -51,7 +51,7 @@ export const SETUP_COPY = Object.freeze({
 
   // ── The two arms' own lines (UI-SPEC S10, issue #356) ───────────────
   "setup.address.assurance": [
-    "The site we measure and publish for. Nothing is taken from the address you paid with.",
+    "The site we check and put your pages live on. Nothing is taken from the address you paid with.",
     { slots: {}, fixedBy: "S10 · REQ-021 c7" },
   ],
   "setup.market.awaiting-site": [
@@ -114,7 +114,7 @@ export const SETUP_COPY = Object.freeze({
   /** REQ-026 c10, second limb: a known market whose suggestions came back
    *  empty. */
   "setup.competitors.none-found": [
-    "No competitors could be suggested for this market yet. Add up to five, or continue; ReachKit finds them as it measures.",
+    "No competitors could be suggested for this market yet. Add up to five, or continue; ReachKit finds them as it reads your market.",
     { slots: {}, fixedBy: "REQ-026 c10 · S10 (11a)" },
   ],
   /** REQ-026 c9: the limit is stated on screen rather than silently
@@ -381,7 +381,7 @@ export const SETUP_COPY = Object.freeze({
 
   /** REQ-029 c3: the pass measured some of it. One sentence saying what
    *  could not be measured. */
-  "setup.release.unmeasured": ["Your first scan fell short in places. What was measured is shown with its date; the next scan fills in the rest.", { slots: {}, fixedBy: "REQ-029 c3" }],
+  "setup.release.unmeasured": ["Your first scan fell short in places. What it found is shown with its date; the next scan fills in the rest.", { slots: {}, fixedBy: "REQ-029 c3" }],
   /** REQ-029 c5: the pass failed outright, or had not ended when the
    *  founder was released anyway. One sentence saying the measurement did
    *  not complete — never that it found nothing, which is a different
