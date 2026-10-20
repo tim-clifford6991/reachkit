@@ -107,7 +107,7 @@ sweeps `main` on `reachkit-box` at 02:41 UTC and opens or comments on one issue 
 | Runner | Labels | systemd unit | Limits |
 |---|---|---|---|
 | `reachkit-box` | `self-hosted, reachkit` | `actions.runner.tim-clifford6991-reachkit.reachkit-box.service` | drop-in `nice.conf`: `Nice=15`, cores 0–1 |
-| `reachkit-light` | `self-hosted, reachkit-light` | `actions.runner.tim-clifford6991-reachkit.reachkit-light.service` | drop-in `limits.conf`: `MemoryMax=1536M`, `MemorySwapMax=1G`, `Nice=19`, `CPUWeight=20`, `IOWeight=20` |
+| `reachkit-light` | `self-hosted, reachkit-light` | `actions.runner.tim-clifford6991-reachkit.reachkit-light.service` | drop-in `limits.conf`: `MemoryMax=3G`, `MemorySwapMax=1G`, `Nice=19`, `CPUWeight=20`, `IOWeight=20` |
 
 `reachkit-light` has no `reachkit` label, so a browser sweep never lands on it. To recreate it, run
 `sudo bash scripts/ci-runners/install-light-runner.sh` from a checkout, as root. It copies the
@@ -130,8 +130,10 @@ hourly, beside `rk-deployer` and `rk-guard`, and logs every flip to
 - **Back to hosted, after billing: by hand only**, once Billing & plans is fixed. Run
   `gh variable delete CI_LIGHT_RUNNER` and `rm /root/ops/reachkit/state/ci-switch`. A failed
   payment does not reset with the month.
-- **A value set by hand is left alone.** On 2026-09-25 the orchestrator set
-  `["self-hosted","reachkit"]` after #1119's hosted jobs were refused for billing.
+- **A value set by hand is left alone.** The owner set `["self-hosted","reachkit-light"]` on
+  2026-10-20 07:54Z. The orchestrator deleted it at ~08:12Z and light jobs run GitHub-hosted
+  again; a unit job also ran out of memory on `reachkit-light` at `MemoryMax=3G` (08:19Z).
+  `reachkit-light` stays installed as the fallback only.
 
 To recreate it, run `sudo bash scripts/ci-runners/install-minutes-switch.sh`. It ends with a dry
 run, which says what the switch can read.

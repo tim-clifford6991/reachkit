@@ -9,7 +9,7 @@
 #   * registered to the repository with the label `reachkit-light` and **not**
 #     `reachkit`, so the browser job (`runs-on: [self-hosted, reachkit]`)
 #     never lands here and two browser sweeps never run at once;
-#   * a systemd drop-in capping it at 1.5 GB (`MemoryMax`, with up to 1 GB
+#   * a systemd drop-in capping it at 3 GB (`MemoryMax`, with up to 1 GB
 #     of swap so a typecheck peak is slowed rather than killed) at the lowest
 #     CPU and IO priority, so it cannot starve the browser job or the
 #     implementation agents — `rk-guard` reports LOW MEMORY below 1.2 GB
@@ -32,10 +32,11 @@ UNIT="actions.runner.${REPO/\//-}.${NAME}.service"
 [[ $EUID -eq 0 ]] || { echo "run as root" >&2; exit 1; }
 [[ -x "$SRC/config.sh" ]] || { echo "no runner at $SRC to copy the binaries from" >&2; exit 1; }
 
-# The binaries and the runner's env, never the first runner's registration,
-# credentials or work tree.
+# The binaries and the runner's env, never the first runner's registration
+# (newer runners keep it in `.runner_migrated` too, and config.sh then refuses
+# with "already configured"), credentials or work tree.
 mkdir -p "$DIR"
-rsync -a --exclude=_work --exclude=_diag --exclude=.runner --exclude='.credentials*' \
+rsync -a --exclude=_work --exclude=_diag --exclude=.runner --exclude=.runner_migrated --exclude='.credentials*' \
   --exclude=.service "$SRC/" "$DIR/"
 chown -R ghrunner:ghrunner "$DIR"
 
@@ -50,9 +51,10 @@ mkdir -p "/etc/systemd/system/${UNIT}.d"
 cat > "/etc/systemd/system/${UNIT}.d/limits.conf" <<'EOF'
 [Service]
 # The light runner (#1113): typecheck, lint, unit, the db suites, audit.
-# 1.5 GB, lowest priority, so it cannot starve the browser job on
-# reachkit-box or the implementation agents (rk-guard: LOW MEMORY < 1.2 GB).
-MemoryMax=1536M
+# 3 GB, since 1.5 GB left Node too small a heap for the unit job. Lowest
+# priority, so it cannot starve the browser job on reachkit-box or the
+# implementation agents (rk-guard: LOW MEMORY < 1.2 GB).
+MemoryMax=3G
 MemorySwapMax=1G
 Nice=19
 CPUWeight=20
