@@ -718,6 +718,10 @@ export const SETTINGS_COPY = Object.freeze({
   "settings.month.checks": ["Checks each page passed", { slots: {}, fixedBy: "E3 · drafted" }],
   "settings.month.refresh": ["refresh", { slots: {}, fixedBy: "E3 · drafted" }],
   "settings.month.untitled": ["A page with no title", { slots: {}, fixedBy: "E3 · drafted" }],
+  "settings.month.unread": [
+    "This month could not be read just now. Your plan below is unaffected.",
+    { slots: {}, fixedBy: "E3 · drafted" },
+  ],
   "settings.month.no-pages": ["No page went live in this period yet.", { slots: {}, fixedBy: "E3 · drafted" }],
   "settings.month.note": [
     "Counted from your own pages and scans. A page that went live is one that is on your address today.",

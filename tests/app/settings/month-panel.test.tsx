@@ -8,7 +8,7 @@ import { copy } from "@/lib/presentation/copy";
 
 const PERIOD = { from: new Date("2026-09-07T12:00:00.000Z"), to: new Date("2026-10-07T12:00:00.000Z") };
 
-function rendered(got: MonthGot): Document {
+function rendered(got: MonthGot | null): Document {
   const html = renderToStaticMarkup(<MonthPanel got={got} timeZone="America/Chicago" />);
   return new DOMParser().parseFromString(html, "text/html");
 }
@@ -69,4 +69,12 @@ it("a period with no pages says so instead of an empty list", () => {
   const doc = rendered({ ...PERIOD, live: 0, refreshed: 0, scans: 1, pages: [] });
   expect(doc.querySelector('[data-testid="billing-month-pages"]')).toBeNull();
   expect(doc.body.textContent).toContain(copy("settings.month.no-pages"));
+});
+
+it("a month that could not be read says so, with no figure and no page list", () => {
+  const doc = rendered(null);
+  expect(text(doc, "billing-month-unread")).toBe(copy("settings.month.unread"));
+  expect(doc.querySelector('[data-testid="billing-month-scans"]')).toBeNull();
+  expect(doc.querySelector('[data-testid="billing-month-pages"]')).toBeNull();
+  expect(doc.body.textContent).not.toMatch(/\d/);
 });

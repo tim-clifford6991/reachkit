@@ -167,7 +167,7 @@ interface MinimalQueryBuilder<T> extends PromiseLike<QueryResult<T>> {
   lte(column: string, value: string): MinimalQueryBuilder<T>;
   gte(column: string, value: string): MinimalQueryBuilder<T>;
   lt(column: string, value: string): MinimalQueryBuilder<T>;
-  neq(column: string, value: string): MinimalQueryBuilder<T>;
+  in(column: string, values: readonly string[]): MinimalQueryBuilder<T>;
   limit(count: number): MinimalQueryBuilder<T>;
 }
 
@@ -371,7 +371,7 @@ export function supabaseBillingStore(): BillingStore {
           .from<{ id: string }>("scans")
           .select("id")
           .eq("site_id", siteId)
-          .neq("status", "running")
+          .in("status", ["done", "degraded"])
           .gte("created_at", from.toISOString())
           .lt("created_at", to.toISOString()),
       ]);

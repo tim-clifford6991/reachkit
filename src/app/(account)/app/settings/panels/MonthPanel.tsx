@@ -26,15 +26,31 @@ function Figure(p: { label: CopyKey; value: number | null; testId: string }): Re
   );
 }
 
-export function MonthPanel(p: { got: MonthGot; timeZone: string }): React.JSX.Element {
+export function MonthPanel(p: { got: MonthGot | null; timeZone: string }): React.JSX.Element {
   const { got } = p;
+  const title = (
+    <h2 className="card-title text-base">
+      <CalendarCheck size={20} strokeWidth={1.75} aria-hidden />
+      {copy("settings.month.title")}
+    </h2>
+  );
+  // A month that could not be read is never drawn as zeros.
+  if (got === null) {
+    return (
+      <section className="card card-border min-w-0 bg-base-100" data-testid="billing-month">
+        <div className="card-body gap-4">
+          {title}
+          <p className={`text-sm wrap-anywhere ${INK}`} data-testid="billing-month-unread">
+            {copy("settings.month.unread")}
+          </p>
+        </div>
+      </section>
+    );
+  }
   return (
     <section className="card card-border min-w-0 bg-base-100" data-testid="billing-month">
       <div className="card-body gap-4">
-        <h2 className="card-title text-base">
-          <CalendarCheck size={20} strokeWidth={1.75} aria-hidden />
-          {copy("settings.month.title")}
-        </h2>
+        {title}
         <p className={`num-phrase text-sm wrap-anywhere ${INK}`}>
           {copy("settings.month.period", { from: formatDate(got.from, p.timeZone), to: formatDate(got.to, p.timeZone) })}
         </p>
