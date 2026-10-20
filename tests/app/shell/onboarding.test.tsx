@@ -61,6 +61,7 @@ vi.mock("@/lib/scan/site-category", () => ({ readSiteCategory: async () => undef
 vi.mock("@/lib/site-profile", () => ({ adoptVoiceText: async () => undefined }));
 vi.mock("@/lib/publish/daily", () => ({
   sitesForDailyTick: async () => ({ sites: [{ siteId: LIVE_ACCOUNT.siteId, timeZone: "America/New_York", publishTime: "09:00", vetoHours: 24 }], held: null }),
+  dayHold: async () => null,
 }));
 const firstDraft = vi.hoisted(() => ({ during: null as null | (() => Promise<void>) }));
 vi.mock("@/lib/generate", () => ({
