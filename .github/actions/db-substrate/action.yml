@@ -7,9 +7,9 @@
 # which is how the two come to disagree about what "the substrate" is.
 #
 # **Where it runs.** Whatever answers on 127.0.0.1:5432 as `reachkit`: the
-# `db` job's own `postgres:18` service on a GitHub-hosted runner (#1113), or
-# the box's own PostgreSQL 18 for the browser job on `reachkit-box` (#1013),
-# where there is no Docker. The worktree agents use the box's cluster too, so
+# job's own `postgres:18` service on a GitHub-hosted runner (#1113), or the
+# box's own PostgreSQL 18 on either box runner (#1013), where there is no
+# Docker. The worktree agents use the box's cluster too, so
 # this action always takes a run of its own (`up.sh --run`): its own database
 # and its own PostgREST, proxy and postgres-meta, never another run's. On the
 # box, `../db-substrate-down` stops them and drops the database, called with
