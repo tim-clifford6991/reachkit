@@ -136,7 +136,7 @@ export const MAIL_COPY = Object.freeze({
   // not. Telling the reader their link is invalid would be a false
   // statement about the one thing they came to do. This is the one key on
   // this list a *screen* reads through `copy()` (issue #261).
-  "optout.unavailable": ["That opt-out couldn’t be applied just now, so nothing has changed. Try the link again in a few minutes, or reply to any ReachKit email with \"stop\" and we’ll stop by hand.", { slots: {}, fixedBy: "REQ-010 c11" }],
+  "optout.unavailable": ["That unsubscribe couldn’t go through just now, so nothing has changed. Try the link again in a few minutes, or reply to any ReachKit email with \"stop\" and we’ll stop by hand.", { slots: {}, fixedBy: "REQ-010 c11" }],
 
   // 2026-09-06, issue #33 (Stripe, provisioning and the two backstops,
   // `BUILD.md` §13). Nine keys.

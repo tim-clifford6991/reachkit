@@ -63,7 +63,7 @@ export default async function OnPageCheckPage({ searchParams }: Props): Promise<
   const value = typeof raw === "string" ? raw : "";
   return (
     <LibraryPage testId={PAGE_TEST_ID} eyebrow={EYEBROW} title={copy("tools.onpage.name")}>
-      <p>{copy("tools.onpage.line")}</p>
+      <p>{copy("tools.onpage.intro")}</p>
       <ToolForm value={value} />
       {value === "" ? null : <Result raw={value} />}
       <ScanCta />

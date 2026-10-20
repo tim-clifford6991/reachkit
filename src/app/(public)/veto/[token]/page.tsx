@@ -236,12 +236,7 @@ function writeWeekday(publishes: { at: Date; timeZone: string }): string {
 }
 
 /**
- * The set's search row: `[search] · 2,400/mo`.
- *
- * The volume is grouped and carries its unit, and `/mo` is no copy key for
- * the reason `src/lib/mail/blocks/format.ts` gives of its own: it is the
- * number's dimension, not the product speaking, on the same footing as a
- * currency symbol.
+ * The set's search row: the search, and how often it is searched.
  *
  * A volume nobody measured leaves the search standing alone — never a
  * zero, which is REQ-004's trichotomy on this one row. A measured zero is
@@ -250,7 +245,7 @@ function writeWeekday(publishes: { at: Date; timeZone: string }): string {
  */
 function writeSearch(query: string, volume: number | null): string {
   if (volume === null) return query;
-  return `${query} · ${new Intl.NumberFormat(PAGE_LOCALE).format(volume)}/mo`;
+  return copy("publish.veto.ask.row.volume", { query, volume: new Intl.NumberFormat(PAGE_LOCALE).format(volume) });
 }
 
 /** Where a reader who has stopped a page is sent to reach their plan.

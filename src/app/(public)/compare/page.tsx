@@ -9,13 +9,15 @@ import { ArrowRight } from "lucide-react";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { PUBLIC_ROUTE_SEO } from "../_seo/routes";
 import { staticMetadata } from "../_seo/metadata";
-import { COMPARISONS, COMPARISON_GROUPS } from "../_library";
-import { LibraryPage, ScanCta } from "../_library/parts";
+import { COMPARISONS, COMPARISON_GROUPS, longDate } from "../_library";
+import { LibraryPage, ScanCta, Trademarks } from "../_library/parts";
 
 export const metadata: Metadata = staticMetadata(PUBLIC_ROUTE_SEO.compare);
 
 const EYEBROW: CopyKey = "compare.eyebrow";
 const PAGE_TEST_ID = "compare";
+/** The latest day the facts behind the cards were read. */
+const READ_ON = COMPARISONS.map((c) => c.checked).sort().at(-1) ?? "";
 const TILE =
   "card bg-base-100 shadow-(--shadow-card) motion-safe:transition-transform motion-safe:duration-200 hover:-translate-y-0.5";
 
@@ -23,6 +25,9 @@ export default function ComparePage(): React.JSX.Element {
   return (
     <LibraryPage testId={PAGE_TEST_ID} eyebrow={EYEBROW} title={copy("compare.title")} wide>
       <p className="max-w-(--w-read)">{copy("compare.lead")}</p>
+      <p className="text-base-content/70 max-w-(--w-read) text-sm" data-testid="compare-caption">
+        {copy("compare.caption", { date: longDate(READ_ON) })}
+      </p>
       {COMPARISON_GROUPS.map(({ group, name }) => {
         const entries = COMPARISONS.filter((c) => c.group === group);
         if (entries.length === 0) return null;
@@ -48,6 +53,7 @@ export default function ComparePage(): React.JSX.Element {
         );
       })}
       <ScanCta />
+      <Trademarks />
     </LibraryPage>
   );
 }
