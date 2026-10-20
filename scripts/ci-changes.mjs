@@ -61,6 +61,15 @@ const DB = [
   /^scripts\/live-schema-tests\.mjs$/,
   /^\.github\/workflows\//,
   /^\.github\/actions\/db-substrate/,
+  // What the live-schema suites import at run time; the test walks them.
+  /^src\/lib\/config\/(env|now|constants)\.ts$/,
+  /^src\/lib\/opportunities\/(verdicts\/)?types\.ts$/,
+  /^src\/lib\/costs\/(index|daily)\.ts$/,
+  /^src\/lib\/scan\/admission\.ts$/,
+  /^src\/lib\/scan\/weekly\/(index|access)\.ts$/,
+  /^src\/lib\/account\/billing\/index\.ts$/,
+  /^tests\/ui\/layout\/seed-rows\.ts$/,
+  /^tests\/(mail\/env-fixture|opportunities\/env)\.ts$/,
 ];
 
 const FULL_UNIT = [
