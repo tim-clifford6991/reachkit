@@ -205,11 +205,9 @@ describe("issue #945 — each named screen says which screen it is", () => {
         expect(nonEmpty(title), `${route} ships no title of its own`).toBe(true);
         expect(title).toBe(copy(key as Parameters<typeof copy>[0]));
       },
-      // These import a real route module, and one of them pulls a whole
-      // library graph with it: `/app/calendar` reaches `react-day-picker`
-      // and `date-fns` through `MonthGrid` (#930), whose cold transform on
-      // a loaded build box runs past vitest's 5s default. The assertion is
-      // on an exported object and costs nothing; the wait is the import.
+      // These import a real route module, whose cold transform on a loaded
+      // build box can run past vitest's 5s default. The assertion is on an
+      // exported object and costs nothing; the wait is the import.
       IMPORT_MS
     );
   }

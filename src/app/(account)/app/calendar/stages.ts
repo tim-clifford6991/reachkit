@@ -18,6 +18,7 @@ import type { CopyKey } from "@/lib/presentation/copy";
 import { STATES } from "@/lib/publish/machine/table";
 import type { State } from "@/lib/publish/types";
 import type { Tone } from "@/ui/types";
+import type { DayCell } from "./month";
 
 /** REQ-043 criterion 2's five stages. Closed — a sixth is a requirement
  *  change, not a new member. */
@@ -137,7 +138,7 @@ export const TONE_DOT: Readonly<Record<Tone, string>> = Object.freeze({
  * waiting on them. A ring of the dot's own colour widens and fades behind
  * it; the dot itself does not move. It runs only under `motion-safe`, and
  * the ring rests at `opacity-0`, so under reduced motion the dot is drawn
- * still. Whole class names, for the reason `STAGE_MARK_AT` gives.
+ * still. Whole class names: Tailwind finds a utility by reading the source.
  */
 const BEACON =
   "relative after:absolute after:inset-0 after:rounded-full after:bg-inherit after:opacity-0 motion-safe:after:animate-beacon";
@@ -158,46 +159,37 @@ export const TONE_INK: Readonly<Record<Tone, string>> = Object.freeze({
   neutral: "text-base-content/70",
 });
 
-/**
- * **The update mark yields before the stage word does** (owner, PR #961).
- *
- * A stage word is never truncated: "Yourre…" and "Sched…" are not words,
- * and a card that cannot hold one is a card with something else on it that
- * should go first. What goes first is the mark for an update — the day
- * panel already says *Update* in full, so nothing is lost by a narrow card
- * dropping the glyph.
- *
- * So the word takes its own width (`shrink-0`, no clamp) and the mark is
- * shown only on a card wide enough to hold **that stage's** word beside it.
- * One threshold for all five would be wrong in both directions: it would
- * hide the mark on a `Live` card, which has 41px to spare at the narrowest
- * width this grid is ever drawn at, and show it on a `Your review` card,
- * which has none.
- *
- * Each number is the card's **content width** — what a container query
- * resolves against — and is measured rather than guessed:
- *
- *     6px dot + 4px gap + the word + 8px gap + 12px mark + 4px to spare
- *
- * over the words as Plus Jakarta Sans 600 draws them at 11px (Live 22,
- * Planned 44, Needs you 57, Scheduled 59, Ready about 34 — the word
- * *Your review* left with the approval it implied, issue 1337; *Ready to
- * read* was tried first and stood 7px past a 1280px card, so the stage
- * word is the short one and the Overview keeps the long one).
- *
- * **A wrong number here is caught rather than trusted.** Both the word and
- * the mark are `shrink-0`, so if a threshold is too low the *mark* is what
- * runs past the row, and the no-overflow pass reports it as a containment
- * offender — the word is never the thing that gives.
- *
- * Written as whole class names because Tailwind finds a utility by reading
- * the source text for it: a class built from a variable is a class that is
- * never emitted.
- */
-export const STAGE_MARK_AT: Readonly<Record<Stage, string>> = Object.freeze({
-  live: "@min-[56px]/day:block",
-  planned: "@min-[80px]/day:block",
-  needs_you: "@min-[92px]/day:block",
-  scheduled: "@min-[96px]/day:block",
-  your_review: "@min-[68px]/day:block",
+/** Plan's five day states (SPEC §7, E5): what became of a day, in the
+ *  customer's words rather than §9's. */
+export const DAY_STATES = ["planned", "written", "live", "stopped", "skipped"] as const;
+export type DayState = (typeof DAY_STATES)[number];
+
+export const DAY_STATE_COPY_KEY: Readonly<Record<DayState, CopyKey>> = Object.freeze({
+  planned: "calendar.stage.planned",
+  written: "calendar.day.written",
+  live: "calendar.stage.live",
+  stopped: "calendar.day.stopped",
+  skipped: "calendar.day.skipped",
 });
+
+export const DAY_STATE_TONE: Readonly<Record<DayState, Tone>> = Object.freeze({
+  planned: "neutral",
+  written: "accent",
+  live: "ok",
+  stopped: "warn",
+  skipped: "neutral",
+});
+
+/** A day's state, or `null` where its own line says more (a page held, a
+ *  day no commit covers yet, a past day with nothing on it). A page someone
+ *  stopped, and a day ReachKit or an instruction stopped, is `stopped`; a
+ *  day supply had nothing worth writing for is `skipped`. */
+export function dayStateOf(cell: DayCell): DayState | null {
+  if (cell.page !== null) {
+    return cell.page.stage === "live" ? "live" : cell.page.stage === "planned" ? "planned" : "written";
+  }
+  const cause = cell.empty?.cause;
+  if (cause === "page_cannot_go_live" || cause === "reachkit_stopped" || cause === "instruction") return "stopped";
+  if (cause === "supply_exhausted" || cause === "supply_unmeasured") return "skipped";
+  return null;
+}

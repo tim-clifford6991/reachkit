@@ -119,6 +119,15 @@ export const CALENDAR_COPY = Object.freeze({
   "calendar.stage.planned": ["Planned", { slots: {}, fixedBy: "REQ-043 c2" }],
   "calendar.stage.needs-you": ["Needs you", { slots: {}, fixedBy: "REQ-043 c2" }],
 
+  // E5: Plan's seven days, each in one of five states, the stop control on
+  // a page that can still be stopped, and the week's spares. Drafted (#759).
+  "calendar.day.written": ["Written", { slots: {}, fixedBy: "SPEC §7 2026-10-19 E5 (drafted)" }],
+  "calendar.day.stopped": ["Stopped", { slots: {}, fixedBy: "SPEC §7 2026-10-19 E5 (drafted)" }],
+  "calendar.day.skipped": ["Skipped", { slots: {}, fixedBy: "SPEC §7 2026-10-19 E5 (drafted)" }],
+  "calendar.week.stop": ["Stop", { slots: {}, fixedBy: "SPEC §7 2026-10-19 E7 (drafted)" }],
+  "calendar.spares.title": ["Spares", { slots: {}, fixedBy: "SPEC §7 2026-10-19 E5 (drafted)" }],
+  "calendar.spares.note": ["Used only if a day’s page can’t be written.", { slots: {}, fixedBy: "SPEC §7 2026-10-19 E5 (drafted)" }],
+
   // §4.6's stage-appropriate actions.
   "calendar.action.read-full-page": ["Read the full page", { slots: {}, fixedBy: "BUILD §4.6" }],
   "calendar.action.view-live-page": ["View live page", { slots: {}, fixedBy: "BUILD §4.6" }],
@@ -457,13 +466,7 @@ export const CALENDAR_COPY = Object.freeze({
   "calendar.panel.close": ["Close", { slots: {}, fixedBy: "issue 930" }],
 
   // Issue 1364 (owner, 2026-10-09): Plan opens with its numbers, each a
-  // stage word and a count. What the count is of stands beside it: the
-  // month from the large breakpoint, this week below it. **Drafted**
-  // (#759); the pull request names both so the owner can correct them.
-  "calendar.numbers.month": [
-    "in {month}",
-    { slots: { month: "text" }, fixedBy: "SPEC §7 2026-10-09 (drafted)" },
-  ],
+  // stage word and a count, of this week. Drafted (#759).
   "calendar.numbers.week": ["this week", { slots: {}, fixedBy: "SPEC §7 2026-10-09 (drafted)" }],
 
   // Issue 1457: every page published — the rows Overview's Content tile

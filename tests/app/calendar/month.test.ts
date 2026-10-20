@@ -56,6 +56,7 @@ const BARE: CalendarFacts = {
   now: new Date(Date.UTC(2026, 8, 15, 14, 0, 0)),
   stop: null,
   drafts: [],
+  spares: [],
   instructions: {},
   stoppedDays: [],
   heldDays: [],

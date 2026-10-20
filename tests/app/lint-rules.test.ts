@@ -200,3 +200,33 @@ describe("SPEC §4 (2026-10-08, issue 1341) — a link to an app screen is next/
     expect(messages(result).some((m) => m.includes(ISSUE))).toBe(false);
   }, ESLINT_BOOT_MS);
 });
+
+describe("SPEC §7 (E5) — Plan reads the committed week and never ranks", () => {
+  const RULE = "never ranks";
+
+  it("reports a Plan file importing the ranking, from the barrel or from rank/*", async () => {
+    const barrel = await lint(
+      "import { rankOpen } from '@/lib/opportunities';\nexport const r = rankOpen;\n",
+      "src/app/(account)/app/calendar/store.ts"
+    );
+    expect(messages(barrel).some((m) => m.includes(RULE))).toBe(true);
+    const direct = await lint(
+      "import { rankOpen } from '@/lib/opportunities/rank/open';\nexport const r = rankOpen;\n",
+      "src/app/(account)/app/calendar/WeekGrid.tsx"
+    );
+    expect(messages(direct).some((m) => m.includes(RULE))).toBe(true);
+  }, ESLINT_BOOT_MS);
+
+  it("leaves committedWeek on Plan, and the ranking outside Plan, alone", async () => {
+    const plan = await lint(
+      "import { committedWeek } from '@/lib/opportunities';\nexport const w = committedWeek;\n",
+      "src/app/(account)/app/calendar/store.ts"
+    );
+    expect(messages(plan).some((m) => m.includes(RULE))).toBe(false);
+    const job = await lint(
+      "import { rankOpen } from '@/lib/opportunities';\nexport const r = rankOpen;\n",
+      "src/jobs/draft-generate.ts"
+    );
+    expect(messages(job).some((m) => m.includes(RULE))).toBe(false);
+  }, ESLINT_BOOT_MS);
+});

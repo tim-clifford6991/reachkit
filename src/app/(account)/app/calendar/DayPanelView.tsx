@@ -65,7 +65,7 @@ import { CHANGE_COPY_KEY } from "./change-line";
  *  the mechanical half of "every action answers". A refused write says the
  *  one thing every refusal has in common, and never the machine's own word
  *  for why. */
-const ANSWER_COPY_KEY: Readonly<Record<DayCommand, CopyKey>> = Object.freeze({
+export const ANSWER_COPY_KEY: Readonly<Record<DayCommand, CopyKey>> = Object.freeze({
   skip: "calendar.answer.skip",
   veto: "calendar.answer.veto",
   regenerate: "calendar.answer.regenerate",
@@ -73,7 +73,7 @@ const ANSWER_COPY_KEY: Readonly<Record<DayCommand, CopyKey>> = Object.freeze({
 
 /** The writes the panel can ask for. All three are §9 edges and go to the
  *  state machine through the seam. */
-function ask(command: DayCommand, draftId: string): ReturnType<typeof publishing.skip> {
+export function ask(command: DayCommand, draftId: string): ReturnType<typeof publishing.skip> {
   if (command === "skip") return publishing.skip({ draftId });
   if (command === "veto") return publishing.veto({ draftId });
   return publishing.regenerate({ draftId });
@@ -274,11 +274,9 @@ function Panel(p: {
       //           above (`_toast/Answers.tsx`'s `BOTTOM_MENU_PX`). The
       //           month behind it is a list, which the sheet is meant to
       //           sit over.
-      //   lg–xl   in flow, under the month. A sheet fixed over a month
-      //           that is still a seven-column grid would cover the very
-      //           dates it is about.
-      //   xl      the card beside the month, sticky as the month scrolls
-      //           (issue 1071, board R12-5-Plan).
+      //   lg      in flow, under the week. A sheet fixed over a week that
+      //           is a seven-column grid would cover the very dates it is
+      //           about.
       //
       // On the phone alone it is capped and scrolls. The cap is what keeps
       // a sheet from growing off the top of the screen, where its own head
@@ -287,12 +285,7 @@ function Panel(p: {
       // the same answer a `textarea` and an `overflow-x-auto` table give,
       // and the proof measures that neither the fixture's longest day nor
       // the owner's stress case reaches it.
-      //
-      // The sheet's insets end at `lg`: a sticky box obeys `left`, `right`
-      // and `bottom` too, and the sheet's `0.5rem` sides pulled the card 8px
-      // off its column into the gap from `xl` (issue 1484). `xl:top-6` is
-      // the one inset the sticky card keeps.
-      className={`card card-border bg-base-100 fixed inset-x-2 bottom-[calc(80px+env(safe-area-inset-bottom,0px))] z-30 max-h-[calc(100dvh-104px)] min-w-0 overflow-y-auto shadow-2xl lg:static lg:inset-auto lg:z-auto lg:max-h-none lg:overflow-visible lg:shadow-none xl:sticky xl:top-6 ${
+      className={`card card-border bg-base-100 fixed inset-x-2 bottom-[calc(80px+env(safe-area-inset-bottom,0px))] z-30 max-h-[calc(100dvh-104px)] min-w-0 overflow-y-auto shadow-2xl lg:static lg:inset-auto lg:z-auto lg:max-h-none lg:overflow-visible lg:shadow-none ${
         p.hiddenOnPhone ? "hidden lg:flex" : ""
       }`}
       data-testid="day-panel"

@@ -25,7 +25,6 @@ vi.mock("@/lib/db", () => ({ dbAdmin: () => db.client, db: () => db.client }));
 
 const supplyDepth = vi.fn();
 const committedWeek = vi.fn();
-const rankOpen = vi.fn();
 const explainChoice = vi.fn();
 
 vi.mock("@/lib/opportunities", () => ({
@@ -35,7 +34,6 @@ vi.mock("@/lib/opportunities", () => ({
   supplyMeasured: async () => true,
   supplyState: async () => "measured",
   committedWeek: (...a: unknown[]) => committedWeek(...a),
-  rankOpen: (...a: unknown[]) => rankOpen(...a),
   explainChoice: (...a: unknown[]) => explainChoice(...a),
 }));
 
@@ -125,16 +123,19 @@ function seed(a: {
  *  the proven-zero arm — never by a depth nobody read. */
 function withNoSupply(): void {
   supplyDepth.mockResolvedValue({ unused: 0 });
-  rankOpen.mockResolvedValue([]);
+  committedWeek.mockResolvedValue({ days: [], spares: [] });
   explainChoice.mockImplementation(async (id: string) =>
     choiceFor(Number(String(id).replace("opp-", "")) || 0)
   );
 }
 
-function withSupply(count: number): void {
-  const ids = Array.from({ length: count }, (_, n) => `opp-${n}`);
+/** A committed week of `count` rows, one a day from `from`. */
+function withSupply(count: number, from = 15): void {
   supplyDepth.mockResolvedValue({ unused: count });
-  rankOpen.mockResolvedValue(ids.map((id) => ({ opportunityId: id, score: 1 })));
+  committedWeek.mockResolvedValue({
+    days: Array.from({ length: count }, (_, n) => ({ date: `2026-09-${from + n}`, opportunity: { id: `opp-${n}` } })),
+    spares: [],
+  });
   explainChoice.mockImplementation(async (id: string) =>
     choiceFor(Number(String(id).replace("opp-", "")) || 0)
   );
@@ -144,7 +145,6 @@ beforeEach(() => {
   supplyDepth.mockReset();
   committedWeek.mockReset();
   committedWeek.mockResolvedValue({ days: [], spares: [] });
-  rankOpen.mockReset();
   explainChoice.mockReset();
   withNoSupply();
   seed({});
@@ -220,7 +220,7 @@ describe("the page on a date, and its state", () => {
     expect(facts.drafts.find((row) => row.draftId === "d2")?.liveUrl).toBeNull();
   });
 
-  it("a date §9 has spoken for is not planned over, and supply keeps its own order", async () => {
+  it("a date §9 has spoken for is not planned over", async () => {
     withSupply(3);
     seed({ drafts: [draft({ id: "d1", state: "approved", scheduled_for: "2026-09-16" })] });
 
@@ -232,10 +232,10 @@ describe("the page on a date, and its state", () => {
     expect(() => assembleMonth(facts, MONTH)).not.toThrow();
   });
 
-  it("issue 1321: dates that already hold a page use up none of supply, so the next date shows supply's page", async () => {
-    // reachkit.app's stored plan on 2026-10-07: written pages on today and
-    // tomorrow, and a ranked list one page long.
-    withSupply(1);
+  it("issue 1321: the first date with no page shows the page committed for it", async () => {
+    // Written pages on today and tomorrow, and a week committed from the
+    // first date with no page.
+    withSupply(1, 17);
     seed({
       drafts: [
         draft({ id: "d1", state: "published", scheduled_for: "2026-09-15" }),
