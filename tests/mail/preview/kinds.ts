@@ -310,8 +310,6 @@ export async function composeUnmeasuredWeek(): Promise<PreviewMail> {
 /** SPEC §8's retention mails (issue 641). Their lines are owner-owed, so a
  *  preview shows each `TODO(copy)` marker where a sentence will go. */
 export const RETENTION_PREVIEW_KINDS = [
-  "inactivity",
-  "veto-reminder",
   "payment-failed",
   "cancellation",
   "win-back",
@@ -324,15 +322,6 @@ export async function composeRetentionPreview(
   const email = "you@company.com";
   const mail = await (async () => {
     switch (kind) {
-      case "inactivity":
-        return (await import("../../../src/lib/mail/templates/inactivity")).buildInactivity({ email });
-      case "veto-reminder":
-        return (await import("../../../src/lib/mail/templates/veto-reminder")).buildVetoReminder({
-          email,
-          draftId: "preview",
-          page: PREVIEW_PAGE.title,
-          closesAt: "Tomorrow 07:00",
-        });
       case "payment-failed":
         return (await import("../../../src/lib/mail/templates/payment-failed")).buildPaymentFailed();
       case "cancellation":

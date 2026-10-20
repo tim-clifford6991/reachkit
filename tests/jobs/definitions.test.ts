@@ -75,10 +75,6 @@ function engineDouble(): Record<string, unknown> {
     scansLeftRunning: record("scansLeftRunning", []),
     finishScanLeftRunning: record("finishScanLeftRunning", done),
     // SPEC §8's retention sequence (issue #569).
-    accountsDueInactivity: record("accountsDueInactivity", []),
-    nudgeInactive: record("nudgeInactive", done),
-    draftsDueVetoReminder: record("draftsDueVetoReminder", []),
-    remindVeto: record("remindVeto", done),
     accountsDuePaymentFailed: record("accountsDuePaymentFailed", []),
     noticePaymentFailed: record("noticePaymentFailed", done),
     accountsDueCancellation: record("accountsDueCancellation", []),
@@ -479,8 +475,6 @@ describe("account/maintenance — its due-work queries and hand-offs, no domain 
       "accountsDueForPurge",
       "sitesDueSetupReminder",
       "scansLeftRunning",
-      "accountsDueInactivity",
-      "draftsDueVetoReminder",
       "accountsDuePaymentFailed",
       "accountsDueCancellation",
       "accountsDueWinback",
@@ -831,8 +825,6 @@ describe("nothing fakes work — an unbuilt engine fails loudly", () => {
     vi.doMock("@/lib/costs/vendor-days", () => ({ vendorDaysDue: async () => [], readVendorDay: async () => ({ done: true }) }));
     // SPEC §8's retention sequence (issue #569), stood in with nothing due.
     vi.doMock("@/lib/mail/retention", () => ({
-      accountsDueInactivity: async () => [],
-      draftsDueVetoReminder: async () => [],
       accountsDuePaymentFailed: async () => [],
       accountsDueCancellation: async () => [],
       accountsDueWinback: async () => [],

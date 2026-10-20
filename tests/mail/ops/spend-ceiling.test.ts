@@ -179,7 +179,7 @@ describe("sending — one send per owner address, and nothing that can fail a sc
     vi.doMock("../../../src/lib/mail/send", () => ({ sendEmail: sendEmailMock }));
     vi.doMock("../../../src/lib/costs/daily", () => ({
       readDaySpendCents: readDaySpendCentsMock,
-      alertThresholdsCents: () => ({ warn: 4000, ceiling: 5000 }),
+      readDayCeilingCents: async () => 5000,
       registerSpendAlertSink: registerSpendAlertSinkMock,
     }));
     return import("../../../src/lib/mail/ops/spend-ceiling");

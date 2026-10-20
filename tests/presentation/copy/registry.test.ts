@@ -268,8 +268,8 @@ describe("the thirteen keys the owner ruled 2026-09-04 (WO-041 `## Log`, this da
   });
 
   it("price and offer — slotted, {value}", () => {
-    expect(copy("offer.cadence.page", { value: "every week" })).toBe(
-      "A page for your site every week, new or updated"
+    expect(copy("offer.cadence.page", { weekPages: 7 })).toBe(
+      "Up to 7 pages a week for your site, new or updated"
     );
     expect(copy("offer.cadence.measure", { value: "every week" })).toBe(
       "Your market scanned every week"

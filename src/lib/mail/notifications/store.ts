@@ -8,7 +8,9 @@
 // The column is `users.notify jsonb`, default `{}` (migration
 // `00000000000003_users_notify_column.sql`). A **sparse** object: a key
 // that is absent reads as *on*. Never toggled is not the same fact as
-// switched off, and the customer bought a product that mails them.
+// switched off, and the customer bought a product that mails them. The one
+// exception is `draft-ready` (D3, SPEC §8, decision 2026-10-19-1593): absent,
+// it is on until the customer's first Monday mail is sent, then off.
 //
 // A read that fails is its own outcome and never `{}` — an absent object
 // and an unreachable store are different facts, and collapsing them would
@@ -45,6 +47,8 @@ interface QueryResult<T> {
 interface MinimalQueryBuilder<T> extends PromiseLike<QueryResult<T>> {
   select(columns: string): MinimalQueryBuilder<T>;
   eq(column: string, value: string): MinimalQueryBuilder<T>;
+  in(column: string, values: readonly string[]): MinimalQueryBuilder<T>;
+  not(column: string, operator: string, value: null): MinimalQueryBuilder<T>;
   limit(count: number): MinimalQueryBuilder<T>;
   update<R extends object>(patch: R): MinimalQueryBuilder<T>;
 }
@@ -104,15 +108,39 @@ export async function writeStoredKey(a: {
   return error ? { written: false } : { written: true };
 }
 
+/** Whether any of the user's sites has had its Monday mail sent
+ *  (`scans.digest_sent_at`). A read that fails answers `false`: before the
+ *  first Monday the mail is on, and one extra mail costs less than a guess. */
+export async function firstMondayMailSent(userId: string): Promise<boolean> {
+  try {
+    const client = untypedUsers(dbAdmin());
+    const sites = await client.from<{ id: string }>("sites").select("id").eq("user_id", userId);
+    const ids = (sites.data ?? []).map((site) => site.id);
+    if (sites.error || ids.length === 0) return false;
+    const weeks = await client
+      .from<{ id: string }>("scans")
+      .select("id")
+      .in("site_id", ids)
+      .not("digest_sent_at", "is", null)
+      .limit(1);
+    return !weeks.error && (weeks.data ?? []).length > 0;
+  } catch {
+    return false;
+  }
+}
+
 /** The sparse object, read as the total one every caller wants: a key that
- *  is absent is on. There is no other place this defaulting happens. */
+ *  is absent is on, except `draft-ready` once the first Monday mail is sent.
+ *  There is no other place this defaulting happens. */
 export function prefsFrom(
   stored: Readonly<Record<string, unknown>>,
-  kinds: readonly NotifyKind[]
+  kinds: readonly NotifyKind[],
+  mondayMailSent = false
 ): NotifyPrefs {
   const out = {} as Record<NotifyKind, boolean>;
   for (const kind of kinds) {
-    out[kind] = stored[kind] === false ? false : true;
+    const chosen = stored[kind];
+    out[kind] = typeof chosen === "boolean" ? chosen : !(kind === "draft-ready" && mondayMailSent);
   }
   return Object.freeze(out);
 }

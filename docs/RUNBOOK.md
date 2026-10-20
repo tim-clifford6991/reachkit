@@ -89,18 +89,25 @@ what an older build silently loses. It buys back one click that has never been n
 Owner, 2026-09-25 (#1113); the rules are in `docs/PROCESS.md` Gates. The light jobs — `what
 changed`, `typecheck · lint · unit`, `schema · RLS` and `audit` — take their runner from the
 repository variable `CI_LIGHT_RUNNER`. Unset, they run GitHub-hosted and in parallel. Set to
-`["self-hosted","reachkit-light"]`, they run on the box's second runner. The browser job always
-runs on `reachkit-box` (label `reachkit`), the only runner that takes it, when the pull request
-can change a screen. Where it cannot (`scripts/ci-changes.mjs`), the browser job is a light job
-that prints its reason and passes, and `Layout nightly` (`.github/workflows/layout-nightly.yml`)
-sweeps `main` on `reachkit-box` at 02:41 UTC and opens or comments on one issue titled
-`[layout] nightly sweep on main is red` when it fails (owner, 2026-10-18, #1525).
+`["self-hosted","reachkit-light"]`, they run on the box's second runner. On a pull request that
+can change a screen, the browser job runs GitHub-hosted (`ubuntu-latest`, owner 2026-10-20). It
+runs on `reachkit-box` (label `reachkit`, the only box runner that takes it, so two box sweeps
+never run at once) when `CI_LIGHT_RUNNER` is set or `CI_BROWSER_ON_BOX` is set. Where no screen
+can change (`scripts/ci-changes.mjs`), the browser job is a light job that prints its reason and
+passes. `Nightly` (`.github/workflows/layout-nightly.yml`) runs every job on `main` at 02:41 UTC,
+and every job off a pull request (the nightly, a dispatch) runs on `reachkit-box`, so it costs no
+hosted minutes. A red nightly opens or comments on one issue titled `[nightly] full run on main
+is red`. `what changed` runs `scripts/ci-runners/where.sh`, which prints where each job goes
+and why.
 
 | Do | Command |
 |---|---|
 | light jobs to the box (hosted jobs fail with *"recent account payments have failed or your spending limit needs to be increased"*) | `gh variable set CI_LIGHT_RUNNER --body '["self-hosted","reachkit-light"]'` |
 | light jobs back to hosted | `gh variable delete CI_LIGHT_RUNNER` |
 | see which | `gh variable list` (no `CI_LIGHT_RUNNER` = hosted) |
+| browser sweep to the box (hosted sweeps queue, fail or cost too much) | `gh variable set CI_BROWSER_ON_BOX --body 1` |
+| browser sweep back to hosted | `gh variable delete CI_BROWSER_ON_BOX` |
+| see where the sweep went | `gh variable list` (no `CI_BROWSER_ON_BOX` and no `CI_LIGHT_RUNNER` = hosted on a pull request), or the `browser_hosted=` line of `what changed` |
 
 **The runners on the box.** Both run as `ghrunner`, one directory each under `/home/ghrunner`:
 
@@ -964,8 +971,16 @@ rows that are not a draft's, `drafts.cost_cents = carried_cents + Σ cost_cents`
 ### The caps
 
 `src/lib/config/constants.ts`, `CAPS`, in cents. Per pass: free `12` · deep `150` · weekly `40` ·
-draft `45`. Product-wide: `DAILY_PRODUCT_C = 5000` for one **UTC** day, measured over
-`fetches.cost_cents`. The unit prices behind them are `PRICE_BOOK` in that same file.
+draft `45`. Per site: `DAILY_SITE_C = 500` for one **UTC** day. The unit prices behind them are
+`PRICE_BOOK` in that same file.
+
+**The product-wide daily ceiling is `1000 + 100 × paying sites` cents** (owner ruling D7,
+2026-10-19; `DAILY_PRODUCT_CEILING`), for one **UTC** day, measured over `fetches.cost_cents`.
+Paying sites are the sites whose owner had active access (`paid_through`) at that day's midnight
+UTC: 0 gives 1,000¢, 40 give 5,000¢, 100 give 11,000¢. Billing counts them once a day per process and
+logs `{"event":"daily_ceiling","payingSites":…,"ceilingCents":…}` on its first read of the day. A count
+that cannot be read logs `{"event":"daily_ceiling_unreadable"}` and that call is held to 1,000¢,
+never unlimited; the next call asks again.
 
 **A cap degrades, it never throws.** Hitting one skips the remaining optional work and marks the
 scan `degraded`; the run finishes with a smaller report rather than an error. Hitting the daily
@@ -973,9 +988,9 @@ ceiling refuses a free scan at the door with an honest retry time (next UTC midn
 a paid pass inside the seam. The line to look for is
 `{"event":"cap_hit","reason":"scan_cap"|"daily_ceiling",…}`, logged once per context.
 
-**The guard fails open.** If the day's total cannot be read the ledger logs
-`{"event":"daily_spend_unreadable"}` and admits the work — a guard that cannot see is not a
-licence to stop the product. So an unreachable database means the ceiling is not enforced.
+**The guard fails closed.** If the day's total cannot be read the ledger logs
+`{"event":"daily_spend_unreadable"}` and the paid call is skipped, and a free scan is refused
+(issue 792). So an unreachable database stops spend until it answers.
 
 **Two known imprecisions, both erring the same way.** `cost_cents` is an integer while the
 cheapest vendor rows cost fractions of a cent, so the stored day total is a floor: the ceiling can

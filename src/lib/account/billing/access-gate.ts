@@ -38,7 +38,8 @@ import {
   registerActiveAccessGate,
   sitesWithActiveAccess,
 } from "@/lib/scan/weekly/access";
-import { hasActiveAccess } from "./gate";
+import { registerPayingSiteCounter } from "@/lib/costs/daily";
+import { hasActiveAccess, payingSitesAt } from "./gate";
 
 /** Which of these sites' owners have active access right now — ADR-050's
  *  rule, asked once per site through the one reader of it. */
@@ -70,6 +71,8 @@ async function activeAccessForSites(siteIds: readonly string[]): Promise<Readonl
  */
 export async function installActiveAccessGate(): Promise<void> {
   registerActiveAccessGate(activeAccessForSites);
+  // The day's spend ceiling grows with who pays, and only billing knows.
+  registerPayingSiteCounter(payingSitesAt);
   await sitesWithActiveAccess("installActiveAccessGate", []);
 }
 

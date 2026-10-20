@@ -88,6 +88,10 @@ vi.mock("@/lib/db", () => {
 });
 
 const { readShellFacts } = await import("@/app/(account)/app/_shell/store");
+const { dayCeilingCents, registerPayingSiteCounter } = await import("@/lib/costs/daily");
+
+/** Paying sites at the day's start; the day's ceiling is read off them. */
+const PAYING_SITES = 3;
 
 const SITE = {
   siteId: "site-1",
@@ -105,10 +109,12 @@ beforeEach(() => {
   nextDueOn.mockResolvedValue(new Date("2026-09-14T10:00:00.000Z"));
   measuredWeeksOf.mockResolvedValue([]);
   daySpend.cents = 4.41;
+  registerPayingSiteCounter(async () => PAYING_SITES);
 });
 
 afterEach(() => {
   vi.restoreAllMocks();
+  registerPayingSiteCounter(null);
 });
 
 describe("§9's switch decides whether there is a next publish at all", () => {
@@ -216,7 +222,7 @@ describe("the four causes are read as four facts", () => {
   });
 
   it("the day's spend ceiling reached is ReachKit's own stop", async () => {
-    daySpend.cents = 5000;
+    daySpend.cents = dayCeilingCents(PAYING_SITES);
     const facts = await readShellFacts(SITE);
     expect(facts.stopped).not.toBeNull();
     expect(facts.noPublishCauses.reachkit_stopped).toBe(true);
@@ -226,7 +232,12 @@ describe("the four causes are read as four facts", () => {
   });
 
   it("just under the ceiling is not a stop", async () => {
-    daySpend.cents = 4999.99;
+    daySpend.cents = dayCeilingCents(PAYING_SITES) - 0.01;
+    expect((await readShellFacts(SITE)).stopped).toBeNull();
+  });
+
+  it("the ceiling is the day's paying-site figure, so spend past the base alone is not a stop", async () => {
+    daySpend.cents = dayCeilingCents(0);
     expect((await readShellFacts(SITE)).stopped).toBeNull();
   });
 

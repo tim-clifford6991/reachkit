@@ -34,7 +34,7 @@
 // passes its own report-origin action (issue #785).
 import type React from "react";
 import { ArrowRight, Check, ShieldCheck } from "lucide-react";
-import { VETO } from "@/lib/config/constants";
+import { VETO, WEEK_PLAN } from "@/lib/config/constants";
 import { copy } from "@/lib/presentation/copy";
 import { FLOAT } from "@/ui/lift";
 import { Num } from "../_address/measured";
@@ -56,7 +56,7 @@ export type OfferTerms = "report" | "pricing";
 
 const TERM_LINES: Readonly<Record<OfferTerms, () => readonly string[]>> = {
   report: () => [
-    copy("offer.cadence.page", { value: copy("offer.cadence.page.value") }),
+    copy("offer.cadence.page", { weekPages: WEEK_PLAN.days }),
     copy("offer.cadence.measure", { value: copy("offer.cadence.measure.value") }),
     copy("offer.cadence.movement", { value: copy("offer.cadence.movement.value") }),
     copy("offer.veto.window", {
@@ -64,7 +64,7 @@ const TERM_LINES: Readonly<Record<OfferTerms, () => readonly string[]>> = {
     }),
   ],
   pricing: () => [
-    copy("offer.pricing.page"),
+    copy("offer.pricing.page", { weekPages: WEEK_PLAN.days }),
     copy("offer.pricing.measure"),
     copy("offer.pricing.movement"),
     // The window is the pin's, in both wordings: one home, two sentences.

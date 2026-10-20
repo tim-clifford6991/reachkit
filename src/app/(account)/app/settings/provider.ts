@@ -98,12 +98,11 @@ export const readLinkMap = cache(async function readLinkMap(): Promise<LinkMap> 
 });
 
 /** Billing's "What you got this month" (SPEC §4, E3). The reserved account
- *  reads the densest fixture; a read that fails is the screen's failure. */
-export const readMonthGot = cache(async function readMonthGot(): Promise<{ got: MonthGot; timeZone: string }> {
+ *  reads the densest fixture; `got` is `null` where the month could not be
+ *  read, so the card says so and the subscription card beside it still draws. */
+export const readMonthGot = cache(async function readMonthGot(): Promise<{ got: MonthGot | null; timeZone: string }> {
   const account = await requireSetUpAccount();
   if (isReservedFixtureAccount(account)) return { got: FIXTURE_MONTH_GOT, timeZone: account.timeZone };
   const { monthGot } = await import("@/lib/account/billing");
-  const got = await monthGot(account.userId, account.siteId);
-  if (got === null) throw new Error("billing month could not be read");
-  return { got, timeZone: account.timeZone };
+  return { got: await monthGot(account.userId, account.siteId), timeZone: account.timeZone };
 });

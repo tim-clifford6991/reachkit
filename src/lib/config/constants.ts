@@ -56,32 +56,11 @@ export const PRICE_BOOK = Object.freeze({
 } as const);
 
 /** The four per-scan/per-draft ceilings BUILD §6.1 pins, plus the
- *  product-wide one BUILD §6.5 does not yet name (issue #329).
- *
- *  **`DAILY_PRODUCT_C` — the ceiling on everything, for one UTC day.** The
- *  other four bound *one* pass; nothing bounded the sum, so the product's
- *  whole exposure was the per-scan cap multiplied by however many passes
- *  the day happened to bring. This is that missing number, in cents,
- *  measured over the ledger (`fetches.cost_cents`) for the UTC day.
- *
- *  Its size is read off the two figures already stated, and is the owner's
- *  to rule:
- *   - the free path's own worst case at BUILD §11's bounds is
- *     `FREE_BOUNDS.scansPerDay * FREE_C` = 2400¢ (DATA-COSTS's own
- *     "worst-case daily exposure at the existing bounds" line is smaller
- *     again, being those same 200 scans at the ~6.3¢ a report actually
- *     costs rather than at its 12¢ cap);
- *   - 5000¢ leaves the free path the whole of that worst case and the same
- *     again for the paid loop — a deep pass is 150¢, a weekly refresh 40¢,
- *     a day of content 45¢ — so the ceiling is a guard against a runaway,
- *     never a bound the ordinary day approaches.
- *
- *  A UTC day, not a site-local one: this is one figure for the whole
- *  product, so there is no site whose clock it could keep (contrast
- *  `WEEK_START` / `WEEKLY_DUE_HOUR_LOCAL`, which are each a customer's).
+ *  per-site daily one. The product-wide daily ceiling is
+ *  `DAILY_PRODUCT_CEILING` below, because it is not one figure.
  *
  *  **`DAILY_SITE_C` — the ceiling on one site, for the same UTC day**
- *  (issue 885). `DAILY_PRODUCT_C` is one figure for everyone, so it does
+ *  (issue 885). The product's ceiling is shared by everyone, so it does
  *  not care *whose* spend reached it: a single site in a retry loop, or
  *  one whose market keeps failing and re-measuring, could consume the day
  *  and every other customer's pass, draft and publish was refused until
@@ -98,9 +77,8 @@ export const PRICE_BOOK = Object.freeze({
  *   - the largest day the product's own rules allow a site: SPEC §6's
  *     re-measure bound is at most 3 deep passes in 24 hours (450¢) and
  *     the day's page is one draft (45¢), which is 495¢.
- *   - 500¢ covers both, and is a tenth of `DAILY_PRODUCT_C`: ten sites
- *     each at their own cap cannot take the day between them, and one
- *     runaway takes a tenth of it rather than all of it.
+ *   - 500¢ covers both, and is half the product's smallest day (1000¢),
+ *     so one runaway site never takes the whole of it.
  *
  *  The same UTC day as the product's, and for the same reason the product
  *  ceiling keeps no customer's clock: the two figures are read off one
@@ -108,10 +86,17 @@ export const PRICE_BOOK = Object.freeze({
  *  different windows inside a single refusal. */
 export const CAPS = Object.freeze({
   FREE_C: 12, DEEP_C: 150, WEEKLY_C: 40, DRAFT_C: 45,
-  DAILY_PRODUCT_C: 5000, DAILY_SITE_C: 500,
+  DAILY_SITE_C: 500,
 } as const);
 
-/** The two crossings of `CAPS.DAILY_PRODUCT_C` the owner is told about
+/** The product-wide ceiling for one UTC day, in cents: `baseC` plus
+ *  `perPayingSiteC` for each site with active access at the day's start
+ *  (owner ruling D7, 2026-10-19), so the guard against a runaway grows with
+ *  the customers it serves instead of being reached on an ordinary Monday.
+ *  An unreadable count is `baseC`, never unlimited. */
+export const DAILY_PRODUCT_CEILING = Object.freeze({ baseC: 1000, perPayingSiteC: 100 } as const);
+
+/** The two crossings of the day's product ceiling the owner is told about
  *  (issue #329), as fractions of it: four fifths of the day's ceiling, and
  *  the ceiling itself. Fractions rather than two more cent figures, so the
  *  warning cannot drift away from the ceiling it warns about. */
@@ -1627,10 +1612,10 @@ export const EXPORT_DEADLINE_MS = 120_000 as const;           // BP-062 (chosen)
 export const HOSTED_RETENTION_DAYS = 30 as const;             // BP-060 · REQ-076 c10
 export const HOSTING_END_REMINDER_DAYS = 7 as const;          // BP-060 · REQ-076 c11
 export const MAINTENANCE_TICK_MINUTES = 15 as const;          // BP-003 d1 · REQ-024 c5
-// SPEC §8 Retention (#569): idle 7 days · veto < 6 h · win-back once at +30 d after access ends.
+// SPEC §8 Retention (#569): win-back once at +30 d after access ends.
 // Stated in the SPEC table, pinned here so each is written once.
 export const RETENTION_MAIL = Object.freeze({
-  inactivityIdleDays: 7, vetoReminderHours: 6, winbackAfterAccessDays: 30,
+  winbackAfterAccessDays: 30,
   /** How stale a stored "last seen" may be before an /app visit rewrites it. */
   seenRefreshMinutes: 60,
 } as const);

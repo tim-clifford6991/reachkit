@@ -53,13 +53,5 @@ export const readDraft = cache(async function readDraft(
   });
   if (facts === null) return null;
 
-  // SPEC §8 (#569): the veto reminder goes only on a draft its owner has not
-  // opened. Stamped once, and never in the way of the screen.
-  try {
-    const { recordDraftOpened } = await import("./store");
-    await recordDraftOpened(draftId, new Date());
-  } catch (error) {
-    console.warn(JSON.stringify({ event: "retention_draft_open_unrecorded", detail: String(error) }));
-  }
   return assembleDraft(facts);
 });

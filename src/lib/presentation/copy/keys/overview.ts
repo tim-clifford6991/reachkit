@@ -1049,7 +1049,7 @@ export const OVERVIEW_COPY = Object.freeze({
   //
   // Drafted under the owner's 2026-09-16 ruling (#759); the PR names it.
   "overview.alert.connect-blog": [
-    "Connect your blog’s address",
+    "Connect your website",
     { slots: {}, fixedBy: "SPEC §5 2026-09-20" },
   ],
   "overview.alert.connect-blog.line": [

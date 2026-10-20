@@ -639,7 +639,7 @@ export const SETTINGS_COPY = Object.freeze({
     "Pages still go live on their day. You can stop them from Plan.",
     { slots: {}, fixedBy: "issue 1574" },
   ],
-  "settings.notifications.published": ["Published-page mail", { slots: {}, fixedBy: "BUILD §12" }],
+  "settings.notifications.published": ["When your first page goes live", { slots: {}, fixedBy: "decision 2026-10-19-1593 (drafted)" }],
   "settings.notifications.weekly": ["Monday movement mail", { slots: {}, fixedBy: "BUILD §12" }],
 
   // ── Billing ────────────────────────────────────────────────────────────
@@ -718,6 +718,10 @@ export const SETTINGS_COPY = Object.freeze({
   "settings.month.checks": ["Checks each page passed", { slots: {}, fixedBy: "E3 · drafted" }],
   "settings.month.refresh": ["refresh", { slots: {}, fixedBy: "E3 · drafted" }],
   "settings.month.untitled": ["A page with no title", { slots: {}, fixedBy: "E3 · drafted" }],
+  "settings.month.unread": [
+    "This month could not be read just now. Your plan below is unaffected.",
+    { slots: {}, fixedBy: "E3 · drafted" },
+  ],
   "settings.month.no-pages": ["No page went live in this period yet.", { slots: {}, fixedBy: "E3 · drafted" }],
   "settings.month.note": [
     "Counted from your own pages and scans. A page that went live is one that is on your address today.",

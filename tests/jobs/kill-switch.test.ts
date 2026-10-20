@@ -114,10 +114,6 @@ function engineDouble(): Record<string, unknown> {
     scansLeftRunning: none,
     finishScanLeftRunning: ran,
     // SPEC §8's retention sequence (issue #569).
-    accountsDueInactivity: none,
-    nudgeInactive: ran,
-    draftsDueVetoReminder: none,
-    remindVeto: ran,
     accountsDuePaymentFailed: none,
     noticePaymentFailed: ran,
     accountsDueCancellation: none,
