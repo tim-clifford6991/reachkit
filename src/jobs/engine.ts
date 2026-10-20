@@ -523,6 +523,10 @@ export async function generateDraft(a: {
   const step: StepRunner = a.step ?? ((_name, body) => body());
   const { decideDayPage, generateDayPage } = await import("@/lib/generate");
   const day = { siteId: a.siteId, publishDate: a.publishDate, now: a.now };
+  // Before the plan is read: deciding a day's page writes the week's plan.
+  const { dayHold } = await import("@/lib/publish/daily");
+  const held = await step("hold", () => dayHold(a.siteId, a.publishDate));
+  if (held !== null) return { degraded: held };
   const decided = await step("select", () => decideDayPage(day));
   // A date that already holds its draft is a day already done, not a
   // degraded tick.
