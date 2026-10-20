@@ -290,7 +290,8 @@ export const PUBLISH_COPY = Object.freeze({
     { slots: { when: "text" }, fixedBy: "REQ-057 c1 · S6 (11a)" },
   ],
   "publish.veto.ask.row.search": ["search", { slots: {}, fixedBy: "S6 (11a)" }],
-  "publish.veto.ask.row.site": ["site", { slots: {}, fixedBy: "S6 (11a)" }],
+  "publish.veto.ask.row.site": ["address", { slots: {}, fixedBy: "S6 (11a)" }],
+  "publish.veto.ask.row.volume": ["{query} · searched about {volume} times a month", { slots: { query: "text", volume: "text" }, fixedBy: "issue 1600 · drafted" }],
   "publish.veto.ask.action": ["Stop this page", { slots: {}, fixedBy: "REQ-057 c1 · S6 (11a)" }],
   /** Changed 2026-09-21 (#937). The second half said the page could be
    *  read and edited "in the app" and offered no way there — on a screen
@@ -325,7 +326,7 @@ export const PUBLISH_COPY = Object.freeze({
    *  it can be asked for again. A reader who has just stopped something
    *  wants to know both. Drafted (#759). */
   "publish.veto.stopped": [
-    "Nothing else changes. Tomorrow’s page is written as usual, and you can ask us to write this one again from your plan.",
+    "Nothing else changes. Your other pages go ahead as usual, and you can ask us to write this one again from your plan.",
     { slots: {}, fixedBy: "issue 937" },
   ],
   /** The rest of the done arm's alert, after `publish.veto.done.head`'s
@@ -353,7 +354,7 @@ export const PUBLISH_COPY = Object.freeze({
    *  written for, and how often that is searched. Transcribed from the
    *  board, for the owner to confirm. */
   "publish.veto.panel.caption": [
-    "Written for “{query}”, {volume} searches a month.",
+    "Written for people who search “{query}”, about {volume} times a month.",
     { slots: { query: "text", volume: "text" }, fixedBy: "issue 1025" },
   ],
   "publish.veto.alreadyUsed": ["This link was already used. The page is stopped.", { slots: {}, fixedBy: "REQ-057 c1" }],

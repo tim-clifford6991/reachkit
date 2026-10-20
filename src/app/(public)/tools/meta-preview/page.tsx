@@ -121,7 +121,7 @@ export default async function MetaPreviewPage({ searchParams }: Props): Promise<
   const value = typeof raw === "string" ? raw : "";
   return (
     <LibraryPage testId={PAGE_TEST_ID} eyebrow={EYEBROW} title={copy("tools.meta.name")}>
-      <p>{copy("tools.meta.line")}</p>
+      <p>{copy("tools.meta.intro")}</p>
       <ToolForm value={value} />
       {value === "" ? null : <Result raw={value} />}
       <ScanCta />

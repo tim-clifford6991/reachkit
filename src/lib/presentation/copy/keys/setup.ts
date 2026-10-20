@@ -78,13 +78,13 @@ export const SETUP_COPY = Object.freeze({
   "setup.address.placeholder": ["yourdomain.com", { slots: {}, fixedBy: "REQ-021 c7 · S10 (11a)" }],
   /** The line beside an address a completed report measured — shown to
    *  confirm or change, never retyped (REQ-021 c6). */
-  "setup.address.measured": ["The site your report measured. Keep it, or change it.", { slots: {}, fixedBy: "REQ-021 c6" }],
+  "setup.address.measured": ["The site your free report checked. Keep it, or change it.", { slots: {}, fixedBy: "REQ-021 c6" }],
   "setup.address.change": ["Change", { slots: {}, fixedBy: "REQ-021 c6 · S10 (11a)" }],
   "setup.address.refused.not-a-domain": ["That isn’t a domain. Enter one like yourdomain.com.", { slots: {}, fixedBy: "REQ-021 c9" }],
   /** REQ-021 c9 and c10 in one line: it says the address cannot be
    *  reached, names one way to reach a person, and tells the founder they
    *  can cancel without finishing setup. */
-  "setup.address.refused.unreachable": ["We can’t reach that domain. Check the spelling, or write to hello@reachkit.app and a person will help. You can cancel from Settings without finishing setup.", { slots: {}, fixedBy: "REQ-021 c10" }],
+  "setup.address.refused.unreachable": ["We can’t reach that website. Check the spelling, or write to hello@reachkit.app and a person will help. You can cancel from Settings without finishing setup.", { slots: {}, fixedBy: "REQ-021 c10" }],
   "setup.address.missing": ["Your site address is needed before setup can start.", { slots: {}, fixedBy: "REQ-021 c7" }],
 
   // ── Your market (REQ-026) ───────────────────────────────────────────
@@ -150,7 +150,7 @@ export const SETUP_COPY = Object.freeze({
    *  the record on `/setup` and in Settings. Since issue 760 it is the
    *  fallback for a lookup that could not answer. */
   "setup.destination.dnsWhere": [
-    "Add it wherever your domain’s DNS is managed: usually your registrar, or Cloudflare if your domain is on it.",
+    "Copy this where your web address is managed: usually the company you bought it from, or Cloudflare if your address is on it.",
     { slots: {}, fixedBy: "SPEC §5 · §12 (2026-09-16, issue 759)" },
   ],
   /** Issue 760 (owner ruling 2026-09-16): the guidance is derived, not
@@ -161,11 +161,11 @@ export const SETUP_COPY = Object.freeze({
    *  only when the provider is Cloudflare. `{provider}` is a brand and
    *  `{nameserver}` a host name: data, never composed words. */
   "setup.destination.dnsAt": [
-    "Your DNS is managed at {provider}. Add this record there.",
+    "Your web address is managed at {provider}. Copy this there.",
     { slots: { provider: "text" }, fixedBy: "SPEC §5 (2026-09-16, issue 760)" },
   ],
   "setup.destination.dnsNameserver": [
-    "Your DNS is served by {nameserver}. Add this record wherever that nameserver is managed.",
+    "Your web address is served by {nameserver}. Copy this wherever that is managed.",
     { slots: { nameserver: "text" }, fixedBy: "SPEC §5 (2026-09-16, issue 760)" },
   ],
   /** Issue 856 (owner 2026-09-17): one instruction, not a choice. A proxied
@@ -246,7 +246,7 @@ export const SETUP_COPY = Object.freeze({
   "setup.destination.guide.generic.3": ["Save the record. If your provider offers a proxy or forwarding for it, leave that off.", { slots: {}, fixedBy: "SPEC §5 (2026-09-17, issue 856)" }],
   /** REQ-028 c2: the written line that stands where the record will sit
    *  until a site address is given — never a blank, dash or placeholder. */
-  "setup.destination.dnsPending": ["DNS record shown once your site is given.", { slots: {}, fixedBy: "REQ-028 c2" }],
+  "setup.destination.dnsPending": ["The setting shows once your site is given.", { slots: {}, fixedBy: "REQ-028 c2" }],
 
   // ── The subdomain label (SPEC §5, ruling of 2026-09-12) ─────────────
   //
@@ -280,7 +280,7 @@ export const SETUP_COPY = Object.freeze({
   /** Issue #757: a "check connection" press on `/setup` for an address the
    *  founder has changed on screen but not submitted. The server knows only
    *  the site's stored address as theirs, and asks about no other host. */
-  "setup.destination.check.address-unsaved": ["Confirm your site address first. This record is for the address ReachKit has.", { slots: {}, fixedBy: "SPEC §5 (2026-09-16, issue 757)" }],
+  "setup.destination.check.address-unsaved": ["Confirm your site address first. This setting is for the address ReachKit has.", { slots: {}, fixedBy: "SPEC §5 (2026-09-16, issue 757)" }],
 
   // ── The waiting screen (REQ-029) ────────────────────────────────────
   "setup.waiting.head": ["Your first page is coming", { slots: {}, fixedBy: "REQ-029 c1" }],
@@ -298,7 +298,7 @@ export const SETUP_COPY = Object.freeze({
   // checking — which the engine's handles do not reach, so they are drawn
   // and never current. That is the set's own drawing, not an omission.
   "setup.waiting.stage.measuring-your-market": [
-    "Measuring your market",
+    "Checking your buyers and competitors",
     { slots: {}, fixedBy: "S11 · 11a · REQ-029 c1" },
   ],
   "setup.waiting.stage.sizing-your-rivals": [
@@ -341,7 +341,7 @@ export const SETUP_COPY = Object.freeze({
   // owner chooses.
   /** The line above the purpose chips — what each page is for. */
   "setup.profile.purposes": ["What these pages are for", { slots: {}, fixedBy: "SPEC.md §5 (2026-09-12)" }],
-  "setup.profile.voice.label": ["Brand voice", { slots: {}, fixedBy: "SPEC.md §5 (2026-09-12)" }],
+  "setup.profile.voice.label": ["How your pages sound", { slots: {}, fixedBy: "SPEC.md §5 (2026-09-12)" }],
   /** Above an empty voice box, where no voice has been read of the site
    *  yet — the free scan does not read one, and the deep pass that does
    *  runs after this submit. Drafted under the owner ruling of 2026-09-16
@@ -585,7 +585,7 @@ export const SETUP_COPY = Object.freeze({
     { slots: {}, fixedBy: "SPEC §5 (2026-09-29, issue 1133, drafted)" },
   ],
   "setup.business.question.byline": [
-    "Your name and one line about you, for the byline",
+    "Your name and one line about you, shown on your pages as the writer",
     { slots: {}, fixedBy: "SPEC §5 (2026-09-29, issue 1133, drafted)" },
   ],
 
@@ -718,7 +718,7 @@ export const SETUP_COPY = Object.freeze({
   // (#924). It says the address is theirs and that connecting it is the
   // next thing, rather than asking them to do it here.
   "setup.destination.connect-next": [
-    "We’ll reserve this address. Connecting it is one DNS record, and it’s the next screen.",
+    "We’ll reserve this address. Connecting it is one setting, and it’s the next screen.",
     { slots: {}, fixedBy: "SPEC §5 2026-09-20" },
   ],
 
@@ -734,7 +734,7 @@ export const SETUP_COPY = Object.freeze({
   ],
   "setup.connect.title": ["Connect your website", { slots: {}, fixedBy: "owner E11 · issue 1601" }],
   "setup.connect.lead": [
-    "One DNS record points your blog’s address at it. Your first page is being written while you do this.",
+    "Add one setting where your web address is managed. We show you exactly what to copy. Your first page is being written while you do this.",
     { slots: {}, fixedBy: "SPEC §5 2026-09-20" },
   ],
   // The two ways onward. Neither is a lesser path, and the note beside the
@@ -743,7 +743,7 @@ export const SETUP_COPY = Object.freeze({
   "setup.connect.onward": ["Go to your dashboard", { slots: {}, fixedBy: "SPEC §5 2026-09-20" }],
   "setup.connect.onward.live": ["It’s connected. Go to your dashboard", { slots: {}, fixedBy: "SPEC §5 2026-09-20" }],
   "setup.connect.skipping": [
-    "Skipping is fine. Pages are still written, but can’t go live until this record exists. You’ll find it under Overview and in Settings.",
+    "Skipping is fine. Pages are still written, but can’t go live until this setting is added. You’ll find it under Overview and in Settings.",
     { slots: {}, fixedBy: "SPEC §5 2026-09-20" },
   ],
 
@@ -755,14 +755,14 @@ export const SETUP_COPY = Object.freeze({
     "Nobody else can take it.",
     { slots: {}, fixedBy: "SPEC §5 2026-09-20" },
   ],
-  "setup.connect.stage.waiting": ["Waiting for the record", { slots: {}, fixedBy: "SPEC §5 2026-09-20" }],
+  "setup.connect.stage.waiting": ["We look for the setting", { slots: {}, fixedBy: "SPEC §5 2026-09-20" }],
   "setup.connect.stage.waiting.line": [
     "We check on our own every hour, and whenever you press Check the connection.",
     { slots: {}, fixedBy: "SPEC §5 2026-09-20" },
   ],
   "setup.connect.stage.live": ["Your blog goes live", { slots: {}, fixedBy: "SPEC §5 2026-09-20" }],
   "setup.connect.stage.live.line": [
-    "Usually within minutes of saving the record. We’ll mail you when it does.",
+    "Usually within minutes of saving the setting. We’ll mail you when it does.",
     { slots: {}, fixedBy: "SPEC §5 2026-09-20" },
   ],
 
@@ -773,11 +773,11 @@ export const SETUP_COPY = Object.freeze({
   "setup.locale.option": ["{country} · {language}", { slots: { country: "text", language: "text" }, fixedBy: "SPEC §6 · D66 · issue 1311" }],
   "setup.place.label": ["The city or area you serve", { slots: {}, fixedBy: "SPEC §6 · D67 · issue 1318" }],
   "setup.place.note": [
-    "Leave it empty if you sell across the country or online. A local business is measured in its own place.",
+    "Leave it empty if you sell across the country or online. A local business is checked where it works.",
     { slots: {}, fixedBy: "SPEC §6 · D67 · issue 1318" },
   ],
   "setup.locale.note": [
-    "Read from your site. Searches, AI answers and competitors are measured there, and your pages are written in that language.",
+    "Read from your site. We check what buyers search and ask AI there, and who they find instead, and your pages are written in that language.",
     { slots: {}, fixedBy: "SPEC §6 · D66 · issue 1311" },
   ],
 }) satisfies CopyPartition;

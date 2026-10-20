@@ -60,6 +60,14 @@ export interface Comparison {
   readonly sources: readonly Source[];
 }
 
+/** One numbered place on a sketched page: what we read there, in our
+ *  words, and the page's own words quoted. */
+export interface SketchMark {
+  readonly title: string;
+  readonly line: string;
+  readonly quotes: readonly string[];
+}
+
 export interface Teardown {
   readonly slug: string;
   readonly name: string;
@@ -76,6 +84,10 @@ export interface Teardown {
   readonly written: string;
   /** Last read against the live site, ISO date. */
   readonly revised: string;
+  /** Last read again with nothing to revise, ISO date, where later. */
+  readonly checked?: string;
+  /** A greyscale wireframe of the home page, never a screenshot or a logo. */
+  readonly sketch?: readonly SketchMark[];
   readonly sources: readonly Source[];
 }
 

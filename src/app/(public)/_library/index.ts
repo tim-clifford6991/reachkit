@@ -9,7 +9,7 @@ import { ANSWERS } from "./answers";
 import { TEARDOWNS } from "./teardowns";
 import type { Answer, Comparison, ComparisonGroup, Teardown } from "./types";
 
-export type { Answer, Cell, Comparison, ComparisonGroup, Section, Source, Teardown } from "./types";
+export type { Answer, Cell, Comparison, ComparisonGroup, Section, SketchMark, Source, Teardown } from "./types";
 export { ANSWERS, TEARDOWNS };
 
 export const COMPARISONS: readonly Comparison[] = [...SUITES, ...CHECKERS, ...OTHERS];

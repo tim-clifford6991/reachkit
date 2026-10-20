@@ -24,6 +24,15 @@ function lengthCheck(name: CopyKey, value: string, max: number, keys: { fine: Co
   return { name, fine: true, line: copy(keys.fine, { chars, value }) };
 }
 
+/** `en-US` → `English (United States)`; a tag no browser knows stays as written. */
+function languageName(tag: string): string {
+  try {
+    return new Intl.DisplayNames(["en"], { type: "language", languageDisplay: "standard" }).of(tag) ?? tag;
+  } catch {
+    return tag;
+  }
+}
+
 export function onPageChecks(t: PageTags): readonly CheckResult[] {
   const h1 = t.h1.filter((h) => h !== "");
   const missingShare = SHARE_NEEDED.filter((tag) => (t.share[tag] ?? "") === "");
@@ -69,7 +78,7 @@ export function onPageChecks(t: PageTags): readonly CheckResult[] {
           },
     t.lang === ""
       ? { name: "tools.check.lang", fine: false, line: copy("tools.check.lang.none") }
-      : { name: "tools.check.lang", fine: true, line: copy("tools.check.lang.fine", { value: t.lang }) },
+      : { name: "tools.check.lang", fine: true, line: copy("tools.check.lang.fine", { value: languageName(t.lang) }) },
   ];
 }
 

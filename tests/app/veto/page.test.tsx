@@ -256,7 +256,7 @@ describe("the ask arm — what the set draws, in its own order", () => {
   });
 
   it("the search row carries its monthly volume, grouped, as the set draws it", async () => {
-    expect(text(await ask())).toContain("best onboarding tools · 2,400/mo");
+    expect(text(await ask())).toContain("best onboarding tools · searched about 2,400 times a month");
   });
 
   it("a volume nobody measured leaves the search standing alone, and never prints a zero", async () => {
@@ -266,8 +266,8 @@ describe("the ask arm — what the set draws, in its own order", () => {
     });
     const rendered = text(await ask());
     expect(rendered).toContain("best onboarding tools");
-    expect(rendered).not.toContain("/mo");
-    expect(rendered).not.toContain("0/mo");
+    expect(rendered).not.toContain("times a month");
+    expect(rendered).not.toContain("about 0");
   });
 
   it("a measured zero is a result and prints as one", async () => {
@@ -275,7 +275,7 @@ describe("the ask arm — what the set draws, in its own order", () => {
       ok: true,
       preview: { ...LIVE_PREVIEW, volume: 0 },
     });
-    expect(text(await ask())).toContain("best onboarding tools · 0/mo");
+    expect(text(await ask())).toContain("best onboarding tools · searched about 0 times a month");
   });
 
   it("a site that states no zone states no moment, rather than one in a zone nobody chose", async () => {
@@ -527,7 +527,7 @@ describe("the Round 7 split (R7-S4/S5, #1025): the interaction left, the page ri
     // No day to name, so no heading over the half: the page's title steps
     // up to be its `<h2>` rather than leave a level skipped (#328).
     expect(headingsOf(tree, "h2")).toEqual([LIVE_PREVIEW.title]);
-    expect(text(tree)).not.toContain("searches a month");
+    expect(text(tree)).not.toContain("times a month");
   });
 
   it("a draft with nothing to show draws no half", async () => {

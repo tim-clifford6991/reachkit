@@ -286,14 +286,14 @@ export const TEARDOWNS: readonly Teardown[] = [
         heading: "Who it is for",
         paragraphs: [
           "Developers who dislike Google Analytics already know Plausible. The buyer with a deadline is a marketing or compliance lead with EU visitors, told to fix the banner or the data transfer.",
-          "That buyer is not comparing dashboards. They want the problem gone with the least work, and a page that names their problem converts them faster.",
+          "That buyer is not comparing dashboards. They want the problem gone with the least work, and a page that names their problem wins them over faster.",
         ],
       },
       {
         heading: "Where the opportunity is",
         paragraphs: [
           "Our opinion: a page built around removing the cookie banner would speak to the buyer with a budget, not only the one with a side project. A clear explainer on whether Google Analytics is GDPR compliant would meet the same buyer earlier.",
-          "Privacy and data protection communities and newsletters value Plausible's open code and EU hosting. Those are reasons to choose it there, not table stakes.",
+          "Privacy and data protection communities and newsletters value Plausible's open code and EU hosting. Those are reasons to choose it there, not just the basics.",
         ],
       },
     ],
@@ -301,10 +301,31 @@ export const TEARDOWNS: readonly Teardown[] = [
       "Put 'drop the cookie banner, keep your numbers' next to the hero, not below it.",
       "Build a page for the compliance buyer, around the banner and the review it removes.",
       "Write the plain answer to whether Google Analytics is GDPR compliant.",
-      "Spend outreach in privacy and EU communities, where open code and EU hosting matter most.",
+      "Tell your story in privacy and EU communities, where open code and EU hosting matter most.",
     ],
     written: "2026-06-03",
     revised: "2026-10-15",
+    checked: "2026-10-19",
+    sketch: [
+      {
+        title: "The hero leads with the alternative",
+        line: "Many similar tools describe themselves the same way.",
+        quotes: [
+          "Easy to use and privacy-friendly Google Analytics alternative",
+          "Plausible is powerful, lightweight analytics. No cookies, just insights. Made and hosted in the EU, powered by European-owned infrastructure.",
+        ],
+      },
+      {
+        title: "The sharpest promise sits lower",
+        line: "One claim among several, below the comparison with Google Analytics.",
+        quotes: ["No cookie banner required"],
+      },
+      {
+        title: "Plans are on the home page",
+        line: "From $9 a month, with a 30-day free trial and no credit card.",
+        quotes: [],
+      },
+    ],
     sources: [{ label: "Plausible home page", href: "https://plausible.io/" }],
   },
   {
