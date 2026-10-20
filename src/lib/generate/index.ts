@@ -492,7 +492,7 @@ async function livePageOf(
     facts.find((sourced) => urlKey(sourced.fact.url) === key)?.sourceText ??
     "";
   if (markdown.trim() === "") return null;
-  const evidence = opportunity.evidence as { shortfall?: { kind?: unknown; cause?: unknown } } | undefined;
+  const evidence = opportunity.evidence as { shortfall?: { kind?: unknown; cause?: unknown; place?: unknown } } | undefined;
   const linkTo = linkBackOf(opportunity);
   // Issue 1521 (as 1507): the date the live version is dated as, which a
   // refresh that says nothing new keeps.
@@ -512,6 +512,7 @@ async function livePageOf(
     why: typeof evidence?.shortfall?.kind === "string" ? evidence.shortfall.kind : null,
     // Issue 1521: why one of ours is refreshed, which says whether it may grow.
     ...(evidence?.shortfall?.kind === "due" && typeof evidence.shortfall.cause === "string" ? { cause: evidence.shortfall.cause } : {}),
+    ...(evidence?.shortfall?.kind === "due" && typeof evidence.shortfall.place === "number" ? { place: evidence.shortfall.place } : {}),
     ...(datedAs === undefined ? {} : { datedAs }),
     ...(linkTo === null ? {} : { linkTo }),
     ...(ours?.reportPassages === undefined ? {} : { reportPassages: ours.reportPassages }),

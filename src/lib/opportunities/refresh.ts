@@ -101,7 +101,7 @@ import { ownMeasurementIn } from "@/lib/generate/rules/figures";
 import { storedStructure, structureDefects, type StructureDefect } from "@/lib/generate/rules/structure";
 import { takenDownByCustomer } from "@/lib/publish/take-down/standing";
 import { measured } from "@/lib/measure/measured";
-import { canonicalUrl } from "./cluster";
+import { canonicalUrl, readingOf } from "@/lib/measure/page-reading";
 import type { Candidate } from "./derive/candidate";
 import { persist } from "./derive/persist";
 import { closestPrompt, measuredVolume } from "./intent";
@@ -159,6 +159,9 @@ export interface OwnLivePage {
    *  written for another site as close as the near-duplicate bar. Read only
    *  for a page `unseenDue`; absent reads as not so. */
   closeElsewhere?: boolean;
+  /** The place the page's stored search reading holds for it, where one
+   *  was read. */
+  readPlace?: number;
   /** Issue 1521: on a listicle or comparison, when the oldest rival price
    *  this version was written from was read. Absent reads as none. */
   oldestPrice?: Date;
@@ -381,7 +384,13 @@ export function refreshOfPage(
   return refreshOf(page, cause, at, link);
 }
 
-function refreshOf(page: Pick<OwnLivePage, "url" | "publishedAt" | "row"> & Partial<Pick<OwnLivePage, "structure">>, cause: RefreshCause, at: Date, link?: { url: string; title: string; replaces?: string }): Candidate {
+function refreshOf(
+  page: Pick<OwnLivePage, "url" | "publishedAt" | "row"> & Partial<Pick<OwnLivePage, "structure">>,
+  cause: RefreshCause,
+  at: Date,
+  link?: { url: string; title: string; replaces?: string },
+  place: number | null = null
+): Candidate {
   const { row } = page;
   const query = row.targetQuery ?? "";
   const evidence: Evidence = {
@@ -395,6 +404,7 @@ function refreshOf(page: Pick<OwnLivePage, "url" | "publishedAt" | "row"> & Part
       since: measured(page.publishedAt, at),
       ...(link === undefined ? {} : { link }),
       ...(cause === "structure" ? { defects: [...(page.structure ?? [])] } : {}),
+      ...(place === null ? {} : { place }),
     },
     ...("target" in row.evidence && row.evidence.target !== undefined ? { target: row.evidence.target } : {}),
   };
@@ -435,7 +445,7 @@ export function refreshCandidates(pages: readonly OwnLivePage[], pools: RefreshP
       const target = closestPrompt(row.targetQuery, open);
       if (target !== null) return [retargetCandidate(page, { target: target.text, volume: target.volume, at })];
     }
-    return [refreshOf(page, cause, at)];
+    return [refreshOf(page, cause, at, undefined, page.readPlace ?? ownPlace(page, pools))];
   });
 }
 
@@ -445,6 +455,7 @@ interface PublicationRow {
   id: string;
   live_url: string | null;
   published_at: string | null;
+  search_reading?: unknown;
   drafts: {
     title?: string | null;
     body_md?: string | null;
@@ -480,7 +491,7 @@ async function ownLivePages(siteId: string): Promise<OwnLivePage[]> {
   const client = untyped();
   const live = await client
     .from<PublicationRow>("publications")
-    .select(`id, live_url, published_at, drafts(title, body_md, meta, transitions, opportunities(${COLUMNS}))`)
+    .select(`id, live_url, published_at, search_reading, drafts(title, body_md, meta, transitions, opportunities(${COLUMNS}))`)
     .eq("site_id", siteId)
     .not("published_at", "is", null)
     .not("live_url", "is", null)
@@ -536,6 +547,7 @@ async function ownLivePages(siteId: string): Promise<OwnLivePage[]> {
     const type = typeof meta.contentType === "string" && meta.contentType !== "update" ? meta.contentType : (writtenAs.get(url) ?? null);
     if (type !== null) writtenAs.set(url, type);
     const oldestPrice = type === "listicle" ? oldestPriceOf(meta.marketFacts) : undefined;
+    const readPlace = readingOf(publication.search_reading)?.place?.value;
     // Issue 1507: a mended version is dated as the one it mended, so a
     // repair in code does not make a page look newer than its words.
     const dated = typeof meta.datedAs === "string" ? new Date(meta.datedAs) : null;
@@ -555,6 +567,7 @@ async function ownLivePages(siteId: string): Promise<OwnLivePage[]> {
       takenDown: takenDownByCustomer(publication.drafts?.transitions),
       ...(seenUrls === null ? {} : { seen: indexStateOf([url, publication.live_url], seenUrls) === "seen" }),
       place: placed.get(publication.id) ?? null,
+      ...(readPlace === undefined ? {} : { readPlace }),
       structure: structureDefects(
         storedStructure({
           markdown: publication.drafts?.body_md ?? "",

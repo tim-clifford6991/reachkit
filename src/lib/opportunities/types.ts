@@ -126,6 +126,9 @@ export type Shortfall =
       /** Issue 1507: what the live page breaks of the consistency rules,
        *  by handle. Present where `cause` is `structure`, and only there. */
       defects?: string[];
+      /** The page's own place for its search when planned, where one was
+       *  read; a growing refresh adds sections only near page one. */
+      place?: number;
     }
   /** SPEC §7 (D53, issue 1268): one of ReachKit's own live pages is rewritten
    *  for a new search, at its own address. The row's `targetQuery` is the new

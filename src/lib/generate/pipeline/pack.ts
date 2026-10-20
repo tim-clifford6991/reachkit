@@ -109,6 +109,9 @@ export interface PackLivePage {
   /** Issue 1521: the refresh cause its row records (`RefreshCause`), where
    *  it is one of ours. Absent on any other update. */
   cause?: string;
+  /** The page's own place for its search when its refresh was planned.
+   *  Absent where none was read. */
+  place?: number;
   /** Issue 1521 (as 1507): the date the live version is dated as. A refresh
    *  that changes nothing it says keeps it. Absent where it is not known. */
   datedAs?: string;
@@ -705,9 +708,18 @@ export function repeatedFactShare(a: { markdown: string; facts: readonly string[
  *  up to `HEADING_GAPS.growShare` (owner, 2026-10-18, issue 1521). */
 export const GROWING_CAUSES: readonly string[] = Object.freeze(["close", "unmet", "lost_position"]);
 
-/** Whether an update's live page may grow by new sections (issue 1521). */
-export function grows(live: Pick<PackLivePage, "cause" | "linkTo"> | null): boolean {
-  return live !== null && live.linkTo === undefined && GROWING_CAUSES.includes(live.cause ?? "");
+/** Whether an update's live page may grow by new sections (issue 1521):
+ *  only near page one, where the extra write and fix are worth paying for. */
+export function grows(live: Pick<PackLivePage, "cause" | "linkTo" | "place"> | null): boolean {
+  const near = HEADING_GAPS.nearPageOne;
+  return (
+    live !== null &&
+    live.linkTo === undefined &&
+    GROWING_CAUSES.includes(live.cause ?? "") &&
+    live.place !== undefined &&
+    live.place >= near.min &&
+    live.place <= near.max
+  );
 }
 
 /**

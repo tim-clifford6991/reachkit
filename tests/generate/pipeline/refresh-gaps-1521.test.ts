@@ -5,12 +5,14 @@ import "../env";
 import { describe, expect, it } from "vitest";
 import { layoutPage, withClosing } from "../../../src/lib/generate/pipeline/compose";
 import { lengthRangeFor } from "../../../src/lib/generate/length";
-import { grows, headingGaps } from "../../../src/lib/generate/pipeline/pack";
+import { buildPack, grows, headingGaps, type PackInputs } from "../../../src/lib/generate/pipeline/pack";
 import { headingsOf } from "../../../src/lib/generate/pipeline/research";
 import { missingBlock } from "../../../src/lib/generate/rules/blocks";
 import { TEMPLATES } from "../../../src/lib/generate/templates";
 import type { PageParts } from "../../../src/lib/generate/pipeline/write";
-import { CLEAN_ANSWER, GROUNDED, prose } from "../fixtures";
+import { refreshCandidates, type OwnLivePage } from "../../../src/lib/opportunities/refresh";
+import type { Opportunity } from "../../../src/lib/opportunities/types";
+import { AT, CLEAN_ANSWER, GROUNDED, opportunity, prose, report } from "../fixtures";
 
 const STORED_HTML = [
   `<html><body><nav><h2>Products</h2><h3>Pricing</h3></nav><main><h1>Best CRM for small teams</h1>
@@ -51,9 +53,70 @@ describe("what the pages above a refresh cover and it does not", () => {
 
   it("no gap without a claim, and none on a refresh that may not grow", () => {
     expect(headingGaps({ topResults, live: LIVE, target: "best crm for small teams", claims: CLAIMS.slice(2) })).toEqual([]);
-    expect(grows({ cause: "close" })).toBe(true);
-    expect(grows({ cause: "aged" })).toBe(false);
-    expect(grows({ cause: "close", linkTo: { url: "https://example.com/new", title: "New" } })).toBe(false);
+    expect(grows({ cause: "close", place: 15 })).toBe(true);
+    expect(grows({ cause: "aged", place: 15 })).toBe(false);
+    expect(grows({ cause: "close", place: 15, linkTo: { url: "https://example.com/new", title: "New" } })).toBe(false);
+  });
+});
+
+describe("only a page near page one grows on the gaps (owner 2026-10-19)", () => {
+  const target = "best crm for small teams";
+  const url = "https://content.example.com/best-crm";
+  const written = { ...opportunity({ targetQuery: target, targetRef: "best-crm" }), family: "write" } as Opportunity;
+  const page = (over: Partial<OwnLivePage>): OwnLivePage => ({
+    url,
+    publishedAt: new Date(AT.getTime() - 40 * 86_400_000),
+    row: written,
+    declined: false,
+    facts: [],
+    marketFacts: [],
+    ...over,
+  });
+  const research = {
+    facts: CLAIMS.map((claim) => ({ ...claim, title: "Integrations", readAt: AT, kind: "rival_features" as const })),
+    products: [],
+    topResults: STORED_HTML.map((html, index) => ({ url: `https://result${index}.example.com/`, text: "", headings: headingsOf(html) })),
+  };
+  /** The pack of the refresh planned for `planned`, as the writer reads the row. */
+  function packOf(planned: OwnLivePage, ranked: { keyword: string; url: string; position: number }[]) {
+    const [row] = refreshCandidates([planned], { siteText: [], market: [], ranked }, AT);
+    const shortfall = (row!.evidence as { shortfall: { cause: string; place?: number } }).shortfall;
+    const inputs: PackInputs = {
+      type: "update",
+      opportunity: { ...opportunity({ targetQuery: target, targetRef: url }), family: "improve" },
+      site: { businessName: "Example", domain: "example.com", doNotClaim: [], rivals: [] },
+      category: "crm software",
+      byline: null,
+      voice: null,
+      profile: null,
+      facts: [],
+      research,
+      report: report(),
+      sitePages: [],
+      links: [],
+      live: { url, title: "Best CRM", markdown: LIVE, why: "due", cause: shortfall.cause, ...(shortfall.place === undefined ? {} : { place: shortfall.place }) },
+      now: AT,
+    };
+    return { cause: shortfall.cause, place: shortfall.place, pack: buildPack(inputs) };
+  }
+
+  it("a page at place 12 gets the gap sections and the +40% ceiling", () => {
+    const gaps = ["Integrations with accounting tools", "Mobile app & offline use"];
+    const read = packOf(page({ declined: true, readPlace: 12 }), []);
+    expect({ cause: read.cause, place: read.place }).toEqual({ cause: "lost_position", place: 12 });
+    expect(read.pack.gaps?.map((gap) => gap.heading)).toEqual(gaps);
+    // With no reading stored yet, its own address in the ranked rows places it.
+    const ranked = packOf(page({}), [{ keyword: target, url, position: 12 }]);
+    expect({ cause: ranked.cause, place: ranked.place }).toEqual({ cause: "close", place: 12 });
+    expect(ranked.pack.gaps?.map((gap) => gap.heading)).toEqual(gaps);
+  });
+
+  it("a page at place 45 keeps today's refresh: no gaps, so no new sections and no growth", () => {
+    const { cause, place, pack } = packOf(page({ declined: true, readPlace: 45 }), []);
+    expect({ cause, place }).toEqual({ cause: "lost_position", place: 45 });
+    expect(pack.gaps).toBeUndefined();
+    // A page with no place read is not near page one either.
+    expect(packOf(page({ declined: true }), []).pack.gaps).toBeUndefined();
   });
 });
 
