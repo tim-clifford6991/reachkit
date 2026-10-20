@@ -61,12 +61,13 @@ async function loadRoute() {
     sendWeeklyDigest: async () => ({ sent: false, reason: "not-measured" }),
   }));
   const route = await import("@/app/api/jobs/[[...slug]]/route");
-  // A tick sends each site on as an event; recorded here, never queued.
+  // A tick sends each site on through the platform's step send; recorded here, never queued.
   const { client } = await import("@/jobs/client");
-  vi.spyOn(client, "send").mockImplementation((async (events: { name: string; data: unknown }[]) => {
-    sent.push(...events);
+  type Send = { _send: (args: { payload: { name: string; data: unknown }[] }) => Promise<unknown> };
+  vi.spyOn(client as unknown as Send, "_send").mockImplementation(async ({ payload }) => {
+    sent.push(...payload);
     return { ids: [] };
-  }) as never);
+  });
   return { route };
 }
 

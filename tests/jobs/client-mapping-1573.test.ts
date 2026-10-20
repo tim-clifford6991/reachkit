@@ -2,10 +2,15 @@
 // neutral bounds onto the platform, and derives one run per subject for a
 // tick that sends its subjects on. The platform's own `createFunction` is
 // spied for the options it is handed and the bodies it is given.
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { stubEnv } from "./env-fixture";
 import type { JobDefinition } from "@/jobs/types";
 
+// The first import of the job graph transforms it cold, which alone nears the 5 s test timeout.
+beforeAll(async () => {
+  stubEnv(false);
+  await import("@/jobs");
+}, 30_000);
 beforeEach(() => vi.spyOn(console, "log").mockImplementation(() => {}));
 afterEach(() => {
   vi.unstubAllEnvs();
@@ -41,7 +46,9 @@ describe("JobDefinition's concurrency and throttle, mapped only in client.ts", (
       idempotency: "event.data.key",
       concurrency: [{ key: "event.data.siteId", scope: "env", limit: 1 }, { limit: 5 }],
       throttle: { limit: 10, period: "60s" },
+      checkpointing: false,
     });
+    expect(tick!.options).not.toHaveProperty("checkpointing");
   });
 
   it("weekly/refresh is mapped the same way; a job with no subjects stays one function", async () => {
@@ -63,5 +70,21 @@ describe("JobDefinition's concurrency and throttle, mapped only in client.ts", (
     const ctx = { event: { data: { key: "k", siteId: "s1" } }, attempt: 0, step: { run: vi.fn() } };
     await expect(site!.body(ctx)).resolves.toEqual({ outcome: "stopped", subjectId: null, by: "kill-switch" });
     expect(perSubject).not.toHaveBeenCalled();
+  });
+
+  it("a tick sends its subjects as a step of its own, never through the client", async () => {
+    const run: JobDefinition["run"] = async (input) => {
+      await input.send!([{ key: "draft:s1:2026-09-08", data: { siteId: "s1" } }]);
+      return { outcome: "ran", subjectId: null };
+    };
+    const [tick] = await mapped((jobs) => ({ ...byId("draft/generate")(jobs), run }));
+    const { client } = await import("@/jobs/client");
+    const clientSend = vi.spyOn(client, "send").mockResolvedValue({ ids: [] } as never);
+    const sendEvent = vi.fn(async () => ({ ids: [] }));
+    await tick!.body({ event: { data: {} }, attempt: 0, step: { run: vi.fn(), sendEvent } });
+    expect(sendEvent).toHaveBeenCalledWith("send-subjects", [
+      { id: "draft:s1:2026-09-08", name: "draft/generate/subject", data: { siteId: "s1", key: "draft:s1:2026-09-08" } },
+    ]);
+    expect(clientSend).not.toHaveBeenCalled();
   });
 });
