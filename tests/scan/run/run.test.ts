@@ -249,6 +249,12 @@ describe("the six stages", () => {
     expect(storedReport().locale).toEqual({ country: "GB", language: "en", fellBack: { country: "FR", language: "fr" } });
   });
 
+  it("a report records the other markets its home page declares, even one measured in the United States in English", async () => {
+    measureDomain.mockResolvedValue(measurement({ alsoServes: ["de-de", "fr-fr"] }));
+    await runScan({ domain: DOMAIN, tier: "free" });
+    expect(storedReport().locale).toEqual({ country: "US", language: "en", alsoServes: ["de-de", "fr-fr"] });
+  });
+
   // Owner ruling 2026-10-15 (issue 1441): D67 for the free pass.
   describe("D67 — a free pass of a site that states the town it serves measures there", () => {
     const GB = { country: "GB", language: "en" } as const;

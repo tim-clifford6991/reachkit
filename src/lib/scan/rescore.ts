@@ -27,6 +27,7 @@ import { aiPresenceOf, aiPresenceRangeOf, aiSampleOf, classifyReferences, founda
 import { isProtectionName } from "@/lib/measure/challenge";
 import { contentOf, detectPricingUrl, measuredPagesOf, storedFactsOf } from "@/lib/measure/pages";
 import { isStoredDocument } from "@/lib/measure/own-fetch";
+import { marketsServed } from "@/lib/locale/read";
 import { measured, unmeasured, type Measured } from "@/lib/measure/measured";
 import { foldSerps, outcomeOf, type InputOutcome, type ScanInput } from "@/lib/measure/partition";
 import type { OnPageFacts } from "@/lib/measure/parse";
@@ -438,7 +439,7 @@ export function rescoreScan(scan: RescoreScan): Rescored {
   }
 
   const before = membersOf(r);
-  const changes = [...changesOf(before, after), ...profileChanges(r, profile, reading), ...promptChanges(r, scan)];
+  const changes = [...changesOf(before, after), ...profileChanges(r, profile, reading), ...promptChanges(r, scan), ...servedChanges(r, scan)];
   // A new date is a change though `same` reads past dates: the whole
   // verdict is written again, every member of it carrying that date.
   if (at.getTime() !== new Date(r.verdict.measuredAt).getTime() && !changes.some((c) => c.path.length === 1 && c.path[0] === "verdict")) {
@@ -446,6 +447,20 @@ export function rescoreScan(scan: RescoreScan): Rescored {
   }
   const score = after.verdict.scoreAndBand.kind === "unmeasured" ? null : after.verdict.scoreAndBand.value.score;
   return { before, after, changes, drivers, score, status: statusAfter(scan.status, before.verdict, after.verdict), kept, stale, reading };
+}
+
+/** The other markets the stored home read declares (`marketsServed`),
+ *  counted again at 0¢; a report whose home read is gone keeps what it has. */
+function servedChanges(r: RescoreReport, scan: Pick<RescoreScan, "home">): ReportChange[] {
+  const home = scan.home?.payload;
+  if (!isStoredDocument(home)) return [];
+  const measured = localeOfReport(r);
+  const alsoServes = marketsServed({ domain: r.domain, html: home.html, measured });
+  const stored = r.locale?.alsoServes ?? [];
+  if (alsoServes.length === stored.length && alsoServes.every((tag, i) => tag === stored[i])) return [];
+  const locale: Record<string, unknown> = { ...(r.locale ?? { country: measured.country, language: measured.language }) };
+  delete locale.alsoServes;
+  return [{ path: ["locale"], value: alsoServes.length === 0 ? locale : { ...locale, alsoServes } }];
 }
 
 /**

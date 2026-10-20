@@ -33,6 +33,7 @@ import Link from "next/link";
 import { ArrowRight, Check } from "lucide-react";
 import { Surface } from "@/ui/layout";
 import { HOSTED_RETENTION_DAYS } from "@/lib/config/constants";
+import { measuredCountryLists } from "@/lib/locale/locales";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { ScanForm } from "./_landing/ScanForm";
 import { scanFormWords } from "./_landing/scan-form-words";
@@ -81,7 +82,7 @@ function questions(): readonly { id: string; vars?: Record<string, string>; more
     { id: "stop", vars: { days: String(HOSTED_RETENTION_DAYS) } },
     { id: "local", vars: { weekPages: WEEK_PAGES } },
     { id: "start" },
-    { id: "german" },
+    { id: "german", vars: measuredCountryLists() },
     { id: "trial", vars: { price: PRICE() } },
   ];
 }

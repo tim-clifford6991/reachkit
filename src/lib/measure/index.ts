@@ -34,7 +34,7 @@
 // `aiPresenceOf` (`drivers.ts`) over SERPs it has already bought, then
 // hands the completed `Drivers` to `verdictOf`. Buying a SERP here would
 // spend the free path's ceiling twice on the same rows (§6.4).
-import { readLocale, type Locale, type ResolvedLocale } from "@/lib/locale";
+import { marketsServed, readLocale, type Locale, type ResolvedLocale } from "@/lib/locale";
 import { readPlaceSignals, type PlaceSignals } from "@/lib/locale/place";
 import { CACHE_WINDOWS_D, CHALLENGE_RENDER_MS, HOME_RETRY, PRICE_BOOK, SLOW_HOME } from "@/lib/config/constants";
 import {
@@ -307,6 +307,9 @@ export interface DomainMeasurement {
    *  fell back to the nearest supported country in English; `null`
    *  otherwise, and wherever the locale was the caller's. */
   localeFellBack: ResolvedLocale["fellBack"];
+  /** The other markets the home document says the site serves, as BCP-47
+   *  tags without the measured one; absent where the home was not read. */
+  alsoServes?: readonly string[];
   /** What the home page's structured data states of the business's address
    *  (SPEC §6, owner D67, issue 1318): evidence for where it serves. */
   stated?: PlaceSignals;
@@ -595,6 +598,7 @@ export async function measureDomain(
     ownRankedRows,
     locale: read.locale,
     localeFellBack: read.fellBack,
+    ...(home.html === null ? {} : { alsoServes: marketsServed({ domain: a.domain, html: home.html, measured: read.locale }) }),
     stated: readPlaceSignals(home.html),
     homeRefusal: null,
     ...guarded,

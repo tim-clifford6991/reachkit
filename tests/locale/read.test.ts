@@ -88,8 +88,14 @@ describe("reading a site's country and language", () => {
       locale: { country: "DE", language: "de" },
       fellBack: { country: "IT", language: null },
     });
-    // A Swiss site in French: the country is measured in German only.
-    expect(resolveLocale({ country: "CH", language: "fr" }).fellBack).toEqual({ country: "CH", language: "fr" });
+  });
+
+  it("a supported country keeps its market, in its own language, whatever its page reads as", () => {
+    expect(resolveLocale({ country: "DE", language: "en" })).toEqual({ locale: { country: "DE", language: "de" }, fellBack: { country: null, language: "en" } });
+    expect(resolveLocale({ country: "DE", language: null })).toEqual({ locale: { country: "DE", language: "de" }, fellBack: null });
+    expect(resolveLocale({ country: "CH", language: "fr" })).toEqual({ locale: { country: "CH", language: "de" }, fellBack: { country: null, language: "fr" } });
+    // A supported language in a supported country that does not use it: the country's own language, as before.
+    expect(resolveLocale({ country: "GB", language: "de" })).toEqual({ locale: { country: "GB", language: "en" }, fellBack: { country: null, language: "de" } });
   });
 
   it("holds every answer to the closed list", () => {

@@ -5,10 +5,12 @@
 // currency, the address and the phone prefix. Each names a country or
 // nothing; the country is the one the strongest signal names. The language
 // is the page's own `lang`, else the country's.
+// The hreflang entry the home page declares for the address asked for
+// outranks them all: a geo redirect changes the page served, not that.
 //
 // Pure: it reads the bytes it is handed. No fetch, no model call, no clock.
-import { parse } from "node-html-parser";
-import { COUNTRIES, homeLanguageOf, resolveLocale, type Country, type LocaleReading, type ResolvedLocale } from "./locales";
+import { parse, type HTMLElement } from "node-html-parser";
+import { COUNTRIES, homeLanguageOf, resolveLocale, type Country, type Locale, type LocaleReading, type ResolvedLocale } from "./locales";
 
 /** Country endings sold as generic names: they say nothing of where a
  *  business is (issue 1480: nifty.pm is project software, not St Pierre and
@@ -166,8 +168,42 @@ function countryOfStructuredData(html: string): string | null {
   return stated.size === 1 ? [...stated][0]! : null;
 }
 
+/** The `<link rel="alternate" hreflang>` entries of a home document: each
+ *  value lowercased, beside the address it names. */
+function alternatesOf(root: HTMLElement, base: string): { tag: string; url: URL }[] {
+  return root.querySelectorAll("link").flatMap((link) => {
+    const tag = link.getAttribute("hreflang")?.trim().toLowerCase().replace(/_/g, "-");
+    const href = link.getAttribute("href");
+    if (!/\balternate\b/i.test(link.getAttribute("rel") ?? "") || tag === undefined || tag === "" || href === undefined) return [];
+    try {
+      return [{ tag, url: new URL(href, base) }];
+    } catch {
+      return [];
+    }
+  });
+}
+
+function bareHost(host: string): string {
+  return host.toLowerCase().replace(/^www\./, "").replace(/\.$/, "");
+}
+
+/** The market the site declares for the address it was asked for, whatever
+ *  variant was served: its hreflang entry for `https://<domain>/`, a
+ *  language and region ahead of a language alone. `x-default` names none. */
+function declaredFor(alternates: readonly { tag: string; url: URL }[], domain: string): LocaleReading | null {
+  const own = alternates
+    .filter((a) => a.tag !== "x-default" && bareHost(a.url.hostname) === bareHost(domain) && (a.url.pathname === "/" || a.url.pathname === ""))
+    .map((a) => ofLangTag(a.tag))
+    .filter((reading) => reading.language !== null)
+    .sort((a, b) => Number(b.country !== null) - Number(a.country !== null));
+  return own[0] ?? null;
+}
+
 /**
- * What the site says of itself (D66). The country, strongest signal first:
+ * What the site says of itself (D66). Where its hreflang entries name a
+ * market for the address asked for, that market's language is the
+ * language, and its region the country where the domain has no country
+ * ending. Otherwise the country, strongest signal first:
  * its country domain, the country its structured data states, the phone
  * prefix, the address, the region of `<html lang>`, the currency. The
  * language is the one the page's own words are in, where they say; else
@@ -190,9 +226,11 @@ export function readLocaleSignals(a: { domain: string; html: string | null }): L
   const telephones = root.querySelectorAll('a[href^="tel:"]').map((link) => link.getAttribute("href") ?? "").join(" ");
   const text = root.querySelector("body")?.structuredText ?? root.structuredText;
 
+  // What the site declares for this address outranks the variant a geo redirect served.
+  const declared = declaredFor(alternatesOf(root, `https://${a.domain}/`), a.domain);
   // A `lang` the page's own words contradict says nothing of its country either.
   const written = languageOfText(text);
-  const language = written ?? lang.language;
+  const language = declared?.language ?? written ?? lang.language;
   const langHolds = written === null || written === lang.language;
   const inLanguage = (country: string | null): string | null => {
     const home = country === null ? null : homeLanguageOf(country);
@@ -200,6 +238,7 @@ export function readLocaleSignals(a: { domain: string; html: string | null }): L
   };
   const country =
     fromDomain ??
+    declared?.country ??
     inLanguage(countryOfStructuredData(a.html)) ??
     inLanguage(countryOfPhone(`${telephones} ${text}`)) ??
     inLanguage(countryOfAddress(text)) ??
@@ -212,4 +251,62 @@ export function readLocaleSignals(a: { domain: string; html: string | null }): L
  *  home page, and what of the reading is not measured. */
 export function readLocale(a: { domain: string; html: string | null }): ResolvedLocale {
   return resolveLocale(readLocaleSignals(a));
+}
+
+/** English words that are also language codes: a path that starts with one
+ *  is no language switcher unless it carries a region (`/it-it/`). */
+const WORD_CODES: ReadonlySet<string> = new Set(
+  "it do be me no is am as at in on or so to us we my an go hi id up".split(" ")
+);
+const LANGUAGE_NAMES = new Intl.DisplayNames("en", { type: "language", fallback: "none" });
+
+function isLanguageCode(code: string): boolean {
+  try {
+    return LANGUAGE_NAMES.of(code) !== undefined;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * The other markets a home document says its site serves, as BCP-47 tags
+ * without the one measured: its hreflang values where it declares any,
+ * else its language switcher — two or more same-host locale paths, and the
+ * same name under other country endings. Under-reports by design: it reads
+ * only the bytes handed to it.
+ */
+export function marketsServed(a: { domain: string; html: string; measured: Locale }): string[] {
+  const base = `https://${a.domain}/`;
+  const root = parse(a.html, { blockTextElements: { script: false, style: false, noscript: false } });
+  const measured = (tag: string): boolean => {
+    const reading = ofLangTag(tag);
+    return reading.language === a.measured.language && (reading.country === null || reading.country === a.measured.country);
+  };
+  const alternates = alternatesOf(root, base);
+  if (alternates.length > 0) return [...new Set(alternates.map((each) => each.tag))].filter((tag) => tag !== "x-default" && !measured(tag));
+
+  const host = bareHost(a.domain);
+  const name = host.split(".")[0]!;
+  const paths = new Set<string>();
+  const endings = new Set<string>();
+  for (const link of root.querySelectorAll("a[href]")) {
+    let url: URL;
+    try {
+      url = new URL(link.getAttribute("href") ?? "", base);
+    } catch {
+      continue;
+    }
+    if (url.protocol !== "https:" && url.protocol !== "http:") continue;
+    const other = bareHost(url.hostname);
+    if (other === host) {
+      const match = /^([a-z]{2})(?:[-_]([a-z]{2}))?$/i.exec(url.pathname.split("/")[1] ?? "");
+      if (match === null || !isLanguageCode(match[1]!.toLowerCase())) continue;
+      if (match[2] === undefined && WORD_CODES.has(match[1]!.toLowerCase())) continue;
+      paths.add(match[2] === undefined ? match[1]!.toLowerCase() : `${match[1]!.toLowerCase()}-${match[2].toLowerCase()}`);
+    } else if (other.split(".")[0] === name) {
+      const country = countryOfDomain(other);
+      if (country !== null && country !== a.measured.country) endings.add(`und-${country.toLowerCase()}`);
+    }
+  }
+  return [...(paths.size >= 2 ? [...paths] : []), ...endings].filter((tag) => !measured(tag));
 }

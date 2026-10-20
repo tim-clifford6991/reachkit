@@ -30,7 +30,7 @@ import { CircleAlert } from "lucide-react";
 import { Surface } from "@/ui/layout";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import type { ScoreFactorName } from "@/lib/measure/score";
-import { measuredLocale } from "@/lib/locale/locales";
+import { COUNTRIES, isCountry, isLanguage, measuredLocale } from "@/lib/locale/locales";
 import { stillReading, type StoredReport } from "@/lib/scan/report";
 import type { CanonicalDomain } from "@/lib/scan/domain";
 import type { CorrectionOffer } from "@/lib/market/coherence/offer";
@@ -204,7 +204,10 @@ function ReadsDifferentlyLine(p: { report: StoredReport; shown: boolean }): Reac
 /**
  * SPEC §6 (owner D66, issue 1311): where the site said a country or a
  * language ReachKit does not measure yet, the report was measured in the
- * nearest supported country in English, and says so in one line. Nothing is
+ * nearest supported country in English, and says so in one line. A country
+ * or language on the list is never called unmeasured: a supported country
+ * read in another language, or a supported language read in a country that
+ * does not use it, names that pair and what is measured instead. Nothing is
  * drawn for a report measured in what its site said.
  */
 function MeasuredInLine(p: { report: StoredReport }): React.JSX.Element | null {
@@ -221,20 +224,47 @@ function MeasuredInLine(p: { report: StoredReport }): React.JSX.Element | null {
       return code;
     }
   };
-  const country = fellBack.country === null ? null : named(fellBack.country, countries);
-  const language = fellBack.language === null ? null : named(fellBack.language, languages);
-  const unmeasured =
-    country !== null && language !== null
-      ? copy("report.locale.site.pair", { country, language })
-      : (country ?? language);
-  if (unmeasured === null) return null;
-  return (
+  const where = { country: named(measured.country, countries), language: named(measured.language, languages) };
+  const line = (text: string): React.JSX.Element => (
     <p className="col-span-full text-sm text-base-content/70" data-testid="report-measured-in">
-      {copy("report.locale.fell-back", {
-        country: named(measured.country, countries),
-        language: named(measured.language, languages),
-        unmeasured,
-      })}
+      {text}
+    </p>
+  );
+  if (isCountry(fellBack.country)) {
+    return line(
+      copy("report.locale.country-read-as", {
+        ...where,
+        readLanguage: named(fellBack.language ?? measured.language, languages),
+        readCountry: named(fellBack.country, countries),
+        ownLanguage: named(COUNTRIES[fellBack.country].language, languages),
+      })
+    );
+  }
+  const country = fellBack.country === null ? null : named(fellBack.country, countries);
+  const language = fellBack.language === null || isLanguage(fellBack.language) ? null : named(fellBack.language, languages);
+  if (country === null && language === null) {
+    if (!isLanguage(fellBack.language) || fellBack.language === measured.language) return null;
+    return line(
+      copy("report.locale.pair-fell-back", {
+        ...where,
+        readLanguage: named(fellBack.language, languages),
+        readCountry: where.country,
+        ownLanguage: named(COUNTRIES[measured.country].language, languages),
+      })
+    );
+  }
+  const unmeasured = country !== null && language !== null ? copy("report.locale.site.pair", { country, language }) : (country ?? language ?? "");
+  return line(copy("report.locale.fell-back", { ...where, unmeasured }));
+}
+
+/** A site that declares other markets is told one is measured, and where
+ *  another is chosen; nothing is drawn for a site that declares none. */
+function AlsoServesLine(p: { report: StoredReport }): React.JSX.Element | null {
+  const n = p.report.locale?.alsoServes?.length ?? 0;
+  if (n === 0) return null;
+  return (
+    <p className="col-span-full text-sm text-base-content/70" data-testid="report-also-serves">
+      {n === 1 ? copy("report.locale.also-serves.one") : copy("report.locale.also-serves", { n: String(n) })}
     </p>
   );
 }
@@ -421,6 +451,7 @@ export function ReportView(p: {
             control is on the screen that owns the address — and it is on it
             once. */}
         <MeasuredInLine report={report} />
+        <AlsoServesLine report={report} />
         <MarketFromSearchLine report={report} />
         <FinishingReadsLine report={report} />
         <ReadsDifferentlyLine report={report} shown={p.state.readsDifferently === true} />
