@@ -4,9 +4,8 @@
 // One link to `/app/draft/{id}` carrying three things and no more: that
 // something is waiting, what it is called, and when it goes live if the
 // customer does nothing. The title is a page's own title and can be any
-// length, so it is clamped to two lines (`docs/DESIGN.md`, 2026-09-20: "A
-// label that can grow … is clamped to one or two lines with an ellipsis");
-// the time is never clamped, because a cut-off time is a wrong time.
+// length, so it wraps in full: the panel is narrow and a clamp would cut it;
+// the time is never clamped either, because a cut-off time is a wrong time.
 //
 // With nothing waiting the card is not drawn at all — SPEC §4 of the same
 // date: "a control that cannot act is not drawn". The same is true of the
@@ -42,7 +41,7 @@ export function WaitingCard(p: {
         <Clock size={16} strokeWidth={1.75} aria-hidden />
         {copy("shell.waiting.head")}
       </span>
-      <span className="line-clamp-2 w-full min-w-0 font-semibold" data-testid="shell-waiting-title">
+      <span className="w-full min-w-0 font-semibold break-words" data-testid="shell-waiting-title">
         {review.title}
       </span>
       {review.goesLiveAt === null ? null : (

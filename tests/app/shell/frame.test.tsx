@@ -621,13 +621,13 @@ describe("the frame is the route's one screen root, and it invents no sentence",
     expect(root.querySelector("main")?.textContent).toBe("screen");
   });
 
-  it("the *Waiting for you* card names the page, links to its review and clamps the title", () => {
+  it("the *Waiting for you* card names the page, links to its review and draws the whole title", () => {
     const card = render(<WaitingCard review={SCHEDULED.review} timeZone={ZONE} />);
     expect(card.getAttribute("href")).toBe("/app/draft/draft-1");
     expect(card.textContent).toContain("shell.waiting.head");
     const title = card.querySelector("[data-testid='shell-waiting-title']");
     expect(title?.textContent).toBe("How much does a bike service cost in 2026?");
-    expect(title?.className).toContain("line-clamp-2");
+    expect(title?.className).not.toMatch(/line-clamp|truncate/);
     // The time is a value, and a value is never clamped.
     const when = card.querySelector("[data-testid='shell-waiting-when']");
     expect(when?.textContent).toBe("shell.waiting.goes-live");
