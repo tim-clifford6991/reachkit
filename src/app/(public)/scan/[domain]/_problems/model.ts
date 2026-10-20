@@ -11,7 +11,8 @@
 // market or date. That is what makes "the larger count never carries the
 // lower severity" a property of the code rather than a convention.
 import { SEVERITY_THRESHOLDS } from "@/lib/config/constants";
-import { combine, mapMeasured, measured, measuredZero, NOT_BUILT, type Measured } from "@/lib/measure/measured";
+import { NOT_BUILT } from "../_address/measured";
+import { combine, mapMeasured, measured, measuredZero, type Measured } from "@/lib/measure/measured";
 import { registrableDomain } from "@/lib/market/rivals/domains";
 import { rankedFreePages } from "@/lib/opportunities/free-page";
 import type { CopyKey } from "@/lib/presentation/copy";

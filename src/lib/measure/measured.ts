@@ -35,9 +35,6 @@ export type Measured<T> =
       because?: string;
     };
 
-/** The `because` of a count no scan builds yet: not measured yet, not cut short. */
-export const NOT_BUILT = "not_built";
-
 /** The only constructors. There is no `Measured.of(number | null)`: a
  *  nullable number cannot say why, and the whole point of REQ-004 is that
  *  it must. `at` is always the caller's — none of the three reads a clock. */
