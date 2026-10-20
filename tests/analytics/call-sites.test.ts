@@ -62,7 +62,8 @@ describe("the three events are recorded from three places", () => {
       .filter((file) => /posthog/i.test(readFileSync(file, "utf8")))
       .map((file) => path.relative(SRC, file))
       .sort();
-    // The seam itself, and the env schema that declares its two bindings.
-    expect(named).toEqual(["lib/analytics/index.ts", "lib/config/env.ts"]);
+    // The seam itself, the env schema that declares its two bindings, and
+    // the privacy notice, which must name every service provider.
+    expect(named).toEqual(["lib/analytics/index.ts", "lib/config/env.ts", "lib/presentation/copy/keys/chrome.ts"]);
   });
 });

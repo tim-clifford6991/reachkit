@@ -19,12 +19,15 @@ export interface LegalDocument {
    *  document owes only its own date. */
   readonly updated: CopyKey;
   readonly body: CopyKey;
+  /** A Markdown list drawn above the card; a document without one has none. */
+  readonly summary?: CopyKey;
 }
 
 export const PRIVACY: LegalDocument = Object.freeze({
   title: "legal.privacy.title",
   updated: "legal.privacy.updated",
   body: "legal.privacy.body",
+  summary: "legal.privacy.summary",
 });
 
 export const TERMS: LegalDocument = Object.freeze({
