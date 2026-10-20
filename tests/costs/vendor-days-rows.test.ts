@@ -8,7 +8,7 @@ const upserts: object[][] = [];
 
 vi.mock("@/lib/db", () => {
   const builder: Record<string, unknown> = {};
-  for (const method of ["select", "eq", "in", "update"]) builder[method] = () => builder;
+  for (const method of ["select", "eq", "in", "gte", "lt", "update"]) builder[method] = () => builder;
   builder.upsert = (rows: object[]) => {
     upserts.push(rows);
     return builder;

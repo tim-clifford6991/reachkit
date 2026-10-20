@@ -1,0 +1,30 @@
+{
+  "version": "0.1.20260930",
+  "status_code": 20000,
+  "status_message": "Ok.",
+  "time": "0.0412 sec.",
+  "cost": 0,
+  "tasks_count": 1,
+  "tasks_error": 0,
+  "tasks": [
+    {
+      "id": "10191200-1535-0216-0000-ebba3b5c6b8a",
+      "status_code": 20000,
+      "status_message": "Ok.",
+      "time": "0.0322 sec.",
+      "cost": 0,
+      "result_count": 1,
+      "path": ["v3", "appendix", "user_data"],
+      "data": { "api": "appendix", "function": "user_data" },
+      "result": [
+        {
+          "login": "owner@example.com",
+          "timezone": "Europe/Berlin",
+          "rates": { "limits": { "day": { "total": 2000 } } },
+          "money": { "total": 101, "balance": 24.43, "limits": { "day": { "total": 0 } } },
+          "price": {}
+        }
+      ]
+    }
+  ]
+}
