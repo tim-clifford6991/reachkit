@@ -1,8 +1,9 @@
 // The hero's story card (board *Landing*, 2026-10-19): one example business
 // in five frames — it goes in, we research it, pages go live, it is found,
 // and the owner gets on with business. daisyUI's vertical timeline draws the
-// frames and the line that joins them. It carries the landing's one deep
-// floating shadow.
+// frames and the line that joins them — compact without snap-icon, which
+// restores an empty start column and halves the frame at 390px. It carries
+// the landing's one deep floating shadow.
 import type React from "react";
 import { Bot, Coffee, FileText, Globe, Search } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
@@ -41,7 +42,7 @@ export function Storyboard(): React.JSX.Element {
     <div className={`card bg-base-100 min-w-0 ${FLOAT}`} data-testid={STORY_TEST_ID}>
       <div className="card-body gap-4">
         <h2 className="card-title text-base">{copy("landing.story.title")}</h2>
-        <ol className="timeline timeline-vertical timeline-compact timeline-snap-icon">
+        <ol className="timeline timeline-vertical timeline-compact min-w-0">
           <Frame n={1} Icon={Globe}>
             <span className="flex flex-wrap gap-2">
               <span className={CHIP}>
