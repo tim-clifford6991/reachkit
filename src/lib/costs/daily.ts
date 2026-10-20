@@ -145,8 +145,15 @@ export function registerPayingSiteCounter(next: PayingSiteCounter | null): void 
 
 async function countDayCeiling(dayStart: Date): Promise<number | null> {
   const counter = ceilingState().counter;
+  // A process without billing has no paying sites to count: the base day, decided rather than failed.
+  if (counter === null) {
+    const ceilingCents: number = DAILY_PRODUCT_CEILING.baseC;
+    console.info(
+      JSON.stringify({ event: "daily_ceiling", day: dayStart.toISOString(), payingSites: null, ceilingCents })
+    );
+    return ceilingCents;
+  }
   try {
-    if (counter === null) throw new Error("no paying-site counter registered");
     const payingSites = await counter(dayStart);
     if (!Number.isInteger(payingSites) || payingSites < 0) {
       throw new Error(`paying-site count was ${String(payingSites)}`);
