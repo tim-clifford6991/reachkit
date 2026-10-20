@@ -4,7 +4,7 @@
 // makes it true, so a sentence cannot outrun the product again.
 import "../../opportunities/env";
 import { describe, expect, it } from "vitest";
-import { CONTENT_MIX, PACE, RATE_LIMITS, VETO } from "@/lib/config/constants";
+import { CONTENT_MIX, PACE, RATE_LIMITS, VETO, WEEK_PLAN } from "@/lib/config/constants";
 import { COPY, COPY_META, copy, type CopyKey } from "@/lib/presentation/copy";
 import { TRANSLATIONS } from "@/lib/presentation/copy/translated";
 import { fixPageReadiness } from "@/lib/opportunities/fix-page";
@@ -17,9 +17,6 @@ const CADENCE: readonly CopyKey[] = [
   "offer.cadence.page",
   "offer.pricing.page",
   "pricing.subline",
-  "landing.subline",
-  "landing.step.3.body",
-  "landing.feature.daily.body",
   "meta.landing.description",
   "meta.pricing.description",
   "mail.nurture.body.1",
@@ -31,7 +28,14 @@ const CADENCE_SHORT: readonly CopyKey[] = [
   "offer.close.heading",
   "pricing.heading",
   "plan.single",
-  "landing.feature.daily.title",
+];
+
+/** The landing states its pace as the owner's A1 sentence (2026-10-19). */
+const LANDING_PACE: readonly CopyKey[] = [
+  "landing.pace",
+  "landing.subline",
+  "landing.step.2.body",
+  "landing.feature.daily.body",
   "landing.hero.work.reachkit",
 ];
 
@@ -72,6 +76,22 @@ describe("a page every day, new or updated (owner, 2026-10-10)", () => {
       .filter(([, value]) => /Seite pro Tag|neue Seite geschrieben|Eine pro Tag/i.test(value))
       .map(([key]) => key);
     expect(offenders).toEqual([]);
+  });
+});
+
+describe("up to a week's pages, new or updated (owner, A1, 2026-10-19)", () => {
+  it("a week cannot hold more pages than one a day for seven days, so “up to” is true", () => {
+    expect(RATE_LIMITS.publishesPerDay * CONTENT_MIX.WINDOW_DAYS).toBeLessThanOrEqual(WEEK_PLAN.days);
+  });
+
+  it("each landing sentence takes the number from the slot and says new or updated", () => {
+    for (const key of LANDING_PACE) {
+      expect(Object.keys(COPY_META[key].slots), key).toContain("weekPages");
+      expect(text(key), key).not.toMatch(/\d|every day/);
+    }
+    expect(copy("landing.pace", { weekPages: WEEK_PLAN.days })).toBe(
+      `Up to ${WEEK_PLAN.days} pages a week, new or updated. Never filler.`
+    );
   });
 });
 

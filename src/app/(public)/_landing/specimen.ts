@@ -122,15 +122,13 @@ export function specimenWeek(): SevenDays {
 /** The one place the example business is named. A business name is a
  *  value, not a sentence: it fills `landing.hero.ai.answer`'s `{you}`
  *  slot, and the card's last line says in writing that it is an example. */
-export const SPECIMEN_HERO_BUSINESS = "Harbour Bike Repair";
+export const SPECIMEN_HERO_BUSINESS = "Harbor Plumbing";
 
-/** The week's own figures. */
+/** The week's own figures. Monday's counts are the product's own
+ *  (`_how/facts.ts`), never drawn here. */
 export const SPECIMEN_HERO = Object.freeze({
-  /** Monday's two counts. */
-  searches: 400,
-  questions: 12,
-  /** The hour a page is live, as the day cells show it. */
-  liveAt: "07:00",
+  /** The hour a page goes live, as the day cells show it. */
+  liveAt: "4:00 PM",
 });
 
 /** BUILD §6.3a / DECISIONS 2026-08-28: US-English only, one location
@@ -194,22 +192,21 @@ export function specimenHeroWeek(): SixDays {
    ever drawn. */
 
 /** The example business's own site, and the page path its drafts land on. */
-export const SPECIMEN_HERO_DOMAIN = "harbourbikes.example";
-export const SPECIMEN_HERO_BLOG = "harbourbikes.example/blog";
+export const SPECIMEN_HERO_DOMAIN = "harborplumbing.example";
+export const SPECIMEN_HERO_BLOG = "help.harborplumbing.example";
 
 /** *AI answers*: the search asked, and the sites the answer cites. */
-export const SPECIMEN_HERO_SEARCH = "how much is a bike service near me";
-export const SPECIMEN_HERO_CITED = ["harbourbikes.example", "cyclefix.example"] as const;
+export const SPECIMEN_HERO_SEARCH = "slab leak repair cost austin";
+export const SPECIMEN_HERO_CITED = ["harborplumbing.example", "austinpipeworks.example"] as const;
+
+/** The competitor the example business's buyers pick instead. */
+export const SPECIMEN_HERO_RIVAL = "austinpipeworks.example";
 
 /** *Your page*: how long until the waiting page goes live. */
 export const SPECIMEN_HERO_DUE = "6h 12m";
 
 /** The four feature cards' drawings. */
 export const SPECIMEN_FEATURES = Object.freeze({
-  /** Of a week's hundred answers to the buyer prompts — 25 prompts, two
-   *  engines, twice each (D19, #1162) — how many name the business. Drawn
-   *  as one bar a prompt. */
-  answers: { named: 8, total: 100, prompts: 25, named_prompts: 3 },
   /** Searches out of twelve that the top rival, and the business, rank for. */
   google: { rival: 10, you: 1, total: 12 },
 });

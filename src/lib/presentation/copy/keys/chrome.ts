@@ -207,34 +207,13 @@ export const CHROME_COPY = Object.freeze({
   "legal.privacy.updated": ["10 Sep 2026", { slots: {}, fixedBy: "S5" }],
   "legal.terms.updated": ["10 Sep 2026", { slots: {}, fixedBy: "S5" }],
   "legal.imprint.updated": ["10 Sep 2026", { slots: {}, fixedBy: "S5" }],
-  /* ── How it works, About, and the landing's eight steps ───────────────
+  /* ── How it works and About ───────────────────────────────────────────
      Issue 1396 (owner, 2026-10-10: "go"). Every sentence here is drafted
      and named in that pull request for the owner to correct. A figure is
      always a slot, filled at render from `src/lib/config/constants.ts`
      (`src/app/(public)/_how/facts.ts`), so no number is typed here. */
   "chrome.nav.works": ["How it works", { slots: {}, fixedBy: "issue 1396 · drafted" }],
   "chrome.nav.about": ["About", { slots: {}, fixedBy: "issue 1396 · drafted" }],
-
-  "landing.day.eyebrow": ["How it works", { slots: {}, fixedBy: "issue 1396 · drafted" }],
-  "landing.day.heading": ["What happens every day", { slots: {}, fixedBy: "issue 1396 · drafted" }],
-  "landing.day.body": ["Your site is read and your market is measured when you start, and again each Monday. Then a page is written, checked and published every day, new or updated.", { slots: {}, fixedBy: "issue 1396 · drafted" }],
-  "landing.day.more": ["How it works, in full", { slots: {}, fixedBy: "issue 1396 · drafted" }],
-  "landing.day.1.title": ["Read your site", { slots: {}, fixedBy: "issue 1396 · drafted" }],
-  "landing.day.1.line": ["We read your pages to learn what you sell and who buys it.", { slots: {}, fixedBy: "issue 1396 · drafted" }],
-  "landing.day.2.title": ["Measure your market", { slots: {}, fixedBy: "issue 1396 · drafted" }],
-  "landing.day.2.line": ["{searches} Google searches and {prompts} questions put to AI.", { slots: { searches: "text", prompts: "text" }, fixedBy: "issue 1396 · drafted" }],
-  "landing.day.3.title": ["Find your competitors", { slots: {}, fixedBy: "issue 1396 · drafted" }],
-  "landing.day.3.line": ["Up to {rivals}, from who shows up for your searches.", { slots: { rivals: "text" }, fixedBy: "issue 1396 · drafted" }],
-  "landing.day.4.title": ["Pick a topic", { slots: {}, fixedBy: "issue 1396 · drafted" }],
-  "landing.day.4.line": ["One buyers search for, that a site your size can rank for.", { slots: {}, fixedBy: "issue 1396 · drafted" }],
-  "landing.day.5.title": ["Write from facts", { slots: {}, fixedBy: "issue 1396 · drafted" }],
-  "landing.day.5.line": ["Facts about you come from your own site, each one linked.", { slots: {}, fixedBy: "issue 1396 · drafted" }],
-  "landing.day.6.title": ["Run the checks", { slots: {}, fixedBy: "issue 1396 · drafted" }],
-  "landing.day.6.line": ["{checks} checks. A page that fails twice is held back.", { slots: { checks: "text" }, fixedBy: "issue 1396 · drafted" }],
-  "landing.day.7.title": ["Publish", { slots: {}, fixedBy: "issue 1396 · drafted" }],
-  "landing.day.7.line": ["Live after {hours} hours. You can edit or stop it before then.", { slots: { hours: "text" }, fixedBy: "issue 1396 · drafted" }],
-  "landing.day.8.title": ["Scan again", { slots: {}, fixedBy: "issue 1396 · drafted" }],
-  "landing.day.8.line": ["Every Monday, followed by one email with your numbers.", { slots: {}, fixedBy: "issue 1396 · drafted" }],
 
   "how.eyebrow": ["How it works", { slots: {}, fixedBy: "issue 1396 · drafted" }],
   "how.title": ["How ReachKit works", { slots: {}, fixedBy: "issue 1396 · drafted" }],

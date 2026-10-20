@@ -15,6 +15,7 @@ import {
   RIVAL_PRESENCE,
   TRACKED_PROMPTS,
   VETO,
+  WEEK_PLAN,
 } from "@/lib/config/constants";
 import { HARD_RULES, type HardRule } from "@/lib/generate/rules/types";
 import type { CopyKey } from "@/lib/presentation/copy";
@@ -82,6 +83,7 @@ export const HOW_FACTS = Object.freeze({
   rivalsHeld: RIVAL_PRESENCE.FIRST_PAGE_PLACES,
   rivalVolume: RIVAL_DEMAND.MIN_VOLUME,
   newPages: PACE.NEW_PAGES_PER_WEEK,
+  weekPages: WEEK_PLAN.days,
   topResults: RESEARCH.topResults,
   researchRivals: RESEARCH.rivals,
   studies: RESEARCH.studies,
