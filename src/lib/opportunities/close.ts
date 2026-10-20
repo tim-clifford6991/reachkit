@@ -3,7 +3,7 @@
 // reaches no store.
 import { CLOSE_PAGE_POSITION_BAND } from "@/lib/config/constants";
 import type { Measured } from "@/lib/measure/measured";
-import { canonicalUrl } from "./cluster";
+import { canonicalUrl } from "@/lib/measure/page-reading";
 import type { Opportunity, Shortfall } from "./types";
 
 /** The update of a live page that ranks 4–20 for its target, or that a

@@ -11,7 +11,7 @@
 // here judges a page again or measures anything: a verdict is the week's
 // fact, and this only reads what it implies for the rows still open.
 import { CLUSTER_SUPPRESS_WEEKS, IMPROVE_RETIRE_AFTER_NOT_WORKING } from "@/lib/config/constants";
-import { canonicalUrl } from "./cluster";
+import { canonicalUrl } from "@/lib/measure/page-reading";
 import type { Family, Opportunity, UnreadyReason } from "./types";
 
 /** One `not_working` verdict, with the opportunity behind the judged page.

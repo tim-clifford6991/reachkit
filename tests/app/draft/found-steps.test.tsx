@@ -18,7 +18,7 @@ vi.mock("next/navigation", () => ({
 import { FoundSteps } from "@/app/(account)/app/draft/[draftId]/FoundSteps";
 import OverviewPage from "@/app/(account)/app/(tabs)/page";
 import { contentOf } from "@/app/(account)/app/_overview/content";
-import type { Ladder } from "@/lib/publish/reads/ladder";
+import type { Ladder } from "@/lib/measure/ladder";
 import { resetAccount, signedInAs } from "../account-door";
 
 function dom(tree: React.ReactElement): Element {
@@ -36,7 +36,7 @@ function steps(ladder: Ladder): [string, string][] {
 
 describe("issue 1553 — the page screen's ladder", () => {
   it("draws each step a stored row proves, in the ladder's order", () => {
-    expect(steps({ crawled: true, indexed: true, impressions: 37, bestPlace: 34, cited: false })).toEqual([
+    expect(steps({ crawled: true, indexed: true, impressions: 37, showing: true, bestPlace: 34, placeSource: "serp", cited: false })).toEqual([
       ["Published", "yes"],
       ["Crawled", "yes"],
       ["Indexed", "yes"],
@@ -47,7 +47,7 @@ describe("issue 1553 — the page screen's ladder", () => {
   });
 
   it("without Search Console or Bing, draws no impressions or place, and never 'not indexed' for unverified", () => {
-    expect(steps({ crawled: false, indexed: null, impressions: null, bestPlace: null, cited: null })).toEqual([
+    expect(steps({ crawled: false, indexed: null, impressions: null, showing: null, bestPlace: null, placeSource: null, cited: null })).toEqual([
       ["Published", "yes"],
       ["Crawled", "not-yet"],
     ]);
@@ -67,7 +67,7 @@ describe("issue 1553 — Overview's Content tile counts the pages at each step",
   });
 
   it("leaves out every step nothing can read", () => {
-    const ladder = (over: Partial<Ladder>): Ladder => ({ crawled: false, indexed: null, impressions: null, bestPlace: null, cited: null, ...over });
+    const ladder = (over: Partial<Ladder>): Ladder => ({ crawled: false, indexed: null, impressions: null, showing: null, bestPlace: null, placeSource: null, cited: null, ...over });
     const page = (id: string, l: Ladder) => ({ id, title: id, url: null, publishedAt: new Date(Date.UTC(2026, 9, 10)), ladder: l });
     const content = contentOf({ pages: [page("a", ladder({ crawled: true })), page("b", ladder({}))], now: new Date(Date.UTC(2026, 9, 19)) });
     expect(content?.found).toEqual({ crawled: 1, indexed: null, impressions: null, bestPlace: null, cited: null });

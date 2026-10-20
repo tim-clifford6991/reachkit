@@ -22,7 +22,7 @@ import type { CopyKey } from "@/lib/presentation/copy";
 import type { RecordedFact } from "@/lib/generate/fact";
 import type { PackNeed } from "@/lib/generate/templates/types";
 import type { PageRecord } from "@/lib/publish/record";
-import type { Ladder } from "@/lib/publish/reads/ladder";
+import type { Ladder } from "@/lib/measure/ladder";
 import type { TakeDownStanding } from "@/lib/publish/take-down/standing";
 import type { PageTarget } from "../../_shell/page-target";
 import type { SetAside } from "../../_overview/done";

@@ -32,9 +32,9 @@ import type { VerifyOutcome } from "@/lib/publish/types";
 import { readStoredCheck } from "@/lib/publish/verify/stored";
 import { readStoredReport, type StoredReport } from "@/lib/scan/report";
 import type { Acceptance } from "../types";
-import { addressOf } from "./evaluate";
+import { addressOf } from "@/lib/measure/page-reading";
 import { urlsIn } from "./seen";
-import { readingOf } from "@/lib/publish/reads/ladder";
+import { readingOf } from "@/lib/measure/page-reading";
 import { readIntent, type IntentPrompt, type PageIntent } from "../intent";
 import type { CheckId, Movement, NotJudgeableCause, PageMeasured, Verdict, VerifyNote, WeekStart } from "./types";
 

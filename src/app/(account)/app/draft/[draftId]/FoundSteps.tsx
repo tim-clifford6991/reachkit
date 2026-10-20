@@ -5,7 +5,7 @@
 // `step-primary`; a step a source can read but has not seen yet is drawn
 // plain; a step nothing ReachKit reads can tell is not drawn at all, so
 // "not verified" never reads as "not indexed". Every value is the ladder
-// `@/lib/publish/reads/ladder` decided from stored rows; this file decides
+// `@/lib/measure/ladder` decided from stored rows; this file decides
 // nothing.
 //
 // A note under the page, so it starts closed under its title (SPEC §7,
@@ -14,7 +14,7 @@
 import type React from "react";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { SEARCH_READING_WINDOW_D } from "@/lib/config/constants";
-import type { Ladder } from "@/lib/publish/reads/ladder";
+import type { Ladder } from "@/lib/measure/ladder";
 import { CLOSED, formatCount } from "../../_overview/present";
 import { NOTE } from "./ReviewCards";
 
@@ -24,15 +24,17 @@ export function FoundSteps(p: { ladder: Ladder }): React.JSX.Element {
     { key: "record.ladder.published", reached: true },
     { key: "record.ladder.crawled", reached: ladder.crawled },
     { key: "record.ladder.indexed", reached: ladder.indexed },
-    { key: "record.ladder.impressions", reached: ladder.impressions === null ? null : ladder.impressions > 0 },
-    { key: "record.ladder.place", reached: ladder.impressions === null ? null : ladder.bestPlace !== null },
+    { key: "record.ladder.impressions", reached: ladder.showing },
+    { key: "record.ladder.place", reached: ladder.bestPlace !== null ? true : ladder.showing === null ? null : false },
     { key: "record.ladder.cited", reached: ladder.cited },
   ];
   const lines = [
     ladder.impressions === null
       ? null
       : copy("record.ladder.shown", { count: formatCount(ladder.impressions), days: formatCount(SEARCH_READING_WINDOW_D) }),
-    ladder.bestPlace === null ? null : copy("record.ladder.best", { place: formatCount(ladder.bestPlace) }),
+    ladder.bestPlace === null
+      ? null
+      : copy(ladder.placeSource === "labs" ? "record.ladder.best.labs" : "record.ladder.best", { place: formatCount(ladder.bestPlace) }),
   ].filter((line): line is string => line !== null);
 
   return (

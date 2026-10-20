@@ -9,7 +9,8 @@
 import { describe, expect, it } from "vitest";
 import { evaluateAcceptance as evaluate } from "../../../src/lib/opportunities/verdicts/evaluate";
 import type { Acceptance } from "../../../src/lib/opportunities/types";
-import type { SearchRows, WeekMeasurements } from "../../../src/lib/opportunities/verdicts/types";
+import type { WeekMeasurements } from "../../../src/lib/opportunities/verdicts/types";
+import type { SearchRows } from "../../../src/lib/measure/page-reading";
 import { measured, measuredZero, unmeasured } from "../../../src/lib/measure/measured";
 import type { Barrier } from "../../../src/lib/opportunities/types";
 import type { Measured } from "../../../src/lib/measure/measured";

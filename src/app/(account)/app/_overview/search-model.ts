@@ -196,6 +196,8 @@ export interface SearchTargetFacts {
   status: SearchStatus;
   rival: SearchRival | null;
   change: PositionChange;
+  /** A live page's own reading of its place, which wins over `positions`. */
+  position?: Measured<number>;
 }
 
 /** A count, as one of the three arms rather than a bare integer: a zero the
@@ -251,7 +253,7 @@ export function assembleSearch(facts: SearchFacts, at: Date): SearchModel {
   const rows: SearchRow[] = facts.targets.map((fact) => ({
     id: fact.id,
     target: fact.target,
-    position: facts.positions.get(fact.target.search) ?? unmeasured<number>("not_attempted", at),
+    position: fact.position ?? facts.positions.get(fact.target.search) ?? unmeasured<number>("not_attempted", at),
     change: fact.change,
     rival: fact.rival,
     status: fact.status,

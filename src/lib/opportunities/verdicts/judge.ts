@@ -44,7 +44,8 @@
 // point 3).
 import { measured, measuredZero, unmeasured, type Measured } from "@/lib/measure/measured";
 import { intentFor, type IntentPrompt, type PageIntent } from "../intent";
-import { addressOf, evaluateAcceptance, placeOf } from "./evaluate";
+import { addressOf, placeOf } from "@/lib/measure/page-reading";
+import { evaluateAcceptance } from "./evaluate";
 import { weekMeasurementsFrom } from "./measurements";
 import { indexStateOf } from "./seen";
 import { movementFor } from "./movement";

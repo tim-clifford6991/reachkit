@@ -26,6 +26,7 @@
 // strength of ReachKit's own 502. `landmine.test.ts` is the assertion that
 // goes red the day it is proposed.
 import type { Measured } from "@/lib/measure/measured";
+import type { SearchRows } from "@/lib/measure/page-reading";
 import type { VerifyChecks } from "@/lib/publish/types";
 import type { SiteIssuesSection } from "@/lib/site-issues/types";
 import type { Barrier } from "../types";
@@ -171,32 +172,6 @@ export type WeekStanding =
 export interface AiCitation {
   readonly promptId: string;
   readonly cited: Measured<boolean>;
-}
-
-/** One address a week read on a search, and the place it held. */
-export interface PlacedUrl {
-  readonly url: string;
-  readonly position: number;
-}
-
-/**
- * What one week read for one search (issue 1518). Every page judged on it
- * takes its own place from these rows by its own addresses.
- *
- * - `serp`: the week's SERP for it, where it is one of the twelve (depth
- *   10, `transport.ts`). `null` where it is not.
- * - `ranked`: the site's own ranked rows for it, which the pass bought for
- *   its count and which reach depth 20 and beyond. A page on page two is
- *   seen here.
- * - `complete`: whether a page found in neither holds no place, as a
- *   measurement. True where the ranked rows are every search the site ranks
- *   for, or where the SERP is bought twenty deep; false where the purchase
- *   was capped, since a ten-deep SERP cannot see 11–20 (issue 1537).
- */
-export interface SearchRows {
-  readonly serp: readonly PlacedUrl[] | null;
-  readonly ranked: readonly PlacedUrl[];
-  readonly complete: boolean;
 }
 
 /** What `page_verdicts.measured` holds: the page's place for its search

@@ -60,7 +60,8 @@ import type { InventoryRow } from "@/lib/site-profile/types";
 import { demandBand, rightSizedBand } from "../winnability/band";
 import { rankedCountsFor, type RankedCounts } from "../winnability/counts";
 import { FAMILY_OF, noRejections, type Evidence, type Shortfall } from "../types";
-import { brandTokensOf, canonicalUrl, clusterKey } from "../cluster";
+import { canonicalUrl } from "@/lib/measure/page-reading";
+import { brandTokensOf, clusterKey } from "../cluster";
 import { emptyDerivation, type Candidate, type DerivationResult } from "./candidate";
 import { targetFactsOf } from "./target";
 

@@ -37,6 +37,7 @@
 // (REQ-004); a `0` would be a claim this customer has nothing.
 import { dbAdmin } from "@/lib/db";
 import { measured, measuredZero, unmeasured, type Measured } from "@/lib/measure/measured";
+import { readingOf } from "@/lib/measure/page-reading";
 import type { PositionChange, SearchFacts, SearchStatus, SearchTargetFacts } from "./search-model";
 
 export interface SearchSite {
@@ -70,10 +71,26 @@ function client(): MinimalClient {
 
 /** A live publication, joined to the opportunity its page was written for.
  *  The three foreign keys the baseline declares, read in one go. */
-interface LivePageRow {
+export interface LivePageRow {
   live_url: string | null;
   unpublished_at: string | null;
+  search_reading: unknown;
   drafts: { opportunity_id: string } | null;
+}
+
+/** Each live page's place by its opportunity, from the page's own reading:
+ *  the one the ladder, the verdict and the mail read. A page never read is
+ *  absent, and keeps the ranked rows' place. */
+export function livePlaces(rows: readonly LivePageRow[]): ReadonlyMap<string, Measured<number>> {
+  const places = new Map<string, Measured<number>>();
+  for (const row of rows) {
+    const reading = readingOf(row.search_reading);
+    const id = row.drafts?.opportunity_id;
+    if (reading === null || id === undefined) continue;
+    const readAt = new Date(reading.at);
+    places.set(id, reading.place === null ? unmeasured<number>("not_attempted", readAt) : measured(reading.place.value, readAt));
+  }
+  return places;
 }
 
 /** `page_verdicts` through `publications → drafts`, newest week first. The
@@ -115,6 +132,7 @@ export async function readSearchFacts(site: SearchSite, at: Date): Promise<Searc
   ]);
 
   const liveByOpportunity = new Set(livePages.rows.map((row) => row.drafts?.opportunity_id ?? ""));
+  const placeByOpportunity = livePlaces(livePages.rows);
   const { askedAs, doneWhen } = await import("../calendar/store");
   const { pageTargetOf } = await import("../_shell/page-target");
 
@@ -171,6 +189,7 @@ export async function readSearchFacts(site: SearchSite, at: Date): Promise<Searc
             }
           : null,
       change: verdicts.get(opportunity.id) ?? { kind: "none" },
+      ...(placeByOpportunity.has(opportunity.id) ? { position: placeByOpportunity.get(opportunity.id) } : {}),
     });
   }
 
@@ -275,7 +294,7 @@ async function readLivePages(
 ): Promise<{ ok: boolean; rows: readonly LivePageRow[] }> {
   const { data, error } = await client()
     .from<LivePageRow>("publications")
-    .select("live_url, unpublished_at, drafts(opportunity_id)")
+    .select("live_url, unpublished_at, search_reading, drafts(opportunity_id)")
     .eq("site_id", siteId)
     .not("published_at", "is", null);
   if (error !== null || data === null) return { ok: false, rows: [] };

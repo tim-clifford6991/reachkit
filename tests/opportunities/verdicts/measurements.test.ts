@@ -10,7 +10,7 @@
 import "../env";
 import { afterEach, describe, expect, it } from "vitest";
 import { weekMeasurementsFrom } from "../../../src/lib/opportunities/verdicts/measurements";
-import { placeOf } from "../../../src/lib/opportunities/verdicts/evaluate";
+import { placeOf } from "../../../src/lib/measure/page-reading";
 import { measured, unmeasured } from "../../../src/lib/measure/measured";
 import { AT, DOMAIN, question, reportOf, serp } from "../fixtures";
 import { emptyReport, PAGE_URL, reportWithOwnPlace, releaseStore, WEEK } from "./harness";

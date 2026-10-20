@@ -1,7 +1,7 @@
 // The reserved fixture account's published pages (issue 1457): seventeen,
 // one every other day up to the Overview fixture's own last page, so the
 // Content tile has a total, a last-four-weeks count below it and a newest.
-import type { Ladder } from "@/lib/publish/reads/ladder";
+import type { Ladder } from "@/lib/measure/ladder";
 import type { PublishedPage } from "./content";
 
 /** The Overview fixture's own today (`fixture.ts`). */
@@ -37,7 +37,9 @@ function ladderAt(index: number): Ladder {
     crawled: index >= 2,
     indexed: index >= 4,
     impressions: shown ? (index - 5) * 9 : 0,
+    showing: shown,
     bestPlace: shown ? 52 - index * 2 : null,
+    placeSource: shown ? "serp" : null,
     cited: index === 12,
   };
 }

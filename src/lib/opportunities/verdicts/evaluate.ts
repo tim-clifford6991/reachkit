@@ -18,12 +18,11 @@
 // observe is a value it must not name. The negative sweep in
 // `evaluate.test.ts` is what holds that line — a positive-only suite is
 // green either way.
-import { measured, measuredZero, unmeasured, type Measured } from "@/lib/measure/measured";
+import { measured, type Measured } from "@/lib/measure/measured";
 import type { SiteIssuesSection } from "@/lib/site-issues/types";
-import { pageOf } from "@/lib/market/prompts/answer";
-import { canonicalUrl } from "../cluster";
+import { addressOf, placeOf, TRACKED_DEPTH } from "@/lib/measure/page-reading";
 import type { Acceptance, PageFix } from "../types";
-import type { NotJudgeableCause, PlacedUrl, SearchRows, WeekMeasurements } from "./types";
+import type { NotJudgeableCause, WeekMeasurements } from "./types";
 
 /**
  * What one week can say about one recorded test. **Three arms, not two.**
@@ -88,44 +87,6 @@ export function pageFixesCleared(
     if (issue.pages.includes(pageUrl)) return measured(false, at);
   }
   return measured(true, at);
-}
-
-/** One page's address as two readings of it compare: tracking parameters,
- *  the fragment, the scheme, `www.` and a trailing slash dropped. */
-export function addressOf(url: string): string {
-  return canonicalUrl(pageOf(url) ?? url);
-}
-
-/** The best place a page's test counts: `top20` names the top twenty. */
-export const TRACKED_DEPTH = 20;
-
-/**
- * One page's own place on one search (issue 1518): the best place a row
- * holds whose address is one of the page's own — its live address, or an
- * address it had before (issue 1487). Another page of the same domain is
- * not this page, so the home page at #3 places an article nowhere.
- *
- * The week's SERP is read first. Where it holds no row for the page, the
- * ranked rows are read, to depth 20 and beyond, before the page reads as
- * absent: a page at 14 is in the top twenty. A row past twenty is the
- * page's measured place, and outside the top twenty (issue 1548). A page
- * in no row is a measured zero where the rows are complete, and not
- * measured where they are not.
- */
-export function placeOf(reading: Measured<SearchRows>, addresses: readonly string[]): Measured<number> {
-  if (reading.kind === "unmeasured") return unmeasured<number>(reading.reason, reading.at, reading.because);
-  const own = new Set(addresses.map(addressOf));
-  const best = (rows: readonly PlacedUrl[]): number | null => {
-    let found: number | null = null;
-    for (const row of rows) {
-      if (!own.has(addressOf(row.url))) continue;
-      if (found === null || row.position < found) found = row.position;
-    }
-    return found;
-  };
-  const place = best(reading.value.serp ?? []) ?? best(reading.value.ranked);
-  if (place !== null) return measured(place, reading.at);
-  return reading.value.complete ? measuredZero(0, reading.at) : unmeasured<number>("undeterminable", reading.at);
 }
 
 /**
