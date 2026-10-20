@@ -433,7 +433,7 @@ export const SETUP_COPY = Object.freeze({
   "setup.step.business": ["Business", { slots: {}, fixedBy: "SPEC §5 (2026-09-20, issue 908)" }],
   "setup.step.rivals": ["Competitors", { slots: {}, fixedBy: "SPEC §5 (2026-09-20, issue 908)" }],
   "setup.step.voice": ["Voice", { slots: {}, fixedBy: "SPEC §5 (2026-09-20, issue 908)" }],
-  "setup.step.publishing": ["Publishing", { slots: {}, fixedBy: "SPEC §5 (2026-09-20, issue 908)" }],
+  "setup.step.publishing": ["Connect", { slots: {}, fixedBy: "owner E11 · issue 1601" }],
 
   /** One question per step — the screen's `<h1>`. The five are the owner's
    *  own, listed in issue #922. */
@@ -444,10 +444,7 @@ export const SETUP_COPY = Object.freeze({
   ],
   "setup.step.rivals.question": ["Who do you lose customers to?", { slots: {}, fixedBy: "issue 922" }],
   "setup.step.voice.question": ["Does this sound like you?", { slots: {}, fixedBy: "issue 922" }],
-  "setup.step.publishing.question": [
-    "Where should your pages go live?",
-    { slots: {}, fixedBy: "issue 922" },
-  ],
+  "setup.step.publishing.question": ["Connect your website", { slots: {}, fixedBy: "owner E11 · issue 1601" }],
 
   /** The line under each question. Drafted. */
   "setup.step.site.line": [

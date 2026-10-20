@@ -82,7 +82,7 @@ describe("SPEC §5 (2026-09-20) — five saved steps, one question each", () => 
       "Business",
       "Competitors",
       "Voice",
-      "Publishing",
+      "Connect",
     ]);
     // One word each: five columns at 390px hold no more.
     for (const label of columns.map((li) => (li.textContent ?? "").trim())) {
@@ -90,6 +90,14 @@ describe("SPEC §5 (2026-09-20) — five saved steps, one question each", () => 
     }
     expect(columns[2]?.getAttribute("aria-current")).toBe("step");
     expect(columns.filter((li) => li.hasAttribute("aria-current"))).toHaveLength(1);
+  });
+
+  it("the step that connects the site is Connect in the list, the heading and the tab title (owner E11)", () => {
+    const tree = screenFor("publishing");
+    const current = tree.querySelector('[data-testid="setup-steps"] [aria-current="step"]');
+    expect(current?.textContent?.trim()).toBe("Connect");
+    expect(tree.querySelector("h1")?.textContent).toMatch(/^Connect\b/);
+    expect(COPY["meta.app.setup.connect.title"]).toMatch(/^Connect\b/);
   });
 
   it("each step asks its own question, and draws only its own decision", () => {

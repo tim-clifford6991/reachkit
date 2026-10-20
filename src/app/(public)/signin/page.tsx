@@ -1,21 +1,21 @@
 // src/app/(public)/signin/page.tsx — SPEC §3, `Canvas: Sign in`.
 //
 // One screen with three arms — the request form, the answered arm, the
-// dead-link arm — drawn as the Round 7 boards draw them (`R7-S1`…`S3`,
-// #1025): a full-width split between the public header and footer, the
-// interaction on the left and the accent panel filling the right half top
-// to bottom. No password field, no social sign-in, no account control.
+// dead-link arm — in a full-width split between the public header and
+// footer: the interaction on the left, and on the right a preview of what
+// is waiting inside, drawn on an example business. No password field, no
+// social sign-in, no account control.
 "use client";
 
 import Link from "next/link";
-import { Send } from "lucide-react";
+import { Building2, Check, Eye, FileText, Info, Link2, Search, Send, type LucideIcon } from "lucide-react";
 import { use, useActionState, useState } from "react";
 import { Surface } from "@/ui/layout";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { DEAD_LINK_MARKER, LINK_QUERY_KEY } from "@/lib/account/identity/addresses";
 import { sendLink } from "./actions";
 import { EMAIL_FIELD, SIGN_IN_INITIAL, type SignInState } from "./state";
-import { SPECIMEN_SIGNIN } from "../_landing/specimen";
+import { SPECIMEN_SIGNIN, specimenSigninWeek } from "../_landing/specimen";
 
 /** The autofill token and the keyboard the field asks for. */
 const EMAIL_HINT = "email";
@@ -40,31 +40,23 @@ const PANEL = `${HALF} bg-primary/10`;
 const FORM_HALF = `${HALF} bg-base-100`;
 const COLUMN = "flex w-full max-w-100 flex-col gap-5";
 const PANEL_COLUMN = "flex w-full max-w-lg flex-col gap-5";
+/** The preview's week, Monday first; Monday's page is the one going live. */
+const WEEK = specimenSigninWeek();
 const HEAD_GROUP = "flex flex-col gap-2";
 const QUIET = "text-base-content/70";
 /** The answered arm's mark: a success-tinted square, as `R7-S2` draws it. */
 const CHIP_OK = "grid size-12 flex-none place-items-center rounded-box bg-success/10 text-success";
-/** The tile on the tint: the app's own card, not a glass panel. */
-const TILE = "card bg-base-100 flex flex-col gap-3 p-6 shadow-(--shadow-card)";
+/** The preview on the tint: the app's own card, not a glass panel. */
+const TILE = "card @container bg-base-100 flex flex-col gap-4 p-4 shadow-(--shadow-card) sm:p-5";
+const WELL = "rounded-box bg-base-200 flex min-w-0 flex-col gap-1 p-3";
+const ICON = { size: 16, strokeWidth: 1.75, "aria-hidden": true } as const;
 
-/** The specimen the accent half shows: the reserved domain and the figures
- *  the approved set draws on it (ruling 5c), read from `_landing/specimen.ts`
- *  — the product's one home for a drawn figure that measures nothing. */
-const {
-  domain: SPECIMEN_DOMAIN,
-  score: SPECIMEN_SCORE,
-  max: SPECIMEN_MAX,
-  answers: SPECIMEN_ANSWERS,
-} = SPECIMEN_SIGNIN;
-
-/** One dot of the tile's grid, by what the answer did. A named rival is
- *  daisyUI's quiet `status`; the reader's own is the primary one; an answer
- *  that names nobody here is an empty ring. */
-const DOT = {
-  named: "status status-lg",
-  you: "status status-lg status-primary",
-  unnamed: "inline-block size-3 rounded-full border-2 border-primary/30",
-} as const satisfies Record<(typeof SPECIMEN_ANSWERS)[number], string>;
+/** The three figures the preview shows, each under the word the app uses for it. */
+const FIGURES = [
+  { icon: Search, label: "signin.preview.google", value: SPECIMEN_SIGNIN.found, of: "signin.preview.google.of", vars: { live: SPECIMEN_SIGNIN.live } },
+  { icon: Eye, label: "signin.preview.showing", value: SPECIMEN_SIGNIN.showing, of: "signin.preview.showing.of", vars: {} },
+  { icon: Link2, label: "signin.preview.ai", value: SPECIMEN_SIGNIN.linked, of: "signin.preview.ai.of", vars: { asked: SPECIMEN_SIGNIN.asked } },
+] as const satisfies readonly { icon: LucideIcon; label: CopyKey; of: CopyKey; value: number; vars: Record<string, number> }[];
 
 type SignInSearchParams = Partial<Record<typeof LINK_QUERY_KEY, string>>;
 
@@ -230,47 +222,74 @@ export default function SignInPage(props: {
           </div>
         </main>
 
-        {/* The accent half, the same on every arm. Every figure in it is the
-            reserved domain's own — a declared example, never an invented
-            number and never a stranger's real domain (ruling 5c). */}
+        {/* The accent half, the same on every arm: what a customer finds
+            inside, drawn on an example business and captioned as one. */}
         <aside className={PANEL} data-testid="signin-panel">
           <div className={PANEL_COLUMN}>
-            <h2 className="text-primary">{copy("signin.panel.heading")}</h2>
-            <div className={TILE}>
-              <p className="eyebrow">{copy("signin.panel.score-label")}</p>
-              <div className="flex flex-wrap items-baseline gap-2">
-                <span className="figure text-5xl">{SPECIMEN_SCORE}</span>
-                <span className={`font-mono ${QUIET}`}>{`/ ${SPECIMEN_MAX}`}</span>
-                <span className="badge badge-success ms-auto self-center">{copy("signin.panel.delta")}</span>
+            <section className={TILE} aria-labelledby="signin-preview">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <h2 id="signin-preview" className="eyebrow">
+                  {copy("signin.preview.eyebrow")}
+                </h2>
+                <span className="badge badge-success badge-soft badge-sm">
+                  <Check {...ICON} size={12} />
+                  {copy("signin.preview.running")}
+                </span>
               </div>
-              <progress
-                className="progress progress-primary w-full"
-                value={SPECIMEN_SCORE}
-                max={SPECIMEN_MAX}
-                aria-label={copy("signin.panel.score-label")}
-              />
-              <p className={`text-sm ${QUIET}`}>{copy("signin.panel.line")}</p>
-              <div className="divider my-0" />
-              {/* The second row (#1025): who AI answers name, four
-                  questions by four answers. The grid is a picture the
-                  sentence beside it explains, so it is hidden from the
-                  accessibility tree and the sentence is read instead. */}
-              <div className="flex items-center gap-4">
-                <div className="grid flex-none grid-cols-4 gap-2" aria-hidden data-testid="signin-panel-answers">
-                  {SPECIMEN_ANSWERS.map((kind, i) => (
-                    <span key={i} className={DOT[kind]} data-answer={kind} aria-hidden />
-                  ))}
+              <div className="flex items-center gap-3">
+                <span className="grid size-9 flex-none place-items-center rounded-box bg-primary/10 text-primary">
+                  <Building2 {...ICON} />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="font-semibold">{SPECIMEN_SIGNIN.business}</p>
+                  <p className={`font-mono text-xs wrap-anywhere ${QUIET}`}>{SPECIMEN_SIGNIN.address}</p>
                 </div>
-                <p className={`text-xs ${QUIET}`}>{copy("signin.panel.answers")}</p>
+                <span className={`text-sm ${QUIET}`}>{copy("signin.preview.week", { week: SPECIMEN_SIGNIN.week })}</span>
               </div>
-            </div>
-            {/* **Captioned as an example** (#937): a stranger looking at a
-                score on a sign-in screen should not have to wonder whose
-                site it measured. The domain is the sentence's own slot,
-                filled from the same fixture the figures come from. */}
-            <p className="text-primary text-sm" data-testid="signin-panel-example">
-              {copy("signin.panel.example", { domain: SPECIMEN_DOMAIN })}
-            </p>
+              <div className="grid grid-cols-3 gap-2" data-testid="signin-preview-figures">
+                {FIGURES.map(({ icon: Icon, label, value, of, vars }) => (
+                  <div key={label} className={WELL}>
+                    <span className="flex items-center gap-1 text-xs font-medium">
+                      <Icon {...ICON} size={14} className="flex-none text-primary" />
+                      {copy(label)}
+                    </span>
+                    <span className="figure text-3xl">{value}</span>
+                    <span className="text-xs">{copy(of, vars)}</span>
+                  </div>
+                ))}
+              </div>
+              <div className="flex flex-col gap-2">
+                <div className="flex flex-wrap items-baseline justify-between gap-x-2">
+                  <h3 className="text-sm font-semibold">{copy("signin.preview.days.title")}</h3>
+                  <span className={`text-xs ${QUIET}`}>{copy("signin.preview.days.pace", { pages: WEEK.length })}</span>
+                </div>
+                <ol className="grid grid-cols-4 gap-1 @sm:grid-cols-7" data-testid="signin-preview-week">
+                  {WEEK.map((day, index) => (
+                    <li
+                      key={day}
+                      className={`flex min-w-0 flex-col items-center gap-1 rounded-box border p-1.5 text-xs ${
+                        index === 0 ? "border-primary/30 bg-primary/10 text-primary" : "border-base-300"
+                      }`}
+                    >
+                      <span className="font-mono">{day}</span>
+                      <FileText {...ICON} size={14} />
+                      <span className={index === 0 ? "font-semibold" : QUIET}>
+                        {index === 0 ? SPECIMEN_SIGNIN.liveAt : copy("calendar.stage.planned")}
+                      </span>
+                    </li>
+                  ))}
+                </ol>
+              </div>
+              <p className="rounded-box bg-base-200 flex items-start gap-2 p-3 text-sm">
+                <Info {...ICON} className="mt-0.5 flex-none" />
+                <span>
+                  <strong>{copy("signin.preview.calm.head")}</strong> {copy("signin.preview.calm.line")}
+                </span>
+              </p>
+              <p className={`text-xs ${QUIET}`} data-testid="signin-panel-example">
+                {copy("signin.preview.example")}
+              </p>
+            </section>
           </div>
         </aside>
       </div>
