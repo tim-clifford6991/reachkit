@@ -626,7 +626,7 @@ export const SETUP_COPY = Object.freeze({
     { slots: {}, fixedBy: "SPEC §5 (2026-09-20, issue 908)" },
   ],
   "setup.panel.publishing.title": [
-    "Your blog, ready to publish",
+    "Your website, ready to publish",
     { slots: {}, fixedBy: "SPEC §5 (2026-09-20, issue 908)" },
   ],
   /** Under the panel, for the whole of setup: nothing on this screen waits
