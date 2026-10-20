@@ -16,7 +16,7 @@
 // kinds. It never reads and never writes the address-wide suppression
 // store, and there is no code path from one to the other.
 import { TOGGLE_KINDS, type MailKind } from "../kinds";
-import { prefsFrom, readStored, writeStoredKey } from "./store";
+import { firstMondayMailSent, prefsFrom, readStored, writeStoredKey } from "./store";
 
 /** The three recurring mails a customer can switch off. Derived from the
  *  register's `stoppable: 'toggle'` rows. */
@@ -34,7 +34,8 @@ export function allOn(): NotifyPrefs {
   return prefsFrom({}, TOGGLABLE_KINDS);
 }
 
-/** A key absent from `users.notify` reads as on. A read that failed
+/** A key absent from `users.notify` reads as on (`draft-ready`: until the
+ *  first Monday mail). A read that failed
  *  throws rather than answering "all on": a caller that wanted a
  *  displayable value and got a fabricated one would show the customer a
  *  setting they never chose. `stoppedByPreference()` below is the caller
@@ -44,7 +45,7 @@ export async function readNotifyPrefs(userId: string): Promise<NotifyPrefs> {
   if (!stored.readable) {
     throw new Error(`readNotifyPrefs: could not read notification settings (${stored.reason}).`);
   }
-  return prefsFrom(stored.stored, TOGGLABLE_KINDS);
+  return prefsFrom(stored.stored, TOGGLABLE_KINDS, await firstMondayMailSent(userId));
 }
 
 /** Writes one key and leaves the other two untouched.
@@ -66,7 +67,7 @@ export async function setNotifyPref(a: {
   if (!result.written) {
     throw new Error("setNotifyPref: could not write notification settings.");
   }
-  return prefsFrom({ ...stored.stored, [a.kind]: a.on }, TOGGLABLE_KINDS);
+  return prefsFrom({ ...stored.stored, [a.kind]: a.on }, TOGGLABLE_KINDS, await firstMondayMailSent(a.userId));
 }
 
 /** The question the send seam asks immediately before the vendor call —
@@ -86,5 +87,8 @@ export async function stoppedByPreference(a: {
   if (!(TOGGLABLE_KINDS as readonly string[]).includes(a.kind)) return "send";
   const stored = await readStored(a.userId);
   if (!stored.readable) return "unreadable";
-  return stored.stored[a.kind] === false ? "stopped" : "send";
+  const chosen = stored.stored[a.kind];
+  if (typeof chosen === "boolean") return chosen ? "send" : "stopped";
+  if (a.kind !== "draft-ready") return "send";
+  return (await firstMondayMailSent(a.userId)) ? "stopped" : "send";
 }

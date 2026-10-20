@@ -266,11 +266,11 @@ describe("issue #376 — the shell renders S20, and every kind the set draws wea
 });
 
 describe("issue #339 — every kind in the register renders, so the owner sees each one in an inbox", () => {
-  it("the register's sixteen rows each have a fixture, and no fixture names a row that is gone", () => {
+  it("the register's fourteen rows each have a fixture, and no fixture names a row that is gone", () => {
     // Checked against the register rather than against itself: a kind added
     // to `MAIL_KINDS` with nothing to render it fails here, naming itself.
     expect([...EVERY_MAIL_KIND].sort()).toEqual(Object.keys(MAIL_KINDS).sort());
-    expect(EVERY_MAIL_KIND).toHaveLength(16);
+    expect(EVERY_MAIL_KIND).toHaveLength(14);
   });
 
   for (const kind of EVERY_MAIL_KIND) {

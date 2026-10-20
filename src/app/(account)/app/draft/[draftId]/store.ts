@@ -605,9 +605,3 @@ async function ladderOfDraft(siteId: string, draftId: string): Promise<Ladder | 
   const ladders = await readLadders(siteId).catch(() => null);
   return ladders?.find((row) => row.draftId === draftId)?.ladder ?? null;
 }
-
-/** SPEC §8 (#569): the owner opened this draft, so no veto reminder goes. */
-export async function recordDraftOpened(draftId: string, at: Date): Promise<void> {
-  const { retentionStore } = await import("@/lib/mail/retention");
-  await retentionStore().recordDraftOpened(draftId, at);
-}
