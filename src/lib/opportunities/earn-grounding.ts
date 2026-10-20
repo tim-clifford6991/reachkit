@@ -15,7 +15,7 @@
 //
 // Pure, and mechanical: the passages are the generator's own
 // (`orderedPassages`), the purposes are the crawl's, and no model decides.
-import { canonicalUrl } from "./cluster";
+import { canonicalUrl } from "@/lib/measure/page-reading";
 import { INTEGRATION_SHAPE } from "./derive/earn";
 import type { InventoryRow, PagePurpose } from "@/lib/site-profile/types";
 import type { EarnAsset } from "./types";

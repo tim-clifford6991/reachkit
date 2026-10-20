@@ -21,26 +21,10 @@ import { PRICE_WORDS } from "@/lib/locale/language";
 import { SAME_TOPIC_SHARED_ADDRESSES, TOPIC_FIT } from "@/lib/config/constants";
 import { GENERIC_TOKENS, ownBrandTokens, stemKey } from "@/lib/market/questions/select";
 import { registrableDomain } from "@/lib/market/rivals/domains";
+import { canonicalUrl } from "@/lib/measure/page-reading";
 import type { StoredReport } from "@/lib/scan/report";
 import type { Candidate } from "./derive/candidate";
 import { isOwnRefresh, qualifiesForADay, type Family, type Opportunity, type OpportunityType, type Winnability } from "./types";
-
-/**
- * The one canonical form of a page address: scheme, a `www.` label, a
- * fragment and trailing slashes dropped, lower-cased. A query string is part
- * of a page's identity and is kept. The Improve deriver compares its ranking
- * row with the measured page through this, and a retired URL is matched
- * through it.
- */
-export function canonicalUrl(url: string): string {
-  return url
-    .trim()
-    .toLowerCase()
-    .replace(/^https?:\/\//, "")
-    .replace(/^www\./, "")
-    .replace(/#.*$/, "")
-    .replace(/\/+$/, "");
-}
 
 /** How a search is looked up in a top-ten map or a judgement. */
 export function queryKey(query: string): string {

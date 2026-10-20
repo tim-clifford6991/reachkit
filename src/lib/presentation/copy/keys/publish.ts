@@ -111,6 +111,7 @@ export const PUBLISH_COPY = Object.freeze({
   "record.ladder.cited": ["Linked by AI", { slots: {}, fixedBy: "issue 1582 (drafted)" }],
   "record.ladder.shown": ["Shown {count} times in Google and Bing in the last {days} days", { slots: { count: "text", days: "text" }, fixedBy: "issue 1553 (drafted)" }],
   "record.ladder.best": ["Best place {place}", { slots: { place: "text" }, fixedBy: "issue 1553 (drafted)" }],
+  "record.ladder.best.labs": ["Best place {place}, estimated from keyword data", { slots: { place: "text" }, fixedBy: "issue 1608 (drafted)" }],
   "record.ladder.note": [
     "Read every Monday from Google Search Console, Bing, crawler visits and the AI answers ReachKit checks. A step nothing can read yet is left out.",
     { slots: {}, fixedBy: "issue 1553 (drafted)" },

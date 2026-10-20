@@ -25,7 +25,8 @@
 import { dbAdmin } from "@/lib/db";
 import { BLOG_READS_RETENTION_W } from "@/lib/config/constants";
 import type { BlogEngine, BlogRead, BlogReadKind } from "./classify";
-import { ladderOf, readingOf, type Ladder } from "./ladder";
+import { ladderOf, type Ladder } from "@/lib/measure/ladder";
+import { readingOf } from "@/lib/measure/page-reading";
 
 /** Days per week — spelled once so the retention pin can stay in weeks,
  *  which is how §6 states every window on this screen. */

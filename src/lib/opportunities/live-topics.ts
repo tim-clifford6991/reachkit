@@ -49,7 +49,8 @@
 // only), so a non-search referrer is never on file.
 import { REFRESH_MIN_AGE_DAYS } from "@/lib/config/constants";
 import { registrableDomain } from "@/lib/market/rivals/domains";
-import { canonicalUrl, queryKey } from "./cluster";
+import { canonicalUrl } from "@/lib/measure/page-reading";
+import { queryKey } from "./cluster";
 import { comparisonBrands, composedSearch, type AskedBeside, type ComparisonBrands, type MeasuredAnswer } from "./derive/topics";
 import { freshTopTen, OTHER_KIND_TOP_TEN, otherKindTopTen, type KindOfBusiness, type OtherKind, type TopTenRow } from "./derive/top-ten-kind";
 import type { IntentPrompt } from "./intent";

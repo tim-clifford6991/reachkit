@@ -60,7 +60,7 @@ import {
 import type { PublishingMode } from "../../_shell/model";
 import type { State } from "../../calendar/stages";
 import { pageRecordFor } from "@/lib/publish/record";
-import type { Ladder } from "@/lib/publish/reads/ladder";
+import type { Ladder } from "@/lib/measure/ladder";
 import { takeDownStanding } from "@/lib/publish/take-down/standing";
 import { needsYouOf } from "@/lib/publish/record/needs-you";
 import { askedAs, doneWhen } from "../../calendar/store";

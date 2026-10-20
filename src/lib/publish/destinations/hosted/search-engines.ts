@@ -14,13 +14,12 @@
 //   3. Per page: URL Inspection, and impressions, clicks and best place by
 //      query over `SEARCH_READING_WINDOW_D`; Bing's impressions, clicks,
 //      best place and last crawl.
-//   4. Per page, from rows ReachKit already stored: a verified crawler hit,
-//      issue 1538's `seen`, and whether an AI answer to the page's own
-//      question cited it.
-//   5. One `search_reading` per live page.
+//   4. One `search_reading` per live page, assembled by
+//      `@/lib/measure/page-reading` from the newest stored report, the
+//      reads counted on the page, and the two engines' readings.
 //
 // **Inert without credentials.** With neither binding the pass asks no
-// engine and still writes steps 1, 4 and 5, so the ladder shows what
+// engine and still writes steps 1 and 4, so the ladder shows what
 // ReachKit can prove. 0¢: every call is free, and nothing is bought.
 //
 // **Never in the way.** It never throws: a refusal or a failed read leaves
@@ -29,8 +28,8 @@
 import { SEARCH_READING_WINDOW_D, GSC_PROPERTIES_PER_ACCOUNT } from "@/lib/config/constants";
 import { gscAccounts, gscClient, type GscAccount, type GscSend } from "@/lib/vendors/gsc";
 import { bingClient, type BingClient } from "@/lib/vendors/bing-wmt";
-import { addressOf } from "@/lib/opportunities/verdicts/evaluate";
-import { readingOf, type EngineReading, type SearchReading } from "@/lib/publish/reads/ladder";
+import { addressOf, assembleReading, pageSearchOf, readingOf, type EngineReading } from "@/lib/measure/page-reading";
+import { readStoredReport, type StoredReport } from "@/lib/scan/report";
 import { publishDb } from "../../db";
 import { announceUnannounced, type AnnounceSend } from "./announce";
 
@@ -47,7 +46,6 @@ export interface SearchEngineDeps {
   gscSend?: GscSend;
   bing?: BingClient | null;
   announce?: AnnounceSend;
-  seenUrls?: (siteId: string) => Promise<readonly string[]>;
 }
 
 interface DestinationRow {
@@ -60,7 +58,16 @@ interface DestinationRow {
 interface PageRow {
   id: string;
   live_url: string | null;
+  destination: string | null;
+  acceptance: unknown;
   search_reading: unknown;
+  drafts: { opportunities: { acceptance: unknown; target_query: string | null } | null } | null;
+}
+
+interface ReadRow {
+  publication_id: string;
+  kind: string;
+  hits: number;
 }
 
 function log(event: string, fields: Record<string, unknown>): void {
@@ -191,26 +198,6 @@ async function readBing(a: {
   return readings;
 }
 
-/** Which live pages an AI answer to their own question cited, from the
- *  newest stored report's page questions. A page with no row is absent. */
-export function citedIn(report: unknown): Map<string, boolean> {
-  const cited = new Map<string, boolean>();
-  const rows = (report as { pageQuestions?: { rows?: unknown } } | null)?.pageQuestions?.rows;
-  if (!Array.isArray(rows)) return cited;
-  for (const row of rows) {
-    const r = row as { publicationId?: unknown; liveUrl?: unknown; cell?: unknown; engines?: unknown };
-    if (typeof r.publicationId !== "string" || typeof r.liveUrl !== "string") continue;
-    const page = addressOf(r.liveUrl);
-    const cells = [r.cell, ...(Array.isArray(r.engines) ? r.engines : [])];
-    const hit = cells.some((cell) => {
-      const urls = (cell as { ownUrls?: unknown } | null)?.ownUrls;
-      return Array.isArray(urls) && urls.some((url) => typeof url === "string" && addressOf(url) === page);
-    });
-    cited.set(r.publicationId, (cited.get(r.publicationId) ?? false) || hit);
-  }
-  return cited;
-}
-
 /** The weekly step for one site. Never throws. */
 export async function readSearchEngines(a: { siteId: string; now: Date; deps?: SearchEngineDeps }): Promise<void> {
   const deps = a.deps ?? {};
@@ -220,7 +207,7 @@ export async function readSearchEngines(a: { siteId: string; now: Date; deps?: S
     const db = publishDb();
     const { data: pageRows, error } = await db
       .from<PageRow>("publications")
-      .select("id, live_url, search_reading")
+      .select("id, live_url, destination, acceptance, search_reading, drafts(opportunities(acceptance, target_query))")
       .eq("site_id", a.siteId)
       .not("published_at", "is", null)
       .is("unpublished_at", null);
@@ -266,12 +253,6 @@ export async function readSearchEngines(a: { siteId: string; now: Date; deps?: S
       }).catch(() => null);
     }
 
-    const seenUrls = await (deps.seenUrls ?? (async (siteId: string) => {
-      const { verdictStore } = await import("@/lib/opportunities/verdicts/store");
-      return (await verdictStore().seenUrls?.(siteId)) ?? [];
-    }))(a.siteId).catch(() => [] as readonly string[]);
-    const seen = new Set(seenUrls.map(addressOf));
-
     const { data: scans } = await db
       .from<{ report: unknown }>("scans")
       .select("report")
@@ -279,27 +260,38 @@ export async function readSearchEngines(a: { siteId: string; now: Date; deps?: S
       .not("report", "is", null)
       .order("created_at", { ascending: false })
       .limit(1);
-    const cited = citedIn(scans?.[0]?.report ?? null);
+    let report: StoredReport | null = null;
+    try {
+      report = scans?.[0]?.report == null ? null : readStoredReport(scans[0].report);
+    } catch {
+      report = null;
+    }
 
-    const { data: crawls } = await db
-      .from<{ publication_id: string }>("publication_reads")
-      .select("publication_id")
-      .eq("site_id", a.siteId)
-      .eq("kind", "crawl");
-    const crawled = new Set((crawls ?? []).map((row) => row.publication_id));
+    const { data: reads, error: readsError } = await db
+      .from<ReadRow>("publication_reads")
+      .select("publication_id, kind, hits")
+      .eq("site_id", a.siteId);
+    const hitsOf = (id: string, kinds: readonly string[]): number =>
+      (reads ?? []).filter((row) => row.publication_id === id && kinds.includes(row.kind)).reduce((sum, row) => sum + row.hits, 0);
 
     for (const page of pages) {
-      const before = readingOf(page.search_reading);
-      const reading: SearchReading = {
-        at: a.now.toISOString(),
-        // Once counted, always crawled: the hits themselves are kept four
-        // weeks, the fact that one happened is not lost with them.
-        crawled: before?.crawled === true || crawled.has(page.id),
-        seen: seen.has(addressOf(page.live_url)),
-        cited: cited.get(page.id) ?? null,
-        google: google?.get(page.live_url) ?? null,
-        bing: bing?.get(page.live_url) ?? null,
-      };
+      // Reads are counted on the pages ReachKit serves; elsewhere they are not measured.
+      const counted = page.destination === "hosted" && readsError === null;
+      const reading = assembleReading({
+        before: readingOf(page.search_reading),
+        report,
+        page: {
+          id: page.id,
+          liveUrl: page.live_url,
+          search: pageSearchOf(page.acceptance ?? page.drafts?.opportunities?.acceptance, page.drafts?.opportunities?.target_query),
+          crawled: hitsOf(page.id, ["crawl"]) > 0,
+          aiReads: counted ? hitsOf(page.id, ["answer_fetch", "index_fetch"]) : null,
+          aiVisits: counted ? hitsOf(page.id, ["referral"]) : null,
+          google: google?.get(page.live_url) ?? null,
+          bing: bing?.get(page.live_url) ?? null,
+        },
+        now: a.now,
+      });
       await db.from("publications").update({ search_reading: reading }).eq("id", page.id);
     }
   } catch (error) {

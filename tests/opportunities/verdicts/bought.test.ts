@@ -4,7 +4,7 @@
 import "../env";
 import { afterEach, describe, expect, it } from "vitest";
 import { weekMeasurementsFrom } from "../../../src/lib/opportunities/verdicts/measurements";
-import { placeOf } from "../../../src/lib/opportunities/verdicts/evaluate";
+import { placeOf } from "../../../src/lib/measure/page-reading";
 import { judgeWeek } from "../../../src/lib/opportunities/verdicts/judge";
 import { urlsIn } from "../../../src/lib/opportunities/verdicts/seen";
 import { pageQuestionsSectionOf } from "../../../src/lib/scan/sections";

@@ -17,11 +17,10 @@
 // dropping the key for a SERP that failed would retire a live page
 // forever on the strength of one missed request (ADR-072 decision 5).
 import { measured, measuredZero, unmeasured, type Measured } from "@/lib/measure/measured";
-import { VENDOR } from "@/lib/config/constants";
+import { searchRowsFor, type SearchRows } from "@/lib/measure/page-reading";
 import type { AnswerCell, StoredReport } from "@/lib/scan/report";
 import type { Barrier } from "../types";
-import { TRACKED_DEPTH } from "./evaluate";
-import type { PlacedUrl, SearchRows, WeekMeasurements, WeekStart } from "./types";
+import type { WeekMeasurements, WeekStart } from "./types";
 
 /**
  * REQ-063 c1's "the week beginning on Monday in the time zone the customer
@@ -63,30 +62,9 @@ export function weekMeasurementsFrom(a: {
   const answerRows = report.aiAnswers?.rows ?? [];
 
   questions.forEach((question, index) => {
-    const serpAt = report.serps[index];
-    const query = question.search.keyword;
     // Present whatever came back: a SERP the week could not read is an
     // `unmeasured` position, not a search that left the set.
-    positions.set(
-      query,
-      serpAt === undefined
-        ? unmeasured<SearchRows>("not_attempted", at)
-        : serpAt.kind === "unmeasured"
-          ? unmeasured<SearchRows>(serpAt.reason, at)
-          : measured<SearchRows>(
-              {
-                serp: serpAt.value.organic.map((row) => ({ url: row.url, position: row.position })),
-                // Issue 1518: the SERP is bought ten deep, so a page at 11–20
-                // is read from the ranked rows before it reads as absent.
-                ranked: report.ownRanked.kind === "unmeasured" ? [] : rankedRowsFor(report, query),
-                // Issue 1537: a ten-deep SERP cannot say a page is not at
-                // 11–20, so a page in neither is a measured zero only where
-                // the ranked rows are every search the site ranks for.
-                complete: VENDOR.serpDepth >= TRACKED_DEPTH || rankedComplete(report),
-              },
-              at
-            )
-    );
+    positions.set(question.search.keyword, searchRowsFor(report, question.search.keyword, { tracked: false }));
 
     const cell = answerRows[index]?.cell;
     namesCustomer.set(question.text, namedBy(cell, at));
@@ -107,16 +85,9 @@ export function weekMeasurementsFrom(a: {
     ownPagesCited.set(wording, ownPagesBy(row.cell, at));
   }
 
-  // Issue 1548: a page's own question is bought a Google result each week.
-  // Its rows are the week's SERP for a target outside the twelve, read to
-  // the depth bought, before the ranked rows.
-  const pageSerps = new Map<string, readonly PlacedUrl[] | null>();
-  for (const row of report.pageQuestions?.rows ?? []) {
-    if (row.organic === undefined) continue;
-    const key = normalised(row.question.search);
-    const held = pageSerps.get(key);
-    if (held === undefined || held === null) pageSerps.set(key, row.organic);
-  }
+  // Issue 1548: a target outside the twelve reads its page question's
+  // Google result, then the ranked rows; those are complete only for a
+  // search the keyword database tracks.
   const tracked = new Set([
     ...(a.withDemand ?? []).map(normalised),
     ...(report.market.kind === "unmeasured" ? [] : report.market.value.suggestions)
@@ -126,8 +97,7 @@ export function weekMeasurementsFrom(a: {
 
   for (const target of a.targets ?? []) {
     if (positions.has(target)) continue;
-    const key = normalised(target);
-    positions.set(target, rankedRows(report, target, at, pageSerps.get(key) ?? null, tracked.has(key)));
+    positions.set(target, searchRowsFor(report, target, { tracked: tracked.has(normalised(target)) }));
   }
 
   // SPEC §6 (D60, issue 1288): what each tracked prompt's answers cited,
@@ -157,56 +127,6 @@ export function weekMeasurementsFrom(a: {
     gatesCleared: gatesFrom(report, at),
     siteIssues: report.siteIssues,
   };
-}
-
-/**
- * The tracked-target read (issue 795): the rows for a search that is not
- * among this week's twelve, from the ranked rows the pass bought for its
- * count — no call is made for it.
- *
- * - The count was not measured this week: not measured, which is transient
- *   and writes nothing.
- * - Otherwise the rows that name the search, and whether they are every
- *   search the site ranks for: a page missing from a capped purchase, or
- *   from a report that kept none, is not measured rather than absent.
- * - Issue 1548: the Google result bought for the page's own question is
- *   read first, where the week kept it. The ranked rows are complete for a
- *   target only where the keyword database tracks it: its silence on a
- *   search it does not track is not a measured zero.
- */
-function rankedRows(
-  report: StoredReport,
-  target: string,
-  at: Date,
-  serp: readonly PlacedUrl[] | null,
-  tracked: boolean
-): Measured<SearchRows> {
-  const complete = tracked && rankedComplete(report);
-  if (report.ownRanked.kind === "unmeasured") {
-    if (serp === null) return unmeasured<SearchRows>(report.ownRanked.reason, at);
-    return measured<SearchRows>({ serp, ranked: [], complete: false }, at);
-  }
-  return measured<SearchRows>(
-    {
-      serp,
-      ranked: rankedRowsFor(report, target),
-      complete,
-    },
-    at
-  );
-}
-
-/** Whether the ranked rows are every search the site ranks for: a capped
- *  purchase, or a count the week did not measure, is not. */
-function rankedComplete(report: StoredReport): boolean {
-  return report.ownRanked.kind !== "unmeasured" && report.ownRanked.value <= report.ownRankedRows.length;
-}
-
-function rankedRowsFor(report: StoredReport, query: string): PlacedUrl[] {
-  const wanted = normalised(query);
-  return report.ownRankedRows
-    .filter((row) => normalised(row.keyword) === wanted)
-    .map((row) => ({ url: row.url, position: row.position }));
 }
 
 function normalised(query: string): string {

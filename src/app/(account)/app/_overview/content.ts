@@ -7,12 +7,12 @@
 // `contentOf`, so the tile's numbers are the list's rows.
 //
 // Issue 1553: each page also carries how far it has got toward being found
-// (`@/lib/publish/reads/ladder`), and the tile counts the pages at each
+// (`@/lib/measure/ladder`), and the tile counts the pages at each
 // step. A step no page can be read on is absent, never a zero.
 //
 // **This file is pure.** Reading the pages is `content-provider.ts`'s.
 import { CONTENT_RECENT_WEEKS } from "@/lib/config/constants";
-import { ladderTotals, type Ladder, type LadderTotals } from "@/lib/publish/reads/ladder";
+import { ladderTotals, type Ladder, type LadderTotals } from "@/lib/measure/ladder";
 
 export interface PublishedPage {
   id: string;
