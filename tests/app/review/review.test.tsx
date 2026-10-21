@@ -1,7 +1,7 @@
-// The owner's review screen, drawn from stored rows: a committed week with
-// its spares and the rows held back, a site with no commit, and each live
-// page's label, where a page never read says "not measured" and never 0.
-// Nothing on it posts. 0¢.
+// The owner's review screen, drawn from stored rows in the board's sections:
+// a committed week with its spares and the rows held back, a site with no
+// commit, and each live page's label, where a page never read says "not
+// measured" and never 0. Nothing on it posts. 0¢.
 import "../../generate/env";
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
@@ -9,7 +9,7 @@ import { describe, expect, it } from "vitest";
 import { Review } from "@/app/(account)/app/review/Review";
 import type { ReviewSite } from "@/app/(account)/app/review/store";
 import { reviewWeek, storedChoice } from "@/lib/opportunities/review/week";
-import { copy } from "@/lib/presentation/copy";
+import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { panelSite } from "../../golden/plan/panel";
 import { storedRows } from "./stored";
 
@@ -19,11 +19,10 @@ function site(domain: string, rows = storedRows(domain), pages: ReviewSite["page
 
 const render = (sites: readonly ReviewSite[] | null) => renderToStaticMarkup(React.createElement(Review, { sites }));
 
-/** The rows of the table under the committed week's heading. */
-function committedRows(html: string): number {
-  const table = html.split('data-testid="review-week"')[1]?.split("</table>")[0] ?? "";
-  return (table.match(/<tbody>[\s\S]*<\/tbody>/)?.[0].match(/<tr/g) ?? []).length;
-}
+/** The committed week's table. */
+const weekTable = (html: string) => html.split('data-testid="review-week"')[1]?.split("</table>")[0] ?? "";
+const committedRows = (html: string) => (weekTable(html).match(/<tbody>[\s\S]*<\/tbody>/)?.[0].match(/<tr/g) ?? []).length;
+const text = (html: string) => html.replace(/<[^>]+>/g, " ").replace(/&amp;/g, "&").replace(/\s+/g, " ");
 
 describe("a site with a committed week", () => {
   const saas = site("savvycal.com");
@@ -40,10 +39,21 @@ describe("a site with a committed week", () => {
     expect(html).not.toContain(copy("review.week.empty"));
   });
 
+  it("reads under the week it starts, in the board's columns, with each page's type and the customer's why", () => {
+    expect(html).toContain(copy("review.eyebrow.week", { date: "19 October" }));
+    const heads = [...weekTable(html).matchAll(/<th[^>]*>([^<]*)<\/th>/g)].map((m) => m[1]);
+    expect(heads).toEqual((["review.col.day", "review.col.page", "review.col.search", "review.col.points", "review.col.why"] as const satisfies readonly CopyKey[]).map((key) => copy(key)));
+    const body = text(weekTable(html));
+    expect(body).toContain(" Mon ");
+    expect(body).toContain(copy("review.page.new", { type: copy("review.page.listicle") }));
+    expect(body).toContain(`${copy("review.part.fit")} 3`);
+    expect(body).toContain(copy("calendar.week.why.fit"));
+  });
+
   it("shows each row held back with its stored reason", () => {
     expect(saas.week.rejected.length).toBeGreaterThan(0);
     expect(html).toContain(copy("review.rejected.title", { count: String(saas.week.rejected.length) }));
-    for (const row of saas.week.rejected) expect(html).toContain(row.search!);
+    for (const row of saas.week.rejected) expect(text(html)).toContain(`${row.search!} : ${row.reason}`);
   });
 });
 
@@ -52,7 +62,9 @@ describe("a site with no committed week", () => {
     const rows = panelSite("austinplumbery.com").rows;
     const html = render([site("austinplumbery.com", rows)]);
     expect(html).toContain(copy("review.week.empty"));
-    expect(html).not.toContain(copy("review.col.place"));
+    expect(html).not.toContain('data-testid="review-week"');
+    expect(html).toContain(copy("review.eyebrow"));
+    expect(html).not.toContain(copy("review.eyebrow.week", { date: "" }));
   });
 });
 
@@ -62,7 +74,7 @@ describe("each live page's label", () => {
     { id: "p2", url: "https://content.savvycal.com/never-read", label: null },
   ];
   const html = render([site("savvycal.com", undefined, pages)]);
-  const pageList = html.split(copy("review.pages.title"))[1]!;
+  const pageList = html.split('data-testid="review-tab-pages"')[1]!;
 
   it("reads its stored label, and a page with no reading reads not measured, never 0", () => {
     expect(pageList).toContain(copy("review.label.working"));

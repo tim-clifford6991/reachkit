@@ -32,6 +32,7 @@ function printed(week: ReviewWeek): { committed: string[][]; rejected: string[][
       row.day ?? "spare",
       cell(row.search),
       row.type,
+      cell(row.page),
       cell(row.fit),
       cell(row.volume),
       cell(row.points),

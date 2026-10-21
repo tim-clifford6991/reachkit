@@ -2,7 +2,8 @@
 // with its points and rule, and each row left out with its reason, in the
 // columns the golden plans print. Pure.
 import type { PageReading } from "@/lib/measure/page-reading";
-import type { OpportunityRow, PlanEntry } from "../store";
+import { contentTypeOf, type ContentType } from "../content-type";
+import { readOpportunity, type OpportunityRow, type PlanEntry } from "../store";
 import type { PlanReason, PointPart } from "../types";
 import type { Label } from "../verdicts/types";
 import { verdict } from "../verdicts/verdict";
@@ -22,6 +23,8 @@ export interface CommittedRow {
   day: string | null;
   search: string | null;
   type: string;
+  /** The page it publishes; `null` only for an unblock. */
+  page: ContentType | null;
   fit: number | null;
   volume: number | null;
   /** `null` where the commit kept no reason. */
@@ -55,6 +58,7 @@ export function reviewWeek(rows: readonly OpportunityRow[], choice: WeekChoice):
         day: entry.plannedFor,
         search: row.target_query,
         type: row.type,
+        page: contentTypeOf(readOpportunity(row)),
         fit: row.business_fit ?? null,
         volume: row.volume,
         points: entry.reason?.points ?? null,
