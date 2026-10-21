@@ -53,11 +53,20 @@
 //
 // Server Components that read nothing: no session, no cookie, no store.
 import type React from "react";
+import Link from "next/link";
 import { Surface } from "@/ui/layout";
 import { copy } from "@/lib/presentation/copy";
-import { headingsUnderTitle, parseMarkdown, type HtmlClasses } from "@/lib/publish/render/markdown";
-import { legalBodyWithIds, legalHeadings, type LegalHeading } from "./sections";
-import type { LegalDocument } from "./documents";
+import { NURTURE_H } from "@/lib/config/constants";
+import {
+  headingsUnderTitle,
+  inlineText,
+  parseMarkdown,
+  toHtml,
+  type Block,
+  type HtmlClasses,
+} from "@/lib/publish/render/markdown";
+import { legalBodyWithIds, legalHeadings, legalSections, type LegalHeading, type LegalSection } from "./sections";
+import { LEGAL_DOCUMENTS, type LegalDocument, type LegalFigure } from "./documents";
 
 /** Heading margins and weight only: the size is the element's ladder step. */
 const HEADING = "mt-6 mb-3 font-bold text-base-content first:mt-0";
@@ -98,7 +107,7 @@ export function legalBodyHtml(md: string): string {
  *  phone, and a column beside it from `lg`. The `<nav>` and its links are
  *  written once — the two shapes are which wrapper is displayed, never two
  *  lists that could come to name different sections. */
-export function OnThisPage(p: { headings: readonly Pick<LegalHeading, "id" | "text">[] }): React.JSX.Element | null {
+export function OnThisPage(p: { headings: readonly Pick<LegalHeading, "id" | "number" | "title">[] }): React.JSX.Element | null {
   const headings = p.headings;
   // A body with no headings of its own gets no list and no room kept for
   // one — an imprint that is four lines of address has no sections, and a
@@ -107,13 +116,18 @@ export function OnThisPage(p: { headings: readonly Pick<LegalHeading, "id" | "te
   if (headings.length === 0) return null;
 
   const list = (
-    <ul className="menu w-full p-0">
+    <ol className="menu w-full p-0">
       {headings.map((h) => (
         <li key={h.id}>
-          <a href={`#${h.id}`}>{h.text}</a>
+          <a href={`#${h.id}`}>
+            {h.number === null ? null : (
+              <span className="text-base-content/70 font-mono text-xs">{h.number.padStart(2, "0")}</span>
+            )}
+            <span>{h.title}</span>
+          </a>
         </li>
       ))}
-    </ul>
+    </ol>
   );
 
   return (
@@ -138,9 +152,108 @@ export function OnThisPage(p: { headings: readonly Pick<LegalHeading, "id" | "te
   );
 }
 
+/** A dot, not daisyUI's step counter: the counter would number Start as 1 and Follow-up 1 as 2. */
+const DOT = "";
+
+/** The follow-up mails as the board's timeline: Start, then one mark per hour the schedule sends at. */
+function FollowUps(): React.JSX.Element {
+  const marks = [
+    { at: copy("legal.follow-ups.start"), what: copy("legal.follow-ups.asked") },
+    ...NURTURE_H.map((hours, i) => ({
+      at: copy("legal.follow-ups.at", { hours: String(hours) }),
+      what: copy("legal.follow-ups.step", { n: String(i + 1) }),
+    })),
+  ];
+  return (
+    <figure className="flex flex-col gap-2" data-testid="legal-follow-ups">
+      <ul className="steps w-full">
+        {marks.map((m, i) => (
+          <li key={m.at} className={i === 0 ? "step step-primary text-xs" : "step text-xs"} data-content={DOT}>
+            <span className="flex flex-col">
+              <span className="font-mono font-semibold">{m.at}</span> <span>{m.what}</span>
+            </span>
+          </li>
+        ))}
+      </ul>
+      <figcaption className="text-base-content/70 text-xs">{copy("legal.follow-ups.note")}</figcaption>
+    </figure>
+  );
+}
+
+function Rights(): React.JSX.Element {
+  const list = parseMarkdown(copy("legal.privacy.rights")).find((b) => b.kind === "list");
+  return (
+    <p className="flex flex-wrap gap-2" data-testid="legal-rights">
+      {(list?.kind === "list" ? list.items : []).map((item) => {
+        const right = inlineText(item);
+        return (
+          <span key={right} className="badge badge-soft badge-primary">
+            {right}
+          </span>
+        );
+      })}
+    </p>
+  );
+}
+
+/** A provider list as the board's table: each item's bold name is the row, the rest its one job. */
+function Providers(p: { list: Extract<Block, { kind: "list" }> }): React.JSX.Element {
+  return (
+    <div className="overflow-x-auto">
+      <table className="table" data-testid="legal-providers">
+        <caption className="text-base-content/70 pb-2 text-left text-xs">{copy("legal.providers.caption")}</caption>
+        <tbody>
+          {p.list.items.map((item) => {
+            const [first, ...rest] = item;
+            const named = first?.kind === "strong";
+            const name = named ? inlineText(first.children) : "";
+            const job = inlineText(named ? rest : item).replace(/^\s*—\s*/, "");
+            return (
+              <tr key={name || job}>
+                <th scope="row" className="align-top whitespace-nowrap">
+                  {name}
+                </th>
+                <td>{job}</td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function Html(p: { blocks: readonly Block[] }): React.JSX.Element | null {
+  return p.blocks.length === 0 ? null : (
+    <div dangerouslySetInnerHTML={{ __html: toHtml(p.blocks, LEGAL_BODY_CLASSES) }} />
+  );
+}
+
+function Section(p: { section: LegalSection; figure: LegalFigure | undefined }): React.JSX.Element {
+  const { section, figure } = p;
+  const at = figure === "providers" ? section.blocks.findIndex((b) => b.kind === "list") : -1;
+  const list = section.blocks[at];
+  return (
+    <section className="mt-6 flex flex-col gap-3 first:mt-0">
+      {section.headingHtml === "" ? null : <div dangerouslySetInnerHTML={{ __html: section.headingHtml }} />}
+      {figure === "rights" ? <Rights /> : null}
+      {list?.kind === "list" ? (
+        <>
+          <Html blocks={section.blocks.slice(0, at)} />
+          <Providers list={list} />
+          <Html blocks={section.blocks.slice(at + 1)} />
+        </>
+      ) : (
+        <Html blocks={section.blocks} />
+      )}
+      {figure === "follow-ups" ? <FollowUps /> : null}
+    </section>
+  );
+}
+
 export function LegalPage(p: { document: LegalDocument }): React.JSX.Element {
-  const body = copy(p.document.body);
-  const headings = legalHeadings(headingsUnderTitle(parseMarkdown(body)));
+  const blocks = headingsUnderTitle(parseMarkdown(copy(p.document.body)));
+  const headings = legalHeadings(blocks);
 
   return (
     <Surface
@@ -154,9 +267,8 @@ export function LegalPage(p: { document: LegalDocument }): React.JSX.Element {
           held to the **ruled reading measure** (`--w-read`, 704px) rather
           than to `max-w-3xl`'s 768. The token is the one `surface.css`
           already selects for a read arm; this is not a second measure. */}
-      <main className="mx-auto flex w-full min-w-0 max-w-5xl flex-col gap-4 px-4 py-12 lg:flex-row lg:items-start lg:gap-8">
-        <OnThisPage headings={headings} />
-        <article className="flex w-full min-w-0 max-w-(--w-read) flex-col gap-3">
+      <main className="mx-auto flex w-full min-w-0 max-w-5xl flex-col gap-4 px-4 py-12">
+        <div className="flex flex-col gap-3">
           <span className="text-base-content/70 text-xs font-semibold tracking-wide uppercase">
             {copy("legal.eyebrow")}
           </span>
@@ -166,26 +278,49 @@ export function LegalPage(p: { document: LegalDocument }): React.JSX.Element {
           <p className="text-base-content/70 font-mono text-xs">
             {copy("legal.updated", { date: copy(p.document.updated) })}
           </p>
-          {p.document.summary === undefined ? null : (
-            <section className="rounded-box bg-base-200 mt-3 flex flex-col gap-2 p-4" data-testid="legal-summary">
-              <p className="text-base-content/70 text-xs font-semibold tracking-wide uppercase">
-                {copy("legal.summary.title")}
-              </p>
-              <div dangerouslySetInnerHTML={{ __html: legalBodyHtml(copy(p.document.summary)) }} />
-              <p className="text-base-content/70 text-xs">{copy("legal.summary.note")}</p>
-            </section>
-          )}
+          <nav aria-label={copy("legal.tabs.label")}>
+            <div className="tabs tabs-box w-fit">
+              {LEGAL_DOCUMENTS.map((d) => (
+                <Link
+                  key={d.path}
+                  href={d.path}
+                  className={d === p.document ? "tab tab-active" : "tab"}
+                  aria-current={d === p.document ? "page" : undefined}
+                >
+                  {copy(d.title)}
+                </Link>
+              ))}
+            </div>
+          </nav>
+        </div>
+        {p.document.summary === undefined ? null : (
+          <section className="rounded-box bg-base-200 flex flex-col gap-2 p-4" data-testid="legal-summary">
+            <p className="text-base-content/70 text-xs font-semibold tracking-wide uppercase">
+              {copy("legal.summary.title")}
+            </p>
+            <div dangerouslySetInnerHTML={{ __html: legalBodyHtml(copy(p.document.summary)) }} />
+            <p className="text-base-content/70 text-xs">{copy("legal.summary.note")}</p>
+          </section>
+        )}
+        {/* The board's two columns from `lg`, one below it, with the card held
+            to the ruled reading measure (`--w-read`). */}
+        <div className="flex min-w-0 flex-col gap-4 lg:flex-row lg:items-start lg:gap-8">
+          <OnThisPage headings={headings} />
           {/* One card, no head: the page's own h1 already names the document. */}
-          <div className="card bg-base-100 mt-3 shadow-(--shadow-card)">
+          <div className="card bg-base-100 w-full min-w-0 max-w-(--w-read) shadow-(--shadow-card)">
             <div className="card-body">
-              <div
-                className="text-base-content/80 min-w-0 leading-relaxed"
-                data-testid="legal-document"
-                dangerouslySetInnerHTML={{ __html: legalBodyHtml(body) }}
-              />
+              <div className="text-base-content/80 min-w-0 leading-relaxed" data-testid="legal-document">
+                {legalSections(blocks, LEGAL_BODY_CLASSES).map((section, i) => (
+                  <Section
+                    key={section.heading?.id ?? i}
+                    section={section}
+                    figure={section.heading === null ? undefined : p.document.figures?.[section.heading.id]}
+                  />
+                ))}
+              </div>
             </div>
           </div>
-        </article>
+        </div>
       </main>
     </Surface>
   );
