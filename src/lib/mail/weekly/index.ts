@@ -128,10 +128,11 @@ export async function sendWeeklyDigest(a: {
   const recipient = await readRecipient(a.siteId);
   if (recipient === null) return { sent: false, reason: "no-account" };
 
+  const connect = await addressToConnect(a.siteId);
   const { mail, measurement } =
     account.kind === "not_measured"
-      ? unmeasuredWeek(account.nextDueOn, now)
-      : await measuredWeek(a.siteId, a.weekStart, account);
+      ? unmeasuredWeek(account.nextDueOn, now, connect)
+      : await measuredWeek(a.siteId, a.weekStart, account, connect);
 
   const result = await sendEmail({
     kind: "weekly",
@@ -155,15 +156,30 @@ export async function sendWeeklyDigest(a: {
 }
 
 type Composed = { mail: ReturnType<typeof buildWeekly>; measurement: MeasurementState };
+type Connect = { host: string; href: string };
+
+/** The hosted address still waiting for its record, with the setup step
+ *  that connects it. `undefined` once it is live, for a site with no hosted
+ *  address, and where the read fails: the mail is never held for it. */
+async function addressToConnect(siteId: string): Promise<Connect | undefined> {
+  try {
+    const { hostedHostFor } = await import("@/lib/publish/destinations/hosted/hostname");
+    const host = await hostedHostFor(siteId);
+    if (host === null || host.state === "live") return undefined;
+    return { host: host.hostname, href: new URL("/setup/connect", env.NEXT_PUBLIC_APP_URL).toString() };
+  } catch {
+    return undefined;
+  }
+}
 
 /** A week with no measurement: every section unmeasured, so every one is
  *  omitted, and the whole-mail line says so with the next due date. */
-function unmeasuredWeek(nextDueOn: Date, now: Date): Composed {
+function unmeasuredWeek(nextDueOn: Date, now: Date, connect: Connect | undefined): Composed {
   const gap = unmeasured<never>("undeterminable", now);
   return {
     // No numbers at all: the whole-mail line says the week was not
     // measured, once, and four rows saying it again would repeat it.
-    mail: buildWeekly({ pages: gap, next: gap }),
+    mail: buildWeekly({ pages: gap, next: gap, ...(connect === undefined ? {} : { connect }) }),
     measurement: { state: "none", nextDueOn },
   };
 }
@@ -172,7 +188,8 @@ function unmeasuredWeek(nextDueOn: Date, now: Date): Composed {
 async function measuredWeek(
   siteId: string,
   weekStart: string,
-  account: { kind: "complete" | "partial"; measuredAt: Date; unmeasured?: readonly UnmeasuredPart[] }
+  account: { kind: "complete" | "partial"; measuredAt: Date; unmeasured?: readonly UnmeasuredPart[] },
+  connect: Connect | undefined
 ): Promise<Composed> {
   const a = { siteId, weekStart };
 
@@ -193,6 +210,7 @@ async function measuredWeek(
 
   const needsYou = await oneNeedsYou(a.siteId);
   const mail = buildWeekly({
+    ...(connect === undefined ? {} : { connect }),
     // SPEC §8 (2026-10-07, issue 1329): the headline numbers lead.
     numbers: {
       ...(await headlineNumbers(a.siteId, a.weekStart, at)),

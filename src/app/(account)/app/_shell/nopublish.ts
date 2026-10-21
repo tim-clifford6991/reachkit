@@ -21,6 +21,7 @@ import type { NextPublishCause } from "@/lib/presentation/stopped";
 
 export type NoPublishReason =
   | "reachkit_stopped"
+  | "address_waiting"
   | "publishing_paused"
   | "not_written"
   | "nothing_planned";
@@ -37,6 +38,7 @@ export type NoPublishBecause = NoPublishReason | "unexplained";
  *  true. */
 export const NO_PUBLISH_PRECEDENCE: readonly NoPublishReason[] = Object.freeze([
   "reachkit_stopped",
+  "address_waiting",
   "publishing_paused",
   "not_written",
   "nothing_planned",
@@ -63,6 +65,7 @@ export const NEXT_PUBLISH_OTHERWISE: Record<
   NextPublishCause
 > = {
   unexplained: "unexplained",
+  address_waiting: "address-waiting",
   publishing_paused: "paused",
   not_written: "being-written",
   nothing_planned: "none-planned",

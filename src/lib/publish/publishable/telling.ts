@@ -37,7 +37,7 @@ import { becomesPublishable } from "./predicate";
 /**
  * REQ-057 criterion 9. What the telling says about the destination.
  *
- * Present only for a page bound for the customer's own site — decided from
+ * Present for a page bound for the customer's own site — decided from
  * `hostedByUs === false` on the adapter, **never** from
  * `kind === 'wordpress'`. Since ADR-084 `servesPublicly` is true at both
  * destinations and can no longer answer that question; the two properties
@@ -45,7 +45,7 @@ import { becomesPublishable } from "./predicate";
  * test that exists.
  *
  * `null` at a destination ReachKit serves, which criterion 9 does not speak
- * about.
+ * about, unless its address is not connected yet.
  */
 export type DestinationClause =
   | {
@@ -62,7 +62,14 @@ export type DestinationClause =
    *  and the zero-window mail is still unsuppressible. It only stops the
    *  telling asserting the page goes live there then, or that approving it
    *  will make it live. */
-  | { says: "cannot_go_live_there"; site: string; copy: "mail.draftReady.dest.cannotPublish" };
+  | {
+      says: "cannot_go_live_there";
+      site: string;
+      /** `addressNotConnected` for a hosted address still waiting for its
+       *  record: no page goes live before it is, so that mail names no
+       *  moment. */
+      copy: "mail.draftReady.dest.cannotPublish" | "mail.draftReady.dest.addressNotConnected";
+    };
 
 export type Telling =
   | {
@@ -205,8 +212,8 @@ export async function recordTold(
 /**
  * Criterion 9's clause, composed at send time.
  *
- * `hostedByUs === true` ⇒ `null`: a destination ReachKit serves is not what
- * criterion 9 speaks about. `false` ⇒ the site is named, and whether the
+ * `hostedByUs === true` ⇒ `null`, except while its address waits for its
+ * record, when the page cannot go live there at all. `false` ⇒ the site is named, and whether the
  * clause says the page goes live there or that it cannot is read from the
  * destination's health **now**.
  *
@@ -221,7 +228,8 @@ async function destinationClause(
   telling: Exclude<TellingKind, "not_yet_tellable">
 ): Promise<DestinationClause | null> {
   const adapter = adapterFor(kind);
-  if (adapter === null || adapter.hostedByUs) return null;
+  if (adapter === null) return null;
+  if (adapter.hostedByUs) return hostedClause(siteId);
 
   const row = await destinationOf(siteId, kind);
   if (row === null) return null;
@@ -245,6 +253,20 @@ async function destinationClause(
         ? "mail.draftReady.dest.goesLiveAtOnce"
         : "mail.draftReady.dest.goesLiveThen",
   };
+}
+
+/** A hosted address still waiting for its record: the page cannot go live
+ *  until it is connected. A live host, no host, or a read that fails says
+ *  nothing, as before. */
+async function hostedClause(siteId: string): Promise<DestinationClause | null> {
+  try {
+    const { hostedHostFor } = await import("../destinations/hosted/hostname");
+    const host = await hostedHostFor(siteId);
+    if (host === null || host.state === "live") return null;
+    return { says: "cannot_go_live_there", site: host.hostname, copy: "mail.draftReady.dest.addressNotConnected" };
+  } catch {
+    return null;
+  }
 }
 
 /**

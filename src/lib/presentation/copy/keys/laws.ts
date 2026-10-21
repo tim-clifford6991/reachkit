@@ -82,6 +82,9 @@ export const LAWS_COPY = Object.freeze({
     "Next page goes live {at}",
     { law: "next-publish", slots: { at: "date" }, fixedBy: "REQ-040 c4" },
   ],
+  // The hosted address is not connected yet, so no page can go live (the
+  // OverviewDNS board's sidebar line). Drafted; the owner corrects it.
+  "next-publish.address-waiting": ["Waiting for your domain", { law: "next-publish", slots: {}, fixedBy: "issue 1595" }],
   "next-publish.paused": ["Publishing is off.", { law: "next-publish", slots: {}, fixedBy: "REQ-040 c4" }],
   // A page is planned and not written yet (owner 2026-10-09, issue 1362).
   // It replaces the "nothing approved" cause: no customer approves a page.

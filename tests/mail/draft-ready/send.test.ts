@@ -471,3 +471,35 @@ describe("issue #183 — the mail names the page, and says why §7 chose it", ()
     expect(Object.keys(COPY)).toContain("generated.page.written");
   });
 });
+
+describe("a hosted address not connected yet: the mail names no go-live moment", () => {
+  const hosted = (state: "pending_dns" | "live"): void =>
+    db.seed("destinations", [
+      { id: "dest-1", site_id: "site-1", kind: "hosted", hostname: "help.acmecrm.com", hostname_state: state, health: "ok", deleted_at: null },
+    ]);
+
+  it("says the page goes live once the address is connected, and states no moment anywhere", async () => {
+    hosted("pending_dns");
+    const outcome = await sendDraftReadyMail({ draftId: "d1", destination: "hosted", at: AT });
+    expect(outcome).toEqual({ sent: true, id: "vendor-1" });
+    const mail = sent[0]!;
+    expect(mail.subject).toBe("mail.draftReady.waiting.subject");
+    expect(mail.subjectVars).not.toHaveProperty("publishesAt");
+    expect(mail.blocks.map((b) => b.text)).not.toContain("mail.draftReady.autopilotWindow");
+    expect(mail.blocks.flatMap((b) => Object.keys(b.vars ?? {}))).not.toContain("publishesAt");
+    expect(mail.blocks).toContainEqual(
+      expect.objectContaining({ block: "notice", text: "mail.draftReady.dest.addressNotConnected", vars: { site: "help.acmecrm.com" } })
+    );
+    // Still told, and still stoppable.
+    expect(theDraft().told).not.toBeNull();
+    expect(mail.blocks.map((b) => b.label)).toContain("mail.draftReady.stopAction");
+  });
+
+  it("once the host is live, the mail names the moment as before", async () => {
+    hosted("live");
+    await sendDraftReadyMail({ draftId: "d1", destination: "hosted", at: AT });
+    expect(sent[0]!.subject).toBe("mail.draftReady.subject");
+    expect(sent[0]!.blocks.map((b) => b.text)).toContain("mail.draftReady.autopilotWindow");
+    expect(sent[0]!.blocks.map((b) => b.text)).not.toContain("mail.draftReady.dest.addressNotConnected");
+  });
+});

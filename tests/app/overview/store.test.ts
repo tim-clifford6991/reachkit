@@ -530,3 +530,26 @@ describe("the series carries the units of the arm the module will take", () => {
     expect(read.rivals.rivals[0]?.series).not.toContain(null);
   });
 });
+
+describe("the hosted address waiting for its record is read from the destination row", () => {
+  // A SaaS help centre and a local plumber's guides: the read is the same.
+  it.each(["help.acmecrm.com", "guides.harborplumbing.com"])(
+    "%s waiting for DNS is the address to connect, with the one record that connects it",
+    async (hostname) => {
+      db.seed("destinations", [
+        { id: "dest-1", site_id: SITE_ID, kind: "hosted", hostname, hostname_state: "pending_dns", deleted_at: null },
+      ]);
+      const read = await facts();
+      expect(read.connect).toEqual({ hostname, record: { type: "CNAME", name: hostname, value: "content.example.com" } });
+    }
+  );
+
+  it("a live host, and a site with no hosted address, have nothing to connect", async () => {
+    db.seed("destinations", [
+      { id: "dest-1", site_id: SITE_ID, kind: "hosted", hostname: "help.acmecrm.com", hostname_state: "live", deleted_at: null },
+    ]);
+    expect((await facts()).connect).toBeNull();
+    db.seed("destinations", []);
+    expect((await facts()).connect).toBeNull();
+  });
+});

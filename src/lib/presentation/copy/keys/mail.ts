@@ -253,6 +253,13 @@ export const MAIL_COPY = Object.freeze({
     { slots: { page: "text" }, fixedBy: "SPEC §8 2026-09-20" },
   ],
   "mail.weekly.needsYou.action": ["Open the page", { slots: {}, fixedBy: "SPEC §8 2026-09-20" }],
+  // The first row while the hosted address waits for its record, every
+  // Monday until it is connected. Drafted (#759).
+  "mail.weekly.connect": [
+    "Connect your website: your pages can’t go live at {host} until one setting is added where your web address is managed.",
+    { slots: { host: "text" }, fixedBy: "SPEC §5 2026-09-20 (drafted)" },
+  ],
+  "mail.weekly.connect.action": ["Connect your website", { slots: {}, fixedBy: "SPEC §5 2026-09-20 (drafted)" }],
   // SPEC §8 2026-09-29 (D16, issue 1147): the tracked questions whose
   // answer names the site this week and did not the week before, each by
   // its search and linked to the answer. It credits no page. Drafted (#759).
@@ -360,6 +367,16 @@ export const MAIL_COPY = Object.freeze({
   // the moment the mail names, because c9's final sentence keeps the date,
   // the interval and the stop action exactly as the other criteria set
   // them.
+  // A hosted address still waiting for its record: no page goes live there
+  // until it is connected, so this mail names no moment. Drafted (#759).
+  "mail.draftReady.dest.addressNotConnected": [
+    "Your website isn’t connected yet, so this page can’t go live at {site}. Add the one setting shown on your Overview. We check every hour, and it goes live once that works.",
+    { slots: { site: "text" }, fixedBy: "SPEC §5 2026-09-20 (drafted)" },
+  ],
+  "mail.draftReady.waiting.subject": [
+    "Written, waiting for your website: {title}",
+    { slots: { title: "text" }, fixedBy: "SPEC §5 2026-09-20 (drafted)" },
+  ],
   "mail.draftReady.dest.cannotPublish": ["ReachKit cannot publish to {site} as things stand. Open Settings › Publishing: the destination there says what to change before this page can go live.", { slots: { site: "text" }, fixedBy: "REQ-057 c9" }],
 
   // 2026-09-07, issue #174. The two the mail itself owed, beside the seven

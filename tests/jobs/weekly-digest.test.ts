@@ -301,3 +301,40 @@ describe("no row, no telling — and an unmeasured week that has one says so", (
     expect(sent).toEqual([]);
   });
 });
+
+describe("an address not connected yet is the first row, every Monday until it is", () => {
+  type Row1 = { block: string; text?: string; label?: string; href?: string; vars?: Record<string, string> };
+  const hosted = (state: "pending_dns" | "live"): void =>
+    db.seed("destinations", [
+      { id: "dest-1", site_id: "site-1", kind: "hosted", hostname: "guides.harborplumbing.com", hostname_state: state, deleted_at: null },
+    ]);
+  const rows = (): readonly Row1[] => sent[0]!.blocks as readonly Row1[];
+
+  it("a measured week opens on connect your address, with the setup step's link", async () => {
+    hosted("pending_dns");
+    await sendWeeklyDigest({ siteId: "site-1", weekStart: WEEK, now: NOW });
+    const [heading, notice, action] = rows();
+    expect(heading?.block).toBe("heading");
+    expect(notice).toMatchObject({ block: "notice", text: "mail.weekly.connect", vars: { host: "guides.harborplumbing.com" } });
+    expect(action).toMatchObject({ block: "action", label: "mail.weekly.connect.action" });
+    expect(new URL(action!.href!).pathname).toBe("/setup/connect");
+  });
+
+  it("a week that measured nothing still carries it", async () => {
+    hosted("pending_dns");
+    account.answer = { kind: "not_measured", nextDueOn: new Date(Date.UTC(2026, 8, 14, 6)) };
+    await sendWeeklyDigest({ siteId: "site-1", weekStart: WEEK, now: NOW });
+    expect(rows()[1]).toMatchObject({ block: "notice", text: "mail.weekly.connect" });
+  });
+
+  it("once the host is live, and for a site with no hosted address, there is no such row", async () => {
+    hosted("live");
+    await sendWeeklyDigest({ siteId: "site-1", weekStart: WEEK, now: NOW });
+    seed();
+    await sendWeeklyDigest({ siteId: "site-1", weekStart: WEEK, now: NOW });
+    expect(sent).toHaveLength(2);
+    for (const mail of sent) {
+      expect((mail.blocks as readonly Row1[]).map((b) => b.text ?? b.label)).not.toContain("mail.weekly.connect");
+    }
+  });
+});

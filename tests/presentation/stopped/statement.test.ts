@@ -228,6 +228,7 @@ describe("the module writes no sentence, and does not vary with who is reading",
       // own types index by. Neither is a sentence and neither reaches a
       // reader; nothing else is admitted.
       const isTag = [
+        "address-waiting",
         "paused",
         "being-written",
         "none-planned",

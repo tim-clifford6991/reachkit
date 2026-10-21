@@ -55,6 +55,8 @@ function overviewHref(): string {
   return new URL("/app", env.NEXT_PUBLIC_APP_URL).toString();
 }
 const NEEDS_YOU_ACTION = "mail.weekly.needsYou.action" satisfies CopyKey;
+const CONNECT = "mail.weekly.connect" satisfies CopyKey;
+const CONNECT_ACTION = "mail.weekly.connect.action" satisfies CopyKey;
 const PAGE_QUESTIONS = "mail.weekly.number.pageQuestions" satisfies CopyKey;
 const PAGE_QUESTIONS_OF = "mail.weekly.number.pageQuestions.of" satisfies CopyKey;
 const MENTION_RATE = "mail.weekly.number.mentionRate" satisfies CopyKey;
@@ -149,6 +151,9 @@ export interface WeeklyNumbers {
 }
 
 export function buildWeekly(a: {
+  /** The hosted address still waiting for its record, and where it is
+   *  connected. Absent once it is live. */
+  connect?: { readonly host: string; readonly href: string };
   /** Absent on a week that measured nothing: the whole-mail line says so
    *  once, and four rows saying it again would repeat it. */
   numbers?: WeeklyNumbers;
@@ -189,6 +194,14 @@ export function buildWeekly(a: {
     reason: REASON,
     blocks: [
       { block: "heading", text: HEADING },
+      // Until the address is connected no page goes live, so it comes first,
+      // every week.
+      ...(a.connect === undefined
+        ? []
+        : ([
+            { block: "notice", text: CONNECT, vars: { host: a.connect.host } },
+            { block: "action", label: CONNECT_ACTION, href: a.connect.href, variant: "secondary" },
+          ] as const)),
       // The first thing is the numbers (owner, 2026-10-07), two to a row,
       // each with what it is read against (order: issue 1551).
       ...(a.numbers === undefined ? [] : [{ block: "stats", items: numberRows(a.numbers) } as const]),

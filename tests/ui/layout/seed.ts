@@ -135,6 +135,20 @@ export const PUBLISHER_ACCOUNT: AppAccount = Object.freeze({
   mode: "autopilot",
 });
 
+/** A local business whose hosted address still waits for its DNS record,
+ *  with its first page in review: `/app`'s connect state. */
+export const UNCONNECTED_ACCOUNT: AppAccount = Object.freeze({
+  userId: "00000000-0000-0000-0000-0000000000a6",
+  siteId: "00000000-0000-0000-0000-0000000000b6",
+  domain: "harborplumbing.test",
+  createdAt: new Date("2026-08-31T06:00:00.000Z"),
+  timeZone: "America/Chicago",
+  mode: "autopilot",
+});
+
+/** The unconnected account's hosted address. */
+export const UNCONNECTED_HOST = "guides.harborplumbing.test";
+
 /**
  * The step the setup account's pass is on, and when each step began.
  *
@@ -182,6 +196,7 @@ const EMAIL_OF: Readonly<Record<string, string>> = {
   [SETUP_ACCOUNT.userId]: "layout-sweep-setup@example.com",
   [WEEK_ZERO_ACCOUNT.userId]: "layout-sweep-week0@example.com",
   [PUBLISHER_ACCOUNT.userId]: "layout-sweep-publisher@example.com",
+  [UNCONNECTED_ACCOUNT.userId]: "layout-sweep-unconnected@example.com",
 };
 
 /** Kept for the callers that named it before there were two accounts. */
@@ -457,6 +472,18 @@ export function seedLiveAccount(): void {
  * draws exactly that, and it is the same panel S12 uses, so no second code
  * path is being pictured.
  */
+export function seedUnconnectedAccount(): void {
+  const { siteId } = UNCONNECTED_ACCOUNT;
+  seedSite(UNCONNECTED_ACCOUNT, {
+    drafts: [{ id: "00000000-0000-0000-0000-0000000000d6", state: "in_review", title: "Emergency plumber: what to do in the first hour", scheduledIn: 0 }],
+    publishing: WEEK_ZERO_PUBLISHING,
+  });
+  sql(
+    `insert into destinations (site_id, kind, config, health, health_reason, hostname, hostname_state) values ` +
+      `('${siteId}', 'hosted', null, 'expired', 'dns_unset', '${UNCONNECTED_HOST}', 'pending_dns');`
+  );
+}
+
 export function seedWeekZeroAccount(): void {
   const { siteId, domain } = WEEK_ZERO_ACCOUNT;
   seedSite(WEEK_ZERO_ACCOUNT, {
