@@ -501,7 +501,7 @@ describe("account/maintenance — its due-work queries and hand-offs, no domain 
 describe("scan/rescore — a request the master session wrote, answered by the deployed code (issue 1433)", () => {
   it("ticks every 15 minutes, and a tick with nothing asked is a recorded skip", async () => {
     const job = await definition("scan/rescore");
-    expect(job.trigger).toEqual({ kind: "cron", cron: "*/15 * * * *" });
+    expect(job.trigger).toEqual({ kind: "cron", cron: "7,22,37,52 * * * *" });
     await expect(job.run({ data: {}, now: EVENING_UTC })).resolves.toEqual({ outcome: "skipped", subjectId: null, reason: "no-subject" });
     expect(calls.map((c) => c.fn)).toEqual(["claimRescore"]);
   });

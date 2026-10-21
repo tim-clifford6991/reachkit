@@ -522,7 +522,7 @@ export function statesOwnFigures(meta: unknown, markdown: string): boolean {
 }
 
 /** The site's live pages that ReachKit wrote, each at its current version. */
-async function ownLivePages(siteId: string): Promise<OwnLivePage[]> {
+export async function ownLivePages(siteId: string): Promise<OwnLivePage[]> {
   const client = untyped();
   const live = await client
     .from<PublicationRow>("publications")
@@ -759,8 +759,8 @@ async function stoppedRefreshes(siteId: string): Promise<Set<string>> {
 export async function planLinkBacks(a: { siteId: string; url: string; at: Date }): Promise<number> {
   try {
     const store = opportunityStore();
-    if (store.refreshInputs === undefined) return 0;
-    const { pages } = await store.refreshInputs(a.siteId);
+    if (store.refreshPages === undefined) return 0;
+    const pages = await store.refreshPages(a.siteId);
     if (pages.length < 2) return 0;
     const stopped = await stoppedRefreshes(a.siteId);
     const candidates = linkBackCandidates(
@@ -812,8 +812,8 @@ export function movedLinkCandidates(
 export async function planMovedLinks(a: { siteId: string; from: readonly string[]; to: string; title: string; at: Date }): Promise<number> {
   try {
     const store = opportunityStore();
-    if (store.refreshInputs === undefined) return 0;
-    const { pages } = await store.refreshInputs(a.siteId);
+    if (store.refreshPages === undefined) return 0;
+    const pages = await store.refreshPages(a.siteId);
     const stopped = await stoppedRefreshes(a.siteId);
     const candidates = movedLinkCandidates(
       pages.map((page) => ({ ...page, stopped: stopped.has(addressKey(page.url)) })),
@@ -865,8 +865,8 @@ export function stalePriceCandidates(pages: readonly OwnLivePage[], at: Date): C
 export async function planStructureRefreshes(a: { siteId: string; at: Date }): Promise<number> {
   try {
     const store = opportunityStore();
-    if (store.refreshInputs === undefined) return 0;
-    const { pages } = await store.refreshInputs(a.siteId);
+    if (store.refreshPages === undefined) return 0;
+    const pages = await store.refreshPages(a.siteId);
     if (pages.length === 0) return 0;
     const stopped = await stoppedRefreshes(a.siteId);
     const held = pages.map((page) => ({ ...page, stopped: stopped.has(addressKey(page.url)) }));

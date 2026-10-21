@@ -14,5 +14,5 @@ Every background process is one of these jobs. A clock tick that finds nothing d
 | `weekly/refresh` | cron `0 * * * *` | one run per subject | the engine's own database constraint | hourly tick, due per site-local Monday (ADR-060) | `src/jobs/weekly-refresh.ts` |
 | `lead/nurture` | cron `0 * * * *` | one run | the engine's own database constraint | hourly tick; the free first page, then each nurture mail when it is due | `src/jobs/lead-nurture.ts` |
 | `account/maintenance` | cron `*/15 * * * *` | one run | the engine's own database constraint | every MAINTENANCE_TICK_MINUTES; five due-work queries | `src/jobs/account-maintenance.ts` |
-| `scan/rescore` | cron `*/15 * * * *` | one run | the engine's own database constraint | every 15 minutes; answers a re-score the master session asked for (issue 1433) | `src/jobs/scan-rescore.ts` |
+| `scan/rescore` | cron `7,22,37,52 * * * *` | one run | the engine's own database constraint | every 15 minutes; answers a re-score the master session asked for (issue 1433) | `src/jobs/scan-rescore.ts` |
 | `scan/finish-reads` | event `scan/finish-reads` | one run | `scanId` | sent by a free pass that left searches unread (issue 1440) | `src/jobs/scan-finish-reads.ts` |

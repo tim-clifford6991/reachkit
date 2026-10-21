@@ -25,6 +25,7 @@ import type { HostedOwnPages } from "../../src/lib/publish/destinations/hosted/o
 import { topTensOf } from "../../src/lib/opportunities/cluster";
 import type { AskedBeside } from "../../src/lib/opportunities/derive/topics";
 import type { EarnGrounding } from "../../src/lib/opportunities/earn-grounding";
+import type { OwnLivePage } from "../../src/lib/opportunities/refresh";
 import type { NotWorkingVerdict } from "../../src/lib/opportunities/suppression";
 import type { StoredReport } from "../../src/lib/scan/report";
 import type { InventoryRow } from "../../src/lib/site-profile/types";
@@ -72,6 +73,10 @@ export interface MemoryState {
    *  index's own suite's subject (`tests/known-content/`); what this records
    *  is that the pass asks for one before it derives. */
   knownRefreshes: { siteId: string; domain: string; pages: number }[];
+
+  /** The site's live pages of ours, as `refreshPages` answers them; absent
+   *  reads as none. */
+  livePages?: OwnLivePage[];
 }
 
 export function newMemoryState(over: Partial<MemoryState> = {}): MemoryState {
@@ -407,6 +412,10 @@ export function memoryStore(state: MemoryState): OpportunityStore {
 
     async refreshKnownContent({ siteId, domain, inventory }) {
       state.knownRefreshes.push({ siteId, domain, pages: inventory.length });
+    },
+
+    async refreshPages() {
+      return state.livePages ?? [];
     },
   };
 }
