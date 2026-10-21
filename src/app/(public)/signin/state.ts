@@ -15,6 +15,8 @@ export interface SignInState {
   /** What was typed, so a refused address is still there when the screen
    *  comes back (REQ-098 criterion 6) — including with no client runtime. */
   value: string;
+  /** When the link was asked for, as epoch ms: zone-free, so the reader's browser writes the clock. */
+  sentAt?: number;
 }
 
 export const SIGN_IN_INITIAL: SignInState = { answer: "none", value: "" };
