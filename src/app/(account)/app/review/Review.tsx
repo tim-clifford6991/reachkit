@@ -14,6 +14,8 @@ const COL = "col";
 const NONE = "—";
 const SEP = ": ";
 const TABS = "review-tab";
+const WEEK = "week";
+const PAGES = "pages";
 const TABLE = "table table-sm";
 const NUM = "tabular-nums";
 const MUTED = "text-sm text-base-content/70";
@@ -199,24 +201,24 @@ function weekOf(sites: readonly ReviewSite[]): string | null {
   return days[0] ?? null;
 }
 
+// Native radios pick the panel through CSS alone; the panels sit outside the
+// tab bar so neither escapes the other's box.
 function Tabs(p: { sites: readonly ReviewSite[] }): React.JSX.Element {
   return (
-    <div role="tablist" aria-label={copy("review.tabs")} className="tabs tabs-border min-w-0">
-      <input type="radio" name={TABS} role="tab" className="tab" aria-label={copy("review.tab.week")} defaultChecked />
-      <div role="tabpanel" className="tab-content min-w-0 pt-4" data-testid="review-tab-week">
-        <div className="flex min-w-0 flex-col gap-4">
-          {p.sites.map((site) => (
-            <Week key={site.id} site={site} />
-          ))}
-        </div>
+    <div className="group flex min-w-0 flex-col gap-4">
+      <div role="radiogroup" aria-label={copy("review.tabs")} className="tabs tabs-border min-w-0">
+        <input type="radio" name={TABS} value={WEEK} className="tab" aria-label={copy("review.tab.week")} defaultChecked />
+        <input type="radio" name={TABS} value={PAGES} className="tab" aria-label={copy("review.tab.pages")} />
       </div>
-      <input type="radio" name={TABS} role="tab" className="tab" aria-label={copy("review.tab.pages")} />
-      <div role="tabpanel" className="tab-content min-w-0 pt-4" data-testid="review-tab-pages">
-        <div className="flex min-w-0 flex-col gap-4">
-          {p.sites.map((site) => (
-            <Pages key={site.id} site={site} />
-          ))}
-        </div>
+      <div className="flex min-w-0 flex-col gap-4 group-has-[[value=pages]:checked]:hidden" data-testid="review-tab-week">
+        {p.sites.map((site) => (
+          <Week key={site.id} site={site} />
+        ))}
+      </div>
+      <div className="hidden min-w-0 flex-col gap-4 group-has-[[value=pages]:checked]:flex" data-testid="review-tab-pages">
+        {p.sites.map((site) => (
+          <Pages key={site.id} site={site} />
+        ))}
       </div>
     </div>
   );
