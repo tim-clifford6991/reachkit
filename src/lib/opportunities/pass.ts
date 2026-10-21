@@ -204,6 +204,11 @@ export async function deriveForPass(
   // site holds: its next evening commits the week again.
   if (a.tier === "deep") await store.commitPlan(a.siteId, []);
   const added = (derived?.created.length ?? 0) + refilled.added;
-  console.log(JSON.stringify({ event: "supply_pass", tier: a.tier, siteId: a.siteId, scanId: a.report.scanId, added, unused: refilled.unused }));
+  // `spentCents` tells a spent reserve (at the cap) from a day or site ceiling (below it), which `capHit()` lumps.
+  const derivation =
+    derived === null
+      ? { derived: "not_run" as const, because: "spend_ceiling" as const, spentCents: c.spentCents() }
+      : { derived: derived.created.length };
+  console.log(JSON.stringify({ event: "supply_pass", tier: a.tier, siteId: a.siteId, scanId: a.report.scanId, added, unused: refilled.unused, ...derivation }));
   return { tier: a.tier, added, unused: refilled.unused };
 }

@@ -6,7 +6,7 @@
 // cap of the next, and the row's `cost_cents` ends as the sum of them.
 import "../generate/env";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { CAPS } from "@/lib/config/constants";
+import { CAPS, TYPING_RESERVE_C } from "@/lib/config/constants";
 
 const { rowCents, updates } = vi.hoisted(() => ({
   rowCents: { value: 0 as unknown },
@@ -105,5 +105,35 @@ describe("a week of drafts ledgered under the weekly pass's row", () => {
     });
     expect(run).toHaveBeenCalledTimes(1);
     expect(updates).toEqual([{ values: { cost_cents: expect.closeTo(passOwnCents + 12, 6) }, id: "scan-1" }]);
+  });
+});
+
+// Owner W1: a weekly pass's stages leave the typing reserve unspent, and the
+// context the typing runs in after the stored report spends it, never past the cap.
+describe("the typing reserve a weekly pass's measurement holds back", () => {
+  it("refuses the stages at the cap less the reserve, then admits the reserve and nothing past the cap", async () => {
+    const { withStoredPassSpend } = await import("../../src/lib/scan/ceilings");
+    const stageCap = CAPS.WEEKLY_C - TYPING_RESERVE_C;
+    await withCostContext(
+      { scanId: "scan-1", cap: "WEEKLY", policyVersion: 1, holdBackCents: TYPING_RESERVE_C },
+      async (cost) => {
+        await cost.recordFetch(call(stageCap - 2, "serpOrganic"));
+        expect(await cost.recordFetch(call(3, "serpOrganic"))).toEqual({ skipped: "cap" });
+        expect(await cost.recordFetch(call(2, "serpOrganic"))).not.toEqual({ skipped: "cap" });
+        expect(cost.capHit()).toBe(true);
+      }
+    );
+    expect(rowCents.value).toBeCloseTo(stageCap, 6);
+
+    const typing = vi.fn(async () => ({}));
+    await withStoredPassSpend({ scanId: "scan-1", cap: "WEEKLY" }, async (cost) => {
+      expect(cost.capHit()).toBe(false);
+      expect(await cost.recordFetch({ ...call(TYPING_RESERVE_C, "llm.topic-fit"), run: typing })).not.toEqual({
+        skipped: "cap",
+      });
+      expect(await cost.recordFetch({ ...call(0.1, "llm.opportunity-type"), run: typing })).toEqual({ skipped: "cap" });
+    });
+    expect(typing).toHaveBeenCalledTimes(1);
+    expect(rowCents.value).toBeCloseTo(CAPS.WEEKLY_C, 6);
   });
 });

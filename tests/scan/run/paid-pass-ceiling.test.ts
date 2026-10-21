@@ -40,7 +40,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { captureStages, fakeDb } from "./harness";
 import { measured, measuredZero, unmeasured } from "../../../src/lib/measure/measured";
-import { BATTERY as BATTERY_PINS, TIMING, VENDOR } from "../../../src/lib/config/constants";
+import { BATTERY as BATTERY_PINS, CAPS, TIMING, TYPING_RESERVE_C, VENDOR } from "../../../src/lib/config/constants";
+import type { CostContext } from "../../../src/lib/costs";
 import type { DomainMeasurement } from "../../../src/lib/measure";
 import type { StoredReport } from "../../../src/lib/scan/report";
 import type { AiAnswer } from "../../../src/lib/vendors/dataforseo/types";
@@ -404,6 +405,58 @@ describe("the weekly pass at production's measured queue waits (issue 1160)", ()
     } finally {
       vi.useRealTimers();
     }
+  });
+});
+
+// Owner W1: a weekly pass whose searches alone would spend its whole cap
+// stops them short of the typing reserve, so the typing after the stored
+// report is still paid for, and the pass never spends past the cap.
+describe("a weekly pass whose measurement would spend its whole cap", () => {
+  it("stops its stages at the cap less the reserve and leaves the reserve for the typing", async () => {
+    // Each search is ledgered through the pass's own cost context; twelve would cost more than the cap.
+    const serpCents = 4;
+    serpOrganic.mockImplementation(async (c: CostContext, call: { keyword: string }) => {
+      const spent = await c.recordFetch({
+        source: "serpOrganic",
+        cacheKey: `serp:${call.keyword}`,
+        freshnessDays: 0,
+        costCents: serpCents,
+        run: async () => measured(SERP, AT),
+      });
+      return "skipped" in spent ? unmeasured<typeof SERP>("not_attempted", AT) : spent.payload;
+    });
+    // The close's roll-up is what the context after the stored report opens on.
+    db.answer = (query) => {
+      if (query.table !== "scans" || query.verb !== "select") return null;
+      const closed = db.queries.filter((q) => q.table === "scans" && q.verb === "update" && q.values?.cost_cents !== undefined).at(-1);
+      return [{ id: CLAIMED_ID, fromIncompleteRescan: false, cost_cents: closed?.values?.cost_cents ?? 0 }];
+    };
+
+    const typing: { openedAt?: number; capHit?: boolean; admitted?: boolean; closedAt?: number } = {};
+    await runScan({
+      domain: DOMAIN,
+      siteId: "site-1719",
+      tier: "weekly",
+      afterReport: async ({ cost }) => {
+        typing.openedAt = cost.spentCents();
+        typing.capHit = cost.capHit();
+        const paid = await cost.recordFetch({
+          source: "llm.topic-fit",
+          cacheKey: "typing",
+          freshnessDays: 0,
+          costCents: TYPING_RESERVE_C,
+          run: async () => ({}),
+        });
+        typing.admitted = !("skipped" in paid);
+        typing.closedAt = cost.spentCents();
+      },
+    });
+
+    expect(serpOrganic).toHaveBeenCalledTimes(BATTERY_PINS.QUESTIONS);
+    expect(typing.openedAt).toBeLessThanOrEqual(CAPS.WEEKLY_C - TYPING_RESERVE_C);
+    expect(typing.capHit).toBe(false);
+    expect(typing.admitted).toBe(true);
+    expect(typing.closedAt).toBeLessThanOrEqual(CAPS.WEEKLY_C);
   });
 });
 
