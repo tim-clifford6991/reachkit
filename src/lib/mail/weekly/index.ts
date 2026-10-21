@@ -35,15 +35,17 @@
 // different week from the one it announces.
 import { dbAdmin } from "@/lib/db";
 import { env } from "@/lib/config/env";
-import { ANSWER_RATE_WEEKS, BLOG_READS_WINDOW_D, MENTION_RATE_MIN_WEEKS } from "@/lib/config/constants";
+import { ANSWER_RATE_WEEKS, BLOG_READS_WINDOW_D, MENTION_RATE_MIN_WEEKS, WEEK_PLAN } from "@/lib/config/constants";
 import { measurePrompts } from "@/lib/market/prompts/rate";
 import type { CopyKey } from "@/lib/presentation/copy";
 import { measured, measuredZero, unmeasured, type Measured } from "@/lib/measure/measured";
 import { committedWeek, weeklyDigest, type Opportunity } from "@/lib/opportunities";
+import { plannedStopToken } from "@/lib/opportunities/stop";
+import { vetoLinkPath } from "@/lib/publish/publishable";
 import { accountForWeek, previousWeekStart, readPromptWindow, weekMovement, type UnmeasuredPart } from "@/lib/scan/weekly";
 import type { MeasurementState } from "../shell/compose";
 import { sendEmail } from "../send";
-import { buildWeekly, type WeeklyNeedsYou, type WeeklyNumbers, type WeeklyPage } from "../templates/weekly";
+import { buildWeekly, type WeeklyNeedsYou, type WeeklyNext, type WeeklyNumbers, type WeeklyPage } from "../templates/weekly";
 
 /** Why a digest did not go out. Every arm is reported; none is silent, and
  *  `not-composable` is its own arm rather than folded into `mail` —
@@ -363,19 +365,34 @@ async function aiVisitsOf(siteId: string, at: Date): Promise<WeeklyNumbers["aiVi
 }
 
 /** The week this Monday committed (SPEC §7, issue 1559): its pages in date
- *  order, and its spares. Measured-and-empty where the supply has run out —
- *  the calendar is never padded, and an empty week is a result the template
- *  states in one line. */
+ *  order, each with its day and its stop link, and its spares. Measured-and-
+ *  empty where the supply has run out — the calendar is never padded, and an
+ *  empty week is a result the template states in one line. */
 async function theWeek(
   siteId: string,
   at: Date
-): Promise<{ next: Measured<readonly { targetQuery: string }[]>; spares: Measured<readonly { targetQuery: string }[]> }> {
+): Promise<{ next: Measured<readonly WeeklyNext[]>; spares: Measured<readonly { targetQuery: string }[]>; skippedDays: number }> {
   const week = await committedWeek(siteId);
   // An opportunity with no target search has nothing to name, and naming it
   // some other way would be a second identity for one row.
   const named = (rows: readonly Opportunity[]) =>
     rows.flatMap((row) => (row.targetQuery === null ? [] : [{ targetQuery: row.targetQuery }]));
-  return { next: measured(named(week.days.map((day) => day.opportunity)), at), spares: measured(named(week.spares), at) };
+  const days = week.days.flatMap(({ date, opportunity }) =>
+    opportunity.targetQuery === null
+      ? []
+      : [{ targetQuery: opportunity.targetQuery, day: date, stopHref: stopHrefOf(siteId, opportunity.id, date) }]
+  );
+  // The week runs WEEK_PLAN.days dates from its first page; a date in it with
+  // no page planned is told, never padded.
+  const first = days[0]?.day;
+  const end = first === undefined ? "" : new Date(Date.parse(`${first}T00:00:00Z`) + WEEK_PLAN.days * 86_400_000).toISOString().slice(0, 10);
+  const skippedDays = first === undefined ? 0 : WEEK_PLAN.days - new Set(days.filter((d) => d.day < end).map((d) => d.day)).size;
+  return { next: measured(days, at), spares: measured(named(week.spares), at), skippedDays };
+}
+
+function stopHrefOf(siteId: string, opportunityId: string, day: string): string {
+  const token = plannedStopToken({ siteId, opportunityId, day });
+  return new URL(vetoLinkPath(token), env.NEXT_PUBLIC_APP_URL).toString();
 }
 
 /** The account, as the compose shell states it. A complete week says so

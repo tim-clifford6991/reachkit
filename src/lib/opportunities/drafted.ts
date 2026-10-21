@@ -48,6 +48,15 @@ export async function queueForDraft(opportunityId: string): Promise<void> {
   if (page.clusterKey !== null) await store.setCluster(page.id, page.clusterKey, [...absorbed].sort());
 }
 
+/** A draft for this opportunity is being saved: it leaves the open set
+ *  first, so a planned stop that lands later is refused. `false` where a
+ *  stop came first and no draft may be saved. */
+export async function claimForDraft(opportunityId: string): Promise<boolean> {
+  const store = opportunityStore();
+  await store.markQueued(opportunityId);
+  return (await store.byId(opportunityId))?.status !== "dismissed";
+}
+
 /** The customer stopped the draft written from this opportunity: it is not
  *  offered again the next evening, and nothing is spent on it twice. */
 export async function dismissForVeto(opportunityId: string): Promise<void> {

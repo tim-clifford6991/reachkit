@@ -363,6 +363,12 @@ export const PUBLISH_COPY = Object.freeze({
   // The heads of the arms where nothing was stopped; the line under each says why.
   "publish.veto.closed.head": ["This page can no longer be stopped here", { slots: {}, fixedBy: "issue 1574" }],
   "publish.veto.unknown.head": ["This link doesn’t work", { slots: {}, fixedBy: "issue 1574" }],
+  // Issue 1674: the Monday mail's link to a page planned but not written yet (drafted).
+  "publish.veto.planned.title": ["Planned for {day}", { slots: { day: "text" }, fixedBy: "issue 1674 (drafted)" }],
+  "publish.veto.written": [
+    "This page is written now. Sign in to read, edit or stop it from your plan.",
+    { slots: {}, fixedBy: "issue 1674 (drafted)" },
+  ],
 
   // 2026-09-06, issue #54 (BUILD §9 · REQ-060). The two sentences the
   // WordPress destination speaks, and they are the only two: everything

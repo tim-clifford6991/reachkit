@@ -39,7 +39,7 @@ import type { IndexState, WeekStanding } from "@/lib/opportunities";
 import { PAGE_VERDICTS } from "@/lib/presentation/bands";
 import type { CopyKey } from "@/lib/presentation/copy";
 import type { IssueChange } from "@/lib/site-issues/changes";
-import { formatStat } from "../../blocks/format";
+import { formatMailDay, formatStat } from "../../blocks/format";
 import { issueChangeRows } from "../../blocks/site-issues";
 import type { CopyVars, ListRow, MailBlock, StatRow, VerdictRow } from "../../blocks/types";
 
@@ -74,6 +74,8 @@ const VERDICTS_NONE = "mail.weekly.verdicts.none" satisfies CopyKey;
 const NEXT = "mail.weekly.next" satisfies CopyKey;
 const NEXT_NONE = "mail.weekly.next.none" satisfies CopyKey;
 const NEXT_ITEM = "mail.weekly.next.item" satisfies CopyKey;
+const NEXT_DAY = "mail.weekly.next.day" satisfies CopyKey;
+const NEXT_SKIPPED = "mail.weekly.next.skipped" satisfies CopyKey;
 const SPARES = "mail.weekly.spares" satisfies CopyKey;
 const PAGE = "mail.weekly.page" satisfies CopyKey;
 const PAGE_MOVED = "mail.weekly.page.moved" satisfies CopyKey;
@@ -88,6 +90,14 @@ export interface WeeklyPage {
   /** Issue 1538: whether any stored search result held the page. Absent
    *  where that could not be read. */
   readonly indexState?: IndexState;
+}
+
+/** A page the week planned: its search, and, once its day is committed,
+ *  that day and the link that stops it before it is written. */
+export interface WeeklyNext {
+  readonly targetQuery: string;
+  readonly day?: string;
+  readonly stopHref?: string;
 }
 
 export interface WeeklyMail {
@@ -153,7 +163,9 @@ export function buildWeekly(a: {
    *  1559). `unmeasured` omits the section; measured-and-empty states the
    *  supply's own empty line — the calendar is never padded (DECISIONS
    *  2026-08-28). */
-  next: Measured<readonly { targetQuery: string }[]>;
+  next: Measured<readonly WeeklyNext[]>;
+  /** Dates in the committed week with no page planned. */
+  skippedDays?: number;
   /** The week's spares, written where a day's page cannot be. Absent or
    *  empty: no list. */
   spares?: Measured<readonly { targetQuery: string }[]>;
@@ -207,6 +219,9 @@ export function buildWeekly(a: {
         items: mapMeasuredRows(a.next, nextRows),
         emptyLine: NEXT_NONE,
       },
+      ...(a.skippedDays === undefined || a.skippedDays === 0
+        ? []
+        : [{ block: "paragraph", text: NEXT_SKIPPED, vars: { count: String(a.skippedDays) } } as const]),
       ...(a.spares === undefined || a.spares.kind === "unmeasured" || a.spares.value.length === 0
         ? []
         : [{ block: "list", label: SPARES, items: mapMeasuredRows(a.spares, nextRows), emptyLine: NEXT_NONE } as const]),
@@ -377,9 +392,13 @@ function nowNamedRows(questions: readonly { search: string; answerUrl: string }[
   }));
 }
 
-/** "Next 3" — named by the search each targets, which is measured fact.
- *  The list is the caller's, already ranked and already cut to three:
- *  supply is the cap and this template never pads it. */
-function nextRows(next: readonly { targetQuery: string }[]): readonly ListRow[] {
-  return next.map((opportunity) => ({ label: NEXT_ITEM, vars: { search: opportunity.targetQuery } }));
+/** The week's pages, named by the search each targets, which is measured
+ *  fact; a committed day's row is its stop link. Supply is the cap and this
+ *  template never pads it. */
+function nextRows(next: readonly WeeklyNext[]): readonly ListRow[] {
+  return next.map((page): ListRow =>
+    page.day === undefined || page.stopHref === undefined
+      ? { label: NEXT_ITEM, vars: { search: page.targetQuery } }
+      : { label: NEXT_DAY, vars: { day: formatMailDay(page.day), search: page.targetQuery }, href: page.stopHref }
+  );
 }

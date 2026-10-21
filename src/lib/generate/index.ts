@@ -72,7 +72,7 @@ import { NO_RESEARCH, researchMarket, storedAsk, type MarketResearch } from "./p
 import { namedRivals } from "./rules/rivals";
 import { TEMPLATES } from "./templates";
 import { marketSearches, writingMarket } from "./voice/market";
-import { DraftDateTaken, generateStore, type RestartedDraft, type SiteFacts } from "./store";
+import { DraftDateTaken, PageStopped, generateStore, type RestartedDraft, type SiteFacts } from "./store";
 
 export type { GroundedFact, HardRule, RuleFailure, ComparisonSet, SiteRuleInputs } from "./rules/types";
 
@@ -92,7 +92,7 @@ export { rejectionCause, type NearDuplicateCause } from "./pipeline/rejection";
 export { type PipelineStep } from "./pipeline";
 export { type ContextPack, readPack } from "./pipeline/pack";
 export { TEMPLATES, type Template } from "./templates";
-export { DraftDateTaken, setGenerateStore, type GenerateStore, type RestartedDraft } from "./store";
+export { DraftDateTaken, PageStopped, setGenerateStore, type GenerateStore, type RestartedDraft } from "./store";
 export { withDraftCost } from "./cost";
 
 /** Why a day has no page. Every arm is a fact, and none of them is a
@@ -193,12 +193,22 @@ export async function generateDayPage(a: {
         // A fix is a metadata-only update: one call, no regeneration loop —
         // the only rule it can fail is the customer's own do-not-claim list,
         // which a second attempt at the same page would read the same way.
-        const outcome =
-          opportunity.type === "fix_page"
-            ? await fixPage(page, own)
-            : mendable(opportunity)
-              ? await mendPage(page)
-              : await writePage({ ...page, attempts: MAX_AUTOMATIC_ATTEMPTS, startedAt: topic === 1 ? startedAt : Date.now() }, own);
+        let outcome: DayPageOutcome;
+        try {
+          outcome =
+            opportunity.type === "fix_page"
+              ? await fixPage(page, own)
+              : mendable(opportunity)
+                ? await mendPage(page)
+                : await writePage({ ...page, attempts: MAX_AUTOMATIC_ATTEMPTS, startedAt: topic === 1 ? startedAt : Date.now() }, own);
+        } catch (error) {
+          // The customer stopped this page while it was written: nothing was saved, and the day takes the week's next spare.
+          if (!(error instanceof PageStopped)) throw error;
+          const spare = cost.capHit() || Date.now() - startedAt > PIPELINE.nextTopicBeforeMs ? null : await pageForDay(a.siteId, a.publishDate, now);
+          if (spare === null || spare.id === opportunity.id) return { ok: false, because: "no_opportunity" };
+          opportunity = spare;
+          continue;
+        }
         await settle(outcome, opportunity.id, now, site.domain);
 
         // SPEC §7 (D26, issue 1179): a stopped draft does not cost its day.

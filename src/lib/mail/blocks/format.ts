@@ -76,3 +76,11 @@ export function formatMailDate(at: Date, timeZone: string | null): string {
     day: "numeric",
   }).format(at);
 }
+
+/** A planned day (`YYYY-MM-DD`) as a mail names it: `Tue, Oct 20`. A date
+ *  carries no zone, so it is read and written in UTC. */
+export function formatMailDay(date: string): string {
+  return new Intl.DateTimeFormat(MAIL_LOCALE, { timeZone: "UTC", weekday: "short", month: "short", day: "numeric" }).format(
+    new Date(`${date}T00:00:00Z`)
+  );
+}
