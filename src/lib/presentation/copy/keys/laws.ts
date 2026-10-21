@@ -143,6 +143,7 @@ export const LAWS_COPY = Object.freeze({
   ],
   "unmeasured.undeterminable": ["{what} couldn’t be measured: nothing came back that could be read.", { law: "unmeasured", slots: { what: "text" }, fixedBy: "REQ-004 c6" }],
   "unmeasured.not-attempted": ["{what} wasn’t measured: the scan stopped early, before it got there.", { law: "unmeasured", slots: { what: "text" }, fixedBy: "REQ-004 c9" }],
+  "unmeasured.not-yet": ["{what} isn’t measured yet.", { law: "unmeasured", slots: { what: "text" }, fixedBy: "issue 1599 · drafted" }],
   "unmeasured.dash": ["—", { law: "unmeasured", slots: {}, fixedBy: "REQ-004 c2" }],
   // The label the screen set draws over the three nav rows, in the eyebrow
   // role (S12, UI-SPEC §2's sidebar row). Approved as written (11a); the

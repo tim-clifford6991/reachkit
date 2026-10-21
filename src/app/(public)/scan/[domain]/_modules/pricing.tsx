@@ -74,7 +74,12 @@ const TERM_LINES: Readonly<Record<OfferTerms, () => readonly string[]>> = {
 
 /** The price, the terms where this shape puts them under it, the refusal
  *  line where there is one, Start, and the cancel line under it. */
-function PriceBox(p: { start: React.ReactNode; refused?: boolean; terms?: React.ReactNode }): React.JSX.Element {
+function PriceBox(p: {
+  start: React.ReactNode;
+  refused?: boolean;
+  terms?: React.ReactNode;
+  free?: React.ReactNode;
+}): React.JSX.Element {
   return (
     <div className="flex flex-col gap-4">
       {/* REQ-022 c1: "€49 per month and says that VAT is included". */}
@@ -97,6 +102,7 @@ function PriceBox(p: { start: React.ReactNode; refused?: boolean; terms?: React.
         <ShieldCheck size={14} strokeWidth={1.75} aria-hidden />
         {copy("offer.cancel_self_service")}
       </p>
+      {p.free ?? null}
     </div>
   );
 }
@@ -123,6 +129,14 @@ export function PricingCard(
      *  the terms on the left, the price and Start in a panel on the right.
      *  The same component and the same facts; only the shape is wider. */
     close?: boolean;
+    /** The close's eyebrow, above its heading. */
+    eyebrow?: string;
+    /** The close's heading, where the report has a sharper one than the offer's. */
+    heading?: string;
+    /** What the close holds under its heading, above the terms. */
+    children?: React.ReactNode;
+    /** The free path, under Start. */
+    free?: React.ReactNode;
   } = {}
 ): React.JSX.Element {
   const specs = TERM_LINES[p.terms ?? "report"]();
@@ -139,11 +153,13 @@ export function PricingCard(
       <section className={`card bg-base-100 ${FLOAT}`}>
         <div className="card-body gap-8 p-6 md:p-10 lg:flex-row lg:items-center lg:gap-12">
           <div className="flex min-w-0 flex-1 flex-col gap-4">
-            <h2 className="text-3xl font-bold">{copy("offer.close.heading")}</h2>
+            {p.eyebrow === undefined ? null : <p className="eyebrow">{p.eyebrow}</p>}
+            <h2 className="text-3xl font-bold">{p.heading ?? copy("offer.close.heading")}</h2>
+            {p.children}
             <Terms specs={specs} />
           </div>
           <div className="bg-primary/5 rounded-box ring-primary/15 shrink-0 p-6 ring-1 lg:w-96">
-            <PriceBox start={control} refused={p.refused} />
+            <PriceBox start={control} refused={p.refused} free={p.free} />
           </div>
         </div>
       </section>

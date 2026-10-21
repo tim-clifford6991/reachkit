@@ -915,4 +915,19 @@ export const REPORT_COPY = Object.freeze({
     "Measured in Google, {place}, in {language}. Search volumes are for all of {country}.",
     { slots: { place: "text", language: "text", country: "text" }, fixedBy: "SPEC §6 · D67 · issue 1480" },
   ],
+
+  // SPEC §2, owner A3 and E1 (2026-10-19): the offer leads with the pages
+  // the report found missing and lists every one. A3's heading and the
+  // board's eyebrow and lead are the owner's; the rest is drafted.
+  "report.offer.found": ["This report found {count} pages your site is missing", { slots: { count: "text" }, fixedBy: "owner A3 2026-10-19 · issue 1599" }],
+  "report.offer.found.one": ["This report found {count} page your site is missing", { slots: { count: "text" }, fixedBy: "owner A3 2026-10-19 · issue 1599" }],
+  "report.offer.free-path": ["Not ready? Get your first page free ↓", { slots: {}, fixedBy: "owner A3 2026-10-19 · issue 1599 · drafted" }],
+  "report.missing.volume": ["searched {volume} times a month", { slots: { volume: "text" }, fixedBy: "owner E1 2026-10-19 · issue 1599 · drafted" }],
+  "report.missing.holder": ["answered today by {holder}", { slots: { holder: "text" }, fixedBy: "owner E1 2026-10-19 · issue 1599 · drafted" }],
+  "report.missing.all": ["All {count}, nothing hidden.", { slots: { count: "text" }, fixedBy: "board PubReport · owner Q3 2026-10-20 · issue 1599" }],
+  "report.missing.eyebrow": ["Pages you’re missing", { slots: {}, fixedBy: "board PubReport · issue 1599" }],
+  "report.missing.lead": [
+    "Each one answers a question your buyers ask, that a competitor answers today and no page of yours does.",
+    { slots: {}, fixedBy: "board PubReport · issue 1599" },
+  ],
 }) satisfies CopyPartition;

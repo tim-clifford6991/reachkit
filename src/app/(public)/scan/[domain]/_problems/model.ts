@@ -11,7 +11,9 @@
 // market or date. That is what makes "the larger count never carries the
 // lower severity" a property of the code rather than a convention.
 import { SEVERITY_THRESHOLDS } from "@/lib/config/constants";
-import { mapMeasured, measured, measuredZero, type Measured } from "@/lib/measure/measured";
+import { NOT_BUILT } from "../_address/measured";
+import { combine, mapMeasured, measured, measuredZero, type Measured } from "@/lib/measure/measured";
+import { rankedFreePages } from "@/lib/opportunities/free-page";
 import type { CopyKey } from "@/lib/presentation/copy";
 import type { StoredReport } from "@/lib/scan/report";
 
@@ -126,6 +128,42 @@ export function answerReadersOf(report: StoredReport): { count: Measured<number>
   };
 }
 
+export interface MissingPage {
+  search: string;
+  volume: number | null;
+  /** The competitor first in the search today, where one is. */
+  holder: string | null;
+}
+
+/** Every page the report found missing, read from what it stored at 0¢: the
+ *  pages "page 1 of N" counts. `null` where the report did not measure its
+ *  questions or its market, so nothing can say what is missing. */
+export function missingPagesOf(report: StoredReport): readonly MissingPage[] | null {
+  if (report.questions.kind === "unmeasured" || report.market.kind === "unmeasured") return null;
+  return rankedFreePages(report).map((page) => ({
+    search: page.targetQuery ?? "",
+    volume: page.volume === null || page.volume.kind === "unmeasured" ? null : page.volume.value,
+    holder: page.evidence.family === "write" ? page.evidence.rival.domain : null,
+  }));
+}
+
+/** The missing-pages card's count: the supply section's where a scan built
+ *  it, else the pages listed above it, unmeasured for the reason its
+ *  questions or market were. */
+function missingCountOf(report: StoredReport): Measured<number> {
+  if (report.supply.missingPages.kind !== "unmeasured") return report.supply.missingPages;
+  const pages = missingPagesOf(report);
+  if (pages === null) return combine([report.questions, report.market], () => 0);
+  const at = report.verdict.measuredAt;
+  return pages.length === 0 ? measuredZero(0, at) : measured(pages.length, at);
+}
+
+/** No scan builds the supply section's counts yet, so an unmeasured one says
+ *  not measured yet rather than that the scan stopped early. */
+function notBuilt(count: Measured<number>): Measured<number> {
+  return count.kind === "unmeasured" ? { ...count, because: NOT_BUILT } : count;
+}
+
 /** Reads the blocked-readers count from the check and the other two from
  *  the blob's supply section. Returns the three-tuple; the length is the
  *  type, not a runtime check. `unblockLines` is applied by the caller that
@@ -137,8 +175,8 @@ export function cardsOf(
 ): readonly [ProblemCard, ProblemCard, ProblemCard] {
   const counts: Readonly<Record<ProblemName, Measured<number>>> = {
     blocked_readers: answerReadersOf(report).count,
-    missing_pages: report.supply.missingPages,
-    unquotable_pages: report.supply.unquotablePages,
+    missing_pages: missingCountOf(report),
+    unquotable_pages: notBuilt(report.supply.unquotablePages),
   };
 
   const [a, b, c] = PROBLEM_ORDER.map((problem): ProblemCard => {
