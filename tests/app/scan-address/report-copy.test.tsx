@@ -163,7 +163,7 @@ const SCREEN_KEYS: readonly CopyKey[] = [
   "report.offer.free-path",
   "report.missing.volume",
   "report.missing.holder",
-  "report.missing.more",
+  "report.missing.all",
   "report.missing.eyebrow",
   "report.missing.lead",
   "unmeasured.not-yet",

@@ -924,7 +924,7 @@ export const REPORT_COPY = Object.freeze({
   "report.offer.free-path": ["Not ready? Get your first page free ↓", { slots: {}, fixedBy: "owner A3 2026-10-19 · issue 1599 · drafted" }],
   "report.missing.volume": ["searched {volume} times a month", { slots: { volume: "text" }, fixedBy: "owner E1 2026-10-19 · issue 1599 · drafted" }],
   "report.missing.holder": ["answered today by {holder}", { slots: { holder: "text" }, fixedBy: "owner E1 2026-10-19 · issue 1599 · drafted" }],
-  "report.missing.more": ["{count} more pages you’re missing", { slots: { count: "text" }, fixedBy: "owner E1 2026-10-19 · issue 1599 · drafted" }],
+  "report.missing.all": ["All {count}, nothing hidden.", { slots: { count: "text" }, fixedBy: "board PubReport · owner Q3 2026-10-20 · issue 1599" }],
   "report.missing.eyebrow": ["Pages you’re missing", { slots: {}, fixedBy: "board PubReport · issue 1599" }],
   "report.missing.lead": [
     "Each one answers a question your buyers ask, that a competitor answers today and no page of yours does.",

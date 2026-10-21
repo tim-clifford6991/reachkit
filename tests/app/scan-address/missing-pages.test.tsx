@@ -13,19 +13,18 @@ import { panelReport, renderReport } from "./panel-report";
 const htmlText = (s: string): string => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#x27;");
 
 describe("every missing page is listed", () => {
-  it("a 14-page report renders all 14, the first few open and the rest closed", () => {
+  it("a 14-page report renders all 14 open, under the line that says none is hidden", () => {
     const pages: MissingPage[] = Array.from({ length: 14 }, (_, i) => ({
       search: `search ${i + 1}`,
       volume: 100 + i,
       holder: null,
     }));
     const html = renderToStaticMarkup(<MissingPagesList pages={pages} />);
-    expect(html.match(/<li/g)).toHaveLength(14);
-    for (const page of pages) expect(html).toContain(`>${page.search}<`);
-    const closed = html.slice(html.indexOf("<details"));
-    expect(closed).not.toMatch(/<details[^>]*\sopen/);
-    expect(closed.match(/<li/g)!.length).toBeGreaterThan(0);
-    expect(html.slice(0, html.indexOf("<details")).match(/<li/g)!.length).toBeLessThan(14);
+    expect(html).not.toContain("<details");
+    const open = html.slice(html.indexOf("<ol"), html.indexOf("</ol>"));
+    expect(open.match(/<li/g)).toHaveLength(14);
+    for (const page of pages) expect(open).toContain(`>${page.search}<`);
+    expect(html.indexOf(`>${htmlText(copy("report.missing.all", { count: "14" }))}</p>`)).toBeGreaterThan(html.indexOf("</ol>"));
   });
 
   it.each(["saas", "local"] as const)("the %s panel report lists every page it counted, each with its search", (which) => {
