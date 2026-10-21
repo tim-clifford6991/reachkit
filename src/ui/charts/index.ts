@@ -8,3 +8,5 @@ export type { RivalSparklineProps } from "./RivalSparkline";
 
 export { SERIES_COLOR } from "./series";
 export type { SeriesKind } from "./series";
+export { CostBars } from "./CostBars";
+export type { CostRow } from "./CostBars";

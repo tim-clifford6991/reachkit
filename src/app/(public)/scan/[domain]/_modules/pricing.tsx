@@ -64,20 +64,30 @@ const TERM_LINES: Readonly<Record<OfferTerms, () => readonly string[]>> = {
     }),
   ],
   pricing: () => [
-    copy("offer.pricing.page", { weekPages: WEEK_PLAN.days }),
-    copy("offer.pricing.measure"),
-    copy("offer.pricing.movement"),
+    copy("landing.pace", { weekPages: WEEK_PLAN.days }),
+    copy("pricing.plan.chosen"),
+    copy("pricing.plan.checked"),
+    copy("pricing.plan.mail"),
     // The window is the pin's, in both wordings: one home, two sentences.
     copy("offer.pricing.veto", { hours: String(VETO.defaultHours) }),
   ],
+};
+
+/** Each surface's cancel line: the report's one click, the pricing page's
+ *  where-and-when (board Pricing). */
+const CANCEL_LINE: Readonly<Record<OfferTerms, () => string>> = {
+  report: () => copy("offer.cancel_self_service"),
+  pricing: () => copy("pricing.plan.cancel"),
 };
 
 /** The price, the terms where this shape puts them under it, the refusal
  *  line where there is one, Start, and the cancel line under it. */
 function PriceBox(p: {
   start: React.ReactNode;
+  cancel: string;
   refused?: boolean;
   terms?: React.ReactNode;
+  note?: React.ReactNode;
   free?: React.ReactNode;
 }): React.JSX.Element {
   return (
@@ -89,6 +99,7 @@ function PriceBox(p: {
         </span>
         <span className="text-base-content/70 text-sm">{copy("price.interval")}</span>
       </div>
+      {p.note ?? null}
       {p.terms ?? null}
       {/* Issue #624: the vendor refused to open checkout. One written line
           on the offer itself, above the control that will try again. */}
@@ -100,7 +111,7 @@ function PriceBox(p: {
       {p.start}
       <p className="text-base-content/70 flex grow-0 items-center justify-center gap-1.5 text-xs">
         <ShieldCheck size={14} strokeWidth={1.75} aria-hidden />
-        {copy("offer.cancel_self_service")}
+        {p.cancel}
       </p>
       {p.free ?? null}
     </div>
@@ -139,7 +150,9 @@ export function PricingCard(
     free?: React.ReactNode;
   } = {}
 ): React.JSX.Element {
-  const specs = TERM_LINES[p.terms ?? "report"]();
+  const terms = p.terms ?? "report";
+  const specs = TERM_LINES[terms]();
+  const cancel = CANCEL_LINE[terms]();
   const start = (
     <button type={p.startAction ? "submit" : "button"} className="btn btn-primary btn-lg btn-block">
       {copy("offer.start.priced")}
@@ -159,18 +172,39 @@ export function PricingCard(
             <Terms specs={specs} />
           </div>
           <div className="bg-primary/5 rounded-box ring-primary/15 shrink-0 p-6 ring-1 lg:w-96">
-            <PriceBox start={control} refused={p.refused} free={p.free} />
+            <PriceBox start={control} cancel={cancel} refused={p.refused} free={p.free} />
           </div>
         </div>
       </section>
     );
   }
 
+  // The report's card opens on the price; the pricing page's names the plan
+  // and how it is billed first (board Pricing).
+  const named = terms === "pricing";
   return (
-    // Headless: the card opens on the price, which is its answer.
     <section className={`card bg-base-100 ${FLOAT}`}>
       <div className="card-body">
-        <PriceBox start={control} refused={p.refused} terms={<Terms specs={specs} />} />
+        {named ? (
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h2 className="card-title">{copy("chrome.wordmark")}</h2>
+            <span className="badge badge-soft badge-primary">{copy("pricing.plan.badge")}</span>
+          </div>
+        ) : null}
+        <PriceBox
+          start={control}
+          cancel={cancel}
+          refused={p.refused}
+          terms={<Terms specs={specs} />}
+          note={
+            named ? (
+              <p className="text-base-content/70 text-center text-sm">
+                {copy("pricing.plan.billing", { price: copy("price.amount") })}
+              </p>
+            ) : null
+          }
+          free={p.free}
+        />
       </div>
     </section>
   );

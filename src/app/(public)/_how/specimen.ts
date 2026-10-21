@@ -58,7 +58,7 @@ export interface Example {
     readonly facts: readonly { readonly text: string; readonly source: string }[];
     readonly never: string;
   };
-  readonly mail: { readonly name: string; readonly week: number; readonly live: number; readonly planned: number; readonly linked: number };
+  readonly mail: { readonly name: string; readonly week: number; readonly live: number; readonly planned: number; readonly linked: number; readonly climbing: number };
   readonly area: string;
   readonly report: { readonly score: number; readonly mentioned: number; readonly asked: number; readonly missing: number };
 }
@@ -113,7 +113,7 @@ const HARBOR: Example = {
   ],
   plan: [
     { kind: "new", title: "Emergency plumber in Austin: what to do in the first hour", reason: "AI answers link to a competitor for this.", state: "live" },
-    { kind: "update", title: "Toilet repair in Austin: running, leaking or clogged", reason: "Stopped gaining for three weeks.", state: "waiting" },
+    { kind: "update", title: "Toilet repair in Austin: running, leaking or clogged", reason: "Stopped gaining at place 18 for 3 weeks.", state: "waiting" },
     { kind: "new", title: "How much does slab leak repair cost in Austin?", reason: "Buyers ask this before they call.", state: "planned" },
     { kind: "update", title: "Drain cleaning in Austin: prices and what’s included", reason: "A competitor answers this today.", state: "planned" },
     { kind: "new", title: "Why a water heater pops, and when to call", reason: "Asked to AI every week.", state: "planned" },
@@ -130,7 +130,7 @@ const HARBOR: Example = {
     ],
     never: "“Austin’s cheapest plumber”",
   },
-  mail: { name: "Dana", week: 3, live: 12, planned: 7, linked: 2 },
+  mail: { name: "Dana", week: 3, live: 12, planned: 7, linked: 2, climbing: 3 },
   area: "Austin, Texas",
   report: { score: 27, mentioned: 1, asked: 12, missing: 14 },
 };
@@ -184,7 +184,7 @@ const TIDYSLOT: Example = {
   ],
   plan: [
     { kind: "new", title: "How to stop double bookings across Outlook and Google", reason: "AI answers link to a competitor for this.", state: "live" },
-    { kind: "update", title: "Round-robin booking, explained", reason: "Stopped gaining for three weeks.", state: "waiting" },
+    { kind: "update", title: "Round-robin booking, explained", reason: "Stopped gaining at place 18 for 3 weeks.", state: "waiting" },
     { kind: "new", title: "How to cut no-shows with reminders", reason: "Buyers ask this before they choose.", state: "planned" },
     { kind: "update", title: "Booking software pricing for small teams", reason: "A competitor answers this today.", state: "planned" },
     { kind: "new", title: "Shared team availability in one link", reason: "Asked to AI every week.", state: "planned" },
@@ -201,7 +201,7 @@ const TIDYSLOT: Example = {
     ],
     never: "“The only tool that never double-books”",
   },
-  mail: { name: "Sam", week: 3, live: 12, planned: 7, linked: 3 },
+  mail: { name: "Sam", week: 3, live: 12, planned: 7, linked: 3, climbing: 4 },
   area: "online",
   report: { score: 31, mentioned: 0, asked: 12, missing: 11 },
 };
@@ -223,10 +223,20 @@ export function weekDays(): readonly string[] {
   });
 }
 
+/** The drawn week's span and the Monday's date, with the month: "Mon 19 – Sun 25 Oct". */
+export function weekSpan(): { readonly range: string; readonly monday: string } {
+  const days = weekDays();
+  const month = new Date(WEEK_MONDAY).toLocaleDateString("en-US", { month: "short", timeZone: "UTC" });
+  return { range: `${days[0]} – ${days[6]} ${month}`, monday: `${days[0]} ${month}` };
+}
+
 /** The published benchmark the value comparison quotes, shown with its
  *  source: Ahrefs, "SEO Pricing", 439 providers polled, updated 2024-08-15. */
 export const AGENCY_BENCHMARK = Object.freeze({
   fee: "$501–$1,000",
+  /** The same fee on the cost chart's scale, in dollars a month. */
+  low: 501,
+  high: 1000,
   providers: 439,
   year: 2024,
   url: "https://ahrefs.com/blog/seo-pricing/",
