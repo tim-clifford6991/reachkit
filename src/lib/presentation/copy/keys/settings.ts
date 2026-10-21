@@ -390,7 +390,7 @@ export const SETTINGS_COPY = Object.freeze({
   "settings.market.refused.unreachable": ["We can’t reach that domain, so it wasn’t saved. Check the spelling.", { slots: {}, fixedBy: "REQ-071 c9" }],
   // D66 after setup (issue 1692). Drafted (#759).
   "settings.locale.note": [
-    "Changing it scans your site again right away, using one of the few scans allowed each day. Earlier results stay, marked with the date.",
+    "Changing it starts a new scan. Earlier results stay, marked with the date.",
     { slots: {}, fixedBy: "SPEC §6 · D66 · issue 1692" },
   ],
   "settings.locale.unchanged": [

@@ -336,9 +336,9 @@ export function marketsServed(a: { domain: string; html: string; measured: Local
 
 /**
  * Whether an address stands in another market's section of a site that
- * splits its markets by path or subdomain, as its home document shows it:
- * a first path segment naming another market, or a host its hreflang gives
- * only to other markets. Answers `false` for every address of a site that
+ * splits its markets by path or subdomain, as its hreflang shows it: a first
+ * path segment naming another market where a same-host alternate stands in
+ * a locale path, or a host its hreflang gives only to other markets. Answers `false` for every address of a site that
  * shows no split, so a single-market site loses no page.
  */
 export function outsideMarket(a: { domain: string; html: string; measured: Locale }): (url: string) => boolean {
@@ -347,15 +347,12 @@ export function outsideMarket(a: { domain: string; html: string; measured: Local
   const root = parse(a.html, { blockTextElements: { script: false, style: false, noscript: false } });
   const measured = measuredBy(a.measured);
   const alternates = alternatesOf(root, base).filter((each) => each.tag !== "x-default");
-  const sections = new Set([
-    ...ownLinksOf(root, base, host).flatMap((url) => pathLocaleOf(url.pathname) ?? []),
-    ...alternates.flatMap((each) => (bareHost(each.url.hostname) === host ? (pathLocaleOf(each.url.pathname) ?? []) : [])),
-  ]);
   const ours = new Set(alternates.filter((each) => measured(each.tag)).map((each) => bareHost(each.url.hostname)));
   const otherHosts = new Set(
     alternates.map((each) => bareHost(each.url.hostname)).filter((other) => other !== host && !ours.has(other))
   );
-  const byPath = sections.size >= 2 || (sections.size === 1 && alternates.length > 0);
+  // Links alone never split a site: /co/denver or /ml/ is a page, not a market.
+  const byPath = alternates.some((each) => bareHost(each.url.hostname) === host && pathLocaleOf(each.url.pathname) !== null);
   if (!byPath && otherHosts.size === 0) return () => false;
   return (raw) => {
     let url: URL;

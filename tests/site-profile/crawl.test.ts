@@ -859,4 +859,17 @@ describe("SPEC §6 (D66) — the crawl stays in the measured market's section", 
     );
     expect(out.pages.map((each) => new URL(each.url).pathname).sort()).toEqual(["/", "/de/", "/pricing"]);
   });
+
+  it.each([
+    ["a local business's state pages", ["/co/denver", "/ga/atlanta", "/pa/philadelphia"]],
+    ["a SaaS's two-letter product paths", ["/hr/", "/ml/"]],
+  ])("links alone never split a site: %s are all read", async (_, paths) => {
+    const single = page("Home", paths.map((path) => `<a href="${path}">${path}</a>`).join(""));
+    const out = await crawlSite(
+      fakeCost(),
+      { domain: DOMAIN, homeUrl: HOME, homeHtml: single, sitemaps: [], locale: { country: "US", language: "en" } },
+      fakePorts(Object.fromEntries(paths.map((path) => [`https://example.com${path}`, ok(`https://example.com${path}`, page(path))])))
+    );
+    expect(out.pages.map((each) => new URL(each.url).pathname).sort()).toEqual(["/", ...paths].sort());
+  });
 });
