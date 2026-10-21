@@ -238,8 +238,8 @@ export async function generateDayPage(a: {
     // Issue 886: another delivery of this tick wrote the date's row while
     // this one was writing its page. The index refused the second row, so
     // the day has exactly one page; this run wrote nothing, moves nothing,
-    // and leaves its opportunity open the way any run that wrote no row
-    // does.
+    // and the store gave back its claim, so its opportunity is open the way
+    // any run that wrote no row leaves it.
     if (error instanceof DraftDateTaken) return { ok: false, because: "already_drafted" };
     throw error;
   }

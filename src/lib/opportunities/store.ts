@@ -268,8 +268,11 @@ export interface OpportunityStore {
   /** A row whose acceptance test passed: its status moves to `done`. */
   markDone(opportunityId: string): Promise<void>;
   /** A row a draft was written from: `open` moves to `queued`, and no other
-   *  status moves (SPEC §7, 2026-09-15 — issue 712). */
-  markQueued(opportunityId: string): Promise<void>;
+   *  status moves (SPEC §7, 2026-09-15 — issue 712). `true` says it moved. */
+  markQueued(opportunityId: string): Promise<boolean>;
+  /** A claim whose draft was never saved is given back: `queued` moves to
+   *  `open` in one conditional update, and no other status moves. */
+  reopenIfQueued(opportunityId: string): Promise<void>;
   /** A row whose draft the customer stopped: `open` or `queued` moves to
    *  `dismissed`, and `done` stays done (SPEC §7, 2026-09-15 — issue 712). */
   markDismissed(opportunityId: string): Promise<void>;
@@ -900,12 +903,23 @@ export function supabaseOpportunityStore(): OpportunityStore {
     },
 
     async markQueued(opportunityId) {
-      const { error } = await untyped()
-        .from<OpportunityRow>("opportunities")
+      const { data, error } = await untyped()
+        .from<{ id: string }>("opportunities")
         .update({ status: "queued" })
         .eq("id", opportunityId)
-        .eq("status", "open");
+        .eq("status", "open")
+        .select("id");
       if (error) throw new Error(`opportunities.markQueued: ${error.message}`);
+      return (data ?? []).length > 0;
+    },
+
+    async reopenIfQueued(opportunityId) {
+      const { error } = await untyped()
+        .from<OpportunityRow>("opportunities")
+        .update({ status: "open" })
+        .eq("id", opportunityId)
+        .eq("status", "queued");
+      if (error) throw new Error(`opportunities.reopenIfQueued: ${error.message}`);
     },
 
     async markDismissed(opportunityId) {

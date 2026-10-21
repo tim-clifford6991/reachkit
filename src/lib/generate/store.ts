@@ -359,23 +359,33 @@ export function supabaseGenerateStore(): GenerateStore {
 
     async insertDraft(row) {
       // Claimed as it is saved: a stop that came first drops the draft, and one that comes later is refused.
-      const { claimForDraft } = await import("@/lib/opportunities");
-      if (!(await claimForDraft(row.opportunity_id))) throw new PageStopped(row.opportunity_id);
-      const result = await untyped()
-        .from<{ id: string }>("drafts")
-        .insert(row)
-        .select("id");
-      // The one unique rule an insert of a day's page can break is
-      // `drafts_one_per_site_per_date` (issue 886) — the primary key is a
-      // generated uuid. It is raised as itself so the caller can answer
-      // `already_drafted` instead of failing the tick.
-      if (result.error?.code === UNIQUE_VIOLATION) {
-        throw new DraftDateTaken(row.site_id, row.scheduled_for);
+      const { claimForDraft, giveBackClaim } = await import("@/lib/opportunities");
+      const claim = await claimForDraft(row.opportunity_id);
+      if (!claim.save) throw new PageStopped(row.opportunity_id);
+      try {
+        const result = await untyped()
+          .from<{ id: string }>("drafts")
+          .insert(row)
+          .select("id");
+        // The one unique rule an insert of a day's page can break is
+        // `drafts_one_per_site_per_date` (issue 886) — the primary key is a
+        // generated uuid. It is raised as itself so the caller can answer
+        // `already_drafted` instead of failing the tick.
+        if (result.error?.code === UNIQUE_VIOLATION) {
+          throw new DraftDateTaken(row.site_id, row.scheduled_for);
+        }
+        if (result.error) throw new Error(`generate/store: insert into drafts failed: ${result.error.message}`);
+        const created = (result.data ?? [])[0];
+        if (created === undefined) throw new Error("generate/store: insert into drafts returned no row");
+        return created.id;
+      } catch (error) {
+        // A page that wrote no row leaves its opportunity open; a sibling delivery's saved draft keeps it queued.
+        if (claim.claimed) {
+          const held = await untyped().from<{ id: string }>("drafts").select("id").eq("opportunity_id", row.opportunity_id).limit(1);
+          if (!held.error && (held.data ?? []).length === 0) await giveBackClaim(row.opportunity_id).catch(() => undefined);
+        }
+        throw error;
       }
-      if (result.error) throw new Error(`generate/store: insert into drafts failed: ${result.error.message}`);
-      const created = (result.data ?? [])[0];
-      if (created === undefined) throw new Error("generate/store: insert into drafts returned no row");
-      return created.id;
     },
 
     async patchDraft(draftId, patch) {

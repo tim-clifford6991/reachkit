@@ -343,8 +343,16 @@ export function memoryStore(state: MemoryState): OpportunityStore {
 
     async markQueued(opportunityId) {
       const row = state.rows.find((r) => r.id === opportunityId);
-      if (row === undefined || row.status !== "open") return;
+      if (row === undefined || row.status !== "open") return false;
       row.status = "queued";
+      state.statusChangedAt.set(row.id, state.now);
+      return true;
+    },
+
+    async reopenIfQueued(opportunityId) {
+      const row = state.rows.find((r) => r.id === opportunityId);
+      if (row === undefined || row.status !== "queued") return;
+      row.status = "open";
       state.statusChangedAt.set(row.id, state.now);
     },
 
