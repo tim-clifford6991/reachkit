@@ -37,7 +37,7 @@ import { fixCandidates } from "./fix";
 import { improveCandidates } from "./improve";
 import { brandTokensOf, collapse, coveredTopics, queryKey, topTensOf } from "../cluster";
 import { rebandFor } from "../readiness";
-import { opportunityStore, readOpportunity } from "../store";
+import { opportunityStore, readOpportunity, type DismissedSearch } from "../store";
 import { persist } from "./persist";
 import { judgeSameQuestion } from "./same-question";
 import { refineType } from "./typing";
@@ -240,9 +240,9 @@ export async function deriveOpportunities(
     const neverDrafted = drafted !== null && !drafted.has(row.id) && !isRetarget(row);
     if (aRivalsPrice(row) || unsearchedComparison(row) || irrelevant(row) || (neverDrafted && (aRivalsBrand(row) || notASearch(row)))) gone.add(row.id);
   }
-  // Issue 1549: a topic a gate or the customer dismissed is not written
-  // down again by a pass that read nothing new for it — only a measured
-  // volume above the one it was dismissed at brings it back.
+  // Issue 1549: a topic a gate dismissed is not written down again by a
+  // pass that read nothing new for it — only a measured volume above the
+  // one it was dismissed at brings it back. One the customer stopped never comes back.
   const dismissed = store.dismissedSearches === undefined ? [] : await store.dismissedSearches(a.siteId).catch(() => []);
   let stillDismissed = 0;
   const notDismissed = (candidate: Pick<Candidate, "targetQuery" | "volume">): boolean => {
@@ -484,13 +484,13 @@ export async function deriveOpportunities(
 
 /** Issue 1549: whether a candidate's search was dismissed before and its
  *  evidence has not changed since — no measured volume above the one the
- *  dismissed row held. Pure. */
+ *  dismissed row held — or the customer stopped it. Pure. */
 export function dismissedUnchanged(
   candidate: Pick<Candidate, "targetQuery" | "volume">,
-  dismissed: readonly { query: string; volume: number | null }[]
+  dismissed: readonly DismissedSearch[]
 ): boolean {
   if (candidate.targetQuery === null) return false;
   const key = queryKey(candidate.targetQuery);
   const now = candidate.volume === null || candidate.volume.kind === "unmeasured" ? 0 : candidate.volume.value;
-  return dismissed.some((row) => queryKey(row.query) === key && now <= (row.volume ?? 0));
+  return dismissed.some((row) => queryKey(row.query) === key && (row.stopped || now <= (row.volume ?? 0)));
 }

@@ -113,3 +113,37 @@ export const SERVICE_ROLE_KEY = signJwt({
 export function userJwt(userId: string): string {
   return signJwt({ role: "authenticated", sub: userId, iss: "supabase", exp: anHourFromNow() });
 }
+
+/** A `fetch` that reaches only this box, through `curl`: `tests/setup.ts`
+ *  refuses the real one process-wide, and a Supabase client takes no hook. */
+export function loopbackFetch(input: RequestInfo | URL, init: RequestInit = {}): Promise<Response> {
+  const url =
+    typeof input === "string" ? input : input instanceof URL ? input.toString() : (input as Request).url;
+  if (!/^https?:\/\/127\.0\.0\.1(:\d+)?\//.test(url)) {
+    return Promise.reject(new Error(`loopbackFetch refuses non-loopback URL: ${url}`));
+  }
+  const headerEntries: [string, string][] = [];
+  if (init.headers) {
+    new Headers(init.headers as HeadersInit).forEach((value, key) => headerEntries.push([key, value]));
+  }
+  const bodyText = typeof init.body === "string" ? init.body : init.body ? String(init.body) : undefined;
+  const args = ["-s", "-i", "-X", init.method ?? "GET"];
+  for (const [key, value] of headerEntries) args.push("-H", `${key}: ${value}`);
+  if (bodyText !== undefined) args.push("--data-binary", "@-");
+  args.push(url);
+
+  const raw = execFileSync("curl", args, { input: bodyText, maxBuffer: 10 * 1024 * 1024 });
+  const separator = Buffer.from("\r\n\r\n");
+  const separatorIndex = raw.indexOf(separator);
+  const headerLines = raw.subarray(0, separatorIndex).toString("utf8").split("\r\n");
+  const responseHeaders = new Headers();
+  for (const line of headerLines.slice(1)) {
+    const idx = line.indexOf(":");
+    if (idx === -1) continue;
+    responseHeaders.append(line.slice(0, idx).trim(), line.slice(idx + 1).trim());
+  }
+  const status = Number((headerLines[0] ?? "").split(" ")[1] ?? "599");
+  // A null-body status (PostgREST's 204 to an update with no `.select()`) takes no body, not even an empty one.
+  const body = [101, 103, 204, 205, 304].includes(status) ? null : raw.subarray(separatorIndex + separator.length);
+  return Promise.resolve(new Response(body, { status, headers: responseHeaders }));
+}

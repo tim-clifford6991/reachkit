@@ -14,16 +14,14 @@
 // **Run this file with `--no-file-parallelism`** alongside the rest of the
 // `db` project — every file in it resets and rebuilds the same physical
 // `public` schema.
+// The substrate first: it reads this run's REST URL before `./env` sets a fixture one.
+import { ANON_KEY, REST_URL, SERVICE_ROLE_KEY, loopbackFetch, psql, psqlRows } from "../db/substrate";
 import "./env";
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import path from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { topicOf } from "../../src/lib/db/topics";
 import { FAMILY_OF, OPPORTUNITY_TYPES, UNREADY_REASONS } from "../../src/lib/opportunities/types";
-import {
-  psql,
-  psqlRows,
-} from "../db/substrate";
 
 const REPO_ROOT = path.resolve(import.meta.dirname, "../..");
 const MIGRATIONS = path.join(REPO_ROOT, "supabase/migrations");
@@ -52,6 +50,9 @@ const NO_INTENT = "20261006130000_opportunities_no_intent.sql";
 /** Issue 1559: the week a weekly pass commits. */
 const WEEK_PLAN = "20261019160000_opportunities_week_plan.sql";
 const PLAN_REASON = "20261020120000_opportunities_plan_reason.sql";
+const STOPPED = "20261021120000_opportunities_stopped.sql";
+/** The drafts' move record, which the stop backfill reads. */
+const DRAFTS_PUBLISHING = "20260906120100_drafts_publishing.sql";
 const BASELINE_MIGRATION = path.join(MIGRATIONS, "00000000000001_baseline.sql");
 
 /** One tuple-only row per line, `|`-separated columns — easy to split. */
@@ -92,6 +93,8 @@ beforeAll(() => {
   psql(["-v", "ON_ERROR_STOP=1", "-f", path.join(MIGRATIONS, NO_INTENT)]);
   psql(["-v", "ON_ERROR_STOP=1", "-f", path.join(MIGRATIONS, WEEK_PLAN)]);
   psql(["-v", "ON_ERROR_STOP=1", "-f", path.join(MIGRATIONS, PLAN_REASON)]);
+  psql(["-v", "ON_ERROR_STOP=1", "-f", path.join(MIGRATIONS, DRAFTS_PUBLISHING)]);
+  psql(["-v", "ON_ERROR_STOP=1", "-f", path.join(MIGRATIONS, STOPPED)]);
   const [user] = psqlRows(
     `insert into users (email, plan_status) values ('opps@example.com', 'active') returning id;`
   );
@@ -432,6 +435,71 @@ describe("SPEC §0: the Earn family publishes a page, so it proposes a slug", ()
     expect(refuses(familyRow("listed_page"))).toBe(false);
     expect(refuses(familyRow("listed_page", { proposedSlug: null }))).toBe(true);
     expect(refuses(familyRow("listed_page", { family: "write", evidence: '{"family":"write"}' }))).toBe(true);
+  });
+});
+
+describe("a topic the customer stopped is told apart from one a gate dismissed", () => {
+  let store: import("../../src/lib/opportunities/store").OpportunityStore;
+  const stoppedOf = (id: string) => psqlRows(`select status, stopped from opportunities where id = '${id}';`)[0];
+
+  beforeAll(async () => {
+    process.env.SUPABASE_URL = REST_URL;
+    process.env.SUPABASE_ANON_KEY = ANON_KEY;
+    process.env.SUPABASE_SERVICE_ROLE_KEY = SERVICE_ROLE_KEY;
+    globalThis.fetch = loopbackFetch as unknown as typeof fetch;
+    psql(["-c", "NOTIFY pgrst, 'reload schema';"]);
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    store = (await import("../../src/lib/opportunities/store")).supabaseOpportunityStore();
+  });
+
+  it("a row is not stopped until a stop says so", () => {
+    expect(stoppedOf(insert(familyRow("answer_page", { targetRef: "stop-default" })))).toEqual(["open", "f"]);
+  });
+
+  it("a gate's dismissal leaves it unstopped; a draft stop and a planned-page stop mark it", async () => {
+    const gate = insert(familyRow("answer_page", { targetRef: "stop-gate", targetQuery: "gate dismissed search" }));
+    const vetoed = insert(familyRow("answer_page", { targetRef: "stop-veto", targetQuery: "vetoed search" }));
+    const planned = insert(familyRow("answer_page", { targetRef: "stop-planned", targetQuery: "planned search" }));
+    psql(["-c", `update opportunities set absorbed_queries = '{"folded into vetoed"}' where id = '${vetoed}';`]);
+    await store.markDismissed(gate);
+    await store.markDismissed(vetoed, { stopped: true });
+    expect(await store.dismissIfOpen(planned)).toBe(true);
+    expect([gate, vetoed, planned].map(stoppedOf)).toEqual([
+      ["dismissed", "f"],
+      ["dismissed", "t"],
+      ["dismissed", "t"],
+    ]);
+    const searches = await store.dismissedSearches!(SITE_ID);
+    expect(searches.filter((row) => /gate dismissed|vetoed|planned/.test(row.query)).map(({ query, stopped }) => [query, stopped]).sort()).toEqual([
+      ["folded into vetoed", true],
+      ["gate dismissed search", false],
+      ["planned search", true],
+      ["vetoed search", true],
+    ]);
+  });
+
+  it("the backfill marks a customer's skipped draft, never a generator-stopped one, and a second run changes nothing", () => {
+    const draftOf = (opportunityId: string, moves: [string, string][]) => {
+      const transitions = JSON.stringify(moves.map(([from, to]) => ({ from, to })));
+      psql(["-v", "ON_ERROR_STOP=1", "-c",
+        `insert into drafts (opportunity_id, site_id, state, title, transitions) values ('${opportunityId}', '${SITE_ID}', 'skipped', 't', '${transitions}');`]);
+    };
+    const customer = insert(familyRow("answer_page", { targetRef: "backfill-customer", status: "dismissed" }));
+    const rested = insert(familyRow("answer_page", { targetRef: "backfill-rested", status: "dismissed" }));
+    const gate = insert(familyRow("answer_page", { targetRef: "backfill-gate", status: "dismissed" }));
+    draftOf(customer, [["generating", "in_review"], ["in_review", "skipped"]]);
+    draftOf(rested, [["generating", "needs_attention"], ["needs_attention", "skipped"]]);
+    psql(["-v", "ON_ERROR_STOP=1", "-f", path.join(MIGRATIONS, STOPPED)]);
+    expect([customer, rested, gate].map((id) => stoppedOf(id)?.[1])).toEqual(["t", "f", "f"]);
+    const marked = () => psqlRows("select count(*) from opportunities where stopped;")[0]?.[0];
+    const before = marked();
+    psql(["-v", "ON_ERROR_STOP=1", "-f", path.join(MIGRATIONS, STOPPED)]);
+    expect(marked()).toBe(before);
+  });
+
+  it("RLS still denies anon", () => {
+    expect(psqlRows("select relrowsecurity from pg_class where relname = 'opportunities';")).toEqual([["t"]]);
+    expect(psqlRows("select count(*) from pg_policies where tablename = 'opportunities' and 'anon' = any(roles);")).toEqual([["0"]]);
   });
 });
 

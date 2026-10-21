@@ -60,7 +60,7 @@ export async function claimForDraft(opportunityId: string): Promise<boolean> {
 /** The customer stopped the draft written from this opportunity: it is not
  *  offered again the next evening, and nothing is spent on it twice. */
 export async function dismissForVeto(opportunityId: string): Promise<void> {
-  await opportunityStore().markDismissed(opportunityId);
+  await opportunityStore().markDismissed(opportunityId, { stopped: true });
 }
 
 const MS_PER_DAY = 86_400_000;
