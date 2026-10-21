@@ -53,6 +53,7 @@ The current look of every screen, drawn on board [`Calm`](design/boards/R12-0-Ca
 - 2026-10-07  **A note under the page starts closed** (owner, #1325; `docs/SPEC.md` §7 of this date). On the review screen each card under the article is the same `collapse collapse-arrow` on a `details`, with the card's title as its `summary`, and the same classes from `_overview/present.ts`. The board `R12-6-Page` still draws those cards open, and *What this page is for* and *In search results* as two halves of one card; the screen draws each as its own closed line.
 
 - 2026-10-07  **A long section starts closed too** (owner, #1328; `docs/SPEC.md` §2 of this date). On the report the same daisyUI `collapse collapse-arrow` on a `details` closes a list under its own name inside a result card, and closes *What holds you back* and the first page under theirs. The Report boards still draw every section open and the offer last; the screen draws the offer under the two result cards.
+- 2026-10-20  **The report's missing-pages list starts open** (owner, Q3, #1716; `docs/spec/decisions/2026-10-20-1716.md`). Pages 6–14 show under *All 14, nothing hidden*, as the PubReport board draws them. This amends the line above for that list only.
 
 ## Layout that cannot overflow
 
@@ -90,6 +91,7 @@ The owner looks at `dev.reachkit.app` for taste: voice, and an asset only the ow
 - 2026-09-25  **A board says what a screen holds, not how many pixels it is** (owner, #1110). It lists the sections, their order and their wording. Its render is not a done-when and not a merge gate; a difference of pixels is not a defect. Build it with the classes above; never match its pixels or copy its markup.
 
 - 2026-10-19  **The signed-off canvas replaces the round boards** (owner: *"The UI on design canvas Version 19 is signed off"*, #1581; `docs/spec/decisions/2026-10-19-1581.md`). Each board is a file in `docs/design/boards/canvas/`, copied unchanged from the canvas project, with its `.jpg` render in `renders/` at the width `canvas.json` gives it. `canvas.json` holds each board's title and width, and the files keep their cross-links. The files are published Version 22: Version 19 plus the trust-check wording and the sizing pass of the same day. The canvas is the owner's signed-off copy and is not edited by hand. Where a board and a dated line in `docs/SPEC.md` or a decision file disagree, the SPEC line still wins and the board is not redrawn. Changing a screen's board is an owner decision, written as a file under `docs/spec/decisions/`.
+- 2026-10-20  **The public header has three links**, How it works · Pricing · Free scans (owner, Q1, #1716; `docs/spec/decisions/2026-10-20-1716.md`), as the Landing board draws them. This reverses the five anchors of #1066.
 - 2026-10-19  **The AI legend reads *Links to this page · Mentions you, no link · Mentions someone else · No answer*** (owner, #1581), the canvas wording. It replaces *links / names* (#953).
 
 | Screen | Route | Board |
