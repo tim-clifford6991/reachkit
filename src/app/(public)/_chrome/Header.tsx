@@ -1,20 +1,16 @@
 // BUILD §3 — the public chrome: the banner and the header.
 // src/app/(public)/_chrome/Header.tsx
 //
-// SPEC §1, 2026-09-24 (#1066), boards `R12-1-Landing`, `R12-8-Phone-landing`,
-// `R12-10-Dark-landing`:
+// Boards `PubLanding` and `PubLandingPhone` (owner 2026-10-20):
 //
 //   · **The banner** — one dismissible strip above the header, on the accent
-//     ground with its own ink (so in dark it is the pale accent with dark
-//     ink), a *Free* tag, the one line `chrome.banner`, and a link to the
-//     landing's field. Its dismissal is remembered before paint
-//     (`./banner.ts`).
+//     ground with its own ink, a *Free* tag, the line `chrome.banner` and a
+//     link to the landing's field; below `sm` the shorter line is the link.
+//     Its dismissal is remembered before paint (`./banner.ts`).
 //   · **The header** — sticky, a 78% surface ground under a 12px blur. The
-//     mark and *Why it matters · How it works · How to start · Free scans ·
-//     Pricing* on the left (the gallery joined them with #1069, *How it
-//     works* with issue 1396); on the right the two-state
-//     theme switch, *Sign in* as a ghost, and *Start free* solid with an
-//     arrow. The `/app` shell keeps its three-way dropdown.
+//     mark and *How it works · Pricing · Free scans* on the left (Q1); on the
+//     right the one theme button, *Sign in* as a ghost, and *Free scan* solid
+//     with an arrow. The `/app` shell keeps its three-way dropdown.
 //   · **Below `lg`** the links move into a daisyUI `drawer` from the right;
 //     below `sm` the switch and *Sign in* follow them. *Start free* never
 //     leaves the bar, and the bar never wraps (#936).
@@ -45,8 +41,6 @@ import Link from "next/link";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { Brand } from "@/app/_brand/Brand";
 import { ThemeSwitch } from "@/app/_theme/ThemeSwitch";
-import { themeNames } from "@/app/_theme/names";
-import { HOW_SECTION_ID, WHY_SECTION_ID } from "../_landing/sections";
 import { BannerDismiss, BannerLink, DrawerLinks, HeaderCopyLink, HeaderCta } from "./HeaderArm";
 import type { AppEntry } from "./session";
 
@@ -58,12 +52,15 @@ const PLACE = { bar: "bar", menu: "menu" } as const;
 /** The nav's links, rendered in the bar from `lg` and in the drawer below
  *  it. One list, so the bar and the drawer never offer different places. */
 const LINKS: readonly { href: string; key: CopyKey }[] = [
-  { href: `/#${WHY_SECTION_ID}`, key: "chrome.nav.why" },
   { href: "/how-it-works", key: "chrome.nav.works" },
-  { href: `/#${HOW_SECTION_ID}`, key: "chrome.nav.how" },
-  { href: "/scans", key: "chrome.nav.scans" },
   { href: "/pricing", key: "chrome.nav.pricing" },
+  { href: "/scans", key: "chrome.nav.scans" },
 ];
+
+/** The switch's two names, resolved here so the client leaf holds no key. */
+function switchNames(): { toDark: string; toLight: string } {
+  return { toDark: copy("chrome.theme.to-dark"), toLight: copy("chrome.theme.to-light") };
+}
 
 /** The phone drawer's one toggle. */
 const MENU_TOGGLE_ID = "public-menu";
@@ -91,8 +88,13 @@ function Banner(): React.JSX.Element {
         <span className="badge badge-sm bg-primary-content text-primary border-0 font-semibold">
           {copy("chrome.banner.tag")}
         </span>
-        <span className="min-w-0">{copy("chrome.banner")}</span>
-        <BannerLink label={copy("landing.submit.label")} />
+        <span className="hidden min-w-0 sm:inline">{copy("chrome.banner")}</span>
+        <span className="hidden sm:inline">
+          <BannerLink label={copy("landing.submit.label")} />
+        </span>
+        <span className="sm:hidden">
+          <BannerLink label={copy("chrome.banner.short")} />
+        </span>
       </p>
       <span className="absolute end-2 top-1.5">
         <BannerDismiss label={copy("chrome.banner.dismiss")} />
@@ -107,7 +109,6 @@ function Banner(): React.JSX.Element {
  * (signed out only).
  */
 function PhoneMenu(p: { signedIn: boolean }): React.JSX.Element {
-  const names = themeNames();
   return (
     <div className="drawer drawer-end w-auto lg:hidden" data-testid="public-header-menu">
       <input id={MENU_TOGGLE_ID} type="checkbox" className="drawer-toggle" aria-label={copy("chrome.nav.menu")} />
@@ -128,9 +129,8 @@ function PhoneMenu(p: { signedIn: boolean }): React.JSX.Element {
               ))}
               <HeaderCopyLink place={PLACE.menu} label={copy("copy-link.label")} />
             </ul>
-            <div className="border-base-300 flex items-center justify-between gap-2 border-t pt-4 sm:hidden">
-              <span className="text-sm">{names.control}</span>
-              <ThemeSwitch names={names} />
+            <div className="border-base-300 border-t pt-4 sm:hidden">
+              <ThemeSwitch names={switchNames()} />
             </div>
             {p.signedIn ? null : (
               <Link href="/signin" className="btn btn-ghost justify-start sm:hidden">
@@ -169,7 +169,7 @@ export function Header(p: { entry?: AppEntry }): React.JSX.Element {
           <div className="flex flex-none items-center gap-2">
             <HeaderCopyLink place={PLACE.bar} label={copy("copy-link.label")} />
             <span className="hidden sm:inline-flex" data-testid="public-header-theme">
-              <ThemeSwitch names={themeNames()} />
+              <ThemeSwitch names={switchNames()} />
             </span>
             {entry === null ? (
               <>
