@@ -16,7 +16,7 @@
 // request, so there is no `auth.uid()` for a row policy to match. Every
 // call below is site-scoped by an explicit `site_id` predicate — the
 // scoping the policy would have applied, applied here instead.
-import type { RefreshInputs } from "./refresh";
+import type { OwnLivePage, RefreshInputs } from "./refresh";
 import type { KnowledgeDigest } from "@/lib/site-profile/knowledge/read";
 import { dbAdmin } from "@/lib/db";
 import { canonicalUrl } from "@/lib/measure/page-reading";
@@ -331,6 +331,9 @@ export interface OpportunityStore {
    *  read from. Optional: a store that holds no published pages has nothing
    *  to answer, and `planRefreshes` then plans nothing. */
   refreshInputs?(siteId: string): Promise<RefreshInputs>;
+  /** `refreshInputs`' pages without its pools, for the planners that read
+   *  no text: a link back, a moved link and the hourly re-check. */
+  refreshPages?(siteId: string): Promise<readonly OwnLivePage[]>;
   /** SPEC §6 (D60, issue 1288): the prompts the site tracks today, which a
    *  topic's intent is matched against. Optional: a double without it
    *  answers none, and no topic is held for lacking a prompt. */
@@ -1028,6 +1031,11 @@ export function supabaseOpportunityStore(): OpportunityStore {
     async refreshInputs(siteId) {
       const { readRefreshInputs } = await import("./refresh");
       return readRefreshInputs(siteId);
+    },
+
+    async refreshPages(siteId) {
+      const { ownLivePages } = await import("./refresh");
+      return ownLivePages(siteId);
     },
 
     async trackedPrompts(siteId) {

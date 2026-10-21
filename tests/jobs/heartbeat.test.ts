@@ -202,6 +202,11 @@ describe("#799 — a scheduled job quiet for twice its interval is told to the o
     expect(heartbeat.cronIntervalMinutes("0 6 * * *")).toBe(1440);
     expect(heartbeat.cronIntervalMinutes("0 6 * * 1")).toBe(10080);
     expect(heartbeat.cronIntervalMinutes("0 6 1 * *")).toBeNull();
+    expect(heartbeat.cronIntervalMinutes("7,22,37,52 * * * *")).toBe(15);
+    expect(heartbeat.cronIntervalMinutes("0,30 * * * *")).toBe(30);
+    expect(heartbeat.cronIntervalMinutes("7,22,40,52 * * * *")).toBeNull();
+    expect(heartbeat.cronIntervalMinutes("52,37,22,7 * * * *")).toBeNull();
+    expect(heartbeat.cronIntervalMinutes("7,22,37,52 6 * * *")).toBeNull();
   });
 });
 
