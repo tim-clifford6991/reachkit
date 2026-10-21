@@ -49,12 +49,19 @@ export async function queueForDraft(opportunityId: string): Promise<void> {
 }
 
 /** A draft for this opportunity is being saved: it leaves the open set
- *  first, so a planned stop that lands later is refused. `false` where a
- *  stop came first and no draft may be saved. */
-export async function claimForDraft(opportunityId: string): Promise<boolean> {
+ *  first, so a planned stop that lands later is refused. `save` is `false`
+ *  where a stop came first and no draft may be saved; `claimed` says this
+ *  call moved the row, so only this call may give it back. */
+export async function claimForDraft(opportunityId: string): Promise<{ save: boolean; claimed: boolean }> {
   const store = opportunityStore();
-  await store.markQueued(opportunityId);
-  return (await store.byId(opportunityId))?.status !== "dismissed";
+  const claimed = await store.markQueued(opportunityId);
+  return { save: (await store.byId(opportunityId))?.status !== "dismissed", claimed };
+}
+
+/** The draft a claim was taken for was never saved: the page is open again
+ *  for the plan, unless a stop or a publish moved it since. */
+export async function giveBackClaim(opportunityId: string): Promise<void> {
+  await opportunityStore().reopenIfQueued(opportunityId);
 }
 
 /** The customer stopped the draft written from this opportunity: it is not
