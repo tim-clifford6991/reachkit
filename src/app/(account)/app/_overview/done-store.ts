@@ -185,11 +185,6 @@ async function publishTimeOf(siteId: string): Promise<string | null> {
   return typeof time === "string" && /^\d{2}:\d{2}/.test(time) ? time.slice(0, 5) : null;
 }
 
-/** The topics set aside, alone — what the draft screen reads. */
-export async function readSetAside(siteId: string): Promise<SetAside | undefined> {
-  return attempt(() => setAsideOf(siteId, clock()));
-}
-
 export async function readDoneFacts(site: { siteId: string; domain: string; timeZone: string }): Promise<DoneFacts> {
   const now = clock();
   const weekStart = weekStartFor({ at: now, zone: site.timeZone });

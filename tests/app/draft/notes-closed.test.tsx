@@ -93,16 +93,13 @@ describe("the review screen, while it waits", () => {
   });
 });
 
-describe("a page with a link on it", () => {
-  it("has its links as the first note, straight under the checks", () => {
-    // Issue 1394: the checks close the decision, so the note that reads the
-    // page's links follows them with nothing between.
+describe("the notes, in the board's order", () => {
+  it("checks, the search result, written from, what it adds, then its links", () => {
     const base = viewOf(FIXTURE_DRAFT_ID);
     const linked: DraftView = { ...base, bodyMd: `${base.bodyMd}\n\nSee [the full study](https://example.org/study).\n` };
     const screen = dom(<DraftScreen view={linked} generatedLabel="label" />);
-    const first = one(screen, "draft-notes").children[0];
-    expect(first?.getAttribute("data-testid")).toBe("draft-links");
-    expect(precedes(one(screen, "draft-checks"), one(screen, "draft-links"))).toBe(true);
+    const order = Array.from(one(screen, "draft-notes").children).map((note) => note.getAttribute("data-testid"));
+    expect(order.slice(0, 5)).toEqual(["draft-checks", "draft-search-result", "draft-written-from", "draft-adds", "draft-links"]);
   });
 });
 

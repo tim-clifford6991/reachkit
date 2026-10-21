@@ -25,8 +25,8 @@ import type { PageRecord } from "@/lib/publish/record";
 import type { Ladder } from "@/lib/measure/ladder";
 import type { TakeDownStanding } from "@/lib/publish/take-down/standing";
 import type { PageTarget } from "../../_shell/page-target";
-import type { SetAside } from "../../_overview/done";
-import type { PageType } from "@/lib/opportunities/types";
+import type { PageType, PlanReason } from "@/lib/opportunities/types";
+import { weekStartFor } from "@/lib/scan/weekly/week";
 import type { RecordedChecks } from "@/lib/generate/rules/types";
 import type { PublishingMode } from "../../_shell/model";
 import type { State } from "../../calendar/stages";
@@ -105,10 +105,12 @@ export interface DoNothing {
 export interface TargetWhy {
   readonly fit: "answer" | "helps" | null;
   readonly rival: string | null;
+  /** The points the committed week placed it by (`opportunities.plan_reason`). */
+  readonly planReason?: PlanReason | null;
 }
 
 export type DraftTarget =
-  | { kind: "target"; target: PageTarget; why?: TargetWhy }
+  | { kind: "target"; target: PageTarget; why?: TargetWhy; update?: boolean }
   | { kind: "fix" }
   | { kind: "unknown" };
 
@@ -299,6 +301,8 @@ export interface DraftView {
    *  stated in its own place (S17's save line). `null` only where the facts
    *  carry none. */
   writtenAt: Date | null;
+  /** When the page-ready mail left; `null` where no mail did. */
+  emailedAt: Date | null;
   /** Every word that would publish. Never truncated, never summarised. */
   bodyMd: string;
   /** The text as generated, before any edit — what makes the authorship
@@ -349,9 +353,6 @@ export interface DraftView {
   /** What this page is optimising for (issue 867) — the opportunity's own
    *  stored evidence, projected once for this screen and the day panel. */
   target: DraftTarget;
-  /** The site's topics on file that fill no day, by the stored reason
-   *  (issue 1395). Absent where the count could not be read. */
-  setAside?: SetAside;
   /** The site-local zone every date this view states is expressed in. */
   timeZone: string;
   /** What this page was written from (#931). */
@@ -410,6 +411,8 @@ export interface DraftFacts {
   description: string;
   /** The `drafts` row's `created_at` — when the page was written. */
   writtenAt: Date | null;
+  /** When the page-ready mail left for this page; `null` where none did. */
+  emailedAt?: Date | null;
   bodyMd: string;
   bodyMdGenerated: string;
   state: State;
@@ -460,9 +463,6 @@ export interface DraftFacts {
   /** The opportunity this draft was written from, as this screen states it
    *  (issue 867). `unknown` where the row could not be read. */
   target: DraftTarget;
-  /** The site's topics on file that fill no day, by the stored reason
-   *  (issue 1395). Absent where the count could not be read. */
-  setAside?: SetAside;
   timeZone: string;
   /** What the editor's live rule pass reads (issue 932). `NO_RULE_FACTS`
    *  where nothing could be read. */
@@ -509,12 +509,23 @@ export function wordCount(bodyMd: string): number {
   return trimmed === "" ? 0 : trimmed.split(/\s+/).length;
 }
 
+const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+
+/** The weekly scan after a page goes live is the first to read it in Google
+ *  and AI answers: the site's Monday of the following week, as a noon-UTC
+ *  instant so formatting it in UTC names that calendar date. */
+export function firstReadingOn(publishesAt: Date, timeZone: string): Date {
+  const monday = weekStartFor({ at: new Date(publishesAt.getTime() + WEEK_MS), zone: timeZone });
+  return new Date(`${monday}T12:00:00Z`);
+}
+
 export function assembleDraft(facts: DraftFacts): DraftView {
   return {
     draftId: facts.draftId,
     title: facts.title,
     description: facts.description,
     writtenAt: facts.writtenAt,
+    emailedAt: facts.emailedAt ?? null,
     bodyMd: facts.bodyMd,
     bodyMdGenerated: facts.bodyMdGenerated,
     state: facts.state,
@@ -543,7 +554,6 @@ export function assembleDraft(facts: DraftFacts): DraftView {
     knownCheck: facts.knownCheck,
     rulesFailed: facts.rulesFailed,
     target: facts.target,
-    ...(facts.setAside === undefined ? {} : { setAside: facts.setAside }),
     timeZone: facts.timeZone,
     writtenFrom: facts.writtenFrom,
     ...(facts.adds === undefined ? {} : { adds: facts.adds }),
