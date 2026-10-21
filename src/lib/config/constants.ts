@@ -1929,6 +1929,11 @@ export const SAME_TOPIC_SHARED_ADDRESSES = 4 as const;        // §6
  *  target of a refresh. Drafted default; the owner may correct it. */
 export const REFRESH_MIN_AGE_DAYS = 30 as const;               // §6
 
+/** A page of ours at 4–30 for its search is refreshed for the gap only
+ *  once this many weekly readings in a row hold no gain (owner, 2026-10-19,
+ *  B3 · M6). */
+export const GAP_REFRESH = Object.freeze({ maxPlace: 30, stalledReadings: 3 } as const); // issue 1611
+
 /** Issue 1538: a live page no stored search result has held after this many
  *  days is due the `unseen` fix — a link in from its cluster's strongest
  *  live page, and D13's check run again on its text. */

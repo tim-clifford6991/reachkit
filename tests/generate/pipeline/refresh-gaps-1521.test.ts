@@ -70,6 +70,8 @@ describe("only a page near page one grows on the gaps (owner 2026-10-19)", () =>
     declined: false,
     facts: [],
     marketFacts: [],
+    // Three weekly readings without a gain, so a ranked page is due its `close` refresh.
+    readings: [12, 12, 12],
     ...over,
   });
   const research = {
@@ -125,6 +127,14 @@ describe("only a page near page one grows on the gaps (owner 2026-10-19)", () =>
       expect({ cause, place }).toEqual({ cause: "close", place: position });
       expect(pack.gaps).toBeUndefined();
       expect(lengthRangeFor(TEMPLATES.update, { liveWords: 1000, grown: pack.gaps !== undefined })).toMatchObject({ floor: 800, ceiling: 1200 });
+    }
+  });
+
+  it("a close page at 21–30, below the near-page-one band, keeps today's refresh: no gaps and no +40%", () => {
+    for (const position of [21, 30]) {
+      const { cause, place, pack } = packOf(page({}), [{ keyword: target, url, position }]);
+      expect({ cause, place }).toEqual({ cause: "close", place: position });
+      expect(pack.gaps).toBeUndefined();
     }
   });
 });

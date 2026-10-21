@@ -82,12 +82,20 @@
 // ago. Read off the version's own row, so the hourly re-check plans it as it
 // plans `structure`. The refresh's research reads the rivals' pages again.
 //
+// **A page's own results** (owner, 2026-10-19, B3 · M6, issue 1611): `close`
+// covers 4–30 and waits until `GAP_REFRESH.stalledReadings` weekly readings
+// hold no gain. A climbing page (`climbing`, M-a) is left alone by every
+// cause its results drive. A page not moving is refreshed for it once: still
+// not moving 8 weeks after that, its question is retired and its results
+// plan no refresh again.
+//
 // Nothing is bought and no model is asked. The partial unique index keeps
 // one open or queued refresh a page.
 import {
   CLOSE_PAGE_POSITION_BAND,
   CROSS_LINKS,
   EFFORT_BY_TYPE,
+  GAP_REFRESH,
   INTENT_UNMET_WEEKS,
   PACE,
   REFRESH_MIN_AGE_DAYS,
@@ -101,11 +109,12 @@ import { ownMeasurementIn } from "@/lib/generate/rules/figures";
 import { storedStructure, structureDefects, type StructureDefect } from "@/lib/generate/rules/structure";
 import { takenDownByCustomer } from "@/lib/publish/take-down/standing";
 import { measured } from "@/lib/measure/measured";
-import { canonicalUrl, readingOf } from "@/lib/measure/page-reading";
+import { canonicalUrl, readingOf, type PageReading } from "@/lib/measure/page-reading";
 import type { Candidate } from "./derive/candidate";
 import { persist } from "./derive/persist";
 import { closestPrompt, measuredVolume } from "./intent";
 import { retargetCandidate } from "./retarget";
+import { climbing } from "./verdicts/verdict";
 import { COLUMNS, opportunityStore, readOpportunity, untyped, type OpportunityRow } from "./store";
 import { FAMILY_OF, isOwnRefresh, isRetarget, type Evidence, type Opportunity, type RefreshCause } from "./types";
 
@@ -165,6 +174,13 @@ export interface OwnLivePage {
   /** Issue 1521: on a listicle or comparison, when the oldest rival price
    *  this version was written from was read. Absent reads as none. */
   oldestPrice?: Date;
+  /** The places this version's weekly verdicts measured, oldest first.
+   *  Absent reads as none. */
+  readings?: readonly number[];
+  /** The first and best place its stored search reading holds. */
+  reading?: Pick<PageReading, "first" | "best">;
+  /** A version of this page was already refreshed for not moving. */
+  flatRefreshed?: boolean;
 }
 
 export interface RefreshPools {
@@ -224,10 +240,28 @@ export function ownPlace(page: Pick<OwnLivePage, "url" | "row">, pools: Pick<Ref
   return places.length === 0 ? null : Math.min(...places);
 }
 
-/** Issue 1521: the page ranks inside D15's band for its own search. */
+/** The page ranks 4–30 for its own search and has stopped gaining. */
 function isClose(page: OwnLivePage, pools: RefreshPools): boolean {
   const place = ownPlace(page, pools);
-  return place !== null && place >= CLOSE_PAGE_POSITION_BAND.min && place <= CLOSE_PAGE_POSITION_BAND.max;
+  return place !== null && place >= CLOSE_PAGE_POSITION_BAND.min && place <= GAP_REFRESH.maxPlace && stalled(page.readings ?? []);
+}
+
+/** The last `GAP_REFRESH.stalledReadings` readings hold no place better than
+ *  the first of them. */
+export function stalled(readings: readonly number[]): boolean {
+  const last = readings.slice(-GAP_REFRESH.stalledReadings);
+  return last.length === GAP_REFRESH.stalledReadings && Math.min(...last.slice(1)) >= last[0]!;
+}
+
+/** Its results plan no refresh: it is climbing, or it is still not moving
+ *  after its one refresh for that. */
+function leftAlone(page: OwnLivePage, at: Date): boolean {
+  return (page.reading !== undefined && climbing(page.reading, at)) || (page.flatRefreshed === true && page.unmet === true);
+}
+
+/** A refresh planned because the page was not moving. */
+function isFlatRefresh(o: Pick<Opportunity, "evidence">): boolean {
+  return o.evidence?.family === "improve" && o.evidence.shortfall?.kind === "due" && o.evidence.shortfall.cause === "unmet";
 }
 
 /** Issue 1521: a rival price the page was written from is older than D59
@@ -242,9 +276,10 @@ export function refreshCauseOf(page: OwnLivePage, pools: RefreshPools, at: Date)
   if (age < REFRESH_MIN_AGE_DAYS * DAY_MS) return null;
   if (page.ownFigures === true) return "own_figures";
   if (unseenDue(page, at) && page.closeElsewhere === true) return "unseen";
-  if (page.unmet === true && page.seen !== false) return "unmet";
-  if (page.declined) return "lost_position";
-  if (isClose(page, pools)) return "close";
+  const held = leftAlone(page, at);
+  if (!held && page.unmet === true && page.seen !== false) return "unmet";
+  if (!held && page.declined) return "lost_position";
+  if (!held && isClose(page, pools)) return "close";
   if (hasNewerFact(page, pools)) return "newer_fact";
   if (pricesStale(page, at)) return "stale_prices";
   if (age >= PACE.REFRESH_AGE_DAYS * DAY_MS) return "aged";
@@ -511,10 +546,14 @@ async function ownLivePages(siteId: string): Promise<OwnLivePage[]> {
   const judged = new Map<string, { weeks: number; worked: boolean }>();
   // Issue 1538: the place the newest verdict measured, where it held one.
   const placed = new Map<string, number | null>();
+  const readings = new Map<string, number[]>();
   for (const row of verdicts.data ?? []) {
     declined.set(row.publication_id, row.movement?.declined === true);
     placed.set(row.publication_id, row.measured?.kind === "measured" && typeof row.measured.value === "number" ? row.measured.value : null);
     if (row.verdict === "not_judgeable") continue;
+    if (row.measured?.kind === "measured" && typeof row.measured.value === "number") {
+      readings.set(row.publication_id, [...(readings.get(row.publication_id) ?? []), row.measured.value]);
+    }
     const held = judged.get(row.publication_id) ?? { weeks: 0, worked: false };
     judged.set(row.publication_id, { weeks: held.weeks + 1, worked: held.worked || row.verdict === "working" });
   }
@@ -533,6 +572,7 @@ async function ownLivePages(siteId: string): Promise<OwnLivePage[]> {
   // Issue 1521: what the page at an address was first written as — a
   // refresh's own version records `update`.
   const writtenAs = new Map<string, string>();
+  const flat = new Set<string>();
   for (const publication of live.data ?? []) {
     const opportunity = publication.drafts?.opportunities ?? null;
     if (publication.live_url === null || publication.published_at === null || opportunity === null) continue;
@@ -547,7 +587,9 @@ async function ownLivePages(siteId: string): Promise<OwnLivePage[]> {
     const type = typeof meta.contentType === "string" && meta.contentType !== "update" ? meta.contentType : (writtenAs.get(url) ?? null);
     if (type !== null) writtenAs.set(url, type);
     const oldestPrice = type === "listicle" ? oldestPriceOf(meta.marketFacts) : undefined;
-    const readPlace = readingOf(publication.search_reading)?.place?.value;
+    const reading = readingOf(publication.search_reading);
+    const readPlace = reading?.place?.value;
+    if (isFlatRefresh(readOpportunity(opportunity))) flat.add(url);
     // Issue 1507: a mended version is dated as the one it mended, so a
     // repair in code does not make a page look newer than its words.
     const dated = typeof meta.datedAs === "string" ? new Date(meta.datedAs) : null;
@@ -568,6 +610,9 @@ async function ownLivePages(siteId: string): Promise<OwnLivePage[]> {
       ...(seenUrls === null ? {} : { seen: indexStateOf([url, publication.live_url], seenUrls) === "seen" }),
       place: placed.get(publication.id) ?? null,
       ...(readPlace === undefined ? {} : { readPlace }),
+      readings: readings.get(publication.id) ?? [],
+      ...(reading === null ? {} : { reading }),
+      flatRefreshed: flat.has(url),
       structure: structureDefects(
         storedStructure({
           markdown: publication.drafts?.body_md ?? "",

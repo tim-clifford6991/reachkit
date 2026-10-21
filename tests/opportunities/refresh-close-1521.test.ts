@@ -38,6 +38,8 @@ function livePage(a: Partial<OwnLivePage> & { age: number }): OwnLivePage {
     declined: false,
     facts: [],
     marketFacts: [],
+    // Three readings without a gain: the page has stopped climbing.
+    readings: [20, 20, 20],
     ...a,
   };
 }
@@ -45,12 +47,13 @@ function livePage(a: Partial<OwnLivePage> & { age: number }): OwnLivePage {
 const ranked = (url: string, position: number, keyword = SEARCH): RefreshPools => ({ siteText: [], market: [], ranked: [{ keyword, url, position }] });
 
 describe("a page of ours close to page one is due a `close` refresh", () => {
-  it("its own address at 4–20 for its own search, 30 days old or more; no other address or search places it", () => {
+  it("its own address at 4–30 for its own search, 30 days old or more; no other address or search places it", () => {
     expect(refreshCauseOf(livePage({ age: 40 }), ranked("https://content.example.com/crm-pricing/", 8), AT)).toBe("close");
     expect(refreshCauseOf(livePage({ age: 40 }), ranked(URL, 4), AT)).toBe("close");
     expect(refreshCauseOf(livePage({ age: 40 }), ranked(URL, 20), AT)).toBe("close");
     expect(refreshCauseOf(livePage({ age: 40 }), ranked(URL, 3), AT)).toBeNull();
-    expect(refreshCauseOf(livePage({ age: 40 }), ranked(URL, 21), AT)).toBeNull();
+    expect(refreshCauseOf(livePage({ age: 40 }), ranked(URL, 30), AT)).toBe("close");
+    expect(refreshCauseOf(livePage({ age: 40 }), ranked(URL, 31), AT)).toBeNull();
     expect(refreshCauseOf(livePage({ age: 20 }), ranked(URL, 8), AT)).toBeNull();
     // Another page of the site, or another search, does not place it.
     expect(refreshCauseOf(livePage({ age: 40 }), ranked("https://example.com/", 6), AT)).toBeNull();

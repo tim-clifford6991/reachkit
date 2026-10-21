@@ -21,7 +21,7 @@ import { CONTENT_TYPES, contentTypeOf, type ContentType } from "../content-type"
 import { pageTypeOf } from "../page-type";
 import { isPausedType } from "../paused";
 import { isOwnRefresh, type Opportunity, type OpportunityType, type PlaceRule, type PlanReason, type Ranked } from "../types";
-import { pointsOf, volumeOrder, type Seen } from "./points";
+import { POINTS, pointsOf, volumeOrder, type Seen } from "./points";
 
 /** At most this many offering pages in any seven days (owner ruling of
  *  2026-10-19). Like the topic's rotation, it orders and never empties a day. */
@@ -122,7 +122,7 @@ export function orderRanked(
     const [entry] = left.splice(at, 1);
     out.push({
       opportunityId: entry!.opportunity.id,
-      reason: { points: entry!.points, parts: entry!.parts, rule },
+      reason: { points: entry!.points, parts: entry!.parts, rule: actionOf(entry!) ?? rule },
       ...(asQa ? { writeAs: "qa" as const } : {}),
     });
     previous = entry!.opportunity;
@@ -130,6 +130,17 @@ export function orderRanked(
     if (kind !== null) placed.push({ day, kind, offering: !asQa && isOffering(entry!.opportunity) });
   }
   return out;
+}
+
+/** What a page's own results planned, where they planned this row. */
+function actionOf(entry: Scored): PlaceRule | null {
+  const { evidence, family } = entry.opportunity;
+  // Stored jsonb: a row missing a field reads as not having it.
+  const shortfall = evidence?.family === "improve" ? evidence.shortfall : undefined;
+  const cause = shortfall?.kind === "due" ? shortfall.cause : null;
+  if (cause === "close") return "stalled near page one: gap refresh";
+  if (cause === "unmet") return "not moving: refreshed once";
+  return family === "write" && entry.parts.some((part) => part.part === "linked_by_ai") ? "linked by AI: one more in its cluster" : null;
 }
 
 /** The days the mix reads: the first day the list plans, and the kind of
@@ -271,6 +282,8 @@ export interface RankLoad {
   /** The site's tracked prompts, which a search with no measured volume
    *  matches to count as asked. */
   prompts?: readonly IntentPrompt[];
+  /** The clusters of the site's own pages a stored answer cited. */
+  linkedClusters?: readonly string[];
 }
 
 /** Why a row the store holds open takes no place in the list. */
@@ -311,7 +324,10 @@ export async function loadRanking(siteId: string, at: Date, only?: ReadonlySet<s
   const scans = rows.filter((row) => named(row, only) && eligible(row, { profile }) === null).map((row) => row.scan_id);
   const topTens =
     scans.length === 0 ? new Map<string, readonly string[]>() : await store.topTens([...new Set([...scans, ...(latest === null ? [] : [latest.scan_id])])]);
-  return { rows, fixRows, profile, latest, drafted, cited, topTens, prompts };
+  // A cluster that cannot be read earns no page.
+  const linkedClusters =
+    cited.length === 0 || store.clustersAt === undefined ? [] : await store.clustersAt(siteId, cited).catch(() => [] as readonly string[]);
+  return { rows, fixRows, profile, latest, drafted, cited, topTens, prompts, linkedClusters };
 }
 
 function named(row: { id: string }, only: ReadonlySet<string> | undefined): boolean {
@@ -343,6 +359,13 @@ export function rankingOf(
 
   const seen: Seen = { cited: new Set(load.cited.map(canonicalUrl)), prompts: load.prompts ?? [] };
   const scored = mixed.map((opportunity) => ({ opportunity, ...pointsOf(opportunity, seen) }));
+  // A cluster an AI answer linked earns one more page: its best new page.
+  for (const cluster of new Set(load.linkedClusters ?? [])) {
+    const next = scored.filter((entry) => entry.opportunity.family === "write" && entry.opportunity.clusterKey === cluster).sort(byPoints)[0];
+    if (next === undefined) continue;
+    next.parts = [...next.parts, { part: "linked_by_ai", n: POINTS.linkedByAi }];
+    next.points += POINTS.linkedByAi;
+  }
   const after = load.latest === null ? null : readOpportunity(load.latest);
   return { scored, fixes, rotation: { after, topTens: load.topTens, mix: mixOf(load.drafted, at) }, rejected };
 }

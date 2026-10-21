@@ -6,9 +6,10 @@ import "../../opportunities/env";
 import { readdirSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { WEEK_PLAN } from "@/lib/config/constants";
+import { measured } from "@/lib/measure/measured";
 import { choose, type Choice } from "@/lib/opportunities/choose";
 import { contentTypeOf } from "@/lib/opportunities/content-type";
-import { readOpportunity } from "@/lib/opportunities/store";
+import { readOpportunity, type OpportunityRow } from "@/lib/opportunities/store";
 import { AT, panelDomains, panelSite, rowOf, type PanelSite } from "./panel";
 
 /** A site whose stored rows commit no page, the gate that holds them, and
@@ -20,8 +21,8 @@ const HELD: Readonly<Record<string, string>> = {
 const FROM = AT.toISOString().slice(0, 10);
 const REJECTED_SHOWN = 20;
 
-function chosen(site: PanelSite): Choice {
-  return choose({ rows: site.rows, fixRows: [], profile: site.profile, latest: null, drafted: [], cited: [], topTens: new Map(), at: AT, from: FROM });
+function chosen(site: PanelSite, linkedClusters: readonly string[] = []): Choice {
+  return choose({ rows: site.rows, fixRows: [], profile: site.profile, latest: null, drafted: [], cited: [], topTens: new Map(), linkedClusters, at: AT, from: FROM });
 }
 
 function render(site: PanelSite, choice: Choice): string {
@@ -141,4 +142,33 @@ describe("at most two offering pages in seven days", () => {
     const days = offeringDays(site, chosen(site));
     expect(days).toHaveLength(2);
   });
+});
+
+/** The site's first two topics as live pages, refreshed: the first stalled
+ *  near page one, the second not moving. Its last two topics share a cluster
+ *  an AI answer linked. */
+function withResults(site: PanelSite): PanelSite {
+  const ready = site.rows.filter((row) => row.ready);
+  const [stalled, flat] = ready;
+  const linked = new Set(ready.slice(-2).map((row) => row.id));
+  const refresh = (row: OpportunityRow, cause: "close" | "unmet"): OpportunityRow => {
+    const url = `https://blog.${site.domain}/${row.target_query!.replaceAll(" ", "-")}`;
+    const volume = (row.evidence as { volume: unknown }).volume;
+    const since = measured(new Date(AT.getTime() - 60 * 86_400_000), AT);
+    const evidence = { family: "improve", query: row.target_query, volume, pageUrl: url, shortfall: { kind: "due", cause, since } };
+    return { ...row, id: `${row.id}:${cause}`, type: "refresh_page", family: "improve", target_ref: url, evidence };
+  };
+  const rows = site.rows.flatMap((row) =>
+    row === stalled ? [refresh(row, "close")] : row === flat ? [refresh(row, "unmet")] : [linked.has(row.id) ? { ...row, cluster_key: "linked" } : row]
+  );
+  return { ...site, rows };
+}
+
+describe("each action a page's own results take is the stored rule", () => {
+  for (const domain of [KINDS.saas!, KINDS.local!]) {
+    it(domain, async () => {
+      const site = withResults(panelSite(domain));
+      await expect(render(site, chosen(site, ["linked"]))).toMatchFileSnapshot(`./results/${domain}.md`);
+    });
+  }
 });
