@@ -65,44 +65,45 @@ function parseStepSave(body: unknown): SetupStepSave | null | undefined {
 
   switch (step) {
     case "site":
-      if (typeof b.domain !== "string" || typeof b.category !== "string") return undefined;
+      if (typeof b.domain !== "string") return undefined;
+      if (b.category !== undefined && typeof b.category !== "string") return undefined;
       return {
         step,
         domain: b.domain,
-        category: b.category,
+        ...(typeof b.category === "string" ? { category: b.category } : {}),
         ...(typeof b.locale === "string" ? { locale: b.locale } : {}),
         ...(typeof b.place === "string" ? { place: b.place } : {}),
       };
-    case "business": {
-      // #970: a record of list name to strings. A key the tuple does not
-      // name is dropped rather than refused — the browser cannot invent a
-      // seventh list, and a body carrying one is not worth a 400 — but a
-      // value that is not a list of strings is malformed.
-      const lists = parseBusinessLists(b.lists);
-      if (lists === undefined) return undefined;
-      // #1038: *What you do*, one sentence. Absent is the older body, which
-      // leaves the stored wording as it is; anything but a string is malformed.
-      // #1133: the five questions. Absent is the older body, which leaves
-      // the stored answers as they are; anything but a record is malformed.
-      if (b.answers !== undefined && (typeof b.answers !== "object" || b.answers === null || Array.isArray(b.answers))) {
-        return undefined;
-      }
-      const answers = b.answers === undefined ? {} : { answers: founderAnswers(b.answers) };
-      if (b.job === undefined) return { step, lists, ...answers };
-      if (typeof b.job !== "string") return undefined;
-      return { step, lists, job: b.job, ...answers };
-    }
-    case "rivals":
+    case "check": {
+      if (typeof b.category !== "string") return undefined;
       if (!Array.isArray(b.competitors) || b.competitors.some((c) => typeof c !== "string")) {
         return undefined;
       }
-      return { step, competitors: b.competitors as string[] };
-    case "voice":
+      // #970: a key the six lists do not name is dropped; a value that is not
+      // a list of strings is malformed.
+      const lists = parseBusinessLists(b.lists);
+      if (lists === undefined) return undefined;
+      // #1133: absent leaves the stored answers; anything but a record is malformed.
+      if (b.answers !== undefined && (typeof b.answers !== "object" || b.answers === null || Array.isArray(b.answers))) {
+        return undefined;
+      }
+      // #1038: absent leaves the stored wording; anything but a string is malformed.
+      if (b.job !== undefined && typeof b.job !== "string") return undefined;
       if (typeof b.voiceText !== "string") return undefined;
       if (b.timezone !== undefined && b.timezone !== null && typeof b.timezone !== "string") {
         return undefined;
       }
-      return { step, voiceText: b.voiceText, timezone: typeof b.timezone === "string" ? b.timezone : null };
+      return {
+        step,
+        category: b.category,
+        competitors: b.competitors as string[],
+        lists,
+        ...(typeof b.job === "string" ? { job: b.job } : {}),
+        ...(b.answers === undefined ? {} : { answers: founderAnswers(b.answers) }),
+        voiceText: b.voiceText,
+        timezone: typeof b.timezone === "string" ? b.timezone : null,
+      };
+    }
     // Publishing has no save of its own: leaving it forward is the finish
     // (`SetupStepSave`), so a body naming it is malformed.
     case "publishing":
@@ -111,7 +112,7 @@ function parseStepSave(body: unknown): SetupStepSave | null | undefined {
 }
 
 /**
- * The business step's lists, narrowed to the six `site_profile_edits`
+ * Check's business lists, narrowed to the six `site_profile_edits`
  * holds (#970).
  *
  * `undefined` is malformed. An absent body member is an empty record — a

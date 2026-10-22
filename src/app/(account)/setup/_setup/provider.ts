@@ -32,7 +32,6 @@ import type { PassProgress } from "./progress";
 import type { SetupStore } from "../submit";
 import type { ReportFacts } from "@/lib/market/setup/state";
 import type { ConfirmedReadings } from "@/lib/site-profile/business/confirmed";
-import type { RivalGrid } from "./panel-rivals";
 import type { OnboardingStage } from "@/lib/scan/deep/progress";
 import { setupChannelName } from "@/lib/scan/deep/channel";
 
@@ -113,10 +112,6 @@ export const readSetupScreen = cache(async function readSetupScreen(): Promise<S
     saved: await savedSetupFor(founder.userId),
     locale: await localeFor(founder),
     place: await placeFor(founder),
-    // SPEC §5 (2026-09-20, #923): the rivals panel, off the same stored
-    // report the market card is drawn from — one read, already cached, and
-    // no vendor call for a panel.
-    rivalGrid: await rivalGridFor(founder.domain),
     // SPEC §5 (2026-09-20, #923): the pass's step as the server knows it,
     // and the channel the browser may watch for the next one. Reading it
     // here is what makes the status line open on a fact rather than on a
@@ -136,29 +131,18 @@ export const readSetupScreen = cache(async function readSetupScreen(): Promise<S
  */
 async function passFor(
   siteId: string
-): Promise<{ passStage: OnboardingStage | null; passChannel: string | null }> {
-  if (siteId === "") return { passStage: null, passChannel: null };
+): Promise<{ passStage: OnboardingStage | null; passChannel: string | null; passStartedAt: string | null }> {
+  if (siteId === "") return { passStage: null, passChannel: null, passStartedAt: null };
   const progress = await readPassProgress();
   return {
     passStage: progress.running ? progress.stage : null,
+    // ISO instants sort as text, so the first is when the pass began.
+    passStartedAt: progress.running ? (Object.values(progress.enteredAt ?? {}).sort()[0] ?? null) : null,
     // `setupChannelName`'s, not a second spelling: the publish, the token
     // and this screen all read the one template, and a name spelled twice
     // is a subscription that watches a channel nothing publishes to.
     passChannel: setupChannelName(siteId),
   };
-}
-
-/**
- * #923's rivals grid, from the report this address already has.
- *
- * The read is `storedReportFor`'s and is request-cached, so drawing the
- * panel costs nothing a screen was not already paying. A read that fails,
- * or an address with no report, is `null` — the panel's skeleton arm.
- */
-async function rivalGridFor(domain: string): Promise<RivalGrid | null> {
-  if (domain === "") return null;
-  const { rivalGridOf } = await import("./panel-rivals");
-  return rivalGridOf(await storedReportFor(domain));
 }
 
 /**

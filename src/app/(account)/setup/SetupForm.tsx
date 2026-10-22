@@ -1,9 +1,6 @@
-// SPEC §5 (2026-09-20, #908) — setup, as five saved steps.
-//
-// "setup is **five saved steps** — your site, your business, rivals, your
-// voice, publishing — one decision each, with Back, and an equal-column
-// step indicator … Each step saves as it is left so a reload resumes;
-// finishing reaches the app at once."
+// SPEC §5 (docs/spec/decisions/2026-10-22-1737.md) — setup, as three saved
+// steps: Site, Check, Connect. Each step saves as it is left so a reload
+// resumes; finishing reaches the app at once.
 //
 // This file is the whole of the wizard and holds no rule of its own:
 //
@@ -23,9 +20,9 @@
 // refused does not advance; the line sits under the question, in the same
 // words the finish would use for the same refusal.
 //
-// **Nothing on any step waits on the pass.** The deep pass is sent when the
-// rivals step is saved (SPEC §5, 2026-09-20), so the voice and publishing
-// steps overlap the wait — the founder is never held at a control.
+// **Nothing on any step waits on the pass.** The deep pass is sent when
+// Check is saved, so Connect overlaps the wait — the founder is never held
+// at a control.
 //
 // **One network round-trip decides a domain.** Unchanged from the one-screen
 // setup: whether an address resolves in DNS (REQ-021 c9) and its canonical
@@ -39,11 +36,12 @@
 "use client";
 
 import type React from "react";
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useState, useSyncExternalStore, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { parseAsStringLiteral, useQueryState } from "nuqs";
 import { ArrowLeft, Check } from "lucide-react";
 import { Surface } from "@/ui/layout";
+import { Brand } from "@/app/_brand/Brand";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import {
   onMarketConcluded,
@@ -54,11 +52,10 @@ import {
   type SetupState,
 } from "@/lib/market/setup/state";
 import { preselected, type DestinationKind } from "@/lib/publish/setup/cards";
-import type { PagePurpose } from "@/lib/site-profile/types";
 import { businessFrom, jobFrom, type BusinessDraft } from "./_setup/business";
-import { MarketCard } from "./MarketCard";
+import { CheckStep } from "./CheckStep";
+import { SiteCard } from "./MarketCard";
 import { PublishingCard } from "./PublishingCard";
-import { RivalsCard } from "./RivalsCard";
 import { PassStatusLine } from "./PassStatusLine";
 import { SetupPanel } from "./SetupPanel";
 import {
@@ -75,7 +72,6 @@ import {
   SETUP_ARMS,
   STEPS,
 } from "./frame";
-import { VoiceCard } from "./VoiceCard";
 import {
   isLastStep,
   nextStep,
@@ -106,36 +102,20 @@ const REFUSAL_COPY = {
   CopyKey
 >;
 
-/** The one-word label on each column of the indicator. */
-const STEP_LABEL = {
-  site: "setup.step.site",
-  business: "setup.step.business",
-  rivals: "setup.step.rivals",
-  voice: "setup.step.voice",
-  publishing: "setup.step.publishing",
-} as const satisfies Record<SetupStepId, CopyKey>;
+/** Each step's one-word label, its question and the line under it. */
+const STEP_COPY = {
+  site: { label: "setup.step.site", question: "setup.step.site.question", line: "setup.step.site.line" },
+  check: { label: "setup.step.check", question: "setup.step.check.question", line: "setup.step.check.line" },
+  publishing: {
+    label: "setup.step.publishing",
+    question: "setup.step.publishing.question",
+    line: "setup.step.publishing.line",
+  },
+} as const satisfies Record<SetupStepId, { label: CopyKey; question: CopyKey; line: CopyKey }>;
 
-/** The question each step asks, and the line under it. */
-const STEP_QUESTION = {
-  site: "setup.step.site.question",
-  business: "setup.step.business.question",
-  rivals: "setup.step.rivals.question",
-  voice: "setup.step.voice.question",
-  publishing: "setup.step.publishing.question",
-} as const satisfies Record<SetupStepId, CopyKey>;
-
-/** SPEC §2's eight purposes, each as the key whose word a customer reads,
- *  so an engine token never reaches the screen as itself. */
-const PURPOSE_COPY = {
-  pricing: "setup.profile.purpose.pricing",
-  about: "setup.profile.purpose.about",
-  features: "setup.profile.purpose.features",
-  product: "setup.profile.purpose.product",
-  blog: "setup.profile.purpose.blog",
-  contact: "setup.profile.purpose.contact",
-  legal: "setup.profile.purpose.legal",
-  other: "setup.profile.purpose.other",
-} as const satisfies Record<PagePurpose, CopyKey>;
+/** The clock Check's status line is written in; the zone is the reader's browser's. */
+const TIME_LOCALE = "en-US";
+const subscribeNever = () => () => {};
 
 /** Where the finish leads. Internal route names, not customer-visible
  *  strings.
@@ -246,7 +226,7 @@ export function SetupForm(p: { model: SetupScreenModel }): React.JSX.Element {
     };
   }, [soughtDomain, soughtCategory, unsettled, p.model.competitorsMax]);
 
-  /** The whole of what the finish carries — the five steps' answers as one
+  /** The whole of what the finish carries — the three steps' answers as one
    *  closed shape (REQ-025 c1). `null` where an answer the finish needs is
    *  still missing, with the refusal that says which. */
   function submission():
@@ -282,24 +262,26 @@ export function SetupForm(p: { model: SetupScreenModel }): React.JSX.Element {
   function stepBody(): Record<string, unknown> | null {
     switch (step) {
       case "site": {
-        const checked = validateSetup(state);
-        if (!checked.ok) return null;
-        return { step, domain: state.siteDomain, category: settledCategory(state), locale, ...(place.answered ? { place: place.value } : {}) };
+        if (state.siteDomain === null) return null;
+        return { step, domain: state.siteDomain, locale, ...(place.answered ? { place: place.value } : {}) };
       }
-      case "business":
-        // #970: the lists as the founder left them, and #1038 *What you do*. What is *stored*
-        // is what they took out and what they added, which the server works
-        // out against the same reading this screen was drawn from — the
-        // browser never names a decision it did not make.
-        return { step, lists: business, job, answers };
-      case "rivals":
-        return { step, competitors: state.rivals.map((rival) => rival.domain) };
-      case "voice":
+      case "check": {
+        const category = settledCategory(state);
+        if (category === null) return null;
+        // #970: the lists as the founder left them. What is *stored* is what
+        // they took out and added, worked out by the server against the same
+        // reading this screen was drawn from.
         return {
           step,
+          category,
+          competitors: state.rivals.map((rival) => rival.domain),
+          lists: business,
+          job,
+          answers,
           voiceText: voiceDraft,
           timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
         };
+      }
       case "publishing":
         return null;
     }
@@ -348,10 +330,9 @@ export function SetupForm(p: { model: SetupScreenModel }): React.JSX.Element {
 
     const body = stepBody();
     if (body === null) {
-      // The site step with no address or no market: the same two refusals
-      // the finish gives, said before the founder is carried past them.
-      const checked = validateSetup(state);
-      setRefusal(checked.ok ? "market_missing" : checked.because);
+      // Site with no address, or Check with no market: the same refusals the
+      // finish gives, said before the founder is carried past them.
+      setRefusal(state.siteDomain === null ? "address_missing" : "market_missing");
       return;
     }
 
@@ -384,6 +365,14 @@ export function SetupForm(p: { model: SetupScreenModel }): React.JSX.Element {
 
   const at = stepIndex(step);
   const pagesRead = p.model.profile?.pagesRead ?? 0;
+  // The pass's start, on the reader's clock: written only once the browser runs.
+  const inBrowser = useSyncExternalStore(subscribeNever, () => true, () => false);
+  const started =
+    inBrowser && p.model.passStartedAt !== null
+      ? new Intl.DateTimeFormat(TIME_LOCALE, { hour: "numeric", minute: "2-digit" }).format(
+          Date.parse(p.model.passStartedAt),
+        )
+      : null;
   // Where their pages will be read: the hosted blog at
   // `<label>.<their domain>`, or their own WordPress site at the domain
   // they gave. `null` before there is an address to compose either from.
@@ -407,8 +396,9 @@ export function SetupForm(p: { model: SetupScreenModel }): React.JSX.Element {
             scrolls *behind* a pinned bar, so the last line of it has to
             clear the bar rather than pass under it. */}
         <main className={BODY} data-testid="setup-form" data-step={step}>
-          {/* SPEC §5 (2026-09-20) and docs/DESIGN.md: a daisyUI `steps` with
-              one-word labels, five equal columns at every width. */}
+          <Brand href="/app" />
+          {/* SPEC §5 and docs/DESIGN.md: a daisyUI `steps` with one-word
+              labels, three equal columns at every width. */}
           <ul className={STEPS} data-testid="setup-steps" data-current={step} data-frame={REGION.steps}>
             {SETUP_STEPS.map((id, index) => {
               const done = index < at;
@@ -425,11 +415,16 @@ export function SetupForm(p: { model: SetupScreenModel }): React.JSX.Element {
                       <Check {...ICON} size={16} />
                     </span>
                   ) : null}
-                  {copy(STEP_LABEL[id])}
+                  {copy(STEP_COPY[id].label)}
                 </li>
               );
             })}
           </ul>
+          {step === "check" && started !== null ? (
+            <p className={QUIET} role="status" data-testid="setup-check-status">
+              {copy("setup.check.status", { time: started })}
+            </p>
+          ) : null}
 
           {/* The question column and the panel that matches it. Below the large
               breakpoint there is one column, and the panel follows the
@@ -446,17 +441,22 @@ export function SetupForm(p: { model: SetupScreenModel }): React.JSX.Element {
           <div className={COLUMNS} data-frame={REGION.columns}>
             <div key={step} className={`${QUESTION} motion-safe:animate-rise`}>
               <div className={QUESTION_HEAD}>
-                <h1 className="text-xl font-semibold wrap-anywhere">{copy(STEP_QUESTION[step])}</h1>
+                <p className="flex flex-wrap items-center gap-2 text-sm" data-testid="setup-step-count">
+                  <span className="font-medium">
+                    {copy("setup.step.count", { n: String(at + 1), total: String(SETUP_STEPS.length) })}
+                  </span>
+                  <span className="badge badge-ghost badge-sm">{copy("setup.step.time")}</span>
+                </p>
+                <h1 className="text-xl font-semibold wrap-anywhere">{copy(STEP_COPY[step].question)}</h1>
                 <p className={QUIET} data-testid="setup-step-line">
-                  {stepLine(step, { pagesRead, max: p.model.competitorsMax })}
+                  {copy(STEP_COPY[step].line)}
                 </p>
               </div>
 
               {step === "site" ? (
-                <MarketCard
+                <SiteCard
                   state={state}
                   setState={setState}
-                  questions={p.model.questions}
                   resolveDomain={resolveDomain}
                   locale={locale}
                   setLocale={setLocale}
@@ -465,41 +465,24 @@ export function SetupForm(p: { model: SetupScreenModel }): React.JSX.Element {
                 />
               ) : null}
 
-              {step === "business" ? (
-                <div className="grid gap-4" data-testid="setup-pages-read">
-                  <p className={QUIET}>{copy("setup.business.pages-read")}</p>
-                  <div className="flex flex-wrap items-center gap-2">
-                    {/* #970: the confirmed profile's own counts — the same
-                        `purposeCounts` over the same inventory, read once
-                        where Settings reads it. */}
-                    {p.model.business.purposes.map((entry) => (
-                      <span key={entry.purpose} className="badge badge-ghost gap-2">
-                        <span data-testid={`setup-profile-purpose-${entry.purpose}`}>
-                          {copy(PURPOSE_COPY[entry.purpose])}
-                        </span>
-                        <span className="num">{entry.count}</span>
-                      </span>
-                    ))}
-                  </div>
-                  <p className={QUIET} data-testid="setup-business-assurance">
-                    {copy("setup.business.assurance")}
-                  </p>
-                </div>
-              ) : null}
-
-              {step === "rivals" ? (
-                <RivalsCard
-                  rivals={state.rivals}
-                  suggestions={state.suggestions}
-                  ownDomain={state.siteDomain}
-                  max={p.model.competitorsMax}
+              {step === "check" ? (
+                <CheckStep
+                  state={state}
+                  setState={setState}
+                  questions={p.model.questions}
+                  competitorsMax={p.model.competitorsMax}
                   resolveDomain={resolveDomain}
-                  onRivals={(rivals) => setState((current) => ({ ...current, rivals }))}
+                  pagesRead={pagesRead}
+                  draft={business}
+                  onDraft={setBusiness}
+                  job={job}
+                  onJob={setJob}
+                  answers={answers}
+                  onAnswers={setAnswers}
+                  profile={p.model.profile}
+                  voice={voiceDraft}
+                  onVoice={setVoiceDraft}
                 />
-              ) : null}
-
-              {step === "voice" ? (
-                <VoiceCard profile={p.model.profile} voice={voiceDraft} onVoice={setVoiceDraft} />
               ) : null}
 
               {step === "publishing" ? (
@@ -515,11 +498,8 @@ export function SetupForm(p: { model: SetupScreenModel }): React.JSX.Element {
               ) : null}
             </div>
 
-            {/* On the business step the panel *is* the step's own controls, so
-                it is rendered there rather than beside a second copy. */}
             <SetupPanel
               market={settledCategory(state)}
-              rivalGrid={p.model.rivalGrid}
               status={
                 <PassStatusLine
                   stage={p.model.passStage}
@@ -529,12 +509,6 @@ export function SetupForm(p: { model: SetupScreenModel }): React.JSX.Element {
               step={step}
               blogAddress={blogAddress}
               businessName={p.model.profile?.siteName ?? null}
-              draft={business}
-              onDraft={setBusiness}
-              job={job}
-              onJob={setJob}
-              answers={answers}
-              onAnswers={setAnswers}
             />
           </div>
 
@@ -561,7 +535,7 @@ export function SetupForm(p: { model: SetupScreenModel }): React.JSX.Element {
       {/* A `<footer>`, not a `<div>` (#328): this row stands outside the
           `Surface`'s `<main>` — deliberately, for the background above —
           so as a `<div>` it was screen content belonging to no landmark at
-          all (`region`, on all five steps). It is the screen's footer in
+          all (`region`, on every step). It is the screen's footer in
           every sense: the step's two controls and the standing line under
           them. The element changes; nothing it draws does. */}
       <footer className={BAR}>
@@ -599,24 +573,9 @@ export function SetupForm(p: { model: SetupScreenModel }): React.JSX.Element {
   );
 }
 
-/** The line under the question. Two of the five take a number the screen
- *  read rather than a number it chose. */
-function stepLine(step: SetupStepId, a: { pagesRead: number; max: number }): string {
-  if (step === "business") {
-    return a.pagesRead === 0
-      ? copy("setup.step.business.line.unread")
-      : copy("setup.step.business.line", { pages: String(a.pagesRead) });
-  }
-  if (step === "rivals") return copy("setup.step.rivals.line", { max: String(a.max) });
-  if (step === "site") return copy("setup.step.site.line");
-  if (step === "voice") return copy("setup.step.voice.line");
-  return copy("setup.step.publishing.line");
-}
-
-/** What the one primary reads. "That’s us" is the business step's own
- *  (issue #922); the last step finishes. */
+/** What the one primary reads: "Looks right" leaves Check; the last step finishes. */
 function onwardsLabel(step: SetupStepId): CopyKey {
-  if (step === "business") return "setup.business.confirm";
+  if (step === "check") return "setup.check.confirm";
   return isLastStep(step) ? "setup.finish" : "setup.continue";
 }
 
