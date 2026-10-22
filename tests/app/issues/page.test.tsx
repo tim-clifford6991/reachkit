@@ -76,7 +76,7 @@ describe("Technical issues, as board AppIssues lays it out", () => {
     expect(markup).toContain(copy("overview.issues.read", { count: "40" }));
     expect(textOf(markup, "issues-fine")).toBe(`31${copy("overview.issues.fine")}`);
     expect(markup).toContain(copy("overview.issues.affected", { pages: "9", problems: "3" }));
-    expect(markup).toContain(copy("overview.issues.ours"));
+    expect(markup).toContain(copy("overview.issues.ours.hosted", { host: "blog.example.com" }));
     expect(textOf(markup, "issues-legend")).toBe("3 phone4 slow2 broken links31 fine");
     // The summary stands above the first problem card.
     expect(markup.indexOf('data-testid="issues-summary"')).toBeLessThan(markup.indexOf('data-testid="issue"'));
@@ -109,7 +109,7 @@ describe("Technical issues, as board AppIssues lays it out", () => {
       ],
     };
     const markup = renderToStaticMarkup(
-      <IssuesView reading={issuesReading(section, FIXTURE_MEASURED_AT)} timeZone="America/New_York" />
+      <IssuesView reading={issuesReading(section, FIXTURE_MEASURED_AT, null)} timeZone="America/New_York" />
     );
     expect(textOf(markup, "issues-fine")).toBe(`11${copy("overview.issues.fine")}`);
     expect(markup).toContain(copy("overview.issues.affected.one-page"));
@@ -117,19 +117,53 @@ describe("Technical issues, as board AppIssues lays it out", () => {
   });
 
   it("with nothing to fix, says so and when the next check is, with no summary", () => {
-    const clean: SiteIssuesSection = { ...FIXTURE_SITE_ISSUES, issues: [] };
+    const clean: SiteIssuesSection = {
+      ...FIXTURE_SITE_ISSUES,
+      issues: FIXTURE_SITE_ISSUES.issues.map((issue) =>
+        issue.ran ? { ...issue, count: 0, severity: "nothing_to_fix" as const, pages: [], ms: undefined } : issue
+      ),
+    };
     const markup = renderToStaticMarkup(
-      <IssuesView reading={issuesReading(clean, FIXTURE_MEASURED_AT)} timeZone="America/New_York" />
+      <IssuesView reading={issuesReading(clean, FIXTURE_MEASURED_AT, null)} timeZone="America/New_York" />
     );
     expect(textOf(markup, "issues-empty")).toBe(copy("overview.issues.empty"));
     expect(markup).not.toContain('data-testid="issues-summary"');
   });
 
   it("with no stored reading, states no day, no count, and never that nothing needs fixing", () => {
-    const markup = renderToStaticMarkup(<IssuesView reading={issuesReading(null, null)} timeZone="America/New_York" />);
+    const markup = renderToStaticMarkup(<IssuesView reading={issuesReading(null, null, null)} timeZone="America/New_York" />);
     expect(textOf(markup, "issues-lead")).toBe(copy("overview.issues.lead"));
     expect(textOf(markup, "issues-unscanned")).toBe(copy("overview.issues.unscanned"));
     expect(markup).not.toContain('data-testid="issues-empty"');
     expect(markup).not.toContain('data-testid="issues-summary"');
+  });
+
+  it("with a scan that read no section, or ran no check, states no day, no count, and never that nothing needs fixing", () => {
+    const ranNothing: SiteIssuesSection = {
+      ...FIXTURE_SITE_ISSUES,
+      issues: FIXTURE_SITE_ISSUES.issues.map((issue) => ({ check: issue.check, ran: false, because: "crawl_not_run" })),
+    };
+    for (const reading of [issuesReading(null, FIXTURE_MEASURED_AT, null), issuesReading(ranNothing, FIXTURE_MEASURED_AT, null)]) {
+      const markup = renderToStaticMarkup(<IssuesView reading={reading} timeZone="America/New_York" />);
+      expect(textOf(markup, "issues-lead")).toBe(copy("overview.issues.lead"));
+      expect(textOf(markup, "issues-unscanned")).toBe(copy("overview.issues.unscanned"));
+      expect(markup).not.toContain('data-testid="issues-empty"');
+    }
+  });
+
+  it("names the hosted address ReachKit's pages live on, and no address for a site they publish into", () => {
+    const view = (host: string | null): string =>
+      renderToStaticMarkup(<IssuesView reading={issuesReading(FIXTURE_SITE_ISSUES, FIXTURE_MEASURED_AT, host)} timeZone="UTC" />);
+    expect(view("help.acmecrm.com")).toContain(copy("overview.issues.ours.hosted", { host: "help.acmecrm.com" }));
+    const wordpress = view(null);
+    expect(wordpress).toContain(copy("overview.issues.ours"));
+    expect(wordpress).not.toContain(" live on ");
+  });
+
+  it("with a report that could not be read, says so and draws no arm", () => {
+    const markup = renderToStaticMarkup(<IssuesView reading={null} timeZone="UTC" />);
+    expect(markup).toContain(copy("overview.issues.unreadable"));
+    expect(markup).not.toContain('data-testid="issues-unscanned"');
+    expect(markup).not.toContain('data-testid="issues-empty"');
   });
 });

@@ -651,13 +651,21 @@ function standingOf(
 export async function readWaitingIssues(site: OverviewSite): Promise<IssuesReading> {
   const now = clock();
   const weeks = windowWeeks(now, site.timeZone);
-  const [scans, deep] = await Promise.all([
+  const [scans, deep, host] = await Promise.all([
     readWeekScans({ siteId: site.siteId, weekStarts: weeks }),
     deepPassReading(site.siteId),
+    hostedHostname(site.siteId),
   ]);
   const report = standingOf(weeks, scans, deep, site.timeZone).latest ?? deep?.report ?? null;
-  if (report === null) return issuesReading(null, null);
-  return issuesReading(report.siteIssues, report.verdict.measuredAt);
+  if (report === null) return issuesReading(null, null, host);
+  return issuesReading(report.siteIssues, report.verdict.measuredAt, host);
+}
+
+/** The hosted address, live or waiting; `null` for a site without one or a failed read. */
+async function hostedHostname(siteId: string): Promise<string | null> {
+  const { hostedHostFor } = await import("@/lib/publish/destinations/hosted/hostname");
+  const host = await hostedHostFor(siteId).catch(() => null);
+  return host?.hostname ?? null;
 }
 
 async function weeklySeries(

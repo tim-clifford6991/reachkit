@@ -79,7 +79,7 @@ function affectedLine(pages: number, problems: number): string | null {
   return copy("overview.issues.affected", { pages: formatCount(pages), problems: formatCount(problems) });
 }
 
-function Summary(p: { issues: readonly WaitingIssue[]; pagesChecked: number }): React.JSX.Element {
+function Summary(p: { issues: readonly WaitingIssue[]; pagesChecked: number; hostedHost: string | null }): React.JSX.Element {
   const parts = shares(p.issues);
   const affected = parts.reduce((sum, part) => sum + part.count, 0);
   const fine = Math.max(0, p.pagesChecked - affected);
@@ -97,7 +97,7 @@ function Summary(p: { issues: readonly WaitingIssue[]; pagesChecked: number }): 
           </p>
           <p className="text-sm">
             {line === null ? null : `${line} `}
-            {copy("overview.issues.ours")}
+            {p.hostedHost === null ? copy("overview.issues.ours") : copy("overview.issues.ours.hosted", { host: p.hostedHost })}
           </p>
         </div>
         <div className="flex min-w-0 flex-col gap-2">
@@ -227,7 +227,7 @@ export function IssuesView(p: { reading: IssuesReading | null; timeZone: string 
         </div>
       ) : (
         <>
-          {reading.pagesChecked === null ? null : <Summary issues={issues} pagesChecked={reading.pagesChecked} />}
+          {reading.pagesChecked === null ? null : <Summary issues={issues} pagesChecked={reading.pagesChecked} hostedHost={reading.hostedHost} />}
           <div className="flex min-w-0 flex-col gap-4">
             {issues.map((issue) => (
               <IssueCard key={issue.check} issue={issue} pagesChecked={reading.pagesChecked ?? issue.over} />

@@ -13,6 +13,9 @@ const LONG_PAGE = `${SITE}/guides/onboarding/how-to-choose-an-onboarding-tool-fo
 // Midday, so it is Monday in every zone a fixture account can publish in.
 export const FIXTURE_MEASURED_AT = new Date("2026-10-19T12:00:00Z");
 
+// The hosted blog the reserved fixture account publishes to.
+export const FIXTURE_HOSTED_HOST = "blog.example.com";
+
 export const FIXTURE_SITE_ISSUES: SiteIssuesSection = {
   pagesChecked: 40,
   checkedPages: null,

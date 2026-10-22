@@ -372,6 +372,7 @@ export const OVERVIEW_COPY = Object.freeze({
   "overview.issues.affected.one-problem": ["{pages} pages have the problem below.", { slots: { pages: "text" }, fixedBy: "issue 1752 (drafted)" }],
   "overview.issues.affected.one-page": ["One page has a problem listed below.", { slots: {}, fixedBy: "issue 1752 (drafted)" }],
   "overview.issues.ours": ["Your ReachKit pages are not affected: they are checked before they go live.", { slots: {}, fixedBy: "issue 1752 (drafted)" }],
+  "overview.issues.ours.hosted": ["Your ReachKit pages are not affected: they live on {host} and are checked before they go live.", { slots: { host: "text" }, fixedBy: "issue 1752 (drafted)" }],
   "overview.issues.legend.noindex-pages": ["{count} hidden from search", { slots: { count: "text" }, fixedBy: "issue 1752 (drafted)" }],
   "overview.issues.legend.slow-pages": ["{count} slow", { slots: { count: "text" }, fixedBy: "issue 1752 (drafted)" }],
   "overview.issues.legend.broken-links": ["{count} broken links", { slots: { count: "text" }, fixedBy: "issue 1752 (drafted)" }],
