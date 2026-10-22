@@ -22,5 +22,5 @@ create index if not exists refunds_domains_idx on refunds using gin (domains);
 alter table refunds enable row level security;
 
 comment on table refunds is
-  'First-14-days refunds (owner D4): the refunded invoice, its account and the account''s canonical site '
-  'domains. No FK to users so the once-per-domain rule survives the purge. dbAdmin()-only; no policy by design.';
+  'First-14-days refunds (owner D4): the refunded invoice, the subscription it ended, its account and the account''s canonical site '
+  'domains. No FK to users so the once-per-domain rule survives the purge. dbAdmin()-only; default-deny; no anon/authenticated policy by design.';

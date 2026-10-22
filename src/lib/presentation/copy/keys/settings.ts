@@ -715,7 +715,7 @@ export const SETTINGS_COPY = Object.freeze({
   ],
   "settings.billing.refund-window": [
     "Billed in euros. Cancel by {date} for a full, automatic refund. ReachKit stops at once.",
-    { slots: { date: "date" }, fixedBy: "D4 · ux-designer · pending owner" },
+    { slots: { date: "date" }, fixedBy: "D4 · ux-designer · owner R5 2026-10-22" },
   ],
 
   // Billing's "What you got this month" (owner E3, 2026-10-19). Drafted.

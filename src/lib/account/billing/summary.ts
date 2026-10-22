@@ -101,7 +101,8 @@ export async function billingSummary(userId: string): Promise<BillingSummaryResu
       cancelledAt: account.cancelled_at === null ? null : new Date(account.cancelled_at),
       planStatus: account.plan_status,
       invoicesVia: "portal",
-      refundUntil: refunds !== null && refunds.length === 0 ? new Date(windowEnds) : null,
+      // The last whole day inside the window, so a cancel any time on the shown date is refunded.
+      refundUntil: refunds !== null && refunds.length === 0 ? new Date(windowEnds - 24 * 60 * 60 * 1000) : null,
     },
   };
 }

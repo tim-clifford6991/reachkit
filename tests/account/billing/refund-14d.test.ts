@@ -11,7 +11,7 @@ applyEnvFixture();
 
 const { POST } = await import("@/app/api/stripe/webhook/route");
 const { registerSubscriptionHandler } = await import("@/lib/account/provisioning/webhook");
-const { hasActiveAccess, resumeSubscription, setBillingStore } = await import("@/lib/account/billing");
+const { billingSummary, hasActiveAccess, resumeSubscription, setBillingStore } = await import("@/lib/account/billing");
 const { setStripe } = await import("@/lib/account/stripe/client");
 const { memoryBillingStore, newMemoryBilling, account, site, storedUser } = await import("./memory-store");
 const { newStripeDouble, paidInvoiceDouble, stripeDouble, subscriptionDouble } = await import("../stripe-double");
@@ -120,6 +120,21 @@ describe("D4 — a cancel in the first 14 days refunds the first payment", () =>
     expect(state.refunds).toMatchObject([{ invoice_id: "in_plumber", user_id: "plumber", domains: ["northside-plumbing.com"] }]);
     // Hosted pages are not touched here; the 30-day path starts from the new date.
     expect(state.sites[0]?.hosted_serving_ends_at).toBeNull();
+  });
+
+  it("a cancel in the last minute of the date the card shows is refunded", async () => {
+    customer({ id: "plumber", domain: "northside-plumbing.com" });
+    at(5);
+    const read = await billingSummary("plumber");
+    if (!read.ok || read.summary.refundUntil === null) throw new Error("day 5 shows a refund date");
+    const shown = read.summary.refundUntil;
+    // In any time zone the shown date ends no later than a day after the instant.
+    vi.setSystemTime(new Date(shown.getTime() + DAY - 60 * 1000));
+
+    expect(await deliver(cancelEvent("plumber"))).toBe(200);
+
+    expect(vendor.refundsCreated).toHaveLength(1);
+    expect(vendor.cancelled).toEqual(["sub_plumber"]);
   });
 
   it("day 15: no refund, and access runs to the period end", async () => {

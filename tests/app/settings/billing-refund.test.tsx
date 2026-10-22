@@ -56,7 +56,7 @@ describe("Settings › Billing — the cancel route and the first-14-days refund
   it("day 5: the route and the dated refund line, never the line that says access keeps running", async () => {
     const doc = await billingCard(5);
     expect(line(doc, "billing-route")).toBe(copy("settings.billing.route"));
-    expect(line(doc, "billing-refund")).toBe(copy("settings.billing.refund-window", { date: "Oct 15, 2026" }));
+    expect(line(doc, "billing-refund")).toBe(copy("settings.billing.refund-window", { date: "Oct 14, 2026" }));
     expect(line(doc, "billing-cancelling")).toBeNull();
   });
 
