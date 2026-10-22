@@ -1,49 +1,27 @@
-// SPEC §5 (2026-09-20, #908) — "The right-hand side matches the step."
+// SPEC §5 (docs/spec/decisions/2026-10-22-1737.md) — the side of the step.
 //
-// Three of the five steps draw the customer's own blog in a daisyUI
-// `mockup-browser`: the address as it fills in, the business's own name and
-// the market the scan read where it read one, and `skeleton` where a fact
-// is not known yet. The rivals step draws the searches measured against the
-// customer and each rival (#923, `RivalsPanel`); the voice step draws one
-// sample paragraph in their own voice (#923, `VoicePanel`).
-//
-// **A panel never shows a placeholder for a fact we have not got.** Where a
-// name, a market or a grid is missing, the panel says so in a line — or
-// shows a shape that claims nothing — and never a guess. That is the
-// owner's bar for setup: a panel shows what is already known the moment it
-// is known, and nothing else.
-//
-// The business step is the exception, and it is this issue's: step two's
-// panel is the profile itself, every item removable, each group with its
-// own Add (`BusinessPanel`).
+// Site and Check draw *What happens next*: the three steps, which one the
+// founder is on, and that nothing is left to do after them. Connect draws
+// the customer's own blog in a daisyUI `mockup-browser`: the address as it
+// fills in, the business's own name and the market the scan read where it
+// read one, and `skeleton` where a fact is not known yet — never a guess.
 //
 // Below the large breakpoint the panel is not beside anything — it follows
 // the question, which is why nothing in here says "on the right".
-//
-// daisyUI classes in the route (DESIGN.md rule 1): `card`, `mockup-browser`,
-// `skeleton`. No stylesheet, no wrapper.
 "use client";
 
 import type React from "react";
+import { Check } from "lucide-react";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
-import { BusinessPanel } from "./BusinessPanel";
-import { RivalsPanel } from "./RivalsPanel";
-import { VoicePanel } from "./VoicePanel";
 import { PANEL, PANEL_BODY, QUIET } from "./frame";
-import type { BusinessDraft } from "./_setup/business";
-import type { FounderAnswers } from "@/lib/site-profile/knowledge/types";
-import type { RivalGrid } from "./_setup/panel-rivals";
-import type { SetupStepId } from "./steps";
+import { SETUP_STEPS, stepIndex, type SetupStepId } from "./steps";
 
-/** One title per step, in the order the founder meets them. The business
- *  step's is the business's own name where the scan read one. */
-const PANEL_TITLE = {
-  site: "setup.panel.site.title",
-  business: "setup.panel.business.title.unnamed",
-  rivals: "setup.panel.rivals.title",
-  voice: "setup.panel.voice.title",
-  publishing: "setup.panel.publishing.title",
-} as const satisfies Record<SetupStepId, CopyKey>;
+/** Each step's name and line in the rail, in the order the founder meets them. */
+const NEXT_COPY = {
+  site: { name: "setup.next.site", line: "setup.next.site.line" },
+  check: { name: "setup.next.check", line: "setup.next.check.line" },
+  publishing: { name: "setup.next.publishing", line: "setup.next.publishing.line" },
+} as const satisfies Record<SetupStepId, { name: CopyKey; line: CopyKey }>;
 
 /** How many placeholder lines stand in for a page that is not written yet.
  *  A count, not a sentence: it says nothing to a reader. */
@@ -58,26 +36,11 @@ export function SetupPanel(p: {
   /** The market the scan read, where it read one (#923). `null` is not a
    *  market of "unknown": it is a fact the panel does not state. */
   market: string | null;
-  /** #923's rivals grid, or `null` where nothing has been measured for this
-   *  address yet. */
-  rivalGrid: RivalGrid | null;
   /** The pass's live status line, already composed by the caller — it holds
    *  the subscription, which is a client concern and not a panel's. */
   status?: React.ReactNode;
-  draft: BusinessDraft;
-  onDraft: (next: BusinessDraft) => void;
-  job: string;
-  onJob: (next: string) => void;
-  answers: FounderAnswers;
-  onAnswers: (next: FounderAnswers) => void;
 }): React.JSX.Element {
   return (
-    // A flex column whose body grows (the calm layer's rhythm, #1091): the
-    // aside is stretched to the step's height by the row it sits in, and
-    // the body takes what the title and the notes leave, so the preview
-    // stands exactly as tall as the step beside it rather than stopping
-    // short of it. Below `lg` there is nothing beside it and it is only as
-    // tall as it is.
     <aside className={PANEL} data-testid="setup-panel" data-step={p.step}>
       {/* Keyed on the step, so the panel's side of a step change rises in
           one stagger (60ms) after the question's. The status line below
@@ -86,38 +49,64 @@ export function SetupPanel(p: {
         key={p.step}
         className={`${PANEL_BODY} motion-safe:animate-rise motion-safe:[animation-delay:60ms]`}
       >
-        <h2 className="min-w-0 text-base font-medium wrap-anywhere" data-testid="setup-panel-title">
-          {p.step === "business" && p.businessName !== null
-            ? copy("setup.panel.business.title", { business: p.businessName })
-            : copy(PANEL_TITLE[p.step])}
-        </h2>
-
-        {p.step === "business" ? (
-          <BusinessPanel
-            draft={p.draft}
-            onDraft={p.onDraft}
-            job={p.job}
-            onJob={p.onJob}
-            answers={p.answers}
-            onAnswers={p.onAnswers}
-          />
-        ) : p.step === "rivals" ? (
-          <RivalsPanel grid={p.rivalGrid} />
-        ) : p.step === "voice" ? (
-          <VoicePanel />
+        {p.step === "publishing" ? (
+          <>
+            <h2 className="min-w-0 text-base font-medium wrap-anywhere" data-testid="setup-panel-title">
+              {copy("setup.panel.publishing.title")}
+            </h2>
+            <BlogMockup address={p.blogAddress} businessName={p.businessName} market={p.market} />
+            <p className={QUIET} data-testid="setup-panel-note">
+              {copy("setup.panel.note")}
+            </p>
+          </>
         ) : (
-          <BlogMockup address={p.blogAddress} businessName={p.businessName} market={p.market} />
+          <NextRail step={p.step} />
         )}
       </div>
-
-      <p className={QUIET} data-testid="setup-panel-note">
-        {copy("setup.panel.note")}
-      </p>
       {/* The pass's current step, where one is running. It is the last
           thing in the panel because it is about the work, not about the
           answer the founder is giving. */}
       {p.status}
     </aside>
+  );
+}
+
+/** The three steps, where the founder is, and that nothing follows them. */
+function NextRail(p: { step: SetupStepId }): React.JSX.Element {
+  const at = stepIndex(p.step);
+  return (
+    <section className="card card-border bg-base-100" data-testid="setup-next">
+      <div className="card-body gap-4 p-4">
+        <h2 className="text-sm font-medium text-base-content/70">{copy("setup.next.title")}</h2>
+        <ol className="grid gap-3">
+          {SETUP_STEPS.map((id, index) => (
+            <li key={id} className="flex min-w-0 gap-3" aria-current={index === at ? "step" : undefined}>
+              <span
+                className={`badge badge-sm num shrink-0 ${index <= at ? "badge-primary" : "badge-ghost"}`}
+              >
+                {index < at ? <Check strokeWidth={1.75} size={12} aria-hidden /> : String(index + 1)}
+              </span>
+              <span className="flex min-w-0 flex-col">
+                <span className="flex flex-wrap items-center gap-x-2 font-medium">
+                  {copy(NEXT_COPY[id].name)}
+                  {index === at ? (
+                    <span className="badge badge-soft badge-primary badge-sm">{copy("setup.next.here")}</span>
+                  ) : null}
+                </span>
+                <span className={QUIET}>{copy(NEXT_COPY[id].line)}</span>
+              </span>
+            </li>
+          ))}
+          <li className="flex min-w-0 gap-3">
+            <span className="status status-success mt-1.5 shrink-0" aria-hidden />
+            <span className="flex min-w-0 flex-col">
+              <span className="font-medium">{copy("setup.next.after")}</span>
+              <span className={QUIET}>{copy("setup.next.after.line")}</span>
+            </span>
+          </li>
+        </ol>
+      </div>
+    </section>
   );
 }
 

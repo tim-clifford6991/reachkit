@@ -39,8 +39,17 @@ every two hours) and receives every merge, the same as dev (no freeze, owner 202
 `/api/jobs` is served by production, so a job or pass change takes effect only once production is
 deployed. `Vercel` is not a check: Git deployments are off (`vercel.json` `git.deploymentEnabled: false`).
 
+Every production deploy is one line in `/root/ops/reachkit/state/prod-redeploy.log`, from the
+deployer or from `bin/redeploy.sh`. The line carries the UTC date and time, the target, main's
+full SHA at the call, the deployment id, the trigger (`deployer` or `hand`) and the reason. The
+deployer writes `main moved`; `redeploy.sh --reason "<why>"` writes the reason it is given. Both
+write `state/deploy-prod.sha`, so the deployer never deploys the same SHA again. The deployer
+starts production only at :10–:40, so the build is Ready before the hourly jobs fire. Once the
+build is Ready, either script `PUT`s `https://reachkit.app/api/jobs` to sync Inngest and logs
+`inngest sync <code>` against the deployment id.
+
 The owner tests the path live on `dev.reachkit.app` for taste and for the stranger walk. Conditions and screen strategy are already the gates (`docs/PROCESS.md` Coherence, `docs/DESIGN.md`). This live pass is not a second check of those. A merged migration is applied through the
-Supabase connector after the target deploy is READY, then the path is walked again
+Supabase connector in the order §9 gives, then the path is walked again
 (`scripts/smoke.sh` / `scripts/land.sh`).
 
 ### Rolling back a deploy: we do not
@@ -70,7 +79,7 @@ next one, silently. Nothing in a deploy checks it.
 
 | | |
 |---|---|
-| `bin/redeploy.sh`, `bin/deploy-dev-once.sh`, `bin/deployer.sh` | **Cannot.** All three POST `gitSource.ref: "main"` — the tip of `main` at the moment of the call. None takes a commit, a ref or a deployment id, so no script on this box can put an older build on `reachkit.app`. This is already protected, by having no argument to abuse |
+| `bin/redeploy.sh --reason "<why>"`, `bin/deploy-dev-once.sh`, `bin/deployer.sh` | **Cannot.** All three POST `gitSource.ref: "main"` — the tip of `main` at the moment of the call. None takes a commit, a ref or a deployment id, so no script on this box can put an older build on `reachkit.app`. This is already protected, by having no argument to abuse |
 | Vercel — the dashboard's rollback/promote control, `vercel rollback`, `vercel promote`, `POST /v1/projects/{id}/rollback/{dpl}`, `POST /v10/projects/{id}/promote/{dpl}` | **Can.** Production deployments are retained and the previous one is flagged a rollback candidate; promoting it re-aliases `reachkit.app` with no rebuild, in one click. Nothing prevents it. This door stays shut by decision, not by a guard — do not walk through it |
 | A deploy that fails to build | **Not a rollback at all.** A failed build is never aliased: `reachkit.app` keeps serving the build it already had. Nothing was reverted because nothing was replaced |
 
@@ -85,6 +94,13 @@ would need a not-present arm at every reader, and every future version bump woul
 what an older build silently loses. It buys back one click that has never been needed.
 
 ### Where CI runs
+
+2026-10-22  **CI runs GitHub-hosted.** The repository is public, so hosted minutes cost
+nothing. The box runners `reachkit-box`, `reachkit-light` and `reachkit-light-2` are stopped and
+their units disabled, and so is `rk-ci-switch.timer`. `CI_LIGHT_RUNNER` and `CI_BROWSER_ON_BOX`
+stay unset. The nightly and a dispatch still name `reachkit-box` in their workflows, so they
+queue until those lines move to hosted. The rest of this section is the box setup, kept as a
+fallback.
 
 Owner, 2026-09-25 (#1113); the rules are in `docs/PROCESS.md` Gates. The light jobs — `what
 changed`, `typecheck · lint · unit`, `schema · RLS` and `audit` — take their runner from the
@@ -260,12 +276,12 @@ not in it is unreachable over HTTP. `src/jobs/client.ts` is the only file that n
 | Job | Trigger | Does | In the kill switch |
 |---|---|---|---|
 | `scan/run` | event `scan/run` | the one pipeline; tier is a parameter | ● |
-| `draft/generate` | cron `0 * * * *` | next opportunity → pipeline → `in_review`, veto clock starts, daily mail. The tick is hourly; a site's page for a date is written in the hour whose start plus its veto window is at, or less than an hour before, that date's publish time in the site's zone (#1337). The tick sends each due site as `draft/generate/subject`, keyed `draft:{site}:{date}`, to its own run (`draft-generate-subject`): one per site, five at once, ten starts a minute; steps `notice`, `select`, `write`, `review`. A day owed with nothing recorded in `draft_days` is sent on the next tick while its window is open | ● |
+| `draft/generate` | cron `3 * * * *` | next opportunity → pipeline → `in_review`, veto clock starts, daily mail. The tick is hourly; a site's page for a date is written in the hour whose start plus its veto window is at, or less than an hour before, that date's publish time in the site's zone (#1337). The tick sends each due site as `draft/generate/subject`, keyed `draft:{site}:{date}`, to its own run (`draft-generate-subject`): one per site, five at once, ten starts a minute; steps `notice`, `select`, `write`, `review`. A day owed with nothing recorded in `draft_days` is sent on the next tick while its window is open | ● |
 | `publish/execute` | event `publish/execute` | state machine → destination | ● |
 | `publish/verify` | event `publish/verify`, +24h | liveness checks on a published page | |
 | `publish/retry` | cron `0 * * * *` | claims failed pages whose retry moment has come round | ● |
-| `weekly/refresh` | cron `0 * * * *` | weekly scan per active site, gated on that site's local Monday. The tick's step is `due`; each due site is sent as `weekly/refresh/subject`, keyed `weekly:{site}:{week}`, to its own run (`weekly-refresh-subject`, bounded as the draft one), whose steps are `measure-…`, up to three `late-answers-…` (free reads of queued answers, #1160), `search-…` and `tell-…` | (stopped inside the run, not by the runner) |
-| `lead/nurture` | cron `0 * * * *` | advances sequences over `next_touch_at` | |
+| `weekly/refresh` | cron `41 * * * *` | weekly scan per active site, gated on that site's local Monday. The tick's step is `due`; each due site is sent as `weekly/refresh/subject`, keyed `weekly:{site}:{week}`, to its own run (`weekly-refresh-subject`, bounded as the draft one), whose steps are `measure-…`, up to three `late-answers-…` (free reads of queued answers, #1160), `search-…` and `tell-…` | (stopped inside the run, not by the runner) |
+| `lead/nurture` | cron `26 * * * *` | advances sequences over `next_touch_at` | |
 | `account/maintenance` | cron `*/15 * * * *` | five due-work queries: a payment awaiting sign-in, a payment with no account, a hosting-end notice, a hosting stop, an account due for purge | |
 | `scan/rescore` | cron `7,22,37,52 * * * *` | answers the oldest `rescore_runs` request: every stored scan and rival set scored again, dry or applied (issue 1433, "Re-scoring every stored scan" below). Steps: `claim`, then `answer-<id>`; `skipped` / `no-subject` when nothing is asked | |
 | `scan/finish-reads` | event `scan/finish-reads` | sent by a free pass that stored a report with searches it chose and did not read (issue 1440): reads only those, once, inside the free cap the pass already spent from, and rewrites the report through `rescore_scan`. Step: `finish`; `degraded` where a search failed again, `skipped` / `no-subject` where the report has nothing left to finish. Log line `finish_reads` | ● |
@@ -1219,7 +1235,10 @@ which is how the original 38 were applied (in five chunks) and how every one sin
 
 The procedure, per migration:
 
-1. Land the PR. The migration is in `main`.
+1. Land the PR. The migration is in `main`. Expand before the deploy; contract after the old
+   code is gone. An expand-only migration is applied before the deploy whose code reads it. Any
+   other migration is applied after the target deploy is READY (`docs/PROCESS.md` › Current, four
+   steps 4).
 2. Re-read the file and paste it into the Supabase SQL editor on the `reachkit` project. One
    migration per run, in filename order, oldest first.
 3. Re-read the **security and performance advisors** afterwards. A new `plpgsql` function without
@@ -1536,8 +1555,8 @@ deployment (`dpl_2NEUXishMXAkzXG4Ti85yTy7NDda`, 23 Aug 2026).
 | someone is asking to roll back | §1 — the scripts cannot; Vercel can, and must not. Why is there |
 | "is not readable by this build" in a log | §1 — an older build is reading a newer report. Deploy `main`, do not roll back further |
 | how long would a restore take | §9 — unknown until the drill runs. Enabling it and running it are the owner's |
-| CI jobs fail with a billing or spending-limit error | §1 *Where CI runs* — one `gh variable set` sends the light jobs to the box |
-| a check sits in *queued* for hours | §1 *Where CI runs* — is the runner its label names online? `gh api repos/tim-clifford6991/reachkit/actions/runners` |
+| CI jobs fail with a billing or spending-limit error | §1 *Where CI runs* — CI is hosted on a public repository; the box runners are stopped and are the fallback only |
+| a check sits in *queued* for hours | §1 *Where CI runs* — does it name a box runner? Those are stopped. `gh api repos/tim-clifford6991/reachkit/actions/runners` |
 | `Vercel` fails on every PR | §1 — the Hobby plan's 100 builds a day. It is not a required check; nothing is blocked |
 
 ---
