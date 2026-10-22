@@ -38,7 +38,7 @@ const byId = (id: string) => (jobs: readonly JobDefinition[]) => jobs.find((job)
 describe("JobDefinition's concurrency and throttle, mapped only in client.ts", () => {
   it("draft/generate is a tick and a per-site run, keyed, one per site across jobs and five in all, throttled", async () => {
     const [tick, site] = await mapped(byId("draft/generate"));
-    expect(tick!.options).toMatchObject({ id: "draft-generate", triggers: [{ cron: "0 * * * *" }] });
+    expect(tick!.options).toMatchObject({ id: "draft-generate", triggers: [{ cron: "3 * * * *" }] });
     expect(tick!.options).not.toHaveProperty("concurrency");
     expect(site!.options).toMatchObject({
       id: "draft-generate-subject",
