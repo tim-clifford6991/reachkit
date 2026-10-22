@@ -121,7 +121,9 @@ export type DayPageOutcome =
        *  them, where the run that stopped it held them (issue 1187). */
       stopped?: readonly FixNote[];
     }
-  | { ok: false; because: "step_failed"; draftId: string | null; step: string };
+  | { ok: false; because: "step_failed"; draftId: string | null; step: string }
+  /** DataForSEO refused the page's research for lack of credit. */
+  | { ok: false; because: "vendor_funds" };
 
 type NoPage = Extract<DayPageOutcome, { because: "no_site" | "no_scan" | "already_drafted" | "no_opportunity" }>;
 
@@ -709,6 +711,8 @@ async function writePage(a: PageInput & { attempts: number; startedAt?: number }
   for (let attempt = 1; ; attempt++) {
     const key = `${opportunity.id}:${opportunity.type}`;
     if (!packs.has(key)) packs.set(key, await packFor(opportunity));
+    // Research the vendor refused for credit is unmeasured, and no page is written from it.
+    if (cost.fundsRefused?.() === true) return { ok: false, because: "vendor_funds" };
     const built = packs.get(key) ?? null;
     if (built === null) return { ok: false, because: "step_failed", draftId: draftId ?? null, step: "pack" };
     const last: GenerateOutcome = await generateDraft(cost, {
