@@ -9,7 +9,7 @@
 import { cache } from "react";
 import { isReservedFixtureAccount, requireSetUpAccount } from "../_session/account";
 import { HARD_RULES } from "@/lib/generate/rules/types";
-import type { DoneFacts, SetAside } from "./done";
+import type { DoneFacts } from "./done";
 
 /** The fixture account's week, on the day its Overview is "opened"
  *  (`fixture.ts`: Friday 4 September 2026). Monday's pass is that week's. */
@@ -41,9 +41,3 @@ export const readDone = cache(async function readDone(): Promise<DoneFacts> {
   const { readDoneFacts } = await import("./done-store");
   return readDoneFacts({ siteId: account.siteId, domain: account.domain, timeZone: account.timeZone });
 });
-
-/** The topics set aside, for the draft screen's own note. */
-export async function readSetAsideFor(siteId: string): Promise<SetAside | undefined> {
-  const { readSetAside } = await import("./done-store");
-  return readSetAside(siteId);
-}

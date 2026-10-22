@@ -191,7 +191,8 @@ export async function recordTold(
   draftId: string,
   t: Telling,
   pair: GoverningPair,
-  sentAt: Date = new Date()
+  sentAt: Date = new Date(),
+  mailed?: boolean
 ): Promise<void> {
   if (t.kind === "not_yet_tellable") return;
   const record: ToldRecord = {
@@ -199,6 +200,7 @@ export async function recordTold(
     kind: t.kind,
     publishesAt: t.publishesAt.toISOString(),
     sentAt: sentAt.toISOString(),
+    ...(mailed === undefined ? {} : { mailed }),
   };
   const { error } = await publishDb()
     .from<never>("drafts")
