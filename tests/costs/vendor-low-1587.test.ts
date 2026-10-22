@@ -1,5 +1,5 @@
 // tests/costs/vendor-low-1587.test.ts — the daily balance read tells the
-// owner once a Berlin day when DataForSEO credit runs out within a week,
+// owner once a Berlin day when DataForSEO credit runs out within two weeks,
 // through the real obligation, the real vendor client and the real incident
 // mail. The database is a small in-memory stand-in for the two relations
 // read; DataForSEO answers from the recorded `user_data` fixture.
@@ -103,7 +103,7 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-describe("the owner is told when DataForSEO credit runs out within a week", () => {
+describe("the owner is told when DataForSEO credit runs out within two weeks", () => {
   it("a 900¢ balance gives one mail with the balance and the dashboard link", async () => {
     answer = () => balanceOf(900);
     await tick("2026-10-19T00:05:00Z");
@@ -128,6 +128,21 @@ describe("the owner is told when DataForSEO credit runs out within a week", () =
     await tick("2026-10-19T00:05:00Z");
     expect(mails).toHaveLength(1);
     expect(textOf(mails[0])).toContain("Days left at last week's spend: 5\n");
+  });
+
+  it("2,000¢ at 200¢ a day is ten days left, inside the fortnight, and is told", async () => {
+    answer = () => balanceOf(2000);
+    spendPerDay(200, "2026-10-19");
+    await tick("2026-10-19T00:05:00Z");
+    expect(mails).toHaveLength(1);
+    expect(textOf(mails[0])).toContain("Days left at last week's spend: 10\n");
+  });
+
+  it("3,000¢ at 200¢ a day is fifteen days left, and gives no mail", async () => {
+    answer = () => balanceOf(3000);
+    spendPerDay(200, "2026-10-19");
+    await tick("2026-10-19T00:05:00Z");
+    expect(mails).toHaveLength(0);
   });
 
   it("two runs on one day give one mail", async () => {
