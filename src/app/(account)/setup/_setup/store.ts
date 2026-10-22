@@ -466,12 +466,12 @@ export function liveSetupStore(): SetupStore {
      * point beside it.
      *
      * Every arm writes what that step alone decided, and nothing else: a
-     * founder who changes their market on step one and then leaves has
-     * their market stored and their destination untouched. `resumeAt` is
+     * founder who changes their address on step one and then leaves has
+     * their address stored and their destination untouched. `resumeAt` is
      * written in the same call as the answer, so a `/setup` reopened in a
      * new tab can never land on a step whose answer was not saved.
      *
-     * The business step writes the customer's decisions over the profile
+     * Check's business lists write the customer's decisions over the profile
      * they were shown (#970), into the same `site_profile_edits` row
      * Settings › Your business writes — so a correction made here is there,
      * and one made there is here. It invents no storage of its own: this
@@ -483,17 +483,19 @@ export function liveSetupStore(): SetupStore {
       save: SetupStepSave;
       resumeAt: SetupStepId | null;
     }): Promise<void> {
-      const step = a.save.step;
-      if (step === "site") {
-        await updateSite(a.siteId, { domain: a.save.domain, category: a.save.category });
-        await markSetupOverride(a.siteId, { category: a.save.category });
+      if (a.save.step === "site") {
+        await updateSite(a.siteId, { domain: a.save.domain });
+        if (a.save.category !== undefined) {
+          await updateSite(a.siteId, { category: a.save.category });
+          await markSetupOverride(a.siteId, { category: a.save.category });
+        }
         await writeLocale(a.siteId, a.save.locale);
         await writePlace(a.siteId, a.save.place);
-      } else if (step === "rivals") {
+      } else {
+        // Check: each section to the row its own step wrote before.
         const shown = await shownRivals(a.siteId);
-        await updateSite(a.siteId, { competitors: [...a.save.competitors] });
-        await markSetupOverride(a.siteId, { competitors: a.save.competitors, shown });
-      } else if (step === "business") {
+        await updateSite(a.siteId, { category: a.save.category, competitors: [...a.save.competitors] });
+        await markSetupOverride(a.siteId, { category: a.save.category, competitors: a.save.competitors, shown });
         const site = await siteById(a.siteId);
         await writeBusinessLists({
           siteId: a.siteId,
@@ -502,8 +504,6 @@ export function liveSetupStore(): SetupStore {
           job: a.save.job,
           answers: a.save.answers,
         });
-      } else if (step === "voice") {
-        const site = await siteById(a.siteId);
         await writeVoice({ siteId: a.siteId, domain: site.domain, voiceText: a.save.voiceText });
         await writeTimezone(a.siteId, a.save.timezone);
       }

@@ -7,7 +7,7 @@ import { headers } from "next/headers";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { PUBLIC_ROUTE_SEO } from "../../_seo/routes";
 import { staticMetadata } from "../../_seo/metadata";
-import { BackLink, BODY, CARD, LibraryPage, ScanCta } from "../../_library/parts";
+import { BackLink, BODY, CARD, checkedDomain, LearnClose, LibraryPage } from "../../_library/parts";
 import { PREVIEW_TAGS, tagValue } from "../_check/checks";
 import { readPage, type PageTags } from "../_check/read";
 import { ReadProblem, ToolForm } from "../_check/ToolForm";
@@ -124,7 +124,7 @@ export default async function MetaPreviewPage({ searchParams }: Props): Promise<
       <p>{copy("tools.meta.intro")}</p>
       <ToolForm value={value} />
       {value === "" ? null : <Result raw={value} />}
-      <ScanCta />
+      <LearnClose variant="tool-meta" domain={checkedDomain(value)} />
       <BackLink href={INDEX} label={MORE} />
     </LibraryPage>
   );

@@ -25,7 +25,7 @@ here and GO-LIVE §3 disagree, GO-LIVE §3 is the status and this table is out o
 | # | Must be true | State on 2026-09-25 | Blocks the walk? | Whose |
 |---|---|---|---|---|
 | 1 | **Stripe is live** (GO-LIVE §1.3, **#1042**) | **Half done** (corrected 2026-10-02, GO-LIVE §1.1). The three production Stripe bindings are live-mode values; the 2026-09-25 reading of them as test mode was wrong. No live payment has completed, and the Customer emails setting is unread. The walk's own payment is the first. | **No.** A real card can pay. GO-LIVE §1.3 step 7 is still the owner's to decide. | owner |
-| 2 | **A hosted page is reachable** (GO-LIVE §3 row 5, **#1045**) | **Half done.** `VERCEL_API_TOKEN` and `VERCEL_PROJECT_ID` are on production (set 2026-09-23). `https://content.reachkit.app/` still answers `404 DEPLOYMENT_NOT_FOUND`. No customer host has been attached through the product on production yet. | **Yes, for a hosted walk.** A WordPress walk does not need it. | owner presses Check, per #1045 |
+| 2 | **A hosted page is reachable** (GO-LIVE §3 row 5, **#1045**) | **Done 2026-10-02 (GO-LIVE row 5).** | No | — |
 | 3 | **The legal pages carry real bodies** (GO-LIVE §3 row 3, **#335**) | **Not done.** `/imprint` on production still renders `[[imprint: owner fills legal entity, address, VAT id]]`. The same placeholder is in every mail footer. | **Yes.** A stranger is asked to pay on a page with no legal entity. | owner |
 | 4 | **The sign-in split** (**#1025**) | **Done.** Closed. | No | — |
 | 5 | **Mail reaches a real inbox** (GO-LIVE §2, **#1043**) | **Done.** DMARC `p=none` is published, and a real mail passed DKIM, SPF and DMARC on 2026-09-23. | No | — |
@@ -34,12 +34,11 @@ here and GO-LIVE §3 disagree, GO-LIVE §3 is the status and this table is out o
 | 8 | **The landing's demo video** (**#1030**) | **Not done.** The frame is empty on purpose (#734). | No. It is optional for the walk. | owner |
 | 9 | **The owner has picked the tester and the site** (#1044) | **Open.** A WordPress site with an application password, or a domain whose DNS the tester can change. | **Yes.** | owner |
 
-**Open items that block the walk:** 3 (#335) and 9. Item 1 (#1042) still has its Customer emails setting open. Item 2 (#1045) also blocks it if the
-tester publishes to a hosted subdomain.
+**Open items that block the walk:** 3 (#335) and 9. Item 1 (#1042) still has its Customer emails setting open.
 
 ## How long the walk takes
 
-The tester should plan for **two or three days**. The walk is not one sitting:
+The tester should plan for **two or three days, then the first Monday**. The walk is not one sitting:
 
 - **Day 1:** landing, then the scan, the report, paying and setup. For a hosted page, add the DNS
   record. After setup, the deep pass and the first page are written in the background.
@@ -47,6 +46,9 @@ The tester should plan for **two or three days**. The walk is not one sitting:
   (SPEC §0 *Veto*). Then it publishes. The tester checks that it is live on their own domain.
 - **Day 2 or 3:** the next evening's page comes with its mail. The tester presses *Stop this page*
   in that mail.
+- **The first Monday:** the Monday mail arrives, and the tester reads it.
+- **After that Monday, within 14 days of paying:** the tester downloads the export in Settings,
+  then presses Cancel in Settings. Once #1707 is live this refunds automatically (GO-LIVE §1.7).
 
 Nobody helps during the walk. The owner watches (`docs/walk/watch.md`) and writes down what the
 tester did, but does not answer questions. After the walk: one issue per finding, sized for one PR,

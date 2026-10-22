@@ -423,65 +423,65 @@ describe("the provider still hands out the fixture, and says why in one place", 
   });
 });
 
-describe("the business step writes the same corrections Settings writes (SPEC §5 and §7, #970)", () => {
+describe("Check writes each section to the row its own step wrote (docs/spec/decisions/2026-10-22-1737.md)", () => {
   const LISTS = {
     products: ["project management", "retainer billing"],
     claims: ["set up in an afternoon"],
     vocabulary: ["agencies"],
     claimsToKeep: [],
   };
+  const CHECK = {
+    step: "check" as const,
+    category: "client portals for agencies",
+    competitors: ["asana.com", "basecamp.com"],
+    lists: LISTS,
+    job: "We run agencies' projects",
+    voiceText: "Blunt and short.",
+    timezone: "Europe/Lisbon",
+  };
 
-  it("the four lists reach the overlay, for this site and its own stored domain", async () => {
-    db = fakeDb({ sites: [site({ domain: "acme.example" })], destinations: [] });
+  it("one field changed in each section lands on its row: market, rivals, business lists, voice, zone", async () => {
+    db = fakeDb({ sites: [site({ domain: "acme.example", timezone: null, voice_text: null })], destinations: [] });
 
-    await liveSetupStore().saveStep({
-      siteId: SITE,
-      save: { step: "business", lists: LISTS },
-      resumeAt: "rivals",
-    });
+    await liveSetupStore().saveStep({ siteId: SITE, save: CHECK, resumeAt: "publishing" });
 
-    expect(chosen).toHaveBeenCalledTimes(1);
-    expect(chosen.mock.calls[0]![0]).toEqual({
-      siteId: SITE,
-      // Read off the row, never carried in the save: a founder cannot name
-      // another site's domain by editing a payload.
-      domain: "acme.example",
-      chosen: LISTS,
-    });
-    // And the resume point, as every other step writes it.
-    expect(db.tables.sites?.find((row) => row.id === SITE)?.setup_step).toBe("rivals");
-  });
-
-  it("#1038: *What you do* as the founder left it reaches the overlay beside the lists", async () => {
-    db = fakeDb({ sites: [site({ domain: "acme.example" })], destinations: [] });
-
-    await liveSetupStore().saveStep({
-      siteId: SITE,
-      save: { step: "business", lists: LISTS, job: "We run agencies' projects" },
-      resumeAt: "rivals",
-    });
-
+    const row = db.tables.sites!.find((r) => r.id === SITE)!;
+    expect(row.category).toBe("client portals for agencies");
+    expect(row.competitors).toEqual(["asana.com", "basecamp.com"]);
+    expect(row.voice_text).toBe("Blunt and short.");
+    expect(row.timezone).toBe("Europe/Lisbon");
+    // #970: the lists and *What you do* reach the overlay Settings writes, for
+    // this site's own stored domain — never a domain the payload names.
     expect(chosen.mock.calls.at(-1)![0]).toEqual({
       siteId: SITE,
       domain: "acme.example",
       chosen: LISTS,
       job: "We run agencies' projects",
     });
+    // The resume point moves last, once every section is on disk.
+    expect(row.setup_step).toBe("publishing");
   });
 
   it("an overlay that refuses does not hold the founder on the step", async () => {
     chosen.mockRejectedValue(new Error("edits table unreachable"));
 
     await expect(
-      liveSetupStore().saveStep({
-        siteId: SITE,
-        save: { step: "business", lists: LISTS },
-        resumeAt: "rivals",
-      })
+      liveSetupStore().saveStep({ siteId: SITE, save: CHECK, resumeAt: "publishing" })
     ).resolves.toBeUndefined();
 
     // The resume point still moved: the step was left, and the same lists
     // are editable in Settings › Your business.
-    expect(db.tables.sites?.find((row) => row.id === SITE)?.setup_step).toBe("rivals");
+    expect(db.tables.sites?.find((row) => row.id === SITE)?.setup_step).toBe("publishing");
+  });
+
+  it("Site writes the address and leaves the market to Check", async () => {
+    db = fakeDb({ sites: [site({ category: "kept" })], destinations: [] });
+
+    await liveSetupStore().saveStep({ siteId: SITE, save: { step: "site", domain: "acme.example" }, resumeAt: "check" });
+
+    const row = db.tables.sites!.find((r) => r.id === SITE)!;
+    expect(row.domain).toBe("acme.example");
+    expect(row.category).toBe("kept");
+    expect(row.setup_step).toBe("check");
   });
 });

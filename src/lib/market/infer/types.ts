@@ -151,6 +151,9 @@ export interface StoredMarket {
    *  what the first pass that read it concluded. Absent until one of them
    *  has said. It does not move with the market. */
   area?: ServingArea;
+  /** When a pass last reached a conclusion on the rivals, ISO (ruling B5):
+   *  a re-check the cap refused or that failed leaves it as it was. */
+  rivalsCheckedAt?: string;
 }
 
 export const EMPTY_STORED_MARKET: StoredMarket = Object.freeze({

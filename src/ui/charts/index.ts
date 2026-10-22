@@ -10,3 +10,5 @@ export { SERIES_COLOR } from "./series";
 export type { SeriesKind } from "./series";
 export { CostBars } from "./CostBars";
 export type { CostRow } from "./CostBars";
+export { CapDays } from "./CapDays";
+export type { CapBar } from "./CapDays";
