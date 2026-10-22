@@ -1,17 +1,15 @@
 /** @vitest-environment jsdom */
 // tests/app/draft/why.test.tsx — SPEC §4 (2026-10-10), issue 1395: why this
-// topic, the topics set aside, and the two sources a page is written from.
+// page, and the two sources a page is written from.
 import { describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import { COPY } from "@/lib/presentation/copy";
-import { TargetBlock } from "@/app/(account)/app/draft/[draftId]/TargetBlock";
+import { WhyThisPage } from "@/app/(account)/app/draft/[draftId]/TargetBlock";
 import { WrittenFromCard } from "@/app/(account)/app/draft/[draftId]/ReviewCards";
 import { FIXTURE_WRITTEN_FROM } from "@/app/(account)/app/draft/[draftId]/fixture";
 import type { DraftTarget } from "@/app/(account)/app/draft/[draftId]/model";
 
 const AT = new Date(Date.UTC(2026, 9, 5));
-const PUBLISHER = { name: "baeckerei.example", url: "https://baeckerei.example", addressRecorded: false };
-
 /** A German bakery's page: the search and the rival are not English. */
 function target(why: Extract<DraftTarget, { kind: "target" }>["why"]): DraftTarget {
   return {
@@ -30,31 +28,27 @@ function target(why: Extract<DraftTarget, { kind: "target" }>["why"]): DraftTarg
   };
 }
 
-function block(t: DraftTarget, setAside?: { covered: number; tooHard: number; lowFit: number; resting: number }): string {
-  return renderToStaticMarkup(
-    <TargetBlock target={t} setAside={setAside} title="Glutenfreies Brot" description="" publisher={PUBLISHER as never} />
-  );
+function block(t: DraftTarget): string {
+  return renderToStaticMarkup(<WhyThisPage target={t} />);
 }
 
-describe("why this topic", () => {
-  it("states the fit in words and the rival the pass recorded, never the stored number", () => {
+describe("why this page", () => {
+  it("states the fit in words and names the rival under who answers it, never the stored number", () => {
     const html = block(target({ fit: "answer", rival: "bäckerei-müller.example" }));
     expect(html).toContain(COPY["draft.why.fit.answer"]);
-    expect(html).toContain("Answered today by bäckerei-müller.example");
+    const host = document.createElement("div");
+    host.innerHTML = html;
+    const rows = [...host.querySelectorAll("dt")].map((dt) => [dt.textContent, dt.nextElementSibling?.textContent]);
+    expect(rows).toContainEqual([COPY["draft.search.rival"], "bäckerei-müller.example"]);
     expect(html).not.toMatch(/Fit: \d/);
   });
 
-  it("draws nothing for a row the pass stored neither on", () => {
-    expect(block(target({ fit: null, rival: null }))).not.toContain('data-testid="draft-why"');
-    expect(block(target(undefined))).not.toContain('data-testid="draft-why"');
-  });
-
-  it("lists the topics set aside by reason, and no reason with none", () => {
-    const html = block(target(undefined), { covered: 3, tooHard: 4, lowFit: 0, resting: 1 });
-    expect(html).toContain("Already covered by your site: 3");
-    expect(html).toContain("Too hard for a site your size, for now: 4");
-    expect(html).toContain("Resting after a stopped page: 1");
-    expect(html).not.toContain("A poor fit");
+  it("draws no reason line and no rival row for a row the pass stored neither on", () => {
+    for (const html of [block(target({ fit: null, rival: null })), block(target(undefined))]) {
+      expect(html).not.toContain(COPY["draft.why.fit.answer"]);
+      expect(html).not.toContain(COPY["draft.search.rival"]);
+      expect(html).toContain("glutenfreies brot münchen");
+    }
   });
 });
 

@@ -161,10 +161,12 @@ describe("the customer is told a page is in review", () => {
 
   it("**recordTold is written only after the seam accepted it**", async () => {
     await sendDraftReadyMail({ draftId: "d1", destination: "wordpress", at: AT });
-    const told = theDraft().told as { kind: string; sentAt: string } | null;
+    const told = theDraft().told as { kind: string; sentAt: string; mailed?: boolean } | null;
     expect(told).not.toBeNull();
     expect(told!.kind).toBe("interval");
     expect(told!.sentAt).toBe(AT.toISOString());
+    // The draft screen's "Emailed to you" reads this, so a sent mail says so.
+    expect(told!.mailed).toBe(true);
   });
 
   it("**a refused send leaves the page untold, and the guard holding**", async () => {
@@ -197,6 +199,8 @@ describe("the customer's switch never holds a page", () => {
     sendAnswer = { sent: false, reason: "preference-off" };
     const outcome = await sendDraftReadyMail({ draftId: "d1", destination: "hosted", at: AT });
     expect(outcome).toEqual({ sent: false, reason: "preference-off" });
+    // Told, but not mailed: the draft screen draws no "Emailed to you" for it.
+    expect((theDraft().told as { mailed?: boolean }).mailed).toBe(false);
 
     const { installTransitionRpc } = await import("../../publish/harness");
     installTransitionRpc(db);

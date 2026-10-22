@@ -52,7 +52,11 @@ describe("#1019 — what the customer is told is the lifetime Supabase enforces"
     expect(durationsIn(COPY["mail.magicLink.body"])).toEqual([hours]);
   });
 
-  it("the screen that sends it states the same span", () => {
-    expect(durationsIn(COPY["signin.sent.terms"])).toEqual([hours]);
+  it("the screen that sends it states the same span, and no other", () => {
+    expect(durationsIn(COPY["signin.sent.window"])).toEqual([hours]);
+    const spans = Object.entries(COPY)
+      .filter(([key]) => key.startsWith("signin."))
+      .flatMap(([, sentence]) => durationsIn(sentence));
+    expect(new Set(spans)).toEqual(new Set([hours]));
   });
 });

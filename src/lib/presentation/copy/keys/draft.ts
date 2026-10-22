@@ -61,7 +61,7 @@ import type { CopyPartition } from "../registry.ts";
 
 export const DRAFT_COPY = Object.freeze({
   // §4.6's three controls, over the declared publishing interface.
-  "draft.action.edit": ["Edit", { slots: {}, fixedBy: "BUILD §4.6" }],
+  "draft.action.edit": ["Edit this page", { slots: {}, fixedBy: "BUILD §4.6" }],
   // SPEC §7 (2026-09-20, #908, issue #914) — "Screens and mail say *Stop
   // this page*. 'Veto' remains the internal word and the name of the
   // mechanism in this file." The key, the command, the column and the
@@ -111,10 +111,6 @@ export const DRAFT_COPY = Object.freeze({
      of ours that used to sit inside it (the hosted byline) is not drawn at
      all — `PublishedPageView` says why a review screen holds no publication
      date to print. */
-  "draft.published-view.lead": [
-    "This is the whole page, exactly as your readers and search engines receive it.",
-    { slots: {}, fixedBy: "SPEC §7 2026-09-20" },
-  ],
   "draft.search-result.title": [
     "In search results",
     { slots: {}, fixedBy: "SPEC §7 2026-09-20" },
@@ -124,7 +120,7 @@ export const DRAFT_COPY = Object.freeze({
     { slots: {}, fixedBy: "SPEC §7 2026-09-20" },
   ],
   "draft.written-from.lead": [
-    "Everything this page says about you, and where we read it.",
+    "The facts this page uses, each with the page of your site it came from.",
     { slots: {}, fixedBy: "SPEC §7 2026-09-20" },
   ],
   // What the profile items are, as against the quoted passages above them.
@@ -188,7 +184,7 @@ export const DRAFT_COPY = Object.freeze({
   // owner corrects the wording.
   "draft.adds.title": ["What this page adds", { slots: {}, fixedBy: "issue 1143 (drafted)" }],
   "draft.adds.lead": [
-    "What this page says that the top results for its search and your own pages don’t.",
+    "What it says that the pages ranking today don’t.",
     { slots: {}, fixedBy: "issue 1143 (drafted)" },
   ],
   "draft.adds.none": [
@@ -202,7 +198,7 @@ export const DRAFT_COPY = Object.freeze({
   ],
   // Links on this page (SPEC §7, 2026-10-10, issue 1391).
   "draft.links.title": ["Links on this page", { slots: {}, fixedBy: "issue 1391 (drafted)" }],
-  "draft.links.lead": ["Every link this page carries: its words, where it leads, why it was chosen, and whether the address answered.", { slots: {}, fixedBy: "issue 1391 (drafted)" }],
+  "draft.links.lead": ["Links to your service pages and to your other live pages.", { slots: {}, fixedBy: "issue 1391 (drafted)" }],
   "draft.links.site": ["Your site", { slots: {}, fixedBy: "issue 1391 (drafted)" }],
   "draft.links.articles": ["Your articles", { slots: {}, fixedBy: "issue 1391 (drafted)" }],
   "draft.links.sources": ["Sources", { slots: {}, fixedBy: "issue 1391 (drafted)" }],
@@ -221,55 +217,6 @@ export const DRAFT_COPY = Object.freeze({
   "draft.links.removed.site": ["The address was gone, so the link was taken off. The sentence stayed.", { slots: {}, fixedBy: "issue 1391 (drafted)" }],
   "draft.links.removed.source": ["The source was gone, so the claim it backed was taken out.", { slots: {}, fixedBy: "issue 1391 (drafted)" }],
   "draft.links.why.topic": ["Its title or address shares “{words}” with this page’s topic.", { slots: { words: "text" }, fixedBy: "issue 1391 (drafted)" }],
-  "draft.publishes.title": [
-    "What gets published",
-    { slots: {}, fixedBy: "SPEC §7 2026-09-20" },
-  ],
-  "draft.publishes.address": [
-    "Address",
-    { slots: {}, fixedBy: "SPEC §7 2026-09-20" },
-  ],
-  "draft.publishes.title-row": [
-    "Title",
-    { slots: {}, fixedBy: "SPEC §7 2026-09-20" },
-  ],
-  // A page in review has no address yet: the destination decides the path
-  // when it publishes, and a host printed under *Address* would read as a
-  // page that publishes at the site's root.
-  "draft.publishes.address.pending": [
-    "on {domain}, at a path set when it publishes",
-    { slots: { domain: "text" }, fixedBy: "SPEC §7 2026-09-20" },
-  ],
-  "draft.publishes.description": [
-    "Description",
-    { slots: {}, fixedBy: "SPEC §7 2026-09-20" },
-  ],
-  "draft.publishes.schema": [
-    "Told to search engines",
-    { slots: {}, fixedBy: "SPEC §7 2026-09-20" },
-  ],
-  // Nothing declares an FAQ block where the body asks no question, so the
-  // row names the one thing that is declared rather than "plus 0".
-  "draft.publishes.schema.article": [
-    "an article",
-    { slots: {}, fixedBy: "SPEC §7 2026-09-20" },
-  ],
-  "draft.publishes.schema.value": [
-    "an article, plus {n} questions and answers",
-    { slots: { n: "text" }, fixedBy: "SPEC §7 2026-09-20" },
-  ],
-  "draft.publishes.links": [
-    "Links",
-    { slots: {}, fixedBy: "SPEC §7 2026-09-20" },
-  ],
-  "draft.publishes.length": [
-    "Length",
-    { slots: {}, fixedBy: "SPEC §7 2026-09-20" },
-  ],
-  "draft.publishes.length.value": [
-    "{n} characters",
-    { slots: { n: "text" }, fixedBy: "SPEC §7 2026-09-20" },
-  ],
 
   // The two copy-out buttons' group name: they sit at the foot of the
   // Decide panel without a heading of their own (board R12-6-Page).
@@ -283,13 +230,7 @@ export const DRAFT_COPY = Object.freeze({
   ],
   "draft.copy.html": ["HTML", { slots: {}, fixedBy: "BUILD §9 · S16 (11a)" }],
 
-  // §4.6's info box, and its arms. The panel states the schedule sentence
-  // under the go-live line, which carries the time; the phone bar has one
-  // line, so it states the autopilot sentence with the time in it.
-  "draft.do-nothing.schedule": [
-    "Do nothing and it goes live on schedule. Stop it and it never publishes.",
-    { slots: {}, fixedBy: "SPEC §7 2026-09-24" },
-  ],
+  // §4.6's info box: the phone bar has one line, so it states the time.
   "draft.do-nothing.autopilot": [
     "It goes live on its own at {at}. Edit or stop it until then.",
     { slots: { at: "date" }, fixedBy: "SPEC §7 2026-09-20" },
@@ -335,22 +276,6 @@ export const DRAFT_COPY = Object.freeze({
   // told what it is for. The block's own two sentences; its rows carry the
   // day panel's labels, so the two screens word one fact once. Drafted under
   // issue 759's ruling; the owner corrects the wording.
-  // Issue 1364 (owner, 2026-10-09): the page screen opens with the page's
-  // two numbers. *Difficulty* is the day panel's own word
-  // (`calendar.why.difficulty`). **Drafted** (#759); the pull request names
-  // both so the owner can correct them.
-  "draft.numbers.volume.label": [
-    "Searches a month",
-    { slots: {}, fixedBy: "SPEC §7 2026-10-09 (drafted)" },
-  ],
-  "draft.numbers.difficulty.limit": [
-    "your limit is {ceiling}",
-    { slots: { ceiling: "text" }, fixedBy: "SPEC §7 2026-10-09 (drafted)" },
-  ],
-  "draft.target.title": [
-    "What this page is for",
-    { slots: {}, fixedBy: "issue 867" },
-  ],
   // A Fix page has no market target: no search, no volume, no band. Its own
   // arm, rather than a block of blanks.
   "draft.target.fix": [
@@ -376,7 +301,7 @@ export const DRAFT_COPY = Object.freeze({
   // The back link §4.6 asks for, the unsaved indicator c7 asks for, and the
   // one written line an unknown draft id resolves to.
   "draft.back": [
-    "Back to the plan",
+    "Back to Plan",
     { slots: {}, fixedBy: "SPEC §7 2026-09-20" },
   ],
   /** Issue 1196: a page pressed *Write it again*, while the draft tick has
@@ -401,11 +326,11 @@ export const DRAFT_COPY = Object.freeze({
   // The tilde is the set's own: a word count is a count of words, not of
   // what a destination will render.
   "draft.written": [
-    "Written {at} · ~{words} words",
+    "Written {at} · about {words} words",
     { slots: { at: "date", words: "text" }, fixedBy: "S16 (11a)" },
   ],
   "draft.words": [
-    "~{words} words",
+    "about {words} words",
     { slots: { words: "text" }, fixedBy: "S16 (11a)" },
   ],
 
@@ -443,26 +368,6 @@ export const DRAFT_COPY = Object.freeze({
   "draft.checks.count.failed": [
     "{n} not passed",
     { slots: { n: "text" }, fixedBy: "SPEC §7 2026-10-10 · issue 1394 · drafted" },
-  ],
-  "draft.checks.note.title": [
-    "How we decided",
-    { slots: {}, fixedBy: "SPEC §7 2026-10-10 · issue 1394 · drafted" },
-  ],
-  "draft.checks.note.lead": [
-    "Each page is read against {total} rules before it can go live. A rule that does not fit this kind of page is left out and is not counted as passed.",
-    { slots: { total: "text" }, fixedBy: "SPEC §7 2026-10-10 · issue 1394 · drafted" },
-  ],
-  "draft.checks.group.facts": [
-    "Facts",
-    { slots: {}, fixedBy: "SPEC §7 2026-10-10 · issue 1394 · drafted" },
-  ],
-  "draft.checks.group.honesty": [
-    "Honesty",
-    { slots: {}, fixedBy: "SPEC §7 2026-10-10 · issue 1394 · drafted" },
-  ],
-  "draft.checks.group.structure": [
-    "Structure",
-    { slots: {}, fixedBy: "SPEC §7 2026-10-10 · issue 1394 · drafted" },
   ],
   "draft.checks.status.skipped": [
     "Not needed for this page",
@@ -535,7 +440,7 @@ export const DRAFT_COPY = Object.freeze({
     { slots: {}, fixedBy: "SPEC §7 2026-10-10 · issue 1394 · drafted" },
   ],
   "draft.checks.rule.first-block-answers": [
-    "The opening answers the question",
+    "Answers its own question in the first lines",
     { slots: {}, fixedBy: "SPEC §7 2026-10-10 · issue 1394 · drafted" },
   ],
   "draft.checks.rule.required-blocks": [
@@ -582,7 +487,7 @@ export const DRAFT_COPY = Object.freeze({
   // two save lines that are not `draft.unsaved`, the footnote under the two
   // panes, and the two controls that leave the editor.
   "draft.edit.back": [
-    "← Back to the draft",
+    "Back to the page",
     { slots: {}, fixedBy: "REQ-045 c5 · S17 (11a)" },
   ],
   "draft.edit.state.edited": [
@@ -598,7 +503,7 @@ export const DRAFT_COPY = Object.freeze({
     { slots: {}, fixedBy: "REQ-045 c6 · S17 (11a)" },
   ],
   "draft.edit.saved": [
-    "saved {at}",
+    "Saved {at}",
     { slots: { at: "date" }, fixedBy: "REQ-045 c6 · S17 (11a)" },
   ],
   "draft.edit.footnote": [
@@ -616,7 +521,7 @@ export const DRAFT_COPY = Object.freeze({
     { slots: {}, fixedBy: "SPEC §7 · issue 789" },
   ],
   "draft.edit.description-label": [
-    "Meta description",
+    "Description in search results",
     { slots: {}, fixedBy: "SPEC §7 · issue 789" },
   ],
   "draft.edit.rules-held": [
@@ -871,7 +776,7 @@ export const DRAFT_COPY = Object.freeze({
   // ── SPEC §4 (2026-10-10, issue 1395): why this topic, the topics set
   // aside, and the two sources a page is written from. Drafted.
   "draft.why.title": [
-    "Why this topic",
+    "Why this page",
     { slots: {}, fixedBy: "SPEC §4 2026-10-10 · issue 1395 (drafted)" },
   ],
   "draft.why.fit.answer": [
@@ -880,14 +785,6 @@ export const DRAFT_COPY = Object.freeze({
   ],
   "draft.why.fit.helps": [
     "Fit: what you sell helps with this search",
-    { slots: {}, fixedBy: "SPEC §4 2026-10-10 · issue 1395 (drafted)" },
-  ],
-  "draft.why.rival": [
-    "Answered today by {rival}",
-    { slots: { rival: "text" }, fixedBy: "SPEC §4 2026-10-10 · issue 1395 (drafted)" },
-  ],
-  "draft.set-aside.title": [
-    "Topics set aside",
     { slots: {}, fixedBy: "SPEC §4 2026-10-10 · issue 1395 (drafted)" },
   ],
   "draft.set-aside.covered": [
@@ -950,4 +847,35 @@ export const DRAFT_COPY = Object.freeze({
     "The page could not be put back. Try again in a minute.",
     { slots: {}, fixedBy: "issue 1532 (drafted)" },
   ],
+  // The draft screen as board AppDraft draws it (canvas V22, issue 1748).
+  // Drafted under issue 759's ruling; the owner corrects the wording.
+  "draft.preview.caption": [
+    "Preview, as it will look on your site. Goes live {at}.",
+    { slots: { at: "date" }, fixedBy: "issue 1748 (drafted)" },
+  ],
+  "draft.preview.caption.plain": ["Preview, as it will look on your site.", { slots: {}, fixedBy: "issue 1748 (drafted)" }],
+  "draft.search.title": ["The search and who answers it", { slots: {}, fixedBy: "issue 1748 (drafted)" }],
+  "draft.search.query": ["The search", { slots: {}, fixedBy: "issue 1748 (drafted)" }],
+  "draft.search.volume": ["Searched a month", { slots: {}, fixedBy: "issue 1748 (drafted)" }],
+  "draft.search.rival": ["Who answers it today", { slots: {}, fixedBy: "issue 1748 (drafted)" }],
+  "draft.search-result.caption": [
+    "An example of how Google may show it. Google can choose other words.",
+    { slots: {}, fixedBy: "issue 1748 (drafted)" },
+  ],
+  "draft.checks.all-passed": ["All passed", { slots: {}, fixedBy: "issue 1748 (drafted)" }],
+  "draft.checks.more": ["and {n} more", { slots: { n: "text" }, fixedBy: "issue 1748 (drafted)" }],
+  "draft.checks.decided": [
+    "How we decided: a page that fails a check twice is held back and never goes live.",
+    { slots: {}, fixedBy: "issue 1748 (drafted)" },
+  ],
+  // Q6 (owner 2026-10-20, #1718): a stopped topic is dropped for good.
+  "draft.decide.stop-note": [
+    "It won’t go live, and this topic is dropped. Tomorrow’s page is not affected.",
+    { slots: {}, fixedBy: "issue 1748 (drafted)" },
+  ],
+  "draft.day.title": ["This page’s day", { slots: {}, fixedBy: "issue 1748 (drafted)" }],
+  "draft.day.written": ["Written and checked", { slots: {}, fixedBy: "issue 1748 (drafted)" }],
+  "draft.day.emailed": ["Emailed to you", { slots: {}, fixedBy: "issue 1748 (drafted)" }],
+  "draft.day.live": ["Goes live on your site", { slots: {}, fixedBy: "issue 1748 (drafted)" }],
+  "draft.day.reading": ["First reading in Google and AI", { slots: {}, fixedBy: "issue 1748 (drafted)" }],
 }) satisfies CopyPartition;
