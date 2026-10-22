@@ -104,8 +104,9 @@ export const SPEND_ALERT_AT = Object.freeze({ warn: 0.8, ceiling: 1 } as const);
 
 /** When the owner is told DataForSEO credit is running out: fewer days left
  *  than `runwayDays` at the trailing week's spend, or under `floorC` cents,
- *  since at zero every draft fails. */
-export const VENDOR_LOW = Object.freeze({ runwayDays: 7, floorC: 1000 } as const);
+ *  since at zero every draft fails. Two weeks, so a failed auto-recharge
+ *  still leaves time for a top-up by hand. */
+export const VENDOR_LOW = Object.freeze({ runwayDays: 14, floorC: 1000 } as const);
 
 /**
  * US dollars for one euro (issue 1408, owner 2026-10-11).
