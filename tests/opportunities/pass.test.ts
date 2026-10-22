@@ -11,7 +11,7 @@ import { measured, unmeasured } from "../../src/lib/measure/measured";
 import type { RivalSize } from "../../src/lib/market/rivals/size";
 import { deriveForPass, rankedCountsOf } from "../../src/lib/opportunities/pass";
 import { setOpportunityStore } from "../../src/lib/opportunities/store";
-import { fakeCost } from "./cost";
+import { cappedCost, fakeCost } from "./cost";
 import { memoryStore, newMemoryState, type MemoryState } from "./memory-store";
 import { AT, PROFILE, SITE_ID, defaultReport, question, reportOf, search, serp } from "./fixtures";
 
@@ -251,5 +251,53 @@ describe("the weekly pass tops up", () => {
     expect(outcome.added).toBe(0);
     expect(state.rows).toHaveLength(0);
     expect(outcome.unused).toBe(0);
+  });
+});
+
+// Owner W1: a pass that cannot pay for its typing says so on its own line,
+// and the refill from what it already asked still runs at no cost.
+describe("the supply line says whether the typing ran", () => {
+  function weekReport() {
+    return reportOf(
+      {
+        questions: [question(), question({ id: "q2", search: search({ keyword: "onboarding checklist tool" }) })],
+        serps: [serp(), serp()],
+      },
+      { rivalSizes: measured(sized(40), AT) }
+    );
+  }
+
+  function eventsOf(log: { mock: { calls: unknown[][] } }, event: string): Record<string, unknown>[] {
+    return log.mock.calls
+      .map(([line]) => (typeof line === "string" && line.startsWith("{") ? (JSON.parse(line) as Record<string, unknown>) : null))
+      .filter((line): line is Record<string, unknown> => line?.event === event);
+  }
+
+  it("a pass whose ceiling refuses says `not_run` with the reason, buys nothing, and still refills", async () => {
+    const log = vi.spyOn(console, "log").mockImplementation(() => undefined);
+    try {
+      const cost = cappedCost();
+      await deriveForPass(cost.ctx, { tier: "weekly", siteId: SITE_ID, report: weekReport(), hasActiveAccess: true });
+      expect(cost.sources).toEqual([]);
+      expect(eventsOf(log, "supply_pass")).toEqual([
+        expect.objectContaining({ derived: "not_run", because: "spend_ceiling", spentCents: 9999 }),
+      ]);
+      expect(eventsOf(log, "supply_refill")).toHaveLength(1);
+    } finally {
+      log.mockRestore();
+    }
+  });
+
+  it("a pass that typed says how many topics it typed", async () => {
+    const log = vi.spyOn(console, "log").mockImplementation(() => undefined);
+    try {
+      await deriveForPass(fakeCost().ctx, { tier: "weekly", siteId: SITE_ID, report: weekReport(), hasActiveAccess: true });
+      const [line] = eventsOf(log, "supply_pass");
+      expect(line?.derived).toEqual(expect.any(Number));
+      expect(line?.derived as number).toBeLessThanOrEqual(line?.added as number);
+      expect(line).not.toHaveProperty("because");
+    } finally {
+      log.mockRestore();
+    }
   });
 });

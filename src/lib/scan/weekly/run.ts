@@ -119,18 +119,22 @@ export async function runWeekly(a: {
       ...(category === undefined ? {} : { category }),
       concludesMarket: true,
       afterReport: async ({ report, cost }) => {
-        // SPEC §6 (D28; monthly, ruling B5): the rivals are re-checked on the month's first weekly pass only.
-        if (firstWeekOfMonth(weekStart)) {
-          const { recheckRivalsOf } = await import("../market-conclusion");
-          await recheckRivalsOf({ siteId: a.siteId, domain: a.domain, cost, report });
-        }
         try {
-          await deriveForPass(cost, {
-            tier: "weekly",
-            siteId: a.siteId,
-            report,
-            hasActiveAccess: true,
-          });
+          try {
+            // Typing goes first so the rival re-check spends what it leaves, never the reserve held for it.
+            await deriveForPass(cost, {
+              tier: "weekly",
+              siteId: a.siteId,
+              report,
+              hasActiveAccess: true,
+            });
+          } finally {
+            // SPEC §6 (D28; monthly, ruling B5): the rivals are re-checked on the month's first weekly pass only.
+            if (firstWeekOfMonth(weekStart)) {
+              const { recheckRivalsOf } = await import("../market-conclusion");
+              await recheckRivalsOf({ siteId: a.siteId, domain: a.domain, cost, report });
+            }
+          }
         } finally {
           // SPEC §6 (owner D58, issue 1287): the pass checks its own health
           // last, against the rivals it leaves in force. It never throws.
