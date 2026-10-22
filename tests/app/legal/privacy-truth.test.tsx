@@ -16,13 +16,15 @@ import { DANGER_TICKET_TTL_MINUTES } from "@/lib/config/constants";
 const html = renderToStaticMarkup(<PrivacyPage />);
 const text = (s: string): string => s.replace(/<[^>]+>/g, "").replace(/\s+/g, " ");
 
-/** One section of the notice, from its anchored heading to the next. */
-function section(id: string): string {
+/** One section of the notice, from its anchored heading to the next, as markup. */
+function sectionHtml(id: string): string {
   const start = html.indexOf(`<h2 id="${id}"`);
   expect(start, `no section #${id}`).toBeGreaterThan(-1);
   const end = html.indexOf("<h2 ", start + 1);
-  return text(html.slice(start, end === -1 ? undefined : end));
+  return html.slice(start, end === -1 ? undefined : end);
 }
+
+const section = (id: string): string => text(sectionHtml(id));
 
 const NUMBER_WORDS = ["zero", "one", "two", "three", "four", "five", "six"];
 
@@ -33,7 +35,7 @@ describe("privacy — PostHog is a named service provider", () => {
   };
 
   it("names PostHog, and says the events are sent from our servers", () => {
-    expect(posthog()).toMatch(/^PostHog — product analytics\./);
+    expect(posthog()).toMatch(/^PostHogProduct analytics\./);
     expect(posthog()).toContain("Our servers send it");
     expect(posthog()).toContain("nothing of it runs in your browser");
   });
@@ -51,9 +53,8 @@ describe("privacy — international transfers", () => {
   });
 
   it("gives every service provider a place and a safeguard, or says it is in the EU", () => {
-    const providers = section("service-providers");
     const transfers = section("international-transfers");
-    const named = [...providers.matchAll(/([A-Z][A-Za-z]+) — /g)].map((m) => m[1] ?? "");
+    const named = [...sectionHtml("service-providers").matchAll(/<th scope="row"[^>]*>([^<]+)<\/th>/g)].map((m) => m[1] ?? "");
     expect(named.length).toBeGreaterThanOrEqual(7);
     for (const name of named) {
       const line = transfers.slice(transfers.indexOf(name));

@@ -20,7 +20,20 @@ export interface LegalHeading {
   readonly id: string;
   readonly text: string;
   readonly level: number;
+  /** The section's own number as the document writes it ("1", "4a"), or null. */
+  readonly number: string | null;
+  /** The heading's words without that number. */
+  readonly title: string;
 }
+
+/** One section: its anchored heading as HTML and the blocks beneath it. */
+export interface LegalSection {
+  readonly heading: LegalHeading | null;
+  readonly headingHtml: string;
+  readonly blocks: readonly Block[];
+}
+
+const NUMBERED = /^(\d+[a-z]?)\.\s+(.+)$/;
 
 /** The plain text of a heading's inline children, for the list's own link
  *  text and for the slug. Structure inside a section title — a `code`
@@ -69,36 +82,40 @@ export function legalHeadings(blocks: readonly Block[]): LegalHeading[] {
   for (const block of blocks) {
     if (block.kind !== "heading" || block.level !== top) continue;
     const text = textOf(block.children as Parameters<typeof textOf>[0]);
-    out.push({ id: slugOf(text, taken), text, level: block.level });
+    const numbered = NUMBERED.exec(text);
+    const title = numbered?.[2] ?? text;
+    // The anchor is the title's alone, so renumbering a document keeps every shared link.
+    out.push({ id: slugOf(title, taken), text, level: block.level, number: numbered?.[1] ?? null, title });
+  }
+  return out;
+}
+
+/** The document cut at its section headings; blocks before the first one form a section with no heading. */
+export function legalSections(blocks: readonly Block[], classes: HtmlClasses): LegalSection[] {
+  const headings = legalHeadings(blocks);
+  const top = headings[0]?.level;
+  const out: { heading: LegalHeading | null; headingHtml: string; blocks: Block[] }[] = [];
+  let next = 0;
+  for (const block of blocks) {
+    if (block.kind === "heading" && block.level === top) {
+      const heading = headings[next++]!;
+      const headingHtml = toHtml([block], classes).replace(/^<h(\d)/, `<h$1 id="${heading.id}"`);
+      out.push({ heading, headingHtml, blocks: [] });
+      continue;
+    }
+    if (out.length === 0) out.push({ heading: null, headingHtml: "", blocks: [] });
+    out[out.length - 1]!.blocks.push(block);
   }
   return out;
 }
 
 /**
  * The body as HTML, through the one renderer, with an `id` on each of the
- * headings `legalHeadings` listed.
- *
- * **Block by block, and then joined the way `toHtml` joins.** The renderer
- * emits no ids and gains none here: this calls it per block and puts the
- * attribute on the opening tag of the headings the list links to. Doing it
- * that way rather than with a sweep over the finished document means the
- * only string ever edited is one this function just produced from one
- * heading block, whose shape is `<hN class="…">` or `<hN>` and nothing
- * else — and the body still goes through `src/lib/publish/render/
- * markdown.ts` and through nothing else, which is the 2026-09-06 ruling.
+ * headings `legalHeadings` listed: the sections joined the way `toHtml` joins.
  */
 export function legalBodyWithIds(blocks: readonly Block[], classes: HtmlClasses): string {
-  const headings = legalHeadings(blocks);
-  let next = 0;
-  const top = headings[0]?.level;
-  return blocks
-    .map((block) => {
-      const html = toHtml([block], classes);
-      if (block.kind !== "heading" || block.level !== top) return html;
-      const id = headings[next]?.id;
-      next += 1;
-      if (id === undefined) return html;
-      return html.replace(/^<h(\d)/, `<h$1 id="${id}"`);
-    })
+  return legalSections(blocks, classes)
+    .flatMap((s) => [s.headingHtml, ...s.blocks.map((b) => toHtml([b], classes))])
+    .filter((html) => html !== "")
     .join("\n");
 }
