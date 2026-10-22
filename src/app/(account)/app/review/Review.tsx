@@ -22,7 +22,7 @@ const MUTED = "text-sm text-base-content/70";
 
 const LABEL: Record<Label, { key: CopyKey; badge: string }> = {
   working: { key: "review.label.working", badge: "badge badge-soft badge-success" },
-  climbing: { key: "review.label.climbing", badge: "badge badge-soft badge-info" },
+  climbing: { key: "review.label.climbing", badge: "badge badge-soft badge-primary" },
   too_early: { key: "review.label.too_early", badge: "badge badge-soft" },
   not_moving: { key: "review.label.not_moving", badge: "badge badge-soft badge-warning" },
 };
@@ -132,7 +132,9 @@ function NotChosen(p: { rows: readonly NotChosenRow[] }): React.JSX.Element {
   return (
     <details className="collapse collapse-arrow min-w-0 rounded-none">
       <summary className="collapse-title min-h-0 p-0 pe-10 text-sm font-medium">
-        {copy("review.rejected.title", { count: String(p.rows.length) })}
+        {/* Inline spans keep the board's sentence one run for the parity reading. */}
+        <span>{copy("review.rejected.title", { count: String(p.rows.length) })}</span>
+        <span className="block text-xs font-normal">{copy("review.rejected.lead")}</span>
       </summary>
       <ul className="collapse-content min-w-0 list-disc px-0 ps-5 pt-2 text-sm">
         {p.rows.map((row, n) => (
