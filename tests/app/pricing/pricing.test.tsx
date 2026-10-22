@@ -93,17 +93,34 @@ async function renderOnce(searchParams: PricingSearchParams): Promise<string> {
 }
 
 describe('REQ-021 c4 — "Given a surface that offers ReachKit away from any report, when a founder reaches it, then it carries exactly one offer to subscribe, states the price on the terms REQ-022 criterion 1 fixes and what the subscription does on the same terms the offer at the end of a report states (criterion 2), and one control on it begins checkout with no account, sign-in, password or form asked first (REQ-020 criterion 1)." — pricing/offer', () => {
-  it("exactly one offer and exactly one control", async () => {
+  /** The form that begins checkout: the one holding Start, not the scan field's. */
+  function checkoutForm(html: string): string {
+    const forms = html.match(/<form[\s\S]*?<\/form>/g) ?? [];
+    const checkout = forms.filter((form) => !form.includes('action="/api/scan"'));
+    expect(checkout).toHaveLength(1);
+    return checkout[0] ?? "";
+  }
+
+  it("exactly one offer and exactly one control that begins checkout", async () => {
     const html = await render();
-    expect(html.match(/class="card[ "]/g)).toHaveLength(1);
-    expect(html.match(/<button/g)).toHaveLength(1);
-    expect(html.match(/<form/g)).toHaveLength(1);
-    expect(html).toContain('type="submit"');
+    const { copy } = await import("@/lib/presentation/copy");
+    expect(html.split(copy("offer.start.priced")).length - 1).toBe(1);
+    const form = checkoutForm(html);
+    expect(form.match(/<button/g)).toHaveLength(1);
+    expect(form).toContain('type="submit"');
+    expect(form).toContain(copy("offer.start.priced"));
   });
 
-  it("nothing is asked first — no field, no sign-in, no password", async () => {
+  it("nothing is asked first — no field before checkout, no sign-in, no password", async () => {
     const html = await render();
-    expect(html).not.toContain("<input");
+    const form = checkoutForm(html);
+    expect(form).not.toContain("<input");
+    expect(form).not.toContain("<select");
+    expect(form).not.toContain("<textarea");
+    // The one field on the page is the free scan's, which asks for a website.
+    const inputs = html.match(/<input[^>]*>/g) ?? [];
+    expect(inputs).toHaveLength(1);
+    expect(html.match(/<form[^>]*action="\/api\/scan"[\s\S]*?<\/form>/)?.[0]).toContain(inputs[0]);
     expect(html).not.toContain("<select");
     expect(html).not.toContain("<textarea");
     expect(html.toLowerCase()).not.toContain("password");
@@ -134,8 +151,9 @@ describe('REQ-021 c4 — "Given a surface that offers ReachKit away from any rep
     // holds is unchanged: no term the card states is restated here.
     expect(PAGE_BODY).toContain("PricingCard");
     expect(readFileSync(REPORT_VIEW_PATH, "utf8")).toContain("PricingCard");
+    // The price itself fills the board's section titles ("One week of your
+    // €49"); every term the card states stays the card's.
     for (const term of [
-      "price.amount",
       "price.interval",
       "offer.cadence",
       "offer.veto",
@@ -153,19 +171,15 @@ describe('REQ-021 c4 — "Given a surface that offers ReachKit away from any rep
     expect(html).toContain(copy("price.amount"));
     expect(html).toContain(copy("price.interval"));
     expect(html).toContain(copy("offer.start"));
-    // The four spec rows, in S4's own words (ruling 11a — the approved set
-    // draws them unbracketed). Each is a registry key, not a literal here:
-    // the assertion is that this surface speaks the pricing wording and not
-    // the report's, and the veto line still carries the pin from
-    // `constants.ts` through its slot.
-    expect(html).toContain(copy("offer.pricing.page", { weekPages: WEEK_PLAN.days }));
-    // The heading, the subline and the card say the owner's A1 week (2026-10-19).
-    expect(html).toContain(`Up to ${WEEK_PLAN.days} pages a week.`);
+    // The plan card's five rows, in the board's words; the window carries
+    // the pin from `constants.ts` through its slot.
+    expect(html).toContain(copy("landing.pace", { weekPages: WEEK_PLAN.days }));
+    expect(html).toContain(copy("pricing.plan.chosen"));
+    expect(html).toContain(copy("pricing.plan.checked"));
+    expect(html).toContain(copy("pricing.plan.mail"));
+    expect(html).toContain(copy("offer.pricing.veto", { hours: String(VETO.defaultHours) }));
     expect(html).toContain(copy("pricing.subline", { weekPages: WEEK_PLAN.days }));
     expect(html).not.toMatch(/every day/i);
-    expect(html).toContain(copy("offer.pricing.measure"));
-    expect(html).toContain(copy("offer.pricing.movement"));
-    expect(html).toContain(copy("offer.pricing.veto", { hours: String(VETO.defaultHours) }));
     expect(html).not.toContain(
       copy("offer.veto.window", {
         value: copy("offer.veto.window.value", { hours: String(VETO.defaultHours) }),

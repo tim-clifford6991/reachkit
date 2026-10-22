@@ -23,7 +23,7 @@ import { PUBLIC_ROUTE_SEO } from "../_seo/routes";
 import { staticMetadata } from "../_seo/metadata";
 import { startCheckout } from "../pricing/actions";
 import { CHECK_LINES, CHECK_LINE_COPY, ENGINES_NAMED, HOW_FACTS as F, checksIn } from "../_how/facts";
-import { AGENCY_BENCHMARK } from "../_how/specimen";
+import { ThreeWays } from "../_how/compare";
 import {
   AsWeRead,
   MondayEmail,
@@ -242,15 +242,6 @@ function ChecksDetail(): React.JSX.Element {
   );
 }
 
-/** The three ways to get found, each in the same four rows. */
-const WAYS = [
-  { name: "how.value.diy", jobs: "how.value.diy.jobs", time: "how.value.diy.time", covers: "how.value.diy.covers", cost: "how.value.diy.cost" },
-  { name: "how.value.agency", jobs: "how.value.agency.jobs", time: "how.value.agency.time", covers: "how.value.agency.covers", cost: "how.value.agency.cost" },
-  { name: "chrome.wordmark", jobs: "how.value.ours.jobs", time: "how.value.ours.time", covers: "how.value.ours.covers", cost: "how.value.ours.cost" },
-] as const satisfies readonly Record<string, CopyKey>[];
-
-const ROWS = ["jobs", "time", "covers", "cost"] as const;
-
 const NOT_INCLUDED: readonly CopyKey[] = [
   "how.value.not.maps",
   "how.value.not.ads",
@@ -260,35 +251,11 @@ const NOT_INCLUDED: readonly CopyKey[] = [
   "how.value.not.promise",
 ];
 
-function ThreeWays(): React.JSX.Element {
-  const vars = { ...minutes, price: PRICE(), fee: AGENCY_BENCHMARK.fee };
+/** The comparison both pages draw, then what the plan leaves out. */
+function ValueFigure(): React.JSX.Element {
   return (
     <figure className="flex min-w-0 flex-col gap-3">
-      <div className="grid min-w-0 grid-cols-1 gap-4 md:grid-cols-3">
-        {WAYS.map((way) => (
-          <div
-            key={way.name}
-            className={`card bg-base-100 min-w-0 border ${way.name === "chrome.wordmark" ? "border-primary" : "border-base-300"}`}
-          >
-            <div className="card-body gap-3">
-              <h3 className="card-title text-base">{copy(way.name)}</h3>
-              <dl className="flex flex-col gap-3">
-                {ROWS.map((row) => (
-                  <div key={row}>
-                    <dt className="text-base-content/70 text-xs">{copy(`how.value.${row}` as CopyKey)}</dt>
-                    <dd className={`text-sm ${row === "cost" ? "font-semibold" : ""}`}>{copy(way[row], vars)}</dd>
-                  </div>
-                ))}
-              </dl>
-            </div>
-          </div>
-        ))}
-      </div>
-      <figcaption className="text-base-content/70 text-xs">
-        <a href={AGENCY_BENCHMARK.url} className="link" target="_blank" rel="noopener">
-          {copy("how.value.source", { providers: AGENCY_BENCHMARK.providers, year: AGENCY_BENCHMARK.year })}
-        </a>
-      </figcaption>
+      <ThreeWays />
       <div className="rounded-box bg-base-200 flex flex-col gap-2 p-4">
         <p className="text-sm font-semibold">{copy("how.value.not")}</p>
         <ul className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
@@ -488,7 +455,7 @@ export default function HowItWorksPage(): React.JSX.Element {
             </Detail>
           }
         >
-          <ThreeWays />
+          <ValueFigure />
           <div className="flex flex-wrap items-start gap-4">
             <ScanCta />
             <form action={startCheckout} data-testid={CHECKOUT_TEST_ID}>

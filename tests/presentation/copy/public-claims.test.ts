@@ -18,14 +18,13 @@ const CADENCE: readonly CopyKey[] = ["mail.nurture.body.1", "mail.winback.line"]
 /** Every public sentence that states the pace says the owner's A1 week. */
 const WEEK_PACE: readonly CopyKey[] = [
   "offer.cadence.page",
-  "offer.pricing.page",
   "pricing.subline",
   "meta.landing.description",
   "meta.pricing.description",
 ];
 
 /** The short forms of the same promise: a heading or a plan's name. */
-const WEEK_PACE_SHORT: readonly CopyKey[] = ["pricing.heading", "plan.single"];
+const WEEK_PACE_SHORT: readonly CopyKey[] = ["pricing.all.pages", "plan.single"];
 
 /** The landing states its pace as the owner's A1 sentence (2026-10-19). */
 const LANDING_PACE: readonly CopyKey[] = [

@@ -211,6 +211,9 @@ const BODY = [
   "",
   "Set the fields you need on day one, export once to confirm you can, and revisit the choice " +
     "when the team doubles.",
+  "",
+  // A page links the site's own pages, so its *Links on this page* note has one to list.
+  `Moving is quoted up front: [what a fixed-price migration covers](https://${FIXTURE_DOMAIN}/migration).`,
 ].join("\n");
 
 /** The same page after the customer rewrote its opening — the grounded fact
@@ -226,6 +229,8 @@ const READ_AT = new Date(Date.UTC(2026, 8, 14, 6, 0, 0));
  *  the page, the day before its review date. S16's provenance line states
  *  it, and nothing here moves with the clock. */
 const WRITTEN_AT = new Date(Date.UTC(2026, 8, 14, 17, 4, 0));
+/** The page-ready mail, five minutes after the page was written. */
+const EMAILED_AT = new Date(Date.UTC(2026, 8, 14, 17, 9, 0));
 const LAST_SAVED_AT = new Date(Date.UTC(2026, 8, 15, 11, 25, 0));
 /** §9's veto window on the calendar fixture's in-review page: 24 hours
  *  after it entered review, the same instant that fixture states. */
@@ -291,6 +296,7 @@ const UNEDITED: DraftFacts = {
   title: "How to choose a CRM for a small team",
   description: "What a small team should weigh when it picks a CRM: seats, price and what the free tier holds.",
   writtenAt: WRITTEN_AT,
+  emailedAt: EMAILED_AT,
   bodyMd: BODY,
   bodyMdGenerated: BODY,
   state: "in_review",
@@ -344,10 +350,13 @@ const UNEDITED: DraftFacts = {
     },
     // Why this topic (issue 1395): the fit the pass judged, and the rival
     // it recorded as answering the search today.
-    why: { fit: "answer", rival: "northwind.example" },
+    why: {
+      fit: "answer",
+      rival: "northwind.example",
+      planReason: { points: 5, parts: [{ part: "fit", n: 3 }, { part: "ai_gap", n: 2 }], rule: null },
+    },
+    update: false,
   },
-  // The topics set aside, as Overview's own fixture counts them.
-  setAside: { covered: 3, tooHard: 4, lowFit: 0, resting: 0 },
   timeZone: FIXTURE_TIME_ZONE,
   writtenFrom: FIXTURE_WRITTEN_FROM,
   // What the page adds (issue 1143): two sentences of the fixture's body

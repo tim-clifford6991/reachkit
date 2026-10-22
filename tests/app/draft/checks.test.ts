@@ -7,7 +7,7 @@ import { describe, expect, it } from "vitest";
 import { recordedChecks } from "@/lib/generate/record";
 import { HARD_RULES, NO_CHECKS, SWITCHED_RULES, type HardRule } from "@/lib/generate/rules/types";
 import { COPY } from "@/lib/presentation/copy";
-import { CHECK_GROUPS, CHECKS, checkList } from "@/app/(account)/app/draft/[draftId]/checks";
+import { CHECKS, checkList } from "@/app/(account)/app/draft/[draftId]/checks";
 
 const ASKED = HARD_RULES.filter((rule) => rule !== "honest_row" && rule !== "fit_claim");
 const RUN = recordedChecks([], { asked: ASKED, fixed: ["traceable_numerals"] });
@@ -17,13 +17,12 @@ const statusOf = (list: ReturnType<typeof checkList>, rule: HardRule) =>
   list.rows.find((row) => row.rule === rule)?.status;
 
 describe("every hard rule has a sentence", () => {
-  it("each rule has its own copy key, written, and a group the note lists", () => {
+  it("each rule has its own copy key, written", () => {
     const keys = HARD_RULES.map((rule) => CHECKS[rule].key);
     expect(new Set(keys).size).toBe(HARD_RULES.length);
     for (const rule of HARD_RULES) {
       expect(COPY[CHECKS[rule].key], rule).toBeTruthy();
       expect(COPY[CHECKS[rule].key], rule).not.toContain("TODO(copy)");
-      expect(CHECK_GROUPS.map((entry) => entry.group)).toContain(CHECKS[rule].group);
     }
   });
 });

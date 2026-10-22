@@ -19,7 +19,6 @@ import { describe, expect, it } from "vitest";
 import { HOSTED_BODY_CLASSES } from "@/app/(hosted)/hosted-page/body-classes";
 import { markPassage, parseMarkdown, toHtml } from "@/lib/publish/render/markdown";
 import { PublishedPageView } from "@/app/(account)/app/draft/[draftId]/PublishedPageView";
-import { publishedCounts } from "@/app/(account)/app/draft/[draftId]/publishes";
 import { codeOf } from "../../mail/leads/source";
 
 /** A body carrying every block a *body* can carry (#929/#973): a heading, a
@@ -77,6 +76,7 @@ function frame(p?: { grounded?: { present: boolean; passage: string } }): Elemen
           : { present: p.grounded.present, passage: p.grounded.passage }
       }
       publisher={PUBLISHER}
+      caption="Preview, as it will look on your site."
     />
   );
   const view = container.querySelector('[data-testid="published-view"]');
@@ -176,40 +176,5 @@ describe("#931 — the frame is theirs, and there is nothing of ours inside it",
     // closes — are not publication dates. The frame leaves the line out
     // rather than filling it with one of them.
     expect(frame().querySelector("time")).toBeNull();
-  });
-});
-
-describe("#931 — what gets published, counted off the body in front of the customer", () => {
-  it("counts every link the page will carry, wherever it sits", () => {
-    // One: the inline link in the last paragraph.
-    expect(publishedCounts(BODY).links).toBe(1);
-    // And a link inside a table cell or a list item is a link the page
-    // carries too — the count walks the blocks rather than the top level.
-    expect(publishedCounts("| a |\n| --- |\n| [x](https://e.com) |").links).toBe(1);
-    expect(publishedCounts("- [x](https://e.com) and [y](https://e.com)").links).toBe(2);
-  });
-
-  it("counts a declared question-and-answer pair per heading written as a question", () => {
-    expect(publishedCounts(BODY).questions).toBe(1);
-    expect(publishedCounts("## What does it cost?\n\n## Prices").questions).toBe(1);
-  });
-
-  it("counts the characters a reader meets, not the Markdown they are written in", () => {
-    // The same words with more emphasis in them are not a longer page.
-    expect(publishedCounts("**bold** and *thin*").characters).toBe(
-      publishedCounts("bold and thin").characters
-    );
-    // A link's length is its text, not its address.
-    expect(publishedCounts("[book](https://example.com/a/very/long/address)").characters).toBe(4);
-  });
-
-  it("counts through the parser, so a line that is not a table is not counted as one", () => {
-    // `a | b` is a paragraph without a delimiter row (#973), and the count
-    // agrees with the page because it reads the same blocks.
-    expect(publishedCounts("a | b").characters).toBe(5);
-  });
-
-  it("an empty body counts zero of everything", () => {
-    expect(publishedCounts("")).toEqual({ links: 0, questions: 0, characters: 0 });
   });
 });

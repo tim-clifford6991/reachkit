@@ -498,6 +498,10 @@ const MORE_THAN_ONE_PRIMARY_PUBLIC: Readonly<Record<string, string>> = Object.fr
     "once in each of four sections (the head, the week, the value and the " +
     "start), which is DESIGN's one solid button per section; each goes to " +
     "the landing's one field rather than offering a second action.",
+  "/pricing":
+    "board Pricing (2026-10-19). Two sections, each with its one solid " +
+    "button, which is DESIGN's one solid button per section: Start in the " +
+    "plan card, and the free scan's own submit in the closing section.",
 });
 
 function primariesPerScreen(rendered: RenderedRoute[], group: string): Map<string, number> {

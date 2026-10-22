@@ -76,13 +76,13 @@ import { liveBreaks, type MarkInputs } from "./marks";
 import { Check } from "lucide-react";
 import { PageRecordBlock } from "./PageRecordBlock";
 import { FoundSteps } from "./FoundSteps";
-import { TargetBlock } from "./TargetBlock";
-import { TargetNumbers } from "./TargetNumbers";
+import { WhyThisPage } from "./TargetBlock";
 import { factPresentIn } from "./grounded";
 import { PublishedPageView } from "./PublishedPageView";
-import { LinksCard, WhatAddsCard, WhatPublishesCard, WrittenFromCard } from "./ReviewCards";
+import { ChecksCard, LinksCard, SearchResult, WhatAddsCard, WrittenFromCard } from "./ReviewCards";
+import { checkList } from "./checks";
+import { kindWord } from "../../calendar/card-lines";
 import { NO_LINK_RECORD, linksOnPage } from "./links-panel";
-import { publishedCounts } from "./publishes";
 import { useDebounced } from "./useDebounced";
 import { SHAPE } from "./shape";
 import { NEEDS_YOU_COPY } from "@/lib/publish/record/lines";
@@ -420,6 +420,9 @@ export function DraftScreen(p: {
    *  occupies no date at all, which draws no chip rather than an unnamed
    *  one — and is what a stopped page reads as the moment Stop is pressed. */
   const stage = STAGE_OF[state];
+  /** A new page or an update of one the site has; nothing where unread. */
+  const kind =
+    view.target.kind === "unknown" ? null : kindWord(view.target.kind === "fix" || view.target.update === true);
 
   /** The claim badge, in every one of its four states — including the empty
    *  do-not-claim list, which states that there was nothing to check
@@ -512,6 +515,11 @@ export function DraftScreen(p: {
       // head above the frame, because nothing of ours belongs on a page
       // about to stand on their domain.
       source={sourceLine}
+      caption={
+        state === "in_review" && view.doNothing.publishesAt !== null
+          ? copy("draft.preview.caption", { at: formatDateTime(view.doNothing.publishesAt, view.timeZone) })
+          : copy("draft.preview.caption.plain")
+      }
     />
   );
 
@@ -788,16 +796,24 @@ export function DraftScreen(p: {
           article and the notes (`shape.ts`). */}
       <div className={SHAPE.grid}>
         <div className={SHAPE.page} data-testid="draft-page">
-          {/* The header: the status badges and one meta line, then the
-              title. The title is drawn twice on purpose — here as the
+          {/* The header: the title, then the status badges and one meta
+              line. The title is drawn twice on purpose — here as the
               screen's heading, and in the frame as the page publishes it. */}
           <header className="flex min-w-0 flex-col gap-2" data-testid="draft-head">
+            <h1 className="min-w-0 wrap-anywhere" data-testid="draft-title">
+              {view.title}
+            </h1>
             <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2">
               <span
                 className="flex min-w-0 flex-wrap items-center gap-2"
                 data-testid="draft-claim"
               >
                 {stageBadge}
+                {kind === null ? null : (
+                  <span className="badge badge-ghost" data-testid="draft-kind">
+                    {kind}
+                  </span>
+                )}
                 {claimBadge}
                 {claim.state === "failed" ? (
                   // c11: the customer is told which entry held the draft.
@@ -810,21 +826,16 @@ export function DraftScreen(p: {
               </span>
               {/* One meta line: when it was written, how long it is, and
                   REQ-093 c2's label, bound to the text it speaks for. */}
-              <p className="min-w-0 text-xs text-base-content/70 sm:ms-auto">
+              <p className="min-w-0 text-sm text-base-content/70">
                 <span data-testid="draft-written">{written}</span>
                 <span aria-hidden>{META_SEPARATOR}</span>
                 <span data-testid="draft-generated-label">{p.generatedLabel}</span>
               </p>
             </div>
             {matchedLine === null ? null : <p className="text-sm">{matchedLine}</p>}
-            <h1 className="min-w-0 wrap-anywhere" data-testid="draft-title">
-              {view.title}
-            </h1>
           </header>
 
-          {/* The page's numbers open the screen (owner 2026-10-09, issue
-              1364); the note that explains them stays closed below. */}
-          <TargetNumbers target={view.target} />
+          <WhyThisPage target={view.target} />
 
           {packShort}
           {rulesHeld}
@@ -851,9 +862,6 @@ export function DraftScreen(p: {
           state={state}
           deciding={deciding}
           pressed={deciding ? pressed : null}
-          grounded={grounded}
-          claim={claim}
-          recordedChecks={recordedChecks}
           bodyMd={bodyMd}
           onEdit={() => setEditing(true)}
           onCommand={decide}
@@ -862,33 +870,12 @@ export function DraftScreen(p: {
         {/* The notes: each one closed line that opens in place. The
             article above them is never one of these. */}
         <div className={SHAPE.notes} data-testid="draft-notes">
-          {/* Every link on the page, why it is there and whether it is
-              live (SPEC §7, 2026-10-10, issue 1391). First of the notes, so
-              it sits under the checks the panel above ends on (issue 1394). */}
-          <LinksCard links={linksOnPage(bodyMd, { domain: view.domain, record: view.linkRecord ?? NO_LINK_RECORD })} />
-          {/* What this page is for (issue 867) and how it reads in search
-              results. */}
-          <TargetBlock
-            target={view.target}
-            setAside={view.setAside}
-            title={view.title}
-            description={view.description}
-            publisher={view.publisher}
-          />
-
-          {/* SPEC §7's other two cards (#931): what the page stands on and
-              where each sentence was read, and what actually leaves the
-              building. The checks are `DecidePanel`'s. */}
+          {/* Board `AppDraft`'s notes, in its order. */}
+          <ChecksCard list={checkList({ grounded, claim, recorded: recordedChecks, known: view.knownCheck })} />
+          <SearchResult title={view.title} description={view.description} publisher={view.publisher} />
           <WrittenFromCard writtenFrom={view.writtenFrom} timeZone={view.timeZone} />
-          {/* What the page says that the web and the site do not (SPEC §7,
-              D12, issue 1143). */}
           <WhatAddsCard adds={view.adds} />
-          <WhatPublishesCard
-            publisher={view.publisher}
-            title={view.title}
-            description={view.description}
-            counts={publishedCounts(bodyMd)}
-          />
+          <LinksCard links={linksOnPage(bodyMd, { domain: view.domain, record: view.linkRecord ?? NO_LINK_RECORD })} />
 
           {/* What became of this page (issue #217) — absent rather than empty
               for a draft whose record could not be read. */}
