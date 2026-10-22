@@ -397,8 +397,34 @@ const PUBLISHED: DraftFacts = {
   state: "published",
   autoApprovesAt: null,
   record: DELIVERED,
-  // Issue 1553: crawled and indexed, shown in search, not yet cited.
-  ladder: { crawled: true, indexed: true, impressions: 37, showing: true, bestPlace: 34, placeSource: "serp", cited: false },
+  // Live three weeks, read on three Mondays: found, showing and climbing,
+  // read by AI and linked by one engine, not yet on the first page.
+  live: {
+    since: new Date("2026-09-14T14:00:00.000Z"),
+    url: "https://blog.example.com/how-to-choose-a-crm-for-a-small-team",
+    wordpress: false,
+    reading: {
+      at: "2026-10-05T06:00:00.000Z",
+      crawled: true,
+      place: { value: 24, source: "serp", query: "best crm for small teams" },
+      first: { at: "2026-09-21T06:00:00.000Z", place: 41 },
+      best: { place: 24, at: "2026-10-05T06:00:00.000Z" },
+      prev: 19,
+      linkedBy: ["ai_mode"],
+      aiReads: 4,
+      variants: [],
+      reached: {
+        found: "2026-09-16T06:00:00.000Z",
+        showing: "2026-09-21T06:00:00.000Z",
+        readByAi: "2026-09-17T06:00:00.000Z",
+        linkedByAi: "2026-10-05T06:00:00.000Z",
+      },
+      google: { indexed: true, lastCrawl: "2026-10-03T06:00:00.000Z", impressions: 37, clicks: 3, bestPlace: 24, bestQuery: "best crm for small teams" },
+      bing: null,
+    },
+    label: "climbing",
+  },
+  takeDown: { kind: "live" },
 };
 
 export const FIXTURE_DRAFTS: Readonly<Record<string, DraftFacts>> = Object.freeze({

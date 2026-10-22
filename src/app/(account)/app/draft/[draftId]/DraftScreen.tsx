@@ -75,7 +75,7 @@ import { Editor, type EditorPane, type PreviewFrame } from "./Editor";
 import { liveBreaks, type MarkInputs } from "./marks";
 import { Check } from "lucide-react";
 import { PageRecordBlock } from "./PageRecordBlock";
-import { FoundSteps } from "./FoundSteps";
+import { LivePage } from "./LivePage";
 import { WhyThisPage } from "./TargetBlock";
 import { factPresentIn } from "./grounded";
 import { PublishedPageView } from "./PublishedPageView";
@@ -762,6 +762,9 @@ export function DraftScreen(p: {
   }
 
   // ── the read arm ────────────────────────────────────────────────────
+  // A page that went live, and one its customer stopped: board `PageDetail`.
+  if (view.takeDown !== null && view.live !== null) return <LivePage view={view} live={view.live} />;
+
   const written =
     view.writtenAt === null
       ? copy("draft.words", { words: formatCount(wordCount(bodyMd)) })
@@ -879,8 +882,6 @@ export function DraftScreen(p: {
 
           {/* What became of this page (issue #217) — absent rather than empty
               for a draft whose record could not be read. */}
-          {/* How far the live page has got toward being found (issue 1553). */}
-          {view.ladder === null ? null : <FoundSteps ladder={view.ladder} />}
           {view.record === null ? null : (
             <PageRecordBlock record={view.record} timeZone={view.timeZone} />
           )}
