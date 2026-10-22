@@ -13,8 +13,8 @@ export function PlanHead(): React.JSX.Element {
   // on-screen name." The screen is named by the menu item that reaches it,
   // which is the idiom Settings and Overview already keep — their `h1` is
   // `shell.nav.*` and the written line sits under it. `calendar.head` is
-  // that line here (the owner's sentence of 2026-09-11, #516), so nothing
-  // it says is lost by the heading taking the name.
+  // that line here (the Plan board's), so nothing it says is lost by the
+  // heading taking the name.
   const head = writtenLine("calendar.head");
   return (
     <div className="flex min-w-0 flex-col gap-1">

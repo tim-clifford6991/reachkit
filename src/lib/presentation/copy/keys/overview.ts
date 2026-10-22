@@ -722,8 +722,8 @@ export const OVERVIEW_COPY = Object.freeze({
   // "Names someone else" is deliberately wider than the board's "Names a
   // rival": an answer can cite a directory, a marketplace or nobody at all,
   // and none of those is a rival.
-  "overview.answers.mark.links": ["Links to you", { slots: {}, fixedBy: "SPEC §6 2026-09-20" }],
-  "overview.answers.mark.names": ["Mentions you", { slots: {}, fixedBy: "SPEC §6 2026-09-20" }],
+  "overview.answers.mark.links": ["Links to this page", { slots: {}, fixedBy: "SPEC §6 2026-09-20" }],
+  "overview.answers.mark.names": ["Mentions you, no link", { slots: {}, fixedBy: "SPEC §6 2026-09-20" }],
   "overview.answers.mark.others": ["Mentions someone else", { slots: {}, fixedBy: "SPEC §6 2026-09-20" }],
   "overview.answers.mark.no-answer": ["No answer", { slots: {}, fixedBy: "SPEC §6 2026-09-20" }],
   "overview.answers.mark.not-measured": ["Not measured", { slots: {}, fixedBy: "SPEC §6 2026-09-20" }],

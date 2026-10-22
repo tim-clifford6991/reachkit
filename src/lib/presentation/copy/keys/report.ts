@@ -266,7 +266,7 @@ export const REPORT_COPY = Object.freeze({
   // the one line the scanning screen ends on (S3, approved under 11a).
   "stage.elapsed": ["{seconds} s", { slots: { seconds: "text" }, fixedBy: "REQ-003 c1" }],
   "scan.waiting.line": [
-    "Under a minute. This address is permanent — you can come back to it.",
+    "Under a minute. This address is permanent, so you can come back to it.",
     { slots: {}, fixedBy: "REQ-003 c1" },
   ],
   /** The line above the stages when a re-measure was started *from* a
@@ -491,7 +491,7 @@ export const REPORT_COPY = Object.freeze({
   "method.blocked-readers.snippet-pages": ["These pages forbid snippets, so an AI answer can’t use them:", { slots: {}, fixedBy: "SPEC §9 D14 · issue 1145" }],
   "method.blocked-readers.training-choice": ["Your robots.txt turns away {crawlers}. That keeps your pages out of AI training and it is your choice — it doesn’t stop an AI answer from reading you, and it isn’t counted here.", { slots: { crawlers: "text" }, fixedBy: "SPEC §9 D14 · issue 1145" }],
   "method.missing-pages.title": ["Write the missing pages", { slots: {}, fixedBy: "REQ-009 c6" }],
-  "method.missing-pages.body": ["Each missing page answers one question your market asks that mentions competitors and not you. Take the question, answer it plainly in the first paragraph, then back the answer with facts from your own site — numbers, dates, names, with a link to where each one lives. Publish it at a plain address on your own domain and link to it from a page that already ranks. One page a day is a good pace; one a week still moves the number. ReachKit writes these for subscribers, but nothing here needs a subscription.", { slots: {}, fixedBy: "REQ-009 c6" }],
+  "method.missing-pages.body": ["Each missing page answers one question your market asks that mentions competitors and not you. Take the question, answer it plainly in the first paragraph, then back the answer with facts from your own site — numbers, dates, names, with a link to where each one lives. Publish it at a plain address on your own domain and link to it from a page that already ranks. A few pages a week is a good pace; one a week still moves the number. ReachKit writes these for subscribers, but nothing here needs a subscription.", { slots: {}, fixedBy: "REQ-009 c6" }],
   "method.unquotable-pages.title": ["Make pages AI can answer from", { slots: {}, fixedBy: "REQ-009 c6" }],
   "method.unquotable-pages.body": ["AI answers mention and link pages that answer a question directly. Writing for that is sometimes called GEO, generative engine optimisation. For each page of yours that has search value but reads like a brochure: turn its headings into the questions a buyer would ask, put a direct answer of two or three sentences right under each heading, and add evidence — a figure, a date, a source you link to. Keep the page’s address; rewriting in place keeps whatever it already ranks for.", { slots: {}, fixedBy: "REQ-009 c6" }],
 

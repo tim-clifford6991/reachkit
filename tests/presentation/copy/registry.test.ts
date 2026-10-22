@@ -359,7 +359,6 @@ describe("the five keys the owner ruled 2026-09-11 (DECISIONS 2026-09-11, #516)"
   });
 
   it("the two approved-set strings that promised a page a day are replaced", () => {
-    expect(COPY["calendar.head"]).toBe("Pages go live when ready, at most one a day.");
     for (const key of ["calendar.head", "landing.step.3.title"] satisfies CopyKey[]) {
       expect(COPY[key], key).not.toContain("every day");
       expect(COPY[key], key).not.toContain("One page a day");

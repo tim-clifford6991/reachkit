@@ -59,7 +59,7 @@ export const SETUP_COPY = Object.freeze({
     { slots: {}, fixedBy: "S10 · REQ-026 c1" },
   ],
   "setup.site-and-market.title": [
-    "Your site & market",
+    "Your site and market",
     { slots: {}, fixedBy: "S10 · REQ-021 c6" },
   ],
   "setup.competitors.add.placeholder.first": [
