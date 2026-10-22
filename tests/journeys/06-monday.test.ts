@@ -975,3 +975,86 @@ describe("Monday: the week is re-measured, judged, and told (JN-005)", () => {
     );
   });
 });
+
+describe("Monday when DataForSEO refuses for lack of credit", () => {
+  /** Every DataForSEO request answered as the vendor documents a refusal
+   *  for credit with no task (https://docs.dataforseo.com/v3/appendix/errors/). */
+  function refuseForFunds(): void {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string) => {
+        vendorRequests.push({ url, task: {} });
+        return {
+          ok: true,
+          status: 200,
+          statusText: "OK",
+          json: async () => ({ status_code: 40210, status_message: "Insufficient funds.", cost: 0, tasks_count: 0, tasks: null }),
+        };
+      })
+    );
+  }
+
+  /** The DataForSEO rows the pass ledgered, payload and all. */
+  function vendorRows(): { costCents: number; payload: unknown }[] {
+    return db.queries
+      .filter((q) => q.table === "fetches" && q.verb === "insert" && !String(q.values?.source).startsWith("egress") && String(q.values?.source).includes("/"))
+      .map((q) => ({ costCents: Number(q.values?.cost_cents), payload: q.values?.payload }));
+  }
+
+  it(
+    "every refused read is unmeasured and ledgered at 0¢, never a measured 0, and the run says why once",
+    async () => {
+      const warned: string[] = [];
+      const warn = vi.spyOn(console, "warn").mockImplementation((line: unknown) => void warned.push(String(line)));
+      refuseForFunds();
+      const outcome = await measureTheWeek();
+      warn.mockRestore();
+
+      const rows = vendorRows();
+      expect(rows.length).toBeGreaterThan(0);
+      for (const row of rows) {
+        expect(row.costCents).toBe(0);
+        expect(row.payload).toMatchObject({ vendorFailure: "task_40210", billed: false, funds: true });
+      }
+      const refused = warned.filter((line) => line.includes('"vendor_funds_refused"'));
+      expect(refused.length).toBeGreaterThan(0);
+      expect(refused.length).toBeLessThan(rows.length);
+
+      // The week names what the vendor's refusal left unread; it is never a complete week of zeros.
+      expect(outcome).toMatchObject({ ran: true, status: "degraded" });
+      if (!outcome.ran || outcome.status !== "degraded") throw new Error("unreachable");
+      expect(outcome.unmeasured).toEqual(expect.arrayContaining(["market", "rankings", "ai_answers", "rivals"]));
+      const account = await weekly.accountForWeek({ siteId: SITE_ID, weekStart: "2026-08-31", now: MONDAY });
+      expect(account.kind).toBe("partial");
+    },
+    JOURNEY_TIMEOUT_MS
+  );
+
+  // Issue 1824: a refused week cannot stay due today — the selection reads only the Monday due hour, and the claim's row cannot be released once `fetches` rows reference it.
+  it.skip(
+    "issue 1824: the refused week stays due, ends degraded with vendor_funds, and the next tick after a top-up measures it",
+    async () => {
+      refuseForFunds();
+      const outcome = await measureTheWeek();
+      expect(outcome).toMatchObject({ ran: true, because: "vendor_funds" });
+      expect(scans.filter((scan) => scan.tier === "weekly" && scan.status !== "failed")).toEqual([]);
+
+      // Topped up: the vendor answers again, and the next hourly tick finds the week still owed.
+      vi.stubGlobal(
+        "fetch",
+        vi.fn(async (url: string, init?: RequestInit) => {
+          const body = typeof init?.body === "string" ? (JSON.parse(init.body) as unknown[]) : [];
+          return { ok: true, status: 200, statusText: "OK", json: async () => vendorAnswer(url, (body[0] ?? {}) as Record<string, unknown>) };
+        })
+      );
+      const nextTick = new Date(MONDAY.getTime() + 3_600_000);
+      const due = await weekly.dueSites(nextTick);
+      expect(due.map((site) => site.siteId)).toEqual([SITE_ID]);
+      const again = await weekly.runWeekly({ siteId: SITE_ID, domain: DOMAIN, zone: ZONE, now: nextTick });
+      expect(again).toMatchObject({ ran: true });
+      if (!again.ran) throw new Error("unreachable");
+      expect(again.status === "done" || again.status === "degraded").toBe(true);
+    },
+    JOURNEY_TIMEOUT_MS
+  );
+});

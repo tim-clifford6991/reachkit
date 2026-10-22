@@ -93,6 +93,9 @@ export interface CostContext {
   capHit(): boolean;
   spentCents(): number;
   degraded(): boolean;
+  /** True once a vendor refused a call of this context for lack of credit.
+   *  Absent on a stand-in context, which is never refused. */
+  fundsRefused?(): boolean;
 
   /** The draft this context's calls are for, once it has a row.
    *  The calls made since the context opened, or since the last `null`,
@@ -163,6 +166,7 @@ export async function withCostContext<T>(
   const site: SiteDayLedger | null =
     row.siteId === null ? null : await openSiteDayLedger(row.siteId, now());
   let capHitLogged = false;
+  let refusedForFunds = false;
   // A context that writes no roll-up is a draft's, and its rows say so; any other's activity the database reads off the scan.
   const isDraft = ctx.rollUp === "none";
   let draftId = ctx.draftId;
@@ -254,6 +258,11 @@ export async function withCostContext<T>(
         } else if (isVendorFailure(payload) && !payload.billed) {
           // A failure the vendor does not charge for, by the call site's word, is ledgered at 0 cents.
           settledCents = 0;
+          if (payload.funds === true && !refusedForFunds) {
+            refusedForFunds = true;
+            // One line a run, so an empty account reads as the cause and not as a blank week.
+            console.warn(JSON.stringify({ event: "vendor_funds_refused", scanId: ctx.scanId, source: call.source, failure: payload.vendorFailure }));
+          }
         } else if (call.settleCents) {
           const proposedCents = call.settleCents(payload);
           if (proposedCents > call.costCents) {
@@ -308,6 +317,10 @@ export async function withCostContext<T>(
 
     degraded(): boolean {
       return isDegraded;
+    },
+
+    fundsRefused(): boolean {
+      return refusedForFunds;
     },
 
     ...(isDraft

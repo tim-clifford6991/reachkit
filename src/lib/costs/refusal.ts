@@ -60,6 +60,8 @@ export interface VendorFailure {
   billed: boolean;
   /** A queued task that was paid for and can still be read. */
   taskId?: string;
+  /** The vendor refused it for lack of credit, by the call site's word. */
+  funds?: true;
 }
 
 /** Structural check over an `unknown` payload read back from `fetches`. */
