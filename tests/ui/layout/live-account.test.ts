@@ -125,6 +125,7 @@ describe(`live-branch sweep — ${routes.length} route(s) × ${sweepWidths().len
       "/app/costs",
       `/app/draft/${LIVE_DRAFT_ID}`,
       "/app/issues",
+      "/app/review",
       "/app/rivals",
       "/app/search",
       "/app/settings",
