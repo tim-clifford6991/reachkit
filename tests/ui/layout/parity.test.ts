@@ -49,7 +49,7 @@ function addresses(baseURL: string): { key: string; url: string; cookie?: string
         out.set(key, { key, url: url.toString() });
       } else {
         // Signed in only where the sweep is: an account page. A public page is read as a stranger.
-        const cookie = /^\/(app|setup)(\/|$)/.test(p) ? cookieFor(row) : undefined;
+        const cookie = /^\/(app|setup)([/?]|$)/.test(p) ? cookieFor(row) : undefined;
         out.set(key, { key, url: baseURL + p, cookie });
       }
     }

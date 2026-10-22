@@ -19,7 +19,7 @@
   "AuthCheckEmail": { "read": "state", "why": "the sent arm follows a form post" },
   "AuthExpired": { "read": "state", "why": "the expired arm needs a used link" },
   "Setup1": { "read": "page", "paths": ["/setup"], "account": "setup" },
-  "Setup2": { "read": "page", "paths": ["/setup"], "account": "setup" },
+  "Setup2": { "read": "page", "paths": ["/setup?step=check"], "account": "setup" },
   "Setup": { "read": "page", "paths": ["/setup", "/setup/connect"], "account": "setup" },
   "SetupZone": { "read": "page", "paths": ["/setup/zone"], "account": "setup" },
   "Veto": { "read": "state", "why": "the sweep's token does not verify, so it renders the failed arm" },

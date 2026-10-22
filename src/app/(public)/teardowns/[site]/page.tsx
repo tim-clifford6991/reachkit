@@ -8,7 +8,7 @@ import { PUBLIC_ROUTE_SEO } from "../../_seo/routes";
 import { publicMetadata } from "../../_seo/metadata";
 import { JsonLd, articleSchemas, homeCrumb } from "../../_seo/structured";
 import { TEARDOWNS, longDate, teardownOf } from "../../_library";
-import { BackLink, BODY, CARD, LibraryPage, ScanCta, Sketch, Sources, TextCard, Trademarks } from "../../_library/parts";
+import { BackLink, BODY, CARD, LearnClose, LibraryPage, Sketch, Sources, TextCard, Trademarks } from "../../_library/parts";
 
 /** Every teardown is known at build; any other address is a 404. */
 export const dynamicParams = false;
@@ -78,7 +78,7 @@ export default async function TeardownPage({ params }: Params): Promise<React.JS
           </ol>
         </div>
       </section>
-      <ScanCta />
+      <LearnClose variant="teardown" />
       <Sources checked={t.checked ?? t.revised} sources={t.sources} />
       <Trademarks />
       <BackLink href={INDEX} label={MORE} />

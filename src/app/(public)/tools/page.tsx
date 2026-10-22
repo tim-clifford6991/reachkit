@@ -8,7 +8,7 @@ import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { PUBLIC_ROUTE_SEO } from "../_seo/routes";
 import { staticMetadata } from "../_seo/metadata";
 import { FIELD_SECTION_ID } from "../_landing/sections";
-import { LibraryPage } from "../_library/parts";
+import { LearnClose, LibraryPage } from "../_library/parts";
 
 export const metadata: Metadata = staticMetadata(PUBLIC_ROUTE_SEO.tools);
 
@@ -42,6 +42,7 @@ export default function ToolsPage(): React.JSX.Element {
           </li>
         ))}
       </ul>
+      <LearnClose variant="tools" />
     </LibraryPage>
   );
 }
