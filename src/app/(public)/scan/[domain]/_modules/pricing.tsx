@@ -73,7 +73,7 @@ const TERM_LINES: Readonly<Record<OfferTerms, () => readonly string[]>> = {
   ],
 };
 
-/** Each surface's cancel line: the report's one click, the pricing page's
+/** Each surface's cancel line: the report's where, the pricing page's
  *  where-and-when (board Pricing). */
 const CANCEL_LINE: Readonly<Record<OfferTerms, () => string>> = {
   report: () => copy("offer.cancel_self_service"),

@@ -9,7 +9,7 @@ import { PUBLIC_ROUTE_SEO } from "../../_seo/routes";
 import { publicMetadata } from "../../_seo/metadata";
 import { JsonLd, articleSchemas, homeCrumb } from "../../_seo/structured";
 import { ANSWERS, answerOf } from "../../_library";
-import { BODY, CARD, LibraryPage, ScanCta, Sources, TextCard } from "../../_library/parts";
+import { BODY, CARD, LearnClose, LearnLoop, LibraryPage, Sources, TextCard } from "../../_library/parts";
 
 /** Every answer is known at build; any other address is a 404. */
 export const dynamicParams = false;
@@ -59,6 +59,7 @@ export default async function AnswerPage({ params }: Params): Promise<React.JSX.
       {a.sections.map((section) => (
         <TextCard key={section.heading} heading={section.heading} paragraphs={section.paragraphs} />
       ))}
+      <LearnLoop />
       <section className={CARD}>
         <div className={BODY}>
           <h2>{copy("answers.faq")}</h2>
@@ -70,7 +71,7 @@ export default async function AnswerPage({ params }: Params): Promise<React.JSX.
           ))}
         </div>
       </section>
-      <ScanCta />
+      <LearnClose variant="answer" />
       <Sources checked={a.checked} sources={a.sources} />
     </LibraryPage>
   );

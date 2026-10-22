@@ -531,17 +531,19 @@ export function YourPart(e: Example): React.JSX.Element {
   );
 }
 
-/** `#start`: the three figures a free report opens on. */
-export function ReportGlance(e: Example): React.JSX.Element {
+/** `#start`, and every Learn page's close with its own caption: the three
+ *  figures a free report opens on. */
+export function ReportGlance(e: Example, caption?: string): React.JSX.Element {
   return (
     <figure className={CARD}>
       <div className="card-body gap-3">
         <p className={LABEL}>{copy("how.start.glance")}</p>
         <div className="stats stats-vertical min-w-0">
+          {/* Spans, so the score, its band and its name read as one line. */}
           <div className="stat px-0">
-            <div className="stat-value text-3xl">{copy("how.start.score", { score: e.report.score, max: 100 })}</div>
-            <div className="stat-title text-base-content font-semibold">{copy("band.score.hard-to-find")}</div>
-            <div className="stat-desc text-base-content/70 whitespace-normal">{copy("how.start.score.name")}</div>
+            <span className="stat-value text-3xl">{copy("how.start.score", { score: e.report.score, max: 100 })}</span>
+            <span className="stat-title text-base-content font-semibold">{copy("band.score.hard-to-find")}</span>
+            <span className="stat-desc text-base-content/70 whitespace-normal">{copy("how.start.score.name")}</span>
           </div>
           <div className="stat px-0">
             <div className="stat-desc text-base-content text-sm whitespace-normal">
@@ -554,7 +556,7 @@ export function ReportGlance(e: Example): React.JSX.Element {
             </div>
           </div>
         </div>
-        <figcaption className={SMALL}>{copy("how.start.caption", { business: e.business })}</figcaption>
+        <figcaption className={SMALL}>{caption ?? copy("how.start.caption", { business: e.business })}</figcaption>
       </div>
     </figure>
   );
