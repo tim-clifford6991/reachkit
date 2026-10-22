@@ -1,6 +1,7 @@
 // tests/scan/weekly/rivals-monthly.test.ts — the weekly pass re-checks the
-// competitors on the month's first Monday only, skips the model call where
-// the report's own derived competitors are the ones in force, and a change
+// competitors once a month, keeps a re-check the cap refused or that failed
+// due on every Monday until one concludes, skips the model call where the
+// report's own derived competitors are the ones in force, and a change
 // starts no second deep pass (ruling B5, #1560).
 //
 // Two panel sites from stored rows: savvycal.com (SaaS) and
@@ -72,14 +73,19 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
+/** How the pass's cost context meets the rivals' model call. */
+type RivalCall = "answered" | "refused" | "thrown";
+
 /**
  * One site whose competitors in force are `inForce`, and whose weekly
  * report derived `derived`. The model, when asked, names every derived
  * competitor; `waiting` is the one a pass before held back, so it enters.
+ * The site row keeps what each pass writes, as the column does.
  */
-function site(a: { domain: string; inForce: string[]; derived: string[]; waiting?: string }): {
+function site(a: { domain: string; inForce: string[]; derived: string[]; waiting?: string; overridden?: boolean }): {
   ctx: FakeContext;
   rivalCalls: () => number;
+  rivalCall: (how: RivalCall) => void;
 } {
   const report = JSON.parse(
     JSON.stringify({
@@ -95,9 +101,14 @@ function site(a: { domain: string; inForce: string[]; derived: string[]; waiting
       rivals: a.inForce.map((domain) => ({ domain, name: domain, basis: "ranks", reason: "It holds the first page." })),
     },
     ...(a.waiting === undefined ? {} : { rivalsWaiting: [a.waiting] }),
+    ...(a.overridden === true ? { rivalsOverridden: true } : {}),
   };
-  DB.rows.set("sites", [{ id: "site-1", domain: a.domain, zone: "UTC", category: "the market", competitors: a.inForce, market }]);
-  DB.answer = (statement) => (statement.table === "scans" && statement.verb === "select" ? [{ id: "x", status: "done", report }] : null);
+  const row: Record<string, unknown> = { id: "site-1", domain: a.domain, zone: "UTC", category: "the market", competitors: a.inForce, market };
+  DB.rows.set("sites", [row]);
+  DB.answer = (statement) => {
+    if (statement.table === "sites" && statement.verb === "update") return (Object.assign(row, statement.values), []);
+    return statement.table === "scans" && statement.verb === "select" ? [{ id: "x", status: "done", report }] : null;
+  };
 
   const candidates = a.derived.map((domain) => ({
     domain,
@@ -116,12 +127,26 @@ function site(a: { domain: string; inForce: string[]; derived: string[]; waiting
     new Date(),
     "WEEKLY"
   );
+  // The cap's refusal and a ledger that throws, as `withCostContext` gives them.
+  let how: RivalCall = "answered";
+  const answer = fake.ctx.recordFetch;
+  fake.ctx.recordFetch = (async (call: Parameters<typeof answer>[0]) => {
+    if (call.source !== "rival-inference" || how === "answered") return answer(call);
+    if (how === "refused") return { skipped: "cap" as const };
+    throw new Error("the ledger is unavailable");
+  }) as typeof answer;
   // As the pipeline does: a hook that throws past the competitors' check does not take the report down.
   runScan.mockImplementation(async (call: { scanId: string; afterReport: (x: unknown) => Promise<void> }) => {
     await call.afterReport({ report, cost: fake.ctx }).catch(() => undefined);
     return { scanId: call.scanId, status: "done" };
   });
-  return { ctx: fake, rivalCalls: () => fake.calls.filter((c) => c.source === "rival-inference").length };
+  return {
+    ctx: fake,
+    rivalCalls: () => fake.calls.filter((c) => c.source === "rival-inference").length,
+    rivalCall: (next) => {
+      how = next;
+    },
+  };
 }
 
 async function monday(domain: string, day: string): Promise<void> {
@@ -147,6 +172,50 @@ describe.each(SITES)("$domain: competitors re-checked monthly from stored rows",
     for (const day of [...OCTOBER, NOVEMBER_FIRST]) await monday(domain, day);
     expect(ctx.calls).toHaveLength(0);
     expect(log.lines.filter((l) => l.event === "rival_conclusion_skipped" && l.because === "unchanged")).toHaveLength(2);
+  });
+
+  it("a re-check the cap refused stays due until one runs: four Mondays make [refused, 1, 0, 0] model calls", async () => {
+    const { rivalCalls, rivalCall } = site({ domain, inForce: derived.slice(0, 1), derived });
+    const perMonday: (number | "refused")[] = [];
+    for (const [n, day] of OCTOBER.entries()) {
+      rivalCall(n === 0 ? "refused" : "answered");
+      const before = rivalCalls();
+      const unmeasured = log.lines.filter((l) => l.event === "rival_conclusion_unmeasured").length;
+      await monday(domain, day);
+      const refused = log.lines.filter((l) => l.event === "rival_conclusion_unmeasured").length > unmeasured;
+      perMonday.push(refused ? "refused" : rivalCalls() - before);
+    }
+    expect(perMonday).toEqual(["refused", 1, 0, 0]);
+  });
+
+  it("a re-check that threw stays due: the next Monday makes the model call", async () => {
+    const { rivalCalls, rivalCall } = site({ domain, inForce: derived.slice(0, 1), derived });
+    rivalCall("thrown");
+    await monday(domain, OCTOBER[0]!);
+    expect(log.lines.filter((l) => l.event === "rival_conclusion_failed")).toHaveLength(1);
+    rivalCall("answered");
+    await monday(domain, OCTOBER[1]!);
+    expect(rivalCalls()).toBe(1);
+  });
+
+  it("no model call when the derived competitors are the ones in force keeps it not due for the rest of the month", async () => {
+    const { rivalCalls } = site({ domain, inForce: [...derived].reverse(), derived });
+    await monday(domain, OCTOBER[0]!);
+    // Were the skip not the month's re-check, these Mondays would ask the model.
+    DB.rows.get("sites")!.forEach((row) => Object.assign(row as object, { competitors: derived.slice(0, 1) }));
+    for (const day of OCTOBER.slice(1)) await monday(domain, day);
+    expect(rivalCalls()).toBe(0);
+    await monday(domain, NOVEMBER_FIRST);
+    expect(rivalCalls()).toBe(1);
+  });
+
+  it("a founder's own competitors, re-weighed, are the month's re-check", async () => {
+    const { rivalCalls } = site({ domain, inForce: derived.slice(0, 1), derived, overridden: true });
+    await monday(domain, OCTOBER[0]!);
+    const row = DB.rows.get("sites")![0] as { market: { rivalsOverridden: boolean } };
+    row.market = { ...row.market, rivalsOverridden: false };
+    for (const day of OCTOBER.slice(1)) await monday(domain, day);
+    expect(rivalCalls()).toBe(0);
   });
 
   it("makes one model call when they differ", async () => {
