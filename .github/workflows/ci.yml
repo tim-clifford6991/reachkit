@@ -110,6 +110,7 @@ jobs:
       - run: npm run lint -- --cache --cache-strategy content
       # `--changed HEAD^1` runs the test files vitest's module graph links to
       # the merge commit's diff; `full` (or a failed filter) runs them all.
+      # `test:unit` is the one unit command, so an agent's run means what CI's does.
       - name: unit tests (${{ needs.changes.outputs.unit || 'full' }})
         env:
           UNIT: ${{ needs.changes.outputs.unit }}
@@ -120,7 +121,7 @@ jobs:
           else
             echo "unit=full: a path in the diff reaches tests through no import, or this is not a pull request; 'what changed' tags it 'full'."
           fi
-          npx vitest run --project node --project ui --maxWorkers=2 --testTimeout=20000 "$@"
+          npm run test:unit -- "$@"
 
   no-overflow:
     name: no overflow · axe (390 / 768 / 1280, light and dark)
