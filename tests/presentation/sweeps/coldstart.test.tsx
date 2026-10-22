@@ -502,6 +502,11 @@ const MORE_THAN_ONE_PRIMARY_PUBLIC: Readonly<Record<string, string>> = Object.fr
     "board Pricing (2026-10-19). Two sections, each with its one solid " +
     "button, which is DESIGN's one solid button per section: Start in the " +
     "plan card, and the free scan's own submit in the closing section.",
+  "/scans":
+    "board Free scans (canvas V22, ruling 2b's \"where the artifact draws " +
+    "them\"). One action, the free scan, in two sections: the gallery's " +
+    "field beside its heading and the Learn pages' closing field under the " +
+    "cards, each its section's one solid button.",
 });
 
 function primariesPerScreen(rendered: RenderedRoute[], group: string): Map<string, number> {

@@ -1,20 +1,20 @@
 // SPEC §1 (2026-10-10, issue 1396) — who builds ReachKit, and why.
 // src/app/(public)/about/page.tsx
 //
-// Three cards: who builds it, why it exists, and the rules it keeps, then a
-// link to `/how-it-works`. The founder's name and place are the ones
+// Three cards: who builds it, why it exists, and the rules it keeps, then the
+// Learn pages' closing field and a link to `/how-it-works`. The founder's name and place are the ones
 // ReachKit's own articles print, read from the same stored byline
 // (`_how/examples.ts`); where none is stored the sentence is not drawn, and
 // the imprint still names the operator.
 import type React from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowRight } from "lucide-react";
 import { Surface } from "@/ui/layout";
 import { copy } from "@/lib/presentation/copy";
 import { PUBLIC_ROUTE_SEO } from "../_seo/routes";
 import { staticMetadata } from "../_seo/metadata";
 import { readLiveExamples } from "../_how/examples";
+import { LearnClose } from "../_library/parts";
 
 export const metadata: Metadata = staticMetadata(PUBLIC_ROUTE_SEO.about);
 
@@ -95,12 +95,7 @@ export default async function AboutPage(): Promise<React.JSX.Element> {
             </section>
           </div>
 
-          <p className="mt-3">
-            <Link href="/how-it-works" className="btn btn-primary">
-              {copy("about.how")}
-              <ArrowRight size={16} strokeWidth={1.75} aria-hidden />
-            </Link>
-          </p>
+          <LearnClose variant="about" />
         </article>
       </main>
     </Surface>
