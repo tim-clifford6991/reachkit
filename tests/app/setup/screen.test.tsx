@@ -291,11 +291,27 @@ describe("Site — the address, where the buyers are, and the place (REQ-021 c6/
     ).toMatch(/^Austin, TX · in EnglishWe check/);
   });
 
-  it("the market is Check's, not Site's: a measured address renders the inferred category there as a chip, changeable", () => {
+  it("the market is Check's, not Site's, and its section names it once, inferred or stated, with no chip", () => {
     expect(screenFor("site").querySelector('[data-testid="setup-market"]')).toBeNull();
-    expect(screenFor("check").querySelector('[data-testid="setup-market-chip"]')?.textContent).toBe(
-      FIXTURE_SETUP_FACTS.measured?.report.category,
-    );
+    const timesNamed = (section: Element | null, category: string) =>
+      (section?.textContent ?? "").split(category).length - 1;
+
+    const inferred = FIXTURE_SETUP_FACTS.measured!.report.category!;
+    const read = screenFor("check").querySelector('[data-testid="setup-market"]');
+    expect(read?.querySelector('[data-testid="setup-market-chip"]')).toBeNull();
+    expect(timesNamed(read, inferred)).toBe(1);
+
+    const stated = render(
+      <MarketCard
+        state={onMarketStated(model().state, "plumbers in austin")}
+        setState={() => {}}
+        questions={{ ...FIXTURE_SETUP_FACTS.questions!, derivable: null }}
+      />,
+    ).querySelector('[data-testid="setup-market"]');
+    expect(stated?.querySelector('[data-testid="setup-market-chip"]')).toBeNull();
+    expect(stated?.querySelector('[data-testid="setup-market-stated"] strong')?.textContent).toBe("plumbers in austin.");
+    expect(timesNamed(stated, "plumbers in austin")).toBe(1);
+    expect(stated?.textContent).not.toContain(COPY["setup.market.concluded"]);
   });
 
   it("REQ-021 c7 — a scanless purchase gets an empty address field, with nothing pre-filled", () => {
