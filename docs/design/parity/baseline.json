@@ -1,9 +1,9 @@
 {
   "PubLanding": { "sha256": "5e13b4398f028942a99a1e54c5ca8f5ba3d85f46e945fe427ef6b22d6480e1b9", "missing": 67 },
   "PubLandingPhone": { "sha256": "62fdc13ae9d3201e709f77813bfcdc6de6ad91dd86f4ead29189f94fb2a021c5", "missing": 69 },
-  "PubHowItWorks": { "sha256": "8e8528c4e5f552d814b9eaecb74e96189f48c22812b05854101ee34fd6ce3faf", "missing": 76 },
-  "Pricing": { "sha256": "49db649d012d04531df7ef839990e5ca6023a66d08fe0024d5e5732f432780cd", "missing": 162 },
-  "PubScanning": { "sha256": "1e59603968e68ec6ac791ca6232944d3f48ed10e869ae484c5aecd4725df6113", "missing": 32 },
+  "PubHowItWorks": { "sha256": "8e8528c4e5f552d814b9eaecb74e96189f48c22812b05854101ee34fd6ce3faf", "missing": 53 },
+  "Pricing": { "sha256": "49db649d012d04531df7ef839990e5ca6023a66d08fe0024d5e5732f432780cd", "missing": 5 },
+  "PubScanning": { "sha256": "1e59603968e68ec6ac791ca6232944d3f48ed10e869ae484c5aecd4725df6113", "missing": 31 },
   "PubReport": { "sha256": "6f4b8581917e1a9fafa0b47a965fa899e08bf458eb61479a77ff1e5d2d29738c", "missing": 101 },
   "PubAbout": { "sha256": "fa7340da43762d9cad618f2aa4059f601e3756103f74d71d53e0836ebf44ccd3", "missing": 57 },
   "PubCompare": { "sha256": "9bf356c57559f64ca76f59a62e567231956e4214a31efbe4dbbc5fca203202ba", "missing": 75 },
