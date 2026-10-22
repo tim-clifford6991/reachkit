@@ -147,7 +147,7 @@ function WeekParts(): React.JSX.Element {
             <CircleCheck {...ICON} className="text-success" />
             {copy("pricing.week.address")}
           </p>
-          <p className="num rounded-box bg-base-200 truncate px-3 py-2 text-sm">{`${e.blog}${e.pagePath}`}</p>
+          <p className="rounded-box bg-base-200 min-w-0 px-3 py-2 font-mono text-sm break-all">{`${e.blog}${e.pagePath}`}</p>
           <p className={SMALL}>{copy("pricing.week.address.line")}</p>
         </div>
       </div>
