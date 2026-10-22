@@ -1498,8 +1498,8 @@ deployment (`dpl_2NEUXishMXAkzXG4Ti85yTy7NDda`, 23 Aug 2026).
 | someone is asking to roll back | §1 — the scripts cannot; Vercel can, and must not. Why is there |
 | "is not readable by this build" in a log | §1 — an older build is reading a newer report. Deploy `main`, do not roll back further |
 | how long would a restore take | §9 — unknown until the drill runs. Enabling it and running it are the owner's |
-| CI jobs fail with a billing or spending-limit error | §1 *Where CI runs* — CI is hosted on a public repository; the box runners are stopped and are the fallback only |
-| a check sits in *queued* for hours | §1 *Where CI runs* — does it name a box runner? Those are stopped. `gh api repos/tim-clifford6991/reachkit/actions/runners` |
+| CI jobs fail with a billing or spending-limit error | §1 *Where CI runs* — CI runs on GitHub-hosted runners, which a public repository gets without a minutes cap. The box runners are deregistered and must never be re-registered while the repository is public |
+| a check sits in *queued* for hours | §1 *Where CI runs* — no self-hosted runner exists, so a job waiting on a `self-hosted` label means a workflow regressed: fix that workflow's `runs-on`, never register a runner. `gh api repos/tim-clifford6991/reachkit/actions/runners` must read `total_count: 0` |
 | `Vercel` fails on every PR | §1 — the Hobby plan's 100 builds a day. It is not a required check; nothing is blocked |
 
 ---
