@@ -416,9 +416,10 @@ export const PUBLISH_COPY = Object.freeze({
     "published {date} · updated {updated} · by {publisher}",
     { slots: { date: "date", updated: "date", publisher: "text" }, fixedBy: "issue 1137" },
   ],
+  // A sentence, drawn as a link to the page it names.
   "hosted.source": [
-    "source: {source} · retrieved {date}",
-    { slots: { source: "text", date: "date" }, fixedBy: "S19 (11a)" },
+    "Source: {source} · retrieved {date}.",
+    { slots: { source: "text", date: "date" }, fixedBy: "S19 (11a) · board HostedArticle R9 · issue 1742" },
   ],
   // The customer's own footer line. A key rather than a bare "©" in the
   // markup, so this surface has no string outside the registry at all —
@@ -429,6 +430,8 @@ export const PUBLISH_COPY = Object.freeze({
     "© {publisher}",
     { slots: { publisher: "text" }, fixedBy: "S19 (11a)" },
   ],
+  // The footer's link to the site's feed.
+  "hosted.footer.rss": ["RSS", { slots: {}, fixedBy: "board HostedIndex · issue 1742 · drafted" }],
   // The hosted index at `/` (owner 2026-09-16): every live page of the
   // site, newest first, with a search. Drafted under #759's ruling; the
   // owner corrects the wording. None names ReachKit — the index is served
@@ -470,7 +473,7 @@ export const PUBLISH_COPY = Object.freeze({
   ],
 
   "hosted.index.heading": ["Articles", { slots: {}, fixedBy: "SPEC §7 (2026-09-16)" }],
-  "hosted.index.searchLabel": ["Search articles", { slots: {}, fixedBy: "SPEC §7 (2026-09-16)" }],
+  "hosted.index.searchLabel": ["Search the guides", { slots: {}, fixedBy: "SPEC §7 (2026-09-16) · board HostedIndex · issue 1742" }],
   "hosted.index.searchSubmit": ["Search", { slots: {}, fixedBy: "SPEC §7 (2026-09-16)" }],
   "hosted.index.empty": [
     "Nothing has been published here yet.",
@@ -525,8 +528,11 @@ export const PUBLISH_COPY = Object.freeze({
   ],
   "hosted.index.latest": ["Latest", { slots: {}, fixedBy: "issue 1140" }],
   "hosted.index.pages": ["Pages of articles", { slots: {}, fixedBy: "issue 1140" }],
-  "hosted.index.newer": ["Newer", { slots: {}, fixedBy: "issue 1140" }],
-  "hosted.index.older": ["Older", { slots: {}, fixedBy: "issue 1140" }],
+  "hosted.index.newer": ["Previous page", { slots: {}, fixedBy: "issue 1140 · board HostedIndex · issue 1742" }],
+  "hosted.index.older": ["Next page", { slots: {}, fixedBy: "issue 1140 · board HostedIndex · issue 1742" }],
+  // The index's H1 and its grid's heading; the head, breadcrumb and feed keep `hosted.index.heading`.
+  "hosted.index.title": ["Guides from {publisher}", { slots: { publisher: "text" }, fixedBy: "board HostedIndex · issue 1742 · drafted" }],
+  "hosted.index.recent": ["Recent guides", { slots: {}, fixedBy: "board HostedIndex · issue 1742 · drafted" }],
   "hosted.index.pageOf": [
     "Page {page} of {pages}",
     { slots: { page: "text", pages: "text" }, fixedBy: "issue 1140" },

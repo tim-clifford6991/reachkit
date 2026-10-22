@@ -35,7 +35,8 @@ import { WEBSUB_HUB } from "@/lib/publish/destinations/hosted/announce";
 import { resolveHost } from "../../resolve-host";
 import { localeTag } from "@/lib/locale/locales";
 import { siteLocale } from "@/lib/locale/site";
-import { FEED_PATH, indexDescription, indexTitle } from "../[[...slug]]/seo";
+import { FEED_PATH } from "../[[...slug]]/present";
+import { indexDescription, indexTitle } from "../[[...slug]]/seo";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;

@@ -551,7 +551,7 @@ export function seedHostedPublisher(): void {
         state: "published",
         title: PUBLISHER_PAGE.title,
         bodyMd: PUBLISHER_PAGE.bodyMd,
-        meta: { faq: PUBLISHER_PAGE.faq },
+        meta: { faq: PUBLISHER_PAGE.faq, ...PUBLISHER_PAGE.made },
         groundedFact: PUBLISHER_PAGE.grounded,
       },
     ],
