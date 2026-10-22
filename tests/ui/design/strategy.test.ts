@@ -45,6 +45,8 @@ const RETIRED: readonly { name: string; pattern: RegExp }[] = [
   { name: "named by AI", pattern: /\bNamed by\b/ },
   { name: "quoted by AI", pattern: /\bquoted (by|in) (AI|ChatGPT|Gemini|Perplexity|an AI|AI answers?)\b/i },
   { name: "quoted by AI", pattern: /\bQuoted by\b/ },
+  // Q6: a stopped topic is dropped for good. "Write it again" on a held page stays.
+  { name: "write this one again", pattern: /\b(write this one again|ask us to write)\b/i },
 ];
 
 /** The attributes whose value a customer reads or hears. */
@@ -177,6 +179,7 @@ describe("UI strategy: titles and retired names (#1463)", () => {
       undefined,
       undefined,
     ]);
+    expect(["you can ask us to write this one again", "Read it, or write it again."].map(retiredIn)).toEqual(["write this one again", undefined]);
   });
 
   it("customer copy does not use a retired name", () => {

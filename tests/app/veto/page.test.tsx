@@ -16,6 +16,7 @@
 // The redemption and the read are `tests/publish/publishable/veto.test.ts`'s
 // and are not re-tested here: this suite asserts which seam the surface
 // reaches on which request, and which arm it renders for which answer.
+import { readFileSync } from "node:fs";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type React from "react";
 import { applyEnvFixture } from "../../mail/env-fixture";
@@ -338,6 +339,8 @@ describe("the done arm, and the refusals that wear its shape", () => {
     expect(headingsOf(tree, "h1")).toEqual([COPY["publish.veto.done.head"]]);
     expect(text(tree)).toContain(COPY["publish.veto.done.line"]);
     expect(toldLine(tree)).toBe(COPY["publish.veto.stopped"]);
+    // The Veto board's own sentence: the topic is dropped, never offered again.
+    expect(readFileSync("docs/design/boards/canvas/Veto.dc.html", "utf8")).toContain(toldLine(tree));
     const links = linksOf(tree);
     expect(links).toHaveLength(1);
     // **`/signin`, not `/app/calendar`** (#937). This page takes no

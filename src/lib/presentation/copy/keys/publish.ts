@@ -320,14 +320,10 @@ export const PUBLISH_COPY = Object.freeze({
    *  wall with no word about why. It goes to `/signin` now and says so, so
    *  the word and the destination cannot come apart. Drafted (#759). */
   "publish.veto.calendar": ["Sign in to open your plan", { slots: {}, fixedBy: "issue 937" }],
-  /** Changed 2026-09-21 (#937). The old line said what would not happen
-   *  and stopped there; the 2026-09-20 board says what happens *instead* —
-   *  that tomorrow is unaffected, and that this page is not lost, because
-   *  it can be asked for again. A reader who has just stopped something
-   *  wants to know both. Drafted (#759). */
+  /** The Veto board's line: other pages are unaffected, and the topic is dropped for good. */
   "publish.veto.stopped": [
-    "Nothing else changes. Your other pages go ahead as usual, and you can ask us to write this one again from your plan.",
-    { slots: {}, fixedBy: "issue 937" },
+    "Nothing else changes. Your other pages go ahead as usual. ReachKit won’t write this topic again.",
+    { slots: {}, fixedBy: "issue 1718" },
   ],
   /** The rest of the done arm's alert, after `publish.veto.done.head`'s
    *  "Stopped" — two keys because the board bolds the first word and reads

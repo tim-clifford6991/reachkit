@@ -22,6 +22,7 @@ import type {
 import type { MarketConclusion } from "../../src/lib/market/infer/types";
 import type { Profile } from "../../src/lib/market/questions/profile";
 import type { HostedOwnPages } from "../../src/lib/publish/destinations/hosted/own-page";
+import { dismissedSearchesOf } from "../../src/lib/opportunities/store";
 import { topTensOf } from "../../src/lib/opportunities/cluster";
 import type { AskedBeside } from "../../src/lib/opportunities/derive/topics";
 import type { EarnGrounding } from "../../src/lib/opportunities/earn-grounding";
@@ -225,8 +226,8 @@ export function memoryStore(state: MemoryState): OpportunityStore {
 
     async dismissedSearches(siteId) {
       return state.rows
-        .filter((row) => row.site_id === siteId && row.status === "dismissed" && row.family !== "fix" && row.target_query !== null)
-        .map((row) => ({ query: row.target_query!, volume: row.volume }));
+        .filter((row) => row.site_id === siteId && row.status === "dismissed" && row.family !== "fix")
+        .flatMap(dismissedSearchesOf);
     },
 
     async setCluster(opportunityId, clusterKey, absorbedQueries) {
@@ -361,10 +362,11 @@ export function memoryStore(state: MemoryState): OpportunityStore {
       state.statusChangedAt.set(row.id, state.now);
     },
 
-    async markDismissed(opportunityId) {
+    async markDismissed(opportunityId, a) {
       const row = state.rows.find((r) => r.id === opportunityId);
       if (row === undefined || (row.status !== "open" && row.status !== "queued")) return;
       row.status = "dismissed";
+      if (a?.stopped) row.stopped = true;
       state.statusChangedAt.set(row.id, state.now);
     },
 
@@ -372,6 +374,7 @@ export function memoryStore(state: MemoryState): OpportunityStore {
       const row = state.rows.find((r) => r.id === opportunityId);
       if (row === undefined || row.status !== "open") return false;
       row.status = "dismissed";
+      row.stopped = true;
       state.statusChangedAt.set(row.id, state.now);
       return true;
     },
