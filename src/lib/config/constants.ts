@@ -1929,12 +1929,10 @@ export const CLUSTER_SUPPRESS_WEEKS = 4 as const;             // §6
  *  the founder, rests for 28 days." */
 export const TOPIC_REST_DAYS = 28 as const;                   // §7
 
-/** SPEC §7 (issue 1532; drafted defaults the owner may correct): a live page
- *  its customer takes down can be put back for 7 days, and its topic is not
- *  proposed again for 90. */
+/** SPEC §7 (R9, owner 2026-10-22): a hosted page its customer stops can be
+ *  put back for 7 days; its topic is dropped for good (Q6). */
 export const TAKE_DOWN = Object.freeze({
   PUT_BACK_DAYS: 7,
-  TOPIC_REST_DAYS: 90,
 } as const);                                                   // §7
 
 /** SPEC §7 (owner, D26): when the day's draft is stopped, the same run
