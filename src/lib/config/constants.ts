@@ -370,6 +370,13 @@ export const INFERENCE_TEMPERATURE: Readonly<Partial<Record<keyof typeof INFEREN
     "site-knowledge": 0,
   });
 
+/** A call site asked fewer times than the seam's two, where a retry buys
+ *  nothing: a temperature-0 answer asked again is the same answer; its rows
+ *  are judged next pass. */
+export const INFERENCE_ATTEMPTS: Readonly<Partial<Record<keyof typeof INFERENCE_MAX_OUTPUT_TOKENS, 1>>> = Object.freeze({
+  "topic-fit": 1,
+});
+
 /** SPEC §7 (D41) — the five-stage pipeline's own bounds.
  *
  *  `fixBeforeMs`: the one fix call is started only while the page has been
@@ -1131,12 +1138,12 @@ export const SERP_RIVAL_SIZING = Object.freeze({
  *  cap checks reservations. A pass types its opportunities out of the same
  *  cap after its report is stored (issue 798), and four Haiku calls at
  *  `INFERENCE_PRICE_BOOK.haiku` come to about a cent; four cents is several
- *  times that. Issue 1134 adds the pass's one fit judgement: its up-front
- *  reservation is about six cents (`INFERENCE_MAX_OUTPUT_TOKENS["topic-fit"]`
- *  at the Sonnet price, plus its input), so the reserve was twelve. Issue
- *  1208 adds two small-tier calls before that judgement — the buyer searches
- *  and their check, about 1.2¢ reserved together — so it is fourteen. */
-export const TYPING_RESERVE_C = 14;
+ *  times that. The peak is the fit judgement's one-attempt reservation
+ *  (`INFERENCE_ATTEMPTS`): its input plus `INFERENCE_MAX_OUTPUT_TOKENS["topic-fit"]`
+ *  at the Sonnet price, about 5.9¢ at a 4–5k-token input, after the buyer
+ *  searches and their check have settled about 0.4¢. Eight covers a fit
+ *  input of up to about 9.9k tokens. */
+export const TYPING_RESERVE_C = 8;
 
 /** SPEC §6 (owner D64, issue 1301; a drafted default the owner may correct):
  *  how many of a site's rivals one weekly pass sizes again. A sizing is kept

@@ -233,6 +233,20 @@ describe("llm() — schema parse (BP-009 `## Error & edge behavior`)", () => {
     expect(createMock).toHaveBeenCalledTimes(2);
     expect(result).toMatchObject({ kind: "measured", value: { headline: "Widgets, Inc." } });
   });
+
+  it("the fit judgement is asked once: a miss is unparseable after one call, and it reserves one attempt", async () => {
+    createMock.mockResolvedValueOnce(textMessage({ not: "the schema" }));
+    createMock.mockResolvedValueOnce(textMessage({ headline: "a second answer it must never ask for" }));
+    const { ctx, calls } = fakeCostContext();
+
+    const result = await llm(ctx, { site: "topic-fit", input: {}, schema: SCHEMA, tier: "sonnet" });
+
+    expect(createMock).toHaveBeenCalledTimes(1);
+    expect(result).toMatchObject({ kind: "unmeasured", reason: "undeterminable" });
+    // `{}` is one estimated input token; Sonnet's 300¢ in and 1500¢ out per million, recomputed here.
+    const oneAttempt = (1 / 1_000_000) * 300 + (INFERENCE_MAX_OUTPUT_TOKENS["topic-fit"] / 1_000_000) * 1500;
+    expect(calls[0]!.costCents).toBeCloseTo(oneAttempt, 9);
+  });
 });
 
 describe("llm() — model unavailability (BP-009 `## Error & edge behavior`)", () => {

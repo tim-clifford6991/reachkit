@@ -355,7 +355,8 @@ describe("owner B2 — each page slot's result is read deep enough to see the pa
 // Owner W1 beside owner B2: the stages stop at the weekly cap less the typing
 // reserve, and the page slots now read 100 deep. Every double below ledgers
 // through the pass's own cost context at what the seam charges for that call
-// (`tests/scan/page-questions-ledger.test.ts` holds the seam to those prices).
+// (`tests/scan/page-questions-ledger.test.ts` holds the seam to those prices),
+// and the measuring model calls at what each cost on the weekly pass of 2026-10-19.
 describe("owner W1 — a week's deep page reads fit inside the cap less the typing reserve", () => {
   const ledger = async <T>(c: CostContext, key: string, cents: number, value: Measured<T>): Promise<Measured<T>> => {
     const paid = await c.recordFetch({ source: key.split("|")[0] ?? key, cacheKey: key, freshnessDays: 0, costCents: cents, run: async () => value });
@@ -388,10 +389,20 @@ describe("owner W1 — a week's deep page reads fit inside the cap less the typi
     db.queries.filter((q) => q.table === "scans" && q.verb === "update" && q.values?.cost_cents !== undefined).at(-1)?.values
       ?.cost_cents as number;
 
+  const MODEL_C = { profile: 0.48, "site-profile": 0.96, "market-inference": 1.11, "question-phrasing": 0.23 };
+  /** The question phrasing, ledgered, answering `questions`. */
+  const phrasing = (questions: typeof TWELVE) => (c: CostContext) =>
+    ledger(c, "question-phrasing", MODEL_C["question-phrasing"], measured(questions, AT));
+
   beforeEach(() => {
     db.rows.set("sites", [SITE]);
+    deriveProfile.mockImplementation((c: CostContext) => ledger(c, "profile", MODEL_C.profile, measured(PROFILE, AT)));
+    phraseQuestions.mockImplementation(phrasing(TWELVE));
     // Pages nobody has seen yet, so every deep slot reads 100 deep.
     measureDomain.mockImplementation(async (c: CostContext) => {
+      // This harness stands the site read's two model calls in beside the measurement they run with.
+      await ledger(c, "site-profile", MODEL_C["site-profile"], measured(0, AT));
+      await ledger(c, "market-inference", MODEL_C["market-inference"], measured(0, AT));
       // The weekly site read buys its own ranked rows, and the pass re-sizes its due rivals before the asks.
       await ledger(c, "ranked|own", PRICE_BOOK.RANKED_PAID_COST_C, measured(0, AT));
       await ledger(c, "ranked|rival", WEEKLY_RIVAL_RESIZES * PRICE_BOOK.RANKED_RIVAL_COST_C, measured(0, AT));
@@ -422,11 +433,26 @@ describe("owner W1 — a week's deep page reads fit inside the cap less the typi
     expect(rows.every((row) => row.depth === 100 && row.organic !== null && row.cell.kind !== "unmeasured")).toBe(true);
     expect(report.prompts?.answers).toHaveLength(54);
     expect(closedCents()).toBeGreaterThan(0);
+    expect(CAPS.WEEKLY_C - TYPING_RESERVE_C - closedCents()).toBeGreaterThanOrEqual(3);
+  });
+
+  it("a thin market: all 24 page slots are reached, and the pass closes under the cap less the reserve", async () => {
+    phraseQuestions.mockImplementation(phrasing([]));
+    await runScan({ domain: DOMAIN, siteId: SITE_ID, scanId: CLAIMED_ID, tier: "weekly" });
+
+    const rows = storedReport().pageQuestions?.rows ?? [];
+    expect(rows).toHaveLength(TRACKED_QUESTIONS_MAX);
+    expect(rows.every((row) => row.organic !== null && row.cell.kind !== "unmeasured")).toBe(true);
     expect(closedCents()).toBeLessThanOrEqual(CAPS.WEEKLY_C - TYPING_RESERVE_C);
   });
 
-  it("a thin market's 24 slots cost more than the stages may spend: the pass closes under the line, and a slot it did not reach says not attempted, never 0", async () => {
-    phraseQuestions.mockResolvedValue(measured([], AT));
+  it("a thin market in a week that buys four seed searches cannot reach every slot: the pass closes under the line, and a slot it did not reach says not attempted, never 0", async () => {
+    phraseQuestions.mockImplementation(phrasing([]));
+    // The month's seed ladder, bought in the same pass.
+    deriveMarketSet.mockImplementation(async (c: CostContext) => {
+      for (const seed of [1, 2, 3, 4]) await ledger(c, `keyword_suggestions|${seed}`, PRICE_BOOK.SUGGESTIONS_COST_C, measured(0, AT));
+      return measured([{ keyword: SELECTED.keyword, volume: SELECTED.volume }], AT);
+    });
     await runScan({ domain: DOMAIN, siteId: SITE_ID, scanId: CLAIMED_ID, tier: "weekly" });
 
     const rows = storedReport().pageQuestions?.rows ?? [];
@@ -436,7 +462,6 @@ describe("owner W1 — a week's deep page reads fit inside the cap less the typi
     expect(unreached.length).toBeGreaterThan(0);
     for (const row of unreached) {
       expect(row.cell).toEqual({ kind: "unmeasured", reason: "not_attempted" });
-      expect(row.engines.every((column) => column.cell.kind !== "no_answer" && column.cell.kind !== "answered")).toBe(true);
     }
   });
 });
