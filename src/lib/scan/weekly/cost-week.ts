@@ -14,12 +14,18 @@
 //   * `fetches` — the ledger's own total for the week, product-wide, and
 //     (owner D63, issue 1298) the week's Google SERP reads: how many there
 //     were, how many met our own request bound, and what those cost. The
-//     vendor bills a read we stopped waiting for.
+//     vendor bills a read we stopped waiting for. And each source's rows the
+//     vendor priced, billed beside estimated, so a price book that drifts
+//     from the bill reaches the owner unasked.
 //
 // No cost figure is ever rendered to a customer (`docs/RUNBOOK.md` §8): this
 // is read for the owner's mail and for nothing else.
 import { dbAdmin } from "@/lib/db";
 import { FAILURE_KIND, SERP_SOURCES } from "../health-record";
+
+/** Owner ruling W1, 2026-10-20: a source billed more than this many times
+ *  its estimate is named in the digest. The caps still decide on estimates. */
+export const BILLED_DRIFT = 1.1;
 
 export interface CostLine {
   count: number;
@@ -47,6 +53,22 @@ export interface CostWeek {
   /** `null` where the week made no SERP read or they could not be counted,
    *  which leaves the lines out. */
   serp: SerpWeek | null;
+  /** The sources billed over `over` times their estimate; `null` where none
+   *  was, or the ledger could not be read, which leaves the section out. */
+  drift: { over: number; sources: readonly DriftLine[] } | null;
+}
+
+/** One source's week, over only the rows the vendor priced. */
+export interface DriftLine {
+  source: string;
+  billedCents: number;
+  estimatedCents: number;
+}
+
+export interface CostFetchRow {
+  source: string;
+  cost_cents: number | string | null;
+  billed_cents: number | string | null;
 }
 
 export interface CostScanRow {
@@ -72,6 +94,32 @@ function add(line: CostLine, cents: number): CostLine {
 
 const NONE: CostLine = Object.freeze({ count: 0, cents: 0 });
 
+/** The ledger's `numeric(12,4)` in whole ten-thousandths, so a week's sum is exact. */
+const UNIT = 10_000;
+
+function unitsOf(value: number | string | null): number | null {
+  if (value === null) return null;
+  const n = Number(value);
+  return Number.isFinite(n) ? Math.round(n * UNIT) : null;
+}
+
+/** Sources whose billed total is over `BILLED_DRIFT` times the estimate of
+ *  the same rows. A row the vendor did not price is not read, so a source it
+ *  never prices is never named. Largest overspend first. */
+function driftOf(rows: readonly CostFetchRow[]): DriftLine[] {
+  const sums = new Map<string, { billed: number; estimated: number }>();
+  for (const row of rows) {
+    const billed = unitsOf(row.billed_cents);
+    if (billed === null) continue;
+    const sum = sums.get(row.source) ?? { billed: 0, estimated: 0 };
+    sums.set(row.source, { billed: sum.billed + billed, estimated: sum.estimated + (unitsOf(row.cost_cents) ?? 0) });
+  }
+  return [...sums]
+    .filter(([, sum]) => sum.billed > sum.estimated * BILLED_DRIFT)
+    .sort(([a, x], [b, y]) => y.billed - y.estimated - (x.billed - x.estimated) || a.localeCompare(b))
+    .map(([source, sum]) => ({ source, billedCents: sum.billed / UNIT, estimatedCents: sum.estimated / UNIT }));
+}
+
 /** The week's rows as the digest reports them, or `null` where the week
  *  holds no scan and no page. */
 export function costWeek(a: {
@@ -82,8 +130,11 @@ export function costWeek(a: {
   domains: ReadonlyMap<string, string>;
   totalCents: number | null;
   serp?: SerpWeek | null;
+  /** The week's `fetches` rows the vendor priced; `null` where unread. */
+  billed?: readonly CostFetchRow[] | null;
 }): CostWeek | null {
   if (a.scans.length === 0 && a.drafts.length === 0) return null;
+  const drifting = a.billed === undefined || a.billed === null ? [] : driftOf(a.billed);
 
   const sites = new Map<string, { measurements: CostLine; pages: CostLine }>();
   const siteOf = (domain: string) => sites.get(domain) ?? { measurements: NONE, pages: NONE };
@@ -116,6 +167,7 @@ export function costWeek(a: {
     smokeTests,
     totalCents: a.totalCents,
     serp: a.serp === undefined || a.serp === null || a.serp.reads === 0 ? null : a.serp,
+    drift: drifting.length === 0 ? null : { over: BILLED_DRIFT, sources: drifting },
   };
 }
 
@@ -134,6 +186,9 @@ interface MinimalQueryBuilder<T> extends PromiseLike<QueryResult<T>> {
   gte(column: string, value: string): MinimalQueryBuilder<T>;
   lte(column: string, value: string): MinimalQueryBuilder<T>;
   lt(column: string, value: string): MinimalQueryBuilder<T>;
+  not(column: string, operator: string, value: null): MinimalQueryBuilder<T>;
+  order(column: string, options: { ascending: boolean }): MinimalQueryBuilder<T>;
+  range(from: number, to: number): MinimalQueryBuilder<T>;
 }
 
 interface MinimalClient {
@@ -187,6 +242,32 @@ async function serpWeek(start: string, end: string): Promise<SerpWeek | null> {
   }
 }
 
+/** PostgREST's row cap: a week's priced rows are read a page at a time. */
+const PAGE = 1000;
+
+/** The rows of `[start, end)` the vendor priced, or `null` where they could
+ *  not all be read. Never throws: the drift lines are then left out. */
+async function billedRows(start: string, end: string): Promise<CostFetchRow[] | null> {
+  try {
+    const rows: CostFetchRow[] = [];
+    for (let from = 0; ; from += PAGE) {
+      const { data, error } = await untyped()
+        .from<CostFetchRow>("fetches")
+        .select("source, cost_cents, billed_cents")
+        .not("billed_cents", "is", null)
+        .gte("created_at", start)
+        .lt("created_at", end)
+        .order("id", { ascending: true })
+        .range(from, from + PAGE - 1);
+      if (error || data === null) return null;
+      rows.push(...data);
+      if (data.length < PAGE) return rows;
+    }
+  } catch {
+    return null;
+  }
+}
+
 /** The seven dates from `from` (`YYYY-MM-DD`), read. Throws where a store
  *  could not be read; the digest leaves the section out and goes on. */
 export async function readCostWeek(from: string): Promise<CostWeek | null> {
@@ -194,12 +275,13 @@ export async function readCostWeek(from: string): Promise<CostWeek | null> {
   const end = new Date(Date.parse(start) + 7 * DAY_MS).toISOString();
   const lastDate = new Date(Date.parse(start) + 6 * DAY_MS).toISOString().slice(0, 10);
 
-  const [scans, drafts, sinceStart, sinceEnd, serp] = await Promise.all([
+  const [scans, drafts, sinceStart, sinceEnd, serp, billed] = await Promise.all([
     untyped().from<CostScanRow>("scans").select("domain, tier, smoke, cost_cents").gte("created_at", start).lt("created_at", end),
     untyped().from<CostDraftRow>("drafts").select("site_id, cost_cents").gte("scheduled_for", from).lte("scheduled_for", lastDate),
     spentSince(start),
     spentSince(end),
     serpWeek(start, end),
+    billedRows(start, end),
   ]);
   const draftRows = rowsOf(drafts, "the week's pages");
   const siteIds = [...new Set(draftRows.map((draft) => draft.site_id))];
@@ -212,5 +294,6 @@ export async function readCostWeek(from: string): Promise<CostWeek | null> {
     domains: new Map(sites.map((site) => [site.id, site.domain])),
     totalCents: sinceStart === null || sinceEnd === null ? null : Math.max(0, sinceStart - sinceEnd),
     serp,
+    billed,
   });
 }
