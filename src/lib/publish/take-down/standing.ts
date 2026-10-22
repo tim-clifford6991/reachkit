@@ -52,12 +52,16 @@ export function canPutBack(transitions: unknown, now: Date): boolean {
 /** The outcomes after which the same page can stand at the same address
  *  again: the hosted row. A WordPress post returned to draft is not among
  *  them — publishing it again is a call ADR-084 Decision 1 keeps out of
- *  that client, pending the owner (issue 1532). */
+ *  that client. */
 export const RESTORABLE: readonly UnpublishOutcome[] = Object.freeze(["removed"] as const);
 
-/** What the page's own screen offers: *Take down* on a live page, *Put back*
- *  inside the window, nothing otherwise. */
-export type TakeDownStanding = { kind: "take_down" } | { kind: "put_back"; until: Date } | null;
+/** What the page's own screen draws: a live page with *Stop this page*, or
+ *  one its customer stopped, with *Put it back* while the window is open on
+ *  a hosted page; `null` for any other page. */
+export type TakeDownStanding =
+  | { kind: "live" }
+  | { kind: "stopped"; wordpress: boolean; putBackUntil: Date | null }
+  | null;
 
 export function takeDownStanding(a: {
   state: State;
@@ -67,10 +71,12 @@ export function takeDownStanding(a: {
   unpublishOutcome: UnpublishOutcome | null;
   now: Date;
 }): TakeDownStanding {
-  if (a.state === "published") return a.live ? { kind: "take_down" } : null;
-  if (a.state !== "unpublished" || a.unpublishOutcome === null || !RESTORABLE.includes(a.unpublishOutcome)) return null;
+  if (a.state === "published") return a.live ? { kind: "live" } : null;
+  const records = asRecords(a.transitions);
+  if (a.state !== "unpublished" || !isTakeDown(records[records.length - 1])) return null;
   const until = putBackUntil(a.transitions);
-  return until !== null && a.now.getTime() < until.getTime() ? { kind: "put_back", until } : null;
+  const open = a.unpublishOutcome !== null && RESTORABLE.includes(a.unpublishOutcome) && until !== null && a.now.getTime() < until.getTime();
+  return { kind: "stopped", wordpress: a.unpublishOutcome === "returned_to_draft", putBackUntil: open ? until : null };
 }
 
 /** Issue 1549: the topics of pages the system withdrew rest for
