@@ -144,7 +144,8 @@ export type Shortfall =
  *  result has held it and D13's check finds it close to a page written for
  *  another site (`unseen`, issue 1538), its own address ranks 4–20 for its
  *  search (`close`), or a comparison's rival prices are older than D59's
- *  30 days (`stale_prices`). */
+ *  30 days (`stale_prices`), or its customer saved changed words for it
+ *  (`edited`). */
 export type RefreshCause =
   | "aged"
   | "lost_position"
@@ -155,7 +156,8 @@ export type RefreshCause =
   | "structure"
   | "unseen"
   | "close"
-  | "stale_prices";
+  | "stale_prices"
+  | "edited";
 
 /** §7's Fix trigger — "any access gate fails" — as the closed set of gates
  *  the measurement engine can actually report. A sixth barrier is a change
