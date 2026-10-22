@@ -68,7 +68,7 @@ A check may report *skipped* by path (owner C1 and C3, 2026-10-19, #1585): on a 
 
 Before pushing, an engineer runs `npm run typecheck`, `npm run lint`, and only the test files that cover the files it changed, with `bash /root/ops/reachkit/bin/heavy.sh npm run test:unit -- <paths>`. Release QA runs unit tests the same way. `npm run test:unit` is the command CI's unit step runs, with the same projects, workers and 20 s timeout, so a red or green means the same everywhere (#1784). Each heavy command goes through `bash /root/ops/reachkit/bin/heavy.sh`. CI runs the unit tests the change reaches, and the nightly run all of them. An engineer does not run the whole `vitest run --project node --project ui` locally. A red full suite is read from the CI log (owner, 2026-10-08).
 
-Where the jobs run is `docs/RUNBOOK.md` §1. There is no fifth merge gate.
+Where the jobs run is `docs/RUNBOOK.md` §1: GitHub-hosted, no self-hosted runner while the repo is public. There is no fifth merge gate.
 
 ### Coherence
 
@@ -155,9 +155,9 @@ Dated rulings. They explain Current. They are not instructions to carry out.
 
 2026-09-21  **The browser checks that used to run only after a merge were folded into that gate** (owner, #976, #988). Folded in: the five-check route sweep, the eyebrow rung, the heading scale, the live and week-0 accounts, Settings with a field open, the current Settings tab on screen, the security headers, the theme slots and the values, and the landing's script budget. The gate takes no screenshot and keeps no baseline. The owner looks at the live site. It is the only browser job.
 
-2026-09-22  **CI runs on the box** (owner, #1013). Superseded in part on 2026-09-25: light jobs are hosted, and the browser job stays on the box.
+2026-09-22  **CI runs on the box** (owner, #1013). Superseded in part on 2026-09-25: light jobs are hosted, and the browser job stays on the box. Superseded 2026-10-22 (#1815): CI runs only on GitHub-hosted runners.
 
-2026-09-23  **One runner on this box for the browser job** (owner, #1035). The machine has four cores and 7.6 GB. On 2026-09-23 `reachkit-box` peaked at 4.5 GB while the load was already above the core count. A second browser sweep on this box was refused. With that measurement the owner accepted the queue.
+2026-09-23  **One runner on this box for the browser job** (owner, #1035). The machine has four cores and 7.6 GB. On 2026-09-23 `reachkit-box` peaked at 4.5 GB while the load was already above the core count. A second browser sweep on this box was refused. With that measurement the owner accepted the queue. Superseded 2026-10-22 (#1815): CI runs only on GitHub-hosted runners.
 
 2026-09-23  **The nightly full matrix is retired** (#1029). It walked six widths, three bands and both themes every night, after the merge, and its runs concluded failure. A job that runs after the merge reports too late to act on. Its last run failed 91 cases. 84 were the gate's own screens measured against an older allow-list: the off-canvas drawer, and text the 2026-09-20 ruling clamps on purpose. Five were real defects at widths the gate cannot reach, filed as #1040 and #1041. Two were the landing's script budget, folded into the gate by #988. The command in Current is what remains.
 
@@ -167,9 +167,9 @@ Dated rulings. They explain Current. They are not instructions to carry out.
 
 2026-09-24  **A documentation-only pull request runs `audit` alone** (owner, #1053). Stated in Current.
 
-2026-09-25  **Light jobs hosted, the browser job on the box** (owner, #1113; partly reverses #1013). `what changed`, `typecheck · lint · unit`, `schema · RLS` and `audit` run on GitHub-hosted runners, in parallel. `no overflow · axe` stays on `reachkit-box`. The light jobs take `runs-on` from `CI_LIGHT_RUNNER`. When the hosted minutes run out, those jobs fail with a billing error, and the fix is `gh variable set CI_LIGHT_RUNNER --body '["self-hosted","reachkit-light"]'`. `gh variable delete CI_LIGHT_RUNNER` sends them back to hosted. The minutes switch and the second runner are `docs/RUNBOOK.md` §1.
+2026-09-25  **Light jobs hosted, the browser job on the box** (owner, #1113; partly reverses #1013). `what changed`, `typecheck · lint · unit`, `schema · RLS` and `audit` run on GitHub-hosted runners, in parallel. `no overflow · axe` stays on `reachkit-box`. The light jobs take `runs-on` from `CI_LIGHT_RUNNER`. When the hosted minutes run out, those jobs fail with a billing error, and the fix is `gh variable set CI_LIGHT_RUNNER --body '["self-hosted","reachkit-light"]'`. `gh variable delete CI_LIGHT_RUNNER` sends them back to hosted. The minutes switch and the second runner are `docs/RUNBOOK.md` §1. Superseded 2026-10-22 (#1815): CI runs only on GitHub-hosted runners.
 
-2026-09-25  **A second runner on the box, for light jobs only** (owner, #1113; revises #1035). `reachkit-light` carries only the `reachkit-light` label and takes the light jobs when `CI_LIGHT_RUNNER` sends them to the box. It is capped at 1.5 GB (`MemoryMax`) at the lowest CPU priority, so it cannot starve the browser job or the implementation agents. The browser job stays on the single `reachkit` runner, so two browser sweeps never run at once.
+2026-09-25  **A second runner on the box, for light jobs only** (owner, #1113; revises #1035). `reachkit-light` carries only the `reachkit-light` label and takes the light jobs when `CI_LIGHT_RUNNER` sends them to the box. It is capped at 1.5 GB (`MemoryMax`) at the lowest CPU priority, so it cannot starve the browser job or the implementation agents. The browser job stays on the single `reachkit` runner, so two browser sweeps never run at once. Superseded 2026-10-22 (#1815): CI runs only on GitHub-hosted runners.
 
 2026-10-03  **The smallest test that gives the same result** (owner, D34, #1210). The seven rules in Current.
 
@@ -177,7 +177,7 @@ Dated rulings. They explain Current. They are not instructions to carry out.
 
 2026-10-07  **The customer panel is the acceptance test for market understanding** (owner, #1304). Stated in Current. The product is validated for the variety of customers who sign up, not tuned to make reachkit.app score well.
 
-2026-10-08  **Engineers run only the tests their change touches** (owner). CI runs the full `typecheck · lint · unit` suite on the box. An engineer does not run the whole `vitest run --project node --project ui` locally. Stated in Current. This frees the box's two heavy cores for the gates.
+2026-10-08  **Engineers run only the tests their change touches** (owner). CI runs the full `typecheck · lint · unit` suite on the box. An engineer does not run the whole `vitest run --project node --project ui` locally. Stated in Current. This frees the box's two heavy cores for the gates. Superseded 2026-10-22 (#1815): CI runs only on GitHub-hosted runners.
 
 2026-10-08  **The hygiene check keeps the documents and the box on Current** (owner). Stated in Current. It is part of `audit`, not a fifth gate. The timer is `docs/RUNBOOK.md`.
 
@@ -187,4 +187,5 @@ Dated rulings. They explain Current. They are not instructions to carry out.
 
 2026-10-18  **CI throughput: rulings in their own files, the sweep where a screen can change** (owner, #1525: "yes to all four"). Merges took one to two hours: each pull request held the one box runner for about 35 minutes (unit 14, layout 17, db 3.5), and `docs/SPEC.md` changed in 31 recent merges, so nearly every merge sent the next pull request back with a conflict and a second run. (1) A new dated SPEC ruling is its own file under `docs/spec/decisions/`; `audit` reads those files with SPEC.md. (2) `no overflow · axe` sweeps only where a screen can change and otherwise passes with a reason; this amends #910's "every job reports on every pull request", which now holds as success-with-reason. (3) `Layout nightly` sweeps `main` every night and files a `[layout]` issue when red. It is the gate's own project, not the full matrix #1029 retired, and unlike the post-merge run #1052 removed it runs once a night, not after every merge, and nothing waits on it. Four gates, no fifth. Stated in Current.
 
+2026-10-22  **CI runs only on GitHub-hosted runners** (owner action: the repository is public; #1815, PR #1813). No self-hosted runner is registered while the repository is public: a fork's pull request would run its own workflow on the box. This supersedes the runner parts of #1013, #1035 and #1113 and the "on the box" part of the 2026-10-08 line. `docs/RUNBOOK.md` §1.
 2026-10-22  **One unit command** (architect, #1784). The 5000 ms timeouts agents reported came from plain `npx vitest run`, which uses vitest's default timeout and worker count; CI had run `--maxWorkers=2 --testTimeout=20000` since #1569 with no timeout in 200 runs. `npm run test:unit` carries CI's flags, CI calls it, and engineers and release QA run it through `heavy.sh`. `vitest.config.*` keeps the defaults.

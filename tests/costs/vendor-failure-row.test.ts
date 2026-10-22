@@ -11,6 +11,7 @@
 // the envelope's header states — 0 cents where DataForSEO refused the call
 // (it does not bill a failed task), the reservation where the call may have
 // run. The live column constraint itself is `fetches-schema.test.ts`'s.
+import { readFileSync } from "node:fs";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { fakeDb } from "../scan/run/harness";
 import { envelope, setEnvFixture, stubVendorFetch, taskCreated, taskInQueue } from "../vendors/harness";
@@ -206,6 +207,51 @@ describe("issue #504 — a failed vendor call is a row, never a null payload", (
     expect(lines.filter((l) => l.event === "vendor_call")).toEqual([
       expect.objectContaining({ source: RANKED, outcome: "failed", failure: "http_503", billed: false, costCents: 0 }),
     ]);
+  });
+});
+
+// The vendor's documented envelope for a refusal for lack of credit
+// (https://docs.dataforseo.com/v3/appendix/errors/): on the task, and at
+// the top level with no task at all.
+const fundsFixture = (name: string): unknown =>
+  JSON.parse(readFileSync(new URL(`../vendors/fixtures/${name}.json`, import.meta.url), "utf8"));
+
+describe("a refusal for lack of credit is named and never billed", () => {
+  it.each([
+    ["HTTP 402", "http_402", () => ({ status: 402, statusText: "Payment Required" })],
+    ["a task-level 40210", "task_40210", () => fundsFixture("funds-refused-task")],
+    ["a top-level 40210 with no task", "task_40210", () => fundsFixture("funds-refused-top-level")],
+    ["a top-level 40200 with no task", "task_40200", () => ({ ...(fundsFixture("funds-refused-top-level") as object), status_code: 40200, status_message: "Payment Required." })],
+  ] as const)("%s is ledgered at 0¢ as `%s`", async (_name, kind, answer) => {
+    stubVendorFetch(answer as () => unknown);
+    const result = await inContext((c) => rankedKeywords(c, { locale: { country: "US", language: "en" }, domain: "example.com", rows: 50 }));
+
+    expect(result).toMatchObject({ kind: "unmeasured", reason: "undeterminable" });
+    const row = fetchInserts()[0]!;
+    expect(row.payload).toEqual({ vendorFailure: kind, endpoint: RANKED, billed: false, funds: true });
+    expect(Number(row.reserved_cents)).toBeGreaterThan(0);
+    expect(row.cost_cents).toBe(0);
+  });
+
+  it("a refused `task_post` is 0¢ too, and the run logs vendor_funds_refused once however many calls it refused", async () => {
+    const warned: string[] = [];
+    vi.spyOn(console, "warn").mockImplementation((line: unknown) => void warned.push(String(line)));
+    stubVendorFetch(() => fundsFixture("funds-refused-top-level"));
+    const serp = (query: string) => (c: Parameters<typeof serpOrganic>[0]) =>
+      serpOrganic(c, { locale: { country: "US", language: "en" }, query, mode: "std", loadAsyncAiOverview: false, scope: { site: "site-1" }, freshnessDays: 30 });
+    const results = await inContext(async (c) => [await serp("best crm")(c), await serp("crm pricing")(c), c.fundsRefused?.()]);
+
+    expect(results.slice(0, 2)).toEqual([expect.objectContaining({ kind: "unmeasured" }), expect.objectContaining({ kind: "unmeasured" })]);
+    expect(results[2]).toBe(true);
+    expect(fetchInserts().map((row) => row.cost_cents)).toEqual([0, 0]);
+    expect(warned.filter((line) => line.includes('"vendor_funds_refused"'))).toHaveLength(1);
+  });
+
+  it("a top-level 50001 is the vendor's own fault, not funds: it stays an ordinary unparseable answer", async () => {
+    stubVendorFetch(() => ({ ...(fundsFixture("funds-refused-top-level") as object), status_code: 50001, status_message: "Error while checking the balance." }));
+    await inContext((c) => rankedKeywords(c, { locale: { country: "US", language: "en" }, domain: "example.com", rows: 50 }));
+    const row = fetchInserts()[0]!;
+    expect(row.payload).toEqual({ vendorFailure: "unparseable", endpoint: RANKED, billed: true });
   });
 });
 
