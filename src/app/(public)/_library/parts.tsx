@@ -247,7 +247,7 @@ function LoopSample(p: { step: (typeof LOOP)[number] }): React.JSX.Element {
       <span className="rounded-box bg-base-200 flex min-w-0 flex-col gap-1 p-2 text-xs">
         <span className="flex min-w-0 flex-wrap items-center gap-1">
           <span className="num text-base-content/70 min-w-0 truncate">{e.blog}</span>
-          <span className="badge badge-success badge-xs">{copy("calendar.stage.live")}</span>
+          <span className="badge badge-success badge-sm">{copy("calendar.stage.live")}</span>
         </span>
         <span className="break-words">{e.page.title}</span>
       </span>
