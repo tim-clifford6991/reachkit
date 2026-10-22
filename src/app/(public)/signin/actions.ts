@@ -51,5 +51,5 @@ export async function sendLink(_previous: SignInState, form: FormData): Promise<
   }
 
   await requestMagicLink(value.trim());
-  return { answer: "requested", value };
+  return { answer: "requested", value, sentAt: Date.now() };
 }

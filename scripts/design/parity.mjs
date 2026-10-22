@@ -136,7 +136,8 @@ export function parseAllow(text) {
   return text
     .split("\n")
     .map((line, i) => ({ line, n: i + 1 }))
-    .filter(({ line }) => line.trim() !== "" && !line.startsWith("#"))
+    // A comment has no tab; a board string that starts with "#" (a Markdown heading) still has its reason.
+    .filter(({ line }) => line.trim() !== "" && !(line.startsWith("#") && !line.includes("\t")))
     .map(({ line, n }) => {
       const [string = "", reason = "", ...rest] = line.split("\t");
       return { n, string: string.trim(), reason: reason.trim(), extra: rest.length };

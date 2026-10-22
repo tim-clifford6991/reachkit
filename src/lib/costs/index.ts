@@ -142,10 +142,12 @@ export async function withCostContext<T>(
     /** The draft this context spends for, where it already has
      *  a row — an edit, or a rewrite of the date's row. */
     draftId?: string;
+    /** Cents of the cap this context may not spend, so a later context on the same row still has them. */
+    holdBackCents?: number;
   },
   body: (cost: CostContext) => Promise<T>
 ): Promise<T> {
-  const capValue = CAP_VALUES[ctx.cap];
+  const capValue = CAP_VALUES[ctx.cap] - (ctx.holdBackCents ?? 0);
   // The site is read off the row, never taken as an argument: a cap a caller could omit is one it could walk past.
   const row = await readScanRow(ctx.scanId);
   if (ctx.rollUp === "add" && row.costCents === null) {

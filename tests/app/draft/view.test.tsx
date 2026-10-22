@@ -72,6 +72,8 @@ const DO_NOT_CLAIM_ENTRY = (() => {
   return entry;
 })();
 const EDITED_VIEW = assembleDraft(factsFor(FIXTURE_EDITED_DRAFT_ID));
+/** The save line's word, before its time. */
+const SAVED = copy("draft.edit.saved", { at: "" }).trim();
 
 function markup(view = VIEW): Element {
   const container = document.createElement("div");
@@ -97,6 +99,8 @@ function readableLines(md: string): string[] {
         .replace(/^[-*+]\s+/, "")
         .replace(/^>\s?/, "")
         .replace(/\*\*/g, "")
+        // A link reads as its words.
+        .replace(/\[([^\]]*)\]\([^)]*\)/g, "$1")
         .trim()
     )
     .filter((line) => line !== "" && line !== "---");
@@ -302,29 +306,33 @@ describe("REQ-045 c4 — told when the page goes live on its own, and able to ed
     expect(root.querySelectorAll('[data-testid="draft-actions"] button').length).toBe(2);
   });
 
-  it("Stop leads as a ghost in warning, and Edit is the quiet arm", () => {
+  it("Edit this page comes first and soft; Stop is a ghost in warning, described by what it does", () => {
     const root = markup();
     const button = (key: string): Element | null =>
       root.querySelector(`button[data-testid="draft-action-${key}"]`);
 
+    expect([...root.querySelectorAll('[data-testid="draft-actions"] button')].map((b) => b.textContent)).toEqual([
+      copy("draft.action.edit"),
+      copy("draft.action.veto"),
+    ]);
     const veto = button("draft.action.veto");
     expect(veto?.className).toContain("btn-ghost");
     expect(veto?.className).toContain("btn-warning");
-    expect(veto?.className).toContain("order-first");
+    const note = root.querySelector(`#${veto?.getAttribute("aria-describedby") ?? "none"}`);
+    expect(note?.textContent).toBe(copy("draft.decide.stop-note"));
 
     const edit = button("draft.action.edit");
     expect(edit?.className).toContain("btn-soft");
     expect(edit?.className).not.toContain("btn-primary");
   });
 
-  it("the panel states the time it goes live, in a neutral box, and says what doing nothing means", () => {
+  it("the panel states the time it goes live, in a neutral box", () => {
     const root = markup();
     const at = VIEW.doNothing.publishesAt;
     if (at === null) throw new Error("the fixture is on autopilot with a window");
     const box = root.querySelector('[data-testid="draft-goes-live"]');
     expect(box?.textContent).toBe(copy("draft.decide.goes-live", { at: formatDateTime(at, VIEW.timeZone) }));
     expect(box?.className).not.toMatch(/warning|error/);
-    expect(textOf(root, "draft-do-nothing")).toBe(copy("draft.do-nothing.schedule"));
     // The phone bar has no countdown, so its one line carries the time.
     expect(textOf(root, "draft-do-nothing-bar")).toContain("Sep 16, 2026");
   });
@@ -449,16 +457,10 @@ describe("the Decide bar — one DOM, pinned only below `md`", () => {
     expect(bar?.querySelector('[data-testid="draft-do-nothing"]')).toBeNull();
   });
 
-  it("the checks are not in the bar: they stay below the page", () => {
-    // The owner's words. A four-row list pinned over the page would cover
-    // the page it is about, and a reviewer reads the checks once, before
-    // deciding.
+  it("the checks are not in the bar: they are the first note under the page", () => {
     const root = markup();
-    const bar = root.querySelector('[data-testid="draft-decide-bar"]');
-    expect(bar?.querySelector('[data-testid="draft-checks"]')).toBeNull();
-    expect(
-      root.querySelector('[data-testid="draft-decide"] [data-testid="draft-checks"]')
-    ).not.toBeNull();
+    expect(root.querySelector('[data-testid="draft-decide"] [data-testid="draft-checks"]')).toBeNull();
+    expect(root.querySelector('[data-testid="draft-notes"] > [data-testid="draft-checks"]')).not.toBeNull();
   });
 
   it("nothing is pinned from `md` up, and the page reserves room where something is", () => {
@@ -495,16 +497,21 @@ describe("a published page on an autopilot site renders at all", () => {
 });
 
 describe("S16 — the Decide rail", () => {
-  it("it is the registered panel, labelled, with the two controls and the checks", () => {
+  it("it is the registered panel, labelled, with the two controls and the page's day", () => {
     const root = markup();
     const rail = root.querySelector('[data-testid="draft-decide"]');
     expect(rail).not.toBeNull();
     expect(rail?.textContent).toContain(copy("draft.decide.title"));
-    expect(rail?.textContent).toContain(copy("draft.checks.title"));
     expect(rail?.querySelectorAll('[data-testid^="draft-action-"]').length).toBe(2);
+    expect([...(rail?.querySelectorAll('[data-testid="draft-day"] > li') ?? [])].map((li) => li.querySelector("span")?.textContent)).toEqual([
+      copy("draft.day.written"),
+      copy("draft.day.emailed"),
+      copy("draft.day.live"),
+      copy("draft.day.reading"),
+    ]);
   });
 
-  it("the two controls share one row", () => {
+  it("neither control spans the other's column", () => {
     const root = markup();
     for (const key of ["draft.action.edit", "draft.action.veto"]) {
       expect(root.querySelector(`[data-testid="draft-action-${key}"]`)?.className).not.toContain(
@@ -524,7 +531,7 @@ describe("S16 — the Decide rail", () => {
   });
 
   it("every rule is a row in the one note, and the note is closed", () => {
-    const note = markup().querySelector('details[data-testid="draft-checks"]');
+    const note = markup().querySelector('[data-testid="draft-checks"] details');
     expect(note?.hasAttribute("open")).toBe(false);
     expect(note?.querySelectorAll('[data-testid^="draft-check-"]').length).toBe(HARD_RULES.length);
   });
@@ -785,9 +792,7 @@ describe("REQ-045 c5-c9 — the editor, its live preview, its autosave and its i
     // Nothing is outstanding: the line states when the store confirmed it,
     // and the read arm behind it carries no unsaved indicator.
     expect(container.querySelector('[data-testid="draft-edit-state-unsaved"]')).toBeNull();
-    expect(container.querySelector('[data-testid="draft-save-line"]')?.textContent).toContain(
-      "saved"
-    );
+    expect(container.querySelector('[data-testid="draft-save-line"]')?.textContent).toContain(SAVED);
     click("draft-edit-done");
     expect(container.querySelector('[data-testid="draft-unsaved"]')).toBeNull();
   });
@@ -810,7 +815,7 @@ describe("REQ-045 c5-c9 — the editor, its live preview, its autosave and its i
     await settle(AUTOSAVE_DEBOUNCE_MS);
     expect(say).toHaveBeenCalledTimes(1);
     expect(say.mock.calls[0]?.[1]).toBe("ok");
-    expect(String(say.mock.calls[0]?.[0])).toMatch(/^saved /);
+    expect(String(say.mock.calls[0]?.[0]).startsWith(`${SAVED} `)).toBe(true);
 
     save.mockResolvedValue({ ok: false });
     say.mockClear();
@@ -1085,7 +1090,7 @@ describe("REQ-045 c5-c9 — the editor, its live preview, its autosave and its i
     expect(container.querySelector('[data-testid="draft-edit-state-edited"]')).not.toBeNull();
     await settle(AUTOSAVE_DEBOUNCE_MS);
     const line = container.querySelector('[data-testid="draft-save-line"]')?.textContent ?? "";
-    expect(line).toContain("saved");
+    expect(line).toContain(SAVED);
     expect(line).not.toBe(copy("draft.edit.saving"));
   });
 

@@ -52,7 +52,10 @@ describe("a site with a committed week", () => {
 
   it("shows each row held back with its stored reason", () => {
     expect(saas.week.rejected.length).toBeGreaterThan(0);
-    expect(html).toContain(copy("review.rejected.title", { count: String(saas.week.rejected.length) }));
+    const title = copy("review.rejected.title", { count: String(saas.week.rejected.length) });
+    const summary = html.match(/<summary[^>]*>([\s\S]*?)<\/summary>/)?.[1] ?? "";
+    expect(summary).not.toMatch(/<(p|div)[\s>]/);
+    expect(text(summary).trim()).toBe(`${title} ${copy("review.rejected.lead")}`);
     for (const row of saas.week.rejected) expect(text(html)).toContain(`${row.search!} : ${row.reason}`);
   });
 });

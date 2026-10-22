@@ -31,6 +31,10 @@ describe("docs/design/parity/*.allow", () => {
     expect(problems("Board", "Austin Plumbing\tsample data\n", strings).join()).toContain("no string on the board");
   });
 
+  it("reads a board string that starts with # as a line, and a # line with no tab as a comment", () => {
+    expect(parseAllow("# a note\n## Stop the water\tsample data\n").map((line: { string: string }) => line.string)).toEqual(["## Stop the water"]);
+  });
+
   it.each(files)("%s names a board and every line cites its reason", (file) => {
     const board = file.slice(0, -".allow".length);
     expect(boards, `${file} names no canvas board`).toContain(board);

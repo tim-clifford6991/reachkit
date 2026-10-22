@@ -51,6 +51,7 @@ import {
   WEEKLY_RIVAL_RESIZES,
   TIMING,
   TRACKED_PROMPTS,
+  TYPING_RESERVE_C,
   VENDOR,
 } from "@/lib/config/constants";
 import { captureInBackground } from "@/lib/analytics";
@@ -351,6 +352,8 @@ interface TierParameters {
    *  no stored place and no market call to settle one. A paid pass measures
    *  the place its market conclusion settled. */
   measuresStatedPlace: boolean;
+  /** Owner W1 (2026-10-20): the cents of the cap the stages leave for the typing after the stored report. */
+  typingReserveC: number;
 }
 
 export const TIER_PARAMETERS: Readonly<Record<Tier, TierParameters>> = Object.freeze({
@@ -382,6 +385,7 @@ export const TIER_PARAMETERS: Readonly<Record<Tier, TierParameters>> = Object.fr
     trackedPrompts: false,
     finishesReads: true,
     measuresStatedPlace: true,
+    typingReserveC: 0,
   }),
   deep: Object.freeze({
     cap: "DEEP",
@@ -411,6 +415,7 @@ export const TIER_PARAMETERS: Readonly<Record<Tier, TierParameters>> = Object.fr
     trackedPrompts: false,
     finishesReads: false,
     measuresStatedPlace: false,
+    typingReserveC: TYPING_RESERVE_C,
   }),
   weekly: Object.freeze({
     cap: "WEEKLY",
@@ -440,6 +445,7 @@ export const TIER_PARAMETERS: Readonly<Record<Tier, TierParameters>> = Object.fr
     trackedPrompts: true,
     finishesReads: false,
     measuresStatedPlace: false,
+    typingReserveC: TYPING_RESERVE_C,
   }),
 } as const);
 
@@ -1062,6 +1068,7 @@ export async function runScan(a: RunScanArgs): Promise<{ scanId: string; status:
       ceilingS: parameters.ceilingS,
       deadlineApplies: parameters.deadlineApplies,
       priorCents,
+      holdBackCents: parameters.typingReserveC,
     },
     async (bounds, cost) => {
       try {
@@ -1886,8 +1893,8 @@ async function sizeTrackedRivals(a: StageArgs): Promise<void> {
  * **Inside the existing budgets, and it says when it ran out.** The pass's
  * own cap and ceilings are unchanged and no cap is raised: the sizing
  * spends from a purse of its own (`withPurse`), bounded by
- * `SERP_RIVAL_SIZING` and by what the pass has left after the reserve the
- * opportunity typing still needs. A candidate the purse could not reach is
+ * `SERP_RIVAL_SIZING` and by what the pass has left, which is already net
+ * of the reserve the opportunity typing still needs. A candidate the purse could not reach is
  * stored `unsized` with `budget_reached` — said in the report, never
  * silently replaced by an unrelated set.
  *
@@ -1941,7 +1948,7 @@ async function sizeSerpRivals(a: StageArgs): Promise<void> {
   const ownRanked = measurement === null ? 0 : ownRankedValue(measurement.ownRanked);
   const purse = Math.min(
     SERP_RIVAL_SIZING.candidatesMax * PRICE_BOOK.RANKED_RIVAL_COST_C,
-    Math.max(0, bounds.remainingCents() - SERP_RIVAL_SIZING.reserveCents)
+    bounds.remainingCents()
   );
 
   const sized = await attempt("scoring", () =>
