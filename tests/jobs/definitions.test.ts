@@ -196,7 +196,7 @@ describe("scan/run — the one pipeline, tier a parameter", () => {
 describe("weekly/refresh — an hourly tick, due per site-local Monday (ADR-060)", () => {
   it("is scheduled hourly, on no UTC hour of its own", async () => {
     const job = await definition("weekly/refresh");
-    expect(job.trigger).toEqual({ kind: "cron", cron: "0 * * * *" });
+    expect(job.trigger).toEqual({ kind: "cron", cron: "41 * * * *" });
   });
 
   it("starts one weekly scan per due site, keyed (site_id, week_start)", async () => {
@@ -250,7 +250,7 @@ describe("weekly/refresh — an hourly tick, due per site-local Monday (ADR-060)
 describe("draft/generate — the site's own due hour, the date its window ends on", () => {
   it("is an hourly tick and generates for the date whose publish time ends the window", async () => {
     const job = await definition("draft/generate");
-    expect(job.trigger).toEqual({ kind: "cron", cron: "0 * * * *" });
+    expect(job.trigger).toEqual({ kind: "cron", cron: "3 * * * *" });
     const outcome = await job.run({ data: {}, now: EVENING_UTC });
     expect(calls.filter((c) => c.fn === "generateDraft")).toEqual([
       { fn: "generateDraft", arg: { siteId: "site-1", publishDate: "2026-09-08", now: EVENING_UTC } },
@@ -387,11 +387,11 @@ describe("publish/execute and publish/verify", () => {
 });
 
 describe("lead/nurture — an hourly tick over due work (#182)", () => {
-  it("is a clock job on the hour, and carries no idempotency key", async () => {
+  it("is an hourly clock job, and carries no idempotency key", async () => {
     const job = await definition("lead/nurture");
     const { NURTURE_TICK_CRON } = await import("@/jobs/lead-nurture");
     expect(job.trigger).toEqual({ kind: "cron", cron: NURTURE_TICK_CRON });
-    expect(NURTURE_TICK_CRON).toBe("0 * * * *");
+    expect(NURTURE_TICK_CRON).toBe("26 * * * *");
     // A tick carries no payload, so there is no natural key to dedupe on:
     // what stops a double send is the row's own position check.
     expect(job.idempotencyKey).toEqual([]);

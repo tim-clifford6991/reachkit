@@ -7,12 +7,12 @@ Every background process is one of these jobs. A clock tick that finds nothing d
 | Job | Starts on | Runs | Deduplicated by | What it does | Defined in |
 |---|---|---|---|---|---|
 | `scan/run` | event `scan/run` | one run | `scanId` | on demand; tier is a parameter (free \| deep \| weekly) | `src/jobs/scan-run.ts` |
-| `draft/generate` | cron `0 * * * *` | one run per subject | the engine's own database constraint | hourly tick, due a veto window before the site's own publish time | `src/jobs/draft-generate.ts` |
+| `draft/generate` | cron `3 * * * *` | one run per subject | the engine's own database constraint | hourly tick, due a veto window before the site's own publish time | `src/jobs/draft-generate.ts` |
 | `publish/execute` | event `publish/execute` | one run | `draftId`, `destinationId`, `dueAt` | sent on approval and on window open, delivered at the page's due moment | `src/jobs/publish-execute.ts` |
 | `publish/verify` | event `publish/verify`, 24 h later | one run | `publicationId` | +24h after a publish | `src/jobs/publish-verify.ts` |
 | `publish/retry` | cron `0 * * * *` | one run | the engine's own database constraint | hourly tick; the retries and the veto windows whose moment has come round | `src/jobs/publish-retry.ts` |
-| `weekly/refresh` | cron `0 * * * *` | one run per subject | the engine's own database constraint | hourly tick, due per site-local Monday (ADR-060) | `src/jobs/weekly-refresh.ts` |
-| `lead/nurture` | cron `0 * * * *` | one run | the engine's own database constraint | hourly tick; the free first page, then each nurture mail when it is due | `src/jobs/lead-nurture.ts` |
+| `weekly/refresh` | cron `41 * * * *` | one run per subject | the engine's own database constraint | hourly tick, due per site-local Monday (ADR-060) | `src/jobs/weekly-refresh.ts` |
+| `lead/nurture` | cron `26 * * * *` | one run | the engine's own database constraint | hourly tick; the free first page, then each nurture mail when it is due | `src/jobs/lead-nurture.ts` |
 | `account/maintenance` | cron `*/15 * * * *` | one run | the engine's own database constraint | every MAINTENANCE_TICK_MINUTES; five due-work queries | `src/jobs/account-maintenance.ts` |
 | `scan/rescore` | cron `7,22,37,52 * * * *` | one run | the engine's own database constraint | every 15 minutes; answers a re-score the master session asked for (issue 1433) | `src/jobs/scan-rescore.ts` |
 | `scan/finish-reads` | event `scan/finish-reads` | one run | `scanId` | sent by a free pass that left searches unread (issue 1440) | `src/jobs/scan-finish-reads.ts` |

@@ -40,12 +40,12 @@
 import { advanceDueSequences, deliverDueFirstPages } from "@/jobs/engine";
 import type { JobDefinition, Outcome } from "./types";
 
-/** Hourly, on the hour — the same tick `weekly/refresh` and `draft/generate`
- *  run on, and for the same reason: due-ness is decided per row inside the
+/** Hourly at :26, a minute no other job uses — hourly like `weekly/refresh`
+ *  and `draft/generate`, and for the same reason: due-ness is decided per row inside the
  *  run, against `next_touch_at`, rather than by the schedule. An hour is
  *  finer than the smallest offset `NURTURE_H` names (24h), so no touch can
  *  be late by more than one tick. */
-export const NURTURE_TICK_CRON = "0 * * * *";
+export const NURTURE_TICK_CRON = "26 * * * *";
 
 export const leadNurture: JobDefinition = {
   id: "lead/nurture",
