@@ -1043,19 +1043,65 @@ export const OVERVIEW_COPY = Object.freeze({
     { slots: { total: "text" }, fixedBy: "SPEC §4 2026-09-20" },
   ],
   // SPEC §5 (2026-09-20): Overview while the address waits for its DNS
-  // record. No line names a go-live time: none is true until it is live.
-  // Drafted (#759); the PR names each.
+  // record, as board OverviewDNS draws it. No line names a go-live time:
+  // none is true until it is live (Q11). Drafted (#759); the PR names each.
+  "overview.connect.day": ["Overview · day {n}", { slots: { n: "text" }, fixedBy: "board OverviewDNS · issue 1811 (drafted)" }],
   "overview.connect.head": ["Your pages wait for your website", { slots: {}, fixedBy: "SPEC §5 2026-09-20 (drafted)" }],
+  "overview.connect.head.ready": ["Your first page is ready", { slots: {}, fixedBy: "board OverviewDNS · issue 1811 (drafted)" }],
   "overview.connect.lead": [
     "They go live once your website is connected. Everything else runs on its own.",
     { slots: {}, fixedBy: "SPEC §5 2026-09-20 (drafted)" },
   ],
-  "overview.connect.eyebrow": ["Needs you · about 10 minutes, once", { slots: {}, fixedBy: "SPEC §5 2026-09-20 (drafted)" }],
-  "overview.connect.title": ["Connect your website", { slots: {}, fixedBy: "owner E11 · issue 1601" }],
-  "overview.connect.line": [
-    "Add this one setting where your web address is managed, such as the company you bought it from. We check every hour on our own, and your pages go live at {host} once it works.",
-    { slots: { host: "text" }, fixedBy: "SPEC §5 2026-09-20 (drafted)" },
+  "overview.connect.lead.ready": [
+    "It goes live once your domain is connected. Everything else is done.",
+    { slots: {}, fixedBy: "board OverviewDNS · issue 1811 (drafted)" },
   ],
+  "overview.connect.eyebrow": ["Needs you · about 10 minutes, once", { slots: {}, fixedBy: "SPEC §5 2026-09-20 (drafted)" }],
+  "overview.connect.title": ["Add one setting to your domain", { slots: {}, fixedBy: "board OverviewDNS · owner 2026-10-15 six words · issue 1811 (drafted)" }],
+  "overview.connect.step.open": ["Open your domain settings", { slots: {}, fixedBy: "board OverviewDNS · issue 1811 (drafted)" }],
+  "overview.connect.step.open.line": [
+    "Where you bought {domain}, such as GoDaddy or Namecheap.",
+    { slots: { domain: "text" }, fixedBy: "board OverviewDNS · issue 1811 (drafted)" },
+  ],
+  "overview.connect.step.paste": ["Paste the three values", { slots: {}, fixedBy: "board OverviewDNS · issue 1811 (drafted)" }],
+  "overview.connect.step.paste.line": ["Copy each one from the box below.", { slots: {}, fixedBy: "board OverviewDNS · issue 1811 (drafted)" }],
+  "overview.connect.step.rest": ["We do the rest", { slots: {}, fixedBy: "board OverviewDNS · issue 1811 (drafted)" }],
+  "overview.connect.step.rest.line": [
+    "Your pages appear on your own web address, under {label}.",
+    { slots: { label: "text" }, fixedBy: "board OverviewDNS · issue 1811 (drafted)" },
+  ],
+  "overview.connect.copy.type": ["Copy the type", { slots: {}, fixedBy: "board OverviewDNS · issue 1811 (drafted)" }],
+  "overview.connect.copy.name": ["Copy the name", { slots: {}, fixedBy: "board OverviewDNS · issue 1811 (drafted)" }],
+  "overview.connect.copy.value": ["Copy the value", { slots: {}, fixedBy: "board OverviewDNS · issue 1811 (drafted)" }],
+  "overview.connect.check": ["I’ve added it, check now", { slots: {}, fixedBy: "board OverviewDNS · issue 1811 (drafted)" }],
+  "overview.connect.guide": [
+    "Step-by-step for GoDaddy, Namecheap, Cloudflare →",
+    { slots: {}, fixedBy: "board OverviewDNS · issue 1811 (drafted)" },
+  ],
+  "overview.connect.checked": ["Checked {time}: not found yet.", { slots: { time: "text" }, fixedBy: "board OverviewDNS · issue 1811 (drafted)" }],
+  "overview.connect.unchecked": ["Not found yet.", { slots: {}, fixedBy: "board OverviewDNS · issue 1811 (drafted)" }],
+  "overview.connect.hourly": [
+    "We check every hour; this page updates when it works. A new setting can take up to a few hours to show.",
+    { slots: {}, fixedBy: "board OverviewDNS · issue 1811 (drafted)" },
+  ],
+  "overview.connect.other": ["Other ways to connect", { slots: {}, fixedBy: "board OverviewDNS · issue 1811 (drafted)" }],
+  "overview.connect.wordpress": [
+    "On WordPress? Connect it with a username and an app password instead, and skip this setting.",
+    { slots: {}, fixedBy: "board OverviewDNS · issue 1811 (drafted)" },
+  ],
+  "overview.connect.wordpress.link": ["Connect WordPress →", { slots: {}, fixedBy: "board OverviewDNS · issue 1811 (drafted)" }],
+  // The board says the mail carries the setting; it does not, so this says
+  // what the mail does (the owner decides on the issue).
+  "overview.connect.later": [
+    "Your first page’s mail says where to find it, so you can add it later from a desk.",
+    { slots: {}, fixedBy: "board OverviewDNS · issue 1811 (drafted)" },
+  ],
+  "overview.connect.page.eyebrow": ["Waiting to go live", { slots: {}, fixedBy: "board OverviewDNS · issue 1811 (drafted)" }],
+  "overview.connect.page.line": [
+    "It goes live once the setting works. Only this first page is written until then; the week’s other pages follow.",
+    { slots: {}, fixedBy: "Q11 · board OverviewDNS · issue 1811" },
+  ],
+  "overview.connect.page.read": ["Read or edit it →", { slots: {}, fixedBy: "board OverviewDNS · issue 1811 (drafted)" }],
   "overview.connect.progress": [
     "Your progress starts here once your first page is live.",
     { slots: {}, fixedBy: "SPEC §5 2026-09-20 (drafted)" },

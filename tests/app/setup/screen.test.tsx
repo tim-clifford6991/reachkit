@@ -92,12 +92,11 @@ describe("SPEC §5 (docs/spec/decisions/2026-10-22-1737.md) — three saved step
     expect(COPY["meta.app.setup.connect.title"]).toMatch(/^Connect\b/);
   });
 
-  it("the Connect step's panel and Overview's connect item call it the website, as the step's heading does", () => {
+  it("the Connect step's panel calls it the website, as the step's heading does", () => {
     const panelTitle =
       screenFor("publishing").querySelector('[data-testid="setup-panel-title"]')?.textContent ?? "";
     expect(panelTitle).toMatch(/\bwebsite\b/);
     expect(panelTitle).not.toMatch(/\bblog/i);
-    expect(COPY["overview.connect.title"]).toBe(COPY["setup.connect.title"]);
   });
 
   it("the Connect step says the first page waits for the connection, and names no hour a site may change", () => {

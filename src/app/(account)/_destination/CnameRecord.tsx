@@ -185,15 +185,17 @@ function WhereLine(p: { where: Where }): React.JSX.Element {
 
 /** One value's copy button: the lucide glyph turns to a tick once the
  *  clipboard has it. A browser that refuses the clipboard leaves the value
- *  on screen to select by hand. */
-function CopyValue(p: { text: string }): React.JSX.Element {
+ *  on screen to select by hand. With a `name` it shows its word beside the
+ *  glyph and says which value it copies. */
+export function CopyValue(p: { text: string; name?: string }): React.JSX.Element {
   const [copied, setCopied] = useState(false);
   const label = copy(copied ? "setup.destination.guide.copied" : "setup.destination.guide.copy");
+  const named = p.name !== undefined;
   return (
     <button
       type="button"
-      className="btn btn-ghost btn-xs btn-square"
-      aria-label={label}
+      className={named ? "btn btn-ghost btn-sm" : "btn btn-ghost btn-xs btn-square"}
+      aria-label={copied ? label : (p.name ?? label)}
       title={label}
       data-testid="dns-copy"
       onClick={() => {
@@ -204,6 +206,7 @@ function CopyValue(p: { text: string }): React.JSX.Element {
       }}
     >
       {copied ? <Check aria-hidden size={16} strokeWidth={1.75} /> : <Copy aria-hidden size={16} strokeWidth={1.75} />}
+      {named ? label : null}
     </button>
   );
 }
