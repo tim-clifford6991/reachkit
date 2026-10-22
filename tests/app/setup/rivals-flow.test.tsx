@@ -31,7 +31,7 @@ vi.mock("@/lib/scan/report", async (importOriginal) =>
   reportFactory(await importOriginal<Record<string, unknown>>())
 );
 vi.mock("@/lib/site-profile", () => ({ readSiteProfile: async () => null }));
-// #970: step two's lists are the confirmed business profile, whose three
+// #970: Check's business lists are the confirmed business profile, whose three
 // readings are one reader. All three reach Postgres and none is what this
 // file is about, so the seam the provider calls is doubled — the same
 // choice the profile read above makes.
@@ -196,7 +196,7 @@ beforeEach(() => {
 
 describe("free upgrade — the report's rivals are on the card when the screen opens", () => {
   it("offers them as chips once the route answers (nothing read of the site to conclude from), and one can be accepted", async () => {
-    const root = await mount("rivals");
+    const root = await mount("check");
     await until(() => offered(root).length > 0, COLD_ROUTE_MS);
     expect(offered(root)).toEqual(["asana.com", "monday.com", "clickup.com"]);
     expect(shown(root, "setup-competitors-seeking")).toBe(false);
@@ -221,7 +221,7 @@ describe("issue 838 — a report that found no rivals: the card asks, and compet
       value: [{ domain: "surferseo.com", overlapKeywords: 2 }],
       at: AT,
     });
-    const root = await mount("rivals");
+    const root = await mount("check");
 
     await until(() => offered(root).length > 0, COLD_ROUTE_MS);
     expect(offered(root)).toEqual(["surferseo.com"]);
@@ -232,7 +232,7 @@ describe("issue 838 — a report that found no rivals: the card asks, and compet
   it("a vendor that finds none says so rather than seeking on", async () => {
     setupSession.reports.set("example.com", { scanId: "scan-fixture", category: "SEO software", rivals: [] });
     competitorsDomain.mockResolvedValue({ kind: "zero", value: [], at: AT });
-    const root = await mount("rivals");
+    const root = await mount("check");
 
     await until(() => shown(root, "setup-competitors-none-found"));
     expect(shown(root, "setup-competitors-seeking")).toBe(false);
@@ -240,7 +240,7 @@ describe("issue 838 — a report that found no rivals: the card asks, and compet
 });
 
 describe("issue #783 — the finish carries the browser's zone", () => {
-  it("the last step's control sends the zone the browser reports, beside the five answers", async () => {
+  it("the last step's control sends the zone the browser reports, beside the other answers", async () => {
     const root = await mount("publishing");
     await onwards(root);
     expect(finished()?.timezone).toBe(Intl.DateTimeFormat().resolvedOptions().timeZone);
@@ -248,46 +248,48 @@ describe("issue #783 — the finish carries the browser's zone", () => {
   });
 });
 
-describe("SPEC §5 (2026-09-20) — each step saves as it is left", () => {
-  it("leaving the site step writes the site and the market, and reaches the business step", async () => {
+describe("SPEC §5 (docs/spec/decisions/2026-10-22-1737.md) — each step saves as it is left", () => {
+  it("leaving Site writes the address and where its buyers are, and reaches Check", async () => {
     const root = await mount("site");
     await onwards(root);
-    expect(submitted).toEqual([
-      {
-        step: "site",
-        domain: "example.com",
-        category: "project management software for agencies",
-        locale: "US/en",
-      },
-    ]);
-    expect(at(root)).toBe("business");
+    expect(submitted).toEqual([{ step: "site", domain: "example.com", locale: "US/en" }]);
+    expect(at(root)).toBe("check");
   });
 
-  it("leaving the rivals step writes the rivals the founder kept — the save the pass then reads", async () => {
-    const root = await mount("rivals");
+  it("leaving Check writes the market and the rivals the founder kept with every other section — the save the pass then reads", async () => {
+    const root = await mount("check");
     await until(() => offered(root).length > 0, COLD_ROUTE_MS);
     await act(async () => {
       (root.querySelector('[data-testid="setup-competitors-suggested"] button') as HTMLElement).click();
     });
     await onwards(root);
-    expect(submitted).toEqual([{ step: "rivals", competitors: ["asana.com"] }]);
-    expect(at(root)).toBe("voice");
+    expect(submitted).toEqual([
+      expect.objectContaining({
+        step: "check",
+        category: "project management software for agencies",
+        competitors: ["asana.com"],
+        lists: expect.any(Object),
+        voiceText: expect.any(String),
+        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      }),
+    ]);
+    expect(at(root)).toBe("publishing");
   });
 
   it("Back goes to the step before it and writes nothing", async () => {
-    const root = await mount("voice");
+    const root = await mount("check");
     await act(async () => {
       const back = [...root.querySelectorAll("button")].find(
         (b) => (b.textContent ?? "").trim() === "Back",
       );
       (back as HTMLElement).click();
     });
-    expect(at(root)).toBe("rivals");
+    expect(at(root)).toBe("site");
     expect(submitted).toEqual([]);
   });
 });
 
-describe("direct purchase — address, then market, then rivals", () => {
+describe("direct purchase — address on Site, then market and rivals on Check", () => {
   beforeEach(() => {
     setupSession.address = { siteId: "site-1", domain: "" };
     db.tables.sites![0]!.domain = null;
@@ -306,19 +308,14 @@ describe("direct purchase — address, then market, then rivals", () => {
 
     await type(root.querySelector('input[name="domain"]'), "founder.io");
     await enter(root.querySelector('input[name="domain"]'));
-    // The address is given: the market can now be stated, and the card
-    // still waits on it rather than claiming none were found.
-    await until(() => root.querySelector('input[name="category"]') !== null);
     await until(() => (db.tables.scans ?? []).length === 1);
+    // Leaving Site saves the address; Check asks the market the scan could not read.
+    await onwards(root);
+    expect(at(root)).toBe("check");
+    await until(() => root.querySelector('input[name="category"]') !== null);
 
     await type(root.querySelector('input[name="category"]'), "bookkeeping for dentists");
     await enter(root.querySelector('input[name="category"]'));
-
-    // Two presses carry them past the business step to the rivals step,
-    // each one saving the step it leaves.
-    await onwards(root);
-    await onwards(root);
-    expect(at(root)).toBe("rivals");
 
     await until(() => offered(root).length > 0);
     expect(offered(root)).toEqual(["rival-one.com", "rival-two.com"]);
@@ -332,11 +329,11 @@ describe("direct purchase — address, then market, then rivals", () => {
 
     await type(root.querySelector('input[name="domain"]'), "founder.io");
     await enter(root.querySelector('input[name="domain"]'));
+    await until(() => (db.tables.scans ?? []).length === 1);
+    await onwards(root);
     await until(() => root.querySelector('input[name="category"]') !== null);
     await type(root.querySelector('input[name="category"]'), "bookkeeping for dentists");
     await enter(root.querySelector('input[name="category"]'));
-    await onwards(root);
-    await onwards(root);
 
     await until(() => shown(root, "setup-competitors-none-found"));
     expect(shown(root, "setup-competitors-seeking")).toBe(false);

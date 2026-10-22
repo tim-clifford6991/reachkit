@@ -116,8 +116,8 @@ const PASS = {
 
 /** One step of setup, drawn from this profile. Which step is on screen is
  *  the URL's since 2026-09-20 (SPEC §5), so the suite names it through
- *  `nuqs`'s own testing adapter; the voice lives on step four. */
-function screenWith(profile: unknown, step = "voice"): Element {
+ *  `nuqs`'s own testing adapter; the voice lives on Check. */
+function screenWith(profile: unknown, step = "check"): Element {
   const html = renderToStaticMarkup(
     <NuqsTestingAdapter searchParams={{ step }}>
       <SetupForm model={assembleSetup({ ...FIXTURE_SETUP_FACTS, profile: profile as never })} />
@@ -203,10 +203,7 @@ describe("issue 839 — a profile with no voice is never a blank section", () =>
 
     const card = screenWith(profile).querySelector('[data-testid="setup-voice"]');
     expect(card?.querySelector('[data-testid="setup-profile-voice-unread"]')).not.toBeNull();
-    // And what *was* read of the site is still shown, on the step that
-    // shows it: the pages, by purpose.
-    expect(
-      screenWith(profile, "business").querySelector('[data-testid="setup-pages-read"]')
-    ).not.toBeNull();
+    // And what *was* read of the site is still shown: the pages read.
+    expect(screenWith(profile).querySelector('[data-testid="setup-check-read"]')).not.toBeNull();
   });
 });

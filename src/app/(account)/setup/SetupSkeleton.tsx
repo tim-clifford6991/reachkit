@@ -35,13 +35,15 @@ import {
   STEPS,
 } from "./frame";
 import { SETUP_STEPS } from "./steps";
+import { Brand } from "@/app/_brand/Brand";
 
 export function SetupSkeleton(): React.JSX.Element {
   return (
     <Waiting className={FRAME} testId="setup-skeleton">
       <Surface arms={SETUP_ARMS}>
         <div className={BODY}>
-          {/* daisyUI's own `steps`, so the five columns and their height
+          <Brand href="/app" />
+          {/* daisyUI's own `steps`, so the three columns and their height
               are the indicator's; which step is current is not known yet. */}
           <ul className={STEPS} aria-hidden data-frame={REGION.steps}>
             {SETUP_STEPS.map((id) => (

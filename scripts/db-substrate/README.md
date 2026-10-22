@@ -111,7 +111,9 @@ stops the stack and drops the database when the job ends.
 
 PostgreSQL must already be listening (the shared box's native PostgreSQL 18
 on `127.0.0.1:5432`, which is also what CI uses). PostgREST comes from Docker, pinned to
-`postgrest/postgrest:v16.2`, **or** from a native binary where there is no
+`ghcr.io/postgrest/postgrest:v16.2` (`pull-postgrest.sh` retries it with backoff, then
+falls back to Docker Hub's `postgrest/postgrest:v16.2`, which refuses anonymous pulls from
+hosted runners), **or** from a native binary where there is no
 Docker: `POSTGREST_BIN`, else one on `PATH`. The native path is what makes
 `--run` work on a machine with no Docker at all — without it, per-run
 isolation would work in CI and nowhere else, which is the opposite of the
