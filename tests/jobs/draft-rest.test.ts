@@ -11,7 +11,7 @@
 // bar and its research read, the measured
 // text the grounding reads, the cost ledger's context, the daily site list,
 // the breakage and draft-ready mails, and the signed-in account.
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeAll, beforeEach, describe, expect, it as vitestIt, vi } from "vitest";
 import { fakeDb, installTransitionRpc, type FakeDb, type Row } from "../publish/harness";
 
 const db: FakeDb = fakeDb();
@@ -116,7 +116,17 @@ function modelWrites(markdown: string, topic = "seats"): void {
 let opportunities: ReturnType<typeof opportunityDoubles.newMemoryState>;
 let opportunityId: string;
 
-beforeEach(async () => {
+// Vitest does not stop a case that times out: its body runs on and would take the next case's queued model answers.
+let running: Promise<unknown> = Promise.resolve();
+function it(name: string, body: () => Promise<void>): void {
+  vitestIt(name, () => (running = body()));
+}
+// As long as the warm-up's limit, so the hook cannot time out first and let the body run on into the next case.
+afterEach(async () => {
+  await running.catch(() => undefined);
+}, 180_000);
+
+async function arrange(): Promise<void> {
   db.reset();
   installTransitionRpc(db);
   llmMock.mockReset();
@@ -172,7 +182,16 @@ beforeEach(async () => {
   if (inserted.outcome !== "created") throw new Error("the fixture opportunity was refused");
   opportunityId = inserted.row.id;
   pickMock.mockImplementation(async () => opportunityById(opportunityId));
-});
+}
+
+// The draft job and §8's pipeline import lazily; one throwaway tick pays that cold load here, not inside the first case's 5 s.
+// Over 60 s once at load 11 on the 4-core box, and a hook that times out skips every case, so it gets 180 s.
+beforeAll(async () => {
+  await arrange();
+  await stoppedEvening();
+}, 180_000);
+
+beforeEach(arrange);
 
 function statusOf(id: string): string | undefined {
   return opportunities.rows.find((row) => row.id === id)?.status;
