@@ -10,7 +10,7 @@ import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { PUBLIC_ROUTE_SEO } from "../_seo/routes";
 import { staticMetadata } from "../_seo/metadata";
 import { COMPARISONS, COMPARISON_GROUPS, longDate } from "../_library";
-import { LibraryPage, ScanCta, Trademarks } from "../_library/parts";
+import { LearnClose, LibraryPage, Trademarks } from "../_library/parts";
 
 export const metadata: Metadata = staticMetadata(PUBLIC_ROUTE_SEO.compare);
 
@@ -52,7 +52,7 @@ export default function ComparePage(): React.JSX.Element {
           </section>
         );
       })}
-      <ScanCta />
+      <LearnClose variant="compare" />
       <Trademarks />
     </LibraryPage>
   );

@@ -12,7 +12,7 @@ import { PUBLIC_ROUTE_SEO } from "../../_seo/routes";
 import { publicMetadata } from "../../_seo/metadata";
 import { JsonLd, articleSchemas, homeCrumb } from "../../_seo/structured";
 import { COMPARISONS, comparisonOf, type Cell } from "../../_library";
-import { BackLink, BODY, CARD, LIST, LibraryPage, ScanCta, Sources, TextCard, Trademarks } from "../../_library/parts";
+import { BackLink, BODY, CARD, LIST, LearnClose, LearnLoop, LibraryPage, Sources, TextCard, Trademarks } from "../../_library/parts";
 
 /** Every comparison is known at build; any other address is a 404. */
 export const dynamicParams = false;
@@ -78,6 +78,7 @@ export default async function ComparisonPage({ params }: Params): Promise<React.
       <p className="text-lg">{c.intro}</p>
       <TextCard heading={c.theirs.heading} paragraphs={c.theirs.paragraphs} />
       <TextCard heading={c.ours.heading} paragraphs={c.ours.paragraphs} />
+      <LearnLoop />
 
       <section className={CARD}>
         <div className={BODY}>
@@ -138,7 +139,7 @@ export default async function ComparisonPage({ params }: Params): Promise<React.
         </section>
       </div>
 
-      <ScanCta />
+      <LearnClose variant="compare-tool" />
       <Sources checked={c.checked} sources={c.sources} />
       <Trademarks />
       <BackLink href={INDEX} label={MORE} />
