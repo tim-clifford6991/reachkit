@@ -47,6 +47,7 @@ import {
 } from "@/lib/scan/gallery";
 import { ScanForm } from "../_landing/ScanForm";
 import { scanFormWords } from "../_landing/scan-form-words";
+import { LearnClose } from "../_library/parts";
 import { PUBLIC_ROUTE_SEO } from "../_seo/routes";
 import { staticMetadata } from "../_seo/metadata";
 import { SiteIcon } from "./SiteIcon";
@@ -501,6 +502,9 @@ export default async function ScansPage(props: {
             </p>
           </div>
         </section>
+        <div className="mx-auto w-full max-w-5xl px-4 pb-12">
+          <LearnClose variant="scans" />
+        </div>
       </main>
     </Surface>
   );
