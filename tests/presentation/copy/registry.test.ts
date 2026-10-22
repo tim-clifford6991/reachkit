@@ -138,7 +138,7 @@ describe("REQ-093 c5 — the registry renders with every model unavailable", () 
 });
 
 describe("the partition list is closed and total (BP-020 decision 5)", () => {
-  it("keys/ holds exactly sixteen partition files", () => {
+  it("keys/ holds exactly seventeen partition files", () => {
     expect(KEY_FILES).toEqual([
       "bands.ts",
       "calendar.ts",
@@ -149,6 +149,7 @@ describe("the partition list is closed and total (BP-020 decision 5)", () => {
       "mail.ts",
       "meta.ts",
       "offer.ts",
+      "ops.ts",
       "overview.ts",
       "publish.ts",
       "report.ts",
@@ -159,12 +160,12 @@ describe("the partition list is closed and total (BP-020 decision 5)", () => {
     ]);
   });
 
-  it("registry.ts imports every file under keys/, and no seventeenth", () => {
+  it("registry.ts imports every file under keys/, and no eighteenth", () => {
     const importedKeyFiles = [...REGISTRY_SOURCE.matchAll(/from\s+["']\.\/keys\/([^"']+)["']/g)]
       .map((m) => m[1])
       .filter((f): f is string => f !== undefined);
     expect(new Set(importedKeyFiles)).toEqual(new Set(KEY_FILES));
-    expect(importedKeyFiles).toHaveLength(16);
+    expect(importedKeyFiles).toHaveLength(17);
   });
 
   it("every key in COPY traces to exactly one partition", async () => {
