@@ -8,7 +8,7 @@ import { CircleCheck, CircleAlert } from "lucide-react";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { PUBLIC_ROUTE_SEO } from "../../_seo/routes";
 import { staticMetadata } from "../../_seo/metadata";
-import { BackLink, BODY, CARD, LibraryPage, ScanCta } from "../../_library/parts";
+import { BackLink, BODY, CARD, checkedDomain, LearnClose, LibraryPage } from "../../_library/parts";
 import { onPageChecks } from "../_check/checks";
 import { readPage } from "../_check/read";
 import { ReadProblem, ToolForm } from "../_check/ToolForm";
@@ -66,7 +66,7 @@ export default async function OnPageCheckPage({ searchParams }: Props): Promise<
       <p>{copy("tools.onpage.intro")}</p>
       <ToolForm value={value} />
       {value === "" ? null : <Result raw={value} />}
-      <ScanCta />
+      <LearnClose variant="tool-on-page" domain={checkedDomain(value)} />
       <BackLink href={INDEX} label={MORE} />
     </LibraryPage>
   );

@@ -684,19 +684,22 @@ export function seedFreeScans(): void {
  * The ledger the owner's cost page reads (issue 1478): a week of the
  * reserved account's own calls, a free scan's, and what the vendors billed,
  * so `/app/costs` is measured with every table holding rows — including a
- * box line for a domain longer than a phone is wide.
+ * box line for a domain longer than a phone is wide, and a week holding a day
+ * over the cap and a day past the warning, so every badge the board draws is drawn.
  */
 export function seedLedger(): void {
   const [ownScan] = rows(`select id from scans where site_id = '${RESERVED_ACCOUNT.siteId}' order by created_at limit 1;`);
   const [freeScan] = rows(`select id from scans where tier = 'free' order by created_at limit 1;`);
   const at = sweepNow().getTime();
+  // US cents for the day's draft: 280 is past €2 and 190 past €1.50 at any rate near today's.
+  const draftCents = (day: number) => (day === 5 ? 280 : day === 3 ? 190 : 4.1);
   const calls: string[] = [];
   for (let day = 0; day < 7; day++) {
     const when = new Date(at - day * 24 * 60 * 60 * 1000 - 60 * 60 * 1000).toISOString();
     for (const [scan, source, cents, billed, payload] of [
       [ownScan, "serp/google/organic", 0.2, 0.2, "{}"],
       [ownScan, "dataforseo_labs/google/ranked_keywords", 2.4, 2.2, "{}"],
-      [ownScan, "generate.write", 4.1, null, '{"parseOutcome":"success"}'],
+      [ownScan, "generate.write", draftCents(day), null, '{"parseOutcome":"success"}'],
       [freeScan, "serp/google/organic", 0.2, null, '{"vendorFailure":"timeout","endpoint":"serp/google/organic","billed":true}'],
       [freeScan, "question-phrasing", 0.31, null, '{"parseOutcome":"success"}'],
     ] as const) {
@@ -738,6 +741,14 @@ export function seedSetupAccount(): void {
     `insert into sites (id, user_id, domain, timezone, setup_stage, setup_stage_times) values ` +
       `('${siteId}', '${userId}', '${domain}', '${timeZone}', '${SETUP_STAGE}', ` +
       `'${JSON.stringify(SETUP_STAGE_TIMES)}'::jsonb);`
+  );
+
+  // What the crawl read of the site, so Check draws its pages-read figure and each section's reading.
+  sql(
+    `insert into site_profiles (domain, site_name, products, claims, voice, pages_read) values ` +
+      `('${domain}', 'Newco Books', '["Monthly bookkeeping", "Payroll for small teams"]'::jsonb, ` +
+      `'["Books closed in five working days"]'::jsonb, ` +
+      `'{"text": "Plain and direct. Short sentences, no jargon.", "tone": "plain", "person": "second", "claimsToAvoid": ["Cheapest in town"]}'::jsonb, 12);`
   );
 
   const measuredAt = new Date(SETUP_REPORT_AT);
