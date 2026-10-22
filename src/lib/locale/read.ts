@@ -337,8 +337,7 @@ export function marketsServed(a: { domain: string; html: string; measured: Local
 /**
  * Whether an address stands in another market's section of a site that
  * splits its markets by path or subdomain, as its hreflang shows it: a first
- * path segment naming another market where a same-host alternate stands in
- * a locale path, or a host its hreflang gives only to other markets. Answers `false` for every address of a site that
+ * path segment that a same-host alternate declares for another market, or a host its hreflang gives only to other markets. Answers `false` for every address of a site that
  * shows no split, so a single-market site loses no page.
  */
 export function outsideMarket(a: { domain: string; html: string; measured: Locale }): (url: string) => boolean {
@@ -352,7 +351,8 @@ export function outsideMarket(a: { domain: string; html: string; measured: Local
     alternates.map((each) => bareHost(each.url.hostname)).filter((other) => other !== host && !ours.has(other))
   );
   // Links alone never split a site: /co/denver or /ml/ is a page, not a market.
-  const byPath = alternates.some((each) => bareHost(each.url.hostname) === host && pathLocaleOf(each.url.pathname) !== null);
+  const declared = new Set(alternates.flatMap((each) => (bareHost(each.url.hostname) === host ? (pathLocaleOf(each.url.pathname) ?? []) : [])));
+  const byPath = declared.size > 0;
   if (!byPath && otherHosts.size === 0) return () => false;
   return (raw) => {
     let url: URL;
@@ -364,6 +364,6 @@ export function outsideMarket(a: { domain: string; html: string; measured: Local
     const other = bareHost(url.hostname);
     if (otherHosts.has(other)) return true;
     const section = other === host && byPath ? pathLocaleOf(url.pathname) : null;
-    return section !== null && !measured(section);
+    return section !== null && declared.has(section) && !measured(section);
   };
 }

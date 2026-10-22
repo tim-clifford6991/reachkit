@@ -873,3 +873,19 @@ describe("SPEC §6 (D66) — the crawl stays in the measured market's section", 
     expect(out.pages.map((each) => new URL(each.url).pathname).sort()).toEqual(["/", ...paths].sort());
   });
 });
+
+describe("SPEC §6 (D66) — a bilingual US multi-location site keeps its state pages", () => {
+  it("a bilingual US site with hreflang /es/ keeps its /co/ and /ga/ state pages", async () => {
+    const home = `<html><head><title>Home</title>
+    <link rel="alternate" hreflang="en-us" href="https://example.com/" />
+    <link rel="alternate" hreflang="es-us" href="https://example.com/es/" />
+    </head><body><h1>Home</h1><a href="/co/denver">Denver</a><a href="/ga/atlanta">Atlanta</a><a href="/es/">Espanol</a></body></html>`;
+    const paths = ["/co/denver", "/ga/atlanta", "/es/"];
+    const out = await crawlSite(
+      fakeCost(),
+      { domain: DOMAIN, homeUrl: HOME, homeHtml: home, sitemaps: [], locale: { country: "US", language: "en" } },
+      fakePorts(Object.fromEntries(paths.map((path) => [`https://example.com${path}`, ok(`https://example.com${path}`, page(path))])))
+    );
+    expect(out.pages.map((each) => new URL(each.url).pathname).sort()).toEqual(["/", "/co/denver", "/ga/atlanta"]);
+  });
+});
