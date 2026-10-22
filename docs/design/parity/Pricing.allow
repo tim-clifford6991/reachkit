@@ -21,6 +21,5 @@ you pay €49 day 14 every month after	#1598: the guarantee section waits on the
 No contract, no setup fee Billed monthly, in advance, through Stripe. No minimum term.	#1598: the guarantee section waits on the launch gate (owner 2026-10-20 Q13)
 Keep your pages WordPress pages stay where they are. Your export stays, with no end date.	#1598: the guarantee section waits on the launch gate (owner 2026-10-20 Q13)
 Can I get a refund?	#1598: the refund answer waits on the launch gate (owner 2026-10-20 Q13)
-No. Each page goes live on its own 24 hours after it is written. We email it to you first, and you can read it, edit it or stop it, or do nothing at all. You can set that window anywhere from 1 to 7 days.	D3, D5: the shipped answer is the later ruling (docs/spec/decisions/2026-10-19-1581.md)
 Not sure yet? See your free report	owner 2026-10-15 #1463: a title is at most six words, so "Not sure yet?" is the eyebrow above it
 €49 a month, VAT included, billed in euros, in advance, through Stripe. No setup fee and no minimum term.	#1722: no public screen names a vendor (REQ-092 c8, tests/presentation/sweeps/vocabulary.ts), so the answer leaves out Stripe
