@@ -1,6 +1,6 @@
-// SPEC §5 (2026-09-20, #908) — the one post-payment screen, as five saved
-// steps: your site, your business, rivals, your voice, publishing. One
-// decision each, with Back, and an equal-column step indicator.
+// SPEC §5 (docs/spec/decisions/2026-10-22-1737.md) — the one post-payment
+// screen, as three saved steps: Site, Check, Connect, with Back and an
+// equal-column step indicator.
 //
 // It sits under `(account)` and **outside the `/app` shell**: setup runs
 // once, before the app, and the shell's sidebar states a publishing state

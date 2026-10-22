@@ -8,7 +8,7 @@ import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { PUBLIC_ROUTE_SEO } from "../_seo/routes";
 import { staticMetadata } from "../_seo/metadata";
 import { TEARDOWNS, longDate } from "../_library";
-import { LibraryPage, ScanCta } from "../_library/parts";
+import { LearnClose, LibraryPage } from "../_library/parts";
 
 const FEED = "/teardowns/rss.xml";
 const head = staticMetadata(PUBLIC_ROUTE_SEO.teardowns);
@@ -50,7 +50,7 @@ export default function TeardownsPage(): React.JSX.Element {
           {copy("teardowns.rss")}
         </a>
       </p>
-      <ScanCta />
+      <LearnClose variant="teardowns" />
     </LibraryPage>
   );
 }

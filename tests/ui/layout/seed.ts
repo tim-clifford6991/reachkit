@@ -743,6 +743,14 @@ export function seedSetupAccount(): void {
       `'${JSON.stringify(SETUP_STAGE_TIMES)}'::jsonb);`
   );
 
+  // What the crawl read of the site, so Check draws its pages-read figure and each section's reading.
+  sql(
+    `insert into site_profiles (domain, site_name, products, claims, voice, pages_read) values ` +
+      `('${domain}', 'Newco Books', '["Monthly bookkeeping", "Payroll for small teams"]'::jsonb, ` +
+      `'["Books closed in five working days"]'::jsonb, ` +
+      `'{"text": "Plain and direct. Short sentences, no jargon.", "tone": "plain", "person": "second", "claimsToAvoid": ["Cheapest in town"]}'::jsonb, 12);`
+  );
+
   const measuredAt = new Date(SETUP_REPORT_AT);
   const base = fullSections();
   const report = assembleReport({
