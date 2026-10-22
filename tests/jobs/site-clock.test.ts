@@ -7,6 +7,8 @@
 // date — is `src/lib/scan/weekly/week.ts`; its suite is
 // `tests/scan/weekly/week.test.ts`.
 import { describe, expect, it } from "vitest";
+import "../generate/env";
+import { DRAFT_TICK_CRON } from "@/jobs/draft-generate";
 import { isDraftDue, localClock, nextPublishDate, tickHour, type DraftClock } from "@/jobs/site-clock";
 import { becomesPublishable } from "@/lib/publish/publishable/predicate";
 import type { DraftView } from "@/lib/publish/types";
@@ -91,6 +93,27 @@ describe("issue 1337 — a page nobody touches publishes on the date it was writ
     expect(nextPublishDate(afternoon, site)).toBe("2026-10-09");
     expect(localClock(publishesAt(afternoon, site), site.timeZone).date).toBe("2026-10-09");
   });
+});
+
+describe("the tick's minute decides no draft", () => {
+  // The tick fires at its cron minute, 40 seconds late; on the hour is where it fired before.
+  const minute = Number(DRAFT_TICK_CRON.trim().split(/\s+/)[0]);
+  const late = (minute * 60 + 40) * 1000;
+  /** Each due tick's hour, the date it writes for and the end of the window it opens. */
+  const decisions = (offset: number, site: DraftClock): string[] =>
+    Array.from({ length: TICKS }, (_, n) => new Date(FIRST_TICK - 40_000 + n * MS_PER_HOUR + offset))
+      .filter((tick) => isDraftDue(tick, site))
+      .map((tick) => `${tickHour(tick).toISOString()} ${nextPublishDate(tickHour(tick), site)} ${publishesAt(tickHour(tick), site).toISOString()}`);
+  for (const timeZone of ZONES) {
+    for (const publishTime of PUBLISH_TIMES) {
+      for (const vetoHours of VETO_HOURS) {
+        it(`${timeZone} · ${publishTime} · ${vetoHours} h: due, dated and closing as a tick on the hour`, () => {
+          const site: DraftClock = { timeZone, publishTime, vetoHours };
+          expect(decisions(late, site)).toEqual(decisions(0, site));
+        });
+      }
+    }
+  }
 });
 
 describe("a zone this module cannot read is a failure, not a fallback to UTC", () => {
