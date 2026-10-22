@@ -1,5 +1,6 @@
-// tests/publish/attempt/take-down.test.ts — SPEC §7 (issue 1532): the
-// customer takes one live page down, and puts it back within 7 days.
+// tests/publish/attempt/take-down.test.ts — SPEC §7 (issue 1532, R9): the
+// customer stops one live page, its topic is dropped for good, and a hosted
+// page can be put back within 7 days on the same publication rows.
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fakeDb, installTransitionRpc, type Row } from "../harness";
 
@@ -116,10 +117,10 @@ describe("take down: every live version at the address, through unpublish() as t
     expect(sent.filter((url) => url.includes("indexnow"))).toHaveLength(1);
   });
 
-  it("afterwards: its topic rests for 90 days, and a refresh of it that has not gone out is stopped", async () => {
+  it("afterwards: its topic is dropped for good, and a refresh of it that has not gone out is stopped", async () => {
     await takeDown({ draftId: "d-new", userId: "u1", at: AT, deps: { ...adapter("hosted", { ok: true, outcome: "removed" }), announce: async () => ({ ok: true, status: 200 }) as never } });
     for (const id of ["o-write", "o-refresh-done"]) {
-      expect(opportunity(id)).toMatchObject({ status: "open", unready_reason: "resting", rest_until: new Date(AT.getTime() + 90 * DAY).toISOString() });
+      expect(opportunity(id)).toMatchObject({ status: "dismissed", stopped: true, rest_until: null });
     }
     expect(draftRow("d-pending").state).toBe("skipped");
   });
@@ -152,12 +153,13 @@ describe("put back: the same versions at the same address, through the state mac
     const result = await putBack({ draftId: "d-new", userId: "u1", at: AT, deps: { adapterFor: hosted.adapterFor, announce: async () => ({ ok: true, status: 200 }) as never } });
 
     expect(result).toEqual({ ok: true });
+    expect(db.rows("publications").map((row) => row.id).sort()).toEqual(["p-new", "p-old", "p-other"]);
     for (const [p, d] of [["p-new", "d-new"], ["p-old", "d-old"]] as const) {
       expect(pub(p)).toMatchObject({ unpublished_at: null, unpublish_outcome: null, live_url: URL_A });
       expect(draftRow(d).state).toBe("published");
       expect(moves(d).map((move) => move.reason)).toEqual(["take_down", "put_back"]);
     }
-    expect(opportunity("o-write").status).toBe("queued");
+    expect(opportunity("o-write")).toMatchObject({ status: "dismissed", stopped: true });
   });
 
   it("WordPress: a post returned to draft is not published again (ADR-084 Decision 1, pending the owner)", async () => {

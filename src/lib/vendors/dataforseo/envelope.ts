@@ -43,7 +43,8 @@
 //    the task), a completed task whose result did not parse (it ran), and
 //    any failure after the standard queue accepted a `task_post` (the
 //    charge is taken at the post). The ledger over-counts a call that was
-//    never charged rather than under-count one that was.
+//    never charged rather than under-count one that was. A funds refusal
+//    (`isFundsRefusal`) is the exception: it ran nothing, so it is 0 cents.
 import type { CostContext, VendorFailure } from "@/lib/costs";
 import { isVendorFailure } from "@/lib/costs";
 import { VENDOR } from "@/lib/config/constants";
@@ -85,6 +86,16 @@ const TASK_NO_RESULTS = 40102;
  *  The vendor asks for one more ask in so many words (issue 869). */
 const TASK_EXECUTION_FAILED = 40103;
 
+/** "Payment required" and "insufficient funds" (https://docs.dataforseo.com/v3/appendix/errors/),
+ *  at the top level or on the task, and HTTP 402. `50001` is the vendor's own balance check failing, not funds. */
+const FUNDS_CODES: ReadonlySet<number> = new Set([40200, 40210]);
+const FUNDS_KINDS: ReadonlySet<string> = new Set(["http_402", ...[...FUNDS_CODES].map((code) => `task_${code}`)]);
+
+/** A refusal for lack of credit: the vendor ran nothing and charged nothing. */
+export function isFundsRefusal(kind: string): boolean {
+  return FUNDS_KINDS.has(kind);
+}
+
 const MS_PER_S = 1000;
 const MS_PER_MIN = 60 * MS_PER_S;
 
@@ -102,7 +113,8 @@ interface VendorTask {
  *  task still not ready at the pinned deadline (`deadline`), and a mode the
  *  endpoint has no surface for (`no_surface`, never sent). A response with
  *  no task, a completed task with no result, and a result the parser does
- *  not recognise are all `unparseable`. */
+ *  not recognise are all `unparseable`, except a response whose top-level
+ *  code is a funds refusal, which is that `task_<code>`. */
 export type VendorFailureKind = TransportFailure | `task_${number}` | "deadline" | "no_surface";
 
 /**
@@ -169,7 +181,8 @@ export type VendorOutcome =
 type Failed = Extract<VendorOutcome, { ok: false }>;
 
 function failure(kind: VendorFailureKind, billed: boolean, reason: string): Failed {
-  return { ok: false, failure: kind, billed, reason };
+  // A funds refusal ran nothing, so it is never billed whatever the step.
+  return { ok: false, failure: kind, billed: billed && !isFundsRefusal(kind), reason };
 }
 
 /** A transport failure's bill: the vendor refused an `http_<n>` request
@@ -205,13 +218,23 @@ function firstTask(payload: unknown): VendorTask | undefined {
   return isRecord(task) ? (task as VendorTask) : undefined;
 }
 
+/** A response with no task: a top-level funds refusal by its code, else one
+ *  that could not be read. */
+function noTask(payload: unknown, step: string): Failed {
+  const code = isRecord(payload) ? payload.status_code : undefined;
+  if (typeof code === "number" && FUNDS_CODES.has(code)) {
+    return failure(`task_${code}`, false, `dataforseo: ${step}${code} ${asString(isRecord(payload) ? payload.status_message : undefined) ?? ""}`.trim());
+  }
+  return failure("unparseable", true, `dataforseo: ${step}response carries no task`);
+}
+
 /** The first `result` element of the first task, or the vendor's own
  *  status message as the reason it is not there. `accepted` is true where
  *  the vendor has already charged for the task (a standard-queue task
  *  whose `task_post` it accepted), so no failure read here is unbilled. */
 function firstResult(payload: unknown, accepted: boolean): VendorOutcome {
   const task = firstTask(payload);
-  if (!task) return failure("unparseable", true, "dataforseo: response carries no task");
+  if (!task) return noTask(payload, "");
   // The vendor's own zero-result, whatever it cost (issue 869).
   if (task.status_code === TASK_NO_RESULTS) return { ok: true, result: null, noResults: true };
   if (task.status_code !== TASK_OK) {
@@ -332,15 +355,16 @@ export async function callEndpoint(
   const posted = await sendRequest<unknown>({ path: std.taskPost, mode, locale, fields, ...extra });
   if (!posted.ok) return fromTransport(posted);
   const task = firstTask(posted.payload);
-  const id = task ? asString(task.id) : undefined;
-  if (!task || task.status_code !== TASK_CREATED || !id) {
+  if (!task) return withCharge(noTask(posted.payload, "task_post "), posted.payload);
+  const id = asString(task.id);
+  if (task.status_code !== TASK_CREATED || !id) {
     // Not accepted, so not charged — unless the answer could not be read.
-    const kind = task && task.status_code !== TASK_CREATED ? taskFailure(task.status_code) : "unparseable";
+    const kind = task.status_code !== TASK_CREATED ? taskFailure(task.status_code) : "unparseable";
     return withCharge(
       failure(
         kind,
         kind === "unparseable",
-        `dataforseo: task_post ${String(task?.status_code)} ${asString(task?.status_message) ?? ""}`.trim()
+        `dataforseo: task_post ${String(task.status_code)} ${asString(task.status_message) ?? ""}`.trim()
       ),
       posted.payload
     );
@@ -419,6 +443,7 @@ function failureRow(source: string, out: Failed): VendorFailure {
     endpoint: source,
     billed: out.billed,
     ...(out.taskId === undefined ? {} : { taskId: out.taskId }),
+    ...(isFundsRefusal(out.failure) ? { funds: true as const } : {}),
   };
 }
 

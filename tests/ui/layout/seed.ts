@@ -684,19 +684,22 @@ export function seedFreeScans(): void {
  * The ledger the owner's cost page reads (issue 1478): a week of the
  * reserved account's own calls, a free scan's, and what the vendors billed,
  * so `/app/costs` is measured with every table holding rows — including a
- * box line for a domain longer than a phone is wide.
+ * box line for a domain longer than a phone is wide, and a week holding a day
+ * over the cap and a day past the warning, so every badge the board draws is drawn.
  */
 export function seedLedger(): void {
   const [ownScan] = rows(`select id from scans where site_id = '${RESERVED_ACCOUNT.siteId}' order by created_at limit 1;`);
   const [freeScan] = rows(`select id from scans where tier = 'free' order by created_at limit 1;`);
   const at = sweepNow().getTime();
+  // US cents for the day's draft: 280 is past €2 and 190 past €1.50 at any rate near today's.
+  const draftCents = (day: number) => (day === 5 ? 280 : day === 3 ? 190 : 4.1);
   const calls: string[] = [];
   for (let day = 0; day < 7; day++) {
     const when = new Date(at - day * 24 * 60 * 60 * 1000 - 60 * 60 * 1000).toISOString();
     for (const [scan, source, cents, billed, payload] of [
       [ownScan, "serp/google/organic", 0.2, 0.2, "{}"],
       [ownScan, "dataforseo_labs/google/ranked_keywords", 2.4, 2.2, "{}"],
-      [ownScan, "generate.write", 4.1, null, '{"parseOutcome":"success"}'],
+      [ownScan, "generate.write", draftCents(day), null, '{"parseOutcome":"success"}'],
       [freeScan, "serp/google/organic", 0.2, null, '{"vendorFailure":"timeout","endpoint":"serp/google/organic","billed":true}'],
       [freeScan, "question-phrasing", 0.31, null, '{"parseOutcome":"success"}'],
     ] as const) {
@@ -1038,9 +1041,10 @@ function seedSite(
   if (published !== undefined) {
     const address = opts.published?.slug ?? published.id;
     const at = opts.published === undefined ? "now()" : `'${opts.published.at}'`;
+    // Delivered by ReachKit, as every hosted page is, so its record offers the address.
     sql(
-      `insert into publications (draft_id, site_id, destination, mode, live_url, published_at, delivery_state) values ` +
-        `('${published.id}', '${siteId}', 'hosted', 'autopilot', 'https://content.${domain}/${address}', ${at}, 'delivered');`
+      `insert into publications (draft_id, site_id, destination, mode, live_url, published_at, delivery_state, made_live_by_us) values ` +
+        `('${published.id}', '${siteId}', 'hosted', 'autopilot', 'https://content.${domain}/${address}', ${at}, 'delivered', true);`
     );
   }
 }
