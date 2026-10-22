@@ -306,8 +306,8 @@ describe("the thirteen keys the owner ruled 2026-09-04 (WO-041 `## Log`, this da
     // (UI-SPEC S7, ruling 11a), with the address in the slot the set draws
     // it in: the 2026-09-04 ruling wrote a line for a page nobody had drawn
     // yet, and the drawing is the later word on it.
-    expect(copy("optout.confirmed", { address: "you@company.com" })).toBe(
-      "No more follow-up mail will reach you@company.com, for this domain or any other. " +
+    expect(copy("optout.confirmed", { address: "you@example.com" })).toBe(
+      "No more follow-up mail will reach you@example.com, for this domain or any other. " +
         "The page you asked for stays yours."
     );
     expect(copy("optout.invalid")).toBe(

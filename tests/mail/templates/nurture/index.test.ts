@@ -48,7 +48,7 @@ describe("each touch is its own pair of keys, indexed by the touch number", () =
     // The type is `1 | 2 | 3`, which is the same number the cap is.
     expect(NURTURE_MAX_TOUCHES).toBe(3);
     // @ts-expect-error — a fourth touch is not representable.
-    expect(() => buildNurture({ email: "a@b.com", domain: "acme.com", touch: 4 })).toBeDefined();
+    expect(() => buildNurture({ email: "a@b.example", domain: "acme.com", touch: 4 })).toBeDefined();
   });
 });
 

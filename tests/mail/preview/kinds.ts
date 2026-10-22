@@ -167,7 +167,7 @@ export async function composePreview(kind: PreviewKind): Promise<PreviewMail> {
   switch (kind) {
     case "magic-link": {
       const { buildMagicLink } = await import("../../../src/lib/mail/templates/magic-link");
-      const mail = buildMagicLink({ href: `${APP}/signin?t=preview`, address: "you@company.com" });
+      const mail = buildMagicLink({ href: `${APP}/signin?t=preview`, address: "you@example.com" });
       return composeMail({ kind, subject: mail.subject, blocks: mail.blocks, reason: mail.reason });
     }
     case "report": {
@@ -196,7 +196,7 @@ export async function composePreview(kind: PreviewKind): Promise<PreviewMail> {
     case "first-page": {
       const { buildFirstPage } = await import("../../../src/lib/mail/templates/first-page");
       const mail = buildFirstPage({
-        email: "you@company.com",
+        email: "you@example.com",
         pageTitle: "How to choose onboarding software",
         markdown: "# How to choose onboarding software\n\nThe complete page, as written.",
         targetQuery: "best onboarding tools",
@@ -273,7 +273,7 @@ export async function composePreview(kind: PreviewKind): Promise<PreviewMail> {
     }
     case "nurture": {
       const { buildNurture } = await import("../../../src/lib/mail/templates/nurture");
-      const mail = buildNurture({ email: "you@company.com", domain: "example.com", touch: 1 });
+      const mail = buildNurture({ email: "you@example.com", domain: "example.com", touch: 1 });
       return composeMail({
         kind,
         subject: mail.subject,
@@ -319,7 +319,7 @@ export async function composeRetentionPreview(
   kind: (typeof RETENTION_PREVIEW_KINDS)[number]
 ): Promise<PreviewMail> {
   const composeMail = await composer();
-  const email = "you@company.com";
+  const email = "you@example.com";
   const mail = await (async () => {
     switch (kind) {
       case "payment-failed":
@@ -377,7 +377,7 @@ export async function composeRemainingPreview(
       const { buildFirstPageUnavailable } = await import(
         "../../../src/lib/mail/templates/first-page-unavailable"
       );
-      const mail = buildFirstPageUnavailable({ email: "you@company.com", causeLine: PREVIEW_CAUSE });
+      const mail = buildFirstPageUnavailable({ email: "you@example.com", causeLine: PREVIEW_CAUSE });
       return composeMail({
         kind,
         subject: mail.subject,

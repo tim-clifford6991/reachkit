@@ -101,6 +101,8 @@ The box is checked by hand with `node scripts/box.mjs` (`npm run box`). It repor
 
 Tests prove customer-observable behaviour. Until a paying user, tests are at most one third of a product PR. A test that transcribes a markdown row is deleted.
 
+New fixtures are synthetic: no copied third-party page, no real person's address. Stored panel evidence holds no email address.
+
 1. **Stored evidence first, fixtures by default.** A question is answered from stored rows and stored vendor responses (`fetches` payloads, `scripts/panel/evidence/`, `npm run panel -- --recheck`) where they can answer it. Tests and proofs use recorded responses unless the question cannot be answered without a new call. A live run happens once, as proof after the merge.
 2. **One dogfood site.** Live tests run on `reachkit.app`, plus at most one control site.
 3. **A live vendor call needs the master session's approval first.** An engineer asks on its issue, naming the calls, the sites and the cap, and waits for the master session's comment before any paid DataForSEO or model call. The cap defaults to 20¢ per issue. The pull request reports the spend.
