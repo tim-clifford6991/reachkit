@@ -8,3 +8,6 @@ harborplumbing.com/gallery opens in a new tab	sample data
 harborplumbing.com/reviews opens in a new tab	sample data
 harborplumbing.com/specials-2024 opens in a new tab	sample data
 harborplumbing.com/blog/old-post opens in a new tab	sample data
+Publishing on	#1717: the app shell's status line, which that issue changes for every /app board
+Theme: light	#1744: the app shell's theme control, which that issue changes for every /app board
+9 pages have one of 3 problems. Your ReachKit pages are not affected: they live on help.harborplumbing.com and are checked before they go live.	#1752: a WordPress site's ReachKit pages live on its own address, so the line names no address and says only that they are checked before they go live

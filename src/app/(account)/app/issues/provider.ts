@@ -7,14 +7,14 @@
 // `@/lib/db` and the reserved account reaches no database.
 import { cache } from "react";
 import { isReservedFixtureAccount, requireSetUpAccount } from "../_session/account";
-import { waitingIssues, type WaitingIssue } from "../_overview/alerts";
+import { issuesReading, type IssuesReading } from "../_overview/alerts";
 import { FIXTURE_MEASURED_AT, FIXTURE_SITE_ISSUES } from "./fixture";
 
 /** `null` where the stored report could not be read. The session is read
  *  first and outside that, so its redirect to sign-in or setup stands. */
-export const readIssues = cache(async function readIssues(): Promise<readonly WaitingIssue[] | null> {
+export const readIssues = cache(async function readIssues(): Promise<IssuesReading | null> {
   const account = await requireSetUpAccount();
-  if (isReservedFixtureAccount(account)) return waitingIssues(FIXTURE_SITE_ISSUES, { measuredAt: FIXTURE_MEASURED_AT });
+  if (isReservedFixtureAccount(account)) return issuesReading(FIXTURE_SITE_ISSUES, FIXTURE_MEASURED_AT);
 
   try {
     const { readWaitingIssues } = await import("../_overview/store");

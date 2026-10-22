@@ -178,6 +178,23 @@ export function waitingIssues(section: SiteIssuesSection | null, at: { measuredA
   return out;
 }
 
+/** What the Technical issues view reads: the waiting issues, how many pages
+ *  the crawl read and when. `null` figures where no reading is stored, so an
+ *  unmeasured site is never stated as a count. */
+export interface IssuesReading {
+  issues: readonly WaitingIssue[];
+  pagesChecked: number | null;
+  measuredAt: Date | null;
+}
+
+export function issuesReading(section: SiteIssuesSection | null, measuredAt: Date | null): IssuesReading {
+  return {
+    issues: measuredAt === null ? [] : waitingIssues(section, { measuredAt }),
+    pagesChecked: section?.pagesChecked ?? null,
+    measuredAt,
+  };
+}
+
 export function readAlerts(
   waiting: readonly WaitingItem[],
   /** The instant the window is measured against — the screen's own `today`,

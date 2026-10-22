@@ -96,7 +96,7 @@ import type { WeeklyPoint } from "./growth";
 import type { RivalFact, RivalFacts } from "./rivals";
 import { needsYouOf, waitsOnCustomer } from "@/lib/publish/record/needs-you";
 import type { State } from "@/lib/publish/types";
-import { waitingIssues, type WaitingIssue, type WaitingItem } from "./alerts";
+import { issuesReading, waitingIssues, type IssuesReading, type WaitingItem } from "./alerts";
 import type { WaitingPageFacts, WaitingTarget } from "./waiting";
 import type { CopyKey } from "@/lib/presentation/copy";
 import { STAGE_FILTER_COPY_KEY, STAGE_OF } from "../calendar/stages";
@@ -646,9 +646,9 @@ function standingOf(
 /**
  * Issue 1550: the checks waiting on the customer, from the same report
  * Overview's needs-you reads them from — so an item there and the view it
- * opens hold the same issues. Empty where no report is stored yet.
+ * opens hold the same issues. No figures where no report is stored yet.
  */
-export async function readWaitingIssues(site: OverviewSite): Promise<readonly WaitingIssue[]> {
+export async function readWaitingIssues(site: OverviewSite): Promise<IssuesReading> {
   const now = clock();
   const weeks = windowWeeks(now, site.timeZone);
   const [scans, deep] = await Promise.all([
@@ -656,8 +656,8 @@ export async function readWaitingIssues(site: OverviewSite): Promise<readonly Wa
     deepPassReading(site.siteId),
   ]);
   const report = standingOf(weeks, scans, deep, site.timeZone).latest ?? deep?.report ?? null;
-  if (report === null) return [];
-  return waitingIssues(report.siteIssues, { measuredAt: report.verdict.measuredAt });
+  if (report === null) return issuesReading(null, null);
+  return issuesReading(report.siteIssues, report.verdict.measuredAt);
 }
 
 async function weeklySeries(
