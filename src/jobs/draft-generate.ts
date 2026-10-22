@@ -57,8 +57,9 @@ import { fanOut, sendSubjects, settle } from "./fan-out";
 import { isDraftDue, nextPublishDate, openDraftDays, tickHour } from "./site-clock";
 import type { JobDefinition, JobInput, Outcome } from "./types";
 
-/** Hourly, on the hour; due-ness is per site, inside the run. */
-export const DRAFT_TICK_CRON = "0 * * * *";
+/** Hourly at :03, off the minute the other hourly jobs read in; due-ness is
+ *  per site, decided from the tick's hour, so the minute changes no draft. */
+export const DRAFT_TICK_CRON = "3 * * * *";
 
 /** One site's due hour, as its run reads it from the event. */
 function siteDay(data: JobInput["data"]): { siteId: string; publishDate: string; hour: Date } {

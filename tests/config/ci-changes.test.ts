@@ -97,6 +97,7 @@ describe("what a pull request changed", () => {
     ["a workflow", ".github/workflows/layout-nightly.yml"],
     ["the opportunity types", "src/lib/opportunities/types.ts"],
     ["the verdict types", "src/lib/opportunities/verdicts/types.ts"],
+    ["the opportunity store", "src/lib/opportunities/store.ts"],
     ["the sweep's seed rows", "tests/ui/layout/seed-rows.ts"],
     ["the env the db client reads", "src/lib/config/env.ts"],
   ])("%s runs the database job", (_, file) => {

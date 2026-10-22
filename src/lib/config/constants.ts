@@ -311,16 +311,6 @@ export const INFERENCE_MAX_OUTPUT_TOKENS = Object.freeze({
    *  notices. `tests/site-profile/your-voice.test.tsx` holds a full answer to
    *  this pin. */
   "site-profile": 1200,
-  /** SPEC §5 (2026-09-20, #923): setup's voice sample — one short paragraph
-   *  in the customer's own voice, grounded in one passage the scan read off
-   *  their pages, with that sentence quoted back and the passage named.
-   *
-   *  600, because the answer is a paragraph plus the sentence inside it
-   *  quoted a second time: roughly 150 tokens of prose, doubled, with room
-   *  for the schema's own framing. It is a paid call under `CAPS.DEEP_C`,
-   *  bounded to `VOICE_SAMPLES_MAX` asks per founder, so the ceiling it can
-   *  reach is three of these and nothing notices. */
-  "setup.voice-sample": 600,
   /** SPEC §9 (#690): a page's own title and meta description, rewritten —
    *  `{ title, description }`, two short strings: ~80 needed. */
   "generate.page_fix": 256,
@@ -371,10 +361,11 @@ export const INFERENCE_TEMPERATURE: Readonly<Partial<Record<keyof typeof INFEREN
   });
 
 /** A call site asked fewer times than the seam's two, where a retry buys
- *  nothing: a temperature-0 answer asked again is the same answer; its rows
- *  are judged next pass. */
+ *  nothing: a temperature-0 answer asked again is the same answer; what it
+ *  missed is asked again next pass. */
 export const INFERENCE_ATTEMPTS: Readonly<Partial<Record<keyof typeof INFERENCE_MAX_OUTPUT_TOKENS, 1>>> = Object.freeze({
   "topic-fit": 1,
+  "rival-inference": 1,
 });
 
 /** SPEC §7 (D41) — the five-stage pipeline's own bounds.
