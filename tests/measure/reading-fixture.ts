@@ -19,6 +19,8 @@ export interface AskedPage {
   place: number | null;
   /** Whether the AI Overview on that result links the page. */
   linked?: boolean;
+  /** How deep that result was bought, where not as the pass reads it today. */
+  depth?: number;
 }
 
 /** A SaaS site and a local plumber from the customer panel. */
@@ -34,6 +36,8 @@ export function weekWith(a: { domain: string; asked: readonly AskedPage[]; ranke
       question: `What should I know about ${page.search}?`,
       search: page.search,
       position: null,
+      publishedAt: null,
+      linked: false,
     })),
     serps: a.asked.map((page) =>
       measured(
@@ -55,8 +59,9 @@ export function weekWith(a: { domain: string; asked: readonly AskedPage[]; ranke
     ownDomain: a.domain,
     measuredAt: AT,
   });
+  const rows = pageQuestions?.rows.map((row, i) => (a.asked[i]?.depth === undefined ? row : { ...row, depth: a.asked[i]?.depth }));
   const ranked = a.ranked ?? [];
-  return reportOf({ questions: [], serps: [] }, { domain: a.domain as CanonicalDomain, pageQuestions, ownRanked: measured(Math.max(ranked.length, 1), AT), ownRankedRows: ranked });
+  return reportOf({ questions: [], serps: [] }, { domain: a.domain as CanonicalDomain, pageQuestions: pageQuestions && rows ? { ...pageQuestions, rows } : pageQuestions, ownRanked: measured(Math.max(ranked.length, 1), AT), ownRankedRows: ranked });
 }
 
 /** The report as `scans.report` holds it: JSON, dates as strings. */

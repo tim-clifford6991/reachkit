@@ -14,9 +14,8 @@
 //                    the opportunity each was written for, so a page
 //                    carries the question it was written to be the answer
 //                    to (the opportunity's asked-as form) and the search it
-//                    targets. Ranked by where that search stands for the
-//                    site, which the pass has already measured
-//                    (`ownRankedRows`) and does not buy again.
+//                    targets, with the page's stored reading: where it was
+//                    last seen and whether AI linked it.
 //   the misses       the site's own last `PAGE_QUESTION_RETIRE_WEEKS`
 //                    weekly reports, read for their `pageQuestions` section.
 //
@@ -34,6 +33,7 @@
 import { dbAdmin } from "@/lib/db";
 import { PAGE_QUESTION_RETIRE_WEEKS } from "@/lib/config/constants";
 import { classifyReferences } from "@/lib/measure/drivers";
+import { readingOf } from "@/lib/measure/page-reading";
 import { templateQuestion } from "@/lib/market/questions/template";
 import type { MissesByPage, PageQuestionCandidate } from "@/lib/market/questions/tracked";
 import { missesByPage } from "@/lib/market/questions/tracked";
@@ -69,7 +69,9 @@ interface LivePageRow {
   id: string;
   live_url: string | null;
   destination: string | null;
+  published_at: string | null;
   unpublished_at: string | null;
+  search_reading: unknown;
   drafts: {
     opportunities: { target_query: string | null; acceptance: unknown } | null;
   } | null;
@@ -88,12 +90,12 @@ interface LivePageRow {
  * the same form the calendar and the draft screen already state for such a
  * page (`askedAs`).
  *
- * **The place comes from `ownRankedRows`** — the ranked rows this pass has
- * already bought (§6.6's cold-start read), so knowing which pages are
- * nearest the first page costs nothing. `null` where the rows hold that
- * search nowhere: the site ranks nowhere we can see for it, which is not a
- * position of zero and not a reason to drop the page, because a page nobody
- * ranks for is exactly the page an AI answer might still name.
+ * **The place is the page's stored reading's**, else the ranked rows this
+ * pass has already bought (§6.6's cold-start read), so knowing where a page
+ * stands costs nothing. `null` where neither holds it: the site ranks
+ * nowhere we can see for it, which is not a position of zero and not a
+ * reason to drop the page, because a page nobody ranks for is exactly the
+ * page an AI answer might still name.
  *
  * **The order is not decided here.** These come back in the order the
  * database gave them; *which* of them are asked, and in what order, is
@@ -107,7 +109,7 @@ export async function pageQuestionCandidates(a: {
 }): Promise<readonly PageQuestionCandidate[]> {
   const { data, error } = await untyped()
     .from<LivePageRow>("publications")
-    .select("id, live_url, destination, unpublished_at, drafts(opportunities(target_query, acceptance))")
+    .select("id, live_url, destination, published_at, unpublished_at, search_reading, drafts(opportunities(target_query, acceptance))")
     .eq("site_id", a.siteId)
     .not("published_at", "is", null);
   if (error !== null || data === null) return [];
@@ -142,13 +144,16 @@ export async function pageQuestionCandidates(a: {
     const key = normalise(search);
     if (seen.has(key)) continue;
     seen.add(key);
+    const reading = readingOf(row.search_reading);
     candidates.push({
       publicationId: row.id,
       liveUrl:
         addressNow === null ? row.live_url : addressNow({ destination: row.destination, liveUrl: row.live_url }),
       question: askedAsOf(opportunity?.acceptance, search),
       search,
-      position: places.get(key) ?? null,
+      position: reading?.place?.value ?? places.get(key) ?? null,
+      publishedAt: row.published_at ?? null,
+      linked: (reading?.linkedBy ?? []).length > 0,
     });
   }
   return candidates;

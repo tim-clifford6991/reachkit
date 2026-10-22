@@ -2,8 +2,9 @@
 //
 // The SERP the product already buys carries the `ai_overview` item and its
 // per-domain `references` at 0¢ extra (§6.2) — one call, one ledger row,
-// both halves in one `SerpResult`. Depth 10 is fixed and the locale written
-// in `transport.ts`; `mode` is required (a scheduled caller cannot inherit
+// both halves in one `SerpResult`. Depth is 10 unless the caller names a
+// deeper read, billed per page of ten, and the locale is written in
+// `transport.ts`; `mode` is required (a scheduled caller cannot inherit
 // `live`).
 //
 // `loadAsyncAiOverview` is required, never defaulted (DECISIONS 2026-09-03,
@@ -12,9 +13,9 @@
 // no AI Overview from the SERP. An unflagged read whose AI Overview Google
 // loads after the page comes back with no sources; that overview is marked
 // `unread` here, never left to read as an answer that names nobody. A flagged call
-// **reserves** `ASYNC_AIO_SURCHARGE_MULTIPLIER` × the mode's base price and
-// **settles** the vendor's documented charge from the response — base
-// price where the `ai_overview` element is absent or carries
+// **reserves** the surcharge — one more base price, whatever the depth — and
+// **settles** the vendor's documented charge from the response — no
+// surcharge where the `ai_overview` element is absent or carries
 // `asynchronous_ai_overview: false`, the surcharge where it does not
 // ("all extra charges will be returned to your account balance"). The
 // vendor rule lives here; the cost seam stays generic.
@@ -38,7 +39,7 @@
 // passes `CACHE_WINDOWS_D.serp` or `.serpWeeklyRecheck` from its own
 // parameters.
 import type { CostContext } from "@/lib/costs";
-import { ASYNC_AIO_SURCHARGE_MULTIPLIER, PRICE_BOOK } from "@/lib/config/constants";
+import { ASYNC_AIO_SURCHARGE_MULTIPLIER, PRICE_BOOK, VENDOR } from "@/lib/config/constants";
 import type { Locale } from "@/lib/locale/locales";
 import { mapMeasured, type Measured } from "@/lib/measure/measured";
 import {
@@ -53,7 +54,7 @@ import {
   type EndpointPaths,
   type OnVendorFailure,
 } from "./envelope";
-import { placeCacheKey, type DataForSeoMode } from "./transport";
+import { placeCacheKey, type DataForSeoMode, type SerpDepth } from "./transport";
 import { AI_OVERVIEW_TEXT_MAX_CHARS, scopeKey, type CacheScope, type SerpAiOverview, type SerpOrganicRow, type SerpResult } from "./types";
 
 const ORGANIC = "/v3/serp/google/organic";
@@ -77,11 +78,16 @@ function basePriceCents(mode: DataForSeoMode, highPriority: boolean): number {
  *  task is charged when it is posted, surcharge included — the post's own
  *  `cost` said so on every one of the reads of 2026-10-08 (issue 1352) —
  *  so it settles at what it reserved, whatever came back. */
-function settledCents(base: number, mode: DataForSeoMode, rows: readonly SerpResult[] | null): number {
-  const surcharged = base * ASYNC_AIO_SURCHARGE_MULTIPLIER;
+function settledCents(base: number, pages: number, mode: DataForSeoMode, rows: readonly SerpResult[] | null): number {
+  const surcharged = surchargedCents(base, pages);
   if (mode === "std") return surcharged;
   const overview = rows?.[0]?.aiOverview;
-  return overview?.present && overview.asynchronousAiOverview ? surcharged : base;
+  return overview?.present && overview.asynchronousAiOverview ? surcharged : base * pages;
+}
+
+/** The vendor's surcharge is one base price per task, not per page of ten. */
+function surchargedCents(base: number, pages: number): number {
+  return base * (pages + ASYNC_AIO_SURCHARGE_MULTIPLIER - 1);
 }
 
 function parseAiOverview(item: Record<string, unknown>): SerpAiOverview {
@@ -215,20 +221,24 @@ export async function serpOrganic(
      *  (D61). It is then keyed apart, so it is never served a SERP stored
      *  before they were read, whose silence about them means nothing. */
     questions?: true;
+    /** A read deeper than `VENDOR.serpDepth`, for a page's own search. */
+    depth?: SerpDepth;
   }
 ): Promise<Measured<SerpResult>> {
   const highPriority = a.mode === "std" && a.priority === "high";
   const base = basePriceCents(a.mode, highPriority);
   const flagged = a.loadAsyncAiOverview;
+  const depth = a.depth ?? VENDOR.serpDepth;
+  const pages = Math.ceil(depth / 10);
   /** Issue 715: set only where the seam served this answer out of
    *  `fetches`, and then to the moment that row was bought. */
   let reusedFrom: Date | null = null;
   const rows = await ledgered<SerpResult>(c, {
     source: "serp/google/organic",
-    cacheKey: `${a.query}|${placeCacheKey(a.locale)}|aio:${flagged ? "async" : "cached"}|${scopeKey(a.scope)}${a.questions === true ? "|paa" : ""}`,
+    cacheKey: `${a.query}|${placeCacheKey(a.locale)}|aio:${flagged ? "async" : "cached"}|${scopeKey(a.scope)}${a.questions === true ? "|paa" : ""}${depth === VENDOR.serpDepth ? "" : `|depth:${depth}`}`,
     freshnessDays: a.freshnessDays,
-    costCents: flagged ? base * ASYNC_AIO_SURCHARGE_MULTIPLIER : base,
-    ...(flagged ? { settleCents: (r: readonly SerpResult[] | null) => settledCents(base, a.mode, r) } : {}),
+    costCents: flagged ? surchargedCents(base, pages) : base * pages,
+    ...(flagged ? { settleCents: (r: readonly SerpResult[] | null) => settledCents(base, pages, a.mode, r) } : {}),
     fetch: () =>
       callEndpoint(
         PATHS,
@@ -244,7 +254,8 @@ export async function serpOrganic(
         },
         a.abortMs,
         a.untilMs,
-        a.pollMs
+        a.pollMs,
+        a.depth
       ),
     parse: parseSerp,
     ...(a.onFailure ? { onFailure: a.onFailure } : {}),

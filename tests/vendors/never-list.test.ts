@@ -123,12 +123,12 @@ describe('BP-008 decision 1 — "a generic dataforseo(endpoint, params) with a r
   // signature that *did* admit one of these would make the directive
   // "unused" and fail typecheck on its own — see this file's header note.
   function _noSignatureAdmitsForbiddenArguments(): void {
-    // depth — SERP depth is fixed to 10 inside transport.ts, never a
-    // caller argument, on every one of the six functions.
+    // depth — a SERP is read in whole pages of ten up to a hundred, and no
+    // other function takes a depth at all.
     // @ts-expect-error — rankedKeywords admits no `depth`.
     void dataforseo.rankedKeywords(null as never, { domain: "x", rows: 50, depth: 20 });
-    // @ts-expect-error — serpOrganic admits no `depth`.
-    void dataforseo.serpOrganic(null as never, { query: "x", mode: "std", loadAsyncAiOverview: false, depth: 20 });
+    // @ts-expect-error — serpOrganic admits no depth past a hundred.
+    void dataforseo.serpOrganic(null as never, { query: "x", mode: "std", loadAsyncAiOverview: false, locale: { country: "US", language: "en" }, scope: { site: "s" }, freshnessDays: 7, depth: 700 });
 
     // search operators — a raw query-operator string (site:, intitle:, etc.)
     // has no dedicated parameter anywhere on the six functions; the only

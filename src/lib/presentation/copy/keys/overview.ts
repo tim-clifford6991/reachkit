@@ -1098,8 +1098,8 @@ export const OVERVIEW_COPY = Object.freeze({
     { slots: {}, fixedBy: "SPEC §4 2026-10-10 · issue 1395 (drafted)" },
   ],
   "overview.done.measured": [
-    "Measured {searches} searches in Google and {questions} AI questions ({engines}, each asked {runs} times) · {at}",
-    { slots: { searches: "text", questions: "text", engines: "text", runs: "text", at: "text" }, fixedBy: "SPEC §4 2026-10-10 · issue 1395 (drafted)" },
+    "Measured {searches} searches in Google and {questions} AI questions ({engines}) · {at}",
+    { slots: { searches: "text", questions: "text", engines: "text", at: "text" }, fixedBy: "SPEC §4 2026-10-10 · issue 1395 (drafted)" },
   ],
   "overview.done.measured.searches": [
     "Measured {searches} searches in Google · {at}",

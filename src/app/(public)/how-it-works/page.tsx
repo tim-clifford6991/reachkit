@@ -367,7 +367,7 @@ export default function HowItWorksPage(): React.JSX.Element {
           detail={
             <Detail>
               <p>{copy("how.measure.search", { searches: F.searches })}</p>
-              <p>{copy("how.measure.ai", { engines: copy(ENGINES_NAMED), prompts: F.prompts, runs: F.runs })}</p>
+              <p>{copy("how.measure.ai", { engines: copy(ENGINES_NAMED), prompts: F.prompts, weeks: F.answerWeeks })}</p>
               <p>{copy("how.measure.named")}</p>
               <p className="text-base-content font-semibold">{copy("how.measure.limits")}</p>
               <ul className={LIST}>

@@ -68,6 +68,7 @@ import { generatePrompts, promptSiteName } from "@/lib/market/prompts/generate";
 import { nextPromptSet, settlePrechecks, type TrackedPrompt } from "@/lib/market/prompts/set";
 import type { BatteryAnswers } from "@/lib/market/questions/matrix";
 import {
+  slotDepth,
   trackedQuestions,
   type PageQuestionCandidate,
 } from "@/lib/market/questions/tracked";
@@ -93,7 +94,7 @@ import { trackedRivals } from "@/lib/market/rivals/tracked";
 import type { MarketSerp } from "@/lib/market/views";
 import { freePageOf } from "@/lib/opportunities/free-page";
 import { DEFAULT_LOCALE, type Locale, type Place } from "@/lib/locale/locales";
-import { localSearch, placeCandidates, placeOf, statedPlace as statedPlaceOf, type PlaceFrom } from "@/lib/locale/place";
+import { askedIn, localSearch, placeCandidates, placeOf, statedPlace as statedPlaceOf, type PlaceFrom } from "@/lib/locale/place";
 import { readStoredLocale, writeSiteLocale } from "@/lib/locale/site";
 import { aiPresenceOf, aiSampleOf, BOT_PROTECTION, classifyReferences, localPackSearches, measureDomain, searchPresenceOf, withMeasuredPages, type DomainMeasurement } from "@/lib/measure";
 import { aiPresenceRangeOf } from "@/lib/measure/drivers";
@@ -2828,8 +2829,9 @@ async function askTheMarketPrompts(a: StageArgs): Promise<void> {
  *
  * The set is the site's own (`sites.tracked_prompts`): built from the
  * market in force the first time, kept after that, and rotated only as
- * `nextPromptSet` allows. Every prompt is asked of both engines
- * `TRACKED_PROMPTS.RUNS` times, all at once — a standard-queue ask costs
+ * `nextPromptSet` allows. Every prompt is asked of both engines, an
+ * unbranded one `TRACKED_PROMPTS.RUNS` times and a branded one
+ * `TRACKED_PROMPTS.BRANDED_RUNS` times, all at once — a standard-queue ask costs
  * its wait whether one is queued or a hundred (#1160) — and each run has
  * its own cache key, so the second is a second answer and not the first
  * served again.
@@ -2938,7 +2940,7 @@ async function askTheTrackedPrompts(a: StageArgs): Promise<void> {
     const asks: Promise<void>[] = [];
     for (const prompt of set.prompts) {
       for (const engine of PROMPT_ENGINES) {
-        for (let run = 1; run <= TRACKED_PROMPTS.RUNS; run += 1) asks.push(askOne(prompt, engine, run));
+        for (let run = 1; run <= runsOf(prompt); run += 1) asks.push(askOne(prompt, engine, run));
       }
     }
     await Promise.all(asks);
@@ -2961,7 +2963,7 @@ async function askTheTrackedPrompts(a: StageArgs): Promise<void> {
     sections.prompts = {
       siteName,
       asked: settled.prompts.map((prompt) => ({ id: prompt.id, kind: prompt.kind, text: prompt.text })),
-      asks: settled.prompts.length * PROMPT_ENGINES.length * TRACKED_PROMPTS.RUNS,
+      asks: settled.prompts.reduce((sum, prompt) => sum + PROMPT_ENGINES.length * runsOf(prompt), 0),
       ...(settled.rebuiltAt === undefined ? {} : { restartedAt: settled.rebuiltAt }),
       answers: answers
         .filter((answer) => kept.has(answer.promptId))
@@ -3008,11 +3010,14 @@ async function askTheTrackedPrompts(a: StageArgs): Promise<void> {
  *
  * At a tier that asks none, on a pass with no site, and on a site with no
  * live page, it returns having bought nothing and leaves the section
- * `null`. Per question, at the standard queue's prices: one SERP
- * (`SERP_STD_C` 0.06¢) plus ChatGPT (`CHATGPT_SCRAPE_STD_C` 0.12¢) and AI
- * Mode (`AI_MODE_STD_C` 0.12¢) — 0.3¢, so a full twelve is 3.6¢ against
- * `CAPS.WEEKLY_C`'s 40¢, and the figure does not move with how many pages
- * the customer has published, which is the cap's whole purpose.
+ * `null`. Per question, at the standard queue's prices: one SERP read to
+ * `slotDepth` (`SERP_STD_C` 0.06¢ a page of ten, 0.66¢ at a hundred with the
+ * AI Overview's one surcharge) plus ChatGPT (`CHATGPT_SCRAPE_STD_C` 0.12¢)
+ * and AI Mode (`AI_MODE_STD_C` 0.12¢) — at most 0.9¢. Only the first twelve
+ * slots read deep; a thin market's slots past them read ten (0.36¢), so the
+ * most is 10.8¢ + 4.32¢ against `CAPS.WEEKLY_C`'s 40¢, and the figure does
+ * not move with how many pages the customer has published, which is the
+ * cap's whole purpose.
  */
 async function askThePageQuestions(a: StageArgs, abandoned: () => boolean): Promise<void> {
   const { bounds, parameters, sections, siteId } = a;
@@ -3027,7 +3032,7 @@ async function askThePageQuestions(a: StageArgs, abandoned: () => boolean): Prom
   ]);
   if (candidates.length === 0) return;
 
-  const tracked = trackedQuestions({ selected, candidates, misses });
+  const tracked = trackedQuestions({ selected, candidates, misses, now: a.startedAt });
   logPageQuestions({
     candidates: candidates.length,
     asking: tracked.asked.length,
@@ -3079,9 +3084,10 @@ async function askThePageQuestions(a: StageArgs, abandoned: () => boolean): Prom
             freshnessDays: serpWindowOf(a),
             abortMs: serpAbortFor(bounds, parameters),
             untilMs: untilCeiling(bounds, parameters),
+            depth: slotDepth(candidate, i),
           })
         ),
-        askTheBattery(a, candidate.search, at, engines),
+        askTheBattery(a, askedIn(candidate.question, localeOfPass(a).place), at, engines),
       ]);
       // The same seal the twelve are written under: a late answer is kept,
       // and a composed report is never written into.
@@ -3094,6 +3100,11 @@ async function askThePageQuestions(a: StageArgs, abandoned: () => boolean): Prom
   await Promise.all(
     Array.from({ length: Math.min(parameters.serpFanout, tracked.asked.length) }, () => buyOne())
   );
+}
+
+/** How many times each engine asks a tracked prompt in one pass. */
+function runsOf(prompt: TrackedPrompt): number {
+  return prompt.kind === "branded" ? TRACKED_PROMPTS.BRANDED_RUNS : TRACKED_PROMPTS.RUNS;
 }
 
 /** One line per pass over the page questions (#919): how many pages could

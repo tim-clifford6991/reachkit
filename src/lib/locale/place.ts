@@ -300,3 +300,12 @@ export function placeCandidates(signals: PlaceSignals): PlaceCandidate[] {
   if (written !== null) out.push({ place: written, from: "address_text" });
   return out;
 }
+
+/** A page's question as a buyer in the place would ask it: "… in Austin?"
+ *  where the question names no place and does not say "near me". */
+export function askedIn(question: string, place: Place | undefined): string {
+  if (place === undefined || isLocalSearch(question, place)) return question;
+  const said = question.trim();
+  const body = said.replace(/\s*\?+$/, "");
+  return `${body} in ${place.name}${body.length < said.length ? "?" : ""}`;
+}

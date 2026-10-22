@@ -3,10 +3,11 @@
 // and how the set stays the size it promised to be.
 //
 // "Each published page's own question may join the tracked set: **at most
-// 24 tracked questions in all** (the twelve plus twelve), the twelve page
-// questions being those whose pages rank nearest the first page, and a
-// page's question leaves the set after **8 weeks** without a mention. The
-// set never grows past the cap, so its cost is flat."
+// 24 tracked questions in all** (the twelve plus twelve) … and a page's
+// question leaves the set after **8 weeks** without a mention. The set never
+// grows past the cap, so its cost is flat." The page slots go to the pages
+// due a reading first, newest first, then to pages climbing at 11–30, then
+// to pages AI linked (owner B2 and D2, 2026-10-19).
 //
 // **The cap is the feature.** The owner's worry was a set that grows with
 // every page published — a site with thirty live pages costing fifteen
@@ -25,7 +26,8 @@
 // ever had, in the reports that recorded them; what it loses is its slot.
 // Nothing here writes anything, and no caller may read "retired" as "drop
 // the history".
-import { PAGE_QUESTION_RETIRE_WEEKS, TRACKED_QUESTIONS_MAX } from "@/lib/config/constants";
+import { BATTERY, PAGE_QUESTION_READ, PAGE_QUESTION_RETIRE_WEEKS, TRACKED_QUESTIONS_MAX, VENDOR } from "@/lib/config/constants";
+import type { SerpDepth } from "@/lib/vendors/dataforseo/transport";
 
 /** One published page that could carry a tracked question. */
 export interface PageQuestionCandidate {
@@ -40,10 +42,13 @@ export interface PageQuestionCandidate {
   /** The search the page targets, carried so a row can say what the page
    *  is for without a second read. */
   search: string;
-  /** Where the page ranks for that search, as the pass measured it.
-   *  `null` where it ranks nowhere the pass could see — those pages are
-   *  candidates too, and they queue behind every page that does rank. */
+  /** Where the page was last seen for that search: its stored reading's
+   *  place, else the site's ranked rows. `null` where it was seen nowhere. */
   position: number | null;
+  /** When the page went live; `null` where the row does not say. */
+  publishedAt: string | null;
+  /** An AI answer to the page's own question linked it at its last reading. */
+  linked: boolean;
 }
 
 /** How many consecutive weekly passes have asked this page's question and
@@ -51,7 +56,7 @@ export interface PageQuestionCandidate {
 export type MissesByPage = ReadonlyMap<string, number>;
 
 export interface TrackedQuestions {
-  /** The page questions this pass asks, best-ranked first. */
+  /** The page questions this pass asks, in slot order. */
   asked: readonly PageQuestionCandidate[];
   /** The candidates whose question has run out of weeks. They keep their
    *  history; what they lose is the slot. */
@@ -65,13 +70,53 @@ export interface TrackedQuestions {
   tracked: number;
 }
 
-/** Nearest the first page first; a page that ranks nowhere queues behind
- *  every page that ranks, and ties break on the publication id so two
- *  passes over the same data ask the same questions in the same order. */
-function nearestFirst(a: PageQuestionCandidate, b: PageQuestionCandidate): number {
-  const left = a.position ?? Number.MAX_SAFE_INTEGER;
-  const right = b.position ?? Number.MAX_SAFE_INTEGER;
-  return left - right || a.publicationId.localeCompare(b.publicationId);
+const WEEK_MS = 7 * 86_400_000;
+
+/** Whole weeks since the page went live, or `null` where that is unknown. */
+function weeksLive(candidate: PageQuestionCandidate, now: Date): number | null {
+  const at = candidate.publishedAt === null ? Number.NaN : Date.parse(candidate.publishedAt);
+  return Number.isNaN(at) ? null : Math.floor(Math.max(0, now.getTime() - at) / WEEK_MS);
+}
+
+/** The slot tier: due this week, then climbing, then linked, then the rest. */
+function tierOf(candidate: PageQuestionCandidate, now: Date): number {
+  const weeks = weeksLive(candidate, now);
+  if (weeks !== null && (PAGE_QUESTION_READ.DUE_WEEKS as readonly number[]).includes(weeks)) return 0;
+  const { from, to } = PAGE_QUESTION_READ.CLIMBING;
+  if (candidate.position !== null && candidate.position >= from && candidate.position <= to) return 1;
+  return candidate.linked ? 2 : 3;
+}
+
+/** Due pages newest first; every other tier nearest the first page first.
+ *  Ties break on the publication id so two passes over the same data ask
+ *  the same questions in the same order. */
+function slotOrder(now: Date): (a: PageQuestionCandidate, b: PageQuestionCandidate) => number {
+  return (a, b) => {
+    const tier = tierOf(a, now) - tierOf(b, now);
+    if (tier !== 0) return tier;
+    if (tierOf(a, now) === 0) {
+      const newer = (b.publishedAt ?? "").localeCompare(a.publishedAt ?? "");
+      if (newer !== 0) return newer;
+    }
+    const left = a.position ?? Number.MAX_SAFE_INTEGER;
+    const right = b.position ?? Number.MAX_SAFE_INTEGER;
+    return left - right || a.publicationId.localeCompare(b.publicationId);
+  };
+}
+
+/** The asked slots read deep; past them a thin market's extra slots read one
+ *  page of ten, so the weekly spend stays flat whatever the market selects. */
+const DEEP_SLOTS = TRACKED_QUESTIONS_MAX - BATTERY.QUESTIONS;
+
+/** How deep a page's own result is read: all the way until it is seen, then
+ *  a page of ten past where it was last seen, never shallower than the
+ *  verdict's own line. `slot` is its place among the asked, from 0. */
+export function slotDepth(candidate: Pick<PageQuestionCandidate, "position">, slot: number): SerpDepth {
+  if (slot >= DEEP_SLOTS) return VENDOR.serpDepth;
+  const { DEPTH_MAX, DEPTH_MIN, DEPTH_PAST } = PAGE_QUESTION_READ;
+  if (candidate.position === null) return DEPTH_MAX;
+  const depth = Math.ceil((candidate.position + DEPTH_PAST) / 10) * 10;
+  return Math.min(DEPTH_MAX, Math.max(DEPTH_MIN, depth)) as SerpDepth;
 }
 
 /**
@@ -90,6 +135,8 @@ export function trackedQuestions(a: {
   selected: number;
   candidates: readonly PageQuestionCandidate[];
   misses: MissesByPage;
+  /** The pass's own clock, which decides the pages due this week. */
+  now: Date;
   /** Both pins are parameters with the pin as the default, so the
    *  arithmetic can be driven at its edges by a test without either
    *  number becoming a setting: no caller in `src/` passes them. */
@@ -102,7 +149,7 @@ export function trackedQuestions(a: {
 
   const retired: PageQuestionCandidate[] = [];
   const live: PageQuestionCandidate[] = [];
-  for (const candidate of [...a.candidates].sort(nearestFirst)) {
+  for (const candidate of [...a.candidates].sort(slotOrder(a.now))) {
     const missed = a.misses.get(candidate.publicationId) ?? 0;
     if (missed >= retireAfter) retired.push(candidate);
     else live.push(candidate);

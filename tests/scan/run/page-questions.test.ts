@@ -32,6 +32,7 @@ import {
   BATTERY as BATTERY_PINS,
   PAGE_QUESTION_RETIRE_WEEKS,
   TRACKED_QUESTIONS_MAX,
+  VENDOR,
 } from "../../../src/lib/config/constants";
 import type { DomainMeasurement } from "../../../src/lib/measure";
 import type { StoredReport } from "../../../src/lib/scan/report";
@@ -129,11 +130,12 @@ function publicationRow(n: number): Record<string, unknown> {
   };
 }
 
-/** The customer's own ranked rows, which is where "nearest the first page"
- *  is read from — page 1 at position 1, page 30 at position 30. */
+/** The customer's own ranked rows, which is where a page with no reading yet
+ *  is placed from — page 1 at position 11, page 30 at position 40, so pages
+ *  1 to 20 are climbing at 11–30 in their own order. */
 const OWN_RANKED_ROWS: RankedRow[] = Array.from({ length: LIVE_PAGES }, (_, i) => ({
   keyword: searchOf(i + 1),
-  position: i + 1,
+  position: i + 11,
   searchVolume: 200,
   url: `https://content.example.com/page-${i + 1}`,
 }));
@@ -267,7 +269,7 @@ describe("SPEC §6 — with 30 live pages the pass still asks exactly 24 questio
     expect(report.pageQuestions?.cap).toBe(TRACKED_QUESTIONS_MAX);
   });
 
-  it("asks the pages nearest the first page, in that order, after every one of the twelve", async () => {
+  it("asks the pages climbing at 11–30, nearest first, after every one of the twelve", async () => {
     await runScan({ domain: DOMAIN, siteId: SITE_ID, scanId: CLAIMED_ID, tier: "weekly" });
 
     const queries = askedQueries();
@@ -296,6 +298,71 @@ describe("SPEC §6 — with 30 live pages the pass still asks exactly 24 questio
       expect(serpOrganic, `${pages} live pages`).toHaveBeenCalledTimes(BATTERY_PINS.QUESTIONS + expected);
       expect(storedReport().pageQuestions?.rows ?? []).toHaveLength(expected);
     }
+  });
+});
+
+describe("owner B2 — each page slot's result is read deep enough to see the page", () => {
+  /** The page slots' SERP calls, after the twelve's. */
+  const pageCalls = () =>
+    (serpOrganic.mock.calls as unknown as [unknown, { query: string; depth?: number }][]).map((call) => call[1]).slice(BATTERY_PINS.QUESTIONS);
+
+  it("a page seen nowhere yet is read 100 deep, and its stored row says so", async () => {
+    measureDomain.mockResolvedValue({ ...MEASUREMENT, ownRankedRows: [] });
+    await runScan({ domain: DOMAIN, siteId: SITE_ID, scanId: CLAIMED_ID, tier: "weekly" });
+
+    expect(pageCalls().map((call) => call.depth)).toEqual(Array(BATTERY_PINS.QUESTIONS).fill(100));
+    // The twelve keep the ten-deep read.
+    const twelve = (serpOrganic.mock.calls as unknown as [unknown, { depth?: number }][]).slice(0, BATTERY_PINS.QUESTIONS);
+    expect(twelve.every((call) => call[1].depth === undefined)).toBe(true);
+    expect(storedReport().pageQuestions?.rows.map((row) => row.depth)).toEqual(Array(BATTERY_PINS.QUESTIONS).fill(100));
+  });
+
+  it("a page last seen at 64 is read 80 deep, and one at 11 is read 30 deep", async () => {
+    livePages = 2;
+    measureDomain.mockResolvedValue({ ...MEASUREMENT, ownRankedRows: [OWN_RANKED_ROWS[0], { ...OWN_RANKED_ROWS[1], position: 64 }] });
+    await runScan({ domain: DOMAIN, siteId: SITE_ID, scanId: CLAIMED_ID, tier: "weekly" });
+    expect(pageCalls().map((call) => [call.query, call.depth])).toEqual([
+      [searchOf(1), 30],
+      [searchOf(2), 80],
+    ]);
+  });
+
+  it("a thin market's slots past the first twelve read ten deep and say so, so the weekly spend stays flat", async () => {
+    measureDomain.mockResolvedValue({ ...MEASUREMENT, ownRankedRows: [] });
+    phraseQuestions.mockResolvedValue(measured(TWELVE.slice(0, 4), AT));
+    await runScan({ domain: DOMAIN, siteId: SITE_ID, scanId: CLAIMED_ID, tier: "weekly" });
+
+    const deep = TRACKED_QUESTIONS_MAX - BATTERY_PINS.QUESTIONS;
+    const rows = storedReport().pageQuestions?.rows ?? [];
+    expect(rows).toHaveLength(TRACKED_QUESTIONS_MAX - 4);
+    const depthOf = new Map(
+      (serpOrganic.mock.calls as unknown as [unknown, { query: string; depth?: number }][]).map((call) => [call[1].query, call[1].depth])
+    );
+    expect(rows.map((row) => depthOf.get(row.question.search))).toEqual([
+      ...Array(deep).fill(100),
+      ...Array(rows.length - deep).fill(VENDOR.serpDepth),
+    ]);
+    expect(rows.map((row) => row.depth)).toEqual([...Array(deep).fill(100), ...Array(rows.length - deep).fill(VENDOR.serpDepth)]);
+  });
+});
+
+describe("a page's own question is put to the engines as a buyer asks it (owner B2)", () => {
+  /** The queries ChatGPT was asked: on a weekly pass, only the page questions. */
+  const chatgptAsked = () => (llmScraper.mock.calls as unknown as [unknown, { query: string }][]).map((call) => call[1].query);
+
+  it("asks the page's own question, never its search", async () => {
+    livePages = 2;
+    await runScan({ domain: DOMAIN, siteId: SITE_ID, scanId: CLAIMED_ID, tier: "weekly" });
+    expect(chatgptAsked()).toEqual(["Is page 1 the answer?", "Is page 2 the answer?"]);
+  });
+
+  it("a local placed site asks it with its town", async () => {
+    livePages = 2;
+    measureDomain.mockResolvedValue({ ...MEASUREMENT, locale: { country: "US", language: "en", place: { name: "Austin" } } });
+    await runScan({ domain: DOMAIN, siteId: SITE_ID, scanId: CLAIMED_ID, tier: "weekly" });
+    expect(chatgptAsked()).toEqual(["Is page 1 the answer in Austin?", "Is page 2 the answer in Austin?"]);
+    const aiModeAsked = (aiMode.mock.calls as unknown as [unknown, { query: string }][]).map((call) => call[1].query);
+    expect(aiModeAsked).toEqual(chatgptAsked());
   });
 });
 

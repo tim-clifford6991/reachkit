@@ -298,7 +298,7 @@ export const CHROME_COPY = Object.freeze({
   "how.rivals.absent": ["{business}: not mentioned", { slots: { business: "text" }, fixedBy: "issue 1597 · drafted" }],
   "how.rivals.tally": ["Mentioned in {n} of {total} AI answers", { slots: { n: "text", total: "text" }, fixedBy: "issue 1597 · drafted" }],
   "how.measure.search": ["We keep track of {searches} Google searches that buyers in your market make, and record who is on Google’s first page for each.", { slots: { searches: "text" }, fixedBy: "issue 1597 · drafted" }],
-  "how.measure.ai": ["Every Monday we ask {engines} the {prompts} questions a buyer in your market would ask. We ask each one {runs} times, because AI answers change from one time to the next.", { slots: { engines: "text", prompts: "text", runs: "text" }, fixedBy: "issue 1597 · drafted" }],
+  "how.measure.ai": ["Every Monday we ask {engines} the {prompts} questions a buyer in your market would ask. AI answers change from one time to the next, so we count {weeks} weeks of answers together.", { slots: { engines: "text", prompts: "text", weeks: "text" }, fixedBy: "issue 1597 · drafted" }],
   "how.measure.engines": ["Google AI Mode and ChatGPT", { slots: {}, fixedBy: "issue 1597 · drafted" }],
   "how.measure.named": ["An answer can mention you without linking to you, so we count mentions and links separately.", { slots: {}, fixedBy: "issue 1597 · drafted" }],
   "how.measure.limits": ["What this doesn’t tell you", { slots: {}, fixedBy: "issue 1597 · drafted" }],

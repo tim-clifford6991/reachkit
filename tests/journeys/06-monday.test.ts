@@ -640,11 +640,11 @@ describe("Monday: the week is re-measured, judged, and told (JN-005)", () => {
       const sources = new Set(rows.map((row) => row.source));
       expect(sources).toContain("ai_optimization/chat_gpt/llm_scraper");
       expect(sources).toContain("serp/google/ai_mode");
-      // D19 (issue 1162): the site's 25 tracked buyer prompts, each asked
-      // on both engines twice — a hundred asks, every one under the cap.
+      // D19 and B2: the site's 23 unbranded prompts asked once and its 2
+      // branded prompts twice on both engines — 54 asks, every one under the cap.
       const asks = rows.filter((row) => row.source !== "serp/google/organic" && row.source.includes("/"));
-      expect(asks.filter((row) => row.source === "ai_optimization/chat_gpt/llm_scraper")).toHaveLength(50);
-      expect(asks.filter((row) => row.source === "serp/google/ai_mode")).toHaveLength(50);
+      expect(asks.filter((row) => row.source === "ai_optimization/chat_gpt/llm_scraper")).toHaveLength(27);
+      expect(asks.filter((row) => row.source === "serp/google/ai_mode")).toHaveLength(27);
 
       // Once, and the claim is what makes it so: the row carries the week,
       // and a second tick inside the same week is refused before any spend.
