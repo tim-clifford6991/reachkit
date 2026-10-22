@@ -173,6 +173,10 @@ what stops an out-of-order redelivery taking access from somebody who has it).
 Deleting the account instead does all three properly — the vendor is stopped first, then the gate
 moves — but it also purges the customer's data, which a refund does not ask for.
 
+Once #1707 is live, a cancel in Settings within 14 days of the first payment refunds
+automatically, once per web address, and ends access at once (D4). The live-payment test (#1042)
+should refund through that path; the three manual acts above remain the fallback.
+
 ---
 
 ## 2. Mail
@@ -213,7 +217,7 @@ source aligns. That is #1048. It is `later`, not on the Launch milestone: `p=non
 | The seam that reads it | **[protected], and it fails closed.** `sendEmail` consults exactly one store, chosen by the sending kind's own register row. With no store wired, the reader answers `unreadable` and the mail is **not** sent — "we cannot tell" is never treated as "not opted out". |
 | The opt-out link in the body | **[protected].** Four kinds carry it — `first-page`, `first-page-unavailable`, `nurture`, `win-back` — as an absolute `https://reachkit.app/opt-out/{token}`, signed over the normalised address, with no expiry encoded, applying on arrival. |
 | **The `List-Unsubscribe` headers** | **Missing. Fixed in #889.** The Resend request carried `from`, `to`, `subject` and the two bodies and **no headers at all**, so no mail this product has ever sent could be unsubscribed from by a mail client's own control — only by finding the link in the body. Now every mail carrying a stop control also carries `List-Unsubscribe: <https://reachkit.app/api/opt-out/{token}>` and `List-Unsubscribe-Post: List-Unsubscribe=One-Click`, and `POST /api/opt-out/{token}` applies the same token to the same store on that one POST, with no session and no confirmation (RFC 8058). A mail with no stop control — the sign-in link is the credential — sends neither header. |
-| The three per-kind toggles | **A gap, and it is the owner's call, not a defect.** `weekly`, `published` and `draft-ready` are stopped by the customer's own switches in Settings and carry **no** stop control in the mail: `unsubscribeTokenFor` has no caller and there is no `/unsubscribe/{token}` route. Those three go only to paying, signed-in customers who can reach Settings, so no bulk-sender rule is broken — but a reader who presses their client's Unsubscribe on a Monday digest will find nothing there. Wiring it is one route and one call site over the token module that already exists; it is left out of #889 because #889 does not widen. |
+| The three per-kind toggles | **A gap, and it is the owner's call, not a defect.** `weekly`, `published` and `draft-ready` are stopped by the customer's own switches in Settings and carry **no** stop control in the mail: `unsubscribeTokenFor` has no caller and there is no `/unsubscribe/{token}` route. Those three go only to paying, signed-in customers who can reach Settings, so no bulk-sender rule is broken — but a reader who presses their client's Unsubscribe on a Monday digest will find nothing there. Wiring it is one route and one call site over the token module that already exists; it is left out of #889 because #889 does not widen. `weekly`: #1741 Condition 4 adds the signed unsubscribe link and `List-Unsubscribe`; still open until #1741 is accepted. |
 
 Nothing above merges the two mechanisms, and nothing may: an address-wide unsubscribe that reached
 `magic-link` would lock a paying customer out of the product with no recovery channel.
@@ -244,14 +248,20 @@ Everything else that must be true before a stranger pays. **This table is the on
 | 1 | **Stripe is live** | Half done. Production is on live Stripe (§1.1, checked 2026-10-02), but no live payment has completed. Open: the Customer emails setting (§1.3 step 7), one real payment, which also proves the webhook secret (§1.6), and its refund (§1.7). **#1042**, `blocked-on-owner`. | **[owner]** |
 | 2 | **Mail reaches a real inbox** | Rendering is done (#339, closed 2026-09-22, §2.3). DMARC is published, report-only (#1043, closed 2026-09-23, §2.1). Tightening to `p=quarantine` is #1048 and is not on the launch queue. | **[protected]**, except #1048 |
 | 3 | **The legal pages carry real bodies** | `/privacy` and `/terms` have full written bodies. All three still carry `[[imprint: owner fills legal entity, address, VAT id]]`, and `/imprint` is little more than that placeholder. The same placeholder was in the footer of the mail the owner read on 2026-09-22. **#335**, `blocked-on-owner`. | **[owner]** |
-| 4 | **There is a way back from data loss** | The recovery runbook is written and roll-forward-only is the ruling (#887, closed). The project is still on the Supabase Free plan: **no PITR and no recorded restore drill**. **#334**, on the Launch milestone, not `later`. The procedure is `docs/RUNBOOK.md` §9. | **[owner]** |
+| 4 | **There is a way back from data loss** | **Accepted risk for the first rollout** (owner R18, 2026-10-22): Supabase Free, no PITR and no restore drill. Migrations are expand-only; data fixes are reversible and reviewed by release-qa; recovery is roll-forward (`docs/RUNBOOK.md` §9). #334 is closed as not planned and is reopened before scale. | — (ruled) |
 | 5 | **A hosted page is reachable on the internet** | **Done 2026-10-02 (#1045).** The publish chain was proved with doubles first (#888, closed). On 2026-10-02 the dogfood's hosted host became `content.reachkit.app` (owner ruling, `docs/RUNBOOK.md` §2). It was attached by the product's own Check on production, with a team-scoped `VERCEL_API_TOKEN` and `VERCEL_TEAM_ID` (#1167). The attach line at 20:00:25 UTC is `{"host":"api.vercel.com","status":200}`. The project's domain list shows `content.reachkit.app` verified, and the destination row reads `live`. `curl -sI https://content.reachkit.app/` answers `200`. The hosted index, titled "Articles · reachkit.app", lists the dogfood's three live pages, and each answers `200`. | **[protected]** |
 | 6 | **One site cannot spend the whole product's day** | **[protected].** The per-site cap and the free-scan bounds are on `main` (#885, closed). The numbers are drafted defaults the owner may correct; that correction is not an open defect. | — |
 | 7 | **A paying customer can get in** | A magic link was walked on `dev.reachkit.app` on 2026-09-22: it arrived, signed in, and a second use was refused (#542, closed). Dev and production share one Supabase project and one sending domain. The production host has not been walked; that is part of **#1044**. The mail's "15 minutes" sentence was wrong and is fixed on `main` (#1019, #1014, both closed by #1022). | **[owner]** for the production host |
 | 8 | **No `TODO(copy)` renders on the paying path** | **[protected].** No registry value is the marker (`TODO_COPY_MARKER` remains the string the audit refuses). `sendEmail` refuses a mail that contains it. | — |
+| 9 | **The buyer consents and the Terms match the offer** | PR #1641 (#1590) after the Stripe Terms URL (#1663); #1795 (Terms §1/§4/§5, the 14-day refund) with #1707. | **[code]** + **[owner]** #1663 |
+| 10 | **Every screen on the paying path matches its board** | `/root/projects/reports/golive-map-2026-10-22.md` Part 3 A3; CI parity is 0 on each Must board. | **[code]** |
 
-The open Launch issues are the rows still marked not done: #1045, #1042, #335, #334, #1044, and #1025
-while the Round 7 sign-in split is still the screen the walk waits on.
+Vercel Hobby for the first rollout (R18): Hobby's commercial-use clause is an owner-accepted risk;
+at most 100 API deploys per rolling day, with production batched every 2 h. Vercel Pro (#1632) is
+closed as not planned and is not a precondition to sell.
+
+The open Launch issues are the rows still marked not done: #1042, #335, #1663, #1590, #1044, and
+the A3 parity issues in the go-live map.
 
 The stranger walk itself (#1044) is prepared in `docs/walk/README.md`: the tester's script, the
 findings form, what to watch in production, the refund as a runbook, and which of the rows above
