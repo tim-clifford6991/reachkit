@@ -200,13 +200,13 @@ export async function sendDraftReadyMail(a: {
 
   // A switched-off mail must never hold the page it would have announced.
   if (!result.sent && result.reason === "preference-off") {
-    await recordTold(a.draftId, telling, draft.governing, at);
+    await recordTold(a.draftId, telling, draft.governing, at, false);
     return { sent: false, reason: "preference-off" };
   }
   if (!result.sent) return { sent: false, reason: "mail" };
 
   // After, and only after. See the module header.
-  await recordTold(a.draftId, telling, draft.governing, at);
+  await recordTold(a.draftId, telling, draft.governing, at, true);
   return { sent: true, id: result.id };
 }
 

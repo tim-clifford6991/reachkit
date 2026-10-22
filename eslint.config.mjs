@@ -3,7 +3,7 @@
 // Flat config extending `next/core-web-vitals` + `@typescript-eslint`.
 // BP-001 decision 2: "`eslint.config.mjs` is where the corpus's
 // cross-module lint invariants land," and this node is answerable for
-// them. Seven project rules below, each with a comment naming its source.
+// them. Each project rule below carries a comment naming its source.
 //
 // ADR-050's other half is not recast here (WO-001 step 3, verbatim):
 // "'Computes no access predicate' is not a lexical property an import rule
@@ -11,7 +11,11 @@
 // hand-rolled `paid_through > now()` comparison in a job body and would
 // read, in CI, exactly like a rule that holds." That half stays ADR-050
 // point 4's three mutation tests in `tests/account/billing/`.
+import { existsSync, readFileSync, statSync } from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import nextConfig from "eslint-config-next";
+import ts from "typescript";
 import tseslint from "typescript-eslint";
 
 /**
@@ -175,6 +179,215 @@ const dailyReadsCommit = {
   },
 };
 
+/**
+ * A rule over the file's text, for a guard that is a property of the text
+ * and not of one node. `code: true` blanks comments first, so prose may
+ * name what code may not.
+ *
+ * @param {{ pattern: RegExp, message: string, code?: boolean }[]} fences
+ */
+function textFenceRule(fences) {
+  return {
+    meta: { type: "problem", docs: { description: fences.map((f) => f.message).join(" ") } },
+    create(context) {
+      return {
+        Program(node) {
+          const source = context.sourceCode;
+          let codeOnly;
+          for (const { pattern, message, code } of fences) {
+            if (code && codeOnly === undefined) {
+              codeOnly = source.text;
+              for (const c of source.getAllComments()) {
+                codeOnly = codeOnly.slice(0, c.range[0]) + " ".repeat(c.range[1] - c.range[0]) + codeOnly.slice(c.range[1]);
+              }
+            }
+            const match = pattern.exec(code ? codeOnly : source.text);
+            if (match) context.report({ node, loc: source.getLocFromIndex(match.index), message });
+          }
+        },
+      };
+    },
+  };
+}
+
+/** The module-level directive, read from the AST so one in a comment or a string is not one. */
+function directiveOf(program) {
+  const first = program.body[0];
+  return first?.type === "ExpressionStatement" && first.expression.type === "Literal" ? first.expression.value : undefined;
+}
+
+/**
+ * A "use server" module exports async functions only. `next build` fails on
+ * anything else, once per importer, and tsc does not see it. A type export
+ * is erased, so it is allowed.
+ */
+const USE_SERVER_MESSAGE =
+  'Only async functions may be exported from a "use server" module; a constant, class or re-exported value goes in a plain module beside it.';
+
+const useServerExportsAsync = {
+  meta: { type: "problem", docs: { description: USE_SERVER_MESSAGE } },
+  create(context) {
+    return {
+      Program(program) {
+        if (directiveOf(program) !== "use server") return;
+        for (const node of program.body) {
+          if (node.type === "ExportAllDeclaration" && node.exportKind !== "type") {
+            context.report({ node, message: USE_SERVER_MESSAGE });
+          }
+          if (node.type !== "ExportNamedDeclaration" || node.exportKind === "type") continue;
+          const decl = node.declaration;
+          const bad = decl
+            ? (decl.type === "FunctionDeclaration" && !decl.async) ||
+              ["VariableDeclaration", "ClassDeclaration", "TSEnumDeclaration"].includes(decl.type)
+            : node.specifiers.some((s) => s.exportKind !== "type");
+          if (bad) context.report({ node, message: USE_SERVER_MESSAGE });
+        }
+      },
+    };
+  },
+};
+
+/**
+ * A module with no "use client" reads no literal constant from one that has
+ * it: Next hands it a client reference, so a string arrives as a function.
+ * Follows `@/` and relative specifiers to the file they name.
+ */
+const CLIENT_CONSTANT_MESSAGE =
+  'A server module may not read a constant from a "use client" module: it arrives as a client reference, not the value. Move the constant to a plain module.';
+
+const parsedClientModules = new Map();
+
+function clientConstantsOf(file) {
+  const mtime = statSync(file).mtimeMs;
+  const hit = parsedClientModules.get(file);
+  if (hit?.mtime === mtime) return hit.names;
+  const source = ts.createSourceFile(file, readFileSync(file, "utf8"), ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+  const first = source.statements[0];
+  const client =
+    first !== undefined && ts.isExpressionStatement(first) && ts.isStringLiteral(first.expression) && first.expression.text === "use client";
+  const names = new Set();
+  const literal = (n) =>
+    ts.isAsExpression(n) || ts.isSatisfiesExpression(n) || ts.isParenthesizedExpression(n)
+      ? literal(n.expression)
+      : ts.isStringLiteral(n) ||
+        ts.isNoSubstitutionTemplateLiteral(n) ||
+        ts.isTemplateExpression(n) ||
+        ts.isNumericLiteral(n) ||
+        ts.isObjectLiteralExpression(n) ||
+        ts.isArrayLiteralExpression(n) ||
+        (ts.isPrefixUnaryExpression(n) && ts.isNumericLiteral(n.operand)) ||
+        n.kind === ts.SyntaxKind.TrueKeyword ||
+        n.kind === ts.SyntaxKind.FalseKeyword;
+  for (const s of client ? source.statements : []) {
+    if (!ts.isVariableStatement(s) || !s.modifiers?.some((m) => m.kind === ts.SyntaxKind.ExportKeyword)) continue;
+    for (const d of s.declarationList.declarations) {
+      if (ts.isIdentifier(d.name) && d.initializer && literal(d.initializer)) names.add(d.name.text);
+    }
+  }
+  parsedClientModules.set(file, { mtime, names });
+  return names;
+}
+
+const SRC_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), "src");
+
+function resolveSource(from, spec) {
+  let base;
+  if (spec.startsWith("@/")) base = path.join(SRC_DIR, spec.slice(2));
+  else if (spec.startsWith(".")) base = path.resolve(path.dirname(from), spec);
+  else return null;
+  for (const candidate of [base, `${base}.ts`, `${base}.tsx`, path.join(base, "index.ts"), path.join(base, "index.tsx")]) {
+    if (existsSync(candidate) && statSync(candidate).isFile()) return candidate;
+  }
+  return null;
+}
+
+const noClientConstantInServer = {
+  meta: { type: "problem", docs: { description: CLIENT_CONSTANT_MESSAGE } },
+  create(context) {
+    let server = false;
+    const check = (node, kind) => {
+      if (!server || kind === "type" || typeof node.source?.value !== "string") return;
+      const target = resolveSource(context.filename, node.source.value);
+      const constants = target ? clientConstantsOf(target) : null;
+      if (!constants?.size) return;
+      for (const s of node.specifiers) {
+        const name = s.type === "ImportSpecifier" ? s.imported : s.type === "ExportSpecifier" ? s.local : null;
+        if (name && (s.importKind ?? s.exportKind) !== "type" && constants.has(name.name ?? name.value)) {
+          context.report({ node: s, message: CLIENT_CONSTANT_MESSAGE });
+        }
+      }
+    };
+    return {
+      Program(program) {
+        server = directiveOf(program) !== "use client";
+      },
+      ImportDeclaration: (node) => check(node, node.importKind),
+      ExportNamedDeclaration: (node) => check(node, node.exportKind),
+    };
+  },
+};
+
+/**
+ * A surface writes no product sentence: JSX text, a literal JSX child, a
+ * literal attribute not on `allow`, and with `mail` a literal mail body
+ * field. Every literal attribute is voice unless `allow` names it.
+ */
+const VOICE_MESSAGE = "REQ-093: a product sentence on a surface is read through copy(), never written as a literal.";
+const MAIL_BODY_FIELDS = new Set(["subject", "html", "text", "body"]);
+
+function isVoice(node) {
+  if (node.type === "Literal") return typeof node.value === "string";
+  if (node.type === "TemplateLiteral") return node.expressions.length === 0;
+  return node.type === "BinaryExpression" && node.operator === "+" && isVoice(node.left) && isVoice(node.right);
+}
+
+const noVoiceLiteral = {
+  meta: {
+    type: "problem",
+    docs: { description: VOICE_MESSAGE },
+    schema: [
+      {
+        type: "object",
+        properties: { allow: { type: "array", items: { type: "string" } }, mail: { type: "boolean" } },
+        additionalProperties: false,
+      },
+    ],
+  },
+  create(context) {
+    const { allow = [], mail = false } = context.options[0] ?? {};
+    const report = (node) => context.report({ node, message: VOICE_MESSAGE });
+    return {
+      JSXText(node) {
+        if (node.raw.trim().length > 0) report(node);
+      },
+      JSXExpressionContainer(node) {
+        const parent = node.parent.type;
+        if ((parent === "JSXElement" || parent === "JSXFragment") && isVoice(node.expression)) report(node.expression);
+      },
+      JSXAttribute(node) {
+        const value = node.value?.type === "JSXExpressionContainer" ? node.value.expression : node.value;
+        if (!value || !isVoice(value)) return;
+        const name = node.name.type === "JSXNamespacedName" ? `${node.name.namespace.name}:${node.name.name.name}` : node.name.name;
+        if (!name.startsWith("aria-") && !allow.includes(name)) report(value);
+      },
+      Property(node) {
+        if (mail && !node.computed && node.key.type === "Identifier" && MAIL_BODY_FIELDS.has(node.key.name) && isVoice(node.value)) {
+          report(node.value);
+        }
+      },
+    };
+  },
+};
+
+// Structural attributes: class names, test ids, DOM ids and wire names,
+// HTML and ARIA tokens, URLs, a component's own discriminant or size token,
+// and a chart's dimensions. `aria-*` is always allowed.
+const STRUCTURAL_ATTRIBUTES = [
+  "className", "data-testid", "testId", "data-theme", "data-tone", "data-surface", "data-waiting",
+  "id", "htmlFor", "name", "type", "href", "src", "rel", "target", "scope", "role", "method", "action", "lang", "key",
+  "state", "variant", "tone", "size", "direction", "terms", "tab", "kind", "mode", "width", "height",
+];
+
 // Exported (not just used below) so tests/app/lint-rules.test.ts and
 // tests/egress/policy.test.ts can be pointed at the exact rule objects this
 // file defines, without needing a second copy of the invariant text.
@@ -237,6 +450,41 @@ export const localImportRules = {
 
     // (j) SPEC §7 (issue 1559): the daily job reads the commit.
     "daily-reads-commit": dailyReadsCommit,
+
+    // (k) React and next build: a "use server" module exports async functions only.
+    "use-server-exports-async": useServerExportsAsync,
+
+    // (l) Issue 1510: a server module reads no constant from a client module.
+    "no-client-constant-in-server": noClientConstantInServer,
+
+    // (m) REQ-093 / ADR-010 decision 1: a surface's sentences are copy()'s.
+    "no-voice-literal": noVoiceLiteral,
+
+    // (n) BP-002: src/lib/db alone chooses how the database is reached.
+    "no-create-client-outside-db": textFenceRule([
+      { pattern: /createClient\(/, message: "BP-002: only src/lib/db calls createClient( — use db() or dbAdmin() from '@/lib/db'." },
+    ]),
+    "no-db-admin-in-client": textFenceRule([
+      {
+        pattern: /^\s*['"]use client['"][\s\S]*import\s*\{[^}]*\bdbAdmin\b[^}]*\}\s*from\s*['"][^'"]*\/db(\/index)?['"]/,
+        message: "BP-002: a client component may not import dbAdmin — it is server-only.",
+      },
+    ]),
+    "db-logs-no-rows": textFenceRule(
+      ["console.log", "console.debug", "console.info", "console.warn", ".subscribe(", "onQuery", "debug: true"].map((word) => ({
+        pattern: new RegExp(word.replace(/[.()]/g, "\\$&")),
+        message: `BP-002: the db clients install no logger that could capture row content (${word}).`,
+      }))
+    ),
+
+    // (o) BP-005: constants.ts imports nothing and holds no customer-visible string.
+    "constants-hold-no-copy": textFenceRule([
+      { pattern: /^\s*import\s/m, message: "BP-005: constants.ts imports nothing." },
+      { pattern: /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/, message: "BP-005 decision 3: constants.ts holds no email address." },
+      { pattern: /[€$£]|\bVAT\b|per month/, message: "BP-005 decision 5: the price sentence is the registry's — no currency sign or tax word here." },
+      { pattern: /["'`]price\.[a-z_]/, message: "BP-005 decision 5: constants.ts names no copy key." },
+      { pattern: /\bCopyKey\b/, message: "BP-005: constants.ts stays free of CopyKey.", code: true },
+    ]),
   },
 };
 
@@ -300,6 +548,44 @@ export default tseslint.config(
     files: ["src/lib/generate/**/*.{ts,tsx}"],
     plugins: { local: localImportRules },
     rules: { "local/daily-reads-commit": "error" },
+  },
+  {
+    // (k), (l) and (n) — every source file.
+    files: ["src/**/*.{ts,tsx}"],
+    plugins: { local: localImportRules },
+    rules: {
+      "local/use-server-exports-async": "error",
+      "local/no-client-constant-in-server": "error",
+      "local/no-db-admin-in-client": "error",
+    },
+  },
+  {
+    files: ["src/**/*.{ts,tsx}"],
+    ignores: ["src/lib/db/**"],
+    plugins: { local: localImportRules },
+    rules: { "local/no-create-client-outside-db": "error" },
+  },
+  {
+    files: ["src/lib/db/index.ts"],
+    plugins: { local: localImportRules },
+    rules: { "local/db-logs-no-rows": "error" },
+  },
+  {
+    // (m) — the four surface roots; mail also sweeps its body fields.
+    files: ["src/app/**/*.{ts,tsx}", "src/ui/**/*.{ts,tsx}"],
+    plugins: { local: localImportRules },
+    rules: { "local/no-voice-literal": ["error", { allow: STRUCTURAL_ATTRIBUTES }] },
+  },
+  {
+    files: ["src/lib/mail/**/*.{ts,tsx}"],
+    plugins: { local: localImportRules },
+    rules: { "local/no-voice-literal": ["error", { allow: STRUCTURAL_ATTRIBUTES, mail: true }] },
+  },
+  {
+    // (o)
+    files: ["src/lib/config/constants.ts"],
+    plugins: { local: localImportRules },
+    rules: { "local/constants-hold-no-copy": "error" },
   },
   {
     // (h) Issue 1479: a stored site name is read by the name rule, never

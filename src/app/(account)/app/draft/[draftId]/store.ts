@@ -66,7 +66,6 @@ import { needsYouOf } from "@/lib/publish/record/needs-you";
 import { askedAs, doneWhen } from "../../calendar/store";
 import type { Choice } from "@/lib/opportunities/derive/explain";
 import { pageTargetOf } from "../../_shell/page-target";
-import type { SetAside } from "../../_overview/done";
 import {
   NO_RULE_FACTS,
   PACK_PAGES_SHOWN,
@@ -95,6 +94,7 @@ interface DraftRow {
   veto_deadline: string | null;
   created_at: string;
   transitions: unknown;
+  told?: { sentAt?: unknown; mailed?: unknown } | null;
 }
 
 interface MinimalResult<T> {
@@ -116,7 +116,7 @@ interface MinimalClient {
  *  column of another account's. */
 const DRAFT_COLUMNS =
   "id, site_id, opportunity_id, state, title, body_md, meta, grounded_fact, claim_check, rule_failures, " +
-  "veto_deadline, created_at, transitions";
+  "veto_deadline, created_at, transitions, told";
 
 /** §9's ten states, as this screen reads them. A row carrying anything else
  *  is a row this screen cannot draw, and it takes the `null` arm rather
@@ -306,6 +306,14 @@ export function claimStateOf(claimCheck: unknown): ClaimState {
     : { state: "passed", at: verdict.at };
 }
 
+/** When the page-ready mail left, off `drafts.told`; `null` where the
+ *  record does not say a mail did. */
+export function emailedAtOf(told: DraftRow["told"]): Date | null {
+  if (told?.mailed !== true || typeof told.sentAt !== "string") return null;
+  const at = new Date(told.sentAt);
+  return Number.isNaN(at.getTime()) ? null : at;
+}
+
 /** Whether the last battery recorded a rule this text breaks (#789). A row
  *  no battery has recorded anything for breaks none it can name. */
 export function rulesFailedOf(ruleFailures: unknown): boolean {
@@ -347,14 +355,6 @@ async function targetQueryOf(opportunityId: string | null): Promise<string> {
   return choice.evidence.query;
 }
 
-/** The topics set aside (issue 1395), read the way Overview reads them.
- *  Nothing where the count could not be read: the note then lists none. */
-async function setAsideAt(siteId: string): Promise<{ setAside?: SetAside }> {
-  const { readSetAsideFor } = await import("../../_overview/done-provider");
-  const setAside = await readSetAsideFor(siteId).catch(() => undefined);
-  return setAside === undefined ? {} : { setAside };
-}
-
 async function targetOf(opportunityId: string | null): Promise<DraftTarget> {
   if (opportunityId === null) return { kind: "unknown" };
   const choice = await readChoice(opportunityId);
@@ -376,7 +376,9 @@ async function targetOf(opportunityId: string | null): Promise<DraftTarget> {
     why: {
       fit: choice.businessFit === 3 ? "answer" : choice.businessFit === 2 ? "helps" : null,
       rival: evidence.family === "write" || evidence.family === "earn" ? evidence.rival.domain : null,
+      planReason: choice.planReason ?? null,
     },
+    update: evidence.family === "improve",
   };
 }
 
@@ -523,6 +525,7 @@ export async function readDraftRow(a: {
     title: row.title,
     description: stringAt(row.meta, "description") ?? "",
     writtenAt: new Date(row.created_at),
+    emailedAt: emailedAtOf(row.told),
     bodyMd,
     bodyMdGenerated: generated,
     // What the page was written from (#927, #931), as generation recorded
@@ -584,7 +587,6 @@ export async function readDraftRow(a: {
     // page record: asking first would answer about a page the caller may
     // not see.
     target: await targetOf(row.opportunity_id),
-    ...(await setAsideAt(a.site.siteId)),
     // #928, and after the same ownership proof: what the site already has,
     // and the closest of it to this page.
     knownCheck: await knownCheckFor({

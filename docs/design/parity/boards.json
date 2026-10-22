@@ -36,7 +36,7 @@
   "AppDraft": { "read": "page", "paths": ["/app/draft/draft-2026-09-15"] },
   "AppIssues": { "read": "page", "paths": ["/app/issues"] },
   "AppCosts": { "read": "page", "paths": ["/app/costs"] },
-  "Review": { "read": "state", "why": "not built" },
+  "Review": { "read": "page", "paths": ["/app/review"] },
   "SettingsIndex": { "read": "page", "paths": ["/app/settings"] },
   "SettingsMarket": { "read": "page", "paths": ["/app/settings/market"] },
   "SettingsPublishing": { "read": "page", "paths": ["/app/settings/publishing"] },

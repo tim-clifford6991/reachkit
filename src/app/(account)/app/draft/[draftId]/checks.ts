@@ -3,7 +3,7 @@
 //
 // `HardRule` (`src/lib/generate/rules/types.ts`) is the closed list the
 // battery runs. `CHECKS` below is a total record over it, so a rule added
-// there does not compile here until it has a sentence and a group, and the
+// there does not compile here until it has a sentence, and the
 // headline's total is `HARD_RULES.length`.
 //
 // **A row states an outcome, and four exist.** `passed`: the run asked the
@@ -30,39 +30,30 @@ import type { CopyKey } from "@/lib/presentation/copy";
 import { HARD_RULES, type HardRule, type RecordedChecks } from "@/lib/generate/rules/types";
 import type { ClaimState, KnownCheck } from "./model";
 
-export type CheckGroup = "facts" | "honesty" | "structure";
-
-/** The three groups, in the order the note lists them. */
-export const CHECK_GROUPS: readonly { group: CheckGroup; title: CopyKey }[] = Object.freeze([
-  { group: "facts", title: "draft.checks.group.facts" },
-  { group: "honesty", title: "draft.checks.group.honesty" },
-  { group: "structure", title: "draft.checks.group.structure" },
-]);
-
-/** Every rule's sentence and group. Total over `HardRule`. */
-export const CHECKS: Readonly<Record<HardRule, { group: CheckGroup; key: CopyKey }>> = Object.freeze({
-  grounding: { group: "facts", key: "draft.checks.rule.grounding" },
-  traceable_numerals: { group: "facts", key: "draft.checks.rule.traceable-numerals" },
-  rival_source: { group: "facts", key: "draft.checks.rule.rival-source" },
-  cites_market: { group: "facts", key: "draft.checks.rule.cites-market" },
-  no_invented_test: { group: "facts", key: "draft.checks.rule.no-invented-test" },
-  no_invented_provenance: { group: "facts", key: "draft.checks.rule.no-invented-provenance" },
-  no_placeholder_cell: { group: "facts", key: "draft.checks.rule.no-placeholder-cell" },
-  no_invented_people: { group: "honesty", key: "draft.checks.rule.no-invented-people" },
-  no_unsourced_testimonial: { group: "honesty", key: "draft.checks.rule.no-unsourced-testimonial" },
-  do_not_claim: { group: "honesty", key: "draft.checks.rule.do-not-claim" },
-  fit_claim: { group: "honesty", key: "draft.checks.rule.fit-claim" },
-  honest_row: { group: "honesty", key: "draft.checks.rule.honest-row" },
-  rival_negative: { group: "honesty", key: "draft.checks.rule.rival-negative" },
-  no_hidden_text: { group: "honesty", key: "draft.checks.rule.no-hidden-text" },
-  no_machine_address: { group: "honesty", key: "draft.checks.rule.no-machine-address" },
-  near_duplicate: { group: "structure", key: "draft.checks.rule.near-duplicate" },
-  title: { group: "structure", key: "draft.checks.rule.title" },
-  first_block_answers: { group: "structure", key: "draft.checks.rule.first-block-answers" },
-  required_blocks: { group: "structure", key: "draft.checks.rule.required-blocks" },
-  distinct_headings: { group: "structure", key: "draft.checks.rule.distinct-headings" },
-  no_demo_text: { group: "structure", key: "draft.checks.rule.no-demo-text" },
-  plain_prose: { group: "structure", key: "draft.checks.rule.plain-prose" },
+/** Every rule's sentence. Total over `HardRule`. */
+export const CHECKS: Readonly<Record<HardRule, { key: CopyKey }>> = Object.freeze({
+  grounding: { key: "draft.checks.rule.grounding" },
+  traceable_numerals: { key: "draft.checks.rule.traceable-numerals" },
+  rival_source: { key: "draft.checks.rule.rival-source" },
+  cites_market: { key: "draft.checks.rule.cites-market" },
+  no_invented_test: { key: "draft.checks.rule.no-invented-test" },
+  no_invented_provenance: { key: "draft.checks.rule.no-invented-provenance" },
+  no_placeholder_cell: { key: "draft.checks.rule.no-placeholder-cell" },
+  no_invented_people: { key: "draft.checks.rule.no-invented-people" },
+  no_unsourced_testimonial: { key: "draft.checks.rule.no-unsourced-testimonial" },
+  do_not_claim: { key: "draft.checks.rule.do-not-claim" },
+  fit_claim: { key: "draft.checks.rule.fit-claim" },
+  honest_row: { key: "draft.checks.rule.honest-row" },
+  rival_negative: { key: "draft.checks.rule.rival-negative" },
+  no_hidden_text: { key: "draft.checks.rule.no-hidden-text" },
+  no_machine_address: { key: "draft.checks.rule.no-machine-address" },
+  near_duplicate: { key: "draft.checks.rule.near-duplicate" },
+  title: { key: "draft.checks.rule.title" },
+  first_block_answers: { key: "draft.checks.rule.first-block-answers" },
+  required_blocks: { key: "draft.checks.rule.required-blocks" },
+  distinct_headings: { key: "draft.checks.rule.distinct-headings" },
+  no_demo_text: { key: "draft.checks.rule.no-demo-text" },
+  plain_prose: { key: "draft.checks.rule.plain-prose" },
 });
 
 export type CheckStatus = "passed" | "skipped" | "failed" | "pending";
@@ -70,7 +61,6 @@ export type CheckStatus = "passed" | "skipped" | "failed" | "pending";
 /** A row the list draws. */
 export interface CheckRow {
   rule: HardRule;
-  group: CheckGroup;
   status: CheckStatus;
   key: CopyKey;
   vars?: Record<string, string | number>;
@@ -105,11 +95,10 @@ export function checkList(a: {
   for (const rule of HARD_RULES) {
     const status = statusOf(rule, a);
     if (status === null) continue;
-    const { group, key } = CHECKS[rule];
     rows.push(
       rule === "near_duplicate"
-        ? { rule, group, status, ...nearDuplicate(status, a.known ?? null) }
-        : { rule, group, status, key }
+        ? { rule, status, ...nearDuplicate(status, a.known ?? null) }
+        : { rule, status, key: CHECKS[rule].key }
     );
   }
   const count = (status: CheckStatus): number => rows.filter((row) => row.status === status).length;

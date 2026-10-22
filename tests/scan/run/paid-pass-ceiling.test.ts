@@ -40,11 +40,20 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { captureStages, fakeDb } from "./harness";
 import { measured, measuredZero, unmeasured } from "../../../src/lib/measure/measured";
-import { BATTERY as BATTERY_PINS, TIMING, VENDOR } from "../../../src/lib/config/constants";
+import { BATTERY as BATTERY_PINS, BUYER_SEARCHES, CAPS, TIMING, TYPING_RESERVE_C, VENDOR } from "../../../src/lib/config/constants";
+import type { CostContext } from "../../../src/lib/costs";
 import type { DomainMeasurement } from "../../../src/lib/measure";
 import type { StoredReport } from "../../../src/lib/scan/report";
 import type { AiAnswer } from "../../../src/lib/vendors/dataforseo/types";
 import { AT, ON_PAGE, PROFILE, ROBOTS, SERP, SELECTED, QUESTION } from "../report/fixtures";
+import { readFileSync } from "node:fs";
+import type { MarketConclusion } from "../../../src/lib/market/infer/types";
+import type { CanonicalDomain } from "../../../src/lib/scan/domain";
+import type { SerpResult } from "../../../src/lib/vendors/dataforseo/types";
+import { question, reportOf, search, SITE_ID } from "../../opportunities/fixtures";
+import { memoryStore, newMemoryState } from "../../opportunities/memory-store";
+import { toolUseMessage } from "../../llm/fixtures";
+import { rowOf, type StoredTopic } from "../../golden/plan/panel";
 
 // A module the weekly pass loads late, slowed to 300 ms of real time as a
 // loaded box slows a first load (issue 1566). A timed pass that loads it on
@@ -115,7 +124,26 @@ vi.mock("@/lib/scan/correction", () => ({
 
 vi.mock("@/lib/market/rivals/tracked", () => ({ trackedRivals: async () => null }));
 
+const anthropicCreate = vi.fn();
+vi.mock("@anthropic-ai/sdk", () => ({
+  default: class MockAnthropic {
+    messages = { create: (...a: unknown[]) => anthropicCreate(...a) };
+  },
+}));
+
 const { runScan } = await import("../../../src/lib/scan/run");
+const { withStoredPassSpend } = await import("../../../src/lib/scan/ceilings");
+const { deriveForPass } = await import("../../../src/lib/opportunities/pass");
+const { setOpportunityStore } = await import("../../../src/lib/opportunities/store");
+
+/** One site of a stored panel run, as far as this suite reads it. */
+interface PanelRun {
+  site: { domain: string };
+  market: MarketConclusion;
+  searches: string[];
+  prompts: { text: string }[];
+  topics?: { query: string; fit: number | null }[];
+}
 
 const CLAIMED_ID = "99999999-9999-4999-8999-999999999999";
 const DOMAIN = "example.com";
@@ -212,6 +240,8 @@ let stages: { lines: string[]; restore: () => void };
 
 beforeEach(() => {
   vi.clearAllMocks();
+  anthropicCreate.mockReset();
+  anthropicCreate.mockRejectedValue(new Error("no model in this suite"));
   db.reset();
   db.rows.set("scans", [{ id: CLAIMED_ID, fromIncompleteRescan: false }]);
   measureDomain.mockResolvedValue(MEASUREMENT);
@@ -232,7 +262,10 @@ beforeEach(() => {
   stages = captureStages();
 });
 
-afterEach(() => stages.restore());
+afterEach(() => {
+  stages.restore();
+  setOpportunityStore(null);
+});
 
 describe("a paid pass whose engine is slower than its ceiling (issue 902)", () => {
   it("stops waiting before its ceiling and ends `complete`, the slow engine's cells unmeasured (#1195)", async () => {
@@ -404,6 +437,137 @@ describe("the weekly pass at production's measured queue waits (issue 1160)", ()
     } finally {
       vi.useRealTimers();
     }
+  });
+});
+
+// Owner W1: a weekly pass whose searches alone would spend its whole cap
+// stops them short of the typing reserve, so the typing after the stored
+// report is still paid for, and the pass never spends past the cap.
+describe("a weekly pass whose measurement would spend its whole cap", () => {
+  it("stops its stages at the cap less the reserve and leaves the reserve for the typing", async () => {
+    // Each search is ledgered through the pass's own cost context; twelve would cost more than the cap.
+    const serpCents = 4;
+    serpOrganic.mockImplementation(async (c: CostContext, call: { keyword: string }) => {
+      const spent = await c.recordFetch({
+        source: "serpOrganic",
+        cacheKey: `serp:${call.keyword}`,
+        freshnessDays: 0,
+        costCents: serpCents,
+        run: async () => measured(SERP, AT),
+      });
+      return "skipped" in spent ? unmeasured<typeof SERP>("not_attempted", AT) : spent.payload;
+    });
+    // The close's roll-up is what the context after the stored report opens on.
+    db.answer = (query) => {
+      if (query.table !== "scans" || query.verb !== "select") return null;
+      const closed = db.queries.filter((q) => q.table === "scans" && q.verb === "update" && q.values?.cost_cents !== undefined).at(-1);
+      return [{ id: CLAIMED_ID, fromIncompleteRescan: false, cost_cents: closed?.values?.cost_cents ?? 0 }];
+    };
+
+    const typing: { openedAt?: number; capHit?: boolean } = {};
+    await runScan({
+      domain: DOMAIN,
+      siteId: "site-1719",
+      tier: "weekly",
+      afterReport: async ({ cost }) => {
+        typing.openedAt = cost.spentCents();
+        typing.capHit = cost.capHit();
+      },
+    });
+
+    expect(serpOrganic).toHaveBeenCalledTimes(BATTERY_PINS.QUESTIONS);
+    expect(typing.openedAt).toBeLessThanOrEqual(CAPS.WEEKLY_C - TYPING_RESERVE_C);
+    expect(typing.capHit).toBe(false);
+  });
+
+  it("the derivation after the stored report, opened at the line, gets every call it makes and closes inside the cap", async () => {
+    // The panel run whose fit judgement cost the most: the German bakery, its own market, searches and SERPs.
+    const RUN = "2026-10-10-1374";
+    const site = (JSON.parse(readFileSync(`docs/walk/panel/${RUN}.json`, "utf8")) as { sites: PanelRun[] }).sites[0]!;
+    const evidence: { source: string; cache_key: string; payload: SerpResult[] | null }[] = JSON.parse(
+      readFileSync(`scripts/panel/evidence/${site.site.domain}.json`, "utf8")
+    );
+    const serpOf = (keyword: string): SerpResult =>
+      evidence.find((row) => row.source === "serp/google/organic" && row.cache_key.split("|")[0] === keyword)?.payload?.[0] ??
+      { organic: [], aiOverview: { present: false, referenceDomains: [], asynchronousAiOverview: false } };
+    const fitOf = new Map((site.topics ?? []).map((topic) => [topic.query, topic.fit ?? 2]));
+    const serps = site.searches.map(serpOf);
+    // The run did not store its rival sizes; the top tens' domains are sized small, as a city's bakeries rank.
+    const rivalSizes = measured(
+      [...new Set(serps.flatMap((one) => one.organic.map((row) => row.domain)))].map((domain) => ({
+        domain,
+        state: "sized" as const,
+        rankedCount: 40,
+        countIs: "total" as const,
+        band: "near" as const,
+        at: AT,
+        current: true,
+      })),
+      AT
+    );
+    const report: StoredReport = {
+      ...reportOf(
+        {
+          questions: site.searches.map((keyword, n) =>
+            question({ id: `q${n}`, text: keyword, search: search({ keyword, volume: 50 + n }) })
+          ),
+          serps,
+        },
+        { rivalSizes }
+      ),
+      domain: site.site.domain as CanonicalDomain,
+    };
+    // What buyers were seen asking beside those searches is what the model writes back as their searches.
+    const phrased = [...new Set(serps.flatMap((one) => [...(one.peopleAlsoAsk ?? []), ...(one.relatedSearches ?? [])]))];
+    // The topics the run held stay open and unjudged, so the fit judges them again beside this pass's.
+    const state = newMemoryState({
+      rows: (site.topics ?? []).map((topic, n) => ({ ...rowOf(site.site.domain, { ...topic, ready: false } as StoredTopic, n), site_id: SITE_ID, business_fit: null })),
+    });
+    setOpportunityStore({
+      ...memoryStore(state),
+      marketFor: async () => ({ market: site.market, competitors: [], prompts: site.prompts.map((p) => p.text), knowledge: null }),
+    });
+    // The model answers every call in the shape its site asks for, and reports the tokens it was sent.
+    anthropicCreate.mockImplementation(async (request: { tools?: { name: string }[]; messages: { content: string }[] }) => {
+      const name = request.tools?.[0]?.name ?? "";
+      const sent = request.messages[0]!.content;
+      const input = JSON.parse(sent) as { searches?: { i: number; search: string }[]; derivedType?: string; derivedSlug?: string; targetQuery?: string };
+      const searches = input.searches ?? [];
+      const answers: Record<string, [unknown, number]> = {
+        "topic-buyer-searches": [{ problems: phrased.slice(0, BUYER_SEARCHES.max), solutions: phrased.slice(BUYER_SEARCHES.max, 2 * BUYER_SEARCHES.max) }, 400],
+        "topic-typed": [{ typed: searches.map((entry) => entry.i) }, 80],
+        "topic-fit": [
+          { scores: searches.map((entry) => ({ i: entry.i, fit: fitOf.get(entry.search) ?? 2, title: entry.search })), strongest: [] },
+          40 * searches.length,
+        ],
+        "opportunity-typing": [{ type: input.derivedType, slug: input.derivedSlug, title: input.targetQuery }, 60],
+        "topic-same-question": [{ pairs: [] }, 20],
+      };
+      const [answer, tokensOut] = answers[name] ?? [{}, 10];
+      return toolUseMessage(answer, Math.ceil(sent.length / 4), tokensOut, name);
+    });
+
+    const refused = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const line = CAPS.WEEKLY_C - TYPING_RESERVE_C;
+    db.answer = (query) => (query.table === "scans" && query.verb === "select" ? [{ cost_cents: line, site_id: null }] : null);
+    const closed = await withStoredPassSpend({ scanId: CLAIMED_ID, cap: "WEEKLY" }, async (cost) => {
+      await deriveForPass(cost, { tier: "weekly", siteId: SITE_ID, report, hasActiveAccess: true });
+      return cost.spentCents();
+    });
+    const warned = refused.mock.calls.map(([first]) => String(first));
+    refused.mockRestore();
+
+    const asked = new Map<string, string[]>();
+    for (const [first] of vi.mocked(console.log).mock.calls) {
+      const line = typeof first === "string" && first.startsWith("{") ? (JSON.parse(first) as { site?: string; parseOutcome?: string }) : {};
+      if (line.site !== undefined && line.parseOutcome !== undefined) asked.set(line.site, [...(asked.get(line.site) ?? []), line.parseOutcome]);
+    }
+    for (const site of ["topic-buyer-searches", "topic-typed", "topic-fit", "opportunity-typing"]) {
+      expect(asked.get(site)?.length ?? 0, site).toBeGreaterThan(0);
+      expect(asked.get(site)!.every((outcome) => outcome === "success"), site).toBe(true);
+    }
+    expect(warned.filter((line) => line.includes('"cap_hit"'))).toEqual([]);
+    expect(closed).toBeLessThanOrEqual(CAPS.WEEKLY_C);
   });
 });
 

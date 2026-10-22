@@ -1,13 +1,13 @@
-// SPEC §7 — the draft's rail: when the page goes live on its own, Edit and
-// Stop (or, on a page the rules stopped, Edit, Write it again, Skip; #1180),
-// what happens if you do nothing, and the checks the draft passed.
+// SPEC §7 — the draft's rail (board `AppDraft`): when the page goes live on
+// its own, Edit and Stop (or, on a page the rules stopped, Edit, Write it
+// again, Skip; #1180), what Stop does, and the page's day.
 //
 // **There is no Approve** (owner 2026-10-08, issue 1337: "remove the approve
 // button entirely, autopilot only … they can solely edit or stop the
 // content"). The rail asks for nothing: the time it goes live, stated and
-// never ticking, leads, then Stop (ghost warning) and Edit
-// (soft) side by side, the checks, the do-nothing sentence and the two
-// copy-out buttons. No control on it is a solid primary. Below `md` the bar
+// never ticking, leads, then Edit (soft) and Stop (ghost warning), the
+// line saying what Stop does, the day's timeline and the two copy-out
+// buttons. No control on it is a solid primary. Below `md` the bar
 // says the same thing in one line with the time in it.
 //
 // A daisyUI card in an `<aside>`, the same box the calendar's day panel
@@ -27,14 +27,10 @@
 // with §9's transition table. The do-nothing sentence is the one thing said
 // twice, in two wordings for two widths, because the phone has no go-live box.
 //
-// **The checks stay below the page** on a phone, in this card, where the
-// owner's review asked for them: a list of rules in a fixed bar would cover
-// the page it is about.
-//
 // **Nothing here decides which controls exist.** `draftActionsFor` projects
 // them from §9's transition table, so this rail and the calendar's day panel
 // cannot offer different actions for one state (REQ-044 c3). What this file
-// decides is the rank: Stop leads as a ghost in warning and Edit is soft.
+// decides is the rank: Edit is soft and Stop is a ghost in warning (E7).
 // A state that offers none of them draws no control block at all.
 //
 // The state it projects from is the screen's, not the stored view's (issue
@@ -44,18 +40,16 @@
 "use client";
 
 import type React from "react";
-import { Check, Info, LoaderCircle, Minus, Pencil, CircleStop, RotateCcw, X } from "lucide-react";
+import { CircleCheck, CircleStop, Clock, Pencil, RotateCcw } from "lucide-react";
 import { copy } from "@/lib/presentation/copy";
 import { formatDate, formatDateTime } from "../../_shell/format";
 import { writtenLine } from "../../_shell/written";
 import { draftActionsFor, type DraftCommand } from "./actions";
-import { CHECK_GROUPS, checkList, type CheckRow, type CheckStatus } from "./checks";
-import type { RecordedChecks } from "@/lib/generate/rules/types";
 import { CopyOut } from "./CopyOut";
 import type { State } from "../../calendar/stages";
 import { TakeDownControl } from "../../calendar/TakeDown";
 import { putBackWords, takeDownWords } from "../../calendar/take-down-words";
-import type { ClaimState, DraftView } from "./model";
+import { firstReadingOn, type DraftView } from "./model";
 import { SHAPE } from "./shape";
 
 /** When the page goes live, as a stated time rather than a ticking clock:
@@ -68,47 +62,49 @@ function GoesLive(p: { at: Date; timeZone: string }): React.JSX.Element {
   );
 }
 
-/** A row's mark: a small ring and a glyph. Green for a pass; the quiet ink
- *  for a rule the page was not asked, one it failed and the one still
- *  running — the words beside the mark say which. The glyph holds still:
- *  the calm layer's one loop is the review dot's pulse. */
-const RING = "grid size-5 shrink-0 place-items-center rounded-full";
-const QUIET = `${RING} bg-base-200 text-base-content/70`;
-const MARK: Readonly<Record<CheckStatus, { ring: string; Icon: typeof Check }>> = {
-  passed: { ring: `${RING} bg-success/15 text-success`, Icon: Check },
-  skipped: { ring: QUIET, Icon: Minus },
-  failed: { ring: QUIET, Icon: X },
-  pending: { ring: QUIET, Icon: LoaderCircle },
-};
-
-/** What a row that is not a pass says under its sentence. */
-function statusLine(status: CheckStatus): string | null {
-  if (status === "skipped") return copy("draft.checks.status.skipped");
-  if (status === "failed") return copy("draft.checks.status.failed");
-  return status === "pending" ? copy("draft.claim.outstanding") : null;
+/** One step of the page's day. */
+interface DayStep {
+  key: "written" | "emailed" | "live" | "reading";
+  at: string;
+  done: boolean;
 }
 
-function CheckItem(p: { row: CheckRow }): React.JSX.Element {
-  const { ring, Icon } = MARK[p.row.status];
-  const status = statusLine(p.row.status);
+/** The page's day, in the order it happens: only steps with a recorded or
+ *  scheduled moment are drawn, so a mail that never left is not a step. */
+function daySteps(view: DraftView, publishesAt: Date): DayStep[] {
+  const steps: DayStep[] = [];
+  if (view.writtenAt !== null) {
+    steps.push({ key: "written", at: formatDateTime(view.writtenAt, view.timeZone), done: true });
+  }
+  if (view.emailedAt !== null) {
+    steps.push({ key: "emailed", at: formatDateTime(view.emailedAt, view.timeZone), done: true });
+  }
+  steps.push({ key: "live", at: formatDateTime(publishesAt, view.timeZone), done: false });
+  steps.push({ key: "reading", at: formatDate(firstReadingOn(publishesAt, view.timeZone), "UTC"), done: false });
+  return steps;
+}
+
+function DayTimeline(p: { steps: readonly DayStep[] }): React.JSX.Element {
   return (
-    <li
-      className="flex items-start gap-2.5"
-      data-testid={`draft-check-${p.row.rule}`}
-      data-status={p.row.status}
-    >
-      <span className={ring} aria-hidden>
-        <Icon size={12} strokeWidth={2.5} />
-      </span>
-      <span className="flex min-w-0 flex-col">
-        <span className={p.row.status === "passed" ? undefined : "text-base-content/70"}>
-          {copy(p.row.key, p.row.vars)}
-        </span>
-        {status === null ? null : <span className="text-xs text-base-content/70">{status}</span>}
-      </span>
-    </li>
+    <ul className="timeline timeline-vertical timeline-compact min-w-0" aria-label={copy("draft.day.title")} data-testid="draft-day">
+      {p.steps.map((step, at) => (
+        <li key={step.key} data-testid={`draft-day-${step.key}`}>
+          {at === 0 ? null : <hr className={step.done ? "bg-success" : undefined} />}
+          <div className={`timeline-middle ${step.done ? "text-success" : step.key === "live" ? "text-primary" : "text-base-content/70"}`}>
+            {step.done ? <CircleCheck size={18} strokeWidth={1.75} aria-hidden /> : <Clock size={18} strokeWidth={1.75} aria-hidden />}
+          </div>
+          <div className="timeline-end mb-3 min-w-0 text-sm">
+            <span className="block font-semibold">{copy(`draft.day.${step.key}`)}</span>
+            <span className="block text-base-content/70">{step.at}</span>
+          </div>
+          {at === p.steps.length - 1 ? null : <hr className={step.done ? "bg-success" : undefined} />}
+        </li>
+      ))}
+    </ul>
   );
 }
+
+const STOP_NOTE_ID = "draft-stop-note";
 
 export function DecidePanel(p: {
   view: DraftView;
@@ -123,16 +119,6 @@ export function DecidePanel(p: {
   deciding: boolean;
   /** The command whose press is pending, which alone shows the spinner. */
   pressed: DraftCommand | null;
-  /** Whether the recorded fact is still in the body as it now stands —
-   *  the same value the highlight is drawn from, so the grounded row and
-   *  the mark cannot disagree. */
-  grounded: boolean;
-  /** The claim state as it now stands, which after an edit is not the
-   *  stored one (REQ-045 c9). */
-  claim: ClaimState;
-  /** The last check, rule by rule, on the text as it now stands — empty
-   *  while an edit has not been re-checked (#789). */
-  recordedChecks: RecordedChecks;
   /** The body as it now stands, for the copy-out buttons. */
   bodyMd: string;
   onEdit: () => void;
@@ -140,12 +126,6 @@ export function DecidePanel(p: {
 }): React.JSX.Element {
   const { view } = p;
   const actions = draftActionsFor({ state: p.state, enteredReview: view.enteredReview });
-  const { rows, counts } = checkList({
-    grounded: p.grounded,
-    claim: p.claim,
-    recorded: p.recordedChecks,
-    known: view.knownCheck,
-  });
   const publishesAt = view.doNothing.publishesAt;
   /** Stated only while the page can still be stopped: the moment Stop is
    *  pressed the controls leave and so does it. */
@@ -159,14 +139,7 @@ export function DecidePanel(p: {
       : publishesAt === null
         ? writtenLine(view.doNothing.key)
         : writtenLine(view.doNothing.key, { at: formatDateTime(publishesAt, view.timeZone) });
-  /** The panel's sentence (from `md`): the time is the go-live box's, so the
-   *  sentence says what the schedule means rather than repeating it. */
-  const panelLine =
-    view.doNothing.key === null
-      ? null
-      : publishesAt === null
-        ? writtenLine(view.doNothing.key)
-        : writtenLine("draft.do-nothing.schedule");
+  const stops = actions.some((action) => action.kind === "command" && action.command === "veto");
 
   return (
     <aside
@@ -213,7 +186,7 @@ export function DecidePanel(p: {
 
           {actions.length === 0 ? null : (
             <div
-              className="grid grid-cols-2 gap-2 max-md:auto-cols-fr max-md:grid-flow-col max-md:grid-cols-none"
+              className="grid grid-cols-1 gap-2 max-md:auto-cols-fr max-md:grid-flow-col max-md:grid-cols-none"
               data-testid="draft-actions"
             >
               {actions.map((action) =>
@@ -232,10 +205,9 @@ export function DecidePanel(p: {
                   <button
                     key={action.key}
                     type="button"
-                    // Stop leads a page in review: it is the one thing the
-                    // customer can do that changes what happens.
-                    className={`btn btn-sm btn-ghost btn-warning${action.command === "veto" ? " order-first" : ""}`}
+                    className="btn btn-sm btn-ghost btn-warning"
                     data-testid={`draft-action-${action.key}`}
+                    aria-describedby={action.command === "veto" ? STOP_NOTE_ID : undefined}
                     disabled={p.deciding}
                     onClick={() => p.onCommand(action.command)}
                   >
@@ -285,78 +257,13 @@ export function DecidePanel(p: {
           )}
         </div>
 
-        <div className="divider my-0 max-md:hidden" />
+        {stops ? (
+          <p id={STOP_NOTE_ID} className="text-xs text-base-content/70" data-testid="draft-stop-note">
+            {copy("draft.decide.stop-note")}
+          </p>
+        ) : null}
 
-        {/* SPEC §7 (2026-10-10, issue 1394): two levels. The headline and
-            its counts are the glance; every rule is in the one closed note
-            under it. The count is stated only where the run recorded which
-            rules it asked (`checks.ts`). */}
-        <div className="flex min-w-0 flex-col gap-1">
-          <h2 className="eyebrow" data-testid="draft-checks-headline">
-            {counts === null
-              ? copy("draft.checks.title")
-              : copy("draft.checks.headline", { passed: counts.passed, total: counts.total })}
-          </h2>
-          {counts === null || counts.fixed + counts.skipped + counts.failed === 0 ? null : (
-            <p
-              className="flex flex-wrap gap-x-3 text-xs text-base-content/70"
-              data-testid="draft-checks-counts"
-            >
-              {counts.fixed === 0 ? null : (
-                <span data-testid="draft-checks-fixed">
-                  {copy("draft.checks.count.fixed", { n: counts.fixed })}
-                </span>
-              )}
-              {counts.skipped === 0 ? null : (
-                <span>{copy("draft.checks.count.skipped", { n: counts.skipped })}</span>
-              )}
-              {counts.failed === 0 ? null : (
-                <span>{copy("draft.checks.count.failed", { n: counts.failed })}</span>
-              )}
-            </p>
-          )}
-        </div>
-        {rows.length === 0 ? null : (
-          <details className="collapse collapse-arrow bg-base-200" data-testid="draft-checks">
-            <summary className="collapse-title text-sm font-medium">
-              {copy("draft.checks.note.title")}
-            </summary>
-            <div className="collapse-content flex min-w-0 flex-col gap-4 text-sm">
-              {counts === null ? null : (
-                <p className="text-xs text-base-content/70">
-                  {copy("draft.checks.note.lead", { total: counts.total })}
-                </p>
-              )}
-              {CHECK_GROUPS.map(({ group, title }) => {
-                const inGroup = rows.filter((row) => row.group === group);
-                return inGroup.length === 0 ? null : (
-                  <section className="flex min-w-0 flex-col gap-2" key={group}>
-                    <h3 className="text-xs font-semibold">{copy(title)}</h3>
-                    <ul className="flex flex-col gap-2.5">
-                      {inGroup.map((row) => (
-                        <CheckItem row={row} key={row.rule} />
-                      ))}
-                    </ul>
-                  </section>
-                );
-              })}
-            </div>
-          </details>
-        )}
-
-        {panelLine === null ? null : (
-          <>
-            <div className="divider my-0 max-md:hidden" />
-            <p
-              role="note"
-              className="flex items-start gap-2 text-xs text-base-content/70 max-md:hidden"
-              data-testid="draft-do-nothing"
-            >
-              <Info size={14} strokeWidth={1.75} className="mt-0.5 shrink-0" aria-hidden />
-              <span className="min-w-0">{panelLine}</span>
-            </p>
-          </>
-        )}
+        {counting && publishesAt !== null ? <DayTimeline steps={daySteps(view, publishesAt)} /> : null}
 
         {/* Copy-out is always here — for a draft and a published page alike
             (c12): the words are theirs, for any destination. */}

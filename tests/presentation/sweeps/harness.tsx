@@ -181,6 +181,9 @@ export const ROUTE_HARNESS: Readonly<Record<string, HarnessRow>> = Object.freeze
   // Issue 1550: Technical issues reads its own stored section through
   // `issues/provider.ts` — the reserved fixture account's, in this sweep.
   "(account)/app/issues/page.tsx": { props: () => ({}), shell: true, async: true },
+  // The owner's review reads its own rows, and answers the 404 to an
+  // account that is not an owner's.
+  "(account)/app/review/page.tsx": { props: () => ({}), shell: true, async: true },
   // The draft view (issue #17, BUILD §4.6). The id is the one the fixture
   // holds in `in_review` — the same value `tests/ui/layout/routes.ts` fills
   // `[draftId]` with, and the arm that renders every part of the screen.

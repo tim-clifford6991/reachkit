@@ -20,7 +20,7 @@ import { HARD_RULES } from "@/lib/generate/rules/types";
 import { Num } from "../scan/[domain]/_address/measured";
 import { HOW_FACTS } from "./facts";
 import { ExampleSwitch } from "./ExampleSwitch";
-import { EXAMPLES, LIVE_AT, REASON_COPY, weekDays, type Example } from "./specimen";
+import { EXAMPLES, LIVE_AT, REASON_COPY, weekDays, weekSpan, type Example } from "./specimen";
 
 const ICON = { size: 16, strokeWidth: 1.75, "aria-hidden": true } as const;
 const CARD = "card card-border bg-base-100 min-w-0";
@@ -256,17 +256,36 @@ export function QuestionList(e: Example): React.JSX.Element {
 
 /** `#pages`: one week of pages, each on its own day. */
 export function WeekOfPages(e: Example): React.JSX.Element {
+  return WeekCard(
+    e,
+    <>
+      <div className="mockup-browser border-base-300 min-w-0 border">
+        <div className="mockup-browser-toolbar min-w-0">
+          <div className="input w-full min-w-0">
+            <span className="truncate">{`${e.blog}${e.pagePath}`}</span>
+          </div>
+        </div>
+        <p className="border-base-300 border-t px-4 py-3 text-sm">{copy("how.week.address")}</p>
+      </div>
+      <ExampleLine />
+    </>
+  );
+}
+
+/** One week of pages, the plan and its key, with what a page says under it. */
+export function WeekCard(e: Example, foot: React.ReactNode): React.JSX.Element {
   const days = weekDays();
   return (
     <figure className={CARD}>
       <div className="card-body gap-4">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <p className={LABEL}>{copy("how.week.name", { business: e.business })}</p>
+        <p className="flex flex-wrap items-center gap-x-3 gap-y-2">
+          <span className={LABEL}>{copy("how.week.name", { business: e.business })}</span>
+          <span className={`num ${SMALL}`}>{weekSpan().range}</span>
           <span className="badge badge-soft badge-success badge-sm">{copy("how.week.auto")}</span>
-        </div>
-        <p className={`${SMALL} flex items-center gap-1`}>
-          <Search size={12} strokeWidth={1.75} aria-hidden />
-          {copy("how.week.monday")}
+          <span className={`${SMALL} flex items-center gap-1`}>
+            <Search size={12} strokeWidth={1.75} aria-hidden />
+            {copy("how.week.monday")}
+          </span>
         </p>
         <ol className="grid min-w-0 grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
           {e.plan.map((day, i) =>
@@ -274,6 +293,7 @@ export function WeekOfPages(e: Example): React.JSX.Element {
               <li key={days[i]} className="rounded-box border-base-300 flex min-w-0 flex-col gap-1 border border-dashed p-3">
                 <span className="num text-base-content/70 text-xs">{days[i]}</span>
                 <span className="text-base-content/70 text-sm">{copy("how.week.skip")}</span>
+                <span className={SMALL}>{copy("how.week.skip.why")}</span>
               </li>
             ) : (
               <li
@@ -313,15 +333,25 @@ export function WeekOfPages(e: Example): React.JSX.Element {
             )
           )}
         </ol>
-        <div className="mockup-browser border-base-300 min-w-0 border">
-          <div className="mockup-browser-toolbar min-w-0">
-            <div className="input w-full min-w-0">
-              <span className="truncate">{`${e.blog}${e.pagePath}`}</span>
-            </div>
-          </div>
-          <p className="border-base-300 border-t px-4 py-3 text-sm">{copy("how.week.address")}</p>
-        </div>
-        <ExampleLine />
+        <p className={`${SMALL} flex flex-wrap gap-x-4 gap-y-1`}>
+          <span className="flex items-center gap-1">
+            <CircleCheck size={12} strokeWidth={1.75} aria-hidden />
+            {copy("how.week.legend.live")}
+          </span>
+          <span className="flex items-center gap-1">
+            <Mail size={12} strokeWidth={1.75} aria-hidden />
+            {copy("how.week.legend.emailed")}
+          </span>
+          <span className="flex items-center gap-1">
+            <Clock size={12} strokeWidth={1.75} aria-hidden />
+            {copy("how.week.planned")}
+          </span>
+          <span className="flex items-center gap-1">
+            <RefreshCw size={12} strokeWidth={1.75} aria-hidden />
+            {copy("how.week.legend.update")}
+          </span>
+        </p>
+        {foot}
       </div>
     </figure>
   );
@@ -397,32 +427,45 @@ export function MondayEmail(e: Example): React.JSX.Element {
 
 const WHEN = ["first", "found", "showing", "top"] as const;
 
-/** `#found`: what moves when, as time ranges and never as dates. */
-export function WhatToExpect(): React.JSX.Element {
+/** One step of a timeline: when, and what happens then. */
+export interface WhenStep {
+  readonly at: string;
+  readonly what: string;
+}
+
+const WHEN_STEPS = (): readonly WhenStep[] =>
+  WHEN.map((step) => ({ at: copy(`how.when.${step}.at` as CopyKey), what: copy(`how.when.${step}.what` as CopyKey) }));
+
+/** `#found`: what moves when, as time ranges and never as dates. Pricing
+ *  draws the same card with its own first days and no Maps line. */
+export function WhatToExpect(
+  p: { title?: string; steps?: readonly WhenStep[]; maps?: boolean } = {}
+): React.JSX.Element {
+  const steps = p.steps ?? WHEN_STEPS();
   return (
     <div className={CARD}>
       <div className="card-body gap-3">
         <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <h3 className="text-base font-semibold">{copy("how.when.title")}</h3>
+          <h3 className="text-base font-semibold">{p.title ?? copy("how.when.title")}</h3>
           <span className={SMALL}>{copy("how.when.sub")}</span>
         </div>
         <ul className="timeline timeline-vertical timeline-compact min-w-0">
-          {WHEN.map((step, i) => (
-            <li key={step}>
+          {steps.map((step, i) => (
+            <li key={step.at}>
               {i > 0 ? <hr className="bg-base-300" /> : null}
               <div className="timeline-middle text-primary">
                 <CircleCheck {...ICON} />
               </div>
               <div className="timeline-end mb-3 flex min-w-0 flex-col">
-                <span className="text-sm font-semibold">{copy(`how.when.${step}.at` as CopyKey)}</span>
-                <span className="text-base-content/70 text-sm">{copy(`how.when.${step}.what` as CopyKey)}</span>
+                <span className="text-sm font-semibold">{step.at}</span>
+                <span className="text-base-content/70 text-sm">{step.what}</span>
               </div>
-              {i < WHEN.length - 1 ? <hr className="bg-base-300" /> : null}
+              {i < steps.length - 1 ? <hr className="bg-base-300" /> : null}
             </li>
           ))}
         </ul>
         <p className="text-sm font-semibold">{copy("how.when.promise")}</p>
-        <p className={SMALL}>{copy("how.when.maps")}</p>
+        {p.maps === false ? null : <p className={SMALL}>{copy("how.when.maps")}</p>}
       </div>
     </div>
   );

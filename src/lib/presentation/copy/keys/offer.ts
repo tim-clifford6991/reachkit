@@ -81,18 +81,6 @@ export const OFFER_COPY = Object.freeze({
   // does: `VETO.defaultHours` renders "24" and the sentence reads as the
   // set draws it, so the window is written down once, in
   // `src/lib/config/constants.ts`, and never twice.
-  "offer.pricing.page": [
-    "Up to {weekPages} pages a week, new or updated, published for you",
-    { slots: { weekPages: "text" }, fixedBy: "S4 · REQ-021 c2 · owner A1 2026-10-19" },
-  ],
-  "offer.pricing.measure": [
-    "A weekly scan of your whole market",
-    { slots: {}, fixedBy: "S4 · REQ-021 c2" },
-  ],
-  "offer.pricing.movement": [
-    "Weekly movement email",
-    { slots: {}, fixedBy: "S4 · REQ-021 c2" },
-  ],
   "offer.pricing.veto": [
     "{hours} hours to stop any page before it goes live",
     { slots: { hours: "text" }, fixedBy: "S4 · REQ-021 c2" },
