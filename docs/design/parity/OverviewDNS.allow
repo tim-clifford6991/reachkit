@@ -5,7 +5,7 @@ Theme: light	#1744: the app shell's theme control, which that issue changes for 
 1 Open your domain settings	#1811: the number is the step's marker; the page reads it beside overview.connect.step.open (tests/app/overview/unconnected.test.tsx)
 2 Paste the three values	#1811: the number is the step's marker; the page reads it beside overview.connect.step.paste (tests/app/overview/unconnected.test.tsx)
 hosted.reachkit.app	#1811: the record's value is the HOSTED_EDGE_CNAME_TARGET binding, never a registry word; the page draws it (tests/app/overview/unconnected.test.tsx)
-The same setting is in your first page’s mail, so you can add it later from a desk.	#1811: the first page's mail does not carry the setting, so overview.connect.later says what it does until the owner rules on the issue
+The same setting is in your first page’s mail, so you can add it later from a desk.	owner R20 2026-10-22 (docs/spec/decisions/2026-10-22-1811.md): the first page's mail will carry the setting, and the line ships as drawn once that mail does; until then overview.connect.later says what the mail does today
 Overview · day 2	sample data: the day is the customer's count; overview.connect.day draws it (tests/app/overview/unconnected.test.tsx)
 Where you bought harborplumbing.com, such as GoDaddy or Namecheap.	sample data: the domain is the customer's; overview.connect.step.open.line draws it (tests/app/overview/unconnected.test.tsx)
 Add one setting where your web address is managed	owner 2026-10-15 #1463: a title is at most six words, so overview.connect.title reads "Add one setting to your domain"
