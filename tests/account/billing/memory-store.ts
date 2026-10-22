@@ -30,7 +30,7 @@ export interface MemoryBilling {
   scans: { site_id: string; created_at: string; status: "running" | "done" | "degraded" | "failed" }[];
   /** `sites.domain` as stored, per owner. */
   domains: { user_id: string; domain: string | null }[];
-  refunds: { invoice_id: string; user_id: string; domains: readonly string[]; refunded_at: string }[];
+  refunds: { invoice_id: string; user_id: string; subscription_id: string | null; domains: readonly string[]; refunded_at: string }[];
   failAccountRead: boolean;
   failHostingRead: boolean;
   failWrite: boolean;
@@ -278,7 +278,7 @@ export function memoryBillingStore(state: MemoryBilling): BillingStore {
     async recordRefund(a) {
       if (state.failWrite) return { ok: false };
       if (!state.refunds.some((r) => r.invoice_id === a.invoiceId)) {
-        state.refunds.push({ invoice_id: a.invoiceId, user_id: a.userId, domains: a.domains, refunded_at: a.at.toISOString() });
+        state.refunds.push({ invoice_id: a.invoiceId, user_id: a.userId, subscription_id: a.subscriptionId, domains: a.domains, refunded_at: a.at.toISOString() });
       }
       return { ok: true };
     },

@@ -109,7 +109,7 @@ export async function refundFirstFortnight(
 
   const earlier = await earlierRefunds(userId);
   if (earlier === null) return "store";
-  if (earlier.some((refund) => refund.user_id === userId)) {
+  if (earlier.some((refund) => refund.user_id === userId && refund.subscription_id === subscription.id)) {
     // Refunded by an earlier delivery whose end of access did not land.
     if (new Date(account.paid_through).getTime() <= now.getTime()) return "refunded_before";
     const ended = await endSubscriptionNow(userId, now);
@@ -153,7 +153,7 @@ export async function refundFirstFortnight(
   }
 
   const domains = (await accountDomains(userId)) ?? [];
-  const recorded = await billingStore().recordRefund({ invoiceId, userId, domains, at: now });
+  const recorded = await billingStore().recordRefund({ invoiceId, userId, subscriptionId: subscription.id, domains, at: now });
   if (!recorded.ok) {
     log({ outcome: "store", invoice: invoiceId });
     return "store";

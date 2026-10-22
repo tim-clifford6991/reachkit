@@ -67,9 +67,15 @@ export function BillingPanel(p: { billing: BillingSummary }): React.JSX.Element 
   // plan word, the price and the one control still stand, and the date and
   // the cancel/resume choice — the two things that depend on having read
   // the account — are replaced by REQ-097 c6's three sentences (#228).
-  const cancelling = billing.readable
-    ? writtenLine("settings.billing.cancelling", { date: billing.accessUntil })
-    : null;
+  // Inside the refund window a cancel ends access at once, so the refund line replaces "keeps running".
+  const refundWindow =
+    billing.readable && billing.refundUntil !== null
+      ? writtenLine("settings.billing.refund-window", { date: billing.refundUntil })
+      : null;
+  const cancelling =
+    billing.readable && refundWindow === null
+      ? writtenLine("settings.billing.cancelling", { date: billing.accessUntil })
+      : null;
 
   // **One of the two lines beside the figure, not both** (owner,
   // 2026-09-21, on #925). `PRICE_COPY_KEYS` is `price.amount`,
@@ -219,11 +225,6 @@ export function BillingPanel(p: { billing: BillingSummary }): React.JSX.Element 
         <p className="text-xs text-base-content/70 wrap-anywhere" data-testid="billing-route">
           {copy("settings.billing.route")}
         </p>
-        {billing.readable && billing.refundAutomatic ? (
-          <p className="text-xs text-base-content/70 wrap-anywhere" data-testid="billing-refund">
-            {copy("settings.billing.refund")}
-          </p>
-        ) : null}
 
         {billing.readable ? null : (
           <div className="flex min-w-0 flex-col gap-1" data-testid="billing-unreadable">
@@ -235,6 +236,11 @@ export function BillingPanel(p: { billing: BillingSummary }): React.JSX.Element 
                 </p>
               ))}
           </div>
+        )}
+        {refundWindow === null ? null : (
+          <p className="text-xs text-base-content/70 wrap-anywhere" data-testid="billing-refund">
+            {refundWindow}
+          </p>
         )}
         {cancelling === null ? null : (
           <p className="text-xs text-base-content/70 wrap-anywhere" data-testid="billing-cancelling">

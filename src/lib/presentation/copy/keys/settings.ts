@@ -713,9 +713,9 @@ export const SETTINGS_COPY = Object.freeze({
     "Reply to any ReachKit email or use Cancel in Settings.",
     { slots: {}, fixedBy: "E13 · drafted" },
   ],
-  "settings.billing.refund": [
-    "Cancel within 14 days of your first payment and it is refunded in full, automatically.",
-    { slots: {}, fixedBy: "D4 · drafted" },
+  "settings.billing.refund-window": [
+    "Billed in euros. Cancel by {date} for a full, automatic refund. ReachKit stops at once.",
+    { slots: { date: "date" }, fixedBy: "D4 · ux-designer · pending owner" },
   ],
 
   // Billing's "What you got this month" (owner E3, 2026-10-19). Drafted.

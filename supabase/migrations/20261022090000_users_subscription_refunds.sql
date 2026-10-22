@@ -1,5 +1,5 @@
 -- The first-14-days refund (owner D4, 2026-10-19): one row per refunded
--- first invoice, with the canonical domains of the account's sites, so
+-- first invoice, the subscription it ended, with the canonical domains of the account's sites, so
 -- "once per web address" is read from stored rows and never from an email.
 --
 -- No foreign key to `users`, on purpose: the record must outlive the
@@ -11,6 +11,7 @@
 create table if not exists refunds (
   invoice_id text primary key,
   user_id uuid not null,
+  subscription_id text,
   domains text[] not null default '{}',
   refunded_at timestamptz not null default now()
 );

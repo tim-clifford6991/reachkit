@@ -11,7 +11,7 @@ applyEnvFixture();
 
 const { POST } = await import("@/app/api/stripe/webhook/route");
 const { registerSubscriptionHandler } = await import("@/lib/account/provisioning/webhook");
-const { hasActiveAccess, setBillingStore } = await import("@/lib/account/billing");
+const { hasActiveAccess, resumeSubscription, setBillingStore } = await import("@/lib/account/billing");
 const { setStripe } = await import("@/lib/account/stripe/client");
 const { memoryBillingStore, newMemoryBilling, account, site, storedUser } = await import("./memory-store");
 const { newStripeDouble, paidInvoiceDouble, stripeDouble, subscriptionDouble } = await import("../stripe-double");
@@ -223,5 +223,39 @@ describe("a refund Stripe refuses", () => {
     expect(await deliver(cancelEvent("scheduler"))).toBe(200);
     expect(vendor.refundsCreated).toHaveLength(1);
     expect(await hasActiveAccess("site_scheduler")).toBe(false);
+  });
+});
+
+describe("a refunded customer who resumes and later cancels at period end", () => {
+  it("keeps the month they paid for: the new subscription is not ended and nothing more is refunded", async () => {
+    customer({ id: "scheduler", domain: "schedulepilot.io" });
+    at(2);
+    await deliver(cancelEvent("scheduler"));
+    expect(vendor.refundsCreated).toHaveLength(1);
+    expect(await hasActiveAccess("site_scheduler")).toBe(false);
+    vendor.subscriptions.set("sub_scheduler", {
+      ...(vendor.subscriptions.get("sub_scheduler") as object),
+      status: "canceled",
+    });
+
+    at(3);
+    expect((await resumeSubscription("scheduler")).ok).toBe(true);
+    const resumed = storedUser(state).stripe_subscription_id as string;
+    expect(resumed).not.toBe("sub_scheduler");
+    expect(await hasActiveAccess("site_scheduler")).toBe(true);
+    const paidThrough = storedUser(state).paid_through;
+
+    at(25);
+    const sub = vendor.subscriptions.get(resumed) as Record<string, unknown>;
+    expect(
+      await deliver({
+        id: "evt_cancel_resumed",
+        type: "customer.subscription.updated",
+        data: { object: { ...sub, cancel_at_period_end: true } },
+      })
+    ).toBe(200);
+    expect(vendor.refundsCreated).toHaveLength(1);
+    expect(storedUser(state).paid_through).toBe(paidThrough);
+    expect(await hasActiveAccess("site_scheduler")).toBe(true);
   });
 });

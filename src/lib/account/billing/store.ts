@@ -41,6 +41,7 @@ export interface BillingRow {
 export interface RefundRow {
   readonly invoice_id: string;
   readonly user_id: string;
+  readonly subscription_id: string | null;
 }
 
 /** What a subscription event writes. Every member is a value the vendor
@@ -168,6 +169,7 @@ export interface BillingStore {
   recordRefund(a: {
     invoiceId: string;
     userId: string;
+    subscriptionId: string;
     domains: readonly string[];
     at: Date;
   }): Promise<{ ok: true } | { ok: false }>;
@@ -413,11 +415,11 @@ export function supabaseBillingStore(): BillingStore {
     },
 
     async refundsFor(userId, domains) {
-      const own = untyped().from<RefundRow>("refunds").select("invoice_id, user_id").eq("user_id", userId);
+      const own = untyped().from<RefundRow>("refunds").select("invoice_id, user_id, subscription_id").eq("user_id", userId);
       const shared =
         domains.length === 0
           ? null
-          : untyped().from<RefundRow>("refunds").select("invoice_id, user_id").overlaps("domains", domains);
+          : untyped().from<RefundRow>("refunds").select("invoice_id, user_id, subscription_id").overlaps("domains", domains);
       const [mine, others] = await Promise.all([own, shared]);
       if (mine.error || (others !== null && others.error)) return { ok: false };
       return { ok: true, refunds: [...(mine.data ?? []), ...(others?.data ?? [])] };
@@ -427,6 +429,7 @@ export function supabaseBillingStore(): BillingStore {
       const { error } = await untyped().from<RefundRow>("refunds").insert({
         invoice_id: a.invoiceId,
         user_id: a.userId,
+        subscription_id: a.subscriptionId,
         domains: a.domains,
         refunded_at: a.at.toISOString(),
       });

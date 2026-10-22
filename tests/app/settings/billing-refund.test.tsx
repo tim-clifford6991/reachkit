@@ -1,10 +1,12 @@
-// Settings › Billing: the E13 cancel route always, and D4's automatic
-// refund only inside the first 14 days for a web address never refunded.
+// Settings › Billing: the E13 cancel route always, and D4's dated refund
+// line in place of the cancelling line only inside the first 14 days for a
+// web address never refunded.
 // From stored rows through `billingSummary` to the rendered card.
 /** @vitest-environment jsdom */
 import "../../generate/env";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
+import { formatDate } from "@/app/(account)/app/_shell/format";
 import { BillingPanel } from "@/app/(account)/app/settings/panels/BillingPanel";
 import { billingSummary, setBillingStore } from "@/lib/account/billing";
 import { copy } from "@/lib/presentation/copy";
@@ -40,7 +42,7 @@ async function billingCard(day: number): Promise<Document> {
         accessUntil: "Oct 31, 2026",
         surfaceHref: "/app/settings",
         cardLast4: null,
-        refundAutomatic: read.summary.refundAutomatic,
+        refundUntil: read.summary.refundUntil === null ? null : formatDate(read.summary.refundUntil, "UTC"),
       }}
     />
   );
@@ -51,28 +53,32 @@ const line = (doc: Document, testId: string): string | null =>
   doc.querySelector(`[data-testid="${testId}"]`)?.textContent ?? null;
 
 describe("Settings › Billing — the cancel route and the first-14-days refund", () => {
-  it("day 5: the route and the automatic refund are both stated", async () => {
+  it("day 5: the route and the dated refund line, never the line that says access keeps running", async () => {
     const doc = await billingCard(5);
     expect(line(doc, "billing-route")).toBe(copy("settings.billing.route"));
-    expect(line(doc, "billing-refund")).toBe(copy("settings.billing.refund"));
+    expect(line(doc, "billing-refund")).toBe(copy("settings.billing.refund-window", { date: "Oct 15, 2026" }));
+    expect(line(doc, "billing-cancelling")).toBeNull();
   });
 
-  it("day 20: the route only", async () => {
+  it("day 20: the route only, and cancelling keeps access to the period end", async () => {
     const doc = await billingCard(20);
     expect(line(doc, "billing-route")).toBe(copy("settings.billing.route"));
     expect(line(doc, "billing-refund")).toBeNull();
+    expect(line(doc, "billing-cancelling")).toBe(copy("settings.billing.cancelling", { date: "Oct 31, 2026" }));
   });
 
   it("day 5 for a web address another account was refunded on: the route only", async () => {
     state.refunds.push({
       invoice_id: "in_earlier",
       user_id: "u0",
+      subscription_id: "sub_u0",
       domains: ["northside-plumbing.com"],
       refunded_at: OPENED.toISOString(),
     });
     const doc = await billingCard(5);
     expect(line(doc, "billing-route")).toBe(copy("settings.billing.route"));
     expect(line(doc, "billing-refund")).toBeNull();
+    expect(line(doc, "billing-cancelling")).not.toBeNull();
   });
 
   it("day 5 when the refunds cannot be read: no promise is made", async () => {

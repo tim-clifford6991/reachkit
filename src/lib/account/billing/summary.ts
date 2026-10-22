@@ -70,10 +70,10 @@ export interface BillingSummary {
    *  control to it rather than a list of its own. A literal, so a second
    *  destination cannot be introduced by a call site. */
   readonly invoicesVia: "portal";
-  /** D4: a cancel now would be refunded by itself — inside the first 14
-   *  days and with no earlier refund for this web address. False where
-   *  either could not be read: a promise is never made on a guess. */
-  readonly refundAutomatic: boolean;
+  /** D4: when the automatic refund of a cancel stops applying — set only
+   *  inside the first 14 days with no earlier refund for this web address.
+   *  Null where either could not be read: a promise is never made on a guess. */
+  readonly refundUntil: Date | null;
 }
 
 export type BillingSummaryResult =
@@ -101,7 +101,7 @@ export async function billingSummary(userId: string): Promise<BillingSummaryResu
       cancelledAt: account.cancelled_at === null ? null : new Date(account.cancelled_at),
       planStatus: account.plan_status,
       invoicesVia: "portal",
-      refundAutomatic: refunds !== null && refunds.length === 0,
+      refundUntil: refunds !== null && refunds.length === 0 ? new Date(windowEnds) : null,
     },
   };
 }
