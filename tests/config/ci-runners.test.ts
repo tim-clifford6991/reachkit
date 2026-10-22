@@ -16,3 +16,26 @@ describe("every CI job runs GitHub-hosted", () => {
     expect(text).not.toMatch(/vars\.CI_/);
   });
 });
+
+const doc = (name: string) => readFileSync(path.resolve(__dirname, "../../docs", name), "utf8");
+const BOX_RUNNER = /reachkit-box|reachkit-light|self-hosted/;
+
+describe("the documents never offer a box runner", () => {
+  it("RUNBOOK names no box runner as stopped, a fallback or a switch", () => {
+    const runbook = doc("RUNBOOK.md");
+    expect(runbook).not.toContain("fallback only");
+    expect(runbook).not.toContain("Those are stopped");
+    const offers = runbook.split("\n").filter((l) => BOX_RUNNER.test(l) && /fallback/i.test(l));
+    expect(offers).toEqual([]);
+  });
+
+  it("every History line before 2026-10-22 that puts CI on the box is marked superseded", () => {
+    const history = doc("PROCESS.md").split("\n## History")[1] ?? "";
+    const onBox = history
+      .split("\n")
+      .filter((l) => /^\d{4}-\d{2}-\d{2}/.test(l) && l.slice(0, 10) < "2026-10-22")
+      .filter((l) => /CI_LIGHT_RUNNER|reachkit-box|reachkit-light|self-hosted|CI runs[^.]*on the box/.test(l));
+    expect(onBox.length).toBeGreaterThan(0);
+    for (const line of onBox) expect(line).toContain("Superseded 2026-10-22");
+  });
+});
