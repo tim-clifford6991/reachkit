@@ -88,13 +88,21 @@ describe("S5 — the screen: eyebrow, title, updated line, one card", () => {
         expect(html).toContain(copy(route.title));
         expect(html).toContain(copy("legal.updated", { date: copy(route.updated) }));
         // Every heading and every block of the body, through the one renderer; a list the
-        // board draws as a table is the provider test's.
+        // board draws as a table is the provider test's. A list is read item by item, since a
+        // figure may stand between two of its items.
         const sections = legalSections(headingsUnderTitle(parseMarkdown(copy(route.document))), LEGAL_BODY_CLASSES);
         for (const section of sections) {
           if (section.headingHtml !== "") expect(html).toContain(section.headingHtml);
           for (const block of section.blocks) {
             if (section.heading?.id === "service-providers" && block.kind === "list") continue;
-            expect(html).toContain(toHtml([block], LEGAL_BODY_CLASSES));
+            if (block.kind !== "list") {
+              expect(html).toContain(toHtml([block], LEGAL_BODY_CLASSES));
+              continue;
+            }
+            for (const item of block.items) {
+              const one = toHtml([{ ...block, items: [item] }], LEGAL_BODY_CLASSES);
+              expect(html).toContain(one.slice(one.indexOf("<li"), one.lastIndexOf("</li>") + 5));
+            }
           }
         }
       });

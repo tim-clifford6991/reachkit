@@ -229,6 +229,31 @@ function Html(p: { blocks: readonly Block[] }): React.JSX.Element | null {
   );
 }
 
+/** The follow-up timeline sits under the bullet that names the schedule it draws. */
+function withFollowUps(blocks: readonly Block[]): React.JSX.Element {
+  const at = blocks.findIndex((b) => b.kind === "list");
+  const list = blocks[at];
+  const k =
+    list?.kind === "list"
+      ? list.items.findIndex((item) => NURTURE_H.every((h) => inlineText(item).includes(String(h))))
+      : -1;
+  if (list?.kind !== "list" || k < 0) {
+    return (
+      <>
+        <Html blocks={blocks} />
+        <FollowUps />
+      </>
+    );
+  }
+  return (
+    <>
+      <Html blocks={[...blocks.slice(0, at), { ...list, items: list.items.slice(0, k + 1) }]} />
+      <FollowUps />
+      <Html blocks={[{ ...list, items: list.items.slice(k + 1) }, ...blocks.slice(at + 1)].filter((b) => b.kind !== "list" || b.items.length > 0)} />
+    </>
+  );
+}
+
 function Section(p: { section: LegalSection; figure: LegalFigure | undefined }): React.JSX.Element {
   const { section, figure } = p;
   const at = figure === "providers" ? section.blocks.findIndex((b) => b.kind === "list") : -1;
@@ -237,7 +262,9 @@ function Section(p: { section: LegalSection; figure: LegalFigure | undefined }):
     <section className="mt-6 flex flex-col gap-3 first:mt-0">
       {section.headingHtml === "" ? null : <div dangerouslySetInnerHTML={{ __html: section.headingHtml }} />}
       {figure === "rights" ? <Rights /> : null}
-      {list?.kind === "list" ? (
+      {figure === "follow-ups" ? (
+        withFollowUps(section.blocks)
+      ) : list?.kind === "list" ? (
         <>
           <Html blocks={section.blocks.slice(0, at)} />
           <Providers list={list} />
@@ -246,7 +273,6 @@ function Section(p: { section: LegalSection; figure: LegalFigure | undefined }):
       ) : (
         <Html blocks={section.blocks} />
       )}
-      {figure === "follow-ups" ? <FollowUps /> : null}
     </section>
   );
 }

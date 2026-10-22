@@ -75,11 +75,11 @@ describe("board Legal — the follow-up mail timeline", () => {
     expect(figure!.querySelector("figcaption")?.text).toBe(copy("legal.follow-ups.note"));
   });
 
-  it("follows the list of what we collect, before How we use it", () => {
+  it("sits right under the email bullet that names the schedule, before Billing data", () => {
     const html = privacy.toString();
     const figure = html.indexOf('data-testid="legal-follow-ups"');
     expect(figure).toBeGreaterThan(html.indexOf("Your email address."));
-    expect(figure).toBeLessThan(html.indexOf('id="how-we-use-it"'));
+    expect(figure).toBeLessThan(html.indexOf("Billing data."));
   });
 });
 
