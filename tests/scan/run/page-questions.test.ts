@@ -27,13 +27,19 @@
 //    history behind it.
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { captureStages, fakeDb, type DbQuery } from "./harness";
-import { measured, measuredZero, unmeasured } from "../../../src/lib/measure/measured";
+import { measured, measuredZero, unmeasured, type Measured } from "../../../src/lib/measure/measured";
 import {
+  ASYNC_AIO_SURCHARGE_MULTIPLIER,
   BATTERY as BATTERY_PINS,
+  CAPS,
   PAGE_QUESTION_RETIRE_WEEKS,
+  PRICE_BOOK,
   TRACKED_QUESTIONS_MAX,
+  TYPING_RESERVE_C,
   VENDOR,
+  WEEKLY_RIVAL_RESIZES,
 } from "../../../src/lib/config/constants";
+import type { CostContext } from "../../../src/lib/costs";
 import type { DomainMeasurement } from "../../../src/lib/measure";
 import type { StoredReport } from "../../../src/lib/scan/report";
 import type { AiAnswer, RankedRow } from "../../../src/lib/vendors/dataforseo/types";
@@ -343,6 +349,95 @@ describe("owner B2 — each page slot's result is read deep enough to see the pa
       ...Array(rows.length - deep).fill(VENDOR.serpDepth),
     ]);
     expect(rows.map((row) => row.depth)).toEqual([...Array(deep).fill(100), ...Array(rows.length - deep).fill(VENDOR.serpDepth)]);
+  });
+});
+
+// Owner W1 beside owner B2: the stages stop at the weekly cap less the typing
+// reserve, and the page slots now read 100 deep. Every double below ledgers
+// through the pass's own cost context at what the seam charges for that call
+// (`tests/scan/page-questions-ledger.test.ts` holds the seam to those prices).
+describe("owner W1 — a week's deep page reads fit inside the cap less the typing reserve", () => {
+  const ledger = async <T>(c: CostContext, key: string, cents: number, value: Measured<T>): Promise<Measured<T>> => {
+    const paid = await c.recordFetch({ source: key.split("|")[0] ?? key, cacheKey: key, freshnessDays: 0, costCents: cents, run: async () => value });
+    return "skipped" in paid ? unmeasured<T>("not_attempted", AT) : paid.payload;
+  };
+
+  /** A placed site's own market, so the pass builds and asks the 25 tracked prompts. */
+  const SITE = {
+    domain: DOMAIN,
+    category: "crm software",
+    competitors: [],
+    tracked_prompts: null,
+    market: {
+      current: {
+        category: "crm software",
+        synonyms: ["sales crm", "contact manager", "pipeline tool"],
+        buyer: "Small sales teams",
+        job: "Keep every deal in one place",
+        rivals: [
+          { domain: RIVAL, name: "Othersite", basis: "ranks", reason: "" },
+          { domain: "pipedrive.com", name: "Pipedrive", basis: "ranks", reason: "" },
+          { domain: "hubspot.com", name: "HubSpot", basis: "ranks", reason: "" },
+        ],
+      },
+    },
+  };
+
+  /** What the stages left on the scan row when the pass closed. */
+  const closedCents = (): number =>
+    db.queries.filter((q) => q.table === "scans" && q.verb === "update" && q.values?.cost_cents !== undefined).at(-1)?.values
+      ?.cost_cents as number;
+
+  beforeEach(() => {
+    db.rows.set("sites", [SITE]);
+    // Pages nobody has seen yet, so every deep slot reads 100 deep.
+    measureDomain.mockImplementation(async (c: CostContext) => {
+      // The weekly site read buys its own ranked rows, and the pass re-sizes its due rivals before the asks.
+      await ledger(c, "ranked|own", PRICE_BOOK.RANKED_PAID_COST_C, measured(0, AT));
+      await ledger(c, "ranked|rival", WEEKLY_RIVAL_RESIZES * PRICE_BOOK.RANKED_RIVAL_COST_C, measured(0, AT));
+      return { ...MEASUREMENT, ownRankedRows: [] };
+    });
+    serpOrganic.mockImplementation(
+      (c: CostContext, call: { query: string; depth?: number; priority?: "high"; loadAsyncAiOverview: boolean }) => {
+        const pages = Math.ceil((call.depth ?? VENDOR.serpDepth) / 10);
+        const base = call.priority === "high" ? PRICE_BOOK.SERP_STD_HIGH_C : PRICE_BOOK.SERP_STD_C;
+        const cents = call.loadAsyncAiOverview ? base * (pages + ASYNC_AIO_SURCHARGE_MULTIPLIER - 1) : base * pages;
+        return ledger(c, `serp|${call.query}`, cents, measured(SERP, AT));
+      }
+    );
+    llmScraper.mockImplementation((c: CostContext, call: { query: string; run?: number }) =>
+      ledger(c, `chatgpt|${call.query}|${call.run ?? 1}`, PRICE_BOOK.CHATGPT_SCRAPE_STD_C, measured(answered(["example.com"]), AT))
+    );
+    aiMode.mockImplementation((c: CostContext, call: { query: string; run?: number }) =>
+      ledger(c, `ai_mode|${call.query}|${call.run ?? 1}`, PRICE_BOOK.AI_MODE_STD_C, measured(answered([RIVAL]), AT))
+    );
+  });
+
+  it("a full market: all twelve page slots and all 54 prompt asks are bought, and the pass closes under the cap less the reserve", async () => {
+    await runScan({ domain: DOMAIN, siteId: SITE_ID, scanId: CLAIMED_ID, tier: "weekly" });
+
+    const report = storedReport();
+    const rows = report.pageQuestions?.rows ?? [];
+    expect(rows).toHaveLength(BATTERY_PINS.QUESTIONS);
+    expect(rows.every((row) => row.depth === 100 && row.organic !== null && row.cell.kind !== "unmeasured")).toBe(true);
+    expect(report.prompts?.answers).toHaveLength(54);
+    expect(closedCents()).toBeGreaterThan(0);
+    expect(closedCents()).toBeLessThanOrEqual(CAPS.WEEKLY_C - TYPING_RESERVE_C);
+  });
+
+  it("a thin market's 24 slots cost more than the stages may spend: the pass closes under the line, and a slot it did not reach says not attempted, never 0", async () => {
+    phraseQuestions.mockResolvedValue(measured([], AT));
+    await runScan({ domain: DOMAIN, siteId: SITE_ID, scanId: CLAIMED_ID, tier: "weekly" });
+
+    const rows = storedReport().pageQuestions?.rows ?? [];
+    expect(rows).toHaveLength(TRACKED_QUESTIONS_MAX);
+    expect(closedCents()).toBeLessThanOrEqual(CAPS.WEEKLY_C - TYPING_RESERVE_C);
+    const unreached = rows.filter((row) => row.organic === null);
+    expect(unreached.length).toBeGreaterThan(0);
+    for (const row of unreached) {
+      expect(row.cell).toEqual({ kind: "unmeasured", reason: "not_attempted" });
+      expect(row.engines.every((column) => column.cell.kind !== "no_answer" && column.cell.kind !== "answered")).toBe(true);
+    }
   });
 });
 
