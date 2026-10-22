@@ -52,8 +52,8 @@ describe("the Monday digest flags a source billed over 1.1× its estimate", () =
       row("dataforseo_labs/google/keyword_suggestions", "30.0000", "36.0000"),
       row("dataforseo_labs/google/keyword_suggestions", "22.3000", "26.7600"),
       row("serp/google/organic", "20.0000", "21.0000"),
-      row("dataforseo_labs/google/ranked_keywords", "10.0000", "11.0000"),
-      row("dataforseo_labs/google/ranked_keywords", "0.0300", "0.0330"),
+      // 523000 × 1.1 is exactly 575300 in floating point, so this row tells `>` from `>=`.
+      row("dataforseo_labs/google/keyword_overview", "52.3000", "57.5300"),
     ];
     expect(week(billed).drift?.sources).toEqual([{ source: "dataforseo_labs/google/keyword_suggestions", billedCents: 62.76, estimatedCents: 52.3 }]);
 
@@ -64,7 +64,7 @@ describe("the Monday digest flags a source billed over 1.1× its estimate", () =
     expect(text).toContain("52.3¢");
     expect(text).toContain("1.20×");
     expect(text).not.toContain("serp/google/organic");
-    expect(text).not.toContain("ranked_keywords");
+    expect(text).not.toContain("keyword_overview");
   });
 
   it("only the rows the vendor priced are summed: an unpriced row of the same source does not dilute it", () => {
