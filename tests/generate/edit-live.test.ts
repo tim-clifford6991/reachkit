@@ -46,6 +46,8 @@ vi.mock("next/cache", () => ({ revalidateTag: () => undefined, revalidatePath: (
 
 import { startLiveEdit } from "@/lib/generate/edit-live";
 import { setGenerateStore } from "@/lib/generate/store";
+import { opportunityStore } from "@/lib/opportunities/store";
+import { transition } from "@/lib/publish/machine";
 import { TRANSITIONS } from "@/lib/publish/machine/table";
 
 const AT = new Date("2026-10-23T10:00:00.000Z");
@@ -128,6 +130,18 @@ describe.each([SAAS_HOSTED, LOCAL_WORDPRESS])("a live page's edit, $kind", (live
     expect(draft(LIVE_DRAFT).state).toBe("published");
     // Every move was one of the seventeen.
     expect(TRANSITIONS).toHaveLength(17);
+  });
+
+  it("skipping a failed live edit dismisses its refresh, and no page is planned for it", async () => {
+    const failing = await edit(live, { bodyMd: `${liveBody(live)}\n\nIn our tests the starter plan held up for every team we tried.` });
+    const held = (failing as { draftId: string }).draftId;
+    const refresh = draft(held).opportunity_id;
+
+    const skipped = await transition(held, "skipped", { kind: "customer", userId: USER_ID }, { at: AT });
+
+    expect(skipped).toMatchObject({ ok: true });
+    expect(opportunity(refresh).status).toBe("dismissed");
+    expect((await opportunityStore().openRankable(live.siteId)).map((row) => row.id)).not.toContain(refresh);
   });
 
   it("an unchanged save is a no-op", async () => {
