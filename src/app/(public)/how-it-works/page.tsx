@@ -14,7 +14,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowRight, RefreshCw, User, Wallet, X } from "lucide-react";
 import { Surface } from "@/ui/layout";
-import { HOSTED_RETENTION_DAYS } from "@/lib/config/constants";
+import { HOSTED_RETENTION_DAYS, REFUND_WINDOW_DAYS } from "@/lib/config/constants";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { HARD_RULES } from "@/lib/generate/rules/types";
 import { FIELD_SECTION_ID } from "../_landing/sections";
@@ -285,7 +285,7 @@ function questions(): readonly Question[] {
     landing("approve", { hours: F.windowHours, min: F.windowMinDays, max: F.windowMaxDays }),
     landing("results"),
     landing("start"),
-    landing("stop", { days: String(HOSTED_RETENTION_DAYS) }),
+    landing("stop", { refundDays: String(REFUND_WINDOW_DAYS), days: String(HOSTED_RETENTION_DAYS) }),
     landing("local", weekPages),
     { q: "how.faq.software.q", a: "how.faq.software.a" },
     landing("german", measuredCountryLists()),

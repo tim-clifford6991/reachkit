@@ -47,6 +47,11 @@ const RETIRED: readonly { name: string; pattern: RegExp }[] = [
   { name: "quoted by AI", pattern: /\bQuoted by\b/ },
   // Q6: a stopped topic is dropped for good. "Write it again" on a held page stays.
   { name: "write this one again", pattern: /\b(write this one again|ask us to write)\b/i },
+  // The Terms' old claims: a daily page, a zero window, a one-click cancel and no refund at all.
+  { name: "a page every day for your site", pattern: /\ba page every day for your site\b/i },
+  { name: "from none", pattern: /\bfrom none\b/i },
+  { name: "in one click:", pattern: /\bin one click:/i },
+  { name: "Payments already made are not refunded", pattern: /(?:^|[.!?]\s+)Payments already made are not refunded unless\b/ },
 ];
 
 /** The attributes whose value a customer reads or hears. */
@@ -180,6 +185,20 @@ describe("UI strategy: titles and retired names (#1463)", () => {
       undefined,
     ]);
     expect(["you can ask us to write this one again", "Read it, or write it again."].map(retiredIn)).toEqual(["write this one again", undefined]);
+  });
+
+  it("knows the Terms' retired claims, and leaves their allowed forms alone", () => {
+    expect([
+      "A subscription adds a page every day for your site.",
+      "24 hours by default, from none up to seven days",
+      "Cancel any time from Settings, in one click: your access continues.",
+      "Your access ends. Payments already made are not refunded unless the law requires it.",
+    ].map(retiredIn)).toEqual(["a page every day for your site", "from none", "in one click:", "Payments already made are not refunded"]);
+    expect([
+      "Unsubscribe in one click.",
+      "Otherwise your access continues, and payments already made are not refunded unless the law requires it.",
+      "anywhere from 1 to 7 days",
+    ].map(retiredIn)).toEqual([undefined, undefined, undefined]);
   });
 
   it("customer copy does not use a retired name", () => {

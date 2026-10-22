@@ -4,7 +4,7 @@
 // makes it true, so a sentence cannot outrun the product again.
 import "../../opportunities/env";
 import { describe, expect, it } from "vitest";
-import { CONTENT_MIX, HOSTED_RETENTION_DAYS, HOSTING_END_REMINDER_DAYS, PACE, RATE_LIMITS, VETO, WEEK_PLAN } from "@/lib/config/constants";
+import { CONTENT_MIX, HOSTED_RETENTION_DAYS, HOSTING_END_REMINDER_DAYS, PACE, RATE_LIMITS, REFUND_WINDOW_DAYS, VETO, WEEK_PLAN } from "@/lib/config/constants";
 import { COPY, COPY_META, copy, type CopyKey } from "@/lib/presentation/copy";
 import { TRANSLATIONS } from "@/lib/presentation/copy/translated";
 import { fixPageReadiness } from "@/lib/opportunities/fix-page";
@@ -102,9 +102,19 @@ describe("hosted pages after access ends (ruling D5)", () => {
   it("the landing's answer says how long they stay, from the pin, and that we email a week before", () => {
     expect(Object.keys(COPY_META["landing.faq.stop.a"].slots)).toContain("days");
     expect(text("landing.faq.stop.a")).not.toMatch(/\d/);
-    expect(copy("landing.faq.stop.a", { days: HOSTED_RETENTION_DAYS })).toContain(`stay live for ${HOSTED_RETENTION_DAYS} days after your access ends`);
+    expect(copy("landing.faq.stop.a", { refundDays: REFUND_WINDOW_DAYS, days: HOSTED_RETENTION_DAYS })).toContain(`stay live for ${HOSTED_RETENTION_DAYS} days after your access ends`);
     expect(HOSTING_END_REMINDER_DAYS).toBe(7);
     expect(text("landing.faq.stop.a")).toContain("we email you a week before they stop");
+  });
+});
+
+describe("the cancel answer states the refund window (ruling D4)", () => {
+  it("takes the days through a slot and says both cases", () => {
+    expect(Object.keys(COPY_META["landing.faq.stop.a"].slots)).toEqual(expect.arrayContaining(["refundDays", "days"]));
+    expect(text("landing.faq.stop.a")).not.toMatch(/\d/);
+    const answer = copy("landing.faq.stop.a", { refundDays: REFUND_WINDOW_DAYS, days: HOSTED_RETENTION_DAYS });
+    expect(answer).toContain(`If you cancel within ${REFUND_WINDOW_DAYS} days of your first payment, we refund it in full, automatically, and ReachKit stops at once.`);
+    expect(answer).toContain("After that, you keep access until the end of the month you’ve paid for");
   });
 });
 
