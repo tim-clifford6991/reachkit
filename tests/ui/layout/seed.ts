@@ -1041,9 +1041,10 @@ function seedSite(
   if (published !== undefined) {
     const address = opts.published?.slug ?? published.id;
     const at = opts.published === undefined ? "now()" : `'${opts.published.at}'`;
+    // Delivered by ReachKit, as every hosted page is, so its record offers the address.
     sql(
-      `insert into publications (draft_id, site_id, destination, mode, live_url, published_at, delivery_state) values ` +
-        `('${published.id}', '${siteId}', 'hosted', 'autopilot', 'https://content.${domain}/${address}', ${at}, 'delivered');`
+      `insert into publications (draft_id, site_id, destination, mode, live_url, published_at, delivery_state, made_live_by_us) values ` +
+        `('${published.id}', '${siteId}', 'hosted', 'autopilot', 'https://content.${domain}/${address}', ${at}, 'delivered', true);`
     );
   }
 }
