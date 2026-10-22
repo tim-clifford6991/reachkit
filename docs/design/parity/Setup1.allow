@@ -1,2 +1,8 @@
 harborplumbing.com	sample data
 844	sample data
+Other states	#1737: annotation over the board's states strip
+Address refused	#1737: annotation over a state of the step
+Save failed	#1737: annotation over a state of the step
+Saving, after the press	#1737: annotation over the pressed button (DESIGN › Pressed)
+We can’t reach that website. Check the spelling, or write to hello@reachkit.app and a person will help. You can cancel from Settings without finishing setup.	#1737: the refused arm; tests/app/setup/board.test.tsx reads it on the rendered arm
+We couldn’t reach ReachKit just now, so this step wasn’t saved. Check your connection and press again.	#1737: the save-failed arm; tests/app/setup/board.test.tsx reads it on the rendered arm
