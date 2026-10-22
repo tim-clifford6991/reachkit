@@ -198,6 +198,23 @@ describe("no figure is typed into copy", () => {
   });
 });
 
+describe("only week 1 is emailed first, and competitors are watched (D3, B5)", () => {
+  it("the week card and the window count from the page being written, not from a mail", () => {
+    const page = text(html);
+    expect(page).toContain("Goes live tomorrow,");
+    expect(page).toContain("Written, goes live unless you stop it");
+    expect(page).toContain(`A page goes live on its own ${HOW_FACTS.windowHours} hours after it is written.`);
+    expect(page).toContain(`Up to ${HOW_FACTS.rivals} competitors are watched every week.`);
+    for (const old of ["Emailed to you", "after we email it", "competitors are checked"]) expect(page).not.toContain(old);
+  });
+
+  it("the landing's price card says competitors are watched", () => {
+    const landing = text(renderToStaticMarkup(createElement(LandingPage, { searchParams: {} })));
+    expect(landing).toContain(`Your competitors, up to ${HOW_FACTS.rivals}, watched every week.`);
+    expect(landing).not.toContain("checked every week");
+  });
+});
+
 describe("what the page says about itself", () => {
   it("says once that pages are written with an AI model, and names no version", () => {
     const page = text(html);

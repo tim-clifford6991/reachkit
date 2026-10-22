@@ -1013,7 +1013,7 @@ async function addressWaiting(siteId: string): Promise<AddressWaiting | null> {
     if (host === null || host.state === "live") return null;
     const [{ recordForHost }, { env }] = await Promise.all([import("@/lib/publish/setup/cards"), import("@/lib/config/env")]);
     const record = recordForHost({ hostname: host.hostname, cnameTarget: env.HOSTED_EDGE_CNAME_TARGET });
-    return record === null ? null : { hostname: host.hostname, record };
+    return record === null ? null : { hostname: host.hostname, record, checkedAt: host.checkedAt, since: host.since };
   } catch {
     return null;
   }
