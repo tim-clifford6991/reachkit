@@ -129,8 +129,10 @@ export async function runWeekly(a: {
               hasActiveAccess: true,
             });
           } finally {
-            // SPEC §6 (D28; monthly, ruling B5): the rivals are re-checked on the month's first weekly pass only.
-            if (firstWeekOfMonth(weekStart)) {
+            // SPEC §6 (D28; monthly, ruling B5): a re-check the cap refused stays due on every pass until one concludes.
+            const { readSiteMarket } = await import("@/lib/market/infer/stored");
+            const checkedAt = await readSiteMarket(a.siteId).then((site) => site?.stored.rivalsCheckedAt, () => undefined);
+            if (rivalsDue(checkedAt, weekStart, zone)) {
               const { recheckRivalsOf } = await import("../market-conclusion");
               await recheckRivalsOf({ siteId: a.siteId, domain: a.domain, cost, report });
             }
@@ -181,9 +183,9 @@ function hasBegun(a: { at: Date; zone: string }): boolean {
   return localClock(a.at, a.zone).date > weekStartFor(a);
 }
 
-/** The site-local week starts on the month's first seven days. */
-function firstWeekOfMonth(weekStart: string): boolean {
-  return Number(weekStart.slice(8, 10)) <= 7;
+/** No re-check has concluded yet in the site-local month the week starts in. */
+function rivalsDue(checkedAt: string | undefined, weekStart: string, zone: string): boolean {
+  return checkedAt === undefined || localClock(new Date(checkedAt), zone).date.slice(0, 7) < weekStart.slice(0, 7);
 }
 
 function refuse(siteId: string, because: WeeklyRefusal): WeeklyOutcome {

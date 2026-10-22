@@ -69,32 +69,31 @@ describe("/setup", () => {
     expect(root.getAttribute("data-arm-wide")).toBe("same-as-below");
   });
 
-  it("opens on the first step — the founder's site and market — with one primary", async () => {
+  it("opens on the first step — the founder's site — with one primary", async () => {
     const tree = await renderPage(() => import("@/app/(account)/setup/page"));
-    expect(tree.querySelector('[data-testid="setup-site-and-market"]')).not.toBeNull();
-    // The later steps' decisions are not on this screen: one question at a
-    // time is what SPEC §5 (2026-09-20) asks for.
-    for (const id of ["setup-competitors", "setup-publishing", "setup-voice"]) {
+    expect(tree.querySelector('[data-testid="setup-address"]')).not.toBeNull();
+    // The later steps are not on this screen: one step at a time.
+    for (const id of ["setup-check", "setup-competitors", "setup-publishing", "setup-voice"]) {
       expect(tree.querySelector(`[data-testid="${id}"]`), id).toBeNull();
     }
     expect(tree.querySelectorAll(".btn-primary:not(.btn-soft, .btn-outline, .btn-ghost)")).toHaveLength(1);
   });
 
   it("an address naming a step opens on that step", async () => {
-    const tree = await renderPage(() => import("@/app/(account)/setup/page"), { step: "rivals" });
+    const tree = await renderPage(() => import("@/app/(account)/setup/page"), { step: "check" });
     expect(tree.querySelector('[data-testid="setup-form"]')?.getAttribute("data-step")).toBe(
-      "rivals",
+      "check",
     );
     expect(tree.querySelector('[data-testid="setup-competitors"]')).not.toBeNull();
-    expect(tree.querySelector('[data-testid="setup-site-and-market"]')).toBeNull();
+    expect(tree.querySelector('[data-testid="setup-address"]')).toBeNull();
   });
 
-  it("states where the founder is, in the five steps (SPEC §5, 2026-09-20)", async () => {
+  it("states where the founder is, in the three steps (docs/spec/decisions/2026-10-22-1737.md)", async () => {
     const tree = await renderPage(() => import("@/app/(account)/setup/page"));
     const steps = tree.querySelector('[data-testid="setup-steps"]');
     expect(steps).not.toBeNull();
     expect(steps?.getAttribute("data-current")).toBe("site");
-    expect(steps?.querySelectorAll("li")).toHaveLength(5);
+    expect(steps?.querySelectorAll("li")).toHaveLength(3);
   });
 
   it("REQ-021 c10's own line sits under the one control", async () => {
