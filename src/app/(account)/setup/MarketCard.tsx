@@ -261,14 +261,16 @@ export function MarketCard(p: {
 
   const questionList = questions === null ? null : <QuestionList items={questions} />;
 
-  // D28 (#1185): a market ReachKit concluded says why, and that the founder
-  // need not change it.
-  const reason = state.market.state === "inferred" ? (state.market.reason ?? null) : null;
+  // A market ReachKit read names itself and says the founder need not change it, with or without a stated reason.
+  const inferred = state.market.state === "inferred" ? state.market : null;
+  const reason = inferred?.reason ?? "";
   const concludedLine =
-    reason === null ? null : (
+    inferred === null ? null : (
       <div className="flex min-w-0 flex-col gap-1" data-testid="setup-market-concluded">
-        {reason === "" ? null : <p className="text-sm wrap-anywhere">{reason}</p>}
-        <p className={QUIET}>{copy("setup.market.concluded")}</p>
+        <p className="text-sm wrap-anywhere">
+          <strong>{`${inferred.category}.`}</strong> <span className="text-base-content/70">{copy("setup.market.concluded")}</span>
+        </p>
+        {reason === "" ? null : <p className={`${QUIET} wrap-anywhere`}>{reason}</p>}
       </div>
     );
 

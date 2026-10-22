@@ -173,6 +173,14 @@ describe("Check, in the board's order and words", () => {
     expect((await mount("check", { passStartedAt: null })).querySelector('[data-testid="setup-check-status"]')).toBeNull();
   });
 
+  it("a market read from the report with no stated reason still names itself in the board's line", async () => {
+    const root = await mount("check", { concluded: null });
+    const line = root.querySelector('[data-testid="setup-market-concluded"] p')?.textContent;
+    expect(line).toBe(
+      `${FIXTURE_SETUP_FACTS.measured?.report.category}. ReachKit read this from your site and keeps it current each week. Change it only if it’s wrong.`,
+    );
+  });
+
   it("before the read lands, and a group nothing was read for, are said in the board's words", async () => {
     const texts = textOf(await mount("check", { measured: null, concluded: null, profile: null, market: null }));
     expect(texts).toContain("We’re still reading your site. Carry on. What we find shows in Settings, where you can change it.");
