@@ -1,5 +1,5 @@
-// SPEC §5 — the market step of `/setup`: the site address, the market
-// category (editable) and the twelve questions read-only. daisyUI classes
+// SPEC §5 — Site's card (the address, where the buyers are, the place) and
+// Check's market (the category, editable, and the twelve questions read-only). daisyUI classes
 // in the route (DESIGN.md rule 1): `card`, `badge`, `btn`, `input`,
 // `alert`, `collapse`; lucide glyphs at 1.75.
 //
@@ -34,30 +34,20 @@ const ICON = { strokeWidth: 1.75, size: 20, "aria-hidden": true } as const;
 const CARD = "card bg-base-100 shadow-sm";
 const ROW = "flex min-w-0 flex-wrap items-center justify-between gap-3";
 const QUIET = "text-sm text-base-content/70";
-/** A quiet empty (the calm layer, #1059): a flat grey cell and one line —
- *  never a white card or a coloured alert for a thing that is not there. */
-const EMPTY = "rounded-box bg-base-200 px-3 py-2 text-sm text-base-content/70";
 const CHANGE = "btn btn-sm btn-ghost";
 const CHIP = "badge badge-primary badge-soft h-auto py-1 wrap-anywhere";
 
-const SITE_AND_MARKET_TEST_ID = "setup-site-and-market";
 const ADDRESS_TEST_ID = "setup-address";
 const MARKET_TEST_ID = "setup-market";
-const AWAITING_SITE = "site";
 
-export function MarketCard(p: {
+export function SiteCard(p: {
   state: SetupState;
   setState: Dispatch<SetStateAction<SetupState>>;
-  questions: SetupQuestions | null;
   resolveDomain: (host: string) => Promise<ResolveDomainResponse>;
-  /** The site's country and language (SPEC §6, owner D66, issue 1311), as
-   *  `localeKey` spells it: what was read of the site until the founder
-   *  chooses another. */
+  /** D66: the country and language, as `localeKey` spells it. */
   locale: string;
   setLocale: (locale: string) => void;
-  /** The city or area the business serves (SPEC §6, owner D67, issue
-   *  1318): what was read of the site until the founder writes another,
-   *  empty for a business that sells everywhere. */
+  /** D67: the city or area served; `by` says whether the founder typed it. */
   place: string;
   setPlace: (place: string, by: "founder" | "read") => void;
 }): React.JSX.Element {
@@ -65,12 +55,9 @@ export function MarketCard(p: {
   const addressId = useId();
   const localeId = useId();
   const placeId = useId();
-  const marketId = useId();
   const [addressDraft, setAddressDraft] = useState(state.siteDomain ?? "");
   const [addressRefusal, setAddressRefusal] = useState<AddressRefusal | null>(null);
   const [editingAddress, setEditingAddress] = useState(state.address.state !== "measured");
-  const [marketDraft, setMarketDraft] = useState("");
-  const [editingMarket, setEditingMarket] = useState(state.market.state === "empty");
 
   // Issue 1196: the address check is a request; its button waits on it.
   const [resolving, startResolving] = useTransition();
@@ -89,13 +76,152 @@ export function MarketCard(p: {
     }
     setAddressRefusal(null);
     setEditingAddress(false);
-    // REQ-026 c6: the market card then stands by the address they gave.
+    // REQ-026 c6: the market then stands by the address they gave.
     setState((current) => onDomainChanged(current, { domain: checked.domain, report: answer.report }));
     // D66: a new address is a new reading of where its buyers are.
     if (typeof answer.locale === "string") p.setLocale(answer.locale);
     // D67: and of where it serves.
     if (typeof answer.place === "string") p.setPlace(answer.place, "read");
   }
+
+  const chosen = SUPPORTED_LOCALES.find((each) => localeKey(each) === p.locale) ?? null;
+
+  return (
+    <section className={CARD} data-testid={ADDRESS_TEST_ID}>
+      <div className="card-body gap-4">
+        <h2 className="card-title text-base">
+          <Globe {...ICON} />
+          {copy("setup.address.title")}
+        </h2>
+        {state.address.state === "measured" && !editingAddress ? (
+          <div className="flex flex-col gap-1.5">
+            <p className={QUIET}>{copy("setup.address.label")}</p>
+            <div className={ROW}>
+              <p className="num min-w-0 wrap-anywhere" data-testid="setup-address-value">
+                {state.address.domain}
+              </p>
+              <button type="button" className={CHANGE} onClick={() => setEditingAddress(true)}>
+                {copy("setup.address.change")}
+              </button>
+            </div>
+            <p className={QUIET} data-testid="setup-address-measured">
+              {copy("setup.address.measured")}
+            </p>
+          </div>
+        ) : (
+          <>
+            <div className="flex flex-col gap-1.5">
+              <label className={QUIET} htmlFor={addressId}>
+                {copy("setup.address.label")}
+              </label>
+              <div className="flex gap-2">
+                <input
+                  id={addressId}
+                  type="text"
+                  name="domain"
+                  className={`input num w-full ${addressRefusal === null ? "" : "input-error"}`}
+                  placeholder={copy("setup.address.placeholder")}
+                  value={addressDraft}
+                  aria-invalid={addressRefusal !== null}
+                  onChange={(event) => {
+                    setAddressDraft(event.target.value);
+                    setAddressRefusal(null);
+                  }}
+                  onKeyDown={onEnter(commitAddress)}
+                />
+                <button
+                  type="button"
+                  className="btn btn-soft btn-primary"
+                  disabled={resolving}
+                  onClick={commitAddress}
+                >
+                  {resolving ? <span className="loading loading-spinner loading-xs" aria-hidden /> : null}
+                  {copy("setup.address.change")}
+                </button>
+              </div>
+            </div>
+            {addressRefusal === null ? null : (
+              <div role="alert" className="alert alert-error alert-soft text-sm">
+                {copy(ADDRESS_REFUSAL_COPY[addressRefusal])}
+              </div>
+            )}
+            {/* REQ-021 c7: the address they paid with is not assumed to
+                be the site, said where the field is. */}
+            <p className={QUIET} data-testid="setup-address-assurance">
+              {copy("setup.address.assurance")}
+            </p>
+          </>
+        )}
+        {/* D66: one question, filled with what was read of the site. The
+            founder's answer wins. The list is the closed one every vendor
+            read is made from. */}
+        <div className="flex flex-col gap-1.5">
+          <label className={QUIET} htmlFor={localeId}>
+            {copy("setup.locale.label")}
+          </label>
+          <select
+            id={localeId}
+            name="locale"
+            className="select w-full"
+            value={p.locale}
+            data-testid="setup-locale"
+            onChange={(event) => p.setLocale(event.target.value)}
+          >
+            {SUPPORTED_LOCALES.map((each) => (
+              <option key={localeKey(each)} value={localeKey(each)}>
+                {copy("setup.locale.option", {
+                  country: COUNTRIES[each.country].location,
+                  language: LANGUAGES[each.language].name,
+                })}
+              </option>
+            ))}
+          </select>
+          <p className={QUIET}>{copy("setup.locale.note")}</p>
+        </div>
+        {/* D67: asked with the question above. A place here is where
+            every search, rival and AI question is then measured. */}
+        <div className="flex flex-col gap-1.5">
+          <label className={QUIET} htmlFor={placeId}>
+            {copy("setup.place.label")}
+          </label>
+          <input
+            id={placeId}
+            name="place"
+            type="text"
+            className="input w-full"
+            maxLength={80}
+            value={p.place}
+            data-testid="setup-place"
+            onChange={(event) => p.setPlace(event.target.value, "founder")}
+          />
+          <p className={QUIET}>{copy("setup.place.note")}</p>
+        </div>
+        {chosen === null ? null : (
+          <p className="flex flex-wrap gap-x-1 rounded-box bg-base-200 px-3 py-2 text-sm" data-testid="setup-place-preview">
+            <span className="font-medium">
+              {copy("setup.place.preview", {
+                area: p.place.trim() === "" ? COUNTRIES[chosen.country].location : p.place.trim(),
+                language: LANGUAGES[chosen.language].name,
+              })}
+            </span>
+            <span className="text-base-content/70">{copy("setup.place.preview.line")}</span>
+          </p>
+        )}
+      </div>
+    </section>
+  );
+}
+
+/** Check's market: the category ReachKit concluded or the founder stated, and the twelve. */
+export function MarketCard(p: {
+  state: SetupState;
+  setState: Dispatch<SetStateAction<SetupState>>;
+  questions: SetupQuestions | null;
+}): React.JSX.Element {
+  const { state, setState } = p;
+  const marketId = useId();
+  const [marketDraft, setMarketDraft] = useState("");
+  const [editingMarket, setEditingMarket] = useState(state.market.state === "empty");
 
   function commitMarket(): void {
     const category = marketDraft.trim();
@@ -107,15 +233,6 @@ export function MarketCard(p: {
   function openMarket(): void {
     setMarketDraft(state.market.state === "empty" ? "" : state.market.category);
     setEditingMarket(true);
-  }
-
-  /** Enter commits the one field; it must not submit the whole setup. */
-  function onEnter(commit: () => void) {
-    return (event: KeyboardEvent<HTMLInputElement>): void => {
-      if (event.key !== "Enter") return;
-      event.preventDefault();
-      commit();
-    };
   }
 
   // SPEC §5: the questions are the measured market's, shown while the
@@ -155,216 +272,58 @@ export function MarketCard(p: {
       </div>
     );
 
-  // REQ-021 c6: a measured address and an inferred market are one card,
-  // because both are known and each needs only a Change.
-  if (
-    state.address.state === "measured" &&
-    !editingAddress &&
-    state.market.state !== "empty" &&
-    !editingMarket
-  ) {
-    return (
-      <section className={CARD} data-testid={SITE_AND_MARKET_TEST_ID}>
-        <div className="card-body gap-4">
-          <h2 className="card-title text-base">
-            <Globe {...ICON} />
-            {copy("setup.site-and-market.title")}
-          </h2>
-          <div className={ROW}>
-            <p className="num min-w-0 wrap-anywhere" data-testid="setup-address-value">
-              {state.address.domain}
-            </p>
-            <button type="button" className={CHANGE} onClick={() => setEditingAddress(true)}>
-              {copy("setup.address.change")}
-            </button>
-          </div>
-          <div className={ROW} data-testid={MARKET_TEST_ID}>
-            <span className={CHIP} data-testid="setup-market-chip">
-              {state.market.category}
-            </span>
-            <button type="button" className={CHANGE} onClick={openMarket}>
-              {copy("setup.market.change")}
-            </button>
-          </div>
-          {concludedLine}
-          {questionList}
-        </div>
-      </section>
-    );
-  }
-
+  // Check opens only after Site has an address, so the market can always be stated here.
   return (
-    <>
-      <section className={CARD} data-testid={ADDRESS_TEST_ID}>
-        <div className="card-body gap-4">
-          <h2 className="card-title text-base">
-            <Globe {...ICON} />
-            {copy("setup.address.title")}
-          </h2>
-          {state.address.state === "measured" && !editingAddress ? (
-            <>
-              <p className="num wrap-anywhere" data-testid="setup-address-value">
-                {state.address.domain}
-              </p>
-              <p className={QUIET} data-testid="setup-address-measured">
-                {copy("setup.address.measured")}
-              </p>
-              <div>
-                <button type="button" className={CHANGE} onClick={() => setEditingAddress(true)}>
-                  {copy("setup.address.change")}
-                </button>
-              </div>
-            </>
-          ) : (
-            <>
-              <div className="flex flex-col gap-1.5">
-                <label className={QUIET} htmlFor={addressId}>
-                  {copy("setup.address.label")}
-                </label>
-                <div className="flex gap-2">
-                  <input
-                    id={addressId}
-                    type="text"
-                    name="domain"
-                    className={`input num w-full ${addressRefusal === null ? "" : "input-error"}`}
-                    placeholder={copy("setup.address.placeholder")}
-                    value={addressDraft}
-                    aria-invalid={addressRefusal !== null}
-                    onChange={(event) => {
-                      setAddressDraft(event.target.value);
-                      setAddressRefusal(null);
-                    }}
-                    onKeyDown={onEnter(commitAddress)}
-                  />
-                  <button
-                    type="button"
-                    className="btn btn-soft btn-primary"
-                    disabled={resolving}
-                    onClick={commitAddress}
-                  >
-                    {resolving ? <span className="loading loading-spinner loading-xs" aria-hidden /> : null}
-                    {copy("setup.address.change")}
-                  </button>
-                </div>
-              </div>
-              {addressRefusal === null ? null : (
-                <div role="alert" className="alert alert-error alert-soft text-sm">
-                  {copy(ADDRESS_REFUSAL_COPY[addressRefusal])}
-                </div>
-              )}
-              {/* REQ-021 c7: the address they paid with is not assumed to
-                  be the site, said where the field is. */}
-              <p className={QUIET} data-testid="setup-address-assurance">
-                {copy("setup.address.assurance")}
-              </p>
-            </>
-          )}
-          {/* D66: one question, filled with what was read of the site. The
-              founder's answer wins. The list is the closed one every vendor
-              read is made from. */}
+    <div className="grid min-w-0 gap-3" data-testid={MARKET_TEST_ID}>
+      {state.market.state === "empty" || editingMarket ? (
+        <>
+          {state.market.state === "empty" ? (
+            <p data-testid="setup-market-state-it">{copy("setup.market.state-it")}</p>
+          ) : null}
           <div className="flex flex-col gap-1.5">
-            <label className={QUIET} htmlFor={localeId}>
-              {copy("setup.locale.label")}
+            <label className={QUIET} htmlFor={marketId}>
+              {copy("setup.market.label")}
             </label>
-            <select
-              id={localeId}
-              name="locale"
-              className="select w-full"
-              value={p.locale}
-              data-testid="setup-locale"
-              onChange={(event) => p.setLocale(event.target.value)}
-            >
-              {SUPPORTED_LOCALES.map((each) => (
-                <option key={localeKey(each)} value={localeKey(each)}>
-                  {copy("setup.locale.option", {
-                    country: COUNTRIES[each.country].location,
-                    language: LANGUAGES[each.language].name,
-                  })}
-                </option>
-              ))}
-            </select>
-            <p className={QUIET}>{copy("setup.locale.note")}</p>
-          </div>
-          {/* D67: asked with the question above. A place here is where
-              every search, rival and AI question is then measured. */}
-          <div className="flex flex-col gap-1.5">
-            <label className={QUIET} htmlFor={placeId}>
-              {copy("setup.place.label")}
-            </label>
-            <input
-              id={placeId}
-              name="place"
-              type="text"
-              className="input w-full"
-              maxLength={80}
-              value={p.place}
-              data-testid="setup-place"
-              onChange={(event) => p.setPlace(event.target.value, "founder")}
-            />
-            <p className={QUIET}>{copy("setup.place.note")}</p>
-          </div>
-        </div>
-      </section>
-
-      {/* Before the site is given, one line says when a suggestion arrives
-          rather than an empty field for something not sought yet. Once it
-          is given — measured or typed — the market can be stated. */}
-      <section
-        className={CARD}
-        data-testid={MARKET_TEST_ID}
-        data-awaiting={state.siteDomain === null ? AWAITING_SITE : undefined}
-      >
-        <div className="card-body gap-4">
-          <h2 className="card-title text-base">
-            <Globe {...ICON} />
-            {copy("setup.market.title")}
-          </h2>
-          {state.siteDomain === null ? (
-            <p className={EMPTY} data-testid="setup-market-awaiting-site">
-              {copy("setup.market.awaiting-site")}
-            </p>
-          ) : state.market.state === "empty" || editingMarket ? (
-            <>
-              {state.market.state === "empty" ? (
-                <p data-testid="setup-market-state-it">{copy("setup.market.state-it")}</p>
-              ) : null}
-              <div className="flex flex-col gap-1.5">
-                <label className={QUIET} htmlFor={marketId}>
-                  {copy("setup.market.label")}
-                </label>
-                <div className="flex gap-2">
-                  <input
-                    id={marketId}
-                    type="text"
-                    name="category"
-                    className="input w-full"
-                    placeholder={copy("setup.market.placeholder")}
-                    value={marketDraft}
-                    onChange={(event) => setMarketDraft(event.target.value)}
-                    onKeyDown={onEnter(commitMarket)}
-                  />
-                  <button type="button" className="btn btn-soft btn-primary" onClick={commitMarket}>
-                    {copy("setup.market.change")}
-                  </button>
-                </div>
-              </div>
-            </>
-          ) : (
-            <div className={ROW}>
-              <span className={CHIP} data-testid="setup-market-chip">
-                {state.market.category}
-              </span>
-              <button type="button" className={CHANGE} onClick={openMarket}>
+            <div className="flex gap-2">
+              <input
+                id={marketId}
+                type="text"
+                name="category"
+                className="input w-full"
+                placeholder={copy("setup.market.placeholder")}
+                value={marketDraft}
+                onChange={(event) => setMarketDraft(event.target.value)}
+                onKeyDown={onEnter(commitMarket)}
+              />
+              <button type="button" className="btn btn-soft btn-primary" onClick={commitMarket}>
                 {copy("setup.market.change")}
               </button>
             </div>
-          )}
-          {editingMarket ? null : concludedLine}
-          {questionList}
+          </div>
+        </>
+      ) : (
+        <div className={ROW}>
+          <span className={CHIP} data-testid="setup-market-chip">
+            {state.market.category}
+          </span>
+          <button type="button" className={CHANGE} onClick={openMarket}>
+            {copy("setup.market.change")}
+          </button>
         </div>
-      </section>
-    </>
+      )}
+      {editingMarket ? null : concludedLine}
+      {questionList}
+    </div>
   );
+}
+
+/** Enter commits the one field; it must not submit the whole setup. */
+function onEnter(commit: () => void) {
+  return (event: KeyboardEvent<HTMLInputElement>): void => {
+    if (event.key !== "Enter") return;
+    event.preventDefault();
+    commit();
+  };
 }
 
 /** SPEC §5: the twelve, read-only. Each wording reaches the screen only

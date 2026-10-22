@@ -36,7 +36,7 @@ setEnvFixture();
 
 export interface DbQuery {
   table: string;
-  verb: "select" | "update" | "insert";
+  verb: "select" | "update" | "insert" | "upsert";
   values?: Record<string, unknown>;
   filters: [string, unknown][];
 }
@@ -96,6 +96,11 @@ export function fakeDb(): FakeDb {
       },
       insert(values: Record<string, unknown>) {
         query.verb = "insert";
+        query.values = values;
+        return self;
+      },
+      upsert(values: Record<string, unknown>) {
+        query.verb = "upsert";
         query.values = values;
         return self;
       },
