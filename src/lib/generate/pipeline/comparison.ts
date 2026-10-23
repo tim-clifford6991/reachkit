@@ -21,6 +21,7 @@
 // promise about it.
 import { BATTERY } from "@/lib/config/constants";
 import { readMeasuredText } from "@/lib/measure/text";
+import { urlKey } from "../links/select";
 import { renderOf } from "../rules/text";
 import type { ComparisonSet } from "../rules/types";
 import { generateStore, type StoredPage } from "../store";
@@ -37,11 +38,16 @@ export async function buildComparisonSet(a: {
   /** The draft being generated, which is in the store by the time the gate
    *  runs and must not be compared against itself. */
   exceptDraftId?: string;
+  /** A new version of a live page is not a duplicate of the versions it
+   *  replaces at its own address. */
+  exceptVersionsAt?: { url: string; draftIds: readonly string[] };
 }): Promise<ComparisonSet> {
   const store = generateStore();
-  const published = await store.publishedPages(a.siteId);
+  const versions = new Set(a.exceptVersionsAt?.draftIds ?? []);
+  const address = a.exceptVersionsAt === undefined ? null : urlKey(a.exceptVersionsAt.url);
+  const published = (await store.publishedPages(a.siteId)).filter((page) => !versions.has(page.ref));
   const queued = await store.queuedPages(a.siteId, a.exceptDraftId ?? null);
-  const measured = await readMeasuredText({ siteId: a.siteId });
+  const measured = (await readMeasuredText({ siteId: a.siteId })).filter((page) => address === null || urlKey(page.url) !== address);
 
   return {
     published: published.map(renderedPage),
