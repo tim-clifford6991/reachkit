@@ -30,6 +30,10 @@ import { ThisWeek, type WeekList } from "../_overview/ThisWeek";
 import { WaitingPageCard } from "../_overview/WaitingPageCard";
 import { WeekWaiting } from "../_overview/WeekWaiting";
 import { OVERVIEW, REGION } from "../_overview/frame";
+import { readBlogReads, readGoogleVisits } from "../_overview/blog-reads-provider";
+import { readPromptsAt } from "../_overview/prompts-provider";
+import { aiPagesOf, bestMoverOf } from "../_overview/figures";
+import { AiFigure, MonthsFigure, MoverFigure } from "../_overview/Figures";
 
 export const metadata: Metadata = { title: copy("meta.app.overview.title") };
 
@@ -68,16 +72,22 @@ export default async function OverviewPage(): Promise<React.JSX.Element> {
   // Plan's own week, reached at the call: Plan's provider reaches the market's
   // modules, and this screen's graph holds no vendor client. Where it cannot be
   // read the list is not drawn and the rest stands.
-  const week: WeekList | null = running
-    ? null
-    : await import("../_overview/this-week").then((m) => m.readThisWeek()).catch(() => null);
+  const [week, blogReads, googleVisits, reputation] = await Promise.all([
+    running ? null : import("../_overview/this-week").then((m): Promise<WeekList | null> => m.readThisWeek()).catch(() => null),
+    readBlogReads(),
+    readGoogleVisits(),
+    readPromptsAt(overview.months?.reading?.week ?? null),
+  ]);
   const notice =
     onboarding.kind === "none" || onboarding.kind === "ended"
       ? overviewNotice({ onboarding, notice: await readReleaseNotice(), weekZero: shell.weeks.kind !== "counted" })
       : null;
 
   const content = contentOf(published);
-  const ladder = content === null ? null : pageLadderOf(content.pages, published.now);
+  const ladder = content === null ? null : pageLadderOf(content.pages, published.now, googleVisits);
+  const live = content?.pages.filter((page) => page.publishedAt <= published.now) ?? [];
+  const aiPages = aiPagesOf(live);
+  const mover = bestMoverOf(live, published.now);
   const weekPages = week?.rows.length ?? 0;
 
   // The head. A page that cannot go out without the customer outranks "nothing needs you".
@@ -174,6 +184,14 @@ export default async function OverviewPage(): Promise<React.JSX.Element> {
           {choice === null ? null : <MarketChoice choice={choice} />}
         </>
       )}
+
+      {aiPages === null && !blogReads.show && mover === undefined ? null : (
+        <div className="grid min-w-0 gap-6 lg:grid-cols-2">
+          <AiFigure pages={aiPages} reads={blogReads} />
+          <MoverFigure mover={mover} timeZone={shell.timeZone} />
+        </div>
+      )}
+      {overview.months === null ? null : <MonthsFigure months={overview.months} reputation={reputation} timeZone={shell.timeZone} />}
 
       {fixes === 0 ? null : (
         <section className="card card-border min-w-0 bg-base-100" data-testid="overview-fixes">
