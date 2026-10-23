@@ -1,5 +1,5 @@
 1	sample data
 2	sample data
 4	sample data
-Yes, up to 22 checks	E10: the check count comes from code (docs/spec/decisions/2026-10-19-1581.md)
 Cancel your contract	owner 2026-10-20 Q13: shown once the launch gate opens
+What you still do yourself with ChatGPT	SPEC 2026-10-15 (#1444): a title is at most six words, so it ships as "What you still do with ChatGPT"
