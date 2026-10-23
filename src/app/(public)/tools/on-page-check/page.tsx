@@ -61,7 +61,7 @@ function Sketch(p: { checks: readonly CheckResult[]; tags: PageTags }): React.JS
     <figure className="flex min-w-0 flex-col gap-2">
       <div className="mockup-browser border-base-300 bg-base-200 min-w-0 border" role="img" aria-label={copy("tools.mark.label")}>
         <div className="mockup-browser-toolbar">
-          <div className="input h-auto min-w-0 font-mono text-xs break-all">{pagePlace(p.tags.url)}</div>
+          <span className="rounded-box bg-base-100 min-w-0 px-3 py-1 font-mono text-xs break-all">{pagePlace(p.tags.url)}</span>
         </div>
         <div className="bg-base-100 flex min-w-0 flex-col gap-3 p-4">
           <span className="flex items-center gap-2">
