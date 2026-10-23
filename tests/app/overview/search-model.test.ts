@@ -3,10 +3,10 @@
 //
 // The model is pure over its facts, so the four rules worth holding are
 // held here rather than read off a render: the screen's one order, the
-// chips' counts, the two position tiles' arithmetic, and REQ-004 — a
+// chips' counts, the market's count, and REQ-004 — a
 // reading nobody took never becomes a zero.
 import { describe, expect, it } from "vitest";
-import { measured, measuredZero, unmeasured, type Measured } from "@/lib/measure/measured";
+import { measured, unmeasured, type Measured } from "@/lib/measure/measured";
 import {
   assembleSearch,
   rowsFor,
@@ -14,7 +14,6 @@ import {
   type SearchStatus,
   type SearchTargetFacts,
 } from "@/app/(account)/app/_overview/search-model";
-import { PLAN_DEPTH } from "@/lib/config/constants";
 
 const AT = new Date("2026-08-31T06:00:00.000Z");
 
@@ -46,11 +45,7 @@ function facts(over: Partial<SearchFacts> = {}): SearchFacts {
   return {
     targets: [],
     positions: new Map<string, Measured<number>>(),
-    livePages: measured(0, AT),
-    ready: measured(0, AT),
-    ownRanked: measured(81, AT),
     market: null,
-    ceiling: 49,
     measuredAt: AT,
     ...over,
   };
@@ -135,75 +130,11 @@ describe("the chips count the rows they stand for", () => {
   });
 });
 
-describe("the four tiles carry a denominator or a goal, never a bare number", () => {
-  it("a live-page count that could not be taken leaves the pages tile unmeasured, never at zero", () => {
-    const model = assembleSearch(facts({ livePages: unmeasured<number>("undeterminable", AT) }), AT);
-    expect(model.tiles.pages.value.kind).toBe("unmeasured");
-  });
-
-  it("with no scan the pages count is unmeasured, never a zero (issue 1457)", () => {
-    const model = assembleSearch(facts({ targets: [target("a", "x", "live")], measuredAt: null }), AT);
-    expect(model.tiles.pages.value.kind).toBe("unmeasured");
-  });
-
-  it("the queue is read against the depth §7 keeps ready, and the footprint against its goal", () => {
-    const model = assembleSearch(facts({ ready: measuredZero(0, AT) }), AT);
-    expect(model.tiles.goingAfter.of).toMatchObject({ value: PLAN_DEPTH });
-    expect(model.tiles.goingAfter.value.kind).toBe("zero");
-    expect(model.tiles.appearFor.of.kind).not.toBe("unmeasured");
-  });
-});
-
-describe("two tiles state this site's own reading (#1039)", () => {
-  it("the queue lasts whole weeks at one page a day, never rounded up", () => {
-    const at = (n: number) => assembleSearch(facts({ ready: measured(n, AT) }), AT).tiles.goingAfter.reading;
-    expect(at(35)).toEqual({ kind: "queue", weeks: 5, days: 35 });
-    expect(at(13)).toEqual({ kind: "queue", weeks: 1, days: 13 });
-  });
-
-  it("an unmeasured count carries no reading, so the dash says why rather than a guess", () => {
-    const model = assembleSearch(
-      facts({ ready: unmeasured<number>("not_attempted", AT), livePages: unmeasured<number>("undeterminable", AT) }),
-      AT
-    );
-    expect(model.tiles.goingAfter.reading).toBeUndefined();
-  });
-});
-
-describe("issue 1551 — Google counts the searches the live pages target, and the market is apart", () => {
-  const rows = facts({
-    targets: [
-      target("a", "first-page", "live"),
-      target("b", "page-five", "live"),
-      target("c", "unseen", "live"),
-      target("d", "head term on page one", "too_big"),
-      target("e", "planned", "up_next"),
-    ],
-    livePages: measured(3, AT),
-    positions: new Map([
-      ["first-page", measured(4, AT)],
-      ["page-five", measured(48, AT)],
-      ["head term on page one", measured(2, AT)],
-      ["planned", measured(7, AT)],
-    ]),
-    market: { top10: 1, measured: 12 },
-  });
-
-  it("the figure is the live pages' searches Google shows at 1–100, out of exactly the rows the live chip opens", () => {
-    const model = assembleSearch(rows, AT);
-    const opened = rowsFor(model.rows, "live");
-    expect(opened.map((row) => row.target.search).sort()).toEqual(["first-page", "page-five", "unseen"]);
-    expect(model.tiles.pages.of).toMatchObject({ value: opened.length });
-    expect(model.counts.live).toBe(opened.length);
-    expect(model.tiles.pages.value).toMatchObject({ value: 2 });
-    expect(model.tiles.pages.reading).toEqual({ kind: "pages", firstPage: 1, further: 1, unseen: 1 });
-  });
-
-  it("a search the site holds that no live page targets moves the market, never the pages figure", () => {
-    const model = assembleSearch(rows, AT);
-    expect(model.tiles.market.value).toMatchObject({ value: 1 });
-    expect(model.tiles.market.of).toMatchObject({ value: 12 });
-    expect(assembleSearch({ ...rows, market: null }, AT).tiles.market.value.kind).toBe("unmeasured");
+describe("your market is the report's own count, apart from the pages", () => {
+  it("reads the presence card's twelve, and with no card it is not measured rather than 0", () => {
+    const rows = facts({ targets: [target("a", "x", "live")], market: { top10: 1, measured: 12 } });
+    expect(assembleSearch(rows, AT).market).toEqual({ top10: 1, of: 12 });
+    expect(assembleSearch({ ...rows, market: null }, AT).market).toBeNull();
   });
 });
 

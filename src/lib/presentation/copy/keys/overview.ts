@@ -452,83 +452,43 @@ export const OVERVIEW_COPY = Object.freeze({
     { slots: { on: "date" }, fixedBy: "SPEC §4 2026-09-20" },
   ],
 
-  // The four tiles. Each carries a denominator or a goal, never a bare
-  // number (SPEC §4's data rule).
-  "overview.search.tile.going-after": [
-    "Searches we’re going after",
-    { slots: {}, fixedBy: "SPEC §4 2026-09-20" },
-  ],
-  "overview.search.tile.going-after.of": [
-    "of {of} kept ready",
-    { slots: { of: "text" }, fixedBy: "SPEC §6 supply depth" },
-  ],
-  // The line under it states this site's own queue in the board's shape
-  // ("Enough for the next five weeks.", R4-05-Search): the kept-ready count
-  // at §7's one page a day, in whole weeks from two weeks up and in days
-  // below that. Drafted under the 2026-09-16 ruling (#759), issue 1039.
-  "overview.search.tile.going-after.weeks": [
-    "Enough for the next {weeks} weeks.",
-    { slots: { weeks: "text" }, fixedBy: "issue 1039" },
-  ],
-  "overview.search.tile.going-after.days": [
-    "Enough for the next {days} days.",
-    { slots: { days: "text" }, fixedBy: "issue 1039" },
-  ],
-  "overview.search.tile.going-after.one-day": [
-    "Enough for tomorrow’s page.",
-    { slots: {}, fixedBy: "issue 1039" },
-  ],
-  "overview.search.tile.going-after.none": [
-    "No page is ready to write. Monday’s scan looks for more.",
-    { slots: {}, fixedBy: "issue 1039" },
-  ],
-  // The `first_page` chip's name.
-  "overview.search.tile.first-page": ["On the first page", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
   // Issue 1551 (owner, 2026-10-19): the searches the live pages target,
   // split by how far Google has got with each — the tile Overview's Google
   // figure is read from — and the market's twelve, labelled as the outcome
   // that takes months. Drafted (#759).
   "overview.search.tile.your-pages": ["Your pages in Google", { slots: {}, fixedBy: "issue 1551 (drafted)" }],
   "overview.search.tile.your-pages.of": [
-    "of {of} searches your pages target",
-    { slots: { of: "text" }, fixedBy: "issue 1551 (drafted)" },
+    "of {of} pages showing in results",
+    { slots: { of: "text" }, fixedBy: "board AppGoogle (drafted)" },
   ],
   "overview.search.tile.your-pages.split": [
-    "{first} on the first page, {further} at places 11–100, {unseen} not yet seen.",
-    { slots: { first: "text", further: "text", unseen: "text" }, fixedBy: "issue 1551 (drafted)" },
+    "{first} on the first page · {further} at places 11–100 · {unseen} not yet seen",
+    { slots: { first: "text", further: "text", unseen: "text" }, fixedBy: "board AppGoogle (drafted)" },
+  ],
+  "overview.search.tile.your-pages.means": [
+    "A page counts once Google shows it anywhere in the top 100 results for its own search. Pages climb over weeks, so most start not yet seen.",
+    { slots: {}, fixedBy: "board AppGoogle (drafted)" },
   ],
   "overview.search.tile.market": ["Your market", { slots: {}, fixedBy: "issue 1551 (drafted)" }],
   "overview.search.tile.market.means": [
-    "Your market’s biggest searches where you’re on the first page. Expect months, not weeks: they follow links and mentions from other sites.",
-    { slots: {}, fixedBy: "issue 1551 (drafted)" },
+    "Your market’s biggest searches, and how many show you on Google’s first page. Expect months, not weeks: they follow links and mentions from other sites.",
+    { slots: {}, fixedBy: "board AppGoogle (drafted)" },
   ],
-  // Issue 1457: Overview's AI tile and the market tile say what they are
-  // out of the same way. Drafted (#759).
   "overview.search.tile.searches.of": [
-    "of {of} searches",
-    { slots: { of: "text" }, fixedBy: "issue 1457 (drafted)" },
+    "of {of} searches on the first page",
+    { slots: { of: "text" }, fixedBy: "board AppGoogle (drafted)" },
   ],
-  "overview.search.tile.appear-for.means": [
-    "Every search Google shows you for, at any position.",
-    { slots: {}, fixedBy: "SPEC §4 2026-09-20" },
-  ],
-
-  // The line over the table: what the mark on every difficulty bar stands
-  // at. The number is `difficultyCeiling(ownRanked)` — arithmetic over a
-  // stored count, never a new measurement — and the sentence says the one
-  // thing a founder needs from it: it moves when they do.
-  "overview.search.ceiling": [
-    "The mark on each difficulty bar is your limit, {ceiling} today. It rises as you rank for more.",
-    { slots: { ceiling: "text" }, fixedBy: "SPEC §4 2026-09-20" },
+  "overview.search.tile.market.split": [
+    "{first} on the first page · {rest} not yet",
+    { slots: { first: "text", rest: "text" }, fixedBy: "board AppGoogle (drafted)" },
   ],
 
-  // The six column heads.
+  // The column heads.
   "overview.search.column.search": ["Search", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
   "overview.search.column.volume": ["A month", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
-  "overview.search.column.difficulty": ["Difficulty", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
   "overview.search.column.you": ["You", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
   "overview.search.column.rival": ["Best competitor", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
-  "overview.search.column.status": ["Status", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
+  "overview.search.column.status": ["What we’re doing", { slots: {}, fixedBy: "board AppGoogle (drafted)" }],
 
   // SPEC §4's four status words, and the chip that stands for all of them.
   "overview.search.status.all": ["All", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
@@ -558,20 +518,12 @@ export const OVERVIEW_COPY = Object.freeze({
   // An Improve target: the page that answers this search is the customer's
   // own, so no rival holds it.
   "overview.search.rival.yours": ["Your own page", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
-  "overview.search.difficulty.label": [
-    "Difficulty {difficulty}, your limit is {ceiling}",
-    { slots: { difficulty: "text", ceiling: "text" }, fixedBy: "SPEC §4 2026-09-20" },
-  ],
-  "overview.search.difficulty.label.no-limit": [
-    "Difficulty {difficulty}",
-    { slots: { difficulty: "text" }, fixedBy: "SPEC §4 2026-09-20" },
-  ],
 
   // The foot of the table: how much of it is on screen, in what order, and
   // the one control that shows the rest.
   "overview.search.showing": [
-    "{shown} of {total} · sorted by what’s closest to the first page",
-    { slots: { shown: "text", total: "text" }, fixedBy: "SPEC §4 2026-09-20" },
+    "{shown} of {total} · closest to the first page first",
+    { slots: { shown: "text", total: "text" }, fixedBy: "board AppGoogle (drafted)" },
   ],
   "overview.search.show-all": ["Show all {total}", { slots: { total: "text" }, fixedBy: "SPEC §4 2026-09-20" }],
   // Nothing on file at all — a site whose first pass has not finished, or
@@ -581,6 +533,71 @@ export const OVERVIEW_COPY = Object.freeze({
     "No searches are on file yet. They arrive with the first scan of your market.",
     { slots: {}, fixedBy: "SPEC §4 2026-09-20" },
   ],
+
+  // Board AppGoogle (issue 1746): the tab's head, the visits tile, each live
+  // page in Google, and what is done about each search this week. Drafted (#759).
+  "overview.tab.eyebrow": ["Overview · week {n}", { slots: { n: "text" }, fixedBy: "board AppGoogle (drafted)" }],
+  "overview.means": ["What this means", { slots: {}, fixedBy: "board AppGoogle (drafted)" }],
+  "overview.search.visits.label": ["Visits from Google", { slots: {}, fixedBy: "board AppGoogle (drafted)" }],
+  "overview.search.visits.of": ["this week, to your pages", { slots: {}, fixedBy: "board AppGoogle (drafted)" }],
+  "overview.search.visits.none": ["none yet", { slots: {}, fixedBy: "board AppGoogle (drafted)" }],
+  "overview.search.visits.means": [
+    "People who arrived on your pages from a Google search, counted on your pages themselves. Shown once there is at least one.",
+    { slots: {}, fixedBy: "board AppGoogle (drafted)" },
+  ],
+  "overview.search.pages.title": ["Each page in Google", { slots: {}, fixedBy: "board AppGoogle (drafted)" }],
+  "overview.search.pages.caption": ["place 1 is the top result", { slots: {}, fixedBy: "board AppGoogle (drafted)" }],
+  "overview.search.pages.where": ["Where your pages sit this week", { slots: {}, fixedBy: "board AppGoogle (drafted)" }],
+  "overview.search.pages.chart": ["Each live page’s place in Google this week", { slots: {}, fixedBy: "board AppGoogle (drafted)" }],
+  "overview.search.pages.band": ["Google’s first page, places 1 to 10", { slots: {}, fixedBy: "board AppGoogle (drafted)" }],
+  "overview.search.pages.now": ["a page this week", { slots: {}, fixedBy: "board AppGoogle (drafted)" }],
+  "overview.search.pages.before": ["where it was before", { slots: {}, fixedBy: "board AppGoogle (drafted)" }],
+  "overview.search.pages.shown": [
+    "{shown} of {total} live pages",
+    { slots: { shown: "text", total: "text" }, fixedBy: "board AppGoogle (drafted)" },
+  ],
+  "overview.search.pages.none": [
+    "No page is live yet. Each page shows here once it’s live, with its place in Google.",
+    { slots: {}, fixedBy: "board AppGoogle (drafted)" },
+  ],
+  "overview.search.place.up": [
+    "Place {n} for “{search}”, up {gain} since {date}.",
+    { slots: { n: "text", search: "text", gain: "text", date: "date" }, fixedBy: "board AppGoogle (drafted)" },
+  ],
+  "overview.search.place.flat": [
+    "Place {n} for “{search}”, no gain in {weeks} weeks.",
+    { slots: { n: "text", search: "text", weeks: "text" }, fixedBy: "board AppGoogle (drafted)" },
+  ],
+  "overview.search.place.now": [
+    "Place {n} for “{search}”.",
+    { slots: { n: "text", search: "text" }, fixedBy: "board AppGoogle (drafted)" },
+  ],
+  "overview.search.place.update": ["An update goes live {day}.", { slots: { day: "date" }, fixedBy: "board AppGoogle (drafted)" }],
+  "overview.search.place.found": [
+    "Found by Google on {date}. Not in results yet.",
+    { slots: { date: "date" }, fixedBy: "board AppGoogle (drafted)" },
+  ],
+  "overview.search.place.unseen": ["Not in results yet.", { slots: {}, fixedBy: "board AppGoogle (drafted)" }],
+  "overview.search.place.out": ["not in results yet", { slots: {}, fixedBy: "board AppGoogle (drafted)" }],
+  // D8: a place read from the keyword database is an estimate, and says so.
+  "overview.search.place.estimate": [
+    "Read from Google’s estimate, not a live search this week.",
+    { slots: {}, fixedBy: "D8 (drafted)" },
+  ],
+  "overview.search.table.title": ["Your market’s searches", { slots: {}, fixedBy: "board AppGoogle (drafted)" }],
+  "overview.search.table.lead": [
+    "What buyers in {place} search, who Google shows, and what ReachKit is doing about each.",
+    { slots: { place: "text" }, fixedBy: "board AppGoogle (drafted)" },
+  ],
+  // A business that sells beyond one place: the lead names none.
+  "overview.search.table.lead.anywhere": [
+    "What buyers search, who Google shows, and what ReachKit is doing about each.",
+    { slots: {}, fixedBy: "board AppGoogle (drafted)" },
+  ],
+  "overview.search.doing.today": ["Goes live today", { slots: {}, fixedBy: "board AppGoogle (drafted)" }],
+  "overview.search.doing.page": ["Page {day}", { slots: { day: "date" }, fixedBy: "board AppGoogle (drafted)" }],
+  "overview.search.doing.update": ["Update {day}", { slots: { day: "date" }, fixedBy: "board AppGoogle (drafted)" }],
+  "overview.search.doing.climbing": ["Climbing, left alone", { slots: {}, fixedBy: "board AppGoogle (drafted)" }],
 
   // ── 2026-09-20 (#908, #918): Overview › AI answers.
   //
