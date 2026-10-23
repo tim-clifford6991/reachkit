@@ -44,7 +44,7 @@ vi.mock("@/lib/vendors/dataforseo/transport", async (original) => ({
 vi.mock("@/lib/measure/text", () => ({ readMeasuredText: async () => (site.current === null ? [] : measuredText(site.current)) }));
 vi.mock("next/cache", () => ({ revalidateTag: () => undefined, revalidatePath: () => undefined }));
 
-import { startLiveEdit } from "@/lib/generate/edit-live";
+import { startLiveEdit, waitingVersion } from "@/lib/generate/edit-live";
 import { setGenerateStore } from "@/lib/generate/store";
 import { opportunityStore } from "@/lib/opportunities/store";
 import { transition } from "@/lib/publish/machine";
@@ -172,8 +172,15 @@ describe("one version of an address waits at a time", () => {
       const before = JSON.stringify([drafts(), db.rows("opportunities")]);
       expect(await edit(SAAS_HOSTED)).toEqual({ ok: false, refused: "pending_version", draftId: "d-pending" });
       expect(JSON.stringify([drafts(), db.rows("opportunities")])).toBe(before);
+      expect(await waitingVersion(SAAS_HOSTED.siteId, LIVE_DRAFT)).toMatchObject({ id: "d-pending", state });
     });
   }
+
+  it("a planned refresh is not a waiting version, and neither is nothing", async () => {
+    expect(await waitingVersion(SAAS_HOSTED.siteId, LIVE_DRAFT)).toBeNull();
+    pendingRefresh("planned");
+    expect(await waitingVersion(SAAS_HOSTED.siteId, LIVE_DRAFT)).toBeNull();
+  });
 
   it("a planned refresh of the address gives way: its draft is skipped, its row dismissed, and the edit takes its place", async () => {
     pendingRefresh("planned");

@@ -389,6 +389,22 @@ export interface LiveFacts {
   wordpress: boolean;
   reading: PageReading | null;
   label: Label | null;
+  /** What *Edit this page* does (R19): opens the editor on this version, or
+   *  opens the version of this address already waiting; `null` draws no
+   *  button (a version being written or going out, the reserved account). */
+  edit: LiveEdit;
+}
+
+export type LiveEdit = { kind: "editor" } | { kind: "version"; draftId: string } | null;
+
+/** The states of a waiting version the customer can open and act on. */
+const OPENABLE: readonly State[] = ["in_review", "needs_attention", "failed"];
+
+/** *Edit this page* given the version of the address already waiting, as
+ *  the live edit would answer `pending_version` with it (owner R19). */
+export function liveEditFor(waiting: { id: string; state: State } | null): LiveEdit {
+  if (waiting === null) return { kind: "editor" };
+  return OPENABLE.includes(waiting.state) ? { kind: "version", draftId: waiting.id } : null;
 }
 
 export interface Publisher {

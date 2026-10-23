@@ -10,7 +10,7 @@
 // not drawn.
 import type React from "react";
 import Link from "next/link";
-import { ArrowLeft, Lightbulb } from "lucide-react";
+import { ArrowLeft, Lightbulb, Pencil } from "lucide-react";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { FIRST_PAGE_PLACES } from "@/lib/measure/page-reading";
 import { SEARCH_READING_WINDOW_D } from "@/lib/config/constants";
@@ -189,7 +189,28 @@ function ThisWeek(p: { live: LiveFacts; timeZone: string }): React.JSX.Element {
   );
 }
 
-export function LivePage(p: { view: DraftView; live: LiveFacts }): React.JSX.Element {
+/** *Edit this page* (R19): the editor on this version, or the version of
+ *  this address already waiting. */
+function EditControl(p: { edit: LiveFacts["edit"]; onEdit: () => void }): React.JSX.Element | null {
+  if (p.edit === null) return null;
+  const inner = (
+    <>
+      <Pencil size={14} strokeWidth={1.75} aria-hidden />
+      {copy("draft.action.edit")}
+    </>
+  );
+  return p.edit.kind === "version" ? (
+    <Link href={`/app/draft/${p.edit.draftId}`} className="btn btn-sm btn-soft" data-testid="live-edit">
+      {inner}
+    </Link>
+  ) : (
+    <button type="button" className="btn btn-sm btn-soft" data-testid="live-edit" onClick={p.onEdit}>
+      {inner}
+    </button>
+  );
+}
+
+export function LivePage(p: { view: DraftView; live: LiveFacts; onEdit: () => void }): React.JSX.Element {
   const { view, live } = p;
   const standing = view.takeDown;
   const stopped = standing?.kind === "stopped";
@@ -275,7 +296,10 @@ export function LivePage(p: { view: DraftView; live: LiveFacts }): React.JSX.Ele
         <section className={NOTE.card} aria-label={copy("draft.live.controls")} data-testid="live-controls">
           <div className="card-body min-w-0 items-start gap-3 p-6">
             <p className="text-sm text-base-content/70">{copy("draft.live.runs")}</p>
-            <TakeDownControl draftId={view.draftId} mode="stop" words={stopWords()} describedBy={STOP_NOTE_ID} />
+            <div className="flex flex-wrap gap-3">
+              <EditControl edit={live.edit} onEdit={p.onEdit} />
+              <TakeDownControl draftId={view.draftId} mode="stop" words={stopWords()} describedBy={STOP_NOTE_ID} />
+            </div>
             <p id={STOP_NOTE_ID} className="text-xs text-base-content/70" data-testid="live-stop-note">
               {copy("draft.live.stop-note")}
               <Link href={PAUSE_HREF} className="link ms-1">

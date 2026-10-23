@@ -175,6 +175,10 @@ export function DraftScreen(p: {
    *  that never went out. */
   const [savedAt, setSavedAt] = useState<Date | null>(view.lastSavedAt);
   const [refused, setRefused] = useState(false);
+  /** A live page's edit (R19) saves as a new version, whose screen this
+   *  one then becomes. */
+  const liveEdit = view.live?.edit?.kind === "editor";
+  const [newVersion, setNewVersion] = useState<string | null>(null);
   /** SPEC §7 (2026-09-20, #908, issue #913) — the page's §9 state as this
    *  render believes it. On Approve or Stop it is the state the write asks
    *  for, so the stage chip and the rail's controls both change on the
@@ -218,6 +222,19 @@ export function DraftScreen(p: {
 
   const save = useCallback(
     (next: DraftText): void => {
+      if (liveEdit) {
+        void draftStore.saveLive({ draftId: view.draftId, ...next }).then((result) => {
+          if (result.ok) {
+            setSavedText(next);
+            setRefused(false);
+            if (result.changed) setNewVersion(result.draftId);
+            return;
+          }
+          setRefused(true);
+          answerRefusal();
+        });
+        return;
+      }
       void draftStore
         .save({ draftId: view.draftId, ...next })
         .then((result) => {
@@ -260,7 +277,7 @@ export function DraftScreen(p: {
         say(copy("draft.unsaved"), "bad");
       }
     },
-    [view.draftId, view.timeZone],
+    [view.draftId, view.timeZone, liveEdit],
   );
 
   // c6, the pause: one save per settled buffer, never one per keystroke.
@@ -757,13 +774,14 @@ export function DraftScreen(p: {
             {copy("draft.edit.discard")}
           </button>
         </div>
+        {newVersion === null ? null : <OpenVersion draftId={newVersion} />}
       </div>
     );
   }
 
   // ── the read arm ────────────────────────────────────────────────────
   // A page that went live, and one its customer stopped: board `PageDetail`.
-  if (view.takeDown !== null && view.live !== null) return <LivePage view={view} live={view.live} />;
+  if (view.takeDown !== null && view.live !== null) return <LivePage view={view} live={view.live} onEdit={() => setEditing(true)} />;
 
   const written =
     view.writtenAt === null
@@ -910,4 +928,14 @@ function Rewriting(): React.JSX.Element {
       <span className="min-w-0 wrap-anywhere">{copy("draft.rewriting")}</span>
     </div>
   );
+}
+
+/** Moves to the version a live page's edit wrote. Mounted only then: the
+ *  router is the one thing the rest of this screen never needs. */
+function OpenVersion(p: { draftId: string }): null {
+  const router = useRouter();
+  useEffect(() => {
+    router.push(`/app/draft/${p.draftId}`);
+  }, [router, p.draftId]);
+  return null;
 }
