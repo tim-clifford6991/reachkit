@@ -42,7 +42,6 @@ export { assessFixPages, fixPageReadiness, type FixDelivery } from "./fix-page";
 export { assessReadiness, opportunityReady, ownRanksFrom, type ReadinessContext } from "./readiness";
 export { clusterKey, collapse, comparePrecedence } from "./cluster";
 export { suppressionOf, verdictReason, type NotWorkingVerdict, type Suppression } from "./suppression";
-export { opportunityById } from "./next";
 export {
   committedWeek,
   pageForDay,
@@ -65,7 +64,7 @@ export { updateInstead } from "./update-instead";
 export { deriveOpportunities, type DeriveInput, type DeriveOutcome } from "./derive";
 export { explainChoice, type Choice } from "./derive/explain";
 
-export { setOpportunityStore, type OpportunityStore } from "./store";
+export { opportunityById, setOpportunityStore, type OpportunityStore } from "./store";
 
 // What a paid pass does with what it measured: derive, then count the
 // writable days of a committed week (issue 1559).
