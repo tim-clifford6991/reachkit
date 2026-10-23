@@ -125,7 +125,7 @@ export function GooglePresenceCard(p: { section: PresenceSection }): React.JSX.E
         <details className="collapse collapse-arrow border-base-300 border" data-testid="presence-absent-from">
           <summary className="collapse-title">
             <span className="eyebrow">{absentTitle}</span>
-            <span className="text-base-content/70 ms-2 text-sm">
+            <span className="text-base-content/70 ms-2 inline-flex text-sm">
               <Num>{String(section.absentFrom.length)}</Num>
             </span>
           </summary>

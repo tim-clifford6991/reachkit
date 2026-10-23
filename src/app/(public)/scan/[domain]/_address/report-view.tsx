@@ -54,7 +54,7 @@ import { VerdictStrip } from "./verdict";
 import { RescanControl } from "./rescan";
 import { startReportCheckout } from "./checkout";
 import { StillReading } from "./still-reading";
-import { whereLine } from "@/app/_business/WhatWeRead";
+import { WhatWeRead, whereLine } from "@/app/_business/WhatWeRead";
 import type { BusinessUnderstanding } from "@/lib/business/types";
 import { profileOfReport, understandBusiness } from "@/lib/business/understanding";
 import { BuyersSection } from "../_modules/buyers";
@@ -587,6 +587,14 @@ export function ReportView(p: {
             }}
           />
         </div>
+
+        {/* Issue 1454: what the scan read of the business, in full, where the
+            board puts it — after the method, before the first page. */}
+        {understanding === null ? null : (
+          <div className="col-span-full">
+            <WhatWeRead understanding={understanding} />
+          </div>
+        )}
 
         {/* The giveaway is a full-width row (UI-SPEC S2). The proposal is
             closed under the card's own name (issue 1328); a report with no
