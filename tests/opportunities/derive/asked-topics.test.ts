@@ -91,27 +91,24 @@ function judgeAskedTopFit(): string[] {
 }
 
 describe("a question buyers were seen asking becomes a Write candidate (condition 1)", () => {
-  it("each on-market question and related search on the SERP is written with the search it was seen beside", async () => {
+  it("each on-market question and related search on the SERP is a section of the page for the search it was seen beside", async () => {
     const typedAsked = judgeAskedTopFit();
     const { ctx } = fakeCost();
     const passReport = reportOf({ questions: [question()], serps: [serp(PASS_ASKED)] });
     await deriveOpportunities(ctx, { siteId: SITE_ID, scanId: SCAN_ID, report: passReport, ownRanked: measured(0, AT), rankedCounts: smallCounts(), market: MARKET });
 
-    const asked = state.rows.filter((row) => (row.evidence as { askedBeside?: unknown }).askedBeside !== undefined);
+    // One results page is one page: its questions have no volume or top ten
+    // of their own, so they fold into the page for the search they were seen beside.
+    expect(state.rows.map((row) => row.target_query)).toEqual(["best user onboarding software"]);
     // Not "employee onboarding software" (not this market), "appcues
     // meaning" (a rival's name as a word) or the SERP's own search.
-    expect(asked.map((row) => row.target_query).sort()).toEqual([
+    expect([...state.rows[0]!.absorbed_queries].sort()).toEqual([
       "user onboarding checklist",
       "what is user onboarding",
       "why do users churn after signing up",
     ]);
-    for (const row of asked) {
-      expect((row.evidence as { askedBeside: unknown }).askedBeside).toEqual({ term: "best user onboarding software", serpAt: AT.toISOString() });
-      expect(row.volume).toBeNull();
-      expect(row.family).toBe("write");
-    }
     // Google showed them, so the "would a buyer type this?" check never reads them.
-    expect(typedAsked.filter((search) => asked.some((row) => row.target_query === search))).toEqual([]);
+    expect(typedAsked.filter((search) => state.rows[0]!.absorbed_queries.includes(search))).toEqual([]);
   });
 
   it("never a search of another market, a rival's name asked about as a word, or the SERP's own search", () => {

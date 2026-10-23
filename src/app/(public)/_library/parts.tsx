@@ -13,7 +13,7 @@ import { scanFormWords } from "../_landing/scan-form-words";
 import { HOW_FACTS } from "../_how/facts";
 import { EXAMPLES } from "../_how/specimen";
 import { ReportGlance } from "../_how/visuals";
-import { longDate, type SketchMark, type Source } from ".";
+import { longDate, type Source } from ".";
 
 /** Attribute values, never sentences (the copy sweep). */
 export const CARD = "card bg-base-100 shadow-(--shadow-card)";
@@ -409,37 +409,6 @@ export function Sources(p: { checked: string; sources: readonly Source[] }): Rea
 /** Every page that names another company's product says whose name it is. */
 export function Trademarks(): React.JSX.Element {
   return <p className="text-base-content/70 text-sm">{copy("library.trademarks")}</p>;
-}
-
-/** A greyscale wireframe of another company's page, numbered where the
- *  article points, with the page's own words quoted. No logo, no colour. */
-export function Sketch(p: { domain: string; marks: readonly SketchMark[]; caption: string }): React.JSX.Element {
-  return (
-    <figure className="flex min-w-0 flex-col gap-2" data-testid="teardown-sketch">
-      <div className="mockup-browser border-base-300 bg-base-200 min-w-0 border">
-        <div className="mockup-browser-toolbar">
-          <div className="input min-w-0 truncate font-mono text-xs">{p.domain}</div>
-        </div>
-        <ol className="bg-base-100 flex min-w-0 flex-col gap-3 p-4">
-          {p.marks.map((mark, i) => (
-            <li key={mark.title} className="flex min-w-0 items-start gap-3">
-              <span className="badge badge-ghost badge-sm shrink-0">{i + 1}</span>
-              <div className="flex min-w-0 flex-col gap-1">
-                {mark.quotes.map((quote) => (
-                  <q key={quote} className="break-words">
-                    {quote}
-                  </q>
-                ))}
-                <span className="font-semibold">{mark.title}</span>
-                <span className="text-base-content/70 text-sm">{mark.line}</span>
-              </div>
-            </li>
-          ))}
-        </ol>
-      </div>
-      <figcaption className="text-base-content/70 text-sm">{p.caption}</figcaption>
-    </figure>
-  );
 }
 
 /** Back to the index the page belongs to. */

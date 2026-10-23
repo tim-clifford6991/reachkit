@@ -457,8 +457,8 @@ Per-stage *timing* is `sites.setup_stage_times`, one instant per stage, written 
 1. the job line — `{"event":"job","jobId":"scan/run","outcome":…}`: `ran`, or `degraded` naming the
    step it stopped at;
 2. the supply line — `{"event":"supply_pass","tier":…,"added":…,"unused":…}`: `unused` is the
-   writable days out of `PLAN_DEPTH` (a week of seven and three spares), after the 0¢ refill;
-   `{"event":"supply_refill",…,"short":true}` says the stored questions ran out first. The week
+   writable days out of `PLAN_DEPTH` (a week of seven and three spares); below it, the evidence
+   and the stored questions ran out first. The week
    itself is committed by the first evening run (`{"event":"week_planned",…}`) and, after that,
    every Monday;
 3. `sites.setup_released_reason` — `completed`, `degraded`, `failed` or `deadline`;
