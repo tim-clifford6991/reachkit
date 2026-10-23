@@ -49,20 +49,22 @@ async function billingCard(day: number): Promise<Document> {
   return new DOMParser().parseFromString(html, "text/html");
 }
 
+const route = (): string => copy("settings.billing.route", { control: copy("settings.billing.manage") });
+
 const line = (doc: Document, testId: string): string | null =>
   doc.querySelector(`[data-testid="${testId}"]`)?.textContent ?? null;
 
 describe("Settings › Billing — the cancel route and the first-14-days refund", () => {
   it("day 5: the route and the dated refund line, never the line that says access keeps running", async () => {
     const doc = await billingCard(5);
-    expect(line(doc, "billing-route")).toBe(copy("settings.billing.route"));
+    expect(line(doc, "billing-route")).toBe(route());
     expect(line(doc, "billing-refund")).toBe(copy("settings.billing.refund-window", { date: "Oct 14, 2026" }));
     expect(line(doc, "billing-cancelling")).toBeNull();
   });
 
   it("day 20: the route only, and cancelling keeps access to the period end", async () => {
     const doc = await billingCard(20);
-    expect(line(doc, "billing-route")).toBe(copy("settings.billing.route"));
+    expect(line(doc, "billing-route")).toBe(route());
     expect(line(doc, "billing-refund")).toBeNull();
     expect(line(doc, "billing-cancelling")).toBe(copy("settings.billing.cancelling", { date: "Oct 31, 2026" }));
   });
@@ -76,9 +78,17 @@ describe("Settings › Billing — the cancel route and the first-14-days refund
       refunded_at: OPENED.toISOString(),
     });
     const doc = await billingCard(5);
-    expect(line(doc, "billing-route")).toBe(copy("settings.billing.route"));
+    expect(line(doc, "billing-route")).toBe(route());
     expect(line(doc, "billing-refund")).toBeNull();
     expect(line(doc, "billing-cancelling")).not.toBeNull();
+  });
+
+  it("the route names the control the card really draws", async () => {
+    const doc = await billingCard(20);
+    const control = doc.querySelector('[data-testid="action-invoices"] button')?.textContent ?? "";
+    expect(control).not.toBe("");
+    expect(line(doc, "billing-route")).toContain(control);
+    expect(line(doc, "billing-route")).not.toContain("Cancel in Settings");
   });
 
   it("day 5 when the refunds cannot be read: no promise is made", async () => {

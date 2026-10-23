@@ -223,7 +223,7 @@ export function BillingPanel(p: { billing: BillingSummary }): React.JSX.Element 
           {copy("settings.billing.manage.note")}
         </p>
         <p className="text-xs text-base-content/70 wrap-anywhere" data-testid="billing-route">
-          {copy("settings.billing.route")}
+          {copy("settings.billing.route", { control: copy("settings.billing.manage") })}
         </p>
 
         {billing.readable ? null : (
