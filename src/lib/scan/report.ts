@@ -669,6 +669,16 @@ export interface PromptsSection {
   restartedAt?: string;
 }
 
+/** What one pass checked: the searches it read a result page for, and the
+ *  AI questions it put. A pass with no prompts block measured no AI
+ *  question, so its count is `null`, never 0. */
+export function askedOf(report: Pick<StoredReport, "serps" | "prompts">): { searches: number; questions: number | null } {
+  return {
+    searches: report.serps.filter((serp) => serp.kind !== "unmeasured").length,
+    questions: report.prompts === undefined ? null : report.prompts.asked.length,
+  };
+}
+
 /** One buyer prompt as its AI answer read (#1195). */
 export interface MarketPromptAnswer {
   prompt: string;

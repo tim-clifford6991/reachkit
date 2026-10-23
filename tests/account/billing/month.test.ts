@@ -85,10 +85,11 @@ describe("the counts, from stored rows", () => {
     expect(got?.reports.map((at) => at.toISOString())).toEqual(["2026-09-14T08:00:00.000Z", "2026-09-21T08:00:00.000Z"]);
   });
 
-  // The searches with a result read and the questions put, as each stored report holds them.
+  // The searches with a result read and the questions put, as each stored report holds them;
+  // neither report has a prompts block, so its AI questions were not measured.
   it.each([
-    ["SaaS", "2026-10-15-1449-after", "savvycal.com", { searches: 5, questions: 0 }],
-    ["local", "2026-10-15", "austinplumbery.com", { searches: 7, questions: 0 }],
+    ["SaaS", "2026-10-15-1449-after", "savvycal.com", { searches: 5, questions: null }],
+    ["local", "2026-10-15", "austinplumbery.com", { searches: 7, questions: null }],
   ])("states the newest finished pass's searches and AI questions (%s)", async (_, walk, domain, asked) => {
     const newest = storedReport(walk, domain);
     state.scans.push(
@@ -109,6 +110,17 @@ describe("not measured is never 0", () => {
     expect(got?.asked).toBeNull();
     expect(got?.live).toBe(0);
     expect(got?.reports).toEqual([]);
+  });
+
+  it("no prompts block is not measured, while a prompts block that asked none is a measured 0", async () => {
+    const report = storedReport("2026-10-15-1449-after", "savvycal.com") as Record<string, unknown>;
+    expect(report.prompts).toBeUndefined();
+    state.scans.push({ site_id: SITE, created_at: "2026-09-21T06:00:00.000Z", status: "done", report });
+    expect((await monthGot("u1", SITE))?.asked?.questions).toBeNull();
+
+    const asked = { siteName: "SavvyCal", asked: [], asks: 0, answers: [] };
+    state.scans.push({ site_id: SITE, created_at: "2026-09-28T06:00:00.000Z", status: "done", report: { ...report, prompts: asked } });
+    expect((await monthGot("u1", SITE))?.asked?.questions).toBe(0);
   });
 
   it("a store that cannot be read is null, never a month of zeros", async () => {
