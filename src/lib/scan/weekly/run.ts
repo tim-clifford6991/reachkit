@@ -122,6 +122,7 @@ export async function runWeekly(a: {
       measuredSince: weekStartInstant({ weekStart, zone }),
       ...(category === undefined ? {} : { category }),
       concludesMarket: true,
+      failsWhenFundsRefused: true,
       afterReport: async ({ report, cost }) => {
         try {
           try {
@@ -156,17 +157,16 @@ export async function runWeekly(a: {
     throw error;
   }
 
+  // A week the vendor refused for credit was stored `failed` by the pass itself, so it stays due until a pass after the top-up measures it.
+  if (fundsRefused === true) {
+    logWeekly({ siteId: a.siteId, weekStart, outcome: "vendor_funds" });
+    return { ran: true, scanId: claim.scanId, status: "failed", because: "vendor_funds" };
+  }
+
   if (status === "failed") {
     await releaseWeek(claim.scanId);
     logWeekly({ siteId: a.siteId, weekStart, outcome: "failed" });
     return { ran: true, scanId: claim.scanId, status: "failed" };
-  }
-
-  // A week the vendor refused for credit was not measured, so it stays due until a pass after the top-up measures it.
-  if (fundsRefused === true) {
-    await releaseWeek(claim.scanId);
-    logWeekly({ siteId: a.siteId, weekStart, outcome: "vendor_funds" });
-    return { ran: true, scanId: claim.scanId, status: "failed", because: "vendor_funds" };
   }
 
   // 3. What came back, read through the one account of the week — so the
