@@ -234,12 +234,11 @@ describe("issue #371 — arriving reads, and only pressing stops", () => {
 });
 
 describe("the ask arm — what the set draws, in its own order", () => {
-  it("names the moment it publishes, the page, the search and the site", async () => {
+  it("names the moment it goes live, the page, the search and the site", async () => {
     const tree = await ask();
     const rendered = text(tree);
-    expect(eyebrowOf(tree)).toBe(
-      COPY["publish.veto.ask.head"].replace("{when}", "Tue 15 Sep 07:00")
-    );
+    // The vocabulary's verb: a page goes live, it is not "published".
+    expect(eyebrowOf(tree)).toBe("Goes live Tue 15 Sep 07:00");
     expect(rendered).toContain("How to choose onboarding software");
     expect(rendered).toContain("best onboarding tools");
     expect(rendered).toContain("example.com");
