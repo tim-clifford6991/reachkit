@@ -13,6 +13,7 @@
 // **This file is pure.** Reading the pages is `content-provider.ts`'s.
 import { CONTENT_RECENT_WEEKS } from "@/lib/config/constants";
 import { ladderTotals, type Ladder, type LadderTotals } from "@/lib/measure/ladder";
+import type { PageReading } from "@/lib/measure/page-reading";
 
 export interface PublishedPage {
   id: string;
@@ -25,6 +26,9 @@ export interface PublishedPage {
   /** Published → crawled → indexed → impressions → best place → cited
    *  (issue 1553); absent where it could not be read. */
   ladder?: Ladder;
+  /** The stored weekly reading, read with the ladder; `null` for a page never read. */
+  reading?: PageReading | null;
+  wordpress?: boolean;
 }
 
 export interface PublishedRead {

@@ -11,7 +11,7 @@
 // **It cannot overflow.** The head line and the lines under it are
 // `min-w-0` blocks that wrap.
 import type React from "react";
-import { SHELL_LOCALE } from "../_shell/format";
+import { formatDay } from "../_shell/format";
 
 const TEST_ID = "overview-head";
 
@@ -21,17 +21,6 @@ const TEST_ID = "overview-head";
 export interface HeadNote {
   testId: "overview-supply" | "overview-head-note";
   line: string;
-}
-
-/** Today, as the eyebrow states it: the weekday and the day of the month in
- *  the site's own zone. A date, so it is a value and carries no sentence. */
-function formatToday(at: Date, timeZone: string): string {
-  return new Intl.DateTimeFormat(SHELL_LOCALE, {
-    timeZone,
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-  }).format(at);
 }
 
 export function ScoreHead(p: {
@@ -45,7 +34,7 @@ export function ScoreHead(p: {
   return (
     <header className="flex min-w-0 flex-col gap-1" data-testid={TEST_ID}>
       <p className="num text-xs font-semibold uppercase tracking-wide text-base-content/70">
-        {formatToday(p.today, p.timeZone)}
+        {formatDay(p.today, p.timeZone)}
       </p>
       <h1 className="min-w-0">{p.line}</h1>
       {p.notes.map((note) => (
