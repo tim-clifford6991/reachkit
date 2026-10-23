@@ -92,6 +92,7 @@ import {
 } from "@/lib/scan/weekly";
 import type { AddressWaiting, AnswerEngine, LastLive, OverviewFacts } from "./model";
 import { CALENDAR_DAY_ZONE } from "./week";
+import { monthWeekOf, nextFirstMonday, type MonthReading, type MonthsFacts } from "./figures";
 import type { WeeklyPoint } from "./growth";
 import type { RivalFact, RivalFacts } from "./rivals";
 import { needsYouOf, waitsOnCustomer } from "@/lib/publish/record/needs-you";
@@ -614,6 +615,7 @@ interface WeeklyFacts {
   /** The deep pass's searches reading, where it is week 0 — what the first
    *  Monday's searches delta is taken against (issue 794). */
   searchesWeekZero?: Measured<number>;
+  months: MonthsFacts;
 }
 
 /** Which stored report stands as the latest in a window, and the deep pass
@@ -716,6 +718,13 @@ async function weeklySeries(
 
   const score = scoreOf(latest, now);
   const scorePrevious = previousWeek === null ? undefined : scoreOf(previousWeek, now);
+  const monthWeek = monthWeekOf(measured);
+  const scan = monthFiguresOf(deep?.report ?? null, now);
+  const months: MonthsFacts = {
+    reading: monthWeek === null ? null : { week: monthWeek, ...monthFiguresOf(scans.get(monthWeek)?.report ?? null, now) },
+    scan: { score: scan.score, market: scan.market?.top10 ?? null },
+    next: nextFirstMonday(weeks.at(-1) as string),
+  };
   const searchesWeekZero = weekZero === null ? undefined : weekZero.report.ownRanked;
 
   if (first === -1) {
@@ -727,6 +736,7 @@ async function weeklySeries(
       rivals,
       score,
       latest,
+      months,
       ...(scorePrevious === undefined ? {} : { scorePrevious }),
       ...(aiWeekZero === undefined ? {} : { aiWeekZero }),
       ...(searchesWeekZero === undefined ? {} : { searchesWeekZero }),
@@ -765,6 +775,7 @@ async function weeklySeries(
     rivals,
     score,
     latest,
+    months,
     ...(scorePrevious === undefined ? {} : { scorePrevious }),
     ...(aiWeekZero === undefined ? {} : { aiWeekZero }),
     ...(searchesWeekZero === undefined ? {} : { searchesWeekZero }),
@@ -788,6 +799,16 @@ function scoreOf(
     return unmeasured<{ score: number; band: BandHandle }>("not_attempted", at);
   }
   return reading;
+}
+
+/** The two months-scale figures one stored report holds: its score, and the
+ *  presence card's count of the twelve on Google's first page. */
+function monthFiguresOf(report: StoredReport | null, at: Date): Omit<MonthReading, "week"> {
+  const score = scoreOf(report, at);
+  return {
+    score: score.kind === "unmeasured" ? null : score.value.score,
+    market: report?.presence == null ? null : { top10: report.presence.you.top10Count, of: report.presence.measuredSearches },
+  };
 }
 
 /** §6.6's sizing for one rival in one week, or nothing. The entries are
@@ -969,6 +990,7 @@ export async function readOverviewFacts(site: OverviewSite): Promise<OverviewFac
     ...(series.latest?.verdict?.estimate === undefined ? {} : { scoreEstimate: series.latest.verdict.estimate }),
     biggestGap: series.latest?.verdict?.limiting == null ? null : shownLimitingOf(series.latest.verdict),
     scorePoints: series.scorePoints,
+    months: series.months,
     ...(series.scorePrevious === undefined ? {} : { scorePrevious: series.scorePrevious }),
     rivals: series.rivals,
     today: now,

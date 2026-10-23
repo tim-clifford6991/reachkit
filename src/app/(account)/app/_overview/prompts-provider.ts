@@ -38,3 +38,15 @@ export const readPrompts = cache(async function readPrompts(): Promise<PromptsMo
     return { kind: "none" };
   }
 });
+
+/** The window as the pass of `weekStart` read it: the month's reputation.
+ *  `none` where that week is not given or cannot be read. */
+export const readPromptsAt = cache(async function readPromptsAt(weekStart: string | null): Promise<PromptsModel> {
+  const account = await requireSetUpAccount();
+  if (isReservedFixtureAccount(account)) return assemblePrompts(FIXTURE_PROMPT_WINDOW);
+  if (weekStart === null) return { kind: "none" };
+  const { readPromptWindow } = await import("@/lib/scan/weekly");
+  return readPromptWindow({ siteId: account.siteId, zone: account.timeZone, weekStart })
+    .then((window) => assemblePrompts(window))
+    .catch((): PromptsModel => ({ kind: "none" }));
+});

@@ -1252,8 +1252,8 @@ export const OVERVIEW_COPY = Object.freeze({
   "overview.ladder.climbing": ["{n} climbing", { slots: { n: "text" }, fixedBy: "issue 1605 (drafted)" }],
   // Search Console's clicks are summed over the reading's window, not one week.
   "overview.ladder.visits": [
-    "{n} visits from Google in the last {weeks} weeks: people who arrived on these pages from Google.",
-    { slots: { n: "text", weeks: "text" }, fixedBy: "issue 1605 (drafted)" },
+    "{n} visits from Google this week: people who arrived on these pages from Google.",
+    { slots: { n: "text" }, fixedBy: "issue 1605 (drafted) · issue 1615: counted on the hosted pages" },
   ],
   "overview.ladder.how.title": ["How long each step takes", { slots: {}, fixedBy: "issue 1605 (drafted)" }],
   "overview.ladder.how.google": [
@@ -1313,4 +1313,56 @@ export const OVERVIEW_COPY = Object.freeze({
     { slots: {}, fixedBy: "issue 1744 (drafted)" },
   ],
   "overview.paused.action": ["Turn publishing on", { slots: {}, fixedBy: "issue 1744 (drafted)" }],
+
+  // Board Main's figures: the week's AI and Google numbers, then the ones
+  // that move over months (owner 2026-10-19, the simple model). Drafted (#759).
+  "overview.ai.title": ["Your pages in AI answers", { slots: {}, fixedBy: "issue 1615 (drafted)" }],
+  "overview.ai.linked.of": ["of {of} pages asked are linked by AI", { slots: { of: "text" }, fixedBy: "issue 1615 (drafted)" }],
+  "overview.ai.linked.own": ["{n} linked on their own question", { slots: { n: "text" }, fixedBy: "issue 1615 (drafted)" }],
+  "overview.ai.linked.not-yet": ["{n} not yet", { slots: { n: "text" }, fixedBy: "issue 1615 (drafted)" }],
+  "overview.ai.reads": ["AI read your pages {n} times this week.", { slots: { n: "text" }, fixedBy: "issue 1615 (drafted)" }],
+  "overview.ai.reads.one": ["AI read your pages once this week.", { slots: {}, fixedBy: "issue 1615 (drafted)" }],
+  "overview.ai.reads.none": ["No AI app read your pages this week.", { slots: {}, fixedBy: "issue 1615 (drafted)" }],
+  "overview.ai.reads.who": [
+    "ChatGPT, Perplexity and other AI apps fetching a page to answer someone. Training crawlers are not counted.",
+    { slots: {}, fixedBy: "issue 1615 (drafted): no vendor or model name under a stop (REQ-092 c8)" },
+  ],
+  "overview.ai.reads.chart": ["AI reads, week by week", { slots: {}, fixedBy: "issue 1615 (drafted)" }],
+  "overview.ai.each": ["Each page in AI answers →", { slots: {}, fixedBy: "issue 1615 (drafted)" }],
+  "overview.mover.title": ["Best mover this week", { slots: {}, fixedBy: "issue 1615 (drafted) · owner E2" }],
+  "overview.mover.place": ["place in Google", { slots: {}, fixedBy: "issue 1615 (drafted)" }],
+  "overview.mover.up": ["up {n} since {date}", { slots: { n: "text", date: "date" }, fixedBy: "issue 1615 (drafted)" }],
+  "overview.mover.climbing": [
+    "Still climbing, so we leave it alone. A page gets an update only once it stops gaining.",
+    { slots: {}, fixedBy: "issue 1615 (drafted)" },
+  ],
+  "overview.mover.none": [
+    "No page moved up this week. Pages climb over weeks, not days.",
+    { slots: {}, fixedBy: "issue 1615 (drafted)" },
+  ],
+  "overview.mover.each": ["Each page in Google →", { slots: {}, fixedBy: "issue 1615 (drafted)" }],
+  "overview.months.title": ["Measures that move over months", { slots: {}, fixedBy: "issue 1615 (drafted)" }],
+  "overview.months.checked": ["checked monthly · next on {date}", { slots: { date: "date" }, fixedBy: "issue 1615 (drafted)" }],
+  "overview.months.first": ["First reading on {date}.", { slots: { date: "date" }, fixedBy: "issue 1615 (drafted)" }],
+  "overview.months.of": ["of {of}", { slots: { of: "text" }, fixedBy: "issue 1615 (drafted)" }],
+  "overview.months.score": ["Visibility Score", { slots: {}, fixedBy: "issue 1615 (drafted)" }],
+  "overview.months.score.up": ["up from {n} at your scan", { slots: { n: "text" }, fixedBy: "issue 1615 (drafted)" }],
+  "overview.months.score.down": ["down from {n} at your scan", { slots: { n: "text" }, fixedBy: "issue 1615 (drafted)" }],
+  "overview.months.score.same": ["same as at your scan", { slots: {}, fixedBy: "issue 1615 (drafted)" }],
+  "overview.months.market": ["searches on the first page", { slots: {}, fixedBy: "issue 1615 (drafted)" }],
+  "overview.months.market.up": ["searches on the first page, up from {n}", { slots: { n: "text" }, fixedBy: "issue 1615 (drafted)" }],
+  "overview.months.market.down": ["searches on the first page, down from {n}", { slots: { n: "text" }, fixedBy: "issue 1615 (drafted)" }],
+  "overview.months.reputation": ["Reputation", { slots: {}, fixedBy: "issue 1615 (drafted)" }],
+  "overview.months.reputation.line": [
+    "AI answers mentioned you, last {weeks} weeks",
+    { slots: { weeks: "text" }, fixedBy: "issue 1615 (drafted)" },
+  ],
+  "overview.months.note": [
+    "These follow links and mentions from other sites, so they move over months, not weeks.",
+    { slots: {}, fixedBy: "issue 1615 (drafted)" },
+  ],
+  "overview.months.range": [
+    "Reputation is the first reading: between {low}% and {high}%, because AI answers vary.",
+    { slots: { low: "text", high: "text" }, fixedBy: "issue 1615 (drafted)" },
+  ],
 }) satisfies CopyPartition;
