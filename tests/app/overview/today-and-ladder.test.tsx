@@ -118,6 +118,17 @@ function seedPages(site: Site, shapes: readonly Shape[], opts: { destination?: s
   return pubs;
 }
 
+/** Visits from Google are the hosted pages' own counts this week: 8, never Bing's or last week's. */
+function seedVisits(site: Site): void {
+  db.seed("destinations", [{ id: "dest-hosted", site_id: SITE_ID, kind: "hosted", hostname: `guides.${site.domain}`, hostname_state: "live", deleted_at: null }]);
+  db.seed("publication_reads", [
+    { site_id: SITE_ID, publication_id: "p0", day: "2026-10-08", engine: "google", kind: "referral", hits: 5 },
+    { site_id: SITE_ID, publication_id: "p1", day: "2026-10-09", engine: "google", kind: "referral", hits: 3 },
+    { site_id: SITE_ID, publication_id: "p1", day: "2026-10-09", engine: "bing", kind: "referral", hits: 4 },
+    { site_id: SITE_ID, publication_id: "p1", day: "2026-10-01", engine: "google", kind: "referral", hits: 30 },
+  ]);
+}
+
 function site(domain: string): void {
   db.seed("sites", [
     { id: SITE_ID, user_id: ACCOUNT.userId, domain, timezone: ZONE, competitors: [], veto_hours: 24, publishing_enabled: true },
@@ -182,6 +193,7 @@ describe.each([
 
   it("opens with today's page, then one ladder row per live page, each step as its stored reading says", async () => {
     const pubs = seedPages(panel, TWELVE);
+    seedVisits(panel);
     const { html, dom } = await render();
 
     const at = (id: string): number => html.indexOf(`data-testid="${id}"`);
@@ -227,7 +239,7 @@ describe.each([
     expect(text(ladder)).toContain(copy("overview.ladder.how.title"));
     expect(text(ladder)).toContain(copy("overview.ladder.how.google"));
     expect(text(ladder)).toContain(copy("overview.ladder.how.ai"));
-    expect(text(dom.querySelector('[data-testid="overview-ladder-visits"]'))).toBe(copy("overview.ladder.visits", { n: "7", weeks: "4" }));
+    expect(text(dom.querySelector('[data-testid="overview-ladder-visits"]'))).toBe(copy("overview.ladder.visits", { n: "8" }));
     // Pages already show in results, so the week-1 line is not said.
     expect(dom.querySelector('[data-testid="overview-ladder-week1"]')).toBeNull();
   });
@@ -280,6 +292,7 @@ describe("board Main: the today card and the ladder", () => {
   it("every board string of those sections is on the screen, but for sample data", async () => {
     site(LOCAL.domain);
     seedPages(LOCAL, TWELVE);
+    seedVisits(LOCAL);
     const { html } = await render();
     const board = readFileSync(boardFile("Main"), "utf8");
     const { missing } = compare(board, segments(html), readAllow("Main"));

@@ -4,8 +4,8 @@
 // "A skeleton is the shape of the screen that arrives, on a phone and on a
 // desktop." The boxes below are the new Overview's own, in its own order
 // and on its own frame — `_overview/frame.ts`, which the loaded screen
-// draws with too (issue 1484): today's page, the ladder, then this week's
-// pages. What arrives lands where its box already is and nothing on the
+// draws with too (issue 1484): today's page, the ladder, this week's pages,
+// then the figures. What arrives lands where its box already is and nothing on the
 // screen moves.
 //
 // It is **inside** the tabs' layout, so the four tab links are drawn and
@@ -25,6 +25,7 @@ export default function OverviewLoading(): React.JSX.Element {
       <div className="min-w-0" data-frame={REGION.week}>
         <CardSkeleton testId="week-skeleton" rows={7} />
       </div>
+      <CardSkeleton testId="figures-skeleton" rows={4} />
     </div>
   );
 }
