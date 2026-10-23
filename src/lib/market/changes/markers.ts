@@ -28,14 +28,19 @@
 //
 // The archived plan is WO-092.
 import { dbAdmin } from "@/lib/db";
+import { localeKey, measuredLocale } from "@/lib/locale/locales";
 import type { ChangeKind } from "./declared";
+
+/** The answers a series breaks at: the three declared ones, and the
+ *  country and language a pass measured in (SPEC §6, D66). */
+export type MarkerKind = ChangeKind | "locale";
 
 /** A date a series must break at, and which answer changed on it. The date
  *  is the *measurement's* own date — the first scan measured under the new
  *  answer — because that is the date the customer reads beside every
  *  number, and a marker on any other date would break the wrong gap. */
 export interface ChangeMarker {
-  kind: ChangeKind;
+  kind: MarkerKind;
   on: Date;
 }
 
@@ -73,6 +78,9 @@ interface ScanSequenceRow {
 interface MeasuredScan {
   domain: string;
   category: string | null;
+  /** `localeKey` of the pair the pass measured in; a report with none was
+   *  measured in the United States in English. */
+  locale: string;
   at: Date;
 }
 
@@ -122,6 +130,7 @@ async function measuredScans(siteId: string): Promise<MeasuredScan[]> {
   return (data ?? []).map((row) => ({
     domain: row.domain,
     category: categoryOf(row.report),
+    locale: localeKey(measuredLocale((row.report ?? {}) as { locale?: { country?: unknown; language?: unknown } })),
     at: measuredAtOf(row.report, row.created_at),
   }));
 }
@@ -172,6 +181,7 @@ export async function changeMarkers(a: {
     ) {
       markers.push({ kind: "category", on: current.at });
     }
+    if (current.locale !== previous.locale) markers.push({ kind: "locale", on: current.at });
   }
 
   return markers;

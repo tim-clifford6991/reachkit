@@ -255,6 +255,7 @@ export async function readLiveSettingsFacts(
     category: answers.category ?? "",
     competitors: answers.rivals,
     concluded: await concludedFor(siteId),
+    ...(await localeFor(siteId)),
 
     // §9's four publishing settings, and the switch.
     mode: publishing.mode,
@@ -282,6 +283,43 @@ export async function readLiveSettingsFacts(
     billing,
     publishedPages: pages,
   };
+}
+
+interface LocaleQuery<R> extends PromiseLike<{ data: R[] | null; error: { message: string } | null }> {
+  eq(column: string, value: string): LocaleQuery<R>;
+  not(column: string, operator: string, value: null): LocaleQuery<R>;
+  order(column: string, opts: { ascending: boolean }): LocaleQuery<R>;
+  limit(n: number): LocaleQuery<R>;
+}
+
+/** D66: the stored pair, and the markets the newest pass read the site
+ *  declaring. Fails soft: a read that raised leaves the default pair. */
+async function localeFor(siteId: string): Promise<Pick<SettingsFacts, "locale">> {
+  try {
+    const [{ dbAdmin }, { DEFAULT_LOCALE, localeOf }] = await Promise.all([import("@/lib/db"), import("@/lib/locale/locales")]);
+    const from = <R,>(table: string, columns: string): LocaleQuery<R> =>
+      (dbAdmin() as unknown as { from(t: string): { select(c: string): LocaleQuery<R> } }).from(table).select(columns);
+    const [site, newest] = await withDeadline(
+      Promise.all([
+        from<{ country: unknown; language: unknown }>("sites", "country, language").eq("id", siteId).limit(1),
+        from<{ report: { locale?: { alsoServes?: unknown } } | null }>("scans", "report")
+          .eq("site_id", siteId)
+          .not("report", "is", null)
+          .order("created_at", { ascending: false })
+          .limit(1),
+      ])
+    );
+    const row = site.data?.[0];
+    const tags = newest.data?.[0]?.report?.locale?.alsoServes;
+    return {
+      locale: {
+        current: localeOf(row?.country, row?.language) ?? DEFAULT_LOCALE,
+        alsoServes: Array.isArray(tags) ? tags.filter((tag): tag is string => typeof tag === "string") : [],
+      },
+    };
+  } catch {
+    return {};
+  }
 }
 
 /** D28 (#1185): the market and rivals ReachKit concluded, with their

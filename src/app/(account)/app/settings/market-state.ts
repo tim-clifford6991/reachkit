@@ -22,6 +22,7 @@ import type { RivalRefusal } from "@/lib/market/setup/rivals";
 export const MARKET_DOMAIN_FIELD = "market_domain";
 export const MARKET_CATEGORY_FIELD = "market_category";
 export const RIVAL_FIELD = "rival_domain";
+export const MARKET_LOCALE_FIELD = "market_locale";
 
 export type MarketChangeState =
   /** Nothing submitted yet in this render. */
@@ -64,6 +65,16 @@ export type MarketRemeasureState =
   | { answer: "refused"; line: string };
 
 export const MARKET_REMEASURE_INITIAL: MarketRemeasureState = { answer: "idle" };
+
+/** What a country and language save answered (D66): measured again, the
+ *  pair already measured, or a pair off the list, which writes nothing. */
+export type LocaleChangeState =
+  | { answer: "idle" }
+  | { answer: "saved"; remeasure: RemeasureAnswer }
+  | { answer: "unchanged" }
+  | { answer: "refused" };
+
+export const LOCALE_CHANGE_INITIAL: LocaleChangeState = { answer: "idle" };
 
 export const MARKET_CHANGE_INITIAL: MarketChangeState = { answer: "idle" };
 
