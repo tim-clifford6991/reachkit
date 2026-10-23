@@ -536,14 +536,16 @@ export const REPORT_COPY = Object.freeze({
   "free-page.title": ["Your first page", { slots: {}, fixedBy: "REQ-010 c1" }],
   "free-page.badge": ["free", { slots: {}, fixedBy: "REQ-010 c1" }],
   "free-page.of": ["That’s page 1 of {total} we found for you.", { slots: { total: "text" }, fixedBy: "REQ-010 c1" }],
-  "free-page.row.target": ["target", { slots: {}, fixedBy: "REQ-010 c1" }],
-  // The target row's own value: the search and its monthly volume, the
-  // pair §4.2 says the giveaway email carries. Not the per-question
-  // volume the owner removed on 2026-09-03 — that was the 12-questions
-  // list, which carries no volume at all.
-  "free-page.target.value": ["{keyword} · {volume}/mo", { slots: { keyword: "text", volume: "text" }, fixedBy: "REQ-010 c1" }],
-  "free-page.row.beats": ["beats", { slots: {}, fixedBy: "REQ-010 c1" }],
-  "free-page.row.format": ["format", { slots: {}, fixedBy: "REQ-010 c1" }],
+  // The facts list, in the board's order and words (owner R26).
+  "free-page.row.target": ["answers", { slots: {}, fixedBy: "REQ-010 c1 · board PubReport · owner R26" }],
+  "free-page.row.searched": ["searched", { slots: {}, fixedBy: "board PubReport · owner R26" }],
+  // The page's own target volume, not the per-question volume removed on 2026-09-03.
+  "free-page.searched.value": ["{volume} times a month", { slots: { volume: "text" }, fixedBy: "board PubReport · owner R26" }],
+  "free-page.row.beats": ["answered today by", { slots: {}, fixedBy: "REQ-010 c1 · board PubReport · owner R26" }],
+  "free-page.row.format": ["type of page", { slots: {}, fixedBy: "REQ-010 c1 · board PubReport · owner R26" }],
+  // Shown only once the page is written: its stored first lines, a source they cite, and what they are.
+  "free-page.source": ["from {source}", { slots: { source: "text" }, fixedBy: "board PubReport · owner R26" }],
+  "free-page.caption": ["The first lines. The full page comes by email. Written with Claude, an AI model, from your own site.", { slots: {}, fixedBy: "board PubReport · owner R26" }],
   // The format row's value, one per Write type the report can offer (issue 787,
   // drafted — the owner corrects the wording).
   "free-page.format.answer_page": ["An answer page", { slots: {}, fixedBy: "REQ-010 c1" }],

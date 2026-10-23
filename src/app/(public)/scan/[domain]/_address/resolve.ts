@@ -35,12 +35,13 @@ import { FREE_RESCAN_WINDOW_D, MAINTENANCE_TICK_MINUTES } from "@/lib/config/con
 import { BOT_PROTECTION } from "@/lib/measure/challenge";
 import { admitFreeScan, type Admission, type NetworkKey } from "@/lib/scan/admission";
 import { isDomainRemoved } from "@/lib/scan/removal";
+import { leadStore } from "@/lib/mail/leads/store";
 import { RUNNING_ROW_BOUND_S } from "@/lib/scan/stuck";
 import { parseDomain, type CanonicalDomain } from "@/lib/scan/domain";
 import { readCurrentReport, type StoredReport } from "@/lib/scan/report";
 import { readsDifferently } from "@/lib/scan/derivation";
 import { correctionOffer, type CorrectionOffer } from "@/lib/market/coherence/offer";
-import type { AddressControl, AddressNotice, AddressRefusal, AddressState } from "./state";
+import type { AddressControl, AddressNotice, AddressRefusal, AddressState, WrittenPage } from "./state";
 import { categoryOf } from "@/lib/scan/sections";
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
@@ -269,6 +270,7 @@ export async function resolveAddress(a: {
       }),
       correction: offer,
       readsDifferently: await readsDifferently(report.scanId),
+      ...(await writtenPageOf(report)),
     };
   }
 
@@ -291,6 +293,19 @@ export async function resolveAddress(a: {
 
   // 7. Nothing here yet, and nothing in the way.
   return { kind: "starting", domain };
+}
+
+/** R26: the scan's free page once it is written, read on every render. Any
+ *  other state, or a read that fails, is the facts list alone. */
+async function writtenPageOf(report: StoredReport): Promise<{ writtenPage?: WrittenPage }> {
+  if (!report.freePage) return {};
+  try {
+    const read = await leadStore().scanFirstPage(report.scanId);
+    if (!read.ok || read.page?.state !== "written") return {};
+    return { writtenPage: { title: read.page.title, markdown: read.page.markdown } };
+  } catch {
+    return {};
+  }
 }
 
 /** Whether this domain's report was withdrawn on a written request, as a
