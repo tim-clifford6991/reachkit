@@ -5,10 +5,10 @@
 // two ways. daisyUI classes and lucide only, no client JavaScript, and no
 // primary colour: the product's colour would be our branding on their page.
 import type React from "react";
-import { ArrowUpRight, CalendarCheck, ClipboardCheck } from "lucide-react";
+import { ArrowUpRight, CalendarCheck, ClipboardCheck, Rss } from "lucide-react";
 import { copy } from "@/lib/presentation/copy/reader";
 import type { HostedIdentity } from "@/lib/publish/destinations/hosted";
-import { QUIET_LINE } from "./present";
+import { FEED_PATH, QUIET_LINE } from "./present";
 
 /** Where the logo is served on the customer's own host (`../logo.img`). */
 export const LOGO_PATH = "/logo.img";
@@ -146,16 +146,27 @@ export function AboutCard({
   );
 }
 
+/** A part of the footer line after the first, set off by a dot drawn in CSS. */
+const FOOTER_PART = "text-base-content/70 min-w-0 text-sm before:mr-2.5 before:content-['·']";
+
 export function HostedFooter({ business }: { business: HostedBusiness }): React.JSX.Element {
   return (
     <footer className="border-base-300 border-t">
-      <div className="mx-auto flex w-full max-w-5xl flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 py-6">
+      <div className="mx-auto flex w-full max-w-5xl flex-wrap items-center gap-x-2.5 gap-y-2 px-4 py-6">
         <span className={QUIET_LINE}>{copy("hosted.footer", { publisher: business.name })}</span>
         {/* Issue 1511: a plain link back to the main site, so the two hosts
             read as one business. */}
-        <a href={mainSiteOf(business)} className="link link-hover text-base-content/70 min-w-0 font-mono text-sm break-all">
-          {mainSiteName(business)}
-        </a>
+        <span className={FOOTER_PART}>
+          <a href={mainSiteOf(business)} className="link link-hover font-mono break-all">
+            {mainSiteName(business)}
+          </a>
+        </span>
+        <span className={FOOTER_PART}>
+          <a href={FEED_PATH} className="link link-hover inline-flex items-center gap-1.5">
+            <Rss size={16} strokeWidth={1.75} aria-hidden className="flex-none" />
+            {copy("hosted.footer.rss")}
+          </a>
+        </span>
       </div>
     </footer>
   );

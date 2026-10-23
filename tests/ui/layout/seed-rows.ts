@@ -220,6 +220,17 @@ export const PUBLISHER_PAGE = Object.freeze({
   category: "employee onboarding software",
   publishedAt: "2026-09-04T09:00:00.000Z",
   bodyMd: [
+    // The two boxes generation opens every page with (SPEC §7, 2026-10-03).
+    ":::answer",
+    "Pick the tool your team can still run after the first week: one owner per step, a checklist " +
+      "the new hire can see, and an export of everything you wrote.",
+    ":::",
+    "",
+    ":::takeaways",
+    "- A named owner on every step keeps a stalled account moving.",
+    "- Ask for the export before you buy.",
+    ":::",
+    "",
     "Picking an onboarding tool is mostly a question of who has to run it after the first week.",
     "",
     "## What the shortlist has in common",
@@ -254,6 +265,17 @@ export const PUBLISHER_PAGE = Object.freeze({
       "Two thirds of new hires say a checklist they can see is what got them to their first real task.",
     url: "https://research.example.org/onboarding-2026",
     readAt: "2026-09-01T09:00:00.000Z",
+  }),
+  /** What the made line counts (SPEC §7, 2026-10-11): a fact read from the
+   *  site's own pages, and the rules the page was checked against. */
+  made: Object.freeze({
+    factsUsed: Object.freeze([
+      Object.freeze({
+        passage: "Every checklist has one owner for each step.",
+        url: "https://publisher.test/features",
+      }),
+    ]),
+    rulesChecked: 14,
   }),
   faq: Object.freeze([
     Object.freeze({

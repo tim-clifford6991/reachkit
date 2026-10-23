@@ -168,16 +168,23 @@ function sourceOf(url: string): string {
 /** The set's source line, or `null` for a page generation recorded no
  *  grounding for. The address stands in for the set's `[source title]`:
  *  what §8 records is where the fact was read, and a title we do not hold
- *  would have to be invented. */
-function sourceLineFor(page: HostedPage): string | null {
+ *  would have to be invented. `href` is `null` for an address that is not
+ *  a web page, which is then named but not linked. */
+function sourceLineFor(page: HostedPage): { text: string; href: string | null } | null {
   const grounded = page.grounded;
   if (grounded === null || grounded.url === "") return null;
   if (grounded.readAt === null) return null;
-  return copy("hosted.source", {
-    source: sourceOf(grounded.url),
-    date: writeDate(grounded.readAt, page.publisher.timeZone),
-  });
+  return {
+    text: copy("hosted.source", {
+      source: sourceOf(grounded.url),
+      date: writeDate(grounded.readAt, page.publisher.timeZone),
+    }),
+    href: /^https?:\/\//i.test(grounded.url) ? grounded.url : null,
+  };
 }
+
+/** The id of the sources heading the page draws where its body has none. */
+const SOURCES_ID = "sources";
 
 /** The words of a heading or title, for comparing the two: case, spacing
  *  and a trailing full stop or colon do not make them different. */
@@ -311,11 +318,17 @@ export function HostedArticle({ resolved }: { resolved: Resolved }): React.JSX.E
     grounded === null ? levelled : markPassage(levelled, grounded.passage).blocks
   );
   const body = toHtml(blocks, HOSTED_BODY_CLASSES);
-  const contents = contentsOf(headings);
   const sourceLine = sourceLineFor(page);
+  // The page ends with its sources: the body's own list where it has one,
+  // else a heading over the line naming what the page is grounded in.
+  const listed = headings.find((heading) => isSourcesHeading(heading.text, copy));
+  const drawn: HeadingEntry | null =
+    listed === undefined && sourceLine !== null ? { id: SOURCES_ID, level: 2, text: copy("body.sources.heading") } : null;
+  const sources = drawn ?? listed;
+  const listedContents = contentsOf(headings);
+  const contents = drawn === null || listedContents.length === 0 ? listedContents : [...listedContents, drawn];
   // SPEC §7 (2026-10-11, issue 1397): how the page was made, and the way to
-  // its own sources list where the body ends with one.
-  const sources = headings.find((heading) => isSourcesHeading(heading.text, copy));
+  // its sources.
   const madeText = page.made === null ? null : madeLine({ counts: page.made, site: business.domain, say: copy });
   // The space before the link is text, so the two sentences are two to a
   // reader that takes the page's words without its styles.
@@ -421,7 +434,16 @@ export function HostedArticle({ resolved }: { resolved: Resolved }): React.JSX.E
           {/* The text face, not mono: it is a sentence, and the address
               in it is a host and a path rather than a URL to copy. */}
           {sourceLine === null ? null : (
-            <p className="text-base-content/70 mt-8 text-sm wrap-anywhere">{sourceLine}</p>
+            <section className="prose prose-lg mt-8 max-w-none" aria-labelledby={drawn?.id}>
+              {drawn === null ? null : <h2 id={drawn.id}>{drawn.text}</h2>}
+              <p className="text-base-content/70 text-sm wrap-anywhere">
+                {sourceLine.href === null ? sourceLine.text : (
+                  <a href={sourceLine.href} className="link">
+                    {sourceLine.text}
+                  </a>
+                )}
+              </p>
+            </section>
           )}
 
           <AboutCard business={business} author={pageAuthorOf(page.byline, business)} />
