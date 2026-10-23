@@ -13,6 +13,31 @@ import { COUNTRIES, localeOf, type Locale } from "@/lib/locale/locales";
 
 const DATAFORSEO_BASE_URL = "https://api.dataforseo.com";
 
+/** Every path this package may POST: what is not here (Labs historical, AI Keyword Data, LLM Mentions, another engine) is
+ *  never bought, whatever an endpoint module is edited to send. */
+const POST_PATHS: ReadonlySet<string> = new Set([
+  "/v3/dataforseo_labs/google/ranked_keywords/live",
+  "/v3/dataforseo_labs/google/keyword_suggestions/live",
+  "/v3/dataforseo_labs/google/keyword_overview/live",
+  "/v3/dataforseo_labs/google/competitors_domain/live",
+  "/v3/serp/google/organic/live/advanced",
+  "/v3/serp/google/organic/task_post",
+  "/v3/serp/google/ai_mode/live/advanced",
+  "/v3/serp/google/ai_mode/task_post",
+  "/v3/serp/google/news/live/advanced",
+  "/v3/ai_optimization/chat_gpt/llm_scraper/task_post",
+  "/v3/on_page/instant_pages",
+  "/v3/on_page/raw_html",
+]);
+
+/** Every path this package may GET: the free balance, a country's list of cities, and a queued task of the three std
+ *  families, by the vendor's own id. */
+const GET_PATHS: readonly RegExp[] = [
+  /^\/v3\/appendix\/user_data$/,
+  /^\/v3\/serp\/google\/locations\/[a-z]{2}$/,
+  /^\/v3\/(?:serp\/google\/organic|serp\/google\/ai_mode|ai_optimization\/chat_gpt\/llm_scraper)\/task_get\/advanced\/[^/?#]+$/,
+];
+
 /** The path families whose tasks take `depth`: organic SERPs and the news search (D48), both billed per ten results. */
 const DEPTH_PATH_PREFIXES = ["/v3/serp/google/organic/", "/v3/serp/google/news/"] as const;
 
@@ -100,10 +125,11 @@ function authorizationHeader(): string {
  *  credentials in the `Authorization` header only. Never exported outside
  *  this package.
  *
- *  Throws on a locale that is not a row of the list, and on a path that
- *  takes one being handed none: both are a caller's mistake, made before
- *  anything is bought. */
+ *  Throws on a path off `POST_PATHS`, on a locale that is not a row of the
+ *  list, and on a path that takes one being handed none: each is a caller's
+ *  mistake, made before anything is bought. */
 export function buildRequest(spec: DataForSeoRequestSpec): DataForSeoRequest {
+  if (!POST_PATHS.has(spec.path)) throw new Error(`dataforseo: ${spec.path} is not a path this package buys`);
   const task: Record<string, unknown> = { ...(spec.fields ?? {}) };
   for (const key of RESERVED_TASK_KEYS) delete task[key];
   if (!NO_LOCALE_PATH_PREFIXES.some((prefix) => spec.path.startsWith(prefix))) {
@@ -154,8 +180,9 @@ export async function sendRequest<T>(spec: DataForSeoRequestSpec): Promise<DataF
 /** The standard queue's second leg: `GET {path}` (a `task_get/…/{id}`
  *  path the endpoint module builds from the vendor's own task id, never
  *  from caller input). Same credential placement, same never-throws
- *  outcome contract as `sendRequest`. */
+ *  outcome contract as `sendRequest`, except that a path off `GET_PATHS` throws before anything is sent. */
 export async function sendGet<T>(path: string, timeoutMs?: number): Promise<DataForSeoOutcome<T>> {
+  if (!GET_PATHS.some((allowed) => allowed.test(path))) throw new Error(`dataforseo: ${path} is not a path this package reads`);
   return issue<T>(
     `${DATAFORSEO_BASE_URL}${path}`,
     {
