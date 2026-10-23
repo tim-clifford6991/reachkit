@@ -1,16 +1,6 @@
-// Issue 1553 — Bing Webmaster Tools, under ReachKit's own account.
-//
-// The weekly pass adds each live hosted host, reads the account's meta
-// code (`msvalidate.01`, which the hosted index prints), asks Bing to
-// verify it, submits its sitemap, and reads each page's impressions,
-// clicks, best place and last crawl. Every call is free. Bing's AI
-// Performance report (Copilot citations) has no documented API as of
-// 2026-10-19, so it is not read here.
-//
-// **Inert without a key.** `bingClient()` is `null` where
-// `BING_WEBMASTER_API_KEY` is absent, and the pass then asks Bing nothing.
-// The key rides in the query string, as Bing documents; it is never
-// logged, and no payload leaves this file.
+// Bing Webmaster Tools under ReachKit's own account: add and verify each live hosted host (`msvalidate.01`, printed by the
+// hosted index), submit its sitemap, read each page's stats and last crawl. Every call is free. Copilot citations have no API.
+// `bingClient()` is `null` without `BING_WEBMASTER_API_KEY`. The key rides in the query string, as Bing documents, and is never logged.
 import { env } from "@/lib/config/env";
 import { safeFetch, type FetchOutcome, type SafeFetchOpts } from "@/lib/egress";
 

@@ -1,17 +1,7 @@
-// BUILD §6.3 — DataForSEO Labs: rankedKeywords, keywordSuggestions, competitorsDomain (issue #23)
-//
-// The three Labs endpoints §6.3 admits. Labs is live-only at the vendor
-// ("DataForSEO Labs API supports only the Live method of data retrieval"),
-// so none takes a `mode`. Each is priced from `PRICE_BOOK` by the row count
-// it asks for (§6.1) and cached on the §6.4 window its subject earns:
-// `rows` decides both — 50 and 300 are the customer's own domain (7d),
-// 100 is a rival's (30d); suggestions are the market's (30d);
-// `competitors_domain` keys on the customer's rankings (30d, the rival
-// window — it is a warm-start supplement, §6.6).
-//
-// Per-rival `ranked_keywords` on the free path is on the never-list (§6.4);
-// that is the caller's tier logic — this module offers exactly the three
-// row counts the price book prices and nothing else.
+// BUILD §6.3 — DataForSEO Labs: rankedKeywords, keywordSuggestions, competitorsDomain, keywordOverview
+// Labs is live-only at the vendor, so none takes a `mode`. The row count sets both the price (§6.1) and the §6.4 window:
+// 50 and 300 are the customer's own domain (7d), 100 a rival's (30d). Suggestions and `competitors_domain` take 30d.
+// Per-rival `ranked_keywords` on the free path is on the never-list (§6.4); that is the caller's tier logic.
 import type { CostContext } from "@/lib/costs";
 import { CACHE_WINDOWS_D, PRICE_BOOK, VENDOR } from "@/lib/config/constants";
 import type { Locale } from "@/lib/locale/locales";
@@ -44,19 +34,8 @@ function rankedFreshnessDays(rows: RankedRows): number {
 }
 
 /**
- * The rows, and the vendor's own `total_count` beside them (#117).
- *
- * `total_count` is DataForSEO's count of every search the target ranks
- * for, independent of the `limit` this call bought — which is the whole
- * point: `PRICE_BOOK.RANKED_RIVAL_ROWS` is 100, so a row count can never
- * exceed 100 and the `far` band (a rival above `max(500, 5×C)`) was
- * unreachable from live data.
- *
- * `items_count` is deliberately not read as a fallback: it is the number
- * of rows *returned*, so it is the same capped figure under a different
- * name, and reading it would put the ceiling back while looking like a
- * total. A response with no `total_count` reports `null`, and the reader
- * chooses what to do about not knowing.
+ * The rows, and the vendor's `total_count` beside them: every search the target ranks for, whatever `limit` bought.
+ * `items_count` is not a fallback: it counts the rows returned, the capped figure under another name. No total is `null`.
  */
 function parseRanked(result: unknown, listing = false): { rows: RankedRow[]; total: number | null } | undefined {
   if (!isRecord(result)) return undefined;
@@ -80,8 +59,7 @@ function parseRanked(result: unknown, listing = false): { rows: RankedRow[]; tot
       position,
       searchVolume: (info ? asNumber(info.search_volume) : undefined) ?? 0,
       url: (serp ? asString(serp.url) : undefined) ?? "",
-      // Only where the vendor gave one (issue 858): the stored own and rival
-      // rows keep their shape otherwise.
+      // Only where the vendor gave one, so stored rows keep their shape otherwise.
       ...(difficultyOf(kd) === null ? {} : { difficulty: difficultyOf(kd) }),
       ...(listing ? listingOf(serp) : {}),
     });
@@ -89,15 +67,14 @@ function parseRanked(result: unknown, listing = false): { rows: RankedRow[]; tot
   return { rows, total };
 }
 
-/** The title and snippet of the ranking page as Google shows them (issue
- *  1387), each only where the vendor gave one. */
+/** The title and snippet of the ranking page as Google shows them, each only where the vendor gave one. */
 function listingOf(serp: Record<string, unknown> | undefined): Pick<RankedRow, "title" | "description"> {
   const title = serp ? asString(serp.title)?.trim() : undefined;
   const description = serp ? asString(serp.description)?.trim() : undefined;
   return { ...(title ? { title } : {}), ...(description ? { description } : {}) };
 }
 
-/** `keyword_properties.keyword_difficulty` on a keyword record (issue 858):
+/** `keyword_properties.keyword_difficulty` on a keyword record:
  *  the vendor's 0–100 difficulty, `null` where it gave none or gave a value
  *  outside that range. */
 function difficultyOf(record: Record<string, unknown> | undefined): number | null {
@@ -125,7 +102,7 @@ function parseSuggestions(result: unknown): SuggestionRow[] | undefined {
   return rows;
 }
 
-/** `full_domain_metrics.organic.count` on a competitor item (issue 858). */
+/** `full_domain_metrics.organic.count` on a competitor item. */
 function organicCountOf(item: Record<string, unknown>): number | undefined {
   const full = isRecord(item.full_domain_metrics) ? item.full_domain_metrics : undefined;
   const organic = full && isRecord(full.organic) ? full.organic : undefined;
@@ -167,16 +144,15 @@ export async function rankedKeywords(
     /** The site's country and language (D66): where the read is made, and
      *  part of its cache key. */
     locale: Locale;
-    /** Issue 1170: a narrower window than the row count's own, for a pass
+    /** A narrower window than the row count's own, for a pass
      *  that may not be served a read from before its week. Never wider. */
     windowDays?: number;
-    /** Issue 1387: each row also carries the title and snippet Google shows
+    /** Each row also carries the title and snippet Google shows
      *  for the page that ranks. The same call at the same price. It is part
      *  of the cache key, so rows stored without them are never served to a
      *  pass that reads the site's market from them. */
     listing?: boolean;
-    /** The stage that asked, told why the call failed where it did (issue
-     *  #504) — so its own reason is the vendor's, never a ledger error. */
+    /** The stage that asked, told why the call failed, so its reason is the vendor's, never a ledger error. */
     onFailure?: OnVendorFailure;
   }
 ): Promise<Measured<RankedResult>> {
@@ -184,12 +160,8 @@ export async function rankedKeywords(
   return ledgeredWithTotal<RankedRow>(c, {
     ...(a.onFailure ? { onFailure: a.onFailure } : {}),
     source: "dataforseo_labs/google/ranked_keywords",
-    // `VENDOR.rankedPayloadVersion` is part of the key because the cached
-    // payload's *shape* changed with #117, not its meaning: an entry
-    // written before it is a bare array, and reading one back as
-    // `{ rows, total }` would report a cached rival as having no rows.
-    // `|etv`: rows bought before #1161 were the vendor's unordered first
-    // rows, and are never served as a domain's top keywords.
+    // `rankedPayloadVersion` keeps bare-array entries from reading as `{ rows, total }` with no rows;
+    // `|etv` keeps unordered rows from serving as a domain's top keywords.
     cacheKey: `${a.domain}|${a.rows}|${localeCacheKey(a.locale)}|p${VENDOR.rankedPayloadVersion}|etv${listing ? "|listing" : ""}`,
     freshnessDays:
       a.windowDays === undefined
@@ -200,11 +172,7 @@ export async function rankedKeywords(
       callEndpoint({ live: `${LABS}/ranked_keywords/live` }, "live", a.locale, {
         target: a.domain,
         limit: a.rows,
-        // #1161: without an order the vendor answers its rows near
-        // alphabetically — zapier.com's from "4 internet browsers" to "ai
-        // email sorter" — so the limit kept a slice, not the domain's top
-        // keywords. Estimated traffic first, at the same price per row
-        // (docs.dataforseo.com, ranked_keywords/live: `order_by`).
+        // Unordered, the vendor answers near alphabetically and the limit keeps a slice; estimated traffic first, same price.
         order_by: ["ranked_serp_element.serp_item.etv,desc"],
       }),
     parse: (result) => parseRanked(result, listing),
@@ -217,8 +185,7 @@ export async function keywordSuggestions(
 ): Promise<Measured<SuggestionRow[]>> {
   return ledgered<SuggestionRow>(c, {
     source: "dataforseo_labs/google/keyword_suggestions",
-    // The window is part of the key (issue 846): rows bought for one
-    // ceiling are never served to a pass with another.
+    // The window is in the key, so rows bought for one ceiling never serve a pass with another.
     cacheKey: `${a.seed}|${a.rows}|v${a.volume.min}-${a.volume.max}|d${a.volume.maxDifficulty}|${localeCacheKey(a.locale)}`,
     freshnessDays: CACHE_WINDOWS_D.suggestions,
     costCents: PRICE_BOOK.SUGGESTIONS_COST_C,
@@ -226,12 +193,8 @@ export async function keywordSuggestions(
       callEndpoint({ live: `${LABS}/keyword_suggestions/live` }, "live", a.locale, {
         keyword: a.seed,
         limit: a.rows,
-        // The vendor's own syntax (docs.dataforseo.com, keyword_suggestions/
-        // live: `filters`, `order_by`): the rows inside the window, largest
-        // first, so the limit keeps the best right-sized rows. Difficulty
-        // (issue 858) is `keyword_properties.keyword_difficulty`; a row the
-        // vendor has no difficulty for is kept, since selection reads it on
-        // volume alone.
+        // Inside the window, largest first, so the limit keeps the best right-sized rows. A row with no difficulty is
+        // kept, since selection then reads it on volume alone.
         filters: [
           ["keyword_info.search_volume", ">=", a.volume.min],
           "and",
@@ -266,7 +229,7 @@ function parseOverview(result: unknown): KeywordVolumeRow[] | undefined {
 
 /**
  * How often each keyword is searched a month in the site's country (SPEC §6,
- * owner D49 of 2026-10-05, issue 1270): one request for the whole list. A
+ * D49): one request for the whole list. A
  * keyword the vendor holds nothing for has no row, which the caller reads
  * as no searches.
  */

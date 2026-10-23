@@ -1,22 +1,8 @@
-// SPEC §6 (issue 1374) — renderedPage: one page of a customer's own site as
-// a browser draws it.
-//
-// ReachKit reads a page as it is served and runs no browser of its own
-// (`@/lib/measure/parse`). A site drawn by JavaScript serves an empty
-// shell, so nothing of it could be read into the knowledge base. The vendor
-// runs the browser: On-Page *instant pages* loads the address with
-// JavaScript on and keeps the HTML it ended with, and *raw HTML* hands that
-// HTML back. What comes back is a document like any other own document, so
-// the product's one page reader (`@/lib/measure/prose`) reads it.
-//
-// The cost check of 2026-10-10: the vendor charged $0.0015 for the first
-// request and nothing for the second, which is `PRICE_BOOK.RENDERED_PAGE_C`.
-// The two requests are one ledgered call, since the second is only the
-// answer of the first.
-//
-// Live only: the knowledge-base step waits for it. On-Page takes no country
-// and no language (`transport.ts`). A page that did not answer 200 with
-// HTML is the zero-result, which the seam never caches.
+// SPEC §6 — renderedPage: one page of a customer's own site as a browser draws it.
+// ReachKit runs no browser, so a JavaScript shell reads as empty; On-Page *instant pages* renders it and *raw HTML* returns
+// the result, which `@/lib/measure/prose` reads like any own document.
+// The second request only fetches the first's answer and is free, so the pair is one ledgered call at `RENDERED_PAGE_C`.
+// Live only: the knowledge-base step waits for it. A page that did not answer 200 with HTML is the uncached zero-result.
 import { OWN_DOCUMENT_MAX_BYTES, PRICE_BOOK } from "@/lib/config/constants";
 import type { CostContext } from "@/lib/costs";
 import type { Measured } from "@/lib/measure/measured";
