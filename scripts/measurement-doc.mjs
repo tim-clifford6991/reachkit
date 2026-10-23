@@ -48,7 +48,7 @@ export function measureProblems(root, measures) {
     for (const field of ["id", "definition", "source", "cadence"]) {
       if (typeof measure[field] !== "string" || measure[field].trim() === "") problems.push(`${at}: no ${field}`);
     }
-    if (!["tile", "mail"].includes(measure.shown?.on) || typeof measure.shown?.key !== "string") problems.push(`${at}: shown needs on and key`);
+    if (!["tile", "mail", "report"].includes(measure.shown?.on) || typeof measure.shown?.key !== "string") problems.push(`${at}: shown needs on and key`);
     if (ids.has(measure.id)) problems.push(`${at}: id listed twice`);
     if (keys.has(measure.shown?.key)) problems.push(`${at}: ${measure.shown?.key} is shown by two measures`);
     ids.add(measure.id);
@@ -86,6 +86,7 @@ export function measurementDoc(root) {
     "",
     ...section("tile", "Overview tiles"),
     ...section("mail", "Monday mail"),
+    ...section("report", "Free report"),
   ].join("\n");
 }
 
