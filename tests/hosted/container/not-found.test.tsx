@@ -4,50 +4,52 @@
 // The unknown-Host 404 and the 410 that is not one. Both answer on a domain
 // that is not ours, and the assertion that matters for both is the same:
 // nothing on the response identifies the operator of a stranger's domain.
-import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { applyEnvFixture } from "../../mail/env-fixture";
 
 applyEnvFixture();
+
+// A host that names no site, which is the 404 this file is about.
+vi.mock("next/headers", () => ({ headers: async () => new Headers() }));
 
 const NotFound = (await import("@/app/(hosted)/hosted-page/not-found")).default;
 const gone = await import("@/app/(hosted)/hosted-gone/route");
 const { HOSTED_GONE_STATUS } = await import("@/lib/config/constants");
 
-function notFoundHtml(): string {
-  return renderToStaticMarkup(React.createElement(NotFound));
+async function notFoundHtml(): Promise<string> {
+  return renderToStaticMarkup(await NotFound());
 }
 
 describe("an unknown or unmapped Host is 404, and never a ReachKit page", () => {
-  it("the body names ReachKit nowhere", () => {
-    expect(notFoundHtml().toLowerCase()).not.toContain("reachkit");
+  it("the body names ReachKit nowhere", async () => {
+    expect((await notFoundHtml()).toLowerCase()).not.toContain("reachkit");
   });
 
-  it("it carries no link and no navigation off the stranger's own domain", () => {
-    const html = notFoundHtml();
+  it("it carries no link and no navigation off the stranger's own domain", async () => {
+    const html = await notFoundHtml();
     expect(html).not.toContain("<a ");
     expect(html).not.toContain("href=");
     expect(html).not.toContain("<nav");
   });
 
-  it("it offers no control at all — nothing to click, nothing to submit", () => {
-    const html = notFoundHtml();
+  it("it offers no control at all — nothing to click, nothing to submit", async () => {
+    const html = await notFoundHtml();
     for (const element of ["<button", "<form", "<input", "<select", "<textarea"]) {
       expect(html, element).not.toContain(element);
     }
   });
 
-  it("it speaks no sentence at all — the status is the whole message", () => {
+  it("it speaks no sentence at all — the status is the whole message", async () => {
     // A word of ours here would have to come from the registry (which
     // WO-028 forbids on a stranger's domain) or from a literal (which
     // REQ-093 c1's sweep forbids anywhere). There is neither.
-    const document = new DOMParser().parseFromString(notFoundHtml(), "text/html");
+    const document = new DOMParser().parseFromString(await notFoundHtml(), "text/html");
     expect(document.body.textContent?.trim()).toBe("");
   });
 
-  it("it is a screen root and declares its band arms (ADR-093)", () => {
-    expect(notFoundHtml()).toContain("data-surface");
+  it("it is a screen root and declares its band arms (ADR-093)", async () => {
+    expect(await notFoundHtml()).toContain("data-surface");
   });
 });
 

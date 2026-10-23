@@ -400,6 +400,18 @@ export const PUBLISH_COPY = Object.freeze({
     "published {date} · updated {updated} · by {publisher}",
     { slots: { date: "date", updated: "date", publisher: "text" }, fixedBy: "issue 1137" },
   ],
+  // Owner R1 (2026-10-22): an offering page is the business's own, so its
+  // line states the dates and no byline. Drafted under #759's ruling.
+  "hosted.dated": ["Published {date}", { slots: { date: "date" }, fixedBy: "owner 2026-10-22 R1 · drafted" }],
+  "hosted.dated.updated": [
+    "Published {date} · Updated {updated}",
+    { slots: { date: "date", updated: "date" }, fixedBy: "owner 2026-10-22 R1 · drafted" },
+  ],
+  // Owner R1 (2026-10-22): an address a live site no longer serves names
+  // whose site it is and the way back to its guides. Board HostedGone.
+  "hosted.gone.heading": ["This page is no longer available", { slots: {}, fixedBy: "owner 2026-10-22 R1 · board HostedGone" }],
+  "hosted.gone.line": ["{publisher} has removed this guide.", { slots: { publisher: "text" }, fixedBy: "owner 2026-10-22 R1 · board HostedGone" }],
+  "hosted.gone.index": ["Browse all guides", { slots: {}, fixedBy: "owner 2026-10-22 R1 · board HostedGone" }],
   // A sentence, drawn as a link to the page it names.
   "hosted.source": [
     "Source: {source} · retrieved {date}.",

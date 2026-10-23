@@ -35,6 +35,11 @@ export const PAGE_COPY_DE = {
   // The hosted blog
   "hosted.published": "veröffentlicht am {date} · von {publisher}",
   "hosted.updated": "veröffentlicht am {date} · aktualisiert am {updated} · von {publisher}",
+  "hosted.dated": "Veröffentlicht am {date}",
+  "hosted.dated.updated": "Veröffentlicht am {date} · aktualisiert am {updated}",
+  "hosted.gone.heading": "Diese Seite ist nicht mehr verfügbar",
+  "hosted.gone.line": "{publisher} hat diesen Ratgeber entfernt.",
+  "hosted.gone.index": "Alle Ratgeber ansehen",
   "hosted.source": "Quelle: {source} · abgerufen am {date}.",
   "hosted.index.heading": "Artikel",
   "hosted.index.searchLabel": "Ratgeber durchsuchen",

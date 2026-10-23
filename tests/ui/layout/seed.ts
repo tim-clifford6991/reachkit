@@ -602,7 +602,54 @@ export function seedHostedPublisher(): void {
         `'https://content.${PUBLISHER_ACCOUNT.domain}/more-${index}', '2026-08-2${index}T09:00:00.000Z', 'delivered');`
     );
   });
+
+  // The business's own product page (owner R1, 2026-10-22), the one board
+  // HostedService reads: dated, made line kept, no byline.
+  const meta = JSON.stringify({ contentType: "offering", description: PUBLISHER_OFFERING.description, ...PUBLISHER_PAGE.made }).replaceAll("'", "''");
+  const [opportunityId] = rows(
+    `insert into opportunities (site_id, scan_id, type, family, target_query, target_ref, proposed_slug, title, volume, fit_band, effort, evidence, acceptance) ` +
+      `select site_id, scan_id, type, family, 'onboarding checklist software', '${PUBLISHER_OFFERING.slug}', '${PUBLISHER_OFFERING.slug}', '${PUBLISHER_OFFERING.title}', volume, fit_band, effort, evidence, acceptance ` +
+      `from opportunities where site_id = '${PUBLISHER_ACCOUNT.siteId}' limit 1 returning id;`
+  );
+  const [draftId] = rows(
+    `insert into drafts (opportunity_id, site_id, state, title, body_md, attribution, meta) values ` +
+      `('${opportunityId}', '${PUBLISHER_ACCOUNT.siteId}', 'published', '${PUBLISHER_OFFERING.title}', ` +
+      `'${PUBLISHER_OFFERING.bodyMd.replaceAll("'", "''")}', 'Dana Ruiz · Head of onboarding', '${meta}'::jsonb) returning id;`
+  );
+  sql(
+    `insert into publications (draft_id, site_id, destination, mode, live_url, published_at, delivery_state) values ` +
+      `('${draftId}', '${PUBLISHER_ACCOUNT.siteId}', 'hosted', 'autopilot', ` +
+      `'https://content.${PUBLISHER_ACCOUNT.domain}/${PUBLISHER_OFFERING.slug}', '2026-08-19T09:00:00.000Z', 'delivered');`
+  );
 }
+
+/** A SaaS business's offering page, in the offering template's sections. */
+export const PUBLISHER_OFFERING = Object.freeze({
+  slug: "onboarding-checklist-software",
+  title: "Onboarding checklist software with one owner for every step",
+  description: "Checklists a new hire can see, one owner for each step, and an export of everything you wrote.",
+  bodyMd: [
+    ":::answer",
+    "Publisher & Sons gives every onboarding step one owner and a checklist the new hire can see, so a stalled account always has a name against it.",
+    ":::",
+    "",
+    "## What is it, and who is it for?",
+    "",
+    "Onboarding checklist software for people teams that hire every month.",
+    "",
+    "## What is included?",
+    "",
+    "- One owner for every step",
+    "- A checklist the new hire can see",
+    "- An export of everything you wrote",
+    "",
+    "## How does it work?",
+    "",
+    "1. You write the checklist once.",
+    "2. Each step gets an owner.",
+    "3. The new hire sees what is next.",
+  ].join("\n"),
+});
 
 /** Titles of different lengths, so a card grid is measured with a short
  *  title beside one that wraps. */
