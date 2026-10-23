@@ -1560,6 +1560,7 @@ async function stagesOf(a: StageArgs, crawl: SiteCrawl): Promise<void> {
         tier: a.tier,
         ...(a.locale === undefined ? {} : { locale: a.locale }),
         ...(a.sinceDays === undefined ? {} : { ownWindowDays: a.sinceDays }),
+        ...(a.siteId === undefined ? {} : { listingDecides: true }),
       })
     )
   );

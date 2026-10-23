@@ -62,6 +62,8 @@
 // digits and hyphens and nothing else, so a heading's words choose which
 // id it gets and never what the attribute can hold; the parser mints none,
 // so only a caller that asks for them emits any.
+// Every list carries `role="list"`, a constant, for every destination: a
+// styled list loses its list semantics in WebKit without it.
 //
 // A body cannot forge them and cannot override them: it has no syntax that
 // reaches an attribute, a `<div role="region">` written into a body is an
@@ -145,7 +147,14 @@ export type Block =
     }
   | { kind: "paragraph"; children: readonly Inline[] }
   | { kind: "quote"; children: readonly Inline[] }
-  | { kind: "list"; ordered: boolean; items: ReadonlyArray<readonly Inline[]> }
+  | {
+      kind: "list";
+      ordered: boolean;
+      items: ReadonlyArray<readonly Inline[]>;
+      /** A top-level bulleted list right after a paragraph, its lead-in
+       *  sentence: set by the parser on the whole body, so a slice keeps it. */
+      leadIn?: true;
+    }
   | { kind: "code"; text: string }
   | { kind: "rule" }
   /** SPEC §7 (2026-09-20). A header row and a body, with each column's
@@ -322,13 +331,17 @@ function blocksOf(nodes: readonly RootContent[], src: string, insideAnswer: bool
       case "blockquote":
         out.push({ kind: "quote", children: flatten(node.children, src) });
         break;
-      case "list":
+      case "list": {
+        const ordered = node.ordered === true;
+        const leadIn = !ordered && !insideAnswer && out.at(-1)?.kind === "paragraph";
         out.push({
           kind: "list",
-          ordered: node.ordered === true,
+          ordered,
           items: node.children.map((item) => flatten(item.children, src)),
+          ...(leadIn ? { leadIn: true as const } : {}),
         });
         break;
+      }
       case "code":
         out.push({ kind: "code", text: node.value });
         break;
@@ -678,7 +691,8 @@ export type HtmlClasses = Partial<
     | "p" | "ul" | "ol" | "li" | "blockquote" | "pre" | "code" | "hr"
     | "a" | "mark" | "strong" | "em"
     | "table" | "thead" | "tbody" | "tr" | "th" | "td"
-    | "tableWrap" | "answer" | "answerLabel" | "takeaways" | "takeawaysLabel" | "guides" | "guidesLabel",
+    | "tableWrap" | "answer" | "answerLabel" | "takeaways" | "takeawaysLabel" | "guides" | "guidesLabel"
+    | "checklist",
     string
   >
 >;
@@ -770,7 +784,9 @@ export function toHtml(blocks: readonly Block[], classes: HtmlClasses = {}): str
           const items = block.items
             .map((item) => `${open("li", classes)}${inlineHtml(item, classes)}</li>`)
             .join("");
-          return `${open(tag, classes)}${items}</${tag}>`;
+          // A lead-in list takes `checklist` where the caller has one, else `ul`'s.
+          const key = block.leadIn === true && classes.checklist !== undefined ? "checklist" : tag;
+          return `${openAs(tag, key, classes, ' role="list"')}${items}</${tag}>`;
         }
         // SPEC §7 (2026-09-20): a table, in a box of its own so a phone
         // scrolls the table rather than the page (`docs/DESIGN.md`'s
@@ -819,7 +835,7 @@ export function toHtml(blocks: readonly Block[], classes: HtmlClasses = {}): str
           return (
             `${openAs("div", "guides", classes)}` +
             `${openAs("p", "guidesLabel", classes)}${escapeHtml(block.label)}</p>` +
-            `${open("ul", classes)}${items}</ul></div>`
+            `${open("ul", classes, ' role="list"')}${items}</ul></div>`
           );
         }
       }

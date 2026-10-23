@@ -16,8 +16,9 @@ const { issueChanges } = await import("../../src/lib/site-issues/changes");
 const { measured, unmeasured } = await import("../../src/lib/measure/measured");
 const { COPY } = await import("../../src/lib/presentation/copy");
 const { waitingIssues } = await import("../../src/app/(account)/app/_overview/alerts");
-const { readingsOf } = await import("../../src/app/(public)/scan/[domain]/_problems/checks");
+const { readingsOf, checkCardsOf } = await import("../../src/app/(public)/scan/[domain]/_problems/checks");
 const { SITE_CHECK_TITLE } = await import("../../src/lib/presentation/site-issues");
+const { SITE_CHECKS, DOER_OF } = await import("../../src/lib/site-issues/types");
 
 const AT = new Date("2026-09-14T06:00:00.000Z");
 
@@ -92,15 +93,59 @@ describe("the structured-data row names the problem", () => {
   it("in the report mail and in what moved since last Monday", async () => {
     const rows = [...issueRows(labelled(3)), ...issueChangeRows(issueChanges(labelled(3), labelled(5), AT))];
     expect(rows.map((row) => `${COPY[row.label]} · ${row.value}`)).toEqual([
-      `Pages with no labels for Google · 3/10 · ${COPY["severity.mid"]}`,
-      `Pages with no labels for Google · 5 → 3/10 · ${COPY["severity.mid"]}`,
+      `Pages with no labels for Google · 3/10 · ${COPY["severity.mid"]} · ReachKit writes`,
+      `Pages with no labels for Google · 5 → 3/10 · ${COPY["severity.mid"]} · ReachKit writes`,
     ]);
     const composed = await reportMail(labelled(3));
     for (const body of [composed.html, composed.text]) expect(body).toContain("Pages with no labels for Google");
   });
 });
 
+describe("a row for a check ReachKit fixes says so", () => {
+  // A local business on hosted pages and a SaaS on WordPress hold the same three faults.
+  const faults = (count: number) =>
+    section([
+      ran({ check: "page_titles", count, over: 12, severity: "worth_fixing", doer: "reachkit_rewrites" }),
+      ran({ check: "broken_links", count, over: 140, unit: "links", severity: "worth_fixing" }),
+      ran({ check: "structured_data", count, over: 12, severity: "worth_fixing", doer: "reachkit_writes" }),
+    ]);
+  const said = (rows: readonly { label: string; value: string }[]) =>
+    rows.map((row) => `${COPY[row.label as keyof typeof COPY]} · ${row.value}`);
+
+  it("in the report mail and in what moved since last Monday; the customer's own rows carry no doer word", async () => {
+    const mid = COPY["severity.mid"];
+    expect(said(issueRows(faults(4)))).toEqual([
+      `${COPY["check.page-titles.title"]} · 4/12 · ${mid} · ReachKit rewrites on WordPress`,
+      `${COPY["check.broken-links.title"]} · 4/140 · ${mid}`,
+      `Pages with no labels for Google · 4/12 · ${mid} · ReachKit writes`,
+    ]);
+    expect(said(issueChangeRows(issueChanges(faults(4), faults(1), AT)))).toEqual([
+      `${COPY["check.page-titles.title"]} · 1 → 4/12 · ${mid} · ReachKit rewrites on WordPress`,
+      `${COPY["check.broken-links.title"]} · 1 → 4/140 · ${mid}`,
+      `Pages with no labels for Google · 1 → 4/12 · ${mid} · ReachKit writes`,
+    ]);
+    const composed = await reportMail(faults(4));
+    for (const body of [composed.html, composed.text]) {
+      expect(body).toContain(`4/12 · ${COPY["severity.mid"]} · ReachKit rewrites on WordPress`);
+      expect(body).toContain(`4/140 · ${COPY["severity.mid"]}`);
+    }
+  });
+});
+
 describe("mail, report and dashboard agree for one measurement", () => {
+  it("each mail row's doer word is the report card's, for every check", () => {
+    const every = section(SITE_CHECKS.map((check) => ran({ check, count: 2, severity: "worth_fixing", doer: DOER_OF[check] })));
+    const rows = new Map(issueRows(every).map((row) => [row.label, row.value]));
+    const cards = checkCardsOf(readingsOf(every, AT));
+    expect(cards.length).toBeGreaterThan(0);
+    for (const card of cards) {
+      const value = rows.get(SITE_CHECK_TITLE[card.check]);
+      const doer = COPY[card.doer];
+      if (DOER_OF[card.check] === "free_fix") expect(value).toBe(`2/40 · ${COPY["severity.mid"]}`);
+      else expect(value).toBe(`2/40 · ${COPY["severity.mid"]} · ${doer}`);
+    }
+  });
+
   it("each fault's count and set match the report card and the Overview figure", () => {
     const mail = new Map(issueRows(THIS_MONDAY).map((row) => [row.label, row.value]));
     const cards = readingsOf(THIS_MONDAY, AT);

@@ -98,12 +98,14 @@ export function MonthPanel(p: { got: MonthGot | null; context: MonthContext }): 
           />
           <Tile value={got.reports.length} label={copy("settings.month.reports")} cap={got.reports.length === 0 ? null : reports} testId="billing-month-reports" />
           <Tile
-            value={got.asked === null ? null : got.asked.searches + got.asked.questions}
+            value={got.asked === null ? null : got.asked.searches + (got.asked.questions ?? 0)}
             label={copy("settings.month.asked")}
             cap={
               got.asked === null
                 ? null
-                : copy("settings.month.asked.split", { searches: String(got.asked.searches), questions: String(got.asked.questions) })
+                : got.asked.questions === null
+                  ? copy("settings.month.asked.split.unmeasured", { searches: String(got.asked.searches) })
+                  : copy("settings.month.asked.split", { searches: String(got.asked.searches), questions: String(got.asked.questions) })
             }
             testId="billing-month-asked"
           />

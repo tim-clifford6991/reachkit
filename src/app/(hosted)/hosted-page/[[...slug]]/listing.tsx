@@ -21,7 +21,7 @@ import type React from "react";
 import { copy } from "@/lib/presentation/copy/reader";
 import type { HostedPage } from "@/lib/publish/destinations/hosted";
 import { Surface } from "@/ui/layout";
-import { actionsOf, CompactAction, HostedFooter, HostedHeader, type HostedBusiness } from "./chrome";
+import { actionsOf, CompactAction, Glyph, HostedFooter, HostedHeader, type HostedBusiness } from "./chrome";
 import { indexHref, writeDate } from "./present";
 import { blogSchema } from "./seo";
 
@@ -59,6 +59,96 @@ export function indexPageCount(pages: readonly HostedPage[], query: string): num
   const matched = matchPages(pages, query);
   const rest = query === "" ? matched.slice(1) : matched;
   return Math.max(1, Math.ceil(rest.length / INDEX_PAGE_SIZE));
+}
+
+/** A topic two or more live pages share: the page that leads it, and the rest. */
+interface Topic {
+  lead: HostedPage;
+  rest: HostedPage[];
+}
+
+function byTitle(a: HostedPage, b: HostedPage): number {
+  return a.title.localeCompare(b.title, undefined, { sensitivity: "base" });
+}
+
+/** Every live page once, for "All guides" (owner R1, 2026-10-22): the topics
+ *  (SPEC §6 clusters) two or more pages share, largest first, and every other
+ *  page in one A–Z list. A topic is led by its offering page, else its oldest. */
+export function guidesByTopic(pages: readonly HostedPage[]): { topics: Topic[]; loose: HostedPage[] } {
+  const byCluster = new Map<string, HostedPage[]>();
+  const loose: HostedPage[] = [];
+  for (const page of pages) {
+    const cluster = page.cluster ?? null;
+    if (cluster === null) loose.push(page);
+    else byCluster.set(cluster, [...(byCluster.get(cluster) ?? []), page]);
+  }
+  const topics: Topic[] = [];
+  for (const members of byCluster.values()) {
+    if (members.length < 2) {
+      loose.push(...members);
+      continue;
+    }
+    const [lead, ...rest] = [...members].sort(
+      (a, b) =>
+        Number(b.offering === true) - Number(a.offering === true) ||
+        a.firstPublishedAt.getTime() - b.firstPublishedAt.getTime()
+    );
+    topics.push({ lead: lead!, rest: rest.sort(byTitle) });
+  }
+  topics.sort((a, b) => b.rest.length - a.rest.length || byTitle(a.lead, b.lead));
+  return { topics, loose: loose.sort(byTitle) };
+}
+
+function GuideLinks({ pages }: { pages: readonly HostedPage[] }): React.JSX.Element {
+  return (
+    <ul className="list-disc space-y-1 pl-5 text-sm">
+      {pages.map((entry) => (
+        <li key={entry.publicationId}>
+          <a href={`/${entry.slug}`} className="link">
+            {entry.title}
+          </a>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+/** "All guides": every live page one click from the index, by topic. */
+function AllGuides({ pages }: { pages: readonly HostedPage[] }): React.JSX.Element {
+  const { topics, loose } = guidesByTopic(pages);
+  return (
+    <section aria-labelledby="all-guides" className="mt-12">
+      <h2 id="all-guides" className="text-xl font-bold tracking-tight">
+        {copy("hosted.index.all")}
+      </h2>
+      <p className="text-base-content/70 mt-1 mb-4">{copy("hosted.index.allLead")}</p>
+      {topics.length === 0 ? null : (
+        <div className="mb-4 grid gap-4 md:grid-cols-2">
+          {topics.map(({ lead, rest }) => (
+            <section key={lead.publicationId} className="card card-border bg-base-100">
+              <div className="card-body gap-2 p-5">
+                <div className="flex items-center gap-3">
+                  <span className="rounded-field bg-base-200 text-base-content grid size-8 flex-none place-items-center">
+                    <Glyph name="book-open" />
+                  </span>
+                  <h3 className="min-w-0 text-base font-bold tracking-tight">
+                    <a href={`/${lead.slug}`} className="link link-hover text-base-content">
+                      {lead.title}
+                    </a>
+                  </h3>
+                  <span className="text-base-content/70 text-sm">
+                    {copy("hosted.index.topicCount", { count: String(rest.length + 1) })}
+                  </span>
+                </div>
+                <GuideLinks pages={rest} />
+              </div>
+            </section>
+          ))}
+        </div>
+      )}
+      {loose.length === 0 ? null : <GuideLinks pages={loose} />}
+    </section>
+  );
 }
 
 /** The date a card states: the day the page was last published. */
@@ -209,6 +299,9 @@ export function HostedIndex({
                 )}
               </nav>
             )}
+
+            {/* A search is a list of matches: the whole list is the unfiltered index's. */}
+            {query === "" ? <AllGuides pages={pages} /> : null}
           </>
         )}
 
