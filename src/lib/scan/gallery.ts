@@ -7,6 +7,11 @@
 // unreadable site (`supabase/migrations/*_scans_gallery.sql`). Search, the
 // category filter, the order and the page are all the database's, so the
 // page is server-rendered and paged rather than a list shipped whole.
+//
+// A view's read is cached, keyed by the view and by an uncached fingerprint
+// of what may change the listing at once, so a crawler walking every filter
+// costs one read per view per window and a removal still shows at once.
+import { unstable_cache } from "next/cache";
 import { dbAdmin } from "@/lib/db";
 import { isProtectionName } from "@/lib/measure/challenge";
 import { isPlaceholder } from "@/lib/measure/placeholder";
@@ -15,6 +20,19 @@ import { challengedHomes } from "./challenged";
 
 export const GALLERY_SORTS = ["newest", "highest", "lowest", "az"] as const;
 export type GallerySort = (typeof GALLERY_SORTS)[number];
+
+/** Cards per page, and per *Show more reports*: four rows of four. */
+export const GALLERY_PAGE = 16;
+/** However far *Show more* is followed, one response stays bounded. */
+export const GALLERY_MOST = GALLERY_PAGE * 20;
+
+/** A requested card count as whole pages within the bound, so every way of
+ *  asking for one view is one view. */
+export function galleryShown(raw: number): number {
+  if (!Number.isFinite(raw)) return GALLERY_PAGE;
+  const bounded = Math.min(Math.max(raw, GALLERY_PAGE), GALLERY_MOST);
+  return Math.floor(bounded / GALLERY_PAGE) * GALLERY_PAGE;
+}
 
 /** One card. `company` falls back to the domain where the site names
  *  itself nowhere; `score` is null on a scan a ceiling cut off. */
@@ -36,6 +54,9 @@ export interface GalleryPage {
    *  search's own total. */
   categories: readonly { name: string; count: number }[];
   all: number;
+  /** Whether the category asked for holds a listed scan, whatever the
+   *  search; true where none was asked for. */
+  listed: boolean;
 }
 
 interface Row {
@@ -203,13 +224,14 @@ function ordered<T>(
   }
 }
 
-/** The gallery's first `shown` cards for one search, category and order. */
-export async function readGallery(a: {
+interface GalleryView {
   search: string;
   category: string | null;
   sort: GallerySort;
   shown: number;
-}): Promise<GalleryPage> {
+}
+
+async function readListing(a: GalleryView): Promise<GalleryPage> {
   let cards = searched(
     untyped()
       .from<Row>("free_scan_listing")
@@ -248,14 +270,68 @@ export async function readGallery(a: {
   const challenged = await challengedHomes(
     entries.filter((entry) => entry.score !== null).map((entry) => ({ domain: entry.domain, at: entry.scannedAt })),
   );
+  const total = page.count ?? page.data?.length ?? 0;
   return {
     entries: entries.map((entry) => (challenged.has(entry.domain) ? { ...entry, score: null } : entry)),
-    total: page.count ?? page.data?.length ?? 0,
+    total,
     categories: [...counts]
       .map(([name, count]) => ({ name, count }))
       .sort((x, y) => y.count - x.count || x.name.localeCompare(y.name)),
     all: chips.data?.length ?? 0,
+    listed: a.category === null || total > 0 || (a.search !== "" && (await holdsAny(a.category))),
   };
+}
+
+/** Whether any listed scan has this category — asked only where a search
+ *  left the category empty. */
+async function holdsAny(category: string): Promise<boolean> {
+  const { data, error } = await untyped()
+    .from<{ domain: string }>("free_scan_listing")
+    .select("domain")
+    .eq("category", category)
+    .limit(1);
+  if (error) throw new Error(`gallery: could not read the category ${category}: ${error.message}`);
+  return (data?.length ?? 0) > 0;
+}
+
+/**
+ * What may change the listing at once: the takedown list's size and newest
+ * row, and the newest finished free scan. Read uncached on every request,
+ * so a removal or a new scan is a new key, never a wait (#1069).
+ */
+async function listingFingerprint(): Promise<string> {
+  const [blocks, newest] = await Promise.all([
+    untyped()
+      .from<{ blocked_at: string }>("domain_blocks")
+      .select("blocked_at", { count: "exact" })
+      .order("blocked_at", { ascending: false })
+      .limit(1),
+    untyped()
+      .from<{ finished_at: string | null }>("scans")
+      .select("finished_at")
+      .eq("tier", "free")
+      .in("status", ["done", "degraded"])
+      .order("finished_at", { ascending: false, nullsFirst: false })
+      .limit(1),
+  ]);
+  if (blocks.error) throw new Error(`gallery: could not read the removals: ${blocks.error.message}`);
+  if (newest.error) throw new Error(`gallery: could not read the newest scan: ${newest.error.message}`);
+  return [blocks.count ?? 0, blocks.data?.[0]?.blocked_at ?? "", newest.data?.[0]?.finished_at ?? ""].join("|");
+}
+
+// The fingerprint is in the arguments so it is in the key; the read ignores it.
+const cachedListing = unstable_cache(
+  (key: { view: GalleryView; fingerprint: string }) => readListing(key.view),
+  ["scan-gallery"],
+  { revalidate: 300 },
+);
+
+/** The gallery's first `shown` cards for one search, category and order. */
+export async function readGallery(a: GalleryView): Promise<GalleryPage> {
+  const view: GalleryView = { search: a.search, category: a.category, sort: a.sort, shown: galleryShown(a.shown) };
+  const page = await cachedListing({ view, fingerprint: await listingFingerprint() });
+  // The data cache stores JSON, so a cached card's date comes back a string.
+  return { ...page, entries: page.entries.map((entry) => ({ ...entry, scannedAt: new Date(entry.scannedAt) })) };
 }
 
 /** One logo in the landing's strip: the company and whether it has a logo
