@@ -30,7 +30,7 @@ import type { StoredReport } from "@/lib/scan/report";
 import type { InventoryRow } from "@/lib/site-profile/types";
 import type { RankedCounts } from "../winnability/counts";
 import { pageTypeOf } from "../page-type";
-import { addRejections, isRetarget, noRejections, type BusinessFit, type Opportunity, type RejectionCount } from "../types";
+import { addRejections, isRetarget, noRejections, type Opportunity, type RejectionCount } from "../types";
 import type { Candidate } from "./candidate";
 import { earnCandidates } from "./earn";
 import { fixCandidates } from "./fix";
@@ -44,7 +44,7 @@ import { refineType } from "./typing";
 import { applyKnownContent, type KnownContentGate } from "./known";
 import { writeCandidates } from "./write";
 import { judgeFit, type FitSearch } from "./fit";
-import { askedOfReport, askedTopics, brandsOf, type ProposedTopic, candidateFor, comparisonWithoutDemand, noLongerRelevant, productsNamed, proposedTopics, rivalBrandOnly, rivalNamesOf, rivalPriceOf, sourceOf } from "./topics";
+import { askedOfReport, askedSupply, askedTopics, brandsOf, type AskedSupply, candidateFor, comparisonWithoutDemand, noLongerRelevant, productsNamed, proposedTopics, rivalBrandOnly, rivalNamesOf, rivalPriceOf, sourceOf } from "./topics";
 import { judgeTyped, writeBuyerSearches } from "./buyer-searches";
 
 export interface DeriveInput {
@@ -108,20 +108,8 @@ export interface DeriveInput {
 /** How many held rows one pass's judgement may also score. */
 const HELD_ROWS_JUDGED = 20;
 
-/** A question buyers were seen asking, judged to help the business below
- *  the top fit (issue 1549). */
-export interface SpareTopic {
-  topic: ProposedTopic;
-  fit: BusinessFit;
-}
-
 export interface DeriveOutcome {
   created: Opportunity[];
-  /** What the supply refill may still write (issue 1549): asked topics the
-   *  pass judged at least `TOPIC_FIT.gate` and below `writeAt`. */
-  spare: SpareTopic[];
-  /** Asked topics the pass judged below `TOPIC_FIT.gate`. */
-  refused: string[];
   /** Targets looked at, whether or not they became opportunities. */
   assessed: number;
   rejected: RejectionCount;
@@ -376,9 +364,8 @@ export async function deriveOpportunities(
   // was never measured, and nothing but its fit speaks for it.
   const proposed: Candidate[] = [];
   // Issue 1549: what buyers were seen asking that the judgement kept below
-  // the top fit is held for the supply refill, and what it judged off the
-  // business is never refilled.
-  const spare: SpareTopic[] = [];
+  // the top fit is still written, and what it judged off the business never.
+  const spare: AskedSupply[] = [];
   const refused: string[] = [];
   for (const [index, topic] of proposals.entries()) {
     const judged = fits.get(judgedHere.length + unjudged.length + index);
@@ -412,6 +399,20 @@ export async function deriveOpportunities(
   // A proposal's type is read off its own words and its title is the angle
   // it was judged with, so it buys no label.
   labelled.push(...proposed);
+  // A question buyers asked below the top fit is still a section of its results page's topic.
+  const questions = askedSupply({
+    report: a.report,
+    market,
+    asked: seen,
+    spare,
+    refused,
+    taken: [...labelled.flatMap((row) => row.targetQuery ?? []), ...existing.flatMap((row) => [row.targetQuery ?? [], ...row.absorbedQueries].flat())],
+    dismissed: dismissed.map((row) => row.query),
+    now: a.report.verdict.measuredAt,
+  }).flatMap(({ topic, fit }) => {
+    const candidate = candidateFor(topic, { ...base, market, ownRanked });
+    return candidate === null ? [] : [{ ...candidate, businessFit: fit }];
+  });
 
   // SPEC §6: one survivor per parent topic, over the rows already held as
   // well as this pass's — after labelling, because the model may refine a
@@ -457,7 +458,7 @@ export async function deriveOpportunities(
 
   const plan = collapse({
     existing,
-    candidates: labelled,
+    candidates: [...labelled, ...questions],
     brandTokens,
     pass: { scanId: a.scanId, covered: coveredTopics(a.report, brandTokens) },
     topTens,
@@ -472,11 +473,9 @@ export async function deriveOpportunities(
   const { created, duplicates } = await persist({ candidates: plan.insert });
   // A candidate the collapse folded into a row already held is that row's
   // duplicate: an equivalent open or queued opportunity exists.
-  const folded = labelled.length - plan.insert.length;
+  const folded = labelled.length + questions.length - plan.insert.length;
   return {
     created,
-    spare,
-    refused,
     assessed,
     rejected: { ...rejected, duplicate_open: rejected.duplicate_open + duplicates + folded + stillDismissed },
   };

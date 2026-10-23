@@ -28,7 +28,7 @@
 // repeat.
 //
 // **What the week found becomes supply, before the account is read.**
-// §7's derivation and 0¢ refill are additive and run inside this pass's own cost
+// §7's derivation is additive and runs inside this pass's own cost
 // context and `WEEKLY` cap (§6.3 puts opportunity typing in the paid
 // budgets); it is handed to `runScan` as the hook it calls once the
 // report is stored, because the opportunity rows reference that row. The
