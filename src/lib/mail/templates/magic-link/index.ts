@@ -41,7 +41,7 @@ export interface AccountMail {
  *
  * The action comes straight after the line because it is the whole point
  * of the mail. The address is a fact row and not a sentence (`for ·
- * you@company.com`): this mail is a credential, so a reader sent it at an
+ * you@example.com`): this mail is a credential, so a reader sent it at an
  * address they do not recognise can see that beside the button.
  */
 export function buildMagicLink(a: { href: string; address: string }): AccountMail {
