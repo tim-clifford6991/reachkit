@@ -441,9 +441,22 @@ export const PUBLISH_COPY = Object.freeze({
     "published {date} · updated {updated} · by {publisher}",
     { slots: { date: "date", updated: "date", publisher: "text" }, fixedBy: "issue 1137" },
   ],
+  // Owner R1 (2026-10-22): an offering page is the business's own, so its
+  // line states the dates and no byline. Drafted under #759's ruling.
+  "hosted.dated": ["Published {date}", { slots: { date: "date" }, fixedBy: "owner 2026-10-22 R1 · drafted" }],
+  "hosted.dated.updated": [
+    "Published {date} · Updated {updated}",
+    { slots: { date: "date", updated: "date" }, fixedBy: "owner 2026-10-22 R1 · drafted" },
+  ],
+  // Owner R1 (2026-10-22): an address a live site no longer serves names
+  // whose site it is and the way back to its guides. Board HostedGone.
+  "hosted.gone.heading": ["This page is no longer available", { slots: {}, fixedBy: "owner 2026-10-22 R1 · board HostedGone" }],
+  "hosted.gone.line": ["{publisher} has removed this guide.", { slots: { publisher: "text" }, fixedBy: "owner 2026-10-22 R1 · board HostedGone" }],
+  "hosted.gone.index": ["Browse all guides", { slots: {}, fixedBy: "owner 2026-10-22 R1 · board HostedGone" }],
+  // A sentence, drawn as a link to the page it names.
   "hosted.source": [
-    "source: {source} · retrieved {date}",
-    { slots: { source: "text", date: "date" }, fixedBy: "S19 (11a)" },
+    "Source: {source} · retrieved {date}.",
+    { slots: { source: "text", date: "date" }, fixedBy: "S19 (11a) · board HostedArticle R9 · issue 1742" },
   ],
   // The customer's own footer line. A key rather than a bare "©" in the
   // markup, so this surface has no string outside the registry at all —
@@ -454,6 +467,8 @@ export const PUBLISH_COPY = Object.freeze({
     "© {publisher}",
     { slots: { publisher: "text" }, fixedBy: "S19 (11a)" },
   ],
+  // The footer's link to the site's feed.
+  "hosted.footer.rss": ["RSS", { slots: {}, fixedBy: "board HostedIndex · issue 1742 · drafted" }],
   // The hosted index at `/` (owner 2026-09-16): every live page of the
   // site, newest first, with a search. Drafted under #759's ruling; the
   // owner corrects the wording. None names ReachKit — the index is served
@@ -495,7 +510,7 @@ export const PUBLISH_COPY = Object.freeze({
   ],
 
   "hosted.index.heading": ["Articles", { slots: {}, fixedBy: "SPEC §7 (2026-09-16)" }],
-  "hosted.index.searchLabel": ["Search articles", { slots: {}, fixedBy: "SPEC §7 (2026-09-16)" }],
+  "hosted.index.searchLabel": ["Search the guides", { slots: {}, fixedBy: "SPEC §7 (2026-09-16) · board HostedIndex · issue 1742" }],
   "hosted.index.searchSubmit": ["Search", { slots: {}, fixedBy: "SPEC §7 (2026-09-16)" }],
   "hosted.index.empty": [
     "Nothing has been published here yet.",
@@ -518,11 +533,17 @@ export const PUBLISH_COPY = Object.freeze({
   // by a person — linked to the main site's page that names them, where it
   // has one. Drafted under #759's ruling; the owner corrects the wording.
   "hosted.about.author": ["Written by {author}", { slots: { author: "text" }, fixedBy: "issue 1509 · drafted" }],
-  // The about card's links to the main site's own book and quote pages.
-  // Neither claims more than that page exists. Drafted under #759's ruling;
-  // the owner corrects the wording.
-  "hosted.action.book": ["Book an appointment", { slots: {}, fixedBy: "issue 1604 · drafted" }],
+  // The business's own actions: its stored phone, and its main site's own
+  // book and quote pages. None claims more than that the number or page
+  // exists. The headline asks in the adopted market's own category and
+  // place, else names the business. Drafted under #759's ruling; the owner
+  // corrects the wording.
+  "hosted.action.call": ["Call {phone}", { slots: { phone: "text" }, fixedBy: "issue 1788 · drafted" }],
+  "hosted.action.book": ["Book a visit", { slots: {}, fixedBy: "issue 1788 · drafted" }],
   "hosted.action.quote": ["Ask for a quote", { slots: {}, fixedBy: "issue 1604 · drafted" }],
+  "hosted.compact.heading": ["Need {category}?", { slots: { category: "text" }, fixedBy: "issue 1788 · drafted" }],
+  "hosted.compact.heading.place": ["Need {category} in {place}?", { slots: { category: "text", place: "text" }, fixedBy: "issue 1788 · drafted" }],
+  "hosted.compact.heading.name": ["Questions for {publisher}?", { slots: { publisher: "text" }, fixedBy: "issue 1788 · drafted" }],
   // SPEC §7 (2026-10-11, issue 1397): how the page was made, under its
   // byline. Both numbers are read off the page's own row and neither is
   // typed here; `.one` is the same line for a page with a single fact.
@@ -550,8 +571,11 @@ export const PUBLISH_COPY = Object.freeze({
   ],
   "hosted.index.latest": ["Latest", { slots: {}, fixedBy: "issue 1140" }],
   "hosted.index.pages": ["Pages of articles", { slots: {}, fixedBy: "issue 1140" }],
-  "hosted.index.newer": ["Newer", { slots: {}, fixedBy: "issue 1140" }],
-  "hosted.index.older": ["Older", { slots: {}, fixedBy: "issue 1140" }],
+  "hosted.index.newer": ["Previous page", { slots: {}, fixedBy: "issue 1140 · board HostedIndex · issue 1742" }],
+  "hosted.index.older": ["Next page", { slots: {}, fixedBy: "issue 1140 · board HostedIndex · issue 1742" }],
+  // The index's H1 and its grid's heading; the head, breadcrumb and feed keep `hosted.index.heading`.
+  "hosted.index.title": ["Guides from {publisher}", { slots: { publisher: "text" }, fixedBy: "board HostedIndex · issue 1742 · drafted" }],
+  "hosted.index.recent": ["Recent guides", { slots: {}, fixedBy: "board HostedIndex · issue 1742 · drafted" }],
   "hosted.index.pageOf": [
     "Page {page} of {pages}",
     { slots: { page: "text", pages: "text" }, fixedBy: "issue 1140" },

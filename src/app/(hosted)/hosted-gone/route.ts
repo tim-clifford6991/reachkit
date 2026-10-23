@@ -1,12 +1,11 @@
 // BUILD §9 — the hosted address that has stopped serving: 410, never a
 // redirect and never a 404.
 //
-// Three endings arrive here and they get one response (the archived
-// WO-229): a page the customer unpublished, a customer whose access ended
-// 30 days ago (REQ-076 c10), and an account that was deleted (REQ-079 c6).
-// One `gone` disposition, one document, one status — the reason is carried
-// on the disposition so an operator can tell which ending it was, never so
-// the visitor is answered differently.
+// Three endings arrive here: a page the customer unpublished, a customer
+// whose access ended 30 days ago (REQ-076 c10), and an account that was
+// deleted (REQ-079 c6). All three answer 410. A page removed from a site that
+// is still live carries the short body of `gone.tsx` (owner R1, 2026-10-22,
+// amending WO-229); a site that is gone answers with an empty document.
 //
 // **410 and not 404.** The address existed and its page is gone; 404 would
 // be a claim that nothing was ever there, and it de-indexes more slowly,
@@ -22,17 +21,20 @@
 // `src/app/api/report/[domain]/removed/route.ts` uses for #28's removed
 // report, for the same framework reason.
 //
-// **It carries nothing of ours.** No ReachKit name, no link, no navigation,
-// and no sentence — this answers on a domain that is not ours, and neither
-// the operator of a stranger's domain nor its voice belongs on it. The
-// document's `<title>` is HTTP's own word for HTTP's own status, which HTML
-// requires an element for and a browser tab shows; the body is empty, the
-// same as `(hosted)/hosted-page/not-found.tsx`.
+// **It carries nothing of ours.** No ReachKit name, link or sentence: this
+// answers on a domain that is not ours. The empty document's `<title>` is
+// HTTP's own word for its status, and its `lang` is the site's stored one.
 //
 // **Never cached.** A takedown is immediate (WO-028's NFR): `no-store`
 // means no proxy between us and the visitor can keep serving the page this
 // response replaced.
 import { HOSTED_GONE_STATUS } from "@/lib/config/constants";
+import { localeTag } from "@/lib/locale/locales";
+import { readStoredLocale } from "@/lib/locale/site";
+import { readingIn } from "@/lib/presentation/copy/reader";
+import { resolveHost } from "../resolve-host";
+import { businessOf } from "../hosted-page/[[...slug]]/article";
+import { goneDocument } from "../hosted-page/[[...slug]]/gone";
 
 /** The status, the robots directive and the cache policy as one value, so
  *  the three cannot drift apart. */
@@ -45,14 +47,39 @@ export const HOSTED_GONE_RESPONSE_INIT: ResponseInit = Object.freeze({
   }),
 });
 
-export const GONE_DOCUMENT =
-  '<!doctype html><html lang="en"><head><meta charset="utf-8">' +
-  '<meta name="robots" content="noindex"><title>Gone</title></head>' +
-  "<body></body></html>";
+/** The empty document of a site that is gone, in its stored language where
+ *  one can be read. */
+export function emptyGoneDocument(lang: string | null = null): string {
+  return (
+    `<!doctype html><html${lang === null ? "" : ` lang="${lang}"`}><head><meta charset="utf-8">` +
+    '<meta name="robots" content="noindex"><title>Gone</title></head>' +
+    "<body></body></html>"
+  );
+}
+
+export const GONE_DOCUMENT = emptyGoneDocument();
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
-export async function GET(): Promise<Response> {
-  return new Response(GONE_DOCUMENT, HOSTED_GONE_RESPONSE_INIT);
+async function storedLang(siteId: string | undefined): Promise<string | null> {
+  if (siteId === undefined) return null;
+  const locale = await readStoredLocale(siteId).catch(() => null);
+  return locale === null ? null : localeTag(locale);
+}
+
+export async function GET(request?: Request): Promise<Response> {
+  const host = request?.headers.get("host") ?? "";
+  const disposition = host === "" ? null : await resolveHost(host).catch(() => null);
+  // A live site lost one page: say so in its own voice. Anything else is a
+  // site that is gone, and that answers with nothing of the customer's.
+  if (disposition?.kind === "site") {
+    // A body that cannot be drawn still owes the address its 410, never a 500.
+    const body = await readingIn(async () => goneDocument(await businessOf(disposition), host)).catch(
+      async () => emptyGoneDocument(await storedLang(disposition.siteId))
+    );
+    return new Response(body, HOSTED_GONE_RESPONSE_INIT);
+  }
+  const lang = disposition?.kind === "gone" ? await storedLang(disposition.siteId) : null;
+  return new Response(emptyGoneDocument(lang), HOSTED_GONE_RESPONSE_INIT);
 }

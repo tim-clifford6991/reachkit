@@ -165,6 +165,20 @@ export async function readBlogReads(a: {
   return rows;
 }
 
+/** People who arrived on the site's hosted pages from Google search since
+ *  `sinceDay` (inclusive); `null` where the counts could not be read. */
+export async function readSearchVisits(a: { siteId: string; sinceDay: string }): Promise<number | null> {
+  const { data, error } = await untyped()
+    .from<{ hits: number }>("publication_reads")
+    .select("hits")
+    .eq("site_id", a.siteId)
+    .eq("engine", "google")
+    .eq("kind", "referral")
+    .gte("day", a.sinceDay);
+  if (error) return null;
+  return (data ?? []).reduce((sum, row) => sum + row.hits, 0);
+}
+
 /** One live page's ladder (issue 1553), keyed by its publication and its
  *  draft. */
 export interface PageLadder {

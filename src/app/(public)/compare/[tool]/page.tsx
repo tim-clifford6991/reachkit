@@ -51,7 +51,8 @@ const MORE: CopyKey = "compare.item.more";
 const PAGE_TEST_ID = "comparison";
 const INDEX = "/compare";
 const JOBS_ID = "comparison-jobs";
-const ROW = "grid min-w-0 grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)_minmax(0,1fr)] items-center gap-2";
+// The last track never shrinks below the wordmark badge, which stays on one line so the brand reads whole.
+const ROW = "grid min-w-0 grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)_minmax(min-content,1fr)] items-center gap-2";
 const WELL = "rounded-box bg-base-200 p-3 text-sm";
 const SMALL = "text-base-content/70 text-sm";
 const PARTLY = /^partly\b/i;
@@ -75,7 +76,7 @@ function CellText(p: { cell: Cell }): React.JSX.Element {
   }
   if (PARTLY.test(p.cell)) {
     return (
-      <span className="inline-flex items-start gap-1">
+      <span className="inline-flex items-start gap-1 wrap-anywhere">
         <Minus size={16} strokeWidth={1.75} aria-hidden className="mt-0.5 shrink-0" />
         {p.cell}
       </span>

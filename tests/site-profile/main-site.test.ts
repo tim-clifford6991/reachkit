@@ -194,3 +194,28 @@ describe("the book and quote pages the main site's own header or nav links", () 
     ).toEqual([]);
   });
 });
+
+describe("the phone number the main site states", () => {
+  const phoneOn = (body: string) =>
+    readMainSite({ domain: "example.com", homeUrl: "https://example.com/", homeHtml: `<html><body>${body}</body></html>`, pages: [], ours: OURS }).phone;
+  const ld = (node: Record<string, unknown>) => `<script type="application/ld+json">${JSON.stringify(node)}</script>`;
+
+  it("a local plumber: its JSON-LD telephone, as written, before any tel: link", () => {
+    expect(phoneOn(`${ld({ "@type": "Plumber", name: "Harbor", telephone: "(512) 555-0142" })}<a href="tel:+15125550199">Call</a>`)).toBe("(512) 555-0142");
+  });
+
+  it("a German Handwerker with no markup: its first tel: link", () => {
+    expect(phoneOn('<header><a href="tel:+49%20211%20123456">Anrufen</a></header><a href="tel:0800">x</a>')).toBe("+49 211 123456");
+  });
+
+  it("a SaaS that states none, or states a word, has none", () => {
+    expect(phoneOn('<a href="/signup">Start free</a>')).toBeNull();
+    expect(phoneOn(`${ld({ "@type": "Organization", name: "Tally", telephone: "call us" })}`)).toBeNull();
+  });
+
+  it("reads back what it stored; a reading stored before has none", () => {
+    expect(mainSiteOf({ home: "https://example.com/", phone: "(512) 555-0142" })?.phone).toBe("(512) 555-0142");
+    expect(mainSiteOf({ home: "https://example.com/" })?.phone).toBeNull();
+    expect(mainSiteOf({ home: "https://example.com/", phone: "<script>" })?.phone).toBeNull();
+  });
+});

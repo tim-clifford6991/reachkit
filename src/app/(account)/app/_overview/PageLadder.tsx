@@ -4,7 +4,6 @@
 import type React from "react";
 import Link from "next/link";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
-import { SEARCH_READING_WINDOW_D } from "@/lib/config/constants";
 import type { Label } from "@/lib/opportunities/verdicts/types";
 import { formatCount, formatDay } from "../_shell/format";
 import type { PageLadder as Model, StepFigure } from "./ladder";
@@ -14,7 +13,7 @@ const ROWS_ID = "overview-ladder-pages";
 const ON_GOOGLE = { title: "draft.ladder.google", sub: "overview.ladder.google.sub", testId: "overview-ladder-google" } as const;
 const IN_AI = { title: "draft.ladder.ai", sub: "overview.ladder.ai.sub", testId: "overview-ladder-ai" } as const;
 
-const LABEL: Readonly<Record<Label, { key: CopyKey; badge: string }>> = {
+export const LABEL: Readonly<Record<Label, { key: CopyKey; badge: string }>> = {
   working: { key: "review.label.working", badge: "badge badge-soft badge-success" },
   climbing: { key: "review.label.climbing", badge: "badge badge-soft badge-primary" },
   too_early: { key: "review.label.too_early", badge: "badge badge-soft" },
@@ -69,7 +68,7 @@ export function PageLadder(p: { ladder: Model; timeZone: string }): React.JSX.El
         <Steps {...ON_GOOGLE} steps={ladder.google} climbing={ladder.climbing} />
         {ladder.visits !== null && ladder.visits > 0 ? (
           <p className="text-sm" data-testid="overview-ladder-visits">
-            {copy("overview.ladder.visits", { n: formatCount(ladder.visits), weeks: formatCount(SEARCH_READING_WINDOW_D / 7) })}
+            {copy("overview.ladder.visits", { n: formatCount(ladder.visits) })}
           </p>
         ) : null}
         <Steps {...IN_AI} steps={ladder.ai} climbing={0} />

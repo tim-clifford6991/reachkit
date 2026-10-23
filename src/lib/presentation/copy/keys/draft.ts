@@ -787,22 +787,6 @@ export const DRAFT_COPY = Object.freeze({
     "Fit: what you sell helps with this search",
     { slots: {}, fixedBy: "SPEC §4 2026-10-10 · issue 1395 (drafted)" },
   ],
-  "draft.set-aside.covered": [
-    "Already covered by your site: {n}",
-    { slots: { n: "text" }, fixedBy: "SPEC §4 2026-10-10 · issue 1395 (drafted)" },
-  ],
-  "draft.set-aside.too-hard": [
-    "Too hard for a site your size, for now: {n}",
-    { slots: { n: "text" }, fixedBy: "SPEC §4 2026-10-10 · issue 1395 (drafted)" },
-  ],
-  "draft.set-aside.low-fit": [
-    "A poor fit for your business: {n}",
-    { slots: { n: "text" }, fixedBy: "SPEC §4 2026-10-10 · issue 1395 (drafted)" },
-  ],
-  "draft.set-aside.resting": [
-    "Resting after a stopped page: {n}",
-    { slots: { n: "text" }, fixedBy: "SPEC §4 2026-10-10 · issue 1395 (drafted)" },
-  ],
   "draft.written-from.counts": [
     "Facts from your site: {site} · Market sources: {market}",
     { slots: { site: "text", market: "text" }, fixedBy: "SPEC §4 2026-10-10 · issue 1395 (drafted)" },

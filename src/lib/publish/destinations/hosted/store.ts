@@ -143,6 +143,12 @@ export interface HostedPage {
   /** SPEC §7 (2026-09-29): the page's byline as generation recorded it
    *  (`drafts.attribution`), or `null` for a page with none. */
   byline: string | null;
+  /** Written as the business's own service or product page
+   *  (`drafts.meta.contentType`); absent reads as not. */
+  offering?: boolean;
+  /** SPEC §0 business fit of the page's opportunity, 0–3, or `null` where
+   *  no pass judged it: only a 3 earns the compact block. */
+  businessFit?: number | null;
   /** When this version went live. On a page that has been refreshed it is
    *  the update's date, and `firstPublishedAt` is the page's own. */
   publishedAt: Date;
@@ -183,6 +189,7 @@ interface PublicationRow {
     opportunities: {
       id: string;
       target_query: string;
+      business_fit: number | null;
       scans: { created_at: string } | null;
     } | null;
   } | null;
@@ -198,7 +205,7 @@ const PAGE_COLUMNS =
   // credential-adjacent column stay absent by construction.
   "sites!inner(domain, category, timezone), " +
   "drafts!inner(title, body_md, attribution, meta, grounded_fact, opportunity_id, " +
-  "opportunities!inner(id, target_query, scans(created_at)))";
+  "opportunities!inner(id, target_query, business_fit, scans(created_at)))";
 
 /**
  * The site whose hosted pages are served on this domain, or `null`.
@@ -298,6 +305,8 @@ function toPage(row: PublicationRow, host: string): HostedPage | null {
       timeZone: emptyToNull(row.sites?.timezone ?? null),
     },
     byline: emptyToNull(draft.attribution ?? null),
+    offering: draft.meta?.contentType === "offering",
+    businessFit: opportunity.business_fit ?? null,
     publishedAt: datedAt(draft.meta) ?? new Date(row.published_at),
     firstPublishedAt: datedAt(draft.meta) ?? new Date(row.published_at),
     liveUrl,
@@ -328,6 +337,10 @@ export interface HostedIdentity {
    *  its own Organization and the profiles it links. Absent or `null` where
    *  no pass kept one, and the pages then link the bare domain. */
   mainSite?: MainSite | null;
+  /** What the adopted market says the business sells, in a buyer's words,
+   *  and the one place it serves where it serves one: the compact block's
+   *  headline. Absent or `null` where no market was adopted. */
+  offer?: { category: string; place: string | null } | null;
 }
 
 interface IdentityRow {
@@ -338,11 +351,17 @@ interface IdentityRow {
   claims: unknown;
 }
 
-/** The job off `sites.market`, read off the stored blob rather than through
- *  the market module, which this file must not put in the hosted graph. */
-function marketJobOf(market: unknown): string | null {
-  const current = (market as { current?: { job?: unknown } } | null)?.current;
-  return typeof current?.job === "string" ? emptyToNull(current.job) : null;
+/** The adopted market off `sites.market`, read off the stored blob rather
+ *  than through the market module, which this file must not put in the
+ *  hosted graph. */
+function marketOf(market: unknown): { job: string | null; offer: HostedIdentity["offer"] } {
+  const current = (market as { current?: { job?: unknown; category?: unknown; serves?: { name?: unknown } | null } } | null)?.current;
+  const text = (value: unknown): string | null => (typeof value === "string" ? emptyToNull(value) : null);
+  const category = text(current?.category);
+  return {
+    job: text(current?.job),
+    offer: category === null ? null : { category, place: text(current?.serves?.name) },
+  };
 }
 
 /**
@@ -378,7 +397,8 @@ export async function hostedIdentity(a: { siteId: string; domain: string }): Pro
     const claim = Array.isArray(row?.claims)
       ? row.claims.find((entry): entry is string => typeof entry === "string" && entry.trim() !== "")
       : undefined;
-    const job = emptyToNull(edits?.job ?? null) ?? marketJobOf(site.data?.[0]?.market);
+    const market = marketOf(site.data?.[0]?.market);
+    const job = emptyToNull(edits?.job ?? null) ?? market.job;
     return {
       // Issue 1511: the name the main site's own Organization markup gives
       // itself, where it gives one, so the page and its markup never
@@ -387,6 +407,7 @@ export async function hostedIdentity(a: { siteId: string; domain: string }): Pro
       logoType: emptyToNull(row?.logo_type ?? null),
       line: job ?? emptyToNull(claim ?? null),
       ...(mainSite === null ? {} : { mainSite }),
+      ...(market.offer === null ? {} : { offer: market.offer }),
     };
   } catch {
     return fallback;

@@ -146,7 +146,7 @@ export const MAIL_COPY = Object.freeze({
   // `captureLead()` to one of these keys and never to a sentence of its
   // own or a vendor payload (REQ-003 c10, REQ-010 c1).
   "lead.accepted": ["Got it. Your page is being written and goes to that address as soon as it is done.", { slots: {}, fixedBy: "REQ-010 c1" }],
-  "lead.invalid_address": ["That doesn’t look like an email address. Try the form you@company.com.", { slots: {}, fixedBy: "REQ-010 c1" }],
+  "lead.invalid_address": ["That doesn’t look like an email address. Try the form you@example.com.", { slots: {}, fixedBy: "REQ-010 c1" }],
   "lead.unavailable": ["Your address couldn’t be saved just now, so nothing was sent. Try again in a few minutes.", { slots: {}, fixedBy: "REQ-003 c10" }],
 
   // The third arm of the opt-out page: the link is good and our store is
@@ -860,6 +860,12 @@ export const MAIL_COPY = Object.freeze({
   "mail.cancellation.line": [
     "You keep full access until {accessEndsOn}, and nothing more is charged.",
     { slots: { accessEndsOn: "date" }, fixedBy: "SPEC §8 · issue 569" },
+  ],
+  /** In place of the line above when the cancel fell in the first 14 days
+   *  and the first payment was refunded (owner D4, E13). */
+  "mail.cancellation.refunded": [
+    "Your first payment was refunded in full, as promised for a cancel in the first 14 days. Your bank usually shows it within 5 to 10 business days. ReachKit stopped on {accessEndsOn}, and nothing more is charged.",
+    { slots: { accessEndsOn: "date" }, fixedBy: "issue 1591 (drafted)" },
   ],
   "mail.winback.subject": ["Pick up where you left off", { slots: {}, fixedBy: "SPEC §8 · issue 569" }],
   "mail.winback.line": [

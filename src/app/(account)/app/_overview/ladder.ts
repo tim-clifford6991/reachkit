@@ -51,6 +51,13 @@ export interface LadderRow {
   google: CopyKey;
   ai: CopyKey | null;
   measured: boolean;
+  /** Each step the page can be read on, in order, and whether it got there. */
+  dots: { google: StepDot[]; ai: StepDot[] };
+}
+
+export interface StepDot {
+  name: CopyKey;
+  reached: boolean;
 }
 
 export interface PageLadder {
@@ -60,7 +67,7 @@ export interface PageLadder {
   google: StepFigure[];
   ai: StepFigure[];
   climbing: number;
-  /** Visits from Google over the reading's window; `null` where none was read. */
+  /** Visits from Google search this week, counted on the hosted pages; `null` where none can be counted. */
   visits: number | null;
   /** Before any page shows in results: what has lit up so far. */
   week1: { live: number; found: number | null; read: number | null } | null;
@@ -86,17 +93,20 @@ function highest(defs: readonly StepDef[], page: PublishedPage): CopyKey | null 
   return open.at(-1)?.name ?? null;
 }
 
+function dotsOf(defs: readonly StepDef[], page: PublishedPage): StepDot[] {
+  return defs.filter((def) => !(def.logs && page.wordpress === true)).map((def) => ({ name: def.name, reached: reached(page, def.step) }));
+}
+
 function countOf(list: readonly StepFigure[], name: CopyKey): number | null {
   return list.find((figure) => figure.name === name)?.count ?? null;
 }
 
-export function pageLadderOf(all: readonly PublishedPage[], now: Date): PageLadder | null {
+export function pageLadderOf(all: readonly PublishedPage[], now: Date, visits: number | null = null): PageLadder | null {
   const pages = all.filter((page) => page.publishedAt <= now);
   if (pages.length === 0) return null;
   const readings = pages.map((page) => page.reading).filter((r): r is PageReading => r != null);
   const google = figures(GOOGLE, pages);
   const ai = figures(AI, pages);
-  const engines = readings.flatMap((r) => (r.google === null ? [] : [r.google]));
   const showing = countOf(google, "draft.ladder.showing");
   return {
     live: pages.length,
@@ -104,7 +114,7 @@ export function pageLadderOf(all: readonly PublishedPage[], now: Date): PageLadd
     google,
     ai,
     climbing: readings.filter((r) => verdict(r, now) === "climbing").length,
-    visits: engines.length === 0 ? null : engines.reduce((sum, e) => sum + e.clicks, 0),
+    visits,
     week1:
       (showing ?? 0) === 0 && pages.length > 1
         ? { live: pages.length, found: countOf(google, "draft.ladder.found"), read: countOf(ai, "draft.ladder.read") }
@@ -117,6 +127,7 @@ export function pageLadderOf(all: readonly PublishedPage[], now: Date): PageLadd
       google: highest(GOOGLE, page) ?? "draft.ladder.live",
       ai: highest(AI, page),
       measured: page.reading != null,
+      dots: { google: dotsOf(GOOGLE, page), ai: dotsOf(AI, page) },
     })),
   };
 }

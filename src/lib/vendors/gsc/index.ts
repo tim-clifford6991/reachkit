@@ -1,23 +1,9 @@
-// Issue 1553 — Google Search Console, under ReachKit's own account.
-//
-// The weekly pass verifies each live hosted host as a URL-prefix property
-// (the meta method: the hosted index prints the token), submits its
-// sitemap, and reads each page's URL Inspection state and its impressions,
-// clicks and best place by query. Every call here is free.
-//
-// **The account pool.** Search Console holds 1,000 properties per account
-// (`GSC_PROPERTIES_PER_ACCOUNT`), so `GOOGLE_SEARCH_CONSOLE_KEYS` holds one
-// service-account key or a JSON array of them. A host stays with the
-// account that verified it; which one that is, the destination row says.
-//
-// **Inert without a key.** `gscAccounts()` is empty where the binding is
-// absent or unreadable, and the pass then asks Google nothing.
-//
-// **No payload leaves this file.** Each call answers a small typed value or
-// `null` for every way it did not complete; a key, a token or a body is
-// never logged. Auth is one signed JWT exchanged for an access token
-// (Google, "Using OAuth 2.0 for server to server applications"), signed
-// with `node:crypto`.
+// Google Search Console under ReachKit's own account: verify each live hosted host as a URL-prefix property by meta tag,
+// submit its sitemap, read URL Inspection and Search Analytics. Every call is free.
+// An account holds 1,000 properties (`GSC_PROPERTIES_PER_ACCOUNT`), so `GOOGLE_SEARCH_CONSOLE_KEYS` is one key or an array;
+// a host stays with the account the destination row names. No key means no pool, and nothing is asked.
+// No payload leaves this file: each call answers a small typed value or `null`, and no key, token or body is logged.
+// Auth is one JWT signed with `node:crypto`, exchanged for an access token (Google's server-to-server OAuth).
 import { createSign } from "node:crypto";
 import { env } from "@/lib/config/env";
 import { safeFetch, type FetchOutcome, type SafeFetchOpts } from "@/lib/egress";

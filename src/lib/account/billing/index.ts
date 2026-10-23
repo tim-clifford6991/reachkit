@@ -28,7 +28,7 @@ export {
   type BillingSummaryResult,
   type PlanState,
 } from "./summary";
-export { monthGot, periodEnding, type MonthGot, type MonthPage } from "./month";
+export { monthGot, periodEnding, type MonthGot } from "./month";
 export {
   PORTAL_FEATURES,
   portalLink,

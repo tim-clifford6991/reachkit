@@ -8,7 +8,7 @@
 // (issue 1484). The week is always seven days.
 import type React from "react";
 import { Box, Waiting } from "../_shell/skeletons";
-import { BODY, DAY_ROW, FILTERS, REGION, WEEK_DAYS, WEEK_GRID, WEEK_LIST, WEEK_SHOWN } from "./frame";
+import { BODY, DAY_ROW, FILTERS, REGION, WEEK_CARD, WEEK_CARD_BODY, WEEK_DAYS, WEEK_GRID, WEEK_LIST, WEEK_SHOWN } from "./frame";
 
 export function PlanSkeleton(): React.JSX.Element {
   return (
@@ -23,21 +23,24 @@ export function PlanSkeleton(): React.JSX.Element {
       </div>
 
       <div className={BODY} data-frame={REGION.body}>
-        <div className="min-w-0">
-          <div className={WEEK_GRID} data-testid="plan-skeleton-grid">
-            {Array.from({ length: WEEK_DAYS }, (_, at) => (
-              <Box key={at} className="rounded-box h-40 w-full" />
-            ))}
-          </div>
-          <div className={WEEK_SHOWN}>
-            <div className={WEEK_LIST} data-testid="plan-skeleton-list" data-frame={REGION.week}>
+        <div className={WEEK_CARD}>
+          <div className={WEEK_CARD_BODY}>
+            <Box className="h-6 w-64 max-w-full" />
+            <div className={WEEK_GRID} data-testid="plan-skeleton-grid">
               {Array.from({ length: WEEK_DAYS }, (_, at) => (
-                <div key={at} className={DAY_ROW}>
-                  <Box className="h-9 w-full" />
-                  <Box className="h-4 w-3/4" />
-                  <Box className="ms-auto h-4 w-10" />
-                </div>
+                <Box key={at} className="rounded-box h-40 w-full" />
               ))}
+            </div>
+            <div className={WEEK_SHOWN}>
+              <div className={WEEK_LIST} data-testid="plan-skeleton-list" data-frame={REGION.week}>
+                {Array.from({ length: WEEK_DAYS }, (_, at) => (
+                  <div key={at} className={DAY_ROW}>
+                    <Box className="h-9 w-full" />
+                    <Box className="h-4 w-3/4" />
+                    <Box className="ms-auto h-4 w-10" />
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </div>

@@ -35,7 +35,6 @@ import type React from "react";
 import { DomainBlock } from "./DomainBlock";
 import { OnboardingStatus } from "./OnboardingStatus";
 import { PublishingCard } from "./PublishingCard";
-import { Shortcuts } from "./Shortcuts";
 import { StoppedNotice } from "./StoppedNotice";
 import { TopBar } from "./TopBar";
 import { WaitingCard } from "./WaitingCard";
@@ -67,10 +66,6 @@ export async function WaitingCardSlot(p: Reading): Promise<React.JSX.Element | n
 export async function StoppedNoticeSlot(p: Reading): Promise<React.JSX.Element | null> {
   const shell = await p.shell;
   return <StoppedNotice stopped={shell.stopped} timeZone={shell.timeZone} />;
-}
-
-export async function ShortcutsSlot(p: Reading): Promise<React.JSX.Element> {
-  return <Shortcuts blog={(await p.shell).blog} />;
 }
 
 export async function PublishingSlot(p: Reading): Promise<React.JSX.Element> {

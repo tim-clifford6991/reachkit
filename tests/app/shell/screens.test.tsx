@@ -117,11 +117,11 @@ describe("calendar — the built screen keeps the three contracts the frame set"
 
   it("renders, and names itself from the destination's own registry key", async () => {
     // SPEC §4 (2026-09-20, #914): "*Plan* is the calendar's on-screen
-    // name." The heading is the nav word; §4.6's own line is what stands
-    // under it, so neither is lost.
+    // name." Board Plan puts the name in the eyebrow, "Plan · week {n}",
+    // over the week's own heading and the line under it.
     const html = await calendarMarkup();
-    expect(html).toMatch(/<h1[^>]*>shell\.nav\.plan<\/h1>/);
-    expect(html).toMatch(/<p[^>]*>calendar\.head<\/p>/);
+    expect(html).toMatch(/<span class="eyebrow">calendar\.eyebrow<\/span><h1[^>]*>calendar\.title<\/h1><p[^>]*>calendar\.head<\/p>/);
+    expect(COPY["calendar.eyebrow"].startsWith(`${COPY["shell.nav.plan"]} `)).toBe(true);
   });
 
   it("declares no Surface — the shell's layout owns this route's screen root", async () => {
@@ -199,8 +199,8 @@ describe("overview — the built screen still keeps the shell's contract", () =>
   it("renders, and is headed by a key from the registry", async () => {
     const html = await markup(OverviewPage());
     // `copy()` is mocked to the identity above, so the heading is whichever
-    // key the head resolved to — what autopilot is doing (issue 1362).
-    expect(html).toMatch(/<h1>[a-z.\-]+<\/h1>/);
+    // key the head resolved to.
+    expect(html).toMatch(/<h1[^>]*>[a-z.\-]+<\/h1>/);
     expect(html).toContain('data-testid="overview"');
   });
 });

@@ -1,32 +1,10 @@
-// BUILD §6.2 — aiMode and llmScraper: the paid battery's two AI-answer engines (issue #23)
-//
-// Google AI Mode (its own SERP endpoint, live or standard) and the ChatGPT
-// LLM Scraper (standard queue only — there is no live variant to call, so
-// the type admits none). Both are **paid battery only**: §6.2/§6.3 rule the
-// free path makes zero AI Optimization calls, and no compile-time shape can
-// tell a free `CostContext` from a paid one, so each reads `c.cap` and under
-// `FREE` returns `unmeasured / not_attempted` without reaching the vendor —
-// a refusal, not a throw (§6.5: caps degrade, never throw).
-//
-// Prices are the §6.1 pins for the mode used.
-//
-// **Cache: `CACHE_WINDOWS_D.aiBattery`, a window that names the battery**
-// (#75). These two calls used to pass `.own` — 7 days, and `own` means
-// "the customer's own domain", so the citation was wrong even where the
-// number was arguable. §6.4 names no window for the battery, so the pin is
-// chosen at `constants.ts` and read here; it is six days rather than seven
-// because the battery is re-measured weekly on a trigger that can land an
-// hour early (ADR-060), and at seven a run that did would be served last
-// week's answer as this week's measurement.
-//
-// **The key carries whose purchase it is** (#75). Query and locale alone
-// are shared across every customer whose market contains that search,
-// which `DATA-COSTS.md` §5's "monthly per customer" roll-up already
-// assumed they were not — see `CacheScope`.
-//
-// An engine that gave no answer is the vendor's own zero-result — `[]`,
-// never cached (§6.4: no negative cache) — and surfaces as the `zero` arm
-// carrying `answered: false`.
+// BUILD §6.2 — aiMode and llmScraper: the paid battery's two AI-answer engines
+// The ChatGPT scraper has no live variant, so its type admits none.
+// Paid battery only (§6.2/§6.3): no type tells a free `CostContext` from a paid one, so each reads `c.cap` and under `FREE`
+// returns `unmeasured / not_attempted` without reaching the vendor (§6.5: caps degrade, never throw).
+// `CACHE_WINDOWS_D.aiBattery` is six days, not seven, because the weekly trigger can land early and must not get last week's answer.
+// The key carries whose purchase it is (`CacheScope`), so customers sharing a search do not share a bill.
+// No answer is the vendor's zero-result `[]`, never cached (§6.4), and surfaces as `answered: false`.
 import type { CostContext } from "@/lib/costs";
 import { CACHE_WINDOWS_D, PRICE_BOOK } from "@/lib/config/constants";
 import type { Locale } from "@/lib/locale/locales";
@@ -101,7 +79,7 @@ export function parseLlmScraper(result: unknown): AiAnswer[] | undefined {
 
 export { AI_ANSWER_SOURCES };
 
-/** What reading a paid, queued ask again came to (#1160): the rows the
+/** What reading a paid, queued ask again came to: the rows the
  *  first call would have stored (none for the engine's own no-answer), a
  *  task still not ready, or a failure that reading again will not change. */
 export type CollectedAnswer =
@@ -111,7 +89,7 @@ export type CollectedAnswer =
 
 /**
  * Reads the answer to an ask an earlier pass posted, paid for and stopped
- * waiting on (#1160). Free: nothing is posted. It waits until `untilMs`.
+ * waiting on. Free: nothing is posted. It waits until `untilMs`.
  */
 export async function collectAiAnswer(a: {
   engine: keyof typeof AI_ANSWER_SOURCES;
@@ -142,29 +120,22 @@ export async function aiMode(
     /** The site's country and language (D66): where the read is made, and
      *  part of its cache key. */
     locale: Locale;
-    /** Where the battery hears why a call failed (issue 869), so a pass can
+    /** Where the battery hears why a call failed, so a pass can
      *  stop buying an engine that is refusing and say on the cell what it
      *  was told. */
     onFailure?: OnVendorFailure;
-    /** Which ask of the same query this is, 1-based (#1162, D19): a
-     *  tracked prompt is asked more than once a week, and a second ask
-     *  under the first one's key would be served the first one's answer.
-     *  Absent and 1 are the same key the battery has always used. */
+    /** Which ask of the same query this is, 1-based (D19): a second ask under the first's key would get the first's
+     *  answer. Absent and 1 share a key. */
     run?: number;
-    /** The day the sample belongs to, `YYYY-MM-DD` (#1162): a tracked
+    /** The day the sample belongs to, `YYYY-MM-DD`: a tracked
      *  prompt is a fresh sample each pass day, never last week's answer
      *  served again inside the battery's cache window. */
     asOf?: string;
-    /** When the caller's own ceiling runs out, as epoch milliseconds
-     *  (issue 902). On the standard queue this call's wait is a poll that
-     *  otherwise runs to `VENDOR.stdQueueDeadlineMin` — forty-five minutes,
-     *  inside one call, where a pass's between-calls check cannot reach it.
-     *  Passing this is how a bounded pass stays bounded. */
+    /** When the caller's own ceiling runs out, as epoch milliseconds. Without it the standard queue's poll runs to
+     *  `VENDOR.stdQueueDeadlineMin` inside one call, out of reach of a pass's between-calls check. */
     untilMs?: number;
-    /** The wall clock one request of this call may hold (D63, issue 1314):
-     *  AI Mode is a SERP endpoint, and a paid pass's live read of it met the
-     *  10 s bound sixteen to twenty times a site, each billed. Absent, the
-     *  transport's own bound. */
+    /** The wall clock one request may hold (D63): AI Mode's live read often outlasts the transport's 10 s bound, and
+     *  each timeout is billed. Absent, the transport's own bound. */
     abortMs?: number;
   }
 ): Promise<Measured<AiAnswer>> {

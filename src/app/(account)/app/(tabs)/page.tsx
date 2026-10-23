@@ -1,114 +1,59 @@
-// SPEC §4 (2026-10-07, issue 1319) — the Overview tab, at `/app`.
+// SPEC §4 (board Main) — the Overview tab, at `/app`, in the board's order:
+// the head, today's page (or the line or card in its place), how far the live
+// pages got, this week's pages, and the one optional line about the
+// customer's own site.
 //
-// Today's page first, then how far the live pages got (owner E4,
-// 2026-10-19): what autopilot is doing and — while a page is in review — that
-// page with *Read or edit* and *Stop this page*, then the ladder, then the
-// core numbers (each opening exactly the items it counts), this week and
-// needs you.
-//
-// **The head states what autopilot is doing** (owner 2026-10-09, issue
-// 1362; `_overview/autopilot.ts`), and it is said once: while a page is in
-// review its card carries the screen's `h1`; otherwise the head stands
-// alone.
-//
-// **Every read is a stored one, and the modules are pure over them.** No
-// module fetches for itself, so the render performs no measurement, no
-// vendor call and no model call — a property
-// `tests/app/overview/page.test.tsx` asserts rather than assumes. Google
-// is the Google tab's own reading, AI the AI tab's and Content Plan's, each
-// through that screen's request-cached provider and its one selector.
+// **Every read is a stored one.** No module fetches for itself, so the render
+// performs no measurement, no vendor call and no model call.
 //
 // **It declares no `Surface`:** the shell's layout owns this route's screen
-// root (see `../layout.tsx`), and a second one would be a second
-// `[data-surface]` in the document.
-//
-// **It writes no sentence.** Every word comes from the registry, and a line
-// the owner has not written renders as nothing rather than as a placeholder
-// — the shell's own `writtenLine` rule, shared rather than re-derived.
+// root (see `../layout.tsx`).
 import type React from "react";
 import type { Metadata } from "next";
+import Link from "next/link";
 import { readShell } from "../_shell/provider";
 import { readOverview } from "../_overview/provider";
-import { readPrompts } from "../_overview/prompts-provider";
 import { readPublished } from "../_overview/content-provider";
 import { contentOf } from "../_overview/content";
 import { pageLadderOf } from "../_overview/ladder";
 import { PageLadder } from "../_overview/PageLadder";
-import { readDone } from "../_overview/done-provider";
 import { overviewNotice, readOnboarding, readReleaseNotice } from "../_shell/onboarding";
-import { FirstPageNotice, ReleaseNoticeLine } from "../_shell/OnboardingStatus";
+import { FirstPageNotice, MarketChoice, ReleaseNoticeLine } from "../_shell/OnboardingStatus";
 import { MARKET_TOO_SMALL, readCategoryChoice } from "../_shell/remeasure";
 import { writtenLine } from "../_shell/written";
-import { formatDate } from "../_shell/format";
+import { formatDay, formatTime, SHELL_LOCALE } from "../_shell/format";
 import { copy } from "@/lib/presentation/copy";
-import { readAutopilot } from "../_overview/autopilot";
-import { LinkedTiles } from "../_overview/LinkedTiles";
-import { NeedsYouModule } from "../_overview/NeedsYouModule";
-import { ScoreHead, type HeadNote } from "../_overview/ScoreHead";
+import { dayKeyOf } from "../calendar/dates";
+import { ISSUES_HREF } from "../_overview/alerts";
+import { OverviewHead } from "../_overview/OverviewHead";
+import { ThisWeek, type WeekList } from "../_overview/ThisWeek";
 import { WaitingPageCard } from "../_overview/WaitingPageCard";
-import { WeekModule } from "../_overview/WeekModule";
 import { WeekWaiting } from "../_overview/WeekWaiting";
-import { DoneThisWeek } from "../_overview/DoneThisWeek";
-import { ProcessTimeline } from "../_shell/ProcessTimeline";
-import { WhatWeRead } from "@/app/_business/WhatWeRead";
-import { MainSiteLink } from "../_overview/MainSiteLink";
-import { MisstatedFacts } from "../_overview/MisstatedFacts";
-import { OVERVIEW, REGION, WEEK_ROW } from "../_overview/frame";
-
-/** /app's own `<title>` (#945). Without it this screen announced
- *  nothing at all — the `(account)` layout's fallback is the floor, not
- *  the name of this screen. */
-/** Where the customer corrects what *What we read* says (issue 1454). */
-const BUSINESS_SETTINGS = "/app/settings";
+import { OVERVIEW, REGION } from "../_overview/frame";
+import { readBlogReads, readGoogleVisits } from "../_overview/blog-reads-provider";
+import { readPromptsAt } from "../_overview/prompts-provider";
+import { aiPagesOf, bestMoverOf } from "../_overview/figures";
+import { AiFigure, MonthsFigure, MoverFigure } from "../_overview/Figures";
 
 export const metadata: Metadata = { title: copy("meta.app.overview.title") };
 
+/** Where publishing is turned back on. */
+const PUBLISHING_SETTINGS = "/app/settings/publishing";
+
+/** "Monday": the day a week's pages are chosen on, as a value. */
+function weekdayOf(day: string): string {
+  return new Intl.DateTimeFormat(SHELL_LOCALE, { timeZone: "UTC", weekday: "long" }).format(new Date(`${day}T00:00:00Z`));
+}
+
 export default async function OverviewPage(): Promise<React.JSX.Element> {
-  // The zone is the shell's one stored preference (REQ-073 c1), read through
-  // the shell's own request-cached provider rather than restated here: two
-  // readers of a customer's time zone is how two parts of one screen come to
-  // state two different days.
-  const [shell, overview, onboarding, prompts, google, published, done, understanding, mainLink, misstated] = await Promise.all([
+  const [shell, overview, onboarding, published] = await Promise.all([
     readShell(),
     readOverview(),
     readOnboarding(),
-    readPrompts(),
-    // The Search tab's own provider, reached at the call: `search-model.ts`
-    // type-imports the page target, whose graph reaches the vendor clients,
-    // and this screen's import graph holds neither (`_overview/waiting.ts`
-    // says the same of its own target). A stored read, like the rest. It is
-    // one headline, not the screen: where that tab's read fails, the tile
-    // says the number could not be read and the rest of Overview stands.
-    import("../_overview/search-provider")
-      .then((tab) => tab.readSearch())
-      .then((model) => model.tiles.pages)
-      .catch(() => null),
     readPublished(),
-    // Issue 1395: what ReachKit did this week, from stored rows.
-    readDone(),
-    // Issue 1454: what ReachKit read of the business. Reached at the call,
-    // as the Search tile is; where it cannot be read the card is not drawn
-    // and the rest of Overview stands.
-    import("../_overview/understanding-provider")
-      .then((provider) => provider.readUnderstanding())
-      .catch(() => null),
-    // Issue 1511: whether the main site links the articles — an optional
-    // finding, read from the stored scan; where it cannot be read it is not
-    // drawn.
-    import("../_overview/main-link-provider")
-      .then((provider) => provider.readMainSiteLink())
-      .catch(() => null),
-    // Issue 1539: what the newest AI answers misstate of the business, read
-    // from the stored report against the knowledge base; where it cannot be
-    // read it is not drawn.
-    import("../_overview/misstated-provider")
-      .then((provider) => provider.readMisstated())
-      .catch(() => []),
   ]);
   // Until the address is connected no page can go live: the screen is the
   // connect arm alone, and no part of it names a go-live time or the ladder.
-  // Reached at the call: its check is a press that asks the domain list, and
-  // this screen's render reaches no vendor.
   if (overview.connect !== null) {
     const { ConnectAddress } = await import("../_overview/ConnectAddress");
     return (
@@ -123,122 +68,142 @@ export default async function OverviewPage(): Promise<React.JSX.Element> {
     );
   }
 
-  // issue 784: the founder's reason when the pass released them short — what the
-  // shell's panel is not already saying.
+  const running = onboarding.kind === "running";
+  // Plan's own week, reached at the call: Plan's provider reaches the market's
+  // modules, and this screen's graph holds no vendor client. Where it cannot be
+  // read the list is not drawn and the rest stands.
+  const [week, blogReads, googleVisits, reputation] = await Promise.all([
+    running ? null : import("../_overview/this-week").then((m): Promise<WeekList | null> => m.readThisWeek()).catch(() => null),
+    readBlogReads(),
+    readGoogleVisits(),
+    readPromptsAt(overview.months?.reading?.week ?? null),
+  ]);
   const notice =
-    (onboarding.kind === "none" || onboarding.kind === "ended")
+    onboarding.kind === "none" || onboarding.kind === "ended"
       ? overviewNotice({ onboarding, notice: await readReleaseNotice(), weekZero: shell.weeks.kind !== "counted" })
       : null;
-  // Issue 837: an empty Overview over a market too small offers the choice
-  // that fills it, unless the shell's panel already does.
-  const choice =
-    (onboarding.kind === "none" || onboarding.kind === "ended") && (notice === MARKET_TOO_SMALL || overview.supply?.key === "overview.supply.unmeasured")
-      ? await readCategoryChoice()
-      : null;
-
-  // #1070: the market-too-small notice moves into *This week* beside its
-  // one suggestion, so it is not said a second time above the headline.
-  const broader =
-    choice === null ? null : { choice, notice: notice === MARKET_TOO_SMALL ? copy(MARKET_TOO_SMALL) : null };
-  const topNotice = broader !== null && notice === MARKET_TOO_SMALL ? null : notice;
-
-  // Issue 1362: the head states what autopilot is doing, and under it what
-  // went live last. Where nothing is planned the head also says why — the
-  // one supply statement, moved up from *This week* rather than said twice.
-  // It stays below where it carries the broader-categories choice.
-  const autopilot = readAutopilot({ shell, today: overview.today, writingOn: overview.writingOn });
-  const supplyInHead = autopilot.state === "nothing_planned" && broader === null && overview.supply !== undefined;
-  const headNotes: HeadNote[] = [];
-  const why =
-    supplyInHead && overview.supply !== undefined
-      ? writtenLine(overview.supply.key, overview.supply.vars)
-      : null;
-  if (why !== null) headNotes.push({ testId: "overview-supply", line: why });
-  const lastLive =
-    overview.lastLive === null
-      ? null
-      : writtenLine("overview.head.last-live", {
-          title: overview.lastLive.title,
-          on: formatDate(overview.lastLive.at, shell.timeZone),
-        });
-  if (lastLive !== null) headNotes.push({ testId: "overview-head-note", line: lastLive });
 
   const content = contentOf(published);
-  const ladder = content === null ? null : pageLadderOf(content.pages, published.now);
+  const ladder = content === null ? null : pageLadderOf(content.pages, published.now, googleVisits);
+  const live = content?.pages.filter((page) => page.publishedAt <= published.now) ?? [];
+  const aiPages = aiPagesOf(live);
+  const mover = bestMoverOf(live, published.now);
+  const weekPages = week?.rows.length ?? 0;
+
+  // The head. A page that cannot go out without the customer outranks "nothing needs you".
+  const today = formatDay(overview.today, shell.timeZone);
+  const eyebrow = shell.weeks.kind === "counted" ? copy("overview.head.eyebrow", { n: String(shell.weeks.weeks), day: today }) : today;
+  const needs = overview.alerts.find((alert) => alert.kind === "needs_you") ?? null;
+  const showing = ladder?.google.find((step) => step.name === "draft.ladder.showing")?.count ?? null;
+  const lead = [
+    ladder === null || ladder.live === 0
+      ? null
+      : showing === null
+        ? copy("overview.head.lead.live-unread", { live: String(ladder.live) })
+        : copy("overview.head.lead.live", { live: String(ladder.live), showing: String(showing) }),
+    week === null || weekPages === 0
+      ? null
+      : week.today === week.first
+        ? copy("overview.head.lead.chosen", { n: String(weekPages) })
+        : copy("overview.head.lead.chosen-on", { n: String(weekPages), weekday: weekdayOf(week.first) }),
+  ]
+    .filter((line) => line !== null)
+    .join(" ");
+
+  // In place of the today card: paused, or one quiet line about today.
+  const paused = shell.publishing.next === null && shell.publishing.because === "publishing_paused";
+  const liveToday =
+    overview.lastLive !== null && dayKeyOf(overview.lastLive.at, shell.timeZone) === dayKeyOf(overview.today, shell.timeZone);
+  const quiet = liveToday
+    ? copy("overview.today.live", { time: formatTime(overview.lastLive!.at, shell.timeZone) })
+    : week?.skippedToday === true
+      ? copy("how.week.skip")
+      : null;
+
+  // The customer's own site: every check worth fixing, counted past the alert cap.
+  const fixes =
+    overview.alerts.filter((alert) => alert.kind === "site_issue").length + (overview.issuesOverflow?.remaining ?? 0);
+  const supply = weekPages === 0 && overview.supply !== undefined ? writtenLine(overview.supply.key, overview.supply.vars) : null;
+  // Issue 837: an empty week over a market too small offers the choice that
+  // fills it, unless the shell's panel already does.
+  const tooSmall = notice === MARKET_TOO_SMALL || overview.supply?.key === "overview.supply.unmeasured";
+  const settled = onboarding.kind === "none" || onboarding.kind === "ended";
+  const choice = weekPages === 0 && settled && tooSmall ? await readCategoryChoice() : null;
 
   return (
     <div className={OVERVIEW} data-testid="overview">
       <FirstPageNotice state={onboarding} />
-      <ReleaseNoticeLine noticeKey={topNotice} />
+      <ReleaseNoticeLine noticeKey={notice} />
 
-      {overview.waitingPage === null ? (
-        <ScoreHead line={autopilot.line} notes={headNotes} today={overview.today} timeZone={shell.timeZone} />
-      ) : (
+      <OverviewHead
+        eyebrow={eyebrow}
+        title={needs === null ? copy("overview.head.title") : copy(needs.key, needs.vars)}
+        action={needs === null ? null : { label: copy(needs.actionKey), href: needs.href }}
+        lead={lead === "" ? null : lead}
+      />
+
+      {paused ? (
+        <section className="card card-border min-w-0 bg-base-100" data-testid="overview-paused">
+          <div className="card-body min-w-0 gap-3 p-4 sm:p-5 md:flex-row md:items-center md:justify-between">
+            <p className="min-w-0">{copy("overview.paused.line")}</p>
+            <Link className="btn btn-soft btn-sm shrink-0" href={PUBLISHING_SETTINGS} prefetch={true}>
+              {copy("overview.paused.action")}
+            </Link>
+          </div>
+        </section>
+      ) : overview.waitingPage !== null ? (
         <WaitingPageCard
           page={overview.waitingPage}
-          head={autopilot.line}
-          notes={headNotes}
           scheduled={shell.publishing.next !== null}
           timeZone={shell.timeZone}
           now={overview.today}
         />
+      ) : quiet === null ? null : (
+        <p className="min-w-0 text-sm text-base-content/70" data-testid="overview-today-line">
+          {quiet}
+        </p>
       )}
 
-      {/* Owner E4 (2026-10-19): today's page, then how far the pages got. */}
       {ladder === null ? null : <PageLadder ladder={ladder} timeZone={shell.timeZone} />}
 
-      <LinkedTiles
-        score={overview.score}
-        biggestGap={overview.biggestGap}
-        google={google}
-        prompts={prompts}
-        content={content}
-        nextAt={shell.publishing.next}
-        firstDueOn={overview.firstDueOn}
-        timeZone={shell.timeZone}
-      />
-
-      {/* The week takes the wider of the two columns: seven day cells each
-          hold a stage word, and an even split leaves them narrow enough to
-          break one. Needs-you is a short list beside it. */}
-      <div className={WEEK_ROW} data-frame={REGION.week}>
-        {/* **Skeletons for the week while the pass runs** (SPEC §4,
-            2026-09-20; issue 912). Before the pass ends there is no week to
-            state: the days are not planned and the numbers are not measured,
-            so the box holds its place and says what it is waiting on rather
-            than drawing seven empty cells as though they were an answer.
-            It fills in when the pass ends — `readOnboarding` reads `none`
-            and this arm goes. */}
-        {onboarding.kind === "running" ? (
+      {running ? (
+        <div className="min-w-0" data-frame={REGION.week}>
           <WeekWaiting />
-        ) : (
-          <WeekModule
-            week={overview.week}
-            timeZone={shell.timeZone}
-            supply={supplyInHead ? undefined : overview.supply}
-            broader={broader}
-            done={<DoneThisWeek facts={{ ...done, nextLiveAt: shell.publishing.next }} timeZone={shell.timeZone} />}
-          />
-        )}
-        <NeedsYouModule alerts={overview.alerts} overflow={overview.overflow} issuesOverflow={overview.issuesOverflow} />
-      </div>
+        </div>
+      ) : week !== null && weekPages > 0 ? (
+        <div className="min-w-0" data-frame={REGION.week}>
+          <ThisWeek week={week} scheduled={shell.publishing.next !== null} />
+        </div>
+      ) : (
+        <>
+          {supply === null ? null : (
+            <p className="min-w-0 text-sm text-base-content/70" data-testid="overview-supply">
+              {supply}
+            </p>
+          )}
+          {choice === null ? null : <MarketChoice choice={choice} />}
+        </>
+      )}
 
-      {/* Issue 1454: what ReachKit read of the business, and where the
-          customer corrects it. */}
-      {understanding === null ? null : <WhatWeRead understanding={understanding} editHref={BUSINESS_SETTINGS} />}
+      {aiPages === null && !blogReads.show && mover === undefined ? null : (
+        <div className="grid min-w-0 gap-6 lg:grid-cols-2">
+          <AiFigure pages={aiPages} reads={blogReads} />
+          <MoverFigure mover={mover} timeZone={shell.timeZone} />
+        </div>
+      )}
+      {overview.months === null ? null : <MonthsFigure months={overview.months} reputation={reputation} timeZone={shell.timeZone} />}
 
-      {/* Issue 1511: the main site's link to the articles, said once and
-          optional; gone once the scan finds the link. */}
-      {mainLink === null ? null : <MainSiteLink finding={mainLink} />}
-
-      {/* Issue 1539: a fact an AI answer gave the business that its own
-          site contradicts, both said; gone once no answer misstates one. */}
-      {misstated.length === 0 ? null : <MisstatedFacts findings={misstated} />}
-
-      {/* While the first pass runs there is no week to report, so the
-          screen says what the pass is working through instead (SPEC §4,
-          2026-10-10; issue 1395). A figure not read yet says so. */}
-      {onboarding.kind === "running" ? <ProcessTimeline facts={done} timeZone={shell.timeZone} /> : null}
+      {fixes === 0 ? null : (
+        <section className="card card-border min-w-0 bg-base-100" data-testid="overview-fixes">
+          <p className="card-body min-w-0 flex-row flex-wrap items-baseline gap-x-2 gap-y-1 p-4 text-sm">
+            <strong>{fixes === 1 ? copy("overview.fixes.line.one") : copy("overview.fixes.line", { n: String(fixes) })}</strong>
+            <span className="text-base-content/70">{copy("overview.fixes.optional")}</span>
+            <Link className="link font-semibold" href={ISSUES_HREF} prefetch={true}>
+              {copy("overview.fixes.see")}
+            </Link>
+          </p>
+        </section>
+      )}
     </div>
   );
 }

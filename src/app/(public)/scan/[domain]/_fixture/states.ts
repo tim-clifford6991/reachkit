@@ -217,25 +217,42 @@ export const FIXTURE_REPORT: StoredReport = {
   verdict: {
     domain: OWN_DOMAIN as CanonicalDomain,
     measuredAt: MEASURED_AT,
-    scoreAndBand: measured({ score: 62, band: "findable" }, MEASURED_AT),
+    scoreAndBand: measured({ score: 30, band: "hard-to-find" }, MEASURED_AT),
     // How sure it is (issue 1439), invented to sit around the score above.
-    estimate: { low: 58, high: 66, confidence: "close" },
-    // The three the score is composed of (ruling 1b: the header strip
-    // draws them). Invented like every figure here, and invented
-    // *coherently*: `∛(70 × 90 × 40)` is 62, which is the score above, and
-    // presence is the smallest of the three, which is the factor the
-    // limiting line below names. The header draws them as 7/10, 9/10 and
-    // 4/10 — the set's own bars.
+    estimate: { low: 25, high: 35, confidence: "close" },
+    // The three the score is composed of, invented *coherently*:
+    // `∛(70 × 20 × 20)` is 30, the score above, and content is the factor
+    // the limiting line names (the tie with presence goes to the site's own
+    // pages first). Presence shows as its two halves, so the card draws
+    // the four parts 7/10, 2/10, 3/10 and 1/10.
     factors: {
       foundations: measured(70, MEASURED_AT),
-      answerability: measured(90, MEASURED_AT),
-      presence: measured(40, MEASURED_AT),
+      answerability: measured(20, MEASURED_AT),
+      presence: measured(20, MEASURED_AT),
     },
-    limiting: { kind: "factor", factor: "presence" },
+    halves: { google: measured(30, MEASURED_AT), ai: measured(10, MEASURED_AT) },
+    limiting: { kind: "factor", factor: "answerability" },
     missing: [],
     unmeasuredElsewhere: [],
     blockedReaders: measured(4, MEASURED_AT),
   },
+  // The one AI answer whose text was kept, quoted on the AI card as written.
+  serps: SEARCHES.map((_, index) =>
+    index === 0
+      ? measured(
+          {
+            organic: [{ position: 1, domain: RIVALS[0], url: `https://${RIVALS[0]}/`, title: "Rival One" }],
+            aiOverview: {
+              present: true,
+              asynchronousAiOverview: true,
+              referenceDomains: [RIVALS[0], RIVALS[1]],
+              text: "For a small team, many start with Rival One or Rival Two, which need no data warehouse. Both have a free plan.",
+            },
+          },
+          MEASURED_AT
+        )
+      : { kind: "unmeasured", reason: "not_attempted", at: MEASURED_AT }
+  ),
   blockedAgents: AI_READER_AGENTS.slice(0, 4),
   // The free path asks no page question (#919): a site with no published
   // page has none to ask, and `TIER_PARAMETERS.free.pageQuestions` is false.
@@ -268,6 +285,7 @@ export const FIXTURE_REPORT: StoredReport = {
       { keyword: SEARCHES[4], volume: 1900, topHolder: RIVALS[0] },
       { keyword: SEARCHES[5], volume: 1600, topHolder: null },
     ],
+    mostSearched: { keyword: SEARCHES[0], volume: 8100, topHolder: RIVALS[0] },
     framing: "shown",
   },
   supply: {
