@@ -139,33 +139,33 @@ describe("Connect matches board Setup string for string", () => {
 });
 
 describe("the time-zone screen matches board SetupZone", () => {
-  async function zone(publishTime: string | null): Promise<HTMLElement> {
-    return mount(<ZoneScreen publishTime={publishTime} />);
+  async function zone(): Promise<HTMLElement> {
+    return mount(<ZoneScreen />);
   }
 
   it("nothing the board draws is missing once the browser has been silent ten seconds", async () => {
     vi.useFakeTimers();
-    const root = await zone("16:00");
+    const root = await zone();
     await act(async () => vi.advanceTimersByTime(10_000));
     const result = compare(readFileSync(boardFile("SetupZone"), "utf8"), textOf(root), readAllow("SetupZone"));
     expect(result.missing).toEqual([]);
   });
 
-  it("the head without a full stop, the line, why it matters with the site's own hour, and nothing to press", async () => {
-    inOrder(textOf(await zone("16:00")), [
+  it("the head without a full stop, the line, why it matters, and nothing to press", async () => {
+    inOrder(textOf(await zone()), [
       "Setting your time zone",
       COPY["setup.zone.line"],
       "Why it matters",
-      "Goes live 4:00 PM, your time",
-      "Not someone else’s 4:00 PM.",
+      COPY["setup.zone.example"],
+      COPY["setup.zone.example.not"],
       "This takes a few seconds and happens once. Nothing to press.",
     ]);
-    expect((await zone("16:00")).querySelector("h1")?.textContent).toBe("Setting your time zone");
+    expect((await zone()).querySelector("h1")?.textContent).toBe("Setting your time zone");
   });
 
   it("the line under it comes after ten seconds and not before, with the address to write to", async () => {
     vi.useFakeTimers();
-    const root = await zone("09:00");
+    const root = await zone();
     await act(async () => vi.advanceTimersByTime(9_999));
     expect(root.querySelector('[data-testid="setup-zone-slow"]')).toBeNull();
     await act(async () => vi.advanceTimersByTime(1));
@@ -174,9 +174,10 @@ describe("the time-zone screen matches board SetupZone", () => {
     expect(slow?.querySelector("a")?.getAttribute("href")).toBe("mailto:hello@reachkit.app");
   });
 
-  it("an hour it could not read is left out, never made up", async () => {
-    const root = await zone(null);
-    expect(root.textContent).toContain(COPY["setup.zone.once"]);
-    expect(root.textContent).not.toMatch(/\d:\d\d/);
+  it("names no go-live hour, since it shows before the address is connected (Q11)", async () => {
+    vi.useFakeTimers();
+    const root = await zone();
+    await act(async () => vi.advanceTimersByTime(10_000));
+    expect(textOf(root).join("\n")).not.toMatch(/\d:\d\d/);
   });
 });

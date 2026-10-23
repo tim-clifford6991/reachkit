@@ -6,16 +6,7 @@ import { Surface } from "@/ui/layout";
 import { copy } from "@/lib/presentation/copy";
 import { ZoneSlow } from "./ZoneSlow";
 
-/** `HH:mm` as the screen's English clock: `16:00` is 4:00 PM. */
-export function clockOf(hhmm: string): string {
-  const [h = 0, m = 0] = hhmm.split(":").map(Number);
-  return new Intl.DateTimeFormat("en-US", { hour: "numeric", minute: "2-digit", timeZone: "UTC" }).format(
-    new Date(Date.UTC(2024, 0, 1, h, m)),
-  );
-}
-
-export function ZoneScreen(p: { publishTime: string | null }): React.JSX.Element {
-  const time = p.publishTime === null ? null : clockOf(p.publishTime);
+export function ZoneScreen(): React.JSX.Element {
   const address = copy("about.contact.address");
   return (
     <Surface
@@ -34,12 +25,10 @@ export function ZoneScreen(p: { publishTime: string | null }): React.JSX.Element
         <figure className="card card-border bg-base-100" data-testid={WHY_TEST_ID}>
           <div className="card-body gap-2 p-5">
             <figcaption className="eyebrow">{copy("setup.zone.why")}</figcaption>
-            {time === null ? null : (
-              <p className="grid">
-                <strong>{copy("setup.zone.example", { time })}</strong>
-                <span className="text-sm text-base-content/70">{copy("setup.zone.example.not", { time })}</span>
-              </p>
-            )}
+            <p className="grid">
+              <strong>{copy("setup.zone.example")}</strong>
+              <span className="text-sm text-base-content/70">{copy("setup.zone.example.not")}</span>
+            </p>
             <p className="text-xs text-base-content/70">{copy("setup.zone.once")}</p>
           </div>
         </figure>

@@ -23,9 +23,5 @@ import { ZoneScreen } from "./ZoneScreen";
 export default async function ZonePage(): Promise<React.JSX.Element> {
   const account = await requireAppAccount();
   if (account.timeZone !== null) redirect(APP_PATH);
-
-  // The example names the site's own publish time; a read that fails leaves the example out.
-  const { readPublishingSettings } = await import("@/lib/publish/settings/settings");
-  const settings = await readPublishingSettings(account.siteId).catch(() => null);
-  return <ZoneScreen publishTime={settings?.publishTime ?? null} />;
+  return <ZoneScreen />;
 }

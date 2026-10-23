@@ -320,9 +320,9 @@ export const SETUP_COPY = Object.freeze({
   "setup.zone.head": ["Setting your time zone", { slots: {}, fixedBy: "board SetupZone · issue 1738" }],
   "setup.zone.line": ["ReachKit shows every date in your own time zone, so it needs yours before the app opens. Your browser is telling us now.", { slots: {}, fixedBy: "issue 753" }],
   "setup.zone.why": ["Why it matters", { slots: {}, fixedBy: "board SetupZone · issue 1738" }],
-  /** `{time}` is the site's own publish time. */
-  "setup.zone.example": ["Goes live {time}, your time", { slots: { time: "text" }, fixedBy: "board SetupZone · issue 1738" }],
-  "setup.zone.example.not": ["Not someone else’s {time}.", { slots: { time: "text" }, fixedBy: "board SetupZone · issue 1738" }],
+  /** Names no hour: this screen shows before the address is connected (owner Q11, 2026-10-20). */
+  "setup.zone.example": ["Every date and hour is in your time", { slots: {}, fixedBy: "board SetupZone · issue 1738" }],
+  "setup.zone.example.not": ["Not someone else’s.", { slots: {}, fixedBy: "board SetupZone · issue 1738" }],
   "setup.zone.once": ["This takes a few seconds and happens once. Nothing to press.", { slots: {}, fixedBy: "board SetupZone · issue 1738" }],
   /** Shown once the browser has said nothing for ten seconds; the support address follows it as a link. */
   "setup.zone.slow": ["Your browser hasn’t told us its time zone yet. Reload this page. If you still see this, write to", { slots: {}, fixedBy: "board SetupZone · issue 1738" }],
