@@ -110,9 +110,21 @@ describe("The one denominator — every figure is counted over the searches actu
     expect(card.you.top10Count).toBe(2);
   });
 
-  it("card/one-presence-figure — the card's keys are exactly the five the interface declares", () => {
+  it("card/one-presence-figure — the card's keys are exactly the six the interface declares", () => {
     const card = buildPresenceCard({ serps: [ok([])], selected: [search("q", 1)], ownDomain: "customer.com", rivals: [] });
-    expect(Object.keys(card).sort()).toEqual(["absentFrom", "framing", "measuredSearches", "rivals", "you"]);
+    expect(Object.keys(card).sort()).toEqual(["absentFrom", "framing", "measuredSearches", "mostSearched", "rivals", "you"]);
+  });
+
+  it("card/most-searched — the biggest measured search and its first place, whether or not the customer is on it", () => {
+    const serps = [ok(["customer.com", "rival-a.com"]), ok(["rival-b.com"]), missing()];
+    const selected = [search("big", 900), search("small", 40), search("bigger but unread", 5000)];
+    const card = buildPresenceCard({ serps, selected, ownDomain: "customer.com", rivals: [candidate("rival-a.com")] });
+    expect(card.mostSearched).toEqual({ keyword: "big", volume: 900, topHolder: "customer.com" });
+  });
+
+  it("card/most-searched — absent where nothing was measured", () => {
+    const card = buildPresenceCard({ serps: [missing()], selected: [search("q", 1)], ownDomain: "customer.com", rivals: [] });
+    expect(card.mostSearched).toBeUndefined();
   });
 });
 

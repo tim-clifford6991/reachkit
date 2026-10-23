@@ -7,11 +7,11 @@
 //
 // The order is SPEC §2's of 2026-10-07 (owner, issue 1328): the result and
 // the action first, everything longer closed beneath them.
-//   1. verdict strip — score, band, one written line, the driver bars.
-//   2. two equal cards, side by side — AI answers · Google search. Each
-//      one leads with its verdict and draws its own figure: §2.4's AI
-//      dot matrix on the left, its presence bars on the right (issue
-//      #352). Each card's list is closed under the list's own name.
+//   1. the head — what we read you as, the biggest gap, the jump chips —
+//      beside the score card (board PubReport).
+//   2. who gets your buyers — two equal cards, side by side, AI · Google,
+//      each with its figure and a waffle of who was named. Each card's
+//      list is closed under the list's own name.
 //   3. pricing card — the offer.
 //   4. three problem cards and the eight checks, closed.
 //   5. three DIY collapses.
@@ -54,8 +54,10 @@ import { VerdictStrip } from "./verdict";
 import { RescanControl } from "./rescan";
 import { startReportCheckout } from "./checkout";
 import { StillReading } from "./still-reading";
-import { WhatWeRead } from "@/app/_business/WhatWeRead";
+import { WhatWeRead, whereLine } from "@/app/_business/WhatWeRead";
+import type { BusinessUnderstanding } from "@/lib/business/types";
 import { profileOfReport, understandBusiness } from "@/lib/business/understanding";
+import { BuyersSection } from "../_modules/buyers";
 import { TIMING } from "@/lib/config/constants";
 import { BOT_PROTECTION, HOME_TIMEOUT } from "@/lib/measure/challenge";
 // #103: the category has one home — the market the profile inferred.
@@ -366,6 +368,37 @@ function pasteLinesOf(cards: readonly ProblemCard[], problem: ProblemName): read
   return fix?.kind === "paste" ? fix.lines : undefined;
 }
 
+/** Where the business sells, as a badge where it names a place or a country
+ *  of its own; an international or unread reach is a line under the badges,
+ *  and a local one with no town is the market's own badge already. */
+function whereOf(understanding: BusinessUnderstanding | null): { badge: string | null; line: string | null } {
+  if (understanding === null) return { badge: null, line: null };
+  const { where } = understanding;
+  if (where.place !== null || where.reach === "national") return { badge: whereLine(where), line: null };
+  if (where.reach === "international" || where.reach === null) return { badge: null, line: whereLine(where) };
+  return { badge: null, line: null };
+}
+
+/** What the scan read the business as, one badge each: what it is, who
+ *  buys, where, and the market it was measured in. A field nothing was read
+ *  for draws no badge. */
+function readAsOf(report: StoredReport, understanding: BusinessUnderstanding | null, where: string | null): string[] {
+  const category = categoryOf(report.market);
+  const kind = understanding?.kind == null ? null : copy(`report.read.as.kind.${understanding.kind}`);
+  const what = category !== null && kind !== null ? copy("report.read.as.what", { category, kind }) : (category ?? kind);
+  const measured = measuredLocale(report);
+  const locale = copy("report.read.as.locale", {
+    language: new Intl.DisplayNames(REPORT_TAG, { type: "language" }).of(measured.language) ?? measured.language,
+    country: new Intl.DisplayNames(REPORT_TAG, { type: "region" }).of(measured.country) ?? measured.country,
+  });
+  return [
+    ...(what === null ? [] : [what]),
+    ...(understanding?.buyers[0] === undefined ? [] : [understanding.buyers[0]]),
+    ...(where === null ? [] : [where]),
+    locale,
+  ];
+}
+
 /** Owner A3 (2026-10-19): the offer leads with the count the report found,
  *  and keeps a free path to the first page beside it. */
 function offerOf(
@@ -410,6 +443,7 @@ export function ReportView(p: {
   const profile = profileOfReport(report);
   const understanding =
     profile === null ? null : understandBusiness({ domain: report.domain, profile, locale: measuredLocale(report) });
+  const where = whereOf(understanding);
 
   return (
     // ADR-093 decision 6: the report is a screen, so it is a screen root,
@@ -465,52 +499,48 @@ export function ReportView(p: {
           )}
         </div>
 
-        {/* **The copy control is in the header's bar** (UI-SPEC S2, issue
-            #357). It stood here for one release because the shared chrome
-            had no per-route slot; ruling 3a gave it one, and the layout
-            hands the bar this address. REQ-001 c7 is unchanged — the
-            control is on the screen that owns the address — and it is on it
-            once. */}
-        <MeasuredInLine report={report} />
-        <AlsoServesLine report={report} />
-        <MarketFromSearchLine report={report} />
-        <FinishingReadsLine report={report} />
-        <ReadsDifferentlyLine report={report} shown={p.state.readsDifferently === true} />
+        {/* The copy control is in the header's bar (UI-SPEC S2, issue #357),
+            once, on the screen that owns the address. */}
         <div className="col-span-full">
-          {/* SPEC §2's measurement line is in the card, beside the date
-              (#1068). */}
           <VerdictStrip
             verdict={report.verdict}
             category={categoryOf(report.market)}
             measuredOn={measuredOn}
             correction={correction}
             {...(measurement === null ? {} : { measurement })}
+            readAs={readAsOf(report, understanding, where.badge)}
+            notes={
+              <>
+                {where.line === null ? null : (
+                  <p className="text-base-content/70 text-sm" data-testid="report-read-where">
+                    {where.line}
+                  </p>
+                )}
+                <MeasuredInLine report={report} />
+                <AlsoServesLine report={report} />
+                <MarketFromSearchLine report={report} />
+              </>
+            }
+            seeMissing={(missingPages?.length ?? 0) > 0 || (report.supply.missingPages.kind === "measured" && report.supply.missingPages.value > 0)}
           />
         </div>
+        <FinishingReadsLine report={report} />
+        <ReadsDifferentlyLine report={report} shown={p.state.readsDifferently === true} />
 
         {/* Issue 715: an absent card carries the address its retry posts
-            to. The card decides nothing about the offer — the route asks
-            `retryOffer` again from the row's own facts — but a control with
-            no address to act on would be a control that does nothing. */}
-        {report.aiAnswers === null ? (
-          <AiAnswersAbsent cutOff={cutOff} domain={report.domain} />
-        ) : (
-          <AiAnswersCard section={report.aiAnswers} measuredOn={measuredOn} />
-        )}
-        {report.presence === null ? (
-          <GooglePresenceAbsent cutOff={cutOff} domain={report.domain} />
-        ) : (
-          <GooglePresenceCard section={report.presence} />
-        )}
-
-        {/* Issue 1454: what the scan read of the business, in four short
-            lines, under the two results it was measured for. Not drawn where
-            the scan read no market of it. */}
-        {understanding === null ? null : (
-          <div className="col-span-full">
-            <WhatWeRead understanding={understanding} />
-          </div>
-        )}
+            to; the route asks `retryOffer` again from the row's own facts. */}
+        <BuyersSection ai={report.aiAnswers} presence={report.presence}>
+          {report.aiAnswers === null ? (
+            <AiAnswersAbsent cutOff={cutOff} domain={report.domain} />
+          ) : (
+            <AiAnswersCard section={report.aiAnswers} serps={report.serps} />
+          )}
+          {report.presence === null ? (
+            <GooglePresenceAbsent cutOff={cutOff} domain={report.domain} />
+          ) : (
+            <GooglePresenceCard section={report.presence} />
+          )}
+        </BuyersSection>
 
         {/* SPEC §2 (owner, 2026-10-07, issue 1328): the offer is the fourth
             thing on the report, under the score and the two results, and
@@ -535,7 +565,7 @@ export function ReportView(p: {
             own name since issue 1328: daisyUI `collapse` on a `details`, so
             it is in the first response and opens with no script. `px-px`
             keeps the cards' 1px ring inside the collapse's clip. */}
-        <details className="collapse collapse-arrow col-span-full rounded-none" data-testid="report-problems">
+        <details id="holds" className="collapse collapse-arrow col-span-full scroll-mt-20 rounded-none" data-testid="report-problems">
           <summary className="collapse-title min-h-0 px-px py-2 pe-10 after:end-2 after:top-6">
             <h2 className="text-2xl font-bold">{copy("problem.section.title")}</h2>
           </summary>
@@ -557,6 +587,14 @@ export function ReportView(p: {
             }}
           />
         </div>
+
+        {/* Issue 1454: what the scan read of the business, in full, where the
+            board puts it — after the method, before the first page. */}
+        {understanding === null ? null : (
+          <div className="col-span-full">
+            <WhatWeRead understanding={understanding} />
+          </div>
+        )}
 
         {/* The giveaway is a full-width row (UI-SPEC S2). The proposal is
             closed under the card's own name (issue 1328); a report with no
