@@ -948,6 +948,8 @@ export interface RunScanArgs {
    * releases setup; zero proposals is legal, never faked").
    */
   afterReport?: (a: { report: StoredReport; cost: CostContext }) => Promise<void>;
+  /** The report of a pass the vendor refused for credit is stored `failed`, in the one write, so no reader ever sees it measured. */
+  failsWhenFundsRefused?: true;
 }
 
 export async function runScan(a: RunScanArgs): Promise<{ scanId: string; status: ScanStatus; fundsRefused?: true }> {
@@ -1069,6 +1071,7 @@ export async function runScan(a: RunScanArgs): Promise<{ scanId: string; status:
       deadlineApplies: parameters.deadlineApplies,
       priorCents,
       holdBackCents: parameters.typingReserveC,
+      ...(a.failsWhenFundsRefused === true ? { failsWhenFundsRefused: true } : {}),
     },
     async (bounds, cost) => {
       try {
@@ -1156,6 +1159,7 @@ export async function runScan(a: RunScanArgs): Promise<{ scanId: string; status:
       ...(a.retryOf === undefined ? {} : { supersedesScanId: a.retryOf.scanId }),
       drivers: composed.drivers,
       degraded: spend.degraded || composed.sectionMissing,
+      ...(a.failsWhenFundsRefused === true && spend.fundsRefused ? { failed: true } : {}),
       costCents: spend.cents,
     });
   } finally {

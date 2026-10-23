@@ -151,6 +151,9 @@ export interface GenerateStore {
    *  when it went live — or `null` where none is. A store that holds no
    *  publications leaves this out, and no page is mended. */
   liveVersionAt?(siteId: string, url: string): Promise<{ draft: DraftRow; publishedAt: Date } | null>;
+  /** Every version that went live at an address, live now or not, by its
+   *  draft id. A store that holds no publications leaves this out. */
+  versionsAt?(siteId: string, url: string): Promise<string[]>;
   /** Issue 1509: each address of this site live now, with the Markdown of
    *  the version it serves. A store that holds no publications leaves this
    *  out, and no fact is offered later for having been said. */
@@ -294,6 +297,16 @@ const DRAFT_COLUMNS =
   "attribution, hard_rule_attempts, rule_failures, claim_check, cost_cents, " +
   "scheduled_for, veto_deadline, created_at, transitions";
 
+/** An address by its path: the host a page answers at may have moved since
+ *  it was recorded (issue 888). */
+function pathOf(address: string): string | null {
+  try {
+    return new URL(address).pathname.replace(/\/+$/, "");
+  } catch {
+    return null;
+  }
+}
+
 function pageOf(row: DraftRow): StoredPage {
   const reportPassages = withheldReportPassages(row.meta);
   return { ref: row.id, title: row.title ?? "", markdown: row.body_md ?? "", ...(reportPassages.length === 0 ? {} : { reportPassages }) };
@@ -422,20 +435,22 @@ export function supabaseGenerateStore(): GenerateStore {
         .is("unpublished_at", null)
         .order("published_at", { ascending: false });
       if (live.error) throw new Error(`generate/store: read from publications failed: ${live.error.message}`);
-      // The address by its path: the host a page answers at may have moved
-      // since it was recorded (issue 888).
-      const pathOf = (address: string): string | null => {
-        try {
-          return new URL(address).pathname.replace(/\/+$/, "");
-        } catch {
-          return null;
-        }
-      };
       const wanted = pathOf(url);
       const newest = (live.data ?? []).find((row) => row.live_url !== null && wanted !== null && pathOf(row.live_url) === wanted);
       if (newest === undefined) return null;
       const draft = await this.draftById(newest.draft_id);
       return draft === null ? null : { draft, publishedAt: new Date(newest.published_at) };
+    },
+
+    async versionsAt(siteId, url) {
+      const went = await untyped()
+        .from<{ draft_id: string; live_url: string | null }>("publications")
+        .select("draft_id, live_url")
+        .eq("site_id", siteId)
+        .not("published_at", "is", null);
+      if (went.error) throw new Error(`generate/store: read from publications failed: ${went.error.message}`);
+      const wanted = pathOf(url);
+      return (went.data ?? []).filter((row) => row.live_url !== null && wanted !== null && pathOf(row.live_url) === wanted).map((row) => row.draft_id);
     },
 
     async livePages(siteId) {
