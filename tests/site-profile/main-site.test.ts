@@ -177,6 +177,12 @@ describe("the book and quote pages the main site's own header or nav links", () 
     expect(book('<a href="/termin">Beratungstermin vereinbaren</a>')).toEqual([{ kind: "book", url: "https://example.com/termin", book: "call" }]);
   });
 
+  it("a word that only starts like demo or call books a visit: a demolition contractor, a callout plumber", () => {
+    const book = (body: string) => actionsOf("example.com", "https://example.com/", `<header>${body}</header>`);
+    expect(book('<a href="/booking">Book demolition</a>')).toEqual([{ kind: "book", url: "https://example.com/booking", book: "visit" }]);
+    expect(book('<a href="/booking">Book a callout</a>')).toEqual([{ kind: "book", url: "https://example.com/booking", book: "visit" }]);
+  });
+
   it("a stored sub-kind reads back; a quote, or a sub-kind that does not parse, carries none", () => {
     const actions = mainSiteOf({
       home: "https://example.com/",

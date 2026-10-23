@@ -184,8 +184,9 @@ const ACTION_WORDS: readonly { kind: MainSiteAction["kind"]; paths: ReadonlySet<
 /** What a book link books, by the first word of its address or text that
  *  says: a demo, a call, else a visit. */
 const BOOK_WORDS: readonly [Exclude<BookKind, "visit">, RegExp][] = [
-  ["demo", /(?<!\p{L})demo/iu],
-  ["call", /(?<!\p{L})(?:call|consultation|meeting|beratung|gespräch|rückruf)/iu],
+  ["demo", /(?<!\p{L})demos?(?!\p{L})/iu],
+  // German compounds ("Beratungstermin") keep an open end; English words end at a word boundary.
+  ["call", /(?<!\p{L})(?:(?:call|consultation|meeting)s?(?!\p{L})|beratung|gespräch|rückruf)/iu],
 ];
 
 function bookKindOf(words: string): BookKind {
