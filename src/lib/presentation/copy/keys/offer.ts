@@ -34,24 +34,23 @@ export const OFFER_COPY = Object.freeze({
   "price.vat_included": ["VAT included", { slots: {}, fixedBy: "REQ-022 c1" }],
   "price.interval": ["per month, VAT included", { slots: {}, fixedBy: "REQ-022 c1" }],
   "offer.cadence.page": ["Up to {weekPages} pages a week for your site, new or updated", { slots: { weekPages: "text" }, fixedBy: "REQ-021 c2 · owner A1 2026-10-19" }],
-  "offer.cadence.measure": ["Your market scanned {value}", { slots: { value: "text" }, fixedBy: "REQ-021 c2" }],
   "offer.cadence.movement": ["What moved, in your inbox {value}", { slots: { value: "text" }, fixedBy: "REQ-021 c2" }],
-  "offer.veto.window": ["Every page goes live on its own after {value}. You can edit or stop it before then, and cancel any time, yourself", { slots: { value: "text" }, fixedBy: "REQ-021 c2" }],
-  // 2026-09-05, issue #13: value moved from "" to `TODO(copy)` per
-  // `CLAUDE.md`'s standing rule. `BUILD.md` §4.1 module 6 requires the
-  // pricing card to carry "Cancel in one click"; left empty, `copy()`
-  // throws and the report screen goes down rather than showing the owner
-  // an unwritten line. `price.vat_included` was left untouched then: no
-  // module rendered it — `price.interval`'s own ruled string already says
-  // "per month, VAT included".
-  // The approved screen set draws this line under the Start control on
-  // both surfaces that carry the offer, unbracketed — approved copy as
-  // written (ruling 11a, 2026-09-08; issue #352).
-  // Issue 1068, board R12-2: the line says who cancels, as the board does.
-  "offer.cancel_self_service": ["Cancel in one click, yourself.", { slots: {}, fixedBy: "REQ-021 c2" }],
+  "offer.veto.window": ["Every page goes live on its own after {value}. You can edit or stop it before then.", { slots: { value: "text" }, fixedBy: "REQ-021 c2 · board PubReport · issue 1724" }],
   // Issue 1068, board R12-2: the price close's heading on the report.
   // Drafted; the owner corrects the wording.
   "offer.close.heading": ["Gain ground every week.", { slots: {}, fixedBy: "issue 1068 · owner A1 2026-10-19" }],
+  // Board PubReport (issue 1724, drafted): the offer where the report found pages to write.
+  "offer.found.heading": ["Let ReachKit write the missing pages", { slots: {}, fixedBy: "board PubReport · issue 1724" }],
+  "offer.found.line": ["ReachKit writes them from facts on your own site and publishes up to {weekPages} a week, on autopilot.", { slots: { weekPages: "text" }, fixedBy: "board PubReport · issue 1724" }],
+  "offer.steps.scanned": ["You’ve scanned", { slots: {}, fixedBy: "board PubReport · issue 1724" }],
+  "offer.steps.write": ["We choose and write", { slots: {}, fixedBy: "board PubReport · issue 1724" }],
+  "offer.steps.progress": ["You see progress every Monday", { slots: {}, fixedBy: "board PubReport · issue 1724" }],
+  "offer.chip.facts": ["Written from facts on your own site", { slots: {}, fixedBy: "board PubReport · issue 1724" }],
+  "offer.chip.checks": ["Up to {checks} checks", { slots: { checks: "text" }, fixedBy: "board PubReport · issue 1724" }],
+  // Only week 1 is emailed (D3, issue 1677), so the chip names what the founder can do instead.
+  "offer.chip.stop": ["Edit or stop any page", { slots: {}, fixedBy: "board PubReport · issue 1794" }],
+  "offer.chip.live": ["Live on your website by itself", { slots: {}, fixedBy: "board PubReport · issue 1724" }],
+  "offer.price.euros": ["Billed in euros. {price} is the total, wherever you are.", { slots: { price: "text" }, fixedBy: "board PubReport · issue 1724" }],
   "offer.start": ["Start ReachKit", { slots: {}, fixedBy: "REQ-021 c4" }],
   /** The **control's** own label, and the one the approved set draws on it:
    *  "Start ReachKit €49" (11a). `offer.start` stays exactly as the owner
@@ -81,18 +80,6 @@ export const OFFER_COPY = Object.freeze({
   // does: `VETO.defaultHours` renders "24" and the sentence reads as the
   // set draws it, so the window is written down once, in
   // `src/lib/config/constants.ts`, and never twice.
-  "offer.pricing.page": [
-    "Up to {weekPages} pages a week, new or updated, published for you",
-    { slots: { weekPages: "text" }, fixedBy: "S4 · REQ-021 c2 · owner A1 2026-10-19" },
-  ],
-  "offer.pricing.measure": [
-    "A weekly scan of your whole market",
-    { slots: {}, fixedBy: "S4 · REQ-021 c2" },
-  ],
-  "offer.pricing.movement": [
-    "Weekly movement email",
-    { slots: {}, fixedBy: "S4 · REQ-021 c2" },
-  ],
   "offer.pricing.veto": [
     "{hours} hours to stop any page before it goes live",
     { slots: { hours: "text" }, fixedBy: "S4 · REQ-021 c2" },
@@ -117,7 +104,6 @@ export const OFFER_COPY = Object.freeze({
 
   // The values the `{value}` lines above take. The veto window carries its
   // number from `VETO.defaultHours` through `{hours}`, so it is written once.
-  "offer.cadence.measure.value": ["every week", { slots: {}, fixedBy: "REQ-021 c2" }],
   "offer.cadence.movement.value": ["every Monday", { slots: {}, fixedBy: "REQ-021 c2" }],
   "offer.veto.window.value": ["{hours} hours", { slots: { hours: "text" }, fixedBy: "REQ-021 c2" }],
 }) satisfies CopyPartition;

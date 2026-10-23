@@ -40,7 +40,6 @@ import type {
   Winnability,
 } from "./types";
 import { OUTSIZED, type PageType } from "./types";
-import { isPausedType } from "./paused";
 import { topTenRowsOf, topTensOf } from "./cluster";
 import type { TopTenRead } from "./derive/top-ten-kind";
 import type { AskedBeside } from "./derive/topics";
@@ -75,6 +74,8 @@ export interface OpportunityRow {
   status: string;
   cluster_key: string | null;
   absorbed_queries: string[];
+  /** The customer stopped this topic: it is never proposed again. */
+  stopped?: boolean;
   ready: boolean;
   unready_reason: string | null;
   rest_until?: string | null;
@@ -195,9 +196,10 @@ export interface OpportunityStore {
    *  the last `days`. Optional: a store that cannot answer reads none. */
   askedBeside?(siteId: string, days: number): Promise<readonly AskedBeside[]>;
   /** Issue 1549: the searches of this site's dismissed non-Fix rows, each
-   *  with the volume it was dismissed at (`null` where none was measured).
-   *  Optional: a store that cannot answer holds nothing back. */
-  dismissedSearches?(siteId: string): Promise<readonly { query: string; volume: number | null }[]>;
+   *  with the volume it was dismissed at (`null` where none was measured),
+   *  and whether the customer stopped it — a stopped row's absorbed
+   *  searches with it. Optional: a store that cannot answer holds nothing back. */
+  dismissedSearches?(siteId: string): Promise<readonly DismissedSearch[]>;
   /** Issue 1559: replaces the site's committed week with `entries` — every
    *  row's place cleared first, then each entry's written. */
   commitPlan(siteId: string, entries: readonly PlanEntry[]): Promise<void>;
@@ -279,7 +281,7 @@ export interface OpportunityStore {
   reopenIfQueued(opportunityId: string): Promise<void>;
   /** A row whose draft the customer stopped: `open` or `queued` moves to
    *  `dismissed`, and `done` stays done (SPEC §7, 2026-09-15 — issue 712). */
-  markDismissed(opportunityId: string): Promise<void>;
+  markDismissed(opportunityId: string, a?: { stopped: true }): Promise<void>;
   /** A planned page the customer stopped: `open` moves to `dismissed` in one
    *  conditional update, and `true` says it moved. */
   dismissIfOpen(opportunityId: string): Promise<boolean>;
@@ -365,6 +367,19 @@ function reviveDates(value: unknown): unknown {
  * `volume` are revived, so an explanation reads back with the dates it was
  * measured on and not with strings.
  */
+export interface DismissedSearch {
+  query: string;
+  volume: number | null;
+  stopped: boolean;
+}
+
+/** A dismissed row's searches: its own, and a stopped topic's absorbed ones. */
+export function dismissedSearchesOf(row: Pick<OpportunityRow, "target_query" | "volume" | "stopped" | "absorbed_queries">): DismissedSearch[] {
+  const stopped = row.stopped === true;
+  const queries = [row.target_query, ...(stopped ? (row.absorbed_queries ?? []) : [])];
+  return queries.flatMap((query) => (query === null ? [] : [{ query, volume: row.volume, stopped }]));
+}
+
 export function readOpportunity(row: OpportunityRow): Opportunity {
   const evidence = reviveDates(row.evidence) as Evidence;
   return {
@@ -541,12 +556,7 @@ export function supabaseOpportunityStore(): OpportunityStore {
       // ready rows already excludes it. The `fit_band` filter issue 881 put
       // here was the third home of one decision.
       if (error) throw new Error(`opportunities.countUnused: ${error.message}`);
-      // SPEC §7 (owner, D46): a topic of a paused type fills no day, so it is
-      // not a day of supply either — the ranking and this count read the one
-      // predicate.
-      return (data ?? []).filter(
-        (row) => !isPausedType({ type: row.type as OpportunityType, targetQuery: row.target_query })
-      ).length;
+      return (data ?? []).length;
     },
 
     async countOutsized(siteId) {
@@ -708,13 +718,13 @@ export function supabaseOpportunityStore(): OpportunityStore {
 
     async dismissedSearches(siteId) {
       const { data, error } = await untyped()
-        .from<{ target_query: string | null; volume: number | null }>("opportunities")
-        .select("target_query, volume")
+        .from<Pick<OpportunityRow, "target_query" | "volume" | "stopped" | "absorbed_queries">>("opportunities")
+        .select("target_query, volume, stopped, absorbed_queries")
         .eq("site_id", siteId)
         .eq("status", "dismissed")
         .neq("family", "fix");
       if (error) throw new Error(`opportunities.dismissedSearches: ${error.message}`);
-      return (data ?? []).flatMap((row) => (row.target_query === null ? [] : [{ query: row.target_query, volume: row.volume }]));
+      return (data ?? []).flatMap(dismissedSearchesOf);
     },
 
     async setCluster(opportunityId, clusterKey, absorbedQueries) {
@@ -949,10 +959,10 @@ export function supabaseOpportunityStore(): OpportunityStore {
       if (error) throw new Error(`opportunities.reopenIfQueued: ${error.message}`);
     },
 
-    async markDismissed(opportunityId) {
+    async markDismissed(opportunityId, a) {
       const { error } = await untyped()
         .from<OpportunityRow>("opportunities")
-        .update({ status: "dismissed" })
+        .update({ status: "dismissed", ...(a?.stopped ? { stopped: true } : {}) })
         .eq("id", opportunityId)
         .in("status", ["open", "queued"]);
       if (error) throw new Error(`opportunities.markDismissed: ${error.message}`);
@@ -961,7 +971,7 @@ export function supabaseOpportunityStore(): OpportunityStore {
     async dismissIfOpen(opportunityId) {
       const { data, error } = await untyped()
         .from<{ id: string }>("opportunities")
-        .update({ status: "dismissed" })
+        .update({ status: "dismissed", stopped: true })
         .eq("id", opportunityId)
         .eq("status", "open")
         .select("id");
@@ -1080,6 +1090,12 @@ let store: OpportunityStore | null = null;
 export function opportunityStore(): OpportunityStore {
   if (store === null) store = supabaseOpportunityStore();
   return store;
+}
+
+/** One opportunity by id: a restarted draft is written again for the one it was written for. */
+export async function opportunityById(opportunityId: string): Promise<Opportunity | null> {
+  const row = await opportunityStore().byId(opportunityId);
+  return row === null ? null : readOpportunity(row);
 }
 
 /** The suites' one door in; `null` restores the real one. */

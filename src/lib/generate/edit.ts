@@ -279,7 +279,7 @@ async function recheck(
       // nothing here and `honest_row` still reads the page.
       pageType: opportunity === null ? null : pageTypeOf(opportunity),
       site: siteInputs,
-      comparison: await buildComparisonSet({ siteId: a.siteId, exceptDraftId: a.draftId }),
+      comparison: await buildComparisonSet({ siteId: a.siteId, exceptDraftId: a.draftId, ...(await ownVersions(a.siteId, opportunity)) }),
       grounded:
         recordedFact === null
           ? null
@@ -297,4 +297,15 @@ async function recheck(
     });
     return { claim: outcome.claim, failed: recordedRulesValue(outcome), run: recordedRunValue(outcome), spentCents: cost.spentCents() };
   });
+}
+
+/** A refresh's text is a new version of the page at its own address, so the
+ *  versions it replaces there are not what it may not repeat. */
+async function ownVersions(
+  siteId: string,
+  opportunity: { type: string; targetRef: string } | null
+): Promise<{ exceptVersionsAt?: { url: string; draftIds: string[] } }> {
+  const store = generateStore();
+  if (opportunity?.type !== "refresh_page" || store.versionsAt === undefined) return {};
+  return { exceptVersionsAt: { url: opportunity.targetRef, draftIds: await store.versionsAt(siteId, opportunity.targetRef) } };
 }

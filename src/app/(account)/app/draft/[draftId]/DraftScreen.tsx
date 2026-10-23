@@ -75,14 +75,14 @@ import { Editor, type EditorPane, type PreviewFrame } from "./Editor";
 import { liveBreaks, type MarkInputs } from "./marks";
 import { Check } from "lucide-react";
 import { PageRecordBlock } from "./PageRecordBlock";
-import { FoundSteps } from "./FoundSteps";
-import { TargetBlock } from "./TargetBlock";
-import { TargetNumbers } from "./TargetNumbers";
+import { LivePage } from "./LivePage";
+import { WhyThisPage } from "./TargetBlock";
 import { factPresentIn } from "./grounded";
 import { PublishedPageView } from "./PublishedPageView";
-import { LinksCard, WhatAddsCard, WhatPublishesCard, WrittenFromCard } from "./ReviewCards";
+import { ChecksCard, LinksCard, SearchResult, WhatAddsCard, WrittenFromCard } from "./ReviewCards";
+import { checkList } from "./checks";
+import { kindWord } from "../../calendar/card-lines";
 import { NO_LINK_RECORD, linksOnPage } from "./links-panel";
-import { publishedCounts } from "./publishes";
 import { useDebounced } from "./useDebounced";
 import { SHAPE } from "./shape";
 import { NEEDS_YOU_COPY } from "@/lib/publish/record/lines";
@@ -175,6 +175,10 @@ export function DraftScreen(p: {
    *  that never went out. */
   const [savedAt, setSavedAt] = useState<Date | null>(view.lastSavedAt);
   const [refused, setRefused] = useState(false);
+  /** A live page's edit (R19) saves as a new version, whose screen this
+   *  one then becomes. */
+  const liveEdit = view.live?.edit?.kind === "editor";
+  const [newVersion, setNewVersion] = useState<string | null>(null);
   /** SPEC §7 (2026-09-20, #908, issue #913) — the page's §9 state as this
    *  render believes it. On Approve or Stop it is the state the write asks
    *  for, so the stage chip and the rail's controls both change on the
@@ -215,11 +219,56 @@ export function DraftScreen(p: {
   /** Set when *Done editing* is pressed with a save still on its way: the
    *  save that lands, or is refused, answers for the press (#1095). */
   const answerSaveRef = useRef(false);
+  /** A live edit's save on its way, and the version it wrote: every later
+   *  save is that version's. */
+  const liveFlightRef = useRef(false);
+  const versionRef = useRef<string | null>(null);
+  /** The newest text held back while a live save is on its way, and whether
+   *  the customer has left: a screen that is gone has no pause to send it. */
+  const heldRef = useRef<DraftText | null>(null);
+  const leftRef = useRef(false);
 
   const save = useCallback(
     (next: DraftText): void => {
+      if (liveEdit && versionRef.current === null) {
+        // One live save at a time: a second would be refused as the version
+        // the first is writing, so the next pause sends it once this lands.
+        if (liveFlightRef.current) {
+          heldRef.current = next;
+          return;
+        }
+        liveFlightRef.current = true;
+        void draftStore.saveLive({ draftId: view.draftId, ...next }).then((result) => {
+          liveFlightRef.current = false;
+          const held = heldRef.current;
+          heldRef.current = null;
+          if (result.ok && held !== null && leftRef.current && !sameText(held, next)) {
+            void (result.changed
+              ? draftStore.save({ draftId: result.draftId, ...held })
+              : draftStore.saveLive({ draftId: view.draftId, ...held })
+            ).catch(() => undefined);
+          }
+          if (result.ok) {
+            if (result.changed) {
+              versionRef.current = result.draftId;
+              setNewVersion(result.draftId);
+            }
+            setSavedText(next);
+            setRefused(false);
+            if (answerSaveRef.current) {
+              answerSaveRef.current = false;
+              if (result.changed && result.state === "in_review") say(copy("draft.edit.entered-review"), "ok");
+              else say(copy("draft.edit.saved", { at: formatTime(new Date(), view.timeZone) }), "ok");
+            }
+            return;
+          }
+          setRefused(true);
+          answerRefusal();
+        });
+        return;
+      }
       void draftStore
-        .save({ draftId: view.draftId, ...next })
+        .save({ draftId: versionRef.current ?? view.draftId, ...next })
         .then((result) => {
           // Last write wins: what came back is the draft, and nothing is
           // merged into the buffer. A refusal moves nothing at all.
@@ -260,7 +309,7 @@ export function DraftScreen(p: {
         say(copy("draft.unsaved"), "bad");
       }
     },
-    [view.draftId, view.timeZone],
+    [view.draftId, view.timeZone, liveEdit],
   );
 
   // c6, the pause: one save per settled buffer, never one per keystroke.
@@ -281,7 +330,9 @@ export function DraftScreen(p: {
     savedRef.current = savedText;
   }, [text, savedText]);
   useEffect(() => {
+    leftRef.current = false;
     return () => {
+      leftRef.current = true;
       if (!sameText(textRef.current, savedRef.current)) save(textRef.current);
     };
   }, [save]);
@@ -420,6 +471,9 @@ export function DraftScreen(p: {
    *  occupies no date at all, which draws no chip rather than an unnamed
    *  one — and is what a stopped page reads as the moment Stop is pressed. */
   const stage = STAGE_OF[state];
+  /** A new page or an update of one the site has; nothing where unread. */
+  const kind =
+    view.target.kind === "unknown" ? null : kindWord(view.target.kind === "fix" || view.target.update === true);
 
   /** The claim badge, in every one of its four states — including the empty
    *  do-not-claim list, which states that there was nothing to check
@@ -512,6 +566,11 @@ export function DraftScreen(p: {
       // head above the frame, because nothing of ours belongs on a page
       // about to stand on their domain.
       source={sourceLine}
+      caption={
+        state === "in_review" && view.doNothing.publishesAt !== null
+          ? copy("draft.preview.caption", { at: formatDateTime(view.doNothing.publishesAt, view.timeZone) })
+          : copy("draft.preview.caption.plain")
+      }
     />
   );
 
@@ -603,6 +662,10 @@ export function DraftScreen(p: {
       </div>
     </section>
   );
+
+  /** A live edit lands on the version it wrote once nothing is unsaved,
+   *  from whichever arm is showing. */
+  const openVersion = newVersion === null || unsaved ? null : <OpenVersion draftId={newVersion} />;
 
   if (editing) {
     const stateBadge = refused ? (
@@ -749,11 +812,21 @@ export function DraftScreen(p: {
             {copy("draft.edit.discard")}
           </button>
         </div>
+        {openVersion}
       </div>
     );
   }
 
   // ── the read arm ────────────────────────────────────────────────────
+  // A page that went live, and one its customer stopped: board `PageDetail`.
+  if (view.takeDown !== null && view.live !== null)
+    return (
+      <>
+        <LivePage view={view} live={view.live} onEdit={() => setEditing(true)} />
+        {openVersion}
+      </>
+    );
+
   const written =
     view.writtenAt === null
       ? copy("draft.words", { words: formatCount(wordCount(bodyMd)) })
@@ -788,16 +861,24 @@ export function DraftScreen(p: {
           article and the notes (`shape.ts`). */}
       <div className={SHAPE.grid}>
         <div className={SHAPE.page} data-testid="draft-page">
-          {/* The header: the status badges and one meta line, then the
-              title. The title is drawn twice on purpose — here as the
+          {/* The header: the title, then the status badges and one meta
+              line. The title is drawn twice on purpose — here as the
               screen's heading, and in the frame as the page publishes it. */}
           <header className="flex min-w-0 flex-col gap-2" data-testid="draft-head">
+            <h1 className="min-w-0 wrap-anywhere" data-testid="draft-title">
+              {view.title}
+            </h1>
             <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2">
               <span
                 className="flex min-w-0 flex-wrap items-center gap-2"
                 data-testid="draft-claim"
               >
                 {stageBadge}
+                {kind === null ? null : (
+                  <span className="badge badge-ghost" data-testid="draft-kind">
+                    {kind}
+                  </span>
+                )}
                 {claimBadge}
                 {claim.state === "failed" ? (
                   // c11: the customer is told which entry held the draft.
@@ -810,21 +891,16 @@ export function DraftScreen(p: {
               </span>
               {/* One meta line: when it was written, how long it is, and
                   REQ-093 c2's label, bound to the text it speaks for. */}
-              <p className="min-w-0 text-xs text-base-content/70 sm:ms-auto">
+              <p className="min-w-0 text-sm text-base-content/70">
                 <span data-testid="draft-written">{written}</span>
                 <span aria-hidden>{META_SEPARATOR}</span>
                 <span data-testid="draft-generated-label">{p.generatedLabel}</span>
               </p>
             </div>
             {matchedLine === null ? null : <p className="text-sm">{matchedLine}</p>}
-            <h1 className="min-w-0 wrap-anywhere" data-testid="draft-title">
-              {view.title}
-            </h1>
           </header>
 
-          {/* The page's numbers open the screen (owner 2026-10-09, issue
-              1364); the note that explains them stays closed below. */}
-          <TargetNumbers target={view.target} />
+          <WhyThisPage target={view.target} />
 
           {packShort}
           {rulesHeld}
@@ -851,9 +927,6 @@ export function DraftScreen(p: {
           state={state}
           deciding={deciding}
           pressed={deciding ? pressed : null}
-          grounded={grounded}
-          claim={claim}
-          recordedChecks={recordedChecks}
           bodyMd={bodyMd}
           onEdit={() => setEditing(true)}
           onCommand={decide}
@@ -862,38 +935,15 @@ export function DraftScreen(p: {
         {/* The notes: each one closed line that opens in place. The
             article above them is never one of these. */}
         <div className={SHAPE.notes} data-testid="draft-notes">
-          {/* Every link on the page, why it is there and whether it is
-              live (SPEC §7, 2026-10-10, issue 1391). First of the notes, so
-              it sits under the checks the panel above ends on (issue 1394). */}
-          <LinksCard links={linksOnPage(bodyMd, { domain: view.domain, record: view.linkRecord ?? NO_LINK_RECORD })} />
-          {/* What this page is for (issue 867) and how it reads in search
-              results. */}
-          <TargetBlock
-            target={view.target}
-            setAside={view.setAside}
-            title={view.title}
-            description={view.description}
-            publisher={view.publisher}
-          />
-
-          {/* SPEC §7's other two cards (#931): what the page stands on and
-              where each sentence was read, and what actually leaves the
-              building. The checks are `DecidePanel`'s. */}
+          {/* Board `AppDraft`'s notes, in its order. */}
+          <ChecksCard list={checkList({ grounded, claim, recorded: recordedChecks, known: view.knownCheck })} />
+          <SearchResult title={view.title} description={view.description} publisher={view.publisher} />
           <WrittenFromCard writtenFrom={view.writtenFrom} timeZone={view.timeZone} />
-          {/* What the page says that the web and the site do not (SPEC §7,
-              D12, issue 1143). */}
           <WhatAddsCard adds={view.adds} />
-          <WhatPublishesCard
-            publisher={view.publisher}
-            title={view.title}
-            description={view.description}
-            counts={publishedCounts(bodyMd)}
-          />
+          <LinksCard links={linksOnPage(bodyMd, { domain: view.domain, record: view.linkRecord ?? NO_LINK_RECORD })} />
 
           {/* What became of this page (issue #217) — absent rather than empty
               for a draft whose record could not be read. */}
-          {/* How far the live page has got toward being found (issue 1553). */}
-          {view.ladder === null ? null : <FoundSteps ladder={view.ladder} />}
           {view.record === null ? null : (
             <PageRecordBlock record={view.record} timeZone={view.timeZone} />
           )}
@@ -922,4 +972,14 @@ function Rewriting(): React.JSX.Element {
       <span className="min-w-0 wrap-anywhere">{copy("draft.rewriting")}</span>
     </div>
   );
+}
+
+/** Moves to the version a live page's edit wrote. Mounted only then: the
+ *  router is the one thing the rest of this screen never needs. */
+function OpenVersion(p: { draftId: string }): null {
+  const router = useRouter();
+  useEffect(() => {
+    router.push(`/app/draft/${p.draftId}`);
+  }, [router, p.draftId]);
+  return null;
 }

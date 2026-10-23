@@ -14,7 +14,7 @@
 // native PostgreSQL 18, PostgREST 16.2 at `http://127.0.0.1:3001`,
 // `@supabase/supabase-js` — not through the migration SQL text.
 // `tests/setup.ts` refuses real network calls process-wide; this file
-// allows loopback explicitly (`loopbackFetch` below, restricted by regex to
+// allows loopback explicitly (`loopbackFetch` from `./substrate`, restricted to
 // `127.0.0.1`) and passes it as `@supabase/supabase-js`'s `global.fetch`,
 // exactly as the prompt directs. User identity is minted as an HS256 JWT
 // with `SECRET`'s value, matching what Supabase Auth would issue and what
@@ -65,6 +65,7 @@ import {
   psql,
   psqlRows,
   userJwt,
+  loopbackFetch,
 } from "./substrate";
 
 // `env.ts` parses `process.env` at module load (BP-005), and `src/lib/db/
@@ -95,42 +96,6 @@ function resetAndApplySchema(): void {
 // HS256, hand-rolled with `node:crypto` — no dependency beyond the repo's
 // existing manifest (`tests/db/clients.test.ts` file-plan note applies here
 // too: a new package is out of this work order's file plan).
-// Loopback-only `fetch`, spawning `curl` — `tests/setup.ts` refuses the real
-// `fetch`/`http`/`https` globals process-wide; this is the explicit,
-// narrow allowance the prompt directs, restricted to `127.0.0.1`.
-function loopbackFetch(input: RequestInfo | URL, init: RequestInit = {}): Promise<Response> {
-  const url =
-    typeof input === "string" ? input : input instanceof URL ? input.toString() : (input as Request).url;
-  if (!/^https?:\/\/127\.0\.0\.1(:\d+)?\//.test(url)) {
-    return Promise.reject(new Error(`loopbackFetch refuses non-loopback URL: ${url}`));
-  }
-  const method = init.method ?? "GET";
-  const headerEntries: [string, string][] = [];
-  if (init.headers) {
-    new Headers(init.headers as HeadersInit).forEach((value, key) => headerEntries.push([key, value]));
-  }
-  const bodyText = typeof init.body === "string" ? init.body : init.body ? String(init.body) : undefined;
-
-  const args = ["-s", "-i", "-X", method];
-  for (const [key, value] of headerEntries) args.push("-H", `${key}: ${value}`);
-  if (bodyText !== undefined) args.push("--data-binary", "@-");
-  args.push(url);
-
-  const raw = execFileSync("curl", args, { input: bodyText, maxBuffer: 10 * 1024 * 1024 });
-  const separator = Buffer.from("\r\n\r\n");
-  const separatorIndex = raw.indexOf(separator);
-  const headerPart = raw.subarray(0, separatorIndex).toString("utf8");
-  const bodyPart = raw.subarray(separatorIndex + separator.length);
-  const headerLines = headerPart.split("\r\n");
-  const status = Number((headerLines[0] ?? "").split(" ")[1] ?? "599");
-  const responseHeaders = new Headers();
-  for (const line of headerLines.slice(1)) {
-    const idx = line.indexOf(":");
-    if (idx === -1) continue;
-    responseHeaders.append(line.slice(0, idx).trim(), line.slice(idx + 1).trim());
-  }
-  return Promise.resolve(new Response(bodyPart, { status, headers: responseHeaders }));
-}
 
 // `db()` and `dbAdmin()` (`src/lib/db/index.ts`) construct
 // `@supabase/supabase-js` clients with no `fetch` override — BP-002's `##

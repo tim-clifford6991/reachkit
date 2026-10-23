@@ -66,7 +66,7 @@ const PHONE_PREFIXES = [...PHONE_COUNTRY.keys()].sort((a, b) => b.length - a.len
 
 /** The country the first international number names. `+1` names two
  *  countries, so it names none. */
-function countryOfPhone(text: string): Country | null {
+export function countryOfPhone(text: string): Country | null {
   for (const match of text.matchAll(/(?:\+|\b00)\s?(\d[\d\s().\-/]{6,18}\d)/g)) {
     const digits = match[1]!.replace(/\D/g, "");
     const prefix = PHONE_PREFIXES.find((each) => digits.startsWith(each));
@@ -81,7 +81,7 @@ function escaped(text: string): string {
 
 /** The country whose own currency mark the page shows most. The dollar and
  *  the euro belong to no one country and are not read. */
-function countryOfCurrency(text: string): Country | null {
+export function countryOfCurrency(text: string): Country | null {
   let best: { country: Country; count: number } | null = null;
   for (const country of Object.keys(COUNTRIES) as Country[]) {
     let count = 0;
@@ -118,7 +118,11 @@ function countryOfAddress(text: string): Country | null {
     const count = lines.filter((line) => alone.test(line) || (/\b\d{4,5}\b/.test(line) && within.test(line))).length;
     if (count > 0 && (best === null || count > best.count)) best = { country, count };
   }
-  if (best !== null) return best.country;
+  return best?.country ?? countryOfPostcode(text);
+}
+
+/** The country whose own way of writing a postcode the text shows. */
+export function countryOfPostcode(text: string): Country | null {
   for (const [country, pattern] of POSTCODES) if (pattern.test(text)) return country;
   return null;
 }
@@ -250,7 +254,9 @@ export function readLocaleSignals(a: { domain: string; html: string | null }): L
 /** The supported locale a site is measured in, read from its address and
  *  home page, and what of the reading is not measured. */
 export function readLocale(a: { domain: string; html: string | null }): ResolvedLocale {
-  return resolveLocale(readLocaleSignals(a));
+  const resolved = resolveLocale(readLocaleSignals(a));
+  // Nothing was read, so D66's default is a guess, and the report says so.
+  return a.html === null && countryOfDomain(a.domain) === null ? { ...resolved, basis: "default" } : resolved;
 }
 
 /** English words that are also language codes: a path that starts with one
@@ -268,6 +274,37 @@ function isLanguageCode(code: string): boolean {
   }
 }
 
+/** The locale a path's first segment names (`/de/`, `/en-gb/`), as a
+ *  lowercase tag, or `null`. A bare English word that is also a code is
+ *  none unless it carries a region. */
+function pathLocaleOf(pathname: string): string | null {
+  const match = /^([a-z]{2})(?:[-_]([a-z]{2}))?$/i.exec(pathname.split("/")[1] ?? "");
+  if (match === null || !isLanguageCode(match[1]!.toLowerCase())) return null;
+  if (match[2] === undefined && WORD_CODES.has(match[1]!.toLowerCase())) return null;
+  return match[2] === undefined ? match[1]!.toLowerCase() : `${match[1]!.toLowerCase()}-${match[2].toLowerCase()}`;
+}
+
+/** Whether a tag names the measured market: its language, in its country
+ *  or in none. */
+function measuredBy(measured: Locale): (tag: string) => boolean {
+  return (tag) => {
+    const reading = ofLangTag(tag);
+    return reading.language === measured.language && (reading.country === null || reading.country === measured.country);
+  };
+}
+
+/** The same-host addresses a home document links to. */
+function ownLinksOf(root: HTMLElement, base: string, host: string): URL[] {
+  return root.querySelectorAll("a[href]").flatMap((link) => {
+    try {
+      const url = new URL(link.getAttribute("href") ?? "", base);
+      return (url.protocol === "https:" || url.protocol === "http:") && bareHost(url.hostname) === host ? [url] : [];
+    } catch {
+      return [];
+    }
+  });
+}
+
 /**
  * The other markets a home document says its site serves, as BCP-47 tags
  * without the one measured: its hreflang values where it declares any,
@@ -278,16 +315,13 @@ function isLanguageCode(code: string): boolean {
 export function marketsServed(a: { domain: string; html: string; measured: Locale }): string[] {
   const base = `https://${a.domain}/`;
   const root = parse(a.html, { blockTextElements: { script: false, style: false, noscript: false } });
-  const measured = (tag: string): boolean => {
-    const reading = ofLangTag(tag);
-    return reading.language === a.measured.language && (reading.country === null || reading.country === a.measured.country);
-  };
+  const measured = measuredBy(a.measured);
   const alternates = alternatesOf(root, base);
   if (alternates.length > 0) return [...new Set(alternates.map((each) => each.tag))].filter((tag) => tag !== "x-default" && !measured(tag));
 
   const host = bareHost(a.domain);
   const name = host.split(".")[0]!;
-  const paths = new Set<string>();
+  const paths = new Set(ownLinksOf(root, base, host).flatMap((url) => pathLocaleOf(url.pathname) ?? []));
   const endings = new Set<string>();
   for (const link of root.querySelectorAll("a[href]")) {
     let url: URL;
@@ -298,15 +332,44 @@ export function marketsServed(a: { domain: string; html: string; measured: Local
     }
     if (url.protocol !== "https:" && url.protocol !== "http:") continue;
     const other = bareHost(url.hostname);
-    if (other === host) {
-      const match = /^([a-z]{2})(?:[-_]([a-z]{2}))?$/i.exec(url.pathname.split("/")[1] ?? "");
-      if (match === null || !isLanguageCode(match[1]!.toLowerCase())) continue;
-      if (match[2] === undefined && WORD_CODES.has(match[1]!.toLowerCase())) continue;
-      paths.add(match[2] === undefined ? match[1]!.toLowerCase() : `${match[1]!.toLowerCase()}-${match[2].toLowerCase()}`);
-    } else if (other.split(".")[0] === name) {
+    if (other !== host && other.split(".")[0] === name) {
       const country = countryOfDomain(other);
       if (country !== null && country !== a.measured.country) endings.add(`und-${country.toLowerCase()}`);
     }
   }
   return [...(paths.size >= 2 ? [...paths] : []), ...endings].filter((tag) => !measured(tag));
+}
+
+/**
+ * Whether an address stands in another market's section of a site that
+ * splits its markets by path or subdomain, as its hreflang shows it: a first
+ * path segment that a same-host alternate declares for another market, or a host its hreflang gives only to other markets. Answers `false` for every address of a site that
+ * shows no split, so a single-market site loses no page.
+ */
+export function outsideMarket(a: { domain: string; html: string; measured: Locale }): (url: string) => boolean {
+  const base = `https://${a.domain}/`;
+  const host = bareHost(a.domain);
+  const root = parse(a.html, { blockTextElements: { script: false, style: false, noscript: false } });
+  const measured = measuredBy(a.measured);
+  const alternates = alternatesOf(root, base).filter((each) => each.tag !== "x-default");
+  const ours = new Set(alternates.filter((each) => measured(each.tag)).map((each) => bareHost(each.url.hostname)));
+  const otherHosts = new Set(
+    alternates.map((each) => bareHost(each.url.hostname)).filter((other) => other !== host && !ours.has(other))
+  );
+  // Links alone never split a site: /co/denver or /ml/ is a page, not a market.
+  const declared = new Set(alternates.flatMap((each) => (bareHost(each.url.hostname) === host ? (pathLocaleOf(each.url.pathname) ?? []) : [])));
+  const byPath = declared.size > 0;
+  if (!byPath && otherHosts.size === 0) return () => false;
+  return (raw) => {
+    let url: URL;
+    try {
+      url = new URL(raw, base);
+    } catch {
+      return false;
+    }
+    const other = bareHost(url.hostname);
+    if (otherHosts.has(other)) return true;
+    const section = other === host && byPath ? pathLocaleOf(url.pathname) : null;
+    return section !== null && declared.has(section) && !measured(section);
+  };
 }

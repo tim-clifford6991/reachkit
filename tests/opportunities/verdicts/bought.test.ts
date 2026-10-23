@@ -22,7 +22,7 @@ const PAGE = "https://content.example.com/onboarding-checklist";
  *  question asked and its Google result bought: `organic` is that result. */
 function weekWithPageSerp(organic: { position: number; url: string }[], over: Partial<StoredReport> = {}): StoredReport {
   const pageQuestions = pageQuestionsSectionOf({
-    asked: [{ publicationId: "pub-1", liveUrl: PAGE, question: "What goes in an onboarding checklist?", search: TARGET, position: null }],
+    asked: [{ publicationId: "pub-1", liveUrl: PAGE, question: "What goes in an onboarding checklist?", search: TARGET, position: null, publishedAt: null, linked: false }],
     serps: [measured(serp({ organic: organic.map((row) => ({ ...row, domain: new URL(row.url).hostname, title: "A page" })) }), AT)],
     battery: [],
     retired: [],
@@ -56,10 +56,19 @@ describe("condition 1 — the result already bought for the page's question is i
 });
 
 describe("condition 2 — a target the keyword database does not track is not measured, never a zero", () => {
-  it("a bought result without the page, and no tracked demand, is not measured; tracked demand makes it a measured zero", () => {
+  it("a result bought ten deep without the page, and no tracked demand, is not measured; tracked demand makes it a measured zero", () => {
     const report = weekWithPageSerp([{ position: 1, url: "https://appcues.com/a" }]);
-    expect(placeIn(report)?.kind).toBe("unmeasured");
-    expect(placeIn(report, [TARGET])?.kind).toBe("zero");
+    const boughtTo = (depth?: number): StoredReport => ({
+      ...report,
+      pageQuestions: report.pageQuestions && {
+        ...report.pageQuestions,
+        rows: report.pageQuestions.rows.map((row) => ({ ...row, depth })),
+      },
+    });
+    expect(placeIn(boughtTo())?.kind).toBe("unmeasured");
+    expect(placeIn(boughtTo(), [TARGET])?.kind).toBe("zero");
+    // Owner B2: a result read 100 deep without the page says it is not in the top 100.
+    expect(placeIn(boughtTo(100))?.kind).toBe("zero");
   });
 });
 

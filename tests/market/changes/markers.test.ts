@@ -75,6 +75,16 @@ describe("a marker sits on the first measurement taken under the new answer", ()
     await expect(changeMarkers(ALL)).resolves.toEqual([]);
   });
 
+  it("a country or language change is marked on the first pass measured in the new pair (D66)", async () => {
+    const inPair = (n: number, locale: { country: string; language: string }) => {
+      const row = week(n);
+      return { ...row, report: { ...(row.report as object), locale } };
+    };
+    // A report with no locale was measured in the United States in English.
+    db.seed("scans", [week(1), inPair(2, { country: "US", language: "en" }), inPair(3, { country: "DE", language: "de" })]);
+    await expect(changeMarkers(ALL)).resolves.toEqual([{ kind: "locale", on: new Date("2026-08-03T06:00:00.000Z") }]);
+  });
+
   it("a category nobody named on one side is not a change", async () => {
     db.seed("scans", [week(1, { category: null }), week(2)]);
     await expect(changeMarkers(ALL)).resolves.toEqual([]);

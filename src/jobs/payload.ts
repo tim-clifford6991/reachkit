@@ -14,14 +14,6 @@ export function requiredString(input: JobInput, field: string): string {
   return value;
 }
 
-export function requiredNumber(input: JobInput, field: string): number {
-  const value = input.data[field];
-  if (typeof value !== "number" || !Number.isFinite(value)) {
-    throw new Error(`src/jobs/payload.ts: event payload is missing a number "${field}".`);
-  }
-  return value;
-}
-
 /** A field a job may be handed and may not. Absent and empty are the same
  *  answer — `undefined` — so a payload carrying `""` cannot become a
  *  subject id; anything present and not a string is still refused. */

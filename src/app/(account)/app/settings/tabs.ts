@@ -20,10 +20,9 @@
 // word the product already says is a second place to change it, which is
 // the rule `_overview/tabs.ts` states for the same three of its four. The
 // other four are drafted (#759): the two the canvas names that no card is
-// titled with ("Your business", "Market and rivals"), and the two whose
-// card title is not the tab's word — the voice card is "How your pages
-// sound" and the mail card is "Notifications", and a tab bar has room for
-// neither.
+// titled with ("Your business", "Market and rivals"), the voice tab, whose
+// card title "How your pages sound" a tab bar has no room for, and the mail
+// tab, whose card says "Mail" too.
 import type { CopyKey } from "@/lib/presentation/copy";
 
 export const SETTINGS_TABS = [

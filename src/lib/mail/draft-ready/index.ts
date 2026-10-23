@@ -47,6 +47,8 @@ import { BAND_LABELS } from "@/lib/presentation/bands";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { explainChoice } from "@/lib/opportunities";
 import { machineDraftFor } from "@/lib/publish/machine";
+import { nameInZone } from "@/lib/publish/destinations/hosted/dns-guide";
+import { recordForHost } from "@/lib/publish/setup/cards";
 import {
   isUnsuppressible,
   issueVetoLink,
@@ -60,6 +62,7 @@ import { sendEmail } from "../send";
 import {
   buildDraftReady,
   type DraftReadyPage,
+  type DraftReadyRecord,
   type DraftReadyWhy,
   type TellableTelling,
 } from "../templates/draft-ready";
@@ -110,6 +113,16 @@ function untyped(): MinimalClient {
  */
 function stopHref(token: string): string {
   return new URL(vetoLinkPath(token), env.NEXT_PUBLIC_APP_URL).toString();
+}
+
+/** The setting an unconnected hosted address still needs, written as the
+ *  Overview writes it, so the mail and the screen state one record. */
+function withRecord(telling: TellableTelling): { record?: DraftReadyRecord } {
+  if (telling.destination?.copy !== "mail.draftReady.dest.addressNotConnected") return {};
+  const host = telling.destination.site;
+  const record = recordForHost({ hostname: host, cnameTarget: env.HOSTED_EDGE_CNAME_TARGET });
+  if (record === null) return {};
+  return { record: { type: record.type, name: nameInZone(record.name, host.slice(host.indexOf(".") + 1)), value: record.value } };
 }
 
 /** The moment the page publishes, in the zone the customer set.
@@ -180,6 +193,7 @@ export async function sendDraftReadyMail(a: {
     ...(telling.kind === "interval" && telling.stopAction.token !== ""
       ? { stopHref: stopHref(telling.stopAction.token) }
       : {}),
+    ...withRecord(telling as TellableTelling),
   });
 
   const result = await sendEmail({
@@ -200,13 +214,13 @@ export async function sendDraftReadyMail(a: {
 
   // A switched-off mail must never hold the page it would have announced.
   if (!result.sent && result.reason === "preference-off") {
-    await recordTold(a.draftId, telling, draft.governing, at);
+    await recordTold(a.draftId, telling, draft.governing, at, false);
     return { sent: false, reason: "preference-off" };
   }
   if (!result.sent) return { sent: false, reason: "mail" };
 
   // After, and only after. See the module header.
-  await recordTold(a.draftId, telling, draft.governing, at);
+  await recordTold(a.draftId, telling, draft.governing, at, true);
   return { sent: true, id: result.id };
 }
 

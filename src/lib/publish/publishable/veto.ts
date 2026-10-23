@@ -29,11 +29,12 @@
 //
 // The archived plan is WO-217.
 import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
-import { VETO_TOKEN_BYTES } from "@/lib/config/constants";
+import { VETO_TOKEN_BYTES, WEEK_START } from "@/lib/config/constants";
+import type { PlanReason } from "@/lib/opportunities/types";
 import { publishDb } from "../db";
 import { machineDraftFor, transition } from "../machine";
 import { becomesPublishable } from "./predicate";
-import type { Actor, VetoLink } from "../types";
+import type { Actor, State, ToldRecord, VetoLink } from "../types";
 
 export type VetoRefusal = "unknown" | "expired" | "used" | "not_in_review";
 
@@ -281,8 +282,25 @@ export interface VetoPreview {
    *  zone beside it is a time the reader has to guess about, and REQ-073 c1
    *  forbids picking a zone on the customer's behalf. `null` where no
    *  moment can be computed — a site with no stated zone, or a page whose
-   *  window has already run out. Never substituted. */
+   *  window has already run out — or while the page is held: a hosted
+   *  address not yet connected, ReachKit stopped, publishing off or the
+   *  destination not working. Never substituted. */
   readonly publishes: { readonly at: Date; readonly timeZone: string } | null;
+  /** The site's hosted address is still waiting for its record, so the page
+   *  goes live only once it is connected and no moment can be promised. */
+  readonly unconnected: boolean;
+  /** Why the week chose the page (`opportunities.plan_reason`); `null` for a
+   *  page chosen before reasons were kept, which states no reason. */
+  readonly reason: PlanReason | null;
+  /** When the mail carrying this link left (`drafts.told.sentAt`); `null`
+   *  where no mail was sent with it. */
+  readonly mailedAt: Date | null;
+}
+
+/** One day of the stopped page's week: `null` is a day with no page on it. */
+export interface WeekDay {
+  readonly date: string;
+  readonly stopped: boolean | null;
 }
 
 /**
@@ -306,17 +324,22 @@ export type PreviewResult =
       title: string | null;
       domain: string | null;
       excerpt: string | null;
+      /** Mon–Sun around the stopped page's day; `null` where it cannot be read. */
+      week: readonly WeekDay[] | null;
     }
   | { ok: false; reason: Exclude<VetoRefusal, "used"> };
 
 interface PreviewRow {
   id: string;
+  site_id: string;
   state: string;
+  scheduled_for: string | null;
+  told: ToldRecord | null;
   title: string | null;
   veto_token_used_at: string | null;
   veto_token_expires_at: string | null;
   body_md: string | null;
-  opportunities?: { target_query?: string | null; volume?: number | null } | null;
+  opportunities?: { target_query?: string | null; volume?: number | null; plan_reason?: PlanReason | null } | null;
   sites?: { domain?: string | null; timezone?: string | null } | null;
 }
 
@@ -329,7 +352,7 @@ export async function previewVetoLink(
   const { data, error } = await publishDb()
     .from<PreviewRow>("drafts")
     .select(
-      "id, state, title, body_md, veto_token_used_at, veto_token_expires_at, opportunities(target_query, volume), sites(domain, timezone)"
+      "id, site_id, state, scheduled_for, told, title, body_md, veto_token_used_at, veto_token_expires_at, opportunities(target_query, volume, plan_reason), sites(domain, timezone)"
     )
     .eq("veto_token_hash", hashToken(token))
     .limit(1);
@@ -344,6 +367,7 @@ export async function previewVetoLink(
       title: titleOf(row),
       domain: row.sites?.domain ?? null,
       excerpt: excerptOf(row.body_md),
+      week: row.scheduled_for === null ? null : await weekOf(row.site_id, row.scheduled_for),
     };
   }
   if (
@@ -367,6 +391,7 @@ export async function previewVetoLink(
   const view = await machineDraftFor(row.id);
   const answer = view === null ? null : becomesPublishable(view);
   const zone = row.sites?.timezone ?? null;
+  const [unconnected, held] = await Promise.all([addressUnconnected(row.site_id), heldNow(row.site_id, at)]);
 
   return {
     ok: true,
@@ -378,11 +403,92 @@ export async function previewVetoLink(
       domain: row.sites?.domain ?? null,
       excerpt: excerptOf(row.body_md),
       publishes:
-        answer !== null && answer.publishable && zone !== null
+        answer !== null && answer.publishable && zone !== null && !unconnected && !held
           ? { at: answer.at, timeZone: zone }
           : null,
+      unconnected,
+      reason: row.opportunities?.plan_reason ?? null,
+      mailedAt: mailedAtOf(row.told),
     },
   };
+}
+
+/** Whether the site's hosted address is attached but not yet live — the
+ *  read the draft-ready mail's destination clause makes. A failed read
+ *  claims nothing. */
+async function addressUnconnected(siteId: string): Promise<boolean> {
+  try {
+    const { hostedHostFor } = await import("../destinations/hosted/hostname");
+    const host = await hostedHostFor(siteId);
+    return host !== null && host.state !== "live";
+  } catch {
+    return false;
+  }
+}
+
+/** Whether the page would not go live at its moment: ReachKit's kill switch
+ *  or day ceiling, the site's publishing switch, or a destination that is
+ *  not working. A read that fails is held, since no hour can be promised on it. */
+async function heldNow(siteId: string, at: Date): Promise<boolean> {
+  try {
+    const [{ isPublishingOn, reachKitStopped }, { destinationWorking }, daily] = await Promise.all([
+      import("../switch"),
+      import("../destinations"),
+      import("@/lib/costs/daily"),
+    ]);
+    const [stopped, on, working, spent, ceiling] = await Promise.all([
+      reachKitStopped(),
+      isPublishingOn(siteId),
+      destinationWorking(siteId),
+      daily.readDaySpendCents(at),
+      daily.readDayCeilingCents(at),
+    ]);
+    return stopped || !on || !working || spent === null || daily.ceilingReached(spent, ceiling);
+  } catch {
+    return true;
+  }
+}
+
+/** The told record's send time, where a mail left with it and the time reads. */
+function mailedAtOf(told: ToldRecord | null): Date | null {
+  if (told === null || told.mailed === false) return null;
+  const at = new Date(told.sentAt);
+  return Number.isNaN(at.getTime()) ? null : at;
+}
+
+const WEEKDAYS = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
+const DAY_MS = 86_400_000;
+
+/** A stopped page's week as Plan holds it: a day with a written page says
+ *  whether it was stopped, a day still planned goes ahead, and a day whose
+ *  planned page was stopped before writing claims nothing, since a spare may take it. */
+async function weekOf(siteId: string, day: string): Promise<readonly WeekDay[] | null> {
+  const at = Date.parse(`${day}T00:00:00Z`);
+  const back = (new Date(at).getUTCDay() - WEEKDAYS.indexOf(WEEK_START) + 7) % 7;
+  const dates = Array.from({ length: 7 }, (_, i) => new Date(at + (i - back) * DAY_MS).toISOString().slice(0, 10));
+  const [drafts, planned] = await Promise.all([
+    publishDb()
+      .from<{ scheduled_for: string; state: State }>("drafts")
+      .select("scheduled_for, state")
+      .eq("site_id", siteId)
+      .gte("scheduled_for", dates[0]!)
+      .lte("scheduled_for", dates[6]!),
+    publishDb()
+      .from<{ planned_for: string }>("opportunities")
+      .select("planned_for")
+      .eq("site_id", siteId)
+      .eq("status", "open")
+      .gte("planned_for", dates[0]!)
+      .lte("planned_for", dates[6]!),
+  ]);
+  if (drafts.error !== null || drafts.data === null || planned.error !== null || planned.data === null) return null;
+  const written = drafts.data;
+  const open = new Set(planned.data.map((row) => row.planned_for));
+  return dates.map((date): WeekDay => {
+    const onDay = written.filter((row) => row.scheduled_for === date);
+    if (onDay.length > 0) return { date, stopped: onDay.every((row) => row.state === "skipped" || row.state === "unpublished") };
+    return { date, stopped: open.has(date) ? false : null };
+  });
 }
 
 /** How much of the page the card quotes, in characters. Two sentences of

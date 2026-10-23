@@ -159,12 +159,11 @@ describe("SPEC §2, 2026-09-20 — the report's sections are held in place, so t
   // `skeleton` holding its place until then. No full-page wait."
   it.each([ARMS[2]!, ARMS[3]!])("%s draws the report's spine beside the stages", (_kind, state) => {
     const html = render(state);
-    // The four sections that have both a title of their own and a stage
-    // that produces them, in the report's order.
-    for (const title of ["verdict.score.label", "ai-answers.title", "presence.title", "free-page.title"]) {
+    // Board PubScanning's six cards, each bound to the stage that produces it.
+    for (const title of ["report.read.title", "scan.filling.readers", "scan.filling.competitors", "scan.get.score", "scan.filling.searches", "scan.filling.ai"]) {
       expect(html).toContain(title);
     }
-    expect(html.split('data-testid="scan-section"').length - 1).toBe(4);
+    expect(html.split('data-testid="scan-section"').length - 1).toBe(6);
   });
 
   it("each place is a daisyUI skeleton, and none is marked measured before its stage says so", () => {
@@ -173,7 +172,7 @@ describe("SPEC §2, 2026-09-20 — the report's sections are held in place, so t
     // Nothing has finished on a server render — no stream has been read —
     // so no section claims to have been measured.
     expect(html).not.toContain('data-done="true"');
-    expect(html.split('data-done="false"').length - 1).toBe(4);
+    expect(html.split('data-done="false"').length - 1).toBe(6);
   });
 
   it("the stages still stand beside them, and the waiting line with them", () => {

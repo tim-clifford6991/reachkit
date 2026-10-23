@@ -19,7 +19,6 @@
 // **Run this file with `--no-file-parallelism`** alongside the rest of the
 // `db` project — every file in it resets and rebuilds the same physical
 // `public` schema.
-import { execFileSync } from "node:child_process";
 import path from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { topicOf } from "../../../src/lib/db/topics";
@@ -28,6 +27,7 @@ import {
   psql,
   psqlRows,
   signJwt,
+  loopbackFetch,
 } from "../../db/substrate";
 
 const REPO_ROOT = path.resolve(import.meta.dirname, "../../..");
@@ -211,40 +211,6 @@ describe("the file is named for the topic that owns it", () => {
 
 function keyFor(role: string): string {
   return signJwt({ role, iss: "supabase", exp: Math.floor(Date.now() / 1000) + 3600 });
-}
-
-function loopbackFetch(input: RequestInfo | URL, init: RequestInit = {}): Promise<Response> {
-  const url =
-    typeof input === "string" ? input : input instanceof URL ? input.toString() : (input as Request).url;
-  if (!/^https?:\/\/127\.0\.0\.1(:\d+)?\//.test(url)) {
-    return Promise.reject(new Error(`loopbackFetch refuses non-loopback URL: ${url}`));
-  }
-  const headerEntries: [string, string][] = [];
-  if (init.headers) {
-    new Headers(init.headers as HeadersInit).forEach((value, key) => headerEntries.push([key, value]));
-  }
-  const bodyText = typeof init.body === "string" ? init.body : init.body ? String(init.body) : undefined;
-  const args = ["-s", "-i", "-X", init.method ?? "GET"];
-  for (const [key, value] of headerEntries) args.push("-H", `${key}: ${value}`);
-  if (bodyText !== undefined) args.push("--data-binary", "@-");
-  args.push(url);
-
-  const raw = execFileSync("curl", args, { input: bodyText, maxBuffer: 10 * 1024 * 1024 });
-  const separator = Buffer.from("\r\n\r\n");
-  const separatorIndex = raw.indexOf(separator);
-  const headerLines = raw.subarray(0, separatorIndex).toString("utf8").split("\r\n");
-  const responseHeaders = new Headers();
-  for (const line of headerLines.slice(1)) {
-    const idx = line.indexOf(":");
-    if (idx === -1) continue;
-    responseHeaders.append(line.slice(0, idx).trim(), line.slice(idx + 1).trim());
-  }
-  return Promise.resolve(
-    new Response(raw.subarray(separatorIndex + separator.length), {
-      status: Number((headerLines[0] ?? "").split(" ")[1] ?? "599"),
-      headers: responseHeaders,
-    })
-  );
 }
 
 const ENV_FIXTURE: Record<string, string> = {

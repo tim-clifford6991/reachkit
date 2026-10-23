@@ -8,22 +8,23 @@
 // Four predicates, each owned once and none re-derived here:
 //   1. the site's own local Monday, at its own due hour  — `week.ts`
 //   2. active access                                     — billing (`access.ts`)
-//   3. no weekly scan row for `(site_id, week_start)`     — `store.ts`
+//   3. no weekly scan row for `(site_id, week_start)`,
+//      or a released (`failed`) one inside the week      — `store.ts`
 //   4. a zone to decide 1 in                             — `store.ts`
 //
 // Three statements per tick, whatever the number of sites: the sites, the
-// gate, the weeks already stamped. The local-clock filter is arithmetic
+// weeks' rows, the gate. The local-clock filter is arithmetic
 // over rows already in hand, because no PostgREST filter can ask a
 // question in each row's own zone.
 //
 // The already-stamped exclusion is what makes a retry free: a site whose
-// run failed had its claim released and so carries no row, and is selected
-// again on the very next hourly tick — inside the same site-local week. A
-// site whose run completed, wholly or partly, carries its row and is never
-// selected again for that week.
+// run failed, or was refused for credit, had its claim released to a
+// `failed` row, and is selected again on every hourly tick after it until
+// its own week ends. A site whose run completed, wholly or partly, carries
+// its row and is never selected again for that week.
 import { sitesWithActiveAccess } from "./access";
-import { sitesWithAZone, weeksAlreadyStamped } from "./store";
-import { isWeeklyDue, weekKey, weekStartFor } from "./week";
+import { sitesWithAZone, weekStatuses } from "./store";
+import { isWeeklyDue, weekHasBegun, weekKey, weekStartFor } from "./week";
 
 /** One site due this hour, with the week the run belongs to. */
 export interface DueSite {
@@ -34,11 +35,17 @@ export interface DueSite {
 }
 
 export async function dueSites(now: Date): Promise<readonly DueSite[]> {
-  const candidates: DueSite[] = [];
+  const begun: DueSite[] = [];
   for (const site of await sitesWithAZone()) {
-    if (!isWeeklyDue({ at: now, zone: site.zone })) continue;
-    candidates.push({ ...site, weekStart: weekStartFor({ at: now, zone: site.zone }) });
+    if (!weekHasBegun({ at: now, zone: site.zone })) continue;
+    begun.push({ ...site, weekStart: weekStartFor({ at: now, zone: site.zone }) });
   }
+  const rows = begun.length === 0 ? new Map<string, string>() : await weekStatuses([...new Set(begun.map((site) => site.weekStart))]);
+  // Due in its Monday hour with no row yet, or at any hour of its week once its claim was released.
+  const candidates = begun.filter((site) => {
+    const key = weekKey(site);
+    return rows.get(key) === "failed" || (!rows.has(key) && isWeeklyDue({ at: now, zone: site.zone }));
+  });
   if (candidates.length === 0) {
     logSelection({ candidates: 0, due: 0 });
     return [];
@@ -48,17 +55,7 @@ export async function dueSites(now: Date): Promise<readonly DueSite[]> {
     "dueSites",
     candidates.map((site) => site.siteId)
   );
-  const paying = candidates.filter((site) => withAccess.has(site.siteId));
-  if (paying.length === 0) {
-    logSelection({ candidates: candidates.length, due: 0 });
-    return [];
-  }
-
-  const stamped = await weeksAlreadyStamped(
-    paying.map((site) => site.siteId),
-    [...new Set(paying.map((site) => site.weekStart))]
-  );
-  const due = paying.filter((site) => !stamped.has(weekKey(site)));
+  const due = candidates.filter((site) => withAccess.has(site.siteId));
   logSelection({ candidates: candidates.length, due: due.length });
   return due;
 }

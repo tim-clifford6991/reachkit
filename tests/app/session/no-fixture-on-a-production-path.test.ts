@@ -39,8 +39,7 @@
 // A fixture module importing another fixture module is not a production
 // path either.
 //
-// **The allow-list is data, one entry one reason** — the same idiom
-// `tests/presentation/copy/allowlist.ts` uses, and for the same reason: a
+// **The allow-list is data, one entry one reason**: a
 // blanket exemption would swallow the next one silently, and an entry
 // somebody has to write is one a reviewer can see.
 import { readFileSync, readdirSync, statSync } from "node:fs";

@@ -31,6 +31,10 @@ export interface MainSite {
    *  business's own site, at most one of each and never two at one address.
    *  Empty where it links none, or on a reading stored before. */
   actions: readonly { kind: MainSiteActionKind; url: string }[];
+  /** The phone number the main site states, as it writes it: its
+   *  Organization's `telephone`, else its home's first `tel:` link. `null`
+   *  where it states none, or on a reading stored before. */
+  phone: string | null;
 }
 
 /** One about or team page of the main site, as the scan read it. */
@@ -40,18 +44,6 @@ export interface AboutPage {
   text: string;
   /** The profile pages it links. */
   profiles: readonly string[];
-}
-
-/** What Overview says about the main-site link (SPEC §7, 2026-10-18):
- *  drawn only while the main site does not link the content host, or links
- *  it without letting search engines follow
- *  (`publish/destinations/hosted/main-link.ts`). */
-export interface MainSiteLinkFinding {
-  state: "not_linked" | "not_followed";
-  /** The content host the link points at. */
-  host: string;
-  /** The anchor to copy into the main site. */
-  snippet: string;
 }
 
 function isHttp(value: unknown): value is string {
@@ -100,5 +92,14 @@ export function mainSiteOf(value: unknown): MainSite | null {
             : [];
         })
       : [],
+    phone: phoneOf(row.phone),
   };
+}
+
+/** A number as a page may show it: digits with the usual separators, and
+ *  at least six digits, so a stored word is never drawn as a phone. */
+export function phoneOf(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const phone = value.replace(/\s+/g, " ").trim();
+  return /^\+?[\d ()./-]{6,30}$/.test(phone) && (phone.match(/\d/g) ?? []).length >= 6 ? phone : null;
 }

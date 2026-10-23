@@ -31,6 +31,8 @@ export interface Example {
   readonly blog: string;
   /** Who searches, as the visuals' headings say it. */
   readonly buyers: string;
+  /** Where the example page's business works, as its eyebrow says it. */
+  readonly place: string;
   readonly pagesRead: number;
   readonly read: {
     readonly sell: readonly [string, string];
@@ -49,16 +51,36 @@ export interface Example {
   readonly answer: string;
   readonly mentioned: readonly string[];
   readonly tally: { readonly n: number; readonly total: number };
+  /** The competitors watched every Monday, as their chips read. */
+  readonly watched: readonly string[];
   readonly questions: readonly { readonly search: string; readonly volume: number; readonly reason: Reason }[];
   /** Monday to Sunday. */
   readonly plan: readonly PlannedDay[];
   readonly pagePath: string;
   readonly page: {
     readonly title: string;
-    readonly facts: readonly { readonly text: string; readonly source: string }[];
+    /** Paragraphs of the page; a fact carries the path it came from, a plain sentence `null`. */
+    readonly paragraphs: readonly (readonly { readonly text: string; readonly source: string | null }[])[];
     readonly never: string;
   };
-  readonly mail: { readonly name: string; readonly week: number; readonly live: number; readonly planned: number; readonly linked: number };
+  readonly mail: {
+    readonly name: string;
+    readonly week: number;
+    readonly live: number;
+    readonly planned: number;
+    readonly linked: number;
+    readonly climbing: number;
+    /** Why each of the week's first two pages was planned, as the email says it. */
+    readonly why: readonly [string, string];
+  };
+  /** The page Your part shows going live by itself. */
+  readonly partPage: string;
+  /** The goal drawn in step 4: the business's page first on Google, and mentioned with a link by AI. */
+  readonly goal: {
+    readonly search: string;
+    readonly below: { readonly name: string; readonly url: string; readonly title: string };
+    readonly answer: string;
+  };
   readonly area: string;
   readonly report: { readonly score: number; readonly mentioned: number; readonly asked: number; readonly missing: number };
 }
@@ -68,6 +90,7 @@ const HARBOR: Example = {
   site: SPECIMEN_HERO_DOMAIN,
   blog: SPECIMEN_HERO_BLOG,
   buyers: "Austin buyers",
+  place: "Austin",
   pagesRead: 38,
   read: {
     sell: ["Plumbing repair, water heaters and drain cleaning for homes", "/services"],
@@ -95,7 +118,7 @@ const HARBOR: Example = {
   ],
   search: "emergency plumber austin",
   results: [
-    { name: "A national plumbing chain", url: "nationalchain.example", title: "24/7 Emergency Plumbers in Austin, TX" },
+    { name: "A national plumbing chain", url: "a national chain’s site › austin", title: "24/7 Emergency Plumbers in Austin, TX" },
     { name: "Austin Pipeworks", url: "austinpipeworks.example", title: "Emergency Plumbing Service, Same Day" },
     { name: "Capitol Rooter", url: "capitolrooter.example", title: "Austin Emergency Rooter and Plumbing" },
   ],
@@ -104,6 +127,7 @@ const HARBOR: Example = {
     "For a burst pipe or no hot water, many Austin homeowners call Austin Pipeworks or Capitol Rooter. Both offer call-outs around the clock.",
   mentioned: ["austinpipeworks.example", "capitolrooter.example"],
   tally: { n: 1, total: 12 },
+  watched: ["a national plumbing chain", "austinpipeworks.example", "capitolrooter.example"],
   questions: [
     { search: "water heater repair austin", volume: 1300, reason: "rival" },
     { search: "drain cleaning austin", volume: 880, reason: "fits" },
@@ -113,7 +137,7 @@ const HARBOR: Example = {
   ],
   plan: [
     { kind: "new", title: "Emergency plumber in Austin: what to do in the first hour", reason: "AI answers link to a competitor for this.", state: "live" },
-    { kind: "update", title: "Toilet repair in Austin: running, leaking or clogged", reason: "Stopped gaining for three weeks.", state: "waiting" },
+    { kind: "update", title: "Toilet repair in Austin: running, leaking or clogged", reason: "Stopped gaining at place 18 for 3 weeks.", state: "waiting" },
     { kind: "new", title: "How much does slab leak repair cost in Austin?", reason: "Buyers ask this before they call.", state: "planned" },
     { kind: "update", title: "Drain cleaning in Austin: prices and what’s included", reason: "A competitor answers this today.", state: "planned" },
     { kind: "new", title: "Why a water heater pops, and when to call", reason: "Asked to AI every week.", state: "planned" },
@@ -123,14 +147,34 @@ const HARBOR: Example = {
   pagePath: "/slab-leak-repair-cost",
   page: {
     title: "How much does slab leak repair cost in Austin?",
-    facts: [
-      { text: "Harbor Plumbing finds a slab leak with listening equipment before opening any floor.", source: "/slab-leaks" },
-      { text: "Every job starts with a written quote, before any work begins.", source: "/about" },
-      { text: "Most slab leak repairs are finished in one day.", source: "/services" },
+    paragraphs: [
+      [
+        { text: "Harbor Plumbing finds a slab leak with listening equipment before opening any floor.", source: "/slab-leaks" },
+        { text: "The price depends on where the leak is and how it is reached.", source: null },
+        { text: "Every job starts with a written quote, before any work begins.", source: "/about" },
+      ],
+      [{ text: "Most slab leak repairs are finished in one day.", source: "/services" }],
     ],
     never: "“Austin’s cheapest plumber”",
   },
-  mail: { name: "Dana", week: 3, live: 12, planned: 7, linked: 2 },
+  mail: {
+    name: "Dana",
+    week: 3,
+    live: 12,
+    planned: 7,
+    linked: 2,
+    climbing: 3,
+    why: [
+      "your core service; AI answers link to a competitor for it",
+      "stopped gaining at place 18 for 3 weeks; this update adds what the pages above it cover",
+    ],
+  },
+  partPage: "Tankless water heater installation in Austin",
+  goal: {
+    search: "slab leak repair cost austin",
+    below: { name: "Capitol Rooter", url: "capitolrooter.example", title: "Slab Leak Repair in Austin" },
+    answer: "… Harbor Plumbing lists its slab leak prices and offers same-day call-outs.",
+  },
   area: "Austin, Texas",
   report: { score: 27, mentioned: 1, asked: 12, missing: 14 },
 };
@@ -140,11 +184,12 @@ const TIDYSLOT: Example = {
   site: "tidyslot.example",
   blog: "blog.tidyslot.example",
   buyers: "team leads",
+  place: "online",
   pagesRead: 54,
   read: {
     sell: ["Booking software for small teams", "/product"],
     buyers: ["Team leads at small firms", "/customers"],
-    where: ["Online, in the US and the UK", "/pricing"],
+    where: ["Online, US and UK", "/pricing"],
     language: "English, United States",
   },
   slowPages: 3,
@@ -175,8 +220,9 @@ const TIDYSLOT: Example = {
   answer: "Many small teams use Bookwell or Slotly. Both sync with Outlook and Google and send reminders.",
   mentioned: ["bookwell.example", "slotly.example"],
   tally: { n: 0, total: 12 },
+  watched: ["bookwell.example", "slotly.example", "a software review site"],
   questions: [
-    { search: "team booking software", volume: 1900, reason: "rival" },
+    { search: "calendar booking for teams", volume: 1900, reason: "rival" },
     { search: "how to stop double bookings", volume: 720, reason: "gap" },
     { search: "booking link for outlook", volume: 590, reason: "fits" },
     { search: "round robin booking", volume: 320, reason: "update" },
@@ -184,7 +230,7 @@ const TIDYSLOT: Example = {
   ],
   plan: [
     { kind: "new", title: "How to stop double bookings across Outlook and Google", reason: "AI answers link to a competitor for this.", state: "live" },
-    { kind: "update", title: "Round-robin booking, explained", reason: "Stopped gaining for three weeks.", state: "waiting" },
+    { kind: "update", title: "Round-robin booking, explained", reason: "Stopped gaining at place 18 for 3 weeks.", state: "waiting" },
     { kind: "new", title: "How to cut no-shows with reminders", reason: "Buyers ask this before they choose.", state: "planned" },
     { kind: "update", title: "Booking software pricing for small teams", reason: "A competitor answers this today.", state: "planned" },
     { kind: "new", title: "Shared team availability in one link", reason: "Asked to AI every week.", state: "planned" },
@@ -194,14 +240,34 @@ const TIDYSLOT: Example = {
   pagePath: "/stop-double-bookings",
   page: {
     title: "How to stop double bookings across Outlook and Google",
-    facts: [
-      { text: "Tidyslot checks every connected diary before it offers a time.", source: "/product" },
-      { text: "A booking made in one diary blocks the same slot in the others.", source: "/product/sync" },
-      { text: "Setup takes one sign-in per diary.", source: "/help/connect" },
+    paragraphs: [
+      [
+        { text: "Tidyslot checks every connected diary before it offers a time.", source: "/product" },
+        { text: "How fast it syncs depends on the diaries you connect.", source: null },
+        { text: "A booking made in one diary blocks the same slot in the others.", source: "/product/sync" },
+      ],
+      [{ text: "Setup takes one sign-in per diary.", source: "/help/connect" }],
     ],
     never: "“The only tool that never double-books”",
   },
-  mail: { name: "Sam", week: 3, live: 12, planned: 7, linked: 3 },
+  mail: {
+    name: "Sam",
+    week: 3,
+    live: 12,
+    planned: 7,
+    linked: 3,
+    climbing: 4,
+    why: [
+      "your core feature; AI answers link to a competitor for it",
+      "stopped gaining at place 18 for 3 weeks; this update adds what the pages above it cover",
+    ],
+  },
+  partPage: "Booking links for teams: what to look for",
+  goal: {
+    search: "how to stop double bookings",
+    below: { name: "Bookwell", url: "bookwell.example", title: "Stop Double Bookings for Good" },
+    answer: "… Tidyslot checks every connected diary before it offers a time.",
+  },
   area: "online",
   report: { score: 31, mentioned: 0, asked: 12, missing: 11 },
 };
@@ -223,10 +289,25 @@ export function weekDays(): readonly string[] {
   });
 }
 
+/** One day of the drawn week with its month, as "Tue 20 Oct". */
+export function weekDate(day: number): string {
+  const month = new Date(WEEK_MONDAY).toLocaleDateString("en-US", { month: "short", timeZone: "UTC" });
+  return `${weekDays()[day]} ${month}`;
+}
+
+/** The drawn week's span and the Monday's date, with the month: "Mon 19 – Sun 25 Oct". */
+export function weekSpan(): { readonly range: string; readonly monday: string } {
+  const monday = weekDate(0);
+  return { range: `${weekDays()[0]} – ${weekDate(6)}`, monday };
+}
+
 /** The published benchmark the value comparison quotes, shown with its
  *  source: Ahrefs, "SEO Pricing", 439 providers polled, updated 2024-08-15. */
 export const AGENCY_BENCHMARK = Object.freeze({
   fee: "$501–$1,000",
+  /** The same fee on the cost chart's scale, in dollars a month. */
+  low: 501,
+  high: 1000,
   providers: 439,
   year: 2024,
   url: "https://ahrefs.com/blog/seo-pricing/",

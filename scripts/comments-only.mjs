@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 // Proves a change touched comments only: each file's esbuild output, with comments stripped, is byte-identical to the base ref's.
+// `minifyWhitespace` because esbuild otherwise keeps a comment that sits inside an expression.
 // Usage: node scripts/comments-only.mjs [base-ref] [file ...]   (defaults: origin/main, every .ts/.tsx changed since it)
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
@@ -10,7 +11,7 @@ const git = (...args) => execFileSync("git", args, { encoding: "utf8", maxBuffer
 const files = named.length > 0 ? named : git("diff", "--name-only", "--diff-filter=M", base, "--", "*.ts", "*.tsx").split("\n").filter(Boolean);
 
 const strip = (source, file) =>
-  transformSync(source, { loader: file.endsWith(".tsx") ? "tsx" : "ts", format: "esm", legalComments: "none", jsx: "preserve" }).code;
+  transformSync(source, { loader: file.endsWith(".tsx") ? "tsx" : "ts", format: "esm", legalComments: "none", minifyWhitespace: true, jsx: "preserve" }).code;
 
 let differs = 0;
 for (const file of files) {

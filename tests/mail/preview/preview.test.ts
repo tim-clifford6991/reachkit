@@ -25,6 +25,7 @@ const {
   composePreview,
   composeRetentionPreview,
   composeUnmeasuredWeek,
+  composeWaitingForAddress,
   EVERY_MAIL_KIND,
   NOT_PREVIEWABLE,
   PREVIEW_KINDS,
@@ -166,25 +167,35 @@ describe("issue #376 — the shell renders S20, and every kind the set draws wea
     writeSample("weekly-unmeasured", mail, "variant");
   });
 
-  it("the Monday mail leads with the headline numbers, the pages cited first, and the score is not in it", async () => {
-    // SPEC §8 (2026-10-07, issue 1329; order: issue 1551). The figures are the fixture's.
+  it("the page-ready mail for an unconnected address carries the setting below its line", async () => {
+    const mail = await composeWaitingForAddress();
+    const line = mail.text.indexOf(COPY["mail.draftReady.dest.addressNotConnected"].split("{site}")[0]!);
+    const record = mail.text.indexOf(`${COPY["mail.draftReady.record.type"]}: CNAME`);
+    expect(line).toBeGreaterThan(-1);
+    expect(record).toBeGreaterThan(line);
+    expect(mail.text).toContain(`${COPY["mail.draftReady.record.name"]}: help`);
+    expect(mail.text).toContain(`${COPY["mail.draftReady.record.value"]}: hosted.example.net`);
+    expect(mail.html).toContain("hosted.example.net");
+
+    writeSample("draft-ready-waiting-for-address", mail, "variant");
+  });
+
+  it("the Monday mail leads with Overview's numbers: Pages, Google, AI, then the month's", async () => {
     const mail = await composePreview("weekly");
     const numbers = [
-      `${COPY["mail.weekly.number.pageQuestions"]}: 2 · of 4 pages asked, this week`,
-      `${COPY["mail.weekly.number.aiVisits"]}: at least 12 · pages read, last 7 days`,
-      `${COPY["mail.weekly.number.top20"]}: 5 (+2)`,
-      `${COPY["mail.weekly.number.pagesCited"]}: 3 · in AI answers, last 4 weeks`,
-      `${COPY["mail.weekly.number.mentionRate"]}: 34% · likely 22–48%`,
+      `${COPY["mail.weekly.pages.live"]}: 12`,
+      `${COPY["mail.weekly.pages.planned"]}: 7`,
+      `${COPY["draft.ladder.found"]}: 11 · of 12 live pages`,
     ];
     // The twin states them one to a line, straight under the heading and
     // above everything else the mail says.
-    expect(mail.text).toContain([COPY["mail.weekly.heading"], numbers.join("\n")].join("\n\n"));
+    expect(mail.text).toContain([COPY["mail.weekly.heading"], numbers.slice(0, 2).join("\n")].join("\n\n"));
+    expect(mail.text).toContain(numbers[2]);
     const firstOf = (body: string, parts: readonly string[]): number => Math.min(...parts.map((part) => body.indexOf(part)));
     const after = [COPY["mail.weekly.verdicts"], COPY["mail.weekly.next"], COPY["mail.weekly.action"]];
     for (const body of [mail.html, mail.text]) {
-      expect(body.indexOf(COPY["mail.weekly.number.aiVisits"])).toBeGreaterThan(0);
-      expect(body.indexOf(COPY["mail.weekly.number.aiVisits"])).toBeLessThan(firstOf(body, after));
-      expect(body).not.toMatch(/Visibility Score/i);
+      expect(body.indexOf(COPY["mail.weekly.month.reputation"])).toBeGreaterThan(body.indexOf(COPY["mail.weekly.ai.linked"]));
+      expect(body.indexOf(COPY["mail.weekly.month.reputation"])).toBeLessThan(firstOf(body, after));
     }
   });
 

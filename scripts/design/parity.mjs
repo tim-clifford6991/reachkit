@@ -22,8 +22,8 @@ const BLOCK = new Set([
   "select", "hr",
 ]);
 const LABELLED = new Set(["input", "textarea", "button", "a"]);
-// A board's own annotations: the "Other states" strip and the designer's notes.
-const BOARD_ONLY = ["states", "note"];
+// A board's own annotations: the "Other states" strip, the designer's notes and the labels over each state.
+const BOARD_ONLY = ["states", "note", "statetag"];
 
 /** The visible strings of a document, one per block. `board` drops the board's annotations. */
 export function segments(html, { board = false } = {}) {
@@ -136,7 +136,8 @@ export function parseAllow(text) {
   return text
     .split("\n")
     .map((line, i) => ({ line, n: i + 1 }))
-    .filter(({ line }) => line.trim() !== "" && !line.startsWith("#"))
+    // A comment has no tab; a board string that starts with "#" (a Markdown heading) still has its reason.
+    .filter(({ line }) => line.trim() !== "" && !(line.startsWith("#") && !line.includes("\t")))
     .map(({ line, n }) => {
       const [string = "", reason = "", ...rest] = line.split("\t");
       return { n, string: string.trim(), reason: reason.trim(), extra: rest.length };

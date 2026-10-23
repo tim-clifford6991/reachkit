@@ -7,11 +7,9 @@
 // where it was read; **what gets published** (address, title, description,
 // structured data, links, length); the checks."
 //
-// *Why this page* is `TargetBlock`'s and the checks are `DecidePanel`'s, both
-// already on this screen. The three here are the ones §7 names that nothing
-// drew: what a search result looks like (drawn inside `TargetBlock`'s card
-// since #1072), what the page stands on, and what actually leaves the
-// building.
+// *Why this page* is `TargetBlock`'s. The notes here are board `AppDraft`'s,
+// in its order: the checks, the search result, what the page stands on, what
+// it adds and its links.
 //
 // daisyUI in the route: `card`, `card-body`, `list`, `list-row`, `badge`,
 // `link`. lucide at 1.75. No library added and no stylesheet.
@@ -27,10 +25,11 @@
 // a value and carries `.num`, so where it will not fit the box grows taller
 // (`src/ui/type.css` states that rule and why).
 import type React from "react";
-import { FileText, Link2, Quote, Search, Sparkles } from "lucide-react";
+import { Check, Link2, LoaderCircle, Minus, Quote, Search, ShieldCheck, Sparkles, X } from "lucide-react";
 import { copy } from "@/lib/presentation/copy";
 import { formatDate } from "../../_shell/format";
 import { CLOSED } from "../../_overview/present";
+import type { CheckList, CheckRow, CheckStatus } from "./checks";
 import { pageLinksEmpty, type LinkGroup, type LinkLive, type PageLink, type PageLinks } from "./links-panel";
 import {
   PACK_NEED_COPY,
@@ -76,17 +75,6 @@ function readableAddress(url: string): string {
     return url;
   }
 }
-
-/** A declared scroll box for a value that may not fit its column.
- *
- *  `src/ui/type.css`: an address is a value, and a value is never rewritten
- *  to fit — "the *box* changes, with the `overflow-x-auto` wrap" (ADR-093),
- *  which is the one scroll container `tests/ui/layout/checks.ts`
- *  allow-lists. `tabIndex` only where nothing inside it already takes
- *  focus: a scroller a mouse can reach and a keyboard cannot is its own axe
- *  failure (`scrollable-region-focusable`), and a second tab stop around a
- *  link is noise. */
-const VALUE_BOX = "min-w-0 max-w-full overflow-x-auto";
 
 /** Between a public page's name and the day it was read. */
 const PACK_SEPARATOR = " · ";
@@ -148,6 +136,7 @@ export function SearchResult(p: {
                 </span>
               )}
             </div>
+            <p className="text-xs text-base-content/70">{copy("draft.search-result.caption")}</p>
           </div>
         </details>
       </div>
@@ -614,128 +603,99 @@ export function LinksCard(p: { links: PageLinks }): React.JSX.Element | null {
   );
 }
 
-/**
- * What gets published.
- *
- * §7 names five things: address, title, description, structured data, links
- * and length. Every one is counted off the body in front of the customer, so
- * the card cannot disagree with the page above it.
- *
- * **The structured-data line names what is told to a search engine rather
- * than showing it.** A reviewer is owed the fact that an article and some
- * number of questions and answers are declared; the JSON-LD itself is the
- * hosted route's and is not a thing a person reads.
- */
-export function WhatPublishesCard(p: {
-  publisher: Publisher;
-  title: string;
-  description: string;
-  /** Counted from the body by the caller, which already parsed it. */
-  counts: { links: number; questions: number; characters: number };
-}): React.JSX.Element {
-  const rows: readonly {
-    key: string;
-    label: string;
-    value: string;
-    value_num: boolean;
-  }[] = [
-    {
-      key: "address",
-      label: copy("draft.publishes.address"),
-      // **Never a host printed as though it were the page's address.** A
-      // page in review has no address: the destination decides the slug at
-      // publication and nothing has recorded one, so the row says so rather
-      // than showing `example.com` under the word *Address*.
-      value: p.publisher.addressRecorded
-        ? readableAddress(p.publisher.url)
-        : copy("draft.publishes.address.pending", { domain: p.publisher.name }),
-      value_num: p.publisher.addressRecorded,
-    },
-    {
-      key: "title",
-      label: copy("draft.publishes.title-row"),
-      value: p.title,
-      value_num: false,
-    },
-    {
-      key: "description",
-      label: copy("draft.publishes.description"),
-      value: p.description,
-      value_num: false,
-    },
-    {
-      key: "schema",
-      label: copy("draft.publishes.schema"),
-      // "an article, plus 0 questions and answers" is a sentence about
-      // nothing: with no question heading in the body there is no FAQ block
-      // to declare, so the row names the one thing that is.
-      value:
-        p.counts.questions === 0
-          ? copy("draft.publishes.schema.article")
-          : copy("draft.publishes.schema.value", {
-              n: String(p.counts.questions),
-            }),
-      value_num: false,
-    },
-    {
-      key: "links",
-      label: copy("draft.publishes.links"),
-      value: String(p.counts.links),
-      value_num: true,
-    },
-    {
-      key: "length",
-      label: copy("draft.publishes.length"),
-      value: copy("draft.publishes.length.value", {
-        n: String(p.counts.characters),
-      }),
-      value_num: true,
-    },
-  ];
+/** A row's mark: a ring and a glyph. Green for a pass; the quiet ink for a
+ *  rule the page was not asked, one it failed and the one still running. */
+const RING = "grid size-5 shrink-0 place-items-center rounded-full";
+const QUIET = `${RING} bg-base-200 text-base-content/70`;
+const MARK: Readonly<Record<CheckStatus, { ring: string; Icon: typeof Check }>> = {
+  passed: { ring: `${RING} bg-success/15 text-success`, Icon: Check },
+  skipped: { ring: QUIET, Icon: Minus },
+  failed: { ring: QUIET, Icon: X },
+  pending: { ring: QUIET, Icon: LoaderCircle },
+};
 
+/** What a row that is not a pass says under its sentence. */
+function statusLine(status: CheckStatus): string | null {
+  if (status === "skipped") return copy("draft.checks.status.skipped");
+  if (status === "failed") return copy("draft.checks.status.failed");
+  return status === "pending" ? copy("draft.claim.outstanding") : null;
+}
+
+function CheckItem(p: { row: CheckRow }): React.JSX.Element {
+  const { ring, Icon } = MARK[p.row.status];
+  const status = statusLine(p.row.status);
   return (
-    <section className={NOTE.card} data-testid="draft-publishes">
+    <li className="flex items-start gap-2.5" data-testid={`draft-check-${p.row.rule}`} data-status={p.row.status}>
+      <span className={ring} aria-hidden>
+        <Icon size={12} strokeWidth={2.5} />
+      </span>
+      <span className="flex min-w-0 flex-col">
+        <span className={p.row.status === "passed" ? undefined : "text-base-content/70"}>{copy(p.row.key, p.row.vars)}</span>
+        {status === null ? null : <span className="text-xs text-base-content/70">{status}</span>}
+      </span>
+    </li>
+  );
+}
+
+/** What the reader is owed first: a rule that did not pass, then the passes. */
+const FIRST: Readonly<Record<CheckStatus, number>> = { failed: 0, pending: 1, passed: 2, skipped: 3 };
+
+/** How many rows the closed card names before "and {n} more". */
+export const CHECKS_SHOWN = 5;
+
+/**
+ * The checks (SPEC §7; board `AppDraft`): the count in the card's one closed
+ * line, then the first rows and the rest one level further down, and how the
+ * battery decides. The count is the battery's own (E10).
+ */
+export function ChecksCard(p: { list: CheckList }): React.JSX.Element | null {
+  const { rows, counts } = p.list;
+  if (rows.length === 0) return null;
+  const ordered = [...rows].sort((a, b) => FIRST[a.status] - FIRST[b.status]);
+  const shown = ordered.slice(0, CHECKS_SHOWN);
+  const rest = ordered.slice(CHECKS_SHOWN);
+  const allPassed = counts !== null && counts.failed === 0 && !rows.some((row) => row.status === "pending");
+  return (
+    <section className={NOTE.card} data-testid="draft-checks">
       <div className={NOTE.pad}>
         <details className={CLOSED.root}>
           <summary className={CLOSED.head}>
             <h2 className={CARD_HEAD}>
-              <FileText size={14} strokeWidth={1.75} aria-hidden />
-              {copy("draft.publishes.title")}
+              <ShieldCheck size={14} strokeWidth={1.75} aria-hidden />
+              <span data-testid="draft-checks-headline">
+                {counts === null
+                  ? copy("draft.checks.title")
+                  : copy("draft.checks.headline", { passed: counts.passed, total: counts.total })}
+              </span>
+              {allPassed ? <span className="badge badge-soft badge-success badge-sm">{copy("draft.checks.all-passed")}</span> : null}
             </h2>
           </summary>
           <div className={CLOSED.body}>
-            {/* `dt`/`dd` are the grid's own children — **no `display: contents`
-                wrapper around each pair.** An element with no box of its own
-                makes every child read as escaping its parent, which is 12
-                containment offenders on this card alone and a real defect the
-                first time a value needs to be measured against its column.
-                A flat list of cells is what a two-column `dl` is. */}
-            <dl className="grid min-w-0 grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-2 text-sm">
-              {rows
-                .filter((row) => row.value !== "")
-                .flatMap((row) => [
-                  <dt
-                    className="min-w-0 text-base-content/70"
-                    key={`${row.key}-label`}
-                  >
-                    {row.label}
-                  </dt>,
-                  <dd
-                    className={
-                      row.value_num
-                        ? `num num-phrase ${VALUE_BOX}`
-                        : "min-w-0 wrap-anywhere"
-                    }
-                    data-testid={`draft-publishes-${row.key}`}
-                    key={`${row.key}-value`}
-                    // A value gets the box; a sentence (the title, the
-                    // description) wraps at its spaces and needs none.
-                    tabIndex={row.value_num ? 0 : undefined}
-                  >
-                    {row.value}
-                  </dd>,
-                ])}
-            </dl>
+            <div className={`${NOTE.inner} text-sm`}>
+              <ul className="flex flex-col gap-2.5">
+                {shown.map((row) => (
+                  <CheckItem row={row} key={row.rule} />
+                ))}
+              </ul>
+              {rest.length === 0 ? null : (
+                <details className="collapse collapse-arrow min-w-0 rounded-none" data-testid="draft-checks-more">
+                  <summary className="collapse-title min-h-0 p-0 pe-10 text-base-content/70">
+                    {copy("draft.checks.more", { n: String(rest.length) })}
+                  </summary>
+                  <ul className="collapse-content flex flex-col gap-2.5 px-0 pt-2">
+                    {rest.map((row) => (
+                      <CheckItem row={row} key={row.rule} />
+                    ))}
+                  </ul>
+                </details>
+              )}
+              {counts === null || counts.fixed === 0 ? null : (
+                <p className="text-xs text-base-content/70" data-testid="draft-checks-fixed">
+                  {copy("draft.checks.count.fixed", { n: counts.fixed })}
+                </p>
+              )}
+              <p className="text-base-content/70">{copy("draft.checks.decided")}</p>
+            </div>
           </div>
         </details>
       </div>

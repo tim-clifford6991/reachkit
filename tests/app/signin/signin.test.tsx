@@ -131,10 +131,8 @@ describe('REQ-098 c2 — "then it carries these strings verbatim: the heading �
     vi.resetModules();
     const { copy } = await import("@/lib/presentation/copy");
     expect(copy("signin.heading")).toBe("Welcome back");
-    expect(copy("signin.body")).toBe(
-      "Enter the email you paid with and we'll send you a sign-in link. No password: accounts are created by payment."
-    );
-    expect(copy("signin.field.placeholder")).toBe("you@company.com");
+    expect(copy("signin.body")).toBe("Enter the email you paid with. We’ll send you a link to sign in. There is no password.");
+    expect(copy("signin.field.placeholder")).toBe("you@example.com");
     // Changed 2026-09-21 (#937): REQ-098 c2 wrote "Send my link" for a
     // screen that drew nothing else; the 2026-09-20 board says which link
     // it sends, which is the only question a reader has at this control.
@@ -216,6 +214,7 @@ describe('SPEC §3 — "Sign-in copy is identical whatever the address, revealin
     await expect(sendLink(SIGN_IN_INITIAL, form)).resolves.toEqual({
       answer: "requested",
       value: "someone@example.com",
+      sentAt: expect.any(Number),
     });
     expect(requestMagicLink).toHaveBeenCalledWith("someone@example.com");
     vi.doUnmock("@/lib/account/provisioning/magic-link");
@@ -326,8 +325,8 @@ describe("against the real registry — every arm renders, and nothing is invent
 
   it("the answered arm echoes the address they typed, and looks none up", async () => {
     const text = await renderReal({ answer: "requested", value: "someone@example.com" });
-    // `signin.sent.to` is the set's own line, written: "sent to {address}".
-    expect(text).toContain("sent to someone@example.com");
+    // `signin.sent.to` is the board's own line: "Sent to {address}".
+    expect(text).toContain("Sent to someone@example.com");
   });
 
   it("every owed line on every arm is the marker, never a sentence somebody supplied", async () => {

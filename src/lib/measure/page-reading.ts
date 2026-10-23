@@ -49,6 +49,7 @@ export interface PlaceReport {
       cell: LinkCell;
       engines: readonly { engine: string; cell: LinkCell }[];
       organic?: readonly PlacedUrl[] | null;
+      depth?: number;
     }[];
   } | null;
   verdict: { measuredAt: Date };
@@ -132,14 +133,18 @@ export function searchRowsFor(report: PlaceReport, query: string, opts: { tracke
 
   const key = normalised(query);
   let serp: readonly PlacedUrl[] | null = null;
+  let deep = false;
   for (const row of report.pageQuestions?.rows ?? []) {
-    if (serp === null && row.organic != null && normalised(row.question.search) === key) serp = row.organic;
+    if (serp !== null || row.organic == null || normalised(row.question.search) !== key) continue;
+    serp = row.organic;
+    // A result read past the verdict's line says a page absent from it is not there.
+    deep = (row.depth ?? VENDOR.serpDepth) >= TRACKED_DEPTH;
   }
   if (report.ownRanked.kind === "unmeasured") {
     if (serp === null) return unmeasured<SearchRows>(report.ownRanked.reason, at);
-    return measured<SearchRows>({ serp, ranked: [], complete: false }, at);
+    return measured<SearchRows>({ serp, ranked: [], complete: deep }, at);
   }
-  return measured<SearchRows>({ serp, ranked: rankedRowsFor(report, query), complete: opts.tracked && rankedComplete(report) }, at);
+  return measured<SearchRows>({ serp, ranked: rankedRowsFor(report, query), complete: deep || (opts.tracked && rankedComplete(report)) }, at);
 }
 
 /** The page's best row on its own result, else in the ranked rows. */

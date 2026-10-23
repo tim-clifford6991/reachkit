@@ -7,23 +7,19 @@
 // file and for `DraftScreen` alike, so the panel is under the page on a
 // phone and beside it from `xl` in both.
 import type React from "react";
-import { Box, CardSkeleton, PageSkeleton, TilesSkeleton, Waiting } from "../../_shell/skeletons";
+import { Box, CardSkeleton, PageSkeleton, Waiting } from "../../_shell/skeletons";
 import { NOTE } from "./ReviewCards";
 import { SHAPE } from "./shape";
 
-/** The numbers' own grid (`TargetNumbers.tsx`). */
-const NUMBERS_GRID = "grid-cols-2 gap-3";
-
 /** The notes a page in review most often holds. */
-const NOTES = 4;
+const NOTES = 5;
 
 export default function DraftLoading(): React.JSX.Element {
   return (
     <div className="flex min-w-0 flex-col gap-4 max-md:pb-20" data-testid="draft-waiting">
       <div className={SHAPE.grid}>
         <div className={SHAPE.page}>
-          {/* The page's two numbers (SPEC §7, 2026-10-09, issue 1364). */}
-          <TilesSkeleton count={2} grid={NUMBERS_GRID} />
+          <CardSkeleton testId="why-skeleton" rows={2} />
           <PageSkeleton />
         </div>
         <div className={SHAPE.decide}>

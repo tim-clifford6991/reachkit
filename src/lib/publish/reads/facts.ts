@@ -19,7 +19,7 @@
 // zeroes.
 import { dbAdmin } from "@/lib/db";
 import { BLOG_READS_WINDOW_D } from "@/lib/config/constants";
-import { AI_BLOG_ENGINES } from "@/lib/config/constants";
+import { AI_BLOG_ENGINES, BLOG_READS_RETENTION_W } from "@/lib/config/constants";
 import { BLOG_READ_KINDS } from "@/lib/publish/reads/classify";
 import { readBlogReads } from "@/lib/publish/reads/store";
 import { windowStartDay, type BlogReadsFacts } from "./model";
@@ -82,9 +82,9 @@ export async function readBlogReadFacts(
     liveHostedPages(site.siteId),
     readBlogReads({
       siteId: site.siteId,
-      // This window and the one before it: the model reads the change
-      // against the earlier one (issue 1364).
-      sinceDay: windowStartDay(at, windowDays * 2),
+      // This window and the one before it, for the change (issue 1364), and
+      // every week kept, for the weekly reads.
+      sinceDay: windowStartDay(at, Math.max(windowDays * 2, BLOG_READS_RETENTION_W * 7)),
       knownEngines: AI_BLOG_ENGINES,
       knownKinds: BLOG_READ_KINDS,
     }),

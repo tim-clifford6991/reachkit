@@ -140,6 +140,7 @@ function makeBounds(a: {
   ceilingS: number;
   clock: () => Date;
   cost: CapReader;
+  holdBackCents: number;
 }): Bounds & { abandon(): void } {
   // The pass's own ceiling (issue 855). The free report's 50 s used to be
   // read here for every tier, so a deep pass — which nobody waits on and
@@ -160,7 +161,7 @@ function makeBounds(a: {
       return a.cost.capHit();
     },
     remainingCents(): number {
-      return Math.max(0, CAP_CENTS[a.cost.cap] - a.cost.spentCents());
+      return Math.max(0, CAP_CENTS[a.cost.cap] - a.holdBackCents - a.cost.spentCents());
     },
     stopNow(): "time_ceiling" | "spend_ceiling" | null {
       if (bounds.expired()) return "time_ceiling";
@@ -226,10 +227,16 @@ function cancellableDelay(ms: number): { promise: Promise<void>; cancel: () => v
  *     ceiling was reached").
  */
 async function runBounded<T>(
-  a: { startedAt: Date; ceilingS: number; cost: CostContext; deadlineApplies: boolean },
+  a: { startedAt: Date; ceilingS: number; cost: CostContext; deadlineApplies: boolean; holdBackCents: number },
   body: (b: Bounds, c: CostContext) => Promise<T>
 ): Promise<{ result: T | null; ending: Ending }> {
-  const bounds = makeBounds({ startedAt: a.startedAt, ceilingS: a.ceilingS, clock: () => new Date(), cost: a.cost });
+  const bounds = makeBounds({
+    startedAt: a.startedAt,
+    ceilingS: a.ceilingS,
+    clock: () => new Date(),
+    cost: a.cost,
+    holdBackCents: a.holdBackCents,
+  });
 
   const bodyOutcome: Promise<{ result: T | null; ending: Ending }> = (async () => {
     try {
@@ -341,6 +348,9 @@ export async function withScanBounds<T>(
     ceilingS: number;
     deadlineApplies: boolean;
     priorCents?: number;
+    /** Cents of the cap the stages leave for the spend after the stored report. */
+    holdBackCents?: number;
+    failsWhenFundsRefused?: true;
   },
   body: (b: Bounds, c: CostContext) => Promise<T>
 ): Promise<{ result: T | null; ending: Ending }> {
@@ -350,10 +360,18 @@ export async function withScanBounds<T>(
       cap: a.cap,
       policyVersion: FREE_SCAN_POLICY_VERSION,
       ...(a.priorCents === undefined ? {} : { priorCents: a.priorCents }),
+      holdBackCents: a.holdBackCents ?? 0,
+      ...(a.failsWhenFundsRefused === true ? { failsWhenFundsRefused: true } : {}),
     },
     async (cost) => {
       const outcome = await runBounded(
-        { startedAt: a.startedAt, ceilingS: a.ceilingS, cost, deadlineApplies: a.deadlineApplies },
+        {
+          startedAt: a.startedAt,
+          ceilingS: a.ceilingS,
+          cost,
+          deadlineApplies: a.deadlineApplies,
+          holdBackCents: a.holdBackCents ?? 0,
+        },
         body
       );
       logEnding({ scanId: a.scanId, ending: outcome.ending, elapsedMs: Date.now() - a.startedAt.getTime(), cost });

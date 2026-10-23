@@ -20,7 +20,6 @@ import { assembleDraft, type DraftView } from "@/app/(account)/app/draft/[draftI
 import {
   FIXTURE_DRAFTS,
   FIXTURE_DRAFT_ID,
-  FIXTURE_PUBLISHED_DRAFT_ID,
 } from "@/app/(account)/app/draft/[draftId]/fixture";
 
 function viewOf(id: string): DraftView {
@@ -46,10 +45,8 @@ function precedes(a: Element, b: Element): boolean {
   return (a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING) !== 0;
 }
 
-describe.each([
-  ["a page in review", FIXTURE_DRAFT_ID],
-  ["a published page", FIXTURE_PUBLISHED_DRAFT_ID],
-])("the review screen, %s", (_name, id) => {
+// A live page has its own screen (board `PageDetail`, `live.test.tsx`).
+describe.each([["a page in review", FIXTURE_DRAFT_ID]])("the review screen, %s", (_name, id) => {
   const screen = dom(<DraftScreen view={viewOf(id)} generatedLabel="label" />);
   const notes = Array.from(one(screen, "draft-notes").children);
 
@@ -93,16 +90,13 @@ describe("the review screen, while it waits", () => {
   });
 });
 
-describe("a page with a link on it", () => {
-  it("has its links as the first note, straight under the checks", () => {
-    // Issue 1394: the checks close the decision, so the note that reads the
-    // page's links follows them with nothing between.
+describe("the notes, in the board's order", () => {
+  it("checks, the search result, written from, what it adds, then its links", () => {
     const base = viewOf(FIXTURE_DRAFT_ID);
     const linked: DraftView = { ...base, bodyMd: `${base.bodyMd}\n\nSee [the full study](https://example.org/study).\n` };
     const screen = dom(<DraftScreen view={linked} generatedLabel="label" />);
-    const first = one(screen, "draft-notes").children[0];
-    expect(first?.getAttribute("data-testid")).toBe("draft-links");
-    expect(precedes(one(screen, "draft-checks"), one(screen, "draft-links"))).toBe(true);
+    const order = Array.from(one(screen, "draft-notes").children).map((note) => note.getAttribute("data-testid"));
+    expect(order.slice(0, 5)).toEqual(["draft-checks", "draft-search-result", "draft-written-from", "draft-adds", "draft-links"]);
   });
 });
 

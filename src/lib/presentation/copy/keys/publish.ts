@@ -100,22 +100,6 @@ export const PUBLISH_COPY = Object.freeze({
   "record.label.address": ["Address", { slots: {}, fixedBy: "REQ-056 c6" }],
   "record.label.checked": ["Checked", { slots: {}, fixedBy: "REQ-062 c7" }],
   "record.label.taken-down": ["Taken down", { slots: {}, fixedBy: "REQ-056 c15" }],
-  // Issue 1553: the page's way toward being found, as daisyUI `steps` with
-  // one-word labels. Drafted (#759); the owner may correct each.
-  "record.ladder.title": ["Getting found", { slots: {}, fixedBy: "issue 1553 (drafted)" }],
-  "record.ladder.published": ["Published", { slots: {}, fixedBy: "issue 1553 (drafted)" }],
-  "record.ladder.crawled": ["Crawled", { slots: {}, fixedBy: "issue 1553 (drafted)" }],
-  "record.ladder.indexed": ["Indexed", { slots: {}, fixedBy: "issue 1553 (drafted)" }],
-  "record.ladder.impressions": ["Shown", { slots: {}, fixedBy: "issue 1553 (drafted)" }],
-  "record.ladder.place": ["Placed", { slots: {}, fixedBy: "issue 1553 (drafted)" }],
-  "record.ladder.cited": ["Linked by AI", { slots: {}, fixedBy: "issue 1582 (drafted)" }],
-  "record.ladder.shown": ["Shown {count} times in Google and Bing in the last {days} days", { slots: { count: "text", days: "text" }, fixedBy: "issue 1553 (drafted)" }],
-  "record.ladder.best": ["Best place {place}", { slots: { place: "text" }, fixedBy: "issue 1553 (drafted)" }],
-  "record.ladder.best.labs": ["Best place {place}, estimated from keyword data", { slots: { place: "text" }, fixedBy: "issue 1608 (drafted)" }],
-  "record.ladder.note": [
-    "Read every Monday from Google Search Console, Bing, crawler visits and the AI answers ReachKit checks. A step nothing can read yet is left out.",
-    { slots: {}, fixedBy: "issue 1553 (drafted)" },
-  ],
   "record.verification.found": ["found live", { slots: {}, fixedBy: "REQ-062 c7" }],
   "record.verification.pageNotFound": ["no page found at this address", { slots: {}, fixedBy: "REQ-062 c7" }],
   "record.verification.couldNotConfirm": ["check not confirmed", { slots: {}, fixedBy: "REQ-062 c7" }],
@@ -286,9 +270,11 @@ export const PUBLISH_COPY = Object.freeze({
   // has run out, or names no page; those are the owner's approved
   // sentences of 2026-09-10 (#459).
   "publish.veto.ask.head": [
-    "Publishes {when}",
+    "Goes live {when}",
     { slots: { when: "text" }, fixedBy: "REQ-057 c1 · S6 (11a)" },
   ],
+  // Owner ruling Q11 (2026-10-20): no go-live time while the address is unconnected.
+  "publish.veto.ask.head.unconnected": ["Goes live once your website is connected", { slots: {}, fixedBy: "issue 1739 · Q11" }],
   "publish.veto.ask.row.search": ["search", { slots: {}, fixedBy: "S6 (11a)" }],
   "publish.veto.ask.row.site": ["address", { slots: {}, fixedBy: "S6 (11a)" }],
   "publish.veto.ask.row.volume": ["{query} · searched about {volume} times a month", { slots: { query: "text", volume: "text" }, fixedBy: "issue 1600 · drafted" }],
@@ -320,14 +306,10 @@ export const PUBLISH_COPY = Object.freeze({
    *  wall with no word about why. It goes to `/signin` now and says so, so
    *  the word and the destination cannot come apart. Drafted (#759). */
   "publish.veto.calendar": ["Sign in to open your plan", { slots: {}, fixedBy: "issue 937" }],
-  /** Changed 2026-09-21 (#937). The old line said what would not happen
-   *  and stopped there; the 2026-09-20 board says what happens *instead* —
-   *  that tomorrow is unaffected, and that this page is not lost, because
-   *  it can be asked for again. A reader who has just stopped something
-   *  wants to know both. Drafted (#759). */
+  /** The Veto board's line: other pages are unaffected, and the topic is dropped for good. */
   "publish.veto.stopped": [
-    "Nothing else changes. Your other pages go ahead as usual, and you can ask us to write this one again from your plan.",
-    { slots: {}, fixedBy: "issue 937" },
+    "Nothing else changes. Your other pages go ahead as usual. ReachKit won’t write this topic again.",
+    { slots: {}, fixedBy: "issue 1718" },
   ],
   /** The rest of the done arm's alert, after `publish.veto.done.head`'s
    *  "Stopped" — two keys because the board bolds the first word and reads
@@ -358,11 +340,50 @@ export const PUBLISH_COPY = Object.freeze({
     { slots: { query: "text", volume: "text" }, fixedBy: "issue 1025" },
   ],
   "publish.veto.alreadyUsed": ["This link was already used. The page is stopped.", { slots: {}, fixedBy: "REQ-057 c1" }],
-  "publish.veto.expired": ["The moment to stop this page has passed.", { slots: {}, fixedBy: "REQ-057 c1" }],
-  "publish.veto.unknown": ["This isn’t a link ReachKit can act on.", { slots: {}, fixedBy: "REQ-057 c1" }],
+  // The Veto board's lines; "stopped", not "taken down", per E7 (R12 B8).
+  "publish.veto.expired": [
+    "The time to stop this page from your mail has passed, so it may be live now. Sign in to see it. A live page can be stopped from its page in Plan.",
+    { slots: {}, fixedBy: "issue 1739 · E7" },
+  ],
+  "publish.veto.unknown": [
+    "This isn’t a link ReachKit can act on. Sign in to stop or edit a page from Plan.",
+    { slots: {}, fixedBy: "issue 1739" },
+  ],
   // The heads of the arms where nothing was stopped; the line under each says why.
-  "publish.veto.closed.head": ["This page can no longer be stopped here", { slots: {}, fixedBy: "issue 1574" }],
-  "publish.veto.unknown.head": ["This link doesn’t work", { slots: {}, fixedBy: "issue 1574" }],
+  "publish.veto.closed.head": ["This link has closed", { slots: {}, fixedBy: "issue 1739" }],
+  "publish.veto.unknown.head": ["We can’t use this link", { slots: {}, fixedBy: "issue 1739" }],
+  "publish.veto.used.head": ["Already stopped", { slots: {}, fixedBy: "issue 1739" }],
+  // The stop that did not go through: never says Stopped.
+  "publish.veto.failed.head": ["Not stopped yet", { slots: {}, fixedBy: "issue 1739" }],
+  "publish.veto.failed": [
+    "That didn’t go through, so the page is not stopped. Press Stop this page again, or sign in and stop it from Plan.",
+    { slots: {}, fixedBy: "issue 1739" },
+  ],
+  "publish.veto.failed.still": ["Still goes live {when}, unless stopped.", { slots: { when: "text" }, fixedBy: "issue 1739" }],
+  // The ask arm: why the week chose the page, the window, and what Stop does.
+  "publish.veto.why": ["Why ReachKit chose it:", { slots: {}, fixedBy: "issue 1739" }],
+  "publish.veto.timeline.sent": ["Mail sent {at}", { slots: { at: "text" }, fixedBy: "issue 1739" }],
+  "publish.veto.before": ["You can stop it any time before then.", { slots: {}, fixedBy: "issue 1739" }],
+  "publish.veto.consequence": [
+    "It won’t go live, and this topic is dropped. Your other pages are not affected.",
+    { slots: {}, fixedBy: "issue 1739" },
+  ],
+  // SPEC §0's six-word title rule over the board's seven words (R12 B7).
+  "publish.veto.choices.title": ["What each choice does", { slots: {}, fixedBy: "issue 1739 · SPEC §0" }],
+  "publish.veto.choices.stop": ["You press Stop this page", { slots: {}, fixedBy: "issue 1739" }],
+  "publish.veto.choices.stop.1": ["It won’t go live.", { slots: {}, fixedBy: "issue 1739" }],
+  "publish.veto.choices.stop.2": ["This topic is dropped. ReachKit won’t write it again.", { slots: {}, fixedBy: "issue 1739" }],
+  "publish.veto.choices.stop.3": ["Your other pages go ahead as usual.", { slots: {}, fixedBy: "issue 1739" }],
+  "publish.veto.choices.none": ["You do nothing", { slots: {}, fixedBy: "issue 1739" }],
+  "publish.veto.choices.none.1": ["It goes live {when}, on its own.", { slots: { when: "text" }, fixedBy: "issue 1739" }],
+  "publish.veto.choices.none.1.unset": ["It goes live on its own.", { slots: {}, fixedBy: "issue 1739" }],
+  "publish.veto.choices.none.1.unconnected": ["It goes live once the setting works.", { slots: {}, fixedBy: "issue 1739 · Q11" }],
+  "publish.veto.choices.none.2": ["You can still edit or stop it until then.", { slots: {}, fixedBy: "issue 1739" }],
+  "publish.veto.choices.none.3": ["Nothing is needed from you.", { slots: {}, fixedBy: "issue 1739" }],
+  // The stopped arm's week: each day's page, as Plan holds it.
+  "publish.veto.week.title": ["This week, after your stop", { slots: {}, fixedBy: "issue 1739" }],
+  "publish.veto.week.stopped": ["Stopped", { slots: {}, fixedBy: "issue 1739" }],
+  "publish.veto.week.ahead": ["Goes ahead", { slots: {}, fixedBy: "issue 1739" }],
   // Issue 1674: the Monday mail's link to a page planned but not written yet (drafted).
   "publish.veto.planned.title": ["Planned for {day}", { slots: { day: "text" }, fixedBy: "issue 1674 (drafted)" }],
   "publish.veto.written": [
@@ -420,9 +441,22 @@ export const PUBLISH_COPY = Object.freeze({
     "published {date} · updated {updated} · by {publisher}",
     { slots: { date: "date", updated: "date", publisher: "text" }, fixedBy: "issue 1137" },
   ],
+  // Owner R1 (2026-10-22): an offering page is the business's own, so its
+  // line states the dates and no byline. Drafted under #759's ruling.
+  "hosted.dated": ["Published {date}", { slots: { date: "date" }, fixedBy: "owner 2026-10-22 R1 · drafted" }],
+  "hosted.dated.updated": [
+    "Published {date} · Updated {updated}",
+    { slots: { date: "date", updated: "date" }, fixedBy: "owner 2026-10-22 R1 · drafted" },
+  ],
+  // Owner R1 (2026-10-22): an address a live site no longer serves names
+  // whose site it is and the way back to its guides. Board HostedGone.
+  "hosted.gone.heading": ["This page is no longer available", { slots: {}, fixedBy: "owner 2026-10-22 R1 · board HostedGone" }],
+  "hosted.gone.line": ["{publisher} has removed this guide.", { slots: { publisher: "text" }, fixedBy: "owner 2026-10-22 R1 · board HostedGone" }],
+  "hosted.gone.index": ["Browse all guides", { slots: {}, fixedBy: "owner 2026-10-22 R1 · board HostedGone" }],
+  // A sentence, drawn as a link to the page it names.
   "hosted.source": [
-    "source: {source} · retrieved {date}",
-    { slots: { source: "text", date: "date" }, fixedBy: "S19 (11a)" },
+    "Source: {source} · retrieved {date}.",
+    { slots: { source: "text", date: "date" }, fixedBy: "S19 (11a) · board HostedArticle R9 · issue 1742" },
   ],
   // The customer's own footer line. A key rather than a bare "©" in the
   // markup, so this surface has no string outside the registry at all —
@@ -433,6 +467,8 @@ export const PUBLISH_COPY = Object.freeze({
     "© {publisher}",
     { slots: { publisher: "text" }, fixedBy: "S19 (11a)" },
   ],
+  // The footer's link to the site's feed.
+  "hosted.footer.rss": ["RSS", { slots: {}, fixedBy: "board HostedIndex · issue 1742 · drafted" }],
   // The hosted index at `/` (owner 2026-09-16): every live page of the
   // site, newest first, with a search. Drafted under #759's ruling; the
   // owner corrects the wording. None names ReachKit — the index is served
@@ -474,7 +510,7 @@ export const PUBLISH_COPY = Object.freeze({
   ],
 
   "hosted.index.heading": ["Articles", { slots: {}, fixedBy: "SPEC §7 (2026-09-16)" }],
-  "hosted.index.searchLabel": ["Search articles", { slots: {}, fixedBy: "SPEC §7 (2026-09-16)" }],
+  "hosted.index.searchLabel": ["Search the guides", { slots: {}, fixedBy: "SPEC §7 (2026-09-16) · board HostedIndex · issue 1742" }],
   "hosted.index.searchSubmit": ["Search", { slots: {}, fixedBy: "SPEC §7 (2026-09-16)" }],
   "hosted.index.empty": [
     "Nothing has been published here yet.",
@@ -497,11 +533,17 @@ export const PUBLISH_COPY = Object.freeze({
   // by a person — linked to the main site's page that names them, where it
   // has one. Drafted under #759's ruling; the owner corrects the wording.
   "hosted.about.author": ["Written by {author}", { slots: { author: "text" }, fixedBy: "issue 1509 · drafted" }],
-  // The about card's links to the main site's own book and quote pages.
-  // Neither claims more than that page exists. Drafted under #759's ruling;
-  // the owner corrects the wording.
-  "hosted.action.book": ["Book an appointment", { slots: {}, fixedBy: "issue 1604 · drafted" }],
+  // The business's own actions: its stored phone, and its main site's own
+  // book and quote pages. None claims more than that the number or page
+  // exists. The headline asks in the adopted market's own category and
+  // place, else names the business. Drafted under #759's ruling; the owner
+  // corrects the wording.
+  "hosted.action.call": ["Call {phone}", { slots: { phone: "text" }, fixedBy: "issue 1788 · drafted" }],
+  "hosted.action.book": ["Book a visit", { slots: {}, fixedBy: "issue 1788 · drafted" }],
   "hosted.action.quote": ["Ask for a quote", { slots: {}, fixedBy: "issue 1604 · drafted" }],
+  "hosted.compact.heading": ["Need {category}?", { slots: { category: "text" }, fixedBy: "issue 1788 · drafted" }],
+  "hosted.compact.heading.place": ["Need {category} in {place}?", { slots: { category: "text", place: "text" }, fixedBy: "issue 1788 · drafted" }],
+  "hosted.compact.heading.name": ["Questions for {publisher}?", { slots: { publisher: "text" }, fixedBy: "issue 1788 · drafted" }],
   // SPEC §7 (2026-10-11, issue 1397): how the page was made, under its
   // byline. Both numbers are read off the page's own row and neither is
   // typed here; `.one` is the same line for a page with a single fact.
@@ -529,12 +571,19 @@ export const PUBLISH_COPY = Object.freeze({
   ],
   "hosted.index.latest": ["Latest", { slots: {}, fixedBy: "issue 1140" }],
   "hosted.index.pages": ["Pages of articles", { slots: {}, fixedBy: "issue 1140" }],
-  "hosted.index.newer": ["Newer", { slots: {}, fixedBy: "issue 1140" }],
-  "hosted.index.older": ["Older", { slots: {}, fixedBy: "issue 1140" }],
+  "hosted.index.newer": ["Previous page", { slots: {}, fixedBy: "issue 1140 · board HostedIndex · issue 1742" }],
+  "hosted.index.older": ["Next page", { slots: {}, fixedBy: "issue 1140 · board HostedIndex · issue 1742" }],
+  // The index's H1 and its grid's heading; the head, breadcrumb and feed keep `hosted.index.heading`.
+  "hosted.index.title": ["Guides from {publisher}", { slots: { publisher: "text" }, fixedBy: "board HostedIndex · issue 1742 · drafted" }],
+  "hosted.index.recent": ["Recent guides", { slots: {}, fixedBy: "board HostedIndex · issue 1742 · drafted" }],
   "hosted.index.pageOf": [
     "Page {page} of {pages}",
     { slots: { page: "text", pages: "text" }, fixedBy: "issue 1140" },
   ],
+  // Every live guide one click from the index, by topic (owner R1, 2026-10-22).
+  "hosted.index.all": ["All guides", { slots: {}, fixedBy: "board HostedIndex · issue 1789" }],
+  "hosted.index.allLead": ["Every guide on this site, by topic.", { slots: {}, fixedBy: "board HostedIndex · issue 1789" }],
+  "hosted.index.topicCount": ["{count} guides", { slots: { count: "text" }, fixedBy: "board HostedIndex · issue 1789" }],
 
   "publish.wordpress.noSeoPlugin": ["No SEO plugin was found on your site, so the title and description weren’t written into one. The page is live all the same.", { slots: {}, fixedBy: "REQ-060 c4" }],
 }) satisfies CopyPartition;

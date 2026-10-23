@@ -19,7 +19,7 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { fakeDb, type DbQuery } from "../run/harness";
-import { BATTERY, CAPS } from "../../../src/lib/config/constants";
+import { BATTERY, CAPS, PRICE_BOOK } from "../../../src/lib/config/constants";
 import { toolUseMessage } from "../../llm/fixtures";
 import { asQueue, pollTheQueueAtOnce, type SeenRequest } from "../../vendors/harness";
 import type { FetchOutcome, RobotsPolicy } from "../../../src/lib/egress/types";
@@ -126,8 +126,12 @@ const labsRequests: { url: string; task: Record<string, unknown> }[] = [];
 /** A test's own answer to a Labs request, ahead of the recording. */
 let labsDouble: ((url: string, task: Record<string, unknown>) => unknown | undefined) | null = null;
 
+/** Where every DataForSEO task of the pass was bought, in order. */
+const boughtIn: { url: string; location: unknown }[] = [];
+
 function vendor(request: SeenRequest): unknown {
   const task = request.task ?? {};
+  boughtIn.push({ url: request.url, location: task.location_name });
   // The vendor's browser met the protection too: no page came back.
   if (request.url.includes("/on_page/")) return { tasks: [{ id: "task-double", status_code: 50000, status_message: "Internal Error.", result: null }] };
   if (request.url.includes("/dataforseo_labs/")) {
@@ -171,6 +175,7 @@ beforeEach(() => {
   db.reset();
   modelCalls.length = 0;
   labsRequests.length = 0;
+  boughtIn.length = 0;
   scripted = null;
   labsDouble = null;
   recording = null;
@@ -493,5 +498,150 @@ describe("a site that ranks, whose market a vendor or the model did not answer f
 
     startAgain(unreadAt(25));
     expect((await scan("sage.com")).measured).toBe(true);
+  }, PASS_TIMEOUT_MS);
+});
+
+describe("a paying site whose home was not read never stores a guessed market (SPEC §6, D66)", () => {
+  type ListingRow = { url: string; title: string; description: string };
+  const listingFixture = (name: string): ListingRow[] =>
+    JSON.parse(readFileSync(path.join(__dirname, "../../locale/fixtures/listing", `${name}.json`), "utf8")) as ListingRow[];
+  /** The ranked answer, as DataForSEO shapes it, holding these rows. */
+  const rankedAnswer = (rows: readonly ListingRow[]): unknown =>
+    envelope({
+      total_count: rows.length,
+      items_count: rows.length,
+      items: rows.map((row, i) => ({
+        keyword_data: { keyword: `search ${i}`, keyword_info: { search_volume: 1000 }, keyword_properties: { keyword_difficulty: 30 } },
+        ranked_serp_element: { serp_item: { type: "organic", rank_group: i + 1, rank_absolute: i + 1, ...row } },
+      })),
+    });
+  const failedTask = { tasks: [{ id: "task-double", status_code: 50000, status_message: "Internal Error.", result: null }] };
+
+  /** A deep pass for a site, to the end of reading the site unless `whole`: what it stored as the site's market, and the locale every ranked read was bought in. */
+  async function paidPass(
+    domain: string,
+    listing: readonly ListingRow[],
+    whole = false,
+    labs: (url: string) => unknown | undefined = (url) => (url.includes("ranked_keywords") ? rankedAnswer(listing) : failedTask)
+  ): Promise<{ written: unknown[]; rankedIn: unknown[] }> {
+    const written: unknown[] = [];
+    const { registerSiteLocaleStore } = await import("../../../src/lib/locale/site");
+    registerSiteLocaleStore({ read: async () => null, write: async (_site, locale) => void written.push(locale) });
+    labsDouble = labs;
+    // The row the paid pass adopts, claimed before it.
+    db.answer = (query) =>
+      query.table === "scans" && query.verb === "select" && new Map(query.filters).get("site_id") === "site-1797"
+        ? [{ id: scanId, fromIncompleteRescan: false }]
+        : answerQuery(query);
+    const { runScan } = await import("../../../src/lib/scan/run");
+    await runScan({
+      domain,
+      siteId: "site-1797",
+      tier: "deep",
+      // The write is made as the site is read; nothing after it is this suite's.
+      onStage: (stage) => {
+        if (!whole && stage === "reading_access_rules") throw new Error("stop after reading the site");
+      },
+    });
+    const rankedIn = labsRequests.filter((request) => request.url.includes("ranked_keywords")).map((request) => request.task.location_name);
+    return { written, rankedIn };
+  }
+
+  it("a protected .com whose listing names no country makes no write", async () => {
+    served = PROTECTED["sage.com"] as Served;
+    const { written, rankedIn } = await paidPass("sage.com", listingFixture("software-saas"));
+    expect(rankedIn).toEqual(["United States"]);
+    expect(written).toEqual([]);
+    const report = db.rpcCalls.find((call) => call.fn === "store_current_report")?.args.p_report as StoredReport | undefined;
+    expect(report?.locale).toEqual({ country: "US", language: "en", basis: "default" });
+  }, PASS_TIMEOUT_MS);
+
+  it("a protected .com whose listing reads as the United Kingdom stores GB in English, never US", async () => {
+    served = PROTECTED["sage.com"] as Served;
+    const { written } = await paidPass("sage.com", listingFixture("local-service-trades-directory"));
+    expect(written).toEqual([{ country: "GB", language: "en" }]);
+  }, PASS_TIMEOUT_MS);
+
+  /** A listing long enough for a market to be read from it: the fixture's rows, each page listed again. */
+  const widened = (rows: readonly ListingRow[]): ListingRow[] =>
+    Array.from({ length: 4 }, (_, n) => rows.map((row) => ({ ...row, url: `${row.url}?p=${n}` }))).flat();
+  const TRADES_PROFILE = {
+    category: "trades directory",
+    job: "find a vetted local tradesperson",
+    offeringType: "marketplace",
+    audienceTerms: ["homeowners", "landlords"],
+    namedRivals: [],
+    vocabulary: ["electrician", "roofer", "boiler"],
+    brandTokens: ["tradefinder"],
+  };
+  const TRADES = ["electrician", "roofer", "plumber", "boiler engineer", "plasterer", "carpenter", "gas engineer", "builder", "painter and decorator", "locksmith"];
+  /** The market a trades directory is searched in: its ranked rows, and what each seed suggests. */
+  const tradesMarket = (url: string): unknown | undefined =>
+    url.includes("ranked_keywords")
+      ? rankedAnswer(widened(listingFixture("local-service-trades-directory")))
+      : url.includes("keyword_suggestions")
+        ? envelope({
+            items: TRADES.flatMap((trade, i) =>
+              ["near me", "cost", "reviews"].map((tail, j) => ({
+                keyword: `${trade} ${tail}`,
+                keyword_info: { search_volume: 290 - i * 20 - j * 5 },
+                keyword_properties: { keyword_difficulty: 20 },
+              }))
+            ),
+          })
+        : failedTask;
+  const rankedBought = (): { url: string; location: unknown }[] => boughtIn.filter((row) => row.url.includes("ranked_keywords"));
+  const rankedCents = (): number[] =>
+    db.queries
+      .filter((q) => q.table === "fetches" && q.verb === "insert" && String(q.values?.source).endsWith("ranked_keywords"))
+      .map((q) => Number(q.values?.cost_cents));
+
+  it("a paying protected .com whose listing reads as the United Kingdom is measured again there before anything else is bought (R11)", async () => {
+    served = PROTECTED["sage.com"] as Served;
+    scripted = (input) => echoPhrasing(input) ?? (input.includes('"search"') ? TRADES_PROFILE : undefined);
+    const { written } = await paidPass("sage.com", widened(listingFixture("local-service-trades-directory")), true, tradesMarket);
+
+    // One extra ranked read, in the listing's country, and every purchase after it there too.
+    expect(rankedBought().map((row) => row.location)).toEqual(["United States", "United Kingdom"]);
+    const after = boughtIn.slice(boughtIn.indexOf(rankedBought()[1]!) + 1);
+    // The market, the searches' SERPs and the AI reads.
+    expect(new Set(after.map((row) => new URL(row.url).pathname.split("/")[2]))).toEqual(new Set(["dataforseo_labs", "serp", "ai_optimization"]));
+    for (const row of after) expect(row.location).toBe("United Kingdom");
+    expect(rankedCents()).toEqual([PRICE_BOOK.RANKED_PAID_COST_C, PRICE_BOOK.RANKED_PAID_COST_C]);
+    expect(written).toEqual([{ country: "GB", language: "en" }]);
+    const report = db.rpcCalls.find((call) => call.fn === "store_current_report")?.args.p_report as StoredReport | undefined;
+    expect(report?.locale).toEqual({ country: "GB", language: "en" });
+  }, PASS_TIMEOUT_MS);
+
+  it("a paying pass whose listing agrees with the guess, or reads no country, buys no extra ranked read", async () => {
+    served = PROTECTED["sage.com"] as Served;
+    await paidPass("sage.com", listingFixture("local-service-us-plumber"));
+    expect(rankedBought().map((row) => row.location)).toEqual(["United States"]);
+    boughtIn.length = 0;
+    labsRequests.length = 0;
+    db.queries.length = 0;
+    await paidPass("sage.com", listingFixture("software-saas"));
+    expect(rankedBought().map((row) => row.location)).toEqual(["United States"]);
+  }, PASS_TIMEOUT_MS);
+
+  it("a free protected .com with the same listing is never measured again: every purchase is in the guess", async () => {
+    served = PROTECTED["sage.com"] as Served;
+    scripted = (input) => echoPhrasing(input) ?? (input.includes('"search"') ? TRADES_PROFILE : undefined);
+    labsDouble = tradesMarket;
+    const { report } = await scan("sage.com");
+
+    expect(rankedBought().map((row) => row.location)).toEqual(["United States"]);
+    // The vendor's rendered read is asked for a page, in no country.
+    const located = boughtIn.filter((row) => !row.url.includes("/on_page/"));
+    expect(located.some((row) => row.url.includes("/serp/"))).toBe(true);
+    for (const row of located) expect(row.location).toBe("United States");
+    expect(rankedCents()).toEqual([PRICE_BOOK.RANKED_FREE_COST_C]);
+    expect(report.locale).toMatchObject({ country: "US", basis: "default", listingReads: "GB" });
+  }, PASS_TIMEOUT_MS);
+
+  it("the same pass with its home read stores what it read, as before", async () => {
+    served = READABLE;
+    const { written } = await paidPass("sage.com", listingFixture("software-saas"));
+    expect(written).toEqual([{ country: "US", language: "en" }]);
   }, PASS_TIMEOUT_MS);
 });

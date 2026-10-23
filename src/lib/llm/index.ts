@@ -49,7 +49,12 @@ import type { Locale } from "@/lib/locale/locales";
 import Anthropic from "@anthropic-ai/sdk";
 import { createHash } from "node:crypto";
 import { z, type ZodType } from "zod";
-import { INFERENCE_MAX_OUTPUT_TOKENS, INFERENCE_MAX_RETRIES, INFERENCE_TEMPERATURE } from "@/lib/config/constants";
+import {
+  INFERENCE_ATTEMPTS,
+  INFERENCE_MAX_OUTPUT_TOKENS,
+  INFERENCE_MAX_RETRIES,
+  INFERENCE_TEMPERATURE,
+} from "@/lib/config/constants";
 import type { CostContext } from "@/lib/costs";
 import { measured, unmeasured, type Measured } from "@/lib/measure/measured";
 import { costCentsFor, tierBinding, type Tier, type TierBinding } from "./tiers";
@@ -410,7 +415,7 @@ async function callModel(
   };
 }
 
-/** Up to `MAX_ATTEMPTS` calls against one schema. A transport failure on
+/** Up to `attempts` calls against one schema. A transport failure on
  *  any attempt returns `unavailable` immediately — BP-009's "Model
  *  unavailability degrades the caller" is distinct from, and does not
  *  extend, the schema-parse retry allowance. A response that comes back
@@ -430,7 +435,8 @@ async function runAttempts<T>(
   inputText: string,
   maxOutputTokens: number,
   tool: ForcedTool | null,
-  temperature: number | undefined
+  temperature: number | undefined,
+  attempts: number
 ): Promise<AttemptOutcome> {
   const startedAt = Date.now();
   const deadline = startedAt + binding.timeoutMs;
@@ -449,7 +455,7 @@ async function runAttempts<T>(
     diagnosis,
   });
 
-  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+  for (let attempt = 1; attempt <= attempts; attempt++) {
     const remainingMs = deadline - Date.now();
     // The budget, not the attempt, is what `binding.timeoutMs` bounds
     // (`INFERENCE_TIMEOUT_MS`, issue #452): a retry that would start with
@@ -617,11 +623,8 @@ export async function llm<T>(
   const maxOutputTokens = INFERENCE_MAX_OUTPUT_TOKENS[call.site];
   const tool = forcedToolFor(call.site, call.schema);
   const cacheKey = createHash("sha256").update(`${call.site}:${call.tier}:${inputText}`).digest("hex");
-  const reservedCents = costCentsFor(
-    call.tier,
-    estimateTokens(inputText) * MAX_ATTEMPTS,
-    maxOutputTokens * MAX_ATTEMPTS
-  );
+  const attempts = INFERENCE_ATTEMPTS[call.site] ?? MAX_ATTEMPTS;
+  const reservedCents = costCentsFor(call.tier, estimateTokens(inputText) * attempts, maxOutputTokens * attempts);
 
   const result = await c.recordFetch<AttemptOutcome>({
     source: call.site,
@@ -634,7 +637,8 @@ export async function llm<T>(
     freshnessDays: 0,
     costCents: reservedCents,
     settleCents: (outcome) => costCentsFor(call.tier, outcome.tokensIn, outcome.tokensOut),
-    run: () => runAttempts(binding, call.schema, inputText, maxOutputTokens, tool, INFERENCE_TEMPERATURE[call.site]),
+    run: () =>
+      runAttempts(binding, call.schema, inputText, maxOutputTokens, tool, INFERENCE_TEMPERATURE[call.site], attempts),
   });
 
   if ("skipped" in result) {

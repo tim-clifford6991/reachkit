@@ -86,8 +86,7 @@ function Tile(p: {
     <>
       {/* The tile's name is the product's own, not the customer's, so it
           wraps rather than being clamped: four fixed phrases, and a name
-          cut in half is a name nobody can read (the same ruling
-          `LinkedTiles` records for its three). */}
+          cut in half is a name nobody can read. */}
       <span className={`min-w-0 pe-6 text-xs font-semibold uppercase tracking-wide ${ink}`}>
         {label}
       </span>

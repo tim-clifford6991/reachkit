@@ -55,10 +55,6 @@ const BILLING_UNREADABLE_KEYS: readonly CopyKey[] = [
   "settings.billing.reach-a-person",
 ];
 
-/** The mask in front of the last four: punctuation standing in for digits
- *  nobody may see, not a sentence. */
-const CARD_MASK = "\u2022\u2022\u2022\u2022";
-
 export function BillingPanel(p: { billing: BillingSummary }): React.JSX.Element {
   const { billing } = p;
   const action = useAction();
@@ -67,9 +63,17 @@ export function BillingPanel(p: { billing: BillingSummary }): React.JSX.Element 
   // plan word, the price and the one control still stand, and the date and
   // the cancel/resume choice — the two things that depend on having read
   // the account — are replaced by REQ-097 c6's three sentences (#228).
-  const cancelling = billing.readable
-    ? writtenLine("settings.billing.cancelling", { date: billing.accessUntil })
-    : null;
+  // Inside the refund window a cancel ends access at once, so the refund line replaces "keeps running".
+  const refundWindow =
+    billing.readable && billing.refundUntil !== null
+      ? writtenLine("settings.billing.refund-window", { date: billing.refundUntil })
+      : null;
+  // Under the plan: the cancelled arm's date, else the refund window, else how billing runs.
+  const planLine = !billing.readable
+    ? null
+    : billing.state === "cancelled"
+      ? writtenLine("settings.billing.cancelling", { date: billing.accessUntil })
+      : (refundWindow ?? writtenLine("settings.billing.billed"));
 
   // **One of the two lines beside the figure, not both** (owner,
   // 2026-09-21, on #925). `PRICE_COPY_KEYS` is `price.amount`,
@@ -103,7 +107,7 @@ export function BillingPanel(p: { billing: BillingSummary }): React.JSX.Element 
   // the live account has none until a Stripe read exists.
   const cardOnFile =
     billing.readable && billing.cardLast4 !== null
-      ? `${CARD_MASK} ${billing.cardLast4}`
+      ? copy("settings.billing.card-ending", { last4: billing.cardLast4 })
       : null;
 
   const pill = (key: CopyKey, run: () => void): React.JSX.Element => (
@@ -131,45 +135,60 @@ export function BillingPanel(p: { billing: BillingSummary }): React.JSX.Element 
           {copy("settings.billing.title")}
         </h2>
 
-        {/* The price is the card's one headline number; the badge says
-            whether it is running. */}
-        <div className="flex min-w-0 flex-wrap items-baseline justify-between gap-2">
-          <span className="flex min-w-0 flex-wrap items-baseline gap-2" data-testid="billing-price">
-            <span className="figure text-3xl wrap-anywhere">{amount}</span>
-            {interval === null ? null : (
-              <span className="num-phrase text-xs text-base-content/70 wrap-anywhere">{interval}</span>
-            )}
-          </span>
+        {/* The settable-row shape every Settings tab draws (`SettingRow`,
+            #1089): the name at the near edge, the value at the far one. */}
+        <div className="flex min-w-0 flex-col">
           {!billing.readable ? null : (
-            <span
-              className={billing.state === "active" ? "badge badge-success badge-soft" : "badge badge-ghost"}
-              data-testid="billing-state"
-            >
-              {copy(billing.state === "active" ? "settings.billing.active" : "settings.billing.cancelled")}
+            <SettingRow name={copy("settings.billing.status")} testId="billing-row-status">
+              <span
+                className={billing.state === "active" ? "badge badge-success badge-soft" : "badge badge-ghost"}
+                data-testid="billing-state"
+              >
+                {copy(billing.state === "active" ? "settings.billing.active" : "settings.billing.cancelled")}
+              </span>
+            </SettingRow>
+          )}
+          <SettingRow
+            name={copy("settings.billing.plan")}
+            testId="billing-row-plan"
+            below={
+              <div className="flex min-w-0 flex-col gap-1 text-xs text-base-content/70">
+                {planLine === null ? null : (
+                  <p
+                    className="wrap-anywhere"
+                    data-testid={billing.readable && billing.state === "cancelled" ? "billing-cancelling" : refundWindow === null ? "billing-billed" : "billing-refund"}
+                  >
+                    {planLine}
+                  </p>
+                )}
+                <p className="wrap-anywhere" data-testid="billing-route">
+                  {copy("settings.billing.route", { control: copy("settings.billing.manage") })}
+                </p>
+              </div>
+            }
+          >
+            <span className="flex min-w-0 flex-wrap items-baseline gap-2" data-testid="billing-price">
+              <span className="figure text-xl wrap-anywhere">{amount}</span>
+              {interval === null ? null : (
+                <span className="num-phrase text-xs text-base-content/70 wrap-anywhere">{interval}</span>
+              )}
             </span>
+          </SettingRow>
+          {nextInvoice === null ? null : (
+            <SettingRow name={copy("settings.billing.next-invoice")} testId="billing-row-next-invoice">
+              <span className="num num-phrase min-w-0 wrap-anywhere" data-testid="billing-next-invoice">
+                {nextInvoice}
+              </span>
+            </SettingRow>
+          )}
+          {cardOnFile === null ? null : (
+            <SettingRow name={copy("settings.billing.card")} testId="billing-row-card">
+              <span className="num min-w-0 wrap-anywhere" data-testid="billing-card">
+                {cardOnFile}
+              </span>
+            </SettingRow>
           )}
         </div>
-
-        {nextInvoice === null && cardOnFile === null ? null : (
-          // The settable-row shape every Settings tab draws (`SettingRow`,
-          // #1089): the name at the near edge, the value at the far one.
-          <div className="border-base-300 flex min-w-0 flex-col border-t pt-4">
-            {nextInvoice === null ? null : (
-              <SettingRow name={copy("settings.billing.next-invoice")} testId="billing-row-next-invoice">
-                <span className="num num-phrase min-w-0 wrap-anywhere" data-testid="billing-next-invoice">
-                  {nextInvoice}
-                </span>
-              </SettingRow>
-            )}
-            {cardOnFile === null ? null : (
-              <SettingRow name={copy("settings.billing.card")} testId="billing-row-card">
-                <span className="num min-w-0 wrap-anywhere" data-testid="billing-card">
-                  {cardOnFile}
-                </span>
-              </SettingRow>
-            )}
-          </div>
-        )}
 
         {/* **One control, and the line says what is behind it** (#925).
             REQ-097 c1 always said there was one destination — "the only
@@ -227,11 +246,6 @@ export function BillingPanel(p: { billing: BillingSummary }): React.JSX.Element 
                 </p>
               ))}
           </div>
-        )}
-        {cancelling === null ? null : (
-          <p className="text-xs text-base-content/70 wrap-anywhere" data-testid="billing-cancelling">
-            {cancelling}
-          </p>
         )}
         {action.line === null ? null : <p className="text-xs text-base-content/70 wrap-anywhere">{action.line}</p>}
       </div>

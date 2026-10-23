@@ -178,6 +178,30 @@ export function waitingIssues(section: SiteIssuesSection | null, at: { measuredA
   return out;
 }
 
+/** What the Technical issues view reads: the waiting issues, how many pages
+ *  the crawl read and when. `null` figures where no reading is stored, so an
+ *  unmeasured site is never stated as a count. */
+export interface IssuesReading {
+  issues: readonly WaitingIssue[];
+  pagesChecked: number | null;
+  measuredAt: Date | null;
+  /** The hosted address ReachKit's pages live on; `null` where they live on
+   *  the customer's own site. */
+  hostedHost: string | null;
+}
+
+export function issuesReading(
+  section: SiteIssuesSection | null,
+  measuredAt: Date | null,
+  hostedHost: string | null
+): IssuesReading {
+  // A scan with no section, or with no check that ran, measured nothing.
+  if (measuredAt === null || section === null || !section.issues.some((issue) => issue.ran)) {
+    return { issues: [], pagesChecked: null, measuredAt: null, hostedHost };
+  }
+  return { issues: waitingIssues(section, { measuredAt }), pagesChecked: section.pagesChecked, measuredAt, hostedHost };
+}
+
 export function readAlerts(
   waiting: readonly WaitingItem[],
   /** The instant the window is measured against — the screen's own `today`,

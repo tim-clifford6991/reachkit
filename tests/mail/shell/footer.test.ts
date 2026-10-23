@@ -126,7 +126,7 @@ describe("issue #376 — S20's footer, in both bodies", () => {
 
   it("the reason line is the one place a mail says why it arrived", () => {
     // S20 puts the stop instruction inside the reason for a togglable
-    // kind — "switch off in Settings › Notifications" — so the three
+    // kind — "switch off in Settings › Mail" — so the three
     // toggle kinds say how to stop without needing a second control.
     for (const key of [
       "mail.reason.draftReady",

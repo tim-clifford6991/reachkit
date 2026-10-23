@@ -104,8 +104,9 @@ export const SPEND_ALERT_AT = Object.freeze({ warn: 0.8, ceiling: 1 } as const);
 
 /** When the owner is told DataForSEO credit is running out: fewer days left
  *  than `runwayDays` at the trailing week's spend, or under `floorC` cents,
- *  since at zero every draft fails. */
-export const VENDOR_LOW = Object.freeze({ runwayDays: 7, floorC: 1000 } as const);
+ *  since at zero every draft fails. Two weeks, so a failed auto-recharge
+ *  still leaves time for a top-up by hand. */
+export const VENDOR_LOW = Object.freeze({ runwayDays: 14, floorC: 1000 } as const);
 
 /**
  * US dollars for one euro (issue 1408, owner 2026-10-11).
@@ -311,16 +312,6 @@ export const INFERENCE_MAX_OUTPUT_TOKENS = Object.freeze({
    *  notices. `tests/site-profile/your-voice.test.tsx` holds a full answer to
    *  this pin. */
   "site-profile": 1200,
-  /** SPEC §5 (2026-09-20, #923): setup's voice sample — one short paragraph
-   *  in the customer's own voice, grounded in one passage the scan read off
-   *  their pages, with that sentence quoted back and the passage named.
-   *
-   *  600, because the answer is a paragraph plus the sentence inside it
-   *  quoted a second time: roughly 150 tokens of prose, doubled, with room
-   *  for the schema's own framing. It is a paid call under `CAPS.DEEP_C`,
-   *  bounded to `VOICE_SAMPLES_MAX` asks per founder, so the ceiling it can
-   *  reach is three of these and nothing notices. */
-  "setup.voice-sample": 600,
   /** SPEC §9 (#690): a page's own title and meta description, rewritten —
    *  `{ title, description }`, two short strings: ~80 needed. */
   "generate.page_fix": 256,
@@ -370,6 +361,14 @@ export const INFERENCE_TEMPERATURE: Readonly<Partial<Record<keyof typeof INFEREN
     "site-knowledge": 0,
   });
 
+/** A call site asked fewer times than the seam's two, where a retry buys
+ *  nothing: a temperature-0 answer asked again is the same answer; what it
+ *  missed is asked again next pass. */
+export const INFERENCE_ATTEMPTS: Readonly<Partial<Record<keyof typeof INFERENCE_MAX_OUTPUT_TOKENS, 1>>> = Object.freeze({
+  "topic-fit": 1,
+  "rival-inference": 1,
+});
+
 /** SPEC §7 (D41) — the five-stage pipeline's own bounds.
  *
  *  `fixBeforeMs`: the one fix call is started only while the page has been
@@ -388,11 +387,6 @@ export const PIPELINE = Object.freeze({
  *  fact already stated on `repeatedOn` of the site's live pages is offered
  *  last (issue 1509): each page says something its siblings do not. */
 export const PACK = Object.freeze({ facts: 40, pages: 100, questions: 8, repeatedOn: 2 } as const);
-
-/** Issue 1509: the most a live page's business-fact passages may be ones
- *  already stated on `PACK.repeatedOn` or more of the site's other live
- *  pages — the stored-row check `repeatedFactShare` is held to. */
-export const REPEATED_FACT_SHARE_MAX = 0.3;
 
 /** SPEC §7 (owner, D61; issue 1295): two headings are too alike where they
  *  share this fraction of the longer one's words, or open with this many of
@@ -828,16 +822,18 @@ export const RIVAL_PRESENCE = Object.freeze({ FIRST_PAGE_PLACES: 2, HOLDERS: 3 }
  * SPEC §6 (owner, D19 final, D32 and D33 of 2026-10-03, #1162) — the tracked
  * buyer prompts, which are the weekly AI measure.
  *
- * `SPLIT` is the set's shape, 25 in all. `ENGINES × RUNS` is how often each
- * prompt is asked in one weekly pass: at the measured 0.12¢ an ask that is
- * 0.48¢ a prompt and 12¢ a full set (`docs/walk/d19-cost.md`). At most
- * `ROTATION_SHARE` of the set is replaced in any `ROTATION_WEEKS`, and only
- * a prompt added that way is pre-checked (D33).
+ * `SPLIT` is the set's shape, 25 in all. Each engine asks an unbranded
+ * prompt `RUNS` times and a branded one `BRANDED_RUNS` times in one weekly
+ * pass (owner B2, 2026-10-19): 23 + 4 asks an engine, 54 at the measured
+ * 0.12¢ each, 6.48¢ a set. At most `ROTATION_SHARE` of the set is replaced
+ * in any `ROTATION_WEEKS`, and only a prompt added that way is pre-checked
+ * (D33).
  */
 export const TRACKED_PROMPTS = Object.freeze({
   SPLIT: Object.freeze({ category: 5, "use-case": 7, persona: 4, comparison: 4, problem: 3, branded: 2 }),
   ENGINES: 2,
-  RUNS: 2,
+  RUNS: 1,
+  BRANDED_RUNS: 2,
   ROTATION_SHARE: 0.2,
   ROTATION_WEEKS: 13,
 } as const);
@@ -872,6 +868,21 @@ export const TRACKED_PROMPTS = Object.freeze({
  */
 export const TRACKED_QUESTIONS_MAX = 24 as const;             // SPEC §6 2026-09-20
 export const PAGE_QUESTION_RETIRE_WEEKS = 8 as const;         // SPEC §6 2026-09-20
+
+/**
+ * How a page question's Google result is read (owner B2 and D2, 2026-10-19).
+ * A page is due on its first Monday and in its `DUE_WEEKS`; its result is
+ * read `DEPTH_MAX` deep until it is first seen, then `DEPTH_PAST` places past
+ * where it was last seen, never under `DEPTH_MIN`. `CLIMBING` is the band of
+ * places a slot is given to after the due pages.
+ */
+export const PAGE_QUESTION_READ = Object.freeze({
+  DUE_WEEKS: Object.freeze([0, 2, 4, 8] as const),
+  DEPTH_MAX: 100,
+  DEPTH_MIN: 20,
+  DEPTH_PAST: 10,
+  CLIMBING: Object.freeze({ from: 11, to: 30 }),
+} as const);
 
 
 /** `BUILD.md` §6.1's price-book row: "`PLATFORM_DOMAINS` | reddit, quora,
@@ -929,10 +940,10 @@ export const CACHE_WINDOWS_D = Object.freeze({
  *  order the API route calls.
  *
  *  Both new figures are drafted defaults the owner corrects:
- *   - **`scansPerIpPerDay: 20`.** Four hours at the hourly bound, and
- *     `20 x CAPS.FREE_C` = 240¢ — a twentieth of the day's ceiling, where
- *     the hourly bound alone left one network six tenths of it. A visitor
- *     scanning their own site and a few rivals is in single digits.
+ *   - **`scansPerIpPerDay: 20`.** Four hours at the hourly bound: 240¢,
+ *     about a quarter of `DAILY_PRODUCT_CEILING.baseC` with no paying site;
+ *     the hourly bound alone let one network pass all of it in a day. A
+ *     visitor scanning their own site and a few rivals is in single digits.
  *   - **`scansPerDomainPerDay: 3`.** One domain's first scan, one
  *     "measure what's missing" and one "measure again" is every route the
  *     product itself offers into a fresh measurement of one address in a
@@ -1102,22 +1113,24 @@ export const RIVAL_SIZE_BANDS = Object.freeze({
  *  `PRICE_BOOK.RANKED_RIVAL_COST_C` a first pass therefore spends at most
  *  28.8¢ on this, well inside `CAPS.DEEP_C`; every later pass re-reads the
  *  same domains inside §6.4's 30-day rival window, where a cache hit is
- *  free.
- *
- *  `reserveCents` — what this sizing may not take. A pass types its
- *  opportunities out of the same cap after its report is stored (issue
- *  798), and four Haiku calls at `INFERENCE_PRICE_BOOK.haiku` come to
- *  about a cent; four cents is several times that and is the only spend
- *  the pass still owes this cap. Issue 1134 adds the pass's one fit
- *  judgement to what it owes: its up-front reservation is about six cents
- *  (`INFERENCE_MAX_OUTPUT_TOKENS["topic-fit"]` at the Sonnet price, plus
- *  its input), so the reserve was twelve. Issue 1208 adds two small-tier
- *  calls before that judgement — the buyer searches and their check, about
- *  1.2¢ reserved together — so it is fourteen. A candidate the reserve leaves no
- *  room for is recorded `unsized` with `budget_reached`, never guessed at. */
+ *  free. A candidate `TYPING_RESERVE_C` leaves no room for is recorded
+ *  `unsized` with `budget_reached`, never guessed at. */
 export const SERP_RIVAL_SIZING = Object.freeze({
-  candidatesMax: 12, reserveCents: 14,
+  candidatesMax: 12,
 } as const);
+
+/** What a paid pass's measurement may not spend of its cap (owner W1,
+ *  2026-10-20): the stages stop at the cap less this, and the derivation
+ *  after the stored report spends from it. Sized to reservations, since the
+ *  cap checks reservations. A pass types its opportunities out of the same
+ *  cap after its report is stored (issue 798), and four Haiku calls at
+ *  `INFERENCE_PRICE_BOOK.haiku` come to about a cent; four cents is several
+ *  times that. The peak is the fit judgement's one-attempt reservation
+ *  (`INFERENCE_ATTEMPTS`): its input plus `INFERENCE_MAX_OUTPUT_TOKENS["topic-fit"]`
+ *  at the Sonnet price, about 5.9¢ at a 4–5k-token input, after the buyer
+ *  searches and their check have settled about 0.4¢. Eight covers a fit
+ *  input of up to about 9.9k tokens. */
+export const TYPING_RESERVE_C = 8;
 
 /** SPEC §6 (owner D64, issue 1301; a drafted default the owner may correct):
  *  how many of a site's rivals one weekly pass sizes again. A sizing is kept
@@ -1174,10 +1187,6 @@ export const GENERATION = Object.freeze({
  *  every paragraph stays inside the check's one small call. */
 export const FIT_CHECK_MAX_SENTENCES = 40;
 
-export const SUPPLY = Object.freeze({
-  deepTarget: 30, shortThreshold: 7,
-} as const);
-
 /** SPEC §0 and §7: "Default 24 h; range 1-7 days; there is no zero window."
  *  `minDays` read 0 until 2026-09-12, which is a draft with no veto path at
  *  all — the one window the ruling forbids. */
@@ -1185,12 +1194,15 @@ export const VETO = Object.freeze({
   defaultHours: 24, minDays: 1, maxDays: 7,
 } as const);
 
-export const RATE_LIMITS = Object.freeze({
-  publishesPerDay: 1, publishesPerWeek: 8,
-} as const);
+/** SPEC §7 (owner, 2026-10-19, issue 1559): the one depth number. Each
+ *  weekly pass commits the next `days` pages, one a day, and `spares` more
+ *  the daily job takes when a day's page cannot be written. Supply is
+ *  counted, and refilled at 0¢, up to their sum. */
+export const WEEK_PLAN = Object.freeze({ days: 7, spares: 3 } as const);
 
-export const RETENTION_D = Object.freeze({
-  erasure: 30, hostedAfterAccess: 30, removalSlaWorkingDays: 5,
+// The week's ceiling is the plan's week, so the Terms' "up to 7 a week" holds by construction.
+export const RATE_LIMITS = Object.freeze({
+  publishesPerDay: 1, publishesPerWeek: WEEK_PLAN.days,
 } as const);
 
 export const NURTURE_H = Object.freeze([24, 72, 168] as const);
@@ -1460,7 +1472,6 @@ export const FAILURE_COOLDOWN_H = 24 as const;               // BP-023 · BUILD 
 export const MARKET_REMEASURE_H = 24 as const;               // issue 1450: an unread market on a ranked site, measured again at most this often
 export const HOURLY_WINDOW_H = 1 as const;                   // BP-023 · BUILD §11 bounds
 export const DAILY_WINDOW_H = 24 as const;                   // BP-023 · BUILD §11 bounds
-export const DEEP_HEARTBEAT_S = 15 as const;                 // BP-036 d5 · REQ-029 c1 (half of 30)
 
 // Opportunities, supply and verdicts
 export const EFFORT_BY_TYPE = Object.freeze({                // BP-040 d3
@@ -1471,12 +1482,6 @@ export const EFFORT_BY_TYPE = Object.freeze({                // BP-040 d3
   listed_page: 0.7,
 } as const);                                                 // `unblock` is unranked
 
-export const FIT_WEIGHT = Object.freeze({ winnable: 1.0, reach: 0.5, "not-yet": 0 } as const); // BP-040 d3
-/** SPEC §7 (owner, 2026-10-19, issue 1559): the one depth number. Each
- *  weekly pass commits the next `days` pages, one a day, and `spares` more
- *  the daily job takes when a day's page cannot be written. Supply is
- *  counted, and refilled at 0¢, up to their sum. */
-export const WEEK_PLAN = Object.freeze({ days: 7, spares: 3 } as const);
 export const PLAN_DEPTH = WEEK_PLAN.days + WEEK_PLAN.spares;  // BP-041 d4 · REQ-095 c1
 export const SUPPLY_SHORT_BELOW = WEEK_PLAN.days;            // BP-041 d4 · REQ-095 c5
 /** A page's window: a gain counts inside it, and a page whose best place is
@@ -1878,15 +1883,6 @@ export const PAYMENT_CHASE_MINUTES = 15 as const;             // REQ-024 c5
 export const PAYMENT_BACKSTOP_H = 24 as const;                // REQ-024 c6
 
 // ── Opportunities (issue #40) — BUILD §7
-/** The ranking formula's demand scale (§7: `demand × intent × (1−effort) ×
- *  fit`). `demand = min(1, log10(volume + 1) / 5)`: log-scaled for the
- *  reason §6.7 gives for the selection score, with the divisor chosen so
- *  100,000/mo saturates the term at 1.0 — above any volume a market set
- *  carries, so demand saturates rather than clips. Chosen, not
- *  transcribed: §7 fixes the formula's shape and no term's scale. Reversal
- *  cost is this one number and its assertion. */
-export const DEMAND_LOG_DIVISOR = 5 as const;                 // §7 ranking
-
 /** §7's Write trigger, transcribed: "Rival top-20 for a query ≥10/mo;
  *  customer absent". The floor below which a search is not worth a page of
  *  its own. Distinct from `SELECTION.volumeFloorPerMonth` (50), which is
@@ -1903,12 +1899,10 @@ export const CLUSTER_SUPPRESS_WEEKS = 4 as const;             // §6
  *  the founder, rests for 28 days." */
 export const TOPIC_REST_DAYS = 28 as const;                   // §7
 
-/** SPEC §7 (issue 1532; drafted defaults the owner may correct): a live page
- *  its customer takes down can be put back for 7 days, and its topic is not
- *  proposed again for 90. */
+/** SPEC §7 (R9, owner 2026-10-22): a hosted page its customer stops can be
+ *  put back for 7 days; its topic is dropped for good (Q6). */
 export const TAKE_DOWN = Object.freeze({
   PUT_BACK_DAYS: 7,
-  TOPIC_REST_DAYS: 90,
 } as const);                                                   // §7
 
 /** SPEC §7 (owner, D26): when the day's draft is stopped, the same run
@@ -1965,11 +1959,6 @@ export const CONTENT_MIX = Object.freeze({
   /** How many of the site's own published and planned pages a brief is
    *  handed, newest first. */
   BRIEF_PAGES_MAX: 100,
-  /** SPEC §7 (owner, D46, 2026-10-04): the content types the mix leaves out
-   *  for now. A topic of one of them fills no day. The one list, and it is
-   *  empty: D48 took `insights` out (issue 1259, it reads a news search) and
-   *  D47 took `listicle` out (issue 1258, its table is built in code). */
-  PAUSED_TYPES: Object.freeze([] as readonly string[]),
 });                                                            // §7
 
 /** SPEC §7 (2026-09-29, *Pace*; issue 1139): in any seven days a site
@@ -2242,23 +2231,6 @@ export const CLOSE_PAGE_POSITION_BAND = Object.freeze({ min: 4, max: 20 } as con
  *  depends on it, since the shortfall row records the measured count
  *  itself and not the comparison. */
 export const THIN_PAGE_VISIBLE_CHARS = 1800 as const;         // §7
-
-// ── Identity (issue #35) — BUILD §13, §4.7
-/** The size of a sign-in token, in bytes of `randomBytes`. BP-061 decision
- *  3: "SHA-256 of a 256-bit random token" — the entropy is what makes the
- *  stored hash unsalted-safe, so the number and the reason travel together.
- *  A smaller token is not a tuning knob; it is the credential. */
-export const LINK_TOKEN_BYTES = 32 as const;                  // BP-061 d3 (256 bits)
-/** How long a session cookie stays valid before its holder needs a fresh
- *  link. **Chosen** (constitution rule 1.1): no requirement states a
- *  session lifetime — REQ-077 c5 fixes only that signing out ends one.
- *  Derivation: the product has no password, so every expiry costs the
- *  customer a round trip through their inbox; 30 days is the same window
- *  `ERASURE_DAYS` and `HOSTED_RETENTION_DAYS` already use for "long enough
- *  that a person on holiday is not punished", and a weekly product whose
- *  own mail arrives every Monday re-anchors it four times over. Reversal
- *  cost: one line here. */
-export const SESSION_TTL_DAYS = 30 as const;                  // BP-061 (chosen)
 
 // ── Publishing, the veto leaf (issue #46) — BUILD §9
 /** The whole of one delivery attempt, bounded. Distinct from the egress

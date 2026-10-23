@@ -21,23 +21,41 @@ export interface LegalDocument {
   readonly body: CopyKey;
   /** A Markdown list drawn above the card; a document without one has none. */
   readonly summary?: CopyKey;
+  /** The route, for the tabs between the three documents. */
+  readonly path: string;
+  /** A figure the board draws in a section, by that section's anchor. */
+  readonly figures?: Readonly<Record<string, LegalFigure>>;
 }
+
+/** The privacy board's three figures: the follow-up timeline, the provider table and the rights. */
+export type LegalFigure = "follow-ups" | "providers" | "rights";
 
 export const PRIVACY: LegalDocument = Object.freeze({
   title: "legal.privacy.title",
   updated: "legal.privacy.updated",
   body: "legal.privacy.body",
   summary: "legal.privacy.summary",
+  path: "/privacy",
+  figures: Object.freeze({
+    "what-we-collect": "follow-ups",
+    "service-providers": "providers",
+    "your-rights": "rights",
+  } as const),
 });
 
 export const TERMS: LegalDocument = Object.freeze({
   title: "legal.terms.title",
   updated: "legal.terms.updated",
   body: "legal.terms.body",
+  path: "/terms",
 });
 
 export const IMPRINT: LegalDocument = Object.freeze({
   title: "legal.imprint.title",
   updated: "legal.imprint.updated",
   body: "legal.imprint.body",
+  path: "/imprint",
 });
+
+/** The tabs' order: Privacy · Terms · Imprint. */
+export const LEGAL_DOCUMENTS: readonly LegalDocument[] = Object.freeze([PRIVACY, TERMS, IMPRINT]);

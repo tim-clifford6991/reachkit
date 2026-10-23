@@ -7,10 +7,11 @@
 // `{NAME}` in a definition is a constant of `src/lib/config/constants.ts`,
 // written into the document with its value.
 
-/** Where a number is shown: an Overview tile by its test id, or a Monday
- *  mail row by its label's copy key. */
+/** Where a number is shown: an Overview tile by its test id, a Monday mail
+ *  row by its label's copy key, or a free-report figure by the copy key of
+ *  the name it is shown under. */
 export interface Shown {
-  readonly on: "tile" | "mail";
+  readonly on: "tile" | "mail" | "report";
   readonly key: string;
 }
 
@@ -29,75 +30,196 @@ export const MEASURES: readonly Measure[] = Object.freeze(
   // measures:begin
   [
     {
-      id: "visibility-score",
-      shown: { on: "tile", key: "overview-tile-score" },
+      id: "mail-pages-live",
+      shown: { on: "mail", key: "mail.weekly.pages.live" },
       definition:
-        "The newest scan's Visibility Score, 0 to 100: foundations, answerability and presence in one number, with its band, the range it likely sits in and its change on the scan before. Before the first scan the tile names the day it runs.",
-      source: "src/lib/measure/score.ts#computeScore",
-      cadence: "Each weekly scan.",
-    },
-    {
-      id: "google-live-searches",
-      shown: { on: "tile", key: "overview-tile-google" },
-      definition:
-        "Of the searches the live pages target, how many Google shows the site for at places 1 to 100, split into the first page, places 11 to 100 and not yet seen. With no scan, or no live page read, the tile says so instead of a number.",
-      source: "src/app/(account)/app/_overview/search-model.ts#yourPages",
-      cadence: "Each weekly scan.",
-    },
-    {
-      id: "ai-mentioned-searches",
-      shown: { on: "tile", key: "overview-tile-ai" },
-      definition:
-        "Of the tracked searches that are not the business's own name, how many have an AI answer that names or links the site, out of those asked; beside it, how many link it, and the change on the week before.",
-      source: "src/app/(account)/app/_overview/prompts-model.ts#aiSearchesOf",
-      cadence: "Weekly, over the answers stored for the window.",
-    },
-    {
-      id: "pages-published",
-      shown: { on: "tile", key: "overview-tile-content" },
-      definition:
-        "Pages published and not taken down; with them, how many went live in the last {CONTENT_RECENT_WEEKS} weeks and how many reached each step toward being found (crawled, indexed, impressions, best place, cited). A read that failed says so, never 0.",
-      source: "src/app/(account)/app/_overview/content.ts#contentOf",
-      cadence: "Each time Overview is read, from the stored publications.",
-    },
-    {
-      id: "page-questions-cited",
-      shown: { on: "mail", key: "mail.weekly.number.pageQuestions" },
-      definition:
-        "Of the published pages' own questions asked this week, how many AI answers linked the site. A week that asked none has no such row.",
-      source: "src/lib/scan/weekly/movement.ts#weekMovement",
+        "Overview's live pages, read by the same reader: published, not taken down, and live by the time the mail is sent. A page list that could not be read is not measured.",
+      source: "src/lib/measure/page-ladder.ts#pageLadderOf",
       cadence: "Weekly, in the Monday mail.",
     },
     {
-      id: "ai-visits",
-      shown: { on: "mail", key: "mail.weekly.number.aiVisits" },
+      id: "mail-pages-planned",
+      shown: { on: "mail", key: "mail.weekly.pages.planned" },
       definition:
-        "Pages an answer engine fetched on the hosted blog over the last {BLOG_READS_WINDOW_D} days, stated as at least that many. Only on a hosted blog with a page live; anywhere else there is no such row.",
+        "The pages this week carries, by Plan's rule: each date's scheduled draft, else its committed row.",
+      source: "src/lib/opportunities/days.ts#plannedByDay",
+      cadence: "Weekly, in the Monday mail.",
+    },
+    {
+      id: "mail-google-found",
+      shown: { on: "mail", key: "draft.ladder.found" },
+      definition:
+        "Overview's ladder step, read by the same function: of the live pages Google can be read on, how many Google fetched. Not measured where no page was read.",
+      source: "src/lib/measure/page-ladder.ts#pageLadderOf",
+      cadence: "Weekly, in the Monday mail.",
+    },
+    {
+      id: "mail-google-showing",
+      shown: { on: "mail", key: "draft.ladder.showing" },
+      definition:
+        "Overview's ladder step, read by the same function: of the live pages, how many are in the top 100 for their own search. Before any page shows, the mail says it is too early instead of a 0.",
+      source: "src/lib/measure/page-ladder.ts#pageLadderOf",
+      cadence: "Weekly, in the Monday mail.",
+    },
+    {
+      id: "mail-google-first-page",
+      shown: { on: "mail", key: "draft.ladder.first-page" },
+      definition:
+        "Overview's ladder step, read by the same function: of the live pages, how many hold places 1 to 10 for their own search. Before any page shows, the mail says it is too early instead of a 0.",
+      source: "src/lib/measure/page-ladder.ts#pageLadderOf",
+      cadence: "Weekly, in the Monday mail.",
+    },
+    {
+      id: "mail-google-visits",
+      shown: { on: "mail", key: "mail.weekly.google.visits" },
+      definition:
+        "Overview's visits from Google this week, counted on the hosted pages over the last {BLOG_READS_WINDOW_D} days. No row off a hosted blog or with none counted.",
+      source: "src/lib/publish/reads/store.ts#readSearchVisits",
+      cadence: "Weekly, in the Monday mail.",
+    },
+    {
+      id: "mail-ai-linked",
+      shown: { on: "mail", key: "mail.weekly.ai.linked" },
+      definition:
+        "The overview-ai-linked figure, read by the same function: of the live pages whose own question was asked, how many the answer linked. Before any is asked, the mail says it is too early.",
+      source: "src/lib/measure/figures.ts#aiPagesOf",
+      cadence: "Weekly, in the Monday mail.",
+    },
+    {
+      id: "mail-ai-reads",
+      shown: { on: "mail", key: "mail.weekly.ai.reads" },
+      definition:
+        "The overview-ai-reads figure, read by the same function over the last {BLOG_READS_WINDOW_D} days. Only on a hosted blog with a page live.",
       source: "src/lib/publish/reads/model.ts#assembleBlogReads",
       cadence: "Weekly, in the Monday mail.",
     },
     {
-      id: "top-20-pages",
-      shown: { on: "mail", key: "mail.weekly.number.top20" },
+      id: "mail-score-month",
+      shown: { on: "mail", key: "mail.weekly.month.score" },
       definition:
-        "Published pages whose search the site holds a place 1 to 20 for, counted from the week's stored verdict rows, with the change on the Monday before where both weeks stored places. A week that judged pages and stored no place is not measured.",
-      source: "src/lib/mail/weekly/index.ts#top20Pages",
-      cadence: "Weekly, in the Monday mail.",
+        "The overview-score-month figure, in the first mail of a month only, with its change since the customer's scan.",
+      source: "src/lib/measure/figures.ts#monthFiguresOf",
+      cadence: "Monthly, in the first Monday mail of the month.",
     },
     {
-      id: "pages-cited",
-      shown: { on: "mail", key: "mail.weekly.number.pagesCited" },
-      definition: "Distinct pages of the site the tracked AI answers cited over the last {ANSWER_RATE_WEEKS} weeks.",
-      source: "src/lib/market/prompts/rate.ts#measurePrompts",
-      cadence: "Weekly, in the Monday mail.",
+      id: "mail-market-month",
+      shown: { on: "mail", key: "mail.weekly.month.market" },
+      definition:
+        "The overview-market-month figure, in the first mail of a month only, with its change since the customer's scan.",
+      source: "src/lib/measure/figures.ts#monthFiguresOf",
+      cadence: "Monthly, in the first Monday mail of the month.",
     },
     {
-      id: "ai-mention-rate",
-      shown: { on: "mail", key: "mail.weekly.number.mentionRate" },
+      id: "mail-reputation",
+      shown: { on: "mail", key: "mail.weekly.month.reputation" },
       definition:
-        "The share of the tracked buyer prompts' AI answers over the last {ANSWER_RATE_WEEKS} weeks that named or linked the site, as a whole percentage with the range it likely sits in. Before {MENTION_RATE_MIN_WEEKS} weeks of the current prompt set, the count of answers that named it, with its sample.",
+        "The overview-reputation figure, in the first mail of a month only: of the tracked prompts' AI answers over the {ANSWER_RATE_WEEKS} weeks to that Monday, how many named or linked the site, of every such answer read.",
       source: "src/lib/market/prompts/rate.ts#measurePrompts",
-      cadence: "Weekly, in the Monday mail.",
+      cadence: "Monthly, in the first Monday mail of the month.",
+    },
+    {
+      id: "report-readiness",
+      shown: { on: "report", key: "verdict.factor.foundations" },
+      definition:
+        "Whether the home page and robots.txt let search engines and AI readers in, and whether the home page carries structured data, social tags, headings and text, as two equal halves; shown in tenths, n/10. A home page or robots.txt that could not be read draws no bar and says why.",
+      source: "src/lib/measure/drivers.ts#foundationsOf",
+      cadence: "Each free scan, and each re-score of a stored report.",
+    },
+    {
+      id: "report-content",
+      shown: { on: "report", key: "verdict.factor.answerability" },
+      definition:
+        "How answer-shaped the text of the pages read is: headings worded as questions, headings answered directly, and figures, dates and citations per 1,000 characters, pooled over every page read; shown in tenths, n/10. No page read draws no bar and says why.",
+      source: "src/lib/measure/drivers.ts#answerabilityOf",
+      cadence: "Each free scan, and each re-score of a stored report.",
+    },
+    {
+      id: "report-google-presence",
+      shown: { on: "report", key: "verdict.factor.google" },
+      definition:
+        "Of the market's searches whose Google results were read, the share on whose first page the site is, local pack included: the presence card's own count over its own denominator; shown in tenths, n/10. Where no search was read the bar shows a dash and the report says why.",
+      source: "src/lib/measure/drivers.ts#searchPresenceOf",
+      cadence: "Each free scan, and each re-score of a stored report.",
+    },
+    {
+      id: "report-ai-presence",
+      shown: { on: "report", key: "verdict.factor.ai" },
+      definition:
+        "Of the market's searches that showed an AI answer, how often that answer named or cited the site, with the pages' own questions counted beside them; shown in tenths, n/10. Where no AI answer was read, the bar shows a dash and the report says why.",
+      source: "src/lib/measure/drivers.ts#aiPresenceOf",
+      cadence: "Each free scan, and each re-score of a stored report.",
+    },
+    {
+      id: "report-presence",
+      shown: { on: "report", key: "verdict.factor.presence" },
+      definition:
+        "Google and AI presence as one bar, at equal weight, or Google alone where AI answered none of the searches read; shown in tenths, n/10, on a stored report that did not keep the two halves apart. Never below 1.",
+      source: "src/lib/measure/score.ts#presenceOf",
+      cadence: "Each free scan, and each re-score of a stored report.",
+    },
+    {
+      id: "report-ai-answers-mention",
+      shown: { on: "report", key: "ai-answers.finding" },
+      definition:
+        "x of N: of the market's searches whose Google AI Overview came back with an answer, how many answers named the site. Where AI answered none of enough searches read, the card says so instead of a figure.",
+      source: "src/lib/market/questions/matrix.ts#buildAiAnswersCard",
+      cadence: "Each free scan.",
+    },
+    {
+      id: "report-google-first-page",
+      shown: { on: "report", key: "presence.finding" },
+      definition:
+        "x of N: of the market's searches whose Google results were read, how many show the site in the top ten or the local pack. A search not read counts in neither number.",
+      source: "src/lib/market/rivals/presence.ts#buildPresenceCard",
+      cadence: "Each free scan.",
+    },
+    {
+      id: "overview-ai-linked",
+      shown: { on: "tile", key: "overview-tile-ai-linked" },
+      definition:
+        "x of N: of the live pages whose own question was asked, how many the AI answer to that question linked, read off each page's stored weekly reading. Before any page's question is asked there is no figure.",
+      source: "src/lib/measure/figures.ts#aiPagesOf",
+      cadence: "Weekly, each Monday's pass.",
+    },
+    {
+      id: "overview-ai-reads",
+      shown: { on: "tile", key: "overview-tile-ai-reads" },
+      definition:
+        "Times an answer engine fetched a hosted page to answer someone over the last {BLOG_READS_WINDOW_D} days, with one bar per week kept; training crawlers and search indexers are not counted. Only on a hosted blog with a page live; anywhere else there is no figure.",
+      source: "src/lib/publish/reads/model.ts#assembleBlogReads",
+      cadence: "As the pages are read.",
+    },
+    {
+      id: "overview-best-mover",
+      shown: { on: "tile", key: "overview-tile-mover" },
+      definition:
+        "The live page whose place on its own search rose most since the reading before, of those above where they were first seen: its place, and the places gained since it was first seen. A week where none rose says so; with no place read there is no figure.",
+      source: "src/lib/measure/figures.ts#bestMoverOf",
+      cadence: "Weekly, each Monday's pass.",
+    },
+    {
+      id: "overview-score-month",
+      shown: { on: "tile", key: "overview-tile-score" },
+      definition:
+        "The Visibility Score the weekly pass of the month's first Monday stored, beside the score at the customer's own scan. Before the first such pass there is no figure, and the day it is taken is named.",
+      source: "src/lib/measure/figures.ts#monthFiguresOf",
+      cadence: "Monthly, on the first Monday.",
+    },
+    {
+      id: "overview-market-month",
+      shown: { on: "tile", key: "overview-tile-market" },
+      definition:
+        "x of N: of the market's biggest searches the month's first Monday pass measured, how many show the site on Google's first page, beside the count at the customer's own scan.",
+      source: "src/lib/measure/figures.ts#monthFiguresOf",
+      cadence: "Monthly, on the first Monday.",
+    },
+    {
+      id: "overview-reputation",
+      shown: { on: "tile", key: "overview-tile-reputation" },
+      definition:
+        "x of N: of the unbranded tracked prompts' AI answers read over the {ANSWER_RATE_WEEKS} weeks to the month's first Monday, how many named or linked the site; N is every such answer read, never the prompts. The range beside it is shown once {MENTION_RATE_MIN_WEEKS} weeks of the set exist.",
+      source: "src/lib/market/prompts/rate.ts#measurePrompts",
+      cadence: "Monthly, on the first Monday.",
     },
   ]
   // measures:end

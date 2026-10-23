@@ -30,7 +30,7 @@ async function post(scanId: string, email: string): Promise<{ ok: boolean; messa
   }
 }
 
-export function LeadCapture(p: { scanId: string }): React.JSX.Element {
+export function LeadCapture(p: { scanId: string; consent: string }): React.JSX.Element {
   const [email, setEmail] = useState("");
   const [step, setStep] = useState<Step>({ kind: "idle" });
 
@@ -68,6 +68,7 @@ export function LeadCapture(p: { scanId: string }): React.JSX.Element {
         <Mail size={16} strokeWidth={1.75} aria-hidden />
         {copy("free-page.submit")}
       </button>
+      <p className="text-base-content/70 text-sm">{p.consent}</p>
       {step.kind === "answered" ? (
         <div role="alert" className="alert alert-error alert-soft" data-testid="lead-refused">
           <CircleAlert size={20} strokeWidth={1.75} aria-hidden />

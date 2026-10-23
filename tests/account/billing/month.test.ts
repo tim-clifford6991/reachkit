@@ -1,5 +1,7 @@
 // Billing's "What you got this month": the counts come from stored rows for
 // the period ending on `paid_through`, and a count nothing measured is null.
+import { readFileSync } from "node:fs";
+import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { applyEnvFixture } from "../../mail/env-fixture";
 
@@ -48,10 +50,17 @@ describe("the period", () => {
   });
 });
 
+/** A stored report from the customer panel's walk, raw as the `scans.report` column holds it. */
+function storedReport(walk: string, domain: string): unknown {
+  const file = path.resolve(import.meta.dirname, `../../../docs/walk/free/${walk}.json`);
+  const sites = (JSON.parse(readFileSync(file, "utf8")) as { sites: { domain: string; stored: { scan: { report: unknown } } | null }[] }).sites;
+  return sites.find((s) => s.domain === domain && s.stored !== null)!.stored!.scan.report;
+}
+
 describe("the counts, from stored rows", () => {
-  it("counts new pages, refreshes, scans and each page's checks inside the period only", async () => {
+  it("counts new pages still up inside the period only, with the day each went live", async () => {
     state.publications.push(
-      page("2026-09-10T00:00:00.000Z", { failed: ["title"] }),
+      page("2026-09-10T00:00:00.000Z"),
       page("2026-09-20T00:00:00.000Z"),
       page("2026-10-01T00:00:00.000Z", { refresh: true }),
       page("2026-09-06T00:00:00.000Z"),
@@ -59,37 +68,59 @@ describe("the counts, from stored rows", () => {
       page("2026-09-12T00:00:00.000Z", { site: OTHER }),
       page("2026-09-13T00:00:00.000Z", { down: true })
     );
-    state.scans.push(
-      { site_id: SITE, created_at: "2026-09-14T00:00:00.000Z", status: "done" },
-      { site_id: SITE, created_at: "2026-09-21T00:00:00.000Z", status: "degraded" },
-      { site_id: SITE, created_at: "2026-09-28T00:00:00.000Z", status: "running" },
-      { site_id: SITE, created_at: "2026-09-01T00:00:00.000Z", status: "done" },
-      { site_id: OTHER, created_at: "2026-09-14T00:00:00.000Z", status: "done" }
-    );
-
     const got = await monthGot("u1", SITE);
-    expect(got).not.toBeNull();
-    expect({ live: got?.live, refreshed: got?.refreshed, scans: got?.scans }).toEqual({ live: 2, refreshed: 1, scans: 2 });
-    expect(got?.pages.map((p) => p.checks)).toEqual([
-      { passed: HARD_RULES.length - 1, total: HARD_RULES.length },
-      { passed: HARD_RULES.length, total: HARD_RULES.length },
-      { passed: HARD_RULES.length, total: HARD_RULES.length },
-    ]);
+    expect(got?.live).toBe(2);
+    expect(got?.liveAt.map((at) => at.toISOString())).toEqual(["2026-09-10T00:00:00.000Z", "2026-09-20T00:00:00.000Z"]);
+  });
+
+  it("counts the Monday mails sent in the period, with their days", async () => {
+    state.scans.push(
+      { site_id: SITE, created_at: "2026-09-14T06:00:00.000Z", status: "done", digest_sent_at: "2026-09-14T08:00:00.000Z" },
+      { site_id: SITE, created_at: "2026-09-21T06:00:00.000Z", status: "done", digest_sent_at: "2026-09-21T08:00:00.000Z" },
+      { site_id: SITE, created_at: "2026-09-28T06:00:00.000Z", status: "done", digest_sent_at: null },
+      { site_id: SITE, created_at: "2026-09-01T06:00:00.000Z", status: "done", digest_sent_at: "2026-09-01T08:00:00.000Z" },
+      { site_id: OTHER, created_at: "2026-09-14T06:00:00.000Z", status: "done", digest_sent_at: "2026-09-14T08:00:00.000Z" }
+    );
+    const got = await monthGot("u1", SITE);
+    expect(got?.reports.map((at) => at.toISOString())).toEqual(["2026-09-14T08:00:00.000Z", "2026-09-21T08:00:00.000Z"]);
+  });
+
+  // The searches with a result read and the questions put, as each stored report holds them;
+  // neither report has a prompts block, so its AI questions were not measured.
+  it.each([
+    ["SaaS", "2026-10-15-1449-after", "savvycal.com", { searches: 5, questions: null }],
+    ["local", "2026-10-15", "austinplumbery.com", { searches: 7, questions: null }],
+  ])("states the newest finished pass's searches and AI questions (%s)", async (_, walk, domain, asked) => {
+    const newest = storedReport(walk, domain);
+    state.scans.push(
+      { site_id: SITE, created_at: "2026-09-14T06:00:00.000Z", status: "done", report: domain === "savvycal.com" ? storedReport("2026-10-15", "austinplumbery.com") : storedReport("2026-10-15-1449-after", "savvycal.com") },
+      { site_id: SITE, created_at: "2026-09-21T06:00:00.000Z", status: "degraded", report: newest },
+      { site_id: SITE, created_at: "2026-09-28T06:00:00.000Z", status: "running", report: null }
+    );
+    const got = await monthGot("u1", SITE);
+    expect(got?.asked).toEqual(asked);
+    expect((got?.asked?.searches ?? 0) + (got?.asked?.questions ?? 0)).toBeGreaterThan(0);
   });
 });
 
 describe("not measured is never 0", () => {
-  it("a period with no scan reads null scans, while zero pages stays a true 0", async () => {
+  it("a period with no finished pass reads null, while zero pages and zero Monday mails stay a true 0", async () => {
+    state.scans.push({ site_id: SITE, created_at: "2026-09-14T06:00:00.000Z", status: "failed", report: null });
     const got = await monthGot("u1", SITE);
-    expect(got?.scans).toBeNull();
+    expect(got?.asked).toBeNull();
     expect(got?.live).toBe(0);
-    expect(got?.refreshed).toBe(0);
+    expect(got?.reports).toEqual([]);
   });
 
-  it("a page whose run recorded no checks reads null, not 0 of n", async () => {
-    state.publications.push(page("2026-09-10T00:00:00.000Z", { recorded: false }));
-    const got = await monthGot("u1", SITE);
-    expect(got?.pages[0]?.checks).toBeNull();
+  it("no prompts block is not measured, while a prompts block that asked none is a measured 0", async () => {
+    const report = storedReport("2026-10-15-1449-after", "savvycal.com") as Record<string, unknown>;
+    expect(report.prompts).toBeUndefined();
+    state.scans.push({ site_id: SITE, created_at: "2026-09-21T06:00:00.000Z", status: "done", report });
+    expect((await monthGot("u1", SITE))?.asked?.questions).toBeNull();
+
+    const asked = { siteName: "SavvyCal", asked: [], asks: 0, answers: [] };
+    state.scans.push({ site_id: SITE, created_at: "2026-09-28T06:00:00.000Z", status: "done", report: { ...report, prompts: asked } });
+    expect((await monthGot("u1", SITE))?.asked?.questions).toBe(0);
   });
 
   it("a store that cannot be read is null, never a month of zeros", async () => {

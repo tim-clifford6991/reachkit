@@ -138,7 +138,7 @@ describe("REQ-093 c5 — the registry renders with every model unavailable", () 
 });
 
 describe("the partition list is closed and total (BP-020 decision 5)", () => {
-  it("keys/ holds exactly fifteen partition files", () => {
+  it("keys/ holds exactly seventeen partition files", () => {
     expect(KEY_FILES).toEqual([
       "bands.ts",
       "calendar.ts",
@@ -149,21 +149,23 @@ describe("the partition list is closed and total (BP-020 decision 5)", () => {
       "mail.ts",
       "meta.ts",
       "offer.ts",
+      "ops.ts",
       "overview.ts",
       "publish.ts",
       "report.ts",
+      "review.ts",
       "settings.ts",
       "setup.ts",
       "signin.ts",
     ]);
   });
 
-  it("registry.ts imports every file under keys/, and no sixteenth", () => {
+  it("registry.ts imports every file under keys/, and no eighteenth", () => {
     const importedKeyFiles = [...REGISTRY_SOURCE.matchAll(/from\s+["']\.\/keys\/([^"']+)["']/g)]
       .map((m) => m[1])
       .filter((f): f is string => f !== undefined);
     expect(new Set(importedKeyFiles)).toEqual(new Set(KEY_FILES));
-    expect(importedKeyFiles).toHaveLength(15);
+    expect(importedKeyFiles).toHaveLength(17);
   });
 
   it("every key in COPY traces to exactly one partition", async () => {
@@ -271,14 +273,11 @@ describe("the thirteen keys the owner ruled 2026-09-04 (WO-041 `## Log`, this da
     expect(copy("offer.cadence.page", { weekPages: 7 })).toBe(
       "Up to 7 pages a week for your site, new or updated"
     );
-    expect(copy("offer.cadence.measure", { value: "every week" })).toBe(
-      "Your market scanned every week"
-    );
     expect(copy("offer.cadence.movement", { value: "every week" })).toBe(
       "What moved, in your inbox every week"
     );
     expect(copy("offer.veto.window", { value: "24 hours" })).toBe(
-      "Every page goes live on its own after 24 hours. You can edit or stop it before then, and cancel any time, yourself"
+      "Every page goes live on its own after 24 hours. You can edit or stop it before then."
     );
   });
 
@@ -300,16 +299,23 @@ describe("the thirteen keys the owner ruled 2026-09-04 (WO-041 `## Log`, this da
   });
 
   it("mail — the two opt-out surface lines, one carrying a literal quoted \"stop\"", () => {
-    // The confirmation is the approved set's own sentence since issue #372
-    // (UI-SPEC S7, ruling 11a), with the address in the slot the set draws
-    // it in: the 2026-09-04 ruling wrote a line for a page nobody had drawn
-    // yet, and the drawing is the later word on it.
-    expect(copy("optout.confirmed", { address: "you@company.com" })).toBe(
-      "No more follow-up mail will reach you@company.com, for this domain or any other. " +
-        "The page you asked for stays yours."
+    // The confirmation is the OptOut board's own sentence (canvas V22), with
+    // the address in the slot the board draws it in: the drawing is the
+    // later word on the 2026-09-04 ruling's line.
+    expect(copy("optout.confirmed", { address: "you@example.com" })).toBe(
+      "No more follow-up mail will go to you@example.com, about any site. " +
+        "Sign-in and account mail, if you have an account, still arrive."
     );
     expect(copy("optout.invalid")).toBe(
       "That unsubscribe link isn’t valid any more. Reply to any ReachKit email with \"stop\" and we’ll stop by hand."
+    );
+  });
+
+  it("email placeholders name a reserved example domain, not someone's inbox", () => {
+    expect(copy("signin.field.placeholder")).toBe("you@example.com");
+    expect(copy("free-page.email.placeholder")).toBe("you@yourdomain.example");
+    expect(copy("lead.invalid_address")).toBe(
+      "That doesn’t look like an email address. Try the form you@example.com."
     );
   });
 
@@ -319,19 +325,6 @@ describe("the thirteen keys the owner ruled 2026-09-04 (WO-041 `## Log`, this da
     expect(COPY["price.vat_included"]).toBe("VAT included");
     expect(copy("price.vat_included")).toBe("VAT included");
     expect(OWNER_OWED).not.toContain("price.vat_included");
-
-    // `offer.cancel_self_service` was the other one. It moved to the
-    // `TODO(copy)` marker on 2026-09-05 (issue #13) — §4.1 module 6
-    // requires the pricing card to carry it, and an empty value would have
-    // thrown the whole report screen away — and it is **written now**: the
-    // owner's approved screen set draws it under the Start control on both
-    // surfaces that carry the offer, unbracketed, which ruling 11a of
-    // 2026-09-08 makes approved copy as written (issue #352). Not a
-    // sentence supplied on the owner's behalf: their own. Board `R12-2`
-    // (2026-09-24, #1068) adds who cancels.
-    expect(COPY["offer.cancel_self_service"]).toBe("Cancel in one click, yourself.");
-    expect(AWAITING_COPY).not.toContain("offer.cancel_self_service");
-    expect(OWNER_OWED).not.toContain("offer.cancel_self_service");
   });
 });
 
@@ -357,7 +350,6 @@ describe("the five keys the owner ruled 2026-09-11 (DECISIONS 2026-09-11, #516)"
   });
 
   it("the two approved-set strings that promised a page a day are replaced", () => {
-    expect(COPY["calendar.head"]).toBe("Pages go live when ready, at most one a day.");
     for (const key of ["calendar.head", "landing.step.3.title"] satisfies CopyKey[]) {
       expect(COPY[key], key).not.toContain("every day");
       expect(COPY[key], key).not.toContain("One page a day");

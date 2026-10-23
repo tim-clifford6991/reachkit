@@ -12,9 +12,10 @@
 // (a set that grows with every page published) is answered by.
 import { describe, expect, it } from "vitest";
 import path from "node:path";
-import { PAGE_QUESTION_RETIRE_WEEKS, TRACKED_QUESTIONS_MAX } from "../../../src/lib/config/constants.ts";
+import { BATTERY, PAGE_QUESTION_RETIRE_WEEKS, TRACKED_QUESTIONS_MAX, VENDOR } from "../../../src/lib/config/constants.ts";
 import {
   missesByPage,
+  slotDepth,
   trackedQuestions,
   type PageQuestionCandidate,
 } from "../../../src/lib/market/questions/tracked.ts";
@@ -29,7 +30,18 @@ function page(n: number, position: number | null): PageQuestionCandidate {
     question: `What is page ${n} about?`,
     search: `page ${n} search`,
     position,
+    publishedAt: null,
+    linked: false,
   };
+}
+
+/** The pass's clock: a Monday morning. */
+const NOW = new Date("2026-10-19T04:00:00.000Z");
+const DAY_MS = 86_400_000;
+
+/** A page that went live `days` before the pass. */
+function live(n: number, days: number, extra: Partial<PageQuestionCandidate> = {}): PageQuestionCandidate {
+  return { ...page(n, null), publishedAt: new Date(NOW.getTime() - days * DAY_MS).toISOString(), ...extra };
 }
 
 /** `n` live pages, ranked 1, 2, 3 … — so "nearest the first page first" has
@@ -47,7 +59,7 @@ describe("SPEC §6 — the tracked set never grows past 24, whatever the custome
   });
 
   it("with 30 live pages the pass still tracks exactly 24 — the issue's own done-when", () => {
-    const tracked = trackedQuestions({ selected: 12, candidates: pages(30), misses: NO_MISSES });
+    const tracked = trackedQuestions({ selected: 12, candidates: pages(30), misses: NO_MISSES, now: NOW });
 
     expect(tracked.tracked).toBe(24);
     expect(tracked.asked).toHaveLength(12);
@@ -60,7 +72,7 @@ describe("SPEC §6 — the tracked set never grows past 24, whatever the custome
   it("a site with two live pages tracks fourteen — and costs what fourteen cost", () => {
     // The other half of the cap's promise: it is a ceiling, not a quota, so
     // a small site is not asked twenty-four questions to fill it up.
-    const tracked = trackedQuestions({ selected: 12, candidates: pages(2), misses: NO_MISSES });
+    const tracked = trackedQuestions({ selected: 12, candidates: pages(2), misses: NO_MISSES, now: NOW });
     expect(tracked.asked).toHaveLength(2);
     expect(tracked.tracked).toBe(14);
     expect(tracked.waiting).toEqual([]);
@@ -69,40 +81,89 @@ describe("SPEC §6 — the tracked set never grows past 24, whatever the custome
   it("the page half is whatever the market's questions left of the cap", () => {
     // A thin market selected nine, so the pages may have fifteen — the cap
     // is on the set, not on either half of it.
-    const thin = trackedQuestions({ selected: 9, candidates: pages(30), misses: NO_MISSES });
+    const thin = trackedQuestions({ selected: 9, candidates: pages(30), misses: NO_MISSES, now: NOW });
     expect(thin.asked).toHaveLength(15);
     expect(thin.tracked).toBe(24);
 
     // And a market that somehow filled the cap by itself leaves no room —
     // without taking a slot from the twelve, which are not this function's
     // to trim.
-    const full = trackedQuestions({ selected: 24, candidates: pages(30), misses: NO_MISSES });
+    const full = trackedQuestions({ selected: 24, candidates: pages(30), misses: NO_MISSES, now: NOW });
     expect(full.asked).toEqual([]);
     expect(full.waiting).toHaveLength(30);
     expect(full.tracked).toBe(24);
-    expect(trackedQuestions({ selected: 30, candidates: pages(5), misses: NO_MISSES }).tracked).toBe(30);
+    expect(trackedQuestions({ selected: 30, candidates: pages(5), misses: NO_MISSES, now: NOW }).tracked).toBe(30);
   });
 
-  it("asks the pages nearest the first page first, and queues a page that ranks nowhere behind every page that does", () => {
+  it("past the due pages, a page climbing at 11–30 comes first, and a page that ranks nowhere queues behind every page that does", () => {
     const candidates = [page(1, 40), page(2, null), page(3, 3), page(4, 11)];
-    const asked = trackedQuestions({ selected: 22, candidates, misses: NO_MISSES }).asked;
+    const asked = trackedQuestions({ selected: 22, candidates, misses: NO_MISSES, now: NOW }).asked;
 
-    expect(asked.map((c) => c.publicationId)).toEqual(["pub-03", "pub-04"]);
+    expect(asked.map((c) => c.publicationId)).toEqual(["pub-04", "pub-03"]);
     // Two passes over the same pages ask the same questions: the order is
     // total, so an unranked pair cannot swap between weeks.
-    const ordered = trackedQuestions({ selected: 12, candidates, misses: NO_MISSES }).asked;
-    expect(ordered.map((c) => c.publicationId)).toEqual(["pub-03", "pub-04", "pub-01", "pub-02"]);
+    const ordered = trackedQuestions({ selected: 12, candidates, misses: NO_MISSES, now: NOW }).asked;
+    expect(ordered.map((c) => c.publicationId)).toEqual(["pub-04", "pub-03", "pub-01", "pub-02"]);
   });
 
   it("holds the cap for any market size and any number of pages", () => {
     for (let selected = 0; selected <= 12; selected += 1) {
       for (const live of [0, 1, 12, 13, 30, 200]) {
-        const tracked = trackedQuestions({ selected, candidates: pages(live), misses: NO_MISSES });
+        const tracked = trackedQuestions({ selected, candidates: pages(live), misses: NO_MISSES, now: NOW });
         expect(tracked.tracked).toBeLessThanOrEqual(TRACKED_QUESTIONS_MAX);
         expect(tracked.tracked).toBe(selected + tracked.asked.length);
         expect(tracked.asked.length + tracked.waiting.length).toBe(live);
       }
     }
+  });
+});
+
+describe("owner B2 and D2 — the page slots go to the pages due a reading, newest first", () => {
+  it("of 20 candidates, the newest 7 are asked first, newest first", () => {
+    const thisWeek = Array.from({ length: 7 }, (_, i) => live(i + 1, i));
+    // Last week's pages are not due, even where one is climbing.
+    const lastWeek = Array.from({ length: 7 }, (_, i) => live(i + 8, 7 + i, { position: 15 }));
+    const twoWeeks = Array.from({ length: 6 }, (_, i) => live(i + 15, 14 + i));
+    const candidates = [...twoWeeks, ...lastWeek, ...thisWeek];
+
+    const asked = trackedQuestions({ selected: 12, candidates, misses: NO_MISSES, now: NOW }).asked.map((c) => c.publicationId);
+    expect(asked.slice(0, 7)).toEqual(thisWeek.map((c) => c.publicationId));
+    expect(asked.slice(7)).toEqual(twoWeeks.slice(0, 5).map((c) => c.publicationId));
+  });
+
+  it("a page is due at weeks 2, 4 and 8 after going live, and not in the weeks between", () => {
+    const candidates = [1, 2, 3, 4, 5, 8, 9].map((weeks) => live(weeks, weeks * 7 + 1));
+    const asked = trackedQuestions({ selected: 21, candidates, misses: NO_MISSES, now: NOW }).asked;
+    expect(asked.map((c) => c.publicationId)).toEqual(["pub-02", "pub-04", "pub-08"]);
+  });
+
+  it("past the due pages: climbing at 11–30 nearest first, then linked by AI, then the rest", () => {
+    const candidates = [
+      page(1, 5),
+      page(2, 25),
+      { ...page(3, 50), linked: true },
+      page(4, 31),
+      page(5, 11),
+    ];
+    const asked = trackedQuestions({ selected: 12, candidates, misses: NO_MISSES, now: NOW }).asked;
+    expect(asked.map((c) => c.publicationId)).toEqual(["pub-05", "pub-02", "pub-03", "pub-01", "pub-04"]);
+  });
+
+  it("a page's result is read 100 deep until it is seen, then ten places past where it was last seen, never under 20", () => {
+    expect(slotDepth({ position: null }, 0)).toBe(100);
+    expect(slotDepth({ position: 64 }, 0)).toBe(80);
+    expect(slotDepth({ position: 14 }, 0)).toBe(30);
+    expect(slotDepth({ position: 95 }, 0)).toBe(100);
+    // On the first page the read is shallow, and still deep enough to see page two.
+    expect(slotDepth({ position: 1 }, 0)).toBe(20);
+    expect(slotDepth({ position: 10 }, 0)).toBe(20);
+  });
+
+  it("only the first twelve asked slots read deep; a thin market's slots past them read one page of ten", () => {
+    const deep = TRACKED_QUESTIONS_MAX - BATTERY.QUESTIONS;
+    expect(slotDepth({ position: null }, deep - 1)).toBe(100);
+    expect(slotDepth({ position: null }, deep)).toBe(VENDOR.serpDepth);
+    expect(slotDepth({ position: 64 }, TRACKED_QUESTIONS_MAX - 1)).toBe(VENDOR.serpDepth);
   });
 });
 
@@ -113,7 +174,7 @@ describe("SPEC §6 — a page's question leaves the set after 8 weeks without a 
       ["pub-01", PAGE_QUESTION_RETIRE_WEEKS],
       ["pub-02", PAGE_QUESTION_RETIRE_WEEKS - 1],
     ]);
-    const tracked = trackedQuestions({ selected: 12, candidates, misses });
+    const tracked = trackedQuestions({ selected: 12, candidates, misses, now: NOW });
 
     expect(tracked.retired.map((c) => c.publicationId)).toEqual(["pub-01"]);
     // Seven misses is still in the set: the rule is eight.
@@ -132,6 +193,7 @@ describe("SPEC §6 — a page's question leaves the set after 8 weeks without a 
       selected: 12,
       candidates: pages(2),
       misses: new Map([["pub-01", 9]]),
+      now: NOW,
     });
     expect(tracked.retired.map((c) => c.publicationId)).toEqual(["pub-01"]);
     expect(tracked.asked.map((c) => c.publicationId)).toEqual(["pub-02"]);
@@ -170,13 +232,13 @@ describe("SPEC §6 — a page's question leaves the set after 8 weeks without a 
     const misses = missesByPage(weeks);
     expect(misses.get("pub-01")).toBe(3);
     expect(
-      trackedQuestions({ selected: 12, candidates: [page(1, 4)], misses }).retired
+      trackedQuestions({ selected: 12, candidates: [page(1, 4)], misses, now: NOW }).retired
     ).toEqual([]);
   });
 
   it("a page with no history at all has missed nothing", () => {
     expect(missesByPage([]).size).toBe(0);
-    const fresh = trackedQuestions({ selected: 12, candidates: pages(1), misses: missesByPage([]) });
+    const fresh = trackedQuestions({ selected: 12, candidates: pages(1), misses: missesByPage([]), now: NOW });
     expect(fresh.retired).toEqual([]);
     expect(fresh.asked).toHaveLength(1);
   });
@@ -189,7 +251,7 @@ describe("SPEC §6 — a page's question leaves the set after 8 weeks without a 
     const misses = missesByPage(weeks);
     expect(misses.get("pub-01")).toBe(PAGE_QUESTION_RETIRE_WEEKS);
     expect(
-      trackedQuestions({ selected: 12, candidates: pages(1), misses }).retired.map((c) => c.publicationId)
+      trackedQuestions({ selected: 12, candidates: pages(1), misses, now: NOW }).retired.map((c) => c.publicationId)
     ).toEqual(["pub-01"]);
   });
 });
@@ -207,16 +269,16 @@ describe("issue #919 — the arithmetic is pure", () => {
   it("is total: it invents nothing from nonsense, and refuses no input", () => {
     const candidates = pages(3);
     // A negative or absurd `selected` cannot make the cap bigger.
-    expect(trackedQuestions({ selected: -5, candidates, misses: NO_MISSES }).tracked).toBe(3);
+    expect(trackedQuestions({ selected: -5, candidates, misses: NO_MISSES, now: NOW }).tracked).toBe(3);
     // A cap of zero asks no page question and retires none.
-    const none = trackedQuestions({ selected: 0, candidates, misses: NO_MISSES, max: 0 });
+    const none = trackedQuestions({ selected: 0, candidates, misses: NO_MISSES, now: NOW, max: 0 });
     expect(none.asked).toEqual([]);
     expect(none.retired).toEqual([]);
     expect(none.waiting).toHaveLength(3);
     // A retirement window below one week would retire every page on its
     // first pass; the floor is one.
     expect(
-      trackedQuestions({ selected: 0, candidates, misses: NO_MISSES, retireAfter: 0 }).retired
+      trackedQuestions({ selected: 0, candidates, misses: NO_MISSES, now: NOW, retireAfter: 0 }).retired
     ).toEqual([]);
   });
 });

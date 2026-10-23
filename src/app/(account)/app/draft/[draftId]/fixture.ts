@@ -211,6 +211,9 @@ const BODY = [
   "",
   "Set the fields you need on day one, export once to confirm you can, and revisit the choice " +
     "when the team doubles.",
+  "",
+  // A page links the site's own pages, so its *Links on this page* note has one to list.
+  `Moving is quoted up front: [what a fixed-price migration covers](https://${FIXTURE_DOMAIN}/migration).`,
 ].join("\n");
 
 /** The same page after the customer rewrote its opening — the grounded fact
@@ -226,6 +229,8 @@ const READ_AT = new Date(Date.UTC(2026, 8, 14, 6, 0, 0));
  *  the page, the day before its review date. S16's provenance line states
  *  it, and nothing here moves with the clock. */
 const WRITTEN_AT = new Date(Date.UTC(2026, 8, 14, 17, 4, 0));
+/** The page-ready mail, five minutes after the page was written. */
+const EMAILED_AT = new Date(Date.UTC(2026, 8, 14, 17, 9, 0));
 const LAST_SAVED_AT = new Date(Date.UTC(2026, 8, 15, 11, 25, 0));
 /** §9's veto window on the calendar fixture's in-review page: 24 hours
  *  after it entered review, the same instant that fixture states. */
@@ -291,6 +296,7 @@ const UNEDITED: DraftFacts = {
   title: "How to choose a CRM for a small team",
   description: "What a small team should weigh when it picks a CRM: seats, price and what the free tier holds.",
   writtenAt: WRITTEN_AT,
+  emailedAt: EMAILED_AT,
   bodyMd: BODY,
   bodyMdGenerated: BODY,
   state: "in_review",
@@ -344,10 +350,13 @@ const UNEDITED: DraftFacts = {
     },
     // Why this topic (issue 1395): the fit the pass judged, and the rival
     // it recorded as answering the search today.
-    why: { fit: "answer", rival: "northwind.example" },
+    why: {
+      fit: "answer",
+      rival: "northwind.example",
+      planReason: { points: 5, parts: [{ part: "fit", n: 3 }, { part: "ai_gap", n: 2 }], rule: null },
+    },
+    update: false,
   },
-  // The topics set aside, as Overview's own fixture counts them.
-  setAside: { covered: 3, tooHard: 4, lowFit: 0, resting: 0 },
   timeZone: FIXTURE_TIME_ZONE,
   writtenFrom: FIXTURE_WRITTEN_FROM,
   // What the page adds (issue 1143): two sentences of the fixture's body
@@ -388,8 +397,36 @@ const PUBLISHED: DraftFacts = {
   state: "published",
   autoApprovesAt: null,
   record: DELIVERED,
-  // Issue 1553: crawled and indexed, shown in search, not yet cited.
-  ladder: { crawled: true, indexed: true, impressions: 37, showing: true, bestPlace: 34, placeSource: "serp", cited: false },
+  // Live three weeks, read on three Mondays: found, showing and climbing,
+  // read by AI and linked by one engine, not yet on the first page.
+  live: {
+    since: new Date("2026-09-14T14:00:00.000Z"),
+    url: "https://blog.example.com/how-to-choose-a-crm-for-a-small-team",
+    wordpress: false,
+    reading: {
+      at: "2026-10-05T06:00:00.000Z",
+      crawled: true,
+      place: { value: 24, source: "serp", query: "best crm for small teams" },
+      first: { at: "2026-09-21T06:00:00.000Z", place: 41 },
+      best: { place: 24, at: "2026-10-05T06:00:00.000Z" },
+      prev: 19,
+      linkedBy: ["ai_mode"],
+      aiReads: 4,
+      variants: [],
+      reached: {
+        found: "2026-09-16T06:00:00.000Z",
+        showing: "2026-09-21T06:00:00.000Z",
+        readByAi: "2026-09-17T06:00:00.000Z",
+        linkedByAi: "2026-10-05T06:00:00.000Z",
+      },
+      google: { indexed: true, lastCrawl: "2026-10-03T06:00:00.000Z", impressions: 37, clicks: 3, bestPlace: 24, bestQuery: "best crm for small teams" },
+      bing: null,
+    },
+    label: "climbing",
+    // The reserved account has no row a live edit could write.
+    edit: null,
+  },
+  takeDown: { kind: "live" },
 };
 
 export const FIXTURE_DRAFTS: Readonly<Record<string, DraftFacts>> = Object.freeze({

@@ -304,17 +304,16 @@ export const SETTINGS_COPY = Object.freeze({
   // Each of the four is **drafted** under the owner's 2026-09-16 ruling
   // (#759): written here in the registry's voice and shipped, never left as
   // a marker, and named in the PR so the owner can correct it. Two are the
-  // redesign's own words for a tab no card is titled with; two are a tab's
-  // word where the card's title is a sentence a bar has no room for — the
-  // voice card is "How your pages sound" and the mail card is
-  // "Notifications", and both cards keep those titles.
+  // redesign's own words for a tab no card is titled with; the voice tab's
+  // card title is a sentence a bar has no room for ("How your pages sound"),
+  // and the mail tab and its card share one word, "Mail".
   "settings.tabs.label": ["Settings sections", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
   "settings.tab.business": ["Your business", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
   "settings.tab.market": ["Market and competitors", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
   "settings.tab.voice": ["Your voice", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
   "settings.tab.mail": ["Mail", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
 
-  "settings.market.title": ["Your site & market", { slots: {}, fixedBy: "BUILD §4.7" }],
+  "settings.market.title": ["Your site and market", { slots: {}, fixedBy: "BUILD §4.7" }],
   "settings.market.category": ["market", { slots: {}, fixedBy: "REQ-070 c1" }],
   "settings.market.domain": ["domain", { slots: {}, fixedBy: "BUILD §10 (`sites.domain`), §4.4" }],
   // §4.7, including its lower-case opening. Issue 837 (owner ruling
@@ -388,6 +387,19 @@ export const SETTINGS_COPY = Object.freeze({
   // the same either way and REQ-071 c9 names one. A category save has no
   // refusal: any non-empty string is a market somebody could be measured in.
   "settings.market.refused.unreachable": ["We can’t reach that domain, so it wasn’t saved. Check the spelling.", { slots: {}, fixedBy: "REQ-071 c9" }],
+  // D66 after setup (issue 1692). Drafted (#759).
+  "settings.locale.note": [
+    "Changing it starts a new scan. Earlier results stay, marked with the date.",
+    { slots: {}, fixedBy: "SPEC §6 · D66 · issue 1692" },
+  ],
+  "settings.locale.unchanged": [
+    "That’s the country and language we already measure, so nothing was scanned again.",
+    { slots: {}, fixedBy: "SPEC §6 · D66 · issue 1692" },
+  ],
+  "settings.locale.refused": [
+    "We don’t measure that country in that language, so it wasn’t saved.",
+    { slots: {}, fixedBy: "SPEC §6 · D66 · issue 1692" },
+  ],
 
   // ── Competitors ────────────────────────────────────────────────────────
   // D28 (owner, 2026-10-02, #1185): drafted, named in the pull request.
@@ -485,17 +497,37 @@ export const SETTINGS_COPY = Object.freeze({
    *  stop a page". Drafted in the registry's voice (#328); the owner may
    *  correct. */
   "settings.publishing.veto.less.label": [
-    "Less time to stop a page",
-    { slots: {}, fixedBy: "issue 328" },
+    "Shorter time to stop a page",
+    { slots: {}, fixedBy: "issue 328 · board SettingsPublishing" },
   ],
   "settings.publishing.veto.more.label": [
-    "More time to stop a page",
-    { slots: {}, fixedBy: "issue 328" },
+    "Longer time to stop a page",
+    { slots: {}, fixedBy: "issue 328 · board SettingsPublishing" },
   ],
   "settings.publishing.publish-time": ["publish time", { slots: {}, fixedBy: "BUILD §4.7" }],
   "settings.publishing.time-zone": ["time zone", { slots: {}, fixedBy: "REQ-070 c1" }],
   "settings.publishing.enabled": ["Publishing", { slots: {}, fixedBy: "REQ-070 c1" }],
-  "settings.publishing.destinations": ["destinations", { slots: {}, fixedBy: "BUILD §4.7" }],
+  "settings.publishing.destinations": ["Where pages go live", { slots: {}, fixedBy: "BUILD §4.7 · board SettingsPublishing" }],
+  // The card's head, the timeline and the help lines, in the board's words (issue 1751).
+  "settings.publishing.on": ["On", { slots: {}, fixedBy: "issue 1751 · board SettingsPublishing · drafted" }],
+  "settings.publishing.off": ["Off", { slots: {}, fixedBy: "issue 1751 · board SettingsPublishing · drafted" }],
+  "settings.publishing.on.lead": ["On. A page goes live on each planned day.", { slots: {}, fixedBy: "issue 1751 · board SettingsPublishing · drafted" }],
+  "settings.publishing.off.lead": ["Paused. No page goes live until you turn this back on. Your plan and pages are kept.", { slots: {}, fixedBy: "issue 1751 · board SettingsPublishing · drafted" }],
+  "settings.publishing.flow.title": ["How each page goes out", { slots: {}, fixedBy: "issue 1751 · board SettingsPublishing · drafted" }],
+  "settings.publishing.flow.page": ["Today’s page: {title}", { slots: { title: "text" }, fixedBy: "issue 1751 · board SettingsPublishing · drafted" }],
+  "settings.publishing.flow.written": ["Written", { slots: {}, fixedBy: "issue 1751 · board SettingsPublishing · drafted" }],
+  "settings.publishing.flow.written.note": ["Checked against your facts and your never-claim list", { slots: {}, fixedBy: "issue 1751 · board SettingsPublishing · drafted" }],
+  "settings.publishing.flow.emailed": ["Emailed to you", { slots: {}, fixedBy: "issue 1751 · board SettingsPublishing · drafted" }],
+  "settings.publishing.flow.emailed.note": ["With Read, Edit and Stop", { slots: {}, fixedBy: "issue 1751 · board SettingsPublishing · drafted" }],
+  "settings.publishing.flow.window": ["{window} to read, edit or stop it", { slots: { window: "text" }, fixedBy: "issue 1751 · board SettingsPublishing · drafted" }],
+  // "Plan" is the link to Plan.
+  "settings.publishing.flow.window.note": ["From the mail or from Plan. Do nothing and it goes live on its own.", { slots: {}, fixedBy: "issue 1751 · board SettingsPublishing · drafted" }],
+  "settings.publishing.flow.live": ["Goes live", { slots: {}, fixedBy: "issue 1751 · board SettingsPublishing · drafted" }],
+  "settings.publishing.flow.paused": ["Paused: nothing goes live", { slots: {}, fixedBy: "issue 1751 · board SettingsPublishing · drafted" }],
+  "settings.publishing.flow.note": ["This line follows the publish time and the time to stop a page, set below. Turn publishing off to pause every page at once.", { slots: {}, fixedBy: "issue 1751 · board SettingsPublishing · drafted" }],
+  "settings.publishing.where.site": ["Your website, unchanged", { slots: {}, fixedBy: "issue 1751 · board SettingsPublishing · drafted" }],
+  "settings.publishing.where.pages": ["Your pages, on your own address", { slots: {}, fixedBy: "issue 1751 · board SettingsPublishing · drafted" }],
+  "settings.publishing.time-zone.note": ["Taken from your browser.", { slots: {}, fixedBy: "issue 1751 · board SettingsPublishing · drafted" }],
   "settings.publishing.reconnect": ["Reconnect", { slots: {}, fixedBy: "BUILD §4.7" }],
   // Issue #240 — the control on a destination that has never held a
   // credential. **Its own key, not `reconnect` reused**: a founder who
@@ -515,11 +547,6 @@ export const SETTINGS_COPY = Object.freeze({
     { slots: {}, fixedBy: "SPEC §7 2026-09-20" },
   ],
 
-  // §4.7's own footnote, verbatim and complete, including its full stop.
-  "settings.publishing.fix-note": [
-    "Fix-type tasks are never automated, whatever the mode.",
-    { slots: {}, fixedBy: "BUILD §4.7" },
-  ],
 
   // The two destination kinds and the three health states. §10's
   // `destinations` row prints `kind(hosted/wordpress)` and
@@ -632,7 +659,7 @@ export const SETTINGS_COPY = Object.freeze({
   // its rows from the register (never from a hand-written three), so a fourth
   // stoppable kind arrives as a missing-key compile error rather than as a
   // mail a customer cannot stop.
-  "settings.notifications.title": ["Notifications", { slots: {}, fixedBy: "BUILD §4.7" }],
+  "settings.notifications.title": ["Mail", { slots: {}, fixedBy: "BUILD §4.7" }],
   "settings.notifications.draft-ready": ["A page is ready, before it goes live", { slots: {}, fixedBy: "issue 1574" }],
   // Under the switch while it is off: turning the mail off never holds a page.
   "settings.notifications.draft-ready.off": [
@@ -640,7 +667,27 @@ export const SETTINGS_COPY = Object.freeze({
     { slots: {}, fixedBy: "issue 1574" },
   ],
   "settings.notifications.published": ["When your first page goes live", { slots: {}, fixedBy: "decision 2026-10-19-1593 (drafted)" }],
-  "settings.notifications.weekly": ["Monday movement mail", { slots: {}, fixedBy: "BUILD §12" }],
+  "settings.notifications.weekly": ["Monday mail: your week’s pages", { slots: {}, fixedBy: "BUILD §12 · board SettingsMail" }],
+  // The card's lead, each row's help and preview, and the week strip (issue 1751; Q10 for the page-ready row).
+  // "Account" is the link to the Account tab.
+  "settings.notifications.to": ["Mail goes to {email}. Change it under Account.", { slots: { email: "text" }, fixedBy: "issue 1751 · board SettingsMail · drafted" }],
+  "settings.notifications.weekly.note": ["What went live, what moved, and the {days} pages planned next.", { slots: { days: "text" }, fixedBy: "issue 1751 · board SettingsMail · drafted" }],
+  "settings.notifications.weekly.preview": ["Your week: {days} pages planned", { slots: { days: "text" }, fixedBy: "issue 1751 · board SettingsMail · drafted" }],
+  "settings.notifications.weekly.preview.climbing": ["Your week: {days} pages planned, {n} pages climbing", { slots: { days: "text", n: "text" }, fixedBy: "issue 1911 · board SettingsMail · owner R29 2026-10-23" }],
+  "settings.notifications.weekly.preview.climbing-one": ["Your week: {days} pages planned, 1 page climbing", { slots: { days: "text" }, fixedBy: "issue 1911 · board SettingsMail · owner R29 2026-10-23" }],
+  "settings.notifications.weekly.when": ["Mondays", { slots: {}, fixedBy: "issue 1751 · board SettingsMail · drafted" }],
+  "settings.notifications.draft-ready.note": [
+    "One mail per page, {window} before it goes live, with Read, Edit and Stop. It is sent until your first Monday mail. After that, the Monday mail lists each page with its day and Stop. Turn this on to keep both.",
+    { slots: { window: "text" }, fixedBy: "Q10 · ux-designer · issue 1751" },
+  ],
+  "settings.notifications.draft-ready.preview": ["Your next page is written: {title}", { slots: { title: "text" }, fixedBy: "issue 1751 · board SettingsMail · drafted" }],
+  "settings.notifications.draft-ready.preview.when": ["{written} · goes live {live}", { slots: { written: "text", live: "text" }, fixedBy: "issue 1751 · board SettingsMail · drafted" }],
+  "settings.notifications.week.title": ["Your week of mail", { slots: {}, fixedBy: "issue 1751 · board SettingsMail · drafted" }],
+  "settings.notifications.week.label": ["The mail you get in a week", { slots: {}, fixedBy: "issue 1751 · board SettingsMail · drafted" }],
+  "settings.notifications.week.monday": ["Monday mail", { slots: {}, fixedBy: "issue 1751 · board SettingsMail · drafted" }],
+  "settings.notifications.week.ready": ["A page is ready, one per page", { slots: {}, fixedBy: "issue 1751 · board SettingsMail · drafted" }],
+  "settings.notifications.week.no-ready": ["No page-ready mail. Pages still go live.", { slots: {}, fixedBy: "issue 1751 · board SettingsMail · drafted" }],
+  "settings.notifications.week.none": ["You get no ReachKit mail except sign-in and account mail. Pages still go live on their day.", { slots: {}, fixedBy: "issue 1751 · board SettingsMail · drafted" }],
 
   // ── Billing ────────────────────────────────────────────────────────────
   // Every word here names a value or a destination; not one of them is a
@@ -658,6 +705,10 @@ export const SETTINGS_COPY = Object.freeze({
   "settings.billing.cancelled": ["cancelled", { slots: {}, fixedBy: "REQ-076 c3" }],
   "settings.billing.next-invoice": ["next invoice", { slots: {}, fixedBy: "BUILD §4.7" }],
   "settings.billing.card": ["card", { slots: {}, fixedBy: "BUILD §4.7" }],
+  "settings.billing.card-ending": ["ending {last4}", { slots: { last4: "text" }, fixedBy: "issue 1751 · board SettingsBilling · drafted" }],
+  "settings.billing.status": ["Status", { slots: {}, fixedBy: "issue 1751 · board SettingsBilling · drafted" }],
+  "settings.billing.plan": ["Plan", { slots: {}, fixedBy: "issue 1751 · board SettingsBilling · drafted" }],
+  "settings.billing.billed": ["Billed in euros. Cancel any time; everything keeps running until the period ends.", { slots: {}, fixedBy: "issue 1751 · board SettingsBilling · drafted" }],
   // 2026-09-21, issue #925 — the three controls that all opened the same
   // Stripe surface are one control. REQ-097 c1 always said there was one
   // destination ("the only thing ReachKit offers for it is a control to that
@@ -679,7 +730,7 @@ export const SETTINGS_COPY = Object.freeze({
     { slots: {}, fixedBy: "SPEC §4 2026-09-20 · REQ-097 c1" },
   ],
   "settings.billing.resume": [
-    "resume",
+    "Resume my plan",
     { slots: {}, fixedBy: 'REQ-070 c2 ("cancelling or resuming the plan")' },
   ],
   // 2026-09-07, issue #136 — REQ-097 criterion 6: "they are told in writing,
@@ -701,32 +752,52 @@ export const SETTINGS_COPY = Object.freeze({
     { slots: {}, fixedBy: "REQ-097 c6" },
   ],
 
-  // §4.7 verbatim, including its lower-case opening and its `{date}` slot.
-  // The date is Stripe's (REQ-097 c5), never one ReachKit worked out.
+  // The cancelled arm, in the board's words. The date is `paid_through`.
   "settings.billing.cancelling": [
-    "cancelling keeps everything running until {date}",
-    { slots: { date: "date" }, fixedBy: "BUILD §4.7" },
+    "Cancelled. Everything keeps running until {date}.",
+    { slots: { date: "date" }, fixedBy: "BUILD §4.7 · board SettingsBilling" },
+  ],
+
+  // The cancel route and the first-14-days refund (owner E13 and D4, 2026-10-19). Drafted.
+  // {control} is filled from `settings.billing.manage`, so the line names the card's real button.
+  "settings.billing.route": [
+    "Reply to any ReachKit email or use {control}.",
+    { slots: { control: "text" }, fixedBy: "E13 · owner R24 2026-10-23 · drafted" },
+  ],
+  "settings.billing.refund-window": [
+    "Billed in euros. Cancel by {date} for a full, automatic refund. ReachKit stops at once.",
+    { slots: { date: "date" }, fixedBy: "D4 · ux-designer · owner R5 2026-10-22" },
   ],
 
   // Billing's "What you got this month" (owner E3, 2026-10-19). Drafted.
   "settings.month.title": ["What you got this month", { slots: {}, fixedBy: "E3 · drafted" }],
-  "settings.month.period": ["Billing period {from} to {to}.", { slots: { from: "date", to: "date" }, fixedBy: "E3 · drafted" }],
+  "settings.month.period": ["Billing period {from} to {to}. Everything is included in {price}.", { slots: { from: "date", to: "date", price: "text" }, fixedBy: "E3 · board SettingsBilling · drafted" }],
+  "settings.month.all": ["See every page →", { slots: {}, fixedBy: "issue 1751 · board SettingsBilling · drafted" }],
   "settings.month.live": ["pages went live", { slots: {}, fixedBy: "E3 · drafted" }],
-  "settings.month.refreshed": ["pages refreshed", { slots: {}, fixedBy: "E3 · drafted" }],
-  "settings.month.scans": ["scans run", { slots: {}, fixedBy: "E3 · drafted" }],
+  "settings.month.live.where": ["on {host}", { slots: { host: "text" }, fixedBy: "issue 1751 · board SettingsBilling · drafted" }],
+  "settings.month.reports": ["Monday reports", { slots: {}, fixedBy: "issue 1751 · board SettingsBilling · drafted" }],
+  "settings.month.asked": ["searches and AI questions", { slots: {}, fixedBy: "issue 1751 · board SettingsBilling · drafted" }],
+  "settings.month.asked.split": ["{searches} searches and {questions} AI questions, checked each week", { slots: { searches: "text", questions: "text" }, fixedBy: "issue 1751 · board SettingsBilling · drafted" }],
+  "settings.month.asked.split.unmeasured": ["{searches} searches, checked each week. AI questions were not measured this pass.", { slots: { searches: "text" }, fixedBy: "issue 1907 · drafted" }],
+  "settings.month.planned": ["pages planned this week", { slots: {}, fixedBy: "issue 1751 · board SettingsBilling · drafted" }],
+  "settings.month.planned.cap": ["up to {days} a week, never filler", { slots: { days: "text" }, fixedBy: "issue 1751 · board SettingsBilling · drafted" }],
   "settings.month.not-measured": ["not measured", { slots: {}, fixedBy: "E3 · drafted" }],
-  "settings.month.checks": ["Checks each page passed", { slots: {}, fixedBy: "E3 · drafted" }],
-  "settings.month.refresh": ["refresh", { slots: {}, fixedBy: "E3 · drafted" }],
-  "settings.month.untitled": ["A page with no title", { slots: {}, fixedBy: "E3 · drafted" }],
+  "settings.month.bar": ["This billing period, {from} to {to}: {live} pages live so far, {planned} planned this week", { slots: { from: "date", to: "date", live: "text", planned: "text" }, fixedBy: "issue 1751 · board SettingsBilling · drafted" }],
+  "settings.month.today": ["Today", { slots: {}, fixedBy: "issue 1751 · board SettingsBilling · drafted" }],
+  "settings.month.legend.live": ["A page went live", { slots: {}, fixedBy: "issue 1751 · board SettingsBilling · drafted" }],
+  "settings.month.legend.planned": ["Planned this week", { slots: {}, fixedBy: "issue 1751 · board SettingsBilling · drafted" }],
+  "settings.month.first": ["Your first page goes live {when}.", { slots: { when: "date" }, fixedBy: "issue 1751 · board SettingsBilling · drafted" }],
+  "settings.month.detail": ["Show the detail", { slots: {}, fixedBy: "issue 1751 · board SettingsBilling · drafted" }],
   "settings.month.unread": [
     "This month could not be read just now. Your plan below is unaffected.",
     { slots: {}, fixedBy: "E3 · drafted" },
   ],
-  "settings.month.no-pages": ["No page went live in this period yet.", { slots: {}, fixedBy: "E3 · drafted" }],
   "settings.month.note": [
-    "Counted from your own pages and scans. A page that went live is one that is on your address today.",
-    { slots: {}, fixedBy: "E3 · drafted" },
+    "Counted from your own pages and measurements. A page that went live is one that is on your address today. The searches and AI questions are the ones in Market and competitors.",
+    { slots: {}, fixedBy: "E3 · board SettingsBilling · drafted" },
   ],
+  // "Overview" is the link to Overview.
+  "settings.month.climb": ["Pages climb at Google’s pace, not ours. What moved is on Overview.", { slots: {}, fixedBy: "issue 1751 · board SettingsBilling · drafted" }],
 
   // ── Account ────────────────────────────────────────────────────────────
   "settings.account.title": ["Account", { slots: {}, fixedBy: "BUILD §4.7" }],
@@ -774,6 +845,12 @@ export const SETTINGS_COPY = Object.freeze({
     { slots: { at: "date" }, fixedBy: "REQ-077 c4" },
   ],
   "settings.account.cancel-change": ["Undo change", { slots: {}, fixedBy: "REQ-077 c4" }],
+  // How a sign-in goes, and the export, in the board's words (issue 1751).
+  "settings.account.signin.label": ["How you sign in", { slots: {}, fixedBy: "issue 1751 · board SettingsAccount · drafted" }],
+  "settings.account.signin.mail": ["We mail you a link", { slots: {}, fixedBy: "issue 1751 · board SettingsAccount · drafted" }],
+  "settings.account.signin.open": ["You open it", { slots: {}, fixedBy: "issue 1751 · board SettingsAccount · drafted" }],
+  "settings.account.signin.in": ["You’re in. No password.", { slots: {}, fixedBy: "issue 1751 · board SettingsAccount · drafted" }],
+  "settings.account.export.note": ["Every page we wrote for you, {pages} so far, live or not, as files with their images. Always available, whatever your plan.", { slots: { pages: "text" }, fixedBy: "REQ-078 · board SettingsAccount · drafted" }],
 
   // ── Your content ───────────────────────────────────────────────────────
   // 2026-09-08, issue #374 — the approved screen set's S18 gives the two
@@ -830,8 +907,6 @@ export const SETTINGS_COPY = Object.freeze({
     { slots: {}, fixedBy: "REQ-075" },
   ],
 
-  "settings.content.title": ["Your content", { slots: {}, fixedBy: "BUILD §4.7" }],
-  "settings.content.pages": ["Pages", { slots: {}, fixedBy: 'BUILD §4.7 ("pages count")' }],
   "settings.content.export": ["Export everything", { slots: {}, fixedBy: "BUILD §4.7" }],
   // REQ-078 c5 (issue #52): "Given an export cannot be produced, when the
   // customer requests one, then they are told so in one written line and are

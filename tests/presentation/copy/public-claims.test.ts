@@ -18,14 +18,13 @@ const CADENCE: readonly CopyKey[] = ["mail.nurture.body.1", "mail.winback.line"]
 /** Every public sentence that states the pace says the owner's A1 week. */
 const WEEK_PACE: readonly CopyKey[] = [
   "offer.cadence.page",
-  "offer.pricing.page",
   "pricing.subline",
   "meta.landing.description",
   "meta.pricing.description",
 ];
 
 /** The short forms of the same promise: a heading or a plan's name. */
-const WEEK_PACE_SHORT: readonly CopyKey[] = ["pricing.heading", "plan.single"];
+const WEEK_PACE_SHORT: readonly CopyKey[] = ["pricing.all.pages", "plan.single"];
 
 /** The landing states its pace as the owner's A1 sentence (2026-10-19). */
 const LANDING_PACE: readonly CopyKey[] = [
@@ -106,6 +105,18 @@ describe("hosted pages after access ends (ruling D5)", () => {
     expect(copy("landing.faq.stop.a", { days: HOSTED_RETENTION_DAYS })).toContain(`stay live for ${HOSTED_RETENTION_DAYS} days after your access ends`);
     expect(HOSTING_END_REMINDER_DAYS).toBe(7);
     expect(text("landing.faq.stop.a")).toContain("we email you a week before they stop");
+  });
+});
+
+describe("the cancel answer leaves when access ends to the Terms (ruling R22)", () => {
+  it("promises no month-end access a refund cancel would break, names no refund, and points at a Terms section that says it", () => {
+    const answer = text("landing.faq.stop.a");
+    expect(answer).not.toMatch(/keep access until the end/i);
+    expect(answer).not.toMatch(/refund|money-back/i);
+    expect(answer).toContain("Section four of our Terms says when your access ends.");
+    const section4 = text("legal.terms.body").split("\n## ").find((s) => s.startsWith("4. "));
+    expect(section4).toMatch(/^4\. Price, billing and cancellation/);
+    expect(section4).toContain("Otherwise your access continues to the end of the period you have paid for");
   });
 });
 

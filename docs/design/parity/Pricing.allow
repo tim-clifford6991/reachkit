@@ -8,3 +8,18 @@ Cancel from Settings Or use Cancel your contract at the foot of any page.	owner 
 Yes. There is a 14-day money-back guarantee: ask within 14 days of your first payment and it’s refunded in full. After that, payments already made aren’t refunded, except where the law requires it. You can cancel any time, and you won’t be charged again.	owner 2026-10-20 Q13: shown once the launch gate opens
 Or use Cancel your contract at the foot of any page.	owner 2026-10-20 Q13: shown once the launch gate opens
 Cancel your contract	owner 2026-10-20 Q13: shown once the launch gate opens
+12 Google searches and 23 questions asked to AI, checked again.	E10: counts come from code; the AI questions are TRACKED_PROMPTS.SPLIT (docs/spec/decisions/2026-10-19-1581.md)
+Which pages Google found	D9: no Search Console or Bing Webmaster for now; the board marks it planned (docs/spec/decisions/2026-10-19-1581.md)
+Which of your pages Google and Bing have found, and where each sits, even far down.	D9: no Search Console or Bing Webmaster for now; the board marks it planned (docs/spec/decisions/2026-10-19-1581.md)
+Which pages Google has found, and where each page sits in Google, even far down the results.	D9: no Search Console or Bing Webmaster for now; the board marks it planned (docs/spec/decisions/2026-10-19-1581.md)
+14 days	#1598: the guarantee section waits on the launch gate (owner 2026-10-20 Q13)
+14 days to change your mind	#1598: the guarantee section waits on the launch gate (owner 2026-10-20 Q13)
+If ReachKit isn’t for you, ask within 14 days of your first payment and we refund it in full.	#1598: the guarantee section waits on the launch gate (owner 2026-10-20 Q13)
+Days 1 to 14 Changed your mind? Ask, and you get the full €49 back.	#1598: the guarantee section waits on the launch gate (owner 2026-10-20 Q13)
+After day 14 Cancel any time. You keep access to the end of the month you paid for, and you’re not charged again.	#1598: the guarantee section waits on the launch gate (owner 2026-10-20 Q13)
+you pay €49 day 14 every month after	#1598: the guarantee section waits on the launch gate (owner 2026-10-20 Q13)
+No contract, no setup fee Billed monthly, in advance, through Stripe. No minimum term.	#1598: the guarantee section waits on the launch gate (owner 2026-10-20 Q13)
+Keep your pages WordPress pages stay where they are. Your export stays, with no end date.	#1598: the guarantee section waits on the launch gate (owner 2026-10-20 Q13)
+Can I get a refund?	#1598: the refund answer waits on the launch gate (owner 2026-10-20 Q13)
+Not sure yet? See your free report	owner 2026-10-15 #1463: a title is at most six words, so "Not sure yet?" is the eyebrow above it
+€49 a month, VAT included, billed in euros, in advance, through Stripe. No setup fee and no minimum term.	#1722: no public screen names a vendor (REQ-092 c8, tests/presentation/sweeps/vocabulary.ts), so the answer leaves out Stripe

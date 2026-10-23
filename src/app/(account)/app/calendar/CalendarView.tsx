@@ -23,8 +23,9 @@ import { StageFilter } from "./StageFilter";
 import { DayPanelView } from "./DayPanelView";
 import { WeekGrid } from "./WeekGrid";
 import { DayList } from "./DayList";
-import { BODY, FILTERS, REGION, WEEK_SHOWN } from "./frame";
+import { BODY, FILTERS, REGION, WEEK_CARD, WEEK_CARD_BODY, WEEK_HEADING_ID, WEEK_SHOWN } from "./frame";
 import type { DayKey } from "./dates";
+import { dayStateOf } from "./month";
 import type { StageFilter as StageFilterId } from "./stages";
 import type { WeekModel } from "./month";
 
@@ -37,7 +38,14 @@ export function openOn(week: WeekModel): DayKey {
   return week.today;
 }
 
-export function CalendarView(p: { week: WeekModel }): React.JSX.Element {
+export function CalendarView(p: {
+  week: WeekModel;
+  /** Today's go-live clock time; `null` while no time can be promised. */
+  goesLive?: string | null;
+  /** The week card's head and foot, written on the server. */
+  head?: React.ReactNode;
+  foot?: React.ReactNode;
+}): React.JSX.Element {
   const [filter, setFilter] = useState<StageFilterId>("all");
   // Nullable rather than defaulted, because **which day** and **who chose
   // it** are two facts and the second decides the phone. `null` is an
@@ -47,6 +55,8 @@ export function CalendarView(p: { week: WeekModel }): React.JSX.Element {
   const implicit = day === null;
   const selected: DayKey | null = day === DAY_CLOSED ? null : (day ?? openOn(p.week));
   const cell = selected === null ? undefined : p.week.cells.find((found) => found.day === selected);
+  const firstSkip = p.week.cells.find((found) => dayStateOf(found) === "skipped")?.day ?? null;
+  const goesLive = p.goesLive ?? null;
 
   /** Opening a day and closing the panel are the same write with two
    *  values, so there is one place the address changes. Both write the
@@ -67,25 +77,33 @@ export function CalendarView(p: { week: WeekModel }): React.JSX.Element {
       </div>
 
       <div className={BODY} data-frame={REGION.body}>
-        <div className="min-w-0">
-          <WeekGrid
-            cells={p.week.cells}
-            filter={filter}
-            selected={selected}
-            destination={p.week.destination}
-            onSelect={(next) => openDay(next)}
-          />
-          <div className={WEEK_SHOWN}>
-            <DayList
+        <section className={WEEK_CARD} aria-labelledby={p.head === undefined ? undefined : WEEK_HEADING_ID} data-testid="plan-week-card">
+          <div className={WEEK_CARD_BODY}>
+            {p.head}
+            <WeekGrid
               cells={p.week.cells}
               filter={filter}
-              // The list is drawn below `lg`, where an implicitly open day
-              // is a closed panel — so it marks none.
-              selected={implicit ? null : selected}
+              selected={selected}
+              destination={p.week.destination}
+              goesLive={goesLive}
+              firstSkip={firstSkip}
               onSelect={(next) => openDay(next)}
             />
+            <div className={WEEK_SHOWN}>
+              <DayList
+                cells={p.week.cells}
+                filter={filter}
+                // The list is drawn below `lg`, where an implicitly open day
+                // is a closed panel — so it marks none.
+                selected={implicit ? null : selected}
+                goesLive={goesLive}
+                firstSkip={firstSkip}
+                onSelect={(next) => openDay(next)}
+              />
+            </div>
+            {p.foot}
           </div>
-        </div>
+        </section>
 
         {cell === undefined ? null : (
           <DayPanelView

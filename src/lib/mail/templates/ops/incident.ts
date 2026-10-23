@@ -58,6 +58,9 @@ export type OpsIncident =
         // Issue 1298 (D63): the week's Google SERP reads, how many timed
         // out, and what the timed-out ones were billed.
         serp?: { reads: number; timeouts: number; wastedCents: number } | null;
+        // The sources billed over `over` times their estimate, over only
+        // the rows the vendor priced.
+        drift?: { over: number; sources: readonly { source: string; billedCents: number; estimatedCents: number }[] } | null;
       };
       // Issue 1287 (D58): the passes one of their own health checks failed
       // on, each with the check and what it found.
@@ -90,13 +93,17 @@ export type OpsIncident =
     }
   // Issue 1587: no error — DataForSEO credit runs out within a week. Days
   // left is null where last week's spend was not measured.
-  | { occasion: "vendor-low"; balanceCents: number; daysLeft: number | null; dashboard: string };
+  | { occasion: "vendor-low"; balanceCents: number; daysLeft: number | null; dashboard: string }
+  // Stripe refused an automatic 14-day refund. Ids and Stripe's error code
+  // only: no card detail and no address.
+  | { occasion: "refund-refused"; invoiceId: string; userId: string; code: string };
 
 const SUBJECT = "mail.ops.incident.subject" satisfies CopyKey;
 const HEADING = "mail.ops.incident.heading" satisfies CopyKey;
 const STOPPED_WEEK = "mail.ops.incident.drafts-stopped-week" satisfies CopyKey;
 const COSTS_WEEK = "mail.ops.incident.costs-week" satisfies CopyKey;
 const HEALTH_WEEK = "mail.ops.incident.health-week" satisfies CopyKey;
+const DRIFT_WEEK = "ops.cost-drift.week" satisfies CopyKey;
 
 const BODY: Readonly<Record<OpsIncident["occasion"], CopyKey>> = Object.freeze({
   "job-failed": "mail.ops.incident.job-failed",
@@ -109,6 +116,7 @@ const BODY: Readonly<Record<OpsIncident["occasion"], CopyKey>> = Object.freeze({
   "autopilot-stalled": "mail.ops.incident.autopilot-stalled",
   "draft-stopped-twice": "mail.ops.incident.draft-stopped-twice",
   "vendor-low": "mail.ops.incident.vendor-low",
+  "refund-refused": "mail.ops.incident.refund-refused",
 });
 
 /** A sentence of the stopped page, on one line and cut where a mail row
@@ -194,6 +202,13 @@ function factsOf(incident: OpsIncident): FactRow[] {
       { label: "mail.ops.incident.fact.dashboard", value: incident.dashboard },
     ];
   }
+  if (incident.occasion === "refund-refused") {
+    return [
+      { label: "mail.ops.incident.fact.invoice", value: closedName(incident.invoiceId) },
+      { label: "mail.ops.incident.fact.account", value: closedId(incident.userId) },
+      { label: "mail.ops.incident.fact.stripe-code", value: closedName(incident.code) },
+    ];
+  }
   if (incident.occasion === "market-too-small") {
     return [
       { label: "mail.ops.incident.fact.scan", value: closedId(incident.scanId) },
@@ -256,6 +271,15 @@ function costFacts(costs: WeekCosts): FactRow[] {
   ];
 }
 
+function driftFacts(drift: NonNullable<WeekCosts["drift"]>): FactRow[] {
+  return drift.sources.flatMap((line): FactRow[] => [
+    { label: "ops.cost-drift.fact.source", value: closedName(line.source) },
+    { label: "ops.cost-drift.fact.billed", value: money(line.billedCents) },
+    { label: "ops.cost-drift.fact.estimated", value: money(line.estimatedCents) },
+    ...(line.estimatedCents > 0 ? [{ label: "ops.cost-drift.fact.ratio", value: `${(line.billedCents / line.estimatedCents).toFixed(2)}×` } as const] : []),
+  ]);
+}
+
 /** The Monday digest: each part is drawn only where it has something to
  *  say, so a week with stalled pages and no thin market does not claim one. */
 function weekBlocks(incident: Extract<OpsIncident, { occasion: "market-too-small-week" }>): MailBlock[] {
@@ -296,6 +320,10 @@ function weekBlocks(incident: Extract<OpsIncident, { occasion: "market-too-small
   }
   if (incident.costs !== undefined) {
     blocks.push({ block: "paragraph", text: COSTS_WEEK }, { block: "facts", items: costFacts(incident.costs) });
+    const drift = incident.costs.drift;
+    if (drift !== undefined && drift !== null && drift.sources.length > 0) {
+      blocks.push({ block: "paragraph", text: DRIFT_WEEK, vars: { over: `${drift.over}` } }, { block: "facts", items: driftFacts(drift) });
+    }
   }
   return blocks;
 }

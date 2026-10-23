@@ -23,6 +23,7 @@ import {
 import { OWNER_OWED } from "@/lib/presentation/copy/registry";
 import { ReportView } from "@/app/(public)/scan/[domain]/_address/report-view";
 import { FIXTURE_DEGRADED_REPORT, FIXTURE_REPORT } from "@/app/(public)/scan/[domain]/_fixture/states";
+import { panelReport, renderReport } from "./panel-report";
 
 /** Every key this screen's own modules name. Transcribed here rather than
  *  read out of the source, so a key silently dropped from a module fails
@@ -52,6 +53,7 @@ const SCREEN_KEYS: readonly CopyKey[] = [
   "report.measured-at.no-category",
   "verdict.score.label",
   "verdict.not-your-market",
+  "verdict.rescored",
   "verdict.limiting.foundations",
   "verdict.limiting.answerability",
   "verdict.limiting.presence",
@@ -138,7 +140,10 @@ const SCREEN_KEYS: readonly CopyKey[] = [
   "free-page.email.label",
   "free-page.email.placeholder",
   "free-page.row.target",
-  "free-page.target.value",
+  "free-page.row.searched",
+  "free-page.searched.value",
+  "free-page.source",
+  "free-page.caption",
   "free-page.row.beats",
   "free-page.row.format",
   "free-page.submit",
@@ -148,14 +153,40 @@ const SCREEN_KEYS: readonly CopyKey[] = [
   "price.amount",
   "price.interval",
   "offer.cadence.page",
-  "offer.cadence.measure",
-  "offer.cadence.measure.value",
+  "pricing.plan.checked",
   "offer.cadence.movement",
   "offer.cadence.movement.value",
   "offer.veto.window",
   "offer.veto.window.value",
   "offer.start",
-  "offer.cancel_self_service",
+  "pricing.plan.cancel",
+  "offer.found.heading",
+  "offer.found.line",
+  "offer.steps.scanned",
+  "offer.steps.write",
+  "offer.steps.progress",
+  "offer.chip.facts",
+  "offer.chip.checks",
+  "offer.chip.stop",
+  "offer.chip.live",
+  "offer.price.euros",
+  "how.steps.part",
+  "how.steps.part.more",
+  "report.rest.eyebrow",
+  "method.section.sub",
+  "check.broken-links.plain",
+  "check.status.not-run",
+  "free-page.consent",
+  // the missing pages, an unbuilt count (owner A3, E1)
+  "report.offer.found",
+  "report.offer.found.one",
+  "report.offer.free-path",
+  "report.missing.volume",
+  "report.missing.holder",
+  "report.missing.all",
+  "report.missing.eyebrow",
+  "report.missing.lead",
+  "unmeasured.not-yet",
   // the notices, the controls, the foot, the scanning stages
   "notice.incomplete",
   "notice.measurement-failed",
@@ -294,5 +325,15 @@ describe("what the owner is owed, stated rather than discovered", () => {
       expect(AWAITING_COPY).not.toContain(key);
       expect(OWNER_OWED).not.toContain(key);
     }
+  });
+});
+
+describe("the offer says how many pages the report found missing (owner A3)", () => {
+  it.each(["saas", "local"] as const)("the %s panel report's offer heading carries its count, beside a free path", (which) => {
+    const report = panelReport(which);
+    const html = renderReport(report);
+    const heading = copy("report.offer.found", { count: String(report.freePage!.totalPages) });
+    expect(html).toMatch(new RegExp(`<h2[^>]*>${heading}</h2>`));
+    expect(html).toMatch(/<a href="#first-page"[^>]*data-testid="report-free-path"/);
   });
 });

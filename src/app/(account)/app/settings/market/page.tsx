@@ -36,6 +36,7 @@ export default async function SettingsMarketTab(): Promise<React.JSX.Element> {
         market={settings.market}
         concluded={settings.concluded}
         domain={settings.domain}
+        locale={settings.locale}
         timeZone={settings.publishing.timeZone}
       />
       <AlsoServesNote n={understanding.where.alsoServes} />

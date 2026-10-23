@@ -149,7 +149,7 @@
 // produced is `null`, which the screen renders as a named absent section
 // with one written line (REQ-004 c10/c11), never as an empty card and
 // never as a spinner.
-import { measuredLocale, type Locale } from "@/lib/locale/locales";
+import { measuredLocale, type Country, type Locale } from "@/lib/locale/locales";
 import { AI_READER_AGENTS, TIMING } from "@/lib/config/constants";
 import type { RobotsPolicy } from "@/lib/egress/types";
 import type { SiteIssuesSection } from "@/lib/site-issues/types";
@@ -172,6 +172,9 @@ import { readPastProtection } from "./challenged";
 import type { CanonicalDomain } from "./domain";
 
 export type Tier = "free" | "deep" | "weekly";
+
+/** The tiers a signed-in site's screens count as its pass; a free re-scan carrying the site's id is not one. */
+export const SITE_PASS_TIERS = ["weekly", "deep"] as const satisfies readonly Tier[];
 
 /** How a pass ended — the values `scans.stopped_reason` is constrained to
  *  (`20260904110000_scans_current.sql`, widened by
@@ -380,6 +383,8 @@ export interface PageQuestionRow {
    *  place from. `null` where that result could not be read this week;
    *  absent on a row stored before the rows were kept. */
   organic?: readonly { url: string; position: number }[] | null;
+  /** How deep `organic` was bought; absent on a row bought ten deep. */
+  depth?: number;
 }
 
 export interface RetiredPageQuestion {
@@ -598,6 +603,12 @@ export interface ReportLocale extends Locale {
    *  `PLACE_FROM`. Absent where it measured in none, or a paid pass settled
    *  the place. */
   placeFrom?: "address" | "area_served" | "address_text" | "page_text";
+  /** `default` where the pass read neither the home page nor a country in
+   *  the address, so it measured in D66's default, guessed. */
+  basis?: "default";
+  /** On a guessed pass, the other supported country the site's own Google
+   *  listing reads as (`listingLocaleOf`). */
+  listingReads?: Country;
 }
 
 /** The locale a stored report was measured in. */
@@ -656,6 +667,16 @@ export interface PromptsSection {
    *  set never rebuilt. A week that carries another mark asked another
    *  set, and the rolling rate leaves it out. */
   restartedAt?: string;
+}
+
+/** What one pass checked: the searches it read a result page for, and the
+ *  AI questions it put. A pass with no prompts block measured no AI
+ *  question, so its count is `null`, never 0. */
+export function askedOf(report: Pick<StoredReport, "serps" | "prompts">): { searches: number; questions: number | null } {
+  return {
+    searches: report.serps.filter((serp) => serp.kind !== "unmeasured").length,
+    questions: report.prompts === undefined ? null : report.prompts.asked.length,
+  };
 }
 
 /** One buyer prompt as its AI answer read (#1195). */

@@ -93,6 +93,9 @@ export interface CostContext {
   capHit(): boolean;
   spentCents(): number;
   degraded(): boolean;
+  /** True once a vendor refused a call of this context for lack of credit.
+   *  Absent on a stand-in context, which is never refused. */
+  fundsRefused?(): boolean;
 
   /** The draft this context's calls are for, once it has a row.
    *  The calls made since the context opened, or since the last `null`,
@@ -142,10 +145,14 @@ export async function withCostContext<T>(
     /** The draft this context spends for, where it already has
      *  a row — an edit, or a rewrite of the date's row. */
     draftId?: string;
+    /** Cents of the cap this context may not spend, so a later context on the same row still has them. */
+    holdBackCents?: number;
+    /** A close after a refusal for credit rolls the row up `failed`, so it never reads as measured. */
+    failsWhenFundsRefused?: true;
   },
   body: (cost: CostContext) => Promise<T>
 ): Promise<T> {
-  const capValue = CAP_VALUES[ctx.cap];
+  const capValue = CAP_VALUES[ctx.cap] - (ctx.holdBackCents ?? 0);
   // The site is read off the row, never taken as an argument: a cap a caller could omit is one it could walk past.
   const row = await readScanRow(ctx.scanId);
   if (ctx.rollUp === "add" && row.costCents === null) {
@@ -161,6 +168,7 @@ export async function withCostContext<T>(
   const site: SiteDayLedger | null =
     row.siteId === null ? null : await openSiteDayLedger(row.siteId, now());
   let capHitLogged = false;
+  let refusedForFunds = false;
   // A context that writes no roll-up is a draft's, and its rows say so; any other's activity the database reads off the scan.
   const isDraft = ctx.rollUp === "none";
   let draftId = ctx.draftId;
@@ -252,6 +260,11 @@ export async function withCostContext<T>(
         } else if (isVendorFailure(payload) && !payload.billed) {
           // A failure the vendor does not charge for, by the call site's word, is ledgered at 0 cents.
           settledCents = 0;
+          if (payload.funds === true && !refusedForFunds) {
+            refusedForFunds = true;
+            // One line a run, so an empty account reads as the cause and not as a blank week.
+            console.warn(JSON.stringify({ event: "vendor_funds_refused", scanId: ctx.scanId, source: call.source, failure: payload.vendorFailure }));
+          }
         } else if (call.settleCents) {
           const proposedCents = call.settleCents(payload);
           if (proposedCents > call.costCents) {
@@ -308,6 +321,10 @@ export async function withCostContext<T>(
       return isDegraded;
     },
 
+    fundsRefused(): boolean {
+      return refusedForFunds;
+    },
+
     ...(isDraft
       ? {
           async forDraft(id: string | null): Promise<void> {
@@ -333,7 +350,11 @@ export async function withCostContext<T>(
     .update(
       ctx.rollUp === "add"
         ? { cost_cents: cost.spentCents() }
-        : { cost_cents: cost.spentCents(), status: cost.degraded() ? "degraded" : "done" }
+        : {
+            cost_cents: cost.spentCents(),
+            status:
+              ctx.failsWhenFundsRefused === true && refusedForFunds ? "failed" : cost.degraded() ? "degraded" : "done",
+          }
     )
     .eq("id", ctx.scanId);
   if (error) {

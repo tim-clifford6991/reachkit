@@ -29,6 +29,7 @@ import type React from "react";
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
+import { notFound } from "next/navigation";
 import { ArrowRight, ArrowUpDown, ChevronDown, Search } from "lucide-react";
 import { Surface } from "@/ui/layout";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
@@ -37,7 +38,10 @@ import { bandOf } from "@/lib/measure/bands";
 import { BAND_TONE } from "@/ui/bands";
 import { BADGE } from "@/app/(account)/app/_overview/badges";
 import {
+  GALLERY_MOST as MOST,
+  GALLERY_PAGE as PAGE,
   GALLERY_SORTS,
+  galleryShown,
   listedCategory,
   readGallery,
   searchTerm,
@@ -47,14 +51,16 @@ import {
 } from "@/lib/scan/gallery";
 import { ScanForm } from "../_landing/ScanForm";
 import { scanFormWords } from "../_landing/scan-form-words";
+import { LearnClose } from "../_library/parts";
 import { PUBLIC_ROUTE_SEO } from "../_seo/routes";
 import { staticMetadata } from "../_seo/metadata";
 import { SiteIcon } from "./SiteIcon";
 
 export const metadata: Metadata = staticMetadata(PUBLIC_ROUTE_SEO.scans);
 
-// Read per request: a scan finished a minute ago, or a site removed a
-// minute ago, is already right here.
+// Rendered per request: the listing's cache is keyed by an uncached read of
+// the removals and the newest scan, so a scan finished a minute ago, or a
+// site removed a minute ago, is already right here.
 export const dynamic = "force-dynamic";
 
 /** Attribute values, never sentences — bound to names because the copy
@@ -63,11 +69,6 @@ export const dynamic = "force-dynamic";
 const IMG = { alt: "", loading: "lazy" } as const;
 const SEARCH_AUTOCOMPLETE = "off";
 const LOOK = "card";
-
-/** Cards per page, and per *Show more reports*: four rows of four. */
-const PAGE = 16;
-/** However far *Show more* is followed, one response stays bounded. */
-const MOST = PAGE * 20;
 
 const SORT_WORD: Readonly<Record<GallerySort, CopyKey>> = {
   newest: "gallery.sort.newest",
@@ -97,14 +98,11 @@ function one(value: string | string[] | undefined): string | undefined {
 function viewOf(p: Params): View {
   const sort = GALLERY_SORTS.find((s) => s === one(p.sort)) ?? "newest";
   const cat = listedCategory(one(p.cat)?.slice(0, 120));
-  const shown = Number.parseInt(one(p.shown) ?? "", 10);
   return {
     q: searchTerm(one(p.q)),
     cat,
     sort,
-    shown: Number.isFinite(shown)
-      ? Math.min(Math.max(shown, PAGE), MOST)
-      : PAGE,
+    shown: galleryShown(Number.parseInt(one(p.shown) ?? "", 10)),
   };
 }
 
@@ -307,6 +305,9 @@ export default async function ScansPage(props: {
     sort: view.sort,
     shown: view.shown,
   });
+  // A category no listed scan has is no page, so a crawler is given no
+  // further filter links built on it.
+  if (view.cat !== null && !gallery.listed) notFound();
   const shown = gallery.entries.length;
   const { chips, more } = splitCategories(gallery.categories, view.cat);
   const pills: readonly {
@@ -501,6 +502,9 @@ export default async function ScansPage(props: {
             </p>
           </div>
         </section>
+        <div className="mx-auto w-full max-w-5xl px-4 pb-12">
+          <LearnClose variant="scans" />
+        </div>
       </main>
     </Surface>
   );

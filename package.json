@@ -9,6 +9,8 @@
     "start": "next start",
     "lint": "eslint .",
     "test": "vitest run --project node --project ui --project db",
+    "test:unit": "vitest run --project node --project ui --maxWorkers=2 --testTimeout=20000",
+    "test:unit:related": "vitest related --run --project node --project ui --maxWorkers=2 --testTimeout=20000",
     "test:layout": "vitest run --project layout",
     "test:layout:full": "RK_LAYOUT_FULL=1 vitest run --project layout",
     "copy:owed": "node scripts/copy/owed.mjs",
@@ -54,7 +56,7 @@
     "mdast-util-gfm-table": "2.0.0",
     "micromark-extension-directive": "4.0.0",
     "micromark-extension-gfm-table": "2.1.2",
-    "next": "16.3.8",
+    "next": "16.4.2",
     "node-html-parser": "9.0.4",
     "nuqs": "2.10.1",
     "psl": "1.15.0",
@@ -67,7 +69,7 @@
     "slopless": "0.2.40",
     "sonner": "2.0.8",
     "stripe": "22.6.1",
-    "zod": "4.5.4"
+    "zod": "4.6.7"
   },
   "devDependencies": {
     "@axe-core/playwright": "4.13.0",
@@ -79,7 +81,7 @@
     "@types/react-dom": "19.2.5",
     "daisyui": "5.7.27",
     "eslint": "9.39.5",
-    "eslint-config-next": "16.3.8",
+    "eslint-config-next": "16.4.2",
     "jsdom": "29.0.0",
     "pixelmatch": "^7.2.0",
     "playwright": "1.62.1",
@@ -90,5 +92,10 @@
     "typescript": "5.9.3",
     "typescript-eslint": "8.69.0",
     "vitest": "4.1.11"
+  },
+  "overrides": {
+    "inngest": {
+      "zod": "$zod"
+    }
   }
 }

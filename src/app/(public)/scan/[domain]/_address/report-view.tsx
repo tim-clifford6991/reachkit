@@ -7,11 +7,11 @@
 //
 // The order is SPEC §2's of 2026-10-07 (owner, issue 1328): the result and
 // the action first, everything longer closed beneath them.
-//   1. verdict strip — score, band, one written line, the driver bars.
-//   2. two equal cards, side by side — AI answers · Google search. Each
-//      one leads with its verdict and draws its own figure: §2.4's AI
-//      dot matrix on the left, its presence bars on the right (issue
-//      #352). Each card's list is closed under the list's own name.
+//   1. the head — what we read you as, the biggest gap, the jump chips —
+//      beside the score card (board PubReport).
+//   2. who gets your buyers — two equal cards, side by side, AI · Google,
+//      each with its figure and a waffle of who was named. Each card's
+//      list is closed under the list's own name.
 //   3. pricing card — the offer.
 //   4. three problem cards and the eight checks, closed.
 //   5. three DIY collapses.
@@ -31,6 +31,7 @@ import { Surface } from "@/ui/layout";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import type { ScoreFactorName } from "@/lib/measure/score";
 import { COUNTRIES, isCountry, isLanguage, measuredLocale } from "@/lib/locale/locales";
+import { countryOfDomain } from "@/lib/locale/read";
 import { stillReading, type StoredReport } from "@/lib/scan/report";
 import type { CanonicalDomain } from "@/lib/scan/domain";
 import type { CorrectionOffer } from "@/lib/market/coherence/offer";
@@ -41,21 +42,26 @@ import {
 } from "../_modules/google-presence";
 import { FreePageAbsent, FreePageCard } from "../_modules/free-page";
 import { PricingCard } from "../_modules/pricing";
+import { MissingPagesList } from "../_modules/missing-pages";
 import { CheckCards, ProblemCards } from "../_problems/cards";
 import { checkCardsOf, readingsOf } from "../_problems/checks";
+import { identityReading } from "@/lib/site-issues/checks";
 import { MethodSections } from "../_problems/method";
-import { answerReadersOf, cardsOf, PROBLEM_ORDER, type ProblemCard, type ProblemName } from "../_problems/model";
+import { answerReadersOf, cardsOf, missingPagesOf, PROBLEM_ORDER, type MissingPage, type ProblemCard, type ProblemName } from "../_problems/model";
 import { unblockLines } from "../_problems/unblock";
 import { RemovalAddressLine } from "./removal";
-import type { AddressControl, AddressNotice } from "./state";
+import type { AddressControl, AddressNotice, WrittenPage } from "./state";
 import { refusalLine } from "./refusal";
 import { VerdictStrip } from "./verdict";
+import { rescoredOf } from "./rescored";
 import { RescanControl } from "./rescan";
 import { startReportCheckout } from "./checkout";
 import { StillReading } from "./still-reading";
-import { WhatWeRead } from "@/app/_business/WhatWeRead";
+import { WhatWeRead, whereLine } from "@/app/_business/WhatWeRead";
+import type { BusinessUnderstanding } from "@/lib/business/types";
 import { profileOfReport, understandBusiness } from "@/lib/business/understanding";
-import { TIMING } from "@/lib/config/constants";
+import { BuyersSection } from "../_modules/buyers";
+import { TIMING, WEEK_PLAN } from "@/lib/config/constants";
 import { BOT_PROTECTION, HOME_TIMEOUT } from "@/lib/measure/challenge";
 // #103: the category has one home — the market the profile inferred.
 // `categoryOf` is the one derivation of it, and the screen reads it here
@@ -153,6 +159,21 @@ function noticeOf(notice: AddressNotice): { line: string; warn: boolean } {
   }
 }
 
+/** Issue 1449: a home page that did not answer in time is a page that
+ *  couldn't be read, as one behind bot protection is. */
+function homeUnread(report: StoredReport): boolean {
+  return report.onPage.kind === "unmeasured" && (report.onPage.because === BOT_PROTECTION || report.onPage.because === HOME_TIMEOUT);
+}
+
+/** Whether the report was measured in D66's default because nothing of the
+ *  site was read. A report stored before the marker is read the same way
+ *  from what it holds: its market read from search, its home unread, and no
+ *  locale, on an address that names no country. */
+function guessedLocale(report: StoredReport): boolean {
+  if (report.locale !== undefined) return report.locale.basis === "default";
+  return report.marketFrom === "search" && homeUnread(report) && countryOfDomain(report.domain) === null;
+}
+
 /**
  * SPEC §2 (owner, 2026-10-10, issue 1387): where bot protection kept the
  * reader off the site's own pages and its market was read from its listing
@@ -162,9 +183,7 @@ function noticeOf(notice: AddressNotice): { line: string; warn: boolean } {
  */
 function MarketFromSearchLine(p: { report: StoredReport }): React.JSX.Element | null {
   if (p.report.marketFrom !== "search" || p.report.market.kind === "unmeasured") return null;
-  // Issue 1449: a home page that did not answer in time is a page that
-  // couldn't be read, as one behind bot protection is.
-  const blocked = p.report.onPage.kind === "unmeasured" && (p.report.onPage.because === BOT_PROTECTION || p.report.onPage.because === HOME_TIMEOUT);
+  const blocked = homeUnread(p.report);
   return (
     <p className="col-span-full text-sm text-base-content/70" data-testid="report-market-from-search">
       {copy(blocked ? "report.market.from-search" : "report.market.from-listing")}
@@ -212,7 +231,8 @@ function ReadsDifferentlyLine(p: { report: StoredReport; shown: boolean }): Reac
  */
 function MeasuredInLine(p: { report: StoredReport }): React.JSX.Element | null {
   const fellBack = p.report.locale?.fellBack;
-  if (fellBack === undefined) return null;
+  const guessed = guessedLocale(p.report);
+  if (fellBack === undefined && !guessed) return null;
   const measured = measuredLocale(p.report);
   const tag = REPORT_TAG;
   const countries = new Intl.DisplayNames(tag, { type: "region" });
@@ -230,6 +250,13 @@ function MeasuredInLine(p: { report: StoredReport }): React.JSX.Element | null {
       {text}
     </p>
   );
+  // The one "Not your market?" offer stays the verdict strip's correction.
+  if (guessed) {
+    const listing = p.report.locale?.listingReads;
+    const guess = copy("report.locale.guessed", where);
+    return line(listing === undefined ? guess : `${guess} ${copy("report.locale.listing-reads", { country: named(listing, countries) })}`);
+  }
+  if (fellBack === undefined) return null;
   if (isCountry(fellBack.country)) {
     return line(
       copy("report.locale.country-read-as", {
@@ -365,6 +392,77 @@ function pasteLinesOf(cards: readonly ProblemCard[], problem: ProblemName): read
   return fix?.kind === "paste" ? fix.lines : undefined;
 }
 
+/** Where the business sells, as a badge where it names a place or a country
+ *  of its own; an international or unread reach is a line under the badges,
+ *  and a local one with no town is the market's own badge already. */
+function whereOf(understanding: BusinessUnderstanding | null): { badge: string | null; line: string | null } {
+  if (understanding === null) return { badge: null, line: null };
+  const { where } = understanding;
+  if (where.place !== null || where.reach === "national") return { badge: whereLine(where), line: null };
+  if (where.reach === "international" || where.reach === null) return { badge: null, line: whereLine(where) };
+  return { badge: null, line: null };
+}
+
+/** What the scan read the business as, one badge each: what it is, who
+ *  buys, where, and the market it was measured in. A field nothing was read
+ *  for draws no badge. */
+function readAsOf(report: StoredReport, understanding: BusinessUnderstanding | null, where: string | null): string[] {
+  const category = categoryOf(report.market);
+  const kind = understanding?.kind == null ? null : copy(`report.read.as.kind.${understanding.kind}`);
+  const what = category !== null && kind !== null ? copy("report.read.as.what", { category, kind }) : (category ?? kind);
+  const measured = measuredLocale(report);
+  const locale = copy("report.read.as.locale", {
+    language: new Intl.DisplayNames(REPORT_TAG, { type: "language" }).of(measured.language) ?? measured.language,
+    country: new Intl.DisplayNames(REPORT_TAG, { type: "region" }).of(measured.country) ?? measured.country,
+  });
+  return [
+    ...(what === null ? [] : [what]),
+    ...(understanding?.buyers[0] === undefined ? [] : [understanding.buyers[0]]),
+    ...(where === null ? [] : [where]),
+    locale,
+  ];
+}
+
+/** Owner A3 (2026-10-19): the pages the report found, under their count,
+ *  ahead of the offer that writes them (board PubReport). */
+function MissingPagesSection(p: { pages: readonly MissingPage[] | null }): React.JSX.Element | null {
+  const found = p.pages?.length ?? 0;
+  if (p.pages === null || found === 0) return null;
+  return (
+    <section className="flex min-w-0 flex-col gap-3">
+      <p className="eyebrow">{copy("report.missing.eyebrow")}</p>
+      <h2 className="text-3xl font-bold">
+        {copy(found === 1 ? "report.offer.found.one" : "report.offer.found", { count: String(found) })}
+      </h2>
+      <MissingPagesList pages={p.pages} />
+    </section>
+  );
+}
+
+/** The offer names the missing pages where the report measured some, and
+ *  keeps a free path to the first page where there is one. */
+function offerOf(
+  report: StoredReport,
+  cards: readonly ProblemCard[]
+): { heading?: string; line?: string; free?: React.ReactNode } {
+  const missing = cards.find((card) => card.problem === "missing_pages")?.count;
+  const named = missing !== undefined && missing.kind === "measured" && missing.value > 0;
+  return {
+    ...(named
+      ? { heading: copy("offer.found.heading"), line: copy("offer.found.line", { weekPages: String(WEEK_PLAN.days) }) }
+      : {}),
+    ...(report.freePage === null
+      ? {}
+      : {
+          free: (
+            <a href="#first-page" className="link link-primary text-center text-sm" data-testid="report-free-path">
+              {copy("report.offer.free-path")}
+            </a>
+          ),
+        }),
+  };
+}
+
 /** SPEC §2: a part is cut off when the pass stopped at one of its two
  *  ceilings — not when it finished, failed, or could not read the site. */
 function cutByCeiling(report: StoredReport): boolean {
@@ -378,17 +476,21 @@ export function ReportView(p: {
     control: AddressControl;
     correction: CorrectionOffer;
     readsDifferently?: boolean;
+    writtenPage?: WrittenPage;
   };
   checkoutRefused?: boolean;
 }): React.JSX.Element {
   const { report, notice, control, correction } = p.state;
   const measuredOn = formatMeasuredOn(report.verdict.measuredAt);
   const measurement = measurementLine(report);
+  const rescored = rescoredOf(report);
   const cards = cardsOf(report, unblockLines(report.blockedAgents));
   const cutOff = cutByCeiling(report);
+  const missingPages = missingPagesOf(report);
   const profile = profileOfReport(report);
   const understanding =
     profile === null ? null : understandBusiness({ domain: report.domain, profile, locale: measuredLocale(report) });
+  const where = whereOf(understanding);
 
   return (
     // ADR-093 decision 6: the report is a screen, so it is a screen root,
@@ -444,52 +546,49 @@ export function ReportView(p: {
           )}
         </div>
 
-        {/* **The copy control is in the header's bar** (UI-SPEC S2, issue
-            #357). It stood here for one release because the shared chrome
-            had no per-route slot; ruling 3a gave it one, and the layout
-            hands the bar this address. REQ-001 c7 is unchanged — the
-            control is on the screen that owns the address — and it is on it
-            once. */}
-        <MeasuredInLine report={report} />
-        <AlsoServesLine report={report} />
-        <MarketFromSearchLine report={report} />
-        <FinishingReadsLine report={report} />
-        <ReadsDifferentlyLine report={report} shown={p.state.readsDifferently === true} />
+        {/* The copy control is in the header's bar (UI-SPEC S2, issue #357),
+            once, on the screen that owns the address. */}
         <div className="col-span-full">
-          {/* SPEC §2's measurement line is in the card, beside the date
-              (#1068). */}
           <VerdictStrip
             verdict={report.verdict}
             category={categoryOf(report.market)}
             measuredOn={measuredOn}
             correction={correction}
             {...(measurement === null ? {} : { measurement })}
+            {...(rescored === null ? {} : { rescored: { on: formatMeasuredOn(rescored.at), before: rescored.before } })}
+            readAs={readAsOf(report, understanding, where.badge)}
+            notes={
+              <>
+                {where.line === null ? null : (
+                  <p className="text-base-content/70 text-sm" data-testid="report-read-where">
+                    {where.line}
+                  </p>
+                )}
+                <MeasuredInLine report={report} />
+                <AlsoServesLine report={report} />
+                <MarketFromSearchLine report={report} />
+              </>
+            }
+            seeMissing={(missingPages?.length ?? 0) > 0 || (report.supply.missingPages.kind === "measured" && report.supply.missingPages.value > 0)}
           />
         </div>
+        <FinishingReadsLine report={report} />
+        <ReadsDifferentlyLine report={report} shown={p.state.readsDifferently === true} />
 
         {/* Issue 715: an absent card carries the address its retry posts
-            to. The card decides nothing about the offer — the route asks
-            `retryOffer` again from the row's own facts — but a control with
-            no address to act on would be a control that does nothing. */}
-        {report.aiAnswers === null ? (
-          <AiAnswersAbsent cutOff={cutOff} domain={report.domain} />
-        ) : (
-          <AiAnswersCard section={report.aiAnswers} measuredOn={measuredOn} />
-        )}
-        {report.presence === null ? (
-          <GooglePresenceAbsent cutOff={cutOff} domain={report.domain} />
-        ) : (
-          <GooglePresenceCard section={report.presence} />
-        )}
-
-        {/* Issue 1454: what the scan read of the business, in four short
-            lines, under the two results it was measured for. Not drawn where
-            the scan read no market of it. */}
-        {understanding === null ? null : (
-          <div className="col-span-full">
-            <WhatWeRead understanding={understanding} />
-          </div>
-        )}
+            to; the route asks `retryOffer` again from the row's own facts. */}
+        <BuyersSection ai={report.aiAnswers} presence={report.presence}>
+          {report.aiAnswers === null ? (
+            <AiAnswersAbsent cutOff={cutOff} domain={report.domain} />
+          ) : (
+            <AiAnswersCard section={report.aiAnswers} serps={report.serps} />
+          )}
+          {report.presence === null ? (
+            <GooglePresenceAbsent cutOff={cutOff} domain={report.domain} />
+          ) : (
+            <GooglePresenceCard section={report.presence} />
+          )}
+        </BuyersSection>
 
         {/* SPEC §2 (owner, 2026-10-07, issue 1328): the offer is the fourth
             thing on the report, under the score and the two results, and
@@ -497,13 +596,17 @@ export function ReportView(p: {
             from this report — its scan is the checkout's origin, so the
             site is provisioned on this domain. #1068: the report's price
             close spans the screen, its heading and terms beside the price. */}
-        <div id="start" className="col-span-full scroll-mt-20">
+        <div id="start" className="col-span-full flex scroll-mt-20 flex-col gap-8">
+          <MissingPagesSection pages={missingPages} />
           <PricingCard
             startAction={startReportCheckout.bind(null, report.domain, report.scanId)}
             refused={p.checkoutRefused === true}
             close
+            {...offerOf(report, cards)}
           />
         </div>
+
+        <p className="eyebrow col-span-full">{copy("report.rest.eyebrow")}</p>
 
         {/* What holds you back (#1068): the three that cost most as cards,
             then SPEC §9's eight checks as one list (#570) — a check that
@@ -511,14 +614,19 @@ export function ReportView(p: {
             own name since issue 1328: daisyUI `collapse` on a `details`, so
             it is in the first response and opens with no script. `px-px`
             keeps the cards' 1px ring inside the collapse's clip. */}
-        <details className="collapse collapse-arrow col-span-full rounded-none" data-testid="report-problems">
+        <details id="holds" className="collapse collapse-arrow col-span-full scroll-mt-20 rounded-none" data-testid="report-problems">
           <summary className="collapse-title min-h-0 px-px py-2 pe-10 after:end-2 after:top-6">
             <h2 className="text-2xl font-bold">{copy("problem.section.title")}</h2>
           </summary>
           <div className="collapse-content flex min-w-0 flex-col gap-3 px-px">
             <p className="text-base-content/70 text-sm">{copy("problem.section.sub")}</p>
             <ProblemCards cards={cards} firstPage={report.freePage !== null} />
-            <CheckCards cards={checkCardsOf(readingsOf(report.siteIssues, report.verdict.measuredAt))} />
+            <CheckCards
+              cards={checkCardsOf(
+                readingsOf(report.siteIssues, report.verdict.measuredAt),
+                identityReading(report.siteIssues, report.onPage.kind === "unmeasured" ? null : report.onPage.value.schemaTypes)
+              )}
+            />
           </div>
         </details>
         {/* The method: three sections, each closed, where each problem
@@ -534,6 +642,14 @@ export function ReportView(p: {
           />
         </div>
 
+        {/* Issue 1454: what the scan read of the business, in full, where the
+            board puts it — after the method, before the first page. */}
+        {understanding === null ? null : (
+          <div className="col-span-full">
+            <WhatWeRead understanding={understanding} />
+          </div>
+        )}
+
         {/* The giveaway is a full-width row (UI-SPEC S2). The proposal is
             closed under the card's own name (issue 1328); a report with no
             page to propose is not closed, because its one line is the whole
@@ -542,7 +658,12 @@ export function ReportView(p: {
           {report.freePage === null ? (
             <FreePageAbsent cutOff={cutOff} domain={report.domain} />
           ) : (
-            <FreePageCard section={report.freePage} scanId={report.scanId} />
+            <FreePageCard
+              section={report.freePage}
+              scanId={report.scanId}
+              domain={report.domain}
+              written={p.state.writtenPage}
+            />
           )}
         </div>
 

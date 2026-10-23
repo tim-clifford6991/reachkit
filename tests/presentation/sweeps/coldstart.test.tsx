@@ -299,7 +299,7 @@ describe("REQ-091 c2 — every route renders for a domain that ranks for nothing
     const mine = enumerateRoutes(APP_ROOT).filter(
       (r) => !r.rel.startsWith("(hosted)/hosted-live/")
     );
-    const theirs = layout.enumerateRoutes(APP_ROOT);
+    const theirs = layout.enumerateRoutes(APP_ROOT, { extraSegmentValues: {} });
     expect(mine.length).toBe(theirs.length);
     expect(mine.map((r) => r.url.split("/").length).sort()).toEqual(
       theirs.map((r) => r.path.split("/").length).sort()
@@ -498,6 +498,15 @@ const MORE_THAN_ONE_PRIMARY_PUBLIC: Readonly<Record<string, string>> = Object.fr
     "once in each of four sections (the head, the week, the value and the " +
     "start), which is DESIGN's one solid button per section; each goes to " +
     "the landing's one field rather than offering a second action.",
+  "/pricing":
+    "board Pricing (2026-10-19). Two sections, each with its one solid " +
+    "button, which is DESIGN's one solid button per section: Start in the " +
+    "plan card, and the free scan's own submit in the closing section.",
+  "/scans":
+    "board Free scans (canvas V22, ruling 2b's \"where the artifact draws " +
+    "them\"). One action, the free scan, in two sections: the gallery's " +
+    "field beside its heading and the Learn pages' closing field under the " +
+    "cards, each its section's one solid button.",
 });
 
 function primariesPerScreen(rendered: RenderedRoute[], group: string): Map<string, number> {

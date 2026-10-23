@@ -16,11 +16,12 @@
 // The redemption and the read are `tests/publish/publishable/veto.test.ts`'s
 // and are not re-tested here: this suite asserts which seam the surface
 // reaches on which request, and which arm it renders for which answer.
+import { readFileSync } from "node:fs";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type React from "react";
 import { applyEnvFixture } from "../../mail/env-fixture";
 import { codeOf } from "../../mail/leads/source";
-import type { PreviewResult, RedeemResult, VetoPreview } from "../../../src/lib/publish/publishable";
+import type { PreviewResult, RedeemResult, VetoPreview, WeekDay } from "../../../src/lib/publish/publishable";
 
 applyEnvFixture();
 
@@ -45,13 +46,17 @@ const LIVE_PREVIEW: VetoPreview = {
   domain: "example.com",
   excerpt: "Choosing onboarding software comes down to three questions, and the first one is who has to use it…",
   publishes: { at: new Date("2026-09-15T05:00:00.000Z"), timeZone: "Europe/Berlin" },
+  reason: { points: 5, parts: [{ part: "fit", n: 3 }, { part: "ai_gap", n: 2 }], rule: null },
+  unconnected: false,
+  // 06:00 in Berlin, the morning it goes live.
+  mailedAt: new Date("2026-09-15T04:00:00.000Z"),
 };
 
 const LIVE: PreviewResult = { ok: true, preview: LIVE_PREVIEW };
 
 /** A spent token: the page it was bound to, as the preview reads it back. */
-function spent(title: string | null): PreviewResult {
-  return { ok: false, reason: "used", title, domain: "example.com", excerpt: LIVE_PREVIEW.excerpt };
+function spent(title: string | null, week: readonly WeekDay[] | null = null): PreviewResult {
+  return { ok: false, reason: "used", title, domain: "example.com", excerpt: LIVE_PREVIEW.excerpt, week };
 }
 
 let previewAnswer: (token: string) => Promise<PreviewResult> = async () => LIVE;
@@ -233,12 +238,11 @@ describe("issue #371 — arriving reads, and only pressing stops", () => {
 });
 
 describe("the ask arm — what the set draws, in its own order", () => {
-  it("names the moment it publishes, the page, the search and the site", async () => {
+  it("names the moment it goes live, the page, the search and the site", async () => {
     const tree = await ask();
     const rendered = text(tree);
-    expect(eyebrowOf(tree)).toBe(
-      COPY["publish.veto.ask.head"].replace("{when}", "Tue 15 Sep 07:00")
-    );
+    // The vocabulary's verb: a page goes live, it is not "published".
+    expect(eyebrowOf(tree)).toBe("Goes live Tue 15 Sep, 7:00 AM");
     expect(rendered).toContain("How to choose onboarding software");
     expect(rendered).toContain("best onboarding tools");
     expect(rendered).toContain("example.com");
@@ -250,7 +254,7 @@ describe("the ask arm — what the set draws, in its own order", () => {
     // whether tomorrow morning is soon, in their own zone, and a suffixed
     // instant makes them do the arithmetic themselves.
     const eyebrow = String(eyebrowOf(await ask()));
-    expect(eyebrow).toContain("Tue 15 Sep 07:00");
+    expect(eyebrow).toContain("Tue 15 Sep, 7:00 AM");
     expect(eyebrow).not.toContain("2026-09-15");
     expect(eyebrow).not.toContain("UTC");
   });
@@ -316,6 +320,9 @@ describe("the ask arm — what the set draws, in its own order", () => {
         excerpt: null,
         domain: null,
         publishes: null,
+        unconnected: false,
+        reason: null,
+        mailedAt: null,
       },
     });
     const tree = await ask();
@@ -338,6 +345,8 @@ describe("the done arm, and the refusals that wear its shape", () => {
     expect(headingsOf(tree, "h1")).toEqual([COPY["publish.veto.done.head"]]);
     expect(text(tree)).toContain(COPY["publish.veto.done.line"]);
     expect(toldLine(tree)).toBe(COPY["publish.veto.stopped"]);
+    // The Veto board's own sentence: the topic is dropped, never offered again.
+    expect(readFileSync("docs/design/boards/canvas/Veto.dc.html", "utf8")).toContain(toldLine(tree));
     const links = linksOf(tree);
     expect(links).toHaveLength(1);
     // **`/signin`, not `/app/calendar`** (#937). This page takes no
@@ -422,17 +431,23 @@ describe("the done arm, and the refusals that wear its shape", () => {
     expect(linksOf(tree)).toHaveLength(1);
   });
 
-  it("`?done=1` typed against a live link shows the ask, and stops nothing", async () => {
+  it("`?done=1` against a live link is the failed arm: not stopped yet, and Stop offered again", async () => {
     // The marker is not a claim on its own: the done arm needs the store to
     // agree. Without this, anyone could be told their page was stopped.
     const tree = await ask({ done: "1" });
     expect(buttonsOf(tree)[0]?.props.children).toBe(COPY["publish.veto.ask.action"]);
     expect(redeemed).toEqual([]);
+    expect(headingsOf(tree, "h2")).toContain(COPY["publish.veto.failed.head"]);
+    expect(text(tree)).toContain(COPY["publish.veto.failed"]);
+    expect(text(tree)).toContain("Still goes live Tue 15 Sep, 7:00 AM, unless stopped.");
+    expect(headingsOf(tree, "h1")).not.toContain(COPY["publish.veto.done.head"]);
   });
 
   it("a spent link reached cold says it was already used, not that it stopped", async () => {
     previewAnswer = async () => spent("How teams pick an onboarding tool");
-    expect(toldLine(await ask())).toBe(COPY["publish.veto.alreadyUsed"]);
+    const tree = await ask();
+    expect(headingsOf(tree, "h1")).toEqual([COPY["publish.veto.used.head"]]);
+    expect(toldLine(tree)).toBe(COPY["publish.veto.alreadyUsed"]);
   });
 
   it("a link past its expiry says the moment to stop has passed", async () => {
@@ -492,6 +507,191 @@ describe("the done arm, and the refusals that wear its shape", () => {
   });
 });
 
+const BOARD = readFileSync("docs/design/boards/canvas/Veto.dc.html", "utf8");
+
+/** Each string's first place in what the reader sees, so order can be asserted. */
+function order(tree: React.ReactNode, strings: readonly string[]): number[] {
+  const seen = JSON.parse(text(tree)) as string[];
+  return strings.map((wanted) => seen.findIndex((s) => s.includes(wanted)));
+}
+
+describe("the board's sections on the open arm, in its order and words", () => {
+  it("says why ReachKit chose the page, from the stored reason", async () => {
+    const tree = await ask();
+    const why = nodes(tree).find((node) => node.props?.["data-testid"] === "veto-why");
+    expect(text(why as React.ReactNode)).toContain(COPY["publish.veto.why"]);
+    // The stored part's line, lowered after the colon but keeping its acronym.
+    expect(text(why as React.ReactNode)).toContain("AI answers link a competitor.");
+    expect(BOARD).toContain(`<strong>${COPY["publish.veto.why"]}</strong>`);
+  });
+
+  it("a page chosen before reasons were kept states no reason, never an invented one", async () => {
+    for (const reason of [null, { points: 3, parts: [{ part: "fit" as const, n: 2 }], rule: null }]) {
+      previewAnswer = async () => ({ ok: true, preview: { ...LIVE_PREVIEW, reason } });
+      const tree = await ask();
+      expect(nodes(tree).some((node) => node.props?.["data-testid"] === "veto-why")).toBe(false);
+    }
+  });
+
+  it("draws the window from the mail to the moment, and that it can be stopped before then", async () => {
+    const tree = await ask();
+    const rendered = text(tree);
+    expect(rendered).toContain("Mail sent 6:00 AM");
+    expect(rendered).toContain("Goes live 7:00 AM");
+    expect(rendered).toContain(COPY["publish.veto.before"]);
+    expect(BOARD).toContain(COPY["publish.veto.before"]);
+  });
+
+  it("a link sent with no mail names no send time, and a page with no moment draws no window", async () => {
+    previewAnswer = async () => ({ ok: true, preview: { ...LIVE_PREVIEW, mailedAt: null } });
+    const unsent = text(await ask());
+    expect(unsent).not.toContain("Mail sent");
+    // With no send time to share a day with, the moment carries its day.
+    expect(unsent).toContain("Goes live Tue 15 Sep, 7:00 AM");
+    previewAnswer = async () => ({ ok: true, preview: { ...LIVE_PREVIEW, publishes: null } });
+    expect(nodes(await ask()).some((node) => node.props?.["data-testid"] === "veto-timeline")).toBe(false);
+  });
+
+  it("a mail sent the day before writes its day as well as its clock", async () => {
+    previewAnswer = async () => ({ ok: true, preview: { ...LIVE_PREVIEW, mailedAt: new Date("2026-09-14T16:00:00.000Z") } });
+    const rendered = text(await ask());
+    expect(rendered).toContain("Mail sent Mon 14 Sep, 6:00 PM");
+    expect(rendered).toContain("Goes live Tue 15 Sep, 7:00 AM");
+  });
+
+  it("says under Stop what it does, in the board's words", async () => {
+    const tree = await ask();
+    const form = nodes(tree).find((node) => node.type === "form");
+    expect(text(form as React.ReactNode)).toContain(COPY["publish.veto.consequence"]);
+    expect(BOARD).toContain(COPY["publish.veto.consequence"]);
+  });
+
+  it("sets out what each choice does, under the six-word title", async () => {
+    const tree = await ask();
+    expect(headingsOf(tree, "h2")).toContain(COPY["publish.veto.choices.title"]);
+    expect(headingsOf(tree, "h3")).toEqual(
+      expect.arrayContaining([COPY["publish.veto.choices.stop"], COPY["publish.veto.choices.none"]])
+    );
+    const rendered = text(tree);
+    for (const key of [
+      "publish.veto.choices.stop.1",
+      "publish.veto.choices.stop.2",
+      "publish.veto.choices.stop.3",
+      "publish.veto.choices.none.2",
+      "publish.veto.choices.none.3",
+    ] as const) {
+      expect(rendered).toContain(COPY[key]);
+      expect(BOARD).toContain(COPY[key]);
+    }
+    expect(rendered).toContain("It goes live Tue 15 Sep, 7:00 AM, on its own.");
+  });
+
+  it("with no moment, doing nothing still says it goes live on its own, with no time", async () => {
+    previewAnswer = async () => ({ ok: true, preview: { ...LIVE_PREVIEW, publishes: null } });
+    expect(text(await ask())).toContain(COPY["publish.veto.choices.none.1.unset"]);
+  });
+
+  it("while the address is unconnected, no hour appears anywhere, open or failed, and doing nothing waits on the setting", async () => {
+    previewAnswer = async () => ({ ok: true, preview: { ...LIVE_PREVIEW, unconnected: true } });
+    for (const query of [{}, { done: "1" }] as Record<string, string>[]) {
+      const rendered = text(await ask(query));
+      expect(rendered).not.toMatch(/\d:\d\d/);
+      expect(rendered).toContain(COPY["publish.veto.ask.head.unconnected"]);
+      expect(rendered).toContain(COPY["publish.veto.choices.none.1.unconnected"]);
+      expect(rendered).not.toContain(COPY["publish.veto.choices.none.1.unset"]);
+      if ("done" in query) expect(rendered).toContain(COPY["publish.veto.failed.head"]);
+    }
+  });
+
+  it("while the page is held on a connected address, no hour appears, open or failed", async () => {
+    previewAnswer = async () => ({ ok: true, preview: { ...LIVE_PREVIEW, publishes: null } });
+    for (const query of [{}, { done: "1" }] as Record<string, string>[]) {
+      expect(text(await ask(query))).not.toMatch(/\d:\d\d/);
+    }
+  });
+
+  it("the sections come in the board's order", async () => {
+    const at = order(await ask(), [
+      "Goes live Tue 15 Sep, 7:00 AM",
+      LIVE_PREVIEW.title!,
+      COPY["publish.veto.why"],
+      "best onboarding tools · searched about",
+      "Mail sent 6:00 AM",
+      COPY["publish.veto.before"],
+      COPY["publish.veto.ask.action"],
+      COPY["publish.veto.consequence"],
+      COPY["publish.veto.ask.do-nothing"],
+      COPY["publish.veto.panel.heading"].replace("{day}", "Tuesday"),
+      COPY["publish.veto.choices.title"],
+      COPY["publish.veto.choices.stop"],
+      COPY["publish.veto.choices.none"],
+    ]);
+    expect(at.every((i) => i >= 0), JSON.stringify(at)).toBe(true);
+    expect(at).toEqual([...at].sort((a, b) => a - b));
+  });
+});
+
+describe("every arm renders, each in its own words", () => {
+  const WEEK = [
+    { date: "2026-09-14", stopped: false },
+    { date: "2026-09-15", stopped: true },
+    { date: "2026-09-16", stopped: false },
+    { date: "2026-09-17", stopped: null },
+    { date: "2026-09-18", stopped: false },
+    { date: "2026-09-19", stopped: false },
+    { date: "2026-09-20", stopped: false },
+  ];
+
+  it("stopped: the follow line, then this week after the stop, day by day", async () => {
+    previewAnswer = async () => spent("How teams pick an onboarding tool", WEEK);
+    const tree = await ask({ done: "1" });
+    const strip = nodes(tree).find((node) => node.props?.["data-testid"] === "veto-week");
+    expect(strip).toBeDefined();
+    expect(headingsOf(strip as React.ReactNode, "h2")).toEqual([COPY["publish.veto.week.title"]]);
+    const cells = nodes(strip as React.ReactNode)
+      .filter((node) => node.type === "li")
+      .map((li) =>
+        nodes(li as unknown as React.ReactNode)
+          .filter((node) => node.type === "span")
+          .map((span) => String(span.props.children))
+      );
+    expect(cells.map((cell) => cell[0])).toEqual(["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]);
+    expect(cells[1]).toContain(COPY["publish.veto.week.stopped"]);
+    expect(cells[0]).toContain(COPY["publish.veto.week.ahead"]);
+    // A day with no page claims nothing: never "Goes ahead", never "Stopped".
+    expect(cells[3]).toEqual(["Thu"]);
+    const [line, title] = order(tree, [COPY["publish.veto.stopped"], COPY["publish.veto.week.title"]]);
+    expect(line).toBeGreaterThanOrEqual(0);
+    expect(title).toBeGreaterThan(line!);
+  });
+
+  it("stopped with a week it could not read draws no strip", async () => {
+    previewAnswer = async () => spent("How teams pick an onboarding tool");
+    expect(nodes(await ask({ done: "1" })).some((node) => node.props?.["data-testid"] === "veto-week")).toBe(false);
+  });
+
+  it.each([
+    ["used", "publish.veto.used.head", "publish.veto.alreadyUsed"],
+    ["expired", "publish.veto.closed.head", "publish.veto.expired"],
+    ["not_in_review", "publish.veto.closed.head", "publish.veto.expired"],
+    ["unknown", "publish.veto.unknown.head", "publish.veto.unknown"],
+  ] as const)("%s: its head and line, and never Stopped", async (reason, head, line) => {
+    previewAnswer = async () => (reason === "used" ? spent(null) : { ok: false, reason });
+    const tree = await ask();
+    expect(headingsOf(tree, "h1")).toEqual([COPY[head]]);
+    expect(toldLine(tree)).toBe(COPY[line]);
+    expect(headingsOf(tree, "h1")).not.toContain(COPY["publish.veto.done.head"]);
+  });
+
+  it("the closed and unusable arms say what the board says, with Stop as the word (E7)", () => {
+    for (const key of ["publish.veto.used.head", "publish.veto.closed.head", "publish.veto.unknown.head", "publish.veto.unknown", "publish.veto.failed.head", "publish.veto.failed"] as const) {
+      expect(BOARD.replace(/’/g, "'")).toContain(COPY[key].replace(/’/g, "'"));
+    }
+    expect(COPY["publish.veto.expired"]).toContain("can be stopped from its page in Plan");
+    expect(COPY["publish.veto.expired"]).not.toContain("taken down");
+  });
+});
+
 describe("the Round 7 split (R7-S4/S5, #1025): the interaction left, the page right, the brand in the bar", () => {
   it("both arms are one main beside one accent half, and neither is a card", async () => {
     for (const [answer, query] of [
@@ -510,11 +710,12 @@ describe("the Round 7 split (R7-S4/S5, #1025): the interaction left, the page ri
 
   it("the ask arm's half is the page that goes live: the day, the page, and what it was written for", async () => {
     const tree = await ask();
+    const aside = nodes(tree).find((node) => node.type === "aside") as unknown as React.ReactNode;
     // 05:00 UTC is 07:00 in Berlin on Tuesday 15 September.
-    expect(headingsOf(tree, "h2")).toEqual([
+    expect(headingsOf(aside, "h2")).toEqual([
       COPY["publish.veto.panel.heading"].replace("{day}", "Tuesday"),
     ]);
-    expect(headingsOf(tree, "h3")).toEqual([LIVE_PREVIEW.title]);
+    expect(headingsOf(aside, "h3")).toEqual([LIVE_PREVIEW.title]);
     expect(text(tree)).toContain(LIVE_PREVIEW.excerpt);
     expect(text(tree)).toContain(
       COPY["publish.veto.panel.caption"].replace("{query}", "best onboarding tools").replace("{volume}", "2,400")
@@ -526,7 +727,8 @@ describe("the Round 7 split (R7-S4/S5, #1025): the interaction left, the page ri
     const tree = await ask();
     // No day to name, so no heading over the half: the page's title steps
     // up to be its `<h2>` rather than leave a level skipped (#328).
-    expect(headingsOf(tree, "h2")).toEqual([LIVE_PREVIEW.title]);
+    const aside = nodes(tree).find((node) => node.type === "aside") as unknown as React.ReactNode;
+    expect(headingsOf(aside, "h2")).toEqual([LIVE_PREVIEW.title]);
     expect(text(tree)).not.toContain("times a month");
   });
 

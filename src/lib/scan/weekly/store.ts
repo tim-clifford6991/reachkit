@@ -15,9 +15,11 @@
 // `week_start` is written once, at insert, and no statement here ever
 // updates it: a week's label must not move when a customer moves zone.
 //
-// **A claim that produced no report is released.** `releaseWeek` deletes
-// the row, which is what lets the next hourly tick retry the site inside
-// the same site-local week (a crash leaves no week behind it). A run that
+// **A claim that produced no report is released.** `releaseWeek` marks the
+// row `failed` and keeps it, because `fetches.scan_id` references it and the
+// ledger is never deleted; `claimWeek` takes a `failed` row back, so the
+// next hourly tick retries the site inside the same site-local week, and
+// every reader below treats a `failed` row as no week at all. A run that
 // produced a report — `done` or `degraded` — keeps its row and is never
 // retried: a partly measured week is a measured week that says what it
 // missed, not a failure to repeat.
@@ -46,7 +48,7 @@ interface QueryResult<T> {
 interface MinimalQueryBuilder<T> extends PromiseLike<QueryResult<T>> {
   select(columns: string): MinimalQueryBuilder<T>;
   insert(values: Record<string, unknown>): MinimalQueryBuilder<T>;
-  delete(): MinimalQueryBuilder<T>;
+  update(values: Record<string, unknown>): MinimalQueryBuilder<T>;
   eq(column: string, value: string): MinimalQueryBuilder<T>;
   not(column: string, operator: string, value: unknown): MinimalQueryBuilder<T>;
   in(column: string, values: readonly string[]): MinimalQueryBuilder<T>;
@@ -110,12 +112,30 @@ export async function weeksAlreadyStamped(
   if (siteIds.length === 0) return new Set();
   const { data, error } = await untyped()
     .from<WeekRow>("scans")
-    .select("site_id, week_start")
+    .select("site_id, week_start, status")
     .eq("tier", "weekly")
     .in("site_id", siteIds)
     .in("week_start", weekStarts);
   if (error) throw new Error(`weekly: could not read the measured weeks: ${error.message}`);
-  return new Set((data ?? []).map((row) => `${row.site_id}:${row.week_start}`));
+  return new Set((data ?? []).filter(isAWeek).map((row) => `${row.site_id}:${row.week_start}`));
+}
+
+/** Every weekly row of these site-local Mondays, keyed as `weekKey()` spells
+ *  it, with its status. One read for the whole tick, bounded by the weeks
+ *  rather than by a list of sites. */
+export async function weekStatuses(weekStarts: readonly string[]): Promise<ReadonlyMap<string, string>> {
+  const { data, error } = await untyped()
+    .from<WeekRow>("scans")
+    .select("site_id, week_start, status")
+    .eq("tier", "weekly")
+    .in("week_start", weekStarts);
+  if (error) throw new Error(`weekly: could not read the measured weeks: ${error.message}`);
+  return new Map((data ?? []).map((row) => [`${row.site_id}:${row.week_start}`, row.status]));
+}
+
+/** A released claim's row is kept for the ledger, and is no week. */
+function isAWeek(row: { status?: string }): boolean {
+  return row.status !== "failed";
 }
 
 /** Postgres' unique-violation, which PostgREST passes through as its own
@@ -150,14 +170,27 @@ export async function claimWeek(a: {
       week_start: a.weekStart,
     });
   if (error === null) return { claimed: true, scanId };
-  if (error.code === UNIQUE_VIOLATION) return { claimed: false };
-  throw new Error(`weekly: could not claim the week: ${error.message}`);
+  if (error.code !== UNIQUE_VIOLATION) throw new Error(`weekly: could not claim the week: ${error.message}`);
+
+  // The week's row exists; a released one is taken back, and the status filter lets only one tick win it.
+  const retaken = await untyped()
+    .from<WeekRow>("scans")
+    .update({ status: "running" })
+    .eq("site_id", a.siteId)
+    .eq("tier", "weekly")
+    .eq("week_start", a.weekStart)
+    .eq("status", "failed")
+    .select("id");
+  if (retaken.error) throw new Error(`weekly: could not claim the week: ${retaken.error.message}`);
+  const row = retaken.data?.[0];
+  return row === undefined ? { claimed: false } : { claimed: true, scanId: row.id };
 }
 
-/** Releases a claim that produced no report, so the next hourly tick
- *  retries the site inside the same site-local week. */
+/** Releases a claim that measured nothing, so the next hourly tick retries
+ *  the site inside the same site-local week. The row stays: the ledger's
+ *  rows reference it. */
 export async function releaseWeek(scanId: string): Promise<void> {
-  const { error } = await untyped().from<WeekRow>("scans").delete().eq("id", scanId);
+  const { error } = await untyped().from<WeekRow>("scans").update({ status: "failed" }).eq("id", scanId);
   if (error) throw new Error(`weekly: could not release the claim: ${error.message}`);
 }
 
@@ -181,7 +214,7 @@ export async function readWeekScan(a: { siteId: string; weekStart: string }): Pr
     .limit(1);
   if (error) throw new Error(`weekly: could not read the week: ${error.message}`);
   const row = data?.[0];
-  if (row === undefined) return null;
+  if (row === undefined || !isAWeek(row)) return null;
   return {
     scanId: row.id,
     status: row.status,
@@ -221,7 +254,7 @@ export async function readWeekScans(a: {
   if (error) throw new Error(`weekly: could not read the weeks: ${error.message}`);
 
   const weeks = new Map<string, WeekScan>();
-  for (const row of data ?? []) {
+  for (const row of (data ?? []).filter(isAWeek)) {
     weeks.set(row.week_start, {
       scanId: row.id,
       status: row.status,

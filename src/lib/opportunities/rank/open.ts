@@ -19,7 +19,6 @@ import { canonicalUrl } from "@/lib/measure/page-reading";
 import { sameTopic } from "../cluster";
 import { CONTENT_TYPES, contentTypeOf, type ContentType } from "../content-type";
 import { pageTypeOf } from "../page-type";
-import { isPausedType } from "../paused";
 import { isOwnRefresh, type Opportunity, type OpportunityType, type PlaceRule, type PlanReason, type Ranked } from "../types";
 import { POINTS, pointsOf, volumeOrder, type Seen } from "./points";
 
@@ -224,8 +223,6 @@ export function placeFixPages(
   return out;
 }
 
-export { isPausedType };
-
 /** The site's open, rankable opportunities in ranked order. A site with no
  *  readable profile ranks nothing. */
 export async function rankOpen(siteId: string, at: Date = new Date(), only?: ReadonlySet<string>): Promise<Ranked[]> {
@@ -236,7 +233,7 @@ export async function rankOpen(siteId: string, at: Date = new Date(), only?: Rea
 /**
  * Issue 1549: how many of the next `days` days the week's commit fills with
  * a page of the topic's own type — the number "pages left" and the
- * low-supply finding state, and what the weekly refill tops up to. Read from the same rows, order and rules as `rankOpen`: a
+ * low-supply finding state. Read from the same rows, order and rules as `rankOpen`: a
  * listicle or comparison over D52's cap waits for the cap's window to pass
  * instead of counting as a Q&A whose buyer questions the pack may not hold,
  * a resting or unready row is not counted, and a topic another row on the
@@ -287,21 +284,19 @@ export interface RankLoad {
 }
 
 /** Why a row the store holds open takes no place in the list. */
-export type Rejection = "unready" | "paused" | "no_profile";
+export type Rejection = "unready" | "no_profile";
 
 /**
  * Whether a row may take a place, or why not. Pure. One predicate, and it is
  * the stored one (issue 884, owner's ruling 2026-09-18): SPEC §6's "a day is
  * filled only by an opportunity that passes readiness" is the stored column
  * (`assessReadiness`), so the column, the screens and this order cannot
- * disagree. A fix needs no profile; any other row needs one, and a type
- * the mix has paused fills no day (SPEC §7, D46).
+ * disagree. A fix needs no profile; any other row needs one.
  */
 export function eligible(row: OpportunityRow, ctx: { profile: Profile | null }): Rejection | null {
   if (!row.ready) return "unready";
   if (row.type === "fix_page") return null;
-  if (ctx.profile === null) return "no_profile";
-  return isPausedType(readOpportunity(row)) ? "paused" : null;
+  return ctx.profile === null ? "no_profile" : null;
 }
 
 /** The site's rows and context the list reads — of the rows `only` names,

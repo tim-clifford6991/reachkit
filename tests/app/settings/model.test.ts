@@ -66,6 +66,7 @@ describe("REQ-070 c1 — the model carries a value for each settable key and not
     category: () => model.market.category,
     competitors: () => model.competitors,
     domain: () => model.domain,
+    locale: () => model.locale.current,
     veto_hours: () => model.publishing.vetoHours,
     publish_time: () => model.publishing.publishTime,
     time_zone: () => model.publishing.timeZone,
@@ -99,6 +100,7 @@ describe("REQ-070 c1 — the model carries a value for each settable key and not
         "destinations",
         "doNotClaim",
         "domain",
+        "locale",
         "market",
         "notifications",
         "publishing",
@@ -124,9 +126,11 @@ describe("WO-179 step 5 — vetoHours is read, never corrected", () => {
 });
 
 describe("WO-179 decision 4 — the notification rows are projected from MAIL_KINDS", () => {
-  it("the rows are exactly the register's stoppable-by-toggle kinds, in its order", () => {
+  it("the rows are the register's stoppable-by-toggle kinds the Mail board draws, the Monday mail first", () => {
     const rows = assembleSettings(FACTS).notifications;
-    expect(rows.map((r) => r.kind)).toEqual([...TOGGLE_KINDS]);
+    // Page 1's published mail is told once and has no switch (D3, board SettingsMail).
+    expect(rows.map((r) => r.kind)).toEqual(["weekly", "draft-ready"]);
+    expect(TOGGLE_KINDS.filter((kind) => kind !== "published").sort()).toEqual(rows.map((r) => r.kind).sort());
     for (const row of rows) {
       expect(MAIL_KINDS[row.kind].stoppable).toBe("toggle");
     }
@@ -149,7 +153,7 @@ describe("WO-179 decision 4 — the notification rows are projected from MAIL_KI
   it("a kind absent from the stored preferences reads as on, and a stored false reads as off", () => {
     const rows = notificationRows({ weekly: false });
     expect(rows.find((r) => r.kind === "weekly")?.on).toBe(false);
-    expect(rows.find((r) => r.kind === "published")?.on).toBe(true);
+    expect(rows.find((r) => r.kind === "draft-ready")?.on).toBe(true);
   });
 });
 
@@ -170,6 +174,7 @@ describe("REQ-097 — the model carries no billing value at all", () => {
       "accessUntil",
       "cardLast4",
       "readable",
+      "refundUntil",
       "state",
       "surfaceHref",
     ]);
@@ -187,6 +192,7 @@ describe("REQ-097 — the model carries no billing value at all", () => {
         paidThrough: new Date("2026-10-01T00:00:00.000Z"),
         surfaceHref: "https://billing.example/session",
         cardLast4: null,
+        refundUntil: null,
       },
     }).billing;
     expect(billing.readable && billing.cardLast4).toBeNull();

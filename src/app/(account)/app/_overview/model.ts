@@ -29,6 +29,7 @@ import type { DnsRecord } from "@/lib/publish/setup/cards";
 import type { ShownFactor } from "@/lib/presentation/bands";
 import { OVERVIEW_TRAILING_WEEKS } from "@/lib/config/constants";
 import type { GoalKey } from "./goals";
+import type { MonthsFacts } from "@/lib/measure/figures";
 import { headDirection, type HeadDirection } from "./head";
 import { readGrowth, type GrowthModule, type WeeklyPoint } from "./growth";
 import { resolveRivals, type RivalFacts, type RivalGapModule } from "./rivals";
@@ -141,6 +142,8 @@ export interface OverviewModel {
   /** When the first weekly scan is due — what a tile with no reading yet
    *  says instead of a zero (issue 1457). */
   firstDueOn: Date;
+  /** `null` where the weekly passes could not be read. */
+  months: MonthsFacts | null;
   /** The searches-you-appear-in reading. No tile of its own since #353 —
    *  the approved set gives this number the growth card, which draws the
    *  whole series rather than one headline — and it is still assembled,
@@ -185,6 +188,10 @@ export interface OverviewModel {
 export interface AddressWaiting {
   hostname: string;
   record: DnsRecord;
+  /** When the domain list was last asked about the host, or `null`. */
+  checkedAt: Date | null;
+  /** When the hosted destination was made, the day the count starts. */
+  since: Date | null;
 }
 
 /** The page that went live last: the customer's own title for it, and the
@@ -255,6 +262,8 @@ export interface OverviewFacts {
   scoreEstimate?: ScoreEstimateFacts;
   /** The latest verdict's biggest gap (issue 1457). */
   biggestGap?: ShownFactor | null;
+  /** The months-scale figures and when the next reading is taken. */
+  months?: MonthsFacts;
   pagesPublished: Measured<number>;
   /** The live count a week before `today` — the pages tile's delta is the
    *  difference. Taken only once the weekly series has begun: before the
@@ -356,6 +365,7 @@ export function assembleOverview(facts: OverviewFacts): OverviewModel {
     },
     biggestGap: facts.biggestGap ?? null,
     firstDueOn: facts.firstDueOn,
+    months: facts.months ?? null,
     searches: {
       headline: {
         value: latest?.value ?? { kind: "unmeasured", reason: "not_attempted", at: facts.today },

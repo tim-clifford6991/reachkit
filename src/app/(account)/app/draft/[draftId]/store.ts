@@ -60,13 +60,13 @@ import {
 import type { PublishingMode } from "../../_shell/model";
 import type { State } from "../../calendar/stages";
 import { pageRecordFor } from "@/lib/publish/record";
-import type { Ladder } from "@/lib/measure/ladder";
+import { readingOf } from "@/lib/measure/page-reading";
+import { verdict } from "@/lib/opportunities/verdicts/verdict";
 import { takeDownStanding } from "@/lib/publish/take-down/standing";
 import { needsYouOf } from "@/lib/publish/record/needs-you";
 import { askedAs, doneWhen } from "../../calendar/store";
 import type { Choice } from "@/lib/opportunities/derive/explain";
 import { pageTargetOf } from "../../_shell/page-target";
-import type { SetAside } from "../../_overview/done";
 import {
   NO_RULE_FACTS,
   PACK_PAGES_SHOWN,
@@ -78,7 +78,9 @@ import {
   type PageAdds,
   type DraftTarget,
   type KnownCheck,
+  type LiveFacts,
   type RuleFacts,
+  liveEditFor,
 } from "./model";
 
 interface DraftRow {
@@ -95,6 +97,7 @@ interface DraftRow {
   veto_deadline: string | null;
   created_at: string;
   transitions: unknown;
+  told?: { sentAt?: unknown; mailed?: unknown } | null;
 }
 
 interface MinimalResult<T> {
@@ -116,7 +119,7 @@ interface MinimalClient {
  *  column of another account's. */
 const DRAFT_COLUMNS =
   "id, site_id, opportunity_id, state, title, body_md, meta, grounded_fact, claim_check, rule_failures, " +
-  "veto_deadline, created_at, transitions";
+  "veto_deadline, created_at, transitions, told";
 
 /** §9's ten states, as this screen reads them. A row carrying anything else
  *  is a row this screen cannot draw, and it takes the `null` arm rather
@@ -306,6 +309,14 @@ export function claimStateOf(claimCheck: unknown): ClaimState {
     : { state: "passed", at: verdict.at };
 }
 
+/** When the page-ready mail left, off `drafts.told`; `null` where the
+ *  record does not say a mail did. */
+export function emailedAtOf(told: DraftRow["told"]): Date | null {
+  if (told?.mailed !== true || typeof told.sentAt !== "string") return null;
+  const at = new Date(told.sentAt);
+  return Number.isNaN(at.getTime()) ? null : at;
+}
+
 /** Whether the last battery recorded a rule this text breaks (#789). A row
  *  no battery has recorded anything for breaks none it can name. */
 export function rulesFailedOf(ruleFailures: unknown): boolean {
@@ -347,14 +358,6 @@ async function targetQueryOf(opportunityId: string | null): Promise<string> {
   return choice.evidence.query;
 }
 
-/** The topics set aside (issue 1395), read the way Overview reads them.
- *  Nothing where the count could not be read: the note then lists none. */
-async function setAsideAt(siteId: string): Promise<{ setAside?: SetAside }> {
-  const { readSetAsideFor } = await import("../../_overview/done-provider");
-  const setAside = await readSetAsideFor(siteId).catch(() => undefined);
-  return setAside === undefined ? {} : { setAside };
-}
-
 async function targetOf(opportunityId: string | null): Promise<DraftTarget> {
   if (opportunityId === null) return { kind: "unknown" };
   const choice = await readChoice(opportunityId);
@@ -376,7 +379,9 @@ async function targetOf(opportunityId: string | null): Promise<DraftTarget> {
     why: {
       fit: choice.businessFit === 3 ? "answer" : choice.businessFit === 2 ? "helps" : null,
       rival: evidence.family === "write" || evidence.family === "earn" ? evidence.rival.domain : null,
+      planReason: choice.planReason ?? null,
     },
+    update: evidence.family === "improve",
   };
 }
 
@@ -523,6 +528,7 @@ export async function readDraftRow(a: {
     title: row.title,
     description: stringAt(row.meta, "description") ?? "",
     writtenAt: new Date(row.created_at),
+    emailedAt: emailedAtOf(row.told),
     bodyMd,
     bodyMdGenerated: generated,
     // What the page was written from (#927, #931), as generation recorded
@@ -569,8 +575,8 @@ export async function readDraftRow(a: {
         : null,
     lastSavedAt: lastSaved === null ? null : new Date(lastSaved),
     record,
-    // Issue 1553: the live page's ladder, after the same ownership proof.
-    ladder: record?.address.offered === true ? await ladderOfDraft(a.site.siteId, a.draftId) : null,
+    // The page's own publication, after the same ownership proof.
+    live: record?.address.offered === true ? await liveOfDraft(client, a.site.siteId, a.draftId, record.address.url, at) : null,
     takeDown: takeDownStanding({
       state: row.state as State,
       transitions: row.transitions,
@@ -584,7 +590,6 @@ export async function readDraftRow(a: {
     // page record: asking first would answer about a page the caller may
     // not see.
     target: await targetOf(row.opportunity_id),
-    ...(await setAsideAt(a.site.siteId)),
     // #928, and after the same ownership proof: what the site already has,
     // and the closest of it to this page.
     knownCheck: await knownCheckFor({
@@ -599,9 +604,36 @@ export async function readDraftRow(a: {
   };
 }
 
-/** The ladder of the live page this draft is, or `null`. */
-async function ladderOfDraft(siteId: string, draftId: string): Promise<Ladder | null> {
-  const { readLadders } = await import("@/lib/publish/reads/store");
-  const ladders = await readLadders(siteId).catch(() => null);
-  return ladders?.find((row) => row.draftId === draftId)?.ladder ?? null;
+/** The newest publication of this draft that went live, with the weekly
+ *  pass's reading of it, or `null`. */
+async function liveOfDraft(client: MinimalClient, siteId: string, draftId: string, url: string, at: Date): Promise<LiveFacts | null> {
+  const { data, error } = await client
+    .from<{ published_at: string | null; destination: string; search_reading: unknown }>("publications")
+    .select("published_at, destination, search_reading")
+    .eq("draft_id", draftId)
+    .eq("site_id", siteId);
+  if (error !== null || data === null) return null;
+  const row = data
+    .filter((each) => each.published_at !== null)
+    .sort((x, y) => y.published_at!.localeCompare(x.published_at!))[0];
+  if (row === undefined) return null;
+  const reading = readingOf(row.search_reading);
+  return {
+    since: new Date(row.published_at!),
+    url,
+    wordpress: row.destination === "wordpress",
+    reading,
+    label: reading === null ? null : verdict(reading, at),
+    edit: await liveEditOf(siteId, draftId),
+  };
+}
+
+/** A read that fails draws no *Edit this page* rather than failing the screen. */
+async function liveEditOf(siteId: string, draftId: string): Promise<LiveFacts["edit"]> {
+  try {
+    const { waitingVersion } = await import("@/lib/generate/edit-live");
+    return liveEditFor(await waitingVersion(siteId, draftId));
+  } catch {
+    return null;
+  }
 }

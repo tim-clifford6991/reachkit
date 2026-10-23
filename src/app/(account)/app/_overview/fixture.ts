@@ -34,6 +34,7 @@
 // waiting, the ratio's first crossing — are exercised by
 // `tests/app/overview/`, which drives the resolvers directly.
 import { measured, measuredZero, unmeasured } from "@/lib/measure/measured";
+import { SITE_CHECK_FIX } from "@/lib/presentation/site-issues";
 import type { OverviewFacts } from "./model";
 import { FIXTURE_SHELL_FACTS } from "../_shell/fixture";
 
@@ -84,6 +85,12 @@ export const FIXTURE_OVERVIEW_FACTS: OverviewFacts = Object.freeze({
   // The header's trend (SPEC §4, 2026-09-20), aligned to `points` above:
   // the week that did not run is `null`, never a zero.
   scorePoints: Object.freeze([31, 54, null, 62]),
+  // The month's reading, from August's first Monday, against the scan.
+  months: Object.freeze({
+    reading: Object.freeze({ week: "2026-08-03", score: 31, market: Object.freeze({ top10: 1, of: 12 }) }),
+    scan: Object.freeze({ score: 27, market: 0 }),
+    next: "2026-09-07",
+  }),
   pagesPublished: measured(17, MONDAY(31)),
   pagesRanking: measured(6, MONDAY(31)),
 
@@ -150,7 +157,8 @@ export const FIXTURE_OVERVIEW_FACTS: OverviewFacts = Object.freeze({
 
   supply: Object.freeze({ exhausted: false, unmeasured: false, measuring: false, outsized: false, short: true, firstArrivalShortfall: false }),
 
-  // Three items waiting: two render, one becomes the overflow count.
+  // Two pages in review, and three checks on the customer's own site, so
+  // the site-fix line is drawn and nothing needs the customer (board Main).
   waiting: Object.freeze([
     {
       kind: "pending_veto" as const,
@@ -159,13 +167,18 @@ export const FIXTURE_OVERVIEW_FACTS: OverviewFacts = Object.freeze({
       vetoDeadline: new Date(Date.UTC(2026, 8, 5, 6, 0, 0)),
       href: "/app/draft/fixture-veto",
     },
-    {
-      kind: "needs_you" as const,
-      title: "Connect the publishing destination",
-      since: new Date(Date.UTC(2026, 8, 2, 6, 0, 0)),
-      vetoDeadline: null,
-      href: "/app/settings",
-    },
+    ...(["sitemap", "broken_links", "slow_pages"] as const).map((check) => ({
+      kind: "site_issue" as const,
+      check,
+      count: check === "sitemap" ? 1 : 3,
+      over: check === "sitemap" ? 1 : 40,
+      severity: "worth_fixing" as const,
+      since: MONDAY(31),
+      fix: SITE_CHECK_FIX[check]!,
+      pages: check === "sitemap" ? [] : ["https://example.com/a", "https://example.com/b", "https://example.com/c"],
+      ...(check === "slow_pages" ? { ms: [4100, 3900, 3800] } : {}),
+      href: `/app/issues#${check}`,
+    })),
     {
       kind: "pending_veto" as const,
       title: "Onboarding checklists that actually get used",
