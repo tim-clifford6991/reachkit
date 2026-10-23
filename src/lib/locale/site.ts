@@ -8,7 +8,7 @@
 //
 // The database is reached only when a row is read or written, never when
 // this module is imported, so a caller that imports it needs no binding.
-import { DEFAULT_LOCALE, localeOf, type Locale } from "./locales";
+import { COUNTRIES, DEFAULT_LOCALE, localeOf, type Locale } from "./locales";
 import { areaOf } from "./place";
 
 /** Where the pair is kept. The product's is the `sites` row. */
@@ -74,7 +74,11 @@ export async function readStoredLocale(siteId: string): Promise<Locale | null> {
   // D67 (issue 1318): a business that serves one place is measured there.
   const market = row?.market;
   const area = typeof market === "object" && market !== null ? areaOf((market as { area?: unknown }).area) : null;
-  return area === null || area.place === null ? locale : { ...locale, place: area.place };
+  if (area === null || area.place === null) return locale;
+  // A town looked up in another country was chosen for the old pair, and is not where this one is measured.
+  const location = area.place.location;
+  if (location !== undefined && !location.endsWith(`,${COUNTRIES[locale.country].location}`)) return locale;
+  return { ...locale, place: area.place };
 }
 
 /**
