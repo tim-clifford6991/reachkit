@@ -38,6 +38,14 @@ async function fixturePage(): Promise<HTMLElement> {
   return render(withNuqs(await CalendarPage()));
 }
 
+// The week as the page draws it, with the fixture's stop and hold replaced by `over`.
+function board(over: Partial<typeof FIXTURE_CALENDAR_FACTS>): HTMLElement {
+  const { week } = shown(assembleMonth({ ...FIXTURE_CALENDAR_FACTS, stop: null, customerChangeHoldsPages: null, ...over }, FIXTURE_MONTH));
+  const time = weekGoesLive(week, "09:00");
+  const head = <WeekHead range="" time={time === null ? null : copy("calendar.week.time", { time, place: "New York" })} />;
+  return render(withNuqs(<CalendarView week={week} goesLive={time} head={head} />));
+}
+
 afterEach(() => provider.setCalendarSiteReader(null));
 
 describe("board Plan, on the fixture account's week", () => {
@@ -66,20 +74,24 @@ describe("board Plan, on the fixture account's week", () => {
     expect(text(card.querySelector("h2"))).toBe("Mon, September 14 – Sun, September 20");
     expect(card.getAttribute("aria-labelledby")).toBe(card.querySelector("h2")?.id);
     expect(card.textContent).toContain(COPY["how.week.auto"]);
-    expect(text(card.querySelector('[data-testid="plan-week-time"]'))).toBe("Every page goes live at 9:00 AM, New York time");
+    // The fixture account has a stop on file, so its own page promises no time.
+    expect(card.querySelector('[data-testid="plan-week-time"]')).toBeNull();
+    expect(text(board({}).querySelector('[data-testid="plan-week-time"]'))).toBe("Every page goes live at 9:00 AM, New York time");
   });
 
   it("each page carries its New or Update chip, and today's page says when it goes live beside Edit and Stop", async () => {
     const card = (await fixturePage()).querySelector('[data-testid="plan-week-card"]')!;
     const today = card.querySelector('[data-testid="calendar-cell-2026-09-15"]')!;
     expect(text(today.querySelector('[data-testid="day-kind"]'))).toBe(COPY["calendar.chip.new"]);
-    expect(text(today.querySelector('[data-testid="cell-goes-live"]'))).toBe("Goes live today, 9:00 AM");
+    expect(today.querySelector('[data-testid="cell-goes-live"]')).toBeNull();
+    const running = board({});
+    expect(text(running.querySelector('[data-testid="calendar-cell-2026-09-15"] [data-testid="cell-goes-live"]'))).toBe("Goes live today, 9:00 AM");
     expect(text(today.querySelector('[data-testid="cell-edit"]'))).toBe(COPY["how.week.edit"]);
     expect(today.querySelector('[data-testid="cell-edit"]')?.getAttribute("href")).toBe("/app/draft/draft-2026-09-15");
     const kinds = [...card.querySelectorAll('[data-testid="calendar-week"] [data-testid="day-kind"]')].map(text);
     expect(kinds).toContain(COPY["calendar.card.update"]);
     // Only today's page names a time; the others say their state.
-    expect(card.querySelectorAll('[data-testid="cell-goes-live"]')).toHaveLength(1);
+    expect(running.querySelectorAll('[data-testid="cell-goes-live"]')).toHaveLength(1);
   });
 
   it("a planned page says why under 'Why', in the sentence for the reason its week stored", async () => {
@@ -183,20 +195,22 @@ describe("the states board Plan names", () => {
   });
 
   it("while publishing is paused, today's page and the week card name no go-live time", () => {
-    const board = (held: "publishing_off" | null) => {
-      const { week } = shown(assembleMonth({ ...FIXTURE_CALENDAR_FACTS, customerChangeHoldsPages: held }, FIXTURE_MONTH));
-      const time = weekGoesLive(week, "09:00");
-      const head = <WeekHead range="" time={time === null ? null : copy("calendar.week.time", { time, place: "New York" })} />;
-      return render(withNuqs(<CalendarView week={week} goesLive={time} head={head} />));
-    };
-    const running = board(null);
+    const running = board({});
     expect(running.querySelector('[data-testid="calendar-cell-2026-09-15"] [data-testid="cell-goes-live"]')).not.toBeNull();
     expect(running.querySelector('[data-testid="plan-week-time"]')).not.toBeNull();
-    const paused = board("publishing_off");
+    const paused = board({ customerChangeHoldsPages: "publishing_off" });
     expect(paused.querySelector('[data-testid="calendar-cell-2026-09-15"] [data-testid="day-kind"]')).not.toBeNull();
     expect(paused.querySelector('[data-testid="cell-goes-live"]')).toBeNull();
     expect(paused.querySelector('[data-testid="plan-week-time"]')).toBeNull();
     expect(paused.textContent).not.toContain("Every page goes live at");
+  });
+
+  it("while ReachKit has stopped its own work, today's page and the week card name no go-live time", () => {
+    const stopped = board({ stop: FIXTURE_CALENDAR_FACTS.stop });
+    expect(stopped.querySelector('[data-testid="calendar-cell-2026-09-15"] [data-testid="day-kind"]')).not.toBeNull();
+    expect(stopped.querySelector('[data-testid="cell-goes-live"]')).toBeNull();
+    expect(stopped.querySelector('[data-testid="plan-week-time"]')).toBeNull();
+    expect(stopped.textContent).not.toContain("Every page goes live at");
   });
 
   it("before the first commit the head says the first week is being chosen; a short week counts its real pages", () => {
