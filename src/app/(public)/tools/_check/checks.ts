@@ -1,6 +1,7 @@
 // Issue 1458 — the on-page check: ten things a search engine reads on one
 // page, each fine or to fix, with one line saying what was found. The lines
 // are copy keys; what fills them is the page's own text.
+import { identityOf, typeWords } from "@/lib/business/identity";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import type { PageTags } from "./read";
 
@@ -33,10 +34,11 @@ function languageName(tag: string): string {
   }
 }
 
-/** `LocalBusiness` → `a local business`: a schema type as a reader says it. */
-function kindOf(type: string): string {
-  const words = type.replace(/([a-z])([A-Z])/g, "$1 $2").toLowerCase();
-  return `${/^[aeiou]/.test(words) ? "an" : "a"} ${words}`;
+/** Business details only where a label says who runs the site, named by its most specific type. */
+function schemaCheck(types: readonly string[]): CheckResult {
+  const identity = identityOf(types);
+  if (identity !== null) return { name: "tools.check.schema", fine: true, line: copy("tools.check.schema.fine", { value: typeWords(identity.type) }) };
+  return { name: "tools.check.schema", fine: false, line: copy(types.length === 0 ? "tools.check.schema.none" : "tools.check.schema.other") };
 }
 
 export function onPageChecks(t: PageTags): readonly CheckResult[] {
@@ -64,9 +66,7 @@ export function onPageChecks(t: PageTags): readonly CheckResult[] {
     t.noindex
       ? { name: "tools.check.index", fine: false, line: copy("tools.check.index.none") }
       : { name: "tools.check.index", fine: true, line: copy("tools.check.index.fine") },
-    t.schemaTypes.length === 0
-      ? { name: "tools.check.schema", fine: false, line: copy("tools.check.schema.none") }
-      : { name: "tools.check.schema", fine: true, line: copy("tools.check.schema.fine", { value: t.schemaTypes.map(kindOf).join(", ") }) },
+    schemaCheck(t.schemaTypes),
     missingShare.length === 0
       ? { name: "tools.check.share", fine: true, line: copy("tools.check.share.fine") }
       : { name: "tools.check.share", fine: false, line: copy("tools.check.share.none", { value: missingShare.join(", ") }) },

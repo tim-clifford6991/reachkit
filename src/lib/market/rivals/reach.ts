@@ -11,6 +11,7 @@ import type { Place } from "@/lib/locale/locales";
 import type { PlaceSignals } from "@/lib/locale/place";
 import { servingEvidence, type ServingPage } from "@/lib/locale/serving";
 import { BUSINESS_KINDS, isBusinessKind } from "../kinds";
+import { IN_PERSON_TYPES } from "@/lib/business/identity";
 import type { MarketSerp } from "../views";
 
 /** What the free pass's profile read says of the business, as far as reach
@@ -42,7 +43,7 @@ export function profileTown(profile: ReachProfile): string | undefined {
 }
 
 function inPersonType(type: string | undefined): boolean {
-  return type !== undefined && IN_PERSON_TYPE.test(type.toLowerCase());
+  return type !== undefined && IN_PERSON_TYPE.has(type.toLowerCase());
 }
 
 /**
@@ -78,11 +79,8 @@ export function townHolds(a: {
   );
 }
 
-/** schema.org's types for a business carried out in person, where it is,
- *  as `parse.ts` keeps them (lower case). A plain `LocalBusiness`, a
- *  `Store` or a `ProfessionalService` says only where it is (issue 1370). */
-const IN_PERSON_TYPE =
-  /^(?:restaurant|fastfoodrestaurant|cafeorcoffeeshop|bakery|barorpub|brewery|winery|icecreamshop|foodestablishment|hotel|motel|hostel|bedandbreakfast|lodgingbusiness|resort|plumber|electrician|roofingcontractor|hvacbusiness|locksmith|housepainter|generalcontractor|homeandconstructionbusiness|movingcompany|autorepair|autobodyshop|automotivebusiness|dentist|physician|medicalclinic|optician|pharmacy|veterinarycare|beautysalon|hairsalon|nailsalon|dayspa|healthandbeautybusiness|exercisegym|healthclub|childcare|drycleaningorlaundry|florist|tattooparlor)$/;
+/** schema.org's in-person types, as `parse.ts` keeps them (lower case). */
+const IN_PERSON_TYPE: ReadonlySet<string> = new Set(IN_PERSON_TYPES.map((type) => type.toLowerCase()));
 
 /** An offering that is bought from anywhere: software, an app, a platform,
  *  anything sold online. */

@@ -4,6 +4,7 @@ import "../../generate/env";
 import { describe, expect, it } from "vitest";
 import { onPageChecks } from "@/app/(public)/tools/_check/checks";
 import { pageAddress, pageTags, takeCheck } from "@/app/(public)/tools/_check/read";
+import { copy } from "@/lib/presentation/copy";
 
 const PAGE = `<!doctype html><html lang="en"><head>
 <title>Bike servicing in Leeds</title>
@@ -47,6 +48,35 @@ describe("what the on-page check finds on a page", () => {
   it("a page kept out of search by its header is not indexable", () => {
     const tags = pageTags("https://shop.example.com/", PAGE, { "x-robots-tag": "noindex" });
     expect(onPageChecks(tags).find((c) => c.name === "tools.check.index")?.fine).toBe(false);
+  });
+});
+
+describe("business details for Google: only a label that says who runs the site", () => {
+  const schemaOf = (...types: string[]) =>
+    onPageChecks(
+      pageTags(
+        "https://example.com/",
+        `<html><head>${types.map((t) => `<script type="application/ld+json">{"@type":"${t}"}</script>`).join("")}</head></html>`
+      )
+    ).find((c) => c.name === "tools.check.schema")!;
+
+  it("a local plumber says it is a plumber", () => {
+    expect(schemaOf("WebSite", "Plumber", "LocalBusiness")).toEqual({
+      name: "tools.check.schema",
+      fine: true,
+      line: copy("tools.check.schema.fine", { value: "a plumber" }),
+    });
+  });
+
+  it("a SaaS says it is an organization, and a creator a person", () => {
+    expect(schemaOf("Organization").line).toBe(copy("tools.check.schema.fine", { value: "an organization" }));
+    expect(schemaOf("Person").fine).toBe(true);
+  });
+
+  it("labels that name no one are not business details", () => {
+    expect(schemaOf("BreadcrumbList")).toMatchObject({ fine: false, line: copy("tools.check.schema.other") });
+    expect(schemaOf("WebSite", "ImageObject")).toMatchObject({ fine: false, line: copy("tools.check.schema.other") });
+    expect(schemaOf()).toMatchObject({ fine: false, line: copy("tools.check.schema.none") });
   });
 });
 
