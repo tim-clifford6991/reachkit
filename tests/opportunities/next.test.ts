@@ -7,7 +7,7 @@ import { measured } from "../../src/lib/measure/measured";
 import { deriveOpportunities } from "../../src/lib/opportunities/derive";
 import { pageForDay, supplyDepth } from "../../src/lib/opportunities/plan";
 import { assessReadiness } from "../../src/lib/opportunities/readiness";
-import { isPausedType, rankOpen } from "../../src/lib/opportunities/rank/open";
+import { rankOpen } from "../../src/lib/opportunities/rank/open";
 import { setOpportunityStore, type OpportunityRow } from "../../src/lib/opportunities/store";
 import { fakeCost } from "./cost";
 import { memoryStore, newMemoryState, setStatus, type MemoryState } from "./memory-store";
@@ -217,14 +217,5 @@ describe("§7 (D46): the mix leaves out only the types on its one list", () => {
     ];
 
     expect((await dayPage())?.targetQuery).toBe("best user onboarding software");
-  });
-
-  it("`isPausedType` reads the row's own type against the one list, which is empty", () => {
-    expect(isPausedType({ type: "keyword_page", targetQuery: "best user onboarding software" })).toBe(false);
-    expect(isPausedType({ type: "comparison_page", targetQuery: "appcues and userpilot" })).toBe(false);
-    expect(isPausedType({ type: "keyword_page", targetQuery: "latest user onboarding trends" })).toBe(false);
-    expect(isPausedType({ type: "keyword_page", targetQuery: "how to onboard a new user" })).toBe(false);
-    // It publishes no asset, so it has no type to pause.
-    expect(isPausedType({ type: "unblock", targetQuery: null })).toBe(false);
   });
 });

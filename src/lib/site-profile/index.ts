@@ -46,21 +46,12 @@ import type { OurPages } from "@/lib/known-content/ours";
 import { captureLogo } from "./logo";
 import type { InventoryRow, SiteProfile } from "./types";
 
-export { readSiteProfile, writeSiteProfile, adoptVoiceText, saveVoiceText, saveWritingVoice, readSiteLogo, readMainSite } from "./store";
+export { readSiteProfile, adoptVoiceText, saveVoiceText, saveWritingVoice, readSiteLogo } from "./store";
 export type { MainSite, MainSiteLink } from "./main-site-row";
-export { captureLogo, iconWorthy, logoCandidates, sniffLogo, type SiteLogo } from "./logo";
-export { deriveVoice, type SiteReading } from "./summary";
-export { derivePurpose } from "./purpose";
-export { brandName, publishedNames } from "./site-name";
-export { crawlSite, type CrawledPage, type CrawlOutcome } from "./crawl";
-export {
-  PAGE_PURPOSES,
-  purposeCounts,
-  type InventoryRow,
-  type PagePurpose,
-  type SiteProfile,
-  type VoiceSummary,
-} from "./types";
+export { iconWorthy, type SiteLogo } from "./logo";
+export { type SiteReading } from "./summary";
+export { type CrawledPage, type CrawlOutcome } from "./crawl";
+export { type InventoryRow, type PagePurpose, type SiteProfile, type VoiceSummary } from "./types";
 
 /**
  * Builds one site's profile and stores it, or answers `null` where there
