@@ -108,20 +108,23 @@ jobs:
           restore-keys: check-${{ runner.os }}-${{ hashFiles('package-lock.json') }}-
       - run: npm run typecheck
       - run: npm run lint -- --cache --cache-strategy content
-      # `--changed HEAD^1` runs the test files vitest's module graph links to
-      # the merge commit's diff; `full` (or a failed filter) runs them all.
-      # `test:unit` is the one unit command, so an agent's run means what CI's does.
+      # `affected` hands `vitest related` the merge commit's surviving paths
+      # plus every suite that reads the tree from disk, which no import links
+      # to the diff; `full` (or a failed filter) runs them all. `test:unit` and
+      # `test:unit:related` are the unit commands, so an agent's run means what CI's does.
       - name: unit tests (${{ needs.changes.outputs.unit || 'full' }})
         env:
           UNIT: ${{ needs.changes.outputs.unit }}
         run: |
           if [ "$UNIT" = affected ]; then
-            echo "unit=affected: only the test files the diff reaches through an import run; 'what changed' lists each path."
-            set -- --changed HEAD^1
+            echo "unit=affected: the test files the diff reaches through an import run, and every test that walks files from disk; 'what changed' lists each path."
+            list=$(git diff --name-only --diff-filter=d HEAD^1 HEAD | node scripts/ci-changes.mjs --related)
+            mapfile -t files <<< "$list"
+            npm run test:unit:related -- "${files[@]}"
           else
             echo "unit=full: a path in the diff reaches tests through no import, or this is not a pull request; 'what changed' tags it 'full'."
+            npm run test:unit
           fi
-          npm run test:unit -- "$@"
 
   no-overflow:
     name: no overflow · axe (390 / 768 / 1280, light and dark)
