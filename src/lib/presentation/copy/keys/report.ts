@@ -756,7 +756,7 @@ export const REPORT_COPY = Object.freeze({
   "landing.price.facts": ["Each page is written from facts on your site, with every fact linked to where it came from.", { slots: {}, fixedBy: "board Landing · issue 1596" }],
   "landing.price.ready": ["In your first week, an email when each page is ready, saying which search it answers and who answers it today.", { slots: {}, fixedBy: "board Landing · issue 1596 · decision 2026-10-19-1593 (drafted)" }],
   "landing.price.monday": ["Every Monday: where your pages sit in Google, which of your pages AI answers link to, and what is planned next.", { slots: {}, fixedBy: "board Landing · issue 1596" }],
-  "landing.price.competitors": ["Your competitors, up to {rivals}, checked every week.", { slots: { rivals: "text" }, fixedBy: "board Landing · issue 1596" }],
+  "landing.price.competitors": ["Your competitors, up to {rivals}, watched every week.", { slots: { rivals: "text" }, fixedBy: "board Landing · issue 1596" }],
   "landing.price.site": ["Your whole site checked for problems, with the fix for each.", { slots: {}, fixedBy: "board Landing · issue 1596" }],
   "landing.price.plan": ["ReachKit · one plan", { slots: {}, fixedBy: "board Landing · issue 1596" }],
   "landing.price.terms": ["{price} a month, VAT included. One plan. Cancel any time.", { slots: { price: "text" }, fixedBy: "board Landing · issue 1596" }],

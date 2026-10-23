@@ -8,7 +8,7 @@
 // pass that produced no report (the week is then never retried, and reads
 // as measured for ever after).
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { DB, captureLog } from "./harness";
+import { DB, captureLog, type Statement } from "./harness";
 
 const runScan = vi.fn();
 vi.mock("@/lib/scan/run", () => ({ runScan: (a: unknown) => runScan(a) }));
@@ -167,6 +167,12 @@ describe("the four refusals, all of them before any spend", () => {
     expect(outcome).toMatchObject({ ran: true });
   });
 
+  it("runs on the site's own Monday after its due hour, so a released week is retried that same day", async () => {
+    weekReadsBack({ id: "x", status: "done", report: COMPLETE_REPORT });
+    const outcome = await runWeekly({ ...SITE, now: new Date(MONDAY_0600_UTC.getTime() + 3_600_000) });
+    expect(outcome).toMatchObject({ ran: true });
+  });
+
   it("refuses where the kill switch is engaged, before any spend", async () => {
     process.env.KILL_SWITCH = "true";
     vi.resetModules();
@@ -228,18 +234,45 @@ describe("one measurement per site per week — the index decides it, not the sc
   });
 });
 
+/** The release: the claimed row marked `failed` and kept, never deleted, because the ledger's rows reference it. */
+function released(): Statement[] {
+  expect(DB.statements.filter((s) => s.verb === "delete")).toEqual([]);
+  return DB.statements.filter((s) => s.verb === "update" && s.values?.status === "failed");
+}
+
 describe("a pass that produced no report leaves no week behind it", () => {
   it("releases the claim when the pipeline throws, and lets the error out", async () => {
     runScan.mockRejectedValue(new Error("vendor exploded"));
     await expect(runWeekly({ ...SITE, now: MONDAY_0600_UTC })).rejects.toThrow(/vendor exploded/);
-    expect(DB.statements.filter((s) => s.verb === "delete")).toHaveLength(1);
+    expect(released()).toHaveLength(1);
   });
 
   it("releases the claim when the pass produced no report at all", async () => {
     runScan.mockResolvedValue({ scanId: "x", status: "failed" });
     const outcome = await runWeekly({ ...SITE, now: MONDAY_0600_UTC });
     expect(outcome).toMatchObject({ ran: true, status: "failed" });
-    expect(DB.statements.filter((s) => s.verb === "delete")).toHaveLength(1);
+    expect(released()).toHaveLength(1);
+  });
+
+  it("releases the claim of a pass the vendor refused for credit, whatever the pass stored", async () => {
+    runScan.mockResolvedValue({ scanId: "x", status: "degraded", fundsRefused: true });
+    const outcome = await runWeekly({ ...SITE, now: MONDAY_0600_UTC });
+    expect(outcome).toMatchObject({ ran: true, status: "failed", because: "vendor_funds" });
+    const [release] = released();
+    expect(release?.filters).toEqual([["id", (outcome as { scanId: string }).scanId]]);
+  });
+
+  it("takes a released week's row back, so the retry measures into the one row the week has", async () => {
+    weekReadsBack({ id: "kept", status: "done", report: COMPLETE_REPORT });
+    DB.errors.set("scans", UNIQUE_VIOLATION);
+    const answer = DB.answer;
+    DB.answer = (statement) =>
+      statement.verb === "update" && statement.filters.some(([column, value]) => column === "status" && value === "failed")
+        ? [{ id: "kept" }]
+        : answer?.(statement) ?? null;
+    const outcome = await runWeekly({ ...SITE, now: MONDAY_0600_UTC });
+    expect(outcome).toMatchObject({ ran: true, scanId: "kept" });
+    expect((runScan.mock.calls[0]?.[0] as { scanId: string }).scanId).toBe("kept");
   });
 
   it("keeps the row of a partly measured week — a partial week is not retried", async () => {
@@ -247,7 +280,7 @@ describe("a pass that produced no report leaves no week behind it", () => {
     weekReadsBack({ id: "x", status: "degraded", report: null });
     const outcome = await runWeekly({ ...SITE, now: MONDAY_0600_UTC });
     expect(outcome).toMatchObject({ ran: true, status: "degraded" });
-    expect(DB.statements.filter((s) => s.verb === "delete")).toEqual([]);
+    expect(released()).toEqual([]);
   });
 });
 
