@@ -694,7 +694,7 @@ export function freshFirst<T extends { fact: { passage: string } }>(facts: reado
  * The stored-row check of issue 1509: of the business-fact passages a live
  * page states (its pack's facts found word for word in its text), the share
  * also stated on `PACK.repeatedOn` or more of the site's other live pages.
- * `null` for a page that states none. Held to `REPEATED_FACT_SHARE_MAX`.
+ * `null` for a page that states none.
  */
 export function repeatedFactShare(a: { markdown: string; facts: readonly string[]; others: readonly string[] }): number | null {
   const page = pageText(a.markdown);

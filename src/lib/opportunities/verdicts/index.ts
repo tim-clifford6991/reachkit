@@ -18,11 +18,9 @@ export type {
   WeekStanding,
   WeekStart,
 } from "./types";
-export { NOT_JUDGEABLE_CAUSES } from "./types";
 export type { IndexState } from "./seen";
 
 export { judgeWeek, type PageStanding } from "./judge";
-export { verdict, VERDICT_OF } from "./verdict";
 export { readWeek, weeklyDigest, type DigestPage } from "./read";
 
-export { readVerification, setVerdictStore, type PublishedPage, type VerdictStore } from "./store";
+export { setVerdictStore, type PublishedPage, type VerdictStore } from "./store";
