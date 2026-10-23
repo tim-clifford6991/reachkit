@@ -3,7 +3,7 @@
 // Content tile has a total, a last-four-weeks count below it and a newest.
 import type { Ladder } from "@/lib/measure/ladder";
 import type { PageReading } from "@/lib/measure/page-reading";
-import type { PublishedPage } from "./content";
+import type { PublishedPage } from "@/lib/measure/published";
 
 /** The Overview fixture's own today (`fixture.ts`). */
 export const CONTENT_FIXTURE_NOW = new Date(Date.UTC(2026, 8, 4, 14, 30, 0));
