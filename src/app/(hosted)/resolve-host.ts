@@ -49,7 +49,7 @@ export { tags } from "@/lib/publish/destinations/hosted";
 export type HostDisposition =
   | { kind: "site"; siteId: string; domain: string; host: string; indexable: true }
   | { kind: "preview"; slug: string; indexable: false }
-  | { kind: "gone"; reason: "unpublished" | "access_ended" | "account_deleted" }
+  | { kind: "gone"; reason: "unpublished" | "access_ended" | "account_deleted"; siteId?: string }
   | { kind: "unknown" };
 
 const CONTENT_PREFIX = `${HOSTED_SUBDOMAIN_LABEL}.`;
@@ -120,9 +120,9 @@ async function dispositionFor(site: {
   } catch {
     // `hostedServingState` already fails closed on a deletion it cannot
     // read; a throw here is the same direction, one level out.
-    return goneFor("account_deleted");
+    return goneFor("account_deleted", site.siteId);
   }
-  if (!serving.serve) return goneFor(serving.because);
+  if (!serving.serve) return goneFor(serving.because, site.siteId);
   return { kind: "site", siteId: site.siteId, domain: site.domain, host: site.host, indexable: true };
 }
 
@@ -130,8 +130,8 @@ async function dispositionFor(site: {
  *  customer's pages stop being served, and both endings answer 410. The
  *  reason travels so an operator can tell which ending it was; it never
  *  changes the response. */
-function goneFor(because: "retention_elapsed" | "account_deleted"): HostDisposition {
-  return { kind: "gone", reason: because === "account_deleted" ? "account_deleted" : "access_ended" };
+function goneFor(because: "retention_elapsed" | "account_deleted", siteId: string): HostDisposition {
+  return { kind: "gone", reason: because === "account_deleted" ? "account_deleted" : "access_ended", siteId };
 }
 
 /**
