@@ -261,8 +261,9 @@ function LoopSample(p: { step: (typeof LOOP)[number] }): React.JSX.Element {
 }
 
 /** The weekly loop ReachKit runs, and your part in it. Compare and Answer
- *  pages draw it beside their own "what ReachKit does" section. */
-export function LearnLoop(): React.JSX.Element {
+ *  pages draw it beside their own "what ReachKit does" section; `detail`
+ *  opens the whole loop in one paragraph. */
+export function LearnLoop(p: { detail?: { summary: string; body: string } } = {}): React.JSX.Element {
   return (
     <div className="flex min-w-0 flex-col gap-4" data-testid="learn-loop">
       <figure className="flex min-w-0 flex-col gap-3">
@@ -289,6 +290,14 @@ export function LearnLoop(): React.JSX.Element {
         </p>
         <figcaption className={SMALL}>{copy("library.close.example", { business: EXAMPLES.plumber.business })}</figcaption>
       </figure>
+      {p.detail === undefined ? null : (
+        <details className="collapse-arrow border-base-300 collapse min-w-0 border">
+          <summary className="collapse-title font-semibold">{p.detail.summary}</summary>
+          <div className="collapse-content">
+            <p>{p.detail.body}</p>
+          </div>
+        </details>
+      )}
       <div className="rounded-box bg-base-200 flex min-w-0 flex-col gap-1 p-4 text-sm">
         <p>{copy("library.close.part", FIGURES)}</p>
         <p className="flex flex-wrap items-center gap-x-1">
@@ -303,37 +312,59 @@ export function LearnLoop(): React.JSX.Element {
   );
 }
 
+/** The weekly section's words, resolved. */
+export interface WeeklyWords {
+  readonly eyebrow: string;
+  readonly title: string;
+  readonly lead: string;
+  readonly them: string;
+  readonly us: string;
+  readonly rows: readonly (readonly [string, string])[];
+  readonly detail?: { summary: string; body: string };
+}
+
 /** What this page gives beside what ReachKit gives, the weekly loop, and your part. */
-function WeeklyLoop(p: { w: Weekly }): React.JSX.Element {
+export function WeeklyLoop(p: { w: WeeklyWords }): React.JSX.Element {
   const w = p.w;
   return (
     <section className="flex min-w-0 flex-col gap-4">
       <div className="flex min-w-0 flex-col gap-2">
-        <span className="text-base-content/70 text-xs font-semibold tracking-wide uppercase">{copy(w.eyebrow)}</span>
-        <h2 className="break-words">{copy(w.title)}</h2>
-        <p>{copy(w.lead, FIGURES)}</p>
+        <span className="text-base-content/70 text-xs font-semibold tracking-wide uppercase">{w.eyebrow}</span>
+        <h2 className="break-words">{w.title}</h2>
+        <p>{w.lead}</p>
       </div>
       <div className={CARD}>
         <div className={BODY}>
           <div className="text-base-content/70 hidden grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] gap-3 text-xs font-semibold tracking-wide uppercase sm:grid">
-            <span>{copy(w.them)}</span>
+            <span>{w.them}</span>
             <span aria-hidden className="w-4" />
-            <span>{copy(w.us)}</span>
+            <span>{w.us}</span>
           </div>
           <ul className="divide-base-300 flex min-w-0 flex-col divide-y">
             {w.rows.map(([them, us]) => (
               <li key={them} className="grid min-w-0 grid-cols-1 gap-1 py-2 sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] sm:gap-3">
-                <span className="text-base-content/70">{copy(them, FIGURES)}</span>
+                <span className="text-base-content/70">{them}</span>
                 <ArrowRight size={16} strokeWidth={1.75} aria-hidden className="text-primary hidden sm:block" />
-                <span className="font-semibold">{copy(us, FIGURES)}</span>
+                <span className="font-semibold">{us}</span>
               </li>
             ))}
           </ul>
         </div>
       </div>
-      <LearnLoop />
+      <LearnLoop detail={w.detail} />
     </section>
   );
+}
+
+function wordsOf(w: Weekly): WeeklyWords {
+  return {
+    eyebrow: copy(w.eyebrow),
+    title: copy(w.title),
+    lead: copy(w.lead, FIGURES),
+    them: copy(w.them),
+    us: copy(w.us),
+    rows: w.rows.map(([them, us]) => [copy(them, FIGURES), copy(us, FIGURES)] as const),
+  };
 }
 
 /** The site a tool was just asked about, as the scan field would read it. */
@@ -351,7 +382,7 @@ export function LearnClose(p: { variant: LearnCloseVariant; domain?: string }): 
     p.domain === undefined ? copy("landing.start.cta") : copy("library.close.scan.domain", { domain: p.domain });
   return (
     <div className="mt-6 flex min-w-0 flex-col gap-6" data-testid="learn-close" data-variant={p.variant}>
-      {close.weekly === undefined ? null : <WeeklyLoop w={close.weekly} />}
+      {close.weekly === undefined ? null : <WeeklyLoop w={wordsOf(close.weekly)} />}
       <section className={`${CARD} bg-base-200`}>
         <div className={BODY}>
           <h2>{copy(close.heading ?? "landing.close.heading")}</h2>
@@ -378,13 +409,19 @@ export function LearnClose(p: { variant: LearnCloseVariant; domain?: string }): 
 }
 
 /** Where the facts about another company were read, and when. */
-export function Sources(p: { checked: string; sources: readonly Source[] }): React.JSX.Element {
+export function Sources(p: { checked: string; sources: readonly Source[]; id?: string }): React.JSX.Element {
   return (
-    <section className="text-base-content/70 flex min-w-0 flex-col gap-2 text-sm" data-testid="library-sources">
+    <section
+      aria-labelledby={p.id}
+      className="text-base-content/70 flex min-w-0 scroll-mt-20 flex-col gap-2 text-sm"
+      data-testid="library-sources"
+    >
       <p>{copy("library.checked", { date: longDate(p.checked) })}</p>
       {p.sources.length === 0 ? null : (
         <>
-          <h2 className="text-base">{copy("library.sources")}</h2>
+          <h2 id={p.id} className="text-base">
+            {copy("library.sources")}
+          </h2>
           <ul className={LIST}>
             {p.sources.map((source) => (
               <li key={source.href} className="break-words">

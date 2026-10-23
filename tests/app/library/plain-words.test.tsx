@@ -26,7 +26,7 @@ const SURFACE_KEYS = keysUnder("compare.", "teardowns.", "tools.", "library.", "
  *  about the other product, which keep that product's own words. */
 const OUR_CLAIMS = [
   ...COMPARISONS.flatMap((c) => [c.description, c.summary, c.intro, ...c.ours.paragraphs, ...c.pickUs, ...c.rows.map((r) => r.label)]),
-  ...ANSWERS.flatMap((a) => a.sections.filter((s) => s.heading.includes("ReachKit")).flatMap((s) => s.paragraphs)),
+  ...ANSWERS.flatMap((a) => [a.fits.lead, a.fits.detail, ...a.fits.pickUs]),
   ...ANSWERS.flatMap((a) => a.faq.filter((f) => f.q.includes("ReachKit")).map((f) => f.a)),
 ];
 
