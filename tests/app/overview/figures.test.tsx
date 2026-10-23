@@ -135,7 +135,7 @@ afterEach(() => {
 beforeAll(async () => {
   await Promise.all([
     import("@/app/(account)/app/_overview/store"),
-    import("@/app/(account)/app/_overview/content-store"),
+    import("@/lib/measure/published-store"),
     import("@/app/(account)/app/_shell/store"),
     import("@/lib/publish/reads/facts"),
     import("@/lib/publish/reads/store"),

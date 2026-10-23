@@ -1,10 +1,10 @@
 // SPEC §4 (owner, 2026-10-15, issue 1457) — one site's published pages,
 // read from `publications`: published and not taken down, the predicate the
-// hosted sitemap and Settings' count read. Reached only through
-// `content-provider.ts`, which imports it at the call.
+// hosted sitemap and Settings' count read. Overview reaches it through
+// `content-provider.ts` at the call, and the Monday mail reads it the same way.
 import { dbAdmin } from "@/lib/db";
 import { readLadders } from "@/lib/publish/reads/store";
-import type { PublishedPage } from "./content";
+import type { PublishedPage } from "./published";
 
 interface PublicationRow {
   id: string;

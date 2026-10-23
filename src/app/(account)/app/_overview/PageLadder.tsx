@@ -6,7 +6,7 @@ import Link from "next/link";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import type { Label } from "@/lib/opportunities/verdicts/types";
 import { formatCount, formatDay } from "../_shell/format";
-import type { PageLadder as Model, StepFigure } from "./ladder";
+import type { PageLadder as Model, StepFigure } from "@/lib/measure/page-ladder";
 import { CLOSED } from "./present";
 
 const ROWS_ID = "overview-ladder-pages";

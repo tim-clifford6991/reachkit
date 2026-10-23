@@ -92,7 +92,7 @@ import {
 } from "@/lib/scan/weekly";
 import type { AddressWaiting, AnswerEngine, LastLive, OverviewFacts } from "./model";
 import { CALENDAR_DAY_ZONE } from "./week";
-import { monthWeekOf, nextFirstMonday, type MonthReading, type MonthsFacts } from "./figures";
+import { monthFiguresOf, monthWeekOf, nextFirstMonday, type MonthsFacts } from "@/lib/measure/figures";
 import type { WeeklyPoint } from "./growth";
 import type { RivalFact, RivalFacts } from "./rivals";
 import { needsYouOf, waitsOnCustomer } from "@/lib/publish/record/needs-you";
@@ -719,9 +719,9 @@ async function weeklySeries(
   const score = scoreOf(latest, now);
   const scorePrevious = previousWeek === null ? undefined : scoreOf(previousWeek, now);
   const monthWeek = monthWeekOf(measured);
-  const scan = monthFiguresOf(deep?.report ?? null, now);
+  const scan = monthFiguresOf(deep?.report ?? null);
   const months: MonthsFacts = {
-    reading: monthWeek === null ? null : { week: monthWeek, ...monthFiguresOf(scans.get(monthWeek)?.report ?? null, now) },
+    reading: monthWeek === null ? null : { week: monthWeek, ...monthFiguresOf(scans.get(monthWeek)?.report ?? null) },
     scan: { score: scan.score, market: scan.market?.top10 ?? null },
     next: nextFirstMonday(weeks.at(-1) as string),
   };
@@ -799,16 +799,6 @@ function scoreOf(
     return unmeasured<{ score: number; band: BandHandle }>("not_attempted", at);
   }
   return reading;
-}
-
-/** The two months-scale figures one stored report holds: its score, and the
- *  presence card's count of the twelve on Google's first page. */
-function monthFiguresOf(report: StoredReport | null, at: Date): Omit<MonthReading, "week"> {
-  const score = scoreOf(report, at);
-  return {
-    score: score.kind === "unmeasured" ? null : score.value.score,
-    market: report?.presence == null ? null : { top10: report.presence.you.top10Count, of: report.presence.measuredSearches },
-  };
 }
 
 /** §6.6's sizing for one rival in one week, or nothing. The entries are

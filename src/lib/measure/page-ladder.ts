@@ -5,7 +5,7 @@ import type { Reached, PageReading } from "@/lib/measure/page-reading";
 import type { CopyKey } from "@/lib/presentation/copy";
 import type { Label } from "@/lib/opportunities/verdicts/types";
 import { verdict } from "@/lib/opportunities/verdicts/verdict";
-import type { PublishedPage } from "./content";
+import type { PublishedPage } from "./published";
 
 type StepKey = keyof Reached | "live";
 

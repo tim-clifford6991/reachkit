@@ -244,15 +244,26 @@ export async function composePreview(kind: PreviewKind): Promise<PreviewMail> {
     case "weekly": {
       const { buildWeekly } = await import("../../../src/lib/mail/templates/weekly");
       const mail = buildWeekly({
-        // Issue 1329: D22's four headline numbers, on a hosted blog.
+        // Overview's numbers, on a hosted blog, in the first mail of a month.
         numbers: {
-          pageQuestions: { cited: measured(2, AT), asked: 4 },
-          mentions: { kind: "rate", rate: measured(34, AT), low: 22, high: 48 },
-          pagesCited: measured(3, AT),
-          weeks: 4,
-          top20: measured(5, AT),
-          top20Change: measured(2, AT),
-          aiVisits: { fetches: measured(12, AT), windowDays: 7 },
+          live: measured(12, AT),
+          planned: measured(7, AT),
+          google: {
+            steps: (["draft.ladder.found", "draft.ladder.showing", "draft.ladder.first-page"] as const).map((name, i) => ({
+              name,
+              count: measured([11, 5, 1][i]!, AT),
+              of: 12,
+            })),
+            early: false,
+            visits: measured(9, AT),
+            climb: { search: "tankless water heater austin", from: 62, to: 24, climbing: true },
+          },
+          ai: { linked: measured(2, AT), asked: 12, reads: measured(14, AT) },
+          month: {
+            score: { value: measured(31, AT), change: measured(4, AT) },
+            market: { value: measured(1, AT), of: 12, change: measured(1, AT) },
+            reputation: { value: measured(11, AT), answers: 184, weeks: 4 },
+          },
         },
         pages: measured(WEEKLY_PAGES, AT),
         next: measured(WEEKLY_NEXT, AT),
