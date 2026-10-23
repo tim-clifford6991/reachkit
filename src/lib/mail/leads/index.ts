@@ -14,31 +14,10 @@ import { wireSuppressionReader } from "./wire";
 
 wireSuppressionReader();
 
-export { firstPageOffer, readFirstPageOffer, type FirstPageOffer, type OfferRead } from "./offer";
+export { type FirstPageOffer, type OfferRead } from "./offer";
 export { captureLead, type CaptureResult } from "./capture";
-export {
-  deliverFirstPage,
-  dueFirstPageDeliveries,
-  nextAttemptAt,
-  FIRST_PAGE_UNAVAILABLE_COPY,
-  type DeliveryOutcome,
-  type FirstPageFailure,
-} from "./giveaway";
-export { scheduleSequence, advanceSequences } from "./sequence";
-export {
-  suppressAddress,
-  suppressionState,
-  normaliseAddress,
-  followUpsSentTo,
-  type SuppressionAnswer,
-} from "./suppress";
-export { applyOptOutToken, optOutTokenFor, readOptOutToken } from "./optout";
-export {
-  registerDraftWriter,
-  registerOfferReader,
-  type DraftWriter,
-  type OfferReader,
-  type OfferedPage,
-} from "./ports";
-export { wireSuppressionReader, unwireSuppressionReader } from "./wire";
+export { deliverFirstPage, dueFirstPageDeliveries, type DeliveryOutcome, type FirstPageFailure } from "./giveaway";
+export { suppressAddress, followUpsSentTo, type SuppressionAnswer } from "./suppress";
+export { applyOptOutToken } from "./optout";
+export { type DraftWriter, type OfferReader, type OfferedPage } from "./ports";
 export type { FirstPageState, LeadRow, SequenceState, SuppressionCause } from "./store";

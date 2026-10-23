@@ -153,7 +153,6 @@ export const ADDRESS_COPY = Object.freeze({
  *  asserts the two spellings are the same key, which is the coupling that
  *  actually matters. */
 export { SEO_COPY } from "./lines";
-export { needsYouCauseOf, needsYouOf, restedReasonOf, waitsOnCustomer, waitsOnDestination } from "./needs-you";
 export type { NeedsYouCause, NeedsYouKind } from "./needs-you";
 
 // Imported as well as re-exported: `seoNoteOf` below names the key, and a

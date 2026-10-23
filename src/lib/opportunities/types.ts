@@ -345,14 +345,6 @@ export type BusinessFit = 0 | 1 | 2 | 3;
  *  and its evidence — never by the model, and never from an intent kind. */
 export type TopicSource = "ai_gap" | "product" | "problem" | "category" | "best_x";
 
-export const TOPIC_SOURCES: readonly TopicSource[] = Object.freeze([
-  "ai_gap",
-  "product",
-  "problem",
-  "category",
-  "best_x",
-]);
-
 /** SPEC §7 *honesty by page type* (2026-09-29; D20, 2026-10-02): how the
  *  business may appear on a Write or an Earn page. `./page-type.ts` decides
  *  it; the database mirrors the set in a check constraint. */

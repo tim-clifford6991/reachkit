@@ -59,20 +59,6 @@ export function LibraryPage(p: {
   );
 }
 
-/** One titled card of paragraphs. */
-export function TextCard(p: { heading: string; paragraphs: readonly string[] }): React.JSX.Element {
-  return (
-    <section className={CARD}>
-      <div className={BODY}>
-        <h2>{p.heading}</h2>
-        {p.paragraphs.map((text) => (
-          <p key={text}>{text}</p>
-        ))}
-      </div>
-    </section>
-  );
-}
-
 type Row = readonly [CopyKey, CopyKey];
 
 /** The two-column section above the loop: what this page gives, beside what ReachKit gives your site. */
