@@ -135,14 +135,14 @@ export function PublishedList(p: { content: ContentModel | null; timeZone: strin
           <>
             <ul className="list min-w-0">{rows.slice(0, SHOWN).map(row)}</ul>
             {rows.length <= SHOWN ? null : (
-              <details className="min-w-0" data-testid="plan-live-more">
-                <summary className="flex min-w-0 cursor-pointer flex-wrap justify-between gap-x-3 text-sm">
+              <details className="collapse min-w-0" data-testid="plan-live-more">
+                <summary className="collapse-title flex min-w-0 flex-wrap justify-between gap-x-3 px-0 text-sm">
                   <span className="text-base-content/70">
                     {copy("calendar.live.count", { n: formatCount(SHOWN), m: formatCount(rows.length) })}
                   </span>
                   <span className="link link-primary">{copy("calendar.live.all", { m: formatCount(rows.length) })}</span>
                 </summary>
-                <ul className="list min-w-0">{rows.slice(SHOWN).map(row)}</ul>
+                <ul className="collapse-content list min-w-0 px-0">{rows.slice(SHOWN).map(row)}</ul>
               </details>
             )}
           </>

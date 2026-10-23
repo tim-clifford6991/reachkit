@@ -40,18 +40,15 @@ export function planHeadWords(
   };
 }
 
-/** `null` draws the waiting state: the same three lines as boxes. */
+/** `null` draws the waiting state: the name, then boxes for the two lines read from the week. */
 export function PlanHead(p: {
   words: PlanHeadWords | null;
 }): React.JSX.Element {
   const w = p.words;
   return (
     <header className="flex min-w-0 flex-col gap-1" data-testid="plan-head">
-      {w === null ? (
-        <Box className="h-4 w-28" />
-      ) : (
-        <span className="eyebrow">{w.eyebrow}</span>
-      )}
+      {/* The screen's name needs no read, so the waiting state already says it. */}
+      <span className="eyebrow">{w === null ? copy("shell.nav.plan") : w.eyebrow}</span>
       {w === null ? (
         <Box className="h-8 w-60 max-w-full" />
       ) : (
