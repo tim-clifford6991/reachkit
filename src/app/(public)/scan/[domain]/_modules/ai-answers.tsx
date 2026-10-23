@@ -381,9 +381,10 @@ function Head(p: { right?: React.ReactNode }): React.JSX.Element {
 /** The longest quote the card shows, in characters: one sentence, never a page. */
 const QUOTE_MAX = 240;
 
-/** The answer's words without its markdown marks, which a quote would show raw. */
+/** The answer's words without its markdown marks, which a quote would show raw.
+ *  A mark that starts a word (".NET", ".io") keeps the space before it. */
 function plainOf(text: string | undefined): string | undefined {
-  return text?.replace(/\*\*|`/g, "").replace(/\s+([.,!?;:])/g, "$1").trim();
+  return text?.replace(/\*\*|`/g, "").replace(/\s+([.,!?;:])(?=\s|$)/g, "$1").trim();
 }
 
 /** One AI answer's first sentence, quoted as it was written, with the search

@@ -166,15 +166,25 @@ describe("the states the board does not draw", () => {
     expect(renderReport({ ...FIXTURE_REPORT, serps: [] })).not.toContain('data-testid="ai-answers-quote"');
   });
 
+  const kept = (text: string): StoredReport["serps"][number] => ({
+    kind: "measured",
+    at: new Date("2026-09-05T09:00:00.000Z"),
+    value: { organic: [], aiOverview: { present: true, asynchronousAiOverview: true, referenceDomains: [], text } },
+  });
+
   it("an answer whose first sentence runs past one quote is not cut; the next kept answer is used", () => {
-    const kept = (text: string): StoredReport["serps"][number] => ({
-      kind: "measured",
-      at: new Date("2026-09-05T09:00:00.000Z"),
-      value: { organic: [], aiOverview: { present: true, asynchronousAiOverview: true, referenceDomains: [], text } },
-    });
     const long = kept(`${"word ".repeat(60)}end.`);
     expect(answerQuoteOf(ai, [long])).toBeNull();
     expect(answerQuoteOf(ai, [long, kept("Short and true. Then more.")])).toEqual({ search: ai.rows[1]!.question.search, text: "Short and true." });
+  });
+
+  it("a word that starts with a mark keeps its space, and its dot does not end the sentence", () => {
+    expect(answerQuoteOf(ai, [kept("Teams build on .NET and Azure. Then more.")])?.text).toBe("Teams build on .NET and Azure.");
+    expect(answerQuoteOf(ai, [kept("Pick a .io domain.")])?.text).toBe("Pick a .io domain.");
+  });
+
+  it("a space before a closing mark and the markdown marks are still removed", () => {
+    expect(answerQuoteOf(ai, [kept("**Acme** , the `leader` . Then more.")])?.text).toBe("Acme, the leader.");
   });
 
   it("no competitor found: the sentence counts the customer alone", () => {
