@@ -83,6 +83,7 @@ export interface HostingRow {
 /** One page delivered to a site, as the month's card counts it: the draft's
  *  title and its last recorded battery, and whether it was a refresh. */
 export interface PeriodPageRow {
+  readonly published_at: string;
   readonly title: string | null;
   readonly refresh: boolean;
   readonly rule_failures: unknown;
@@ -174,13 +175,16 @@ export interface BillingStore {
     at: Date;
   }): Promise<{ ok: true } | { ok: false }>;
 
-  /** The pages delivered to a site in `[from, to)` that are still up, and
-   *  how many of its scans finished in that span. */
+  /** The pages delivered to a site in `[from, to)` that are still up, when
+   *  each Monday mail went in that span, and the newest finished pass's report. */
   period(
     siteId: string,
     from: Date,
     to: Date
-  ): Promise<{ ok: true; pages: readonly PeriodPageRow[]; scans: number } | { ok: false }>;
+  ): Promise<
+    | { ok: true; pages: readonly PeriodPageRow[]; reports: readonly string[]; newestReport: unknown }
+    | { ok: false }
+  >;
 }
 
 // ── The Supabase implementation
@@ -203,6 +207,7 @@ interface MinimalQueryBuilder<T> extends PromiseLike<QueryResult<T>> {
   lt(column: string, value: string): MinimalQueryBuilder<T>;
   in(column: string, values: readonly string[]): MinimalQueryBuilder<T>;
   limit(count: number): MinimalQueryBuilder<T>;
+  order(column: string, options: { ascending: boolean }): MinimalQueryBuilder<T>;
   insert(rows: object): MinimalQueryBuilder<T>;
   overlaps(column: string, values: readonly string[]): MinimalQueryBuilder<T>;
 }
@@ -263,6 +268,7 @@ function toHostingRow(row: HostingJoinRow): HostingRow {
 }
 
 interface PeriodJoinRow {
+  published_at: string;
   drafts: { title: string | null; rule_failures: unknown; meta: unknown; opportunities: { type: string } };
 }
 
@@ -438,33 +444,44 @@ export function supabaseBillingStore(): BillingStore {
     },
 
     async period(siteId, from, to) {
-      const [pages, scans] = await Promise.all([
+      const [pages, digests, newest] = await Promise.all([
         untyped()
           .from<PeriodJoinRow>("publications")
-          .select("drafts!inner(title, rule_failures, meta, opportunities!inner(type))")
+          .select("published_at, drafts!inner(title, rule_failures, meta, opportunities!inner(type))")
           .eq("site_id", siteId)
           .eq("delivery_state", "delivered")
           .is("unpublished_at", null)
           .gte("published_at", from.toISOString())
           .lt("published_at", to.toISOString()),
         untyped()
-          .from<{ id: string }>("scans")
-          .select("id")
+          .from<{ digest_sent_at: string }>("scans")
+          .select("digest_sent_at")
+          .eq("site_id", siteId)
+          .gte("digest_sent_at", from.toISOString())
+          .lt("digest_sent_at", to.toISOString()),
+        untyped()
+          .from<{ report: unknown }>("scans")
+          .select("report")
           .eq("site_id", siteId)
           .in("status", ["done", "degraded"])
+          .not("report", "is", null)
           .gte("created_at", from.toISOString())
-          .lt("created_at", to.toISOString()),
+          .lt("created_at", to.toISOString())
+          .order("created_at", { ascending: false })
+          .limit(1),
       ]);
-      if (pages.error || scans.error) return { ok: false };
+      if (pages.error || digests.error || newest.error) return { ok: false };
       return {
         ok: true,
-        pages: (pages.data ?? []).map(({ drafts }) => ({
+        pages: (pages.data ?? []).map(({ published_at, drafts }) => ({
+          published_at,
           title: drafts.title,
           refresh: drafts.opportunities.type === "refresh_page",
           rule_failures: drafts.rule_failures,
           meta: drafts.meta,
         })),
-        scans: (scans.data ?? []).length,
+        reports: (digests.data ?? []).map((row) => row.digest_sent_at).sort(),
+        newestReport: newest.data?.[0]?.report ?? null,
       };
     },
   };

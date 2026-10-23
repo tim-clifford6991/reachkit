@@ -25,9 +25,15 @@ type Writable<T> = { -readonly [K in keyof T]: T[K] };
 export interface MemoryBilling {
   users: BillingRow[];
   sites: HostingRow[];
-  /** Delivered publications and finished scans, as `period` filters them. */
+  /** Delivered publications, and scans with their Monday mail and report, as `period` filters them. */
   publications: (PeriodPageRow & { site_id: string; published_at: string; unpublished_at: string | null })[];
-  scans: { site_id: string; created_at: string; status: "running" | "done" | "degraded" | "failed" }[];
+  scans: {
+    site_id: string;
+    created_at: string;
+    status: "running" | "done" | "degraded" | "failed";
+    digest_sent_at?: string | null;
+    report?: unknown;
+  }[];
   /** `sites.domain` as stored, per owner. */
   domains: { user_id: string; domain: string | null }[];
   refunds: { invoice_id: string; user_id: string; subscription_id: string | null; domains: readonly string[]; refunded_at: string }[];
@@ -291,7 +297,13 @@ export function memoryBillingStore(state: MemoryBilling): BillingStore {
         pages: state.publications.filter(
           (p) => p.site_id === siteId && p.unpublished_at === null && within(p.published_at)
         ),
-        scans: state.scans.filter((s) => s.site_id === siteId && (s.status === "done" || s.status === "degraded") && within(s.created_at)).length,
+        reports: state.scans
+          .flatMap((s) => (s.site_id === siteId && s.digest_sent_at != null && within(s.digest_sent_at) ? [s.digest_sent_at] : []))
+          .sort(),
+        newestReport:
+          state.scans
+            .filter((s) => s.site_id === siteId && (s.status === "done" || s.status === "degraded") && s.report != null && within(s.created_at))
+            .sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at))[0]?.report ?? null,
       };
     },
   };

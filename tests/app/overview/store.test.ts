@@ -586,3 +586,43 @@ describe("Technical issues read from the stored report and the destination row",
     expect((await readWaitingIssues(SITE)).hostedHost).toBe(hostname);
   });
 });
+
+describe("the months-scale figures are the first Monday's weekly pass, against the scan", () => {
+  function scored(at: string, score: number, top10: number): Row {
+    return {
+      ...report({ ownRanked: 40, citations: 1, at }),
+      verdict: {
+        measuredAt: `${at}T09:00:00.000Z`,
+        scoreAndBand: { kind: "measured", value: { score, band: "hard-to-find" }, at: `${at}T09:00:00.000Z` },
+      },
+      presence: { measuredSearches: 12, you: { domain: "example.com", top10Count: top10 }, rivals: [], absentFrom: [], framing: "shown" },
+    };
+  }
+  const deep = (at: string, score: number, top10: number): Row => ({
+    ...weeklyScan(at, { report: scored(at, score, top10) }),
+    id: "scan-deep",
+    tier: "deep",
+    week_start: null,
+  });
+
+  it("reads the month's first Monday, never the newest week, and the scan's own figures", async () => {
+    db.seed("scans", [
+      deep("2026-08-12", 27, 0),
+      weeklyScan(WEEKS.aug31, { report: scored(WEEKS.aug31, 50, 3) }),
+      weeklyScan(WEEKS.sep07, { report: scored(WEEKS.sep07, 31, 1) }),
+    ]);
+    expect((await facts()).months).toEqual({
+      reading: { week: WEEKS.sep07, score: 31, market: { top10: 1, of: 12 } },
+      scan: { score: 27, market: 0 },
+      next: "2026-10-05",
+    });
+  });
+
+  it("before any first Monday is measured there is no reading, and the next is named", async () => {
+    db.seed("scans", [weeklyScan(WEEKS.aug24, { report: scored(WEEKS.aug24, 50, 3) }), weeklyScan(WEEKS.aug31, { report: scored(WEEKS.aug31, 50, 3) })]);
+    const { months } = await facts();
+    expect(months?.reading).toBeNull();
+    expect(months?.scan).toEqual({ score: null, market: null });
+    expect(months?.next).toBe("2026-10-05");
+  });
+});
