@@ -15,12 +15,10 @@ import type { HostedPage } from "@/lib/publish/destinations/hosted";
 import { OG_SIZE } from "@/app/(public)/_seo/og-card";
 import { INDEX_PATH, LOGO_PATH, mainSiteOf, type HostedBusiness } from "./chrome";
 import { pageAuthorOf } from "./author";
-import { indexHref } from "./present";
+import { FEED_PATH, indexHref } from "./present";
 
 export { personOf } from "./author";
 
-/** The feed, on the customer's own host (`../rss.xml`). */
-export const FEED_PATH = "/rss.xml";
 /** The generated share image (`../share.img`): the index's at the path
  *  itself, a page's one segment under it. The name carries a dot, which no
  *  page's address does, so it can never stand in front of a page. */

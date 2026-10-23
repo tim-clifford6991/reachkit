@@ -35,9 +35,9 @@ export const PAGE_COPY_DE = {
   // The hosted blog
   "hosted.published": "veröffentlicht am {date} · von {publisher}",
   "hosted.updated": "veröffentlicht am {date} · aktualisiert am {updated} · von {publisher}",
-  "hosted.source": "Quelle: {source} · abgerufen am {date}",
+  "hosted.source": "Quelle: {source} · abgerufen am {date}.",
   "hosted.index.heading": "Artikel",
-  "hosted.index.searchLabel": "Artikel durchsuchen",
+  "hosted.index.searchLabel": "Ratgeber durchsuchen",
   "hosted.index.searchSubmit": "Suchen",
   "hosted.index.empty": "Hier wurde noch nichts veröffentlicht.",
   "hosted.index.noMatch": "Kein Artikel passt zu „{query}“.",
@@ -55,7 +55,9 @@ export const PAGE_COPY_DE = {
   "hosted.index.description": "Artikel und Ratgeber von {publisher}.",
   "hosted.index.latest": "Neu",
   "hosted.index.pages": "Seiten mit Artikeln",
-  "hosted.index.newer": "Neuere",
-  "hosted.index.older": "Ältere",
+  "hosted.index.newer": "Vorherige Seite",
+  "hosted.index.older": "Nächste Seite",
+  "hosted.index.title": "Ratgeber von {publisher}",
+  "hosted.index.recent": "Neue Ratgeber",
   "hosted.index.pageOf": "Seite {page} von {pages}",
 } as const satisfies CopyTranslation;
