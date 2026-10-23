@@ -10,6 +10,7 @@
     "lint": "eslint .",
     "test": "vitest run --project node --project ui --project db",
     "test:unit": "vitest run --project node --project ui --maxWorkers=2 --testTimeout=20000",
+    "test:unit:related": "vitest related --run --project node --project ui --maxWorkers=2 --testTimeout=20000",
     "test:layout": "vitest run --project layout",
     "test:layout:full": "RK_LAYOUT_FULL=1 vitest run --project layout",
     "copy:owed": "node scripts/copy/owed.mjs",
