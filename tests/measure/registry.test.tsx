@@ -88,11 +88,12 @@ function reportFigureNames(report: typeof FIXTURE_REPORT): string[] {
  *  and one that kept its Google and AI halves apart. */
 function shownReportFigures(): string[] {
   const at = FIXTURE_REPORT.verdict.measuredAt;
+  const whole = { ...FIXTURE_REPORT, verdict: { ...FIXTURE_REPORT.verdict, halves: undefined } };
   const halves = {
     ...FIXTURE_REPORT,
     verdict: { ...FIXTURE_REPORT.verdict, halves: { google: measured(30, at), ai: measured(50, at) } },
   };
-  return [...new Set([...reportFigureNames(FIXTURE_REPORT), ...reportFigureNames(halves)])].sort();
+  return [...new Set([...reportFigureNames(whole), ...reportFigureNames(halves)])].sort();
 }
 
 describe("the measurement registry", () => {
