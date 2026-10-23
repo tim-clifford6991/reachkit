@@ -108,7 +108,7 @@ function Card(p: { t: Teardown }): React.JSX.Element {
       <span className="card-body gap-3">
         <span className={FRAME} aria-hidden>
           <span className="mockup-browser-toolbar">
-            <span className="input min-w-0 truncate font-mono text-xs">{t.domain}</span>
+            <span className="bg-base-100 rounded-field min-w-0 px-2 py-0.5 font-mono text-xs break-all">{t.domain}</span>
           </span>
           <span className="bg-base-100 flex min-w-0 flex-col gap-2 p-3">
             <Lines />
@@ -119,7 +119,7 @@ function Card(p: { t: Teardown }): React.JSX.Element {
           </span>
         </span>
         <span className="flex min-w-0 flex-wrap items-center gap-2">
-          <span className="text-base-content/70 min-w-0 truncate font-mono text-xs">{t.domain}</span>
+          <span className="text-base-content/70 min-w-0 font-mono text-xs break-all">{t.domain}</span>
           <span className="badge badge-ghost badge-sm">{badgeOf(t)}</span>
         </span>
         <h3 className="card-title text-base break-words">{t.name}</h3>
