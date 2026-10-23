@@ -12,13 +12,28 @@ applyEnvFixture();
 type Serving = { serve: true } | { serve: false; because: "retention_elapsed" | "account_deleted" };
 type Locale = { country: string; language: string };
 
-const state: { host: string; serving: Serving; stored: Locale | null } = {
+const state: { host: string; serving: Serving; stored: Locale | null; identityFails: boolean } = {
   host: "content.example.com",
   serving: { serve: true },
   stored: null,
+  identityFails: false,
 };
 
 const OLD_TITLE = "How to winterize outdoor faucets";
+
+// The 410 route's server bundle as production builds it: lucide's `Icon` is a
+// client module there, so calling any icon throws instead of drawing.
+vi.mock("lucide-react", async (importOriginal) => {
+  const real = await importOriginal<Record<string, unknown>>();
+  return Object.fromEntries(
+    Object.keys(real).map((name) => [
+      name,
+      () => {
+        throw new Error(`Attempted to call ${name} from the server, but it's on the client.`);
+      },
+    ])
+  );
+});
 
 vi.mock("next/headers", () => ({
   headers: async () => new Headers({ host: state.host }),
@@ -46,22 +61,25 @@ vi.mock("@/lib/publish/destinations/hosted", async () => {
     hostedSiteForHostname: async () => null,
     livePageBySlug: async () => null,
     livePagesForSite: async () => [],
-    hostedIdentity: async () => ({
-      name: "Harbor Plumbing",
-      logoType: null,
-      line: "Licensed plumbers in Austin, TX.",
-      mainSite: {
-        home: "https://example.com/",
-        organization: { id: null, name: null, logo: null },
-        sameAs: [],
-        aboutPages: [],
-        links: [],
-        actions: [
-          { kind: "book", url: "https://example.com/book" },
-          { kind: "quote", url: "https://example.com/quote" },
-        ],
-      },
-    }),
+    hostedIdentity: async () => {
+      if (state.identityFails) throw new Error("identity read failed");
+      return {
+        name: "Harbor Plumbing",
+        logoType: null,
+        line: "Licensed plumbers in Austin, TX.",
+        mainSite: {
+          home: "https://example.com/",
+          organization: { id: null, name: null, logo: null },
+          sameAs: [],
+          aboutPages: [],
+          links: [],
+          actions: [
+            { kind: "book", url: "https://example.com/book" },
+            { kind: "quote", url: "https://example.com/quote" },
+          ],
+        },
+      };
+    },
     hostedAddress: async () => ({ state: "retired", publicationId: null }),
   };
 });
@@ -75,6 +93,7 @@ beforeEach(() => {
   state.host = "content.example.com";
   state.serving = { serve: true };
   state.stored = null;
+  state.identityFails = false;
 });
 
 function request(): Request {
@@ -131,6 +150,21 @@ describe("A: a page removed from a live site answers 410 with the short body", (
     expect(doc.documentElement.getAttribute("lang")).toBe("en-US");
     expect(doc.title).toBe("content.example.com");
     expectVariantA(doc, ENGLISH);
+  });
+});
+
+describe("A: a body that cannot be drawn still answers 410, never 500", () => {
+  it("410, noindex, no-store and the empty document in the site's language", async () => {
+    state.identityFails = true;
+    state.stored = { country: "DE", language: "de" };
+    const response = await gone.GET(request());
+    expect(response.status).toBe(410);
+    expect(response.headers.get("X-Robots-Tag")).toBe("noindex");
+    expect(response.headers.get("Cache-Control")).toBe("no-store");
+    const doc = parse(await response.text());
+    expect(doc.documentElement.getAttribute("lang")).toBe("de-DE");
+    expect(doc.querySelector('meta[name="robots"]')?.getAttribute("content")).toBe("noindex");
+    expect(doc.body.innerHTML).toBe("");
   });
 });
 
