@@ -30,7 +30,7 @@
 // derivation runs here rather than inside the pipeline because the
 // pipeline branches on no tier and the free path derives nothing — the
 // choice of *which* §7 entry point a pass uses belongs to the pass. The
-// deep pass derives and refills up to a week and its spares
+// deep pass derives toward a week and its spares
 // (`deriveForPass`), under the same `DEEP` cap the stages spent and counted
 // in the same row's cost (issue 798), on the report the pass just stored —
 // as a step of its own, after the pass's. A derivation that
