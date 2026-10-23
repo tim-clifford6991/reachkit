@@ -239,6 +239,13 @@ function queryOf(m: Member): string | null {
   return m.kind === "row" ? m.row.targetQuery : m.candidate.targetQuery;
 }
 
+/** The search whose stored results page a member was read from: a question
+ *  buyers were seen asking shares its parent search's. */
+function serpOf(m: Member): string | null {
+  const evidence = m.kind === "row" ? m.row.evidence : m.candidate.evidence;
+  return (evidence.family === "write" ? evidence.askedBeside?.term : undefined) ?? queryOf(m);
+}
+
 /** A queued row always survives; then a right-sized member over an
  *  outsized one (issue 881); then precedence; then a row already held over
  *  a new candidate (a re-derivation moves nothing); then volume. */
@@ -393,6 +400,9 @@ export function collapse(a: {
 
     if (survivor.kind === "candidate") {
       insert.push({ ...survivor.candidate, clusterKey: key, absorbedQueries });
+    } else if (survivor.row.status === "done") {
+      // A live page keeps the searches it was published from.
+      continue;
     } else if (superseded(survivor.row, key, hadCandidate)) {
       // The whole cluster goes: its losers are already dismissed above, and
       // the searches they were absorbing have nothing left to hang on.
@@ -432,13 +442,19 @@ function joinTopics(
   };
 
   const keyOfQuery = new Map<string, string>();
+  const keyOfSerp = new Map<string, string>();
   const tops: { key: string; urls: readonly string[] }[] = [];
   for (const [key, members] of byKey) {
     for (const member of members) {
       const query = queryOf(member);
       if (query === null || !plansANewPage(member)) continue;
       keyOfQuery.set(queryKey(query), key);
-      const urls = topTens.get(queryKey(query));
+      // One results page is one topic: its own search and the questions it showed.
+      const serp = queryKey(serpOf(member) ?? query);
+      const sharing = keyOfSerp.get(serp);
+      if (sharing === undefined) keyOfSerp.set(serp, key);
+      else join(sharing, key);
+      const urls = topTens.get(serp);
       if (urls !== undefined) tops.push({ key, urls });
     }
   }

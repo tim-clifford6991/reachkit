@@ -25,10 +25,6 @@ Goes live Today, 4:00 PM Nothing is needed from you.	sample data
 today, 4:00 PM	sample data
 Checks: 14 of 14 passed all passed	E10: the check count comes from code (docs/spec/decisions/2026-10-19-1581.md)
 and 9 more	E10: the check count comes from code (docs/spec/decisions/2026-10-19-1581.md)
-Every fact links to your site	E10: each row is the battery's own rule, named for what it checks (docs/spec/decisions/2026-10-19-1581.md; asked on #1748)
-No invented people, reviews or prices	E10: each row is the battery's own rule, named for what it checks (docs/spec/decisions/2026-10-19-1581.md; asked on #1748)
-Nothing from your never-say list	E10: each row is the battery's own rule, named for what it checks (docs/spec/decisions/2026-10-19-1581.md; asked on #1748)
-Reads at a plain level	E10: each row is the battery's own rule, named for what it checks (docs/spec/decisions/2026-10-19-1581.md; asked on #1748)
 After Edit this page is pressed	#1110: the board's own caption over the edit arm, not a string of the screen
 Editing	#1110: the board's own caption over the edit arm, not a string of the screen
 Saved 9:42 AM	sample data
