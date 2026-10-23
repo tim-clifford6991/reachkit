@@ -53,6 +53,7 @@ import { RemovalAddressLine } from "./removal";
 import type { AddressControl, AddressNotice, WrittenPage } from "./state";
 import { refusalLine } from "./refusal";
 import { VerdictStrip } from "./verdict";
+import { rescoredOf } from "./rescored";
 import { RescanControl } from "./rescan";
 import { startReportCheckout } from "./checkout";
 import { StillReading } from "./still-reading";
@@ -482,6 +483,7 @@ export function ReportView(p: {
   const { report, notice, control, correction } = p.state;
   const measuredOn = formatMeasuredOn(report.verdict.measuredAt);
   const measurement = measurementLine(report);
+  const rescored = rescoredOf(report);
   const cards = cardsOf(report, unblockLines(report.blockedAgents));
   const cutOff = cutByCeiling(report);
   const missingPages = missingPagesOf(report);
@@ -553,6 +555,7 @@ export function ReportView(p: {
             measuredOn={measuredOn}
             correction={correction}
             {...(measurement === null ? {} : { measurement })}
+            {...(rescored === null ? {} : { rescored: { on: formatMeasuredOn(rescored.at), before: rescored.before } })}
             readAs={readAsOf(report, understanding, where.badge)}
             notes={
               <>
