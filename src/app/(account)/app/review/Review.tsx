@@ -22,7 +22,7 @@ const MUTED = "text-sm text-base-content/70";
 
 const LABEL: Record<Label, { key: CopyKey; badge: string }> = {
   working: { key: "review.label.working", badge: "badge badge-soft badge-success" },
-  climbing: { key: "review.label.climbing", badge: "badge badge-soft badge-primary" },
+  climbing: { key: "review.label.climbing", badge: "badge badge-soft badge-info" },
   too_early: { key: "review.label.too_early", badge: "badge badge-soft" },
   not_moving: { key: "review.label.not_moving", badge: "badge badge-soft badge-warning" },
 };
