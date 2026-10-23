@@ -40,6 +40,7 @@
 import { destinationStanding, destinationWaitingOnDns, destinationWorking } from "@/lib/publish/destinations";
 import { scheduledPagesFor, type ScheduledPage } from "@/lib/publish/record";
 import { nextPublishTimeAtOrAfter, readPublishingSettings } from "@/lib/publish/settings";
+import { placedByDay } from "@/lib/opportunities/days";
 import { heldPages, isPublishingOn } from "@/lib/publish/switch";
 import type { DestinationKind, State } from "@/lib/publish/types";
 import { daysOfMonth, type DayKey, type MonthKey } from "./dates";
@@ -145,21 +146,8 @@ export async function readPublishingFacts(a: {
     return UNREADABLE;
   }
 
-  const heldIds = new Set(held.draftIds);
-  const pagesByDay = new Map<DayKey, ScheduledPage>();
-  const heldDays: DayKey[] = [];
-
-  for (const page of pages) {
-    const day = page.scheduledFor as DayKey;
-    // The one page a date may carry (REQ-043 c1). Two rows on one date is
-    // `month.ts`'s own error to raise, from the list it assembles; this
-    // read hands the first through and leaves that check where it is.
-    if (heldIds.has(page.draftId) && day < a.today) {
-      heldDays.push(day);
-      continue;
-    }
-    if (!pagesByDay.has(day)) pagesByDay.set(day, page);
-  }
+  // Two rows on one date is `month.ts`'s own error to raise; this read hands the first through.
+  const { byDay: pagesByDay, heldDays } = placedByDay(pages, new Set(held.draftIds), a.today);
 
   const publishAt = new Map<string, Date>();
   for (const page of pagesByDay.values()) {

@@ -224,41 +224,47 @@ export const MAIL_COPY = Object.freeze({
   // omission arm: a mail whose subject could not be composed does not go
   // out at all, so the approved subject carries no number (issue #388).
   "mail.weekly.subject": ["Monday: what moved this week", { slots: {}, fixedBy: "§12" }],
-  // SPEC §8 (2026-10-07, issue 1329): the Monday mail leads with D22's four
-  // headline numbers, and the Discoverability Score is not in it. The
-  // words are the Overview tiles' own (`overview.tile.*`), kept here so the
-  // mail has its German: a second spelling of a number's name would be the
-  // second place the product speaks (ADR-001). Drafted (#759).
-  // Issue 1551 (SEO review R5.1): the published pages' own questions an AI
-  // answer linked lead, in the AI tab's words; the mention rate is named as
-  // the brand reputation it measures. Drafted (#759).
-  "mail.weekly.number.pageQuestions": ["Your pages linked by AI", { slots: {}, fixedBy: "issue 1582 (drafted)" }],
-  "mail.weekly.number.pageQuestions.of": [
-    "of {asked} pages asked, this week",
-    { slots: { asked: "text" }, fixedBy: "issue 1551 (drafted)" },
+  // The simple model (owner, 2026-10-19): the Monday mail's numbers are
+  // Overview's, read by the same readers — Pages, Google, AI, and in the
+  // first mail of a month the figures that move over months (M-b). The
+  // Google steps are named by Overview's own `draft.ladder.*` words.
+  // Drafted (#759).
+  "mail.weekly.pages.live": ["Pages live", { slots: {}, fixedBy: "issue 1616 (drafted)" }],
+  "mail.weekly.pages.planned": ["Pages planned this week", { slots: {}, fixedBy: "issue 1616 (drafted)" }],
+  "mail.weekly.google.of": [
+    "of {n} live pages",
+    { slots: { n: "text" }, fixedBy: "issue 1616 (drafted)" },
   ],
-  "mail.weekly.number.mentionRate": ["Brand reputation: AI mention rate", { slots: {}, fixedBy: "issue 1551 (drafted)" }],
-  "mail.weekly.number.mentionRate.band": [
-    "likely {low}–{high}%",
-    { slots: { low: "text", high: "text" }, fixedBy: "SPEC §8 2026-10-07 (drafted)" },
+  "mail.weekly.google.early": ["Too early to count places: a new page usually takes weeks to show in Google’s results.", { slots: {}, fixedBy: "issue 1616 (drafted)" }],
+  "mail.weekly.google.visits": ["Visits from Google this week", { slots: {}, fixedBy: "issue 1616 (drafted)" }],
+  "mail.weekly.google.climb": [
+    "Biggest climb: {search}, from place {from} to {to}.",
+    { slots: { search: "text", from: "text", to: "text" }, fixedBy: "issue 1616 (drafted)" },
   ],
-  // D58 (issue 1287): before two weeks of the current prompt set exist the
-  // mail states the count and its sample, never a rate.
-  "mail.weekly.number.mentionRate.early": [
-    "of {answers} answers",
-    { slots: { answers: "text" }, fixedBy: "SPEC §8 2026-10-07 (drafted)" },
+  "mail.weekly.google.climb.climbing": [
+    "Biggest climb: {search}, from place {from} to {to}. Still climbing, so we leave it alone.",
+    { slots: { search: "text", from: "text", to: "text" }, fixedBy: "issue 1616 (drafted)" },
   ],
-  "mail.weekly.number.pagesCited": ["Your pages linked", { slots: {}, fixedBy: "SPEC §8 2026-10-07 (drafted)" }],
-  "mail.weekly.number.pagesCited.window": [
-    "in AI answers, last {weeks} weeks",
-    { slots: { weeks: "text" }, fixedBy: "SPEC §8 2026-10-07 (drafted)" },
+  "mail.weekly.google.climb.none": ["No page moved up this week. Pages climb over weeks, not days.", { slots: {}, fixedBy: "issue 1616 (drafted)" }],
+  "mail.weekly.ai.linked": ["Pages linked by AI", { slots: {}, fixedBy: "issue 1616 (drafted)" }],
+  "mail.weekly.ai.linked.of": [
+    "of {of} pages whose own question we asked AI",
+    { slots: { of: "text" }, fixedBy: "issue 1616 (drafted)" },
   ],
-  "mail.weekly.number.top20": ["Your pages on Google’s first two pages", { slots: {}, fixedBy: "SPEC §8 2026-10-07 (drafted)" }],
-  "mail.weekly.number.aiVisits": ["AI visits to your blog", { slots: {}, fixedBy: "SPEC §8 2026-10-07 (drafted)" }],
-  "mail.weekly.number.aiVisits.atLeast": ["at least", { slots: {}, fixedBy: "SPEC §8 2026-10-07 (drafted)" }],
-  "mail.weekly.number.aiVisits.window": [
-    "pages read, last {days} days",
-    { slots: { days: "text" }, fixedBy: "SPEC §8 2026-10-07 (drafted)" },
+  "mail.weekly.ai.early": ["Too early: no page’s own question has been asked yet", { slots: {}, fixedBy: "issue 1616 (drafted)" }],
+  "mail.weekly.ai.reads": ["Times AI read your pages this week", { slots: {}, fixedBy: "issue 1616 (drafted)" }],
+  "mail.weekly.month": ["This month: checked once a month. These move over months, not weeks.", { slots: {}, fixedBy: "issue 1616 (drafted)" }],
+  "mail.weekly.month.score": ["Visibility Score", { slots: {}, fixedBy: "issue 1616 (drafted)" }],
+  "mail.weekly.month.score.of": ["of 100", { slots: {}, fixedBy: "issue 1616 (drafted)" }],
+  "mail.weekly.month.market": ["Your market, on the first page", { slots: {}, fixedBy: "issue 1616 (drafted)" }],
+  "mail.weekly.month.market.of": [
+    "of {of} searches",
+    { slots: { of: "text" }, fixedBy: "issue 1616 (drafted)" },
+  ],
+  "mail.weekly.month.reputation": ["Reputation", { slots: {}, fixedBy: "issue 1616 (drafted)" }],
+  "mail.weekly.month.reputation.of": [
+    "of {answers} AI answers mentioned you, last {weeks} weeks",
+    { slots: { answers: "text", weeks: "text" }, fixedBy: "issue 1616 (drafted)" },
   ],
   // A headline number nobody measured says so, in the figure's place.
   "mail.weekly.number.unmeasured": ["Not measured this week", { slots: {}, fixedBy: "SPEC §8 2026-10-07 (drafted)" }],

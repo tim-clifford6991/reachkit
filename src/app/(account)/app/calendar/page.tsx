@@ -33,7 +33,7 @@ import { FirstPageNotice } from "../_shell/OnboardingStatus";
 import { SupplyNotice } from "./SupplyNotice";
 import { PublishedList } from "./PublishedList";
 import { readPublishedFor } from "../_overview/content-provider";
-import { contentOf } from "../_overview/content";
+import { contentOf } from "@/lib/measure/published";
 import { readCategoryChoice } from "../_shell/remeasure";
 
 /** /app/calendar's own `<title>` (#945). Without it this screen announced

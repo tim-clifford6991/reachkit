@@ -81,7 +81,8 @@ import type { BandHandle } from "@/lib/measure/bands";
 import { unmeasured, measured, type Measured } from "@/lib/measure/measured";
 import type { RivalSize } from "@/lib/market/rivals/rival-size";
 import { trackedRivals } from "@/lib/market/rivals/tracked";
-import { readStoredReport, type StoredReport } from "@/lib/scan/report";
+import { readDeepReport } from "@/lib/scan/deep/report";
+import type { StoredReport } from "@/lib/scan/report";
 import { shownLimitingOf } from "@/lib/measure/verdict";
 import {
   nextDueOn,
@@ -92,7 +93,7 @@ import {
 } from "@/lib/scan/weekly";
 import type { AddressWaiting, AnswerEngine, LastLive, OverviewFacts } from "./model";
 import { CALENDAR_DAY_ZONE } from "./week";
-import { monthWeekOf, nextFirstMonday, type MonthReading, type MonthsFacts } from "./figures";
+import { monthFiguresOf, monthWeekOf, nextFirstMonday, type MonthsFacts } from "@/lib/measure/figures";
 import type { WeeklyPoint } from "./growth";
 import type { RivalFact, RivalFacts } from "./rivals";
 import { needsYouOf, waitsOnCustomer } from "@/lib/publish/record/needs-you";
@@ -186,18 +187,8 @@ const MS_PER_WEEK = 7 * 86_400_000;
 type DeepPass = { value: Measured<number>; on: Date; report: StoredReport };
 
 async function deepPassReading(siteId: string): Promise<DeepPass | undefined> {
-  const { data, error } = await client()
-    .from<{ id: string; report: unknown; created_at: string }>("scans")
-    .select("id, report, created_at")
-    .eq("site_id", siteId)
-    .eq("tier", "deep")
-    .not("report", "is", null)
-    .order("created_at", { ascending: false })
-    .limit(1);
-  const row = data?.[0];
-  if (error !== null || row === undefined || row.report === null) return undefined;
-  const report = readStoredReport(row.report);
-  return { value: report.ownRanked, on: new Date(row.created_at), report };
+  const deep = await readDeepReport(siteId);
+  return deep === undefined ? undefined : { value: deep.report.ownRanked, ...deep };
 }
 
 /**
@@ -719,9 +710,9 @@ async function weeklySeries(
   const score = scoreOf(latest, now);
   const scorePrevious = previousWeek === null ? undefined : scoreOf(previousWeek, now);
   const monthWeek = monthWeekOf(measured);
-  const scan = monthFiguresOf(deep?.report ?? null, now);
+  const scan = monthFiguresOf(deep?.report ?? null);
   const months: MonthsFacts = {
-    reading: monthWeek === null ? null : { week: monthWeek, ...monthFiguresOf(scans.get(monthWeek)?.report ?? null, now) },
+    reading: monthWeek === null ? null : { week: monthWeek, ...monthFiguresOf(scans.get(monthWeek)?.report ?? null) },
     scan: { score: scan.score, market: scan.market?.top10 ?? null },
     next: nextFirstMonday(weeks.at(-1) as string),
   };
@@ -799,16 +790,6 @@ function scoreOf(
     return unmeasured<{ score: number; band: BandHandle }>("not_attempted", at);
   }
   return reading;
-}
-
-/** The two months-scale figures one stored report holds: its score, and the
- *  presence card's count of the twelve on Google's first page. */
-function monthFiguresOf(report: StoredReport | null, at: Date): Omit<MonthReading, "week"> {
-  const score = scoreOf(report, at);
-  return {
-    score: score.kind === "unmeasured" ? null : score.value.score,
-    market: report?.presence == null ? null : { top10: report.presence.you.top10Count, of: report.presence.measuredSearches },
-  };
 }
 
 /** §6.6's sizing for one rival in one week, or nothing. The entries are

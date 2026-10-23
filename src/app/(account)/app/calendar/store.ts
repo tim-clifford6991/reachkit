@@ -56,6 +56,7 @@ import {
   pendingChanges,
 } from "@/lib/market/changes";
 import { readStop } from "../_shell/stop";
+import { plannedByDay } from "@/lib/opportunities/days";
 import { readPublishingFacts, type ScheduledPage } from "./drafts-read";
 import { weekStartFor } from "@/lib/scan/weekly/week";
 import type { PageStanding } from "./day-number";
@@ -423,7 +424,6 @@ export async function readCalendarFacts(a: {
 
   // Each committed row on the date it was committed for; a date no commit
   // covers stays empty and says why (issue 1559).
-  const committed = new Map(week.days.map((day) => [day.date, day.opportunity.id]));
   const dates = fillableDates({ month: a.month, today });
 
   const drafts: DraftOnDay[] = [];
@@ -454,10 +454,7 @@ export async function readCalendarFacts(a: {
   //     already live is worse than a month that says something of ours
   //     failed, which is what every date then resolves to
   //     (`drafts-read.ts`'s own note, and ADR-061 point 2).
-  for (const day of publishing.readable ? dates : []) {
-    if (publishing.pagesByDay.has(day)) continue;
-    const opportunityId = committed.get(day);
-    if (opportunityId === undefined) continue;
+  for (const [day, opportunityId] of plannedByDay(week.days, publishing.pagesByDay, publishing.readable ? dates : [])) {
     const choice = await explainChoice(opportunityId);
     if (choice === null) continue;
     drafts.push(plannedOn(day, choice, a.now));
