@@ -2,7 +2,7 @@
 // surface that states one: the free report's cards and the Overview's
 // "Needs you". One map, so the report and the dashboard cannot name the same
 // check two ways.
-import type { IssueSeverity, SiteCheck } from "@/lib/site-issues/types";
+import type { IssueDoer, IssueSeverity, SiteCheck } from "@/lib/site-issues/types";
 import type { CopyKey } from "./copy";
 import { SEVERITY } from "./bands";
 
@@ -18,6 +18,14 @@ export const SITE_CHECK_TITLE: Readonly<Record<SiteCheck, CopyKey>> = Object.fre
   phone_usability: "check.phone-usability.title",
   structured_data: "check.structured-data.title",
   ai_readers_blocked: "problem.blocked-readers.title",
+});
+
+/** Who fixes a check, in SPEC §9's words (the 2026-09-14 ruling), as the
+ *  report's cards and the mail's rows both state it. */
+export const SITE_CHECK_DOER: Readonly<Record<IssueDoer, CopyKey>> = Object.freeze({
+  free_fix: "check.doer.free-fix",
+  reachkit_writes: "check.doer.reachkit-writes",
+  reachkit_rewrites: "check.doer.reachkit-rewrites",
 });
 
 /** §9's three severity words, from the ordered `SEVERITY` keys. */

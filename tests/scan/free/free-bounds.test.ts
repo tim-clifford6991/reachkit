@@ -24,7 +24,7 @@
 // be asserted at once.
 import "../../generate/env";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { FREE_BOUNDS } from "@/lib/config/constants";
+import { CAPS, DAILY_PRODUCT_CEILING, FREE_BOUNDS } from "@/lib/config/constants";
 import type { CanonicalDomain } from "@/lib/scan/domain";
 import type { SpendAlert } from "@/lib/costs/daily";
 
@@ -127,6 +127,10 @@ afterEach(() => {
 });
 
 describe("one network's day (issue 885)", () => {
+  it("one network's free day cannot reach the product's base daily ceiling", () => {
+    expect(FREE_BOUNDS.scansPerIpPerDay * CAPS.FREE_C).toBeLessThan(DAILY_PRODUCT_CEILING.baseC);
+  });
+
   /** Spaced so the hourly bound never bites: one claim every 65 minutes is
    *  at most one inside any hour, and twenty of them span 20.6 hours,
    *  still inside the 24-hour window the day bound counts over. A fresh
