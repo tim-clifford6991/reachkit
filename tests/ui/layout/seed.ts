@@ -650,6 +650,9 @@ export const PUBLISHER_OFFERING = Object.freeze({
     "",
     "## What is included?",
     "",
+    // A lead-in sentence, so the sweep measures a checklist.
+    "Every plan includes:",
+    "",
     "- One owner for every step",
     "- A checklist the new hire can see",
     "- An export of everything you wrote",

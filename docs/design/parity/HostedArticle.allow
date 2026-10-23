@@ -52,9 +52,9 @@ What should you do once the water is off?	sample data
 Mop up standing water and move valuables. Take photos for your insurer before you clean up. Leave the valve closed until the leak is repaired.	sample data
 When should you call an emergency plumber?	sample data
 Call one straight away in any of these cases.	sample data
-Water is coming through a ceiling or a wall	sample data: the board's own steps and list; a step number is drawn by CSS, not text (tests/hosted/serving/visuals.test.tsx)
-The main valve will not close	sample data: the board's own steps and list; a step number is drawn by CSS, not text (tests/hosted/serving/visuals.test.tsx)
-You smell gas near the water heater: leave the house first, then call the gas utility.	sample data: the board's own steps and list; a step number is drawn by CSS, not text (tests/hosted/serving/visuals.test.tsx)
+Water is coming through a ceiling or a wall	sample data: the board's own checklist, a tick drawn by CSS (tests/hosted/serving/visuals.test.tsx)
+The main valve will not close	sample data: the board's own checklist, a tick drawn by CSS (tests/hosted/serving/visuals.test.tsx)
+You smell gas near the water heater: leave the house first, then call the gas utility.	sample data: the board's warning tint is sample emphasis; no stored field marks a warning (ux-designer 2026-10-23 on #1789, https://github.com/tim-clifford6991/reachkit/issues/1789#issuecomment-6373611928; owner sign-off pending)
 Sample	sample data: the board's own Sample tag
 We answer emergency calls	sample data
 . A call-out is	sample data

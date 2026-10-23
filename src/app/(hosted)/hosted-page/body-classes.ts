@@ -18,7 +18,16 @@ const STEPS =
   "*:relative *:rounded-box *:border *:border-base-300 *:bg-base-200 *:p-4 *:pl-14 *:[counter-increment:step] " +
   "*:before:absolute *:before:top-4 *:before:left-4 *:before:grid *:before:size-7 *:before:place-items-center " +
   "*:before:rounded-full *:before:bg-base-content *:before:text-sm *:before:font-bold *:before:text-base-100 " +
-  "*:before:content-[counter(step)_/_'']";
+  "*:before:content-[counter(step)_/_''] [&_a]:underline";
+
+/** A bulleted list after its lead-in sentence is a checklist: a tick drawn by
+ *  CSS and hidden from a screen reader. Inside `prose`, so a link keeps its underline. */
+const CHECKLIST =
+  "list-none ps-0 my-6 divide-y divide-base-300 " +
+  "*:my-0 *:flex *:items-start *:gap-3 *:ps-0 *:py-3 *:first:pt-0 " +
+  "*:before:grid *:before:size-6 *:before:flex-none *:before:place-items-center *:before:rounded-full " +
+  "*:before:bg-base-200 *:before:text-sm *:before:font-bold *:before:text-base-content " +
+  "*:before:content-['✓'_/_'']";
 
 /**
  * What `prose` does not decide, and this page does (issue 929).
@@ -60,6 +69,7 @@ export const HOSTED_BODY_CLASSES: HtmlClasses = Object.freeze({
   // being cut, which the proof measures directly.
   table: "min-w-[36rem]",
   ol: STEPS,
+  checklist: CHECKLIST,
   pre: "bg-base-200 rounded-box overflow-x-auto p-3",
   mark: MARK_CLASS,
   answer: `not-prose bg-base-200 rounded-box my-6 p-5 ${BOX_LISTS}`,

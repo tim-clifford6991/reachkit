@@ -85,6 +85,12 @@ describe("the hosted index lists every live guide by topic", () => {
     const section = allGuides(render(pages));
     const topics = [...section.querySelectorAll("h3")].map((h) => `${h.textContent} ${h.nextElementSibling?.textContent}`);
     expect(topics).toEqual(["Water heater repair in Austin 3 guides", "Toilet keeps running 2 guides"]);
+    // One decorative book glyph per topic card, none on the A–Z list.
+    for (const card of section.querySelectorAll(".card")) {
+      expect(card.querySelectorAll("svg")).toHaveLength(1);
+      expect(card.querySelectorAll("svg[aria-hidden='true']")).toHaveLength(1);
+    }
+    expect(section.querySelectorAll(":scope > ul svg")).toHaveLength(0);
     // A topic only one page has is no topic: it joins the A–Z rest.
     const rest = [...section.querySelectorAll(":scope > ul a")].map((a) => a.textContent);
     expect(rest).toEqual(["How to find a slab leak", "Low water pressure in the whole house"]);

@@ -131,6 +131,16 @@ describe("BP-044 decision 3 — one renderer, so the copied HTML and the publish
     );
   });
 
+  it("a list after its lead-in sentence takes `checklist` only where a map has one, else `ul`'s bytes", () => {
+    const body = "Call one in any of these cases.\n\n- A ceiling leaks\n- The valve sticks";
+    expect(parseMarkdown(body)[1]).toMatchObject({ kind: "list", leadIn: true });
+    expect(renderMarkdownHtml(body)).toBe(
+      '<p>Call one in any of these cases.</p>\n<ul role="list"><li>A ceiling leaks</li><li>The valve sticks</li></ul>'
+    );
+    expect(toHtml(parseMarkdown(body), { ul: "u" })).toContain('<ul role="list" class="u">');
+    expect(toHtml(parseMarkdown(body), { ul: "u", checklist: "c" })).toContain('<ul role="list" class="c">');
+  });
+
   it("the class map's own values are escaped where they land", () => {
     expect(toHtml(parseMarkdown("a"), { p: 'x"y' })).toBe('<p class="x&quot;y">a</p>');
   });

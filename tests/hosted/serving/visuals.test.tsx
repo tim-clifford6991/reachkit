@@ -176,6 +176,44 @@ describe("steps and lists are styles of existing blocks, not pictures", () => {
   });
 });
 
+describe("a bulleted list after its lead-in sentence is a checklist", () => {
+  const checklist = HOSTED_BODY_CLASSES.checklist!;
+  const listAfter = (doc: Document, item: string): HTMLUListElement =>
+    [...doc.querySelectorAll<HTMLUListElement>("article ul")].find((ul) => ul.textContent!.includes(item))!;
+
+  it("a lead-in paragraph and a list: the checklist, a list role, and the tick only in CSS", () => {
+    const list = listAfter(render(hosted(QA)), "Water is coming through a ceiling or a wall");
+    expect(list.getAttribute("class")).toBe(checklist);
+    expect(list.getAttribute("role")).toBe("list");
+    expect(list.textContent).not.toContain("✓");
+  });
+
+  it("a list straight after a heading, and a list in the takeaways, stay plain bullets", () => {
+    const body = ["## What is included?", "", "- Templates per role", "- An export"].join("\n");
+    expect(listAfter(render(hosted(body)), "Templates per role").getAttribute("class")).not.toBe(checklist);
+    expect(listAfter(render(hosted(QA)), "Most homes have one main valve").getAttribute("class")).not.toBe(checklist);
+  });
+
+  it("a German page follows the same rule", () => {
+    const body = ["## Wann den Notdienst rufen?", "", "Sofort in diesen Fällen:", "", "- Wasser kommt durch die Decke", "", "## Was ist enthalten?", "", "- Vorlagen je Rolle"].join("\n");
+    const doc = render(hosted(body), "de");
+    expect(listAfter(doc, "Wasser kommt durch die Decke").getAttribute("class")).toBe(checklist);
+    expect(listAfter(doc, "Vorlagen je Rolle").getAttribute("class")).not.toBe(checklist);
+  });
+
+  it("a lead-in list in a body part after the business block keeps its checklist", () => {
+    const body = [":::answer", "Close the main valve first.", ":::", "", "Call a plumber if:", "", "- The valve will not close"].join("\n");
+    const business = { ...BUSINESS, mainSite: { home: "https://publisher.test/", organization: { id: null, name: null, logo: null }, sameAs: [], aboutPages: [], links: [], actions: [], phone: "(512) 555-0142" } };
+    const html = readingIn(() =>
+      renderToStaticMarkup(
+        <HostedArticle resolved={{ page: hosted(body, { offering: true }), canonical: "https://content.publisher.test/a-page", others: [], business }} />
+      )
+    );
+    const doc = new DOMParser().parseFromString(html, "text/html");
+    expect(listAfter(doc, "The valve will not close").getAttribute("class")).toBe(checklist);
+  });
+});
+
 describe("a quantity is drawn to scale from stated figures, or not drawn", () => {
   it("one figure renders as text", () => {
     const doc = render(hosted("Call-outs are [$149](https://publisher.test/emergency).", { offering: true }));

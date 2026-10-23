@@ -21,7 +21,7 @@ import type React from "react";
 import { copy } from "@/lib/presentation/copy/reader";
 import type { HostedPage } from "@/lib/publish/destinations/hosted";
 import { Surface } from "@/ui/layout";
-import { actionsOf, CompactAction, HostedFooter, HostedHeader, type HostedBusiness } from "./chrome";
+import { actionsOf, CompactAction, Glyph, HostedFooter, HostedHeader, type HostedBusiness } from "./chrome";
 import { indexHref, writeDate } from "./present";
 import { blogSchema } from "./seo";
 
@@ -127,8 +127,11 @@ function AllGuides({ pages }: { pages: readonly HostedPage[] }): React.JSX.Eleme
           {topics.map(({ lead, rest }) => (
             <section key={lead.publicationId} className="card card-border bg-base-100">
               <div className="card-body gap-2 p-5">
-                <div className="flex flex-wrap items-baseline gap-x-2">
-                  <h3 className="text-base font-bold tracking-tight">
+                <div className="flex items-center gap-3">
+                  <span className="rounded-field bg-base-200 text-base-content grid size-8 flex-none place-items-center">
+                    <Glyph name="book-open" />
+                  </span>
+                  <h3 className="min-w-0 text-base font-bold tracking-tight">
                     <a href={`/${lead.slug}`} className="link link-hover text-base-content">
                       {lead.title}
                     </a>
