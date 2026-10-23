@@ -124,6 +124,54 @@ export const MEASURES: readonly Measure[] = Object.freeze(
       source: "src/lib/market/rivals/presence.ts#buildPresenceCard",
       cadence: "Each free scan.",
     },
+    {
+      id: "overview-ai-linked",
+      shown: { on: "tile", key: "overview-tile-ai-linked" },
+      definition:
+        "x of N: of the live pages whose own question was asked, how many the AI answer to that question linked, read off each page's stored weekly reading. Before any page's question is asked there is no figure.",
+      source: "src/app/(account)/app/_overview/figures.ts#aiPagesOf",
+      cadence: "Weekly, each Monday's pass.",
+    },
+    {
+      id: "overview-ai-reads",
+      shown: { on: "tile", key: "overview-tile-ai-reads" },
+      definition:
+        "Times an answer engine fetched a hosted page to answer someone over the last {BLOG_READS_WINDOW_D} days, with one bar per week kept; training crawlers and search indexers are not counted. Only on a hosted blog with a page live; anywhere else there is no figure.",
+      source: "src/lib/publish/reads/model.ts#assembleBlogReads",
+      cadence: "As the pages are read.",
+    },
+    {
+      id: "overview-best-mover",
+      shown: { on: "tile", key: "overview-tile-mover" },
+      definition:
+        "The live page whose place on its own search rose most since the reading before, of those above where they were first seen: its place, and the places gained since it was first seen. A week where none rose says so; with no place read there is no figure.",
+      source: "src/app/(account)/app/_overview/figures.ts#bestMoverOf",
+      cadence: "Weekly, each Monday's pass.",
+    },
+    {
+      id: "overview-score-month",
+      shown: { on: "tile", key: "overview-tile-score" },
+      definition:
+        "The Visibility Score the weekly pass of the month's first Monday stored, beside the score at the customer's own scan. Before the first such pass there is no figure, and the day it is taken is named.",
+      source: "src/app/(account)/app/_overview/store.ts#monthFiguresOf",
+      cadence: "Monthly, on the first Monday.",
+    },
+    {
+      id: "overview-market-month",
+      shown: { on: "tile", key: "overview-tile-market" },
+      definition:
+        "x of N: of the market's biggest searches the month's first Monday pass measured, how many show the site on Google's first page, beside the count at the customer's own scan.",
+      source: "src/app/(account)/app/_overview/store.ts#monthFiguresOf",
+      cadence: "Monthly, on the first Monday.",
+    },
+    {
+      id: "overview-reputation",
+      shown: { on: "tile", key: "overview-tile-reputation" },
+      definition:
+        "x of N: of the unbranded tracked prompts' AI answers read over the {ANSWER_RATE_WEEKS} weeks to the month's first Monday, how many named or linked the site; N is every such answer read, never the prompts. The range beside it is shown once {MENTION_RATE_MIN_WEEKS} weeks of the set exist.",
+      source: "src/lib/market/prompts/rate.ts#measurePrompts",
+      cadence: "Monthly, on the first Monday.",
+    },
   ]
   // measures:end
 );

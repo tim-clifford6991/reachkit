@@ -24,7 +24,7 @@
 // **Nothing here is a rank or a sentiment.** §11 (2026-09-20): "an 'AI rank
 // position' or sentiment measure" is not in the MVP. There is no member
 // below one could be rendered from, which is the only way that stays true.
-import { AI_BLOG_ENGINES } from "@/lib/config/constants";
+import { AI_BLOG_ENGINES, BLOG_READS_RETENTION_W } from "@/lib/config/constants";
 import { measured, measuredZero, unmeasured, type Measured } from "@/lib/measure/measured";
 import type { BlogEngine } from "@/lib/publish/reads/classify";
 import type { BlogReadRow } from "@/lib/publish/reads/store";
@@ -69,6 +69,10 @@ export interface BlogReadsModel {
   previousFetches: number | null;
   /** The window the figures are read over, in days. */
   windowDays: number;
+  /** Answer fetches per seven days, oldest first, each from its first day,
+   *  over the weeks the counts are kept; the weeks before the first fetch are
+   *  left out, never zeroes. */
+  weekly: readonly { start: string; fetches: number }[];
   /** Whether the card is drawn at all. */
   show: boolean;
 }
@@ -132,6 +136,7 @@ export function assembleBlogReads(
       byEngine: engineCounts([]),
       previousFetches: null,
       windowDays,
+      weekly: [],
       show,
     };
   }
@@ -157,6 +162,19 @@ export function assembleBlogReads(
     byEngine: engineCounts(current),
     previousFetches: earlier.length === 0 ? null : totalOf(earlier, "answer_fetch"),
     windowDays,
+    weekly: weeklyFetches(rows, at),
     show,
   };
+}
+
+/** Answer fetches per seven days ending today, over the weeks kept. */
+function weeklyFetches(rows: readonly BlogReadRow[], at: Date): { start: string; fetches: number }[] {
+  const weeks: { start: string; fetches: number }[] = [];
+  for (let back = BLOG_READS_RETENTION_W - 1; back >= 0; back -= 1) {
+    const end = windowStartDay(at, back * 7);
+    const start = windowStartDay(at, (back + 1) * 7);
+    weeks.push({ start, fetches: totalOf(rows.filter((row) => row.day >= start && (back === 0 || row.day < end)), "answer_fetch") });
+  }
+  const firstRead = weeks.findIndex((week) => week.fetches > 0);
+  return firstRead === -1 ? [] : weeks.slice(firstRead);
 }
