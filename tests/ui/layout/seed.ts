@@ -52,6 +52,7 @@ import type { CanonicalDomain } from "@/lib/scan/domain";
 import type { MainSite } from "@/lib/site-profile/main-site-row";
 import { assembleReport } from "@/lib/scan/store";
 import { previousWeekStart, weekStartFor } from "@/lib/scan/weekly";
+import { DEFAULT_HOSTED_LABEL } from "@/lib/publish/destinations/hosted/label";
 import type { AppAccount } from "@/app/(account)/app/_session/account";
 import type { AuthStub } from "./auth-stub";
 import {
@@ -741,6 +742,12 @@ export function seedSetupAccount(): void {
     `insert into sites (id, user_id, domain, timezone, setup_stage, setup_stage_times) values ` +
       `('${siteId}', '${userId}', '${domain}', '${timeZone}', '${SETUP_STAGE}', ` +
       `'${JSON.stringify(SETUP_STAGE_TIMES)}'::jsonb);`
+  );
+  // A hosted address still waiting for its record, so `/setup/connect` draws its screen
+  // rather than sending this founder on.
+  sql(
+    `insert into destinations (site_id, kind, config, health, health_reason, hostname, hostname_state) values ` +
+      `('${siteId}', 'hosted', null, 'expired', 'dns_unset', '${DEFAULT_HOSTED_LABEL}.${domain}', 'pending_dns');`
   );
 
   // What the crawl read of the site, so Check draws its pages-read figure and each section's reading.

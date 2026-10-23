@@ -9,7 +9,7 @@ import { ANSWERS, COMPARISONS, TEARDOWNS } from "@/app/(public)/_library";
 const PAGES = [
   ...COMPARISONS.map((c) => ({ kind: "compare", ...c, headings: [c.theirs.heading, ...(c.heading === undefined ? [] : [c.heading])] })),
   ...TEARDOWNS.map((t) => ({ kind: "teardowns", ...t, headings: t.sections.map((s) => s.heading) })),
-  ...ANSWERS.map((a) => ({ kind: "answers", ...a, headings: a.sections.map((s) => s.heading) })),
+  ...ANSWERS.map((a) => ({ kind: "answers", ...a, headings: [a.tiers.title, ...a.sections.map((s) => s.heading), a.fits.title] })),
 ];
 
 /** Words the product no longer says (SPEC §0, 2026-10-15; §7, 2026-09-20). */
