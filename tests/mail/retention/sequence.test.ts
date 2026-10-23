@@ -26,16 +26,17 @@ vi.mock("@/lib/presentation/copy", async (importOriginal) => {
 /** Stands in for the vendor seam: every send that reaches it is recorded,
  *  and a test can make the next answer a refusal. `real` delegates to the
  *  real seam, for the unwritten-copy row. */
-const sent: { kind: string; to: string }[] = [];
+const sent: { kind: string; to: string; text: string }[] = [];
 let answer: { sent: true; id: string } | { sent: false; reason: "suppressed" } = { sent: true, id: "v" };
 let real = false;
 vi.mock("@/lib/mail/send", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/lib/mail/send")>();
+  const { composeMailParts } = await import("@/lib/mail/shell/compose");
   return {
     ...actual,
     sendEmail: async (m: Parameters<typeof actual.sendEmail>[0]) => {
       if (real) return actual.sendEmail(m);
-      if (answer.sent) sent.push({ kind: m.kind, to: m.to });
+      if (answer.sent) sent.push({ kind: m.kind, to: m.to, text: composeMailParts(m).text });
       return answer;
     },
   };
@@ -51,6 +52,8 @@ const NOW = new Date("2026-10-01T12:00:00Z");
 const ago = (days: number) => new Date(NOW.getTime() - days * DAY);
 
 let accounts: Map<string, RetentionAccount>;
+/** The `refunds` rows: the account and when its refund was made. */
+let refunds: { userId: string; at: Date }[];
 
 function account(over: Partial<RetentionAccount> = {}): RetentionAccount {
   return {
@@ -65,6 +68,7 @@ const memory: RetentionStore = {
   cancelledAccounts: async () => [...accounts.values()],
   account: async (id) => accounts.get(id) ?? null,
   siteOf: async () => ({ siteId: "s1", timezone: "UTC" }),
+  refundedSince: async (id, since) => refunds.some((r) => r.userId === id && r.at.getTime() >= since.getTime()),
   stampAccount: async (id, column, at) => {
     const key = { payment_failed_mailed_at: "paymentFailedMailedAt",
       cancellation_mailed_at: "cancellationMailedAt", winback_sent_at: "winbackSentAt" }[column];
@@ -78,6 +82,7 @@ beforeEach(() => {
   answer = { sent: true, id: "v" };
   real = false;
   accounts = new Map([["u1", account()]]);
+  refunds = [];
   retention.setRetentionStore(memory);
   vi.spyOn(console, "log").mockImplementation(() => {});
   vi.spyOn(console, "warn").mockImplementation(() => {});
@@ -113,6 +118,40 @@ describe("payment failed, cancelled, access +30 d — stopped when resolved", ()
     expect((await retention.sendWinback("u1", NOW)).sent).toBe(true);
     expect((await retention.sendWinback("u1", new Date(NOW.getTime() + 60 * DAY))).sent).toBe(false);
     expect(sent.map((s) => s.kind)).toEqual(["win-back"]);
+  });
+});
+
+describe("the cancellation mail says whether the first payment was refunded", () => {
+  const cancelledAt = ago(0.01);
+
+  it("a cancel refunded in its first 14 days says the refund was made and that ReachKit stopped", async () => {
+    accounts.set("u1", account({ cancelledAt, paidThrough: NOW, planStatus: "canceled" }));
+    refunds = [{ userId: "u1", at: NOW }];
+    expect((await retention.sendCancellation("u1", NOW)).sent).toBe(true);
+    expect(sent[0]!.text).toContain("Your first payment was refunded in full");
+    expect(sent[0]!.text).toContain("ReachKit stopped on");
+    expect(sent[0]!.text).not.toContain("You keep full access");
+  });
+
+  it("a cancel with no refund keeps the line that access runs to the period end", async () => {
+    accounts.set("u1", account({ cancelledAt }));
+    expect((await retention.sendCancellation("u1", NOW)).sent).toBe(true);
+    expect(sent[0]!.text).toContain("You keep full access until");
+    expect(sent[0]!.text).not.toContain("refunded");
+  });
+
+  it("a refund from an earlier cancel, before a resume, is not claimed again", async () => {
+    accounts.set("u1", account({ cancelledAt }));
+    refunds = [{ userId: "u1", at: ago(20) }];
+    expect((await retention.sendCancellation("u1", NOW)).sent).toBe(true);
+    expect(sent[0]!.text).toContain("You keep full access until");
+  });
+
+  it("a refund made to another account sharing the web address is not this account's", async () => {
+    accounts.set("u1", account({ cancelledAt }));
+    refunds = [{ userId: "u2", at: NOW }];
+    expect((await retention.sendCancellation("u1", NOW)).sent).toBe(true);
+    expect(sent[0]!.text).not.toContain("refunded");
   });
 });
 
