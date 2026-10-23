@@ -564,7 +564,8 @@ export function seedHostedPublisher(): void {
   // The business as its blog draws it (issue 1140): a name, a kept logo and
   // one line, so the header, the about card and the index are measured with
   // the picture and the sentence rather than the first-letter fallback. Its
-  // main site links a book and a quote page, so the card draws both links.
+  // main site states a phone and links a book and a quote page, so the
+  // header draws the call, and the full block the call and both links.
   const mainSite: MainSite = {
     home: `https://${PUBLISHER_ACCOUNT.domain}/`,
     organization: { id: null, name: null, logo: null },
@@ -575,6 +576,8 @@ export function seedHostedPublisher(): void {
       { kind: "book", url: `https://${PUBLISHER_ACCOUNT.domain}/book` },
       { kind: "quote", url: `https://${PUBLISHER_ACCOUNT.domain}/get-a-quote` },
     ],
+    // The boards' fictional 555 number.
+    phone: "(512) 555-0142",
   };
   sql(
     `insert into site_profiles (domain, site_name, claims, logo_image, logo_type, main_site) values ` +
@@ -621,6 +624,9 @@ export function seedHostedPublisher(): void {
       `('${draftId}', '${PUBLISHER_ACCOUNT.siteId}', 'hosted', 'autopilot', ` +
       `'https://content.${PUBLISHER_ACCOUNT.domain}/${PUBLISHER_OFFERING.slug}', '2026-08-19T09:00:00.000Z', 'delivered');`
   );
+  // Every page's search is the business's own offering, so each draws the
+  // compact block after its takeaways or short answer.
+  sql(`update opportunities set business_fit = 3 where site_id = '${PUBLISHER_ACCOUNT.siteId}';`);
 }
 
 /** A SaaS business's offering page, in the offering template's sections. */

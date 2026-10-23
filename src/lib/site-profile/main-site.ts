@@ -1,7 +1,7 @@
 // SPEC §7 (2026-10-18, issue 1511) — what the scan read of the main site
 // that ties the content host to it as one business.
 //
-// Six facts, all off documents the scan already fetched, so 0¢:
+// Seven facts, all off documents the scan already fetched, so 0¢:
 //
 //   · **the canonical home** — the home page as it was served, after its
 //     redirects, at the address its own `<link rel="canonical">` names where
@@ -20,6 +20,9 @@
 //   · **its book and quote pages** — the first link in the home's own header
 //     or nav that names one, on the business's own site, so a hosted page
 //     links a page the business already offers and never one we guessed;
+//   · **its phone number** — the `telephone` its own JSON-LD states, else
+//     its home's first `tel:` link, as written there, so a hosted page shows
+//     and marks up the number the business shows;
 //   · **whether the main site links the content host** — counted only on the
 //     crawled pages that are not ReachKit's (`known-content/ours.ts`). A link
 //     whose every anchor carries `nofollow`, `sponsored` or `ugc` is "linked,
@@ -30,7 +33,7 @@ import { parse } from "node-html-parser";
 import { registrableDomain } from "@/lib/market/rivals/domains";
 import { isOurPage, type OurPages } from "@/lib/known-content/ours";
 import { pageHeadingPhrases, pagePathWords } from "@/lib/locale/language";
-import type { MainSite, MainSiteActionKind, MainSiteLink } from "./main-site-row";
+import { phoneOf, type MainSite, type MainSiteActionKind, type MainSiteLink } from "./main-site-row";
 import { httpUrl, profilesOn } from "./profiles";
 import { SITE_PROFILE } from "@/lib/config/constants";
 
@@ -201,6 +204,23 @@ function actionsOf(html: string, home: string, domain: string): MainSite["action
   return ACTION_WORDS.flatMap((rule) => out.filter((action) => action.kind === rule.kind));
 }
 
+/** The number the home states: its own Organization's `telephone`, else
+ *  any node's (a `Plumber` is no Organization type here), else the first
+ *  `tel:` link's. */
+function phoneOn(html: string, organization: Record<string, unknown> | null): string | null {
+  const nodes = organization === null ? schemaNodes(html) : [organization, ...schemaNodes(html)];
+  for (const node of nodes) {
+    const phone = phoneOf(node.telephone);
+    if (phone !== null) return phone;
+  }
+  const link = parse(html, { comment: false }).querySelector('a[href^="tel:"]')?.getAttribute("href") ?? "";
+  try {
+    return phoneOf(decodeURIComponent(link.slice("tel:".length)));
+  } catch {
+    return null;
+  }
+}
+
 /** What the scan read of the main site. `ours` is `null` where which pages
  *  are ReachKit's could not be read: then no link is reported at all. */
 export function readMainSite(a: {
@@ -229,5 +249,6 @@ export function readMainSite(a: {
       .slice(0, SITE_PROFILE.ABOUT_PAGES),
     links: ours === null ? [] : [...ours.hosts].sort().map((host) => ({ host, state: linkOf(a.pages, ours, host) })),
     actions: html === "" ? [] : actionsOf(html, home, a.domain),
+    phone: html === "" ? null : phoneOn(html, organization.node),
   };
 }

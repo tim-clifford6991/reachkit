@@ -34,29 +34,23 @@ import { invalidateHosted } from "./cache";
 import { addressesOwnPage } from "./own-page";
 import { livePagesForSite, siteForDraft } from "./store";
 
-export { hostedDnsRecord, hostedHostFor, liveUrlFor, liveUrlOnHost, previewHostFor } from "./address";
+export { hostedDnsRecord, hostedHostFor, liveUrlFor, previewHostFor } from "./address";
 export type { DnsPending, DnsRecord } from "./address";
 export { invalidateHosted, taggedForHosted, tags } from "./cache";
-export { DEFAULT_HOSTED_LABEL, checkLabel, hostFor, normaliseLabel } from "./label";
-export { addressesOwnPage } from "./own-page";
 export type { HostedOwnPages } from "./own-page";
 export type { LabelCheck, LabelRefusal } from "./label";
 export { slugDescribesTitle } from "./moved";
 export {
   hostedAddressNow,
-  hostedAddressesNow,
-  hostedHostOfSite,
   hostedIdentity,
   hostedSiteForDomain,
   hostedOwnPagesOfSite,
-  storedAddressesNow,
   hostedSiteForHostname,
   livePageBySlug,
   livePagesForSite,
   readDescription,
   readFaq,
   retiredSlugsForSite,
-  siteForDraft,
   hostedAddress,
 } from "./store";
 export type {

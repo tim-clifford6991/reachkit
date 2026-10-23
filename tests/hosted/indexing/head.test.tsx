@@ -655,6 +655,16 @@ describe("issue 1511 — the content host and the main site are one business", (
     expect(publisher).not.toHaveProperty("logo");
   });
 
+  it("the Organization states the number the header shows, written the same, and none where none is shown", async () => {
+    state.mainSite = { ...DECLARED, aboutPages: [], actions: [], phone: "+49 211 123456" };
+    const html = await render();
+    const shown = new DOMParser().parseFromString(html, "text/html").querySelector('header a[href^="tel:"]')?.textContent;
+    expect(shown).toBe("+49 211 123456");
+    expect((schemaOf(html, "BlogPosting").publisher as Record<string, unknown>).telephone).toBe(shown);
+    state.mainSite = DECLARED;
+    expect(await render()).not.toContain("telephone");
+  });
+
   it("the header button, the about card, breadcrumb item 1 and a plain footer link all go to that home", async () => {
     state.mainSite = DECLARED;
     const html = await render();

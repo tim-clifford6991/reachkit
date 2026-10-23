@@ -33,7 +33,7 @@ beforeEach(() => db.reset());
 describe("D53 — the hosted blog's line is written from the business", () => {
   it("is the job the market was concluded with, not the founder's setup answer", async () => {
     seed({ job: JOB, reworded: null });
-    expect(await hostedIdentity(SITE)).toEqual({ name: "ReachKit", logoType: null, line: JOB });
+    expect(await hostedIdentity(SITE)).toEqual({ name: "ReachKit", logoType: null, line: JOB, offer: { category: "AI SEO", place: null } });
   });
 
   it("is the founder's own wording of what the business does where they reworded it", async () => {

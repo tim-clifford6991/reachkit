@@ -59,10 +59,3 @@ export interface TargetFacts extends PageTarget {
    *  says in words. */
   youStand: Measured<number> | null;
 }
-
-/** A `PageTarget` as the shared projection, for a screen that reads the
- *  target alone. Explicit nulls rather than optional members: the two
- *  absences are stated, not implied. */
-export function targetFactsOf(target: PageTarget): TargetFacts {
-  return { ...target, bestRival: null, youStand: null };
-}

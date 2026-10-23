@@ -76,24 +76,19 @@ import { DraftDateTaken, PageStopped, generateStore, type RestartedDraft, type S
 
 export type { GroundedFact, HardRule, RuleFailure, ComparisonSet, SiteRuleInputs } from "./rules/types";
 
-export { HARD_RULES } from "./rules/types";
-export { runHardRules, type BatteryOutcome } from "./rules";
-export { similarity } from "./rules/similarity";
-export { renderOf } from "./rules/text";
+export { type BatteryOutcome } from "./rules";
 
-export { claimCheck, type ClaimVerdict } from "./claims/check";
-export { listHash } from "./claims/hash";
+export { type ClaimVerdict } from "./claims/check";
 export { claimRecheckOutstanding, outstandingMatch } from "./claims/outstanding";
 export { sweepOutstandingRechecks, type SweepOutcome } from "./claims/sweep";
-export { recoveryOutcome, type Recovery } from "./claims/recovery";
+export { type Recovery } from "./claims/recovery";
 
-export { generateDraft, type GenerateOutcome } from "./pipeline";
-export { rejectionCause, type NearDuplicateCause } from "./pipeline/rejection";
+export { type GenerateOutcome } from "./pipeline";
+export { type NearDuplicateCause } from "./pipeline/rejection";
 export { type PipelineStep } from "./pipeline";
-export { type ContextPack, readPack } from "./pipeline/pack";
-export { TEMPLATES, type Template } from "./templates";
-export { DraftDateTaken, PageStopped, setGenerateStore, type GenerateStore, type RestartedDraft } from "./store";
-export { withDraftCost } from "./cost";
+export { type ContextPack } from "./pipeline/pack";
+export { type Template } from "./templates";
+export { PageStopped, setGenerateStore, type GenerateStore, type RestartedDraft } from "./store";
 
 /** Why a day has no page. Every arm is a fact, and none of them is a
  *  sentence: the calendar's own module owns the words. */

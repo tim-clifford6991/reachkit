@@ -162,12 +162,6 @@ export function localSearch(search: string, place: Place): string {
   return tidy(`${service} ${name}`);
 }
 
-/** The words a search may hold because they name where the business is:
- *  the place and its region. They are no part of what it sells. */
-export function placeWords(place: Place): string[] {
-  return [place.name, ...(place.region === undefined ? [] : [place.region])];
-}
-
 // ── What a home page states of where the business is ───────────────────────
 
 /** What a page's structured data says of the business's address: the one
