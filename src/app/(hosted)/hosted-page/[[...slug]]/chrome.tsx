@@ -97,7 +97,7 @@ export function actionsOf(business: HostedBusiness): { primary: Action | null; q
 
 function PrimaryButton({ action, text, width }: { action: Action; text: string; width: string }): React.JSX.Element {
   return (
-    <a href={action.href} className={`btn btn-sm btn-neutral min-w-0 ${width}`}>
+    <a href={action.href} className={`btn btn-sm min-w-0 ${width}`}>
       <action.Icon size={16} strokeWidth={1.75} aria-hidden className="flex-none" />
       <span className="truncate">{text}</span>
     </a>
