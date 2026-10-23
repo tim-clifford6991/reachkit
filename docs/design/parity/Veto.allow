@@ -3,3 +3,24 @@ help.harborplumbing.com	sample data
 Every answer this page can give	#1714: the heading over the board's states, an annotation
 Planned: the Monday mail's link to a page not written yet. It names the day, and Stop works the same way.	#1714: a designer's caption over the planned arm
 Could not stop: these two say what happened and what to do. Neither says Stopped.	#1714: a designer's caption over the two could-not-stop arms
+Goes live Mon 19 Oct, 4:00 PM	sample data: the site's own publish moment, in its zone
+Why ReachKit chose it: it’s your core service, and AI answers mention a competitor for it.	sample data: the tail is the stored plan_reason's line (#1676)
+Mail sent 8:00 AM Goes live 4:00 PM	sample data: the told record's send time and the publish moment
+Goes live on Monday	sample data: the publish weekday
+A burst pipe or a backed-up drain does most of its damage in the first hour. Here’s what to do before the plumber arrives, starting with the main shut-off valve.	sample data: the page's own opening
+Written for people who search “emergency plumber austin”, about 1,300 times a month.	sample data: the page's search and volume
+Your two choices, and what each does	SPEC §0 six-word title; owner R12 B7 ships "What each choice does"
+It goes live Mon 19 Oct, 4:00 PM, on its own.	sample data: the publish moment
+Mon Stopped	sample data: the stopped page's day in its week
+Tue Goes ahead	sample data: a day of the stopped page's week
+Wed Goes ahead	sample data: a day of the stopped page's week
+Thu Goes ahead	sample data: a day of the stopped page's week
+Fri Goes ahead	sample data: a day of the stopped page's week
+Sat Goes ahead	sample data: a day of the stopped page's week
+Sun Goes ahead	sample data: a day of the stopped page's week
+The button is disabled and spins. It never says Stopped until the page is stopped.	#1714: a designer's note on the busy state, an annotation
+Still goes live Mon 19 Oct, 4:00 PM, unless stopped.	sample data: the publish moment
+Planned for Wed 21 Oct	sample data: the planned day
+Search slab leak repair cost austin	sample data: the planned page's search
+Mail sent Went live 4:00 PM now	#144: an expired link names no draft, so the closed arm states no time
+The time to stop this page from your mail has passed, so it may be live now. Sign in to see it. A live page can be taken down from its page in Plan.	E7, owner R12 B8: Stop is the word, so it ships "can be stopped"
