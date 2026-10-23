@@ -2,13 +2,63 @@
 // customer's header, their about card and their footer line.
 //
 // Shared by the article and the index so the two cannot draw the business
-// two ways. daisyUI classes and lucide only, no client JavaScript, and no
+// two ways. daisyUI classes and lucide's drawings only, no client JavaScript, and no
 // primary colour: the product's colour would be our branding on their page.
 import type React from "react";
-import { ArrowUpRight, CalendarCheck, ClipboardCheck, Rss } from "lucide-react";
+import { createElement } from "react";
 import { copy } from "@/lib/presentation/copy/reader";
 import type { HostedIdentity } from "@/lib/publish/destinations/hosted";
 import { FEED_PATH, QUIET_LINE } from "./present";
+
+/** lucide's own drawings, inlined as its `[tag, attributes]` pairs: its `Icon`
+ *  is a client module, and the 410 route renders this chrome outside React
+ *  Server Components, where calling one throws. */
+type GlyphNode = readonly (readonly ["path" | "rect" | "circle", Record<string, string>])[];
+const GLYPHS = {
+  "arrow-up-right": [
+    ["path", { d: "M7 7h10v10" }],
+    ["path", { d: "M7 17 17 7" }],
+  ],
+  "calendar-check": [
+    ["path", { d: "M8 2v3" }],
+    ["path", { d: "M16 2v3" }],
+    ["rect", { x: "3", y: "3", width: "18", height: "18", rx: "2" }],
+    ["path", { d: "M3 9h18" }],
+    ["path", { d: "m9 15 2 2 4-4" }],
+  ],
+  "clipboard-check": [
+    ["rect", { width: "8", height: "4", x: "8", y: "2", rx: "1", ry: "1" }],
+    ["path", { d: "M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" }],
+    ["path", { d: "m9 14 2 2 4-4" }],
+  ],
+  rss: [
+    ["path", { d: "M4 11a9 9 0 0 1 9 9" }],
+    ["path", { d: "M4 4a16 16 0 0 1 16 16" }],
+    ["circle", { cx: "5", cy: "19", r: "1" }],
+  ],
+} as const satisfies Record<string, GlyphNode>;
+
+/** The attributes lucide's `Icon` writes at size 16 and stroke 1.75. */
+const GLYPH_SVG = {
+  xmlns: "http://www.w3.org/2000/svg",
+  width: 16,
+  height: 16,
+  viewBox: "0 0 24 24",
+  fill: "none",
+  stroke: "currentColor",
+  strokeWidth: 1.75,
+  strokeLinecap: "round",
+  strokeLinejoin: "round",
+} as const;
+
+/** Decorative: every glyph here sits beside the words it stands for. */
+function Glyph({ name }: { name: keyof typeof GLYPHS }): React.JSX.Element {
+  return (
+    <svg {...GLYPH_SVG} className={`lucide lucide-${name} flex-none`} aria-hidden="true">
+      {GLYPHS[name].map(([tag, attributes], i) => createElement(tag, { key: i, ...attributes }))}
+    </svg>
+  );
+}
 
 /** Where the logo is served on the customer's own host (`../logo.img`). */
 export const LOGO_PATH = "/logo.img";
@@ -64,15 +114,15 @@ function VisitButton({ business, width }: { business: HostedBusiness; width: str
   return (
     <a href={mainSiteOf(business)} className={`btn btn-sm min-w-0 ${width}`}>
       <span className="truncate">{copy("hosted.visit", { site: business.name })}</span>
-      <ArrowUpRight size={16} strokeWidth={1.75} aria-hidden className="flex-none" />
+      <Glyph name="arrow-up-right" />
     </a>
   );
 }
 
 /** The main site's own book and quote pages, as the scan stored them. */
 const ACTIONS = {
-  book: { label: "hosted.action.book", Icon: CalendarCheck },
-  quote: { label: "hosted.action.quote", Icon: ClipboardCheck },
+  book: { label: "hosted.action.book", glyph: "calendar-check" },
+  quote: { label: "hosted.action.quote", glyph: "clipboard-check" },
 } as const;
 
 /** Half the header at most, so the name beside it keeps the other half. */
@@ -129,11 +179,11 @@ export function AboutCard({
         {actions.length === 0 ? null : (
           <ul role="list" className="flex basis-full flex-wrap gap-x-5 gap-y-1 text-sm">
             {actions.map(({ kind, url }) => {
-              const { label, Icon } = ACTIONS[kind];
+              const { label, glyph } = ACTIONS[kind];
               return (
                 <li key={kind}>
                   <a href={url} className="link link-hover inline-flex items-center gap-1.5">
-                    <Icon size={16} strokeWidth={1.75} aria-hidden className="flex-none" />
+                    <Glyph name={glyph} />
                     {copy(label)}
                   </a>
                 </li>
@@ -163,7 +213,7 @@ export function HostedFooter({ business }: { business: HostedBusiness }): React.
         </span>
         <span className={FOOTER_PART}>
           <a href={FEED_PATH} className="link link-hover inline-flex items-center gap-1.5">
-            <Rss size={16} strokeWidth={1.75} aria-hidden className="flex-none" />
+            <Glyph name="rss" />
             {copy("hosted.footer.rss")}
           </a>
         </span>

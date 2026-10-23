@@ -74,7 +74,10 @@ export async function GET(request?: Request): Promise<Response> {
   // A live site lost one page: say so in its own voice. Anything else is a
   // site that is gone, and that answers with nothing of the customer's.
   if (disposition?.kind === "site") {
-    const body = await readingIn(async () => goneDocument(await businessOf(disposition), host));
+    // A body that cannot be drawn still owes the address its 410, never a 500.
+    const body = await readingIn(async () => goneDocument(await businessOf(disposition), host)).catch(
+      async () => emptyGoneDocument(await storedLang(disposition.siteId))
+    );
     return new Response(body, HOSTED_GONE_RESPONSE_INIT);
   }
   const lang = disposition?.kind === "gone" ? await storedLang(disposition.siteId) : null;
