@@ -35,7 +35,6 @@ const CARD = "card bg-base-100 shadow-sm";
 const ROW = "flex min-w-0 flex-wrap items-center justify-between gap-3";
 const QUIET = "text-sm text-base-content/70";
 const CHANGE = "btn btn-sm btn-ghost";
-const CHIP = "badge badge-primary badge-soft h-auto py-1 wrap-anywhere";
 
 const ADDRESS_TEST_ID = "setup-address";
 const MARKET_TEST_ID = "setup-market";
@@ -261,15 +260,23 @@ export function MarketCard(p: {
 
   const questionList = questions === null ? null : <QuestionList items={questions} />;
 
-  // A market ReachKit read names itself and says the founder need not change it, with or without a stated reason.
-  const inferred = state.market.state === "inferred" ? state.market : null;
-  const reason = inferred?.reason ?? "";
-  const concludedLine =
-    inferred === null ? null : (
-      <div className="flex min-w-0 flex-col gap-1" data-testid="setup-market-concluded">
-        <p className="text-sm wrap-anywhere">
-          <strong>{`${inferred.category}.`}</strong> <span className="text-base-content/70">{copy("setup.market.concluded")}</span>
-        </p>
+  // The market is named once, on the board's line, with Change beside it (D28: one press to override).
+  const read = state.market.state === "empty" ? null : state.market;
+  const reason = read?.state === "inferred" ? (read.reason ?? "") : "";
+  const marketLine =
+    read === null ? null : (
+      <div
+        className="flex min-w-0 flex-col gap-1"
+        data-testid={read.state === "inferred" ? "setup-market-concluded" : "setup-market-stated"}
+      >
+        <div className={ROW}>
+          <p className="min-w-0 flex-1 text-sm wrap-anywhere">
+            <strong>{`${read.category}.`}</strong> {read.state === "inferred" ? <span className="text-base-content/70">{copy("setup.market.concluded")}</span> : null}
+          </p>
+          <button type="button" className={CHANGE} onClick={openMarket}>
+            {copy("setup.market.change")}
+          </button>
+        </div>
         {reason === "" ? null : <p className={`${QUIET} wrap-anywhere`}>{reason}</p>}
       </div>
     );
@@ -304,16 +311,8 @@ export function MarketCard(p: {
           </div>
         </>
       ) : (
-        <div className={ROW}>
-          <span className={CHIP} data-testid="setup-market-chip">
-            {state.market.category}
-          </span>
-          <button type="button" className={CHANGE} onClick={openMarket}>
-            {copy("setup.market.change")}
-          </button>
-        </div>
+        marketLine
       )}
-      {editingMarket ? null : concludedLine}
       {questionList}
     </div>
   );

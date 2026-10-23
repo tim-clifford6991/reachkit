@@ -1,2 +1,10 @@
 harborplumbing.com	sample data
 help.harborplumbing.com/emergency-plumber-austin	sample data
+Harbor Plumbing · Austin Emergency plumber in Austin: what to do in the first hour If water is spreading, shut off the main valve first. In most Austin homes it sits where the water line enters the house. 1. Stop the water 2. Turn off the water heater 3. Call, and say what you see	sample data
+Theme: light	#1744: the app shell's theme control, which that issue changes for every /app board
+1 Open your domain settings	#1811: the number is the step's marker; the page reads it beside overview.connect.step.open (tests/app/overview/unconnected.test.tsx)
+2 Paste the three values	#1811: the number is the step's marker; the page reads it beside overview.connect.step.paste (tests/app/overview/unconnected.test.tsx)
+hosted.reachkit.app	#1811: the record's value is the HOSTED_EDGE_CNAME_TARGET binding, never a registry word; the page draws it (tests/app/overview/unconnected.test.tsx)
+Overview · day 2	sample data: the day is the customer's count; overview.connect.day draws it (tests/app/overview/unconnected.test.tsx)
+Where you bought harborplumbing.com, such as GoDaddy or Namecheap.	sample data: the domain is the customer's; overview.connect.step.open.line draws it (tests/app/overview/unconnected.test.tsx)
+Add one setting where your web address is managed	owner 2026-10-15 #1463: a title is at most six words, so overview.connect.title reads "Add one setting to your domain"

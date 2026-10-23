@@ -141,11 +141,20 @@ const VIOLATION_RESULT = {
 
 const OWN_TABLES = new Set(["sites", "scans"]);
 
+const from = (table: string): unknown =>
+  OWN_TABLES.has(table) ? ownBuilder(table) : (db.client as { from(t: string): unknown }).from(table);
+
 const client = {
-  from: (table: string) =>
-    OWN_TABLES.has(table) ? ownBuilder(table) : (db.client as { from(t: string): unknown }).from(table),
+  from,
   rpc: (fn: string, args: unknown) => {
-    db.rpcCalls.push({ fn, args: args as Record<string, unknown> });
+    const called = args as Record<string, unknown>;
+    db.rpcCalls.push({ fn, args: called });
+    // As the function does: the claimed row takes the pass's status.
+    if (fn === "store_current_report") {
+      const row = scans.find((scan) => scan.id === called.p_scan_id);
+      if (row !== undefined) row.status = String(called.p_status);
+      statusWrites.push(String(called.p_status));
+    }
     return Promise.resolve({ data: rpcAnswers[fn] ?? null, error: null });
   },
 };
@@ -380,6 +389,8 @@ const UNIQUE_VIOLATION = Symbol("23505");
 
 let sites: SiteRow[] = [];
 let scans: ScanRow[] = [];
+/** Every status written to a scan row, in order: claims, stores and updates. */
+let statusWrites: string[] = [];
 
 
 /** The two tables this journey's own reads and writes go through. */
@@ -394,6 +405,7 @@ function answerQuery(query: DbQuery): unknown[] | typeof UNIQUE_VIOLATION | null
       .filter((site) => !filters.has("id") || filters.get("id") === site.id);
   }
   if (query.table !== "scans") return null;
+  if (query.verb !== "select" && query.values?.status !== undefined) statusWrites.push(String(query.values.status));
 
   if (query.verb === "insert") {
     const values = query.values ?? {};
@@ -434,6 +446,8 @@ function answerQuery(query: DbQuery): unknown[] | typeof UNIQUE_VIOLATION | null
                 ? scan.week_start
               : column === "id"
                 ? scan.id
+              : column === "status"
+                ? scan.status
                 : undefined;
       if (held === undefined) return true;
       return Array.isArray(value) ? (value as unknown[]).includes(held) : held === value;
@@ -509,6 +523,7 @@ beforeEach(() => {
   // everything else the pass reads.
   db.rows.set("users", [{ id: USER_ID, email: EMAIL }]);
   scans = [];
+  statusWrites = [];
 
   opportunities = opportunityDoubles.newMemoryState({ now: MONDAY, profile: PROFILE_ANSWER });
   setOpportunityStore(opportunityDoubles.memoryStore(opportunities));
@@ -974,4 +989,130 @@ describe("Monday: the week is re-measured, judged, and told (JN-005)", () => {
       })
     );
   });
+});
+
+describe("Monday when DataForSEO refuses for lack of credit", () => {
+  /** Every DataForSEO request answered as the vendor documents a refusal
+   *  for credit with no task (https://docs.dataforseo.com/v3/appendix/errors/). */
+  function refuseForFunds(): void {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string) => {
+        vendorRequests.push({ url, task: {} });
+        return {
+          ok: true,
+          status: 200,
+          statusText: "OK",
+          json: async () => ({ status_code: 40210, status_message: "Insufficient funds.", cost: 0, tasks_count: 0, tasks: null }),
+        };
+      })
+    );
+  }
+
+  /** The DataForSEO rows the pass ledgered, payload and all. */
+  function vendorRows(): { costCents: number; payload: unknown }[] {
+    return db.queries
+      .filter((q) => q.table === "fetches" && q.verb === "insert" && !String(q.values?.source).startsWith("egress") && String(q.values?.source).includes("/"))
+      .map((q) => ({ costCents: Number(q.values?.cost_cents), payload: q.values?.payload }));
+  }
+
+  it(
+    "every refused read is unmeasured and ledgered at 0¢, never a measured 0, and the run says why once",
+    async () => {
+      const warned: string[] = [];
+      const warn = vi.spyOn(console, "warn").mockImplementation((line: unknown) => void warned.push(String(line)));
+      refuseForFunds();
+      const outcome = await measureTheWeek();
+      warn.mockRestore();
+
+      const rows = vendorRows();
+      expect(rows.length).toBeGreaterThan(0);
+      for (const row of rows) {
+        expect(row.costCents).toBe(0);
+        expect(row.payload).toMatchObject({ vendorFailure: "task_40210", billed: false, funds: true });
+      }
+      const refused = warned.filter((line) => line.includes('"vendor_funds_refused"'));
+      expect(refused.length).toBeGreaterThan(0);
+      expect(refused.length).toBeLessThan(rows.length);
+
+      // The week reads as not measured, never as a week of zeros.
+      expect(outcome).toMatchObject({ ran: true, status: "failed", because: "vendor_funds" });
+      const account = await weekly.accountForWeek({ siteId: SITE_ID, weekStart: "2026-08-31", now: MONDAY });
+      expect(account.kind).toBe("not_measured");
+    },
+    JOURNEY_TIMEOUT_MS
+  );
+
+  it(
+    "the refused pass stores its report as failed in the one write, never measured first",
+    async () => {
+      refuseForFunds();
+      await measureTheWeek();
+      const transitions = statusWrites.filter((status, i) => status !== statusWrites[i - 1]);
+      expect(transitions).toEqual(["running", "failed"]);
+    },
+    JOURNEY_TIMEOUT_MS
+  );
+
+  it(
+    "a run that dies once the report is stored still leaves the refused week due",
+    async () => {
+      refuseForFunds();
+      // Nothing after the store lands: the function is gone.
+      const store = client.rpc;
+      client.rpc = async (fn: string, args: unknown) => {
+        const stored = await store(fn, args);
+        if (fn === "store_current_report") {
+          client.from = () => {
+            throw new Error("the function timed out");
+          };
+        }
+        return stored;
+      };
+      try {
+        await measureTheWeek().catch(() => undefined);
+      } finally {
+        client.rpc = store;
+        client.from = from;
+      }
+      expect(scans.filter((scan) => scan.tier === "weekly").map((scan) => scan.status)).toEqual(["failed"]);
+      const due = await weekly.dueSites(new Date(MONDAY.getTime() + 3_600_000));
+      expect(due.map((site) => site.siteId)).toEqual([SITE_ID]);
+    },
+    JOURNEY_TIMEOUT_MS
+  );
+
+  it(
+    "issue 1824: the refused week stays due, ends degraded with vendor_funds, and the next tick after a top-up measures it",
+    async () => {
+      refuseForFunds();
+      const outcome = await measureTheWeek();
+      expect(outcome).toMatchObject({ ran: true, because: "vendor_funds" });
+      expect(scans.filter((scan) => scan.tier === "weekly" && scan.status !== "failed")).toEqual([]);
+      // The row the ledger's rows reference is kept, released rather than deleted.
+      expect(scans.filter((scan) => scan.tier === "weekly").map((scan) => scan.status)).toEqual(["failed"]);
+      expect(vendorRows().length).toBeGreaterThan(0);
+
+      // Topped up: the vendor answers again, and the next hourly tick finds the week still owed.
+      vi.stubGlobal(
+        "fetch",
+        vi.fn(async (url: string, init?: RequestInit) => {
+          const body = typeof init?.body === "string" ? (JSON.parse(init.body) as unknown[]) : [];
+          return { ok: true, status: 200, statusText: "OK", json: async () => vendorAnswer(url, (body[0] ?? {}) as Record<string, unknown>) };
+        })
+      );
+      const nextTick = new Date(MONDAY.getTime() + 3_600_000);
+      const due = await weekly.dueSites(nextTick);
+      expect(due.map((site) => site.siteId)).toEqual([SITE_ID]);
+      const again = await weekly.runWeekly({ siteId: SITE_ID, domain: DOMAIN, zone: ZONE, now: nextTick });
+      expect(again).toMatchObject({ ran: true });
+      if (!again.ran) throw new Error("unreachable");
+      expect(again.status === "done" || again.status === "degraded").toBe(true);
+      // The retry measures into the same row, so the week still has one.
+      if (!outcome.ran) throw new Error("unreachable");
+      expect(again.scanId).toBe(outcome.scanId);
+      expect(scans.filter((scan) => scan.tier === "weekly")).toHaveLength(1);
+    },
+    JOURNEY_TIMEOUT_MS
+  );
 });

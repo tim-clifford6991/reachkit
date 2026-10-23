@@ -307,6 +307,24 @@ export async function composeUnmeasuredWeek(): Promise<PreviewMail> {
   });
 }
 
+/** The draft-ready mail while a hosted address waits for its setting: no
+ *  moment is named, and the record the Overview shows rides below the line. */
+export async function composeWaitingForAddress(): Promise<PreviewMail> {
+  const composeMail = await composer();
+  const { buildDraftReady } = await import("../../../src/lib/mail/templates/draft-ready");
+  const mail = buildDraftReady({
+    telling: {
+      ...PREVIEW_TELLING,
+      destination: { says: "cannot_go_live_there", site: "help.harborplumbing.example", copy: "mail.draftReady.dest.addressNotConnected" },
+    } as TellableTelling,
+    stopHref: `${APP}/veto/preview`,
+    readHref: `${APP}/app/draft/preview`,
+    page: PREVIEW_PAGE,
+    record: { type: "CNAME", name: "help", value: "hosted.example.net" },
+  });
+  return composeMail({ kind: "draft-ready", subject: mail.subject, subjectVars: mail.subjectVars, blocks: mail.blocks, reason: mail.reason });
+}
+
 /** SPEC §8's retention mails (issue 641). Their lines are owner-owed, so a
  *  preview shows each `TODO(copy)` marker where a sentence will go. */
 export const RETENTION_PREVIEW_KINDS = [

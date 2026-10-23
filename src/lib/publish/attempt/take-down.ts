@@ -11,9 +11,9 @@
 // (#1242, #1506, #1511). A WordPress post is returned to draft by its
 // adapter; where the site could not be written, its destination's health is
 // checked again so the failure shows where every destination fault does.
-// Afterwards, its topic rests for `TAKE_DOWN.TOPIC_REST_DAYS`, and a refresh
-// of the address that has not gone out is stopped — the system never puts
-// the page back.
+// Afterwards, its topic is dropped for good, as every stopped topic is, and
+// a refresh of the address that has not gone out is stopped — the system
+// never puts the page back.
 //
 // **Put back** is §9's `unpublished → published`, which only the customer
 // may take and only after their own take-down (`put_back_window`), and only
@@ -23,8 +23,8 @@
 // destination is asked first, then
 // each row's `unpublished_at` is cleared and each draft takes the edge. No
 // row is deleted and no text is edited (ADR-080); the draft's transitions
-// keep both moves.
-import { TAKE_DOWN } from "@/lib/config/constants";
+// keep both moves. The topic stays dropped: the page is back, and nothing
+// is written on it again.
 import { publishDb } from "../db";
 import { adapterFor as defaultAdapterFor, destinationOf, withConfig } from "../destinations";
 import { NoConfigError } from "../destinations/config";
@@ -42,8 +42,6 @@ import type {
   UnpublishResult,
 } from "../types";
 import { unpublish } from "./unpublish";
-
-const DAY_MS = 86_400_000;
 
 export interface TakeDownDeps {
   adapterFor?: (destination: DestinationKind) => DestinationAdapter | null;
@@ -110,7 +108,7 @@ export async function takeDown(a: { draftId: string; userId: string; at?: Date; 
   try {
     const own = await opportunitiesOf(down);
     await stopRefreshesOf(row.site_id, row.live_url, own, by, at);
-    await restTopics(own, new Date(at.getTime() + TAKE_DOWN.TOPIC_REST_DAYS * DAY_MS));
+    await dropTopics(own);
   } catch (error) {
     console.log(JSON.stringify({ event: "take_down_settle_failed", draftId: a.draftId, because: String(error) }));
   }
@@ -161,14 +159,6 @@ export async function putBack(a: { draftId: string; userId: string; at?: Date; d
     await transition(version.draft_id, "published", by, { at, reason: PUT_BACK_REASON });
   }
 
-  try {
-    const { opportunityStore } = await import("@/lib/opportunities/store");
-    for (const id of await opportunitiesOf(versions.map((version) => version.draft_id))) {
-      await opportunityStore().markQueued(id);
-    }
-  } catch (error) {
-    console.log(JSON.stringify({ event: "put_back_settle_failed", draftId: a.draftId, because: String(error) }));
-  }
   if (destination === "hosted") {
     const { announceHosted } = await import("../destinations/hosted/announce");
     await announceHosted({ siteId: row.site_id, urls: [row.live_url], ...(a.deps?.announce === undefined ? {} : { send: a.deps.announce }) });
@@ -240,11 +230,21 @@ async function opportunitiesOf(draftIds: readonly string[]): Promise<string[]> {
   return [...new Set(drafts.flatMap((draft) => (draft.opportunity_id === null ? [] : [draft.opportunity_id])))];
 }
 
-/** The topic rests as a stopped one does (`opportunities.rest`), and from
- *  `done` too: a page that met its test and was then taken down is still a
- *  topic the customer did not want a page on. `open` and resting holds its
- *  one place in the unique index, so the topic is not proposed again until
- *  the rest is over. */
+/** The topic is dropped for good, as a stopped one is, and from `done` too:
+ *  a page that met its test and was then stopped is still a topic the
+ *  customer did not want a page on. */
+async function dropTopics(ids: readonly string[]): Promise<void> {
+  if (ids.length === 0) return;
+  const { error } = await publishDb()
+    .from<{ id: string }>("opportunities")
+    .update({ status: "dismissed", stopped: true })
+    .in("id", [...ids])
+    .in("status", ["open", "queued", "done"]);
+  if (error !== null) throw new Error(`take-down: dropping topics: ${error.message}`);
+}
+
+/** A withdrawn page's topic rests: `open` and resting holds its one place
+ *  in the unique index, so it is not proposed again until the rest is over. */
 async function restTopics(ids: readonly string[], until: Date): Promise<void> {
   if (ids.length === 0) return;
   const { error } = await publishDb()

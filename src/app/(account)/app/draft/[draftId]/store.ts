@@ -60,7 +60,8 @@ import {
 import type { PublishingMode } from "../../_shell/model";
 import type { State } from "../../calendar/stages";
 import { pageRecordFor } from "@/lib/publish/record";
-import type { Ladder } from "@/lib/measure/ladder";
+import { readingOf } from "@/lib/measure/page-reading";
+import { verdict } from "@/lib/opportunities/verdicts/verdict";
 import { takeDownStanding } from "@/lib/publish/take-down/standing";
 import { needsYouOf } from "@/lib/publish/record/needs-you";
 import { askedAs, doneWhen } from "../../calendar/store";
@@ -77,6 +78,7 @@ import {
   type PageAdds,
   type DraftTarget,
   type KnownCheck,
+  type LiveFacts,
   type RuleFacts,
 } from "./model";
 
@@ -572,8 +574,8 @@ export async function readDraftRow(a: {
         : null,
     lastSavedAt: lastSaved === null ? null : new Date(lastSaved),
     record,
-    // Issue 1553: the live page's ladder, after the same ownership proof.
-    ladder: record?.address.offered === true ? await ladderOfDraft(a.site.siteId, a.draftId) : null,
+    // The page's own publication, after the same ownership proof.
+    live: record?.address.offered === true ? await liveOfDraft(client, a.site.siteId, a.draftId, record.address.url, at) : null,
     takeDown: takeDownStanding({
       state: row.state as State,
       transitions: row.transitions,
@@ -601,9 +603,25 @@ export async function readDraftRow(a: {
   };
 }
 
-/** The ladder of the live page this draft is, or `null`. */
-async function ladderOfDraft(siteId: string, draftId: string): Promise<Ladder | null> {
-  const { readLadders } = await import("@/lib/publish/reads/store");
-  const ladders = await readLadders(siteId).catch(() => null);
-  return ladders?.find((row) => row.draftId === draftId)?.ladder ?? null;
+/** The newest publication of this draft that went live, with the weekly
+ *  pass's reading of it, or `null`. */
+async function liveOfDraft(client: MinimalClient, siteId: string, draftId: string, url: string, at: Date): Promise<LiveFacts | null> {
+  const { data, error } = await client
+    .from<{ published_at: string | null; destination: string; search_reading: unknown }>("publications")
+    .select("published_at, destination, search_reading")
+    .eq("draft_id", draftId)
+    .eq("site_id", siteId);
+  if (error !== null || data === null) return null;
+  const row = data
+    .filter((each) => each.published_at !== null)
+    .sort((x, y) => y.published_at!.localeCompare(x.published_at!))[0];
+  if (row === undefined) return null;
+  const reading = readingOf(row.search_reading);
+  return {
+    since: new Date(row.published_at!),
+    url,
+    wordpress: row.destination === "wordpress",
+    reading,
+    label: reading === null ? null : verdict(reading, at),
+  };
 }

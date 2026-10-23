@@ -224,6 +224,8 @@ export async function startWeeklyScan(
 
 /** The week judged and told, after its measurement and its late answers. */
 async function tellWeek(a: DueSite & { readonly now: Date }, outcome: WeeklyOutcome): Promise<EngineResult> {
+  // A week the vendor refused for credit is still due: nothing is judged, planned or told until a pass measures it.
+  if (outcome.ran && outcome.status === "failed" && outcome.because === "vendor_funds") return { degraded: "vendor_funds" };
   // §6's verdict on every page published so far, written before the digest
   // reads it. A failed pass stored no report, so its week judges nothing.
   if (outcome.ran && outcome.status !== "failed") {
