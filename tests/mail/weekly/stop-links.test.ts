@@ -95,7 +95,7 @@ describe("the Monday mail tells the whole week with a stop link per page", () =>
     expect(new Set(rows.map((row) => row.href)).size).toBe(7);
     for (const [n, row] of rows.entries()) {
       const read = await previewPlannedStop(tokenOf(row.href!), NOW);
-      expect(read).toEqual({ ok: true, planned: { query: `search o${n}`, volume: 90, domain: "harbor-plumbing.example", day: day(n) } });
+      expect(read).toEqual({ ok: true, planned: { query: `search o${n}`, volume: 90, reason: null, domain: "harbor-plumbing.example", day: day(n) } });
     }
     expect(blocks.some((b) => b.text === "mail.weekly.next.skipped")).toBe(false);
   });

@@ -6,7 +6,11 @@
 // The archived plan is WO-217.
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createHash } from "node:crypto";
+import { applyEnvFixture } from "../../mail/env-fixture";
 import { fakeDb, installTransitionRpc, type FakeDb, type Row } from "../harness";
+
+// The stop page's read asks `reachKitStopped`, which parses `env` at import.
+applyEnvFixture();
 
 const db = fakeDb();
 vi.mock("@/lib/db", () => ({ dbAdmin: () => db.client, db: () => db.client }));
@@ -15,6 +19,7 @@ import { VETO_TOKEN_BYTES } from "@/lib/config/constants";
 import {
   hashToken,
   issueVetoLink,
+  previewVetoLink,
   redeemVeto,
   redeemVetoLink,
   sameHash,
@@ -50,6 +55,7 @@ function seed(over: Row = {}): void {
   db.reset();
   installTransitionRpc(db);
   installRedeemRpc(db);
+  db.rpcs.set("fetches_spend_since", () => 0);
   // `user_id` is here for #144: a link redeemed with no session takes its
   // actor from the draft's site's owner, so the seed has to have one.
   db.seed("sites", [
@@ -271,6 +277,119 @@ describe("no token, hashed or otherwise, reaches a log line", () => {
       expect(line).not.toContain(link.token);
       expect(line).not.toContain(hash);
     }
+  });
+});
+
+describe("the stop page's read: why it was chosen, when the mail left, and the week after a stop", () => {
+  const REASON = { points: 5, parts: [{ part: "ai_gap", n: 2 }], rule: null };
+  /** The columns the read selects that the module's other cases leave unset. */
+  const PAGE = { title: null, body_md: null, told: null, scheduled_for: null, opportunity_id: null };
+
+  it("an open link carries the stored reason and the told record's send time", async () => {
+    seed({ ...PAGE, opportunity_id: "o1", told: { pair: {}, kind: "interval", publishesAt: null, sentAt: "2026-09-02T07:00:00.000Z", mailed: true } });
+    db.seed("opportunities", [{ id: "o1", site_id: "s1", target_query: "q", volume: 10, plan_reason: REASON }]);
+    const link = await issueVetoLink("d1", AT);
+    const read = await previewVetoLink(link.token, AT);
+    if (!read.ok) throw new Error(`expected an open link, got ${read.reason}`);
+    expect(read.preview.reason).toEqual(REASON);
+    expect(read.preview.mailedAt?.toISOString()).toBe("2026-09-02T07:00:00.000Z");
+  });
+
+  it("a page told with its mail off, or never told, names no send time; one chosen before reasons names no reason", async () => {
+    for (const told of [null, { pair: {}, kind: "interval", publishesAt: null, sentAt: "2026-09-02T07:00:00.000Z", mailed: false }]) {
+      seed({ ...PAGE, opportunity_id: "o1", told });
+      db.seed("opportunities", [{ id: "o1", site_id: "s1", target_query: "q", volume: 10, plan_reason: null }]);
+      const read = await previewVetoLink((await issueVetoLink("d1", AT)).token, AT);
+      if (!read.ok) throw new Error(`expected an open link, got ${read.reason}`);
+      expect(read.preview.mailedAt).toBeNull();
+      expect(read.preview.reason).toBeNull();
+    }
+  });
+
+  it("a hosted address still waiting for its record names no go-live moment; once live it names one", async () => {
+    seed({ ...PAGE, approved_at: null, approved_by: null, hard_rules_passed: true, publishable_since: null });
+    Object.assign(db.rows("sites")[0]!, { timezone: "Europe/Berlin", publish_time: "09:00" });
+    db.seed("destinations", [
+      { id: "dest-1", site_id: "s1", kind: "hosted", hostname: "pages.example.com", hostname_state: "pending_dns", deleted_at: null },
+    ]);
+    const token = (await issueVetoLink("d1", AT)).token;
+    const waiting = await previewVetoLink(token, AT);
+    if (!waiting.ok) throw new Error(`expected an open link, got ${waiting.reason}`);
+    expect(waiting.preview.unconnected).toBe(true);
+    expect(waiting.preview.publishes).toBeNull();
+
+    Object.assign(db.rows("destinations")[0]!, { hostname_state: "live", health: "ok" });
+    const live = await previewVetoLink(token, AT);
+    if (!live.ok) throw new Error(`expected an open link, got ${live.reason}`);
+    expect(live.preview.unconnected).toBe(false);
+    expect(live.preview.publishes?.timeZone).toBe("Europe/Berlin");
+  });
+
+  it("while the page is held — ReachKit stopped or at its ceiling, publishing off, a broken destination or an unread ledger — it names no go-live moment", async () => {
+    const holds: { name: string; hold: () => void }[] = [
+      { name: "kill switch", hold: () => { process.env.KILL_SWITCH = "true"; } },
+      { name: "publishing off", hold: () => { db.rows("sites")[0]!.publishing_enabled = false; } },
+      { name: "destination unhealthy", hold: () => { db.rows("destinations")[0]!.health = "failing"; } },
+      { name: "day ceiling reached", hold: () => { db.rpcs.set("fetches_spend_since", () => 1e9); } },
+      { name: "ledger unread", hold: () => { db.rpcs.delete("fetches_spend_since"); } },
+    ];
+    try {
+      for (const { name, hold } of [{ name: "none", hold: () => {} }, ...holds]) {
+        seed({ ...PAGE, approved_at: null, approved_by: null, hard_rules_passed: true, publishable_since: null });
+        Object.assign(db.rows("sites")[0]!, { timezone: "Europe/Berlin", publish_time: "09:00" });
+        db.seed("destinations", [{ id: "dest-1", site_id: "s1", kind: "wordpress", health: "ok", deleted_at: null }]);
+        const token = (await issueVetoLink("d1", AT)).token;
+        applyEnvFixture();
+        hold();
+        // `env` parses once per module instance; a fresh graph reads the binding just set.
+        vi.resetModules();
+        const read = await previewVetoLink(token, AT);
+        if (!read.ok) throw new Error(`${name}: expected an open link, got ${read.reason}`);
+        if (name === "none") expect(read.preview.publishes?.timeZone, name).toBe("Europe/Berlin");
+        else expect(read.preview.publishes, name).toBeNull();
+      }
+    } finally {
+      applyEnvFixture();
+      vi.resetModules();
+    }
+  });
+
+  it("a spent link reads its page's Monday-to-Sunday week: stopped, going ahead, or nothing claimed", async () => {
+    // Wednesday 2 September 2026; its week runs Monday 31 August to Sunday 6 September.
+    seed({ ...PAGE, scheduled_for: "2026-09-02" });
+    db.rows("drafts").push(
+      { id: "d0", site_id: "s1", state: "published", scheduled_for: "2026-08-31" },
+      { id: "d9", site_id: "s1", state: "approved", scheduled_for: "2026-09-07" },
+      { id: "dx", site_id: "other", state: "skipped", scheduled_for: "2026-09-03" }
+    );
+    db.seed("opportunities", [
+      { id: "o2", site_id: "s1", status: "open", planned_for: "2026-09-04" },
+      { id: "o3", site_id: "s1", status: "dismissed", stopped: true, planned_for: "2026-09-05" },
+    ]);
+    const link = await issueVetoLink("d1", AT);
+    await redeemVetoLink(link.token, AT);
+    const read = await previewVetoLink(link.token, AT);
+    if (read.ok || read.reason !== "used") throw new Error("expected a spent link");
+    expect(read.week).toEqual([
+      { date: "2026-08-31", stopped: false },
+      { date: "2026-09-01", stopped: null },
+      { date: "2026-09-02", stopped: true },
+      { date: "2026-09-03", stopped: null },
+      { date: "2026-09-04", stopped: false },
+      // A planned page stopped before writing: a spare may take the day, so it claims nothing.
+      { date: "2026-09-05", stopped: null },
+      { date: "2026-09-06", stopped: null },
+    ]);
+  });
+
+  it("a week it cannot read is no week, never a guessed one", async () => {
+    seed({ ...PAGE, scheduled_for: "2026-09-02" });
+    const link = await issueVetoLink("d1", AT);
+    await redeemVetoLink(link.token, AT);
+    db.unreadable.add("opportunities");
+    const read = await previewVetoLink(link.token, AT);
+    if (read.ok || read.reason !== "used") throw new Error("expected a spent link");
+    expect(read.week).toBeNull();
   });
 });
 
