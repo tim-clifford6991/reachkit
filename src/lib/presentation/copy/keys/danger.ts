@@ -28,19 +28,31 @@ import type { CopyPartition } from "../registry.ts";
 
 export const DANGER_COPY = Object.freeze({
   "danger.zone.title": ["Danger zone", { slots: {}, fixedBy: "BUILD §4.7" }],
-  "danger.unpublish-all": ["unpublish all", { slots: {}, fixedBy: "BUILD §4.7" }],
-  "danger.delete-account": ["delete account", { slots: {}, fixedBy: "BUILD §4.7" }],
-  // §4.7 verbatim, including its lower-case opening.
-  "danger.export-first": [
-    "pages are exported to you first, never silently destroyed",
-    { slots: {}, fixedBy: "BUILD §4.7" },
-  ],
-  // 2026-09-07, issue #259: both were the empty value and rendered as
-  // nothing. The screen rule has no exceptions (#242, #255) — an owed
-  // sentence renders the marker wherever it is owed — and these two are the
-  // sentence REQ-079 c1 puts *between* a press and a destroyed page, so a
-  // customer reading nothing there is the worst place in the product for
-  // this family to have kept its exception.
+  "danger.unpublish-all": ["Take every page down", { slots: {}, fixedBy: "BUILD §4.7 · board SettingsAccount" }],
+  "danger.delete-account": ["Delete my account", { slots: {}, fixedBy: "BUILD §4.7 · board SettingsAccount" }],
+  // The fold's lead, the pause pointer ("pause publishing" is its link), and what each one does (issue 1751).
+  "danger.zone.lead": ["Take every page down, or delete your account. To only stop new pages, pause publishing.", { slots: {}, fixedBy: "issue 1751 · board SettingsAccount · drafted" }],
+  "danger.pause.line": ["To stop new pages without taking any down, pause publishing instead.", { slots: {}, fixedBy: "issue 1751 · board SettingsAccount · drafted" }],
+  "danger.pause.link": ["pause publishing", { slots: {}, fixedBy: "issue 1751 · board SettingsAccount · drafted" }],
+  "danger.compare.title": ["What each one does", { slots: {}, fixedBy: "issue 1751 · board SettingsAccount · drafted" }],
+  "danger.pause": ["Pause publishing", { slots: {}, fixedBy: "issue 1751 · board SettingsAccount · drafted" }],
+  "danger.fact.live": ["Live pages", { slots: {}, fixedBy: "issue 1751 · board SettingsAccount · drafted" }],
+  "danger.fact.new": ["New pages", { slots: {}, fixedBy: "issue 1751 · board SettingsAccount · drafted" }],
+  "danger.fact.kept": ["Account, drafts and plan", { slots: {}, fixedBy: "issue 1751 · board SettingsAccount · drafted" }],
+  "danger.fact.export": ["Your pages exported to you", { slots: {}, fixedBy: "issue 1751 · board SettingsAccount · drafted" }],
+  "danger.fact.undo": ["Can you undo it?", { slots: {}, fixedBy: "issue 1751 · board SettingsAccount · drafted" }],
+  "danger.value.stay-up": ["Stay up", { slots: {}, fixedBy: "issue 1751 · board SettingsAccount · drafted" }],
+  "danger.value.none-until-on": ["None until you turn it on", { slots: {}, fixedBy: "issue 1751 · board SettingsAccount · drafted" }],
+  "danger.value.kept": ["Kept", { slots: {}, fixedBy: "issue 1751 · board SettingsAccount · drafted" }],
+  "danger.value.not-needed": ["Not needed", { slots: {}, fixedBy: "issue 1751 · board SettingsAccount · drafted" }],
+  "danger.value.one-switch": ["Yes, one switch", { slots: {}, fixedBy: "issue 1751 · board SettingsAccount · drafted" }],
+  "danger.value.taken-down": ["Taken down", { slots: {}, fixedBy: "issue 1751 · board SettingsAccount · drafted" }],
+  "danger.value.none-off": ["None; publishing off", { slots: {}, fixedBy: "issue 1751 · board SettingsAccount · drafted" }],
+  "danger.value.first": ["First, before anything", { slots: {}, fixedBy: "issue 1751 · board SettingsAccount · drafted" }],
+  "danger.value.turn-on": ["Yes, turn publishing on", { slots: {}, fixedBy: "issue 1751 · board SettingsAccount · drafted" }],
+  "danger.value.none": ["None", { slots: {}, fixedBy: "issue 1751 · board SettingsAccount · drafted" }],
+  "danger.value.closed": ["Closed for good", { slots: {}, fixedBy: "issue 1751 · board SettingsAccount · drafted" }],
+  "danger.value.no": ["No", { slots: {}, fixedBy: "issue 1751 · board SettingsAccount · drafted" }],
   "danger.unpublish-all.consequence": ["Takes every page down at every destination and switches publishing off. Your account, your drafts and your plan stay, and you can switch publishing on again later. Your pages are exported to you first.", { slots: {}, fixedBy: "REQ-079 c1" }],
   "danger.delete-account.consequence": ["Takes every page down, ends the plan at once with no further charge, and closes the account for good. Your pages are exported to you first.", { slots: {}, fixedBy: "REQ-079 c1" }],
 

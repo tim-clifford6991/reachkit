@@ -59,7 +59,8 @@ function readingAt(index: number): PageReading | null {
     place: place === null ? null : { value: place, source: "serp", query: `fixture search ${index + 1}` },
     first: place === null ? null : { at: at(9), place: place + (index === 8 || index === 9 ? 14 : 0) },
     best: place === null ? null : { at: READ_AT, place },
-    prev: place,
+    // One page moved up this week: the best mover.
+    prev: place === null ? null : place + (index === 8 ? 9 : 0),
     linkedBy: index === 12 ? ["chatgpt"] : [],
     aiReads: index >= 3 ? index : 0,
     variants: [],
