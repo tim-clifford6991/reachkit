@@ -175,6 +175,10 @@ export function DraftScreen(p: {
    *  that never went out. */
   const [savedAt, setSavedAt] = useState<Date | null>(view.lastSavedAt);
   const [refused, setRefused] = useState(false);
+  /** A live page's edit (R19) saves as a new version, whose screen this
+   *  one then becomes. */
+  const liveEdit = view.live?.edit?.kind === "editor";
+  const [newVersion, setNewVersion] = useState<string | null>(null);
   /** SPEC §7 (2026-09-20, #908, issue #913) — the page's §9 state as this
    *  render believes it. On Approve or Stop it is the state the write asks
    *  for, so the stage chip and the rail's controls both change on the
@@ -215,11 +219,56 @@ export function DraftScreen(p: {
   /** Set when *Done editing* is pressed with a save still on its way: the
    *  save that lands, or is refused, answers for the press (#1095). */
   const answerSaveRef = useRef(false);
+  /** A live edit's save on its way, and the version it wrote: every later
+   *  save is that version's. */
+  const liveFlightRef = useRef(false);
+  const versionRef = useRef<string | null>(null);
+  /** The newest text held back while a live save is on its way, and whether
+   *  the customer has left: a screen that is gone has no pause to send it. */
+  const heldRef = useRef<DraftText | null>(null);
+  const leftRef = useRef(false);
 
   const save = useCallback(
     (next: DraftText): void => {
+      if (liveEdit && versionRef.current === null) {
+        // One live save at a time: a second would be refused as the version
+        // the first is writing, so the next pause sends it once this lands.
+        if (liveFlightRef.current) {
+          heldRef.current = next;
+          return;
+        }
+        liveFlightRef.current = true;
+        void draftStore.saveLive({ draftId: view.draftId, ...next }).then((result) => {
+          liveFlightRef.current = false;
+          const held = heldRef.current;
+          heldRef.current = null;
+          if (result.ok && held !== null && leftRef.current && !sameText(held, next)) {
+            void (result.changed
+              ? draftStore.save({ draftId: result.draftId, ...held })
+              : draftStore.saveLive({ draftId: view.draftId, ...held })
+            ).catch(() => undefined);
+          }
+          if (result.ok) {
+            if (result.changed) {
+              versionRef.current = result.draftId;
+              setNewVersion(result.draftId);
+            }
+            setSavedText(next);
+            setRefused(false);
+            if (answerSaveRef.current) {
+              answerSaveRef.current = false;
+              if (result.changed && result.state === "in_review") say(copy("draft.edit.entered-review"), "ok");
+              else say(copy("draft.edit.saved", { at: formatTime(new Date(), view.timeZone) }), "ok");
+            }
+            return;
+          }
+          setRefused(true);
+          answerRefusal();
+        });
+        return;
+      }
       void draftStore
-        .save({ draftId: view.draftId, ...next })
+        .save({ draftId: versionRef.current ?? view.draftId, ...next })
         .then((result) => {
           // Last write wins: what came back is the draft, and nothing is
           // merged into the buffer. A refusal moves nothing at all.
@@ -260,7 +309,7 @@ export function DraftScreen(p: {
         say(copy("draft.unsaved"), "bad");
       }
     },
-    [view.draftId, view.timeZone],
+    [view.draftId, view.timeZone, liveEdit],
   );
 
   // c6, the pause: one save per settled buffer, never one per keystroke.
@@ -281,7 +330,9 @@ export function DraftScreen(p: {
     savedRef.current = savedText;
   }, [text, savedText]);
   useEffect(() => {
+    leftRef.current = false;
     return () => {
+      leftRef.current = true;
       if (!sameText(textRef.current, savedRef.current)) save(textRef.current);
     };
   }, [save]);
@@ -612,6 +663,10 @@ export function DraftScreen(p: {
     </section>
   );
 
+  /** A live edit lands on the version it wrote once nothing is unsaved,
+   *  from whichever arm is showing. */
+  const openVersion = newVersion === null || unsaved ? null : <OpenVersion draftId={newVersion} />;
+
   if (editing) {
     const stateBadge = refused ? (
       <span
@@ -757,13 +812,20 @@ export function DraftScreen(p: {
             {copy("draft.edit.discard")}
           </button>
         </div>
+        {openVersion}
       </div>
     );
   }
 
   // ── the read arm ────────────────────────────────────────────────────
   // A page that went live, and one its customer stopped: board `PageDetail`.
-  if (view.takeDown !== null && view.live !== null) return <LivePage view={view} live={view.live} />;
+  if (view.takeDown !== null && view.live !== null)
+    return (
+      <>
+        <LivePage view={view} live={view.live} onEdit={() => setEditing(true)} />
+        {openVersion}
+      </>
+    );
 
   const written =
     view.writtenAt === null
@@ -910,4 +972,14 @@ function Rewriting(): React.JSX.Element {
       <span className="min-w-0 wrap-anywhere">{copy("draft.rewriting")}</span>
     </div>
   );
+}
+
+/** Moves to the version a live page's edit wrote. Mounted only then: the
+ *  router is the one thing the rest of this screen never needs. */
+function OpenVersion(p: { draftId: string }): null {
+  const router = useRouter();
+  useEffect(() => {
+    router.push(`/app/draft/${p.draftId}`);
+  }, [router, p.draftId]);
+  return null;
 }

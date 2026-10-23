@@ -20,5 +20,4 @@ how to shut off water to a house	sample data
 about 1,900 in the US	sample data
 a national plumbing chain’s page, then your page	sample data
 Harbor Plumbing · Austin How to shut off water to a house in an emergency Find the main valve where the water line enters the house, often in the garage. Turn it clockwise until it stops. 1. Find the main valve 2. If the valve is stuck 3. Call, and say what you see	sample data
-Edit this page	owner R19 2026-10-22 (docs/spec/decisions/2026-10-22-1749.md): a live page has no edit path yet (isEditableDraft refuses a published draft; ADR-080); a follow-up issue brings it back
 Theme: light	#1744: the app shell's theme control, which that issue changes for every /app board
