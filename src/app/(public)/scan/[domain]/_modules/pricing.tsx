@@ -33,9 +33,21 @@
 // identical either way; only where Start goes differs — the report screen
 // passes its own report-origin action (issue #785).
 import type React from "react";
-import { ArrowRight, Check, ShieldCheck } from "lucide-react";
+import {
+  ArrowRight,
+  Building2,
+  Check,
+  CircleCheck,
+  FileText,
+  Globe,
+  PencilLine,
+  ShieldCheck,
+  TrendingUp,
+  type LucideIcon,
+} from "lucide-react";
 import { VETO, WEEK_PLAN } from "@/lib/config/constants";
 import { copy } from "@/lib/presentation/copy";
+import { HOW_FACTS } from "@/app/(public)/_how/facts";
 import { FLOAT } from "@/ui/lift";
 import { Num } from "../_address/measured";
 
@@ -57,7 +69,7 @@ export type OfferTerms = "report" | "pricing";
 const TERM_LINES: Readonly<Record<OfferTerms, () => readonly string[]>> = {
   report: () => [
     copy("offer.cadence.page", { weekPages: WEEK_PLAN.days }),
-    copy("offer.cadence.measure", { value: copy("offer.cadence.measure.value") }),
+    copy("pricing.plan.checked"),
     copy("offer.cadence.movement", { value: copy("offer.cadence.movement.value") }),
     copy("offer.veto.window", {
       value: copy("offer.veto.window.value", { hours: String(VETO.defaultHours) }),
@@ -73,12 +85,6 @@ const TERM_LINES: Readonly<Record<OfferTerms, () => readonly string[]>> = {
   ],
 };
 
-/** Each surface's cancel line: the report's where, the pricing page's
- *  where-and-when (board Pricing). */
-const CANCEL_LINE: Readonly<Record<OfferTerms, () => string>> = {
-  report: () => copy("offer.cancel_self_service"),
-  pricing: () => copy("pricing.plan.cancel"),
-};
 
 /** The price, the terms where this shape puts them under it, the refusal
  *  line where there is one, Start, and the cancel line under it. */
@@ -89,6 +95,7 @@ function PriceBox(p: {
   terms?: React.ReactNode;
   note?: React.ReactNode;
   free?: React.ReactNode;
+  after?: React.ReactNode;
 }): React.JSX.Element {
   return (
     <div className="flex flex-col gap-4">
@@ -99,6 +106,7 @@ function PriceBox(p: {
         </span>
         <span className="text-base-content/70 text-sm">{copy("price.interval")}</span>
       </div>
+      {p.after ?? null}
       {p.note ?? null}
       {p.terms ?? null}
       {/* Issue #624: the vendor refused to open checkout. One written line
@@ -116,6 +124,23 @@ function PriceBox(p: {
       {p.free ?? null}
     </div>
   );
+}
+
+/** The board's three steps from the scan to the Monday mail. */
+const STEPS: readonly (readonly [LucideIcon, "offer.steps.scanned" | "offer.steps.write" | "offer.steps.progress"])[] = [
+  [CircleCheck, "offer.steps.scanned"],
+  [FileText, "offer.steps.write"],
+  [TrendingUp, "offer.steps.progress"],
+];
+
+/** What happens to each page, one chip each; the check count is the pipeline's own. */
+function chipsOf(): readonly (readonly [LucideIcon, string])[] {
+  return [
+    [Building2, copy("offer.chip.facts")],
+    [ShieldCheck, copy("offer.chip.checks", { checks: String(HOW_FACTS.checks) })],
+    [PencilLine, copy("offer.chip.stop")],
+    [Globe, copy("offer.chip.live")],
+  ];
 }
 
 function Terms(p: { specs: readonly string[] }): React.JSX.Element {
@@ -140,19 +165,17 @@ export function PricingCard(
      *  the terms on the left, the price and Start in a panel on the right.
      *  The same component and the same facts; only the shape is wider. */
     close?: boolean;
-    /** The close's eyebrow, above its heading. */
-    eyebrow?: string;
     /** The close's heading, where the report has a sharper one than the offer's. */
     heading?: string;
-    /** What the close holds under its heading, above the terms. */
-    children?: React.ReactNode;
+    /** The one line under that heading. */
+    line?: string;
     /** The free path, under Start. */
     free?: React.ReactNode;
   } = {}
 ): React.JSX.Element {
   const terms = p.terms ?? "report";
   const specs = TERM_LINES[terms]();
-  const cancel = CANCEL_LINE[terms]();
+  const cancel = copy("pricing.plan.cancel");
   const start = (
     <button type={p.startAction ? "submit" : "button"} className="btn btn-primary btn-lg btn-block">
       {copy("offer.start.priced")}
@@ -166,13 +189,47 @@ export function PricingCard(
       <section className={`card bg-base-100 ${FLOAT}`}>
         <div className="card-body gap-8 p-6 md:p-10 lg:flex-row lg:items-center lg:gap-12">
           <div className="flex min-w-0 flex-1 flex-col gap-4">
-            {p.eyebrow === undefined ? null : <p className="eyebrow">{p.eyebrow}</p>}
             <h2 className="text-3xl font-bold">{p.heading ?? copy("offer.close.heading")}</h2>
-            {p.children}
+            {p.line === undefined ? null : <p className="max-w-prose">{p.line}</p>}
+            <ol className="flex list-none flex-wrap gap-2 p-0">
+              {STEPS.map(([Icon, key], i) => (
+                <li key={key} className="badge badge-soft badge-primary gap-1.5">
+                  <Icon size={14} strokeWidth={1.75} aria-hidden />
+                  <span className="num">{i + 1}</span> {copy(key)}
+                </li>
+              ))}
+            </ol>
+            <ul className="grid list-none grid-cols-1 gap-2 p-0 sm:grid-cols-2">
+              {chipsOf().map(([Icon, line]) => (
+                <li key={line} className="flex items-center gap-2.5 text-sm">
+                  <span className="rounded-field bg-primary/10 text-primary grid size-8 shrink-0 place-items-center">
+                    <Icon size={16} strokeWidth={1.75} aria-hidden />
+                  </span>
+                  <span>{line}</span>
+                </li>
+              ))}
+            </ul>
             <Terms specs={specs} />
+            <p className="text-base-content/70 flex flex-wrap gap-x-1 text-sm">
+              <span>{copy("how.steps.part", { minutes: String(HOW_FACTS.setupMinutes) })}</span>
+              <a href="/how-it-works#you-do" className="link link-primary inline-flex items-center gap-1 font-semibold">
+                {copy("how.steps.part.more")}
+                <ArrowRight size={14} strokeWidth={1.75} aria-hidden />
+              </a>
+            </p>
           </div>
           <div className="bg-primary/5 rounded-box ring-primary/15 shrink-0 p-6 ring-1 lg:w-96">
-            <PriceBox start={control} cancel={cancel} refused={p.refused} free={p.free} />
+            <PriceBox
+              start={control}
+              cancel={cancel}
+              refused={p.refused}
+              free={p.free}
+              after={
+                <p className="text-base-content/70 text-center text-sm">
+                  {copy("offer.price.euros", { price: copy("price.amount") })}
+                </p>
+              }
+            />
           </div>
         </div>
       </section>
