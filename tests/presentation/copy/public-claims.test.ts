@@ -113,7 +113,7 @@ describe("the cancel answer leaves when access ends to the Terms (ruling R22)", 
     const answer = text("landing.faq.stop.a");
     expect(answer).not.toMatch(/keep access until the end/i);
     expect(answer).not.toMatch(/refund|money-back/i);
-    expect(answer).toContain("Section 4 of our Terms says when your access ends.");
+    expect(answer).toContain("Section four of our Terms says when your access ends.");
     const section4 = text("legal.terms.body").split("\n## ").find((s) => s.startsWith("4. "));
     expect(section4).toMatch(/^4\. Price, billing and cancellation/);
     expect(section4).toContain("Otherwise your access continues to the end of the period you have paid for");

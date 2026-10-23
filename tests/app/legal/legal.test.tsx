@@ -12,6 +12,7 @@
 //
 // The header and footer are the group layout's (ruling 3a) and have their
 // own suite in `tests/app/chrome/`; nothing here re-tests them.
+import "../../generate/env";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
