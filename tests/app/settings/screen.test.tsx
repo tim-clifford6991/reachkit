@@ -384,8 +384,8 @@ describe("REQ-070 c3 — no control over an engine or spend parameter renders", 
   it("and none is hidden behind a flag or a disclosure — a hidden control is still an offered one", async () => {
     const root = await mountScreen();
     // Nothing on the screen is withheld from the count: no collapsed section
-    // and no `hidden` subtree, so the fourteen counted above are the fourteen
-    // that exist, not the fourteen that happened to be open.
+    // and no `hidden` subtree, so every control counted above is one that
+    // exists, not one that happened to be open.
     expect(root.querySelectorAll("details")).toHaveLength(0);
     expect(root.querySelectorAll("[hidden]")).toHaveLength(0);
     expect(root.querySelectorAll('[data-testid^="setting-"]')).toHaveLength(SETTABLE.length);
