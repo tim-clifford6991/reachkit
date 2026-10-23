@@ -151,7 +151,7 @@ describe("the book and quote pages the main site's own header or nav links", () 
       "</nav></header>",
     ].join("");
     expect(actionsOf("harborplumbing.com", "https://www.harborplumbing.com/", nav)).toEqual([
-      { kind: "book", url: "https://www.harborplumbing.com/schedule?zip=78701" },
+      { kind: "book", url: "https://www.harborplumbing.com/schedule?zip=78701", book: "visit" },
       { kind: "quote", url: "https://www.harborplumbing.com/get-a-quote" },
     ]);
   });
@@ -159,7 +159,7 @@ describe("the book and quote pages the main site's own header or nav links", () 
   it("a German Handwerker: Termin and Kostenvoranschlag, by its own words", () => {
     const nav = '<nav><a href="/kontakt">Kontakt</a><a href="/termin">Jetzt Termin vereinbaren</a><a href="/anfrage">Angebot anfordern</a></nav>';
     expect(actionsOf("mueller-sanitaer.de", "https://mueller-sanitaer.de/", nav)).toEqual([
-      { kind: "book", url: "https://mueller-sanitaer.de/termin" },
+      { kind: "book", url: "https://mueller-sanitaer.de/termin", book: "visit" },
       { kind: "quote", url: "https://mueller-sanitaer.de/anfrage" },
     ]);
   });
@@ -169,9 +169,34 @@ describe("the book and quote pages the main site's own header or nav links", () 
     expect(actionsOf("acmescheduling.io", "https://acmescheduling.io/", nav)).toEqual([]);
   });
 
+  it("book sub-kinds: a demo, a call and a visit, each by its own address or words", () => {
+    const book = (body: string) => actionsOf("example.com", "https://example.com/", `<header>${body}</header>`);
+    expect(book('<a href="/demo">Book a demo</a>')).toEqual([{ kind: "book", url: "https://example.com/demo", book: "demo" }]);
+    expect(book('<a href="/book-a-call">Schedule a call</a>')).toEqual([{ kind: "book", url: "https://example.com/book-a-call", book: "call" }]);
+    expect(book('<a href="/booking">Book now</a>')).toEqual([{ kind: "book", url: "https://example.com/booking", book: "visit" }]);
+    expect(book('<a href="/termin">Beratungstermin vereinbaren</a>')).toEqual([{ kind: "book", url: "https://example.com/termin", book: "call" }]);
+  });
+
+  it("a stored sub-kind reads back; a quote, or a sub-kind that does not parse, carries none", () => {
+    const actions = mainSiteOf({
+      home: "https://example.com/",
+      actions: [
+        { kind: "book", url: "https://example.com/demo", book: "demo" },
+        { kind: "quote", url: "https://example.com/quote", book: "call" },
+      ],
+    })?.actions;
+    expect(actions).toEqual([
+      { kind: "book", url: "https://example.com/demo", book: "demo" },
+      { kind: "quote", url: "https://example.com/quote" },
+    ]);
+    expect(mainSiteOf({ home: "https://example.com/", actions: [{ kind: "book", url: "https://example.com/book", book: "trial" }] })?.actions).toEqual([
+      { kind: "book", url: "https://example.com/book" },
+    ]);
+  });
+
   it("an address is linked once, under the first kind that names it", () => {
     const nav = '<nav><a href="/contact">Book a visit</a><a href="/contact#quote">Get a quote</a></nav>';
-    expect(actionsOf("example.com", "https://example.com/", nav)).toEqual([{ kind: "book", url: "https://example.com/contact" }]);
+    expect(actionsOf("example.com", "https://example.com/", nav)).toEqual([{ kind: "book", url: "https://example.com/contact", book: "visit" }]);
   });
 
   it("a link outside the header and nav, or a word inside another word, is none", () => {

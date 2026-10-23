@@ -8,6 +8,7 @@ import type React from "react";
 import { createElement } from "react";
 import { copy } from "@/lib/presentation/copy/reader";
 import type { HostedIdentity } from "@/lib/publish/destinations/hosted";
+import type { BookKind } from "@/lib/site-profile/main-site-row";
 import { FEED_PATH, QUIET_LINE } from "./present";
 
 /** lucide's own drawings, inlined as its `[tag, attributes]` pairs: its `Icon`
@@ -137,13 +138,22 @@ interface Action {
   glyph: keyof typeof GLYPHS;
 }
 
+/** A book page's label says what it books; a visit is named only where the
+ *  business serves a place, and a reading stored before counts as a visit. */
+function bookLabel(book: BookKind | undefined, local: boolean): string {
+  if (book === "demo") return copy("hosted.action.book.demo");
+  if (book === "call") return copy("hosted.action.book.call");
+  return copy(local ? "hosted.action.book" : "hosted.action.book.online");
+}
+
 /** What the business offers a reader, from what is stored and nothing else:
  *  one primary action — its phone, else its book page, else its quote page —
  *  and the others as quiet links, at most two. */
 export function actionsOf(business: HostedBusiness): { primary: Action | null; quiet: Action[] } {
   const phone = business.mainSite?.phone ?? null;
-  const pages = (business.mainSite?.actions ?? []).map(({ kind, url }): Action => {
-    const label = copy(kind === "book" ? "hosted.action.book" : "hosted.action.quote");
+  const local = (business.offer?.place ?? null) !== null;
+  const pages = (business.mainSite?.actions ?? []).map(({ kind, url, book }): Action => {
+    const label = kind === "quote" ? copy("hosted.action.quote") : bookLabel(book, local);
     return { kind, href: url, label, short: label, glyph: kind === "book" ? "calendar-check" : "clipboard-check" };
   });
   const all: Action[] =

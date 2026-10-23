@@ -33,7 +33,7 @@ import { parse } from "node-html-parser";
 import { registrableDomain } from "@/lib/market/rivals/domains";
 import { isOurPage, type OurPages } from "@/lib/known-content/ours";
 import { pageHeadingPhrases, pagePathWords } from "@/lib/locale/language";
-import { phoneOf, type MainSite, type MainSiteActionKind, type MainSiteLink } from "./main-site-row";
+import { phoneOf, type BookKind, type MainSite, type MainSiteAction, type MainSiteLink } from "./main-site-row";
 import { httpUrl, profilesOn } from "./profiles";
 import { SITE_PROFILE } from "@/lib/config/constants";
 
@@ -159,11 +159,12 @@ export function linkOf(pages: readonly PageLinks[], ours: OurPages, host: string
 
 /** Each kind's words, matched as a whole address segment or as whole words
  *  of the link's own text, in every supported language. */
-const ACTION_WORDS: readonly { kind: MainSiteActionKind; paths: ReadonlySet<string>; phrases: readonly RegExp[] }[] = (
+const ACTION_WORDS: readonly { kind: MainSiteAction["kind"]; paths: ReadonlySet<string>; phrases: readonly RegExp[] }[] = (
   [
     {
       kind: "book",
-      paths: ["book", "booking", "bookings", "book-now", "book-online", "appointment", "appointments", "book-an-appointment"],
+      paths: ["book", "booking", "bookings", "book-now", "book-online", "appointment", "appointments", "book-an-appointment",
+        "book-a-demo", "book-a-call", "book-a-meeting", "book-a-consultation"],
       phrases: ["book", "booking", "appointment", "appointments"],
     },
     {
@@ -180,12 +181,23 @@ const ACTION_WORDS: readonly { kind: MainSiteActionKind; paths: ReadonlySet<stri
   ),
 }));
 
+/** What a book link books, by the first word of its address or text that
+ *  says: a demo, a call, else a visit. */
+const BOOK_WORDS: readonly [Exclude<BookKind, "visit">, RegExp][] = [
+  ["demo", /(?<!\p{L})demo/iu],
+  ["call", /(?<!\p{L})(?:call|consultation|meeting|beratung|gespräch|rückruf)/iu],
+];
+
+function bookKindOf(words: string): BookKind {
+  return BOOK_WORDS.find(([, re]) => re.test(words))?.[0] ?? "visit";
+}
+
 /** The book and quote pages the home's header or nav links on `domain`'s
  *  own site: the first of each kind, and an address once. Without `utm_`
  *  parameters, because a link of ours tracks nothing. */
 function actionsOf(html: string, home: string, domain: string): MainSite["actions"] {
   const site = registrableDomain(domain);
-  const out: { kind: MainSiteActionKind; url: string }[] = [];
+  const out: MainSiteAction[] = [];
   for (const anchor of parse(html, { comment: false }).querySelectorAll("header a[href], nav a[href]")) {
     const address = httpUrl(anchor.getAttribute("href"), home);
     if (address === null) continue;
@@ -199,7 +211,11 @@ function actionsOf(html: string, home: string, domain: string): MainSite["action
       (each) => segments.some((segment) => each.paths.has(segment)) || each.phrases.some((phrase) => phrase.test(text))
     );
     if (rule === undefined || out.some((taken) => taken.kind === rule.kind || taken.url === url.toString())) continue;
-    out.push({ kind: rule.kind, url: url.toString() });
+    out.push(
+      rule.kind === "book"
+        ? { kind: rule.kind, url: url.toString(), book: bookKindOf(`${url.pathname} ${text}`) }
+        : { kind: rule.kind, url: url.toString() }
+    );
   }
   return ACTION_WORDS.flatMap((rule) => out.filter((action) => action.kind === rule.kind));
 }
