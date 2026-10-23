@@ -20,14 +20,16 @@
 // host. A third document in that file would be a third candidate for the
 // same tidy-up. It takes no helper from either of them.
 //
-// **The app policy names no `Disallow`.** Every public route that must not
-// be indexed says so twice already — `robots: { index: false }` from
-// `_seo/routes.ts` and, for the two token paths, `next.config.ts`'s
-// `X-Robots-Tag` — and a `Disallow` would be strictly worse than that: a
-// crawler forbidden to fetch a page never reads the `noindex` on it, and
-// may list the bare address anyway. Blocking is not how a page stays out
-// of an index; `noindex` is. The account container needs no line either —
-// every path under it answers a redirect to `/signin` without a session.
+// **The app policy keeps pages out of the index with `noindex`, not
+// `Disallow`.** Every public route that must not be indexed says so twice
+// already — `robots: { index: false }` from `_seo/routes.ts` and, for the
+// two token paths, `next.config.ts`'s `X-Robots-Tag` — and a `Disallow`
+// would be strictly worse than that: a crawler forbidden to fetch a page
+// never reads the `noindex` on it, and may list the bare address anyway.
+// The account container needs no line either — every path under it answers
+// a redirect to `/signin` without a session. The one `Disallow` is a crawl
+// rule, not an index rule: every `/scans?…` filter variant canonicalises to
+// `/scans`, and fetching each one only loads the database.
 //
 // **The sitemap names the indexable rows and nothing else** — no report
 // address ever (ADR-002 decision 1, REQ-001 c8: "no sitemap the product
@@ -44,10 +46,11 @@ import { sitemapPaths } from "./routes";
  * sitemap by absolute address. The six pinned AI readers take no group of
  * their own here: the pin is a promise about the *hosted* destination
  * (BUILD §9, REQ-059 c4), and naming them again on the app host would be a
- * second, unrequested policy wearing the same list.
+ * second, unrequested policy wearing the same list. A named group added
+ * here must repeat the gallery's `Disallow`, or that reader crawls it.
  */
 export function appRobotsDocument(sitemapUrl: string): string {
-  return `User-agent: *\nAllow: /\n\nSitemap: ${sitemapUrl}\n`;
+  return `User-agent: *\nAllow: /\nDisallow: /scans?\n\nSitemap: ${sitemapUrl}\n`;
 }
 
 /** The five characters XML reserves. Every entry below is composed from a
