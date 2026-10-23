@@ -61,8 +61,10 @@ import {
   DOMAIN_REFUSAL_KEY,
   MARKET_CATEGORY_FIELD,
   MARKET_DOMAIN_FIELD,
+  MARKET_LOCALE_FIELD,
   RIVAL_FIELD,
   RIVAL_REFUSAL_KEY,
+  type LocaleChangeState,
   type MarketChangeState,
   type MarketRemeasureState,
   type RemeasureAnswer,
@@ -164,6 +166,29 @@ export async function saveCategoryAction(form: FormData): Promise<MarketChangeSt
   // pass's step, which is the founder's loader.
   if (started.started) revalidatePath("/app", "layout");
   return { ...stated, remeasure };
+}
+
+/**
+ * SPEC §6 (D66) — the country and language the site is measured and written
+ * in, changed after setup. A pair off the list writes nothing; a changed
+ * pair is measured again at once, under the category's daily bound.
+ */
+export async function saveLocaleAction(form: FormData): Promise<LocaleChangeState> {
+  const { localeFromKey, localeKey } = await import("@/lib/locale/locales");
+  const { readStoredLocale, writeSiteLocale } = await import("@/lib/locale/site");
+  const account = await site();
+  const chosen = localeFromKey(typed(form, MARKET_LOCALE_FIELD));
+  if (chosen === null) return { answer: "refused" };
+  const stored = await readStoredLocale(account.siteId);
+  if (stored !== null && localeKey(stored) === localeKey(chosen)) return { answer: "unchanged" };
+
+  await writeSiteLocale(account.siteId, chosen);
+  revalidatePath(DESTINATION_HREF.settings);
+  const { startRemeasure } = await import("@/lib/scan/deep/remeasure");
+  const started = await startRemeasure({ siteId: account.siteId, domain: account.domain });
+  if (!started.started) return { answer: "saved", remeasure: { started: false, line: refusalLine(started, account.timeZone) } };
+  revalidatePath("/app", "layout");
+  return { answer: "saved", remeasure: { started: true } };
 }
 
 /**
