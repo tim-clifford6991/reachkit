@@ -69,7 +69,7 @@
     "slopless": "0.2.40",
     "sonner": "2.0.8",
     "stripe": "22.6.1",
-    "zod": "4.5.4"
+    "zod": "4.6.7"
   },
   "devDependencies": {
     "@axe-core/playwright": "4.13.0",
@@ -92,5 +92,10 @@
     "typescript": "5.9.3",
     "typescript-eslint": "8.69.0",
     "vitest": "4.1.11"
+  },
+  "overrides": {
+    "inngest": {
+      "zod": "$zod"
+    }
   }
 }
