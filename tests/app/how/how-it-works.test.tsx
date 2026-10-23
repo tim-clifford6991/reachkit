@@ -10,7 +10,7 @@ import { applyEnvFixture } from "../../mail/env-fixture";
 
 applyEnvFixture();
 
-import { BATTERY, CROSS_LINKS, PACE, TRACKED_PROMPTS, VETO, WEEK_PLAN } from "@/lib/config/constants";
+import { ANSWER_RATE_WEEKS, BATTERY, CROSS_LINKS, PACE, TRACKED_PROMPTS, VETO, WEEK_PLAN } from "@/lib/config/constants";
 import { HARD_RULES } from "@/lib/generate/rules/types";
 import { COPY, copy, type CopyKey } from "@/lib/presentation/copy";
 import { COUNTRIES } from "@/lib/locale/locales";
@@ -84,7 +84,7 @@ describe("the head, the four steps and eleven sections in the board's order", ()
   });
 
   it("the four-step strip opens the sections that tell each step", () => {
-    const strip = section("top").slice(section("top").indexOf(copy("how.steps.title")));
+    const strip = section("top").slice(section("top").indexOf(copy("how.steps.jump")));
     const cards = [...strip.matchAll(/<a [^>]*>/g)].map((m) => m[0]).filter((a) => a.includes('class="card '));
     const hrefs = cards.map((a) => /href="([^"]+)"/.exec(a)?.[1]);
     expect(hrefs).toEqual(["#research", "#questions", "#pages", "#found"]);
@@ -111,11 +111,14 @@ describe("every page that answers Does it work in German? names the countries Re
   });
 });
 
-describe("each section has a picture and a closed detail", () => {
-  it("every section holds one *Show the detail*, and nothing on the page starts open", () => {
+describe("each section has a picture, and a closed detail where the board draws one", () => {
+  it("the six board sections and the start hold one *Show the detail*; the head, the week, the value and the questions none", () => {
     const summary = `>${copy("how.detail")}</summary>`;
-    for (const s of sections()) expect(count(s.markup, summary), s.id).toBe(1);
-    expect(count(html, summary)).toBe(11);
+    const withDetail = sections()
+      .filter((s) => count(s.markup, summary) > 0)
+      .map((s) => s.id);
+    expect(withDetail).toEqual(["research", "competitors", "questions", "true", "found", "you-do", "start"]);
+    for (const s of sections()) expect(count(s.markup, summary), s.id).toBeLessThanOrEqual(1);
     expect(html).not.toMatch(/<details[^>]*\sopen/);
   });
 
@@ -133,12 +136,13 @@ describe("each section has a picture and a closed detail", () => {
 });
 
 describe("the Plumber · Software switch, without JavaScript", () => {
-  it("the server markup draws the plumber and not the software firm", () => {
+  it("the server markup draws the plumber's pictures, and the software firm only in the captions under them", () => {
     const shown = text(html);
     expect(shown).toContain(EXAMPLES.plumber.search);
     expect(shown).toContain(EXAMPLES.plumber.page.title);
-    expect(shown).not.toContain(EXAMPLES.software.business);
-    expect(shown).not.toContain(EXAMPLES.software.search);
+    expect(shown).not.toContain(EXAMPLES.software.page.title);
+    expect(shown).not.toContain(EXAMPLES.software.answer);
+    for (const day of EXAMPLES.software.plan) if (day.title !== "") expect(shown).not.toContain(day.title);
     expect(count(html, 'aria-pressed="true"')).toBe(count(html, `>${copy("how.switch.plumber")}</button>`));
   });
 });
@@ -241,5 +245,112 @@ describe("/about reads the founder from stored rows", () => {
     expect(text(unnamed)).not.toContain("built by");
     expect(unnamed).toContain('href="/imprint"');
     expect(unnamed).toContain('href="/how-it-works"');
+  });
+});
+
+describe("each section carries the board's added lines, in its own section", () => {
+  const F = HOW_FACTS;
+  const plumber = EXAMPLES.plumber;
+  const software = EXAMPLES.software;
+  const lower = (t: string): string => t.charAt(0).toLowerCase() + t.slice(1);
+  const cases: [string, string[]][] = [
+    ["top", [copy("how.steps.jump"), copy("how.step.4.when", { week: 1 })]],
+    [
+      "research",
+      [
+        copy("how.research.bullet.voice"),
+        copy("how.research.bullet.correct"),
+        copy("how.research.bullet.fix", { minutes: F.fixMinutes }),
+        copy("how.read.held.free", { minutes: F.fixMinutes }),
+        copy("how.read.caption", {
+          sell: lower(software.read.sell[0]),
+          buyers: lower(software.read.buyers[0]),
+          where: lower(software.read.where[0]),
+        }),
+      ],
+    ],
+    [
+      "competitors",
+      [
+        copy("how.rivals.more", { n: F.googleFirstPage - plumber.results.length }),
+        copy("how.rivals.list.title"),
+        ...plumber.watched,
+        copy("how.rivals.list.more", { n: F.rivals - plumber.watched.length }),
+        copy("how.rivals.list.caption"),
+        copy("how.rivals.other.search", { search: software.search }),
+        copy("how.rivals.other.line", { leader: software.results[0]?.url ?? "", business: software.business }),
+      ],
+    ],
+    [
+      "questions",
+      [
+        copy("how.pick.real"),
+        copy("how.pick.detail.order", { newPages: PACE.NEW_PAGES_PER_WEEK }),
+        copy("how.week.detail.plan", { weekPages: WEEK_PLAN.days }),
+      ],
+    ],
+    ["pages", [copy("how.week.caption", { week: plumber.mail.week }), copy("how.week.skip.why"), copy("how.week.legend.update")]],
+    [
+      "true",
+      [
+        copy("how.true.title"),
+        copy("how.true.bullet.facts"),
+        copy("how.true.bullet.invented"),
+        copy("how.true.bullet.held"),
+        copy("how.true.eyebrow", { business: plumber.business, place: plumber.place }),
+      ],
+    ],
+    [
+      "found",
+      [
+        copy("how.found.title", { week: 1 }),
+        copy("how.mail.why", { why: plumber.mail.why[0] }),
+        copy("how.mail.why", { why: plumber.mail.why[1] }),
+        copy("how.goal.title"),
+        copy("how.goal.badge"),
+        copy("how.goal.linked"),
+        copy("how.goal.caption", { business: plumber.business }),
+        copy("how.monday.mail", { weeks: ANSWER_RATE_WEEKS }),
+      ],
+    ],
+    [
+      "you-do",
+      [
+        copy("how.part.one.line"),
+        copy("how.part.pill.line"),
+        plumber.partPage,
+        copy("how.part.caption", { business: software.business, area: software.area }),
+        copy("how.control.act"),
+      ],
+    ],
+    ["value", [copy("how.value.eyebrow"), copy("how.value.diy.cost.head"), copy("how.value.chart")]],
+    ["start", [copy("landing.field.label"), copy("how.start.caption.other", { business: software.business })]],
+  ];
+
+  it.each(cases)("%s", (id, lines) => {
+    const shown = text(section(id));
+    for (const line of lines) expect(shown, line).toContain(text(line));
+  });
+
+  it("the head, the value and the questions no longer carry the ship-only details", () => {
+    for (const id of ["top", "value", "faq"]) expect(section(id), id).not.toContain(`>${copy("how.detail")}</summary>`);
+  });
+});
+
+describe("the AI sentence states the battery's real numbers (R15)", () => {
+  it("is the sentence built from the constants, and its answers are engines × unbranded questions × weeks", () => {
+    const unbranded = HOW_FACTS.prompts - TRACKED_PROMPTS.SPLIT.branded;
+    const sentence = copy("how.measure.ai", {
+      engines: copy(ENGINES_NAMED),
+      prompts: HOW_FACTS.prompts,
+      weeks: ANSWER_RATE_WEEKS,
+      answers: TRACKED_PROMPTS.ENGINES * unbranded * TRACKED_PROMPTS.RUNS * ANSWER_RATE_WEEKS,
+      unbranded,
+    });
+    expect(text(section("competitors"))).toContain(text(sentence));
+  });
+
+  it("says no month and no single asking anywhere on the page", () => {
+    expect(text(html)).not.toMatch(/every month|once a month|each question once/i);
   });
 });
