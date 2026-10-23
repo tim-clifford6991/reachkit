@@ -187,7 +187,6 @@ describe.each([
     const at = (id: string): number => html.indexOf(`data-testid="${id}"`);
     expect(at("overview-waiting")).toBeGreaterThan(-1);
     expect(at("overview-waiting")).toBeLessThan(at("overview-ladder"));
-    expect(at("overview-ladder")).toBeLessThan(at("overview-tile-content"));
 
     const card = dom.querySelector('[data-testid="overview-waiting"]');
     expect(text(card)).toContain(copy("overview.today.eyebrow", { time: "4:00 PM" }));

@@ -40,9 +40,10 @@ const registered = (on: "tile" | "mail" | "report") =>
 async function shownTiles(): Promise<string[]> {
   const container = document.createElement("div");
   container.innerHTML = renderToStaticMarkup(await OverviewPage());
-  const tiles = container.querySelector('[data-testid="overview-tiles"]');
-  if (tiles === null) throw new Error("no tiles on Overview");
-  return [...tiles.children].map((tile) => tile.getAttribute("data-testid") ?? "(a tile with no test id)").sort();
+  // Board Main draws no tile row (Q12); a tile added later is a test id here.
+  return [...container.querySelectorAll('[data-testid^="overview-tile-"]')]
+    .map((tile) => tile.getAttribute("data-testid") ?? "(a tile with no test id)")
+    .sort();
 }
 
 function shownMailRows(): string[] {
@@ -98,9 +99,7 @@ function shownReportFigures(): string[] {
 
 describe("the measurement registry", () => {
   it("holds every Overview tile, and no tile Overview does not draw", async () => {
-    const tiles = await shownTiles();
-    expect(tiles.length).toBeGreaterThan(0);
-    expect(tiles).toEqual(registered("tile"));
+    expect(await shownTiles()).toEqual(registered("tile"));
   });
 
   it("holds every Monday mail number, and no row the mail does not draw", () => {
