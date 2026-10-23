@@ -69,8 +69,9 @@ export const SEGMENT_FIXTURES: Readonly<Record<string, string>> = {
   /**
    * Issue 1458: one comparison, one teardown and the answer page. Each is
    * the longest of its kind's shapes: a full table, four sections, a FAQ.
+   * The comparison is the one board PubCompareTool draws, chat sketch and all.
    */
-  "[tool]": "moz-competitive-research",
+  "[tool]": "chatgpt",
   "[site]": "plausible",
   "[question]": "free-seo-competitor-analysis-tool",
 };
@@ -121,7 +122,7 @@ export const ROUTE_REFERENCE: Readonly<Record<string, `S${number}`>> = {
    */
   "/compare": "S5",
   /** REFERENCE: S5 (issue 1458) */
-  "/compare/moz-competitive-research": "S5",
+  "/compare/chatgpt": "S5",
   /** REFERENCE: S5 (issue 1458) */
   "/teardowns": "S5",
   /** REFERENCE: S5 (issue 1458) */

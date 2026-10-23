@@ -52,6 +52,12 @@ const RETIRED: readonly { name: string; pattern: RegExp }[] = [
   { name: "from none", pattern: /\bfrom none\b/i },
   { name: "in one click:", pattern: /\bin one click:/i },
   { name: "Payments already made are not refunded", pattern: /(?:^|[.!?]\s+)Payments already made are not refunded unless\b/ },
+  // Up to 7 pages a week, and a week may skip a day: no daily pace and no daily ceiling.
+  { name: "Publishing daily", pattern: /\bPublishing daily\b/i },
+  { name: "one page a day", pattern: /\bone page a day\b/i },
+  { name: "at most one a day", pattern: /\bat most one a day\b/i },
+  // The mail and its page say "unsubscribe".
+  { name: "Opted out", pattern: /\bOpted out\b/ },
   // D3: only week 1 is emailed first. B5: competitors are watched weekly, re-checked monthly. Cancelling runs through Settings.
   { name: "We email each page first", pattern: /\bWe email each page first\b/i },
   { name: "Emailed before it goes live", pattern: /\bEmailed before it goes live\b/i },
@@ -205,6 +211,18 @@ describe("UI strategy: titles and retired names (#1463)", () => {
       "Otherwise your access continues, and payments already made are not refunded unless the law requires it.",
       "anywhere from 1 to 7 days",
     ].map(retiredIn)).toEqual([undefined, undefined, undefined]);
+  });
+
+  it("knows the retired pace and opt-out words", () => {
+    expect(["Publishing daily", "One page a day is a good pace", "Pages go live when ready, at most one a day.", "Opted out", "Publishing on", "Up to 7 pages a week", "Unsubscribed"].map(retiredIn)).toEqual([
+      "Publishing daily",
+      "one page a day",
+      "at most one a day",
+      "Opted out",
+      undefined,
+      undefined,
+      undefined,
+    ]);
   });
 
   it("knows the week-1 mail, cancel and competitor promises, and leaves the true lines alone", () => {

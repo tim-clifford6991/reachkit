@@ -9,12 +9,22 @@ import { applyEnvFixture } from "../../mail/env-fixture";
 
 applyEnvFixture();
 
+// The platform's `waitUntil`: work handed to `after` runs once the response is out.
+const { afterTasks } = vi.hoisted(() => ({ afterTasks: [] as (() => unknown)[] }));
+vi.mock("next/server", () => ({ after: (task: () => unknown) => void afterTasks.push(task) }));
+
+async function drainAfter(): Promise<void> {
+  for (const task of afterTasks.splice(0)) await task();
+}
+
 const { POST } = await import("@/app/api/stripe/webhook/route");
 const { registerSubscriptionHandler } = await import("@/lib/account/provisioning/webhook");
 const { billingSummary, hasActiveAccess, resumeSubscription, setBillingStore } = await import("@/lib/account/billing");
 const { setStripe } = await import("@/lib/account/stripe/client");
 const { memoryBillingStore, newMemoryBilling, account, site, storedUser } = await import("./memory-store");
 const { newStripeDouble, paidInvoiceDouble, stripeDouble, subscriptionDouble } = await import("../stripe-double");
+const { __setVendorTransportForTesting } = await import("@/lib/mail/vendor/resend");
+const { copy } = await import("@/lib/presentation/copy");
 
 const DAY = 24 * 60 * 60 * 1000;
 const PAID = new Date("2026-10-01T09:00:00.000Z");
@@ -23,6 +33,7 @@ const PERIOD_END = new Date(PAID.getTime() + 30 * DAY);
 let state = newMemoryBilling();
 let vendor = newStripeDouble();
 let warnings: string[] = [];
+let mails: { to: string; text: string; key: string }[] = [];
 
 beforeEach(() => {
   vi.useFakeTimers();
@@ -30,6 +41,13 @@ beforeEach(() => {
   vendor = newStripeDouble();
   vendor.verifies = true;
   warnings = [];
+  mails = [];
+  afterTasks.length = 0;
+  __setVendorTransportForTesting(async (payload, key) => {
+    const mail = JSON.parse(payload) as { to: string | string[]; text: string };
+    mails.push({ to: String(mail.to), text: mail.text, key });
+    return { status: 200, headers: {}, body: JSON.stringify({ id: `mail_${mails.length}` }) };
+  });
   setBillingStore(memoryBillingStore(state));
   setStripe(stripeDouble(vendor));
   registerSubscriptionHandler(null);
@@ -43,6 +61,7 @@ afterEach(() => {
   vi.useRealTimers();
   setBillingStore(null);
   setStripe(null);
+  __setVendorTransportForTesting(null);
   vi.restoreAllMocks();
 });
 
@@ -71,8 +90,16 @@ function at(days: number): void {
   vi.setSystemTime(new Date(PAID.getTime() + days * DAY));
 }
 
-/** Delivers one event through the real route and answers its status. */
+/** Delivers one event through the real route, runs what it handed to
+ *  `after`, and answers its status. */
 async function deliver(event: Record<string, unknown>): Promise<number> {
+  const status = await respond(event);
+  await drainAfter();
+  return status;
+}
+
+/** The route's response alone, before any `after` work has run. */
+async function respond(event: Record<string, unknown>): Promise<number> {
   vendor.event = event;
   const response = await POST(
     new Request("https://reachkit.test/api/stripe/webhook", {
@@ -238,6 +265,84 @@ describe("a refund Stripe refuses", () => {
     expect(await deliver(cancelEvent("scheduler"))).toBe(200);
     expect(vendor.refundsCreated).toHaveLength(1);
     expect(await hasActiveAccess("site_scheduler")).toBe(false);
+  });
+});
+
+/** The refund-refused alerts the mail vendor received. */
+function refusedAlerts(): { to: string; text: string; key: string }[] {
+  return mails.filter((mail) => mail.text.includes(copy("mail.ops.incident.refund-refused")));
+}
+
+const REFUSED_USER = "0b9c6a52-3f1e-4c7a-9d2b-5e8f1a4c7d30";
+
+describe("a refund Stripe refuses tells the owner", () => {
+  it("mails one ops alert with the invoice, the account and Stripe's code, and nothing of the customer's; a repeat that day is the same mail", async () => {
+    customer({ id: REFUSED_USER, domain: "northside-plumbing.com" });
+    at(4);
+    vendor.refundError = Object.assign(new Error("Your card was declined."), { code: "charge_disputed" });
+
+    expect(await deliver(cancelEvent(REFUSED_USER))).toBe(200);
+    expect(refusedAlerts()).toHaveLength(1);
+
+    const [alert] = refusedAlerts();
+    expect(alert?.to).toBe("owner@example.com");
+    for (const fact of [`in_${REFUSED_USER}`, REFUSED_USER, "charge_disputed"]) expect(alert?.text).toContain(fact);
+    expect(alert?.text).not.toContain(`${REFUSED_USER}@example.com`);
+    expect(alert?.text).not.toContain("Your card was declined.");
+
+    at(4.5);
+    expect(await deliver(cancelEvent(REFUSED_USER, { eventId: "evt_cancel_again" }))).toBe(200);
+    expect(refusedAlerts()).toHaveLength(2);
+    expect(new Set(refusedAlerts().map((mail) => mail.key)).size).toBe(1);
+  });
+
+  it("hands the alert to after(), so the response does not wait on it and a serverless invocation still sends it", async () => {
+    customer({ id: REFUSED_USER, domain: "northside-plumbing.com" });
+    at(4);
+    vendor.refundError = Object.assign(new Error("stripe is down"), { code: "charge_disputed" });
+
+    expect(await respond(cancelEvent(REFUSED_USER))).toBe(200);
+    expect(afterTasks).toHaveLength(1);
+    expect(refusedAlerts()).toHaveLength(0);
+
+    await drainAfter();
+    expect(refusedAlerts()).toHaveLength(1);
+  });
+
+  it.each([
+    ["refunded", () => at(13)],
+    ["charge_already_refunded", () => { at(3); vendor.refundError = Object.assign(new Error("already refunded"), { code: "charge_already_refunded" }); }],
+    ["outside_window", () => at(15)],
+    ["not_cancelled", () => at(3)],
+    ["store", () => { at(3); state.failAccountRead = true; }],
+    ["refunded_before", () => { at(3); state.refunds.push({ invoice_id: "in_old", user_id: "other", subscription_id: "sub_other", domains: ["schedulepilot.io"], refunded_at: PAID.toISOString() }); }],
+    ["ended", () => { at(3); vendor.cancelError = new Error("stripe is down"); }],
+  ] as const)("%s sends no alert", async (outcome, arrange) => {
+    customer({ id: "scheduler", domain: "schedulepilot.io" });
+    arrange();
+    if (outcome === "not_cancelled") {
+      await deliver({ ...cancelEvent("scheduler"), data: { object: subscriptionDouble({ id: "sub_scheduler", customer: "cus_scheduler", periodEnd: PERIOD_END }) } });
+    } else {
+      await deliver(cancelEvent("scheduler"));
+    }
+    if (outcome === "ended") {
+      vendor.cancelError = null;
+      await deliver(cancelEvent("scheduler", { eventId: "evt_cancel_ended" }));
+      expect(state.refunds).toHaveLength(1);
+      expect(await hasActiveAccess("site_scheduler")).toBe(false);
+    }
+    state.failAccountRead = false;
+    if (outcome === "charge_already_refunded") {
+      expect(state.refunds).toHaveLength(1);
+      expect(await hasActiveAccess("site_scheduler")).toBe(false);
+    }
+
+    // A refused refund after it, so a zero count is not a mail path that never ran.
+    customer({ id: REFUSED_USER, domain: "northside-plumbing.com", paidAt: new Date(Date.now() - DAY) });
+    vendor.refundError = new Error("stripe is down");
+    await deliver(cancelEvent(REFUSED_USER));
+    expect(refusedAlerts()).toHaveLength(1);
+    expect(refusedAlerts()[0]?.text).toContain(`in_${REFUSED_USER}`);
   });
 });
 
