@@ -41,7 +41,8 @@ export async function endSubscriptionNow(
   if (!read.ok || read.account === null) return { ok: false, reason: "store" };
   const account = read.account;
 
-  if (account.stripe_subscription_id !== null) {
+  // A subscription the vendor already reports cancelled has nothing left to stop.
+  if (account.stripe_subscription_id !== null && account.plan_status !== "canceled") {
     try {
       await stripe().subscriptions.cancel(account.stripe_subscription_id);
     } catch {

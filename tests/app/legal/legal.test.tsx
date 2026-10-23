@@ -12,11 +12,14 @@
 //
 // The header and footer are the group layout's (ruling 3a) and have their
 // own suite in `tests/app/chrome/`; nothing here re-tests them.
+import "../../generate/env";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import { copy } from "@/lib/presentation/copy";
+import { VETO, WEEK_PLAN } from "@/lib/config/constants";
+import { REFUND_WINDOW_DAYS } from "@/lib/account/billing/refund";
 import { headingsUnderTitle, parseMarkdown, toHtml } from "@/lib/publish/render/markdown";
 import { LEGAL_BODY_CLASSES, legalBodyHtml } from "@/app/(public)/_legal/LegalPage.tsx";
 import { legalSections } from "@/app/(public)/_legal/sections";
@@ -241,5 +244,41 @@ describe("S5 — the three routes read nothing", () => {
       expect(src, file).not.toMatch(/currentSession|hasActiveAccess/);
       expect(src, file).not.toMatch(/db\b|supabase/i);
     }
+  });
+});
+
+describe("the Terms state the offer the product keeps", () => {
+  const html = renderToStaticMarkup(<TermsPage />);
+  const all = html.replace(/<[^>]*>/g, " ").replace(/&#x27;/g, "'").replace(/&amp;/g, "&").replace(/\s+/g, " ");
+  /** A numbered section's words, from its heading to the next one. */
+  const section = (id: string): string => {
+    const at = html.indexOf(`<h2 id="${id}"`);
+    expect(at, id).toBeGreaterThan(-1);
+    const end = html.indexOf("<h2 ", at + 1);
+    return html.slice(at, end === -1 ? undefined : end).replace(/<[^>]*>/g, " ").replace(/\s+/g, " ");
+  };
+
+  it("§1 says the weekly pace from the plan, never a page every day", () => {
+    expect(all).not.toMatch(/a page every day/i);
+    expect(section("the-service")).toContain(`up to ${WEEK_PLAN.days} pages a week for your site`);
+  });
+
+  it("§5 says the time to stop a page runs from the shortest to the longest window", () => {
+    expect(all).not.toMatch(/from none/i);
+    expect(section("your-content-and-the-pages-we-write")).toContain(`anywhere from ${VETO.minDays} to ${VETO.maxDays} days`);
+  });
+
+  it("§4 and §9 state the automatic refund in the window and keep the rule after it", () => {
+    expect(all).not.toMatch(/in one click/i);
+    const billing = section("price-billing-and-cancellation");
+    expect(billing).toContain(
+      `If you cancel within ${REFUND_WINDOW_DAYS} days of your first payment, we refund that payment in full, automatically`
+    );
+    expect(billing).toContain("ReachKit stops at once");
+    expect(billing).toContain("once for each web address");
+    expect(billing).toContain("Otherwise your access continues to the end of the period you have paid for");
+    expect(section("ending-things")).toContain(
+      `Cancelling takes effect at the end of your paid period, or at once when the ${REFUND_WINDOW_DAYS}-day refund in section 4 applies.`
+    );
   });
 });
