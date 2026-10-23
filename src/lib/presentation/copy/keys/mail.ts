@@ -370,9 +370,16 @@ export const MAIL_COPY = Object.freeze({
   // A hosted address still waiting for its record: no page goes live there
   // until it is connected, so this mail names no moment. Drafted (#759).
   "mail.draftReady.dest.addressNotConnected": [
-    "Your website isn’t connected yet, so this page can’t go live at {site}. Add the one setting shown on your Overview. We check every hour, and it goes live once that works.",
-    { slots: { site: "text" }, fixedBy: "SPEC §5 2026-09-20 (drafted)" },
+    "Your website isn’t connected yet, so this page can’t go live at {site}. Add the one setting below where your domain is managed; it’s on your Overview too. We check every hour, and it goes live once that works.",
+    { slots: { site: "text" }, fixedBy: "R20 2026-10-22 (drafted)" },
   ],
+  "mail.draftReady.dest.addressNotConnected.noRecord": [
+    "Your website isn’t connected yet, so this page can’t go live at {site}. Add the one setting shown on your Overview. We check every hour, and it goes live once that works.",
+    { slots: { site: "text" }, fixedBy: "R20 2026-10-22 (drafted)" },
+  ],
+  "mail.draftReady.record.type": ["Type", { slots: {}, fixedBy: "R20 2026-10-22 (drafted)" }],
+  "mail.draftReady.record.name": ["Name", { slots: {}, fixedBy: "R20 2026-10-22 (drafted)" }],
+  "mail.draftReady.record.value": ["Value", { slots: {}, fixedBy: "R20 2026-10-22 (drafted)" }],
   "mail.draftReady.waiting.subject": [
     "Written, waiting for your website: {title}",
     { slots: { title: "text" }, fixedBy: "SPEC §5 2026-09-20 (drafted)" },

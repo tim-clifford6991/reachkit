@@ -1110,11 +1110,9 @@ export const OVERVIEW_COPY = Object.freeze({
     { slots: {}, fixedBy: "board OverviewDNS · issue 1811 (drafted)" },
   ],
   "overview.connect.wordpress.link": ["Connect WordPress →", { slots: {}, fixedBy: "board OverviewDNS · issue 1811 (drafted)" }],
-  // The board says the mail carries the setting; it does not, so this says
-  // what the mail does (the owner decides on the issue).
   "overview.connect.later": [
-    "Your first page’s mail says where to find it, so you can add it later from a desk.",
-    { slots: {}, fixedBy: "board OverviewDNS · issue 1811 (drafted)" },
+    "The same setting is in your first page’s mail, so you can add it later from a desk.",
+    { slots: {}, fixedBy: "board OverviewDNS · owner R20 2026-10-22" },
   ],
   "overview.connect.page.eyebrow": ["Waiting to go live", { slots: {}, fixedBy: "board OverviewDNS · issue 1811 (drafted)" }],
   "overview.connect.page.line": [

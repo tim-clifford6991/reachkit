@@ -25,6 +25,7 @@ const {
   composePreview,
   composeRetentionPreview,
   composeUnmeasuredWeek,
+  composeWaitingForAddress,
   EVERY_MAIL_KIND,
   NOT_PREVIEWABLE,
   PREVIEW_KINDS,
@@ -164,6 +165,19 @@ describe("issue #376 — the shell renders S20, and every kind the set draws wea
     for (const body of [mail.html, mail.text]) expect(body).toContain("2026-09-14");
 
     writeSample("weekly-unmeasured", mail, "variant");
+  });
+
+  it("the page-ready mail for an unconnected address carries the setting below its line", async () => {
+    const mail = await composeWaitingForAddress();
+    const line = mail.text.indexOf(COPY["mail.draftReady.dest.addressNotConnected"].split("{site}")[0]!);
+    const record = mail.text.indexOf(`${COPY["mail.draftReady.record.type"]}: CNAME`);
+    expect(line).toBeGreaterThan(-1);
+    expect(record).toBeGreaterThan(line);
+    expect(mail.text).toContain(`${COPY["mail.draftReady.record.name"]}: help`);
+    expect(mail.text).toContain(`${COPY["mail.draftReady.record.value"]}: hosted.example.net`);
+    expect(mail.html).toContain("hosted.example.net");
+
+    writeSample("draft-ready-waiting-for-address", mail, "variant");
   });
 
   it("the Monday mail leads with the headline numbers, the pages cited first, and the score is not in it", async () => {
