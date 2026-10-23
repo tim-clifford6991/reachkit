@@ -17,6 +17,7 @@ import { isProtectionName } from "@/lib/measure/challenge";
 import { isPlaceholder } from "@/lib/measure/placeholder";
 import { brandName, domainBrand } from "@/lib/site-profile/site-name";
 import { challengedHomes } from "./challenged";
+import { removalsMark } from "./removal";
 
 export const GALLERY_SORTS = ["newest", "highest", "lowest", "az"] as const;
 export type GallerySort = (typeof GALLERY_SORTS)[number];
@@ -301,11 +302,9 @@ async function holdsAny(category: string): Promise<boolean> {
  */
 async function listingFingerprint(): Promise<string> {
   const [blocks, newest] = await Promise.all([
-    untyped()
-      .from<{ blocked_at: string }>("domain_blocks")
-      .select("blocked_at", { count: "exact" })
-      .order("blocked_at", { ascending: false })
-      .limit(1),
+    removalsMark().catch((e: unknown) => {
+      throw new Error(`gallery: ${e instanceof Error ? e.message : String(e)}`);
+    }),
     untyped()
       .from<{ finished_at: string | null }>("scans")
       .select("finished_at")
@@ -314,9 +313,8 @@ async function listingFingerprint(): Promise<string> {
       .order("finished_at", { ascending: false, nullsFirst: false })
       .limit(1),
   ]);
-  if (blocks.error) throw new Error(`gallery: could not read the removals: ${blocks.error.message}`);
   if (newest.error) throw new Error(`gallery: could not read the newest scan: ${newest.error.message}`);
-  return [blocks.count ?? 0, blocks.data?.[0]?.blocked_at ?? "", newest.data?.[0]?.finished_at ?? ""].join("|");
+  return [blocks, newest.data?.[0]?.finished_at ?? ""].join("|");
 }
 
 // The fingerprint is in the arguments so it is in the key; the read ignores it.

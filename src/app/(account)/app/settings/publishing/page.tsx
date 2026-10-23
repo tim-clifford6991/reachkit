@@ -10,6 +10,8 @@ import type React from "react";
 import type { Metadata } from "next";
 import { copy } from "@/lib/presentation/copy";
 import { readLinkMap, readSettings } from "../provider";
+import { readShell } from "../../_shell/provider";
+import { nextPageOf } from "../next-page";
 import { LinkMapPanel } from "../panels/LinkMapPanel";
 import { PublishingPanel } from "../panels/PublishingPanel";
 
@@ -20,11 +22,11 @@ import { PublishingPanel } from "../panels/PublishingPanel";
 export const metadata: Metadata = { title: copy("meta.app.settings.publishing.title") };
 
 export default async function SettingsPublishingTab(): Promise<React.JSX.Element> {
-  const [settings, linkMap] = await Promise.all([readSettings(), readLinkMap()]);
+  const [settings, linkMap, shell] = await Promise.all([readSettings(), readLinkMap(), readShell()]);
 
   return (
     <div className="flex min-w-0 flex-col gap-6" data-testid="settings-tab-panel-publishing">
-      <PublishingPanel settings={settings} />
+      <PublishingPanel settings={settings} next={nextPageOf(shell, settings.publishing.vetoHours)} />
       {/* Which pages the articles link, and which articles stand alone
           (SPEC §7, 2026-10-10, issue 1391). */}
       <LinkMapPanel map={linkMap} />

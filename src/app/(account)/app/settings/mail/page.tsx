@@ -7,6 +7,8 @@ import type React from "react";
 import type { Metadata } from "next";
 import { copy } from "@/lib/presentation/copy";
 import { readSettings } from "../provider";
+import { readShell } from "../../_shell/provider";
+import { nextPageOf } from "../next-page";
 import { NotificationsPanel } from "../panels/NotificationsPanel";
 
 /** This tab's own `<title>` (#945, #925). Each sibling names itself
@@ -16,11 +18,11 @@ import { NotificationsPanel } from "../panels/NotificationsPanel";
 export const metadata: Metadata = { title: copy("meta.app.settings.mail.title") };
 
 export default async function SettingsMailTab(): Promise<React.JSX.Element> {
-  const settings = await readSettings();
+  const [settings, shell] = await Promise.all([readSettings(), readShell()]);
 
   return (
     <div className="flex min-w-0 flex-col gap-6" data-testid="settings-tab-panel-mail">
-      <NotificationsPanel settings={settings} />
+      <NotificationsPanel settings={settings} next={nextPageOf(shell, settings.publishing.vetoHours)} />
     </div>
   );
 }
