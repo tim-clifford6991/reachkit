@@ -223,16 +223,31 @@ export function DraftScreen(p: {
    *  save is that version's. */
   const liveFlightRef = useRef(false);
   const versionRef = useRef<string | null>(null);
+  /** The newest text held back while a live save is on its way, and whether
+   *  the customer has left: a screen that is gone has no pause to send it. */
+  const heldRef = useRef<DraftText | null>(null);
+  const leftRef = useRef(false);
 
   const save = useCallback(
     (next: DraftText): void => {
       if (liveEdit && versionRef.current === null) {
         // One live save at a time: a second would be refused as the version
         // the first is writing, so the next pause sends it once this lands.
-        if (liveFlightRef.current) return;
+        if (liveFlightRef.current) {
+          heldRef.current = next;
+          return;
+        }
         liveFlightRef.current = true;
         void draftStore.saveLive({ draftId: view.draftId, ...next }).then((result) => {
           liveFlightRef.current = false;
+          const held = heldRef.current;
+          heldRef.current = null;
+          if (result.ok && held !== null && leftRef.current && !sameText(held, next)) {
+            void (result.changed
+              ? draftStore.save({ draftId: result.draftId, ...held })
+              : draftStore.saveLive({ draftId: view.draftId, ...held })
+            ).catch(() => undefined);
+          }
           if (result.ok) {
             if (result.changed) {
               versionRef.current = result.draftId;
@@ -315,7 +330,9 @@ export function DraftScreen(p: {
     savedRef.current = savedText;
   }, [text, savedText]);
   useEffect(() => {
+    leftRef.current = false;
     return () => {
+      leftRef.current = true;
       if (!sameText(textRef.current, savedRef.current)) save(textRef.current);
     };
   }, [save]);

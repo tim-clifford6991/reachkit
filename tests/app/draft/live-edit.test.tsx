@@ -108,6 +108,23 @@ describe("Edit this page on a live page", () => {
     expect(push.mock.invocationCallOrder[0]!).toBeGreaterThan(save.mock.invocationCallOrder[0]!);
   });
 
+  it("leaving while the first live save is on its way sends the later words to the new version once it lands", async () => {
+    let land!: (outcome: unknown) => void;
+    saveLive.mockReturnValue(new Promise((resolve) => (land = resolve)));
+    save.mockResolvedValue({ ok: true, savedAt: new Date("2026-10-23T10:00:00.000Z"), claim: { state: "nothing_to_check" }, recordedChecks: [], rulesFailed: false, entered: false });
+    act(() => el<HTMLButtonElement>("live-edit").click());
+    retitle("First words");
+    await settle();
+    retitle("First words, and more");
+    act(() => root.unmount());
+    expect(save).not.toHaveBeenCalled();
+    await act(async () => land({ ok: true, changed: true, draftId: "d-new", state: "needs_attention", passed: false, told: false }));
+    expect(saveLive).toHaveBeenCalledTimes(1);
+    expect(save).toHaveBeenCalledTimes(1);
+    expect(save).toHaveBeenCalledWith({ draftId: "d-new", title: "First words, and more", bodyMd: VIEW.bodyMd, description: VIEW.description });
+    root = createRoot(container);
+  });
+
   it("Done editing before the live save returns answers when it lands, and opens the new version", async () => {
     let land!: (outcome: unknown) => void;
     saveLive.mockReturnValue(new Promise((resolve) => (land = resolve)));
