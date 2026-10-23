@@ -29,13 +29,13 @@ const NEXT = nextPageOf(
   24
 );
 
-async function mailTab(a: { digestSentAt?: string | null; notify?: Record<string, boolean> } = {}): Promise<Document> {
+async function mailTab(a: { digestSentAt?: string | null; notify?: Record<string, boolean>; climbing?: number } = {}): Promise<Document> {
   db.reset();
   db.seed("users", [{ id: USER, notify: a.notify ?? {} }]);
   db.seed("sites", [{ id: "s1", user_id: USER }]);
   db.seed("scans", [{ id: "w1", site_id: "s1", digest_sent_at: a.digestSentAt ?? null }]);
   const settings = assembleSettings({ ...FIXTURE_SETTINGS_FACTS, notifyPrefs: await readNotifyPrefs(USER) });
-  const html = renderToStaticMarkup(<NotificationsPanel settings={settings} next={NEXT} />);
+  const html = renderToStaticMarkup(<NotificationsPanel settings={settings} next={NEXT} climbing={a.climbing} />);
   return new DOMParser().parseFromString(html, "text/html");
 }
 
@@ -83,6 +83,19 @@ describe("Settings › Mail", () => {
     expect(text(weekly?.querySelector("label"))).toBe("Monday mail: your week’s pages");
     expect(text(weekly)).toContain("What went live, what moved, and the 7 pages planned next.");
     expect(text(weekly?.querySelector('[data-testid="notification-weekly-preview"]'))).toBe("Your week: 7 pages planned Mondays");
+  });
+
+  it.each([
+    ["nothing read yet", undefined, "Your week: 7 pages planned Mondays"],
+    ["read, none climbing", 0, "Your week: 7 pages planned Mondays"],
+    ["one page climbing", 1, "Your week: 7 pages planned, 1 page climbing Mondays"],
+    ["three pages climbing", 3, "Your week: 7 pages planned, 3 pages climbing Mondays"],
+  ])("the week line with %s says how many pages climb, never 0, and names no send time", async (_, climbing, line) => {
+    const weekly = row(await mailTab({ climbing }), "weekly");
+    const preview = text(weekly?.querySelector('[data-testid="notification-weekly-preview"]'));
+    expect(preview).toBe(line);
+    expect(preview).not.toMatch(/\b0 (page|climbing)/);
+    expect(text(weekly)).not.toMatch(/\d{1,2}:\d{2}|\b(AM|PM)\b/);
   });
 
   it("before the first Monday mail, the page-ready row is on, says it runs until that mail, and previews the next page", async () => {

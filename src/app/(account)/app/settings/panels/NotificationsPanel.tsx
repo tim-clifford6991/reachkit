@@ -37,14 +37,22 @@ const INK = "text-base-content/70";
 const WEEKDAYS = planWeek("2026-09-07").map(weekdayShort);
 
 /** What a row says under its name, and the mail it previews, while it is on. */
-function RowBody(p: { row: NotificationRow; vetoHours: number; next: NextPage }): React.JSX.Element | null {
+/** The Monday mail's week line; a climbing count of 0 is left out, never shown. */
+function weekLine(climbing: number): string {
+  const days = String(WEEK_PLAN.days);
+  if (climbing === 1) return copy("settings.notifications.weekly.preview.climbing-one", { days });
+  if (climbing > 1) return copy("settings.notifications.weekly.preview.climbing", { days, n: String(climbing) });
+  return copy("settings.notifications.weekly.preview", { days });
+}
+
+function RowBody(p: { row: NotificationRow; vetoHours: number; next: NextPage; climbing: number }): React.JSX.Element | null {
   if (p.row.kind === "weekly") {
     return (
       <>
         <p className={`text-xs wrap-anywhere ${INK}`}>{copy("settings.notifications.weekly.note", { days: String(WEEK_PLAN.days) })}</p>
         {p.row.on ? (
           <div className="bg-base-200 rounded-box flex min-w-0 flex-col p-3 text-sm" data-testid="notification-weekly-preview">
-            <span className="wrap-anywhere">{copy("settings.notifications.weekly.preview", { days: String(WEEK_PLAN.days) })}</span>
+            <span className="wrap-anywhere">{weekLine(p.climbing)}</span>
             <span className={`text-xs ${INK}`}>{copy("settings.notifications.weekly.when")}</span>
           </div>
         ) : null}
@@ -110,7 +118,8 @@ function WeekOfMail(p: { weekly: boolean; ready: boolean }): React.JSX.Element {
   );
 }
 
-export function NotificationsPanel(p: { settings: SettingsModel; next?: NextPage }): React.JSX.Element {
+/** `climbing` is Overview's ladder count (`pageLadderOf`), 0 where nothing is read. */
+export function NotificationsPanel(p: { settings: SettingsModel; next?: NextPage; climbing?: number }): React.JSX.Element {
   const next = p.next ?? NO_NEXT_PAGE;
   const alwaysOn = writtenLine("settings.notifications.always-on");
   const writer = useSetting();
@@ -163,7 +172,7 @@ export function NotificationsPanel(p: { settings: SettingsModel; next?: NextPage
             >
               <div className="flex min-w-0 flex-col gap-1">
                 <label htmlFor={`notify-${row.kind}`} className="text-sm wrap-anywhere">{copy(row.copyKey)}</label>
-                <RowBody row={row} vetoHours={p.settings.publishing.vetoHours} next={next} />
+                <RowBody row={row} vetoHours={p.settings.publishing.vetoHours} next={next} climbing={p.climbing ?? 0} />
               </div>
               <input
                 id={`notify-${row.kind}`}
