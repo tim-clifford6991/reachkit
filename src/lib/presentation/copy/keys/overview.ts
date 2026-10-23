@@ -153,7 +153,10 @@ export const OVERVIEW_COPY = Object.freeze({
     "rest under {weeks} weeks, too early to judge",
     { slots: { weeks: "text" }, fixedBy: "S12 · REQ-063 c2" },
   ],
-  "overview.tile.pages.means": ["A month of daily pages.", { slots: {}, fixedBy: "REQ-041 c4" }],
+  "overview.tile.pages.means": [
+    "About a month of pages, at up to {days} a week.",
+    { slots: { days: "text" }, fixedBy: "REQ-041 c4 · A1 2026-10-19" },
+  ],
 
   // §4.5's "goal: 6", with the number left to `GOAL_VALUES`.
   "overview.goal": ["goal: {value}", { slots: { value: "text" }, fixedBy: "BUILD §4.5" }],
