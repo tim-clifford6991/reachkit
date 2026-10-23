@@ -1,72 +1,84 @@
-// SPEC §5 (2026-09-20, #908, #924) — the DNS record, after setup.
+// SPEC §5 (2026-09-20, #908, #924) — the DNS record, after setup, in board
+// Setup's order: the record to copy and the press that checks it, what
+// happens after, doing it later, and the week that needs nothing more.
 //
-// The DNS record as its own step **after** setup, with *Do this later*.
-// This reverses the 2026-09-16 ruling (#757) that it be completed on the
-// setup page: setup finishes without it, and a founder who wants to do it
-// now does it here.
+// The provider guides and the check are the blocks Settings draws
+// (`CnameRecord`, `CheckConnection`): the guide sits behind *Show the steps*,
+// and the check speaks this screen's words. *Do this later* is a real way
+// out: the record stays on Overview and in Settings until the host is live.
 //
-// **Nothing on this screen is new machinery.** The numbered steps, the
-// provider lookup, the record table and its copy buttons are
-// `_destination/CnameRecord.tsx`'s — the same block Settings draws — and
-// the check with its countdown is `CheckConnection.tsx`'s. What this file
-// adds is the frame, the two ways onward, and the three-item account of
-// what happens while the founder does it.
-//
-// **Both ways onward lead to the app.** *Do this later* is not a lesser
-// path: the alert under the timeline says so in words, and the record stays
-// reachable from Overview's needs-you and from Settings until the host is
-// live. A founder who presses *Check the connection* and sees it go live
-// reads that on the timeline and then leaves by the same door.
-//
-// daisyUI in the route (DESIGN rule 1): `steps`, `timeline`, `alert`,
-// `btn`; lucide at stroke 1.75. No stylesheet, no wrapper.
-//
-// **It cannot overflow.** One column below `lg` and two above it; the host
-// is a value and is never clamped — it wraps at any character rather than
-// sitting in a scroller, because a value pushed off the edge of a scroller
-// is one a phone user never sees (the owner's ruling on #958).
+// daisyUI in the route (DESIGN rule 1): `card`, `timeline`, `collapse`,
+// `badge`, `btn`; lucide at stroke 1.75. Values wrap rather than scroll
+// (#958).
 "use client";
 
 import type React from "react";
 import Link from "next/link";
 import { useState } from "react";
-import { ArrowRight, Check, Circle } from "lucide-react";
+import { Check, Circle } from "lucide-react";
 import { Surface } from "@/ui/layout";
 import { ENTER_PUBLIC } from "@/ui/motion";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import type { DnsRecord } from "@/lib/publish/setup/cards";
 import type { HostnameState } from "@/lib/publish/destinations/hosted/hostname";
-import { CheckConnection } from "../../_destination/CheckConnection";
-import { CnameRecord } from "../../_destination/CnameRecord";
+import { CheckConnection, type CheckWords } from "../../_destination/CheckConnection";
+import { CnameRecord, CopyValue } from "../../_destination/CnameRecord";
 
-/** Where both controls lead. An internal route name, not a sentence. */
+/** Where both ways out lead. An internal route name, not a sentence. */
 const APP_PATH = "/app";
 
 const ICON = { strokeWidth: 1.75, "aria-hidden": true } as const;
+const QUIET = "text-sm text-base-content/70";
 
-/** The three things that happen, in order. The middle one is where the
- *  founder is until the record resolves; the last is what they are waiting
- *  for. Each is a pair of keys — a title and the line under it — so this
- *  file composes no sentence. */
+/** The three things that happen, in order: reserved is done, the founder
+ *  waits on the middle one, and the last is what they wait for. */
 const STAGES = [
   { id: "reserved", title: "setup.connect.stage.reserved", line: "setup.connect.stage.reserved.line" },
   { id: "waiting", title: "setup.connect.stage.waiting", line: "setup.connect.stage.waiting.line" },
   { id: "live", title: "setup.connect.stage.live", line: "setup.connect.stage.live.line" },
 ] as const satisfies readonly { id: string; title: CopyKey; line: CopyKey }[];
 
-export function ConnectScreen(p: {
-  hostname: string;
-  record: DnsRecord;
-}): React.JSX.Element {
-  // What the founder's own press last said. `undefined` is "not asked" —
-  // the timeline then stands on "waiting", which is what the row says.
+const STEPS = [
+  "setup.connect.steps.1",
+  "setup.connect.steps.2",
+  "setup.connect.steps.3",
+  "setup.connect.steps.4",
+] as const satisfies readonly CopyKey[];
+
+const WEEK_LINES = ["setup.connect.week.1", "setup.connect.week.2", "setup.connect.week.3"] as const satisfies readonly CopyKey[];
+
+const CHECK_WORDS: CheckWords = {
+  button: "setup.connect.check",
+  live: "setup.connect.connected",
+  pending: "setup.connect.notfound",
+  pendingTitle: "setup.connect.notfound.title",
+};
+
+/** Monday to Sunday, in the screen's English (1 January 2024 was a Monday). */
+const WEEKDAYS = Array.from({ length: 7 }, (_, i) =>
+  new Intl.DateTimeFormat("en-US", { weekday: "short", timeZone: "UTC" }).format(new Date(Date.UTC(2024, 0, 1 + i))),
+);
+
+/** The site address a record sits under, and the record's name in it:
+ *  `hostFor` composes every name as `<label>.<address>`. */
+function split(name: string): { label: string; address: string } {
+  const dot = name.indexOf(".");
+  return { label: name.slice(0, dot), address: name.slice(dot + 1) };
+}
+
+export function ConnectScreen(p: { hostname: string; record: DnsRecord }): React.JSX.Element {
+  // What the founder's own press last said; `undefined` is "not asked".
   const [state, setState] = useState<HostnameState | undefined>(undefined);
   const live = state === "live";
+  const { label, address } = split(p.record.name);
+  const rows = [
+    { field: copy("setup.destination.guide.field.type"), value: p.record.type },
+    { field: copy("setup.destination.guide.field.name"), value: label },
+    { field: copy("setup.destination.guide.field.value"), value: p.record.value },
+  ];
 
   return (
-    // Screen enter (#1065): outside both shells, so the screen spends the
-    // public shell's own rise — each section of `<main>`, 60ms apart.
-    <div className={`grid min-h-svh grid-rows-[1fr_auto] ${ENTER_PUBLIC}`}>
+    <div className={ENTER_PUBLIC}>
       <Surface
         arms={{
           compact: { kind: "columns", count: 1 },
@@ -74,60 +86,67 @@ export function ConnectScreen(p: {
           wide: { kind: "same-as-below" },
         }}
       >
-        <main
-          className="grid min-w-0 grid-cols-1 content-start gap-6 p-4 pb-28"
-          data-testid="setup-connect"
-          data-live={live}
-        >
+        <main className="grid min-w-0 grid-cols-1 content-start gap-6 p-4" data-testid="setup-connect" data-live={live}>
           <header className="grid min-w-0 gap-2">
             <p className="eyebrow" data-testid="setup-connect-eyebrow">
               {copy("setup.connect.eyebrow")}
             </p>
             <h1 className="text-2xl font-bold">{copy("setup.connect.title")}</h1>
-            <p className="max-w-prose text-sm text-base-content/70">
-              {copy("setup.connect.lead")}
-            </p>
-            {/* The host is a value: never clamped, never cut, and never in
-                a scroller — a long one wraps where it must. */}
+            <p className="max-w-prose text-sm text-base-content/70">{copy("setup.connect.lead")}</p>
             <span className="num min-w-0 text-sm wrap-anywhere" data-testid="setup-connect-host">
               {p.hostname}
             </span>
           </header>
 
           <div className="grid min-w-0 grid-cols-1 gap-6 lg:grid-cols-2">
-            {/* The record block, under the name it has carried since it
-                stood on the publishing step: what a founder is told to
-                create, and the control that checks it. */}
-            <div className="grid min-w-0 content-start gap-4" data-testid="setup-dns">
-              <CnameRecord record={p.record} {...(state === undefined ? {} : { state })} />
-              {/* Only an answer that actually asked says anything about
-                  the host. "Too soon", "could not ask" and a refusal each
-                  say something about the *request*, and the timeline is
-                  about the record — so they leave it where it was, which
-                  is what the row still says. */}
-              <CheckConnection
-                draft={null}
-                onAnswer={(answer) => {
-                  if (answer.outcome === "asked") setState(answer.state);
-                }}
-              />
-            </div>
+            <section className="card card-border min-w-0 bg-base-100" data-testid="setup-dns">
+              <div className="card-body gap-4 p-5">
+                <h2 className="text-lg font-semibold wrap-anywhere">{copy("setup.connect.record.title", { domain: address })}</h2>
+                <p className={QUIET}>{copy("setup.connect.record.usually")}</p>
+                <div className="grid gap-2" data-testid="setup-record">
+                  {rows.map((row) => (
+                    <div key={row.field} className="flex min-w-0 items-center gap-3 rounded-box bg-base-200 px-3 py-2">
+                      <span className={`w-12 shrink-0 ${QUIET}`}>{row.field}</span>
+                      <span className="num min-w-0 grow wrap-anywhere">{row.value}</span>
+                      <CopyValue text={row.value} name={copy("setup.connect.record.copy", { field: row.field })} />
+                    </div>
+                  ))}
+                </div>
+                <details className="collapse collapse-arrow bg-base-200" data-testid="setup-connect-steps">
+                  <summary className="collapse-title text-sm font-medium">{copy("setup.connect.steps")}</summary>
+                  <div className="collapse-content grid min-w-0 gap-3 text-sm">
+                    <ol className="grid list-decimal gap-1 ps-5">
+                      {STEPS.map((step) => (
+                        <li key={step}>{copy(step)}</li>
+                      ))}
+                    </ol>
+                    {/* The provider's own steps, looked up from the address's nameservers. */}
+                    <details className="min-w-0">
+                      <summary className="link link-primary">{copy("setup.connect.steps.guide")}</summary>
+                      <div className="mt-3 min-w-0">
+                        <CnameRecord record={p.record} {...(state === undefined ? {} : { state })} />
+                      </div>
+                    </details>
+                  </div>
+                </details>
+                {/* Only an answer that asked says anything about the host. */}
+                <CheckConnection
+                  draft={null}
+                  words={CHECK_WORDS}
+                  onAnswer={(answer) => {
+                    if (answer.outcome === "asked") setState(answer.state);
+                  }}
+                />
+              </div>
+            </section>
 
-            {/* A flex column whose card grows (the calm layer's rhythm,
-                #1091): the row stretches both columns to one height, and
-                the card takes what the note under it leaves. */}
-            <aside className="flex min-w-0 flex-col gap-4" data-testid="setup-connect-what">
-              <section className="card card-border min-w-0 grow bg-base-100">
+            <div className="flex min-w-0 flex-col gap-4">
+              <section className="card card-border min-w-0 bg-base-100" data-testid="setup-connect-what">
                 <div className="card-body gap-4 p-5">
                   <h2 className="eyebrow">{copy("setup.connect.what")}</h2>
-                  {/* `timeline-compact` and not `timeline-snap-icon`: the two set the
-                      same custom property, and snap-icon wins by order — it
-                      would leave an empty column where a start side would be. */}
+                  {/* `timeline-compact`, not `timeline-snap-icon`: the two set one property and snap-icon wins. */}
                   <ul className="timeline timeline-vertical timeline-compact">
                     {STAGES.map((stage, index) => {
-                      // Reserved is done the moment the label is theirs.
-                      // Waiting is where they are until a check says live,
-                      // and then live is done and waiting is behind them.
                       const done = index === 0 || (live && index === 2);
                       const current = !live && index === 1;
                       return (
@@ -137,16 +156,15 @@ export function ConnectScreen(p: {
                             {done ? (
                               <Check {...ICON} size={16} className="text-success" />
                             ) : current ? (
-                              // A still dot: the one loop is *Live*'s (#1059).
                               <span className="status status-primary" aria-hidden />
                             ) : (
                               <Circle {...ICON} size={14} className="text-base-content/40" />
                             )}
                           </div>
-                          <div className="timeline-end mb-4 min-w-0 text-start">
-                            <p className="text-sm font-semibold">{copy(stage.title)}</p>
-                            <p className="text-xs text-base-content/70">{copy(stage.line)}</p>
-                          </div>
+                          <p className="timeline-end mb-4 min-w-0 text-start">
+                            <span className="block text-sm font-semibold">{copy(stage.title)}</span>
+                            <span className="block text-xs text-base-content/70">{copy(stage.line)}</span>
+                          </p>
                           {index === STAGES.length - 1 ? null : <hr className={done ? "bg-primary" : ""} />}
                         </li>
                       );
@@ -155,30 +173,45 @@ export function ConnectScreen(p: {
                 </div>
               </section>
 
-              <div role="note" className="alert alert-soft text-sm" data-testid="setup-connect-later">
-                {copy("setup.connect.skipping")}
+              <div className="grid gap-2">
+                <Link className="btn btn-ghost btn-block" href={APP_PATH} prefetch={true} data-testid="setup-connect-later-action">
+                  {copy(live ? "setup.connect.onward.live" : "setup.connect.later")}
+                </Link>
+                {live ? null : (
+                  <p className={QUIET} data-testid="setup-connect-later">
+                    {copy("setup.connect.skipping")}
+                  </p>
+                )}
               </div>
-            </aside>
+
+              <section className="card card-border min-w-0 bg-base-100" data-testid="setup-connect-week">
+                <div className="card-body gap-4 p-5">
+                  <h2 className="text-lg font-semibold">{copy("setup.next.after")}</h2>
+                  <ol className="grid grid-cols-7 gap-1" aria-hidden>
+                    {WEEKDAYS.map((day) => (
+                      <li key={day} className="num rounded-box bg-base-200 py-2 text-center text-xs">
+                        {day}
+                      </li>
+                    ))}
+                  </ol>
+                  <ul className="grid gap-2">
+                    {WEEK_LINES.map((line) => (
+                      <li key={line} className="flex gap-2 text-sm">
+                        <Check {...ICON} size={18} className="mt-0.5 shrink-0 text-success" />
+                        <span>{copy(line)}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </section>
+            </div>
           </div>
+
+          <p className={`text-center ${QUIET}`} data-testid="setup-footer-line">
+            {copy("setup.footer.line")}
+          </p>
         </main>
       </Surface>
-
-      {/* The action bar, outside the `Surface` so it runs edge to edge on a
-          phone — the frame #938 gives every setup screen. A `<footer>` for
-          the reason `SetupForm.tsx` gives at the same row (#328): outside
-          `<main>` by design, and so content in no landmark until it says
-          which one it is. */}
-      <footer className="sticky bottom-0 border-t border-base-300 bg-base-100">
-        <div className="mx-auto flex min-w-0 max-w-5xl flex-wrap items-center justify-between gap-3 p-4">
-          <Link className="btn btn-ghost" href={APP_PATH} prefetch={true} data-testid="setup-connect-later-action">
-            {copy("setup.connect.later")}
-          </Link>
-          <Link className="btn btn-primary" href={APP_PATH} prefetch={true} data-testid="setup-connect-done">
-            {copy(live ? "setup.connect.onward.live" : "setup.connect.onward")}
-            <ArrowRight {...ICON} size={16} />
-          </Link>
-        </div>
-      </footer>
     </div>
   );
 }

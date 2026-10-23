@@ -58,7 +58,6 @@ export const SETUP_COPY = Object.freeze({
     "competitor.com",
     { slots: {}, fixedBy: "S10 · REQ-026 c3" },
   ],
-  "setup.mode.default": ["default", { slots: {}, fixedBy: "S10 · 11a" }],
   "setup.footer.line": [
     "You can reach Settings, cancel or export at any time, without finishing setup.",
     { slots: {}, fixedBy: "S10 · REQ-021 c10" },
@@ -130,12 +129,13 @@ export const SETUP_COPY = Object.freeze({
   // ── Destination (REQ-028) ───────────────────────────────────────────
   // No mode pair and no mode title (SPEC §7, #476): the card is headed with
   // `settings.publishing.title`.
-  "setup.destination.hosted.name": ["Hosted blog", { slots: {}, fixedBy: "REQ-028 c2" }],
-  "setup.destination.hosted": ["a blog on your own domain, served by us", { slots: {}, fixedBy: "REQ-028 c2" }],
-  "setup.destination.wordpress.name": ["WordPress", { slots: {}, fixedBy: "REQ-028 c3" }],
+  "setup.destination.where": ["Where should pages live?", { slots: {}, fixedBy: "board Setup · issue 1738" }],
+  "setup.destination.hosted.name": ["On a new address we run", { slots: {}, fixedBy: "board Setup · issue 1738" }],
+  "setup.destination.hosted": ["One setting, once. Recommended.", { slots: {}, fixedBy: "board Setup · issue 1738" }],
+  "setup.destination.wordpress.name": ["On my WordPress site", { slots: {}, fixedBy: "board Setup · issue 1738" }],
   "setup.destination.wordpress": [
-    "connect later, ask me after the first page",
-    { slots: {}, fixedBy: "REQ-028 c3 · S10 (11a)" },
+    "Pages go live on it. You make us a separate WordPress password.",
+    { slots: {}, fixedBy: "board Setup · issue 1738" },
   ],
   /** Issue 759 (owner ruling 2026-09-16): where that provider is — beside
    *  the record on `/setup` and in Settings. Since issue 760 it is the
@@ -317,8 +317,15 @@ export const SETUP_COPY = Object.freeze({
   // zone from this screen and the founder is taken on to the app. Drafted
   // and shipped under the owner ruling of 2026-09-16 (#759); the owner
   // corrects the wording.
-  "setup.zone.head": ["Setting your time zone.", { slots: {}, fixedBy: "issue 753" }],
+  "setup.zone.head": ["Setting your time zone", { slots: {}, fixedBy: "board SetupZone · issue 1738" }],
   "setup.zone.line": ["ReachKit shows every date in your own time zone, so it needs yours before the app opens. Your browser is telling us now.", { slots: {}, fixedBy: "issue 753" }],
+  "setup.zone.why": ["Why it matters", { slots: {}, fixedBy: "board SetupZone · issue 1738" }],
+  /** `{time}` is the site's own publish time. */
+  "setup.zone.example": ["Goes live {time}, your time", { slots: { time: "text" }, fixedBy: "board SetupZone · issue 1738" }],
+  "setup.zone.example.not": ["Not someone else’s {time}.", { slots: { time: "text" }, fixedBy: "board SetupZone · issue 1738" }],
+  "setup.zone.once": ["This takes a few seconds and happens once. Nothing to press.", { slots: {}, fixedBy: "board SetupZone · issue 1738" }],
+  /** Shown once the browser has said nothing for ten seconds; the support address follows it as a link. */
+  "setup.zone.slow": ["Your browser hasn’t told us its time zone yet. Reload this page. If you still see this, write to", { slots: {}, fixedBy: "board SetupZone · issue 1738" }],
 
   // ── Your voice (SPEC.md §5, 2026-09-12; renamed 2026-09-17, issue 839) ─
   //
@@ -657,16 +664,15 @@ export const SETUP_COPY = Object.freeze({
   // The two ways onward. Neither is a lesser path, and the note beside the
   // timeline says so.
   "setup.connect.later": ["Do this later", { slots: {}, fixedBy: "SPEC §5 2026-09-20" }],
-  "setup.connect.onward": ["Go to your dashboard", { slots: {}, fixedBy: "SPEC §5 2026-09-20" }],
   "setup.connect.onward.live": ["It’s connected. Go to your dashboard", { slots: {}, fixedBy: "SPEC §5 2026-09-20" }],
   "setup.connect.skipping": [
-    "Skipping is fine. Pages are still written, but can’t go live until this setting is added. You’ll find it under Overview and in Settings.",
-    { slots: {}, fixedBy: "SPEC §5 2026-09-20" },
+    "If you do it later, we’ll remind you, and your first page waits for it. The setting is also on your Overview.",
+    { slots: {}, fixedBy: "board Setup · issue 1738" },
   ],
 
   // What happens while the founder does it: three states, each a title and
   // the line under it.
-  "setup.connect.what": ["What happens as you do this", { slots: {}, fixedBy: "SPEC §5 2026-09-20" }],
+  "setup.connect.what": ["After you add it", { slots: {}, fixedBy: "board Setup · issue 1738" }],
   "setup.connect.stage.reserved": ["Your address is reserved", { slots: {}, fixedBy: "SPEC §5 2026-09-20" }],
   "setup.connect.stage.reserved.line": [
     "Nobody else can take it.",
@@ -674,14 +680,53 @@ export const SETUP_COPY = Object.freeze({
   ],
   "setup.connect.stage.waiting": ["We look for the setting", { slots: {}, fixedBy: "SPEC §5 2026-09-20" }],
   "setup.connect.stage.waiting.line": [
-    "We check on our own every hour, and whenever you press Check the connection.",
-    { slots: {}, fixedBy: "SPEC §5 2026-09-20" },
+    "On our own every hour, and whenever you press check now.",
+    { slots: {}, fixedBy: "board Setup · issue 1738" },
   ],
-  "setup.connect.stage.live": ["Your blog goes live", { slots: {}, fixedBy: "SPEC §5 2026-09-20" }],
+  "setup.connect.stage.live": ["Your first page goes live", { slots: {}, fixedBy: "board Setup · issue 1738" }],
   "setup.connect.stage.live.line": [
-    "Usually within minutes of saving the setting. We’ll mail you when it does.",
-    { slots: {}, fixedBy: "SPEC §5 2026-09-20" },
+    "On its day, once the setting is found.",
+    { slots: {}, fixedBy: "board Setup · issue 1738" },
   ],
+
+  // How the address connects: the founder's site, the one setting, the pages.
+  "setup.connect.how.title": ["How it connects", { slots: {}, fixedBy: "board Setup · issue 1738" }],
+  "setup.connect.how.site": ["Your website", { slots: {}, fixedBy: "board Setup · issue 1738" }],
+  "setup.connect.how.site.line": ["Stays exactly as it is.", { slots: {}, fixedBy: "board Setup · issue 1738" }],
+  "setup.connect.how.setting": ["One setting, added once", { slots: {}, fixedBy: "board Setup · issue 1738" }],
+  "setup.connect.how.yours": ["your part", { slots: {}, fixedBy: "board Setup · issue 1738" }],
+  "setup.connect.how.setting.line": ["Where your web address is managed. We show you what to copy.", { slots: {}, fixedBy: "board Setup · issue 1738" }],
+  "setup.connect.how.live": ["Your pages, live", { slots: {}, fixedBy: "board Setup · issue 1738" }],
+  "setup.connect.how.live.line": ["On your own web address. We run it for you.", { slots: {}, fixedBy: "board Setup · issue 1738" }],
+
+  // The record, as three rows to copy, and the steps behind one press.
+  "setup.connect.record.title": ["Copy this where {domain} is managed", { slots: { domain: "text" }, fixedBy: "board Setup · issue 1738" }],
+  "setup.connect.record.usually": ["Usually the company you bought the address from.", { slots: {}, fixedBy: "board Setup · issue 1738" }],
+  /** A copy button's name: `{field}` is the row's own label. */
+  "setup.connect.record.copy": ["Copy {field}", { slots: { field: "text" }, fixedBy: "board Setup · issue 1738" }],
+  "setup.connect.steps": ["Show the steps", { slots: {}, fixedBy: "board Setup · issue 1738" }],
+  "setup.connect.steps.1": ["Sign in where your web address is managed.", { slots: {}, fixedBy: "board Setup · issue 1738" }],
+  "setup.connect.steps.2": ["Open its DNS settings and choose to add a record.", { slots: {}, fixedBy: "board Setup · issue 1738" }],
+  "setup.connect.steps.3": ["Pick the type CNAME, then paste the name and the value above.", { slots: {}, fixedBy: "board Setup · issue 1738" }],
+  "setup.connect.steps.4": ["Save. Come back here and press I’ve added it, check now.", { slots: {}, fixedBy: "board Setup · issue 1738" }],
+  "setup.connect.steps.guide": ["Step by step for the company that manages your web address", { slots: {}, fixedBy: "board Setup · issue 1738" }],
+
+  // The press and its two answers on this screen.
+  "setup.connect.check": ["I’ve added it, check now", { slots: {}, fixedBy: "board Setup · issue 1738" }],
+  "setup.connect.notfound.title": ["Not found yet", { slots: {}, fixedBy: "board Setup · issue 1738" }],
+  "setup.connect.notfound": [
+    "We can’t see the setting yet. A new setting can take a while to reach everyone. We look again on our own every hour, so you can leave this page.",
+    { slots: {}, fixedBy: "board Setup · issue 1738" },
+  ],
+  "setup.connect.connected": [
+    "Connected. Your first page goes live on its day. There’s nothing more for you to do.",
+    { slots: {}, fixedBy: "board Setup · issue 1738" },
+  ],
+
+  // The week after setup. No go-live hour: the address is not connected yet (Q11).
+  "setup.connect.week.1": ["Every Monday we plan up to 7 pages, new or updated. Never filler.", { slots: {}, fixedBy: "board Setup · issue 1738" }],
+  "setup.connect.week.2": ["Each page goes live on its day, by itself.", { slots: {}, fixedBy: "board Setup · issue 1738" }],
+  "setup.connect.week.3": ["You can edit or stop any page before it goes live. You never have to.", { slots: {}, fixedBy: "board Setup · issue 1738" }],
 
   // SPEC §6, owner D66 (issue 1311): the site step's one question — where
   // the site's buyers are and the language they search in, filled with what

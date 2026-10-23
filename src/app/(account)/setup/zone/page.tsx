@@ -16,35 +16,16 @@
 // dates, and there is no zone to state them in yet.
 import type React from "react";
 import { redirect } from "next/navigation";
-import { Globe } from "lucide-react";
-import { Surface } from "@/ui/layout";
-import { copy } from "@/lib/presentation/copy";
 import { requireAppAccount } from "../../app/_session/account";
 import { APP_PATH } from "../gate";
+import { ZoneScreen } from "./ZoneScreen";
 
 export default async function ZonePage(): Promise<React.JSX.Element> {
   const account = await requireAppAccount();
   if (account.timeZone !== null) redirect(APP_PATH);
 
-  return (
-    <Surface
-      arms={{
-        compact: { kind: "columns", count: 1 },
-        medium: { kind: "same-as-below" },
-        wide: { kind: "same-as-below" },
-      }}
-    >
-      <main className="grid content-start gap-4 p-4">
-        <h1>{copy("setup.zone.head")}</h1>
-        <div role="status" className="alert" data-testid={ZONE_TEST_ID}>
-          <Globe aria-hidden size={20} strokeWidth={1.75} />
-          <p>{copy("setup.zone.line")}</p>
-        </div>
-      </main>
-    </Surface>
-  );
+  // The example names the site's own publish time; a read that fails leaves the example out.
+  const { readPublishingSettings } = await import("@/lib/publish/settings/settings");
+  const settings = await readPublishingSettings(account.siteId).catch(() => null);
+  return <ZoneScreen publishTime={settings?.publishTime ?? null} />;
 }
-
-/** Bound to a name before it reaches JSX — the copy sweep's rule. A test
- *  hook, not a word anyone reads. */
-const ZONE_TEST_ID = "setup-zone";

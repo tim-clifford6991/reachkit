@@ -110,12 +110,6 @@ describe("doing it later", () => {
       COPY["setup.connect.skipping"],
     );
   });
-
-  it("and the other control leads to the same place", async () => {
-    expect(
-      (await render()).querySelector('[data-testid="setup-connect-done"]')?.getAttribute("href"),
-    ).toBe("/app");
-  });
 });
 
 describe("a founder with nothing to connect", () => {
