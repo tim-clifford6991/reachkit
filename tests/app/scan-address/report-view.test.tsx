@@ -200,12 +200,12 @@ describe("ruling 1b (2026-09-08) — the driver bars are back, on the header str
   });
 
   it("writes each factor's value in tenths beside its own name, never colour-alone", () => {
-    // The fixture's four parts are 70 / 20 and Presence's halves 30 / 10.
+    // The fixture's four parts are 70 / 20 and Presence's halves 8 / 32.
     for (const [name, tenths] of [
       ["verdict.factor.foundations", "7/10"],
       ["verdict.factor.answerability", "2/10"],
-      ["verdict.factor.google", "3/10"],
-      ["verdict.factor.ai", "1/10"],
+      ["verdict.factor.google", "1/10"],
+      ["verdict.factor.ai", "3/10"],
     ] as const) {
       expect(strip).toContain(name);
       expect(strip).toContain(`>${tenths}<`);
