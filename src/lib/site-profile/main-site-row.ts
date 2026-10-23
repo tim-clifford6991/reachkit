@@ -31,6 +31,10 @@ export interface MainSite {
    *  business's own site, at most one of each and never two at one address.
    *  Empty where it links none, or on a reading stored before. */
   actions: readonly { kind: MainSiteActionKind; url: string }[];
+  /** The phone number the main site states, as it writes it: its
+   *  Organization's `telephone`, else its home's first `tel:` link. `null`
+   *  where it states none, or on a reading stored before. */
+  phone: string | null;
 }
 
 /** One about or team page of the main site, as the scan read it. */
@@ -88,5 +92,14 @@ export function mainSiteOf(value: unknown): MainSite | null {
             : [];
         })
       : [],
+    phone: phoneOf(row.phone),
   };
+}
+
+/** A number as a page may show it: digits with the usual separators, and
+ *  at least six digits, so a stored word is never drawn as a phone. */
+export function phoneOf(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const phone = value.replace(/\s+/g, " ").trim();
+  return /^\+?[\d ()./-]{6,30}$/.test(phone) && (phone.match(/\d/g) ?? []).length >= 6 ? phone : null;
 }

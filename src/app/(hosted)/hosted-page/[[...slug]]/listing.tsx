@@ -21,7 +21,7 @@ import type React from "react";
 import { copy } from "@/lib/presentation/copy/reader";
 import type { HostedPage } from "@/lib/publish/destinations/hosted";
 import { Surface } from "@/ui/layout";
-import { HostedFooter, HostedHeader, type HostedBusiness } from "./chrome";
+import { actionsOf, CompactAction, HostedFooter, HostedHeader, type HostedBusiness } from "./chrome";
 import { indexHref, writeDate } from "./present";
 import { blogSchema } from "./seo";
 
@@ -211,6 +211,9 @@ export function HostedIndex({
             )}
           </>
         )}
+
+        {/* E8: the index asks once, under its guides, where a phone is stored. */}
+        {actionsOf(business).primary?.kind === "call" ? <CompactAction business={business} /> : null}
       </main>
 
       <HostedFooter business={business} />
