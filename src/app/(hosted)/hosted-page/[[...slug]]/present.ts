@@ -10,6 +10,9 @@
  */
 export { writePageDate as writeDate } from "@/lib/publish/render/byline";
 
+/** The feed, on the customer's own host (`../rss.xml`). */
+export const FEED_PATH = "/rss.xml";
+
 /** The index's own address for one page of one search. The first page of
  *  no search is the bare root. */
 export function indexHref(query: string, page: number): string {
