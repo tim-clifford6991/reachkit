@@ -24,5 +24,8 @@ export function paidThroughOf(subscription: Stripe.Subscription): Date | null {
     .map((item) => item.current_period_end)
     .filter((end): end is number => typeof end === "number");
   if (ends.length === 0) return null;
-  return new Date(Math.max(...ends) * 1000);
+  // A subscription ended early (an immediate cancel) is paid only to its end.
+  const end = Math.max(...ends);
+  const ended = subscription.ended_at;
+  return new Date((typeof ended === "number" && ended < end ? ended : end) * 1000);
 }

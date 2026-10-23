@@ -39,8 +39,17 @@ every two hours) and receives every merge, the same as dev (no freeze, owner 202
 `/api/jobs` is served by production, so a job or pass change takes effect only once production is
 deployed. `Vercel` is not a check: Git deployments are off (`vercel.json` `git.deploymentEnabled: false`).
 
+Every production deploy is one line in `/root/ops/reachkit/state/prod-redeploy.log`, from the
+deployer or from `bin/redeploy.sh`. The line carries the UTC date and time, the target, main's
+full SHA at the call, the deployment id, the trigger (`deployer` or `hand`) and the reason. The
+deployer writes `main moved`; `redeploy.sh --reason "<why>"` writes the reason it is given. Both
+write `state/deploy-prod.sha`, so the deployer never deploys the same SHA again. The deployer
+starts production only at :10–:40, so the build is Ready before the hourly jobs fire. Once the
+build is Ready, either script `PUT`s `https://reachkit.app/api/jobs` to sync Inngest and logs
+`inngest sync <code>` against the deployment id.
+
 The owner tests the path live on `dev.reachkit.app` for taste and for the stranger walk. Conditions and screen strategy are already the gates (`docs/PROCESS.md` Coherence, `docs/DESIGN.md`). This live pass is not a second check of those. A merged migration is applied through the
-Supabase connector after the target deploy is READY, then the path is walked again
+Supabase connector in the order §9 gives, then the path is walked again
 (`scripts/smoke.sh` / `scripts/land.sh`).
 
 ### Rolling back a deploy: we do not
@@ -70,7 +79,7 @@ next one, silently. Nothing in a deploy checks it.
 
 | | |
 |---|---|
-| `bin/redeploy.sh`, `bin/deploy-dev-once.sh`, `bin/deployer.sh` | **Cannot.** All three POST `gitSource.ref: "main"` — the tip of `main` at the moment of the call. None takes a commit, a ref or a deployment id, so no script on this box can put an older build on `reachkit.app`. This is already protected, by having no argument to abuse |
+| `bin/redeploy.sh --reason "<why>"`, `bin/deploy-dev-once.sh`, `bin/deployer.sh` | **Cannot.** All three POST `gitSource.ref: "main"` — the tip of `main` at the moment of the call. None takes a commit, a ref or a deployment id, so no script on this box can put an older build on `reachkit.app`. This is already protected, by having no argument to abuse |
 | Vercel — the dashboard's rollback/promote control, `vercel rollback`, `vercel promote`, `POST /v1/projects/{id}/rollback/{dpl}`, `POST /v10/projects/{id}/promote/{dpl}` | **Can.** Production deployments are retained and the previous one is flagged a rollback candidate; promoting it re-aliases `reachkit.app` with no rebuild, in one click. Nothing prevents it. This door stays shut by decision, not by a guard — do not walk through it |
 | A deploy that fails to build | **Not a rollback at all.** A failed build is never aliased: `reachkit.app` keeps serving the build it already had. Nothing was reverted because nothing was replaced |
 
@@ -86,69 +95,19 @@ what an older build silently loses. It buys back one click that has never been n
 
 ### Where CI runs
 
-Owner, 2026-09-25 (#1113); the rules are in `docs/PROCESS.md` Gates. The light jobs — `what
-changed`, `typecheck · lint · unit`, `schema · RLS` and `audit` — take their runner from the
-repository variable `CI_LIGHT_RUNNER`. Unset, they run GitHub-hosted and in parallel. Set to
-`["self-hosted","reachkit-light"]`, they run on the box's second runner. On a pull request that
-can change a screen, the browser job runs GitHub-hosted (`ubuntu-latest`, owner 2026-10-20). It
-runs on `reachkit-box` (label `reachkit`, the only box runner that takes it, so two box sweeps
-never run at once) when `CI_LIGHT_RUNNER` is set or `CI_BROWSER_ON_BOX` is set. Where no screen
-can change (`scripts/ci-changes.mjs`), the browser job is a light job that prints its reason and
-passes. `Nightly` (`.github/workflows/layout-nightly.yml`) runs every job on `main` at 02:41 UTC,
-and every job off a pull request (the nightly, a dispatch) runs on `reachkit-box`, so it costs no
-hosted minutes. A red nightly opens or comments on one issue titled `[nightly] full run on main
-is red`. `what changed` runs `scripts/ci-runners/where.sh`, which prints where each job goes
-and why.
+Owner, 2026-10-22: the repository is public, so every job runs on GitHub-hosted `ubuntu-latest`,
+which public repositories get without a minutes cap. A self-hosted runner on a public repository
+would run a fork's pull request on this box, so all three box runners (`reachkit-box`,
+`reachkit-light`, `reachkit-light-2`) are deregistered from the repository, not only stopped, and
+the variables `CI_LIGHT_RUNNER` and `CI_BROWSER_ON_BOX` are deleted. The `rk-ci-switch` and
+`rk-runner-watchdog` timers are already disabled. A pull request from a fork waits for approval
+before any workflow runs (`all_external_contributors`), and the default token is read-only. No
+variable chooses a runner; `runs-on` is written in each workflow. Where no screen can change
+(`scripts/ci-changes.mjs`), the browser job prints its reason and passes. `Nightly`
+(`.github/workflows/layout-nightly.yml`) runs every job on `main` at 02:41 UTC; a red run opens or
+comments on one issue titled `[nightly] full run on main is red`.
 
-| Do | Command |
-|---|---|
-| light jobs to the box (hosted jobs fail with *"recent account payments have failed or your spending limit needs to be increased"*) | `gh variable set CI_LIGHT_RUNNER --body '["self-hosted","reachkit-light"]'` |
-| light jobs back to hosted | `gh variable delete CI_LIGHT_RUNNER` |
-| see which | `gh variable list` (no `CI_LIGHT_RUNNER` = hosted) |
-| browser sweep to the box (hosted sweeps queue, fail or cost too much) | `gh variable set CI_BROWSER_ON_BOX --body 1` |
-| browser sweep back to hosted | `gh variable delete CI_BROWSER_ON_BOX` |
-| see where the sweep went | `gh variable list` (no `CI_BROWSER_ON_BOX` and no `CI_LIGHT_RUNNER` = hosted on a pull request), or the `browser_hosted=` line of `what changed` |
-
-**The runners on the box.** Both run as `ghrunner`, one directory each under `/home/ghrunner`:
-
-| Runner | Labels | systemd unit | Limits |
-|---|---|---|---|
-| `reachkit-box` | `self-hosted, reachkit` | `actions.runner.tim-clifford6991-reachkit.reachkit-box.service` | drop-in `nice.conf`: `Nice=15`, cores 0–1 |
-| `reachkit-light` | `self-hosted, reachkit-light` | `actions.runner.tim-clifford6991-reachkit.reachkit-light.service` | drop-in `limits.conf`: `MemoryMax=3G`, `MemorySwapMax=1G`, `Nice=19`, `CPUWeight=20`, `IOWeight=20` |
-
-`reachkit-light` has no `reachkit` label, so a browser sweep never lands on it. To recreate it, run
-`sudo bash scripts/ci-runners/install-light-runner.sh` from a checkout, as root. It copies the
-first runner's binaries, registers the new runner with a registration token, installs the service
-and writes the limits. The script's header says how to remove it. If a typecheck on it is
-killed for memory, the ceiling is too low for that job. Raise `MemoryMax` in the drop-in, keeping
-`rk-guard`'s 1.2 GB available-memory floor in mind.
-
-**The minutes switch.** `rk-ci-switch.timer` runs `/root/ops/reachkit/bin/ci-minutes-switch.sh`
-hourly, beside `rk-deployer` and `rk-guard`, and logs every flip to
-`/root/ops/reachkit/log/ci-switch.log`:
-
-- **To the box:** it sets `CI_LIGHT_RUNNER` when a hosted job this cycle was refused for
-  billing, or at 90% or more of the cycle's included Actions minutes. A billing refusal is a
-  failed payment or the spending limit, and minutes have nothing to do with it (#1119). It
-  records the cycle and which of the two it was in `/root/ops/reachkit/state/ci-switch`.
-- **Back to hosted, after minutes:** only in a new cycle (day `RK_CI_RESET_DAY` of the month,
-  UTC), with the minutes readable and below 90%, and with the last hosted job not refused for
-  billing. Minutes it cannot read count as unavailable.
-- **Back to hosted, after billing: by hand only**, once Billing & plans is fixed. Run
-  `gh variable delete CI_LIGHT_RUNNER` and `rm /root/ops/reachkit/state/ci-switch`. A failed
-  payment does not reset with the month.
-- **A value set by hand is left alone.** The owner set `["self-hosted","reachkit-light"]` on
-  2026-10-20 07:54Z. The orchestrator deleted it at ~08:12Z and light jobs run GitHub-hosted
-  again; a unit job also ran out of memory on `reachkit-light` at `MemoryMax=3G` (08:19Z).
-  `reachkit-light` stays installed as the fallback only.
-
-To recreate it, run `sudo bash scripts/ci-runners/install-minutes-switch.sh`. It ends with a dry
-run, which says what the switch can read.
-
-**What it cannot read yet.** The minutes are `GET /users/tim-clifford6991/settings/billing/actions`,
-which needs the `user` scope. The box's `gh` token lacks it. Until someone runs
-`gh auth refresh -h github.com -s user` as root, the switch cannot flip at 90%. It still flips to
-the box on a billing refusal, and it never flips back by itself.
+Never register a self-hosted runner on this repository while it is public.
 
 ---
 
@@ -260,12 +219,12 @@ not in it is unreachable over HTTP. `src/jobs/client.ts` is the only file that n
 | Job | Trigger | Does | In the kill switch |
 |---|---|---|---|
 | `scan/run` | event `scan/run` | the one pipeline; tier is a parameter | ● |
-| `draft/generate` | cron `0 * * * *` | next opportunity → pipeline → `in_review`, veto clock starts, daily mail. The tick is hourly; a site's page for a date is written in the hour whose start plus its veto window is at, or less than an hour before, that date's publish time in the site's zone (#1337). The tick sends each due site as `draft/generate/subject`, keyed `draft:{site}:{date}`, to its own run (`draft-generate-subject`): one per site, five at once, ten starts a minute; steps `notice`, `select`, `write`, `review`. A day owed with nothing recorded in `draft_days` is sent on the next tick while its window is open | ● |
+| `draft/generate` | cron `3 * * * *` | next opportunity → pipeline → `in_review`, veto clock starts, daily mail. The tick is hourly; a site's page for a date is written in the hour whose start plus its veto window is at, or less than an hour before, that date's publish time in the site's zone (#1337). The tick sends each due site as `draft/generate/subject`, keyed `draft:{site}:{date}`, to its own run (`draft-generate-subject`): one per site, five at once, ten starts a minute; steps `notice`, `select`, `write`, `review`. A day owed with nothing recorded in `draft_days` is sent on the next tick while its window is open | ● |
 | `publish/execute` | event `publish/execute` | state machine → destination | ● |
 | `publish/verify` | event `publish/verify`, +24h | liveness checks on a published page | |
 | `publish/retry` | cron `0 * * * *` | claims failed pages whose retry moment has come round | ● |
-| `weekly/refresh` | cron `0 * * * *` | weekly scan per active site, gated on that site's local Monday. The tick's step is `due`; each due site is sent as `weekly/refresh/subject`, keyed `weekly:{site}:{week}`, to its own run (`weekly-refresh-subject`, bounded as the draft one), whose steps are `measure-…`, up to three `late-answers-…` (free reads of queued answers, #1160), `search-…` and `tell-…` | (stopped inside the run, not by the runner) |
-| `lead/nurture` | cron `0 * * * *` | advances sequences over `next_touch_at` | |
+| `weekly/refresh` | cron `41 * * * *` | weekly scan per active site, gated on that site's local Monday. The tick's step is `due`; each due site is sent as `weekly/refresh/subject`, keyed `weekly:{site}:{week}`, to its own run (`weekly-refresh-subject`, bounded as the draft one), whose steps are `measure-…`, up to three `late-answers-…` (free reads of queued answers, #1160), `search-…` and `tell-…` | (stopped inside the run, not by the runner) |
+| `lead/nurture` | cron `26 * * * *` | advances sequences over `next_touch_at` | |
 | `account/maintenance` | cron `*/15 * * * *` | five due-work queries: a payment awaiting sign-in, a payment with no account, a hosting-end notice, a hosting stop, an account due for purge | |
 | `scan/rescore` | cron `7,22,37,52 * * * *` | answers the oldest `rescore_runs` request: every stored scan and rival set scored again, dry or applied (issue 1433, "Re-scoring every stored scan" below). Steps: `claim`, then `answer-<id>`; `skipped` / `no-subject` when nothing is asked | |
 | `scan/finish-reads` | event `scan/finish-reads` | sent by a free pass that stored a report with searches it chose and did not read (issue 1440): reads only those, once, inside the free cap the pass already spent from, and rewrites the report through `rescore_scan`. Step: `finish`; `degraded` where a search failed again, `skipped` / `no-subject` where the report has nothing left to finish. Log line `finish_reads` | ● |
@@ -498,8 +457,8 @@ Per-stage *timing* is `sites.setup_stage_times`, one instant per stage, written 
 1. the job line — `{"event":"job","jobId":"scan/run","outcome":…}`: `ran`, or `degraded` naming the
    step it stopped at;
 2. the supply line — `{"event":"supply_pass","tier":…,"added":…,"unused":…}`: `unused` is the
-   writable days out of `PLAN_DEPTH` (a week of seven and three spares), after the 0¢ refill;
-   `{"event":"supply_refill",…,"short":true}` says the stored questions ran out first. The week
+   writable days out of `PLAN_DEPTH` (a week of seven and three spares); below it, the evidence
+   and the stored questions ran out first. The week
    itself is committed by the first evening run (`{"event":"week_planned",…}`) and, after that,
    every Monday;
 3. `sites.setup_released_reason` — `completed`, `degraded`, `failed` or `deadline`;
@@ -855,6 +814,12 @@ and Stripe Checkout's branding are owner steps in `docs/runbooks/brand-in-inboxe
 answers `not-composable`, and the attempt is logged. This is the ruling of 2026-09-05 — a mail
 never ships a placeholder — and it is why the ops alerts in §5 and §7 are currently silent. The
 fix for every one of them is the owner writing the copy key, never a code change.
+
+**The refund-refused alert.** When Stripe refuses an automatic 14-day refund, the webhook still
+answers 200 and access is unchanged, and `OWNER_EMAILS` gets one incident mail (*"Stripe refused an
+automatic 14-day refund…"*) with the invoice, the account id and Stripe's error code, beside the log
+line `billing_refund outcome=vendor`. Stripe does not redeliver a 200, so refund that invoice by hand
+(`docs/walk/refund.md`).
 
 Failed and unsent mail is visible in two places: Resend's own dashboard for what left, and the
 runtime log for what did not (`event: "spend_alert_failed"`, and the per-kind `*_not_sent` lines).
@@ -1219,7 +1184,10 @@ which is how the original 38 were applied (in five chunks) and how every one sin
 
 The procedure, per migration:
 
-1. Land the PR. The migration is in `main`.
+1. Land the PR. The migration is in `main`. Expand before the deploy; contract after the old
+   code is gone. An expand-only migration is applied before the deploy whose code reads it. Any
+   other migration is applied after the target deploy is READY (`docs/PROCESS.md` › Current, four
+   steps 4).
 2. Re-read the file and paste it into the Supabase SQL editor on the `reachkit` project. One
    migration per run, in filename order, oldest first.
 3. Re-read the **security and performance advisors** afterwards. A new `plpgsql` function without
@@ -1536,8 +1504,8 @@ deployment (`dpl_2NEUXishMXAkzXG4Ti85yTy7NDda`, 23 Aug 2026).
 | someone is asking to roll back | §1 — the scripts cannot; Vercel can, and must not. Why is there |
 | "is not readable by this build" in a log | §1 — an older build is reading a newer report. Deploy `main`, do not roll back further |
 | how long would a restore take | §9 — unknown until the drill runs. Enabling it and running it are the owner's |
-| CI jobs fail with a billing or spending-limit error | §1 *Where CI runs* — one `gh variable set` sends the light jobs to the box |
-| a check sits in *queued* for hours | §1 *Where CI runs* — is the runner its label names online? `gh api repos/tim-clifford6991/reachkit/actions/runners` |
+| CI jobs fail with a billing or spending-limit error | §1 *Where CI runs* — CI runs on GitHub-hosted runners, which a public repository gets without a minutes cap. The box runners are deregistered and must never be re-registered while the repository is public |
+| a check sits in *queued* for hours | §1 *Where CI runs* — no self-hosted runner exists, so a job waiting on a `self-hosted` label means a workflow regressed: fix that workflow's `runs-on`, never register a runner. `gh api repos/tim-clifford6991/reachkit/actions/runners` must read `total_count: 0` |
 | `Vercel` fails on every PR | §1 — the Hobby plan's 100 builds a day. It is not a required check; nothing is blocked |
 
 ---

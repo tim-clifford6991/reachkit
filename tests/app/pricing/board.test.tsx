@@ -53,7 +53,7 @@ describe("board Pricing — the head and the plan card", () => {
     expect(top()).toContain(copy("pricing.buys", { price }));
     for (const figure of [
       `up to ${WEEK_PLAN.days} pages a week, new or updated`,
-      `up to ${BATTERY.COMPETITORS_MAX} competitors checked every Monday`,
+      `up to ${BATTERY.COMPETITORS_MAX} competitors watched every Monday`,
       "1 email every Monday: what went live, what moved",
       `${HOW_FACTS.setupMinutes} min of your time, once`,
     ]) {
@@ -89,11 +89,33 @@ describe("board Pricing — the head and the plan card", () => {
     expect(report).toContain(copy("offer.cancel_self_service"));
     expect(report).not.toContain(copy("pricing.plan.cancel"));
     expect(report).not.toContain(copy("pricing.plan.billing", { price }));
-    expect(top()).not.toContain(copy("offer.cancel_self_service"));
+    // The report's line is the first sentence of the pricing card's own, so it is read outside that one.
+    expect(top().replace(copy("pricing.plan.cancel"), "")).not.toContain(copy("offer.cancel_self_service"));
   });
 
   it("shows no guarantee while the launch gate is shut (owner 2026-10-20, Q13)", () => {
     expect(text(html)).not.toMatch(/money-back|refund|change your mind/i);
+  });
+});
+
+describe("board Pricing — only week 1 is emailed first (D3)", () => {
+  const page = text(html);
+
+  it("says what week 1 emails, what follows, and that a page is yours to stop", () => {
+    expect(page).toContain("In week 1 we email each page. After that, the Monday email lists the week’s pages.");
+    expect(page).toContain("Edit or stop it before it goes live");
+    expect(page).toContain(`Each page goes live ${VETO.defaultHours} hours after it is written, unless you stop it.`);
+    expect(page).toContain("Written, goes live unless you stop it");
+    expect(page).toContain(`up to ${BATTERY.COMPETITORS_MAX} competitors watched every Monday`);
+  });
+
+  it("promises no mail before every page, and no one-click cancel on the report's card", () => {
+    for (const old of ["We email each page first", "Emailed before it goes live", "after we email it", "Emailed to you", "competitors checked"]) {
+      expect(page).not.toContain(old);
+    }
+    const report = text(renderToStaticMarkup(<PricingCard />));
+    expect(report).toContain("Cancel any time from Settings.");
+    expect(report).not.toMatch(/one click/i);
   });
 });
 

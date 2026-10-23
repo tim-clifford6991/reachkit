@@ -1,3 +1,23 @@
 harborplumbing.com	sample data
 help.harborplumbing.com/shut-off-water-house opens in a new tab	sample data
 help.harborplumbing.com/shut-off-water-house	sample data
+How to shut off water to a house in an emergency	sample data
+Live since 5 October Climbing	sample data
+11 place for how to shut off water to a house	sample data
+Up 30 places since 5 October, one place from the first page.	sample data
+3 visits from Google this week. Read Monday 19 October.	owner R19 2026-10-22 (docs/spec/decisions/2026-10-22-1749.md): visits are read over the stored 28-day window, so the line says "in the last 28 days"
+shaded band: Google’s first page	#1749: drawn with the chart, from two readings; tests/app/draft/live.test.tsx renders it
+Live Oct 5	sample data
+Found by Google Oct 7	sample data
+Showing in results place 41 → 11	sample data
+4 First page not yet	#1749: the step's number is daisyUI steps' own counter, not text; tests/app/draft/live.test.tsx reads the step
+Read by AI Oct 8 · ChatGPT	sample data
+Linked by AI Oct 16 · Google AI Mode	sample data
+3 Visit from AI not yet	#1749: the step's number is daisyUI steps' own counter, not text; tests/app/draft/live.test.tsx reads the step
+What happens next: it is still climbing, so we leave it alone. If it stops gaining for 3 weeks, it gets an update that closes the gap to the pages above it. Nothing is needed from you.	owner R19 2026-10-22 (docs/spec/decisions/2026-10-22-1749.md): "If it starts losing places" (the lost_position refresh cause); no rule implements "stops gaining for 3 weeks"
+People in Austin ask this when a pipe bursts, and AI answers were linking to a competitor’s guide for it.	sample data
+how to shut off water to a house	sample data
+about 1,900 in the US	sample data
+a national plumbing chain’s page, then your page	sample data
+Harbor Plumbing · Austin How to shut off water to a house in an emergency Find the main valve where the water line enters the house, often in the garage. Turn it clockwise until it stops. 1. Find the main valve 2. If the valve is stuck 3. Call, and say what you see	sample data
+Theme: light	#1744: the app shell's theme control, which that issue changes for every /app board

@@ -145,6 +145,13 @@ export function isWeeklyDue(a: SiteZone): boolean {
   return local.weekday === WEEK_START_INDEX && local.hour === WEEKLY_DUE_HOUR_LOCAL;
 }
 
+/** The site's own week has begun once its Monday due hour has arrived, and stays begun until the next Monday. */
+export function weekHasBegun(a: SiteZone): boolean {
+  const local = localClock(a.at, a.zone);
+  const start = weekStartFor(a);
+  return local.date > start || (local.date === start && local.hour >= WEEKLY_DUE_HOUR_LOCAL);
+}
+
 /**
  * The offset `zone` was at, at `instant`, in milliseconds.
  *

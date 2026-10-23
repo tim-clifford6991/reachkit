@@ -135,6 +135,8 @@ const { runScan } = await import("../../../src/lib/scan/run");
 const { withStoredPassSpend } = await import("../../../src/lib/scan/ceilings");
 const { deriveForPass } = await import("../../../src/lib/opportunities/pass");
 const { setOpportunityStore } = await import("../../../src/lib/opportunities/store");
+const { inferRivals } = await import("../../../src/lib/market/infer/infer");
+const { marketEvidence } = await import("../../../src/lib/scan/market-evidence");
 
 /** One site of a stored panel run, as far as this suite reads it. */
 interface PanelRun {
@@ -480,10 +482,17 @@ describe("a weekly pass whose measurement would spend its whole cap", () => {
     expect(typing.capHit).toBe(false);
   });
 
-  it("the derivation after the stored report, opened at the line, gets every call it makes and closes inside the cap", async () => {
-    // The panel run whose fit judgement cost the most: the German bakery, its own market, searches and SERPs.
-    const RUN = "2026-10-10-1374";
-    const site = (JSON.parse(readFileSync(`docs/walk/panel/${RUN}.json`, "utf8")) as { sites: PanelRun[] }).sites[0]!;
+  const panel = (run: string): PanelRun[] => (JSON.parse(readFileSync(`docs/walk/panel/${run}.json`, "utf8")) as { sites: PanelRun[] }).sites;
+
+  /** A panel site's derivation after the stored report, from a context opened
+   *  at the line; `after` spends next on the same context, as the weekly pass does. */
+  async function deriveAtTheLine(a: {
+    site: PanelRun;
+    /** Whether the topics the run held carry last week's fit, as a usual week's do. */
+    heldJudged: boolean;
+    after?: (cost: CostContext, report: StoredReport, market: MarketConclusion) => Promise<void>;
+  }) {
+    const { site } = a;
     const evidence: { source: string; cache_key: string; payload: SerpResult[] | null }[] = JSON.parse(
       readFileSync(`scripts/panel/evidence/${site.site.domain}.json`, "utf8")
     );
@@ -519,9 +528,9 @@ describe("a weekly pass whose measurement would spend its whole cap", () => {
     };
     // What buyers were seen asking beside those searches is what the model writes back as their searches.
     const phrased = [...new Set(serps.flatMap((one) => [...(one.peopleAlsoAsk ?? []), ...(one.relatedSearches ?? [])]))];
-    // The topics the run held stay open and unjudged, so the fit judges them again beside this pass's.
+    // The topics the run held stay open; unjudged, the fit judges them again beside this pass's.
     const state = newMemoryState({
-      rows: (site.topics ?? []).map((topic, n) => ({ ...rowOf(site.site.domain, { ...topic, ready: false } as StoredTopic, n), site_id: SITE_ID, business_fit: null })),
+      rows: (site.topics ?? []).map((topic, n) => ({ ...rowOf(site.site.domain, { ...topic, ready: false } as StoredTopic, n), site_id: SITE_ID, business_fit: a.heldJudged ? (topic.fit ?? 2) : null })),
     });
     setOpportunityStore({
       ...memoryStore(state),
@@ -542,6 +551,10 @@ describe("a weekly pass whose measurement would spend its whole cap", () => {
         ],
         "opportunity-typing": [{ type: input.derivedType, slug: input.derivedSlug, title: input.targetQuery }, 60],
         "topic-same-question": [{ pairs: [] }, 20],
+        "rival-inference": [
+          { candidates: site.market.rivals.map((r) => ({ domain: r.domain, name: r.name, kind: "product", inMarket: true, basis: "ranks", closeness: "direct", reason: r.reason })) },
+          600,
+        ],
       };
       const [answer, tokensOut] = answers[name] ?? [{}, 10];
       return toolUseMessage(answer, Math.ceil(sent.length / 4), tokensOut, name);
@@ -552,6 +565,7 @@ describe("a weekly pass whose measurement would spend its whole cap", () => {
     db.answer = (query) => (query.table === "scans" && query.verb === "select" ? [{ cost_cents: line, site_id: null }] : null);
     const closed = await withStoredPassSpend({ scanId: CLAIMED_ID, cap: "WEEKLY" }, async (cost) => {
       await deriveForPass(cost, { tier: "weekly", siteId: SITE_ID, report, hasActiveAccess: true });
+      await a.after?.(cost, report, site.market);
       return cost.spentCents();
     });
     const warned = refused.mock.calls.map(([first]) => String(first));
@@ -562,10 +576,31 @@ describe("a weekly pass whose measurement would spend its whole cap", () => {
       const line = typeof first === "string" && first.startsWith("{") ? (JSON.parse(first) as { site?: string; parseOutcome?: string }) : {};
       if (line.site !== undefined && line.parseOutcome !== undefined) asked.set(line.site, [...(asked.get(line.site) ?? []), line.parseOutcome]);
     }
+    return { asked, warned, closed };
+  }
+
+  it("the derivation after the stored report, opened at the line, gets every call it makes and closes inside the cap", async () => {
+    // The panel run whose fit judgement cost the most: the German bakery, its own market, searches and SERPs.
+    const { asked, warned, closed } = await deriveAtTheLine({ site: panel("2026-10-10-1374")[0]!, heldJudged: false });
     for (const site of ["topic-buyer-searches", "topic-typed", "topic-fit", "opportunity-typing"]) {
       expect(asked.get(site)?.length ?? 0, site).toBeGreaterThan(0);
       expect(asked.get(site)!.every((outcome) => outcome === "success"), site).toBe(true);
     }
+    expect(warned.filter((line) => line.includes('"cap_hit"'))).toEqual([]);
+    expect(closed).toBeLessThanOrEqual(CAPS.WEEKLY_C);
+  });
+
+  // A usual full week: the measurement at the line, then this week's typing, then the rivals' one ask (ruling B5).
+  it.each(panel("2026-10-07").map((site) => [site.site.domain, site] as const))("%s: the rivals' re-check after a usual week's typing is asked, not refused, and the pass closes inside the cap", async (_, site) => {
+    const { asked, warned, closed } = await deriveAtTheLine({
+      site,
+      heldJudged: true,
+      after: async (cost, report, market) => {
+        const evidence = marketEvidence({ domain: report.domain, siteName: null, headline: null, pages: [], products: [], claims: [], report });
+        await inferRivals(cost, evidence, market, 10);
+      },
+    });
+    expect(asked.get("rival-inference")).toEqual(["success"]);
     expect(warned.filter((line) => line.includes('"cap_hit"'))).toEqual([]);
     expect(closed).toBeLessThanOrEqual(CAPS.WEEKLY_C);
   });

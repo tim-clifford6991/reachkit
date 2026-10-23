@@ -93,7 +93,10 @@ export type OpsIncident =
     }
   // Issue 1587: no error — DataForSEO credit runs out within a week. Days
   // left is null where last week's spend was not measured.
-  | { occasion: "vendor-low"; balanceCents: number; daysLeft: number | null; dashboard: string };
+  | { occasion: "vendor-low"; balanceCents: number; daysLeft: number | null; dashboard: string }
+  // Stripe refused an automatic 14-day refund. Ids and Stripe's error code
+  // only: no card detail and no address.
+  | { occasion: "refund-refused"; invoiceId: string; userId: string; code: string };
 
 const SUBJECT = "mail.ops.incident.subject" satisfies CopyKey;
 const HEADING = "mail.ops.incident.heading" satisfies CopyKey;
@@ -113,6 +116,7 @@ const BODY: Readonly<Record<OpsIncident["occasion"], CopyKey>> = Object.freeze({
   "autopilot-stalled": "mail.ops.incident.autopilot-stalled",
   "draft-stopped-twice": "mail.ops.incident.draft-stopped-twice",
   "vendor-low": "mail.ops.incident.vendor-low",
+  "refund-refused": "mail.ops.incident.refund-refused",
 });
 
 /** A sentence of the stopped page, on one line and cut where a mail row
@@ -196,6 +200,13 @@ function factsOf(incident: OpsIncident): FactRow[] {
       { label: "mail.ops.incident.fact.balance", value: `$${(incident.balanceCents / 100).toFixed(2)}` },
       ...(incident.daysLeft === null ? [] : [{ label: "mail.ops.incident.fact.days-left", value: count(Math.floor(incident.daysLeft)) } as const]),
       { label: "mail.ops.incident.fact.dashboard", value: incident.dashboard },
+    ];
+  }
+  if (incident.occasion === "refund-refused") {
+    return [
+      { label: "mail.ops.incident.fact.invoice", value: closedName(incident.invoiceId) },
+      { label: "mail.ops.incident.fact.account", value: closedId(incident.userId) },
+      { label: "mail.ops.incident.fact.stripe-code", value: closedName(incident.code) },
     ];
   }
   if (incident.occasion === "market-too-small") {

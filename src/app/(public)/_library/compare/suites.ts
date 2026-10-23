@@ -25,14 +25,7 @@ export const SUITES: readonly Comparison[] = [
         "If SEO is your job, or you run campaigns for clients, that depth is worth what it costs.",
       ],
     },
-    ours: {
-      heading: "What ReachKit does instead",
-      paragraphs: [
-        `ReachKit starts from your site, not from a database. The free scan reads your site, works out your market and runs ${P.searches} Google searches buyers in that market make. It shows who is on the first page instead of you, whether AI answers mention you, and a Visibility Score from 0 to 100 with its range.`,
-        `The paid plan is ${P.price} a month. ReachKit tracks up to ${P.competitors} competitors and writes up to ${P.weekPages} pages a week, new or updated, that go live on a subdomain of your domain or on your WordPress. At most ${P.newPages} a week are new pages. Each page is read against ${P.checks} checks and goes live on its own ${P.windowHours} hours after it is written.`,
-        "ReachKit keeps no backlink index and no keyword research database. It does not track rankings beyond your own searches.",
-      ],
-    },
+    does: ["choose", "results"],
     rows: [
       { label: "Free scan with no account", reachkit: true, them: "partly: free plan and free tools" },
       { label: "Backlink index", reachkit: false, them: true },
@@ -77,14 +70,7 @@ export const SUITES: readonly Comparison[] = [
         "For a large site, or a team with a marketer on it, that breadth is the right tool.",
       ],
     },
-    ours: {
-      heading: "What ReachKit does instead",
-      paragraphs: [
-        `The free scan needs no account and takes about a minute. It lists technical issues across up to ${P.pages} pages, each with a free fix, and it also runs ${P.searches} Google searches buyers in your market make. It shows the competitors on the first page instead of you and whether AI answers mention you, and gives a Visibility Score from 0 to 100 in four bars: Readiness, Content, Google and AI.`,
-        `The paid plan is ${P.price} a month with nothing to configure. ReachKit writes up to ${P.weekPages} pages a week, new or updated, with Claude, an AI model, from your own site. Every Monday the market is scanned again and one email says what moved.`,
-        `ReachKit does not check backlinks, crawl more than ${P.pages} pages or test Core Web Vitals in depth.`,
-      ],
-    },
+    does: ["choose", "results"],
     rows: [
       { label: "Free check with no account", reachkit: true, them: "partly: one check per day" },
       { label: "Technical issues with fixes", reachkit: `partly: up to ${P.pages} pages`, them: true },
@@ -124,14 +110,7 @@ export const SUITES: readonly Comparison[] = [
         "Moz Pro Standard is $99 a month, or $79 a month paid yearly, and there is a free trial. A free Moz Community account gives limited access to MozBar, Keyword Explorer and Link Explorer.",
       ],
     },
-    ours: {
-      heading: "What ReachKit does instead",
-      paragraphs: [
-        `ReachKit assumes you will never take the course. The free scan reads your site, works out your market and runs ${P.searches} Google searches buyers make there. It shows who is on the first page instead of you and whether AI answers mention you, as a Visibility Score from 0 to 100 with its range.`,
-        `The paid plan, ${P.price} a month, writes up to ${P.weekPages} pages a week, new or updated, from facts on your own site. Every fact about your business links to the page it came from. Every Monday ReachKit asks ${P.engines} ${P.prompts} questions a buyer would ask, each twice, and one email says what moved.`,
-        "ReachKit has no Domain Authority, no link metrics and no SEO lessons. It does not check Perplexity.",
-      ],
-    },
+    does: ["choose", "results"],
     rows: [
       { label: "Free scan with no account", reachkit: true, them: "partly: free tools and a free account" },
       { label: "SEO courses and guides", reachkit: false, them: true },
@@ -175,14 +154,7 @@ export const SUITES: readonly Comparison[] = [
         "There is a free plan for light research, a Lifetime option for people who would rather pay once, and a seven day free trial that needs a credit card.",
       ],
     },
-    ours: {
-      heading: "What ReachKit does instead",
-      paragraphs: [
-        `ReachKit reads your site, not the whole web. The free scan works out your market, runs ${P.searches} Google searches buyers make there. It shows the competitors on the first page instead of you, whether AI answers mention you, and a Visibility Score from 0 to 100 with its range.`,
-        `The paid plan, ${P.price} a month, writes up to ${P.weekPages} pages a week, new or updated, that go live on your domain or your WordPress. Each page is read against ${P.checks} checks first; a page that fails twice is held and nothing goes live. It goes live on its own ${P.windowHours} hours after it is written.`,
-        `ReachKit has no keyword database, no backlink data and crawls at most ${P.pages} pages. It does not check Perplexity.`,
-      ],
-    },
+    does: ["choose", "write", "results"],
     rows: [
       { label: "Free scan with no account", reachkit: true, them: "partly: free plan for light research" },
       { label: "Keyword research database", reachkit: false, them: true },
@@ -223,14 +195,7 @@ export const SUITES: readonly Comparison[] = [
         "Paid plans are Basic, Premium and Agency, with a 48 hour money back guarantee.",
       ],
     },
-    ours: {
-      heading: "What ReachKit does instead",
-      paragraphs: [
-        `ReachKit starts from your own site. The free scan works out your market, runs ${P.searches} Google searches buyers make there and shows who is on the first page instead of you. It also checks your pages for technical issues and whether AI answers mention you, so you see whether keywords are even your problem.`,
-        `The paid plan, ${P.price} a month, chooses the topics for you and writes up to ${P.weekPages} pages a week, new or updated. Each page links ${P.linksMin} to ${P.linksMax} times into your own site. Every Monday the market is scanned again and one email says what moved.`,
-        "ReachKit has no keyword research tool and no backlink lookups.",
-      ],
-    },
+    does: ["choose", "results"],
     rows: [
       { label: "Free scan with no account", reachkit: true, them: "partly: free account, 5 lookups a day" },
       { label: "Keyword research tool", reachkit: false, them: true },
@@ -273,14 +238,7 @@ export const SUITES: readonly Comparison[] = [
         "Core is €109 a month, Growth €235, both less on annual billing. There is a 14 day free trial with no credit card.",
       ],
     },
-    ours: {
-      heading: "What ReachKit does instead",
-      paragraphs: [
-        `ReachKit replaces watching with pages that go live. The free scan runs ${P.searches} Google searches buyers in your market make and shows who is on the first page instead of you. It gives one Visibility Score from 0 to 100, with its range, in place of a grid of positions.`,
-        `The paid plan, ${P.price} a month, tracks up to ${P.competitors} competitors and writes up to ${P.weekPages} pages a week, new or updated. Every Monday the market is scanned again, and ReachKit asks ${P.engines} ${P.prompts} buyer questions, each twice. One email says what moved.`,
-        "ReachKit does not track rankings beyond your own searches, has no white-label reports and serves one site, not many.",
-      ],
-    },
+    does: ["choose", "results"],
     rows: [
       { label: "Free scan with no account", reachkit: true, them: "partly: 14 day free trial" },
       { label: "Daily rank tracking", reachkit: false, them: true },
@@ -324,14 +282,7 @@ export const SUITES: readonly Comparison[] = [
         "The teaching is strong too: a guide with a free template and a Moz Academy certification of six courses and exams. The deeper tools are part of Moz Pro, which has a free trial.",
       ],
     },
-    ours: {
-      heading: "What ReachKit does instead",
-      paragraphs: [
-        `The free scan needs no account. It works out your market, runs ${P.searches} Google searches buyers make there and shows the competitors on the first page of each instead of you. It also checks whether AI answers mention you.`,
-        `The paid plan, ${P.price} a month, finds up to ${P.competitors} competitors from that evidence and checks them again every week. You may change them and never have to. ReachKit then writes up to ${P.weekPages} pages a week, new or updated, using the top results and competitors' pages for market facts.`,
-        "ReachKit has no keyword gap report, no Domain Authority and no backlink data.",
-      ],
-    },
+    does: ["choose", "results"],
     rows: [
       { label: "Competitors found from search results", reachkit: true, them: true },
       { label: "Free with no account", reachkit: true, them: "partly: deeper tools in Moz Pro" },
@@ -375,14 +326,7 @@ export const SUITES: readonly Comparison[] = [
         "Those are stated quotas on a free plan, and that is a real offer.",
       ],
     },
-    ours: {
-      heading: "What ReachKit does instead",
-      paragraphs: [
-        `The free scan needs no account and takes about a minute. It works out your market, runs ${P.searches} Google searches buyers make there and shows the competitors on the first page instead of you, along with whether AI answers mention you.`,
-        `The paid plan, ${P.price} a month, finds up to ${P.competitors} competitors from that evidence and checks them again every Monday. Instead of a dashboard, you get up to ${P.weekPages} pages a week, new or updated, live on your domain or your WordPress, and one email a week with what moved.`,
-        "ReachKit has no backlink data, no keyword research tool and no daily ranking changes.",
-      ],
-    },
+    does: ["choose", "results"],
     rows: [
       { label: "Free competitor view", reachkit: true, them: "partly: 3 competitors, 10 keywords" },
       { label: "Competitors tracked weekly", reachkit: `partly: up to ${P.competitors}, paid`, them: "partly: 3 free, 20 on Premium" },

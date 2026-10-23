@@ -58,6 +58,9 @@ export function walkFiles(dir: string, keep: (rel: string) => boolean): string[]
 
 export const read = (rel: string): string => readFileSync(path.join(REPO_ROOT, rel), "utf8");
 
+/** The one unit command's `--testTimeout` (package.json `test:unit`): the ceiling for a whole-tree read. */
+export const UNIT_TIMEOUT_MS = 20_000;
+
 export interface RegisteredComponent {
   /** The class names §2.2 backticks for this row. */
   readonly named: readonly string[];

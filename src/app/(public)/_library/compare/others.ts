@@ -24,14 +24,7 @@ export const OTHERS: readonly Comparison[] = [
         "That is rare data. It helps you decide which newsletters to sponsor, which podcasts to pitch and which communities to join. SparkToro has a free plan for basic audience research, with three previews a month.",
       ],
     },
-    ours: {
-      heading: "What ReachKit does instead",
-      paragraphs: [
-        `ReachKit looks at your own site. The free scan reads it, works out your market and runs ${P.searches} Google searches buyers in that market make. It records who is on the first page of each, checks whether Google's AI answers mention or link you, and gives a Visibility Score from 0 to 100, with its range.`,
-        `The paid plan, ${P.price} a month, then writes up to ${P.weekPages} pages a week, new or updated, that go live on your own domain or your WordPress. Pages are written with Claude, an AI model, from your own site. Every Monday your market is scanned again and one email says what moved.`,
-        "ReachKit does not study where your audience spends time, and it does not do outreach or sponsorships. That is SparkToro's job.",
-      ],
-    },
+    does: ["choose"],
     rows: [
       { label: "Where your audience spends time", reachkit: false, them: true },
       { label: "Words your audience searches", reachkit: "partly: the searches in your market", them: true },
@@ -63,6 +56,7 @@ export const OTHERS: readonly Comparison[] = [
     name: "GummySearch",
     group: "audience",
     title: "ReachKit vs GummySearch",
+    badge: "Closed Nov 2025",
     description:
       "GummySearch, a Reddit research tool, closed on 30 November 2025. ReachKit checks whether buyers find your site on Google and in AI answers.",
     summary: "GummySearch closed in November 2025. ReachKit checks and grows how buyers find your site.",
@@ -75,13 +69,7 @@ export const OTHERS: readonly Comparison[] = [
         "Reddit is where many buyers describe their problems in their own words, so it was a good way to hear how buyers talk. The service closed on 30 November 2025. Its site says Reddit's API policies forbid commercial applications.",
       ],
     },
-    ours: {
-      heading: "What ReachKit does instead",
-      paragraphs: [
-        `ReachKit is not a Reddit tool. It checks whether buyers find your site. The free scan reads your site, works out your market and runs ${P.searches} Google searches buyers in that market make. It records who is on the first page, checks whether Google's AI answers mention or link you, and gives a Visibility Score from 0 to 100, with its range.`,
-        `The paid plan, ${P.price} a month, writes up to ${P.weekPages} pages a week, new or updated, that go live on your own domain or your WordPress. Pages are written with Claude, an AI model, from your own site, and every fact about your business links to the page it came from.`,
-      ],
-    },
+    does: [],
     rows: [
       { label: "Open to new customers", reachkit: true, them: false },
       { label: "Reddit research", reachkit: false, them: "closed 30 November 2025" },
@@ -124,14 +112,7 @@ export const OTHERS: readonly Comparison[] = [
         "Its data comes from several sources: analytics that site owners connect, a network of devices running Similarweb products, public data and partners. Similarweb then extrapolates from those signals with its own models, so most figures for a site are estimates.",
       ],
     },
-    ours: {
-      heading: "What ReachKit does instead",
-      paragraphs: [
-        `ReachKit looks only at your site and your market. The free scan runs ${P.searches} Google searches buyers in your market make and records who is on the first page of each. It checks whether Google's AI answers mention or link you, lists technical issues across up to ${P.pages} pages, and gives a Visibility Score from 0 to 100, with its range.`,
-        `The paid plan, ${P.price} a month, tracks up to ${P.competitors} competitors, scans your market again every Monday and writes up to ${P.weekPages} pages a week, new or updated, that go live on your own domain or your WordPress.`,
-        "ReachKit does not estimate traffic, market share or ad spend for other sites. That is Similarweb's job.",
-      ],
-    },
+    does: ["choose", "results"],
     rows: [
       { label: "Traffic estimates for any site", reachkit: false, them: true },
       { label: "Market share dashboards", reachkit: false, them: true },
@@ -161,11 +142,12 @@ export const OTHERS: readonly Comparison[] = [
     name: "ChatGPT",
     group: "ai",
     title: "ReachKit vs ChatGPT",
+    heading: "ReachKit vs writing with ChatGPT yourself",
     description:
       "ChatGPT answers questions and writes. ReachKit checks whether ChatGPT and Google AI Mode mention your site, then puts pages live, written from your own facts.",
     summary: "ChatGPT is an assistant. ReachKit checks whether ChatGPT mentions you, and puts pages live to change it.",
     intro:
-      `ChatGPT is a general AI assistant, and many buyers now ask it what to buy. ReachKit does not compete with it. ReachKit checks whether ${P.engines} mention or link your site when buyers ask, and then writes up to ${P.weekPages} pages a week, new or updated, so there is more for them to find. Those pages are written with Claude, an AI model, from your own site's facts. If you want a tutor or a writing partner, use ChatGPT. If you want to know whether ChatGPT recommends you, and to change it, use ReachKit.`,
+      "Many owners ask ChatGPT to write their blog posts. It writes fast, but you still choose the topic, give it the facts, check every claim, put the page live and find out whether it worked. ReachKit does all of that every week, from facts on your own site, and then checks whether ChatGPT and Google's AI answers mention you. If you enjoy writing with an assistant, use ChatGPT. If nobody on your team has the time, use ReachKit.",
     theirs: {
       heading: "What ChatGPT does well",
       paragraphs: [
@@ -173,37 +155,32 @@ export const OTHERS: readonly Comparison[] = [
         "OpenAI says ChatGPT can search the web, including on its free plan, and that answers which use search show their sources. OpenAI also says those sources can be incomplete or wrong, so it is worth opening them.",
       ],
     },
-    ours: {
-      heading: "What ReachKit does instead",
-      paragraphs: [
-        `ReachKit checks. Every Monday it asks ${P.engines} the ${P.prompts} questions a buyer in your market would ask, each twice. The figure is the share of answers that mention or link your site. The free scan checks Google's AI answers on ${P.searches} searches buyers make and gives a Visibility Score from 0 to 100, with its range.`,
-        `Then it puts pages live: up to ${P.weekPages} a week, new or updated, written with Claude, an AI model, from your own site. Every fact about your business links to the page it came from. Before a page goes live it is read against ${P.checks} checks, and a page that fails twice is held.`,
-        "ReachKit does not chat, answer general questions or draft copy on request. It does one job, on your site.",
-      ],
-    },
+    ask: "Rewrite this headline ten ways.",
+    does: ["write"],
     rows: [
-      { label: "Answers any question you ask", reachkit: false, them: true },
-      { label: "Drafts copy on request", reachkit: false, them: true },
-      { label: "Checks whether ChatGPT mentions you", reachkit: true, them: false },
-      { label: "Checks Google's AI answers", reachkit: true, them: false },
-      { label: "Writes pages from your site's facts", reachkit: true, them: "partly: from what you give it" },
+      { label: "Chooses topics from what buyers search", reachkit: true, them: false },
+      { label: "Writes from your site's facts, each linked", reachkit: true, them: "Partly: from what you paste in" },
+      { label: "Checks every page before it goes live", reachkit: `Yes, up to ${P.checks} checks`, them: false },
       { label: "Puts pages live on your website", reachkit: true, them: false },
-      { label: "Free to start", reachkit: true, them: true },
+      { label: "Checks whether ChatGPT mentions you", reachkit: true, them: false },
+      { label: "Answers any question you ask", reachkit: false, them: true },
+      { label: "Price", reachkit: `${P.price} a month, one plan`, them: "Free plan and paid plans" },
+      { label: "Free to start", reachkit: "Yes, the free scan", them: true },
     ],
     pickThem: [
-      "You want a tutor for search and marketing ideas.",
-      "You want quick copy drafts to edit yourself.",
-      "You want to think a positioning question through out loud.",
+      "you like writing and want a fast first draft",
+      "you want to talk an idea through",
+      "you'll put each page live and check it yourself",
     ],
     pickUs: [
-      "You want to know whether ChatGPT and Google AI Mode mention you.",
-      "You want pages written from your own site, with every fact linked.",
-      "You want pages going live every week without asking.",
+      "nobody on your team writes, and you don't want to start",
+      "you want topics chosen from what buyers actually search",
+      "you want pages going live every week without asking",
     ],
     checked: CHECKED,
     sources: [
-      { label: "OpenAI help, searching the web with ChatGPT", href: "https://help.openai.com/en/articles/9237897-chatgpt-search" },
-      { label: "ChatGPT", href: "https://chatgpt.com/" },
+      { label: "OpenAI help, ChatGPT search", href: "https://help.openai.com/en/articles/9237897-chatgpt-search" },
+      { label: "ChatGPT pricing", href: "https://chatgpt.com/pricing" },
     ],
   },
   {
@@ -223,14 +200,7 @@ export const OTHERS: readonly Comparison[] = [
         "Surfer also has an AI Tracker, which shows how your brand appears in AI tools like ChatGPT and flags answers that favour competitors. It offers several plans and free tools, including a free AI visibility audit.",
       ],
     },
-    ours: {
-      heading: "What ReachKit does instead",
-      paragraphs: [
-        `ReachKit starts from your market, not a draft. The free scan runs ${P.searches} Google searches buyers make, records who is on the first page, checks whether AI answers mention or link you, and lists technical issues on your site, each with a free fix.`,
-        `The paid plan, ${P.price} a month, chooses the topics and writes up to ${P.weekPages} pages a week, new or updated, at most ${P.newPages} of them new. Pages are written with Claude, an AI model, from your own site. Each is read against ${P.checks} checks and goes live on its own ${P.windowHours} hours after it is written. You can edit or stop it before then, and you do not have to.`,
-        `Every Monday ReachKit asks ${P.engines} ${P.prompts} buyer questions, each twice, and reports the share of answers that mention or link you.`,
-      ],
-    },
+    does: ["write", "results"],
     rows: [
       { label: "Editor that guides your draft", reachkit: false, them: true },
       { label: "Writes with AI", reachkit: "partly: whole pages, from your site", them: true },
@@ -260,6 +230,7 @@ export const OTHERS: readonly Comparison[] = [
     name: "Google Search Console",
     group: "data",
     title: "ReachKit vs Google Search Console",
+    badge: "Free · keep using it",
     description:
       "Search Console is Google's free view of your site in Search. ReachKit adds competitors and AI answers, then puts pages live to grow your reach.",
     summary: "Use Search Console, it is free. ReachKit adds competitors, AI answers and pages every week.",
@@ -272,14 +243,7 @@ export const OTHERS: readonly Comparison[] = [
         "It shows which pages Google has indexed, and URL Inspection gives crawl, index and serving details for a single page. It can also email you when Google finds an issue on your site.",
       ],
     },
-    ours: {
-      heading: "What ReachKit does instead",
-      paragraphs: [
-        `ReachKit looks outward from your site. The free scan runs ${P.searches} Google searches buyers in your market make, records who is on the first page of each and shows the competitors that appear instead of you. It also checks whether Google's AI answers mention or link you, and gives a Visibility Score from 0 to 100, with its range.`,
-        `The paid plan, ${P.price} a month, writes up to ${P.weekPages} pages a week, new or updated, that go live on your own domain or your WordPress. Every Monday your market is scanned again, and one email arrives with the numbers and what moved.`,
-        "ReachKit does not read your Search Console data, so it cannot show Google's own clicks and impressions. Keep Search Console for that.",
-      ],
-    },
+    does: ["results"],
     rows: [
       { label: "Google's own clicks and impressions", reachkit: false, them: true },
       { label: "Index status and URL Inspection", reachkit: false, them: true },
@@ -310,6 +274,7 @@ export const OTHERS: readonly Comparison[] = [
     name: "Appfigures",
     group: "data",
     title: "ReachKit vs Appfigures",
+    badge: "Different job",
     description:
       "Appfigures tracks apps in the App Store and Google Play. ReachKit does not read app stores: it checks and grows how buyers find your website.",
     summary: "Appfigures is for apps in the stores. ReachKit is for your website. Different jobs.",
@@ -322,13 +287,7 @@ export const OTHERS: readonly Comparison[] = [
         "It estimates downloads and revenue for iOS and Android apps, and lets you compare your own figures with estimates for competing apps. For a business whose sales happen in the stores, that is the daily dashboard.",
       ],
     },
-    ours: {
-      heading: "What ReachKit does instead",
-      paragraphs: [
-        `ReachKit is for your website. The free scan runs ${P.searches} Google searches buyers in your market make, records who is on the first page, checks whether Google's AI answers mention or link you, and gives a Visibility Score from 0 to 100, with its range.`,
-        `The paid plan, ${P.price} a month, writes up to ${P.weekPages} pages a week, new or updated, that go live on your own domain or your WordPress. ReachKit does not read app stores, track app keyword ranks or estimate downloads.`,
-      ],
-    },
+    does: [],
     rows: [
       { label: "App store keyword ranks", reachkit: false, them: true },
       { label: "Download and revenue estimates", reachkit: false, them: true },

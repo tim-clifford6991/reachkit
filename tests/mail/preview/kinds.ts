@@ -138,7 +138,7 @@ const WEEKLY_NEXT = [
   { targetQuery: "how to run payroll without an accountant" },
 ];
 
-/** Where a `toggle` kind's stop control points: Settings › Notifications,
+/** Where a `toggle` kind's stop control points: Settings › Mail,
  *  the customer's own three switches — never the address-wide opt-out. */
 const UNSUBSCRIBE = {
   href: `${APP}/app/settings`,
@@ -305,6 +305,24 @@ export async function composeUnmeasuredWeek(): Promise<PreviewMail> {
     measurement: { state: "none", nextDueOn: new Date("2026-09-14T06:00:00.000Z") },
     optOut: UNSUBSCRIBE,
   });
+}
+
+/** The draft-ready mail while a hosted address waits for its setting: no
+ *  moment is named, and the record the Overview shows rides below the line. */
+export async function composeWaitingForAddress(): Promise<PreviewMail> {
+  const composeMail = await composer();
+  const { buildDraftReady } = await import("../../../src/lib/mail/templates/draft-ready");
+  const mail = buildDraftReady({
+    telling: {
+      ...PREVIEW_TELLING,
+      destination: { says: "cannot_go_live_there", site: "help.harborplumbing.example", copy: "mail.draftReady.dest.addressNotConnected" },
+    } as TellableTelling,
+    stopHref: `${APP}/veto/preview`,
+    readHref: `${APP}/app/draft/preview`,
+    page: PREVIEW_PAGE,
+    record: { type: "CNAME", name: "help", value: "hosted.example.net" },
+  });
+  return composeMail({ kind: "draft-ready", subject: mail.subject, subjectVars: mail.subjectVars, blocks: mail.blocks, reason: mail.reason });
 }
 
 /** SPEC §8's retention mails (issue 641). Their lines are owner-owed, so a

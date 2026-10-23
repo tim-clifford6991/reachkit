@@ -91,7 +91,8 @@ describe("a site that declares other markets is told one is measured", () => {
   ])("the free report at %i other markets", (n, said) => {
     const html = reportHtml({ country: "DE", language: "de", ...(n === 0 ? {} : { alsoServes: tags(n) }) });
     expect(lineOf(html, "report-also-serves")).toBe(said);
-    expect(html).not.toMatch(/Settings/);
+    // The cart's cancel line is about the paid account; no market choice points a stranger to Settings.
+    expect(html.replaceAll(copy("offer.cancel_self_service"), "")).not.toMatch(/Settings/);
   });
 
   it.each([

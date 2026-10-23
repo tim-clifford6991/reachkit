@@ -20,7 +20,7 @@ import { HARD_RULES } from "@/lib/generate/rules/types";
 import { Num } from "../scan/[domain]/_address/measured";
 import { HOW_FACTS } from "./facts";
 import { ExampleSwitch } from "./ExampleSwitch";
-import { EXAMPLES, LIVE_AT, REASON_COPY, weekDays, weekSpan, type Example } from "./specimen";
+import { EXAMPLES, LIVE_AT, REASON_COPY, weekDate, weekDays, weekSpan, type Example } from "./specimen";
 
 const ICON = { size: 16, strokeWidth: 1.75, "aria-hidden": true } as const;
 const CARD = "card card-border bg-base-100 min-w-0";
@@ -63,10 +63,10 @@ export function TwoWeeks(e: Example): React.JSX.Element {
         <p className={LABEL}>{copy("how.top.visual")}</p>
         <div className="grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-2">
           <div className="flex min-w-0 flex-col gap-2">
-            <div>
-              <p className="text-base font-semibold">{copy("how.top.yours")}</p>
-              <p className={SMALL}>{copy("how.top.yours.line", { business: e.business })}</p>
-            </div>
+            <p className="flex flex-col">
+              <span className="text-base font-semibold">{copy("how.top.yours")}</span>
+              <span className={SMALL}>{copy("how.top.yours.line", { business: e.business })}</span>
+            </p>
             <ol className="flex flex-col gap-1">
               {e.jobs.map((job, i) => (
                 <li key={days[i]} className="flex min-w-0 gap-2 text-sm">
@@ -77,10 +77,10 @@ export function TwoWeeks(e: Example): React.JSX.Element {
             </ol>
           </div>
           <div className="flex min-w-0 flex-col gap-2">
-            <div>
-              <p className="text-base font-semibold">{copy("how.top.ours")}</p>
-              <p className={SMALL}>{copy("how.top.ours.line", { business: e.business })}</p>
-            </div>
+            <p className="flex flex-col">
+              <span className="text-base font-semibold">{copy("how.top.ours")}</span>
+              <span className={SMALL}>{copy("how.top.ours.line", { business: e.business })}</span>
+            </p>
             <ol className="flex flex-col gap-1">
               <li className="flex min-w-0 gap-2 text-sm">
                 <span className="num text-base-content/70 w-14 shrink-0">{days[0]}</span>
@@ -136,11 +136,11 @@ export function AsWeRead(e: Example): React.JSX.Element {
           <ul className="flex flex-col gap-1 text-sm">
             <li className="flex flex-wrap justify-between gap-2">
               {copy("how.read.held.ai")}
-              <span className="badge badge-soft badge-primary badge-sm">{copy("how.read.held.free")}</span>
+              <span className="badge badge-soft badge-primary badge-sm">{copy("how.read.held.free", { minutes: HOW_FACTS.fixMinutes })}</span>
             </li>
             <li className="flex flex-wrap justify-between gap-2">
               {copy("how.read.held.list")}
-              <span className="badge badge-soft badge-primary badge-sm">{copy("how.read.held.free")}</span>
+              <span className="badge badge-soft badge-primary badge-sm">{copy("how.read.held.free", { minutes: HOW_FACTS.fixMinutes })}</span>
             </li>
             <li className="flex flex-wrap justify-between gap-2">
               {copy("how.read.held.slow", { count: e.slowPages })}
@@ -170,13 +170,17 @@ export function WhoGetsThem(e: Example): React.JSX.Element {
           <p className={SMALL}>{copy("how.rivals.first")}</p>
           <ol className="flex flex-col gap-2">
             {e.results.map((r) => (
-              <li key={r.url} className="flex min-w-0 flex-col">
-                <span className="text-sm font-semibold">{r.name}</span>
-                <span className="num text-base-content/70 text-xs">{r.url}</span>
-                <span className="text-primary text-sm">{r.title}</span>
+              <li key={r.url} className="flex min-w-0 items-start gap-2">
+                <span className="badge badge-ghost badge-sm shrink-0">{r.name.charAt(0)}</span>
+                <span className="flex min-w-0 flex-col">
+                  <span className="text-sm font-semibold">{r.name}</span>
+                  <span className="num text-base-content/70 text-xs">{r.url}</span>
+                  <span className="text-primary text-sm">{r.title}</span>
+                </span>
               </li>
             ))}
           </ol>
+          <p className={SMALL}>{copy("how.rivals.more", { n: HOW_FACTS.googleFirstPage - e.results.length })}</p>
           <p className="text-error flex items-center gap-1 text-sm font-semibold">
             <X {...ICON} />
             {copy("how.rivals.missing", { business: e.business })}
@@ -208,8 +212,21 @@ export function WhoGetsThem(e: Example): React.JSX.Element {
           <p className={SMALL}>{copy("how.rivals.tally", { n: e.tally.n, total: e.tally.total })}</p>
         </div>
       </div>
-      <div className="md:col-span-2">
-        <ExampleLine />
+      <div className={`${CARD} md:col-span-2`}>
+        <div className="card-body gap-3">
+          <p className="text-sm font-semibold">{copy("how.rivals.list.title")}</p>
+          <ul className="flex flex-wrap gap-1">
+            {e.watched.map((name) => (
+              <li key={name} className="badge badge-ghost badge-sm">
+                {name}
+              </li>
+            ))}
+            <li className="badge badge-soft badge-primary badge-sm">
+              {copy("how.rivals.list.more", { n: HOW_FACTS.rivals - e.watched.length })}
+            </li>
+          </ul>
+          <p className={SMALL}>{copy("how.rivals.list.caption")}</p>
+        </div>
       </div>
     </figure>
   );
@@ -247,8 +264,10 @@ export function QuestionList(e: Example): React.JSX.Element {
             );
           })}
         </ul>
-        <p className={SMALL}>{copy("how.pick.caption")}</p>
-        <ExampleLine />
+        <a href="#pages" className="link link-primary text-sm">
+          {copy("how.pick.caption")}
+        </a>
+        <p className={SMALL}>{copy("how.pick.real")}</p>
       </div>
     </figure>
   );
@@ -267,7 +286,7 @@ export function WeekOfPages(e: Example): React.JSX.Element {
         </div>
         <p className="border-base-300 border-t px-4 py-3 text-sm">{copy("how.week.address")}</p>
       </div>
-      <ExampleLine />
+      <p className={SMALL}>{copy("how.week.caption", { week: e.mail.week })}</p>
     </>
   );
 }
@@ -368,14 +387,22 @@ export function PageWithSources(e: Example): React.JSX.Element {
         </div>
       </div>
       <div className="border-base-300 flex flex-col gap-3 border-t p-5">
-        <p className={SMALL}>{e.business}</p>
+        <p className={SMALL}>{copy("how.true.eyebrow", { business: e.business, place: e.place })}</p>
         <h3 className="text-lg font-semibold">{e.page.title}</h3>
-        {e.page.facts.map((fact) => (
-          <p key={fact.source} className="flex flex-col gap-1 text-sm">
-            <span className="bg-primary/10 rounded px-1">{fact.text}</span>
-            <span className="num text-primary text-xs">
-              {copy("how.read.from", { source: `${e.site}${fact.source}` })}
-            </span>
+        {e.page.paragraphs.map((parts) => (
+          <p key={parts[0]?.text} className="flex flex-col gap-2 text-sm">
+            {parts.map((part) =>
+              part.source === null ? (
+                <span key={part.text}>{part.text}</span>
+              ) : (
+                <span key={part.text} className="flex flex-col gap-1">
+                  <span className="bg-primary/10 rounded px-1">{part.text}</span>
+                  <span className="num text-primary text-xs">
+                    {copy("how.read.from", { source: `${e.site}${part.source}` })}
+                  </span>
+                </span>
+              )
+            )}
           </p>
         ))}
         <p className="flex flex-col gap-1 text-sm">
@@ -394,12 +421,27 @@ export function PageWithSources(e: Example): React.JSX.Element {
 
 /** `#found`: the Monday email, framed as a phone. */
 export function MondayEmail(e: Example): React.JSX.Element {
-  const first = e.plan[0];
+  const days = weekDays().map((day) => day.split(" ")[0] ?? day);
+  const rows = e.plan.slice(0, 2).map((page, i) => ({
+    page,
+    head:
+      i === 0
+        ? copy("how.mail.row.new", { day: days[0] ?? "", time: LIVE_AT })
+        : copy("how.mail.row.update", { day: days[1] ?? "", date: weekDate(1), time: LIVE_AT }),
+    why: copy("how.mail.why", { why: e.mail.why[i] ?? "" }),
+  }));
   return (
     <figure className="flex min-w-0 flex-col items-center gap-2">
       <div className="mockup-phone border-base-300 max-w-72">
         <div className="mockup-phone-camera" />
-        <div className="mockup-phone-display bg-base-100 flex flex-col gap-3 overflow-y-auto px-4 pt-12 pb-6 text-sm">
+        {/* It scrolls, so a keyboard can reach it. */}
+        <div
+          role="region"
+          aria-label={copy("how.mail.caption")}
+          tabIndex={0}
+          className="mockup-phone-display bg-base-100 flex flex-col gap-3 overflow-y-auto px-4 pt-12 pb-6 text-sm"
+        >
+          <p className={SMALL}>{copy("signin.inbox.title")}</p>
           <p className="flex items-center gap-1 font-semibold">
             <Mail {...ICON} />
             {copy("how.mail.subject")}
@@ -412,15 +454,73 @@ export function MondayEmail(e: Example): React.JSX.Element {
             <li>{copy("how.mail.linked", { n: e.mail.linked, total: e.mail.live })}</li>
           </ul>
           <p className={LABEL}>{copy("how.mail.pages")}</p>
-          {first === undefined ? null : (
-            <p className={WELL}>
-              <span className="text-xs font-semibold">{first.title}</span>
-              <span className={SMALL}>{first.reason}</span>
+          {rows.map((row) => (
+            <p key={row.page.title} className={WELL}>
+              <span className={SMALL}>{row.head}</span>
+              <span className="text-xs font-semibold">{row.page.title}</span>
+              <span className={SMALL}>{row.why}</span>
+              <span className="text-primary text-xs font-semibold">
+                {`${copy("overview.waiting.stop")} · ${copy("how.week.edit")}`}
+              </span>
             </p>
-          )}
+          ))}
         </div>
       </div>
       <figcaption className={SMALL}>{copy("how.mail.caption")}</figcaption>
+    </figure>
+  );
+}
+
+/** `#found`: what the work aims at, drawn as an example and never as a result. */
+export function WhatWeWorkToward(e: Example): React.JSX.Element {
+  return (
+    <figure className={CARD}>
+      <div className="card-body gap-3">
+        <p className="flex flex-wrap items-center justify-between gap-2">
+          <span className="text-base font-semibold">{copy("how.goal.title")}</span>
+          <span className="badge badge-ghost badge-sm">{copy("how.goal.badge")}</span>
+        </p>
+        <p className={`${LABEL} flex items-center gap-1`}>
+          <Search {...ICON} />
+          {copy("how.goal.google", { search: e.goal.search })}
+        </p>
+        <ol className="flex flex-col gap-2">
+          <li className="rounded-box border-primary flex min-w-0 items-start gap-2 border p-2">
+            <span className="badge badge-primary badge-sm shrink-0">{e.business.charAt(0)}</span>
+            <span className="flex min-w-0 flex-col">
+              <span className="text-sm font-semibold">{e.business}</span>
+              <span className="text-base-content/70 font-mono text-xs break-all">{`https://${e.blog}`}</span>
+              <span className="badge badge-soft badge-success badge-sm">{copy("how.goal.yours")}</span>
+              <span className="text-primary text-sm">{e.page.title}</span>
+            </span>
+          </li>
+          <li className="flex min-w-0 items-start gap-2 p-2">
+            <span className="badge badge-ghost badge-sm shrink-0">{e.goal.below.name.charAt(0)}</span>
+            <span className="flex min-w-0 flex-col">
+              <span className="text-sm font-semibold">{e.goal.below.name}</span>
+              <span className="text-base-content/70 font-mono text-xs break-all">{`https://${e.goal.below.url}`}</span>
+              <span className="text-primary text-sm">{e.goal.below.title}</span>
+            </span>
+          </li>
+        </ol>
+        <p className="text-success flex items-center gap-1 text-sm font-semibold">
+          <CircleCheck {...ICON} />
+          {copy("how.goal.first")}
+        </p>
+        <p className="rounded-box border-base-300 flex flex-col gap-1 border p-3 text-sm">
+          <span className={`${LABEL} flex items-center gap-1`}>
+            <Bot {...ICON} />
+            {copy("how.rivals.ai")}
+          </span>
+          <span>{e.question}</span>
+          <span>{e.goal.answer}</span>
+          <span className="badge badge-ghost badge-sm">
+            <Num>{e.blog}</Num>
+          </span>
+          <span className="text-success font-semibold">{copy("how.goal.linked")}</span>
+        </p>
+        <figcaption className={SMALL}>{copy("how.goal.caption", { business: e.business })}</figcaption>
+      </div>
     </figure>
   );
 }
@@ -485,14 +585,14 @@ export function YourPart(e: Example): React.JSX.Element {
           <li className="step step-primary">
             <span className="flex min-w-0 flex-col items-start text-start">
               <span className="font-semibold">{copy("how.part.one")}</span>
-              <span className="num num-phrase text-base-content/70 text-xs">{`${e.site} · ${e.area}`}</span>
+              <span className={SMALL}>{copy("how.part.one.line")}</span>
             </span>
           </li>
           <li className="step step-primary">
             <span className="flex min-w-0 flex-col items-start text-start">
               <span className="flex flex-wrap items-center gap-1 font-semibold">
-                {copy("how.part.two")}
                 <span className="badge badge-ghost badge-sm">{copy("how.part.optional")}</span>
+                {copy("how.part.two")}
               </span>
               <span className={SMALL}>{copy("how.part.two.line")}</span>
             </span>
@@ -501,6 +601,10 @@ export function YourPart(e: Example): React.JSX.Element {
             <span className="flex min-w-0 flex-col items-start text-start">
               <span className="font-semibold">{copy("how.part.three")}</span>
               <span className={SMALL}>{copy("how.part.three.line")}</span>
+              <span className="flex flex-wrap gap-1">
+                <span className="badge badge-ghost badge-sm">{copy("how.part.pill.line")}</span>
+                <span className="badge badge-ghost badge-sm">{copy("settings.destination.wordpress")}</span>
+              </span>
             </span>
           </li>
         </ol>
@@ -510,8 +614,11 @@ export function YourPart(e: Example): React.JSX.Element {
         </p>
         {waiting === undefined ? null : (
           <div className={WELL}>
-            <span className={SMALL}>{copy("how.part.page")}</span>
-            <span className="text-sm font-semibold">{waiting.title}</span>
+            <span className="flex flex-wrap items-center gap-2">
+              <span className="num text-base-content/70 text-xs">{`${weekDays()[e.plan.indexOf(waiting)]} · ${LIVE_AT}`}</span>
+              <span className="badge badge-soft badge-success badge-sm">{copy("how.part.page")}</span>
+            </span>
+            <span className="text-sm font-semibold">{e.partPage}</span>
             <span className="flex flex-wrap gap-1">
               <span className="badge badge-ghost badge-sm gap-1">
                 <Pencil size={12} strokeWidth={1.75} aria-hidden />
@@ -522,26 +629,27 @@ export function YourPart(e: Example): React.JSX.Element {
                 {copy("how.week.stop")}
               </span>
             </span>
+            <span className={SMALL}>{copy("how.part.window", { hours: HOW_FACTS.windowHours })}</span>
           </div>
         )}
-        <p className={SMALL}>{copy("how.part.window", { hours: HOW_FACTS.windowHours })}</p>
-        <ExampleLine />
       </div>
     </figure>
   );
 }
 
-/** `#start`: the three figures a free report opens on. */
-export function ReportGlance(e: Example): React.JSX.Element {
+/** `#start`, and every Learn page's close with its own caption: the three
+ *  figures a free report opens on. */
+export function ReportGlance(e: Example, caption?: string): React.JSX.Element {
   return (
     <figure className={CARD}>
       <div className="card-body gap-3">
         <p className={LABEL}>{copy("how.start.glance")}</p>
         <div className="stats stats-vertical min-w-0">
+          {/* Spans, so the score, its band and its name read as one line. */}
           <div className="stat px-0">
-            <div className="stat-value text-3xl">{copy("how.start.score", { score: e.report.score, max: 100 })}</div>
-            <div className="stat-title text-base-content font-semibold">{copy("band.score.hard-to-find")}</div>
-            <div className="stat-desc text-base-content/70 whitespace-normal">{copy("how.start.score.name")}</div>
+            <span className="stat-value text-3xl">{copy("how.start.score", { score: e.report.score, max: 100 })}</span>
+            <span className="stat-title text-base-content font-semibold">{copy("band.score.hard-to-find")}</span>
+            <span className="stat-desc text-base-content/70 whitespace-normal">{copy("how.start.score.name")}</span>
           </div>
           <div className="stat px-0">
             <div className="stat-desc text-base-content text-sm whitespace-normal">
@@ -554,7 +662,7 @@ export function ReportGlance(e: Example): React.JSX.Element {
             </div>
           </div>
         </div>
-        <figcaption className={SMALL}>{copy("how.start.caption", { business: e.business })}</figcaption>
+        <figcaption className={SMALL}>{caption ?? copy("how.start.caption", { business: e.business })}</figcaption>
       </div>
     </figure>
   );

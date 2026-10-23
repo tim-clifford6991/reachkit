@@ -1,0 +1,22 @@
+{
+  "version": "0.1.20260930",
+  "status_code": 20000,
+  "status_message": "Ok.",
+  "time": "0.0103 sec.",
+  "cost": 0,
+  "tasks_count": 1,
+  "tasks_error": 1,
+  "tasks": [
+    {
+      "id": "10221530-1535-0216-0000-0f4e2a7d9c11",
+      "status_code": 40210,
+      "status_message": "Insufficient funds.",
+      "time": "0 sec.",
+      "cost": 0,
+      "result_count": 0,
+      "path": ["v3", "dataforseo_labs", "google", "ranked_keywords", "live"],
+      "data": { "api": "dataforseo_labs", "function": "ranked_keywords", "se_type": "google" },
+      "result": null
+    }
+  ]
+}

@@ -24,15 +24,16 @@
 // zero-volume problem and product-anchored searches" (owner, 2026-10-03).
 import { PRICE_FILLER, SHAPES, languagePack } from "@/lib/locale/language";
 import { LANGUAGES, measuredLocale, type Language } from "@/lib/locale/locales";
-import { ASKED_TOPICS, EFFORT_BY_TYPE, TOPIC_FIT } from "@/lib/config/constants";
+import { ASKED_TOPICS, CONTENT_MIX, EFFORT_BY_TYPE, TOPIC_FIT } from "@/lib/config/constants";
 import { comparisonsOf, ownSearched, searched } from "@/lib/market/infer/demand";
 import type { MarketConclusion } from "@/lib/market/infer/types";
-import { brandOf, classifyIntent, ownBrandTokens, stemKey } from "@/lib/market/questions/select";
+import { brandOf, classifyIntent, ownBrandTokens, passesRelevanceGuard, stemKey } from "@/lib/market/questions/select";
 import { malformedSearch } from "@/lib/market/questions/well-formed";
 import { measured, unmeasured, type Measured } from "@/lib/measure/measured";
 import type { PromptAnswer, StoredReport } from "@/lib/scan/report";
 import { queryKey } from "../cluster";
-import { FAMILY_OF, type Evidence, type OpportunityType, type TopicSource } from "../types";
+import { contentTypeOf } from "../content-type";
+import { FAMILY_OF, type BusinessFit, type Evidence, type OpportunityType, type TopicSource } from "../types";
 import { demandBand } from "../winnability/band";
 import { qualifyingDemand } from "../winnability/bars";
 import { slugify, type Candidate } from "./candidate";
@@ -735,4 +736,76 @@ export function candidateFor(
     source: topic.source,
     effort: EFFORT_BY_TYPE[type],
   };
+}
+
+/** A question buyers were seen asking, with the fit a pass judged for it,
+ *  `null` where no pass has judged it. */
+export interface AskedSupply {
+  topic: ProposedTopic;
+  fit: BusinessFit | null;
+}
+
+/**
+ * SPEC §7 (issue 1549): the questions buyers were seen asking that a pass
+ * writes below the top fit, best first. Pure.
+ *
+ * The ones the pass judged to help, then the ones it never reached — those
+ * asked beside the market's own searched terms first, and only where the
+ * business's vocabulary supports every word and no rival is named. Each is
+ * on the market, a search a buyer would type, not a rival's bare name,
+ * written as a Q&A, how-to or documentation page (D52 caps the rest), and
+ * on no search the site already holds or dismissed. The collapse then folds
+ * each into the page of the results page it was seen on.
+ */
+export function askedSupply(a: {
+  report: StoredReport;
+  market: MarketConclusion | null;
+  asked: readonly AskedBeside[];
+  spare: readonly AskedSupply[];
+  refused: readonly string[];
+  /** Every search the site already holds a row on, or absorbed. */
+  taken: readonly string[];
+  /** The searches of its dismissed rows. */
+  dismissed: readonly string[];
+  now: Date;
+}): AskedSupply[] {
+  const { own, rivals } = brandsOf(a);
+  const brands = [...own, ...rivals];
+  const seen = new Set([...a.taken, ...a.dismissed, ...a.refused].map(queryKey));
+  const answers = (query: string): boolean =>
+    (CONTENT_MIX.NON_COMMERCIAL_TYPES as readonly string[]).includes(contentTypeOf({ type: "keyword_page", targetQuery: query }) ?? "");
+  const usable = (query: string): boolean =>
+    !seen.has(queryKey(query)) &&
+    answers(query) &&
+    askedOnMarket(query, { market: a.market, own, rivals }) &&
+    malformedSearch(query, a.market?.rivals) === null &&
+    !rivalBrandOnly(query, { market: a.market, own, rivals });
+
+  // §6.7's relevance guard holds a question no pass judged: "what is aeo in
+  // medical terms" sat beside reachkit.app's searches. No profile, none.
+  const profile = a.report.market.kind === "unmeasured" ? null : a.report.market.value.profile;
+  const marketWords = [a.market?.category ?? "", ...(a.market?.synonyms ?? [])].filter((word) => word.trim() !== "").join(" ");
+  const onTopic = (query: string): boolean =>
+    profile !== null &&
+    passesRelevanceGuard(query, profile, marketWords === "" ? undefined : marketWords) &&
+    !namesAnyBrand(query, rivals);
+
+  const out: AskedSupply[] = [];
+  const take = (topic: ProposedTopic, fit: BusinessFit | null): void => {
+    if (!usable(topic.query) || (fit === null && !onTopic(topic.query))) return;
+    seen.add(queryKey(topic.query));
+    out.push({ topic, fit });
+  };
+  for (const spare of a.spare) take(spare.topic, spare.fit);
+
+  const terms = new Set(
+    a.report.questions.kind === "unmeasured"
+      ? []
+      : a.report.questions.value.filter((question) => question.search.term === true).map((question) => queryKey(question.search.keyword))
+  );
+  const byTerm = [...a.asked].sort((x, y) => Number(terms.has(queryKey(y.term))) - Number(terms.has(queryKey(x.term))));
+  for (const asked of askedTopics(byTerm, a.now, Number.POSITIVE_INFINITY)) {
+    take({ query: queryKey(asked.query), source: sourceOf(asked.query, { brands }), volume: null, rival: null, asked: { term: asked.term, serpAt: asked.serpAt } }, null);
+  }
+  return out;
 }

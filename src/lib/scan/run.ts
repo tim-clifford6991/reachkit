@@ -948,9 +948,11 @@ export interface RunScanArgs {
    * releases setup; zero proposals is legal, never faked").
    */
   afterReport?: (a: { report: StoredReport; cost: CostContext }) => Promise<void>;
+  /** The report of a pass the vendor refused for credit is stored `failed`, in the one write, so no reader ever sees it measured. */
+  failsWhenFundsRefused?: true;
 }
 
-export async function runScan(a: RunScanArgs): Promise<{ scanId: string; status: ScanStatus }> {
+export async function runScan(a: RunScanArgs): Promise<{ scanId: string; status: ScanStatus; fundsRefused?: true }> {
   const parameters = TIER_PARAMETERS[a.tier];
   const startedAt = new Date();
 
@@ -1059,7 +1061,7 @@ export async function runScan(a: RunScanArgs): Promise<{ scanId: string; status:
     a.locale ?? (a.siteId === undefined ? null : await readStoredLocale(a.siteId).catch(() => null));
 
   const sections = freshSections(startedAt);
-  const spend: { cents: number; degraded: boolean } = { cents: 0, degraded: false };
+  const spend = { cents: 0, degraded: false, fundsRefused: false };
   const { ending } = await withScanBounds(
     {
       scanId,
@@ -1069,6 +1071,7 @@ export async function runScan(a: RunScanArgs): Promise<{ scanId: string; status:
       deadlineApplies: parameters.deadlineApplies,
       priorCents,
       holdBackCents: parameters.typingReserveC,
+      ...(a.failsWhenFundsRefused === true ? { failsWhenFundsRefused: true } : {}),
     },
     async (bounds, cost) => {
       try {
@@ -1096,6 +1099,7 @@ export async function runScan(a: RunScanArgs): Promise<{ scanId: string; status:
       } finally {
         spend.cents = cost.spentCents();
         spend.degraded = cost.degraded();
+        spend.fundsRefused = cost.fundsRefused?.() === true;
       }
     }
   );
@@ -1155,6 +1159,7 @@ export async function runScan(a: RunScanArgs): Promise<{ scanId: string; status:
       ...(a.retryOf === undefined ? {} : { supersedesScanId: a.retryOf.scanId }),
       drivers: composed.drivers,
       degraded: spend.degraded || composed.sectionMissing,
+      ...(a.failsWhenFundsRefused === true && spend.fundsRefused ? { failed: true } : {}),
       costCents: spend.cents,
     });
   } finally {
@@ -1223,7 +1228,8 @@ export async function runScan(a: RunScanArgs): Promise<{ scanId: string; status:
     const { reportIncident } = await import("@/lib/mail/ops");
     await reportIncident({ occasion: "market-too-small", scanId, tier: a.tier });
   }
-  return stored;
+  // A pass the vendor refused for credit measured nothing it can stand on; its caller decides what that leaves.
+  return spend.fundsRefused ? { ...stored, fundsRefused: true } : stored;
 }
 
 /** Sends `scan/finish-reads` for a stored report that says it is still

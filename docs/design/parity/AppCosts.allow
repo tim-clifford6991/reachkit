@@ -29,3 +29,12 @@ harborplumbing.com €4.18 est. · €4.02 billed	sample data
 €2.11	sample data
 €1.98	sample data
 €0.42	sample data
+on 1,212 of 1,340 calls	sample data
+lakesidedental.example €3.77 est. · €3.65 billed	sample data
+Free scans €2.11 est. · €1.98 billed	sample data
+Smoke tests €0.42 est. · not billed	sample data
+Fixed costs, October	sample data
+cap €2 warning €1.50	the reference lines' own labels, which Recharts draws inside the chart's svg and the reader skips; the key under the chart says them in text (DESIGN §1, #1714)
+The seven UTC days to Monday 19 October. Estimated is our price list; billed is what the vendor charged.	sample data: the date; tests/app/costs/page.test.tsx renders the board's own week and finds the whole sentence (#1753)
+1 day over, 1 day past the warning	sample data: the counts; tests/app/costs/page.test.tsx renders the board's own week and finds the whole line (#1753)
+Theme: light	#1744: the app shell's theme control, which that issue changes for every /app board

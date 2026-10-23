@@ -1,8 +1,11 @@
 Preview of harborplumbing.com/ water-heater-repair	sample data
-3	sample data
-canonical https://harborplumbing.com/water-heater-repair The page’s main address Fine	sample data
-1	sample data
-2	sample data
-4	sample data
 Scan harborplumbing.com for free	sample data
 Cancel your contract	owner 2026-10-20 Q13: shown once the launch gate opens
+One page by hand, or all of it every week	SPEC 2026-10-15 (#1444): a title is at most six words, so it ships as "One page here. Every page, weekly." (#1728)
+Switch to dark theme	#1721: the public header's theme switch, which that issue changes for every public board
+Open menu	#1721: the public header's menu button, which that issue changes for every public board
+Contact	#1721: the footer's Contact column, which that issue adds for every public board
+hello@reachkit.app	#1721: the footer's Contact column, which that issue adds for every public board
+1 Title 56 characters · fits Fine	sample data
+2 Text under the link 121 characters · fits Fine	sample data
+Articles	#1512: the footer links the content host's index only where stored rows name one; the sweep seeds none

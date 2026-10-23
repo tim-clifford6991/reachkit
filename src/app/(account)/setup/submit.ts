@@ -97,38 +97,31 @@ export type SetupRefusal =
 export type SetupResult = { ok: true; siteId: string } | { ok: false; refused: SetupRefusal };
 
 /**
- * SPEC §5 (2026-09-20, #908): "Each step saves as it is left so a reload
- * resumes." One arm per step, carrying that step's own answer and nothing
- * else — the same closed-shape rule `SetupSubmission` enforces for the
- * finish, applied five times over.
+ * SPEC §5: each step saves as it is left, so a reload resumes. One arm per
+ * step, carrying that step's own answers and nothing else.
  *
- * The business step carries no answer at all. What the founder took out of
- * and added to their profile has no column to go to until #926 gives the
- * confirmed profile a home; the save is still made, because leaving the
- * step is what moves the resume point on.
- *
- * There is no publishing arm, and that is not an omission: publishing is
- * the last step, and leaving it forward *is* the finish, which writes the
- * destination with everything else. #924 puts the DNS record after it, and
- * that is the issue that gives publishing a save of its own.
+ * Check carries every section it opens (docs/spec/decisions/2026-10-22-1737.md):
+ * the market and rivals, the business lists, the five answers and the voice,
+ * each written to the row its own step wrote before. There is no publishing
+ * arm: leaving the last step forward is the finish, which writes the
+ * destination with everything else.
  */
 export type SetupStepSave =
-  | { step: "site"; domain: string; category: string; locale?: string; place?: string }
-  // #970: the lists as the founder left them, keyed by the stored field's
-  // own name. What is *stored* is what they took out and what they added,
-  // worked out against the same reading the screen drew — so a list named
-  // here is one this step showed, and a list absent is untouched. `job` is
-  // *What you do* as they left it (#1038); absent, their wording stands.
+  // The market moved to Check; a site save that still names one writes it.
+  | { step: "site"; domain: string; category?: string; locale?: string; place?: string }
   | {
-      step: "business";
+      step: "check";
+      category: string;
+      competitors: readonly string[];
+      // #970: the lists as the founder left them, keyed by the stored field's
+      // own name; a list absent is untouched. `job` is *What you do* (#1038).
       lists: Readonly<Partial<Record<BusinessList, readonly string[]>>>;
       job?: string;
-      /** #1133: the five questions as the founder left them; absent, the
-       *  stored answers stand. */
+      /** #1133: the five questions; absent, the stored answers stand. */
       answers?: FounderAnswers;
-    }
-  | { step: "rivals"; competitors: readonly string[] }
-  | { step: "voice"; voiceText: string; timezone: string | null };
+      voiceText: string;
+      timezone: string | null;
+    };
 
 /** A step save says yes or refuses in one line, exactly as the finish does.
  *  It never names a site id: the caller already knows whose setup it is. */
@@ -242,17 +235,17 @@ export async function completeSetup(
   // waits on this pass there, so a dropped send is a side panel that never
   // clears.
   //
-  // Since 2026-09-20 (#922) the rivals step has usually sent it already.
+  // Leaving Check has usually sent it already.
   // Sending it again is free and deliberate: `sendDeepPass` keys the
   // delivery on the site, so a second send starts no second pass, and a
-  // founder whose rivals step was saved by a build that could not reach the
+  // founder whose Check step was saved by a build that could not reach the
   // queue still gets one from the finish.
   await startPass(store, progress.siteId);
 
   return { ok: true, siteId: progress.siteId };
 }
 
-/** The bounded send of the onboarding pass, shared by the rivals step and
+/** The bounded send of the onboarding pass, shared by the Check step and
  *  the finish. Never throws: the founder's answers are already on disk, and
  *  `account/maintenance` re-sends a setup left with no pass
  *  (`src/jobs/deep-pass-backstop.ts`). */
@@ -281,11 +274,9 @@ async function startPass(store: SetupStore, siteId: string): Promise<void> {
  * finish uses, so the screen draws one line per refusal and has no second
  * vocabulary for a step.
  *
- * **The pass starts here, on the rivals step** (SPEC §5, 2026-09-20: "The
- * deep pass starts when rivals are confirmed … so voice and publishing
- * overlap the wait"). It is sent after the competitors are written, never
- * before: a pass that read the row a moment too early would size the wrong
- * set of rivals.
+ * **The pass starts here, when Check is left**, because Check confirms the
+ * rivals. It is sent after the competitors are written, never before: a pass
+ * that read the row a moment too early would size the wrong set of rivals.
  */
 export async function saveSetupStep(
   store: SetupStore,
@@ -323,19 +314,18 @@ async function checkedStep(
     case "site": {
       const domain = registrableDomain(save.domain);
       if (domain === null) return { ok: false, refused: "invalid_domain" };
-      if (save.category.trim() === "") return { ok: false, refused: "market_missing" };
       if (!(await store.resolvesInDns(domain))) return { ok: false, refused: "invalid_domain" };
-      return { ok: true, save: { ...save, domain } };
+      const { category, ...rest } = save;
+      const named = category !== undefined && category.trim() !== "";
+      return { ok: true, save: { ...rest, domain, ...(named ? { category } : {}) } };
     }
-    case "rivals": {
+    case "check": {
+      if (save.category.trim() === "") return { ok: false, refused: "market_missing" };
       if (save.competitors.length > BATTERY.COMPETITORS_MAX) {
         return { ok: false, refused: "too_many_competitors" };
       }
       return { ok: true, save };
     }
-    case "business":
-    case "voice":
-      return { ok: true, save };
   }
 }
 

@@ -220,20 +220,31 @@ describe("POST /api/setup — the one write path", () => {
 });
 
 describe("POST /api/setup — the five step saves (SPEC §5, 2026-09-20)", () => {
+  /** Check as a founder leaves it: every section in one save. */
+  const CHECK = {
+    step: "check",
+    category: "agency CRM",
+    competitors: ["asana.com"],
+    lists: {},
+    voiceText: "Plain and direct.",
+    timezone: "Europe/Lisbon",
+  };
+
   it("a body naming a step is that step's own save, and answers ok with no site id", async () => {
     const { POST } = await import("@/app/api/setup/route");
     for (const body of [
+      { step: "site", domain: "example.com" },
+      // A site save from a five-step page still open names the market; it is kept.
       { step: "site", domain: "example.com", category: "agency CRM" },
-      { step: "business", lists: { products: ["Full service"] } },
+      { ...CHECK, lists: { products: ["Full service"] } },
       // #1038: *What you do* travels beside the lists.
-      { step: "business", lists: { audienceTerms: ["Commuters"] }, job: "We fix bikes." },
+      { ...CHECK, lists: { audienceTerms: ["Commuters"] }, job: "We fix bikes." },
       // #1133: the five optional questions travel beside them.
-      { step: "business", lists: {}, answers: { buyers: "Commuters, because they ride daily." } },
-      // #970: a step left with nothing shown touches no list, and is not a
+      { ...CHECK, answers: { buyers: "Commuters, because they ride daily." } },
+      // #970: a section left with nothing shown touches no list, and is not a
       // founder's mistake — it saves like any other.
-      { step: "business" },
-      { step: "rivals", competitors: ["asana.com"] },
-      { step: "voice", voiceText: "Plain and direct.", timezone: "Europe/Lisbon" },
+      { ...CHECK, lists: undefined },
+      { ...CHECK, timezone: undefined },
     ]) {
       const response = await POST(post("/api/setup", body), undefined);
       expect(response.status, body.step).toBe(200);
@@ -244,12 +255,9 @@ describe("POST /api/setup — the five step saves (SPEC §5, 2026-09-20)", () =>
   it("a step refused answers 422 carrying the refusal, never a sentence", async () => {
     const { POST } = await import("@/app/api/setup/route");
     for (const [body, refused] of [
-      [{ step: "site", domain: "not a domain", category: "agency CRM" }, "invalid_domain"],
-      [{ step: "site", domain: "example.com", category: "  " }, "market_missing"],
-      [
-        { step: "rivals", competitors: ["a.com", "b.com", "c.com", "d.com", "e.com", "f.com"] },
-        "too_many_competitors",
-      ],
+      [{ step: "site", domain: "not a domain" }, "invalid_domain"],
+      [{ ...CHECK, category: "  " }, "market_missing"],
+      [{ ...CHECK, competitors: ["a.com", "b.com", "c.com", "d.com", "e.com", "f.com"] }, "too_many_competitors"],
     ] as const) {
       const response = await POST(post("/api/setup", body), undefined);
       expect(response.status, refused).toBe(422);
@@ -260,14 +268,18 @@ describe("POST /api/setup — the five step saves (SPEC §5, 2026-09-20)", () =>
   it("a step naming an answer it does not carry is a 400 — it is not a founder's answer", async () => {
     const { POST } = await import("@/app/api/setup/route");
     for (const body of [
-      { step: "site", domain: "example.com" },
-      { step: "rivals", competitors: [1, 2] },
+      { step: "site" },
+      { step: "site", domain: "example.com", category: 7 },
+      { ...CHECK, category: undefined },
+      { ...CHECK, competitors: [1, 2] },
       // #970: a list whose entries are not strings is malformed.
-      { step: "business", lists: { products: [1, 2] } },
-      { step: "business", lists: ["products"] },
-      { step: "business", lists: {}, job: 7 },
-      { step: "business", lists: {}, answers: ["buyers"] },
-      { step: "voice" },
+      { ...CHECK, lists: { products: [1, 2] } },
+      { ...CHECK, lists: ["products"] },
+      { ...CHECK, job: 7 },
+      { ...CHECK, answers: ["buyers"] },
+      { ...CHECK, voiceText: undefined },
+      // The five-step build's saves are gone with its steps.
+      { step: "business", lists: {} },
       // Publishing has no save of its own: leaving it forward is the finish.
       { step: "publishing", destination: { kind: "hosted", label: "content" } },
       { step: "not-a-step" },
@@ -287,7 +299,7 @@ describe("POST /api/setup — the five step saves (SPEC §5, 2026-09-20)", () =>
   it("a step save from a request whose cookie names no account is refused with a status and no sentence", async () => {
     session = null;
     const { POST } = await import("@/app/api/setup/route");
-    const response = await POST(post("/api/setup", { step: "business" }), undefined);
+    const response = await POST(post("/api/setup", CHECK), undefined);
     expect(response.status).toBe(401);
   });
 });

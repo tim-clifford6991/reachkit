@@ -47,8 +47,6 @@ import { writtenLine } from "../../_shell/written";
 import { draftActionsFor, type DraftCommand } from "./actions";
 import { CopyOut } from "./CopyOut";
 import type { State } from "../../calendar/stages";
-import { TakeDownControl } from "../../calendar/TakeDown";
-import { putBackWords, takeDownWords } from "../../calendar/take-down-words";
 import { firstReadingOn, type DraftView } from "./model";
 import { SHAPE } from "./shape";
 
@@ -239,22 +237,6 @@ export function DecidePanel(p: {
             </div>
           )}
 
-          {/* SPEC §7 (issue 1532): a live page can be taken down, and put
-              back inside its window. */}
-          {view.takeDown === null ? null : (
-            <div className="flex min-w-0 flex-col gap-2" data-testid="draft-take-down">
-              {view.takeDown.kind === "put_back" ? (
-                <p className="min-w-0 text-xs text-base-content/70 wrap-anywhere">
-                  {copy("draft.put-back.until", { date: formatDate(view.takeDown.until, view.timeZone) })}
-                </p>
-              ) : null}
-              {view.takeDown.kind === "put_back" ? (
-                <TakeDownControl draftId={view.draftId} mode="put_back" words={putBackWords()} />
-              ) : (
-                <TakeDownControl draftId={view.draftId} mode="take_down" words={takeDownWords()} />
-              )}
-            </div>
-          )}
         </div>
 
         {stops ? (
