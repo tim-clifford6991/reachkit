@@ -48,7 +48,8 @@ function isNotifyKind(kind: MailKind): kind is NotifyKind {
 }
 
 /**
- * The switches, in the register's own order, each carrying the customer's
+ * The switches the Mail board draws, the Monday mail first; page 1's
+ * published mail is told once and has no switch (D3). Each carries the customer's
  * stored preference. A kind absent from `prefs` reads as on — the state a
  * customer who has never opened Settings is in
  * (`src/lib/mail/notifications`'s `allOn()`), restated here as a default
@@ -57,7 +58,10 @@ function isNotifyKind(kind: MailKind): kind is NotifyKind {
  */
 export function notificationRows(prefs: Partial<Record<NotifyKind, boolean>>): readonly NotificationRow[] {
   return Object.freeze(
-    TOGGLE_KINDS.filter(isNotifyKind).map((kind) =>
+    TOGGLE_KINDS.filter(isNotifyKind)
+      .filter((kind) => kind !== "published")
+      .sort((a, b) => Number(b === "weekly") - Number(a === "weekly"))
+      .map((kind) =>
       Object.freeze({ kind, on: prefs[kind] ?? true, copyKey: NOTIFICATION_COPY_KEY[kind] })
     )
   );
