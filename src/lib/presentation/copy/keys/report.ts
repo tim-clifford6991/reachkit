@@ -941,6 +941,13 @@ export const REPORT_COPY = Object.freeze({
     "Your site also serves one other market; we measure one. Change it in Settings.",
     { slots: {}, fixedBy: "SPEC §6 · D66 · issue 1689" },
   ],
+  // The measurement line of a report whose site could not be read, measured
+  // in D66's default, and what its Google listing reads as. Drafted (#759).
+  "report.locale.guessed": [
+    "We couldn’t read your site, so we measured it in Google {country}, in {language}.",
+    { slots: { country: "text", language: "text" }, fixedBy: "SPEC §6 · D66 · issue 1797" },
+  ],
+  "report.locale.listing-reads": ["Your Google listing reads as {country}.", { slots: { country: "text" }, fixedBy: "SPEC §6 · D66 · issue 1797" }],
   "report.locale.site.pair": ["{country} in {language}", { slots: { country: "text", language: "text" }, fixedBy: "SPEC §6 · D66 · issue 1311" }],
   // The measurement line of a report measured anywhere but in US Google in
   // English (D66). Drafted (#759).

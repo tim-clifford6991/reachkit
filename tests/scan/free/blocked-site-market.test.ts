@@ -495,3 +495,69 @@ describe("a site that ranks, whose market a vendor or the model did not answer f
     expect((await scan("sage.com")).measured).toBe(true);
   }, PASS_TIMEOUT_MS);
 });
+
+describe("a paying site whose home was not read never stores a guessed market (SPEC §6, D66)", () => {
+  type ListingRow = { url: string; title: string; description: string };
+  const listingFixture = (name: string): ListingRow[] =>
+    JSON.parse(readFileSync(path.join(__dirname, "../../locale/fixtures/listing", `${name}.json`), "utf8")) as ListingRow[];
+  /** The ranked answer, as DataForSEO shapes it, holding these rows. */
+  const rankedAnswer = (rows: readonly ListingRow[]): unknown =>
+    envelope({
+      total_count: rows.length,
+      items_count: rows.length,
+      items: rows.map((row, i) => ({
+        keyword_data: { keyword: `search ${i}`, keyword_info: { search_volume: 1000 }, keyword_properties: { keyword_difficulty: 30 } },
+        ranked_serp_element: { serp_item: { type: "organic", rank_group: i + 1, rank_absolute: i + 1, ...row } },
+      })),
+    });
+  const failedTask = { tasks: [{ id: "task-double", status_code: 50000, status_message: "Internal Error.", result: null }] };
+
+  /** A deep pass for a site, to the end of reading the site: what it stored as the site's market, and the locale every ranked read was bought in. */
+  async function paidPass(domain: string, listing: readonly ListingRow[]): Promise<{ written: unknown[]; rankedIn: unknown[] }> {
+    const written: unknown[] = [];
+    const { registerSiteLocaleStore } = await import("../../../src/lib/locale/site");
+    registerSiteLocaleStore({ read: async () => null, write: async (_site, locale) => void written.push(locale) });
+    labsDouble = (url) => (url.includes("ranked_keywords") ? rankedAnswer(listing) : failedTask);
+    // The row the paid pass adopts, claimed before it.
+    db.answer = (query) =>
+      query.table === "scans" && query.verb === "select" && new Map(query.filters).get("site_id") === "site-1797"
+        ? [{ id: scanId, fromIncompleteRescan: false }]
+        : answerQuery(query);
+    const { runScan } = await import("../../../src/lib/scan/run");
+    await runScan({
+      domain,
+      siteId: "site-1797",
+      tier: "deep",
+      // The write is made as the site is read; nothing after it is this suite's.
+      onStage: (stage) => {
+        if (stage === "reading_access_rules") throw new Error("stop after reading the site");
+      },
+    });
+    const rankedIn = labsRequests.filter((request) => request.url.includes("ranked_keywords")).map((request) => request.task.location_name);
+    return { written, rankedIn };
+  }
+
+  it("a protected .com whose listing names no country makes no write", async () => {
+    served = PROTECTED["sage.com"] as Served;
+    const { written, rankedIn } = await paidPass("sage.com", listingFixture("software-saas"));
+    expect(rankedIn).toEqual(["United States"]);
+    expect(written).toEqual([]);
+    const report = db.rpcCalls.find((call) => call.fn === "store_current_report")?.args.p_report as StoredReport | undefined;
+    expect(report?.locale).toEqual({ country: "US", language: "en", basis: "default" });
+  }, PASS_TIMEOUT_MS);
+
+  it("a protected .com whose listing reads as the United Kingdom stores GB in English, never US", async () => {
+    served = PROTECTED["sage.com"] as Served;
+    const { written } = await paidPass("sage.com", listingFixture("local-service-trades-directory"));
+    expect(written).toEqual([{ country: "GB", language: "en" }]);
+    // The report says it guessed, and what the listing reads as.
+    const report = db.rpcCalls.find((call) => call.fn === "store_current_report")?.args.p_report as StoredReport | undefined;
+    expect(report?.locale).toMatchObject({ country: "US", language: "en", basis: "default", listingReads: "GB" });
+  }, PASS_TIMEOUT_MS);
+
+  it("the same pass with its home read stores what it read, as before", async () => {
+    served = READABLE;
+    const { written } = await paidPass("sage.com", listingFixture("software-saas"));
+    expect(written).toEqual([{ country: "US", language: "en" }]);
+  }, PASS_TIMEOUT_MS);
+});
