@@ -41,7 +41,7 @@ export const GOAL_KEYS: readonly GoalKey[] = Object.freeze([
 
 /** `value` is required, not optional: `pages_published` was the one goal
  *  the product had no number for, and the owner ruled it at 30 on
- *  2026-08-31 (a month of daily pages). With all three carrying a value, a
+ *  2026-08-31 (about a month of pages at the week plan's pace). With all three carrying a value, a
  *  goalless headline is unrepresentable rather than merely unusual. */
 export const GOALS: Readonly<Record<GoalKey, { value: number; meansKey: CopyKey }>> = Object.freeze(
   {
