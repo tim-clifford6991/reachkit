@@ -603,6 +603,13 @@ describe("the board's sections on the open arm, in its order and words", () => {
     }
   });
 
+  it("while the page is held on a connected address, no hour appears, open or failed", async () => {
+    previewAnswer = async () => ({ ok: true, preview: { ...LIVE_PREVIEW, publishes: null } });
+    for (const query of [{}, { done: "1" }] as Record<string, string>[]) {
+      expect(text(await ask(query))).not.toMatch(/\d:\d\d/);
+    }
+  });
+
   it("the sections come in the board's order", async () => {
     const at = order(await ask(), [
       "Goes live Tue 15 Sep, 7:00 AM",

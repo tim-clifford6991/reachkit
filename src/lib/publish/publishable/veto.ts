@@ -282,8 +282,9 @@ export interface VetoPreview {
    *  zone beside it is a time the reader has to guess about, and REQ-073 c1
    *  forbids picking a zone on the customer's behalf. `null` where no
    *  moment can be computed — a site with no stated zone, or a page whose
-   *  window has already run out, or a hosted address not yet connected.
-   *  Never substituted. */
+   *  window has already run out — or while the page is held: a hosted
+   *  address not yet connected, ReachKit stopped, publishing off or the
+   *  destination not working. Never substituted. */
   readonly publishes: { readonly at: Date; readonly timeZone: string } | null;
   /** The site's hosted address is still waiting for its record, so the page
    *  goes live only once it is connected and no moment can be promised. */
@@ -390,7 +391,7 @@ export async function previewVetoLink(
   const view = await machineDraftFor(row.id);
   const answer = view === null ? null : becomesPublishable(view);
   const zone = row.sites?.timezone ?? null;
-  const unconnected = await addressUnconnected(row.site_id);
+  const [unconnected, held] = await Promise.all([addressUnconnected(row.site_id), heldNow(row.site_id, at)]);
 
   return {
     ok: true,
@@ -402,7 +403,7 @@ export async function previewVetoLink(
       domain: row.sites?.domain ?? null,
       excerpt: excerptOf(row.body_md),
       publishes:
-        answer !== null && answer.publishable && zone !== null && !unconnected
+        answer !== null && answer.publishable && zone !== null && !unconnected && !held
           ? { at: answer.at, timeZone: zone }
           : null,
       unconnected,
@@ -422,6 +423,29 @@ async function addressUnconnected(siteId: string): Promise<boolean> {
     return host !== null && host.state !== "live";
   } catch {
     return false;
+  }
+}
+
+/** Whether the page would not go live at its moment: ReachKit's kill switch
+ *  or day ceiling, the site's publishing switch, or a destination that is
+ *  not working. A read that fails is held, since no hour can be promised on it. */
+async function heldNow(siteId: string, at: Date): Promise<boolean> {
+  try {
+    const [{ isPublishingOn, reachKitStopped }, { destinationWorking }, daily] = await Promise.all([
+      import("../switch"),
+      import("../destinations"),
+      import("@/lib/costs/daily"),
+    ]);
+    const [stopped, on, working, spent, ceiling] = await Promise.all([
+      reachKitStopped(),
+      isPublishingOn(siteId),
+      destinationWorking(siteId),
+      daily.readDaySpendCents(at),
+      daily.readDayCeilingCents(at),
+    ]);
+    return stopped || !on || !working || spent === null || daily.ceilingReached(spent, ceiling);
+  } catch {
+    return true;
   }
 }
 

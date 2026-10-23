@@ -6,7 +6,11 @@
 // The archived plan is WO-217.
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createHash } from "node:crypto";
+import { applyEnvFixture } from "../../mail/env-fixture";
 import { fakeDb, installTransitionRpc, type FakeDb, type Row } from "../harness";
+
+// The stop page's read asks `reachKitStopped`, which parses `env` at import.
+applyEnvFixture();
 
 const db = fakeDb();
 vi.mock("@/lib/db", () => ({ dbAdmin: () => db.client, db: () => db.client }));
@@ -51,6 +55,7 @@ function seed(over: Row = {}): void {
   db.reset();
   installTransitionRpc(db);
   installRedeemRpc(db);
+  db.rpcs.set("fetches_spend_since", () => 0);
   // `user_id` is here for #144: a link redeemed with no session takes its
   // actor from the draft's site's owner, so the seed has to have one.
   db.seed("sites", [
@@ -313,11 +318,40 @@ describe("the stop page's read: why it was chosen, when the mail left, and the w
     expect(waiting.preview.unconnected).toBe(true);
     expect(waiting.preview.publishes).toBeNull();
 
-    db.rows("destinations")[0]!.hostname_state = "live";
+    Object.assign(db.rows("destinations")[0]!, { hostname_state: "live", health: "ok" });
     const live = await previewVetoLink(token, AT);
     if (!live.ok) throw new Error(`expected an open link, got ${live.reason}`);
     expect(live.preview.unconnected).toBe(false);
     expect(live.preview.publishes?.timeZone).toBe("Europe/Berlin");
+  });
+
+  it("while the page is held — ReachKit stopped or at its ceiling, publishing off, a broken destination or an unread ledger — it names no go-live moment", async () => {
+    const holds: { name: string; hold: () => void }[] = [
+      { name: "kill switch", hold: () => { process.env.KILL_SWITCH = "true"; } },
+      { name: "publishing off", hold: () => { db.rows("sites")[0]!.publishing_enabled = false; } },
+      { name: "destination unhealthy", hold: () => { db.rows("destinations")[0]!.health = "failing"; } },
+      { name: "day ceiling reached", hold: () => { db.rpcs.set("fetches_spend_since", () => 1e9); } },
+      { name: "ledger unread", hold: () => { db.rpcs.delete("fetches_spend_since"); } },
+    ];
+    try {
+      for (const { name, hold } of [{ name: "none", hold: () => {} }, ...holds]) {
+        seed({ ...PAGE, approved_at: null, approved_by: null, hard_rules_passed: true, publishable_since: null });
+        Object.assign(db.rows("sites")[0]!, { timezone: "Europe/Berlin", publish_time: "09:00" });
+        db.seed("destinations", [{ id: "dest-1", site_id: "s1", kind: "wordpress", health: "ok", deleted_at: null }]);
+        const token = (await issueVetoLink("d1", AT)).token;
+        applyEnvFixture();
+        hold();
+        // `env` parses once per module instance; a fresh graph reads the binding just set.
+        vi.resetModules();
+        const read = await previewVetoLink(token, AT);
+        if (!read.ok) throw new Error(`${name}: expected an open link, got ${read.reason}`);
+        if (name === "none") expect(read.preview.publishes?.timeZone, name).toBe("Europe/Berlin");
+        else expect(read.preview.publishes, name).toBeNull();
+      }
+    } finally {
+      applyEnvFixture();
+      vi.resetModules();
+    }
   });
 
   it("a spent link reads its page's Monday-to-Sunday week: stopped, going ahead, or nothing claimed", async () => {
