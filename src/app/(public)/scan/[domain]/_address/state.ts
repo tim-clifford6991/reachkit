@@ -15,6 +15,12 @@ import type { StoredReport } from "@/lib/scan/report";
 import type { ScoreFactorName } from "@/lib/measure/score";
 import type { CorrectionOffer } from "@/lib/market/coherence/offer";
 
+/** The scan's stored free page, as the writer settled it: model text. */
+export interface WrittenPage {
+  readonly title: string;
+  readonly markdown: string;
+}
+
 /** The refusals a visitor can be shown in writing. Named by the
  *  sentence each renders, not by the admission internals behind them:
  *  `src/lib/scan/admission.ts`'s `Admission` union is the engine's own
@@ -120,4 +126,6 @@ export type AddressState =
       /** SPEC §2 (issue 1481): the deployed code reads this scan
        *  differently and it has not been re-scored yet. Absent is false. */
       readsDifferently?: boolean;
+      /** R26: the scan's free page once a lead caused it to be written. Absent before. */
+      writtenPage?: WrittenPage;
     };
