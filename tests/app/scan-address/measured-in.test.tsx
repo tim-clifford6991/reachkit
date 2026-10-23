@@ -9,7 +9,7 @@ import { AlsoServesNote, WhatWeRead } from "@/app/_business/WhatWeRead";
 import { understandBusiness } from "@/lib/business/understanding";
 import { copy } from "@/lib/presentation/copy";
 import { COUNTRIES, LANGUAGES, countriesMeasuredIn, resolveLocale, type LocaleReading } from "@/lib/locale/locales";
-import type { ReportLocale } from "@/lib/scan/report";
+import type { ReportLocale, StoredReport } from "@/lib/scan/report";
 
 function reportHtml(locale: ReportLocale): string {
   return renderToStaticMarkup(
@@ -119,5 +119,43 @@ describe("a site that declares other markets is told one is measured", () => {
     ]) {
       expect(words(line), line).toBeLessThanOrEqual(20);
     }
+  });
+});
+
+describe("a report measured in a guessed country says so, and offers the one correction", () => {
+  const html = (report: Partial<StoredReport>): string =>
+    renderToStaticMarkup(
+      React.createElement(ReportView, {
+        state: { report: { ...FIXTURE_REPORT, ...report }, notice: null, control: { kind: "none" }, correction: { offered: true, as: "first" } },
+      })
+    );
+  const offers = (page: string): number => page.split(copy("verdict.not-your-market")).length - 1;
+  const GUESSED = "We couldn’t read your site, so we measured it in Google United States, in English.";
+  const blocked = { onPage: { kind: "unmeasured", reason: "undeterminable", because: "bot_protection", at: FIXTURE_REPORT.verdict.measuredAt } } as Partial<StoredReport>;
+
+  it("a guessed locale renders the guessed line, and the correction once", () => {
+    const page = html({ locale: { country: "US", language: "en", basis: "default" } });
+    expect(lineOf(page, "report-measured-in")).toBe(GUESSED);
+    expect(offers(page)).toBe(1);
+    expect(GUESSED.split(/\s+/).length).toBeLessThanOrEqual(20);
+  });
+
+  it("a guessed locale whose listing reads another country names it beside the one correction", () => {
+    const page = html({ locale: { country: "US", language: "en", basis: "default", listingReads: "GB" } });
+    expect(lineOf(page, "report-measured-in")).toBe(`${GUESSED} Your Google listing reads as United Kingdom.`);
+    expect(offers(page)).toBe(1);
+  });
+
+  it("a read United States locale keeps today's line", () => {
+    const page = html({ ...blocked, domain: "plumber.example.com" as StoredReport["domain"] });
+    expect(lineOf(page, "report-measured-in")).toBeNull();
+    expect(page).toContain(copy("report.measurement"));
+  });
+
+  it("a report stored before the marker, read from search with its home unread, renders the guessed line", () => {
+    const page = html({ ...blocked, domain: "plumber.example.com" as StoredReport["domain"], marketFrom: "search" });
+    expect(lineOf(page, "report-measured-in")).toBe(GUESSED);
+    // An address that names a country was read, not guessed.
+    expect(lineOf(html({ ...blocked, domain: "plumber.example.co.uk" as StoredReport["domain"], marketFrom: "search" }), "report-measured-in")).toBeNull();
   });
 });

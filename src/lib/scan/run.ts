@@ -95,6 +95,7 @@ import { trackedRivals } from "@/lib/market/rivals/tracked";
 import type { MarketSerp } from "@/lib/market/views";
 import { freePageOf } from "@/lib/opportunities/free-page";
 import { DEFAULT_LOCALE, type Locale, type Place } from "@/lib/locale/locales";
+import { listingLocaleOf } from "@/lib/locale/listing";
 import { askedIn, localSearch, placeCandidates, placeOf, statedPlace as statedPlaceOf, type PlaceFrom } from "@/lib/locale/place";
 import { readStoredLocale, writeSiteLocale } from "@/lib/locale/site";
 import { aiPresenceOf, aiSampleOf, BOT_PROTECTION, classifyReferences, localPackSearches, measureDomain, searchPresenceOf, withMeasuredPages, type DomainMeasurement } from "@/lib/measure";
@@ -1327,7 +1328,9 @@ function reportLocale(m: DomainMeasurement): ReportLocale | null {
   const usual = m.locale.country === DEFAULT_LOCALE.country && m.locale.language === DEFAULT_LOCALE.language;
   const place = m.locale.place;
   const alsoServes = m.alsoServes ?? [];
-  if (usual && m.localeFellBack === null && place === undefined && alsoServes.length === 0) return null;
+  const guessed = m.localeBasis === "default";
+  if (usual && !guessed && m.localeFellBack === null && place === undefined && alsoServes.length === 0) return null;
+  const listing = guessed ? listingLocaleOf(m.ownRankedRows) : null;
   return {
     country: m.locale.country,
     language: m.locale.language,
@@ -1336,7 +1339,16 @@ function reportLocale(m: DomainMeasurement): ReportLocale | null {
     ...(place === undefined ? {} : { place }),
     ...(m.localeFellBack === null ? {} : { fellBack: m.localeFellBack }),
     ...(alsoServes.length === 0 ? {} : { alsoServes }),
+    ...(guessed ? { basis: "default" as const } : {}),
+    ...(listing === null || listing.country === m.locale.country ? {} : { listingReads: listing.country }),
   };
+}
+
+/** What a pass stores as the site's market where the founder set none: what
+ *  it read of the site, else the country its listing reads as, and never a
+ *  guess (D66). */
+function readSiteLocale(m: DomainMeasurement): Locale | null {
+  return m.localeBasis === "default" ? listingLocaleOf(m.ownRankedRows) : m.locale;
 }
 
 /** The country and language this pass measures in (D66): the one stage one
@@ -1567,11 +1579,12 @@ async function stagesOf(a: StageArgs, crawl: SiteCrawl): Promise<void> {
   const measurement = read.value;
   if (!failed(measurement)) sections.measurement = measurement;
   await exitStage(scanId, "reading_your_site");
-  if (!failed(measurement) && measurement.homeRefusal === null && a.siteId !== undefined && a.locale === undefined) {
+  const siteLocale = failed(measurement) || measurement.homeRefusal !== null ? null : readSiteLocale(measurement);
+  if (siteLocale !== null && a.siteId !== undefined && a.locale === undefined) {
     // The reading is the site's from here on (D66). A write that fails
     // costs nothing this pass, which already holds it: the next pass reads
     // the site again.
-    await writeSiteLocale(a.siteId, measurement.locale).catch((error: unknown) =>
+    await writeSiteLocale(a.siteId, siteLocale).catch((error: unknown) =>
       console.log(
         JSON.stringify({ event: "site_locale_unwritten", because: error instanceof Error ? error.message : String(error) })
       )
