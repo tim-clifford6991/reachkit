@@ -25,7 +25,13 @@ export {
   type FirstPageFailure,
 } from "./giveaway";
 export { scheduleSequence, advanceSequences } from "./sequence";
-export { suppressAddress, suppressionState, normaliseAddress, type SuppressionAnswer } from "./suppress";
+export {
+  suppressAddress,
+  suppressionState,
+  normaliseAddress,
+  followUpsSentTo,
+  type SuppressionAnswer,
+} from "./suppress";
 export { applyOptOutToken, optOutTokenFor, readOptOutToken } from "./optout";
 export {
   registerDraftWriter,

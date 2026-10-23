@@ -186,7 +186,9 @@ const HOME_HTML = `<!doctype html><html><head><title>Acme</title></head><body>
 
 const READ_AT = new Date("2026-09-06T09:00:00.000Z");
 
-vi.mock("@/lib/egress/safe-fetch", () => ({
+// The module's other exports stay real, so a setup write that imports the site profile still loads.
+vi.mock("@/lib/egress/safe-fetch", async (importOriginal) => ({
+  ...(await importOriginal<Record<string, unknown>>()),
   safeFetch: async (url: string): Promise<FetchOutcome> => ({
     ok: true,
     status: 200,
@@ -652,7 +654,7 @@ async function untilTheFounderIsReleased(): Promise<void> {
 const JOURNEY_TIMEOUT_MS = 60_000;
 
 describe("three decisions → deep pass → the first page already on the calendar (JN-002 steps 3–9)", () => {
-  it("step 3 — the five steps ask one decision each, and the finish carries those and nothing else", async () => {
+  it("step 3 — the three steps (docs/spec/decisions/2026-10-22-1737.md) each ask their own, and the finish carries those and nothing else", async () => {
     const model = assembleSetup({ ...FIXTURE_SETUP_FACTS, cnameTarget: "content.example.com" });
     // SPEC §5 (2026-09-20): which step is on screen is the URL's, so each
     // render names the step it is asking about, through `nuqs`'s own
@@ -666,16 +668,17 @@ describe("three decisions → deep pass → the first page already on the calend
         )
       );
 
-    // One decision per step, and only that step's (SPEC §5, 2026-09-20).
-    expect(onStep("site")).toContain("setup.site-and-market.title");
-    expect(onStep("rivals")).toContain("setup.competitors.title");
+    // Each step's own, and only that step's.
+    expect(onStep("site")).toContain("setup.address.title");
+    expect(onStep("site")).not.toContain("setup.competitors.title");
+    expect(onStep("check")).toContain("setup.competitors.title");
     const publishing = onStep("publishing");
-    expect(publishing).toContain("settings.publishing.title");
+    expect(publishing).toContain("setup.destination.where");
     expect(publishing).toContain('data-testid="setup-destination"');
     expect(publishing).toContain("setup.finish");
     // Nothing that tunes the engine is on any of them: no cadence, no cap,
     // no question count, no model choice (REQ-025 c1).
-    for (const step of ["site", "business", "rivals", "voice", "publishing"]) {
+    for (const step of ["site", "check", "publishing"]) {
       const html = onStep(step).toLowerCase();
       for (const forbidden of ["cadence", "cap", "model", "questions per"]) {
         expect(html, `${step}/${forbidden}`).not.toContain(`setup.${forbidden}`);
@@ -687,6 +690,47 @@ describe("three decisions → deep pass → the first page already on the calend
     const withExtra = await submitTheThree({ veto_hours: 0 } as Record<string, unknown>);
     expect(withExtra.status).toBe(200);
     expect(jobEvents.filter((e) => e.name === "scan/run")).toHaveLength(1);
+  });
+
+  it("step 3 — Check changes one field in each section, and each lands on the row its old step wrote", async () => {
+    site.timezone = null;
+    const response = await setupRoute(
+      new Request("https://app.example.com/api/setup", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          step: "check",
+          // Your market and competitors: the market and one rival changed.
+          category: "client portals for agencies",
+          competitors: ["asana.com", "basecamp.com"],
+          // Your business: one item added, *What you do* reworded.
+          lists: { products: ["retainer billing"] },
+          job: "We run agencies' projects",
+          // Five things only you know: one answered.
+          answers: { buyers: "Agencies, because they bill by the hour." },
+          // Your voice: the founder's own words.
+          voiceText: "Blunt and short.",
+          timezone: "Europe/Lisbon",
+        }),
+      }),
+      undefined
+    );
+    expect(response.status).toBe(200);
+
+    expect(site.category).toBe("client portals for agencies");
+    expect(site.competitors).toEqual(["asana.com", "basecamp.com"]);
+    const row = site as unknown as Record<string, unknown>;
+    expect(row.voice_text).toBe("Blunt and short.");
+    expect(site.timezone).toBe("Europe/Lisbon");
+    const edits = db.queries.filter((q) => q.table === "site_profile_edits" && q.verb === "upsert").at(-1)?.values as
+      | { added: Record<string, string[]>; job: string; answers: Record<string, string> }
+      | undefined;
+    expect(edits?.added.products).toContain("retainer billing");
+    expect(edits?.job).toBe("We run agencies' projects");
+    expect(edits?.answers.buyers).toBe("Agencies, because they bill by the hour.");
+    // Check confirms the rivals, so it starts the pass, and the founder resumes on Connect.
+    expect(jobEvents.filter((event) => event.name === "scan/run")).toHaveLength(1);
+    expect(row.setup_step).toBe("publishing");
   });
 
   it("step 3 — one submit writes the three answers, the mode-and-destination transaction, the stamp, and queues the pass", async () => {

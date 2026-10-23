@@ -1,6 +1,5 @@
-// SPEC §5 (2026-09-20, #908) — "setup is **five saved steps** — your site,
-// your business, rivals, your voice, publishing — one decision each, with
-// Back, and an equal-column step indicator."
+// SPEC §5 (docs/spec/decisions/2026-10-22-1737.md) — setup is three saved
+// steps: Site, Check, Connect.
 //
 // The order, and nothing else. It is a module of its own because three
 // places read it and none of them may disagree: the client wizard (which
@@ -8,25 +7,36 @@
 // held by `nuqs`), and the server (which step a returning founder is put
 // back on, and which step a save names).
 //
-// No sentence lives here. A step's one-word label, its question and its
-// panel title are copy keys, read where they are rendered.
+// No sentence lives here. A step's one-word label and its question are copy
+// keys, read where they are rendered. `publishing` is the step the founder
+// reads as *Connect*; its handle stays so a stored resume point still reads.
 
-/** The five, in the order the founder meets them. */
-export const SETUP_STEPS = ["site", "business", "rivals", "voice", "publishing"] as const;
+/** The three, in the order the founder meets them. */
+export const SETUP_STEPS = ["site", "check", "publishing"] as const;
 
 export type SetupStepId = (typeof SETUP_STEPS)[number];
 
 /** Where a founder with nothing saved starts. */
 export const FIRST_STEP: SetupStepId = SETUP_STEPS[0];
 
-/** Where the pass is started: SPEC §5 (2026-09-20) — "The deep pass starts
- *  when rivals are confirmed … so voice and publishing overlap the wait."
- *  Named here rather than spelled in the save path, so the step and the
- *  rule cannot drift apart. */
-export const PASS_STARTS_AFTER: SetupStepId = "rivals";
+/** The deep pass starts when the rivals are confirmed, and they are confirmed on Check. */
+export const PASS_STARTS_AFTER: SetupStepId = "check";
+
+/** Resume points a five-step build stored, read as the step that now holds them. */
+const STORED_BEFORE: Readonly<Record<string, SetupStepId>> = {
+  business: "check",
+  rivals: "check",
+  voice: "check",
+};
 
 export function isSetupStep(value: unknown): value is SetupStepId {
   return typeof value === "string" && (SETUP_STEPS as readonly string[]).includes(value);
+}
+
+/** The step a stored resume point names, or `null` where it names none. */
+export function storedStep(value: unknown): SetupStepId | null {
+  if (isSetupStep(value)) return value;
+  return typeof value === "string" ? (STORED_BEFORE[value] ?? null) : null;
 }
 
 export function stepIndex(step: SetupStepId): number {

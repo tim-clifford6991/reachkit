@@ -17,9 +17,7 @@ concurrency:
 
 jobs:
   audit:
-    # A light job: GitHub-hosted unless `CI_LIGHT_RUNNER` sends it to the
-    # box's `reachkit-light` runner (owner, 2026-09-25, #1113; ci.yml says how).
-    runs-on: ${{ fromJSON(vars.CI_LIGHT_RUNNER || '"ubuntu-latest"') }}
+    runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
       contents: read

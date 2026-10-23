@@ -12,7 +12,7 @@ import {
   type SetupState,
 } from "@/lib/market/setup/state";
 import type { RivalSet } from "@/lib/market/setup/rivals";
-import { FIRST_STEP, isSetupStep, type SetupStepId } from "../steps";
+import { FIRST_STEP, storedStep, type SetupStepId } from "../steps";
 import { setupCards, type SetupCards } from "@/lib/publish/setup/cards";
 import { BATTERY } from "@/lib/config/constants";
 import type { SiteProfile } from "@/lib/site-profile/types";
@@ -21,7 +21,6 @@ import type { FounderAnswers } from "@/lib/site-profile/knowledge/types";
 import { confirmedProfile, type MarketReading } from "@/lib/site-profile/business/confirm";
 import type { StoredQuestion } from "@/lib/scan/report";
 import type { DerivableMarket } from "@/lib/market/questions/rederive";
-import type { RivalGrid } from "./panel-rivals";
 import type { OnboardingStage } from "@/lib/scan/deep/progress";
 
 /** SPEC §5: the twelve questions the scan phrased for the measured market,
@@ -81,15 +80,12 @@ export interface SetupFacts {
    *  owner D67, issue 1318): the site's stored answer or reading, else what
    *  its home page states, else empty. */
   place: string;
-  /** SPEC §5 (2026-09-20, #923): the rivals step's own panel — the searches
-   *  the scan measured × the customer and each rival. `null` where nothing
-   *  has been measured for this address, and the panel then draws a shape
-   *  and says so rather than a grid of empty dots. */
-  rivalGrid: RivalGrid | null;
   /** The pass's step as the server knows it, and the channel the browser
    *  may watch for the next one (#923). */
   passStage: OnboardingStage | null;
   passChannel: string | null;
+  /** When the running pass began, as an ISO instant; `null` where none runs. */
+  passStartedAt: string | null;
 }
 
 /** The shape `_setup/store.ts`'s `savedSetupFor` answers with, declared
@@ -138,9 +134,6 @@ export interface SetupScreenModel {
   /** SPEC §5 (2026-09-20): the step `/setup` opens on when the address
    *  carries no `?step=` of its own. */
   openAt: SetupStepId;
-  /** #923's rivals panel, carried through unchanged. Nothing is derived
-   *  from it here: `rivalGridOf` is its one derivation and it is pure. */
-  rivalGrid: RivalGrid | null;
   /** The step the pass was on when the server rendered, or `null` where no
    *  pass is running (#923). The status line opens on this and is only ever
    *  *replaced* by something newer, so it never starts empty and never
@@ -150,6 +143,8 @@ export interface SetupScreenModel {
    *  the session's site. `null` where there is no site row yet, and the
    *  line then simply does not subscribe. */
   passChannel: string | null;
+  /** `SetupFacts.passStartedAt`: the instant Check's status line names. */
+  passStartedAt: string | null;
 }
 
 export function assembleSetup(facts: SetupFacts): SetupScreenModel {
@@ -186,9 +181,9 @@ export function assembleSetup(facts: SetupFacts): SetupScreenModel {
     locale: facts.locale,
     place: facts.place,
     openAt: openAtFor(facts.saved),
-    rivalGrid: facts.rivalGrid,
     passStage: facts.passStage,
     passChannel: facts.passChannel,
+    passStartedAt: facts.passStartedAt,
   };
 }
 
@@ -240,6 +235,5 @@ function restored(state: SetupState, saved: SavedAnswers | null): SetupState {
  *  build that named its steps differently — reads as the beginning, which
  *  is the answer that can never strand a founder. */
 function openAtFor(saved: SavedAnswers | null): SetupStepId {
-  const step = saved?.step;
-  return isSetupStep(step) ? step : FIRST_STEP;
+  return storedStep(saved?.step) ?? FIRST_STEP;
 }

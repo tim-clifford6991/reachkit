@@ -105,11 +105,8 @@ export const CALENDAR_COPY = Object.freeze({
     "nothing worth publishing",
     { law: "no-presence-yet", slots: {}, fixedBy: "REQ-043 c3" },
   ],
-  // 2026-09-11 (#516): the owner replaces §4.6's headline. "One page a day.
-  // Every day." promised a filled grid, which the Autopilot brief rules out
-  // (DECISIONS 2026-09-10 §1.9 / §8) — a day is filled only by an
-  // opportunity that passes readiness, so the head states the rule instead.
-  "calendar.head": ["Pages go live when ready, at most one a day.", { slots: {}, fixedBy: "BUILD §4.6" }],
+  // The Plan board's line without its leading "Chosen {date}.": a week holds up to 7 pages and may skip a day.
+  "calendar.head": ["Each goes live on its day unless you stop it. Up to 7 pages a week, new or updated. Never filler.", { slots: {}, fixedBy: "BUILD §4.6" }],
 
   // §4.6's stage filter cards. `all` is a filter, not a stage.
   "calendar.stage.all": ["All", { slots: {}, fixedBy: "BUILD §4.6" }],

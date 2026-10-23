@@ -19,7 +19,7 @@ import type { CopyPartition } from "../registry.ts";
 
 export const MAIL_COPY = Object.freeze({
   // 2026-09-08, UI-SPEC S7 (ruling 11a). The approved set draws this page
-  // as one card — a mail chip over "Opted out", the address the link
+  // as one card — a mail chip over "Unsubscribed", the address the link
   // belonged to inside the line, and a quiet way back — and 11a makes its
   // unbracketed strings approved copy as written. So this line is the
   // set's, not the 2026-09-04 ruling's: that ruling wrote a sentence for a
@@ -27,20 +27,37 @@ export const MAIL_COPY = Object.freeze({
   // same line. It carries the `{address}` slot because the set writes the
   // address inside the sentence, in mono, and a sentence with a value in
   // it has a slot rather than two half-sentences.
-  "optout.confirmed": ["No more follow-up mail will reach {address}, for this domain or any other. The page you asked for stays yours.", { slots: { address: "text" }, fixedBy: "REQ-011 c3 · S7 (11a)" }],
+  "optout.confirmed": ["No more follow-up mail will go to {address}, about any site. Sign-in and account mail, if you have an account, still arrive.", { slots: { address: "text" }, fixedBy: "REQ-011 c3 · OptOut board (V22)" }],
   "optout.invalid": ["That unsubscribe link isn’t valid any more. Reply to any ReachKit email with \"stop\" and we’ll stop by hand.", { slots: {}, fixedBy: "REQ-011 c3" }],
 
   // The card's own head (UI-SPEC S7, 11a). The set draws one eyebrow over
-  // the mail chip and it states what happened: "Opted out".
-  "optout.head": ["Opted out", { slots: {}, fixedBy: "REQ-010 c11 · S7 (11a)" }],
+  // the mail chip and it states what happened: "Unsubscribed".
+  "optout.head": ["Unsubscribed", { slots: {}, fixedBy: "REQ-010 c11 · S7 (11a)" }],
   /** The same head on the two arms where nothing was opted out — an
    *  invalid link, or a store this product could not reach.
    *
    *  **It has to be its own key.** The set draws only the confirmation,
-   *  so 11a writes no eyebrow for the other two arms, and "Opted out" over
+   *  so 11a writes no eyebrow for the other two arms, and "Unsubscribed" over
    *  "that link isn’t valid any more" would be the page contradicting
    *  itself in its own head. */
-  "optout.head.unresolved": ["Not opted out", { slots: {}, fixedBy: "REQ-010 c11 · S7 (12a)" }],
+  "optout.head.unresolved": ["Not unsubscribed yet", { slots: {}, fixedBy: "REQ-010 c11 · S7 (12a)" }],
+
+  // The OptOut board (canvas V22): what an opt-out changes, which follow-ups
+  // were sent, where the report stays, and the by-hand way when a link fails.
+  "optout.changes.title": ["What this changes", { slots: {}, fixedBy: "REQ-010 c11 · OptOut board (V22)" }],
+  "optout.changes.followups": ["Follow-up emails about your free report", { slots: {}, fixedBy: "REQ-010 c11 · OptOut board (V22)" }],
+  "optout.changes.signin": ["Sign-in links", { slots: {}, fixedBy: "REQ-010 c11 · OptOut board (V22)" }],
+  "optout.changes.account": ["Receipts and account emails", { slots: {}, fixedBy: "REQ-010 c11 · OptOut board (V22)" }],
+  "optout.changes.stopped": ["Stopped", { slots: {}, fixedBy: "REQ-010 c11 · OptOut board (V22)" }],
+  "optout.changes.still": ["Still sent, if you have an account", { slots: {}, fixedBy: "REQ-010 c11 · OptOut board (V22)" }],
+  "optout.timeline.title": ["Follow-ups after your free report", { slots: {}, fixedBy: "REQ-010 c9 · OptOut board (V22)" }],
+  "optout.timeline.hours": ["{hours} hours", { slots: { hours: "text" }, fixedBy: "REQ-010 c9 · OptOut board (V22)" }],
+  "optout.timeline.sent": ["Sent", { slots: {}, fixedBy: "REQ-010 c9 · OptOut board (V22)" }],
+  "optout.timeline.not": ["Won’t be sent", { slots: {}, fixedBy: "REQ-010 c9 · OptOut board (V22)" }],
+  "optout.timeline.done": ["All follow-ups were already sent. No more will come.", { slots: {}, fixedBy: "REQ-010 c9 · OptOut board (V22)" }],
+  "optout.report": ["The page you asked for stays yours, and your free report stays at its address. To take the report down, write to {address}.", { slots: { address: "text" }, fixedBy: "REQ-002 c1 · OptOut board (V22)" }],
+  "optout.reply.row": ["Reply to any ReachKit email with \"stop\"", { slots: {}, fixedBy: "REQ-011 c3 · OptOut board (V22)" }],
+  "optout.reply.how": ["A person stops it by hand", { slots: {}, fixedBy: "REQ-011 c3 · OptOut board (V22)" }],
 
   // 2026-09-05, issue #30 (the mail seam, BUILD §12). Six keys the shell
   // and the whole-mail line need. Five are sentences the product speaks in
@@ -370,9 +387,16 @@ export const MAIL_COPY = Object.freeze({
   // A hosted address still waiting for its record: no page goes live there
   // until it is connected, so this mail names no moment. Drafted (#759).
   "mail.draftReady.dest.addressNotConnected": [
-    "Your website isn’t connected yet, so this page can’t go live at {site}. Add the one setting shown on your Overview. We check every hour, and it goes live once that works.",
-    { slots: { site: "text" }, fixedBy: "SPEC §5 2026-09-20 (drafted)" },
+    "Your website isn’t connected yet, so this page can’t go live at {site}. Add the one setting below where your domain is managed; it’s on your Overview too. We check every hour, and it goes live once that works.",
+    { slots: { site: "text" }, fixedBy: "R20 2026-10-22 (drafted)" },
   ],
+  "mail.draftReady.dest.addressNotConnected.noRecord": [
+    "Your website isn’t connected yet, so this page can’t go live at {site}. Add the one setting shown on your Overview. We check every hour, and it goes live once that works.",
+    { slots: { site: "text" }, fixedBy: "R20 2026-10-22 (drafted)" },
+  ],
+  "mail.draftReady.record.type": ["Type", { slots: {}, fixedBy: "R20 2026-10-22 (drafted)" }],
+  "mail.draftReady.record.name": ["Name", { slots: {}, fixedBy: "R20 2026-10-22 (drafted)" }],
+  "mail.draftReady.record.value": ["Value", { slots: {}, fixedBy: "R20 2026-10-22 (drafted)" }],
   "mail.draftReady.waiting.subject": [
     "Written, waiting for your website: {title}",
     { slots: { title: "text" }, fixedBy: "SPEC §5 2026-09-20 (drafted)" },
@@ -632,15 +656,15 @@ export const MAIL_COPY = Object.freeze({
     { slots: {}, fixedBy: "S20 (11a)" },
   ],
   "mail.reason.draftReady": [
-    "Daily draft-ready mail · switch off in Settings › Notifications.",
+    "Daily draft-ready mail · switch off in Settings › Mail.",
     { slots: {}, fixedBy: "S20 (11a)" },
   ],
   "mail.reason.published": [
-    "Sent when your first page goes live · switch off in Settings › Notifications.",
+    "Sent when your first page goes live · switch off in Settings › Mail.",
     { slots: {}, fixedBy: "S20 (11a)" },
   ],
   "mail.reason.weekly": [
-    "Monday movement mail · switch off in Settings › Notifications.",
+    "Monday movement mail · switch off in Settings › Mail.",
     { slots: {}, fixedBy: "S20 (11a)" },
   ],
   // #640: SPEC §8 gives every mail a "why it arrived" line; the setup
@@ -814,6 +838,11 @@ export const MAIL_COPY = Object.freeze({
   "mail.ops.incident.fact.balance": ["Balance", { slots: {}, fixedBy: "issue 1587 (drafted)" }],
   "mail.ops.incident.fact.days-left": ["Days left at last week's spend", { slots: {}, fixedBy: "issue 1587 (drafted)" }],
   "mail.ops.incident.fact.dashboard": ["Dashboard", { slots: {}, fixedBy: "issue 1587 (drafted)" }],
+  // Issue 1842: Stripe refused an automatic 14-day refund.
+  "mail.ops.incident.refund-refused": ["Stripe refused an automatic 14-day refund, so the customer still has access and has not been paid back. Refund the invoice below by hand in the Stripe dashboard; the refund walk has the steps.", { slots: {}, fixedBy: "issue 1842 (drafted)" }],
+  "mail.ops.incident.fact.invoice": ["Invoice", { slots: {}, fixedBy: "issue 1842 (drafted)" }],
+  "mail.ops.incident.fact.account": ["Account", { slots: {}, fixedBy: "issue 1842 (drafted)" }],
+  "mail.ops.incident.fact.stripe-code": ["Stripe error code", { slots: {}, fixedBy: "issue 1842 (drafted)" }],
 
   // ── SPEC §8, Retention (issue 569). Owner-owed: the copy sheet is issue
   // 568. `sendEmail` refuses a mail that still carries the marker, so none of

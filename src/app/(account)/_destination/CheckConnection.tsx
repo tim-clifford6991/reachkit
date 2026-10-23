@@ -45,15 +45,29 @@ const GOOD = "alert alert-success alert-soft text-sm";
 const WAITING = "alert alert-warning alert-soft text-sm";
 const NOT_ASKED = "alert alert-error alert-soft text-sm";
 
+/** The press and its two answers about the host, in the words of the screen that draws it. */
+export interface CheckWords {
+  button: CopyKey;
+  live: CopyKey;
+  pending: CopyKey;
+  pendingTitle?: CopyKey;
+}
+
+const SETTINGS_WORDS: CheckWords = {
+  button: "settings.destination.check.button",
+  live: "settings.destination.check.live",
+  pending: "settings.destination.check.pending-dns",
+};
+
 /** The line for an answer, or `null` where there is nothing to say here —
  *  `no_host` is an account whose Settings card is redrawn without this
  *  block. `id` names the outcome for the suites, never for the founder. */
-function answerLine(answer: Answer): { key: CopyKey; tone: string; id: string } | null {
+function answerLine(answer: Answer, words: CheckWords): { key: CopyKey; title?: CopyKey; tone: string; id: string } | null {
   switch (answer.outcome) {
     case "asked":
       return answer.state === "live"
-        ? { key: "settings.destination.check.live", tone: GOOD, id: "live" }
-        : { key: "settings.destination.check.pending-dns", tone: WAITING, id: "pending_dns" };
+        ? { key: words.live, tone: GOOD, id: "live" }
+        : { key: words.pending, ...(words.pendingTitle ? { title: words.pendingTitle } : {}), tone: WAITING, id: "pending_dns" };
     case "could_not_ask":
       if (answer.because === "no_answer") {
         return { key: "settings.destination.check.could-not-ask", tone: NOT_ASKED, id: "could_not_ask" };
@@ -108,7 +122,10 @@ export function CheckConnection(p: {
   /** Told of each answer, so `/setup/connect` can draw the record's own
    *  word from it. Settings passes none: its card is redrawn from the row. */
   onAnswer?: (answer: ConnectionCheck) => void;
+  /** The screen's own words; Settings' where absent. */
+  words?: CheckWords;
 }): React.JSX.Element {
+  const words = p.words ?? SETTINGS_WORDS;
   const [running, setRunning] = useState(false);
   const [answer, setAnswer] = useState<Answer | null>(null);
   /** When, by this browser's clock, the founder may ask again — `null`
@@ -154,7 +171,7 @@ export function CheckConnection(p: {
     }
   }
 
-  const line = answer === null ? null : answerLine(answer);
+  const line = answer === null ? null : answerLine(answer, words);
   const dns = answer === null ? null : dnsLine(answer);
 
   return (
@@ -173,7 +190,7 @@ export function CheckConnection(p: {
         ) : (
           <RefreshCw aria-hidden size={16} strokeWidth={1.75} />
         )}
-        {copy("settings.destination.check.button")}
+        {copy(words.button)}
       </button>
       {dns === null ? null : (
         <div role="status" className={dns.tone} data-testid="check-connection-dns" data-dns={dns.id}>
@@ -182,7 +199,14 @@ export function CheckConnection(p: {
       )}
       {line === null ? null : (
         <div role="status" className={line.tone} data-testid="check-connection-answer" data-outcome={line.id}>
-          {copy(line.key)}
+          {line.title === undefined ? (
+            copy(line.key)
+          ) : (
+            <span>
+              <strong className="block">{copy(line.title)}</strong>
+              {copy(line.key)}
+            </span>
+          )}
         </div>
       )}
       {!waiting ? null : (

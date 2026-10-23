@@ -1,5 +1,7 @@
 1	sample data
 2	sample data
 4	sample data
-Yes, up to 22 checks	E10: the check count comes from code (docs/spec/decisions/2026-10-19-1581.md)
 Cancel your contract	owner 2026-10-20 Q13: shown once the launch gate opens
+What you still do yourself with ChatGPT	docs/DESIGN.md 2026-10-15 (owner, #1444): a title is at most six words, so it ships as "What you still do with ChatGPT"
+Paste in your facts, and check every claim Written with Claude, an AI model, only from facts on your site, then put through up to 22 checks	SPEC §1 2026-10-10 (owner, #1396), docs/spec/decisions/2026-10-20-1597.md: the model is named once, in How it works' disclosure; REQ-092 c8 sweep forbids it elsewhere
+Every Monday ReachKit checks what buyers in your market search and ask AI, and plans up to 7 pages a week, new or updated. Never filler. Each is written with Claude, an AI model, only from facts on your site and sources it links, then put through up to 22 checks; a page that fails twice is held back. It goes live on your own web address by itself after 24 hours, unless you stop it. Every month we check what AI answers say about you.	SPEC §1 2026-10-10 (owner, #1396), docs/spec/decisions/2026-10-20-1597.md: the model is named once, in How it works' disclosure; REQ-092 c8 sweep forbids it elsewhere

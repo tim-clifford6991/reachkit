@@ -16,10 +16,10 @@
 // Four files may write a colour literally, each for a reason no token can
 // serve; they are named in `ALLOWED_LITERALS` below with that reason, and
 // the values they write are checked back against §2.1's own.
-import { describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it } from "vitest";
 import postcss, { type Declaration } from "postcss";
 import ts from "typescript";
-import { SRC_DIR, read, walkFiles } from "./vocabulary";
+import { SRC_DIR, UNIT_TIMEOUT_MS, read, walkFiles } from "./vocabulary";
 import { daisyTheme } from "./tokens-doc";
 
 /* ── where a colour may be written down ───────────────────────────────── */
@@ -118,13 +118,13 @@ function declarationsOf(css: string): Declaration[] {
  *  JSX text. Comments are not among them, which is the point: a header
  *  comment quoting §2.1's own hex values is not a colour the product
  *  writes, and a regex over the file cannot tell the difference. */
-function stringsOf(rel: string): string[] {
-  const source = read(rel);
+function stringsOf(rel: string, source: string): string[] {
   const sf = ts.createSourceFile(
     rel,
     source,
     ts.ScriptTarget.Latest,
-    true,
+    // No parent links: the walk below only descends, and they double the parse.
+    false,
     rel.endsWith(".tsx") ? ts.ScriptKind.TSX : ts.ScriptKind.TS
   );
   const out: string[] = [];
@@ -141,7 +141,7 @@ function stringsOf(rel: string): string[] {
 
 /* ── §2.1's own tokens, read from the theme ───────────────────────────── */
 
-const THEME_ROOT: ReadonlyMap<string, string> = (() => {
+function themeRoot(): Map<string, string> {
   const out = new Map<string, string>();
   postcss.parse(read("src/ui/theme.css")).walkRules(":root", (rule) => {
     for (const node of rule.nodes) {
@@ -149,10 +149,36 @@ const THEME_ROOT: ReadonlyMap<string, string> = (() => {
     }
   });
   return out;
-})();
+}
 
-const SRC_FILES = walkFiles(SRC_DIR, () => true);
-const CSS_FILES = SRC_FILES.filter((f) => f.endsWith(".css"));
+/* ── the tree, walked and parsed once for every case ──────────────────── */
+
+const tree = {
+  text: new Map<string, string>(),
+  decls: new Map<string, Declaration[]>(),
+  strings: new Map<string, string[]>(),
+};
+let SRC_FILES: string[] = [];
+let CSS_FILES: string[] = [];
+let THEME_ROOT: ReadonlyMap<string, string> = new Map();
+
+// The whole-tree parse can outlast the 5 s default under box load; it takes
+// the one unit command's timeout (package.json `test:unit`), never more.
+beforeAll(() => {
+  SRC_FILES = walkFiles(SRC_DIR, () => true);
+  CSS_FILES = SRC_FILES.filter((f) => f.endsWith(".css"));
+  THEME_ROOT = themeRoot();
+  for (const file of SRC_FILES) {
+    if (!/\.(css|tsx?)$/.test(file)) continue;
+    const text = read(file);
+    tree.text.set(file, text);
+    if (file.endsWith(".css")) tree.decls.set(file, declarationsOf(text));
+    else tree.strings.set(file, stringsOf(file, text));
+  }
+}, UNIT_TIMEOUT_MS);
+
+const declsOf = (file: string): Declaration[] => tree.decls.get(file) ?? [];
+const stringsIn = (file: string): string[] => tree.strings.get(file) ?? [];
 
 /* ── the sweeps ───────────────────────────────────────────────────────── */
 
@@ -166,14 +192,14 @@ function literalColoursOutsideTheAllowlist(files: readonly string[]): string[] {
   for (const file of files) {
     if (ALLOWED.has(file)) continue;
     if (file.endsWith(".css")) {
-      for (const decl of declarationsOf(read(file))) {
+      for (const decl of declsOf(file)) {
         for (const hit of colorLiteralsIn(decl.value, COLOR_PROPERTY.test(decl.prop))) {
           out.push(`${file}: ${decl.prop}: ${decl.value} (${hit})`);
         }
       }
     } else if (/\.tsx?$/.test(file)) {
       const named = file.startsWith("src/ui/");
-      for (const text of stringsOf(file)) {
+      for (const text of stringsIn(file)) {
         for (const hit of colorLiteralsIn(text, named && NAMED_COLORS.has(text.toLowerCase()))) {
           out.push(`${file}: ${JSON.stringify(text)} (${hit})`);
         }
@@ -234,10 +260,10 @@ describe('§2.1 — every colour in src/** resolves to a token, "these exact val
     for (const entry of ALLOWED_LITERALS) {
       if (entry.path === "src/ui/theme.css") continue;
       const text = entry.path.endsWith(".css")
-        ? declarationsOf(read(entry.path))
+        ? declsOf(entry.path)
             .map((d) => d.value)
             .join(" ")
-        : stringsOf(entry.path).join(" ");
+        : stringsIn(entry.path).join(" ");
       for (const hex of text.match(HEX) ?? []) {
         const declaredInTheme =
           entry.path === "src/ui/tailwind.css" && themeBlockValues.has(hex.toLowerCase());
@@ -253,7 +279,7 @@ describe('§2.1 — every colour in src/** resolves to a token, "these exact val
 function nonThemeColourTokens(files: readonly string[]): string[] {
   const out: string[] = [];
   for (const file of files) {
-    for (const decl of declarationsOf(read(file))) {
+    for (const decl of declsOf(file)) {
       if (!COLOR_PROPERTY.test(decl.prop)) continue;
       for (const match of decl.value.matchAll(/var\(\s*(--[\w-]+)/g)) {
         const token = match[1];
@@ -291,21 +317,20 @@ describe("§2.1 — a colour-valued declaration names a §2.1 token and nothing 
 
 describe("§2.1 — no reference to a token nothing declares", () => {
   const declared = new Set<string>();
-  for (const file of SRC_FILES) {
-    if (!/\.(css|tsx?)$/.test(file)) continue;
-    for (const match of read(file).matchAll(/(?:^|[;{\s"'])(--[\w-]+)\s*:/gm)) {
-      if (match[1] !== undefined) declared.add(match[1]);
+  beforeAll(() => {
+    for (const text of tree.text.values()) {
+      for (const match of text.matchAll(/(?:^|[;{\s"'])(--[\w-]+)\s*:/gm)) {
+        if (match[1] !== undefined) declared.add(match[1]);
+      }
     }
-  }
+  });
 
   /** What the product actually paints with, comments excluded: CSS
    *  declaration values, and the strings the TypeScript AST holds. A
    *  screen's comment explaining that daisyUI's badge is `height:
    *  var(--size)` is not a reference to a token this repo owes. */
   function tokenReferences(file: string): string[] {
-    const blobs = file.endsWith(".css")
-      ? declarationsOf(read(file)).map((decl) => decl.value)
-      : stringsOf(file);
+    const blobs = file.endsWith(".css") ? declsOf(file).map((decl) => decl.value) : stringsIn(file);
     return blobs.flatMap((blob) =>
       [...blob.matchAll(/var\(\s*(--[\w-]+)/g)]
         .map((match) => match[1])
@@ -315,8 +340,7 @@ describe("§2.1 — no reference to a token nothing declares", () => {
 
   it("every var(--token) under src/ resolves to a declaration under src/", () => {
     const dangling: string[] = [];
-    for (const file of SRC_FILES) {
-      if (!/\.(css|tsx?)$/.test(file)) continue;
+    for (const file of tree.text.keys()) {
       for (const token of tokenReferences(file)) {
         if (!declared.has(token)) dangling.push(`${file}: ${token}`);
       }

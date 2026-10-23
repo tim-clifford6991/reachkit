@@ -100,22 +100,6 @@ export const PUBLISH_COPY = Object.freeze({
   "record.label.address": ["Address", { slots: {}, fixedBy: "REQ-056 c6" }],
   "record.label.checked": ["Checked", { slots: {}, fixedBy: "REQ-062 c7" }],
   "record.label.taken-down": ["Taken down", { slots: {}, fixedBy: "REQ-056 c15" }],
-  // Issue 1553: the page's way toward being found, as daisyUI `steps` with
-  // one-word labels. Drafted (#759); the owner may correct each.
-  "record.ladder.title": ["Getting found", { slots: {}, fixedBy: "issue 1553 (drafted)" }],
-  "record.ladder.published": ["Published", { slots: {}, fixedBy: "issue 1553 (drafted)" }],
-  "record.ladder.crawled": ["Crawled", { slots: {}, fixedBy: "issue 1553 (drafted)" }],
-  "record.ladder.indexed": ["Indexed", { slots: {}, fixedBy: "issue 1553 (drafted)" }],
-  "record.ladder.impressions": ["Shown", { slots: {}, fixedBy: "issue 1553 (drafted)" }],
-  "record.ladder.place": ["Placed", { slots: {}, fixedBy: "issue 1553 (drafted)" }],
-  "record.ladder.cited": ["Linked by AI", { slots: {}, fixedBy: "issue 1582 (drafted)" }],
-  "record.ladder.shown": ["Shown {count} times in Google and Bing in the last {days} days", { slots: { count: "text", days: "text" }, fixedBy: "issue 1553 (drafted)" }],
-  "record.ladder.best": ["Best place {place}", { slots: { place: "text" }, fixedBy: "issue 1553 (drafted)" }],
-  "record.ladder.best.labs": ["Best place {place}, estimated from keyword data", { slots: { place: "text" }, fixedBy: "issue 1608 (drafted)" }],
-  "record.ladder.note": [
-    "Read every Monday from Google Search Console, Bing, crawler visits and the AI answers ReachKit checks. A step nothing can read yet is left out.",
-    { slots: {}, fixedBy: "issue 1553 (drafted)" },
-  ],
   "record.verification.found": ["found live", { slots: {}, fixedBy: "REQ-062 c7" }],
   "record.verification.pageNotFound": ["no page found at this address", { slots: {}, fixedBy: "REQ-062 c7" }],
   "record.verification.couldNotConfirm": ["check not confirmed", { slots: {}, fixedBy: "REQ-062 c7" }],
@@ -286,7 +270,7 @@ export const PUBLISH_COPY = Object.freeze({
   // has run out, or names no page; those are the owner's approved
   // sentences of 2026-09-10 (#459).
   "publish.veto.ask.head": [
-    "Publishes {when}",
+    "Goes live {when}",
     { slots: { when: "text" }, fixedBy: "REQ-057 c1 · S6 (11a)" },
   ],
   "publish.veto.ask.row.search": ["search", { slots: {}, fixedBy: "S6 (11a)" }],

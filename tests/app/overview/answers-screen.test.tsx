@@ -97,6 +97,17 @@ describe("the question × engine grid", () => {
     }
   });
 
+  it("the legend says the five marks in DESIGN's words, and an unmeasured cell is never a zero or a no-answer", () => {
+    const items = [...(grid().querySelector('[data-testid="answers-legend"]')?.querySelectorAll("li") ?? [])].map((li) => li.textContent?.trim());
+    expect(items).toEqual(["Links to this page", "Mentions you, no link", "Mentions someone else", "No answer", "Not measured"]);
+    const unmeasured = [...grid().querySelectorAll('[role="cell"][data-mark="not_measured"]')];
+    expect(unmeasured.length).toBeGreaterThan(0);
+    for (const cell of unmeasured) {
+      expect(cell.getAttribute("aria-label")).toContain("Not measured");
+      expect(cell.getAttribute("aria-label")).not.toMatch(/\b0\b|No answer/);
+    }
+  });
+
   it("gives every mark its own written name, so none is colour alone", () => {
     const cells = [...grid().querySelectorAll('[role="cell"]')];
     expect(cells.length).toBe(TRACKED * MODEL.engines.length);
@@ -105,7 +116,7 @@ describe("the question × engine grid", () => {
       const mark = cell.getAttribute("data-mark") ?? "";
       expect(label, mark).toContain(copy(MARK_COPY_KEY[mark as (typeof ANSWER_MARKS)[number]]));
       // The engine and the question are in the name too: a mark that said
-      // only "Links to you" would not say who to, or where.
+      // only "Links to this page" would not say which page, or where.
       expect(label.length, mark).toBeGreaterThan(copy(MARK_COPY_KEY[mark as "no_answer"]).length);
     }
   });

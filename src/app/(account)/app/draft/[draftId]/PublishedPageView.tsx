@@ -93,8 +93,9 @@ export function PublishedPageView(p: {
    *  adjacency and buys the thing #931 asks for: the article a reviewer
    *  approves is the article a reader gets. See this PR's body. */
   source?: React.ReactNode;
-  /** The line above the frame: what the frame is, and when it goes live. */
-  caption: string;
+  /** The line above the frame: what the frame is, and when it goes live.
+   *  A live page has none. */
+  caption?: string;
 }): React.JSX.Element {
   // The one Markdown renderer, which escapes every text node on the way out
   // — so this string is safe to set as HTML by construction rather than by a
@@ -116,13 +117,15 @@ export function PublishedPageView(p: {
       className="flex min-w-0 flex-col gap-2"
       data-testid="published-view"
     >
-      <p
-        className="flex items-center gap-1.5 text-sm text-base-content/70 wrap-anywhere"
-        data-testid="published-view-lead"
-      >
-        <Clock size={16} strokeWidth={1.75} className="text-primary shrink-0" aria-hidden />
-        {p.caption}
-      </p>
+      {p.caption === undefined ? null : (
+        <p
+          className="flex items-center gap-1.5 text-sm text-base-content/70 wrap-anywhere"
+          data-testid="published-view-lead"
+        >
+          <Clock size={16} strokeWidth={1.75} className="text-primary shrink-0" aria-hidden />
+          {p.caption}
+        </p>
+      )}
 
       <div className="mockup-browser border-base-300 bg-base-200 min-w-0 border">
         <div className="mockup-browser-toolbar min-w-0">

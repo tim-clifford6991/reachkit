@@ -302,13 +302,12 @@ describe("the thirteen keys the owner ruled 2026-09-04 (WO-041 `## Log`, this da
   });
 
   it("mail — the two opt-out surface lines, one carrying a literal quoted \"stop\"", () => {
-    // The confirmation is the approved set's own sentence since issue #372
-    // (UI-SPEC S7, ruling 11a), with the address in the slot the set draws
-    // it in: the 2026-09-04 ruling wrote a line for a page nobody had drawn
-    // yet, and the drawing is the later word on it.
+    // The confirmation is the OptOut board's own sentence (canvas V22), with
+    // the address in the slot the board draws it in: the drawing is the
+    // later word on the 2026-09-04 ruling's line.
     expect(copy("optout.confirmed", { address: "you@example.com" })).toBe(
-      "No more follow-up mail will reach you@example.com, for this domain or any other. " +
-        "The page you asked for stays yours."
+      "No more follow-up mail will go to you@example.com, about any site. " +
+        "Sign-in and account mail, if you have an account, still arrive."
     );
     expect(copy("optout.invalid")).toBe(
       "That unsubscribe link isn’t valid any more. Reply to any ReachKit email with \"stop\" and we’ll stop by hand."
@@ -330,8 +329,9 @@ describe("the thirteen keys the owner ruled 2026-09-04 (WO-041 `## Log`, this da
     // surfaces that carry the offer, unbracketed, which ruling 11a of
     // 2026-09-08 makes approved copy as written (issue #352). Not a
     // sentence supplied on the owner's behalf: their own. Board `R12-2`
-    // (2026-09-24, #1068) adds who cancels.
-    expect(COPY["offer.cancel_self_service"]).toBe("Cancel in one click, yourself.");
+    // (2026-09-24, #1068) adds who cancels; it now names where, since
+    // cancelling runs through Settings and Stripe's portal.
+    expect(COPY["offer.cancel_self_service"]).toBe("Cancel any time from Settings.");
     expect(AWAITING_COPY).not.toContain("offer.cancel_self_service");
     expect(OWNER_OWED).not.toContain("offer.cancel_self_service");
   });
@@ -359,7 +359,6 @@ describe("the five keys the owner ruled 2026-09-11 (DECISIONS 2026-09-11, #516)"
   });
 
   it("the two approved-set strings that promised a page a day are replaced", () => {
-    expect(COPY["calendar.head"]).toBe("Pages go live when ready, at most one a day.");
     for (const key of ["calendar.head", "landing.step.3.title"] satisfies CopyKey[]) {
       expect(COPY[key], key).not.toContain("every day");
       expect(COPY[key], key).not.toContain("One page a day");

@@ -104,8 +104,9 @@ export const SPEND_ALERT_AT = Object.freeze({ warn: 0.8, ceiling: 1 } as const);
 
 /** When the owner is told DataForSEO credit is running out: fewer days left
  *  than `runwayDays` at the trailing week's spend, or under `floorC` cents,
- *  since at zero every draft fails. */
-export const VENDOR_LOW = Object.freeze({ runwayDays: 7, floorC: 1000 } as const);
+ *  since at zero every draft fails. Two weeks, so a failed auto-recharge
+ *  still leaves time for a top-up by hand. */
+export const VENDOR_LOW = Object.freeze({ runwayDays: 14, floorC: 1000 } as const);
 
 /**
  * US dollars for one euro (issue 1408, owner 2026-10-11).
@@ -311,16 +312,6 @@ export const INFERENCE_MAX_OUTPUT_TOKENS = Object.freeze({
    *  notices. `tests/site-profile/your-voice.test.tsx` holds a full answer to
    *  this pin. */
   "site-profile": 1200,
-  /** SPEC §5 (2026-09-20, #923): setup's voice sample — one short paragraph
-   *  in the customer's own voice, grounded in one passage the scan read off
-   *  their pages, with that sentence quoted back and the passage named.
-   *
-   *  600, because the answer is a paragraph plus the sentence inside it
-   *  quoted a second time: roughly 150 tokens of prose, doubled, with room
-   *  for the schema's own framing. It is a paid call under `CAPS.DEEP_C`,
-   *  bounded to `VOICE_SAMPLES_MAX` asks per founder, so the ceiling it can
-   *  reach is three of these and nothing notices. */
-  "setup.voice-sample": 600,
   /** SPEC §9 (#690): a page's own title and meta description, rewritten —
    *  `{ title, description }`, two short strings: ~80 needed. */
   "generate.page_fix": 256,
@@ -1212,8 +1203,15 @@ export const VETO = Object.freeze({
   defaultHours: 24, minDays: 1, maxDays: 7,
 } as const);
 
+/** SPEC §7 (owner, 2026-10-19, issue 1559): the one depth number. Each
+ *  weekly pass commits the next `days` pages, one a day, and `spares` more
+ *  the daily job takes when a day's page cannot be written. Supply is
+ *  counted, and refilled at 0¢, up to their sum. */
+export const WEEK_PLAN = Object.freeze({ days: 7, spares: 3 } as const);
+
+// The week's ceiling is the plan's week, so the Terms' "up to 7 a week" holds by construction.
 export const RATE_LIMITS = Object.freeze({
-  publishesPerDay: 1, publishesPerWeek: 8,
+  publishesPerDay: 1, publishesPerWeek: WEEK_PLAN.days,
 } as const);
 
 export const RETENTION_D = Object.freeze({
@@ -1499,11 +1497,6 @@ export const EFFORT_BY_TYPE = Object.freeze({                // BP-040 d3
 } as const);                                                 // `unblock` is unranked
 
 export const FIT_WEIGHT = Object.freeze({ winnable: 1.0, reach: 0.5, "not-yet": 0 } as const); // BP-040 d3
-/** SPEC §7 (owner, 2026-10-19, issue 1559): the one depth number. Each
- *  weekly pass commits the next `days` pages, one a day, and `spares` more
- *  the daily job takes when a day's page cannot be written. Supply is
- *  counted, and refilled at 0¢, up to their sum. */
-export const WEEK_PLAN = Object.freeze({ days: 7, spares: 3 } as const);
 export const PLAN_DEPTH = WEEK_PLAN.days + WEEK_PLAN.spares;  // BP-041 d4 · REQ-095 c1
 export const SUPPLY_SHORT_BELOW = WEEK_PLAN.days;            // BP-041 d4 · REQ-095 c5
 /** A page's window: a gain counts inside it, and a page whose best place is
@@ -1930,12 +1923,10 @@ export const CLUSTER_SUPPRESS_WEEKS = 4 as const;             // §6
  *  the founder, rests for 28 days." */
 export const TOPIC_REST_DAYS = 28 as const;                   // §7
 
-/** SPEC §7 (issue 1532; drafted defaults the owner may correct): a live page
- *  its customer takes down can be put back for 7 days, and its topic is not
- *  proposed again for 90. */
+/** SPEC §7 (R9, owner 2026-10-22): a hosted page its customer stops can be
+ *  put back for 7 days; its topic is dropped for good (Q6). */
 export const TAKE_DOWN = Object.freeze({
   PUT_BACK_DAYS: 7,
-  TOPIC_REST_DAYS: 90,
 } as const);                                                   // §7
 
 /** SPEC §7 (owner, D26): when the day's draft is stopped, the same run
