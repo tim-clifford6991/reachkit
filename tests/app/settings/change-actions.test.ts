@@ -20,8 +20,10 @@ import { applyEnvFixture } from "../../mail/env-fixture";
 
 applyEnvFixture();
 
-const { appAccount, saveDomain, saveCategory, saveRivals, declaredAnswers, resolvesInDns, redirect, revalidated, startRemeasure } =
+const { appAccount, saveDomain, saveCategory, saveRivals, declaredAnswers, resolvesInDns, redirect, revalidated, startRemeasure, sites, calls } =
   vi.hoisted(() => ({
+    sites: new Map<string, { country: string; language: string; market: unknown }>(),
+    calls: [] as string[],
     startRemeasure: vi.fn(),
     appAccount: vi.fn(),
     saveDomain: vi.fn(),
@@ -39,6 +41,31 @@ vi.mock("@/app/(account)/app/_session/account", () => ({ appAccount }));
 vi.mock("@/lib/market/changes", () => ({ saveDomain, saveCategory, saveRivals, declaredAnswers }));
 vi.mock("@/lib/egress/dns", () => ({ resolvesInDns }));
 vi.mock("@/lib/scan/deep/remeasure", () => ({ startRemeasure }));
+// The `sites` row the market store reads and writes, at the client boundary.
+vi.mock("@/lib/db", () => {
+  const sitesTable = {
+    select: () => ({
+      eq: (_column: string, id: string) => ({
+        limit: async () => {
+          const row = sites.get(id);
+          return { data: row === undefined ? [] : [{ domain: "acme.com", category: null, competitors: [], market: row.market }], error: null };
+        },
+      }),
+    }),
+    update: (values: { market?: unknown }) => ({
+      eq: async (_column: string, id: string) => {
+        const row = sites.get(id);
+        if (row !== undefined && "market" in values) {
+          sites.set(id, { ...row, market: JSON.parse(JSON.stringify(values.market)) });
+          calls.push("market written");
+        }
+        return { error: null };
+      },
+    }),
+  };
+  const client = { from: () => sitesTable };
+  return { db: () => client, dbAdmin: () => client };
+});
 vi.mock("next/cache", () => ({
   revalidatePath: (path: string) => {
     revalidated.push(path);
@@ -384,20 +411,32 @@ describe("REQ-071 c2 and c16 — removing a rival", () => {
 });
 
 const { registerSiteLocaleStore } = await import("@/lib/locale/site");
+const { parseStoredMarket } = await import("@/lib/market/infer/stored");
 
 describe("SPEC §6 (D66) — Settings changes the country and language", () => {
-  const stored = new Map<string, { country: string; language: string }>();
+  const stored = {
+    get: (siteId: string) => {
+      const row = sites.get(siteId);
+      return row === undefined ? undefined : { country: row.country, language: row.language };
+    },
+  };
   const localeForm = (key: string): FormData => form({ [state.MARKET_LOCALE_FIELD]: key });
 
   beforeEach(() => {
-    stored.clear();
-    stored.set("site-1", { country: "GB", language: "en" });
+    sites.clear();
+    calls.length = 0;
+    sites.set("site-1", { country: "GB", language: "en", market: null });
+    startRemeasure.mockImplementation(async () => {
+      calls.push("remeasure started");
+      return { started: true, scanId: "scan-now" };
+    });
     registerSiteLocaleStore({
       async read(siteId) {
-        return stored.get(siteId) ?? null;
+        return sites.get(siteId) ?? null;
       },
       async write(siteId, locale) {
-        stored.set(siteId, { country: locale.country, language: locale.language });
+        const row = sites.get(siteId);
+        if (row !== undefined) sites.set(siteId, { ...row, country: locale.country, language: locale.language });
       },
     });
     return () => registerSiteLocaleStore(null);
@@ -439,5 +478,49 @@ describe("SPEC §6 (D66) — Settings changes the country and language", () => {
 
   it("takes one argument, the form", () => {
     expect(actions.saveLocaleAction).toHaveLength(1);
+  });
+
+  describe("a country change clears the town stored under the old country (D67)", () => {
+    // A local trade from the customer panel: a founder's town, looked up on the vendor's list.
+    const LONDON_AREA = {
+      place: { name: "London", location: "London,England,United Kingdom" },
+      by: "founder",
+      located: true,
+    };
+    const market = parseStoredMarket({
+      current: { category: "emergency plumber", buyer: "Homeowners", job: "Fix a leak", synonyms: ["plumber"], rivals: [], kind: "local-service" },
+      adoptedAt: "2026-10-01T06:00:00.000Z",
+      pending: null,
+      categoryOverridden: true,
+      rivalsOverridden: false,
+      rivalsCheckedAt: "2026-10-01T06:00:00.000Z",
+      area: LONDON_AREA,
+    });
+    const withArea = JSON.parse(JSON.stringify(market)) as Record<string, unknown>;
+    const { area, ...withoutArea } = withArea;
+
+    beforeEach(() => {
+      sites.set("site-1", { country: "GB", language: "en", market: withArea });
+    });
+
+    it("removes the whole area, keeps every other market key, and does so before the pass starts", async () => {
+      expect(area).toEqual(LONDON_AREA);
+      await actions.saveLocaleAction(localeForm("DE/de"));
+      expect(sites.get("site-1")).toEqual({ country: "DE", language: "de", market: withoutArea });
+      expect(calls).toEqual(["market written", "remeasure started"]);
+    });
+
+    it("the same pair and a refused pair leave the area alone", async () => {
+      await actions.saveLocaleAction(localeForm("GB/en"));
+      await actions.saveLocaleAction(localeForm("FR/fr"));
+      expect(sites.get("site-1")?.market).toEqual(withArea);
+      expect(calls).toEqual([]);
+    });
+
+    it("a start the daily bound refuses still clears it, because the pair stays saved", async () => {
+      startRemeasure.mockResolvedValue({ started: false, because: "daily_limit", nextAt: EFFECTIVE });
+      await actions.saveLocaleAction(localeForm("DE/de"));
+      expect(sites.get("site-1")).toEqual({ country: "DE", language: "de", market: withoutArea });
+    });
   });
 });
