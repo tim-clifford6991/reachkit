@@ -419,6 +419,7 @@ export const OVERVIEW_COPY = Object.freeze({
   "overview.change.domain": ["Domain changed. Measurement starts again from here.", { slots: {}, fixedBy: "REQ-071 c12" }],
   "overview.change.category": ["Market changed. The 12 searches were rebuilt from here.", { slots: {}, fixedBy: "REQ-071 c12" }],
   "overview.change.rivals": ["Competitors changed. Comparison starts again from here.", { slots: {}, fixedBy: "REQ-071 c12" }],
+  "overview.change.locale": ["Country or language changed. Measurement starts again from here.", { slots: {}, fixedBy: "SPEC §6 · D66 · issue 1689" }],
   // REQ-071 c13's other half: a card that compares two readings has to say
   // which span it compared over when a change falls inside it, rather than
   // quietly comparing across one.

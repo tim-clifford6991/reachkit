@@ -90,7 +90,7 @@ describe("nothing a body contains can become markup", () => {
   });
 
   it("the four addressable schemes become links", () => {
-    for (const href of ["https://e.com", "http://e.com", "mailto:a@e.com", "/app/calendar"]) {
+    for (const href of ["https://e.com", "http://e.com", "mailto:a@e.example", "/app/calendar"]) {
       expect(toHtml(parseMarkdown(`[t](${href})`))).toBe(`<p><a href="${href}">t</a></p>`);
     }
   });

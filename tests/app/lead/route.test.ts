@@ -89,7 +89,7 @@ describe('REQ-010 c1 — the body carries an address and nothing else: "no accou
 describe("every response body carries a CopyKey, never a sentence and never a vendor payload", () => {
   it("the three responses carry exactly a key", async () => {
     state.failInsert = true;
-    const unavailable = await (await POST(post({ scanId: "scan-1", email: "a@b.com" }))).json();
+    const unavailable = await (await POST(post({ scanId: "scan-1", email: "a@b.example" }))).json();
     expect(unavailable.message).toBe("lead.unavailable");
     // The message is a key, not a rendered line: no space, no punctuation
     // that a sentence would carry.

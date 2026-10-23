@@ -340,7 +340,7 @@ function vendorAnswer(url: string, task: Record<string, unknown> = {}): unknown 
 
 const SITE_ID = "site-journey-06";
 const USER_ID = "user-journey-06";
-const EMAIL = "founder@acme.com";
+const EMAIL = "founder@acme.example";
 const ZONE = "America/New_York";
 /** A zone on the other side of the date line, so one instant falls in two
  *  different customer-weeks — ADR-060's whole point. */
@@ -927,7 +927,7 @@ describe("Monday: the week is re-measured, judged, and told (JN-005)", () => {
     });
     const sent = await sendEmail({
       kind: "weekly",
-      to: "founder@acme.com",
+      to: "founder@acme.example",
       // The journey's own customer: the weekly toggle is read off their row.
       userId: USER_ID,
       subject: mail.subject,

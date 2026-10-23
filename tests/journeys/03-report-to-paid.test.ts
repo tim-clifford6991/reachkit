@@ -126,8 +126,8 @@ const { GET: confirmRoute } = await import("../../src/app/(public)/auth/confirm/
 
 const SCAN_ID = "scan-journey-03";
 const DOMAIN = "acme.com";
-const ADDRESS = "Anna@Acme.com";
-const NORMALISED = "anna@acme.com";
+const ADDRESS = "Anna@Acme.example";
+const NORMALISED = "anna@acme.example";
 const CUSTOMER_ID = "cus_journey_03";
 const SUBSCRIPTION_ID = "sub_journey_03";
 /** A period end a month ahead of the run, on a whole second. It was a fixed

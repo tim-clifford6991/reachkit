@@ -568,7 +568,7 @@ import type { JobDefinition, Outcome } from "../../src/jobs/types";
 
 const USER_ID = "44444444-4444-4444-8444-444444444409";
 const SITE_ID = "22222222-2222-4222-8222-222222222209";
-const EMAIL = "founder@quietbooks.com";
+const EMAIL = "founder@quietbooks.example";
 const TIME_ZONE = "America/Chicago";
 
 /** Sunday afternoon in the site's own zone: the founder finishes setup. */
