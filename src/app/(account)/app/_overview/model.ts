@@ -29,7 +29,7 @@ import type { DnsRecord } from "@/lib/publish/setup/cards";
 import type { ShownFactor } from "@/lib/presentation/bands";
 import { OVERVIEW_TRAILING_WEEKS } from "@/lib/config/constants";
 import type { GoalKey } from "./goals";
-import type { MonthsFacts } from "./figures";
+import type { MonthsFacts } from "@/lib/measure/figures";
 import { headDirection, type HeadDirection } from "./head";
 import { readGrowth, type GrowthModule, type WeeklyPoint } from "./growth";
 import { resolveRivals, type RivalFacts, type RivalGapModule } from "./rivals";

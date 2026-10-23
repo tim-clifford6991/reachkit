@@ -7,7 +7,7 @@
 import { cache } from "react";
 import { now } from "@/lib/config/now";
 import { isReservedFixtureAccount, requireSetUpAccount } from "../_session/account";
-import type { PublishedRead } from "./content";
+import type { PublishedRead } from "@/lib/measure/published";
 import { CONTENT_FIXTURE_NOW, FIXTURE_PUBLISHED } from "./content-fixture";
 
 /** The signed-in account's pages: Overview's read. */
@@ -21,9 +21,9 @@ export const readPublished = cache(async function readPublished(): Promise<Publi
 export const readPublishedFor = cache(async function readPublishedFor(siteId: string | null): Promise<PublishedRead> {
   if (siteId === null) return { pages: FIXTURE_PUBLISHED, now: CONTENT_FIXTURE_NOW };
 
-  // Imported at the call: `content-store.ts` resolves `@/lib/db`, which
+  // Imported at the call: `published-store.ts` resolves `@/lib/db`, which
   // parses the deployment's own bindings at module load, and the reserved
   // account reaches no database.
-  const { readPublishedPages } = await import("./content-store");
+  const { readPublishedPages } = await import("@/lib/measure/published-store");
   return { pages: await readPublishedPages(siteId), now: now() };
 });

@@ -10,7 +10,7 @@
 // (`@/lib/measure/ladder`), and the tile counts the pages at each
 // step. A step no page can be read on is absent, never a zero.
 //
-// **This file is pure.** Reading the pages is `content-provider.ts`'s.
+// **This file is pure.** Reading the pages is `published-store.ts`'s.
 import { CONTENT_RECENT_WEEKS } from "@/lib/config/constants";
 import { ladderTotals, type Ladder, type LadderTotals } from "@/lib/measure/ladder";
 import type { PageReading } from "@/lib/measure/page-reading";
