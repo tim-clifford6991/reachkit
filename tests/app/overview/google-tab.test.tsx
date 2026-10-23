@@ -123,7 +123,7 @@ describe("board AppGoogle, on the account the layout sweep reads", () => {
     expect(text(card?.querySelector('[data-testid="search-pages-shown"]'))).toBe(
       copy("overview.search.pages.shown", { shown: "6", total: String(pages.live) })
     );
-    expect(text(card?.querySelector("details > summary"))).toBe(copy("overview.search.show-all", { total: String(pages.live) }));
+    expect(text(card?.querySelector('[data-testid="search-pages-all"]'))).toBe(copy("overview.search.show-all", { total: String(pages.live) }));
   });
 
   it("your market's searches: the name and lead, the board's columns and what is done about each", async () => {

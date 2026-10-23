@@ -126,15 +126,22 @@ export function GooglePages(p: {
               </div>
             )}
             {list(rows.slice(0, SHOWN))}
-            <p className={`text-xs ${INK}`} data-testid="search-pages-shown">
-              {copy("overview.search.pages.shown", { shown: formatCount(Math.min(SHOWN, rows.length)), total: formatCount(rows.length) })}
-            </p>
-            {rows.length <= SHOWN ? null : (
-              <details className="min-w-0">
-                <summary className="link text-sm font-semibold">
-                  {copy("overview.search.show-all", { total: formatCount(rows.length) })}
+            {rows.length <= SHOWN ? (
+              <p className={`text-xs ${INK}`} data-testid="search-pages-shown">
+                {copy("overview.search.pages.shown", { shown: formatCount(rows.length), total: formatCount(rows.length) })}
+              </p>
+            ) : (
+              // daisyUI's collapse keeps the closed rows inside its own box.
+              <details className="collapse min-w-0">
+                <summary className="collapse-title flex min-h-0 min-w-0 flex-wrap justify-between gap-x-3 p-0 text-sm">
+                  <span className={`text-xs ${INK}`} data-testid="search-pages-shown">
+                    {copy("overview.search.pages.shown", { shown: formatCount(SHOWN), total: formatCount(rows.length) })}
+                  </span>
+                  <span className="link font-semibold" data-testid="search-pages-all">
+                    {copy("overview.search.show-all", { total: formatCount(rows.length) })}
+                  </span>
                 </summary>
-                {list(rows.slice(SHOWN))}
+                <div className="collapse-content min-w-0 px-0">{list(rows.slice(SHOWN))}</div>
               </details>
             )}
           </>
