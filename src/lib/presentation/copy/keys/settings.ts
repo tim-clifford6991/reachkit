@@ -673,6 +673,8 @@ export const SETTINGS_COPY = Object.freeze({
   "settings.notifications.to": ["Mail goes to {email}. Change it under Account.", { slots: { email: "text" }, fixedBy: "issue 1751 · board SettingsMail · drafted" }],
   "settings.notifications.weekly.note": ["What went live, what moved, and the {days} pages planned next.", { slots: { days: "text" }, fixedBy: "issue 1751 · board SettingsMail · drafted" }],
   "settings.notifications.weekly.preview": ["Your week: {days} pages planned", { slots: { days: "text" }, fixedBy: "issue 1751 · board SettingsMail · drafted" }],
+  "settings.notifications.weekly.preview.climbing": ["Your week: {days} pages planned, {n} pages climbing", { slots: { days: "text", n: "text" }, fixedBy: "issue 1911 · board SettingsMail · owner R29 2026-10-23" }],
+  "settings.notifications.weekly.preview.climbing-one": ["Your week: {days} pages planned, 1 page climbing", { slots: { days: "text" }, fixedBy: "issue 1911 · board SettingsMail · owner R29 2026-10-23" }],
   "settings.notifications.weekly.when": ["Mondays", { slots: {}, fixedBy: "issue 1751 · board SettingsMail · drafted" }],
   "settings.notifications.draft-ready.note": [
     "One mail per page, {window} before it goes live, with Read, Edit and Stop. It is sent until your first Monday mail. After that, the Monday mail lists each page with its day and Stop. Turn this on to keep both.",

@@ -41,8 +41,8 @@ export const MEASURES: readonly Measure[] = Object.freeze(
       id: "mail-pages-planned",
       shown: { on: "mail", key: "mail.weekly.pages.planned" },
       definition:
-        "The pages this Monday committed for the week, the list Plan and Overview's week are read from.",
-      source: "src/lib/opportunities/plan.ts#committedWeek",
+        "The pages this week carries, by Plan's rule: each date's scheduled draft, else its committed row.",
+      source: "src/lib/opportunities/days.ts#plannedByDay",
       cadence: "Weekly, in the Monday mail.",
     },
     {
