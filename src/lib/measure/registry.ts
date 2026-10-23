@@ -7,10 +7,11 @@
 // `{NAME}` in a definition is a constant of `src/lib/config/constants.ts`,
 // written into the document with its value.
 
-/** Where a number is shown: an Overview tile by its test id, or a Monday
- *  mail row by its label's copy key. */
+/** Where a number is shown: an Overview tile by its test id, a Monday mail
+ *  row by its label's copy key, or a free-report figure by the copy key of
+ *  the name it is shown under. */
 export interface Shown {
-  readonly on: "tile" | "mail";
+  readonly on: "tile" | "mail" | "report";
   readonly key: string;
 }
 
@@ -66,6 +67,62 @@ export const MEASURES: readonly Measure[] = Object.freeze(
         "The share of the tracked buyer prompts' AI answers over the last {ANSWER_RATE_WEEKS} weeks that named or linked the site, as a whole percentage with the range it likely sits in. Before {MENTION_RATE_MIN_WEEKS} weeks of the current prompt set, the count of answers that named it, with its sample.",
       source: "src/lib/market/prompts/rate.ts#measurePrompts",
       cadence: "Weekly, in the Monday mail.",
+    },
+    {
+      id: "report-readiness",
+      shown: { on: "report", key: "verdict.factor.foundations" },
+      definition:
+        "Whether the home page and robots.txt let search engines and AI readers in, and whether the home page carries structured data, social tags, headings and text, as two equal halves; shown in tenths, n/10. A home page or robots.txt that could not be read draws no bar and says why.",
+      source: "src/lib/measure/drivers.ts#foundationsOf",
+      cadence: "Each free scan, and each re-score of a stored report.",
+    },
+    {
+      id: "report-content",
+      shown: { on: "report", key: "verdict.factor.answerability" },
+      definition:
+        "How answer-shaped the text of the pages read is: headings worded as questions, headings answered directly, and figures, dates and citations per 1,000 characters, pooled over every page read; shown in tenths, n/10. No page read draws no bar and says why.",
+      source: "src/lib/measure/drivers.ts#answerabilityOf",
+      cadence: "Each free scan, and each re-score of a stored report.",
+    },
+    {
+      id: "report-google-presence",
+      shown: { on: "report", key: "verdict.factor.google" },
+      definition:
+        "The domain's footprint in Google: how many searches it ranks for at all, weighted by the share of the ranked rows read that sit on the first page, local pack included; shown in tenths, n/10. A ranking read that failed draws no bar and says why.",
+      source: "src/lib/measure/drivers.ts#searchPresenceOf",
+      cadence: "Each free scan, and each re-score of a stored report.",
+    },
+    {
+      id: "report-ai-presence",
+      shown: { on: "report", key: "verdict.factor.ai" },
+      definition:
+        "Of the market's searches that showed an AI answer, how often that answer named or cited the site, with the pages' own questions counted beside them; shown in tenths, n/10. Where no AI answer was read, the bar shows a dash and the report says why.",
+      source: "src/lib/measure/drivers.ts#aiPresenceOf",
+      cadence: "Each free scan, and each re-score of a stored report.",
+    },
+    {
+      id: "report-presence",
+      shown: { on: "report", key: "verdict.factor.presence" },
+      definition:
+        "Google and AI presence as one bar, at equal weight, or Google alone where AI answered none of the searches read; shown in tenths, n/10, on a stored report that did not keep the two halves apart. Never below 1.",
+      source: "src/lib/measure/score.ts#presenceOf",
+      cadence: "Each free scan, and each re-score of a stored report.",
+    },
+    {
+      id: "report-ai-answers-mention",
+      shown: { on: "report", key: "ai-answers.finding" },
+      definition:
+        "x of N: of the market's searches whose Google AI Overview came back with an answer, how many answers named the site. Where AI answered none of enough searches read, the card says so instead of a figure.",
+      source: "src/lib/market/questions/matrix.ts#buildAiAnswersCard",
+      cadence: "Each free scan.",
+    },
+    {
+      id: "report-google-first-page",
+      shown: { on: "report", key: "presence.finding" },
+      definition:
+        "x of N: of the market's searches whose Google results were read, how many show the site in the top ten or the local pack. A search not read counts in neither number.",
+      source: "src/lib/market/rivals/presence.ts#buildPresenceCard",
+      cadence: "Each free scan.",
     },
   ]
   // measures:end
