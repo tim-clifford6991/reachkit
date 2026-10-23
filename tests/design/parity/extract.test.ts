@@ -2,7 +2,7 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
-import { boardStrings } from "../../../scripts/design/parity.mjs";
+import { boardStrings, segments } from "../../../scripts/design/parity.mjs";
 
 const board = (name: string) => boardStrings(readFileSync(path.join(__dirname, "fixtures", `${name}.dc.html`), "utf8"));
 
@@ -35,5 +35,12 @@ describe("the strings a board draws", () => {
     const strings = board("AppBoard");
     expect(strings).toEqual(expect.arrayContaining(["Technical issues", "3 pages have no title", "Publishing on"]));
     expect(strings.join("\n")).not.toMatch(/Other states|Nothing on your site needs fixing/);
+  });
+
+  it("drops a state's label from the board and keeps it on a shipped page", () => {
+    const html = readFileSync(path.join(__dirname, "fixtures", "AppBoard.dc.html"), "utf8");
+    expect(segments(html, { board: true })).not.toContain("Link already used");
+    expect(segments(html)).toContain("Link already used");
+    expect(board("AppBoard")).toContain("3 pages have no title");
   });
 });

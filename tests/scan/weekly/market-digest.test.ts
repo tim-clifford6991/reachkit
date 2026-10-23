@@ -45,7 +45,7 @@ vi.mock("@/lib/publish/destinations/health", () => ({
 }));
 
 const { accountMaintenance } = await import("../../../src/jobs/account-maintenance");
-const { lastEndedMonday } = await import("../../../src/lib/scan/weekly/market-digest");
+const { lastEndedMonday, marketDigestsDue } = await import("../../../src/lib/scan/weekly/market-digest");
 const { assembleReport } = await import("../../../src/lib/scan/store");
 const { __setVendorTransportForTesting } = await import("../../../src/lib/mail/vendor/resend");
 const { setBillingStore } = await import("../../../src/lib/account/billing");
@@ -242,6 +242,45 @@ describe("#796 — a Monday's thin weekly passes are one owner digest", () => {
     expect(html).not.toContain("99.0¢");
     expect(html).not.toContain("too little search demand");
     expect(html).not.toContain("TODO(copy)");
+  });
+
+  it("issue 1841: a failed weekly row is neither listed nor stamped", async () => {
+    db.seed("scans", [weekly(HEALTHY, false), weekly(THIN_A, true, { status: "failed" })]);
+
+    expect(await marketDigestsDue(TUESDAY_NOON_UTC)).toEqual([MONDAY]);
+    await tick();
+
+    expect(mails).toHaveLength(0);
+    expect(row(HEALTHY).market_digest_at).toBe(TUESDAY_NOON_UTC.toISOString());
+    expect(row(THIN_A).market_digest_at).toBeNull();
+  });
+
+  it("issue 1841: a retry that finishes a refused week after the digest is listed by the next tick, once", async () => {
+    db.seed("scans", [weekly(HEALTHY, false), weekly(THIN_A, false, { status: "failed", report: null })]);
+    await tick();
+    expect(mails).toHaveLength(0);
+
+    // The retry retakes the same row and finishes it too small.
+    Object.assign(row(THIN_A), { status: "done", report: blob(THIN_A, true) });
+    const later = new Date("2026-09-15T13:00:00.000Z");
+    vi.setSystemTime(later);
+    await tick();
+
+    expect(mails).toHaveLength(1);
+    expect(String(mails[0]!.html)).toContain(THIN_A);
+    expect(row(THIN_A).market_digest_at).toBe(later.toISOString());
+    expect(row(HEALTHY).market_digest_at).toBe(TUESDAY_NOON_UTC.toISOString());
+
+    expect(await tick()).toEqual({ outcome: "skipped", subjectId: null, reason: "no-subject" });
+    expect(mails).toHaveLength(1);
+  });
+
+  it("issue 1841: a week of only failed rows is not due", async () => {
+    db.seed("scans", [weekly(THIN_A, true, { status: "failed" }), weekly(THIN_B, false, { status: "failed", report: null })]);
+
+    expect(await marketDigestsDue(TUESDAY_NOON_UTC)).toEqual([]);
+    expect(await tick()).toEqual({ outcome: "skipped", subjectId: null, reason: "no-subject" });
+    expect(mails).toHaveLength(0);
   });
 
   it("the due Monday is the latest one that has ended in every zone", () => {

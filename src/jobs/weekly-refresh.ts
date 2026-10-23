@@ -25,9 +25,10 @@ import { JOB_SUBJECT_CONCURRENCY, LLM_RUN_THROTTLE } from "@/lib/config/constant
 import { sendSubjects, settle } from "./fan-out";
 import type { JobDefinition, JobInput, Outcome } from "./types";
 
-/** The hourly tick ADR-060 requires — every hour, on the hour, in every
- *  zone at once. Due-ness is decided per site inside the run. */
-export const WEEKLY_TICK_CRON = "0 * * * *";
+/** The hourly tick ADR-060 requires — every hour, in every zone at once, at
+ *  :41 so it shares no minute with another job. Due-ness is decided per site
+ *  inside the run. */
+export const WEEKLY_TICK_CRON = "41 * * * *";
 
 /** One site's week, measured and told, in its own steps. */
 async function weeklySite(input: JobInput): Promise<Outcome> {

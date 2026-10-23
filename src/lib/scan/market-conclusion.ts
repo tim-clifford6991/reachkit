@@ -389,21 +389,26 @@ export async function recheckRivals(a: {
     own: ownKeywords({ domain: a.domain, siteName: text.siteName }),
     language: locale.language,
   });
+  // A conclusion reached, with or without the model, is the month's re-check (ruling B5).
+  const checkedAt = a.at.toISOString();
   // A founder's own rivals stand (D28). Their brand volumes are still read
   // (D50), since a comparison is derived only for a searched name — and
   // never under the category's words (issue 1369).
   if (site.stored.rivalsOverridden) {
     const weighed = await weighByDemand({ ...a, siteName: text.siteName, demand, rivals: withoutCategoryNames(market.rivals, market, locale.language) });
+    let current = market;
     if (weighed !== null) {
       const volume = new Map(weighed.rivals.map((r) => [r.domain, r.volume]));
       const rivals = market.rivals.map((r) => ({ ...r, volume: volume.get(r.domain) ?? 0 }));
-      await writeSiteMarket(a.siteId, { stored: { ...site.stored, current: { ...market, rivals, demand: weighed.demand } } });
+      current = { ...market, rivals, demand: weighed.demand };
     }
+    await writeSiteMarket(a.siteId, { stored: { ...site.stored, current, rivalsCheckedAt: checkedAt } });
     return none;
   }
   // The report's own derived rivals are the ones in force: the model has nothing to change.
   if (a.report.rivals.kind === "measured" && sameDomains(a.report.rivals.value.map((r) => r.domain), site.competitors)) {
     log("rival_conclusion_skipped", { siteId: a.siteId, because: "unchanged" });
+    await writeSiteMarket(a.siteId, { stored: { ...site.stored, rivalsCheckedAt: checkedAt } });
     return none;
   }
   const evidence = marketEvidence({
@@ -439,7 +444,7 @@ export async function recheckRivals(a: {
     at: a.at,
   });
   await writeSiteMarket(a.siteId, {
-    stored: settled.next,
+    stored: { ...settled.next, rivalsCheckedAt: checkedAt },
     ...(settled.changed ? { competitors: settled.rivals } : {}),
   });
   const change = settled.next.lastChange;

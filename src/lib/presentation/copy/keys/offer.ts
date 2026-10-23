@@ -37,18 +37,8 @@ export const OFFER_COPY = Object.freeze({
   "offer.cadence.measure": ["Your market scanned {value}", { slots: { value: "text" }, fixedBy: "REQ-021 c2" }],
   "offer.cadence.movement": ["What moved, in your inbox {value}", { slots: { value: "text" }, fixedBy: "REQ-021 c2" }],
   "offer.veto.window": ["Every page goes live on its own after {value}. You can edit or stop it before then, and cancel any time, yourself", { slots: { value: "text" }, fixedBy: "REQ-021 c2" }],
-  // 2026-09-05, issue #13: value moved from "" to `TODO(copy)` per
-  // `CLAUDE.md`'s standing rule. `BUILD.md` §4.1 module 6 requires the
-  // pricing card to carry "Cancel in one click"; left empty, `copy()`
-  // throws and the report screen goes down rather than showing the owner
-  // an unwritten line. `price.vat_included` was left untouched then: no
-  // module rendered it — `price.interval`'s own ruled string already says
-  // "per month, VAT included".
-  // The approved screen set draws this line under the Start control on
-  // both surfaces that carry the offer, unbracketed — approved copy as
-  // written (ruling 11a, 2026-09-08; issue #352).
-  // Issue 1068, board R12-2: the line says who cancels, as the board does.
-  "offer.cancel_self_service": ["Cancel in one click, yourself.", { slots: {}, fixedBy: "REQ-021 c2" }],
+  // Cancelling runs through Settings and Stripe's portal, so the line names where, not a click count.
+  "offer.cancel_self_service": ["Cancel any time from Settings.", { slots: {}, fixedBy: "REQ-021 c2" }],
   // Issue 1068, board R12-2: the price close's heading on the report.
   // Drafted; the owner corrects the wording.
   "offer.close.heading": ["Gain ground every week.", { slots: {}, fixedBy: "issue 1068 · owner A1 2026-10-19" }],

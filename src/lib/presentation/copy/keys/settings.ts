@@ -304,17 +304,16 @@ export const SETTINGS_COPY = Object.freeze({
   // Each of the four is **drafted** under the owner's 2026-09-16 ruling
   // (#759): written here in the registry's voice and shipped, never left as
   // a marker, and named in the PR so the owner can correct it. Two are the
-  // redesign's own words for a tab no card is titled with; two are a tab's
-  // word where the card's title is a sentence a bar has no room for — the
-  // voice card is "How your pages sound" and the mail card is
-  // "Notifications", and both cards keep those titles.
+  // redesign's own words for a tab no card is titled with; the voice tab's
+  // card title is a sentence a bar has no room for ("How your pages sound"),
+  // and the mail tab and its card share one word, "Mail".
   "settings.tabs.label": ["Settings sections", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
   "settings.tab.business": ["Your business", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
   "settings.tab.market": ["Market and competitors", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
   "settings.tab.voice": ["Your voice", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
   "settings.tab.mail": ["Mail", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
 
-  "settings.market.title": ["Your site & market", { slots: {}, fixedBy: "BUILD §4.7" }],
+  "settings.market.title": ["Your site and market", { slots: {}, fixedBy: "BUILD §4.7" }],
   "settings.market.category": ["market", { slots: {}, fixedBy: "REQ-070 c1" }],
   "settings.market.domain": ["domain", { slots: {}, fixedBy: "BUILD §10 (`sites.domain`), §4.4" }],
   // §4.7, including its lower-case opening. Issue 837 (owner ruling
@@ -632,7 +631,7 @@ export const SETTINGS_COPY = Object.freeze({
   // its rows from the register (never from a hand-written three), so a fourth
   // stoppable kind arrives as a missing-key compile error rather than as a
   // mail a customer cannot stop.
-  "settings.notifications.title": ["Notifications", { slots: {}, fixedBy: "BUILD §4.7" }],
+  "settings.notifications.title": ["Mail", { slots: {}, fixedBy: "BUILD §4.7" }],
   "settings.notifications.draft-ready": ["A page is ready, before it goes live", { slots: {}, fixedBy: "issue 1574" }],
   // Under the switch while it is off: turning the mail off never holds a page.
   "settings.notifications.draft-ready.off": [
@@ -706,6 +705,17 @@ export const SETTINGS_COPY = Object.freeze({
   "settings.billing.cancelling": [
     "cancelling keeps everything running until {date}",
     { slots: { date: "date" }, fixedBy: "BUILD §4.7" },
+  ],
+
+  // The cancel route and the first-14-days refund (owner E13 and D4, 2026-10-19). Drafted.
+  // {control} is filled from `settings.billing.manage`, so the line names the card's real button.
+  "settings.billing.route": [
+    "Reply to any ReachKit email or use {control}.",
+    { slots: { control: "text" }, fixedBy: "E13 · owner R24 2026-10-23 · drafted" },
+  ],
+  "settings.billing.refund-window": [
+    "Billed in euros. Cancel by {date} for a full, automatic refund. ReachKit stops at once.",
+    { slots: { date: "date" }, fixedBy: "D4 · ux-designer · owner R5 2026-10-22" },
   ],
 
   // Billing's "What you got this month" (owner E3, 2026-10-19). Drafted.

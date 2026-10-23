@@ -816,37 +816,55 @@ export const DRAFT_COPY = Object.freeze({
     { slots: {}, fixedBy: "SPEC §4 2026-10-10 · issue 1395 (drafted)" },
   ],
 
-  // SPEC §7 (issue 1532) — a live page the customer takes down, on Plan and
-  // on the page's own screen, and puts back inside its window. Every
-  // sentence is drafted for the owner.
-  "draft.action.take-down": ["Take down", { slots: {}, fixedBy: "issue 1532 (drafted)" }],
-  "draft.take-down.question": [
-    "Take this page off your site? Its address stops answering, and you can put it back for {days} days.",
-    { slots: { days: "text" }, fixedBy: "issue 1532 (drafted)" },
-  ],
-  "draft.take-down.confirm": ["Take it down", { slots: {}, fixedBy: "issue 1532 (drafted)" }],
-  "draft.take-down.keep": ["Keep it live", { slots: {}, fixedBy: "issue 1532 (drafted)" }],
-  "draft.take-down.done": [
-    "The page is down. You can put it back for {days} days.",
-    { slots: { days: "text" }, fixedBy: "issue 1532 (drafted)" },
-  ],
-  "draft.take-down.refused": [
-    "The page could not be taken down. Try again in a minute.",
-    { slots: {}, fixedBy: "issue 1532 (drafted)" },
-  ],
-  "draft.action.put-back": ["Put back", { slots: {}, fixedBy: "issue 1532 (drafted)" }],
-  "draft.put-back.until": [
-    "You took this page down. You can put it back until {date}.",
-    { slots: { date: "text" }, fixedBy: "issue 1532 (drafted)" },
-  ],
-  "draft.put-back.done": [
-    "The page is live again at the same address.",
-    { slots: {}, fixedBy: "issue 1532 (drafted)" },
-  ],
-  "draft.put-back.refused": [
-    "The page could not be put back. Try again in a minute.",
-    { slots: {}, fixedBy: "issue 1532 (drafted)" },
-  ],
+  // A live page's own screen, board PageDetail (canvas V22), and its Stop
+  // as owner ruling R9 (2026-10-22) sets it: one press, the topic dropped
+  // for good, Put it back for 7 days on a hosted page. Drafted (#759).
+  "draft.live.since": ["Live since {date}", { slots: { date: "date" }, fixedBy: "issue 1749 (drafted)" }],
+  "draft.live.new-tab": ["(opens in a new tab)", { slots: {}, fixedBy: "issue 1749 (drafted)" }],
+  "draft.live.week": ["This week in Google", { slots: {}, fixedBy: "issue 1749 (drafted)" }],
+  "draft.live.place": ["place for {search}", { slots: { search: "text" }, fixedBy: "issue 1749 (drafted)" }],
+  "draft.live.places": ["{n} places", { slots: { n: "text" }, fixedBy: "issue 1749 (drafted)" }],
+  "draft.live.places.one": ["one place", { slots: {}, fixedBy: "issue 1749 (drafted)" }],
+  "draft.live.up": ["Up {places} since {date}.", { slots: { places: "text", date: "date" }, fixedBy: "issue 1749 (drafted)" }],
+  "draft.live.up.near": ["Up {places} since {date}, {gap} from the first page.", { slots: { places: "text", date: "date", gap: "text" }, fixedBy: "issue 1749 (drafted)" }],
+  "draft.live.down": ["Down {places} since {date}.", { slots: { places: "text", date: "date" }, fixedBy: "issue 1749 (drafted)" }],
+  "draft.live.same": ["The same place as on {date}.", { slots: { date: "date" }, fixedBy: "issue 1749 (drafted)" }],
+  "draft.live.furthest": ["{step} on {date}. Not in results yet.", { slots: { step: "text", date: "date" }, fixedBy: "issue 1749 (drafted)" }],
+  "draft.live.visits": ["{n} visits from Google in the last {days} days. Read {date}.", { slots: { n: "text", days: "text", date: "date" }, fixedBy: "issue 1749 (drafted)" }],
+  "draft.live.band": ["shaded band: Google’s first page", { slots: {}, fixedBy: "issue 1749 (drafted)" }],
+  "draft.live.chart": ["Its place on Google, week by week", { slots: {}, fixedBy: "issue 1749 (drafted)" }],
+  "draft.ladder.google": ["On Google", { slots: {}, fixedBy: "issue 1749 (drafted)" }],
+  "draft.ladder.ai": ["In AI answers", { slots: {}, fixedBy: "issue 1749 (drafted)" }],
+  "draft.ladder.live": ["Live", { slots: {}, fixedBy: "issue 1749 (drafted)" }],
+  "draft.ladder.found": ["Found by Google", { slots: {}, fixedBy: "issue 1749 (drafted)" }],
+  "draft.ladder.showing": ["Showing in results", { slots: {}, fixedBy: "issue 1749 (drafted)" }],
+  "draft.ladder.first-page": ["First page", { slots: {}, fixedBy: "issue 1749 (drafted)" }],
+  "draft.ladder.read": ["Read by AI", { slots: {}, fixedBy: "issue 1749 (drafted)" }],
+  "draft.ladder.linked": ["Linked by AI", { slots: {}, fixedBy: "issue 1749 (drafted)" }],
+  "draft.ladder.visit": ["Visit from AI", { slots: {}, fixedBy: "issue 1749 (drafted)" }],
+  "draft.ladder.places": ["place {from} → {to}", { slots: { from: "text", to: "text" }, fixedBy: "issue 1749 (drafted)" }],
+  "draft.ladder.unmeasured": ["not measured", { slots: {}, fixedBy: "issue 1749 (drafted)" }],
+  "draft.ladder.not-yet": ["not yet", { slots: {}, fixedBy: "issue 1749 (drafted)" }],
+  "draft.next.title": ["What happens next:", { slots: {}, fixedBy: "issue 1749 (drafted)" }],
+  "draft.next.working": ["it is working, so we leave it alone. If it starts losing places, it gets an update that closes the gap to the pages above it. Nothing is needed from you.", { slots: {}, fixedBy: "issue 1749 (drafted)" }],
+  "draft.next.climbing": ["it is still climbing, so we leave it alone. If it starts losing places, it gets an update that closes the gap to the pages above it. Nothing is needed from you.", { slots: {}, fixedBy: "issue 1749 (drafted)" }],
+  "draft.next.not_moving": ["it has stopped gaining. If it starts losing places, it gets an update that closes the gap to the pages above it. Nothing is needed from you.", { slots: {}, fixedBy: "issue 1749 (drafted)" }],
+  "draft.next.too_early": ["it is too early to tell, so we leave it alone and read it again every Monday. Nothing is needed from you.", { slots: {}, fixedBy: "issue 1749 (drafted)" }],
+  "draft.next.unmeasured": ["we read it in Google and AI answers every Monday. Nothing is needed from you.", { slots: {}, fixedBy: "issue 1749 (drafted)" }],
+  "draft.live.open": ["Open the live page →", { slots: {}, fixedBy: "issue 1749 (drafted)" }],
+  "draft.live.controls": ["Your controls", { slots: {}, fixedBy: "issue 1749 (drafted)" }],
+  "draft.live.runs": ["This page runs by itself. You can still change it.", { slots: {}, fixedBy: "issue 1749 (drafted)" }],
+  "draft.live.stop-note": ["Stopping takes this page off your site and drops the topic. Tomorrow’s page is not affected. To pause every page, use", { slots: {}, fixedBy: "issue 1749 (drafted)" }],
+  "draft.live.pause-link": ["Settings › Publishing", { slots: {}, fixedBy: "issue 1749 (drafted)" }],
+  "draft.stop.done": ["Stopped. This page is off your site.", { slots: {}, fixedBy: "issue 1749 (drafted)" }],
+  "draft.stop.refused": ["Not stopped yet. That didn’t go through, so the page is still live. Try again.", { slots: {}, fixedBy: "issue 1749 (drafted)" }],
+  "draft.stopped.badge": ["Stopped", { slots: {}, fixedBy: "issue 1749 (drafted)" }],
+  "draft.stopped.line": ["Tomorrow’s page goes live as planned.", { slots: {}, fixedBy: "issue 1749 (drafted)" }],
+  "draft.stopped.wordpress": ["Your WordPress post was returned to draft. To bring it back, publish it in WordPress.", { slots: {}, fixedBy: "issue 1749 (drafted)" }],
+  "draft.action.put-back": ["Put it back", { slots: {}, fixedBy: "issue 1749 (drafted)" }],
+  "draft.put-back.until": ["You can put it back until {date}.", { slots: { date: "date" }, fixedBy: "issue 1749 (drafted)" }],
+  "draft.put-back.done": ["It’s back on your site.", { slots: {}, fixedBy: "issue 1749 (drafted)" }],
+  "draft.put-back.refused": ["Not put back yet. That didn’t go through, so the page is still off your site. Try again.", { slots: {}, fixedBy: "issue 1749 (drafted)" }],
   // The draft screen as board AppDraft draws it (canvas V22, issue 1748).
   // Drafted under issue 759's ruling; the owner corrects the wording.
   "draft.preview.caption": [

@@ -1,10 +1,10 @@
 // SPEC §4 (2026-10-07, issue 1319) — the Overview tab, at `/app`.
 //
-// The core data at a glance (owner 2026-10-15, issue 1457): the Visibility
-// Score, Google, AI and Content, then the biggest gap — each number opening
-// exactly the items it counts — then what autopilot is doing, and — while a
-// page is in review — that page with *Read or edit* and *Stop this page*,
-// then this week and needs you.
+// Today's page first, then how far the live pages got (owner E4,
+// 2026-10-19): what autopilot is doing and — while a page is in review — that
+// page with *Read or edit* and *Stop this page*, then the ladder, then the
+// core numbers (each opening exactly the items it counts), this week and
+// needs you.
 //
 // **The head states what autopilot is doing** (owner 2026-10-09, issue
 // 1362; `_overview/autopilot.ts`), and it is said once: while a page is in
@@ -32,6 +32,8 @@ import { readOverview } from "../_overview/provider";
 import { readPrompts } from "../_overview/prompts-provider";
 import { readPublished } from "../_overview/content-provider";
 import { contentOf } from "../_overview/content";
+import { pageLadderOf } from "../_overview/ladder";
+import { PageLadder } from "../_overview/PageLadder";
 import { readDone } from "../_overview/done-provider";
 import { overviewNotice, readOnboarding, readReleaseNotice } from "../_shell/onboarding";
 import { FirstPageNotice, ReleaseNoticeLine } from "../_shell/OnboardingStatus";
@@ -103,6 +105,24 @@ export default async function OverviewPage(): Promise<React.JSX.Element> {
       .then((provider) => provider.readMisstated())
       .catch(() => []),
   ]);
+  // Until the address is connected no page can go live: the screen is the
+  // connect arm alone, and no part of it names a go-live time or the ladder.
+  // Reached at the call: its check is a press that asks the domain list, and
+  // this screen's render reaches no vendor.
+  if (overview.connect !== null) {
+    const { ConnectAddress } = await import("../_overview/ConnectAddress");
+    return (
+      <div className={OVERVIEW} data-testid="overview">
+        <ConnectAddress
+          connect={overview.connect}
+          page={overview.waitingPage}
+          timeZone={shell.timeZone}
+          today={overview.today}
+        />
+      </div>
+    );
+  }
+
   // issue 784: the founder's reason when the pass released them short — what the
   // shell's panel is not already saying.
   const notice =
@@ -143,57 +163,40 @@ export default async function OverviewPage(): Promise<React.JSX.Element> {
         });
   if (lastLive !== null) headNotes.push({ testId: "overview-head-note", line: lastLive });
 
-  // Until the address is connected no page can go live: the head says so,
-  // and no part of the screen names a go-live time or the ladder.
-  const connect = overview.connect;
-  const head = connect === null ? autopilot.line : copy("overview.connect.head");
-  const notes: HeadNote[] = connect === null ? headNotes : [{ testId: "overview-head-note", line: copy("overview.connect.lead") }];
-  const nextLiveAt = connect === null ? shell.publishing.next : null;
-  // Reached at the call: its check is a press that asks the domain list, and
-  // this screen's render reaches no vendor.
-  const ConnectAddress = connect === null ? null : (await import("../_overview/ConnectAddress")).ConnectAddress;
+  const content = contentOf(published);
+  const ladder = content === null ? null : pageLadderOf(content.pages, published.now);
 
   return (
     <div className={OVERVIEW} data-testid="overview">
-      {/* The core data opens the screen (owner 2026-10-15, issue 1457);
-          what autopilot is doing, and everything else, is under it. */}
-      {connect === null ? (
-        <LinkedTiles
-          score={overview.score}
-          biggestGap={overview.biggestGap}
-          google={google}
-          prompts={prompts}
-          content={contentOf(published)}
-          nextAt={shell.publishing.next}
-          firstDueOn={overview.firstDueOn}
-          timeZone={shell.timeZone}
-        />
-      ) : null}
-
       <FirstPageNotice state={onboarding} />
       <ReleaseNoticeLine noticeKey={topNotice} />
 
       {overview.waitingPage === null ? (
-        <ScoreHead line={head} notes={notes} today={overview.today} timeZone={shell.timeZone} />
+        <ScoreHead line={autopilot.line} notes={headNotes} today={overview.today} timeZone={shell.timeZone} />
       ) : (
         <WaitingPageCard
           page={overview.waitingPage}
-          head={head}
-          notes={notes}
-          scheduled={nextLiveAt !== null}
+          head={autopilot.line}
+          notes={headNotes}
+          scheduled={shell.publishing.next !== null}
           timeZone={shell.timeZone}
           now={overview.today}
         />
       )}
 
-      {connect === null || ConnectAddress === null ? null : (
-        <>
-          <ConnectAddress connect={connect} />
-          <p className="text-sm text-base-content/70" data-testid="overview-progress-later">
-            {copy("overview.connect.progress")}
-          </p>
-        </>
-      )}
+      {/* Owner E4 (2026-10-19): today's page, then how far the pages got. */}
+      {ladder === null ? null : <PageLadder ladder={ladder} timeZone={shell.timeZone} />}
+
+      <LinkedTiles
+        score={overview.score}
+        biggestGap={overview.biggestGap}
+        google={google}
+        prompts={prompts}
+        content={content}
+        nextAt={shell.publishing.next}
+        firstDueOn={overview.firstDueOn}
+        timeZone={shell.timeZone}
+      />
 
       {/* The week takes the wider of the two columns: seven day cells each
           hold a stage word, and an even split leaves them narrow enough to
@@ -214,7 +217,7 @@ export default async function OverviewPage(): Promise<React.JSX.Element> {
             timeZone={shell.timeZone}
             supply={supplyInHead ? undefined : overview.supply}
             broader={broader}
-            done={<DoneThisWeek facts={{ ...done, nextLiveAt }} timeZone={shell.timeZone} />}
+            done={<DoneThisWeek facts={{ ...done, nextLiveAt: shell.publishing.next }} timeZone={shell.timeZone} />}
           />
         )}
         <NeedsYouModule alerts={overview.alerts} overflow={overview.overflow} issuesOverflow={overview.issuesOverflow} />

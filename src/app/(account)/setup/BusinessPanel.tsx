@@ -1,5 +1,5 @@
-// SPEC §5 (2026-09-20, #908) — step two's panel: the business profile
-// itself, every item removable and every group with its own Add.
+// SPEC §5 — Check's business section: the business profile itself, every
+// item removable and every group with its own Add; and the five questions.
 //
 // daisyUI classes in the route (`docs/DESIGN.md` rule 1): `card`, `list`,
 // `list-row`, `input`, `btn`, `alert`; lucide glyphs at 1.75. No wrapper
@@ -64,8 +64,6 @@ export function BusinessPanel(p: {
   onDraft: (next: BusinessDraft) => void;
   job: string;
   onJob: (next: string) => void;
-  answers: FounderAnswers;
-  onAnswers: (next: FounderAnswers) => void;
 }): React.JSX.Element {
   return (
     <div className="grid min-w-0 grid-cols-1 gap-4" data-testid="setup-business">
@@ -73,38 +71,32 @@ export function BusinessPanel(p: {
       {BUSINESS_GROUPS.map((group) => (
         <Group key={group} group={group} draft={p.draft} onDraft={p.onDraft} />
       ))}
-      <Questions answers={p.answers} onAnswers={p.onAnswers} />
     </div>
   );
 }
 
 /** SPEC §5 (2026-09-29, #1133): the five optional questions, each one
  *  field. Nothing here is required, and a field left empty stores nothing. */
-function Questions(p: {
+export function Questions(p: {
   answers: FounderAnswers;
   onAnswers: (next: FounderAnswers) => void;
 }): React.JSX.Element {
   return (
-    <section className="card bg-base-100 card-border" data-testid="setup-business-asks">
-      <div className="card-body gap-4 p-4">
-        <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-          <h3 className="min-w-0 font-medium">{copy("setup.business.questions")}</h3>
-          <p className={`min-w-0 ${QUIET}`}>{copy("setup.business.questions.note")}</p>
-        </div>
-        {FOUNDER_QUESTIONS.map((question) => (
-          <label key={question} className="flex min-w-0 flex-col gap-1.5">
-            <span className="min-w-0 text-sm wrap-anywhere">{copy(QUESTION_COPY[question])}</span>
-            <textarea
-              className="textarea min-w-0 w-full"
-              rows={2}
-              maxLength={KNOWLEDGE_BASE.ANSWER_CHARS}
-              value={p.answers[question] ?? ""}
-              data-testid={`setup-business-ask-${question}`}
-              onChange={(event) => p.onAnswers({ ...p.answers, [question]: event.target.value })}
-            />
-          </label>
-        ))}
-      </div>
+    <section className="grid min-w-0 gap-4" data-testid="setup-business-asks">
+      <p className={`min-w-0 ${QUIET}`}>{copy("setup.business.questions.note")}</p>
+      {FOUNDER_QUESTIONS.map((question) => (
+        <label key={question} className="flex min-w-0 flex-col gap-1.5">
+          <span className="min-w-0 text-sm wrap-anywhere">{copy(QUESTION_COPY[question])}</span>
+          <textarea
+            className="textarea min-w-0 w-full"
+            rows={2}
+            maxLength={KNOWLEDGE_BASE.ANSWER_CHARS}
+            value={p.answers[question] ?? ""}
+            data-testid={`setup-business-ask-${question}`}
+            onChange={(event) => p.onAnswers({ ...p.answers, [question]: event.target.value })}
+          />
+        </label>
+      ))}
     </section>
   );
 }

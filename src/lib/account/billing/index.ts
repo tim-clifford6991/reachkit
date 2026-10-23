@@ -37,6 +37,7 @@ export {
 } from "./portal";
 export { cancelSubscription, type CancelResult } from "./cancel";
 export { endSubscriptionNow, type EndSubscriptionNow } from "./end-now";
+export { REFUND_WINDOW_DAYS, refundFirstFortnight, type RefundOutcome } from "./refund";
 export { resumeSubscription, type ResumeResult } from "./resume";
 export {
   onSubscriptionEvent,
@@ -60,5 +61,6 @@ export {
   type HostingRow,
   type HostingNotice,
   type PeriodPageRow,
+  type RefundRow,
   type SubscriptionFacts,
 } from "./store";

@@ -14,6 +14,7 @@ const { readNotifyPrefs } = await import("@/lib/mail/notifications");
 const { assembleSettings } = await import("@/app/(account)/app/settings/model");
 const { FIXTURE_SETTINGS_FACTS } = await import("@/app/(account)/app/settings/fixture");
 const { NotificationsPanel } = await import("@/app/(account)/app/settings/panels/NotificationsPanel");
+const { SETTINGS_TAB_COPY_KEY } = await import("@/app/(account)/app/settings/tabs");
 
 const USER = "u1";
 
@@ -32,6 +33,21 @@ const pageReadyRow = (html: string) => html.slice(html.indexOf('data-testid="not
 beforeEach(() => db.reset());
 
 describe("Settings › Mail", () => {
+  it("the card is titled with the tab's own word", async () => {
+    const title = /<h2 class="card-title[^"]*">.*?<span[^>]*>([^<]*)<\/span>/.exec(await mailTab(null))?.[1];
+    expect(title).toBe("Mail");
+    expect(title).toBe(COPY[SETTINGS_TAB_COPY_KEY.mail]);
+  });
+
+  it("every customer sentence that points into Settings names a tab that exists", () => {
+    const tabs = new Set(Object.values(SETTINGS_TAB_COPY_KEY).map((key) => COPY[key]));
+    const pointers = Object.entries(COPY as Record<string, string>).flatMap(([key, value]) =>
+      [...value.matchAll(/Settings › ([^.,;:]+)/g)].map((m) => [key, m[1]?.trim()] as const)
+    );
+    expect(pointers.length).toBeGreaterThan(0);
+    expect(pointers.filter(([, tab]) => !tabs.has(tab ?? ""))).toEqual([]);
+  });
+
   it("holds the three switches and no retention kind", async () => {
     const html = await mailTab(null);
     expect(switches(html)).toEqual(["draft-ready", "published", "weekly"]);

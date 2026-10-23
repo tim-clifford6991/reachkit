@@ -96,7 +96,7 @@ import type { WeeklyPoint } from "./growth";
 import type { RivalFact, RivalFacts } from "./rivals";
 import { needsYouOf, waitsOnCustomer } from "@/lib/publish/record/needs-you";
 import type { State } from "@/lib/publish/types";
-import { waitingIssues, type WaitingIssue, type WaitingItem } from "./alerts";
+import { issuesReading, waitingIssues, type IssuesReading, type WaitingItem } from "./alerts";
 import type { WaitingPageFacts, WaitingTarget } from "./waiting";
 import type { CopyKey } from "@/lib/presentation/copy";
 import { STAGE_FILTER_COPY_KEY, STAGE_OF } from "../calendar/stages";
@@ -646,18 +646,26 @@ function standingOf(
 /**
  * Issue 1550: the checks waiting on the customer, from the same report
  * Overview's needs-you reads them from — so an item there and the view it
- * opens hold the same issues. Empty where no report is stored yet.
+ * opens hold the same issues. No figures where no report is stored yet.
  */
-export async function readWaitingIssues(site: OverviewSite): Promise<readonly WaitingIssue[]> {
+export async function readWaitingIssues(site: OverviewSite): Promise<IssuesReading> {
   const now = clock();
   const weeks = windowWeeks(now, site.timeZone);
-  const [scans, deep] = await Promise.all([
+  const [scans, deep, host] = await Promise.all([
     readWeekScans({ siteId: site.siteId, weekStarts: weeks }),
     deepPassReading(site.siteId),
+    hostedHostname(site.siteId),
   ]);
   const report = standingOf(weeks, scans, deep, site.timeZone).latest ?? deep?.report ?? null;
-  if (report === null) return [];
-  return waitingIssues(report.siteIssues, { measuredAt: report.verdict.measuredAt });
+  if (report === null) return issuesReading(null, null, host);
+  return issuesReading(report.siteIssues, report.verdict.measuredAt, host);
+}
+
+/** The hosted address, live or waiting; `null` for a site without one or a failed read. */
+async function hostedHostname(siteId: string): Promise<string | null> {
+  const { hostedHostFor } = await import("@/lib/publish/destinations/hosted/hostname");
+  const host = await hostedHostFor(siteId).catch(() => null);
+  return host?.hostname ?? null;
 }
 
 async function weeklySeries(
@@ -1005,7 +1013,7 @@ async function addressWaiting(siteId: string): Promise<AddressWaiting | null> {
     if (host === null || host.state === "live") return null;
     const [{ recordForHost }, { env }] = await Promise.all([import("@/lib/publish/setup/cards"), import("@/lib/config/env")]);
     const record = recordForHost({ hostname: host.hostname, cnameTarget: env.HOSTED_EDGE_CNAME_TARGET });
-    return record === null ? null : { hostname: host.hostname, record };
+    return record === null ? null : { hostname: host.hostname, record, checkedAt: host.checkedAt, since: host.since };
   } catch {
     return null;
   }

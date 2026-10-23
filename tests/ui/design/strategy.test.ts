@@ -47,6 +47,23 @@ const RETIRED: readonly { name: string; pattern: RegExp }[] = [
   { name: "quoted by AI", pattern: /\bQuoted by\b/ },
   // Q6: a stopped topic is dropped for good. "Write it again" on a held page stays.
   { name: "write this one again", pattern: /\b(write this one again|ask us to write)\b/i },
+  // The Terms' old claims: a daily page, a zero window, a one-click cancel and no refund at all.
+  { name: "a page every day for your site", pattern: /\ba page every day for your site\b/i },
+  { name: "from none", pattern: /\bfrom none\b/i },
+  { name: "in one click:", pattern: /\bin one click:/i },
+  { name: "Payments already made are not refunded", pattern: /(?:^|[.!?]\s+)Payments already made are not refunded unless\b/ },
+  // Up to 7 pages a week, and a week may skip a day: no daily pace and no daily ceiling.
+  { name: "Publishing daily", pattern: /\bPublishing daily\b/i },
+  { name: "one page a day", pattern: /\bone page a day\b/i },
+  { name: "at most one a day", pattern: /\bat most one a day\b/i },
+  // The mail and its page say "unsubscribe".
+  { name: "Opted out", pattern: /\bOpted out\b/ },
+  // D3: only week 1 is emailed first. B5: competitors are watched weekly, re-checked monthly. Cancelling runs through Settings.
+  { name: "We email each page first", pattern: /\bWe email each page first\b/i },
+  { name: "Emailed before it goes live", pattern: /\bEmailed before it goes live\b/i },
+  { name: "after we email it", pattern: /\bafter we email it\b/i },
+  { name: "Cancel in one click", pattern: /\bCancel in one click\b/i },
+  { name: "competitors checked", pattern: /\bcompetitors\b[^.]{0,20}\bchecked\b/i },
 ];
 
 /** The attributes whose value a customer reads or hears. */
@@ -180,6 +197,59 @@ describe("UI strategy: titles and retired names (#1463)", () => {
       undefined,
     ]);
     expect(["you can ask us to write this one again", "Read it, or write it again."].map(retiredIn)).toEqual(["write this one again", undefined]);
+  });
+
+  it("knows the Terms' retired claims, and leaves their allowed forms alone", () => {
+    expect([
+      "A subscription adds a page every day for your site.",
+      "24 hours by default, from none up to seven days",
+      "Cancel any time from Settings, in one click: your access continues.",
+      "Your access ends. Payments already made are not refunded unless the law requires it.",
+    ].map(retiredIn)).toEqual(["a page every day for your site", "from none", "in one click:", "Payments already made are not refunded"]);
+    expect([
+      "Unsubscribe in one click.",
+      "Otherwise your access continues, and payments already made are not refunded unless the law requires it.",
+      "anywhere from 1 to 7 days",
+    ].map(retiredIn)).toEqual([undefined, undefined, undefined]);
+  });
+
+  it("knows the retired pace and opt-out words", () => {
+    expect(["Publishing daily", "One page a day is a good pace", "Pages go live when ready, at most one a day.", "Opted out", "Publishing on", "Up to 7 pages a week", "Unsubscribed"].map(retiredIn)).toEqual([
+      "Publishing daily",
+      "one page a day",
+      "at most one a day",
+      "Opted out",
+      undefined,
+      undefined,
+      undefined,
+    ]);
+  });
+
+  it("knows the week-1 mail, cancel and competitor promises, and leaves the true lines alone", () => {
+    expect(
+      [
+        "We email each page first. You never have to do anything.",
+        "Emailed before it goes live",
+        "Each page goes live {hours} hours after we email it unless you stop it.",
+        "Cancel in one click, yourself.",
+        "competitors checked every Monday",
+        "Up to {rivals} competitors are checked every week.",
+        "Your competitors, up to {rivals}, checked every week.",
+      ].map(retiredIn),
+    ).toEqual([
+      "We email each page first",
+      "Emailed before it goes live",
+      "after we email it",
+      "Cancel in one click",
+      "competitors checked",
+      "competitors checked",
+      "competitors checked",
+    ]);
+    expect(["Unsubscribe in one click.", "Your market and your pages checked every Monday", "competitors watched every Monday"].map(retiredIn)).toEqual([
+      undefined,
+      undefined,
+      undefined,
+    ]);
   });
 
   it("customer copy does not use a retired name", () => {

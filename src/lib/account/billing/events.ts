@@ -9,10 +9,12 @@
 // one subscription: how far it is paid, and what the vendor calls it. This
 // module writes those two and **nothing else**.
 //
-// **It invents no behaviour for a failed renewal.** REQ-076's non-goal is
-// explicit — refunds, chargebacks and `past_due` are deferred to
-// post-launch by owner ruling, "an accepted debt on the same footing as the
-// tax deferral". So `invoice.payment_failed` records the status and
+// **It invents no behaviour for a failed renewal.** REQ-076's non-goal
+// deferred chargebacks and `past_due` by owner ruling. Its deferral of
+// refunds is superseded by D4 for one case only: a cancel in the first 14
+// days (`refund.ts`, `docs/spec/decisions/2026-10-20-1699.md`), reached from
+// the two cancellation events and never from an invoice. So
+// `invoice.payment_failed` records the status and
 // returns: no mail, no retry, no dunning, no downgrade, no revocation.
 // REQ-097 criterion 4 says the same thing from the customer's side:
 // ReachKit sends no mail on a billing event at all. `tests/account/billing/
@@ -37,6 +39,7 @@
 // event that slipped past the id check would leave the same row.
 import { stripe, type Stripe } from "../stripe/client";
 import { paidThroughOf } from "./period";
+import { refundFirstFortnight } from "./refund";
 import { recordedStatus } from "./status";
 import { billingStore, type BillingRow } from "./store";
 
@@ -99,6 +102,8 @@ export async function onSubscriptionEvent(event: Stripe.Event): Promise<Subscrip
   }
 
   if (account.last_subscription_event_id === event.id) {
+    // A redelivery still retries a refund the first delivery could not make.
+    await refundOnCancel(event, account.id, subscription);
     return { applied: false, because: "replay" };
   }
 
@@ -128,7 +133,28 @@ export async function onSubscriptionEvent(event: Stripe.Event): Promise<Subscrip
     await billingStore().stampCancelled(account.id, cancelledNow ? new Date() : null);
   }
 
+  await refundOnCancel(event, account.id, subscription);
   return { applied: true };
+}
+
+const CANCEL_EVENTS: ReadonlySet<string> = new Set([
+  "customer.subscription.updated",
+  "customer.subscription.deleted",
+]);
+
+/** D4's refund, on the two cancellation events only. It never fails the
+ *  event: a refund that could not be made is retried on the next delivery. */
+async function refundOnCancel(
+  event: Stripe.Event,
+  userId: string,
+  subscription: Stripe.Subscription
+): Promise<void> {
+  if (!CANCEL_EVENTS.has(event.type)) return;
+  try {
+    await refundFirstFortnight(userId, subscription);
+  } catch {
+    console.warn(JSON.stringify({ event: "billing_refund", outcome: "threw" }));
+  }
 }
 
 /** REQ-024 / §13 — the first period end, stamped by provisioning.

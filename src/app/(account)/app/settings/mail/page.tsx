@@ -2,9 +2,7 @@
 // `/app/settings/mail`.
 //
 // One card, moved as it is: which of §12's recurring mails the customer
-// gets. The tab's word is the redesign's — "Mail" — and the card keeps
-// §4.7's own title, "Notifications". Same reason as the voice tab: the bar
-// names the subject, the card states what it holds.
+// gets. The tab and the card both say "Mail", the word the mail footers point to.
 import type React from "react";
 import type { Metadata } from "next";
 import { copy } from "@/lib/presentation/copy";

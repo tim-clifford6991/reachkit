@@ -52,6 +52,7 @@ import type { CanonicalDomain } from "@/lib/scan/domain";
 import type { MainSite } from "@/lib/site-profile/main-site-row";
 import { assembleReport } from "@/lib/scan/store";
 import { previousWeekStart, weekStartFor } from "@/lib/scan/weekly";
+import { DEFAULT_HOSTED_LABEL } from "@/lib/publish/destinations/hosted/label";
 import type { AppAccount } from "@/app/(account)/app/_session/account";
 import type { AuthStub } from "./auth-stub";
 import {
@@ -684,19 +685,22 @@ export function seedFreeScans(): void {
  * The ledger the owner's cost page reads (issue 1478): a week of the
  * reserved account's own calls, a free scan's, and what the vendors billed,
  * so `/app/costs` is measured with every table holding rows — including a
- * box line for a domain longer than a phone is wide.
+ * box line for a domain longer than a phone is wide, and a week holding a day
+ * over the cap and a day past the warning, so every badge the board draws is drawn.
  */
 export function seedLedger(): void {
   const [ownScan] = rows(`select id from scans where site_id = '${RESERVED_ACCOUNT.siteId}' order by created_at limit 1;`);
   const [freeScan] = rows(`select id from scans where tier = 'free' order by created_at limit 1;`);
   const at = sweepNow().getTime();
+  // US cents for the day's draft: 280 is past €2 and 190 past €1.50 at any rate near today's.
+  const draftCents = (day: number) => (day === 5 ? 280 : day === 3 ? 190 : 4.1);
   const calls: string[] = [];
   for (let day = 0; day < 7; day++) {
     const when = new Date(at - day * 24 * 60 * 60 * 1000 - 60 * 60 * 1000).toISOString();
     for (const [scan, source, cents, billed, payload] of [
       [ownScan, "serp/google/organic", 0.2, 0.2, "{}"],
       [ownScan, "dataforseo_labs/google/ranked_keywords", 2.4, 2.2, "{}"],
-      [ownScan, "generate.write", 4.1, null, '{"parseOutcome":"success"}'],
+      [ownScan, "generate.write", draftCents(day), null, '{"parseOutcome":"success"}'],
       [freeScan, "serp/google/organic", 0.2, null, '{"vendorFailure":"timeout","endpoint":"serp/google/organic","billed":true}'],
       [freeScan, "question-phrasing", 0.31, null, '{"parseOutcome":"success"}'],
     ] as const) {
@@ -738,6 +742,20 @@ export function seedSetupAccount(): void {
     `insert into sites (id, user_id, domain, timezone, setup_stage, setup_stage_times) values ` +
       `('${siteId}', '${userId}', '${domain}', '${timeZone}', '${SETUP_STAGE}', ` +
       `'${JSON.stringify(SETUP_STAGE_TIMES)}'::jsonb);`
+  );
+  // A hosted address still waiting for its record, so `/setup/connect` draws its screen
+  // rather than sending this founder on.
+  sql(
+    `insert into destinations (site_id, kind, config, health, health_reason, hostname, hostname_state) values ` +
+      `('${siteId}', 'hosted', null, 'expired', 'dns_unset', '${DEFAULT_HOSTED_LABEL}.${domain}', 'pending_dns');`
+  );
+
+  // What the crawl read of the site, so Check draws its pages-read figure and each section's reading.
+  sql(
+    `insert into site_profiles (domain, site_name, products, claims, voice, pages_read) values ` +
+      `('${domain}', 'Newco Books', '["Monthly bookkeeping", "Payroll for small teams"]'::jsonb, ` +
+      `'["Books closed in five working days"]'::jsonb, ` +
+      `'{"text": "Plain and direct. Short sentences, no jargon.", "tone": "plain", "person": "second", "claimsToAvoid": ["Cheapest in town"]}'::jsonb, 12);`
   );
 
   const measuredAt = new Date(SETUP_REPORT_AT);
@@ -1030,9 +1048,10 @@ function seedSite(
   if (published !== undefined) {
     const address = opts.published?.slug ?? published.id;
     const at = opts.published === undefined ? "now()" : `'${opts.published.at}'`;
+    // Delivered by ReachKit, as every hosted page is, so its record offers the address.
     sql(
-      `insert into publications (draft_id, site_id, destination, mode, live_url, published_at, delivery_state) values ` +
-        `('${published.id}', '${siteId}', 'hosted', 'autopilot', 'https://content.${domain}/${address}', ${at}, 'delivered');`
+      `insert into publications (draft_id, site_id, destination, mode, live_url, published_at, delivery_state, made_live_by_us) values ` +
+        `('${published.id}', '${siteId}', 'hosted', 'autopilot', 'https://content.${domain}/${address}', ${at}, 'delivered', true);`
     );
   }
 }

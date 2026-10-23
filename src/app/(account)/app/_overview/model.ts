@@ -185,6 +185,10 @@ export interface OverviewModel {
 export interface AddressWaiting {
   hostname: string;
   record: DnsRecord;
+  /** When the domain list was last asked about the host, or `null`. */
+  checkedAt: Date | null;
+  /** When the hosted destination was made, the day the count starts. */
+  since: Date | null;
 }
 
 /** The page that went live last: the customer's own title for it, and the

@@ -7,9 +7,8 @@
 #
 # It is not a merge gate and nothing waits on it: a red run opens one issue
 # titled `[nightly] full run on main is red`, or comments on the open one, and
-# an engineer starts from that issue. Off a pull request every job, this
-# workflow's own included, runs on `reachkit-box` (#1035), so the run costs no
-# hosted minutes, at an hour when no pull request is waiting.
+# an engineer starts from that issue. Every job runs GitHub-hosted, as on a
+# pull request (owner, 2026-10-22: the repository is public).
 name: Nightly
 
 on:
@@ -36,7 +35,7 @@ jobs:
     name: open or comment on the [nightly] issue
     needs: ci
     if: ${{ failure() || inputs.dry_run }}
-    runs-on: [self-hosted, reachkit]
+    runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
       issues: write

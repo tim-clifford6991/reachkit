@@ -26,7 +26,7 @@ import { dbAdmin } from "@/lib/db";
 import { BLOG_READS_RETENTION_W } from "@/lib/config/constants";
 import type { BlogEngine, BlogRead, BlogReadKind } from "./classify";
 import { ladderOf, type Ladder } from "@/lib/measure/ladder";
-import { readingOf } from "@/lib/measure/page-reading";
+import { readingOf, type PageReading } from "@/lib/measure/page-reading";
 
 /** Days per week — spelled once so the retention pin can stay in weeks,
  *  which is how §6 states every window on this screen. */
@@ -171,6 +171,9 @@ export interface PageLadder {
   publicationId: string;
   draftId: string | null;
   ladder: Ladder;
+  reading: PageReading | null;
+  /** WordPress keeps no server logs, so the steps only they show are unread. */
+  wordpress: boolean;
 }
 
 /**
@@ -194,12 +197,14 @@ export async function readLadders(siteId: string): Promise<readonly PageLadder[]
     .eq("kind", "crawl");
   const hits = new Map<string, number>();
   for (const row of crawls.data ?? []) hits.set(row.publication_id, (hits.get(row.publication_id) ?? 0) + row.hits);
-  return (pages.data ?? []).map((row) => ({
-    publicationId: row.id,
-    draftId: row.draft_id,
-    ladder: ladderOf(
-      readingOf(row.search_reading),
-      row.destination === "hosted" && crawls.error === null ? (hits.get(row.id) ?? 0) : null
-    ),
-  }));
+  return (pages.data ?? []).map((row) => {
+    const reading = readingOf(row.search_reading);
+    return {
+      publicationId: row.id,
+      draftId: row.draft_id,
+      ladder: ladderOf(reading, row.destination === "hosted" && crawls.error === null ? (hits.get(row.id) ?? 0) : null),
+      reading,
+      wordpress: row.destination === "wordpress",
+    };
+  });
 }

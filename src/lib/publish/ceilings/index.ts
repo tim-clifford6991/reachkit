@@ -1,18 +1,18 @@
-// BUILD §9 — the two ceilings: one a day, eight a week, in the customer's
+// BUILD §9 — the two ceilings: one a day, seven a week, in the customer's
 //
 // BUILD §14 guardrail 7 — autopilot rate limits, independent of the monthly
 // cap.
 // own zone, on a Monday-start week.
 //
-// §9: "Autopilot hard limits regardless of settings: ≤1 publish/day,
-// ≤8/week". Regardless of settings is the whole point — this module reads
+// §9: autopilot hard limits regardless of settings, one publish a day and
+// the plan's week (`WEEK_PLAN.days`) a week. Regardless of settings is the whole point — this module reads
 // the two limits from the pins and reads **no per-site column that could
 // hold a rate**, so no value a customer or a plan writes anywhere can raise
 // either one. It exports nothing that returns a rate.
 //
-// The two ceilings hold independently: eight in a week with a free day
-// still refuses a second on that day, and one a day with seven already
-// published still refuses the ninth in the week. A refusal is a hold, never
+// The two ceilings hold independently: a week with room still refuses a
+// second page on a day that has one, and a free day with seven already
+// published in the week still refuses the eighth. A refusal is a hold, never
 // a failure — it names which ceiling blocked and when the block lifts.
 //
 // The archived plan is WO-211.

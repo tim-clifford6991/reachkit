@@ -266,7 +266,7 @@ export const REPORT_COPY = Object.freeze({
   // the one line the scanning screen ends on (S3, approved under 11a).
   "stage.elapsed": ["{seconds} s", { slots: { seconds: "text" }, fixedBy: "REQ-003 c1" }],
   "scan.waiting.line": [
-    "Under a minute. This address is permanent — you can come back to it.",
+    "Under a minute. This address is permanent, so you can come back to it.",
     { slots: {}, fixedBy: "REQ-003 c1" },
   ],
   /** The line above the stages when a re-measure was started *from* a
@@ -491,7 +491,7 @@ export const REPORT_COPY = Object.freeze({
   "method.blocked-readers.snippet-pages": ["These pages forbid snippets, so an AI answer can’t use them:", { slots: {}, fixedBy: "SPEC §9 D14 · issue 1145" }],
   "method.blocked-readers.training-choice": ["Your robots.txt turns away {crawlers}. That keeps your pages out of AI training and it is your choice — it doesn’t stop an AI answer from reading you, and it isn’t counted here.", { slots: { crawlers: "text" }, fixedBy: "SPEC §9 D14 · issue 1145" }],
   "method.missing-pages.title": ["Write the missing pages", { slots: {}, fixedBy: "REQ-009 c6" }],
-  "method.missing-pages.body": ["Each missing page answers one question your market asks that mentions competitors and not you. Take the question, answer it plainly in the first paragraph, then back the answer with facts from your own site — numbers, dates, names, with a link to where each one lives. Publish it at a plain address on your own domain and link to it from a page that already ranks. One page a day is a good pace; one a week still moves the number. ReachKit writes these for subscribers, but nothing here needs a subscription.", { slots: {}, fixedBy: "REQ-009 c6" }],
+  "method.missing-pages.body": ["Each missing page answers one question your market asks that mentions competitors and not you. Take the question, answer it plainly in the first paragraph, then back the answer with facts from your own site — numbers, dates, names, with a link to where each one lives. Publish it at a plain address on your own domain and link to it from a page that already ranks. A few pages a week is a good pace; one a week still moves the number. ReachKit writes these for subscribers, but nothing here needs a subscription.", { slots: {}, fixedBy: "REQ-009 c6" }],
   "method.unquotable-pages.title": ["Make pages AI can answer from", { slots: {}, fixedBy: "REQ-009 c6" }],
   "method.unquotable-pages.body": ["AI answers mention and link pages that answer a question directly. Writing for that is sometimes called GEO, generative engine optimisation. For each page of yours that has search value but reads like a brochure: turn its headings into the questions a buyer would ask, put a direct answer of two or three sentences right under each heading, and add evidence — a figure, a date, a source you link to. Keep the page’s address; rewriting in place keeps whatever it already ranks for.", { slots: {}, fixedBy: "REQ-009 c6" }],
 
@@ -756,7 +756,7 @@ export const REPORT_COPY = Object.freeze({
   "landing.price.facts": ["Each page is written from facts on your site, with every fact linked to where it came from.", { slots: {}, fixedBy: "board Landing · issue 1596" }],
   "landing.price.ready": ["In your first week, an email when each page is ready, saying which search it answers and who answers it today.", { slots: {}, fixedBy: "board Landing · issue 1596 · decision 2026-10-19-1593 (drafted)" }],
   "landing.price.monday": ["Every Monday: where your pages sit in Google, which of your pages AI answers link to, and what is planned next.", { slots: {}, fixedBy: "board Landing · issue 1596" }],
-  "landing.price.competitors": ["Your competitors, up to {rivals}, checked every week.", { slots: { rivals: "text" }, fixedBy: "board Landing · issue 1596" }],
+  "landing.price.competitors": ["Your competitors, up to {rivals}, watched every week.", { slots: { rivals: "text" }, fixedBy: "board Landing · issue 1596" }],
   "landing.price.site": ["Your whole site checked for problems, with the fix for each.", { slots: {}, fixedBy: "board Landing · issue 1596" }],
   "landing.price.plan": ["ReachKit · one plan", { slots: {}, fixedBy: "board Landing · issue 1596" }],
   "landing.price.terms": ["{price} a month, VAT included. One plan. Cancel any time.", { slots: { price: "text" }, fixedBy: "board Landing · issue 1596" }],
@@ -771,7 +771,7 @@ export const REPORT_COPY = Object.freeze({
   "landing.faq.results.q": ["How long until I see results?", { slots: {}, fixedBy: "board Landing · issue 1596" }],
   "landing.faq.results.a": ["In week 1 you see your pages go live on your site. From the first Monday you see where they sit in Google and whether AI answers link to them. Each page climbs at the search engines’ pace, not ours. Bing usually finds a new page within days. Google takes from a few days to a few weeks, and doesn’t list every page. Showing in results takes weeks. Reaching the first page takes months, and not every page gets there. No one can guarantee a top spot on Google, and we never promise one.", { slots: {}, fixedBy: "board Landing · issue 1596" }],
   "landing.faq.stop.q": ["What if I want to stop?", { slots: {}, fixedBy: "board Landing · issue 1596" }],
-  "landing.faq.stop.a": ["Cancel any time from Settings. You keep access until the end of the month you’ve paid for, and you’re not charged again. Pages on your WordPress stay where they are. Pages on the blog address we run for you stay live for {days} days after your access ends, and we email you a week before they stop. Your export of every page stays available, with no end date.", { slots: { days: "text" }, fixedBy: "board Landing · issue 1596 · ruling D5" }],
+  "landing.faq.stop.a": ["Cancel any time from Settings, and you’re not charged again. Section four of our Terms says when your access ends. Pages on your WordPress stay where they are. Pages on the blog address we run for you stay live for {days} days after your access ends, and we email you a week before they stop. Your export of every page stays available, with no end date.", { slots: { days: "text" }, fixedBy: "board Landing · issue 1596 · ruling D5 · ruling R22" }],
   "landing.faq.local.q": ["Will it work for a local business?", { slots: {}, fixedBy: "board Landing · issue 1596" }],
   "landing.faq.local.a": ["Yes. ReachKit reads what kind of business you are and measures the searches where your buyers are, including the ones with your town in them. Pages answer what local buyers ask: prices, what’s included, how long a job takes. One honest limit: for searches that show a map, Google lists businesses from Google Maps first, and your Google Maps listing (Business Profile) and reviews count most there. ReachKit’s pages help your website, not your Maps listing. In a small local market some weeks have fewer than {weekPages} good pages to write, and we never fill a week with filler.", { slots: { weekPages: "text" }, fixedBy: "board Landing · issue 1596" }],
   "landing.faq.start.q": ["What do I need to start?", { slots: {}, fixedBy: "board Landing · issue 1596" }],

@@ -137,123 +137,121 @@ export function RivalsCard(p: {
   }
 
   return (
-    <section className="card bg-base-100 shadow-sm" data-testid={TEST_ID}>
-      <div className="card-body gap-4">
-        <div className="flex items-center justify-between gap-2">
-          <h2 className="card-title text-base">
-            <Users aria-hidden size={20} {...ICON} />
-            {copy("setup.competitors.title")}
-          </h2>
-          <span className="badge badge-ghost num" data-testid="setup-competitors-limit">
-            {copy("setup.competitors.limit", { chosen: p.rivals.length, max: p.max })}
-          </span>
-        </div>
+    <section className="grid min-w-0 gap-4" data-testid={TEST_ID}>
+      <h3 className="flex items-center justify-between gap-2 font-medium">
+        <span className="flex items-center gap-2">
+          <Users aria-hidden size={20} {...ICON} />
+          {copy("setup.competitors.title")}
+        </span>
+        <span className="badge badge-ghost num" data-testid="setup-competitors-limit">
+          {copy("setup.competitors.limit", { chosen: p.rivals.length, max: p.max })}
+        </span>
+      </h3>
 
-        {status === null ? null : (
-          <p className={EMPTY} data-testid={status.testId}>
-            {copy(status.key)}
-          </p>
-        )}
+      {status === null ? null : (
+        <p className={EMPTY} data-testid={status.testId}>
+          {copy(status.key)}
+        </p>
+      )}
 
-        {reasons === null ? null : (
-          <p className="text-sm text-base-content/70" data-testid="setup-competitors-concluded">
-            {copy("setup.competitors.concluded")}
-          </p>
-        )}
+      {reasons === null ? null : (
+        <p className="text-sm text-base-content/70" data-testid="setup-competitors-concluded">
+          {copy("setup.competitors.concluded")}
+        </p>
+      )}
 
-        {offered.length === 0 ? null : (
-          <div className="flex flex-wrap gap-2" data-testid="setup-competitors-suggested">
-            {offered.map((domain) => (
-              <button
-                key={domain}
-                type="button"
-                className={`btn btn-sm rounded-full num ${chosen.has(domain) ? INK_PILL : "btn-soft"}`}
-                aria-pressed={chosen.has(domain)}
-                disabled={full && !chosen.has(domain)}
-                onClick={() => toggleSuggested(domain)}
-              >
-                {domain}
-              </button>
-            ))}
-          </div>
-        )}
-
-        {p.rivals.length === 0 ? null : (
-          <ul
-            className={reasons === null ? "flex flex-wrap gap-2" : "flex flex-col gap-3"}
-            data-testid="setup-competitors-selected"
-          >
-            {p.rivals.map((rival) => {
-              const reason = reasons?.[rival.domain] ?? null;
-              const chip = (
-                <span className="badge badge-primary badge-soft badge-lg num h-auto max-w-full gap-1 pr-1">
-                  <span className="min-w-0 wrap-anywhere">{rival.domain}</span>
-                  <button
-                    type="button"
-                    className="btn btn-ghost btn-xs btn-circle"
-                    aria-label={copy("setup.competitors.remove", { rival: rival.domain })}
-                    onClick={() => remove(rival.domain)}
-                  >
-                    <X aria-hidden size={16} {...ICON} />
-                  </button>
-                </span>
-              );
-              return reason === null ? (
-                <li key={rival.domain}>{chip}</li>
-              ) : (
-                <li key={rival.domain} className="flex min-w-0 flex-col items-start gap-1">
-                  {chip}
-                  <p className="text-sm text-base-content/70 wrap-anywhere">{reason}</p>
-                </li>
-              );
-            })}
-          </ul>
-        )}
-
-        <div className="flex flex-col gap-1.5">
-          <label className="text-sm text-base-content/70" htmlFor={fieldId}>
-            {copy("setup.competitors.add.label")}
-          </label>
-          <div className="flex gap-2">
-            <input
-              id={fieldId}
-              type="text"
-              name="competitor"
-              className={`input num w-full ${refusal === null ? "" : "input-error"}`}
-              placeholder={copy(ADD_PLACEHOLDER[p.rivals.length === 0 ? "first" : "another"])}
-              value={draft}
-              disabled={full}
-              aria-invalid={refusal !== null}
-              onChange={(event) => {
-                setDraft(event.target.value);
-                setRefusal(null);
-              }}
-              onKeyDown={onFieldKey}
-            />
+      {offered.length === 0 ? null : (
+        <div className="flex flex-wrap gap-2" data-testid="setup-competitors-suggested">
+          {offered.map((domain) => (
             <button
+              key={domain}
               type="button"
-              className="btn btn-soft btn-primary"
-              disabled={full}
-              onClick={() => {
-                void addTyped();
-              }}
+              className={`btn btn-sm rounded-full num ${chosen.has(domain) ? INK_PILL : "btn-soft"}`}
+              aria-pressed={chosen.has(domain)}
+              disabled={full && !chosen.has(domain)}
+              onClick={() => toggleSuggested(domain)}
             >
-              <Plus aria-hidden size={20} {...ICON} />
-              {copy("setup.competitors.add.action")}
+              {domain}
             </button>
-          </div>
+          ))}
         </div>
+      )}
 
-        {shown === null ? null : (
-          <div
-            role="alert"
-            className={`alert alert-soft text-sm ${refusal === null ? "alert-warning" : "alert-error"}`}
-            data-testid="setup-competitors-refusal"
+      {p.rivals.length === 0 ? null : (
+        <ul
+          className={reasons === null ? "flex flex-wrap gap-2" : "flex flex-col gap-3"}
+          data-testid="setup-competitors-selected"
+        >
+          {p.rivals.map((rival) => {
+            const reason = reasons?.[rival.domain] ?? null;
+            const chip = (
+              <span className="badge badge-primary badge-soft badge-lg num h-auto max-w-full gap-1 pr-1">
+                <span className="min-w-0 wrap-anywhere">{rival.domain}</span>
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-xs btn-circle"
+                  aria-label={copy("setup.competitors.remove", { rival: rival.domain })}
+                  onClick={() => remove(rival.domain)}
+                >
+                  <X aria-hidden size={16} {...ICON} />
+                </button>
+              </span>
+            );
+            return reason === null ? (
+              <li key={rival.domain}>{chip}</li>
+            ) : (
+              <li key={rival.domain} className="flex min-w-0 flex-col items-start gap-1">
+                {chip}
+                <p className="text-sm text-base-content/70 wrap-anywhere">{reason}</p>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+
+      <div className="flex flex-col gap-1.5">
+        <label className="text-sm text-base-content/70" htmlFor={fieldId}>
+          {copy("setup.competitors.add.label")}
+        </label>
+        <div className="flex gap-2">
+          <input
+            id={fieldId}
+            type="text"
+            name="competitor"
+            className={`input num w-full ${refusal === null ? "" : "input-error"}`}
+            placeholder={copy(ADD_PLACEHOLDER[p.rivals.length === 0 ? "first" : "another"])}
+            value={draft}
+            disabled={full}
+            aria-invalid={refusal !== null}
+            onChange={(event) => {
+              setDraft(event.target.value);
+              setRefusal(null);
+            }}
+            onKeyDown={onFieldKey}
+          />
+          <button
+            type="button"
+            className="btn btn-soft btn-primary"
+            disabled={full}
+            onClick={() => {
+              void addTyped();
+            }}
           >
-            {copy(REFUSAL_COPY[shown])}
-          </div>
-        )}
+            <Plus aria-hidden size={20} {...ICON} />
+            {copy("setup.competitors.add.action")}
+          </button>
+        </div>
       </div>
+
+      {shown === null ? null : (
+        <div
+          role="alert"
+          className={`alert alert-soft text-sm ${refusal === null ? "alert-warning" : "alert-error"}`}
+          data-testid="setup-competitors-refusal"
+        >
+          {copy(REFUSAL_COPY[shown])}
+        </div>
+      )}
     </section>
   );
 }
