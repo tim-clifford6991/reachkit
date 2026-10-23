@@ -164,7 +164,8 @@ describe("a stage that is not done shows not done, never 0", () => {
       expect(card.textContent).toContain(copy("stage.status.next"));
       expect(card.querySelector(".skeleton")).not.toBeNull();
     }
-    expect(screen.textContent).not.toMatch(/\b0 s\b/);
+    // Each row ends at its time; the next row's words follow it in the screen's text, so read row by row.
+    for (const row of rows(screen)) expect(row.textContent).not.toMatch(/(^|\D)0 s$/);
   });
 
   it("a log replayed at once, as to a visitor who joins late, shows every stage done with no 0-second time", async () => {
@@ -174,7 +175,8 @@ describe("a stage that is not done shows not done, never 0", () => {
       await at(0, { stage, done: true });
     }
     expect(rows(screen).slice(0, 3).map((row) => row.dataset.state)).toEqual(["done", "done", "done"]);
-    expect(screen.textContent).not.toMatch(/\b0 s\b/);
+    // Each row ends at its time; the next row's words follow it in the screen's text, so read row by row.
+    for (const row of rows(screen)) expect(row.textContent).not.toMatch(/(^|\D)0 s$/);
   });
 
   it("before the stream has said anything, every stage and card is not reached, and no time is drawn on the server", () => {
