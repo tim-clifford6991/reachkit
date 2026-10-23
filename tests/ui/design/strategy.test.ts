@@ -57,6 +57,7 @@ const RETIRED: readonly { name: string; pattern: RegExp }[] = [
   { name: "one page a day", pattern: /\bone page a day\b/i },
   { name: "at most one a day", pattern: /\bat most one a day\b/i },
   { name: "daily pages", pattern: /\bdaily pages?\b/i },
+  { name: "daily at", pattern: /\bdaily at\b/i },
   // The mail and its page say "unsubscribe".
   { name: "Opted out", pattern: /\bOpted out\b/ },
   // D3: only week 1 is emailed first. B5: competitors are watched weekly, re-checked monthly. Cancelling runs through Settings.
@@ -215,7 +216,7 @@ describe("UI strategy: titles and retired names (#1463)", () => {
   });
 
   it("knows the retired pace and opt-out words", () => {
-    expect(["Publishing daily", "One page a day is a good pace", "Pages go live when ready, at most one a day.", "Opted out", "Publishing on", "Up to 7 pages a week", "Unsubscribed", "A month of daily pages.", "About a month of pages, at up to 7 a week."].map(retiredIn)).toEqual([
+    expect(["Publishing daily", "One page a day is a good pace", "Pages go live when ready, at most one a day.", "Opted out", "Publishing on", "Up to 7 pages a week", "Unsubscribed", "A month of daily pages.", "About a month of pages, at up to 7 a week.", "Daily at 7:00 AM", "Pages go live at 7:00 AM"].map(retiredIn)).toEqual([
       "Publishing daily",
       "one page a day",
       "at most one a day",
@@ -224,6 +225,8 @@ describe("UI strategy: titles and retired names (#1463)", () => {
       undefined,
       undefined,
       "daily pages",
+      undefined,
+      "daily at",
       undefined,
     ]);
   });

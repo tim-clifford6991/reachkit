@@ -149,7 +149,7 @@
 // produced is `null`, which the screen renders as a named absent section
 // with one written line (REQ-004 c10/c11), never as an empty card and
 // never as a spinner.
-import { measuredLocale, type Locale } from "@/lib/locale/locales";
+import { measuredLocale, type Country, type Locale } from "@/lib/locale/locales";
 import { AI_READER_AGENTS, TIMING } from "@/lib/config/constants";
 import type { RobotsPolicy } from "@/lib/egress/types";
 import type { SiteIssuesSection } from "@/lib/site-issues/types";
@@ -600,6 +600,12 @@ export interface ReportLocale extends Locale {
    *  `PLACE_FROM`. Absent where it measured in none, or a paid pass settled
    *  the place. */
   placeFrom?: "address" | "area_served" | "address_text" | "page_text";
+  /** `default` where the pass read neither the home page nor a country in
+   *  the address, so it measured in D66's default, guessed. */
+  basis?: "default";
+  /** On a guessed pass, the other supported country the site's own Google
+   *  listing reads as (`listingLocaleOf`). */
+  listingReads?: Country;
 }
 
 /** The locale a stored report was measured in. */
