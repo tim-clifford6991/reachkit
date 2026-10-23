@@ -98,7 +98,7 @@ import { DEFAULT_LOCALE, type Locale, type Place } from "@/lib/locale/locales";
 import { listingLocaleOf } from "@/lib/locale/listing";
 import { askedIn, localSearch, placeCandidates, placeOf, statedPlace as statedPlaceOf, type PlaceFrom } from "@/lib/locale/place";
 import { readStoredLocale, writeSiteLocale } from "@/lib/locale/site";
-import { aiPresenceOf, aiSampleOf, BOT_PROTECTION, classifyReferences, localPackSearches, measureDomain, searchPresenceOf, withMeasuredPages, type DomainMeasurement } from "@/lib/measure";
+import { aiPresenceOf, aiSampleOf, BOT_PROTECTION, classifyReferences, measureDomain, searchPresenceOf, withMeasuredPages, type DomainMeasurement } from "@/lib/measure";
 import { aiPresenceRangeOf } from "@/lib/measure/drivers";
 import { measured, measuredZero, unmeasured, type Measured } from "@/lib/measure/measured";
 import { foldSerps, outcomeOf, type InputOutcome, type ScanInput } from "@/lib/measure/partition";
@@ -3473,7 +3473,7 @@ function composeReport(a: {
         }
       : {
           ...m.drivers,
-          searchPresence: withLocalPackPresence(m, localPackSearches({ serps: s.serps, searches: s.selected.map((search) => search.keyword), ownDomain: a.domain })),
+          searchPresence: searchPresenceOf({ card: s.presence ?? carried?.presence ?? null, serps: s.serps, at: measuredAt }),
           aiPresence: aiPresenceOf({ serps: s.serps, pageCells, ownDomain: a.domain, siteName: s.siteName, at: measuredAt }),
         };
 
@@ -3503,7 +3503,7 @@ function composeReport(a: {
     // Issue 1450: a market chosen from the ranked pool, where the
     // suggestions did not answer, is a market read.
     market_suggestions: outcomeOf(s.marketRows.kind === "unmeasured" && market.kind !== "unmeasured" ? market : s.marketRows),
-    own_ranked_rows: outcomeOf(drivers.searchPresence),
+    own_ranked_rows: m === null ? { read: false, because: "not_attempted" } : outcomeOf(m.ownRanked),
     question_serps: outcomeOf(foldSerps(s.serps, measuredAt)),
   };
 
@@ -3593,7 +3593,7 @@ function composeReport(a: {
   // failed is named missing here, as it was before.
   const tooSmall = marketTooSmall(s.questions) && !stoppedOnCeiling(a.stoppedReason);
   const missingFactors = verdict.missing;
-  const searchUnread = drivers.searchPresence.kind === "unmeasured";
+  const searchUnread = !inputs.own_ranked_rows.read;
 
   // Issue 865: **the twelve are a battery, not a section.** One question
   // whose SERP the vendor dropped used to mark the whole pass `degraded` —
@@ -3634,15 +3634,6 @@ function marketFromPool(s: Sections, at: Date): Measured<MarketSet> {
   const pool = poolOf(s);
   if (pool.length === 0 || s.selected.length === 0) return unmeasured(rows.reason, at);
   return measured({ ...marketSetOf({ profile: s.profile.value, suggestions: [], pool }), suggestionsUnread: rows.reason }, at);
-}
-
-/** Search presence with the searches whose local pack shows the site
- *  counted as top-ten results (D67; owner ruling 2026-10-15, issue 1441).
- *  A site in no pack keeps the value its ranked rows gave. */
-function withLocalPackPresence(m: DomainMeasurement, localPack: readonly string[]): Measured<number> {
-  const held = m.drivers.searchPresence;
-  if (localPack.length === 0 || held.kind === "unmeasured" || m.ownRanked.kind === "unmeasured") return held;
-  return searchPresenceOf({ ranked: measured({ rows: m.ownRankedRows, total: m.ownRanked.value }, held.at), at: held.at, localPack });
 }
 
 /** Issue 898 — the two §6.7 steps that can leave a pass with no market at
