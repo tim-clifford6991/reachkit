@@ -6,15 +6,17 @@ import type { RetentionMail } from "../../retention/mail";
 
 const SUBJECT = "mail.cancellation.subject" satisfies CopyKey;
 const LINE = "mail.cancellation.line" satisfies CopyKey;
+const REFUNDED = "mail.cancellation.refunded" satisfies CopyKey;
 
 /** The subscription is cancelled, with the day access ends — already
- *  written in the customer's zone. */
-export function buildCancellation(a: { accessEndsOn: string }): RetentionMail {
+ *  written in the customer's zone — and, when this cancel was refunded,
+ *  that the first payment came back. */
+export function buildCancellation(a: { accessEndsOn: string; refunded: boolean }): RetentionMail {
   return {
     subject: SUBJECT,
     blocks: [
       { block: "heading", text: SUBJECT },
-      { block: "paragraph", text: LINE, vars: { accessEndsOn: a.accessEndsOn } },
+      { block: "paragraph", text: a.refunded ? REFUNDED : LINE, vars: { accessEndsOn: a.accessEndsOn } },
     ],
   };
 }
