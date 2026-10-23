@@ -138,6 +138,7 @@ describe("Plan's Published list", () => {
     const html = renderToStaticMarkup(
       <PublishedList
         timeZone="UTC"
+        now={new Date("2026-10-18T12:00:00.000Z")}
         content={contentOf({
           now: new Date("2026-10-18T12:00:00.000Z"),
           pages: [
