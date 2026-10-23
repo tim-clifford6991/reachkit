@@ -46,8 +46,10 @@ function weekRange(first: DayKey, last: DayKey): string {
   );
 }
 
-function Row(p: { row: WeekRow; timeZone: string }): React.JSX.Element {
+function Row(p: { row: WeekRow; timeZone: string; scheduled: boolean }): React.JSX.Element {
   const { row } = p;
+  // A page goes live today only while publishing will send it; otherwise Plan's word stands.
+  const goesLive = p.scheduled ? row.goesLiveToday : null;
   return (
     <li className={`list-row min-w-0 items-start ${row.today ? "bg-primary/10" : ""}`} data-testid="overview-week-row" data-day={row.day}>
       <span className="num w-14 shrink-0 text-xs text-base-content/70">
@@ -61,7 +63,7 @@ function Row(p: { row: WeekRow; timeZone: string }): React.JSX.Element {
           {row.title}
         </span>
       </span>
-      {row.goesLiveToday === null ? (
+      {goesLive === null ? (
         row.state === null ? null : (
           <span className="badge badge-sm badge-ghost shrink-0 whitespace-nowrap" data-testid="overview-week-state">
             {copy(row.state)}
@@ -70,7 +72,7 @@ function Row(p: { row: WeekRow; timeZone: string }): React.JSX.Element {
       ) : (
         <span className="flex shrink-0 flex-col items-end gap-1 text-xs font-semibold" data-testid="overview-week-state">
           <span>{copy("overview.week.goes-live")}</span>
-          <span>{copy("overview.week.today-at", { time: formatTime(row.goesLiveToday, p.timeZone) })}</span>
+          <span>{copy("overview.week.today-at", { time: formatTime(goesLive, p.timeZone) })}</span>
           {row.href === null ? null : (
             <span className="flex gap-3">
               <Link className="link" href={row.href} prefetch={true}>
@@ -87,7 +89,7 @@ function Row(p: { row: WeekRow; timeZone: string }): React.JSX.Element {
   );
 }
 
-export function ThisWeek(p: { week: WeekList }): React.JSX.Element | null {
+export function ThisWeek(p: { week: WeekList; scheduled: boolean }): React.JSX.Element | null {
   const { week } = p;
   if (week.rows.length === 0) return null;
   const title = copy("overview.week.pages", { n: String(week.rows.length) });
@@ -111,7 +113,7 @@ export function ThisWeek(p: { week: WeekList }): React.JSX.Element | null {
         </div>
         <ol className="list min-w-0" aria-label={title}>
           {week.rows.map((row) => (
-            <Row key={row.day} row={row} timeZone={week.timeZone} />
+            <Row key={row.day} row={row} timeZone={week.timeZone} scheduled={p.scheduled} />
           ))}
         </ol>
         <p className="flex min-w-0 items-center gap-2 text-xs text-base-content/70" data-testid="overview-week-next">

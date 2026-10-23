@@ -21,7 +21,7 @@ import { overviewNotice, readOnboarding, readReleaseNotice } from "../_shell/onb
 import { FirstPageNotice, MarketChoice, ReleaseNoticeLine } from "../_shell/OnboardingStatus";
 import { MARKET_TOO_SMALL, readCategoryChoice } from "../_shell/remeasure";
 import { writtenLine } from "../_shell/written";
-import { formatDay, formatTime } from "../_shell/format";
+import { formatDay, formatTime, SHELL_LOCALE } from "../_shell/format";
 import { copy } from "@/lib/presentation/copy";
 import { dayKeyOf } from "../calendar/dates";
 import { ISSUES_HREF } from "../_overview/alerts";
@@ -38,7 +38,7 @@ const PUBLISHING_SETTINGS = "/app/settings/publishing";
 
 /** "Monday": the day a week's pages are chosen on, as a value. */
 function weekdayOf(day: string): string {
-  return new Intl.DateTimeFormat("en-US", { timeZone: "UTC", weekday: "long" }).format(new Date(`${day}T00:00:00Z`));
+  return new Intl.DateTimeFormat(SHELL_LOCALE, { timeZone: "UTC", weekday: "long" }).format(new Date(`${day}T00:00:00Z`));
 }
 
 export default async function OverviewPage(): Promise<React.JSX.Element> {
@@ -162,7 +162,7 @@ export default async function OverviewPage(): Promise<React.JSX.Element> {
         </div>
       ) : week !== null && weekPages > 0 ? (
         <div className="min-w-0" data-frame={REGION.week}>
-          <ThisWeek week={week} />
+          <ThisWeek week={week} scheduled={shell.publishing.next !== null} />
         </div>
       ) : (
         <>

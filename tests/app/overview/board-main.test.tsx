@@ -12,6 +12,7 @@ import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vite
 import { renderToStaticMarkup } from "react-dom/server";
 import { fakeDb, type FakeDb, type Row } from "../../publish/harness";
 import { boardFile, compare, readAllow, segments } from "../../../scripts/design/parity.mjs";
+import { unmeasured } from "@/lib/measure/measured";
 
 const db: FakeDb = fakeDb();
 vi.mock("@/lib/db", () => ({ dbAdmin: () => db.client, db: () => db.client }));
@@ -20,6 +21,21 @@ vi.mock("@/lib/opportunities", () => ({
   supplyMeasured: async () => true,
   supplyState: async () => "measured",
   readWeek: async () => [],
+  committedWeek: async () => ({ days: [], spares: [] }),
+  // Plan draws a scheduled page only with its choice; this one stands for any.
+  explainChoice: async (opportunityId: string) => ({
+    opportunityId,
+    type: "answer_page",
+    family: "write",
+    fitBand: "winnable",
+    acceptance: { form: "top20", query: "emergency plumber austin" },
+    evidence: {
+      family: "write",
+      query: "emergency plumber austin",
+      volume: unmeasured("not_attempted", new Date(0)),
+      rival: { domain: "rival.example", url: unmeasured("not_attempted", new Date(0)), position: unmeasured("not_attempted", new Date(0)) },
+    },
+  }),
 }));
 
 const { LIVE_ACCOUNT, resetAccount, signedInAs } = await import("../account-door");
@@ -135,7 +151,7 @@ describe("a week row, from Plan's own week assembly", () => {
     drafts: FIXTURE_CALENDAR_FACTS.drafts.map((d) => (d.scheduledFor === "2026-09-15" ? { ...d, vetoDeadline: closes } : d)),
   };
   const week = weekOf([assembleMonth(facts, "2026-09")], "2026-09-15");
-  const dom = new DOMParser().parseFromString(renderToStaticMarkup(<ThisWeek week={weekListOf(week)!} />), "text/html");
+  const dom = new DOMParser().parseFromString(renderToStaticMarkup(<ThisWeek week={weekListOf(week)!} scheduled={true} />), "text/html");
   const row = (day: string) => dom.querySelector(`[data-day="${day}"]`);
 
   it("today's written page goes live today at its time, with Edit and Stop on its own page", () => {
@@ -189,6 +205,7 @@ describe("the head and the states, for a live account over stored rows", () => {
     id: "d1",
     site_id: SITE_ID,
     state: "in_review",
+    opportunity_id: "o1",
     title: "Emergency plumber in Austin: what to do in the first hour",
     scheduled_for: "2026-10-09",
     created_at: "2026-10-08T16:00:00.000Z",
@@ -197,7 +214,7 @@ describe("the head and the states, for a live account over stored rows", () => {
 
   function site(over: Row = {}): void {
     db.seed("sites", [
-      { id: SITE_ID, user_id: ACCOUNT.userId, domain: ACCOUNT.domain, timezone: ZONE, competitors: [], veto_hours: 24, publishing_enabled: true, ...over },
+      { id: SITE_ID, user_id: ACCOUNT.userId, domain: ACCOUNT.domain, timezone: ZONE, competitors: [], veto_hours: 24, publish_time: "09:00:00", publishing_enabled: true, ...over },
     ]);
   }
 
@@ -238,6 +255,24 @@ describe("the head and the states, for a live account over stored rows", () => {
     expect(dom.querySelector('[data-testid="overview-waiting"]')).toBeNull();
   });
 
+  it("publishing paused: this week's page due today keeps Plan's state word and is not said to go live", async () => {
+    site({ publishing_enabled: false });
+    db.seed("drafts", [IN_REVIEW]);
+    const { dom } = await render();
+    const today = dom.querySelector('[data-testid="overview-week"] [data-day="2026-10-09"]');
+    expect(today).not.toBeNull();
+    expect(text(today)).not.toContain(copy("overview.week.goes-live"));
+    expect(text(today)).not.toContain(copy("overview.week.today-at", { time: "4:00 PM" }));
+    expect(text(today?.querySelector('[data-testid="overview-week-state"]'))).not.toBe("");
+  });
+
+  it("publishing on: the same page due today goes live today at its time", async () => {
+    db.seed("drafts", [IN_REVIEW]);
+    const { dom } = await render();
+    const today = dom.querySelector('[data-testid="overview-week"] [data-day="2026-10-09"]');
+    expect(text(today)).toContain(copy("overview.week.today-at", { time: "4:00 PM" }));
+  });
+
   it("a page that went live this morning is the one quiet line, and live pages nothing has read are not said to show", async () => {
     db.seed("drafts", [{ id: "d0", site_id: SITE_ID, state: "published", title: "Toilet repair in Austin", scheduled_for: "2026-10-09", created_at: "2026-10-08T16:00:00.000Z" }]);
     db.seed("publications", [
@@ -245,7 +280,9 @@ describe("the head and the states, for a live account over stored rows", () => {
     ]);
     const { dom } = await render();
     expect(text(dom.querySelector('[data-testid="overview-today-line"]'))).toBe(copy("overview.today.live", { time: "7:00 AM" }));
-    expect(text(dom.querySelector('[data-testid="overview-head-lead"]'))).toBe(copy("overview.head.lead.live-unread", { live: "1" }));
+    expect(text(dom.querySelector('[data-testid="overview-head-lead"]'))).toBe(
+      `${copy("overview.head.lead.live-unread", { live: "1" })} ${copy("overview.head.lead.chosen-on", { n: "1", weekday: "Monday" })}`
+    );
     expect(dom.querySelector('[data-testid="overview-fixes"]')).toBeNull();
   });
 });
