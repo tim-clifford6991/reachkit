@@ -93,8 +93,8 @@ const { IncrementalCache } = await import("next/dist/server/lib/incremental-cach
   requestHeaders: {},
   fetchCacheKeyPrefix: "",
   CurCacheHandler: MemoryHandler as never,
-  getPrerenderManifest: () =>
-    ({ version: 4, routes: {}, dynamicRoutes: {}, notFoundRoutes: [], preview: { previewModeId: "test" } }) as never,
+  previewProps: { previewModeId: "test" } as never,
+  prerenderManifest: { version: 4, routes: {}, dynamicRoutes: {}, notFoundRoutes: [] } as never,
 } as never);
 
 function scan(domain: string, at: string, category = "Bike repair"): ListingRow {
