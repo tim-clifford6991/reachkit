@@ -31,6 +31,14 @@ const GLYPHS = {
     ["path", { d: "M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" }],
     ["path", { d: "m9 14 2 2 4-4" }],
   ],
+  phone: [
+    [
+      "path",
+      {
+        d: "M13.832 16.568a1 1 0 0 0 1.213-.303l.355-.465A2 2 0 0 1 17 15h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2A18 18 0 0 1 2 4a2 2 0 0 1 2-2h3a2 2 0 0 1 2 2v3a2 2 0 0 1-.8 1.6l-.468.351a1 1 0 0 0-.292 1.233 14 14 0 0 0 6.392 6.384",
+      },
+    ],
+  ],
   rss: [
     ["path", { d: "M4 11a9 9 0 0 1 9 9" }],
     ["path", { d: "M4 4a16 16 0 0 1 16 16" }],
@@ -119,17 +127,49 @@ function VisitButton({ business, width }: { business: HostedBusiness; width: str
   );
 }
 
-/** The main site's own book and quote pages, as the scan stored them. */
-const ACTIONS = {
-  book: { label: "hosted.action.book", glyph: "calendar-check" },
-  quote: { label: "hosted.action.quote", glyph: "clipboard-check" },
-} as const;
+/** One of the business's own actions: its phone, or a page of its main site. */
+interface Action {
+  kind: "call" | "book" | "quote";
+  href: string;
+  label: string;
+  /** What the header writes: a phone's number alone, else the label. */
+  short: string;
+  glyph: keyof typeof GLYPHS;
+}
 
-/** Half the header at most, so the name beside it keeps the other half. */
+/** What the business offers a reader, from what is stored and nothing else:
+ *  one primary action — its phone, else its book page, else its quote page —
+ *  and the others as quiet links, at most two. */
+export function actionsOf(business: HostedBusiness): { primary: Action | null; quiet: Action[] } {
+  const phone = business.mainSite?.phone ?? null;
+  const pages = (business.mainSite?.actions ?? []).map(({ kind, url }): Action => {
+    const label = copy(kind === "book" ? "hosted.action.book" : "hosted.action.quote");
+    return { kind, href: url, label, short: label, glyph: kind === "book" ? "calendar-check" : "clipboard-check" };
+  });
+  const all: Action[] =
+    phone === null
+      ? pages
+      : [{ kind: "call", href: `tel:${phone.replace(/[^\d+]/g, "")}`, label: copy("hosted.action.call", { phone }), short: phone, glyph: "phone" }, ...pages];
+  return { primary: all[0] ?? null, quiet: all.slice(1, 3) };
+}
+
+function PrimaryButton({ action, text, width }: { action: Action; text: string; width: string }): React.JSX.Element {
+  return (
+    <a href={action.href} className={`btn btn-sm min-w-0 ${width}`}>
+      <Glyph name={action.glyph} />
+      <span className="truncate">{text}</span>
+    </a>
+  );
+}
+
+/** Half the header at most, so the name beside it keeps the other half;
+ *  beside the primary action, the two share a little more than that. */
 const HEADER_BUTTON = "max-w-[50%]";
+const HEADER_PAIR = "max-w-[35%]";
 const CARD_BUTTON = "max-w-full";
 
 export function HostedHeader({ business }: { business: HostedBusiness }): React.JSX.Element {
+  const { primary } = actionsOf(business);
   return (
     <header className="border-base-300 border-b">
       <div className="navbar mx-auto w-full max-w-5xl flex-nowrap gap-3 px-4">
@@ -137,15 +177,42 @@ export function HostedHeader({ business }: { business: HostedBusiness }): React.
           <Logo business={business} />
           <span className="truncate">{business.name}</span>
         </a>
-        <VisitButton business={business} width={HEADER_BUTTON} />
+        {primary === null ? null : <PrimaryButton action={primary} text={primary.short} width={HEADER_PAIR} />}
+        <VisitButton business={business} width={primary === null ? HEADER_BUTTON : HEADER_PAIR} />
       </div>
     </header>
   );
 }
 
-/** The card an article ends with: who published it, in one line of their
- *  own, who wrote it where a person did (issue 1509), and the way to their
- *  product. */
+/** The compact block's question: the adopted market's category and place,
+ *  else the business's name. */
+function compactHeading(business: HostedBusiness): string {
+  const offer = business.offer ?? null;
+  if (offer === null) return copy("hosted.compact.heading.name", { publisher: business.name });
+  return offer.place === null
+    ? copy("hosted.compact.heading", { category: offer.category })
+    : copy("hosted.compact.heading.place", { category: offer.category, place: offer.place });
+}
+
+/** The compact block: one question and the primary action, never a quiet
+ *  link. Nothing where no action is stored. */
+export function CompactAction({ business }: { business: HostedBusiness }): React.JSX.Element | null {
+  const { primary } = actionsOf(business);
+  if (primary === null) return null;
+  const heading = compactHeading(business);
+  return (
+    <aside className="card bg-base-200 my-8" aria-label={heading}>
+      <div className="card-body flex-row flex-wrap items-center justify-between gap-3 p-5">
+        <p className="text-base-content min-w-0 font-bold">{heading}</p>
+        <PrimaryButton action={primary} text={primary.label} width={CARD_BUTTON} />
+      </div>
+    </aside>
+  );
+}
+
+/** The full block: who published the page, in one line of their own, who
+ *  wrote it where a person did (issue 1509), then the primary action, at
+ *  most two quiet links and the way to their main site. */
 export function AboutCard({
   business,
   author = null,
@@ -154,7 +221,7 @@ export function AboutCard({
   author?: { name: string; url: string | null } | null;
 }): React.JSX.Element {
   const written = author === null ? null : copy("hosted.about.author", { author: author.name });
-  const actions = business.mainSite?.actions ?? [];
+  const { primary, quiet } = actionsOf(business);
   return (
     <aside className="card card-border bg-base-100 mt-10" aria-label={copy("hosted.about", { publisher: business.name })}>
       <div className="card-body flex-row flex-wrap items-center gap-4">
@@ -174,23 +241,21 @@ export function AboutCard({
             </p>
           )}
         </div>
-        <VisitButton business={business} width={CARD_BUTTON} />
+        {primary === null ? null : <PrimaryButton action={primary} text={primary.label} width={CARD_BUTTON} />}
         {/* Plain links only where the main site links the page itself; `role` keeps a styled list a list in Safari. */}
-        {actions.length === 0 ? null : (
-          <ul role="list" className="flex basis-full flex-wrap gap-x-5 gap-y-1 text-sm">
-            {actions.map(({ kind, url }) => {
-              const { label, glyph } = ACTIONS[kind];
-              return (
-                <li key={kind}>
-                  <a href={url} className="link link-hover inline-flex items-center gap-1.5">
-                    <Glyph name={glyph} />
-                    {copy(label)}
-                  </a>
-                </li>
-              );
-            })}
+        {quiet.length === 0 ? null : (
+          <ul role="list" className="flex flex-wrap gap-x-5 gap-y-1 text-sm">
+            {quiet.map(({ kind, href, label, glyph }) => (
+              <li key={kind}>
+                <a href={href} className="link link-hover inline-flex items-center gap-1.5">
+                  <Glyph name={glyph} />
+                  {label}
+                </a>
+              </li>
+            ))}
           </ul>
         )}
+        <VisitButton business={business} width={CARD_BUTTON} />
       </div>
     </aside>
   );

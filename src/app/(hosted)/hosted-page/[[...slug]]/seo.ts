@@ -151,6 +151,8 @@ export function organizationIdOf(business: HostedBusiness): string {
 function publisherOf(business: HostedBusiness, origin: string): Record<string, unknown> {
   const declaredLogo = business.mainSite?.organization.logo ?? null;
   const sameAs = business.mainSite?.sameAs ?? [];
+  // Every hosted page's header shows the stored number, written as here.
+  const telephone = business.mainSite?.phone ?? null;
   return {
     "@type": "Organization",
     "@id": organizationIdOf(business),
@@ -162,6 +164,7 @@ function publisherOf(business: HostedBusiness, origin: string): Record<string, u
         ? {}
         : { logo: { "@type": "ImageObject", url: `${origin}${LOGO_PATH}` } }),
     ...(sameAs.length === 0 ? {} : { sameAs: [...sameAs] }),
+    ...(telephone === null ? {} : { telephone }),
   };
 }
 

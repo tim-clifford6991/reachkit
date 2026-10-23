@@ -77,6 +77,7 @@ vi.mock("@/lib/publish/destinations/hosted", async () => {
             { kind: "book", url: "https://example.com/book" },
             { kind: "quote", url: "https://example.com/quote" },
           ],
+          phone: "(512) 555-0142",
         },
       };
     },
@@ -150,6 +151,9 @@ describe("A: a page removed from a live site answers 410 with the short body", (
     expect(doc.documentElement.getAttribute("lang")).toBe("en-US");
     expect(doc.title).toBe("content.example.com");
     expectVariantA(doc, ENGLISH);
+    // The stored phone is the primary action, drawn without lucide's client Icon.
+    expect(doc.querySelector('header a[href="tel:5125550142"]')?.textContent).toBe("(512) 555-0142");
+    expect(doc.querySelector('aside a[href="tel:5125550142"]')?.textContent).toBe("Call (512) 555-0142");
   });
 });
 
