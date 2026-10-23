@@ -9,7 +9,9 @@
 // throws: the webhook still answers 200, and the next delivery tries again.
 // Hosted pages are untouched: they follow the 30-day path from the new
 // paid-through date like any other ended account.
+import { after } from "next/server";
 import { parseDomain } from "@/lib/scan/domain";
+import { reportIncident } from "@/lib/mail/ops/incident";
 import { stripe, type Stripe } from "../stripe/client";
 import { endSubscriptionNow } from "./end-now";
 import { billingStore, type RefundRow } from "./store";
@@ -94,6 +96,11 @@ function alreadyRefunded(error: unknown): boolean {
   return (error as { code?: unknown } | null)?.code === "charge_already_refunded";
 }
 
+function stripeCodeOf(error: unknown): string {
+  const code = (error as { code?: unknown } | null)?.code;
+  return typeof code === "string" ? code : "unknown";
+}
+
 /** Refunds the first payment when this cancellation falls inside its first
  *  14 days and the web address has had no refund. */
 export async function refundFirstFortnight(
@@ -148,6 +155,9 @@ export async function refundFirstFortnight(
   } catch (error) {
     if (!alreadyRefunded(error)) {
       log({ outcome: "vendor", invoice: invoiceId });
+      // Stripe does not redeliver a 200, so the owner is told after the response; `after` keeps a serverless invocation alive for it.
+      const code = stripeCodeOf(error);
+      after(() => reportIncident({ occasion: "refund-refused", invoiceId, userId, code }));
       return "vendor";
     }
   }
