@@ -183,6 +183,14 @@ export async function saveLocaleAction(form: FormData): Promise<LocaleChangeStat
   if (stored !== null && localeKey(stored) === localeKey(chosen)) return { answer: "unchanged" };
 
   await writeSiteLocale(account.siteId, chosen);
+  // The town (D67) was decided in the old country: the pass that follows decides it again in this one.
+  const { readSiteMarket, writeSiteMarket } = await import("@/lib/market/infer/stored");
+  const market = await readSiteMarket(account.siteId);
+  if (market !== null && market.stored.area !== undefined) {
+    const stored = { ...market.stored };
+    delete stored.area;
+    await writeSiteMarket(account.siteId, { stored });
+  }
   revalidatePath(DESTINATION_HREF.settings);
   const { startRemeasure } = await import("@/lib/scan/deep/remeasure");
   const started = await startRemeasure({ siteId: account.siteId, domain: account.domain });

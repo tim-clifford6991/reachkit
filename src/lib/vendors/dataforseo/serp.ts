@@ -1,43 +1,13 @@
-// BUILD §6.3 — serpOrganic: one Google organic SERP, top 10 plus its AI Overview (issue #23)
-//
-// The SERP the product already buys carries the `ai_overview` item and its
-// per-domain `references` at 0¢ extra (§6.2) — one call, one ledger row,
-// both halves in one `SerpResult`. Depth is 10 unless the caller names a
-// deeper read, billed per page of ten, and the locale is written in
-// `transport.ts`; `mode` is required (a scheduled caller cannot inherit
-// `live`).
-//
-// `loadAsyncAiOverview` is required, never defaulted (DECISIONS 2026-09-03,
-// ADR-094): `true` on every pass's question SERPs (the paid passes' since
-// issue 1357), `false` on a correction's re-run and on the reads that take
-// no AI Overview from the SERP. An unflagged read whose AI Overview Google
-// loads after the page comes back with no sources; that overview is marked
-// `unread` here, never left to read as an answer that names nobody. A flagged call
-// **reserves** the surcharge — one more base price, whatever the depth — and
-// **settles** the vendor's documented charge from the response — no
-// surcharge where the `ai_overview` element is absent or carries
-// `asynchronous_ai_overview: false`, the surcharge where it does not
-// ("all extra charges will be returned to your account balance"). The
-// vendor rule lives here; the cost seam stays generic.
-//
-// Cache (§6.4): keyed on query, locale, the flag and **whose purchase it
-// is** — a flagged call is never served an unflagged SERP, whose `null`
-// overview could mean "not fetched" rather than "none appeared" (ADR-094
-// d4). Mode is not in the key: live and standard return the same SERP, and
-// so do the queue's two priorities.
-//
-// **The scope is in the key, and the window is the caller's** (#75).
-// Neither was expressible before, and §6.4 states both. A key of query and
-// locale alone is shared across every customer whose market contains that
-// search, which `DATA-COSTS.md` §5's "monthly per customer" roll-up already
-// assumed it was not — see `CacheScope`. And §6.4's window is "SERPs 30d
-// (**except the weekly target re-check**)"; that exception had no way to be
-// asked for, so three weeks in four the weekly re-check would serve a
-// cached SERP wearing this week's date and "measured once a week" would be
-// met by a monthly measurement. The window is an argument here rather than
-// a branch on tier: this module knows nothing about tiers, and the caller
-// passes `CACHE_WINDOWS_D.serp` or `.serpWeeklyRecheck` from its own
-// parameters.
+// BUILD §6.3 — serpOrganic: one Google organic SERP, top 10 plus its AI Overview
+// The `ai_overview` item and its `references` ride on the SERP at 0¢ extra (§6.2): one call, one ledger row.
+// Depth past 10 is billed per page of ten. `mode` is required, so a scheduled caller cannot inherit `live`.
+// `loadAsyncAiOverview` is required, never defaulted. Unflagged, an overview Google loads after the page has no sources
+// and is marked `unread`, never an answer that names nobody. Flagged, the call reserves one extra base price whatever
+// the depth and settles from the response: the vendor refunds the surcharge where no async overview came back.
+// The vendor rule lives here; the cost seam stays generic.
+// Cache (§6.4): keyed on query, locale, the flag and `CacheScope`, so a flagged call never gets an unflagged SERP whose
+// missing overview may mean "not fetched". Mode is not in the key: live, standard and both priorities return one SERP.
+// The window is the caller's (`CACHE_WINDOWS_D.serp` or `.serpWeeklyRecheck`), since this module knows nothing of tiers.
 import type { CostContext } from "@/lib/costs";
 import { ASYNC_AIO_SURCHARGE_MULTIPLIER, PRICE_BOOK, VENDOR } from "@/lib/config/constants";
 import type { Locale } from "@/lib/locale/locales";
@@ -74,10 +44,8 @@ function basePriceCents(mode: DataForSeoMode, highPriority: boolean): number {
   return highPriority ? PRICE_BOOK.SERP_STD_HIGH_C : PRICE_BOOK.SERP_STD_C;
 }
 
-/** The vendor's documented refund rule, read off a live response. A queued
- *  task is charged when it is posted, surcharge included — the post's own
- *  `cost` said so on every one of the reads of 2026-10-08 (issue 1352) —
- *  so it settles at what it reserved, whatever came back. */
+/** The vendor's documented refund rule, read off a live response. A queued task is charged at post, surcharge
+ *  included, so it settles at what it reserved. */
 function settledCents(base: number, pages: number, mode: DataForSeoMode, rows: readonly SerpResult[] | null): number {
   const surcharged = surchargedCents(base, pages);
   if (mode === "std") return surcharged;
@@ -114,7 +82,7 @@ function parseAiOverview(item: Record<string, unknown>): SerpAiOverview {
 }
 
 /** An AI Overview the vendor flagged as loaded after the page, on a read
- *  that did not buy that load, with no sources: unread (issue 1357). Applied
+ *  that did not buy that load, with no sources: unread. Applied
  *  where the answer is handed over, so a SERP served from the cache is
  *  marked like one just bought. */
 function markUnread(serp: SerpResult, flagged: boolean): SerpResult {
@@ -132,12 +100,10 @@ export function parseSerp(result: unknown): SerpResult[] | undefined {
 
   const organic: SerpOrganicRow[] = [];
   let aiOverview: SerpAiOverview = NO_AI_OVERVIEW;
-  // SPEC §7 (owner, D61; issue 1295): the advanced SERP already carries
-  // Google's "People also ask" and its related searches at no extra charge.
+  // SPEC §7 (D61): the advanced SERP carries "People also ask" and related searches at no extra charge.
   const peopleAlsoAsk: string[] = [];
   const relatedSearches: string[] = [];
-  // SPEC §6 (owner D67, issue 1318): Google's local pack rides on the same
-  // SERP — the businesses it shows for a place, the ones with a site.
+  // SPEC §6 (D67): the local pack rides on the same SERP; only businesses with a site are kept.
   const localPack: { title: string; domain: string }[] = [];
   for (const item of result.items) {
     if (!isRecord(item)) continue;
@@ -182,34 +148,24 @@ export async function serpOrganic(
     query: string;
     mode: DataForSeoMode;
     loadAsyncAiOverview: boolean;
-    /** Whose purchase this is — the site on a paid pass, the domain on the
-     *  free one. Required, never defaulted: a default would be a decision
-     *  about somebody's costs made by whoever forgot to pass it. */
     /** The site's country and language (D66): where the read is made, and
      *  part of its cache key. */
     locale: Locale;
+    /** Whose purchase this is. Required: a default would decide somebody's costs for whoever forgot to pass it. */
     scope: CacheScope;
-    /** §6.4's window for this call site: `CACHE_WINDOWS_D.serp` at every
-     *  one except the weekly target re-check, which passes
-     *  `.serpWeeklyRecheck`. Required for the same reason. */
+    /** §6.4's window: `CACHE_WINDOWS_D.serp`, or `.serpWeeklyRecheck` for the weekly target re-check. Required likewise. */
     freshnessDays: number;
-    /** Where this call site hears why a call failed (issue 865), so it can
+    /** Where this call site hears why a call failed, so it can
      *  decide whether one more ask is worth making and, where it is not,
      *  put the vendor's own kind on the cell. */
     onFailure?: OnVendorFailure;
-    /** The wall clock this request may hold (issue 875). The free path's
-     *  twelve name a shorter one than the transport's default, because the
-     *  stage that buys them is thirteen seconds long and one stuck call
-     *  used to hold a quarter of it for almost all of it. */
+    /** The wall clock this request may hold. The free path passes less than the transport's default, so one stuck call
+     *  cannot hold its short stage. */
     abortMs?: number;
-    /** When the caller's own ceiling runs out, as epoch milliseconds (issue
-     *  902). `abortMs` above bounds one request; on the standard queue —
-     *  which is every scheduled pass's mode — this call is a `task_post`
-     *  and then a poll that otherwise runs to `VENDOR.stdQueueDeadlineMin`,
-     *  and that wait is inside the call where a between-calls ceiling check
-     *  cannot reach it. */
+    /** When the caller's own ceiling runs out, as epoch milliseconds. `abortMs` bounds one request; on the standard
+     *  queue the poll otherwise runs to `VENDOR.stdQueueDeadlineMin`, out of reach of a between-calls check. */
     untilMs?: number;
-    /** The queue's high priority (issue 1352), for a pass somebody is
+    /** The queue's high priority, for a pass somebody is
      *  waiting on: twice the queue's price, and ready in seconds where the
      *  normal queue has taken minutes. Read on the standard queue only;
      *  the live surface has no such field. */
@@ -230,8 +186,7 @@ export async function serpOrganic(
   const flagged = a.loadAsyncAiOverview;
   const depth = a.depth ?? VENDOR.serpDepth;
   const pages = Math.ceil(depth / 10);
-  /** Issue 715: set only where the seam served this answer out of
-   *  `fetches`, and then to the moment that row was bought. */
+  /** Set only where the seam served this answer from `fetches`, to when that row was bought. */
   let reusedFrom: Date | null = null;
   const rows = await ledgered<SerpResult>(c, {
     source: "serp/google/organic",
@@ -246,9 +201,7 @@ export async function serpOrganic(
         a.locale,
         {
           keyword: a.query,
-          // The never-list's one admitted exception, and this is the only
-          // line in the module that can set it. Only ever the caller's own
-          // decided boolean; `false` is sent explicitly, never omitted.
+          // The never-list's one exception, set only here, from the caller's boolean; `false` is sent, never omitted.
           load_async_ai_overview: flagged,
           ...(highPriority ? { priority: QUEUE_PRIORITY_HIGH } : {}),
         },
@@ -265,9 +218,7 @@ export async function serpOrganic(
   });
   return mapMeasured(rows, (r) => {
     const serp = markUnread(r[0] ?? EMPTY_SERP, flagged);
-    // The stamp rides on the result the report stores, so a screen reading
-    // a report months later still knows which of its answers were reused
-    // and from when. Never written where the pass bought the answer.
+    // On the stored result, so a report read later still knows which answers were reused; never set where this pass bought it.
     const at: Date | null = reusedFrom;
     return at === null ? serp : { ...serp, reusedFrom: at.toISOString() };
   });
