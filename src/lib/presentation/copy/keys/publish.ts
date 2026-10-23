@@ -540,6 +540,9 @@ export const PUBLISH_COPY = Object.freeze({
   // corrects the wording.
   "hosted.action.call": ["Call {phone}", { slots: { phone: "text" }, fixedBy: "issue 1788 · drafted" }],
   "hosted.action.book": ["Book a visit", { slots: {}, fixedBy: "issue 1788 · drafted" }],
+  "hosted.action.book.demo": ["Book a demo", { slots: {}, fixedBy: "issue 1912 · drafted" }],
+  "hosted.action.book.call": ["Book a call", { slots: {}, fixedBy: "issue 1912 · drafted" }],
+  "hosted.action.book.online": ["Book online", { slots: {}, fixedBy: "issue 1912 · drafted" }],
   "hosted.action.quote": ["Ask for a quote", { slots: {}, fixedBy: "issue 1604 · drafted" }],
   "hosted.compact.heading": ["Need {category}?", { slots: { category: "text" }, fixedBy: "issue 1788 · drafted" }],
   "hosted.compact.heading.place": ["Need {category} in {place}?", { slots: { category: "text", place: "text" }, fixedBy: "issue 1788 · drafted" }],
