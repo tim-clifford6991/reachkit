@@ -254,12 +254,12 @@ describe("a pass that produced no report leaves no week behind it", () => {
     expect(released()).toHaveLength(1);
   });
 
-  it("releases the claim of a pass the vendor refused for credit, whatever the pass stored", async () => {
-    runScan.mockResolvedValue({ scanId: "x", status: "degraded", fundsRefused: true });
+  it("asks the pass to store a refused week as failed, and writes nothing to the row after it", async () => {
+    runScan.mockResolvedValue({ scanId: "x", status: "failed", fundsRefused: true });
     const outcome = await runWeekly({ ...SITE, now: MONDAY_0600_UTC });
     expect(outcome).toMatchObject({ ran: true, status: "failed", because: "vendor_funds" });
-    const [release] = released();
-    expect(release?.filters).toEqual([["id", (outcome as { scanId: string }).scanId]]);
+    expect((runScan.mock.calls[0]?.[0] as { failsWhenFundsRefused?: true }).failsWhenFundsRefused).toBe(true);
+    expect(DB.statements.filter((s) => s.verb === "update")).toEqual([]);
   });
 
   it("takes a released week's row back, so the retry measures into the one row the week has", async () => {
