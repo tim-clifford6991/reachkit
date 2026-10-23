@@ -195,7 +195,7 @@ const MOVED_HOST = `news.${DOMAIN}`;
 const SLUG = "how-often-should-a-clinic-re-test";
 const TITLE = "How often should a clinic re-test?";
 const TARGET_QUERY = "how often should a clinic re-test";
-const EMAIL = "founder@meadowclinic.com";
+const EMAIL = "founder@meadowclinic.example";
 const TIME_ZONE = "Europe/Dublin";
 
 /** The page's body, in the declared Markdown subset. Its opening states

@@ -26,7 +26,7 @@ describe("who opens /app/costs", () => {
   it("an owner's address does, a customer's does not", async () => {
     const owner = env.OWNER_EMAILS[0]!;
     emails.set("owner", owner.toUpperCase());
-    emails.set("customer", "founder@bakery-fixture.com");
+    emails.set("customer", "founder@bakery-fixture.example");
     expect(await isOwner("owner")).toBe(true);
     expect(await isOwner("customer")).toBe(false);
     expect(await isOwner("unreadable")).toBe(false);
