@@ -10,7 +10,8 @@ import { answerQuoteOf } from "@/app/(public)/scan/[domain]/_modules/ai-answers"
 import { buyersOf } from "@/app/(public)/scan/[domain]/_modules/buyers";
 import type { StoredReport } from "@/lib/scan/report";
 import { segments } from "../../../scripts/design/parity.mjs";
-import { panelReport, renderReport } from "./panel-report";
+import { LIMITING_LINES } from "@/lib/presentation/bands";
+import { panelReport, renderReport, walkReport } from "./panel-report";
 
 /** The page's visible strings, one per block, as the parity check reads them. */
 function shown(report: StoredReport): string[] {
@@ -208,6 +209,41 @@ describe("the states the board does not draw", () => {
 });
 
 describe("the customer panel's stored reports, a SaaS and a local business", () => {
+  it("names no competitor the buyers go to when the customer was found more often than it", () => {
+    for (const [walk, domain] of [
+      ["2026-10-15-1441-after", "austinplumbery.com"],
+      ["2026-10-15", "alexander.co.uk"],
+    ] as const) {
+      const report = walkReport(walk, domain);
+      const b = buyersOf(report.aiAnswers!, report.presence!);
+      expect(b.holder, domain).toBeNull();
+      const n = b.ai + b.google;
+      const none = copy("report.buyers.summary.none", { n: String(n), m: String(b.out) });
+      expect(shown(report).some((line) => line.startsWith(none)), domain).toBe(true);
+    }
+  });
+
+  it("draws no count where both panels measured nothing", () => {
+    for (const domain of ["ifleeds.com", "flintplumb.com"]) {
+      const report = walkReport("2026-10-15-1441-after", domain);
+      expect(buyersOf(report.aiAnswers!, report.presence!).out, domain).toBe(0);
+      const html = renderReport(report);
+      expect(html, domain).toContain(`id="buyers-h"`);
+      expect(html, domain).not.toContain('data-testid="report-buyers-summary"');
+    }
+  });
+
+  it("quotes the AI answer in plain words, without its markdown marks", () => {
+    const report = panelReport("saas");
+    expect(answerQuoteOf(report.aiAnswers!, report.serps)?.text).toBe(
+      "Scheduling software helps you manage calendars, meetings, employee shifts, or project timelines."
+    );
+  });
+
+  it("every biggest gap says why it matters in words other than its line", () => {
+    for (const [factor, keys] of Object.entries(LIMITING_LINES)) expect(copy(keys.why), factor).not.toBe(copy(keys.line));
+  });
+
   for (const which of ["saas", "local"] as const) {
     it(`${which}: the head, the chips and who gets your buyers draw from what was stored`, () => {
       const lines = shown(panelReport(which));

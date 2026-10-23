@@ -3,13 +3,15 @@
 // The section over the AI and Google cards: its heading and lead, and one
 // sentence naming the competitor the buyers were sent to most, with the
 // customer's own count over both cards. The sentence is drawn only where
-// both cards were measured, so a count is never summed over a missing half.
+// both cards measured something, so a count is never summed over a missing
+// half.
 import type React from "react";
 import { copy } from "@/lib/presentation/copy";
 import type { AiAnswersSection, PresenceSection } from "@/lib/scan/report";
 
-/** The rival named by most AI answers and first pages together, and the
- *  customer's own count over the same two denominators. */
+/** The rival named by most AI answers and first pages together, only where
+ *  it was named more often than the customer, and the customer's own count
+ *  over the same two denominators. */
 export function buyersOf(ai: AiAnswersSection, presence: PresenceSection): {
   holder: string | null;
   ai: number;
@@ -30,8 +32,9 @@ export function buyersOf(ai: AiAnswersSection, presence: PresenceSection): {
       most = count;
     }
   }
+  const you = ai.customerCitations + presence.you.top10Count;
   return {
-    holder,
+    holder: most > you ? holder : null,
     ai: ai.customerCitations,
     google: presence.you.top10Count,
     out: ai.answeredSearches + presence.measuredSearches,
@@ -57,7 +60,9 @@ export function BuyersSection(p: {
   presence: PresenceSection | null;
   children: React.ReactNode;
 }): React.JSX.Element {
-  const buyers = p.ai === null || p.presence === null ? null : buyersOf(p.ai, p.presence);
+  const counted = p.ai === null || p.presence === null ? null : buyersOf(p.ai, p.presence);
+  // Nothing measured is never shown as a count of zero.
+  const buyers = counted === null || counted.out === 0 ? null : counted;
   return (
     <section id="buyers" aria-labelledby="buyers-h" className="col-span-full grid scroll-mt-20 grid-cols-subgrid gap-y-5">
       <div className="col-span-full flex max-w-3xl flex-col gap-2">

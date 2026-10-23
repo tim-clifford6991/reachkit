@@ -381,6 +381,11 @@ function Head(p: { right?: React.ReactNode }): React.JSX.Element {
 /** The longest quote the card shows, in characters: one sentence, never a page. */
 const QUOTE_MAX = 240;
 
+/** The answer's words without its markdown marks, which a quote would show raw. */
+function plainOf(text: string | undefined): string | undefined {
+  return text?.replace(/\*\*|`/g, "").replace(/\s+([.,!?;:])/g, "$1").trim();
+}
+
 /** One AI answer's first sentence, quoted as it was written, with the search
  *  it was asked for. The first answer that named a competitor and kept its
  *  text; `null` where no answer kept any, so nothing is ever made up. */
@@ -391,7 +396,7 @@ export function answerQuoteOf(
   for (const [i, row] of section.rows.entries()) {
     if (row.cell.kind !== "answered" || row.cell.citedDomains.length === 0) continue;
     const serp = serps[i];
-    const text = serp !== undefined && serp.kind !== "unmeasured" ? serp.value.aiOverview.text?.trim() : undefined;
+    const text = serp !== undefined && serp.kind !== "unmeasured" ? plainOf(serp.value.aiOverview.text) : undefined;
     if (text === undefined || text === "") continue;
     const sentence = /^[\s\S]*?[.!?](?=\s|$)/.exec(text)?.[0] ?? text;
     if (sentence.length > QUOTE_MAX) continue;
