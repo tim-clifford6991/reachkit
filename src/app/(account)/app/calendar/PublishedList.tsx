@@ -16,9 +16,33 @@ import { ENGINE_LABEL } from "../_shell/page-target-words";
 import type { AnswerEngine } from "@/lib/opportunities/types";
 import { TakeDownControl, type ControlWords } from "./TakeDown";
 import { stopWords } from "./take-down-words";
+import { dayKeyOf, dayNumber, weekdayShort } from "./dates";
+import { promisesGoLive } from "./WeekCard";
+import type { DayWhen, PageOnDay, WeekModel } from "./month";
 
 /** The anchor Overview's Content tile opens. */
 export const PUBLISHED_ID = "published";
+
+/** The stages whose page is still on its way out; a skipped, stopped, live or held-for-you page names no day. */
+const ON_ITS_WAY: ReadonlySet<PageOnDay["stage"]> = new Set(["planned", "your_review", "scheduled"]);
+
+function addressKey(url: string): string {
+  return url.trim().replace(/\/+$/, "").toLowerCase();
+}
+
+/** The day ("Tue 20") each live address's update goes live this week, from the stored row; empty where no moment is promised. */
+export function updateDays(week: Pick<WeekModel, "destination" | "held" | "stopped" | "timeZone"> & {
+  cells: readonly { when: DayWhen; page: Pick<PageOnDay, "stage" | "replaces" | "publishAt" | "scheduledFor"> | null }[];
+}): ReadonlyMap<string, string> {
+  const out = new Map<string, string>();
+  if (!promisesGoLive(week)) return out;
+  for (const { when, page } of week.cells) {
+    if (when === "past" || page?.replaces === undefined || !ON_ITS_WAY.has(page.stage)) continue;
+    const day = page.publishAt === null ? page.scheduledFor : dayKeyOf(page.publishAt, week.timeZone);
+    out.set(addressKey(page.replaces), `${weekdayShort(day)} ${dayNumber(day)}`);
+  }
+  return out;
+}
 
 /** How many live pages show before *Show all*, as the board draws them. */
 const SHOWN = 4;
@@ -78,9 +102,11 @@ function Row(p: {
   timeZone: string;
   now: Date;
   words: ControlWords;
+  update: string | undefined;
 }): React.JSX.Element {
   const { row, page } = p;
   const lines = standingLines(row, page, p.timeZone, p.now);
+  if (p.update !== undefined) lines.push(copy("calendar.live.update", { day: p.update }));
   const stop = page?.draftId === undefined || page.url === null ? null : page.draftId;
   // No AI step yet: "not read yet" where AI reads are seen; a WordPress page has no read step.
   const none = page?.wordpress === true ? "draft.ladder.not-yet" : "calendar.live.ai-unread";
@@ -111,15 +137,23 @@ function Row(p: {
   );
 }
 
-export function PublishedList(p: { content: ContentModel | null; timeZone: string; now: Date }): React.JSX.Element | null {
+export function PublishedList(p: {
+  content: ContentModel | null;
+  timeZone: string;
+  now: Date;
+  /** `updateDays` of the week shown. */
+  updates?: ReadonlyMap<string, string>;
+}): React.JSX.Element | null {
   if (p.content === null) return null;
   const pages = new Map(p.content.pages.map((page) => [page.id, page]));
   const recent = new Set(p.content.recent.map((page) => page.id));
   const rows = pageLadderOf(p.content.pages, p.now)?.rows ?? [];
   const words = stopWords();
-  const row = (r: LadderRow): React.JSX.Element => (
-    <Row key={r.id} row={r} page={pages.get(r.id)} recent={recent.has(r.id)} timeZone={p.timeZone} now={p.now} words={words} />
-  );
+  const row = (r: LadderRow): React.JSX.Element => {
+    const page = pages.get(r.id);
+    const update = page?.url == null ? undefined : p.updates?.get(addressKey(page.url));
+    return <Row key={r.id} row={r} page={page} recent={recent.has(r.id)} timeZone={p.timeZone} now={p.now} words={words} update={update} />;
+  };
   return (
     <section id={PUBLISHED_ID} className="card card-border min-w-0 scroll-mt-32 bg-base-100" aria-labelledby="plan-live-heading" data-testid="plan-published">
       <div className="card-body gap-3 p-4">
