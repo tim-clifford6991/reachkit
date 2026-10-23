@@ -12,6 +12,7 @@
 import { AI_READER_AGENTS, SITE_ISSUES } from "@/lib/config/constants";
 import type { Measured } from "@/lib/measure/measured";
 import type { RobotsPolicy } from "@/lib/egress/types";
+import { identityOf, type Identity } from "@/lib/business/identity";
 import type { PageIssueFacts } from "./facts";
 import {
   DOER_OF,
@@ -181,6 +182,29 @@ function aiReaders(robots: Measured<RobotsPolicy>, blocked: Blocked, pages: read
   };
 }
 
+/** Who runs the site, over every crawled page: the strongest kind any page
+ *  states (`identityOf`'s order), on the first page that states it. Absent
+ *  where a page was read without the reading and none stated one. */
+function siteIdentity(pages: readonly CheckedPage[]): Pick<SiteIssuesSection, "identity"> {
+  const stated = pages.flatMap((p) => (p.facts.identity ? [{ ...p.facts.identity, page: p.key }] : []));
+  const best = identityOf(stated.map((i) => i.type));
+  if (best !== null) return { identity: stated.find((i) => i.type === best.type) ?? null };
+  return pages.every((p) => p.facts.identity === null) ? { identity: null } : {};
+}
+
+/** What the report says of who runs the site. */
+export type IdentityReading = { kind: "found"; type: Identity["type"] } | { kind: "none" } | { kind: "not_measured" };
+
+/** The section's reading; on a report written before it was kept, the home
+ *  page's stored types. A type there is found, and none is not measured,
+ *  because no other page's types were kept. */
+export function identityReading(section: SiteIssuesSection | null, homeTypes: readonly string[] | null): IdentityReading {
+  if (section?.identity === null) return { kind: "none" };
+  if (section?.identity !== undefined) return { kind: "found", type: section.identity.type };
+  const home = homeTypes === null ? null : identityOf(homeTypes);
+  return home === null ? { kind: "not_measured" } : { kind: "found", type: home.type };
+}
+
 /**
  * The nine checks.
  *
@@ -278,5 +302,6 @@ export function checkSite(a: {
     checkedPages: pages.map((p) => p.key),
     stoppedBy: a.crawl.stoppedBy,
     issues: SITE_CHECKS.map((check) => issues[check]),
+    ...siteIdentity(pages),
   };
 }

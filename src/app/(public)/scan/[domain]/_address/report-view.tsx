@@ -45,6 +45,7 @@ import { PricingCard } from "../_modules/pricing";
 import { MissingPagesList } from "../_modules/missing-pages";
 import { CheckCards, ProblemCards } from "../_problems/cards";
 import { checkCardsOf, readingsOf } from "../_problems/checks";
+import { identityReading } from "@/lib/site-issues/checks";
 import { MethodSections } from "../_problems/method";
 import { answerReadersOf, cardsOf, missingPagesOf, PROBLEM_ORDER, type MissingPage, type ProblemCard, type ProblemName } from "../_problems/model";
 import { unblockLines } from "../_problems/unblock";
@@ -620,7 +621,12 @@ export function ReportView(p: {
           <div className="collapse-content flex min-w-0 flex-col gap-3 px-px">
             <p className="text-base-content/70 text-sm">{copy("problem.section.sub")}</p>
             <ProblemCards cards={cards} firstPage={report.freePage !== null} />
-            <CheckCards cards={checkCardsOf(readingsOf(report.siteIssues, report.verdict.measuredAt))} />
+            <CheckCards
+              cards={checkCardsOf(
+                readingsOf(report.siteIssues, report.verdict.measuredAt),
+                identityReading(report.siteIssues, report.onPage.kind === "unmeasured" ? null : report.onPage.value.schemaTypes)
+              )}
+            />
           </div>
         </details>
         {/* The method: three sections, each closed, where each problem
