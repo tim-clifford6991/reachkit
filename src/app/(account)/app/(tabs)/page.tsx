@@ -1,10 +1,10 @@
 // SPEC §4 (2026-10-07, issue 1319) — the Overview tab, at `/app`.
 //
-// The core data at a glance (owner 2026-10-15, issue 1457): the Visibility
-// Score, Google, AI and Content, then the biggest gap — each number opening
-// exactly the items it counts — then what autopilot is doing, and — while a
-// page is in review — that page with *Read or edit* and *Stop this page*,
-// then this week and needs you.
+// Today's page first, then how far the live pages got (owner E4,
+// 2026-10-19): what autopilot is doing and — while a page is in review — that
+// page with *Read or edit* and *Stop this page*, then the ladder, then the
+// core numbers (each opening exactly the items it counts), this week and
+// needs you.
 //
 // **The head states what autopilot is doing** (owner 2026-10-09, issue
 // 1362; `_overview/autopilot.ts`), and it is said once: while a page is in
@@ -32,6 +32,8 @@ import { readOverview } from "../_overview/provider";
 import { readPrompts } from "../_overview/prompts-provider";
 import { readPublished } from "../_overview/content-provider";
 import { contentOf } from "../_overview/content";
+import { pageLadderOf } from "../_overview/ladder";
+import { PageLadder } from "../_overview/PageLadder";
 import { readDone } from "../_overview/done-provider";
 import { overviewNotice, readOnboarding, readReleaseNotice } from "../_shell/onboarding";
 import { FirstPageNotice, ReleaseNoticeLine } from "../_shell/OnboardingStatus";
@@ -161,21 +163,11 @@ export default async function OverviewPage(): Promise<React.JSX.Element> {
         });
   if (lastLive !== null) headNotes.push({ testId: "overview-head-note", line: lastLive });
 
+  const content = contentOf(published);
+  const ladder = content === null ? null : pageLadderOf(content.pages, published.now);
+
   return (
     <div className={OVERVIEW} data-testid="overview">
-      {/* The core data opens the screen (owner 2026-10-15, issue 1457);
-          what autopilot is doing, and everything else, is under it. */}
-      <LinkedTiles
-        score={overview.score}
-        biggestGap={overview.biggestGap}
-        google={google}
-        prompts={prompts}
-        content={contentOf(published)}
-        nextAt={shell.publishing.next}
-        firstDueOn={overview.firstDueOn}
-        timeZone={shell.timeZone}
-      />
-
       <FirstPageNotice state={onboarding} />
       <ReleaseNoticeLine noticeKey={topNotice} />
 
@@ -191,6 +183,20 @@ export default async function OverviewPage(): Promise<React.JSX.Element> {
           now={overview.today}
         />
       )}
+
+      {/* Owner E4 (2026-10-19): today's page, then how far the pages got. */}
+      {ladder === null ? null : <PageLadder ladder={ladder} timeZone={shell.timeZone} />}
+
+      <LinkedTiles
+        score={overview.score}
+        biggestGap={overview.biggestGap}
+        google={google}
+        prompts={prompts}
+        content={content}
+        nextAt={shell.publishing.next}
+        firstDueOn={overview.firstDueOn}
+        timeZone={shell.timeZone}
+      />
 
       {/* The week takes the wider of the two columns: seven day cells each
           hold a stage word, and an even split leaves them narrow enough to

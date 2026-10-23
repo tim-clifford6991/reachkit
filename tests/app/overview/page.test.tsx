@@ -113,15 +113,17 @@ describe("REQ-041 c1 — Overview is the screen a signed-in customer lands on", 
     expect(tiles).toEqual(["score", "google", "ai", "content"]);
   });
 
-  it("opens with the core tiles (issues 1364, 1457)", async () => {
+  it("opens with today's page, then the ladder, then the core tiles (owner E4)", async () => {
     const html = await markup();
     const tiles = html.indexOf('data-testid="overview-tiles"');
-    expect(tiles).toBeGreaterThan(-1);
-    expect(tiles).toBeLessThan(html.indexOf('data-testid="overview-waiting"'));
+    const ladder = html.indexOf('data-testid="overview-ladder"');
+    expect(html.indexOf('data-testid="overview-waiting"')).toBeGreaterThan(-1);
+    expect(html.indexOf('data-testid="overview-waiting"')).toBeLessThan(ladder);
+    expect(ladder).toBeLessThan(tiles);
     expect(tiles).toBeLessThan(html.indexOf('data-testid="overview-week"'));
   });
 
-  it("the page in review is the action under the numbers (issues 1319, 1364)", async () => {
+  it("the page in review is the action, above the week (issues 1319, E4)", async () => {
     const html = await markup();
     const card = html.indexOf('data-testid="overview-waiting"');
     expect(card).toBeGreaterThan(-1);

@@ -27,7 +27,7 @@ export const MAIL_COPY = Object.freeze({
   // same line. It carries the `{address}` slot because the set writes the
   // address inside the sentence, in mono, and a sentence with a value in
   // it has a slot rather than two half-sentences.
-  "optout.confirmed": ["No more follow-up mail will reach {address}, for this domain or any other. The page you asked for stays yours.", { slots: { address: "text" }, fixedBy: "REQ-011 c3 · S7 (11a)" }],
+  "optout.confirmed": ["No more follow-up mail will go to {address}, about any site. Sign-in and account mail, if you have an account, still arrive.", { slots: { address: "text" }, fixedBy: "REQ-011 c3 · OptOut board (V22)" }],
   "optout.invalid": ["That unsubscribe link isn’t valid any more. Reply to any ReachKit email with \"stop\" and we’ll stop by hand.", { slots: {}, fixedBy: "REQ-011 c3" }],
 
   // The card's own head (UI-SPEC S7, 11a). The set draws one eyebrow over
@@ -41,6 +41,23 @@ export const MAIL_COPY = Object.freeze({
    *  "that link isn’t valid any more" would be the page contradicting
    *  itself in its own head. */
   "optout.head.unresolved": ["Not unsubscribed yet", { slots: {}, fixedBy: "REQ-010 c11 · S7 (12a)" }],
+
+  // The OptOut board (canvas V22): what an opt-out changes, which follow-ups
+  // were sent, where the report stays, and the by-hand way when a link fails.
+  "optout.changes.title": ["What this changes", { slots: {}, fixedBy: "REQ-010 c11 · OptOut board (V22)" }],
+  "optout.changes.followups": ["Follow-up emails about your free report", { slots: {}, fixedBy: "REQ-010 c11 · OptOut board (V22)" }],
+  "optout.changes.signin": ["Sign-in links", { slots: {}, fixedBy: "REQ-010 c11 · OptOut board (V22)" }],
+  "optout.changes.account": ["Receipts and account emails", { slots: {}, fixedBy: "REQ-010 c11 · OptOut board (V22)" }],
+  "optout.changes.stopped": ["Stopped", { slots: {}, fixedBy: "REQ-010 c11 · OptOut board (V22)" }],
+  "optout.changes.still": ["Still sent, if you have an account", { slots: {}, fixedBy: "REQ-010 c11 · OptOut board (V22)" }],
+  "optout.timeline.title": ["Follow-ups after your free report", { slots: {}, fixedBy: "REQ-010 c9 · OptOut board (V22)" }],
+  "optout.timeline.hours": ["{hours} hours", { slots: { hours: "text" }, fixedBy: "REQ-010 c9 · OptOut board (V22)" }],
+  "optout.timeline.sent": ["Sent", { slots: {}, fixedBy: "REQ-010 c9 · OptOut board (V22)" }],
+  "optout.timeline.not": ["Won’t be sent", { slots: {}, fixedBy: "REQ-010 c9 · OptOut board (V22)" }],
+  "optout.timeline.done": ["All follow-ups were already sent. No more will come.", { slots: {}, fixedBy: "REQ-010 c9 · OptOut board (V22)" }],
+  "optout.report": ["The page you asked for stays yours, and your free report stays at its address. To take the report down, write to {address}.", { slots: { address: "text" }, fixedBy: "REQ-002 c1 · OptOut board (V22)" }],
+  "optout.reply.row": ["Reply to any ReachKit email with \"stop\"", { slots: {}, fixedBy: "REQ-011 c3 · OptOut board (V22)" }],
+  "optout.reply.how": ["A person stops it by hand", { slots: {}, fixedBy: "REQ-011 c3 · OptOut board (V22)" }],
 
   // 2026-09-05, issue #30 (the mail seam, BUILD §12). Six keys the shell
   // and the whole-mail line need. Five are sentences the product speaks in
