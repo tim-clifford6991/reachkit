@@ -181,6 +181,29 @@ describe("Check, in the board's order and words", () => {
     );
   });
 
+  it("D28 — Change sits on the market's line and opens the field filled, and a new category re-derives the twelve", async () => {
+    const root = await mount("check");
+    const category = FIXTURE_SETUP_FACTS.measured!.report.category;
+    const change = root.querySelector('[data-testid="setup-market-concluded"] button');
+    expect(change?.textContent).toBe(COPY["setup.market.change"]);
+    await press(change);
+
+    const field = root.querySelector<HTMLInputElement>('[data-testid="setup-market"] input[name="category"]');
+    expect(field?.value).toBe(category);
+    await act(async () => {
+      Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set?.call(field, "time tracking software");
+      field?.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+    await press(root.querySelector('[data-testid="setup-market"] input[name="category"] + button'));
+
+    const market = root.querySelector('[data-testid="setup-market"]');
+    expect(market?.querySelector('input[name="category"]')).toBeNull();
+    expect(market?.querySelector('[data-testid="setup-market-stated"] strong')?.textContent).toBe("time tracking software.");
+    expect(market?.querySelector('[data-testid="setup-market-stated"] button')?.textContent).toBe(COPY["setup.market.change"]);
+    const searches = [...(market?.querySelectorAll('[data-testid="setup-market-questions"] li') ?? [])].map((li) => li.textContent ?? "");
+    expect(searches.some((text) => text.includes("time tracking software"))).toBe(true);
+  });
+
   it("before the read lands, and a group nothing was read for, are said in the board's words", async () => {
     const texts = textOf(await mount("check", { measured: null, concluded: null, profile: null, market: null }));
     expect(texts).toContain("We’re still reading your site. Carry on. What we find shows in Settings, where you can change it.");
