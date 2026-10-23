@@ -1138,7 +1138,7 @@ export const OVERVIEW_COPY = Object.freeze({
     { slots: { n: "text" }, fixedBy: "SPEC §4 2026-10-10 · issue 1395 (drafted)" },
   ],
   "overview.process.figure.publish": [
-    "Daily at {time}",
+    "Pages go live at {time}",
     { slots: { time: "text" }, fixedBy: "SPEC §4 2026-10-10 · issue 1395 (drafted)" },
   ],
   "overview.process.figure.remeasure": [
