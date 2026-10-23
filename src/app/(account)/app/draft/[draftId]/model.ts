@@ -22,7 +22,8 @@ import type { CopyKey } from "@/lib/presentation/copy";
 import type { RecordedFact } from "@/lib/generate/fact";
 import type { PackNeed } from "@/lib/generate/templates/types";
 import type { PageRecord } from "@/lib/publish/record";
-import type { Ladder } from "@/lib/measure/ladder";
+import type { PageReading } from "@/lib/measure/page-reading";
+import type { Label } from "@/lib/opportunities/verdicts/types";
 import type { TakeDownStanding } from "@/lib/publish/take-down/standing";
 import type { PageTarget } from "../../_shell/page-target";
 import type { PageType, PlanReason } from "@/lib/opportunities/types";
@@ -331,10 +332,10 @@ export interface DraftView {
    * draft — a shape, not a placeholder, and the block is simply absent.
    */
   record: PageRecord | null;
-  /** How far the live page has got toward being found (issue 1553);
-   *  `null` for a page that is not live or whose ladder could not be read. */
-  ladder: Ladder | null;
-  /** *Take down* on a live page, *Put back* inside its window (issue 1532). */
+  /** The page's own publication, for a page that went live (board
+   *  `PageDetail`); `null` for one that never did. */
+  live: LiveFacts | null;
+  /** *Stop this page* on a live page, the stopped state after (R9). */
   takeDown: TakeDownStanding;
   /** The Checks list: the last battery, rule by rule. Empty where none is
    *  recorded — the rail then draws no row for them, rather than deducing
@@ -380,6 +381,16 @@ export interface DraftView {
  *  Their name and their address and nothing of ReachKit's: SPEC §7 asks for
  *  the page "in the customer's own page frame", and a mark of ours on it
  *  would be the one thing the frame exists to show is absent. */
+/** When the page went live and where, the weekly pass's stored reading of
+ *  it, and the label that reading earns (`verdicts/verdict.ts`). */
+export interface LiveFacts {
+  since: Date;
+  url: string;
+  wordpress: boolean;
+  reading: PageReading | null;
+  label: Label | null;
+}
+
 export interface Publisher {
   /** What the frame calls them. The domain today — see `publisherOf` for
    *  why, and for what would change it. */
@@ -446,9 +457,9 @@ export interface DraftFacts {
   lastSavedAt: Date | null;
   /** The page's own record, or `null` where none could be read (#217). */
   record: PageRecord | null;
-  /** Issue 1553; absent for a page that is not live. */
-  ladder?: Ladder | null;
-  /** *Take down* or *Put back* (issue 1532); absent offers neither. */
+  /** Absent for a page that never went live. */
+  live?: LiveFacts | null;
+  /** Live or stopped (R9); absent draws neither. */
   takeDown?: TakeDownStanding;
   /** §8's battery, as generation recorded it. Empty is the honest answer
    *  for a draft it recorded nothing for. */
@@ -548,7 +559,7 @@ export function assembleDraft(facts: DraftFacts): DraftView {
     doNothing: doNothingOf(facts),
     lastSavedAt: facts.lastSavedAt,
     record: facts.record,
-    ladder: facts.ladder ?? null,
+    live: facts.live ?? null,
     takeDown: facts.takeDown ?? null,
     recordedChecks: facts.recordedChecks,
     knownCheck: facts.knownCheck,
