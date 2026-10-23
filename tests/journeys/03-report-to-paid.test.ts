@@ -445,7 +445,7 @@ describe("Start → Checkout → webhook → magic link → /setup (JN-002 steps
     expect(html).toContain("offer.cadence.page");
     expect(html).toContain("offer.veto.window");
     expect(html).toContain("offer.start");
-    expect(html).toContain("offer.cancel_self_service");
+    expect(html).toContain("pricing.plan.cancel");
 
     // No account, no password, no questionnaire before the control
     // (REQ-020 c1) — and beginning checkout writes nothing at all.

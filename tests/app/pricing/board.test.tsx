@@ -84,13 +84,10 @@ describe("board Pricing — the head and the plan card", () => {
     expect(html).toContain('href="#start"');
   });
 
-  it("the report's card keeps its own cancel line and gains none of the pricing page's", () => {
+  it("the report's card states the same cancel line and none of the pricing page's billing line (board PubReport)", () => {
     const report = text(renderToStaticMarkup(<PricingCard />));
-    expect(report).toContain(copy("offer.cancel_self_service"));
-    expect(report).not.toContain(copy("pricing.plan.cancel"));
+    expect(report).toContain(copy("pricing.plan.cancel"));
     expect(report).not.toContain(copy("pricing.plan.billing", { price }));
-    // The report's line is the first sentence of the pricing card's own, so it is read outside that one.
-    expect(top().replace(copy("pricing.plan.cancel"), "")).not.toContain(copy("offer.cancel_self_service"));
   });
 
   it("shows no guarantee while the launch gate is shut (owner 2026-10-20, Q13)", () => {

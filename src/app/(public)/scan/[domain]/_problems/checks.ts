@@ -93,12 +93,17 @@ function fixFor(check: TechnicalCheck, reading: CheckReading | null): CheckFix {
   return lines.length === 0 ? { kind: "doer_only" } : { kind: "paste", lines };
 }
 
+/** The report's plain names where its board differs from the account's view (board AppIssues keeps "Broken internal links"). */
+const REPORT_TITLE: Partial<Readonly<Record<TechnicalCheck, CopyKey>>> = Object.freeze({
+  broken_links: "check.broken-links.plain",
+});
+
 export function checkCardsOf(readings: CheckReadings): readonly CheckCard[] {
   return CHECK_ORDER.map((check): CheckCard => {
     const reading = readings[check] ?? null;
     return {
       check,
-      title: SITE_CHECK_TITLE[check],
+      title: REPORT_TITLE[check] ?? SITE_CHECK_TITLE[check],
       // SPEC §9, 2026-09-14 — the engine's own map (`DOER_OF`).
       doer: DOER_KEY[DOER_OF[check]],
       reading,

@@ -35,38 +35,44 @@ export function MethodSections(p: {
   const snippetPages = p.readers?.snippetPages ?? [];
   const trainingOptOut = p.readers?.trainingOptOut ?? [];
   return (
-    <div id="method" className="flex scroll-mt-20 flex-col gap-2">
-      <p className="eyebrow">{copy("method.title")}</p>
-      {p.for.map((problem) => {
-        const lines = p.lines?.[problem];
-        return (
-          <details key={problem} className="collapse collapse-arrow bg-base-100 shadow-(--shadow-card)">
-            <summary className="collapse-title font-medium">{copy(METHOD_COPY[problem].title)}</summary>
-            <div id={METHOD_ANCHOR[problem]} className="collapse-content flex scroll-mt-20 flex-col gap-3 text-sm">
-              <p>{copy(METHOD_COPY[problem].body)}</p>
-              {lines === undefined || lines.length === 0 ? null : <PasteBlock lines={lines} />}
-              {problem !== "blocked_readers" || snippetPages.length === 0 ? null : (
-                <div className="flex flex-col gap-1">
-                  <p>{copy("method.blocked-readers.snippet-pages")}</p>
-                  <ul className="list-inside list-disc">
-                    {snippetPages.map((url) => (
-                      <li key={url} className="min-w-0 break-all">
-                        {url}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-              {problem !== "blocked_readers" || trainingOptOut.length === 0 ? null : (
-                <p className="text-base-content/70">
-                  {copy("method.blocked-readers.training-choice", { crawlers: trainingOptOut.join(", ") })}
-                </p>
-              )}
-            </div>
-          </details>
-        );
-      })}
-    </div>
+    // Closed under its own name like What holds you back (board PubReport); a link into a step opens both.
+    <details id="method" className="collapse collapse-arrow scroll-mt-20 rounded-none" data-testid="report-method">
+      <summary className="collapse-title min-h-0 px-px py-2 pe-10 after:end-2 after:top-6">
+        <h2 className="text-2xl font-bold">{copy("method.title")}</h2>
+        <p className="text-base-content/70 text-sm font-normal">{copy("method.section.sub")}</p>
+      </summary>
+      <div className="collapse-content flex min-w-0 flex-col gap-2 px-px">
+        {p.for.map((problem) => {
+          const lines = p.lines?.[problem];
+          return (
+            <details key={problem} className="collapse collapse-arrow bg-base-100 shadow-(--shadow-card)">
+              <summary className="collapse-title font-medium">{copy(METHOD_COPY[problem].title)}</summary>
+              <div id={METHOD_ANCHOR[problem]} className="collapse-content flex scroll-mt-20 flex-col gap-3 text-sm">
+                <p>{copy(METHOD_COPY[problem].body)}</p>
+                {lines === undefined || lines.length === 0 ? null : <PasteBlock lines={lines} />}
+                {problem !== "blocked_readers" || snippetPages.length === 0 ? null : (
+                  <div className="flex flex-col gap-1">
+                    <p>{copy("method.blocked-readers.snippet-pages")}</p>
+                    <ul className="list-inside list-disc">
+                      {snippetPages.map((url) => (
+                        <li key={url} className="min-w-0 break-all">
+                          {url}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                {problem !== "blocked_readers" || trainingOptOut.length === 0 ? null : (
+                  <p className="text-base-content/70">
+                    {copy("method.blocked-readers.training-choice", { crawlers: trainingOptOut.join(", ") })}
+                  </p>
+                )}
+              </div>
+            </details>
+          );
+        })}
+      </div>
+    </details>
   );
 }
 
