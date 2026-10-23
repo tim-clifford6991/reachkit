@@ -106,6 +106,18 @@ describe("reading a site's country and language", () => {
   });
 });
 
+describe("a locale nothing was read for is marked as guessed", () => {
+  it("an unread home on an address that names no country is D66's default, guessed", () => {
+    expect(readLocale({ domain: "checkatrade.com", html: null })).toEqual({ locale: { country: "US", language: "en" }, fellBack: null, basis: "default" });
+  });
+
+  it("an address that names a country, or a home that was read, is no guess", () => {
+    expect(readLocale({ domain: "example.co.uk", html: null })).toEqual({ locale: { country: "GB", language: "en" }, fellBack: null });
+    expect(readLocale({ domain: "example.de", html: null })).toEqual({ locale: { country: "DE", language: "de" }, fellBack: null });
+    expect(readLocale({ domain: "savvycal.com", html: page({ body: ENGLISH }) })).toEqual({ locale: { country: "US", language: "en" }, fellBack: null });
+  });
+});
+
 describe("issue 1480 — a site's country follows its domain and language before an office it mentions", () => {
   const offices = (countries: string[]): string =>
     `<script type="application/ld+json">{"@type":"Organization","location":[${countries
