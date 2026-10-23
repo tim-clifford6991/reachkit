@@ -75,7 +75,7 @@ function CellText(p: { cell: Cell }): React.JSX.Element {
   }
   if (PARTLY.test(p.cell)) {
     return (
-      <span className="inline-flex items-start gap-1">
+      <span className="inline-flex items-start gap-1 wrap-anywhere">
         <Minus size={16} strokeWidth={1.75} aria-hidden className="mt-0.5 shrink-0" />
         {p.cell}
       </span>
