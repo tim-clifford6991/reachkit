@@ -123,7 +123,8 @@ function stringsOf(rel: string, source: string): string[] {
     rel,
     source,
     ts.ScriptTarget.Latest,
-    true,
+    // No parent links: the walk below only descends, and they double the parse.
+    false,
     rel.endsWith(".tsx") ? ts.ScriptKind.TSX : ts.ScriptKind.TS
   );
   const out: string[] = [];
