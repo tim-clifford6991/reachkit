@@ -28,6 +28,7 @@ export const FIXTURE_DONE_FACTS: DoneFacts = Object.freeze({
   ready: 30,
   pagesRead: 84,
   publishTime: "07:00",
+  goLive: Object.freeze({ connected: true, publishing: true, stopped: false }),
   remeasureOn: new Date(Date.UTC(2026, 8, 7, 12, 0, 0)),
 });
 
