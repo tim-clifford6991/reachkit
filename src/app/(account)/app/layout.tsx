@@ -17,7 +17,7 @@
 // The panel holds, in order: the brand with the collapse button, the domain
 // block, the menu (Overview · Plan · Settings, the waiting count on
 // Overview), the *Waiting for you* card, the onboarding line while a pass
-// runs, the two shortcuts, the theme control and the autopilot card.
+// runs, the theme control and the autopilot card (board Main).
 //
 // **It renders once.** Until this issue the shell drew the same parts twice
 // — a header below `lg` and a sidebar above it, one hidden per breakpoint —
@@ -76,7 +76,6 @@ import {
   DomainSlot,
   OnboardingSlot,
   PublishingSlot,
-  ShortcutsSlot,
   StoppedNoticeSlot,
   TopBarSlot,
   WaitingCardSlot,
@@ -244,16 +243,7 @@ export default async function AppLayout({
                 <Suspense fallback={<DomainSkeleton />}>
                   <DomainSlot shell={shell} />
                 </Suspense>
-                <div className="flex min-w-0 flex-col gap-1">
-                  {/* `.eyebrow`, not `text-xs`: the rung is ruled
-                      (`docs/DESIGN.md`: "eyebrow 11 uppercase 700 .1em") and
-                      carries its case, weight and ink with the size, which no
-                      single utility does. It was first reached for because
-                      `type.css` out-ranked `text-xs`; that is fixed at the
-                      cause now (#941) and the class is still the right one. */}
-                  <h2 className="eyebrow px-0">{copy("shell.workspace")}</h2>
-                  <SidebarNav waiting={waiting} />
-                </div>
+                <SidebarNav waiting={waiting} />
                 <Suspense fallback={<PanelCardSkeleton testId="shell-waiting-skeleton" className="h-20 w-full" />}>
                   <WaitingCardSlot shell={shell} />
                 </Suspense>
@@ -267,9 +257,6 @@ export default async function AppLayout({
                 <OnboardingSlot shell={shell} />
               </Suspense>
               <div className="mt-auto hidden min-w-0 flex-col gap-3 lg:flex">
-                <Suspense fallback={<PanelCardSkeleton testId="shell-shortcuts-skeleton" className="h-8 w-full" />}>
-                  <ShortcutsSlot shell={shell} />
-                </Suspense>
                 <Suspense fallback={<PanelCardSkeleton testId="shell-publishing-skeleton" className="h-24 w-full" />}>
                   <PublishingSlot shell={shell} />
                 </Suspense>
