@@ -7,7 +7,9 @@ subscription at once and closes access by itself, once per web address. Check it
 dashboard.
 
 The steps below are for any other refund: after day 14, or a second account for a web address
-already refunded. They are `docs/GO-LIVE.md` §1.7, in the order it gives. Only the owner can do
+already refunded, or an automatic refund Stripe refused (ops alert *refund refused*, log
+`billing_refund outcome=vendor`): refund the invoice it names by hand, then let the period-end event
+end access, or follow steps 3–4. They are `docs/GO-LIVE.md` §1.7, in the order it gives. Only the owner can do
 them, because each one is an act in a vendor dashboard. Do them after the walk has ended, including
 step 7 (the stopped page), so the refund does not cut the walk short.
 

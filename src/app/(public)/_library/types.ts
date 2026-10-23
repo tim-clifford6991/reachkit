@@ -32,24 +32,33 @@ export interface ComparisonRow {
 
 export type ComparisonGroup = "suite" | "checker" | "competitors" | "audience" | "ai" | "data";
 
+/** The five jobs a page takes, in the order a tool page lists them. */
+export type Job = "choose" | "facts" | "write" | "live" | "results";
+
 export interface Comparison {
   /** The address segment, unchanged since the page was first published. */
   readonly slug: string;
   /** The other product, as it names itself. */
   readonly name: string;
   readonly group: ComparisonGroup;
-  /** The page's heading and document title: at most six words, no dash. */
+  /** The card's heading and document title: at most six words, no dash. */
   readonly title: string;
+  /** The page's own heading, where it says more than the card: at most six words. */
+  readonly heading?: string;
+  /** A word on the card the reader needs before clicking, e.g. the product closed. */
+  readonly badge?: string;
   /** The meta description, at most 160 characters. */
   readonly description: string;
-  /** One line on the index card, at most 20 words. */
+  /** One line on the index card, at most 20 words: theirs, then ". ReachKit …". */
   readonly summary: string;
   /** The opening paragraph: the answer to "which one do I need?". */
   readonly intro: string;
   /** What the other product does well. */
   readonly theirs: Section;
-  /** What ReachKit does instead, as it works today. */
-  readonly ours: Section;
+  /** A request the reader would type into the other product, where it is a chat. */
+  readonly ask?: string;
+  /** The jobs the other product does or helps with; the reader does the rest. */
+  readonly does: readonly Job[];
   readonly rows: readonly ComparisonRow[];
   /** When the other product is the better pick. */
   readonly pickThem: readonly string[];

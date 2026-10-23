@@ -40,9 +40,7 @@ describe("/about follows board PubAbout", () => {
   it("draws the board's sections in the board's order", () => {
     expect(BOARD_SECTIONS.length).toBeGreaterThanOrEqual(6);
     const shipped = page.querySelectorAll("section[id]").map((s) => s.getAttribute("id"));
-    expect(shipped.filter((id) => BOARD_SECTIONS.includes(id!))).toEqual(
-      BOARD_SECTIONS.filter((id) => id !== "start")
-    );
+    expect(shipped.filter((id) => BOARD_SECTIONS.includes(id!))).toEqual(BOARD_SECTIONS);
   });
 
   // `start` is the Learn pages' shared closing block (tests/app/library/learn-close.test.tsx).

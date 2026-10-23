@@ -21,11 +21,14 @@ export const BODY = "card-body gap-3";
 export const LIST = "list-disc ps-6";
 const NEW_TAB = { target: "_blank", rel: "noopener" } as const;
 const HOW_HREF = "/how-it-works";
+const START_ID = "start";
 
 /** The page: an eyebrow, the heading, and the column under it. */
 export function LibraryPage(p: {
   testId: string;
   eyebrow: CopyKey;
+  /** Where the page sits, drawn in place of the eyebrow. */
+  trail?: React.ReactNode;
   title: string;
   /** Wide pages (an index) use the about page's outer measure. */
   wide?: boolean;
@@ -43,9 +46,11 @@ export function LibraryPage(p: {
         <article
           className={`text-base-content/80 mx-auto flex w-full min-w-0 flex-col gap-3 leading-relaxed ${p.wide === true ? "" : "max-w-(--w-read)"}`}
         >
-          <span className="text-base-content/70 text-xs font-semibold tracking-wide uppercase">
-            {copy(p.eyebrow)}
-          </span>
+          {p.trail ?? (
+            <span className="text-base-content/70 text-xs font-semibold tracking-wide uppercase">
+              {copy(p.eyebrow)}
+            </span>
+          )}
           <h1 className="break-words">{p.title}</h1>
           <div className="mt-3 flex min-w-0 flex-col gap-4">{p.children}</div>
         </article>
@@ -205,9 +210,10 @@ const CLOSE = {
 export type LearnCloseVariant = keyof typeof CLOSE;
 
 /** Every figure a closing sentence states, read from the constants that run the product. */
-const FIGURES = {
+export const FIGURES = {
   weekPages: HOW_FACTS.weekPages,
   checks: HOW_FACTS.checks,
+  windowHours: HOW_FACTS.windowHours,
   minutes: HOW_FACTS.setupMinutes,
   searches: HOW_FACTS.searches,
   pages: SITE_PROFILE.MAX_PAGES,
@@ -257,6 +263,19 @@ function LoopSample(p: { step: (typeof LOOP)[number] }): React.JSX.Element {
     <span className="text-xs font-semibold">
       {copy("library.close.loop.4.sample", { live: e.mail.live, climbing: SAMPLE_CLIMBING })}
     </span>
+  );
+}
+
+/** The call under a page's opening: down to the scan field at the foot. */
+export function ScanJump(): React.JSX.Element {
+  return (
+    <div className="flex min-w-0 flex-col items-start gap-2">
+      <Link href={`#${START_ID}`} className="btn btn-primary btn-soft">
+        {copy("landing.start.cta")}
+        <ArrowRight size={16} strokeWidth={1.75} aria-hidden />
+      </Link>
+      <p className="text-base-content/70 font-mono text-xs">{copy("landing.hero.assurance")}</p>
+    </div>
   );
 }
 
@@ -383,7 +402,7 @@ export function LearnClose(p: { variant: LearnCloseVariant; domain?: string }): 
   return (
     <div className="mt-6 flex min-w-0 flex-col gap-6" data-testid="learn-close" data-variant={p.variant}>
       {close.weekly === undefined ? null : <WeeklyLoop w={wordsOf(close.weekly)} />}
-      <section className={`${CARD} bg-base-200`}>
+      <section id={START_ID} className={`${CARD} bg-base-200 scroll-mt-20`}>
         <div className={BODY}>
           <h2>{copy(close.heading ?? "landing.close.heading")}</h2>
           <p>{copy(close.lead, FIGURES)}</p>

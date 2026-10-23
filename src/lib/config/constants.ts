@@ -1203,8 +1203,15 @@ export const VETO = Object.freeze({
   defaultHours: 24, minDays: 1, maxDays: 7,
 } as const);
 
+/** SPEC §7 (owner, 2026-10-19, issue 1559): the one depth number. Each
+ *  weekly pass commits the next `days` pages, one a day, and `spares` more
+ *  the daily job takes when a day's page cannot be written. Supply is
+ *  counted, and refilled at 0¢, up to their sum. */
+export const WEEK_PLAN = Object.freeze({ days: 7, spares: 3 } as const);
+
+// The week's ceiling is the plan's week, so the Terms' "up to 7 a week" holds by construction.
 export const RATE_LIMITS = Object.freeze({
-  publishesPerDay: 1, publishesPerWeek: 8,
+  publishesPerDay: 1, publishesPerWeek: WEEK_PLAN.days,
 } as const);
 
 export const RETENTION_D = Object.freeze({
@@ -1490,11 +1497,6 @@ export const EFFORT_BY_TYPE = Object.freeze({                // BP-040 d3
 } as const);                                                 // `unblock` is unranked
 
 export const FIT_WEIGHT = Object.freeze({ winnable: 1.0, reach: 0.5, "not-yet": 0 } as const); // BP-040 d3
-/** SPEC §7 (owner, 2026-10-19, issue 1559): the one depth number. Each
- *  weekly pass commits the next `days` pages, one a day, and `spares` more
- *  the daily job takes when a day's page cannot be written. Supply is
- *  counted, and refilled at 0¢, up to their sum. */
-export const WEEK_PLAN = Object.freeze({ days: 7, spares: 3 } as const);
 export const PLAN_DEPTH = WEEK_PLAN.days + WEEK_PLAN.spares;  // BP-041 d4 · REQ-095 c1
 export const SUPPLY_SHORT_BELOW = WEEK_PLAN.days;            // BP-041 d4 · REQ-095 c5
 /** A page's window: a gain counts inside it, and a page whose best place is
