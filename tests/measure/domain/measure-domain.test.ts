@@ -436,12 +436,12 @@ describe('BP-010 `## NFR budget` — the spend, the page cap and the ceiling', (
       throw new Error("rankedKeywords is not yet implemented");
     };
     const result = await measureDomain(cost, { domain: DOMAIN, at: SCAN_AT, tier: "free" }, ports);
-    expect(result.drivers.searchPresence).toEqual({ kind: "unmeasured", reason: "undeterminable", at: SCAN_AT });
+    expect(result.ownRanked).toEqual({ kind: "unmeasured", reason: "undeterminable", at: SCAN_AT });
   });
 
   it("zero ranked rows is a measured zero, not a withheld driver", async () => {
     const { result } = await measure(FULL_SITE, {}, { ranked: { kind: "zero", value: { rows: [], total: 0 }, at: READ_AT } });
-    expect(result.drivers.searchPresence.kind).toBe("zero");
+    expect(result.ownRanked.kind).toBe("zero");
   });
 });
 
@@ -477,7 +477,7 @@ describe("SPEC §2 (issue 1379) — a bot-protection page is never measured as t
     expect(result.protection).toBe("Cloudflare");
     expect(result.homeRefusal).toBeNull();
     expect(ports.log.ranked).toHaveLength(1);
-    expect(result.drivers.searchPresence.kind).toBe("measured");
+    expect(result.ownRanked.kind).toBe("measured");
   });
 
   it("reads the vendor's rendered page as the home page where that is the site", async () => {
@@ -531,7 +531,7 @@ describe("issue 1449 — a home page that does not answer in time is read as a s
     expect(result.homeRefusal).toBeNull();
     expect(result.homeTimedOut).toBe(true);
     expect(result.onPage).toMatchObject({ kind: "unmeasured", because: HOME_TIMEOUT });
-    expect(result.drivers.searchPresence.kind).toBe("measured");
+    expect(result.ownRanked.kind).toBe("measured");
     expect(listing).toEqual([true]);
   });
 
