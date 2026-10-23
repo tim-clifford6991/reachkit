@@ -476,7 +476,7 @@ export async function livePagesForSite(siteId: string, host: string): Promise<Ho
  * Matched in this process rather than in the query because the slug is the
  * last segment of `live_url` and the narrow query builder this subsystem
  * reaches Postgres through carries no pattern operator. A site publishes
- * at most one page a day and eight a week (§9), so the list this walks is
+ * at most one page a day and seven a week (§9), so the list this walks is
  * the site's whole published history and is small by the product's own
  * hard limits — not by an assumption about customer behaviour.
  */
