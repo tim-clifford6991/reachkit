@@ -160,8 +160,10 @@ describe("the hosted index", () => {
     expect(first).not.toContain('rel="prev"');
 
     const second = await render(undefined, "2");
-    expect(second).toContain('href="/guide-13"');
-    expect(second).not.toContain('href="/guide-12"');
+    // The cards page; "All guides" under them lists every page on each.
+    const cards = new DOMParser().parseFromString(second, "text/html").querySelector("[aria-labelledby='articles']")!.innerHTML;
+    expect(cards).toContain('href="/guide-13"');
+    expect(cards).not.toContain('href="/guide-12"');
     expect(second).not.toContain("Latest");
     expect(second).toMatch(/<a href="\/" rel="prev"[^>]*>Previous page<\/a>/);
     expect(second).toMatch(/<a href="\/\?page=3" rel="next"[^>]*>Next page<\/a>/);
