@@ -9,6 +9,14 @@ import { applyEnvFixture } from "../../mail/env-fixture";
 
 applyEnvFixture();
 
+// The platform's `waitUntil`: work handed to `after` runs once the response is out.
+const { afterTasks } = vi.hoisted(() => ({ afterTasks: [] as (() => unknown)[] }));
+vi.mock("next/server", () => ({ after: (task: () => unknown) => void afterTasks.push(task) }));
+
+async function drainAfter(): Promise<void> {
+  for (const task of afterTasks.splice(0)) await task();
+}
+
 const { POST } = await import("@/app/api/stripe/webhook/route");
 const { registerSubscriptionHandler } = await import("@/lib/account/provisioning/webhook");
 const { billingSummary, hasActiveAccess, resumeSubscription, setBillingStore } = await import("@/lib/account/billing");
@@ -34,6 +42,7 @@ beforeEach(() => {
   vendor.verifies = true;
   warnings = [];
   mails = [];
+  afterTasks.length = 0;
   __setVendorTransportForTesting(async (payload, key) => {
     const mail = JSON.parse(payload) as { to: string | string[]; text: string };
     mails.push({ to: String(mail.to), text: mail.text, key });
@@ -81,8 +90,16 @@ function at(days: number): void {
   vi.setSystemTime(new Date(PAID.getTime() + days * DAY));
 }
 
-/** Delivers one event through the real route and answers its status. */
+/** Delivers one event through the real route, runs what it handed to
+ *  `after`, and answers its status. */
 async function deliver(event: Record<string, unknown>): Promise<number> {
+  const status = await respond(event);
+  await drainAfter();
+  return status;
+}
+
+/** The route's response alone, before any `after` work has run. */
+async function respond(event: Record<string, unknown>): Promise<number> {
   vendor.event = event;
   const response = await POST(
     new Request("https://reachkit.test/api/stripe/webhook", {
@@ -265,7 +282,7 @@ describe("a refund Stripe refuses tells the owner", () => {
     vendor.refundError = Object.assign(new Error("Your card was declined."), { code: "charge_disputed" });
 
     expect(await deliver(cancelEvent(REFUSED_USER))).toBe(200);
-    await vi.waitFor(() => expect(refusedAlerts()).toHaveLength(1));
+    expect(refusedAlerts()).toHaveLength(1);
 
     const [alert] = refusedAlerts();
     expect(alert?.to).toBe("owner@example.com");
@@ -275,12 +292,26 @@ describe("a refund Stripe refuses tells the owner", () => {
 
     at(4.5);
     expect(await deliver(cancelEvent(REFUSED_USER, { eventId: "evt_cancel_again" }))).toBe(200);
-    await vi.waitFor(() => expect(refusedAlerts()).toHaveLength(2));
+    expect(refusedAlerts()).toHaveLength(2);
     expect(new Set(refusedAlerts().map((mail) => mail.key)).size).toBe(1);
+  });
+
+  it("hands the alert to after(), so the response does not wait on it and a serverless invocation still sends it", async () => {
+    customer({ id: REFUSED_USER, domain: "northside-plumbing.com" });
+    at(4);
+    vendor.refundError = Object.assign(new Error("stripe is down"), { code: "charge_disputed" });
+
+    expect(await respond(cancelEvent(REFUSED_USER))).toBe(200);
+    expect(afterTasks).toHaveLength(1);
+    expect(refusedAlerts()).toHaveLength(0);
+
+    await drainAfter();
+    expect(refusedAlerts()).toHaveLength(1);
   });
 
   it.each([
     ["refunded", () => at(13)],
+    ["charge_already_refunded", () => { at(3); vendor.refundError = Object.assign(new Error("already refunded"), { code: "charge_already_refunded" }); }],
     ["outside_window", () => at(15)],
     ["not_cancelled", () => at(3)],
     ["store", () => { at(3); state.failAccountRead = true; }],
@@ -301,12 +332,15 @@ describe("a refund Stripe refuses tells the owner", () => {
       expect(await hasActiveAccess("site_scheduler")).toBe(false);
     }
     state.failAccountRead = false;
+    if (outcome === "charge_already_refunded") {
+      expect(state.refunds).toHaveLength(1);
+      expect(await hasActiveAccess("site_scheduler")).toBe(false);
+    }
 
-    // A refused refund after it, so the alerts are counted once the mail path has run.
+    // A refused refund after it, so a zero count is not a mail path that never ran.
     customer({ id: REFUSED_USER, domain: "northside-plumbing.com", paidAt: new Date(Date.now() - DAY) });
     vendor.refundError = new Error("stripe is down");
     await deliver(cancelEvent(REFUSED_USER));
-    await vi.waitFor(() => expect(refusedAlerts().length).toBeGreaterThan(0));
     expect(refusedAlerts()).toHaveLength(1);
     expect(refusedAlerts()[0]?.text).toContain(`in_${REFUSED_USER}`);
   });

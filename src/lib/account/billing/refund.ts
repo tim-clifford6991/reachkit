@@ -9,6 +9,7 @@
 // throws: the webhook still answers 200, and the next delivery tries again.
 // Hosted pages are untouched: they follow the 30-day path from the new
 // paid-through date like any other ended account.
+import { after } from "next/server";
 import { parseDomain } from "@/lib/scan/domain";
 import { reportIncident } from "@/lib/mail/ops/incident";
 import { stripe, type Stripe } from "../stripe/client";
@@ -154,8 +155,9 @@ export async function refundFirstFortnight(
   } catch (error) {
     if (!alreadyRefunded(error)) {
       log({ outcome: "vendor", invoice: invoiceId });
-      // Stripe does not redeliver a 200, so the owner is told; never awaited, so the webhook answers at once.
-      void reportIncident({ occasion: "refund-refused", invoiceId, userId, code: stripeCodeOf(error) });
+      // Stripe does not redeliver a 200, so the owner is told after the response; `after` keeps a serverless invocation alive for it.
+      const code = stripeCodeOf(error);
+      after(() => reportIncident({ occasion: "refund-refused", invoiceId, userId, code }));
       return "vendor";
     }
   }
