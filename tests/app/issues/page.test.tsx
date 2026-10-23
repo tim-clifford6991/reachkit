@@ -50,6 +50,23 @@ describe("Technical issues, where a needs-you item lands", () => {
     expect(markup).not.toContain('data-check="structured_data"');
     expect(markup).not.toContain('data-check="noindex_pages"');
   });
+
+  it("names the checks the customer fixes as problems", () => {
+    const section: SiteIssuesSection = {
+      pagesChecked: 12,
+      checkedPages: null,
+      stoppedBy: "complete",
+      issues: [
+        { check: "sitemap", ran: true, count: 1, over: 1, unit: "site", severity: "worth_fixing", doer: "free_fix", pages: null },
+        { check: "ai_readers_blocked", ran: true, count: 2, over: 6, unit: "ai_readers", severity: "worth_fixing", doer: "free_fix", pages: [] },
+      ],
+    };
+    const markup = renderToStaticMarkup(
+      <IssuesView reading={issuesReading(section, FIXTURE_MEASURED_AT, null)} timeZone="America/New_York" />
+    );
+    expect(markup).toContain("No page list for Google");
+    expect(markup).toContain("AI shut out of your site");
+  });
 });
 
 /** The text of the element carrying `testId`, tags dropped. */
