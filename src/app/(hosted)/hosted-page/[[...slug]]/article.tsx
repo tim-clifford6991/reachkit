@@ -43,7 +43,7 @@ import { movedSlugsForSite } from "@/lib/publish/destinations/hosted/store";
 import { topicSimilarity } from "@/lib/known-content/similarity";
 import { Surface } from "@/ui/layout";
 import { resolveHost } from "../../resolve-host";
-import { AboutCard, HostedFooter, HostedHeader, INDEX_PATH, mainSiteOf, type HostedBusiness } from "./chrome";
+import { AboutCard, actionsOf, CompactAction, HostedFooter, HostedHeader, INDEX_PATH, mainSiteOf, type HostedBusiness } from "./chrome";
 import { bylineLine, datedLine } from "@/lib/publish/render/byline";
 import { withFaq, type FaqEntry } from "@/lib/publish/render/faq";
 import { isSourcesHeading, madeLine } from "@/lib/publish/render/made";
@@ -318,7 +318,27 @@ export function HostedArticle({ resolved }: { resolved: Resolved }): React.JSX.E
   const { blocks, headings } = withHeadingIds(
     grounded === null ? levelled : markPassage(levelled, grounded.passage).blocks
   );
-  const body = toHtml(blocks, HOSTED_BODY_CLASSES);
+  // The business's action inside the body (owner R1, 2026-10-22), only
+  // where one is stored: on an offering page the full block under the short
+  // answer, and where the page's search is its own offering (fit 3) the
+  // compact block after the takeaways, else after the short answer. Both sit
+  // between top-level blocks, so no question section holds one.
+  const stored = actionsOf(business).primary !== null;
+  const answerAt = blocks.findIndex((block) => block.kind === "answer");
+  const takeawaysAt = blocks.findIndex((block) => block.kind === "takeaways");
+  const compactAt = stored && page.businessFit === 3 ? (takeawaysAt >= 0 ? takeawaysAt : answerAt) : -1;
+  const inserts = [
+    ...(stored && offering && answerAt >= 0 ? [{ after: answerAt, node: <AboutCard key="full" business={business} /> }] : []),
+    ...(compactAt >= 0 ? [{ after: compactAt, node: <CompactAction key="compact" business={business} /> }] : []),
+  ].sort((a, b) => a.after - b.after);
+  const bodyParts: React.ReactNode[] = [];
+  let from = 0;
+  for (const { after, node } of [...inserts, { after: blocks.length - 1, node: null }]) {
+    const html = toHtml(blocks.slice(from, after + 1), HOSTED_BODY_CLASSES);
+    if (html !== "" || from === 0) bodyParts.push(<div key={`body-${from}`} className="prose prose-lg max-w-none" dangerouslySetInnerHTML={{ __html: html }} />);
+    if (node !== null) bodyParts.push(node);
+    from = after + 1;
+  }
   const sourceLine = sourceLineFor(page);
   // The page ends with its sources: the body's own list where it has one,
   // else a heading over the line naming what the page is grounded in.
@@ -434,7 +454,7 @@ export function HostedArticle({ resolved }: { resolved: Resolved }): React.JSX.E
               typography `docs/DESIGN.md` admits for exactly this.
               `max-w-none` because the column's measure is the article's
               already, and a second one would narrow it again. */}
-          <div className="prose prose-lg max-w-none" dangerouslySetInnerHTML={{ __html: body }} />
+          {bodyParts}
           {/* The text face, not mono: it is a sentence, and the address
               in it is a host and a path rather than a URL to copy. */}
           {sourceLine === null ? null : (
