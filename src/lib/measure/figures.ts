@@ -4,7 +4,8 @@
 // a figure nothing measured is `null`, never 0.
 import { FIRST_PAGE_PLACES, type PageReading } from "@/lib/measure/page-reading";
 import { climbing } from "@/lib/opportunities/verdicts/verdict";
-import type { PublishedPage } from "./content";
+import type { Measured } from "./measured";
+import type { PublishedPage } from "./published";
 
 /** The live pages whose own question was asked, and those an answer linked. */
 export interface AiPages {
@@ -105,4 +106,21 @@ export function nextFirstMonday(week: string): string {
 /** The newest first-Monday week among the measured ones, oldest first. */
 export function monthWeekOf(measured: readonly string[]): string | null {
   return [...measured].reverse().find(isFirstMonday) ?? null;
+}
+
+/** What the month's figures read off a stored report, declared by shape so
+ *  Overview's graph does not reach the scan's modules. */
+export interface MonthReport {
+  verdict?: { scoreAndBand?: Measured<{ score: number }> | null } | null;
+  presence?: { measuredSearches: number; you: { top10Count: number } } | null;
+}
+
+/** The two months-scale figures one stored report holds: its score, and the
+ *  presence card's count of the twelve on Google's first page. */
+export function monthFiguresOf(report: MonthReport | null): Omit<MonthReading, "week"> {
+  const score = report?.verdict?.scoreAndBand;
+  return {
+    score: score == null || score.kind === "unmeasured" ? null : score.value.score,
+    market: report?.presence == null ? null : { top10: report.presence.you.top10Count, of: report.presence.measuredSearches },
+  };
 }

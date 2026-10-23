@@ -48,14 +48,17 @@ async function shownTiles(): Promise<string[]> {
 
 function shownMailRows(): string[] {
   // Every optional number present, so every row the mail can carry is drawn.
+  const n = measured(2, AT);
   const numbers: WeeklyNumbers = {
-    pageQuestions: { cited: measured(2, AT), asked: 5 },
-    mentions: { kind: "rate", rate: measured(34, AT), low: 22, high: 48 },
-    pagesCited: measured(3, AT),
-    weeks: 4,
-    top20: measured(5, AT),
-    top20Change: measured(2, AT),
-    aiVisits: { fetches: measured(12, AT), windowDays: 7 },
+    live: n,
+    planned: n,
+    google: {
+      steps: (["draft.ladder.found", "draft.ladder.showing", "draft.ladder.first-page"] as const).map((name) => ({ name, count: n, of: 5 })),
+      early: false,
+      visits: n,
+    },
+    ai: { linked: n, asked: 5, reads: n },
+    month: { score: { value: n }, market: { value: n, of: 12 }, reputation: { value: n, answers: 40, weeks: 4 } },
   };
   const mail = buildWeekly({ numbers, pages: measured([], AT), next: measured([], AT) });
   return mail.blocks.flatMap((block) => (block.block === "stats" ? block.items.map((row) => row.label) : [])).sort();

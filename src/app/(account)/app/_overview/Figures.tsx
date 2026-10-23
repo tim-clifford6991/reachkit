@@ -11,7 +11,7 @@ import { ANSWER_RATE_WEEKS } from "@/lib/config/constants";
 import { PlaceLine } from "@/ui/charts/PlaceLine";
 import { ReadsBars } from "@/ui/charts/ReadsBars";
 import { formatCount, formatDay, SHELL_LOCALE } from "../_shell/format";
-import { FIRST_PAGE, type AiPages, type BestMover, type MonthsFacts } from "./figures";
+import { FIRST_PAGE, type AiPages, type BestMover, type MonthsFacts } from "@/lib/measure/figures";
 import { percent, type PromptsModel } from "./prompts-model";
 
 /** Where each figure's rows are listed. */

@@ -179,7 +179,7 @@ beforeAll(async () => {
     import("@/app/(account)/app/_overview/store"),
     import("@/app/(account)/app/_overview/search-provider"),
     import("@/app/(account)/app/_overview/search-store"),
-    import("@/app/(account)/app/_overview/content-store"),
+    import("@/lib/measure/published-store"),
     import("@/app/(account)/app/_shell/store"),
     import("@/lib/publish/reads/facts"),
   ]);
