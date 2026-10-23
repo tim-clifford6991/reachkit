@@ -708,9 +708,10 @@ export const SETTINGS_COPY = Object.freeze({
   ],
 
   // The cancel route and the first-14-days refund (owner E13 and D4, 2026-10-19). Drafted.
+  // {control} is filled from `settings.billing.manage`, so the line names the card's real button.
   "settings.billing.route": [
-    "Reply to any ReachKit email or use Cancel in Settings.",
-    { slots: {}, fixedBy: "E13 · drafted" },
+    "Reply to any ReachKit email or use {control}.",
+    { slots: { control: "text" }, fixedBy: "E13 · owner R24 2026-10-23 · drafted" },
   ],
   "settings.billing.refund-window": [
     "Billed in euros. Cancel by {date} for a full, automatic refund. ReachKit stops at once.",
