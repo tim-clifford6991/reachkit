@@ -370,7 +370,7 @@ const SITE_ID = "site-journey-04";
  *  "not a session", and this founder is not deleted. */
 const ACCOUNT_ROW = {
   id: USER_ID,
-  email: "founder@acme.com",
+  email: "founder@acme.example",
   name: null,
   pending_email: null,
   pending_email_token_hash: null,

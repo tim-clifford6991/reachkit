@@ -299,7 +299,7 @@ describe("REQ-091 c2 — every route renders for a domain that ranks for nothing
     const mine = enumerateRoutes(APP_ROOT).filter(
       (r) => !r.rel.startsWith("(hosted)/hosted-live/")
     );
-    const theirs = layout.enumerateRoutes(APP_ROOT);
+    const theirs = layout.enumerateRoutes(APP_ROOT, { extraSegmentValues: {} });
     expect(mine.length).toBe(theirs.length);
     expect(mine.map((r) => r.url.split("/").length).sort()).toEqual(
       theirs.map((r) => r.path.split("/").length).sort()
