@@ -171,7 +171,7 @@ function GapCard(p: { factor: ShownFactor; seeMissing: boolean }): React.JSX.Ele
 
 /** The Visibility Score in its own card: the figure, its band and range,
  *  what it is made of, and the parts as `n/10`. */
-function ScoreCard(p: { verdict: Verdict; limiting: ShownFactor | null }): React.JSX.Element {
+function ScoreCard(p: { verdict: Verdict; limiting: ShownFactor | null; rescored?: { on: string; before: number } }): React.JSX.Element {
   const { verdict } = p;
   const scoreAndBand = verdict.scoreAndBand;
   const bars = barsOf(verdict);
@@ -204,6 +204,11 @@ function ScoreCard(p: { verdict: Verdict; limiting: ShownFactor | null }): React
                 </span>
               )}
             </p>
+            {p.rescored === undefined ? null : (
+              <p className="text-base-content/70 text-center text-sm" data-testid="verdict-rescored">
+                <Num phrase>{copy("verdict.rescored", { date: p.rescored.on, before: String(p.rescored.before) })}</Num>
+              </p>
+            )}
           </>
         )}
         <p className="text-base-content/70 text-center text-sm">
@@ -236,6 +241,8 @@ export function VerdictStrip(p: {
   notes?: React.ReactNode;
   /** Whether the report found pages the site is missing, for the gap's link. */
   seeMissing: boolean;
+  /** Where a re-score moved the score through the Google half: when, already formatted, and the score it read before. */
+  rescored?: { on: string; before: number };
 }): React.JSX.Element {
   const { verdict } = p;
   const limiting = shownLimitingOf(verdict);
@@ -286,7 +293,7 @@ export function VerdictStrip(p: {
         </nav>
       </div>
 
-      <ScoreCard verdict={verdict} limiting={limiting} />
+      <ScoreCard verdict={verdict} limiting={limiting} {...(p.rescored === undefined ? {} : { rescored: p.rescored })} />
     </div>
   );
 }
