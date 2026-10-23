@@ -580,7 +580,7 @@ describe("settings → cancel → export → erasure, and the pages stop being s
         }),
       ];
       const gone = await resolveHost(host);
-      expect(gone).toEqual({ kind: "gone", reason: "account_deleted" });
+      expect(gone).toEqual({ kind: "gone", reason: "account_deleted", siteId: SITE_ID });
 
       // The retention window elapsing is the other ending, and it answers
       // the same way.
@@ -597,6 +597,7 @@ describe("settings → cancel → export → erasure, and the pages stop being s
       await expect(resolveHost(host)).resolves.toEqual({
         kind: "gone",
         reason: "access_ended",
+        siteId: SITE_ID,
       });
 
       // A page that was taken down is gone; one that never existed is not,

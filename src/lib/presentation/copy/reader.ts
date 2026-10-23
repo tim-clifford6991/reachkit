@@ -12,12 +12,24 @@
 // was said and the language is English, which is `copy()` itself.
 //
 // Never imported by a client component: it carries the translations.
+import { AsyncLocalStorage } from "node:async_hooks";
 import { cache } from "react";
 import type { Language } from "@/lib/locale/locales";
 import { copy as english, type CopyKey } from "@/lib/presentation/copy";
 import { copyIn } from "./translated.ts";
 
-const request = cache((): { language: Language; tag: string } => ({ language: "en", tag: "en-US" }));
+type Reading = { language: Language; tag: string };
+
+// A route handler is not a server render, so `cache` keeps nothing there.
+const held = new AsyncLocalStorage<Reading>();
+
+const request = cache((): Reading => held.getStore() ?? { language: "en", tag: "en-US" });
+
+/** Runs `draw` with a language of its own to hold, for a route handler
+ *  that renders the same components a page does. */
+export function readingIn<T>(draw: () => T): T {
+  return held.run({ language: "en", tag: "en-US" }, draw);
+}
 
 /** Says which language this request's screen is read in. Called by the
  *  route, before it renders anything. */
