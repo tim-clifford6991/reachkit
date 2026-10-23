@@ -42,7 +42,7 @@ export interface FactRow {
    * The value, already written by whoever built the row — a domain, an
    * address, a number through `formatStat`, a band word through `copy()`.
    * A datum and not a sentence, which is why it is the one field on this
-   * arm that is not a key: "you@company.com" and "62 · Hard to find" are
+   * arm that is not a key: "you@example.com" and "62 · Hard to find" are
    * facts about one mail, and a key per address is not a copy registry.
    */
   readonly value: string;

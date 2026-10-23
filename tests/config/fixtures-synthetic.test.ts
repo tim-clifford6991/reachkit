@@ -6,7 +6,14 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 
 const ROOT = path.resolve(__dirname, "../..");
-const STORED = ["tests", "docs/walk", "scripts/panel/evidence", "scripts/eval-content/snapshot"];
+// Shipped copy is held to the same rule: a placeholder address is someone's inbox unless its domain is reserved.
+const STORED = [
+  "tests",
+  "docs/walk",
+  "scripts/panel/evidence",
+  "scripts/eval-content/snapshot",
+  "src/lib/presentation/copy/keys",
+];
 const HOMES = "tests/locale/fixtures/homes";
 const BINARY = /\.(png|jpe?g|gif|webp|avif|ico|pdf|woff2?|ttf|zip|gz)$/i;
 const ADDRESS = /[A-Za-z0-9._%+-]+@([A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,})/g;
@@ -23,20 +30,12 @@ const files = (dir: string): string[] =>
     .map((entry) => path.relative(ROOT, path.join(entry.parentPath, entry.name)))
     .filter((file) => !readFileSync(path.join(ROOT, file)).includes(0));
 
-// The product's own placeholder copy is not fixture data, so a test may pin it.
-const SHIPPED = new Set(
-  files("src/lib/presentation/copy/keys").flatMap((file) =>
-    [...readFileSync(path.join(ROOT, file), "utf8").matchAll(ADDRESS)].map((m) => m[0].toLowerCase())
-  )
-);
-
-describe("fixtures and stored evidence are synthetic", () => {
+describe("fixtures, stored evidence and shipped copy are synthetic", () => {
   it("hold no email address outside example.*, *.example, *.test and reachkit.app", () => {
     const found = new Set<string>();
     for (const file of STORED.flatMap(files)) {
-      for (const [address, domain] of readFileSync(path.join(ROOT, file), "utf8").matchAll(ADDRESS)) {
+      for (const [, domain] of readFileSync(path.join(ROOT, file), "utf8").matchAll(ADDRESS)) {
         if (ASSET.test(domain!) || reserved(domain!) || domain!.toLowerCase() === "reachkit.app") continue;
-        if (SHIPPED.has(address.toLowerCase())) continue;
         found.add(`${file}: ${domain!.toLowerCase()}`);
       }
     }

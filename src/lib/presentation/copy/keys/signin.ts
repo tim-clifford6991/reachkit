@@ -67,7 +67,7 @@ export const SIGNIN_COPY = Object.freeze({
   "signin.how.in.head": ["You’re in", { slots: {}, fixedBy: "board AuthSignIn" }],
   "signin.how.in.line": ["On your Overview, with this week’s pages.", { slots: {}, fixedBy: "board AuthSignIn" }],
   "signin.field.label": ["Your email", { slots: {}, fixedBy: "issue 1574" }],
-  "signin.field.placeholder": ["you@company.com", { slots: {}, fixedBy: "REQ-098 c2" }],
+  "signin.field.placeholder": ["you@example.com", { slots: {}, fixedBy: "REQ-098 c2" }],
   /** Changed 2026-09-21 (#937): "Send my link" → the board's own word,
    *  which says which link. Drafted (#759). */
   "signin.submit.label": ["Send my sign-in link", { slots: {}, fixedBy: "issue 937" }],
