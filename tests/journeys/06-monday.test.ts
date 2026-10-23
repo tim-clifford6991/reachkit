@@ -841,15 +841,12 @@ describe("Monday: the week is re-measured, judged, and told (JN-005)", () => {
     expect(digest.standings).toHaveLength(1);
     expect(digest.weekMeasuredAt).toBeInstanceOf(Date);
 
-    // SPEC §8 (2026-10-07, issue 1329): the four headline numbers lead,
-    // then the pages and the next three.
+    // Overview's numbers lead, then the pages and the next three.
     const whole = buildWeekly({
       numbers: {
-        mentions: { kind: "rate", rate: measured(25, MONDAY), low: 12, high: 44 },
-        // A measured zero is a result — no page cited — and prints.
-        pagesCited: measuredZero(0, MONDAY),
-        weeks: 4,
-        top20: measured(1, MONDAY),
+        live: measured(1, MONDAY),
+        // A measured zero is a result — nothing planned — and prints.
+        planned: measuredZero(0, MONDAY),
       },
       pages: measured(
         digest.standings.map((standing) => ({ liveUrl: standing.liveUrl, standing: standing.standing })),

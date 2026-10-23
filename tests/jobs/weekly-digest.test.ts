@@ -117,46 +117,11 @@ describe("the Monday digest goes out for a week that was measured", () => {
     expect(sent[0]!.kind).toBe("weekly");
     expect(sent[0]!.to).toBe("founder@example.com");
     expect(sent[0]!.subject).toBe("mail.weekly.subject");
-    // SPEC §8 (2026-10-07, issue 1329): the four headline numbers lead,
-    // straight under the heading; the pages, the next three and the one
-    // button follow. No score and no sentence about one.
+    // Overview's numbers lead, straight under the heading; the pages, the
+    // next three and the one button follow. No page is live, so there is no
+    // Google or AI group.
     // A three-page week also says how many of its days have no page.
     expect(sent[0]!.blocks.map((b) => b.block)).toEqual(["heading", "stats", "verdicts", "list", "paragraph", "action"]);
-  });
-
-  it("issue 1329 — the top-20 number is counted from the week's stored verdict rows, with its change", async () => {
-    const at = "2026-09-07T06:00:00.000Z";
-    const row = (id: string, week: string, measured: unknown): Row => ({
-      id: `${id}-${week}`,
-      site_id: "site-1",
-      publication_id: id,
-      week_start: week,
-      verdict: "working",
-      cause: null,
-      measured_at: at,
-      measured,
-      movement: null,
-    });
-    db.seed("page_verdicts", [
-      row("p1", WEEK, { kind: "measured", value: 4, at }),
-      row("p2", WEEK, { kind: "measured", value: 18, at }),
-      // A page that holds no place is a result, and is not in the count.
-      row("p3", WEEK, { kind: "zero", value: 0, at }),
-      row("p1", "2026-08-31", { kind: "measured", value: 9, at }),
-      row("p2", "2026-08-31", { kind: "zero", value: 0, at }),
-    ]);
-    await sendWeeklyDigest({ siteId: "site-1", weekStart: WEEK, now: NOW });
-
-    const stats = sent[0]!.blocks.find((b) => b.block === "stats") as unknown as {
-      items: readonly { label: string; value: { kind: string; value?: number }; change?: { value?: number } }[];
-    };
-    const top20 = stats.items.find((item) => item.label === "mail.weekly.number.top20");
-    expect(top20?.value).toMatchObject({ kind: "measured", value: 2 });
-    expect(top20?.change).toMatchObject({ value: 1 });
-    // No pass asked the prompts: the rate says it was not measured rather
-    // than reading 0%. And this site has no hosted blog, so no fourth row.
-    expect(stats.items.find((item) => item.label === "mail.weekly.number.mentionRate")).toMatchObject({ value: { kind: "unmeasured" } });
-    expect(stats.items.map((item) => item.label)).not.toContain("mail.weekly.number.aiVisits");
   });
 
   it("a complete week says so, and carries no missed-section line", async () => {

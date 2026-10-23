@@ -2,15 +2,15 @@
 // Overview's Content tile counts, each with how far it got on Google and in
 // AI answers as step dots, its label, and *Stop this page* (R9).
 //
-// The rows are Overview's ladder (`../_overview/ladder.ts`), so a step is
+// The rows are Overview's ladder (`@/lib/measure/page-ladder`), so a step is
 // read the one way on both screens; a step nothing read is "not measured",
 // never an empty dot. The first few show; the rest open under *Show all*.
 import type React from "react";
 import Link from "next/link";
 import { copy } from "@/lib/presentation/copy";
 import { formatCount, formatDate } from "../_shell/format";
-import type { ContentModel, PublishedPage } from "../_overview/content";
-import { pageLadderOf, type LadderRow, type StepDot } from "../_overview/ladder";
+import type { ContentModel, PublishedPage } from "@/lib/measure/published";
+import { pageLadderOf, type LadderRow, type StepDot } from "@/lib/measure/page-ladder";
 import { LABEL } from "../_overview/PageLadder";
 import { ENGINE_LABEL } from "../_shell/page-target-words";
 import type { AnswerEngine } from "@/lib/opportunities/types";

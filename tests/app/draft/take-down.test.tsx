@@ -28,7 +28,7 @@ import { assembleDraft } from "@/app/(account)/app/draft/[draftId]/model";
 import { FIXTURE_DRAFTS, FIXTURE_PUBLISHED_DRAFT_ID } from "@/app/(account)/app/draft/[draftId]/fixture";
 import { formatDate } from "@/app/(account)/app/_shell/format";
 import { PublishedList } from "@/app/(account)/app/calendar/PublishedList";
-import { contentOf } from "@/app/(account)/app/_overview/content";
+import { contentOf } from "@/lib/measure/published";
 import { takeDownStanding } from "@/lib/publish/take-down/standing";
 import type { UnpublishOutcome } from "@/lib/publish/types";
 
