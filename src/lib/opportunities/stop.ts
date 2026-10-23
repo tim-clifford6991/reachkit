@@ -8,6 +8,7 @@ import { createHmac, hkdfSync, timingSafeEqual } from "node:crypto";
 import { env } from "@/lib/config/env";
 import { dbAdmin } from "@/lib/db";
 import { opportunityStore } from "./store";
+import type { PlanReason } from "./types";
 
 const HKDF_INFO = "reachkit/planned-stop-token/v1";
 const SEPARATOR = ".";
@@ -18,6 +19,8 @@ export interface PlannedPage {
   readonly domain: string | null;
   /** The ISO date the page was planned for. */
   readonly day: string;
+  /** Why the week chose it; `null` where the commit kept no reason. */
+  readonly reason: PlanReason | null;
 }
 
 export type PlannedPreview =
@@ -62,7 +65,7 @@ export async function previewPlannedStop(token: string, at: Date = new Date()): 
   // The page goes live on its day, so after that day there is nothing to stop.
   if (read.day < at.toISOString().slice(0, 10)) return { ok: false, reason: "expired" };
   if (row.status !== "open") return { ok: false, reason: "written" };
-  return { ok: true, planned: { query: row.target_query, volume: row.volume, domain, day: read.day } };
+  return { ok: true, planned: { query: row.target_query, volume: row.volume, domain, day: read.day, reason: row.plan_reason ?? null } };
 }
 
 /** Stops the planned page where the preview would still offer it. */
