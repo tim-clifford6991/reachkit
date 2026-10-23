@@ -45,8 +45,8 @@ describe("the block grammar is closed, and every line lands in exactly one block
   });
 
   it("bullets and numbers are two lists, never one", () => {
-    expect(toHtml(parseMarkdown("- a\n- b"))).toBe("<ul><li>a</li><li>b</li></ul>");
-    expect(toHtml(parseMarkdown("1. a\n2. b"))).toBe("<ol><li>a</li><li>b</li></ol>");
+    expect(toHtml(parseMarkdown("- a\n- b"))).toBe('<ul role="list"><li>a</li><li>b</li></ul>');
+    expect(toHtml(parseMarkdown("1. a\n2. b"))).toBe('<ol role="list"><li>a</li><li>b</li></ol>');
   });
 
   it("a quote, a rule and a fenced block each render as themselves", () => {
@@ -290,8 +290,8 @@ describe("issue 929 — the parser is standard, and the closed set is still the 
     // for a body of paragraphs is what this module still produces for it.
     expect(renderMarkdownHtml("a\nb\n\nc")).toBe("<p>a b</p>\n<p>c</p>");
     expect(renderMarkdownHtml("> said")).toBe("<blockquote>said</blockquote>");
-    expect(renderMarkdownHtml("- a\n- b")).toBe("<ul><li>a</li><li>b</li></ul>");
-    expect(renderMarkdownHtml("1. a\n2. b")).toBe("<ol><li>a</li><li>b</li></ol>");
+    expect(renderMarkdownHtml("- a\n- b")).toBe('<ul role="list"><li>a</li><li>b</li></ul>');
+    expect(renderMarkdownHtml("1. a\n2. b")).toBe('<ol role="list"><li>a</li><li>b</li></ol>');
     expect(renderMarkdownHtml("---")).toBe("<hr>");
     expect(renderMarkdownHtml("```\nx = 1\n```")).toBe('<pre tabindex="0"><code>x = 1</code></pre>');
   });

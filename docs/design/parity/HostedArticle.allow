@@ -34,15 +34,15 @@ Water still running?	owner 2026-10-22 R1: the compact block asks in the stored m
 Harbor Plumbing answers emergency calls 24 hours a day in Austin. Sample	owner 2026-10-22 R1: a qualifier such as "24 hours a day" appears only where the main site states it, and none is stored
 Where is the main water shut-off valve?	sample data
 In most houses it sits where the water line comes into the house.	sample data
-Where to look, in this order	owner 2026-10-20 Q7: inline step and list visuals (E9) wait on #1743
-1 In the garage, or a closet on the street side In many homes in central Texas the line comes in through a slab	owner 2026-10-20 Q7: inline step and list visuals (E9) wait on #1743
-3 On an outside wall, near a hose bib	owner 2026-10-20 Q7: inline step and list visuals (E9) wait on #1743
-4 In the curb box in front of the house If you can’t find it indoors	owner 2026-10-20 Q7: inline step and list visuals (E9) wait on #1743
+Where to look, in this order	sample data: the board's own steps and list; a step number is drawn by CSS, not text (tests/hosted/serving/visuals.test.tsx)
+1 In the garage, or a closet on the street side In many homes in central Texas the line comes in through a slab	sample data: the board's own steps and list; a step number is drawn by CSS, not text (tests/hosted/serving/visuals.test.tsx)
+3 On an outside wall, near a hose bib	sample data: the board's own steps and list; a step number is drawn by CSS, not text (tests/hosted/serving/visuals.test.tsx)
+4 In the curb box in front of the house If you can’t find it indoors	sample data: the board's own steps and list; a step number is drawn by CSS, not text (tests/hosted/serving/visuals.test.tsx)
 How do you turn off a lever valve and a wheel valve?	sample data
 Turn a lever (ball) valve a quarter turn until the handle sits across the pipe. Turn a wheel (gate) valve clockwise until it stops; it can take several turns, and it should not be forced.	sample data
-1 Close the main valve.	owner 2026-10-20 Q7: inline step and list visuals (E9) wait on #1743
-2 Open the lowest faucet in the house, and an outside tap, to drain the pipes.	owner 2026-10-20 Q7: inline step and list visuals (E9) wait on #1743
-3 Turn off the water heater: switch off its breaker, or set the gas control to “pilot”.	owner 2026-10-20 Q7: inline step and list visuals (E9) wait on #1743
+1 Close the main valve.	sample data: the board's own steps and list; a step number is drawn by CSS, not text (tests/hosted/serving/visuals.test.tsx)
+2 Open the lowest faucet in the house, and an outside tap, to drain the pipes.	sample data: the board's own steps and list; a step number is drawn by CSS, not text (tests/hosted/serving/visuals.test.tsx)
+3 Turn off the water heater: switch off its breaker, or set the gas control to “pilot”.	sample data: the board's own steps and list; a step number is drawn by CSS, not text (tests/hosted/serving/visuals.test.tsx)
 What if the valve is stuck or you can’t find it?	sample data
 Don’t force it with a wrench. An old gate valve can break off in the pipe. The meter-side valve in the curb box may need a meter key, and some utilities ask homeowners to call them instead. The emergency number is on your water bill (	sample data
 ). Sample source	sample data: the board's own Sample tag
@@ -52,9 +52,9 @@ What should you do once the water is off?	sample data
 Mop up standing water and move valuables. Take photos for your insurer before you clean up. Leave the valve closed until the leak is repaired.	sample data
 When should you call an emergency plumber?	sample data
 Call one straight away in any of these cases.	sample data
-Water is coming through a ceiling or a wall	owner 2026-10-20 Q7: inline step and list visuals (E9) wait on #1743
-The main valve will not close	owner 2026-10-20 Q7: inline step and list visuals (E9) wait on #1743
-You smell gas near the water heater: leave the house first, then call the gas utility.	owner 2026-10-20 Q7: inline step and list visuals (E9) wait on #1743
+Water is coming through a ceiling or a wall	sample data: the board's own steps and list; a step number is drawn by CSS, not text (tests/hosted/serving/visuals.test.tsx)
+The main valve will not close	sample data: the board's own steps and list; a step number is drawn by CSS, not text (tests/hosted/serving/visuals.test.tsx)
+You smell gas near the water heater: leave the house first, then call the gas utility.	sample data: the board's own steps and list; a step number is drawn by CSS, not text (tests/hosted/serving/visuals.test.tsx)
 Sample	sample data: the board's own Sample tag
 We answer emergency calls	sample data
 . A call-out is	sample data

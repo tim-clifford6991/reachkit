@@ -8,8 +8,17 @@
 import { MARK_CLASS } from "@/app/(account)/app/draft/[draftId]/present";
 import type { HtmlClasses } from "@/lib/publish/render/markdown";
 
-/** A list inside a `not-prose` box keeps the markers `prose` gives the rest. */
-const BOX_LISTS = "[&_ul]:list-disc [&_ol]:list-decimal [&_ul]:space-y-1 [&_ol]:space-y-1 [&_ul]:pl-5 [&_ol]:pl-5";
+/** A bulleted list inside a `not-prose` box keeps the markers `prose` gives the rest. */
+const BOX_LISTS = "[&_ul]:list-disc [&_ul]:space-y-1 [&_ul]:pl-5";
+
+/** An ordered list is steps: each item a card, its number drawn by CSS and
+ *  hidden from a screen reader, so the text is the WordPress post's own. */
+const STEPS =
+  "not-prose my-6 grid gap-3 sm:grid-cols-2 [counter-reset:step] " +
+  "*:relative *:rounded-box *:border *:border-base-300 *:bg-base-200 *:p-4 *:pl-14 *:[counter-increment:step] " +
+  "*:before:absolute *:before:top-4 *:before:left-4 *:before:grid *:before:size-7 *:before:place-items-center " +
+  "*:before:rounded-full *:before:bg-base-content *:before:text-sm *:before:font-bold *:before:text-base-100 " +
+  "*:before:content-[counter(step)_/_'']";
 
 /**
  * What `prose` does not decide, and this page does (issue 929).
@@ -50,6 +59,7 @@ export const HOSTED_BODY_CLASSES: HtmlClasses = Object.freeze({
   // phone it leaves about 144px a column, and every cell wraps rather than
   // being cut, which the proof measures directly.
   table: "min-w-[36rem]",
+  ol: STEPS,
   pre: "bg-base-200 rounded-box overflow-x-auto p-3",
   mark: MARK_CLASS,
   answer: `not-prose bg-base-200 rounded-box my-6 p-5 ${BOX_LISTS}`,

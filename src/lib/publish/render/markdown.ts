@@ -62,6 +62,8 @@
 // digits and hyphens and nothing else, so a heading's words choose which
 // id it gets and never what the attribute can hold; the parser mints none,
 // so only a caller that asks for them emits any.
+// Every list carries `role="list"`, a constant, for every destination: a
+// styled list loses its list semantics in WebKit without it.
 //
 // A body cannot forge them and cannot override them: it has no syntax that
 // reaches an attribute, a `<div role="region">` written into a body is an
@@ -770,7 +772,7 @@ export function toHtml(blocks: readonly Block[], classes: HtmlClasses = {}): str
           const items = block.items
             .map((item) => `${open("li", classes)}${inlineHtml(item, classes)}</li>`)
             .join("");
-          return `${open(tag, classes)}${items}</${tag}>`;
+          return `${open(tag, classes, ' role="list"')}${items}</${tag}>`;
         }
         // SPEC §7 (2026-09-20): a table, in a box of its own so a phone
         // scrolls the table rather than the page (`docs/DESIGN.md`'s
@@ -819,7 +821,7 @@ export function toHtml(blocks: readonly Block[], classes: HtmlClasses = {}): str
           return (
             `${openAs("div", "guides", classes)}` +
             `${openAs("p", "guidesLabel", classes)}${escapeHtml(block.label)}</p>` +
-            `${open("ul", classes)}${items}</ul></div>`
+            `${open("ul", classes, ' role="list"')}${items}</ul></div>`
           );
         }
       }

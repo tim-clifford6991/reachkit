@@ -627,6 +627,11 @@ export function seedHostedPublisher(): void {
   // Every page's search is the business's own offering, so each draws the
   // compact block after its takeaways or short answer.
   sql(`update opportunities set business_fit = 3 where site_id = '${PUBLISHER_ACCOUNT.siteId}';`);
+  // Two published pages on one topic, so the index draws "All guides" with a topic card and the A–Z rest.
+  sql(
+    `update opportunities set status = 'done', cluster_key = 'checklist onboarding' ` +
+      `where site_id = '${PUBLISHER_ACCOUNT.siteId}' and target_query in ('onboarding checklist software', 'more guides 0');`
+  );
 }
 
 /** A SaaS business's offering page, in the offering template's sections. */
