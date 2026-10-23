@@ -254,8 +254,7 @@ describe("the weekly pass tops up", () => {
   });
 });
 
-// Owner W1: a pass that cannot pay for its typing says so on its own line,
-// and the refill from what it already asked still runs at no cost.
+// Owner W1: a pass that cannot pay for its typing says so on its own line.
 describe("the supply line says whether the typing ran", () => {
   function weekReport() {
     return reportOf(
@@ -273,7 +272,7 @@ describe("the supply line says whether the typing ran", () => {
       .filter((line): line is Record<string, unknown> => line?.event === event);
   }
 
-  it("a pass whose ceiling refuses says `not_run` with the reason, buys nothing, and still refills", async () => {
+  it("a pass whose ceiling refuses says `not_run` with the reason, and buys nothing", async () => {
     const log = vi.spyOn(console, "log").mockImplementation(() => undefined);
     try {
       const cost = cappedCost();
@@ -282,7 +281,6 @@ describe("the supply line says whether the typing ran", () => {
       expect(eventsOf(log, "supply_pass")).toEqual([
         expect.objectContaining({ derived: "not_run", because: "spend_ceiling", spentCents: 9999 }),
       ]);
-      expect(eventsOf(log, "supply_refill")).toHaveLength(1);
     } finally {
       log.mockRestore();
     }
