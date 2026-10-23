@@ -3,7 +3,7 @@
 // them: the rows whole, through a store that stands in for the database.
 import { readFileSync } from "node:fs";
 import { createHash } from "node:crypto";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { offline } from "../../../src/lib/egress/offline";
 import { KEPT_CONTENT_PAGES, KEPT_NO_OVERVIEW_TEXT, KEPT_TOWN_BOUGHT, rehomeSite } from "../../../src/lib/scan/rescore";
 import {
@@ -430,35 +430,50 @@ describe("issue 1539: what a tracked-prompt answer states of the business is rea
   });
 });
 
-describe("issue 1441: a stored SERP whose local pack shows the site counts that search toward search presence", () => {
-  // gusto.com's scan, with a small business's footprint: three searches,
-  // none on the first page.
-  const scan = ((): FixtureScan => {
-    const s = fixture("gusto.com");
-    const report = structuredClone(s.report) as Record<string, unknown> & { ownRanked: { value: number } };
-    report.ownRanked = { ...report.ownRanked, value: 3 };
-    report.ownRankedRows = [40, 55, 70].map((position, i) => ({ keyword: `payroll question ${i}`, position }));
-    return { ...s, report };
-  })();
-  const rowOf = (s: FixtureScan): StoredScanRow => ({ ...s, domain: "gusto.com", md5: md5(s.report), siteId: null, isCurrent: false });
-  const searchPresence = (s: FixtureScan): number => {
-    const row = rescoreRow(rowOf(s), []);
-    if (!("result" in row)) throw new Error(row.because);
-    const value = row.result.drivers.searchPresence;
-    if (value.kind === "unmeasured") throw new Error("unmeasured");
-    return value.value;
+describe("search presence is re-scored at 0¢ as the stored card's page-one share (owner, 2026-10-22)", () => {
+  // gusto.com's stored scan: Google 10/10 from its Labs reach, beside a card of 0 of 1.
+  const scan = fixture("gusto.com");
+  const withReport = (edit: (report: Record<string, unknown>) => void): FixtureScan => {
+    const report = structuredClone(scan.report);
+    edit(report);
+    return { ...scan, report };
   };
-  const withPack = (domain: string): FixtureScan => {
-    const report = structuredClone(scan.report) as { serps: { kind: string; value?: Record<string, unknown> }[] };
-    const first = report.serps.find((serp) => serp.kind === "measured")!;
-    first.value!.localPack = [{ title: "A business", domain }];
-    return { ...scan, report: report as unknown as Record<string, unknown> };
+  const googleOf = (s: FixtureScan): unknown => {
+    const row = rescoreRow({ ...s, domain: "gusto.com", md5: md5(s.report), siteId: null, isCurrent: false }, []);
+    if (!("result" in row)) throw new Error(row.because);
+    return { driver: row.result.drivers.searchPresence, kept: row.result.kept };
   };
 
-  it("adds to it where the pack holds the site, and leaves it where the pack holds only others", () => {
-    const stored = searchPresence(scan);
-    expect(searchPresence(withPack("www.gusto.com"))).toBeGreaterThan(stored);
-    expect(searchPresence(withPack("rival.example"))).toBe(stored);
+  it("a stored bar of 10 beside a card of 0 is re-scored to 0, the old value kept under previousColumns, with no request made", async () => {
+    expect(scan.drivers).toMatchObject({ searchPresence: { kind: "measured", value: 100 } });
+    const fetched = vi.spyOn(globalThis, "fetch");
+    const db = storeOf([scan]);
+    await rescoreStored(db.store, apply);
+    expect(fetched).not.toHaveBeenCalled();
+    fetched.mockRestore();
+    const after = db.rows.get(scan.id)!;
+    expect(after.drivers).toMatchObject({ searchPresence: { kind: "zero", value: 0 } });
+    expect((after.report as { verdict: { halves: { google: unknown } } }).verdict.halves.google).toMatchObject({ kind: "zero", value: 0 });
+    expect((after.report as { previousColumns: { drivers: unknown } }).previousColumns.drivers).toEqual(scan.drivers);
+  });
+
+  it("a stored SERP whose local pack shows the site counts that search as page one", () => {
+    const packed = withReport((report) => {
+      const first = (report.serps as { kind: string; value: Record<string, unknown> }[]).find((serp) => serp.kind === "measured")!;
+      first.value.localPack = [{ title: "Gusto", domain: "www.gusto.com" }];
+    });
+    expect(googleOf(packed)).toMatchObject({ driver: { kind: "measured", value: 100 } });
+  });
+
+  it("a report with no stored card, or no measured search, keeps its stored value until its next scan", () => {
+    for (const edit of [
+      (report: Record<string, unknown>) => (report.presence = null),
+      (report: Record<string, unknown>) => (report.serps = []),
+    ]) {
+      const { driver, kept } = googleOf(withReport(edit)) as { driver: unknown; kept: string[] };
+      expect(driver).toMatchObject({ kind: "measured", value: 100 });
+      expect(kept).toContain("search presence: the report kept no measured search, so its stored value stands");
+    }
   });
 });
 

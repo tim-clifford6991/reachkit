@@ -223,14 +223,15 @@ export const FIXTURE_REPORT: StoredReport = {
     // The three the score is composed of, invented *coherently*:
     // `∛(70 × 20 × 20)` is 30, the score above, and content is the factor
     // the limiting line names (the tie with presence goes to the site's own
-    // pages first). Presence shows as its two halves, so the card draws
-    // the four parts 7/10, 2/10, 3/10 and 1/10.
+    // pages first). Presence shows as its two halves, Google the presence
+    // card's 1 of 12, so the card draws the four parts 7/10, 2/10, 1/10
+    // and 3/10.
     factors: {
       foundations: measured(70, MEASURED_AT),
       answerability: measured(20, MEASURED_AT),
       presence: measured(20, MEASURED_AT),
     },
-    halves: { google: measured(30, MEASURED_AT), ai: measured(10, MEASURED_AT) },
+    halves: { google: measured(100 / 12, MEASURED_AT), ai: measured(95 / 3, MEASURED_AT) },
     limiting: { kind: "factor", factor: "answerability" },
     missing: [],
     unmeasuredElsewhere: [],
@@ -413,6 +414,8 @@ export const FIXTURE_COLD_START_REPORT: StoredReport = {
     ...FIXTURE_REPORT.verdict,
     scoreAndBand: measured({ score: 8, band: "invisible" }, MEASURED_AT),
     estimate: { low: 8, high: 21, confidence: "rough" },
+    // On no first page of its twelve, and named by no AI answer.
+    halves: { google: measuredZero(0, MEASURED_AT), ai: measured(1, MEASURED_AT) },
     limiting: { kind: "factor", factor: "presence" },
     blockedReaders: measuredZero(0, MEASURED_AT),
   },
@@ -535,6 +538,9 @@ const FIXTURE_ARMS: Readonly<Record<string, (domain: CanonicalDomain) => Address
  *  fixture domain when it is this name or a subdomain of it — never when
  *  it merely ends with the same characters, which `evilexample.com` does. */
 const FIXTURE_SUFFIX = "example.com";
+
+/** Every domain with an arm of its own, and the reserved name itself. */
+export const FIXTURE_DOMAINS: readonly string[] = [FIXTURE_SUFFIX, ...Object.keys(FIXTURE_ARMS)];
 
 export function isFixtureDomain(domain: string): boolean {
   return domain === FIXTURE_SUFFIX || domain.endsWith(`.${FIXTURE_SUFFIX}`);
