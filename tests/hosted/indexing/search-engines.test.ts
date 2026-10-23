@@ -31,7 +31,7 @@ const SITE_URL = `https://${HOST}/`;
 const OLD = `${SITE_URL}how-to-rank`;
 const NEW = `${SITE_URL}onboarding-checklist`;
 const { privateKey } = generateKeyPairSync("rsa", { modulusLength: 2048 });
-const ACCOUNT = { client_email: "pool-1@reachkit.iam.gserviceaccount.com", private_key: privateKey.export({ type: "pkcs8", format: "pem" }).toString() };
+const ACCOUNT = { client_email: "pool-1@reachkit.example", private_key: privateKey.export({ type: "pkcs8", format: "pem" }).toString() };
 
 function ok(body: unknown, status = 200): FetchOutcome {
   return { ok: true, status, url: "", html: body === null ? "" : JSON.stringify(body), bytes: 0, readAt: NOW, headers: {} };

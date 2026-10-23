@@ -894,11 +894,11 @@ export const REPORT_COPY = Object.freeze({
     { slots: {}, fixedBy: "SPEC §6 · D66 · issue 1689" },
   ],
   "app.locale.also-serves": [
-    "Your site also serves {n} other markets; we measure one. Change it at setup.",
+    "Your site also serves {n} other markets; we measure one. Change it in Settings.",
     { slots: { n: "text" }, fixedBy: "SPEC §6 · D66 · issue 1689" },
   ],
   "app.locale.also-serves.one": [
-    "Your site also serves one other market; we measure one. Change it at setup.",
+    "Your site also serves one other market; we measure one. Change it in Settings.",
     { slots: {}, fixedBy: "SPEC §6 · D66 · issue 1689" },
   ],
   "report.locale.site.pair": ["{country} in {language}", { slots: { country: "text", language: "text" }, fixedBy: "SPEC §6 · D66 · issue 1311" }],

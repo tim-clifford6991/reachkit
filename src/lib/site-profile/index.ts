@@ -125,6 +125,7 @@ export async function buildSiteProfileWithCrawl(
     homeHtml: a.homeHtml ?? "",
     sitemaps: a.sitemaps,
     ...(ours === null ? {} : { skipHosts: ours.hosts }),
+    ...(a.locale === undefined ? {} : { locale: a.locale }),
   });
 
   // Nothing read is nothing stored. Not an empty profile: an inventory of

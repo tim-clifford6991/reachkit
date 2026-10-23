@@ -387,6 +387,19 @@ export const SETTINGS_COPY = Object.freeze({
   // the same either way and REQ-071 c9 names one. A category save has no
   // refusal: any non-empty string is a market somebody could be measured in.
   "settings.market.refused.unreachable": ["We can’t reach that domain, so it wasn’t saved. Check the spelling.", { slots: {}, fixedBy: "REQ-071 c9" }],
+  // D66 after setup (issue 1692). Drafted (#759).
+  "settings.locale.note": [
+    "Changing it starts a new scan. Earlier results stay, marked with the date.",
+    { slots: {}, fixedBy: "SPEC §6 · D66 · issue 1692" },
+  ],
+  "settings.locale.unchanged": [
+    "That’s the country and language we already measure, so nothing was scanned again.",
+    { slots: {}, fixedBy: "SPEC §6 · D66 · issue 1692" },
+  ],
+  "settings.locale.refused": [
+    "We don’t measure that country in that language, so it wasn’t saved.",
+    { slots: {}, fixedBy: "SPEC §6 · D66 · issue 1692" },
+  ],
 
   // ── Competitors ────────────────────────────────────────────────────────
   // D28 (owner, 2026-10-02, #1185): drafted, named in the pull request.
