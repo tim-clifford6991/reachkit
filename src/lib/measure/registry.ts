@@ -29,38 +29,6 @@ export const MEASURES: readonly Measure[] = Object.freeze(
   // measures:begin
   [
     {
-      id: "visibility-score",
-      shown: { on: "tile", key: "overview-tile-score" },
-      definition:
-        "The newest scan's Visibility Score, 0 to 100: foundations, answerability and presence in one number, with its band, the range it likely sits in and its change on the scan before. Before the first scan the tile names the day it runs.",
-      source: "src/lib/measure/score.ts#computeScore",
-      cadence: "Each weekly scan.",
-    },
-    {
-      id: "google-live-searches",
-      shown: { on: "tile", key: "overview-tile-google" },
-      definition:
-        "Of the searches the live pages target, how many Google shows the site for at places 1 to 100, split into the first page, places 11 to 100 and not yet seen. With no scan, or no live page read, the tile says so instead of a number.",
-      source: "src/app/(account)/app/_overview/search-model.ts#yourPages",
-      cadence: "Each weekly scan.",
-    },
-    {
-      id: "ai-mentioned-searches",
-      shown: { on: "tile", key: "overview-tile-ai" },
-      definition:
-        "Of the tracked searches that are not the business's own name, how many have an AI answer that names or links the site, out of those asked; beside it, how many link it, and the change on the week before.",
-      source: "src/app/(account)/app/_overview/prompts-model.ts#aiSearchesOf",
-      cadence: "Weekly, over the answers stored for the window.",
-    },
-    {
-      id: "pages-published",
-      shown: { on: "tile", key: "overview-tile-content" },
-      definition:
-        "Pages published and not taken down; with them, how many went live in the last {CONTENT_RECENT_WEEKS} weeks and how many reached each step toward being found (crawled, indexed, impressions, best place, cited). A read that failed says so, never 0.",
-      source: "src/app/(account)/app/_overview/content.ts#contentOf",
-      cadence: "Each time Overview is read, from the stored publications.",
-    },
-    {
       id: "page-questions-cited",
       shown: { on: "mail", key: "mail.weekly.number.pageQuestions" },
       definition:
