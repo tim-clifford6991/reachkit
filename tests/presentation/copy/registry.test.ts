@@ -305,8 +305,8 @@ describe("the thirteen keys the owner ruled 2026-09-04 (WO-041 `## Log`, this da
     // The confirmation is the OptOut board's own sentence (canvas V22), with
     // the address in the slot the board draws it in: the drawing is the
     // later word on the 2026-09-04 ruling's line.
-    expect(copy("optout.confirmed", { address: "you@company.com" })).toBe(
-      "No more follow-up mail will go to you@company.com, about any site. " +
+    expect(copy("optout.confirmed", { address: "you@example.com" })).toBe(
+      "No more follow-up mail will go to you@example.com, about any site. " +
         "Sign-in and account mail, if you have an account, still arrive."
     );
     expect(copy("optout.invalid")).toBe(
