@@ -19,6 +19,9 @@
 // order fails open, and so does the rewrite).
 import { dbAdmin } from "@/lib/db";
 
+// Named once, so every read of the takedown list is in this file.
+const TABLE = "domain_blocks";
+
 interface DomainBlockRow {
   domain: string;
 }
@@ -26,11 +29,13 @@ interface DomainBlockRow {
 interface QueryResult<T> {
   data: T[] | null;
   error: { message: string } | null;
+  count?: number | null;
 }
 
 interface MinimalQueryBuilder<T> extends PromiseLike<QueryResult<T>> {
-  select(columns: string): MinimalQueryBuilder<T>;
+  select(columns: string, options?: { count: "exact" }): MinimalQueryBuilder<T>;
   eq(column: string, value: string): MinimalQueryBuilder<T>;
+  order(column: string, options: { ascending: boolean }): MinimalQueryBuilder<T>;
   limit(n: number): MinimalQueryBuilder<T>;
 }
 
@@ -49,7 +54,7 @@ function untyped(client: { from: unknown }): MinimalClient {
  *  request. One indexed read, against a client the caller already holds. */
 export async function isRemovedWith(client: { from: unknown }, domain: string): Promise<boolean> {
   const { data, error } = await untyped(client)
-    .from<DomainBlockRow>("domain_blocks")
+    .from<DomainBlockRow>(TABLE)
     .select("domain")
     .eq("domain", domain)
     .limit(1);
@@ -60,4 +65,16 @@ export async function isRemovedWith(client: { from: unknown }, domain: string): 
 /** The same read, for a caller with no client of its own. */
 export function isDomainRemoved(domain: string): Promise<boolean> {
   return isRemovedWith(dbAdmin(), domain);
+}
+
+/** The takedown list's size and newest row, as one key: a removal changes it
+ *  at once, so a listing cached on it never waits out a window (#1069). */
+export async function removalsMark(): Promise<string> {
+  const { data, error, count } = await untyped(dbAdmin())
+    .from<{ blocked_at: string }>(TABLE)
+    .select("blocked_at", { count: "exact" })
+    .order("blocked_at", { ascending: false })
+    .limit(1);
+  if (error) throw new Error(`could not read the removals: ${error.message}`);
+  return `${count ?? 0}|${data?.[0]?.blocked_at ?? ""}`;
 }
