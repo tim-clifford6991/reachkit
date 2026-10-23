@@ -149,6 +149,9 @@ export interface HostedPage {
   /** SPEC §0 business fit of the page's opportunity, 0–3, or `null` where
    *  no pass judged it: only a 3 earns the compact block. */
   businessFit?: number | null;
+  /** SPEC §6 parent topic of the page's opportunity (`opportunities/cluster.ts`),
+   *  or `null` where it has none; absent reads as none. */
+  cluster?: string | null;
   /** When this version went live. On a page that has been refreshed it is
    *  the update's date, and `firstPublishedAt` is the page's own. */
   publishedAt: Date;
@@ -190,6 +193,7 @@ interface PublicationRow {
       id: string;
       target_query: string;
       business_fit: number | null;
+      cluster_key: string | null;
       scans: { created_at: string } | null;
     } | null;
   } | null;
@@ -205,7 +209,7 @@ const PAGE_COLUMNS =
   // credential-adjacent column stay absent by construction.
   "sites!inner(domain, category, timezone), " +
   "drafts!inner(title, body_md, attribution, meta, grounded_fact, opportunity_id, " +
-  "opportunities!inner(id, target_query, business_fit, scans(created_at)))";
+  "opportunities!inner(id, target_query, business_fit, cluster_key, scans(created_at)))";
 
 /**
  * The site whose hosted pages are served on this domain, or `null`.
@@ -307,6 +311,7 @@ function toPage(row: PublicationRow, host: string): HostedPage | null {
     byline: emptyToNull(draft.attribution ?? null),
     offering: draft.meta?.contentType === "offering",
     businessFit: opportunity.business_fit ?? null,
+    cluster: opportunity.cluster_key ?? null,
     publishedAt: datedAt(draft.meta) ?? new Date(row.published_at),
     firstPublishedAt: datedAt(draft.meta) ?? new Date(row.published_at),
     liveUrl,
