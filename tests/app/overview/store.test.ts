@@ -537,10 +537,24 @@ describe("the hosted address waiting for its record is read from the destination
     "%s waiting for DNS is the address to connect, with the one record that connects it",
     async (hostname) => {
       db.seed("destinations", [
-        { id: "dest-1", site_id: SITE_ID, kind: "hosted", hostname, hostname_state: "pending_dns", deleted_at: null },
+        {
+          id: "dest-1",
+          site_id: SITE_ID,
+          kind: "hosted",
+          hostname,
+          hostname_state: "pending_dns",
+          hostname_checked_at: "2026-10-09T14:00:00.000Z",
+          created_at: "2026-10-08T15:00:00.000Z",
+          deleted_at: null,
+        },
       ]);
       const read = await facts();
-      expect(read.connect).toEqual({ hostname, record: { type: "CNAME", name: hostname, value: "content.example.com" } });
+      expect(read.connect).toEqual({
+        hostname,
+        record: { type: "CNAME", name: hostname, value: "content.example.com" },
+        checkedAt: new Date("2026-10-09T14:00:00.000Z"),
+        since: new Date("2026-10-08T15:00:00.000Z"),
+      });
     }
   );
 
