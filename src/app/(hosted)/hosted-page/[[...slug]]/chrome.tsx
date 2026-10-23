@@ -2,13 +2,71 @@
 // customer's header, their about card and their footer line.
 //
 // Shared by the article and the index so the two cannot draw the business
-// two ways. daisyUI classes and lucide only, no client JavaScript, and no
+// two ways. daisyUI classes and lucide's drawings only, no client JavaScript, and no
 // primary colour: the product's colour would be our branding on their page.
 import type React from "react";
-import { ArrowUpRight, CalendarCheck, ClipboardCheck, Phone, Rss } from "lucide-react";
+import { createElement } from "react";
 import { copy } from "@/lib/presentation/copy/reader";
 import type { HostedIdentity } from "@/lib/publish/destinations/hosted";
 import { FEED_PATH, QUIET_LINE } from "./present";
+
+/** lucide's own drawings, inlined as its `[tag, attributes]` pairs: its `Icon`
+ *  is a client module, and the 410 route renders this chrome outside React
+ *  Server Components, where calling one throws. */
+type GlyphNode = readonly (readonly ["path" | "rect" | "circle", Record<string, string>])[];
+const GLYPHS = {
+  "arrow-up-right": [
+    ["path", { d: "M7 7h10v10" }],
+    ["path", { d: "M7 17 17 7" }],
+  ],
+  "calendar-check": [
+    ["path", { d: "M8 2v3" }],
+    ["path", { d: "M16 2v3" }],
+    ["rect", { x: "3", y: "3", width: "18", height: "18", rx: "2" }],
+    ["path", { d: "M3 9h18" }],
+    ["path", { d: "m9 15 2 2 4-4" }],
+  ],
+  "clipboard-check": [
+    ["rect", { width: "8", height: "4", x: "8", y: "2", rx: "1", ry: "1" }],
+    ["path", { d: "M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" }],
+    ["path", { d: "m9 14 2 2 4-4" }],
+  ],
+  phone: [
+    [
+      "path",
+      {
+        d: "M13.832 16.568a1 1 0 0 0 1.213-.303l.355-.465A2 2 0 0 1 17 15h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2A18 18 0 0 1 2 4a2 2 0 0 1 2-2h3a2 2 0 0 1 2 2v3a2 2 0 0 1-.8 1.6l-.468.351a1 1 0 0 0-.292 1.233 14 14 0 0 0 6.392 6.384",
+      },
+    ],
+  ],
+  rss: [
+    ["path", { d: "M4 11a9 9 0 0 1 9 9" }],
+    ["path", { d: "M4 4a16 16 0 0 1 16 16" }],
+    ["circle", { cx: "5", cy: "19", r: "1" }],
+  ],
+} as const satisfies Record<string, GlyphNode>;
+
+/** The attributes lucide's `Icon` writes at size 16 and stroke 1.75. */
+const GLYPH_SVG = {
+  xmlns: "http://www.w3.org/2000/svg",
+  width: 16,
+  height: 16,
+  viewBox: "0 0 24 24",
+  fill: "none",
+  stroke: "currentColor",
+  strokeWidth: 1.75,
+  strokeLinecap: "round",
+  strokeLinejoin: "round",
+} as const;
+
+/** Decorative: every glyph here sits beside the words it stands for. */
+function Glyph({ name }: { name: keyof typeof GLYPHS }): React.JSX.Element {
+  return (
+    <svg {...GLYPH_SVG} className={`lucide lucide-${name} flex-none`} aria-hidden="true">
+      {GLYPHS[name].map(([tag, attributes], i) => createElement(tag, { key: i, ...attributes }))}
+    </svg>
+  );
+}
 
 /** Where the logo is served on the customer's own host (`../logo.img`). */
 export const LOGO_PATH = "/logo.img";
@@ -64,7 +122,7 @@ function VisitButton({ business, width }: { business: HostedBusiness; width: str
   return (
     <a href={mainSiteOf(business)} className={`btn btn-sm min-w-0 ${width}`}>
       <span className="truncate">{copy("hosted.visit", { site: business.name })}</span>
-      <ArrowUpRight size={16} strokeWidth={1.75} aria-hidden className="flex-none" />
+      <Glyph name="arrow-up-right" />
     </a>
   );
 }
@@ -76,7 +134,7 @@ interface Action {
   label: string;
   /** What the header writes: a phone's number alone, else the label. */
   short: string;
-  Icon: typeof Phone;
+  glyph: keyof typeof GLYPHS;
 }
 
 /** What the business offers a reader, from what is stored and nothing else:
@@ -86,19 +144,19 @@ export function actionsOf(business: HostedBusiness): { primary: Action | null; q
   const phone = business.mainSite?.phone ?? null;
   const pages = (business.mainSite?.actions ?? []).map(({ kind, url }): Action => {
     const label = copy(kind === "book" ? "hosted.action.book" : "hosted.action.quote");
-    return { kind, href: url, label, short: label, Icon: kind === "book" ? CalendarCheck : ClipboardCheck };
+    return { kind, href: url, label, short: label, glyph: kind === "book" ? "calendar-check" : "clipboard-check" };
   });
   const all: Action[] =
     phone === null
       ? pages
-      : [{ kind: "call", href: `tel:${phone.replace(/[^\d+]/g, "")}`, label: copy("hosted.action.call", { phone }), short: phone, Icon: Phone }, ...pages];
+      : [{ kind: "call", href: `tel:${phone.replace(/[^\d+]/g, "")}`, label: copy("hosted.action.call", { phone }), short: phone, glyph: "phone" }, ...pages];
   return { primary: all[0] ?? null, quiet: all.slice(1, 3) };
 }
 
 function PrimaryButton({ action, text, width }: { action: Action; text: string; width: string }): React.JSX.Element {
   return (
     <a href={action.href} className={`btn btn-sm min-w-0 ${width}`}>
-      <action.Icon size={16} strokeWidth={1.75} aria-hidden className="flex-none" />
+      <Glyph name={action.glyph} />
       <span className="truncate">{text}</span>
     </a>
   );
@@ -187,10 +245,10 @@ export function AboutCard({
         {/* Plain links only where the main site links the page itself; `role` keeps a styled list a list in Safari. */}
         {quiet.length === 0 ? null : (
           <ul role="list" className="flex flex-wrap gap-x-5 gap-y-1 text-sm">
-            {quiet.map(({ kind, href, label, Icon }) => (
+            {quiet.map(({ kind, href, label, glyph }) => (
               <li key={kind}>
                 <a href={href} className="link link-hover inline-flex items-center gap-1.5">
-                  <Icon size={16} strokeWidth={1.75} aria-hidden className="flex-none" />
+                  <Glyph name={glyph} />
                   {label}
                 </a>
               </li>
@@ -220,7 +278,7 @@ export function HostedFooter({ business }: { business: HostedBusiness }): React.
         </span>
         <span className={FOOTER_PART}>
           <a href={FEED_PATH} className="link link-hover inline-flex items-center gap-1.5">
-            <Rss size={16} strokeWidth={1.75} aria-hidden className="flex-none" />
+            <Glyph name="rss" />
             {copy("hosted.footer.rss")}
           </a>
         </span>
