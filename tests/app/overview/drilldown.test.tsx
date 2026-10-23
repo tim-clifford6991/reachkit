@@ -83,7 +83,8 @@ describe("issue 1457 — a tile's count is its detail screen's row count", () =>
   it("Content opens Plan's Published list, and counts exactly its rows", async () => {
     const content = await tile("content");
     expect(content.getAttribute("href")).toBe("/app/calendar#published");
-    const list = render(<PublishedList content={contentOf(await readPublished())} timeZone="UTC" />);
+    const read = await readPublished();
+    const list = render(<PublishedList content={contentOf(read)} timeZone="UTC" now={read.now} />);
     expect(list.querySelector("#published")).not.toBeNull();
     const rows = list.querySelectorAll('[data-testid="plan-published-row"]');
     expect(figure(content, "content")).toBe(rows.length);

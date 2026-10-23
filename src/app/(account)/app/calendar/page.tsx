@@ -19,11 +19,14 @@ import type { Metadata } from "next";
 import { copy } from "@/lib/presentation/copy";
 import { writtenLine } from "../_shell/written";
 import { CalendarView } from "./CalendarView";
-import { PlanHead } from "./PlanHead";
+import { PlanHead, planHeadWords } from "./PlanHead";
 import { PlanNumbers } from "./PlanNumbers";
+import { WeekFoot, WeekHead } from "./WeekCard";
+import { addDays, clockTime, longDate, weekRange } from "./dates";
+import { zonePlace } from "../settings/format";
 import { PlanSkeleton } from "./PlanSkeleton";
 import { PLAN } from "./frame";
-import { currentCalendarSite, planToday, readStalledWeek, readSupplyNotice, readWeek } from "./provider";
+import { currentCalendarSite, planToday, readPlanHead, readStalledWeek, readSupplyNotice, readWeek } from "./provider";
 import { stalledLine, supplyLine } from "./supply";
 import { readOnboarding } from "../_shell/onboarding";
 import { FirstPageNotice } from "../_shell/OnboardingStatus";
@@ -39,11 +42,17 @@ import { readCategoryChoice } from "../_shell/remeasure";
 export const metadata: Metadata = { title: copy("meta.app.plan.title") };
 
 export default async function CalendarPage(): Promise<React.JSX.Element> {
-  const [week, onboarding, published] = await Promise.all([
+  const [week, onboarding, published, head] = await Promise.all([
     planToday().then(readWeek),
     readOnboarding(),
     currentCalendarSite().then((site) => readPublishedFor(site?.siteId ?? null)),
+    readPlanHead(),
   ]);
+  const content = contentOf(published);
+  const first = week.cells[0]?.day ?? week.today;
+  const last = week.cells.at(-1)?.day ?? week.today;
+  // A go-live time is promised only where the address works (Q11).
+  const time = week.destination?.healthy === true && head.publishTime !== null ? clockTime(head.publishTime) : null;
   // §7's one statement of supply. At most one — the precedence between the
   // three arms is the engine's, and this screen renders whichever it
   // returned and never a second.
@@ -61,10 +70,16 @@ export default async function CalendarPage(): Promise<React.JSX.Element> {
   const supplyNote = writtenLine("calendar.footnote.supply");
   return (
     <div className={PLAN}>
-      <PlanHead />
+      <PlanHead words={planHeadWords(head, week.counts.all)} />
 
-      {/* The numbers open the screen (owner 2026-10-09, issue 1364). */}
-      <PlanNumbers counts={week.counts} />
+      <PlanNumbers
+        figures={{
+          week: week.counts.all,
+          live: content === null ? null : content.pages.length,
+          spares: week.spares.length,
+          stopped: week.cells.filter((cell) => cell.empty?.cause === "page_cannot_go_live").length,
+        }}
+      />
 
       <FirstPageNotice state={onboarding} />
       {/* §7's one statement of supply, at the calendar's top and nowhere
@@ -97,12 +112,22 @@ export default async function CalendarPage(): Promise<React.JSX.Element> {
         </p>
       )}
       <Suspense fallback={<PlanSkeleton />}>
-        <CalendarView week={week} />
+        <CalendarView
+          week={week}
+          goesLive={time}
+          head={
+            <WeekHead
+              range={weekRange(first, last)}
+              time={time === null ? null : copy("calendar.week.time", { time, place: zonePlace(week.timeZone) })}
+            />
+          }
+          foot={<WeekFoot next={longDate(addDays(first, 7))} />}
+        />
       </Suspense>
 
       {/* Every page published (issue 1457): what Overview's Content tile
           counts, and where it opens. */}
-      <PublishedList content={contentOf(published)} timeZone={week.timeZone} />
+      <PublishedList content={content} timeZone={week.timeZone} now={published.now} />
 
       {/* One footnote under the grid: the rule. What supply is doing right
           now is stated at the top. */}

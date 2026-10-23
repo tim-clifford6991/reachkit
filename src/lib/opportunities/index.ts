@@ -45,6 +45,7 @@ export { suppressionOf, verdictReason, type NotWorkingVerdict, type Suppression 
 export { opportunityById } from "./next";
 export {
   committedWeek,
+  weekChosenOn,
   pageForDay,
   planFirstWeek,
   planWeek,

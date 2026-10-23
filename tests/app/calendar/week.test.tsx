@@ -12,7 +12,7 @@ import { CalendarView } from "@/app/(account)/app/calendar/CalendarView";
 import { planWeek } from "@/app/(account)/app/calendar/dates";
 import { assembleMonth, weekOf, type CalendarFacts, type DraftOnDay } from "@/app/(account)/app/calendar/month";
 import { FIXTURE_CALENDAR_FACTS, FIXTURE_MONTH } from "@/app/(account)/app/calendar/fixture";
-import { whyLineOf } from "@/app/(account)/app/calendar/card-lines";
+import { whySentenceOf } from "@/app/(account)/app/calendar/card-lines";
 import type { State } from "@/lib/publish/types";
 import { shown, withNuqs } from "./nuqs-adapter";
 
@@ -95,7 +95,7 @@ describe("condition 1 — seven cells, each with its page, its state and the sto
     ]);
   });
 
-  it("each page says in one line why the week holds it, on the week and on a phone, from its stored reason", () => {
+  it("each page says under 'Why' the sentence for the reason its week stored, on the week and on a phone", () => {
     const reasons = [
       null,
       { points: 6, parts: [{ part: "fit" as const, n: 3 }, { part: "ai_gap" as const, n: 2 }, { part: "linked_by_ai" as const, n: 1 }], rule: "best" as const },
@@ -103,12 +103,14 @@ describe("condition 1 — seven cells, each with its page, its state and the sto
       { points: 1, parts: [{ part: "fit" as const, n: 1 }], rule: "best" as const },
     ];
     const facts = fullWeek();
-    const drafts = facts.drafts.map((draft, at) => ({ ...draft, whyLine: whyLineOf(reasons[at % reasons.length]) }));
+    const drafts = facts.drafts.map((draft, at) => ({ ...draft, whyLine: whySentenceOf(reasons[at % reasons.length]) }));
     const root = render(withNuqs(<CalendarView {...shown(assembleMonth({ ...facts, drafts }, FIXTURE_MONTH))} />));
-    const lines = [null, COPY["calendar.week.why.ai-gap"], COPY["calendar.week.why.searched"], null, null, COPY["calendar.week.why.ai-gap"], COPY["calendar.week.why.searched"]];
-    expect(cells(root).map((cell) => cell.querySelector('[data-testid="cell-why"]')?.textContent ?? null)).toEqual(lines);
+    const lines = [null, COPY["calendar.reason.ai-gap"], COPY["calendar.reason.searched"], null, null, COPY["calendar.reason.ai-gap"], COPY["calendar.reason.searched"]];
+    expect(cells(root).map((cell) => cell.querySelector('[data-testid="cell-why-line"]')?.textContent ?? null)).toEqual(lines);
     const rows = [...root.querySelectorAll('[data-testid="calendar-list"] [data-testid^="calendar-day-"]')];
-    expect(rows.map((row) => row.querySelector('[data-testid="list-why"]')?.textContent ?? null)).toEqual(lines);
+    expect(rows.map((row) => row.querySelector('[data-testid="list-why-line"]')?.textContent ?? null)).toEqual(lines);
+    const eyebrows = cells(root).map((cell) => cell.querySelector('[data-testid="cell-why"]')?.firstElementChild?.textContent ?? null);
+    expect(eyebrows).toEqual(lines.map((line) => (line === null ? null : COPY["calendar.week.why"])));
   });
 
   it("the stop is a ghost warning button, on a written page that can still be stopped and nowhere else", () => {

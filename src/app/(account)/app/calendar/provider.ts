@@ -43,9 +43,9 @@ import { now as clock } from "@/lib/config/now";
 import type { CalendarSupplyNotice } from "./supply";
 import { isReservedFixtureAccount, redirectForMissingZone, requireAppAccount } from "../_session/account";
 import { assembleMonth, weekOf, type MonthModel, type WeekModel } from "./month";
-import { addDays, dayKeyOf, monthOf, planWeek, type DayKey, type MonthKey } from "./dates";
+import { addDays, dayKeyOf, monthOf, planWeek, serviceWeek, type DayKey, type MonthKey } from "./dates";
 import type { StalledCount } from "@/lib/publish/record/stalled";
-import { FIXTURE_CALENDAR_FACTS } from "./fixture";
+import { FIXTURE_CALENDAR_FACTS, FIXTURE_PLAN_HEAD } from "./fixture";
 import { FIXTURE_DOMAIN } from "../_shell/fixture";
 import type { CalendarSite } from "./store";
 
@@ -68,7 +68,7 @@ const fromSession: CalendarSiteReader = async () => {
   if (isReservedFixtureAccount(account)) return null;
   // REQ-073 c1: a site with no stated zone is never drawn in the server's.
   if (account.timeZone === null) return redirectForMissingZone();
-  return { siteId: account.siteId, timeZone: account.timeZone };
+  return { siteId: account.siteId, timeZone: account.timeZone, createdAt: account.createdAt };
 };
 
 let siteReader: CalendarSiteReader = fromSession;
@@ -159,4 +159,28 @@ export const readStalledWeek = cache(async function readStalledWeek(): Promise<S
   const { stalledBySite } = await import("@/lib/publish/record/stalled-read");
   const counts = await stalledBySite({ siteId: site.siteId, from: addDays(today, -6), to: today }).catch(() => null);
   return counts?.get(site.siteId) ?? null;
+});
+
+/** What Plan's head and week card say about the week as a whole. */
+export interface PlanHeadFacts {
+  /** The week of service, counting the sign-up week as 1. */
+  week: number | null;
+  /** The day the pass chose this week; `null` before the first commit. */
+  chosen: DayKey | null;
+  /** `HH:mm` in the site's zone; `null` where it could not be read. */
+  publishTime: string | null;
+}
+
+export const readPlanHead = cache(async function readPlanHead(): Promise<PlanHeadFacts> {
+  const site = await currentCalendarSite();
+  if (site === null) return FIXTURE_PLAN_HEAD;
+  const [chosen, settings] = await Promise.all([
+    import("@/lib/opportunities").then(({ weekChosenOn }) => weekChosenOn(site.siteId)).catch(() => null),
+    import("@/lib/publish/settings/settings").then(({ readPublishingSettings }) => readPublishingSettings(site.siteId)).catch(() => null),
+  ]);
+  return {
+    week: site.createdAt === undefined ? null : serviceWeek(dayKeyOf(site.createdAt, site.timeZone), dayKeyOf(clock(), site.timeZone)),
+    chosen,
+    publishTime: settings?.publishTime ?? null,
+  };
 });

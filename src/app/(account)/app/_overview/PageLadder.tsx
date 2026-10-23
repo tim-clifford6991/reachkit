@@ -14,7 +14,7 @@ const ROWS_ID = "overview-ladder-pages";
 const ON_GOOGLE = { title: "draft.ladder.google", sub: "overview.ladder.google.sub", testId: "overview-ladder-google" } as const;
 const IN_AI = { title: "draft.ladder.ai", sub: "overview.ladder.ai.sub", testId: "overview-ladder-ai" } as const;
 
-const LABEL: Readonly<Record<Label, { key: CopyKey; badge: string }>> = {
+export const LABEL: Readonly<Record<Label, { key: CopyKey; badge: string }>> = {
   working: { key: "review.label.working", badge: "badge badge-soft badge-success" },
   climbing: { key: "review.label.climbing", badge: "badge badge-soft badge-primary" },
   too_early: { key: "review.label.too_early", badge: "badge badge-soft" },
