@@ -58,7 +58,7 @@ import { WhatWeRead, whereLine } from "@/app/_business/WhatWeRead";
 import type { BusinessUnderstanding } from "@/lib/business/types";
 import { profileOfReport, understandBusiness } from "@/lib/business/understanding";
 import { BuyersSection } from "../_modules/buyers";
-import { TIMING } from "@/lib/config/constants";
+import { TIMING, WEEK_PLAN } from "@/lib/config/constants";
 import { BOT_PROTECTION, HOME_TIMEOUT } from "@/lib/measure/challenge";
 // #103: the category has one home — the market the profile inferred.
 // `categoryOf` is the one derivation of it, and the screen reads it here
@@ -399,22 +399,43 @@ function readAsOf(report: StoredReport, understanding: BusinessUnderstanding | n
   ];
 }
 
-/** Owner A3 (2026-10-19): the offer leads with the count the report found,
- *  and keeps a free path to the first page beside it. */
+/** Owner A3 (2026-10-19): the pages the report found, under their count,
+ *  ahead of the offer that writes them (board PubReport). */
+function MissingPagesSection(p: { pages: readonly MissingPage[] | null }): React.JSX.Element | null {
+  const found = p.pages?.length ?? 0;
+  if (p.pages === null || found === 0) return null;
+  return (
+    <section className="flex min-w-0 flex-col gap-3">
+      <p className="eyebrow">{copy("report.missing.eyebrow")}</p>
+      <h2 className="text-3xl font-bold">
+        {copy(found === 1 ? "report.offer.found.one" : "report.offer.found", { count: String(found) })}
+      </h2>
+      <MissingPagesList pages={p.pages} />
+    </section>
+  );
+}
+
+/** The offer names the missing pages where the report measured some, and
+ *  keeps a free path to the first page where there is one. */
 function offerOf(
   report: StoredReport,
-  pages: readonly MissingPage[] | null
-): { eyebrow?: string; heading?: string; free?: React.ReactNode } {
-  const found = pages?.length ?? 0;
-  if (report.freePage === null || found === 0) return {};
+  cards: readonly ProblemCard[]
+): { heading?: string; line?: string; free?: React.ReactNode } {
+  const missing = cards.find((card) => card.problem === "missing_pages")?.count;
+  const named = missing !== undefined && missing.kind === "measured" && missing.value > 0;
   return {
-    eyebrow: copy("report.missing.eyebrow"),
-    heading: copy(found === 1 ? "report.offer.found.one" : "report.offer.found", { count: String(found) }),
-    free: (
-      <a href="#first-page" className="link link-primary text-center text-sm" data-testid="report-free-path">
-        {copy("report.offer.free-path")}
-      </a>
-    ),
+    ...(named
+      ? { heading: copy("offer.found.heading"), line: copy("offer.found.line", { weekPages: String(WEEK_PLAN.days) }) }
+      : {}),
+    ...(report.freePage === null
+      ? {}
+      : {
+          free: (
+            <a href="#first-page" className="link link-primary text-center text-sm" data-testid="report-free-path">
+              {copy("report.offer.free-path")}
+            </a>
+          ),
+        }),
   };
 }
 
@@ -548,16 +569,17 @@ export function ReportView(p: {
             from this report — its scan is the checkout's origin, so the
             site is provisioned on this domain. #1068: the report's price
             close spans the screen, its heading and terms beside the price. */}
-        <div id="start" className="col-span-full scroll-mt-20">
+        <div id="start" className="col-span-full flex scroll-mt-20 flex-col gap-8">
+          <MissingPagesSection pages={missingPages} />
           <PricingCard
             startAction={startReportCheckout.bind(null, report.domain, report.scanId)}
             refused={p.checkoutRefused === true}
             close
-            {...offerOf(report, missingPages)}
-          >
-            {missingPages === null ? null : <MissingPagesList pages={missingPages} />}
-          </PricingCard>
+            {...offerOf(report, cards)}
+          />
         </div>
+
+        <p className="eyebrow col-span-full">{copy("report.rest.eyebrow")}</p>
 
         {/* What holds you back (#1068): the three that cost most as cards,
             then SPEC §9's eight checks as one list (#570) — a check that
