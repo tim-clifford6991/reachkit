@@ -10,8 +10,11 @@
 import { readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
-import { GOAL_VALUES } from "@/lib/config/constants";
+import { GOAL_VALUES, WEEK_PLAN } from "@/lib/config/constants";
+import { measured } from "@/lib/measure/measured";
+import { copy } from "@/lib/presentation/copy";
 import { GOAL_KEYS, GOALS } from "@/app/(account)/app/_overview/goals";
+import { carriedBy } from "@/app/(account)/app/_overview/present";
 
 const OVERVIEW_DIR = path.resolve(import.meta.dirname, "../../../src/app/(account)/app/_overview");
 
@@ -37,6 +40,15 @@ describe("the three goals, and their values", () => {
   it("the three meaning keys are distinct — three goals are never one sentence", () => {
     const keys = GOAL_KEYS.map((key) => GOALS[key].meansKey);
     expect(new Set(keys).size).toBe(keys.length);
+  });
+});
+
+describe("the pages goal says the week plan's pace", () => {
+  it("its means line is the week's pages from the plan, never a daily pace", () => {
+    const carried = carriedBy({ value: measured(3, new Date("2026-10-19T00:00:00.000Z")), goal: "pages_published" }, "overview.tile.pages.means");
+    const means = copy("overview.tile.pages.means", { days: String(WEEK_PLAN.days) });
+    expect(carried.kind === "goal" && carried.means).toBe(means);
+    expect(means).toContain(`up to ${WEEK_PLAN.days} a week`);
   });
 });
 

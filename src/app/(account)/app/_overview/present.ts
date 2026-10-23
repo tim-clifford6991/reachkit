@@ -18,6 +18,7 @@
 // Numerals are formatted with the site's locale-free grouping — every
 // numeral on this screen renders inside `.num` (`src/ui/type.css`), which is
 // the one mechanism §2.3's mono rule is enforced through.
+import { WEEK_PLAN } from "@/lib/config/constants";
 import type { Measured, UnmeasuredReason } from "@/lib/measure/measured";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { renderMeasured } from "@/lib/presentation/measured";
@@ -109,7 +110,7 @@ export function carriedBy(headline: HeadlineNumber<number>, subjectKey: CopyKey)
   return {
     kind: "goal",
     text: copy("overview.goal", { value: formatCount(goal.value) }),
-    means: writtenLine(goal.meansKey, { goal: formatCount(goal.value) }),
+    means: writtenLine(goal.meansKey, { goal: formatCount(goal.value), days: String(WEEK_PLAN.days) }),
   };
 }
 
