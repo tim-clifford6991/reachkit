@@ -65,7 +65,7 @@ async function mount(offer: CorrectionOffer): Promise<HTMLElement> {
   mounted.push({ root, host });
   await act(async () =>
     root.render(
-      <VerdictStrip verdict={FIXTURE_REPORT.verdict} category="user onboarding software" measuredOn="Sep 15, 2026" correction={offer} />
+      <VerdictStrip verdict={FIXTURE_REPORT.verdict} category="user onboarding software" measuredOn="Sep 15, 2026" correction={offer} readAs={[]} seeMissing={false} />
     )
   );
   return host;

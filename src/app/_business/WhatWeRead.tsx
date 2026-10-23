@@ -16,7 +16,8 @@ import { copy } from "@/lib/presentation/copy";
 /** The most lines of what it sells, and of who buys, the card shows. */
 const SHOWN = 3;
 
-function whereLine(where: BusinessUnderstanding["where"]): string {
+/** Where the business sells, in one line. */
+export function whereLine(where: BusinessUnderstanding["where"]): string {
   const country = COUNTRIES[where.country].location;
   if (where.place !== null) return copy("report.read.where.local", { place: where.place.name });
   switch (where.reach) {

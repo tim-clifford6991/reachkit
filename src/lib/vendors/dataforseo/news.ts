@@ -1,25 +1,9 @@
-// SPEC §7 (owner, D48, 2026-10-04; issue 1259) — serpNews: one Google News
-// search, its first ten results with the day each was published.
-//
-// *Current insights* is a page of what a market published lately, and an
-// ordinary web search returns pages of any age: on 2026-10-04 reachkit.app's
-// returned none dated inside 30 days (issue 1252's proof). The news search
-// dates every result itself, so this is the one thing it is bought for — a
-// result the vendor gives no date is not a row.
-//
-// The cost check of 2026-10-04 (issue 1259): the vendor charges $0.002 a
-// call, which is `PRICE_BOOK.NEWS_LIVE_C`. A `news_search` row names no
-// publisher, so its domain stands as the source, and its `timestamp` is the
-// vendor's reading of Google's "2 days ago" — good to the day for a recent
-// story and to the week for an older one, which is why the research step
-// holds a page to its own stated date where it has one.
-//
-// Live only: a page is written inside one invocation, and the standard
-// queue's wait is longer than that. Depth 10 is fixed and the locale written
-// in `transport.ts`, as they are for the organic SERP.
-//
-// Cache: keyed on the query, the locale and whose purchase it is, like the
-// organic SERP's (`serp.ts`, #75). The window is the caller's.
+// SPEC §7 (D48) — serpNews: one Google News search, its first ten results with the day each was published.
+// Bought for the date: *current insights* needs what a market published lately, so an undated result is not a row.
+// A `news_search` row names no publisher, so its domain is the source. Its `timestamp` reads Google's "2 days ago",
+// exact to the day only for recent stories, so the research step prefers a page's own stated date.
+// Live only: a page is written inside one invocation, shorter than the standard queue's wait.
+// Cached like the organic SERP, on query, locale and whose purchase it is; the window is the caller's.
 import type { CostContext } from "@/lib/costs";
 import { PRICE_BOOK } from "@/lib/config/constants";
 import type { Locale } from "@/lib/locale/locales";

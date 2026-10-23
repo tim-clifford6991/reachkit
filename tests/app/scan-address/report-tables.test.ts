@@ -157,22 +157,13 @@ describe("a table or grid on the report scrolls inside its own wrap, or stacks s
     for (const grid of grids) expect(grid, grid).not.toContain("items-start");
   });
 
-  it("the presence card's occupancy is the registered drawing, and needs no scroll container", () => {
-    // The hand-built occupancy row is gone (issue #352): the domains, the
-    // bars and the counts are `PresenceBars`, §2.4's own drawing of this
-    // card's figure.
-    //
-    // **It used to be checked for a wrap, and that row is now the opposite
-    // claim (#956).** The wrap was there for the drawing #943 replaced,
-    // whose labels were laid out beside the bars and could run wider than
-    // the card. Since #943 each row is a line of HTML above a bar that is
-    // `width: 100%`, with the domain clamped to its own line — so nothing
-    // in the drawing can be wider than the box, and an `overflow-x: auto`
-    // that never scrolls is still a box the layout law must excuse and a
-    // tab stop #947 would have to name.
+  it("the presence card's waffle is the AI card's grid, and scrolls inside its own wrap as that grid does", () => {
+    // One square per search, a name and a tally per row (board PubReport):
+    // the same CSS grid the AI card draws, so at 320px it scrolls in its
+    // named wrap rather than shrinking a domain.
     const source = read("google-presence.tsx");
-    expect(source).toContain("<PresenceBars");
-    expect(WRAP.test(source), "the unconditional wrap is gone from this module").toBe(false);
+    expect(source).toContain("<AnswerMatrix");
+    expect(WRAP.test(source)).toBe(true);
     expect(wrapped(source), "the table below it still answers §2.2, by stacking").toBe(true);
   });
 

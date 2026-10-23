@@ -1,12 +1,5 @@
-// src/lib/vendors/dataforseo/account.ts — issue 1478, SPEC §6.
-//
-// What the account holds: `GET /v3/appendix/user_data`, which the vendor
-// does not charge for. The balance and everything ever deposited, in US
-// cents like the ledger. The owner's cost page reads a day's bill as the
-// balance's fall between two openings, deposits added back
-// (`src/lib/costs/vendor-days.ts`). The same reading `scripts/vendor-snapshot.mjs`
-// takes on the box each hour.
-//
+// SPEC §6. The account's balance and total deposits in US cents, from the free `GET /v3/appendix/user_data`.
+// `src/lib/costs/vendor-days.ts` reads a day's bill as the balance's fall, deposits added back.
 // Outside the cost seam on purpose, like `locations.ts`: nothing is bought.
 import { sendGet } from "./transport";
 

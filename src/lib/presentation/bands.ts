@@ -79,12 +79,12 @@ export type ShownFactor = "foundations" | "answerability" | "google" | "ai" | "p
  *  Same shape as `SCORE_BANDS`: a handle becomes a `CopyKey` and nothing
  *  else. Since issue 1444 each bar the report shows has a short title
  *  ("Biggest gap: Content") and one line under it. */
-export const LIMITING_LINES: Readonly<Record<ShownFactor, { title: CopyKey; line: CopyKey }>> = {
-  foundations: { title: "verdict.limiting.foundations", line: "verdict.limiting.foundations.line" },
-  answerability: { title: "verdict.limiting.answerability", line: "verdict.limiting.answerability.line" },
-  google: { title: "verdict.limiting.google", line: "verdict.limiting.google.line" },
-  ai: { title: "verdict.limiting.ai", line: "verdict.limiting.ai.line" },
-  presence: { title: "verdict.limiting.presence", line: "verdict.limiting.presence.line" },
+export const LIMITING_LINES: Readonly<Record<ShownFactor, { title: CopyKey; line: CopyKey; why: CopyKey }>> = {
+  foundations: { title: "verdict.limiting.foundations", line: "verdict.limiting.foundations.line", why: "verdict.limiting.foundations.why" },
+  answerability: { title: "verdict.limiting.answerability", line: "verdict.limiting.answerability.line", why: "verdict.limiting.answerability.why" },
+  google: { title: "verdict.limiting.google", line: "verdict.limiting.google.line", why: "verdict.limiting.google.why" },
+  ai: { title: "verdict.limiting.ai", line: "verdict.limiting.ai.line", why: "verdict.limiting.ai.why" },
+  presence: { title: "verdict.limiting.presence", line: "verdict.limiting.presence.line", why: "verdict.limiting.presence.why" },
 };
 
 /** Added 2026-09-06, issue #47 (REQ-063): the four words a published

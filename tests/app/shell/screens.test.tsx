@@ -199,8 +199,8 @@ describe("overview — the built screen still keeps the shell's contract", () =>
   it("renders, and is headed by a key from the registry", async () => {
     const html = await markup(OverviewPage());
     // `copy()` is mocked to the identity above, so the heading is whichever
-    // key the head resolved to — what autopilot is doing (issue 1362).
-    expect(html).toMatch(/<h1>[a-z.\-]+<\/h1>/);
+    // key the head resolved to.
+    expect(html).toMatch(/<h1[^>]*>[a-z.\-]+<\/h1>/);
     expect(html).toContain('data-testid="overview"');
   });
 });

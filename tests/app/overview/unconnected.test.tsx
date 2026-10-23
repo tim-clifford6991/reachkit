@@ -206,8 +206,8 @@ describe("Overview for an address not connected yet", () => {
   it("once the host is live, Overview is the ordinary one", async () => {
     seed({ kind: "hosted", hostname: `${PLUMBER.label}.${PLUMBER.domain}`, state: "live" });
     const { h1, html } = await screen();
-    expect(h1).toBe(copy("overview.head.due.today", { time: "4:00 PM" }));
-    expect(html).toContain('data-testid="overview-tiles"');
+    expect(h1).toBe(copy("overview.head.title"));
+    expect(html).toContain('data-testid="overview-waiting"');
     expect(html).not.toContain('data-testid="overview-connect"');
   });
 
@@ -216,6 +216,6 @@ describe("Overview for an address not connected yet", () => {
     const { html } = await screen();
     expect(html).not.toContain('data-testid="dns-record"');
     expect(html).not.toContain('data-testid="overview-connect"');
-    expect(html).toContain('data-testid="overview-tiles"');
+    expect(html).toContain('data-testid="overview-head"');
   });
 });

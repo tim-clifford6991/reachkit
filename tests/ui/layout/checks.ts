@@ -172,6 +172,12 @@ export function checkContainment(opts: {
     // and three `<script>` tags, against `<body>`'s 8px UA margin). No box,
     // nothing to measure — skipped, never reported.
     if (el.getClientRects().length === 0) continue;
+    // Issue #1875: a box that is laid out but not rendered — computed
+    // `visibility: hidden` or `collapse`, as a closed daisyUI drawer is —
+    // shows the visitor nothing, so nothing of it can escape. Computed, so a
+    // `visibility: visible` descendant of a hidden parent is still measured.
+    const style = getComputedStyle(el);
+    if (style.visibility === "hidden" || style.visibility === "collapse") continue;
     const box = el.getBoundingClientRect();
     // 2026-09-20, issue #913: an **out-of-flow** element is not laid out
     // inside its parent's padding box at all. CSS gives `position: fixed`
@@ -189,7 +195,7 @@ export function checkContainment(opts: {
     // that is what they are held to: an out-of-flow box may sit anywhere
     // down the page, and may not stick out to either side of the viewport.
     // A toast wider than the phone it is drawn on is still an offender.
-    const position = getComputedStyle(el).position;
+    const position = style.position;
     if (position === "fixed" || position === "absolute") {
       if (box.left < -EPS || box.right > window.innerWidth + EPS) {
         const screen = new DOMRect(0, box.top, window.innerWidth, box.height);
