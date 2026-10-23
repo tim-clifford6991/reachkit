@@ -97,8 +97,8 @@ describe("a site that declares other markets is told one is measured", () => {
 
   it.each([
     [0, null],
-    [1, "Your site also serves one other market; we measure one. Change it at setup."],
-    [48, "Your site also serves 48 other markets; we measure one. Change it at setup."],
+    [1, "Your site also serves one other market; we measure one. Change it in Settings."],
+    [48, "Your site also serves 48 other markets; we measure one. Change it in Settings."],
   ])("the app at %i other markets", (n, said) => {
     expect(lineOf(renderToStaticMarkup(React.createElement(AlsoServesNote, { n })), "also-serves")).toBe(said);
   });

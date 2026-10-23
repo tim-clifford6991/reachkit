@@ -41,6 +41,7 @@ import { formatDate } from "../../_shell/format";
 import { writtenLine } from "../../_shell/written";
 import { remeasureNowAction, saveCategoryAction, saveDomainAction } from "../change-actions";
 import { SettingRow } from "./SettingRow";
+import { LocaleRow } from "./LocaleRow";
 import {
   MARKET_CATEGORY_FIELD,
   MARKET_CHANGE_INITIAL,
@@ -78,6 +79,8 @@ export function MarketPanel(p: {
   /** D28 (#1185): ReachKit's conclusion, for the category's one line. */
   concluded?: SettingsModel["concluded"];
   domain: string;
+  /** D66: absent, the card offers no country and language. */
+  locale?: SettingsModel["locale"];
   /** REQ-073 c1's stated zone — the one this card writes a date in when a
    *  save answers before the re-read comes back. */
   timeZone: string;
@@ -311,6 +314,8 @@ export function MarketPanel(p: {
               </>
             )}
           </SettingRow>
+
+          {p.locale === undefined ? null : <LocaleRow locale={p.locale} />}
         </div>
 
         {/* Issue 866: the plain way to measure the market again — the same

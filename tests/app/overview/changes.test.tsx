@@ -125,7 +125,7 @@ describe("withBreaks — a marker stands between the two weeks it fell between",
   });
 
   it("every change kind has an account key — a change this screen cannot name is one it must not draw", () => {
-    const kinds = ["domain", "category", "rivals"] as const;
+    const kinds = ["domain", "category", "rivals", "locale"] as const;
     for (const kind of kinds) {
       expect(CHANGE_ACCOUNT_KEY[kind], kind).toMatch(/^overview\.change\./);
     }
