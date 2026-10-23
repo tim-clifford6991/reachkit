@@ -181,9 +181,11 @@ export async function storeCurrentReport(a: {
   drivers: Drivers;
   /** The cost seam's own `degraded()`, carried and not recomputed. */
   degraded: boolean;
+  /** The caller's own verdict that the pass measured nothing it can stand on. */
+  failed?: true;
   costCents: number;
 }): Promise<{ scanId: string; status: ScanStatus }> {
-  const status = statusOf({ stoppedReason: a.report.stoppedReason, degraded: a.degraded });
+  const status = a.failed === true ? "failed" : statusOf({ stoppedReason: a.report.stoppedReason, degraded: a.degraded });
 
   const { error } = await untyped(dbAdmin()).rpc("store_current_report", {
     p_scan_id: a.report.scanId,

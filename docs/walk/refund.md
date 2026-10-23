@@ -1,11 +1,18 @@
 # Refunding the tester
 
-The steps are `docs/GO-LIVE.md` §1.7, in the order it gives. Nothing below changes them. Only the
-owner can do them, because each one is an act in a vendor dashboard. Do them after the walk has
-ended, including step 7 (the stopped page), so the refund does not cut the walk short.
+**Inside the first 14 days the refund is automatic** (D4, `docs/spec/decisions/2026-10-20-1699.md`).
+When the tester cancels in Settings › Billing, ReachKit refunds the first payment, cancels the
+subscription at once and closes access by itself, once per web address. Check it with step 5 and
+`select invoice_id, refunded_at from refunds where user_id = '<id>';`. Do not refund it again in the
+dashboard.
 
-A refund takes three acts, and **no event does any of them for you**. No refund event is among the
-seven subscribed webhook events, and `users.paid_through` never moves backwards from a vendor event.
+The steps below are for any other refund: after day 14, or a second account for a web address
+already refunded. They are `docs/GO-LIVE.md` §1.7, in the order it gives. Only the owner can do
+them, because each one is an act in a vendor dashboard. Do them after the walk has ended, including
+step 7 (the stopped page), so the refund does not cut the walk short.
+
+Such a refund takes three acts, and **no event does any of them for you**. No refund event is among
+the subscribed webhook events, and `users.paid_through` never moves backwards from a vendor event.
 
 ## The steps
 

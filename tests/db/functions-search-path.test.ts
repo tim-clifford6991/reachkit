@@ -188,6 +188,7 @@ describe('advisor `rls_enabled_no_policy` — the tables that are policy-less by
     // `rescore_runs` (issue 1433) is the master session's re-score request
     // and the job's answer to it. `draft_days` (issue 1455) is the draft
     // tick's per-site record of each day, written and read only by that job.
+    // `refunds` is the first-14-days refund ledger, read and written only by the billing webhook.
     expect(policyLess).toEqual([
       "domain_blocks",
       "draft_days",
@@ -196,6 +197,7 @@ describe('advisor `rls_enabled_no_policy` — the tables that are policy-less by
       "job_runs",
       "llm_mention_reads",
       "llm_mentions",
+      "refunds",
       "rescore_runs",
       "vendor_days",
     ]);

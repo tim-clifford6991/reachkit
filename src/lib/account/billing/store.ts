@@ -33,6 +33,15 @@ export interface BillingRow {
   readonly cancelled_at: string | null;
   readonly last_subscription_event_id: string | null;
   readonly deleted_at: string | null;
+  /** When the account opened, which is when its first payment completed. */
+  readonly created_at: string;
+}
+
+/** One first-14-days refund, as `refunds` stores it. */
+export interface RefundRow {
+  readonly invoice_id: string;
+  readonly user_id: string;
+  readonly subscription_id: string | null;
 }
 
 /** What a subscription event writes. Every member is a value the vendor
@@ -146,6 +155,25 @@ export interface BillingStore {
     at: Date
   ): Promise<{ ok: true } | { ok: false }>;
 
+  /** The stored domains of every site one account owns, as written. */
+  siteDomains(userId: string): Promise<{ ok: true; domains: readonly string[] } | { ok: false }>;
+
+  /** Every refund made to this account or to any account sharing one of
+   *  these domains. */
+  refundsFor(
+    userId: string,
+    domains: readonly string[]
+  ): Promise<{ ok: true; refunds: readonly RefundRow[] } | { ok: false }>;
+
+  /** Records a refund. A second record of the same invoice is a success. */
+  recordRefund(a: {
+    invoiceId: string;
+    userId: string;
+    subscriptionId: string;
+    domains: readonly string[];
+    at: Date;
+  }): Promise<{ ok: true } | { ok: false }>;
+
   /** The pages delivered to a site in `[from, to)` that are still up, and
    *  how many of its scans finished in that span. */
   period(
@@ -175,6 +203,8 @@ interface MinimalQueryBuilder<T> extends PromiseLike<QueryResult<T>> {
   lt(column: string, value: string): MinimalQueryBuilder<T>;
   in(column: string, values: readonly string[]): MinimalQueryBuilder<T>;
   limit(count: number): MinimalQueryBuilder<T>;
+  insert(rows: object): MinimalQueryBuilder<T>;
+  overlaps(column: string, values: readonly string[]): MinimalQueryBuilder<T>;
 }
 
 interface MinimalClient {
@@ -193,7 +223,7 @@ function untyped(): MinimalClient {
 
 const BILLING_COLUMNS =
   "id, email, plan_status, stripe_customer_id, stripe_subscription_id, " +
-  "paid_through, cancelled_at, last_subscription_event_id, deleted_at";
+  "paid_through, cancelled_at, last_subscription_event_id, deleted_at, created_at";
 
 /** The join `sites` needs to answer both hosting questions in one read.
  *  PostgREST spells an embedded parent this way; the two owner columns are
@@ -370,6 +400,41 @@ export function supabaseBillingStore(): BillingStore {
         .update({ [NOTICE_COLUMN[which]]: at.toISOString() })
         .eq("id", siteId);
       return error ? { ok: false } : { ok: true };
+    },
+
+    async siteDomains(userId) {
+      const { data, error } = await untyped()
+        .from<{ domain: string | null }>("sites")
+        .select("domain")
+        .eq("user_id", userId);
+      if (error) return { ok: false };
+      return {
+        ok: true,
+        domains: (data ?? []).flatMap((row) => (row.domain === null ? [] : [row.domain])),
+      };
+    },
+
+    async refundsFor(userId, domains) {
+      const own = untyped().from<RefundRow>("refunds").select("invoice_id, user_id, subscription_id").eq("user_id", userId);
+      const shared =
+        domains.length === 0
+          ? null
+          : untyped().from<RefundRow>("refunds").select("invoice_id, user_id, subscription_id").overlaps("domains", domains);
+      const [mine, others] = await Promise.all([own, shared]);
+      if (mine.error || (others !== null && others.error)) return { ok: false };
+      return { ok: true, refunds: [...(mine.data ?? []), ...(others?.data ?? [])] };
+    },
+
+    async recordRefund(a) {
+      const { error } = await untyped().from<RefundRow>("refunds").insert({
+        invoice_id: a.invoiceId,
+        user_id: a.userId,
+        subscription_id: a.subscriptionId,
+        domains: a.domains,
+        refunded_at: a.at.toISOString(),
+      });
+      // A unique violation is this invoice already recorded by an earlier delivery.
+      return error && error.code !== "23505" ? { ok: false } : { ok: true };
     },
 
     async period(siteId, from, to) {
