@@ -59,14 +59,20 @@ import { contentOf, detectPricingUrl, factsOf, homeUrlOf, measuredPagesOf, stamp
 import type { Drivers } from "./score";
 
 export type { Drivers } from "./score";
-export { NO_AI_ANSWERS } from "./score";
-export { aiPresenceOf, aiSampleOf, answerabilityOf, classifyReferences, foundationsOf, localPackSearches, ownRankedOf, searchPresenceOf, type AiSample } from "./drivers";
+export {
+  aiPresenceOf,
+  aiSampleOf,
+  classifyReferences,
+  localPackSearches,
+  searchPresenceOf,
+  type AiSample,
+} from "./drivers";
 export { parseOnPage, visibleText, type OnPageFacts } from "./parse";
 export type { Measured, UnmeasuredReason } from "./measured";
-export { BOT_PROTECTION, HOME_TIMEOUT, type ProtectionVendor } from "./challenge";
+export { BOT_PROTECTION, type ProtectionVendor } from "./challenge";
 
 export type { Tier } from "./pages";
-export { contentOf, detectPricingUrl, measuredPagesOf, storedFactsOf } from "./pages";
+export { detectPricingUrl } from "./pages";
 
 /** The one place `tier` is read: three parameter tables. Free buys the free
  *  row count, measures the home and the detected pricing page only, and

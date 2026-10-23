@@ -16,7 +16,7 @@
 import type React from "react";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { METHOD_ANCHOR, PasteBlock } from "./cards";
-import { PROBLEM_ORDER, type ProblemName } from "./model";
+import type { ProblemName } from "./model";
 
 const METHOD_COPY: Readonly<Record<ProblemName, { title: CopyKey; body: CopyKey }>> = Object.freeze({
   blocked_readers: { title: "method.blocked-readers.title", body: "method.blocked-readers.body" },
@@ -75,7 +75,3 @@ export function MethodSections(p: {
     </details>
   );
 }
-
-/** The order the sections render in is the cards' own, re-exported here so
- *  a caller cannot pass a different one by accident. */
-export const METHOD_ORDER = PROBLEM_ORDER;

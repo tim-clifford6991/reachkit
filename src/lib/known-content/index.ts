@@ -14,12 +14,10 @@ import type { InventoryRow } from "@/lib/site-profile/types";
 import type { KnownPage } from "./types";
 import type { KnownRefresh } from "./refresh";
 
-export { topicSimilarity, trigrams } from "./similarity";
-export { alreadyCovered, closestKnown, pageScore, type PlannedTopic } from "./match";
-export { KNOWN_SOURCES, type KnownMatch, type KnownPage, type KnownSource } from "./types";
-export { inventoryPages, type KnownRefresh } from "./refresh";
-export { knownLinkTargets, publishedGuideLinks } from "./links";
-export { EMPTY_LINK_MAP, linkMapOf, siteLinkMap, type LinkMap } from "./link-map";
+export { closestKnown, type PlannedTopic } from "./match";
+export { type KnownMatch, type KnownPage, type KnownSource } from "./types";
+export { type KnownRefresh } from "./refresh";
+export { type LinkMap } from "./link-map";
 
 /** The site's whole index. */
 export async function knownContentFor(siteId: string): Promise<KnownPage[]> {
