@@ -6,11 +6,12 @@
 
 import type React from "react";
 import { useState, useTransition } from "react";
+import Link from "next/link";
 import { copy } from "@/lib/presentation/copy";
 import { say } from "../../../_toast/say";
 import { actionsFor, type DayCommand, type DestinationStanding } from "./actions";
 import { ANSWER_COPY_KEY, ask } from "./DayPanelView";
-import { CardNumber, UpdateMark, cardLineFor, pageShownBy } from "./DayCard";
+import { CardNumber, DayLines, KindChip, cardLineFor, pageShownBy } from "./DayCard";
 import { cardLabel, shortCauseFor } from "./card-lines";
 import { dayNumberOf } from "./day-number";
 import { dayNumber, weekdayShort, type DayKey } from "./dates";
@@ -51,6 +52,8 @@ function WeekCell(p: {
   filter: StageFilter;
   selected: boolean;
   destination: DestinationStanding | null;
+  goesLive: string | null;
+  firstSkip: boolean;
   onSelect: (day: DayKey) => void;
 }): React.JSX.Element {
   const { cell } = p;
@@ -94,7 +97,6 @@ function WeekCell(p: {
               {weekdayShort(cell.day)} {dayNumber(cell.day)}
             </span>
             <CardNumber value={dayNumberOf(page)} />
-            {page?.update === true ? <UpdateMark /> : null}
           </span>
           {page === null ? (
             line === null ? null : (
@@ -107,19 +109,21 @@ function WeekCell(p: {
             )
           ) : (
             <>
+              <KindChip update={page.update} />
               <span className="rk-cal-label line-clamp-3 min-w-0 text-sm font-semibold leading-tight wrap-anywhere" data-testid="cell-label">
                 {page.title}
               </span>
-              {page.whyLine === null ? null : (
-                <span className="min-w-0 text-xs wrap-anywhere opacity-70" data-testid="cell-why">
-                  {page.whyLine}
-                </span>
-              )}
             </>
           )}
+          <DayLines cell={cell} page={page} goesLive={p.goesLive} firstSkip={p.firstSkip} filtered={p.filter !== "all"} phone={false} />
         </button>
         <div className="mt-auto flex min-w-0 flex-wrap items-center gap-1">
           <DayStateBadge cell={cell} filter={p.filter} />
+          {stop === null || stopped ? null : (
+            <Link href={`/app/draft/${stop.draftId}`} prefetch={true} className="btn btn-xs btn-ghost" data-testid="cell-edit">
+              {copy("how.week.edit")}
+            </Link>
+          )}
           {stop === null || stopped ? null : (
             <button
               type="button"
@@ -142,6 +146,8 @@ export function WeekGrid(p: {
   filter: StageFilter;
   selected: DayKey | null;
   destination: DestinationStanding | null;
+  goesLive: string | null;
+  firstSkip: DayKey | null;
   onSelect: (day: DayKey) => void;
 }): React.JSX.Element {
   return (
@@ -153,6 +159,8 @@ export function WeekGrid(p: {
           filter={p.filter}
           selected={cell.day === p.selected}
           destination={p.destination}
+          goesLive={p.goesLive}
+          firstSkip={cell.day === p.firstSkip}
           onSelect={p.onSelect}
         />
       ))}

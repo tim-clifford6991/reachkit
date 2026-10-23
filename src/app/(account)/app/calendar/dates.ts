@@ -179,3 +179,31 @@ export function firstMeasuredLabel(): string {
   return weekdayShort(MONDAY);
 }
 
+
+/** A date with its weekday in words, the head's "Chosen …" and the
+ *  next-Monday line. */
+export function longDate(day: DayKey): string {
+  return new Intl.DateTimeFormat(SHELL_LOCALE, { timeZone: "UTC", weekday: "long", month: "long", day: "numeric" }).format(utcOf(day));
+}
+
+/** The week card's heading: its first and last day as one range. */
+export function weekRange(first: DayKey, last: DayKey): string {
+  return new Intl.DateTimeFormat(SHELL_LOCALE, { timeZone: "UTC", weekday: "short", month: "long", day: "numeric" }).formatRange(
+    utcOf(first),
+    utcOf(last)
+  );
+}
+
+/** Which week of service `today` falls in, counting the week `first` falls in as 1. */
+export function serviceWeek(first: DayKey, today: DayKey): number {
+  const monday = (day: DayKey): number => utcOf(addDays(day, -weekdayIndex(day))).getTime();
+  return Math.max(1, Math.round((monday(today) - monday(first)) / (7 * 86_400_000)) + 1);
+}
+
+/** A stored `HH:mm` publish time as the shell's clock writes it: "4:00 PM". */
+export function clockTime(hhmm: string): string {
+  const [h, m] = hhmm.split(":").map(Number);
+  return new Intl.DateTimeFormat(SHELL_LOCALE, { timeZone: "UTC", hour: "numeric", minute: "2-digit" }).format(
+    new Date(Date.UTC(2026, 0, 1, h ?? 0, m ?? 0))
+  );
+}
