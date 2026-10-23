@@ -31,7 +31,7 @@ const UNREADABLE: AnswerCell = { kind: "unmeasured", reason: "undeterminable", b
 
 function render(section: AiAnswersSection): string {
   return renderToStaticMarkup(
-    React.createElement(AiAnswersCard, { section, measuredOn: "6 Sep 2026" })
+    React.createElement(AiAnswersCard, { section, serps: [] })
   );
 }
 
@@ -63,9 +63,10 @@ describe("issue 873 — the card states what the report measured, and never clai
     const six: AiAnswersSection = { ...SECTION, rows: SECTION.rows.slice(0, 6), measuredSearches: 6 };
     const html = render(six);
 
-    expect(html).toContain("ai-answers.questions.title(6)");
+    expect(html).toContain("report.ai.asked(6)");
+    expect(html).toContain("ai-answers.source(6)");
     expect(html).toContain("ai-answers.method(6)");
-    expect(html).not.toContain("ai-answers.questions.title(12)");
+    expect(html).not.toContain("report.ai.asked(12)");
   });
 
   it("a list longer than what was measured says both counts apart (issue 1309)", () => {

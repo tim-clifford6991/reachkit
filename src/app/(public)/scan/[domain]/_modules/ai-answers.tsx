@@ -1,23 +1,14 @@
-// BUILD §4.1 module 2, left card — AI answers
+// BUILD §4.1 module 2, left card — AI answers (board PubReport)
 //
-// "AI answers appear on {m} of your 12 biggest searches", the per-rival
-// rows over those m, and "The 12 questions" beneath a divider. Leads with
-// the answer, not the metric; carries its source as one quiet chip; states
-// its method in one line.
-//
-// **The rival rows are the dot matrix** (issue #352, the approved
-// `walk/report` drawing). §4.1 fixes this card's second element as "a dot
-// matrix over those m — rivals' cited rows filled grey, the customer's
-// row empty red-ringed, `n/{m}` per row". Since issue 730 it is a CSS grid
-// (`AnswerMatrix` below, DESIGN rule 2: a grid that is not a series is CSS
-// grid, not a chart). It arrived as an absent-safe
-// `matrix` slot while issue #11 owned the inventory and nothing ever
-// filled the slot, so the card drew the same rows twice over as a
-// two-column table of ratios instead — nine rows of writing where the
-// drawing belongs. The grid direct-labels every row with its own name and
-// its own count and every cell with its row and question (§2.4: "identity
-// is never colour-alone"), and takes its counts **already written** from
-// this card, so the drawing and the card's own figures cannot disagree.
+// The answers that mention the customer, out of those that appeared; the
+// searches they were asked for; a waffle of who the answers mention — one
+// square per answer, each row named and tallied, the customer's own row
+// last and ringed red where it was left out; one answer quoted as written;
+// and closed beneath them the questions. The waffle is CSS grid
+// (`AnswerMatrix` below, DESIGN rule 2: a grid that is not a series), and
+// takes its tallies **already written** from this card, so the drawing and
+// the card's own figures cannot disagree. Every cell is labelled with its
+// row and question (§2.4: "identity is never colour-alone").
 //
 // **No per-question `{vol}/mo`** — the owner removed it on 2026-09-03 and
 // `StoredQuestion` has no volume member to render.
@@ -63,10 +54,11 @@ import type {
   AnswerCell,
   BatteryEngine,
   StoredQuestion,
+  StoredReport,
 } from "@/lib/scan/report";
 import type { CanonicalDomain } from "@/lib/scan/domain";
 import type { RetryPart } from "@/lib/scan/retry";
-import { dash, Num, ratio } from "../_address/measured";
+import { dash, Num } from "../_address/measured";
 import { RetryPartControl } from "../_address/retry-part";
 
 /** Which part this card's retry re-runs. A bound handle, not an inline
@@ -93,10 +85,6 @@ function formatReusedOn(iso: string): string {
 
 function citedCount(cells: readonly AnswerCell[]): number {
   return cells.filter((c) => c.kind === "answered" && c.citedDomains.length > 0).length;
-}
-
-function answeredCount(cells: readonly AnswerCell[]): number {
-  return cells.filter((c) => c.kind === "answered").length;
 }
 
 /** One column header per engine. A **total** map over `BatteryEngine`, so
@@ -255,7 +243,7 @@ function AnswerColumns(p: { rows: AnswerRows }): React.JSX.Element | null {
 export type MatrixCell = "cited" | "not-cited" | "muted";
 
 /** One row: its name, whether it is the customer's, its cells in question
- *  order, and its `n/m` already written by the card. */
+ *  order, and its tally already written by the card. */
 export interface MatrixRow {
   readonly name: string;
   readonly you: boolean;
@@ -289,33 +277,41 @@ function cellClass(cell: MatrixCell, you: boolean): string {
  */
 export function AnswerMatrix(p: {
   rows: readonly MatrixRow[];
-  questions: readonly string[];
+  /** One label per column; absent, the squares stand for no one question. */
+  questions?: readonly string[];
   label: string;
+  testId?: string;
 }): React.JSX.Element {
-  const columns = { gridTemplateColumns: `auto repeat(${Math.max(p.questions.length, 1)}, minmax(0.75rem, 1.25rem)) auto` };
+  const width = p.questions?.length ?? Math.max(...p.rows.map((row) => row.cells.length), 1);
+  const columns = { gridTemplateColumns: `auto repeat(${Math.max(width, 1)}, minmax(0.75rem, 1.25rem)) auto` };
+  const cellName = (row: MatrixRow, c: number): string => (p.questions === undefined ? row.name : `${row.name} · ${p.questions[c] ?? ""}`);
   return (
-    <div role="table" aria-label={p.label} data-testid={MATRIX_TEST_ID} className="grid w-fit items-center gap-x-1 gap-y-1.5" style={columns}>
+    <div role="table" aria-label={p.label} data-testid={p.testId ?? MATRIX_TEST_ID} className="grid w-fit items-center gap-x-1 gap-y-1.5" style={columns}>
       {p.rows.map((row) => (
         <div role="row" key={row.name} className="contents">
-          <span role="rowheader" className={`num pr-2 text-right text-xs whitespace-nowrap ${row.you ? "text-(--chart-you)" : "text-base-content/70"}`}>
-            {row.name}
+          <span role="rowheader" className={`pr-2 text-right text-xs whitespace-nowrap ${row.you ? "text-(--chart-you)" : "text-base-content/70"}`}>
+            {row.you ? <span className="pr-1 font-semibold">{copy("report.you")}</span> : null}
+            <span className="num">{row.name}</span>
           </span>
           {row.cells.map((cell, c) => (
-            <div role="cell" key={c} data-cell={cell} title={`${row.name} · ${p.questions[c] ?? ""}`} aria-label={`${row.name} · ${p.questions[c] ?? ""}`}>
+            <div role="cell" key={c} data-cell={cell} title={cellName(row, c)} aria-label={cellName(row, c)}>
               <div aria-hidden="true" className={`aspect-square rounded-sm ${cellClass(cell, row.you)}`} />
             </div>
           ))}
           <span className={`num pl-2 text-right text-xs ${row.you ? "text-(--chart-you)" : "text-base-content/70"}`}>{row.count}</span>
         </div>
       ))}
-      <div role="row" className="contents">
-        <div aria-hidden="true" />
-        {p.questions.map((q, c) => (
-          <span role="columnheader" key={c} className="num border-t border-base-300 pt-1 text-center text-(length:--t-eyebrow) text-base-content/70">            {q}
-          </span>
-        ))}
-        <div aria-hidden="true" />
-      </div>
+      {p.questions === undefined ? null : (
+        <div role="row" className="contents">
+          <div aria-hidden="true" />
+          {p.questions.map((q, c) => (
+            <span role="columnheader" key={c} className="num border-t border-base-300 pt-1 text-center text-(length:--t-eyebrow) text-base-content/70">
+              {q}
+            </span>
+          ))}
+          <div aria-hidden="true" />
+        </div>
+      )}
     </div>
   );
 }
@@ -354,7 +350,7 @@ function matrixRows(section: AiAnswersSection): readonly MatrixRow[] {
     name: rival.domain,
     you: false,
     cells: rival.cells.map(rivalCellState),
-    count: ratio(citedCount(rival.cells), answeredCount(rival.cells)),
+    count: String(citedCount(rival.cells)),
   }));
   return [
     ...rivals,
@@ -362,26 +358,51 @@ function matrixRows(section: AiAnswersSection): readonly MatrixRow[] {
       name: section.ownDomain,
       you: true,
       cells: section.rows.map((row) => ownCellState(row.cell)),
-      count: ratio(section.customerCitations, section.answeredSearches),
+      count: String(section.customerCitations),
     },
   ];
 }
 
 /** The card's head: the glyph, the card's name, and what sits at its right —
  *  the source line on the measured card, the dash on the absent one. */
-function Head(p: { right: React.ReactNode; heading?: boolean }): React.JSX.Element {
-  // The card's name is an eyebrow (#1068); on the measured card the heading
-  // is the finding under it, and on the absent card the name is the heading.
-  const Tag = p.heading === true ? "h2" : "p";
+function Head(p: { right?: React.ReactNode }): React.JSX.Element {
+  // The card's name is its heading, under the section's own (board PubReport).
   return (
     <div className="flex flex-wrap items-center justify-between gap-2">
-      <Tag className="eyebrow flex items-center gap-2">
-        <Bot size={14} strokeWidth={1.75} aria-hidden />
+      <h3 className="flex items-center gap-2 text-lg font-semibold">
+        <Bot size={18} strokeWidth={1.75} aria-hidden />
         {copy("ai-answers.title")}
-      </Tag>
+      </h3>
       {p.right}
     </div>
   );
+}
+
+/** The longest quote the card shows, in characters: one sentence, never a page. */
+const QUOTE_MAX = 240;
+
+/** The answer's words without its markdown marks, which a quote would show raw. */
+function plainOf(text: string | undefined): string | undefined {
+  return text?.replace(/\*\*|`/g, "").replace(/\s+([.,!?;:])/g, "$1").trim();
+}
+
+/** One AI answer's first sentence, quoted as it was written, with the search
+ *  it was asked for. The first answer that named a competitor and kept its
+ *  text; `null` where no answer kept any, so nothing is ever made up. */
+export function answerQuoteOf(
+  section: AiAnswersSection,
+  serps: StoredReport["serps"]
+): { search: string; text: string } | null {
+  for (const [i, row] of section.rows.entries()) {
+    if (row.cell.kind !== "answered" || row.cell.citedDomains.length === 0) continue;
+    const serp = serps[i];
+    const text = serp !== undefined && serp.kind !== "unmeasured" ? plainOf(serp.value.aiOverview.text) : undefined;
+    if (text === undefined || text === "") continue;
+    const sentence = /^[\s\S]*?[.!?](?=\s|$)/.exec(text)?.[0] ?? text;
+    if (sentence.length > QUOTE_MAX) continue;
+    return { search: row.question.search, text: sentence };
+  }
+  return null;
 }
 
 /** One question: its number, the wording through `renderQuestion`, the
@@ -441,9 +462,9 @@ function QuestionRows(p: { rows: AnswerRows }): React.JSX.Element {
 
 export function AiAnswersCard(p: {
   section: AiAnswersSection;
-  /** The date the SERPs behind this card were read, already formatted by
-   *  the caller that owns the report's one date. */
-  measuredOn: string;
+  /** The SERPs the card was counted over, in question order, for the one
+   *  answer it quotes. */
+  serps: StoredReport["serps"];
 }): React.JSX.Element {
   const { section } = p;
   // Issue 1309: the list holds every question the pass found, and the pass
@@ -452,41 +473,19 @@ export function AiAnswersCard(p: {
   const total = String(section.rows.length);
   const measured = String(section.measuredSearches);
   const partial = section.measuredSearches < section.rows.length;
+  const quote = answerQuoteOf(section, p.serps);
 
   return (
     <section className="card bg-base-100 shadow-(--shadow-card) min-w-0">
       <div className="card-body gap-4">
-        <Head
-          right={
-            <span className="badge badge-soft h-auto py-1 text-xs whitespace-normal">
-              {copy("ai-answers.source", { date: p.measuredOn })}
-            </span>
-          }
-        />
-        {/* SPEC §2: a correction reuses the AI answers already read, and the
-            card says so — only then. */}
-        {section.coverage === "cached_only" ? (
-          <p className="grow-0 text-base-content/70 text-xs">{copy("ai-answers.coverage.cached-only")}</p>
-        ) : null}
-        {/* Issue 715, owner 2026-09-22: answers a recent scan already had
-            are marked with the date they were bought — the chip above is
-            the date this report was *read*, which is not the same fact and
-            was the only date the card had. Read off the section, never
-            composed from a clock here; absent where this pass bought every
-            answer on the card. */}
-        {section.reusedFrom === null ? null : (
-          <p className="grow-0 text-base-content/70 text-xs" data-testid="ai-answers-reused-from">
-            <Num phrase>{copy("ai-answers.reused-from", { date: formatReusedOn(section.reusedFrom) })}</Num>
-          </p>
-        )}
-        {/* The card leads with its answer, not with its metric (#1068): the
-            figure, and one short line under it saying what it counts
-            (issue 1444). Issue 1439: "AI doesn't answer" is only said over
-            enough reads, the rule AI presence keeps. */}
+        <Head />
+        {/* The card leads with its answer, not with its metric (#1068).
+            Issue 1439: "AI doesn't answer" is only said over enough reads,
+            the rule AI presence keeps. */}
         {section.answeredSearches === 0 && section.measuredSearches >= SCORE_ESTIMATE.noneMinReads ? (
-          <h2 className="text-lg font-semibold">{copy("ai-answers.finding.unanswered")}</h2>
+          <p className="grow-0 text-lg font-semibold">{copy("ai-answers.finding.unanswered")}</p>
         ) : (
-          <h2 className="flex flex-col gap-1">
+          <p className="flex grow-0 flex-col gap-1">
             <span className="text-3xl">
               <Num figure>
                 {copy("report.figure.of", {
@@ -495,54 +494,65 @@ export function AiAnswersCard(p: {
                 })}
               </Num>
             </span>
-            <span className="text-base font-normal">{copy("ai-answers.finding")}</span>
-          </h2>
+            <span>{copy("ai-answers.finding")}</span>
+          </p>
+        )}
+        <p className="grow-0 text-base-content/70 text-sm">{copy("ai-answers.source", { total: measured })}</p>
+        {/* SPEC §2: a correction reuses the AI answers already read, and the
+            card says so — only then. */}
+        {section.coverage === "cached_only" ? (
+          <p className="grow-0 text-base-content/70 text-xs">{copy("ai-answers.coverage.cached-only")}</p>
+        ) : null}
+        {/* Issue 715: answers a recent scan already had carry the date they
+            were bought; absent where this pass bought every answer here. */}
+        {section.reusedFrom === null ? null : (
+          <p className="grow-0 text-base-content/70 text-xs" data-testid="ai-answers-reused-from">
+            <Num phrase>{copy("ai-answers.reused-from", { date: formatReusedOn(section.reusedFrom) })}</Num>
+          </p>
         )}
 
-        {/* The matrix scrolls rather than shrinking its labels. The
-            customer's own row is labelled `n/m`; no sentence repeats it.
-            It scrolls, so it is reachable from a keyboard (#947): a named
-            region and a tab stop, named by the card's own head. */}
-        <div
-          className="min-w-0 overflow-x-auto"
-          tabIndex={0}
-          role="region"
-          aria-label={copy("ai-answers.title")}
-        >
-          <AnswerMatrix
-            rows={matrixRows(section)}
-            questions={section.rows.map((row) => String(row.question.n))}
-            label={copy("ai-answers.title")}
-          />
+        {/* The waffle scrolls rather than shrinking its labels, so it is
+            reachable from a keyboard (#947): a named region and a tab stop. */}
+        <div className="flex min-w-0 flex-col gap-1">
+          <p className="grow-0 text-base-content/70 text-xs">{copy("report.ai.waffle")}</p>
+          <div className="min-w-0 overflow-x-auto" tabIndex={0} role="region" aria-label={copy("ai-answers.title")}>
+            <AnswerMatrix
+              rows={matrixRows(section)}
+              questions={section.rows.map((row) => String(row.question.n))}
+              label={copy("ai-answers.title")}
+            />
+          </div>
         </div>
 
-        {/* SPEC §2 (owner, 2026-10-07, issue 1328): the card is its finding
-            and its drawing; the questions open from their own name. A
-            `details`, so every row is in the first response and opens with
-            no script. Inside it is what stood here open. */}
+        {quote === null ? null : (
+          <figure className="flex flex-col gap-1" data-testid="ai-answers-quote">
+            <figcaption className="text-base-content/70 text-xs">
+              <Num phrase>{copy("report.ai.quote", { search: quote.search })}</Num>
+            </figcaption>
+            <blockquote className="border-base-300 border-l-2 ps-3 text-sm">{quote.text}</blockquote>
+          </figure>
+        )}
+
+        {/* SPEC §2 (owner, 2026-10-07, issue 1328): the questions open from
+            their own name, in a `details` that opens with no script. */}
         <details className="collapse collapse-arrow border-base-300 border" data-testid="ai-answers-questions">
           <summary className="collapse-title">
             <span className="eyebrow">
               {partial
                 ? copy("ai-answers.questions.title.partial", { total, measured })
-                : copy("ai-answers.questions.title", { total })}
+                : copy("report.ai.asked", { total })}
             </span>
           </summary>
           <div className="collapse-content flex min-w-0 flex-col gap-4">
             <AnswerColumns rows={section.rows} />
             {/* Issue 873: what was measured, stated rather than counted off
-                the rows. `measuredSearches` is the cells that came back, so a
-                question the pass asked and could not read is not counted
-                here — and neither is one it never reached. */}
+                the rows. */}
             <p className="text-base-content/70 text-xs">
               {copy(partial ? "ai-answers.questions.measured.partial" : "ai-answers.questions.measured", {
                 measured,
                 total,
               })}
             </p>
-            {/* REQ-006 c8 (issue 1436): every question, once the list is
-                open. The outer `details` is the one action away; a second
-                toggle inside it hid the fifth row behind another tap. */}
             <QuestionRows rows={section.rows} />
             <p className="text-base-content/70 text-xs">{copy("ai-answers.method", { total: measured })}</p>
           </div>
@@ -559,7 +569,7 @@ export function AiAnswersAbsent(p: { cutOff?: boolean; domain?: CanonicalDomain 
   return (
     <section className="card bg-base-100 shadow-(--shadow-card) min-w-0">
       <div className="card-body gap-4">
-        <Head heading right={<Num unmeasured>{dash()}</Num>} />
+        <Head right={<Num unmeasured>{dash()}</Num>} />
         <p className="grow-0 text-sm">{copy("ai-answers.absent")}</p>
         {/* The part this card could not measure is offered again on the card:
             "Retry this part" where the pass's ceiling cut it off (SPEC §2),

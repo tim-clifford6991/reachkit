@@ -27,7 +27,7 @@ function render(rows: number): string {
     rows: SECTION.rows.slice(0, rows),
     rivals: SECTION.rivals.map((rival) => ({ ...rival, cells: rival.cells.slice(0, rows) })),
   };
-  return renderToStaticMarkup(React.createElement(AiAnswersCard, { section, measuredOn: "6 Sep 2026" }));
+  return renderToStaticMarkup(React.createElement(AiAnswersCard, { section, serps: [] }));
 }
 
 function count(html: string, needle: string): number {
