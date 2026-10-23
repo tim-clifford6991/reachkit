@@ -15,7 +15,8 @@
 // read.
 import type { ClaimState } from "./model";
 import type { RecordedChecks } from "@/lib/generate/rules/types";
-import { saveDraft } from "./save-actions";
+import type { LiveEditOutcome } from "@/lib/generate/edit-live";
+import { saveDraft, saveLiveEdit } from "./save-actions";
 
 /** The one text write this screen can ask for. Every field is whole, never
  *  a patch: last write wins is stated by sending the whole text, and a diff
@@ -55,6 +56,8 @@ export type SaveResult =
 
 export interface DraftStore {
   save(body: SaveBody): Promise<SaveResult>;
+  /** A live page's edit (R19): `draftId` is the live version. */
+  saveLive(body: SaveBody): Promise<LiveEditOutcome | { ok: false; refused: "store_unavailable" }>;
 }
 
 /** The declared seam. One module-level constant; no caller constructs its own. */
@@ -64,6 +67,13 @@ export const draftStore: DraftStore = Object.freeze({
       return await saveDraft(body);
     } catch {
       return { ok: false, refused: "store_unavailable" };
+    }
+  },
+  async saveLive(body: SaveBody) {
+    try {
+      return await saveLiveEdit(body);
+    } catch {
+      return { ok: false, refused: "store_unavailable" } as const;
     }
   },
 });
