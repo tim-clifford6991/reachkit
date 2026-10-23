@@ -116,7 +116,8 @@ describe("three arms, three heads, no fourth rendering and no default arm", () =
 
     const tree = await OptOutPage({ params: { token: optOutTokenFor("anna@example.com") } });
 
-    expect(eyebrowOf(tree)).toBe(COPY["optout.head"]);
+    // The mail's own word: the footer link says unsubscribe, so the page does too.
+    expect(eyebrowOf(tree)).toBe("Unsubscribed");
     // The line is composed, not resolved: the set draws the address inside
     // the sentence in the mono face, so the page hands `AddressLine` the
     // key and the address rather than a finished string.
@@ -157,15 +158,20 @@ describe("three arms, three heads, no fourth rendering and no default arm", () =
   });
 
   it("only the arm that opted somebody out wears S7's head", async () => {
-    // "Opted out" over "that unsubscribe link isn't valid any more" would
+    // "Unsubscribed" over "that unsubscribe link isn't valid any more" would
     // be the card contradicting itself in its own head. The other two arms
     // take their own head (filled by #458), never the marker.
     for (const token of ["not-a-token", ""]) {
       const tree = await OptOutPage({ params: { token } });
-      expect(eyebrowOf(tree)).toBe(COPY["optout.head.unresolved"]);
+      expect(eyebrowOf(tree)).toBe("Not unsubscribed yet");
       expect(eyebrowOf(tree)).not.toBe(TODO_COPY_MARKER);
       expect(eyebrowOf(tree)).not.toBe(COPY["optout.head"]);
     }
+  });
+
+  it("the tab title says the same word as the head", async () => {
+    const { metadata } = await import("../../../src/app/(public)/opt-out/[token]/page");
+    expect(String(metadata.title)).toBe("Unsubscribed · ReachKit");
   });
 
   it("Next's promised params and a resolved object are both accepted", async () => {
