@@ -505,7 +505,9 @@ export const REPORT_COPY = Object.freeze({
   // The report's plain name; the account's Technical issues view keeps "Broken internal links" (board AppIssues).
   "check.broken-links.plain": ["Links between pages that go nowhere", { slots: {}, fixedBy: "SPEC §0 · owner R12 B2 2026-10-22 · issue 1724" }],
   "check.status.not-run": ["Couldn’t run", { slots: {}, fixedBy: "board PubReport · issue 1724" }],
-  "check.structured-data.title": ["Business details Google can read", { slots: {}, fixedBy: "board PubReport · issue 1724" }],
+  "check.structured-data.title": ["Pages with no labels for Google", { slots: {}, fixedBy: "issue 1909 · seo-master 2026-10-23" }],
+  // The report's plain name (board PubReport); the account surfaces read the problem in `.title`.
+  "check.structured-data.plain": ["Page labels Google can read", { slots: {}, fixedBy: "board PubReport · issue 1724 · issue 1909 · seo-master 2026-10-23" }],
   // Issue 1550 (drafted): the one thing to do about each check the customer
   // fixes, on the account's Technical issues view.
   "check.noindex-pages.fix": ["Remove the noindex setting from these pages in your site builder or SEO plugin, so search engines can list them.", { slots: {}, fixedBy: "issue 1550 (drafted)" }],

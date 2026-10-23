@@ -96,6 +96,7 @@ function fixFor(check: TechnicalCheck, reading: CheckReading | null): CheckFix {
 /** The report's plain names where its board differs from the account's view (board AppIssues keeps "Broken internal links"). */
 const REPORT_TITLE: Partial<Readonly<Record<TechnicalCheck, CopyKey>>> = Object.freeze({
   broken_links: "check.broken-links.plain",
+  structured_data: "check.structured-data.plain",
 });
 
 export function checkCardsOf(readings: CheckReadings): readonly CheckCard[] {
