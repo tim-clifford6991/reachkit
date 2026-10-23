@@ -179,8 +179,26 @@ describe("issue #326 — ReachKit's own address publishes its own policy", () =>
     expect(body).toContain("Sitemap: https://reachkit.example/sitemap.xml");
   });
 
-  it("it carries no Disallow: a crawler forbidden to fetch a page never reads the noindex on it", async () => {
-    expect(await (await get("reachkit.example")).text()).not.toContain("Disallow");
+  it("it disallows only the gallery's filter variants: a page kept out of the index by noindex stays fetchable, so its noindex is read", async () => {
+    const { parseRobotsTxt, robotsAllows } = await import("@/lib/egress/robots");
+    const { PUBLIC_ROUTE_SEO_ROWS } = await import("@/app/(public)/_seo/routes");
+    const body = await (await get("reachkit.example")).text();
+    const verdicts = parseRobotsTxt(body);
+    const policy = { ok: true as const, origin: "https://reachkit.example", readAt: new Date(0), absent: false, ...verdicts };
+    const noindexed = PUBLIC_ROUTE_SEO_ROWS.filter((row) => !row.indexable).map((row) => row.route.replace(/\{[^}]+\}/g, "x.com"));
+    expect(noindexed.length).toBeGreaterThan(0);
+    for (const agent of ["*", "Googlebot", "Bingbot", "OAI-SearchBot", "PerplexityBot", "GPTBot"]) {
+      for (const page of [...noindexed, "/scan/x.com", "/veto/t", "/", "/scans", "/scans/logo/x.com"]) {
+        expect(robotsAllows(policy, [agent], page), `${agent} ${page}`).toBe(true);
+      }
+      for (const variant of ["/scans?cat=a", "/scans?sort=az", "/scans?q=a", "/scans?shown=32"]) {
+        expect(robotsAllows(policy, [agent], variant), `${agent} ${variant}`).toBe(false);
+      }
+    }
+    expect(body.split("\n").filter((line) => /^disallow:/i.test(line))).toEqual(["Disallow: /scans?"]);
+    expect(verdicts.disallowsAll).toBe(false);
+    // No named group, and the wildcard is not disallowed at the root.
+    expect(verdicts.disallowedAgents).toEqual({ "*": false });
   });
 
   it("it is not the customer document — the six pinned readers are named on their domain, not ours", async () => {
