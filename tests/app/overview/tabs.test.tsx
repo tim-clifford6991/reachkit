@@ -70,18 +70,6 @@ describe("SPEC §4 — four tabs, each its own address", () => {
 });
 
 describe("SPEC §4 — every part of the Overview tab opens the tab behind it", () => {
-  it("each counting tile is a link into the screen that holds its items (issue 1457)", async () => {
-    const html = renderToStaticMarkup(await OverviewPage());
-    for (const [testId, tab] of [
-      ["overview-tile-google", "search"],
-      ["overview-tile-ai", "ai_answers"],
-    ] as const) {
-      // Either attribute order: `next/link` writes `href` last (issue 1484).
-      const tile = new RegExp(`<a(?=[^>]*href="${TAB_HREF[tab]}[?#][^"]*")(?=[^>]*data-testid="${testId}")[^>]*>`);
-      expect(html, `${testId} does not open ${TAB_HREF[tab]}`).toMatch(tile);
-    }
-  });
-
   it("this week opens the plan", async () => {
     const html = renderToStaticMarkup(await OverviewPage());
     expect(html).toContain('href="/app/calendar"');

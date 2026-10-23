@@ -8,10 +8,6 @@ A number nobody measured is never shown as 0: each definition says what is shown
 
 | Id | Shown as | Definition | Source | Cadence |
 |---|---|---|---|---|
-| visibility-score | `overview-tile-score` | The newest scan's Visibility Score, 0 to 100: foundations, answerability and presence in one number, with its band, the range it likely sits in and its change on the scan before. Before the first scan the tile names the day it runs. | `src/lib/measure/score.ts#computeScore` | Each weekly scan. |
-| google-live-searches | `overview-tile-google` | Of the searches the live pages target, how many Google shows the site for at places 1 to 100, split into the first page, places 11 to 100 and not yet seen. With no scan, or no live page read, the tile says so instead of a number. | `src/app/(account)/app/_overview/search-model.ts#yourPages` | Each weekly scan. |
-| ai-mentioned-searches | `overview-tile-ai` | Of the tracked searches that are not the business's own name, how many have an AI answer that names or links the site, out of those asked; beside it, how many link it, and the change on the week before. | `src/app/(account)/app/_overview/prompts-model.ts#aiSearchesOf` | Weekly, over the answers stored for the window. |
-| pages-published | `overview-tile-content` | Pages published and not taken down; with them, how many went live in the last 4 weeks and how many reached each step toward being found (crawled, indexed, impressions, best place, cited). A read that failed says so, never 0. | `src/app/(account)/app/_overview/content.ts#contentOf` | Each time Overview is read, from the stored publications. |
 
 ## Monday mail
 

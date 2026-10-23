@@ -42,18 +42,6 @@ export interface AboutPage {
   profiles: readonly string[];
 }
 
-/** What Overview says about the main-site link (SPEC §7, 2026-10-18):
- *  drawn only while the main site does not link the content host, or links
- *  it without letting search engines follow
- *  (`publish/destinations/hosted/main-link.ts`). */
-export interface MainSiteLinkFinding {
-  state: "not_linked" | "not_followed";
-  /** The content host the link points at. */
-  host: string;
-  /** The anchor to copy into the main site. */
-  snippet: string;
-}
-
 function isHttp(value: unknown): value is string {
   if (typeof value !== "string") return false;
   try {

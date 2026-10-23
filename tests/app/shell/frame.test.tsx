@@ -428,6 +428,15 @@ describe("REQ-040 c5 / SPEC §4 (2026-09-20) — a viewport too narrow keeps all
     expect(root.querySelector("[data-testid='shell-dock']")).not.toBeNull();
   });
 
+  it("the side panel draws only what board Main draws: no Workspace heading, no blog or Help shortcut", async () => {
+    const panel = (await renderLayout()).querySelector("[data-testid='shell-sidebar']");
+    expect(panel?.querySelector("[data-testid='shell-sidebar-nav']")).not.toBeNull();
+    expect([...(panel?.querySelectorAll("h2") ?? [])].map((h) => h.textContent)).not.toContain("shell.workspace");
+    for (const gone of ["shell-shortcuts", "shell-blog-link", "shell-help-link"]) {
+      expect(panel?.querySelector(`[data-testid='${gone}']`), gone).toBeNull();
+    }
+  });
+
   it("the side panel is rendered once — not once per breakpoint (issue #911)", async () => {
     const root = await renderLayout();
     expect(root.querySelectorAll("[data-testid='shell-sidebar']")).toHaveLength(1);
