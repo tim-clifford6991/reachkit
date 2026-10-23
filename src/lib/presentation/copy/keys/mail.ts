@@ -861,6 +861,12 @@ export const MAIL_COPY = Object.freeze({
     "You keep full access until {accessEndsOn}, and nothing more is charged.",
     { slots: { accessEndsOn: "date" }, fixedBy: "SPEC §8 · issue 569" },
   ],
+  /** In place of the line above when the cancel fell in the first 14 days
+   *  and the first payment was refunded (owner D4, E13). */
+  "mail.cancellation.refunded": [
+    "Your first payment was refunded in full, as promised for a cancel in the first 14 days. Your bank usually shows it within 5 to 10 business days. ReachKit stopped on {accessEndsOn}, and nothing more is charged.",
+    { slots: { accessEndsOn: "date" }, fixedBy: "issue 1591 (drafted)" },
+  ],
   "mail.winback.subject": ["Pick up where you left off", { slots: {}, fixedBy: "SPEC §8 · issue 569" }],
   "mail.winback.line": [
     "ReachKit can start writing and publishing pages for your site again: a page every day, new or updated, each going live on its own unless you stop it first. €49 a month, cancel any time.",
