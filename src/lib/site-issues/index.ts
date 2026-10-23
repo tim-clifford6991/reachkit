@@ -1,5 +1,5 @@
 // SPEC §9 — the technical-issue scan across the crawled pages.
-export { readingOf, type CheckedPage, type CrawlReading } from "./checks";
+export { identityReading, readingOf, type CheckedPage, type CrawlReading, type IdentityReading } from "./checks";
 export { type IssueChange } from "./changes";
 export { readPageFacts, type PageIssueFacts } from "./facts";
 export {
