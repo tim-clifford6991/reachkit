@@ -20,7 +20,7 @@ import { dbAdmin } from "@/lib/db";
 import { HARD_RULES } from "@/lib/generate/rules/types";
 import { trackedRivals } from "@/lib/market/rivals/tracked";
 import type { AnswerEngine } from "@/lib/opportunities/types";
-import { readStoredReport, SITE_PASS_TIERS, type StoredReport } from "@/lib/scan/report";
+import { askedOf, readStoredReport, SITE_PASS_TIERS, type StoredReport } from "@/lib/scan/report";
 import { nextDueOn } from "@/lib/scan/weekly";
 import type { DoneFacts, MeasuredFacts } from "./done";
 
@@ -64,8 +64,7 @@ function measuredOf(report: StoredReport): MeasuredFacts {
     if (!engines.includes(answer.engine)) engines.push(answer.engine);
   }
   return {
-    searches: report.serps.filter((serp) => serp.kind !== "unmeasured").length,
-    questions: report.prompts?.asked.length ?? 0,
+    ...askedOf(report),
     engines,
     at: report.verdict.measuredAt,
   };

@@ -776,6 +776,7 @@ export const SETTINGS_COPY = Object.freeze({
   "settings.month.reports": ["Monday reports", { slots: {}, fixedBy: "issue 1751 · board SettingsBilling · drafted" }],
   "settings.month.asked": ["searches and AI questions", { slots: {}, fixedBy: "issue 1751 · board SettingsBilling · drafted" }],
   "settings.month.asked.split": ["{searches} searches and {questions} AI questions, checked each week", { slots: { searches: "text", questions: "text" }, fixedBy: "issue 1751 · board SettingsBilling · drafted" }],
+  "settings.month.asked.split.unmeasured": ["{searches} searches, checked each week. AI questions were not measured this pass.", { slots: { searches: "text" }, fixedBy: "issue 1907 · drafted" }],
   "settings.month.planned": ["pages planned this week", { slots: {}, fixedBy: "issue 1751 · board SettingsBilling · drafted" }],
   "settings.month.planned.cap": ["up to {days} a week, never filler", { slots: { days: "text" }, fixedBy: "issue 1751 · board SettingsBilling · drafted" }],
   "settings.month.not-measured": ["not measured", { slots: {}, fixedBy: "E3 · drafted" }],
