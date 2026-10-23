@@ -219,7 +219,7 @@ describe("Edit opens the field it belongs to", () => {
         .filter((id) => id.startsWith("setting-"));
     const atRest = offered();
     // The site first and the market second, which is the approved S18's own
-    // order and the card's own name — "Your site & market" (issue #374).
+    // order and the card's own name — "Your site and market" (issue #374).
     // What this row holds is unchanged: the offer is the same two controls
     // whether a field is open or not.
     expect(atRest).toEqual(["setting-domain", "setting-category"]);
