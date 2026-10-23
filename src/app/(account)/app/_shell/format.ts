@@ -31,6 +31,11 @@ export function formatDate(at: Date, timeZone: string): string {
   }).format(at);
 }
 
+/** A day as a head states it: the weekday and the date, in the site's zone. */
+export function formatDay(at: Date, timeZone: string): string {
+  return new Intl.DateTimeFormat(SHELL_LOCALE, { timeZone, weekday: "long", day: "numeric", month: "long" }).format(at);
+}
+
 /** REQ-040 c3's "date and time of the next scheduled publish", in the
  *  site's zone, with the zone itself named — a time with no zone beside it
  *  is a time the customer has to guess about. */

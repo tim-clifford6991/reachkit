@@ -44,7 +44,7 @@ export async function readPublishedPages(siteId: string): Promise<readonly Publi
   if (read.error !== null || read.data === null) return null;
   // Issue 1553: each page's ladder. Pages whose ladder could not be read
   // are listed without one.
-  const ladders = new Map((await readLadders(siteId).catch(() => null))?.map((row) => [row.publicationId, row.ladder]) ?? []);
+  const ladders = new Map((await readLadders(siteId).catch(() => null))?.map((row) => [row.publicationId, row]) ?? []);
   const pages: PublishedPage[] = [];
   for (const row of read.data) {
     if (row.unpublished_at !== null || row.published_at === null) continue;
@@ -60,7 +60,7 @@ export async function readPublishedPages(siteId: string): Promise<readonly Publi
       url: row.live_url,
       publishedAt,
       ...(typeof row.draft_id === "string" ? { draftId: row.draft_id } : {}),
-      ...(ladder === undefined ? {} : { ladder }),
+      ...(ladder === undefined ? {} : { ladder: ladder.ladder, reading: ladder.reading, wordpress: ladder.wordpress }),
     });
   }
   return pages;

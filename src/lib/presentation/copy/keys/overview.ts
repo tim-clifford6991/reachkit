@@ -459,14 +459,6 @@ export const OVERVIEW_COPY = Object.freeze({
   // A page in review with no window running: nothing publishes it on a
   // clock, so the line states no time.
   "overview.waiting.waits": ["Its go-live time isn’t set yet.", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
-  // SPEC §4 2026-09-24 (#1070): the card counts down to that same time.
-  // `{left}` is the time left, `6h 12m 09s`, a value the card ticks; the
-  // absolute time stays on the line's own `<time>`. Drafted; the owner
-  // corrects the wording.
-  "overview.waiting.goes-live-in": [
-    "Goes live in {left} unless you stop it.",
-    { slots: { left: "text" }, fixedBy: "SPEC §4 2026-09-24" },
-  ],
   // The four arms of the reason, one per shape of evidence the opportunity
   // carries. Never composed at a call site: the screen picks the arm and the
   // registry says the sentence.
@@ -497,7 +489,7 @@ export const OVERVIEW_COPY = Object.freeze({
   "overview.waiting.stop": ["Stop this page", { slots: {}, fixedBy: "SPEC §7 2026-09-20" }],
   // Every action answers (SPEC §4, 2026-09-20): the two words the control
   // says back, on the screen, in place of silence.
-  "overview.waiting.stopped": ["Stopped. This page won’t publish.", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
+  "overview.waiting.stopped": ["Stopped. This page won’t go live.", { slots: {}, fixedBy: "SPEC §4 2026-09-20 · issue 1605 (drafted)" }],
   "overview.waiting.stop-refused": [
     "That didn’t go through. The page is unchanged. Try again in a moment.",
     { slots: {}, fixedBy: "SPEC §4 2026-09-20" },
@@ -1408,5 +1400,50 @@ export const OVERVIEW_COPY = Object.freeze({
   "overview.misstated.next": [
     "Your next page on each of these topics states what your site says, plainly.",
     { slots: {}, fixedBy: "SPEC §4 2026-10-19 · issue 1539 (drafted)" },
+  ],
+  // ── Today's page and the ladder (owner E4, 2026-10-19; board Main). Each
+  // step is the stored reading's own; drafted (#759), the owner corrects it.
+  "overview.today.eyebrow": ["Goes live today at {time}", { slots: { time: "date" }, fixedBy: "issue 1605 (drafted)" }],
+  "overview.today.ready": ["Ready. Nothing is needed from you.", { slots: {}, fixedBy: "issue 1605 (drafted)" }],
+  "overview.today.stop-note": [
+    "Stop means it won’t go live and the topic is dropped. Tomorrow’s page is not affected.",
+    { slots: {}, fixedBy: "issue 1605 (drafted)" },
+  ],
+  // Six words at most (SPEC §0; owner R12, B12).
+  "overview.ladder.title": ["How far your {n} pages got", { slots: { n: "text" }, fixedBy: "issue 1605 (drafted)" }],
+  "overview.ladder.read": ["Read {on}", { slots: { on: "date" }, fixedBy: "issue 1605 (drafted)" }],
+  "overview.ladder.google.sub": ["highest step each page has reached", { slots: {}, fixedBy: "issue 1605 (drafted)" }],
+  "overview.ladder.ai.sub": ["counted apart from Google", { slots: {}, fixedBy: "issue 1605 (drafted)" }],
+  "overview.ladder.step.live": ["of {n} on your own web address", { slots: { n: "text" }, fixedBy: "issue 1605 (drafted)" }],
+  "overview.ladder.step.found": ["of {n} Google fetched the page", { slots: { n: "text" }, fixedBy: "issue 1605 (drafted)" }],
+  "overview.ladder.step.showing": ["of {n} in the top 100 for its own search", { slots: { n: "text" }, fixedBy: "issue 1605 (drafted)" }],
+  "overview.ladder.step.first-page": ["of {n} places 1 to 10 in Google", { slots: { n: "text" }, fixedBy: "issue 1605 (drafted)" }],
+  "overview.ladder.step.read": ["of {n} an AI app fetched it to answer someone", { slots: { n: "text" }, fixedBy: "issue 1605 (drafted)" }],
+  "overview.ladder.step.linked": ["of {n} an AI answer to its own question links to it", { slots: { n: "text" }, fixedBy: "issue 1605 (drafted)" }],
+  "overview.ladder.step.visit": ["of {n} someone came from an AI answer", { slots: { n: "text" }, fixedBy: "issue 1605 (drafted)" }],
+  "overview.ladder.climbing": ["{n} climbing", { slots: { n: "text" }, fixedBy: "issue 1605 (drafted)" }],
+  // Search Console's clicks are summed over the reading's window, not one week.
+  "overview.ladder.visits": [
+    "{n} visits from Google in the last {weeks} weeks: people who arrived on these pages from Google.",
+    { slots: { n: "text", weeks: "text" }, fixedBy: "issue 1605 (drafted)" },
+  ],
+  "overview.ladder.how.title": ["How long each step takes", { slots: {}, fixedBy: "issue 1605 (drafted)" }],
+  "overview.ladder.how.google": [
+    "Each page climbs these steps at Google’s pace, not ours. Google usually fetches a new page within days to a few weeks. Showing in results, somewhere in the top 100 for the page’s own search, takes weeks. Reaching the first page takes months, and not every page gets there. Places are Google’s ordinary results; the map listings above them are not counted.",
+    { slots: {}, fixedBy: "issue 1605 (drafted)" },
+  ],
+  "overview.ladder.how.ai": [
+    "The AI steps are counted apart. An AI app can read a page within days, and an AI answer can link to a page before it reaches Google’s first page. Visits from AI are few for most businesses, so each one is a bonus, not a target.",
+    { slots: {}, fixedBy: "issue 1605 (drafted)" },
+  ],
+  // Before any page shows in results. Without server logs nothing says what
+  // Google or an AI app fetched, so the short line names neither.
+  "overview.ladder.week1": [
+    "Your first {live} pages are live, Google has found {found} and an AI app has read {read}. Showing in results usually takes weeks. Each step lights up here as it happens.",
+    { slots: { live: "text", found: "text", read: "text" }, fixedBy: "issue 1605 (drafted)" },
+  ],
+  "overview.ladder.week1.short": [
+    "Your first {live} pages are live. Showing in results usually takes weeks. Each step lights up here as it happens.",
+    { slots: { live: "text" }, fixedBy: "issue 1605 (drafted)" },
   ],
 }) satisfies CopyPartition;
