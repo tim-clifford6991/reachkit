@@ -147,6 +147,8 @@ export async function withCostContext<T>(
     draftId?: string;
     /** Cents of the cap this context may not spend, so a later context on the same row still has them. */
     holdBackCents?: number;
+    /** A close after a refusal for credit rolls the row up `failed`, so it never reads as measured. */
+    failsWhenFundsRefused?: true;
   },
   body: (cost: CostContext) => Promise<T>
 ): Promise<T> {
@@ -348,7 +350,11 @@ export async function withCostContext<T>(
     .update(
       ctx.rollUp === "add"
         ? { cost_cents: cost.spentCents() }
-        : { cost_cents: cost.spentCents(), status: cost.degraded() ? "degraded" : "done" }
+        : {
+            cost_cents: cost.spentCents(),
+            status:
+              ctx.failsWhenFundsRefused === true && refusedForFunds ? "failed" : cost.degraded() ? "degraded" : "done",
+          }
     )
     .eq("id", ctx.scanId);
   if (error) {
