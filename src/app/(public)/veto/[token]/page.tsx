@@ -142,6 +142,7 @@ function asRead(read: PlannedPreview): Read {
         title: copy("publish.veto.planned.title", { day: formatMailDay(day) }),
         excerpt: null,
         publishes: null,
+        unconnected: false,
         mailedAt: null,
       },
     };
@@ -387,10 +388,13 @@ function Ask(p: { token: string; it: Omit<VetoPreview, "draftId">; failed?: bool
     redirect(`${vetoLinkPath(p.token)}?${DONE}=1`);
   }
 
-  const head =
-    p.it.publishes === null
+  // An unconnected address names no hour anywhere on the page (owner ruling Q11).
+  const publishes = p.it.unconnected ? null : p.it.publishes;
+  const head = p.it.unconnected
+    ? copy("publish.veto.ask.head.unconnected")
+    : publishes === null
       ? copy("publish.veto.ask.action")
-      : copy("publish.veto.ask.head", { when: writeMoment(p.it.publishes) });
+      : copy("publish.veto.ask.head", { when: writeMoment(publishes) });
 
   // **Whichever line names this screen is its `<h1>`** (owner ruling
   // 2026-09-23, #328). Where the token resolves to a draft, the draft's
@@ -402,8 +406,8 @@ function Ask(p: { token: string; it: Omit<VetoPreview, "draftId">; failed?: bool
   // on screen changes.
   const Head = p.it.title === null ? "h1" : "p";
   const why = writeReason(p.it.reason);
-  const span = p.it.publishes === null ? null : timeline(p.it.mailedAt, p.it.publishes);
-  const when = p.it.publishes === null ? null : writeMoment(p.it.publishes);
+  const span = publishes === null ? null : timeline(p.it.mailedAt, publishes);
+  const when = publishes === null ? null : writeMoment(publishes);
 
   const ask = split(
     <>
@@ -473,7 +477,7 @@ function Ask(p: { token: string; it: Omit<VetoPreview, "draftId">; failed?: bool
     </>,
     pagePanel({
       heading:
-        p.it.publishes === null ? null : copy("publish.veto.panel.heading", { day: writeWeekday(p.it.publishes) }),
+        publishes === null ? null : copy("publish.veto.panel.heading", { day: writeWeekday(publishes) }),
       domain: p.it.domain,
       title: p.it.title,
       excerpt: p.it.excerpt,
@@ -501,7 +505,11 @@ function Ask(p: { token: string; it: Omit<VetoPreview, "draftId">; failed?: bool
             copy("publish.veto.choices.stop.3"),
           ])}
           {choice(copy("publish.veto.choices.none"), [
-            when === null ? copy("publish.veto.choices.none.1.unset") : copy("publish.veto.choices.none.1", { when }),
+            p.it.unconnected
+              ? copy("publish.veto.choices.none.1.unconnected")
+              : when === null
+                ? copy("publish.veto.choices.none.1.unset")
+                : copy("publish.veto.choices.none.1", { when }),
             copy("publish.veto.choices.none.2"),
             copy("publish.veto.choices.none.3"),
           ])}

@@ -282,8 +282,12 @@ export interface VetoPreview {
    *  zone beside it is a time the reader has to guess about, and REQ-073 c1
    *  forbids picking a zone on the customer's behalf. `null` where no
    *  moment can be computed — a site with no stated zone, or a page whose
-   *  window has already run out. Never substituted. */
+   *  window has already run out, or a hosted address not yet connected.
+   *  Never substituted. */
   readonly publishes: { readonly at: Date; readonly timeZone: string } | null;
+  /** The site's hosted address is still waiting for its record, so the page
+   *  goes live only once it is connected and no moment can be promised. */
+  readonly unconnected: boolean;
   /** Why the week chose the page (`opportunities.plan_reason`); `null` for a
    *  page chosen before reasons were kept, which states no reason. */
   readonly reason: PlanReason | null;
@@ -386,6 +390,7 @@ export async function previewVetoLink(
   const view = await machineDraftFor(row.id);
   const answer = view === null ? null : becomesPublishable(view);
   const zone = row.sites?.timezone ?? null;
+  const unconnected = await addressUnconnected(row.site_id);
 
   return {
     ok: true,
@@ -397,13 +402,27 @@ export async function previewVetoLink(
       domain: row.sites?.domain ?? null,
       excerpt: excerptOf(row.body_md),
       publishes:
-        answer !== null && answer.publishable && zone !== null
+        answer !== null && answer.publishable && zone !== null && !unconnected
           ? { at: answer.at, timeZone: zone }
           : null,
+      unconnected,
       reason: row.opportunities?.plan_reason ?? null,
       mailedAt: mailedAtOf(row.told),
     },
   };
+}
+
+/** Whether the site's hosted address is attached but not yet live — the
+ *  read the draft-ready mail's destination clause makes. A failed read
+ *  claims nothing. */
+async function addressUnconnected(siteId: string): Promise<boolean> {
+  try {
+    const { hostedHostFor } = await import("../destinations/hosted/hostname");
+    const host = await hostedHostFor(siteId);
+    return host !== null && host.state !== "live";
+  } catch {
+    return false;
+  }
 }
 
 /** The told record's send time, where a mail left with it and the time reads. */

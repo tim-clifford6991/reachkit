@@ -301,6 +301,25 @@ describe("the stop page's read: why it was chosen, when the mail left, and the w
     }
   });
 
+  it("a hosted address still waiting for its record names no go-live moment; once live it names one", async () => {
+    seed({ ...PAGE, approved_at: null, approved_by: null, hard_rules_passed: true, publishable_since: null });
+    Object.assign(db.rows("sites")[0]!, { timezone: "Europe/Berlin", publish_time: "09:00" });
+    db.seed("destinations", [
+      { id: "dest-1", site_id: "s1", kind: "hosted", hostname: "pages.example.com", hostname_state: "pending_dns", deleted_at: null },
+    ]);
+    const token = (await issueVetoLink("d1", AT)).token;
+    const waiting = await previewVetoLink(token, AT);
+    if (!waiting.ok) throw new Error(`expected an open link, got ${waiting.reason}`);
+    expect(waiting.preview.unconnected).toBe(true);
+    expect(waiting.preview.publishes).toBeNull();
+
+    db.rows("destinations")[0]!.hostname_state = "live";
+    const live = await previewVetoLink(token, AT);
+    if (!live.ok) throw new Error(`expected an open link, got ${live.reason}`);
+    expect(live.preview.unconnected).toBe(false);
+    expect(live.preview.publishes?.timeZone).toBe("Europe/Berlin");
+  });
+
   it("a spent link reads its page's Monday-to-Sunday week: stopped, going ahead, or nothing claimed", async () => {
     // Wednesday 2 September 2026; its week runs Monday 31 August to Sunday 6 September.
     seed({ ...PAGE, scheduled_for: "2026-09-02" });

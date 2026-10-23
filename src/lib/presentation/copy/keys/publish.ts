@@ -273,6 +273,8 @@ export const PUBLISH_COPY = Object.freeze({
     "Goes live {when}",
     { slots: { when: "text" }, fixedBy: "REQ-057 c1 · S6 (11a)" },
   ],
+  // Owner ruling Q11 (2026-10-20): no go-live time while the address is unconnected.
+  "publish.veto.ask.head.unconnected": ["Goes live once your website is connected", { slots: {}, fixedBy: "issue 1739 · Q11" }],
   "publish.veto.ask.row.search": ["search", { slots: {}, fixedBy: "S6 (11a)" }],
   "publish.veto.ask.row.site": ["address", { slots: {}, fixedBy: "S6 (11a)" }],
   "publish.veto.ask.row.volume": ["{query} · searched about {volume} times a month", { slots: { query: "text", volume: "text" }, fixedBy: "issue 1600 · drafted" }],
@@ -375,6 +377,7 @@ export const PUBLISH_COPY = Object.freeze({
   "publish.veto.choices.none": ["You do nothing", { slots: {}, fixedBy: "issue 1739" }],
   "publish.veto.choices.none.1": ["It goes live {when}, on its own.", { slots: { when: "text" }, fixedBy: "issue 1739" }],
   "publish.veto.choices.none.1.unset": ["It goes live on its own.", { slots: {}, fixedBy: "issue 1739" }],
+  "publish.veto.choices.none.1.unconnected": ["It goes live once the setting works.", { slots: {}, fixedBy: "issue 1739 · Q11" }],
   "publish.veto.choices.none.2": ["You can still edit or stop it until then.", { slots: {}, fixedBy: "issue 1739" }],
   "publish.veto.choices.none.3": ["Nothing is needed from you.", { slots: {}, fixedBy: "issue 1739" }],
   // The stopped arm's week: each day's page, as Plan holds it.

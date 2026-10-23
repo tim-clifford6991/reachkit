@@ -47,6 +47,7 @@ const LIVE_PREVIEW: VetoPreview = {
   excerpt: "Choosing onboarding software comes down to three questions, and the first one is who has to use it…",
   publishes: { at: new Date("2026-09-15T05:00:00.000Z"), timeZone: "Europe/Berlin" },
   reason: { points: 5, parts: [{ part: "fit", n: 3 }, { part: "ai_gap", n: 2 }], rule: null },
+  unconnected: false,
   // 06:00 in Berlin, the morning it goes live.
   mailedAt: new Date("2026-09-15T04:00:00.000Z"),
 };
@@ -319,6 +320,7 @@ describe("the ask arm — what the set draws, in its own order", () => {
         excerpt: null,
         domain: null,
         publishes: null,
+        unconnected: false,
         reason: null,
         mailedAt: null,
       },
@@ -587,6 +589,18 @@ describe("the board's sections on the open arm, in its order and words", () => {
   it("with no moment, doing nothing still says it goes live on its own, with no time", async () => {
     previewAnswer = async () => ({ ok: true, preview: { ...LIVE_PREVIEW, publishes: null } });
     expect(text(await ask())).toContain(COPY["publish.veto.choices.none.1.unset"]);
+  });
+
+  it("while the address is unconnected, no hour appears anywhere, open or failed, and doing nothing waits on the setting", async () => {
+    previewAnswer = async () => ({ ok: true, preview: { ...LIVE_PREVIEW, unconnected: true } });
+    for (const query of [{}, { done: "1" }] as Record<string, string>[]) {
+      const rendered = text(await ask(query));
+      expect(rendered).not.toMatch(/\d:\d\d/);
+      expect(rendered).toContain(COPY["publish.veto.ask.head.unconnected"]);
+      expect(rendered).toContain(COPY["publish.veto.choices.none.1.unconnected"]);
+      expect(rendered).not.toContain(COPY["publish.veto.choices.none.1.unset"]);
+      if ("done" in query) expect(rendered).toContain(COPY["publish.veto.failed.head"]);
+    }
   });
 
   it("the sections come in the board's order", async () => {
