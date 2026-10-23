@@ -23,6 +23,11 @@ export const FILTERS = "flex min-w-0 flex-wrap items-center justify-between gap-
 /** The week, and the day panel under it. */
 export const BODY = "grid min-w-0 items-start gap-4";
 
+/** The card the week sits in, with its head, legend and how it was chosen. */
+export const WEEK_CARD = "card card-border min-w-0 bg-base-100";
+export const WEEK_CARD_BODY = "card-body min-w-0 gap-4 p-4";
+export const WEEK_HEADING_ID = "plan-week-heading";
+
 /** The week's seven cells, from `lg`. */
 export const WEEK_GRID = "hidden min-w-0 grid-cols-7 items-stretch gap-2 lg:grid";
 

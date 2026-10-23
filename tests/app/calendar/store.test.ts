@@ -239,7 +239,7 @@ describe("a planned date is planned, and claims nothing more", () => {
           : null,
     }));
     const facts = await readCalendarFacts({ site: SITE, month: "2026-09", now: NOW });
-    expect(facts.drafts.map((page) => page.whyLine)).toEqual([COPY["calendar.week.why.near-page-one"], null]);
+    expect(facts.drafts.map((page) => page.whyLine)).toEqual([COPY["calendar.reason.near-page-one"], null]);
   });
 
   it("a Write target's 'you' is undeterminable, never a zero — the evidence records the rival's position, not theirs", async () => {
