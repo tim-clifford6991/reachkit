@@ -508,6 +508,9 @@ export const REPORT_COPY = Object.freeze({
   "check.structured-data.title": ["Pages with no labels for Google", { slots: {}, fixedBy: "issue 1909 · seo-master 2026-10-23" }],
   // The report's plain name (board PubReport); the account surfaces read the problem in `.title`.
   "check.structured-data.plain": ["Page labels Google can read", { slots: {}, fixedBy: "board PubReport · issue 1724 · issue 1909 · seo-master 2026-10-23" }],
+  // Who the labels say runs the site, under the structured-data row; no line where it was not measured.
+  "check.identity.found": ["The labels say who runs the site: {type}.", { slots: { type: "text" }, fixedBy: "board PubReport · issue 1915 · ux-designer 2026-10-23" }],
+  "check.identity.none": ["No label says who runs the site: a business, a company or a person.", { slots: {}, fixedBy: "board PubReport · issue 1915 · ux-designer 2026-10-23" }],
   // Issue 1550 (drafted): the one thing to do about each check the customer
   // fixes, on the account's Technical issues view.
   "check.noindex-pages.fix": ["Remove the noindex setting from these pages in your site builder or SEO plugin, so search engines can list them.", { slots: {}, fixedBy: "issue 1550 (drafted)" }],
