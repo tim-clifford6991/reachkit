@@ -31,6 +31,7 @@ import { Surface } from "@/ui/layout";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import type { ScoreFactorName } from "@/lib/measure/score";
 import { COUNTRIES, isCountry, isLanguage, measuredLocale } from "@/lib/locale/locales";
+import { countryOfDomain } from "@/lib/locale/read";
 import { stillReading, type StoredReport } from "@/lib/scan/report";
 import type { CanonicalDomain } from "@/lib/scan/domain";
 import type { CorrectionOffer } from "@/lib/market/coherence/offer";
@@ -156,6 +157,21 @@ function noticeOf(notice: AddressNotice): { line: string; warn: boolean } {
   }
 }
 
+/** Issue 1449: a home page that did not answer in time is a page that
+ *  couldn't be read, as one behind bot protection is. */
+function homeUnread(report: StoredReport): boolean {
+  return report.onPage.kind === "unmeasured" && (report.onPage.because === BOT_PROTECTION || report.onPage.because === HOME_TIMEOUT);
+}
+
+/** Whether the report was measured in D66's default because nothing of the
+ *  site was read. A report stored before the marker is read the same way
+ *  from what it holds: its market read from search, its home unread, and no
+ *  locale, on an address that names no country. */
+function guessedLocale(report: StoredReport): boolean {
+  if (report.locale !== undefined) return report.locale.basis === "default";
+  return report.marketFrom === "search" && homeUnread(report) && countryOfDomain(report.domain) === null;
+}
+
 /**
  * SPEC §2 (owner, 2026-10-10, issue 1387): where bot protection kept the
  * reader off the site's own pages and its market was read from its listing
@@ -165,9 +181,7 @@ function noticeOf(notice: AddressNotice): { line: string; warn: boolean } {
  */
 function MarketFromSearchLine(p: { report: StoredReport }): React.JSX.Element | null {
   if (p.report.marketFrom !== "search" || p.report.market.kind === "unmeasured") return null;
-  // Issue 1449: a home page that did not answer in time is a page that
-  // couldn't be read, as one behind bot protection is.
-  const blocked = p.report.onPage.kind === "unmeasured" && (p.report.onPage.because === BOT_PROTECTION || p.report.onPage.because === HOME_TIMEOUT);
+  const blocked = homeUnread(p.report);
   return (
     <p className="col-span-full text-sm text-base-content/70" data-testid="report-market-from-search">
       {copy(blocked ? "report.market.from-search" : "report.market.from-listing")}
@@ -215,7 +229,8 @@ function ReadsDifferentlyLine(p: { report: StoredReport; shown: boolean }): Reac
  */
 function MeasuredInLine(p: { report: StoredReport }): React.JSX.Element | null {
   const fellBack = p.report.locale?.fellBack;
-  if (fellBack === undefined) return null;
+  const guessed = guessedLocale(p.report);
+  if (fellBack === undefined && !guessed) return null;
   const measured = measuredLocale(p.report);
   const tag = REPORT_TAG;
   const countries = new Intl.DisplayNames(tag, { type: "region" });
@@ -233,6 +248,13 @@ function MeasuredInLine(p: { report: StoredReport }): React.JSX.Element | null {
       {text}
     </p>
   );
+  // The one "Not your market?" offer stays the verdict strip's correction.
+  if (guessed) {
+    const listing = p.report.locale?.listingReads;
+    const guess = copy("report.locale.guessed", where);
+    return line(listing === undefined ? guess : `${guess} ${copy("report.locale.listing-reads", { country: named(listing, countries) })}`);
+  }
+  if (fellBack === undefined) return null;
   if (isCountry(fellBack.country)) {
     return line(
       copy("report.locale.country-read-as", {
