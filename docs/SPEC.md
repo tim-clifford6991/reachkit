@@ -347,7 +347,7 @@ A new dated ruling is its own file under `docs/spec/decisions/`, headed by the s
 **Rules**
 - Autopilot only: generate → veto → publish. No Copilot, no mode picker, on no screen and in no mail (2026-09-11).
 - Veto default 24 h, range 1–7 days, never zero. Same window for updates as for new pages (2026-09-11).
-- At most one publish a day, eight a week. Kinds: new post, new page, update of an existing page.
+- At most one publish a day, and the plan's week (`WEEK_PLAN.days`, seven) a week. Kinds: new post, new page, update of an existing page.
 - Fail closed (2026-09-16, #792): when the day's or week's publishes cannot be counted, the page is held, not published, the log says why, and the next tick asks again.
 - Every asset links to real inventory pages — three to six, the ones nearest its topic (2026-10-10, *Links*, below) — and to earlier assets in its cluster. No link known to go nowhere. Drafts follow the stored voice. A fact about the business comes only from their site, the profile or the knowledge base; a fact about the market comes only from a public page cited beside it (2026-09-29).
 - A closed Markdown subset (with the 2026-09-20 blocks below); one serialiser for screen, copy-as-HTML and copy-as-Markdown. One fix call before review (D41, below); never after. Edits save with no save button.
