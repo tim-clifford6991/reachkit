@@ -313,6 +313,9 @@ export interface DomainMeasurement {
    *  fell back to the nearest supported country in English; `null`
    *  otherwise, and wherever the locale was the caller's. */
   localeFellBack: ResolvedLocale["fellBack"];
+  /** `default` where neither the home page nor the address named a
+   *  country, so the locale is D66's default, guessed. */
+  localeBasis?: "default";
   /** The other markets the home document says the site serves, as BCP-47
    *  tags without the measured one; absent where the home was not read. */
   alsoServes?: readonly string[];
@@ -604,6 +607,7 @@ export async function measureDomain(
     ownRankedRows,
     locale: read.locale,
     localeFellBack: read.fellBack,
+    ...(read.basis === undefined ? {} : { localeBasis: read.basis }),
     ...(home.html === null ? {} : { alsoServes: marketsServed({ domain: a.domain, html: home.html, measured: read.locale }) }),
     stated: readPlaceSignals(home.html),
     homeRefusal: null,
