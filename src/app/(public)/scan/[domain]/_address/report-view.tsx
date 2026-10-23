@@ -49,7 +49,7 @@ import { MethodSections } from "../_problems/method";
 import { answerReadersOf, cardsOf, missingPagesOf, PROBLEM_ORDER, type MissingPage, type ProblemCard, type ProblemName } from "../_problems/model";
 import { unblockLines } from "../_problems/unblock";
 import { RemovalAddressLine } from "./removal";
-import type { AddressControl, AddressNotice } from "./state";
+import type { AddressControl, AddressNotice, WrittenPage } from "./state";
 import { refusalLine } from "./refusal";
 import { VerdictStrip } from "./verdict";
 import { RescanControl } from "./rescan";
@@ -474,6 +474,7 @@ export function ReportView(p: {
     control: AddressControl;
     correction: CorrectionOffer;
     readsDifferently?: boolean;
+    writtenPage?: WrittenPage;
   };
   checkoutRefused?: boolean;
 }): React.JSX.Element {
@@ -648,7 +649,12 @@ export function ReportView(p: {
           {report.freePage === null ? (
             <FreePageAbsent cutOff={cutOff} domain={report.domain} />
           ) : (
-            <FreePageCard section={report.freePage} scanId={report.scanId} />
+            <FreePageCard
+              section={report.freePage}
+              scanId={report.scanId}
+              domain={report.domain}
+              written={p.state.writtenPage}
+            />
           )}
         </div>
 
