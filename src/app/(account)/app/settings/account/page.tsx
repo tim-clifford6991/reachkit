@@ -37,7 +37,7 @@ export default async function SettingsAccountTab(): Promise<React.JSX.Element> {
 
   return (
     <div className="flex min-w-0 flex-col gap-6" data-testid="settings-tab-panel-account">
-      <AccountPanel account={settings.account} />
+      <AccountPanel account={settings.account} pages={settings.content.pages} />
       <section className="card card-border bg-base-100 min-w-0" data-testid="settings-shortcuts">
         <div className="card-body min-w-0 p-2">
           <Shortcuts blog={shell.blog} />

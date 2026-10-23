@@ -126,9 +126,11 @@ describe("WO-179 step 5 — vetoHours is read, never corrected", () => {
 });
 
 describe("WO-179 decision 4 — the notification rows are projected from MAIL_KINDS", () => {
-  it("the rows are exactly the register's stoppable-by-toggle kinds, in its order", () => {
+  it("the rows are the register's stoppable-by-toggle kinds the Mail board draws, the Monday mail first", () => {
     const rows = assembleSettings(FACTS).notifications;
-    expect(rows.map((r) => r.kind)).toEqual([...TOGGLE_KINDS]);
+    // Page 1's published mail is told once and has no switch (D3, board SettingsMail).
+    expect(rows.map((r) => r.kind)).toEqual(["weekly", "draft-ready"]);
+    expect(TOGGLE_KINDS.filter((kind) => kind !== "published").sort()).toEqual(rows.map((r) => r.kind).sort());
     for (const row of rows) {
       expect(MAIL_KINDS[row.kind].stoppable).toBe("toggle");
     }
@@ -151,7 +153,7 @@ describe("WO-179 decision 4 — the notification rows are projected from MAIL_KI
   it("a kind absent from the stored preferences reads as on, and a stored false reads as off", () => {
     const rows = notificationRows({ weekly: false });
     expect(rows.find((r) => r.kind === "weekly")?.on).toBe(false);
-    expect(rows.find((r) => r.kind === "published")?.on).toBe(true);
+    expect(rows.find((r) => r.kind === "draft-ready")?.on).toBe(true);
   });
 });
 
