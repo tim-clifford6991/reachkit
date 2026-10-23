@@ -74,11 +74,15 @@ export function checksIn(line: CheckLine): number {
 }
 
 const prompts = Object.values(TRACKED_PROMPTS.SPLIT).reduce((sum, n) => sum + n, 0);
+const unbranded = prompts - TRACKED_PROMPTS.SPLIT.branded;
 
 export const HOW_FACTS = Object.freeze({
   searches: BATTERY.QUESTIONS,
   prompts,
   answerWeeks: ANSWER_RATE_WEEKS,
+  unbranded,
+  /** The most answers the weekly battery gathers to the questions that do not name you, over the counted weeks. */
+  answers: TRACKED_PROMPTS.ENGINES * unbranded * TRACKED_PROMPTS.RUNS * ANSWER_RATE_WEEKS,
   terms: MARKET_TERMS.MAX,
   rivals: BATTERY.COMPETITORS_MAX,
   rivalsHeld: RIVAL_PRESENCE.FIRST_PAGE_PLACES,
@@ -102,4 +106,8 @@ export const HOW_FACTS = Object.freeze({
   windowMaxDays: VETO.maxDays,
   /** The setup time the public pages state; setup's three steps take it. */
   setupMinutes: 10,
+  /** The time a site fix takes, as the free report's fix badges state it. */
+  fixMinutes: 10,
+  /** The results on Google's first page. */
+  googleFirstPage: 10,
 });

@@ -144,6 +144,7 @@ const { enumerateRoutes } = await import("./routes");
 const { renderRoute } = await import("./harness");
 type RenderedRoute = import("./harness").RenderedRoute;
 const rules = await import("./rules");
+const { copy } = await import("@/lib/presentation/copy");
 const { assembleShell } = await import("@/app/(account)/app/_shell/model");
 const fixture = await import("./fixture");
 const { stoppedWorkStatement } = await import("@/lib/presentation/stopped");
@@ -250,6 +251,19 @@ describe("REQ-092 c3 — the screen the customer lands on states it", () => {
   });
 });
 
+// The billing card's one control names its destination, and the cancel line names that
+// control (owner R24); only that exact name is taken out, on that one screen, before matching.
+const BILLING = "/app/settings/billing";
+const BILLING_CONTROL = copy("settings.billing.manage");
+function billingSwept(screen: HTMLElement): HTMLElement {
+  const body = screen.cloneNode(true) as HTMLElement;
+  const walker = body.ownerDocument.createTreeWalker(body, NodeFilter.SHOW_TEXT);
+  for (let node = walker.nextNode(); node !== null; node = walker.nextNode()) {
+    node.nodeValue = node.nodeValue!.split(BILLING_CONTROL).join(" ");
+  }
+  return body;
+}
+
 describe("REQ-092 c8 — no internal cause, anywhere the statement renders", () => {
   it("the statement itself names no cap, no spend, no vendor, no error and no status", () => {
     const notice = at(stopped, LANDING).doc.querySelector("[data-testid='shell-stopped']")!;
@@ -276,6 +290,7 @@ describe("REQ-092 c8 — no internal cause, anywhere the statement renders", () 
       "/about": "about-disclosure",
     };
     const swept = (r: (typeof stopped)[number]): ParentNode => {
+      if (r.route.url === BILLING) return billingSwept(r.doc.body);
       const testId = DISCLOSED[r.route.url];
       if (testId === undefined) return r.doc.body;
       const body = r.doc.body.cloneNode(true) as HTMLElement;
@@ -288,6 +303,16 @@ describe("REQ-092 c8 — no internal cause, anywhere the statement renders", () 
       rules.noInternalCause(swept(r), "everywhere").map((f) => `${r.route.url} [${f.rule}] ${f.detail}`)
     );
     expect(findings).toEqual([]);
+  });
+
+  it("billing's control name is taken out, exactly twice, and a vendor named as a cause still fails there", () => {
+    const body = at(stopped, BILLING).doc.body;
+    expect((body.textContent ?? "").split(BILLING_CONTROL).length - 1).toBe(2);
+    const leaked = body.cloneNode(true) as HTMLElement;
+    leaked.append(body.ownerDocument.createTextNode(" Stripe could not be reached."));
+    expect(rules.noInternalCause(billingSwept(leaked), "everywhere").map((f) => f.detail)).toEqual([
+      'a vendor or model name — matched "Stripe"',
+    ]);
   });
 
   it("the stop the sweep installed carries no field an internal cause could travel in", () => {
