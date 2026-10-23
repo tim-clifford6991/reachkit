@@ -108,6 +108,18 @@ describe("hosted pages after access ends (ruling D5)", () => {
   });
 });
 
+describe("the cancel answer leaves when access ends to the Terms (ruling R22)", () => {
+  it("promises no month-end access a refund cancel would break, names no refund, and points at a Terms section that says it", () => {
+    const answer = text("landing.faq.stop.a");
+    expect(answer).not.toMatch(/keep access until the end/i);
+    expect(answer).not.toMatch(/refund|money-back/i);
+    expect(answer).toContain("Section four of our Terms says when your access ends.");
+    const section4 = text("legal.terms.body").split("\n## ").find((s) => s.startsWith("4. "));
+    expect(section4).toMatch(/^4\. Price, billing and cancellation/);
+    expect(section4).toContain("Otherwise your access continues to the end of the period you have paid for");
+  });
+});
+
 describe("the time to stop a page is the pin, never a typed number", () => {
   it("each sentence takes the hours through a slot", () => {
     for (const { key, slot } of WINDOW) {
