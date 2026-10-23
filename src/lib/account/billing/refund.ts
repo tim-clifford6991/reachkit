@@ -9,13 +9,12 @@
 // throws: the webhook still answers 200, and the next delivery tries again.
 // Hosted pages are untouched: they follow the 30-day path from the new
 // paid-through date like any other ended account.
-import { REFUND_WINDOW_DAYS } from "@/lib/config/constants";
 import { parseDomain } from "@/lib/scan/domain";
 import { stripe, type Stripe } from "../stripe/client";
 import { endSubscriptionNow } from "./end-now";
 import { billingStore, type RefundRow } from "./store";
 
-export { REFUND_WINDOW_DAYS };
+export const REFUND_WINDOW_DAYS = 14;
 
 const WINDOW_MS = REFUND_WINDOW_DAYS * 24 * 60 * 60 * 1000;
 

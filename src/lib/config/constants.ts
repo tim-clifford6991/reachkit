@@ -1627,8 +1627,6 @@ export const SIGNIN_LINK_TTL_H = 24 as const;                 // BP-061 d2 (chos
 export const ERASURE_DAYS = 30 as const;                      // BP-063 · REQ-079 c7
 export const DANGER_TICKET_TTL_MINUTES = 30 as const;         // BP-063
 export const EXPORT_DEADLINE_MS = 120_000 as const;           // BP-062 (chosen) · REQ-078 c5
-/** A cancel this many days after the first payment refunds it in full, once per web address (owner D4). */
-export const REFUND_WINDOW_DAYS = 14 as const;
 export const HOSTED_RETENTION_DAYS = 30 as const;             // BP-060 · REQ-076 c10
 export const HOSTING_END_REMINDER_DAYS = 7 as const;          // BP-060 · REQ-076 c11
 export const MAINTENANCE_TICK_MINUTES = 15 as const;          // BP-003 d1 · REQ-024 c5

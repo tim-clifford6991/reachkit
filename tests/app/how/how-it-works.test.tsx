@@ -28,7 +28,6 @@ const { CHECK_LINES, ENGINES_NAMED, ENGINES_NAMED_COUNT, HOW_FACTS, MODEL_DECIDE
   "@/app/(public)/_how/facts"
 );
 const { EXAMPLES } = await import("@/app/(public)/_how/specimen");
-const { REFUND_WINDOW_DAYS } = await import("@/lib/config/constants");
 
 const NOTHING: LiveExamples = { report: null, page: null, founder: null };
 const STORED: LiveExamples = {
@@ -109,20 +108,6 @@ describe("every page that answers Does it work in German? names the countries Re
     expect(at).toBeGreaterThan(-1);
     const answer = page.slice(at, page.indexOf("</details>", at));
     for (const row of Object.values(COUNTRIES)) expect(answer).toContain(row.location);
-  });
-});
-
-describe("every page that answers What if I want to stop? states the refund window and what follows it", () => {
-  it.each([
-    ["how it works", () => html],
-    ["the landing", () => renderToStaticMarkup(createElement(LandingPage, { searchParams: {} }))],
-  ])("%s", (_page, render) => {
-    const page = text(render());
-    const at = page.indexOf(copy("landing.faq.stop.q"));
-    expect(at).toBeGreaterThan(-1);
-    const answer = page.slice(at, at + 1200);
-    expect(answer).toContain(`If you cancel within ${REFUND_WINDOW_DAYS} days of your first payment, we refund it in full, automatically, and ReachKit stops at once.`);
-    expect(answer).toContain("After that, you keep access until the end of the month you’ve paid for");
   });
 });
 

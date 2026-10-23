@@ -282,16 +282,3 @@ describe("the screen root (ADR-093; DECISIONS 2026-09-02)", () => {
     expect(html).toContain('data-arm-wide="same-as-below"');
   });
 });
-
-describe("What if I want to stop? states the refund window and what follows it (ruling D4)", () => {
-  it("names the window from the refund's own constant", async () => {
-    const html = await render();
-    const { copy } = await import("@/lib/presentation/copy");
-    const { REFUND_WINDOW_DAYS } = await import("@/lib/config/constants");
-    const at = html.indexOf(copy("landing.faq.stop.q"));
-    expect(at).toBeGreaterThan(-1);
-    const answer = html.slice(at, html.indexOf("</details>", at));
-    expect(answer).toContain(`If you cancel within ${REFUND_WINDOW_DAYS} days of your first payment, we refund it in full, automatically, and ReachKit stops at once.`);
-    expect(answer).toContain("After that, you keep access until the end of the month you’ve paid for");
-  });
-});

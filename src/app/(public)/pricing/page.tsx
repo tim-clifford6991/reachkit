@@ -18,7 +18,7 @@ import React, { use } from "react";
 import type { Metadata } from "next";
 import { Check, CircleCheck, CircleStop, Clock, Mail, Pencil, X } from "lucide-react";
 import { Surface } from "@/ui/layout";
-import { HOSTED_RETENTION_DAYS, REFUND_WINDOW_DAYS, VETO, WEEK_PLAN } from "@/lib/config/constants";
+import { HOSTED_RETENTION_DAYS, VETO, WEEK_PLAN } from "@/lib/config/constants";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { PricingCard } from "../scan/[domain]/_modules/pricing";
 import { ScanForm } from "../_landing/ScanForm";
@@ -305,7 +305,7 @@ function questions(): readonly Question[] {
     landing("start"),
     landing("approve", { hours: F.windowHours, min: F.windowMinDays, max: F.windowMaxDays }),
     landing("results"),
-    landing("stop", { refundDays: String(REFUND_WINDOW_DAYS), days: String(HOSTED_RETENTION_DAYS) }),
+    landing("stop", { days: String(HOSTED_RETENTION_DAYS) }),
     landing("local", weekPages),
     { q: "how.faq.software.q", a: "how.faq.software.a" },
   ];
