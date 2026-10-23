@@ -28,7 +28,7 @@ export interface MonthContext {
 /** One tile: a count, what it counts, and a line under it. A zero is quiet; an unread count says so. */
 function Tile(p: { value: number | null; label: string; cap: string | null; testId: string }): React.JSX.Element {
   return (
-    <li className="bg-base-200 rounded-box flex min-w-0 flex-col gap-1 p-3" data-testid={p.testId}>
+    <li className="bg-base-200 rounded-box flex min-w-0 flex-1 basis-48 flex-col gap-1 p-3" data-testid={p.testId}>
       {p.value === null ? (
         <span className={`text-base wrap-anywhere ${INK}`}>{copy("settings.month.not-measured")}</span>
       ) : (
@@ -89,7 +89,7 @@ export function MonthPanel(p: { got: MonthGot | null; context: MonthContext }): 
           </Link>
         </div>
 
-        <ul className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <ul className="flex min-w-0 flex-wrap gap-3">
           <Tile
             value={got.live}
             label={copy("settings.month.live")}

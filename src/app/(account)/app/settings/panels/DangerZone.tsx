@@ -176,8 +176,8 @@ function DangerStep(p: {
           <span className="text-sm text-base-content/70">{copy("danger.type-to-confirm", { word })}</span>
           <input className="input w-full" placeholder={word} value={typed} onChange={(e) => setTyped(e.target.value)} />
         </label>
-        <span data-testid={`action-${p.row.action}`}>
-        <span data-testid={`confirm-${p.row.action}`}>
+        <span className="flex min-w-0" data-testid={`action-${p.row.action}`}>
+        <span className="flex min-w-0" data-testid={`confirm-${p.row.action}`}>
           <button
             type="button"
             className="btn btn-error btn-sm"
