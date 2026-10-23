@@ -172,6 +172,9 @@ export interface LocaleReading {
 export interface ResolvedLocale {
   locale: Locale;
   fellBack: { country: string | null; language: string | null } | null;
+  /** `default` where nothing was read at all, neither the home page nor a
+   *  country in the address: the locale is D66's default, guessed. */
+  basis?: "default";
 }
 
 /**
