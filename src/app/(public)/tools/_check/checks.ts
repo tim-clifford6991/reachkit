@@ -5,8 +5,8 @@ import { copy, type CopyKey } from "@/lib/presentation/copy";
 import type { PageTags } from "./read";
 
 /** Past these, Google commonly cuts a title or a description in a result. */
-const TITLE_MAX = 60;
-const DESCRIPTION_MAX = 160;
+export const TITLE_MAX = 60;
+export const DESCRIPTION_MAX = 160;
 
 /** The three share tags a card needs. */
 const SHARE_NEEDED = ["og:title", "og:description", "og:image"] as const;
@@ -31,6 +31,12 @@ function languageName(tag: string): string {
   } catch {
     return tag;
   }
+}
+
+/** `LocalBusiness` → `a local business`: a schema type as a reader says it. */
+function kindOf(type: string): string {
+  const words = type.replace(/([a-z])([A-Z])/g, "$1 $2").toLowerCase();
+  return `${/^[aeiou]/.test(words) ? "an" : "a"} ${words}`;
 }
 
 export function onPageChecks(t: PageTags): readonly CheckResult[] {
@@ -60,7 +66,7 @@ export function onPageChecks(t: PageTags): readonly CheckResult[] {
       : { name: "tools.check.index", fine: true, line: copy("tools.check.index.fine") },
     t.schemaTypes.length === 0
       ? { name: "tools.check.schema", fine: false, line: copy("tools.check.schema.none") }
-      : { name: "tools.check.schema", fine: true, line: copy("tools.check.schema.fine", { value: t.schemaTypes.join(", ") }) },
+      : { name: "tools.check.schema", fine: true, line: copy("tools.check.schema.fine", { value: t.schemaTypes.map(kindOf).join(", ") }) },
     missingShare.length === 0
       ? { name: "tools.check.share", fine: true, line: copy("tools.check.share.fine") }
       : { name: "tools.check.share", fine: false, line: copy("tools.check.share.none", { value: missingShare.join(", ") }) },
@@ -82,20 +88,43 @@ export function onPageChecks(t: PageTags): readonly CheckResult[] {
   ];
 }
 
+/** The three groups the on-page check lists its ten checks in, each by its checks' names. */
+export const CHECK_GROUPS: readonly { readonly name: CopyKey; readonly checks: readonly CopyKey[] }[] = [
+  { name: "tools.group.google", checks: ["tools.check.title", "tools.check.description", "tools.check.share"] },
+  {
+    name: "tools.group.reads",
+    checks: ["tools.check.h1", "tools.check.canonical", "tools.check.index", "tools.check.schema", "tools.check.lang"],
+  },
+  { name: "tools.group.visitors", checks: ["tools.check.viewport", "tools.check.images"] },
+];
+
 /** The tags the meta preview lists, as their machine names. */
 export const PREVIEW_TAGS = [
   "title",
   "description",
+  "canonical",
   "og:title",
   "og:description",
   "og:image",
-  "og:url",
   "twitter:card",
 ] as const;
+export type PreviewTag = (typeof PREVIEW_TAGS)[number];
 
 /** A tag's value on the page, `""` where it is absent. */
-export function tagValue(t: PageTags, tag: (typeof PREVIEW_TAGS)[number]): string {
+export function tagValue(t: PageTags, tag: PreviewTag): string {
   if (tag === "title") return t.title;
   if (tag === "description") return t.description;
+  if (tag === "canonical") return t.canonical;
   return t.share[tag] ?? "";
+}
+
+/** A tag as its HTML writes it. */
+export function tagName(tag: PreviewTag): string {
+  return tag === "description" ? "meta description" : tag;
+}
+
+/** What a tag does, and its short name in a list of what to fix. */
+export function tagWords(tag: PreviewTag): { what: string; name: string } {
+  const key = `tools.tag.${tag === "title" ? "page-title" : tag.replace(":", "-")}`;
+  return { what: copy(key as CopyKey), name: copy(`${key}.name` as CopyKey) };
 }
