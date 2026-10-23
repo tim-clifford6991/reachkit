@@ -14,12 +14,17 @@
 // `db` (owner C3, 2026-10-19): true where a path can change the migrated
 // schema or the suite that asserts it. False skips `schema · RLS` at the job.
 //
-// `unit` (owner C1, 2026-10-19): `affected` runs only the unit tests vitest's
-// module graph links to the diff; `full` runs every one, because a path below
-// reaches tests through no import. The nightly run on `main` runs them all.
+// `unit` (owner C1, 2026-10-19): `affected` runs the unit tests vitest's module
+// graph links to the diff, plus every suite that reads the tree from disk;
+// `full` runs every one, because a path below reaches tests through no import.
+// The nightly run on `main` runs them all.
+//
+// `--related` prints what an affected unit run hands `vitest related`: the
+// diff's paths, the suites that always run, and every walker.
 //
 // An empty list runs everything.
-import { appendFileSync, readFileSync } from "node:fs";
+import { appendFileSync, readFileSync, readdirSync } from "node:fs";
+import path from "node:path";
 import { LIVE_SCHEMA_TESTS } from "./live-schema-tests.mjs";
 
 const UI = [
@@ -48,6 +53,9 @@ const UI = [
   /^\.github\/actions\/(layout-suite|db-substrate|db-substrate-down)\//,
   /^\.github\/workflows\/ci\.yml$/,
   /^scripts\/ci-changes\.mjs$/,
+  // The boards and baselines the parity sweep reads, and the sweep's scripts.
+  /^docs\/design\/(boards\/canvas|parity)\//,
+  /^scripts\/design\//,
 ];
 
 const DB = [
@@ -86,6 +94,26 @@ const FULL_UNIT = [
   /^scripts\/ci-changes\.mjs$/,
 ];
 
+// Suites that reach what they check through no import and no directory walk.
+const ALWAYS = ["tests/config/ci-changes.test.ts"];
+
+const WALK = /readdirSync|globSync|readdir\(|fs\.glob/;
+
+// Test files and helpers that read the tree from disk, so no import links them
+// to the files they check. The layout suite runs in its own gate.
+export function walkers(root = process.cwd()) {
+  return readdirSync(path.join(root, "tests"), { recursive: true, withFileTypes: true })
+    .filter((e) => e.isFile() && /\.[cm]?[jt]sx?$/.test(e.name))
+    .map((e) => path.relative(root, path.join(e.parentPath, e.name)).split(path.sep).join("/"))
+    .filter((f) => !f.startsWith("tests/ui/layout/") && WALK.test(readFileSync(path.join(root, f), "utf8")))
+    .sort();
+}
+
+export function related(paths, root = process.cwd()) {
+  const files = paths.map((p) => p.trim()).filter(Boolean);
+  return [...new Set([...files, ...ALWAYS, ...walkers(root)])];
+}
+
 export function classify(paths) {
   const files = paths.map((p) => p.trim()).filter(Boolean);
   const lines = [];
@@ -109,9 +137,14 @@ export function classify(paths) {
 }
 
 if (process.argv[1] && import.meta.url === new URL(`file://${process.argv[1]}`).href) {
-  const { lines, ...outputs } = classify(readFileSync(0, "utf8").split("\n"));
-  for (const line of lines) console.log(line);
-  const out = Object.entries(outputs).map(([k, v]) => `${k}=${v}\n`).join("");
-  process.stdout.write(out);
-  if (process.env.GITHUB_OUTPUT) appendFileSync(process.env.GITHUB_OUTPUT, out);
+  const paths = readFileSync(0, "utf8").split("\n");
+  if (process.argv[2] === "--related") {
+    for (const f of related(paths)) console.log(f);
+  } else {
+    const { lines, ...outputs } = classify(paths);
+    for (const line of lines) console.log(line);
+    const out = Object.entries(outputs).map(([k, v]) => `${k}=${v}\n`).join("");
+    process.stdout.write(out);
+    if (process.env.GITHUB_OUTPUT) appendFileSync(process.env.GITHUB_OUTPUT, out);
+  }
 }
