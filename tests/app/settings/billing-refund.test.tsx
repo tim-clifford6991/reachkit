@@ -1,6 +1,6 @@
 // Settings › Billing: the E13 cancel route always, and D4's dated refund
-// line in place of the cancelling line only inside the first 14 days for a
-// web address never refunded.
+// line in place of the billed line only inside the first 14 days for a
+// web address never refunded; a cancelled plan says so and offers resume.
 // From stored rows through `billingSummary` to the rendered card.
 /** @vitest-environment jsdom */
 import "../../generate/env";
@@ -62,11 +62,40 @@ describe("Settings › Billing — the cancel route and the first-14-days refund
     expect(line(doc, "billing-cancelling")).toBeNull();
   });
 
-  it("day 20: the route only, and cancelling keeps access to the period end", async () => {
+  it("day 20: the route, and how billing runs: cancel any time, everything keeps running to the period end", async () => {
     const doc = await billingCard(20);
     expect(line(doc, "billing-route")).toBe(route());
     expect(line(doc, "billing-refund")).toBeNull();
-    expect(line(doc, "billing-cancelling")).toBe(copy("settings.billing.cancelling", { date: "Oct 31, 2026" }));
+    expect(line(doc, "billing-billed")).toBe("Billed in euros. Cancel any time; everything keeps running until the period ends.");
+  });
+
+  it("a cancelled plan says it, names the day everything runs to, and offers Resume my plan", () => {
+    const html = renderToStaticMarkup(
+      <BillingPanel
+        billing={{ readable: true, state: "cancelled", accessUntil: "Nov 7, 2026", surfaceHref: "/app/settings", cardLast4: null, refundUntil: null }}
+      />
+    );
+    const doc = new DOMParser().parseFromString(html, "text/html");
+    expect(line(doc, "billing-cancelling")).toBe("Cancelled. Everything keeps running until Nov 7, 2026.");
+    expect(line(doc, "billing-billed")).toBeNull();
+    expect(doc.querySelector('[data-testid="action-resume"] button')?.textContent).toBe("Resume my plan");
+    expect(line(doc, "billing-state")).toBe(copy("settings.billing.cancelled"));
+  });
+
+  it("the card's rows are Status, Plan, Next invoice and Card, in the board's order", () => {
+    const html = renderToStaticMarkup(
+      <BillingPanel
+        billing={{ readable: true, state: "active", accessUntil: "Nov 7, 2026", surfaceHref: "/app/settings", cardLast4: "4242", refundUntil: null }}
+      />
+    );
+    const doc = new DOMParser().parseFromString(html, "text/html");
+    expect([...doc.querySelectorAll('[data-testid^="billing-row-"]')].map((row) => row.getAttribute("data-testid"))).toEqual([
+      "billing-row-status",
+      "billing-row-plan",
+      "billing-row-next-invoice",
+      "billing-row-card",
+    ]);
+    expect(line(doc, "billing-card")).toBe("ending 4242");
   });
 
   it("day 5 for a web address another account was refunded on: the route only", async () => {
@@ -80,7 +109,7 @@ describe("Settings › Billing — the cancel route and the first-14-days refund
     const doc = await billingCard(5);
     expect(line(doc, "billing-route")).toBe(route());
     expect(line(doc, "billing-refund")).toBeNull();
-    expect(line(doc, "billing-cancelling")).not.toBeNull();
+    expect(line(doc, "billing-billed")).not.toBeNull();
   });
 
   it("the route names the control the card really draws", async () => {
