@@ -287,7 +287,7 @@ describe("SPEC §5 — /setup/connect: the founder checks the record they just m
 
     expect(attached()).toEqual([HOST]);
     expect(vendor.calls[0]!.url).toContain("/projects/prj_757/domains");
-    expect(answerIn(host)).toEqual({ outcome: "live", text: COPY["settings.destination.check.live"] });
+    expect(answerIn(host)).toEqual({ outcome: "live", text: COPY["setup.connect.connected"] });
     expect(hostedRecordState(host)).toBe(COPY["settings.destination.hostname.live"]);
     // The press is the row's: what it learned is written there, not held
     // on the screen until some later pass asks again.
@@ -303,8 +303,9 @@ describe("SPEC §5 — /setup/connect: the founder checks the record they just m
     expect(attached()).toEqual([HOST]);
     expect(answerIn(host)).toEqual({
       outcome: "pending_dns",
-      text: COPY["settings.destination.check.pending-dns"],
+      text: COPY["setup.connect.notfound.title"] + COPY["setup.connect.notfound"],
     });
+    expect(host.querySelector('[data-testid="check-connection-answer"] strong')?.textContent).toBe(COPY["setup.connect.notfound.title"]);
     expect(hostedRecordState(host)).toBe(COPY["settings.destination.hostname.waiting"]);
   });
 
@@ -461,7 +462,7 @@ describe("#759 (owner ruling 2026-09-16) — every line the press draws is writt
 
     const host = await connectScreen();
     const button = host.querySelector('[data-testid="check-connection-press"]');
-    expect(button?.textContent).toBe(COPY["settings.destination.check.button"]);
+    expect(button?.textContent).toBe(COPY["setup.connect.check"]);
 
     const seen: (string | undefined)[] = [];
     for (const answer of ["unverified", "silent", "verified"] as const) {
@@ -472,9 +473,9 @@ describe("#759 (owner ruling 2026-09-16) — every line the press draws is writt
       seen.push(answerIn(host)?.text);
     }
     expect(seen).toEqual([
-      COPY["settings.destination.check.pending-dns"],
+      COPY["setup.connect.notfound.title"] + COPY["setup.connect.notfound"],
       COPY["settings.destination.check.could-not-ask"],
-      COPY["settings.destination.check.live"],
+      COPY["setup.connect.connected"],
     ]);
 
     await press(host);
