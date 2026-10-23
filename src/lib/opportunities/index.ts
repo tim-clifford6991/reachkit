@@ -44,6 +44,7 @@ export { clusterKey, collapse, comparePrecedence } from "./cluster";
 export { suppressionOf, verdictReason, type NotWorkingVerdict, type Suppression } from "./suppression";
 export {
   committedWeek,
+  weekChosenOn,
   pageForDay,
   planFirstWeek,
   planWeek,

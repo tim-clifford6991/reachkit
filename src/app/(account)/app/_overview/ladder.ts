@@ -51,6 +51,13 @@ export interface LadderRow {
   google: CopyKey;
   ai: CopyKey | null;
   measured: boolean;
+  /** Each step the page can be read on, in order, and whether it got there. */
+  dots: { google: StepDot[]; ai: StepDot[] };
+}
+
+export interface StepDot {
+  name: CopyKey;
+  reached: boolean;
 }
 
 export interface PageLadder {
@@ -86,6 +93,10 @@ function highest(defs: readonly StepDef[], page: PublishedPage): CopyKey | null 
   return open.at(-1)?.name ?? null;
 }
 
+function dotsOf(defs: readonly StepDef[], page: PublishedPage): StepDot[] {
+  return defs.filter((def) => !(def.logs && page.wordpress === true)).map((def) => ({ name: def.name, reached: reached(page, def.step) }));
+}
+
 function countOf(list: readonly StepFigure[], name: CopyKey): number | null {
   return list.find((figure) => figure.name === name)?.count ?? null;
 }
@@ -117,6 +128,7 @@ export function pageLadderOf(all: readonly PublishedPage[], now: Date): PageLadd
       google: highest(GOOGLE, page) ?? "draft.ladder.live",
       ai: highest(AI, page),
       measured: page.reading != null,
+      dots: { google: dotsOf(GOOGLE, page), ai: dotsOf(AI, page) },
     })),
   };
 }

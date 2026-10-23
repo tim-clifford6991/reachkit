@@ -95,6 +95,11 @@ export function formatVetoWindow(hours: number): string {
  * than doubled.
  */
 export function zoneLabel(zone: string): string {
-  const place = zone.slice(zone.lastIndexOf("/") + 1).replaceAll("_", " ");
+  const place = zonePlace(zone);
   return place === zone ? zone : `${place} · ${zone}`;
+}
+
+/** The place a zone names: its identifier's last segment, opened up. */
+export function zonePlace(zone: string): string {
+  return zone.slice(zone.lastIndexOf("/") + 1).replaceAll("_", " ");
 }

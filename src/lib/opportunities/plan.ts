@@ -124,6 +124,13 @@ export async function committedWeek(
   };
 }
 
+/** The first date the committed week holds, written or not: the day the
+ *  pass chose it. `null` before the site's first commit. */
+export async function weekChosenOn(siteId: string): Promise<string | null> {
+  const dates = (await opportunityStore().plannedRows(siteId)).flatMap((row) => (row.planned_for == null ? [] : [row.planned_for]));
+  return dates.length === 0 ? null : dates.reduce((a, b) => (a < b ? a : b));
+}
+
 /** The row as the day writes it: a comparison over D52's cap the commit
  *  marked is written as a Q&A (issue 1455). */
 function planned(row: OpportunityRow): Opportunity {

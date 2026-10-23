@@ -222,13 +222,13 @@ describe(
     });
 
     it("the keys are distinct", () => {
-      const keys = Object.values(LIMITING_LINES).flatMap(({ title, line }) => [title, line]);
-      expect(new Set(keys).size).toBe(10);
+      const keys = Object.values(LIMITING_LINES).flatMap(({ title, line, why }) => [title, line, why]);
+      expect(new Set(keys).size).toBe(15);
     });
 
     // The @ts-expect-error fixture(s) below are never invoked at runtime.
     function _typeLevelNegatives(): void {
-      const line = (title: CopyKey): { title: CopyKey; line: CopyKey } => ({ title, line: title });
+      const line = (title: CopyKey): { title: CopyKey; line: CopyKey; why: CopyKey } => ({ title, line: title, why: title });
       const sixthHandle: typeof LIMITING_LINES = {
         foundations: line("verdict.limiting.foundations"),
         answerability: line("verdict.limiting.answerability"),

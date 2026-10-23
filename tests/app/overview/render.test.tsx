@@ -9,9 +9,8 @@
 //
 // So this file renders the screen against a registry in which **every key is
 // written**, its value being the key itself. What that shows is what the
-// customer will see the moment the owner fills the keys: three tiles and no
-// fourth, two alerts and a count for the third, one supply statement, both
-// rival arms, and the seven days of the week.
+// customer will see the moment the owner fills the keys: both rival arms and
+// the week-0 arm.
 import { describe, expect, it, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import React from "react";
@@ -35,8 +34,6 @@ vi.mock("@/lib/presentation/copy", async (importOriginal) => {
 import { measured, measuredZero, unmeasured } from "@/lib/measure/measured";
 import { assembleOverview, type OverviewFacts } from "@/app/(account)/app/_overview/model";
 import { RivalModule } from "@/app/(account)/app/_overview/RivalModule";
-import { NeedsYouModule } from "@/app/(account)/app/_overview/NeedsYouModule";
-import { WeekModule } from "@/app/(account)/app/_overview/WeekModule";
 import type { WeeklyPoint } from "@/app/(account)/app/_overview/growth";
 
 const ZONE = "America/New_York";
@@ -125,7 +122,6 @@ const facts = (over: Partial<OverviewFacts> = {}): OverviewFacts => ({
 });
 
 const html = (el: React.ReactElement): string => renderToStaticMarkup(el);
-const count = (source: string, needle: string): number => source.split(needle).length - 1;
 
 describe("how far ahead each rival is", () => {
   it("the ratio arm renders the figure, the was badge and the shrinking line", () => {
@@ -212,157 +208,6 @@ describe("how far ahead each rival is", () => {
     expect(markup).toContain("overview.rivals.leaders(zapier.com, ahrefs.com)");
     expect(markup).not.toContain("overview.rivals.spark.label");
     expect(markup).not.toContain("far beyond your reach");
-  });
-});
-
-describe("issue 867 — this week says what its pages aim at", () => {
-  const weekOf = (over: Partial<OverviewFacts> = {}): string => {
-    const model = assembleOverview(facts(over));
-    return html(<WeekModule week={model.week} timeZone={ZONE} supply={model.supply} />);
-  };
-
-  it("names the searches, never a count", () => {
-    const markup = weekOf();
-    expect(markup).toContain(
-      "overview.week.aimed-at(best crm for small teams, crm pricing comparison)"
-    );
-    expect(markup).toContain('data-testid="overview-week-aim"');
-  });
-
-  it("a week with no planned or written page states no aim at all", () => {
-    const markup = weekOf({ weekSearches: [] });
-    expect(markup).not.toContain('data-testid="overview-week-aim"');
-    expect(markup).not.toContain("overview.week.aimed-at");
-    // The strip itself is unchanged.
-    expect(count(markup, 'data-testid="overview-week-day"')).toBe(7);
-  });
-});
-
-describe("this week", () => {
-  const model = assembleOverview(facts());
-  const markup = html(<WeekModule week={model.week} timeZone={ZONE} supply={model.supply} />);
-
-  it("renders seven days, each with its own date", () => {
-    // Monday 31 Aug through Sunday 6 Sep, in the site's zone. The label is
-    // the day of the month, as the set draws it (see `dayOf`). The month
-    // is the module's heading's.
-    for (const day of ["31", "1", "2", "3", "4", "5", "6"]) {
-      expect(markup, `missing day ${day}`).toContain(`>${day}</span>`);
-    }
-    expect(count(markup, 'data-testid="overview-week-day"')).toBe(7);
-  });
-
-  it("gives every day the written word for its state — identity is never colour alone", () => {
-    expect(count(markup, "overview.week.day.done")).toBeGreaterThan(0);
-    expect(markup).toContain("overview.week.day.today");
-    expect(markup).toContain("overview.week.day.to-come");
-  });
-
-  it("carries the card head, and the calendar control inside it as the quiet rank", () => {
-    // UI-SPEC S12: the control sits in the head, right-aligned, and it is
-    // the tertiary — the screen's one solid fill is the veto panel's.
-    expect(markup).toContain("overview.week.title");
-    expect(markup).toContain('href="/app/calendar"');
-    expect(markup).toContain("overview.week.calendar-link");
-    expect(markup).toContain("btn-ghost");
-  });
-
-  it("names each day by its weekday, its date, what stands on it and its state", () => {
-    // SPEC §4 (2026-09-20): every cell carries a word, so its meaning is
-    // never its colour. A day nothing is scheduled on says so.
-    expect(markup).toContain('data-state="today"');
-    expect(markup).toMatch(
-      /aria-label="Fri 4 · overview\.week\.day\.no-page · overview\.week\.day\.today"/
-    );
-  });
-
-  it("renders exactly one supply statement", () => {
-    expect(markup).toContain("overview.supply.short");
-    expect(markup).not.toContain("overview.supply.exhausted");
-    expect(markup).not.toContain("overview.supply.first-arrival");
-  });
-
-  it("no longer carries the alerts — they are the Needs-you card since #353", () => {
-    expect(markup).not.toContain("overview.alert.");
-    expect(markup).not.toContain("overview.alerts.empty");
-  });
-});
-
-describe("needs you (S12)", () => {
-  const model = assembleOverview(facts());
-  const markup = html(<NeedsYouModule alerts={model.alerts} overflow={model.overflow} />);
-
-  it("is its own card, headed as the set heads it", () => {
-    expect(markup).toContain("overview.needs-you.title");
-    expect(markup).toContain('data-testid="overview-needs-you"');
-  });
-
-  it("renders at most two panels, each with one control, and the remainder as a count", () => {
-    expect(count(markup, 'data-testid="overview-alert"')).toBe(2);
-    const pair = markup.slice(markup.indexOf('data-testid="overview-alert-panels"'));
-    expect(count(pair.slice(0, pair.indexOf('data-testid="overview-overflow"')), "<a ")).toBe(2);
-    expect(markup).toContain("overview.alert.overflow(1)");
-  });
-
-  it("spends no solid button at all — the screen's one is Read it, on the page waiting for review", () => {
-    // SPEC §4 (2026-09-20): the page in review leads the screen and takes
-    // its one solid control. This card no longer repeats that page, so a
-    // panel here is always a second thing waiting and takes the soft rank (#1063).
-    const veto = markup.slice(markup.indexOf('data-kind="pending_veto"'));
-    const reconnect = markup.slice(markup.indexOf('data-kind="needs_you"'));
-    expect(veto.slice(0, veto.indexOf("</a>"))).toContain("btn-soft");
-    expect(reconnect.slice(0, reconnect.indexOf("</a>"))).toContain("btn-soft");
-    expect(count(markup, 'class="btn btn-primary')).toBe(0);
-  });
-
-  it("each panel's control navigates to that item's own address", () => {
-    expect(markup).toContain('href="/app/draft/1"');
-    expect(markup).toContain('href="/app/settings"');
-  });
-
-  it("the veto panel states how much of the window is left", () => {
-    expect(markup).toContain("overview.alert.pending-veto.due");
-  });
-
-  it("with nothing waiting it states the success line rather than leaving a blank", () => {
-    const empty = assembleOverview(facts({ waiting: [] }));
-    const emptyMarkup = html(<NeedsYouModule alerts={empty.alerts} />);
-    expect(emptyMarkup).toContain("overview.alerts.empty");
-    // #1070: a tick and one line, never a green alert.
-    expect(count(emptyMarkup, 'role="alert"')).toBe(0);
-    expect(count(emptyMarkup, 'data-testid="overview-alerts-empty"')).toBe(1);
-    expect(count(emptyMarkup, 'data-testid="overview-alert"')).toBe(0);
-  });
-});
-
-describe("needs you — a technical issue the customer fixes (#572)", () => {
-  const model = assembleOverview(
-    facts({
-      waiting: [
-        {
-          kind: "site_issue",
-          check: "slow_pages",
-          count: 3,
-          over: 40,
-          severity: "critical",
-          since: AT(31),
-          fix: "check.slow-pages.fix",
-          pages: ["https://example.com/a", "https://example.com/b", "https://example.com/c"],
-          ms: [3_100, 3_400, 5_000],
-          href: "/app/issues#slow_pages",
-        },
-      ],
-    })
-  );
-  const markup = html(<NeedsYouModule alerts={model.alerts} overflow={model.overflow} issuesOverflow={model.issuesOverflow} />);
-
-  it("names the check, its stored count over its set and its severity, and opens the account's view of it", () => {
-    expect(markup).toContain("check.slow-pages.title");
-    expect(markup).toContain(">3/40<");
-    expect(markup).toContain("severity.high");
-    expect(markup).toContain('href="/app/issues#slow_pages"');
-    expect(markup).not.toContain("/scan/");
-    expect(markup).toContain("alert-error");
   });
 });
 

@@ -20,6 +20,7 @@
 // `badge`, `input`, `btn`; lucide for the head glyph at stroke 1.75.
 import type React from "react";
 import { FileText } from "lucide-react";
+import { NURTURE_MAX_TOUCHES } from "@/lib/config/constants";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { renderGenerated } from "@/lib/presentation/generated";
 import type { FreePageSection } from "@/lib/scan/report";
@@ -131,7 +132,10 @@ export function FreePageCard(p: { section: FreePageSection; scanId: string }): R
         </div>
         {/* REQ-010 c1's one control, and the one field it needs (issue 787). */}
         <div className="flex min-w-0 flex-col justify-center">
-          <LeadCapture scanId={p.scanId} />
+          <LeadCapture
+            scanId={p.scanId}
+            consent={copy("free-page.consent", { touches: String(NURTURE_MAX_TOUCHES) })}
+          />
         </div>
       </div>
     </details>
