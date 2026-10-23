@@ -1,86 +1,77 @@
-// BUILD §4.1 — the scanning screen: the stages on the left, the report's
-// own sections beside them, each held by a skeleton (#935).
-// src/app/(public)/scan/[domain]/_address/scanning.tsx
+// BUILD §4.1 — the scanning screen (board PubScanning): the head, the
+// stages with what each finds out, what the report will hold, and the
+// report's own cards beside them, each held by a skeleton until it arrives.
 //
-// SPEC §2, **2026-09-20**: "The report fills in as the scan runs (owner,
-// #908): named stages with elapsed times still stand on the left (no
-// spinner, %, countdown), and each report section appears in place as its
-// stage finishes, a daisyUI `skeleton` holding its place until then. **No
-// full-page wait.**"
+// SPEC §2, 2026-09-20: named stages with elapsed times, no spinner, %, or
+// countdown, and each report section in place from the first frame, a
+// daisyUI `skeleton` holding it. No full-page wait.
 //
-// What stood here was one card with the six stages in it and nothing else
-// — a reader watched a list and then the whole report arrived at once.
-// Now the report's own spine is drawn from the first frame: four named
-// sections in §4.1's order, each with its title and a `skeleton` where its
-// content will be, and each bound to the one stage that produces it.
+// A card's badge says whether the stage that produces it has finished, is
+// running, or has not been reached, read from the stream's stored stage log.
+// The card's content stays a skeleton: the pass stores its findings once, at
+// the end, so nothing true can fill a card before the report replaces this
+// screen.
 //
-// **What this does and does not claim.** A section's place is held from
-// the first frame and its stage is marked the moment the stream says that
-// stage finished — so nothing here is a spinner, a percentage or a
-// countdown, and there is no full-page wait. What a section cannot do yet
-// is carry its *content* before the pass ends: the engine stores one
-// report, once, at the end (`run.ts`'s single `storeCurrentReport`), so
-// there is nothing to put in a section's place until then. Inventing one
-// would be worse than holding it. The half that is missing is a store,
-// not a screen, and this PR's body says so.
-//
-// **One stream, two readers.** `useScanStages` is subscribed once here and
-// its reading is handed to both the steps list and the skeletons; a second
-// `EventSource` would be a second answer to "where is this scan". The
-// ending event is still `ScanProgress`'s to act on — it refreshes the
-// router, the address re-resolves, and the report arm replaces this one.
-//
-// daisyUI in the route (DESIGN rule 1): `card`, `skeleton`, `steps`,
-// `status`. No custom component and no stylesheet.
+// One stream, one reading: `useScanStages` is subscribed once here and
+// handed to the stages and the cards. The ending event is `ScanProgress`'s
+// to act on: it refreshes the router and the report arm replaces this one.
 "use client";
 
 import type React from "react";
+import { useSyncExternalStore } from "react";
+import Link from "next/link";
+import { ArrowRight, Check } from "lucide-react";
 import { Surface } from "@/ui/layout";
 import { SKELETON_EXIT, ViewTransition } from "@/ui/motion";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import type { StageName } from "@/lib/scan/stages";
 import type { CanonicalDomain } from "@/lib/scan/domain";
-import { ScanProgress, useScanStages } from "./progress";
-import { Num } from "./measured";
+import { ScanProgress, SEARCHES, stageState, useScanStages, type StageState } from "./progress";
 
-/**
- * The report's spine, in §4.1's order, each section against the one stage
- * that measures it.
- *
- * Four and not six: these are the sections that have both a title of their
- * own in the registry and a stage that produces them. The DIY method and
- * the offer are on every report whatever the scan found — they measure
- * nothing, so no stage finishes them — and the technical-issue cards have
- * no section heading to hold a place under. A skeleton under a heading
- * nobody wrote would be a heading minted here, which is not this file's to
- * do.
- */
-const SECTIONS: readonly { readonly title: CopyKey; readonly stage: StageName; readonly lines: number }[] = [
-  { title: "verdict.score.label", stage: "scoring", lines: 3 },
-  { title: "ai-answers.title", stage: "asking_the_twelve", lines: 4 },
-  { title: "presence.title", stage: "checking_your_presence", lines: 4 },
-  { title: "free-page.title", stage: "scoring", lines: 3 },
+const CARD = "card bg-base-100 min-w-0 shadow-(--shadow-card)";
+
+/** The report's cards in the board's order, each against the stage that
+ *  produces it: the profile is read with the market, the searches and their
+ *  AI answers are asked together, and competitors are concluded in scoring. */
+const FILLING: readonly { readonly title: CopyKey; readonly stage: StageName; readonly lines: number }[] = [
+  { title: "report.read.title", stage: "reading_your_market", lines: 3 },
+  { title: "scan.filling.readers", stage: "reading_access_rules", lines: 2 },
+  { title: "scan.filling.competitors", stage: "scoring", lines: 2 },
+  { title: "scan.get.score", stage: "scoring", lines: 1 },
+  { title: "scan.filling.searches", stage: "asking_the_twelve", lines: 5 },
+  { title: "scan.filling.ai", stage: "asking_the_twelve", lines: 2 },
 ];
 
-/** One section's place: its title, whether its stage has finished, and a
- *  `skeleton` where the content will be. The status dot is never the only
- *  carrier of that fact — the steps list beside it says the same stage
- *  finished, in words, with the time it took. */
-function SectionPlace(p: { title: CopyKey; done: boolean; lines: number }): React.JSX.Element {
+const GET_STEPS: readonly CopyKey[] = ["scan.get.step.1", "scan.get.step.2", "scan.get.step.3"];
+
+const GET_ITEMS: readonly (readonly [CopyKey, CopyKey])[] = [
+  ["scan.get.score", "scan.get.score.line"],
+  ["scan.get.rivals", "scan.get.rivals.line"],
+  ["scan.get.held", "scan.get.held.line"],
+  ["scan.get.first-page", "scan.get.first-page.line"],
+];
+
+const CARD_BADGE: Record<StageState, { key: CopyKey; className: string }> = {
+  done: { key: "scan.filling.found", className: "badge-success badge-soft" },
+  active: { key: "stage.status.working", className: "badge-primary badge-soft" },
+  pending: { key: "stage.status.next", className: "badge-ghost" },
+};
+
+const subscribeNever = (): (() => void) => () => undefined;
+
+/** One card's place: its title, its stage's state in words, and a skeleton
+ *  where its content will be. */
+function FillingCard(p: { title: CopyKey; state: StageState; lines: number }): React.JSX.Element {
+  const badge = CARD_BADGE[p.state];
   return (
-    <section className="card bg-base-100 shadow-(--shadow-card)" data-testid="scan-section" data-done={p.done}>
+    <section className={CARD} data-testid="scan-section" data-state={p.state} data-done={p.state === "done"}>
       <div className="card-body gap-3">
-        <h3 className="card-title text-base">
-          {/* The dot rises in the moment its stage finishes (the calm
-              layer's motion, #1059); reduced motion draws it in place. */}
-          {p.done ? <span className="status status-success motion-safe:animate-rise" aria-hidden /> : null}
-          {copy(p.title)}
+        <h3 className="card-title flex-wrap text-base">
+          {copy(p.title, SEARCHES)}
+          <span className={`badge badge-sm ${badge.className}`}>{copy(badge.key)}</span>
         </h3>
-        {/* The content's place. `aria-hidden`: it carries no information a
-            reader could use, and the stages beside it are the accessible
-            account of what is happening. When the report arrives (the
-            router's refresh is a transition) the skeleton leaves and the
-            page cross-fades to what replaced it (#1065's reveal). */}
+        {/* No information a reader could use; the stages are the accessible
+            account of the wait. The skeleton leaves when the report arrives. */}
         <ViewTransition {...SKELETON_EXIT}>
           <div className="flex flex-col gap-2" aria-hidden>
             {Array.from({ length: p.lines }, (_unused, line) => (
@@ -100,13 +91,15 @@ export function ScanningView(p: {
   scanId?: string;
 }): React.JSX.Element {
   const stages = useScanStages({ domain: p.domain, scanId: p.scanId });
+  // The start is the visitor's own clock, so it is drawn only in the browser.
+  const inBrowser = useSyncExternalStore(subscribeNever, () => true, () => false);
+  const started = inBrowser
+    ? new Intl.DateTimeFormat(undefined, { hour: "2-digit", minute: "2-digit" }).format(stages.startedAt)
+    : null;
 
   return (
-    // The same three band arms the report itself declares (ADR-093
-    // decision 6): one column on a phone, two from medium up — the stages
-    // on the left and the sections filling the right, which is what SPEC
-    // §2's "still stand on the left" describes at the widths that have a
-    // left.
+    // One column on a phone, two from medium: the stages and what you'll get
+    // on the left, the report filling in on the right (ADR-093 decision 6).
     <Surface
       arms={{
         compact: { kind: "columns", count: 1 },
@@ -115,36 +108,74 @@ export function ScanningView(p: {
       }}
     >
       <main className="col-span-full grid grid-cols-subgrid items-start gap-4">
-        <section className="card bg-base-100 shadow-(--shadow-card)">
-          <div className="card-body gap-4">
-            {/* The domain is what this report is *about*, so it is the
-                page's `<h1>` (owner ruling 2026-09-23, #328). It was an
-                `<h2>`, which left `/scan/{domain}` with no level-one
-                heading at all. `card-title` carries the size and weight,
-                so nothing on screen changes. */}
-            <h1 className="card-title min-w-0 overflow-x-auto">
-              <Num>{p.domain}</Num>
-            </h1>
-            {/* The stages read the stream this screen already subscribed
-                to, rather than opening a second one. */}
-            <ScanProgress domain={p.domain} scanId={p.scanId} stages={stages} />
-            {/* REQ-003 c1's own frame, and the set's line: what the wait is
-                worth, and that the address survives it. No countdown — the
-                stages carry the only figures on this screen. */}
-            <p className="text-base-content/70 text-sm">{copy("scan.waiting.line")}</p>
-          </div>
-        </section>
+        <header className="col-span-full flex min-w-0 flex-col gap-1">
+          <p className="eyebrow">{copy("scan.eyebrow")}</p>
+          {/* The domain is what this report is about, so it is the page's h1 (#328). */}
+          <h1 className="min-w-0 break-words">{copy("scan.head", { domain: p.domain })}</h1>
+          <p className="text-base-content/70">{copy("scan.waiting.line")}</p>
+        </header>
 
         <div className="flex min-w-0 flex-col gap-4">
-          {SECTIONS.map((section) => (
-            <SectionPlace
-              key={section.title}
-              title={section.title}
-              lines={section.lines}
-              done={stages.done.has(section.stage)}
-            />
-          ))}
+          <section className={CARD} aria-labelledby="scan-progress">
+            <div className="card-body gap-4">
+              <div className="flex flex-wrap items-baseline gap-2">
+                <h2 id="scan-progress" className="eyebrow">
+                  {copy("scan.progress.title")}
+                </h2>
+                {started === null ? null : (
+                  <span className="text-base-content/70 text-xs">{copy("stage.started", { time: started })}</span>
+                )}
+              </div>
+              <ScanProgress domain={p.domain} scanId={p.scanId} stages={stages} />
+              <p className="text-base-content/70 text-sm">{copy("scan.progress.caption")}</p>
+            </div>
+          </section>
+
+          <section className={CARD} aria-labelledby="scan-get">
+            <div className="card-body gap-4">
+              <h2 id="scan-get" className="card-title">
+                {copy("scan.get.title")}
+              </h2>
+              <ol className="flex flex-wrap gap-2">
+                {GET_STEPS.map((step) => (
+                  <li key={step} className="badge badge-soft">
+                    {copy(step)}
+                  </li>
+                ))}
+              </ol>
+              <ul className="flex flex-col gap-3">
+                {GET_ITEMS.map(([name, line]) => (
+                  <li key={name} className="flex gap-3">
+                    <Check className="mt-1 shrink-0 text-success" size={16} strokeWidth={1.75} aria-hidden />
+                    <span className="flex flex-col">
+                      <span className="font-semibold">{copy(name)}</span>
+                      <span className="text-base-content/70 text-sm">{copy(line)}</span>
+                    </span>
+                  </li>
+                ))}
+              </ul>
+              <p className="flex flex-wrap gap-x-1 text-base-content/70 text-sm">
+                {copy("scan.get.after")}
+                <Link href="/how-it-works" className="link link-primary inline-flex items-center gap-1">
+                  {copy("chrome.nav.works")}
+                  <ArrowRight size={14} strokeWidth={1.75} aria-hidden />
+                </Link>
+              </p>
+            </div>
+          </section>
         </div>
+
+        <section className="flex min-w-0 flex-col gap-4" aria-labelledby="scan-filling">
+          <div className="flex flex-wrap items-baseline gap-2">
+            <h2 id="scan-filling" className="eyebrow">
+              {copy("scan.filling.title")}
+            </h2>
+            <span className="text-base-content/70 text-xs">{copy("scan.filling.grey")}</span>
+          </div>
+          {FILLING.map((card) => (
+            <FillingCard key={card.title} title={card.title} lines={card.lines} state={stageState(stages, card.stage)} />
+          ))}
+        </section>
       </main>
     </Surface>
   );

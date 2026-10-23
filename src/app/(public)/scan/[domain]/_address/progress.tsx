@@ -4,11 +4,11 @@
 // unlabelled spinner and never an indeterminate bar alone.
 //
 // **Each finished stage carries the time it took** (UI-SPEC S3, issue
-// #352). It is measured in the browser, from the frame this component
-// mounted on to the event that finished the stage, so it is an elapsed
-// time and never a countdown, a percentage or an estimate: nothing here
-// predicts when the scan ends, and the running stage carries no figure at
-// all — a number beside it would be a promise the scan has not made.
+// #352), measured in the browser from the event that started it to the one
+// that finished it, and the running stage carries when it started. Both are
+// elapsed times, never a countdown, a percentage or an estimate. A stage
+// whose start this page did not see, or that took under a second as a
+// replayed log does, carries no figure rather than a 0.
 //
 // REQ-001 c9: arriving on a shared link starts a scan with no further
 // action from the visitor. The post happens **on first frame, in the
@@ -37,9 +37,10 @@
 // added there fails this file's build until it has a word here.
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Check } from "lucide-react";
+import { BATTERY } from "@/lib/config/constants";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import type { StageEvent, StageName } from "@/lib/scan/stages";
 import type { CanonicalDomain } from "@/lib/scan/domain";
@@ -54,6 +55,19 @@ const STAGE_KEY = {
   asking_the_twelve: "stage.asking_the_twelve",
   scoring: "stage.scoring",
 } as const satisfies Record<StageName, CopyKey>;
+
+/** Each stage's sub-line: what it finds out, in the board's words. */
+const STAGE_LINE = {
+  reading_your_site: "stage.reading_your_site.line",
+  reading_access_rules: "stage.reading_access_rules.line",
+  reading_your_market: "stage.reading_your_market.line",
+  checking_your_presence: "stage.checking_your_presence.line",
+  asking_the_twelve: "stage.asking_the_twelve.line",
+  scoring: "stage.scoring.line",
+} as const satisfies Record<StageName, CopyKey>;
+
+/** The searches a free scan checks, from the battery's own count. */
+export const SEARCHES = { searches: String(BATTERY.QUESTIONS) };
 
 /** The six, in the order `STAGE_KEY` declares them — which is
  *  `src/lib/scan/stages.ts`'s own `STAGE_ORDER`, transcribed once and
@@ -76,8 +90,24 @@ function isStageEvent(value: unknown): value is StageEvent {
 export interface ScanStages {
   readonly done: ReadonlySet<StageName>;
   readonly active: StageName | undefined;
-  /** Whole seconds per finished stage, keyed by handle. */
+  /** Whole seconds each finished stage took, where this page saw it start. */
   readonly elapsed: Readonly<Record<string, number>>;
+  /** Whole seconds from this page's first frame to each stage's start. */
+  readonly entered: Readonly<Record<string, number>>;
+  /** The page's first frame, in the browser's clock. */
+  readonly startedAt: number;
+}
+
+/** A stage's state on screen: finished, running, or not reached. */
+export type StageState = "done" | "active" | "pending";
+
+export function stageState(stages: ScanStages, stage: StageName): StageState {
+  return stages.done.has(stage) ? "done" : stage === stages.active ? "active" : "pending";
+}
+
+/** Whole seconds as the board writes an offset: 0:12, 1:05. */
+function clock(seconds: number): string {
+  return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
 }
 
 export function useScanStages(p: {
@@ -100,6 +130,8 @@ export function useScanStages(p: {
    *  ending event. `useState`'s initialiser runs once, in the browser. */
   const [startedAt] = useState<number>(() => Date.now());
   const [elapsed, setElapsed] = useState<Readonly<Record<string, number>>>({});
+  const [entered, setEntered] = useState<Readonly<Record<string, number>>>({});
+  const enteredAt = useRef<Record<string, number>>({});
 
   // First frame, browser only: claim a scan if the address did not hand
   // one over. `location` is the canonical address and is ignored here —
@@ -143,15 +175,16 @@ export function useScanStages(p: {
       }
       if ("stage" in parsed) {
         const event = parsed;
+        const now = (Date.now() - startedAt) / 1000;
         if (event.done) {
           setDone((previous) => new Set(previous).add(event.stage));
-          setElapsed((previous) =>
-            event.stage in previous
-              ? previous
-              : { ...previous, [event.stage]: Math.max(0, Math.round((Date.now() - startedAt) / 1000)) }
-          );
+          const start = enteredAt.current[event.stage];
+          const took = start === undefined ? 0 : Math.round(now - start);
+          if (took >= 1) setElapsed((previous) => (event.stage in previous ? previous : { ...previous, [event.stage]: took }));
           setActive((current) => (current === event.stage ? undefined : current));
         } else {
+          enteredAt.current[event.stage] ??= now;
+          setEntered({ ...enteredAt.current });
           setActive(event.stage);
         }
       }
@@ -161,7 +194,7 @@ export function useScanStages(p: {
     };
   }, [enabled, router, scanId, startedAt]);
 
-  return { done, active, elapsed };
+  return { done, active, elapsed, entered, startedAt };
 }
 
 /** The named stages themselves: daisyUI `steps steps-vertical` in the
@@ -180,44 +213,51 @@ export function ScanProgress(p: {
   // Hooks are unconditional: the hook runs either way, and its own
   // subscription is skipped where a reading was passed in.
   const own = useScanStages({ domain: p.domain, scanId: p.scanId, enabled: p.stages === undefined });
-  const { done, active, elapsed } = p.stages ?? own;
+  const stages = p.stages ?? own;
 
   return (
-    <ul className="steps steps-vertical">
+    <ol className="steps steps-vertical">
       {STAGES.map((stage) => {
-        const seconds = elapsed[stage];
-        const state = done.has(stage) ? "done" : stage === active ? "active" : "pending";
+        const seconds = stages.elapsed[stage];
+        const from = stages.entered[stage];
+        const state = stageState(stages, stage);
         return (
           <li
             key={stage}
             className={state === "done" ? "step step-success" : state === "active" ? "step step-primary" : "step"}
             data-state={state}
+            aria-current={state === "active" ? "step" : undefined}
           >
             {state === "done" ? (
               <span className="step-icon" aria-hidden>
                 <Check size={16} strokeWidth={1.75} aria-hidden />
               </span>
             ) : null}
-            {/* A stage rises into its finished state as it finishes — its
-                time arriving beside it — and the one running or ahead does
-                not move (the calm layer's motion, #1059). The class is added
-                on the frame the stage finishes, which is when the browser
-                runs it; reduced motion draws it in place. */}
+            {/* A stage rises into its finished state as it finishes (the calm
+                layer's motion, #1059); reduced motion draws it in place. */}
             <span
-              className={`flex flex-wrap items-baseline gap-2 ${state === "done" ? "motion-safe:animate-rise" : ""}`}
+              className={`flex w-full flex-wrap items-start justify-between gap-x-3 gap-y-1 text-start ${state === "done" ? "motion-safe:animate-rise" : ""}`}
             >
-              {copy(STAGE_KEY[stage])}
-              {/* Only a stage that finished has a time; the one running and
-                  the ones ahead of it carry none. */}
-              {seconds === undefined ? null : (
-                <span className="text-base-content/70 text-xs">
-                  {copy("stage.elapsed", { seconds: String(seconds) })}
+              <span className="flex min-w-0 flex-col">
+                <span>{copy(STAGE_KEY[stage], SEARCHES)}</span>
+                <span className="text-base-content/70 text-sm">{copy(STAGE_LINE[stage])}</span>
+              </span>
+              <span className="flex items-center gap-2">
+                <span className={`badge badge-sm ${state === "done" ? "badge-success badge-soft" : state === "active" ? "badge-primary badge-soft" : "badge-ghost"}`}>
+                  {copy(state === "done" ? "stage.status.done" : state === "active" ? "stage.status.working" : "stage.status.next")}
                 </span>
-              )}
+                {/* Only a finished stage has a duration and only the running one a start; a stage ahead has neither. */}
+                {state === "done" && seconds !== undefined ? (
+                  <span className="text-base-content/70 text-xs">{copy("stage.elapsed", { seconds: String(seconds) })}</span>
+                ) : null}
+                {state === "active" && from !== undefined ? (
+                  <span className="text-base-content/70 text-xs">{copy("stage.started", { time: clock(Math.round(from)) })}</span>
+                ) : null}
+              </span>
             </span>
           </li>
         );
       })}
-    </ul>
+    </ol>
   );
 }
