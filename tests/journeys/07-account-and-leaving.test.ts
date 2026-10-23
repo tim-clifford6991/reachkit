@@ -163,7 +163,7 @@ const USER_ID = "user-journey-07";
 const SITE_ID = "site-journey-07";
 const SUBSCRIPTION_ID = "sub_journey_07";
 const CUSTOMER_ID = "cus_journey_07";
-const EMAIL = "founder@acme.com";
+const EMAIL = "founder@acme.example";
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 

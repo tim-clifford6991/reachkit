@@ -52,7 +52,7 @@ describe("who opens /app/review", () => {
   });
 
   it("a customer gets the 404", async () => {
-    emails.set(LIVE_ACCOUNT.userId, "founder@bakery-fixture.com");
+    emails.set(LIVE_ACCOUNT.userId, "founder@bakery-fixture.example");
     signedInAs(LIVE_ACCOUNT);
     expect(await digestOf()).toMatch(/404/);
     emails.clear();
