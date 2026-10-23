@@ -915,6 +915,7 @@ export const CHROME_COPY = Object.freeze({
   "tools.check.schema": ["Business details for Google", { slots: {}, fixedBy: "issue 1458 · drafted" }],
   "tools.check.schema.fine": ["Says it’s {value}", { slots: { value: "text" }, fixedBy: "board PubToolOnPage · issue 1734" }],
   "tools.check.schema.none": ["The page gives Google no business details.", { slots: {}, fixedBy: "issue 1458 · drafted" }],
+  "tools.check.schema.other": ["The page has labels for Google, but none says who runs the site.", { slots: {}, fixedBy: "issue 1915 · drafted" }],
   "tools.check.share": ["Link preview", { slots: {}, fixedBy: "issue 1458 · drafted" }],
   "tools.check.share.fine": ["The title, text and image for shared links are set.", { slots: {}, fixedBy: "issue 1458 · drafted" }],
   "tools.check.share.none": ["Missing: {value}", { slots: { value: "text" }, fixedBy: "issue 1458 · drafted" }],

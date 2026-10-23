@@ -45,8 +45,8 @@ describe("the block grammar is closed, and every line lands in exactly one block
   });
 
   it("bullets and numbers are two lists, never one", () => {
-    expect(toHtml(parseMarkdown("- a\n- b"))).toBe("<ul><li>a</li><li>b</li></ul>");
-    expect(toHtml(parseMarkdown("1. a\n2. b"))).toBe("<ol><li>a</li><li>b</li></ol>");
+    expect(toHtml(parseMarkdown("- a\n- b"))).toBe('<ul role="list"><li>a</li><li>b</li></ul>');
+    expect(toHtml(parseMarkdown("1. a\n2. b"))).toBe('<ol role="list"><li>a</li><li>b</li></ol>');
   });
 
   it("a quote, a rule and a fenced block each render as themselves", () => {
@@ -129,6 +129,16 @@ describe("BP-044 decision 3 — one renderer, so the copied HTML and the publish
     expect(toHtml(parseMarkdown(source), sparse).replace(CLASS_ATTR, "")).toBe(
       toHtml(parseMarkdown(source), dense).replace(CLASS_ATTR, "")
     );
+  });
+
+  it("a list after its lead-in sentence takes `checklist` only where a map has one, else `ul`'s bytes", () => {
+    const body = "Call one in any of these cases.\n\n- A ceiling leaks\n- The valve sticks";
+    expect(parseMarkdown(body)[1]).toMatchObject({ kind: "list", leadIn: true });
+    expect(renderMarkdownHtml(body)).toBe(
+      '<p>Call one in any of these cases.</p>\n<ul role="list"><li>A ceiling leaks</li><li>The valve sticks</li></ul>'
+    );
+    expect(toHtml(parseMarkdown(body), { ul: "u" })).toContain('<ul role="list" class="u">');
+    expect(toHtml(parseMarkdown(body), { ul: "u", checklist: "c" })).toContain('<ul role="list" class="c">');
   });
 
   it("the class map's own values are escaped where they land", () => {
@@ -290,8 +300,8 @@ describe("issue 929 — the parser is standard, and the closed set is still the 
     // for a body of paragraphs is what this module still produces for it.
     expect(renderMarkdownHtml("a\nb\n\nc")).toBe("<p>a b</p>\n<p>c</p>");
     expect(renderMarkdownHtml("> said")).toBe("<blockquote>said</blockquote>");
-    expect(renderMarkdownHtml("- a\n- b")).toBe("<ul><li>a</li><li>b</li></ul>");
-    expect(renderMarkdownHtml("1. a\n2. b")).toBe("<ol><li>a</li><li>b</li></ol>");
+    expect(renderMarkdownHtml("- a\n- b")).toBe('<ul role="list"><li>a</li><li>b</li></ul>');
+    expect(renderMarkdownHtml("1. a\n2. b")).toBe('<ol role="list"><li>a</li><li>b</li></ol>');
     expect(renderMarkdownHtml("---")).toBe("<hr>");
     expect(renderMarkdownHtml("```\nx = 1\n```")).toBe('<pre tabindex="0"><code>x = 1</code></pre>');
   });
