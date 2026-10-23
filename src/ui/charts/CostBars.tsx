@@ -37,7 +37,7 @@ export function CostBars(p: { rows: readonly CostRow[]; max: number }): React.JS
               </span>
               {row.note === undefined ? null : <span className="text-base-content/70"> {row.note}</span>}
             </span>
-            <span className="num text-sm">{row.value}</span>
+            <span className="num num-phrase text-sm">{row.value}</span>
           </div>
           <BarChart
             responsive

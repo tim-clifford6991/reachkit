@@ -9,7 +9,7 @@ import type { PageTags } from "./read";
 
 export const RESULT_ID = "res";
 const SMALL = "text-base-content/70 text-sm";
-const CALLOUT = "badge badge-primary badge-xs shrink-0";
+const CALLOUT = "badge badge-primary badge-sm shrink-0";
 
 /** `https://host/path` as a reader names it: `host/path`. */
 export function pagePlace(url: string): string {
@@ -68,8 +68,8 @@ export function GoogleResult(p: { tags: PageTags; numbered?: boolean }): React.J
           <span className="bg-base-300 w-6 rounded-full text-xs">{name.charAt(0).toUpperCase()}</span>
         </span>
         <span className="flex min-w-0 flex-col text-xs">
-          <span className="truncate">{name}</span>
-          <span className="text-base-content/70 truncate">{crumbs}</span>
+          <span className="break-words">{name}</span>
+          <span className="text-base-content/70 break-all">{crumbs}</span>
         </span>
       </span>
       <span className="text-primary flex min-w-0 items-start gap-1 text-base break-words">

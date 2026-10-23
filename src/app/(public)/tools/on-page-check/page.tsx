@@ -36,7 +36,7 @@ function Row(p: { c: CheckResult }): React.JSX.Element {
       <Icon size={20} strokeWidth={1.75} aria-hidden className={p.c.fine ? "text-success" : "text-warning"} />
       <span className="flex min-w-0 flex-col gap-1">
         <span className="font-semibold">{copy(p.c.name)}</span>
-        <span className={`${SMALL} line-clamp-2 break-words`}>{p.c.line}</span>
+        <span className={`${SMALL} break-words`}>{p.c.line}</span>
       </span>
       <Status fine={p.c.fine} />
     </li>
@@ -61,7 +61,7 @@ function Sketch(p: { checks: readonly CheckResult[]; tags: PageTags }): React.JS
     <figure className="flex min-w-0 flex-col gap-2">
       <div className="mockup-browser border-base-300 bg-base-200 min-w-0 border" role="img" aria-label={copy("tools.mark.label")}>
         <div className="mockup-browser-toolbar">
-          <div className="input min-w-0 truncate font-mono text-xs">{pagePlace(p.tags.url)}</div>
+          <div className="input h-auto min-w-0 font-mono text-xs break-all">{pagePlace(p.tags.url)}</div>
         </div>
         <div className="bg-base-100 flex min-w-0 flex-col gap-3 p-4">
           <span className="flex items-center gap-2">
@@ -70,7 +70,7 @@ function Sketch(p: { checks: readonly CheckResult[]; tags: PageTags }): React.JS
           </span>
           <span className="flex min-w-0 items-center gap-2 text-xs">
             <Callout n={2} />
-            <span className="min-w-0 truncate italic">
+            <span className="min-w-0 break-words italic">
               {p.tags.description === "" ? copy("tools.mark.nodescription") : p.tags.description}
             </span>
           </span>

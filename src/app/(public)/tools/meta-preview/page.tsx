@@ -128,11 +128,11 @@ function Preview(p: { tags: PageTags; example: boolean }): React.JSX.Element {
                 <img src={image} alt={DECORATIVE} referrerPolicy={NO_REFERRER} className="aspect-[1.91/1] w-full object-cover" />
               )}
               <div className="flex min-w-0 flex-col gap-1 p-3">
-                <span className="text-base-content/70 truncate font-mono text-xs">{host}</span>
-                <span className="line-clamp-2 font-semibold break-words">
+                <span className="text-base-content/70 font-mono text-xs break-all">{host}</span>
+                <span className="font-semibold break-words">
                   {title === "" ? copy("tools.preview.untitled") : title}
                 </span>
-                <span className="text-base-content/70 line-clamp-2 text-sm break-words">
+                <span className="text-base-content/70 text-sm break-words">
                   {description === "" ? copy("tools.preview.undescribed") : description}
                 </span>
               </div>
@@ -158,7 +158,7 @@ function Preview(p: { tags: PageTags; example: boolean }): React.JSX.Element {
               <li key={row.tag} className="list-row min-w-0 items-start">
                 <span className="w-32 shrink-0 font-mono text-sm break-words">{tagName(row.tag)}</span>
                 <span className="flex min-w-0 flex-col gap-1">
-                  <span className="line-clamp-2 text-sm break-words">
+                  <span className="text-sm break-words">
                     {row.value === "" ? copy("tools.preview.missing") : row.value}
                   </span>
                   <span className={SMALL}>{row.what}</span>
