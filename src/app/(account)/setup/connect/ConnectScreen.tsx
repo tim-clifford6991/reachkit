@@ -121,9 +121,9 @@ export function ConnectScreen(p: { hostname: string; record: DnsRecord }): React
                       ))}
                     </ol>
                     {/* The provider's own steps, looked up from the address's nameservers. */}
-                    <details className="min-w-0">
-                      <summary className="link link-primary">{copy("setup.connect.steps.guide")}</summary>
-                      <div className="mt-3 min-w-0">
+                    <details className="collapse min-w-0">
+                      <summary className="collapse-title link link-primary min-h-0 px-0 py-1">{copy("setup.connect.steps.guide")}</summary>
+                      <div className="collapse-content min-w-0 px-0">
                         <CnameRecord record={p.record} {...(state === undefined ? {} : { state })} />
                       </div>
                     </details>
