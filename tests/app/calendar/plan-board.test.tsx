@@ -20,6 +20,7 @@ const provider = await import("@/app/(account)/app/calendar/provider");
 const { default: CalendarPage } = await import("@/app/(account)/app/calendar/page");
 const { CalendarView } = await import("@/app/(account)/app/calendar/CalendarView");
 const { planHeadWords } = await import("@/app/(account)/app/calendar/PlanHead");
+const { WeekHead, weekGoesLive } = await import("@/app/(account)/app/calendar/WeekCard");
 const { assembleMonth } = await import("@/app/(account)/app/calendar/month");
 const { FIXTURE_CALENDAR_FACTS, FIXTURE_MONTH } = await import("@/app/(account)/app/calendar/fixture");
 const { shown, withNuqs } = await import("./nuqs-adapter");
@@ -179,6 +180,23 @@ describe("the states board Plan names", () => {
   it("while the address does not work, no go-live time is named", () => {
     const root = render(withNuqs(<CalendarView {...shown(assembleMonth(FIXTURE_CALENDAR_FACTS, FIXTURE_MONTH))} goesLive={null} />));
     expect(root.querySelector('[data-testid="cell-goes-live"]')).toBeNull();
+  });
+
+  it("while publishing is paused, today's page and the week card name no go-live time", () => {
+    const board = (held: "publishing_off" | null) => {
+      const { week } = shown(assembleMonth({ ...FIXTURE_CALENDAR_FACTS, customerChangeHoldsPages: held }, FIXTURE_MONTH));
+      const time = weekGoesLive(week, "09:00");
+      const head = <WeekHead range="" time={time === null ? null : copy("calendar.week.time", { time, place: "New York" })} />;
+      return render(withNuqs(<CalendarView week={week} goesLive={time} head={head} />));
+    };
+    const running = board(null);
+    expect(running.querySelector('[data-testid="calendar-cell-2026-09-15"] [data-testid="cell-goes-live"]')).not.toBeNull();
+    expect(running.querySelector('[data-testid="plan-week-time"]')).not.toBeNull();
+    const paused = board("publishing_off");
+    expect(paused.querySelector('[data-testid="calendar-cell-2026-09-15"] [data-testid="day-kind"]')).not.toBeNull();
+    expect(paused.querySelector('[data-testid="cell-goes-live"]')).toBeNull();
+    expect(paused.querySelector('[data-testid="plan-week-time"]')).toBeNull();
+    expect(paused.textContent).not.toContain("Every page goes live at");
   });
 
   it("before the first commit the head says the first week is being chosen; a short week counts its real pages", () => {

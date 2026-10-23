@@ -21,8 +21,8 @@ import { writtenLine } from "../_shell/written";
 import { CalendarView } from "./CalendarView";
 import { PlanHead, planHeadWords } from "./PlanHead";
 import { PlanNumbers } from "./PlanNumbers";
-import { WeekFoot, WeekHead } from "./WeekCard";
-import { addDays, clockTime, longDate, weekRange } from "./dates";
+import { WeekFoot, WeekHead, weekGoesLive } from "./WeekCard";
+import { addDays, longDate, weekRange } from "./dates";
 import { zonePlace } from "../settings/format";
 import { PlanSkeleton } from "./PlanSkeleton";
 import { PLAN } from "./frame";
@@ -51,8 +51,7 @@ export default async function CalendarPage(): Promise<React.JSX.Element> {
   const content = contentOf(published);
   const first = week.cells[0]?.day ?? week.today;
   const last = week.cells.at(-1)?.day ?? week.today;
-  // A go-live time is promised only where the address works (Q11).
-  const time = week.destination?.healthy === true && head.publishTime !== null ? clockTime(head.publishTime) : null;
+  const time = weekGoesLive(week, head.publishTime);
   // §7's one statement of supply. At most one — the precedence between the
   // three arms is the engine's, and this screen renders whichever it
   // returned and never a second.

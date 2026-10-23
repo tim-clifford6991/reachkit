@@ -7,6 +7,13 @@ import { copy } from "@/lib/presentation/copy";
 import { formatCount } from "../_shell/format";
 import { KindChip } from "./DayCard";
 import { WEEK_HEADING_ID } from "./frame";
+import { clockTime } from "./dates";
+import type { WeekModel } from "./month";
+
+/** Today's go-live clock time, or `null`: a time is promised only where the address works (Q11) and publishing is not held. */
+export function weekGoesLive(week: Pick<WeekModel, "destination" | "held">, publishTime: string | null): string | null {
+  return week.destination?.healthy === true && week.held === null && publishTime !== null ? clockTime(publishTime) : null;
+}
 
 export function WeekHead(p: {
   range: string;
