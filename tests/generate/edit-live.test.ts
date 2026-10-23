@@ -44,7 +44,8 @@ vi.mock("@/lib/vendors/dataforseo/transport", async (original) => ({
 vi.mock("@/lib/measure/text", () => ({ readMeasuredText: async () => (site.current === null ? [] : measuredText(site.current)) }));
 vi.mock("next/cache", () => ({ revalidateTag: () => undefined, revalidatePath: () => undefined }));
 
-import { startLiveEdit } from "@/lib/generate/edit-live";
+import { startLiveEdit, waitingVersion } from "@/lib/generate/edit-live";
+import { readDraftRow } from "@/app/(account)/app/draft/[draftId]/store";
 import { setGenerateStore } from "@/lib/generate/store";
 import { opportunityStore } from "@/lib/opportunities/store";
 import { transition } from "@/lib/publish/machine";
@@ -172,8 +173,15 @@ describe("one version of an address waits at a time", () => {
       const before = JSON.stringify([drafts(), db.rows("opportunities")]);
       expect(await edit(SAAS_HOSTED)).toEqual({ ok: false, refused: "pending_version", draftId: "d-pending" });
       expect(JSON.stringify([drafts(), db.rows("opportunities")])).toBe(before);
+      expect(await waitingVersion(SAAS_HOSTED.siteId, LIVE_DRAFT)).toMatchObject({ id: "d-pending", state });
     });
   }
+
+  it("a planned refresh is not a waiting version, and neither is nothing", async () => {
+    expect(await waitingVersion(SAAS_HOSTED.siteId, LIVE_DRAFT)).toBeNull();
+    pendingRefresh("planned");
+    expect(await waitingVersion(SAAS_HOSTED.siteId, LIVE_DRAFT)).toBeNull();
+  });
 
   it("a planned refresh of the address gives way: its draft is skipped, its row dismissed, and the edit takes its place", async () => {
     pendingRefresh("planned");
@@ -198,6 +206,7 @@ describe("what is refused", () => {
     Object.assign(db.rows("publications")[0]!, { unpublished_at: "2026-10-20T09:00:00.000Z" });
     expect(await edit(SAAS_HOSTED)).toEqual({ ok: false, refused: "not_live" });
     expect(drafts()).toHaveLength(1);
+    expect(await waitingVersion(SAAS_HOSTED.siteId, LIVE_DRAFT)).toBe("not_live");
   });
 
   it("another site's page is not editable", async () => {
@@ -214,5 +223,35 @@ describe("what is refused", () => {
     signedInAs({ ...LIVE_ACCOUNT, siteId: SAAS_HOSTED.siteId, userId: USER_ID });
     expect(await saveLiveEdit(body)).toMatchObject({ ok: true, changed: true, state: "in_review" });
     expect(drafts()).toHaveLength(2);
+  });
+});
+
+describe("the live page's screen, read from the rows", () => {
+  beforeEach(() => arrange(SAAS_HOSTED));
+  const read = () => readDraftRow({ draftId: LIVE_DRAFT, site: { siteId: SAAS_HOSTED.siteId, timeZone: "UTC", mode: "autopilot", domain: SAAS_HOSTED.domain } });
+
+  it("nothing waiting at the address: Edit this page opens the editor", async () => {
+    expect((await read())?.live?.edit).toEqual({ kind: "editor" });
+  });
+
+  it("a read that fails draws no Edit this page, and the live page still draws", async () => {
+    // Only the read of the address's refreshes fails; the page's own record reads as ever.
+    const client = db.client as { from: (table: string) => { select: (columns: string) => unknown } };
+    const from = client.from;
+    db.unreadable.add("refreshes-unreachable");
+    const spy = vi.spyOn(client, "from").mockImplementation((table) => {
+      const built = from(table);
+      if (table !== "opportunities") return built;
+      const select = built.select;
+      built.select = (columns) => (columns === "id, target_ref" ? from("refreshes-unreachable").select(columns) : select(columns));
+      return built;
+    });
+    try {
+      const facts = await read();
+      expect(facts?.live).not.toBeNull();
+      expect(facts?.live?.edit).toBeNull();
+    } finally {
+      spy.mockRestore();
+    }
   });
 });

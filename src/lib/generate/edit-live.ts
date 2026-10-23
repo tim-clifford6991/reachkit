@@ -69,8 +69,8 @@ export async function startLiveEdit(a: LiveEdit): Promise<LiveEditOutcome> {
   const address = (await storedAddressesNow(a.siteId))(served.url);
 
   const refreshes = await refreshesAt(a.siteId, address);
-  const waiting = refreshes.flatMap((refresh) => refresh.drafts).find((draft) => WAITING.includes(draft.state));
-  if (waiting !== undefined) return { ok: false, refused: "pending_version", draftId: waiting.id };
+  const waiting = waitingIn(refreshes);
+  if (waiting !== null) return { ok: false, refused: "pending_version", draftId: waiting.id };
 
   const { transition } = await import("@/lib/publish/machine");
   for (const refresh of refreshes) {
@@ -120,6 +120,20 @@ export async function startLiveEdit(a: LiveEdit): Promise<LiveEditOutcome> {
     passed,
     told: entry.kind === "told",
   };
+}
+
+/** The version of a live page's address already written and not yet out,
+ *  which a save would answer `pending_version` with; `null` where none
+ *  waits, and `"not_live"` where a save would answer that. */
+export async function waitingVersion(siteId: string, liveDraftId: string): Promise<{ id: string; state: State } | null | "not_live"> {
+  const served = await servedAt(siteId, liveDraftId);
+  if (served === null) return "not_live";
+  const { storedAddressesNow } = await import("@/lib/publish/destinations/hosted/store");
+  return waitingIn(await refreshesAt(siteId, (await storedAddressesNow(siteId))(served.url)));
+}
+
+function waitingIn(refreshes: { drafts: { id: string; state: State }[] }[]): { id: string; state: State } | null {
+  return refreshes.flatMap((refresh) => refresh.drafts).find((draft) => WAITING.includes(draft.state)) ?? null;
 }
 
 /** The address a version is live at now, and when it went live there. */

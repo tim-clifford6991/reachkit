@@ -423,6 +423,8 @@ const PUBLISHED: DraftFacts = {
       bing: null,
     },
     label: "climbing",
+    // The reserved account has no row a live edit could write.
+    edit: null,
   },
   takeDown: { kind: "live" },
 };

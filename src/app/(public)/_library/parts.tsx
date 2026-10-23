@@ -428,13 +428,19 @@ export function LearnClose(p: { variant: LearnCloseVariant; domain?: string }): 
 }
 
 /** Where the facts about another company were read, and when. */
-export function Sources(p: { checked: string; sources: readonly Source[] }): React.JSX.Element {
+export function Sources(p: { checked: string; sources: readonly Source[]; id?: string }): React.JSX.Element {
   return (
-    <section className="text-base-content/70 flex min-w-0 flex-col gap-2 text-sm" data-testid="library-sources">
+    <section
+      aria-labelledby={p.id}
+      className="text-base-content/70 flex min-w-0 scroll-mt-20 flex-col gap-2 text-sm"
+      data-testid="library-sources"
+    >
       <p>{copy("library.checked", { date: longDate(p.checked) })}</p>
       {p.sources.length === 0 ? null : (
         <>
-          <h2 className="text-base">{copy("library.sources")}</h2>
+          <h2 id={p.id} className="text-base">
+            {copy("library.sources")}
+          </h2>
           <ul className={LIST}>
             {p.sources.map((source) => (
               <li key={source.href} className="break-words">
