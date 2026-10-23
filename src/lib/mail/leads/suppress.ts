@@ -97,3 +97,18 @@ async function stopSequencesFor(address: string): Promise<number> {
   }
   return stopped;
 }
+
+/** How many follow-ups the address's latest report already had, so the opt-out
+ *  page can say which were sent; null when the store cannot be read. */
+export async function followUpsSentTo(email: string): Promise<number | null> {
+  const read = await leadStore().leadsForAddress(normaliseAddress(email));
+  if (!read.ok) return null;
+  let latest: { started: string; sent: number } | null = null;
+  for (const lead of read.leads) {
+    const started = lead.sequence_started_at;
+    if (started !== null && (latest === null || started > latest.started)) {
+      latest = { started, sent: lead.touch_count };
+    }
+  }
+  return latest?.sent ?? 0;
+}
