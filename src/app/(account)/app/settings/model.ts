@@ -113,6 +113,8 @@ export type BillingFacts =
       /** The card on file's last four, or `null` where nothing read one —
        *  see `billing.ts` for why it is never invented. */
       cardLast4: string | null;
+      /** D4: until when a cancel is refunded by itself (`billingSummary`). */
+      refundUntil: Date | null;
     }
   | { readable: false; surfaceHref: string };
 
@@ -413,6 +415,8 @@ export function assembleSettings(facts: SettingsFacts): SettingsModel {
           accessUntil: formatDate(facts.billing.paidThrough, facts.timeZone),
           surfaceHref: facts.billing.surfaceHref,
           cardLast4: facts.billing.cardLast4,
+          refundUntil:
+            facts.billing.refundUntil === null ? null : formatDate(facts.billing.refundUntil, facts.timeZone),
         }
       : { readable: false, surfaceHref: facts.billing.surfaceHref },
     content: { pages: facts.publishedPages },
