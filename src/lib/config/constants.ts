@@ -940,10 +940,10 @@ export const CACHE_WINDOWS_D = Object.freeze({
  *  order the API route calls.
  *
  *  Both new figures are drafted defaults the owner corrects:
- *   - **`scansPerIpPerDay: 20`.** Four hours at the hourly bound, and
- *     `20 x CAPS.FREE_C` = 240¢ — a twentieth of the day's ceiling, where
- *     the hourly bound alone left one network six tenths of it. A visitor
- *     scanning their own site and a few rivals is in single digits.
+ *   - **`scansPerIpPerDay: 20`.** Four hours at the hourly bound: 240¢,
+ *     about a quarter of `DAILY_PRODUCT_CEILING.baseC` with no paying site;
+ *     the hourly bound alone let one network pass all of it in a day. A
+ *     visitor scanning their own site and a few rivals is in single digits.
  *   - **`scansPerDomainPerDay: 3`.** One domain's first scan, one
  *     "measure what's missing" and one "measure again" is every route the
  *     product itself offers into a fresh measurement of one address in a

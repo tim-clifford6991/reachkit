@@ -11,10 +11,10 @@
 // A check that could not run gives no row: a mail has no room for its
 // why-line, and a zero in its place would be "no issues found".
 import { copy } from "@/lib/presentation/copy";
-import { SITE_CHECK_TITLE, SITE_SEVERITY_WORD } from "@/lib/presentation/site-issues";
+import { SITE_CHECK_DOER, SITE_CHECK_TITLE, SITE_SEVERITY_WORD } from "@/lib/presentation/site-issues";
 import { measured, type Measured } from "@/lib/measure/measured";
 import type { IssueChange } from "@/lib/site-issues/changes";
-import type { IssueSeverity, SiteIssuesSection } from "@/lib/site-issues/types";
+import { DOER_OF, type IssueSeverity, type SiteCheck, type SiteIssuesSection } from "@/lib/site-issues/types";
 import { formatStat } from "./format";
 import type { FactRow } from "./types";
 
@@ -24,8 +24,11 @@ function count(value: number): string {
   return formatStat(measured(value, new Date(0)), "integer");
 }
 
-function figure(a: { count: number; over: number; severity: IssueSeverity }): string {
-  return `${count(a.count)}/${count(a.over)} · ${copy(SITE_SEVERITY_WORD[a.severity])}`;
+function figure(a: { check: SiteCheck; count: number; over: number; severity: IssueSeverity }): string {
+  const doer = DOER_OF[a.check];
+  // "Free fix · 10 min" stays on the report's card: a row with no doer word is the customer's.
+  const by = doer === "free_fix" ? "" : ` · ${copy(SITE_CHECK_DOER[doer])}`;
+  return `${count(a.count)}/${count(a.over)} · ${copy(SITE_SEVERITY_WORD[a.severity])}${by}`;
 }
 
 /** The faults a stored reading counted — every check that ran and counted
@@ -47,6 +50,6 @@ export function issueChangeRows(changes: Measured<readonly IssueChange[]>): read
   if (changes.kind === "unmeasured") return [];
   return changes.value.map((change) => ({
     label: SITE_CHECK_TITLE[change.check],
-    value: `${count(change.from)} → ${figure({ count: change.to, over: change.over, severity: change.severity })}`,
+    value: `${count(change.from)} → ${figure({ check: change.check, count: change.to, over: change.over, severity: change.severity })}`,
   }));
 }

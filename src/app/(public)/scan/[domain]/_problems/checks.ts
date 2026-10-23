@@ -13,7 +13,7 @@
 // line and the robots `Sitemap:` line. Neither can block a crawler.
 import { measured, measuredZero, type Measured } from "@/lib/measure/measured";
 import type { CopyKey } from "@/lib/presentation/copy";
-import { SITE_CHECK_TITLE } from "@/lib/presentation/site-issues";
+import { SITE_CHECK_DOER, SITE_CHECK_TITLE } from "@/lib/presentation/site-issues";
 import type { IdentityReading } from "@/lib/site-issues/checks";
 import { DOER_OF, type IssueSeverity, type SiteIssuesSection } from "@/lib/site-issues/types";
 import type { Severity } from "./model";
@@ -38,15 +38,6 @@ export const CHECK_ORDER: readonly TechnicalCheck[] = Object.freeze([
   "phone_usability",
   "structured_data",
 ]);
-
-export type Doer = "free_fix" | "reachkit_writes" | "reachkit_rewrites";
-
-export const DOER_KEY: Readonly<Record<Doer, CopyKey>> = Object.freeze({
-  free_fix: "check.doer.free-fix",
-  reachkit_writes: "check.doer.reachkit-writes",
-  reachkit_rewrites: "check.doer.reachkit-rewrites",
-});
-
 
 /** What the engine reports for one check. `sitemapUrl` is the address the
  *  site's sitemap is served at, where the engine found one to point to. */
@@ -109,7 +100,7 @@ export function checkCardsOf(readings: CheckReadings, identity?: IdentityReading
       check,
       title: REPORT_TITLE[check] ?? SITE_CHECK_TITLE[check],
       // SPEC §9, 2026-09-14 — the engine's own map (`DOER_OF`).
-      doer: DOER_KEY[DOER_OF[check]],
+      doer: SITE_CHECK_DOER[DOER_OF[check]],
       reading,
       fix: fixFor(check, reading),
       ...(check === "structured_data" && identity !== undefined ? { identity } : {}),
