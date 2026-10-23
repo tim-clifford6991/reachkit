@@ -618,13 +618,22 @@ async function liveOfDraft(client: MinimalClient, siteId: string, draftId: strin
     .sort((x, y) => y.published_at!.localeCompare(x.published_at!))[0];
   if (row === undefined) return null;
   const reading = readingOf(row.search_reading);
-  const { waitingVersion } = await import("@/lib/generate/edit-live");
   return {
     since: new Date(row.published_at!),
     url,
     wordpress: row.destination === "wordpress",
     reading,
     label: reading === null ? null : verdict(reading, at),
-    edit: liveEditFor(await waitingVersion(siteId, draftId)),
+    edit: await liveEditOf(siteId, draftId),
   };
+}
+
+/** A read that fails draws no *Edit this page* rather than failing the screen. */
+async function liveEditOf(siteId: string, draftId: string): Promise<LiveFacts["edit"]> {
+  try {
+    const { waitingVersion } = await import("@/lib/generate/edit-live");
+    return liveEditFor(await waitingVersion(siteId, draftId));
+  } catch {
+    return null;
+  }
 }

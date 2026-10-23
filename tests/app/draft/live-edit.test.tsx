@@ -17,9 +17,11 @@ vi.mock("@/app/(account)/app/draft/[draftId]/save", async (importOriginal) => {
 });
 const push = vi.fn();
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push, refresh: () => undefined }) }));
-vi.mock("@/app/_toast/say", () => ({ say: () => undefined }));
+const said = vi.fn();
+vi.mock("@/app/_toast/say", () => ({ say: (...a: unknown[]) => said(...a) }));
 
 import { AUTOSAVE_DEBOUNCE_MS } from "@/lib/config/constants";
+import { copy } from "@/lib/presentation/copy";
 import { DraftScreen } from "@/app/(account)/app/draft/[draftId]/DraftScreen";
 import { assembleDraft, liveEditFor } from "@/app/(account)/app/draft/[draftId]/model";
 import { FIXTURE_DRAFTS, FIXTURE_PUBLISHED_DRAFT_ID } from "@/app/(account)/app/draft/[draftId]/fixture";
@@ -36,6 +38,7 @@ beforeEach(() => {
   save.mockReset();
   saveLive.mockReset();
   push.mockReset();
+  said.mockReset();
   container = document.createElement("div");
   document.body.append(container);
   root = createRoot(container);
@@ -87,6 +90,38 @@ describe("Edit this page on a live page", () => {
     expect(push).toHaveBeenCalledWith("/app/draft/d-new");
   });
 
+  it("words typed while the first live save is on its way go to the new version, and only then does the screen move", async () => {
+    let land!: (outcome: unknown) => void;
+    saveLive.mockReturnValue(new Promise((resolve) => (land = resolve)));
+    save.mockResolvedValue({ ok: true, savedAt: new Date("2026-10-23T10:00:00.000Z"), claim: { state: "nothing_to_check" }, recordedChecks: [], rulesFailed: false, entered: false });
+    act(() => el<HTMLButtonElement>("live-edit").click());
+    retitle("First words");
+    await settle();
+    retitle("First words, and more");
+    await settle();
+    expect(saveLive).toHaveBeenCalledTimes(1);
+    await act(async () => land({ ok: true, changed: true, draftId: "d-new", state: "needs_attention", passed: false, told: false }));
+    await settle();
+    expect(saveLive).toHaveBeenCalledTimes(1);
+    expect(save).toHaveBeenCalledWith({ draftId: "d-new", title: "First words, and more", bodyMd: VIEW.bodyMd, description: VIEW.description });
+    expect(push).toHaveBeenCalledWith("/app/draft/d-new");
+    expect(push.mock.invocationCallOrder[0]!).toBeGreaterThan(save.mock.invocationCallOrder[0]!);
+  });
+
+  it("Done editing before the live save returns answers when it lands, and opens the new version", async () => {
+    let land!: (outcome: unknown) => void;
+    saveLive.mockReturnValue(new Promise((resolve) => (land = resolve)));
+    act(() => el<HTMLButtonElement>("live-edit").click());
+    retitle("A customer's own title");
+    await settle();
+    act(() => el<HTMLButtonElement>("draft-edit-done").click());
+    expect(container.querySelector('[data-testid="live-controls"]')).not.toBeNull();
+    expect(said).not.toHaveBeenCalled();
+    await act(async () => land({ ok: true, changed: true, draftId: "d-new", state: "in_review", passed: true, told: true }));
+    expect(said).toHaveBeenCalledWith(copy("draft.edit.entered-review"), "ok");
+    expect(push).toHaveBeenCalledWith("/app/draft/d-new");
+  });
+
   it("a refused live edit keeps the words and goes nowhere", async () => {
     saveLive.mockResolvedValue({ ok: false, refused: "store_unavailable" });
     act(() => el<HTMLButtonElement>("live-edit").click());
@@ -112,6 +147,10 @@ describe("when a version of the address already waits (pending_version)", () => 
 
   it("none waiting → the editor", () => {
     expect(liveEditFor(null)).toEqual({ kind: "editor" });
+  });
+
+  it("not live → no Edit, since the save would be refused", () => {
+    expect(liveEditFor("not_live")).toBeNull();
   });
 
   it("a version being written or going out draws no Edit", () => {

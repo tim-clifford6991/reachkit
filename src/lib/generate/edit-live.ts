@@ -124,10 +124,10 @@ export async function startLiveEdit(a: LiveEdit): Promise<LiveEditOutcome> {
 
 /** The version of a live page's address already written and not yet out,
  *  which a save would answer `pending_version` with; `null` where none
- *  waits or the page is not live. */
-export async function waitingVersion(siteId: string, liveDraftId: string): Promise<{ id: string; state: State } | null> {
+ *  waits, and `"not_live"` where a save would answer that. */
+export async function waitingVersion(siteId: string, liveDraftId: string): Promise<{ id: string; state: State } | null | "not_live"> {
   const served = await servedAt(siteId, liveDraftId);
-  if (served === null) return null;
+  if (served === null) return "not_live";
   const { storedAddressesNow } = await import("@/lib/publish/destinations/hosted/store");
   return waitingIn(await refreshesAt(siteId, (await storedAddressesNow(siteId))(served.url)));
 }

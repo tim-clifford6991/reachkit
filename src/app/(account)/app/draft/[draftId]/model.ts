@@ -402,7 +402,8 @@ const OPENABLE: readonly State[] = ["in_review", "needs_attention", "failed"];
 
 /** *Edit this page* given the version of the address already waiting, as
  *  the live edit would answer `pending_version` with it (owner R19). */
-export function liveEditFor(waiting: { id: string; state: State } | null): LiveEdit {
+export function liveEditFor(waiting: { id: string; state: State } | null | "not_live"): LiveEdit {
+  if (waiting === "not_live") return null;
   if (waiting === null) return { kind: "editor" };
   return OPENABLE.includes(waiting.state) ? { kind: "version", draftId: waiting.id } : null;
 }

@@ -219,15 +219,32 @@ export function DraftScreen(p: {
   /** Set when *Done editing* is pressed with a save still on its way: the
    *  save that lands, or is refused, answers for the press (#1095). */
   const answerSaveRef = useRef(false);
+  /** A live edit's save on its way, and the version it wrote: every later
+   *  save is that version's. */
+  const liveFlightRef = useRef(false);
+  const versionRef = useRef<string | null>(null);
 
   const save = useCallback(
     (next: DraftText): void => {
-      if (liveEdit) {
+      if (liveEdit && versionRef.current === null) {
+        // One live save at a time: a second would be refused as the version
+        // the first is writing, so the next pause sends it once this lands.
+        if (liveFlightRef.current) return;
+        liveFlightRef.current = true;
         void draftStore.saveLive({ draftId: view.draftId, ...next }).then((result) => {
+          liveFlightRef.current = false;
           if (result.ok) {
+            if (result.changed) {
+              versionRef.current = result.draftId;
+              setNewVersion(result.draftId);
+            }
             setSavedText(next);
             setRefused(false);
-            if (result.changed) setNewVersion(result.draftId);
+            if (answerSaveRef.current) {
+              answerSaveRef.current = false;
+              if (result.changed && result.state === "in_review") say(copy("draft.edit.entered-review"), "ok");
+              else say(copy("draft.edit.saved", { at: formatTime(new Date(), view.timeZone) }), "ok");
+            }
             return;
           }
           setRefused(true);
@@ -236,7 +253,7 @@ export function DraftScreen(p: {
         return;
       }
       void draftStore
-        .save({ draftId: view.draftId, ...next })
+        .save({ draftId: versionRef.current ?? view.draftId, ...next })
         .then((result) => {
           // Last write wins: what came back is the draft, and nothing is
           // merged into the buffer. A refusal moves nothing at all.
@@ -629,6 +646,10 @@ export function DraftScreen(p: {
     </section>
   );
 
+  /** A live edit lands on the version it wrote once nothing is unsaved,
+   *  from whichever arm is showing. */
+  const openVersion = newVersion === null || unsaved ? null : <OpenVersion draftId={newVersion} />;
+
   if (editing) {
     const stateBadge = refused ? (
       <span
@@ -774,14 +795,20 @@ export function DraftScreen(p: {
             {copy("draft.edit.discard")}
           </button>
         </div>
-        {newVersion === null ? null : <OpenVersion draftId={newVersion} />}
+        {openVersion}
       </div>
     );
   }
 
   // ── the read arm ────────────────────────────────────────────────────
   // A page that went live, and one its customer stopped: board `PageDetail`.
-  if (view.takeDown !== null && view.live !== null) return <LivePage view={view} live={view.live} onEdit={() => setEditing(true)} />;
+  if (view.takeDown !== null && view.live !== null)
+    return (
+      <>
+        <LivePage view={view} live={view.live} onEdit={() => setEditing(true)} />
+        {openVersion}
+      </>
+    );
 
   const written =
     view.writtenAt === null
