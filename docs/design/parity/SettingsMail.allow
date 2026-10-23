@@ -3,7 +3,7 @@ Harbor Plumbing · Austin	sample data
 Mail goes to dana@harborplumbing.com. Change it under	sample data
 Theme: light	#1744: the app shell's theme control, which that issue changes for every /app board
 Settings section	#1101: below sm the seven tabs wrap as links, so no section select is drawn
-Your week: 7 pages planned, 3 pages climbing Mondays, 8:00 AM	owner ruling pending on #1751 Mail week line (climbing count, send time), 2026-10-23
+Your week: 7 pages planned, 3 pages climbing Mondays, 8:00 AM	owner R29, 2026-10-23: no send time (Monday mail goes when the weekly pass finishes); the climbing count ships from the account's own pages
 Your next page is written: Emergency plumber in Austin: what to do in the first hour Sun 18 Oct, 4:00 PM · goes live Mon 19 Oct, 4:00 PM	sample data: the account's own next page
 Same card, “A page is ready” switched off	#1751: the board's label over the switched-off arm, not a string on the page
 Pages still go live on their day. You can stop them from	#1751: the switched-off arm, shown when that switch is off (tests/app/settings/mail-tab.test.tsx)
