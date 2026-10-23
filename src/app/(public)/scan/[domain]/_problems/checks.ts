@@ -14,6 +14,7 @@
 import { measured, measuredZero, type Measured } from "@/lib/measure/measured";
 import type { CopyKey } from "@/lib/presentation/copy";
 import { SITE_CHECK_TITLE } from "@/lib/presentation/site-issues";
+import type { IdentityReading } from "@/lib/site-issues/checks";
 import { DOER_OF, type IssueSeverity, type SiteIssuesSection } from "@/lib/site-issues/types";
 import type { Severity } from "./model";
 
@@ -70,6 +71,8 @@ export interface CheckCard {
   doer: CopyKey;
   reading: CheckReading | null;
   fix: CheckFix;
+  /** Structured data only: who the site's labels say runs it. */
+  identity?: IdentityReading;
 }
 
 // HTML and robots.txt protocol text, pasted as-is — not sentences a person
@@ -99,7 +102,7 @@ const REPORT_TITLE: Partial<Readonly<Record<TechnicalCheck, CopyKey>>> = Object.
   structured_data: "check.structured-data.plain",
 });
 
-export function checkCardsOf(readings: CheckReadings): readonly CheckCard[] {
+export function checkCardsOf(readings: CheckReadings, identity?: IdentityReading): readonly CheckCard[] {
   return CHECK_ORDER.map((check): CheckCard => {
     const reading = readings[check] ?? null;
     return {
@@ -109,6 +112,7 @@ export function checkCardsOf(readings: CheckReadings): readonly CheckCard[] {
       doer: DOER_KEY[DOER_OF[check]],
       reading,
       fix: fixFor(check, reading),
+      ...(check === "structured_data" && identity !== undefined ? { identity } : {}),
     };
   });
 }

@@ -49,6 +49,7 @@ import { parse } from "node-html-parser";
 import { parse as pslParse } from "psl";
 import { isProtectionName } from "@/lib/measure/challenge";
 import { isPlaceholder } from "@/lib/measure/placeholder";
+import { NAMED_IDENTITY_TYPES } from "@/lib/business/identity";
 
 /** What a title template puts between a page and a brand: a spaced
  *  hyphen or dash, a middot or bullet, a pipe, a colon before a space.
@@ -60,7 +61,7 @@ const NAME_MAX_WORDS = 4;
 const NAME_MAX_CHARS = 40;
 
 /** The structured-data types whose `name` is the company's or the site's. */
-const NAMED_TYPES = new Set(["Organization", "Corporation", "LocalBusiness", "OnlineBusiness", "WebSite"]);
+const NAMED_TYPES: ReadonlySet<string> = new Set([...NAMED_IDENTITY_TYPES, "WebSite"]);
 
 /** The words a call to action, a page section or a product category is
  *  made of, in the two languages the product is sold in. A candidate made
