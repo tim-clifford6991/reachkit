@@ -21,7 +21,7 @@
 
 import type React from "react";
 import { useId, useRef, useState } from "react";
-import { Circle, CircleCheck, Sparkles } from "lucide-react";
+import { Circle, CircleCheck, Globe, Settings2, Sparkles } from "lucide-react";
 import { copy } from "@/lib/presentation/copy";
 import {
   dnsRecordFor,
@@ -82,67 +82,110 @@ export function PublishingCard(p: {
     if (mine === asked.current) setRefusal(answer);
   }
 
+  const host = p.siteDomain === null || p.label.trim() === "" ? null : `${p.label}.${p.siteDomain}`;
+
   return (
-    <section className="card bg-base-100 shadow-sm" data-testid={TEST_ID}>
-      <div className="card-body gap-4">
-        <h2 className="card-title text-base">
-          <Sparkles aria-hidden size={20} strokeWidth={1.75} />
-          {copy("settings.publishing.title")}
-        </h2>
+    <>
+      {p.destination === "hosted" && p.siteDomain !== null && host !== null ? (
+        <HowItConnects domain={p.siteDomain} host={host} />
+      ) : null}
+      <section className="card bg-base-100 shadow-sm" data-testid={TEST_ID}>
+        <div className="card-body gap-4">
+          <h2 className="card-title text-base">
+            <Sparkles aria-hidden size={20} strokeWidth={1.75} />
+            {copy("setup.destination.where")}
+          </h2>
 
-        <div className="grid gap-3 sm:grid-cols-2" data-testid="setup-destination">
-          {p.cards.destination.map((option) => (
-            <Option
-              key={option.kind}
-              title={copy(option.name)}
-              line={copy(option.copy)}
-              chosen={p.destination === option.kind}
-              preselected={option.preselected}
-              onChoose={() => p.onDestination(option.kind)}
-              testId={`setup-destination-${option.kind}`}
-            >
-              {option.kind === "hosted" && "pending" in dns ? <DnsPendingLine dns={dns} /> : null}
-              {option.kind === "wordpress" ? <WordPressAsks domain={p.siteDomain} /> : null}
-            </Option>
-          ))}
-        </div>
-
-        {/* The label sits under the pair, not inside the hosted option:
-            that option is a button, and a field nested in a button is
-            neither valid markup nor operable by keyboard. */}
-        {p.destination === "hosted" ? (
-          <div className="flex flex-col gap-1.5" data-testid="setup-destination-label">
-            <label className="text-sm text-base-content/70" htmlFor={labelId}>
-              {copy("setup.destination.label.label")}
-            </label>
-            <input
-              id={labelId}
-              type="text"
-              name="label"
-              className={`input num w-full ${refusal === null ? "" : "input-error"}`}
-              value={p.label}
-              aria-invalid={refusal !== null}
-              onChange={(event) => {
-                void draftLabel(event.target.value);
-              }}
-            />
-            {refusal === null ? null : (
-              <div role="alert" className="alert alert-error alert-soft text-sm">
-                {copy(LABEL_REFUSAL_COPY[refusal])}
-              </div>
-            )}
-            {/* The record and its check are `/setup/connect`'s now (#924).
-                What stands here is the one line saying the address is
-                theirs and that connecting it comes next. */}
-            {"pending" in dns ? null : (
-              <p className="mt-2 text-sm text-base-content/70" data-testid="setup-dns-next">
-                {copy("setup.destination.connect-next")}
-              </p>
-            )}
+          <div className="grid gap-3 sm:grid-cols-2" data-testid="setup-destination">
+            {p.cards.destination.map((option) => (
+              <Option
+                key={option.kind}
+                title={copy(option.name)}
+                line={copy(option.copy)}
+                detail={option.kind === "hosted" ? host : null}
+                chosen={p.destination === option.kind}
+                onChoose={() => p.onDestination(option.kind)}
+                testId={`setup-destination-${option.kind}`}
+              >
+                {option.kind === "hosted" && "pending" in dns ? <DnsPendingLine dns={dns} /> : null}
+                {option.kind === "wordpress" ? <WordPressAsks domain={p.siteDomain} /> : null}
+              </Option>
+            ))}
           </div>
-        ) : null}
+
+          {/* The label sits under the pair, not inside the hosted option:
+              that option is a button, and a field nested in a button is
+              neither valid markup nor operable by keyboard. */}
+          {p.destination === "hosted" ? (
+            <div className="flex flex-col gap-1.5" data-testid="setup-destination-label">
+              <label className="text-sm text-base-content/70" htmlFor={labelId}>
+                {copy("setup.destination.label.label")}
+              </label>
+              <input
+                id={labelId}
+                type="text"
+                name="label"
+                className={`input num w-full ${refusal === null ? "" : "input-error"}`}
+                value={p.label}
+                aria-invalid={refusal !== null}
+                onChange={(event) => {
+                  void draftLabel(event.target.value);
+                }}
+              />
+              {refusal === null ? null : (
+                <div role="alert" className="alert alert-error alert-soft text-sm">
+                  {copy(LABEL_REFUSAL_COPY[refusal])}
+                </div>
+              )}
+              {/* The record and its check are `/setup/connect`'s now (#924).
+                  What stands here is the one line saying the address is
+                  theirs and that connecting it comes next. */}
+              {"pending" in dns ? null : (
+                <p className="mt-2 text-sm text-base-content/70" data-testid="setup-dns-next">
+                  {copy("setup.destination.connect-next")}
+                </p>
+              )}
+            </div>
+          ) : null}
+        </div>
+      </section>
+    </>
+  );
+}
+
+/** Where the founder's site, the one setting and the pages sit, before the
+ *  choice it explains. Hosted only: on WordPress there is no setting to add. */
+function HowItConnects(p: { domain: string; host: string }): React.JSX.Element {
+  const nodes = [
+    { icon: Globe, title: copy("setup.connect.how.site"), value: p.domain, pill: null, line: copy("setup.connect.how.site.line") },
+    { icon: Settings2, title: copy("setup.connect.how.setting"), value: null, pill: copy("setup.connect.how.yours"), line: copy("setup.connect.how.setting.line") },
+    { icon: Sparkles, title: copy("setup.connect.how.live"), value: p.host, pill: null, line: copy("setup.connect.how.live.line") },
+  ];
+  return (
+    <figure className="card bg-base-100 shadow-sm" data-testid="setup-how">
+      <div className="card-body gap-3">
+        <figcaption className="eyebrow">{copy("setup.connect.how.title")}</figcaption>
+        <ul className="timeline timeline-vertical timeline-compact">
+          {nodes.map((node, index) => (
+            <li key={node.title}>
+              {index === 0 ? null : <hr />}
+              <div className="timeline-middle">
+                <node.icon aria-hidden size={20} strokeWidth={1.75} className="text-primary" />
+              </div>
+              <div className="timeline-end mb-3 min-w-0">
+                <span className="flex flex-wrap items-center gap-2 font-medium">
+                  {node.title}
+                  {node.pill === null ? null : <span className="badge badge-sm badge-primary badge-soft">{node.pill}</span>}
+                </span>
+                {node.value === null ? null : <span className="num block text-sm wrap-anywhere">{node.value}</span>}
+                <span className={QUIET}>{node.line}</span>
+              </div>
+              {index === nodes.length - 1 ? null : <hr />}
+            </li>
+          ))}
+        </ul>
       </div>
-    </section>
+    </figure>
   );
 }
 
@@ -152,8 +195,9 @@ export function PublishingCard(p: {
 function Option(p: {
   title: string;
   line: string;
+  /** A value under the title: the address the hosted option would serve. */
+  detail: string | null;
   chosen: boolean;
-  preselected: boolean;
   onChoose: () => void;
   testId: string;
   children?: React.ReactNode;
@@ -178,12 +222,8 @@ function Option(p: {
             className={p.chosen ? "text-primary" : "text-base-content/40"}
           />
           {p.title}
-          {p.preselected ? (
-            <span className="badge badge-sm badge-primary badge-soft" data-testid="setup-option-default">
-              {copy("setup.mode.default")}
-            </span>
-          ) : null}
         </span>
+        {p.detail === null ? null : <span className="num text-sm wrap-anywhere">{p.detail}</span>}
         <span className={QUIET} data-testid="setup-option-line">
           {p.line}
         </span>
@@ -216,6 +256,7 @@ function WordPressAsks(p: { domain: string | null }): React.JSX.Element {
           </span>
         )}
       </span>
+      <span className={`mt-2 ${QUIET}`}>{copy("settings.destination.username")}</span>
       <span className="mt-2 flex min-w-0 flex-col">
         <span className={QUIET}>{copy("settings.destination.app-password")}</span>
         <span className="text-sm" data-testid="setup-wordpress-help">

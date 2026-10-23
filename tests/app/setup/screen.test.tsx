@@ -631,18 +631,14 @@ describe("Connect — where the pages go live (REQ-028 c2, SPEC §7 #476)", () =
     expect(destinations[1]?.getAttribute("aria-pressed")).toBe("false");
   });
 
-  it("Canvas: OnboardingPublishing — the chosen destination carries the set's `default`", () => {
+  it("board Setup — the hosted choice names its address and says it is recommended; WordPress does neither", () => {
     const tree = screenFor("publishing");
-    expect(
-      tree
-        .querySelector('[data-testid="setup-destination-hosted"]')
-        ?.querySelector('[data-testid="setup-option-default"]')?.textContent,
-    ).toBe(COPY["setup.mode.default"]);
-    expect(
-      tree
-        .querySelector('[data-testid="setup-destination-wordpress"]')
-        ?.querySelector('[data-testid="setup-option-default"]'),
-    ).toBeNull();
+    const hosted = tree.querySelector('[data-testid="setup-destination-hosted"]')?.textContent ?? "";
+    const wordpress = tree.querySelector('[data-testid="setup-destination-wordpress"]')?.textContent ?? "";
+    expect(hosted).toContain("content.example.com");
+    expect(hosted).toContain(COPY["setup.destination.hosted"]);
+    expect(wordpress).not.toContain("content.example.com");
+    expect(wordpress).not.toContain(COPY["setup.destination.hosted"]);
   });
 
   it("the record is not on this step any more — it is its own step after setup (#924)", () => {
