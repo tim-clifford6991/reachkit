@@ -821,6 +821,11 @@ export const MAIL_COPY = Object.freeze({
   "mail.ops.incident.fact.balance": ["Balance", { slots: {}, fixedBy: "issue 1587 (drafted)" }],
   "mail.ops.incident.fact.days-left": ["Days left at last week's spend", { slots: {}, fixedBy: "issue 1587 (drafted)" }],
   "mail.ops.incident.fact.dashboard": ["Dashboard", { slots: {}, fixedBy: "issue 1587 (drafted)" }],
+  // Issue 1842: Stripe refused an automatic 14-day refund.
+  "mail.ops.incident.refund-refused": ["Stripe refused an automatic 14-day refund, so the customer still has access and has not been paid back. Refund the invoice below by hand in the Stripe dashboard; the refund walk has the steps.", { slots: {}, fixedBy: "issue 1842 (drafted)" }],
+  "mail.ops.incident.fact.invoice": ["Invoice", { slots: {}, fixedBy: "issue 1842 (drafted)" }],
+  "mail.ops.incident.fact.account": ["Account", { slots: {}, fixedBy: "issue 1842 (drafted)" }],
+  "mail.ops.incident.fact.stripe-code": ["Stripe error code", { slots: {}, fixedBy: "issue 1842 (drafted)" }],
 
   // ── SPEC §8, Retention (issue 569). Owner-owed: the copy sheet is issue
   // 568. `sendEmail` refuses a mail that still carries the marker, so none of
