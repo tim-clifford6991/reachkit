@@ -5,7 +5,7 @@
 // token on arrival and renders a total switch over the three things that
 // can have happened.
 //
-// One daisyUI card: a mail icon over "Opted out", the approved lines with the
+// One daisyUI card: a mail icon over "Unsubscribed", the approved lines with the
 // address inside the first, and a quiet "Back to ReachKit" (`btn-ghost`) —
 // nothing on this page asks the reader to do anything, so it has no solid
 // button.
@@ -27,7 +27,7 @@
 // footer around this card.
 //
 // **Three arms, and the head says which.** Only one of the three opted
-// anybody out, so only that one wears S7's "Opted out": a card that said it
+// anybody out, so only that one wears "Unsubscribed": a card that said it
 // over "that unsubscribe link isn't valid any more" would contradict itself
 // in its own head. The other two take `optout.head.unresolved`, which is
 // owner-owed and renders the `TODO(copy)` marker — the standing rule for a
