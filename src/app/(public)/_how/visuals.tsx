@@ -390,14 +390,14 @@ export function PageWithSources(e: Example): React.JSX.Element {
         <p className={SMALL}>{copy("how.true.eyebrow", { business: e.business, place: e.place })}</p>
         <h3 className="text-lg font-semibold">{e.page.title}</h3>
         {e.page.paragraphs.map((parts) => (
-          <p key={parts[0]?.text} className="text-sm">
+          <p key={parts[0]?.text} className="flex flex-col gap-2 text-sm">
             {parts.map((part) =>
               part.source === null ? (
-                <span key={part.text}> {part.text} </span>
+                <span key={part.text}>{part.text}</span>
               ) : (
-                <span key={part.text}>
+                <span key={part.text} className="flex flex-col gap-1">
                   <span className="bg-primary/10 rounded px-1">{part.text}</span>
-                  <span className="num text-primary ms-1 text-xs">
+                  <span className="num text-primary text-xs">
                     {copy("how.read.from", { source: `${e.site}${part.source}` })}
                   </span>
                 </span>
@@ -434,7 +434,13 @@ export function MondayEmail(e: Example): React.JSX.Element {
     <figure className="flex min-w-0 flex-col items-center gap-2">
       <div className="mockup-phone border-base-300 max-w-72">
         <div className="mockup-phone-camera" />
-        <div className="mockup-phone-display bg-base-100 flex flex-col gap-3 overflow-y-auto px-4 pt-12 pb-6 text-sm">
+        {/* It scrolls, so a keyboard can reach it. */}
+        <div
+          role="region"
+          aria-label={copy("how.mail.caption")}
+          tabIndex={0}
+          className="mockup-phone-display bg-base-100 flex flex-col gap-3 overflow-y-auto px-4 pt-12 pb-6 text-sm"
+        >
           <p className={SMALL}>{copy("signin.inbox.title")}</p>
           <p className="flex items-center gap-1 font-semibold">
             <Mail {...ICON} />
