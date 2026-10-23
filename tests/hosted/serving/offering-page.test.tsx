@@ -7,6 +7,7 @@
 // written as questions as every page's are (SPEC §7, 2026-09-29). 0¢.
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
+import type { HostedPage } from "@/lib/publish/destinations/hosted";
 import { applyEnvFixture } from "../../mail/env-fixture";
 import { layoutPage, withClosing } from "@/lib/generate/pipeline/compose";
 import type { PageParts } from "@/lib/generate/pipeline/write";
@@ -14,11 +15,19 @@ import { TEMPLATES } from "@/lib/generate/templates";
 
 applyEnvFixture();
 
-const state: { page: unknown } = { page: null };
+const HARBOR = { name: "Harbor Plumbing", logoType: null, line: null };
+const state: { page: unknown; identity: unknown } = { page: null, identity: HARBOR };
 
 vi.mock("next/headers", () => ({
   headers: async () => new Headers({ host: "content.example.com" }),
 }));
+
+const { publications } = vi.hoisted(() => ({ publications: [] as unknown[] }));
+vi.mock("@/lib/publish/db", () => {
+  const chain: Record<string, unknown> = { then: (resolve: (value: unknown) => unknown) => resolve({ data: publications, error: null }) };
+  for (const step of ["from", "select", "eq", "not", "is", "order", "in", "limit"]) chain[step] = () => chain;
+  return { publishDb: () => chain };
+});
 
 vi.mock("@/lib/account/billing", () => ({
   hostedServingState: async () => ({ serve: true }),
@@ -36,7 +45,7 @@ vi.mock("@/lib/publish/destinations/hosted", async () => {
     hostedSiteForHostname: async () => null,
     livePageBySlug: async () => state.page,
     livePagesForSite: async () => (state.page === null ? [] : [state.page]),
-    hostedIdentity: async () => ({ name: "Harbor Plumbing", logoType: null, line: null }),
+    hostedIdentity: async () => state.identity,
     hostedAddress: async () => ({ state: "none", publicationId: null }),
   };
 });
@@ -98,10 +107,11 @@ function storedDraft() {
   };
 }
 
-async function render(): Promise<string> {
-  const { page } = storedDraft();
+async function render(page: unknown = storedDraft().page, identity: unknown = HARBOR): Promise<string> {
   state.page = page;
-  return renderToStaticMarkup(await Page({ params: Promise.resolve({ slug: [PARTS.slug] }) }));
+  state.identity = identity;
+  const slug = (page as { slug: string }).slug;
+  return renderToStaticMarkup(await Page({ params: Promise.resolve({ slug: [slug] }) }));
 }
 
 describe("the hosted Service board renders an offering draft", () => {
@@ -131,5 +141,119 @@ describe("the hosted Service board renders an offering draft", () => {
     const html = await render();
     for (const entry of PARTS.faq) expect(html).toContain(entry.question);
     expect(html).toContain('"@type":"FAQPage"');
+  });
+});
+
+/** Owner R1 (2026-10-22): an offering page states its dates, keeps the made
+ *  line and carries no byline; every other type keeps its byline. */
+const DAY = "2026-10-19T11:00:00.000Z";
+const LATER = "2026-10-22T11:00:00.000Z";
+const MADE_LINE = "Written with AI from 3 facts on example.com, checked against 14 rules before publishing.";
+
+function offering(over: Partial<HostedPage> = {}): HostedPage {
+  return {
+    ...(storedDraft().page as unknown as HostedPage),
+    offering: true,
+    byline: "Dana Ruiz · Master plumber",
+    made: { facts: 3, rules: 14 },
+    ...over,
+  };
+}
+
+/** A SaaS business's own feature page, on the same template. */
+function saasOffering(over: Partial<HostedPage> = {}): HostedPage {
+  const slug = "onboarding-checklists";
+  return offering({
+    slug,
+    title: "Onboarding checklists with one owner for every step",
+    heading: null,
+    bodyMd: "Every checklist names one owner for each step.\n\n## What is included?\n\n- Templates per role\n- An export of everything you wrote",
+    faq: [],
+    publisher: { name: "Publisher", category: "employee onboarding software", timeZone: null },
+    liveUrl: `https://content.example.com/${slug}`,
+    ...over,
+  });
+}
+
+const SAAS = { name: "Publisher & Sons Onboarding Software", logoType: null, line: null };
+
+function parse(html: string): Document {
+  return new DOMParser().parseFromString(html, "text/html");
+}
+
+function dataOf(doc: Document): Record<string, unknown>[] {
+  return [...doc.querySelectorAll('script[type="application/ld+json"]')].flatMap((script) => {
+    const data = JSON.parse(script.textContent ?? "") as Record<string, unknown>;
+    return Array.isArray(data["@graph"]) ? (data["@graph"] as Record<string, unknown>[]) : [data];
+  });
+}
+
+function metaLine(doc: Document): string {
+  return doc.querySelector("article time")?.parentElement?.textContent ?? "";
+}
+
+describe("owner R1: an offering page shows its dates, the made line and no byline", () => {
+  for (const [kind, page, identity] of [
+    ["a local offering page", offering, HARBOR],
+    ["a SaaS offering page", saasOffering, SAAS],
+  ] as const) {
+    it(`${kind}: the dates alone, no reading time, and the made line`, async () => {
+      const doc = parse(await render(page(), identity));
+      expect(metaLine(doc)).toBe("Published 19 Oct 2026");
+      expect(doc.body.textContent).not.toContain("Dana Ruiz");
+      expect(doc.body.textContent).not.toContain("min read");
+      expect(doc.body.textContent).toContain(MADE_LINE);
+    });
+
+    it(`${kind}: "Updated" only once the page is refreshed`, async () => {
+      const doc = parse(await render(page({ publishedAt: new Date(LATER) }), identity));
+      expect(metaLine(doc)).toBe("Published 19 Oct 2026 · Updated 22 Oct 2026");
+    });
+
+    it(`${kind}: WebPage and Service, by the business, dated as the page is`, async () => {
+      const refreshed = page({ publishedAt: new Date(LATER) });
+      const doc = parse(await render(refreshed, identity));
+      const blocks = dataOf(doc);
+      const types = blocks.map((block) => block["@type"]);
+      expect(types).toContain("WebPage");
+      expect(types).toContain("Service");
+      expect(types).not.toContain("BlogPosting");
+      expect(JSON.stringify(blocks)).not.toContain('"Person"');
+      const organization = "https://example.com/#organization";
+      const webPage = blocks.find((block) => block["@type"] === "WebPage")!;
+      const service = blocks.find((block) => block["@type"] === "Service")!;
+      expect((service.provider as { "@id": string })["@id"]).toBe(organization);
+      expect((webPage.publisher as { "@id": string })["@id"]).toBe(organization);
+      expect(webPage.datePublished).toBe(DAY);
+      expect(webPage.dateModified).toBe(LATER);
+      expect(doc.querySelector("article time")?.getAttribute("datetime")).toBe(DAY.slice(0, 10));
+    });
+  }
+
+  for (const [kind, title] of [
+    ["a Q&A page", "Is the call-out price the same at night?"],
+    ["a how-to page", "How to shut off the water to a house"],
+  ] as const) {
+    it(`${kind} keeps its byline, its reading time and its BlogPosting`, async () => {
+      const doc = parse(await render(offering({ offering: false, title, heading: null })));
+      expect(metaLine(doc)).toMatch(/^published 19 Oct 2026 · by Dana Ruiz · Master plumber·?\s*\d+ min read$/);
+      expect(dataOf(doc).map((block) => block["@type"])).toContain("BlogPosting");
+    });
+  }
+
+  it("the store reads a draft written as an offering page as one, and any other as not", async () => {
+    const row = (id: string, contentType: string) => ({
+      id,
+      site_id: "site-1",
+      live_url: `https://content.example.com/${id}`,
+      published_at: DAY,
+      mode: "autopilot",
+      sites: { domain: "example.com", category: null, timezone: null },
+      drafts: { title: id, body_md: "One paragraph.", attribution: null, meta: { contentType }, grounded_fact: null, opportunity_id: "o", opportunities: { id: "o", target_query: "q", scans: null } },
+    });
+    publications.splice(0, publications.length, row("service", "offering"), row("answer", "qa"));
+    const { livePagesForSite } = await import("@/lib/publish/destinations/hosted/store");
+    const pages = await livePagesForSite("site-1", "content.example.com");
+    expect(Object.fromEntries(pages.map((page) => [page.slug, page.offering]))).toEqual({ service: true, answer: false });
   });
 });

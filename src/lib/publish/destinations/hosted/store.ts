@@ -143,6 +143,9 @@ export interface HostedPage {
   /** SPEC §7 (2026-09-29): the page's byline as generation recorded it
    *  (`drafts.attribution`), or `null` for a page with none. */
   byline: string | null;
+  /** Written as the business's own service or product page
+   *  (`drafts.meta.contentType`); absent reads as not. */
+  offering?: boolean;
   /** When this version went live. On a page that has been refreshed it is
    *  the update's date, and `firstPublishedAt` is the page's own. */
   publishedAt: Date;
@@ -298,6 +301,7 @@ function toPage(row: PublicationRow, host: string): HostedPage | null {
       timeZone: emptyToNull(row.sites?.timezone ?? null),
     },
     byline: emptyToNull(draft.attribution ?? null),
+    offering: draft.meta?.contentType === "offering",
     publishedAt: datedAt(draft.meta) ?? new Date(row.published_at),
     firstPublishedAt: datedAt(draft.meta) ?? new Date(row.published_at),
     liveUrl,

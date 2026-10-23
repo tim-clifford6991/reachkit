@@ -194,6 +194,35 @@ export function blogPostingSchema(a: {
   });
 }
 
+/** `WebPage` with its `Service`, on an offering page (owner R1, 2026-10-22):
+ *  the business's own page about what it provides, so no posting and no
+ *  person, and the dates are the two the page prints. */
+export function offeringSchema(a: {
+  page: HostedPage;
+  canonical: string;
+  business: HostedBusiness;
+}): string {
+  const name = a.page.heading ?? a.page.title;
+  const service = `${a.canonical}#service`;
+  return jsonLd({
+    "@context": SCHEMA_CONTEXT,
+    "@graph": [
+      {
+        "@type": "WebPage",
+        "@id": `${a.canonical}#webpage`,
+        url: a.canonical,
+        name,
+        datePublished: a.page.firstPublishedAt.toISOString(),
+        dateModified: a.page.publishedAt.toISOString(),
+        inLanguage: readerTag(),
+        mainEntity: { "@id": service },
+        publisher: publisherOf(a.business, originOf(a.canonical)),
+      },
+      { "@type": "Service", "@id": service, name, url: a.canonical, provider: { "@id": organizationIdOf(a.business) } },
+    ],
+  });
+}
+
 /** The breadcrumb the article draws at its foot, part for part: the site,
  *  the blog and the page. */
 export function breadcrumbSchema(a: {

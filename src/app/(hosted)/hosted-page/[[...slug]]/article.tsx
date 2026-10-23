@@ -44,11 +44,11 @@ import { topicSimilarity } from "@/lib/known-content/similarity";
 import { Surface } from "@/ui/layout";
 import { resolveHost } from "../../resolve-host";
 import { AboutCard, HostedFooter, HostedHeader, INDEX_PATH, mainSiteOf, type HostedBusiness } from "./chrome";
-import { bylineLine } from "@/lib/publish/render/byline";
+import { bylineLine, datedLine } from "@/lib/publish/render/byline";
 import { withFaq, type FaqEntry } from "@/lib/publish/render/faq";
 import { isSourcesHeading, madeLine } from "@/lib/publish/render/made";
 import { writeDate } from "./present";
-import { articleMetadata, blogPostingSchema, breadcrumbSchema, jsonLd } from "./seo";
+import { articleMetadata, blogPostingSchema, breadcrumbSchema, jsonLd, offeringSchema } from "./seo";
 import { pageAuthorOf } from "./author";
 
 export interface Resolved {
@@ -306,8 +306,9 @@ export function HostedArticle({ resolved }: { resolved: Resolved }): React.JSX.E
   // What the page says about itself as data: always the posting and the
   // breadcrumb, and the questions only where the page draws them.
   const faq = faqSchema(asked.faq, canonical);
+  const offering = page.offering === true;
   const dataBlocks = [
-    blogPostingSchema({ page, canonical, business }),
+    (offering ? offeringSchema : blogPostingSchema)({ page, canonical, business }),
     breadcrumbSchema({ page, canonical, business }),
     ...(faq === null ? [] : [faq]),
   ];
@@ -347,6 +348,13 @@ export function HostedArticle({ resolved }: { resolved: Resolved }): React.JSX.E
     HOSTED_GUIDES_CLASSES
   );
   const tocLabel = copy("hosted.toc");
+  const dates = {
+    published: page.firstPublishedAt,
+    updated: page.publishedAt,
+    timeZone: page.publisher.timeZone,
+    say: copy,
+    tag: readerTag(),
+  };
 
   return (
     <Surface
@@ -382,20 +390,16 @@ export function HostedArticle({ resolved }: { resolved: Resolved }): React.JSX.E
               recorded, else the business's name; the day the address first
               carried a page, and the day it was last refreshed where it has
               been; and the reading time. */}
+          {/* Owner R1 (2026-10-22): an offering page states its dates only. */}
           <p className="text-base-content/70 text-sm">
             <time dateTime={page.firstPublishedAt.toISOString().slice(0, 10)}>
-              {bylineLine({
-                byline: page.byline ?? business.name,
-                published: page.firstPublishedAt,
-                updated: page.publishedAt,
-                timeZone: page.publisher.timeZone,
-                say: copy,
-                tag: readerTag(),
-              })}
+              {offering ? datedLine(dates) : bylineLine({ ...dates, byline: page.byline ?? business.name })}
             </time>
-            <span className="before:mx-1.5 before:content-['·']">
-              {copy("hosted.readingTime", { minutes: String(readingMinutes(page.bodyMd)) })}
-            </span>
+            {offering ? null : (
+              <span className="before:mx-1.5 before:content-['·']">
+                {copy("hosted.readingTime", { minutes: String(readingMinutes(page.bodyMd)) })}
+              </span>
+            )}
           </p>
           {made === null ? null : (
             <p className="text-base-content/70 mt-2 text-sm wrap-anywhere">
@@ -446,7 +450,7 @@ export function HostedArticle({ resolved }: { resolved: Resolved }): React.JSX.E
             </section>
           )}
 
-          <AboutCard business={business} author={pageAuthorOf(page.byline, business)} />
+          <AboutCard business={business} author={offering ? null : pageAuthorOf(page.byline, business)} />
 
           {guides === "" ? null : <div dangerouslySetInnerHTML={{ __html: guides }} />}
 
