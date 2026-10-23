@@ -85,6 +85,12 @@ export const FIXTURE_OVERVIEW_FACTS: OverviewFacts = Object.freeze({
   // The header's trend (SPEC §4, 2026-09-20), aligned to `points` above:
   // the week that did not run is `null`, never a zero.
   scorePoints: Object.freeze([31, 54, null, 62]),
+  // The month's reading, from August's first Monday, against the scan.
+  months: Object.freeze({
+    reading: Object.freeze({ week: "2026-08-03", score: 31, market: Object.freeze({ top10: 1, of: 12 }) }),
+    scan: Object.freeze({ score: 27, market: 0 }),
+    next: "2026-09-07",
+  }),
   pagesPublished: measured(17, MONDAY(31)),
   pagesRanking: measured(6, MONDAY(31)),
 

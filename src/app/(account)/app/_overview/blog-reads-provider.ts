@@ -14,7 +14,7 @@
 import { cache } from "react";
 import { BLOG_READS_WINDOW_D } from "@/lib/config/constants";
 import { isReservedFixtureAccount, requireSetUpAccount } from "../_session/account";
-import { assembleBlogReads, type BlogReadsModel } from "@/lib/publish/reads/model";
+import { assembleBlogReads, windowStartDay, type BlogReadsModel } from "@/lib/publish/reads/model";
 import { FIXTURE_BLOG_READS_FACTS } from "./blog-reads-fixture";
 
 /** The instant the fixture's counts were taken — the Monday every other
@@ -35,4 +35,21 @@ export const readBlogReads = cache(async function readBlogReads(): Promise<BlogR
     BLOG_READS_WINDOW_D,
     at
   );
+});
+
+/** The reserved account's visits from Google this week. */
+const FIXTURE_GOOGLE_VISITS = 9;
+
+/** Visits from Google search this week, read from the hosted pages' own
+ *  counts; `null` where no hosted page is live or the counts could not be read. */
+export const readGoogleVisits = cache(async function readGoogleVisits(): Promise<number | null> {
+  const account = await requireSetUpAccount();
+  const reads = await readBlogReads();
+  if (!reads.show) return null;
+  if (isReservedFixtureAccount(account)) return FIXTURE_GOOGLE_VISITS;
+  const [{ readSearchVisits }, { now }] = await Promise.all([
+    import("@/lib/publish/reads/store"),
+    import("@/lib/config/now"),
+  ]);
+  return readSearchVisits({ siteId: account.siteId, sinceDay: windowStartDay(now(), BLOG_READS_WINDOW_D) }).catch(() => null);
 });
