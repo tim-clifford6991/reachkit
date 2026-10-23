@@ -11,6 +11,18 @@ export type MainSiteLink = "linked" | "not_followed" | "not_linked";
 export const MAIN_SITE_ACTIONS = ["book", "quote"] as const;
 export type MainSiteActionKind = (typeof MAIN_SITE_ACTIONS)[number];
 
+/** What a book page books, read off its own address and words. */
+export const BOOK_KINDS = ["demo", "call", "visit"] as const;
+export type BookKind = (typeof BOOK_KINDS)[number];
+
+/** A book or quote page of the main site; a book page says what it books,
+ *  except on a reading stored before. */
+export interface MainSiteAction {
+  kind: MainSiteActionKind;
+  url: string;
+  book?: BookKind;
+}
+
 export interface MainSite {
   /** The main site's canonical home. */
   home: string;
@@ -30,7 +42,7 @@ export interface MainSite {
   /** The book and quote pages the home's own header or nav links, on the
    *  business's own site, at most one of each and never two at one address.
    *  Empty where it links none, or on a reading stored before. */
-  actions: readonly { kind: MainSiteActionKind; url: string }[];
+  actions: readonly MainSiteAction[];
   /** The phone number the main site states, as it writes it: its
    *  Organization's `telephone`, else its home's first `tel:` link. `null`
    *  where it states none, or on a reading stored before. */
@@ -87,9 +99,9 @@ export function mainSiteOf(value: unknown): MainSite | null {
     actions: Array.isArray(row.actions)
       ? row.actions.flatMap((entry) => {
           const action = entry as Record<string, unknown> | null;
-          return isHttp(action?.url) && MAIN_SITE_ACTIONS.includes(action.kind as MainSiteActionKind)
-            ? [{ kind: action.kind as MainSiteActionKind, url: action.url }]
-            : [];
+          if (!isHttp(action?.url) || !MAIN_SITE_ACTIONS.includes(action.kind as MainSiteActionKind)) return [];
+          const book = action.kind === "book" && BOOK_KINDS.includes(action.book as BookKind) ? { book: action.book as BookKind } : {};
+          return [{ kind: action.kind as MainSiteActionKind, url: action.url, ...book }];
         })
       : [],
     phone: phoneOf(row.phone),
