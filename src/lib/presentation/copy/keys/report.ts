@@ -874,23 +874,32 @@ export const REPORT_COPY = Object.freeze({
   "control.back-to-start": ["Back to the start", { slots: {}, fixedBy: "issue 936" }],
 
   /* ── The free-scans gallery, `/scans`, and the landing's strip (#1069) ── */
-  // SPEC §2 2026-09-24 (#1058, #1059). The board's words where boards
-  // `R12-3-Gallery` / `R12-9-Phone-gallery` / `R12-1-Landing` write them;
-  // the rest drafted in the registry's voice for the owner to correct.
+  // SPEC §2 2026-09-24 (#1058, #1059). The words of board `PubScans`; the
+  // rest drafted in the registry's voice for the owner to correct.
   "gallery.eyebrow": ["Free scans · live", { slots: {}, fixedBy: "issue 1069 · R12-3" }],
   "gallery.heading": ["Every free scan, in the open.", { slots: {}, fixedBy: "issue 1069 · R12-3" }],
   "gallery.subline": [
-    "Each report is a permanent public link. See how any business here shows up on Google and AI, and where its competitors are found instead.",
-    { slots: {}, fixedBy: "issue 1069 · R12-3" },
+    "{count} free reports, each at a permanent public link. See how businesses like yours show up on Google and in AI answers, and who is found instead.",
+    { slots: { count: "text" }, fixedBy: "board PubScans · issue 1732" },
   ],
-  "gallery.next.heading": ["Your site next?", { slots: {}, fixedBy: "issue 1069 · R12-3" }],
+  "gallery.next.assurance": ["free · no account · under a minute · listed here when it’s done", { slots: {}, fixedBy: "board PubScans · issue 1732" }],
+  "gallery.strip.title": ["The {n} newest, by Visibility Score", { slots: { n: "text" }, fixedBy: "board PubScans · issue 1732" }],
+  "gallery.strip.label": ["Scores of the {n} newest reports", { slots: { n: "text" }, fixedBy: "board PubScans · issue 1732" }],
+  "gallery.strip.caption": ["Visibility Score: one number for how easy a business is to find, out of 100.", { slots: {}, fixedBy: "board PubScans · issue 1732" }],
+  "gallery.strip.range": ["Shown from {low} to {high}.", { slots: { low: "text", high: "text" }, fixedBy: "board PubScans · issue 1732" }],
+  "gallery.strip.unscored.one": ["One of the {n}, {domain}, is not scored.", { slots: { n: "text", domain: "text" }, fixedBy: "board PubScans · issue 1732" }],
+  "gallery.strip.unscored.many": ["{count} of the {n} are not scored.", { slots: { count: "text", n: "text" }, fixedBy: "board PubScans · issue 1732 · drafted" }],
+  "gallery.list.heading": ["Free reports", { slots: {}, fixedBy: "board PubScans · issue 1732" }],
   "gallery.search.label": ["Search by company or domain", { slots: {}, fixedBy: "issue 1069 · R12-3" }],
-  "gallery.filter.label": ["Market", { slots: {}, fixedBy: "issue 1069 · drafted" }],
+  "gallery.filter.label": ["Kind of business", { slots: {}, fixedBy: "board PubScans · issue 1732" }],
   "gallery.filter.all": ["All", { slots: {}, fixedBy: "issue 1069 · R12-3" }],
-  // The categories that are not pills (issue 1377): the button's word, and
-  // its name to a screen reader.
-  "gallery.filter.more": ["More", { slots: {}, fixedBy: "issue 1377 · drafted" }],
-  "gallery.filter.more.label": ["More markets", { slots: {}, fixedBy: "issue 1377 · drafted" }],
+  // One word per kind of business (`src/lib/market/kinds.ts`).
+  "gallery.kind.local-service": ["Local services", { slots: {}, fixedBy: "board PubScans · issue 1732" }],
+  "gallery.kind.shop": ["Shops", { slots: {}, fixedBy: "board PubScans · issue 1732" }],
+  "gallery.kind.hospitality": ["Restaurants & cafés", { slots: {}, fixedBy: "board PubScans · issue 1732" }],
+  "gallery.kind.professional-services": ["Firms", { slots: {}, fixedBy: "board PubScans · issue 1732" }],
+  "gallery.kind.software": ["Software", { slots: {}, fixedBy: "board PubScans · issue 1732" }],
+  "gallery.kind.creator": ["Creators", { slots: {}, fixedBy: "board PubScans · issue 1732" }],
   "gallery.showing": ["Showing {shown} of {total} reports", { slots: { shown: "text", total: "text" }, fixedBy: "issue 1069 · R12-3" }],
   "gallery.sort.label": ["Sort", { slots: {}, fixedBy: "issue 1069 · R12-3" }],
   "gallery.sort.newest": ["Newest first", { slots: {}, fixedBy: "issue 1069 · R12-3" }],
@@ -899,18 +908,28 @@ export const REPORT_COPY = Object.freeze({
   "gallery.sort.az": ["A–Z", { slots: {}, fixedBy: "issue 1069 · R12-3" }],
   "gallery.card.view": ["View report", { slots: {}, fixedBy: "issue 1069 · R12-3" }],
   "gallery.card.no-logo": ["no logo found", { slots: {}, fixedBy: "issue 1069 · R12-3" }],
-  "gallery.card.no-score": ["—", { slots: {}, fixedBy: "issue 1069 · drafted" }],
+  "gallery.card.score": ["{score} of {max}", { slots: { score: "text", max: "text" }, fixedBy: "board PubScans · issue 1732" }],
+  "gallery.card.no-score": ["Not scored", { slots: {}, fixedBy: "board PubScans · issue 1732" }],
   "gallery.more": ["Show more reports", { slots: {}, fixedBy: "issue 1069 · R12-3" }],
   "gallery.removal": [
     "Own a site listed here and want its report taken down? Write to {address}.",
     { slots: { address: "text" }, fixedBy: "issue 1069 · R12-3" },
   ],
   "gallery.empty.heading": ["No free scan matches that yet.", { slots: {}, fixedBy: "issue 1069 · R12-3" }],
-  "gallery.empty.body": [
-    "Scan it now — it takes under a minute, and it will be listed here.",
-    { slots: {}, fixedBy: "issue 1069 · R12-3" },
-  ],
+  "gallery.empty.body": ["Scan it now: it takes under a minute, and it will be listed here.", { slots: {}, fixedBy: "board PubScans · issue 1732" }],
   "gallery.empty.cta": ["Scan this site", { slots: {}, fixedBy: "issue 1069 · R12-3" }],
+  "gallery.inside.eyebrow": ["Inside a report", { slots: {}, fixedBy: "board PubScans · issue 1732" }],
+  "gallery.inside.heading": ["What every free report shows", { slots: {}, fixedBy: "board PubScans · issue 1732" }],
+  "gallery.inside.lead": ["Each report answers the same four questions, so you can compare a business like yours with your own.", { slots: {}, fixedBy: "board PubScans · issue 1732" }],
+  "gallery.inside.rivals": ["On Google’s first page instead", { slots: {}, fixedBy: "board PubScans · issue 1732" }],
+  "gallery.inside.1.title": ["Visibility Score", { slots: {}, fixedBy: "board PubScans · issue 1732" }],
+  "gallery.inside.1.line": ["One number for how easy you are to find.", { slots: {}, fixedBy: "board PubScans · issue 1732" }],
+  "gallery.inside.2.title": ["Who gets your buyers", { slots: {}, fixedBy: "board PubScans · issue 1732" }],
+  "gallery.inside.2.line": ["The businesses Google and AI pick instead of you.", { slots: {}, fixedBy: "board PubScans · issue 1732" }],
+  "gallery.inside.3.title": ["AI answers", { slots: {}, fixedBy: "board PubScans · issue 1732" }],
+  "gallery.inside.3.line": ["Whether AI answers mention or link you.", { slots: {}, fixedBy: "board PubScans · issue 1732" }],
+  "gallery.inside.4.title": ["Pages you’re missing", { slots: {}, fixedBy: "board PubScans · issue 1732" }],
+  "gallery.inside.4.line": ["Questions buyers ask that no page of yours answers.", { slots: {}, fixedBy: "board PubScans · issue 1732" }],
 
   // SPEC §6, owner D66 (issue 1311): the one line a report owes its reader
   // where the site named a country or a language that is not measured yet.

@@ -694,8 +694,8 @@ const PUBLISHER_MORE_PAGES = [
  * so no report fixture and no account answers for any of them.
  *
  * Issue 1377: and the categories as production fills them — ten with two
- * scans (two over the chips' cap), a tail with one each, and the placeholder
- * two stored rows carry. All older than the four above.
+ * scans, a tail with one each, and the placeholder two stored rows carry.
+ * All older than the four above.
  */
 const FREE_SCANS: readonly { domain: string; name: string | null; score: number | null; category: string | null; logo: boolean }[] = [
   { domain: "harbourbikes.example", name: "Harbour Bike Repair", score: 47, category: "Local services", logo: true },
