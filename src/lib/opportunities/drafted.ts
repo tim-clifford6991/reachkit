@@ -77,5 +77,12 @@ const MS_PER_DAY = 86_400_000;
  *  refused, only the page, so the row stays on file — and is not offered
  *  for a day again until the rest is over. */
 export async function restTopic(opportunityId: string, at: Date): Promise<void> {
-  await opportunityStore().rest(opportunityId, new Date(at.getTime() + TOPIC_REST_DAYS * MS_PER_DAY));
+  const store = opportunityStore();
+  // A customer's own edit is never written by the generator: resting it would hand the planner a paid refresh nobody asked for.
+  const row = await store.byId(opportunityId);
+  if ((row?.evidence as { shortfall?: { cause?: unknown } } | null | undefined)?.shortfall?.cause === "edited") {
+    await store.markDismissed(opportunityId);
+    return;
+  }
+  await store.rest(opportunityId, new Date(at.getTime() + TOPIC_REST_DAYS * MS_PER_DAY));
 }

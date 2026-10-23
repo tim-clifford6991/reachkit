@@ -266,12 +266,14 @@ describe("REQ-092 c8 — no internal cause, anywhere the statement renders", () 
     //
     // `/how-it-works` has the same kind of exemption, one sentence wide
     // (owner, #1396): it says once which AI model writes the pages. Only
-    // that sentence is taken out; the rest of the page is swept.
+    // that sentence is taken out; the rest of the page is swept. `/about`
+    // says the same sentence, as its signed-off board does (2026-10-19-1581).
     const DISCLOSED: Readonly<Record<string, string>> = {
       "/privacy": "legal-document",
       "/terms": "legal-document",
       "/imprint": "legal-document",
       "/how-it-works": "how-disclosure",
+      "/about": "about-disclosure",
     };
     const swept = (r: (typeof stopped)[number]): ParentNode => {
       const testId = DISCLOSED[r.route.url];
