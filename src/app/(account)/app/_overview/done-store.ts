@@ -20,7 +20,7 @@ import { dbAdmin } from "@/lib/db";
 import { HARD_RULES } from "@/lib/generate/rules/types";
 import { trackedRivals } from "@/lib/market/rivals/tracked";
 import type { AnswerEngine } from "@/lib/opportunities/types";
-import { readStoredReport, type StoredReport } from "@/lib/scan/report";
+import { readStoredReport, SITE_PASS_TIERS, type StoredReport } from "@/lib/scan/report";
 import { nextDueOn } from "@/lib/scan/weekly";
 import type { DoneFacts, MeasuredFacts } from "./done";
 
@@ -76,7 +76,7 @@ async function newestPass(siteId: string): Promise<MeasuredFacts | null> {
     await from<{ report: unknown }>("scans")
       .select("report")
       .eq("site_id", siteId)
-      .in("tier", ["weekly", "deep"])
+      .in("tier", SITE_PASS_TIERS)
       .not("report", "is", null)
       .order("created_at", { ascending: false })
       .limit(1)

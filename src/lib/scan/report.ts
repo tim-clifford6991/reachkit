@@ -173,6 +173,9 @@ import type { CanonicalDomain } from "./domain";
 
 export type Tier = "free" | "deep" | "weekly";
 
+/** The tiers a signed-in site's screens count as its pass; a free re-scan carrying the site's id is not one. */
+export const SITE_PASS_TIERS = ["weekly", "deep"] as const satisfies readonly Tier[];
+
 /** How a pass ended — the values `scans.stopped_reason` is constrained to
  *  (`20260904110000_scans_current.sql`, widened by
  *  `20260911090000_scans_stopped_reason.sql`). `site_unreadable` (issue
