@@ -439,7 +439,7 @@ describe("the about card links the main site's own book and quote pages, and not
     const doc = parsed(await render());
     const links = [...doc.querySelectorAll("aside ul[role=list] a")];
     expect(links.map((a) => [a.textContent, a.getAttribute("href")])).toEqual([
-      ["Book an appointment", "https://example.com/book"],
+      ["Book a visit", "https://example.com/book"],
       ["Ask for a quote", "https://example.com/get-a-quote"],
     ]);
     for (const a of links) expect(a.getAttributeNames().sort()).toEqual(["class", "href"]);
@@ -459,7 +459,7 @@ describe("the about card links the main site's own book and quote pages, and not
       state.identity = mainSite === undefined ? {} : { mainSite };
       const html = await render();
       expect(parsed(html).querySelector("aside ul")).toBeNull();
-      expect(html).not.toContain("Book an appointment");
+      expect(html).not.toContain("Book a visit");
       expect(html).not.toContain("Ask for a quote");
     }
   });

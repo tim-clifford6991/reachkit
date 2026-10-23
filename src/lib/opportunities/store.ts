@@ -40,7 +40,6 @@ import type {
   Winnability,
 } from "./types";
 import { OUTSIZED, type PageType } from "./types";
-import { isPausedType } from "./paused";
 import { topTenRowsOf, topTensOf } from "./cluster";
 import type { TopTenRead } from "./derive/top-ten-kind";
 import type { AskedBeside } from "./derive/topics";
@@ -557,12 +556,7 @@ export function supabaseOpportunityStore(): OpportunityStore {
       // ready rows already excludes it. The `fit_band` filter issue 881 put
       // here was the third home of one decision.
       if (error) throw new Error(`opportunities.countUnused: ${error.message}`);
-      // SPEC §7 (owner, D46): a topic of a paused type fills no day, so it is
-      // not a day of supply either — the ranking and this count read the one
-      // predicate.
-      return (data ?? []).filter(
-        (row) => !isPausedType({ type: row.type as OpportunityType, targetQuery: row.target_query })
-      ).length;
+      return (data ?? []).length;
     },
 
     async countOutsized(siteId) {
@@ -1096,6 +1090,12 @@ let store: OpportunityStore | null = null;
 export function opportunityStore(): OpportunityStore {
   if (store === null) store = supabaseOpportunityStore();
   return store;
+}
+
+/** One opportunity by id: a restarted draft is written again for the one it was written for. */
+export async function opportunityById(opportunityId: string): Promise<Opportunity | null> {
+  const row = await opportunityStore().byId(opportunityId);
+  return row === null ? null : readOpportunity(row);
 }
 
 /** The suites' one door in; `null` restores the real one. */

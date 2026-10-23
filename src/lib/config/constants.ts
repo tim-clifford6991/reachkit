@@ -388,11 +388,6 @@ export const PIPELINE = Object.freeze({
  *  last (issue 1509): each page says something its siblings do not. */
 export const PACK = Object.freeze({ facts: 40, pages: 100, questions: 8, repeatedOn: 2 } as const);
 
-/** Issue 1509: the most a live page's business-fact passages may be ones
- *  already stated on `PACK.repeatedOn` or more of the site's other live
- *  pages — the stored-row check `repeatedFactShare` is held to. */
-export const REPEATED_FACT_SHARE_MAX = 0.3;
-
 /** SPEC §7 (owner, D61; issue 1295): two headings are too alike where they
  *  share this fraction of the longer one's words, or open with this many of
  *  the same words. */
@@ -1192,10 +1187,6 @@ export const GENERATION = Object.freeze({
  *  every paragraph stays inside the check's one small call. */
 export const FIT_CHECK_MAX_SENTENCES = 40;
 
-export const SUPPLY = Object.freeze({
-  deepTarget: 30, shortThreshold: 7,
-} as const);
-
 /** SPEC §0 and §7: "Default 24 h; range 1-7 days; there is no zero window."
  *  `minDays` read 0 until 2026-09-12, which is a draft with no veto path at
  *  all — the one window the ruling forbids. */
@@ -1212,10 +1203,6 @@ export const WEEK_PLAN = Object.freeze({ days: 7, spares: 3 } as const);
 // The week's ceiling is the plan's week, so the Terms' "up to 7 a week" holds by construction.
 export const RATE_LIMITS = Object.freeze({
   publishesPerDay: 1, publishesPerWeek: WEEK_PLAN.days,
-} as const);
-
-export const RETENTION_D = Object.freeze({
-  erasure: 30, hostedAfterAccess: 30, removalSlaWorkingDays: 5,
 } as const);
 
 export const NURTURE_H = Object.freeze([24, 72, 168] as const);
@@ -1485,7 +1472,6 @@ export const FAILURE_COOLDOWN_H = 24 as const;               // BP-023 · BUILD 
 export const MARKET_REMEASURE_H = 24 as const;               // issue 1450: an unread market on a ranked site, measured again at most this often
 export const HOURLY_WINDOW_H = 1 as const;                   // BP-023 · BUILD §11 bounds
 export const DAILY_WINDOW_H = 24 as const;                   // BP-023 · BUILD §11 bounds
-export const DEEP_HEARTBEAT_S = 15 as const;                 // BP-036 d5 · REQ-029 c1 (half of 30)
 
 // Opportunities, supply and verdicts
 export const EFFORT_BY_TYPE = Object.freeze({                // BP-040 d3
@@ -1496,7 +1482,6 @@ export const EFFORT_BY_TYPE = Object.freeze({                // BP-040 d3
   listed_page: 0.7,
 } as const);                                                 // `unblock` is unranked
 
-export const FIT_WEIGHT = Object.freeze({ winnable: 1.0, reach: 0.5, "not-yet": 0 } as const); // BP-040 d3
 export const PLAN_DEPTH = WEEK_PLAN.days + WEEK_PLAN.spares;  // BP-041 d4 · REQ-095 c1
 export const SUPPLY_SHORT_BELOW = WEEK_PLAN.days;            // BP-041 d4 · REQ-095 c5
 /** A page's window: a gain counts inside it, and a page whose best place is
@@ -1898,15 +1883,6 @@ export const PAYMENT_CHASE_MINUTES = 15 as const;             // REQ-024 c5
 export const PAYMENT_BACKSTOP_H = 24 as const;                // REQ-024 c6
 
 // ── Opportunities (issue #40) — BUILD §7
-/** The ranking formula's demand scale (§7: `demand × intent × (1−effort) ×
- *  fit`). `demand = min(1, log10(volume + 1) / 5)`: log-scaled for the
- *  reason §6.7 gives for the selection score, with the divisor chosen so
- *  100,000/mo saturates the term at 1.0 — above any volume a market set
- *  carries, so demand saturates rather than clips. Chosen, not
- *  transcribed: §7 fixes the formula's shape and no term's scale. Reversal
- *  cost is this one number and its assertion. */
-export const DEMAND_LOG_DIVISOR = 5 as const;                 // §7 ranking
-
 /** §7's Write trigger, transcribed: "Rival top-20 for a query ≥10/mo;
  *  customer absent". The floor below which a search is not worth a page of
  *  its own. Distinct from `SELECTION.volumeFloorPerMonth` (50), which is
@@ -1983,11 +1959,6 @@ export const CONTENT_MIX = Object.freeze({
   /** How many of the site's own published and planned pages a brief is
    *  handed, newest first. */
   BRIEF_PAGES_MAX: 100,
-  /** SPEC §7 (owner, D46, 2026-10-04): the content types the mix leaves out
-   *  for now. A topic of one of them fills no day. The one list, and it is
-   *  empty: D48 took `insights` out (issue 1259, it reads a news search) and
-   *  D47 took `listicle` out (issue 1258, its table is built in code). */
-  PAUSED_TYPES: Object.freeze([] as readonly string[]),
 });                                                            // §7
 
 /** SPEC §7 (2026-09-29, *Pace*; issue 1139): in any seven days a site
@@ -2260,23 +2231,6 @@ export const CLOSE_PAGE_POSITION_BAND = Object.freeze({ min: 4, max: 20 } as con
  *  depends on it, since the shortfall row records the measured count
  *  itself and not the comparison. */
 export const THIN_PAGE_VISIBLE_CHARS = 1800 as const;         // §7
-
-// ── Identity (issue #35) — BUILD §13, §4.7
-/** The size of a sign-in token, in bytes of `randomBytes`. BP-061 decision
- *  3: "SHA-256 of a 256-bit random token" — the entropy is what makes the
- *  stored hash unsalted-safe, so the number and the reason travel together.
- *  A smaller token is not a tuning knob; it is the credential. */
-export const LINK_TOKEN_BYTES = 32 as const;                  // BP-061 d3 (256 bits)
-/** How long a session cookie stays valid before its holder needs a fresh
- *  link. **Chosen** (constitution rule 1.1): no requirement states a
- *  session lifetime — REQ-077 c5 fixes only that signing out ends one.
- *  Derivation: the product has no password, so every expiry costs the
- *  customer a round trip through their inbox; 30 days is the same window
- *  `ERASURE_DAYS` and `HOSTED_RETENTION_DAYS` already use for "long enough
- *  that a person on holiday is not punished", and a weekly product whose
- *  own mail arrives every Monday re-anchors it four times over. Reversal
- *  cost: one line here. */
-export const SESSION_TTL_DAYS = 30 as const;                  // BP-061 (chosen)
 
 // ── Publishing, the veto leaf (issue #46) — BUILD §9
 /** The whole of one delivery attempt, bounded. Distinct from the egress

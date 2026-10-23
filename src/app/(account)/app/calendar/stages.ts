@@ -118,7 +118,7 @@ export type { State };
  * words-not-colour rule is what the dot is *added to*, never a substitute
  * for it.
  *
- * Both maps are total over `Tone`. The reachkit theme has no `neutral`
+ * The map is total over `Tone`. The reachkit theme has no `neutral`
  * slot, so the neutral arm is drawn from `base-content` at an opacity
  * rather than from a colour that paints nothing.
  */
@@ -148,14 +148,6 @@ export const STAGE_BEACON: Readonly<Record<Stage, string>> = Object.freeze({
   scheduled: "",
   planned: "",
   needs_you: "",
-});
-
-export const TONE_INK: Readonly<Record<Tone, string>> = Object.freeze({
-  accent: "text-primary",
-  ok: "text-success",
-  warn: "text-warning",
-  bad: "text-error",
-  neutral: "text-base-content/70",
 });
 
 /** Plan's five day states (SPEC §7, E5): what became of a day, in the
