@@ -27,7 +27,9 @@
 // the date the page was read. The only `new Date(…)` calls here revive an
 // ISO string a stored outcome carried.
 //
-// **`aiPresence` is `not_attempted` here, by design.** BUILD §5's AIPresence
+// **`searchPresence` and `aiPresence` are `not_attempted` here, by design.**
+// SearchPresence is the presence card's page-one share, so it waits for the
+// same SERPs. BUILD §5's AIPresence
 // is a rate over the twelve questions' SERPs, and the twelve are derived
 // (§6.7) from the profile of the text this call has only just read — no
 // arm of this signature reaches them. The pipeline fills the field from
@@ -51,7 +53,7 @@ import type { FetchOutcome, RobotsPolicy } from "@/lib/egress/types";
 import { rankedKeywords } from "@/lib/vendors/dataforseo";
 import type { RankedResult, RankedRow } from "@/lib/vendors/dataforseo/types";
 import { BOT_PROTECTION, challengeOf, HOME_TIMEOUT, notTheSiteOf, type ProtectionVendor } from "./challenge";
-import { answerabilityOf, foundationsOf, ownRankedOf, searchPresenceOf } from "./drivers";
+import { answerabilityOf, foundationsOf, ownRankedOf } from "./drivers";
 import { measured, measuredZero, unmeasured, type Measured } from "./measured";
 import { OWN_FETCH_OPTS, OWN_FETCH_SOURCE, isStoredDocument, toStoredDocument, type StoredDocument } from "./own-fetch";
 import { visibleText, type OnPageFacts } from "./parse";
@@ -63,7 +65,6 @@ export {
   aiPresenceOf,
   aiSampleOf,
   classifyReferences,
-  localPackSearches,
   searchPresenceOf,
   type AiSample,
 } from "./drivers";
@@ -293,12 +294,10 @@ export interface DomainMeasurement {
    *  none (a fact about the home document, not a failed read). */
   pricing: { url: string; facts: Measured<OnPageFacts> } | null;
   robots: Measured<RobotsPolicy>;
-  /** The customer's own ranked count, from the same call `searchPresence`
-   *  was computed from — the rows themselves, not the 0–100 sub-measure.
-   *  §6.6 bands every rival against it and §7's two winnability bars are
-   *  multiples of it, so it travels with the measurement rather than being
-   *  bought a second time. `unmeasured` carries the same reason
-   *  `searchPresence` carries; the two are the same read. */
+  /** The customer's own ranked count. §6.6 bands every rival against it
+   *  and §7's two winnability bars are multiples of it, so it travels with
+   *  the measurement rather than being bought a second time. `unmeasured`
+   *  carries why the ranked call did not answer. */
   ownRanked: Measured<number>;
   /** The rows that count was read from (#778) — SPEC §6's thin-market pool
    *  selects over the site's own ranked keywords without buying them again.
@@ -497,18 +496,15 @@ export async function measureDomain(
 
     // The one priced call. `capHit()` first — the ceiling names itself in
     // the log and the call is not made (BUILD §6.5, BP-010 NFR budget).
-    // The same rows are read two ways: the driver, and the count itself,
-    // which §6.6's banding and §7's bars are expressed in multiples of.
-    // Never a second call — both are returned from this one answer.
+    // The count itself, which §6.6's banding and §7's bars are expressed in
+    // multiples of, and the rows it was read from.
     (async (): Promise<{
-      searchPresence: Measured<number>;
       ownRanked: Measured<number>;
       ownRankedRows: readonly RankedRow[];
     }> => {
       if (c.capHit()) {
         logDriver("driver_not_attempted", { driver: "searchPresence", ceiling: "spend_cap", domain: a.domain });
         return {
-          searchPresence: unmeasured("not_attempted", at),
           ownRanked: unmeasured("not_attempted", at),
           ownRankedRows: [],
         };
@@ -538,11 +534,7 @@ export async function measureDomain(
             endpoint: heard.failure.endpoint,
           });
         }
-        // One answer, both readings: §5's reach and §6.6's own count are the
-        // vendor's total (#117, #529); §5's top-10 share is over the rows
-        // bought. `searchPresenceOf` takes the whole answer for that reason.
         return {
-          searchPresence: searchPresenceOf({ ranked, at }),
           ownRanked: ownRankedOf({ ranked, at }),
           ownRankedRows: ranked.kind === "unmeasured" ? [] : ranked.value.rows,
         };
@@ -553,7 +545,6 @@ export async function measureDomain(
           because: error instanceof Error ? error.message : String(error),
         });
         return {
-          searchPresence: unmeasured("undeterminable", at),
           ownRanked: unmeasured("undeterminable", at),
           ownRankedRows: [],
         };
@@ -577,13 +568,13 @@ export async function measureDomain(
     pricingUrl === null || pricingRead === null
       ? null
       : { url: pricingUrl, facts: stampedAt(pricingRead.facts, at) };
-  const { searchPresence, ownRanked, ownRankedRows } = presence;
+  const { ownRanked, ownRankedRows } = presence;
 
   // 6. The four measured quantities.
   const drivers: Drivers = {
     foundations: foundationsOf({ onPage, robots, at }),
     answerability: contentOf({ onPage, pricing: pricing?.facts ?? null, pages: [], at }),
-    searchPresence,
+    searchPresence: unmeasured("not_attempted", at), // filled by the pipeline from the presence card
     aiPresence: unmeasured("not_attempted", at), // filled by the pipeline from `aiPresenceOf` — see the header
   };
   logDriver("drivers_measured", {
