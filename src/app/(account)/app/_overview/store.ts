@@ -81,7 +81,8 @@ import type { BandHandle } from "@/lib/measure/bands";
 import { unmeasured, measured, type Measured } from "@/lib/measure/measured";
 import type { RivalSize } from "@/lib/market/rivals/rival-size";
 import { trackedRivals } from "@/lib/market/rivals/tracked";
-import { readStoredReport, type StoredReport } from "@/lib/scan/report";
+import { readDeepReport } from "@/lib/scan/deep/report";
+import type { StoredReport } from "@/lib/scan/report";
 import { shownLimitingOf } from "@/lib/measure/verdict";
 import {
   nextDueOn,
@@ -186,18 +187,8 @@ const MS_PER_WEEK = 7 * 86_400_000;
 type DeepPass = { value: Measured<number>; on: Date; report: StoredReport };
 
 async function deepPassReading(siteId: string): Promise<DeepPass | undefined> {
-  const { data, error } = await client()
-    .from<{ id: string; report: unknown; created_at: string }>("scans")
-    .select("id, report, created_at")
-    .eq("site_id", siteId)
-    .eq("tier", "deep")
-    .not("report", "is", null)
-    .order("created_at", { ascending: false })
-    .limit(1);
-  const row = data?.[0];
-  if (error !== null || row === undefined || row.report === null) return undefined;
-  const report = readStoredReport(row.report);
-  return { value: report.ownRanked, on: new Date(row.created_at), report };
+  const deep = await readDeepReport(siteId);
+  return deep === undefined ? undefined : { value: deep.report.ownRanked, ...deep };
 }
 
 /**

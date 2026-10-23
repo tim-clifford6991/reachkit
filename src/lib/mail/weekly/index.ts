@@ -43,12 +43,15 @@ import { pageLadderOf } from "@/lib/measure/page-ladder";
 import { contentOf } from "@/lib/measure/published";
 import { readPublishedPages } from "@/lib/measure/published-store";
 import { committedWeek, weeklyDigest, type Opportunity } from "@/lib/opportunities";
+import { placedByDay, plannedByDay } from "@/lib/opportunities/days";
 import { plannedStopToken } from "@/lib/opportunities/stop";
 import { vetoLinkPath } from "@/lib/publish/publishable";
+import { scheduledPagesFor } from "@/lib/publish/record";
+import { heldPages } from "@/lib/publish/switch";
 import { readBlogReadFacts } from "@/lib/publish/reads/facts";
 import { assembleBlogReads, windowStartDay, type BlogReadsModel } from "@/lib/publish/reads/model";
 import { readSearchVisits } from "@/lib/publish/reads/store";
-import { readStoredReport } from "@/lib/scan/report";
+import { readDeepReport } from "@/lib/scan/deep/report";
 import { accountForWeek, readPromptWindow, readWeekScans, weekMovement, type UnmeasuredPart } from "@/lib/scan/weekly";
 import type { MeasurementState } from "../shell/compose";
 import { sendEmail } from "../send";
@@ -89,7 +92,6 @@ interface MinimalQuery<T> extends PromiseLike<MinimalResult<T>> {
   eq(column: string, value: unknown): MinimalQuery<T>;
   is(column: string, value: unknown): MinimalQuery<T>;
   not(column: string, operator: string, value: unknown): MinimalQuery<T>;
-  order(column: string, options: { ascending: boolean }): MinimalQuery<T>;
   limit(n: number): MinimalQuery<T>;
   update(values: Record<string, unknown>): MinimalQuery<T>;
 }
@@ -221,7 +223,7 @@ async function measuredWeek(
   const week = await theWeek(a.siteId, at);
   const mail = buildWeekly({
     ...(connect === undefined ? {} : { connect }),
-    numbers: await weeklyNumbers(a.siteId, a.weekStart, week.next, now),
+    numbers: await weeklyNumbers(a.siteId, a.weekStart, now),
     ...(needsYou === undefined ? {} : { needsYou }),
     // Measured, and measured-empty where the week judged nothing: "you
     // have published nothing yet" is a result, and the template's own
@@ -260,17 +262,15 @@ function answerUrlOf(search: string): string {
  * count unmeasured and draws no Google or AI row, and a figure nothing read
  * says so. The mail is never held back for one number.
  */
-async function weeklyNumbers(
-  siteId: string,
-  weekStart: string,
-  next: Measured<readonly WeeklyNext[]>,
-  now: Date
-): Promise<WeeklyNumbers> {
+async function weeklyNumbers(siteId: string, weekStart: string, now: Date): Promise<WeeklyNumbers> {
   const [content, reads] = await Promise.all([
     readPublishedPages(siteId).then((pages) => contentOf({ pages, now })).catch(() => null),
     blogReadsOf(siteId, now),
   ]);
-  const planned = next.kind === "unmeasured" ? next : counted(next.value.length, now);
+  const planned = await weekPages(siteId, weekStart).then(
+    (n) => counted(n, now),
+    () => unmeasured<number>("undeterminable", now)
+  );
   const month = isFirstMonday(weekStart) ? await monthNumbers(siteId, weekStart, now) : undefined;
   const ladder = content === null ? null : pageLadderOf(content.pages, now, reads === null ? null : await reads.visits);
   if (ladder === null) {
@@ -305,6 +305,19 @@ async function weeklyNumbers(
   };
 }
 
+/** The pages this week carries, Monday to Sunday, by Plan's rule (Overview's
+ *  "We chose {n} pages"): each date's scheduled draft, else its committed row. */
+async function weekPages(siteId: string, weekStart: string): Promise<number> {
+  const days = Array.from({ length: 7 }, (_, i) => new Date(Date.parse(`${weekStart}T12:00:00Z`) + i * 86_400_000).toISOString().slice(0, 10));
+  const [pages, held, week] = await Promise.all([
+    scheduledPagesFor({ siteId, from: days[0]!, to: days[6]! }),
+    heldPages(siteId),
+    committedWeek(siteId),
+  ]);
+  const placed = placedByDay(pages, new Set(held.draftIds), weekStart).byDay;
+  return placed.size + plannedByDay(week.days, placed, days).size;
+}
+
 /** The hosted pages' AI reads and Google visits, as Overview's providers read
  *  them; `null` off a hosted blog, before a page is live there, or on a failed read. */
 async function blogReadsOf(
@@ -332,7 +345,7 @@ async function monthNumbers(siteId: string, weekStart: string, now: Date): Promi
       .then((weeks) => monthFiguresOf(weeks.get(weekStart)?.report ?? null))
       .catch(() => monthFiguresOf(null)),
     readDeepReport(siteId)
-      .then((report) => monthFiguresOf(report === null ? null : readStoredReport(report)))
+      .then((deep) => monthFiguresOf(deep?.report ?? null))
       .catch(() => monthFiguresOf(null)),
     readPromptWindow({ siteId, weekStart })
       .then((window) => measurePrompts(window.weeks.flatMap((week) => week.samples)).rate)
@@ -355,20 +368,6 @@ async function monthNumbers(siteId: string, weekStart: string, now: Date): Promi
       : { reputation: { value: counted(rate.linked + rate.named, now), answers: rate.samples, weeks: ANSWER_RATE_WEEKS } }),
   };
   return Object.keys(month).length === 0 ? undefined : month;
-}
-
-/** The customer's own scan, which the month's figures are compared with. */
-async function readDeepReport(siteId: string): Promise<unknown> {
-  const { data, error } = await untyped()
-    .from<{ report: unknown }>("scans")
-    .select("report")
-    .eq("site_id", siteId)
-    .eq("tier", "deep")
-    .not("report", "is", null)
-    .order("created_at", { ascending: false })
-    .limit(1);
-  if (error !== null) throw new Error(error.message);
-  return data?.[0]?.report ?? null;
 }
 
 /** A count that was taken: a zero is a result, in its own arm. */

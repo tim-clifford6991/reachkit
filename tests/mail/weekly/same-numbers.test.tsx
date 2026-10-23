@@ -35,9 +35,7 @@ vi.mock("@/lib/opportunities", async (importOriginal) => ({
   supplyDepth: async () => ({ unused: 9, total: 12 }),
   supplyMeasured: async () => true,
   supplyState: async () => "measured",
-  readWeek: async () => [],
   weeklyDigest: async () => ({ standings: [], weekMeasuredAt: new Date(Date.UTC(2026, 9, 12, 6)) }),
-  committedWeek: async () => ({ days: [], spares: [] }),
 }));
 
 const { LIVE_ACCOUNT, resetAccount, signedInAs } = await import("../../app/account-door");
@@ -88,7 +86,7 @@ function readingOf(site: Site, pages: readonly Page[], i: number): PageReading {
 
 function seed(site: Site, pages: readonly Page[]): void {
   db.seed("users", [{ id: ACCOUNT.userId, email: "owner@example.com" }]);
-  db.seed("sites", [{ id: SITE_ID, user_id: ACCOUNT.userId, domain: site.domain, timezone: "UTC", competitors: [], veto_hours: 24, publishing_enabled: true }]);
+  db.seed("sites", [{ id: SITE_ID, user_id: ACCOUNT.userId, domain: site.domain, timezone: "UTC", competitors: [], veto_hours: 24, publish_time: "16:00:00", publishing_enabled: true }]);
   db.seed("destinations", [{ id: "dest-hosted", site_id: SITE_ID, kind: "hosted", hostname: `guides.${site.domain}`, hostname_state: "live", deleted_at: null }]);
   db.seed(
     "publications",
@@ -134,6 +132,44 @@ function pass(week: string, a: { score: number; top10: number; named: number; an
   };
 }
 
+/** The week this Monday committed: Monday's page already written and in review, a row for each day after it, and a spare. */
+function seedWeek(): void {
+  const row = (id: string, planned: string | null, place: number): Row => ({
+    id,
+    site_id: SITE_ID,
+    scan_id: `scan-${WEEK}`,
+    type: "new_page",
+    family: "new",
+    target_query: `search ${id}`,
+    target_ref: `search ${id}`,
+    title: null,
+    volume: 90,
+    evidence: { family: "new", query: `search ${id}`, volume: 90 },
+    acceptance: {},
+    effort: 1,
+    status: "open",
+    ready: true,
+    plan_place: place,
+    planned_for: planned,
+    created_at: NOW.toISOString(),
+  });
+  db.seed("opportunities", [
+    { ...row("o0", "2026-10-12", 0), status: "drafted" },
+    ...["13", "14", "15", "16", "17", "18"].map((day, i) => row(`o${i + 1}`, `2026-10-${day}`, i + 1)),
+    row("spare", null, 7),
+  ]);
+  db.seed("drafts", [
+    ...db.rows("drafts"),
+    { id: "d-week", site_id: SITE_ID, state: "in_review", opportunity_id: "o0", title: "Monday's page", scheduled_for: WEEK, created_at: "2026-10-11T16:00:00.000Z", veto_deadline: "2026-10-12T16:00:00.000Z" },
+  ]);
+}
+
+/** The customer's own scan, which the month's figures are compared with. */
+function deepScan(score: number, top10: number): Row {
+  const scan = pass("2026-09-14", { score, top10, named: 0, answers: 0 });
+  return { ...scan, id: "scan-deep", tier: "deep", week_start: null, created_at: "2026-09-14T09:00:00.000Z" };
+}
+
 const FIVE: readonly Page[] = [
   { places: [40, 24] },
   { places: [30, 25] },
@@ -149,7 +185,9 @@ async function overview(): Promise<Document> {
 async function mail(weekStart: string, now: Date): Promise<readonly StatRow[]> {
   sent.length = 0;
   db.rows("scans").forEach((row) => (row.digest_sent_at = null));
-  const outcome = await sendWeeklyDigest({ siteId: SITE_ID, weekStart, now });
+  // The mail is composed on the server: its stop links are signed with a server-only key.
+  vi.stubGlobal("window", undefined);
+  const outcome = await sendWeeklyDigest({ siteId: SITE_ID, weekStart, now }).finally(() => vi.unstubAllGlobals());
   expect(outcome.sent).toBe(true);
   return sent[0]!.blocks.flatMap((block) => (block.block === "stats" ? block.items : []));
 }
@@ -196,10 +234,16 @@ describe.each([
 ])("the Monday mail's numbers are Overview's, on %s", (_, site) => {
   it("Pages, Google and AI read the same figures as Overview at the same instant", async () => {
     seed(site, FIVE);
+    seedWeek();
     const rows = await mail(WEEK, NOW);
     const dom = await overview();
 
     expect(rows.slice(0, 2).map((row) => row.label)).toEqual(["mail.weekly.pages.live", "mail.weekly.pages.planned"]);
+    // Plan's week, as Overview's head counts it: Monday's page in review and the six planned after it.
+    expect(text(dom.querySelector('[data-testid="overview-head-lead"]'))).toContain(
+      copy("overview.head.lead.chosen", { n: String(figure(rows, "mail.weekly.pages.planned")) })
+    );
+    expect(figure(rows, "mail.weekly.pages.planned")).toBe(7);
     expect(String(figure(rows, "mail.weekly.pages.live"))).toBe(step(dom, "draft.ladder.live"));
     for (const name of ["draft.ladder.found", "draft.ladder.showing", "draft.ladder.first-page"]) {
       expect(String(figure(rows, name)), name).toBe(step(dom, name));
@@ -220,6 +264,7 @@ describe.each([
 
   it("Reputation, the score and the market are in the first Monday mail of a month only, as Overview's months read them", async () => {
     seed(site, FIVE);
+    db.seed("scans", [...db.rows("scans"), deepScan(27, 0)]);
     const notFirst = await mail(WEEK, NOW);
     expect(notFirst.map((row) => row.label).filter((label) => label.startsWith("mail.weekly.month"))).toEqual([]);
 
@@ -231,6 +276,15 @@ describe.each([
     ]);
     const dom = await overview();
     const of = (n: string) => copy("overview.months.of", { of: n });
+    // Each change is taken against the customer's scan, as Overview's line states it.
+    const was = (label: string) => {
+      const row = first.find((r) => r.label === label);
+      if (row?.value.kind === "unmeasured" || row?.change === undefined || row.change.kind === "unmeasured") throw new Error(`${label} has no change`);
+      return String(row.value.value - row.change.value);
+    };
+    expect(text(dom.querySelector('[data-testid="overview-tile-score"]'))).toContain(copy("overview.months.score.up", { n: was("mail.weekly.month.score") }));
+    expect(text(dom.querySelector('[data-testid="overview-tile-market"]'))).toContain(copy("overview.months.market.up", { n: was("mail.weekly.month.market") }));
+    expect([was("mail.weekly.month.score"), was("mail.weekly.month.market")]).toEqual(["27", "0"]);
     expect(text(dom.querySelector('[data-testid="overview-tile-score"] .num')).replace(/ /gu, "")).toBe(`${figure(first, "mail.weekly.month.score")}${of("100")}`.replace(/ /gu, ""));
     expect(text(dom.querySelector('[data-testid="overview-tile-market"]'))).toContain(`${figure(first, "mail.weekly.month.market")} ${of("12")}`);
     const reputation = first.find((row) => row.label === "mail.weekly.month.reputation");
