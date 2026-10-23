@@ -194,7 +194,6 @@ describe("the parts that do have a read behind them hold their place", () => {
       "shell-domain-skeleton",
       "shell-waiting-skeleton",
       "shell-onboarding-skeleton",
-      "shell-shortcuts-skeleton",
       "shell-publishing-skeleton",
       "shell-top-skeleton",
     ]) {

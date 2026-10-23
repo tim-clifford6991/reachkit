@@ -13,11 +13,9 @@
 // from the model — it holds its own hand-over state — so only the account
 // card takes a slice.
 //
-// **And the two shortcuts** (owner, 2026-10-08, issue 1339): "*Visit your
-// blog* and *Help* stay reachable from Settings as well as from the desktop
-// panel." Below `lg` there is no panel, so this is where a phone reaches
-// them. It is the panel's own `Shortcuts` — the same two links, the same
-// rule for when the blog is drawn — between the account and the zone.
+// **And the two shortcuts** (owner, 2026-10-08, issue 1339): *Visit your
+// blog* and *Help* are reached here, between the account and the zone; the
+// side panel draws only what board Main draws.
 import type React from "react";
 import type { Metadata } from "next";
 import { copy } from "@/lib/presentation/copy";
