@@ -492,11 +492,17 @@ export const PUBLISH_COPY = Object.freeze({
   // by a person — linked to the main site's page that names them, where it
   // has one. Drafted under #759's ruling; the owner corrects the wording.
   "hosted.about.author": ["Written by {author}", { slots: { author: "text" }, fixedBy: "issue 1509 · drafted" }],
-  // The about card's links to the main site's own book and quote pages.
-  // Neither claims more than that page exists. Drafted under #759's ruling;
-  // the owner corrects the wording.
-  "hosted.action.book": ["Book an appointment", { slots: {}, fixedBy: "issue 1604 · drafted" }],
+  // The business's own actions: its stored phone, and its main site's own
+  // book and quote pages. None claims more than that the number or page
+  // exists. The headline asks in the adopted market's own category and
+  // place, else names the business. Drafted under #759's ruling; the owner
+  // corrects the wording.
+  "hosted.action.call": ["Call {phone}", { slots: { phone: "text" }, fixedBy: "issue 1788 · drafted" }],
+  "hosted.action.book": ["Book a visit", { slots: {}, fixedBy: "issue 1788 · drafted" }],
   "hosted.action.quote": ["Ask for a quote", { slots: {}, fixedBy: "issue 1604 · drafted" }],
+  "hosted.compact.heading": ["Need {category}?", { slots: { category: "text" }, fixedBy: "issue 1788 · drafted" }],
+  "hosted.compact.heading.place": ["Need {category} in {place}?", { slots: { category: "text", place: "text" }, fixedBy: "issue 1788 · drafted" }],
+  "hosted.compact.heading.name": ["Questions for {publisher}?", { slots: { publisher: "text" }, fixedBy: "issue 1788 · drafted" }],
   // SPEC §7 (2026-10-11, issue 1397): how the page was made, under its
   // byline. Both numbers are read off the page's own row and neither is
   // typed here; `.one` is the same line for a page with a single fact.
