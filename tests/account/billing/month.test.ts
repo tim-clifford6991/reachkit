@@ -9,8 +9,6 @@ applyEnvFixture();
 
 const { monthGot, periodEnding, setBillingStore } = await import("@/lib/account/billing");
 const { HARD_RULES } = await import("@/lib/generate/rules/types");
-const { readStoredReport } = await import("@/lib/scan/report");
-const { measuredOf } = await import("@/app/(account)/app/_overview/done-store");
 const { memoryBillingStore, newMemoryBilling, account } = await import("./memory-store");
 
 let state = newMemoryBilling();
@@ -87,19 +85,19 @@ describe("the counts, from stored rows", () => {
     expect(got?.reports.map((at) => at.toISOString())).toEqual(["2026-09-14T08:00:00.000Z", "2026-09-21T08:00:00.000Z"]);
   });
 
+  // The searches with a result read and the questions put, as each stored report holds them.
   it.each([
-    ["SaaS", "2026-10-15-1449-after", "savvycal.com"],
-    ["local", "2026-10-15", "austinplumbery.com"],
-  ])("states the newest finished pass's searches and AI questions as Overview counts them (%s)", async (_, walk, domain) => {
+    ["SaaS", "2026-10-15-1449-after", "savvycal.com", { searches: 5, questions: 0 }],
+    ["local", "2026-10-15", "austinplumbery.com", { searches: 7, questions: 0 }],
+  ])("states the newest finished pass's searches and AI questions (%s)", async (_, walk, domain, asked) => {
     const newest = storedReport(walk, domain);
     state.scans.push(
-      { site_id: SITE, created_at: "2026-09-14T06:00:00.000Z", status: "done", report: storedReport("2026-10-15", "austinplumbery.com") },
+      { site_id: SITE, created_at: "2026-09-14T06:00:00.000Z", status: "done", report: domain === "savvycal.com" ? storedReport("2026-10-15", "austinplumbery.com") : storedReport("2026-10-15-1449-after", "savvycal.com") },
       { site_id: SITE, created_at: "2026-09-21T06:00:00.000Z", status: "degraded", report: newest },
       { site_id: SITE, created_at: "2026-09-28T06:00:00.000Z", status: "running", report: null }
     );
     const got = await monthGot("u1", SITE);
-    const measured = measuredOf(readStoredReport(newest));
-    expect(got?.asked).toEqual({ searches: measured.searches, questions: measured.questions });
+    expect(got?.asked).toEqual(asked);
     expect((got?.asked?.searches ?? 0) + (got?.asked?.questions ?? 0)).toBeGreaterThan(0);
   });
 });
