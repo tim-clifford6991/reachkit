@@ -33,6 +33,7 @@ import type { CopyKey } from "@/lib/presentation/copy";
 // test with no database at all" — and `pending.ts` imports only the week
 // clock. ADR-092's idiom, applied to keep a leaf a leaf.
 import { effectiveOn } from "@/lib/market/changes/pending";
+import { DEFAULT_LOCALE, SUPPORTED_LOCALES, localeKey, localeOf, type Locale } from "@/lib/locale/locales";
 import { CHANGE_COPY_KEY } from "../calendar/change-line";
 import type { DestinationView } from "@/lib/publish/types";
 import { recordForHost, type DnsRecord } from "@/lib/publish/setup/cards";
@@ -178,6 +179,9 @@ export interface SettingsModel {
    *  rival's — and whether the founder overrode either. `null` where
    *  ReachKit has concluded nothing for this site yet. */
   concluded: MarketConcluded | null;
+  /** D66: the pair measured, as `localeKey` spells it, and every pair on
+   *  the list, the ones the site declares first. */
+  locale: { current: string; options: readonly string[] };
   domain: string;
   publishing: PublishingSettings;
   destinations: readonly SettingsDestination[];
@@ -255,6 +259,10 @@ export interface SettingsFacts {
   competitors: readonly string[];
   /** D28 (#1185), from `sites.market`. */
   concluded: MarketConcluded | null;
+  /** `sites.country` and `sites.language` (D66), and the other markets the
+   *  newest pass read the site declaring (`alsoServes`). Absent reads as
+   *  the default pair, declaring none. */
+  locale?: { current: Locale; alsoServes: readonly string[] };
   mode: PublishingMode;
   vetoHours: number;
   publishTime: string;
@@ -365,6 +373,22 @@ function dnsFor(view: DestinationView, cnameTarget: string): DnsRecord | null {
   return recordForHost({ hostname: view.hostname, cnameTarget });
 }
 
+/** The pair a declared BCP-47 tag names on the list: `de-at`, or a country
+ *  ending's `und-ch`. A language alone names no country, so no pair. */
+function pairOfTag(tag: string): Locale | null {
+  const [language, region] = tag.toLowerCase().split("-");
+  if (region === undefined || language === undefined) return null;
+  const country = region.toUpperCase();
+  return language === "und" ? (SUPPORTED_LOCALES.find((each) => each.country === country) ?? null) : localeOf(country, language);
+}
+
+/** Every pair on the list, the measured one and the ones the site declares
+ *  first, each group in list order. */
+export function localeChoices(current: Locale, alsoServes: readonly string[]): string[] {
+  const declared = new Set([localeKey(current), ...alsoServes.flatMap((tag) => { const pair = pairOfTag(tag); return pair === null ? [] : [localeKey(pair)]; })]);
+  return SUPPORTED_LOCALES.map(localeKey).sort((a, b) => Number(declared.has(b)) - Number(declared.has(a)));
+}
+
 export function assembleSettings(facts: SettingsFacts): SettingsModel {
   const market = {
     category: facts.category,
@@ -380,6 +404,10 @@ export function assembleSettings(facts: SettingsFacts): SettingsModel {
     market: { ...market, change: marketChange(market, facts.editing) },
     competitors: facts.competitors,
     concluded: facts.concluded,
+    locale: {
+      current: localeKey(facts.locale?.current ?? DEFAULT_LOCALE),
+      options: localeChoices(facts.locale?.current ?? DEFAULT_LOCALE, facts.locale?.alsoServes ?? []),
+    },
     domain: facts.domain,
     publishing: {
       mode: facts.mode,

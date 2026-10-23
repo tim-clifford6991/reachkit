@@ -21,16 +21,16 @@
 // is where it belongs — which is also the one place the existing form can
 // draw it.
 import type { CopyKey } from "@/lib/presentation/copy";
-import type { ChangeMarker } from "@/lib/market/changes/markers";
-import type { ChangeKind } from "@/lib/market/changes/declared";
+import type { ChangeMarker, MarkerKind } from "@/lib/market/changes/markers";
 
 /** The written account each kind of change puts on its break. One key per
  *  kind and no default: a change this screen cannot name is a change it
  *  must not draw a nameless rule for. */
-export const CHANGE_ACCOUNT_KEY: Readonly<Record<ChangeKind, CopyKey>> = Object.freeze({
+export const CHANGE_ACCOUNT_KEY: Readonly<Record<MarkerKind, CopyKey>> = Object.freeze({
   domain: "overview.change.domain",
   category: "overview.change.category",
   rivals: "overview.change.rivals",
+  locale: "overview.change.locale",
 });
 
 /** One entry of a series as the screen draws it: a measured week, or the
