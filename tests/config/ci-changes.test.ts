@@ -2,11 +2,12 @@
 // change. Runs `scripts/ci-changes.mjs` over sample diffs the way ci.yml's
 // `what changed` job pipes `git diff --name-only` into it.
 import { spawnSync } from "node:child_process";
-import { existsSync, readFileSync, statSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import path from "node:path";
 import ts from "typescript";
 import { describe, expect, it } from "vitest";
-import { classify } from "../../scripts/ci-changes.mjs";
+import { classify, walkers } from "../../scripts/ci-changes.mjs";
 import { LIVE_SCHEMA_TESTS } from "../../scripts/live-schema-tests.mjs";
 
 const ROOT = path.resolve(__dirname, "../..");
@@ -45,6 +46,14 @@ describe("what a pull request changed", () => {
     ["the workflow", ".github/workflows/ci.yml"],
   ])("%s runs the sweep", (_, file) => {
     expect(changes("src/lib/generate/brief.ts", file)).toMatchObject({ status: 0, code: "true", ui: "true" });
+  });
+
+  it.each([
+    ["a canvas board", "docs/design/boards/canvas/X.dc.html"],
+    ["the parity baseline", "docs/design/parity/baseline.json"],
+    ["the parity script", "scripts/design/parity.mjs"],
+  ])("%s alone runs the sweep", (_, file) => {
+    expect(changes(file)).toMatchObject({ status: 0, ui: "true" });
   });
 
   it("a documentation-only diff skips everything but audit", () => {
@@ -109,6 +118,41 @@ describe("what a pull request changed", () => {
     expect(reached.length).toBeGreaterThan(LIVE_SCHEMA_TESTS.length);
     const skipped = reached.filter((f) => !classify([f]).db);
     expect(skipped).toEqual([]);
+  });
+});
+
+describe("what an affected unit run hands vitest related", () => {
+  it("finds the suites that walk the tree, and none of the layout gate's", () => {
+    const found = walkers(ROOT);
+    expect(found).toEqual(expect.arrayContaining(["tests/ui/design/strategy.test.ts", "tests/ui/design/vocabulary.ts"]));
+    expect(found.filter((f) => f.startsWith("tests/ui/layout/"))).toEqual([]);
+  });
+
+  it("finds a new walker by what it calls, not by a list", () => {
+    const root = mkdtempSync(path.join(tmpdir(), "walkers-"));
+    try {
+      const put = (file: string, body: string) => {
+        mkdirSync(path.dirname(path.join(root, file)), { recursive: true });
+        writeFileSync(path.join(root, file), body);
+      };
+      put("tests/new/walks.test.ts", 'import { readdirSync } from "node:fs";\nreaddirSync("src");\n');
+      put("tests/new/imports.test.ts", 'import { x } from "../../src/x";\n');
+      put("tests/ui/layout/sweep.test.ts", 'readdirSync("src");\n');
+      expect(walkers(root)).toEqual(["tests/new/walks.test.ts"]);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("always runs this classifier's own test, for a diff that does not touch it", () => {
+    const r = spawnSync(process.execPath, [SCRIPT, "--related"], {
+      cwd: ROOT,
+      encoding: "utf8",
+      input: "src/lib/presentation/copy/keys/review.ts\n",
+    });
+    expect(r.status).toBe(0);
+    const files = r.stdout.trim().split("\n");
+    expect(files).toEqual(expect.arrayContaining(["src/lib/presentation/copy/keys/review.ts", "tests/config/ci-changes.test.ts", "tests/ui/design/strategy.test.ts"]));
   });
 });
 
