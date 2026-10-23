@@ -32,6 +32,8 @@ export interface DoneFacts {
   pagesRead?: number;
   /** The site's own publish time, as it is stored (`07:00`). */
   publishTime?: string | null;
+  /** Whether a page could go live now. Unread is not a yes: no time is named. */
+  goLive?: { connected: boolean; publishing: boolean; stopped: boolean };
   /** When the next weekly pass is due. */
   remeasureOn?: Date | null;
   /** How many checks a page is put through — `HARD_RULES`' length. */
@@ -59,6 +61,11 @@ export interface ProcessStep {
   figures: readonly (Sentence & { href: string | null })[];
   /** The step has a figure to state and it has not been read yet. */
   pending: boolean;
+}
+
+/** A time is named only where a page could go live: connected, switched on and not stopped (REQ-092 c7). */
+function canGoLive(goLive: DoneFacts["goLive"]): boolean {
+  return goLive !== undefined && goLive.connected && goLive.publishing && !goLive.stopped;
 }
 
 /** The eight steps, in order, each with what the stored rows say of it. */
@@ -91,7 +98,7 @@ export function processSteps(facts: DoneFacts): readonly ProcessStep[] {
     step("checks", [{ key: "overview.process.figure.checks", vars: { n: facts.checks }, href: null }]),
     step(
       "publish",
-      facts.publishTime ? [{ key: "overview.process.figure.publish", vars: { time: facts.publishTime }, href: "/app/settings/publishing" }] : [],
+      facts.publishTime && canGoLive(facts.goLive) ? [{ key: "overview.process.figure.publish", vars: { time: facts.publishTime }, href: "/app/settings/publishing" }] : [],
       false
     ),
     step(
