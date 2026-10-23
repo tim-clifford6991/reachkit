@@ -221,6 +221,10 @@ export const REPORT_COPY = Object.freeze({
   // allows. Drafted; the owner corrects the wording.
   "verdict.estimate.rough": ["rough estimate ({low}–{high})", { slots: { low: "text", high: "text" }, fixedBy: "issue 1439" }],
   "verdict.estimate.close": ["close estimate ({low}–{high})", { slots: { low: "text", high: "text" }, fixedBy: "issue 1439" }],
+  // Issue 1932: beside the range, where a re-score moved the score because
+  // the Google half moved. `{before}` is the score as first stored. Drafted;
+  // the owner corrects the wording.
+  "verdict.rescored": ["Re-scored on {date}: Google now counts the searches in this report where you’re on Google’s first page. It read {before} before.", { slots: { date: "text", before: "text" }, fixedBy: "issue 1932 · drafted" }],
   // REQ-094 c1's correction control, as S2 draws it. #786 gives it its
   // destination: an inline field that posts the corrected market to
   // `POST /api/report/{domain}/correct` and follows the rerun's stages.

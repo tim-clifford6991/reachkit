@@ -53,6 +53,7 @@ const SCREEN_KEYS: readonly CopyKey[] = [
   "report.measured-at.no-category",
   "verdict.score.label",
   "verdict.not-your-market",
+  "verdict.rescored",
   "verdict.limiting.foundations",
   "verdict.limiting.answerability",
   "verdict.limiting.presence",
