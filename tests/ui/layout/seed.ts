@@ -633,6 +633,11 @@ export function seedHostedPublisher(): void {
     `update sites set market = '{"current":{"category":"a plumber","serves":{"name":"Austin"}}}'::jsonb ` +
       `where id = '${PUBLISHER_ACCOUNT.siteId}';`
   );
+  // Two published pages on one topic, so the index draws "All guides" with a topic card and the A–Z rest.
+  sql(
+    `update opportunities set status = 'done', cluster_key = 'checklist onboarding' ` +
+      `where site_id = '${PUBLISHER_ACCOUNT.siteId}' and target_query in ('onboarding checklist software', 'more guides 0');`
+  );
 }
 
 /** A SaaS business's offering page, in the offering template's sections. */
@@ -650,6 +655,9 @@ export const PUBLISHER_OFFERING = Object.freeze({
     "Onboarding checklist software for people teams that hire every month.",
     "",
     "## What is included?",
+    "",
+    // A lead-in sentence, so the sweep measures a checklist.
+    "Every plan includes:",
     "",
     "- One owner for every step",
     "- A checklist the new hire can see",

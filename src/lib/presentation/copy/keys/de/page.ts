@@ -72,4 +72,7 @@ export const PAGE_COPY_DE = {
   "hosted.index.title": "Ratgeber von {publisher}",
   "hosted.index.recent": "Neue Ratgeber",
   "hosted.index.pageOf": "Seite {page} von {pages}",
+  "hosted.index.all": "Alle Ratgeber",
+  "hosted.index.allLead": "Jeder Ratgeber dieser Website, nach Thema.",
+  "hosted.index.topicCount": "{count} Ratgeber",
 } as const satisfies CopyTranslation;

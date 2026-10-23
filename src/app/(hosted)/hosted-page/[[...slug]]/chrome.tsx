@@ -20,6 +20,10 @@ const GLYPHS = {
     ["path", { d: "M7 7h10v10" }],
     ["path", { d: "M7 17 17 7" }],
   ],
+  "book-open": [
+    ["path", { d: "M12 5v16" }],
+    ["path", { d: "M20.001 19A2 2 0 0022 17V5a2 2 0 00-1.999-2L16 3.002A5 5 0 0012 5a5 5 0 00-4-2H4a2 2 0 00-2 2v12a2 2 0 001.999 2H8a5 5 0 014 2 5 5 0 014-2z" }],
+  ],
   "calendar-check": [
     ["path", { d: "M8 2v3" }],
     ["path", { d: "M16 2v3" }],
@@ -61,7 +65,7 @@ const GLYPH_SVG = {
 } as const;
 
 /** Decorative: every glyph here sits beside the words it stands for. */
-function Glyph({ name }: { name: keyof typeof GLYPHS }): React.JSX.Element {
+export function Glyph({ name }: { name: keyof typeof GLYPHS }): React.JSX.Element {
   return (
     <svg {...GLYPH_SVG} className={`lucide lucide-${name} flex-none`} aria-hidden="true">
       {GLYPHS[name].map(([tag, attributes], i) => createElement(tag, { key: i, ...attributes }))}
