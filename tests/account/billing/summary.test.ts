@@ -54,6 +54,8 @@ describe("REQ-076 c1 — what the card reads", () => {
       cancelledAt: null,
       planStatus: "active",
       invoicesVia: "portal",
+      // Opened today, and no refund for this account: 14 days from opening.
+      refundUntil: new Date(Date.parse(state.users[0]!.created_at) + 13 * 24 * 60 * 60 * 1000),
     });
   });
 

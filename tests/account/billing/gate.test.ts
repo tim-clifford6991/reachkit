@@ -54,6 +54,7 @@ describe("REQ-076 c8 — the gate is the paid-through date and nothing else", ()
       cancelled_at: NOW.toISOString(),
       last_subscription_event_id: null,
       deleted_at: null,
+      created_at: NOW.toISOString(),
     });
     expect(await hasActiveAccess(siteId)).toBe(true);
   });
@@ -72,6 +73,7 @@ describe("REQ-076 c8 — the gate is the paid-through date and nothing else", ()
       cancelled_at: null,
       last_subscription_event_id: null,
       deleted_at: null,
+      created_at: NOW.toISOString(),
     });
     expect(await hasActiveAccess(siteId)).toBe(true);
   });
@@ -88,6 +90,7 @@ describe("REQ-076 c8 — the gate is the paid-through date and nothing else", ()
       cancelled_at: null,
       last_subscription_event_id: null,
       deleted_at: null,
+      created_at: NOW.toISOString(),
     });
     expect(await hasActiveAccess(siteId)).toBe(false);
   });
