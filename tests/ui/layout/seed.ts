@@ -627,6 +627,12 @@ export function seedHostedPublisher(): void {
   // Every page's search is the business's own offering, so each draws the
   // compact block after its takeaways or short answer.
   sql(`update opportunities set business_fit = 3 where site_id = '${PUBLISHER_ACCOUNT.siteId}';`);
+  // The boards' sample business is a local service: its market serves a
+  // place, so its book page reads as a visit.
+  sql(
+    `update sites set market = '{"current":{"category":"a plumber","serves":{"name":"Austin"}}}'::jsonb ` +
+      `where id = '${PUBLISHER_ACCOUNT.siteId}';`
+  );
 }
 
 /** A SaaS business's offering page, in the offering template's sections. */
