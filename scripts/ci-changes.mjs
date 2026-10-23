@@ -20,10 +20,10 @@
 // The nightly run on `main` runs them all.
 //
 // `--related` prints what an affected unit run hands `vitest related`: the
-// diff's paths, the suites that always run, and every walker.
+// diff's paths, the suites that always run, every design suite, and every walker.
 //
 // An empty list runs everything.
-import { appendFileSync, readFileSync, readdirSync } from "node:fs";
+import { appendFileSync, existsSync, readFileSync, readdirSync } from "node:fs";
 import path from "node:path";
 import { LIVE_SCHEMA_TESTS } from "./live-schema-tests.mjs";
 
@@ -97,6 +97,12 @@ const FULL_UNIT = [
 // Suites that reach what they check through no import and no directory walk.
 const ALWAYS = ["tests/config/ci-changes.test.ts"];
 
+// Design suites read one fixed file (theme.css, document.tsx) that no import or WALK links.
+function designSuites(root) {
+  const dir = path.join(root, "tests/ui/design");
+  return existsSync(dir) ? readdirSync(dir).filter((f) => f.endsWith(".test.ts")).sort().map((f) => `tests/ui/design/${f}`) : [];
+}
+
 const WALK = /readdirSync|globSync|readdir\(|fs\.glob/;
 
 // Test files and helpers that read the tree from disk, so no import links them
@@ -111,7 +117,7 @@ export function walkers(root = process.cwd()) {
 
 export function related(paths, root = process.cwd()) {
   const files = paths.map((p) => p.trim()).filter(Boolean);
-  return [...new Set([...files, ...ALWAYS, ...walkers(root)])];
+  return [...new Set([...files, ...ALWAYS, ...designSuites(root), ...walkers(root)])];
 }
 
 export function classify(paths) {
