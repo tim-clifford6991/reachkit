@@ -66,6 +66,30 @@ export interface SketchMark {
   readonly title: string;
   readonly line: string;
   readonly quotes: readonly string[];
+  /** Short labels the page shows at this place, in its order; a quoted one keeps its quote marks. */
+  readonly shows?: readonly string[];
+  /** The place sits further down the page than the one before it. */
+  readonly lower?: boolean;
+}
+
+/** The four reads every teardown makes, in the order the index lists them. */
+export const TEARDOWN_PARTS = ["offers", "promise", "buyer", "opinion"] as const;
+export type TeardownPart = (typeof TEARDOWN_PARTS)[number];
+
+/** One section of a teardown; the one that makes one of the four reads says which, and may draw it. */
+export interface TeardownSection extends Section {
+  readonly part?: TeardownPart;
+  /** What the product offers, as short chips. */
+  readonly chips?: readonly string[];
+  /** How many similar tools describe themselves, beside the concrete outcome the buyer wants. */
+  readonly promise?: { readonly crowd: string; readonly wants: string; readonly outcomes: readonly string[] };
+  /** Two buyers side by side: who they are and what they want. */
+  readonly buyers?: readonly { readonly name: string; readonly line: string; readonly wants: string }[];
+  /** Pages it could add, drawn as ideas, and what we read about them. */
+  readonly ideas?: {
+    readonly pages: readonly { readonly kind: string; readonly reader: string; readonly title: string }[];
+    readonly caption: string;
+  };
 }
 
 export interface Teardown {
@@ -77,8 +101,12 @@ export interface Teardown {
   readonly title: string;
   readonly description: string;
   readonly summary: string;
+  /** The index card's one marked line: the product's sharpest promise, in our words. */
+  readonly hook: string;
+  /** Since the first read, the site sells something else, or the product took a new direction. */
+  readonly change?: "site" | "direction";
   readonly intro: string;
-  readonly sections: readonly Section[];
+  readonly sections: readonly TeardownSection[];
   readonly takeaways: readonly string[];
   /** First published, ISO date. */
   readonly written: string;
