@@ -76,7 +76,7 @@ describe.each(["saas", "local"] as const)("the %s panel report, offer to consent
 
   it("says what holds the site back in plain words, and the method without jargon", () => {
     expect(page).toContain("AI shut out of your site");
-    for (const name of ["No page list for Google", "Links between pages that go nowhere", "Business details Google can read"]) {
+    for (const name of ["No page list for Google", "Links between pages that go nowhere", "Page labels Google can read"]) {
       expect(page).toContain(name);
     }
     for (const old of ["AI readers blocked", "No sitemap", "Broken internal links", "Missing structured data", "GEO", "Unblock the AI readers"]) {
@@ -117,7 +117,7 @@ describe("each check row says its status in a word", () => {
 
   it("a count, Nothing to fix on a zero, Couldn't run where no reading came back", () => {
     expectInOrder(page, ["Missing or duplicate titles 3", "Pages hidden from search Nothing to fix", "No page list for Google Couldn’t run"]);
-    expect(page).toContain("Business details Google can read Couldn’t run");
+    expect(page).toContain("Page labels Google can read Couldn’t run");
   });
 });
 
