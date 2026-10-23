@@ -58,7 +58,7 @@ describe("generated documents", () => {
 
   it.each([
     ["a definition", "src/lib/measure/registry.ts", "Distinct pages of the site", "Every page of the site", DOCS[0]],
-    ["a constant a definition names", "src/lib/config/constants.ts", "CONTENT_RECENT_WEEKS = 4 as const", "CONTENT_RECENT_WEEKS = 6 as const", DOCS[0]],
+    ["a constant a definition names", "src/lib/config/constants.ts", "BLOG_READS_WINDOW_D = 7 as const", "BLOG_READS_WINDOW_D = 9 as const", DOCS[0]],
     ["a job's schedule", "src/jobs/scan-rescore.ts", 'RESCORE_TICK_CRON = "7,22,37,52 * * * *"', 'RESCORE_TICK_CRON = "*/5 * * * *"', DOCS[1]],
     ["a job's key", "src/jobs/scan-run.ts", 'idempotencyKey: ["scanId"]', 'idempotencyKey: ["scanId", "tier"]', DOCS[1]],
   ])("a changed %s fails audit until the document is regenerated", (_, rel, from, to, doc) => {
@@ -72,7 +72,7 @@ describe("generated documents", () => {
 
   it("a source that declares no such function fails audit", () => {
     const root = copyRoot();
-    edit(root, "src/lib/measure/registry.ts", "#contentOf", "#contentOfGone");
+    edit(root, "src/lib/measure/registry.ts", "#top20Pages", "#top20PagesGone");
     expect(audit(root).rows[DOCS[0]]).toBe("MALFORMED");
   });
 

@@ -56,32 +56,6 @@ export const OVERVIEW_COPY = Object.freeze({
     "Not scanned this week. What was scanned is shown with its date.",
     { law: "no-presence-yet", slots: {}, fixedBy: "REQ-065 c4" },
   ],
-  // ── The head: what autopilot is doing (owner 2026-10-09, issue 1362).
-  // The four direction lines, the week-0 line and the two badges that stood
-  // here are gone with it: the head states the product's own status, from
-  // stored facts, and never a page waiting on the customer. Every other arm
-  // of the head is the shell's `next-publish.*` sentence. Drafted; the
-  // owner corrects the wording.
-  "overview.head.due.today": [
-    "Today’s page goes live at {time}.",
-    { slots: { time: "date" }, fixedBy: "issue 1362" },
-  ],
-  "overview.head.due.tomorrow": [
-    "Tomorrow’s page goes live at {time}.",
-    { slots: { time: "date" }, fixedBy: "issue 1362" },
-  ],
-  "overview.head.writing.today": ["Today’s page is being written.", { slots: {}, fixedBy: "issue 1362" }],
-  "overview.head.writing.tomorrow": ["Tomorrow’s page is being written.", { slots: {}, fixedBy: "issue 1362" }],
-  "overview.head.planned": [
-    "The next page is planned for {on}.",
-    { slots: { on: "date" }, fixedBy: "issue 1362" },
-  ],
-  // What went live last, and when, under the head.
-  "overview.head.last-live": [
-    "Last page to go live: {title}, {on}.",
-    { slots: { title: "text", on: "date" }, fixedBy: "issue 1362" },
-  ],
-
   // ── The growth module.
   // The card head's right-hand chip (UI-SPEC S12: "re-measured Mon 1 Sep").
   // The date is a slot — it is the measurement's own, read from the series,
@@ -141,10 +115,6 @@ export const OVERVIEW_COPY = Object.freeze({
 
   // ── The score tile (UI-SPEC S12, ruling 6a).
   //
-  // Ruling 6a fixes the name on every surface that labels the number:
-  // "Discoverability Score" — the report head's eyebrow, this tile, the
-  // landing component tile and the two mails. Transcribed, not chosen.
-  "overview.tile.score.label": ["Visibility Score", { slots: {}, fixedBy: "ruling 6a" }],
   // What reaching `GOAL_VALUES.score` means, in the product's own words.
   // The set prints no such line beside the score — it prints the band —
   // so the words are the owner's (#460).
@@ -189,27 +159,6 @@ export const OVERVIEW_COPY = Object.freeze({
   "overview.goal": ["goal: {value}", { slots: { value: "text" }, fixedBy: "BUILD §4.5" }],
   "overview.delta.up": ["▲", { slots: {}, fixedBy: "BUILD §4.5" }],
   "overview.delta.down": ["▼", { slots: {}, fixedBy: "BUILD §4.5" }],
-
-  // ── The core data at a glance (owner, 2026-10-15, issue 1457): Visibility
-  // Score, Google, AI and Content, in the #1444 vocabulary. Every line is
-  // drafted (#759); the pull request names each so the owner can correct it.
-  "overview.tile.change": ["{mark} {value} since last week", { slots: { mark: "text", value: "text" }, fixedBy: "issue 1457 (drafted)" }],
-  "overview.tile.no-change": ["No change since last week", { slots: {}, fixedBy: "issue 1457 (drafted)" }],
-  "overview.tile.first-scan": ["First scan {due}.", { slots: { due: "date" }, fixedBy: "issue 1457 (drafted)" }],
-  "overview.tile.ai.line": ["Searches where AI answers mention you", { slots: {}, fixedBy: "issue 1457 (drafted)" }],
-  "overview.tile.ai.linked": ["{linked} of them link to you", { slots: { linked: "text" }, fixedBy: "issue 1457 (drafted)" }],
-  "overview.tile.content.label": ["Content", { slots: {}, fixedBy: "issue 1457 (drafted)" }],
-  "overview.tile.content.of": ["pages published", { slots: {}, fixedBy: "issue 1457 (drafted)" }],
-  "overview.tile.content.recent": ["{recent} in the last {weeks} weeks", { slots: { recent: "text", weeks: "text" }, fixedBy: "issue 1457 (drafted)" }],
-  "overview.tile.content.last": ["Last: {title}, {on}", { slots: { title: "text", on: "date" }, fixedBy: "issue 1457 (drafted)" }],
-  "overview.tile.content.next": ["Next: {on}", { slots: { on: "date" }, fixedBy: "issue 1457 (drafted)" }],
-  // Issue 1553: how many live pages reached each step toward being found,
-  // joined with " · ". A step nothing can read is left out. Drafted (#759).
-  "overview.tile.content.crawled": ["{count} crawled", { slots: { count: "text" }, fixedBy: "issue 1553 (drafted)" }],
-  "overview.tile.content.indexed": ["{count} indexed", { slots: { count: "text" }, fixedBy: "issue 1553 (drafted)" }],
-  "overview.tile.content.impressions": ["{count} impressions", { slots: { count: "text" }, fixedBy: "issue 1553 (drafted)" }],
-  "overview.tile.content.place": ["best place {place}", { slots: { place: "text" }, fixedBy: "issue 1553 (drafted)" }],
-  "overview.tile.content.cited": ["{count} linked by AI", { slots: { count: "text" }, fixedBy: "issue 1582 (drafted)" }],
 
   // ── How far ahead each rival is.
   "overview.rivals.title": ["How far ahead competitors are", { slots: {}, fixedBy: "BUILD §4.5" }],
@@ -280,30 +229,14 @@ export const OVERVIEW_COPY = Object.freeze({
 
   // ── This week.
   "overview.week.title": ["This week", { slots: {}, fixedBy: "BUILD §4.5" }],
-  // Issue 867: what this week's pages are aimed at — the searches
-  // themselves, never a count. Drafted; the owner corrects the wording.
-  "overview.week.aimed-at": [
-    "This week's pages aim at {searches}.",
-    { slots: { searches: "text" }, fixedBy: "issue 867" },
-  ],
   // SPEC §4 (2026-09-20, #914): *Plan* is the calendar's on-screen name;
   // the key still says where the link goes.
-  "overview.week.calendar-link": ["Open the plan →", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
-  // SPEC §4 2026-09-24 (#1070): the one broader category the week's
-  // notice offers, measured again on the press. Drafted.
-  "overview.week.broader.try": [
-    "Try “{category}”",
-    { slots: { category: "text" }, fixedBy: "SPEC §4 2026-09-24" },
-  ],
+  "overview.week.calendar-link": ["Why each page →", { slots: {}, fixedBy: "SPEC §4 2026-09-20 · issue 1744 (drafted)" }],
   "overview.week.day.done": ["done", { slots: {}, fixedBy: "REQ-041 c6" }],
   "overview.week.day.today": ["today", { slots: {}, fixedBy: "REQ-041 c6" }],
   "overview.week.day.to-come": ["next", { slots: {}, fixedBy: "REQ-041 c6" }],
 
   // ── The alerts, and the one remainder line.
-  //
-  // Since #353 they are their own card, headed as the set heads it — §4.5
-  // put them under "This week", and the approved set draws two cards.
-  "overview.needs-you.title": ["Needs you", { slots: {}, fixedBy: "S12" }],
   // A page in review is the next page of the daily autopilot, not something
   // to read before it can go out (owner 2026-10-09, issue 1362).
   "overview.alert.pending-veto": ["{title} goes live on its own", { slots: { title: "text" }, fixedBy: "REQ-041 c5 · issue 1362" }],
@@ -328,14 +261,6 @@ export const OVERVIEW_COPY = Object.freeze({
   // The veto panel's own line, unbracketed in the set and therefore
   // approved. `left` is how long the window has to run, from the draft's
   // own stored `veto_deadline` (issue 794) — never a number typed here.
-  // The duration that fills `left` above. Its own key, because the two
-  // numerals are slots and the units are the set's own characters — the
-  // same composition `overview.rivals.was` makes over
-  // `overview.rivals.ratio`, so no unit is written at a call site.
-  "overview.alert.pending-veto.left": [
-    "{hours} h {minutes} m",
-    { slots: { hours: "text", minutes: "text" }, fixedBy: "S12" },
-  ],
   "overview.alert.pending-veto.due": [
     "publishes in {left} unless you say otherwise",
     { slots: { left: "text" }, fixedBy: "S12" },
@@ -1147,81 +1072,8 @@ export const OVERVIEW_COPY = Object.freeze({
     { slots: {}, fixedBy: "SPEC §4 2026-09-20 · issue 912" },
   ],
 
-  // ── SPEC §4 (2026-10-10, issue 1395): what ReachKit did this week, and
-  // the process. Every number is a slot filled from a stored row or a pin.
+  // ── SPEC §4 (2026-10-10, issue 1395): the process. Every number is a slot filled from a stored row or a pin.
   // Drafted; the owner corrects the wording.
-  "overview.done.label": [
-    "What ReachKit did this week",
-    { slots: {}, fixedBy: "SPEC §4 2026-10-10 · issue 1395 (drafted)" },
-  ],
-  "overview.done.measured": [
-    "Measured {searches} searches in Google and {questions} AI questions ({engines}) · {at}",
-    { slots: { searches: "text", questions: "text", engines: "text", at: "text" }, fixedBy: "SPEC §4 2026-10-10 · issue 1395 (drafted)" },
-  ],
-  "overview.done.measured.searches": [
-    "Measured {searches} searches in Google · {at}",
-    { slots: { searches: "text", at: "text" }, fixedBy: "SPEC §4 2026-10-10 · issue 1395 (drafted)" },
-  ],
-  "overview.done.measured.none": [
-    "Searches and AI questions: not measured this week",
-    { slots: {}, fixedBy: "SPEC §4 2026-10-10 · issue 1395 (drafted)" },
-  ],
-  "overview.done.measured.note": [
-    "Once a week ReachKit looks up the searches your buyers make and puts their questions to the AI engines. Google and AI hold every result.",
-    { slots: {}, fixedBy: "SPEC §4 2026-10-10 · issue 1395 (drafted)" },
-  ],
-  "overview.done.rivals": [
-    "Competitors tracked: {n}",
-    { slots: { n: "text" }, fixedBy: "SPEC §4 2026-10-10 · issue 1395 (drafted)" },
-  ],
-  "overview.done.rivals.none": [
-    "Competitors: not measured this week",
-    { slots: {}, fixedBy: "SPEC §4 2026-10-10 · issue 1395 (drafted)" },
-  ],
-  "overview.done.rivals.note": [
-    "These are the competitors your numbers are compared with each week. Competitors shows where each one stands.",
-    { slots: {}, fixedBy: "SPEC §4 2026-10-10 · issue 1395 (drafted)" },
-  ],
-  "overview.done.wrote": [
-    "Pages written: {pages} · {fresh} new, {updated} updated",
-    { slots: { pages: "text", fresh: "text", updated: "text" }, fixedBy: "SPEC §4 2026-10-10 · issue 1395 (drafted)" },
-  ],
-  "overview.done.wrote.passed": [
-    "all passed {checks} checks",
-    { slots: { checks: "text" }, fixedBy: "SPEC §4 2026-10-10 · issue 1395 (drafted)" },
-  ],
-  "overview.done.wrote.held": [
-    "{held} held by a check",
-    { slots: { held: "text" }, fixedBy: "SPEC §4 2026-10-10 · issue 1395 (drafted)" },
-  ],
-  "overview.done.wrote.none": [
-    "No page written yet this week",
-    { slots: {}, fixedBy: "SPEC §4 2026-10-10 · issue 1395 (drafted)" },
-  ],
-  "overview.done.wrote.note": [
-    "Each page is written from facts read on your site and from public pages, then put through {checks} checks before you see it. Plan lists every page.",
-    { slots: { checks: "text" }, fixedBy: "SPEC §4 2026-10-10 · issue 1395 (drafted)" },
-  ],
-  "overview.done.published": [
-    "Pages published: {n}",
-    { slots: { n: "text" }, fixedBy: "SPEC §4 2026-10-10 · issue 1395 (drafted)" },
-  ],
-  "overview.done.published.next": [
-    "the next goes live {when}",
-    { slots: { when: "text" }, fixedBy: "SPEC §4 2026-10-10 · issue 1395 (drafted)" },
-  ],
-  "overview.done.published.none": [
-    "No page published yet this week",
-    { slots: {}, fixedBy: "SPEC §4 2026-10-10 · issue 1395 (drafted)" },
-  ],
-  "overview.done.published.note": [
-    "A page goes live on its own at your publish time. Until then it can be stopped from its card or from Plan.",
-    { slots: {}, fixedBy: "SPEC §4 2026-10-10 · issue 1395 (drafted)" },
-  ],
-  "overview.done.set-aside": [
-    "Topics set aside: {n}",
-    { slots: { n: "text" }, fixedBy: "SPEC §4 2026-10-10 · issue 1395 (drafted)" },
-  ],
   "overview.process.title": [
     "How ReachKit works on your site",
     { slots: {}, fixedBy: "SPEC §4 2026-10-10 · issue 1395 (drafted)" },
@@ -1374,34 +1226,6 @@ export const OVERVIEW_COPY = Object.freeze({
   "overview.costs.vendor.jobs": ["Job platform", { slots: {}, fixedBy: "SPEC §6 2026-10-17 · issue 1478 (drafted)" }],
   "overview.costs.vendor.resend": ["Resend", { slots: {}, fixedBy: "SPEC §6 2026-10-17 · issue 1478 (drafted)" }],
   "overview.costs.vendor.stripe": ["Stripe fees", { slots: {}, fixedBy: "SPEC §6 2026-10-17 · issue 1478 (drafted)" }],
-  // SPEC §7 (2026-10-18, issue 1511): the main-site link, an optional finding
-  // and never a needs-you item. Drafted (#759); the owner may correct it.
-  "overview.main-link.title": ["Link your site to your articles", { slots: {}, fixedBy: "SPEC §7 2026-10-18 · issue 1511 (drafted)" }],
-  "overview.main-link.not-linked": [
-    "No page of your site links to your articles at {host} yet. One link, in your menu or footer, tells search engines the two are one business.",
-    { slots: { host: "text" }, fixedBy: "SPEC §7 2026-10-18 · issue 1511 (drafted)" },
-  ],
-  "overview.main-link.not-followed": [
-    "Your site links to your articles at {host}, but the link asks search engines not to follow it. Swap it for this one.",
-    { slots: { host: "text" }, fixedBy: "SPEC §7 2026-10-18 · issue 1511 (drafted)" },
-  ],
-  "overview.main-link.optional": [
-    "Optional. Publishing goes on either way, and this goes away once the link is found.",
-    { slots: {}, fixedBy: "SPEC §7 2026-10-18 · issue 1511 (drafted)" },
-  ],
-  // SPEC §4 (2026-10-19, issue 1539): what AI answers misstate of the
-  // business, a finding and never a needs-you item. Drafted (#759); the
-  // owner may correct it.
-  "overview.misstated.title": ["What AI answers get wrong", { slots: {}, fixedBy: "SPEC §4 2026-10-19 · issue 1539 (drafted)" }],
-  "overview.misstated.row": [
-    "An AI answer says {ai}. Your site says: {site}.",
-    { slots: { ai: "text", site: "text" }, fixedBy: "SPEC §4 2026-10-19 · issue 1539 (drafted)" },
-  ],
-  "overview.misstated.source": ["Where your site says it", { slots: {}, fixedBy: "SPEC §4 2026-10-19 · issue 1539 (drafted)" }],
-  "overview.misstated.next": [
-    "Your next page on each of these topics states what your site says, plainly.",
-    { slots: {}, fixedBy: "SPEC §4 2026-10-19 · issue 1539 (drafted)" },
-  ],
   // ── Today's page and the ladder (owner E4, 2026-10-19; board Main). Each
   // step is the stored reading's own; drafted (#759), the owner corrects it.
   "overview.today.eyebrow": ["Goes live today at {time}", { slots: { time: "date" }, fixedBy: "issue 1605 (drafted)" }],
@@ -1447,4 +1271,43 @@ export const OVERVIEW_COPY = Object.freeze({
     "Your first {live} pages are live. Showing in results usually takes weeks. Each step lights up here as it happens.",
     { slots: { live: "text" }, fixedBy: "issue 1605 (drafted)" },
   ],
+  // ── The head, this week's pages, the site-fix line and the states without
+  // a today card (board Main). Drafted (#759), the owner corrects them.
+  "overview.head.eyebrow": ["Week {n} · {day}", { slots: { n: "text", day: "date" }, fixedBy: "issue 1744 (drafted)" }],
+  "overview.head.title": ["Nothing needs you this week", { slots: {}, fixedBy: "issue 1744 (drafted)" }],
+  "overview.head.lead.live": [
+    "{live} of your pages are live and {showing} already show in Google.",
+    { slots: { live: "text", showing: "text" }, fixedBy: "issue 1744 (drafted)" },
+  ],
+  // No reading yet: how many show in Google is not known, so it is not said.
+  "overview.head.lead.live-unread": ["{live} of your pages are live.", { slots: { live: "text" }, fixedBy: "issue 1744 (drafted)" }],
+  "overview.head.lead.chosen": [
+    "This week’s {n} pages were chosen this morning.",
+    { slots: { n: "text" }, fixedBy: "issue 1744 (drafted)" },
+  ],
+  "overview.head.lead.chosen-on": [
+    "This week’s {n} pages were chosen on {weekday}.",
+    { slots: { n: "text", weekday: "date" }, fixedBy: "issue 1744 (drafted)" },
+  ],
+  "overview.week.pages": ["This week’s {n} pages", { slots: { n: "text" }, fixedBy: "issue 1744 (drafted)" }],
+  "overview.week.goes-live": ["Goes live", { slots: {}, fixedBy: "issue 1744 (drafted)" }],
+  "overview.week.today-at": ["today, {time}", { slots: { time: "date" }, fixedBy: "issue 1744 (drafted)" }],
+  // The board says "measure again"; SPEC §0 retires it (owner R12, B9).
+  "overview.week.next": [
+    "Next Monday, {date}, we check again and choose the next {n}.",
+    { slots: { date: "date", n: "text" }, fixedBy: "issue 1744 (drafted) · owner R12 B9" },
+  ],
+  "overview.fixes.line": [
+    "{n} things on your own site are worth fixing.",
+    { slots: { n: "text" }, fixedBy: "issue 1744 (drafted)" },
+  ],
+  "overview.fixes.line.one": ["One thing on your own site is worth fixing.", { slots: {}, fixedBy: "issue 1744 (drafted)" }],
+  "overview.fixes.optional": ["Optional. ReachKit keeps working either way.", { slots: {}, fixedBy: "issue 1744 (drafted)" }],
+  "overview.fixes.see": ["See them →", { slots: {}, fixedBy: "issue 1744 (drafted)" }],
+  "overview.today.live": ["Today’s page went live at {time}.", { slots: { time: "date" }, fixedBy: "issue 1744 (drafted)" }],
+  "overview.paused.line": [
+    "Publishing is paused. No page goes live until you turn it back on. Your plan and pages are kept.",
+    { slots: {}, fixedBy: "issue 1744 (drafted)" },
+  ],
+  "overview.paused.action": ["Turn publishing on", { slots: {}, fixedBy: "issue 1744 (drafted)" }],
 }) satisfies CopyPartition;

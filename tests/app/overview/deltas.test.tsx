@@ -154,9 +154,8 @@ describe("when the page goes live is the draft's stored veto_deadline", () => {
     // The told moment, not the window's end half an hour before it.
     expect(card).toContain("13:30");
     expect(card).toContain("Sep 16");
-    // The head is the page's own go-live, as today's content of the daily
-    // autopilot (issue 1362): 13:30 UTC on the 16th, which is today.
-    expect(card).toContain(`<h1>${copy("overview.head.due.today", { time: "1:30 PM" })}</h1>`);
+    // The eyebrow is the page's own go-live: 13:30 UTC on the 16th, which is today.
+    expect(card).toContain(copy("overview.today.eyebrow", { time: "1:30 PM" }));
     expect(card.replace(/<[^>]+>/gu, " ")).not.toMatch(/ready to read/iu);
     expect(card.replace(/<[^>]+>/gu, " ")).not.toMatch(/approv|waiting for you|needs you|your review/iu);
   });
@@ -176,35 +175,5 @@ describe("when the page goes live is the draft's stored veto_deadline", () => {
     const card = section(await page(), "overview-waiting");
     expect(card).toContain(copy("overview.waiting.waits"));
     expect(card).not.toContain("TODO(copy)");
-  });
-
-  // The countdown itself belongs to a **second** page in review, which the
-  // card does not lead with: one page leads, the rest wait in the list.
-  it("a second page in review keeps its countdown in the needs-you list", async () => {
-    db.seed("scans", [DEEP, WEEK_1, WEEK_2]);
-    db.seed("drafts", [
-      {
-        id: "d1",
-        site_id: SITE_ID,
-        state: "in_review",
-        title: "How to pick a CRM",
-        created_at: "2026-09-16T07:00:00.000Z",
-        veto_deadline: "2026-09-16T18:00:00.000Z",
-      },
-      {
-        id: "d2",
-        site_id: SITE_ID,
-        state: "in_review",
-        title: "How to pick a helpdesk",
-        created_at: "2026-09-16T08:00:00.000Z",
-        veto_deadline: "2026-09-16T12:30:00.000Z",
-      },
-    ]);
-    const html = await page();
-    const alerts = section(html, "overview-needs-you");
-    const left = copy("overview.alert.pending-veto.left", { hours: "2", minutes: "30" });
-    expect(alerts).toContain(copy("overview.alert.pending-veto.due", { left }));
-    // …and the page the card leads with is not repeated in that list.
-    expect(alerts).not.toContain("How to pick a CRM");
   });
 });
