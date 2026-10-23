@@ -18,6 +18,7 @@ applyEnvFixture();
 
 const { HostedArticle } = await import("@/app/(hosted)/hosted-page/[[...slug]]/article");
 const { HostedIndex } = await import("@/app/(hosted)/hosted-page/[[...slug]]/listing");
+const { readMainSite } = await import("@/lib/site-profile/main-site");
 type HostedBusiness = import("@/app/(hosted)/hosted-page/[[...slug]]/chrome").HostedBusiness;
 
 interface Site {
@@ -60,6 +61,22 @@ const SITES: Record<string, Site> = {
       logoType: null,
       line: null,
       mainSite: mainSiteOf({ home: "https://www.tallyhq.example/" }),
+      offer: { category: "onboarding checklist software", place: null },
+    },
+  },
+  "a SaaS site with no phone and a demo link": {
+    language: "en",
+    stored: true,
+    phone: null,
+    business: {
+      domain: "tallyhq.example",
+      name: "Tally",
+      logoType: null,
+      line: null,
+      mainSite: mainSiteOf({
+        home: "https://www.tallyhq.example/",
+        actions: [{ kind: "book", url: "https://www.tallyhq.example/demo", book: "demo" }],
+      }),
       offer: { category: "onboarding checklist software", place: null },
     },
   },
@@ -329,5 +346,42 @@ describe("the index: the header phone, and the compact block where a phone is st
     const site = SITES["a German Handwerker"]!;
     const bookOnly = { ...site, business: { ...site.business, mainSite: { ...site.business.mainSite!, phone: null } } };
     expect(index(bookOnly).querySelectorAll("main aside")).toHaveLength(0);
+  });
+});
+
+describe("a book button says what it books", () => {
+  const SAAS = SITES["a SaaS site with no phone and a demo link"]!;
+  const PLUMBER = SITES["a local plumber with phone, book and quote"]!;
+  /** The site as the scan reads `link` in its home's header, stored and read back, with no phone. */
+  const reading = (site: Site, link: string): Site => {
+    const read = readMainSite({ domain: site.business.domain, homeUrl: `https://${site.business.domain}/`, homeHtml: `<header>${link}</header>`, pages: [], ours: null });
+    return { ...site, business: { ...site.business, mainSite: mainSiteOf(JSON.parse(JSON.stringify(read))) } };
+  };
+  const primary = (site: Site): [string | null, string | null] => {
+    const button = parsed(article(site, { fit: 3 })).querySelector("header a.btn")!;
+    return [button.textContent, button.getAttribute("href")];
+  };
+
+  it("book sub-kinds: a demo, a call, and a local visit, from the link the scan stored", () => {
+    expect(primary(reading(SAAS, '<a href="/demo">Book a demo</a>'))).toEqual(["Book a demo", "https://tallyhq.example/demo"]);
+    expect(primary(reading(SAAS, '<a href="/book-a-call">Schedule a call</a>'))).toEqual(["Book a call", "https://tallyhq.example/book-a-call"]);
+    expect(primary(reading(PLUMBER, '<a href="/booking">Book now</a>'))).toEqual(["Book a visit", "https://harborplumbing.example/booking"]);
+    expect(primary(reading(SAAS, '<a href="/booking">Book now</a>'))).toEqual(["Book online", "https://tallyhq.example/booking"]);
+  });
+
+  it("a SaaS site with no phone leads its header with Book a demo, and nothing on the page says Book a visit", () => {
+    const html = article(SAAS, { fit: 3, offering: true });
+    expect(primary(SAAS)).toEqual(["Book a demo", "https://www.tallyhq.example/demo"]);
+    expect(html).not.toContain("Book a visit");
+  });
+
+  it("a book row stored before sub-kinds reads Book online, unless the business serves a place", () => {
+    const before = { home: "https://www.tallyhq.example/", actions: [{ kind: "book", url: "https://www.tallyhq.example/book" }] };
+    const saas = { ...SAAS, business: { ...SAAS.business, mainSite: mainSiteOf(before) } };
+    const html = article(saas, { fit: 3, offering: true });
+    expect(primary(saas)).toEqual(["Book online", "https://www.tallyhq.example/book"]);
+    expect(html).not.toContain("Book a visit");
+    const placed = { ...saas, business: { ...saas.business, offer: { category: "plumbing", place: "Austin" } } };
+    expect(primary(placed)[0]).toBe("Book a visit");
   });
 });
