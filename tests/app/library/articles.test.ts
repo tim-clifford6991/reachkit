@@ -7,7 +7,7 @@ import { describe, expect, it } from "vitest";
 import { ANSWERS, COMPARISONS, TEARDOWNS } from "@/app/(public)/_library";
 
 const PAGES = [
-  ...COMPARISONS.map((c) => ({ kind: "compare", ...c, headings: [c.theirs.heading, c.ours.heading] })),
+  ...COMPARISONS.map((c) => ({ kind: "compare", ...c, headings: [c.theirs.heading, ...(c.heading === undefined ? [] : [c.heading])] })),
   ...TEARDOWNS.map((t) => ({ kind: "teardowns", ...t, headings: t.sections.map((s) => s.heading) })),
   ...ANSWERS.map((a) => ({ kind: "answers", ...a, headings: a.sections.map((s) => s.heading) })),
 ];
