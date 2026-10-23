@@ -478,9 +478,14 @@ describe("lists in the body are styled, and nothing is drawn that the body does 
     const lists = [...body.querySelectorAll("ul, ol")];
     expect(lists.length).toBe(4);
     for (const list of lists) {
-      const box = list.closest(".not-prose");
+      // An ordered list is steps, a list in its own right wherever it sits.
+      if (list.tagName === "OL") {
+        expect(list.getAttribute("role")).toBe("list");
+        continue;
+      }
+      const box = list.parentElement!.closest(".not-prose");
       // Outside a box `prose` sets the marker; inside one the box must name it.
-      if (box !== null) expect(box.classList).toContain(list.tagName === "OL" ? "[&_ol]:list-decimal" : "[&_ul]:list-disc");
+      if (box !== null) expect(box.classList).toContain("[&_ul]:list-disc");
     }
     expect(body.querySelectorAll("img, svg, picture, canvas")).toHaveLength(0);
   });
