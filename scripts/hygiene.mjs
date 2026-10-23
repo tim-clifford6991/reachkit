@@ -9,6 +9,7 @@ import { existsSync, lstatSync, readFileSync, readdirSync, unlinkSync, writeFile
 import path from "node:path";
 import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
+import { mainCheckoutFinding } from "./lib/main-checkout.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const REPO = "tim-clifford6991/reachkit";
@@ -423,12 +424,8 @@ function checkBox() {
     add("box", `main checkout has uncommitted changes (${n} paths)`);
   }
 
-  const head = run("git", ["-C", MAIN, "rev-parse", "HEAD"]);
-  const origin = run("git", ["-C", MAIN, "rev-parse", "origin/main"]);
-  if (!head.ok || !origin.ok) add("box", "main checkout cannot be compared with origin/main");
-  else if (head.stdout.trim() !== origin.stdout.trim()) {
-    add("box", `main checkout ${head.stdout.trim().slice(0, 8)} is not origin/main ${origin.stdout.trim().slice(0, 8)}`);
-  }
+  const behind = mainCheckoutFinding(MAIN, Date.now());
+  if (behind) add("box", behind);
 }
 
 function printFindings() {
