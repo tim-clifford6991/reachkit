@@ -209,7 +209,8 @@ describe("condition 2 — the full block and the header follow their limits", ()
         expect(header.querySelectorAll("a.btn").length).toBe(site.stored ? 2 : 1);
         for (const compact of compactBlocks(doc, site)) expect(compact.querySelectorAll("a")).toHaveLength(1);
         for (const full of fullBlocks(doc, site)) {
-          expect(full.querySelectorAll("a.btn[href^="tel:"], a.btn[href$="/book"], a.btn[href$="/termin"]").length).toBeLessThanOrEqual(1);
+          // One button is Visit; at most one more is the primary action.
+          expect(full.querySelectorAll("a.btn").length).toBeLessThanOrEqual(2);
           expect(full.querySelectorAll("ul[role=list] a").length).toBeLessThanOrEqual(2);
           // Visit comes last.
           expect([...full.querySelectorAll("a")].at(-1)?.getAttribute("href")).toBe(site.business.mainSite?.home ?? `https://${site.business.domain}/`);
