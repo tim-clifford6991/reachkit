@@ -8,6 +8,7 @@
 import { parse } from "node-html-parser";
 import { AI_READER_AGENTS } from "@/lib/config/constants";
 import { asciiLowerCase, parseOnPage } from "@/lib/measure/parse";
+import { identityOf, type Identity } from "@/lib/business/identity";
 
 export interface PageIssueFacts {
   /** The `<meta name="description">` content, trimmed; empty where absent. */
@@ -25,6 +26,9 @@ export interface PageIssueFacts {
    *  for an answer reader, or `data-nosnippet` on the main content. Absent
    *  on a page read before issue 1145, which claims nothing. */
   snippetBlocked?: boolean;
+  /** Who the page's structured data says runs the site; `null` where none
+   *  says so. Absent on a page read before issue 1915, which claims nothing. */
+  identity?: Identity | null;
 }
 
 /** `<meta name>` values whose robots rules reach an answer reader: every
@@ -116,5 +120,6 @@ export function readPageFacts(url: string, html: string): PageIssueFacts {
     phoneViewport,
     schemaTypes: onPage.schemaTypes.length,
     snippetBlocked: snippetBlocked || mainContentHidden(withoutComments),
+    identity: identityOf(onPage.schemaTypes),
   };
 }

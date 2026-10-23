@@ -24,6 +24,7 @@ import type { Measured } from "@/lib/measure/measured";
 import { SEVERITY_INDEX, type ProblemCard, type ProblemName, type Severity } from "./model";
 import type { CheckCard } from "./checks";
 import { CopyLines } from "./copy-lines";
+import { typeWords } from "@/lib/business/identity";
 
 /** Red only for the customer's own problem being shown to them — which is
  *  exactly what a `high` severity is. */
@@ -207,6 +208,14 @@ function CheckRow(p: { card: CheckCard }): React.JSX.Element {
       : measured !== null && measured.severity.kind !== "unmeasured"
         ? copy(SEVERITY[SEVERITY_INDEX[measured.severity.value]])
         : undefined);
+  const identity = card.identity;
+  // A reading that was not measured says nothing: never "none", never "missing".
+  const identityLine =
+    identity?.kind === "found"
+      ? copy("check.identity.found", { type: typeWords(identity.type) })
+      : identity?.kind === "none"
+        ? copy("check.identity.none")
+        : null;
   const row = (
     <>
       <span className={`status status-lg shrink-0 ${tone}`}>
@@ -219,6 +228,11 @@ function CheckRow(p: { card: CheckCard }): React.JSX.Element {
         ) : measured === null ? null : (
           <span className="text-base-content/70">
             <MeasuredNum value={measured.count} what={title} />
+          </span>
+        )}
+        {identityLine === null ? null : (
+          <span className="text-base-content/70 basis-full text-xs font-normal" data-identity={identity?.kind}>
+            {identityLine}
           </span>
         )}
       </span>
