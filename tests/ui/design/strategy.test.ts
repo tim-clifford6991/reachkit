@@ -52,6 +52,12 @@ const RETIRED: readonly { name: string; pattern: RegExp }[] = [
   { name: "from none", pattern: /\bfrom none\b/i },
   { name: "in one click:", pattern: /\bin one click:/i },
   { name: "Payments already made are not refunded", pattern: /(?:^|[.!?]\s+)Payments already made are not refunded unless\b/ },
+  // D3: only week 1 is emailed first. B5: competitors are watched weekly, re-checked monthly. Cancelling runs through Settings.
+  { name: "We email each page first", pattern: /\bWe email each page first\b/i },
+  { name: "Emailed before it goes live", pattern: /\bEmailed before it goes live\b/i },
+  { name: "after we email it", pattern: /\bafter we email it\b/i },
+  { name: "Cancel in one click", pattern: /\bCancel in one click\b/i },
+  { name: "competitors checked", pattern: /\bcompetitors\b[^.]{0,20}\bchecked\b/i },
 ];
 
 /** The attributes whose value a customer reads or hears. */
@@ -199,6 +205,33 @@ describe("UI strategy: titles and retired names (#1463)", () => {
       "Otherwise your access continues, and payments already made are not refunded unless the law requires it.",
       "anywhere from 1 to 7 days",
     ].map(retiredIn)).toEqual([undefined, undefined, undefined]);
+  });
+
+  it("knows the week-1 mail, cancel and competitor promises, and leaves the true lines alone", () => {
+    expect(
+      [
+        "We email each page first. You never have to do anything.",
+        "Emailed before it goes live",
+        "Each page goes live {hours} hours after we email it unless you stop it.",
+        "Cancel in one click, yourself.",
+        "competitors checked every Monday",
+        "Up to {rivals} competitors are checked every week.",
+        "Your competitors, up to {rivals}, checked every week.",
+      ].map(retiredIn),
+    ).toEqual([
+      "We email each page first",
+      "Emailed before it goes live",
+      "after we email it",
+      "Cancel in one click",
+      "competitors checked",
+      "competitors checked",
+      "competitors checked",
+    ]);
+    expect(["Unsubscribe in one click.", "Your market and your pages checked every Monday", "competitors watched every Monday"].map(retiredIn)).toEqual([
+      undefined,
+      undefined,
+      undefined,
+    ]);
   });
 
   it("customer copy does not use a retired name", () => {

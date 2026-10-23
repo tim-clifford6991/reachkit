@@ -306,14 +306,22 @@ export async function hostedDestinationOf(
  *
  * `null` where the site has no hosted destination or the row names no
  * host. A row that was never checked reads `pending_dns`, which is what it
- * is: nobody has confirmed the record exists.
+ * is: nobody has confirmed the record exists. `checkedAt` is when the domain
+ * list was last asked, and `since` when the row was made.
  */
 export async function hostedHostFor(
   siteId: string
-): Promise<{ hostname: string; state: HostnameState } | null> {
+): Promise<{ hostname: string; state: HostnameState; checkedAt: Date | null; since: Date | null } | null> {
   const { data, error } = await publishDb()
-    .from<HostnameRow & { kind: string; hostname_state: HostnameState | null }>("destinations")
-    .select("id, site_id, hostname, kind, hostname_state")
+    .from<
+      HostnameRow & {
+        kind: string;
+        hostname_state: HostnameState | null;
+        hostname_checked_at: string | null;
+        created_at: string | null;
+      }
+    >("destinations")
+    .select("id, site_id, hostname, kind, hostname_state, hostname_checked_at, created_at")
     .eq("site_id", siteId)
     .eq("kind", "hosted")
     .is("deleted_at", null)
@@ -321,7 +329,18 @@ export async function hostedHostFor(
   if (error !== null || data === null) return null;
   const row = data[0];
   if (row === undefined || row.hostname === null) return null;
-  return { hostname: row.hostname, state: row.hostname_state ?? "pending_dns" };
+  return {
+    hostname: row.hostname,
+    state: row.hostname_state ?? "pending_dns",
+    checkedAt: dateOrNull(row.hostname_checked_at),
+    since: dateOrNull(row.created_at),
+  };
+}
+
+/** A stored stamp, or `null` where it is absent or unreadable. */
+function dateOrNull(at: string | null | undefined): Date | null {
+  const ms = at == null ? Number.NaN : Date.parse(at);
+  return Number.isNaN(ms) ? null : new Date(ms);
 }
 
 /** What the project's domain list last said about this destination's host,

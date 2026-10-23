@@ -20,7 +20,6 @@ import { assembleDraft, type DraftView } from "@/app/(account)/app/draft/[draftI
 import {
   FIXTURE_DRAFTS,
   FIXTURE_DRAFT_ID,
-  FIXTURE_PUBLISHED_DRAFT_ID,
 } from "@/app/(account)/app/draft/[draftId]/fixture";
 
 function viewOf(id: string): DraftView {
@@ -46,10 +45,8 @@ function precedes(a: Element, b: Element): boolean {
   return (a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING) !== 0;
 }
 
-describe.each([
-  ["a page in review", FIXTURE_DRAFT_ID],
-  ["a published page", FIXTURE_PUBLISHED_DRAFT_ID],
-])("the review screen, %s", (_name, id) => {
+// A live page has its own screen (board `PageDetail`, `live.test.tsx`).
+describe.each([["a page in review", FIXTURE_DRAFT_ID]])("the review screen, %s", (_name, id) => {
   const screen = dom(<DraftScreen view={viewOf(id)} generatedLabel="label" />);
   const notes = Array.from(one(screen, "draft-notes").children);
 

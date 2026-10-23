@@ -160,4 +160,16 @@ describe("weekly/refresh — the tick sends one keyed event per due site", () =>
     expect(queue.accepted.map((event) => event.key)).toEqual(["weekly:site-a:2026-09-07", "weekly:site-b:2026-09-07", "weekly:site-c:2026-09-07"]);
     expect(queue.accepted[0]!.data).toEqual({ ...doubles.weeklyDue[0], at: monday.toISOString() });
   });
+
+  it("a released week's retry tick sends the first pass's event id, so the platform drops it inside its window", async () => {
+    const { subjectEvents } = await import("@/jobs/client");
+    doubles.weeklyDue = [{ siteId: "site-a", domain: "a.example.com", zone: "UTC", weekStart: "2026-09-07" }];
+    const sent: SubjectEvent[][] = [];
+    const record = async (events: readonly SubjectEvent[]) => void sent.push([...events]);
+    await weeklyRefresh.run({ data: {}, now: new Date("2026-09-07T06:00:00.000Z"), send: record });
+    await weeklyRefresh.run({ data: {}, now: new Date("2026-09-07T07:00:00.000Z"), send: record });
+    const [first, retry] = sent.map((events) => subjectEvents("weekly/refresh", events).map((event) => event.id));
+    expect(first).toEqual(["weekly:site-a:2026-09-07"]);
+    expect(retry).toEqual(first);
+  });
 });
