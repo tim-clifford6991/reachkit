@@ -106,6 +106,45 @@ describe("ADR-093 decision 6 point 5 — the canary overflows on purpose and mus
     expect(offenders.some((o) => o.element.includes("escapee"))).toBe(true);
   });
 
+  it("check 2 — a box not rendered (visibility: hidden) is not an offender; a visible or transparent escapee still is (issue #1875)", async () => {
+    // A closed drawer: a hidden, clipped parent holding a panel translated
+    // fully outside it. Inside the same parent, a child that sets
+    // `visibility: visible` is seen and must still be measured, and so must
+    // an `opacity: 0` box, which is rendered and only transparent.
+    const offenders = await withPage(FLOOR_WIDTH, async (page) => {
+      await page.goto(FIXTURE_URL);
+      await page.evaluate(() => {
+        const make = (id: string, css: string) => {
+          const el = document.createElement("div");
+          el.id = id;
+          el.style.cssText = css;
+          return el;
+        };
+        const drawer = make(
+          "closed-drawer",
+          "visibility:hidden;overflow:hidden;width:200px;height:100px",
+        );
+        drawer.append(
+          make("hidden-panel", "width:150px;height:50px;translate:100%"),
+          make(
+            "visible-escapee",
+            "visibility:visible;width:150px;height:50px;translate:100%",
+          ),
+        );
+        const box = make("plain-box", "width:200px;height:100px");
+        box.append(
+          make("transparent-escapee", "opacity:0;width:150px;height:50px;translate:100%"),
+        );
+        document.body.append(drawer, box);
+      });
+      return page.evaluate(checkContainment, { scrollContainerAllowlist: [] });
+    });
+    const named = (id: string) => offenders.some((o) => o.element.includes(id));
+    expect(named("hidden-panel")).toBe(false);
+    expect(named("visible-escapee")).toBe(true);
+    expect(named("transparent-escapee")).toBe(true);
+  });
+
   it("check 3 (no clipping or truncation) fails on the clipped name", async () => {
     const offenders = await withPage(FLOOR_WIDTH, async (page) => {
       await page.goto(FIXTURE_URL);
