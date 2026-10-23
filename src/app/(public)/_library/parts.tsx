@@ -270,7 +270,7 @@ function LoopSample(p: { step: (typeof LOOP)[number] }): React.JSX.Element {
 export function ScanJump(): React.JSX.Element {
   return (
     <div className="flex min-w-0 flex-col items-start gap-2">
-      <Link href={`#${START_ID}`} className="btn btn-primary">
+      <Link href={`#${START_ID}`} className="btn btn-primary btn-soft">
         {copy("landing.start.cta")}
         <ArrowRight size={16} strokeWidth={1.75} aria-hidden />
       </Link>

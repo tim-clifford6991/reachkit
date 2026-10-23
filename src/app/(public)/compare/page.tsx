@@ -73,7 +73,9 @@ function JobsMatrix(): React.JSX.Element {
         </p>
         <div role="table" aria-labelledby={JOBS_NAME_ID} className="flex min-w-0 flex-col gap-2">
           <div role="row" className={GRID}>
-            <span role="columnheader" />
+            <span role="columnheader">
+              <span className="sr-only">{copy("compare.jobs.kind")}</span>
+            </span>
             {MATRIX_JOBS.map((job, i) => (
               <span key={job} role="columnheader" className="text-base-content/70 text-center text-xs font-semibold">
                 <span className="hidden md:inline">{label(job)}</span> <span className="md:hidden">{i + 1}</span>
