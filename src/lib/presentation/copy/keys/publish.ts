@@ -338,11 +338,49 @@ export const PUBLISH_COPY = Object.freeze({
     { slots: { query: "text", volume: "text" }, fixedBy: "issue 1025" },
   ],
   "publish.veto.alreadyUsed": ["This link was already used. The page is stopped.", { slots: {}, fixedBy: "REQ-057 c1" }],
-  "publish.veto.expired": ["The moment to stop this page has passed.", { slots: {}, fixedBy: "REQ-057 c1" }],
-  "publish.veto.unknown": ["This isn’t a link ReachKit can act on.", { slots: {}, fixedBy: "REQ-057 c1" }],
+  // The Veto board's lines; "stopped", not "taken down", per E7 (R12 B8).
+  "publish.veto.expired": [
+    "The time to stop this page from your mail has passed, so it may be live now. Sign in to see it. A live page can be stopped from its page in Plan.",
+    { slots: {}, fixedBy: "issue 1739 · E7" },
+  ],
+  "publish.veto.unknown": [
+    "This isn’t a link ReachKit can act on. Sign in to stop or edit a page from Plan.",
+    { slots: {}, fixedBy: "issue 1739" },
+  ],
   // The heads of the arms where nothing was stopped; the line under each says why.
-  "publish.veto.closed.head": ["This page can no longer be stopped here", { slots: {}, fixedBy: "issue 1574" }],
-  "publish.veto.unknown.head": ["This link doesn’t work", { slots: {}, fixedBy: "issue 1574" }],
+  "publish.veto.closed.head": ["This link has closed", { slots: {}, fixedBy: "issue 1739" }],
+  "publish.veto.unknown.head": ["We can’t use this link", { slots: {}, fixedBy: "issue 1739" }],
+  "publish.veto.used.head": ["Already stopped", { slots: {}, fixedBy: "issue 1739" }],
+  // The stop that did not go through: never says Stopped.
+  "publish.veto.failed.head": ["Not stopped yet", { slots: {}, fixedBy: "issue 1739" }],
+  "publish.veto.failed": [
+    "That didn’t go through, so the page is not stopped. Press Stop this page again, or sign in and stop it from Plan.",
+    { slots: {}, fixedBy: "issue 1739" },
+  ],
+  "publish.veto.failed.still": ["Still goes live {when}, unless stopped.", { slots: { when: "text" }, fixedBy: "issue 1739" }],
+  // The ask arm: why the week chose the page, the window, and what Stop does.
+  "publish.veto.why": ["Why ReachKit chose it:", { slots: {}, fixedBy: "issue 1739" }],
+  "publish.veto.timeline.sent": ["Mail sent {at}", { slots: { at: "text" }, fixedBy: "issue 1739" }],
+  "publish.veto.before": ["You can stop it any time before then.", { slots: {}, fixedBy: "issue 1739" }],
+  "publish.veto.consequence": [
+    "It won’t go live, and this topic is dropped. Your other pages are not affected.",
+    { slots: {}, fixedBy: "issue 1739" },
+  ],
+  // SPEC §0's six-word title rule over the board's seven words (R12 B7).
+  "publish.veto.choices.title": ["What each choice does", { slots: {}, fixedBy: "issue 1739 · SPEC §0" }],
+  "publish.veto.choices.stop": ["You press Stop this page", { slots: {}, fixedBy: "issue 1739" }],
+  "publish.veto.choices.stop.1": ["It won’t go live.", { slots: {}, fixedBy: "issue 1739" }],
+  "publish.veto.choices.stop.2": ["This topic is dropped. ReachKit won’t write it again.", { slots: {}, fixedBy: "issue 1739" }],
+  "publish.veto.choices.stop.3": ["Your other pages go ahead as usual.", { slots: {}, fixedBy: "issue 1739" }],
+  "publish.veto.choices.none": ["You do nothing", { slots: {}, fixedBy: "issue 1739" }],
+  "publish.veto.choices.none.1": ["It goes live {when}, on its own.", { slots: { when: "text" }, fixedBy: "issue 1739" }],
+  "publish.veto.choices.none.1.unset": ["It goes live on its own.", { slots: {}, fixedBy: "issue 1739" }],
+  "publish.veto.choices.none.2": ["You can still edit or stop it until then.", { slots: {}, fixedBy: "issue 1739" }],
+  "publish.veto.choices.none.3": ["Nothing is needed from you.", { slots: {}, fixedBy: "issue 1739" }],
+  // The stopped arm's week: each day's page, as Plan holds it.
+  "publish.veto.week.title": ["This week, after your stop", { slots: {}, fixedBy: "issue 1739" }],
+  "publish.veto.week.stopped": ["Stopped", { slots: {}, fixedBy: "issue 1739" }],
+  "publish.veto.week.ahead": ["Goes ahead", { slots: {}, fixedBy: "issue 1739" }],
   // Issue 1674: the Monday mail's link to a page planned but not written yet (drafted).
   "publish.veto.planned.title": ["Planned for {day}", { slots: { day: "text" }, fixedBy: "issue 1674 (drafted)" }],
   "publish.veto.written": [

@@ -15,6 +15,7 @@ import { VETO_TOKEN_BYTES } from "@/lib/config/constants";
 import {
   hashToken,
   issueVetoLink,
+  previewVetoLink,
   redeemVeto,
   redeemVetoLink,
   sameHash,
@@ -271,6 +272,71 @@ describe("no token, hashed or otherwise, reaches a log line", () => {
       expect(line).not.toContain(link.token);
       expect(line).not.toContain(hash);
     }
+  });
+});
+
+describe("the stop page's read: why it was chosen, when the mail left, and the week after a stop", () => {
+  const REASON = { points: 5, parts: [{ part: "ai_gap", n: 2 }], rule: null };
+  /** The columns the read selects that the module's other cases leave unset. */
+  const PAGE = { title: null, body_md: null, told: null, scheduled_for: null, opportunity_id: null };
+
+  it("an open link carries the stored reason and the told record's send time", async () => {
+    seed({ ...PAGE, opportunity_id: "o1", told: { pair: {}, kind: "interval", publishesAt: null, sentAt: "2026-09-02T07:00:00.000Z", mailed: true } });
+    db.seed("opportunities", [{ id: "o1", site_id: "s1", target_query: "q", volume: 10, plan_reason: REASON }]);
+    const link = await issueVetoLink("d1", AT);
+    const read = await previewVetoLink(link.token, AT);
+    if (!read.ok) throw new Error(`expected an open link, got ${read.reason}`);
+    expect(read.preview.reason).toEqual(REASON);
+    expect(read.preview.mailedAt?.toISOString()).toBe("2026-09-02T07:00:00.000Z");
+  });
+
+  it("a page told with its mail off, or never told, names no send time; one chosen before reasons names no reason", async () => {
+    for (const told of [null, { pair: {}, kind: "interval", publishesAt: null, sentAt: "2026-09-02T07:00:00.000Z", mailed: false }]) {
+      seed({ ...PAGE, opportunity_id: "o1", told });
+      db.seed("opportunities", [{ id: "o1", site_id: "s1", target_query: "q", volume: 10, plan_reason: null }]);
+      const read = await previewVetoLink((await issueVetoLink("d1", AT)).token, AT);
+      if (!read.ok) throw new Error(`expected an open link, got ${read.reason}`);
+      expect(read.preview.mailedAt).toBeNull();
+      expect(read.preview.reason).toBeNull();
+    }
+  });
+
+  it("a spent link reads its page's Monday-to-Sunday week: stopped, going ahead, or nothing claimed", async () => {
+    // Wednesday 2 September 2026; its week runs Monday 31 August to Sunday 6 September.
+    seed({ ...PAGE, scheduled_for: "2026-09-02" });
+    db.rows("drafts").push(
+      { id: "d0", site_id: "s1", state: "published", scheduled_for: "2026-08-31" },
+      { id: "d9", site_id: "s1", state: "approved", scheduled_for: "2026-09-07" },
+      { id: "dx", site_id: "other", state: "skipped", scheduled_for: "2026-09-03" }
+    );
+    db.seed("opportunities", [
+      { id: "o2", site_id: "s1", status: "open", planned_for: "2026-09-04" },
+      { id: "o3", site_id: "s1", status: "dismissed", stopped: true, planned_for: "2026-09-05" },
+    ]);
+    const link = await issueVetoLink("d1", AT);
+    await redeemVetoLink(link.token, AT);
+    const read = await previewVetoLink(link.token, AT);
+    if (read.ok || read.reason !== "used") throw new Error("expected a spent link");
+    expect(read.week).toEqual([
+      { date: "2026-08-31", stopped: false },
+      { date: "2026-09-01", stopped: null },
+      { date: "2026-09-02", stopped: true },
+      { date: "2026-09-03", stopped: null },
+      { date: "2026-09-04", stopped: false },
+      // A planned page stopped before writing: a spare may take the day, so it claims nothing.
+      { date: "2026-09-05", stopped: null },
+      { date: "2026-09-06", stopped: null },
+    ]);
+  });
+
+  it("a week it cannot read is no week, never a guessed one", async () => {
+    seed({ ...PAGE, scheduled_for: "2026-09-02" });
+    const link = await issueVetoLink("d1", AT);
+    await redeemVetoLink(link.token, AT);
+    db.unreadable.add("opportunities");
+    const read = await previewVetoLink(link.token, AT);
+    if (read.ok || read.reason !== "used") throw new Error("expected a spent link");
+    expect(read.week).toBeNull();
   });
 });
 
