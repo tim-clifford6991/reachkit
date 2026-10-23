@@ -89,6 +89,22 @@ describe("the stop link to a page not written yet", () => {
     expect(done).toContain(COPY["publish.veto.done.head"]);
   });
 
+  it("says why ReachKit chose the planned page, from the reason the week stored", async () => {
+    db.rows("opportunities")[0]!.plan_reason = { points: 4, parts: [{ part: "demand", n: 2 }], rule: null };
+    const why = nodes(await VetoPage({ params: { token: TOKEN } })).find((node) => node.props?.["data-testid"] === "veto-why");
+    const said = nodes(why as unknown as React.ReactNode).flatMap((node) => {
+      const children = node.props?.children;
+      return (Array.isArray(children) ? children : [children]).filter((c): c is string => typeof c === "string");
+    });
+    expect(said).toContain(COPY["publish.veto.why"]);
+    expect(said).toContain("searched every month.");
+  });
+
+  it("a planned page whose week kept no reason states none", async () => {
+    const tree = await VetoPage({ params: { token: TOKEN } });
+    expect(nodes(tree).some((node) => node.props?.["data-testid"] === "veto-why")).toBe(false);
+  });
+
   it("a page written since its mail is sent to the plan, and is not stopped here", async () => {
     db.rows("opportunities")[0]!.status = "queued";
     const tree = await VetoPage({ params: { token: TOKEN } });
