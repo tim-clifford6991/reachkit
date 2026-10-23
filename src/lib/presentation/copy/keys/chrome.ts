@@ -739,7 +739,7 @@ export const CHROME_COPY = Object.freeze({
   "compare.item.jobs.every": ["for every page.", { slots: {}, fixedBy: "board PubCompareTool · issue 1730" }],
   "compare.item.jobs.none": ["You do none of them.", { slots: {}, fixedBy: "board PubCompareTool · issue 1730" }],
   "compare.item.jobs.none.line": ["You can still edit or stop any page.", { slots: {}, fixedBy: "board PubCompareTool · issue 1730" }],
-  "compare.item.still": ["What you still do with {name}", { slots: { name: "text" }, fixedBy: "board PubCompareTool · issue 1730 · SPEC 2026-10-15 six words" }],
+  "compare.item.still": ["What you still do with {name}", { slots: { name: "text" }, fixedBy: "board PubCompareTool · issue 1730 · DESIGN.md 2026-10-15 six words" }],
   "compare.item.still.line": ["For every page, every week.", { slots: {}, fixedBy: "board PubCompareTool · issue 1730" }],
   "compare.item.instead.eyebrow": ["Done for you, every week", { slots: {}, fixedBy: "board PubCompareTool · issue 1730" }],
   "compare.item.instead": ["What ReachKit does instead", { slots: {}, fixedBy: "board PubCompareTool · issue 1730" }],

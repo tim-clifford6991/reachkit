@@ -154,7 +154,7 @@ export const SUITES: readonly Comparison[] = [
         "There is a free plan for light research, a Lifetime option for people who would rather pay once, and a seven day free trial that needs a credit card.",
       ],
     },
-    does: ["choose", "results"],
+    does: ["choose", "write", "results"],
     rows: [
       { label: "Free scan with no account", reachkit: true, them: "partly: free plan for light research" },
       { label: "Keyword research database", reachkit: false, them: true },
@@ -282,7 +282,7 @@ export const SUITES: readonly Comparison[] = [
         "The teaching is strong too: a guide with a free template and a Moz Academy certification of six courses and exams. The deeper tools are part of Moz Pro, which has a free trial.",
       ],
     },
-    does: ["choose"],
+    does: ["choose", "results"],
     rows: [
       { label: "Competitors found from search results", reachkit: true, them: true },
       { label: "Free with no account", reachkit: true, them: "partly: deeper tools in Moz Pro" },
@@ -326,7 +326,7 @@ export const SUITES: readonly Comparison[] = [
         "Those are stated quotas on a free plan, and that is a real offer.",
       ],
     },
-    does: ["choose"],
+    does: ["choose", "results"],
     rows: [
       { label: "Free competitor view", reachkit: true, them: "partly: 3 competitors, 10 keywords" },
       { label: "Competitors tracked weekly", reachkit: `partly: up to ${P.competitors}, paid`, them: "partly: 3 free, 20 on Premium" },

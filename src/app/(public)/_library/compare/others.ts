@@ -200,7 +200,7 @@ export const OTHERS: readonly Comparison[] = [
         "Surfer also has an AI Tracker, which shows how your brand appears in AI tools like ChatGPT and flags answers that favour competitors. It offers several plans and free tools, including a free AI visibility audit.",
       ],
     },
-    does: ["choose", "write", "results"],
+    does: ["write", "results"],
     rows: [
       { label: "Editor that guides your draft", reachkit: false, them: true },
       { label: "Writes with AI", reachkit: "partly: whole pages, from your site", them: true },
