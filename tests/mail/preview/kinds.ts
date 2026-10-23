@@ -138,7 +138,7 @@ const WEEKLY_NEXT = [
   { targetQuery: "how to run payroll without an accountant" },
 ];
 
-/** Where a `toggle` kind's stop control points: Settings › Notifications,
+/** Where a `toggle` kind's stop control points: Settings › Mail,
  *  the customer's own three switches — never the address-wide opt-out. */
 const UNSUBSCRIBE = {
   href: `${APP}/app/settings`,

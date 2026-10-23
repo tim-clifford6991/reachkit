@@ -37,5 +37,4 @@ Fixed costs, October	sample data
 cap €2 warning €1.50	the reference lines' own labels, which Recharts draws inside the chart's svg and the reader skips; the key under the chart says them in text (DESIGN §1, #1714)
 The seven UTC days to Monday 19 October. Estimated is our price list; billed is what the vendor charged.	sample data: the date; tests/app/costs/page.test.tsx renders the board's own week and finds the whole sentence (#1753)
 1 day over, 1 day past the warning	sample data: the counts; tests/app/costs/page.test.tsx renders the board's own week and finds the whole line (#1753)
-Publishing on	#1717: the app shell's status line, which that issue changes for every /app board
 Theme: light	#1744: the app shell's theme control, which that issue changes for every /app board

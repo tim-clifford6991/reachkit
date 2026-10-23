@@ -19,7 +19,7 @@ import type { CopyPartition } from "../registry.ts";
 
 export const MAIL_COPY = Object.freeze({
   // 2026-09-08, UI-SPEC S7 (ruling 11a). The approved set draws this page
-  // as one card — a mail chip over "Opted out", the address the link
+  // as one card — a mail chip over "Unsubscribed", the address the link
   // belonged to inside the line, and a quiet way back — and 11a makes its
   // unbracketed strings approved copy as written. So this line is the
   // set's, not the 2026-09-04 ruling's: that ruling wrote a sentence for a
@@ -31,16 +31,16 @@ export const MAIL_COPY = Object.freeze({
   "optout.invalid": ["That unsubscribe link isn’t valid any more. Reply to any ReachKit email with \"stop\" and we’ll stop by hand.", { slots: {}, fixedBy: "REQ-011 c3" }],
 
   // The card's own head (UI-SPEC S7, 11a). The set draws one eyebrow over
-  // the mail chip and it states what happened: "Opted out".
-  "optout.head": ["Opted out", { slots: {}, fixedBy: "REQ-010 c11 · S7 (11a)" }],
+  // the mail chip and it states what happened: "Unsubscribed".
+  "optout.head": ["Unsubscribed", { slots: {}, fixedBy: "REQ-010 c11 · S7 (11a)" }],
   /** The same head on the two arms where nothing was opted out — an
    *  invalid link, or a store this product could not reach.
    *
    *  **It has to be its own key.** The set draws only the confirmation,
-   *  so 11a writes no eyebrow for the other two arms, and "Opted out" over
+   *  so 11a writes no eyebrow for the other two arms, and "Unsubscribed" over
    *  "that link isn’t valid any more" would be the page contradicting
    *  itself in its own head. */
-  "optout.head.unresolved": ["Not opted out", { slots: {}, fixedBy: "REQ-010 c11 · S7 (12a)" }],
+  "optout.head.unresolved": ["Not unsubscribed yet", { slots: {}, fixedBy: "REQ-010 c11 · S7 (12a)" }],
 
   // 2026-09-05, issue #30 (the mail seam, BUILD §12). Six keys the shell
   // and the whole-mail line need. Five are sentences the product speaks in
@@ -639,15 +639,15 @@ export const MAIL_COPY = Object.freeze({
     { slots: {}, fixedBy: "S20 (11a)" },
   ],
   "mail.reason.draftReady": [
-    "Daily draft-ready mail · switch off in Settings › Notifications.",
+    "Daily draft-ready mail · switch off in Settings › Mail.",
     { slots: {}, fixedBy: "S20 (11a)" },
   ],
   "mail.reason.published": [
-    "Sent when your first page goes live · switch off in Settings › Notifications.",
+    "Sent when your first page goes live · switch off in Settings › Mail.",
     { slots: {}, fixedBy: "S20 (11a)" },
   ],
   "mail.reason.weekly": [
-    "Monday movement mail · switch off in Settings › Notifications.",
+    "Monday movement mail · switch off in Settings › Mail.",
     { slots: {}, fixedBy: "S20 (11a)" },
   ],
   // #640: SPEC §8 gives every mail a "why it arrived" line; the setup
@@ -821,6 +821,11 @@ export const MAIL_COPY = Object.freeze({
   "mail.ops.incident.fact.balance": ["Balance", { slots: {}, fixedBy: "issue 1587 (drafted)" }],
   "mail.ops.incident.fact.days-left": ["Days left at last week's spend", { slots: {}, fixedBy: "issue 1587 (drafted)" }],
   "mail.ops.incident.fact.dashboard": ["Dashboard", { slots: {}, fixedBy: "issue 1587 (drafted)" }],
+  // Issue 1842: Stripe refused an automatic 14-day refund.
+  "mail.ops.incident.refund-refused": ["Stripe refused an automatic 14-day refund, so the customer still has access and has not been paid back. Refund the invoice below by hand in the Stripe dashboard; the refund walk has the steps.", { slots: {}, fixedBy: "issue 1842 (drafted)" }],
+  "mail.ops.incident.fact.invoice": ["Invoice", { slots: {}, fixedBy: "issue 1842 (drafted)" }],
+  "mail.ops.incident.fact.account": ["Account", { slots: {}, fixedBy: "issue 1842 (drafted)" }],
+  "mail.ops.incident.fact.stripe-code": ["Stripe error code", { slots: {}, fixedBy: "issue 1842 (drafted)" }],
 
   // ── SPEC §8, Retention (issue 569). Owner-owed: the copy sheet is issue
   // 568. `sendEmail` refuses a mail that still carries the marker, so none of

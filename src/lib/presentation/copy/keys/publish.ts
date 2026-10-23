@@ -270,7 +270,7 @@ export const PUBLISH_COPY = Object.freeze({
   // has run out, or names no page; those are the owner's approved
   // sentences of 2026-09-10 (#459).
   "publish.veto.ask.head": [
-    "Publishes {when}",
+    "Goes live {when}",
     { slots: { when: "text" }, fixedBy: "REQ-057 c1 · S6 (11a)" },
   ],
   "publish.veto.ask.row.search": ["search", { slots: {}, fixedBy: "S6 (11a)" }],
