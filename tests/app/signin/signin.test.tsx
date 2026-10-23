@@ -132,7 +132,7 @@ describe('REQ-098 c2 — "then it carries these strings verbatim: the heading �
     const { copy } = await import("@/lib/presentation/copy");
     expect(copy("signin.heading")).toBe("Welcome back");
     expect(copy("signin.body")).toBe("Enter the email you paid with. We’ll send you a link to sign in. There is no password.");
-    expect(copy("signin.field.placeholder")).toBe("you@company.com");
+    expect(copy("signin.field.placeholder")).toBe("you@example.com");
     // Changed 2026-09-21 (#937): REQ-098 c2 wrote "Send my link" for a
     // screen that drew nothing else; the 2026-09-20 board says which link
     // it sends, which is the only question a reader has at this control.

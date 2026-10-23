@@ -512,7 +512,7 @@ export const REPORT_COPY = Object.freeze({
   "free-page.format.keyword_page": ["A page for this search", { slots: {}, fixedBy: "REQ-010 c1" }],
   // REQ-010 c2's trade: the address field and the one control beside it.
   "free-page.email.label": ["Where should we send it?", { slots: {}, fixedBy: "REQ-010 c2" }],
-  "free-page.email.placeholder": ["you@company.com", { slots: {}, fixedBy: "REQ-010 c2" }],
+  "free-page.email.placeholder": ["you@example.com", { slots: {}, fixedBy: "REQ-010 c2" }],
   "free-page.submit": ["Email me the full page", { slots: {}, fixedBy: "REQ-010 c2" }],
   "free-page.absent": ["No first page this time: the scan found none worth writing.", { slots: {}, fixedBy: "REQ-004 c10" }],
 
