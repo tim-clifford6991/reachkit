@@ -7,22 +7,17 @@
 // measured is `unmeasured` (rendered "—"), a measured 0 is the `zero` arm,
 // and an empty denominator reads 0, never null.
 //
+// SearchPresence is the one exception: the page-one share of the measured
+// searches, not §5's ranked-reach formula, so the Google bar counts what the
+// presence card counts.
+//
 // The coefficients that BUILD §5 states as numbers of formula *shape*
-// (25, 0.55, 0.45, 4, 0.4, 0.6, the "/ 3") live here beside the sentence
-// they transcribe. The two that are pins — the direct-answer window and
+// (0.4, 0.6, the "/ 3") live here beside the sentence they transcribe. The two that are pins — the direct-answer window and
 // the answerability floor — are read from `SCORING`; the closed reader
 // list is `AI_READER_AGENTS`. Nothing here is customer-visible.
 import { AI_READER_AGENTS, SCORE_ESTIMATE, SCORING } from "@/lib/config/constants";
 import type { RobotsPolicy } from "@/lib/egress/types";
-import type { RankedResult, RankedRow, SerpAiOverview } from "@/lib/vendors/dataforseo/types";
-
-/** What §5's reach and share read of a `ranked_keywords` answer: the total
- *  and each row's position — all a stored report keeps enough of to
- *  re-score (issue 1426). */
-export interface RankedPositions {
-  readonly rows: readonly (Pick<RankedRow, "position"> & { keyword?: string })[];
-  readonly total: number | null;
-}
+import type { RankedResult, SerpAiOverview } from "@/lib/vendors/dataforseo/types";
 import { measured, measuredZero, unmeasured, worseReason, type Measured, type UnmeasuredReason } from "./measured";
 import ORDINARY_WORDS from "./ordinary-words.json";
 import { asciiLowerCase, type OnPageFacts } from "./parse";
@@ -203,22 +198,13 @@ export function answerabilityOf(a: { pages: readonly Measured<OnPageFacts>[]; at
 
 // ── SearchPresence ──────────────────────────────────────────────────────
 
-/** BUILD §5: "SearchPresence = min(100, 25 × log10(ranked + 1)) × (0.55 +
- *  0.45 × min(1, top10share × 4))". Each coefficient beside its term. */
-const SEARCH_LOG_COEFFICIENT = 25;
-const SEARCH_BASE_SHARE = 0.55;
-const SEARCH_TOP10_WEIGHT = 0.45;
-const SEARCH_TOP10_SATURATION = 4;
-/** "top10share" — the share of ranked rows at positions 1–10. */
-const TOP10_LAST_POSITION = 10;
-
 /** How many searches a domain ranks for, read off one `ranked_keywords`
  *  answer: the vendor's own total, which is what the rival bands are
- *  multiples of (#117) and what §5's reach term counts (#529). `null`
- *  means the vendor reported none, and the fallback is the row count — the
- *  capped figure, so the fallback never reads a domain as bigger than it
- *  was measured. A total of 0 is the total, not an absence. */
-function rankedCountOf(result: RankedPositions): number {
+ *  multiples of (#117). `null` means the vendor reported none, and the
+ *  fallback is the row count — the capped figure, so the fallback never
+ *  reads a domain as bigger than it was measured. A total of 0 is the
+ *  total, not an absence. */
+function rankedCountOf(result: RankedResult): number {
   return result.total ?? result.rows.length;
 }
 
@@ -227,10 +213,7 @@ function rankedCountOf(result: RankedPositions): number {
  *
  * §6.6 bands a rival against "the customer's own measured count from the
  * same pass", and §7's two winnability bars are `max(500, 5× customer's)`
- * and `max(100, 2× customer's)`. Both want the count itself, which
- * `searchPresenceOf` below consumes and does not give back. One call, two
- * readings, and no second fetch: this reads the very rows that call
- * returned.
+ * and `max(100, 2× customer's)`. Both want the count itself.
  *
  * Zero rows is a measured 0 (BUILD §6.3: "0 rows is a legal result"), not
  * an absence — a domain that ranks for nothing is the cold-start case the
@@ -248,83 +231,17 @@ export function ownRankedOf(a: { ranked: Measured<RankedResult>; at: Date }): Me
   return ofValue(rankedCountOf(a.ranked.value), a.at);
 }
 
-/** BUILD §5's SearchPresence over one `ranked_keywords` answer. The two
- *  terms take two different readings of it (#529):
- *
- *  - **reach** reads the vendor's **total** — how many searches the domain
- *    ranks for. §5's `min(100, 25 × log10(ranked + 1))` saturates at
- *    10 000 ranked keywords, so it measures the domain's whole footprint;
- *    fed the rows the pass bought (50 on the free tier) it was the constant
- *    `25 × log10(51)` for every site at or above the cap, and could not
- *    tell a site ranking for 50 searches from one ranking for 7 412. Where
- *    the vendor reports no total, the rows are the count — the same rule
- *    `ownRankedOf` applies (`rankedCountOf`).
- *  - **top10share** reads the **rows bought** — the share of them at
- *    positions 1–10. A share must be a fraction of the rows it counts;
- *    dividing a count from the sample by the total would divide one
- *    measurement by another (#117's reasoning, which holds for the share).
- *
- *  §5's coefficients and shape are unchanged; only reach's input is. Zero
- *  rows and no total is a legal result and a measured 0 (BUILD §6.3: "0
- *  rows is a legal result") — the `zero` arm, never `unmeasured`. An
- *  `unmeasured` answer is `unmeasured` with the reason it carried. */
+/** The presence card's own count over its own denominator, local pack
+ *  included, so the Google bar and the card cannot disagree. No card or no
+ *  measured search is `unmeasured` with why, never 0. */
 export function searchPresenceOf(a: {
-  ranked: Measured<RankedPositions>;
+  card: { measuredSearches: number; you: { top10Count: number } } | null;
+  /** The SERPs the card was counted over, read for why none was measured. */
+  serps: readonly Measured<unknown>[];
   at: Date;
-  /** The searches whose local pack shows the site (`localPackSearches`). */
-  localPack?: readonly string[];
 }): Measured<number> {
-  if (a.ranked.kind === "unmeasured") return unmeasured(a.ranked.reason, a.at);
-  const read = a.localPack === undefined ? a.ranked.value : withLocalPack(a.ranked.value, a.localPack);
-  const rows = read.rows;
-  const ranked = rankedCountOf(read);
-  const top10 = rows.filter((row) => row.position >= 1 && row.position <= TOP10_LAST_POSITION).length;
-  const top10share = rows.length === 0 ? 0 : top10 / rows.length;
-  const reach = Math.min(SCALE, SEARCH_LOG_COEFFICIENT * Math.log10(ranked + 1));
-  const quality = SEARCH_BASE_SHARE + SEARCH_TOP10_WEIGHT * Math.min(1, top10share * SEARCH_TOP10_SATURATION);
-  return ofValue(reach * quality, a.at);
-}
-
-/** The searches whose Google local pack shows the site (SPEC §6, owner
- *  D67; owner ruling 2026-10-15, issue 1441). `serps[i]` was bought for
- *  `searches[i]`, the pairing the presence card reads; a SERP with no search
- *  beside it, or one not measured, holds nothing. */
-export function localPackSearches(a: {
-  serps: readonly Measured<{ localPack?: readonly { domain: string }[] }>[];
-  searches: readonly string[];
-  ownDomain: string;
-}): string[] {
-  const own = hostOf(a.ownDomain);
-  const found: string[] = [];
-  a.serps.forEach((serp, i) => {
-    const search = a.searches[i];
-    if (search === undefined || serp.kind === "unmeasured") return;
-    const shown = (serp.value.localPack ?? []).some((row) => {
-      const host = hostOf(row.domain);
-      return host === own || host.endsWith(`.${own}`);
-    });
-    if (shown && !found.includes(search)) found.push(search);
-  });
-  return found;
-}
-
-/** A place in a search's local pack is a top-ten result for that search
- *  (issue 1441): a ranked row for it outside the top ten is moved into it,
- *  and a search the ranked rows do not hold is one more the site is found
- *  for. The pack is read from the city, the ranked rows from the country,
- *  so a town's searches are seldom among them. */
-export function withLocalPack(ranked: RankedPositions, searches: readonly string[]): RankedPositions {
-  if (searches.length === 0) return ranked;
-  const key = (search: string): string => search.trim().toLowerCase();
-  const packed = new Set(searches.map(key));
-  const held = new Set<string>();
-  const rows = ranked.rows.map((row) => {
-    if (row.keyword === undefined || !packed.has(key(row.keyword))) return row;
-    held.add(key(row.keyword));
-    return row.position >= 1 && row.position <= TOP10_LAST_POSITION ? row : { ...row, position: TOP10_LAST_POSITION };
-  });
-  const added = [...packed].filter((search) => !held.has(search)).map((keyword) => ({ keyword, position: TOP10_LAST_POSITION }));
-  return { rows: [...rows, ...added], total: ranked.total === null ? null : ranked.total + added.length };
+  if (a.card === null || a.card.measuredSearches === 0) return unmeasured(unmeasuredReasonOf(a.serps) ?? "not_attempted", a.at);
+  return ofValue((SCALE * a.card.you.top10Count) / a.card.measuredSearches, a.at);
 }
 
 // ── AIPresence ──────────────────────────────────────────────────────────

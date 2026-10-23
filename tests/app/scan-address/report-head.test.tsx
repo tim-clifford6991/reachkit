@@ -88,8 +88,8 @@ describe("the head reads as the board: domain, where it was measured, what we re
       copy("verdict.score.parts"),
       `${copy("verdict.factor.foundations")} 7/10`,
       `${copy("verdict.factor.answerability")} 2/10`,
-      `${copy("verdict.factor.google")} 3/10`,
-      `${copy("verdict.factor.ai")} 1/10`,
+      `${copy("verdict.factor.google")} 1/10`,
+      `${copy("verdict.factor.ai")} 3/10`,
     ]);
   });
 

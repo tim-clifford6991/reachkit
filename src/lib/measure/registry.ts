@@ -137,7 +137,7 @@ export const MEASURES: readonly Measure[] = Object.freeze(
       id: "report-google-presence",
       shown: { on: "report", key: "verdict.factor.google" },
       definition:
-        "The domain's footprint in Google: how many searches it ranks for at all, weighted by the share of the ranked rows read that sit on the first page, local pack included; shown in tenths, n/10. A ranking read that failed draws no bar and says why.",
+        "Of the market's searches whose Google results were read, the share on whose first page the site is, local pack included: the presence card's own count over its own denominator; shown in tenths, n/10. Where no search was read the bar shows a dash and the report says why.",
       source: "src/lib/measure/drivers.ts#searchPresenceOf",
       cadence: "Each free scan, and each re-score of a stored report.",
     },
