@@ -45,3 +45,13 @@ export function longDate(iso: string): string {
     timeZone: "UTC",
   });
 }
+
+/** `2026-10-15` → `15 Oct 2026`, where a card has room for a short date. */
+export function shortDate(iso: string): string {
+  return new Date(`${iso}T00:00:00Z`).toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    timeZone: "UTC",
+  });
+}
