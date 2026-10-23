@@ -58,6 +58,14 @@ describe("enumerateRoutes — a dynamic segment with a fixture row resolves", ()
   });
 });
 
+describe("enumerateRoutes — a page that grows with a name is also swept at the longest one", () => {
+  it("the real tree lists /compare/chatgpt and /compare/seobility-competitor-analysis", () => {
+    const paths = enumerateRoutes(path.resolve(__dirname, "../../../src/app")).map((r) => r.path);
+    expect(paths).toContain("/compare/chatgpt");
+    expect(paths).toContain("/compare/seobility-competitor-analysis");
+  });
+});
+
 describe("enumerateRoutes — a dynamic segment with no fixture row fails, naming the route", () => {
   it("things/[id]/page.tsx throws MissingRouteFixtureError naming the file", () => {
     tmpRoot = mkdtempSync(path.join(os.tmpdir(), "wo-269-routes-"));
