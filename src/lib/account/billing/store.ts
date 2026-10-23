@@ -18,6 +18,7 @@
 // serving its pages — a question a policy that hid the row would answer
 // wrong by hiding it.
 import { dbAdmin } from "@/lib/db";
+import { SITE_PASS_TIERS } from "@/lib/scan/report";
 
 /** The `users` row, as billing reads it. Narrow on purpose: a column not
  *  named here cannot be read by accident. `plan_status` is on the list
@@ -176,7 +177,7 @@ export interface BillingStore {
   }): Promise<{ ok: true } | { ok: false }>;
 
   /** The pages delivered to a site in `[from, to)` that are still up, when
-   *  each Monday mail went in that span, and the newest finished pass's report. */
+   *  each Monday mail went in that span, and the newest finished weekly or deep pass's report. */
   period(
     siteId: string,
     from: Date,
@@ -463,6 +464,7 @@ export function supabaseBillingStore(): BillingStore {
           .from<{ report: unknown }>("scans")
           .select("report")
           .eq("site_id", siteId)
+          .in("tier", SITE_PASS_TIERS)
           .in("status", ["done", "degraded"])
           .not("report", "is", null)
           .gte("created_at", from.toISOString())
