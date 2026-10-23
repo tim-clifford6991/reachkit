@@ -17,6 +17,7 @@
 import { revalidatePath } from "next/cache";
 import { DESTINATION_HREF } from "../../_shell/destinations";
 import { isReservedFixtureAccount, requireAppAccount } from "../../_session/account";
+import type { LiveEditOutcome } from "@/lib/generate/edit-live";
 import type { SaveBody, SaveResult } from "./save";
 
 export async function saveDraft(body: SaveBody): Promise<SaveResult> {
@@ -65,4 +66,29 @@ export async function saveDraft(body: SaveBody): Promise<SaveResult> {
     rulesFailed: outcome.failed !== null && outcome.failed.length > 0,
     entered,
   };
+}
+
+/** SPEC §7 (R19): a live page's edit, saved as a new version at the same
+ *  address. `draftId` is the live version; the new one is in the answer. */
+export async function saveLiveEdit(body: SaveBody): Promise<LiveEditOutcome> {
+  const account = await requireAppAccount();
+  if (isReservedFixtureAccount(account)) return { ok: false, refused: "not_editable" };
+
+  const { startLiveEdit } = await import("@/lib/generate/edit-live");
+  const outcome = await startLiveEdit({
+    siteId: account.siteId,
+    userId: account.userId,
+    liveDraftId: body.draftId,
+    title: body.title,
+    bodyMd: body.bodyMd,
+    description: body.description,
+  });
+  if (!outcome.ok || !outcome.changed) return outcome;
+  if (outcome.told) {
+    const { schedulePublish } = await import("@/jobs/engine");
+    await schedulePublish({ draftId: outcome.draftId });
+  }
+  revalidatePath(DESTINATION_HREF.calendar);
+  revalidatePath(`/app/draft/${body.draftId}`);
+  return outcome;
 }
