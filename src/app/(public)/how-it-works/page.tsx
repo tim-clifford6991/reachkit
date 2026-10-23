@@ -1,8 +1,10 @@
 // How the product works, in public (board *How it works*, decision
 // 2026-10-20-1597). The head and its four-step strip, then ten sections, each
-// with an outcome heading, a short body, one picture and a closed *Show the
-// detail* that holds the precise figures. The pictures draw an example
-// business, a plumber or a software firm, picked by a switch.
+// with an outcome heading, a short body and one picture; six of them close
+// with a *Show the detail* that holds the precise figures, where the board
+// draws one. The pictures draw an example business, a plumber or a software
+// firm, picked by a switch; a caption under a picture says what the other
+// business's picture reads.
 //
 // No figure is typed: every number is a slot filled from `_how/facts.ts` or
 // the rules registry, and the example's own numbers come from
@@ -12,7 +14,7 @@
 import type React from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowRight, RefreshCw, User, Wallet, X } from "lucide-react";
+import { ArrowRight, Check, RefreshCw, User, Wallet, X } from "lucide-react";
 import { Surface } from "@/ui/layout";
 import { HOSTED_RETENTION_DAYS } from "@/lib/config/constants";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
@@ -22,7 +24,10 @@ import { measuredCountryLists } from "@/lib/locale/locales";
 import { PUBLIC_ROUTE_SEO } from "../_seo/routes";
 import { staticMetadata } from "../_seo/metadata";
 import { startCheckout } from "../pricing/actions";
+import { ScanForm } from "../_landing/ScanForm";
+import { scanFormWords } from "../_landing/scan-form-words";
 import { CHECK_LINES, CHECK_LINE_COPY, ENGINES_NAMED, HOW_FACTS as F, checksIn } from "../_how/facts";
+import { EXAMPLES } from "../_how/specimen";
 import { ThreeWays } from "../_how/compare";
 import {
   AsWeRead,
@@ -34,6 +39,7 @@ import {
   TwoWeeks,
   WeekOfPages,
   WhatToExpect,
+  WhatWeWorkToward,
   WhoGetsThem,
   YourPart,
 } from "../_how/visuals";
@@ -59,13 +65,18 @@ const ICON = { size: 16, strokeWidth: 1.75, "aria-hidden": true } as const;
 const PRICE = (): string => copy("price.amount");
 const minutes = { minutes: F.setupMinutes };
 const weekPages = { weekPages: F.weekPages };
+/** The week a customer first sees the work: their first. */
+const FIRST_WEEK = { week: 1 };
+/** The business each picture's caption names as the other one. */
+const SOFTWARE = EXAMPLES.software;
+const lower = (text: string): string => text.charAt(0).toLowerCase() + text.slice(1);
 
 /** The four steps, each opening the section that tells it. */
 const STEPS = [
   { n: 1, href: "#research", when: {} },
   { n: 2, href: "#questions", when: {} },
   { n: 3, href: "#pages", when: weekPages },
-  { n: 4, href: "#found", when: {} },
+  { n: 4, href: "#found", when: FIRST_WEEK },
 ] as const;
 
 const stepKey = (n: number, part: "title" | "when" | "line"): CopyKey => `how.step.${n}.${part}` as CopyKey;
@@ -107,7 +118,9 @@ function Section(p: {
   eyebrow?: string;
   title: string;
   body?: string;
-  detail: React.ReactNode;
+  /** What the body promises, one line each, under it. */
+  points?: readonly string[];
+  detail?: React.ReactNode;
   /** The picture under the text, full width, rather than beside it. */
   wide?: boolean;
   band?: boolean;
@@ -129,6 +142,16 @@ function Section(p: {
             </h2>
           </div>
           {p.body === undefined ? null : <p className={`${BODY} max-w-2xl`}>{p.body}</p>}
+          {p.points === undefined ? null : (
+            <ul className="flex flex-col gap-2">
+              {p.points.map((point) => (
+                <li key={point} className="flex items-start gap-2">
+                  <Check {...ICON} className="text-success mt-1 shrink-0" />
+                  {point}
+                </li>
+              ))}
+            </ul>
+          )}
           {p.wide === true ? null : p.detail}
         </div>
         <div className="flex min-w-0 flex-col gap-4">{p.children}</div>
@@ -149,21 +172,11 @@ function Head(): React.JSX.Element {
           </h1>
           <p className={`${BODY} text-lg`}>{copy("how.lead", minutes)}</p>
           <ScanCta />
-          <Detail>
-            <dl className="flex flex-col gap-3">
-              {(["does", "how", "you", "get"] as const).map((ask) => (
-                <div key={ask}>
-                  <dt className="text-base-content font-semibold">{copy(`how.ask.${ask}.q` as CopyKey)}</dt>
-                  <dd>{copy(`how.ask.${ask}.a` as CopyKey, { ...minutes, ...weekPages, price: PRICE() })}</dd>
-                </div>
-              ))}
-            </dl>
-          </Detail>
         </div>
         <Switched draw={TwoWeeks} />
       </div>
       <div className={`${INNER} mt-12`}>
-        <h2 className="text-lg">{copy("how.steps.title")}</h2>
+        <h2 className="text-lg">{copy("how.steps.jump")}</h2>
         <ol className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {STEPS.map((step) => (
             <li key={step.n} className="min-w-0">
@@ -293,6 +306,29 @@ function questions(): readonly Question[] {
   ];
 }
 
+/** The AI sentence's slots: every number from the constants the weekly battery runs on. */
+const aiSentenceSlots = (): Record<string, string | number> => ({
+  engines: copy(ENGINES_NAMED),
+  prompts: F.prompts,
+  weeks: F.answerWeeks,
+  answers: F.answers,
+  unbranded: F.unbranded,
+});
+
+/** The software firm's search, under the plumber's: who is first, and who is missing. */
+function SoftwareRivals(): React.JSX.Element {
+  return (
+    <div className="rounded-box bg-base-200 flex min-w-0 flex-col gap-1 p-4 text-sm">
+      <p className="flex flex-wrap items-center gap-2">
+        <span className="badge badge-ghost badge-sm">{copy("how.switch.software")}</span>
+        <span className="num">{SOFTWARE.site}</span>
+      </p>
+      <p className="font-semibold">{copy("how.rivals.other.search", { search: SOFTWARE.search })}</p>
+      <p>{copy("how.rivals.other.line", { leader: SOFTWARE.results[0]?.url ?? "", business: SOFTWARE.business })}</p>
+    </div>
+  );
+}
+
 export default function HowItWorksPage(): React.JSX.Element {
   return (
     <Surface
@@ -314,6 +350,11 @@ export default function HowItWorksPage(): React.JSX.Element {
           eyebrow={eyebrow(1)}
           title={copy("how.research.title")}
           body={copy("how.research.body")}
+          points={[
+            copy("how.research.bullet.voice"),
+            copy("how.research.bullet.correct"),
+            copy("how.research.bullet.fix", { minutes: F.fixMinutes }),
+          ]}
           detail={
             <Detail>
               <p>{copy("how.research.detail.read", { rivals: F.rivals })}</p>
@@ -323,6 +364,13 @@ export default function HowItWorksPage(): React.JSX.Element {
           }
         >
           <Switched draw={AsWeRead} />
+          <p className={SMALL}>
+            {copy("how.read.caption", {
+              sell: lower(SOFTWARE.read.sell[0]),
+              buyers: lower(SOFTWARE.read.buyers[0]),
+              where: lower(SOFTWARE.read.where[0]),
+            })}
+          </p>
         </Section>
 
         <Section
@@ -334,18 +382,17 @@ export default function HowItWorksPage(): React.JSX.Element {
           detail={
             <Detail>
               <p>{copy("how.measure.search", { searches: F.searches })}</p>
-              <p>{copy("how.measure.ai", { engines: copy(ENGINES_NAMED), prompts: F.prompts, weeks: F.answerWeeks })}</p>
+              <p>{copy("how.measure.ai", aiSentenceSlots())}</p>
               <p>{copy("how.measure.named")}</p>
-              <p className="text-base-content font-semibold">{copy("how.measure.limits")}</p>
-              <ul className={LIST}>
-                <li>{copy("how.measure.limit.vary")}</li>
-                <li>{copy("how.measure.limit.perplexity")}</li>
-                <li>{copy("how.measure.limit.locale")}</li>
-              </ul>
+              <p>
+                <span className="text-base-content me-1 font-semibold">{copy("how.measure.limits")}</span>
+                {`${copy("how.measure.limit.vary")} ${copy("how.measure.limit.perplexity")} ${copy("how.measure.limit.locale")}`}
+              </p>
             </Detail>
           }
         >
           <Switched draw={WhoGetsThem} />
+          <SoftwareRivals />
         </Section>
 
         <Section
@@ -356,27 +403,25 @@ export default function HowItWorksPage(): React.JSX.Element {
           body={copy("how.pick.body")}
           detail={
             <Detail>
-              <p>{copy("how.choose.weigh")}</p>
-              <p>{copy("how.choose.update")}</p>
-            </Detail>
-          }
-        >
-          <Switched draw={QuestionList} />
-        </Section>
-
-        <Section
-          id="pages"
-          eyebrow={eyebrow(3)}
-          title={copy("how.week.title")}
-          body={copy("how.week.body", weekPages)}
-          wide
-          detail={
-            <Detail>
-              <p>{copy("how.week.detail.plan", { ...weekPages, newPages: F.newPages })}</p>
+              <p>{copy("how.week.detail.plan", weekPages)}</p>
+              <p>{copy("how.pick.detail.order", { newPages: F.newPages })}</p>
               <p>{copy("how.week.detail.fewer")}</p>
             </Detail>
           }
         >
+          <Switched draw={QuestionList} />
+          <p className={SMALL}>
+            {copy("how.pick.software", {
+              list: SOFTWARE.questions
+                .filter((q) => q.reason !== "off")
+                .slice(0, 3)
+                .map((q) => q.search)
+                .join(", "),
+            })}
+          </p>
+        </Section>
+
+        <Section id="pages" eyebrow={eyebrow(3)} title={copy("how.week.title")} body={copy("how.week.body", weekPages)} wide>
           <Switched draw={WeekOfPages} />
           <div className="rounded-box bg-primary/5 flex flex-col items-start gap-3 p-6 lg:flex-row lg:items-center lg:justify-between">
             <p className="font-semibold">{copy("how.week.cta")}</p>
@@ -390,6 +435,7 @@ export default function HowItWorksPage(): React.JSX.Element {
           eyebrow={eyebrow(3)}
           title={copy("how.true.title")}
           body={copy("how.true.body", { checks: HARD_RULES.length })}
+          points={[copy("how.true.bullet.facts"), copy("how.true.bullet.invented"), copy("how.true.bullet.held")]}
           detail={
             <Detail>
               <ChecksDetail />
@@ -405,20 +451,22 @@ export default function HowItWorksPage(): React.JSX.Element {
         <Section
           id="found"
           eyebrow={eyebrow(4)}
-          title={copy("how.found.title")}
+          title={copy("how.found.title", FIRST_WEEK)}
           body={copy("how.found.body")}
           detail={
             <Detail>
-              <p>{copy("how.monday.measure", { searches: F.searches, prompts: F.prompts })}</p>
-              <p>{copy("how.monday.mail")}</p>
+              <p>
+                {`${copy("how.monday.measure", { searches: F.searches })} ${copy("how.monday.mail", { weeks: F.answerWeeks })}`}
+              </p>
               <p>{copy("how.monday.time")}</p>
             </Detail>
           }
         >
           <div className="grid min-w-0 grid-cols-1 items-start gap-4 md:grid-cols-2">
             <Switched draw={MondayEmail} />
-            <WhatToExpect />
+            <Switched draw={WhatWeWorkToward} />
           </div>
+          <WhatToExpect />
         </Section>
 
         <Section
@@ -429,31 +477,23 @@ export default function HowItWorksPage(): React.JSX.Element {
           body={copy("how.part.body")}
           detail={
             <Detail>
-              <p>{copy("how.control.window", { hours: F.windowHours, min: F.windowMinDays, max: F.windowMaxDays })}</p>
-              <p>{copy("how.control.act")}</p>
+              <p>
+                {`${copy("how.control.window", { hours: F.windowHours, min: F.windowMinDays, max: F.windowMaxDays })} ${copy("how.control.act")}`}
+              </p>
               <p>{copy("how.control.leave")}</p>
             </Detail>
           }
         >
           <Switched draw={YourPart} />
+          <p className={SMALL}>{copy("how.part.caption", { business: SOFTWARE.business, area: SOFTWARE.area })}</p>
         </Section>
 
         <Section
           id="value"
-          eyebrow={copy("how.steps.value.more")}
+          eyebrow={copy("how.value.eyebrow")}
           title={copy("how.value.title", { price: PRICE() })}
           body={copy("how.value.body", weekPages)}
           wide
-          detail={
-            <Detail>
-              <p className="text-base-content font-semibold">{copy("how.never.title")}</p>
-              <ul className={LIST}>
-                <li>{copy("how.never.invent")}</li>
-                <li>{copy("how.never.hide")}</li>
-                <li>{copy("how.never.promise")}</li>
-              </ul>
-            </Detail>
-          }
         >
           <ValueFigure />
           <div className="flex flex-wrap items-start gap-4">
@@ -466,18 +506,7 @@ export default function HowItWorksPage(): React.JSX.Element {
           </div>
         </Section>
 
-        <Section
-          id="faq"
-          band
-          eyebrow={copy("landing.faq.eyebrow")}
-          title={copy("landing.faq.heading")}
-          wide
-          detail={
-            <Detail>
-              <p>{copy("how.faq.more")}</p>
-            </Detail>
-          }
-        >
+        <Section id="faq" band eyebrow={copy("landing.faq.eyebrow")} title={copy("landing.faq.heading")} wide>
           <div className="grid min-w-0 grid-cols-1 items-start gap-2 lg:grid-cols-2">
             {questions().map((item) => (
               <details key={item.q} className="collapse collapse-arrow card-border bg-base-100 min-w-0">
@@ -504,8 +533,12 @@ export default function HowItWorksPage(): React.JSX.Element {
             </Detail>
           }
         >
+          <div className="flex min-w-0 flex-col gap-2" data-testid={SCAN_TEST_ID}>
+            <ScanForm words={scanFormWords(copy("landing.start.cta"))} />
+            <p className="font-mono text-xs text-base-content/70">{copy("landing.hero.assurance")}</p>
+          </div>
           <Switched draw={ReportGlance} />
-          <ScanCta />
+          <p className={SMALL}>{copy("how.start.caption.other", { business: SOFTWARE.business })}</p>
         </Section>
       </main>
     </Surface>
