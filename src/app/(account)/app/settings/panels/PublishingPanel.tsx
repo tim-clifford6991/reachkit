@@ -15,8 +15,6 @@
 // founder who did not act then can act now — and the press that asks the
 // domain list about it now (#757), the same press setup offers.
 //
-// The fix note sits under the card: Fix-type work is never automated.
-//
 // **The four settings write** (SPEC §4, 2026-09-20, #908, issue #913).
 // Until that issue the stepper, the two Change presses and the switch were
 // drawn and inert — every one of them already in `SETTABLE`'s closed offer
@@ -33,14 +31,13 @@
 "use client";
 
 import type React from "react";
-import { useOptimistic, useState } from "react";
-import { Sparkles } from "lucide-react";
+import { useId, useOptimistic, useState } from "react";
+import { ArrowRight, Check, CircleCheck, Clock, FileText, Globe, House, Mail } from "lucide-react";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { VETO } from "@/lib/config/constants";
 import { vetoHoursFromDays } from "@/lib/publish/settings/veto";
 import { CheckConnection } from "../../../_destination/CheckConnection";
 import { CnameRecord } from "../../../_destination/CnameRecord";
-import { writtenLine } from "../../_shell/written";
 import { ConnectDestination, type CredentialAction } from "./ConnectDestination";
 import { SettingRow } from "./SettingRow";
 import { SAVED_BADGE_CLASS, useSetting } from "./useSetting";
@@ -60,11 +57,14 @@ import {
   type SettingAnswer,
 } from "../panel-state";
 import { formatVetoWindow, vetoIsWholeDays, vetoWindowDays, zoneLabel } from "../format";
-import type { DestinationAction, DestinationHealth, DestinationKind, SettingsModel } from "../model";
+import type { DestinationAction, DestinationHealth, DestinationKind, SettingsDestination, SettingsModel } from "../model";
+import { NO_NEXT_PAGE, type NextPage } from "../next-page";
+import { Linked } from "../Linked";
+import { CALENDAR_HREF } from "../../_overview/week";
 
 /** The window as a written line. A stored window that is not whole days
  *  renders as the hours it is, never as "1.5 days". */
-function vetoWindowLabel(hours: number): string {
+export function vetoWindowLabel(hours: number): string {
   if (!vetoIsWholeDays(hours)) return formatVetoWindow(hours);
   const days = vetoWindowDays(hours);
   return copy(days === 1 ? "settings.publishing.veto.one-day" : "settings.publishing.veto.days", {
@@ -113,9 +113,31 @@ function resolvableZones(current: string): readonly string[] {
   return offered.length === 0 ? [current] : offered;
 }
 
-export function PublishingPanel(p: { settings: SettingsModel }): React.JSX.Element {
-  const { publishing, destinations } = p.settings;
-  const fixNote = writtenLine("settings.publishing.fix-note");
+/** A hosted address that is live and healthy: the board's "where pages go live" figure. */
+function isLiveHost(d: SettingsDestination): d is SettingsDestination & { hostname: string } {
+  return d.kind === "hosted" && d.hostname !== null && d.hostnameState === "live" && d.health === "ok";
+}
+
+/** One step of "How each page goes out". */
+function Step(p: { icon: React.ReactNode; title: string; at: string | null; note: React.ReactNode | null; first?: boolean; last?: boolean }): React.JSX.Element {
+  return (
+    <li>
+      {p.first ? null : <hr className="bg-base-300" />}
+      <div className="timeline-middle text-primary">{p.icon}</div>
+      <div className="timeline-end mb-3 flex min-w-0 flex-col text-sm">
+        <strong>{p.title}</strong>
+        {p.at === null ? null : <span className="num text-base-content/70">{p.at}</span>}
+        {p.note === null ? null : <span className="text-base-content/70 wrap-anywhere">{p.note}</span>}
+      </div>
+      {p.last ? null : <hr className="bg-base-300" />}
+    </li>
+  );
+}
+
+export function PublishingPanel(p: { settings: SettingsModel; next?: NextPage }): React.JSX.Element {
+  const next = p.next ?? NO_NEXT_PAGE;
+  const { publishing, destinations, domain } = p.settings;
+  const switchId = useId();
   const writer = useSetting();
   const [editing, setEditing] = useState<Editing>(null);
   /** The two controls whose own state is what the customer presses: the
@@ -152,63 +174,187 @@ export function PublishingPanel(p: { settings: SettingsModel }): React.JSX.Eleme
     writer.press(setPublishingAction, form, () => expectEnabled(on));
   }
 
+  const live = enabled && next.live !== null;
+  const host = destinations.find((d) => d.kind === "hosted" && d.hostname !== null)?.hostname ?? null;
   return (
-    <section className="card card-border min-w-0 bg-base-100">
-      <div className="card-body gap-4">
-        <h2 className="card-title min-w-0 flex-wrap text-base">
-          <Sparkles size={20} strokeWidth={1.75} aria-hidden />
-          <span className="min-w-0 wrap-anywhere">{copy("settings.publishing.title")}</span>
-          {/* R4-11's own badge: the quiet half of the answer, for a
-              customer who looked away while the toast was up. */}
-          {writer.saved ? (
-            <span className={SAVED_BADGE_CLASS} data-testid="publishing-saved">
-              {copy("settings.answer.saved-badge")}
-            </span>
-          ) : null}
-        </h2>
-
-        <div className="flex min-w-0 flex-col">
-          <SettingRow
-            name={copy("settings.publishing.veto")}
-            testId="setting-veto_hours"
-            below={
-              /* SPEC §7 (2026-09-20, #914): the canvas draws the customer's
-                 name for this window with a line saying what the number
-                 measures. The row's own `below` slot carries it. */
-              <p className="text-base-content/70 min-w-0 text-xs wrap-anywhere" data-testid="veto-note">
-                {copy("settings.publishing.veto.note")}
+    <>
+      <section className="card card-border min-w-0 bg-base-100" data-testid="publishing-flow">
+        <div className="card-body gap-4">
+          <div className="flex min-w-0 flex-wrap items-center justify-between gap-3">
+            <div className="flex min-w-0 flex-col gap-1">
+              <h2 className="card-title min-w-0 flex-wrap text-base">
+                <label htmlFor={switchId} className="min-w-0 wrap-anywhere">{copy("settings.publishing.title")}</label>
+                {/* R4-11's own badge: the quiet half of the answer, for a
+                    customer who looked away while the toast was up. */}
+                {writer.saved ? (
+                  <span className={SAVED_BADGE_CLASS} data-testid="publishing-saved">
+                    {copy("settings.answer.saved-badge")}
+                  </span>
+                ) : null}
+              </h2>
+              <p className="text-sm text-base-content/70 wrap-anywhere" data-testid="publishing-lead">
+                {copy(enabled ? "settings.publishing.on.lead" : "settings.publishing.off.lead")}
               </p>
-            }
-          >
-            {/* The range is the writer's (issue #46); this offers no press
-                past it rather than rendering a clamp of its own. */}
-            <span className="join">
-              <button
-                type="button"
-                className="btn btn-outline border-base-300 btn-sm join-item"
-                aria-label={copy("settings.publishing.veto.less.label")}
-                disabled={writer.busy || days <= VETO.minDays}
-                data-testid="veto-less"
-                onClick={() => step(days - 1)}
-              >
-                {copy("settings.publishing.veto.less")}
-              </button>
-              <span className="join-item num flex items-center border border-base-300 px-3 text-sm">
-                {vetoWindowLabel(vetoHours)}
-              </span>
-              <button
-                type="button"
-                className="btn btn-outline border-base-300 btn-sm join-item"
-                aria-label={copy("settings.publishing.veto.more.label")}
-                disabled={writer.busy || days >= VETO.maxDays}
-                data-testid="veto-more"
-                onClick={() => step(days + 1)}
-              >
-                {copy("settings.publishing.veto.more")}
-              </button>
+            </div>
+            <span className="flex items-center gap-2 text-sm" data-testid="setting-publishing_enabled">
+              <span>{copy(enabled ? "settings.publishing.on" : "settings.publishing.off")}</span>
+              <input
+                id={switchId}
+                type="checkbox"
+                className="toggle toggle-primary"
+                checked={enabled}
+                disabled={writer.busy}
+                data-testid="publishing-enabled"
+                onChange={(e) => toggle(e.target.checked)}
+              />
             </span>
-          </SettingRow>
+          </div>
 
+          <figure className="flex min-w-0 flex-col gap-2" data-testid="publishing-timeline">
+            <figcaption className="flex min-w-0 flex-col gap-1">
+              <span className="eyebrow">{copy("settings.publishing.flow.title")}</span>
+              {next.title === null ? null : (
+                <span className="text-sm wrap-anywhere">{copy("settings.publishing.flow.page", { title: next.title })}</span>
+              )}
+            </figcaption>
+            <ol
+              className={`timeline timeline-vertical timeline-compact min-w-0 ${enabled ? "" : "text-base-content/70"}`}
+              aria-label={copy("settings.publishing.flow.title")}
+            >
+              <Step
+                first
+                icon={<FileText size={16} strokeWidth={1.75} aria-hidden />}
+                title={copy("settings.publishing.flow.written")}
+                at={live ? next.written : null}
+                note={copy("settings.publishing.flow.written.note")}
+              />
+              <Step
+                icon={<Mail size={16} strokeWidth={1.75} aria-hidden />}
+                title={copy("settings.publishing.flow.emailed")}
+                at={live ? next.written : null}
+                note={copy("settings.publishing.flow.emailed.note")}
+              />
+              <Step
+                icon={<Clock size={16} strokeWidth={1.75} aria-hidden />}
+                title={copy("settings.publishing.flow.window", { window: vetoWindowLabel(vetoHours) })}
+                at={null}
+                note={<Linked sentence={copy("settings.publishing.flow.window.note")} word={copy("shell.nav.plan")} href={CALENDAR_HREF} />}
+              />
+              <Step
+                last
+                icon={<Globe size={16} strokeWidth={1.75} aria-hidden />}
+                title={copy(enabled ? "settings.publishing.flow.live" : "settings.publishing.flow.paused")}
+                at={live ? next.live : null}
+                note={host === null ? null : <span className="num">{host}</span>}
+              />
+            </ol>
+            <p className="text-xs text-base-content/70 wrap-anywhere">{copy("settings.publishing.flow.note")}</p>
+          </figure>
+        </div>
+      </section>
+
+      <section className="card card-border min-w-0 bg-base-100">
+        <div className="card-body flex min-w-0 flex-col">
+          <SettingRow
+            name={copy("settings.publishing.destinations")}
+            testId="setting-destinations"
+            below={
+              <div className="flex min-w-0 flex-col gap-3">
+              {destinations.map((destination) => isLiveHost(destination) ? (
+                <div className="flex min-w-0 flex-col gap-2" key={destination.id} data-testid={`destination-${destination.id}`}>
+                  <div className="bg-base-200 rounded-box flex min-w-0 flex-wrap items-center gap-3 p-3 text-sm">
+                    <span className="flex min-w-0 items-center gap-2">
+                      <House size={16} strokeWidth={1.75} aria-hidden />
+                      <span className="flex min-w-0 flex-col">
+                        <span className="text-xs text-base-content/70">{copy("settings.publishing.where.site")}</span>
+                        <span className="num wrap-anywhere">{domain}</span>
+                      </span>
+                    </span>
+                    <ArrowRight size={16} strokeWidth={1.75} aria-hidden />
+                    <span className="flex min-w-0 items-center gap-2">
+                      <FileText size={16} strokeWidth={1.75} aria-hidden />
+                      <span className="flex min-w-0 flex-col">
+                        <span className="text-xs text-base-content/70">{copy("settings.publishing.where.pages")}</span>
+                        <span className="num wrap-anywhere" data-testid={`hostname-${destination.id}`}>{destination.hostname}</span>
+                      </span>
+                    </span>
+                    <span className="badge badge-success badge-soft">
+                      <CircleCheck size={14} strokeWidth={1.75} aria-hidden />
+                      {copy("settings.destination.hostname.live")}
+                    </span>
+                  </div>
+                  <CheckConnection draft={null} />
+                  <p className="flex min-w-0 items-center gap-1 text-xs text-base-content/70 wrap-anywhere" data-testid="publishing-connected">
+                    <Check size={14} strokeWidth={1.75} aria-hidden />
+                    {copy("settings.destination.check.live")}
+                  </p>
+                </div>
+              ) : (
+                <div className="flex min-w-0 flex-col gap-1" key={destination.id} data-testid={`destination-${destination.id}`}>
+                  <div className="flex min-w-0 flex-wrap items-center justify-between gap-2">
+                    <span className="flex min-w-0 flex-wrap items-baseline gap-2">
+                      <span className="min-w-0 text-sm font-semibold wrap-anywhere">
+                        {copy(KIND_COPY_KEY[destination.kind])}
+                      </span>
+                      {destination.hostname === null ? null : (
+                        <span
+                          className="num min-w-0 text-xs text-base-content/70 wrap-anywhere"
+                          data-testid={`hostname-${destination.id}`}
+                        >
+                          {destination.hostname}
+                        </span>
+                      )}
+                    </span>
+                    <span className="flex min-w-0 flex-wrap items-center gap-2">
+                      {/* SPEC §5: "live" / "waiting for DNS", beside health and
+                          never instead of it. Where the record is shown below,
+                          the record's own badge says it, beside the record. */}
+                      {destination.copy.hostname === null || destination.dns !== null ? null : (
+                        <span
+                          className={
+                            destination.hostnameState === "live"
+                              ? "badge badge-success badge-soft"
+                              : "badge badge-warning badge-soft"
+                          }
+                        >
+                          {copy(destination.copy.hostname)}
+                        </span>
+                      )}
+                      <span className={HEALTH_BADGE[destination.health]}>{copy(destination.copy.state)}</span>
+                      {needsCredential(destination.action) ? (
+                        <ConnectDestination action={destination.action} />
+                      ) : destination.action === "none" || destination.dns !== null ? null : (
+                        // **A statement, not a control** (issue #913). This
+                        // names the act a hosted destination is waiting on
+                        // while the record itself could not be read, so there
+                        // is nothing here to press: it was drawn as a button
+                        // with no handler, which is a control that cannot act.
+                        // Where the record *is* known it is the heading of the
+                        // block below, with the record under it and the one
+                        // press that checks it — which is the act, and does
+                        // work.
+                        <span className="text-sm font-semibold wrap-anywhere" data-testid="dns-needed">
+                          {copy(ACTION_COPY_KEY[destination.action])}
+                        </span>
+                      )}
+                    </span>
+                  </div>
+                  {destination.copy.line === null ? null : (
+                    <p className="text-xs text-base-content/70 wrap-anywhere">{copy(destination.copy.line)}</p>
+                  )}
+                  {destination.dns === null ? null : (
+                    <div className="mt-2 flex min-w-0 flex-col gap-1" data-testid={`dns-${destination.id}`}>
+                      <h4 className="text-sm font-semibold">{copy(ACTION_COPY_KEY.set_dns)}</h4>
+                      <CnameRecord record={destination.dns} />
+                      {/* The destination names its own host: nothing is sent. */}
+                      <CheckConnection draft={null} />
+                    </div>
+                  )}
+                </div>
+              ))}
+              </div>
+            }
+          />
           <SettingRow
             name={copy("settings.publishing.publish-time")}
             testId="setting-publish_time"
@@ -255,10 +401,55 @@ export function PublishingPanel(p: { settings: SettingsModel }): React.JSX.Eleme
           </SettingRow>
 
           <SettingRow
+            name={copy("settings.publishing.veto")}
+            testId="setting-veto_hours"
+            below={
+              /* SPEC §7 (2026-09-20, #914): the canvas draws the customer's
+                 name for this window with a line saying what the number
+                 measures. The row's own `below` slot carries it. */
+              <p className="text-base-content/70 min-w-0 text-xs wrap-anywhere" data-testid="veto-note">
+                {copy("settings.publishing.veto.note")}
+              </p>
+            }
+          >
+            {/* The range is the writer's (issue #46); this offers no press
+                past it rather than rendering a clamp of its own. */}
+            <span className="join">
+              <button
+                type="button"
+                className="btn btn-outline border-base-300 btn-sm join-item"
+                aria-label={copy("settings.publishing.veto.less.label")}
+                disabled={writer.busy || days <= VETO.minDays}
+                data-testid="veto-less"
+                onClick={() => step(days - 1)}
+              >
+                {copy("settings.publishing.veto.less")}
+              </button>
+              <span className="join-item num flex items-center border border-base-300 px-3 text-sm">
+                {vetoWindowLabel(vetoHours)}
+              </span>
+              <button
+                type="button"
+                className="btn btn-outline border-base-300 btn-sm join-item"
+                aria-label={copy("settings.publishing.veto.more.label")}
+                disabled={writer.busy || days >= VETO.maxDays}
+                data-testid="veto-more"
+                onClick={() => step(days + 1)}
+              >
+                {copy("settings.publishing.veto.more")}
+              </button>
+            </span>
+          </SettingRow>
+
+          <SettingRow
             name={copy("settings.publishing.time-zone")}
             testId="setting-time_zone"
             below={
-              editing !== "time_zone" ? null : (
+              editing !== "time_zone" ? (
+                <p className="text-base-content/70 min-w-0 text-xs wrap-anywhere" data-testid="time-zone-note">
+                  {copy("settings.publishing.time-zone.note")}
+                </p>
+              ) : (
                 <form
                   action={(form) => submit(saveTimeZoneAction, form)}
                   className="flex min-w-0 flex-wrap items-end gap-2"
@@ -307,90 +498,8 @@ export function PublishingPanel(p: { settings: SettingsModel }): React.JSX.Eleme
             )}
           </SettingRow>
 
-          <SettingRow name={copy("settings.publishing.enabled")} testId="setting-publishing_enabled">
-            <input
-              type="checkbox"
-              className="toggle toggle-primary"
-              aria-label={copy("settings.publishing.enabled")}
-              checked={enabled}
-              disabled={writer.busy}
-              data-testid="publishing-enabled"
-              onChange={(e) => toggle(e.target.checked)}
-            />
-          </SettingRow>
         </div>
-
-        <div className="border-base-300 flex min-w-0 flex-col gap-3 border-t pt-4" data-testid="setting-destinations">
-          <h3 className="text-xs font-semibold uppercase tracking-wide text-base-content/70">
-            {copy("settings.publishing.destinations")}
-          </h3>
-          {destinations.map((destination) => (
-            <div className="flex min-w-0 flex-col gap-1" key={destination.id} data-testid={`destination-${destination.id}`}>
-              <div className="flex min-w-0 flex-wrap items-center justify-between gap-2">
-                <span className="flex min-w-0 flex-wrap items-baseline gap-2">
-                  <span className="min-w-0 text-sm font-semibold wrap-anywhere">
-                    {copy(KIND_COPY_KEY[destination.kind])}
-                  </span>
-                  {destination.hostname === null ? null : (
-                    <span
-                      className="num min-w-0 text-xs text-base-content/70 wrap-anywhere"
-                      data-testid={`hostname-${destination.id}`}
-                    >
-                      {destination.hostname}
-                    </span>
-                  )}
-                </span>
-                <span className="flex min-w-0 flex-wrap items-center gap-2">
-                  {/* SPEC §5: "live" / "waiting for DNS", beside health and
-                      never instead of it. Where the record is shown below,
-                      the record's own badge says it, beside the record. */}
-                  {destination.copy.hostname === null || destination.dns !== null ? null : (
-                    <span
-                      className={
-                        destination.hostnameState === "live"
-                          ? "badge badge-success badge-soft"
-                          : "badge badge-warning badge-soft"
-                      }
-                    >
-                      {copy(destination.copy.hostname)}
-                    </span>
-                  )}
-                  <span className={HEALTH_BADGE[destination.health]}>{copy(destination.copy.state)}</span>
-                  {needsCredential(destination.action) ? (
-                    <ConnectDestination action={destination.action} />
-                  ) : destination.action === "none" || destination.dns !== null ? null : (
-                    // **A statement, not a control** (issue #913). This
-                    // names the act a hosted destination is waiting on
-                    // while the record itself could not be read, so there
-                    // is nothing here to press: it was drawn as a button
-                    // with no handler, which is a control that cannot act.
-                    // Where the record *is* known it is the heading of the
-                    // block below, with the record under it and the one
-                    // press that checks it — which is the act, and does
-                    // work.
-                    <span className="text-sm font-semibold wrap-anywhere" data-testid="dns-needed">
-                      {copy(ACTION_COPY_KEY[destination.action])}
-                    </span>
-                  )}
-                </span>
-              </div>
-              {destination.copy.line === null ? null : (
-                <p className="text-xs text-base-content/70 wrap-anywhere">{copy(destination.copy.line)}</p>
-              )}
-              {destination.dns === null ? null : (
-                <div className="mt-2 flex min-w-0 flex-col gap-1" data-testid={`dns-${destination.id}`}>
-                  <h4 className="text-sm font-semibold">{copy(ACTION_COPY_KEY.set_dns)}</h4>
-                  <CnameRecord record={destination.dns} />
-                  {/* The destination names its own host: nothing is sent. */}
-                  <CheckConnection draft={null} />
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-
-        {fixNote === null ? null : <p className="text-xs text-base-content/70 wrap-anywhere">{fixNote}</p>}
-      </div>
-    </section>
+      </section>
+    </>
   );
 }

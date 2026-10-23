@@ -231,7 +231,13 @@ describe('REQ-002 c4 — "a report is taken down only by a removal request recei
   it("the reader selects and nothing else", () => {
     const reader = SOURCES.find((s) => s.file === "src/lib/scan/removal.ts");
     expect(reader).toBeDefined();
-    const [, after = ""] = (reader?.text ?? "").split('from<DomainBlockRow>("domain_blocks")');
-    expect(after.slice(0, 200)).toContain('.select("domain")');
+    const text = reader?.text ?? "";
+    // The reader names the table once, as `TABLE`, and every read of it is a select.
+    expect(text).toContain('const TABLE = "domain_blocks";');
+    const reads = text.split(">(TABLE)").slice(1);
+    expect(reads.length).toBeGreaterThan(0);
+    for (const read of reads) expect(read.slice(0, 200)).toMatch(/^\s*\.select\(/);
+    for (const verb of [".insert(", ".update(", ".upsert(", ".delete("]) expect(text).not.toContain(verb);
+    expect(text.split('"domain_blocks"')).toHaveLength(2);
   });
 });
