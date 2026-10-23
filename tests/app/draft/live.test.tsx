@@ -25,14 +25,17 @@ const BOARD = readFileSync(boardFile("PageDetail"), "utf8");
  *  reading in `tests/ui/layout/parity.test.ts` holds these. */
 const SHELL = ["ReachKit", "Overview", "Plan", "Settings", "Publishing on", "Theme: light"];
 
-function render(facts: DraftFacts = PUBLISHED): HTMLElement {
+/** A customer's live page: the reserved account's fixture draws no Edit. */
+const CUSTOMER: DraftFacts = { ...PUBLISHED, live: { ...LIVE, edit: { kind: "editor" } } };
+
+function render(facts: DraftFacts = CUSTOMER): HTMLElement {
   const host = document.createElement("div");
   host.innerHTML = renderToStaticMarkup(<DraftScreen view={assembleDraft(facts)} generatedLabel="Written by ReachKit" />);
   return host;
 }
 
 function withLive(live: Partial<LiveFacts>): DraftFacts {
-  return { ...PUBLISHED, live: { ...LIVE, ...live } };
+  return { ...CUSTOMER, live: { ...CUSTOMER.live!, ...live } };
 }
 
 function at(root: Element, testId: string): Element {
@@ -138,5 +141,34 @@ describe("the arms the board does not draw", () => {
     const words = [...steps].map((li) => li.querySelector("span")?.textContent);
     expect(words).toEqual([copy("draft.ladder.live"), copy("draft.ladder.showing"), copy("draft.ladder.first-page"), copy("draft.ladder.linked")]);
     expect(host.querySelector('[data-testid="live-visits"]')).toBeNull();
+  });
+});
+
+describe("Edit this page (owner R19)", () => {
+  it("a live page shows Edit this page beside Stop this page", () => {
+    const controls = at(render(), "live-controls");
+    const edit = at(controls, "live-edit");
+    expect(edit.tagName).toBe("BUTTON");
+    expect(edit.textContent).toBe(copy("draft.action.edit"));
+    expect(edit.nextElementSibling).toBe(at(controls, "take-down"));
+  });
+
+  it("a version already waiting is what it opens", () => {
+    const edit = at(render(withLive({ edit: { kind: "version", draftId: "d-next" } })), "live-edit");
+    expect(edit.getAttribute("href")).toBe("/app/draft/d-next");
+    expect(edit.textContent).toBe(copy("draft.action.edit"));
+  });
+
+  it("taken-down arm: a page the customer took down draws no Edit", () => {
+    const stopped = { ...CUSTOMER, state: "unpublished" as const, takeDown: { kind: "stopped" as const, wordpress: false, putBackUntil: new Date("2026-10-25T12:00:00.000Z") } };
+    const host = render(stopped);
+    expect(host.querySelector('[data-testid="put-back"]')).not.toBeNull();
+    expect(host.querySelector('[data-testid="live-edit"]')).toBeNull();
+  });
+
+  it("fixture arm: the reserved account's live page draws no Edit", () => {
+    const host = render(PUBLISHED);
+    expect(host.querySelector('[data-testid="take-down"]')).not.toBeNull();
+    expect(host.querySelector('[data-testid="live-edit"]')).toBeNull();
   });
 });

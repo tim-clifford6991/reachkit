@@ -80,6 +80,7 @@ import {
   type KnownCheck,
   type LiveFacts,
   type RuleFacts,
+  liveEditFor,
 } from "./model";
 
 interface DraftRow {
@@ -623,5 +624,16 @@ async function liveOfDraft(client: MinimalClient, siteId: string, draftId: strin
     wordpress: row.destination === "wordpress",
     reading,
     label: reading === null ? null : verdict(reading, at),
+    edit: await liveEditOf(siteId, draftId),
   };
+}
+
+/** A read that fails draws no *Edit this page* rather than failing the screen. */
+async function liveEditOf(siteId: string, draftId: string): Promise<LiveFacts["edit"]> {
+  try {
+    const { waitingVersion } = await import("@/lib/generate/edit-live");
+    return liveEditFor(await waitingVersion(siteId, draftId));
+  } catch {
+    return null;
+  }
 }
