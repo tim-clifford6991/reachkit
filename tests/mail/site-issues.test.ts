@@ -11,7 +11,7 @@ applyEnvFixture();
 const { buildReport } = await import("../../src/lib/mail/templates/report");
 const { buildWeekly } = await import("../../src/lib/mail/templates/weekly");
 const { composeMail } = await import("../../src/lib/mail/shell/compose");
-const { issueRows } = await import("../../src/lib/mail/blocks/site-issues");
+const { issueRows, issueChangeRows } = await import("../../src/lib/mail/blocks/site-issues");
 const { issueChanges } = await import("../../src/lib/site-issues/changes");
 const { measured, unmeasured } = await import("../../src/lib/measure/measured");
 const { COPY } = await import("../../src/lib/presentation/copy");
@@ -82,6 +82,21 @@ describe("the report mail carries the counts the report counted", () => {
         issues: s,
       }).blocks.filter((b) => b.block === "facts").length;
     expect([facts(null), facts(section([ran({ check: "sitemap" })])), facts(THIS_MONDAY)]).toEqual([1, 1, 2]);
+  });
+});
+
+describe("the structured-data row names the problem", () => {
+  const labelled = (count: number) =>
+    section([ran({ check: "structured_data", count, over: 10, severity: count === 0 ? "nothing_to_fix" : "worth_fixing", doer: "reachkit_writes" })]);
+
+  it("in the report mail and in what moved since last Monday", async () => {
+    const rows = [...issueRows(labelled(3)), ...issueChangeRows(issueChanges(labelled(3), labelled(5), AT))];
+    expect(rows.map((row) => `${COPY[row.label]} · ${row.value}`)).toEqual([
+      `Pages with no labels for Google · 3/10 · ${COPY["severity.mid"]}`,
+      `Pages with no labels for Google · 5 → 3/10 · ${COPY["severity.mid"]}`,
+    ]);
+    const composed = await reportMail(labelled(3));
+    for (const body of [composed.html, composed.text]) expect(body).toContain("Pages with no labels for Google");
   });
 });
 
