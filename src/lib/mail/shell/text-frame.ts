@@ -41,6 +41,8 @@ export interface TextFrameParts {
   plainTextNote: string;
   /** The stop control, where this kind carries one. */
   optOut: { href: string; label: string } | null;
+  /** Footer links written before the stop control. */
+  links: readonly { href: string; label: string }[];
 }
 
 /** The separator the imprint band’s parts are set between, as `document.tsx`
@@ -59,6 +61,7 @@ export function frameText(parts: TextFrameParts): string {
   // the same footer rather than a bare URL.
   const footer: string[] = [FOOTER_RULE];
   if (parts.reason !== null) footer.push(parts.reason);
+  for (const link of parts.links) footer.push(`${link.label}: ${link.href}`);
   if (parts.optOut !== null) footer.push(`${parts.optOut.label}: ${parts.optOut.href}`);
   footer.push(
     [parts.wordmark, parts.imprint, parts.plainTextNote]

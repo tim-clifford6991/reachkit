@@ -25,7 +25,7 @@
   "Veto": { "sha256": "badb6b43d3636aacbfa20bc968964aa00aa5f1fe57b861aa384d162caf0a4ee1", "missing": 0 },
   "OptOut": { "sha256": "053555815d78e8e49a93c211502d43f2c6fcdbabae0c2f401ae2560c752f1c10", "missing": 0 },
   "Legal": { "sha256": "e745326d3691edc1bd6d182fabae389a601b6e1731d0745a52bb9756659d6604", "missing": 3 },
-  "MondayMail": { "sha256": "e70df64ae3b449e533171424276c4a94d0acb4f728fcdd2a8abee8b2515c239a", "missing": 33 },
+  "MondayMail": { "sha256": "e70df64ae3b449e533171424276c4a94d0acb4f728fcdd2a8abee8b2515c239a", "missing": 0 },
   "Main": { "sha256": "69b2e7a9749e6490acc67df4a63a71e0cbf03782fb338eb96186bdbe8dc546c0", "missing": 0 },
   "OverviewDNS": { "sha256": "93bbe737f471342fcab3d90871d6780343793c186599e7373c8dbdab7c607281", "missing": 0 },
   "AppGoogle": { "sha256": "a8b4e1f0ff6e0a3dcc230813bc5a8e5ab616364e81dd6c635b2075c6bf2254e7", "missing": 53 },

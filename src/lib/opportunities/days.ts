@@ -32,3 +32,12 @@ export function plannedByDay(
   }
   return planned;
 }
+
+/** Which week of service `today` falls in, counting the week `first` falls in as 1. Both are `YYYY-MM-DD`. */
+export function serviceWeek(first: string, today: string): number {
+  const monday = (day: string): number => {
+    const at = Date.parse(`${day}T00:00:00Z`);
+    return at - ((new Date(at).getUTCDay() + 6) % 7) * 86_400_000;
+  };
+  return Math.max(1, Math.round((monday(today) - monday(first)) / (7 * 86_400_000)) + 1);
+}

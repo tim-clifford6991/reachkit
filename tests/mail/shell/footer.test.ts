@@ -126,12 +126,13 @@ describe("issue #376 — S20's footer, in both bodies", () => {
 
   it("the reason line is the one place a mail says why it arrived", () => {
     // S20 puts the stop instruction inside the reason for a togglable
-    // kind — "switch off in Settings › Mail" — so the three
-    // toggle kinds say how to stop without needing a second control.
+    // kind — "switch off in Settings › Mail" — so these toggle kinds say how
+    // to stop without needing a second control. The Monday mail carries its
+    // own Mail settings and Unsubscribe links instead
+    // (`tests/mail/weekly/footer-links.test.tsx`).
     for (const key of [
       "mail.reason.draftReady",
       "mail.reason.published",
-      "mail.reason.weekly",
     ] as const) {
       expect(COPY[key]).toContain("switch off in Settings");
     }

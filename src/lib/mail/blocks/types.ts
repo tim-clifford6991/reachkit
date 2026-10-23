@@ -29,6 +29,10 @@ export interface ListRow {
   /** Where the row leads, where it leads anywhere: the HTML body links the
    *  row and the twin writes the address beside it. */
   readonly href?: string;
+  /** Lines under the row's own, in order. */
+  readonly detail?: readonly { readonly text: CopyKey; readonly vars?: CopyVars }[];
+  /** Links on one line under the row, where it offers more than one thing to do. */
+  readonly links?: readonly { readonly label: CopyKey; readonly vars?: CopyVars; readonly href: string }[];
 }
 
 /** One row of a `facts` block — the `dl` of mono fact rows the approved
@@ -38,6 +42,7 @@ export interface ListRow {
  *  `formatStat`, so this arm mints no second numeral formatter either. */
 export interface FactRow {
   readonly label: CopyKey;
+  readonly labelVars?: CopyVars;
   /**
    * The value, already written by whoever built the row — a domain, an
    * address, a number through `formatStat`, a band word through `copy()`.
@@ -68,6 +73,7 @@ export type StatFormat = "integer" | "delta" | "perMonth" | "percent";
  *  row, never the group (SPEC §8, 2026-09-20). */
 export interface StatRow {
   readonly label: CopyKey;
+  readonly labelVars?: CopyVars;
   readonly value: Measured<number>;
   readonly format: StatFormat;
   /** The change since the measurement before it. Omitted on its own where
@@ -100,7 +106,8 @@ export type MailBlock =
     }
   | {
       readonly block: "list";
-      readonly label: CopyKey;
+      /** The eyebrow over the rows; absent where a heading above already names them. */
+      readonly label?: CopyKey;
       readonly items: Measured<readonly ListRow[]>;
       /** A measured-empty list states its empty result in one written
        *  line. An unmeasured one is omitted instead — the two are not the

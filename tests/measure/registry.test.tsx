@@ -47,21 +47,36 @@ async function shownTiles(): Promise<string[]> {
 }
 
 function shownMailRows(): string[] {
-  // Every optional number present, so every row the mail can carry is drawn.
-  const n = measured(2, AT);
+  // Every optional number present, each its own value, so every row the mail
+  // can carry is drawn and a sentence restating a figure is not a second row.
+  const v = (value: number) => measured(value, AT);
   const numbers: WeeklyNumbers = {
-    live: n,
-    planned: n,
+    live: v(11),
+    planned: v(12),
     google: {
-      steps: (["draft.ladder.found", "draft.ladder.showing", "draft.ladder.first-page"] as const).map((name) => ({ name, count: n, of: 5 })),
+      steps: (["draft.ladder.found", "draft.ladder.showing", "draft.ladder.first-page"] as const).map((name, i) => ({ name, count: v(13 + i), of: 5 })),
       early: false,
-      visits: n,
+      visits: v(16),
     },
-    ai: { linked: n, asked: 5, reads: n },
-    month: { score: { value: n }, market: { value: n, of: 12 }, reputation: { value: n, answers: 40, weeks: 4 } },
+    ai: { linked: v(17), asked: 5, reads: v(18) },
+    month: { score: { value: v(19) }, market: { value: v(20), of: 12 }, reputation: { value: v(21), answers: 40, weeks: 4 } },
   };
   const mail = buildWeekly({ numbers, pages: measured([], AT), next: measured([], AT) });
-  return mail.blocks.flatMap((block) => (block.block === "stats" ? block.items.map((row) => row.label) : [])).sort();
+  // A row is the first block to state a figure: a number tile, a line of the month's table, or a sentence.
+  const seen = new Set<string>();
+  const first = (key: string, figures: readonly string[]): string[] => {
+    const fresh = figures.filter((f) => /^\d+$/.test(f) && Number(f) >= 11 && !seen.has(f));
+    figures.forEach((f) => seen.add(f));
+    return fresh.length > 0 ? [key] : [];
+  };
+  return mail.blocks
+    .flatMap((block) => {
+      if (block.block === "stats") return block.items.flatMap((row) => first(row.label, [String(row.value.kind === "unmeasured" ? "" : row.value.value)]));
+      if (block.block === "facts") return block.items.flatMap((row) => first(row.label, [row.value.split(" ")[0]!]));
+      if (block.block === "paragraph") return first(block.text, Object.values(block.vars ?? {}).map(String));
+      return [];
+    })
+    .sort();
 }
 
 /** A header bar's `n/10`, or a card's "x of N". */

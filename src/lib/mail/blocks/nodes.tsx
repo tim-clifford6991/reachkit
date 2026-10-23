@@ -32,6 +32,8 @@ import type { MailBlock } from "./types";
  *  name because `tests/presentation/copy/string-literal-sweep.test.ts`
  *  presumes a bare literal in a JSX attribute is product voice. */
 const RIGHT = "right" as const;
+/** Between two links on one row. Layout, not voice. */
+const LINK_SEPARATOR = " · " as const;
 const HALF = "50%" as const;
 /** The heading level a mail block draws. `h3` and not `h1`: the card's own
  *  head carries the wordmark, so a section heading is a third-level one —
@@ -118,14 +120,14 @@ function RuledRows({
   rows,
   emptyLine,
 }: {
-  label: string;
+  label: string | null;
   rows: readonly RenderedRow[];
   emptyLine: string | null;
 }): ReactNode {
   if (emptyLine !== null) {
     return (
       <>
-        <Eyebrow>{label}</Eyebrow>
+        {label === null ? null : <Eyebrow>{label}</Eyebrow>}
         <Text style={{ margin: 0, fontSize: token("--t-body"), lineHeight: 1.55, color: token("--ink-2") }}>
           {emptyLine}
         </Text>
@@ -134,7 +136,7 @@ function RuledRows({
   }
   return (
     <>
-      <Eyebrow>{label}</Eyebrow>
+      {label === null ? null : <Eyebrow>{label}</Eyebrow>}
       {rows.map((item, index) => (
         <Row key={index}>
           <Column style={{ ...RULED_CELL, color: token("--color-base-content") }}>
@@ -144,6 +146,23 @@ function RuledRows({
               <Link href={item.href} style={{ color: token("--color-primary") }}>
                 {item.left}
               </Link>
+            )}
+            {(item.detail ?? []).map((line, at) => (
+              <div key={at} style={{ paddingTop: "2px", color: token("--ink-2") }}>
+                {line}
+              </div>
+            ))}
+            {item.links === undefined ? null : (
+              <div style={{ paddingTop: "4px" }}>
+                {item.links.map((link, at) => (
+                  <span key={at}>
+                    {at === 0 ? null : LINK_SEPARATOR}
+                    <Link href={link.href} style={{ color: token("--color-primary") }}>
+                      {link.label}
+                    </Link>
+                  </span>
+                ))}
+              </div>
             )}
           </Column>
           {item.right === undefined ? null : (
@@ -435,12 +454,14 @@ function arm(block: MailBlock): ReactNode {
         </>
       );
     case "list":
-    case "verdicts":
+    case "verdicts": {
+      const label = block.label === undefined ? null : copy(block.label);
       return isMeasuredEmpty(block) ? (
-        <RuledRows label={copy(block.label)} rows={[]} emptyLine={copy(block.emptyLine)} />
+        <RuledRows label={label} rows={[]} emptyLine={copy(block.emptyLine)} />
       ) : (
-        <RuledRows label={copy(block.label)} rows={rowsOf(block)} emptyLine={null} />
+        <RuledRows label={label} rows={rowsOf(block)} emptyLine={null} />
       );
+    }
     case "facts":
       return <Facts rows={factRowsOf(block)} />;
     case "hero":

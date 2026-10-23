@@ -151,6 +151,10 @@ export const ROUTE_REFERENCE: Readonly<Record<string, `S${number}`>> = {
   "/veto/layout-sweep-fixture": "S6",
   /** REFERENCE: S7 — Opt-out (§S7; REQ-010 c11) */
   "/opt-out/layout-sweep-fixture": "S7",
+  /** REFERENCE: S7 — Opt-out, the nearest approved screen (issue 1741: the Monday mail's Unsubscribe) */
+  "/unsubscribe/layout-sweep-fixture": "S7",
+  /** REFERENCE: S7 — Opt-out, the nearest approved screen (issue 1741: the Monday mail's Pause all pages) */
+  "/pause/layout-sweep-fixture": "S7",
   /** REFERENCE: S9 — Sign in (§S9; REQ-098) */
   "/signin": "S9",
   /** REFERENCE: S10 — Setup (§S10; REQ-025…028, REQ-021 c7) */

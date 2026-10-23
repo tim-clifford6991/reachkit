@@ -84,3 +84,21 @@ export function formatMailDay(date: string): string {
     new Date(`${date}T00:00:00Z`)
   );
 }
+
+/** A stored `YYYY-MM-DD` as its weekday: `Tue`. */
+export function formatMailWeekday(date: string): string {
+  return new Intl.DateTimeFormat(MAIL_LOCALE, { timeZone: "UTC", weekday: "short" }).format(new Date(`${date}T00:00:00Z`));
+}
+
+/** A stored `YYYY-MM-DD` as the stop page writes it: `Tue 20 Oct`. */
+export function formatMailDayMonth(date: string): string {
+  const at = new Date(`${date}T00:00:00Z`);
+  const part = (o: Intl.DateTimeFormatOptions) => new Intl.DateTimeFormat(MAIL_LOCALE, { timeZone: "UTC", ...o }).format(at);
+  return `${formatMailWeekday(date)} ${part({ day: "numeric" })} ${part({ month: "short" })}`;
+}
+
+/** A stored `HH:mm` publish time as the app's clock writes it: `4:00 PM`. */
+export function formatMailClock(hhmm: string): string {
+  const [h = 0, m = 0] = hhmm.split(":").map(Number);
+  return new Intl.DateTimeFormat(MAIL_LOCALE, { timeZone: "UTC", hour: "numeric", minute: "2-digit" }).format(new Date(Date.UTC(2026, 0, 1, h, m)));
+}

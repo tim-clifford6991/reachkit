@@ -193,11 +193,19 @@ async function mail(weekStart: string, now: Date): Promise<readonly StatRow[]> {
 }
 
 const text = (el: Element | null | undefined): string => (el?.textContent ?? "").replace(/\s+/gu, " ").trim();
-/** A row's figure, or what it says in its place. */
+/** A row's figure, or what it says in its place. Showing is labelled with its climbing count where one climbs. */
 const figure = (rows: readonly StatRow[], label: string): number | string | undefined => {
-  const row = rows.find((r) => r.label === label);
+  const row = rows.find((r) => r.label === label || (label === "draft.ladder.showing" && r.label === "mail.weekly.google.showing.climbing"));
   return row === undefined ? undefined : row.value.kind === "unmeasured" ? (row.unmeasuredLine ?? "") : row.value.value;
 };
+/** The slots of the sentence the mail states under `key`, where it states it. */
+const said = (key: string): Record<string, string> | undefined =>
+  (sent[0]!.blocks.find((block) => block.block === "paragraph" && block.text === key) as { vars?: Record<string, string> } | undefined)?.vars;
+/** The month's figures as the mail writes them, by label. */
+const monthFacts = (): Record<string, string> =>
+  Object.fromEntries(
+    sent[0]!.blocks.flatMap((block) => (block.block === "facts" ? (block as unknown as { items: { label: string; value: string }[] }).items : [])).filter((item) => item.label.startsWith("mail.weekly.month.")).map((item) => [item.label, item.value])
+  );
 const step = (dom: Document, name: string): string => text(dom.querySelector(`li[data-step="${name}"] a`));
 
 beforeAll(async () => {
@@ -248,13 +256,16 @@ describe.each([
     for (const name of ["draft.ladder.found", "draft.ladder.showing", "draft.ladder.first-page"]) {
       expect(String(figure(rows, name)), name).toBe(step(dom, name));
     }
+    const climbing = rows.find((row) => row.label === "mail.weekly.google.showing.climbing")?.labelVars?.n;
+    const badge = text(dom.querySelector('li[data-step="draft.ladder.showing"] .badge'));
+    expect(climbing === undefined ? "" : copy("overview.ladder.climbing", { n: String(climbing) })).toBe(badge);
     expect(text(dom.querySelector('[data-testid="overview-ladder-visits"]'))).toBe(
-      copy("overview.ladder.visits", { n: String(figure(rows, "mail.weekly.google.visits")) })
+      copy("overview.ladder.visits", { n: String(said("mail.weekly.google.visits")?.n) })
     );
-    expect(text(dom.querySelector('[data-testid="overview-tile-ai-linked"]'))).toBe(String(figure(rows, "mail.weekly.ai.linked")));
-    const asked = rows.find((row) => row.label === "mail.weekly.ai.linked")?.note?.vars?.of;
-    expect(text(dom.querySelector('[data-testid="overview-ai"]'))).toContain(copy("overview.ai.linked.of", { of: String(asked) }));
-    expect(text(dom.querySelector('[data-testid="overview-tile-ai-reads"]'))).toBe(copy("overview.ai.reads", { n: String(figure(rows, "mail.weekly.ai.reads")) }));
+    const linked = said("mail.weekly.ai.linked");
+    expect(text(dom.querySelector('[data-testid="overview-tile-ai-linked"]'))).toBe(String(linked?.n));
+    expect(text(dom.querySelector('[data-testid="overview-ai"]'))).toContain(copy("overview.ai.linked.of", { of: String(linked?.of) }));
+    expect(text(dom.querySelector('[data-testid="overview-tile-ai-reads"]'))).toBe(copy("overview.ai.reads", { n: String(said("mail.weekly.ai.reads")?.n) }));
 
     const climb = sent[0]!.blocks.find((block) => block.block === "paragraph" && block.text.startsWith("mail.weekly.google.climb"));
     const mover = dom.querySelector('[data-testid="overview-mover"]');
@@ -265,32 +276,27 @@ describe.each([
   it("Reputation, the score and the market are in the first Monday mail of a month only, as Overview's months read them", async () => {
     seed(site, FIVE);
     db.seed("scans", [...db.rows("scans"), deepScan(27, 0)]);
-    const notFirst = await mail(WEEK, NOW);
-    expect(notFirst.map((row) => row.label).filter((label) => label.startsWith("mail.weekly.month"))).toEqual([]);
+    await mail(WEEK, NOW);
+    expect(monthFacts()).toEqual({});
 
-    const first = await mail(FIRST, new Date(Date.UTC(2026, 9, 5, 7)));
-    expect(first.map((row) => row.label).filter((label) => label.startsWith("mail.weekly.month"))).toEqual([
-      "mail.weekly.month.score",
-      "mail.weekly.month.market",
-      "mail.weekly.month.reputation",
-    ]);
+    await mail(FIRST, new Date(Date.UTC(2026, 9, 5, 7)));
+    const month = monthFacts();
+    expect(Object.keys(month)).toEqual(["mail.weekly.month.score", "mail.weekly.month.market", "mail.weekly.month.reputation"]);
     const dom = await overview();
     const of = (n: string) => copy("overview.months.of", { of: n });
-    // Each change is taken against the customer's scan, as Overview's line states it.
-    const was = (label: string) => {
-      const row = first.find((r) => r.label === label);
-      if (row?.value.kind === "unmeasured" || row?.change === undefined || row.change.kind === "unmeasured") throw new Error(`${label} has no change`);
-      return String(row.value.value - row.change.value);
+    // Each change is taken against the customer's scan, as Overview's line states it: "33 up from 27".
+    const read = (label: string) => {
+      const found = /^(\d+)(?: of \d+)? up from (\d+)$/u.exec(month[label] ?? "");
+      if (found === null) throw new Error(`${label} has no change: ${month[label]}`);
+      return { now: found[1]!, was: found[2]! };
     };
-    expect(text(dom.querySelector('[data-testid="overview-tile-score"]'))).toContain(copy("overview.months.score.up", { n: was("mail.weekly.month.score") }));
-    expect(text(dom.querySelector('[data-testid="overview-tile-market"]'))).toContain(copy("overview.months.market.up", { n: was("mail.weekly.month.market") }));
-    expect([was("mail.weekly.month.score"), was("mail.weekly.month.market")]).toEqual(["27", "0"]);
-    expect(text(dom.querySelector('[data-testid="overview-tile-score"] .num')).replace(/ /gu, "")).toBe(`${figure(first, "mail.weekly.month.score")}${of("100")}`.replace(/ /gu, ""));
-    expect(text(dom.querySelector('[data-testid="overview-tile-market"]'))).toContain(`${figure(first, "mail.weekly.month.market")} ${of("12")}`);
-    const reputation = first.find((row) => row.label === "mail.weekly.month.reputation");
-    expect(reputation?.note?.vars).toMatchObject({ answers: "46" });
-    expect(text(dom.querySelector('[data-testid="overview-tile-reputation"]'))).toContain(`${figure(first, "mail.weekly.month.reputation")} ${of("46")}`);
-    expect(figure(first, "mail.weekly.month.reputation")).toBe(11);
+    expect(text(dom.querySelector('[data-testid="overview-tile-score"]'))).toContain(copy("overview.months.score.up", { n: read("mail.weekly.month.score").was }));
+    expect(text(dom.querySelector('[data-testid="overview-tile-market"]'))).toContain(copy("overview.months.market.up", { n: read("mail.weekly.month.market").was }));
+    expect([read("mail.weekly.month.score").was, read("mail.weekly.month.market").was]).toEqual(["27", "0"]);
+    expect(text(dom.querySelector('[data-testid="overview-tile-score"] .num')).replace(/ /gu, "")).toBe(`${read("mail.weekly.month.score").now}${of("100")}`.replace(/ /gu, ""));
+    expect(text(dom.querySelector('[data-testid="overview-tile-market"]'))).toContain(`${read("mail.weekly.month.market").now} ${of("12")}`);
+    expect(month["mail.weekly.month.reputation"]).toBe("11 of 46");
+    expect(text(dom.querySelector('[data-testid="overview-tile-reputation"]'))).toContain(`11 ${of("46")}`);
   });
 });
 
@@ -306,8 +312,9 @@ describe("week 1 reads honestly: too early and not measured, never a row of zero
     for (const name of ["draft.ladder.found", "draft.ladder.showing", "draft.ladder.first-page"]) {
       expect(figure(rows, name), name).toBe("mail.weekly.number.unmeasured");
     }
-    expect(figure(rows, "mail.weekly.ai.linked")).toBe("mail.weekly.ai.early");
-    expect(rows.map((row) => row.label)).not.toContain("mail.weekly.google.visits");
+    expect(sent[0]!.blocks).toContainEqual({ block: "paragraph", text: "mail.weekly.ai.early" });
+    expect(said("mail.weekly.ai.linked")).toBeUndefined();
+    expect(said("mail.weekly.google.visits")).toBeUndefined();
   });
 
   it("read once, found by Google and showing nowhere yet: the steps past Found say it is too early", async () => {

@@ -219,6 +219,11 @@ export const PUBLIC_PATHS: readonly string[] = [
   // has no session, and refusing it would answer a pressed Unsubscribe
   // control with a redirect to a sign-in screen.
   "/api/opt-out/:token",
+  // The Monday mail's Unsubscribe and Pause all pages links, and the one-click
+  // endpoint its List-Unsubscribe header names: a mail's reader has no session.
+  "/unsubscribe/:token",
+  "/api/unsubscribe/:token",
+  "/pause/:token",
   "/pricing",
   // Issue #1069: the free-scans gallery (SPEC §2 2026-09-24), and the logo
   // each of its cards is drawn with, served from our own origin.

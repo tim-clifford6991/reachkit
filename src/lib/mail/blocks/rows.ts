@@ -23,6 +23,8 @@ export interface RenderedRow {
   left: string;
   right?: string;
   href?: string;
+  detail?: readonly string[];
+  links?: readonly { label: string; href: string }[];
 }
 
 /** The rows of a kept `list` or `verdicts` block, rendered through
@@ -41,6 +43,8 @@ export function rowsOf(
     return block.items.value.map((item) => ({
       left: copy(item.label, item.vars),
       ...(item.href === undefined ? {} : { href: item.href }),
+      ...(item.detail === undefined ? {} : { detail: item.detail.map((line) => copy(line.text, line.vars)) }),
+      ...(item.links === undefined ? {} : { links: item.links.map((link) => ({ label: copy(link.label, link.vars), href: link.href })) }),
     }));
   }
   return block.items.value.map((item) => ({
@@ -53,7 +57,7 @@ export function rowsOf(
 export function factRowsOf(
   block: Extract<MailBlock, { block: "facts" }>
 ): readonly { label: string; value: string }[] {
-  return block.items.map((item) => ({ label: copy(item.label), value: item.value }));
+  return block.items.map((item) => ({ label: copy(item.label, item.labelVars), value: item.value }));
 }
 
 /** One drawn row of a `stats` group. `value` is `null` where the number was
@@ -73,7 +77,7 @@ export interface StatRowText {
  *  and an unmeasured number is its written line, never a figure. */
 export function statRowsOf(block: Extract<MailBlock, { block: "stats" }>): readonly StatRowText[] {
   return keptStatRows(block).map((item) => {
-    const label = copy(item.label);
+    const label = copy(item.label, item.labelVars);
     if (item.value.kind === "unmeasured") {
       return {
         label,
