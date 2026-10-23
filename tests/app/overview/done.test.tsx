@@ -18,6 +18,7 @@ const SAAS: DoneFacts = {
   ready: 30,
   pagesRead: 84,
   publishTime: "07:00",
+  goLive: { connected: true, publishing: true, stopped: false },
   remeasureOn: new Date(Date.UTC(2026, 9, 12, 12, 0, 0)),
 };
 
@@ -35,7 +36,7 @@ describe("the process", () => {
       ["AI questions: 25", "/app/ai-answers"],
       ["Competitors tracked: 5", "/app/rivals"],
       ["Topics ready: 30", "/app/calendar"],
-      ["Daily at 7:00 AM", "/app/settings/publishing"],
+      ["Pages go live at 7:00 AM", "/app/settings/publishing"],
     ] as const) {
       expect(html).toContain(`href="${href}">${figure}</a>`);
     }
@@ -49,5 +50,20 @@ describe("the process", () => {
       expect(html).toContain(`data-testid="process-pending-${step}"`);
     }
     expect(html).not.toContain("Pages read");
+  });
+
+  it.each([
+    ["unconnected", { connected: false, publishing: true, stopped: false }],
+    ["paused", { connected: true, publishing: false, stopped: false }],
+    ["stopped", { connected: true, publishing: true, stopped: true }],
+    ["unread", undefined],
+  ] as const)("names no go-live time while the site is %s", (_state, goLive) => {
+    const facts: DoneFacts = { ...SAAS, goLive };
+    const publish = processSteps(facts).find((step) => step.id === "publish");
+    expect(publish).toMatchObject({ figures: [], pending: false });
+    const html = timeline(facts);
+    expect(html).not.toContain("7:00 AM");
+    expect(html).not.toMatch(/go live at/i);
+    expect(html).toContain(COPY["overview.process.step.publish"]);
   });
 });

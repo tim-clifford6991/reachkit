@@ -10,6 +10,7 @@
 //   ready                     `supplyDepth`
 //   pagesRead                 `site_profiles.knowledge`
 //   publishTime               `sites.publish_time`
+//   goLive                    `destinations.health`, `sites.publishing_enabled`, `readStop`
 //   remeasureOn               `nextDueOn`
 //
 // **Each read stands alone.** One that fails leaves its field `undefined`
@@ -98,16 +99,27 @@ async function publishTimeOf(siteId: string): Promise<string | null> {
   return typeof time === "string" && /^\d{2}:\d{2}/.test(time) ? time.slice(0, 5) : null;
 }
 
+async function goLiveOf(siteId: string): Promise<NonNullable<DoneFacts["goLive"]>> {
+  const [{ destinationWorking }, { isPublishingOn }, { readStop }] = await Promise.all([
+    import("@/lib/publish/destinations"),
+    import("@/lib/publish/switch"),
+    import("../_shell/stop"),
+  ]);
+  const [connected, publishing, stop] = await Promise.all([destinationWorking(siteId), isPublishingOn(siteId), readStop()]);
+  return { connected, publishing, stopped: stop !== null };
+}
+
 export async function readDoneFacts(site: { siteId: string; domain: string; timeZone: string }): Promise<DoneFacts> {
   const now = clock();
   const { supplyDepth } = await import("@/lib/opportunities");
 
-  const [lastMeasured, rivals, depth, pagesRead, publishTime, remeasureOn] = await Promise.all([
+  const [lastMeasured, rivals, depth, pagesRead, publishTime, goLive, remeasureOn] = await Promise.all([
     attempt(() => newestPass(site.siteId)),
     attempt(async () => (await trackedRivals(site.siteId))?.length ?? null),
     attempt(() => supplyDepth(site.siteId)),
     attempt(() => pagesReadOf(site.domain)),
     attempt(() => publishTimeOf(site.siteId)),
+    attempt(() => goLiveOf(site.siteId)),
     attempt(() => nextDueOn({ siteId: site.siteId, now })),
   ]);
 
@@ -118,6 +130,7 @@ export async function readDoneFacts(site: { siteId: string; domain: string; time
     ...(depth === undefined ? {} : { ready: depth.unused }),
     ...(pagesRead === undefined ? {} : { pagesRead }),
     ...(publishTime === undefined ? {} : { publishTime }),
+    ...(goLive === undefined ? {} : { goLive }),
     ...(remeasureOn === undefined ? {} : { remeasureOn }),
   };
 }
