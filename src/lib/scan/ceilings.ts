@@ -350,6 +350,7 @@ export async function withScanBounds<T>(
     priorCents?: number;
     /** Cents of the cap the stages leave for the spend after the stored report. */
     holdBackCents?: number;
+    failsWhenFundsRefused?: true;
   },
   body: (b: Bounds, c: CostContext) => Promise<T>
 ): Promise<{ result: T | null; ending: Ending }> {
@@ -360,6 +361,7 @@ export async function withScanBounds<T>(
       policyVersion: FREE_SCAN_POLICY_VERSION,
       ...(a.priorCents === undefined ? {} : { priorCents: a.priorCents }),
       holdBackCents: a.holdBackCents ?? 0,
+      ...(a.failsWhenFundsRefused === true ? { failsWhenFundsRefused: true } : {}),
     },
     async (cost) => {
       const outcome = await runBounded(

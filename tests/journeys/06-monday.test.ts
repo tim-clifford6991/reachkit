@@ -141,11 +141,20 @@ const VIOLATION_RESULT = {
 
 const OWN_TABLES = new Set(["sites", "scans"]);
 
+const from = (table: string): unknown =>
+  OWN_TABLES.has(table) ? ownBuilder(table) : (db.client as { from(t: string): unknown }).from(table);
+
 const client = {
-  from: (table: string) =>
-    OWN_TABLES.has(table) ? ownBuilder(table) : (db.client as { from(t: string): unknown }).from(table),
+  from,
   rpc: (fn: string, args: unknown) => {
-    db.rpcCalls.push({ fn, args: args as Record<string, unknown> });
+    const called = args as Record<string, unknown>;
+    db.rpcCalls.push({ fn, args: called });
+    // As the function does: the claimed row takes the pass's status.
+    if (fn === "store_current_report") {
+      const row = scans.find((scan) => scan.id === called.p_scan_id);
+      if (row !== undefined) row.status = String(called.p_status);
+      statusWrites.push(String(called.p_status));
+    }
     return Promise.resolve({ data: rpcAnswers[fn] ?? null, error: null });
   },
 };
@@ -380,6 +389,8 @@ const UNIQUE_VIOLATION = Symbol("23505");
 
 let sites: SiteRow[] = [];
 let scans: ScanRow[] = [];
+/** Every status written to a scan row, in order: claims, stores and updates. */
+let statusWrites: string[] = [];
 
 
 /** The two tables this journey's own reads and writes go through. */
@@ -394,6 +405,7 @@ function answerQuery(query: DbQuery): unknown[] | typeof UNIQUE_VIOLATION | null
       .filter((site) => !filters.has("id") || filters.get("id") === site.id);
   }
   if (query.table !== "scans") return null;
+  if (query.verb !== "select" && query.values?.status !== undefined) statusWrites.push(String(query.values.status));
 
   if (query.verb === "insert") {
     const values = query.values ?? {};
@@ -511,6 +523,7 @@ beforeEach(() => {
   // everything else the pass reads.
   db.rows.set("users", [{ id: USER_ID, email: EMAIL }]);
   scans = [];
+  statusWrites = [];
 
   opportunities = opportunityDoubles.newMemoryState({ now: MONDAY, profile: PROFILE_ANSWER });
   setOpportunityStore(opportunityDoubles.memoryStore(opportunities));
@@ -1026,6 +1039,45 @@ describe("Monday when DataForSEO refuses for lack of credit", () => {
       expect(outcome).toMatchObject({ ran: true, status: "failed", because: "vendor_funds" });
       const account = await weekly.accountForWeek({ siteId: SITE_ID, weekStart: "2026-08-31", now: MONDAY });
       expect(account.kind).toBe("not_measured");
+    },
+    JOURNEY_TIMEOUT_MS
+  );
+
+  it(
+    "the refused pass stores its report as failed in the one write, never measured first",
+    async () => {
+      refuseForFunds();
+      await measureTheWeek();
+      const transitions = statusWrites.filter((status, i) => status !== statusWrites[i - 1]);
+      expect(transitions).toEqual(["running", "failed"]);
+    },
+    JOURNEY_TIMEOUT_MS
+  );
+
+  it(
+    "a run that dies once the report is stored still leaves the refused week due",
+    async () => {
+      refuseForFunds();
+      // Nothing after the store lands: the function is gone.
+      const store = client.rpc;
+      client.rpc = async (fn: string, args: unknown) => {
+        const stored = await store(fn, args);
+        if (fn === "store_current_report") {
+          client.from = () => {
+            throw new Error("the function timed out");
+          };
+        }
+        return stored;
+      };
+      try {
+        await measureTheWeek().catch(() => undefined);
+      } finally {
+        client.rpc = store;
+        client.from = from;
+      }
+      expect(scans.filter((scan) => scan.tier === "weekly").map((scan) => scan.status)).toEqual(["failed"]);
+      const due = await weekly.dueSites(new Date(MONDAY.getTime() + 3_600_000));
+      expect(due.map((site) => site.siteId)).toEqual([SITE_ID]);
     },
     JOURNEY_TIMEOUT_MS
   );
