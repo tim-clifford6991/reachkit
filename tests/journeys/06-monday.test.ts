@@ -434,6 +434,8 @@ function answerQuery(query: DbQuery): unknown[] | typeof UNIQUE_VIOLATION | null
                 ? scan.week_start
               : column === "id"
                 ? scan.id
+              : column === "status"
+                ? scan.status
                 : undefined;
       if (held === undefined) return true;
       return Array.isArray(value) ? (value as unknown[]).includes(held) : held === value;
@@ -1020,24 +1022,24 @@ describe("Monday when DataForSEO refuses for lack of credit", () => {
       expect(refused.length).toBeGreaterThan(0);
       expect(refused.length).toBeLessThan(rows.length);
 
-      // The week names what the vendor's refusal left unread; it is never a complete week of zeros.
-      expect(outcome).toMatchObject({ ran: true, status: "degraded" });
-      if (!outcome.ran || outcome.status !== "degraded") throw new Error("unreachable");
-      expect(outcome.unmeasured).toEqual(expect.arrayContaining(["market", "rankings", "ai_answers", "rivals"]));
+      // The week reads as not measured, never as a week of zeros.
+      expect(outcome).toMatchObject({ ran: true, status: "failed", because: "vendor_funds" });
       const account = await weekly.accountForWeek({ siteId: SITE_ID, weekStart: "2026-08-31", now: MONDAY });
-      expect(account.kind).toBe("partial");
+      expect(account.kind).toBe("not_measured");
     },
     JOURNEY_TIMEOUT_MS
   );
 
-  // Issue 1824: a refused week cannot stay due today — the selection reads only the Monday due hour, and the claim's row cannot be released once `fetches` rows reference it.
-  it.skip(
+  it(
     "issue 1824: the refused week stays due, ends degraded with vendor_funds, and the next tick after a top-up measures it",
     async () => {
       refuseForFunds();
       const outcome = await measureTheWeek();
       expect(outcome).toMatchObject({ ran: true, because: "vendor_funds" });
       expect(scans.filter((scan) => scan.tier === "weekly" && scan.status !== "failed")).toEqual([]);
+      // The row the ledger's rows reference is kept, released rather than deleted.
+      expect(scans.filter((scan) => scan.tier === "weekly").map((scan) => scan.status)).toEqual(["failed"]);
+      expect(vendorRows().length).toBeGreaterThan(0);
 
       // Topped up: the vendor answers again, and the next hourly tick finds the week still owed.
       vi.stubGlobal(
@@ -1054,6 +1056,10 @@ describe("Monday when DataForSEO refuses for lack of credit", () => {
       expect(again).toMatchObject({ ran: true });
       if (!again.ran) throw new Error("unreachable");
       expect(again.status === "done" || again.status === "degraded").toBe(true);
+      // The retry measures into the same row, so the week still has one.
+      if (!outcome.ran) throw new Error("unreachable");
+      expect(again.scanId).toBe(outcome.scanId);
+      expect(scans.filter((scan) => scan.tier === "weekly")).toHaveLength(1);
     },
     JOURNEY_TIMEOUT_MS
   );
