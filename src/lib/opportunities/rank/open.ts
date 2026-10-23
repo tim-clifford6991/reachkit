@@ -236,7 +236,7 @@ export async function rankOpen(siteId: string, at: Date = new Date(), only?: Rea
 /**
  * Issue 1549: how many of the next `days` days the week's commit fills with
  * a page of the topic's own type — the number "pages left" and the
- * low-supply finding state, and what the weekly refill tops up to. Read from the same rows, order and rules as `rankOpen`: a
+ * low-supply finding state. Read from the same rows, order and rules as `rankOpen`: a
  * listicle or comparison over D52's cap waits for the cap's window to pass
  * instead of counting as a Q&A whose buyer questions the pack may not hold,
  * a resting or unready row is not counted, and a topic another row on the
