@@ -14,8 +14,8 @@ import type { AnswerEngine } from "@/lib/opportunities/types";
 export interface MeasuredFacts {
   /** The searches the pass looked up. */
   searches: number;
-  /** The tracked prompts it asked; `0` where the pass asked none. */
-  questions: number;
+  /** The tracked prompts it asked; `null` where the pass had none to ask. */
+  questions: number | null;
   /** The engines whose answers it stored, in the report's own order. */
   engines: readonly AnswerEngine[];
   at: Date;
@@ -85,7 +85,7 @@ export function processSteps(facts: DoneFacts): readonly ProcessStep[] {
         ? []
         : [
             { key: "overview.process.figure.searches", vars: { n: pass.searches }, href: "/app/search" },
-            ...(pass.questions > 0
+            ...(pass.questions !== null && pass.questions > 0
               ? [{ key: "overview.process.figure.questions" as const, vars: { n: pass.questions }, href: "/app/ai-answers" }]
               : []),
           ]

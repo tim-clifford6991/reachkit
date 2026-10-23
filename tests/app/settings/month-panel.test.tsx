@@ -90,6 +90,14 @@ describe("not measured is never 0", () => {
     expect(doc.querySelector('[data-testid="billing-month-reports"] .figure')?.className).toContain("text-base-content/70");
   });
 
+  it("AI questions not measured: the searches are counted and the questions named in words, never 0", () => {
+    const unmeasured = rendered({ ...GOT, asked: { searches: 5, questions: null } });
+    expect(text(unmeasured, "billing-month-asked")).toBe(
+      "5 searches and AI questions 5 searches, checked each week. AI questions were not measured this pass."
+    );
+    expect(unmeasured.body.textContent).not.toMatch(/\b0 AI questions/);
+  });
+
   it("in the first week it says when the first page goes live", () => {
     expect(text(doc, "billing-month-first")).toBe("Your first page goes live Tue, Oct 20, 4:00 PM.");
     expect(rendered(GOT, { first: "Tue, Oct 20, 4:00 PM" }).querySelector('[data-testid="billing-month-first"]')).toBeNull();
