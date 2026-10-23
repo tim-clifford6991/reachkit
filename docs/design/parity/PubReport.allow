@@ -43,7 +43,7 @@ Harbor Plumbing · local service · Austin	sample data
 Harbor Plumbing	sample data
 Plumbing repair, water heaters and drain cleaning for homes	sample data
 How much does slab leak repair cost in Austin? free	sample data
-help.harborplumbing.com/slab-leak-repair-cost	sample data
+help.harborplumbing.com/slab-leak-repair-cost	owner R26 2026-10-23: the address shows as {domain}/{slug}, labelled proposed (tests/app/scan-address/first-page-preview.test.tsx)
 Harbor Plumbing · Austin	sample data
 How much does slab leak repair cost in Austin?	sample data
 Cancel your contract	owner 2026-10-20 Q13: shown once the launch gate opens
@@ -79,6 +79,9 @@ No page list for Google Free fix · 10 min	sample data: the statuses are Harbor 
 Slow pages 2 pages	sample data: the statuses are Harbor Plumbing's; the sample report ran no checks
 Hard to use on a phone Nothing to fix	sample data: the statuses are Harbor Plumbing's; the sample report ran no checks
 That’s page 1 of 14 we found for you. sample	sample data: the page count is Harbor Plumbing's
-Harbor Plumbing finds a slab leak with listening equipment before opening any floor. from harborplumbing.com/slab-leaks The price depends on where the leak is and how it is reached…	owner ruling pending on #1724 preview (A/B/C), 2026-10-23
+Harbor Plumbing finds a slab leak with listening equipment before opening any floor. from harborplumbing.com/slab-leaks The price depends on where the leak is and how it is reached…	owner R26 2026-10-23: stored first lines once written (tests/app/scan-address/first-page-preview.test.tsx)
 Drawn open as it looks when reached from “Get your first page free ↓”. It starts closed, like the sections above.	#1714: the board's own caption on how it draws the first page
 Every figure on this artboard is a sample for the fictional Harbor Plumbing, Austin. Competitor websites are fictional too.	sample data: the board's caption on its own sample
+The first lines. The full page comes by email. Written with Claude, an AI model, from your own site.	owner R26 2026-10-23: stored first lines once written (tests/app/scan-address/first-page-preview.test.tsx)
+480 times a month	sample data: the page's search volume is Harbor Plumbing's
+Cost guide	sample data: the board's type for Harbor Plumbing's page; the report names the Write types it can offer
