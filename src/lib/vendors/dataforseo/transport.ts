@@ -1,46 +1,19 @@
-// BUILD §6.3 — the one DataForSEO request builder and credential read (issue #23)
-//
-// The one place `env.DATAFORSEO_LOGIN` / `env.DATAFORSEO_PASSWORD` are read
-// (risk: high — money, data leaving the system). Not exported through
-// `index.ts` — the package's public barrel is exactly the six functions
-// ARCHITECTURE.md names; this module is imported only from inside
-// `src/lib/vendors/dataforseo/**`.
-//
-// **Credentials never appear in a log, a payload or an error message**
-// (BP-008 `## Error & edge behavior`). The only place the raw login and
-// password strings are read is `authorizationHeader()` below, and the only
-// place that header is placed is a request's own `Authorization` field —
-// never logged, never included in a thrown value or a `DataForSeoOutcome`.
-//
-// **Every call is made in the site's own country and language, and at depth
-// 10** (SPEC §6, owner D66 of 2026-10-07, issue 1311; before it every call
-// was fixed to Google US / en). The locale is the caller's — the site's,
-// read or confirmed — and it is one row of `src/lib/locale`'s closed list:
-// `buildRequest` writes the vendor's name for that row's country and its
-// language, and has no other source for either. The three reserved task
-// keys are still deleted from whatever the caller's `fields` carry and then
-// set here, so a locale cannot arrive as a free string in `fields`, and
-// `depth` cannot arrive at all. `depth` is *set* only on the vendor
-// families that have a `depth` parameter — organic SERPs and the news
-// search; Labs, AI Mode and the LLM scraper have no such field and the
-// vendor rejects unknown fields (`40501 Invalid Field`), so on those paths
-// the key is stripped and left unset. The same is true of the locale on
-// On-Page, which declares neither field, so `NO_LOCALE_PATH_PREFIXES` below
-// leaves them unset there and its spec carries `null`.
-//
-// **Two request shapes, both built here.** Live endpoints are one `POST`.
-// The standard queue (`mode: "std"`, BUILD §6.4 "everything scheduled =
-// standard queue") is `task_post` followed by a `GET task_get/…/{id}` —
-// `sendGet` below is that second leg, same credential, same outcome shape.
+// BUILD §6.3 — the one DataForSEO request builder and credential read
+// Imported only inside `src/lib/vendors/dataforseo/**`, never through `index.ts`.
+// Credentials are read only in `authorizationHeader()` and placed only in a request's `Authorization` field: never
+// logged, thrown or put in a `DataForSeoOutcome`.
+// Every call is made in the site's country and language (SPEC §6, D66), one row of `src/lib/locale`'s closed list.
+// The reserved task keys are stripped from the caller's `fields` and set here, so a locale cannot arrive as a free string.
+// `depth` is set only on families that take it; the vendor rejects unknown fields (`40501 Invalid Field`), and On-Page
+// declares no locale either (`NO_LOCALE_PATH_PREFIXES`).
+// Live is one `POST`; the standard queue (BUILD §6.4 "everything scheduled = standard queue") adds `sendGet` for `task_get`.
 import { env } from "@/lib/config/env";
 import { VENDOR } from "@/lib/config/constants";
 import { COUNTRIES, localeOf, type Locale } from "@/lib/locale/locales";
 
 const DATAFORSEO_BASE_URL = "https://api.dataforseo.com";
 
-/** The vendor path families whose tasks take `depth` (see header): organic
- *  SERPs and, since D48 (SPEC §7, 2026-10-04), the news search, which is
- *  billed by the ten results like the organic one. */
+/** The path families whose tasks take `depth`: organic SERPs and the news search (D48), both billed per ten results. */
 const DEPTH_PATH_PREFIXES = ["/v3/serp/google/organic/", "/v3/serp/google/news/"] as const;
 
 /** On-Page (SPEC §6) reads one address in a browser, and an address has no
@@ -48,8 +21,7 @@ const DEPTH_PATH_PREFIXES = ["/v3/serp/google/organic/", "/v3/serp/google/news/"
  *  declare, so its tasks carry no locale at all. */
 const NO_LOCALE_PATH_PREFIXES = ["/v3/on_page/"] as const;
 
-/** The path families that are read from a city (SPEC §6, owner D67 of
- *  2026-10-07, issue 1318): Google's own results, organic and AI Mode,
+/** The path families that are read from a city (SPEC §6, D67): Google's own results, organic and AI Mode,
  *  which the vendor serves from any of the cities on its list. Labs holds
  *  volumes by country alone and the ChatGPT scraper is asked by country,
  *  so on every other family a place's read is made in its country. */
@@ -75,41 +47,23 @@ export function placeCacheKey(locale: Locale): string {
   return city === COUNTRIES[locale.country].location ? localeCacheKey(locale) : `${localeCacheKey(locale)}|${city}`;
 }
 
-/** BP-008 decision 2's pattern, applied here at the transport level too:
- *  every request this module builds states which vendor API surface it
- *  targets — `'live'` (synchronous) or `'std'` (the vendor's cheaper,
- *  queued surface) — and there is no default. A call site that has not
- *  decided is a compile error, not an inherited value. */
+/** `'live'` (synchronous) or `'std'` (cheaper, queued), with no default: an undecided call site is a compile error. */
 export type DataForSeoMode = "live" | "std";
 
-/** The three fields `buildRequest` alone writes on a task: the two the
- *  spec's `locale` decides, and the depth. Never taken from `fields`. Named
- *  once so the strip-then-set logic below and its test can both cite the
- *  same closed list. */
+/** The three fields `buildRequest` alone writes on a task: the two the spec's `locale` decides, and the depth. */
 const RESERVED_TASK_KEYS = ["location_name", "language_code", "depth"] as const;
 
 export interface DataForSeoRequestSpec {
-  /** The literal vendor API path, e.g. `/v3/serp/google/organic/live/advanced`
-   *  — supplied by the endpoint function that calls this builder (WO-024's,
-   *  WO-025's), never derived from a caller-supplied string (decision 1: no
-   *  export takes an endpoint name). */
+  /** The literal vendor path, from the endpoint module, never from a caller's string: no export takes an endpoint name. */
   path: string;
   mode: DataForSeoMode;
   /** The country and language this read is made in (D66): the site's own,
    *  one row of the closed list. `null` only for the families that take
-   *  no locale at all (`NO_LOCALE_PATH_PREFIXES`). Required, never defaulted:
-   *  a default would measure somebody's market in the wrong country
-   *  without anyone having decided it. */
+   *  no locale at all (`NO_LOCALE_PATH_PREFIXES`). Required: a default would measure a market in the wrong country. */
   locale: Locale | null;
-  /** Endpoint-specific task fields — everything DataForSEO's own request
-   *  body needs beyond the three pinned fields below. A key named among
-   *  `RESERVED_TASK_KEYS` is silently dropped, never merged: those three
-   *  are this module's alone to set. */
+  /** Endpoint-specific task fields. A key among `RESERVED_TASK_KEYS` is dropped, never merged. */
   fields?: Record<string, unknown>;
-  /** The wall clock this one request may hold (issue 875). Absent is
-   *  `REQUEST_TIMEOUT_MS`, which is what every call outside the free path's
-   *  twelve takes. It is per call and never per module because one process
-   *  serves every tier. */
+  /** The wall clock this one request may hold; absent is `REQUEST_TIMEOUT_MS`. Per call, since one process serves every tier. */
   timeoutMs?: number;
   /** How deep a SERP family's result is read; absent is `VENDOR.serpDepth`.
    *  The vendor bills each ten results as one page. */
@@ -121,8 +75,7 @@ export type SerpDepth = 10 | 20 | 30 | 40 | 50 | 60 | 70 | 80 | 90 | 100;
 
 /** A locale as every cache key of this package spells it: the vendor's
  *  country name and the language, so a read bought in one country is never
- *  served to a site in another (D66). The United States in English is
- *  spelled as it was before D66, so the reads held from then still serve. */
+ *  served to a site in another (D66). */
 export function localeCacheKey(locale: Locale): string {
   return `${COUNTRIES[locale.country].location}|${locale.language}`;
 }
@@ -172,7 +125,7 @@ export function buildRequest(spec: DataForSeoRequestSpec): DataForSeoRequest {
   };
 }
 
-/** Why a request came back without a body to read (issue #504), closed:
+/** Why a request came back without a body to read, closed:
  *  the vendor answered a non-2xx status (`http_<n>`); `fetch` rejected
  *  on a timeout signal (`timeout`) or on anything else — a refused
  *  connection, a reset (`transport`); or a 2xx body that was not JSON
@@ -183,17 +136,8 @@ export type DataForSeoOutcome<T> =
   | { ok: true; payload: T }
   | { ok: false; failure: TransportFailure; reason: string };
 
-/** Issues one `buildRequest`-built request through the platform's global
- *  `fetch` (the vendor host is one we authored, not a customer- or
- *  dataset-supplied URL — BP-006's `## Module / boundary`: "Vendor API
- *  calls do not [go through `safeFetch`]: they are BP-008's, to hosts we
- *  authored" — and `eslint.config.mjs`'s `no-fetch-outside-egress` rule
- *  carves `src/lib/vendors/**` out for exactly this reason). Never throws:
- *  every failure — a rejected `fetch`, a non-2xx status, an unparseable
- *  body — becomes `{ ok: false, reason }`, and `reason` is built from
- *  nothing but the response's own status/statusText or the caught error's
- *  `message`, never from the request (so never from its `Authorization`
- *  header). */
+/** Global `fetch`, not `safeFetch`: the host is one we authored, and `no-fetch-outside-egress` exempts this folder.
+ *  Never throws. `reason` comes from the response status or the error's `message`, never from the request or its header. */
 export async function sendRequest<T>(spec: DataForSeoRequestSpec): Promise<DataForSeoOutcome<T>> {
   const request = buildRequest(spec);
   return issue<T>(
@@ -222,27 +166,8 @@ export async function sendGet<T>(path: string, timeoutMs?: number): Promise<Data
   );
 }
 
-/** The wall clock one vendor request may hold, in milliseconds.
- *
- *  **There was no bound at all** (issue #539). `fetch` was called with no
- *  signal, so a vendor that accepted the connection and then said nothing
- *  held the request open until the platform froze the whole invocation —
- *  and `isTimeout` below, which exists to classify precisely that, could
- *  only ever have seen a timeout somebody else set. A free pass's stage
- *  budget (`src/lib/scan/budgets.ts`) bounds the *stage* around such a
- *  call, but the request itself is this module's to bound, and the two
- *  passes with no report deadline at all have nothing else that would.
- *
- *  10 s is under every per-stage budget in `STAGE_BUDGETS`, so a single
- *  unanswered request comes back as this module's own `timeout` failure —
- *  ledgered, and `undeterminable` for the one driver that asked — rather
- *  than being the thing that spends the whole stage.
- *
- *  **It is the default, not the rule** (issue 875): a caller may name a
- *  shorter one, and the free path's question SERPs do — 10 s under a
- *  13-second stage at a fan-out of four is a quarter of that stage held by
- *  one stuck call. The pin lives in `constants.ts` with the free path's
- *  beside it. */
+/** The default wall clock for one request: a silent vendor would otherwise hold the invocation until the platform
+ *  froze it. Under every `STAGE_BUDGETS` entry, so it ends as a ledgered `timeout` rather than spending the stage. */
 const REQUEST_TIMEOUT_MS = VENDOR.requestAbortMs;
 
 async function issue<T>(url: string, init: RequestInit, timeoutMs?: number): Promise<DataForSeoOutcome<T>> {

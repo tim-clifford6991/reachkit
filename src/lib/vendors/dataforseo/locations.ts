@@ -1,18 +1,6 @@
-// src/lib/vendors/dataforseo/locations.ts — the vendor's own name for a
-// city (SPEC §6, owner D67 of 2026-10-07, issue 1318).
-//
-// A business that serves one place is measured there: Google's results,
-// organic and AI Mode, are read from its city. The vendor takes a location
-// only by a name on its own list ("Austin,Texas,United States"), so the
-// place a site serves is looked up on that list once and the name is kept
-// with the site (`sites.market.area`).
-//
-// **The list is free** (`GET /v3/serp/google/locations/{country}`, charged
-// 0 by the vendor), so nothing is ledgered and no `CostContext` is taken.
-// It is large — 19 MB for the United States — which is why it is read once
-// a site and never in a request a person is waiting on.
-//
-// Pure apart from that one GET. Never throws.
+// SPEC §6 (D67) — the vendor's own name for a city, so a one-place business is measured from there.
+// The vendor takes a location only by a name on its list ("Austin,Texas,United States"); the match is kept in `sites.market.area`.
+// The list is free, so nothing is ledgered, but large (19 MB for the US), so it is read once a site. Never throws.
 import { COUNTRIES, type Country, type Place } from "@/lib/locale/locales";
 import { folded } from "@/lib/locale/place";
 import { sendGet } from "./transport";
@@ -84,8 +72,7 @@ function listed(payload: unknown): ListedLocation[] {
  * one name with no region to tell them apart are not guessed between
  * (Portland in Oregon and in Maine) — unless `near` names other towns the
  * business serves, and the region that holds most of them holds one of the
- * two ("Austin" beside "San Antonio" and "Round Rock" is Texas's; issue
- * 1441).
+ * two ("Austin" beside "San Antonio" and "Round Rock" is Texas's).
  */
 export function matchLocation(list: readonly ListedLocation[], place: Place, near: readonly Place[] = []): string | null {
   const name = folded(place.name);
@@ -123,9 +110,7 @@ function nearest(list: readonly ListedLocation[], named: readonly ListedLocation
   return first !== undefined && first.score > 0 && (second === undefined || second.score < first.score) ? first.row.name : null;
 }
 
-/** The list, read once a country by an instance: it does not change between
- *  two scans, and a free pass asks it while a person waits (issue 1441). A
- *  read that failed is not kept. */
+/** Read once a country per instance, since a free pass asks it while a person waits. A failed read is not kept. */
 const LISTS = new Map<Country, Promise<ListedLocation[] | null>>();
 
 function listOf(country: Country, timeoutMs: number): Promise<ListedLocation[] | null> {
