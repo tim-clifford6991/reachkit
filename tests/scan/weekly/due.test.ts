@@ -123,6 +123,20 @@ describe("a week already stamped is never measured twice, and a failed one is re
     expect(due.map((s) => s.siteId)).toEqual(["utc-site"]);
   });
 
+  it("a week whose claim was released is selected at any hour of the site's own week, and only that one", async () => {
+    DB.rows.set("sites", [site("released", "UTC"), site("measured", "UTC"), site("unclaimed", "UTC")]);
+    DB.answer = (statement) =>
+      statement.table === "scans"
+        ? [
+            { site_id: "released", week_start: "2026-09-07", status: "failed" },
+            { site_id: "measured", week_start: "2026-09-07", status: "degraded" },
+          ]
+        : null;
+    expect((await dueSites(new Date("2026-09-09T06:00:00Z"))).map((s) => s.siteId)).toEqual(["released"]);
+    // The next Monday is a new week: the released row is last week's and the due hour decides again.
+    expect((await dueSites(new Date("2026-09-14T05:00:00Z"))).map((s) => s.siteId)).toEqual([]);
+  });
+
   it("a site whose run left no row is selected again on the next hourly tick", async () => {
     DB.rows.set("sites", [site("utc-site", "UTC")]);
     // Nothing was stamped, which is what a released claim leaves behind.
