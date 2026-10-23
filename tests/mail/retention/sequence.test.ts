@@ -133,6 +133,18 @@ describe("the cancellation mail says whether the first payment was refunded", ()
     expect(sent[0]!.text).not.toContain("You keep full access");
   });
 
+  it("a refund recorded before access has ended waits, then sends once access ends", async () => {
+    accounts.set("u1", account({ cancelledAt, paidThrough: new Date(NOW.getTime() + 20 * DAY) }));
+    refunds = [{ userId: "u1", at: NOW }];
+    expect(await retention.sendCancellation("u1", NOW)).toEqual({ sent: false, kind: "cancellation", reason: "not-due" });
+    expect(accounts.get("u1")!.cancellationMailedAt).toBeNull();
+    expect(sent).toEqual([]);
+
+    accounts.set("u1", { ...accounts.get("u1")!, paidThrough: NOW, planStatus: "canceled" });
+    expect((await retention.sendCancellation("u1", NOW)).sent).toBe(true);
+    expect(sent[0]!.text).toContain("Your first payment was refunded in full");
+  });
+
   it("a cancel with no refund keeps the line that access runs to the period end", async () => {
     accounts.set("u1", account({ cancelledAt }));
     expect((await retention.sendCancellation("u1", NOW)).sent).toBe(true);
