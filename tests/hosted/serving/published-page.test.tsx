@@ -435,7 +435,7 @@ describe("the about card links the main site's own book and quote pages, and not
   const parsed = (html: string): Document => new DOMParser().parseFromString(html, "text/html");
 
   it("a local business that links both draws two plain links in the card, and none in the header or footer", async () => {
-    state.identity = { mainSite: stored(PLUMBER) };
+    state.identity = { mainSite: stored(PLUMBER), offer: { category: "plumbing", place: "Austin" } };
     const doc = parsed(await render());
     const links = [...doc.querySelectorAll("aside ul[role=list] a")];
     expect(links.map((a) => [a.textContent, a.getAttribute("href")])).toEqual([
