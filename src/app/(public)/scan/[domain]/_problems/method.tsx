@@ -14,6 +14,7 @@
 // opens the collapse around it; the robots lines a founder pastes live
 // here, under the method that says where to paste them.
 import type React from "react";
+import { ListChecks } from "lucide-react";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { METHOD_ANCHOR, PasteBlock } from "./cards";
 import type { ProblemName } from "./model";
@@ -38,8 +39,15 @@ export function MethodSections(p: {
     // Closed under its own name like What holds you back (board PubReport); a link into a step opens both.
     <details id="method" className="collapse collapse-arrow scroll-mt-20 rounded-none" data-testid="report-method">
       <summary className="collapse-title min-h-0 px-px py-2 pe-10 after:end-2 after:top-6">
-        <h2 className="text-2xl font-bold">{copy("method.title")}</h2>
-        <p className="text-base-content/70 text-sm font-normal">{copy("method.section.sub")}</p>
+        <div className="flex items-center gap-3">
+          <span aria-hidden className="rounded-field grid size-9 shrink-0 place-items-center bg-base-200">
+            <ListChecks className="size-5" strokeWidth={1.75} />
+          </span>
+          <div className="min-w-0">
+            <h2 className="text-2xl font-bold">{copy("method.title")}</h2>
+            <p className="text-base-content/70 text-sm font-normal">{copy("method.section.sub")}</p>
+          </div>
+        </div>
       </summary>
       <div className="collapse-content flex min-w-0 flex-col gap-2 px-px">
         {p.for.map((problem) => {
