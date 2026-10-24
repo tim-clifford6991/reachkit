@@ -89,7 +89,9 @@ export const SECURITY_HEADERS: readonly { key: string; value: string }[] = [
 ];
 
 const nextConfig: NextConfig = {
-  serverExternalPackages: ["@supabase/supabase-js"],
+  // The Tailwind compiler and its native addons are required as they ship, never bundled: the
+  // hosted `/style.css` route runs them once, during `next build`.
+  serverExternalPackages: ["@supabase/supabase-js", "@tailwindcss/postcss", "@tailwindcss/oxide", "lightningcss"],
   // Issue 1481: the deployment's derivation — a fingerprint of the files the
   // re-score reads a scan with. The `scan/rescore` tick asks for a dry run
   // and an apply by itself when it finds no run at this value.
