@@ -52,7 +52,7 @@ describe("the landing's step figures", () => {
     expect(phone).toBeTruthy();
     const text = textOf(phone);
     for (const s of [
-      copy("signin.inbox.title"),
+      copy("landing.mail.inbox"),
       copy("how.mail.subject"),
       copy("how.mail.live", { n: plumber.mail.live }),
       copy("how.mail.planned", { n: plumber.mail.planned }),

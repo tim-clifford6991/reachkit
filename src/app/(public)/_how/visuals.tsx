@@ -457,7 +457,7 @@ export function MondayEmail(e: Example, show: { linked: boolean } = { linked: tr
           tabIndex={0}
           className="mockup-phone-display bg-base-100 flex flex-col gap-3 overflow-y-auto px-4 pt-12 pb-6 text-sm"
         >
-          <p className={SMALL}>{copy("signin.inbox.title")}</p>
+          <p className={SMALL}>{copy("landing.mail.inbox")}</p>
           <p className="flex items-center gap-1 font-semibold">
             <Inbox {...ICON} />
             {copy("how.mail.subject")}
