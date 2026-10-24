@@ -1240,6 +1240,8 @@ export const OVERVIEW_COPY = Object.freeze({
   // Six words at most (SPEC §0; owner R12, B12).
   "overview.ladder.title": ["How far your {n} pages got", { slots: { n: "text" }, fixedBy: "issue 1605 (drafted)" }],
   "overview.ladder.read": ["Read {on}", { slots: { on: "date" }, fixedBy: "issue 1605 (drafted)" }],
+  // A page published since the last reading is left out of each step's count.
+  "overview.ladder.unread": ["{k} not read yet", { slots: { k: "text" }, fixedBy: "issue 1876 (drafted)" }],
   "overview.ladder.google.sub": ["highest step each page has reached", { slots: {}, fixedBy: "issue 1605 (drafted)" }],
   "overview.ladder.ai.sub": ["counted apart from Google", { slots: {}, fixedBy: "issue 1605 (drafted)" }],
   "overview.ladder.step.live": ["of {n} on your own web address", { slots: { n: "text" }, fixedBy: "issue 1605 (drafted)" }],
