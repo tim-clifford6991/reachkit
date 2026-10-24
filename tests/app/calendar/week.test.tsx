@@ -9,6 +9,8 @@ import { renderToStaticMarkup } from "react-dom/server";
 import React from "react";
 import { COPY } from "@/lib/presentation/copy";
 import { CalendarView } from "@/app/(account)/app/calendar/CalendarView";
+import { DayList } from "@/app/(account)/app/calendar/DayList";
+import { WeekGrid } from "@/app/(account)/app/calendar/WeekGrid";
 import { planWeek } from "@/app/(account)/app/calendar/dates";
 import { assembleMonth, weekOf, type CalendarFacts, type DraftOnDay } from "@/app/(account)/app/calendar/month";
 import { FIXTURE_CALENDAR_FACTS, FIXTURE_MONTH } from "@/app/(account)/app/calendar/fixture";
@@ -25,10 +27,8 @@ function render(el: React.ReactElement): Element {
 const WEEK = ["2026-09-14", "2026-09-15", "2026-09-16", "2026-09-17", "2026-09-18", "2026-09-19", "2026-09-20"];
 
 const cells = (root: Element): Element[] => [...root.querySelectorAll('[data-testid="calendar-week"] > li')];
-const listed = (root: Element): string[] =>
-  [...root.querySelectorAll('[data-testid="calendar-list"] [data-testid^="calendar-day-"]')].map((row) =>
-    (row.getAttribute("data-testid") ?? "").replace("calendar-day-", "")
-  );
+const rows = (root: Element): Element[] => [...root.querySelectorAll('[data-testid="calendar-list"] [data-testid^="calendar-day-"]')];
+const listed = (root: Element): string[] => rows(root).map((row) => (row.getAttribute("data-testid") ?? "").replace("calendar-day-", ""));
 const stateOf = (cell: Element | null | undefined): string | null =>
   cell?.querySelector('[data-testid="day-state"]')?.getAttribute("data-state") ?? null;
 
@@ -162,6 +162,54 @@ describe("condition 1 — seven cells, each with its page, its state and the sto
     expect(root.querySelector('[data-testid="stage-count-all"]')?.textContent).toBe(
       String(week.cells.filter((cell) => cell.page !== null).length)
     );
+  });
+});
+
+describe("each page day draws the board's page sketch and icons", () => {
+  const sketch = (day: Element): string | null => {
+    const band = day.querySelector("svg.lucide-file-text")?.parentElement;
+    if (band === null || band === undefined) return null;
+    return band.classList.contains("bg-primary/10") ? "primary" : "plain";
+  };
+
+  it("a page day draws its sketch, an empty day none; today's is primary", () => {
+    // The fixture week: five pages, today among them, then a stopped day and a skipped day.
+    const { week } = shown(assembleMonth(FIXTURE_CALENDAR_FACTS, FIXTURE_MONTH));
+    const want = week.cells.map((cell) => (cell.page === null ? null : cell.today ? "primary" : "plain"));
+    expect(want).toContain("primary");
+    expect(want.slice(5)).toEqual([null, null]);
+    const root = render(withNuqs(<CalendarView week={week} />));
+    expect(cells(root).map(sketch)).toEqual(want);
+    expect(rows(root).map(sketch)).toEqual(want);
+
+    // A stage filter that leaves a day without its page leaves it without a band too.
+    const props = { cells: week.cells, filter: "live" as const, selected: null, goesLive: null, firstSkip: null, onSelect: () => {} };
+    expect(week.cells.some((cell) => cell.page?.stage === "live")).toBe(true);
+    const grid = render(withNuqs(<WeekGrid {...props} destination={null} />));
+    const list = render(withNuqs(<DayList {...props} />));
+    const keep = (cell: (typeof week.cells)[number]): string | null => (cell.page?.stage === "live" ? (cell.today ? "primary" : "plain") : null);
+    expect(cells(grid).map(sketch)).toEqual(week.cells.map(keep));
+    expect(rows(list).map(sketch)).toEqual(week.cells.map(keep));
+  });
+
+  it("New/Update chips and the Planned badge carry their icons", () => {
+    const facts = fullWeek();
+    const drafts = facts.drafts.map((d, at) => ({ ...d, update: at % 2 === 1 }));
+    const root = render(withNuqs(<CalendarView {...shown(assembleMonth({ ...facts, drafts }, FIXTURE_MONTH))} />));
+    const icon = (el: Element | null | undefined): string | null =>
+      el?.querySelector("svg")?.getAttribute("class")?.match(/\blucide-([a-z-]+)\b(?<!lucide-icon)/)?.[1] ?? null;
+    const chips = cells(root).map((cell) => cell.querySelector('[data-testid="day-kind"]'));
+    expect(chips.map(icon)).toEqual(["plus", "refresh-cw", "plus", "refresh-cw", "plus", "refresh-cw", "plus"]);
+    for (const chip of chips) {
+      expect(chip?.classList.contains("gap-1")).toBe(true);
+      expect(chip?.querySelector("svg")?.getAttribute("aria-hidden")).toBe("true");
+      expect(chip?.querySelector("svg")?.classList.contains("size-3")).toBe(true);
+    }
+    const badges = cells(root).map((cell) => cell.querySelector('[data-testid="day-state"]'));
+    expect(badges.map(icon)).toEqual([null, null, null, "calendar", "calendar", "calendar", "calendar"]);
+    // The stopped badge carries the board's stop icon; a skipped day draws none.
+    const fixture = render(withNuqs(<CalendarView {...shown(assembleMonth(FIXTURE_CALENDAR_FACTS, FIXTURE_MONTH))} />));
+    expect(cells(fixture).slice(5).map((cell) => icon(cell.querySelector('[data-testid="day-state"]')))).toEqual(["circle-stop", null]);
   });
 });
 
