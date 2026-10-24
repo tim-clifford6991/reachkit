@@ -1,34 +1,9 @@
-// BUILD §4.2 — sweep, then release, then send.
-//
-// At most one sequence per address at a time, in the order the pages were
-// delivered, at most three touches per domain, and nothing at all for an
-// address that has opted out or subscribed.
-//
-// **Read ADR-041 before "fixing" a lead who received no follow-ups.** Two
-// of its three landmines are this file's, and both read from inside the
-// code exactly like defects:
-//
-// 1. **A waiting sequence past its deadline is dropped forever.** The sweep
-//    runs *before* the release step, on *every* invocation, so the terminal
-//    state is reached even on a run that releases nothing. There is no code
-//    path from `dropped` to `running`. Releasing them "because they only
-//    missed their slot" is one line, and it breaks the only bound REQ-010
-//    places on elapsed time: a start no later than 7 days plus a last touch
-//    at 168 hours is "no follow-up about a domain ever reaches an address
-//    more than 14 days after that domain's page was delivered to it". A
-//    released sequence mails a stranger about a scan they have forgotten,
-//    which is the mailing-list-I-regret outcome the user story names.
-// 2. **A re-delivery starts nothing.** `scheduleSequence` writes nothing
-//    when a sequence for `(lower(email), domain)` already exists in any
-//    state, running or finished or stopped alike. The second `leads` row
-//    keeps a null `sequence_state` forever. It reads as a lost enqueue and
-//    is not one: criterion 14's line promises the page "and up to three
-//    further emails about that domain", and a second sequence makes it six.
-//
-// The 14-day guarantee is **arithmetic over two pins**, never a third check
-// that could drift from them. Every cadence below comes from
-// `src/lib/config/constants.ts`; a literal 24, 72, 168, 3 or 7 in this file
-// would be a defect.
+// BUILD §4.2 — sweep, then release, then send: one sequence per address at a time, in delivery order, at most three touches a domain,
+// and none for an address that opted out or subscribed. Read ADR-041 before "fixing" a lead who got no follow-ups:
+// 1. A waiting sequence past its deadline is dropped forever, swept first on every run. Releasing it breaks REQ-010's bound that no
+//    follow-up reaches an address more than 14 days after its page was delivered.
+// 2. A re-delivery starts nothing: an existing `(lower(email), domain)` sequence in any state blocks a second, which would make six mails.
+// The 14 days are arithmetic over pins in `src/lib/config/constants.ts`; a literal cadence here is a defect.
 import {
   NURTURE_H,
   NURTURE_MAX_TOUCHES,
@@ -42,22 +17,12 @@ import { normaliseAddress, suppressionState } from "./suppress";
 import { wireSuppressionReader } from "./wire";
 
 function log(a: Record<string, unknown>): void {
-  // Lead id, domain, transition, touch index, drop reason and suppression
-  // outcome — never an address in clear text, and never a page body.
+  // Ids, transition, touch index and outcomes; never an address or a page body.
   console.log(JSON.stringify({ event: "lead_sequence", ...a }));
 }
 
-/** BP-029's declared entry point. Keyed by `(lower(email), domain)`: a
- *  second delivery of the same domain's page to the same address starts
- *  nothing (criterion 13), and nothing at all is started for a suppressed
- *  address (criterion 11's last limb).
- *
- *  The sequence lives on the lead row whose page was just delivered — the
- *  row `deliverFirstPage` has already stamped `page_delivered_at` on. The
- *  partial unique index is what refuses a second one; this function does
- *  not pre-check for it, because a check is a race and a uniqueness claim
- *  is the database's to hold. A rejected write is swallowed as
- *  success-with-no-effect: it is a legal outcome, never an error to retry. */
+/** Keyed by `(lower(email), domain)`: a second delivery starts nothing (criterion 13), nor does a suppressed address (criterion 11).
+ *  The partial unique index refuses the second, not a racy pre-check; a rejected write is success with no effect. */
 export async function scheduleSequence(a: {
   email: string;
   domain: string;
@@ -100,8 +65,7 @@ export async function scheduleSequence(a: {
     return;
   }
 
-  // The index refusing a second sequence for this `(address, domain)` is
-  // criterion 13 working, not a failure. ADR-041 landmine 2.
+  // The index refusing a second sequence is criterion 13 working (ADR-041 landmine 2).
   log({
     leadId: target.id,
     domain,
@@ -110,8 +74,7 @@ export async function scheduleSequence(a: {
   });
 }
 
-/** The nurture job's body. Three steps, in this order and no other, called
- *  from one function so the order is visible in one place. */
+/** The nurture job's body: three steps, in this order only, in one place. */
 export async function advanceSequences(now: Date): Promise<{
   dropped: number;
   released: number;
@@ -124,11 +87,7 @@ export async function advanceSequences(now: Date): Promise<{
   return { dropped, released, sent };
 }
 
-/** Step 1. Every `waiting` row whose own page was delivered more than
- *  `SEQUENCE_START_DEADLINE_DAYS` ago, to `dropped`. It runs first and on
- *  every invocation, so the terminal state is reached even on a run that
- *  releases nothing — otherwise the stored state is a lie about what is
- *  still due. There is no path back. */
+/** Step 1: `waiting` rows past `SEQUENCE_START_DEADLINE_DAYS` go to `dropped`, first and on every run, so the stored state is true. No path back. */
 async function sweep(now: Date): Promise<number> {
   const store = leadStore();
   const read = await store.leadsInSequenceState(["waiting"]);
@@ -158,9 +117,7 @@ async function sweep(now: Date): Promise<number> {
   return dropped;
 }
 
-/** Step 2. For each address with nothing running, the oldest surviving
- *  `waiting` row by `page_delivered_at`. One at a time, in delivery order,
- *  and never for a suppressed address. */
+/** Step 2: for each address with nothing running, its oldest `waiting` row by delivery, never for a suppressed address. */
 async function release(now: Date): Promise<number> {
   const store = leadStore();
   const read = await store.leadsInSequenceState(["waiting", "running"]);
@@ -206,14 +163,8 @@ async function release(now: Date): Promise<number> {
   return released;
 }
 
-/** Step 3. Every `running` row whose next touch has come round. The offsets
- *  are measured from `sequence_started_at`, not from the previous touch:
- *  criterion 9 fixes them "at 24, 72 and 168 hours after that domain's
- *  sequence begins".
- *
- *  Each row is advanced by `advanceLead` — the same function the
- *  `lead/nurture` job reaches through `advanceOneTouch`, so the sweep and
- *  the job cannot come to disagree about what one touch does. */
+/** Step 3: every `running` row whose touch is due, measured from `sequence_started_at` (criterion 9: 24, 72 and 168 hours).
+ *  Through `advanceLead`, as the `lead/nurture` job is, so the two cannot disagree on what a touch does. */
 async function sendDueTouches(now: Date): Promise<number> {
   const store = leadStore();
   const read = await store.leadsInSequenceState(["running"]);
@@ -221,8 +172,7 @@ async function sendDueTouches(now: Date): Promise<number> {
 
   let sent = 0;
   for (const lead of read.leads) {
-    // The sweep asks the stored clock whether this row is due; the job is
-    // told by the event's own arrival (see `advanceOneTouch`).
+    // The sweep asks the stored clock; the job is told by its event's arrival.
     if (lead.next_touch_at === null) continue;
     if (new Date(lead.next_touch_at).getTime() > now.getTime()) continue;
     const outcome = await advanceLead(lead, now, null);
@@ -231,8 +181,7 @@ async function sendDueTouches(now: Date): Promise<number> {
   return sent;
 }
 
-/** What one touch did. Every arm is a state the caller may be told about;
- *  none of them pretends a mail went out that did not. */
+/** What one touch did; no arm pretends a mail went out that did not. */
 export type TouchOutcome =
   | { advanced: true; touch: number; nextTouchAt: Date | null }
   | {
@@ -240,12 +189,9 @@ export type TouchOutcome =
       reason:
         /** No such lead, or a store that could not be read. */
         | "no-lead"
-        /** The sequence is not running — never started, dropped, stopped or
-         *  already finished. */
+        /** Not running: never started, dropped, stopped or finished. */
         | "not-running"
-        /** The event is for a touch this sequence has already recorded, or
-         *  for one it has not reached. Per-touch dedupe: a re-run sends
-         *  nothing (REQ-010 c9). */
+        /** Already recorded or not yet reached: per-touch dedupe, so a re-run sends nothing (REQ-010 c9). */
         | "already-recorded"
         /** REQ-010 c10 — they bought. */
         | "converted"
@@ -253,24 +199,12 @@ export type TouchOutcome =
         | "suppressed"
         /** Three touches have gone; there is no fourth. */
         | "finished"
-        /** The send seam refused the mail — an unwritten line, a stopped
-         *  preference, or the vendor. Nothing was recorded, so the touch is
-         *  still owed. */
+        /** The seam refused (unwritten line, stopped preference, vendor); nothing recorded, so the touch is still owed. */
         | "not-sent";
     };
 
-/**
- * One lead, one touch — the body both the sweep and the `lead/nurture` job
- * run.
- *
- * `expected` is the touch index the caller believes this sequence is on, or
- * `null` for the sweep, which takes the row's own position as given. The
- * job passes the index its event carries: `(leadId, touchIndex)` is
- * per-touch dedupe **inside** a sequence and never the sequence key, which
- * stays the `(lower(email), domain)` partial unique index. A second
- * delivery of the same event finds `touch_count` already past it and sends
- * nothing.
- */
+/** One lead, one touch, run by the sweep and the job. `expected` is the caller's touch index (`null` for the sweep);
+ *  `(leadId, touchIndex)` dedupes inside a sequence, whose key stays the `(lower(email), domain)` index. */
 async function advanceLead(
   lead: LeadRow,
   now: Date,
@@ -282,19 +216,14 @@ async function advanceLead(
     return { advanced: false, reason: "not-running" };
   }
 
-  // REQ-010 c10 — "stops on convert". The row is stopped with its cause
-  // rather than left labelled `running` and skipped on every later run: the
-  // stored state is otherwise a lie about what is still due.
+  // REQ-010 c10, "stops on convert": stopped with its cause, so the stored state is true.
   if (lead.converted_at !== null) {
     await store.patchLead(lead.id, { sequence_state: "stopped", next_touch_at: null });
     log({ leadId: lead.id, domain: lead.domain, outcome: "stopped", cause: "converted", rule: "REQ-010 c10" });
     return { advanced: false, reason: "converted" };
   }
 
-  // A subscribe or an opt-out between two invocations stops the row here
-  // rather than leaving it labelled `running` and sending nothing every
-  // time the job runs. The send seam would refuse the mail anyway; this is
-  // the label converging on the fact.
+  // A subscribe or opt-out between runs stops the row, so the label converges on the fact.
   const suppression = await suppressionState(lead.email);
   if (suppression !== "send") {
     await store.patchLead(lead.id, { sequence_state: "stopped", next_touch_at: null });
@@ -302,9 +231,7 @@ async function advanceLead(
     return { advanced: false, reason: "suppressed" };
   }
 
-  // The position: touch `n` is sent while `touch_count` is still `n`. An
-  // event naming any other index is a duplicate or an out-of-order delivery
-  // and sends nothing.
+  // Touch `n` is sent while `touch_count` is `n`; any other index is a duplicate or out of order.
   if (expected !== null && expected !== lead.touch_count) {
     log({
       leadId: lead.id,
@@ -334,10 +261,7 @@ async function advanceLead(
   });
 
   if (!result.sent) {
-    // Nothing is recorded: the touch is still owed, and a later run may
-    // still send it. An unwritten line is the owner's debt (DECISIONS
-    // 2026-09-05 — "a mail never ships a placeholder"), not a reason to
-    // mark this touch done.
+    // Nothing recorded: the touch is still owed, since a mail never ships a placeholder.
     log({ leadId: lead.id, domain: lead.domain, outcome: "touch-not-sent", reason: result.reason });
     return { advanced: false, reason: "not-sent" };
   }
@@ -345,8 +269,7 @@ async function advanceLead(
   const count = lead.touch_count + 1;
   const done = count >= NURTURE_MAX_TOUCHES;
   const started = new Date(lead.sequence_started_at ?? now.toISOString());
-  // Criterion 9's offsets, measured from the sequence's start and taken
-  // from `NURTURE_H` — a literal 24, 72 or 168 here would be a defect.
+  // Criterion 9's offsets from the start, from `NURTURE_H`.
   const nextTouchAt = done ? null : hoursAfter(started, NURTURE_H[count] as number);
   await store.patchLead(lead.id, {
     touch_count: count,
@@ -357,18 +280,8 @@ async function advanceLead(
   return { advanced: true, touch: count, nextTouchAt };
 }
 
-/**
- * BP-029's per-touch entry point — what `src/jobs/engine.ts`'s
- * `advanceSequence()` calls, and through it the `lead/nurture` job.
- *
- * **Due-ness is the event's, not the row's.** The sweep reads
- * `next_touch_at` to decide whether a touch has come round; here the
- * platform's own delay is what scheduled the delivery, so the event
- * arriving *is* the due-ness. Re-checking the stored clock would lose a
- * touch forever to a second of skew — there is no re-delivery for a touch
- * this function declines. What stops a double send is the position check,
- * which is exact.
- */
+/** The per-touch entry point the `lead/nurture` job reaches through `src/jobs/engine.ts`'s `advanceSequence()`.
+ *  The event's arrival is the due-ness: re-checking the stored clock would lose a touch to skew; the position check stops a double send. */
 export async function advanceOneTouch(a: {
   leadId: string;
   touchIndex: number;

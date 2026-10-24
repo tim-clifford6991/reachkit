@@ -1,14 +1,10 @@
-// SPEC §8, Retention (issue #569) — the shape the five retention templates
-// return, and the one absolute-link construction they share. A leaf: the
-// templates import it, and it imports none of them.
+// SPEC §8, Retention — the shape the retention templates return and their shared absolute link; a leaf the templates import.
 import { env } from "@/lib/config/env";
 import type { CopyKey } from "@/lib/presentation/copy";
 import type { MailBlock } from "../blocks/types";
 import type { OptOutControl } from "../shell/compose";
 
-/** Each retention mail opens on its own subject line as a heading, as the
- *  other sequence mails do (issue 641), so the inbox row and the first line
- *  of the mail cannot say different things. */
+/** Each opens on its subject line as a heading, so the inbox row and the first line cannot differ. */
 export interface RetentionMail {
   readonly subject: CopyKey;
   readonly blocks: readonly MailBlock[];

@@ -1,6 +1,4 @@
-// SPEC §8, Retention (issue #569) — when each touch is due, as pure
-// functions over the rows. The whole schedule lives here; the store only
-// narrows the read and the senders only re-ask these at send time.
+// SPEC §8, Retention — when each touch is due, as pure functions over the rows; senders re-ask these at send time.
 //
 //   trigger          kind            due                                   stops
 //   payment failed   payment-failed  plan past_due, not mailed this spell  payment succeeds

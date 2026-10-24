@@ -1,20 +1,6 @@
-// SPEC §8, Retention (issue #569) — the sequence, run by the maintenance
-// tick: three triggers, four kinds, each touch stopped when its condition
-// resolves.
-//
-// **Due at send time, never scheduled.** Like the setup reminders, nothing is
-// queued per account: each tick asks who is due now, and each send re-reads
-// the row and re-asks `rules.ts` immediately before composing. A payment
-// succeeding or a resume makes the next touch not due; there is no queue
-// entry to cancel.
-//
-// **Stamped only after the mail left.** A touch that did not send — an
-// unwritten line, an opted-out address, a vendor failure — leaves its stamp
-// unset and is logged with the reason, so every decision is visible and none
-// is consumed by a mail that never arrived.
-//
-// The hosting-end notice, the fourth kind, is `account/billing`'s and already
-// runs on the same tick.
+// SPEC §8, Retention — the sequence the maintenance tick runs: three triggers, each touch stopped when its condition resolves.
+// Due at send time, never queued: each send re-reads the row and re-asks `rules.ts`, so a payment or resume leaves nothing to cancel.
+// Stamped only after the mail left; a touch that did not send keeps its stamp unset and logs why. The hosting-end notice is `account/billing`'s.
 import { formatMailDate } from "../blocks/format";
 import { wireSuppressionReader } from "../leads/wire";
 import { sendEmail, type SendResult } from "../send";
@@ -107,8 +93,7 @@ export async function sendWinback(userId: string, now: Date = new Date()): Promi
   const account = await store.account(userId);
   if (account === null || !winbackDue({ account, now })) return notDue(kind, userId);
 
-  // The address-wide opt-out is the win-back's one stop besides a resume:
-  // `sendEmail` asks the suppression store for this `opt-out` kind.
+  // Besides a resume, the address-wide opt-out stops the win-back: `sendEmail` asks the suppression store for this kind.
   wireSuppressionReader();
   const mail = buildWinback({ email: account.email });
   const result = await sendEmail({ kind, to: account.email, ...mail });

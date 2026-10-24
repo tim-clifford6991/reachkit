@@ -1,9 +1,5 @@
-// SPEC §8, Retention (issue #569) — the rows the sequence reads and the
-// stamps it writes. A port with one Supabase implementation and a door for
-// suites, the shape `account/billing/store.ts` uses.
-//
-// Each due read narrows by the indexed, cheap conditions; the rest of each
-// rule is `rules.ts`'s, re-asked by the sender against a fresh read.
+// SPEC §8, Retention — the rows the sequence reads and the stamps it writes, as a port with a suites' door.
+// Due reads narrow by cheap indexed conditions; the rest of each rule is `rules.ts`'s, re-asked against a fresh read.
 import { dbAdmin } from "@/lib/db";
 import { seenIsStale, type RetentionAccount } from "./rules";
 

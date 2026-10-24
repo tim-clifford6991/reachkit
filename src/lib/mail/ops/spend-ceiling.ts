@@ -1,25 +1,7 @@
-// The owner's spend alert, sent — §6.5's ceilings and §11's switch.
-//
-// Five occasions, one mail (`templates/ops/`): the day's spend crossed
-// four fifths of its ceiling, it reached the ceiling, one site reached its
-// own cap (issue 885), a free-path bound filled (issue 885), or the kill
-// switch was found engaged.
-//
-// **Who receives it.** `OWNER_EMAILS` — the binding BUILD §15 has carried
-// since the beginning and which nothing in `src/` read until now. One send
-// per address, because two owners are two people who each need telling,
-// and a failure for one is not a failure for the other.
-//
-// **It cannot send yet, by design.** Every sentence it speaks is
-// owner-owed (`copy()` refuses an unwritten key, `sendEmail` answers
-// `not-composable`, DECISIONS 2026-09-05: "a mail never ships a
-// placeholder"). The guard does not depend on the mail: the ceiling
-// refuses at the door and holds the seam whether or not anybody is told.
-// What is missing until the owner writes the lines is the telling.
-//
-// **Nothing here throws.** An alert is a report about a system under
-// strain; a report that fails must not become a second failure of the
-// thing it is reporting on. Every arm ends in a log line.
+// The owner's spend alert — §6.5's ceilings and §11's switch: four fifths of the day's ceiling, the ceiling, a site's own cap,
+// a free-path bound, or the kill switch engaged. One send per `OWNER_EMAILS` address (BUILD §15), so one failure does not hide another.
+// An unwritten line makes `sendEmail` answer `not-composable`; the ceiling guard holds at the door whether or not anybody is told.
+// Nothing here throws: a failing report must not become a second failure of what it reports on.
 import { now } from "@/lib/config/now";
 import { env } from "@/lib/config/env";
 import { readDaySpendCents, readDayCeilingCents } from "@/lib/costs/daily";
@@ -39,18 +21,12 @@ function log(occasion: OpsOccasion, outcome: string, detail?: string): void {
   console.warn(JSON.stringify(line));
 }
 
-/**
- * Sends one occasion to every owner address.
- *
- * `sendEmail` reports rather than throws — an unwritten sentence comes
- * back as `not-composable`, an unreachable vendor as `vendor` — so the
- * result is logged per address and never raised.
- */
+/** Sends one occasion to every owner address; `sendEmail` reports rather than throws, so each result is logged, never raised. */
 export async function sendOpsAlert(a: {
   occasion: OpsOccasion;
   spentCents: number;
   ceilingCents: number;
-  /** Whose ceiling, where it is not the product's (issue 885). */
+  /** Whose ceiling, where it is not the product's. */
   subject?: OpsSubject;
 }): Promise<void> {
   const mail = buildSpendCeilingAlert(a);
@@ -69,13 +45,7 @@ export async function sendOpsAlert(a: {
   }
 }
 
-/**
- * The kill switch was found engaged (§11). The day's spend rides along:
- * the switch stops scanning, generating and publishing, so what the day
- * had already cost when it moved is the context the owner reads it
- * against — and an unreadable ledger reports zero rather than holding the
- * alert, because the news is the switch, not the figure.
- */
+/** The kill switch engaged (§11), with the day's spend as context; an unreadable ledger reports zero, since the news is the switch. */
 export async function reportKillSwitchEngaged(): Promise<void> {
   const at = now();
   const spentCents = (await readDaySpendCents(at)) ?? 0;
@@ -86,19 +56,8 @@ export async function reportKillSwitchEngaged(): Promise<void> {
   });
 }
 
-/**
- * Registers this module as what the cost seam's crossings reach.
- *
- * Called once from the boot path (`src/instrumentation.ts`), the shape
- * `installActiveAccessGate` and `installStampCapability` already use — the
- * seam publishes and knows nothing about mail, so somebody above both has
- * to introduce them, and boot is where every surface has been through.
- *
- * The sink is synchronous because a spending call must never wait on an
- * alert: the send is started and not awaited, and `sendOpsAlert` swallows
- * its own failures, so the scan that noticed the crossing carries on
- * whatever happens to the mail.
- */
+/** Registers this module as the cost seam's crossing sink, once at boot (`src/instrumentation.ts`), since the seam knows nothing of mail.
+ *  Synchronous: a spending call never waits on an alert, so the send is started, not awaited, and swallows its own failures. */
 export function installSpendAlerts(): void {
   registerSpendAlertSink((alert: SpendAlert) => {
     void sendOpsAlert({
@@ -109,10 +68,7 @@ export function installSpendAlerts(): void {
   });
 }
 
-/** Which of the four spend occasions this crossing is, and the subject the
- *  mail names beside it (issue 885). An alert with no subject is the
- *  product's own ceiling — what every alert was before the field existed —
- *  and keeps the two occasions it always had. */
+/** The spend occasion and the subject named beside it; no subject is the product's own ceiling. */
 function occasionOf(alert: SpendAlert): { occasion: OpsOccasion; subject?: OpsSubject } {
   const subject = alert.subject;
   if (subject === undefined || subject.kind === "product") {

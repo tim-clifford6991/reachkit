@@ -1,51 +1,28 @@
-// BUILD §12 — the omission rule, decided once.
-//
-// "All values conditional: a missing number omits its section, never
-// prints 0." The rule has three halves and this file owns the first:
-//
-//   1. A `stat`, `list` or `verdicts` block whose `Measured` is
-//      `unmeasured` is dropped entirely — no zero, no dash, no
-//      placeholder, and its `note` goes with it.
-//   2. A measured zero prints as zero. There is no zero branch here to
-//      delete: `omittedIndexes` narrows by exclusion, so the `zero` arm is
-//      reachable only through the same path as `measured`.
-//   3. A measured-but-empty list states its empty result in one written
-//      line — that is a render, not an omission, and it lives in the two
-//      renderers.
-//
-// Both `html.ts` and `text.ts` call this and neither computes an omission
-// of its own. A rule that held in one body and not the other is the exact
-// failure the single plain-text renderer exists to prevent.
+// BUILD §12 — "a missing number omits its section, never prints 0", decided once for both bodies.
+// An unmeasured `stat`, `hero`, `list` or `verdicts` goes with its note; a measured zero prints; a measured-empty list is a written line, rendered not omitted.
 import type { MailBlock } from "./types";
 
-/** Is this block dropped? A block with no `Measured` value is never
- *  dropped — a heading, an action, a notice and a page body are
- *  unconditional by construction. */
+/** A block with no `Measured` value (heading, action, notice, page body) is never dropped. */
 function isOmitted(block: MailBlock): boolean {
   switch (block.block) {
     case "stat":
     case "hero":
       return block.value.kind === "unmeasured";
     case "stats":
-      // #933: each number is omitted on its own, so the group is dropped
-      // only where none of them is kept — a group of nothing.
+      // Each number is omitted on its own; the group goes only when none is kept.
       return keptStatRows(block).length === 0;
     case "list":
     case "verdicts":
       return block.items.kind === "unmeasured";
     case "facts":
-      // The one arm dropped for being *empty*: a `list` states its empty
-      // result in a written line, and there is no such line for a fact
-      // table — an empty `dl` is a blank in the middle of the card, which
-      // is what §12's rule is against.
+      // Dropped for being empty: a fact table has no empty line, and an empty `dl` is a blank in the card.
       return block.items.length === 0;
     default:
       return false;
   }
 }
 
-/** The indexes, in the caller's own order, of the blocks that are left
- *  out. The single decision both renderers read. */
+/** The indexes of the blocks left out, in the caller's order; both renderers read this. */
 export function omittedIndexes(blocks: readonly MailBlock[]): readonly number[] {
   const out: number[] = [];
   for (const [index, block] of blocks.entries()) {
@@ -54,19 +31,14 @@ export function omittedIndexes(blocks: readonly MailBlock[]): readonly number[] 
   return out;
 }
 
-/** The rows of a `stats` group that are drawn, in the caller's order: the
- *  measured ones, and the unmeasured ones that carry the line saying so
- *  (issue 1329). The one decision both renderers read, exactly as
- *  `omittedIndexes` is for whole blocks. */
+/** The drawn rows of a `stats` group: the measured ones, and the unmeasured ones that carry a line saying so. */
 export function keptStatRows(
   block: Extract<MailBlock, { block: "stats" }>
 ): readonly Extract<MailBlock, { block: "stats" }>["items"][number][] {
   return block.items.filter((item) => item.value.kind !== "unmeasured" || item.unmeasuredLine !== undefined);
 }
 
-/** True where a conditional block was measured and came out empty — the
- *  "states that empty result in one written line" case. A stat is never
- *  empty: a measured number, zero included, is a result. */
+/** A list measured and empty, which states one written line. A stat is never empty: zero is a result. */
 export function isMeasuredEmpty(block: MailBlock): boolean {
   if (block.block !== "list" && block.block !== "verdicts") return false;
   const items = block.items;
