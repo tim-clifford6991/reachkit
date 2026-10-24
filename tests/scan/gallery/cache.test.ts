@@ -35,28 +35,29 @@ vi.mock("@/lib/db", () => {
   function query(table: string) {
     const eq = new Map<string, unknown>();
     let term = "";
+    let among: readonly unknown[] | null = null;
     const self = {
       select: () => self,
       or: (filter: string) => ((term = /\*(.*?)\*/.exec(filter)?.[1] ?? ""), self),
       order: () => self,
-      in: () => self,
+      in: (column: string, values: readonly unknown[]) => (column === "category" ? (among = values) : null, self),
       range: () => self,
       limit: () => self,
       eq: (column: string, value: unknown) => (eq.set(column, value), self),
       then: (resolve: (r: unknown) => unknown, reject?: (e: unknown) => unknown) => {
         db.reads.set(table, (db.reads.get(table) ?? 0) + 1);
-        return Promise.resolve(answer(table, eq, term)).then(resolve, reject);
+        return Promise.resolve(answer(table, eq, term, among)).then(resolve, reject);
       },
     };
     return self;
   }
-  function answer(table: string, eq: Map<string, unknown>, term: string) {
+  function answer(table: string, eq: Map<string, unknown>, term: string, among: readonly unknown[] | null) {
     if (table === "free_scan_listing") {
       const blocked = new Set(db.blocks.map((b) => b.domain));
       const rows = db.scans
         .filter((r) => !blocked.has(r.domain))
         .filter((r) => r.domain.includes(term))
-        .filter((r) => (eq.has("category") ? r.category === eq.get("category") : true))
+        .filter((r) => (among === null ? true : among.includes(r.category)))
         .filter((r) => (eq.has("domain") ? r.domain === eq.get("domain") : true));
       return { data: rows, error: null, count: rows.length };
     }
@@ -102,7 +103,7 @@ function scan(domain: string, at: string, category = "Bike repair"): ListingRow 
 }
 
 const listingReads = () => db.reads.get("free_scan_listing") ?? 0;
-const VIEW = { search: "", category: null, sort: "newest", shown: 16 } as const;
+const VIEW = { search: "", kind: null, sort: "newest", shown: 16 } as const;
 
 beforeEach(() => {
   MemoryHandler.store.clear();
@@ -116,21 +117,21 @@ describe("the gallery's cache", () => {
     const { readGallery } = await import("@/lib/scan/gallery");
     const first = await readGallery(VIEW);
     const again = await readGallery({ ...VIEW, shown: 17 });
-    expect(listingReads()).toBe(2); // the cards and the chips, once
+    expect(listingReads()).toBe(1);
     expect(again).toEqual(first);
     expect(again.entries[0]?.scannedAt).toBeInstanceOf(Date);
     await readGallery({ ...VIEW, sort: "az" });
-    expect(listingReads()).toBe(4);
+    expect(listingReads()).toBe(2);
   });
 
   it("shows a removal at once: a new takedown row is a new key, and the site is gone", async () => {
     const { readGallery } = await import("@/lib/scan/gallery");
     await readGallery(VIEW);
     expect((await readGallery(VIEW)).entries.map((e) => e.domain)).toContain("harbour.example");
-    expect(listingReads()).toBe(2);
+    expect(listingReads()).toBe(1);
     db.blocks = [{ domain: "harbour.example", blocked_at: "2026-10-22T13:00:00Z" }];
     const after = await readGallery(VIEW);
-    expect(listingReads()).toBe(4);
+    expect(listingReads()).toBe(2);
     expect(after.entries.map((e) => e.domain)).toEqual(["quay.example"]);
     expect(after.total).toBe(1);
   });
@@ -143,7 +144,7 @@ describe("the gallery's cache", () => {
     ];
     await readGallery(VIEW);
     expect((await readGallery(VIEW)).total).toBe(1);
-    expect(listingReads()).toBe(2);
+    expect(listingReads()).toBe(1);
     db.blocks = db.blocks.filter((b) => b.domain !== "harbour.example");
     expect((await readGallery(VIEW)).total).toBe(2);
   });
@@ -152,10 +153,10 @@ describe("the gallery's cache", () => {
     const { readGallery } = await import("@/lib/scan/gallery");
     await readGallery(VIEW);
     await readGallery(VIEW);
-    expect(listingReads()).toBe(2);
+    expect(listingReads()).toBe(1);
     db.scans = [scan("dock.example", "2026-10-22T13:59:00.000Z"), ...db.scans];
     expect((await readGallery(VIEW)).entries.map((e) => e.domain)).toContain("dock.example");
-    expect(listingReads()).toBe(4);
+    expect(listingReads()).toBe(2);
   });
 
   it("never caches the one-domain check", async () => {
@@ -166,13 +167,21 @@ describe("the gallery's cache", () => {
     expect(listingReads()).toBe(2);
   });
 
-  it("says whether the category asked for is listed, whatever the search", async () => {
+  it("lists under a kind only the reports whose stored category names it, and a category that names none under none", async () => {
     const { readGallery } = await import("@/lib/scan/gallery");
-    expect((await readGallery({ ...VIEW, category: "Plumbing" })).listed).toBe(true);
-    expect((await readGallery({ ...VIEW, category: "Plumbing", search: "none" })).listed).toBe(true);
-    expect((await readGallery({ ...VIEW, category: "zz" })).listed).toBe(false);
-    expect((await readGallery({ ...VIEW, category: "zz", search: "none" })).listed).toBe(false);
-    expect((await readGallery({ ...VIEW, category: null })).listed).toBe(true);
+    db.scans = [...db.scans, scan("ledger.example", "2026-09-21T10:00:00.000Z", "payroll software")];
+    const domains = async (kind: "local-service" | "software" | "creator", search = "") =>
+      (await readGallery({ ...VIEW, kind, search })).entries.map((e) => e.domain);
+    expect(await domains("local-service")).toEqual(["quay.example"]);
+    expect(await domains("software")).toEqual(["ledger.example"]);
+    expect(await domains("creator")).toEqual([]);
+    expect(await domains("local-service", "harbour")).toEqual([]);
+    const all = await readGallery(VIEW);
+    expect(all.entries.map((e) => [e.domain, e.kind])).toEqual([
+      ["harbour.example", null],
+      ["quay.example", "local-service"],
+      ["ledger.example", "software"],
+    ]);
   });
 
   it("rounds a requested card count down to whole pages, within the bound", async () => {
@@ -187,19 +196,17 @@ describe("the /scans page", () => {
     const { renderToStaticMarkup } = await import("react-dom/server");
     return renderToStaticMarkup(await ScansPage({ searchParams: Promise.resolve(searchParams) }));
   };
-  const notFound = { digest: "NEXT_HTTP_ERROR_FALLBACK;404" };
 
-  it("answers a category no listed scan has with not found, and a real one with its cards, searched or not", async () => {
-    await expect(render({ cat: "zz" })).rejects.toMatchObject(notFound);
-    await expect(render({ cat: "zz", q: "none" })).rejects.toMatchObject(notFound);
-    expect(await render({ cat: "Plumbing" })).toContain("quay.example");
-    expect(await render({ cat: "Plumbing", q: "none" })).not.toContain("quay.example");
+  it("filters to the kind asked for, and reads an unknown kind as every report", async () => {
+    expect(await render({ kind: "local-service" })).toContain("quay.example");
+    expect(await render({ kind: "local-service" })).not.toContain("harbour.example");
+    expect(await render({ kind: "zz" })).toContain("harbour.example");
   });
 
   it("reads the plain view once, whatever tracking parameters or card count the address carries", async () => {
     await render({});
     await render({ utm_source: "x", fbclid: "y" });
     await render({ shown: "17" });
-    expect(listingReads()).toBe(2);
+    expect(listingReads()).toBe(1);
   });
 });

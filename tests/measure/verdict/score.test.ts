@@ -8,10 +8,16 @@ import path from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import { SCORING } from "@/lib/config/constants";
 import { measured, measuredZero, unmeasured } from "../../../src/lib/measure/measured.ts";
+import { searchPresenceOf, searchPresenceRangeOf } from "../../../src/lib/measure/drivers.ts";
+import { FEEDS, type InputOutcome, type ScanInput } from "../../../src/lib/measure/partition.ts";
+import { verdictOf } from "../../../src/lib/measure/verdict.ts";
+import type { CanonicalDomain } from "../../../src/lib/scan/domain.ts";
 import {
   computeScore,
+  estimateOf,
   factorsOf,
   limitingFactorOf,
+  NO_AI_ANSWERS,
   presenceOf,
   presenceRangeOf,
   type Drivers,
@@ -343,3 +349,64 @@ describe(
     });
   }
 );
+
+describe("the Google half's range is the Wilson interval of its share, and its sample decides a thin estimate", () => {
+  const card = (top10Count: number, measuredSearches: number) => ({ measuredSearches, you: { top10Count } });
+  const rounded = (r: { low: number; high: number } | null) => (r === null ? null : { low: Math.round(r.low), high: Math.round(r.high) });
+
+  it("is 0–49 over 0 of 4, 0–79 over 0 of 1, 76–100 over 12 of 12, and holds the share over 2 of 5", () => {
+    expect(rounded(searchPresenceRangeOf(card(0, 4)))).toEqual({ low: 0, high: 49 });
+    expect(rounded(searchPresenceRangeOf(card(0, 1)))).toEqual({ low: 0, high: 79 });
+    expect(rounded(searchPresenceRangeOf(card(12, 12)))).toEqual({ low: 76, high: 100 });
+    const twoOfFive = searchPresenceRangeOf(card(2, 5));
+    expect(twoOfFive?.low).toBeLessThan(40);
+    expect(twoOfFive?.high).toBeGreaterThan(40);
+  });
+
+  it("is absent with no card or no measured search: an unread half keeps the whole scale, a stored driver its point", () => {
+    expect(searchPresenceRangeOf(null)).toBeNull();
+    expect(searchPresenceRangeOf(card(0, 0))).toBeNull();
+    const noAnswers = unmeasured<number>("undeterminable", AT, NO_AI_ANSWERS);
+    expect(presenceRangeOf({ searchPresence: unmeasured("not_attempted", AT), aiPresence: noAnswers }, null, null)).toEqual({ low: 1, high: 100 });
+    expect(presenceRangeOf({ searchPresence: measured(40, AT), aiPresence: noAnswers }, null, null)).toEqual({ low: 40, high: 40 });
+  });
+
+  // Foundations 100, Content 30, AI answered none of the searches read, and
+  // the Google half counted over `measuredSearches`: what `verdictOf` does
+  // with a card's range.
+  const estimateFor = (top10Count: number, measuredSearches: number, aiRead: number) => {
+    const drivers: Drivers = {
+      foundations: measured(100, AT),
+      answerability: measured(30, AT),
+      searchPresence: searchPresenceOf({ card: card(top10Count, measuredSearches), serps: [], at: AT }),
+      aiPresence: unmeasured("undeterminable", AT, NO_AI_ANSWERS),
+    };
+    const f = factorsOf(drivers);
+    const range = searchPresenceRangeOf(card(top10Count, measuredSearches));
+    return { score: computeScore(f), estimate: estimateOf(f, presenceRangeOf(drivers, null, range), range?.read ?? aiRead) };
+  };
+
+  it("on page one for 0 of 4 searches scores 14 with an estimate of 14–53, rough", () => {
+    const { score, estimate } = estimateFor(0, 4, 12);
+    expect(score.kind !== "unmeasured" && score.value.score).toBe(14);
+    expect(estimate).toEqual({ low: 14, high: 53, confidence: "rough" });
+  });
+
+  it("twelve measured searches are no thin sample, however few AI results were read", () => {
+    const v = verdictOf({
+      domain: "example.com" as CanonicalDomain,
+      measuredAt: AT,
+      drivers: {
+        foundations: measured(100, AT),
+        answerability: measured(30, AT),
+        searchPresence: searchPresenceOf({ card: card(12, 12), serps: [], at: AT }),
+        aiPresence: unmeasured("undeterminable", AT, NO_AI_ANSWERS),
+      },
+      inputs: Object.fromEntries(Object.keys(FEEDS).map((input) => [input, { read: true, empty: false }])) as Record<ScanInput, InputOutcome>,
+      robots: unmeasured("not_attempted", AT),
+      searchRange: searchPresenceRangeOf(card(12, 12)),
+      searchesRead: 3,
+    });
+    expect(v.estimate?.confidence).toBe("close");
+  });
+});
