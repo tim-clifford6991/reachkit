@@ -1,0 +1,134 @@
+--- a/deployer.sh
++++ b/deployer.sh
+@@ -4,11 +4,19 @@
+ #   dev  (preview of main → dev.reachkit.app): whenever main's head moves.
+ #   prod (reachkit.app): at most every PROD_EVERY_S, and only if main moved since the last production deploy.
+ # Hobby allows 100 API deployments a day and refused attempts may count, so a refusal starts a shared back-off.
++# 2026-10-24 (E3, #1959): each dev build is checked with `smoke.sh --free` once Ready; production takes a SHA only
++# when its dev check passed, is checked the same way once Ready, and a red check files one [deploy] issue.
++# Roll forward only (RUNBOOK §1): nothing here points production at an earlier build.
++# DEPLOYER_DRY=1 stubs Vercel, Inngest and GitHub writes to lines in $S/dry.calls; DEPLOYER_ONCE=1 runs one tick.
+ set -u
+-S=/root/ops/reachkit/state; L=$S/prod-redeploy.log; R=tim-clifford6991/reachkit
++S=${S:-/root/ops/reachkit/state}; L=$S/prod-redeploy.log; R=tim-clifford6991/reachkit
+ P=prj_QJUivDYYshplvV0enuc2oZNIjcnd; TEAM=team_lFEcKlyuKD5risdEnak7iRIm; REPO=1354731443
+ PROD_EVERY_S=${PROD_EVERY_S:-7200}; BACKOFF_S=${BACKOFF_S:-7200}; TICK_S=600
++MAIN=/root/projects/reachkitv3; WT=/root/projects/reachkitv3-wt; SELF=$(readlink -f "$0"); DRY=${DEPLOYER_DRY:-}
++DEVCHECK_BASE_URL=${DEVCHECK_BASE_URL:-https://dev.reachkit.app}; PRODCHECK_BASE_URL=${PRODCHECK_BASE_URL:-https://reachkit.app}
++TITLE="[deploy] production check red"
+ touch $S/deploy-dev.sha $S/deploy-prod.sha $S/deploy-prod.at $S/deploy-backoff.until
++stamp(){ date -u +%F' '%H:%M; }
+ deploy(){ # $1 = production|preview ; prints dpl id or the error code
+   vercel whoami >/dev/null 2>&1
+   T=$(python3 -c "import json;print(json.load(open('/root/.local/share/com.vercel.cli/auth.json'))['token'])" 2>/dev/null) || { echo no_token; return 2; }
+@@ -17,6 +25,71 @@
+     -d "{\"name\":\"reachkit\",\"project\":\"$P\",${tgt}\"gitSource\":{\"type\":\"github\",\"repoId\":$REPO,\"ref\":\"main\"}}" \
+     | python3 -c "import sys,json;d=json.load(sys.stdin);print(d.get('id') or d.get('error',{}).get('code') or 'unknown')"
+ }
++inspect(){ vercel inspect "$1" 2>&1; }
++sync_jobs(){ curl -s -o /dev/null -w '%{http_code}' -X PUT https://reachkit.app/api/jobs; }
++minute(){ date -u +%M; }
++if [ -n "$DRY" ]; then
++  deploy(){ echo "deploy $1" >> $S/dry.calls; echo "dpl_dry$1"; }
++  inspect(){ cat "$S/dry.inspect" 2>/dev/null || echo "${DEPLOYER_DRY_INSPECT:-Ready}"; }
++  sync_jobs(){ echo "inngest PUT" >> $S/dry.calls; echo 200; }
++  minute(){ echo "${DEPLOYER_MINUTE:-$(date -u +%M)}"; }
++  gh(){ case "$1 $2" in "issue list") echo "${DEPLOYER_DRY_OPEN:-}" ;; "issue "*) echo "gh issue $2 | ${*: -1}" | tr '\n' ' ' >> $S/dry.calls; echo >> $S/dry.calls ;;
++        "api "*) echo "${DEPLOYER_HEAD:-$(command gh "$@")}" ;; *) command gh "$@" ;; esac; }
++fi
++poll(){ local st _i; for _i in $(seq 1 60); do st=$(inspect "$1" | grep -m1 -oE "Ready|Error|Canceled"); [ -n "$st" ] && break; sleep 20; done; echo "${st:-timeout}"; }
++check(){ # $1 base url, $2 sha, $3 tree name; prints "pass", or "red <step>" and the failed line
++  local t=$WT/$3-$2 out rc=1 line step
++  git -C $MAIN fetch -q origin main 2>/dev/null
++  git -C $MAIN worktree add -q --detach "$t" "$2" >/dev/null 2>&1 || { echo "red checkout"; echo "git worktree add $2 failed"; return; }
++  # a smoke.sh without --free would read the flag as a domain and start a paid scan
++  if grep -q -- '--free' "$t/scripts/smoke.sh"; then out=$(SMOKE_BASE_URL=$1 bash "$t/scripts/smoke.sh" --free 2>&1); rc=$?
++  else out="FAIL run smoke.sh at $2 has no --free"; fi
++  git -C $MAIN worktree remove --force "$t"
++  [ $rc = 0 ] && { echo pass; return; }
++  line=$(grep -m1 '^FAIL' <<<"$out" || tail -1 <<<"$out"); step=$(awk '$1=="FAIL"{print $2; exit}' <<<"$line")
++  echo "red ${step:-run}"; echo "$line"
++}
++file_issue(){ # one open [deploy] issue: comment on it, or open it
++  local n; n=$(gh issue list --repo $R --state open --search "\"$TITLE\" in:title" --json number,title -q '[.[]|select(.title|startswith("[deploy]"))][0].number // empty')
++  if [ -n "$n" ]; then gh issue comment "$n" --repo $R --body "$1" >/dev/null; else gh issue create --repo $R --title "$TITLE" --body "$1" >/dev/null; fi
++}
++after(){ # $1 preview|production, $2 deployment id, $3 sha: the Ready poll and what follows it
++  local st c r tries note=""
++  st=$(poll "$2")
++  if [ "$1" = preview ]; then
++    if [ "$st" = Ready ]; then r=$(check "$DEVCHECK_BASE_URL" "$3" devcheck); else r="red build"; fi
++    head -1 <<<"$r" > $S/dev-check.$3
++    echo "$(stamp) dev check of $3 ($2 $st): $(tr '\n' ' ' <<<"$r")" >> $L; return
++  fi
++  [ "$st" = Ready ] && { echo "$3" > $S/deploy-prod.sha; date +%s > $S/deploy-prod.at; }
++  c=$(sync_jobs); echo "$(stamp) production $2 $st; inngest sync $c" >> $L
++  if [ "$st" = Ready ]; then r=$(check "$PRODCHECK_BASE_URL" "$3" prodcheck); else r=$(printf 'red build\nproduction build %s' "$st"); fi
++  rm -f $S/deploy-prod.inflight
++  echo "$(stamp) production check of $3 ($2): $(tr '\n' ' ' <<<"$r")" >> $L
++  [ "$r" = pass ] && { echo "pass $3" > $S/prod-check.last; return; }
++  echo "red $3 $(head -1 <<<"${r#red }")" > $S/prod-check.last
++  tries=$(cat $S/deploy-prod.tries.$3 2>/dev/null || echo 0)
++  [ "$st" != Ready ] && [ "$tries" -ge 2 ] && note=$'\n\n'"Attempt $tries of 2 failed: production stays held at this SHA until main moves."
++  file_issue "Production check red at \`$3\`, deployment \`$2\`, step \`$(head -1 <<<"${r#red }")\`:"$'\n\n```\n'"$(tail -1 <<<"$r")"$'\n```'"$note"
++}
++detach(){ # its own unit, so a deployer restart or OOM kill cannot take the Ready poll and the Inngest sync with it
++  if [ -d /run/systemd/system ]; then
++    systemd-run --quiet --collect ${DEPLOYER_ONCE:+--wait} --unit="rk-deploy-sync-$2" -E PATH -E HOME -E S="$S" \
++      -E DEVCHECK_BASE_URL="$DEVCHECK_BASE_URL" -E PRODCHECK_BASE_URL="$PRODCHECK_BASE_URL" -E DEPLOYER_DRY="$DRY" \
++      -E DEPLOYER_DRY_INSPECT="${DEPLOYER_DRY_INSPECT:-}" -E DEPLOYER_DRY_OPEN="${DEPLOYER_DRY_OPEN:-}" bash "$SELF" after "$@"
++  else setsid -f bash "$SELF" after "$@" </dev/null >/dev/null 2>&1; fi
++}
++[ "${1:-}" = after ] && { shift; after "$@"; exit; }
++find $S -maxdepth 1 \( -name 'dev-check.*' -o -name 'held.*' -o -name 'deploy-prod.tries.*' \) -mtime +7 -delete
++# a production build accepted in the last 2 h with no sync line lost its poll: poll it again and sync
++since=$(( $(date +%s) - 7200 ))
++while read -r d t _ _ _ _ sha _ id _; do
++  [ "$(date -ud "$d $t" +%s)" -ge "$since" ] || continue
++  grep -qE "production $id .*inngest sync" $L && continue
++  systemctl is-active --quiet "rk-deploy-sync-$id" && continue
++  echo "$(stamp) production $id recovered: no Ready line, polling again" >> $L; touch $S/deploy-prod.inflight
++  detach production "$id" "$sha"
++done < <(grep -E '^[0-9-]+ [0-9:]+ production (re)?deploy of main [0-9a-f]+ ACCEPTED: dpl_' $L 2>/dev/null)
+ while true; do
+   now=$(date +%s)
+   if [ "$now" -ge "$(cat $S/deploy-backoff.until 2>/dev/null || echo 0)" ]; then
+@@ -25,22 +98,33 @@
+       for tgt in preview production; do
+         # owner ruling 2026-09-12: production is frozen while state/prod-frozen exists; dev keeps deploying
+         [ $tgt = production ] && [ -e "$S/prod-frozen" ] && continue
+-        if [ $tgt = preview ]; then f=$S/deploy-dev.sha; due=1; else f=$S/deploy-prod.sha; last=$(cat $S/deploy-prod.at 2>/dev/null || echo 0); [ $((now - ${last:-0})) -ge $PROD_EVERY_S ] && due=1 || due=0; fi
++        if [ $tgt = preview ]; then f=$S/deploy-dev.sha; due=1; else f=$S/deploy-prod.sha; last=$(cat $S/deploy-prod.at 2>/dev/null || echo 0); [ $((now - ${last:-0})) -ge $PROD_EVERY_S ] && due=1 || due=0
++          case "$(cat $S/prod-check.last 2>/dev/null)" in red*) due=1 ;; esac; fi
+         [ "$due" = 1 ] && [ "$(cat $f)" != "$head" ] || continue
+         # 2026-10-22 (#1802, owner-approved): production only starts at :10–:40 so it is Ready before :50 (jobs fire at :00)
+-        if [ $tgt = production ]; then m=$((10#$(date -u +%M))); { [ $m -ge 10 ] && [ $m -le 40 ]; } || continue; fi
++        if [ $tgt = production ]; then m=$((10#$(minute))); { [ $m -ge 10 ] && [ $m -le 40 ]; } || continue
++          [ -n "$(find $S/deploy-prod.inflight -mmin -30 2>/dev/null)" ] && continue
++          dc=$(head -1 $S/dev-check.$head 2>/dev/null); [ -n "$dc" ] || continue
++          if [ "$dc" != pass ]; then
++            [ -e $S/held.$head ] || { touch $S/held.$head; echo "$(stamp) production held: dev check red at $head (${dc#red })" >> $L
++              file_issue "Production held: the dev check is red at \`$head\` (${dc#red }). $(grep -m1 "dev check of $head" $L)"; }
++            continue
++          fi
++          [ "$(cat $S/deploy-prod.tries.$head 2>/dev/null || echo 0)" -ge 2 ] && continue
++        fi
+         id=$(deploy $tgt)
+         case "$id" in
+-          dpl_*) echo "$head" > $f; [ $tgt = production ] && echo "$now" > $S/deploy-prod.at
++          dpl_*) if [ $tgt = preview ]; then echo "$head" > $f
++                 else echo $(( $(cat $S/deploy-prod.tries.$head 2>/dev/null || echo 0) + 1 )) > $S/deploy-prod.tries.$head; touch $S/deploy-prod.inflight; fi
+                  echo "$(date -u +%F' '%H:%M) $tgt deploy of main $head ACCEPTED: $id trigger=deployer reason=\"main moved\"" >> $L
+                  # 2026-10-22 (#1802, owner-approved): once a production deploy is Ready, sync Inngest (nothing else does)
+-                 [ $tgt = production ] && ( for i in $(seq 1 60); do st=$(vercel inspect $id 2>&1 | grep -m1 -oE "Ready|Error|Canceled"); [ -n "$st" ] && break; sleep 20; done
+-                   c=$(curl -s -o /dev/null -w '%{http_code}' -X PUT https://reachkit.app/api/jobs); echo "$(date -u +%F' '%H:%M) production $id ${st:-timeout}; inngest sync $c" >> $L ) &;;
++                 detach $tgt "$id" "$head";;
+           *) echo "$(date -u +%F' '%H:%M) $tgt deploy refused: $id trigger=deployer — backing off $((BACKOFF_S/60)) min" >> $L
+              echo $((now + BACKOFF_S)) > $S/deploy-backoff.until; break;;
+         esac
+       done
+     fi
+   fi
++  [ -n "${DEPLOYER_ONCE:-}" ] && exit 0
+   sleep $TICK_S
+ done
