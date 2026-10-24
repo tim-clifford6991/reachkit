@@ -133,9 +133,8 @@ export interface StoredPage {
 export interface GenerateStore {
   siteFacts(siteId: string): Promise<SiteFacts | null>;
   /** `sites.writing_voice` (issue 1390): the voice the customer fixed in
-   *  Settings, or `null` where they left it to be chosen. A store that
-   *  holds none leaves this out. */
-  writingVoice?(siteId: string): Promise<WritingVoice | null>;
+   *  Settings, or `null` where they left it to be chosen. */
+  writingVoice(siteId: string): Promise<WritingVoice | null>;
   /** The freshest stored report for the site — the scan a day's page is
    *  generated from (§8: "from the freshest scan"). `null` where the site
    *  has none, which stops generation rather than guessing one. */
@@ -148,16 +147,14 @@ export interface GenerateStore {
    *  path here takes a site id other than the one it was called with. */
   publishedPages(siteId: string): Promise<StoredPage[]>;
   /** SPEC §7 (issue 1507): the version live at an address — its row, and
-   *  when it went live — or `null` where none is. A store that holds no
-   *  publications leaves this out, and no page is mended. */
-  liveVersionAt?(siteId: string, url: string): Promise<{ draft: DraftRow; publishedAt: Date } | null>;
+   *  when it went live — or `null` where none is. */
+  liveVersionAt(siteId: string, url: string): Promise<{ draft: DraftRow; publishedAt: Date } | null>;
   /** Every version that went live at an address, live now or not, by its
-   *  draft id. A store that holds no publications leaves this out. */
-  versionsAt?(siteId: string, url: string): Promise<string[]>;
+   *  draft id. */
+  versionsAt(siteId: string, url: string): Promise<string[]>;
   /** Issue 1509: each address of this site live now, with the Markdown of
-   *  the version it serves. A store that holds no publications leaves this
-   *  out, and no fact is offered later for having been said. */
-  livePages?(siteId: string): Promise<{ url: string; markdown: string }[]>;
+   *  the version it serves. */
+  livePages(siteId: string): Promise<{ url: string; markdown: string }[]>;
   queuedPages(siteId: string, exceptDraftId: string | null): Promise<StoredPage[]>;
   /** SPEC §7 (D13, issue 1144): the text of every draft and live page
    *  written for a site **other** than `siteId` since `since`, newest first,
@@ -195,9 +192,8 @@ export interface GenerateStore {
    *  carries no move, so a first run in progress is never one of these. */
   restartedDrafts(siteIds: readonly string[]): Promise<readonly RestartedDraft[]>;
   /** The `meta` of the site's newest draft of one content type (D42), or
-   *  `null` where it has none. Optional: a double that holds no rows of a
-   *  type answers nothing. */
-  lastMetaOfType?(siteId: string, type: string): Promise<unknown>;
+   *  `null` where it has none. */
+  lastMetaOfType(siteId: string, type: string): Promise<unknown>;
 }
 
 export interface RestartedDraft {

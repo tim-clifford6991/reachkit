@@ -46,6 +46,6 @@
   "SettingsAccount": { "sha256": "969f0f65080bad9eee51becf1baf292780b1674b815e86b9ae51948523bff1e7", "missing": 0 },
   "HostedIndex": { "sha256": "d7b2dd4afb636758422b492a6291c02cdece0fdc96bd476d10860db81a3e5b8d", "missing": 0 },
   "HostedArticle": { "sha256": "26c40ee1ce7d29f1cc71c18011b4565ec8ff11ea977ffc9452fd5469b310d846", "missing": 0 },
-  "HostedService": { "sha256": "5f6fc93fa5fd472646f0b57ee39b0d2d927b084a569fc7fe0c738207de81ba38", "missing": 51 },
-  "HostedGone": { "sha256": "9f65bbe7b9c067831bdf1a8c375b93a76bd54937602b449c6e97b3b68b05ebdc", "missing": 1 }
+  "HostedService": { "sha256": "5f6fc93fa5fd472646f0b57ee39b0d2d927b084a569fc7fe0c738207de81ba38", "missing": 50 },
+  "HostedGone": { "sha256": "9f65bbe7b9c067831bdf1a8c375b93a76bd54937602b449c6e97b3b68b05ebdc", "missing": 0 }
 }

@@ -348,12 +348,10 @@ export async function assessReadiness(
     store.currentReport(siteId),
     store.profileForSite(siteId),
     store.hasGroundingFact(siteId),
-    store.trackedPrompts === undefined ? [] : store.trackedPrompts(siteId),
+    store.trackedPrompts(siteId),
     store.marketFor(siteId).then((read) => read.market).catch(() => null),
-    store.topTenRows === undefined
-      ? new Map<string, TopTenRead>()
-      : store.topTenRows([...new Set(rows.map((row) => row.scan_id))]),
-    store.askedBeside === undefined ? [] : store.askedBeside(siteId, OTHER_KIND_TOP_TEN.maxAgeDays).catch(() => []),
+    store.topTenRows([...new Set(rows.map((row) => row.scan_id))]),
+    store.askedBeside(siteId, OTHER_KIND_TOP_TEN.maxAgeDays).catch(() => []),
   ]);
   // Read only where there is an Earn row to answer: it re-reads the site's
   // measured pages and its profile, which nothing else here needs.
@@ -400,8 +398,8 @@ export async function assessReadiness(
     // A row committed to a date is reshaped only by the week's full pass,
     // so the evening check never makes more of a chosen week offering pages.
     const evidence = a.only === undefined || row.planned_for == null ? shapedEvidence(read, fresh(read), ctx.business ?? null) : read.evidence;
-    const reshaped = shapeOf(evidence) !== shapeOf(read.evidence) && store.setEvidence !== undefined;
-    if (reshaped) await store.setEvidence!(read.id, evidence);
+    const reshaped = shapeOf(evidence) !== shapeOf(read.evidence);
+    if (reshaped) await store.setEvidence(read.id, evidence);
     const stored = reshaped ? { ...read, evidence } : read;
     const band = ownRanked === null ? null : rebandFor(stored, ownRanked);
     if (band !== null && band !== stored.fitBand) await store.setFitBand(stored.id, band);

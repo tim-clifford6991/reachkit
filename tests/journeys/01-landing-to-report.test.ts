@@ -22,12 +22,12 @@
 // suite adds up is the one the product would have written. The promise it
 // decides is §6.1's — a free scan spends no more than `CAP_FREE`.
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { envelope } from "./harness";
 import { renderToStaticMarkup } from "react-dom/server";
 import { fakeDb, type DbQuery } from "../scan/run/harness";
 import { CAPS } from "../../src/lib/config/constants";
-import { toolUseMessage } from "../llm/fixtures";
 import { pollTheQueueAtOnce } from "../vendors/harness";
-import type { FetchOutcome, RobotsPolicy } from "../../src/lib/egress/types";
+import type { FetchOutcome } from "../../src/lib/egress/types";
 import { categoryOf } from "@/lib/scan/sections";
 
 
@@ -100,17 +100,7 @@ vi.mock("@/lib/egress/safe-fetch", () => ({
 // server-side tree render so the markup can be read.
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
 
-vi.mock("@/lib/egress/robots", () => ({
-  readRobots: async (origin: string): Promise<RobotsPolicy> => ({
-    ok: true,
-    origin,
-    readAt: READ_AT,
-    disallowsAll: false,
-    disallowedAgents: { gptbot: true },
-    sitemaps: [],
-    absent: false,
-  }),
-}));
+vi.mock("@/lib/egress/robots", async () => (await import("./harness")).openRobots({ readAt: () => READ_AT, disallowedAgents: { gptbot: true } }));
 
 // ── Anthropic ───────────────────────────────────────────────────────────
 
@@ -126,32 +116,7 @@ const PROFILE_ANSWER = {
 
 const modelCalls: string[] = [];
 
-vi.mock("@anthropic-ai/sdk", () => {
-  class FakeAnthropic {
-    messages = {
-      create: async (request: { messages: { content: string }[] }) => {
-        const input = request.messages[0]?.content ?? "";
-        modelCalls.push(input);
-        const answer = input.includes('"home"')
-          ? PROFILE_ANSWER
-          : {
-              questions: (JSON.parse(input) as { keywords: { id: string; keyword: string }[] }).keywords.map((row) => ({
-                id: row.id,
-                text: `What's the best ${row.keyword}?`,
-              })),
-            };
-        // The phrasing answers the way the vendor does under a forced tool
-        // (issue #512); every other answer keeps the text path.
-        if ("questions" in answer) return toolUseMessage(answer, 900, 220, "question-phrasing");
-        return {
-          content: [{ type: "text", text: JSON.stringify(answer) }],
-          usage: { input_tokens: 900, output_tokens: 220 },
-        };
-      },
-    };
-  }
-  return { default: FakeAnthropic };
-});
+vi.mock("@anthropic-ai/sdk", async () => (await import("./harness")).anthropicForScan({ profile: PROFILE_ANSWER, calls: modelCalls }));
 
 // ── DataForSEO ──────────────────────────────────────────────────────────
 
@@ -174,10 +139,6 @@ const SUGGESTIONS = [
   "user activation software",
   "onboarding software for product teams",
 ];
-
-function envelope(result: unknown): unknown {
-  return { tasks: [{ id: "task-fixture", status_code: 20000, status_message: "Ok.", result: [result] }] };
-}
 
 const vendorRequests: { url: string; task: Record<string, unknown> }[] = [];
 

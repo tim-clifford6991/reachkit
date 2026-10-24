@@ -51,6 +51,7 @@ export const PAGE_COPY_DE = {
   "hosted.readingTime": "{minutes} Min. Lesezeit",
   "hosted.about": "Über {publisher}",
   "hosted.about.author": "Geschrieben von {author}",
+  "hosted.about.serves": "Vor Ort in {place}.",
   "hosted.action.call": "{phone} anrufen",
   "hosted.action.book": "Termin vereinbaren",
   "hosted.action.book.demo": "Demo vereinbaren",

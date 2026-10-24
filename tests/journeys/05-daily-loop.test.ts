@@ -70,6 +70,7 @@
 // refuses an owner-owed key and every sentence on this chain is owed.
 // `COPY` itself is left real.
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { captureMail } from "./harness";
 import { fakeDb, installTransitionRpc, type FakeDb, type Row, installSiteSpendRpc } from "../publish/harness";
 
 const db: FakeDb = fakeDb();
@@ -131,22 +132,10 @@ const client = {
   rpc: (fn: string, args: Row) => (db.client as { rpc(f: string, a: Row): unknown }).rpc(fn, args),
 };
 
-// No test reaches a vendor: the research step's reads and its one search are
-// stood in for, and the page is written from the business's own facts.
-vi.mock("@/lib/generate/pipeline/research", async (importOriginal) => {
-  const { researchStandIn } = await import("../generate/fixtures");
-  return researchStandIn(await importOriginal<object>());
-});
+vi.mock("@/lib/generate/pipeline/research", async (importOriginal) => (await import("./harness")).researchStandIn(importOriginal));
 vi.mock("@/lib/db", () => ({ dbAdmin: () => client, db: () => client }));
 
-vi.mock("@/lib/presentation/copy", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@/lib/presentation/copy")>();
-  return {
-    ...actual,
-    copy: (key: string, vars?: Record<string, string | number>) =>
-      vars === undefined ? key : `${key}(${Object.values(vars).join(",")})`,
-  };
-});
+vi.mock("@/lib/presentation/copy", async (importOriginal) => (await import("./harness")).copyByKey(importOriginal));
 
 // ── The customer's own server, their WordPress, and the live page ───────
 
@@ -196,15 +185,7 @@ function jsonAnswer(status: number, value: unknown, url: string) {
  *  (ARCHITECTURE rule 2) — so this is where that obligation shows up. */
 const jobEvents: { name: string; data: Record<string, unknown> }[] = [];
 
-vi.mock("@/jobs/client", () => ({
-  // #971's stage push goes through `client.realtime` (`src/jobs/realtime.ts`);
-  // a mock without it throws on every stage, which the pass swallows into a
-  // `setup_stage_not_published` log. Doubled as the no-op it is here.
-  client: { realtime: { publish: async () => undefined } },
-  sendJobEvent: async (name: string, data: Record<string, unknown>) => {
-    jobEvents.push({ name, data });
-  },
-}));
+vi.mock("@/jobs/client", async () => (await import("./harness")).jobsClient((name, data) => jobEvents.push({ name, data })));
 
 vi.mock("@/lib/egress", () => ({
   resolvesInDns: async () => true,
@@ -314,12 +295,7 @@ const PAGE_BODY = {
   bodyMarkdown: CLEAN_MARKDOWN,
 };
 
-// What a pack must hold is `tests/generate/pipeline/pack.test.ts`; here the
-// pack is built from what the run read and is short of nothing.
-vi.mock("@/lib/generate/pipeline/pack", async (importOriginal) => {
-  const { packStandIn } = await import("../generate/fixtures");
-  return packStandIn(await importOriginal<object>());
-});
+vi.mock("@/lib/generate/pipeline/pack", async (importOriginal) => (await import("./harness")).packStandIn(importOriginal));
 
 vi.mock("@anthropic-ai/sdk", () => {
   class FakeAnthropic {
@@ -526,7 +502,7 @@ function ledger(): { source: string; costCents: number }[] {
     .map((row) => ({ source: String(row.source), costCents: Number(row.cost_cents) }));
 }
 
-beforeEach(() => {
+beforeEach(async () => {
   db.reset();
   installTransitionRpc(db);
   // The product's day ledger holds nothing yet; an unreadable one would
@@ -601,10 +577,7 @@ beforeEach(() => {
   generateStore = joinedGenerateStore();
   setGenerateStore(generateStore);
 
-  __setVendorTransportForTesting(async (payload: string) => {
-    inbox.push(JSON.parse(payload) as SentMail);
-    return { status: 200, headers: {}, body: JSON.stringify({ id: `resend-${inbox.length}` }) };
-  });
+  await captureMail(inbox);
 });
 
 afterEach(() => {
