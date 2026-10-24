@@ -28,6 +28,7 @@
 import { env } from "@/lib/config/env";
 import { WEEK_PLAN } from "@/lib/config/constants";
 import type { Measured } from "@/lib/measure/measured";
+import { shownKey } from "@/lib/measure/registry";
 import type { IndexState, WeekStanding } from "@/lib/opportunities";
 import { PAGE_VERDICTS } from "@/lib/presentation/bands";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
@@ -52,27 +53,27 @@ const CALM = "mail.weekly.calm" satisfies CopyKey;
 const NEEDS_YOU_ACTION = "mail.weekly.needsYou.action" satisfies CopyKey;
 const CONNECT = "mail.weekly.connect" satisfies CopyKey;
 const CONNECT_ACTION = "mail.weekly.connect.action" satisfies CopyKey;
-const LIVE = "mail.weekly.pages.live" satisfies CopyKey;
-const PLANNED = "mail.weekly.pages.planned" satisfies CopyKey;
+const LIVE = shownKey("mail-pages-live") satisfies CopyKey;
+const PLANNED = shownKey("mail-pages-planned") satisfies CopyKey;
 const GOOGLE = "mail.weekly.google.title" satisfies CopyKey;
 const GOOGLE_INTRO = "mail.weekly.google.intro" satisfies CopyKey;
 const SHOWING_CLIMBING = "mail.weekly.google.showing.climbing" satisfies CopyKey;
 const OF_LIVE = "mail.weekly.google.of" satisfies CopyKey;
 const GOOGLE_EARLY = "mail.weekly.google.early" satisfies CopyKey;
-const VISITS = "mail.weekly.google.visits" satisfies CopyKey;
+const VISITS = shownKey("mail-google-visits") satisfies CopyKey;
 const CLIMB = "mail.weekly.google.climb" satisfies CopyKey;
 const CLIMB_CLIMBING = "mail.weekly.google.climb.climbing" satisfies CopyKey;
 const CLIMB_NONE = "mail.weekly.google.climb.none" satisfies CopyKey;
 const AI = "mail.weekly.ai.title" satisfies CopyKey;
-const AI_LINKED = "mail.weekly.ai.linked" satisfies CopyKey;
+const AI_LINKED = shownKey("mail-ai-linked") satisfies CopyKey;
 const AI_ASKED = "mail.weekly.ai.asked" satisfies CopyKey;
 const AI_EARLY = "mail.weekly.ai.early" satisfies CopyKey;
-const AI_READS = "mail.weekly.ai.reads" satisfies CopyKey;
+const AI_READS = shownKey("mail-ai-reads") satisfies CopyKey;
 const MONTH = "mail.weekly.month" satisfies CopyKey;
 const MONTH_INTRO = "mail.weekly.month.intro" satisfies CopyKey;
-const SCORE = "mail.weekly.month.score" satisfies CopyKey;
-const MARKET = "mail.weekly.month.market" satisfies CopyKey;
-const REPUTATION = "mail.weekly.month.reputation" satisfies CopyKey;
+const SCORE = shownKey("mail-score-month") satisfies CopyKey;
+const MARKET = shownKey("mail-market-month") satisfies CopyKey;
+const REPUTATION = shownKey("mail-reputation") satisfies CopyKey;
 const OF = "mail.weekly.month.of" satisfies CopyKey;
 const UP = "mail.weekly.month.up" satisfies CopyKey;
 const DOWN = "mail.weekly.month.down" satisfies CopyKey;
@@ -159,7 +160,7 @@ export interface WeeklyNeedsYou {
 
 /** The Google steps the mail states: Overview's ladder past *Live*, which
  *  the pages row already says. */
-export type GoogleStep = "draft.ladder.found" | "draft.ladder.showing" | "draft.ladder.first-page";
+export type GoogleStep = ReturnType<typeof shownKey<"mail-google-found" | "mail-google-showing" | "mail-google-first-page">>;
 
 /**
  * Overview's weekly figures, as the caller read them with Overview's own
