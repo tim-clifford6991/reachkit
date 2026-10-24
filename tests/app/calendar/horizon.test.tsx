@@ -16,6 +16,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { measured } from "@/lib/measure/measured";
 import { COPY } from "@/lib/presentation/copy";
 import type { OpportunityStore } from "@/lib/opportunities/store";
+import { memoryStore, newMemoryState } from "../../opportunities/memory-store";
 import type { StoredReport } from "@/lib/scan/report";
 
 let clock = new Date(0);
@@ -63,12 +64,13 @@ import { withNuqs } from "./nuqs-adapter";
 const AT = new Date(Date.UTC(2026, 8, 14, 6, 0, 0));
 
 /** A market too small: the current scan derived no questions. */
-const THIN_MARKET = {
+const THIN_MARKET: OpportunityStore = {
+  ...memoryStore(newMemoryState()),
   countUnused: async () => 0,
   lastStatusChangeAt: async () => null,
   latestCompletedScanAt: async () => AT,
   currentReport: async () => ({ questions: measured([], AT) }) as unknown as StoredReport,
-} as unknown as OpportunityStore;
+};
 
 async function open(a: { at: Date; timeZone: string; month: string }) {
   clock = a.at;

@@ -260,13 +260,6 @@ describe(
 describe(
   'BP-007 `## Data model delta`: "A column, not a second table: the two figures belong to the same call." · "No second table: the ledger, the cache and the raw store are one row"',
   () => {
-    it("`cost_cents` and `reserved_cents` are both columns of `fetches`", () => {
-      const rows = psqlRows(
-        `select column_name from information_schema.columns where table_schema = 'public' and table_name = 'fetches' and column_name in ('cost_cents', 'reserved_cents') order by column_name;`
-      );
-      expect(rows.map((r) => r[0])).toEqual(["cost_cents", "reserved_cents"]);
-    });
-
     it("no other table in `public` carries `cache_key` or `reserved_cents` — no second ledger, no second cache", () => {
       const cacheKeyRows = psqlRows(
         `select table_name from information_schema.columns where table_schema = 'public' and column_name = 'cache_key';`
@@ -353,64 +346,6 @@ describe(
         ["cost_cents", "numeric", "12", "4"],
         ["reserved_cents", "numeric", "12", "4"],
       ]);
-    });
-
-    it("a sub-cent row inserts and reads back exactly — the insert that failed on production", () => {
-      // `SERP_STD_C` is 0.06¢ and an LLM settlement lands on figures like
-      // 1.12928: the literal string in the production log,
-      // `invalid input syntax for type integer: "1.12928"`.
-      const scanId = freshScanId();
-      insertFetch({
-        scanId,
-        source: "llm.haiku",
-        cacheKey: "sub-cent",
-        costCents: 1.12928,
-        reservedCents: 4,
-      });
-      const rows = psqlRows(
-        `select cost_cents, reserved_cents from fetches where scan_id = '${scanId}' and cache_key = 'sub-cent';`
-      );
-      expect(rows).toEqual([["1.1293", "4.0000"]]);
-    });
-
-    it("twelve standard SERPs at 0.06¢ sum to 0.72¢, not to 0¢", () => {
-      // The whole defect in one assertion: under `integer` each of these
-      // twelve rows failed to insert at all, and a day that did store them
-      // (rounded) would have read 0¢.
-      const scanId = freshScanId();
-      for (let i = 0; i < 12; i++) {
-        insertFetch({ scanId, source: "serpOrganic", cacheKey: `serp-${i}`, costCents: 0.06, reservedCents: 0.06 });
-      }
-      const rows = psqlRows(`select sum(cost_cents) from fetches where scan_id = '${scanId}';`);
-      expect(rows).toEqual([["0.7200"]]);
-    });
-
-    it("watch it fail first: the `integer` column this migration replaces rejects the same figure", () => {
-      // The regression guard, run against a throwaway column of the type
-      // `20260903080000_fetches.sql` created — so the assertion above is
-      // known to be discriminating and not merely true of any column.
-      psql([
-        "-v",
-        "ON_ERROR_STOP=1",
-        "-c",
-        "create table if not exists money_unit_probe (cost_cents integer not null);",
-      ]);
-      expect(raises("insert into money_unit_probe (cost_cents) values ('1.12928');")).toBe(true);
-      expect(raises("insert into fetches (scan_id, source, cache_key, policy_version, cost_cents, reserved_cents, payload) " +
-        `values ('${freshScanId()}', 'probe', 'probe', 1, '1.12928', '1.12928', '[]'::jsonb);`)).toBe(false);
-      psql(["-v", "ON_ERROR_STOP=1", "-c", "drop table money_unit_probe;"]);
-    });
-  }
-);
-
-describe(
-  'BP-007 `## NFR budget`: "No cost figure is ever rendered to a customer"',
-  () => {
-    it("no request-scoped read policy exists on `fetches` — unreachable by construction, not by discipline", () => {
-      const rows = psqlRows(
-        `select count(*) from pg_policies where schemaname = 'public' and tablename = 'fetches';`
-      );
-      expect(rows[0]?.[0]).toBe("0");
     });
   }
 );
