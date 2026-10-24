@@ -5,9 +5,8 @@
 // giving back what was measured, the free path adopting the claim it was
 // started under, the seven-day window, the correction's one allowance, and
 // that a stage that raises degrades rather than failing the pass.
-import { readFileSync } from "node:fs";
-import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { PASS_SOURCE as RUN_SOURCE } from "./pass-source";
 import { captureStages, fakeDb } from "./harness";
 import { measured, measuredZero, unmeasured, type Measured } from "../../../src/lib/measure/measured";
 import type { DomainMeasurement } from "../../../src/lib/measure";
@@ -94,8 +93,6 @@ vi.mock("@/lib/scan/correction", () => ({
 }));
 
 const { runScan } = await import("../../../src/lib/scan/run");
-
-const RUN_SOURCE = readFileSync(path.resolve(import.meta.dirname, "../../../src/lib/scan/run.ts"), "utf8");
 
 const CLAIMED_ID = "33333333-3333-4333-8333-333333333333";
 const DOMAIN = "example.com";

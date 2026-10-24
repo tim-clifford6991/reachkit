@@ -7,12 +7,11 @@
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { readConstant } from "./measurement-doc.mjs";
+import { constantFiles, readConstant } from "./measurement-doc.mjs";
 
 export const PROCESS_DOC = "docs/PROCESSES.md";
 const INDEX = "src/jobs/index.ts";
 const TYPES = "src/jobs/types.ts";
-const CONSTANTS = "src/lib/config/constants.ts";
 
 const read = (root, rel) => readFileSync(path.join(root, rel), "utf8");
 
@@ -37,7 +36,7 @@ function definition(root, name, file) {
   if (id === undefined || trigger === undefined || key === undefined) throw new Error(`${file}: cannot read ${name}'s id, trigger or idempotencyKey`);
   const value = (raw) => {
     const literal = raw.trim().match(/^"([^"]*)"$/);
-    return literal ? literal[1] : readConstant(root, raw.trim(), [file, CONSTANTS]);
+    return literal ? literal[1] : readConstant(root, raw.trim(), [file, ...constantFiles(root)]);
   };
   const field = (f) => trigger.match(new RegExp(`\\b${f}:\\s*([^,]+)`))?.[1];
   const kind = value(field("kind") ?? "");

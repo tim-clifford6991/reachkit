@@ -9,6 +9,7 @@
 // this feature's `LIVE_SCHEMA_TESTS` row (issue #78). It is asserted there
 // against a live database instead of against the migration's text.
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { PASS_SOURCE } from "../../scan/run/pass-source";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { applyEnvFixture } from "../../mail/env-fixture";
@@ -157,11 +158,8 @@ describe("REQ-028 c4 — setup completes with neither DNS nor WordPress set up",
   });
 
   it("nothing here gates generation — the draft path does not import it", () => {
-    const generators = ["src/lib/scan/run.ts", "src/lib/scan/deep/run.ts"];
-    for (const file of generators) {
-      const source = readFileSync(path.resolve(import.meta.dirname, "../../../", file), "utf8");
-      expect(source).not.toContain("publish/setup/apply");
-    }
+    expect(PASS_SOURCE).not.toContain("publish/setup/apply");
+    expect(readFileSync(path.resolve(import.meta.dirname, "../../../src/lib/scan/deep/run.ts"), "utf8")).not.toContain("publish/setup/apply");
   });
 });
 
