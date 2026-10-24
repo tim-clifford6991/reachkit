@@ -22,6 +22,7 @@ vi.mock("@/lib/scan/gallery", async (importOriginal) => ({
 
 const { checkedDomain, LearnClose } = await import("@/app/(public)/_library/parts");
 const { copy } = await import("@/lib/presentation/copy");
+const { EXAMPLES } = await import("@/app/(public)/_how/specimen");
 
 type Render = () => Promise<unknown> | unknown;
 const PAGES: readonly { board: string; variant: string; render: Render }[] = [
@@ -96,6 +97,40 @@ describe.each(PAGES)("$board closes with the shared Learn block", ({ board, vari
     const page = await html(render);
     expect(page.match(/data-testid="learn-close"/g)).toHaveLength(1);
     expect(page).toContain(`data-variant="${variant}"`);
+  });
+});
+
+describe("the scans close draws its own icons", () => {
+  // Taken before /scans' icons existed: outside the shared glance, no other variant may change.
+  it.each(PAGES.filter((page) => page.variant !== "scans").map((page) => page.variant))(
+    "%s renders as it did outside the glance",
+    (variant) => {
+      const page = parse(renderToStaticMarkup(createElement(LearnClose, { variant: variant as "about" })));
+      page.querySelector("#start figure")?.remove();
+      expect(page.toString()).toMatchSnapshot();
+    }
+  );
+});
+
+describe("every close with the glance draws its ring, icon tiles and AI bar", () => {
+  const e = EXAMPLES.plumber.report;
+  it.each(PAGES.map((page) => page.variant).filter((variant) => variant !== "about"))("%s", (variant) => {
+    const page = parse(renderToStaticMarkup(createElement(LearnClose, { variant: variant as "about" })));
+    const glance = page.querySelector(`figure[aria-label="${copy("how.start.glance")}"]`);
+    expect(glance?.querySelector(".radial-progress")?.getAttribute("style")).toContain(`--value:${e.score}`);
+    expect(glance?.querySelector(".rounded-field svg.lucide-sparkles")).not.toBeNull();
+    expect(glance?.querySelector(".rounded-field svg.lucide-file-text")).not.toBeNull();
+    const bar = glance?.querySelector("progress.progress-primary");
+    expect([bar?.getAttribute("value"), bar?.getAttribute("max"), bar?.getAttribute("aria-hidden")]).toEqual([
+      String(e.mentioned),
+      String(e.asked),
+      "true",
+    ]);
+  });
+
+  it("about ends without the glance", () => {
+    const page = parse(renderToStaticMarkup(createElement(LearnClose, { variant: "about" })));
+    expect(page.querySelector(`figure[aria-label="${copy("how.start.glance")}"]`)).toBeNull();
   });
 });
 
