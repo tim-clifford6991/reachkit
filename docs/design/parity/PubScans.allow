@@ -1,12 +1,9 @@
 40 45 50 55 60 65	sample data
 B	sample data
-m	sample data
 L	sample data
 D	sample data
 G	sample data
 H	sample data
-W	sample data
-reachkit.app/scan/harborplumbing.com	sample data
 Cancel your contract	owner 2026-10-20 Q13: shown once the launch gate opens
 A report is one look. ReachKit keeps going.	SPEC 2026-10-15 (#1444): a title is at most six words, so it ships as "Reports look once. ReachKit keeps going." (#1728)
 Bupa	sample data: the board's own sample reports; tests/app/scans/board.test.tsx reads a card's score, band, kind, category and day
@@ -16,7 +13,6 @@ mydentist	sample data: the board's own sample reports; tests/app/scans/board.tes
 mydentist.co.uk	sample data: the board's own sample reports; tests/app/scans/board.test.tsx reads a card's score, band, kind, category and day
 50 of 100 Findable	sample data: the board's own sample reports; tests/app/scans/board.test.tsx reads a card's score, band, kind, category and day
 Local services · dental care · Oct 19	sample data: the board's own sample reports; tests/app/scans/board.test.tsx reads a card's score, band, kind, category and day
-C	sample data: the board's own sample reports; tests/app/scans/board.test.tsx reads a card's score, band, kind, category and day
 Cotswold Outdoor	sample data: the board's own sample reports; tests/app/scans/board.test.tsx reads a card's score, band, kind, category and day
 cotswoldoutdoor.com	sample data: the board's own sample reports; tests/app/scans/board.test.tsx reads a card's score, band, kind, category and day
 46 of 100 Hard to find	sample data: the board's own sample reports; tests/app/scans/board.test.tsx reads a card's score, band, kind, category and day
@@ -28,7 +24,6 @@ Dishoom	sample data: the board's own sample reports; tests/app/scans/board.test.
 dishoom.com	sample data: the board's own sample reports; tests/app/scans/board.test.tsx reads a card's score, band, kind, category and day
 59 of 100 Findable	sample data: the board's own sample reports; tests/app/scans/board.test.tsx reads a card's score, band, kind, category and day
 Restaurants & cafés · Indian restaurants · Oct 19	sample data: the board's own sample reports; tests/app/scans/board.test.tsx reads a card's score, band, kind, category and day
-P	sample data: the board's own sample reports; tests/app/scans/board.test.tsx reads a card's score, band, kind, category and day
 Purplebricks Estate Agents	sample data: the board's own sample reports; tests/app/scans/board.test.tsx reads a card's score, band, kind, category and day
 purplebricks.co.uk	sample data: the board's own sample reports; tests/app/scans/board.test.tsx reads a card's score, band, kind, category and day
 52 of 100 Findable	sample data: the board's own sample reports; tests/app/scans/board.test.tsx reads a card's score, band, kind, category and day

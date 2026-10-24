@@ -18,9 +18,8 @@
 //    `no_answer`, which reads as "the engine answered and named nobody";
 //  - dropping the answers on the floor, which is what made the battery
 //    unbuyable before this issue: nothing rendered them.
-import { readFileSync } from "node:fs";
-import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { PASS_SOURCE as RUN_SOURCE } from "./pass-source";
 import { captureStages, fakeDb } from "./harness";
 import { measured, measuredZero, unmeasured } from "../../../src/lib/measure/measured";
 import { BATTERY as BATTERY_PINS } from "../../../src/lib/config/constants";
@@ -88,8 +87,6 @@ vi.mock("@/lib/scan/correction", () => ({
 vi.mock("@/lib/market/rivals/tracked", () => ({ trackedRivals: async () => null }));
 
 const { runScan, TIER_PARAMETERS } = await import("../../../src/lib/scan/run");
-
-const RUN_SOURCE = readFileSync(path.resolve(import.meta.dirname, "../../../src/lib/scan/run.ts"), "utf8");
 
 const CLAIMED_ID = "33333333-3333-4333-8333-333333333333";
 const DOMAIN = "example.com";

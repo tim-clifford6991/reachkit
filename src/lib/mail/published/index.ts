@@ -1,35 +1,14 @@
-// BUILD §12 — the occasion of the `published` mail.
-//
-// REQ-062 criterion 5: "Given verification has completed, when the customer
-// is told about that page, then one message carries its live address
-// together with the outcome of all four checks, and it is sent on the same
-// occasion whether every check passed or any failed."
-//
-// **The outcome never enters the decision to send.** There is no branch
-// here on `found` against `page_not_found` against `could_not_confirm`, and
-// no branch on whether a check failed. The only reasons this module does
-// not send are reasons that have nothing to do with what was found: the
-// check has not been recorded, the page has no address, or there is no
-// account to write to. Whether the customer has switched this mail off is
-// BP-016's, consulted inside `sendEmail` — a different mechanism, and one
-// the outcome likewise never reaches.
-//
-// **Page 1 only** (SPEC §8, decision 2026-10-19-1593): the site's first
-// live publication is told; every later page is told in the Monday mail.
-//
-// This module lives under `src/lib/mail/` and not under
-// `src/lib/publish/verify/` on purpose: the verification leaf records what
-// it saw and stops, and putting the send inside it would make the
-// publishing subsystem import the mail seam for one occasion. The job runs
-// the check and then tells; the two obligations of one tick are visible in
-// the job, not hidden inside the check.
+// BUILD §12 — the occasion of the `published` mail: one message with the live address and all four check outcomes, whatever they were (REQ-062 c5).
+// The outcome never enters the decision to send; only an unrecorded check, a page without an address or no account stops it.
+// The customer's switch is asked inside `sendEmail`, which the outcome never reaches either.
+// Page 1 only (SPEC §8, decision 2026-10-19-1593): later pages are told in the Monday mail.
+// It lives here, not in `src/lib/publish/verify/`, so publishing does not import the mail seam; the job runs the check, then tells.
 import { dbAdmin } from "@/lib/db";
 import { tellingFor } from "@/lib/publish/verify";
 import { sendEmail } from "../send";
 import { buildPublished } from "../templates/published";
 
-/** Why a telling did not go out. Every arm is reported; none is a silent
- *  skip, and not one of them is "a check failed". */
+/** Why a telling did not go out: every arm reported, and none is "a check failed". */
 export type PublishedTellingOutcome =
   | { sent: true; id: string }
   | { sent: false; reason: "no-check-recorded" | "not-first-page" | "no-account" | "mail" };
@@ -55,24 +34,15 @@ interface MinimalClient {
   from<T>(table: string): MinimalQuery<T>;
 }
 
-/** The same narrow cast `src/lib/publish/db.ts` documents: `sites.timezone`
- *  is one of the columns absent from the generated `Database` type. */
+/** The narrow cast `src/lib/publish/db.ts` documents: `sites.timezone` is missing from the generated `Database` type. */
 function untyped(): MinimalClient {
   return dbAdmin() as unknown as MinimalClient;
 }
 
-/** The zone a site states its times in. Falls back to UTC where the founder
- *  has not set one — a date in the wrong zone is still the date ReachKit
- *  looked, and withholding the whole mail over a missing zone would make a
- *  setting the customer never filled in a reason to send nothing. */
+/** The site's zone, else UTC: a missing setting must not withhold the mail. */
 const FALLBACK_ZONE = "UTC";
 
-/**
- * Sends the `published` mail for one publication.
- *
- * Called by the `publish/verify` job immediately after the check, in every
- * arm, and never from inside the check itself.
- */
+/** Sends the `published` mail for one publication, from the `publish/verify` job right after the check, in every arm. */
 export async function sendPublishedMail(publicationId: string): Promise<PublishedTellingOutcome> {
   const telling = await tellingFor(publicationId);
   if (telling === null) return { sent: false, reason: "no-check-recorded" };

@@ -1,41 +1,8 @@
-// BUILD §12 — composeMail(): one block list, two bodies, one decision.
-//
-// Both renderers are called on the same `MailBlock[]`, so a template
-// cannot author a text body and cannot omit one, and the two bodies
-// cannot disagree about what was left out. Pure: no I/O, no clock, no
-// interpolation engine, no model — with every language model unavailable
-// this function returns exactly the same two strings.
-//
-// **Asynchronous since #934, and only for the renderer.** React Email's
-// `render()` returns a promise, and it is the only way to render without
-// a project file importing `react-dom/server` — which the App Router
-// forbids outright (`shell/render.ts` states the rule and the build error
-// that enforces it). Nothing else about this function moved: no await
-// reaches a vendor, a database or a clock, and `composeMailParts()` below
-// — the blocks, the whole-mail line, the omission decision and the whole
-// plain-text twin — is still synchronous, because none of that ever
-// needed a renderer.
-//
-// Both bodies are still built from one `MailBlock[]` after #934's port to
-// React Email: the HTML half is `blocks/nodes.tsx` inside `shell/
-// document.tsx`, rendered once by `shell/render.ts`; the plain-text twin
-// is `blocks/text.ts` inside `shell/text-frame.ts`, unchanged — which is
-// what keeps the twin byte-for-byte what the owner signed off on.
-//
-// The whole-mail line is chosen here, after every block has rendered,
-// because it is a fact about the mail rather than about any block:
-//
-//   · the week was not measured at all → it says so, and when the next
-//     measurement is due;
-//   · the week was only partly measured → it names which sections could
-//     not be measured, rather than dropping them silently;
-//   · otherwise, where every conditional section was omitted or came out
-//     empty → it says there was nothing to report.
-//
-// A mail with a measured section carries no whole-mail line, and the two
-// measurement exceptions never coexist with the nothing-to-report line.
-// `measurement` is required for `'weekly'` and rejected for every other
-// kind — a type error, not a runtime check.
+// BUILD §12 — composeMail(): one block list, two bodies, one omission decision, so a template can neither author nor drop the text body.
+// Pure: no I/O, clock or model. It is async only because React Email's `render()` is (see `shell/render.ts`); `composeMailParts()` stays synchronous.
+// The whole-mail line is chosen after every block renders: a week not measured says when the next is due, a partial week names the sections
+// it could not measure, and otherwise a mail whose conditional sections all went says there was nothing to report.
+// `measurement` is required for `'weekly'` and rejected for every other kind, by type.
 import { createElement, type ReactNode } from "react";
 import { COPY, TODO_COPY_MARKER, copy, type CopyKey } from "@/lib/presentation/copy";
 import { blockNodes } from "../blocks/nodes";
@@ -47,29 +14,15 @@ import { MailDocument } from "./document";
 import { renderMailHtml } from "./render";
 import { frameText } from "./text-frame";
 
-/** What the week behind a `weekly` mail is known to be. Three states and
- *  no fourth: "measured", "measured in part, and here is what is missing",
- *  and "not measured, and here is when the next one is due". */
+/** Measured; measured in part, with what is missing; or not measured, with when the next is due. */
 export type MeasurementState =
   | { state: "complete" }
   | { state: "partial"; unmeasured: readonly CopyKey[] }
   | { state: "none"; nextDueOn: Date };
 
-/** The stop control a mail carries. `mechanism` chooses the label from a
- *  closed pair — a template never authors one — and names which of
- *  ADR-042's two mechanisms the link belongs to, so the two can never be
- *  confused at the point they are put in front of a reader.
- *
- *  **`oneClickHref` is the same stop, for the inbox rather than the reader**
- *  (RFC 8058, issue 889). `href` is the address the person presses inside
- *  the mail; `oneClickHref` is the address the mail *client* POSTs to when
- *  the reader presses the client's own Unsubscribe control, and the two are
- *  different addresses because one renders a page and the other answers a
- *  POST. It is a required field rather than an optional one for the reason
- *  `optOut` itself is required of a lead template: a stop control the inbox
- *  cannot see is the defect, and an optional field is one a new template
- *  forgets. Nothing in this shell renders it — it leaves through
- *  `sendEmail` as a header. */
+/** The stop control. `mechanism` picks the label from ADR-042's closed pair, so a template never authors one.
+ *  `oneClickHref` is the RFC 8058 address the inbox POSTs to; it is required because a stop the inbox cannot see is the defect,
+ *  and it leaves through `sendEmail` as a header, not in the body. */
 export interface OptOutControl {
   href: string;
   oneClickHref: string;
@@ -80,18 +33,9 @@ interface ComposeCommon {
   subject: CopyKey;
   subjectVars?: CopyVars;
   blocks: readonly MailBlock[];
-  /**
-   * UI-SPEC S20's footer line: why this mail arrived. One key per kind,
-   * supplied by the template, because the reason is a fact about the
-   * occasion and not about the shell.
-   *
-   * Optional only because three of the ten kinds are not in the approved
-   * set and have no written reason yet — `tests/mail/shell/footer.test.ts`
-   * names those three and fails if a fourth appears.
-   */
+  /** S20's footer line: why this mail arrived. Optional only for the kinds `tests/mail/shell/footer.test.ts` names. */
   reason?: CopyKey;
-  /** The reason line's own slots, where its sentence takes one — the
-   *  report's removal address is the only such slot today. */
+  /** The reason line's slots, where its sentence takes one. */
   reasonVars?: CopyVars;
   optOut?: OptOutControl;
   /** Footer links drawn before the stop control, on its line. */
@@ -107,10 +51,7 @@ export interface ComposedMail {
   html: string;
   text: string;
   omitted: readonly number[];
-  /** Which whole-mail line this mail carries, or `null` for none. Returned
-   *  as the key rather than only as rendered text so a caller — and a
-   *  test — can assert the choice without depending on a sentence the
-   *  owner has not written yet. */
+  /** The whole-mail line's key, or `null`, so a caller can assert the choice without its sentence. */
   wholeMailLine: CopyKey | null;
 }
 
@@ -121,27 +62,21 @@ const WORDMARK = "mail.shell.wordmark" satisfies CopyKey;
 const IMPRINT = "mail.shell.imprint" satisfies CopyKey;
 const PLAIN_TEXT_NOTE = "mail.shell.plaintext_note" satisfies CopyKey;
 
-/** The two labels a stop control can carry, keyed by ADR-042's two
- *  mechanisms. Closed here so no template can name a third. */
+/** The stop labels, keyed by ADR-042's two mechanisms; closed so no template names a third. */
 const OPT_OUT_LABELS: Readonly<Record<OptOutControl["mechanism"], CopyKey>> = Object.freeze({
   "opt-out": "mail.optout.label",
   unsubscribe: "mail.unsubscribe.label",
 });
 
-/** How a date is written in a mail. ISO calendar date — unambiguous,
- *  locale-free and testable, where a localised format would depend on the
- *  runtime's own locale (a parameter, rule 1.1; MVP is US-English only,
- *  §6.3a). Reversal cost: this one function. */
+/** ISO calendar date: unambiguous and independent of the runtime's locale. */
 function writeDate(date: Date): string {
   return date.toISOString().slice(0, 10);
 }
 
-/** The separator between the names of the sections a partial week could
- *  not measure. Layout, not voice. */
+/** Between the names of a partial week's unmeasured sections. */
 const SECTION_SEPARATOR = ", ";
 
-/** The choice, isolated from the rendering so it can be asserted on its
- *  own. Returns the key of the line this mail carries, or `null`. */
+/** The whole-mail line's key, or `null`, chosen apart from rendering so it can be asserted. */
 export function chooseWholeMailLine(a: {
   blocks: readonly MailBlock[];
   measurement?: MeasurementState;
@@ -172,39 +107,25 @@ function renderWholeMailLine(key: CopyKey | null, measurement?: MeasurementState
   return copy(key);
 }
 
-/** Where the action run starts: the first `action` block, or the end of
- *  the list for a mail that has none. */
+/** The first `action` block's index, or the list's end. */
 function firstActionIndex(blocks: readonly MailBlock[]): number {
   const index = blocks.findIndex((block) => block.block === "action");
   return index === -1 ? blocks.length : index;
 }
 
-/**
- * The same mail, one step before its HTML half becomes a string.
- *
- * `composeMail()` below is this plus one `renderMailHtml()` call, and that
- * is the whole difference. It is exported for the one reader that wants
- * the document rather than the markup: `emails/`, the React Email preview
- * server the owner opens (#934). A preview that re-rendered a mail its own
- * way would be a preview of something the product does not send.
- */
+/** The mail one step before its HTML becomes a string, so the `emails/` preview shows exactly what is sent. */
 export interface ComposedMailParts extends Omit<ComposedMail, "html"> {
   /** The mail as React Email's own elements, ready to render. */
   document: ReactNode;
 }
 
-/** The seam's one composer, up to the markup. Every mail the product sends
- *  is built here, wearing the one frame, carrying both bodies. */
+/** The one composer, up to the markup: every mail wears the one frame and carries both bodies. */
 export function composeMailParts(m: ComposeInput): ComposedMailParts {
   return partsOf(m);
 }
 
 function partsOf(m: ComposeInput): ComposedMailParts {
-  // The blocks are rendered in two runs, split at the first action: the
-  // whole-mail line is a statement about the sections, so it stands after
-  // them and before the one button rather than under it. Omission is
-  // decided block by block (`omit.ts`), so the split changes no decision;
-  // the tail's indexes are shifted back to the whole list's.
+  // Split at the first action so the whole-mail line stands after the sections and above the button; tail indexes shift back.
   const cut = firstActionIndex(m.blocks);
   const head = { html: blockNodes(m.blocks.slice(0, cut)), text: renderBlocksText(m.blocks.slice(0, cut)) };
   const tail = { html: blockNodes(m.blocks.slice(cut)), text: renderBlocksText(m.blocks.slice(cut)) };
@@ -216,12 +137,7 @@ function partsOf(m: ComposeInput): ComposedMailParts {
   const line = renderWholeMailLine(wholeMailLine, m.measurement);
 
   const wordmark = copy(WORDMARK);
-  // The imprint is bracketed in the approved set — the owner's own line,
-  // not yet written. Read straight off the registry rather than through
-  // `copy()`, because `copy()` throws on an owner-owed key and every mail
-  // in the product would stop composing on a footer band. It appears the
-  // day it is written and not before, which is what a bracketed string in
-  // the set means.
+  // Read off the registry, not `copy()`, which throws on an unwritten key and would stop every mail on a footer band.
   const imprintText = COPY[IMPRINT];
   const imprint = imprintText === "" ? null : imprintText;
   const optOut =
@@ -232,17 +148,14 @@ function partsOf(m: ComposeInput): ComposedMailParts {
   const footer = {
     wordmark,
     links: (m.footerLinks ?? []).map((link) => ({ label: copy(link.label), href: link.href })),
-    // A reason still awaiting the owner's line renders nothing, the way the
-    // imprint above does: SPEC §8 says an unwritten key sends nothing, and
-    // a `TODO(copy)` in a delivered footer is exactly that sentence sent.
+    // An unwritten reason renders nothing: SPEC §8 sends no `TODO(copy)`.
     reason:
       m.reason === undefined || COPY[m.reason] === TODO_COPY_MARKER ? null : copy(m.reason, m.reasonVars),
     imprint,
     plainTextNote: copy(PLAIN_TEXT_NOTE),
   };
 
-  // The two renderers read one omission decision (`omit.ts`); this is the
-  // assertion that they were not made to disagree by a local edit.
+  // Both renderers read `omit.ts`; this asserts no local edit made them disagree.
   if (htmlBody.omitted.join(",") !== textBody.omitted.join(",")) {
     throw new Error("composeMail: the two bodies disagree about what was omitted.");
   }
@@ -262,10 +175,7 @@ function partsOf(m: ComposeInput): ComposedMailParts {
   };
 }
 
-/** The seam's one composer. Every mail the product sends is built here,
- *  wearing the one frame, carrying both bodies — and, since #934, the HTML
- *  half is React Email's own rendering of `document`. The `await` is that
- *  renderer and nothing else: no I/O, no clock, no vendor. */
+/** The one composer. The `await` is React Email's renderer and nothing else: no I/O, clock or vendor. */
 export async function composeMail(m: ComposeInput): Promise<ComposedMail> {
   const { document, ...rest } = composeMailParts(m);
   return { ...rest, html: await renderMailHtml(document) };

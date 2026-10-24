@@ -263,7 +263,7 @@ describe("issue #919 — the arithmetic is pure", () => {
     // vendor, a database or a model from there is one that could spend
     // money while deciding it.
     const closure = runtimeImportClosure(path.join(QUESTIONS_DIR, "tracked.ts"));
-    expect(closure).toEqual(["lib/config/constants.ts", "lib/market/questions/tracked.ts"]);
+    expect(closure.filter((file) => !file.startsWith("lib/config/constants"))).toEqual(["lib/market/questions/tracked.ts"]);
   });
 
   it("is total: it invents nothing from nonsense, and refuses no input", () => {

@@ -1,30 +1,8 @@
-// SPEC §8 — the Monday mail, in the order board `MondayMail` draws it: a
-// greeting, the calm line, Overview's numbers (Pages, Google, AI, and the
-// month's figures on its first Monday), the week's pages with why each was
-// chosen and how to stop it, the pace line, the one button.
-//
-// One directory per mail kind, named for the kind (ADR-040), holding a
-// block list and nothing else: no shell, no vendor knowledge, no sentence of
-// its own. Every value that can be absent enters as a `Measured<T>`, so what
-// is printed for a value nobody measured is decided once in `blocks/omit.ts`
-// or by the row that says so; a measured zero prints as the result it is.
-//
-// **The numbers are Overview's numbers** (owner, 2026-10-19, the simple
-// model: "app and Monday email, same numbers"). The caller reads them with
-// the readers Overview reads them with.
-//
-// **What is not here.** The whole-mail line a week that was not measured
-// (or was measured only in part) carries is `composeMail`'s, chosen from
-// the `MeasurementState` the caller passes beside these blocks (REQ-065).
-// The footer's links — pause, settings, unsubscribe — are the caller's,
-// because each carries a token only the caller can sign.
-//
-// **A page is named by its address and an opportunity by the search it
-// targets.** Both are measured fact. Neither is named by its title: a
-// page's title and an opportunity's are model-written, and REQ-093 does
-// not admit model text into a mail as ReachKit's own statement about the
-// reader's market (§8, ADR-012). Where the board draws a title, the dated
-// SPEC line wins (decision 2026-10-19-1581).
+// SPEC §8 — the Monday mail in board `MondayMail`'s order: greeting, calm line, Overview's numbers (and the month's on its first Monday),
+// the week's pages with why and how to stop each, the pace line, one button. A block list only (ADR-040); absent values are `Measured<T>`.
+// The numbers are Overview's, read with Overview's readers. The unmeasured-week line is `composeMail`'s (REQ-065); footer links are the caller's,
+// since each carries a token only it can sign.
+// A page is named by its address and an opportunity by its search: titles are model text, which REQ-093 keeps out (§8, ADR-012; decision 2026-10-19-1581).
 import { env } from "@/lib/config/env";
 import { WEEK_PLAN } from "@/lib/config/constants";
 import type { Measured } from "@/lib/measure/measured";
@@ -40,9 +18,7 @@ const SUBJECT = "mail.weekly.subject" satisfies CopyKey;
 const ACTION = "mail.weekly.action" satisfies CopyKey;
 const REASON = "mail.reason.weekly" satisfies CopyKey;
 
-/** The Overview's address (§4.5), absolute — the construction
- *  `draft-ready` uses for its veto link, off the one binding `env.ts`
- *  validates at boot. */
+/** The Overview's address (§4.5), absolute from the boot-validated binding. */
 function overviewHref(): string {
   return new URL("/app", env.NEXT_PUBLIC_APP_URL).toString();
 }
@@ -109,13 +85,11 @@ const DAY_LINE = {
 /** The board writes out the first three pages and counts the rest. */
 const WRITTEN_OUT = 3;
 
-/** One judged page, as the mail needs it. `standing` is read back from the
- *  week's stored verdict and is never recomputed here. */
+/** One judged page; `standing` is the week's stored verdict, never recomputed. */
 export interface WeeklyPage {
   readonly liveUrl: string | null;
   readonly standing: WeekStanding;
-  /** Issue 1538: whether any stored search result held the page. Absent
-   *  where that could not be read. */
+  /** Whether any stored search result held the page; absent where unreadable. */
   readonly indexState?: IndexState;
 }
 
@@ -148,9 +122,7 @@ export interface WeeklyMail {
   readonly blocks: readonly MailBlock[];
 }
 
-/** SPEC §8 (2026-09-20, #933): the one item that needs the customer this
- *  week, as the caller read it. Absent where nothing does, and then the
- *  calm line stands in its place. */
+/** SPEC §8: the one item needing the customer this week; absent, the calm line stands instead. */
 export interface WeeklyNeedsYou {
   readonly line: CopyKey;
   readonly vars?: CopyVars;
@@ -161,11 +133,7 @@ export interface WeeklyNeedsYou {
  *  the pages row already says. */
 export type GoogleStep = "draft.ladder.found" | "draft.ladder.showing" | "draft.ladder.first-page";
 
-/**
- * Overview's weekly figures, as the caller read them with Overview's own
- * readers. A count nothing read is `null` or unmeasured, and its row says
- * so: never a zero.
- */
+/** Overview's weekly figures from Overview's readers; a count nothing read says so in its row, never a zero. */
 export interface WeeklyNumbers {
   readonly live: Measured<number>;
   readonly planned: Measured<number>;
@@ -202,37 +170,27 @@ export interface WeeklyNumbers {
 export function buildWeekly(a: {
   /** Who the mail greets and which week of service it is; absent, no greeting. */
   greeting?: { readonly name: string | null; readonly week: number; readonly business: string };
-  /** The hosted address still waiting for its record, and where it is
-   *  connected. Absent once it is live. */
+  /** The hosted address waiting for its record; absent once live. */
   connect?: { readonly host: string; readonly href: string };
-  /** Absent on a week that measured nothing: the whole-mail line says so
-   *  once, and four rows saying it again would repeat it. */
+  /** Absent on a week that measured nothing, which the whole-mail line already says once. */
   numbers?: WeeklyNumbers;
   /** The one thing waiting on the customer, where there is one. */
   needsYou?: WeeklyNeedsYou;
-  /** The week's standings. `unmeasured` omits the section; a measured
-   *  empty list is "you have published nothing yet", its own written line. */
+  /** `unmeasured` omits the section; measured-empty is its own written line. */
   pages: Measured<readonly WeeklyPage[]>;
-  /** The week's pages, in date order (issue 1559). `unmeasured` omits the
-   *  section; measured-and-empty states the supply's own empty line — the
-   *  calendar is never padded (DECISIONS 2026-08-28). */
+  /** In date order. `unmeasured` omits the section; measured-empty states the supply's empty line, never padded. */
   next: Measured<readonly WeeklyNext[]>;
   /** The week's dates and publish time; absent, no strip and no calm line. */
   calendar?: WeeklyCalendar;
   /** Dates in the committed week with no page planned. */
   skippedDays?: number;
-  /** The week's spares, written where a day's page cannot be. Absent or
-   *  empty: no list. */
+  /** Spares, written where a day's page cannot be; absent or empty, no list. */
   spares?: Measured<readonly { targetQuery: string }[]>;
-  /** SPEC §9 on Monday (#573): the technical checks whose count moved since
-   *  last Monday. Unmeasured — or absent — where either week stored no
-   *  checks, and then the rows are absent. */
+  /** SPEC §9: checks whose count moved since last Monday; unmeasured or absent where either week stored none. */
   issues?: Measured<readonly IssueChange[]>;
-  /** D28 (#1185): what ReachKit changed about the market it measures this
-   *  week, one line each, with the reason. */
+  /** D28: what ReachKit changed about the market it measures this week, each with its reason. */
   marketChanges?: readonly { readonly line: CopyKey; readonly vars: CopyVars }[];
-  /** SPEC §8 2026-09-29 (D16): the tracked questions that now name the
-   *  site, each by its search and with the answer's address. */
+  /** SPEC §8 (D16): tracked questions that now name the site, by search, with the answer's address. */
   nowNamed?: Measured<readonly { search: string; answerUrl: string }[]>;
 }): WeeklyMail {
   const issues = a.issues === undefined ? [] : issueChangeRows(a.issues);
@@ -252,8 +210,7 @@ export function buildWeekly(a: {
       ...(a.needsYou !== undefined || a.connect !== undefined || a.calendar === undefined
         ? []
         : [{ block: "paragraph", text: CALM, vars: { time: a.calendar.time } } as const]),
-      // Until the address is connected no page goes live, so it comes early,
-      // every week.
+      // No page goes live until the address is connected, so it comes early, every week.
       ...(a.connect === undefined
         ? []
         : ([
@@ -288,7 +245,7 @@ export function buildWeekly(a: {
       ...(a.spares === undefined || a.spares.kind === "unmeasured" || a.spares.value.length === 0
         ? []
         : [{ block: "list", label: SPARES, items: mapMeasuredRows(a.spares, spareRows), emptyLine: NEXT_NONE } as const]),
-      // #933's one needs-you item: the line, and the button that opens it.
+      // The one needs-you item: its line and the button that opens it.
       ...(a.needsYou === undefined
         ? []
         : ([
@@ -296,8 +253,7 @@ export function buildWeekly(a: {
             { block: "action", label: NEEDS_YOU_ACTION, href: a.needsYou.href, variant: "secondary" },
           ] as const)),
       { block: "paragraph", text: PACE },
-      // S20's one solid button. Absolute, because a mail client resolves
-      // no relative path.
+      // S20's one solid button, absolute: an inbox resolves no relative path.
       { block: "action", label: ACTION, href: overviewHref() },
     ],
   };
@@ -388,9 +344,7 @@ function monthRow(
   return [{ label, ...(labelVars === undefined ? {} : { labelVars }), value: written }];
 }
 
-/** "This week's pages": its title and promise, the Monday-to-Sunday strip,
- *  the first pages written out with why and their two links, and a count of
- *  the rest leading to Plan. A week nobody committed omits the section. */
+/** "This week's pages": title, promise, the strip, the first pages with why and two links, and a count leading to Plan; uncommitted omits it. */
 function weekBlocks(next: Measured<readonly WeeklyNext[]>, calendar: WeeklyCalendar | undefined): readonly MailBlock[] {
   if (next.kind === "unmeasured") return [];
   const strip: FactRow[] =
@@ -454,25 +408,13 @@ function spareRows(spares: readonly { targetQuery: string }[]): readonly ListRow
   return spares.map((spare) => ({ label: NEXT_ITEM, vars: { search: spare.targetQuery } }));
 }
 
-/** `mapMeasured` over a list, keeping the arm and the date: an unmeasured
- *  section stays unmeasured (and is omitted), and a measured-empty one
- *  stays measured-empty (and states its written line). */
+/** `mapMeasured` over a list: unmeasured stays omitted, measured-empty keeps its written line. */
 function mapMeasuredRows<A, B>(m: Measured<readonly A[]>, f: (a: readonly A[]) => readonly B[]): Measured<readonly B[]> {
   return m.kind === "unmeasured" ? m : { kind: m.kind, value: f(m.value), at: m.at };
 }
 
-/**
- * One row per page that has a verdict this week.
- *
- * A page whose standing is `not_measured` or `no_week` gets **no row**:
- * both are properties of the week rather than of the page, and
- * `composeMail`'s whole-mail line states them once for the mail (ADR-071
- * point 3). Stating them once per page would be the merge ADR-071 forbids,
- * printed.
- *
- * A page with no address is likewise dropped rather than named some other
- * way: there is nothing measured left to identify it by.
- */
+/** One row per page with a verdict this week. `not_measured` and `no_week` get no row: they belong to the week, and the whole-mail line
+ *  states them once (ADR-071). A page with no address is dropped, as nothing measured identifies it. */
 function verdictRows(pages: readonly WeeklyPage[]): readonly VerdictRow[] {
   const rows: VerdictRow[] = [];
   for (const page of pages) {
@@ -487,9 +429,7 @@ function verdictRows(pages: readonly WeeklyPage[]): readonly VerdictRow[] {
       });
       continue;
     }
-    // Issue 1538: a page no stored search result held is not merely not
-    // ranking — the row says it has not been seen, and never that it is
-    // not indexed. A working page needs no such line.
+    // Held by no stored search result: the row says not seen, never not indexed.
     if (page.indexState === "not_verified" && standing.verdict !== "working") {
       rows.push({ subject: PAGE_NOT_VERIFIED, subjectVars: { page: page.liveUrl }, verdict: PAGE_VERDICTS[standing.verdict] });
       continue;
@@ -499,16 +439,8 @@ function verdictRows(pages: readonly WeeklyPage[]): readonly VerdictRow[] {
   return rows;
 }
 
-/**
- * REQ-063 c3 and c4, as the row's own sentence: both raw figures, the date
- * the measurement was taken, and — only where the measurement compared
- * against is not the previous week's — the interval the change spans.
- *
- * Three keys, chosen by what there is to say and never by an `if` inside
- * one sentence. A movement whose figures are not both measured says
- * nothing about a change: it takes the plain form rather than printing a
- * placeholder for the figure that is missing (REQ-064 c1).
- */
+/** REQ-063 c3–c4: both raw figures, the measurement date, and the interval where the comparison is not last week's.
+ *  Three keys chosen by what there is to say; without both figures it takes the plain form, never a placeholder (REQ-064 c1). */
 function subjectOf(
   liveUrl: string,
   standing: Extract<WeekStanding, { kind: "verdict" }>
@@ -519,8 +451,7 @@ function subjectOf(
   }
   const common: CopyVars = {
     page: liveUrl,
-    // The formatter both bodies share, so a figure in this sentence is
-    // written the way a figure in a stat block is.
+    // The shared formatter, so this figure is written as a stat block writes it.
     from: formatStat(movement.from, "integer"),
     to: formatStat(movement.to, "integer"),
     measuredAt: standing.measuredAt.toISOString().slice(0, 10),

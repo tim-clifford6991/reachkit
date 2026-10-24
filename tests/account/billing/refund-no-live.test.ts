@@ -26,6 +26,7 @@ const SECOND_RENEWAL = new Date(RENEWED.getTime() + 30 * DAY);
 let state = newMemoryBilling();
 let vendor = newStripeDouble();
 let mails: { to: string; text: string }[] = [];
+let warnings: string[] = [];
 
 beforeEach(() => {
   vi.useFakeTimers();
@@ -33,6 +34,7 @@ beforeEach(() => {
   vendor = newStripeDouble();
   vendor.verifies = true;
   mails = [];
+  warnings = [];
   __setVendorTransportForTesting(async (payload) => {
     const mail = JSON.parse(payload) as { to: string | string[]; text: string };
     mails.push({ to: String(mail.to), text: mail.text });
@@ -42,7 +44,9 @@ beforeEach(() => {
   setStripe(stripeDouble(vendor));
   registerSubscriptionHandler(null);
   vi.spyOn(console, "log").mockImplementation(() => undefined);
-  vi.spyOn(console, "warn").mockImplementation(() => undefined);
+  vi.spyOn(console, "warn").mockImplementation((line: unknown) => {
+    warnings.push(String(line));
+  });
 });
 
 afterEach(() => {
@@ -107,7 +111,7 @@ async function deliver(event: Record<string, unknown>): Promise<number> {
 }
 
 function refundMails(): { to: string; text: string }[] {
-  return mails.filter((mail) => mail.text.includes(copy("mail.account.renewal_refunded")));
+  return mails.filter((mail) => mail.text.includes(copy("mail.account.renewal_refunded", { amount: "€49.00" })));
 }
 
 describe("D10 — the first renewal is refunded when no page went live in the first month", () => {
@@ -226,5 +230,93 @@ describe("D10 — went live is read from publication rows, never drafts", () => 
     await deliver(renewal("scheduler", "in_renew", PAID, RENEWED));
 
     expect(vendor.refundsCreated).toEqual([]);
+  });
+});
+
+describe("D10 and D4 keep separate ledgers: neither refund uses up the other", () => {
+  const DOMAIN = { plumber: "example-plumber.com", scheduler: "example-scheduler.io" } as const;
+
+  it.each(["plumber", "scheduler"] as const)("%s: a D10 refund on the same web address leaves D4's day-3 refund to a second account", async (kind) => {
+    const id = `${kind}_second`;
+    state.domains.push({ user_id: `${kind}_first`, domain: DOMAIN[kind] });
+    state.renewalRefunds.push({ invoice_id: `in_renew_${kind}_first`, user_id: `${kind}_first`, refunded_at: RENEWED.toISOString() });
+    customer(id);
+    state.domains.push({ user_id: id, domain: DOMAIN[kind] });
+    const cancelled = subscriptionDouble({ id: `sub_${id}`, customer: `cus_${id}`, periodEnd: RENEWED, cancelAtPeriodEnd: true });
+    vendor.subscriptions.set(`sub_${id}`, cancelled);
+    const day3 = new Date(PAID.getTime() + 3 * DAY);
+    vi.setSystemTime(day3);
+
+    expect(await deliver({ id: `evt_cancel_${id}`, type: "customer.subscription.updated", data: { object: cancelled } })).toBe(200);
+
+    expect(vendor.refundsCreated).toEqual([expect.objectContaining({ idempotencyKey: `refund:in_first_${id}` })]);
+    expect(state.refunds).toMatchObject([{ invoice_id: `in_first_${id}`, user_id: id }]);
+    expect(vendor.cancelled).toEqual([`sub_${id}`]);
+    expect(storedUser(state).paid_through).toBe(day3.toISOString());
+    expect(await hasActiveAccess(`site_${id}`)).toBe(false);
+  });
+
+  it.each(["plumber", "scheduler"] as const)("%s: a D4 refund on the same web address leaves the first renewal's refund", async (kind) => {
+    state.refunds.push({ invoice_id: `in_${kind}_other`, user_id: `${kind}_other`, subscription_id: `sub_${kind}_other`, domains: [DOMAIN[kind]], refunded_at: PAID.toISOString() });
+    customer(kind);
+    state.domains.push({ user_id: kind, domain: DOMAIN[kind] });
+
+    await deliver(renewal(kind, `in_renew_${kind}`, PAID, RENEWED));
+
+    expect(vendor.refundsCreated).toEqual([expect.objectContaining({ idempotencyKey: `refund:in_renew_${kind}` })]);
+    expect(state.renewalRefunds).toMatchObject([{ invoice_id: `in_renew_${kind}`, user_id: kind }]);
+  });
+});
+
+describe("the refund mail states the amount, then the day the plan renews or ends, in the site's zone", () => {
+  // 03:00 UTC is still the day before in Chicago, so the zone decides the date written.
+  const NEXT_END = new Date("2026-12-01T03:00:00.000Z");
+  const IN_CHICAGO = "November 30, 2026";
+
+  function renewingIn(id: string, a: { cancelAtPeriodEnd?: boolean } = {}): Record<string, unknown> {
+    customer(id);
+    state.sites[0] = site({ ...state.sites[0]!, timezone: "America/Chicago" });
+    const event = renewal(id, `in_renew_${id}`, PAID, RENEWED);
+    vendor.subscriptions.set(`sub_${id}`, subscriptionDouble({ id: `sub_${id}`, customer: `cus_${id}`, periodEnd: NEXT_END, ...a }));
+    return event;
+  }
+
+  it.each(["plumber", "scheduler"])("%s, renewing: one mail with €49.00 and the next payment's day in the site's zone", async (id) => {
+    await deliver(renewingIn(id));
+
+    expect(refundMails()).toHaveLength(1);
+    expect(refundMails()[0]?.text).toContain(copy("mail.account.renewal_refunded.renewing", { date: IN_CHICAGO }));
+  });
+
+  it.each(["plumber", "scheduler"])("%s, cancelled at the period end: the day ReachKit stops", async (id) => {
+    await deliver(renewingIn(id, { cancelAtPeriodEnd: true }));
+
+    const [mail] = refundMails();
+    expect(mail?.text).toContain(copy("mail.account.renewal_refunded.ending", { date: IN_CHICAGO }));
+    expect(mail?.text).not.toContain("next payment");
+  });
+
+  it.each(["plumber", "scheduler"])("%s, the subscription cannot be read: one refund and a mail with no day", async (id) => {
+    const event = renewingIn(id);
+    // The event carries the subscription itself, so only the mail's own read fails.
+    const object = (event.data as { object: Record<string, unknown> }).object;
+    object.parent = { type: "subscription_details", subscription_details: { subscription: vendor.subscriptions.get(`sub_${id}`) } };
+    vendor.subscriptionRetrieveError = new Error("stripe unavailable");
+
+    await deliver(event);
+
+    expect(vendor.refundsCreated).toHaveLength(1);
+    expect(refundMails()).toHaveLength(1);
+    expect(refundMails()[0]?.text).not.toContain("ReachKit keeps running");
+    expect(warnings.some((line) => line.includes('"billing_refund"') && line.includes('"subscription_unread"'))).toBe(true);
+  });
+
+  it.each(["plumber", "scheduler"])("%s, a re-delivery sends no second mail", async (id) => {
+    const event = renewingIn(id);
+
+    await deliver(event);
+    await deliver(event);
+
+    expect(refundMails()).toHaveLength(1);
   });
 });

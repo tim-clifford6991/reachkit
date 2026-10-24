@@ -92,9 +92,9 @@ pin() {
   local value
   # Two spellings, because `constants.ts` holds both: a member of a frozen
   # group (`FREE_C: 12`) and a standalone binding (`FREE_RESCAN_WINDOW_D = 7`).
-  value=$(sed -n "s/.*[^A-Za-z_]$1: *\([0-9][0-9]*\).*/\1/p" "$REPO/src/lib/config/constants.ts" | head -1)
-  [ -n "$value" ] || value=$(sed -n "s/^export const $1 = \([0-9][0-9]*\).*/\1/p" "$REPO/src/lib/config/constants.ts" | head -1)
-  [ -n "$value" ] || { echo "smoke: src/lib/config/constants.ts binds no $1" >&2; exit 2; }
+  value=$(sed -n "s/.*[^A-Za-z_]$1: *\([0-9][0-9]*\).*/\1/p" "$REPO"/src/lib/config/constants/*.ts | head -1)
+  [ -n "$value" ] || value=$(sed -n "s/^export const $1 = \([0-9][0-9]*\).*/\1/p" "$REPO"/src/lib/config/constants/*.ts | head -1)
+  [ -n "$value" ] || { echo "smoke: src/lib/config/constants/*.ts binds no $1" >&2; exit 2; }
   printf '%s' "$value"
 }
 

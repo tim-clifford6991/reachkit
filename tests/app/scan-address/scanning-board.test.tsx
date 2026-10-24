@@ -114,6 +114,9 @@ describe("the scan in progress matches board PubScanning", () => {
   it("nothing the board draws is missing but its allowed sample data, rulings and the cards' pending content", async () => {
     // A line excused only because the registry read cannot compose it must still be on the rendered screen.
     const allow = readAllow("PubScanning").filter((line: { reason: string }) => !line.reason.includes("scanning-board.test.tsx"));
+    // The registry read the sweep makes carries these; the rendered main does not: sample data, the
+    // header's Copy link (#1725) and the grey competitors card (owner R27, 2026-10-23).
+    for (const string of ["Homeowners", "Copy link", "a national plumbing chain"]) allow.push({ string, reason: "", n: 0, extra: 0 });
     const result = compare(boardMain(), segments((await partWay()).innerHTML), allow);
     expect(result.missing).toEqual([]);
   });

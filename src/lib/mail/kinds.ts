@@ -1,41 +1,16 @@
-// BUILD §12 — the register of mail kinds, and the partition of this module.
-//
-// Ten rows, and a mail on any other occasion does not compile: `MailKind`
-// is the keys of this constant, and every seam that sends takes one. The
-// product sends no marketing, newsletter or promotional mail at all —
-// there is no row for one, and adding one is a change to this file, read
-// by the owner, not a call-site argument.
-//
-// `stoppable` is the dispatch, not documentation (ADR-042). Exactly one
-// store is consulted per send, chosen by this field:
-//
-//   'opt-out'  → the address-wide suppression store (§4.2's lead
-//                opt-out; `src/lib/mail/leads/**`, issue #31)
-//   'toggle'   → the customer's own three switches on `users.notify`
-//                (BUILD §4.7 Notifications; `notifications/`)
-//   false      → neither store is asked
-//
-// Merging the two stores is the cleanup ADR-042 exists to forbid: on
-// magic-link auth the sign-in mail *is* the credential, so an address-wide
-// unsubscribe that reached `magic-link` would lock a paying customer out
-// of the product with no recovery channel. Two mechanisms, two stores, two
-// token formats, permanently.
-//
-// ADR-040: a kind's template is a directory named for that kind,
-// `src/lib/mail/templates/<kind>/`, owned by the feature that owns the
-// occasion. `MailKind` and the directory name are the same string —
-// `tests/mail/kinds/template-directories.test.ts` holds them to it. This
-// module holds no template, no shell and no vendor knowledge.
+// BUILD §12 — the register of mail kinds: `MailKind` is its keys, so a mail on any other occasion does not compile, and there is no marketing row.
+// `stoppable` is the dispatch (ADR-042), one store per send: 'opt-out' asks the address-wide suppression store (§4.2, `leads/`),
+// 'toggle' asks the customer's three switches on `users.notify` (BUILD §4.7, `notifications/`), and false asks neither.
+// The stores never merge: an address-wide unsubscribe reaching `magic-link` would lock a paying customer out.
+// ADR-040: each kind's template is `src/lib/mail/templates/<kind>/`, held to the kind's name by `tests/mail/kinds/template-directories.test.ts`.
+// The product sends no marketing, newsletter or promotional mail at all — there is no row for one, and adding one is a change to this file, read by the owner, not a call-site argument.
+// This module holds no template, no shell and no vendor knowledge.
 
-/** What a row says. `occasionsFrom` cites the BUILD.md section(s) that
- *  state the occasion — asserted to resolve in
- *  `tests/mail/kinds/register-legality.test.ts`, so a kind cannot outlive
- *  the spec that justifies it. */
+/** What a row says. `occasionsFrom` cites the BUILD.md sections stating the occasion, checked by `tests/mail/kinds/register-legality.test.ts`. */
 export interface KindRow {
   readonly occasionsFrom: string;
   readonly stoppable: false | "toggle" | "opt-out";
-  /** The one occasion on which a `'toggle'` kind is sent anyway, named.
-   *  Present on `draft-ready` and nowhere else. */
+  /** The one named occasion a `'toggle'` kind is sent anyway; only on `draft-ready`. */
   readonly unsuppressibleWhen?: string;
 }
 
@@ -54,19 +29,9 @@ export const MAIL_KINDS = Object.freeze({
   weekly: { occasionsFrom: "§12", stoppable: "toggle" },
   "setup-reminder": { occasionsFrom: "§4.3", stoppable: false },
   account: { occasionsFrom: "§13", stoppable: false },
-  // The eleventh kind, and the only one whose reader is the owner rather
-  // than a customer (issue #329). §6.5 is its occasion: the cost seam's own
-  // ceilings are what it reports. `stoppable: false` for a reason no other
-  // kind has — there is no address to unsubscribe and no preference to
-  // read, because the recipient is `OWNER_EMAILS` and the mail exists to
-  // say the product is spending money nobody asked it to. A stoppable
-  // alarm is not an alarm.
+  // The owner's alarm (§6.5): sent to `OWNER_EMAILS` about unasked spend, with no address to unsubscribe. A stoppable alarm is not an alarm.
   ops: { occasionsFrom: "§6.5", stoppable: false },
-  // SPEC §8, Retention (#569). The win-back is stopped by the one
-  // address-wide opt-out ("One opt-out click stops further follow-up"). The
-  // payment-failed and cancellation mails are account notices, like the
-  // hosting-end notice the `account` kind already carries, and nothing stops
-  // them.
+  // SPEC §8, Retention: the address-wide opt-out stops the win-back; payment-failed and cancellation are account notices nothing stops.
   "payment-failed": { occasionsFrom: "SPEC §8", stoppable: false },
   cancellation: { occasionsFrom: "SPEC §8", stoppable: false },
   "win-back": { occasionsFrom: "SPEC §8", stoppable: "opt-out" },
@@ -74,10 +39,7 @@ export const MAIL_KINDS = Object.freeze({
 
 export type MailKind = keyof typeof MAIL_KINDS;
 
-/** The kinds a customer's own three switches reach. Derived from the
- *  register, never stated twice: a fourth `'toggle'` row would appear here
- *  the moment it was added, and `TOGGLABLE_KINDS` (notifications/) is
- *  asserted equal to it. */
+/** The kinds the three switches reach, derived from the register; `TOGGLABLE_KINDS` is asserted equal to it. */
 export const TOGGLE_KINDS: readonly MailKind[] = Object.freeze(
   (Object.keys(MAIL_KINDS) as MailKind[]).filter((kind) => MAIL_KINDS[kind].stoppable === "toggle")
 );

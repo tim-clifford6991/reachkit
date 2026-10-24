@@ -1,30 +1,8 @@
-// BUILD §12 · §4.7 — the kind-scoped unsubscribe token.
-//
-// One mail off, the other two untouched, and nothing outside the three
-// reached at all. The token is signed over `(userId, kind)` — ADR-042's
-// `/unsubscribe/{token}`, which is a different token over a different
-// subject from the lead opt-out's `/opt-out/{token}` (signed on an
-// address, `src/lib/mail/leads/**`, issue #31). Two formats, permanently;
-// a shared HMAC helper would be a signing utility, never a shared format.
-// This module never writes the address-wide suppression store and imports
-// nothing that does.
-//
-// **No expiry is encoded**, so none can be checked. An unsubscribe link
-// that stopped working would leave the reader holding a mail they cannot
-// switch off, which is the one thing this control exists to prevent.
-//
-// **Reading does not write.** `readUnsubscribeToken` is pure, so the page
-// behind the link renders its ask from a GET and a mail scanner's prefetch
-// switches nothing off. `applyUnsubscribeToken` is the only writer, reached
-// by the page's button and by RFC 8058's one-click POST, and it is
-// idempotent: using the same link twice succeeds twice.
-//
-// **Signing key.** `BUILD.md` §15's binding list carries no unsubscribe
-// secret and `src/lib/config/env.ts` is the owner's file, so the key is
-// derived from an existing server-only secret through HKDF with a fixed,
-// unique label — domain-separated, so it is not the salt itself and
-// cannot be exchanged with any other use of it. Owner-owed: a dedicated
-// binding would be better, and swapping to one is one line here.
+// BUILD §12 · §4.7 — the kind-scoped unsubscribe token: one mail off, the other two untouched, nothing outside the three reachable.
+// Signed over `(userId, kind)`, ADR-042's `/unsubscribe/{token}`, a separate format from the lead opt-out's address-signed token.
+// No expiry, so a link never stops working. Reading is pure, so a scanner's prefetch switches nothing off; `applyUnsubscribeToken`,
+// reached by the page's button and RFC 8058's POST, is the only writer and is idempotent.
+// The key is derived by HKDF from an existing server-only secret with a unique label; a dedicated binding would be one line here.
 import { createHmac, hkdfSync, timingSafeEqual } from "node:crypto";
 import { env } from "@/lib/config/env";
 import { TOGGLABLE_KINDS, setNotifyPref, type NotifyKind } from "./index";
@@ -42,9 +20,7 @@ function base64url(value: Buffer | string): string {
 }
 
 function payloadOf(a: { userId: string; kind: NotifyKind }): string {
-  // The user id is a uuid and the kind is one of three fixed words, so
-  // neither can contain the separator; the payload is unambiguous without
-  // escaping. Asserted in `tests/mail/notifications/unsubscribe.test.ts`.
+  // A uuid and a fixed word cannot contain the separator, so no escaping is needed.
   return `${a.userId}:${a.kind}`;
 }
 
@@ -61,8 +37,7 @@ function isNotifyKind(value: string): value is NotifyKind {
   return (TOGGLABLE_KINDS as readonly string[]).includes(value);
 }
 
-/** Pure. Verifies the signature and returns what the token names, or says
- *  it is invalid. Writes nothing, reads nothing, touches no store. */
+/** Pure: verifies the signature and returns what the token names, or invalid. */
 export function readUnsubscribeToken(
   token: string
 ): { userId: string; kind: NotifyKind } | { error: "invalid" } {
@@ -90,10 +65,7 @@ export function readUnsubscribeToken(
   return { userId, kind };
 }
 
-/** The only writer. Switches off exactly the kind the token was signed
- *  for; the other two are left as they are, and no mail outside the three
- *  is reachable from here at all. Idempotent — a second use returns the
- *  same answer. */
+/** The only writer: switches off exactly the signed kind. Idempotent. */
 export async function applyUnsubscribeToken(
   token: string
 ): Promise<{ switchedOff: NotifyKind } | { error: "invalid" } | { error: "unavailable" }> {
@@ -102,9 +74,7 @@ export async function applyUnsubscribeToken(
   try {
     await setNotifyPref({ userId: read.userId, kind: read.kind, on: false });
   } catch {
-    // The store could not be read or written. Saying "invalid" would tell
-    // the reader their link is broken when it is ours that is; this is
-    // its own answer and the page behind the link says so.
+    // Our store failed, so not "invalid": the link is not what is broken.
     return { error: "unavailable" };
   }
   return { switchedOff: read.kind };
