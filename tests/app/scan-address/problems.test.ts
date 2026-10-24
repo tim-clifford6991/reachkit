@@ -14,6 +14,7 @@ import { measured, measuredZero, unmeasured } from "../../../src/lib/measure/mea
 import type { Measured } from "../../../src/lib/measure/measured.ts";
 import {
   cardsOf,
+  missingPagesOf,
   PROBLEM_ORDER,
   severityOf,
   SEVERITY_INDEX,
@@ -170,5 +171,24 @@ describe("ADR-022 — the unblock lines come from the pin and from nowhere else"
     };
     walk(root);
     expect(offenders).toEqual([]);
+  });
+});
+
+describe("a missing page reads the question the report stored for its search", () => {
+  it("a missing page carries its stored question", () => {
+    const pages = missingPagesOf(FIXTURE_REPORT)!;
+    const asked = pages.filter((page) => page.question !== null);
+    expect(asked.length).toBeGreaterThan(0);
+    for (const page of asked) {
+      const stored = FIXTURE_REPORT.aiAnswers!.rows.find((row) => row.question.search === page.search)!;
+      expect(page.question).toBe(stored.question.wording);
+    }
+
+    const dropped = pages[0]!.search;
+    const answers = FIXTURE_REPORT.aiAnswers!;
+    const report = { ...FIXTURE_REPORT, aiAnswers: { ...answers, rows: answers.rows.filter((row) => row.question.search !== dropped) } };
+    const without = missingPagesOf(report)!;
+    expect(without.map((page) => page.search)).toEqual(pages.map((page) => page.search));
+    expect(without.find((page) => page.search === dropped)!.question).toBeNull();
   });
 });

@@ -52,10 +52,12 @@ export function Mark(p: { mark: AnswerMark }): React.JSX.Element {
   );
 }
 
-/** The four marks an answer can carry, and "not measured" only where a cell
- *  on screen is one: the board's legend, and no mark left unexplained. */
+/** The board's four marks, and "names no one" and "not measured" only where
+ *  a cell on screen is one: the board's legend, and no mark left unexplained. */
+const ONLY_WHEN_USED: readonly AnswerMark[] = ["names_no_one", "not_measured"];
+
 export function Legend(p: { used: readonly AnswerMark[] }): React.JSX.Element {
-  const marks = ANSWER_MARKS.filter((mark) => mark !== "not_measured" || p.used.includes(mark));
+  const marks = ANSWER_MARKS.filter((mark) => !ONLY_WHEN_USED.includes(mark) || p.used.includes(mark));
   return (
     <p className="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-1" data-testid="answers-legend">
       {marks.map((mark) => (
