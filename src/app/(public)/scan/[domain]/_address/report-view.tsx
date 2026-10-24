@@ -47,7 +47,7 @@ import { CheckCards, ProblemCards } from "../_problems/cards";
 import { checkCardsOf, readingsOf } from "../_problems/checks";
 import { identityReading } from "@/lib/site-issues/checks";
 import { MethodSections } from "../_problems/method";
-import { answerReadersOf, cardsOf, missingPagesOf, PROBLEM_ORDER, type MissingPage, type ProblemCard, type ProblemName } from "../_problems/model";
+import { answerReadersOf, cardsOf, missingPagesOf, PROBLEM_ORDER, storedQuestionOf, type MissingPage, type ProblemCard, type ProblemName } from "../_problems/model";
 import { unblockLines } from "../_problems/unblock";
 import { RemovalAddressLine } from "./removal";
 import type { AddressControl, AddressNotice, WrittenPage } from "./state";
@@ -57,7 +57,7 @@ import { rescoredOf } from "./rescored";
 import { RescanControl } from "./rescan";
 import { startReportCheckout } from "./checkout";
 import { StillReading } from "./still-reading";
-import { WhatWeRead, whereLine } from "@/app/_business/WhatWeRead";
+import { ReadSection, whereLine } from "@/app/_business/WhatWeRead";
 import type { BusinessUnderstanding } from "@/lib/business/types";
 import { profileOfReport, understandBusiness } from "@/lib/business/understanding";
 import { BuyersSection } from "../_modules/buyers";
@@ -653,7 +653,7 @@ export function ReportView(p: {
             board puts it — after the method, before the first page. */}
         {understanding === null ? null : (
           <div className="col-span-full">
-            <WhatWeRead understanding={understanding} tile />
+            <ReadSection understanding={understanding} correction={correction} />
           </div>
         )}
 
@@ -667,6 +667,7 @@ export function ReportView(p: {
           ) : (
             <FreePageCard
               section={report.freePage}
+              question={storedQuestionOf(report, report.freePage.target.keyword)}
               scanId={report.scanId}
               domain={report.domain}
               written={p.state.writtenPage}
