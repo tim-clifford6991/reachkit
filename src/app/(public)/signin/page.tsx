@@ -19,10 +19,8 @@ import {
   Eye,
   FileText,
   Info,
-  Link2,
-  Lock,
+  LinkIcon,
   Mail,
-  MonitorSmartphone,
   Search,
   Send,
   X,
@@ -75,12 +73,8 @@ const FACT_CARD = "card border border-base-300 bg-base-100 flex flex-col gap-3 p
 /** The dead-link arm's mark: a warning-tinted square beside the answered arm's success one. */
 const CHIP_WARN = "grid size-12 flex-none place-items-center rounded-box bg-warning/10 text-warning";
 
-/** The facts under the request button. */
-const CHIPS = [
-  { icon: Lock, key: "signin.chip.nopass" },
-  { icon: Clock, key: "signin.chip.link" },
-  { icon: MonitorSmartphone, key: "signin.chip.install" },
-] as const satisfies readonly { icon: LucideIcon; key: CopyKey }[];
+/** The facts under the request button, each one a promise kept. */
+const CHIPS = ["signin.chip.nopass", "signin.chip.link", "signin.chip.install"] as const satisfies readonly CopyKey[];
 
 /** How signing in works, in the order the reader does it. */
 const STEPS = [
@@ -106,7 +100,7 @@ function useReaderClock(sentAt: number | undefined): { sent: string; until: stri
 const FIGURES = [
   { icon: Search, label: "signin.preview.google", value: SPECIMEN_SIGNIN.found, of: "signin.preview.google.of", vars: { live: SPECIMEN_SIGNIN.live } },
   { icon: Eye, label: "signin.preview.showing", value: SPECIMEN_SIGNIN.showing, of: "signin.preview.showing.of", vars: {} },
-  { icon: Link2, label: "signin.preview.ai", value: SPECIMEN_SIGNIN.linked, of: "signin.preview.ai.of", vars: { asked: SPECIMEN_SIGNIN.asked } },
+  { icon: LinkIcon, label: "signin.preview.ai", value: SPECIMEN_SIGNIN.linked, of: "signin.preview.ai.of", vars: { asked: SPECIMEN_SIGNIN.asked } },
 ] as const satisfies readonly { icon: LucideIcon; label: CopyKey; of: CopyKey; value: number; vars: Record<string, number> }[];
 
 type SignInSearchParams = Partial<Record<typeof LINK_QUERY_KEY, string>>;
@@ -197,7 +191,7 @@ export default function SignInPage(props: {
             button on it. */}
         <button type="submit" className="btn btn-primary btn-block" disabled={pending} aria-busy={pending || undefined}>
           {label}
-          {pending ? <span className="loading loading-spinner loading-xs" aria-hidden /> : <ArrowRight {...ICON} />}
+          {pending ? <span className="loading loading-spinner loading-xs" aria-hidden /> : <Send {...ICON} />}
         </button>
         {/* Where the *value* was refused. The answered arm carries its own line. */}
         {answer === undefined || answered ? null : (
@@ -207,9 +201,9 @@ export default function SignInPage(props: {
         )}
         {facts ? (
           <p className={`flex flex-wrap gap-x-4 gap-y-1 text-sm ${QUIET}`}>
-            {CHIPS.map(({ icon: Icon, key }) => (
+            {CHIPS.map((key) => (
               <span key={key} className="flex items-center gap-1">
-                <Icon {...ICON} size={14} />
+                <Check {...ICON} size={14} className="text-success" />
                 {copy(key)}
               </span>
             ))}
@@ -488,6 +482,9 @@ export default function SignInPage(props: {
                     <strong>{copy(head)}</strong>
                     <span className={`text-sm ${QUIET}`}>{copy(line)}</span>
                   </span>
+                  {index < STEPS.length - 1 ? (
+                    <ArrowRight {...ICON} size={20} className="mt-1 ms-auto hidden flex-none text-base-content/30 md:block" />
+                  ) : null}
                 </li>
               ))}
             </ol>
