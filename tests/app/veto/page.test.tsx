@@ -892,6 +892,7 @@ describe("each arm carries the board's marks", () => {
     ["used", "circle-stop"],
     ["expired", "clock"],
     ["not_in_review", "clock"],
+    ["unknown", "circle-question-mark"],
   ] as const)("the %s arm: a neutral chip with %s, and no success tint", async (reason, icon) => {
     previewAnswer = async () => (reason === "used" ? spent(null) : { ok: false, reason });
     const tree = await ask();
@@ -899,10 +900,5 @@ describe("each arm carries the board's marks", () => {
     expect(classOf(chip as Node)).toContain("bg-base-200");
     expect(iconsOf(chip).map((i) => i.name)).toEqual([icon]);
     expect(successChips(tree)).toEqual([]);
-  });
-
-  it("an unknown link draws no mark: the board names none for it", async () => {
-    previewAnswer = async () => ({ ok: false, reason: "unknown" });
-    expect(byTestId(await ask(), "veto-refused-chip")).toBeUndefined();
   });
 });

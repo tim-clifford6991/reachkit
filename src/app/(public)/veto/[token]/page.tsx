@@ -41,7 +41,7 @@ import type React from "react";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { Check, CircleStop, Clock, Coffee, FileText, Info, Lock, MessageCircleWarning, X, type LucideIcon } from "lucide-react";
+import { Check, CircleQuestionMark, CircleStop, Clock, Coffee, FileText, Info, Lock, MessageCircleWarning, X, type LucideIcon } from "lucide-react";
 import { StopButton } from "./StopButton";
 import { copy } from "@/lib/presentation/copy";
 import { previewVetoLink, redeemVetoLink, vetoLinkPath } from "@/lib/publish/publishable";
@@ -213,7 +213,7 @@ const CHIP_QUIET = `${CHIP} bg-base-200 text-base-content/70`;
  * difference between them is a fact about the page that this screen holds no
  * session to be told.
  */
-function refusal(reason: Exclude<Read, { ok: true }>["reason"]): { head: string; line: string; icon: LucideIcon | null } {
+function refusal(reason: Exclude<Read, { ok: true }>["reason"]): { head: string; line: string; icon: LucideIcon } {
   switch (reason) {
     case "used":
       return { head: copy("publish.veto.used.head"), line: copy("publish.veto.alreadyUsed"), icon: CircleStop };
@@ -223,7 +223,7 @@ function refusal(reason: Exclude<Read, { ok: true }>["reason"]): { head: string;
     case "written":
       return { head: copy("publish.veto.closed.head"), line: copy("publish.veto.written"), icon: Clock };
     case "unknown":
-      return { head: copy("publish.veto.unknown.head"), line: copy("publish.veto.unknown"), icon: null };
+      return { head: copy("publish.veto.unknown.head"), line: copy("publish.veto.unknown"), icon: CircleQuestionMark };
   }
 }
 
@@ -593,7 +593,7 @@ function Told(p: {
   /** The stopped page's week, where it could be read. */
   week?: readonly WeekDay[] | null;
   /** A refusal's neutral mark, where the board draws one. */
-  icon?: LucideIcon | null;
+  icon?: LucideIcon;
 }): React.JSX.Element {
   const Icon = p.icon ?? null;
   return split(
