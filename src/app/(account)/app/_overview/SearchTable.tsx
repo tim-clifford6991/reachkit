@@ -48,7 +48,10 @@ import {
   getCoreRowModel,
   getPaginationRowModel,
   useReactTable,
+  type Table,
 } from "@tanstack/react-table";
+import { Trophy } from "lucide-react";
+import { FIRST_PAGE_PLACES } from "@/lib/measure/page-reading";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { FILTER_PILL, formatCount, renderValue } from "./present";
 import { SEARCH_FILTERS, rowsFor, type Doing, type SearchModel, type SearchRow } from "./search-model";
@@ -60,6 +63,7 @@ import {
   SEARCH_CELL_LABEL,
   STATUS_BADGE,
   STATUS_COPY_KEY,
+  STATUS_ICON,
   type SearchColumn,
 } from "./search-words";
 
@@ -86,6 +90,23 @@ function Value(p: { value: Parameters<typeof renderValue>[0]; subject: CopyKey }
   );
 }
 
+/** A measured volume and its bar against the largest on screen; an unmeasured one draws no bar, because not measured is never 0. */
+function VolumeCell(p: { row: SearchRow; table: Table<SearchRow> }): React.JSX.Element {
+  const volume = p.row.target.volume;
+  const largest = Math.max(
+    0,
+    ...p.table.getRowModel().rows.map(({ original }) => (original.target.volume.kind === "unmeasured" ? 0 : original.target.volume.value))
+  );
+  return (
+    <span className="flex flex-col items-end gap-1">
+      <Value value={volume} subject={COLUMN_COPY_KEY.volume} />
+      {volume.kind === "unmeasured" || largest === 0 ? null : (
+        <progress className="progress w-16" value={volume.value} max={largest} aria-hidden />
+      )}
+    </span>
+  );
+}
+
 /** The site's own place, and the week's move beside it. The glyph is the
  *  registry's; the direction is the stored verdict's. */
 function YouCell(p: { row: SearchRow }): React.JSX.Element {
@@ -96,6 +117,9 @@ function YouCell(p: { row: SearchRow }): React.JSX.Element {
       <span className="num" title={place.line} aria-label={place.isDash ? place.line : undefined}>
         {place.isDash ? place.text : copy("overview.search.position", { position: place.text })}
       </span>
+      {p.row.position.kind === "measured" && p.row.position.value <= FIRST_PAGE_PLACES ? (
+        <Trophy className="size-3.5 text-success" aria-hidden />
+      ) : null}
       {change.kind === "moved" ? (
         <span className={change.better ? "badge badge-success badge-soft" : "badge badge-ghost"}>
           <span className="num">{copy(change.better ? "overview.delta.up" : "overview.delta.down")}</span>
@@ -135,7 +159,13 @@ const NOWRAP = "max-sm:h-auto max-sm:whitespace-normal sm:whitespace-nowrap";
 function DoingCell(p: { row: SearchRow; doing: Doing }): React.JSX.Element {
   const { doing } = p;
   if (doing.kind === "status") {
-    return <span className={`${STATUS_BADGE[p.row.status]} ${NOWRAP}`}>{copy(STATUS_COPY_KEY[p.row.status])}</span>;
+    const Icon = STATUS_ICON[p.row.status];
+    return (
+      <span className={`${STATUS_BADGE[p.row.status]} ${NOWRAP}`}>
+        <Icon className="size-3.5" aria-hidden />
+        {copy(STATUS_COPY_KEY[p.row.status])}
+      </span>
+    );
   }
   const text =
     doing.kind === "today"
@@ -188,7 +218,7 @@ export function SearchTable(p: {
       column.accessor((row) => row.target.volume, {
         id: "volume",
         header: () => copy(COLUMN_COPY_KEY.volume),
-        cell: (ctx) => <Value value={ctx.getValue()} subject={COLUMN_COPY_KEY.volume} />,
+        cell: (ctx) => <VolumeCell row={ctx.row.original} table={ctx.table} />,
       }),
       column.accessor((row) => row, {
         id: "you",

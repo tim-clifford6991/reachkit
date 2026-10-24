@@ -49,6 +49,7 @@ import {
   RIVAL_COLUMN_COPY_KEY,
   RIVAL_STATUS_BADGE,
   RIVAL_STATUS_COPY_KEY,
+  RIVAL_STATUS_ICON,
   type RivalColumn,
 } from "./rivals-words";
 
@@ -151,10 +152,12 @@ export function RivalTable(p: {
         header: () => copy(RIVAL_COLUMN_COPY_KEY.doing),
         cell: (ctx) => {
           const week = planned[ctx.row.original.search];
+          const Icon = RIVAL_STATUS_ICON[ctx.getValue()];
           return (
             <span
               className={`${week === undefined ? RIVAL_STATUS_BADGE[ctx.getValue()] : "badge badge-primary badge-soft"} h-auto whitespace-normal sm:whitespace-nowrap`}
             >
+              {week === undefined ? <Icon className="size-3.5" aria-hidden /> : null}
               {week === undefined
                 ? copy(RIVAL_STATUS_COPY_KEY[ctx.getValue()])
                 : week.today
