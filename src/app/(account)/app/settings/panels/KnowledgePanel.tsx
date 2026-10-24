@@ -53,9 +53,11 @@ function Source(p: { source: KnowledgeSource }): React.JSX.Element {
   );
 }
 
-function Group(p: { head: CopyKey; id: string; children: React.ReactNode }): React.JSX.Element {
+const STACK = "flex min-w-0 flex-col gap-2";
+
+function Group(p: { head: CopyKey; id: string; tone?: string; children: React.ReactNode }): React.JSX.Element {
   return (
-    <section className="flex min-w-0 flex-col gap-2" data-testid={`knowledge-${p.id}`}>
+    <section className={p.tone ?? STACK} data-testid={`knowledge-${p.id}`}>
       <h3 className="eyebrow">{copy(p.head)}</h3>
       <ul className="list min-w-0">{p.children}</ul>
     </section>
@@ -66,8 +68,10 @@ function Group(p: { head: CopyKey; id: string; children: React.ReactNode }): Rea
 const SEP = " · ";
 const OFFERINGS = { head: "settings.knowledge.offerings", id: "offerings" } as const;
 const DIFFERENTIATORS = { head: "settings.knowledge.differentiators", id: "differentiators" } as const;
-/** The board's four first (problems, how you differ, questions, places), then the rest. */
-const ORDER = ["problems", "differentiators", "questions", "places", "offerings", "audience", "proof", "integrations"] as const;
+/** The board's four sit as wells in one grid; the rest stack after it. */
+const WELLS = ["problems", "differentiators", "questions", "places"] as const;
+const STACKED = ["offerings", "audience", "proof", "integrations"] as const;
+const WELL = `${STACK} rounded-box bg-base-200 p-3`;
 
 const ROW = "list-row min-w-0 flex-wrap items-start gap-2 px-0";
 
@@ -79,7 +83,7 @@ export function KnowledgePanel(p: { knowledge: KnowledgeBase; answers: FounderAn
     base.differentiators.length === 0 &&
     KNOWLEDGE_LISTS.every((name) => base[name].length === 0);
 
-  function group(name: (typeof ORDER)[number]): React.ReactNode {
+  function group(name: (typeof WELLS)[number] | (typeof STACKED)[number], tone?: string): React.ReactNode {
     if (name === "offerings") {
       return base.offerings.length === 0 ? null : (
         <Group {...OFFERINGS} key={name}>
@@ -109,7 +113,7 @@ export function KnowledgePanel(p: { knowledge: KnowledgeBase; answers: FounderAn
     }
     if (name === "differentiators") {
       return base.differentiators.length === 0 ? null : (
-        <Group {...DIFFERENTIATORS} key={name}>
+        <Group {...DIFFERENTIATORS} tone={tone} key={name}>
           {base.differentiators.map((entry) => (
             <li className={ROW} key={entry.text}>
               <div className="flex min-w-0 grow flex-col gap-1">
@@ -129,7 +133,7 @@ export function KnowledgePanel(p: { knowledge: KnowledgeBase; answers: FounderAn
       );
     }
     return base[name].length === 0 ? null : (
-      <Group head={LIST_COPY[name]} id={name} key={name}>
+      <Group head={LIST_COPY[name]} id={name} tone={tone} key={name}>
         {base[name].map((item) => (
           <li className={ROW} key={item.text}>
             <div className="flex min-w-0 grow flex-col gap-1">
@@ -141,6 +145,8 @@ export function KnowledgePanel(p: { knowledge: KnowledgeBase; answers: FounderAn
       </Group>
     );
   }
+
+  const wells = WELLS.map((name) => group(name, WELL)).filter((node) => node !== null);
 
   return (
     <details className="collapse collapse-arrow card-border min-w-0 bg-base-100" data-testid="settings-business-knowledge">
@@ -155,7 +161,12 @@ export function KnowledgePanel(p: { knowledge: KnowledgeBase; answers: FounderAn
           </p>
         ) : null}
 
-        {ORDER.map(group)}
+        {wells.length === 0 ? null : (
+          <div className="grid min-w-0 grid-cols-[repeat(auto-fit,minmax(min(100%,180px),1fr))] gap-2" data-layout="wells">
+            {wells}
+          </div>
+        )}
+        {STACKED.map((name) => group(name))}
 
         <form
           action={(form) => writer.press(saveFounderAnswersAction, form)}
