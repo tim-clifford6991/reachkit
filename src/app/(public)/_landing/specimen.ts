@@ -189,6 +189,10 @@ export const SPECIMEN_HERO_CITED = ["harborplumbing.example", "austinpipeworks.e
 /** The competitor the example business's buyers pick instead. */
 export const SPECIMEN_HERO_RIVAL = "austinpipeworks.example";
 
+/** The rivals the story card counts after the first, and the town its buyers live in. */
+export const SPECIMEN_HERO_MORE_RIVALS = 2;
+export const SPECIMEN_HERO_PLACE = "Austin";
+
 /** *Your page*: how long until the waiting page goes live. */
 export const SPECIMEN_HERO_DUE = "6h 12m";
 
