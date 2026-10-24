@@ -14,7 +14,7 @@
   "PubTools": { "sha256": "cdb9f30b0c09c0eb8899f5cead30e7461a90d5f270c8550cd6a5cd3b17e303a7", "missing": 0 },
   "PubToolMeta": { "sha256": "de7cc0df38b20709207cf61d1eedde256580af9730da3577183ed74fd24ea9e5", "missing": 0 },
   "PubToolOnPage": { "sha256": "634db230ba5b4e11bcf0236c59175513bdf561a18e549ce4a991b4349c0957e7", "missing": 0 },
-  "PubScans": { "sha256": "9ab0599ddf104b24868815a17da46497e0f4039b0f740e2d6bc8041381085fa0", "missing": 74 },
+  "PubScans": { "sha256": "9ab0599ddf104b24868815a17da46497e0f4039b0f740e2d6bc8041381085fa0", "missing": 0 },
   "AuthSignIn": { "sha256": "b59edf53755ca3cb0f832193dae46ec80b19afc453b98192eef60ea6c21584f0", "missing": 5 },
   "AuthCheckEmail": { "sha256": "7c2b15f0c27ca44920fa6691e6dca8931be8db888b08b4e5ac47c8c7f3ce3319", "missing": 2 },
   "AuthExpired": { "sha256": "a35f19ec1a9640b3486b0e1d1f89bc0c338c00bdc29b270c86172c69f3a6c5c1", "missing": 2 },
