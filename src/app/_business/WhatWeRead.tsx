@@ -1,7 +1,7 @@
 // SPEC §2 and §4 (issue 1454) — what ReachKit read of the business, in one
 // short card: its name, what it sells, what kind of business it is (issue
-// 1470), who buys and where. The free report and the app's Overview draw
-// this same card from the same reading
+// 1470), who buys and where. The free report's closed section and the
+// app's card draw the same facts from the same reading
 // (`src/lib/business/understanding.ts`), so they cannot say two things.
 //
 // In the app the card links to Settings, where the customer corrects what
@@ -13,6 +13,7 @@ import { Globe } from "lucide-react";
 import { COUNTRIES } from "@/lib/locale/locales";
 import type { BusinessUnderstanding } from "@/lib/business/types";
 import { copy } from "@/lib/presentation/copy";
+import type { CorrectionOffer } from "@/lib/market/coherence/offer";
 
 /** The most lines of what it sells, and of who buys, the card shows. */
 const SHOWN = 3;
@@ -45,7 +46,8 @@ export function AlsoServesNote(p: { n: number | undefined }): React.JSX.Element 
   );
 }
 
-export function WhatWeRead(p: { understanding: BusinessUnderstanding; editHref?: string; tile?: boolean }): React.JSX.Element {
+/** The five facts, one row each; a field nothing was read for says so. */
+function Facts(p: { understanding: BusinessUnderstanding }): React.JSX.Element {
   const u = p.understanding;
   const none = copy("report.read.none");
   const rows: readonly { key: string; label: string; value: string | null }[] = [
@@ -60,27 +62,24 @@ export function WhatWeRead(p: { understanding: BusinessUnderstanding; editHref?:
     { key: "where", label: copy("report.read.where"), value: whereLine(u.where) },
   ];
   return (
+    <dl className="grid min-w-0 grid-cols-1 gap-x-6 gap-y-2 text-sm sm:grid-cols-[max-content_minmax(0,1fr)]">
+      {rows.map((row) => (
+        <div key={row.key} className="contents">
+          <dt className="text-base-content/70">{row.label}</dt>
+          <dd className={`min-w-0 break-words ${row.value === null ? "text-base-content/70" : ""}`}>{row.value ?? none}</dd>
+        </div>
+      ))}
+    </dl>
+  );
+}
+
+export function WhatWeRead(p: { understanding: BusinessUnderstanding; editHref?: string }): React.JSX.Element {
+  const u = p.understanding;
+  return (
     <section className="card bg-base-100 shadow-(--shadow-card) min-w-0" data-testid="what-we-read">
       <div className="card-body gap-3">
-        {p.tile === true ? (
-          // The report's sections each open with their icon; the signed-in card does not.
-          <div className="flex items-center gap-3">
-            <span aria-hidden className="rounded-field grid size-9 shrink-0 place-items-center bg-base-200">
-              <Globe className="size-5" strokeWidth={1.75} />
-            </span>
-            <h2 className="card-title">{copy("report.read.title")}</h2>
-          </div>
-        ) : (
-          <h2 className="card-title">{copy("report.read.title")}</h2>
-        )}
-        <dl className="grid min-w-0 grid-cols-1 gap-x-6 gap-y-2 text-sm sm:grid-cols-[max-content_minmax(0,1fr)]">
-          {rows.map((row) => (
-            <div key={row.key} className="contents">
-              <dt className="text-base-content/70">{row.label}</dt>
-              <dd className={`min-w-0 break-words ${row.value === null ? "text-base-content/70" : ""}`}>{row.value ?? none}</dd>
-            </div>
-          ))}
-        </dl>
+        <h2 className="card-title">{copy("report.read.title")}</h2>
+        <Facts understanding={u} />
         {p.editHref === undefined ? null : <AlsoServesNote n={u.where.alsoServes} />}
         {p.editHref === undefined ? null : (
           <Link href={p.editHref} className="link link-primary text-sm">
@@ -89,5 +88,47 @@ export function WhatWeRead(p: { understanding: BusinessUnderstanding; editHref?:
         )}
       </div>
     </section>
+  );
+}
+
+/** The free report's What we read: closed like its neighbours, saying whose
+ *  reading it is, and while the correction is offered, a link up to the
+ *  header's one control (2026-10-24 E32). */
+export function ReadSection(p: { understanding: BusinessUnderstanding; correction: CorrectionOffer }): React.JSX.Element {
+  const u = p.understanding;
+  const subtitle = [u.name, u.kind === null ? null : copy(`report.read.as.kind.${u.kind}`), u.where.place?.name ?? null]
+    .filter((part): part is string => part !== null && part !== "")
+    .join(" · ");
+  // A link inside <summary> is nested interactive, so it sits beside the
+  // details, drawn over the summary's end, and the summary leaves it room.
+  return (
+    <div className="relative min-w-0">
+      <details id="read" className="collapse collapse-arrow scroll-mt-20 rounded-none" data-testid="what-we-read">
+        <summary
+          className={`collapse-title min-h-0 px-px py-2 after:end-2 after:top-6 ${p.correction.offered ? "pe-48 sm:pe-64" : "pe-10"}`}
+        >
+          <div className="flex min-w-0 items-center gap-3">
+            <span aria-hidden className="rounded-field grid size-9 shrink-0 place-items-center bg-base-200">
+              <Globe className="size-5" strokeWidth={1.75} />
+            </span>
+            <div className="min-w-0">
+              <h2 className="text-2xl font-bold">{copy("report.read.title")}</h2>
+              {subtitle === "" ? null : <p className="text-base-content/70 text-sm font-normal">{subtitle}</p>}
+            </div>
+          </div>
+        </summary>
+        <div className="collapse-content min-w-0 px-px">
+          <Facts understanding={u} />
+        </div>
+      </details>
+      {p.correction.offered ? (
+        <a
+          href="#read-as"
+          className="link link-primary absolute end-10 top-2 inline-flex min-h-11 max-w-36 items-center text-end text-sm sm:max-w-none"
+        >
+          {copy("verdict.not-your-market")}
+        </a>
+      ) : null}
+    </div>
   );
 }

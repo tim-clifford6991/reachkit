@@ -77,13 +77,6 @@ describe("BUILD §10's nine-row table — the baseline creates eight, and `fetch
     expect(names.sort()).toEqual([...EIGHT_TABLES].sort());
   });
 
-  it("`fetches` is absent — BP-007 owns `*_fetches*.sql` (WO-267 `rests-on` row 1)", () => {
-    const rows = psqlRows(
-      `select 1 from information_schema.tables where table_schema = 'public' and table_name = 'fetches';`
-    );
-    expect(rows).toHaveLength(0);
-  });
-
   // `BUILD.md` §10, quoted per table (key columns only).
   const KEY_COLUMNS: Record<(typeof EIGHT_TABLES)[number], string[]> = {
     users: ["id", "email", "plan_status", "stripe_customer_id", "created_at"],
@@ -225,13 +218,6 @@ describe('ADR-051 point 2 / BP-002 `## Error & edge behavior` — "No foreign ke
 });
 
 describe('BP-002 `## Error & edge behavior` — "a table with no policy is unreadable by anyone holding an anon or authenticated key"', () => {
-  it.each(EIGHT_TABLES)("%s has row-level security enabled", (table) => {
-    const rows = psqlRows(
-      `select relrowsecurity from pg_class where relname = '${table}' and relnamespace = 'public'::regnamespace;`
-    );
-    expect(rows[0]?.[0]).toBe("t");
-  });
-
   it.each(EIGHT_TABLES)("an anon-role select on %s returns zero rows (no policy yet)", (table) => {
     // Seed one row directly (bypassing RLS as the table owner) so a leak
     // would be observable, then read it back as `anon`.

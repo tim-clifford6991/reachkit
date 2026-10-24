@@ -548,7 +548,7 @@ export const REPORT_COPY = Object.freeze({
   "method.unquotable-pages.body": ["AI answers mention and link pages that answer a question directly. For each page that reads like a brochure: turn its headings into the questions a buyer would ask, put a direct answer of two or three sentences under each, and add evidence: a figure, a date, a source you link to. Keep the page’s address, so it keeps what it already does well.", { slots: {}, fixedBy: "board PubReport · issue 1724" }],
 
   // ── Module 5, the free page card (REQ-010, BUILD §4.2's trade) ────────
-  "free-page.title": ["Your first page", { slots: {}, fixedBy: "REQ-010 c1" }],
+  "free-page.title": ["Your first page, free", { slots: {}, fixedBy: "REQ-010 c1 · board PubReport" }],
   "free-page.badge": ["free", { slots: {}, fixedBy: "REQ-010 c1" }],
   "free-page.of": ["That’s page 1 of {total} we found for you.", { slots: { total: "text" }, fixedBy: "REQ-010 c1" }],
   // The facts list, in the board's order and words (owner R26).

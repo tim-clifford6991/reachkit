@@ -267,7 +267,7 @@ export function VerdictStrip(p: {
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2" data-testid="report-read-as">
+        <div id="read-as" className="flex scroll-mt-20 flex-wrap items-center gap-2" data-testid="report-read-as">
           <span className="text-base-content/70 text-sm">{copy("report.read.as.title")}</span>
           <ul className="flex flex-wrap gap-1.5">
             {p.readAs.map((badge) => (

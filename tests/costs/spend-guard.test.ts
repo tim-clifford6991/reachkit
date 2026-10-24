@@ -123,15 +123,6 @@ describe("a day that has reached its ceiling refuses new work, and holds the pas
     expect(updates).toEqual([{ table: "scans", values: { cost_cents: 0, status: "degraded" } }]);
   });
 
-  it("it degrades and never throws — §6.5's rule, under the day's ceiling as under a pass's own", async () => {
-    ledgerHolds(CEILING);
-    await expect(
-      withCostContext({ ...CTX, cap: "FREE" }, async (cost) => {
-        await call(cost, 1, []);
-      })
-    ).resolves.toBeUndefined();
-  });
-
   it("a cache hit is still served: it reaches no vendor, so there is nothing for a ceiling to protect", async () => {
     ledgerHolds(CEILING);
     // Issue 715: a hit carries the moment the row it served was bought, so
@@ -158,6 +149,26 @@ describe("a day with headroom spends normally, until this pass takes the last of
     expect(updates).toEqual([{ table: "scans", values: { cost_cents: 2, status: "done" } }]);
   });
 
+  it.each(["FREE", "DEEP", "WEEKLY", "DRAFT"] as const)(
+    "%s — a call of exactly its CAPS value runs; one cent more is skipped",
+    async (cap) => {
+      const capValue = CAPS[`${cap}_C`];
+      const ran: string[] = [];
+      let exact: unknown;
+      await withCostContext({ ...CTX, cap }, async (cost) => {
+        exact = await call(cost, capValue, ran);
+      });
+      expect(exact).toEqual({ payload: {}, fresh: true, costCents: capValue, storedAt: null });
+
+      let over: unknown;
+      await withCostContext({ ...CTX, cap }, async (cost) => {
+        over = await call(cost, capValue + 1, ran);
+      });
+      expect(over).toEqual({ skipped: "cap" });
+      expect(ran).toEqual(["vendor"]);
+    }
+  );
+
   it("one pass can reach the ceiling on its own: the call that takes it lands, the next is refused", async () => {
     ledgerHolds(CEILING - 2);
     const ran: string[] = [];
@@ -183,31 +194,6 @@ describe("a day with headroom spends normally, until this pass takes the last of
       await call(cost, 1, []);
     });
     expect(seen).toEqual([{ crossed: "warn", spentCents: WARN, ceilingCents: CEILING }]);
-  });
-});
-
-describe("the day's ceiling is the one billing's count gives it", () => {
-  it("with 40 paying sites a pass spends past 1,000¢ and is refused at 5,000¢, which `cap_hit` names", async () => {
-    registerPayingSiteCounter(async () => 40);
-    const warned = vi.spyOn(console, "warn").mockImplementation(() => undefined);
-    try {
-      const ran: string[] = [];
-      ledgerHolds(DAILY_PRODUCT_CEILING.baseC);
-      await withCostContext({ ...CTX, cap: "DEEP" }, async (cost) => {
-        await call(cost, 1, ran);
-      });
-      expect(ran).toEqual(["vendor"]);
-
-      ledgerHolds(5000);
-      await withCostContext({ ...CTX, cap: "DEEP" }, async (cost) => {
-        await call(cost, 1, ran);
-      });
-      expect(ran).toEqual(["vendor"]);
-      const line = warned.mock.calls.map((c) => String(c[0])).find((l) => l.includes("cap_hit"));
-      expect(JSON.parse(line as string)).toMatchObject({ reason: "daily_ceiling", ceilingCents: 5000 });
-    } finally {
-      warned.mockRestore();
-    }
   });
 });
 

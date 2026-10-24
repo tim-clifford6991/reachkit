@@ -4,7 +4,8 @@ import "./env";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { planRefreshes, type OwnLivePage, type RefreshInputs } from "../../src/lib/opportunities/refresh";
 import { setOpportunityStore } from "../../src/lib/opportunities/store";
-import { setGenerateStore, type GenerateStore } from "../../src/lib/generate/store";
+import { setGenerateStore } from "../../src/lib/generate/store";
+import { memoryStore as generateMemory } from "../generate/fixtures";
 import type { Opportunity } from "../../src/lib/opportunities/types";
 import { memoryStore, newMemoryState, type MemoryState } from "./memory-store";
 
@@ -84,7 +85,7 @@ beforeEach(() => {
       return { pages: [UNFOUND, STRONG, NEXT], pools: { siteText: [], market: [], searches: [], ranked: [] } };
     },
   });
-  setGenerateStore({ pagesElsewhere: async () => [] } as unknown as GenerateStore);
+  setGenerateStore(generateMemory());
 });
 
 const linksInto = () =>

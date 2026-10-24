@@ -319,3 +319,19 @@ export async function isListed(domain: string): Promise<boolean> {
     throw new Error(`gallery: could not read ${domain}: ${error.message}`);
   return (data?.length ?? 0) > 0;
 }
+
+/** A listed domain's score as its gallery card states it: `null` where it is
+ *  not listed, unscored, or scored off a bot-protection page. */
+export async function listedScore(domain: string): Promise<number | null> {
+  const { data, error } = await untyped()
+    .from<Pick<Row, "score" | "scanned_at">>("free_scan_listing")
+    .select("score, scanned_at")
+    .eq("domain", domain)
+    .limit(1);
+  if (error)
+    throw new Error(`gallery: could not read ${domain}'s score: ${error.message}`);
+  const row = data?.[0];
+  if (row === undefined || row.score === null) return null;
+  const challenged = await challengedHomes([{ domain, at: new Date(row.scanned_at) }]);
+  return challenged.has(domain) ? null : row.score;
+}

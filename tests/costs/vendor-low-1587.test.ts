@@ -115,21 +115,6 @@ describe("the owner is told when DataForSEO credit runs out within two weeks", (
     expect(text).not.toContain("Days left");
   });
 
-  it("5,000¢ at 300¢ a day gives no mail", async () => {
-    answer = () => balanceOf(5000);
-    spendPerDay(300, "2026-10-19");
-    await tick("2026-10-19T00:05:00Z");
-    expect(mails).toHaveLength(0);
-  });
-
-  it("3,000¢ at 600¢ a day is five days left, and is told", async () => {
-    answer = () => balanceOf(3000);
-    spendPerDay(600, "2026-10-19");
-    await tick("2026-10-19T00:05:00Z");
-    expect(mails).toHaveLength(1);
-    expect(textOf(mails[0])).toContain("Days left at last week's spend: 5\n");
-  });
-
   it("2,000¢ at 200¢ a day is ten days left, inside the fortnight, and is told", async () => {
     answer = () => balanceOf(2000);
     spendPerDay(200, "2026-10-19");

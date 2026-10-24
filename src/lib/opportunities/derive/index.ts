@@ -207,7 +207,7 @@ export async function deriveOpportunities(
   // topic with a draft or a publication is never touched, and neither is
   // the search an operator retargeted a live page to (issue 1285). A store
   // that cannot say which topics were drafted prunes nothing.
-  const drafted = store.draftedOpportunityIds === undefined ? null : await store.draftedOpportunityIds(a.siteId).catch(() => null);
+  const drafted = await store.draftedOpportunityIds(a.siteId).catch(() => null);
   const irrelevant = (row: (typeof held)[number]): boolean =>
     drafted !== null &&
     !drafted.has(row.id) &&
@@ -233,7 +233,7 @@ export async function deriveOpportunities(
   // Issue 1549: a topic a gate dismissed is not written down again by a
   // pass that read nothing new for it — only a measured volume above the
   // one it was dismissed at brings it back. One the customer stopped never comes back.
-  const dismissed = store.dismissedSearches === undefined ? [] : await store.dismissedSearches(a.siteId).catch(() => []);
+  const dismissed = await store.dismissedSearches(a.siteId).catch(() => []);
   let stillDismissed = 0;
   const notDismissed = (candidate: Pick<Candidate, "targetQuery" | "volume">): boolean => {
     if (!dismissedUnchanged(candidate, dismissed)) return true;
@@ -254,7 +254,7 @@ export async function deriveOpportunities(
   const written = await writeBuyerSearches(c, { market, prompts: a.prompts ?? [], brands, locale });
   // SPEC §6 (issue 1519): what buyers were seen asking beside the site's
   // searches — this report's SERPs and D62's store — at 0¢.
-  const stored = store.askedBeside === undefined ? [] : await store.askedBeside(a.siteId, ASKED_TOPICS.maxAgeDays).catch(() => []);
+  const stored = await store.askedBeside(a.siteId, ASKED_TOPICS.maxAgeDays).catch(() => []);
   const seen = [...askedOfReport(a.report), ...stored];
   const asked = askedTopics(seen, a.report.verdict.measuredAt);
   const proposing = proposedTopics({
@@ -327,7 +327,7 @@ export async function deriveOpportunities(
     }
     const volume = measured(read, readAt);
     const evidence = { ...row.evidence, volume };
-    await store.setVolume?.(row.id, read, evidence);
+    await store.setVolume(row.id, read, evidence);
     existing.push({ ...row, volume, evidence });
   }
 
