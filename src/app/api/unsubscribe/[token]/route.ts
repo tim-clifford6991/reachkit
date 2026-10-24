@@ -1,6 +1,6 @@
 // RFC 8058's one-click endpoint for the Monday mail's List-Unsubscribe header:
-// a POST switches the mail off with no session; a GET is sent to the page,
-// which does the same and says so. Same token, same write as the page.
+// a mail client's POST switches the mail off with no session; a GET, which is
+// what a scanner sends, only goes to the page, whose button makes the same write.
 import { applyUnsubscribeToken } from "@/lib/mail/notifications/unsubscribe";
 import { adapter } from "../../_adapter";
 

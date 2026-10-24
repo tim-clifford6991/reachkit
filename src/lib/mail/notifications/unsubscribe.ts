@@ -14,9 +14,9 @@
 // switch off, which is the one thing this control exists to prevent.
 //
 // **Reading does not write.** `readUnsubscribeToken` is pure, so the page
-// behind the link can render from a GET without a mail client's or a
-// security scanner's link prefetch silently switching off mail nobody
-// chose to stop. `applyUnsubscribeToken` is the only writer, and it is
+// behind the link renders its ask from a GET and a mail scanner's prefetch
+// switches nothing off. `applyUnsubscribeToken` is the only writer, reached
+// by the page's button and by RFC 8058's one-click POST, and it is
 // idempotent: using the same link twice succeeds twice.
 //
 // **Signing key.** `BUILD.md` §15's binding list carries no unsubscribe

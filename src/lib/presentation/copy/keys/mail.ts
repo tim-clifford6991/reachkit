@@ -103,12 +103,14 @@ export const MAIL_COPY = Object.freeze({
   "unsubscribe.invalid": ["That link isn’t valid, so nothing has changed. You can switch any ReachKit mail off in Settings › Mail.", { slots: {}, fixedBy: "issue 1741 (drafted)" }],
   "unsubscribe.unavailable": ["That couldn’t go through just now, so nothing has changed. Try the link again in a few minutes, or switch the mail off in Settings › Mail.", { slots: {}, fixedBy: "issue 1741 (drafted)" }],
   "unsubscribe.settings": ["Mail settings", { slots: {}, fixedBy: "issue 1741 (drafted)" }],
+  "unsubscribe.ask": ["Press Unsubscribe to stop this mail: {mail}. Sign-in links and account mail still arrive.", { slots: { mail: "text" }, fixedBy: "issue 1741 (drafted)" }],
   "pause.head": ["Publishing is paused", { slots: {}, fixedBy: "issue 1741 (drafted)" }],
   "pause.done": ["No page goes live until you turn publishing on again in Settings › Publishing. Pages already written wait there, and nothing is deleted.", { slots: {}, fixedBy: "issue 1741 (drafted)" }],
   "pause.head.unresolved": ["Not paused", { slots: {}, fixedBy: "issue 1741 (drafted)" }],
   "pause.invalid": ["That link isn’t valid, so nothing has changed. You can pause publishing in Settings › Publishing.", { slots: {}, fixedBy: "issue 1741 (drafted)" }],
   "pause.unavailable": ["That couldn’t go through just now, so nothing has changed. Try the link again in a few minutes, or pause publishing in Settings › Publishing.", { slots: {}, fixedBy: "issue 1741 (drafted)" }],
   "pause.settings": ["Publishing settings", { slots: {}, fixedBy: "issue 1741 (drafted)" }],
+  "pause.ask": ["Press Pause all pages and no page goes live until you turn publishing on again in Settings › Publishing. Nothing is deleted.", { slots: {}, fixedBy: "issue 1741 (drafted)" }],
   "mail.optout.label": ["Opt out of all follow-up mail", { slots: {}, fixedBy: "§12" }],
 
   // 2026-09-05, issue #31 (lead capture, the giveaway page and the nurture

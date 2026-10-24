@@ -49,3 +49,15 @@ export async function applyPauseToken(token: string): Promise<{ paused: true } |
     return { error: "unavailable" };
   }
 }
+
+/** Whether the token's site reads as paused now; `false` where the token is not ours or the site cannot be read. */
+export async function pausedFor(token: string): Promise<boolean> {
+  const siteId = readPauseToken(token);
+  if (siteId === null) return false;
+  try {
+    const { data } = await publishDb().from<{ publishing_enabled: boolean | null }>("sites").select("publishing_enabled").eq("id", siteId).single();
+    return data?.publishing_enabled === false;
+  } catch {
+    return false;
+  }
+}
