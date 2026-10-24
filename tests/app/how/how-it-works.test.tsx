@@ -149,6 +149,17 @@ describe("the Plumber · Software switch, without JavaScript", () => {
   });
 });
 
+describe("the week of pages", () => {
+  it("each page day in the week strip draws its sketch", () => {
+    const days = parse(html).querySelectorAll("#pages ol > li");
+    const bands = days.map((li) => li.querySelectorAll("[aria-hidden]").filter((el) => el.querySelector("svg.lucide-file-text")));
+    expect(bands.map((b) => b.length)).toEqual(EXAMPLES.plumber.plan.map((day) => (day.kind === "skip" ? 0 : 1)));
+    expect(bands.map((b) => b.some((el) => el.classList.contains("text-primary")))).toEqual(
+      EXAMPLES.plumber.plan.map((day) => day.kind !== "skip" && day.state === "waiting")
+    );
+  });
+});
+
 describe("the calls to action", () => {
   it("the free scan appears four times: the head, after the week, the value and the start", () => {
     expect(count(html, 'data-testid="how-scan"')).toBe(4);

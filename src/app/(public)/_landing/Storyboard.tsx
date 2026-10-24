@@ -6,7 +6,7 @@
 // restores an empty start column and halves the frame at 390px. It carries
 // the landing's one deep floating shadow.
 import type React from "react";
-import { Bot, Coffee, FileText, Globe, Search } from "lucide-react";
+import { Building2, Coffee, FileText, ScanSearch, TrendingUp } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { FLOAT } from "@/ui/lift";
@@ -66,7 +66,7 @@ export function Storyboard(): React.JSX.Element {
       <div className="card-body gap-4">
         <h2 className="card-title text-base">{copy("landing.story.title")}</h2>
         <ol className="timeline timeline-vertical timeline-compact min-w-0">
-          <Frame n={1} Icon={Globe}>
+          <Frame n={1} Icon={Building2}>
             <span className="flex flex-wrap gap-2">
               <span className={CHIP}>
                 <Num>{SPECIMEN_HERO_DOMAIN}</Num>
@@ -74,7 +74,7 @@ export function Storyboard(): React.JSX.Element {
               <span className="text-base-content/70 text-xs">{copy("landing.hero.work.you")}</span>
             </span>
           </Frame>
-          <Frame n={2} Icon={Search}>
+          <Frame n={2} Icon={ScanSearch}>
             <span className={SAMPLE}>
               <span>
                 <strong>{copy("landing.story.2.what")}</strong> {copy("landing.story.2.services")}
@@ -100,7 +100,7 @@ export function Storyboard(): React.JSX.Element {
               </span>
             </span>
           </Frame>
-          <Frame n={4} Icon={Bot}>
+          <Frame n={4} Icon={TrendingUp}>
             <span className={SAMPLE}>
               <span className="rounded-box bg-base-200 flex min-w-0 flex-col gap-1 p-2">
                 <span className="flex flex-wrap items-center gap-2">

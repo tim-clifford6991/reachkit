@@ -129,7 +129,8 @@ describe("a report measured in a guessed country says so, and offers the one cor
         state: { report: { ...FIXTURE_REPORT, ...report }, notice: null, control: { kind: "none" }, correction: { offered: true, as: "first" } },
       })
     );
-  const offers = (page: string): number => page.split(copy("verdict.not-your-market")).length - 1;
+  // The one control is the header's button; What we read only links to it.
+  const offers = (page: string): number => page.split(`${copy("verdict.not-your-market")}</button>`).length - 1;
   const GUESSED = "We couldn’t read your site, so we measured it in Google United States, in English.";
   const blocked = { onPage: { kind: "unmeasured", reason: "undeterminable", because: "bot_protection", at: FIXTURE_REPORT.verdict.measuredAt } } as Partial<StoredReport>;
 

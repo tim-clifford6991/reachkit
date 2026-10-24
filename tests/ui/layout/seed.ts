@@ -562,7 +562,7 @@ export function seedHostedPublisher(): void {
   });
 
   // The business as its blog draws it (issue 1140): a name, a kept logo and
-  // one line, so the header, the about card and the index are measured with
+  // the boards' one line, so the header, the about card and the index are measured with
   // the picture and the sentence rather than the first-letter fallback. Its
   // main site states a phone and links a book and a quote page, so the
   // header draws the call, and the full block the call and both links.
@@ -582,7 +582,7 @@ export function seedHostedPublisher(): void {
   sql(
     `insert into site_profiles (domain, site_name, claims, logo_image, logo_type, main_site) values ` +
       `('${PUBLISHER_ACCOUNT.domain}', 'Publisher & Sons Onboarding Software', ` +
-      `'["Onboarding checklists with one owner for every step, so a new hire reaches their first real task in the first week"]'::jsonb, ` +
+      `'["Licensed plumbers in Austin, TX: repairs, water heaters and 24-hour emergency calls."]'::jsonb, ` +
       `'\\x${ONE_PIXEL_PNG}'::bytea, 'image/png', '${JSON.stringify(mainSite)}'::jsonb);`
   );
 
@@ -628,9 +628,10 @@ export function seedHostedPublisher(): void {
   // compact block after its takeaways or short answer.
   sql(`update opportunities set business_fit = 3 where site_id = '${PUBLISHER_ACCOUNT.siteId}';`);
   // The boards' sample business is a local service: its market serves a
-  // place, so its book page reads as a visit.
+  // place and region, so its book page reads as a visit and every full
+  // block says "Serves Austin, TX." as the boards do.
   sql(
-    `update sites set market = '{"current":{"category":"a plumber","serves":{"name":"Austin"}}}'::jsonb ` +
+    `update sites set market = '{"current":{"category":"a plumber","serves":{"name":"Austin","region":"TX"}}}'::jsonb ` +
       `where id = '${PUBLISHER_ACCOUNT.siteId}';`
   );
   // Two published pages on one topic, so the index draws "All guides" with a topic card and the A–Z rest.
