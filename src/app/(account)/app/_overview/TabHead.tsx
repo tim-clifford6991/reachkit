@@ -10,6 +10,8 @@
 import type React from "react";
 
 export function TabHead(p: {
+  /** "Overview · week 3" over the name, where the tab's board draws one. */
+  eyebrow?: string | null;
   title: string;
   testId: string;
   /** "Measured 1 Oct 2026." — or its box, or nothing where no pass ran. */
@@ -17,6 +19,11 @@ export function TabHead(p: {
 }): React.JSX.Element {
   return (
     <header className="flex min-w-0 flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+      {p.eyebrow == null ? null : (
+        <p className="eyebrow w-full" data-testid={`${p.testId}-eyebrow`}>
+          {p.eyebrow}
+        </p>
+      )}
       <h1 className="card-title text-base" data-testid={`${p.testId}-title`}>
         {p.title}
       </h1>

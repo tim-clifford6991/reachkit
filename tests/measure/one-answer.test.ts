@@ -15,6 +15,7 @@ import { readingOf } from "@/lib/measure/page-reading";
 import { judgeWeek } from "@/lib/opportunities/verdicts/judge";
 import { livePlaces, type LivePageRow } from "@/app/(account)/app/_overview/search-store";
 import { assembleSearch } from "@/app/(account)/app/_overview/search-model";
+import { googlePagesOf } from "@/app/(account)/app/_overview/google-pages";
 import { measured, unmeasured } from "@/lib/measure/measured";
 import { LOCAL, SAAS, stored, weekWith } from "./reading-fixture";
 
@@ -78,16 +79,14 @@ describe.each([
         ],
         // What the keyword database's rows give the search: nothing.
         positions: new Map(),
-        livePages: measured(1, NOW),
-        ready: measured(7, NOW),
-        ownRanked: measured(1, NOW),
         market: null,
-        ceiling: null,
         measuredAt: NOW,
       },
       NOW
     );
-    expect(search.tiles.pages.reading).toEqual({ kind: "pages", firstPage: 1, further: 0, unseen: 0 });
+    expect(search.rows[0]?.position).toMatchObject({ kind: "measured", value: 7 });
+    const pages = googlePagesOf([{ id: "pub-1", title: "t", url: null, publishedAt: new Date(0), reading }], NOW);
+    expect(pages).toMatchObject({ live: 1, read: 1, showing: 1, firstPage: 1 });
 
     // The verdict, through the real verdict store over the same rows: the
     // place it stores is the one the mail's top-twenty number counts.

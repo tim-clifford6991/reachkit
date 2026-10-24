@@ -26,7 +26,7 @@ const ID = { ai: "overview-ai", mover: "overview-mover", months: "overview-month
 const MOVER_CHART = copy("draft.live.chart");
 
 /** "Oct 5": a week or a reading as the figures name it. */
-function shortDay(at: Date, timeZone: string): string {
+export function shortDay(at: Date, timeZone: string): string {
   return new Intl.DateTimeFormat(SHELL_LOCALE, { timeZone, month: "short", day: "numeric" }).format(at);
 }
 
