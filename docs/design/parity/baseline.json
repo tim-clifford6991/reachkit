@@ -21,7 +21,7 @@
   "Setup1": { "sha256": "bacde949605717ebcf2ff708dab8f13ec27335b7bed8f59f02e615a553fa9e74", "missing": 0 },
   "Setup2": { "sha256": "a488e55e8d8aefe5a32fea62116c3b50db1fe8c252b1e345dc7dc457e17edd10", "missing": 0 },
   "Setup": { "sha256": "792aea27d7785965efdde87afd78dcbd9f10fb34ce1dba56efe5542a2159cc0f", "missing": 0 },
-  "SetupZone": { "sha256": "5e551a8c4cf16f4dc37d1683e3c8b9c0e7cbc87ba89c0722061b6726427f6aa8", "missing": 0 },
+  "SetupZone": { "sha256": "d2204ad3da04a5f31cf2311d7faf0c3766f348d736a9555ef658172c0eb76e50", "missing": 0 },
   "Veto": { "sha256": "badb6b43d3636aacbfa20bc968964aa00aa5f1fe57b861aa384d162caf0a4ee1", "missing": 0 },
   "OptOut": { "sha256": "053555815d78e8e49a93c211502d43f2c6fcdbabae0c2f401ae2560c752f1c10", "missing": 0 },
   "Legal": { "sha256": "e745326d3691edc1bd6d182fabae389a601b6e1731d0745a52bb9756659d6604", "missing": 0 },
