@@ -31,7 +31,7 @@
 
 import type React from "react";
 import { useEffect, useState } from "react";
-import { RefreshCw } from "lucide-react";
+import { RefreshCw, type LucideIcon } from "lucide-react";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import type { PublicDns } from "@/lib/publish/destinations/hosted/dns-check";
 import { checkConnection, type ConnectionCheck } from "./check-actions";
@@ -51,6 +51,8 @@ export interface CheckWords {
   live: CopyKey;
   pending: CopyKey;
   pendingTitle?: CopyKey;
+  /** The press's mark, as the screen's board draws it. */
+  icon?: LucideIcon;
 }
 
 const SETTINGS_WORDS: CheckWords = {
@@ -126,6 +128,7 @@ export function CheckConnection(p: {
   words?: CheckWords;
 }): React.JSX.Element {
   const words = p.words ?? SETTINGS_WORDS;
+  const Mark = words.icon ?? RefreshCw;
   const [running, setRunning] = useState(false);
   const [answer, setAnswer] = useState<Answer | null>(null);
   /** When, by this browser's clock, the founder may ask again — `null`
@@ -188,7 +191,7 @@ export function CheckConnection(p: {
         {running ? (
           <span className="loading loading-spinner loading-xs" aria-hidden />
         ) : (
-          <RefreshCw aria-hidden size={16} strokeWidth={1.75} />
+          <Mark aria-hidden size={16} strokeWidth={1.75} />
         )}
         {copy(words.button)}
       </button>

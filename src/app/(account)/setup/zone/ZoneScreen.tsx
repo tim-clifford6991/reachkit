@@ -1,7 +1,7 @@
 // Board SetupZone: why the zone is needed, the example it changes, and the
 // line that follows if the browser stays silent.
 import type React from "react";
-import { Globe } from "lucide-react";
+import { Clock, Globe } from "lucide-react";
 import { Surface } from "@/ui/layout";
 import { copy } from "@/lib/presentation/copy";
 import { ZoneSlow } from "./ZoneSlow";
@@ -25,10 +25,13 @@ export function ZoneScreen(): React.JSX.Element {
         <figure className="card card-border bg-base-100" data-testid={WHY_TEST_ID}>
           <div className="card-body gap-2 p-5">
             <figcaption className="eyebrow">{copy("setup.zone.why")}</figcaption>
-            <p className="grid">
-              <strong>{copy("setup.zone.example")}</strong>
-              <span className="text-sm text-base-content/70">{copy("setup.zone.example.not")}</span>
-            </p>
+            <div className="flex items-center gap-3">
+              <Clock aria-hidden size={40} strokeWidth={1.75} className="shrink-0 text-primary" />
+              <p className="grid">
+                <strong>{copy("setup.zone.example")}</strong>
+                <span className="text-sm text-base-content/70">{copy("setup.zone.example.not")}</span>
+              </p>
+            </div>
             <p className="text-xs text-base-content/70">{copy("setup.zone.once")}</p>
           </div>
         </figure>
