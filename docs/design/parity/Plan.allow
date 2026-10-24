@@ -6,7 +6,7 @@ Gas line repair permits in Austin	sample data
 Toilet repair in Austin: running, leaking or clogged	sample data
 Water heater repair or replace: an Austin guide	sample data
 Sewer line camera inspection in Austin	sample data
-Theme: light	#1744: the app shell's theme control, which that issue changes for every /app board
+Theme: light	DESIGN.md: the /app shell's theme control is the Light / Dark / System dropdown named Theme (#681)
 This week’s 7 pages	sample data: the fixture week holds 5 pages, and the H1 counts the real week
 Chosen Monday 19 October. Each goes live on its day unless you stop it. Up to 7 pages a week, new or updated. Never filler.	owner R12 B11: the lead is cut to its first two sentences (SPEC §0, 20 words); the H1 and the numbers already say how many
 Runs by itself Every page goes live at 4:00 PM, Austin time	sample data: the time and place are the site's own publish time and zone, and none is named while ReachKit is stopped (REQ-092 c7)

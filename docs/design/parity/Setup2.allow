@@ -34,5 +34,4 @@ Friendly and direct, like a plumber you trust explaining the job. Short sentence
 24-hour service on holidays	sample data
 Remove 24-hour service on holidays	sample data
 We’re still reading your site. Carry on. What we find shows in Settings, where you can change it.	#1737: the before-the-read arm; tests/app/setup/board.test.tsx reads it on the rendered arm
-Nothing read for this yet. Add what we missed.	#1737: the empty-group arm; tests/app/setup/board.test.tsx reads it on the rendered arm
 Competitors 4 of 5	sample data
