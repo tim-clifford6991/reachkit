@@ -231,7 +231,7 @@ describe("the AI tab reads Overview's figures with the same reader", () => {
 describe("Measures that move over months", () => {
   const months = {
     reading: { week: "2026-10-05", score: 31, market: { top10: 1, of: 12 } },
-    scan: { score: 27, market: 0 },
+    scan: { score: 27 as number | null, market: 0 as number | null },
     next: "2026-11-02",
   };
   /** Two weeks of answers: 23 unbranded prompts asked twice each, and the two branded ones apart. */
@@ -281,6 +281,27 @@ describe("Measures that move over months", () => {
     expect(text(dom.querySelector('[data-testid="overview-months-next"]'))).toBe(copy("overview.months.first", { date: "Monday, November 2" }));
     expect(dom.querySelector('[data-testid^="overview-tile-score"]')).toBeNull();
     expect(dom.querySelector('[data-testid="overview-tile-reputation"]')).toBeNull();
+  });
+
+  /** The decorative two-point line a tile ends in, or none. */
+  const lineIn = (dom: Document, tile: string): Element | null => dom.querySelector(`[data-testid="overview-tile-${tile}"] figure[aria-hidden="true"]`);
+
+  it("score tile draws a two-point line from the scan to today", () => {
+    expect(lineIn(draw(months), "score")?.getAttribute("data-points")).toBe("2");
+    expect(lineIn(draw({ ...months, scan: { ...months.scan, score: null } }), "score")).toBeNull();
+  });
+
+  it("market tile draws its two-point line, from a scan that measured 0 but never from one that measured nothing", () => {
+    expect(lineIn(draw(months), "market")?.getAttribute("data-points")).toBe("2");
+    expect(lineIn(draw({ ...months, scan: { ...months.scan, market: null } }), "market")).toBeNull();
+  });
+
+  it("reputation tile draws a bar at mentions of samples", () => {
+    const rep = assemblePrompts(window);
+    if (rep.kind !== "measured") throw new Error("the window was read");
+    const bar = draw(months, rep).querySelector('[data-testid="overview-tile-reputation"] progress');
+    expect(bar?.getAttribute("aria-hidden")).toBe("true");
+    expect([bar?.getAttribute("value"), bar?.getAttribute("max")]).toEqual([String(rep.rate.linked + rep.rate.named), String(rep.rate.samples)]);
   });
 
   it("a figure at its scan's own value says so, and one below says down", () => {
