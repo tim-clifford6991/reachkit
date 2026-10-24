@@ -414,9 +414,11 @@ export function missingBlock(a: { markdown: string; title: string; blocks: Block
     );
     if (!holds) return "table";
   }
-  if (template.blocks.steps !== undefined) {
-    const steps = keyed
-      .filter((section) => template.sections.find((slot) => slot.key === section.key)?.block === "steps")
+  const stepSections = keyed.filter((section) => template.sections.find((slot) => slot.key === section.key)?.block === "steps");
+  // E10: a page whose steps section may be left out and was holds no steps to count.
+  const stepsLeftOut = stepSections.length === 0 && template.sections.some((slot) => slot.block === "steps" && slot.repeat?.min === 0);
+  if (template.blocks.steps !== undefined && !stepsLeftOut) {
+    const steps = stepSections
       .flatMap((section) => section.blocks)
       .filter((block) => NUMBERED_RE.test(block.raw));
     if (steps.length < template.blocks.steps.min || steps.length > template.blocks.steps.max) return "steps";

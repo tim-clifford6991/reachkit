@@ -39,6 +39,7 @@
 "use client";
 
 import type React from "react";
+import { PageSketch } from "@/ui/PageSketch";
 import { CardNumber, DayLines, KindChip, cardLineFor, pageShownBy } from "./DayCard";
 import { DayStateBadge } from "./WeekGrid";
 import { cardLabel, shortCauseFor } from "./card-lines";
@@ -83,7 +84,7 @@ export function DayList(p: {
               aria-label={cardLabel({ cell, page, line })}
               onClick={() => p.onSelect(cell.day)}
             >
-              <span className="flex min-w-0 flex-col items-center">
+              <span className="flex min-w-0 flex-col items-center gap-1">
                 <span className="text-[11px] font-semibold opacity-70">
                   {weekdayShort(cell.day)}
                 </span>
@@ -96,6 +97,11 @@ export function DayList(p: {
                 >
                   {dayNumber(cell.day)}
                 </span>
+                {page === null ? null : (
+                  <span className="self-stretch">
+                    <PageSketch primary={cell.today} />
+                  </span>
+                )}
               </span>
 
               <span className="flex min-w-0 flex-col items-start gap-1">

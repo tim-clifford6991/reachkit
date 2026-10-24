@@ -22,7 +22,15 @@ export interface TemplateSection {
   /** Issue 1508: a section the page carries once where it lists the
    *  alternatives to one product, and never otherwise. */
   when?: "alternatives";
+  /** A section the page carries only where the pack holds at least `min`
+   *  of these facts, and never otherwise (E10). */
+  onlyWith?: { facts: SectionFacts; min: number };
 }
+
+/** What a section that is carried only on its facts is written from: the
+ *  knowledge base's inclusions, the places the business's own pages state,
+ *  and its differentiators or promises. */
+export type SectionFacts = "inclusions" | "places" | "difference";
 
 /** One thing the context pack must hold. Each is checked in code
  *  (`../pipeline/pack.ts`), and its `need` names what is missing. */
@@ -77,8 +85,10 @@ export interface Template {
      *  business's own (issue 1486). Absent `own`, any may be. */
     steps?: { min: number; max: number; own?: number };
     /** Buyer questions stored beside the page. `null`: the page's own
-     *  questions are its FAQ data and it stores no others. */
-    faq: { min: number; max: number } | null;
+     *  questions are its FAQ data and it stores no others. `asked`: none
+     *  at all unless the pack holds `min` answerable questions buyers asked
+     *  (E10). */
+    faq: { min: number; max: number; asked?: true } | null;
     /** Every repeated section carries a date and a link to its source. */
     datedSources?: boolean;
   };
