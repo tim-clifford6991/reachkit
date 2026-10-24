@@ -55,7 +55,7 @@
 // all, which `route.ts` (WO-063's half of this WO) reads as "respond 404"
 // without itself touching a database.
 import { dbAdmin } from "@/lib/db";
-import { TIMING } from "@/lib/config/constants";
+import { BATTERY, TIMING } from "@/lib/config/constants";
 import type { Ending } from "./ceilings";
 
 // ── StageName, STAGES — BP-023 decision 7 ───────────────────────────────
@@ -97,8 +97,48 @@ if (new Set(STAGES).size !== STAGES.length) {
 
 // ── StageEvent ───────────────────────────────────────────────────────────
 
+/** What a finished stage already knew, for the screen to fill its card with:
+ *  counts and short labels only, never page text or a vendor payload. */
+export interface StageSummary {
+  /** Pages the site's crawl read; never 0, which would read as measured. */
+  pagesRead?: number;
+  category?: string;
+  readers?: { google: "in" | "out"; ai: "in" | "out" };
+  searches?: readonly { words: string; onPageOne: boolean }[];
+}
+
+const CATEGORY_MAX = 60;
+const WORDS_MAX = 80;
+
+const isReader = (value: unknown): value is "in" | "out" => value === "in" || value === "out";
+
+/** A summary as the log may hold it: each field kept only where it is well
+ *  formed and inside its cap, and nothing at all where no field is left. */
+export function asSummary(value: unknown): StageSummary | undefined {
+  if (typeof value !== "object" || value === null) return undefined;
+  const v = value as Record<string, unknown>;
+  const out: { -readonly [K in keyof StageSummary]: StageSummary[K] } = {};
+  if (typeof v.pagesRead === "number" && Number.isInteger(v.pagesRead) && v.pagesRead >= 1) out.pagesRead = v.pagesRead;
+  if (typeof v.category === "string" && v.category.trim() !== "" && v.category.length <= CATEGORY_MAX) out.category = v.category;
+  const readers = v.readers as Record<string, unknown> | null | undefined;
+  if (typeof readers === "object" && readers !== null && isReader(readers.google) && isReader(readers.ai)) {
+    out.readers = { google: readers.google, ai: readers.ai };
+  }
+  if (Array.isArray(v.searches)) {
+    const searches = v.searches
+      .filter(
+        (s): s is { words: string; onPageOne: boolean } =>
+          typeof s === "object" && s !== null && typeof s.words === "string" && s.words !== "" && s.words.length <= WORDS_MAX && typeof s.onPageOne === "boolean"
+      )
+      .slice(0, BATTERY.QUESTIONS)
+      .map((s) => ({ words: s.words, onPageOne: s.onPageOne }));
+    if (searches.length > 0) out.searches = searches;
+  }
+  return Object.keys(out).length === 0 ? undefined : out;
+}
+
 export type StageEvent =
-  | { stage: StageName; done: boolean }
+  | { stage: StageName; done: boolean; summary?: StageSummary }
   | { heartbeat: true } // ≥ every 30 s
   | { ending: Ending }; // terminal; the stream then closes
 
@@ -248,8 +288,9 @@ export async function enterStage(scanId: string, stage: StageName): Promise<void
 /** Reports a stage's exit — never called for a stage the ceilings cut
  *  off (WO-281 `## Steps` step 12: "a stage the ceilings cut off emits no
  *  `done: true`"). */
-export async function exitStage(scanId: string, stage: StageName): Promise<void> {
-  await publish(scanId, { stage, done: true });
+export async function exitStage(scanId: string, stage: StageName, summary?: StageSummary): Promise<void> {
+  const kept = asSummary(summary);
+  await publish(scanId, kept === undefined ? { stage, done: true } : { stage, done: true, summary: kept });
   logStageTransition(scanId, stage, true);
 }
 
@@ -280,7 +321,9 @@ function asStageEvent(value: unknown): StageEvent | null {
   if ("stage" in record) {
     const stage = record.stage;
     if (typeof stage !== "string" || !(STAGES as readonly string[]).includes(stage)) return null;
-    return { stage: stage as StageName, done: record.done === true };
+    const done = record.done === true;
+    const summary = done ? asSummary(record.summary) : undefined;
+    return summary === undefined ? { stage: stage as StageName, done } : { stage: stage as StageName, done, summary };
   }
   if (record.heartbeat === true) return { heartbeat: true };
   return null;

@@ -8,9 +8,9 @@
 //
 // A card's badge says whether the stage that produces it has finished, is
 // running, or has not been reached, read from the stream's stored stage log.
-// The card's content stays a skeleton: the pass stores its findings once, at
-// the end, so nothing true can fill a card before the report replaces this
-// screen.
+// A finished stage's summary fills its card; a card with nothing to show,
+// and the competitors, score and AI cards always, stay a skeleton until the
+// report replaces this screen. A missing value is never drawn as 0.
 //
 // One stream, one reading: `useScanStages` is subscribed once here and
 // handed to the stages and the cards. The ending event is `ScanProgress`'s
@@ -20,11 +20,11 @@
 import type React from "react";
 import { useSyncExternalStore } from "react";
 import Link from "next/link";
-import { ArrowRight, Check } from "lucide-react";
+import { ArrowRight, Ban, Check, Search, Sparkles } from "lucide-react";
 import { Surface } from "@/ui/layout";
 import { SKELETON_EXIT, ViewTransition } from "@/ui/motion";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
-import type { StageName } from "@/lib/scan/stages";
+import type { StageName, StageSummary } from "@/lib/scan/stages";
 import type { CanonicalDomain } from "@/lib/scan/domain";
 import { ScanProgress, SEARCHES, stageState, useScanStages, type StageState } from "./progress";
 
@@ -33,14 +33,73 @@ const CARD = "card bg-base-100 min-w-0 shadow-(--shadow-card)";
 /** The report's cards in the board's order, each against the stage that
  *  produces it: the profile is read with the market, the searches and their
  *  AI answers are asked together, and competitors are concluded in scoring. */
-const FILLING: readonly { readonly title: CopyKey; readonly stage: StageName; readonly lines: number }[] = [
-  { title: "report.read.title", stage: "reading_your_market", lines: 3 },
-  { title: "scan.filling.readers", stage: "reading_access_rules", lines: 2 },
+type Fill = (found: StageSummary) => React.ReactNode;
+
+const FILLING: readonly { readonly title: CopyKey; readonly stage: StageName; readonly lines: number; readonly fill?: Fill }[] = [
+  { title: "report.read.title", stage: "reading_your_market", lines: 3, fill: whatWeRead },
+  { title: "scan.filling.readers", stage: "reading_access_rules", lines: 2, fill: whoMayRead },
   { title: "scan.filling.competitors", stage: "scoring", lines: 2 },
   { title: "scan.get.score", stage: "scoring", lines: 1 },
-  { title: "scan.filling.searches", stage: "asking_the_twelve", lines: 5 },
+  { title: "scan.filling.searches", stage: "asking_the_twelve", lines: 5, fill: theSearches },
   { title: "scan.filling.ai", stage: "asking_the_twelve", lines: 2 },
 ];
+
+function whatWeRead(found: StageSummary): React.ReactNode {
+  if (found.pagesRead === undefined && found.category === undefined) return null;
+  return (
+    <div className="flex flex-col gap-2">
+      {found.pagesRead === undefined ? null : <p className="text-sm">{copy("scan.filling.pages", { pages: String(found.pagesRead) })}</p>}
+      {found.category === undefined ? null : (
+        <ul className="flex flex-wrap gap-2">
+          <li className="badge badge-soft">{found.category}</li>
+        </ul>
+      )}
+    </div>
+  );
+}
+
+function reader(Icon: typeof Search, name: CopyKey, state: "in" | "out"): React.ReactNode {
+  const State = state === "in" ? Check : Ban;
+  return (
+    <span className="flex items-center gap-1 rounded-box bg-base-200 px-3 py-1 text-sm">
+      <Icon size={14} strokeWidth={1.75} aria-hidden />
+      <span>{copy(name)}</span>
+      <span className={`flex items-center gap-1 ${state === "in" ? "text-success" : "text-error"}`}>
+        <State size={14} strokeWidth={1.75} aria-hidden />
+        {copy(state === "in" ? "scan.filling.reader.in" : "scan.filling.reader.out")}
+      </span>
+    </span>
+  );
+}
+
+function whoMayRead(found: StageSummary): React.ReactNode {
+  if (found.readers === undefined) return null;
+  return (
+    <div className="flex flex-col gap-2">
+      <div className="flex flex-wrap gap-2">
+        {reader(Search, "scan.filling.reader.google", found.readers.google)}
+        {reader(Sparkles, "scan.filling.reader.ai", found.readers.ai)}
+      </div>
+      {found.readers.ai === "out" ? <p className="text-base-content/70 text-sm">{copy("scan.filling.reader.fix")}</p> : null}
+    </div>
+  );
+}
+
+function theSearches(found: StageSummary): React.ReactNode {
+  if (found.searches === undefined) return null;
+  return (
+    <ol className="flex flex-col gap-2">
+      {found.searches.map((search, i) => (
+        <li key={i} className="flex items-start justify-between gap-2 text-sm">
+          <span className="min-w-0 break-words">{search.words}</span>
+          <span className={`badge badge-sm shrink-0 ${search.onPageOne ? "badge-success badge-soft" : "badge-ghost"}`}>
+            {copy(search.onPageOne ? "scan.filling.search.in" : "scan.filling.search.out")}
+          </span>
+        </li>
+      ))}
+    </ol>
+  );
+}
 
 const GET_STEPS: readonly CopyKey[] = ["scan.get.step.1", "scan.get.step.2", "scan.get.step.3"];
 
@@ -61,7 +120,7 @@ const subscribeNever = (): (() => void) => () => undefined;
 
 /** One card's place: its title, its stage's state in words, and a skeleton
  *  where its content will be. */
-function FillingCard(p: { title: CopyKey; state: StageState; lines: number }): React.JSX.Element {
+function FillingCard(p: { title: CopyKey; state: StageState; lines: number; filled: React.ReactNode | null }): React.JSX.Element {
   const badge = CARD_BADGE[p.state];
   return (
     <section className={CARD} data-testid="scan-section" data-state={p.state} data-done={p.state === "done"}>
@@ -72,13 +131,15 @@ function FillingCard(p: { title: CopyKey; state: StageState; lines: number }): R
         </h3>
         {/* No information a reader could use; the stages are the accessible
             account of the wait. The skeleton leaves when the report arrives. */}
-        <ViewTransition {...SKELETON_EXIT}>
-          <div className="flex flex-col gap-2" aria-hidden>
-            {Array.from({ length: p.lines }, (_unused, line) => (
-              <div key={line} className={`skeleton h-4 ${line === p.lines - 1 ? "w-2/3" : "w-full"}`} />
-            ))}
-          </div>
-        </ViewTransition>
+        {p.filled ?? (
+          <ViewTransition {...SKELETON_EXIT}>
+            <div className="flex flex-col gap-2" aria-hidden>
+              {Array.from({ length: p.lines }, (_unused, line) => (
+                <div key={line} className={`skeleton h-4 ${line === p.lines - 1 ? "w-2/3" : "w-full"}`} />
+              ))}
+            </div>
+          </ViewTransition>
+        )}
       </div>
     </section>
   );
@@ -173,7 +234,13 @@ export function ScanningView(p: {
             <span className="text-base-content/70 text-xs">{copy("scan.filling.grey")}</span>
           </div>
           {FILLING.map((card) => (
-            <FillingCard key={card.title} title={card.title} lines={card.lines} state={stageState(stages, card.stage)} />
+            <FillingCard
+              key={card.title}
+              title={card.title}
+              lines={card.lines}
+              state={stageState(stages, card.stage)}
+              filled={stageState(stages, card.stage) === "done" ? (card.fill?.(stages.found) ?? null) : null}
+            />
           ))}
         </section>
       </main>
