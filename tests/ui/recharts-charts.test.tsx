@@ -142,6 +142,22 @@ describe("GrowthLine", () => {
   });
 });
 
+describe("GrowthLine compact", () => {
+  it("is a small hidden mark: the line and its endpoint dot, with no tooltip, value label or written list", async () => {
+    const host = await draw(<GrowthLine compact weeks={[{ name: "scan", value: 27 }, { name: "now", value: 31 }]} />);
+    const figure = host.querySelector("figure");
+    expect(figure?.getAttribute("aria-hidden")).toBe("true");
+    expect(figure?.hasAttribute("aria-label")).toBe(false);
+    expect(figure?.getAttribute("data-points")).toBe("2");
+    const [run] = [...host.querySelectorAll("path.recharts-area-curve")].map((c) => subpaths(c.getAttribute("d") ?? "").flat());
+    expect(run).toHaveLength(2);
+    expect(host.querySelectorAll("circle.recharts-reference-dot-dot")).toHaveLength(1);
+    expect(texts(host)).toEqual([]);
+    expect(host.querySelector(".recharts-tooltip-wrapper")).toBeNull();
+    expect(host.querySelector("ul")).toBeNull();
+  });
+});
+
 describe("PresenceBars", () => {
   const rivals = [
     { name: "one.com", value: 9 },
