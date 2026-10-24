@@ -20,7 +20,7 @@
 // daisyUI in the route: `collapse` ringed in the theme primary, `card`,
 // `badge`, `input`, `btn`; lucide for the head glyph at stroke 1.75.
 import type React from "react";
-import { FileText, Link2 } from "lucide-react";
+import { Gift, Link2 } from "lucide-react";
 import { NURTURE_MAX_TOUCHES } from "@/lib/config/constants";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { fromStored, renderGenerated } from "@/lib/presentation/generated";
@@ -47,11 +47,11 @@ const FORMAT_LINE: Readonly<Record<string, CopyKey>> = Object.freeze({
 
 function Head(p: { right?: React.ReactNode }): React.JSX.Element {
   return (
-    <div className="flex flex-wrap items-center gap-2">
-      <p className="eyebrow flex items-center gap-2">
-        <FileText size={14} strokeWidth={1.75} aria-hidden />
-        {copy("free-page.title")}
-      </p>
+    <div className="flex flex-wrap items-center gap-3">
+      <span aria-hidden className="rounded-field grid size-9 shrink-0 place-items-center bg-base-200">
+        <Gift className="size-5" strokeWidth={1.75} />
+      </span>
+      <p className="eyebrow">{copy("free-page.title")}</p>
       {p.right ?? null}
     </div>
   );

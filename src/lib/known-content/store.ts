@@ -319,7 +319,9 @@ export async function readOurPages(siteId: string): Promise<KnownPage[]> {
  * a later publication at the same one, and the newest is the page (issue
  * 781). What the site link map reads (issue 1391).
  */
-export async function readOurLiveBodies(siteId: string): Promise<{ url: string; title: string; markdown: string }[]> {
+export async function readOurLiveBodies(
+  siteId: string
+): Promise<{ url: string; title: string; markdown: string; publishedAt: Date }[]> {
   const live = await untyped()
     .from<{
       live_url: string | null;
@@ -337,12 +339,13 @@ export async function readOurLiveBodies(siteId: string): Promise<{ url: string; 
 
   const { hostedAddressesNow } = await import("@/lib/publish/destinations/hosted/store");
   const addressNow = await hostedAddressesNow(siteId);
-  const pages = new Map<string, { url: string; title: string; markdown: string }>();
+  const pages = new Map<string, { url: string; title: string; markdown: string; publishedAt: Date }>();
   for (const row of live.data ?? []) {
     const draft = Array.isArray(row.drafts) ? row.drafts[0] : row.drafts;
-    if (row.live_url === null || draft === null || draft === undefined) continue;
+    if (row.live_url === null || row.published_at === null || draft === null || draft === undefined) continue;
     const url = addressNow({ destination: row.destination, liveUrl: row.live_url });
-    if (!pages.has(url)) pages.set(url, { url, title: (draft.title ?? "").trim(), markdown: draft.body_md ?? "" });
+    const page = { url, title: (draft.title ?? "").trim(), markdown: draft.body_md ?? "", publishedAt: new Date(row.published_at) };
+    if (!pages.has(url)) pages.set(url, page);
   }
   return [...pages.values()];
 }
