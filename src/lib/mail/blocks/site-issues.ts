@@ -1,15 +1,5 @@
-// SPEC §9 in mail — the technical-issue facts as fact rows, one projection
-// for every mail that states them.
-//
-// A row is the check's own title (`SITE_CHECK_TITLE`, the map the report's
-// cards and the Overview's "Needs you" read) and a value written the way the
-// Overview writes the figure — count over the set it was counted over — with
-// the severity word beside it, joined as the report mail joins a score and
-// its band. One map and one figure, so the mail, the report and the
-// dashboard cannot state one measurement two ways.
-//
-// A check that could not run gives no row: a mail has no room for its
-// why-line, and a zero in its place would be "no issues found".
+// SPEC §9 in mail — technical-issue facts as fact rows, through the report's titles and the Overview's figure, so no surface states one reading two ways.
+// A check that could not run gives no row: a mail has no room for its why-line, and a zero would read "no issues found".
 import { copy } from "@/lib/presentation/copy";
 import { SITE_CHECK_DOER, SITE_CHECK_TITLE, SITE_SEVERITY_WORD } from "@/lib/presentation/site-issues";
 import { measured, type Measured } from "@/lib/measure/measured";
@@ -31,9 +21,7 @@ function figure(a: { check: SiteCheck; count: number; over: number; severity: Is
   return `${count(a.count)}/${count(a.over)} · ${copy(SITE_SEVERITY_WORD[a.severity])}${by}`;
 }
 
-/** The faults a stored reading counted — every check that ran and counted
- *  at least one, in §9's order. A measured zero is "Nothing to fix" on the
- *  report's card; in a mail it is not a fault, and gives no row. */
+/** Every check that ran and counted at least one, in §9's order; a measured zero is not a fault and gives no row. */
 export function issueRows(section: SiteIssuesSection | null): readonly FactRow[] {
   const rows: FactRow[] = [];
   for (const issue of section?.issues ?? []) {
@@ -43,9 +31,7 @@ export function issueRows(section: SiteIssuesSection | null): readonly FactRow[]
   return rows;
 }
 
-/** What moved since last Monday: last week's count, then this week's figure
- *  as the dashboard states it. An unmeasured change — either week without
- *  its checks — gives no rows, and `omit.ts` drops the empty block. */
+/** Last week's count, then this week's figure. An unmeasured change gives no rows, and `omit.ts` drops the empty block. */
 export function issueChangeRows(changes: Measured<readonly IssueChange[]>): readonly FactRow[] {
   if (changes.kind === "unmeasured") return [];
   return changes.value.map((change) => ({
