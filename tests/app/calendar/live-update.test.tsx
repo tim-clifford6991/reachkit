@@ -110,6 +110,13 @@ describe("the day is the stored row's, never invented", () => {
     }
   });
 
+  it("a no-gain page's label is Not moving, with its board icon", () => {
+    const html = renderToStaticMarkup(<PublishedList content={contentOf({ pages: PAGES, now: NOW })} timeZone={ZONE} now={NOW} updates={new Map()} />);
+    const badges = [...new DOMParser().parseFromString(html, "text/html").querySelectorAll('[data-testid="plan-published-row"] .badge')];
+    expect(badges.map((b) => b.textContent)).toEqual([copy("review.label.not_moving"), copy("review.label.not_moving")]);
+    for (const badge of badges) expect(badge.querySelector("svg.lucide-minus")).not.toBeNull();
+  });
+
   it("an update of page B says nothing on page A, though both carry the same title", () => {
     const rows = rowsByDraft(week(refresh({ replaces: B })));
     expect(rows.get("/app/draft/d-b")).toContain(copy("calendar.live.update", { day: "Tue 20" }));

@@ -11,7 +11,7 @@ import { copy } from "@/lib/presentation/copy";
 import { formatCount, formatDate } from "../_shell/format";
 import type { ContentModel, PublishedPage } from "@/lib/measure/published";
 import { pageLadderOf, type LadderRow, type StepDot } from "@/lib/measure/page-ladder";
-import { LABEL } from "../_overview/PageLadder";
+import { LabelBadge } from "../_shell/verdict";
 import { ENGINE_LABEL } from "../_shell/page-target-words";
 import type { AnswerEngine } from "@/lib/opportunities/types";
 import { TakeDownControl, type ControlWords } from "./TakeDown";
@@ -129,7 +129,7 @@ function Row(p: {
       </div>
       {row.label === null && stop === null ? null : (
         <span className="flex shrink-0 flex-col items-end gap-2">
-          {row.label === null ? null : <span className={LABEL[row.label].badge}>{copy(LABEL[row.label].key)}</span>}
+          {row.label === null ? null : <LabelBadge label={row.label} />}
           {stop === null ? null : <TakeDownControl draftId={stop} mode="stop" words={p.words} />}
         </span>
       )}
