@@ -18,7 +18,7 @@ import type { MarketTile } from "./search-model";
 
 const INK = "text-base-content/70";
 
-interface TileText {
+export interface TileText {
   testId: string;
   label: string;
   figure: string;
@@ -26,9 +26,11 @@ interface TileText {
   against: string | null;
   split: string | null;
   means: string;
+  /** The weeks behind the figure, under it. */
+  spark?: React.ReactNode;
 }
 
-function Tile(p: TileText): React.JSX.Element {
+export function Tile(p: TileText): React.JSX.Element {
   return (
     <section
       className={p.quiet ? "card min-w-0 bg-base-200" : "card card-border min-w-0 bg-base-100"}
@@ -52,6 +54,7 @@ function Tile(p: TileText): React.JSX.Element {
               {p.split}
             </span>
           )}
+          {p.spark}
           <span className="text-xs font-semibold">{copy("overview.means")}</span>
         </summary>
         <div className={CLOSED.tileBody}>
@@ -64,7 +67,7 @@ function Tile(p: TileText): React.JSX.Element {
   );
 }
 
-const NOT_MEASURED = { figure: copy("draft.ladder.unmeasured"), quiet: true, against: null, split: null } as const;
+export const NOT_MEASURED = { figure: copy("draft.ladder.unmeasured"), quiet: true, against: null, split: null } as const;
 
 export function SearchTiles(p: {
   pages: GooglePages | null;

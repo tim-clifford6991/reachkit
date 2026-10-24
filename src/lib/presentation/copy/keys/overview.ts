@@ -169,8 +169,23 @@ export const OVERVIEW_COPY = Object.freeze({
     "How far ahead {rival} is",
     { slots: { rival: "text" }, fixedBy: "BUILD §4.5" },
   ],
-  "overview.rivals.ratio": ["{ratio}×", { slots: { ratio: "text" }, fixedBy: "BUILD §4.5" }],
-  "overview.rivals.was": ["was {previous}", { slots: { previous: "text" }, fixedBy: "BUILD §4.5" }],
+  "overview.rivals.ratio": ["{ratio}× your size", { slots: { ratio: "text" }, fixedBy: "board AppCompetitors (drafted)" }],
+  "overview.rivals.from": [
+    "from {ratio}×",
+    { slots: { ratio: "text" }, fixedBy: "board AppCompetitors (drafted)" },
+  ],
+  "overview.rivals.flat": [
+    "no clear change",
+    { slots: {}, fixedBy: "board AppCompetitors (drafted)" },
+  ],
+  "overview.rivals.ahead.sub": [
+    "Moves over months, not weeks.",
+    { slots: {}, fixedBy: "board AppCompetitors (drafted)" },
+  ],
+  "overview.rivals.ahead.size": [
+    "Size means how many searches each site shows up for, against yours.",
+    { slots: {}, fixedBy: "board AppCompetitors (drafted)" },
+  ],
   "overview.rivals.line.shrinking": [
     "Every line pointing down is the gap shrinking.",
     { slots: {}, fixedBy: "BUILD §4.5" },
@@ -219,10 +234,6 @@ export const OVERVIEW_COPY = Object.freeze({
   // would be a sentence assembled at the call site. The owner's draft, used
   // as written, with the existing key's slot name — the two take the same
   // vars, which is what lets the one module fill either.
-  "overview.rivals.leaders.tab": [
-    "Far larger competitors in your searches: {rivals}. The gap card leaves them out for now.",
-    { slots: { rivals: "text" }, fixedBy: "owner 2026-09-21 · issue 983" },
-  ],
   "overview.rivals.none-reachable": [
     "None of the competitors you track is within reach yet. Add one closer to your size.",
     { slots: {}, fixedBy: "issue 858" },
@@ -612,41 +623,110 @@ export const OVERVIEW_COPY = Object.freeze({
   // Issue 1551 (owner, 2026-10-19; SEO review R5.1): the tab leads with the
   // published pages' own questions whose AI answer links the site — the
   // signal a page moves first. Drafted (#759).
-  "overview.answers.pages-cited.label": ["Your pages linked by AI", { slots: {}, fixedBy: "issue 1582 (drafted)" }],
+  "overview.answers.pages-cited.label": ["Pages linked by AI", { slots: {}, fixedBy: "board AppAI (drafted)" }],
   "overview.answers.pages-cited.of": ["of {of} pages asked", { slots: { of: "text" }, fixedBy: "issue 1551 (drafted)" }],
   "overview.answers.pages-cited.means": [
-    "Pages whose own question got an AI answer linking to your site this week. Usually the first AI result to move.",
-    { slots: {}, fixedBy: "issue 1551 (drafted)" },
+    "A page counts when the AI answer to its own question links to that page. Asked every Monday in ChatGPT and Google AI Mode, plus the AI Overview where the search has one.",
+    { slots: {}, fixedBy: "board AppAI (drafted)" },
   ],
   "overview.answers.pages-cited.none": [
     "Shows once a page of yours is live and its question has been asked.",
     { slots: {}, fixedBy: "issue 1551 (drafted)" },
   ],
+  // Board AppAI: the tiles, each page in AI answers, and which AI read and sent visits. Drafted (#759).
+  "overview.answers.linked.line": [
+    "Linked on their own question this week.",
+    { slots: {}, fixedBy: "board AppAI (drafted)" },
+  ],
+  "overview.answers.linked.mentioned.one": [
+    "1 more was mentioned without a link.",
+    { slots: {}, fixedBy: "board AppAI (drafted)" },
+  ],
+  "overview.answers.linked.mentioned": [
+    "{n} more were mentioned without a link.",
+    { slots: { n: "text" }, fixedBy: "board AppAI (drafted)" },
+  ],
+  "overview.answers.reads.label": [
+    "AI reads",
+    { slots: {}, fixedBy: "board AppAI (drafted)" },
+  ],
+  "overview.answers.reads.of": [
+    "times this week",
+    { slots: {}, fixedBy: "board AppAI (drafted)" },
+  ],
+  "overview.answers.reads.means": [
+    "An AI app fetching one of your pages to answer someone. Training crawlers are not counted.",
+    { slots: {}, fixedBy: "board AppAI (drafted)" },
+  ],
+  "overview.answers.visits.label": [
+    "Visits from AI",
+    { slots: {}, fixedBy: "board AppAI (drafted)" },
+  ],
+  "overview.answers.visits.of": [
+    "this week",
+    { slots: {}, fixedBy: "board AppAI (drafted)" },
+  ],
+  "overview.answers.visits.means": [
+    "People who clicked through from an AI answer to your pages. At least: many AI apps don’t say where a visitor came from. Few for most businesses, so each one is a bonus.",
+    { slots: {}, fixedBy: "board AppAI (drafted)" },
+  ],
+  "overview.answers.visits.chart": [
+    "Visits from AI, week by week",
+    { slots: {}, fixedBy: "board AppAI (drafted)" },
+  ],
+  "overview.answers.pages.title": [
+    "Each page in AI answers",
+    { slots: {}, fixedBy: "board AppAI (drafted)" },
+  ],
+  "overview.answers.pages.lead": [
+    "Each page’s own question, asked in {place} every Monday. The dots are its AI steps: read, linked, visit.",
+    { slots: { place: "text" }, fixedBy: "board AppAI (drafted)" },
+  ],
+  "overview.answers.pages.lead.anywhere": [
+    "Each page’s own question, asked every Monday. The dots are its AI steps: read, linked, visit.",
+    { slots: {}, fixedBy: "board AppAI (drafted)" },
+  ],
+  "overview.answers.pages.unread": [
+    "not read by AI yet",
+    { slots: {}, fixedBy: "board AppAI (drafted)" },
+  ],
+  "overview.answers.pages.shown": [
+    "{shown} of {total} pages asked",
+    { slots: { shown: "text", total: "text" }, fixedBy: "board AppAI (drafted)" },
+  ],
+  "overview.answers.pages.engines": [
+    "Answers by engine",
+    { slots: {}, fixedBy: "board AppAI (drafted)" },
+  ],
+  "overview.answers.engine.none": [
+    "None on this search",
+    { slots: {}, fixedBy: "board AppAI (drafted)" },
+  ],
+  "overview.answers.who.title": [
+    "Which AI read and sent visits",
+    { slots: {}, fixedBy: "board AppAI (drafted)" },
+  ],
+  "overview.answers.who.sum": [
+    "{reads} reads · {visits} visits this week",
+    { slots: { reads: "text", visits: "text" }, fixedBy: "board AppAI (drafted)" },
+  ],
+  "overview.answers.who.reads": [
+    "Reads",
+    { slots: {}, fixedBy: "board AppAI (drafted)" },
+  ],
+  "overview.answers.who.reads.means": [
+    "An AI app fetching a page to answer someone.",
+    { slots: {}, fixedBy: "board AppAI (drafted)" },
+  ],
+  "overview.answers.who.visits.means": [
+    "A person arriving from an AI answer.",
+    { slots: {}, fixedBy: "board AppAI (drafted)" },
+  ],
   // The four-week rate over the twelve, its denominator, the split the
   // owner's ruling asks for, and the one line saying why four weeks.
-  "overview.answers.rate.label": [
-    "Answers that mention or link you",
-    { slots: {}, fixedBy: "SPEC §6 2026-09-20" },
-  ],
-  "overview.answers.rate.of": [
-    "of {of} answers asked",
-    { slots: { of: "text" }, fixedBy: "SPEC §6 2026-09-20" },
-  ],
-  "overview.answers.rate.means": [
-    "Over the last {weeks} weeks: {questions} questions × {engines} engines. One week alone is too noisy to trust.",
-    { slots: { weeks: "text", questions: "text", engines: "text" }, fixedBy: "SPEC §6 2026-09-20" },
-  ],
-  "overview.answers.rate.split": [
-    "{linked} link to you · {named} mention you somewhere else",
-    { slots: { linked: "text", named: "text" }, fixedBy: "SPEC §6 2026-09-20" },
-  ],
 
   // The second tile: this week's n of 12, and the engine it is counted
   // from — the Overview's own rule, said on this screen too.
-  "overview.answers.week.means": [
-    "This week, counted from {engine}.",
-    { slots: { engine: "text" }, fixedBy: "SPEC §6 2026-09-20" },
-  ],
 
   // The grid: its head, the line under it, and the names a reader needs to
   // read a mark without seeing its colour.
@@ -655,8 +735,8 @@ export const OVERVIEW_COPY = Object.freeze({
     { slots: {}, fixedBy: "SPEC §6 2026-09-20" },
   ],
   "overview.answers.grid.lead": [
-    "Your market’s {of} biggest searches, and what AI says on each, every week.",
-    { slots: { of: "text" }, fixedBy: "SPEC §6 2026-09-20" },
+    "The {of} searches, asked of each engine. Opens as a grid.",
+    { slots: { of: "text" }, fixedBy: "board AppAI (drafted)" },
   ],
   "overview.answers.grid.label": [
     "Each search, and what each AI engine said",
@@ -669,11 +749,6 @@ export const OVERVIEW_COPY = Object.freeze({
   // confirmed as written by the owner on 2026-09-21 (§12, #985). The board
   // (R4-06) states it as "21 of 24 at most". **Drafted** under the owner's
   // 2026-09-16 ruling (#759); the PR names it so the owner can correct it.
-  "overview.answers.grid.tracked": [
-    "{tracked} of {max} at most: your market’s twelve, and one question for each page we publish. A page’s question leaves after {weeks} weeks with no mention.",
-    { slots: { tracked: "text", max: "text", weeks: "text" }, fixedBy: "SPEC §6 2026-09-20" },
-  ],
-  "overview.answers.legend.label": ["What each mark means", { slots: {}, fixedBy: "SPEC §6 2026-09-20" }],
 
   // The five marks. *Linked* is a cited domain that is the site's own;
   // *named* is the brand token appearing in a reference somewhere else.
@@ -710,16 +785,7 @@ export const OVERVIEW_COPY = Object.freeze({
   // Mode and ChatGPT twice. Every sentence below is **drafted** under the
   // owner's 2026-09-16 ruling (#759); the PR names each one so the owner
   // can correct it. No sentence states an AI position or sentiment.
-  "overview.tile.mention-rate.label": ["AI mention rate", { slots: {}, fixedBy: "SPEC §4 2026-10-02 D22" }],
   // The 95% range beside the figure: where the true rate very likely sits.
-  "overview.tile.mention-rate.band": [
-    "likely {low}–{high}%",
-    { slots: { low: "text", high: "text" }, fixedBy: "SPEC §6 2026-10-03 D19" },
-  ],
-  "overview.tile.mention-rate.of": [
-    "Mentioned in {mentioned} of {answers} AI answers, last {weeks} weeks",
-    { slots: { mentioned: "text", answers: "text", weeks: "text" }, fixedBy: "SPEC §6 2026-10-03 D19" },
-  ],
   // D58 (issue 1287, drafted): no rate is shown until two weeks of the
   // current prompt set exist. The count stands beside its sample
   // ("0" · "of 46 answers"), and one line says when the rate appears.
@@ -741,145 +807,59 @@ export const OVERVIEW_COPY = Object.freeze({
   // The AI answers tab: the rate's own card. Issue 1551 (SEO review R5.1)
   // labels it as what it measures. Drafted (#759).
   "overview.prompts.rate.reputation": [
-    "Brand reputation: how often AI recommends you when buyers ask for a business like yours. It follows mentions of you on other sites, so it moves over months.",
-    { slots: {}, fixedBy: "issue 1551 (drafted)" },
+    "How often AI mentions you when buyers ask for a business like yours. It follows mentions of you on other sites, so it moves over months.",
+    { slots: {}, fixedBy: "board AppAI (drafted)" },
   ],
-  "overview.prompts.rate.split": [
-    "{linked} link to you · {named} mention you without a link",
-    { slots: { linked: "text", named: "text" }, fixedBy: "SPEC §6 2026-10-03 D19" },
+  "overview.prompts.rate.title": [
+    "Reputation",
+    { slots: {}, fixedBy: "board AppAI (drafted)" },
   ],
-  "overview.prompts.rate.means": [
-    "{prompts} questions, asked of Google AI Mode and ChatGPT twice a week, over {weeks} weeks. The range fits the {answers} answers read.",
-    { slots: { prompts: "text", weeks: "text", answers: "text" }, fixedBy: "SPEC §6 2026-10-03 D19" },
+  "overview.prompts.rate.count": [
+    "mentioned in {n} of {m} AI answers, last {weeks} weeks",
+    { slots: { n: "text", m: "text", weeks: "text" }, fixedBy: "board AppAI (drafted)" },
   ],
-  // The two prompts that ask about the site by name, counted apart.
-  "overview.prompts.branded": [
-    "Asked about you by name, AI mentioned you in {mentioned} of {answers} answers. These are counted apart from the rate.",
-    { slots: { mentioned: "text", answers: "text" }, fixedBy: "SPEC §6 2026-10-03 D19" },
+  "overview.prompts.rate.first": [
+    "first reading · checked monthly",
+    { slots: {}, fixedBy: "board AppAI (drafted)" },
+  ],
+  "overview.prompts.rate.monthly": [
+    "checked monthly",
+    { slots: {}, fixedBy: "board AppAI (drafted)" },
+  ],
+  "overview.prompts.rate.band": [
+    "{n} of {m} AI answers mentioned you in the last {weeks} weeks: between {low}% and {high}%, because answers vary.",
+    { slots: { n: "text", m: "text", weeks: "text", low: "text", high: "text" }, fixedBy: "board AppAI (drafted)" },
   ],
 
   // Share of voice: the site beside its rivals, by answers that named each.
   "overview.prompts.share.title": ["Share of voice", { slots: {}, fixedBy: "SPEC §4 2026-10-02 D22" }],
   "overview.prompts.share.lead": [
-    "How many of those answers mentioned you, and how many mentioned each competitor.",
-    { slots: {}, fixedBy: "SPEC §4 2026-10-02 D22" },
+    "How many of those {m} answers mentioned you, and each competitor.",
+    { slots: { m: "text" }, fixedBy: "board AppAI (drafted)" },
   ],
   "overview.prompts.share.label": [
     "You and your competitors, by AI answers that mentioned each",
     { slots: {}, fixedBy: "SPEC §4 2026-10-02 D22" },
   ],
   "overview.prompts.share.you": ["You", { slots: {}, fixedBy: "SPEC §4 2026-10-02 D22" }],
-  "overview.prompts.share.answers": [
-    "Answers: {count}",
-    { slots: { count: "text" }, fixedBy: "SPEC §4 2026-10-02 D22" },
-  ],
   "overview.prompts.share.none": [
     "No answer mentioned you or a competitor yet.",
     { slots: {}, fixedBy: "SPEC §4 2026-10-02 D22" },
   ],
 
-  // The site's own pages those answers cited.
-  "overview.prompts.pages.title": ["Your pages AI links to", { slots: {}, fixedBy: "SPEC §4 2026-10-02 D22" }],
-  "overview.prompts.pages.lead": [
-    "Pages of yours that an AI answer linked to, over the last {weeks} weeks.",
-    { slots: { weeks: "text" }, fixedBy: "SPEC §4 2026-10-02 D22" },
-  ],
-  "overview.prompts.pages.label": [
-    "Your pages AI answers linked, and how many answers each",
-    { slots: {}, fixedBy: "SPEC §4 2026-10-02 D22" },
-  ],
-  "overview.prompts.pages.none": [
-    "No answer linked a page of yours yet. The pages we publish are written to be linked.",
-    { slots: {}, fixedBy: "SPEC §4 2026-10-02 D22" },
-  ],
-
   // The set itself, so a founder can read what is asked.
   "overview.prompts.list.title": [
-    "Questions we ask AI weekly",
-    { slots: {}, fixedBy: "SPEC §6 2026-10-03 D19" },
+    "Questions we ask AI",
+    { slots: {}, fixedBy: "board AppAI (drafted)" },
   ],
-  "overview.prompts.list.lead": [
-    "Built from your market: who buys, the job they need done, and your competitors. At most a fifth change in a quarter, so the rate stays comparable.",
-    { slots: {}, fixedBy: "SPEC §6 2026-10-03 D19" },
+  "overview.prompts.list.count": [
+    "{n} of the {m} questions a buyer in your market might ask. Questions with your name in them are left out of this count.",
+    { slots: { n: "text", m: "text" }, fixedBy: "board AppAI (drafted)" },
   ],
-  "overview.prompts.list.label": [
-    "Each question, and how many answers mentioned you",
-    { slots: {}, fixedBy: "SPEC §6 2026-10-03 D19" },
-  ],
-  "overview.prompts.list.named": [
-    "mentioned in {mentioned} of {answers}",
-    { slots: { mentioned: "text", answers: "text" }, fixedBy: "SPEC §6 2026-10-03 D19" },
-  ],
-  "overview.prompts.list.unanswered": ["no answer yet", { slots: {}, fixedBy: "SPEC §6 2026-10-03 D19" }],
-  // Issue 1457: the rows Overview's AI tile counts, marked. Drafted (#759).
-  "overview.prompts.list.links-you": ["Links to you", { slots: {}, fixedBy: "issue 1457 (drafted)" }],
-  "overview.prompts.list.mentions-you": ["Mentions you", { slots: {}, fixedBy: "issue 1457 (drafted)" }],
-  "overview.prompts.kind.category": ["Market", { slots: {}, fixedBy: "SPEC §6 2026-10-03 D19" }],
-  "overview.prompts.kind.use-case": ["Use case", { slots: {}, fixedBy: "SPEC §6 2026-10-03 D19" }],
-  "overview.prompts.kind.persona": ["Buyer", { slots: {}, fixedBy: "SPEC §6 2026-10-03 D19" }],
-  "overview.prompts.kind.comparison": ["Comparison", { slots: {}, fixedBy: "SPEC §6 2026-10-03 D19" }],
-  "overview.prompts.kind.problem": ["Problem", { slots: {}, fixedBy: "SPEC §6 2026-10-03 D19" }],
-  "overview.prompts.kind.branded": ["About you", { slots: {}, fixedBy: "SPEC §6 2026-10-03 D19" }],
 
-  // ── 2026-09-20 (#908, #921): Overview › AI answers › AI engines on your blog.
-  //
-  // SPEC §6 of that date, measure (d): "On hosted blogs only: pages fetched
-  // by an answer engine for a user's question, and visitors arriving from
-  // one, counted by day, page and engine, shown as ‘at least’. Training
-  // crawlers are not progress and are not shown." §7 of the same date adds
-  // the how: "server-side, no cookie, no visitor identity, no client
-  // script."
-  //
-  // Every sentence below is **drafted** under the owner's 2026-09-16 ruling
-  // (#759) and the PR names each one so the owner can correct it; the six
-  // the issue itself drafted are carried verbatim, with the window's number
-  // moved into a slot so the pin is what states it. "ChatGPT" is not
-  // re-spelled — it is the report screen's own key.
-  "overview.blog.title": ["AI engines on your blog", { slots: {}, fixedBy: "SPEC §6 2026-09-20" }],
-  "overview.blog.lead": [
-    "Counted by us, on the pages we host. Last {days} days.",
-    { slots: { days: "text" }, fixedBy: "SPEC §6 2026-09-20" },
-  ],
-  // The two figures §6(d) names. A fetch is an engine reading the page; a
-  // referral is a person arriving. They are never added together.
-  "overview.blog.fetches.label": [
-    "Pages fetched to answer someone’s question",
-    { slots: {}, fixedBy: "SPEC §6 2026-09-20" },
-  ],
-  "overview.blog.referrals.label": [
-    "Visitors who came from an AI answer",
-    { slots: {}, fixedBy: "SPEC §6 2026-09-20" },
-  ],
-  // §6(d)'s own word: the referral figure is a floor and is never stated
-  // as a count.
-  "overview.blog.at-least": ["at least {n}", { slots: { n: "text" }, fixedBy: "SPEC §6 2026-09-20" }],
-  "overview.blog.at-least.means": [
-    "“At least”, because many AI apps don’t say where a visitor came from.",
-    { slots: {}, fixedBy: "SPEC §6 2026-09-20" },
-  ],
-  // The engine breakdown under the fetch figure, and its accessible name.
-  // Issue 1364 (owner, 2026-10-09): the fetch figure with its change on the
-  // window before it, on the card and on the Overview's tile. **Drafted**
-  // (#759); the pull request names each so the owner can correct it.
-  "overview.blog.change.up": [
-    "{count} more than the {days} days before",
-    { slots: { count: "text", days: "text" }, fixedBy: "SPEC §4 2026-10-09 (drafted)" },
-  ],
-  "overview.blog.change.down": [
-    "{count} fewer than the {days} days before",
-    { slots: { count: "text", days: "text" }, fixedBy: "SPEC §4 2026-10-09 (drafted)" },
-  ],
-  "overview.blog.change.same": [
-    "The same as the {days} days before",
-    { slots: { days: "text" }, fixedBy: "SPEC §4 2026-10-09 (drafted)" },
-  ],
-  "overview.blog.engines.label": [
-    "Which AI engine fetched your pages",
-    { slots: {}, fixedBy: "SPEC §6 2026-09-20" },
-  ],
-  // The four engine names the product does not already say. ChatGPT is
-  // `ai-answers.engine.chatgpt` — a second spelling of it would be the
-  // second place the product speaks (ADR-001).
+  // ── 2026-09-20 (#908, #921): the AI engines that read the hosted pages.
+  // ChatGPT is `ai-answers.engine.chatgpt` — a second spelling of it would be
+  // the second place the product speaks (ADR-001).
   "overview.blog.engine.perplexity": ["Perplexity", { slots: {}, fixedBy: "SPEC §6 2026-09-20" }],
   "overview.blog.engine.claude": ["Claude", { slots: {}, fixedBy: "SPEC §6 2026-09-20" }],
   "overview.blog.engine.gemini": ["Gemini", { slots: {}, fixedBy: "SPEC §6 2026-09-20" }],
@@ -893,7 +873,7 @@ export const OVERVIEW_COPY = Object.freeze({
   // sentence below is **drafted** under the owner's 2026-09-16 ruling (#759)
   // and the PR names each one so the owner can correct it. The card that
   // was already built keeps its own words — `overview.rivals.title`,
-  // `overview.rivals.ratio`, `overview.rivals.was`, the two line keys and
+  // `overview.rivals.ratio`, the two line keys and
   // the market-leaders sentence are the Overview's and are reused here
   // rather than spelled a second time.
   // The first counting card: who holds a place on Google's first page for
@@ -915,8 +895,40 @@ export const OVERVIEW_COPY = Object.freeze({
   // answers tab draws it, with the link to that tab beneath.
   "overview.rivals.named.title": ["Who AI answers mention", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
   "overview.rivals.named.lead": [
-    "Across {engines}, {of} answers.",
-    { slots: { engines: "text", of: "text" }, fixedBy: "SPEC §6 2026-09-20" },
+    "Of {answers} AI answers to your buyers’ {questions} questions, last {weeks} weeks. Checked monthly.",
+    { slots: { answers: "text", questions: "text", weeks: "text" }, fixedBy: "board AppCompetitors (drafted)" },
+  ],
+  "overview.rivals.named.lead.none": [
+    "Of the AI answers to your buyers’ questions. Checked monthly.",
+    { slots: {}, fixedBy: "board AppCompetitors (drafted)" },
+  ],
+  "overview.rivals.first.title": [
+    "Who your buyers see first",
+    { slots: {}, fixedBy: "board AppCompetitors (drafted)" },
+  ],
+  "overview.rivals.first.lead": [
+    "The top Google result on each of the {of} searches your buyers make most.",
+    { slots: { of: "text" }, fixedBy: "board AppCompetitors (drafted)" },
+  ],
+  "overview.rivals.first.of": [
+    "{n} of {of}",
+    { slots: { n: "text", of: "text" }, fixedBy: "board AppCompetitors (drafted)" },
+  ],
+  "overview.rivals.first.others": [
+    "others",
+    { slots: {}, fixedBy: "board AppCompetitors (drafted)" },
+  ],
+  "overview.rivals.first.line": [
+    "You’re not the top result on any of the {of} yet, and you’re on the first page for {n}.",
+    { slots: { of: "text", n: "text" }, fixedBy: "board AppCompetitors (drafted)" },
+  ],
+  "overview.rivals.first.you": [
+    "You’re the top result on {n} of the {of}.",
+    { slots: { n: "text", of: "text" }, fixedBy: "board AppCompetitors (drafted)" },
+  ],
+  "overview.rivals.first.after": [
+    "This week’s pages go after {m} of them.",
+    { slots: { m: "text" }, fixedBy: "board AppCompetitors (drafted)" },
   ],
   "overview.rivals.named.see-all": ["See every answer", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
 
@@ -935,10 +947,6 @@ export const OVERVIEW_COPY = Object.freeze({
   "overview.rivals.named.none": [
     "None of these answers mentioned one of your competitors.",
     { slots: {}, fixedBy: "SPEC §4 2026-10-09" },
-  ],
-  "overview.rivals.unseen": [
-    "On no first page and in no answer this week: {rivals}.",
-    { slots: { rivals: "text" }, fixedBy: "SPEC §4 2026-10-09" },
   ],
 
   // `overview.rivals.gap.lead` is gone: no screen says what the ratio is a

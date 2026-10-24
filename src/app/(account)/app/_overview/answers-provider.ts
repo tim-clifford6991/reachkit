@@ -22,23 +22,13 @@ import { isReservedFixtureAccount, requireSetUpAccount } from "../_session/accou
 import { assembleAnswers, type AnswersModel } from "./answers-model";
 import { FIXTURE_ANSWERS_FACTS } from "./answers-fixture";
 
-/** The date an unmeasured reading on this screen carries. The fixture's own
- *  measurement date for the reserved account, so the sweeps are
- *  deterministic; the clock for everybody else. */
-const FIXTURE_AT = FIXTURE_ANSWERS_FACTS.measuredAt ?? new Date(0);
-
 export const readAnswers = cache(async function readAnswers(): Promise<AnswersModel> {
   const account = await requireSetUpAccount();
-  if (isReservedFixtureAccount(account)) return assembleAnswers(FIXTURE_ANSWERS_FACTS, FIXTURE_AT);
+  if (isReservedFixtureAccount(account)) return assembleAnswers(FIXTURE_ANSWERS_FACTS);
 
   const { readAnswerFacts } = await import("./answers-store");
   const { now } = await import("@/lib/config/now");
-  const at = now();
   return assembleAnswers(
-    await readAnswerFacts(
-      { siteId: account.siteId, timeZone: account.timeZone, domain: account.domain },
-      at
-    ),
-    at
+    await readAnswerFacts({ siteId: account.siteId, timeZone: account.timeZone, domain: account.domain }, now())
   );
 });

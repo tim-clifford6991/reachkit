@@ -23,8 +23,8 @@ import { readSearch } from "../../_overview/search-provider";
 import { readPublished } from "../../_overview/content-provider";
 import { readGoogleVisits } from "../../_overview/blog-reads-provider";
 import { readUnderstanding } from "../../_overview/understanding-provider";
-import { doingOf, type Doing, type Planned } from "../../_overview/search-model";
-import { climbingSearches, googlePagesOf, plannedOf } from "../../_overview/google-pages";
+import { doingOf, type Doing } from "../../_overview/search-model";
+import { climbingSearches, googlePagesOf, readPlanned } from "../../_overview/google-pages";
 import { contentOf } from "@/lib/measure/published";
 import { GooglePages } from "../../_overview/GooglePages";
 import { SearchTable } from "../../_overview/SearchTable";
@@ -36,17 +36,6 @@ import { TabHead } from "../../_overview/TabHead";
  *  nothing at all — the `(account)` layout's fallback is the floor, not
  *  the name of this screen. */
 export const metadata: Metadata = { title: copy("meta.app.search.title") };
-
-/** Plan's week, by search; empty where it cannot be read, and the table then
- *  states each row's status word. */
-async function readPlanned(): Promise<ReadonlyMap<string, Planned>> {
-  try {
-    const { planToday, readWeek } = await import("../../calendar/provider");
-    return plannedOf(await readWeek(await planToday()));
-  } catch {
-    return new Map();
-  }
-}
 
 export default async function SearchTabPage(): Promise<React.JSX.Element> {
   const [shell, model, published, visits, understanding, planned] = await Promise.all([

@@ -126,7 +126,7 @@ const SCREENS = [
   { path: "/app", screen: <OverviewLoading />, holds: "waiting-page-skeleton" },
   { path: "/app/search", screen: <SearchLoading />, holds: "search-table-skeleton" },
   { path: "/app/rivals", screen: <RivalsLoading />, holds: "rival-table-skeleton" },
-  { path: "/app/ai-answers", screen: <AiAnswersLoading />, holds: "answer-grid-skeleton" },
+  { path: "/app/ai-answers", screen: <AiAnswersLoading />, holds: "ai-pages-skeleton" },
   { path: "/app/calendar", screen: <CalendarLoading />, holds: "plan-skeleton" },
   { path: "/app/draft/{id}", screen: <DraftLoading />, holds: "page-skeleton" },
   { path: "/app/settings", screen: <SettingsLoading />, holds: "settings-panel-skeleton" },

@@ -100,6 +100,7 @@ export function paidInvoiceDouble(a: {
     customer: a.customer,
     status: "paid",
     amount_paid: a.amount ?? 4900,
+    currency: "eur",
     created: paidAt,
     billing_reason: a.renews === undefined ? "subscription_create" : "subscription_cycle",
     period_start: a.renews === undefined ? paidAt : seconds(a.renews.from),

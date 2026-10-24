@@ -51,6 +51,7 @@ export interface BlogReadsFacts {
 export interface BlogEngineCount {
   engine: BlogEngine;
   fetches: number;
+  referrals: number;
 }
 
 export interface BlogReadsModel {
@@ -61,18 +62,12 @@ export interface BlogReadsModel {
    *  the sentence beside it says so. */
   referrals: Measured<number>;
   byEngine: readonly BlogEngineCount[];
-  /** The fetches counted in the window before this one, for the change
-   *  (SPEC §4, 2026-10-09, issue 1364). `null` where nothing at all is
-   *  stored for that window: a blog nobody counted then has no earlier
-   *  figure to be compared against, and a change against nothing would be
-   *  an invented one. */
-  previousFetches: number | null;
   /** The window the figures are read over, in days. */
   windowDays: number;
-  /** Answer fetches per seven days, oldest first, each from its first day,
+  /** Answer fetches and visits per seven days, oldest first, each from its first day,
    *  over the weeks the counts are kept; the weeks before the first fetch are
    *  left out, never zeroes. */
-  weekly: readonly { start: string; fetches: number }[];
+  weekly: readonly { start: string; fetches: number; referrals: number }[];
   /** Whether the card is drawn at all. */
   show: boolean;
 }
@@ -92,12 +87,10 @@ export function windowStartDay(at: Date, windowDays: number): string {
 
 /** Every engine, in the pin's order, with zero where nothing was counted. */
 function engineCounts(rows: readonly BlogReadRow[]): readonly BlogEngineCount[] {
-  const totals = new Map<BlogEngine, number>(AI_BLOG_ENGINES.map((engine) => [engine, 0]));
-  for (const row of rows) {
-    if (row.kind !== "answer_fetch") continue;
-    totals.set(row.engine, (totals.get(row.engine) ?? 0) + row.hits);
-  }
-  return AI_BLOG_ENGINES.map((engine) => ({ engine, fetches: totals.get(engine) ?? 0 }));
+  return AI_BLOG_ENGINES.map((engine) => {
+    const own = rows.filter((row) => row.engine === engine);
+    return { engine, fetches: totalOf(own, "answer_fetch"), referrals: totalOf(own, "referral") };
+  });
 }
 
 function totalOf(rows: readonly BlogReadRow[], kind: BlogReadRow["kind"]): number {
@@ -134,20 +127,15 @@ export function assembleBlogReads(
       fetches: unmeasured("undeterminable", at),
       referrals: unmeasured("undeterminable", at),
       byEngine: engineCounts([]),
-      previousFetches: null,
       windowDays,
       weekly: [],
       show,
     };
   }
 
-  // The store hands back this window and the one before it (`facts.ts`):
-  // the figures are this window's, and the earlier rows are only what the
-  // change is read against.
+  // The figures are this window's; older rows feed only the weekly series.
   const start = windowStartDay(at, windowDays);
-  const earliest = windowStartDay(at, windowDays * 2);
   const current = rows.filter((row) => row.day >= start);
-  const earlier = rows.filter((row) => row.day < start && row.day >= earliest);
 
   const fetches = totalOf(current, "answer_fetch");
   const referrals = totalOf(current, "referral");
@@ -160,20 +148,20 @@ export function assembleBlogReads(
     fetches: asMeasured(fetches),
     referrals: asMeasured(referrals),
     byEngine: engineCounts(current),
-    previousFetches: earlier.length === 0 ? null : totalOf(earlier, "answer_fetch"),
     windowDays,
     weekly: weeklyFetches(rows, at),
     show,
   };
 }
 
-/** Answer fetches per seven days ending today, over the weeks kept. */
-function weeklyFetches(rows: readonly BlogReadRow[], at: Date): { start: string; fetches: number }[] {
-  const weeks: { start: string; fetches: number }[] = [];
+/** Answer fetches and visits per seven days ending today, over the weeks kept. */
+function weeklyFetches(rows: readonly BlogReadRow[], at: Date): { start: string; fetches: number; referrals: number }[] {
+  const weeks: { start: string; fetches: number; referrals: number }[] = [];
   for (let back = BLOG_READS_RETENTION_W - 1; back >= 0; back -= 1) {
     const end = windowStartDay(at, back * 7);
     const start = windowStartDay(at, (back + 1) * 7);
-    weeks.push({ start, fetches: totalOf(rows.filter((row) => row.day >= start && (back === 0 || row.day < end)), "answer_fetch") });
+    const week = rows.filter((row) => row.day >= start && (back === 0 || row.day < end));
+    weeks.push({ start, fetches: totalOf(week, "answer_fetch"), referrals: totalOf(week, "referral") });
   }
   const firstRead = weeks.findIndex((week) => week.fetches > 0);
   return firstRead === -1 ? [] : weeks.slice(firstRead);

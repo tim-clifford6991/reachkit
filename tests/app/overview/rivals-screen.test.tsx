@@ -1,5 +1,6 @@
 /** @vitest-environment jsdom */
-// SPEC §4 (2026-09-20, #908), #917 — the Rivals tab as a reader meets it.
+// SPEC §4 (board AppCompetitors), #917 — the Competitors tab's cards and
+// table as a reader meets them.
 //
 // **Rendering convention.** `tests/app/**` runs under the `node` project,
 // whose environment has no `document`; this file declares `jsdom` for
@@ -23,9 +24,10 @@ vi.mock("next/navigation", () => ({
 
 import { RivalPresence } from "@/app/(account)/app/_overview/RivalPresence";
 import { RivalTable } from "@/app/(account)/app/_overview/RivalTable";
-import { assembleRivals } from "@/app/(account)/app/_overview/rivals-model";
+import { assembleRivals, type PresenceCard, type RivalsModel } from "@/app/(account)/app/_overview/rivals-model";
 import { FIXTURE_RIVALS_FACTS } from "@/app/(account)/app/_overview/rivals-fixture";
 import { RIVAL_STATUS_COPY_KEY } from "@/app/(account)/app/_overview/rivals-words";
+import type { Planned } from "@/app/(account)/app/_overview/search-model";
 import { copy } from "@/lib/presentation/copy";
 
 const MODEL = assembleRivals(FIXTURE_RIVALS_FACTS);
@@ -36,10 +38,10 @@ function el(node: React.JSX.Element): Element {
   return container;
 }
 
-function table(searchParams: Record<string, string> = {}): Element {
+function table(searchParams: Record<string, string> = {}, planned: Record<string, Planned> = {}): Element {
   return el(
     <NuqsTestingAdapter searchParams={searchParams}>
-      <RivalTable model={MODEL} />
+      <RivalTable model={MODEL} planned={planned} />
     </NuqsTestingAdapter>,
   );
 }
@@ -48,37 +50,66 @@ function table(searchParams: Record<string, string> = {}): Element {
 const NO_RIVAL = {
   noRivalOnFirstPage: copy("overview.rivals.first-page.none.holders", { holders: "holder.example" }),
   noRivalNamed: copy("overview.rivals.named.none"),
-  unseenLine: null,
 };
 
-const presence = (): Element =>
+/** Who the month's answers mentioned, as the page hands it down. */
+const NAMED: PresenceCard = {
+  rivals: [{ domain: "billwise.example", count: 7 }],
+  you: { domain: "", count: 3 },
+  of: 32,
+  noRival: false,
+};
+
+const presence = (model: RivalsModel = MODEL, startedLine: string | null = copy("overview.rivals.first-page.started", { count: "1", of: "12" }), after = 3): Element =>
   el(
     <RivalPresence
-      firstPage={MODEL.firstPage}
-      named={MODEL.named}
-      startedLine={copy("overview.rivals.first-page.started", {
-        count: "1",
-        of: "12",
-      })}
-      enginesLine={copy("overview.rivals.named.lead", {
-        engines: "Google AI Overview",
-        of: "36",
-      })}
+      top={model.top}
+      after={after}
+      firstPage={model.firstPage}
+      startedLine={startedLine}
+      named={NAMED}
+      namedLead="the named lead"
       {...NO_RIVAL}
       answersHref="/app/ai-answers"
     />,
   );
 
-describe("the two counting cards", () => {
+describe("the counting cards", () => {
   it("names every site it draws, and its count, without asking for colour", () => {
     // `PresenceBars` puts each name on its own line above its bar and
     // carries an `sr-only` list of the same readings — so the card reads
     // with no colour and with no chart.
-    const text = presence().textContent ?? "";
-    for (const row of [...MODEL.firstPage.rivals, MODEL.firstPage.you]) {
-      expect(text, row.domain).toContain(row.domain);
-      expect(text, row.domain).toContain(`${row.count}/${MODEL.firstPage.of}`);
-    }
+    const card = presence().querySelector('[data-testid="rivals-card-first-page"]');
+    for (const row of MODEL.firstPage.rivals) expect(card?.textContent, row.domain).toContain(`${row.domain} · ${row.count}`);
+    expect(card?.textContent).toContain(`${copy("overview.prompts.share.you")} · ${MODEL.firstPage.you.count}`);
+  });
+
+  it("who your buyers see first: each holder's count of the twelve, others, then you, and the line under them", () => {
+    const card = presence().querySelector('[data-testid="rivals-card-top"]');
+    const of = String(MODEL.top.of);
+    expect(card?.querySelector("h2")?.textContent).toBe(copy("overview.rivals.first.title"));
+    expect(card?.textContent).toContain(copy("overview.rivals.first.lead", { of }));
+    const rows = [...(card?.querySelectorAll("ul.sr-only li") ?? [])].map((li) => li.textContent);
+    expect(rows).toEqual([
+      ...MODEL.top.holders.map((row) => `${row.domain} · ${copy("overview.rivals.first.of", { n: String(row.count), of })}`),
+      `${copy("overview.rivals.first.others")} · ${copy("overview.rivals.first.of", { n: String(MODEL.top.others), of })}`,
+      `${copy("overview.prompts.share.you")} · ${copy("overview.rivals.first.of", { n: String(MODEL.top.you), of })}`,
+    ]);
+    expect(card?.querySelector('[data-testid="rivals-top-line"]')?.textContent).toBe(
+      `${copy("overview.rivals.first.you", { n: String(MODEL.top.you), of })} ${copy("overview.rivals.first.after", { m: "3" })}`,
+    );
+  });
+
+  it("holding no top result, the line says so and counts the first page instead; with no page going after one, it stops there", () => {
+    const model: RivalsModel = { ...MODEL, top: { ...MODEL.top, you: 0 } };
+    const line = presence(model, null, 0).querySelector('[data-testid="rivals-top-line"]')?.textContent;
+    expect(line).toBe(copy("overview.rivals.first.line", { of: String(MODEL.top.of), n: String(MODEL.firstPage.you.count) }));
+  });
+
+  it("who AI answers mention: the counts it is handed, and its lead", () => {
+    const card = presence().querySelector('[data-testid="rivals-card-named"]');
+    expect(card?.textContent).toContain("the named lead");
+    expect(card?.textContent).toContain("billwise.example · 7");
   });
 
   it("says what each count is of", () => {
@@ -109,19 +140,7 @@ describe("the two counting cards", () => {
       firstPageOf: 0,
       firstPage: new Map(),
     });
-    const node = el(
-      <RivalPresence
-        firstPage={empty.firstPage}
-        named={empty.named}
-        startedLine={null}
-        enginesLine={copy("overview.rivals.named.lead", {
-          engines: "Google AI Overview",
-          of: "36",
-        })}
-        {...NO_RIVAL}
-        answersHref="/app/ai-answers"
-      />,
-    );
+    const node = presence(empty, null);
     expect(
       node.querySelector('[data-testid="rivals-card-first-page-unmeasured"]')
         ?.textContent,
@@ -133,21 +152,12 @@ describe("the two counting cards", () => {
       ...FIXTURE_RIVALS_FACTS,
       firstPage: new Map([[FIXTURE_RIVALS_FACTS.ownDomain, 2]]),
     });
-    const node = el(
-      <RivalPresence
-        firstPage={none.firstPage}
-        named={none.named}
-        startedLine={null}
-        enginesLine=""
-        {...NO_RIVAL}
-        answersHref="/app/ai-answers"
-      />,
-    );
+    const node = presence(none, null);
     const card = node.querySelector('[data-testid="rivals-card-first-page"]');
     expect(card?.querySelector('[data-testid="rivals-card-first-page-no-rival"]')?.textContent).toBe(NO_RIVAL.noRivalOnFirstPage);
     // No rival's row of zero is drawn; the customer's own count still is.
     for (const rival of none.firstPage.rivals) expect(card?.textContent).not.toContain(rival.domain);
-    expect(card?.textContent).toContain(`2/${none.firstPage.of}`);
+    expect(card?.textContent).toContain(`${copy("overview.prompts.share.you")} · 2`);
     // The other card counted them and is drawn as before.
     expect(node.querySelector('[data-testid="rivals-card-named-no-rival"]')).toBeNull();
   });
@@ -207,6 +217,19 @@ describe("the table", () => {
     for (const badge of badges) {
       expect(words, badge.textContent ?? "").toContain(badge.textContent);
     }
+  });
+
+  it("a row whose search Plan's week holds says what goes live and when, or that it goes live today; the rest keep their status word", () => {
+    const [first, second, third] = MODEL.rows;
+    const rows = [
+      ...table({}, {
+        [first!.search]: { day: "Wed 21", today: false, update: false },
+        [second!.search]: { day: "Mon 19", today: true, update: false },
+      }).querySelectorAll('[data-testid="rivals-row"]'),
+    ];
+    expect(rows[0]?.querySelector(".badge")?.textContent).toBe(copy("overview.search.doing.page", { day: "Wed 21" }));
+    expect(rows[1]?.querySelector(".badge")?.textContent).toBe(copy("overview.search.doing.today"));
+    expect(rows[2]?.querySelector(".badge")?.textContent).toBe(copy(RIVAL_STATUS_COPY_KEY[third!.status]));
   });
 
   it("scrolls sideways inside its own box, so a phone never scrolls the page", () => {

@@ -20,7 +20,7 @@ export function MeasuredSkeleton(): React.JSX.Element {
 }
 
 /** A row of number tiles, in the arriving row's own grid: the name, then
- *  the figure's row at the height `SearchTiles` and `AnswerTiles` hold
+ *  the figure's row at the height `SearchTiles` holds
  *  (`TILE_FIGURE`). `name` is the name's own height where it is not one
  *  line: four tiles across leave Search's names two. */
 export function NumberTilesSkeleton(p: {
@@ -153,28 +153,6 @@ export function RivalPresenceSkeleton(): React.JSX.Element {
           </div>
         </div>
       ))}
-    </Waiting>
-  );
-}
-
-/** The grid of questions on AI answers: its name, the legend, and a row
- *  per question — a block with its engines under it below `sm`, one line
- *  of the grid from it. */
-export function AnswerGridSkeleton(): React.JSX.Element {
-  return (
-    <Waiting className="card card-border bg-base-100 min-w-0" testId="answer-grid-skeleton">
-      <div className="flex min-w-0 flex-col gap-3 p-4">
-        <Box className="h-6 w-64 max-w-full" />
-        <Box className="h-14 w-full sm:h-4 sm:w-96" />
-        <div className="flex min-w-0 flex-col">
-          <Box className="hidden h-8 w-full sm:block" />
-          {Array.from({ length: 12 }, (_, at) => (
-            <div key={at} className="border-base-300 border-t py-2">
-              <Box className="h-33 w-full sm:h-12.5" />
-            </div>
-          ))}
-        </div>
-      </div>
     </Waiting>
   );
 }

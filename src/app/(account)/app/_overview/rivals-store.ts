@@ -13,9 +13,7 @@
 //                   the pass bought, one per question. Only counts have
 //                   ever been rendered from them; this is the first screen
 //                   to read the rows
-//   named           `aiAnswers.rows[].engines[].cell.citedDomains`, read
-//                   per domain through the same `markOf` the AI answers tab
-//                   draws its marks with (#918)
+//   top result      the same `serps[]`, place 1 of each of the twelve
 //   what they win   `market.value.pool[]` — every search the site's own and
 //                   its rivals' ranked rows carry — minus the searches the
 //                   site itself ranks for
@@ -34,14 +32,12 @@
 import { dbAdmin } from "@/lib/db";
 import { classifyReferences } from "@/lib/measure/drivers";
 import { measured, type Measured } from "@/lib/measure/measured";
-import type { AnswerCell, StoredReport } from "@/lib/scan/report";
+import type { StoredReport } from "@/lib/scan/report";
 import type { SerpResult } from "@/lib/vendors/dataforseo/types";
 import { previousWeekStart, readWeekScans, weekStartFor } from "@/lib/scan/weekly";
 import { OVERVIEW_TRAILING_WEEKS, RIVAL_PRESENCE } from "@/lib/config/constants";
 import { isPlatformDomain, registrableDomain } from "@/lib/market/rivals/domains";
 import { trackedRivals } from "@/lib/market/rivals/tracked";
-import { ANSWER_ENGINES, reachesYou } from "./answers-model";
-import { markOf } from "./answers-store";
 import {
   counted,
   notTaken,
@@ -95,25 +91,21 @@ export async function readRivalFacts(site: RivalsSite, at: Date): Promise<Rivals
     }
   }
 
-  // ── Who the answer engines name, over the answers that were asked. The
-  // same reading the AI answers tab draws cell by cell (#918): a domain is
-  // named when the answer links to it or carries its brand token elsewhere,
-  // and it is `markOf` that decides which — one implementation, so "See
-  // every answer" cannot lead to a screen that disagrees with this count.
-  const named = new Map<string, number>();
-  let namedOf = 0;
-  for (const row of report?.aiAnswers?.rows ?? []) {
-    const columns = row.engines.length > 0 ? row.engines : [{ engine: "ai_overview", cell: row.cell }];
-    const byEngine = new Map<string, AnswerCell>(columns.map((column) => [column.engine, column.cell]));
-    for (const engine of ANSWER_ENGINES) {
-      const cell = byEngine.get(engine);
-      if (cell === undefined || cell.kind === "unmeasured") continue;
-      namedOf += 1;
-      for (const domain of domains) {
-        if (reachesYou(markOf(cell, domain))) named.set(domain, (named.get(domain) ?? 0) + 1);
-      }
-    }
-  }
+  // ── Who holds place 1 on each of the twelve: the customer, a tracked
+  // rival, or any other site by its registrable domain.
+  const top = new Map<string, number>();
+  const searches: string[] = [];
+  const questions = report?.questions;
+  const twelve = questions === undefined || questions.kind === "unmeasured" ? [] : questions.value;
+  twelve.forEach((question, i) => {
+    const serp = report?.serps[i];
+    if (serp === undefined || serp.kind === "unmeasured") return;
+    searches.push(question.search.keyword);
+    const first = [...serp.value.organic].sort((a, b) => a.position - b.position)[0];
+    if (first === undefined) return;
+    const holder = domains.find((domain) => isTheirs(domain, [first.domain])) ?? registrableDomain(first.domain) ?? first.domain;
+    top.set(holder, (top.get(holder) ?? 0) + 1);
+  });
 
   // ── The searches the rivals win and the site does not.
   const own = new Set((report?.ownRankedRows ?? []).map((row) => row.keyword.trim().toLowerCase()));
@@ -146,8 +138,7 @@ export async function readRivalFacts(site: RivalsSite, at: Date): Promise<Rivals
     ownDomain: site.domain,
     firstPage,
     firstPageOf,
-    named,
-    namedOf,
+    top: { holders: top, of: searches.length, searches },
     firstPageAtStart: await startedAt(site, domains, at),
     firstPageHolders: holdersOf(serps, domains),
     pool,
