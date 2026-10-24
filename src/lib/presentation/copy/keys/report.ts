@@ -217,10 +217,6 @@ export const REPORT_COPY = Object.freeze({
   // figure is out of. Drafted; the owner corrects the wording.
   "report.eyebrow": ["Your free report", { slots: {}, fixedBy: "issue 1068" }],
   "verdict.score.of": ["of 100", { slots: {}, fixedBy: "issue 1068" }],
-  // Issue 1439: how sure the score is, beside it — the scores its range
-  // allows. Drafted; the owner corrects the wording.
-  "verdict.estimate.rough": ["rough estimate ({low}–{high})", { slots: { low: "text", high: "text" }, fixedBy: "issue 1439" }],
-  "verdict.estimate.close": ["close estimate ({low}–{high})", { slots: { low: "text", high: "text" }, fixedBy: "issue 1439" }],
   // Issue 1932: beside the range, where a re-score moved the score because
   // the Google half moved. `{before}` is the score as first stored. Drafted;
   // the owner corrects the wording.

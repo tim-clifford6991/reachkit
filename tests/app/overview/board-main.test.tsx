@@ -92,6 +92,12 @@ describe("board Main, on the account the layout sweep reads", () => {
     );
   });
 
+  it("the score carries no confidence word, though the account's stored estimate is rough", async () => {
+    const [{ dom }, overview] = await Promise.all([render(), readOverview()]);
+    expect(overview.score.estimate?.confidence).toBe("rough");
+    expect(text(dom.body)).not.toMatch(/\b(rough|close) estimate\b/iu);
+  });
+
   it("this week's pages are Plan's week: one row per day with a page, its title and its state, then the next Monday", async () => {
     const [{ dom }, week] = await Promise.all([render(), planToday().then(readWeek)]);
     const card = dom.querySelector('[data-testid="overview-week"]');
