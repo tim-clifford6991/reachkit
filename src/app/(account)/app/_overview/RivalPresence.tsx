@@ -26,6 +26,7 @@
 // instead — REQ-004, at the card level.
 import type React from "react";
 import Link from "next/link";
+import { Info } from "lucide-react";
 import { PresenceBars, type PresenceBar } from "@/ui/charts";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { formatCount } from "./present";
@@ -117,8 +118,9 @@ export function RivalPresence(p: {
         }
       >
         {p.top.of === 0 ? null : (
-          <p className="rounded-box bg-base-200 p-3 text-sm" data-testid="rivals-top-line">
-            {topLine}
+          <p className="flex items-start gap-2 rounded-box bg-base-200 p-3 text-sm" data-testid="rivals-top-line">
+            <Info className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden />
+            <span>{topLine}</span>
           </p>
         )}
       </Card>

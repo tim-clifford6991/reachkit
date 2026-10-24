@@ -193,7 +193,7 @@ describe("a page with no reading", () => {
 
   it("no page read at all leaves the pages figure not measured, never 0", () => {
     const tiles = new DOMParser().parseFromString(
-      renderToStaticMarkup(<SearchTiles pages={googlePagesOf([page("b", null)], NOW)} visits={0} market={null} />),
+      renderToStaticMarkup(<SearchTiles pages={googlePagesOf([page("b", null)], NOW)} visits={[]} market={null} />),
       "text/html"
     );
     expect(text(tiles.querySelector('[data-testid="search-tile-pages-value"]'))).toBe(copy("draft.ladder.unmeasured"));
@@ -203,6 +203,45 @@ describe("a page with no reading", () => {
   it("no page live: the board's line in place of the list", () => {
     const html = renderToStaticMarkup(<GooglePages pages={googlePagesOf([], NOW)} planned={new Map()} timeZone="UTC" />);
     expect(html).toContain(copy("overview.search.pages.none"));
+  });
+});
+
+describe("visits from Google, week by week", () => {
+  const pages = googlePagesOf([page("a", placed(8, "boiler repair"))], NOW);
+  const tile = (visits: Parameters<typeof SearchTiles>[0]["visits"]) =>
+    new DOMParser()
+      .parseFromString(renderToStaticMarkup(<SearchTiles pages={pages} visits={visits} market={null} />), "text/html")
+      .querySelector('[data-testid="search-tile-visits"]');
+
+  it("two weeks or more draw the chart under this week's figure, oldest bar first", () => {
+    const visits = [
+      { start: "2026-10-01", visits: 2 },
+      { start: "2026-10-08", visits: 4 },
+      { start: "2026-10-15", visits: 9 },
+    ];
+    const t = tile(visits);
+    expect(text(t?.querySelector('[data-testid="search-tile-visits-value"]'))).toBe("9");
+    const chart = t?.querySelector(`figure[aria-label="${copy("overview.search.visits.chart")}"]`);
+    expect([...(chart?.querySelectorAll("li") ?? [])].map(text)).toEqual(["Oct 1 · 2", "Oct 8 · 4", "Oct 15 · 9"]);
+  });
+
+  it("one week is the figure alone, with no chart", () => {
+    const t = tile([{ start: "2026-10-15", visits: 9 }]);
+    expect(text(t?.querySelector('[data-testid="search-tile-visits-value"]'))).toBe("9");
+    expect(t?.querySelector("figure")).toBeNull();
+  });
+
+  it("a site whose visits cannot be counted (WordPress, or a failed read) says not measured: no chart and never 0", () => {
+    const t = tile(null);
+    expect(text(t?.querySelector('[data-testid="search-tile-visits-value"]'))).toBe(copy("draft.ladder.unmeasured"));
+    expect(t?.querySelector("figure")).toBeNull();
+    expect(text(t)).not.toMatch(/\b0\b/);
+  });
+
+  it("a hosted site with no visit yet says none yet, with no chart", () => {
+    const t = tile([]);
+    expect(text(t?.querySelector('[data-testid="search-tile-visits-value"]'))).toBe(copy("overview.search.visits.none"));
+    expect(t?.querySelector("figure")).toBeNull();
   });
 });
 
