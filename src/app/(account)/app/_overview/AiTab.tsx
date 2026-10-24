@@ -70,7 +70,7 @@ export function AiTiles(p: { pages: AiPages | null; reads: BlogReadsModel }): Re
       label: copy("overview.answers.pages-cited.label"),
       means: copy("overview.answers.pages-cited.means"),
       ...(pages === null
-        ? { figure: copy("overview.answers.pages-cited.none"), quiet: true, against: null, split: null }
+        ? { ...NOT_MEASURED, split: copy("overview.answers.pages-cited.none") }
         : {
             figure: formatCount(pages.linked),
             quiet: pages.linked === 0,

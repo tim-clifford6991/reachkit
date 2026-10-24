@@ -165,7 +165,8 @@ describe("what is not measured is never 0", () => {
       "text/html"
     );
     for (const id of ["reads", "visits"]) expect(text(dom.querySelector(`[data-testid="ai-tile-${id}-value"]`))).toBe(copy("draft.ladder.unmeasured"));
-    expect(text(dom.querySelector('[data-testid="ai-tile-linked-value"]'))).toBe(copy("overview.answers.pages-cited.none"));
+    expect(text(dom.querySelector('[data-testid="ai-tile-linked-value"]'))).toBe(copy("draft.ladder.unmeasured"));
+    expect(text(dom.querySelector('[data-testid="ai-tile-linked-split"]'))).toBe(copy("overview.answers.pages-cited.none"));
     expect(text(dom.body)).not.toMatch(/\b0\b/u);
   });
 
