@@ -79,6 +79,7 @@ vi.mock("@/lib/publish/destinations/hosted", async () => {
           ],
           phone: "(512) 555-0142",
         },
+        offer: { category: "a plumber", place: "Austin", region: "TX" },
       };
     },
     hostedAddress: async () => ({ state: "retired", publicationId: null }),
@@ -97,8 +98,9 @@ beforeEach(() => {
   state.identityFails = false;
 });
 
-function request(): Request {
-  return new Request("https://content.example.com/winterize-outdoor-faucets", { headers: { host: state.host } });
+function request(language?: string): Request {
+  const headers: Record<string, string> = { host: state.host, ...(language === undefined ? {} : { "accept-language": language }) };
+  return new Request("https://content.example.com/winterize-outdoor-faucets", { headers });
 }
 
 function parse(html: string): Document {
@@ -247,5 +249,30 @@ describe("E: variant A is in the site's language", () => {
   it("a German site's 404 reads in German", async () => {
     state.stored = { country: "DE", language: "de" };
     expectVariantA((await notFoundPage("nie-eine-seite")).doc, GERMAN);
+  });
+});
+
+describe("E10: the 410's business block names the place its market stores, in the site's language only", () => {
+  it("an English site's block says Serves Austin, TX. after lucide's pin", async () => {
+    const doc = parse(await (await gone.GET(request())).text());
+    const pin = doc.querySelector("aside svg.lucide-map-pin");
+    expect(pin?.getAttribute("aria-hidden")).toBe("true");
+    expect(pin?.parentElement?.textContent).toBe("Serves Austin, TX.");
+  });
+
+  it("a German site's 410 is byte-identical for Accept-Language en, de and none, and reads in German", async () => {
+    state.stored = { country: "DE", language: "de" };
+    const [none, en, de] = await Promise.all([undefined, "en-US,en;q=0.9", "de-DE,de;q=0.9"].map(async (language) => (await gone.GET(request(language))).text()));
+    expect(en).toBe(none);
+    expect(de).toBe(none);
+    const doc = parse(none!);
+    expect(doc.documentElement.getAttribute("lang")).toBe("de-DE");
+    expect(doc.querySelector("aside svg.lucide-map-pin")?.parentElement?.textContent).toBe("Vor Ort in Austin, TX.");
+  });
+
+  it("an English site's 410 is byte-identical whatever the reader's language", async () => {
+    const [none, de] = await Promise.all([undefined, "de-DE,de;q=0.9"].map(async (language) => (await gone.GET(request(language))).text()));
+    expect(de).toBe(none);
+    expect(none).toContain("Serves Austin, TX.");
   });
 });

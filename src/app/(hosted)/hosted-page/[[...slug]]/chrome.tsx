@@ -36,6 +36,10 @@ const GLYPHS = {
     ["path", { d: "M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" }],
     ["path", { d: "m9 14 2 2 4-4" }],
   ],
+  "map-pin": [
+    ["path", { d: "M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0" }],
+    ["circle", { cx: "12", cy: "10", r: "3" }],
+  ],
   phone: [
     [
       "path",
@@ -198,6 +202,41 @@ export function HostedHeader({ business }: { business: HostedBusiness }): React.
   );
 }
 
+/** The place the adopted market stores, with its region where one is stored
+ *  and the name does not already carry it; `null` where none is stored. */
+function servesOf(business: HostedBusiness): string | null {
+  const place = business.offer?.place ?? null;
+  if (place === null) return null;
+  const region = business.offer?.region ?? null;
+  const named = place.split(",").some((part) => part.trim().toLowerCase() === region?.toLowerCase());
+  return region === null || named ? place : `${place}, ${region}`;
+}
+
+/** "Serves {place}." with lucide's pin, inline so it reads with the line beside it. */
+function Serves({ place }: { place: string }): React.JSX.Element {
+  return (
+    <span className="inline-flex items-center gap-1.5">
+      <Glyph name="map-pin" />
+      {copy("hosted.about.serves", { place })}
+    </span>
+  );
+}
+
+/** The business's one line, then the place it serves: each only where stored. */
+export function BusinessLine({ business, className }: { business: HostedBusiness; className: string }): React.JSX.Element {
+  const place = servesOf(business);
+  return (
+    <>
+      {business.line === null ? null : <p className={className}>{business.line}</p>}
+      {place === null ? null : (
+        <p className={className}>
+          <Serves place={place} />
+        </p>
+      )}
+    </>
+  );
+}
+
 /** The compact block's question: the adopted market's category and place,
  *  else the business's name. */
 function compactHeading(business: HostedBusiness): string {
@@ -209,15 +248,29 @@ function compactHeading(business: HostedBusiness): string {
 }
 
 /** The compact block: one question and the primary action, never a quiet
- *  link. Nothing where no action is stored. */
-export function CompactAction({ business }: { business: HostedBusiness }): React.JSX.Element | null {
+ *  link. Nothing where no action is stored. Where it draws the business
+ *  (`described`), its line and place follow the question in one sentence. */
+export function CompactAction({ business, described = false }: { business: HostedBusiness; described?: boolean }): React.JSX.Element | null {
   const { primary } = actionsOf(business);
   if (primary === null) return null;
   const heading = compactHeading(business);
+  const place = described ? servesOf(business) : null;
+  const line = described ? business.line : null;
   return (
     <aside className="card bg-base-200 my-8" aria-label={heading}>
       <div className="card-body flex-row flex-wrap items-center justify-between gap-3 p-5">
-        <p className="text-base-content min-w-0 font-bold">{heading}</p>
+        {line === null && place === null ? (
+          <p className="text-base-content min-w-0 font-bold">{heading}</p>
+        ) : (
+          <div className="min-w-0 flex-1 basis-60">
+            <p className="text-base-content font-bold">{heading}</p>
+            <p className="text-base-content/70 text-sm">
+              {line}
+              {line === null || place === null ? null : " "}
+              {place === null ? null : <Serves place={place} />}
+            </p>
+          </div>
+        )}
         <PrimaryButton action={primary} text={primary.label} width={CARD_BUTTON} />
       </div>
     </aside>
@@ -242,9 +295,7 @@ export function AboutCard({
         <Logo business={business} large />
         <div className="min-w-0 flex-1 basis-48">
           <p className="text-base-content font-bold">{copy("hosted.about", { publisher: business.name })}</p>
-          {business.line === null ? null : (
-            <p className="text-base-content/70 line-clamp-3 text-sm">{business.line}</p>
-          )}
+          <BusinessLine business={business} className="text-base-content/70 line-clamp-3 text-sm" />
           {written === null ? null : (
             <p className="text-base-content/70 text-sm">
               {author === null || author.url === null ? written : (
