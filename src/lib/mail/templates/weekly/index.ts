@@ -37,6 +37,9 @@ const SHOWING_CLIMBING = "mail.weekly.google.showing.climbing" satisfies CopyKey
 const OF_LIVE = "mail.weekly.google.of" satisfies CopyKey;
 const GOOGLE_EARLY = "mail.weekly.google.early" satisfies CopyKey;
 const VISITS = shownKey("mail-google-visits") satisfies CopyKey;
+const VISITS_UP = shownKey("mail-google-visits-up") satisfies CopyKey;
+const VISITS_DOWN = shownKey("mail-google-visits-down") satisfies CopyKey;
+const VISITS_SAME = shownKey("mail-google-visits-same") satisfies CopyKey;
 const CLIMB = "mail.weekly.google.climb" satisfies CopyKey;
 const CLIMB_CLIMBING = "mail.weekly.google.climb.climbing" satisfies CopyKey;
 const CLIMB_NONE = "mail.weekly.google.climb.none" satisfies CopyKey;
@@ -148,6 +151,8 @@ export interface WeeklyNumbers {
     readonly climbing?: number;
     /** Visits from Google this week on the hosted pages; absent where none can be counted. */
     readonly visits?: Measured<number>;
+    /** The week before's visits, as the Google tab's second-to-last bar; absent in the first week with a visit. */
+    readonly visitsBefore?: Measured<number>;
     /** `null` where a place was read and no page rose; absent with no place read. */
     readonly climb?: { readonly search: string; readonly from: number; readonly to: number; readonly climbing: boolean } | null;
   };
@@ -293,7 +298,7 @@ function numberBlocks(n: WeeklyNumbers): readonly MailBlock[] {
     }
     if (g.early) blocks.push({ block: "paragraph", text: GOOGLE_EARLY });
     if (g.visits !== undefined && g.visits.kind !== "unmeasured") {
-      blocks.push({ block: "paragraph", text: VISITS, vars: { n: formatStat(g.visits, "integer") } });
+      blocks.push(visitsLine(g.visits, g.visitsBefore));
     }
     if (g.climb === null) blocks.push({ block: "paragraph", text: CLIMB_NONE });
     else if (g.climb !== undefined) {
@@ -331,6 +336,14 @@ function numberBlocks(n: WeeklyNumbers): readonly MailBlock[] {
 
 /** One of the month's figures as the board writes it: `31 up from 27`,
  *  `1 of 12`. A figure nobody stored has no row; a change nobody measured is not stated. */
+/** This week's visits, and which way they moved from the week before where there was one. */
+function visitsLine(visits: Measured<number>, before: Measured<number> | undefined): MailBlock {
+  const n = formatStat(visits, "integer");
+  if (before === undefined || before.kind === "unmeasured" || visits.kind === "unmeasured") return { block: "paragraph", text: VISITS, vars: { n } };
+  if (visits.value === before.value) return { block: "paragraph", text: VISITS_SAME, vars: { n } };
+  return { block: "paragraph", text: visits.value > before.value ? VISITS_UP : VISITS_DOWN, vars: { n, before: formatStat(before, "integer") } };
+}
+
 function monthRow(
   label: CopyKey,
   labelVars: CopyVars | undefined,

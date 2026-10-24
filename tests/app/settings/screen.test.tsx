@@ -289,10 +289,11 @@ describe("REQ-070 c1 — the rendered control set is exactly the SETTABLE keys",
     expect(settingsTabOf("/app/settings/nothing-here")).toBeUndefined();
   });
 
-  it("the market card states the one line §4.7 gives it, and states it once", async () => {
+  it("the market card states each consequence §4.7 gives it, and states it once", async () => {
     const root = await mountTab("market");
-    const occurrences = (root.textContent ?? "").split("settings.market.effect").length - 1;
-    expect(occurrences).toBe(1);
+    for (const key of ["settings.market.consequence.website", "settings.market.consequence.market"]) {
+      expect((root.textContent ?? "").split(key).length - 1, key).toBe(1);
+    }
   });
 
   it("destination health renders as a word, never as a tone alone", async () => {
@@ -401,6 +402,7 @@ describe("REQ-070 c3 — no control over an engine or spend parameter renders", 
       "billing-month-detail",
       "settings-business-facts",
       "settings-business-knowledge",
+      "settings-competitors-detail",
       "settings-danger",
       "settings-known-content",
     ]);
@@ -625,5 +627,19 @@ describe("REQ-097 c6 — a billing surface that cannot be produced is written on
     await click(root.querySelector('[data-testid="action-invoices"] button') as Element);
     expect(root.querySelector('[data-testid="action-invoices"]')).not.toBeNull();
     expect(root.querySelector('[data-testid="billing-plan"]')?.textContent).toBe(planBefore);
+  });
+});
+
+describe("Settings › Market against board SettingsMarket", () => {
+  it("no settings card title carries an icon (E28): market", async () => {
+    const root = await mountTab("market");
+    const titles = [...root.querySelectorAll("h2, summary, .card-title")];
+    expect(titles.length).toBeGreaterThanOrEqual(3);
+    for (const title of titles) expect(title.querySelector("svg")).toBeNull();
+  });
+
+  it("the market tab draws no process timeline: board SettingsMarket has none", async () => {
+    const root = await mountTab("market");
+    expect(root.querySelector('[data-testid="process-timeline"]')).toBeNull();
   });
 });

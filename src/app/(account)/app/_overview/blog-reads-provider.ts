@@ -14,7 +14,7 @@
 import { cache } from "react";
 import { BLOG_READS_WINDOW_D } from "@/lib/config/constants";
 import { isReservedFixtureAccount, requireSetUpAccount } from "../_session/account";
-import { assembleBlogReads, windowStartDay, type BlogReadsModel } from "@/lib/publish/reads/model";
+import { assembleBlogReads, windowStartDay, type BlogReadsModel, type VisitWeek } from "@/lib/publish/reads/model";
 import { FIXTURE_BLOG_READS_FACTS } from "./blog-reads-fixture";
 
 /** The instant the fixture's counts were taken — the Monday every other
@@ -37,19 +37,30 @@ export const readBlogReads = cache(async function readBlogReads(): Promise<BlogR
   );
 });
 
-/** The reserved account's visits from Google this week. */
-const FIXTURE_GOOGLE_VISITS = 9;
+/** The reserved account's visits from Google, week by week. */
+const FIXTURE_GOOGLE_VISITS = [2, 4, 9];
 
-/** Visits from Google search this week, read from the hosted pages' own
- *  counts; `null` where no hosted page is live or the counts could not be read. */
-export const readGoogleVisits = cache(async function readGoogleVisits(): Promise<number | null> {
+/** Visits from Google search per week, oldest first, read from the hosted
+ *  pages' own counts; `null` where no hosted page is live or the counts could not be read. */
+export const readGoogleVisitWeeks = cache(async function readGoogleVisitWeeks(): Promise<readonly VisitWeek[] | null> {
   const account = await requireSetUpAccount();
   const reads = await readBlogReads();
   if (!reads.show) return null;
-  if (isReservedFixtureAccount(account)) return FIXTURE_GOOGLE_VISITS;
-  const [{ readSearchVisits }, { now }] = await Promise.all([
+  if (isReservedFixtureAccount(account)) {
+    return FIXTURE_GOOGLE_VISITS.map((visits, i) => ({
+      start: windowStartDay(FIXTURE_AT, (FIXTURE_GOOGLE_VISITS.length - i) * 7),
+      visits,
+    }));
+  }
+  const [{ readSearchVisitsWeekly }, { now }] = await Promise.all([
     import("@/lib/publish/reads/store"),
     import("@/lib/config/now"),
   ]);
-  return readSearchVisits({ siteId: account.siteId, sinceDay: windowStartDay(now(), BLOG_READS_WINDOW_D) }).catch(() => null);
+  return readSearchVisitsWeekly({ siteId: account.siteId, now: now() }).catch(() => null);
+});
+
+/** Visits from Google search this week; `null` where they cannot be counted. */
+export const readGoogleVisits = cache(async function readGoogleVisits(): Promise<number | null> {
+  const weeks = await readGoogleVisitWeeks();
+  return weeks === null ? null : (weeks.at(-1)?.visits ?? 0);
 });
