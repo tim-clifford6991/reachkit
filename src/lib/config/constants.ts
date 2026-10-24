@@ -1928,10 +1928,12 @@ export const REFRESH_MIN_AGE_DAYS = 30 as const;               // §6
  *  B3 · M6). */
 export const GAP_REFRESH = Object.freeze({ maxPlace: 30, stalledReadings: 3 } as const); // issue 1611
 
-/** Issue 1538: a live page no stored search result has held after this many
- *  days is due the `unseen` fix — a link in from its cluster's strongest
- *  live page, and D13's check run again on its text. */
+/** Issue 1538: a live page whose stored reading holds no Found step after
+ *  this many days is due the `unseen` fix — a link in from its cluster's
+ *  strongest live page, and D13's check run again on its text — and gains at
+ *  most one such link in each `UNSEEN_LINK_EVERY_DAYS`. */
 export const UNSEEN_AFTER_DAYS = 28 as const;                  // issue 1538
+export const UNSEEN_LINK_EVERY_DAYS = 30 as const;             // issue 1538
 
 /** SPEC §6 (owner, D60, issue 1288): a page that has reached neither of its
  *  goals after this many weekly verdicts gets a refresh or a retarget
