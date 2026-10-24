@@ -1,52 +1,23 @@
-// BUILD §4.2 — the one place this feature reaches Postgres.
-//
-// Every query the giveaway, the capture, the suppression store and the
-// nurture job need, behind one declared interface. Two implementations:
-// the Supabase-backed one this module exports as the default, and — in
-// `tests/mail/leads/memory-store.ts` — an in-memory one the suites drive,
-// because `tests/setup.ts` refuses a real network call and the `node`
-// project has no database to reach.
-//
-// **The memory store mirrors the partial unique index deliberately.**
-// `unique (lower(email), domain) where sequence_state is not null` is
-// REQ-010 criterion 13's whole enforcement (ADR-041), so a fake that did
-// not hold it would let the suites pass on behaviour Postgres would
-// reject. `patchLead` reports a violation as `conflict: true` from both
-// implementations, and `tests/mail/leads/migration.test.ts` asserts the
-// real index's predicate against the migration on disk.
-//
-// **Schema-typing gap, flagged once** (the same class as
-// `notifications/store.ts`'s): the columns this module reads land in
-// `20260905120000_leads_sequence.sql` and are not in
-// `src/lib/db/types.generated.ts`, which is stale and is BP-002's artifact
-// to regenerate, not this module's file to widen. The table is reached
-// through a narrow, explicitly cast query-builder subset rather than by
-// losing typing anywhere else `dbAdmin()` reaches.
+// BUILD §4.2 — the one place this feature reaches Postgres. Suites drive `tests/mail/leads/memory-store.ts`, which mirrors the partial
+// unique index on `(lower(email), domain)`, criterion 13's whole enforcement (ADR-041); `patchLead` reports it as `conflict: true`.
+// The leads columns are missing from the stale `src/lib/db/types.generated.ts`, so the table is reached through one narrow cast.
 import { dbAdmin } from "@/lib/db";
 
-/** REQ-010 criterion 12's four lifetimes plus the one a stop produces. Set
- *  once, when a sequence is created; every later value is terminal and none
- *  returns to null. */
+/** Criterion 12's four lifetimes plus a stop. Set when a sequence is created; every later value is terminal. */
 export type SequenceState = "waiting" | "running" | "finished" | "dropped" | "stopped";
 
-/** Criterion 8's two things a founder may be owed, the state in which each
- *  has been written but not yet sent, and the one terminal state in which
- *  neither arrived. */
+/** Criterion 8's two owed things, each written-but-unsent state, and the terminal state where neither arrived. */
 export type FirstPageState = "pending" | "written" | "sent" | "notice_sent" | "abandoned";
 
 export type SuppressionCause = "opt_out" | "subscribed";
 
-/** The report's one free page (issue 826), stored on the scan that offered
- *  it so every lead on that report is mailed the same page. `writing` is a
- *  writer's claim on the scan; `written` carries the page; `refused` is the
- *  hard rules' answer, recorded once. A scan nobody has claimed reads `null`. */
+/** The report's one free page, on the scan. `writing` is a claim, `written` carries the page, `refused` is recorded once; unclaimed is `null`. */
 export type ScanFirstPage =
   | { readonly state: "writing"; readonly claimedAt: Date }
   | { readonly state: "written"; readonly title: string; readonly markdown: string }
   | { readonly state: "refused" };
 
-/** How a claimed write ends: the page, the refusal, or — when no page was
- *  produced — the claim released so a later lead may try. */
+/** How a claimed write ends: the page, the refusal, or the claim released. */
 export type ScanFirstPageSettlement =
   | { readonly state: "written"; readonly title: string; readonly markdown: string }
   | { readonly state: "refused" }
@@ -72,10 +43,7 @@ export interface LeadRow {
   readonly first_page_markdown: string | null;
 }
 
-/** Every column a caller in this feature ever writes. `email`, `domain` and
- *  `scan_id` are absent by construction: the first two are written once at
- *  capture and read-only thereafter (BP-029 decision 1), and the third is
- *  the row's own identity. */
+/** Every column a caller writes. `email` and `domain` are written once at capture; `scan_id` is the row's identity. */
 export interface LeadPatch {
   readonly sequence_state?: SequenceState;
   readonly sequence_started_at?: string | null;
@@ -91,10 +59,7 @@ export interface LeadPatch {
   readonly first_page_markdown?: string | null;
 }
 
-/** Nothing here throws. Every method answers with what it did, or says it
- *  could not — a store that cannot be read is a different fact from a store
- *  that holds nothing, and collapsing the two is what mails a person who
- *  opted out. */
+/** Nothing throws: an unreadable store is a different fact from an empty one, and collapsing them mails someone who opted out. */
 export interface LeadStore {
   insertLead(a: {
     scanId: string;
@@ -104,16 +69,13 @@ export interface LeadStore {
 
   readLead(id: string): Promise<{ ok: true; lead: LeadRow | null } | { ok: false }>;
 
-  /** `conflict` is the partial unique index refusing a second sequence for
-   *  an `(address, domain)` that already has one — REQ-010 criterion 13.
-   *  It is a legal outcome, never an error to retry. */
+  /** `conflict` is criterion 13's index refusing a second sequence: a legal outcome, never retried. */
   patchLead(
     id: string,
     patch: LeadPatch
   ): Promise<{ ok: true } | { ok: false; conflict: boolean }>;
 
-  /** Every lead in any of the given sequence states. `null` selects the
-   *  rows that have never had a sequence. */
+  /** Leads in any given sequence state; `null` selects rows never sequenced. */
   leadsInSequenceState(
     states: readonly (SequenceState | null)[]
   ): Promise<{ ok: true; leads: readonly LeadRow[] } | { ok: false }>;
@@ -126,30 +88,22 @@ export interface LeadStore {
 
   isSuppressed(email: string): Promise<{ ok: true; suppressed: boolean } | { ok: false }>;
 
-  /** Idempotent on the primary key: a second opt-out click writes nothing
-   *  and still succeeds. */
+  /** Idempotent on the primary key: a second opt-out writes nothing and succeeds. */
   addSuppression(
     email: string,
     cause: SuppressionCause
   ): Promise<{ ok: true } | { ok: false }>;
 
-  /** The scan's own domain — written onto the lead at capture and
-   *  read-only thereafter (BP-029 decision 1), because the sequence's
-   *  natural key is `(lower(email), domain)` and a unique index cannot
-   *  reach through `scan_id` to `scans.domain`. */
+  /** Written onto the lead at capture, since a unique index cannot reach through `scan_id` to `scans.domain`. */
   scanDomain(scanId: string): Promise<{ ok: true; domain: string | null } | { ok: false }>;
 
-  /** The scan's stored report blob, untyped — its shape is the scan's, and
-   *  `ports.ts` reads it through `readStoredReport`. `null` where the scan
-   *  has no report (yet). */
+  /** The scan's report blob, untyped; `ports.ts` reads it. `null` with no report yet. */
   scanReport(scanId: string): Promise<{ ok: true; report: unknown } | { ok: false }>;
 
   /** The report's stored free page, or `null` where no writer holds it. */
   scanFirstPage(scanId: string): Promise<{ ok: true; page: ScanFirstPage | null } | { ok: false }>;
 
-  /** Takes the scan for one write: succeeds where nobody holds it, or where
-   *  the holder's claim is older than `staleBefore` (its writer never
-   *  finished). A conditional update, so two ticks cannot both win. */
+  /** Claims the scan for one write when unheld or held since before `staleBefore`; a conditional update, so two ticks cannot both win. */
   claimScanFirstPage(
     scanId: string,
     now: Date,
@@ -195,9 +149,7 @@ const LEAD_COLUMNS =
   "first_page_first_attempt_at, first_page_attempts, first_page_failure, " +
   "first_page_title, first_page_markdown";
 
-/** Postgres' unique-violation class. A patch rejected by the criterion-13
- *  index carries it, and it is the one error this module reports as an
- *  outcome rather than a failure. */
+/** Postgres' unique-violation class: criterion 13's index, reported as an outcome, not a failure. */
 const UNIQUE_VIOLATION = "23505";
 
 interface ScanFirstPageRow {
@@ -207,9 +159,7 @@ interface ScanFirstPageRow {
   readonly free_page_markdown: string | null;
 }
 
-/** The row's four columns as the one union. A `written` row without its page
- *  is refused by the schema's check; one read anyway is treated as unclaimed
- *  rather than mailed empty. */
+/** The four columns as one union; a `written` row without its page reads as unclaimed, never mailed empty. */
 function firstPageOf(row: ScanFirstPageRow): ScanFirstPage | null {
   switch (row.free_page_state) {
     case "writing":
@@ -298,9 +248,7 @@ export function supabaseLeadStore(): LeadStore {
     },
 
     async addSuppression(email, cause) {
-      // Idempotent on the primary key: a second click writes nothing and
-      // still confirms, which is what makes an opt-out link a person finds
-      // a year later safe to press twice.
+      // Idempotent on the primary key, so an old opt-out link is safe to press twice.
       const { error } = await untyped()
         .from<{ email: string }>("email_suppressions")
         .upsert({ email, cause }, { onConflict: "email", ignoreDuplicates: true });
@@ -374,8 +322,7 @@ export function supabaseLeadStore(): LeadStore {
 
 let store: LeadStore | null = null;
 
-/** The store every entry point in this feature reads. Lazily constructed so
- *  importing this module does not construct a database client. */
+/** Built lazily, so importing this module constructs no database client. */
 export function leadStore(): LeadStore {
   if (store === null) store = supabaseLeadStore();
   return store;

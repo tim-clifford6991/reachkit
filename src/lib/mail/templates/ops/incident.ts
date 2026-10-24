@@ -1,19 +1,7 @@
-// The owner's incident alert (issue 330) — a job failed, a job was
-// dead-lettered, or a deployment refused to boot.
-//
-// One shape, five occasions, the way the spend alert beside it is built:
-// the occasion picks the line, and the fact rows carry closed names only.
-// Nothing a customer typed, no event payload, no error message (a message
-// can quote an address or a domain) and no subject id reaches this mail —
-// the values are a job id from the registry, an attempt number, an error's
-// class name and a boot check's name.
-//
-// **One occasion is the exception, on purpose** (issue 1187; owner, D27,
-// 2026-10-02: "If a draft has failed twice, i would be highly concerned to
-// why"). A draft the writing rules stopped twice is an alert, and the owner
-// cannot investigate a rule without the words it stopped: that occasion names
-// the site, each rule, and the sentences of the unpublished page that broke
-// it. It goes to `OWNER_EMAILS` and to nobody else.
+// The owner's incident alert, one shape for every occasion: the occasion picks the line, and fact rows carry closed names only
+// (a registry job id, an attempt, an error class, a boot check). No customer input, payload, error message or subject id reaches it.
+// The exception is a draft the writing rules stopped twice: the owner cannot investigate a rule without its words, so that alert names
+// the site, each rule and the breaking sentences, and goes to `OWNER_EMAILS` only.
 import type { CopyKey } from "@/lib/presentation/copy";
 import type { FactRow, MailBlock } from "../../blocks/types";
 
@@ -21,14 +9,10 @@ export type OpsIncident =
   | { occasion: "job-failed"; jobId: string; attempt: number; errorName: string }
   | { occasion: "dead-lettered"; jobId: string; errorName: string }
   | { occasion: "boot-refused"; check: string; errorName: string }
-  // Issue #770: no error — the market was read and was too small. The facts
-  // are the scan's id and its tier, never the domain.
+  // No error: the market was read and was too small. The scan's id and tier, never the domain.
   | { occasion: "market-too-small"; scanId: string; tier: string }
-  // Issue 796: the weekly passes of one Monday that found too little
-  // market, folded into one line a week rather than one mail per site.
-  // Issue 1184: the same Monday mail says why the week before's pages
-  // stalled — per site, the pages that stopped of the pages written, and
-  // how often each cause stopped one. Owner-only, so the site is named.
+  // One Monday's weekly passes that found too little market, one line a week rather than a mail per site, and why last week's
+  // pages stalled: per site, pages stopped of pages written and each cause's count. Owner-only, so the site is named.
   | {
       occasion: "market-too-small-week";
       weekStart: string;
@@ -42,9 +26,7 @@ export type OpsIncident =
           causes: readonly { cause: string; count: number }[];
         }[];
       };
-      // Issue 1286 (D57): what the same week cost — per site a measurement
-      // and a page written, then free scans and smoke tests apart, then the
-      // ledger's total. Cents, as the ledger holds them.
+      // What the week cost: per site a measurement and a page, then free scans and smoke tests, then the ledger total, in cents.
       costs?: {
         weekStart: string;
         sites: readonly {
@@ -55,35 +37,26 @@ export type OpsIncident =
         freeScans: { count: number; cents: number };
         smokeTests: { count: number; cents: number };
         totalCents: number | null;
-        // Issue 1298 (D63): the week's Google SERP reads, how many timed
-        // out, and what the timed-out ones were billed.
+        // The week's Google SERP reads, how many timed out, and what those were billed.
         serp?: { reads: number; timeouts: number; wastedCents: number } | null;
         // The sources billed over `over` times their estimate, over only
         // the rows the vendor priced.
         drift?: { over: number; sources: readonly { source: string; billedCents: number; estimatedCents: number }[] } | null;
       };
-      // Issue 1287 (D58): the passes one of their own health checks failed
-      // on, each with the check and what it found.
+      // Passes a health check failed, each with the check and what it found.
       unhealthy?: readonly {
         scanId: string;
         domain: string;
         failing: readonly { check: string; detail: string }[];
       }[];
     }
-  // Issue #799: no error — a scheduled job has not run for twice its
-  // interval. The facts are the job id, its last run as an instant and its
-  // interval in minutes.
+  // No error: a scheduled job has not run for twice its interval. Job id, last run and interval in minutes.
   | { occasion: "job-stale"; jobId: string; lastRunAt: string; intervalMinutes: number }
-  // Issue 1455: no error — a paying site's publish time passed with no page
-  // for the day. Owner-only, so the site is named; the reason is the code
-  // its due hour recorded (`draft_days`), a closed name.
+  // No error: a paying site's publish time passed with no page. Owner-only, so the site is named; the reason is its `draft_days` code.
   | { occasion: "no-draft-at-publish"; domain: string; date: string; reason: string }
-  // Issue 1536: no error — a site on autopilot has gone twice its cadence
-  // with no page delivered. Owner-only, so the site is named.
+  // No error: an autopilot site has gone twice its cadence with no page. Owner-only, so the site is named.
   | { occasion: "autopilot-stalled"; domain: string; lastDelivered: string; days: number }
-  // Issue 1187: no error — the writing rules stopped one draft twice. Each
-  // rule that stopped the last attempt, with the sentences that broke it
-  // where the rule can point at them.
+  // No error: the writing rules stopped one draft twice. Each rule of the last attempt, with its breaking sentences where it points at them.
   | {
       occasion: "draft-stopped-twice";
       domain: string;
@@ -91,8 +64,7 @@ export type OpsIncident =
       attempts: number;
       failed: readonly { rule: string; sentences: readonly string[] }[];
     }
-  // Issue 1587: no error — DataForSEO credit runs out within a week. Days
-  // left is null where last week's spend was not measured.
+  // No error: DataForSEO credit runs out within a week. Days left is null where last week's spend was not measured.
   | { occasion: "vendor-low"; balanceCents: number; daysLeft: number | null; dashboard: string }
   // Stripe refused an automatic 14-day refund. Ids and Stripe's error code
   // only: no card detail and no address.
@@ -119,8 +91,7 @@ const BODY: Readonly<Record<OpsIncident["occasion"], CopyKey>> = Object.freeze({
   "refund-refused": "mail.ops.incident.refund-refused",
 });
 
-/** A sentence of the stopped page, on one line and cut where a mail row
- *  stops being readable. */
+/** A stopped page's sentence on one line, cut where a mail row stops being readable. */
 const SENTENCE_MAX = 240;
 function sentenceValue(sentence: string): string {
   const line = sentence.replace(/\s+/g, " ").trim();
@@ -132,14 +103,12 @@ function closedDomain(value: string): string {
   return /^[a-z0-9](?:[a-z0-9.-]{0,251}[a-z0-9])?$/i.test(value) ? value : "unknown";
 }
 
-/** A scan id is a UUID, and `closedName` would refuse one that starts with
- *  a digit; anything that is not one is written as `unknown`. */
+/** A scan id is a UUID (which `closedName` refuses when it starts with a digit); anything else is `unknown`. */
 function closedId(value: string): string {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value) ? value : "unknown";
 }
 
-/** A name, or `Error` where the value is not one: a class name is letters,
- *  digits and underscores, and anything else could be a message. */
+/** A class name is letters, digits and underscores; anything else could be a message, so it is `Error`. */
 export function closedName(value: string): string {
   return /^[A-Za-z][A-Za-z0-9_/-]{0,63}$/.test(value) ? value : "Error";
 }
@@ -149,8 +118,7 @@ function closedDate(value: string): string {
   return /^\d{4}-\d{2}-\d{2}$/.test(value) ? value : "unknown";
 }
 
-/** An instant written to the minute in UTC, or `unknown` where the value
- *  does not parse as one. */
+/** An instant to the minute in UTC, or `unknown`. */
 function closedInstant(value: string): string {
   const at = new Date(value);
   return Number.isNaN(at.getTime()) ? "unknown" : `${at.toISOString().slice(0, 16).replace("T", " ")} UTC`;
@@ -280,8 +248,7 @@ function driftFacts(drift: NonNullable<WeekCosts["drift"]>): FactRow[] {
   ]);
 }
 
-/** The Monday digest: each part is drawn only where it has something to
- *  say, so a week with stalled pages and no thin market does not claim one. */
+/** The Monday digest: each part drawn only where it has something to say. */
 function weekBlocks(incident: Extract<OpsIncident, { occasion: "market-too-small-week" }>): MailBlock[] {
   const blocks: MailBlock[] = [];
   if (incident.scanIds.length > 0 || (incident.stopped === undefined && incident.costs === undefined && incident.unhealthy === undefined)) {

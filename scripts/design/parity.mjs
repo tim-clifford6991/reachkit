@@ -150,23 +150,37 @@ export function readAllow(board, dir = PARITY_DIR) {
 }
 
 /**
- * One board against its ship text: what matched, what an allow line excuses, what is missing.
+ * One board against its ship text: what matched, what an allow line excuses, what is missing,
+ * and every allow line that excuses nothing because its string ships or the board does not draw it.
  * @param {string} boardHtml
  * @param {string[]} shipTexts
- * @param {{ string: string }[]} [allow]
- * @returns {{ matched: string[], allowed: string[], missing: string[] }}
+ * @param {{ string: string, n?: number }[]} [allow]
+ * @returns {{ matched: string[], allowed: string[], missing: string[], unused: { string: string, n?: number, ships: boolean }[] }}
  */
 export function compare(boardHtml, shipTexts, allow = []) {
   const index = shipIndex(shipTexts);
-  const allowed = new Set(allow.map((a) => words(a.string).join(" ")));
-  /** @type {{ matched: string[], allowed: string[], missing: string[] }} */
-  const result = { matched: [], allowed: [], missing: [] };
+  const key = (s) => words(s).join(" ");
+  const allowed = new Set(allow.map((a) => key(a.string)));
+  /** @type {{ matched: string[], allowed: string[], missing: string[], unused: { string: string, n?: number, ships: boolean }[] }} */
+  const result = { matched: [], allowed: [], missing: [], unused: [] };
+  const drawn = new Set();
   for (const s of boardStrings(boardHtml)) {
+    drawn.add(key(s));
     if (matches(s, index)) result.matched.push(s);
-    else if (allowed.has(words(s).join(" "))) result.allowed.push(s);
+    else if (allowed.has(key(s))) result.allowed.push(s);
     else result.missing.push(s);
   }
+  const shipped = new Set(result.matched.map(key));
+  for (const a of allow) {
+    const k = key(a.string);
+    if (shipped.has(k) || !drawn.has(k)) result.unused.push({ string: a.string, n: a.n, ships: shipped.has(k) });
+  }
   return result;
+}
+
+/** Where an unused allow line is, and why it goes. */
+export function unusedLine(board, u) {
+  return `docs/design/parity/${board}.allow:${u.n ?? "?"} ${u.string} (delete it: ${u.ships ? "the string ships" : "the board does not draw it"})`;
 }
 
 export function boardFile(board, dir = BOARDS_DIR) {
@@ -188,9 +202,13 @@ export function baselineLine(board, sha, missing) {
  * @param {string[]} missing
  * @param {{ sha256: string, missing: number } | undefined} entry
  * @param {string} sha
+ * @param {{ string: string, n?: number, ships: boolean }[]} [unused]
  * @returns {{ ok: boolean, message: string }}
  */
-export function verdict(board, missing, entry, sha) {
+export function verdict(board, missing, entry, sha, unused = []) {
+  if (unused.length > 0) {
+    return { ok: false, message: `${board}: an allow line excuses nothing.\n${unused.map((u) => `  - ${unusedLine(board, u)}`).join("\n")}` };
+  }
   const line = baselineLine(board, sha, missing.length);
   const list = missing.map((s) => `  - ${s}`).join("\n");
   if (!entry) return { ok: false, message: `${board} has no row in docs/design/parity/baseline.json. Commit:\n${line}` };
@@ -218,6 +236,8 @@ export function table(board, result, baseline) {
   ];
   for (const s of result.missing) lines.push(`- missing: ${s}`);
   if (result.missing.length > 0) lines.push("");
+  for (const u of result.unused) lines.push(`- unused allow line: ${unusedLine(board, u)}`);
+  if (result.unused.length > 0) lines.push("");
   return lines.join("\n");
 }
 
@@ -230,7 +250,7 @@ async function main(argv) {
   const url = arg("--url");
   const file = arg("--file");
   if (!board || (!url && !file) || (url && !/^https?:\/\//.test(url))) {
-    console.error("usage: node scripts/design/parity.mjs --board <Board> (--url https://… | --file page.html) [--boards dir]");
+    console.error("usage: node scripts/design/parity.mjs --board <Board> (--url https://… | --file page.html) [--boards dir] [--allow dir]");
     return 2;
   }
   const boardsDir = arg("--boards") ?? BOARDS_DIR;
@@ -246,10 +266,11 @@ async function main(argv) {
   } else {
     html = readFileSync(file, "utf8");
   }
-  const result = compare(readFileSync(boardPath, "utf8"), segments(html), readAllow(board));
+  const result = compare(readFileSync(boardPath, "utf8"), segments(html), readAllow(board, arg("--allow") ?? PARITY_DIR));
   const baselineFile = path.join(PARITY_DIR, "baseline.json");
   const baseline = existsSync(baselineFile) ? JSON.parse(readFileSync(baselineFile, "utf8"))[board]?.missing : undefined;
   console.log(table(board, result, baseline));
+  for (const u of result.unused) console.warn(`warning: unused allow line ${unusedLine(board, u)}`);
   return 0;
 }
 

@@ -22,7 +22,7 @@ of 12 pages asked	sample data: the count is the account's own asked pages
 Each page’s own question, asked in Austin every Monday. The dots are its AI steps: read, linked, visit.	sample data: the fixture business sells beyond one place, so the lead names none (#1747)
 How to shut off water to a house in an emergency	sample data
 how do I shut off the water to my house in an emergency	sample data
-AI Overview No answer	#1747 ux ruling 2026-10-24: on the AI Overview row the only no-answer state is "Google showed no AI Overview", which reads "None on this search" (overview.answers.engine.none); the legend keeps "No answer"
+AI Overview No answer	E6 2026-10-24: board copy slip; the empty state reads "None on this search"
 6 of 12 pages asked	sample data: the counts are the account's own asked pages
 Show all 12	sample data: the count is the account's own asked pages
 Which AI read and sent visits 14 reads · 2 visits this week	sample data: the counts are the account's own reads and visits

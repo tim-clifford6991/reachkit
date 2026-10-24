@@ -26,6 +26,7 @@ import { AI_READER_AGENTS } from "@/lib/config/constants";
 import { measured, measuredZero } from "@/lib/measure/measured";
 import { fromStored } from "@/lib/presentation/generated";
 import type { CanonicalDomain } from "@/lib/scan/domain";
+import type { Question } from "@/lib/market/questions/phrase";
 import type { AnswerCell, EngineCell, StoredQuestion, StoredReport } from "@/lib/scan/report";
 import type { AddressState } from "../_address/state";
 
@@ -118,6 +119,31 @@ const QUESTIONS: readonly StoredQuestion[] = QUESTION_WORDING.map((wording, inde
   namedBrands: index >= 9 ? [] : [RIVALS[0], RIVALS[1]],
 }));
 
+/** The searches the twelve questions were phrased from, with their volumes,
+ *  and the seven of them whose top ten a rival leads and whose AI answer
+ *  cited a rival over the customer: the report's seven missing pages. */
+const VOLUMES = [8100, 4400, 3600, 2900, 1900, 1600, 1300, 880, 720, 590, 480, 390] as const;
+const MISSING: Readonly<Record<number, string>> = { 0: RIVALS[0], 1: RIVALS[1], 2: RIVALS[0], 3: RIVALS[2], 4: RIVALS[0], 6: RIVALS[1], 7: RIVALS[2] };
+
+const MEASURED_QUESTIONS: Question[] = QUESTION_WORDING.map((text, index) => ({
+  id: `q${index + 1}`,
+  text,
+  search: { keyword: SEARCHES[index]!, volume: VOLUMES[index]!, intent: "solution", score: 1, rank: index + 1 },
+  phrasing: "model",
+}));
+
+function serpFor(index: number): StoredReport["serps"][number] {
+  const holder = MISSING[index];
+  if (holder === undefined) return { kind: "unmeasured", reason: "not_attempted", at: MEASURED_AT };
+  return measured(
+    {
+      organic: [{ position: 1, domain: holder, url: `https://${holder}/`, title: holder }],
+      aiOverview: { present: false, asynchronousAiOverview: false, referenceDomains: [] },
+    },
+    MEASURED_AT
+  );
+}
+
 /** What the *pipeline* recorded, beside what the screen renders (issue
  *  #25's half of `StoredReport`). The screen reads none of it — the
  *  correction, the paid pass's reuse of a fresh free scan and anyone asked
@@ -186,8 +212,15 @@ const FIXTURE_RECORD = {
 export const FIXTURE_REPORT: StoredReport = {
   // The record half of the blob (issue #25). Invented for the fixture like
   // everything else here: this file is still the stand-in, and the screen
-  // reads none of these members — except the market, below.
+  // reads none of these members — except the market, below, and the four
+  // the missing pages are derived from.
   ...FIXTURE_RECORD,
+  questions: measured(MEASURED_QUESTIONS, MEASURED_AT),
+  rivals: measured(
+    RIVALS.map((domain) => ({ domain, top10Appearances: 3, aiCitations: 3, score: 9 })),
+    MEASURED_AT
+  ),
+  ownRanked: measured(900, MEASURED_AT),
   // The one record member the screen *does* read: the category has one
   // home (`market.profile.category`, #103) and the header strip names it
   // beside the measured date (UI-SPEC S2). The record's own arm above is
@@ -239,8 +272,9 @@ export const FIXTURE_REPORT: StoredReport = {
   },
   // The one AI answer whose text was kept, quoted on the AI card as written.
   serps: SEARCHES.map((_, index) =>
-    index === 0
-      ? measured(
+    index !== 0
+      ? serpFor(index)
+      : measured(
           {
             organic: [{ position: 1, domain: RIVALS[0], url: `https://${RIVALS[0]}/`, title: "Rival One" }],
             aiOverview: {
@@ -252,7 +286,6 @@ export const FIXTURE_REPORT: StoredReport = {
           },
           MEASURED_AT
         )
-      : { kind: "unmeasured", reason: "not_attempted", at: MEASURED_AT }
   ),
   blockedAgents: AI_READER_AGENTS.slice(0, 4),
   // The free path asks no page question (#919): a site with no published
@@ -313,6 +346,7 @@ export const FIXTURE_REPORT: StoredReport = {
  *  stay measured; a measured zero stays a zero. */
 export const FIXTURE_DEGRADED_REPORT: StoredReport = {
   ...FIXTURE_REPORT,
+  questions: FIXTURE_RECORD.questions,
   verdict: {
     ...FIXTURE_REPORT.verdict,
     scoreAndBand: { kind: "unmeasured", reason: "undeterminable", at: MEASURED_AT },
@@ -394,6 +428,7 @@ function coldCellFor(index: number): AnswerCell {
 
 export const FIXTURE_COLD_START_REPORT: StoredReport = {
   ...FIXTURE_REPORT,
+  questions: FIXTURE_RECORD.questions,
   market: measured(
     {
       profile: {

@@ -62,7 +62,9 @@ describe("/scans matches board PubScans", () => {
     ["the reports: kind of business, search, sort, the cards and the removal line", "list", "empty"],
     ["what every free report shows", "inside-h", undefined],
   ])("carries every string of %s", async (_name, id, drop) => {
-    const { missing } = compare(boardSection(id, drop), segments(await render()), readAllow("PubScans"));
+    // The board's own sample reports' initials; this render's reports are other businesses.
+    const sample = ["C", "P"].map((string) => ({ string }));
+    const { missing } = compare(boardSection(id, drop), segments(await render()), [...readAllow("PubScans"), ...sample]);
     expect(missing).toEqual([]);
   });
 

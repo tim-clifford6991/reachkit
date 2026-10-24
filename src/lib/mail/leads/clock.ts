@@ -1,11 +1,4 @@
-// BUILD §4.2 — hours and days as milliseconds, once.
-//
-// Unit conversions, not tunables: nothing here is a decision anyone could
-// take differently, and none of it belongs in `src/lib/config/constants.ts`
-// beside the numbers that are decisions. Every cadence, deadline and retry
-// interval this feature uses comes from a pin there and is turned into a
-// `Date` through one of these two functions, so no module in the feature
-// carries an arithmetic literal of its own.
+// BUILD §4.2 — hours and days as milliseconds, once. Unit conversions, not tunables: every cadence comes from `src/lib/config/constants.ts`.
 const MS_PER_HOUR = 3_600_000;
 const HOURS_PER_DAY = 24;
 

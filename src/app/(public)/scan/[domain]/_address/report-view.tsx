@@ -425,7 +425,7 @@ function readAsOf(report: StoredReport, understanding: BusinessUnderstanding | n
 
 /** Owner A3 (2026-10-19): the pages the report found, under their count,
  *  ahead of the offer that writes them (board PubReport). */
-function MissingPagesSection(p: { pages: readonly MissingPage[] | null }): React.JSX.Element | null {
+function MissingPagesSection(p: { pages: readonly MissingPage[] | null; freeSearch: string | null }): React.JSX.Element | null {
   const found = p.pages?.length ?? 0;
   if (p.pages === null || found === 0) return null;
   return (
@@ -434,7 +434,7 @@ function MissingPagesSection(p: { pages: readonly MissingPage[] | null }): React
       <h2 className="text-3xl font-bold">
         {copy(found === 1 ? "report.offer.found.one" : "report.offer.found", { count: String(found) })}
       </h2>
-      <MissingPagesList pages={p.pages} />
+      <MissingPagesList pages={p.pages} freeSearch={p.freeSearch} />
     </section>
   );
 }
@@ -597,7 +597,7 @@ export function ReportView(p: {
             site is provisioned on this domain. #1068: the report's price
             close spans the screen, its heading and terms beside the price. */}
         <div id="start" className="col-span-full flex scroll-mt-20 flex-col gap-8">
-          <MissingPagesSection pages={missingPages} />
+          <MissingPagesSection pages={missingPages} freeSearch={report.freePage?.target.keyword ?? null} />
           <PricingCard
             startAction={startReportCheckout.bind(null, report.domain, report.scanId)}
             refused={p.checkoutRefused === true}

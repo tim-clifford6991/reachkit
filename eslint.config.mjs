@@ -583,7 +583,7 @@ export default tseslint.config(
   },
   {
     // (o)
-    files: ["src/lib/config/constants.ts"],
+    files: ["src/lib/config/constants.ts", "src/lib/config/constants/*.ts"],
     plugins: { local: localImportRules },
     rules: { "local/constants-hold-no-copy": "error" },
   },

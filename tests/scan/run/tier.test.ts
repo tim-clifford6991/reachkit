@@ -5,9 +5,8 @@
 // in the values looked up in one frozen table. The mutation this suite
 // exists to kill is a battery guarded by `if (tier !== 'free')`: it passes
 // every behavioural row and fails the source row.
-import { readFileSync } from "node:fs";
-import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { PASS_SOURCE as RUN_SOURCE } from "./pass-source";
 import { captureStages, fakeDb } from "./harness";
 import { measured, measuredZero, unmeasured } from "../../../src/lib/measure/measured";
 import type { DomainMeasurement } from "../../../src/lib/measure";
@@ -69,8 +68,6 @@ vi.mock("@/lib/scan/correction", () => ({
 
 const { runScan, TIER_PARAMETERS } = await import("../../../src/lib/scan/run");
 const { TIMING } = await import("../../../src/lib/config/constants");
-
-const RUN_SOURCE = readFileSync(path.resolve(import.meta.dirname, "../../../src/lib/scan/run.ts"), "utf8");
 
 const CLAIMED_ID = "33333333-3333-4333-8333-333333333333";
 const DOMAIN = "example.com";
