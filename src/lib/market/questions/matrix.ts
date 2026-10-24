@@ -52,7 +52,7 @@
 // `MarketAiAnswer`, `../views`' subset of the vendor's own shape, rather
 // than as the vendor type. Domain normalisation and the own-domain test
 // are `../rivals/domains`' — one implementation in the product, not two.
-import { classifyReferences } from "@/lib/measure/drivers";
+import { classifyReferences, namesOrLinks } from "@/lib/measure/drivers";
 import type { Measured } from "@/lib/measure/measured";
 import { isOwnDomain, registrableDomain } from "../rivals/domains";
 import type { MarketAiAnswer, MarketSerp, QuestionView } from "../views";
@@ -353,7 +353,7 @@ export function buildAiAnswersCard(a: {
   const card: AiAnswersCard = {
     measuredSearches: rows.filter((row) => row.cell.kind !== "unmeasured").length,
     answeredSearches: answered.length,
-    customerCitations: answered.filter((row) => row.cell.kind === "answered" && row.cell.namesCustomer).length,
+    customerCitations: answered.filter((row) => row.cell.kind === "answered" && namesOrLinks(row.cell)).length,
     rows,
     coverage: a.coverage,
     reusedFrom: oldestReuse(a.serps),

@@ -128,7 +128,10 @@ describe("§6.2 — the paid battery is drawn as three answer columns", () => {
   });
 
   it("says, in writing, that an engine named the customer — the state the one-column card renders as nothing", () => {
-    expect(count(html, "ai-answers.engine.cell.cited")).toBe(FREE_SECTION.rows.length);
+    // Every battery engine named the customer, and so did the AI Overviews the fixture marks named.
+    const overviews = FREE_SECTION.rows.filter((row) => row.cell.kind === "answered" && row.cell.named === true).length;
+    expect(overviews).toBe(3);
+    expect(count(html, "ai-answers.engine.cell.cited")).toBe(FREE_SECTION.rows.length + overviews);
   });
 
   it("names no engine as never asked, because every one of them was", () => {
