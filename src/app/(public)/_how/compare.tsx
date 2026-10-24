@@ -1,7 +1,7 @@
 // The three ways to get pages written, side by side, and what each costs a
 // month on one scale. How it works and Pricing draw the same comparison.
 import type React from "react";
-import { Bot, Building2, User } from "lucide-react";
+import { Building2, Sparkles, User } from "lucide-react";
 import { PRICE_EUR_CENTS } from "@/lib/config/constants";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { CostBars } from "@/ui/charts";
@@ -22,7 +22,7 @@ const JOBS: readonly CopyKey[] = [
 const WAYS = [
   { name: "how.value.diy", icon: User, jobs: "how.value.diy.jobs", time: "how.value.diy.time", covers: "how.value.diy.covers", cost: "how.value.diy.cost" },
   { name: "how.value.agency", icon: Building2, jobs: "how.value.agency.jobs", time: "how.value.agency.time", covers: "how.value.agency.covers", cost: "how.value.agency.cost" },
-  { name: "chrome.wordmark", icon: Bot, jobs: "how.value.ours.jobs", time: "how.value.ours.time", covers: "how.value.ours.covers", cost: "how.value.ours.cost" },
+  { name: "chrome.wordmark", icon: Sparkles, jobs: "how.value.ours.jobs", time: "how.value.ours.time", covers: "how.value.ours.covers", cost: "how.value.ours.cost" },
 ] as const;
 
 const ROWS = ["jobs", "time", "covers", "cost"] as const;
