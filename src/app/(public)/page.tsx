@@ -16,10 +16,11 @@
 //      second holding the *Inside ReachKit* preview, then the weekly loop
 //      and the owner's one-time part;
 //   3. *Why you should care* — four features (`Features.tsx`);
-//   4. what the one plan gets you, and its price card;
-//   5. the questions owners ask;
-//   6. the newest three articles ReachKit published, where any are stored;
-//   7. the closing band, whose one button returns to the field.
+//   4. what the one plan gets you: what it buys, everything in it, its card;
+//   5. a real report and a real page, where stored (`RealSite.tsx`);
+//   6. what to expect when, and the questions owners ask;
+//   7. the newest three articles ReachKit published, where any are stored;
+//   8. the closing band, whose one button returns to the field.
 //
 // One solid button per section (DESIGN, the calm layer): the hero's Scan
 // and the closing band's button. Every other way on is a plain link.
@@ -45,6 +46,10 @@ import { Storyboard } from "./_landing/Storyboard";
 import { Features } from "./_landing/Features";
 import { FieldCta } from "./_landing/FieldCta";
 import { LatestArticles } from "./_landing/LatestArticles";
+import { RealSite } from "./_landing/RealSite";
+import { PlanBuys } from "./_how/buys";
+import { WhatToExpect } from "./_how/visuals";
+import { BrandMark } from "@/app/_brand/Brand";
 import { FAQ_SECTION_ID, FIELD_SECTION_ID, HOW_SECTION_ID, PRICE_SECTION_ID, WHY_SECTION_ID } from "./_landing/sections";
 import { HOW_FACTS } from "./_how/facts";
 import { PUBLIC_ROUTE_SEO } from "./_seo/routes";
@@ -76,6 +81,7 @@ const INCLUDED: readonly { key: CopyKey; vars?: Record<string, string> }[] = [
   { key: "landing.price.monday" },
   { key: "landing.price.competitors", vars: { rivals: String(HOW_FACTS.rivals) } },
   { key: "landing.price.site" },
+  { key: "landing.price.found" },
 ];
 
 /** The questions, in the board's order. The guarantee and *Cancel your
@@ -235,54 +241,87 @@ export default function LandingPage(props: {
             <div className="mt-10">
               <Features />
             </div>
+            <p className="mt-6">
+              <More href="/how-it-works#competitors" label={copy("landing.why.more")} />
+            </p>
           </div>
         </section>
 
         {/* ══ WHAT THE ONE PLAN GETS YOU ══ */}
         <section id={PRICE_SECTION_ID} className={`${SECTION} scroll-mt-16`}>
-          <div className={`${INNER} grid grid-cols-1 items-start gap-10 lg:grid-cols-[minmax(0,1fr)_22rem] lg:gap-12`}>
-            <div className="min-w-0">
-              <h2 className={HEADING}>{copy("landing.price.heading", { price: PRICE() })}</h2>
-              <ul className="mt-6 flex flex-col gap-3">
-                <li className="flex items-start gap-2 font-semibold">
-                  <Check size={16} strokeWidth={1.75} className="text-success mt-1 shrink-0" aria-hidden />
-                  {copy("landing.pace", { weekPages: WEEK_PAGES })}
-                </li>
-                {INCLUDED.map((item) => (
-                  <li key={item.key} className="flex items-start gap-2">
-                    <Check size={16} strokeWidth={1.75} className="text-success mt-1 shrink-0" aria-hidden />
-                    {copy(item.key, item.vars)}
-                  </li>
-                ))}
-              </ul>
-            </div>
-            <div className="card card-border bg-base-100 min-w-0" data-testid={PRICE_TEST_ID}>
-              <div className="card-body gap-3">
-                <p className={LABEL}>{copy("landing.price.plan")}</p>
-                <p className="num text-4xl font-bold">{PRICE()}</p>
-                <p className="text-sm text-base-content/70">{copy("landing.price.terms", { price: PRICE() })}</p>
-                <More href={VALUE_HREF} label={copy("landing.price.more")} />
+          <div className={`${INNER} flex flex-col gap-8`}>
+            <h2 className={HEADING}>{copy("landing.price.heading", { price: PRICE() })}</h2>
+            <PlanBuys />
+            <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,1fr)_22rem] lg:gap-12">
+              <div className="card card-border bg-base-100 min-w-0">
+                <div className="card-body gap-4">
+                  <h3 className="card-title">{copy("landing.price.all")}</h3>
+                  <ul className="flex flex-col gap-3">
+                    <li className="flex items-start gap-2">
+                      <Check size={16} strokeWidth={1.75} className="text-success mt-1 shrink-0" aria-hidden />
+                      {copy("landing.pace", { weekPages: WEEK_PAGES })}
+                    </li>
+                    {INCLUDED.map((item) => (
+                      <li key={item.key} className="flex items-start gap-2">
+                        <Check size={16} strokeWidth={1.75} className="text-success mt-1 shrink-0" aria-hidden />
+                        {copy(item.key, item.vars)}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+              <div className="card card-border bg-base-200 min-w-0" data-testid={PRICE_TEST_ID}>
+                <div className="card-body items-start gap-3">
+                  <div className="flex w-full flex-wrap items-center justify-between gap-2">
+                    <span className="flex items-center gap-2 font-extrabold">
+                      <BrandMark />
+                      {copy("chrome.wordmark")}
+                    </span>
+                    <span className="badge badge-soft badge-primary">{copy("pricing.plan.badge")}</span>
+                  </div>
+                  <p className="flex items-baseline gap-2">
+                    <span className="num text-4xl font-bold">{PRICE()}</span>
+                    <span className="text-base-content/70">{copy("landing.price.month")}</span>
+                  </p>
+                  <p className="text-sm text-base-content/70">{copy("landing.price.terms", { price: PRICE() })}</p>
+                  <Link href="/pricing" className="btn btn-primary btn-soft">
+                    {copy("landing.price.see")}
+                  </Link>
+                  <More href={VALUE_HREF} label={copy("landing.price.more")} />
+                </div>
               </div>
             </div>
           </div>
         </section>
+
+        {/* ══ A REAL SITE ══ Nothing stored, no band. */}
+        <Suspense fallback={null}>
+          <RealSite />
+        </Suspense>
 
         {/* ══ QUESTIONS ══ */}
         <section id={FAQ_SECTION_ID} className={`${SECTION} scroll-mt-16`}>
           <div className={`${INNER} max-w-3xl`}>
             <p className={LABEL}>{copy("landing.faq.eyebrow")}</p>
             <h2 className={HEADING}>{copy("landing.faq.heading")}</h2>
+            <div className="mt-6">
+              <WhatToExpect />
+            </div>
             <div className="mt-6 flex flex-col gap-2">
               {questions().map((q) => (
                 <details key={q.id} className="collapse collapse-arrow card-border bg-base-100">
                   <summary className="collapse-title font-semibold">{copy(`landing.faq.${q.id}.q` as CopyKey)}</summary>
                   <div className="collapse-content flex flex-col items-start gap-3 text-sm text-base-content/70">
-                    <p>{copy(`landing.faq.${q.id}.a` as CopyKey, q.vars)}</p>
+                    {/* The spam answer names the model that writes the pages, as the board does. */}
+                    <p data-disclosure={q.id === "spam" ? true : undefined}>{copy(`landing.faq.${q.id}.a` as CopyKey, q.vars)}</p>
                     {q.more !== undefined && <More href={q.more} label={copy("landing.faq.results.more")} />}
                   </div>
                 </details>
               ))}
             </div>
+            <p className="mt-6">
+              <More href="/how-it-works#faq" label={copy("landing.faq.more")} />
+            </p>
           </div>
         </section>
 

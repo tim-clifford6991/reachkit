@@ -3,14 +3,12 @@
 // can answer 410, so that answer renders this through the one React-to-HTML seam.
 import type React from "react";
 import { copy, readerTag } from "@/lib/presentation/copy/reader";
-import { renderMailHtml } from "@/lib/mail/shell/render";
 import { Surface } from "@/ui/layout";
+import { hostedHtml } from "../../document";
 import { normaliseHost } from "../../resolve-host";
 import { AboutCard, HostedFooter, HostedHeader, INDEX_PATH, type HostedBusiness } from "./chrome";
 
 const ROBOTS = "noindex";
-const CHARSET = "utf-8";
-const VIEWPORT = "width=device-width, initial-scale=1";
 
 export function HostedGoneBody({ business }: { business: HostedBusiness }): React.JSX.Element {
   return (
@@ -58,16 +56,5 @@ export function HostedEmpty(): React.JSX.Element {
 /** The 410 document for a page removed from a live site, titled with the
  *  host as every hosted response with no title of its own is. */
 export async function goneDocument(business: HostedBusiness, host: string): Promise<string> {
-  return renderMailHtml(
-    <html lang={readerTag()}>
-      <head>
-        <meta charSet={CHARSET} />
-        <meta name="viewport" content={VIEWPORT} />
-        <title>{normaliseHost(host)}</title>
-      </head>
-      <body>
-        <HostedGoneBody business={business} />
-      </body>
-    </html>
-  );
+  return hostedHtml({ lang: readerTag(), title: normaliseHost(host), body: <HostedGoneBody business={business} /> });
 }
