@@ -11,13 +11,10 @@
 // older ones, and the nearest older pages are updated to link it), so there
 // is nothing here for the customer to do but see it.
 //
-// daisyUI in the route: `card`, `list`, `list-row`. lucide at 1.75.
+// daisyUI in the route: `card`, `list`, `list-row`.
 import type React from "react";
-import { Waypoints } from "lucide-react";
 import { copy } from "@/lib/presentation/copy";
 import type { LinkMap } from "@/lib/known-content/link-map";
-
-const ICON = { strokeWidth: 1.75, "aria-hidden": true } as const;
 
 function readable(url: string): string {
   try {
@@ -37,8 +34,7 @@ export function LinkMapPanel(p: { map: LinkMap }): React.JSX.Element {
   return (
     <section className="card card-border min-w-0 bg-base-100" data-testid="settings-link-map">
       <div className="card-body min-w-0 gap-3 p-4">
-        <h2 className="flex min-w-0 items-center gap-2 text-base font-semibold">
-          <Waypoints {...ICON} size={18} />
+        <h2 className="min-w-0 text-base font-semibold">
           {copy("settings.linkmap.head")}
         </h2>
 

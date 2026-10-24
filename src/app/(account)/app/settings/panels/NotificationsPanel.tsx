@@ -17,7 +17,7 @@
 
 import type React from "react";
 import { useOptimistic } from "react";
-import { FileText, Mail } from "lucide-react";
+import { Inbox, Info, MailCheck } from "lucide-react";
 import { copy } from "@/lib/presentation/copy";
 import { WEEK_PLAN } from "@/lib/config/constants";
 import { writtenLine } from "../../_shell/written";
@@ -51,9 +51,12 @@ function RowBody(p: { row: NotificationRow; vetoHours: number; next: NextPage; c
       <>
         <p className={`text-xs wrap-anywhere ${INK}`}>{copy("settings.notifications.weekly.note", { days: String(WEEK_PLAN.days) })}</p>
         {p.row.on ? (
-          <div className="bg-base-200 rounded-box flex min-w-0 flex-col p-3 text-sm" data-testid="notification-weekly-preview">
-            <span className="wrap-anywhere">{weekLine(p.climbing)}</span>
-            <span className={`text-xs ${INK}`}>{copy("settings.notifications.weekly.when")}</span>
+          <div className="bg-base-200 rounded-box flex min-w-0 items-start gap-2 p-3 text-sm" data-testid="notification-weekly-preview">
+            <Inbox size={16} strokeWidth={1.75} aria-hidden className="mt-0.5 shrink-0 text-primary" />
+            <span className="flex min-w-0 flex-col">
+              <span className="wrap-anywhere">{weekLine(p.climbing)}</span>
+              <span className={`text-xs ${INK}`}>{copy("settings.notifications.weekly.when")}</span>
+            </span>
           </div>
         ) : null}
       </>
@@ -62,8 +65,9 @@ function RowBody(p: { row: NotificationRow; vetoHours: number; next: NextPage; c
   if (p.row.kind !== "draft-ready") return null;
   if (!p.row.on) {
     return (
-      <p className={`text-xs wrap-anywhere ${INK}`} data-testid="notification-draft-ready-off">
-        {copy("settings.notifications.draft-ready.off")}
+      <p className={`flex min-w-0 items-start gap-2 text-xs ${INK}`} data-testid="notification-draft-ready-off">
+        <Info size={16} strokeWidth={1.75} aria-hidden className="shrink-0 text-primary" />
+        <span className="min-w-0 wrap-anywhere">{copy("settings.notifications.draft-ready.off")}</span>
       </p>
     );
   }
@@ -71,10 +75,13 @@ function RowBody(p: { row: NotificationRow; vetoHours: number; next: NextPage; c
     <>
       <p className={`text-xs wrap-anywhere ${INK}`}>{copy("settings.notifications.draft-ready.note", { window: vetoWindowLabel(p.vetoHours) })}</p>
       {p.next.title === null || p.next.written === null || p.next.live === null ? null : (
-        <div className="bg-base-200 rounded-box flex min-w-0 flex-col p-3 text-sm" data-testid="notification-draft-ready-preview">
-          <span className="wrap-anywhere">{copy("settings.notifications.draft-ready.preview", { title: p.next.title })}</span>
-          <span className={`num-phrase text-xs ${INK}`}>
-            {copy("settings.notifications.draft-ready.preview.when", { written: p.next.written, live: p.next.live })}
+        <div className="bg-base-200 rounded-box flex min-w-0 items-start gap-2 p-3 text-sm" data-testid="notification-draft-ready-preview">
+          <MailCheck size={16} strokeWidth={1.75} aria-hidden className="mt-0.5 shrink-0 text-primary" />
+          <span className="flex min-w-0 flex-col">
+            <span className="wrap-anywhere">{copy("settings.notifications.draft-ready.preview", { title: p.next.title })}</span>
+            <span className={`num-phrase text-xs ${INK}`}>
+              {copy("settings.notifications.draft-ready.preview.when", { written: p.next.written, live: p.next.live })}
+            </span>
           </span>
         </div>
       )}
@@ -89,12 +96,12 @@ function WeekOfMail(p: { weekly: boolean; ready: boolean }): React.JSX.Element {
       <>
         {p.weekly ? (
           <span className="inline-flex items-center gap-1">
-            <Mail size={14} strokeWidth={1.75} aria-hidden />
+            <Inbox size={14} strokeWidth={1.75} aria-hidden />
             {copy("settings.notifications.week.monday")}
           </span>
         ) : null}
         <span className="inline-flex items-center gap-1">
-          {p.ready ? <FileText size={14} strokeWidth={1.75} aria-hidden /> : null}
+          {p.ready ? <MailCheck size={14} strokeWidth={1.75} aria-hidden /> : null}
           {copy(p.ready ? "settings.notifications.week.ready" : "settings.notifications.week.no-ready")}
         </span>
       </>
@@ -107,8 +114,8 @@ function WeekOfMail(p: { weekly: boolean; ready: boolean }): React.JSX.Element {
           <div key={day} className="bg-base-200 rounded-box flex min-w-0 flex-col items-center gap-1 py-2">
             <span className={`num text-xs ${INK}`}>{day}</span>
             <span className="flex min-h-4 items-center gap-0.5 text-primary" aria-hidden>
-              {i === 0 && p.weekly ? <Mail size={14} strokeWidth={1.75} aria-hidden /> : null}
-              {p.ready ? <FileText size={14} strokeWidth={1.75} aria-hidden /> : null}
+              {i === 0 && p.weekly ? <Inbox size={14} strokeWidth={1.75} aria-hidden /> : null}
+              {p.ready ? <MailCheck size={14} strokeWidth={1.75} aria-hidden /> : null}
             </span>
           </div>
         ))}

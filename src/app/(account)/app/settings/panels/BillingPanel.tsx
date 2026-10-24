@@ -38,7 +38,7 @@
 "use client";
 
 import type React from "react";
-import { CreditCard, ExternalLink } from "lucide-react";
+import { CircleCheck, ExternalLink } from "lucide-react";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { writtenLine } from "../../_shell/written";
 import { useAction } from "./useAction";
@@ -130,10 +130,7 @@ export function BillingPanel(p: { billing: BillingSummary }): React.JSX.Element 
   return (
     <section className="card card-border min-w-0 bg-base-100">
       <div className="card-body gap-4">
-        <h2 className="card-title text-base">
-          <CreditCard size={20} strokeWidth={1.75} aria-hidden />
-          {copy("settings.billing.title")}
-        </h2>
+        <h2 className="card-title text-base">{copy("settings.billing.title")}</h2>
 
         {/* The settable-row shape every Settings tab draws (`SettingRow`,
             #1089): the name at the near edge, the value at the far one. */}
@@ -144,6 +141,7 @@ export function BillingPanel(p: { billing: BillingSummary }): React.JSX.Element 
                 className={billing.state === "active" ? "badge badge-success badge-soft" : "badge badge-ghost"}
                 data-testid="billing-state"
               >
+                {billing.state === "active" ? <CircleCheck size={14} strokeWidth={1.75} aria-hidden /> : null}
                 {copy(billing.state === "active" ? "settings.billing.active" : "settings.billing.cancelled")}
               </span>
             </SettingRow>

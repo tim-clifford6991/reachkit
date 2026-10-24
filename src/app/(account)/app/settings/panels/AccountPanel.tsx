@@ -34,7 +34,7 @@
 "use client";
 
 import type React from "react";
-import { ArrowRight, FileText, Lock } from "lucide-react";
+import { ArrowRight, Download, Link, LogOut, Mail, ShieldCheck } from "lucide-react";
 import { useActionState, useState, useTransition } from "react";
 import { copy } from "@/lib/presentation/copy";
 import { writtenLine } from "../../_shell/written";
@@ -61,10 +61,7 @@ export function AccountPanel(p: { account: SettingsModel["account"]; pages: numb
   return (
     <section className="card card-border min-w-0 bg-base-100">
       <div className="card-body gap-4">
-        <h2 className="card-title text-base">
-          <Lock size={20} strokeWidth={1.75} aria-hidden />
-          {copy("settings.account.title")}
-        </h2>
+        <h2 className="card-title text-base">{copy("settings.account.title")}</h2>
 
         {/* The settable rows every Settings tab draws (`SettingRow`): the
             name at the near edge, the value at the far one (#1089). */}
@@ -146,17 +143,26 @@ export function AccountPanel(p: { account: SettingsModel["account"]; pages: numb
           aria-label={copy("settings.account.signin.label")}
           data-testid="account-signin"
         >
-          <span>{copy("settings.account.signin.mail")}</span>
+          <span className="inline-flex items-center gap-1">
+            <Mail size={16} strokeWidth={1.75} aria-hidden className="text-primary" />
+            {copy("settings.account.signin.mail")}
+          </span>
           <ArrowRight size={14} strokeWidth={1.75} aria-hidden />
-          <span>{copy("settings.account.signin.open")}</span>
+          <span className="inline-flex items-center gap-1">
+            <Link size={16} strokeWidth={1.75} aria-hidden className="text-primary" />
+            {copy("settings.account.signin.open")}
+          </span>
           <ArrowRight size={14} strokeWidth={1.75} aria-hidden />
-          <span>{copy("settings.account.signin.in")}</span>
+          <span className="inline-flex items-center gap-1">
+            <ShieldCheck size={16} strokeWidth={1.75} aria-hidden className="text-primary" />
+            {copy("settings.account.signin.in")}
+          </span>
         </div>
 
         {/* REQ-078: export is always available, so nothing gates this control. */}
         <div className="border-base-300 flex min-w-0 flex-wrap items-center justify-between gap-3 border-t pt-4" data-testid="action-export">
           <div className="flex min-w-0 items-start gap-2">
-            <FileText size={20} strokeWidth={1.75} aria-hidden className="shrink-0" />
+            <Download size={20} strokeWidth={1.75} aria-hidden className="shrink-0" />
             <span className="flex min-w-0 flex-col">
               <strong className="text-sm">{copy("settings.content.export")}</strong>
               <span className="text-xs text-base-content/70 wrap-anywhere">
@@ -178,7 +184,7 @@ export function AccountPanel(p: { account: SettingsModel["account"]; pages: numb
               onClick={() => action.run("sign_out")}
               disabled={action.pending !== null}
             >
-              {action.pending === "sign_out" ? <span className="loading loading-spinner loading-xs" aria-hidden /> : null}
+              {action.pending === "sign_out" ? <span className="loading loading-spinner loading-xs" aria-hidden /> : <LogOut size={16} strokeWidth={1.75} aria-hidden />}
               {copy("settings.account.sign-out")}
             </button>
           </span>
