@@ -1,34 +1,40 @@
-// SPEC §4 (2026-09-20, #908) — Settings › **Market and rivals**, at
-// `/app/settings/market`.
+// SPEC §4 (2026-09-20, #908) — Settings › **Market and competitors**, at
+// `/app/settings/market`, in board SettingsMarket's order: what is measured,
+// then who it is measured against.
 //
-// Two cards, and the tab's name is the pair: the market ReachKit measures
-// and writes for, and the rivals it is compared against every Monday. That
-// is the grouping the redesign draws — "Your market" beside "Your rivals"
-// on one tab — and both panels move as they are (#925's Build).
-//
-// The order is the canvas's: what is measured, then who it is measured
-// against. `MarketPanel` needs the zone as well as the market, because the
-// line it states about a pending change names a day in the customer's own
-// zone.
+// Every figure is stored: the competitor and "You" figures come from the
+// Competitors tab's own readers (`readRivals`, the month's reputation through
+// `namedOf`, the gap module's leaders), so the two screens cannot disagree.
 import type React from "react";
 import type { Metadata } from "next";
 import { copy } from "@/lib/presentation/copy";
 import { readSettings } from "../provider";
 import { MarketPanel } from "../panels/MarketPanel";
 import { CompetitorsPanel } from "../panels/CompetitorsPanel";
-import { readDone } from "../../_overview/done-provider";
+import { marketFigures } from "../market-figures";
 import { readUnderstanding } from "../../_overview/understanding-provider";
+import { readOverview } from "../../_overview/provider";
+import { readPromptsAt } from "../../_overview/prompts-provider";
+import { readRivals } from "../../_overview/rivals-provider";
+import { namedOf } from "../../_overview/rivals-model";
+import { aiSearchesOf } from "../../_overview/prompts-model";
+import { formatDay } from "../../_shell/format";
 import { AlsoServesNote } from "@/app/_business/WhatWeRead";
-import { ProcessTimeline } from "../../_shell/ProcessTimeline";
 
-/** This tab's own `<title>` (#945, #925). Each sibling names itself
- *  inside Settings — `account-title.test.ts` forbids two screens
- *  announcing the same thing, so a shared title is not available and
- *  would not serve a reader anyway. */
+/** This tab's own `<title>` (#945, #925). */
 export const metadata: Metadata = { title: copy("meta.app.settings.market.title") };
 
 export default async function SettingsMarketTab(): Promise<React.JSX.Element> {
-  const [settings, done, understanding] = await Promise.all([readSettings(), readDone(), readUnderstanding()]);
+  const [settings, understanding, rivals, overview] = await Promise.all([
+    readSettings(),
+    readUnderstanding(),
+    readRivals(),
+    readOverview(),
+  ]);
+  const reputation = await readPromptsAt(overview.months?.reading?.week ?? null);
+  const timeZone = settings.publishing.timeZone;
+  const searches = rivals.firstPage.of === 0 ? null : rivals.firstPage.of;
+  const questions = reputation.kind === "measured" ? aiSearchesOf(reputation.prompts).asked.length : null;
 
   return (
     <div className="flex min-w-0 flex-col gap-6" data-testid="settings-tab-panel-market">
@@ -37,13 +43,28 @@ export default async function SettingsMarketTab(): Promise<React.JSX.Element> {
         concluded={settings.concluded}
         domain={settings.domain}
         locale={settings.locale}
-        timeZone={settings.publishing.timeZone}
+        timeZone={timeZone}
+        sets={{ searches, questions, competitors: settings.competitors.length }}
       />
       <AlsoServesNote n={understanding.where.alsoServes} />
-      <CompetitorsPanel competitors={settings.competitors} concluded={settings.concluded} />
-      {/* SPEC §4 (2026-10-10, issue 1395): the process, kept here after
-          setup — each step with this site's own figure. */}
-      <ProcessTimeline facts={done} timeZone={settings.publishing.timeZone} />
+      <CompetitorsPanel
+        competitors={settings.competitors}
+        concluded={settings.concluded}
+        figures={marketFigures({
+          competitors: settings.competitors,
+          measured: settings.measuredRivals,
+          firstPage: rivals.firstPage,
+          named: namedOf(reputation),
+        })}
+        measuredFrom={settings.market.wouldTakeEffectOn}
+        ownDomain={settings.domain}
+        leaders={overview.rivals.leaders.domains}
+        detail={{
+          googleOn: rivals.measuredAt === null ? null : formatDay(rivals.measuredAt, timeZone),
+          searches,
+          questions,
+        }}
+      />
     </div>
   );
 }

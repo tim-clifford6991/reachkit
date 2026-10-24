@@ -38,7 +38,7 @@
   "AppCosts": { "sha256": "dcf4a5941b228dd2926d797060e363dce9f4ff9fd4e08885820b90b0af81af20", "missing": 0 },
   "Review": { "sha256": "e20c7ddbf0d789fe813935042808fab50820335768614412db7f0c13f45fb115", "missing": 47 },
   "SettingsIndex": { "sha256": "53aa905ce24cc710030666f2024178900ebcff144b9cf0a38f1e4604c4e838c7", "missing": 1 },
-  "SettingsMarket": { "sha256": "eac8b6a1435350e8280fe1caf39a4a1c8f5bca06532da90eb1bb4f07b422176a", "missing": 30 },
+  "SettingsMarket": { "sha256": "eac8b6a1435350e8280fe1caf39a4a1c8f5bca06532da90eb1bb4f07b422176a", "missing": 1 },
   "SettingsPublishing": { "sha256": "f80d89ab6c4250aae0ea34bc9f3a8c35c3e54d4234b7f2b876973d722d00bc97", "missing": 0 },
   "SettingsVoice": { "sha256": "b3de09a57dab4f06c78435e4b1c2b659226c26b612ec00a30d8430f67a99ca59", "missing": 1 },
   "SettingsMail": { "sha256": "8313c4e879339f1c00380adf1e9432370d51a733bb588e29d8a6e543ba32caf4", "missing": 0 },

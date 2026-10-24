@@ -24,6 +24,7 @@
 // *measured* — and a card with no denominator at all is drawn as its written
 // line instead of as a row of empty bars.
 import { measured, measuredZero, unmeasured, type Measured } from "@/lib/measure/measured";
+import type { PromptsModel } from "./prompts-model";
 
 /** One site on a presence card: a tracked rival, or the customer. */
 export interface PresenceRow {
@@ -247,6 +248,19 @@ function cardOf(
     you: { domain: ownDomain, count: counts.get(ownDomain) ?? 0 },
     of,
     noRival: of > 0 && rows.length > 0 && rows.every((row) => row.count === 0),
+  };
+}
+
+/** Who the month's AI answers mention: the customer, and each site they named.
+ *  Read by the Competitors tab and by Settings › Market, so both state one figure. */
+export function namedOf(reputation: PromptsModel): PresenceCard {
+  if (reputation.kind !== "measured") return { rivals: [], you: { domain: "", count: 0 }, of: 0, noRival: false };
+  const rivals = reputation.rivals.map((rival) => ({ domain: rival.domain, count: rival.answers }));
+  return {
+    rivals,
+    you: { domain: "", count: reputation.rate.linked + reputation.rate.named },
+    of: reputation.rate.samples,
+    noRival: rivals.every((row) => row.count === 0),
   };
 }
 

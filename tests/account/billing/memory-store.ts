@@ -47,6 +47,8 @@ export interface MemoryBilling {
   failAccountRead: boolean;
   failHostingRead: boolean;
   failWrite: boolean;
+  /** One method answering not-ok, where a broad switch would fail an earlier step too. */
+  failMethod: keyof BillingStore | null;
 }
 
 export function newMemoryBilling(): MemoryBilling {
@@ -61,6 +63,7 @@ export function newMemoryBilling(): MemoryBilling {
     failAccountRead: false,
     failHostingRead: false,
     failWrite: false,
+    failMethod: null,
   };
 }
 
@@ -154,7 +157,7 @@ export function memoryBillingStore(state: MemoryBilling): BillingStore {
     return true;
   }
 
-  return {
+  const store: BillingStore = {
     async payingSiteCount(at) {
       if (state.failHostingRead) return { ok: false };
       const count = state.sites.filter((s) => new Date(joined(s).owner_paid_through) > at).length;
@@ -340,4 +343,7 @@ export function memoryBillingStore(state: MemoryBilling): BillingStore {
       };
     },
   };
+  return new Proxy(store, {
+    get: (target, key) => (key === state.failMethod ? async () => ({ ok: false }) : Reflect.get(target, key)),
+  });
 }

@@ -20,6 +20,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { applyEnvFixture } from "../../mail/env-fixture";
+import { SETS, competitorProps } from "./market-fixtures";
 
 applyEnvFixture();
 
@@ -102,12 +103,12 @@ async function mount(el: React.ReactElement): Promise<HTMLElement> {
 async function market(over: Partial<SettingsFacts> = {}): Promise<HTMLElement> {
   const model = settings(over);
   return mount(
-    <MarketPanel market={model.market} domain={model.domain} timeZone={ZONE} />
+    <MarketPanel market={model.market} domain={model.domain} timeZone={ZONE} sets={SETS} />
   );
 }
 
 async function competitors(list: readonly string[]): Promise<HTMLElement> {
-  return mount(<CompetitorsPanel competitors={list} />);
+  return mount(<CompetitorsPanel {...competitorProps(list)} />);
 }
 
 const text = (root: HTMLElement): string => root.textContent ?? "";
@@ -156,9 +157,8 @@ function within(root: HTMLElement, testid: string): Element {
   return el;
 }
 
-/** The set's two words for the act (S18 L804, issue #506): "Change" beside
- *  the domain, "Edit" beside the market. Scoped to each row as before. */
-const EDIT_WORD = { "setting-domain": "settings.change", "setting-category": "settings.edit" } as const;
+/** The board's word for the act beside both rows, scoped to each row. */
+const EDIT_WORD = { "setting-domain": "settings.change", "setting-category": "settings.change" } as const;
 
 const edit = (root: HTMLElement, control: "setting-domain" | "setting-category"): Element | null =>
   button(within(root, control), EDIT_WORD[control]);
@@ -175,11 +175,11 @@ beforeEach(() => {
 });
 
 describe("Edit opens the field it belongs to", () => {
-  it("at rest there is no field open, and the card states its standing effect", async () => {
+  it("at rest there is no field open, and the card states its standing consequences", async () => {
     const root = await market();
     expect(root.querySelector('[data-testid="edit-domain"]')).toBeNull();
     expect(root.querySelector('[data-testid="edit-category"]')).toBeNull();
-    expect(text(root)).toContain("settings.market.effect");
+    expect(root.querySelector('[data-testid="market-consequences"]')).not.toBeNull();
   });
 
   it("Edit on the domain opens a field holding the domain the site is measured under", async () => {
@@ -212,7 +212,7 @@ describe("Edit opens the field it belongs to", () => {
     await press(button(root, "settings.cancel-edit"));
     expect(root.querySelector('[data-testid="edit-domain"]')).toBeNull();
     expect(pressed).toEqual([]);
-    expect(text(root)).toContain("settings.market.effect");
+    expect(root.querySelector('[data-testid="market-consequences"]')).not.toBeNull();
   });
 
   it("REQ-070 c1 — the closed offer of controls is the same with a field open", async () => {
@@ -251,10 +251,10 @@ describe("REQ-071 c1 — the consequence is stated before the button is pressed"
     expect(line(root)).toBe("");
   });
 
-  it("the standing effect line gives way to it, so the card states one dated sentence", async () => {
+  it("the standing consequences give way to it, so the card states one dated sentence", async () => {
     const root = await market();
     await press(edit(root, "setting-domain"));
-    expect(text(root)).not.toContain("settings.market.effect(");
+    expect(root.querySelector('[data-testid="market-consequences"]')).toBeNull();
     expect(root.querySelectorAll('[data-testid="market-change-line"]')).toHaveLength(1);
   });
 });
@@ -424,7 +424,7 @@ describe("REQ-071 c2 and c4 — the competitors control", () => {
     const tag = chip.querySelector("form > button[type=submit]");
     expect(tag?.getAttribute("type")).toBe("submit");
     expect(tag?.getAttribute("aria-label")).toBe("setup.competitors.remove(asana.com)");
-    expect(tag?.querySelector(".num")?.textContent).toBe("asana.com");
+    expect(tag?.textContent).toBe("settings.competitors.remove");
   });
 
   it("§6.1 — a full set offers no way to add a sixth", async () => {
@@ -448,13 +448,11 @@ describe("REQ-071 c2 and c4 — the competitors control", () => {
     );
   });
 
-  // ADR-093's rendering half — "one string, once". `Input` omits a
-  // placeholder equal to its label, so passing the one key twice draws the
-  // word once rather than above and inside the same field.
+  // ADR-093's "one string, once": the placeholder is an example domain, never the label again.
   it("the label's own word is not repeated as the placeholder", async () => {
     const root = await competitors(TWO);
     const field = within(root, "add-competitor").querySelector('[name="rival_domain"]');
-    expect(field?.getAttribute("placeholder")).toBeNull();
+    expect(field?.getAttribute("placeholder")).toBe("settings.competitors.placeholder");
   });
 
   it("REQ-070 c1 — the set is one control, however many chips it holds", async () => {
@@ -469,7 +467,7 @@ describe("REQ-071 c2 and c4 — the competitors control", () => {
 describe("SPEC §6 (D66) — the country and language, in Settings", () => {
   async function withLocale(over: Partial<SettingsFacts>): Promise<HTMLElement> {
     const model = settings(over);
-    return mount(<MarketPanel market={model.market} domain={model.domain} locale={model.locale} timeZone={ZONE} />);
+    return mount(<MarketPanel market={model.market} domain={model.domain} locale={model.locale} timeZone={ZONE} sets={SETS} />);
   }
 
   it("offers setup's list with the measured pair and the markets the site declares first", async () => {

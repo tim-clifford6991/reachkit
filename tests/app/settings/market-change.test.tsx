@@ -11,6 +11,7 @@ import { describe, expect, it, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import React from "react";
 import { applyEnvFixture } from "../../mail/env-fixture";
+import { SETS, competitorProps } from "./market-fixtures";
 
 // The change engine reaches `@/lib/db`, which parses every binding the
 // moment it is evaluated — so the fixture is applied before the modules
@@ -57,7 +58,7 @@ function market(over: Partial<SettingsFacts> = {}): Element {
   const model = assembleSettings(facts(over));
   // The card's own slice, since #231: a client panel takes what it renders.
   return render(
-    <MarketPanel market={model.market} domain={model.domain} timeZone={ZONE} />
+    <MarketPanel market={model.market} domain={model.domain} timeZone={ZONE} sets={SETS} />
   );
 }
 
@@ -92,11 +93,10 @@ describe("REQ-071 c1 — the pending change, before the save", () => {
     );
   });
 
-  it("replaces the card's standing effect line rather than sitting beneath it", () => {
-    // §4.7 gives this card one written line. Two dated sentences on it
-    // would be the same fact pretending to be two.
+  it("replaces the card's standing consequences rather than sitting beneath them", () => {
+    // Two dated sentences on one card would be the same fact pretending to be two.
     const root = market({ editing: "domain", pendingChange: null });
-    expect(root.textContent).not.toContain("settings.market.effect");
+    expect(root.querySelector('[data-testid="market-consequences"]')).toBeNull();
   });
 });
 
@@ -130,20 +130,20 @@ describe("REQ-071 c6 — the effective-on line, after the save", () => {
     expect(line).not.toContain("settings.market.effectiveOn");
   });
 
-  it("with nothing pending and nothing being typed the card states its standing line", () => {
+  it("with nothing pending and nothing being typed the card states its standing consequences", () => {
     const root = market({ editing: null, pendingChange: null });
     expect(root.querySelector('[data-testid="market-change-line"]')).toBeNull();
-    expect(root.textContent).toContain("settings.market.effect");
+    expect(root.querySelector('[data-testid="market-consequences"]')).not.toBeNull();
   });
 });
 
 describe("REQ-071 c16 — no rival comparison until one is added", () => {
   it("states the line where the chips would be, and only where the set is empty", () => {
-    const empty = render(<CompetitorsPanel competitors={[]} />);
+    const empty = render(<CompetitorsPanel {...competitorProps([])} />);
     expect(empty.querySelector('[data-testid="competitors-none-yet-line"]')).not.toBeNull();
 
     const some = render(
-      <CompetitorsPanel competitors={["rival.example"]} />
+      <CompetitorsPanel {...competitorProps(["rival.example"])} />
     );
     expect(some.querySelector('[data-testid="competitors-none-yet-line"]')).toBeNull();
   });

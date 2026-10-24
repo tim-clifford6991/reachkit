@@ -10,7 +10,7 @@
 // REQ-024 criterion 6 — "with no second charge" — is the property most
 // easily broken by a well-meant fix, and a counter that no code path
 // increments is the only way to see it did not happen.
-import type Stripe from "stripe";
+import Stripe from "stripe";
 
 export interface StripeDoubleState {
   price: Record<string, unknown> | null;
@@ -48,6 +48,8 @@ export interface StripeDoubleState {
   refundsCreated: { params: Record<string, unknown>; idempotencyKey: string | undefined }[];
   /** Set to make `refunds.create` throw. */
   refundError: Error | null;
+  /** Set to make `invoices.list` throw. */
+  invoiceListError: Error | null;
 }
 
 export function newStripeDouble(): StripeDoubleState {
@@ -80,6 +82,7 @@ export function newStripeDouble(): StripeDoubleState {
     invoices: [],
     refundsCreated: [],
     refundError: null,
+    invoiceListError: null,
   };
 }
 
@@ -139,6 +142,15 @@ export function subscriptionDouble(a: {
     items: { data: [{ current_period_end: Math.floor(a.periodEnd.getTime() / 1000) }] },
   };
 }
+
+/** The SDK's own error classes, as a failing call throws them. */
+export const stripeErrors = {
+  connection: (): Error => new Stripe.errors.StripeConnectionError({ message: "An error occurred with our connection to Stripe." }),
+  unavailable: (): Error => new Stripe.errors.StripeAPIError({ message: "Service unavailable", statusCode: 503 }),
+  rateLimited: (): Error => new Stripe.errors.StripeRateLimitError({ message: "Too many requests", statusCode: 429 }),
+  disputed: (): Error =>
+    new Stripe.errors.StripeInvalidRequestError({ message: "Charge is disputed.", code: "charge_disputed", statusCode: 400 }),
+};
 
 /** Thrown where the real SDK would throw. */
 function raise(error: Error | null): void {
@@ -238,12 +250,15 @@ export function stripeDouble(state: StripeDoubleState): Stripe {
       },
     },
     invoices: {
-      list: async (params: { customer?: string; status?: string }) => ({
-        data: state.invoices.filter(
-          (i) => (params.customer === undefined || i.customer === params.customer) && (params.status === undefined || i.status === params.status)
-        ),
-        has_more: false,
-      }),
+      list: async (params: { customer?: string; status?: string }) => {
+        raise(state.invoiceListError);
+        return {
+          data: state.invoices.filter(
+            (i) => (params.customer === undefined || i.customer === params.customer) && (params.status === undefined || i.status === params.status)
+          ),
+          has_more: false,
+        };
+      },
     },
     refunds: {
       create: async (params: Record<string, unknown>, options?: { idempotencyKey?: string }) => {
