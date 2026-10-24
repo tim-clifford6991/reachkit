@@ -75,6 +75,7 @@ export function AiTiles(p: { pages: AiPages | null; reads: BlogReadsModel }): Re
             figure: formatCount(pages.linked),
             quiet: pages.linked === 0,
             against: copy("overview.answers.pages-cited.of", { of: formatCount(pages.asked) }),
+            spark: pages.asked === 0 ? null : <progress className="progress progress-primary w-full" value={pages.linked} max={pages.asked} aria-hidden />,
             split: [
               copy("overview.answers.linked.line"),
               ...(pages.mentioned === 0
