@@ -184,7 +184,7 @@ export function CompetitorsPanel(p: {
 
         <div className="flex min-w-0 flex-col gap-4" data-testid="setting-competitors">
           {p.competitors.length > 0 ? null : <EmptyLine />}
-          <ul className="grid min-w-0 grid-cols-[repeat(auto-fill,minmax(min(100%,15rem),1fr))] gap-3">
+          <ul className="grid min-w-0 grid-cols-[repeat(auto-fill,minmax(min(100%,250px),1fr))] gap-3" data-layout="tiles">
             {p.competitors.map((domain) => {
               const figures = p.figures.cards[domain] ?? null;
               const found = concluded !== null && concluded.reasons[domain] !== undefined;

@@ -324,7 +324,7 @@ export function MarketPanel(p: {
 
         <div className="flex min-w-0 flex-col gap-2" data-testid="market-sets">
           <p className="eyebrow">{copy("settings.market.sets.title")}</p>
-          <ul className="grid min-w-0 grid-cols-1 gap-2 sm:grid-cols-3">
+          <ul className="grid min-w-0 grid-cols-[repeat(auto-fit,minmax(min(100%,180px),1fr))] gap-2" data-layout="wells">
             {p.sets.searches === null ? null : (
               <li className={WELL}>
                 <Search {...WELL_ICON} />
