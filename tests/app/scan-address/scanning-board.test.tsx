@@ -15,6 +15,7 @@ vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
 const { ScanningView } = await import("@/app/(public)/scan/[domain]/_address/scanning");
 const { copy } = await import("@/lib/presentation/copy");
 const { BATTERY } = await import("@/lib/config/constants");
+type StageSummary = import("@/lib/scan/stages").StageSummary;
 
 class FakeEventSource {
   static opened: FakeEventSource[] = [];
@@ -54,7 +55,7 @@ async function mount(): Promise<HTMLElement> {
 }
 
 /** Moves the clock to `seconds` after the start, then records `event`. */
-async function at(seconds: number, event: { stage: string; done: boolean }): Promise<void> {
+async function at(seconds: number, event: { stage: string; done: boolean; summary?: StageSummary }): Promise<void> {
   vi.setSystemTime(START.getTime() + seconds * 1000);
   await act(async () => FakeEventSource.opened[0]!.emit(event));
 }
@@ -65,9 +66,10 @@ async function partWay(): Promise<HTMLElement> {
   await at(0, { stage: "reading_your_site", done: false });
   await at(4, { stage: "reading_your_site", done: true });
   await at(4, { stage: "reading_access_rules", done: false });
-  await at(6, { stage: "reading_access_rules", done: true });
+  await at(6, { stage: "reading_access_rules", done: true, summary: { readers: { google: "in", ai: "out" } } });
   await at(6, { stage: "reading_your_market", done: false });
-  await at(12, { stage: "reading_your_market", done: true });
+  // The crawl ends beside the market, so its count rides on the market's exit.
+  await at(12, { stage: "reading_your_market", done: true, summary: { pagesRead: 38, category: "Plumber" } });
   await at(12, { stage: "checking_your_presence", done: false });
   return screen;
 }
@@ -91,6 +93,22 @@ function inOrder(screen: HTMLElement, wanted: string[]): void {
 const rows = (screen: HTMLElement): HTMLElement[] => [...screen.querySelectorAll<HTMLElement>(".steps > li")];
 const cards = (screen: HTMLElement): HTMLElement[] => [...screen.querySelectorAll<HTMLElement>('[data-testid="scan-section"]')];
 const searches = { searches: String(BATTERY.QUESTIONS) };
+const card = (screen: HTMLElement, title: string): HTMLElement =>
+  cards(screen).find((c) => c.querySelector("h3")?.textContent?.startsWith(title))!;
+const TWELVE: StageSummary["searches"] = [
+  { words: "emergency plumber austin", onPageOne: false },
+  { words: "drain cleaning austin", onPageOne: true },
+];
+
+/** Every stage after the board's moment finishes, scoring included, carrying the summaries a pass writes. */
+async function toTheEnd(screen: HTMLElement): Promise<void> {
+  await at(14, { stage: "checking_your_presence", done: true, summary: { pagesRead: 38 } });
+  await at(14, { stage: "asking_the_twelve", done: false });
+  await at(20, { stage: "asking_the_twelve", done: true, summary: { pagesRead: 38, searches: TWELVE } });
+  await at(20, { stage: "scoring", done: false });
+  await at(21, { stage: "scoring", done: true, summary: { pagesRead: 38 } });
+  expect(rows(screen).every((row) => row.dataset.state === "done")).toBe(true);
+}
 
 describe("the scan in progress matches board PubScanning", () => {
   it("nothing the board draws is missing but its allowed sample data, rulings and the cards' pending content", async () => {
@@ -184,5 +202,61 @@ describe("a stage that is not done shows not done, never 0", () => {
     expect(html.split('data-state="pending"').length - 1).toBe(6 + 6);
     expect(html).not.toContain('data-state="done"');
     expect(html).not.toContain("started");
+  });
+});
+
+describe("the cards fill in from what each finished stage found", () => {
+  it("cards fill in: pages read and the category, who may read the site, then the searches one by one; a stage not done still says Next over a skeleton", async () => {
+    const screen = await partWay();
+    const read = card(screen, copy("report.read.title"));
+    expect(read.textContent).toContain(copy("scan.filling.pages", { pages: "38" }));
+    expect(read.textContent).toContain("Plumber");
+    expect(read.querySelector(".skeleton")).toBeNull();
+    inOrder(card(screen, copy("scan.filling.readers")), [
+      `${copy("scan.filling.reader.google")} ${copy("scan.filling.reader.in")} ${copy("scan.filling.reader.ai")} ${copy("scan.filling.reader.out")}`,
+      copy("scan.filling.reader.fix"),
+    ]);
+    const twelve = card(screen, copy("scan.filling.searches", searches));
+    expect(twelve.dataset.state).toBe("pending");
+    expect(twelve.textContent).toContain(copy("stage.status.next"));
+    expect(twelve.querySelector(".skeleton")).not.toBeNull();
+
+    await toTheEnd(screen);
+    inOrder(card(screen, copy("scan.filling.searches", searches)), [
+      `emergency plumber austin ${copy("scan.filling.search.out")}`,
+      `drain cleaning austin ${copy("scan.filling.search.in")}`,
+    ]);
+  });
+
+  it("a site that lets every reader in shows no fix line", async () => {
+    const screen = await mount();
+    await at(1, { stage: "reading_access_rules", done: true, summary: { readers: { google: "in", ai: "in" } } });
+    const readers = card(screen, copy("scan.filling.readers"));
+    expect(readers.textContent).toContain(`${copy("scan.filling.reader.ai")}${copy("scan.filling.reader.in")}`);
+    expect(readers.textContent).not.toContain(copy("scan.filling.reader.fix"));
+  });
+
+  it("the competitors card stays grey whatever the stream carries, with every stage done", async () => {
+    const screen = await partWay();
+    await toTheEnd(screen);
+    for (const title of [copy("scan.filling.competitors"), copy("scan.get.score"), copy("scan.filling.ai")]) {
+      const grey = card(screen, title);
+      expect(grey.dataset.state).toBe("done");
+      expect(grey.querySelector(".skeleton")).not.toBeNull();
+      expect(grey.textContent).toBe(`${title}${copy("scan.filling.found")}`);
+    }
+  });
+
+  it("a missing summary is never drawn as 0: no summary, or one without pages read, keeps the done badge over a skeleton", async () => {
+    const screen = await mount();
+    await at(1, { stage: "reading_access_rules", done: true });
+    await at(2, { stage: "reading_your_market", done: true, summary: { category: "Plumber" } });
+    const readers = card(screen, copy("scan.filling.readers"));
+    expect(readers.dataset.state).toBe("done");
+    expect(readers.querySelector(".skeleton")).not.toBeNull();
+    const read = card(screen, copy("report.read.title"));
+    expect(read.textContent).toContain("Plumber");
+    expect(read.textContent).not.toContain(copy("scan.filling.pages", { pages: "0" }));
+    for (const c of cards(screen)) expect(c.textContent).not.toMatch(/(^|\D)0(\D|$)/);
   });
 });
