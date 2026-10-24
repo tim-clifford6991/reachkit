@@ -735,6 +735,29 @@ describe("the Google bar is the presence card's page-one share, bought with noth
     expect(shownLimitingOf(report.verdict)).not.toBe("google");
   });
 
+  it("4 SERPs measured, none with the site on page one, stores the score's estimate over the share's Wilson range, bought with nothing more", async () => {
+    measureDomain.mockResolvedValue(
+      measurement({ drivers: { ...measurement().drivers, foundations: measured(100, AT), answerability: measured(30, AT) } })
+    );
+    const noAnswer = measured({ ...SERP, aiOverview: { present: false, asynchronousAiOverview: false, referenceDomains: [] } }, AT);
+    let asked = 0;
+    serpOrganic.mockImplementation(async () => {
+      asked += 1;
+      return asked <= 4 ? noAnswer : unmeasured("undeterminable", AT);
+    });
+    await runScan({ domain: DOMAIN, tier: "free" });
+    const { report } = stored();
+    expect(report.presence).toMatchObject({ measuredSearches: 4, you: { top10Count: 0 } });
+    expect(report.verdict.scoreAndBand).toMatchObject({ value: { score: 14 } });
+    expect(report.verdict.estimate).toEqual({ low: 14, high: 53, confidence: "rough" });
+    expect(report.verdict.halves?.google).toEqual(measuredZero(0, AT));
+    expect(measureDomain).toHaveBeenCalledTimes(1);
+    expect(serpOrganic).toHaveBeenCalledTimes(TWELVE.length);
+    expect(placeLocation).not.toHaveBeenCalled();
+    const costs = db.queries.filter((q) => q.table === "scans" && q.verb === "update" && q.values?.cost_cents !== undefined);
+    expect(costs.map((q) => q.values?.cost_cents)).toEqual([0]);
+  });
+
   it("no SERP measured leaves the Google half unmeasured with the SERPs' reason, never 0", async () => {
     serpOrganic.mockResolvedValue(unmeasured("undeterminable", AT));
     await runScan({ domain: DOMAIN, tier: "free" });

@@ -130,6 +130,10 @@ export function verdictOf(a: {
   /** Where AI presence could lie given the answers behind it
    *  (`aiPresenceRangeOf`); absent, its value alone. */
   aiRange?: { low: number; high: number } | null;
+  /** Where the Google share could lie given the searches it was counted
+   *  over (`searchPresenceRangeOf`); its `read` decides a thin sample in
+   *  place of `searchesRead`. Absent, its value alone. */
+  searchRange?: { low: number; high: number; read: number } | null;
   /** How many Google results were read: few is always a rough estimate. */
   searchesRead?: number;
 }): Verdict {
@@ -138,11 +142,11 @@ export function verdictOf(a: {
   const scoreAndBand = computeScore(factors);
   const presenceRange =
     a.presence === undefined
-      ? presenceRangeOf(a.drivers, a.aiRange)
+      ? presenceRangeOf(a.drivers, a.aiRange, a.searchRange)
       : a.presence.kind === "unmeasured"
         ? null
         : { low: a.presence.value, high: a.presence.value };
-  const estimate = presenceRange === null ? null : estimateOf(factors, presenceRange, a.searchesRead);
+  const estimate = presenceRange === null ? null : estimateOf(factors, presenceRange, a.searchRange?.read ?? a.searchesRead);
   const limiting = limitingFactorOf(factors);
 
   const missing: { factor: ScoreFactorName; reason: UnmeasuredReason }[] = [];
