@@ -61,8 +61,15 @@ export function PageLadder(p: { ladder: Model; timeZone: string }): React.JSX.El
       <div className="card-body min-w-0 gap-4 p-4 sm:p-5">
         <div className="flex min-w-0 flex-wrap items-baseline justify-between gap-x-3">
           <h2>{copy("overview.ladder.title", { n: formatCount(ladder.live) })}</h2>
-          {ladder.readAt === null ? null : (
-            <p className="text-sm text-base-content/70">{copy("overview.ladder.read", { on: formatDay(ladder.readAt, p.timeZone) })}</p>
+          {ladder.readAt === null && ladder.unread === 0 ? null : (
+            <p className="text-sm text-base-content/70">
+              {[
+                ladder.readAt === null ? null : copy("overview.ladder.read", { on: formatDay(ladder.readAt, p.timeZone) }),
+                ladder.unread === 0 ? null : copy("overview.ladder.unread", { k: formatCount(ladder.unread) }),
+              ]
+                .filter((part): part is string => part !== null)
+                .join(" · ")}
+            </p>
           )}
         </div>
         <Steps {...ON_GOOGLE} steps={ladder.google} climbing={ladder.climbing} />
