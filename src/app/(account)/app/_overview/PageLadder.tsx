@@ -3,9 +3,10 @@
 // its label, opening the page's own screen. A step not read says so.
 import type React from "react";
 import Link from "next/link";
+import { Eye, Globe, Link2, Search, Sparkles, Trophy, User, type LucideIcon } from "lucide-react";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
-import type { Label } from "@/lib/opportunities/verdicts/types";
 import { formatCount, formatDay } from "../_shell/format";
+import { LabelBadge } from "../_shell/verdict";
 import type { PageLadder as Model, StepFigure } from "@/lib/measure/page-ladder";
 import { CLOSED } from "./present";
 
@@ -13,12 +14,26 @@ const ROWS_ID = "overview-ladder-pages";
 const ON_GOOGLE = { title: "draft.ladder.google", sub: "overview.ladder.google.sub", testId: "overview-ladder-google" } as const;
 const IN_AI = { title: "draft.ladder.ai", sub: "overview.ladder.ai.sub", testId: "overview-ladder-ai" } as const;
 
-export const LABEL: Readonly<Record<Label, { key: CopyKey; badge: string }>> = {
-  working: { key: "review.label.working", badge: "badge badge-soft badge-success" },
-  climbing: { key: "review.label.climbing", badge: "badge badge-soft badge-primary" },
-  too_early: { key: "review.label.too_early", badge: "badge badge-soft" },
-  not_moving: { key: "review.label.not_moving", badge: "badge badge-soft badge-warning" },
+/** The ladder steps `page-ladder.ts` names, so a step without its board icon fails the type check. */
+type StepName =
+  | "draft.ladder.live"
+  | "draft.ladder.found"
+  | "draft.ladder.showing"
+  | "draft.ladder.first-page"
+  | "draft.ladder.read"
+  | "draft.ladder.linked"
+  | "draft.ladder.visit";
+
+const STEP_ICON: Readonly<Record<StepName, LucideIcon>> = {
+  "draft.ladder.live": Globe,
+  "draft.ladder.found": Search,
+  "draft.ladder.showing": Eye,
+  "draft.ladder.first-page": Trophy,
+  "draft.ladder.read": Sparkles,
+  "draft.ladder.linked": Link2,
+  "draft.ladder.visit": User,
 };
+const iconOf = (name: CopyKey): LucideIcon | undefined => (STEP_ICON as Partial<Record<CopyKey, LucideIcon>>)[name];
 
 function Steps(p: { title: CopyKey; sub: CopyKey; steps: readonly StepFigure[]; climbing: number; testId: string }): React.JSX.Element {
   return (
@@ -28,26 +43,31 @@ function Steps(p: { title: CopyKey; sub: CopyKey; steps: readonly StepFigure[]; 
         <p className="text-sm text-base-content/70">{copy(p.sub)}</p>
       </div>
       <ul className="grid min-w-0 grid-cols-2 gap-3 lg:grid-cols-4">
-        {p.steps.map((step) => (
-          <li key={step.name} className="min-w-0 rounded-box bg-base-200 p-3 text-sm" data-step={step.name}>
-            <span className="block text-xs font-semibold uppercase tracking-wide text-base-content/70">
-              {`${step.n} · ${copy(step.name)}`}
-            </span>
-            {step.count === null ? (
-              <span className="block font-semibold">{copy("draft.ladder.unmeasured")}</span>
-            ) : (
-              <>
-                <a className="num link link-hover block text-2xl font-semibold" href={`#${ROWS_ID}`}>
-                  {formatCount(step.count)}
-                </a>
-                <span className="block">{copy(step.line, { n: formatCount(step.of) })}</span>
-              </>
-            )}
-            {step.name === "draft.ladder.showing" && p.climbing > 0 ? (
-              <span className="badge badge-soft badge-primary mt-1">{copy("overview.ladder.climbing", { n: formatCount(p.climbing) })}</span>
-            ) : null}
-          </li>
-        ))}
+        {p.steps.map((step) => {
+          const Icon = iconOf(step.name);
+          return (
+            <li key={step.name} className="min-w-0 rounded-box bg-base-200 p-3 text-sm" data-step={step.name}>
+              <span className="flex min-w-0 items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-base-content/70">
+                {Icon === undefined ? null : <Icon className="size-4 shrink-0" strokeWidth={1.75} aria-hidden />}
+                {`${step.n} · ${copy(step.name)}`}
+              </span>
+              {step.count === null ? (
+                <span className="block font-semibold">{copy("draft.ladder.unmeasured")}</span>
+              ) : (
+                <>
+                  <a className="num link link-hover block text-2xl font-semibold" href={`#${ROWS_ID}`}>
+                    {formatCount(step.count)}
+                  </a>
+                  {step.of === 0 ? null : <progress className="progress progress-primary w-full" value={step.count} max={step.of} aria-hidden />}
+                  <span className="block">{copy(step.line, { n: formatCount(step.of) })}</span>
+                </>
+              )}
+              {step.name === "draft.ladder.showing" && p.climbing > 0 ? (
+                <span className="badge badge-soft badge-primary mt-1">{copy("overview.ladder.climbing", { n: formatCount(p.climbing) })}</span>
+              ) : null}
+            </li>
+          );
+        })}
       </ul>
     </div>
   );
@@ -110,7 +130,7 @@ export function PageLadder(p: { ladder: Model; timeZone: string }): React.JSX.El
                     .join(" · ")}
                 </p>
               </div>
-              {row.label === null ? null : <span className={`${LABEL[row.label].badge} shrink-0`}>{copy(LABEL[row.label].key)}</span>}
+              {row.label === null ? null : <LabelBadge label={row.label} className="shrink-0" />}
             </li>
           ))}
         </ul>
