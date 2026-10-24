@@ -50,7 +50,7 @@
 // the screen.
 import type React from "react";
 import { HOSTED_BODY_CLASSES } from "@/app/(hosted)/hosted-page/body-classes";
-import { Clock } from "lucide-react";
+import { Clock, Lock } from "lucide-react";
 import {
   markPassage,
   parseMarkdown,
@@ -70,6 +70,46 @@ function addressOf(url: string): string {
   } catch {
     return url;
   }
+}
+
+/** The frame's address bar: the lock, then the page's address. The editor's
+ *  preview draws the same bar. */
+export function AddressBar(p: { url: string }): React.JSX.Element {
+  return (
+    <div className="mockup-browser-toolbar min-w-0">
+      {/* The address as a browser shows it, and not a link: there is
+          nowhere to send a reviewer — the page is not live yet, and on a
+          live page the record's own block is what offers the address. */}
+      {/* `w-full`: `.input` is `width: clamp(3rem, 20rem, 100%)`, so left to
+          itself the bar stays 320px wide and scrolls an address inside it
+          on a 1280 screen with room to spare. A browser's bar is as wide
+          as the browser. */}
+      <span className="input min-w-0 w-full items-center">
+        <Lock size={14} strokeWidth={1.75} className="shrink-0" aria-hidden />
+        {/* **The box scrolls; the address is never rewritten to fit
+            it.** An address is a value, and `src/ui/type.css` bans
+            every break inside one — "a domain is a value and is never
+            wrapped mid-word" — so `wrap-anywhere` here would be a
+            no-op and `truncate` would be a value cut in half, which
+            `tests/ui/layout/checks.ts` fails whether the box is
+            allow-listed or not. The rule the sheet names instead is
+            ADR-093's: the *box* changes, with an `overflow-x-auto`
+            wrap. `AddressLine` and the scan's free-page row are the
+            same two lines, and a real browser bar scrolls its address
+            for the same reason.
+            `tabIndex` because a scroller a mouse can reach and a
+            keyboard cannot is an axe failure of its own
+            (`scrollable-region-focusable`). */}
+        <span
+          className="num min-w-0 max-w-full overflow-x-auto"
+          data-testid="published-view-address"
+          tabIndex={0}
+        >
+          {addressOf(p.url)}
+        </span>
+      </span>
+    </div>
+  );
 }
 
 export function PublishedPageView(p: {
@@ -128,38 +168,7 @@ export function PublishedPageView(p: {
       )}
 
       <div className="mockup-browser border-base-300 bg-base-200 min-w-0 border">
-        <div className="mockup-browser-toolbar min-w-0">
-          {/* The address as a browser shows it, and not a link: there is
-              nowhere to send a reviewer — the page is not live yet, and on a
-              live page the record's own block is what offers the address. */}
-          {/* `w-full`: `.input` is `width: clamp(3rem, 20rem, 100%)`, so left to
-              itself the bar stays 320px wide and scrolls an address inside it
-              on a 1280 screen with room to spare. A browser's bar is as wide
-              as the browser. */}
-          <span className="input min-w-0 w-full items-center">
-            {/* **The box scrolls; the address is never rewritten to fit
-                it.** An address is a value, and `src/ui/type.css` bans
-                every break inside one — "a domain is a value and is never
-                wrapped mid-word" — so `wrap-anywhere` here would be a
-                no-op and `truncate` would be a value cut in half, which
-                `tests/ui/layout/checks.ts` fails whether the box is
-                allow-listed or not. The rule the sheet names instead is
-                ADR-093's: the *box* changes, with an `overflow-x-auto`
-                wrap. `AddressLine` and the scan's free-page row are the
-                same two lines, and a real browser bar scrolls its address
-                for the same reason.
-                `tabIndex` because a scroller a mouse can reach and a
-                keyboard cannot is an axe failure of its own
-                (`scrollable-region-focusable`). */}
-            <span
-              className="num min-w-0 max-w-full overflow-x-auto"
-              data-testid="published-view-address"
-              tabIndex={0}
-            >
-              {addressOf(p.publisher.url)}
-            </span>
-          </span>
-        </div>
+        <AddressBar url={p.publisher.url} />
 
         <div className="bg-base-100 min-w-0 px-4 py-8 sm:px-8">
           <article
