@@ -1,21 +1,6 @@
-// BUILD §13 — the sign-in link a completed payment sends.
-//
-// One directory per mail kind, named for the kind (ADR-040): a block list
-// and nothing else. No shell, no formatter, no vendor knowledge, no
-// conditional and no sentence of its own.
-//
-// **No opt-out control, and that is not an oversight.** On magic-link auth
-// this mail *is* the credential. ADR-042 exists because an address-wide
-// unsubscribe that reached `magic-link` would lock a paying customer out of
-// the product with no recovery channel — the register row says
-// `stoppable: false`, the send seam therefore asks no store, and this
-// template carries no way to stop the one mail that is the way back in.
-//
-// The link arrives already built. This template does not know how a token
-// is made, how long it lives or where it is redeemed — that is issue #35's
-// — and it cannot compose itself without one, which is why `href` is a
-// required field rather than an optional that could quietly render an
-// action pointing nowhere.
+// BUILD §13 — the sign-in link a completed payment sends, as a block list only (ADR-040).
+// No opt-out: this mail is the credential, and an unsubscribe that reached it would lock a paying customer out (ADR-042, `stoppable: false`).
+// `href` arrives built and is required, so the action can never point nowhere.
 import type { CopyKey } from "@/lib/presentation/copy";
 import type { MailBlock } from "../../blocks/types";
 
@@ -29,21 +14,12 @@ const REASON = "mail.reason.magicLink" satisfies CopyKey;
 export interface AccountMail {
   readonly subject: CopyKey;
   readonly blocks: readonly MailBlock[];
-  /** UI-SPEC S20's footer line: why this mail arrived. Absent only on the
-   *  kinds the approved set does not draw, whose line is not written yet —
-   *  `tests/mail/shell/footer.test.ts` names those three. */
+  /** S20's footer line; absent only on the kinds `tests/mail/shell/footer.test.ts` names. */
   readonly reason?: CopyKey;
 }
 
-/**
- * SPEC §8's sign-in mail: heading, one short line, the one solid action,
- * then the fact row, with the reason in the shell's footer.
- *
- * The action comes straight after the line because it is the whole point
- * of the mail. The address is a fact row and not a sentence (`for ·
- * you@example.com`): this mail is a credential, so a reader sent it at an
- * address they do not recognise can see that beside the button.
- */
+/** SPEC §8's sign-in mail: heading, line, the action straight after, then the address as a fact row,
+ *  so someone sent it at an unfamiliar address sees that beside the button. */
 export function buildMagicLink(a: { href: string; address: string }): AccountMail {
   return {
     subject: SUBJECT,

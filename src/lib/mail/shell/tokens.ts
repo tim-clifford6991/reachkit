@@ -1,18 +1,9 @@
 // The theme's values a mail may use, resolved.
 //
-// A mail client is not a browser: `var(--color-primary)` resolves to nothing
-// in most inboxes, so a mail carries the resolved value inline. This is the
-// one place in `src/lib/mail/**` a colour or a font stack is written down;
-// the renderers name tokens and never values. The names are the theme's own
-// (`src/ui/theme.css`), and `tests/mail/shell/shell-tokens.test.ts` holds
-// every value here equal to the one declared there, so the two cannot drift.
-//
-// Light values only: inbox support for `prefers-color-scheme` is partial, and
-// a mail that half-switched would be worse than one that did not.
+// Most inboxes resolve no `var()`, so this is the one place in `src/lib/mail/**` a resolved colour or font stack is written;
+// `tests/mail/shell/shell-tokens.test.ts` holds each equal to `src/ui/theme.css`. Light only: a half-switched dark mail is worse.
 
-/** The `:root` tokens of `src/ui/theme.css` this seam uses, and the two
- *  font stacks `.rk-fonts` binds in `src/ui/type.css`. A name absent from
- *  this map is not available to a mail — deliberately narrow. */
+/** The theme tokens and `.rk-fonts` stacks a mail may use; deliberately narrow. */
 export const MAIL_TOKENS = Object.freeze({
   "--bg": "#f3f4fb",
   "--color-base-100": "#ffffff",
@@ -28,10 +19,7 @@ export const MAIL_TOKENS = Object.freeze({
   "--r-box": "14px",
   "--r-field": "9px",
   "--r-pill": "999px",
-  // Ruling 10a's ladder (UI-SPEC §1, issue #376). A mail spent these as
-  // bare pixel counts until the approved set fixed the rungs; naming them
-  // here is what lets `document.tsx` and `blocks/nodes.tsx` spend a size the way
-  // they already spend a colour, and what makes a drifted rung fail below.
+  // The type ladder (UI-SPEC §1), named so a drifted rung fails the token test.
   "--h2": "25px",
   "--h3": "20px",
   "--t-body": "15px",
@@ -41,29 +29,15 @@ export const MAIL_TOKENS = Object.freeze({
   "--font-ui": '"Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif',
   "--font-mono": '"JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace',
 
-  // ── The two stacks a mail actually renders in ──────────────────────
-  //
-  // The two above are the product's, and a mail cannot have them: an inbox
-  // loads no webfont, and `ui-sans-serif` / `system-ui` — the generics the
-  // screens fall back through — are understood by almost no mail client.
-  // Outlook and several webmail readers skip the whole declaration and
-  // render the default, which is a **serif**: every numeral in the mail
-  // then loses ruling 7a (mono numerals) and the card stops looking like
-  // the product at all. Found on the owner's own render, 2026-09-09.
-  //
-  // So a mail names these instead — faces that are *installed*, in the
-  // order a reader is likeliest to have one. They are the only two values
-  // in this file with no counterpart in `theme.css`, and
-  // `tests/mail/shell/shell-tokens.test.ts` names them as the exception
-  // with this reason rather than widening its rule.
+  // The stacks a mail renders in: inboxes load no webfont and many skip `system-ui`, falling back to serif, so these name
+  // installed faces. The only values with no `theme.css` counterpart; the token test names them as the exception.
   "--font-ui-mail": "-apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
   "--font-mono-mail": "ui-monospace, 'SF Mono', Menlo, Consolas, monospace",
 } as const);
 
 export type MailToken = keyof typeof MAIL_TOKENS;
 
-/** The one reader. Every colour and font stack in a rendered mail comes
- *  through here, named. */
+/** The one reader of every colour and font stack in a mail. */
 export function token(name: MailToken): string {
   return MAIL_TOKENS[name];
 }

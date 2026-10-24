@@ -1,6 +1,4 @@
-// SPEC §8, Retention (issue #569) — the `win-back` mail. Every sentence is a
-// key, owner-owed until the copy sheet (#568) lands; `sendEmail` refuses a
-// mail still carrying `TODO(copy)`, so this sends nothing until then.
+// SPEC §8, Retention — the `win-back` mail. Every sentence is a key, and `sendEmail` refuses one still carrying `TODO(copy)`.
 import type { CopyKey } from "@/lib/presentation/copy";
 import { appHref, type RetentionMail } from "../../retention/mail";
 import { optOutControlFor } from "../first-page";

@@ -1,29 +1,12 @@
-// BUILD §13 — the `account` mails REQ-024 obliges: the 15-minute chase and
-// the second-purchase notice.
-//
-// One directory per mail kind (ADR-040). `account` is `stoppable: false`:
-// both mails below tell a founder something about money that has left their
-// bank, and neither is a mail anybody may unsubscribe from.
-//
-// **Every one of these names a way to reach a person.** REQ-024 criteria 3
-// and 5 both require it, so `REACH_A_PERSON` is appended by the builders
-// here rather than remembered at two call sites — a mail that dropped it
-// would be structurally impossible to produce from this file.
-//
-// **The chase never asks for payment again.** There is no action block
-// carrying a checkout URL in this file, no price key, and nothing importing
-// `src/lib/account/checkout/**` from it. The two chase arms are two block
-// lists, not one list with a conditional: "here is your way in" and "we are
-// still opening your account" are different statements, and a template that
-// chose between them with an `if` would be one edit away from saying the
-// first while carrying no link.
+// BUILD §13 — the `account` mails REQ-024 obliges, as block lists only (ADR-040); `stoppable: false`, since each is about money that left a bank.
+// Every one names a way to reach a person (REQ-024 c3, c5), appended by the builders here so no mail can drop it.
+// The chase never asks for payment again: no checkout URL, price key or `src/lib/account/checkout/**` import. Its two arms are two lists,
+// not an `if`, so "here is your way in" can never be said without the link.
 import { measured } from "@/lib/measure/measured";
 import type { CopyKey } from "@/lib/presentation/copy";
 import type { AccountMail } from "../magic-link";
 
-/** Which of REQ-076 criterion 11's two notices this is. Two occasions, two
- *  subjects, one body: what changes between them is why the customer is
- *  hearing from us, not what they are being told. */
+/** Which of REQ-076 c11's two notices this is: two subjects, one body. */
 export type HostingEndOccasion = "access_ended" | "seven_days";
 
 const CHASE_SUBJECT = "mail.account.chase.subject" satisfies CopyKey;
@@ -45,14 +28,8 @@ const DELETED_SUBJECT = "mail.account.deleted.subject" satisfies CopyKey;
 const DELETED_STILL_LIVE = "mail.account.deleted.still_live" satisfies CopyKey;
 const DELETED_THEIRS_TO_KEEP = "mail.account.deleted.theirs_to_keep" satisfies CopyKey;
 
-/** The four WordPress outcomes REQ-079 criterion 6 names, each with the two
- *  forms its sentence takes: one that names the place ReachKit's posts come
- *  up together in the customer's own site, one that says the posts are there
- *  and ReachKit cannot point to them — and it still carries its count.
- *
- *  `already_gone` has one form, not two, because that sentence names no
- *  place "because there is nothing there to find". A second form here would
- *  be a place for a place to be written. */
+/** REQ-079 c6's four WordPress outcomes, each with a form that names where the posts are and one that cannot, both with the count.
+ *  `already_gone` has one form: there is nothing there to find, so no place to write. */
 const WORDPRESS_LINES = Object.freeze({
   returned_to_draft: Object.freeze({
     withPlace: "mail.account.deleted.wordpress.returned_to_draft" satisfies CopyKey,
@@ -74,9 +51,7 @@ const WORDPRESS_LINES = Object.freeze({
 
 export type DeletedWordPressOutcome = keyof typeof WORDPRESS_LINES;
 
-/** The order the four sentences stand in. Fixed here rather than taken from
- *  a map's iteration order, so the mail reads the same whichever arms a
- *  particular run produced. */
+/** The sentences' fixed order, so the mail reads the same whichever arms a run produced. */
 const WORDPRESS_ORDER: readonly DeletedWordPressOutcome[] = Object.freeze([
   "returned_to_draft",
   "named_for_removal",
@@ -84,10 +59,7 @@ const WORDPRESS_ORDER: readonly DeletedWordPressOutcome[] = Object.freeze([
   "unreachable",
 ] as const);
 
-/** REQ-060 c6's list, as the values the sentence names it by. Composing the
- *  address is this template's job for the same reason an `action` block's
- *  `href` is: an address is structure, not voice, and the module that
- *  tallied the counts builds no URL text. */
+/** REQ-060 c6's list as the sentence names it; the address is structure, built here, not by the module that tallied the counts. */
 export interface DeletedPlace {
   readonly siteBaseUrl: string;
   readonly stampSlug: string;
@@ -97,40 +69,22 @@ function placeAddress(place: DeletedPlace): string | null {
   try {
     return new URL(place.stampSlug, place.siteBaseUrl).toString();
   } catch {
-    // A base that will not parse is no place to send anybody. The sentence
-    // falls back to the form that names none and still carries its count.
+    // An unparseable base names no place; the sentence keeps its count.
     return null;
   }
 }
 
 export interface DeletedAccountMailInput {
-  /** How many pages are still live at a destination that could not be
-   *  reached. Absent — not zero — where there are none. */
+  /** Pages still live at an unreachable destination; absent, not zero, where there are none. */
   readonly stillLive?: number;
-  /** One entry per outcome that holds posts. An outcome holding none is
-   *  absent, never present with a count of none, so no sentence here can
-   *  render a zero. */
+  /** One entry per outcome that holds posts, so no sentence can render a zero. */
   readonly leftInWordPress: Partial<
     Record<DeletedWordPressOutcome, { count: number; place: DeletedPlace | null }>
   >;
 }
 
-/**
- * REQ-079 criterion 6's mail.
- *
- * **One sentence per outcome, each with its own count.** No block below
- * carries two outcomes, and no count in it is the sum of two arms: the
- * caller hands one entry per arm and this builder writes one paragraph per
- * entry it was handed.
- *
- * **It lists no post, whatever the number**, and it names a place only
- * where the caller supplied one.
- *
- * Whether this mail is sent at all is criterion 6's last sentence and the
- * caller's: "Where nothing of either kind is left behind, no such mail is
- * sent." A builder that returned an empty mail would be one call away from
- * sending it.
- */
+/** REQ-079 c6's mail: one sentence per outcome with its own count, never a sum; no post listed; a place only where supplied.
+ *  Whether to send is the caller's ("where nothing … is left behind, no such mail is sent"), so no empty mail is ever returned. */
 export function buildAccountDeleted(a: DeletedAccountMailInput): AccountMail {
   const blocks: AccountMail["blocks"][number][] = [];
 
@@ -175,8 +129,7 @@ const BROKEN_BODY = "mail.account.destinationBroken.body" satisfies CopyKey;
 const BROKEN_HELD = "mail.account.destinationBroken.held" satisfies CopyKey;
 const BROKEN_ACTION = "mail.account.destinationBroken.action" satisfies CopyKey;
 
-/** The chase where the account is open and a link exists: the payment
- *  succeeded, here is the way in, here is a person. */
+/** The chase with an open account: the payment succeeded, here is the way in, here is a person. */
 export function buildChaseWithLink(a: { href: string }): AccountMail {
   return {
     subject: CHASE_SUBJECT,
@@ -188,9 +141,7 @@ export function buildChaseWithLink(a: { href: string }): AccountMail {
   };
 }
 
-/** The chase where the account is not open yet: the payment succeeded, it
- *  is not open, here is a person. It carries no action at all — an action
- *  here could only point somewhere that does not work. */
+/** The chase before the account opens: no action, since it could only point somewhere that does not work. */
 export function buildChaseWithoutLink(): AccountMail {
   return {
     subject: CHASE_SUBJECT,
@@ -201,9 +152,7 @@ export function buildChaseWithoutLink(): AccountMail {
   };
 }
 
-/** REQ-024 criterion 3: a founder whose second purchase was charged is told
- *  that it bought no second subscription, and named one way to reach a
- *  person — the person who will refund it. */
+/** REQ-024 c3: a second charged purchase bought no second subscription, and the person who will refund it is named. */
 export function buildSecondPurchase(): AccountMail {
   return {
     subject: SECOND_PURCHASE_SUBJECT,
@@ -214,23 +163,8 @@ export function buildSecondPurchase(): AccountMail {
   };
 }
 
-/** REQ-077 criterion 3 (issue #35): "one `account` mail (REQ-064) goes to
- *  the old address saying the account now signs in at a different address
- *  and this one no longer can."
- *
- *  **It names neither address.** The mail arrives at the old one, so
- *  printing it says nothing; printing the new one would put the account's
- *  live credential-bearing address into a mailbox the customer has just
- *  told us they are leaving — which is exactly the mailbox somebody else
- *  may be reading. The line says what happened, and that is all REQ-077
- *  asks it to say.
- *
- *  **It carries no action.** There is nothing for the reader of the old
- *  address to do: the change is already made, and a control here could only
- *  offer to undo something this mail's reader may not be the person who
- *  did. It keeps the notice naming a way to reach a person, which is the
- *  invariant this file's header states and the only route back for someone
- *  who did not expect this mail. */
+/** REQ-077 c3: sent to the old address saying the account now signs in elsewhere. It names neither address: the old is where it lands,
+ *  and the new would put a live sign-in address in a mailbox being left. No action, since its reader may not be who made the change. */
 export function buildAddressMoved(): AccountMail {
   return {
     subject: ADDRESS_MOVED_SUBJECT,
@@ -241,25 +175,8 @@ export function buildAddressMoved(): AccountMail {
   };
 }
 
-/** REQ-076 criterion 11 — one of the two notices a customer with pages on
- *  the hosted CMS is owed before those pages stop being served: which day
- *  serving stops, and that their export stays open afterwards.
- *
- *  **Two statements, two blocks.** The criterion requires both — "they are
- *  told in writing which day it stops **and** that their pages remain
- *  exportable afterwards" — and a notice that carried the day inside a
- *  sentence about the export would be one edit away from dropping one of
- *  them with nothing failing.
- *
- *  `stopsOn` is the day, already written in the customer's own zone by the
- *  caller (REQ-073 c3). Nothing here formats a date: a template that could
- *  format one would be a second date formatter, and the two would disagree
- *  the day one of them was corrected.
- *
- *  It carries no action block. There is nothing for the customer to press:
- *  the day is not theirs to change, and the export lives on a surface they
- *  already have. `REACH_A_PERSON` is the way out, as in every `account`
- *  mail. */
+/** REQ-076 c11: which day hosted serving stops and that the export stays open, as two blocks so neither can be dropped silently.
+ *  `stopsOn` is written by the caller in the customer's zone (REQ-073 c3); no action, as nothing here is theirs to press. */
 export function buildHostingEnd(a: {
   occasion: HostingEndOccasion;
   stopsOn: string;
@@ -274,9 +191,7 @@ export function buildHostingEnd(a: {
   };
 }
 
-/** Owner D10: the first renewal was refunded because no page went live in
- *  the first month. `next` is the day the plan renews or ends, written by
- *  the caller; `null` where it could not be read, so no day is invented. */
+/** D10: the first renewal was refunded because no page went live in the first month; `next` is null where the day could not be read, so none is invented. */
 export function buildRenewalRefunded(a: {
   amount: string;
   next: { kind: "renewing" | "ending"; date: string } | null;
@@ -291,20 +206,8 @@ export function buildRenewalRefunded(a: {
   };
 }
 
-/**
- * §9, one mail per breakage: a destination has needed reconnecting
- * for 24 hours and the customer has not signed in since it broke.
- *
- * Three things, in order: pages are being held, how many, and the way to
- * release them. The count is a `stat` block rather than a numeral inside
- * the sentence — §12's omission rule lives in the shell, and a template
- * that formatted its own number would be a second numeral formatter.
- *
- * `measured(held)` and not `measuredZero`: zero held pages is a real
- * count, and the occasion this mail is sent on is a broken destination,
- * not a backlog. A destination that broke before anything queued behind it
- * is still broken, and the customer is still the only one who can fix it.
- */
+/** §9: a destination has needed reconnecting for 24 hours with no sign-in since. Pages are held, how many (a `stat`), and how to release them.
+ *  `measured(held)`, not `measuredZero`: zero held is a real count, and the broken destination is the occasion. */
 export function buildDestinationBroken(a: { held: number; href: string; at: Date }): AccountMail {
   return {
     subject: BROKEN_SUBJECT,

@@ -1,76 +1,11 @@
-// BUILD §12 · SPEC §8 (2026-09-20, #933) — the `draft-ready` mail.
-//
-// #933 gives it the shape the app has: "title; goes-live line; a five-row
-// fact block (written for, searched, answered today by, your chances,
-// written from); the page's first lines; *Read the full page* and *Stop
-// this page*", with the one number up top.
-//
-// **The number up top is the searches a month, and it is not also a fact
-// row.** The board's five rows name "searched" among them; the same figure
-// stated twice in one short mail is the one thing the approved shell does
-// not do, so it is the headline figure and the block below carries the
-// other four. Noted in #933's PR.
-//
-// The three tellings, the veto link and the `GeneratedText` label below are
-// unchanged: this issue restyles the mail and moves none of its rules.
-//
-// One directory per mail kind, named for the kind (ADR-040), holding a
-// block list and nothing else: no shell, no send, no decision about
-// whether there is a mail, and no sentence.
-//
-// **It is handed a telling and lays it out.** Which of §12's three things
-// this mail says is `tellingFor`'s answer, not this file's: "here is the
-// window you have to stop it", "there is no window, because you set none"
-// and "nothing happens until you approve" are three different statements
-// about the same page, and a mail that chose between them would be a
-// second copy of the rule the `customer_told` guard reads.
-//
-// **Three arms in, three arms out, and no default.** The `Telling` union's
-// fourth arm — `not_yet_tellable` — never reaches here: a page whose site
-// states no time zone has no publish moment to name, so there is nothing
-// to compose, and the occasion module refuses before this file is called.
-// The switch below is exhaustive over the three that remain, so a fourth
-// tellable arm would not compile rather than falling into a default that
-// said the wrong one.
-//
-// **The stop link rides the telling and appears on exactly one arm.** Only
-// `interval` carries a `stopAction`, because it is the only kind with an
-// interval to stop the page inside (REQ-057 c7 — at a window of zero no
-// link is issued, because a link would be an offer the product cannot
-// keep). This file does not mint one, does not decide the window, and
-// never renders an action with an empty token.
-//
-// ── §12's "title, why-data" (issue #183) ────────────────────────────────
-//
-// **The page's own title is model-written, and it travels in the body
-// block that carries the `GeneratedText` label** — never in the subject,
-// which stays registry copy. That is the owner's ruling, and it is what
-// ADR-012 already requires of every other surface: model text reaches a
-// customer with the label that identifies it as model text, or it does not
-// reach them. `pageBody` is the block, and its label *is* the naming —
-// `generated.page.written` takes the title as its slot, so the mail names
-// the page in the one place the label cannot be separated from it.
-//
-// A subject line carrying the title would be the same words with the label
-// stripped off, in the one part of a mail no reader can see the body of
-// before deciding to open it. It is the plausible-but-wrong address for
-// this, and it is closed here rather than left to a caller: `subject` is a
-// `CopyKey` on this file's return type, so a title could not be put there
-// without changing the shape.
-//
-// **The why-data is the opportunity's own evidence, stored at creation and
-// read.** Never re-measured: §7 wrote the search and its volume when it
-// chose this page, the draft screen renders that same stored evidence, and
-// a mail that measured again would state a number the page was not chosen
-// on. Two rows, because two are what the stored evidence has for a page
-// that reaches review — the search the page targets and how often it is
-// searched.
-//
-// A `fix` opportunity carries neither: its evidence is a barrier and a URL,
-// and §9's "**Fix never automates**" means no fix page is drafted into
-// review in the first place. So this file states no why-data for one
-// rather than inventing a line for a page that cannot arrive — an absent
-// section, not a sentence about nothing.
+// BUILD §12 · SPEC §8 — the `draft-ready` mail, as a block list only (ADR-040): title, goes-live line, the fact rows, the page's first
+// lines, *Read the full page* and *Stop this page*, with the searches a month up top and not repeated as a fact row.
+// It lays out the telling `tellingFor` chose; choosing here would copy the rule the `customer_told` guard reads. The switch is exhaustive
+// over the three tellable arms (`not_yet_tellable` is refused upstream), so a fourth does not compile.
+// Only `interval` carries a `stopAction` (REQ-057 c7: a zero window issues no link); this file mints none and never renders an empty token.
+// The model-written title travels only in `pageBody`, whose `GeneratedText` label names the page (ADR-012); `subject` is a `CopyKey`,
+// so a title cannot reach the subject without its label.
+// The why-data is §7's stored evidence, never re-measured. A `fix` page has none and is never drafted into review (§9), so none is stated.
 import type { CopyKey } from "@/lib/presentation/copy";
 import type { Measured } from "@/lib/measure/measured";
 import type { Telling } from "@/lib/publish/publishable";
@@ -90,33 +25,23 @@ const STOP_ACTION = "mail.draftReady.stopAction" satisfies CopyKey;
 const READ_ACTION = "mail.draftReady.readAction" satisfies CopyKey;
 const STOP_NOTE = "mail.draftReady.stopNote" satisfies CopyKey;
 const WHY_VOLUME = "mail.draftReady.why.volume" satisfies CopyKey;
-// The board's own four row labels. Two of them (`search`, `answeredBy`)
-// were already written for S20 and are used as they stand.
+// The board's four row labels.
 const FACT_SEARCH = "mail.draftReady.fact.search" satisfies CopyKey;
 const FACT_ANSWERED = "mail.draftReady.fact.answeredBy" satisfies CopyKey;
 const FACT_CHANCES = "mail.draftReady.fact.chances" satisfies CopyKey;
 const FACT_WRITTEN_FROM = "mail.draftReady.fact.writtenFrom" satisfies CopyKey;
 
-/** The page as the customer meets it: its model-written title and the body
- *  that title belongs to. The two travel together because the label the
- *  title is carried by is the block's own — a title without it would be
- *  model text with the label stripped off. */
+/** The page's model-written title and its body, together, since the title's label is the block's own. */
 export interface DraftReadyPage {
   readonly title: string;
   readonly markdown: string;
 }
 
-/** §7's stored evidence for this page, as §12's "why-data". `volume` stays
- *  `Measured` so a search whose volume was never measured omits its row
- *  rather than printing a 0 — the same omission rule every other section
- *  of every other mail is held to. */
+/** §7's stored evidence as §12's why-data; an unmeasured `volume` omits its row, never prints 0. */
 export interface DraftReadyWhy {
   readonly query: string;
   readonly volume: Measured<number>;
-  /** SPEC §8 (2026-09-20, #933) — the other three fact rows, each already
-   *  written by the caller that read the stored evidence. A row the
-   *  evidence does not carry is absent here and absent from the block: a
-   *  fact table states what was measured and nothing else. */
+  /** SPEC §8's other three fact rows, written by the caller; a row the evidence lacks is absent. */
   readonly answeredBy?: string;
   readonly chances?: string;
   readonly writtenFrom?: string;
@@ -138,74 +63,47 @@ export interface DraftReadyMail {
   readonly blocks: readonly MailBlock[];
 }
 
-/** The telling arms this mail can be composed from — every arm but the one
- *  that has no moment to name. Narrowed by type so the occasion module's
- *  refusal is not a rule this file has to trust. */
+/** Every telling arm but the one with no moment, narrowed by type so the occasion module's refusal need not be trusted. */
 export type TellableTelling = Exclude<Telling, { kind: "not_yet_tellable" }>;
 
-/**
- * The `draft-ready` mail for one telling.
- *
- * `publishesAt` is already written by the caller, in the customer's own
- * zone (REQ-073 c1: never a zone nobody stated). A template that formatted
- * a date would be a second date formatter, and the two would disagree the
- * first time either moved.
- *
- * `stopHref` is the absolute address of the veto route (#154), composed by
- * the caller from the token the telling carries. It is required on the
- * `interval` arm and refused on the others by the same union, so a mail
- * cannot offer a stop that does not exist and cannot omit one that does.
- */
+/** The `draft-ready` mail for one telling. `publishesAt` is written by the caller in the customer's zone (REQ-073 c1).
+ *  `stopHref` is the veto route's absolute address: required on `interval`, refused elsewhere, so a stop is never offered or dropped wrongly. */
 export function buildDraftReady(a: {
   telling: TellableTelling;
   publishesAt?: string;
   stopHref?: string;
-  /** The page this mail is about. Absent only where the draft carries no
-   *  title yet, which is a page that cannot be in review. */
+  /** Absent only without a title, which a page in review always has. */
   page?: DraftReadyPage;
-  /** §7's stored evidence. Absent for a `fix` page, which has none of this
-   *  shape and cannot reach this mail anyway. */
+  /** §7's stored evidence; absent for a `fix` page, which cannot reach this mail. */
   why?: DraftReadyWhy;
-  /** SPEC §8 (2026-09-20, #933): the page's own address in the app, so
-   *  *Read the full page* is a deep link and not a trip through the
-   *  dashboard. Absent leaves the button off — a button to nowhere is
-   *  worse than one fewer. */
+  /** SPEC §8: the page's address in the app, so *Read the full page* is a deep link; absent leaves the button off. */
   readHref?: string;
   /** Only on the not-connected arm, and only where the host has a record. */
   record?: DraftReadyRecord;
 }): DraftReadyMail {
   const blocks: MailBlock[] = [];
-  // No page goes live before the hosted address is connected, so this mail
-  // names no moment for it.
+  // No page goes live before the hosted address is connected, so no moment is named.
   const waitsForAddress = a.telling.destination?.copy === ADDRESS_NOT_CONNECTED;
 
-  // #933's opening line, above the title: what this mail is.
+  // The opening line, above the title: what this mail is.
   blocks.push({ block: "paragraph", text: READY });
 
-  // S20's heading: the page's own title, which this kind — unlike
-  // `published` — is handed.
+  // S20's heading: the page's own title, which this kind is handed.
   if (a.page !== undefined) {
     blocks.push({ block: "heading", text: HEADING, vars: { title: a.page.title } });
   }
 
-  // #933's one number up top: how often the search this page was written
-  // for is asked. Unmeasured takes the whole block with it.
+  // The one number up top: the searches a month. Unmeasured takes the block with it.
   if (a.why !== undefined) {
     blocks.push({ block: "hero", label: WHY_VOLUME, value: a.why.volume, format: "perMonth" });
   }
 
-  // §12's "publishes tomorrow 09:00 unless you say no" — whichever of the
-  // two that is for this page. Both name the moment; no arm asks for an
-  // approval (owner 2026-10-08, issue 1337).
+  // §12's "publishes tomorrow 09:00 unless you say no", either form; no arm asks for an approval.
   if (!waitsForAddress) {
     blocks.push({ block: "paragraph", text: a.telling.copy, vars: { publishesAt: a.publishesAt ?? "" } });
   }
 
-  // REQ-057 c9's destination clause, where the page is bound for a site
-  // ReachKit does not serve. A `notice` and not a second paragraph: it is
-  // a condition of their own site, said beside the telling rather than in
-  // place of it — c9 keeps the date, the interval and the stop action
-  // exactly as the other criteria set them.
+  // REQ-057 c9's destination clause, as a `notice` beside the telling: a condition of their own site, which changes nothing c9 keeps.
   if (a.telling.destination !== null) {
     // The sentence says the setting is below only when it is.
     const record = waitsForAddress ? a.record : undefined;
@@ -226,9 +124,7 @@ export function buildDraftReady(a: {
     }
   }
 
-  // #933's fact block — §7's own stored evidence, read from the row it was
-  // written on and never re-measured. Four rows, each present only where
-  // the evidence carries it; an empty block drops itself (`omit.ts`).
+  // §7's stored evidence, never re-measured; each row only where the evidence has it, and an empty block drops itself.
   if (a.why !== undefined) {
     const facts: FactRow[] = [{ label: FACT_SEARCH, value: a.why.query }];
     if (a.why.answeredBy !== undefined) facts.push({ label: FACT_ANSWERED, value: a.why.answeredBy });
@@ -239,11 +135,7 @@ export function buildDraftReady(a: {
     blocks.push({ block: "facts", items: facts });
   }
 
-  // §12's "title" — through the one carrier that keeps the `GeneratedText`
-  // label attached to it. `written: true`: this page is written, not
-  // proposed. Since #933 it is the page's **first lines** rather than the
-  // whole body: the mail is where a reader decides to open the page, and
-  // the page itself is one link away.
+  // §12's "title" in the one carrier that keeps its `GeneratedText` label: the page's first lines, since the page is one link away.
   if (a.page !== undefined) {
     blocks.push({
       block: "pageBody",
@@ -253,8 +145,7 @@ export function buildDraftReady(a: {
     });
   }
 
-  // #933's two buttons, in the order the board draws them: the one the
-  // reader most likely wants, then the one that stops the page.
+  // The two buttons in board order: the one most wanted, then the stop.
   if (a.readHref !== undefined) {
     blocks.push({ block: "action", label: READ_ACTION, href: a.readHref, variant: "primary" });
   }
@@ -265,18 +156,14 @@ export function buildDraftReady(a: {
       block: "action",
       label: STOP_ACTION,
       href: a.stopHref,
-      // Secondary: two solid fills would be two primaries, and stopping a
-      // page is the second thing a reader does with this mail.
+      // Secondary: stopping is the second thing a reader does, and two solid fills would be two primaries.
       variant: a.readHref === undefined ? "primary" : "secondary",
     });
-    // #933's drafted line: the stop link needs no session until the page
-    // is live. Said beside the button that does it.
+    // The stop link needs no session until the page is live, said beside its button.
     blocks.push({ block: "notice", text: STOP_NOTE });
   }
 
-  // The subject names the moment and the page. Both are already here —
-  // the same two values the telling's own line spends — so a mail that
-  // could be composed cannot fail on its subject.
+  // The subject names the moment and the page, both already here, so a composable mail cannot fail on its subject.
   return {
     subject: waitsForAddress ? WAITING_SUBJECT : SUBJECT,
     subjectVars: waitsForAddress

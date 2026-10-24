@@ -1,60 +1,20 @@
-// BUILD §4.3 — the setup reminders: three at 24 / 72 / 168 hours, stopped
-// at send time.
-//
-// §4.3 is "post-payment, once", and a founder who paid and never came back
-// to answer the three questions is the one case where the product writes
-// to them about it. `SETUP_REMINDER_OFFSETS_H` pins the three offsets; the
-// last is at seven days and there is no fourth.
-//
-// **The stop is checked at send time, never at schedule time.** A founder
-// who finishes at hour 71 must not receive the hour-72 mail, and a
-// scheduler that decided an hour earlier could not know that. So nothing
-// is scheduled per founder at all: the maintenance tick asks which
-// founders are due *now* (`sitesDueSetupReminder`) and each send re-reads
-// the founder's own row immediately before composing. Cancelling, or
-// finishing, stops the next reminder by making it not due — there is no
-// queue entry anywhere to cancel.
-//
-// **A reminder with no working link is a send-time failure, not a
-// degraded send.** REQ-025 c6's promise is "a working way back in"; a mail
-// that arrives without one is worse than no mail, because it spends the
-// founder's attention and returns nothing. So the link is issued first and
-// a failure to issue it stops the send, leaving the counter untouched and
-// the founder due again at the next offset.
-//
-// The counter (`sites.setup_reminders_sent`) is incremented **after** a
-// successful send. At-most-three is the column's own check constraint, so
-// a double delivery of one tick cannot become a fourth mail — the fourth
-// increment is refused by Postgres, not by this file remembering.
+// BUILD §4.3 — three setup reminders at `SETUP_REMINDER_OFFSETS_H` (24, 72, 168 hours) to a founder who paid and never finished; no fourth.
+// Checked at send time, never scheduled: the tick asks who is due now and each send re-reads the row, so finishing at hour 71 stops hour 72.
+// No working link, no send (REQ-025 c6): the link is issued first and a failure leaves the founder due at the next offset.
+// `sites.setup_reminders_sent` is incremented after the send, and its check constraint refuses a fourth even on a double delivery.
 import { SETUP_REMINDER_OFFSETS_H } from "@/lib/config/constants";
 import { dbAdmin } from "@/lib/db";
 import { sendEmail } from "../send";
 import { buildSetupReminder } from "../templates/setup-reminder";
 
-/** Re-exported from the pins, never restated: `constants.ts` is the one
- *  home of a pinned number. */
+/** Re-exported from the pins: `constants.ts` is the one home of a pinned number. */
 export const REMINDER_OFFSETS_H = SETUP_REMINDER_OFFSETS_H;
 
-/** Where the link lands. An internal route name (the setup screen itself,
- *  REQ-024 c4), not a customer-visible string — and deliberately the same
- *  literal `src/app/(account)/setup/gate.ts` allow-lists, so a reminder can
- *  never land somewhere the gate would bounce. */
+/** The setup screen (REQ-024 c4), the same literal `src/app/(account)/setup/gate.ts` allow-lists, so the gate never bounces a reminder. */
 export const SETUP_LANDING_PATH = "/setup";
 
-/**
- * Issues one sign-in link that lands on `landsOn`, or `null` where none
- * can be issued.
- *
- * **Wired to the identity module** (issue #797). Until then this port
- * answered `null` for every founder, waiting on an issuer #35 had already
- * shipped, so no setup reminder was ever sent. The default now issues
- * through the same port the sign-in mail and the 15-minute chase use
- * (`src/lib/account/provisioning/sign-in-link.ts`), wiring the identity
- * issuer first exactly as `sendSignInLink` does. A link that cannot be
- * issued is still `null`, and `null` is still no send. `landsOn` is not
- * carried in the link: a founder who signs in with setup unfinished is
- * sent to it by the setup gate, which allow-lists the same literal.
- */
+/** One sign-in link through the port the sign-in mail uses (`src/lib/account/provisioning/sign-in-link.ts`), or `null`, which is no send.
+ *  `landsOn` is not in the link: the setup gate sends an unfinished founder there. */
 export type SignInLinkIssuer = (a: {
   userId: string;
   email: string;
@@ -62,8 +22,7 @@ export type SignInLinkIssuer = (a: {
 }) => Promise<string | null>;
 
 const identityIssuer: SignInLinkIssuer = async (a) => {
-  // Imported lazily: this module rides `src/jobs/engine.ts`'s static
-  // imports, and the identity module pulls Supabase Auth.
+  // Lazy: this module rides `src/jobs/engine.ts`'s static imports, and identity pulls Supabase Auth.
   const { wireSignInLinkIssuer } = await import("@/lib/account/identity/wire");
   const { issueSignInLink: issue } = await import("@/lib/account/provisioning/sign-in-link");
   wireSignInLinkIssuer();
@@ -89,9 +48,7 @@ export type ReminderOutcome =
   | { sent: true; index: number }
   | { sent: false; reason: "not-due" | "already-complete" | "no-link" | "mail" };
 
-/** The generated `Database` type carries none of the `sites.setup_*`
- *  columns this issue's migration adds — the same narrow cast
- *  `src/lib/scan/deep/release.ts` documents. */
+/** The `sites.setup_*` columns are missing from the generated `Database` type: the narrow cast `src/lib/scan/deep/release.ts` documents. */
 interface ReminderRow {
   id: string;
   created_at: string;
@@ -120,16 +77,7 @@ function untyped(): MinimalClient {
   return dbAdmin() as unknown as MinimalClient;
 }
 
-/**
- * Which reminder, if any, is due for a founder who paid at `paidAt` and
- * has had `sent` of them.
- *
- * Pure, and the whole of the schedule: `null` means nothing is due, and a
- * number is the index into `REMINDER_OFFSETS_H` of the one that is. A
- * founder past the last offset who has had all three is never due again,
- * and a founder who has somehow had more than three is refused here as
- * well as by the column's constraint.
- */
+/** Which reminder is due, as an index into `REMINDER_OFFSETS_H`, or `null`. Pure, and the whole schedule; more than three is refused here too. */
 export function dueReminderIndex(a: {
   paidAt: Date;
   sent: number;
@@ -141,20 +89,8 @@ export function dueReminderIndex(a: {
   return a.now.getTime() >= dueAt ? a.sent : null;
 }
 
-/**
- * The founders whose next reminder has fallen due.
- *
- * One indexed read over `idx_sites_setup_incomplete` — the partial index
- * that holds only unfinished founders — narrowed to those old enough for
- * the *first* offset, then filtered by `dueReminderIndex` so the offset
- * table stays in one place. A tick that finds nobody is one indexed read
- * and no writes.
- *
- * `created_at` stands in for the payment: a `sites` row is created by
- * provisioning from the payment (§13), so the two are the same instant to
- * within one webhook. When §13's own payment timestamp lands, this read
- * changes column and nothing else here does.
- */
+/** Founders whose next reminder is due: one read over the partial `idx_sites_setup_incomplete`, filtered by `dueReminderIndex`.
+ *  `created_at` stands in for the payment, since provisioning creates the row from it (§13). */
 export async function sitesDueSetupReminder(now: Date = new Date()): Promise<readonly string[]> {
   const firstOffsetH = REMINDER_OFFSETS_H[0]!;
   const { data, error } = await untyped()
@@ -186,8 +122,7 @@ async function readReminderRow(siteId: string): Promise<ReminderRow | null> {
   return data?.[0] ?? null;
 }
 
-/** The address a reminder goes to. `users.email` — one read, and the only
- *  thing this module reads off that table. */
+/** `users.email`, the only thing read off that table. */
 async function addressFor(userId: string): Promise<string | null> {
   const { data, error } = await untyped()
     .from<{ email: string }>("users")
@@ -198,15 +133,7 @@ async function addressFor(userId: string): Promise<string | null> {
   return data?.[0]?.email ?? null;
 }
 
-/**
- * Sends one founder's next reminder, re-deciding due-ness against their
- * row at the moment of sending.
- *
- * The order is the order the promise requires: due-ness, then the link,
- * then the mail, then the counter. A failure at any step leaves the
- * counter where it was, so nothing is consumed by a reminder that did not
- * arrive.
- */
+/** Sends one founder's next reminder: due-ness, link, mail, then counter, so a failure at any step consumes nothing. */
 export async function sendSetupReminder(
   siteId: string,
   now: Date = new Date()
@@ -225,10 +152,7 @@ export async function sendSetupReminder(
   const to = await addressFor(row.user_id);
   if (to === null) return { sent: false, reason: "no-link" };
 
-  // "no reminder ever going out before there is an account to sign in to"
-  // (REQ-025 c6). The issuer answers that question: no account to sign in
-  // to means no link, and no link means no send — the counter is not
-  // touched and this founder is due again at the next offset.
+  // REQ-025 c6: no reminder before there is an account; no account means no link, no send, and the founder due again.
   let href: string | null;
   try {
     href = await issueSignInLink({ userId: row.user_id, email: to, landsOn: SETUP_LANDING_PATH });
