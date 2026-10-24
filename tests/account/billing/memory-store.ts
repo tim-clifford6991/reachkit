@@ -26,7 +26,13 @@ export interface MemoryBilling {
   users: BillingRow[];
   sites: HostingRow[];
   /** Delivered publications, and scans with their Monday mail and report, as `period` filters them. */
-  publications: (PeriodPageRow & { site_id: string; published_at: string; unpublished_at: string | null })[];
+  publications: (PeriodPageRow & {
+    site_id: string;
+    published_at: string;
+    unpublished_at: string | null;
+    /** Absent is `delivered`; a claimed or failed delivery never went live. */
+    delivery_state?: "claimed" | "delivered" | "failed";
+  })[];
   scans: {
     site_id: string;
     created_at: string;
@@ -37,6 +43,7 @@ export interface MemoryBilling {
   /** `sites.domain` as stored, per owner. */
   domains: { user_id: string; domain: string | null }[];
   refunds: { invoice_id: string; user_id: string; subscription_id: string | null; domains: readonly string[]; refunded_at: string }[];
+  renewalRefunds: { invoice_id: string; user_id: string; refunded_at: string }[];
   failAccountRead: boolean;
   failHostingRead: boolean;
   failWrite: boolean;
@@ -50,6 +57,7 @@ export function newMemoryBilling(): MemoryBilling {
     scans: [],
     domains: [],
     refunds: [],
+    renewalRefunds: [],
     failAccountRead: false,
     failHostingRead: false,
     failWrite: false,
@@ -287,6 +295,26 @@ export function memoryBillingStore(state: MemoryBilling): BillingStore {
         state.refunds.push({ invoice_id: a.invoiceId, user_id: a.userId, subscription_id: a.subscriptionId, domains: a.domains, refunded_at: a.at.toISOString() });
       }
       return { ok: true };
+    },
+
+    async wentLive(userId, from, to) {
+      if (state.failHostingRead) return { ok: false };
+      const owned = new Set(state.sites.filter((s) => s.user_id === userId).map((s) => s.id));
+      const live = state.publications.some(
+        (p) =>
+          owned.has(p.site_id) &&
+          (p.delivery_state ?? "delivered") === "delivered" &&
+          Date.parse(p.published_at) >= from.getTime() &&
+          Date.parse(p.published_at) < to.getTime()
+      );
+      return { ok: true, live };
+    },
+
+    async recordRenewalRefund(a) {
+      if (state.failWrite) return { ok: false };
+      if (state.renewalRefunds.some((r) => r.invoice_id === a.invoiceId)) return { ok: true, inserted: false };
+      state.renewalRefunds.push({ invoice_id: a.invoiceId, user_id: a.userId, refunded_at: a.at.toISOString() });
+      return { ok: true, inserted: true };
     },
 
     async period(siteId, from, to) {

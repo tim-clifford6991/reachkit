@@ -176,6 +176,18 @@ export interface BillingStore {
     at: Date;
   }): Promise<{ ok: true } | { ok: false }>;
 
+  /** Whether any of the account's publications went live in `[from, to)`,
+   *  taken down since or not. Drafts are never read. */
+  wentLive(userId: string, from: Date, to: Date): Promise<{ ok: true; live: boolean } | { ok: false }>;
+
+  /** Records a first-renewal refund. `inserted` is false where an earlier
+   *  delivery already recorded this invoice. */
+  recordRenewalRefund(a: {
+    invoiceId: string;
+    userId: string;
+    at: Date;
+  }): Promise<{ ok: true; inserted: boolean } | { ok: false }>;
+
   /** The pages delivered to a site in `[from, to)` that are still up, when
    *  each Monday mail went in that span, and the newest finished weekly or deep pass's report. */
   period(
@@ -442,6 +454,27 @@ export function supabaseBillingStore(): BillingStore {
       });
       // A unique violation is this invoice already recorded by an earlier delivery.
       return error && error.code !== "23505" ? { ok: false } : { ok: true };
+    },
+
+    async wentLive(userId, from, to) {
+      const { data, error } = await untyped()
+        .from<{ id: string }>("publications")
+        .select("id, sites!inner(user_id)")
+        .eq("sites.user_id", userId)
+        .eq("delivery_state", "delivered")
+        .gte("published_at", from.toISOString())
+        .lt("published_at", to.toISOString())
+        .limit(1);
+      if (error) return { ok: false };
+      return { ok: true, live: (data ?? []).length > 0 };
+    },
+
+    async recordRenewalRefund(a) {
+      const { error } = await untyped()
+        .from<{ invoice_id: string }>("renewal_refunds")
+        .insert({ invoice_id: a.invoiceId, user_id: a.userId, refunded_at: a.at.toISOString() });
+      if (error?.code === "23505") return { ok: true, inserted: false };
+      return error ? { ok: false } : { ok: true, inserted: true };
     },
 
     async period(siteId, from, to) {

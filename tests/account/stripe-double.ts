@@ -85,14 +85,25 @@ export function newStripeDouble(): StripeDoubleState {
 
 /** One paid invoice, in the shape `invoices.list` with `data.payments`
  *  expanded returns it. */
-export function paidInvoiceDouble(a: { id: string; customer: string; paidAt: Date; amount?: number }): Record<string, unknown> {
+export function paidInvoiceDouble(a: {
+  id: string;
+  customer: string;
+  paidAt: Date;
+  amount?: number;
+  /** A renewal: `subscription_cycle`, with the period it closes. */
+  renews?: { from: Date; to: Date };
+}): Record<string, unknown> {
   const paidAt = Math.floor(a.paidAt.getTime() / 1000);
+  const seconds = (at: Date): number => Math.floor(at.getTime() / 1000);
   return {
     id: a.id,
     customer: a.customer,
     status: "paid",
     amount_paid: a.amount ?? 4900,
     created: paidAt,
+    billing_reason: a.renews === undefined ? "subscription_create" : "subscription_cycle",
+    period_start: a.renews === undefined ? paidAt : seconds(a.renews.from),
+    period_end: a.renews === undefined ? paidAt : seconds(a.renews.to),
     status_transitions: { paid_at: paidAt },
     payments: {
       data: [{ status: "paid", payment: { type: "payment_intent", payment_intent: `pi_${a.id}` } }],
