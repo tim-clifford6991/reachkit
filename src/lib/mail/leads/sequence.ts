@@ -3,7 +3,7 @@
 // 1. A waiting sequence past its deadline is dropped forever, swept first on every run. Releasing it breaks REQ-010's bound that no
 //    follow-up reaches an address more than 14 days after its page was delivered.
 // 2. A re-delivery starts nothing: an existing `(lower(email), domain)` sequence in any state blocks a second, which would make six mails.
-// The 14 days are arithmetic over pins in `src/lib/config/constants.ts`; a literal cadence here is a defect.
+// The 14 days are arithmetic over pins in `src/lib/config/constants.ts`; a literal 24, 72, 168, 3 or 7 in this file would be a defect.
 import {
   NURTURE_H,
   NURTURE_MAX_TOUCHES,

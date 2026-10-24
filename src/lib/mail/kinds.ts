@@ -3,6 +3,8 @@
 // 'toggle' asks the customer's three switches on `users.notify` (BUILD §4.7, `notifications/`), and false asks neither.
 // The stores never merge: an address-wide unsubscribe reaching `magic-link` would lock a paying customer out.
 // ADR-040: each kind's template is `src/lib/mail/templates/<kind>/`, held to the kind's name by `tests/mail/kinds/template-directories.test.ts`.
+// The product sends no marketing, newsletter or promotional mail at all — there is no row for one, and adding one is a change to this file, read by the owner, not a call-site argument.
+// This module holds no template, no shell and no vendor knowledge.
 
 /** What a row says. `occasionsFrom` cites the BUILD.md sections stating the occasion, checked by `tests/mail/kinds/register-legality.test.ts`. */
 export interface KindRow {

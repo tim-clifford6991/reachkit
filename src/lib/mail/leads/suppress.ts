@@ -14,7 +14,7 @@ export async function suppressionState(email: string): Promise<SuppressionAnswer
   return read.suppressed ? "suppressed" : "send";
 }
 
-/** One address, one identity, so a mixed-case address never becomes a second, unsuppressed person. */
+/** One address, one identity. Every read and every write in this feature goes through here, so a mixed-case address can never become a second, unsuppressed person. */
 export function normaliseAddress(email: string): string {
   return email.trim().toLowerCase();
 }

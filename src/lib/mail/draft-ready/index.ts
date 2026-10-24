@@ -1,7 +1,7 @@
 // BUILD §12, §9 — the occasion of the `draft-ready` mail: no page publishes without the customer told, on the pair it publishes under,
 // the interval to stop it or that none exists. `tellingFor` picks the telling, `issueVetoLink` mints the link, `recordTold` feeds the guard.
 // `recordTold` is written only after the seam accepted the mail: recording first would let a page publish in silence. A refused send leaves
-// the page held and owed again next tick; a mail the customer switched off is a telling declined, so it is recorded.
+// the page held and owed again next tick; a mail the customer switched off is a telling declined, so it is recorded, and the page still goes live on its day.
 // Once per pair, not per page: changing mode or window is owed a fresh telling (REQ-057 c8), and `toldCurrentPair` is that key.
 // It refuses a draft not `in_review`, since a mail at the wrong moment is a false statement the caller is least able to see.
 // It lives here, not in the veto leaf, so publishing does not import the mail seam for one occasion.
