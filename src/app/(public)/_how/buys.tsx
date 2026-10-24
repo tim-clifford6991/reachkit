@@ -14,10 +14,11 @@ export function PlanBuys(): React.JSX.Element {
     [Timer, copy("pricing.buys.time", { minutes: F.setupMinutes }), copy("pricing.buys.time.what")],
   ] as const;
   const label = copy("pricing.buys", { price: copy("price.amount") });
+  // Sized by its own box: Pricing's hero column is narrow at every width the landing is wide.
   return (
-    <div className="flex flex-col gap-3">
+    <div className="@container flex flex-col gap-3">
       <p className="eyebrow">{label}</p>
-      <ul aria-label={label} className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <ul aria-label={label} className="grid grid-cols-2 gap-3 @lg:grid-cols-4">
         {tiles.map(([Icon, value, what]) => (
           <li key={value} className="card card-border bg-base-100 min-w-0 gap-1 p-4">
             <span aria-hidden className="rounded-field bg-base-200 mb-1 grid size-9 place-items-center">
