@@ -182,6 +182,15 @@ describe("icons are structural only (E26, E27, E29)", () => {
       expect(note.innerHTML, name).toContain(MAP_PIN);
     }
   });
+
+  it("Setup1's Where your buyers are is a MapPin band beside its words, not a map drawing (E30)", () => {
+    const figure = board("Setup1").querySelector('figure[aria-label^="Where your buyers are"]')!;
+    expect(figure.querySelectorAll("svg")).toHaveLength(1);
+    const band = figure.querySelector('.well[aria-hidden="true"]')!;
+    expect(band.innerHTML).toContain(MAP_PIN);
+    expect(band.text).toBe("");
+    expect(figure.text).toContain(copy("setup.place.preview.line"));
+  });
 });
 
 describe("the edit arm and the stop page draw what ships (E31, #2002 V4)", () => {
