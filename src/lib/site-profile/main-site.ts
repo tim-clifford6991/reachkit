@@ -20,9 +20,10 @@
 //   · **its book and quote pages** — the first link in the home's own header
 //     or nav that names one, on the business's own site, so a hosted page
 //     links a page the business already offers and never one we guessed;
-//   · **its phone number** — the `telephone` its own JSON-LD states, else
-//     its home's first `tel:` link, as written there, so a hosted page shows
-//     and marks up the number the business shows;
+//   · **its phone number** — the `telephone` its own JSON-LD node states,
+//     else the first `tel:` link of its header or footer, then its main body,
+//     as written there, so a hosted page shows and marks up the number the
+//     business shows and never a review platform's or a partner's;
 //   · **whether the main site links the content host** — counted only on the
 //     crawled pages that are not ReachKit's (`known-content/ours.ts`). A link
 //     whose every anchor carries `nofollow`, `sponsored` or `ugc` is "linked,
@@ -36,6 +37,7 @@ import { pageHeadingPhrases, pagePathWords } from "@/lib/locale/language";
 import { phoneOf, type BookKind, type MainSite, type MainSiteAction, type MainSiteLink } from "./main-site-row";
 import { httpUrl, profilesOn } from "./profiles";
 import { SITE_PROFILE } from "@/lib/config/constants";
+import { identityOf } from "@/lib/business/identity";
 
 export type { MainSite, MainSiteLink } from "./main-site-row";
 
@@ -221,18 +223,41 @@ function actionsOf(html: string, home: string, domain: string): MainSite["action
   return ACTION_WORDS.flatMap((rule) => out.filter((action) => action.kind === rule.kind));
 }
 
-/** The number the home states: its own Organization's `telephone`, else
- *  any node's (a `Plumber` is no Organization type here), else the first
- *  `tel:` link's. */
-function phoneOn(html: string, organization: Record<string, unknown> | null): string | null {
+/** Types whose node is never the business: an author, an event, a venue. */
+const NOT_THE_BUSINESS_RE = /^(?:Person|Place|\w*Event)$/;
+
+/** Whether `node` is the business's own: never one naming another host or
+ *  one of `NOT_THE_BUSINESS_RE`'s types; else the chosen Organization, a
+ *  `LocalBusiness` subtype, or a node whose `url` or `@id` is on the site. */
+function isOwnNode(node: Record<string, unknown>, organization: Record<string, unknown> | null, home: string, site: string | null): boolean {
+  const hosts = [node.url, node["@id"]].flatMap((raw) => {
+    const address = httpUrl(raw, home);
+    return address === null ? [] : [registrableDomain(new URL(address).hostname)];
+  });
+  if (hosts.some((host) => host !== site)) return false;
+  const types = (Array.isArray(node["@type"]) ? node["@type"] : [node["@type"]]).filter((type): type is string => typeof type === "string");
+  if (types.some((type) => NOT_THE_BUSINESS_RE.test(type))) return false;
+  return node === organization || identityOf(types)?.kind === "local_business" || hosts.length > 0;
+}
+
+/** The number the home states for the business itself: its own node's
+ *  `telephone`, else the first `tel:` link of its header or footer, else of
+ *  its main body. `null` over a third party's number. */
+function phoneOn(html: string, organization: Record<string, unknown> | null, home: string, domain: string): string | null {
+  const site = registrableDomain(domain);
   const nodes = organization === null ? schemaNodes(html) : [organization, ...schemaNodes(html)];
   for (const node of nodes) {
+    if (!isOwnNode(node, organization, home, site)) continue;
     const phone = phoneOf(node.telephone);
     if (phone !== null) return phone;
   }
-  const link = parse(html, { comment: false }).querySelector('a[href^="tel:"]')?.getAttribute("href") ?? "";
+  const doc = parse(html, { comment: false });
+  const link =
+    doc.querySelector('header a[href^="tel:"], footer a[href^="tel:"]') ??
+    (doc.querySelector("main") ?? doc.querySelector("body") ?? doc).querySelector('a[href^="tel:"]');
+  if (link === null) return null;
   try {
-    return phoneOf(decodeURIComponent(link.slice("tel:".length)));
+    return phoneOf(decodeURIComponent((link.getAttribute("href") ?? "").slice("tel:".length)));
   } catch {
     return null;
   }
@@ -266,6 +291,6 @@ export function readMainSite(a: {
       .slice(0, SITE_PROFILE.ABOUT_PAGES),
     links: ours === null ? [] : [...ours.hosts].sort().map((host) => ({ host, state: linkOf(a.pages, ours, host) })),
     actions: html === "" ? [] : actionsOf(html, home, a.domain),
-    phone: html === "" ? null : phoneOn(html, organization.node),
+    phone: html === "" ? null : phoneOn(html, organization.node, home, a.domain),
   };
 }

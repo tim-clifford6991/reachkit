@@ -244,6 +244,26 @@ describe("the phone number the main site states", () => {
     expect(phoneOn(`${ld({ "@type": "Organization", name: "Tally", telephone: "call us" })}`)).toBeNull();
   });
 
+  it("third-party telephone: a review platform's Organization, an author or a venue never lends the business its number", () => {
+    const platform = ld({ "@type": "Organization", name: "ReviewHub", url: "https://reviewhub.example.net/", telephone: "+1 800 555 0100" });
+    const author = ld({ "@type": "Person", name: "Dana", url: "https://example.com/about/dana", telephone: "+1 512 555 0177" });
+    const venue = ld({ "@type": "MusicEvent", name: "Open day", telephone: "+1 512 555 0188" });
+    const plumber = ld({ "@type": "Plumber", name: "Harbor Plumbing", telephone: "(512) 555-0142" });
+    expect(phoneOn(`${platform}${author}${venue}${plumber}`)).toBe("(512) 555-0142");
+    expect(phoneOn(`${platform}${author}${venue}`)).toBeNull();
+  });
+
+  it("a SaaS's own Organization, named by its own @id, still gives its number", () => {
+    const own = ld({ "@type": "Organization", "@id": "https://example.com/#organization", name: "Tally", telephone: "+1 415 555 0123" });
+    expect(phoneOn(own)).toBe("+1 415 555 0123");
+  });
+
+  it("the tel: fallback reads the header or footer before a partner's link in a testimonial", () => {
+    const testimonial = '<main><blockquote>Great work, call my office <a href="tel:+15125550999">(512) 555-0999</a></blockquote></main>';
+    expect(phoneOn(`${testimonial}<footer><a href="tel:+15125550142">(512) 555-0142</a></footer>`)).toBe("+15125550142");
+    expect(phoneOn(`<aside><a href="tel:+15125550999">Partner</a></aside><main><a href="tel:+15125550142">Call</a></main>`)).toBe("+15125550142");
+  });
+
   it("reads back what it stored; a reading stored before has none", () => {
     expect(mainSiteOf({ home: "https://example.com/", phone: "(512) 555-0142" })?.phone).toBe("(512) 555-0142");
     expect(mainSiteOf({ home: "https://example.com/" })?.phone).toBeNull();
