@@ -247,15 +247,28 @@ describe("the phone number the main site states", () => {
   it("third-party telephone: a review platform's Organization, an author or a venue never lends the business its number", () => {
     const platform = ld({ "@type": "Organization", name: "ReviewHub", url: "https://reviewhub.example.net/", telephone: "+1 800 555 0100" });
     const author = ld({ "@type": "Person", name: "Dana", url: "https://example.com/about/dana", telephone: "+1 512 555 0177" });
-    const venue = ld({ "@type": "MusicEvent", name: "Open day", telephone: "+1 512 555 0188" });
+    const venue = ld({ "@type": "MusicEvent", name: "Open day", url: "https://example.com/events/open-day", telephone: "+1 512 555 0188" });
+    const place = ld({ "@type": "Place", name: "Our yard", url: "https://example.com/visit", telephone: "+1 512 555 0166" });
     const plumber = ld({ "@type": "Plumber", name: "Harbor Plumbing", telephone: "(512) 555-0142" });
-    expect(phoneOn(`${platform}${author}${venue}${plumber}`)).toBe("(512) 555-0142");
+    expect(phoneOn(`${platform}${author}${venue}${place}${plumber}`)).toBe("(512) 555-0142");
     expect(phoneOn(`${platform}${author}${venue}`)).toBeNull();
+    expect(phoneOn(place)).toBeNull();
   });
 
   it("a SaaS's own Organization, named by its own @id, still gives its number", () => {
     const own = ld({ "@type": "Organization", "@id": "https://example.com/#organization", name: "Tally", telephone: "+1 415 555 0123" });
     expect(phoneOn(own)).toBe("+1 415 555 0123");
+  });
+
+  it("a node on the site's own host gives the number the chosen Organization leaves out", () => {
+    const own = ld({ "@type": "Organization", "@id": "https://example.com/#organization", name: "Tally" });
+    const hq = ld({ "@type": "Corporation", "@id": "https://example.com/#hq", telephone: "+1 415 555 0123" });
+    expect(phoneOn(`${own}${hq}`)).toBe("+1 415 555 0123");
+  });
+
+  it("a type written as a schema.org address is the same type: an author on the site never lends the number", () => {
+    const author = ld({ "@type": "https://schema.org/Person", name: "Dana", url: "https://example.com/about/dana", telephone: "+1 512 555 0177" });
+    expect(phoneOn(author)).toBeNull();
   });
 
   it("the tel: fallback reads the header or footer before a partner's link in a testimonial", () => {

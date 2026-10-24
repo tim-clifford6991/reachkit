@@ -235,7 +235,9 @@ function isOwnNode(node: Record<string, unknown>, organization: Record<string, u
     return address === null ? [] : [registrableDomain(new URL(address).hostname)];
   });
   if (hosts.some((host) => host !== site)) return false;
-  const types = (Array.isArray(node["@type"]) ? node["@type"] : [node["@type"]]).filter((type): type is string => typeof type === "string");
+  const types = (Array.isArray(node["@type"]) ? node["@type"] : [node["@type"]])
+    .filter((type): type is string => typeof type === "string")
+    .map((type) => type.replace(/^https?:\/\/schema\.org\//i, ""));
   if (types.some((type) => NOT_THE_BUSINESS_RE.test(type))) return false;
   return node === organization || identityOf(types)?.kind === "local_business" || hosts.length > 0;
 }
