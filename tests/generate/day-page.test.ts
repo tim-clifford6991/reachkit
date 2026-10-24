@@ -568,7 +568,7 @@ describe("issue 737 — the first draft, for a paid site with a free-scan cache"
 });
 
 describe("a new page adds what the web does not say (SPEC §7, D12; issue 1143)", () => {
-  it("a page whose pack adds too little waits for the founder and is not written", async () => {
+  it("a page whose pack adds too little waits for the founder, its topic rests, and it is not written", async () => {
     packAnswer.short = true;
     const outcome = await generateDayPage({ siteId: SITE_ID, publishDate: "2026-09-07" });
 
@@ -583,6 +583,8 @@ describe("a new page adds what the web does not say (SPEC §7, D12; issue 1143)"
       { reason: "step_failed:adds" }
     );
     expect(queueForDraftMock).not.toHaveBeenCalled();
+    // R31: the founder is asked, and the topic rests its 28 days from that day.
+    expect(restTopicMock.mock.calls).toEqual([[opportunity().id, expect.any(Date)]]);
   });
 
   it("where the site has a close page it can update, the day becomes an update of it on the same row", async () => {

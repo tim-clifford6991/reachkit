@@ -78,7 +78,7 @@ describe("reading the late answers of one pass (#1160)", () => {
       // A page question the pass asked the same engine: not a tracked prompt.
       row("r4", SOURCES.chatgpt, "saas seo tool|en|US|site:s", queued("t4")),
     ] as unknown as Record<string, unknown>[];
-    const rows = [{ answered: true, text: "ReachKit and others.", citedDomains: ["reachkit.app"], citedUrls: [] }];
+    const rows = [{ answered: true, text: "ReachKit and others.", citedDomains: ["reachkit.app"], citedUrls: ["https://www.semrush.com/kb/keyword-research/"] }];
     queue.ready = new Map([["t1", { kind: "answer", rows }]]);
 
     const first = await collectLateAnswers({ scanId: "scan-1", siteId: "site-1", domain: "reachkit.app", untilMs: 0 });
@@ -88,7 +88,7 @@ describe("reading the late answers of one pass (#1160)", () => {
     expect(stored.version).toBe(13);
     expect(stored.prompts.answers).toEqual([
       answer("ai_mode", 1),
-      { ...answer("chatgpt", 1), named: true, linked: true },
+      { ...answer("chatgpt", 1), named: true, linked: true, cited: ["https://www.semrush.com/kb/keyword-research/"] },
     ]);
     expect(db.updates.filter((update) => update.table === "fetches")).toEqual([
       { table: "fetches", values: { payload: rows }, id: "r1" },

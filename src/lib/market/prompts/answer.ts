@@ -14,6 +14,7 @@
 // held against the site's own facts later without the answer's prose.
 import type { Language } from "@/lib/locale/locales";
 import { namesSite, says } from "@/lib/measure/drivers";
+import { isHomeUrl } from "@/lib/market/rivals/domains";
 import { statementsOf, type AnswerStatement } from "./misstated";
 
 export interface PromptAnswerReading {
@@ -26,6 +27,9 @@ export interface PromptAnswerReading {
   /** The addresses it cited that hold "alternative", in any language the
    *  word is spelt so ("alternatives", "alternativen") — issue 1520. */
   alternatives: readonly string[];
+  /** The pages it cited on other sites, their homes left out: where a
+   *  competitor's page that AI links is read from. */
+  cited: readonly string[];
   /** The answer named or cited any product at all — D33's pre-check. */
   namesABrand: boolean;
   /** Issue 1539: the prices, counts and countries it gave the business. */
@@ -53,6 +57,18 @@ export function pageOf(url: string): string | null {
   } catch {
     return null;
   }
+}
+
+/** The pages `citedUrls` holds on other sites than `ownDomain`, each once
+ *  and none a site's home. */
+export function citedPagesOf(citedUrls: readonly string[], ownDomain: string): string[] {
+  const own = bare(ownDomain);
+  const pages = new Set<string>();
+  for (const url of citedUrls) {
+    const page = pageOf(url);
+    if (page !== null && !within(bare(new URL(page).hostname), own) && !isHomeUrl(page)) pages.add(page);
+  }
+  return [...pages];
 }
 
 export function readPromptAnswer(a: {
@@ -90,6 +106,7 @@ export function readPromptAnswer(a: {
     ownUrls: [...ownUrls],
     rivals,
     alternatives,
+    cited: citedPagesOf(a.citedUrls, own),
     namesABrand: named || linked || rivals.length > 0 || cited.length > 0,
     states: named ? statementsOf({ text: a.text, siteName: a.siteName, ownDomain: own, rivals: a.rivals, language: a.language ?? "en" }) : [],
   };

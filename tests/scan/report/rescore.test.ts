@@ -430,6 +430,26 @@ describe("issue 1539: what a tracked-prompt answer states of the business is rea
   });
 });
 
+describe("a stored tracked-prompt answer gains the pages it cited on other sites, from what fetches kept", () => {
+  it("a competitor's page is written at its own path, its tracking and the site's own pages and homes left out", () => {
+    const scan = fixture("zapier.com");
+    const report = structuredClone(scan.report) as Record<string, unknown>;
+    report.prompts = {
+      siteName: "Zapier",
+      asked: [{ id: "p1", kind: "category", text: "Best automation tool?" }],
+      asks: 1,
+      answers: [{ promptId: "p1", engine: "chatgpt", run: 1, named: false, linked: false, ownUrls: [], rivals: [] }],
+    };
+    const db = storeOf([{ ...scan, report }]);
+    const row = { ...[...db.rows.values()][0]!, siteId: "site", isCurrent: true };
+    const citedUrls = ["https://make.com/en/integrations/slack?utm_source=chatgpt.com", "https://make.com/", "https://zapier.com/blog/best-automation/"];
+    const answers = [{ source: "ai_optimization/chat_gpt/llm_scraper", key: "Best automation tool?|United States|en|site:x", text: "Make leads.", citedUrls }];
+    const again = rescoreRow(row, [], { siteName: "Zapier", answers });
+    const change = "result" in again ? again.result.changes.find((c) => c.path[0] === "prompts") : undefined;
+    expect(change).toEqual({ path: ["prompts", "answers", 0, "cited"], value: ["https://make.com/en/integrations/slack"] });
+  });
+});
+
 describe("search presence is re-scored at 0¢ as the stored card's page-one share (owner, 2026-10-22)", () => {
   // gusto.com's stored scan: Google 10/10 from its Labs reach, beside a card of 0 of 1.
   const scan = fixture("gusto.com");
