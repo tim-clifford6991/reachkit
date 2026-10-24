@@ -10,7 +10,8 @@
 // own retry and its dashboard are what a failure is for, and swallowing it
 // here would turn a broken engine into a silent success.
 import { observeKillSwitchEngaged, stoppedByKillSwitch } from "./kill-switch";
-import { beat } from "./heartbeat";
+import { berlinDay } from "@/lib/config/now";
+import { beat, claimErrorMail, releaseErrorMail } from "./heartbeat";
 import { recordInvocation } from "./observability";
 import type { JobDefinition, JobInput, Outcome } from "./types";
 
@@ -31,16 +32,21 @@ async function reportFlip(): Promise<void> {
  *  report above, and swallowed: an alert never fails the invocation or
  *  changes what it rethrows. */
 async function reportToOwners(
-  incident: { occasion: "job-failed"; jobId: string; attempt: number; error: unknown } | { occasion: "dead-lettered"; jobId: string; error: unknown }
+  incident: { occasion: "job-failed"; jobId: string; attempt: number; error: unknown; now: Date } | { occasion: "dead-lettered"; jobId: string; error: unknown }
 ): Promise<void> {
   try {
     const { errorNameOf, reportIncident } = await import("@/lib/mail/ops");
     const errorName = errorNameOf(incident.error);
-    await reportIncident(
-      incident.occasion === "job-failed"
-        ? { occasion: "job-failed", jobId: incident.jobId, attempt: incident.attempt, errorName }
-        : { occasion: "dead-lettered", jobId: incident.jobId, errorName }
-    );
+    if (incident.occasion === "dead-lettered") {
+      await reportIncident({ occasion: "dead-lettered", jobId: incident.jobId, errorName });
+      return;
+    }
+    // Once per job, error class and Berlin day, decided by our own row rather than the vendor's key.
+    const key = { jobId: incident.jobId, errorName, day: berlinDay(incident.now) };
+    const claim = await claimErrorMail(key, incident.now);
+    if (claim === "taken") return;
+    const sent = await reportIncident({ occasion: "job-failed", jobId: incident.jobId, attempt: incident.attempt, errorName }, key.day);
+    if (!sent && claim === "claimed") await releaseErrorMail(key);
   } catch {
     console.warn(JSON.stringify({ event: "ops_incident_alert", occasion: incident.occasion, outcome: "threw" }));
   }
@@ -103,7 +109,7 @@ export async function runJob(definition: JobDefinition, input: JobInput): Promis
     // only — a retry that fails again is the same failure, and one whose
     // retries run out is told once more, as dead-lettered.
     if ((input.attempt ?? 0) === 0) {
-      await reportToOwners({ occasion: "job-failed", jobId: definition.id, attempt: 0, error });
+      await reportToOwners({ occasion: "job-failed", jobId: definition.id, attempt: 0, error, now: input.now });
     }
     throw error;
   }

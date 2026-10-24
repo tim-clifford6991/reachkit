@@ -190,11 +190,13 @@ describe('advisor `rls_enabled_no_policy` — the tables that are policy-less by
     // tick's per-site record of each day, written and read only by that job.
     // `refunds` is the first-14-days refund ledger, read and written only by the billing webhook.
     // `renewal_refunds` is the first-renewal refund ledger, written only by the same webhook.
+    // `job_error_mails` is the job runner's once-a-Berlin-day claim on a failing job's owner mail.
     expect(policyLess).toEqual([
       "domain_blocks",
       "draft_days",
       "email_suppressions",
       "fetches",
+      "job_error_mails",
       "job_runs",
       "llm_mention_reads",
       "llm_mentions",
