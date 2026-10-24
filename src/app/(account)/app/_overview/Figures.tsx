@@ -8,6 +8,7 @@ import { TrendingUp } from "lucide-react";
 import { copy } from "@/lib/presentation/copy";
 import type { BlogReadsModel } from "@/lib/publish/reads/model";
 import { ANSWER_RATE_WEEKS } from "@/lib/config/constants";
+import { GrowthLine } from "@/ui/charts/GrowthLine";
 import { PlaceLine } from "@/ui/charts/PlaceLine";
 import { ReadsBars } from "@/ui/charts/ReadsBars";
 import { formatCount, formatDay, SHELL_LOCALE } from "../_shell/format";
@@ -139,15 +140,24 @@ function changeLine(now: number, then: number | null, keys: { up: "overview.mont
   return copy(now > then ? keys.up : keys.down, { n: formatCount(then) });
 }
 
-function Measure(p: { label: string; figure: string; of: string | null; line: string | null; testId: string }): React.JSX.Element {
+/** The move from the scan's value to today's; no line where the scan measured nothing. */
+function moveLine(then: number | null, now: number): React.JSX.Element | null {
+  if (then === null) return null;
+  return <GrowthLine compact weeks={[{ name: "scan", value: then }, { name: "now", value: now }]} />;
+}
+
+function Measure(p: { label: string; figure: string; of: string | null; line: string | null; testId: string; mark: React.ReactNode }): React.JSX.Element {
   return (
-    <div className="min-w-0 flex-1 basis-60 rounded-box bg-base-200 px-3.5 py-3" data-testid={p.testId}>
-      <p className="eyebrow">{p.label}</p>
-      <p className="num text-2xl font-bold">
-        {p.figure}
-        {p.of === null ? null : <span className={`ms-1.5 text-sm font-semibold ${INK}`}>{p.of}</span>}
-      </p>
-      {p.line === null ? null : <p className={`text-xs ${INK}`}>{p.line}</p>}
+    <div className="flex min-w-0 flex-1 basis-60 items-center justify-between gap-3 rounded-box bg-base-200 px-3.5 py-3" data-testid={p.testId}>
+      <div className="min-w-0">
+        <p className="eyebrow">{p.label}</p>
+        <p className="num text-2xl font-bold">
+          {p.figure}
+          {p.of === null ? null : <span className={`ms-1.5 text-sm font-semibold ${INK}`}>{p.of}</span>}
+        </p>
+        {p.line === null ? null : <p className={`text-xs ${INK}`}>{p.line}</p>}
+      </div>
+      {p.mark}
     </div>
   );
 }
@@ -179,6 +189,7 @@ export function MonthsFigure(p: { months: MonthsFacts; reputation: PromptsModel;
                 figure={formatCount(reading.score)}
                 of={copy("overview.months.of", { of: "100" })}
                 line={changeLine(reading.score, scan.score, { up: "overview.months.score.up", down: "overview.months.score.down", same: "overview.months.score.same" })}
+                mark={moveLine(scan.score, reading.score)}
               />
             )}
             {reading.market === null ? null : (
@@ -191,6 +202,7 @@ export function MonthsFigure(p: { months: MonthsFacts; reputation: PromptsModel;
                   changeLine(reading.market.top10, scan.market, { up: "overview.months.market.up", down: "overview.months.market.down", same: "overview.months.market" }) ??
                   copy("overview.months.market")
                 }
+                mark={moveLine(scan.market, reading.market.top10)}
               />
             )}
             {rate === null ? null : (
@@ -200,6 +212,7 @@ export function MonthsFigure(p: { months: MonthsFacts; reputation: PromptsModel;
                 figure={`${formatCount(rate.linked + rate.named)} ${copy("overview.months.of", { of: formatCount(rate.samples) })}`}
                 of={null}
                 line={copy("overview.months.reputation.line", { weeks: formatCount(ANSWER_RATE_WEEKS) })}
+                mark={<progress className="progress progress-primary w-24 flex-none" value={rate.linked + rate.named} max={rate.samples} aria-hidden />}
               />
             )}
           </div>

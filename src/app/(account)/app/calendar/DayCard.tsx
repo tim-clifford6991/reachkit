@@ -10,6 +10,7 @@
 "use client";
 
 import type React from "react";
+import { Plus, RefreshCw } from "lucide-react";
 import { copy } from "@/lib/presentation/copy";
 import { horizonShortFor, shortCauseFor } from "./card-lines";
 import type { DayNumber } from "./day-number";
@@ -89,8 +90,10 @@ const LIST = "list";
 
 /** What a page is, as the board's chip: New, or Update. */
 export function KindChip(p: { update: boolean }): React.JSX.Element {
+  const Icon = p.update ? RefreshCw : Plus;
   return (
-    <span className="badge badge-sm badge-soft badge-primary shrink-0 font-semibold" data-testid="day-kind">
+    <span className="badge badge-sm badge-soft badge-primary shrink-0 gap-1 font-semibold" data-testid="day-kind">
+      <Icon aria-hidden className="size-3" />
       {copy(p.update ? "calendar.card.update" : "calendar.chip.new")}
     </span>
   );

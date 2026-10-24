@@ -15,8 +15,12 @@ import { copy } from "@/lib/presentation/copy";
 import { CLOSED, TILE_FIGURE, TILE_GRID, formatCount } from "./present";
 import type { GooglePages } from "./google-pages";
 import type { MarketTile } from "./search-model";
+import type { VisitWeek } from "@/lib/publish/reads/model";
+import { ReadsBars } from "@/ui/charts/ReadsBars";
+import { shortDay } from "./Figures";
 
 const INK = "text-base-content/70";
+const VISITS_CHART = copy("overview.search.visits.chart");
 
 export interface TileText {
   testId: string;
@@ -26,7 +30,7 @@ export interface TileText {
   against: string | null;
   split: string | null;
   means: string;
-  /** The weeks behind the figure, under it. */
+  /** The figure drawn, under it: its weeks, or its share. */
   spark?: React.ReactNode;
 }
 
@@ -49,12 +53,12 @@ export function Tile(p: TileText): React.JSX.Element {
             </span>
             {p.against === null ? null : <span className={`num num-phrase min-w-0 text-sm ${INK}`}>{p.against}</span>}
           </div>
+          {p.spark}
           {p.split === null ? null : (
             <span className={`text-xs ${INK}`} data-testid={`${p.testId}-split`}>
               {p.split}
             </span>
           )}
-          {p.spark}
           <span className="text-xs font-semibold">{copy("overview.means")}</span>
         </summary>
         <div className={CLOSED.tileBody}>
@@ -69,13 +73,24 @@ export function Tile(p: TileText): React.JSX.Element {
 
 export const NOT_MEASURED = { figure: copy("draft.ladder.unmeasured"), quiet: true, against: null, split: null } as const;
 
+function visitsSpark(weeks: readonly VisitWeek[]): React.ReactNode {
+  if (weeks.length < 2) return null;
+  return (
+    <ReadsBars
+      label={VISITS_CHART}
+      weeks={weeks.map((week) => ({ name: shortDay(new Date(`${week.start}T12:00:00Z`), "UTC"), count: week.visits }))}
+    />
+  );
+}
+
 export function SearchTiles(p: {
   pages: GooglePages | null;
-  /** Visits from Google this week; `null` where they cannot be counted. */
-  visits: number | null;
+  /** Visits from Google per week, oldest first; `null` where they cannot be counted. */
+  visits: readonly VisitWeek[] | null;
   market: MarketTile | null;
 }): React.JSX.Element {
-  const { pages, visits, market } = p;
+  const { pages, market } = p;
+  const visits = p.visits === null ? null : (p.visits.at(-1)?.visits ?? 0);
   const tiles: TileText[] = [
     {
       testId: "search-tile-pages",
@@ -105,7 +120,13 @@ export function SearchTiles(p: {
         ? NOT_MEASURED
         : visits === 0
           ? { figure: copy("overview.search.visits.none"), quiet: true, against: null, split: null }
-          : { figure: formatCount(visits), quiet: false, against: copy("overview.search.visits.of"), split: null }),
+          : {
+              figure: formatCount(visits),
+              quiet: false,
+              against: copy("overview.search.visits.of"),
+              split: null,
+              spark: visitsSpark(p.visits ?? []),
+            }),
     },
     {
       testId: "search-tile-market",

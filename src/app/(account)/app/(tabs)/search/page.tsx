@@ -21,7 +21,7 @@ import { formatDay } from "../../_shell/format";
 import { readShell } from "../../_shell/provider";
 import { readSearch } from "../../_overview/search-provider";
 import { readPublished } from "../../_overview/content-provider";
-import { readGoogleVisits } from "../../_overview/blog-reads-provider";
+import { readGoogleVisitWeeks } from "../../_overview/blog-reads-provider";
 import { readUnderstanding } from "../../_overview/understanding-provider";
 import { doingOf, type Doing } from "../../_overview/search-model";
 import { climbingSearches, googlePagesOf, readPlanned } from "../../_overview/google-pages";
@@ -42,7 +42,7 @@ export default async function SearchTabPage(): Promise<React.JSX.Element> {
     readShell(),
     readSearch(),
     readPublished(),
-    readGoogleVisits(),
+    readGoogleVisitWeeks(),
     readUnderstanding(),
     readPlanned(),
   ]);

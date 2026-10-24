@@ -60,7 +60,7 @@ import { RIVAL_SCOPE_VERSION } from "../live-recheck";
 import { namedRivals } from "../rules/rivals";
 import { HARD_RULES, type GroundedFact, type HardRule, type RuleFailure, type SiteRuleInputs } from "../rules/types";
 import { generateStore, type DraftRow } from "../store";
-import { TEMPLATES, type PackNeed } from "../templates";
+import type { PackNeed } from "../templates";
 import { profileItemsUsed } from "../voice/profile-block";
 import { voiceLength } from "../voice/register";
 import { buildComparisonSet } from "./comparison";
@@ -68,7 +68,7 @@ import { layoutPage, withClosing, type LaidPage } from "./compose";
 import { closeElsewhere } from "./elsewhere";
 import type { SourcedFact } from "./grounding";
 import { reportFactsAllowed } from "./report-scope";
-import { builtFromOutside, packStatements, type ContextPack, type PackClaim } from "./pack";
+import { builtFromOutside, fittedTemplate, packStatements, type ContextPack, type PackClaim } from "./pack";
 import { fixNotes, repairable, repairMechanical, type FixNote, type RepairRecord } from "./repair";
 import { completeTables, withSources } from "./sources";
 import { comparisonTable, withTable } from "./table";
@@ -178,7 +178,7 @@ export async function generateDraft(c: CostContext, a: GenerateInputs): Promise<
   const store = generateStore();
   const startedAt = a.startedAt ?? Date.now();
   const { pack } = a;
-  const template = TEMPLATES[pack.type];
+  const template = fittedTemplate(pack);
 
   // The ceiling, before anything runs.
   if (c.capHit()) {

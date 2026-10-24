@@ -8,8 +8,10 @@
 // **No sentence is composed here.** Every value is a `CopyKey`; the strings
 // are `src/lib/presentation/copy/keys/overview.ts`'s, which is the owner's
 // file.
+import { Plus, type LucideIcon } from "lucide-react";
 import type { CopyKey } from "@/lib/presentation/copy";
 import type { RivalSearchStatus } from "./rivals-model";
+import { STATUS_ICON } from "./search-words";
 
 export const RIVAL_STATUS_COPY_KEY: Readonly<Record<RivalSearchStatus, CopyKey>> = Object.freeze({
   in_review: "overview.rivals.status.in-review",
@@ -34,6 +36,14 @@ export const RIVAL_STATUS_BADGE: Readonly<Record<RivalSearchStatus, string>> = O
   up_next: "badge badge-ghost",
   needs_page: "badge badge-outline",
   too_big: "badge badge-outline opacity-70",
+});
+
+/** The Google tab's icons for the statuses the two tables share; a search with no page planned is a new page. */
+export const RIVAL_STATUS_ICON: Readonly<Record<RivalSearchStatus, LucideIcon>> = Object.freeze({
+  in_review: STATUS_ICON.your_review,
+  up_next: STATUS_ICON.up_next,
+  needs_page: Plus,
+  too_big: STATUS_ICON.too_big,
 });
 
 /** The table's four columns, in the order SPEC §4 lists them. The tuple is

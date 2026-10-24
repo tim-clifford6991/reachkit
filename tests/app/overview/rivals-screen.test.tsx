@@ -24,7 +24,7 @@ vi.mock("next/navigation", () => ({
 
 import { RivalPresence } from "@/app/(account)/app/_overview/RivalPresence";
 import { RivalTable } from "@/app/(account)/app/_overview/RivalTable";
-import { assembleRivals, type PresenceCard, type RivalsModel } from "@/app/(account)/app/_overview/rivals-model";
+import { RIVAL_SEARCH_STATUSES, assembleRivals, type PresenceCard, type RivalsModel } from "@/app/(account)/app/_overview/rivals-model";
 import { FIXTURE_RIVALS_FACTS } from "@/app/(account)/app/_overview/rivals-fixture";
 import { RIVAL_STATUS_COPY_KEY } from "@/app/(account)/app/_overview/rivals-words";
 import type { Planned } from "@/app/(account)/app/_overview/search-model";
@@ -38,10 +38,10 @@ function el(node: React.JSX.Element): Element {
   return container;
 }
 
-function table(searchParams: Record<string, string> = {}, planned: Record<string, Planned> = {}): Element {
+function table(searchParams: Record<string, string> = {}, planned: Record<string, Planned> = {}, model: RivalsModel = MODEL): Element {
   return el(
     <NuqsTestingAdapter searchParams={searchParams}>
-      <RivalTable model={MODEL} planned={planned} />
+      <RivalTable model={model} planned={planned} />
     </NuqsTestingAdapter>,
   );
 }
@@ -217,6 +217,14 @@ describe("the table", () => {
     for (const badge of badges) {
       expect(words, badge.textContent ?? "").toContain(badge.textContent);
     }
+  });
+
+  it("each status word carries the Google tab's icon for it", () => {
+    const model: RivalsModel = { ...MODEL, rows: RIVAL_SEARCH_STATUSES.map((status, i) => ({ ...MODEL.rows[i]!, status })) };
+    const icons = [...table({}, {}, model).querySelectorAll('[data-testid="rivals-row"] .badge')].map((badge) =>
+      [...(badge.querySelector('svg[aria-hidden="true"]')?.classList ?? [])].find((name) => name.startsWith("lucide-")),
+    );
+    expect(icons).toEqual(["lucide-clock", "lucide-list", "lucide-plus", "lucide-circle-minus"]);
   });
 
   it("a row whose search Plan's week holds says what goes live and when, or that it goes live today; the rest keep their status word", () => {
