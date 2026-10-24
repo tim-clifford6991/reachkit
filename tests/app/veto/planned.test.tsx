@@ -3,6 +3,7 @@
 // pressing stops it, and a page written since is sent to the plan.
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type React from "react";
+import { renderToStaticMarkup } from "react-dom/server";
 import { applyEnvFixture } from "../../mail/env-fixture";
 import { fakeDb } from "../../publish/harness";
 
@@ -48,6 +49,17 @@ const strings = (tree: React.ReactNode): string[] =>
   nodes(tree).flatMap((node) => (typeof node.props?.children === "string" ? [node.props.children] : []));
 
 const status = () => db.rows("opportunities")[0]!.status;
+
+/** The neutral chip a link that cannot be spent draws, and the lucide icons inside it. */
+function refusedChip(tree: React.ReactNode): { cls: string; icons: string[] } {
+  const chip = nodes(tree).find((node) => node.props?.["data-testid"] === "veto-refused-chip");
+  if (chip === undefined) return { cls: "", icons: [] };
+  const markup = renderToStaticMarkup(chip as unknown as React.ReactElement);
+  return { cls: String(chip.props.className), icons: [...markup.matchAll(/class="lucide lucide-([a-z-]+)/g)].map((m) => m[1]!) };
+}
+
+const tinted = (tree: React.ReactNode): boolean =>
+  nodes(tree).some((node) => String(node.props?.className ?? "").includes("bg-success"));
 
 beforeEach(() => {
   redirected.length = 0;
@@ -110,5 +122,24 @@ describe("the stop link to a page not written yet", () => {
     const tree = await VetoPage({ params: { token: TOKEN } });
     expect(strings(tree)).toContain(COPY["publish.veto.written"]);
     expect(nodes(tree).some((node) => node.type === "form")).toBe(false);
+  });
+
+  it("a planned day already stopped, reached again, draws the used arm's neutral circle-stop chip", async () => {
+    db.rows("opportunities")[0]!.status = "dismissed";
+    const tree = await VetoPage({ params: { token: TOKEN } });
+    expect(strings(tree)).toContain(COPY["publish.veto.used.head"]);
+    const chip = refusedChip(tree);
+    expect(chip.cls).toContain("bg-base-200");
+    expect(chip.icons).toEqual(["circle-stop"]);
+    expect(tinted(tree)).toBe(false);
+  });
+
+  it("a page written since its mail draws the closed arm's neutral clock chip", async () => {
+    db.rows("opportunities")[0]!.status = "queued";
+    const tree = await VetoPage({ params: { token: TOKEN } });
+    const chip = refusedChip(tree);
+    expect(chip.cls).toContain("bg-base-200");
+    expect(chip.icons).toEqual(["clock"]);
+    expect(tinted(tree)).toBe(false);
   });
 });

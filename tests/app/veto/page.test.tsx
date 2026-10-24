@@ -19,6 +19,7 @@
 import { readFileSync } from "node:fs";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type React from "react";
+import { renderToStaticMarkup } from "react-dom/server";
 import { applyEnvFixture } from "../../mail/env-fixture";
 import { codeOf } from "../../mail/leads/source";
 import type { PreviewResult, RedeemResult, VetoPreview, WeekDay } from "../../../src/lib/publish/publishable";
@@ -80,6 +81,13 @@ vi.mock("@/lib/publish/publishable", () => ({
   vetoLinkPath: (token: string) => `/veto/${token}`,
 }));
 
+/** The form-status hook's seam: what `useFormStatus` reports for the render about to run. */
+const formStatus = { pending: false };
+vi.mock("react-dom", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("react-dom")>()),
+  useFormStatus: () => ({ pending: formStatus.pending, data: null, method: null, action: null }),
+}));
+
 vi.mock("next/navigation", () => ({
   redirect: (to: string) => {
     redirected.push(to);
@@ -109,7 +117,7 @@ interface Node {
  * them here would make every assertion about a `Btn` an assertion about
  * daisyUI's markup instead.
  */
-const OWN_ARMS = new Set(["Ask", "Told"]);
+const OWN_ARMS = new Set(["Ask", "Told", "StopButton"]);
 
 function nodes(element: React.ReactNode): Node[] {
   if (element === null || typeof element !== "object") return [];
@@ -193,6 +201,18 @@ function headingsOf(tree: React.ReactNode, type: "h1" | "h2" | "h3"): string[] {
     .map((node) => String(node.props.children));
 }
 
+/** Each lucide icon a node draws, in order, as `{ name, cls }` from its rendered `svg`. */
+function iconsOf(node: Node | undefined): { name: string; cls: string }[] {
+  if (node === undefined) return [];
+  const markup = renderToStaticMarkup(node as unknown as React.ReactElement);
+  return [...markup.matchAll(/<svg[^>]*class="lucide lucide-([a-z-]+)([^"]*)"/g)].map((m) => ({ name: m[1]!, cls: m[2]! }));
+}
+
+/** The node carrying this test id. */
+function byTestId(tree: React.ReactNode, id: string): Node | undefined {
+  return nodes(tree).find((node) => node.props?.["data-testid"] === id);
+}
+
 /** Every `<button>` the page draws. */
 function buttonsOf(tree: React.ReactNode): Node[] {
   return nodes(tree).filter((node) => node.type === "button");
@@ -208,6 +228,7 @@ async function ask(query: Record<string, string> = {}): Promise<React.ReactNode>
 }
 
 beforeEach(() => {
+  formStatus.pending = false;
   previewed.length = 0;
   redeemed.length = 0;
   redirected.length = 0;
@@ -299,7 +320,7 @@ describe("the ask arm — what the set draws, in its own order", () => {
     const tree = await ask();
     const buttons = buttonsOf(tree);
     expect(buttons).toHaveLength(1);
-    expect(buttons[0]?.props.children).toBe(COPY["publish.veto.ask.action"]);
+    expect(text(buttons[0] as unknown as React.ReactNode)).toContain(COPY["publish.veto.ask.action"]);
     expect(classOf(buttons[0] as Node)).toContain("btn-primary");
     // The screen's only solid button: nothing else carries the primary rank.
     expect(nodes(tree).filter((node) => classOf(node).includes("btn-primary"))).toHaveLength(1);
@@ -327,7 +348,7 @@ describe("the ask arm — what the set draws, in its own order", () => {
     });
     const tree = await ask();
     expect(buttonsOf(tree)).toHaveLength(1);
-    expect(buttonsOf(tree)[0]?.props.children).toBe(COPY["publish.veto.ask.action"]);
+    expect(text(buttonsOf(tree)[0] as unknown as React.ReactNode)).toContain(COPY["publish.veto.ask.action"]);
   });
 
   it("the token is never echoed onto the page", async () => {
@@ -435,7 +456,7 @@ describe("the done arm, and the refusals that wear its shape", () => {
     // The marker is not a claim on its own: the done arm needs the store to
     // agree. Without this, anyone could be told their page was stopped.
     const tree = await ask({ done: "1" });
-    expect(buttonsOf(tree)[0]?.props.children).toBe(COPY["publish.veto.ask.action"]);
+    expect(text(buttonsOf(tree)[0] as unknown as React.ReactNode)).toContain(COPY["publish.veto.ask.action"]);
     expect(redeemed).toEqual([]);
     expect(headingsOf(tree, "h2")).toContain(COPY["publish.veto.failed.head"]);
     expect(text(tree)).toContain(COPY["publish.veto.failed"]);
@@ -503,7 +524,7 @@ describe("the done arm, and the refusals that wear its shape", () => {
       params: Promise.resolve({ token: "a-token" }),
       searchParams: Promise.resolve({}),
     });
-    expect(buttonsOf(tree)[0]?.props.children).toBe(COPY["publish.veto.ask.action"]);
+    expect(text(buttonsOf(tree)[0] as unknown as React.ReactNode)).toContain(COPY["publish.veto.ask.action"]);
   });
 });
 
@@ -801,5 +822,87 @@ describe("the address: public, and never indexed", () => {
     const code = codeOf(PAGE);
     expect(code).toMatch(/export const dynamic = "force-dynamic"/);
     expect(code).toMatch(/export const revalidate = 0/);
+  });
+});
+
+describe("each arm carries the board's marks", () => {
+  const WEEK = [
+    { date: "2026-09-14", stopped: false },
+    { date: "2026-09-15", stopped: true },
+    { date: "2026-09-16", stopped: null },
+  ];
+  /** Any success-tinted node: the mark only a confirmed stop earns. */
+  const successChips = (tree: React.ReactNode): Node[] => nodes(tree).filter((node) => classOf(node).includes("bg-success"));
+
+  it("the stop button carries circle-stop, and spins while pending", async () => {
+    const idle = buttonsOf(await ask())[0];
+    expect(iconsOf(idle).map((i) => i.name)).toEqual(["circle-stop"]);
+    expect(idle?.props.disabled).toBe(false);
+
+    formStatus.pending = true;
+    const pressed = buttonsOf(await ask())[0];
+    const markup = renderToStaticMarkup(pressed as unknown as React.ReactElement);
+    expect(pressed?.props.disabled).toBe(true);
+    expect(markup).toContain("loading loading-spinner");
+    expect(iconsOf(pressed)).toEqual([]);
+    // Only the re-read page says Stopped; the pressed button keeps its own word.
+    expect(markup).toContain(COPY["publish.veto.ask.action"]);
+    expect(markup).not.toContain(COPY["publish.veto.done.head"]);
+  });
+
+  it("the stop choice draws x, x, check under circle-stop; do nothing draws check ×3 under coffee", async () => {
+    const [stop, none] = nodes(await ask()).filter((node) => node.props?.["data-testid"] === "veto-choice");
+    const stopIcons = iconsOf(stop);
+    const noneIcons = iconsOf(none);
+    expect(stopIcons.map((i) => i.name)).toEqual(["circle-stop", "x", "x", "check"]);
+    expect(noneIcons.map((i) => i.name)).toEqual(["coffee", "check", "check", "check"]);
+    expect(noneIcons.filter((i) => i.name === "x")).toHaveLength(0);
+    // Only a tick is success-toned: a cross beside "It won't go live" is no good news.
+    for (const line of [...stopIcons.slice(1), ...noneIcons.slice(1)]) {
+      expect(line.cls.includes("text-success"), line.name).toBe(line.name === "check");
+    }
+  });
+
+  it("the stopped arm: file-text per page day, circle-stop on the stopped day, the won't-go-live pill, lock in the toolbar", async () => {
+    previewAnswer = async () => spent("How teams pick an onboarding tool", WEEK);
+    const tree = await ask({ done: "1" });
+    const days = nodes(byTestId(tree, "veto-week") as unknown as React.ReactNode).filter((node) => node.type === "li");
+    expect(days.map((day) => iconsOf(day).map((i) => i.name))).toEqual([["file-text"], ["circle-stop"], []]);
+
+    const panel = byTestId(tree, "veto-panel");
+    const markup = renderToStaticMarkup(panel as unknown as React.ReactElement);
+    expect(markup).toMatch(/class="badge[^"]*"><svg[^>]*lucide-circle-stop[^>]*>.*?<\/svg>Won’t go live<\/span>/);
+    expect(COPY["publish.veto.panel.stopped"]).toBe("Won’t go live");
+    expect(BOARD).toContain(COPY["publish.veto.panel.stopped"]);
+    expect(iconsOf(panel).map((i) => i.name)).toEqual(["lock", "circle-stop"]);
+    expect(iconsOf(byTestId(tree, "veto-told")).map((i) => i.name)).toEqual(["check"]);
+  });
+
+  it("the failed arm: a warning-edged message-circle-warning chip, clock on still goes live, no success tint", async () => {
+    const tree = await ask({ done: "1" });
+    const failed = byTestId(tree, "veto-failed");
+    expect(iconsOf(failed).map((i) => i.name)).toEqual(["message-circle-warning", "clock"]);
+    const chip = byTestId(tree, "veto-failed-chip") as Node;
+    expect(classOf(chip)).toContain("border-warning");
+    expect(classOf(chip)).not.toMatch(/\bbg-/);
+    expect(successChips(tree)).toEqual([]);
+  });
+
+  it.each([
+    ["used", "circle-stop"],
+    ["expired", "clock"],
+    ["not_in_review", "clock"],
+  ] as const)("the %s arm: a neutral chip with %s, and no success tint", async (reason, icon) => {
+    previewAnswer = async () => (reason === "used" ? spent(null) : { ok: false, reason });
+    const tree = await ask();
+    const chip = byTestId(tree, "veto-refused-chip");
+    expect(classOf(chip as Node)).toContain("bg-base-200");
+    expect(iconsOf(chip).map((i) => i.name)).toEqual([icon]);
+    expect(successChips(tree)).toEqual([]);
+  });
+
+  it("an unknown link draws no mark: the board names none for it", async () => {
+    previewAnswer = async () => ({ ok: false, reason: "unknown" });
+    expect(byTestId(await ask(), "veto-refused-chip")).toBeUndefined();
   });
 });
