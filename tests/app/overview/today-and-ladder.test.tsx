@@ -99,16 +99,22 @@ function readingFor(site: Site, shapes: readonly Shape[], i: number): PageReadin
   });
 }
 
-function seedPages(site: Site, shapes: readonly Shape[], opts: { destination?: string; read?: boolean } = {}): Row[] {
+/** `unread`: the last pages went live after Monday's reading, so they have none. */
+function seedPages(
+  site: Site,
+  shapes: readonly Shape[],
+  opts: { destination?: string | ((i: number) => string); read?: boolean; unread?: number } = {}
+): Row[] {
+  const fresh = (i: number): boolean => i >= shapes.length - (opts.unread ?? 0);
   const pubs = shapes.map((_, i) => ({
     id: `p${i}`,
     site_id: SITE_ID,
     draft_id: `d${i}`,
-    destination: opts.destination ?? "hosted",
+    destination: typeof opts.destination === "function" ? opts.destination(i) : (opts.destination ?? "hosted"),
     live_url: pageUrl(site, i),
-    published_at: new Date(Date.UTC(2026, 8, 20 + i)).toISOString(),
+    published_at: (fresh(i) ? new Date(Date.UTC(2026, 9, 6 + (i % 3))) : new Date(Date.UTC(2026, 8, 20 + i))).toISOString(),
     unpublished_at: null,
-    search_reading: opts.read === false ? null : stored(readingFor(site, shapes, i) as never),
+    search_reading: opts.read === false || fresh(i) ? null : stored(readingFor(site, shapes, i) as never),
   }));
   db.seed("publications", pubs);
   db.seed("drafts", [
@@ -158,6 +164,9 @@ function expectedSteps(reading: PageReading | null, wordpress = false): string {
     : null;
   return [copy(google), ai === null ? null : copy(ai)].filter(Boolean).join(" · ");
 }
+
+/** The hint's own words, without its count. */
+const NOT_READ = copy("overview.ladder.unread", { k: "" }).trim();
 
 const LABEL_KEY = { working: "review.label.working", climbing: "review.label.climbing", too_early: "review.label.too_early", not_moving: "review.label.not_moving" } as const;
 
@@ -242,6 +251,37 @@ describe.each([
     expect(text(dom.querySelector('[data-testid="overview-ladder-visits"]'))).toBe(copy("overview.ladder.visits", { n: "8" }));
     // Pages already show in results, so the week-1 line is not said.
     expect(dom.querySelector('[data-testid="overview-ladder-week1"]')).toBeNull();
+    // Every page is read, so no page is said to be waiting for one.
+    expect(text(ladder)).not.toContain(NOT_READ);
+  });
+
+  it("a page published since the reading is not read yet, never a page short of a step", async () => {
+    seedPages(panel, TWELVE, { unread: 3 });
+    const { dom } = await render();
+    const ladder = dom.querySelector('[data-testid="overview-ladder"]')!;
+    const line = (key: Parameters<typeof copy>[0]): string => text(ladder.querySelector(`[data-step="${key}"] a + span`));
+    expect(text(ladder.querySelector('[data-step="draft.ladder.live"] a'))).toBe("12");
+    expect(line("draft.ladder.live")).toBe(copy("overview.ladder.step.live", { n: "12" }));
+    // The nine read pages were all fetched: 9 of 9, not 9 of 12.
+    expect(text(ladder.querySelector('[data-step="draft.ladder.found"] a'))).toBe("9");
+    expect(line("draft.ladder.found")).toBe(copy("overview.ladder.step.found", { n: "9" }));
+    expect(line("draft.ladder.showing")).toBe(copy("overview.ladder.step.showing", { n: "9" }));
+    expect(line("draft.ladder.linked")).toBe(copy("overview.ladder.step.linked", { n: "9" }));
+    expect(text(ladder.querySelector("h2 + p"))).toBe(
+      `${copy("overview.ladder.read", { on: "Monday, October 5" })} · ${copy("overview.ladder.unread", { k: "3" })}`
+    );
+    expect(text(ladder).split(NOT_READ)).toHaveLength(2);
+  });
+
+  it("a mixed hosted and WordPress site counts each step over its own read pages", async () => {
+    seedPages(panel, TWELVE, { unread: 3, destination: (i) => (i < 4 ? "wordpress" : "hosted") });
+    const { dom } = await render();
+    const ladder = dom.querySelector('[data-testid="overview-ladder"]')!;
+    // Found is read on the hosted pages only: p4 to p8 have a reading, all fetched.
+    expect(text(ladder.querySelector('[data-step="draft.ladder.found"] a'))).toBe("5");
+    expect(text(ladder.querySelector('[data-step="draft.ladder.found"] a + span'))).toBe(copy("overview.ladder.step.found", { n: "5" }));
+    expect(text(ladder.querySelector('[data-step="draft.ladder.showing"] a + span'))).toBe(copy("overview.ladder.step.showing", { n: "9" }));
+    expect(text(ladder)).toContain(copy("overview.ladder.unread", { k: "3" }));
   });
 
   it("a page nothing has read yet is not measured, never an empty step or a 0", async () => {
@@ -259,6 +299,8 @@ describe.each([
     expect(ladder.querySelectorAll('[data-testid="overview-ladder-row"] .badge')).toHaveLength(0);
     expect(ladder.querySelector('[data-testid="overview-ladder-visits"]')).toBeNull();
     expect(text(ladder.querySelector('[data-testid="overview-ladder-week1"]'))).toBe(copy("overview.ladder.week1.short", { live: "3" }));
+    expect(text(ladder)).not.toContain("0 of");
+    expect(text(ladder)).toContain(copy("overview.ladder.unread", { k: "3" }));
   });
 
   it("week 1: the same ladder, and the line of what has lit up so far", async () => {
@@ -274,6 +316,30 @@ describe.each([
     );
     expect(dom.querySelector('[data-testid="overview-ladder-visits"]')).toBeNull();
     expect(text(dom.querySelector('[data-step="draft.ladder.showing"] a'))).toBe("0");
+  });
+
+  it("week 1 with pages not read yet: found and read count over the read pages, and the line says how many wait", async () => {
+    const five: Shape[] = [
+      { place: null, crawled: true, aiReads: 2, aiVisits: 0, clicks: null },
+      { place: null, crawled: true, aiReads: 0, aiVisits: 0, clicks: null },
+      { place: null, crawled: false, aiReads: 0, aiVisits: 0, clicks: null },
+      { place: null, crawled: false, aiReads: 0, aiVisits: 0, clicks: null },
+      { place: null, crawled: false, aiReads: 0, aiVisits: 0, clicks: null },
+    ];
+    seedPages(panel, five, { unread: 2 });
+    const { dom } = await render();
+    expect(text(dom.querySelector('[data-testid="overview-ladder-week1"]'))).toBe(
+      copy("overview.ladder.week1", { live: "5", found: "2", read: "1" })
+    );
+    expect(text(dom.querySelector('[data-step="draft.ladder.found"] a + span'))).toBe(copy("overview.ladder.step.found", { n: "3" }));
+    expect(text(dom.querySelector('[data-testid="overview-ladder"]'))).toContain(copy("overview.ladder.unread", { k: "2" }));
+  });
+
+  it("week 1 with nothing read: the short line, never a count of 0", async () => {
+    seedPages(panel, Array.from({ length: 5 }, () => TWELVE[11]!), { read: false });
+    const { dom } = await render();
+    expect(text(dom.querySelector('[data-testid="overview-ladder-week1"]'))).toBe(copy("overview.ladder.week1.short", { live: "5" }));
+    expect(text(dom.querySelector('[data-testid="overview-ladder"]'))).not.toContain("0 of");
   });
 
   it("on WordPress, Found by Google, Read by AI and the visits are not drawn, never 0", async () => {
