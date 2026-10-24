@@ -255,6 +255,9 @@ export const MAIL_COPY = Object.freeze({
   "mail.weekly.google.intro": ["Your {n} live pages, step by step toward the first page.", { slots: { n: "text" }, fixedBy: "board MondayMail · issue 1741 (drafted)" }],
   "mail.weekly.google.showing.climbing": ["Showing in results · {n} climbing", { slots: { n: "text" }, fixedBy: "board MondayMail · issue 1741 (drafted)" }],
   "mail.weekly.google.visits": ["{n} visits from Google this week.", { slots: { n: "text" }, fixedBy: "board MondayMail · issue 1741 (drafted)" }],
+  "mail.weekly.google.visits.up": ["{n} visits from Google this week, up from {before}.", { slots: { n: "text", before: "text" }, fixedBy: "board MondayMail · E8 2026-10-24" }],
+  "mail.weekly.google.visits.down": ["{n} visits from Google this week, down from {before}.", { slots: { n: "text", before: "text" }, fixedBy: "board MondayMail · E8 2026-10-24" }],
+  "mail.weekly.google.visits.same": ["{n} visits from Google this week, the same as last week.", { slots: { n: "text" }, fixedBy: "board MondayMail · E8 2026-10-24" }],
   "mail.weekly.google.climb": [
     "Biggest climb: {search}, from place {from} to {to}.",
     { slots: { search: "text", from: "text", to: "text" }, fixedBy: "issue 1616 (drafted)" },
