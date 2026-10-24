@@ -43,12 +43,12 @@ import { movedSlugsForSite } from "@/lib/publish/destinations/hosted/store";
 import { topicSimilarity } from "@/lib/known-content/similarity";
 import { Surface } from "@/ui/layout";
 import { resolveHost } from "../../resolve-host";
-import { AboutCard, HostedFooter, HostedHeader, INDEX_PATH, mainSiteOf, type HostedBusiness } from "./chrome";
-import { bylineLine } from "@/lib/publish/render/byline";
+import { AboutCard, actionsOf, CompactAction, HostedFooter, HostedHeader, INDEX_PATH, mainSiteOf, type HostedBusiness } from "./chrome";
+import { bylineLine, datedLine } from "@/lib/publish/render/byline";
 import { withFaq, type FaqEntry } from "@/lib/publish/render/faq";
 import { isSourcesHeading, madeLine } from "@/lib/publish/render/made";
 import { writeDate } from "./present";
-import { articleMetadata, blogPostingSchema, breadcrumbSchema, jsonLd } from "./seo";
+import { articleMetadata, blogPostingSchema, breadcrumbSchema, jsonLd, offeringSchema } from "./seo";
 import { pageAuthorOf } from "./author";
 
 export interface Resolved {
@@ -168,16 +168,23 @@ function sourceOf(url: string): string {
 /** The set's source line, or `null` for a page generation recorded no
  *  grounding for. The address stands in for the set's `[source title]`:
  *  what §8 records is where the fact was read, and a title we do not hold
- *  would have to be invented. */
-function sourceLineFor(page: HostedPage): string | null {
+ *  would have to be invented. `href` is `null` for an address that is not
+ *  a web page, which is then named but not linked. */
+function sourceLineFor(page: HostedPage): { text: string; href: string | null } | null {
   const grounded = page.grounded;
   if (grounded === null || grounded.url === "") return null;
   if (grounded.readAt === null) return null;
-  return copy("hosted.source", {
-    source: sourceOf(grounded.url),
-    date: writeDate(grounded.readAt, page.publisher.timeZone),
-  });
+  return {
+    text: copy("hosted.source", {
+      source: sourceOf(grounded.url),
+      date: writeDate(grounded.readAt, page.publisher.timeZone),
+    }),
+    href: /^https?:\/\//i.test(grounded.url) ? grounded.url : null,
+  };
 }
+
+/** The id of the sources heading the page draws where its body has none. */
+const SOURCES_ID = "sources";
 
 /** The words of a heading or title, for comparing the two: case, spacing
  *  and a trailing full stop or colon do not make them different. */
@@ -299,8 +306,9 @@ export function HostedArticle({ resolved }: { resolved: Resolved }): React.JSX.E
   // What the page says about itself as data: always the posting and the
   // breadcrumb, and the questions only where the page draws them.
   const faq = faqSchema(asked.faq, canonical);
+  const offering = page.offering === true;
   const dataBlocks = [
-    blogPostingSchema({ page, canonical, business }),
+    (offering ? offeringSchema : blogPostingSchema)({ page, canonical, business }),
     breadcrumbSchema({ page, canonical, business }),
     ...(faq === null ? [] : [faq]),
   ];
@@ -310,12 +318,38 @@ export function HostedArticle({ resolved }: { resolved: Resolved }): React.JSX.E
   const { blocks, headings } = withHeadingIds(
     grounded === null ? levelled : markPassage(levelled, grounded.passage).blocks
   );
-  const body = toHtml(blocks, HOSTED_BODY_CLASSES);
-  const contents = contentsOf(headings);
+  // The business's action inside the body (owner R1, 2026-10-22), only
+  // where one is stored: on an offering page the full block under the short
+  // answer, and where the page's search is its own offering (fit 3) the
+  // compact block after the takeaways, else after the short answer. Both sit
+  // between top-level blocks, so no question section holds one.
+  const stored = actionsOf(business).primary !== null;
+  const answerAt = blocks.findIndex((block) => block.kind === "answer");
+  const takeawaysAt = blocks.findIndex((block) => block.kind === "takeaways");
+  const compactAt = stored && page.businessFit === 3 ? (takeawaysAt >= 0 ? takeawaysAt : answerAt) : -1;
+  const inserts = [
+    ...(stored && offering && answerAt >= 0 ? [{ after: answerAt, node: <AboutCard key="full" business={business} /> }] : []),
+    ...(compactAt >= 0 ? [{ after: compactAt, node: <CompactAction key="compact" business={business} /> }] : []),
+  ].sort((a, b) => a.after - b.after);
+  const bodyParts: React.ReactNode[] = [];
+  let from = 0;
+  for (const { after, node } of [...inserts, { after: blocks.length - 1, node: null }]) {
+    const html = toHtml(blocks.slice(from, after + 1), HOSTED_BODY_CLASSES);
+    if (html !== "" || from === 0) bodyParts.push(<div key={`body-${from}`} className="prose prose-lg max-w-none" dangerouslySetInnerHTML={{ __html: html }} />);
+    if (node !== null) bodyParts.push(node);
+    from = after + 1;
+  }
   const sourceLine = sourceLineFor(page);
+  // The page ends with its sources: the body's own list where it has one,
+  // else a heading over the line naming what the page is grounded in.
+  const listed = headings.find((heading) => isSourcesHeading(heading.text, copy));
+  const drawn: HeadingEntry | null =
+    listed === undefined && sourceLine !== null ? { id: SOURCES_ID, level: 2, text: copy("body.sources.heading") } : null;
+  const sources = drawn ?? listed;
+  const listedContents = contentsOf(headings);
+  const contents = drawn === null || listedContents.length === 0 ? listedContents : [...listedContents, drawn];
   // SPEC §7 (2026-10-11, issue 1397): how the page was made, and the way to
-  // its own sources list where the body ends with one.
-  const sources = headings.find((heading) => isSourcesHeading(heading.text, copy));
+  // its sources.
   const madeText = page.made === null ? null : madeLine({ counts: page.made, site: business.domain, say: copy });
   // The space before the link is text, so the two sentences are two to a
   // reader that takes the page's words without its styles.
@@ -334,6 +368,13 @@ export function HostedArticle({ resolved }: { resolved: Resolved }): React.JSX.E
     HOSTED_GUIDES_CLASSES
   );
   const tocLabel = copy("hosted.toc");
+  const dates = {
+    published: page.firstPublishedAt,
+    updated: page.publishedAt,
+    timeZone: page.publisher.timeZone,
+    say: copy,
+    tag: readerTag(),
+  };
 
   return (
     <Surface
@@ -369,20 +410,16 @@ export function HostedArticle({ resolved }: { resolved: Resolved }): React.JSX.E
               recorded, else the business's name; the day the address first
               carried a page, and the day it was last refreshed where it has
               been; and the reading time. */}
+          {/* Owner R1 (2026-10-22): an offering page states its dates only. */}
           <p className="text-base-content/70 text-sm">
             <time dateTime={page.firstPublishedAt.toISOString().slice(0, 10)}>
-              {bylineLine({
-                byline: page.byline ?? business.name,
-                published: page.firstPublishedAt,
-                updated: page.publishedAt,
-                timeZone: page.publisher.timeZone,
-                say: copy,
-                tag: readerTag(),
-              })}
+              {offering ? datedLine(dates) : bylineLine({ ...dates, byline: page.byline ?? business.name })}
             </time>
-            <span className="before:mx-1.5 before:content-['·']">
-              {copy("hosted.readingTime", { minutes: String(readingMinutes(page.bodyMd)) })}
-            </span>
+            {offering ? null : (
+              <span className="before:mx-1.5 before:content-['·']">
+                {copy("hosted.readingTime", { minutes: String(readingMinutes(page.bodyMd)) })}
+              </span>
+            )}
           </p>
           {made === null ? null : (
             <p className="text-base-content/70 mt-2 text-sm wrap-anywhere">
@@ -417,14 +454,23 @@ export function HostedArticle({ resolved }: { resolved: Resolved }): React.JSX.E
               typography `docs/DESIGN.md` admits for exactly this.
               `max-w-none` because the column's measure is the article's
               already, and a second one would narrow it again. */}
-          <div className="prose prose-lg max-w-none" dangerouslySetInnerHTML={{ __html: body }} />
+          {bodyParts}
           {/* The text face, not mono: it is a sentence, and the address
               in it is a host and a path rather than a URL to copy. */}
           {sourceLine === null ? null : (
-            <p className="text-base-content/70 mt-8 text-sm wrap-anywhere">{sourceLine}</p>
+            <section className="prose prose-lg mt-8 max-w-none" aria-labelledby={drawn?.id}>
+              {drawn === null ? null : <h2 id={drawn.id}>{drawn.text}</h2>}
+              <p className="text-base-content/70 text-sm wrap-anywhere">
+                {sourceLine.href === null ? sourceLine.text : (
+                  <a href={sourceLine.href} className="link">
+                    {sourceLine.text}
+                  </a>
+                )}
+              </p>
+            </section>
           )}
 
-          <AboutCard business={business} author={pageAuthorOf(page.byline, business)} />
+          <AboutCard business={business} author={offering ? null : pageAuthorOf(page.byline, business)} />
 
           {guides === "" ? null : <div dangerouslySetInnerHTML={{ __html: guides }} />}
 

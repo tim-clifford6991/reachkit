@@ -8,10 +8,10 @@
 // (DECISIONS 2026-08-28) is kept the only way a read can keep it: the day
 // list stops when the ranked list does.
 //
-// **Three engine calls and no fourth.** `committedWeek` is the week the
-// weekly pass committed, which the first fillable days take in its own
-// order (issue 1559); `rankOpen` is the order the days after the week take,
-// its rows left out. `explainChoice` fills the day panel's "Why
+// **Two engine calls and no third.** `committedWeek` is the week the
+// weekly pass committed: each row lands on the date it was committed for,
+// and its spares are listed under the week. Plan never ranks (SPEC §7, E5).
+// `explainChoice` fills the day panel's "Why
 // this page" rows from the evidence stored at creation — never
 // re-measured, so the panel still reads correctly after the next Monday
 // has moved every number.
@@ -40,14 +40,14 @@ import { unmeasured, type Measured } from "@/lib/measure/measured";
 import {
   committedWeek,
   explainChoice,
-  rankOpen,
   supplyDepth,
   supplyMeasured,
   type Choice,
 } from "@/lib/opportunities";
 import { writtenLine } from "../_shell/written";
+import { whySentenceOf } from "./card-lines";
 import { pageTargetOf } from "../_shell/page-target";
-import { addDays, dayKeyOf, daysOfMonth, planHorizonEnd, type DayKey, type MonthKey } from "./dates";
+import { dayKeyOf, daysOfMonth, planHorizonEnd, type DayKey, type MonthKey } from "./dates";
 import {
   declaredAnswers,
   declaredTimezone,
@@ -56,6 +56,7 @@ import {
   pendingChanges,
 } from "@/lib/market/changes";
 import { readStop } from "../_shell/stop";
+import { plannedByDay } from "@/lib/opportunities/days";
 import { readPublishingFacts, type ScheduledPage } from "./drafts-read";
 import { weekStartFor } from "@/lib/scan/weekly/week";
 import type { PageStanding } from "./day-number";
@@ -68,6 +69,8 @@ export interface CalendarSite {
   siteId: string;
   /** REQ-073 c1's stated zone. Every date on this screen is site-local. */
   timeZone: string;
+  /** When the account signed up, which Plan counts its weeks of service from. */
+  createdAt?: Date;
 }
 
 // ── The "Why this page" rows, from the evidence stored at creation ───────
@@ -95,6 +98,11 @@ function bestRival(choice: Choice, at: Date): BestRival | null {
 function isUpdate(choice: Choice): boolean {
   const family = choice.evidence.family;
   return family === "improve" || family === "fix";
+}
+
+/** The live page an update rewrites, by the address its row stored — never by title. */
+function replacesOf(choice: Choice): { replaces?: string } {
+  return choice.evidence.family === "improve" ? { replaces: choice.evidence.pageUrl } : {};
 }
 
 /** §4.6's `you`. An Improve target carries the customer's measured
@@ -209,6 +217,8 @@ function pageOn(a: {
     // Issue 930: this week's place, read and never re-measured.
     standing: a.standing,
     update: isUpdate(a.choice),
+    ...replacesOf(a.choice),
+    whyLine: whySentenceOf(a.choice.planReason),
   };
 }
 
@@ -243,6 +253,8 @@ function plannedOn(day: DayKey, choice: Choice, now: Date): DraftOnDay {
     // against, which is `day-number.ts`'s `volume` arm.
     standing: null,
     update: isUpdate(choice),
+    ...replacesOf(choice),
+    whyLine: whySentenceOf(choice.planReason),
   };
 }
 
@@ -257,27 +269,11 @@ function plannedOn(day: DayKey, choice: Choice, now: Date): DraftOnDay {
  * that was never used on them was never scheduled for them, and a calendar
  * that back-filled yesterday would be claiming work nobody did.
  *
- * The offset matters and is why this returns dates from *today* and not
- * from the month's first: a customer paging forward to next month must see
- * the supply that is left after this month has taken its share, not rank 1
- * again.
- *
  * And no later than the plan horizon, six days after today (issue 1455).
  */
 export function fillableDates(a: { month: MonthKey; today: DayKey }): readonly DayKey[] {
   const last = planHorizonEnd(a.today);
   return daysOfMonth(a.month).filter((day) => day >= a.today && day <= last);
-}
-
-/** How many days of supply stand between today and the first date of the
- *  month being viewed — the offset into the ranked list this month starts
- *  at. Zero for the month today falls in. */
-export function offsetForMonth(a: { month: MonthKey; today: DayKey }): number {
-  const first = daysOfMonth(a.month)[0];
-  if (first === undefined || first <= a.today) return 0;
-  let offset = 0;
-  for (let day = a.today; day < first; day = addDays(day, 1)) offset += 1;
-  return offset;
 }
 
 /**
@@ -394,13 +390,12 @@ export async function readCalendarFacts(a: {
   now: Date;
 }): Promise<CalendarFacts> {
   const today = dayKeyOf(a.now, a.site.timeZone);
-  const [depth, week, ranked, publishing, stop, changeHold] = await Promise.all([
+  const [depth, week, publishing, stop, changeHold] = await Promise.all([
     supplyDepth(a.site.siteId).then(
       (d) => d.unused,
       () => null
     ),
     committedWeek(a.site.siteId),
-    rankOpen(a.site.siteId),
     // §9's own answers about this month (#175).
     readPublishingFacts({ siteId: a.site.siteId, month: a.month, today }),
     // §11's stop, read where the shell reads it and not a second time
@@ -434,14 +429,9 @@ export async function readCalendarFacts(a: {
   // throws states neither.
   const measured = depth === 0 ? await supplyMeasured(a.site.siteId).catch(() => null) : null;
 
-  // The committed week's pages take the first fillable dates, in date
-  // order; the one list, in its own order and without the week's rows,
-  // takes the dates after it (issue 1559). A site with no week yet is the
-  // one list alone, as its first evening will commit it.
-  const held = new Set([...week.days.map((day) => day.opportunity.id), ...week.spares.map((spare) => spare.id)]);
-  const queue = [...week.days.map((day) => day.opportunity.id), ...ranked.map((r) => r.opportunityId).filter((id) => !held.has(id))];
+  // Each committed row on the date it was committed for; a date no commit
+  // covers stays empty and says why (issue 1559).
   const dates = fillableDates({ month: a.month, today });
-  const offset = offsetForMonth({ month: a.month, today });
 
   const drafts: DraftOnDay[] = [];
 
@@ -463,23 +453,15 @@ export async function readCalendarFacts(a: {
     );
   }
 
-  // 2 — the dates left, filled from supply in its own order. A date §9 has
-  //     already spoken for is skipped without consuming a page from the
-  //     queue: the page supply chose for it is the page that is on it, and
-  //     the ranked list's first place is the first date with no page
-  //     (`mixOf`; issue 1321).
+  // 2 — the dates left, each with the row committed for it. A date §9 has
+  //     already spoken for keeps its page.
   //
   //     Nothing is planned at all where §9's facts could not be read: a
   //     month drawn as planned dates over pages that may be in review or
   //     already live is worse than a month that says something of ours
   //     failed, which is what every date then resolves to
   //     (`drafts-read.ts`'s own note, and ADR-061 point 2).
-  let next = offset;
-  for (const day of publishing.readable ? dates : []) {
-    if (publishing.pagesByDay.has(day)) continue;
-    const opportunityId = queue[next];
-    if (opportunityId === undefined) break; // supply ran out; the rest stay empty
-    next += 1;
+  for (const [day, opportunityId] of plannedByDay(week.days, publishing.pagesByDay, publishing.readable ? dates : [])) {
     const choice = await explainChoice(opportunityId);
     if (choice === null) continue;
     drafts.push(plannedOn(day, choice, a.now));
@@ -490,6 +472,8 @@ export async function readCalendarFacts(a: {
     now: a.now,
     stop,
     drafts,
+    // The search each spare targets, as a planned date's title is (ADR-012).
+    spares: week.spares.flatMap((spare) => (spare.targetQuery === null ? [] : [spare.targetQuery])),
     // REQ-047 c5's dated instruction and §11's stopped-work record are
     // still other subsystems' rows (#42, #39). Empty here is what is true
     // of them: neither is read, so neither is claimed.

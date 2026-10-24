@@ -2,7 +2,7 @@
 // scripts/d19-cost.mjs — issue 1162: what D19's tracked buyer prompts cost.
 //
 // A measurement, not product wiring. Nothing imports it, it reads no
-// database and writes none, and as `scripts/llm-mentions-pilot.mjs` it calls
+// database and writes none, and it calls
 // the vendor by hand rather than through `src/lib/vendors/dataforseo/`, for
 // two reasons: that seam ledgers the price book's pin, and the question here
 // is what the vendor itself reports per call; and its cache would serve the
@@ -57,7 +57,7 @@ const ENV_FILE = path.resolve(ROOT, option("--env-file", ".env.local"));
 
 // ── The product's own figures this measurement is read against ──────────
 // Transcribed from `src/lib/config/constants.ts` (PRICE_BOOK, CAPS, BATTERY).
-const PIN = { AI_MODE_STD_C: 0.06, CHATGPT_STD_C: 0.12, SERP_STD_C: 0.06, LLM_MENTIONS_REQUEST_C: 10, LLM_MENTIONS_WORST_C: 20 };
+const PIN = { AI_MODE_STD_C: 0.06, CHATGPT_STD_C: 0.12, SERP_STD_C: 0.06 };
 /** D19: at most a fifth of the set rotates in a quarter, and a quarter is 13 weeks. */
 const ROTATION = { share: 0.2, weeks: 13 };
 const WEEKLY_CAP_C = 40;
@@ -498,10 +498,8 @@ function report(sites) {
     "",
     "| Line | Cents | Source |",
     "|---|---|---|",
-    `| LLM Mentions: the flat request, then up to 100 rows | ${cents(PIN.LLM_MENTIONS_REQUEST_C)}–${cents(PIN.LLM_MENTIONS_WORST_C)}; the cap is checked against ${cents(PIN.LLM_MENTIONS_WORST_C)} | price book; 10¢ for 0 rows on reachkit.app, 2026-10-02 |`,
     `| The twelve asked on the two engines, which D19 replaces | ${cents(TWELVE * (PIN.AI_MODE_STD_C + PIN.CHATGPT_STD_C))} ledgered; ${cents(TWELVE * (aiC + gptC))} at the measured prices | price book, measured |`,
     `| Up to twelve page questions: a SERP and the two engines each | ${cents(TWELVE * (PIN.SERP_STD_C + PIN.AI_MODE_STD_C + PIN.CHATGPT_STD_C))} ledgered; ${cents(TWELVE * (PIN.SERP_STD_C + aiC + gptC))} at the measured prices | price book, measured |`,
-    `| With LLM Mentions' ${cents(PIN.LLM_MENTIONS_WORST_C)} still reserved, what is left for the rest | ${cents(WEEKLY_CAP_C - serpsC - 25 * perPromptWeekC - rotationC - PIN.LLM_MENTIONS_WORST_C)} | |`,
     `| D19 at 1 run instead of 2 | ${cents((25 * perPromptWeekC) / 2)} | measured |`,
     `| D19 at 40 prompts | ${cents(40 * perPromptWeekC)} | measured |`,
     "",

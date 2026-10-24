@@ -74,6 +74,7 @@ function pageOn(day: string, state: State, publishAt: Date | null) {
     needsYou: null,
     standing: null,
     update: false,
+    whyLine: null,
     scheduledFor: day,
     why: {
       search: "a search",
@@ -100,6 +101,7 @@ function facts(over: Partial<CalendarFacts> = {}): CalendarFacts {
     now: NOW,
     stop: null,
     drafts: [],
+    spares: [],
     instructions: {},
     stoppedDays: [],
     heldDays: [],

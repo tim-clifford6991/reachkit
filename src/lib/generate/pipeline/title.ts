@@ -33,13 +33,26 @@ export interface TitledPage {
   sections?: readonly { key: string; items?: number }[];
 }
 
+/** SPEC §7, nothing invented: an offering page for a list-shaped search
+ *  leaves out the search's "best" and "top" words the business's own pages
+ *  never state. Every other page is left as it is. */
+export function unclaimedSuperlatives(pack: Pick<ContextPack, "type" | "target" | "facts" | "pages">): (line: string) => string {
+  if (pack.type !== "offering" || !pack.target.searches.some((search) => SHAPES.listicle.test(search.toLowerCase()))) return (line) => line;
+  const own = [...pack.facts.map((fact) => fact.passage), ...pack.pages.flatMap((page) => text(page.title))].join("\n");
+  const stated = new Set([...own.matchAll(new RegExp(SHAPES.best.source, "giu"))].map((match) => match[0].toLowerCase()));
+  return (line) => {
+    const kept = line.replace(new RegExp(`${SHAPES.best.source}\\s*`, "giu"), (match) => (stated.has(match.trim().toLowerCase()) ? match : ""));
+    return kept === line ? line : kept.replace(/\s{2,}/g, " ").trim().replace(/^\p{Ll}/u, (first) => first.toUpperCase());
+  };
+}
+
 export function titleRuleFor(pack: ContextPack, page: TitledPage): TitleRuleInputs {
   const market = (pack.business.market ?? {}) as PackMarket;
   const named = Array.isArray(market.rivals) ? market.rivals.flatMap((rival) => text((rival as { name?: unknown } | null)?.name)) : [];
   const domains = brands(...(pack.business.rivals ?? []), ...(pack.products ?? []).map((product) => product?.domain));
   const language = pack.locale?.language ?? "en";
   // The search as it was typed; the target's sentence where the pack holds none.
-  const searches = [...text(market.searchTerm), ...pack.target.searches];
+  const searches = [...text(market.searchTerm), ...pack.target.searches].map(unclaimedSuperlatives(pack));
   // What the page counts out: its options or questions, and its steps.
   const counts = new Map<string, number>();
   for (const section of page.sections ?? []) counts.set(section.key, (counts.get(section.key) ?? 0) + 1);

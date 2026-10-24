@@ -88,8 +88,14 @@ describe("reading a site's country and language", () => {
       locale: { country: "DE", language: "de" },
       fellBack: { country: "IT", language: null },
     });
-    // A Swiss site in French: the country is measured in German only.
-    expect(resolveLocale({ country: "CH", language: "fr" }).fellBack).toEqual({ country: "CH", language: "fr" });
+  });
+
+  it("a supported country keeps its market, in its own language, whatever its page reads as", () => {
+    expect(resolveLocale({ country: "DE", language: "en" })).toEqual({ locale: { country: "DE", language: "de" }, fellBack: { country: null, language: "en" } });
+    expect(resolveLocale({ country: "DE", language: null })).toEqual({ locale: { country: "DE", language: "de" }, fellBack: null });
+    expect(resolveLocale({ country: "CH", language: "fr" })).toEqual({ locale: { country: "CH", language: "de" }, fellBack: { country: null, language: "fr" } });
+    // A supported language in a supported country that does not use it: the country's own language, as before.
+    expect(resolveLocale({ country: "GB", language: "de" })).toEqual({ locale: { country: "GB", language: "en" }, fellBack: { country: null, language: "de" } });
   });
 
   it("holds every answer to the closed list", () => {
@@ -97,6 +103,18 @@ describe("reading a site's country and language", () => {
     expect(localeOf("DE", "en")).toBeNull();
     expect(localeOf("FR", "fr")).toBeNull();
     expect(localeOf("CH", "de")).toEqual({ country: "CH", language: "de" });
+  });
+});
+
+describe("a locale nothing was read for is marked as guessed", () => {
+  it("an unread home on an address that names no country is D66's default, guessed", () => {
+    expect(readLocale({ domain: "checkatrade.com", html: null })).toEqual({ locale: { country: "US", language: "en" }, fellBack: null, basis: "default" });
+  });
+
+  it("an address that names a country, or a home that was read, is no guess", () => {
+    expect(readLocale({ domain: "example.co.uk", html: null })).toEqual({ locale: { country: "GB", language: "en" }, fellBack: null });
+    expect(readLocale({ domain: "example.de", html: null })).toEqual({ locale: { country: "DE", language: "de" }, fellBack: null });
+    expect(readLocale({ domain: "savvycal.com", html: page({ body: ENGLISH }) })).toEqual({ locale: { country: "US", language: "en" }, fellBack: null });
   });
 });
 

@@ -73,6 +73,7 @@ function page(over: Partial<PageOnDay> = {}): PageOnDay {
     needsYou: null,
     standing: null,
     update: false,
+    whyLine: null,
     ...over,
   };
 }

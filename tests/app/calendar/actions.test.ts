@@ -109,6 +109,7 @@ function cellWith(
       unpublishOutcome: null,
       standing: null,
       update: false,
+      whyLine: null,
       // Issue 880: why the page needs the founder. The default is the
       // owner's own dogfood case — the §8 hard rules stopped the writing —
       // because that is the page that was being offered a reconnect.

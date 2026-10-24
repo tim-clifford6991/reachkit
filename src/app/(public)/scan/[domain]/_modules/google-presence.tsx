@@ -1,53 +1,36 @@
-// BUILD §4.1 module 2, right card — Google search
+// BUILD §4.1 module 2, right card — Google search (board PubReport)
 //
-// Occupancy over the searches actually measured — the customer's bar in
-// the accent, every rival's in neutral grey, each direct-labelled with its
-// name and its value — and beneath a divider, the five biggest searches
-// the customer is absent from.
+// The customer's first-page count over the searches measured, a waffle of
+// who is on the first page — one square per search, each row named and
+// tallied, the customer's own row last — the biggest search and who is
+// first on it, and closed beneath them the searches the customer is missing.
 //
-// **Rivals are context, never alarms** (`BUILD.md` §2.5): no rival bar is
+// **Rivals are context, never alarms** (`BUILD.md` §2.5): no rival square is
 // ever red, and `PresenceSection` has no member a size, a forecast or a
-// severity could travel in, so the promise holds by there being nowhere to
-// put a violation.
+// severity could travel in.
 //
-// **No market-total footnote.** The owner removed it on 2026-09-03, both
-// halves; `PresenceSection` carries no `totalMonthlyVolume` and no sum
-// over the selected searches' volumes exists anywhere in this file. The
-// `/mo` column of the absent-from table is each listed search's own
-// volume, which §4.1 states as a column of that table.
+// **No market-total footnote** (owner, 2026-09-03): no sum over the
+// searches' volumes exists in this file; each listed search carries its own.
 //
-// **The occupancy is `PresenceBars`** (issue #352, the approved
-// `walk/report` drawing). §2.4's closed inventory owns this drawing, and
-// it arrived here as an absent-safe `bars` slot that nothing ever filled —
-// so the card drew the same rows by hand out of the registered `Progress`
-// instead, which carries **one** tone: every rival's bar was painted in
-// the customer's own accent, and §2.5's "rival strength is neutral gray,
-// never red — rivals are context, not alarms" held only because the third
-// colour it forbids was not the one being spent. `PresenceBars` reads its
-// colour from `SERIES_COLOR` by identity and by nothing else, so the
-// customer is `--chart-you` and every rival `--chart-rival` by
-// construction, and every bar still carries its own name and its own value
-// beside it (§2.4: "identity is never colour-alone").
-//
-// daisyUI in the route (DESIGN rule 1): `card`, `badge`, `table`,
-// `divider`, `btn`; the bars are Recharts (#550); lucide at stroke 1.75.
-//
-// A zero is a measurement: the chart draws it as a hairline stub with the
-// `0` written beside it, never as an absent row (§6.6).
+// daisyUI in the route (DESIGN rule 1): `card`, `table`, `collapse`; the
+// waffle is CSS grid (a grid that is not a series); lucide at stroke 1.75.
+// A zero is a measurement: the customer's row is drawn with none filled.
 import type React from "react";
 import { Search } from "lucide-react";
-import { PresenceBars } from "@/ui/charts";
 import { copy } from "@/lib/presentation/copy";
-import { ABSENT_FROM_MAX } from "@/lib/config/constants";
 import type { PresenceSection } from "@/lib/scan/report";
 import type { CanonicalDomain } from "@/lib/scan/domain";
 import type { RetryPart } from "@/lib/scan/retry";
 import { dash, Num } from "../_address/measured";
 import { RetryPartControl } from "../_address/retry-part";
+import { AnswerMatrix, type MatrixRow } from "./ai-answers";
 
 /** This card's retry part, bound rather than inline — see
  *  `ai-answers.tsx` for why the sweep requires it. */
 const PRESENCE_PART: RetryPart = "presence";
+
+/** The waffle's root, found by the report's tests. */
+export const PRESENCE_WAFFLE_TEST_ID = "presence-waffle";
 
 /** A column head, repeated beside its value in the stacked shape and hidden
  *  from `sm` where the real head row takes over (#956). It writes no
@@ -57,55 +40,62 @@ function Label(p: { children: React.ReactNode }): React.JSX.Element {
   return <span className="text-base-content/70 text-xs sm:hidden">{p.children}</span>;
 }
 
-function Head(p: { right: React.ReactNode; heading?: boolean }): React.JSX.Element {
-  // The card's name is an eyebrow (#1068); on the measured card the heading
-  // is the finding under it, and on the absent card the name is the heading.
-  const Tag = p.heading === true ? "h2" : "p";
+function Head(p: { right?: React.ReactNode }): React.JSX.Element {
+  // The card's name is its heading, under the section's own (board PubReport).
   return (
     <div className="flex flex-wrap items-center justify-between gap-2">
-      <Tag className="eyebrow flex items-center gap-2">
-        <Search size={14} strokeWidth={1.75} aria-hidden />
+      <h3 className="flex items-center gap-2 text-lg font-semibold">
+        <Search size={18} strokeWidth={1.75} aria-hidden />
         {copy("presence.title")}
-      </Tag>
+      </h3>
       {p.right}
     </div>
   );
 }
 
+/** A count as the report writes a volume: grouped, in its one locale. */
+function volumeOf(n: number): string {
+  return n.toLocaleString("en-US");
+}
+
+/** One row of the waffle: a square per search measured, filled for each one
+ *  this domain is on the first page of, and the tally beside it. */
+function waffleRow(name: string, count: number, measured: number, you: boolean): MatrixRow {
+  return {
+    name,
+    you,
+    cells: Array.from({ length: measured }, (_, i) => (i < count ? "cited" : "not-cited")),
+    count: String(count),
+  };
+}
+
+/** The biggest search, its volume, and who is first on it, where stored. */
+function MostSearched(p: { most: NonNullable<PresenceSection["mostSearched"]> }): React.JSX.Element {
+  const slots = { search: p.most.keyword, volume: volumeOf(p.most.volume) };
+  return (
+    <p className="bg-base-200 rounded-box grow-0 px-3.5 py-3 text-sm" data-testid="presence-most-searched">
+      {p.most.topHolder === null
+        ? copy("report.google.most.none", slots)
+        : copy("report.google.most", { ...slots, holder: p.most.topHolder })}
+    </p>
+  );
+}
+
 export function GooglePresenceCard(p: { section: PresenceSection }): React.JSX.Element {
   const { section } = p;
-  // Issue 1309: the list's heading names five only where it holds five.
-  const absentTitle = copy(
-    section.absentFrom.length === ABSENT_FROM_MAX ? "presence.absent-from.title" : "presence.absent-from.title.short"
-  );
+  const absentTitle = copy("presence.absent-from.title");
+  const rows = [
+    ...section.rivals.map((rival) => waffleRow(rival.domain, rival.top10Count, section.measuredSearches, false)),
+    waffleRow(section.you.domain, section.you.top10Count, section.measuredSearches, true),
+  ];
 
   return (
     <section className="card bg-base-100 shadow-(--shadow-card) min-w-0">
       <div className="card-body gap-4">
-        <Head
-          right={
-            <span className="badge badge-soft h-auto py-1 text-xs whitespace-normal">
-              {copy("presence.source", { measured: String(section.measuredSearches) })}
-            </span>
-          }
-        />
-
-        {/* REQ-008 c3: the customer's count appears once, on their own bar.
-            REQ-092: with no rivals to draw, say so where the bars would be.
-
-            **This wrap no longer scrolls (#956).** It carried
-            `overflow-x-auto` for the drawing #943 replaced, whose labels
-            were laid out beside the bars and could run wider than the card.
-            Since #943 each row is a line of HTML above a bar that is
-            `width: 100%`, and the domain clamps to its own line — so there
-            has been nothing here to scroll to, and an `overflow-x: auto`
-            that never scrolls is still a box the layout law has to excuse
-            and a tab stop #947 would have to name. `min-w-0` is the half
-            that was doing the work, and it stays. */}
-        {/* The card's finding, as its heading (#1068): the customer's own
-            count as the figure, and one short line under it saying what it
-            counts (issue 1444). The competitors' counts are the bars. */}
-        <h2 className="flex flex-col gap-1">
+        <Head />
+        {/* REQ-008 c3: the customer's count appears once as the figure;
+            the waffle's own row tallies it beside the competitors'. */}
+        <p className="flex grow-0 flex-col gap-1">
           <span className="text-3xl">
             <Num figure>
               {copy("report.figure.of", {
@@ -114,28 +104,30 @@ export function GooglePresenceCard(p: { section: PresenceSection }): React.JSX.E
               })}
             </Num>
           </span>
-          <span className="text-base font-normal">{copy("presence.finding")}</span>
-        </h2>
+          <span>{copy("presence.finding")}</span>
+        </p>
+        <p className="grow-0 text-base-content/70 text-sm">
+          {copy("presence.source", { measured: String(section.measuredSearches) })}
+        </p>
         {section.framing === "suppressed_no_rivals" ? (
           <p className="grow-0 text-sm">{copy("presence.no-rivals")}</p>
         ) : (
-          <div className="min-w-0">
-            <PresenceBars
-              you={{ name: section.you.domain, value: section.you.top10Count }}
-              rivals={section.rivals.map((rival) => ({
-                name: rival.domain,
-                value: rival.top10Count,
-              }))}
-              measured={section.measuredSearches}
-              label={copy("presence.title")}
-            />
+          <div className="flex min-w-0 flex-col gap-1">
+            <p className="grow-0 text-base-content/70 text-xs">{copy("report.google.waffle")}</p>
+            <div className="min-w-0 overflow-x-auto" tabIndex={0} role="region" aria-label={copy("presence.title")}>
+              <AnswerMatrix rows={rows} label={copy("presence.title")} testId={PRESENCE_WAFFLE_TEST_ID} />
+            </div>
           </div>
         )}
+        {section.mostSearched === undefined ? null : <MostSearched most={section.mostSearched} />}
         {/* SPEC §2 (owner, 2026-10-07, issue 1328): the card is its finding
-            and its bars; the searches open from their own name. */}
+            and its waffle; the searches open from their own name. */}
         <details className="collapse collapse-arrow border-base-300 border" data-testid="presence-absent-from">
           <summary className="collapse-title">
             <span className="eyebrow">{absentTitle}</span>
+            <span className="text-base-content/70 ms-2 inline-flex text-sm">
+              <Num>{String(section.absentFrom.length)}</Num>
+            </span>
           </summary>
           <div className="collapse-content min-w-0">
             {/* **One table, two shapes (#956).** From `sm` it is the three-column
@@ -210,7 +202,7 @@ export function GooglePresenceCard(p: { section: PresenceSection }): React.JSX.E
                         </td>
                         <td className="col-span-2 grid grid-cols-subgrid items-baseline max-sm:border-0 max-sm:py-0 sm:table-cell">
                           <Label>{copy("presence.absent-from.column.volume")}</Label>
-                          <Num>{row.volume}</Num>
+                          <Num>{volumeOf(row.volume)}</Num>
                         </td>
                         <td className="col-span-2 grid grid-cols-subgrid items-baseline max-sm:border-0 max-sm:pt-0 max-sm:pb-2 sm:table-cell">
                           <Label>{copy("presence.absent-from.column.holder")}</Label>
@@ -239,7 +231,7 @@ export function GooglePresenceAbsent(p: { cutOff?: boolean; domain?: CanonicalDo
   return (
     <section className="card bg-base-100 shadow-(--shadow-card) min-w-0">
       <div className="card-body gap-4">
-        <Head heading right={<Num unmeasured>{dash()}</Num>} />
+        <Head right={<Num unmeasured>{dash()}</Num>} />
         <p className="grow-0 text-sm">{copy("presence.absent")}</p>
         {/* Issue 715: the same control the AI-answers card draws, for the
             same purchase — both cards are counted over the twelve question

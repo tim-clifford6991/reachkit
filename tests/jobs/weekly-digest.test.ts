@@ -102,7 +102,7 @@ beforeEach(() => {
   engine.standings = [];
   engine.measuredAt = new Date(Date.UTC(2026, 8, 7, 6, 0, 0));
   engine.week = {
-    days: ["o1", "o2", "o3"].map((id, n) => ({ date: `2026-09-0${8 + n}`, opportunity: { targetQuery: `search ${id}` } })),
+    days: ["o1", "o2", "o3"].map((id, n) => ({ date: `2026-09-${String(8 + n).padStart(2, "0")}`, opportunity: { targetQuery: `search ${id}` } })),
     spares: [],
   };
   seed();
@@ -117,45 +117,11 @@ describe("the Monday digest goes out for a week that was measured", () => {
     expect(sent[0]!.kind).toBe("weekly");
     expect(sent[0]!.to).toBe("founder@example.com");
     expect(sent[0]!.subject).toBe("mail.weekly.subject");
-    // SPEC §8 (2026-10-07, issue 1329): the four headline numbers lead,
-    // straight under the heading; the pages, the next three and the one
-    // button follow. No score and no sentence about one.
-    expect(sent[0]!.blocks.map((b) => b.block)).toEqual(["heading", "stats", "verdicts", "list", "action"]);
-  });
-
-  it("issue 1329 — the top-20 number is counted from the week's stored verdict rows, with its change", async () => {
-    const at = "2026-09-07T06:00:00.000Z";
-    const row = (id: string, week: string, measured: unknown): Row => ({
-      id: `${id}-${week}`,
-      site_id: "site-1",
-      publication_id: id,
-      week_start: week,
-      verdict: "working",
-      cause: null,
-      measured_at: at,
-      measured,
-      movement: null,
-    });
-    db.seed("page_verdicts", [
-      row("p1", WEEK, { kind: "measured", value: 4, at }),
-      row("p2", WEEK, { kind: "measured", value: 18, at }),
-      // A page that holds no place is a result, and is not in the count.
-      row("p3", WEEK, { kind: "zero", value: 0, at }),
-      row("p1", "2026-08-31", { kind: "measured", value: 9, at }),
-      row("p2", "2026-08-31", { kind: "zero", value: 0, at }),
-    ]);
-    await sendWeeklyDigest({ siteId: "site-1", weekStart: WEEK, now: NOW });
-
-    const stats = sent[0]!.blocks.find((b) => b.block === "stats") as unknown as {
-      items: readonly { label: string; value: { kind: string; value?: number }; change?: { value?: number } }[];
-    };
-    const top20 = stats.items.find((item) => item.label === "mail.weekly.number.top20");
-    expect(top20?.value).toMatchObject({ kind: "measured", value: 2 });
-    expect(top20?.change).toMatchObject({ value: 1 });
-    // No pass asked the prompts: the rate says it was not measured rather
-    // than reading 0%. And this site has no hosted blog, so no fourth row.
-    expect(stats.items.find((item) => item.label === "mail.weekly.number.mentionRate")).toMatchObject({ value: { kind: "unmeasured" } });
-    expect(stats.items.map((item) => item.label)).not.toContain("mail.weekly.number.aiVisits");
+    // Overview's numbers lead, straight under the heading; the pages, the
+    // next three and the one button follow. No page is live, so there is no
+    // Google or AI group.
+    // A three-page week also says how many of its days have no page.
+    expect(sent[0]!.blocks.map((b) => b.block)).toEqual(["heading", "stats", "verdicts", "list", "paragraph", "action"]);
   });
 
   it("a complete week says so, and carries no missed-section line", async () => {
@@ -298,5 +264,42 @@ describe("no row, no telling — and an unmeasured week that has one says so", (
     const outcome = await sendWeeklyDigest({ siteId: "site-1", weekStart: WEEK, now: NOW });
     expect(outcome).toEqual({ sent: false, reason: "no-account" });
     expect(sent).toEqual([]);
+  });
+});
+
+describe("an address not connected yet is the first row, every Monday until it is", () => {
+  type Row1 = { block: string; text?: string; label?: string; href?: string; vars?: Record<string, string> };
+  const hosted = (state: "pending_dns" | "live"): void =>
+    db.seed("destinations", [
+      { id: "dest-1", site_id: "site-1", kind: "hosted", hostname: "guides.harborplumbing.com", hostname_state: state, deleted_at: null },
+    ]);
+  const rows = (): readonly Row1[] => sent[0]!.blocks as readonly Row1[];
+
+  it("a measured week opens on connect your address, with the setup step's link", async () => {
+    hosted("pending_dns");
+    await sendWeeklyDigest({ siteId: "site-1", weekStart: WEEK, now: NOW });
+    const [heading, notice, action] = rows();
+    expect(heading?.block).toBe("heading");
+    expect(notice).toMatchObject({ block: "notice", text: "mail.weekly.connect", vars: { host: "guides.harborplumbing.com" } });
+    expect(action).toMatchObject({ block: "action", label: "mail.weekly.connect.action" });
+    expect(new URL(action!.href!).pathname).toBe("/setup/connect");
+  });
+
+  it("a week that measured nothing still carries it", async () => {
+    hosted("pending_dns");
+    account.answer = { kind: "not_measured", nextDueOn: new Date(Date.UTC(2026, 8, 14, 6)) };
+    await sendWeeklyDigest({ siteId: "site-1", weekStart: WEEK, now: NOW });
+    expect(rows()[1]).toMatchObject({ block: "notice", text: "mail.weekly.connect" });
+  });
+
+  it("once the host is live, and for a site with no hosted address, there is no such row", async () => {
+    hosted("live");
+    await sendWeeklyDigest({ siteId: "site-1", weekStart: WEEK, now: NOW });
+    seed();
+    await sendWeeklyDigest({ siteId: "site-1", weekStart: WEEK, now: NOW });
+    expect(sent).toHaveLength(2);
+    for (const mail of sent) {
+      expect((mail.blocks as readonly Row1[]).map((b) => b.text ?? b.label)).not.toContain("mail.weekly.connect");
+    }
   });
 });

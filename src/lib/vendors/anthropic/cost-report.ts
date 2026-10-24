@@ -1,11 +1,5 @@
-// src/lib/vendors/anthropic/cost-report.ts — issue 1478, SPEC §6.
-//
-// What Anthropic billed the organisation, per UTC day: the Admin API's cost
-// report (`GET /v1/organizations/cost_report`). It needs an admin key —
-// `ANTHROPIC_ADMIN_KEY`; the key the product calls the model with cannot
-// read it — and it covers everything billed to the organisation, not only
-// ReachKit's key. Free to read. The same reading `scripts/vendor-snapshot.mjs`
-// takes on the box.
+// SPEC §6. What Anthropic billed the organisation per UTC day, from the free Admin API cost report.
+// It needs `ANTHROPIC_ADMIN_KEY` (the model key cannot read it) and covers the whole organisation, not only ReachKit's key.
 const COST_REPORT = "https://api.anthropic.com/v1/organizations/cost_report";
 const REQUEST_MS = 20_000;
 const DAY_MS = 24 * 60 * 60 * 1000;

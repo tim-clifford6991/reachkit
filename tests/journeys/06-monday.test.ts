@@ -141,11 +141,20 @@ const VIOLATION_RESULT = {
 
 const OWN_TABLES = new Set(["sites", "scans"]);
 
+const from = (table: string): unknown =>
+  OWN_TABLES.has(table) ? ownBuilder(table) : (db.client as { from(t: string): unknown }).from(table);
+
 const client = {
-  from: (table: string) =>
-    OWN_TABLES.has(table) ? ownBuilder(table) : (db.client as { from(t: string): unknown }).from(table),
+  from,
   rpc: (fn: string, args: unknown) => {
-    db.rpcCalls.push({ fn, args: args as Record<string, unknown> });
+    const called = args as Record<string, unknown>;
+    db.rpcCalls.push({ fn, args: called });
+    // As the function does: the claimed row takes the pass's status.
+    if (fn === "store_current_report") {
+      const row = scans.find((scan) => scan.id === called.p_scan_id);
+      if (row !== undefined) row.status = String(called.p_status);
+      statusWrites.push(String(called.p_status));
+    }
     return Promise.resolve({ data: rpcAnswers[fn] ?? null, error: null });
   },
 };
@@ -331,7 +340,7 @@ function vendorAnswer(url: string, task: Record<string, unknown> = {}): unknown 
 
 const SITE_ID = "site-journey-06";
 const USER_ID = "user-journey-06";
-const EMAIL = "founder@acme.com";
+const EMAIL = "founder@acme.example";
 const ZONE = "America/New_York";
 /** A zone on the other side of the date line, so one instant falls in two
  *  different customer-weeks — ADR-060's whole point. */
@@ -380,6 +389,8 @@ const UNIQUE_VIOLATION = Symbol("23505");
 
 let sites: SiteRow[] = [];
 let scans: ScanRow[] = [];
+/** Every status written to a scan row, in order: claims, stores and updates. */
+let statusWrites: string[] = [];
 
 
 /** The two tables this journey's own reads and writes go through. */
@@ -394,6 +405,7 @@ function answerQuery(query: DbQuery): unknown[] | typeof UNIQUE_VIOLATION | null
       .filter((site) => !filters.has("id") || filters.get("id") === site.id);
   }
   if (query.table !== "scans") return null;
+  if (query.verb !== "select" && query.values?.status !== undefined) statusWrites.push(String(query.values.status));
 
   if (query.verb === "insert") {
     const values = query.values ?? {};
@@ -434,6 +446,8 @@ function answerQuery(query: DbQuery): unknown[] | typeof UNIQUE_VIOLATION | null
                 ? scan.week_start
               : column === "id"
                 ? scan.id
+              : column === "status"
+                ? scan.status
                 : undefined;
       if (held === undefined) return true;
       return Array.isArray(value) ? (value as unknown[]).includes(held) : held === value;
@@ -509,6 +523,7 @@ beforeEach(() => {
   // everything else the pass reads.
   db.rows.set("users", [{ id: USER_ID, email: EMAIL }]);
   scans = [];
+  statusWrites = [];
 
   opportunities = opportunityDoubles.newMemoryState({ now: MONDAY, profile: PROFILE_ANSWER });
   setOpportunityStore(opportunityDoubles.memoryStore(opportunities));
@@ -640,11 +655,11 @@ describe("Monday: the week is re-measured, judged, and told (JN-005)", () => {
       const sources = new Set(rows.map((row) => row.source));
       expect(sources).toContain("ai_optimization/chat_gpt/llm_scraper");
       expect(sources).toContain("serp/google/ai_mode");
-      // D19 (issue 1162): the site's 25 tracked buyer prompts, each asked
-      // on both engines twice — a hundred asks, every one under the cap.
+      // D19 and B2: the site's 23 unbranded prompts asked once and its 2
+      // branded prompts twice on both engines — 54 asks, every one under the cap.
       const asks = rows.filter((row) => row.source !== "serp/google/organic" && row.source.includes("/"));
-      expect(asks.filter((row) => row.source === "ai_optimization/chat_gpt/llm_scraper")).toHaveLength(50);
-      expect(asks.filter((row) => row.source === "serp/google/ai_mode")).toHaveLength(50);
+      expect(asks.filter((row) => row.source === "ai_optimization/chat_gpt/llm_scraper")).toHaveLength(27);
+      expect(asks.filter((row) => row.source === "serp/google/ai_mode")).toHaveLength(27);
 
       // Once, and the claim is what makes it so: the row carries the week,
       // and a second tick inside the same week is refused before any spend.
@@ -781,6 +796,35 @@ describe("Monday: the week is re-measured, judged, and told (JN-005)", () => {
     JOURNEY_TIMEOUT_MS
   );
 
+  it(
+    "the pass buys no LLM Mentions, even for a site that ranks for forty searches",
+    async () => {
+      ownRankedItems = Array.from({ length: 40 }, (_, i) => ({
+        keyword_data: { keyword: `agency search ${i}`, keyword_info: { search_volume: 50 } },
+        ranked_serp_element: { serp_item: { rank_group: 8, url: `https://${DOMAIN}/p${i}` } },
+      }));
+      // No read in the last four weeks, so nothing but the deletion stops a purchase.
+      db.answer = (query) =>
+        ["domain_blocks", "fetches", "llm_mention_reads"].includes(query.table) ? [] : null;
+      const answer = vi.mocked(globalThis.fetch).getMockImplementation()!;
+      vi.mocked(globalThis.fetch).mockImplementation(async (url, init) => {
+        if (String(url).includes("llm_mentions")) {
+          vendorRequests.push({ url: String(url), task: {} });
+          throw new Error("the pass asked for LLM Mentions");
+        }
+        return answer(url, init);
+      });
+
+      const outcome = await measureTheWeek();
+
+      expect(outcome).toMatchObject({ ran: true });
+      expect(vendorRequests.filter((r) => r.url.includes("llm_mentions"))).toEqual([]);
+      expect(db.queries.filter((q) => q.table === "llm_mention_reads" || q.table === "llm_mentions")).toEqual([]);
+      expect(ledger().every((row) => !row.source.includes("llm_mentions"))).toBe(true);
+    },
+    JOURNEY_TIMEOUT_MS
+  );
+
   it("the digest states what moved, and omits the sections the week did not measure", async () => {
     const page = verdictDoubles.pageOf();
     verdictDoubles.fakeStore({
@@ -797,15 +841,12 @@ describe("Monday: the week is re-measured, judged, and told (JN-005)", () => {
     expect(digest.standings).toHaveLength(1);
     expect(digest.weekMeasuredAt).toBeInstanceOf(Date);
 
-    // SPEC §8 (2026-10-07, issue 1329): the four headline numbers lead,
-    // then the pages and the next three.
+    // Overview's numbers lead, then the pages and the next three.
     const whole = buildWeekly({
       numbers: {
-        mentions: { kind: "rate", rate: measured(25, MONDAY), low: 12, high: 44 },
-        // A measured zero is a result — no page cited — and prints.
-        pagesCited: measuredZero(0, MONDAY),
-        weeks: 4,
-        top20: measured(1, MONDAY),
+        live: measured(1, MONDAY),
+        // A measured zero is a result — nothing planned — and prints.
+        planned: measuredZero(0, MONDAY),
       },
       pages: measured(
         digest.standings.map((standing) => ({ liveUrl: standing.liveUrl, standing: standing.standing })),
@@ -883,7 +924,7 @@ describe("Monday: the week is re-measured, judged, and told (JN-005)", () => {
     });
     const sent = await sendEmail({
       kind: "weekly",
-      to: "founder@acme.com",
+      to: "founder@acme.example",
       // The journey's own customer: the weekly toggle is read off their row.
       userId: USER_ID,
       subject: mail.subject,
@@ -945,4 +986,130 @@ describe("Monday: the week is re-measured, judged, and told (JN-005)", () => {
       })
     );
   });
+});
+
+describe("Monday when DataForSEO refuses for lack of credit", () => {
+  /** Every DataForSEO request answered as the vendor documents a refusal
+   *  for credit with no task (https://docs.dataforseo.com/v3/appendix/errors/). */
+  function refuseForFunds(): void {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string) => {
+        vendorRequests.push({ url, task: {} });
+        return {
+          ok: true,
+          status: 200,
+          statusText: "OK",
+          json: async () => ({ status_code: 40210, status_message: "Insufficient funds.", cost: 0, tasks_count: 0, tasks: null }),
+        };
+      })
+    );
+  }
+
+  /** The DataForSEO rows the pass ledgered, payload and all. */
+  function vendorRows(): { costCents: number; payload: unknown }[] {
+    return db.queries
+      .filter((q) => q.table === "fetches" && q.verb === "insert" && !String(q.values?.source).startsWith("egress") && String(q.values?.source).includes("/"))
+      .map((q) => ({ costCents: Number(q.values?.cost_cents), payload: q.values?.payload }));
+  }
+
+  it(
+    "every refused read is unmeasured and ledgered at 0¢, never a measured 0, and the run says why once",
+    async () => {
+      const warned: string[] = [];
+      const warn = vi.spyOn(console, "warn").mockImplementation((line: unknown) => void warned.push(String(line)));
+      refuseForFunds();
+      const outcome = await measureTheWeek();
+      warn.mockRestore();
+
+      const rows = vendorRows();
+      expect(rows.length).toBeGreaterThan(0);
+      for (const row of rows) {
+        expect(row.costCents).toBe(0);
+        expect(row.payload).toMatchObject({ vendorFailure: "task_40210", billed: false, funds: true });
+      }
+      const refused = warned.filter((line) => line.includes('"vendor_funds_refused"'));
+      expect(refused.length).toBeGreaterThan(0);
+      expect(refused.length).toBeLessThan(rows.length);
+
+      // The week reads as not measured, never as a week of zeros.
+      expect(outcome).toMatchObject({ ran: true, status: "failed", because: "vendor_funds" });
+      const account = await weekly.accountForWeek({ siteId: SITE_ID, weekStart: "2026-08-31", now: MONDAY });
+      expect(account.kind).toBe("not_measured");
+    },
+    JOURNEY_TIMEOUT_MS
+  );
+
+  it(
+    "the refused pass stores its report as failed in the one write, never measured first",
+    async () => {
+      refuseForFunds();
+      await measureTheWeek();
+      const transitions = statusWrites.filter((status, i) => status !== statusWrites[i - 1]);
+      expect(transitions).toEqual(["running", "failed"]);
+    },
+    JOURNEY_TIMEOUT_MS
+  );
+
+  it(
+    "a run that dies once the report is stored still leaves the refused week due",
+    async () => {
+      refuseForFunds();
+      // Nothing after the store lands: the function is gone.
+      const store = client.rpc;
+      client.rpc = async (fn: string, args: unknown) => {
+        const stored = await store(fn, args);
+        if (fn === "store_current_report") {
+          client.from = () => {
+            throw new Error("the function timed out");
+          };
+        }
+        return stored;
+      };
+      try {
+        await measureTheWeek().catch(() => undefined);
+      } finally {
+        client.rpc = store;
+        client.from = from;
+      }
+      expect(scans.filter((scan) => scan.tier === "weekly").map((scan) => scan.status)).toEqual(["failed"]);
+      const due = await weekly.dueSites(new Date(MONDAY.getTime() + 3_600_000));
+      expect(due.map((site) => site.siteId)).toEqual([SITE_ID]);
+    },
+    JOURNEY_TIMEOUT_MS
+  );
+
+  it(
+    "issue 1824: the refused week stays due, ends degraded with vendor_funds, and the next tick after a top-up measures it",
+    async () => {
+      refuseForFunds();
+      const outcome = await measureTheWeek();
+      expect(outcome).toMatchObject({ ran: true, because: "vendor_funds" });
+      expect(scans.filter((scan) => scan.tier === "weekly" && scan.status !== "failed")).toEqual([]);
+      // The row the ledger's rows reference is kept, released rather than deleted.
+      expect(scans.filter((scan) => scan.tier === "weekly").map((scan) => scan.status)).toEqual(["failed"]);
+      expect(vendorRows().length).toBeGreaterThan(0);
+
+      // Topped up: the vendor answers again, and the next hourly tick finds the week still owed.
+      vi.stubGlobal(
+        "fetch",
+        vi.fn(async (url: string, init?: RequestInit) => {
+          const body = typeof init?.body === "string" ? (JSON.parse(init.body) as unknown[]) : [];
+          return { ok: true, status: 200, statusText: "OK", json: async () => vendorAnswer(url, (body[0] ?? {}) as Record<string, unknown>) };
+        })
+      );
+      const nextTick = new Date(MONDAY.getTime() + 3_600_000);
+      const due = await weekly.dueSites(nextTick);
+      expect(due.map((site) => site.siteId)).toEqual([SITE_ID]);
+      const again = await weekly.runWeekly({ siteId: SITE_ID, domain: DOMAIN, zone: ZONE, now: nextTick });
+      expect(again).toMatchObject({ ran: true });
+      if (!again.ran) throw new Error("unreachable");
+      expect(again.status === "done" || again.status === "degraded").toBe(true);
+      // The retry measures into the same row, so the week still has one.
+      if (!outcome.ran) throw new Error("unreachable");
+      expect(again.scanId).toBe(outcome.scanId);
+      expect(scans.filter((scan) => scan.tier === "weekly")).toHaveLength(1);
+    },
+    JOURNEY_TIMEOUT_MS
+  );
 });

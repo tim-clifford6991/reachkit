@@ -35,34 +35,11 @@ import { SITE_CHECK_FIX, SITE_CHECK_TITLE, SITE_SEVERITY_WORD } from "@/lib/pres
 import { OVERVIEW_ALERT_CAP } from "@/lib/config/constants";
 import { SITE_CHECKS, type SiteCheck, type SiteIssue, type SiteIssuesSection } from "@/lib/site-issues/types";
 
-/** The kinds, in the order they outrank each other.
- *
- *  `connect_blog` leads (#924): until the record exists, nothing this
- *  customer has written can go live at all, so it outranks one page waiting
- *  to be read and one waiting out its window. It leaves the list the moment
- *  the host is live, which is a state the row already carries. */
-export const ALERT_KINDS = ["connect_blog", "needs_you", "pending_veto", "site_issue"] as const;
+/** The kinds, in the order they outrank each other. */
+export const ALERT_KINDS = ["needs_you", "pending_veto", "site_issue"] as const;
 export type AlertKind = (typeof ALERT_KINDS)[number];
 
-export type WaitingItem = WaitingDraft | WaitingIssue | WaitingConnect;
-
-/**
- * The hosted blog's address, still waiting for its DNS record (#924).
- *
- * Not a page and not an issue: it is one thing the customer can do in about
- * five minutes that unblocks every page at once. SPEC §5 (2026-09-20) keeps
- * it reachable "from Overview's needs-you and from Settings until the host
- * is live", and this is the first of those two.
- */
-export interface WaitingConnect {
-  kind: "connect_blog";
-  /** The host the record points at — the customer's own address. */
-  hostname: string;
-  /** When it started waiting; the tie-break every item shares. */
-  since: Date;
-  /** The one control: the step that shows the record. */
-  href: string;
-}
+export type WaitingItem = WaitingDraft | WaitingIssue;
 
 /** A technical issue the customer fixes, as the stored reading counted it. */
 export interface WaitingIssue {
@@ -133,13 +110,8 @@ export interface Overflow {
 }
 
 const ALERT_COPY: Readonly<
-  Record<WaitingDraft["kind"] | WaitingConnect["kind"], { key: CopyKey; actionKey: CopyKey; lineKey: CopyKey }>
+  Record<WaitingDraft["kind"], { key: CopyKey; actionKey: CopyKey; lineKey: CopyKey }>
 > = Object.freeze({
-  connect_blog: {
-    key: "overview.alert.connect-blog",
-    actionKey: "overview.alert.connect-blog.action",
-    lineKey: "overview.alert.connect-blog.line",
-  },
   needs_you: {
     key: "overview.alert.needs-you",
     actionKey: "overview.alert.needs-you.action",
@@ -206,6 +178,30 @@ export function waitingIssues(section: SiteIssuesSection | null, at: { measuredA
   return out;
 }
 
+/** What the Technical issues view reads: the waiting issues, how many pages
+ *  the crawl read and when. `null` figures where no reading is stored, so an
+ *  unmeasured site is never stated as a count. */
+export interface IssuesReading {
+  issues: readonly WaitingIssue[];
+  pagesChecked: number | null;
+  measuredAt: Date | null;
+  /** The hosted address ReachKit's pages live on; `null` where they live on
+   *  the customer's own site. */
+  hostedHost: string | null;
+}
+
+export function issuesReading(
+  section: SiteIssuesSection | null,
+  measuredAt: Date | null,
+  hostedHost: string | null
+): IssuesReading {
+  // A scan with no section, or with no check that ran, measured nothing.
+  if (measuredAt === null || section === null || !section.issues.some((issue) => issue.ran)) {
+    return { issues: [], pagesChecked: null, measuredAt: null, hostedHost };
+  }
+  return { issues: waitingIssues(section, { measuredAt }), pagesChecked: section.pagesChecked, measuredAt, hostedHost };
+}
+
 export function readAlerts(
   waiting: readonly WaitingItem[],
   /** The instant the window is measured against — the screen's own `today`,
@@ -224,20 +220,6 @@ export function readAlerts(
   const issuesRemaining = rest.length - remaining;
 
   const alerts = shown.map((item): Alert => {
-    // #924: the one thing that blocks every page at once. Its line states
-    // how long it takes the *customer*, which is their work and not the
-    // product's — the one place §4.5's no-duration rule does not reach.
-    if (item.kind === "connect_blog") {
-      const keys = ALERT_COPY[item.kind];
-      return {
-        kind: item.kind,
-        key: keys.key,
-        actionKey: keys.actionKey,
-        lineKey: keys.lineKey,
-        vars: { host: item.hostname },
-        href: item.href,
-      };
-    }
     if (item.kind === "site_issue") {
       return {
         kind: item.kind,
@@ -297,11 +279,6 @@ export function readAlerts(
 function byRankThenAge(a: WaitingItem, b: WaitingItem): number {
   const rank = ALERT_KINDS.indexOf(a.kind) - ALERT_KINDS.indexOf(b.kind);
   if (rank !== 0) return rank;
-  if (a.kind === "connect_blog" || b.kind === "connect_blog") {
-    // One per site, so two never meet; the rank above has already ordered
-    // it against everything else.
-    return a.since.getTime() - b.since.getTime();
-  }
   if (a.kind === "site_issue" && b.kind === "site_issue") {
     if (a.severity !== b.severity) return a.severity === "critical" ? -1 : 1;
     return SITE_CHECKS.indexOf(a.check) - SITE_CHECKS.indexOf(b.check);

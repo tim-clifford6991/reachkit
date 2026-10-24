@@ -12,7 +12,7 @@
 //
 // Pure, and nothing is bought: the rows are the ones the weekly passes
 // already stored.
-import { addressOf } from "./evaluate";
+import { addressOf } from "@/lib/measure/page-reading";
 
 export type IndexState = "seen" | "not_verified";
 

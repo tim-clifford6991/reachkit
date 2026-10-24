@@ -28,7 +28,7 @@ import type { Measured } from "@/lib/measure/measured";
 import { isPlaceholder } from "@/lib/measure/placeholder";
 import { fromStored } from "@/lib/presentation/generated";
 import type { MarketSerp } from "@/lib/market/views";
-import type { PageQuestionCandidate } from "@/lib/market/questions/tracked";
+import { slotDepth, type PageQuestionCandidate } from "@/lib/market/questions/tracked";
 import type {
   AiAnswersSection,
   AnswerCell,
@@ -235,6 +235,7 @@ export function pageQuestionsSectionOf(a: {
           : serp.value.organic.flatMap((row) =>
               typeof row.url === "string" && row.url !== "" ? [{ url: row.url, position: row.position }] : []
             ),
+      depth: slotDepth(candidate, index),
     };
   });
 

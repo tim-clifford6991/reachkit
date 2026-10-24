@@ -36,32 +36,39 @@ export {
   type RankedCounts,
 } from "./winnability/counts";
 
-export { rankScore } from "./rank/score";
 export { rankOpen } from "./rank/open";
 export { planLinkBacks, planMovedLinks, planRefreshes } from "./refresh";
 export { assessFixPages, fixPageReadiness, type FixDelivery } from "./fix-page";
-export { assessReadiness, opportunityReady, ownRanksFrom, type ReadinessContext } from "./readiness";
-export { canonicalUrl, clusterKey, collapse, comparePrecedence } from "./cluster";
-export { suppressionOf, verdictReason, type NotWorkingVerdict, type Suppression } from "./suppression";
-export { opportunityById } from "./next";
-export { committedWeek, pageForDay, planWeek, takeSpare } from "./plan";
+export { assessReadiness, eligible, ownRanksFrom, type ReadinessContext } from "./readiness";
+export { clusterKey, collapse, comparePrecedence } from "./cluster";
+export { heldByVerdict, suppressionOf, type NotWorkingVerdict, type Suppression } from "./suppression";
+export {
+  committedWeek,
+  weekChosenOn,
+  pageForDay,
+  planFirstWeek,
+  planWeek,
+  supplyDepth,
+  supplyMeasured,
+  supplyNotice,
+  supplyState,
+  type Depth,
+  type SupplyNotice,
+  type SupplyState,
+} from "./plan";
 export { contentTypeOf, CONTENT_TYPES, type ContentType } from "./content-type";
 export { pageTypeOf, PAGE_TYPES, type PageType } from "./page-type";
 export { sitePagesFor, type SitePage } from "./site-pages";
-export { dismissForVeto, queueForDraft, restTopic } from "./drafted";
+export { claimForDraft, dismissForVeto, giveBackClaim, queueForDraft, restTopic } from "./drafted";
 export { updateInstead } from "./update-instead";
 
 export { deriveOpportunities, type DeriveInput, type DeriveOutcome } from "./derive";
 export { explainChoice, type Choice } from "./derive/explain";
 
-export { supplyDepth, supplyMeasured, supplyState, type Depth, type SupplyState } from "./supply/depth";
-export { supplyNotice, type SupplyNotice } from "./supply/notice";
-export { refillSupply } from "./supply/refill";
+export { opportunityById, setOpportunityStore, type OpportunityStore } from "./store";
 
-export { setOpportunityStore, type OpportunityStore } from "./store";
-
-// What a paid pass does with what it measured: derive, then refill at 0¢
-// up to a committed week's depth (issue 1559).
+// What a paid pass does with what it measured: derive, then count the
+// writable days of a committed week (issue 1559).
 export { deriveForPass, rankedCountsOf, type PassOutcome, type PassTier } from "./pass";
 
 // §9's weekly judgement of the pages the engine's opportunities became

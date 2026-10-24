@@ -48,6 +48,25 @@ describe("ruling 3a — brand · rights · removal address · Product · Legal",
     expect(COPY["chrome.footer.rights"]).toBe("© 2026 ReachKit. All rights reserved.");
   });
 
+  it("board PubLanding: brand, then Product · Learn · Legal · Contact, then the rights and removal line", () => {
+    const titles = [...html.matchAll(/<div class="footer-title[^"]*">([^<]*)<\/div>/g)].map((m) => m[1]);
+    expect(titles).toEqual(["Product", "Learn", "Legal", "Contact"]);
+    expect(html.indexOf('href="/"')).toBeLessThan(html.indexOf(">Product<"));
+    expect(html.lastIndexOf(COPY["chrome.footer.rights"])).toBeGreaterThan(html.indexOf(">Contact<"));
+  });
+
+  it("Learn opens with Free scans, then Compare, Free tools and Teardowns", () => {
+    const learn = html.slice(html.indexOf(">Learn<"), html.indexOf(">Legal<"));
+    const links = [...learn.matchAll(/<a class="link link-hover" href="([^"]*)">([^<]*)<\/a>/g)].map((m) => m[2]);
+    expect(links).toEqual(["Free scans", "Compare", "Free tools", "Teardowns"]);
+  });
+
+  it("Contact is hello@reachkit.app, as a mail link", () => {
+    const contact = html.slice(html.indexOf(">Contact<"));
+    expect(contact).toContain('href="mailto:hello@reachkit.app"');
+    expect(contact).toContain(">hello@reachkit.app<");
+  });
+
   it("the group layout renders it on every public route, with nothing to decide", () => {
     // No prop, no pathname, no condition: a route that could turn the
     // footer off is a route that could drop the removal address.

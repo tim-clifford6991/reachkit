@@ -11,7 +11,7 @@
 // bar and its research read, the measured
 // text the grounding reads, the cost ledger's context, the daily site list,
 // the breakage and draft-ready mails, and the signed-in account.
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeAll, beforeEach, describe, expect, it as vitestIt, vi } from "vitest";
 import { fakeDb, installTransitionRpc, type FakeDb, type Row } from "../publish/harness";
 
 const db: FakeDb = fakeDb();
@@ -62,6 +62,7 @@ vi.mock("@/lib/publish/daily", () => ({
   alertMissingDrafts: async () => 0,
   alertStalledSites: async () => 0,
   missedDays: async () => [],
+  dayHold: async () => null,
 }));
 vi.mock("@/lib/publish/destinations/health", () => ({ sendBreakageMail: async () => ({ sent: false }) }));
 vi.mock("@/lib/mail/draft-ready", () => ({ sendDraftReadyMail: draftReadyMock }));
@@ -70,7 +71,6 @@ vi.mock("@/lib/mail/draft-ready", () => ({ sendDraftReadyMail: draftReadyMock })
 vi.mock("@/lib/opportunities", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/opportunities")>()),
   pageForDay: (siteId: string, date: string, now?: Date) => pickMock(siteId, date, now),
-  takeSpare: (siteId: string) => pickMock(siteId),
   assessFixPages: async () => ({ done: 0, ready: 0 }),
   assessReadiness: async () => ({ ready: 1, unready: 0 }),
 }));
@@ -116,7 +116,17 @@ function modelWrites(markdown: string, topic = "seats"): void {
 let opportunities: ReturnType<typeof opportunityDoubles.newMemoryState>;
 let opportunityId: string;
 
-beforeEach(async () => {
+// Vitest does not stop a case that times out: its body runs on and would take the next case's queued model answers.
+let running: Promise<unknown> = Promise.resolve();
+function it(name: string, body: () => Promise<void>): void {
+  vitestIt(name, () => (running = body()));
+}
+// As long as the warm-up's limit, so the hook cannot time out first and let the body run on into the next case.
+afterEach(async () => {
+  await running.catch(() => undefined);
+}, 180_000);
+
+async function arrange(): Promise<void> {
   db.reset();
   installTransitionRpc(db);
   llmMock.mockReset();
@@ -172,7 +182,16 @@ beforeEach(async () => {
   if (inserted.outcome !== "created") throw new Error("the fixture opportunity was refused");
   opportunityId = inserted.row.id;
   pickMock.mockImplementation(async () => opportunityById(opportunityId));
-});
+}
+
+// The draft job and §8's pipeline import lazily; one throwaway tick pays that cold load here, not inside the first case's 5 s.
+// Over 60 s once at load 11 on the 4-core box, and a hook that times out skips every case, so it gets 180 s.
+beforeAll(async () => {
+  await arrange();
+  await stoppedEvening();
+}, 180_000);
+
+beforeEach(arrange);
 
 function statusOf(id: string): string | undefined {
   return opportunities.rows.find((row) => row.id === id)?.status;
@@ -282,9 +301,7 @@ describe("D26 (issue 1179) — a stopped draft does not cost its day, and its to
     const market = fixtures.report().market;
     if (market.kind !== "measured") throw new Error("the fixture report has no measured market");
     opportunities.profile = market.value.profile;
-    pickMock.mockImplementation((siteId: string, date?: string, now?: Date) =>
-      date === undefined ? actualOpportunities.takeSpare(siteId, now) : actualOpportunities.pageForDay(siteId, date, now)
-    );
+    pickMock.mockImplementation((siteId: string, date: string, now?: Date) => actualOpportunities.pageForDay(siteId, date, now));
     for (const row of opportunities.rows) {
       row.ready = true;
       // D46: a "best …" search is a listicle, which the mix leaves out for
@@ -317,12 +334,14 @@ describe("D26 (issue 1179) — a stopped draft does not cost its day, and its to
     return other.row.id;
   }
 
+  const WHY = { points: 3, parts: [{ part: "fit" as const, n: 3 }], rule: "best" as const };
+
   /** Issue 1559: the week the Monday committed — the first topic is the
    *  evening's date, the others its spares. */
   async function week(spares: readonly string[]): Promise<void> {
     await opportunityDoubles.memoryStore(opportunities).commitPlan!(fixtures.SITE_ID, [
-      { opportunityId, place: 0, plannedFor: "2026-09-08", writeAs: null },
-      ...spares.map((id, n) => ({ opportunityId: id, place: 7 + n, plannedFor: null, writeAs: null })),
+      { opportunityId, place: 0, plannedFor: "2026-09-08", writeAs: null, reason: WHY },
+      ...spares.map((id, n) => ({ opportunityId: id, place: 7 + n, plannedFor: null, writeAs: null, reason: WHY })),
     ]);
   }
 

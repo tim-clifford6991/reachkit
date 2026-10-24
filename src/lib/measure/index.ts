@@ -27,14 +27,17 @@
 // the date the page was read. The only `new Date(…)` calls here revive an
 // ISO string a stored outcome carried.
 //
-// **`aiPresence` is `not_attempted` here, by design.** BUILD §5's AIPresence
+// **`searchPresence` and `aiPresence` are `not_attempted` here, by design.**
+// SearchPresence is the presence card's page-one share, so it waits for the
+// same SERPs. BUILD §5's AIPresence
 // is a rate over the twelve questions' SERPs, and the twelve are derived
 // (§6.7) from the profile of the text this call has only just read — no
 // arm of this signature reaches them. The pipeline fills the field from
 // `aiPresenceOf` (`drivers.ts`) over SERPs it has already bought, then
 // hands the completed `Drivers` to `verdictOf`. Buying a SERP here would
 // spend the free path's ceiling twice on the same rows (§6.4).
-import { readLocale, type Locale, type ResolvedLocale } from "@/lib/locale";
+import { marketsServed, readLocale, type Locale, type ResolvedLocale } from "@/lib/locale";
+import { listingLocaleOf } from "@/lib/locale/listing";
 import { readPlaceSignals, type PlaceSignals } from "@/lib/locale/place";
 import { CACHE_WINDOWS_D, CHALLENGE_RENDER_MS, HOME_RETRY, PRICE_BOOK, SLOW_HOME } from "@/lib/config/constants";
 import {
@@ -51,7 +54,7 @@ import type { FetchOutcome, RobotsPolicy } from "@/lib/egress/types";
 import { rankedKeywords } from "@/lib/vendors/dataforseo";
 import type { RankedResult, RankedRow } from "@/lib/vendors/dataforseo/types";
 import { BOT_PROTECTION, challengeOf, HOME_TIMEOUT, notTheSiteOf, type ProtectionVendor } from "./challenge";
-import { answerabilityOf, foundationsOf, ownRankedOf, searchPresenceOf } from "./drivers";
+import { answerabilityOf, foundationsOf, ownRankedOf } from "./drivers";
 import { measured, measuredZero, unmeasured, type Measured } from "./measured";
 import { OWN_FETCH_OPTS, OWN_FETCH_SOURCE, isStoredDocument, toStoredDocument, type StoredDocument } from "./own-fetch";
 import { visibleText, type OnPageFacts } from "./parse";
@@ -59,14 +62,19 @@ import { contentOf, detectPricingUrl, factsOf, homeUrlOf, measuredPagesOf, stamp
 import type { Drivers } from "./score";
 
 export type { Drivers } from "./score";
-export { NO_AI_ANSWERS } from "./score";
-export { aiPresenceOf, aiSampleOf, answerabilityOf, classifyReferences, foundationsOf, localPackSearches, ownRankedOf, searchPresenceOf, type AiSample } from "./drivers";
+export {
+  aiPresenceOf,
+  aiSampleOf,
+  classifyReferences,
+  searchPresenceOf,
+  type AiSample,
+} from "./drivers";
 export { parseOnPage, visibleText, type OnPageFacts } from "./parse";
 export type { Measured, UnmeasuredReason } from "./measured";
-export { BOT_PROTECTION, HOME_TIMEOUT, type ProtectionVendor } from "./challenge";
+export { BOT_PROTECTION, type ProtectionVendor } from "./challenge";
 
 export type { Tier } from "./pages";
-export { contentOf, detectPricingUrl, measuredPagesOf, storedFactsOf } from "./pages";
+export { detectPricingUrl } from "./pages";
 
 /** The one place `tier` is read: three parameter tables. Free buys the free
  *  row count, measures the home and the detected pricing page only, and
@@ -287,12 +295,10 @@ export interface DomainMeasurement {
    *  none (a fact about the home document, not a failed read). */
   pricing: { url: string; facts: Measured<OnPageFacts> } | null;
   robots: Measured<RobotsPolicy>;
-  /** The customer's own ranked count, from the same call `searchPresence`
-   *  was computed from — the rows themselves, not the 0–100 sub-measure.
-   *  §6.6 bands every rival against it and §7's two winnability bars are
-   *  multiples of it, so it travels with the measurement rather than being
-   *  bought a second time. `unmeasured` carries the same reason
-   *  `searchPresence` carries; the two are the same read. */
+  /** The customer's own ranked count. §6.6 bands every rival against it
+   *  and §7's two winnability bars are multiples of it, so it travels with
+   *  the measurement rather than being bought a second time. `unmeasured`
+   *  carries why the ranked call did not answer. */
   ownRanked: Measured<number>;
   /** The rows that count was read from (#778) — SPEC §6's thin-market pool
    *  selects over the site's own ranked keywords without buying them again.
@@ -307,6 +313,12 @@ export interface DomainMeasurement {
    *  fell back to the nearest supported country in English; `null`
    *  otherwise, and wherever the locale was the caller's. */
   localeFellBack: ResolvedLocale["fellBack"];
+  /** `default` where neither the home page nor the address named a
+   *  country, so the locale is D66's default, guessed. */
+  localeBasis?: "default";
+  /** The other markets the home document says the site serves, as BCP-47
+   *  tags without the measured one; absent where the home was not read. */
+  alsoServes?: readonly string[];
   /** What the home page's structured data states of the business's address
    *  (SPEC §6, owner D67, issue 1318): evidence for where it serves. */
   stated?: PlaceSignals;
@@ -359,6 +371,10 @@ export async function measureDomain(
      *  the own window for the documents and the ranked rows; never widens
      *  it. Absent, the window is `CACHE_WINDOWS_D.own` as before. */
     ownWindowDays?: number;
+    /** A paying pass (R11): where the locale was guessed and the listing
+     *  reads as another supported country, the ranked rows are bought again
+     *  there and the pass is measured in it. */
+    listingDecides?: boolean;
   },
   ports: MeasurePorts = DEFAULT_PORTS
 ): Promise<DomainMeasurement> {
@@ -430,6 +446,63 @@ export async function measureDomain(
   //    before anything else is read.
   const pricingUrl = home.html === null ? null : detectPricingUrl(home.html, homeUrl);
 
+  // The one priced call. `capHit()` first — the ceiling names itself in
+  // the log and the call is not made (BUILD §6.5, BP-010 NFR budget).
+  // The count itself, which §6.6's banding and §7's bars are expressed in
+  // multiples of, and the rows it was read from.
+  const rankedIn = async (locale: Locale): Promise<{
+    ownRanked: Measured<number>;
+    ownRankedRows: readonly RankedRow[];
+  }> => {
+    if (c.capHit()) {
+      logDriver("driver_not_attempted", { driver: "searchPresence", ceiling: "spend_cap", domain: a.domain });
+      return {
+        ownRanked: unmeasured("not_attempted", at),
+        ownRankedRows: [],
+      };
+    }
+    // A failed call is ledgered as the failure and answers `unmeasured`
+    // (issue #504); this is where the stage hears which failure it was, so
+    // the reason it logs is the vendor's and never a ledger insert's.
+    const heard: { failure: VendorFailure | null } = { failure: null };
+    try {
+      const ranked = await ports.rankedKeywords(c, {
+        domain: a.domain,
+        rows: RANKED_ROWS_BY_TIER[a.tier],
+        locale,
+        ...(a.ownWindowDays === undefined ? {} : { windowDays }),
+        // Issue 1387: a site whose own pages stay unread has its market
+        // read from these rows, so they carry what Google shows for each.
+        ...((plain.protection !== null && drawn === null) || slow ? { listing: true } : {}),
+        onFailure: (failure) => {
+          heard.failure = failure;
+        },
+      });
+      if (heard.failure !== null) {
+        logDriver("driver_undeterminable", {
+          driver: "searchPresence",
+          domain: a.domain,
+          because: heard.failure.vendorFailure,
+          endpoint: heard.failure.endpoint,
+        });
+      }
+      return {
+        ownRanked: ownRankedOf({ ranked, at }),
+        ownRankedRows: ranked.kind === "unmeasured" ? [] : ranked.value.rows,
+      };
+    } catch (error) {
+      logDriver("driver_undeterminable", {
+        driver: "searchPresence",
+        domain: a.domain,
+        because: error instanceof Error ? error.message : String(error),
+      });
+      return {
+        ownRanked: unmeasured("undeterminable", at),
+        ownRankedRows: [],
+      };
+    }
+  };
+
   // 4–5. The reads that do not depend on each other, concurrently (issue
   //      #539).
   //
@@ -448,7 +521,7 @@ export async function measureDomain(
   // of the four is the ranked rows, the other three being own-document
   // reads ledgered at zero cents, which cannot move a cap whatever order
   // they run in. That is also why `capHit()` read once at the start of the
-  // ranked task below decides exactly what it decided when this was
+  // ranked task above decides exactly what it decided when this was
   // sequential.
   //
   // The site's measured pages are read after its crawl (`withMeasuredPages`).
@@ -483,70 +556,7 @@ export async function measureDomain(
       }
     })(),
 
-    // The one priced call. `capHit()` first — the ceiling names itself in
-    // the log and the call is not made (BUILD §6.5, BP-010 NFR budget).
-    // The same rows are read two ways: the driver, and the count itself,
-    // which §6.6's banding and §7's bars are expressed in multiples of.
-    // Never a second call — both are returned from this one answer.
-    (async (): Promise<{
-      searchPresence: Measured<number>;
-      ownRanked: Measured<number>;
-      ownRankedRows: readonly RankedRow[];
-    }> => {
-      if (c.capHit()) {
-        logDriver("driver_not_attempted", { driver: "searchPresence", ceiling: "spend_cap", domain: a.domain });
-        return {
-          searchPresence: unmeasured("not_attempted", at),
-          ownRanked: unmeasured("not_attempted", at),
-          ownRankedRows: [],
-        };
-      }
-      // A failed call is ledgered as the failure and answers `unmeasured`
-      // (issue #504); this is where the stage hears which failure it was, so
-      // the reason it logs is the vendor's and never a ledger insert's.
-      const heard: { failure: VendorFailure | null } = { failure: null };
-      try {
-        const ranked = await ports.rankedKeywords(c, {
-          domain: a.domain,
-          rows: RANKED_ROWS_BY_TIER[a.tier],
-          locale: read.locale,
-          ...(a.ownWindowDays === undefined ? {} : { windowDays }),
-          // Issue 1387: a site whose own pages stay unread has its market
-          // read from these rows, so they carry what Google shows for each.
-          ...((plain.protection !== null && drawn === null) || slow ? { listing: true } : {}),
-          onFailure: (failure) => {
-            heard.failure = failure;
-          },
-        });
-        if (heard.failure !== null) {
-          logDriver("driver_undeterminable", {
-            driver: "searchPresence",
-            domain: a.domain,
-            because: heard.failure.vendorFailure,
-            endpoint: heard.failure.endpoint,
-          });
-        }
-        // One answer, both readings: §5's reach and §6.6's own count are the
-        // vendor's total (#117, #529); §5's top-10 share is over the rows
-        // bought. `searchPresenceOf` takes the whole answer for that reason.
-        return {
-          searchPresence: searchPresenceOf({ ranked, at }),
-          ownRanked: ownRankedOf({ ranked, at }),
-          ownRankedRows: ranked.kind === "unmeasured" ? [] : ranked.value.rows,
-        };
-      } catch (error) {
-        logDriver("driver_undeterminable", {
-          driver: "searchPresence",
-          domain: a.domain,
-          because: error instanceof Error ? error.message : String(error),
-        });
-        return {
-          searchPresence: unmeasured("undeterminable", at),
-          ownRanked: unmeasured("undeterminable", at),
-          ownRankedRows: [],
-        };
-      }
-    })(),
+    rankedIn(read.locale),
   ]);
 
   if (slow) {
@@ -565,13 +575,25 @@ export async function measureDomain(
     pricingUrl === null || pricingRead === null
       ? null
       : { url: pricingUrl, facts: stampedAt(pricingRead.facts, at) };
-  const { searchPresence, ownRanked, ownRankedRows } = presence;
+  // R11: a paying pass whose listing names another country than the one it
+  // guessed buys its rows again there, so nothing after is bought in the guess.
+  const listed = a.listingDecides === true && read.basis === "default" ? listingLocaleOf(presence.ownRankedRows) : null;
+  let measuredIn: ResolvedLocale = read;
+  let { ownRanked, ownRankedRows } = presence;
+  if (listed !== null && listed.country !== read.locale.country) {
+    const again = await rankedIn(listed);
+    // A purchase that did not answer leaves the pass where it was guessed.
+    if (again.ownRanked.kind !== "unmeasured") {
+      ({ ownRanked, ownRankedRows } = again);
+      measuredIn = { locale: listed, fellBack: null };
+    }
+  }
 
   // 6. The four measured quantities.
   const drivers: Drivers = {
     foundations: foundationsOf({ onPage, robots, at }),
     answerability: contentOf({ onPage, pricing: pricing?.facts ?? null, pages: [], at }),
-    searchPresence,
+    searchPresence: unmeasured("not_attempted", at), // filled by the pipeline from the presence card
     aiPresence: unmeasured("not_attempted", at), // filled by the pipeline from `aiPresenceOf` — see the header
   };
   logDriver("drivers_measured", {
@@ -593,8 +615,10 @@ export async function measureDomain(
     robots,
     ownRanked,
     ownRankedRows,
-    locale: read.locale,
-    localeFellBack: read.fellBack,
+    locale: measuredIn.locale,
+    localeFellBack: measuredIn.fellBack,
+    ...(measuredIn.basis === undefined ? {} : { localeBasis: measuredIn.basis }),
+    ...(home.html === null ? {} : { alsoServes: marketsServed({ domain: a.domain, html: home.html, measured: measuredIn.locale }) }),
     stated: readPlaceSignals(home.html),
     homeRefusal: null,
     ...guarded,

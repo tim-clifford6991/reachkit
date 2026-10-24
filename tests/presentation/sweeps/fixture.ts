@@ -60,6 +60,7 @@ export const COLD_START_SHELL_FACTS: ShellFacts = Object.freeze({
   stopped: null,
   noPublishCauses: Object.freeze({
     reachkit_stopped: false,
+    address_waiting: false,
     publishing_paused: false,
     not_written: false,
     nothing_planned: true,
@@ -80,6 +81,7 @@ export const WARM_SHELL_FACTS: ShellFacts = Object.freeze({
   next: new Date(Date.UTC(2026, 8, 16, 13, 0, 0)),
   noPublishCauses: Object.freeze({
     reachkit_stopped: false,
+    address_waiting: false,
     publishing_paused: false,
     not_written: false,
     nothing_planned: false,
@@ -104,6 +106,7 @@ export const STOPPED_SHELL_FACTS: ShellFacts = Object.freeze({
   stopped: STOP,
   noPublishCauses: Object.freeze({
     reachkit_stopped: false,
+    address_waiting: false,
     publishing_paused: true,
     not_written: false,
     nothing_planned: false,

@@ -134,6 +134,25 @@ describe("the candidates — §9's live pages, each with its own question", () =
     expect(places.get("pub-2")).toBeNull();
   });
 
+  it("reads where the page was last seen and whether AI linked it from its stored reading, and when it went live", async () => {
+    const reading = { at: "2026-10-12T04:00:00.000Z", place: { value: 17, source: "serp", query: "search 1" }, first: { at: "2026-10-05T04:00:00.000Z", place: 40 }, linkedBy: ["chatgpt"] };
+    db.answer = () => ({
+      data: [
+        { ...publication({ n: 1 }), published_at: "2026-09-28T09:00:00.000Z", search_reading: reading },
+        { ...publication({ n: 2 }), published_at: "2026-10-14T09:00:00.000Z", search_reading: null },
+      ],
+      error: null,
+    });
+    const candidates = await pageQuestionCandidates({
+      siteId: SITE_ID,
+      // The stored reading wins over the keyword database's older place.
+      ownRankedRows: [{ keyword: "search 1", position: 31, searchVolume: 10, url: "u" }],
+    });
+    const byId = new Map(candidates.map((c) => [c.publicationId, c]));
+    expect(byId.get("pub-1")).toMatchObject({ position: 17, linked: true, publishedAt: "2026-09-28T09:00:00.000Z" });
+    expect(byId.get("pub-2")).toMatchObject({ position: null, linked: false, publishedAt: "2026-10-14T09:00:00.000Z" });
+  });
+
   it("leaves out a page that was taken down, one with no address, and one with no target", async () => {
     db.answer = () => ({
       data: [

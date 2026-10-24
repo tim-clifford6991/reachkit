@@ -7,6 +7,22 @@
 /** Whether the main site's own pages link the content host. */
 export type MainSiteLink = "linked" | "not_followed" | "not_linked";
 
+/** The kinds of page a hosted page's about card links on the main site. */
+export const MAIN_SITE_ACTIONS = ["book", "quote"] as const;
+export type MainSiteActionKind = (typeof MAIN_SITE_ACTIONS)[number];
+
+/** What a book page books, read off its own address and words. */
+export const BOOK_KINDS = ["demo", "call", "visit"] as const;
+export type BookKind = (typeof BOOK_KINDS)[number];
+
+/** A book or quote page of the main site; a book page says what it books,
+ *  except on a reading stored before. */
+export interface MainSiteAction {
+  kind: MainSiteActionKind;
+  url: string;
+  book?: BookKind;
+}
+
 export interface MainSite {
   /** The main site's canonical home. */
   home: string;
@@ -23,6 +39,14 @@ export interface MainSite {
    *  whether the main site's own pages link it. Empty where the domain has
    *  none, or where which pages are ours could not be read. */
   links: readonly { host: string; state: MainSiteLink }[];
+  /** The book and quote pages the home's own header or nav links, on the
+   *  business's own site, at most one of each and never two at one address.
+   *  Empty where it links none, or on a reading stored before. */
+  actions: readonly MainSiteAction[];
+  /** The phone number the main site states, as it writes it: its
+   *  Organization's `telephone`, else its home's first `tel:` link. `null`
+   *  where it states none, or on a reading stored before. */
+  phone: string | null;
 }
 
 /** One about or team page of the main site, as the scan read it. */
@@ -32,18 +56,6 @@ export interface AboutPage {
   text: string;
   /** The profile pages it links. */
   profiles: readonly string[];
-}
-
-/** What Overview says about the main-site link (SPEC §7, 2026-10-18):
- *  drawn only while the main site does not link the content host, or links
- *  it without letting search engines follow
- *  (`publish/destinations/hosted/main-link.ts`). */
-export interface MainSiteLinkFinding {
-  state: "not_linked" | "not_followed";
-  /** The content host the link points at. */
-  host: string;
-  /** The anchor to copy into the main site. */
-  snippet: string;
 }
 
 function isHttp(value: unknown): value is string {
@@ -84,5 +96,22 @@ export function mainSiteOf(value: unknown): MainSite | null {
             : [];
         })
       : [],
+    actions: Array.isArray(row.actions)
+      ? row.actions.flatMap((entry) => {
+          const action = entry as Record<string, unknown> | null;
+          if (!isHttp(action?.url) || !MAIN_SITE_ACTIONS.includes(action.kind as MainSiteActionKind)) return [];
+          const book = action.kind === "book" && BOOK_KINDS.includes(action.book as BookKind) ? { book: action.book as BookKind } : {};
+          return [{ kind: action.kind as MainSiteActionKind, url: action.url, ...book }];
+        })
+      : [],
+    phone: phoneOf(row.phone),
   };
+}
+
+/** A number as a page may show it: digits with the usual separators, and
+ *  at least six digits, so a stored word is never drawn as a phone. */
+export function phoneOf(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const phone = value.replace(/\s+/g, " ").trim();
+  return /^\+?[\d ()./-]{6,30}$/.test(phone) && (phone.match(/\d/g) ?? []).length >= 6 ? phone : null;
 }

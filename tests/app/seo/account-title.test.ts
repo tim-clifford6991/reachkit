@@ -85,6 +85,8 @@ const OWNER: Readonly<Record<string, string>> = {
   "/app/costs": "@/app/(account)/app/costs/page",
   // Issue 1550: the account's view of the checks it fixes.
   "/app/issues": "@/app/(account)/app/issues/page",
+  // The owner's review of each paying site's week.
+  "/app/review": "@/app/(account)/app/review/page",
   "/setup": "@/app/(account)/setup/page",
   // #924: the DNS record is its own step after setup, so it is its own
   // address and exports its own title rather than taking the group's
@@ -160,6 +162,7 @@ const NAMED: Readonly<Record<string, string>> = {
   "/app/settings/account": "meta.app.settings.account.title",
   "/app/costs": "meta.app.costs.title",
   "/app/issues": "meta.app.issues.title",
+  "/app/review": "review.meta.title",
   "/setup": "meta.app.setup.title",
 };
 
@@ -205,11 +208,9 @@ describe("issue #945 — each named screen says which screen it is", () => {
         expect(nonEmpty(title), `${route} ships no title of its own`).toBe(true);
         expect(title).toBe(copy(key as Parameters<typeof copy>[0]));
       },
-      // These import a real route module, and one of them pulls a whole
-      // library graph with it: `/app/calendar` reaches `react-day-picker`
-      // and `date-fns` through `MonthGrid` (#930), whose cold transform on
-      // a loaded build box runs past vitest's 5s default. The assertion is
-      // on an exported object and costs nothing; the wait is the import.
+      // These import a real route module, whose cold transform on a loaded
+      // build box can run past vitest's 5s default. The assertion is on an
+      // exported object and costs nothing; the wait is the import.
       IMPORT_MS
     );
   }

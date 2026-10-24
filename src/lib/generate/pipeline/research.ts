@@ -68,7 +68,7 @@
 // **Research never stops a page.** A site whose market yields no readable
 // page is written from its business facts alone, as before this step.
 import { z } from "zod";
-import { CACHE_WINDOWS_D, RESEARCH } from "@/lib/config/constants";
+import { CACHE_WINDOWS_D, HEADING_GAPS, RESEARCH } from "@/lib/config/constants";
 import type { CostContext } from "@/lib/costs";
 import { safeFetch } from "@/lib/egress";
 import { llm } from "@/lib/llm";
@@ -78,6 +78,8 @@ import type { WritingMarket } from "../voice/market";
 import { languagePack, pagePathAlternation, SHAPES } from "@/lib/locale/language";
 import { brandOf, GENERIC_TOKENS } from "@/lib/market/questions/select";
 import { topicWords } from "@/lib/opportunities/intent";
+import { queryKey } from "@/lib/opportunities/cluster";
+import { askedOfReport } from "@/lib/opportunities/derive/topics";
 import { isPlatformDomain, nameLetters, registrableDomain } from "@/lib/market/rivals/domains";
 import type { Locale } from "@/lib/locale/locales";
 import type { NewsRow } from "@/lib/vendors/dataforseo/types";
@@ -159,8 +161,9 @@ export interface MarketResearch {
   /** *Current insights*: every news result the judgement was asked about. */
   news?: JudgedResult[];
   /** The target's top results as they were read (issue 1143): what a new
-   *  page's claims are compared with. Absent is none read. */
-  topResults?: { url: string; text: string }[];
+   *  page's claims are compared with. Absent is none read. Issue 1521: each
+   *  with its H2 and H3 headings, where they were read off its markup. */
+  topResults?: { url: string; text: string; headings?: string[] }[];
   /** Issue 1508: on a search for alternatives to one product, that
    *  product's domain. It is the page's baseline and no option. */
   baseline?: string;
@@ -168,11 +171,22 @@ export interface MarketResearch {
 
 export const NO_RESEARCH: MarketResearch = Object.freeze({ facts: [], products: [] });
 
+/** No research bought: only the "People also ask" the stored report's SERPs
+ *  for `searches` already hold, for a page built from the business's own
+ *  facts (the offering page). */
+export function storedAsk(report: Pick<StoredReport, "questions" | "serps">, searches: readonly string[]): MarketResearch {
+  const wanted = new Set(searches.map(queryKey));
+  const peopleAlsoAsk = askedOfReport(report).filter((serp) => wanted.has(queryKey(serp.term))).flatMap((serp) => serp.peopleAlsoAsk);
+  return { ...NO_RESEARCH, asked: { peopleAlsoAsk: [...new Set(peopleAlsoAsk)], related: [] } };
+}
+
 interface ReadPage {
   url: string;
   title: string;
   text: string;
   readAt: string;
+  /** Issue 1521: its H2 and H3 headings. Absent on a read stored before. */
+  headings?: string[];
 }
 
 interface Wanted {
@@ -228,6 +242,31 @@ async function fetchBody(url: string): Promise<{ url: string; html: string; read
   }
 }
 
+const CHROME_RE = /<(nav|header|footer|aside)\b[^>]*>[\s\S]*?<\/\1>/gi;
+const HEADING_RE = /<h([23])\b[^>]*>([\s\S]*?)<\/h\1>/gi;
+
+/**
+ * The H2 and H3 headings of a page, in order, read off its markup (issue
+ * 1521): inside its `<main>` or `<article>` where it has one, and never in
+ * its navigation, header, footer or sidebar. Each once, as a reader sees it.
+ * Code only: the page was already read.
+ */
+export function headingsOf(html: string): string[] {
+  const scoped = /<main\b[^>]*>([\s\S]*?)<\/main>/i.exec(html)?.[1] ?? /<article\b[^>]*>([\s\S]*?)<\/article>/i.exec(html)?.[1] ?? html;
+  const body = scoped.replace(CHROME_RE, " ");
+  const seen = new Set<string>();
+  const headings: string[] = [];
+  for (const match of body.matchAll(HEADING_RE)) {
+    const text = visibleText(match[2] ?? "").replace(/\s+/g, " ").trim();
+    const key = text.toLowerCase();
+    if (text === "" || text.length > 120 || seen.has(key)) continue;
+    seen.add(key);
+    headings.push(text);
+    if (headings.length >= HEADING_GAPS.headingsPerPage) break;
+  }
+  return headings;
+}
+
 /** One page off the network, or `null` where it did not answer with enough
  *  to read. */
 async function fetchPage(url: string): Promise<{ page: ReadPage; html: string } | null> {
@@ -242,6 +281,7 @@ async function fetchPage(url: string): Promise<{ page: ReadPage; html: string } 
       title: title.length === 0 ? hostOf(body.url) : title,
       text: words(text, RESEARCH.readWords),
       readAt: body.readAt.toISOString(),
+      headings: headingsOf(body.html),
     },
     html: body.html,
   };
@@ -943,7 +983,8 @@ export async function researchMarket(
       cacheKey: page.url,
       freshnessDays: RESEARCH.freshnessDays,
       costCents: 0,
-      run: async () => ({ url: page.url, title: page.title, text: page.text, readAt: page.readAt }),
+      // Issue 1521: the headings are recorded with the read.
+      run: async () => ({ url: page.url, title: page.title, text: page.text, readAt: page.readAt, ...(page.headings === undefined ? {} : { headings: page.headings }) }),
     });
     if ("skipped" in row) break;
     pages.push({ ...page, ...row.payload });
@@ -1000,7 +1041,9 @@ export async function researchMarket(
   const research: MarketResearch = {
     facts: ordered,
     products,
-    topResults: pages.filter((page) => page.kind === "top_result").map((page) => ({ url: page.url, text: page.text })),
+    topResults: pages
+      .filter((page) => page.kind === "top_result")
+      .map((page) => ({ url: page.url, text: page.text, ...(page.headings === undefined ? {} : { headings: page.headings }) })),
     ...(recent === null ? {} : { news: recent.news }),
     ...(baseline === null ? {} : { baseline }),
   };

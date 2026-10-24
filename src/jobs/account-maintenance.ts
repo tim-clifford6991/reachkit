@@ -6,7 +6,7 @@
 // hosting-end notice, a hosting stop, an account due for purge, a founder
 // who paid and never finished setup (§4.3, issue #36), and a free scan
 // left `running` by an invocation the platform froze (§6.4, issue #438), and
-// SPEC §8's five retention mails (issue #569). This tick is their trigger
+// SPEC §8's three retention mails (issue #569). This tick is their trigger
 // and nothing more.
 //
 // **No domain logic here.** One tick is seven due-work queries and seven
@@ -43,14 +43,10 @@
 import {
   accountsDueCancellation,
   accountsDueForPurge,
-  accountsDueInactivity,
   accountsDuePaymentFailed,
   accountsDueWinback,
-  draftsDueVetoReminder,
   noticeCancellation,
   noticePaymentFailed,
-  nudgeInactive,
-  remindVeto,
   winBack,
   backstopProvision,
   chaseSignIn,
@@ -110,12 +106,9 @@ const DUE_WORK: readonly {
   // the way in: staleness is a fact about a clock, and the sweep is the
   // one place in the product allowed to decide a pass is not coming back.
   { due: scansLeftRunning, handOff: finishScanLeftRunning },
-  // SPEC §8's retention sequence (issue #569): idle 7 days, a veto window
-  // closing on an unopened draft, a failed payment, a cancellation, and the
-  // win-back 30 days after access ended. Asked, like the setup reminders,
+  // SPEC §8's retention sequence (issue #569): a failed payment, a
+  // cancellation, and the win-back 30 days after access ended. Asked, like the setup reminders,
   // at every tick and re-decided at send time.
-  { due: accountsDueInactivity, handOff: nudgeInactive },
-  { due: draftsDueVetoReminder, handOff: remindVeto },
   { due: accountsDuePaymentFailed, handOff: noticePaymentFailed },
   { due: accountsDueCancellation, handOff: noticeCancellation },
   { due: accountsDueWinback, handOff: winBack },

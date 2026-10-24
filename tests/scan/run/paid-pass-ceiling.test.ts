@@ -40,11 +40,20 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { captureStages, fakeDb } from "./harness";
 import { measured, measuredZero, unmeasured } from "../../../src/lib/measure/measured";
-import { BATTERY as BATTERY_PINS, TIMING, VENDOR } from "../../../src/lib/config/constants";
+import { BATTERY as BATTERY_PINS, BUYER_SEARCHES, CAPS, TIMING, TYPING_RESERVE_C, VENDOR } from "../../../src/lib/config/constants";
+import type { CostContext } from "../../../src/lib/costs";
 import type { DomainMeasurement } from "../../../src/lib/measure";
 import type { StoredReport } from "../../../src/lib/scan/report";
 import type { AiAnswer } from "../../../src/lib/vendors/dataforseo/types";
 import { AT, ON_PAGE, PROFILE, ROBOTS, SERP, SELECTED, QUESTION } from "../report/fixtures";
+import { readFileSync } from "node:fs";
+import type { MarketConclusion } from "../../../src/lib/market/infer/types";
+import type { CanonicalDomain } from "../../../src/lib/scan/domain";
+import type { SerpResult } from "../../../src/lib/vendors/dataforseo/types";
+import { question, reportOf, search, SITE_ID } from "../../opportunities/fixtures";
+import { memoryStore, newMemoryState } from "../../opportunities/memory-store";
+import { toolUseMessage } from "../../llm/fixtures";
+import { rowOf, type StoredTopic } from "../../golden/plan/panel";
 
 // A module the weekly pass loads late, slowed to 300 ms of real time as a
 // loaded box slows a first load (issue 1566). A timed pass that loads it on
@@ -115,7 +124,28 @@ vi.mock("@/lib/scan/correction", () => ({
 
 vi.mock("@/lib/market/rivals/tracked", () => ({ trackedRivals: async () => null }));
 
+const anthropicCreate = vi.fn();
+vi.mock("@anthropic-ai/sdk", () => ({
+  default: class MockAnthropic {
+    messages = { create: (...a: unknown[]) => anthropicCreate(...a) };
+  },
+}));
+
 const { runScan } = await import("../../../src/lib/scan/run");
+const { withStoredPassSpend } = await import("../../../src/lib/scan/ceilings");
+const { deriveForPass } = await import("../../../src/lib/opportunities/pass");
+const { setOpportunityStore } = await import("../../../src/lib/opportunities/store");
+const { inferRivals } = await import("../../../src/lib/market/infer/infer");
+const { marketEvidence } = await import("../../../src/lib/scan/market-evidence");
+
+/** One site of a stored panel run, as far as this suite reads it. */
+interface PanelRun {
+  site: { domain: string };
+  market: MarketConclusion;
+  searches: string[];
+  prompts: { text: string }[];
+  topics?: { query: string; fit: number | null }[];
+}
 
 const CLAIMED_ID = "99999999-9999-4999-8999-999999999999";
 const DOMAIN = "example.com";
@@ -212,6 +242,8 @@ let stages: { lines: string[]; restore: () => void };
 
 beforeEach(() => {
   vi.clearAllMocks();
+  anthropicCreate.mockReset();
+  anthropicCreate.mockRejectedValue(new Error("no model in this suite"));
   db.reset();
   db.rows.set("scans", [{ id: CLAIMED_ID, fromIncompleteRescan: false }]);
   measureDomain.mockResolvedValue(MEASUREMENT);
@@ -232,7 +264,10 @@ beforeEach(() => {
   stages = captureStages();
 });
 
-afterEach(() => stages.restore());
+afterEach(() => {
+  stages.restore();
+  setOpportunityStore(null);
+});
 
 describe("a paid pass whose engine is slower than its ceiling (issue 902)", () => {
   it("stops waiting before its ceiling and ends `complete`, the slow engine's cells unmeasured (#1195)", async () => {
@@ -344,11 +379,11 @@ describe("the weekly pass at production's measured queue waits (issue 1160)", ()
   // one after another, a question cost more than the 240 s ceiling. Asked
   // together, it costs the slowest of the three.
   //
-  // Owner D19 final (issue 1162): the weekly pass asks the site's tracked
-  // buyer prompts on both engines twice, all at once beside the twelve, and
-  // the twelve keep their Google searches alone. A hundred asks cost the
-  // pass the same wait as one.
-  it("ends `complete` inside its ceiling, its tracked prompts asked twice on both engines and its rivals sized", async () => {
+  // Owner D19 final (issue 1162) and B2 (2026-10-19): the weekly pass asks
+  // the site's 23 unbranded prompts once and its 2 branded prompts twice on
+  // both engines, all at once beside the twelve, and the twelve keep their
+  // Google searches alone. Fifty-four asks cost the pass the same wait as one.
+  it("ends `complete` inside its ceiling, an unbranded prompt asked once and a branded one twice on both engines, and its rivals sized", async () => {
     db.rows.set("sites", [SITE_WITH_A_MARKET]);
     await loadedOnce({ domain: DOMAIN, siteId: "site-1160", tier: "weekly" });
     serpOrganic.mockImplementation(answersAfter(177, measured(SERP, AT)));
@@ -374,18 +409,25 @@ describe("the weekly pass at production's measured queue waits (issue 1160)", ()
       for (const row of rows) {
         expect(row.engines.map((engine) => engine.cell.kind)).toEqual(["answered", "unmeasured", "unmeasured"]);
       }
-      // The set was built from the market and stored with the site; every
-      // prompt was asked on two engines, twice, each run under its own key.
+      // The set was built from the market and stored with the site; each
+      // run of a prompt was asked under its own key.
       const stored = db.queries.find((q) => q.table === "sites" && q.verb === "update" && q.values?.tracked_prompts !== undefined);
-      expect((stored?.values?.tracked_prompts as { prompts: unknown[] }).prompts).toHaveLength(25);
+      const set = (stored?.values?.tracked_prompts as { prompts: { text: string; kind: string }[] }).prompts;
+      expect(set).toHaveLength(25);
       expect(report.prompts?.asked).toHaveLength(25);
-      expect(report.prompts?.asks).toBe(100);
-      expect(report.prompts?.answers).toHaveLength(100);
-      expect(llmScraper).toHaveBeenCalledTimes(50);
-      expect(aiMode).toHaveBeenCalledTimes(50);
-      const runs = (aiMode.mock.calls as unknown as [unknown, { run?: number }][]).map((call) => call[1].run);
-      expect(runs.filter((run) => run === 1)).toHaveLength(25);
-      expect(runs.filter((run) => run === 2)).toHaveLength(25);
+      expect(report.prompts?.asks).toBe(54);
+      expect(report.prompts?.answers).toHaveLength(54);
+      expect(llmScraper).toHaveBeenCalledTimes(27);
+      expect(aiMode).toHaveBeenCalledTimes(27);
+      const branded = new Set(set.filter((p) => p.kind === "branded").map((p) => p.text));
+      expect(branded.size).toBe(2);
+      for (const engine of [llmScraper, aiMode]) {
+        const asks = (engine.mock.calls as unknown as [unknown, { query: string; run?: number }][]).map((call) => call[1]);
+        expect(asks.filter((ask) => ask.run === 1)).toHaveLength(25);
+        // Only the two branded prompts get a second run.
+        expect(new Set(asks.filter((ask) => ask.run === 2).map((ask) => ask.query))).toEqual(branded);
+        expect(asks.filter((ask) => ask.run === 2)).toHaveLength(2);
+      }
       // ChatGPT cited the site in every answer; AI Mode cited a rival.
       const chatgpt = report.prompts?.answers.filter((answer) => answer.engine === "chatgpt") ?? [];
       expect(chatgpt.every((answer) => answer.linked)).toBe(true);
@@ -400,6 +442,170 @@ describe("the weekly pass at production's measured queue waits (issue 1160)", ()
   });
 });
 
+// Owner W1: a weekly pass whose searches alone would spend its whole cap
+// stops them short of the typing reserve, so the typing after the stored
+// report is still paid for, and the pass never spends past the cap.
+describe("a weekly pass whose measurement would spend its whole cap", () => {
+  it("stops its stages at the cap less the reserve and leaves the reserve for the typing", async () => {
+    // Each search is ledgered through the pass's own cost context; twelve would cost more than the cap.
+    const serpCents = 4;
+    serpOrganic.mockImplementation(async (c: CostContext, call: { keyword: string }) => {
+      const spent = await c.recordFetch({
+        source: "serpOrganic",
+        cacheKey: `serp:${call.keyword}`,
+        freshnessDays: 0,
+        costCents: serpCents,
+        run: async () => measured(SERP, AT),
+      });
+      return "skipped" in spent ? unmeasured<typeof SERP>("not_attempted", AT) : spent.payload;
+    });
+    // The close's roll-up is what the context after the stored report opens on.
+    db.answer = (query) => {
+      if (query.table !== "scans" || query.verb !== "select") return null;
+      const closed = db.queries.filter((q) => q.table === "scans" && q.verb === "update" && q.values?.cost_cents !== undefined).at(-1);
+      return [{ id: CLAIMED_ID, fromIncompleteRescan: false, cost_cents: closed?.values?.cost_cents ?? 0 }];
+    };
+
+    const typing: { openedAt?: number; capHit?: boolean } = {};
+    await runScan({
+      domain: DOMAIN,
+      siteId: "site-1719",
+      tier: "weekly",
+      afterReport: async ({ cost }) => {
+        typing.openedAt = cost.spentCents();
+        typing.capHit = cost.capHit();
+      },
+    });
+
+    expect(serpOrganic).toHaveBeenCalledTimes(BATTERY_PINS.QUESTIONS);
+    expect(typing.openedAt).toBeLessThanOrEqual(CAPS.WEEKLY_C - TYPING_RESERVE_C);
+    expect(typing.capHit).toBe(false);
+  });
+
+  const panel = (run: string): PanelRun[] => (JSON.parse(readFileSync(`docs/walk/panel/${run}.json`, "utf8")) as { sites: PanelRun[] }).sites;
+
+  /** A panel site's derivation after the stored report, from a context opened
+   *  at the line; `after` spends next on the same context, as the weekly pass does. */
+  async function deriveAtTheLine(a: {
+    site: PanelRun;
+    /** Whether the topics the run held carry last week's fit, as a usual week's do. */
+    heldJudged: boolean;
+    after?: (cost: CostContext, report: StoredReport, market: MarketConclusion) => Promise<void>;
+  }) {
+    const { site } = a;
+    const evidence: { source: string; cache_key: string; payload: SerpResult[] | null }[] = JSON.parse(
+      readFileSync(`scripts/panel/evidence/${site.site.domain}.json`, "utf8")
+    );
+    const serpOf = (keyword: string): SerpResult =>
+      evidence.find((row) => row.source === "serp/google/organic" && row.cache_key.split("|")[0] === keyword)?.payload?.[0] ??
+      { organic: [], aiOverview: { present: false, referenceDomains: [], asynchronousAiOverview: false } };
+    const fitOf = new Map((site.topics ?? []).map((topic) => [topic.query, topic.fit ?? 2]));
+    const serps = site.searches.map(serpOf);
+    // The run did not store its rival sizes; the top tens' domains are sized small, as a city's bakeries rank.
+    const rivalSizes = measured(
+      [...new Set(serps.flatMap((one) => one.organic.map((row) => row.domain)))].map((domain) => ({
+        domain,
+        state: "sized" as const,
+        rankedCount: 40,
+        countIs: "total" as const,
+        band: "near" as const,
+        at: AT,
+        current: true,
+      })),
+      AT
+    );
+    const report: StoredReport = {
+      ...reportOf(
+        {
+          questions: site.searches.map((keyword, n) =>
+            question({ id: `q${n}`, text: keyword, search: search({ keyword, volume: 50 + n }) })
+          ),
+          serps,
+        },
+        { rivalSizes }
+      ),
+      domain: site.site.domain as CanonicalDomain,
+    };
+    // What buyers were seen asking beside those searches is what the model writes back as their searches.
+    const phrased = [...new Set(serps.flatMap((one) => [...(one.peopleAlsoAsk ?? []), ...(one.relatedSearches ?? [])]))];
+    // The topics the run held stay open; unjudged, the fit judges them again beside this pass's.
+    const state = newMemoryState({
+      rows: (site.topics ?? []).map((topic, n) => ({ ...rowOf(site.site.domain, { ...topic, ready: false } as StoredTopic, n), site_id: SITE_ID, business_fit: a.heldJudged ? (topic.fit ?? 2) : null })),
+    });
+    setOpportunityStore({
+      ...memoryStore(state),
+      marketFor: async () => ({ market: site.market, competitors: [], prompts: site.prompts.map((p) => p.text), knowledge: null }),
+    });
+    // The model answers every call in the shape its site asks for, and reports the tokens it was sent.
+    anthropicCreate.mockImplementation(async (request: { tools?: { name: string }[]; messages: { content: string }[] }) => {
+      const name = request.tools?.[0]?.name ?? "";
+      const sent = request.messages[0]!.content;
+      const input = JSON.parse(sent) as { searches?: { i: number; search: string }[]; derivedType?: string; derivedSlug?: string; targetQuery?: string };
+      const searches = input.searches ?? [];
+      const answers: Record<string, [unknown, number]> = {
+        "topic-buyer-searches": [{ problems: phrased.slice(0, BUYER_SEARCHES.max), solutions: phrased.slice(BUYER_SEARCHES.max, 2 * BUYER_SEARCHES.max) }, 400],
+        "topic-typed": [{ typed: searches.map((entry) => entry.i) }, 80],
+        "topic-fit": [
+          { scores: searches.map((entry) => ({ i: entry.i, fit: fitOf.get(entry.search) ?? 2, title: entry.search })), strongest: [] },
+          40 * searches.length,
+        ],
+        "opportunity-typing": [{ type: input.derivedType, slug: input.derivedSlug, title: input.targetQuery }, 60],
+        "topic-same-question": [{ pairs: [] }, 20],
+        "rival-inference": [
+          { candidates: site.market.rivals.map((r) => ({ domain: r.domain, name: r.name, kind: "product", inMarket: true, basis: "ranks", closeness: "direct", reason: r.reason })) },
+          600,
+        ],
+      };
+      const [answer, tokensOut] = answers[name] ?? [{}, 10];
+      return toolUseMessage(answer, Math.ceil(sent.length / 4), tokensOut, name);
+    });
+
+    const refused = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const line = CAPS.WEEKLY_C - TYPING_RESERVE_C;
+    db.answer = (query) => (query.table === "scans" && query.verb === "select" ? [{ cost_cents: line, site_id: null }] : null);
+    const closed = await withStoredPassSpend({ scanId: CLAIMED_ID, cap: "WEEKLY" }, async (cost) => {
+      await deriveForPass(cost, { tier: "weekly", siteId: SITE_ID, report, hasActiveAccess: true });
+      await a.after?.(cost, report, site.market);
+      return cost.spentCents();
+    });
+    const warned = refused.mock.calls.map(([first]) => String(first));
+    refused.mockRestore();
+
+    const asked = new Map<string, string[]>();
+    for (const [first] of vi.mocked(console.log).mock.calls) {
+      const line = typeof first === "string" && first.startsWith("{") ? (JSON.parse(first) as { site?: string; parseOutcome?: string }) : {};
+      if (line.site !== undefined && line.parseOutcome !== undefined) asked.set(line.site, [...(asked.get(line.site) ?? []), line.parseOutcome]);
+    }
+    return { asked, warned, closed };
+  }
+
+  it("the derivation after the stored report, opened at the line, gets every call it makes and closes inside the cap", async () => {
+    // The panel run whose fit judgement cost the most: the German bakery, its own market, searches and SERPs.
+    const { asked, warned, closed } = await deriveAtTheLine({ site: panel("2026-10-10-1374")[0]!, heldJudged: false });
+    for (const site of ["topic-buyer-searches", "topic-typed", "topic-fit", "opportunity-typing"]) {
+      expect(asked.get(site)?.length ?? 0, site).toBeGreaterThan(0);
+      expect(asked.get(site)!.every((outcome) => outcome === "success"), site).toBe(true);
+    }
+    expect(warned.filter((line) => line.includes('"cap_hit"'))).toEqual([]);
+    expect(closed).toBeLessThanOrEqual(CAPS.WEEKLY_C);
+  });
+
+  // A usual full week: the measurement at the line, then this week's typing, then the rivals' one ask (ruling B5).
+  it.each(panel("2026-10-07").map((site) => [site.site.domain, site] as const))("%s: the rivals' re-check after a usual week's typing is asked, not refused, and the pass closes inside the cap", async (_, site) => {
+    const { asked, warned, closed } = await deriveAtTheLine({
+      site,
+      heldJudged: true,
+      after: async (cost, report, market) => {
+        const evidence = marketEvidence({ domain: report.domain, siteName: null, headline: null, pages: [], products: [], claims: [], report });
+        await inferRivals(cost, evidence, market, 10);
+      },
+    });
+    expect(asked.get("rival-inference")).toEqual(["success"]);
+    expect(warned.filter((line) => line.includes('"cap_hit"'))).toEqual([]);
+    expect(closed).toBeLessThanOrEqual(CAPS.WEEKLY_C);
+  });
+});
+
 describe("Measure again now asks the tracked prompts too (owner, 2026-10-03, issue 1162)", () => {
   it("a re-measure stores the full set's answers, each day its own sample; the onboarding pass asks none", async () => {
     db.rows.set("sites", [SITE_WITH_A_MARKET]);
@@ -408,13 +614,13 @@ describe("Measure again now asks the tracked prompts too (owner, 2026-10-03, iss
     const report = storedReport();
     expect(report.stoppedReason).toBe("complete");
     expect(report.prompts?.asked).toHaveLength(25);
-    expect(report.prompts?.answers).toHaveLength(100);
+    expect(report.prompts?.answers).toHaveLength(54);
     // The deep pass's own battery on the twelve, and the set beside it.
-    expect(llmScraper).toHaveBeenCalledTimes(BATTERY_PINS.QUESTIONS + 50);
+    expect(llmScraper).toHaveBeenCalledTimes(BATTERY_PINS.QUESTIONS + 27);
     const tracked = (aiMode.mock.calls as unknown as [unknown, { asOf?: string; mode: string }][])
       .map((call) => call[1])
       .filter((call) => call.asOf !== undefined);
-    expect(tracked).toHaveLength(50);
+    expect(tracked).toHaveLength(27);
     // The standard queue, as the weekly pass asks them, and keyed by day.
     expect(tracked.every((call) => call.mode === "std" && /^\d{4}-\d{2}-\d{2}$/.test(call.asOf ?? ""))).toBe(true);
 

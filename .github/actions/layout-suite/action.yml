@@ -4,9 +4,9 @@
 # setup: Node, `npm ci`, Chromium and the twelve fixture bindings, so the job
 # does not carry that list itself.
 #
-# It runs on `reachkit-box`, the self-hosted runner (#1013), which has
-# Playwright's system libraries installed and no sudo — so Chromium is
-# installed without `--with-deps`, into the runner user's own cache.
+# On a GitHub-hosted runner Chromium comes with its system libraries
+# (`--with-deps`). `reachkit-box` (#1013) has them installed and no sudo, so
+# there it is installed without, into the runner user's own cache.
 name: Set up the layout suite
 description: >-
   Node, dependencies, Chromium, the db substrate and the fixture
@@ -23,7 +23,7 @@ runs:
     - shell: bash
       run: npm ci
     - shell: bash
-      run: npx playwright install chromium
+      run: npx playwright install ${{ runner.environment == 'github-hosted' && '--with-deps' || '' }} chromium
     - uses: ./.github/actions/db-substrate
     - name: environment (src/lib/config/env.ts parses at build; the Supabase bindings are the substrate's, the rest are fixtures no vendor is reached with)
       shell: bash

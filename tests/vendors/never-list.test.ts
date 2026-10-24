@@ -16,6 +16,7 @@
 // and 5 below assert that shape rather than treating the flag as wholly
 // forbidden.
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { envelope, fakeCostContext, stubVendorFetch, taskCreated } from "./harness.ts";
 
 // A complete, validly-shaped set of the bindings `env.ts` requires
 // (BP-005, moved onto decision 6) — the same fixture shape
@@ -43,6 +44,7 @@ const ENV_FIXTURE: Record<string, string> = {
   HOSTED_EDGE_CNAME_TARGET: "content.example.com",
 };
 
+let constants: typeof import("../../src/lib/config/constants.ts");
 let dataforseo: typeof import("../../src/lib/vendors/dataforseo/index.ts");
 let transport: typeof import("../../src/lib/vendors/dataforseo/transport.ts");
 
@@ -50,18 +52,12 @@ beforeAll(async () => {
   for (const [key, value] of Object.entries(ENV_FIXTURE)) process.env[key] = value;
   dataforseo = await import("../../src/lib/vendors/dataforseo/index.ts");
   transport = await import("../../src/lib/vendors/dataforseo/transport.ts");
+  constants = await import("../../src/lib/config/constants.ts");
 });
 
 /**
- * The barrel's whole exported set.
- *
- * **Seven since 2026-09-22** (#1004). `llmMentions` is DataForSEO's LLM
- * Mentions, which the owner approved that day after reading the #920 pilot
- * — "buy DataForSEO LLM Mentions **weekly**, per site, as part of the
- * Monday pass". The list is closed against endpoints the owner has *not*
- * approved; widening it by exactly one named function, under a ruling, is
- * what approving an endpoint looks like here, and the assertion below is
- * still exact, so an eighth export still fails by construction.
+ * The barrel's whole exported set. LLM Mentions is not bought (SPEC §6
+ * decision of 2026-10-19), so it has no function here.
  */
 const APPROVED_EXPORTS = [
   "aiMode",
@@ -70,7 +66,6 @@ const APPROVED_EXPORTS = [
   // for the search volume of a market's terms.
   "keywordOverview",
   "keywordSuggestions",
-  "llmMentions",
   "llmScraper",
   // SPEC §6, owner D67 (2026-10-07, issue 1318): the vendor's free list of
   // cities, for a business that serves one place.
@@ -131,12 +126,12 @@ describe('BP-008 decision 1 — "a generic dataforseo(endpoint, params) with a r
   // signature that *did* admit one of these would make the directive
   // "unused" and fail typecheck on its own — see this file's header note.
   function _noSignatureAdmitsForbiddenArguments(): void {
-    // depth — SERP depth is fixed to 10 inside transport.ts, never a
-    // caller argument, on every one of the six functions.
+    // depth — a SERP is read in whole pages of ten up to a hundred, and no
+    // other function takes a depth at all.
     // @ts-expect-error — rankedKeywords admits no `depth`.
     void dataforseo.rankedKeywords(null as never, { domain: "x", rows: 50, depth: 20 });
-    // @ts-expect-error — serpOrganic admits no `depth`.
-    void dataforseo.serpOrganic(null as never, { query: "x", mode: "std", loadAsyncAiOverview: false, depth: 20 });
+    // @ts-expect-error — serpOrganic admits no depth past a hundred.
+    void dataforseo.serpOrganic(null as never, { query: "x", mode: "std", loadAsyncAiOverview: false, locale: { country: "US", language: "en" }, scope: { site: "s" }, freshnessDays: 7, depth: 700 });
 
     // search operators — a raw query-operator string (site:, intitle:, etc.)
     // has no dedicated parameter anywhere on the six functions; the only
@@ -159,20 +154,6 @@ describe('BP-008 decision 1 — "a generic dataforseo(endpoint, params) with a r
     void dataforseo.keywordSuggestions(null as never, { seed: "x", rows: 50, loadAsyncAiOverview: false });
     // @ts-expect-error — competitorsDomain admits no loadAsyncAiOverview.
     void dataforseo.competitorsDomain(null as never, { domain: "x", loadAsyncAiOverview: false });
-    // The seventh endpoint is held to every one of the same bars (#1004).
-    // @ts-expect-error — llmMentions admits no loadAsyncAiOverview.
-    void dataforseo.llmMentions(null as never, { domain: "x", mode: "live", scope: { site: "s" }, loadAsyncAiOverview: false });
-    // @ts-expect-error — llmMentions admits no `depth`.
-    void dataforseo.llmMentions(null as never, { domain: "x", mode: "live", scope: { site: "s" }, depth: 20 });
-    // @ts-expect-error — llmMentions admits no `operators`.
-    void dataforseo.llmMentions(null as never, { domain: "x", mode: "live", scope: { site: "s" }, operators: "site:" });
-    // @ts-expect-error — llmMentions admits no clickstream flag.
-    void dataforseo.llmMentions(null as never, { domain: "x", mode: "live", scope: { site: "s" }, clickstream: true });
-    // The standard queue has no `search_mentions` surface, so the mode
-    // admits only the one the vendor serves — a caller cannot ask for a
-    // surface that does not exist.
-    // @ts-expect-error — llmMentions admits no "std" mode.
-    void dataforseo.llmMentions(null as never, { domain: "x", mode: "std", scope: { site: "s" } });
   }
   void _noSignatureAdmitsForbiddenArguments;
 
@@ -207,12 +188,6 @@ describe('BP-008 decision 1 — "a generic dataforseo(endpoint, params) with a r
     void dataforseo.llmScraper(null as never, { query: "x" });
   }
   void _llmScraperRequiresMode;
-
-  function _llmMentionsRequiresMode(): void {
-    // @ts-expect-error — mode omitted.
-    void dataforseo.llmMentions(null as never, { domain: "x", scope: { site: "s" } });
-  }
-  void _llmMentionsRequiresMode;
 }
 
 describe("every call is made in the site's own country and language, from a closed list, at depth 10 (SPEC §6, D66)", () => {
@@ -254,39 +229,109 @@ describe("every call is made in the site's own country and language, from a clos
     expect(new Set([US, DE, GB, { country: "AT", language: "de" } as const].map(transport.localeCacheKey)).size).toBe(4);
   });
 
-  // #1004. LLM Mentions declares neither locale field, and DataForSEO
-  // answers a field an endpoint does not declare with `40501 Invalid
-  // Field` and no rows — the identical refusal the #920 pilot drew for a
-  // string `search_scope` (#1003), which cost that run its whole batch.
-  // So the one family that must carry neither is asserted to carry
-  // neither, and the caller still cannot set them: a task that arrived
-  // with both is stripped of both.
-  it("the LLM Mentions path carries no location_name and no language_code — the vendor rejects a field it does not declare", () => {
+  // On-Page declares neither locale field, and the vendor answers a field
+  // an endpoint does not declare with `40501 Invalid Field` and no rows.
+  it("the On-Page path carries no location_name, no language_code and no depth, whatever the caller sends", () => {
     const req = transport.buildRequest({
-      path: "/v3/ai_optimization/llm_mentions/search_mentions/live",
+      path: "/v3/on_page/instant_pages",
       mode: "live",
       locale: null,
-      fields: { target: [{ domain: "example.com" }], limit: 100 },
+      fields: { url: "https://example.com/", location_name: "Nowhere", language_code: "zz", depth: 20 },
     });
     const task = JSON.parse(req.body)[0];
     expect(task).not.toHaveProperty("location_name");
     expect(task).not.toHaveProperty("language_code");
     expect(task).not.toHaveProperty("depth");
-    // And the fields the endpoint *does* declare travel untouched.
-    expect(task.limit).toBe(100);
+    expect(task.url).toBe("https://example.com/");
   });
 
-  it("a caller cannot put a locale back on that path either", () => {
-    const req = transport.buildRequest({
-      path: "/v3/ai_optimization/llm_mentions/search_mentions/live",
-      mode: "live",
-      locale: null,
-      fields: { location_name: "Nowhere", language_code: "zz" },
-    });
-    const task = JSON.parse(req.body)[0];
-    expect(task).not.toHaveProperty("location_name");
-    expect(task).not.toHaveProperty("language_code");
+  it("an LLM Mentions path is refused before anything is sent, in a locale that is on the list: it is not bought", () => {
+    expect(() =>
+      transport.buildRequest({
+        path: "/v3/ai_optimization/llm_mentions/search_mentions/live",
+        mode: "live",
+        locale: US,
+        fields: { target: [{ domain: "example.com" }] },
+      })
+    ).toThrow(/not a path this package buys/);
   });
+});
+
+describe("the transport sends only the paths the endpoint modules use (BUILD §6.4's never-list)", () => {
+  const US = { country: "US", language: "en" } as const;
+
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+  });
+
+  it.each([
+    "/v3/dataforseo_labs/google/historical_rank_overview/live",
+    "/v3/dataforseo_labs/google/historical_serps/live",
+    "/v3/dataforseo_labs/google/historical_keyword_data/live",
+    "/v3/ai_optimization/ai_keyword_data/keywords_search_volume/live",
+    "/v3/ai_optimization/ai_keyword_data/available_filters",
+    "/v3/serp/bing/organic/live/advanced",
+  ])("POST %s is refused before anything is sent, in a locale on the list", async (path) => {
+    const stub = stubVendorFetch(() => envelope({ items: [] }));
+    expect(() => transport.buildRequest({ path, mode: "live", locale: US, fields: {} })).toThrow(/not a path this package buys/);
+    await expect(transport.sendRequest({ path, mode: "live", locale: US, fields: {} })).rejects.toThrow(/not a path this package buys/);
+    expect(stub.requests).toEqual([]);
+  });
+
+  it.each([
+    "/v3/dataforseo_labs/google/historical_serps/task_get/advanced/task-id-fixture",
+    "/v3/serp/bing/organic/task_get/advanced/task-id-fixture",
+    "/v3/ai_optimization/ai_keyword_data/available_filters",
+    "/v3/serp/google/locations/us/extra",
+  ])("GET %s is refused before anything is sent", async (path) => {
+    const stub = stubVendorFetch(() => envelope({ items: [] }));
+    await expect(transport.sendGet(path)).rejects.toThrow(/not a path this package reads/);
+    expect(stub.requests).toEqual([]);
+  });
+
+  /** Every request an export makes, answered as the vendor does: a queued post is created, everything else answers. */
+  const answering = () =>
+    stubVendorFetch((request) => (request.url.endsWith("/task_post") ? taskCreated() : envelope(request.url.includes("/locations/") ? undefined : { items: [] })));
+  const urls = (stub: { requests: { method: string; url: string }[] }) => stub.requests.map((r) => `${r.method} ${r.url.replace("https://api.dataforseo.com", "")}`);
+  const SCOPE = { site: "site-1" } as const;
+  const soon = () => Date.now() + 20;
+
+  const CASES: Record<(typeof APPROVED_EXPORTS)[number], { run: () => Promise<unknown>; sent: string[] }[]> = {
+    rankedKeywords: [{ run: () => dataforseo.rankedKeywords(fakeCostContext().ctx, { domain: "example.com", rows: constants.PRICE_BOOK.RANKED_FREE_ROWS, locale: US }), sent: ["POST /v3/dataforseo_labs/google/ranked_keywords/live"] }],
+    keywordSuggestions: [{ run: () => dataforseo.keywordSuggestions(fakeCostContext().ctx, { seed: "crm", rows: constants.VENDOR.suggestionsRows, volume: { min: 0, max: 1000, maxDifficulty: 50 }, locale: US }), sent: ["POST /v3/dataforseo_labs/google/keyword_suggestions/live"] }],
+    keywordOverview: [{ run: () => dataforseo.keywordOverview(fakeCostContext().ctx, { keywords: ["crm"], locale: US }), sent: ["POST /v3/dataforseo_labs/google/keyword_overview/live"] }],
+    competitorsDomain: [{ run: () => dataforseo.competitorsDomain(fakeCostContext().ctx, { domain: "example.com", locale: US }), sent: ["POST /v3/dataforseo_labs/google/competitors_domain/live"] }],
+    serpOrganic: [
+      { run: () => dataforseo.serpOrganic(fakeCostContext().ctx, { query: "crm", mode: "live", loadAsyncAiOverview: false, locale: US, scope: SCOPE, freshnessDays: 7 }), sent: ["POST /v3/serp/google/organic/live/advanced"] },
+      {
+        run: () => dataforseo.serpOrganic(fakeCostContext().ctx, { query: "crm", mode: "std", loadAsyncAiOverview: false, locale: US, scope: SCOPE, freshnessDays: 7, pollMs: 0 }),
+        sent: ["POST /v3/serp/google/organic/task_post", "GET /v3/serp/google/organic/task_get/advanced/task-id-fixture"],
+      },
+    ],
+    aiMode: [
+      { run: () => dataforseo.aiMode(fakeCostContext().ctx, { query: "crm", mode: "live", locale: US, scope: SCOPE }), sent: ["POST /v3/serp/google/ai_mode/live/advanced"] },
+      { run: () => dataforseo.aiMode(fakeCostContext().ctx, { query: "crm", mode: "std", locale: US, scope: SCOPE, untilMs: soon() }), sent: ["POST /v3/serp/google/ai_mode/task_post", "GET /v3/serp/google/ai_mode/task_get/advanced/task-id-fixture"] },
+    ],
+    llmScraper: [
+      {
+        run: () => dataforseo.llmScraper(fakeCostContext().ctx, { query: "crm", mode: "std", locale: US, scope: SCOPE, untilMs: soon() }),
+        sent: ["POST /v3/ai_optimization/chat_gpt/llm_scraper/task_post", "GET /v3/ai_optimization/chat_gpt/llm_scraper/task_get/advanced/task-id-fixture"],
+      },
+    ],
+    serpNews: [{ run: () => dataforseo.serpNews(fakeCostContext().ctx, { query: "crm", locale: US, scope: SCOPE, freshnessDays: 1 }), sent: ["POST /v3/serp/google/news/live/advanced"] }],
+    renderedPage: [{ run: () => dataforseo.renderedPage(fakeCostContext().ctx, { url: "https://example.com/", freshnessDays: 7 }), sent: ["POST /v3/on_page/instant_pages", "POST /v3/on_page/raw_html"] }],
+    placeLocation: [{ run: () => dataforseo.placeLocation({ place: { name: "Austin" }, country: "US" }), sent: ["GET /v3/serp/google/locations/us"] }],
+  };
+
+  it.each(Object.entries(CASES).flatMap(([name, cases]) => cases.map((c, i) => [`${name} #${i + 1}`, c] as const)))(
+    "%s still sends its path",
+    async (_name, c) => {
+      const stub = answering();
+      await c.run();
+      expect(urls(stub)).toEqual(c.sent);
+    }
+  );
 });
 
 describe('BP-008 error behaviour — "Credentials come from BP-005\'s env and never appear in a log, a payload or an error message" (WO-023 test-plan row 4)', () => {
@@ -379,5 +424,31 @@ describe('BP-008 error behaviour — "Credentials come from BP-005\'s env and ne
     const outcome = await transport.sendRequest<typeof body>({ locale: { country: "US", language: "en" }, path: "/v3/serp/google/organic/live/advanced", mode: "live" });
     expect(outcome).toEqual({ ok: true, payload: body });
     assertNoSecretIn(outcome);
+  });
+});
+
+describe("the account balance is a free read, outside every cap", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("reads the recorded user_data answer with one GET, no cost context and no ledger row, priced 0", async () => {
+    const { readFileSync } = await import("node:fs");
+    const { readAccount } = await import("../../src/lib/vendors/dataforseo/account.ts");
+    const { PRICE_BOOK } = await import("../../src/lib/config/constants.ts");
+    const recorded = JSON.parse(readFileSync(new URL("./fixtures/user-data.json", import.meta.url), "utf8")) as unknown;
+    const urls: string[] = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string) => {
+        urls.push(url);
+        return { ok: true, status: 200, statusText: "OK", json: async () => recorded };
+      })
+    );
+
+    await expect(readAccount()).resolves.toEqual({ balanceCents: 2443, depositedCents: 10100 });
+    // A ledger write or a cap check would be a second request here.
+    expect(urls).toEqual(["https://api.dataforseo.com/v3/appendix/user_data"]);
+    expect(PRICE_BOOK.USER_DATA_C).toBe(0);
   });
 });

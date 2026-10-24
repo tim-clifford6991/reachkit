@@ -5,13 +5,10 @@
 // always pointed at — so nothing in the product has to learn a new link for
 // the screen to become seven (`./tabs.ts`).
 //
-// **What stands here.** #925 put "Your content" on this tab — the pages
-// ReachKit wrote, the posts on the WordPress, the pages on the main site,
-// which is what the redesign's Business artboard ends with. #926 adds what
-// it *begins* with: the business profile the site read writes, every item
-// correctable, the facts we may quote, and the closed list of what a page is
-// written from. The profile stands above Your content, because it is what
-// the tab is named for.
+// **What stands here.** The business profile the site read writes, every
+// item correctable, the facts we may quote, what the writer already knows
+// about, and the closed list of what a page is written from. Export
+// everything moved to Account, where board SettingsAccount draws it.
 //
 // Two columns above the large breakpoint and one below it: the profile and
 // its facts are the reading, and *What every page is written from* is the
@@ -34,7 +31,6 @@ import { copy } from "@/lib/presentation/copy";
 import { profileIsEmpty } from "@/lib/site-profile/business/confirm";
 import { readSettings } from "./provider";
 import { readBusiness } from "./business-provider";
-import { ContentPanel } from "./panels/ContentPanel";
 import { BusinessPanel } from "./panels/BusinessPanel";
 import { FactsPanel } from "./panels/FactsPanel";
 import { KnowledgePanel } from "./panels/KnowledgePanel";
@@ -80,7 +76,6 @@ export default async function SettingsBusinessTab(): Promise<React.JSX.Element> 
             question a customer has about a page: where did this come from,
             and what was it checked against. */}
         <KnownContentPanel known={business.known} />
-        <ContentPanel settings={settings} />
       </div>
 
       <WrittenFromPanel

@@ -16,7 +16,6 @@ const { llmMock, pickMock, queueForDraftMock, publications } = vi.hoisted(() => 
 vi.mock("@/lib/llm", () => ({ llm: llmMock }));
 vi.mock("@/lib/opportunities", () => ({
   pageForDay: (siteId: string, date: string, now?: Date) => pickMock(siteId, date, now),
-  takeSpare: (siteId: string) => pickMock(siteId),
   queueForDraft: queueForDraftMock,
   restTopic: async () => undefined,
   updateInstead: async () => null,
@@ -85,6 +84,34 @@ describe("a live page mended through the refresh path", () => {
     expect(mended?.cost_cents).toBe(0);
     expect(store.rows.get(B.draftId)!.body_md).toBe(B.markdown);
     expect(queueForDraftMock).toHaveBeenCalledWith(REFRESH.id);
+  });
+
+  it("a page stopped while it was written saves no draft, and the day takes the week's next spare", async () => {
+    const { generateDayPage, PageStopped } = await import("../../src/lib/generate");
+    const spare = { ...REFRESH, id: "55555555-5555-4555-8555-555555555555" };
+    pickMock.mockResolvedValueOnce(REFRESH).mockResolvedValueOnce(spare);
+    const insert = store.insertDraft.bind(store);
+    store.insertDraft = async (row) => {
+      if (row.opportunity_id === REFRESH.id) throw new PageStopped(REFRESH.id);
+      return insert(row);
+    };
+    const outcome = await generateDayPage({ siteId: SITE_ID, publishDate: "2026-11-10" });
+    expect(outcome.ok).toBe(true);
+    const saved = [...store.rows.values()].filter((row) => row.id !== B.draftId);
+    expect(saved.map((row) => [row.opportunity_id, row.scheduled_for])).toEqual([[spare.id, "2026-11-10"]]);
+    expect(queueForDraftMock).toHaveBeenCalledWith(spare.id);
+    expect(queueForDraftMock).not.toHaveBeenCalledWith(REFRESH.id);
+  });
+
+  it("a page stopped while it was written, with no spare left, leaves the day without a page", async () => {
+    const { generateDayPage, PageStopped } = await import("../../src/lib/generate");
+    pickMock.mockResolvedValueOnce(REFRESH).mockResolvedValueOnce(null);
+    store.insertDraft = async () => {
+      throw new PageStopped(REFRESH.id);
+    };
+    expect(await generateDayPage({ siteId: SITE_ID, publishDate: "2026-11-10" })).toEqual({ ok: false, because: "no_opportunity" });
+    expect([...store.rows.keys()]).toEqual([B.draftId]);
+    expect(queueForDraftMock).not.toHaveBeenCalled();
   });
 
   it("keeps the version's published and updated dates, so dateModified and lastmod stay", async () => {

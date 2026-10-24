@@ -7,7 +7,7 @@ import { WEEK_PLAN } from "../../src/lib/config/constants";
 import type { Profile } from "../../src/lib/market/questions/profile";
 import { measured } from "../../src/lib/measure/measured";
 import { deriveForPass } from "../../src/lib/opportunities/pass";
-import { pageForDay, planWeek } from "../../src/lib/opportunities/plan";
+import { committedWeek, pageForDay, planFirstWeek, planWeek } from "../../src/lib/opportunities/plan";
 import { restTopic } from "../../src/lib/opportunities/drafted";
 import { setOpportunityStore } from "../../src/lib/opportunities/store";
 import { fakeCost } from "./cost";
@@ -71,6 +71,22 @@ describe("the weekly pass ends with one commit", () => {
     expect(new Set(stored.map((row) => row.id)).size).toBe(WEEK_PLAN.days + WEEK_PLAN.spares);
   });
 
+  it("each committed row stores why it was placed, its points the sum of its parts, and the day's page carries it", async () => {
+    await weeklyPass();
+    const entries = await planWeek(SITE_ID, { now: AT });
+    for (const entry of entries) {
+      const stored = state.rows.find((row) => row.id === entry.opportunityId)!.plan_reason!;
+      expect(stored).toEqual(entry.reason);
+      expect(stored.parts.length).toBeGreaterThan(0);
+      expect(stored.points).toBe(stored.parts.reduce((sum, part) => sum + part.n, 0));
+      expect(stored.rule).not.toBeNull();
+    }
+    expect((await pageForDay(SITE_ID, DAY(0), AT))?.planReason).toEqual(entries[0]!.reason);
+    // A row a later commit leaves out keeps no reason.
+    await planWeek(SITE_ID, { now: AT, from: DAY(7) });
+    expect(state.rows.filter((row) => row.plan_place == null && row.plan_reason != null)).toEqual([]);
+  });
+
   it("a new commit replaces the last one", async () => {
     await weeklyPass();
     await planWeek(SITE_ID, { now: AT });
@@ -101,6 +117,20 @@ describe("the daily job takes its slot", () => {
     expect(spares).toContain(day3?.id);
   });
 
+  it("the spare is the next one in committed order, not the one a ranking would put first", async () => {
+    await weeklyPass();
+    const entries = await planWeek(SITE_ID, { now: AT });
+    const [best, , last] = entries.slice(WEEK_PLAN.days).map((entry) => state.rows.find((row) => row.id === entry.opportunityId)!);
+    // The commit is reordered under the ranking: the lowest spare now comes first.
+    [best!.plan_place, last!.plan_place] = [last!.plan_place, best!.plan_place];
+    await restTopic(entries[2]!.opportunityId, AT);
+    expect((await pageForDay(SITE_ID, DAY(2), AT))?.id).toBe(last!.id);
+
+    // A spare that cannot be written is passed over for the one after it.
+    await restTopic(last!.id, AT);
+    expect((await pageForDay(SITE_ID, DAY(2), AT))?.id).toBe(entries[WEEK_PLAN.days + 1]!.opportunityId);
+  });
+
   it("nothing is re-ranked: a better topic found mid-week waits for the next commit", async () => {
     await weeklyPass();
     const entries = await planWeek(SITE_ID, { now: AT });
@@ -126,6 +156,58 @@ describe("the daily job takes its slot", () => {
     expect((await pageForDay(SITE_ID, DAY(1), AT))?.id).toBe(committed[1]![0]);
     expect(state.rows.filter((row) => row.planned_for != null).map((row) => [row.id, row.planned_for])).toEqual(committed);
     expect(state.rows).toHaveLength(before);
+  });
+});
+
+describe("setup commits a new site's first week", () => {
+  it("a site with no commit gets seven days and three spares", async () => {
+    await weeklyPass();
+    const entries = await planFirstWeek(SITE_ID, AT);
+    expect(entries.map((entry) => entry.plannedFor)).toEqual([...[0, 1, 2, 3, 4, 5, 6].map(DAY), null, null, null]);
+    expect((await committedWeek(SITE_ID)).days).toHaveLength(WEEK_PLAN.days);
+  });
+
+  it("the week the first draft committed from its own date is kept, and the evening reads it", async () => {
+    await weeklyPass();
+    const first = await pageForDay(SITE_ID, DAY(1), AT);
+    const committed = state.rows.map((row) => [row.id, row.plan_place, row.planned_for]);
+
+    expect(await planFirstWeek(SITE_ID, AT)).toEqual([]);
+    expect(state.rows.map((row) => [row.id, row.plan_place, row.planned_for])).toEqual(committed);
+    expect((await pageForDay(SITE_ID, DAY(1), AT))?.id).toBe(first?.id);
+  });
+});
+
+describe("committedWeek is the one statement of the week", () => {
+  it("absent a week it is the whole commit: the dated days by date, then the spares by place", async () => {
+    await weeklyPass();
+    const entries = await planWeek(SITE_ID, { now: AT });
+    const week = await committedWeek(SITE_ID);
+    expect(week.days.map((day) => [day.date, day.opportunity.id])).toEqual(
+      entries.slice(0, WEEK_PLAN.days).map((entry) => [entry.plannedFor, entry.opportunityId])
+    );
+    expect(week.spares.map((spare) => spare.id)).toEqual(entries.slice(WEEK_PLAN.days).map((entry) => entry.opportunityId));
+  });
+
+  it("a week keeps the days from its Monday to the Sunday after, and the spares", async () => {
+    await weeklyPass();
+    // AT is a Saturday; a commit made on the Thursday after runs into the next week.
+    await planWeek(SITE_ID, { now: AT, from: DAY(5) });
+    const monday = DAY(2);
+    expect(new Date(`${monday}T00:00:00Z`).getUTCDay()).toBe(1);
+    const week = await committedWeek(SITE_ID, monday);
+    expect(week.days.map((day) => day.date)).toEqual([5, 6, 7, 8].map(DAY));
+    expect(week.spares).toHaveLength(WEEK_PLAN.spares);
+    expect((await committedWeek(SITE_ID, DAY(9))).days.map((day) => day.date)).toEqual([9, 10, 11].map(DAY));
+  });
+
+  it("a row the commit marked as a Q&A reads as one", async () => {
+    await weeklyPass();
+    const entries = await planWeek(SITE_ID, { now: AT });
+    state.rows.find((row) => row.id === entries[0]!.opportunityId)!.plan_write_as = "qa";
+    const [first] = (await committedWeek(SITE_ID)).days;
+    expect(first?.opportunity.writeAs).toBe("qa");
+    expect((await pageForDay(SITE_ID, DAY(0), AT))?.writeAs).toBe("qa");
   });
 });
 

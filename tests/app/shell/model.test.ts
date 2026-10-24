@@ -41,6 +41,7 @@ const BASE: ShellFacts = {
   stopped: null,
   noPublishCauses: {
     reachkit_stopped: false,
+    address_waiting: false,
     publishing_paused: false,
     not_written: false,
     nothing_planned: false,
@@ -104,6 +105,7 @@ describe("REQ-040 c4 — no publish scheduled carries exactly one resolved reaso
         next: null,
         noPublishCauses: {
           reachkit_stopped: true,
+          address_waiting: true,
           publishing_paused: true,
           not_written: true,
           nothing_planned: true,

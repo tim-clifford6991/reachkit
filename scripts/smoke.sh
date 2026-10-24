@@ -6,8 +6,8 @@
 #   scripts/smoke.sh [domain]
 #   SMOKE_BASE_URL=https://reachkit.app scripts/smoke.sh example.com
 #
-# It walks the chain a stranger walks — landing → scan → report → gallery
-# card — against a
+# It walks the chain a stranger walks — landing → every old address → scan →
+# report → gallery card — against a
 # live deployment, and exits non-zero on the first step that does not hold,
 # naming it. Nothing else in CI walks that chain: the five required checks
 # prove the code compiles and renders, and a deployment is marked READY on
@@ -132,6 +132,14 @@ fields=$(grep -o 'name="value"' "$body" | wc -l)
 [ "$fields" -ge 1 ] || fail "$step" "GET / carries no domain field (name=\"value\")"
 grep -q 'type="submit"' "$body" || fail "$step" "GET / carries no submit control"
 ok "$step" "200 · the one field and its CTA"
+
+# ── 1a. old-paths ────────────────────────────────────────────────────────
+# Every address ReachKit ever published still answers 200, its 301 or 410: a
+# ranked page that turns 404 loses its place. Plain GETs, so no scan and no spend.
+step=old-paths
+paths_out=$(node "$REPO/scripts/old-paths.mjs" "$BASE_URL" 2>&1) \
+  || fail "$step" "$(grep -m1 '^FAIL' <<<"$paths_out" || tail -1 <<<"$paths_out")"
+ok "$step" "$(tail -1 <<<"$paths_out")"
 
 # ── 1b. hosted ───────────────────────────────────────────────────────────
 # SPEC §7 (2026-10-18, issue 1514, B6): a customer's cached article answers

@@ -82,13 +82,29 @@ describe("the Monday tick judges the week it measured", () => {
     });
     opportunities.notWorking = [{ week: WEEK, clusterKey: "onboarding", family: "write", targetRef: "onboarding-checklist" }];
     await tick();
-    expect(opportunities.rows[0]!.unready_reason).toBe("cluster_suppressed");
+    expect(opportunities.rows[0]!.unready_reason).toBe("resting");
   });
 
   it("**a failed pass judges nothing** — there is no report to judge against", async () => {
     weekly.outcome = { ran: true, scanId: "scan-1", status: "failed" };
     await tick();
     expect(store.inserted).toEqual([]);
+  });
+
+  it("a week the vendor refused for credit ends degraded with vendor_funds, and judges, plans and tells nothing", async () => {
+    opportunities.rows.push({
+      id: "write-1", site_id: SITE_ID, scan_id: "scan-1", type: "answer_page", family: "write",
+      target_query: "user onboarding software", target_ref: "onboarding-faq", proposed_slug: "onboarding-faq", title: null, volume: 500,
+      evidence: { family: "write" }, acceptance: { form: "top20", query: "user onboarding software" },
+      fit_band: "winnable", effort: 0.3, status: "open", cluster_key: "onboarding", absorbed_queries: [],
+      ready: false, unready_reason: "not_assessed", created_at: NOW.toISOString(),
+    });
+    const before = structuredClone(opportunities.rows);
+    weekly.outcome = { ran: true, scanId: "scan-1", status: "failed", because: "vendor_funds" };
+    expect(await tick()).toEqual({ degraded: "vendor_funds" });
+    expect(store.inserted).toEqual([]);
+    expect(opportunities.rows).toEqual(before);
+    expect(digest.read).toEqual([]);
   });
 
   it("**a re-delivered tick writes no second verdict** — the key is (publication, week)", async () => {

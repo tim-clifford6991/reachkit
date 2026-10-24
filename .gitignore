@@ -8,6 +8,7 @@ coverage/
 # Local page packs and mail samples. A run's output, never a commit.
 .review/
 tsconfig.tsbuildinfo
+.eslintcache
 next-env.d.ts
 .vercel
 .env*

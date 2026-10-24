@@ -1,0 +1,40 @@
+harborplumbing.com	sample data
+emergency plumber austin	sample data
+austinpipeworks.example, then a national plumbing chain’s page	sample data
+help.harborplumbing.com/emergency-plumber-austin	sample data
+Harbor Plumbing · Austin	sample data
+2. Turn off the water heater	sample data
+6:10 AM	sample data
+6:15 AM	sample data
+Monday 26 October	sample data
+Emergency plumber in Austin: what to do in the first hour	sample data
+Ready New page Written Monday 19 October, 6:10 AM · about 1,400 words	sample data
+Your core service, and AI answers link to a competitor’s service page for it.	sample data
+about 1,300 in the US	sample data
+Preview, as it will look on your site. Goes live today, 4:00 PM.	sample data
+If water is spreading, shut off the main valve first. In most Austin homes it sits where the water line enters the house, often in the garage or near the front hose bib. Turn it clockwise until it stops.	sample data
+1. Stop the water	sample data
+If you can’t find the house valve, the city meter box at the curb has one too. You need a meter key for it, which most hardware stores sell.	sample data
+With the supply off, a gas heater should go to “pilot” and an electric one should be switched off at the breaker, so it doesn’t heat an empty tank.	sample data
+3. Call, and say what you see	sample data
+Tell the plumber where the water is coming from and whether it has reached outlets or the ceiling. Harbor Plumbing answers emergency calls in Austin around the clock.	sample data
+4. While you wait	sample data
+Move rugs and boxes away from the water, and take photos for your insurer before anything is moved.	sample data
+Harbor Plumbing https://help.harborplumbing.com › emergency-plumber-austin Emergency plumber in Austin: what to do in the first hour Water spreading? Shut off the main valve, turn off the water heater, then call. What to do in the first hour, from an Austin plumber.	sample data
+Goes live Today, 4:00 PM Nothing is needed from you.	sample data
+today, 4:00 PM	sample data
+Checks: 14 of 14 passed all passed	E10: the check count comes from code (docs/spec/decisions/2026-10-19-1581.md)
+and 9 more	E10: the check count comes from code (docs/spec/decisions/2026-10-19-1581.md)
+After Edit this page is pressed	#1110: the board's own caption over the edit arm, not a string of the screen
+Editing	#1110: the board's own caption over the edit arm, not a string of the screen
+Saved 9:42 AM	sample data
+Water spreading? Shut off the main valve, turn off the water heater, then call. What to do in the first hour, from an Austin plumber.	sample data
+138 characters	sample data
+# Emergency plumber in Austin: what to do in the first hour If water is spreading, shut off the main valve first. In most Austin homes it sits where the water line enters the house, often in the garage or near the front hose bib. ## 1. Stop the water If you can’t find the house valve, the city meter box at the curb has one too.	sample data: the board's Markdown, which the editor draws in CodeMirror
+Your edit breaks one of the page rules, so this page won’t publish until the text passes them. Your words are saved.	#789: the edit arm, drawn only while the edit breaks a rule; tests/app/draft/view.test.tsx renders it
+Theme: light	#1744: the app shell's theme control, which that issue changes for every /app board
+Back to the page	#1748: the edit arm, behind Edit this page, which the route reading never presses; tests/app/draft/board.test.tsx reads it
+Description in search results	#1748: the edit arm, behind Edit this page, which the route reading never presses; tests/app/draft/board.test.tsx reads it
+Search result	#1748: the edit arm, behind Edit this page, which the route reading never presses; tests/app/draft/board.test.tsx reads it
+Done editing	#1748: the edit arm, behind Edit this page, which the route reading never presses; tests/app/draft/board.test.tsx reads it
+Discard changes	#1748: the edit arm, behind Edit this page, which the route reading never presses; tests/app/draft/board.test.tsx reads it

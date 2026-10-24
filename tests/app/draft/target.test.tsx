@@ -1,19 +1,13 @@
 /** @vitest-environment jsdom */
-// tests/app/draft/target.test.tsx — SPEC §4, §6, §7 (issue 867)
+// tests/app/draft/target.test.tsx — SPEC §7, board `AppDraft`
 //
-// "What this page is for", through the real chain: the `drafts` row, the
-// account's own `readDraftRow`, the engine's `explainChoice` over the real
-// opportunity store, `assembleDraft`, and the screen rendered.
+// *Why this page* and the page's day, through the real chain: the `drafts`
+// row, the account's own `readDraftRow`, the engine's `explainChoice` over
+// the real opportunity store, `assembleDraft`, and the screen rendered.
 //
-// The owner, 2026-09-17: "I don't believe we are currently showing the users
-// the SEO or GEO metrics their content is currently optimizing for." Nothing
-// on this screen said what the page was for at all, so every case here fails
-// on main.
-//
-// **Only measured facts.** A search the vendor gave no difficulty for
-// renders the dash and its written line, never a 0 — and a `fix_page` draft,
-// which has no market target at all, renders its own arm rather than a block
-// of blanks.
+// **Only stored facts.** A search nobody measured is its written line, never
+// a 0; a `fix_page` draft has no search and says so; a mail that never left
+// is not a step of the page's day.
 // The bindings `env` parses at module load, applied as a side effect before
 // any module under test is evaluated (`tests/generate/env.ts` states why a
 // call here would be too late: ESM hoists every import above it).
@@ -62,7 +56,7 @@ vi.mock("@/lib/db", () => {
 import { copy } from "@/lib/presentation/copy";
 import { measured, unmeasured } from "@/lib/measure/measured";
 import { setOpportunityStore } from "@/lib/opportunities/store";
-import type { Evidence, TargetFacts } from "@/lib/opportunities/types";
+import type { Evidence, PlanReason, TargetFacts } from "@/lib/opportunities/types";
 import { readDraftRow } from "@/app/(account)/app/draft/[draftId]/store";
 import { assembleDraft } from "@/app/(account)/app/draft/[draftId]/model";
 import { DraftScreen } from "@/app/(account)/app/draft/[draftId]/DraftScreen";
@@ -98,7 +92,14 @@ function writeEvidence(target?: TargetFacts): Evidence {
 
 /** One opportunity in the engine's own store, and one draft written from
  *  it. Everything between them is the product's. */
-function seed(a: { evidence: Evidence; type?: string; fitBand?: string | null; opportunityId?: string | null }): void {
+function seed(a: {
+  evidence: Evidence;
+  type?: string;
+  fitBand?: string | null;
+  opportunityId?: string | null;
+  planReason?: PlanReason;
+  told?: unknown;
+}): void {
   const state = newMemoryState({
     rows: [
       {
@@ -121,6 +122,7 @@ function seed(a: { evidence: Evidence; type?: string; fitBand?: string | null; o
         absorbed_queries: [],
         ready: true,
         unready_reason: null,
+        plan_reason: a.planReason ?? null,
         created_at: AT.toISOString(),
       },
     ],
@@ -141,6 +143,7 @@ function seed(a: { evidence: Evidence; type?: string; fitBand?: string | null; o
       rule_failures: null,
       veto_deadline: new Date("2026-09-15T06:00:00.000Z").toISOString(),
       created_at: AT.toISOString(),
+      told: a.told ?? null,
     },
   ]);
 }
@@ -156,7 +159,7 @@ async function screen(): Promise<Element> {
 }
 
 async function block(): Promise<Element> {
-  const found = (await screen()).querySelector('[data-testid="draft-target"]');
+  const found = (await screen()).querySelector('[data-testid="draft-why"]');
   if (found === null) throw new Error("the draft screen drew no target block");
   return found;
 }
@@ -170,127 +173,98 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-describe("the draft screen says what the page is for (issue 867)", () => {
-  it("states the search, how it is asked, its demand, its difficulty against this site's ceiling, the band and every engine", async () => {
+describe("Why this page: the search and who answers it", () => {
+  it("states the search, how often it is searched and who answers it, and no difficulty, band or engine", async () => {
     seed({
       evidence: writeEvidence({ difficulty: measured(12, AT), ceiling: 36, engines: ENGINES }),
     });
-    const text = (await block()).textContent ?? "";
+    const why = await block();
+    const text = why.textContent ?? "";
 
-    expect(text).toContain(copy("draft.target.title"));
-    expect(text).toContain(SEARCH);
-    // The demand and the difficulty, the difficulty beside the ceiling this
-    // site is judged against (§6, issue 858).
-    expect(text).toContain("40");
-    expect(text).toContain(copy("calendar.why.difficulty.of-ceiling", { difficulty: "12", ceiling: "36" }));
-    // The band, in the product's one set of band words.
-    expect(text).toContain(copy("band.winnability.winnable"));
-    // Every engine, each with where it stood — and the engine that named
-    // this site said so. Since issue 930 the row draws the two as a name
-    // and a chip (one renderer, `calendar/TargetRows.tsx`), and the one
-    // phrase that joins them is the row's own `title`.
-    const rendered = await block();
-    for (const [engine, standing] of [
-      ["chatgpt", "calendar.why.engine.names-you"],
-      ["ai_overview", "calendar.why.engine.names-others"],
-      ["ai_mode", "calendar.why.engine.no-answer"],
-    ] as const) {
-      const row = rendered.querySelector(`[data-testid="engine-${engine}"]`);
-      expect(row, engine).not.toBeNull();
-      expect(row?.textContent, engine).toContain(copy(standing));
-      expect(row?.getAttribute("title"), engine).toBe(
-        copy("calendar.why.engine.line", {
-          engine: copy(
-            engine === "chatgpt"
-              ? "ai-answers.engine.chatgpt"
-              : engine === "ai_overview"
-                ? "ai-answers.engine.ai-overview"
-                : "ai-answers.engine.ai-mode"
-          ),
-          standing: copy(standing),
-        })
-      );
-    }
-  });
+    expect(why.querySelector("h2")?.textContent).toBe(copy("draft.why.title"));
+    const search = why.querySelector('[data-testid="draft-search"]');
+    expect(search?.tagName).toBe("DETAILS");
+    expect(search?.querySelector("summary")?.textContent).toBe(copy("draft.search.title"));
+    const terms = [...why.querySelectorAll("dt")].map((dt) => dt.textContent);
+    expect(terms).toEqual([copy("draft.search.query"), copy("draft.search.volume"), copy("draft.search.rival")]);
+    const values = [...why.querySelectorAll("dd")].map((dd) => dd.textContent);
+    expect(values).toEqual([SEARCH, "40", "briefkit.io"]);
 
-  it("a search the vendor gave no difficulty for renders the dash and its written line, never a 0", async () => {
-    seed({
-      evidence: writeEvidence({
-        difficulty: unmeasured<number>("undeterminable", AT),
-        ceiling: 36,
-        engines: ENGINES,
-      }),
-    });
-    const target = await block();
-    const text = target.textContent ?? "";
-
-    expect(text).toContain(copy("unmeasured.dash"));
-    expect(text).toContain(copy("unmeasured.undeterminable", { what: SEARCH }));
-    // Neither the number nor its ceiling is printed for a difficulty nobody
-    // read: a 0 would read as "nothing to beat".
-    expect(text).not.toContain(copy("calendar.why.difficulty.of-ceiling", { difficulty: "0", ceiling: "36" }));
-    expect(target.querySelector('[data-testid="target-engines"]')?.textContent ?? "").not.toBe("");
-  });
-
-  it("a row derived before issue 867 carries no target facts: the block still states the search, and shows no ceiling", async () => {
-    seed({ evidence: writeEvidence() });
-    const text = (await block()).textContent ?? "";
-
-    expect(text).toContain(SEARCH);
-    expect(text).toContain(copy("unmeasured.dash"));
+    // The board removed the jargon: no difficulty, no ceiling, no band, no engines.
+    expect(text).not.toContain(copy("calendar.why.difficulty"));
     expect(text).not.toContain("36");
+    expect(text).not.toContain(copy("band.winnability.winnable"));
+    expect(why.querySelector('[data-testid^="engine-"]')).toBeNull();
   });
 
-  it("a fix_page draft has no market target, and renders that arm rather than blanks", async () => {
+  it("says why the week chose it, from the stored plan reason", async () => {
+    seed({
+      evidence: writeEvidence(),
+      planReason: { points: 5, parts: [{ part: "fit", n: 3 }, { part: "ai_gap", n: 2 }], rule: null },
+    });
+    expect((await block()).textContent).toContain(copy("calendar.week.why.ai-gap"));
+  });
+
+  it("a search nobody measured is its written line, never a 0", async () => {
+    seed({ evidence: { ...(writeEvidence() as Extract<Evidence, { family: "write" }>), volume: unmeasured<number>("undeterminable", AT) } });
+    const values = [...(await block()).querySelectorAll("dd")].map((dd) => dd.textContent);
+
+    expect(values[1]).toBe(copy("unmeasured.undeterminable", { what: SEARCH }));
+  });
+
+  it("a written page is a new page", async () => {
+    seed({ evidence: writeEvidence() });
+    expect((await screen()).querySelector('[data-testid="draft-kind"]')?.textContent).toBe(copy("calendar.card.new-page"));
+  });
+
+  it("a fix_page draft has no search, says so, and is an update", async () => {
     seed({
       evidence: { family: "fix", issues: [], pageUrl: "https://example.com/pricing" },
       type: "fix_page",
       fitBand: null,
     });
-    const text = (await block()).textContent ?? "";
+    const drawn = await screen();
+    const why = drawn.querySelector('[data-testid="draft-why"]');
 
-    expect(text).toContain(copy("draft.target.fix"));
-    expect(text).not.toContain(copy("calendar.why.search"));
+    expect(why?.textContent).toContain(copy("draft.target.fix"));
+    expect(why?.querySelector('[data-testid="draft-search"]')).toBeNull();
+    expect(drawn.querySelector('[data-testid="draft-kind"]')?.textContent).toBe(copy("calendar.card.update"));
   });
 
-  it("a draft whose opportunity cannot be read says so in one sentence", async () => {
+  it("a draft whose opportunity cannot be read says so in one sentence, and names no kind", async () => {
     seed({ evidence: writeEvidence(), opportunityId: null });
-    const text = (await block()).textContent ?? "";
+    const drawn = await screen();
 
-    expect(text).toContain(copy("draft.target.unknown"));
+    expect(drawn.querySelector('[data-testid="draft-why"]')?.textContent).toContain(copy("draft.target.unknown"));
+    expect(drawn.querySelector('[data-testid="draft-kind"]')).toBeNull();
   });
 });
 
-describe("the page screen opens with the page's numbers (issue 1364)", () => {
-  it("states the demand and the difficulty beside this site's limit, above the article", async () => {
-    seed({ evidence: writeEvidence({ difficulty: measured(12, AT), ceiling: 36, engines: ENGINES }) });
-    const drawn = await screen();
-    const numbers = drawn.querySelector('[data-testid="draft-numbers"]');
-    const article = drawn.querySelector('[data-testid="published-view"]');
-    if (numbers === null || article === null) throw new Error("the screen drew no numbers or no article");
+describe("the page's day", () => {
+  const SENT = "2026-09-14T06:05:00.000Z";
 
-    expect(numbers.compareDocumentPosition(article) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect(numbers.querySelector('[data-testid="draft-number-volume"]')?.textContent).toContain("40");
-    const difficulty = numbers.querySelector('[data-testid="draft-number-difficulty"]')?.textContent ?? "";
-    expect(difficulty).toContain("12");
-    expect(difficulty).toContain(copy("draft.numbers.difficulty.limit", { ceiling: "36" }));
+  it("is written, emailed, goes live and is first read, in that order, when the mail left", async () => {
+    seed({ evidence: writeEvidence(), told: { kind: "interval", sentAt: SENT, mailed: true } });
+    const day = (await screen()).querySelector('[data-testid="draft-day"]');
+
+    expect([...(day?.querySelectorAll("li") ?? [])].map((li) => li.getAttribute("data-testid"))).toEqual([
+      "draft-day-written",
+      "draft-day-emailed",
+      "draft-day-live",
+      "draft-day-reading",
+    ]);
+    expect(day?.textContent).toContain(copy("draft.day.emailed"));
+    // The page goes live on Tuesday 15 September; the next Monday's scan is
+    // the first to read it.
+    expect(day?.querySelector('[data-testid="draft-day-reading"]')?.textContent).toContain("Sep 21, 2026");
   });
 
-  it("a difficulty nobody read is its written line, never a 0", async () => {
-    seed({
-      evidence: writeEvidence({ difficulty: unmeasured<number>("undeterminable", AT), ceiling: 36, engines: ENGINES }),
-    });
-    const tile = (await screen()).querySelector('[data-testid="draft-number-difficulty"]');
-    expect(tile?.textContent).toContain(copy("unmeasured.undeterminable", { what: SEARCH }));
-    expect(tile?.querySelector(".figure")).toBeNull();
-  });
-
-  it("a fix page has no market measure, so no row is drawn", async () => {
-    seed({
-      evidence: { family: "fix", issues: [], pageUrl: "https://example.com/pricing" },
-      type: "fix_page",
-      fitBand: null,
-    });
-    expect((await screen()).querySelector('[data-testid="draft-numbers"]')).toBeNull();
+  it("names no mail where the customer had it switched off, or where none is recorded", async () => {
+    for (const told of [{ kind: "interval", sentAt: SENT, mailed: false }, { kind: "interval", sentAt: SENT }, null]) {
+      seed({ evidence: writeEvidence(), told });
+      const day = (await screen()).querySelector('[data-testid="draft-day"]');
+      expect(day, JSON.stringify(told)).not.toBeNull();
+      expect(day?.querySelector('[data-testid="draft-day-emailed"]'), JSON.stringify(told)).toBeNull();
+    }
   });
 });

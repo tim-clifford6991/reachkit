@@ -352,8 +352,7 @@ function passMarket(
 
 /**
  * The second moment: the rivals, from this pass's own report. Answers
- * whether the set the passes measure changed, so the caller can measure
- * again (#1185 point 4).
+ * whether the set the passes measure changed; the next pass measures it.
  */
 export async function recheckRivals(a: {
   siteId: string;
@@ -390,16 +389,26 @@ export async function recheckRivals(a: {
     own: ownKeywords({ domain: a.domain, siteName: text.siteName }),
     language: locale.language,
   });
+  // A conclusion reached, with or without the model, is the month's re-check (ruling B5).
+  const checkedAt = a.at.toISOString();
   // A founder's own rivals stand (D28). Their brand volumes are still read
   // (D50), since a comparison is derived only for a searched name — and
   // never under the category's words (issue 1369).
   if (site.stored.rivalsOverridden) {
     const weighed = await weighByDemand({ ...a, siteName: text.siteName, demand, rivals: withoutCategoryNames(market.rivals, market, locale.language) });
+    let current = market;
     if (weighed !== null) {
       const volume = new Map(weighed.rivals.map((r) => [r.domain, r.volume]));
       const rivals = market.rivals.map((r) => ({ ...r, volume: volume.get(r.domain) ?? 0 }));
-      await writeSiteMarket(a.siteId, { stored: { ...site.stored, current: { ...market, rivals, demand: weighed.demand } } });
+      current = { ...market, rivals, demand: weighed.demand };
     }
+    await writeSiteMarket(a.siteId, { stored: { ...site.stored, current, rivalsCheckedAt: checkedAt } });
+    return none;
+  }
+  // The report's own derived rivals are the ones in force: the model has nothing to change.
+  if (a.report.rivals.kind === "measured" && sameDomains(a.report.rivals.value.map((r) => r.domain), site.competitors)) {
+    log("rival_conclusion_skipped", { siteId: a.siteId, because: "unchanged" });
+    await writeSiteMarket(a.siteId, { stored: { ...site.stored, rivalsCheckedAt: checkedAt } });
     return none;
   }
   const evidence = marketEvidence({
@@ -435,7 +444,7 @@ export async function recheckRivals(a: {
     at: a.at,
   });
   await writeSiteMarket(a.siteId, {
-    stored: settled.next,
+    stored: { ...settled.next, rivalsCheckedAt: checkedAt },
     ...(settled.changed ? { competitors: settled.rivals } : {}),
   });
   const change = settled.next.lastChange;
@@ -450,6 +459,10 @@ export async function recheckRivals(a: {
   return settled.changed && change !== null && change !== undefined
     ? { changed: true, added: change.added, dropped: change.dropped }
     : none;
+}
+
+function sameDomains(a: readonly string[], b: readonly string[]): boolean {
+  return a.length > 0 && a.length === b.length && a.every((domain) => b.includes(domain));
 }
 
 /**
@@ -576,19 +589,17 @@ export async function trackedPromptsFollowRivals(a: { siteId: string; domain: st
   }
 }
 
-/** The rivals re-checked on the pass's own money (#1185). Answers whether
- *  the set the passes measure changed. A failure changes nothing and says
- *  so in the log; the pass goes on. */
+/** The rivals re-checked on the pass's own money (#1185). A failure
+ *  changes nothing and says so in the log; the pass goes on. */
 export async function recheckRivalsOf(a: {
   siteId: string;
   domain: string;
   cost: CostContext;
   report: StoredReport;
-}): Promise<boolean> {
+}): Promise<void> {
   try {
-    const { changed } = await recheckRivals({ ...a, at: new Date() });
+    await recheckRivals({ ...a, at: new Date() });
     await trackedPromptsFollowRivals(a);
-    return changed;
   } catch (error) {
     console.log(
       JSON.stringify({
@@ -597,34 +608,7 @@ export async function recheckRivalsOf(a: {
         because: error instanceof Error ? error.message : String(error),
       })
     );
-    return false;
   }
-}
-
-/** One re-measure for a rival change, under #837's own bound; a refusal is
- *  logged and the next pass measures the new set. */
-export async function remeasureForRivals(a: { siteId: string; domain: string; scanId: string }): Promise<null> {
-  try {
-    const { startRemeasure } = await import("./deep/remeasure");
-    const started = await startRemeasure({ siteId: a.siteId, domain: a.domain, remeasureOf: a.scanId });
-    console.log(
-      JSON.stringify({
-        event: "rivals_remeasure",
-        siteId: a.siteId,
-        started: started.started,
-        ...(started.started ? {} : { because: started.because }),
-      })
-    );
-  } catch (error) {
-    console.log(
-      JSON.stringify({
-        event: "rivals_remeasure_failed",
-        siteId: a.siteId,
-        because: error instanceof Error ? error.message : String(error),
-      })
-    );
-  }
-  return null;
 }
 
 /**

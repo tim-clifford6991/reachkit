@@ -25,6 +25,8 @@ const ALLOWED: Readonly<Record<string, string>> = {
   // Setup is the customer's to finish, and it is setup that waits — no
   // page is waiting on them, and nothing here is an approval.
   "mail.setupReminder.body": "setup, not a page, is what waits",
+  // The buyer's own question on the landing; its answer begins "No."
+  "landing.faq.approve.q": "a buyer's question whose answer is no",
 };
 
 function offenders(entries: Iterable<readonly [string, string]>): string[] {

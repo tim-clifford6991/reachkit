@@ -211,7 +211,7 @@ export async function main(options: WriteOptions): Promise<number> {
     const cost = ledger.contextFor(at);
     const pack = packFor(site, panelRun(options.root, site.domain), await factsOf(options.root, site));
     const template = TEMPLATES[pack.type];
-    const writing = { template, pack, pageType: null, length: voiceLength(pack.voice) ?? lengthRangeFor(template, null) ?? { floor: 600, ceiling: 1500 } };
+    const writing = { template, pack, pageType: null, length: lengthRangeFor(template, { questions: pack.questions.length, cap: voiceLength(pack.voice)?.ceiling }) ?? { floor: 600, ceiling: 1500 } };
     const written = await writePage(cost, writing);
     if (written.kind === "unmeasured") {
       console.log(`${site.domain}: the write call did not answer (${written.reason}).`);
@@ -279,7 +279,7 @@ async function judgeStored(options: WriteOptions, ledger: ReturnType<typeof proo
       voice: chooseVoice({ setting: null, voiceText: stored.business.voice, category: stored.business.category, question: stored.target.question, type: stored.type, language: "en" }),
     };
     const template = TEMPLATES[pack.type];
-    const writing = { template, pack, pageType: null, length: voiceLength(pack.voice) ?? lengthRangeFor(template, null) ?? { floor: 600, ceiling: 1500 } };
+    const writing = { template, pack, pageType: null, length: lengthRangeFor(template, { questions: pack.questions.length, cap: voiceLength(pack.voice)?.ceiling }) ?? { floor: 600, ceiling: 1500 } };
     const written = await writePage(cost, writing);
     if (written.kind === "unmeasured") continue;
     let page = await checked(written.value, pack);

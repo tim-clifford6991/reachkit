@@ -29,6 +29,8 @@ export const SETTABLE = [
   "category",
   "competitors",
   "domain",
+  // SPEC §6 (D66): the country and language every pass measures in.
+  "locale",
   "veto_hours",
   "publish_time",
   "time_zone",

@@ -20,12 +20,13 @@ import {
   aiSampleOf,
   answerabilityOf,
   foundationsOf,
-  localPackSearches,
   ownRankedOf,
   searchPresenceOf,
 } from "../../../src/lib/measure/drivers.ts";
 import { measured, measuredZero, unmeasured, type Measured } from "../../../src/lib/measure/measured.ts";
 import type { OnPageFacts } from "../../../src/lib/measure/parse.ts";
+import { buildPresenceCard } from "@/lib/market/rivals/presence";
+import type { MarketSerp } from "@/lib/market/views";
 import { computeScore, estimateOf, factorsOf, NO_AI_ANSWERS, presenceOf, presenceRangeOf } from "../../../src/lib/measure/score.ts";
 import stored from "./fixtures/ai-presence-free-scans.json";
 
@@ -246,9 +247,6 @@ describe("the customer's own ranked count — the vendor's total, not the sub-me
     // #117: the rows are a page of a much larger set, and the count is the
     // set. Reading `rows.length` here is what made `far` unreachable.
     expect(ownRankedOf({ ranked: measured(answer(rows, 4200), AT), at: AT })).toEqual(measured(4200, AT));
-    // The same rows read as SearchPresence are a 0–100 quantity, which is
-    // why the count cannot be recovered from `scans.drivers`.
-    expect(valueOf(searchPresenceOf({ ranked: measured(answer(rows, 4200), AT), at: AT }))).not.toBe(4200);
   });
 
   it("falls back to the rows where the vendor reported no total — never worse than before #117", () => {
@@ -282,104 +280,49 @@ describe("the customer's own ranked count — the vendor's total, not the sub-me
   });
 });
 
-describe('BUILD §5: "SearchPresence = min(100, 25 × log10(ranked + 1)) × (0.55 + 0.45 × min(1, top10share × 4))"', () => {
-  /** One `ranked_keywords` answer read as SearchPresence. `total`
-   *  defaults to absent, so reach falls back to the rows. */
-  function presence(rows: readonly RankedRow[], total: number | null = null): Measured<number> {
-    return searchPresenceOf({ ranked: measured<RankedResult>({ rows, total }, AT), at: AT });
+describe("SearchPresence is the presence card's page-one share of the measured searches (owner, 2026-10-22)", () => {
+  /** A search's SERP: who holds its organic top ten and its local pack. */
+  function serp(organic: readonly string[], localPack: readonly string[] = []): Measured<MarketSerp> {
+    return measured(
+      {
+        organic: organic.map((domain, i) => ({ position: i + 1, domain })),
+        aiOverview: { present: false, referenceDomains: [] },
+        ...(localPack.length === 0 ? {} : { localPack: localPack.map((domain) => ({ domain })) }),
+      },
+      AT
+    );
   }
-  /** The fifty rows the free tier buys, a quarter of them in the top 10. */
-  const FIFTY = Array.from({ length: 50 }, (_, i) => rankedRow(i % 4 === 0 ? 3 : 30));
+  /** The bar the pass draws for these SERPs, counted by the card it shows. */
+  function bar(serps: readonly Measured<MarketSerp>[]): Measured<number> {
+    const selected = serps.map((_, i) => ({ keyword: `search ${i}`, volume: 100 - i }));
+    const card = buildPresenceCard({ serps, selected, ownDomain: OWN, rivals: [] });
+    return searchPresenceOf({ card, serps, at: AT });
+  }
+  const on = serp(["rival.example.net", "www.reachkit.app"]);
+  const off = serp(["rival.example.net", "other.example.org"]);
 
-  it('zero ranked rows is a measured presence of zero — "0 rows is a legal result"', () => {
-    const m = searchPresenceOf({ ranked: measuredZero<RankedResult>({ rows: [], total: null }, AT), at: AT });
-    expect(m.kind).toBe("zero");
-    expect(valueOf(m)).toBe(0);
-    expectAt(m);
+  it("0 of 10 on the first page is 0 — a measured zero, not unmeasured", () => {
+    const m = bar(Array.from({ length: 10 }, () => off));
+    expect(m).toEqual(measuredZero(0, AT));
   });
 
-  it("an unmeasured row set stays unmeasured and carries the same reason", () => {
-    const m = searchPresenceOf({ ranked: unmeasured<RankedResult>("not_attempted", AT), at: AT });
-    expect(m).toEqual({ kind: "unmeasured", reason: "not_attempted", at: AT });
+  it("2 of 5 is 40, and 12 of 12 is 100", () => {
+    expect(valueOf(bar([on, off, on, off, off]))).toBe(40);
+    expect(valueOf(bar(Array.from({ length: 12 }, () => on)))).toBe(100);
   });
 
-  it("SearchPresence saturates rather than clipping — a top-10 share of 0.25 and of 0.9 give the same multiplier", () => {
-    // 4 rows, 1 in the top 10 → share 0.25 → min(1, 1.0) = 1.
-    const quarter = [rankedRow(1), rankedRow(11), rankedRow(12), rankedRow(13)];
-    const reachOfFour = Math.min(100, 25 * Math.log10(5));
-    expect(valueOf(presence(quarter))).toBeCloseTo(reachOfFour * 1.0, 10);
-
-    // 10 rows, 9 in the top 10 → share 0.9 → min(1, 3.6) = 1, the same.
-    const mostly = [...Array.from({ length: 9 }, (_, i) => rankedRow(i + 1)), rankedRow(40)];
-    const reachOfTen = Math.min(100, 25 * Math.log10(11));
-    expect(valueOf(presence(mostly))).toBeCloseTo(reachOfTen * 1.0, 10);
+  it("a site only in the local pack, on 3 of 3, is 100 — the pack counts as page one in both", () => {
+    expect(valueOf(bar([0, 1, 2].map(() => serp(["rival.example.net"], ["reachkit.app"]))))).toBe(100);
   });
 
-  it("a top-10 share of 0 gives the base multiplier 0.55", () => {
-    const none = [rankedRow(11), rankedRow(12)];
-    expect(valueOf(presence(none))).toBeCloseTo(Math.min(100, 25 * Math.log10(3)) * 0.55, 10);
+  it("an unmeasured search is outside the denominator, as it is on the card", () => {
+    expect(valueOf(bar([on, unmeasured("undeterminable", AT), off]))).toBe(50);
   });
 
-  it("the reach term rises with the row count and is then capped at the top of the scale", () => {
-    // One row, in the top 10: reach = 25 × log10(2), multiplier 1.
-    expect(valueOf(presence([rankedRow(1)]))).toBeCloseTo(25 * Math.log10(2), 10);
-    // Ten rows, all in the top 10: reach = 25 × log10(11), multiplier 1.
-    const ten = Array.from({ length: 10 }, (_, i) => rankedRow(i + 1));
-    expect(valueOf(presence(ten))).toBeCloseTo(25 * Math.log10(11), 10);
-  });
-
-  it("reach reads the vendor's total, not the rows bought — equal rows, different totals, different presence (#529)", () => {
-    // Production, 2026-09-10/11: notion.so (822 ranked) and hey.com (7 412)
-    // both scored 25 × log10(51) = 42.69 off the same 50 rows.
-    const notion = valueOf(presence(FIFTY, 822));
-    const hey = valueOf(presence(FIFTY, 7_412));
-    expect(notion).toBeCloseTo(25 * Math.log10(823), 10);
-    expect(hey).toBeCloseTo(25 * Math.log10(7_413), 10);
-    expect(hey).toBeGreaterThan(notion);
-    expect(notion).not.toBeCloseTo(25 * Math.log10(51), 5);
-  });
-
-  it("top10share stays the share of the rows bought — never a top-10 count over the total", () => {
-    // 50 rows, 5 in the top 10 → share 0.1 → multiplier 0.55 + 0.45 × 0.4.
-    // Over the total (5 / 7 412) it would read as the base 0.55.
-    const tenth = Array.from({ length: 50 }, (_, i) => rankedRow(i < 5 ? 1 : 40));
-    const reach = 25 * Math.log10(7_413);
-    expect(valueOf(presence(tenth, 7_412))).toBeCloseTo(reach * (0.55 + 0.45 * Math.min(1, 0.1 * 4)), 10);
-  });
-
-  it("where the vendor reports no total, reach is the rows — 30 rows read as 30", () => {
-    const thirty = Array.from({ length: 30 }, (_, i) => rankedRow(i < 10 ? i + 1 : 50));
-    expect(valueOf(presence(thirty))).toBeCloseTo(25 * Math.log10(31), 10);
-  });
-
-  it("a total of 10 000 or more saturates reach at the top of the scale", () => {
-    // 25 × log10(10001) > 100, so `min(100, …)` holds it at 100; the
-    // multiplier is 1 (a quarter of the rows in the top 10). Dropping that
-    // `min` fails here.
-    expect(25 * Math.log10(10_001)).toBeGreaterThan(100);
-    expect(valueOf(presence(FIFTY, 10_000))).toBeCloseTo(100, 10);
-    expect(valueOf(presence(FIFTY, 250_000))).toBeCloseTo(100, 10);
-  });
-
-  it("a total of zero with no rows is a measured 0 — the total is read, not swallowed", () => {
-    const m = presence([], 0);
-    expect(m.kind).toBe("zero");
-    expect(valueOf(m)).toBe(0);
-  });
-
-  it("the formula's coefficients are §5's, unchanged — only reach's input moved", () => {
-    for (const line of [
-      "const SEARCH_LOG_COEFFICIENT = 25;",
-      "const SEARCH_BASE_SHARE = 0.55;",
-      "const SEARCH_TOP10_WEIGHT = 0.45;",
-      "const SEARCH_TOP10_SATURATION = 4;",
-      "const TOP10_LAST_POSITION = 10;",
-    ]) {
-      expect(SOURCE).toContain(line);
-    }
-    // One worked value through the whole formula: 822 ranked, share 0.1.
-    const tenth = Array.from({ length: 50 }, (_, i) => rankedRow(i < 5 ? 1 : 40));
-    expect(valueOf(presence(tenth, 822))).toBeCloseTo(Math.min(100, 25 * Math.log10(823)) * (0.55 + 0.45 * 0.4), 10);
+  it("no SERP measured, or no card, is unmeasured with the SERPs' reason — never 0", () => {
+    expect(bar([unmeasured("undeterminable", AT), unmeasured("undeterminable", AT)])).toEqual(unmeasured("undeterminable", AT));
+    expect(bar([])).toEqual(unmeasured("not_attempted", AT));
+    expect(searchPresenceOf({ card: null, serps: [], at: AT })).toEqual(unmeasured("not_attempted", AT));
   });
 });
 
@@ -576,42 +519,5 @@ describe("issue 1439 — AI is judged on the answers that exist, and a score say
     expect(valueOf(presenceOf({ searchPresence: measuredZero(0, AT), aiPresence: named }))).toBeCloseTo(30, 10);
     const nobody = aiPresenceOf({ serps: fourOf(["example.com"]), ownDomain: OWN, at: AT });
     expect(valueOf(presenceOf({ searchPresence: measuredZero(0, AT), aiPresence: nobody }))).toBe(1);
-  });
-});
-
-describe("D67, owner ruling 2026-10-15 (issue 1441) — a place in the local pack counts toward SearchPresence as a top-ten result", () => {
-  const pack = (domains: readonly string[]): Measured<{ localPack?: readonly { domain: string }[] }> => measured({ localPack: domains.map((domain) => ({ domain })) }, AT);
-
-  it("reads the searches whose pack shows the site, by the search each SERP was bought for", () => {
-    const found = localPackSearches({
-      serps: [pack(["rival.co.uk", "www.reachkit.app"]), pack(["rival.co.uk"]), unmeasured("undeterminable", AT), measured({}, AT), pack(["shop.reachkit.app"])],
-      searches: ["plumber leeds", "boiler repair leeds", "drain unblocking leeds", "plumbers in leeds"],
-      ownDomain: OWN,
-    });
-    expect(found).toEqual(["plumber leeds"]);
-  });
-
-  it("a site that ranks for nothing but holds the pack on two searches is found on two, each a top-ten result", () => {
-    const none = searchPresenceOf({ ranked: measuredZero<RankedResult>({ rows: [], total: 0 }, AT), at: AT });
-    const local = searchPresenceOf({ ranked: measuredZero<RankedResult>({ rows: [], total: 0 }, AT), at: AT, localPack: ["plumber leeds", "Plumber Leeds", "emergency plumber leeds"] });
-    expect(valueOf(none)).toBe(0);
-    expect(valueOf(local)).toBeCloseTo(Math.min(100, 25 * Math.log10(3)) * 1.0, 10);
-  });
-
-  it("a pack search the ranked rows already hold below the top ten is moved into it, not counted twice", () => {
-    const rows = [{ ...rankedRow(30), keyword: "plumber leeds" }, rankedRow(40), rankedRow(50), rankedRow(60)];
-    const before = searchPresenceOf({ ranked: measured<RankedResult>({ rows, total: 4 }, AT), at: AT });
-    const after = searchPresenceOf({ ranked: measured<RankedResult>({ rows, total: 4 }, AT), at: AT, localPack: ["plumber leeds"] });
-    const reach = Math.min(100, 25 * Math.log10(5));
-    expect(valueOf(before)).toBeCloseTo(reach * 0.55, 10);
-    expect(valueOf(after)).toBeCloseTo(reach * 1.0, 10);
-  });
-
-  it("no pack, and an unmeasured ranked read, change nothing", () => {
-    const rows = [rankedRow(3), rankedRow(30)];
-    expect(searchPresenceOf({ ranked: measured<RankedResult>({ rows, total: 2 }, AT), at: AT, localPack: [] })).toEqual(
-      searchPresenceOf({ ranked: measured<RankedResult>({ rows, total: 2 }, AT), at: AT })
-    );
-    expect(searchPresenceOf({ ranked: unmeasured<RankedResult>("not_attempted", AT), at: AT, localPack: ["plumber leeds"] }).kind).toBe("unmeasured");
   });
 });

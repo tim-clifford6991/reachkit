@@ -21,8 +21,8 @@
 // two number tiles, then — on a hosted blog — *AI engines on your blog*
 // (owner 2026-10-09, issue 1364), then the grid. No sentence stands above
 // them; what a number or a card means is closed on it. The cards that read
-// further — share of voice, the pages quoted, the prompts and the mentions
-// — follow the grid.
+// further — share of voice, the pages quoted and the prompts — follow the
+// grid.
 //
 // **No client bundle.** The whole screen is server-rendered: there is
 // nothing on it to press, so there is no `"use client"`, no `nuqs` state
@@ -36,15 +36,6 @@
 // one, because a card of zeroes would be a claim about engines rather than
 // a fact about the record.
 //
-// **The two mentions cards land under the grid** (#1004,
-// owner ruling 2026-09-22 after the #920 pilot): *Also appearing for* and
-// *Your pages AI quotes*, drawn from the LLM Mentions rows the Monday pass
-// stores. They are a second read (`readMentions`) rather than members of
-// the answers model, because they are a different measurement bought from a
-// different endpoint over the same four-week window — and a site whose pass
-// has never bought them draws **no card at all** rather than an empty one,
-// which is why `MentionCards` may render nothing.
-//
 // Everything on the redesign board for this screen is now on it.
 import type React from "react";
 import type { Metadata } from "next";
@@ -56,8 +47,6 @@ import { readBlogReads } from "../../_overview/blog-reads-provider";
 import { AnswerGrid } from "../../_overview/AnswerGrid";
 import { AnswerTiles } from "../../_overview/AnswerTiles";
 import { BlogReads } from "../../_overview/BlogReads";
-import { readMentions } from "../../_overview/mentions-provider";
-import { MentionCards } from "../../_overview/MentionCards";
 import { readPrompts } from "../../_overview/prompts-provider";
 import { PromptCards, PromptRate } from "../../_overview/PromptCards";
 import { TabHead } from "../../_overview/TabHead";
@@ -72,14 +61,10 @@ export default async function AiAnswersTabPage(): Promise<React.JSX.Element> {
   // own request-cached provider rather than restated here: two readers of a
   // customer's time zone is how two parts of one screen come to state two
   // different days.
-  // `readMentions` reads `readAnswers` for the tracked set, and both are
-  // `cache`d — so this is three reads for the request, not four, and the
-  // questions the cards exclude are exactly the questions the grid draws.
-  const [shell, model, blogReads, mentions, prompts] = await Promise.all([
+  const [shell, model, blogReads, prompts] = await Promise.all([
     readShell(),
     readAnswers(),
     readBlogReads(),
-    readMentions(),
     readPrompts(),
   ]);
   // A sentence with a date inside it, not a value — the same line, from the
@@ -112,7 +97,6 @@ export default async function AiAnswersTabPage(): Promise<React.JSX.Element> {
       <BlogReads model={blogReads} />
       <AnswerGrid model={model} />
       <PromptCards model={prompts} />
-      <MentionCards model={mentions} timeZone={shell.timeZone} />
     </div>
   );
 }

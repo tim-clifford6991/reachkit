@@ -22,7 +22,7 @@ describe("/terms#withdrawal", () => {
     const section = withdrawalSection();
     expect(section).toContain("within 14 days");
     expect(section).toContain("Reply to any ReachKit email");
-    expect(section).toContain("use Cancel in Settings");
+    expect(section).toContain("cancel from Settings");
     expect(section).toContain("Model withdrawal form");
     expect(section).toContain("I withdraw from my contract");
     expect(section).toMatch(/<li[^>]*>Email used to pay: …<\/li>/);

@@ -32,9 +32,9 @@ import type { VerifyOutcome } from "@/lib/publish/types";
 import { readStoredCheck } from "@/lib/publish/verify/stored";
 import { readStoredReport, type StoredReport } from "@/lib/scan/report";
 import type { Acceptance } from "../types";
-import { addressOf } from "./evaluate";
+import { addressOf } from "@/lib/measure/page-reading";
 import { urlsIn } from "./seen";
-import { readingOf } from "@/lib/publish/reads/ladder";
+import { readingOf, type PageReading } from "@/lib/measure/page-reading";
 import { readIntent, type IntentPrompt, type PageIntent } from "../intent";
 import type { CheckId, Movement, NotJudgeableCause, PageMeasured, Verdict, VerifyNote, WeekStart } from "./types";
 
@@ -97,6 +97,9 @@ export interface PublishedPage {
   /** The search the page's opportunity targets. A `named_on` page also
    *  passes on its top twenty. */
   readonly targetQuery?: string | null;
+  /** `publications.search_reading`, which the weekly pass writes before the
+   *  judgement; `null` or absent where the page was never read. */
+  readonly reading?: PageReading | null;
 }
 
 /** One row of `page_verdicts`, as this module reads it back. */
@@ -280,6 +283,7 @@ interface PublicationRow {
   unpublished_at: string | null;
   verify: unknown;
   acceptance: unknown;
+  search_reading?: unknown;
   draft_id: string | null;
   drafts: {
     meta: { intent?: unknown } | null;
@@ -379,7 +383,7 @@ export function supabaseVerdictStore(): VerdictStore {
       const { data, error } = await untyped()
         .from<PublicationRow>("publications")
         .select(
-          "id, live_url, destination, published_at, unpublished_at, verify, acceptance, draft_id, " +
+          "id, live_url, destination, published_at, unpublished_at, verify, acceptance, search_reading, draft_id, " +
             "drafts(meta, opportunities(acceptance, target_query, volume, family, target_ref)), sites(domain)"
         )
         .eq("site_id", siteId)
@@ -419,6 +423,7 @@ export function supabaseVerdictStore(): VerdictStore {
           draftId: row.draft_id,
           volume: row.drafts?.opportunities?.volume ?? null,
           targetQuery: row.drafts?.opportunities?.target_query?.trim() || null,
+          reading: readingOf(row.search_reading),
         });
       }
       return pages;

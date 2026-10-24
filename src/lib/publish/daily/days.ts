@@ -31,6 +31,10 @@ const MS_PER_HOUR = 3_600_000;
 /** How a due hour ended for one site. */
 export type DayOutcome = "drafted" | "no_page" | "failed";
 
+/** The reason a day held until the customer's address is connected is
+ *  recorded under. Not a fault, so no missing-draft mail is sent for it. */
+const WAITING_FOR_ADDRESS = "waiting_for_address";
+
 /** One site's page for one date. */
 export interface DraftDay {
   readonly siteId: string;
@@ -59,6 +63,10 @@ export interface DraftDayStore {
   /** When the site's latest page was delivered, or `null` where none has
    *  been (issue 1536). Absent, no stall is checked. */
   lastDeliveredAt?(siteId: string): Promise<Date | null>;
+  /** Whether the site's destination is not connected yet: Overview's
+   *  connect state for hosted, no credential for WordPress. Absent,
+   *  never. */
+  waitingForAddress?(siteId: string): Promise<boolean>;
 }
 
 let store: DraftDayStore | null = null;
@@ -103,6 +111,20 @@ export async function recordDraftDay(a: {
   }
 }
 
+/** Why the day's page is held, or `null`: until the site's address is
+ *  connected only its first page is written. A read that fails holds
+ *  nothing. Never throws. */
+export async function dayHold(siteId: string, publishDate: string): Promise<string | null> {
+  try {
+    const store = draftDays();
+    const held = (await store.waitingForAddress?.(siteId)) === true && (await store.draftedBefore(siteId, publishDate));
+    return held ? WAITING_FOR_ADDRESS : null;
+  } catch {
+    warn("hold-read-failed");
+    return null;
+  }
+}
+
 /** Of these days, the ones a site was owed and no due hour recorded an
  *  ending for: a tick the platform missed, or a run killed before it
  *  recorded. A site's first day, before it has any page dated earlier, was
@@ -138,6 +160,7 @@ export async function alertMissingDrafts(a: { sites: readonly DailySite[]; hour:
       const states = await days.statesOn(site.siteId, date);
       if (states.some((state) => ACCOUNTED.has(state))) continue;
       if (!(await days.draftedBefore(site.siteId, date))) continue;
+      if ((await days.reasonOn(site.siteId, date)) === `no_page:${WAITING_FOR_ADDRESS}`) continue;
       if (!(await days.claimMissingAlert(site.siteId, date, a.hour))) continue;
       const [domain, reason] = await Promise.all([days.domainOf(site.siteId), days.reasonOn(site.siteId, date)]);
       const { reportIncident } = await import("@/lib/mail/ops");
@@ -261,6 +284,19 @@ function databaseDraftDayStore(): DraftDayStore {
       const { data, error } = await publishDb().from<{ domain: string }>("sites").select("domain").eq("id", siteId).limit(1);
       if (error !== null) throw new Error(error.message);
       return data?.[0]?.domain ?? null;
+    },
+    async waitingForAddress(siteId) {
+      const { data, error } = await publishDb()
+        .from<{ kind: string; health_reason: string | null; hostname: string | null; hostname_state: string | null }>("destinations")
+        .select("kind, health_reason, hostname, hostname_state")
+        .eq("site_id", siteId)
+        .is("deleted_at", null)
+        .limit(1);
+      if (error !== null) throw new Error(error.message);
+      const row = data?.[0];
+      if (row === undefined) return false;
+      if (row.kind === "hosted") return row.hostname !== null && row.hostname_state !== "live";
+      return row.health_reason === "never_connected";
     },
     async lastDeliveredAt(siteId) {
       const { data, error } = await publishDb()

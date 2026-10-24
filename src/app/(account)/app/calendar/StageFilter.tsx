@@ -1,13 +1,8 @@
 // SPEC §7 (2026-09-20, #908, issue 930) — the stage filter, as chips with
 // their counts: All, Live, Your review, Scheduled, Planned, Needs you.
 //
-// The counts come from `MonthModel.counts`, which `assembleMonth` derives
-// from the very cells the grid renders — so the filter and the grid cannot
-// disagree about what is on the calendar (REQ-043 c6). Below `lg` Plan
-// draws this week and not the month (SPEC §7, 2026-10-08, issue 1340), so
-// each chip carries the week's count there, from the cells the list draws:
-// two numbers in the document and one on screen, chosen by the same media
-// query that chooses the list.
+// The counts are `WeekModel.counts`, derived from the very cells the week
+// draws, so the filter and the week cannot disagree (REQ-043 c6).
 //
 // **daisyUI `filter` for the row, `btn` chips inside it, and `<button>`
 // rather than `input[type=radio]`.** The component's radio form is written
@@ -37,11 +32,10 @@ import {
   TONE_DOT,
   type StageFilter as StageFilterId,
 } from "./stages";
-import type { MonthModel } from "./month";
+import type { WeekModel } from "./month";
 
 export function StageFilter(p: {
-  counts: MonthModel["counts"];
-  weekCounts: MonthModel["counts"];
+  counts: WeekModel["counts"];
   selected: StageFilterId;
   onSelect: (filter: StageFilterId) => void;
 }): React.JSX.Element {
@@ -62,11 +56,8 @@ export function StageFilter(p: {
               <span className={`size-1.5 shrink-0 rounded-full ${TONE_DOT[STAGE_TONE[filter]]}`} aria-hidden />
             )}
             <span>{copy(STAGE_FILTER_COPY_KEY[filter])}</span>
-            <span className="num text-[11px] hidden opacity-70 lg:inline" data-testid={`stage-count-${filter}`}>
+            <span className="num text-[11px] opacity-70" data-testid={`stage-count-${filter}`}>
               {p.counts[filter]}
-            </span>
-            <span className="num text-[11px] opacity-70 lg:hidden" data-testid={`stage-week-count-${filter}`}>
-              {p.weekCounts[filter]}
             </span>
           </button>
         );

@@ -69,10 +69,21 @@ export const SEGMENT_FIXTURES: Readonly<Record<string, string>> = {
   /**
    * Issue 1458: one comparison, one teardown and the answer page. Each is
    * the longest of its kind's shapes: a full table, four sections, a FAQ.
+   * The comparison is the one board PubCompareTool draws, chat sketch and all.
    */
-  "[tool]": "moz-competitive-research",
+  "[tool]": "chatgpt",
   "[site]": "plausible",
   "[question]": "free-seo-competitor-analysis-tool",
+};
+
+/**
+ * Further values a dynamic segment is also swept at, beside its
+ * `SEGMENT_FIXTURES` row: a page whose boxes grow with the value is measured
+ * at the longest one the stored data holds.
+ */
+export const EXTRA_SEGMENT_VALUES: Readonly<Record<string, readonly string[]>> = {
+  /** The longest tool name in `_library/compare/suites.ts`. */
+  "[tool]": ["seobility-competitor-analysis"],
 };
 
 /**
@@ -121,7 +132,9 @@ export const ROUTE_REFERENCE: Readonly<Record<string, `S${number}`>> = {
    */
   "/compare": "S5",
   /** REFERENCE: S5 (issue 1458) */
-  "/compare/moz-competitive-research": "S5",
+  "/compare/chatgpt": "S5",
+  /** REFERENCE: S5 (issue 1458) */
+  "/compare/seobility-competitor-analysis": "S5",
   /** REFERENCE: S5 (issue 1458) */
   "/teardowns": "S5",
   /** REFERENCE: S5 (issue 1458) */
@@ -225,6 +238,8 @@ export const ROUTE_REFERENCE: Readonly<Record<string, `S${number}`>> = {
    * fixture holds a page address longer than a phone is wide.
    */
   "/app/issues": "S18",
+  /** REFERENCE: S18 — Settings, the nearest approved screen: the owner's review, cards of rows; the sweep's account is an owner in CI. */
+  "/app/review": "S18",
   /**
    * REFERENCE: S19 — Hosted page (§S19; REQ-059).
    *
@@ -426,6 +441,7 @@ function walk(dir: string, out: string[]): void {
 
 export interface EnumerateOptions {
   segmentFixtures?: Readonly<Record<string, string>>;
+  extraSegmentValues?: Readonly<Record<string, readonly string[]>>;
   hostFixtures?: Readonly<Record<string, string>>;
   /** The `Cookie` header to give every `(account)` route. The browser
    *  sweep passes the seeded session; everything else takes the fixture. */
@@ -440,6 +456,7 @@ export interface EnumerateOptions {
  */
 export function enumerateRoutes(appRoot: string, options: EnumerateOptions = {}): EnumeratedRoute[] {
   const segmentFixtures = options.segmentFixtures ?? SEGMENT_FIXTURES;
+  const extraSegmentValues = options.extraSegmentValues ?? EXTRA_SEGMENT_VALUES;
   const hostFixtures = options.hostFixtures ?? HOST_FIXTURES;
   const accountCookie = options.accountCookie ?? ACCOUNT_SESSION_COOKIE;
 
@@ -449,12 +466,12 @@ export function enumerateRoutes(appRoot: string, options: EnumerateOptions = {})
     (file) => !path.relative(appRoot, file).split(path.sep).join("/").startsWith(CACHED_ARTICLE_DIR)
   );
 
-  const routes = pageFiles.map((file): EnumeratedRoute => {
+  const routes = pageFiles.flatMap((file): EnumeratedRoute[] => {
     const rel = path.relative(appRoot, path.dirname(file));
     const segments = rel === "" ? [] : rel.split(path.sep);
     const fsRoute = path.relative(process.cwd(), file).split(path.sep).join("/");
 
-    const urlSegments: string[] = [];
+    let urlPaths: string[][] = [[]];
     let host: string | undefined;
     let cookie: string | undefined;
 
@@ -483,17 +500,19 @@ export function enumerateRoutes(appRoot: string, options: EnumerateOptions = {})
             `dynamic segment ${segment} has no fixture row in routes.ts's SEGMENT_FIXTURES`
           );
         }
-        urlSegments.push(value);
+        const values = [value, ...(extraSegmentValues[segment] ?? [])];
+        urlPaths = urlPaths.flatMap((prefix) => values.map((v) => [...prefix, v]));
       } else {
-        urlSegments.push(segment);
+        urlPaths = urlPaths.map((prefix) => [...prefix, segment]);
       }
     }
 
-    const urlPath = "/" + urlSegments.join("/");
-    const route: EnumeratedRoute = { path: urlPath };
-    if (host !== undefined) route.host = host;
-    if (cookie !== undefined) route.cookie = cookie;
-    return route;
+    return urlPaths.map((urlSegments) => {
+      const route: EnumeratedRoute = { path: "/" + urlSegments.join("/") };
+      if (host !== undefined) route.host = host;
+      if (cookie !== undefined) route.cookie = cookie;
+      return route;
+    });
   });
 
   // Rule 5.5: the count this function enumerated is reported, not left to

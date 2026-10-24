@@ -8,7 +8,7 @@
 // text, the opportunity read, the cost ledger and the database the row lives
 // in (the generation store's in-memory double).
 import "../../generate/env";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 const { llmMock, readMeasuredTextMock } = vi.hoisted(() => ({
   llmMock: vi.fn(),
@@ -86,7 +86,7 @@ function row(draftId: string) {
   return store.rows.get(draftId) as unknown as Record<string, unknown> & { meta: Record<string, unknown> };
 }
 
-beforeEach(() => {
+function arrange() {
   store.rows.clear();
   store.patches.length = 0;
   store.site = { ...store.site!, doNotClaim: [] };
@@ -94,13 +94,25 @@ beforeEach(() => {
   readMeasuredTextMock.mockResolvedValue([{ url: GROUNDED.url, text: SOURCE_TEXT, measuredAt: AT }]);
   setGenerateStore(store);
   signedInAs({ ...LIVE_ACCOUNT, siteId: SITE_ID });
-});
+}
 
-afterEach(() => {
+function release() {
   setGenerateStore(null);
   resetAccount();
   vi.clearAllMocks();
-});
+}
+
+// The save path and §8's pipeline import lazily; one throwaway save pays that cold load here, not inside the first case's 5 s.
+// About 8 s cold on a loaded box, so the hook gets more than its 10 s default.
+beforeAll(async () => {
+  arrange();
+  const draftId = await draftInReview();
+  await draftStore.save({ draftId, title: "A title", bodyMd: `${row(draftId).body_md}\n\nMore.`, description: "A description." });
+  release();
+}, 30_000);
+
+beforeEach(arrange);
+afterEach(release);
 
 describe("#789 — the editor's save persists the title, the body and the meta description", () => {
   it("writes all three, keeps the generated body, stamps the edit, and leaves the state and veto window alone", async () => {

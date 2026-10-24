@@ -68,6 +68,7 @@ function facts(over: Partial<CalendarFacts> = {}): CalendarFacts {
     now: NOW,
     stop: null,
     drafts: [],
+    spares: [],
     instructions: {},
     stoppedDays: [],
     heldDays: [],

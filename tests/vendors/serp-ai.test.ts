@@ -246,6 +246,23 @@ describe("ADR-094 decision 3a — a flagged call reserves the surcharge and sett
   });
 });
 
+describe("owner B2 — a page's own search is read deeper, billed per page of ten", () => {
+  it("asks the vendor for depth 100, reserves ten pages and one surcharge, and is never served a ten-deep read", async () => {
+    const stub = stubVendorFetch(() => envelope({ items: [organic(64, "content.example.com")] }));
+    const { ctx, calls, ledgered } = fakeCostContext();
+    const args = { locale: { country: "US", language: "en" }, query: "water heater repair", mode: "live", loadAsyncAiOverview: true, scope: SCOPE, freshnessDays: WINDOW() } as const;
+    await serp.serpOrganic(ctx, { ...args, depth: 100 });
+    await serp.serpOrganic(ctx, args);
+
+    expect(stub.tasks.map((task) => task.depth)).toEqual([100, 10]);
+    const base = constants.PRICE_BOOK.SERP_LIVE_C;
+    expect(calls[0]?.costCents).toBeCloseTo(base * (10 + constants.ASYNC_AIO_SURCHARGE_MULTIPLIER - 1), 9);
+    // No asynchronous overview came back, so the surcharge is refunded.
+    expect(ledgered[0]).toBeCloseTo(base * 10, 9);
+    expect(calls[0]?.cacheKey).not.toBe(calls[1]?.cacheKey);
+  });
+});
+
 describe("issue 1352 — a queued read somebody is waiting for", () => {
   const waited = () => ({
     locale: { country: "US", language: "en" } as const,

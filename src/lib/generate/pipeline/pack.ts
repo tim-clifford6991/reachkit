@@ -20,10 +20,16 @@
 // 1143) is counted here, over the pack, before the write call: the facts
 // whose words are on none of the top results the research step read.
 //
+// **What the pages above an update cover** (issue 1521): on a refresh of a
+// page that is close, unmet or has lost its place, the pack carries `gaps` —
+// the subtopics two or more of the top results head a section with that the
+// live page heads none with, each with the claims of the pack it may be
+// written from. A gap no claim speaks to is not carried.
+//
 // Pure. The reads are the caller's (`../index.ts`, `scripts/page/`).
-import { LANGUAGE_PACKS, SHAPES, languagePack, modelInstruction } from "@/lib/locale/language";
+import { SHAPES, modelInstruction } from "@/lib/locale/language";
 import type { Language, Locale } from "@/lib/locale/locales";
-import { ADDS, PACK, RIVAL_PRICE_MAX_AGE_D } from "@/lib/config/constants";
+import { ADDS, HEADING_GAPS, PACK, RIVAL_PRICE_MAX_AGE_D } from "@/lib/config/constants";
 import { promptTemplateOf } from "@/lib/market/prompts/generate";
 import { misstatedFacts, siteFactsOf } from "@/lib/market/prompts/misstated";
 import { GENERIC_TOKENS, brandOf } from "@/lib/market/questions/select";
@@ -35,6 +41,7 @@ import type { StoredReport } from "@/lib/scan/report";
 import { isAccountPage } from "@/lib/site-profile/knowledge/priority";
 import { derivePurpose } from "@/lib/site-profile/purpose";
 import type { LinkTarget } from "../links/select";
+import { headingLines, sameSubtopic, subtopicOf, topicWords } from "../rules/gaps";
 import { alikeHeadings } from "../rules/headings";
 import { renderOf } from "../rules/text";
 import { TEMPLATES, type PackNeed, type PackRequirement } from "../templates";
@@ -99,6 +106,25 @@ export interface PackLivePage {
    *  it was not a research page. The refresh may state none of their
    *  measurements. Absent reads as none. */
   reportPassages?: string[];
+  /** Issue 1521: the refresh cause its row records (`RefreshCause`), where
+   *  it is one of ours. Absent on any other update. */
+  cause?: string;
+  /** The page's own place for its search when its refresh was planned.
+   *  Absent where none was read. */
+  place?: number;
+  /** Issue 1521 (as 1507): the date the live version is dated as. A refresh
+   *  that changes nothing it says keeps it. Absent where it is not known. */
+  datedAs?: string;
+}
+
+/** One subtopic the pages above an update cover and it does not (issue
+ *  1521): a heading as the highest-placed of them words it, how many of the
+ *  top results head a section with it, and the addresses of the pack's
+ *  claims a section on it may be written from. */
+export interface PackGap {
+  heading: string;
+  coveredBy: number;
+  claims: string[];
 }
 
 /** One fact the pack holds that the top results do not state (D12). */
@@ -166,6 +192,9 @@ export interface ContextPack {
   voice?: PageVoice;
   measurements: PackMeasurements | null;
   live: PackLivePage | null;
+  /** Issue 1521: on a refresh that may grow, the subtopics it may add a
+   *  section on. Absent on every other pack, and where there are none. */
+  gaps?: PackGap[];
   adds: AddsRecord;
   /** What the template's *pack must hold* line asks that this pack lacks. */
   missing: PackNeed[];
@@ -211,28 +240,7 @@ export function packStatements(pack: ContextPack): string[] {
   ].filter((text) => text !== "");
 }
 
-// The English words every pack was read by, and each other supported
-// language's function words beside them (D66): a pack does not say which
-// language a stored title or question is in.
-const STOP = new Set([
-  ..."a an and are as at be best but by can do does for from how i in is it my of on or our that the to top vs was we what when which who why will with you your".split(" "),
-  ...LANGUAGE_PACKS.filter((pack) => pack.language !== "en").flatMap((pack) => [...pack.stopWords]),
-]);
-
-const ENGLISH = languagePack("en");
-
-/** The content words of a text: what tells two topics apart. */
-export function topicWords(text: string): Set<string> {
-  return new Set(
-    text
-      .toLowerCase()
-      .split(/[^\p{L}\p{N}]+/u)
-      .filter((word) => word.length > 2 && !STOP.has(word))
-      // Issue 1477: "engines" is "engine", as "services" is "service" — the
-      // language pack's own plural, never a cut "es" ("engin").
-      .map(ENGLISH.stem)
-  );
-}
+export { topicWords };
 
 function shares(words: ReadonlySet<string>, text: string): boolean {
   if (words.size === 0) return true;
@@ -537,9 +545,39 @@ function ownTopicWords(pack: Omit<ContextPack, "missing">): Set<string> {
   return own(`${pack.business.category} ${typeof market?.job === "string" ? market.job : ""}`);
 }
 
+/**
+ * The rivals a "vs" search sets against each other without the business
+ * (owner ruling R31), each by name and domain; empty on any other search.
+ */
+export function rivalsOnlyVersus(pack: Pick<ContextPack, "target" | "business">): NamedRival[] {
+  const search = (pack.target.searches[0] ?? pack.target.question).toLowerCase();
+  if (!SHAPES.versus.test(search)) return [];
+  const own = { name: pack.business.name ?? brandOf(pack.business.domain), domain: pack.business.domain };
+  if (namesRival(search, own) || namesRival(search, { name: brandOf(pack.business.domain), domain: pack.business.domain })) return [];
+  const market = pack.business.market as { rivals?: unknown } | null;
+  const listed = Array.isArray(market?.rivals) ? (market.rivals as { name?: unknown; domain?: unknown }[]) : [];
+  const rivals: NamedRival[] = [];
+  for (const rival of [
+    ...listed.flatMap((each) => (typeof each.name === "string" && typeof each.domain === "string" ? [{ name: each.name, domain: each.domain }] : [])),
+    ...pack.business.rivals.map((domain) => ({ name: brandOf(domain), domain })),
+  ]) {
+    if (!rivals.some((known) => known.domain === rival.domain) && namesRival(search, rival)) rivals.push(rival);
+  }
+  return rivals.length >= 2 ? rivals : [];
+}
+
+/** A claim about a rival read first-hand: off its own site, or off a study
+ *  or a primary source about it — never off a top search result. */
+function firstHand(claim: PackClaim, domain: string): boolean {
+  if (claim.kind === "top_result") return false;
+  return claim.product === domain || ((claim.kind === "study" || claim.kind === "primary") && claim.about === domain);
+}
+
 function holds(requirement: PackRequirement, pack: Omit<ContextPack, "missing">, previousResearch: PackMeasurements | null): boolean {
   const knowledge = pack.profile?.knowledge;
   switch (requirement.need) {
+    case "rival_evidence":
+      return rivalsOnlyVersus(pack).every((rival) => pack.claims.some((claim) => firstHand(claim, rival.domain)));
     case "options":
       // D47: the options are the ones code can lay a table out of — the
       // business and that many rivals, each with a fact to set beside it.
@@ -624,7 +662,9 @@ export function correctionsFor(a: {
 
 /** What the template asks of the pack that it does not hold, by handle. */
 export function missingFrom(pack: Omit<ContextPack, "missing">, previousResearch: PackMeasurements | null = null): PackNeed[] {
-  return TEMPLATES[pack.type].packMustHold.filter((requirement) => !holds(requirement, pack, previousResearch)).map((requirement) => requirement.need);
+  // R31: every page but an update, whatever its template, is held to it.
+  const held: PackRequirement[] = [...TEMPLATES[pack.type].packMustHold, ...(pack.type === "update" ? [] : [{ need: "rival_evidence" as const }])];
+  return held.filter((requirement) => !holds(requirement, pack, previousResearch)).map((requirement) => requirement.need);
 }
 
 export interface PackInputs {
@@ -686,7 +726,7 @@ export function freshFirst<T extends { fact: { passage: string } }>(facts: reado
  * The stored-row check of issue 1509: of the business-fact passages a live
  * page states (its pack's facts found word for word in its text), the share
  * also stated on `PACK.repeatedOn` or more of the site's other live pages.
- * `null` for a page that states none. Held to `REPEATED_FACT_SHARE_MAX`.
+ * `null` for a page that states none.
  */
 export function repeatedFactShare(a: { markdown: string; facts: readonly string[]; others: readonly string[] }): number | null {
   const page = pageText(a.markdown);
@@ -694,6 +734,74 @@ export function repeatedFactShare(a: { markdown: string; facts: readonly string[
   if (stated.length === 0) return null;
   const others = a.others.map(pageText);
   return stated.filter((passage) => statedOn(passage, others) >= PACK.repeatedOn).length / stated.length;
+}
+
+/** The refresh causes whose update may add sections from `gaps` and grow
+ *  up to `HEADING_GAPS.growShare` (owner, 2026-10-18, issue 1521). */
+export const GROWING_CAUSES: readonly string[] = Object.freeze(["close", "unmet", "lost_position"]);
+
+/** Whether an update's live page may grow by new sections (issue 1521):
+ *  only near page one, where the extra write and fix are worth paying for. */
+export function grows(live: Pick<PackLivePage, "cause" | "linkTo" | "place"> | null): boolean {
+  const near = HEADING_GAPS.nearPageOne;
+  return (
+    live !== null &&
+    live.linkTo === undefined &&
+    GROWING_CAUSES.includes(live.cause ?? "") &&
+    live.place !== undefined &&
+    live.place >= near.min &&
+    live.place <= near.max
+  );
+}
+
+/**
+ * What the pages above an update cover and it does not (issue 1521): each
+ * subtopic that `HEADING_GAPS.coveredBy` or more of the top results head a
+ * section with and no H2 or H3 of the live page does, most covered first, at
+ * most `HEADING_GAPS.sectionsMax`. A subtopic that is only the target's own
+ * words is the page's subject, not a gap. Each gap carries the claims whose
+ * passage holds half its words beside the target's, rounded down, and never
+ * fewer than one; one no claim speaks to is left out, so no section is
+ * written on nothing. Pure.
+ */
+export function headingGaps(a: {
+  topResults: readonly { url: string; headings?: readonly string[] }[];
+  live: string;
+  target: string;
+  claims: readonly Pick<PackClaim, "passage" | "url">[];
+}): PackGap[] {
+  const target = topicWords(a.target);
+  const clusters: { heading: string; words: Set<string>; results: Set<number> }[] = [];
+  a.topResults.forEach((result, index) => {
+    for (const heading of result.headings ?? []) {
+      const words = subtopicOf(heading);
+      if (words.size === 0 || [...words].every((word) => target.has(word))) continue;
+      const held = clusters.find((cluster) => sameSubtopic(cluster.words, words));
+      if (held === undefined) clusters.push({ heading: heading.replace(/\s+/g, " ").trim(), words, results: new Set([index]) });
+      else held.results.add(index);
+    }
+  });
+  const liveTopics = headingLines(a.live).map(subtopicOf);
+  return clusters
+    .filter((cluster) => cluster.results.size >= HEADING_GAPS.coveredBy && !liveTopics.some((words) => sameSubtopic(words, cluster.words)))
+    .map((cluster) => {
+      const own = [...cluster.words].filter((word) => !target.has(word));
+      const needed = Math.max(1, Math.floor(own.length / 2));
+      const claims = [
+        ...new Set(
+          a.claims
+            .filter((claim) => {
+              const said = topicWords(claim.passage);
+              return own.filter((word) => said.has(word)).length >= needed;
+            })
+            .map((claim) => claim.url)
+        ),
+      ].slice(0, HEADING_GAPS.sectionsMax);
+      return { heading: cluster.heading, coveredBy: cluster.results.size, claims };
+    })
+    .filter((gap) => gap.claims.length > 0)
+    .sort((x, y) => y.coveredBy - x.coveredBy)
+    .slice(0, HEADING_GAPS.sectionsMax);
 }
 
 /** Whether a claim is a rival's price read too long ago to state (D59):
@@ -750,6 +858,11 @@ export function buildPack(a: PackInputs): ContextPack {
     ...(fact.source === undefined ? {} : { source: fact.source }),
   }));
   const newPage = a.opportunity.family === "write" || a.opportunity.family === "earn";
+  // Issue 1521: what the pages above a growing refresh cover.
+  const gaps =
+    a.type === "update" && a.live != null && grows(a.live)
+      ? headingGaps({ topResults: a.research.topResults ?? [], live: a.live.markdown, target: question, claims })
+      : [];
   const pack: Omit<ContextPack, "missing"> = {
     version: 1,
     type: a.type,
@@ -799,6 +912,7 @@ export function buildPack(a: PackInputs): ContextPack {
     }),
     measurements: a.type === "research" ? measurementsOf(a.report) : null,
     live: a.live ?? null,
+    ...(gaps.length === 0 ? {} : { gaps }),
     adds: packAdds({
       facts,
       claims,

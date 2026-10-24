@@ -54,7 +54,8 @@ export interface StaleJob {
 
 /**
  * How often a cron expression fires, in minutes — for the shapes the
- * registry uses: `*\/N * * * *`, `M * * * *`, `M H * * *`, `M H * * D`.
+ * registry uses: `*\/N * * * *`, an evenly spaced `M,M,… * * * *`,
+ * `M * * * *`, `M H * * *`, `M H * * D`.
  * `null` for anything else; `tests/jobs/heartbeat.test.ts` asserts every
  * registered cron resolves, so a new shape cannot go unwatched quietly.
  */
@@ -67,6 +68,11 @@ export function cronIntervalMinutes(cron: string): number | null {
   if (step !== null && hour === "*" && dayOfWeek === "*") {
     const n = Number(step[1]);
     return n >= 1 && n <= 60 ? n : null;
+  }
+  if (/^\d+(,\d+)+$/.test(minute) && hour === "*" && dayOfWeek === "*") {
+    const at = minute.split(",").map(Number);
+    const gap = 60 / at.length;
+    return at.every((m, i) => m <= 59 && m === at[0]! + i * gap) ? gap : null;
   }
   if (!/^\d+$/.test(minute)) return null;
   if (hour === "*") return dayOfWeek === "*" ? 60 : null;

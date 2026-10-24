@@ -48,10 +48,26 @@ export async function queueForDraft(opportunityId: string): Promise<void> {
   if (page.clusterKey !== null) await store.setCluster(page.id, page.clusterKey, [...absorbed].sort());
 }
 
+/** A draft for this opportunity is being saved: it leaves the open set
+ *  first, so a planned stop that lands later is refused. `save` is `false`
+ *  where a stop came first and no draft may be saved; `claimed` says this
+ *  call moved the row, so only this call may give it back. */
+export async function claimForDraft(opportunityId: string): Promise<{ save: boolean; claimed: boolean }> {
+  const store = opportunityStore();
+  const claimed = await store.markQueued(opportunityId);
+  return { save: (await store.byId(opportunityId))?.status !== "dismissed", claimed };
+}
+
+/** The draft a claim was taken for was never saved: the page is open again
+ *  for the plan, unless a stop or a publish moved it since. */
+export async function giveBackClaim(opportunityId: string): Promise<void> {
+  await opportunityStore().reopenIfQueued(opportunityId);
+}
+
 /** The customer stopped the draft written from this opportunity: it is not
  *  offered again the next evening, and nothing is spent on it twice. */
 export async function dismissForVeto(opportunityId: string): Promise<void> {
-  await opportunityStore().markDismissed(opportunityId);
+  await opportunityStore().markDismissed(opportunityId, { stopped: true });
 }
 
 const MS_PER_DAY = 86_400_000;
@@ -61,5 +77,12 @@ const MS_PER_DAY = 86_400_000;
  *  refused, only the page, so the row stays on file — and is not offered
  *  for a day again until the rest is over. */
 export async function restTopic(opportunityId: string, at: Date): Promise<void> {
-  await opportunityStore().rest(opportunityId, new Date(at.getTime() + TOPIC_REST_DAYS * MS_PER_DAY));
+  const store = opportunityStore();
+  // A customer's own edit is never written by the generator: resting it would hand the planner a paid refresh nobody asked for.
+  const row = await store.byId(opportunityId);
+  if ((row?.evidence as { shortfall?: { cause?: unknown } } | null | undefined)?.shortfall?.cause === "edited") {
+    await store.markDismissed(opportunityId);
+    return;
+  }
+  await store.rest(opportunityId, new Date(at.getTime() + TOPIC_REST_DAYS * MS_PER_DAY));
 }

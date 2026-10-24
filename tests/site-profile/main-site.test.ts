@@ -137,3 +137,149 @@ describe("issue 1509 — the about and team pages, where a page's author may be 
   });
 });
 
+
+describe("the book and quote pages the main site's own header or nav links", () => {
+  const actionsOf = (domain: string, homeUrl: string, body: string) =>
+    readMainSite({ domain, homeUrl, homeHtml: `<html><body>${body}</body></html>`, pages: [], ours: OURS }).actions;
+
+  it("a local plumber: its own book and estimate pages, book first, with no tracking parameter", () => {
+    const nav = [
+      "<header><nav>",
+      '<a href="tel:+15125550142">Call (512) 555-0142</a>',
+      '<a href="/get-a-quote">Free estimate</a>',
+      '<a href="https://www.harborplumbing.com/schedule?utm_source=nav&amp;zip=78701#form">Book online</a>',
+      "</nav></header>",
+    ].join("");
+    expect(actionsOf("harborplumbing.com", "https://www.harborplumbing.com/", nav)).toEqual([
+      { kind: "book", url: "https://www.harborplumbing.com/schedule?zip=78701", book: "visit" },
+      { kind: "quote", url: "https://www.harborplumbing.com/get-a-quote" },
+    ]);
+  });
+
+  it("a German Handwerker: Termin and Kostenvoranschlag, by its own words", () => {
+    const nav = '<nav><a href="/kontakt">Kontakt</a><a href="/termin">Jetzt Termin vereinbaren</a><a href="/anfrage">Angebot anfordern</a></nav>';
+    expect(actionsOf("mueller-sanitaer.de", "https://mueller-sanitaer.de/", nav)).toEqual([
+      { kind: "book", url: "https://mueller-sanitaer.de/termin", book: "visit" },
+      { kind: "quote", url: "https://mueller-sanitaer.de/anfrage" },
+    ]);
+  });
+
+  it("a SaaS whose demo is booked on a scheduling host links nothing: the page is not on its own site", () => {
+    const nav = '<header><a href="/pricing">Pricing</a><a href="https://calendly.com/acme/demo">Book a demo</a><a href="/login">Log in</a></header>';
+    expect(actionsOf("acmescheduling.io", "https://acmescheduling.io/", nav)).toEqual([]);
+  });
+
+  it("book sub-kinds: a demo, a call and a visit, each by its own address or words", () => {
+    const book = (body: string) => actionsOf("example.com", "https://example.com/", `<header>${body}</header>`);
+    expect(book('<a href="/demo">Book a demo</a>')).toEqual([{ kind: "book", url: "https://example.com/demo", book: "demo" }]);
+    expect(book('<a href="/book-a-call">Schedule a call</a>')).toEqual([{ kind: "book", url: "https://example.com/book-a-call", book: "call" }]);
+    expect(book('<a href="/booking">Book now</a>')).toEqual([{ kind: "book", url: "https://example.com/booking", book: "visit" }]);
+    expect(book('<a href="/termin">Beratungstermin vereinbaren</a>')).toEqual([{ kind: "book", url: "https://example.com/termin", book: "call" }]);
+  });
+
+  it("a word that only starts like demo or call books a visit: a demolition contractor, a callout plumber", () => {
+    const book = (body: string) => actionsOf("example.com", "https://example.com/", `<header>${body}</header>`);
+    expect(book('<a href="/booking">Book demolition</a>')).toEqual([{ kind: "book", url: "https://example.com/booking", book: "visit" }]);
+    expect(book('<a href="/booking">Book a callout</a>')).toEqual([{ kind: "book", url: "https://example.com/booking", book: "visit" }]);
+  });
+
+  it("a stored sub-kind reads back; a quote, or a sub-kind that does not parse, carries none", () => {
+    const actions = mainSiteOf({
+      home: "https://example.com/",
+      actions: [
+        { kind: "book", url: "https://example.com/demo", book: "demo" },
+        { kind: "quote", url: "https://example.com/quote", book: "call" },
+      ],
+    })?.actions;
+    expect(actions).toEqual([
+      { kind: "book", url: "https://example.com/demo", book: "demo" },
+      { kind: "quote", url: "https://example.com/quote" },
+    ]);
+    expect(mainSiteOf({ home: "https://example.com/", actions: [{ kind: "book", url: "https://example.com/book", book: "trial" }] })?.actions).toEqual([
+      { kind: "book", url: "https://example.com/book" },
+    ]);
+  });
+
+  it("an address is linked once, under the first kind that names it", () => {
+    const nav = '<nav><a href="/contact">Book a visit</a><a href="/contact#quote">Get a quote</a></nav>';
+    expect(actionsOf("example.com", "https://example.com/", nav)).toEqual([{ kind: "book", url: "https://example.com/contact", book: "visit" }]);
+  });
+
+  it("a link outside the header and nav, or a word inside another word, is none", () => {
+    const body = '<nav><a href="https://www.facebook.com/example">Facebook</a><a href="/ebooks">Free eBook</a></nav><main><a href="/book">Book now</a></main>';
+    expect(actionsOf("example.com", "https://example.com/", body)).toEqual([]);
+  });
+
+  it("reads back what it stored; a reading stored before, or an entry that does not parse, has none", () => {
+    const read = readMainSite({
+      domain: "example.com",
+      homeUrl: "https://example.com/",
+      homeHtml: '<nav><a href="/book">Book</a></nav>',
+      pages: [],
+      ours: OURS,
+    });
+    expect(mainSiteOf(JSON.parse(JSON.stringify(read)))).toEqual(read);
+    expect(mainSiteOf({ home: "https://example.com/" })?.actions).toEqual([]);
+    expect(
+      mainSiteOf({ home: "https://example.com/", actions: [{ kind: "book", url: "javascript:x" }, { kind: "call", url: "https://example.com/" }] })?.actions
+    ).toEqual([]);
+  });
+});
+
+describe("the phone number the main site states", () => {
+  const phoneOn = (body: string) =>
+    readMainSite({ domain: "example.com", homeUrl: "https://example.com/", homeHtml: `<html><body>${body}</body></html>`, pages: [], ours: OURS }).phone;
+  const ld = (node: Record<string, unknown>) => `<script type="application/ld+json">${JSON.stringify(node)}</script>`;
+
+  it("a local plumber: its JSON-LD telephone, as written, before any tel: link", () => {
+    expect(phoneOn(`${ld({ "@type": "Plumber", name: "Harbor", telephone: "(512) 555-0142" })}<a href="tel:+15125550199">Call</a>`)).toBe("(512) 555-0142");
+  });
+
+  it("a German Handwerker with no markup: its first tel: link", () => {
+    expect(phoneOn('<header><a href="tel:+49%20211%20123456">Anrufen</a></header><a href="tel:0800">x</a>')).toBe("+49 211 123456");
+  });
+
+  it("a SaaS that states none, or states a word, has none", () => {
+    expect(phoneOn('<a href="/signup">Start free</a>')).toBeNull();
+    expect(phoneOn(`${ld({ "@type": "Organization", name: "Tally", telephone: "call us" })}`)).toBeNull();
+  });
+
+  it("third-party telephone: a review platform's Organization, an author or a venue never lends the business its number", () => {
+    const platform = ld({ "@type": "Organization", name: "ReviewHub", url: "https://reviewhub.example.net/", telephone: "+1 800 555 0100" });
+    const author = ld({ "@type": "Person", name: "Dana", url: "https://example.com/about/dana", telephone: "+1 512 555 0177" });
+    const venue = ld({ "@type": "MusicEvent", name: "Open day", url: "https://example.com/events/open-day", telephone: "+1 512 555 0188" });
+    const place = ld({ "@type": "Place", name: "Our yard", url: "https://example.com/visit", telephone: "+1 512 555 0166" });
+    const plumber = ld({ "@type": "Plumber", name: "Harbor Plumbing", telephone: "(512) 555-0142" });
+    expect(phoneOn(`${platform}${author}${venue}${place}${plumber}`)).toBe("(512) 555-0142");
+    expect(phoneOn(`${platform}${author}${venue}`)).toBeNull();
+    expect(phoneOn(place)).toBeNull();
+  });
+
+  it("a SaaS's own Organization, named by its own @id, still gives its number", () => {
+    const own = ld({ "@type": "Organization", "@id": "https://example.com/#organization", name: "Tally", telephone: "+1 415 555 0123" });
+    expect(phoneOn(own)).toBe("+1 415 555 0123");
+  });
+
+  it("a node on the site's own host gives the number the chosen Organization leaves out", () => {
+    const own = ld({ "@type": "Organization", "@id": "https://example.com/#organization", name: "Tally" });
+    const hq = ld({ "@type": "Corporation", "@id": "https://example.com/#hq", telephone: "+1 415 555 0123" });
+    expect(phoneOn(`${own}${hq}`)).toBe("+1 415 555 0123");
+  });
+
+  it("a type written as a schema.org address is the same type: an author on the site never lends the number", () => {
+    const author = ld({ "@type": "https://schema.org/Person", name: "Dana", url: "https://example.com/about/dana", telephone: "+1 512 555 0177" });
+    expect(phoneOn(author)).toBeNull();
+  });
+
+  it("the tel: fallback reads the header or footer before a partner's link in a testimonial", () => {
+    const testimonial = '<main><blockquote>Great work, call my office <a href="tel:+15125550999">(512) 555-0999</a></blockquote></main>';
+    expect(phoneOn(`${testimonial}<footer><a href="tel:+15125550142">(512) 555-0142</a></footer>`)).toBe("+15125550142");
+    expect(phoneOn(`<aside><a href="tel:+15125550999">Partner</a></aside><main><a href="tel:+15125550142">Call</a></main>`)).toBe("+15125550142");
+  });
+
+  it("reads back what it stored; a reading stored before has none", () => {
+    expect(mainSiteOf({ home: "https://example.com/", phone: "(512) 555-0142" })?.phone).toBe("(512) 555-0142");
+    expect(mainSiteOf({ home: "https://example.com/" })?.phone).toBeNull();
+    expect(mainSiteOf({ home: "https://example.com/", phone: "<script>" })?.phone).toBeNull();
+  });
+});

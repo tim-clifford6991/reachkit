@@ -12,24 +12,17 @@
 # the push to `main` a merge makes: those jobs already ran on the pull request,
 # and a result that arrives after the merge cannot stop it (2026-09-24, #1052).
 #
-# **Where each job runs** (owner, 2026-09-25, #1113). The light jobs —
-# `what changed`, `typecheck · lint · unit` and `schema · RLS` — take their
-# runner from the repository variable `CI_LIGHT_RUNNER`: unset, or
-# `"ubuntu-latest"`, they run GitHub-hosted and in parallel; set to
-# `["self-hosted","reachkit-light"]` they run on the box's memory-capped
-# second runner. The browser job always runs on `reachkit`, the one runner
-# that takes it, so two browser sweeps never run at once (#1035, revised
-# 2026-09-25). When the month's hosted minutes run out the hosted jobs fail
-# with a billing error; the switch is one command, no code change:
-#   gh variable set CI_LIGHT_RUNNER --body '["self-hosted","reachkit-light"]'
-# and `gh variable delete CI_LIGHT_RUNNER` puts them back. `docs/RUNBOOK.md`
-# describes the timer that does this by itself. Every job has a timeout so a
-# hung one cannot hold a runner.
+# **Where each job runs** (owner, 2026-10-22). The repository is public, so
+# every job runs on `ubuntu-latest`: a self-hosted runner would run a fork's
+# pull request on the production box. No repository variable chooses the
+# runner. Every job has a timeout so a hung one cannot hold a runner.
 name: CI
 
 on:
   pull_request:
   workflow_dispatch:
+  # `layout-nightly.yml` calls this on `main`, where nothing is skipped.
+  workflow_call:
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -58,13 +51,20 @@ jobs:
   # `tests/ui`, `package*.json`, `next.config.*`, and the sweep itself (its
   # vitest config, migrations and substrate, its actions, this file). Both
   # lists are `scripts/ci-changes.mjs`, which prints why each path counts.
+  #
+  # **Only what the change reaches** (owner C1 and C3, 2026-10-19). `db` is
+  # true where a path can change the migrated schema or its suite; false
+  # skips `schema · RLS`. `unit` is `affected` unless a path reaches tests
+  # through no import; then, and off a pull request, it is `full`.
   changes:
     name: what changed
-    runs-on: ${{ fromJSON(vars.CI_LIGHT_RUNNER || '"ubuntu-latest"') }}
+    runs-on: ubuntu-latest
     timeout-minutes: 5
     outputs:
       code: ${{ steps.filter.outputs.code }}
       ui: ${{ steps.filter.outputs.ui }}
+      db: ${{ steps.filter.outputs.db }}
+      unit: ${{ steps.filter.outputs.unit }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -74,7 +74,7 @@ jobs:
           EVENT: ${{ github.event_name }}
         run: |
           if [ "$EVENT" != pull_request ]; then
-            printf 'code=true\nui=true\n' >> "$GITHUB_OUTPUT"; exit 0
+            printf 'code=true\nui=true\ndb=true\nunit=full\n' >> "$GITHUB_OUTPUT"; exit 0
           fi
           git diff --name-only HEAD^1 HEAD | node scripts/ci-changes.mjs
 
@@ -82,27 +82,72 @@ jobs:
     name: typecheck · lint · unit
     needs: changes
     if: ${{ !cancelled() && needs.changes.outputs.code != 'false' }}
-    runs-on: ${{ fromJSON(vars.CI_LIGHT_RUNNER || '"ubuntu-latest"') }}
+    runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
       - run: npm ci
+      # **Caches and two workers** (issue 1569). tsc is `incremental` in
+      # tsconfig.json and eslint runs with `--cache`; both files are kept
+      # between runs of a pull request. A checkout resets every mtime, so
+      # eslint compares content, not metadata. The key carries the lockfile,
+      # so a plugin upgrade starts cold. vitest runs two workers, and two
+      # workers push the whole-tree scans past vitest's 5 s default.
+      - uses: actions/cache@v4
+        with:
+          path: |
+            tsconfig.tsbuildinfo
+            .eslintcache
+          key: check-${{ runner.os }}-${{ hashFiles('package-lock.json') }}-${{ github.run_id }}
+          restore-keys: check-${{ runner.os }}-${{ hashFiles('package-lock.json') }}-
       - run: npm run typecheck
-      - run: npm run lint
-      - run: npx vitest run --project node --project ui
+      - run: npm run lint -- --cache --cache-strategy content
+      # `affected` hands `vitest related` the merge commit's surviving paths
+      # plus every suite that reads the tree from disk, which no import links
+      # to the diff; `full` (or a failed filter) runs them all. `test:unit` and
+      # `test:unit:related` are the unit commands, so an agent's run means what CI's does.
+      - name: unit tests (${{ needs.changes.outputs.unit || 'full' }})
+        env:
+          UNIT: ${{ needs.changes.outputs.unit }}
+        run: |
+          if [ "$UNIT" = affected ]; then
+            echo "unit=affected: the test files the diff reaches through an import run, and every test that walks files from disk; 'what changed' lists each path."
+            list=$(git diff --name-only --diff-filter=d HEAD^1 HEAD | node scripts/ci-changes.mjs --related)
+            mapfile -t files <<< "$list"
+            npm run test:unit:related -- "${files[@]}"
+          else
+            echo "unit=full: a path in the diff reaches tests through no import, or this is not a pull request; 'what changed' tags it 'full'."
+            npm run test:unit
+          fi
 
   no-overflow:
     name: no overflow · axe (390 / 768 / 1280, light and dark)
     needs: changes
     if: ${{ !cancelled() }}
-    # Where no screen can change it is a light job that says so and passes,
-    # so it never waits for the one browser runner to print that line.
-    runs-on: ${{ needs.changes.outputs.ui == 'false' && fromJSON(vars.CI_LIGHT_RUNNER || '"ubuntu-latest"') || fromJSON('["self-hosted","reachkit"]') }}
+    runs-on: ubuntu-latest
     timeout-minutes: 45
+    # The sweep's PostgreSQL 18 is this service, as in `db`; where no screen
+    # can change the image is empty and no container starts.
+    services:
+      postgres:
+        image: ${{ needs.changes.outputs.ui != 'false' && 'postgres:18' || '' }}
+        env:
+          POSTGRES_USER: reachkit
+          POSTGRES_PASSWORD: reachkit
+          POSTGRES_DB: reachkit_scratch
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U reachkit -d reachkit_scratch"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
     # **The fourth merge gate** (owner's ruling of 2026-09-21, closing #910;
     # `docs/PROCESS.md`'s Gates table is where it is written down), and the
     # one browser job there is. It runs the whole `layout` project: the
@@ -119,8 +164,8 @@ jobs:
     # unit job, as docs/DESIGN.md states. The owner looks for taste.
     #
     # **Where the data comes from.**
-    # `scripts/db-substrate/up.sh --run` against the box's own PostgreSQL 18,
-    # in a database of this job's own (#1013), with `tests/ui/layout/seed.ts`
+    # `scripts/db-substrate/up.sh --run` against the `postgres:18` service,
+    # with `tests/ui/layout/seed.ts`
     # applying the migrations and seeding the four accounts, and
     # `tests/ui/layout/auth-stub.ts` answering `getUser()` — the substrate
     # has no GoTrue. Nothing reaches a vendor.
@@ -144,8 +189,11 @@ jobs:
         uses: ./.github/actions/layout-suite
       # The whole `layout` project, the landing's script budget included
       # (#988).
+      # A pull request sweeps each width in one theme (`noOverflowCasesFor`).
       - name: every screen, hydrated — no overflow, axe, the five checks
         if: ${{ needs.changes.outputs.ui != 'false' }}
+        env:
+          RK_LAYOUT_PR: ${{ github.event_name == 'pull_request' && '1' || '' }}
         run: npm run test:layout
       - if: ${{ always() && needs.changes.outputs.ui != 'false' }}
         uses: ./.github/actions/db-substrate-down
@@ -153,21 +201,18 @@ jobs:
   db:
     name: schema · RLS (live Postgres)
     needs: changes
-    if: ${{ !cancelled() && needs.changes.outputs.code != 'false' }}
-    runs-on: ${{ fromJSON(vars.CI_LIGHT_RUNNER || '"ubuntu-latest"') }}
+    if: ${{ !cancelled() && needs.changes.outputs.db != 'false' }}
+    runs-on: ubuntu-latest
     timeout-minutes: 25
     # The `db` project asserts the schema against a live, migrated database.
     # `scripts/db-substrate/` is that database and the two services around it
     # — PostgREST and postgres-meta — so this job needs no Supabase CLI and no
-    # `supabase start`. Hosted, the PostgreSQL 18 is this job's own
-    # `postgres:18` service, `up.sh` starts PostgREST in Docker and installs
-    # postgres-meta from npm (#1113). On the box there is no Docker: the
-    # service's image is empty, which starts no container, and the substrate
-    # is a database of this job's own on the box's PostgreSQL 18 (#1013),
-    # dropped by the last step.
+    # `supabase start`. The PostgreSQL 18 is this job's own `postgres:18`
+    # service, `up.sh` starts PostgREST in Docker and installs postgres-meta
+    # from npm.
     services:
       postgres:
-        image: ${{ !contains(vars.CI_LIGHT_RUNNER, 'self-hosted') && 'postgres:18' || '' }}
+        image: postgres:18
         env:
           POSTGRES_USER: reachkit
           POSTGRES_PASSWORD: reachkit

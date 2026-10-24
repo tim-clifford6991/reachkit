@@ -75,10 +75,6 @@ function engineDouble(): Record<string, unknown> {
     scansLeftRunning: record("scansLeftRunning", []),
     finishScanLeftRunning: record("finishScanLeftRunning", done),
     // SPEC §8's retention sequence (issue #569).
-    accountsDueInactivity: record("accountsDueInactivity", []),
-    nudgeInactive: record("nudgeInactive", done),
-    draftsDueVetoReminder: record("draftsDueVetoReminder", []),
-    remindVeto: record("remindVeto", done),
     accountsDuePaymentFailed: record("accountsDuePaymentFailed", []),
     noticePaymentFailed: record("noticePaymentFailed", done),
     accountsDueCancellation: record("accountsDueCancellation", []),
@@ -200,7 +196,7 @@ describe("scan/run — the one pipeline, tier a parameter", () => {
 describe("weekly/refresh — an hourly tick, due per site-local Monday (ADR-060)", () => {
   it("is scheduled hourly, on no UTC hour of its own", async () => {
     const job = await definition("weekly/refresh");
-    expect(job.trigger).toEqual({ kind: "cron", cron: "0 * * * *" });
+    expect(job.trigger).toEqual({ kind: "cron", cron: "41 * * * *" });
   });
 
   it("starts one weekly scan per due site, keyed (site_id, week_start)", async () => {
@@ -254,7 +250,7 @@ describe("weekly/refresh — an hourly tick, due per site-local Monday (ADR-060)
 describe("draft/generate — the site's own due hour, the date its window ends on", () => {
   it("is an hourly tick and generates for the date whose publish time ends the window", async () => {
     const job = await definition("draft/generate");
-    expect(job.trigger).toEqual({ kind: "cron", cron: "0 * * * *" });
+    expect(job.trigger).toEqual({ kind: "cron", cron: "3 * * * *" });
     const outcome = await job.run({ data: {}, now: EVENING_UTC });
     expect(calls.filter((c) => c.fn === "generateDraft")).toEqual([
       { fn: "generateDraft", arg: { siteId: "site-1", publishDate: "2026-09-08", now: EVENING_UTC } },
@@ -391,11 +387,11 @@ describe("publish/execute and publish/verify", () => {
 });
 
 describe("lead/nurture — an hourly tick over due work (#182)", () => {
-  it("is a clock job on the hour, and carries no idempotency key", async () => {
+  it("is an hourly clock job, and carries no idempotency key", async () => {
     const job = await definition("lead/nurture");
     const { NURTURE_TICK_CRON } = await import("@/jobs/lead-nurture");
     expect(job.trigger).toEqual({ kind: "cron", cron: NURTURE_TICK_CRON });
-    expect(NURTURE_TICK_CRON).toBe("0 * * * *");
+    expect(NURTURE_TICK_CRON).toBe("26 * * * *");
     // A tick carries no payload, so there is no natural key to dedupe on:
     // what stops a double send is the row's own position check.
     expect(job.idempotencyKey).toEqual([]);
@@ -479,8 +475,6 @@ describe("account/maintenance — its due-work queries and hand-offs, no domain 
       "accountsDueForPurge",
       "sitesDueSetupReminder",
       "scansLeftRunning",
-      "accountsDueInactivity",
-      "draftsDueVetoReminder",
       "accountsDuePaymentFailed",
       "accountsDueCancellation",
       "accountsDueWinback",
@@ -507,7 +501,7 @@ describe("account/maintenance — its due-work queries and hand-offs, no domain 
 describe("scan/rescore — a request the master session wrote, answered by the deployed code (issue 1433)", () => {
   it("ticks every 15 minutes, and a tick with nothing asked is a recorded skip", async () => {
     const job = await definition("scan/rescore");
-    expect(job.trigger).toEqual({ kind: "cron", cron: "*/15 * * * *" });
+    expect(job.trigger).toEqual({ kind: "cron", cron: "7,22,37,52 * * * *" });
     await expect(job.run({ data: {}, now: EVENING_UTC })).resolves.toEqual({ outcome: "skipped", subjectId: null, reason: "no-subject" });
     expect(calls.map((c) => c.fn)).toEqual(["claimRescore"]);
   });
@@ -831,8 +825,6 @@ describe("nothing fakes work — an unbuilt engine fails loudly", () => {
     vi.doMock("@/lib/costs/vendor-days", () => ({ vendorDaysDue: async () => [], readVendorDay: async () => ({ done: true }) }));
     // SPEC §8's retention sequence (issue #569), stood in with nothing due.
     vi.doMock("@/lib/mail/retention", () => ({
-      accountsDueInactivity: async () => [],
-      draftsDueVetoReminder: async () => [],
       accountsDuePaymentFailed: async () => [],
       accountsDueCancellation: async () => [],
       accountsDueWinback: async () => [],

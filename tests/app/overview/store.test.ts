@@ -46,7 +46,7 @@ vi.mock("@/lib/opportunities", () => ({
   readWeek: (...a: unknown[]) => readWeek(...(a as [])),
 }));
 
-const { readOverviewFacts } = await import("@/app/(account)/app/_overview/store");
+const { readOverviewFacts, readWaitingIssues } = await import("@/app/(account)/app/_overview/store");
 
 const SITE_ID = "site-1";
 const ZONE = "UTC";
@@ -528,5 +528,101 @@ describe("the series carries the units of the arm the module will take", () => {
     const read = await facts();
     expect(read.rivals.rivals[0]?.series).toEqual([276, 78]);
     expect(read.rivals.rivals[0]?.series).not.toContain(null);
+  });
+});
+
+describe("the hosted address waiting for its record is read from the destination row", () => {
+  // A SaaS help centre and a local plumber's guides: the read is the same.
+  it.each(["help.acmecrm.com", "guides.harborplumbing.com"])(
+    "%s waiting for DNS is the address to connect, with the one record that connects it",
+    async (hostname) => {
+      db.seed("destinations", [
+        {
+          id: "dest-1",
+          site_id: SITE_ID,
+          kind: "hosted",
+          hostname,
+          hostname_state: "pending_dns",
+          hostname_checked_at: "2026-10-09T14:00:00.000Z",
+          created_at: "2026-10-08T15:00:00.000Z",
+          deleted_at: null,
+        },
+      ]);
+      const read = await facts();
+      expect(read.connect).toEqual({
+        hostname,
+        record: { type: "CNAME", name: hostname, value: "content.example.com" },
+        checkedAt: new Date("2026-10-09T14:00:00.000Z"),
+        since: new Date("2026-10-08T15:00:00.000Z"),
+      });
+    }
+  );
+
+  it("a live host, and a site with no hosted address, have nothing to connect", async () => {
+    db.seed("destinations", [
+      { id: "dest-1", site_id: SITE_ID, kind: "hosted", hostname: "help.acmecrm.com", hostname_state: "live", deleted_at: null },
+    ]);
+    expect((await facts()).connect).toBeNull();
+    db.seed("destinations", []);
+    expect((await facts()).connect).toBeNull();
+  });
+});
+
+describe("Technical issues read from the stored report and the destination row", () => {
+  it("a stored report with no site-issue section states no day and no count", async () => {
+    const stored = { ...report({ ownRanked: 40, citations: 1, at: WEEKS.sep07 }), siteIssues: null };
+    db.seed("scans", [weeklyScan(WEEKS.sep07, { report: stored })]);
+    db.seed("destinations", []);
+    vi.setSystemTime(NOW);
+    expect(await readWaitingIssues(SITE)).toEqual({ issues: [], pagesChecked: null, measuredAt: null, hostedHost: null });
+  });
+
+  // A SaaS help centre and a local plumber's guides: the read is the same.
+  it.each(["help.acmecrm.com", "guides.harborplumbing.com"])("a hosted site names %s, live or waiting", async (hostname) => {
+    db.seed("destinations", [
+      { id: "dest-1", site_id: SITE_ID, kind: "hosted", hostname, hostname_state: "pending_dns", deleted_at: null },
+    ]);
+    vi.setSystemTime(NOW);
+    expect((await readWaitingIssues(SITE)).hostedHost).toBe(hostname);
+  });
+});
+
+describe("the months-scale figures are the first Monday's weekly pass, against the scan", () => {
+  function scored(at: string, score: number, top10: number): Row {
+    return {
+      ...report({ ownRanked: 40, citations: 1, at }),
+      verdict: {
+        measuredAt: `${at}T09:00:00.000Z`,
+        scoreAndBand: { kind: "measured", value: { score, band: "hard-to-find" }, at: `${at}T09:00:00.000Z` },
+      },
+      presence: { measuredSearches: 12, you: { domain: "example.com", top10Count: top10 }, rivals: [], absentFrom: [], framing: "shown" },
+    };
+  }
+  const deep = (at: string, score: number, top10: number): Row => ({
+    ...weeklyScan(at, { report: scored(at, score, top10) }),
+    id: "scan-deep",
+    tier: "deep",
+    week_start: null,
+  });
+
+  it("reads the month's first Monday, never the newest week, and the scan's own figures", async () => {
+    db.seed("scans", [
+      deep("2026-08-12", 27, 0),
+      weeklyScan(WEEKS.aug31, { report: scored(WEEKS.aug31, 50, 3) }),
+      weeklyScan(WEEKS.sep07, { report: scored(WEEKS.sep07, 31, 1) }),
+    ]);
+    expect((await facts()).months).toEqual({
+      reading: { week: WEEKS.sep07, score: 31, market: { top10: 1, of: 12 } },
+      scan: { score: 27, market: 0 },
+      next: "2026-10-05",
+    });
+  });
+
+  it("before any first Monday is measured there is no reading, and the next is named", async () => {
+    db.seed("scans", [weeklyScan(WEEKS.aug24, { report: scored(WEEKS.aug24, 50, 3) }), weeklyScan(WEEKS.aug31, { report: scored(WEEKS.aug31, 50, 3) })]);
+    const { months } = await facts();
+    expect(months?.reading).toBeNull();
+    expect(months?.scan).toEqual({ score: null, market: null });
+    expect(months?.next).toBe("2026-10-05");
   });
 });

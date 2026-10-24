@@ -67,6 +67,8 @@ vi.mock("@/lib/publish/destinations/hosted", async () => {
 
 const Page = (await import("@/app/(hosted)/hosted-page/[[...slug]]/page")).default;
 const { COPY } = await import("@/lib/presentation/copy");
+const { readMainSite } = await import("@/lib/site-profile/main-site");
+const { mainSiteOf } = await import("@/lib/site-profile/main-site-row");
 
 const PASSAGE = "a non-engineer can ship a change";
 
@@ -193,7 +195,7 @@ describe("S19 — the customer is the publisher, and the page says so", () => {
     expect(await render()).toContain("published 5 Sep 2026");
   });
 
-  it("§8's recorded passage is marked in the body, and its source stated under it", async () => {
+  it("§8's recorded passage is marked in the body, and its source is a sentence linking to it (board R9)", async () => {
     const html = await render();
     // The map, not a second copy of its string: S16 and S19 draw the mark
     // from one shared class, and a hosted page that dressed it its own way
@@ -204,8 +206,17 @@ describe("S19 — the customer is the publisher, and the page says so", () => {
     // date is written in the customer's zone too, so the two dates on the
     // page are read the same way.
     expect(html).toContain(
-      "source: example.org/onboarding-tools-compared · retrieved 27 Aug 2026"
+      '<a href="https://example.org/onboarding-tools-compared" class="link">Source: example.org/onboarding-tools-compared · retrieved 27 Aug 2026.</a>'
     );
+  });
+
+  it("a recorded source that is not a web address is named, never linked", async () => {
+    state.page = livePage({
+      grounded: { passage: PASSAGE, url: "javascript:alert(1)", readAt: new Date("2026-08-28T00:00:00.000Z") },
+    });
+    const html = await render();
+    expect(html).toMatch(/<p[^>]*>Source: [^<]* · retrieved 27 Aug 2026\.<\/p>/);
+    expect(html).not.toContain('href="javascript:');
   });
 
   it("a passage the body no longer carries marks nothing, and says nothing about a source", async () => {
@@ -221,7 +232,8 @@ describe("S19 — the customer is the publisher, and the page says so", () => {
   it("a page with no recorded grounding draws no source line at all", async () => {
     state.page = livePage({ grounded: null });
     const html = await render();
-    expect(html).not.toContain("source:");
+    expect(html).not.toContain("Source:");
+    expect(html).not.toContain('id="sources"');
     expect(html).not.toContain("<mark");
   });
 
@@ -290,8 +302,10 @@ describe("S19 — the customer is the publisher, and the page says so", () => {
     );
   });
 
-  it("the footer is theirs", async () => {
-    expect(await render()).toContain("© example.com");
+  it("the footer is theirs: their name, their site and their feed, in that order", async () => {
+    const footer = new DOMParser().parseFromString(await render(), "text/html").querySelector("footer")!;
+    expect([...footer.firstElementChild!.children].map((part) => part.textContent)).toEqual(["© example.com", "example.com", "RSS"]);
+    expect([...footer.querySelectorAll("a")].map((a) => a.getAttribute("href"))).toEqual(["https://example.com/", "/rss.xml"]);
   });
 
   it("every sentence on the page is a key, and every one of the three is written", async () => {
@@ -324,14 +338,54 @@ describe("issue 1397 — the page says how it was made", () => {
     expect(blocks.filter((block) => block["@type"] === "BlogPosting")).toHaveLength(1);
   });
 
-  it("a body with no sources list offers no link to one, and a row with no numbers prints no note", async () => {
-    state.page = livePage({ made: { facts: 1, rules: 19 } });
+  it("a page with nothing to list offers no link to its sources, and a row with no numbers prints no note", async () => {
+    state.page = livePage({ made: { facts: 1, rules: 19 }, grounded: null });
     const single = await render();
     expect(single).toContain("Written with AI from one fact on example.com");
     expect(single).not.toContain("Sources are listed below");
 
     state.page = livePage({ made: null });
     expect(await render()).not.toContain("Written with AI");
+  });
+});
+
+describe("board HostedArticle — the page ends with its sources", () => {
+  const SOURCED = `A body that says ${PASSAGE}.\n\n## What to look for\n\nText.\n\n## Sources\n\n- [A study](https://study.example/a), read on 1 October 2026`;
+  const sectionOf = (html: string): string[] => {
+    const doc = new DOMParser().parseFromString(html, "text/html");
+    const article = doc.querySelector("article")!;
+    return [...article.querySelectorAll("h2, li, p")].map((node) => node.textContent?.trim() ?? "").filter((text) => text !== "");
+  };
+
+  it("after the body's own list comes the line it is grounded in, under the one Sources heading", async () => {
+    state.page = livePage({ made: { facts: 6, rules: 19 }, bodyMd: SOURCED });
+    const html = await render();
+    const text = sectionOf(html);
+    const heading = text.lastIndexOf("Sources");
+    expect(text.slice(heading, heading + 3)).toEqual([
+      "Sources",
+      "A study, read on 1 October 2026",
+      "Source: example.org/onboarding-tools-compared · retrieved 27 Aug 2026.",
+    ]);
+    expect(html.match(/<h2[^>]*>Sources<\/h2>/g)).toHaveLength(1);
+  });
+
+  it("a body with no list of its own gets a Sources heading over that line, in the contents and linked from the made line", async () => {
+    state.page = livePage({
+      made: { facts: 6, rules: 19 },
+      bodyMd: `Whether ${PASSAGE}.\n\n## What to look for\n\nText.\n\n## What it costs\n\nText.`,
+    });
+    const html = await render();
+    const text = sectionOf(html);
+    const heading = text.lastIndexOf("Sources");
+    expect(text.slice(heading, heading + 2)).toEqual([
+      "Sources",
+      "Source: example.org/onboarding-tools-compared · retrieved 27 Aug 2026.",
+    ]);
+    expect(html).toContain('<h2 id="sources">Sources</h2>');
+    expect(html).toMatch(/<a href="#sources"[^>]*>Sources are listed below\.<\/a>/);
+    // The contents list it beside the body's own section.
+    expect(html).toMatch(/On this page.*href="#what-it-costs".*href="#sources"/s);
   });
 });
 
@@ -363,5 +417,76 @@ describe("nothing of ours is on a domain that is not ours", () => {
       '<script type="application/ld+json">',
       '<script type="application/ld+json">',
     ]);
+  });
+});
+
+describe("the about card links the main site's own book and quote pages, and nothing else", () => {
+  /** The main site as the scan reads its home and the hosted page reads it back from the stored row. */
+  const stored = (nav: string): unknown =>
+    mainSiteOf(
+      JSON.parse(
+        JSON.stringify(
+          readMainSite({ domain: "example.com", homeUrl: "https://example.com/", homeHtml: `<html><body>${nav}</body></html>`, pages: [], ours: null })
+        )
+      )
+    );
+  const PLUMBER = '<header><nav><a href="tel:+15125550142">Call us</a><a href="/book?utm_source=nav">Book online</a><a href="/get-a-quote">Free estimate</a></nav></header>';
+  const SAAS = '<header><a href="/pricing">Pricing</a><a href="https://calendly.com/example/demo">Book a demo</a><a href="/signup">Start free</a></header>';
+  const parsed = (html: string): Document => new DOMParser().parseFromString(html, "text/html");
+
+  it("a local business that links both draws two plain links in the card, and none in the header or footer", async () => {
+    state.identity = { mainSite: stored(PLUMBER), offer: { category: "plumbing", place: "Austin" } };
+    const doc = parsed(await render());
+    const links = [...doc.querySelectorAll("aside ul[role=list] a")];
+    expect(links.map((a) => [a.textContent, a.getAttribute("href")])).toEqual([
+      ["Book a visit", "https://example.com/book"],
+      ["Ask for a quote", "https://example.com/get-a-quote"],
+    ]);
+    for (const a of links) expect(a.getAttributeNames().sort()).toEqual(["class", "href"]);
+    for (const part of ["header", "footer"]) {
+      expect(doc.querySelector(`${part} a[href$="/book"], ${part} a[href$="/get-a-quote"]`)).toBeNull();
+    }
+  });
+
+  it("the links add no script: the page still carries only its data blocks", async () => {
+    state.identity = { mainSite: stored(PLUMBER) };
+    const scripts = [...parsed(await render()).querySelectorAll("script")].map((script) => script.getAttribute("type"));
+    expect(scripts).toEqual(["application/ld+json", "application/ld+json"]);
+  });
+
+  it("a SaaS whose demo is booked elsewhere, and a site with no reading, draw no link and no empty list", async () => {
+    for (const mainSite of [stored(SAAS), undefined]) {
+      state.identity = mainSite === undefined ? {} : { mainSite };
+      const html = await render();
+      expect(parsed(html).querySelector("aside ul")).toBeNull();
+      expect(html).not.toContain("Book a visit");
+      expect(html).not.toContain("Ask for a quote");
+    }
+  });
+});
+
+describe("lists in the body are styled, and nothing is drawn that the body does not say", () => {
+  it("a list in the body, in the short answer and in the takeaways each keeps its markers, and the body holds no picture", async () => {
+    state.page = livePage({
+      bodyMd: [
+        ":::answer\nShut the main valve first.\n\n- Turn it clockwise.\n- Open the lowest tap.\n:::",
+        ":::takeaways\n1. Find the valve.\n2. Drain the pipes.\n:::",
+        "## Where is the valve?\n\nIn one of three places.\n\n- In the garage.\n- Beside the water heater.\n\n1. Look indoors.\n2. Then outside.",
+      ].join("\n\n"),
+    });
+    const body = new DOMParser().parseFromString(await render(), "text/html").querySelector(".prose")!;
+    const lists = [...body.querySelectorAll("ul, ol")];
+    expect(lists.length).toBe(4);
+    for (const list of lists) {
+      // An ordered list is steps, a list in its own right wherever it sits.
+      if (list.tagName === "OL") {
+        expect(list.getAttribute("role")).toBe("list");
+        continue;
+      }
+      const box = list.parentElement!.closest(".not-prose");
+      // Outside a box `prose` sets the marker; inside one the box must name it.
+      if (box !== null) expect(box.classList).toContain("[&_ul]:list-disc");
+    }
+    expect(body.querySelectorAll("img, svg, picture, canvas")).toHaveLength(0);
   });
 });

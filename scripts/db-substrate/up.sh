@@ -93,7 +93,6 @@ fi
 # stays inside.
 PORTS_PER_RUN=4
 
-POSTGREST_IMAGE="postgrest/postgrest:v16.2"
 # postgres-meta comes from npm, not from a container: the checked-in
 # `src/lib/db/types.generated.ts` was produced by this package, and the
 # `supabase/postgres-meta:v0.99.0` image — same version number — emits `Json`
@@ -394,6 +393,7 @@ else
   command -v docker >/dev/null || {
     log "no docker and no PostgREST binary — set POSTGREST_BIN or put one on PATH"; exit 1;
   }
+  POSTGREST_IMAGE="$(./pull-postgrest.sh)"
   log "starting ${POSTGREST_IMAGE} on :${POSTGREST_PORT}"
   docker run -d --name "reachkit-postgrest${CONTAINER_SUFFIX}" --network host \
     -e PGRST_DB_URI="$DOCKER_DB_URL" \

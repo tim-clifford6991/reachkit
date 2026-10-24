@@ -37,6 +37,7 @@ import {
   psql,
   psqlRows,
   signJwt,
+  loopbackFetch,
 } from "../db/substrate";
 
 const REPO_ROOT = path.resolve(import.meta.dirname, "../..");
@@ -413,46 +414,3 @@ describe(
     });
   }
 );
-
-// ── JWT + loopback-fetch harness (mirrors tests/db/rls.test.ts's own) ──────
-
-function loopbackFetch(input: RequestInfo | URL, init: RequestInit = {}): Promise<Response> {
-  const url = typeof input === "string" ? input : input instanceof URL ? input.toString() : (input as Request).url;
-  if (!/^https?:\/\/127\.0\.0\.1(:\d+)?\//.test(url)) {
-    return Promise.reject(new Error(`loopbackFetch refuses non-loopback URL: ${url}`));
-  }
-  const method = init.method ?? "GET";
-  const headerEntries: [string, string][] = [];
-  if (init.headers) {
-    new Headers(init.headers as HeadersInit).forEach((value, key) => headerEntries.push([key, value]));
-  }
-  const bodyText = typeof init.body === "string" ? init.body : init.body ? String(init.body) : undefined;
-
-  const args = ["-s", "-i", "-X", method];
-  for (const [key, value] of headerEntries) args.push("-H", `${key}: ${value}`);
-  if (bodyText !== undefined) args.push("--data-binary", "@-");
-  args.push(url);
-
-  const raw = execFileSync("curl", args, { input: bodyText, maxBuffer: 10 * 1024 * 1024 });
-  const separator = Buffer.from("\r\n\r\n");
-  const separatorIndex = raw.indexOf(separator);
-  const headerPart = raw.subarray(0, separatorIndex).toString("utf8");
-  const bodyPart = raw.subarray(separatorIndex + separator.length);
-  const headerLines = headerPart.split("\r\n");
-  const status = Number((headerLines[0] ?? "").split(" ")[1] ?? "599");
-  const responseHeaders = new Headers();
-  for (const line of headerLines.slice(1)) {
-    const idx = line.indexOf(":");
-    if (idx === -1) continue;
-    responseHeaders.append(line.slice(0, idx).trim(), line.slice(idx + 1).trim());
-  }
-  // Fetch spec: a "null body status" (204 chief among them) may carry no
-  // body at all, even an empty one; Node's `Response` constructor throws
-  // if one is passed regardless of length. Not currently exercised by this
-  // file (every call here is a `.select()` or a plain read), kept for
-  // parity with `context.test.ts`'s copy of this same harness.
-  const NULL_BODY_STATUSES = new Set([101, 103, 204, 205, 304]);
-  return Promise.resolve(
-    new Response(NULL_BODY_STATUSES.has(status) ? null : bodyPart, { status, headers: responseHeaders })
-  );
-}

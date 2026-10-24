@@ -6,6 +6,7 @@
 // change a constant and the page says the new number.
 import {
   ADDS,
+  ANSWER_RATE_WEEKS,
   BATTERY,
   CROSS_LINKS,
   MARKET_TERMS,
@@ -15,6 +16,7 @@ import {
   RIVAL_PRESENCE,
   TRACKED_PROMPTS,
   VETO,
+  WEEK_PLAN,
 } from "@/lib/config/constants";
 import { HARD_RULES, type HardRule } from "@/lib/generate/rules/types";
 import type { CopyKey } from "@/lib/presentation/copy";
@@ -72,16 +74,21 @@ export function checksIn(line: CheckLine): number {
 }
 
 const prompts = Object.values(TRACKED_PROMPTS.SPLIT).reduce((sum, n) => sum + n, 0);
+const unbranded = prompts - TRACKED_PROMPTS.SPLIT.branded;
 
 export const HOW_FACTS = Object.freeze({
   searches: BATTERY.QUESTIONS,
   prompts,
-  runs: TRACKED_PROMPTS.RUNS,
+  answerWeeks: ANSWER_RATE_WEEKS,
+  unbranded,
+  /** The most answers the weekly battery gathers to the questions that do not name you, over the counted weeks. */
+  answers: TRACKED_PROMPTS.ENGINES * unbranded * TRACKED_PROMPTS.RUNS * ANSWER_RATE_WEEKS,
   terms: MARKET_TERMS.MAX,
   rivals: BATTERY.COMPETITORS_MAX,
   rivalsHeld: RIVAL_PRESENCE.FIRST_PAGE_PLACES,
   rivalVolume: RIVAL_DEMAND.MIN_VOLUME,
   newPages: PACE.NEW_PAGES_PER_WEEK,
+  weekPages: WEEK_PLAN.days,
   topResults: RESEARCH.topResults,
   researchRivals: RESEARCH.rivals,
   studies: RESEARCH.studies,
@@ -97,4 +104,10 @@ export const HOW_FACTS = Object.freeze({
   windowHours: VETO.defaultHours,
   windowMinDays: VETO.minDays,
   windowMaxDays: VETO.maxDays,
+  /** The setup time the public pages state; setup's three steps take it. */
+  setupMinutes: 10,
+  /** The time a site fix takes, as the free report's fix badges state it. */
+  fixMinutes: 10,
+  /** The results on Google's first page. */
+  googleFirstPage: 10,
 });

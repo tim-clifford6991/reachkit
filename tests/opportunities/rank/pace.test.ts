@@ -4,7 +4,7 @@
 import "../env";
 import { describe, expect, it } from "vitest";
 import { PACE } from "../../../src/lib/config/constants";
-import { orderRanked } from "../../../src/lib/opportunities/rank/open";
+import { orderRanked, type Scored } from "../../../src/lib/opportunities/rank/open";
 import {
   refreshCandidates,
   refreshCauseOf,
@@ -53,10 +53,10 @@ function livePage(a: Partial<OwnLivePage> & { age: number }): OwnLivePage {
 }
 
 /** Twelve new pages of three kinds, and what there is to update. */
-function supply(updates: Opportunity[]): { opportunity: Opportunity; score: number }[] {
+function supply(updates: Opportunity[]): Scored[] {
   const queries = ["best crm", "what is a crm", "how to import contacts"];
   const fresh = Array.from({ length: 12 }, (_, i) => row(`new${i}`, "keyword_page", `${queries[i % 3]} ${i}`));
-  return [...fresh, ...updates].map((opportunity, index) => ({ opportunity, score: 1 - index * 0.01 }));
+  return [...fresh, ...updates].map((opportunity, index) => ({ opportunity, points: 100 - index, parts: [] }));
 }
 
 describe("a week holds at most four new pages", () => {
@@ -83,7 +83,7 @@ describe("a week holds at most four new pages", () => {
   });
 
   it("four new pages already this week: today is an update, whatever scores first", () => {
-    const recent = [96, 97, 98, 99].map((day) => ({ day, kind: "qa" as const }));
+    const recent = [96, 97, 98, 99].map((day) => ({ day, kind: "qa" as const, offering: false }));
     const [today] = orderRanked(scored, { mix: { from: 100, recent } });
     expect(byId.get(today!.opportunityId)?.family).toBe("improve");
   });

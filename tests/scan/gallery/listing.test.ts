@@ -160,6 +160,44 @@ describe("free_scan_listing — what the gallery and the strip may show", () => 
     expect(domains).toEqual(["cutoff.example", "harbour.example"]);
   });
 
+  it("reads its category from the stored column, never by unpacking a report", () => {
+    const [definition] = psqlRows(
+      "select regexp_replace(pg_get_viewdef('free_scan_listing'::regclass), '\\s+', ' ', 'g');",
+    ).flat();
+    expect(definition).toContain("listing_category");
+    expect(definition).not.toContain("report #>>");
+  });
+
+  it("stores the category the report holds, on every kind of report", () => {
+    const old =
+      "nullif(btrim(report #>> '{market,value,profile,category}'), '')";
+    const blank = (category: string) =>
+      `'${JSON.stringify({ verdict: { scoreAndBand: { kind: "unmeasured" } }, market: { kind: "measured", value: { profile: { category } } } })}'::jsonb`;
+    psql([
+      "-v",
+      "ON_ERROR_STOP=1",
+      "-c",
+      `insert into scans (domain, tier, status, report) values
+         ('blank.example', 'free', 'running', ${blank("")}),
+         ('spaces.example', 'free', 'running', ${blank("   ")}),
+         ('padded.example', 'free', 'running', ${blank("  Plumbing ")}),
+         ('empty.example', 'free', 'running', null);`,
+    ]);
+    const rows = psqlRows(
+      `select domain, coalesce(listing_category, '<null>'), coalesce(${old}, '<null>') from scans order by domain, created_at;`,
+    );
+    expect(rows.length).toBeGreaterThanOrEqual(10);
+    for (const [, stored, derived] of rows) expect(stored).toBe(derived);
+    const byDomain = new Map(rows.map(([d, stored]) => [d, stored]));
+    expect(byDomain.get("harbour.example")).toBe("Bike repair");
+    expect(byDomain.get("cutoff.example")).toBe("<null>");
+    expect(byDomain.get("failed.example")).toBe("<null>");
+    expect(byDomain.get("blank.example")).toBe("<null>");
+    expect(byDomain.get("spaces.example")).toBe("<null>");
+    expect(byDomain.get("padded.example")).toBe("Plumbing");
+    expect(byDomain.get("empty.example")).toBe("<null>");
+  });
+
   it("is not readable by a visitor's role, only by the server's", () => {
     expect(
       raises(

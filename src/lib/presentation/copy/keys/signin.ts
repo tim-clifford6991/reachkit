@@ -50,12 +50,24 @@ import type { CopyPartition } from "../registry.ts";
 
 export const SIGNIN_COPY = Object.freeze({
   "signin.heading": ["Welcome back", { slots: {}, fixedBy: "REQ-098 c2" }],
+  "signin.eyebrow": ["Sign in", { slots: {}, fixedBy: "board AuthSignIn · drafted" }],
   "signin.body": [
-    "Enter the email you paid with and we'll send you a sign-in link. No password: accounts are created by payment.",
-    { slots: {}, fixedBy: "REQ-098 c2" },
+    "Enter the email you paid with. We’ll send you a link to sign in. There is no password.",
+    { slots: {}, fixedBy: "board AuthSignIn" },
   ],
+  // The three facts under the button, and the three steps under the split (board AuthSignIn).
+  "signin.chip.nopass": ["no password", { slots: {}, fixedBy: "board AuthSignIn" }],
+  "signin.chip.link": ["link works 24 hours", { slots: {}, fixedBy: "board AuthSignIn" }],
+  "signin.chip.install": ["nothing to install", { slots: {}, fixedBy: "board AuthSignIn" }],
+  "signin.how.title": ["How signing in works", { slots: {}, fixedBy: "board AuthSignIn" }],
+  "signin.how.email.head": ["Type your email", { slots: {}, fixedBy: "board AuthSignIn" }],
+  "signin.how.email.line": ["The one you paid with.", { slots: {}, fixedBy: "board AuthSignIn" }],
+  "signin.how.open.head": ["Open the link we send", { slots: {}, fixedBy: "board AuthSignIn" }],
+  "signin.how.open.line": ["Subject: “Your sign-in link”.", { slots: {}, fixedBy: "board AuthSignIn" }],
+  "signin.how.in.head": ["You’re in", { slots: {}, fixedBy: "board AuthSignIn" }],
+  "signin.how.in.line": ["On your Overview, with this week’s pages.", { slots: {}, fixedBy: "board AuthSignIn" }],
   "signin.field.label": ["Your email", { slots: {}, fixedBy: "issue 1574" }],
-  "signin.field.placeholder": ["you@company.com", { slots: {}, fixedBy: "REQ-098 c2" }],
+  "signin.field.placeholder": ["you@example.com", { slots: {}, fixedBy: "REQ-098 c2" }],
   /** Changed 2026-09-21 (#937): "Send my link" → the board's own word,
    *  which says which link. Drafted (#759). */
   "signin.submit.label": ["Send my sign-in link", { slots: {}, fixedBy: "issue 937" }],
@@ -78,7 +90,10 @@ export const SIGNIN_COPY = Object.freeze({
     { slots: {}, fixedBy: "issue 718" },
   ],
   "signin.address.invalid": ["That doesn’t look like an email address. Check it and try again.", { slots: {}, fixedBy: "REQ-098 c6" }],
-  "signin.link_dead": ["This sign-in link can’t be used any more. Ask for a new one below; it goes to the email you paid with.", { slots: {}, fixedBy: "REQ-098 c7" }],
+  "signin.link_dead": [
+    "Sign-in links work for 24 hours, and only the newest one works. Ask for a new one below. It goes to the email you paid with.",
+    { slots: {}, fixedBy: "REQ-098 c7 · board AuthExpired" },
+  ],
 
   // ── The two answered arms (UI-SPEC S9, issue #373) ───────────────────
   //
@@ -94,7 +109,25 @@ export const SIGNIN_COPY = Object.freeze({
   // never one this screen looked up, which is why it takes a slot rather
   // than naming an account.
   "signin.sent.head": ["Check your inbox", { slots: {}, fixedBy: "REQ-098 c3" }],
-  "signin.sent.to": ["sent to {address}", { slots: { address: "text" }, fixedBy: "REQ-098 c3" }],
+  "signin.sent.to": ["Sent to {address}", { slots: { address: "text" }, fixedBy: "REQ-098 c3 · board AuthCheckEmail" }],
+  // The link's 24 hours, as the reader's own clock reads them (board AuthCheckEmail).
+  "signin.sent.window": ["The link works for 24 hours", { slots: {}, fixedBy: "board AuthCheckEmail" }],
+  "signin.sent.at": ["Sent {time}", { slots: { time: "text" }, fixedBy: "board AuthCheckEmail" }],
+  "signin.sent.until": ["Works until tomorrow, {time}", { slots: { time: "text" }, fixedBy: "board AuthCheckEmail" }],
+  // The mail as it lands, drawn in a phone (board AuthCheckEmail); subject and heading are the mail's own keys.
+  "signin.inbox.mailboxes": ["Mailboxes", { slots: {}, fixedBy: "board AuthCheckEmail" }],
+  "signin.inbox.edit": ["Edit", { slots: {}, fixedBy: "board AuthCheckEmail" }],
+  "signin.inbox.title": ["Inbox", { slots: {}, fixedBy: "board AuthCheckEmail" }],
+  "signin.inbox.search": ["Search", { slots: {}, fixedBy: "board AuthCheckEmail" }],
+  "signin.inbox.snippet": [
+    "Sign in to ReachKit. The link works for 24 hours. Press it on any device.",
+    { slots: {}, fixedBy: "board AuthCheckEmail" },
+  ],
+  "signin.inbox.updated": ["Updated Just Now", { slots: {}, fixedBy: "board AuthCheckEmail" }],
+  "signin.inbox.eyebrow": ["Your inbox", { slots: {}, fixedBy: "board AuthCheckEmail" }],
+  "signin.inbox.from": ["From ReachKit, with the subject Your sign-in link.", { slots: {}, fixedBy: "board AuthCheckEmail" }],
+  "signin.inbox.inside": ["Inside the email", { slots: {}, fixedBy: "board AuthCheckEmail" }],
+  "signin.inbox.press": ["Press it on any device. You land on your Overview.", { slots: {}, fixedBy: "board AuthCheckEmail" }],
   /** Changed 2026-09-21 (#937). "Send another link" named the wrong act:
    *  the control returns to the empty field, and the reason a reader
    *  presses it is that they typed the wrong address — a second link to
@@ -103,57 +136,43 @@ export const SIGNIN_COPY = Object.freeze({
   "signin.sent.resend": ["Use a different email", { slots: {}, fixedBy: "issue 937" }],
   "signin.expired.head": ["This link no longer works", { slots: {}, fixedBy: "REQ-098 c7" }],
   "signin.expired.submit": ["Send a new link", { slots: {}, fixedBy: "REQ-098 c7" }],
+  // Why a link stops, in two figures (board AuthExpired).
+  "signin.why.title": ["Why links stop working", { slots: {}, fixedBy: "board AuthExpired" }],
+  "signin.why.window": ["Each link works for 24 hours", { slots: {}, fixedBy: "board AuthExpired" }],
+  "signin.why.sent": ["Sent", { slots: {}, fixedBy: "board AuthExpired" }],
+  "signin.why.stops": ["24 hours later: stops working", { slots: {}, fixedBy: "board AuthExpired" }],
+  "signin.why.newest": ["Only the newest link works", { slots: {}, fixedBy: "board AuthExpired" }],
+  "signin.why.older.head": ["Older link", { slots: {}, fixedBy: "board AuthExpired" }],
+  "signin.why.older.line": ["no longer works", { slots: {}, fixedBy: "board AuthExpired" }],
+  "signin.why.newer.head": ["Newest link", { slots: {}, fixedBy: "board AuthExpired" }],
+  "signin.why.newer.line": ["works for 24 hours", { slots: {}, fixedBy: "board AuthExpired" }],
+  "signin.why.calm": ["Nothing in your account changed. Your pages carry on as planned.", { slots: {}, fixedBy: "board AuthExpired" }],
 
-  // ── The accent panel beside the form (issue #266) ────────────────────
-  //
-  // The card idiom's sign-in screen is two panels: the one action on the
-  // left, and on the right an accent ground carrying a glass card with a
-  // score. Every sentence below is **owner-supplied and transcribed** from
-  // the page the owner endorsed by pointing at it ("this has always looked
-  // clean → https://reachkit.app/login") — the same footing REQ-098 c2's
-  // six already stand on, and the archive's `idiom/copy.ts` records them
-  // under the same rule. Not paraphrased, not improved.
-  "signin.panel.heading": [
-    "How easily buyers find you",
-    { slots: {}, fixedBy: "owner-supplied, 2026-09-02" },
-  ],
-  "signin.panel.score-label": [
-    "Visibility Score",
-    { slots: {}, fixedBy: "owner-supplied, 2026-09-02" },
-  ],
-  "signin.panel.line": [
-    "Hard to find, and we'll show you the fixes that move it.",
-    { slots: {}, fixedBy: "owner-supplied, 2026-09-02" },
-  ],
-  /** The caption under the specimen tile (#937). Ruling 5c of 2026-09-08
-   *  removed the "example" line from the *hero* component, on the footing
-   *  that the approved set draws none there. This panel is not that
-   *  component: #937 asks for these figures to be "captioned as an
-   *  example", and the 2026-09-20 board draws the caption. The domain is a
-   *  slot so the sentence and the figures cannot come to name two
-   *  different sites. Drafted (#759). */
-  "signin.panel.example": [
-    "An example on {domain}. It measures no site.",
-    { slots: { domain: "text" }, fixedBy: "issue 937" },
-  ],
-  /** Beside the specimen tile's dot grid (#1025): what the sixteen dots
-   *  are, and which one is the reader's. Drafted on the Round 7 board
-   *  `R7-S1`; transcribed from it, for the owner to confirm. */
-  "signin.panel.answers": [
-    "Who AI answers mention for your buyers’ searches. The violet dot is you.",
-    { slots: {}, fixedBy: "issue 1025" },
+  // ── The preview beside the form: what is waiting inside, on an example
+  // business (owner, E6, #1581). Drafted (#759).
+  "signin.preview.eyebrow": ["Waiting inside", { slots: {}, fixedBy: "issue 1601 · drafted" }],
+  "signin.preview.running": ["Running by itself", { slots: {}, fixedBy: "issue 1601 · drafted" }],
+  "signin.preview.week": ["Week {week}", { slots: { week: "text" }, fixedBy: "issue 1601 · drafted" }],
+  "signin.preview.google": ["Found by Google", { slots: {}, fixedBy: "issue 1601 · drafted" }],
+  "signin.preview.google.of": ["of {live} live pages", { slots: { live: "text" }, fixedBy: "issue 1601 · drafted" }],
+  "signin.preview.showing": ["Showing", { slots: {}, fixedBy: "issue 1601 · drafted" }],
+  "signin.preview.showing.of": ["in Google’s top 100", { slots: {}, fixedBy: "issue 1601 · drafted" }],
+  "signin.preview.ai": ["Linked by AI", { slots: {}, fixedBy: "issue 1601 · drafted" }],
+  "signin.preview.ai.of": ["of {asked} pages asked", { slots: { asked: "text" }, fixedBy: "issue 1601 · drafted" }],
+  "signin.preview.days.title": ["This week’s pages", { slots: {}, fixedBy: "issue 1601 · drafted" }],
+  "signin.preview.days.pace": ["up to {pages}, new or updated", { slots: { pages: "text" }, fixedBy: "issue 1601 · drafted" }],
+  "signin.preview.calm.head": ["Nothing needs you.", { slots: {}, fixedBy: "issue 1601 · drafted" }],
+  "signin.preview.calm.line": ["You can edit or stop any page before it goes live.", { slots: {}, fixedBy: "issue 1601 · drafted" }],
+  "signin.preview.example": ["Example business. It measures no site.", { slots: {}, fixedBy: "issue 1601 · drafted" }],
+  "signin.preview.example.inside": [
+    "Example business. It measures no site. Inside you see this week’s pages and how they’re doing.",
+    { slots: {}, fixedBy: "board AuthCheckEmail · AuthExpired" },
   ],
   /** Under the sent alert (#937): what the link is good for, before a
    *  reader goes looking in a spam folder. Drafted (#759). */
   "signin.sent.terms": [
-    "It works for 24 hours, and a newer link replaces an older one. Check your spam folder if it isn’t there in a minute.",
-    { slots: {}, fixedBy: "issue 937" },
+    "A newer link replaces an older one. Not there in a minute? Check your spam folder.",
+    { slots: {}, fixedBy: "board AuthCheckEmail" },
   ],
-
-  // The glass card's pill, drawn on the specimen (ruling 5c). Approved as
-  // written: it is one of the figures REQ-098 c4 quotes verbatim, and 5c
-  // settles what it is a figure *of* — the reserved domain's example, not a
-  // stranger's measurement.
-  "signin.panel.delta": ["+6 pts est.", { slots: {}, fixedBy: "REQ-098 c4" }],
 
 }) satisfies CopyPartition;

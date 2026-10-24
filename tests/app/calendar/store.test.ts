@@ -1,22 +1,22 @@
 // tests/app/calendar/store.test.ts — BUILD §4.6, §7 (issue #126)
 //
-// The calendar's live facts: real supply fills real dates, and nothing
-// else does. The two mutations this suite exists to kill are the two that
-// would break §4.6's one promise — filling a date the ranked list did not
-// reach ("the calendar is never padded"), and reading a depth that could
-// not be read as a zero (ADR-061 point 1's proven arm).
+// The calendar's live facts: the committed week fills its own dates, and
+// nothing else does. The mutations this suite exists to kill are filling a
+// date no commit covers ("the calendar is never padded", and Plan never
+// ranks — SPEC §7, E5), and reading a depth that could not be read as a
+// zero (ADR-061 point 1's proven arm).
 import { applyEnvFixture } from "../../mail/env-fixture";
 
 applyEnvFixture();
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { measured, unmeasured } from "@/lib/measure/measured";
+import { COPY } from "@/lib/presentation/copy";
 import type { Choice } from "@/lib/opportunities";
 import type { Opportunity } from "@/lib/opportunities";
 
 const supplyDepth = vi.fn();
 const committedWeek = vi.fn();
-const rankOpen = vi.fn();
 const explainChoice = vi.fn();
 
 vi.mock("@/lib/opportunities", () => ({
@@ -26,7 +26,6 @@ vi.mock("@/lib/opportunities", () => ({
   supplyMeasured: async () => true,
   supplyState: async () => "measured",
   committedWeek: (...a: unknown[]) => committedWeek(...a),
-  rankOpen: (...a: unknown[]) => rankOpen(...a),
   explainChoice: (...a: unknown[]) => explainChoice(...a),
 }));
 
@@ -63,7 +62,7 @@ vi.mock("@/lib/market/changes", async (importOriginal) => ({
   declaredTimezone: (...a: unknown[]) => timezoneRead(...a),
 }));
 
-const { readCalendarFacts, fillableDates, offsetForMonth } = await import(
+const { readCalendarFacts, fillableDates } = await import(
   "@/app/(account)/app/calendar/store"
 );
 
@@ -92,9 +91,19 @@ function choiceFor(n: number): Choice {
   };
 }
 
+/** The week a weekly pass committed: its first seven rows one a day from
+ *  today, the rest spares (SPEC §7, issue 1559). */
+function committed(ids: readonly string[]): void {
+  const opportunity = (id: string) => ({ id, targetQuery: `search ${id.replace("opp-", "")}` }) as Opportunity;
+  committedWeek.mockResolvedValue({
+    days: ids.slice(0, 7).map((id, at) => ({ date: `2026-09-${15 + at}`, opportunity: opportunity(id) })),
+    spares: ids.slice(7).map(opportunity),
+  });
+}
+
 function withSupply(count: number): void {
   const ids = Array.from({ length: count }, (_, n) => `opp-${n}`);
-  rankOpen.mockResolvedValue(ids.map((id) => ({ opportunityId: id, score: 1 })));
+  committed(ids);
   explainChoice.mockImplementation(async (id: string) =>
     choiceFor(Number(id.replace("opp-", "")))
   );
@@ -122,7 +131,7 @@ afterEach(() => {
 });
 
 describe("supply is the cap — the calendar is never padded", () => {
-  it("fills one date per opportunity and stops when the ranked list does", async () => {
+  it("fills one date per committed row and stops when the commit does", async () => {
     withSupply(3);
     const facts = await readCalendarFacts({ site: SITE, month: "2026-09", now: NOW });
 
@@ -154,15 +163,17 @@ describe("supply is the cap — the calendar is never padded", () => {
     expect(facts.drafts.every((d) => d.scheduledFor >= "2026-09-15")).toBe(true);
   });
 
-  it("the committed week takes the first dates in its own order, and the one list after it leaves the week's rows out (issue 1559)", async () => {
-    withSupply(4);
+  it("a committed row lands on the date it was committed for, a date no commit covers stays empty, and spares are listed, never placed (E5)", async () => {
+    withSupply(0);
     committedWeek.mockResolvedValue({
-      days: [{ date: "2026-09-15", opportunity: { id: "opp-2" } as Opportunity }],
-      spares: [{ id: "opp-0" } as Opportunity],
+      days: [{ date: "2026-09-17", opportunity: { id: "opp-2", targetQuery: "search 2" } as Opportunity }],
+      spares: [{ id: "opp-0", targetQuery: "search 0" } as Opportunity],
     });
-    await readCalendarFacts({ site: SITE, month: "2026-09", now: NOW });
+    const facts = await readCalendarFacts({ site: SITE, month: "2026-09", now: NOW });
     expect(committedWeek).toHaveBeenCalledWith("site-1");
-    expect(explainChoice.mock.calls.map((call) => call[0])).toEqual(["opp-2", "opp-1", "opp-3"]);
+    expect(facts.drafts.map((d) => [d.scheduledFor, d.title])).toEqual([["2026-09-17", "search 2"]]);
+    expect(explainChoice.mock.calls.map((call) => call[0])).toEqual(["opp-2"]);
+    expect(facts.spares).toEqual(["search 0"]);
   });
 });
 
@@ -184,16 +195,12 @@ describe("issue 1455 — the plan is the next seven days", () => {
   });
 });
 
-describe("the next month carries on from where this one stopped", () => {
-  it("offsets into the ranked list by the days between today and the month's first", () => {
-    // 2026-09-15 → 2026-10-01 is sixteen days of supply already spoken for.
-    expect(offsetForMonth({ month: "2026-10", today: "2026-09-15" })).toBe(16);
-    expect(offsetForMonth({ month: "2026-09", today: "2026-09-15" })).toBe(0);
-    // A month already past takes no supply at all.
+describe("a month past or beyond the commit", () => {
+  it("a month already past takes no page at all", () => {
     expect(fillableDates({ month: "2026-08", today: "2026-09-15" })).toHaveLength(0);
   });
 
-  it("a month beyond the supply that is left is entirely empty, not filled from rank 1 again", async () => {
+  it("a month beyond the committed week is entirely empty", async () => {
     withSupply(3);
     const facts = await readCalendarFacts({ site: SITE, month: "2026-10", now: NOW });
     expect(facts.drafts).toHaveLength(0);
@@ -222,14 +229,28 @@ describe("a planned date is planned, and claims nothing more", () => {
     expect(page.measuredAt).toEqual(AT);
   });
 
+  it("its one why line is the reason the commit stored, most specific part first; none stored, none said", async () => {
+    withSupply(2);
+    explainChoice.mockImplementation(async (id: string) => ({
+      ...choiceFor(Number(id.replace("opp-", ""))),
+      planReason:
+        id === "opp-0"
+          ? { points: 8, parts: [{ part: "fit", n: 3 }, { part: "demand", n: 2 }, { part: "near_page_one", n: 3 }], rule: "best" }
+          : null,
+    }));
+    const facts = await readCalendarFacts({ site: SITE, month: "2026-09", now: NOW });
+    expect(facts.drafts.map((page) => page.whyLine)).toEqual([COPY["calendar.reason.near-page-one"], null]);
+  });
+
   it("a Write target's 'you' is undeterminable, never a zero — the evidence records the rival's position, not theirs", async () => {
     withSupply(1);
     const facts = await readCalendarFacts({ site: SITE, month: "2026-09", now: NOW });
     expect(facts.drafts[0]!.why.youStand?.kind).toBe("unmeasured");
+    expect(facts.drafts[0]!.replaces).toBeUndefined();
   });
 
   it("an Improve target's 'you' is the position the shortfall measured", async () => {
-    rankOpen.mockResolvedValue([{ opportunityId: "opp-9", score: 1 }]);
+    committed(["opp-9"]);
     supplyDepth.mockResolvedValue({ unused: 1, exhaustedSince: null });
     explainChoice.mockResolvedValue({
       opportunityId: "opp-9",
@@ -249,6 +270,8 @@ describe("a planned date is planned, and claims nothing more", () => {
     const facts = await readCalendarFacts({ site: SITE, month: "2026-09", now: NOW });
     expect(facts.drafts[0]!.why.youStand).toEqual(measured(12, AT));
     expect(facts.drafts[0]!.why.bestRival).toBeNull();
+    // The update is tied to its live page by the address the row stored.
+    expect(facts.drafts[0]!.replaces).toBe("https://example.com/p");
   });
 
   it("names the search it targets and never the model's proposed title (ADR-012)", async () => {
@@ -274,7 +297,7 @@ describe("what the calendar does not claim", () => {
     expect(facts.customerChangeHoldsPages).toBeNull();
   });
 
-  it("a row that has gone since it was ranked empties its date rather than throwing", async () => {
+  it("a row that has gone since it was committed empties its date rather than throwing", async () => {
     withSupply(2);
     explainChoice.mockImplementation(async (id: string) =>
       id === "opp-0" ? null : choiceFor(1)
@@ -300,7 +323,7 @@ describe("the site's own zone decides its dates", () => {
 
 describe("the unmeasured arms are still values", () => {
   it("a volume that could not be measured still dates the provenance line", async () => {
-    rankOpen.mockResolvedValue([{ opportunityId: "opp-0", score: 1 }]);
+    committed(["opp-0"]);
     supplyDepth.mockResolvedValue({ unused: 1, exhaustedSince: null });
     explainChoice.mockResolvedValue({
       ...choiceFor(0),

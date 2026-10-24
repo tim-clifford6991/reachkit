@@ -16,8 +16,9 @@
 // **Once.** `scans.market_digest_at` is stamped on every weekly row of the
 // week the digest read — too small or not — and only when the seam accepted
 // the mail (or there was nothing to tell). A refusal stamps nothing and the
-// next tick offers the week again. A row still `running` is not read; if it
-// finishes too small after the digest went, the next tick sends it alone.
+// next tick offers the week again. A row still `running` or `failed` is not
+// read; if it finishes, or a retry finishes it, too small after the digest
+// went, the next tick sends it alone.
 //
 // **Why pages stalled** (issue 1184). The same mail carries, per site, how
 // many of the week before's pages stopped on the way to review and how often
@@ -53,7 +54,6 @@ interface MinimalQueryBuilder<T> extends PromiseLike<QueryResult<T>> {
   select(columns: string): MinimalQueryBuilder<T>;
   update(values: Record<string, unknown>): MinimalQueryBuilder<T>;
   eq(column: string, value: string): MinimalQueryBuilder<T>;
-  neq(column: string, value: string): MinimalQueryBuilder<T>;
   in(column: string, values: readonly string[]): MinimalQueryBuilder<T>;
   is(column: string, value: null): MinimalQueryBuilder<T>;
   limit(n: number): MinimalQueryBuilder<T>;
@@ -151,6 +151,9 @@ export function lastEndedMonday(now: Date): string {
   return new Date(t.getTime() - sinceMonday * DAY_MS).toISOString().slice(0, 10);
 }
 
+/** A `failed` row is not a measured pass, and a later retry retakes it. */
+const FINISHED = ["done", "degraded"] as const;
+
 /** Unread, finished weekly rows of one week. */
 function unread(columns: string, weekStart: string): MinimalQueryBuilder<DigestRow> {
   return untyped()
@@ -158,7 +161,7 @@ function unread(columns: string, weekStart: string): MinimalQueryBuilder<DigestR
     .select(columns)
     .eq("tier", "weekly")
     .eq("week_start", weekStart)
-    .neq("status", "running")
+    .in("status", FINISHED)
     .is("market_digest_at", null);
 }
 
@@ -222,6 +225,6 @@ export async function sendMarketDigest(weekStart: string, now: Date): Promise<bo
     .in("id", ids)
     .is("market_digest_at", null);
   if (stamped.error) throw new Error(`sendMarketDigest: could not stamp the week: ${stamped.error.message}`);
-  console.log(JSON.stringify({ event: "market_digest", weekStart, read: ids.length, tooSmall: tooSmall.length, stoppedSites: stopped?.sites.length ?? 0, costs: costs !== null, unhealthy: unhealthy?.length ?? 0 }));
+  console.log(JSON.stringify({ event: "market_digest", weekStart, read: ids.length, tooSmall: tooSmall.length, stoppedSites: stopped?.sites.length ?? 0, costs: costs !== null, drifting: costs?.drift?.sources.length ?? 0, unhealthy: unhealthy?.length ?? 0 }));
   return true;
 }

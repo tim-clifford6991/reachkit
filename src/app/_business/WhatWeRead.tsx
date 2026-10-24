@@ -16,7 +16,8 @@ import { copy } from "@/lib/presentation/copy";
 /** The most lines of what it sells, and of who buys, the card shows. */
 const SHOWN = 3;
 
-function whereLine(where: BusinessUnderstanding["where"]): string {
+/** Where the business sells, in one line. */
+export function whereLine(where: BusinessUnderstanding["where"]): string {
   const country = COUNTRIES[where.country].location;
   if (where.place !== null) return copy("report.read.where.local", { place: where.place.name });
   switch (where.reach) {
@@ -30,6 +31,17 @@ function whereLine(where: BusinessUnderstanding["where"]): string {
       // Issue 1470: a stored scan whose reach nothing stored decides.
       return copy("report.read.where.unread", { country });
   }
+}
+
+/** In the app: the other markets the site declares, where it declares any. */
+export function AlsoServesNote(p: { n: number | undefined }): React.JSX.Element | null {
+  const n = p.n ?? 0;
+  if (n === 0) return null;
+  return (
+    <p className="text-sm text-base-content/70" data-testid="also-serves">
+      {n === 1 ? copy("app.locale.also-serves.one") : copy("app.locale.also-serves", { n: String(n) })}
+    </p>
+  );
 }
 
 export function WhatWeRead(p: { understanding: BusinessUnderstanding; editHref?: string }): React.JSX.Element {
@@ -58,6 +70,7 @@ export function WhatWeRead(p: { understanding: BusinessUnderstanding; editHref?:
             </div>
           ))}
         </dl>
+        {p.editHref === undefined ? null : <AlsoServesNote n={u.where.alsoServes} />}
         {p.editHref === undefined ? null : (
           <Link href={p.editHref} className="link link-primary text-sm">
             {copy("report.read.edit")}

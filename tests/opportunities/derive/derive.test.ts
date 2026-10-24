@@ -217,6 +217,7 @@ describe("explainChoice reads back what was stored, and recomputes nothing", () 
       businessFit: created.businessFit ?? null,
       acceptance: created.acceptance,
       evidence: created.evidence,
+      planReason: null,
     });
   });
 

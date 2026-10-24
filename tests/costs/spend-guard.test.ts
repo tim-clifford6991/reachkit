@@ -12,7 +12,7 @@
 // what a ceiling changes.
 import "../generate/env";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { CAPS, SPEND_ALERT_AT } from "@/lib/config/constants";
+import { CAPS, DAILY_PRODUCT_CEILING, SPEND_ALERT_AT } from "@/lib/config/constants";
 
 const { rpcMock, readCacheMock, writeFetchRowMock, updates } = vi.hoisted(() => {
   const updates: Array<{ table: string; values: Record<string, unknown> }> = [];
@@ -49,9 +49,11 @@ vi.mock("../../src/lib/costs/ledger", () => ({ writeFetchRow: writeFetchRowMock 
 
 let withCostContext: typeof import("../../src/lib/costs/index").withCostContext;
 let registerSpendAlertSink: typeof import("../../src/lib/costs/daily").registerSpendAlertSink;
+let registerPayingSiteCounter: typeof import("../../src/lib/costs/daily").registerPayingSiteCounter;
 
-const CEILING = CAPS.DAILY_PRODUCT_C;
-const WARN = CAPS.DAILY_PRODUCT_C * SPEND_ALERT_AT.warn;
+// No counter is registered here, so every day is the base day.
+const CEILING = DAILY_PRODUCT_CEILING.baseC;
+const WARN = CEILING * SPEND_ALERT_AT.warn;
 const CTX = { scanId: "scan-1", policyVersion: 1 };
 
 /** What the day's ledger already held when the pass opened; `null` makes
@@ -73,8 +75,9 @@ beforeEach(async () => {
   writeFetchRowMock.mockResolvedValue(undefined);
   ledgerHolds(0);
   withCostContext = (await import("../../src/lib/costs/index")).withCostContext;
-  registerSpendAlertSink = (await import("../../src/lib/costs/daily")).registerSpendAlertSink;
+  ({ registerSpendAlertSink, registerPayingSiteCounter } = await import("../../src/lib/costs/daily"));
   registerSpendAlertSink(null);
+  registerPayingSiteCounter(null);
 });
 
 /** One `recordFetch` whose vendor call is counted, so "no call was made"
@@ -180,6 +183,31 @@ describe("a day with headroom spends normally, until this pass takes the last of
       await call(cost, 1, []);
     });
     expect(seen).toEqual([{ crossed: "warn", spentCents: WARN, ceilingCents: CEILING }]);
+  });
+});
+
+describe("the day's ceiling is the one billing's count gives it", () => {
+  it("with 40 paying sites a pass spends past 1,000¢ and is refused at 5,000¢, which `cap_hit` names", async () => {
+    registerPayingSiteCounter(async () => 40);
+    const warned = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    try {
+      const ran: string[] = [];
+      ledgerHolds(DAILY_PRODUCT_CEILING.baseC);
+      await withCostContext({ ...CTX, cap: "DEEP" }, async (cost) => {
+        await call(cost, 1, ran);
+      });
+      expect(ran).toEqual(["vendor"]);
+
+      ledgerHolds(5000);
+      await withCostContext({ ...CTX, cap: "DEEP" }, async (cost) => {
+        await call(cost, 1, ran);
+      });
+      expect(ran).toEqual(["vendor"]);
+      const line = warned.mock.calls.map((c) => String(c[0])).find((l) => l.includes("cap_hit"));
+      expect(JSON.parse(line as string)).toMatchObject({ reason: "daily_ceiling", ceilingCents: 5000 });
+    } finally {
+      warned.mockRestore();
+    }
   });
 });
 

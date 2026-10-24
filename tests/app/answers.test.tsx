@@ -16,8 +16,8 @@
 // customer reads.
 import React, { act } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { createRoot } from "react-dom/client";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { createRoot, type Root } from "react-dom/client";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 /** What the product said, in order: the rendered text of each toast and
  *  the daisyUI classes it was drawn with. */
@@ -118,13 +118,26 @@ const IN_REVIEW = "2026-09-15";
 const DRAFT = assembleDraft(FIXTURE_DRAFTS[FIXTURE_DRAFT_ID]!);
 const SETTINGS = assembleSettings(FIXTURE_SETTINGS_FACTS);
 
+const mounted: { root: Root; container: HTMLElement }[] = [];
+
 async function mount(el: React.ReactElement): Promise<HTMLElement> {
   const container = document.createElement("div");
   document.body.appendChild(container);
+  const root = createRoot(container);
+  mounted.push({ root, container });
   await act(async () => {
-    createRoot(container).render(el);
+    root.render(el);
   });
   return container;
+}
+
+/** A root left mounted keeps its timers, and one that fires after jsdom is
+ *  gone fails the run with an unhandled error. */
+function teardown(): void {
+  for (const { root, container } of mounted.splice(0)) {
+    act(() => root.unmount());
+    container.remove();
+  }
 }
 
 async function press(el: Element | null | undefined): Promise<void> {
@@ -162,6 +175,11 @@ beforeEach(() => {
   setting.answer = { answer: "saved", effect: "now" };
   setting.hold = false;
   releaseSetting = null;
+});
+
+afterEach(() => {
+  teardown();
+  vi.useRealTimers();
 });
 
 describe("Plan — a stop says what became of the page", () => {
@@ -250,6 +268,20 @@ describe("the page — Stop answers, and there is no Approve (issue 1337)", () =
     expect(said[0]?.text).toBe(COPY["draft.answer.refused"]);
     expect(rail(root, "draft.action.approve")).toBeNull();
     expect(rail(root, "draft.action.veto")).not.toBeNull();
+  });
+
+  it("an edit leaves no autosave timer behind once the screen is torn down", async () => {
+    vi.useFakeTimers();
+    const root = await mount(<DraftScreen view={DRAFT} generatedLabel="written by" />);
+    await press(rail(root, "draft.action.edit"));
+    const field = root.querySelector('[data-testid="draft-editor-description"]') as HTMLTextAreaElement;
+    await act(async () => {
+      Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value")?.set?.call(field, "A new description.");
+      field.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+    expect(vi.getTimerCount()).toBeGreaterThan(0);
+    teardown();
+    expect(vi.getTimerCount()).toBe(0);
   });
 });
 

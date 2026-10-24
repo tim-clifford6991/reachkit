@@ -151,6 +151,9 @@ export interface GenerateStore {
    *  when it went live — or `null` where none is. A store that holds no
    *  publications leaves this out, and no page is mended. */
   liveVersionAt?(siteId: string, url: string): Promise<{ draft: DraftRow; publishedAt: Date } | null>;
+  /** Every version that went live at an address, live now or not, by its
+   *  draft id. A store that holds no publications leaves this out. */
+  versionsAt?(siteId: string, url: string): Promise<string[]>;
   /** Issue 1509: each address of this site live now, with the Markdown of
    *  the version it serves. A store that holds no publications leaves this
    *  out, and no fact is offered later for having been said. */
@@ -259,6 +262,14 @@ export class DraftDateTaken extends Error {
   }
 }
 
+/** The page was stopped before its draft was saved, so no row was written. */
+export class PageStopped extends Error {
+  constructor(readonly opportunityId: string) {
+    super(`generate/store: ${opportunityId} was stopped before its draft was saved`);
+    this.name = "PageStopped";
+  }
+}
+
 interface MinimalQueryBuilder<T> extends PromiseLike<QueryResult<T>> {
   select(columns: string, options?: { count: "exact"; head: true }): MinimalQueryBuilder<T>;
   insert(rows: object): MinimalQueryBuilder<T>;
@@ -285,6 +296,16 @@ const DRAFT_COLUMNS =
   "id, site_id, opportunity_id, state, title, body_md, meta, grounded_fact, " +
   "attribution, hard_rule_attempts, rule_failures, claim_check, cost_cents, " +
   "scheduled_for, veto_deadline, created_at, transitions";
+
+/** An address by its path: the host a page answers at may have moved since
+ *  it was recorded (issue 888). */
+function pathOf(address: string): string | null {
+  try {
+    return new URL(address).pathname.replace(/\/+$/, "");
+  } catch {
+    return null;
+  }
+}
 
 function pageOf(row: DraftRow): StoredPage {
   const reportPassages = withheldReportPassages(row.meta);
@@ -350,21 +371,34 @@ export function supabaseGenerateStore(): GenerateStore {
     },
 
     async insertDraft(row) {
-      const result = await untyped()
-        .from<{ id: string }>("drafts")
-        .insert(row)
-        .select("id");
-      // The one unique rule an insert of a day's page can break is
-      // `drafts_one_per_site_per_date` (issue 886) — the primary key is a
-      // generated uuid. It is raised as itself so the caller can answer
-      // `already_drafted` instead of failing the tick.
-      if (result.error?.code === UNIQUE_VIOLATION) {
-        throw new DraftDateTaken(row.site_id, row.scheduled_for);
+      // Claimed as it is saved: a stop that came first drops the draft, and one that comes later is refused.
+      const { claimForDraft, giveBackClaim } = await import("@/lib/opportunities");
+      const claim = await claimForDraft(row.opportunity_id);
+      if (!claim.save) throw new PageStopped(row.opportunity_id);
+      try {
+        const result = await untyped()
+          .from<{ id: string }>("drafts")
+          .insert(row)
+          .select("id");
+        // The one unique rule an insert of a day's page can break is
+        // `drafts_one_per_site_per_date` (issue 886) — the primary key is a
+        // generated uuid. It is raised as itself so the caller can answer
+        // `already_drafted` instead of failing the tick.
+        if (result.error?.code === UNIQUE_VIOLATION) {
+          throw new DraftDateTaken(row.site_id, row.scheduled_for);
+        }
+        if (result.error) throw new Error(`generate/store: insert into drafts failed: ${result.error.message}`);
+        const created = (result.data ?? [])[0];
+        if (created === undefined) throw new Error("generate/store: insert into drafts returned no row");
+        return created.id;
+      } catch (error) {
+        // A page that wrote no row leaves its opportunity open; a sibling delivery's saved draft keeps it queued.
+        if (claim.claimed) {
+          const held = await untyped().from<{ id: string }>("drafts").select("id").eq("opportunity_id", row.opportunity_id).limit(1);
+          if (!held.error && (held.data ?? []).length === 0) await giveBackClaim(row.opportunity_id).catch(() => undefined);
+        }
+        throw error;
       }
-      if (result.error) throw new Error(`generate/store: insert into drafts failed: ${result.error.message}`);
-      const created = (result.data ?? [])[0];
-      if (created === undefined) throw new Error("generate/store: insert into drafts returned no row");
-      return created.id;
     },
 
     async patchDraft(draftId, patch) {
@@ -401,20 +435,22 @@ export function supabaseGenerateStore(): GenerateStore {
         .is("unpublished_at", null)
         .order("published_at", { ascending: false });
       if (live.error) throw new Error(`generate/store: read from publications failed: ${live.error.message}`);
-      // The address by its path: the host a page answers at may have moved
-      // since it was recorded (issue 888).
-      const pathOf = (address: string): string | null => {
-        try {
-          return new URL(address).pathname.replace(/\/+$/, "");
-        } catch {
-          return null;
-        }
-      };
       const wanted = pathOf(url);
       const newest = (live.data ?? []).find((row) => row.live_url !== null && wanted !== null && pathOf(row.live_url) === wanted);
       if (newest === undefined) return null;
       const draft = await this.draftById(newest.draft_id);
       return draft === null ? null : { draft, publishedAt: new Date(newest.published_at) };
+    },
+
+    async versionsAt(siteId, url) {
+      const went = await untyped()
+        .from<{ draft_id: string; live_url: string | null }>("publications")
+        .select("draft_id, live_url")
+        .eq("site_id", siteId)
+        .not("published_at", "is", null);
+      if (went.error) throw new Error(`generate/store: read from publications failed: ${went.error.message}`);
+      const wanted = pathOf(url);
+      return (went.data ?? []).filter((row) => row.live_url !== null && wanted !== null && pathOf(row.live_url) === wanted).map((row) => row.draft_id);
     },
 
     async livePages(siteId) {

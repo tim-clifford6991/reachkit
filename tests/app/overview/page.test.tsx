@@ -89,73 +89,32 @@ describe("REQ-041 c1 — Overview is the screen a signed-in customer lands on", 
     expect(await markup()).not.toContain("data-surface");
   });
 
-  it("renders the five parts SPEC §4 (2026-09-20) puts on the Overview tab", async () => {
-    // The owner's enumeration, as 2026-10-07 reorders it: the page in
-    // review as an action carrying the head, the headline numbers, this
-    // week, needs you. It supersedes the six cards #353 drew — the growth
-    // card, the AI matrix and the rival rows are the Search, AI answers and
-    // Rivals tabs' own now (#916, #918, #917).
+  it("draws board Main's sections in its order: head, today's page, the ladder, this week, the site-fix line", async () => {
     const html = await markup();
-    for (const region of [
-      "overview-head",
-      "overview-waiting",
-      "overview-tiles",
-      "overview-week",
-      "overview-needs-you",
-    ]) {
-      expect(html, `missing ${region}`).toContain(`data-testid="${region}"`);
-    }
-  });
-
-  it("renders the four core tiles and no fifth (issue 1457)", async () => {
-    const html = await markup();
-    const tiles = [...html.matchAll(/data-testid="overview-tile-([a-z]+)"/g)].map((m) => m[1]);
-    expect(tiles).toEqual(["score", "google", "ai", "content"]);
-  });
-
-  it("opens with the core tiles (issues 1364, 1457)", async () => {
-    const html = await markup();
-    const tiles = html.indexOf('data-testid="overview-tiles"');
-    expect(tiles).toBeGreaterThan(-1);
-    expect(tiles).toBeLessThan(html.indexOf('data-testid="overview-waiting"'));
-    expect(tiles).toBeLessThan(html.indexOf('data-testid="overview-week"'));
-  });
-
-  it("the page in review is the action under the numbers (issues 1319, 1364)", async () => {
-    const html = await markup();
-    const card = html.indexOf('data-testid="overview-waiting"');
-    expect(card).toBeGreaterThan(-1);
-    expect(card).toBeLessThan(html.indexOf('data-testid="overview-week"'));
-    expect(html.indexOf("<h1>")).toBeGreaterThan(card);
+    const at = (id: string): number => html.indexOf(`data-testid="${id}"`);
+    const order = ["overview-head", "overview-waiting", "overview-ladder", "overview-week", "overview-fixes"].map(at);
+    expect(order.every((index) => index > -1), order.join(",")).toBe(true);
+    expect([...order].sort((x, y) => x - y)).toEqual(order);
+    expect(html.indexOf("<h1")).toBeLessThan(at("overview-waiting"));
     expect(html).toContain('data-testid="overview-waiting-read"');
     expect(html).toContain('data-testid="overview-stop-action"');
-    // The page as a reader will see it is behind *Read it*, not here.
-    expect(html).not.toContain("mockup-browser");
   });
 
-  it("draws the Visibility Score with its band, range and change, and no goal (issue 1457, D23)", async () => {
+  it("draws none of the six modules its board does not show (Q12), nor the old head, tiles or needs-you card", async () => {
     const html = await markup();
-    expect(html).toContain(COPY["overview.tile.score.label"]);
-    expect(html).toContain('data-testid="overview-tile-score-change"');
-    expect(html).toContain('data-testid="overview-gap"');
-    expect(html).not.toMatch(/goal: \d/);
-  });
-
-  it("the twelve-week growth card and the rival rows have left this tab", async () => {
-    // Not deleted — they are what #916 and #917 build their tabs from — but
-    // the Overview tab states each of those readings once, as a tile.
-    const html = await markup();
-    expect(html).not.toContain('data-testid="overview-growth"');
-    expect(html).not.toContain('data-testid="overview-rivals"');
-  });
-});
-
-describe("SPEC §4 (2026-10-10, issue 1395) — what ReachKit did this week", () => {
-  it("stands inside This week, under the days", async () => {
-    const html = await markup();
-    const done = html.indexOf('data-testid="overview-done"');
-    expect(done).toBeGreaterThan(html.indexOf('data-testid="overview-week-day"'));
-    expect(done).toBeLessThan(html.indexOf('data-testid="overview-needs-you"'));
+    for (const gone of [
+      "overview-done",
+      "process-timeline",
+      "what-we-read",
+      "overview-main-link",
+      "overview-misstated",
+      "overview-tiles",
+      "overview-needs-you",
+      "overview-growth",
+      "overview-rivals",
+    ]) {
+      expect(html, gone).not.toContain(`data-testid="${gone}"`);
+    }
   });
 });
 
@@ -196,16 +155,11 @@ describe("REQ-093 c1 — the screen invents no sentence", () => {
 
   it("the head still renders a heading, from a key the owner has written", async () => {
     const html = await markup();
-    expect(html).toMatch(/<h1>[^<]+<\/h1>/);
+    expect(html).toMatch(/<h1[^>]*>[^<]+<\/h1>/);
   });
 });
 
-describe("REQ-041 c5 — the alert cap and the one supply statement survive composition", () => {
-  it("at most two alerts render", async () => {
-    const html = await markup();
-    expect(html.split('role="alert"').length - 1).toBeLessThanOrEqual(2);
-  });
-
+describe("REQ-041 c5 — the one supply statement survives composition", () => {
   it("at most one supply statement renders", async () => {
     const html = await markup();
     expect(html.split('data-testid="overview-supply"').length - 1).toBeLessThanOrEqual(1);

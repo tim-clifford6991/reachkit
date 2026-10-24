@@ -61,6 +61,7 @@ export const FIXTURE_SHELL_FACTS: ShellFacts = Object.freeze({
   stopped: null,
   noPublishCauses: Object.freeze({
     reachkit_stopped: false,
+    address_waiting: false,
     publishing_paused: false,
     not_written: false,
     nothing_planned: false,

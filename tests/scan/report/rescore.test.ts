@@ -3,7 +3,7 @@
 // them: the rows whole, through a store that stands in for the database.
 import { readFileSync } from "node:fs";
 import { createHash } from "node:crypto";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { offline } from "../../../src/lib/egress/offline";
 import { KEPT_CONTENT_PAGES, KEPT_NO_OVERVIEW_TEXT, KEPT_TOWN_BOUGHT, rehomeSite } from "../../../src/lib/scan/rescore";
 import {
@@ -214,13 +214,13 @@ describe("stored placeholders, names and dates, read again at 0¢ (issue 1479)",
 });
 
 describe("zapier.com's scan of 6 October: AI presence read from the one Google result read", () => {
-  it("stored 27; now a rough estimate with its range (issue 1439), as a new scan would show", async () => {
+  it("stored 27; now a rough estimate whose range spans its one Google search on page one, as a new scan would show", async () => {
     const db = storeOf([fixture("zapier.com")]);
     const answer = await rescoreStored(db.store, apply);
-    expect(answer.summary).toContain("**27 → 47 (47–57, rough)**");
+    expect(answer.summary).toContain("**27 → 47 (28–57, rough)**");
     expect(db.written[0]).toMatchObject({ score: 47 });
     const verdict = db.written[0]!.changes.find((c) => c.path.join(".") === "verdict")!.value as { estimate?: unknown };
-    expect(verdict.estimate).toEqual({ low: 47, high: 57, confidence: "rough" });
+    expect(verdict.estimate).toEqual({ low: 28, high: 57, confidence: "rough" });
   });
 });
 
@@ -430,35 +430,111 @@ describe("issue 1539: what a tracked-prompt answer states of the business is rea
   });
 });
 
-describe("issue 1441: a stored SERP whose local pack shows the site counts that search toward search presence", () => {
-  // gusto.com's scan, with a small business's footprint: three searches,
-  // none on the first page.
-  const scan = ((): FixtureScan => {
-    const s = fixture("gusto.com");
-    const report = structuredClone(s.report) as Record<string, unknown> & { ownRanked: { value: number } };
-    report.ownRanked = { ...report.ownRanked, value: 3 };
-    report.ownRankedRows = [40, 55, 70].map((position, i) => ({ keyword: `payroll question ${i}`, position }));
-    return { ...s, report };
-  })();
-  const rowOf = (s: FixtureScan): StoredScanRow => ({ ...s, domain: "gusto.com", md5: md5(s.report), siteId: null, isCurrent: false });
-  const searchPresence = (s: FixtureScan): number => {
-    const row = rescoreRow(rowOf(s), []);
-    if (!("result" in row)) throw new Error(row.because);
-    const value = row.result.drivers.searchPresence;
-    if (value.kind === "unmeasured") throw new Error("unmeasured");
-    return value.value;
+describe("a stored tracked-prompt answer gains the pages it cited on other sites, from what fetches kept", () => {
+  it("a competitor's page is written at its own path, its tracking and the site's own pages and homes left out", () => {
+    const scan = fixture("zapier.com");
+    const report = structuredClone(scan.report) as Record<string, unknown>;
+    report.prompts = {
+      siteName: "Zapier",
+      asked: [{ id: "p1", kind: "category", text: "Best automation tool?" }],
+      asks: 1,
+      answers: [{ promptId: "p1", engine: "chatgpt", run: 1, named: false, linked: false, ownUrls: [], rivals: [] }],
+    };
+    const db = storeOf([{ ...scan, report }]);
+    const row = { ...[...db.rows.values()][0]!, siteId: "site", isCurrent: true };
+    const citedUrls = ["https://make.com/en/integrations/slack?utm_source=chatgpt.com", "https://make.com/", "https://zapier.com/blog/best-automation/"];
+    const answers = [{ source: "ai_optimization/chat_gpt/llm_scraper", key: "Best automation tool?|United States|en|site:x", text: "Make leads.", citedUrls }];
+    const again = rescoreRow(row, [], { siteName: "Zapier", answers });
+    const change = "result" in again ? again.result.changes.find((c) => c.path[0] === "prompts") : undefined;
+    expect(change).toEqual({ path: ["prompts", "answers", 0, "cited"], value: ["https://make.com/en/integrations/slack"] });
+  });
+});
+
+describe("search presence is re-scored at 0¢ as the stored card's page-one share (owner, 2026-10-22)", () => {
+  // gusto.com's stored scan: Google 10/10 from its Labs reach, beside a card of 0 of 1.
+  const scan = fixture("gusto.com");
+  const withReport = (edit: (report: Record<string, unknown>) => void): FixtureScan => {
+    const report = structuredClone(scan.report);
+    edit(report);
+    return { ...scan, report };
   };
-  const withPack = (domain: string): FixtureScan => {
-    const report = structuredClone(scan.report) as { serps: { kind: string; value?: Record<string, unknown> }[] };
-    const first = report.serps.find((serp) => serp.kind === "measured")!;
-    first.value!.localPack = [{ title: "A business", domain }];
-    return { ...scan, report: report as unknown as Record<string, unknown> };
+  const googleOf = (s: FixtureScan): unknown => {
+    const row = rescoreRow({ ...s, domain: "gusto.com", md5: md5(s.report), siteId: null, isCurrent: false }, []);
+    if (!("result" in row)) throw new Error(row.because);
+    return { driver: row.result.drivers.searchPresence, kept: row.result.kept };
   };
 
-  it("adds to it where the pack holds the site, and leaves it where the pack holds only others", () => {
-    const stored = searchPresence(scan);
-    expect(searchPresence(withPack("www.gusto.com"))).toBeGreaterThan(stored);
-    expect(searchPresence(withPack("rival.example"))).toBe(stored);
+  it("a stored bar of 10 beside a card of 0 is re-scored to 0, the old value kept under previousColumns, with no request made", async () => {
+    expect(scan.drivers).toMatchObject({ searchPresence: { kind: "measured", value: 100 } });
+    const fetched = vi.spyOn(globalThis, "fetch");
+    const db = storeOf([scan]);
+    await rescoreStored(db.store, apply);
+    expect(fetched).not.toHaveBeenCalled();
+    fetched.mockRestore();
+    const after = db.rows.get(scan.id)!;
+    expect(after.drivers).toMatchObject({ searchPresence: { kind: "zero", value: 0 } });
+    expect((after.report as { verdict: { halves: { google: unknown } } }).verdict.halves.google).toMatchObject({ kind: "zero", value: 0 });
+    expect((after.report as { previousColumns: { drivers: unknown } }).previousColumns.drivers).toEqual(scan.drivers);
+  });
+
+  it("a stored SERP whose local pack shows the site counts that search as page one", () => {
+    const packed = withReport((report) => {
+      const first = (report.serps as { kind: string; value: Record<string, unknown> }[]).find((serp) => serp.kind === "measured")!;
+      first.value.localPack = [{ title: "Gusto", domain: "www.gusto.com" }];
+    });
+    expect(googleOf(packed)).toMatchObject({ driver: { kind: "measured", value: 100 } });
+  });
+
+  it("a report with no stored card, or no measured search, keeps its stored value until its next scan", () => {
+    for (const edit of [
+      (report: Record<string, unknown>) => (report.presence = null),
+      (report: Record<string, unknown>) => (report.serps = []),
+    ]) {
+      const { driver, kept } = googleOf(withReport(edit)) as { driver: unknown; kept: string[] };
+      expect(driver).toMatchObject({ kind: "measured", value: 100 });
+      expect(kept).toContain("search presence: the report kept no measured search, so its stored value stands");
+    }
+  });
+});
+
+describe("the score's range spans a Google share counted over few searches, re-scored at 0¢", () => {
+  // Foundations 100 and Content 30 as stored, four searches measured, the
+  // site on page one for none, and no AI answer on any of them.
+  const gusto = fixture("gusto.com");
+  const fourSearches = (): FixtureScan => {
+    type Rows<T> = { value: T[] };
+    const report = structuredClone(gusto.report) as Record<string, unknown> & { serps: unknown[]; questions: Rows<{ search: object }>; aiAnswers: { rows: object[] }; onPage: { at: string } };
+    const [serp] = report.serps;
+    const [question] = report.questions.value;
+    const [row] = report.aiAnswers.rows;
+    const searches = ["payroll software", "payroll for small business", "online payroll", "hr and payroll"];
+    report.onPage = { kind: "unmeasured", reason: "not_attempted", at: report.onPage.at } as typeof report.onPage;
+    report.serps = searches.map(() => structuredClone(serp));
+    report.questions.value = searches.map((keyword, i) => ({ ...question!, id: `q${i + 1}`, search: { ...question!.search, keyword } }));
+    report.aiAnswers.rows = searches.map((search) => ({ ...structuredClone(row), question: { search } }));
+    const storedAt = report.onPage.at;
+    const drivers = { ...(gusto.drivers as object), foundations: { kind: "measured", value: 100, at: storedAt }, answerability: { kind: "measured", value: 30, at: storedAt } };
+    return { ...gusto, id: "4f0c0de0-0000-4000-8000-000000000004", drivers, report };
+  };
+  const verdictWritten = (db: ReturnType<typeof storeOf>) =>
+    db.written[0]!.changes.find((c) => c.path.join(".") === "verdict")!.value as { scoreAndBand: { value: { score: number } }; estimate?: unknown };
+
+  it("0 of 4 on page one re-scores to 14 with an estimate of 14–53, rough, with no request made", async () => {
+    const fetched = vi.spyOn(globalThis, "fetch");
+    const db = storeOf([fourSearches()]);
+    await rescoreStored(db.store, apply);
+    expect(fetched).toHaveBeenCalledTimes(0);
+    fetched.mockRestore();
+    expect(db.written[0]).toMatchObject({ score: 14 });
+    expect(verdictWritten(db).estimate).toEqual({ low: 14, high: 53, confidence: "rough" });
+  });
+
+  it("a report with no stored card keeps the estimate its stored Google value gives", async () => {
+    const scan = fourSearches();
+    (scan.report as Record<string, unknown>).presence = null;
+    const db = storeOf([scan]);
+    await rescoreStored(db.store, apply);
+    expect(verdictWritten(db).estimate).toEqual({ low: 67, high: 67, confidence: "rough" });
   });
 });
 
@@ -725,5 +801,30 @@ describe("issue 1551: a paid scan's Content is read again over its measured page
     const { row } = paid();
     const read = rescoreRow(row, homeRead, { siteName: null, answers: [], measured: measuredOf({ own, ours: [ours], oursReads: [] }) });
     expect("result" in read && read.result.kept).toContain(KEPT_CONTENT_PAGES);
+  });
+});
+
+describe("the other markets a stored home read declares are counted at 0¢", () => {
+  const declaring = (scan: FixtureScan): FixtureScan => {
+    const payload = scan.home!.payload as Record<string, unknown>;
+    const alternates = ["en", "de-de", "fr-fr"].map((tag) => `<link rel="alternate" hreflang="${tag}" href="https://zapier.com/${tag === "en" ? "" : `${tag}/`}">`).join("");
+    return { ...scan, home: { ...scan.home!, payload: { ...payload, html: `<html lang="en"><head>${alternates}</head><body></body></html>` } } };
+  };
+
+  it("a report whose stored home read declares them gains them, and a second apply changes nothing", async () => {
+    const scan = declaring(fixture("zapier.com"));
+    expect(String((scan.home!.payload as { html: string }).html)).toContain('hreflang="de-de"');
+    const db = storeOf([scan]);
+    await rescoreStored(db.store, apply);
+    expect((db.rows.get(scan.id)!.report as { locale?: unknown }).locale).toEqual({ country: "US", language: "en", alsoServes: ["de-de", "fr-fr"] });
+    const again = await rescoreStored(db.store, apply);
+    expect(again).toMatchObject({ scansChanged: 0 });
+  });
+
+  it("a report whose home read is gone keeps what it has, until its next scan", async () => {
+    const scan = { ...declaring(fixture("zapier.com")), home: null };
+    const db = storeOf([scan]);
+    await rescoreStored(db.store, apply);
+    expect((db.rows.get(scan.id)!.report as { locale?: unknown }).locale).toBeUndefined();
   });
 });

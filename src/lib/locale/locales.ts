@@ -77,6 +77,23 @@ export const SUPPORTED_LOCALES: readonly Locale[] = Object.freeze(
   (Object.keys(COUNTRIES) as Country[]).map((country) => Object.freeze({ country, language: COUNTRIES[country].language }))
 );
 
+/** The supported countries measured in `language`, by name, in list
+ *  order: what the landing says ReachKit measures, read from the same rows. */
+export function countriesMeasuredIn(
+  language: Language,
+  countries: Readonly<Record<string, { location: string; language: string }>> = COUNTRIES
+): string[] {
+  return Object.values(countries)
+    .filter((row) => row.language === language)
+    .map((row) => row.location);
+}
+
+/** The slots of the German FAQ answer: "Germany, Austria, and Switzerland". */
+export function measuredCountryLists(): { germanCountries: string; englishCountries: string } {
+  const listed = (names: readonly string[]): string => new Intl.ListFormat("en", { type: "conjunction" }).format(names);
+  return { germanCountries: listed(countriesMeasuredIn("de")), englishCountries: listed(countriesMeasuredIn("en")) };
+}
+
 export function isCountry(value: unknown): value is Country {
   return typeof value === "string" && Object.prototype.hasOwnProperty.call(COUNTRIES, value);
 }
@@ -155,12 +172,17 @@ export interface LocaleReading {
 export interface ResolvedLocale {
   locale: Locale;
   fellBack: { country: string | null; language: string | null } | null;
+  /** `default` where nothing was read at all, neither the home page nor a
+   *  country in the address: the locale is D66's default, guessed. */
+  basis?: "default";
 }
 
 /**
  * The supported locale a reading is measured in (D66).
  *
- * A pair on the list is itself. A German page whose country is not on the
+ * A pair on the list is itself. A supported country read in another
+ * language is measured in that country's own language, and says what
+ * language the site read as. A German page whose country is not on the
  * list is read in Germany. Anything else falls back to the nearest
  * supported country in English, and says what it fell back from. A reading
  * that says nothing is the United States in English, and that is no
@@ -173,7 +195,8 @@ export function resolveLocale(reading: LocaleReading): ResolvedLocale {
 
   if (isCountry(country)) {
     const own = COUNTRIES[country].language;
-    if (language === null || language === own) return { locale: { country, language: own }, fellBack: null };
+    // Rivals and answers are country-specific: a supported country keeps its market, in its own language.
+    return { locale: { country, language: own }, fellBack: language === null || language === own ? null : { country: null, language } };
   }
   if (language === "en" && country === null) return { locale: DEFAULT_LOCALE, fellBack: null };
   if (language === "de" && !isCountry(country)) {

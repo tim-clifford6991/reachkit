@@ -87,9 +87,9 @@ function opportunity(id: string, family: Opportunity["family"], clusterKey: stri
 describe("ranking — a ready fix outranks new writing for its cluster", () => {
   it("goes ahead of the first Write row, and leaves a higher-scored Improve where it was", () => {
     const scored = [
-      { opportunity: opportunity("improve", "improve", null), score: 0.9 },
-      { opportunity: opportunity("write-a", "write", null), score: 0.8 },
-      { opportunity: opportunity("write-b", "write", null), score: 0.5 },
+      { opportunity: opportunity("improve", "improve", null), points: 9, parts: [] },
+      { opportunity: opportunity("write-a", "write", null), points: 8, parts: [] },
+      { opportunity: opportunity("write-b", "write", null), points: 5, parts: [] },
     ];
     const order = placeFixPages(scored, [opportunity("fix", "fix", null)]).map((r) => r.opportunityId);
     expect(order).toEqual(["improve", "fix", "write-a", "write-b"]);
@@ -97,8 +97,8 @@ describe("ranking — a ready fix outranks new writing for its cluster", () => {
 
   it("once clusters exist, only ahead of Write rows in its own cluster; with none to precede it goes last", () => {
     const scored = [
-      { opportunity: opportunity("write-other", "write", "pricing"), score: 0.8 },
-      { opportunity: opportunity("write-own", "write", "onboarding"), score: 0.5 },
+      { opportunity: opportunity("write-other", "write", "pricing"), points: 8, parts: [] },
+      { opportunity: opportunity("write-own", "write", "onboarding"), points: 5, parts: [] },
     ];
     expect(placeFixPages(scored, [opportunity("fix", "fix", "onboarding")]).map((r) => r.opportunityId)).toEqual([
       "write-other",
@@ -147,20 +147,18 @@ describe("the recorded test — issues_cleared", () => {
     measuredAt: AT,
     domain: "example.com",
     positions: new Map(),
-    namesCustomer: new Map(),
-    ownPagesCited: new Map(),
     promptCitations: new Map(),
     gatesCleared: new Map(),
     siteIssues,
   });
 
   it("passes when the page was checked and is no longer affected, fails while it still is", () => {
-    expect(evaluateAcceptance({ acceptance, pageUrl: PRICING, week: week(section({ titles: [] })) })).toMatchObject({ decided: true, passes: true });
-    expect(evaluateAcceptance({ acceptance, pageUrl: PRICING, week: week(section({ titles: [PRICING] })) })).toMatchObject({ decided: true, passes: false });
+    expect(evaluateAcceptance({ acceptance, week: week(section({ titles: [] })) })).toMatchObject({ decided: true, passes: true });
+    expect(evaluateAcceptance({ acceptance, week: week(section({ titles: [PRICING] })) })).toMatchObject({ decided: true, passes: false });
   });
 
   it("is this week's miss — never a pass — where the page was not checked or no checks were recorded", () => {
-    expect(evaluateAcceptance({ acceptance, pageUrl: PRICING, week: week(section({ checked: [ABOUT] })) })).toEqual({ decided: false, because: "not_measured" });
-    expect(evaluateAcceptance({ acceptance, pageUrl: PRICING, week: week(null) })).toEqual({ decided: false, because: "not_measured" });
+    expect(evaluateAcceptance({ acceptance, week: week(section({ checked: [ABOUT] })) })).toEqual({ decided: false, because: "not_measured" });
+    expect(evaluateAcceptance({ acceptance, week: week(null) })).toEqual({ decided: false, because: "not_measured" });
   });
 });

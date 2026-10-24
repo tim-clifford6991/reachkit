@@ -1,179 +1,172 @@
 // tests/app/scan-address/landing-s1.test.tsx
 //
-// **The landing in its 2026-09-24 order (SPEC §1, #1059; built by #1067).**
-// `landing.test.tsx` beside this file holds REQ-001's own criteria (one
-// field, one submit, no gate, the no-JavaScript path). This file holds the
-// order and what each section carries: the hero and its *Inside ReachKit*
-// preview, the eight steps, the four features, the three steps and the
-// closing band. That the preview turns every 5s is proved in jsdom by
-// `tests/ui/landing-inside-tabs.test.tsx`.
-//
-// Same conventions as its neighbour: the "node" project, `react-dom/
-// server`'s `renderToStaticMarkup`, and `copy()` mocked to `(key) => key`
-// so the assertions read the rendered *tree* and the key each line resolves
-// from, never the owner's wording.
+// The landing as the 19 Oct board draws it (decision 2026-10-19-1596): one
+// story with one example business, the sections in order, the pace the owner
+// ruled, figures read from the constants the product runs on, the links into
+// How it works, and the one deep shadow on the story card. `landing.test.tsx`
+// beside this file holds REQ-001's own criteria (one field, one submit, no
+// gate). The "node" project, `renderToStaticMarkup`, the real registry.
 import { readFileSync } from "node:fs";
 import path from "node:path";
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import React from "react";
-import { BATTERY, TRACKED_PROMPTS, VETO } from "@/lib/config/constants";
-import { HARD_RULES } from "@/lib/generate/rules/types";
+import { BATTERY, CONTENT_MIX, HOSTED_RETENTION_DAYS, RATE_LIMITS, TRACKED_PROMPTS, WEEK_PLAN } from "@/lib/config/constants";
+import { COPY, copy, type CopyKey } from "@/lib/presentation/copy";
+import { FLOAT } from "@/ui/lift";
+import LandingPage from "@/app/(public)/page";
 
-vi.mock("@/lib/presentation/copy", () => ({
-  copy: (key: string, vars?: Record<string, string>) =>
-    vars === undefined ? key : `${key}:${Object.values(vars).join(",")}`,
-}));
+const markup = renderToStaticMarkup(React.createElement(LandingPage, { searchParams: {} }));
 
-async function renderPage(): Promise<string> {
-  vi.resetModules();
-  const { default: LandingPage } = (await import("@/app/(public)/page.tsx")) as {
-    default: (p: { searchParams: Record<string, string> }) => React.JSX.Element;
-  };
-  return renderToStaticMarkup(React.createElement(LandingPage, { searchParams: {} }));
+/** The markup between two marks, each of which must be present. */
+function between(from: string, to: string): string {
+  const a = markup.indexOf(from);
+  const b = markup.indexOf(to, a);
+  expect(a, from).toBeGreaterThan(-1);
+  expect(b, to).toBeGreaterThan(a);
+  return markup.slice(a, b);
 }
 
-/** The preview card alone, bounded by the eight steps that follow it. */
-function heroCard(markup: string): string {
-  const from = markup.indexOf('data-testid="landing-inside"');
-  const to = markup.indexOf('data-testid="landing-day"');
-  expect(from).toBeGreaterThan(-1);
-  expect(to).toBeGreaterThan(from);
-  return markup.slice(from, to);
-}
+/** React escapes these five in text; a sentence is looked for as it is drawn. */
+const drawn = (text: string): string =>
+  text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#x27;");
 
-describe("SPEC §1 2026-09-24 — the landing in its approved order (#1067)", () => {
-  it("hero → What happens every day → Why you should care → What to do next → the closing band", async () => {
-    const markup = await renderPage();
+const hrefsIn = (html: string): string[] => [...html.matchAll(/<a\b[^>]*href="([^"]*)"/g)].map((m) => m[1]!);
+
+describe("the landing holds what the board holds, in order", () => {
+  it("hero and story card → three steps → why → the plan and its price card → questions → closing band", () => {
     const order = [
       'id="landing-field"',
-      'data-testid="landing-inside"',
-      'data-testid="landing-day"',
-      'id="why"',
-      "landing.feature.ai.title",
+      'data-testid="landing-story"',
       'id="how"',
-      "landing.step.1.tag",
-      "landing.close.heading",
+      'data-testid="landing-inside"',
+      'id="why"',
+      'id="weekly"',
+      'data-testid="landing-price"',
+      'id="faq"',
+      drawn(copy("landing.close.heading")),
     ].map((mark) => markup.indexOf(mark));
     expect(order.every((at) => at > -1), order.join(",")).toBe(true);
     expect([...order].sort((a, b) => a - b)).toEqual(order);
   });
-});
 
-describe("Inside ReachKit — the hero preview (SPEC §1 2026-09-24)", () => {
-  it("names its three tabs, and none of them is a score (SPEC §1, D22)", async () => {
-    const card = heroCard(await renderPage());
-    const tabs = [...card.matchAll(/role="tab"[^>]*>([^<]+)</g)].map((m) => m[1]);
-    expect(tabs).toEqual([
-      "landing.inside.tab.week",
-      "landing.inside.tab.answers",
-      "landing.inside.tab.page",
-    ]);
+  it("the story card draws its five frames in order, and says the business is an example", () => {
+    const card = between('data-testid="landing-story"', 'id="how"');
+    const frames = [1, 2, 3, 4, 5].map((n) => card.indexOf(drawn(copy(`landing.story.${n}.title` as CopyKey))));
+    expect(frames.every((at) => at > -1), frames.join(",")).toBe(true);
+    expect([...frames].sort((a, b) => a - b)).toEqual(frames);
+    expect(card).toContain(drawn(copy("landing.hero.example")));
   });
 
-  it("the tabs are its only controls: no toggle, no field, no Read it or Stop", async () => {
-    const card = heroCard(await renderPage());
-    const buttons = [...card.matchAll(/<button\b[^>]*>/g)].map((m) => m[0]);
-    expect(buttons).toHaveLength(3);
-    for (const b of buttons) expect(b).toMatch(/role="tab"/);
-    expect(card).not.toContain("toggle");
-    expect(card).not.toContain("<input");
+  it("three step cards, and eight questions", () => {
+    const steps = between('id="how"', 'id="why"');
+    expect(steps.match(/<li class="card /g)).toHaveLength(3);
+    const faq = between('id="faq"', "</section>");
+    expect(faq.match(/<details /g)).toHaveLength(8);
   });
 
-  it("Your week: Monday measures and Tuesday to Saturday each publish one page", async () => {
-    const card = heroCard(await renderPage());
-    expect(card).toMatch(/landing\.hero\.autopilot:[^"<]+/);
-    expect(card).toMatch(/landing\.hero\.week\.measured:400,12/);
-    for (const n of [1, 2, 3, 4, 5]) expect(card).toContain(`landing.hero.page.${n}`);
-    expect(card.match(/calendar\.stage\.live/g)).toHaveLength(5);
+  it("the eight steps and the Recently scanned strip are gone, and so is the drift loop", () => {
+    expect(markup).not.toContain('data-testid="landing-day"');
+    expect(markup).not.toContain("animate-drift");
+    expect(Object.keys(COPY).filter((key) => /^landing\.(day|strip)\./.test(key))).toEqual([]);
+    const css = readFileSync(path.resolve(import.meta.dirname, "../../../src/ui/tailwind.css"), "utf8");
+    expect(css).not.toContain("drift");
   });
 
-  it("AI answers names the example business; Your page says when it goes live", async () => {
-    const card = heroCard(await renderPage());
-    expect(card).toContain("landing.inside.answers.head");
-    expect(card).toMatch(/<strong class="[^"]*text-primary[^"]*">Harbour Bike Repair<\/strong>/);
-    expect(card).toContain("landing.inside.answers.monday");
-    expect(card).toContain("calendar.stage.your-review");
-    expect(card).toContain("landing.inside.page.due:6h 12m");
-  });
-
-  it("says in writing that the business is an example", async () => {
-    expect(heroCard(await renderPage())).toContain("landing.hero.example");
-  });
-
-  it("the assurance line stands under the field", async () => {
-    expect(await renderPage()).toContain("landing.hero.assurance");
+  it("nothing waiting on the launch gate is drawn: no guarantee, no Cancel your contract", () => {
+    expect(markup).not.toMatch(/money-back|Cancel your contract/i);
   });
 });
 
-describe("What happens every day — eight steps, their figures from the constants (issue 1396)", () => {
-  it("draws eight steps in order and links to /how-it-works", async () => {
-    const markup = await renderPage();
-    const at = markup.indexOf('data-testid="landing-day"');
-    const block = markup.slice(at, markup.indexOf("</section>", at));
-    const titles = [...block.matchAll(/landing\.day\.(\d)\.title/g)].map((m) => m[1]);
-    expect(titles).toEqual(["1", "2", "3", "4", "5", "6", "7", "8"]);
-    expect(block).toContain('href="/how-it-works"');
+describe("the pace, and the figures the scan runs on", () => {
+  const a1 = `Up to ${WEEK_PLAN.days} pages a week, new or updated. Never filler.`;
+
+  it("reads exactly the owner's A1 sentence, its number the week plan's", () => {
+    expect(copy("landing.pace", { weekPages: WEEK_PLAN.days })).toBe(a1);
+    expect(markup).toContain(drawn(a1));
   });
 
-  it("each figure is the constant's: change the constant and the step says the new number", async () => {
-    const markup = await renderPage();
+  it("“up to” holds: the product cannot put more pages live in a week than it promises", () => {
+    expect(RATE_LIMITS.publishesPerDay * CONTENT_MIX.WINDOW_DAYS).toBeLessThanOrEqual(WEEK_PLAN.days);
+  });
+
+  it("no sentence on the landing promises a page every day, or one a day", () => {
+    const text = markup.replace(/<[^>]*>/g, " ");
+    expect(text).not.toMatch(/every day|a page a day|one a day/i);
+  });
+
+  it("every landing sentence that counts takes the count from a slot, never a typed number", () => {
+    const landing = Object.entries(COPY as Record<string, string>).filter(([key]) => key.startsWith("landing."));
+    for (const [key, value] of landing) expect(value, key).not.toMatch(/\b(?:up to|fewer than) \d/i);
+    const pace = landing.filter(([, value]) => value.includes("{weekPages}")).map(([key]) => key);
+    expect(pace).toEqual(expect.arrayContaining(["landing.pace", "landing.subline", "landing.step.2.body", "landing.feature.daily.body"]));
+  });
+
+  it("Monday's cell counts the searches and the AI questions the weekly pass really asks", () => {
     const prompts = Object.values(TRACKED_PROMPTS.SPLIT).reduce((sum, n) => sum + n, 0);
-    expect(markup).toContain(`landing.day.2.line:${BATTERY.QUESTIONS},${prompts}`);
-    expect(markup).toContain(`landing.day.3.line:${BATTERY.COMPETITORS_MAX}`);
-    expect(markup).toContain(`landing.day.6.line:${HARD_RULES.length}`);
-    expect(markup).toContain(`landing.day.7.line:${VETO.defaultHours}`);
+    const said = drawn(copy("landing.hero.week.measured", { searches: BATTERY.QUESTIONS, questions: prompts }));
+    expect(between('data-testid="landing-inside"', 'id="why"')).toContain(said);
+    expect(COPY["landing.hero.week.measured"]).not.toMatch(/\d/);
   });
 });
 
-describe("Why you should care, What to do next, and the closing band", () => {
-  it("four features, each a title and a line", async () => {
-    const markup = await renderPage();
-    for (const f of ["ai", "google", "fix", "daily"]) {
-      expect(markup).toContain(`landing.feature.${f}.title`);
-      expect(markup).toContain(`landing.feature.${f}.body`);
-    }
+describe("plain links into How it works", () => {
+  it("each step card opens its section", () => {
+    const steps = between('id="how"', 'id="why"');
+    expect(hrefsIn(steps)).toEqual(["/how-it-works#research", "/how-it-works#pages", "/how-it-works#found"]);
   });
 
-  it("three steps, each with its time", async () => {
-    const markup = await renderPage();
-    for (const n of ["1", "2", "3"]) {
-      expect(markup).toContain(`landing.step.${n}.title`);
-      expect(markup).toContain(`landing.step.${n}.body`);
-      expect(markup).toContain(`landing.step.${n}.tag`);
-    }
+  it("the price card opens the value section, and is not a second offer", () => {
+    const card = between('data-testid="landing-price"', "</section>");
+    expect(hrefsIn(card)).toEqual(["/how-it-works#value"]);
+    expect(card).not.toMatch(/<button\b|btn-primary"/);
   });
 
-  it("the closing band's one button is solid and returns to the field rather than submitting", async () => {
-    const markup = await renderPage();
-    const close = markup.slice(markup.indexOf("landing.close.heading"));
-    const buttons = [...close.matchAll(/<button\b[^>]*>/g)].map((m) => m[0]);
-    expect(buttons).toHaveLength(1);
-    expect(buttons[0]).toMatch(/class="btn btn-primary"/);
-    expect(buttons[0]).toMatch(/type="button"/);
-    expect(close).toContain("landing.close.body");
-    expect(close).toContain("landing.close.assurance");
+  it("How long until I see results? opens the week by week section", () => {
+    const answer = between(drawn(copy("landing.faq.results.q")), "</details>");
+    expect(hrefsIn(answer)).toEqual(["/how-it-works#found"]);
+    expect(answer).toContain(drawn(copy("landing.faq.results.a")));
+  });
+
+  it("What if I want to stop? says how long hosted pages stay live, from the pin", () => {
+    const answer = between(drawn(copy("landing.faq.stop.q")), "</details>");
+    expect(answer).toContain(`stay live for ${HOSTED_RETENTION_DAYS} days after your access ends`);
+  });
+
+  it("each link is plain text, never a button", () => {
+    const links = [...markup.matchAll(/<a\b[^>]*href="\/how-it-works#[^"]*"[^>]*>/g)].map((m) => m[0]);
+    expect(links).toHaveLength(5);
+    for (const link of links) expect(link).not.toMatch(/\bbtn\b/);
   });
 });
 
-// Issue #534: the page's layout is Tailwind utilities over the approved
-// tokens. The defect it fixes was a class shared by name with the sign-in
-// screen, whose `100svh` floor the landing inherited three times — so what
-// is pinned here is the source (no idiom class, no viewport-height band),
-// and that no screen declares the shared class now (#549 took /signin's).
-describe("S1 layout — Tailwind utilities, no idiom class, no viewport band (#534)", () => {
-  const read = (rel: string): string => readFileSync(path.resolve(import.meta.dirname, "../../..", rel), "utf8");
-
-  it("page.tsx names no rk-* class", () => {
-    expect(read("src/app/(public)/page.tsx")).not.toContain("rk-");
+describe("the deep shadow is spent on the story card", () => {
+  it("one element carries it, and it is the story card", () => {
+    const floats = [...markup.matchAll(/<[^>]*class="[^"]*"[^>]*>/g)]
+      .map((m) => m[0])
+      .filter((tag) => tag.includes(FLOAT));
+    expect(floats).toHaveLength(1);
+    expect(floats[0]).toContain('data-testid="landing-story"');
   });
 
-  it("page.tsx draws no min-height or viewport-height band", () => {
-    const source = read("src/app/(public)/page.tsx");
+  it("the price card and the Inside ReachKit preview sit flat", () => {
+    for (const id of ["landing-price", "landing-inside"]) {
+      const tag = markup.match(new RegExp(`<[^>]*data-testid="${id}"[^>]*>`))?.[0] ?? "";
+      expect(tag, id).toContain("card-border");
+      expect(tag, id).not.toContain(FLOAT);
+    }
+  });
+});
+
+describe("the layout stays utilities (#534)", () => {
+  const source = readFileSync(path.resolve(import.meta.dirname, "../../../src/app/(public)/page.tsx"), "utf8");
+
+  it("page.tsx names no rk-* class and draws no viewport-height band", () => {
+    expect(source).not.toContain("rk-");
     expect(source).not.toMatch(/\bmin-h-|svh|\bh-screen|\d+vh\b/);
   });
 
-  it("the hero h1 carries the set's display class", async () => {
-    expect(await renderPage()).toMatch(/<h1 class="t-hero">landing\.headline<\/h1>/);
+  it("the hero h1 carries the set's display class", () => {
+    expect(markup).toMatch(/<h1 class="t-hero">/);
   });
 });

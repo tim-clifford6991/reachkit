@@ -24,15 +24,17 @@
 // zero-volume problem and product-anchored searches" (owner, 2026-10-03).
 import { PRICE_FILLER, SHAPES, languagePack } from "@/lib/locale/language";
 import { LANGUAGES, measuredLocale, type Language } from "@/lib/locale/locales";
-import { ASKED_TOPICS, EFFORT_BY_TYPE, TOPIC_FIT } from "@/lib/config/constants";
+import { ASKED_TOPICS, CONTENT_MIX, EFFORT_BY_TYPE, TOPIC_FIT } from "@/lib/config/constants";
 import { comparisonsOf, ownSearched, searched } from "@/lib/market/infer/demand";
 import type { MarketConclusion } from "@/lib/market/infer/types";
-import { brandOf, classifyIntent, ownBrandTokens, stemKey } from "@/lib/market/questions/select";
+import { brandOf, classifyIntent, contentTokens, ownBrandTokens, passesRelevanceGuard, stemKey } from "@/lib/market/questions/select";
+import { registrableDomain } from "@/lib/market/rivals/domains";
 import { malformedSearch } from "@/lib/market/questions/well-formed";
 import { measured, unmeasured, type Measured } from "@/lib/measure/measured";
 import type { PromptAnswer, StoredReport } from "@/lib/scan/report";
 import { queryKey } from "../cluster";
-import { FAMILY_OF, type Evidence, type OpportunityType, type TopicSource } from "../types";
+import { contentTypeOf } from "../content-type";
+import { FAMILY_OF, type BusinessFit, type Evidence, type OpportunityType, type TopicSource } from "../types";
 import { demandBand } from "../winnability/band";
 import { qualifyingDemand } from "../winnability/bars";
 import { slugify, type Candidate } from "./candidate";
@@ -263,6 +265,59 @@ export interface ProposedTopic {
   /** Issue 1520: a search ReachKit composed from the market's own words
    *  (`composedSearches`), not one anyone was seen typing. */
   composed?: true;
+  /** The competitor's page an AI answer linked, which proposed it. */
+  cited?: string;
+}
+
+/** A competitor's page an AI answer linked, as the search it answers. */
+export interface CitedTopic {
+  query: string;
+  rival: string;
+  url: string;
+}
+
+/** A page's subject, from the last segment of its address: two to six
+ *  words, none a number. */
+function subjectOf(page: string): string | null {
+  try {
+    const last = new URL(page).pathname.split("/").filter(Boolean).at(-1) ?? "";
+    const words = decodeURIComponent(last).replace(/\.[a-z0-9]+$/i, "").toLowerCase().split(/[-_+\s]+/u).filter((word) => word !== "");
+    if (words.some((word) => /\d/u.test(word))) return null;
+    return words.length >= 2 && words.length <= 6 ? words.join(" ") : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * The pages the measured answers linked on a competitor's site, from
+ * either list: the search competitors a report derives from its results
+ * pages and the business competitors in force. A page's subject is its
+ * address's last segment, and a search whose results page was bought and
+ * holds every word of it stands in for it, the fewest words first, so the
+ * topic is read by that results page. Once per search, in answer order. Pure.
+ */
+export function citedTopics(a: {
+  answers: readonly Pick<PromptAnswer, "cited">[];
+  competitors: readonly string[];
+  searched: readonly string[];
+  language: Language;
+}): CitedTopic[] {
+  const competitors = new Set(a.competitors.flatMap((domain) => registrableDomain(domain) ?? []));
+  const tokens = (text: string) => contentTokens(text, a.language);
+  const searched = [...new Set(a.searched.map(queryKey))]
+    .map((query) => ({ query, words: new Set(tokens(query)) }))
+    .sort((x, y) => x.words.size - y.words.size || (x.query < y.query ? -1 : 1));
+  const out = new Map<string, CitedTopic>();
+  for (const url of a.answers.flatMap((answer) => answer.cited ?? [])) {
+    const rival = registrableDomain(new URL(url).hostname);
+    const subject = subjectOf(url);
+    if (rival === null || !competitors.has(rival) || subject === null) continue;
+    const words = tokens(subject);
+    const query = words.length === 0 ? subject : (searched.find((search) => words.every((word) => search.words.has(word)))?.query ?? subject);
+    if (!out.has(query)) out.set(query, { query, rival, url });
+  }
+  return [...out.values()];
 }
 
 /** A phrase from the market as a search would carry it: one line, no closing
@@ -588,6 +643,9 @@ export function proposedTopics(a: {
    *  rival's alternatives need for a business that serves one place (issue
    *  1520). Absent reads none. */
   seen?: readonly AskedBeside[];
+  /** The competitors' pages AI answers linked (`citedTopics`), after the
+   *  rival comparisons. Absent reads none. */
+  cited?: readonly CitedTopic[];
 }): ProposedTopic[] {
   const { own, rivals } = brandsOf(a);
   const brands = [...own, ...rivals];
@@ -603,7 +661,7 @@ export function proposedTopics(a: {
   for (const [search, volume] of Object.entries(a.market?.demand?.searches ?? {})) {
     if (volume > 0 && !volumes.has(queryKey(search))) volumes.set(queryKey(search), volume);
   }
-  const add = (query: string, source: ProposedTopic["source"], rival: string | null, more: Pick<ProposedTopic, "asked" | "composed"> = {}): void => {
+  const add = (query: string, source: ProposedTopic["source"], rival: string | null, more: Pick<ProposedTopic, "asked" | "composed" | "cited"> = {}): void => {
     const key = queryKey(query);
     if (key === "" || seen.has(key) || out.length >= a.max) return;
     if (rivalBrandOnly(key, { market: a.market, own, rivals })) return;
@@ -617,6 +675,10 @@ export function proposedTopics(a: {
   };
 
   for (const comparison of a.comparisons ?? []) add(comparison.query, "product", comparison.rival);
+  // A competitor's own page is the competitor's subject, never this site's.
+  for (const topic of a.cited ?? []) {
+    if (!namesAnyBrand(topic.query, brands)) add(topic.query, sourceOf(topic.query, { brands }), topic.rival, { cited: topic.url });
+  }
 
   const market = a.market;
   const language = a.language ?? "en";
@@ -713,7 +775,7 @@ export function candidateFor(
     volume,
     rival: {
       domain: rival,
-      url: unmeasured<string>("not_attempted", at),
+      url: topic.cited === undefined ? unmeasured<string>("not_attempted", at) : measured(topic.cited, at),
       position: unmeasured<number>("not_attempted", at),
     },
     ...(topic.asked === undefined ? {} : { askedBeside: topic.asked }),
@@ -735,4 +797,76 @@ export function candidateFor(
     source: topic.source,
     effort: EFFORT_BY_TYPE[type],
   };
+}
+
+/** A question buyers were seen asking, with the fit a pass judged for it,
+ *  `null` where no pass has judged it. */
+export interface AskedSupply {
+  topic: ProposedTopic;
+  fit: BusinessFit | null;
+}
+
+/**
+ * SPEC §7 (issue 1549): the questions buyers were seen asking that a pass
+ * writes below the top fit, best first. Pure.
+ *
+ * The ones the pass judged to help, then the ones it never reached — those
+ * asked beside the market's own searched terms first, and only where the
+ * business's vocabulary supports every word and no rival is named. Each is
+ * on the market, a search a buyer would type, not a rival's bare name,
+ * written as a Q&A, how-to or documentation page (D52 caps the rest), and
+ * on no search the site already holds or dismissed. The collapse then folds
+ * each into the page of the results page it was seen on.
+ */
+export function askedSupply(a: {
+  report: StoredReport;
+  market: MarketConclusion | null;
+  asked: readonly AskedBeside[];
+  spare: readonly AskedSupply[];
+  refused: readonly string[];
+  /** Every search the site already holds a row on, or absorbed. */
+  taken: readonly string[];
+  /** The searches of its dismissed rows. */
+  dismissed: readonly string[];
+  now: Date;
+}): AskedSupply[] {
+  const { own, rivals } = brandsOf(a);
+  const brands = [...own, ...rivals];
+  const seen = new Set([...a.taken, ...a.dismissed, ...a.refused].map(queryKey));
+  const answers = (query: string): boolean =>
+    (CONTENT_MIX.NON_COMMERCIAL_TYPES as readonly string[]).includes(contentTypeOf({ type: "keyword_page", targetQuery: query }) ?? "");
+  const usable = (query: string): boolean =>
+    !seen.has(queryKey(query)) &&
+    answers(query) &&
+    askedOnMarket(query, { market: a.market, own, rivals }) &&
+    malformedSearch(query, a.market?.rivals) === null &&
+    !rivalBrandOnly(query, { market: a.market, own, rivals });
+
+  // §6.7's relevance guard holds a question no pass judged: "what is aeo in
+  // medical terms" sat beside reachkit.app's searches. No profile, none.
+  const profile = a.report.market.kind === "unmeasured" ? null : a.report.market.value.profile;
+  const marketWords = [a.market?.category ?? "", ...(a.market?.synonyms ?? [])].filter((word) => word.trim() !== "").join(" ");
+  const onTopic = (query: string): boolean =>
+    profile !== null &&
+    passesRelevanceGuard(query, profile, marketWords === "" ? undefined : marketWords) &&
+    !namesAnyBrand(query, rivals);
+
+  const out: AskedSupply[] = [];
+  const take = (topic: ProposedTopic, fit: BusinessFit | null): void => {
+    if (!usable(topic.query) || (fit === null && !onTopic(topic.query))) return;
+    seen.add(queryKey(topic.query));
+    out.push({ topic, fit });
+  };
+  for (const spare of a.spare) take(spare.topic, spare.fit);
+
+  const terms = new Set(
+    a.report.questions.kind === "unmeasured"
+      ? []
+      : a.report.questions.value.filter((question) => question.search.term === true).map((question) => queryKey(question.search.keyword))
+  );
+  const byTerm = [...a.asked].sort((x, y) => Number(terms.has(queryKey(y.term))) - Number(terms.has(queryKey(x.term))));
+  for (const asked of askedTopics(byTerm, a.now, Number.POSITIVE_INFINITY)) {
+    take({ query: queryKey(asked.query), source: sourceOf(asked.query, { brands }), volume: null, rival: null, asked: { term: asked.term, serpAt: asked.serpAt } }, null);
+  }
+  return out;
 }

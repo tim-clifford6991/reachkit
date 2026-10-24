@@ -51,6 +51,7 @@ import {
   WEEKLY_RIVAL_RESIZES,
   TIMING,
   TRACKED_PROMPTS,
+  TYPING_RESERVE_C,
   VENDOR,
 } from "@/lib/config/constants";
 import { captureInBackground } from "@/lib/analytics";
@@ -68,6 +69,7 @@ import { generatePrompts, promptSiteName } from "@/lib/market/prompts/generate";
 import { nextPromptSet, settlePrechecks, type TrackedPrompt } from "@/lib/market/prompts/set";
 import type { BatteryAnswers } from "@/lib/market/questions/matrix";
 import {
+  slotDepth,
   trackedQuestions,
   type PageQuestionCandidate,
 } from "@/lib/market/questions/tracked";
@@ -93,10 +95,11 @@ import { trackedRivals } from "@/lib/market/rivals/tracked";
 import type { MarketSerp } from "@/lib/market/views";
 import { freePageOf } from "@/lib/opportunities/free-page";
 import { DEFAULT_LOCALE, type Locale, type Place } from "@/lib/locale/locales";
-import { localSearch, placeCandidates, placeOf, statedPlace as statedPlaceOf, type PlaceFrom } from "@/lib/locale/place";
+import { listingLocaleOf } from "@/lib/locale/listing";
+import { askedIn, localSearch, placeCandidates, placeOf, statedPlace as statedPlaceOf, type PlaceFrom } from "@/lib/locale/place";
 import { readStoredLocale, writeSiteLocale } from "@/lib/locale/site";
-import { aiPresenceOf, aiSampleOf, BOT_PROTECTION, classifyReferences, localPackSearches, measureDomain, searchPresenceOf, withMeasuredPages, type DomainMeasurement } from "@/lib/measure";
-import { aiPresenceRangeOf } from "@/lib/measure/drivers";
+import { aiPresenceOf, aiSampleOf, BOT_PROTECTION, classifyReferences, measureDomain, searchPresenceOf, withMeasuredPages, type DomainMeasurement } from "@/lib/measure";
+import { aiPresenceRangeOf, searchPresenceRangeOf } from "@/lib/measure/drivers";
 import { measured, measuredZero, unmeasured, type Measured } from "@/lib/measure/measured";
 import { foldSerps, outcomeOf, type InputOutcome, type ScanInput } from "@/lib/measure/partition";
 import type { OnPageFacts } from "@/lib/measure/parse";
@@ -350,6 +353,8 @@ interface TierParameters {
    *  no stored place and no market call to settle one. A paid pass measures
    *  the place its market conclusion settled. */
   measuresStatedPlace: boolean;
+  /** Owner W1 (2026-10-20): the cents of the cap the stages leave for the typing after the stored report. */
+  typingReserveC: number;
 }
 
 export const TIER_PARAMETERS: Readonly<Record<Tier, TierParameters>> = Object.freeze({
@@ -381,6 +386,7 @@ export const TIER_PARAMETERS: Readonly<Record<Tier, TierParameters>> = Object.fr
     trackedPrompts: false,
     finishesReads: true,
     measuresStatedPlace: true,
+    typingReserveC: 0,
   }),
   deep: Object.freeze({
     cap: "DEEP",
@@ -410,6 +416,7 @@ export const TIER_PARAMETERS: Readonly<Record<Tier, TierParameters>> = Object.fr
     trackedPrompts: false,
     finishesReads: false,
     measuresStatedPlace: false,
+    typingReserveC: TYPING_RESERVE_C,
   }),
   weekly: Object.freeze({
     cap: "WEEKLY",
@@ -439,6 +446,7 @@ export const TIER_PARAMETERS: Readonly<Record<Tier, TierParameters>> = Object.fr
     trackedPrompts: true,
     finishesReads: false,
     measuresStatedPlace: false,
+    typingReserveC: TYPING_RESERVE_C,
   }),
 } as const);
 
@@ -941,9 +949,11 @@ export interface RunScanArgs {
    * releases setup; zero proposals is legal, never faked").
    */
   afterReport?: (a: { report: StoredReport; cost: CostContext }) => Promise<void>;
+  /** The report of a pass the vendor refused for credit is stored `failed`, in the one write, so no reader ever sees it measured. */
+  failsWhenFundsRefused?: true;
 }
 
-export async function runScan(a: RunScanArgs): Promise<{ scanId: string; status: ScanStatus }> {
+export async function runScan(a: RunScanArgs): Promise<{ scanId: string; status: ScanStatus; fundsRefused?: true }> {
   const parameters = TIER_PARAMETERS[a.tier];
   const startedAt = new Date();
 
@@ -1052,7 +1062,7 @@ export async function runScan(a: RunScanArgs): Promise<{ scanId: string; status:
     a.locale ?? (a.siteId === undefined ? null : await readStoredLocale(a.siteId).catch(() => null));
 
   const sections = freshSections(startedAt);
-  const spend: { cents: number; degraded: boolean } = { cents: 0, degraded: false };
+  const spend = { cents: 0, degraded: false, fundsRefused: false };
   const { ending } = await withScanBounds(
     {
       scanId,
@@ -1061,6 +1071,8 @@ export async function runScan(a: RunScanArgs): Promise<{ scanId: string; status:
       ceilingS: parameters.ceilingS,
       deadlineApplies: parameters.deadlineApplies,
       priorCents,
+      holdBackCents: parameters.typingReserveC,
+      ...(a.failsWhenFundsRefused === true ? { failsWhenFundsRefused: true } : {}),
     },
     async (bounds, cost) => {
       try {
@@ -1088,6 +1100,7 @@ export async function runScan(a: RunScanArgs): Promise<{ scanId: string; status:
       } finally {
         spend.cents = cost.spentCents();
         spend.degraded = cost.degraded();
+        spend.fundsRefused = cost.fundsRefused?.() === true;
       }
     }
   );
@@ -1147,6 +1160,7 @@ export async function runScan(a: RunScanArgs): Promise<{ scanId: string; status:
       ...(a.retryOf === undefined ? {} : { supersedesScanId: a.retryOf.scanId }),
       drivers: composed.drivers,
       degraded: spend.degraded || composed.sectionMissing,
+      ...(a.failsWhenFundsRefused === true && spend.fundsRefused ? { failed: true } : {}),
       costCents: spend.cents,
     });
   } finally {
@@ -1215,7 +1229,8 @@ export async function runScan(a: RunScanArgs): Promise<{ scanId: string; status:
     const { reportIncident } = await import("@/lib/mail/ops");
     await reportIncident({ occasion: "market-too-small", scanId, tier: a.tier });
   }
-  return stored;
+  // A pass the vendor refused for credit measured nothing it can stand on; its caller decides what that leaves.
+  return spend.fundsRefused ? { ...stored, fundsRefused: true } : stored;
 }
 
 /** Sends `scan/finish-reads` for a stored report that says it is still
@@ -1312,7 +1327,10 @@ interface StageArgs {
 function reportLocale(m: DomainMeasurement): ReportLocale | null {
   const usual = m.locale.country === DEFAULT_LOCALE.country && m.locale.language === DEFAULT_LOCALE.language;
   const place = m.locale.place;
-  if (usual && m.localeFellBack === null && place === undefined) return null;
+  const alsoServes = m.alsoServes ?? [];
+  const guessed = m.localeBasis === "default";
+  if (usual && !guessed && m.localeFellBack === null && place === undefined && alsoServes.length === 0) return null;
+  const listing = guessed ? listingLocaleOf(m.ownRankedRows) : null;
   return {
     country: m.locale.country,
     language: m.locale.language,
@@ -1320,7 +1338,17 @@ function reportLocale(m: DomainMeasurement): ReportLocale | null {
     // measurement line names.
     ...(place === undefined ? {} : { place }),
     ...(m.localeFellBack === null ? {} : { fellBack: m.localeFellBack }),
+    ...(alsoServes.length === 0 ? {} : { alsoServes }),
+    ...(guessed ? { basis: "default" as const } : {}),
+    ...(listing === null || listing.country === m.locale.country ? {} : { listingReads: listing.country }),
   };
+}
+
+/** What a pass stores as the site's market where the founder set none: what
+ *  it read of the site, else the country its listing reads as, and never a
+ *  guess (D66). */
+function readSiteLocale(m: DomainMeasurement): Locale | null {
+  return m.localeBasis === "default" ? listingLocaleOf(m.ownRankedRows) : m.locale;
 }
 
 /** The country and language this pass measures in (D66): the one stage one
@@ -1532,6 +1560,7 @@ async function stagesOf(a: StageArgs, crawl: SiteCrawl): Promise<void> {
         tier: a.tier,
         ...(a.locale === undefined ? {} : { locale: a.locale }),
         ...(a.sinceDays === undefined ? {} : { ownWindowDays: a.sinceDays }),
+        ...(a.siteId === undefined ? {} : { listingDecides: true }),
       })
     )
   );
@@ -1551,11 +1580,12 @@ async function stagesOf(a: StageArgs, crawl: SiteCrawl): Promise<void> {
   const measurement = read.value;
   if (!failed(measurement)) sections.measurement = measurement;
   await exitStage(scanId, "reading_your_site");
-  if (!failed(measurement) && measurement.homeRefusal === null && a.siteId !== undefined && a.locale === undefined) {
+  const siteLocale = failed(measurement) || measurement.homeRefusal !== null ? null : readSiteLocale(measurement);
+  if (siteLocale !== null && a.siteId !== undefined && a.locale === undefined) {
     // The reading is the site's from here on (D66). A write that fails
     // costs nothing this pass, which already holds it: the next pass reads
     // the site again.
-    await writeSiteLocale(a.siteId, measurement.locale).catch((error: unknown) =>
+    await writeSiteLocale(a.siteId, siteLocale).catch((error: unknown) =>
       console.log(
         JSON.stringify({ event: "site_locale_unwritten", because: error instanceof Error ? error.message : String(error) })
       )
@@ -1883,8 +1913,8 @@ async function sizeTrackedRivals(a: StageArgs): Promise<void> {
  * **Inside the existing budgets, and it says when it ran out.** The pass's
  * own cap and ceilings are unchanged and no cap is raised: the sizing
  * spends from a purse of its own (`withPurse`), bounded by
- * `SERP_RIVAL_SIZING` and by what the pass has left after the reserve the
- * opportunity typing still needs. A candidate the purse could not reach is
+ * `SERP_RIVAL_SIZING` and by what the pass has left, which is already net
+ * of the reserve the opportunity typing still needs. A candidate the purse could not reach is
  * stored `unsized` with `budget_reached` — said in the report, never
  * silently replaced by an unrelated set.
  *
@@ -1938,7 +1968,7 @@ async function sizeSerpRivals(a: StageArgs): Promise<void> {
   const ownRanked = measurement === null ? 0 : ownRankedValue(measurement.ownRanked);
   const purse = Math.min(
     SERP_RIVAL_SIZING.candidatesMax * PRICE_BOOK.RANKED_RIVAL_COST_C,
-    Math.max(0, bounds.remainingCents() - SERP_RIVAL_SIZING.reserveCents)
+    bounds.remainingCents()
   );
 
   const sized = await attempt("scoring", () =>
@@ -2826,8 +2856,9 @@ async function askTheMarketPrompts(a: StageArgs): Promise<void> {
  *
  * The set is the site's own (`sites.tracked_prompts`): built from the
  * market in force the first time, kept after that, and rotated only as
- * `nextPromptSet` allows. Every prompt is asked of both engines
- * `TRACKED_PROMPTS.RUNS` times, all at once — a standard-queue ask costs
+ * `nextPromptSet` allows. Every prompt is asked of both engines, an
+ * unbranded one `TRACKED_PROMPTS.RUNS` times and a branded one
+ * `TRACKED_PROMPTS.BRANDED_RUNS` times, all at once — a standard-queue ask costs
  * its wait whether one is queued or a hundred (#1160) — and each run has
  * its own cache key, so the second is a second answer and not the first
  * served again.
@@ -2921,6 +2952,7 @@ async function askTheTrackedPrompts(a: StageArgs): Promise<void> {
         ownUrls: reading.ownUrls,
         rivals: reading.rivals,
         ...(reading.alternatives.length === 0 ? {} : { alternatives: reading.alternatives }),
+        ...(reading.cited.length === 0 ? {} : { cited: reading.cited }),
         ...(reading.states.length === 0 ? {} : { states: reading.states }),
         namesABrand: reading.namesABrand,
       });
@@ -2936,7 +2968,7 @@ async function askTheTrackedPrompts(a: StageArgs): Promise<void> {
     const asks: Promise<void>[] = [];
     for (const prompt of set.prompts) {
       for (const engine of PROMPT_ENGINES) {
-        for (let run = 1; run <= TRACKED_PROMPTS.RUNS; run += 1) asks.push(askOne(prompt, engine, run));
+        for (let run = 1; run <= runsOf(prompt); run += 1) asks.push(askOne(prompt, engine, run));
       }
     }
     await Promise.all(asks);
@@ -2959,7 +2991,7 @@ async function askTheTrackedPrompts(a: StageArgs): Promise<void> {
     sections.prompts = {
       siteName,
       asked: settled.prompts.map((prompt) => ({ id: prompt.id, kind: prompt.kind, text: prompt.text })),
-      asks: settled.prompts.length * PROMPT_ENGINES.length * TRACKED_PROMPTS.RUNS,
+      asks: settled.prompts.reduce((sum, prompt) => sum + PROMPT_ENGINES.length * runsOf(prompt), 0),
       ...(settled.rebuiltAt === undefined ? {} : { restartedAt: settled.rebuiltAt }),
       answers: answers
         .filter((answer) => kept.has(answer.promptId))
@@ -3006,11 +3038,14 @@ async function askTheTrackedPrompts(a: StageArgs): Promise<void> {
  *
  * At a tier that asks none, on a pass with no site, and on a site with no
  * live page, it returns having bought nothing and leaves the section
- * `null`. Per question, at the standard queue's prices: one SERP
- * (`SERP_STD_C` 0.06¢) plus ChatGPT (`CHATGPT_SCRAPE_STD_C` 0.12¢) and AI
- * Mode (`AI_MODE_STD_C` 0.12¢) — 0.3¢, so a full twelve is 3.6¢ against
- * `CAPS.WEEKLY_C`'s 40¢, and the figure does not move with how many pages
- * the customer has published, which is the cap's whole purpose.
+ * `null`. Per question, at the standard queue's prices: one SERP read to
+ * `slotDepth` (`SERP_STD_C` 0.06¢ a page of ten, 0.66¢ at a hundred with the
+ * AI Overview's one surcharge) plus ChatGPT (`CHATGPT_SCRAPE_STD_C` 0.12¢)
+ * and AI Mode (`AI_MODE_STD_C` 0.12¢) — at most 0.9¢. Only the first twelve
+ * slots read deep; a thin market's slots past them read ten (0.36¢), so the
+ * most is 10.8¢ + 4.32¢ against `CAPS.WEEKLY_C`'s 40¢, and the figure does
+ * not move with how many pages the customer has published, which is the
+ * cap's whole purpose.
  */
 async function askThePageQuestions(a: StageArgs, abandoned: () => boolean): Promise<void> {
   const { bounds, parameters, sections, siteId } = a;
@@ -3025,7 +3060,7 @@ async function askThePageQuestions(a: StageArgs, abandoned: () => boolean): Prom
   ]);
   if (candidates.length === 0) return;
 
-  const tracked = trackedQuestions({ selected, candidates, misses });
+  const tracked = trackedQuestions({ selected, candidates, misses, now: a.startedAt });
   logPageQuestions({
     candidates: candidates.length,
     asking: tracked.asked.length,
@@ -3077,9 +3112,10 @@ async function askThePageQuestions(a: StageArgs, abandoned: () => boolean): Prom
             freshnessDays: serpWindowOf(a),
             abortMs: serpAbortFor(bounds, parameters),
             untilMs: untilCeiling(bounds, parameters),
+            depth: slotDepth(candidate, i),
           })
         ),
-        askTheBattery(a, candidate.search, at, engines),
+        askTheBattery(a, askedIn(candidate.question, localeOfPass(a).place), at, engines),
       ]);
       // The same seal the twelve are written under: a late answer is kept,
       // and a composed report is never written into.
@@ -3092,6 +3128,11 @@ async function askThePageQuestions(a: StageArgs, abandoned: () => boolean): Prom
   await Promise.all(
     Array.from({ length: Math.min(parameters.serpFanout, tracked.asked.length) }, () => buyOne())
   );
+}
+
+/** How many times each engine asks a tracked prompt in one pass. */
+function runsOf(prompt: TrackedPrompt): number {
+  return prompt.kind === "branded" ? TRACKED_PROMPTS.BRANDED_RUNS : TRACKED_PROMPTS.RUNS;
 }
 
 /** One line per pass over the page questions (#919): how many pages could
@@ -3424,6 +3465,7 @@ function composeReport(a: {
   const onPage: Measured<OnPageFacts> = m === null ? unmeasured("not_attempted", measuredAt) : m.onPage;
   const robots: Measured<RobotsPolicy> = m === null ? unmeasured("not_attempted", measuredAt) : m.robots;
 
+  const searchCard = s.presence ?? carried?.presence ?? null;
   const drivers: Drivers =
     m === null
       ? {
@@ -3434,7 +3476,7 @@ function composeReport(a: {
         }
       : {
           ...m.drivers,
-          searchPresence: withLocalPackPresence(m, localPackSearches({ serps: s.serps, searches: s.selected.map((search) => search.keyword), ownDomain: a.domain })),
+          searchPresence: searchPresenceOf({ card: searchCard, serps: s.serps, at: measuredAt }),
           aiPresence: aiPresenceOf({ serps: s.serps, pageCells, ownDomain: a.domain, siteName: s.siteName, at: measuredAt }),
         };
 
@@ -3464,7 +3506,7 @@ function composeReport(a: {
     // Issue 1450: a market chosen from the ranked pool, where the
     // suggestions did not answer, is a market read.
     market_suggestions: outcomeOf(s.marketRows.kind === "unmeasured" && market.kind !== "unmeasured" ? market : s.marketRows),
-    own_ranked_rows: outcomeOf(drivers.searchPresence),
+    own_ranked_rows: m === null ? { read: false, because: "not_attempted" } : outcomeOf(m.ownRanked),
     question_serps: outcomeOf(foldSerps(s.serps, measuredAt)),
   };
 
@@ -3476,6 +3518,7 @@ function composeReport(a: {
     inputs,
     robots,
     aiRange: aiPresenceRangeOf(aiSample),
+    searchRange: searchPresenceRangeOf(searchCard),
     searchesRead: aiSample.read,
   });
 
@@ -3554,7 +3597,7 @@ function composeReport(a: {
   // failed is named missing here, as it was before.
   const tooSmall = marketTooSmall(s.questions) && !stoppedOnCeiling(a.stoppedReason);
   const missingFactors = verdict.missing;
-  const searchUnread = drivers.searchPresence.kind === "unmeasured";
+  const searchUnread = !inputs.own_ranked_rows.read;
 
   // Issue 865: **the twelve are a battery, not a section.** One question
   // whose SERP the vendor dropped used to mark the whole pass `degraded` —
@@ -3595,15 +3638,6 @@ function marketFromPool(s: Sections, at: Date): Measured<MarketSet> {
   const pool = poolOf(s);
   if (pool.length === 0 || s.selected.length === 0) return unmeasured(rows.reason, at);
   return measured({ ...marketSetOf({ profile: s.profile.value, suggestions: [], pool }), suggestionsUnread: rows.reason }, at);
-}
-
-/** Search presence with the searches whose local pack shows the site
- *  counted as top-ten results (D67; owner ruling 2026-10-15, issue 1441).
- *  A site in no pack keeps the value its ranked rows gave. */
-function withLocalPackPresence(m: DomainMeasurement, localPack: readonly string[]): Measured<number> {
-  const held = m.drivers.searchPresence;
-  if (localPack.length === 0 || held.kind === "unmeasured" || m.ownRanked.kind === "unmeasured") return held;
-  return searchPresenceOf({ ranked: measured({ rows: m.ownRankedRows, total: m.ownRanked.value }, held.at), at: held.at, localPack });
 }
 
 /** Issue 898 — the two §6.7 steps that can leave a pass with no market at

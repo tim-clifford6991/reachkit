@@ -735,7 +735,15 @@ describe("one site, left alone for a week (issue 323)", () => {
         expect(draft.veto_deadline).not.toBeNull();
         expect(draft.told).not.toBeNull();
       }
-      expect(mailsOf("mail.draftReady")).toHaveLength(7);
+      // The draft-ready mail is on until the first Monday mail leaves, then
+      // off; a page after it is still recorded told, so nothing is held.
+      const mondayMail = db.rows("scans").find((row) => row.tier === "weekly")?.digest_sent_at;
+      expect(mondayMail).toBeTruthy();
+      const toldAt = drafts.map((draft) => new Date((draft.told as { sentAt: string }).sentAt).getTime());
+      const beforeMonday = toldAt.filter((at) => at < new Date(String(mondayMail)).getTime());
+      expect(beforeMonday.length).toBeGreaterThan(0);
+      expect(beforeMonday.length).toBeLessThan(drafts.length);
+      expect(mailsOf("mail.draftReady")).toHaveLength(beforeMonday.length);
       expect(mailsOf("mail.draftReady").every((mail) => mail.to[0] === EMAIL)).toBe(true);
     },
     WEEK_TIMEOUT_MS
@@ -768,7 +776,7 @@ describe("one site, left alone for a week (issue 323)", () => {
   );
 
   it(
-    "twenty-four hours after each page went live, the check records what it saw and the customer is told",
+    "twenty-four hours after each page went live, the check records what it saw, and the customer is told of the first",
     async () => {
       await leaveTheSiteAloneForAWeek();
 
@@ -781,7 +789,8 @@ describe("one site, left alone for a week (issue 323)", () => {
         const verify = publication.verify as { outcome?: string } | null;
         expect(["found", "absent", "unconfirmed"]).toContain(verify?.outcome);
       }
-      expect(mailsOf("mail.published")).toHaveLength(dueByNow.length);
+      // Only the site's first live page is announced.
+      expect(mailsOf("mail.published")).toHaveLength(1);
     },
     WEEK_TIMEOUT_MS
   );

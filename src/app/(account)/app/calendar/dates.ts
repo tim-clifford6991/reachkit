@@ -65,12 +65,6 @@ export function addDays(day: DayKey, delta: number): DayKey {
   return keyOfUtc(at);
 }
 
-export function addMonths(month: MonthKey, delta: number): MonthKey {
-  const [y, m] = month.split("-").map(Number);
-  const at = new Date(Date.UTC(y ?? 0, (m ?? 1) - 1 + delta, 1));
-  return keyOfUtc(at).slice(0, 7);
-}
-
 /**
  * The last date the plan reaches (SPEC §7, 2026-10-15, issue 1455): six
  * days after today, so the next seven days always carry their planned page.
@@ -83,16 +77,11 @@ export function planHorizonEnd(today: DayKey): DayKey {
   return addDays(today, 6);
 }
 
-/**
- * The dates Plan lists on a phone (SPEC §7, 2026-10-08, issue 1340): from
- * the Monday of the site-local week that contains today through the plan
- * horizon. The recent days and the days ahead, and never a month.
- */
+/** Plan's week (SPEC §7, E5): Monday to Sunday of the site-local week that
+ *  contains today, seven dates. */
 export function planWeek(today: DayKey): readonly DayKey[] {
-  const end = planHorizonEnd(today);
-  const days: DayKey[] = [];
-  for (let day = addDays(today, -weekdayIndex(today)); day <= end; day = addDays(day, 1)) days.push(day);
-  return days;
+  const monday = addDays(today, -weekdayIndex(today));
+  return Array.from({ length: 7 }, (_, at) => addDays(monday, at));
 }
 
 /** Every date in a month, in order. */
@@ -139,56 +128,6 @@ export function dayNumber(day: DayKey): string {
   return new Intl.DateTimeFormat(SHELL_LOCALE, { timeZone: "UTC", day: "numeric" }).format(utcOf(day));
 }
 
-/** The month a switcher control names — which is also that control's whole
- *  label, so the switcher needs no sentence of its own. */
-export function monthLabel(month: MonthKey): string {
-  return new Intl.DateTimeFormat(SHELL_LOCALE, {
-    timeZone: "UTC",
-    month: "long",
-    year: "numeric",
-  }).format(utcOf(`${month}-01`));
-}
-
-/** A neighbouring month's label in the switcher — its name, without the
- *  year (issue #269).
- *
- *  `monthLabel` above is the month a control *names as itself* and carries
- *  the year with it; three of those do not fit 320 on one line, which is
- *  what wrapped the switcher onto a second row. The year belongs to the
- *  month you are looking at, and repeating it on both neighbours states it
- *  three times to say one thing.
- *
- *  Its own function rather than an option on `monthLabel`: that one has
- *  other callers, and a formatter whose output depends on a flag is a
- *  second thing to get wrong at each of them. */
-export function monthNameOnly(month: MonthKey): string {
-  return new Intl.DateTimeFormat(SHELL_LOCALE, {
-    timeZone: "UTC",
-    month: "short",
-  }).format(utcOf(`${month}-01`));
-}
-
-/** The month the switcher **shows**, short — "Sep 2026" (issue #354).
- *
- *  The approved S14 draws the switcher as `← Sep 2026 →`: two arrows and
- *  the month between them, so the row carries one label rather than three
- *  and fits 320 with room to spare — which is the finding #269 recorded
- *  and answered a different way. The year stays, because it is the month
- *  you are looking at and the one place the year belongs; the name is
- *  short, because nothing beside it needs the long form to be told apart
- *  from it any more.
- *
- *  Its own function rather than an option on `monthLabel`, for that one's
- *  own reason: a formatter whose output depends on a flag is a second
- *  thing to get wrong at each of its callers. */
-export function monthShortLabel(month: MonthKey): string {
-  return new Intl.DateTimeFormat(SHELL_LOCALE, {
-    timeZone: "UTC",
-    month: "short",
-    year: "numeric",
-  }).format(utcOf(`${month}-01`));
-}
-
 /** The date the day panel heads with. */
 export function fullDate(day: DayKey): string {
   return new Intl.DateTimeFormat(SHELL_LOCALE, {
@@ -198,13 +137,6 @@ export function fullDate(day: DayKey): string {
     day: "numeric",
     year: "numeric",
   }).format(utcOf(day));
-}
-
-/** The seven column heads, Monday first. Taken from a known Monday rather
- *  than written down, so "Mon–Sun" is one fact and not seven strings. */
-export function weekdayLabels(): readonly string[] {
-  const format = new Intl.DateTimeFormat(SHELL_LOCALE, { timeZone: "UTC", weekday: "short" });
-  return Array.from({ length: 7 }, (_, i) => format.format(utcOf(addDays(MONDAY, i))));
 }
 
 /** A known Monday — the one date in this file that is written down. Every
@@ -225,7 +157,7 @@ export function cardDate(day: DayKey): string {
 
 /** The weekday a date falls on, short — the phone list's left column
  *  (issue 930). Read from the date rather than from a list of seven
- *  strings, exactly as `weekdayLabels` is. */
+ *  strings. */
 export function weekdayShort(day: DayKey): string {
   return new Intl.DateTimeFormat(SHELL_LOCALE, { timeZone: "UTC", weekday: "short" }).format(
     utcOf(day)
@@ -238,7 +170,7 @@ export function weekdayShort(day: DayKey): string {
  * (SPEC §7, 2026-09-20; issue 930).
  *
  * It is the **weekday's own name**, taken from a known Monday and not
- * written down, for `weekdayLabels`'s reason: "Mon–Sun" is one fact and
+ * written down: "Mon–Sun" is one fact and
  * not seven strings, and the day the weekly pass runs on is the same
  * Monday §7's plan horizon is cut at. So it is a value, like a date
  * numeral, rather than a sentence the registry owes.
@@ -247,22 +179,31 @@ export function firstMeasuredLabel(): string {
   return weekdayShort(MONDAY);
 }
 
-/** A month as the instant react-day-picker draws it from: the first of the
- *  month at UTC midnight. The library reads that `Date`'s *local* calendar
- *  fields, and a `DayKey` is already a site-local calendar day, so the two
- *  agree exactly as long as nothing here crosses a zone (issue 930). */
-export function monthStartDate(month: MonthKey): Date {
-  const [y, m] = month.split("-").map(Number);
-  return new Date(y ?? 0, (m ?? 1) - 1, 1);
+
+/** A date with its weekday in words, the head's "Chosen …" and the
+ *  next-Monday line. */
+export function longDate(day: DayKey): string {
+  return new Intl.DateTimeFormat(SHELL_LOCALE, { timeZone: "UTC", weekday: "long", month: "long", day: "numeric" }).format(utcOf(day));
 }
 
-/** The `DayKey` a `Date` react-day-picker handed back names, read off its
- *  local calendar fields — the inverse of `monthStartDate`, and never
- *  `toISOString()`, which would shift the day across midnight west of
- *  Greenwich (issue 930). */
-export function dayKeyOfLocalDate(at: Date): DayKey {
-  const y = String(at.getFullYear()).padStart(4, "0");
-  const m = String(at.getMonth() + 1).padStart(2, "0");
-  const d = String(at.getDate()).padStart(2, "0");
-  return `${y}-${m}-${d}`;
+/** The week card's heading: its first and last day as one range. */
+export function weekRange(first: DayKey, last: DayKey): string {
+  return new Intl.DateTimeFormat(SHELL_LOCALE, { timeZone: "UTC", weekday: "short", month: "long", day: "numeric" }).formatRange(
+    utcOf(first),
+    utcOf(last)
+  );
+}
+
+/** Which week of service `today` falls in, counting the week `first` falls in as 1. */
+export function serviceWeek(first: DayKey, today: DayKey): number {
+  const monday = (day: DayKey): number => utcOf(addDays(day, -weekdayIndex(day))).getTime();
+  return Math.max(1, Math.round((monday(today) - monday(first)) / (7 * 86_400_000)) + 1);
+}
+
+/** A stored `HH:mm` publish time as the shell's clock writes it: "4:00 PM". */
+export function clockTime(hhmm: string): string {
+  const [h, m] = hhmm.split(":").map(Number);
+  return new Intl.DateTimeFormat(SHELL_LOCALE, { timeZone: "UTC", hour: "numeric", minute: "2-digit" }).format(
+    new Date(Date.UTC(2026, 0, 1, h ?? 0, m ?? 0))
+  );
 }

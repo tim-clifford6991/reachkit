@@ -7,7 +7,7 @@
 // refused there) — and nothing here adds one.
 //
 // **The order.** The owner's Write type order first (`comparePrecedence`,
-// 2026-09-15), then the search's right-sized band, then §7's score. The free
+// 2026-09-15), then the search's right-sized band, then §7's points. The free
 // path sizes no rival (§6.4), so a free report's competition band is
 // unmeasured; its band here is the demand band — the search against the
 // site's own footprint, which is the half of right-sizing a free scan can
@@ -21,7 +21,7 @@ import { comparePrecedence } from "./cluster";
 import type { Candidate } from "./derive/candidate";
 import { writeCandidates } from "./derive/write";
 import type { Opportunity, Winnability } from "./types";
-import { rankScore } from "./rank/score";
+import { pointsOf, volumeOrder } from "./rank/points";
 import { demandBand } from "./winnability/band";
 import { rankedCountsFromSizes } from "./winnability/counts";
 
@@ -44,11 +44,9 @@ function bandOf(candidate: Candidate, ownRanked: number, sized: boolean): Winnab
   return demandBand({ volume, ownRanked });
 }
 
-/** The best right-sized Write target the report measured, or `null` where it
- *  measured none. Pure. */
-export function bestFreePage(report: Omit<StoredReport, "freePage">): FreePagePick | null {
-  if (report.questions.kind === "unmeasured" || report.market.kind === "unmeasured") return null;
-  const profile = report.market.value.profile;
+/** The right-sized Write targets the report measured, best first. Pure. */
+export function rankedFreePages(report: Omit<StoredReport, "freePage">): Candidate[] {
+  if (report.questions.kind === "unmeasured" || report.market.kind === "unmeasured") return [];
   const ownRanked = ownRankedOf(report);
   const sized = report.rivalSizes.kind !== "unmeasured";
   const rankedCounts = rankedCountsFromSizes(
@@ -66,28 +64,43 @@ export function bestFreePage(report: Omit<StoredReport, "freePage">): FreePagePi
   const ranked = candidates
     .map((candidate) => {
       const band = bandOf(candidate, ownRanked, sized);
-      const score = rankScore({
-        volume: candidate.volume,
-        query: candidate.targetQuery ?? "",
-        type: candidate.type,
-        fit: band,
-        profile,
-      });
-      return { candidate, band, score };
+      const { points } = pointsOf(candidate, { cited: new Set(), prompts: [] });
+      return { candidate, band, points };
     })
     .filter((entry) => entry.band !== "not-yet")
     .sort(
       (a, b) =>
         comparePrecedence(a.candidate, b.candidate) ||
         BAND_ORDER[a.band] - BAND_ORDER[b.band] ||
-        b.score - a.score
+        b.points - a.points ||
+        volumeOrder(b.candidate) - volumeOrder(a.candidate)
     );
 
-  const best = ranked[0];
-  if (best === undefined) return null;
-  const question = report.questions.value.find((q) => q.search.keyword === best.candidate.targetQuery);
-  if (question === undefined) return null;
-  return { candidate: best.candidate, question, total: ranked.length };
+  return ranked.map((entry) => entry.candidate);
+}
+
+function pickOf(report: Omit<StoredReport, "freePage">, candidate: Candidate | undefined, total: number): FreePagePick | null {
+  if (candidate === undefined || report.questions.kind === "unmeasured") return null;
+  const question = report.questions.value.find((q) => q.search.keyword === candidate.targetQuery);
+  return question === undefined ? null : { candidate, question, total };
+}
+
+/** The best right-sized Write target the report measured, or `null` where it
+ *  measured none. Pure. */
+export function bestFreePage(report: Omit<StoredReport, "freePage">): FreePagePick | null {
+  const ranked = rankedFreePages(report);
+  return pickOf(report, ranked[0], ranked.length);
+}
+
+/** The page the stored report proposed, so the lead gets the card it was
+ *  shown even after the order changes; recomputed only where none is stored. */
+export function proposedFreePage(report: StoredReport): FreePagePick | null {
+  const ranked = rankedFreePages(report);
+  const stored = report.freePage?.opportunityId;
+  const pick = pickOf(report, ranked.find((candidate) => freePageId(report.scanId, candidate.targetRef) === stored), ranked.length);
+  if (pick !== null) return pick;
+  console.log(JSON.stringify({ event: "free_page_pick", scanId: report.scanId, pick: "recomputed" }));
+  return bestFreePage(report);
 }
 
 /** The pick as the report's card reads it. The id is the scan's and the

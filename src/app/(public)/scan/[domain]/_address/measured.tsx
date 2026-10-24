@@ -11,9 +11,13 @@ import type { Measured } from "@/lib/measure/measured";
 import { renderMeasured } from "@/lib/presentation/measured";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 
+/** The `because` of a count no scan builds yet: not measured yet, not cut short. */
+export const NOT_BUILT = "not_built";
+
 /** REQ-004 c6 vs c9: which of the two owner-written lines an unmeasured
  *  value carries. The choice is the reason's, never the caller's. */
 export function unmeasuredLineFor(m: Measured<unknown>): CopyKey {
+  if (m.kind === "unmeasured" && m.because === NOT_BUILT) return "unmeasured.not-yet";
   return m.kind === "unmeasured" && m.reason === "undeterminable"
     ? "unmeasured.undeterminable"
     : "unmeasured.not-attempted";

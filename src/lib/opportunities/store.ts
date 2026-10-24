@@ -16,9 +16,10 @@
 // request, so there is no `auth.uid()` for a row policy to match. Every
 // call below is site-scoped by an explicit `site_id` predicate — the
 // scoping the policy would have applied, applied here instead.
-import type { RefreshInputs } from "./refresh";
+import type { OwnLivePage, RefreshInputs } from "./refresh";
 import type { KnowledgeDigest } from "@/lib/site-profile/knowledge/read";
 import { dbAdmin } from "@/lib/db";
+import { canonicalUrl } from "@/lib/measure/page-reading";
 import type { KnownPage } from "@/lib/known-content/types";
 import type { Profile } from "@/lib/market/questions/profile";
 import type { HostedOwnPages } from "@/lib/publish/destinations/hosted/own-page";
@@ -33,12 +34,12 @@ import type {
   Opportunity,
   OpportunityStatus,
   OpportunityType,
+  PlanReason,
   TopicSource,
   UnreadyReason,
   Winnability,
 } from "./types";
 import { OUTSIZED, type PageType } from "./types";
-import { isPausedType } from "./paused";
 import { topTenRowsOf, topTensOf } from "./cluster";
 import type { TopTenRead } from "./derive/top-ten-kind";
 import type { AskedBeside } from "./derive/topics";
@@ -73,6 +74,8 @@ export interface OpportunityRow {
   status: string;
   cluster_key: string | null;
   absorbed_queries: string[];
+  /** The customer stopped this topic: it is never proposed again. */
+  stopped?: boolean;
   ready: boolean;
   unready_reason: string | null;
   rest_until?: string | null;
@@ -82,6 +85,8 @@ export interface OpportunityRow {
   plan_place?: number | null;
   planned_for?: string | null;
   plan_write_as?: string | null;
+  /** Why the commit placed it: its points, their parts and the rule. */
+  plan_reason?: PlanReason | null;
   created_at: string;
 }
 
@@ -125,6 +130,7 @@ export interface PlanEntry {
   /** The site-local date, `YYYY-MM-DD`; `null` for a spare. */
   plannedFor: string | null;
   writeAs: "qa" | null;
+  reason: PlanReason;
 }
 
 /** One of the site's own pages, as `draftedPages` returns it. */
@@ -137,6 +143,12 @@ export interface DraftedPage {
   /** The type the page was written as (`drafts.meta.contentType`), where
    *  the draft records one (issue 1455). */
   writtenAs?: string | null;
+}
+
+/** One live page's opportunity and the cluster it was written for. */
+export interface LivePageCluster {
+  opportunityId: string;
+  clusterKey: string | null;
 }
 
 export interface OpportunityStore {
@@ -174,6 +186,12 @@ export interface OpportunityStore {
    *  weeks ending at `at` (SPEC §6, D15, issue 1146), read from the stored
    *  passes. Nothing is bought. */
   citedPages(siteId: string, at: Date): Promise<readonly string[]>;
+  /** The clusters of the site's live pages at any of `urls`. Optional: a
+   *  store that cannot answer reads none. */
+  clustersAt?(siteId: string, urls: readonly string[]): Promise<readonly string[]>;
+  /** The opportunities of the site's live pages, each with its cluster.
+   *  Optional: a store that cannot answer holds no cluster back. */
+  livePageClusters?(siteId: string): Promise<readonly LivePageCluster[]>;
   /** The top tens the given scans bought, by `queryKey`, a later scan's
    *  over an earlier one's (#1131) — what a held row's search is compared
    *  by. Only the questions and SERPs are read, never the whole report. */
@@ -187,9 +205,10 @@ export interface OpportunityStore {
    *  the last `days`. Optional: a store that cannot answer reads none. */
   askedBeside?(siteId: string, days: number): Promise<readonly AskedBeside[]>;
   /** Issue 1549: the searches of this site's dismissed non-Fix rows, each
-   *  with the volume it was dismissed at (`null` where none was measured).
-   *  Optional: a store that cannot answer holds nothing back. */
-  dismissedSearches?(siteId: string): Promise<readonly { query: string; volume: number | null }[]>;
+   *  with the volume it was dismissed at (`null` where none was measured),
+   *  and whether the customer stopped it — a stopped row's absorbed
+   *  searches with it. Optional: a store that cannot answer holds nothing back. */
+  dismissedSearches?(siteId: string): Promise<readonly DismissedSearch[]>;
   /** Issue 1559: replaces the site's committed week with `entries` — every
    *  row's place cleared first, then each entry's written. */
   commitPlan(siteId: string, entries: readonly PlanEntry[]): Promise<void>;
@@ -231,6 +250,10 @@ export interface OpportunityStore {
    *  D64, issue 1301): the column, and the same figure in its evidence.
    *  Optional: a store that cannot write it leaves the row unmeasured. */
   setVolume?(opportunityId: string, volume: number, evidence: Evidence): Promise<void>;
+  /** The row's evidence with the shape its stored results page gives it
+   *  (`readiness.ts`). Optional: a store that cannot write it keeps the
+   *  shape the row was typed by. */
+  setEvidence?(opportunityId: string, evidence: Evidence): Promise<void>;
   /** Stores the pass's business-fit judgement on a row it already held
    *  (issue 1134): judged once, read by readiness and the ranking. */
   setBusinessFit(
@@ -260,11 +283,17 @@ export interface OpportunityStore {
   /** A row whose acceptance test passed: its status moves to `done`. */
   markDone(opportunityId: string): Promise<void>;
   /** A row a draft was written from: `open` moves to `queued`, and no other
-   *  status moves (SPEC §7, 2026-09-15 — issue 712). */
-  markQueued(opportunityId: string): Promise<void>;
+   *  status moves (SPEC §7, 2026-09-15 — issue 712). `true` says it moved. */
+  markQueued(opportunityId: string): Promise<boolean>;
+  /** A claim whose draft was never saved is given back: `queued` moves to
+   *  `open` in one conditional update, and no other status moves. */
+  reopenIfQueued(opportunityId: string): Promise<void>;
   /** A row whose draft the customer stopped: `open` or `queued` moves to
    *  `dismissed`, and `done` stays done (SPEC §7, 2026-09-15 — issue 712). */
-  markDismissed(opportunityId: string): Promise<void>;
+  markDismissed(opportunityId: string, a?: { stopped: true }): Promise<void>;
+  /** A planned page the customer stopped: `open` moves to `dismissed` in one
+   *  conditional update, and `true` says it moved. */
+  dismissIfOpen(opportunityId: string): Promise<boolean>;
   /** A row whose draft the generator stopped for the last time, or whose
    *  stopped draft the founder skipped (SPEC §7, D26, issue 1179): it is
    *  `open` and not ready (`resting`) until `until`. `open` and `queued`
@@ -313,6 +342,9 @@ export interface OpportunityStore {
    *  read from. Optional: a store that holds no published pages has nothing
    *  to answer, and `planRefreshes` then plans nothing. */
   refreshInputs?(siteId: string): Promise<RefreshInputs>;
+  /** `refreshInputs`' pages without its pools, for the planners that read
+   *  no text: a link back, a moved link and the hourly re-check. */
+  refreshPages?(siteId: string): Promise<readonly OwnLivePage[]>;
   /** SPEC §6 (D60, issue 1288): the prompts the site tracks today, which a
    *  topic's intent is matched against. Optional: a double without it
    *  answers none, and no topic is held for lacking a prompt. */
@@ -344,6 +376,19 @@ function reviveDates(value: unknown): unknown {
  * `volume` are revived, so an explanation reads back with the dates it was
  * measured on and not with strings.
  */
+export interface DismissedSearch {
+  query: string;
+  volume: number | null;
+  stopped: boolean;
+}
+
+/** A dismissed row's searches: its own, and a stopped topic's absorbed ones. */
+export function dismissedSearchesOf(row: Pick<OpportunityRow, "target_query" | "volume" | "stopped" | "absorbed_queries">): DismissedSearch[] {
+  const stopped = row.stopped === true;
+  const queries = [row.target_query, ...(stopped ? (row.absorbed_queries ?? []) : [])];
+  return queries.flatMap((query) => (query === null ? [] : [{ query, volume: row.volume, stopped }]));
+}
+
 export function readOpportunity(row: OpportunityRow): Opportunity {
   const evidence = reviveDates(row.evidence) as Evidence;
   return {
@@ -370,6 +415,7 @@ export function readOpportunity(row: OpportunityRow): Opportunity {
     unreadyReason: row.unready_reason as UnreadyReason | null,
     restUntil: typeof row.rest_until === "string" ? new Date(row.rest_until) : null,
     createdAt: new Date(row.created_at),
+    ...(row.plan_reason == null ? {} : { planReason: row.plan_reason }),
   };
 }
 
@@ -476,7 +522,7 @@ function evidenceAt(evidence: unknown, now: (url: string) => string): unknown {
 export const COLUMNS =
   "id, site_id, scan_id, type, family, target_query, target_ref, proposed_slug, " +
   "title, volume, evidence, acceptance, fit_band, business_fit, source, page_type, effort, status, cluster_key, " +
-  "absorbed_queries, ready, unready_reason, rest_until, plan_place, planned_for, plan_write_as, created_at";
+  "absorbed_queries, ready, unready_reason, rest_until, plan_place, planned_for, plan_write_as, plan_reason, created_at";
 
 export function supabaseOpportunityStore(): OpportunityStore {
   return {
@@ -519,12 +565,7 @@ export function supabaseOpportunityStore(): OpportunityStore {
       // ready rows already excludes it. The `fit_band` filter issue 881 put
       // here was the third home of one decision.
       if (error) throw new Error(`opportunities.countUnused: ${error.message}`);
-      // SPEC §7 (owner, D46): a topic of a paused type fills no day, so it is
-      // not a day of supply either — the ranking and this count read the one
-      // predicate.
-      return (data ?? []).filter(
-        (row) => !isPausedType({ type: row.type as OpportunityType, targetQuery: row.target_query })
-      ).length;
+      return (data ?? []).length;
     },
 
     async countOutsized(siteId) {
@@ -614,6 +655,42 @@ export function supabaseOpportunityStore(): OpportunityStore {
       return [...new Set(window.weeks.flatMap((week) => week.samples.flatMap((sample) => sample.ownUrls)))];
     },
 
+    async clustersAt(siteId, urls) {
+      const { data, error } = await untyped()
+        .from<{ live_url: string | null; drafts: { opportunities: { cluster_key: string | null } | null } | null }>("publications")
+        .select("live_url, drafts(opportunities(cluster_key))")
+        .eq("site_id", siteId)
+        .not("live_url", "is", null)
+        .is("unpublished_at", null);
+      if (error) throw new Error(`opportunities.clustersAt: ${error.message}`);
+      // An AI answer links the address a page answers at now (issue 1182).
+      const { storedAddressesNow } = await import("@/lib/publish/destinations/hosted/store");
+      const now = await storedAddressesNow(siteId);
+      const wanted = new Set(urls.map(canonicalUrl));
+      const keys = (data ?? []).flatMap((row) => {
+        const key = row.drafts?.opportunities?.cluster_key ?? null;
+        if (key === null || row.live_url === null) return [];
+        return wanted.has(canonicalUrl(row.live_url)) || wanted.has(canonicalUrl(now(row.live_url))) ? [key] : [];
+      });
+      return [...new Set(keys)];
+    },
+
+    async livePageClusters(siteId) {
+      const { data, error } = await untyped()
+        .from<{ drafts: { opportunity_id: string | null; opportunities: { cluster_key: string | null } | null } | null }>("publications")
+        .select("drafts(opportunity_id, opportunities(cluster_key))")
+        .eq("site_id", siteId)
+        .not("live_url", "is", null)
+        .is("unpublished_at", null);
+      if (error) throw new Error(`opportunities.livePageClusters: ${error.message}`);
+      const byId = new Map<string, string | null>();
+      for (const row of data ?? []) {
+        const id = row.drafts?.opportunity_id ?? null;
+        if (id !== null) byId.set(id, row.drafts?.opportunities?.cluster_key ?? null);
+      }
+      return [...byId].map(([opportunityId, clusterKey]) => ({ opportunityId, clusterKey }));
+    },
+
     async topTens(scanIds) {
       const topTens = new Map<string, readonly string[]>();
       if (scanIds.length === 0) return topTens;
@@ -638,7 +715,7 @@ export function supabaseOpportunityStore(): OpportunityStore {
       if (error) throw new Error(`opportunities.topTenRows: ${error.message}`);
       for (const report of data ?? []) {
         const at = new Date(report.created_at);
-        for (const [query, rows] of topTenRowsOf(report)) topTens.set(query, { at, rows });
+        for (const [query, read] of topTenRowsOf(report)) topTens.set(query, { at, ...read });
       }
       return topTens;
     },
@@ -666,13 +743,13 @@ export function supabaseOpportunityStore(): OpportunityStore {
 
     async dismissedSearches(siteId) {
       const { data, error } = await untyped()
-        .from<{ target_query: string | null; volume: number | null }>("opportunities")
-        .select("target_query, volume")
+        .from<Pick<OpportunityRow, "target_query" | "volume" | "stopped" | "absorbed_queries">>("opportunities")
+        .select("target_query, volume, stopped, absorbed_queries")
         .eq("site_id", siteId)
         .eq("status", "dismissed")
         .neq("family", "fix");
       if (error) throw new Error(`opportunities.dismissedSearches: ${error.message}`);
-      return (data ?? []).flatMap((row) => (row.target_query === null ? [] : [{ query: row.target_query, volume: row.volume }]));
+      return (data ?? []).flatMap(dismissedSearchesOf);
     },
 
     async setCluster(opportunityId, clusterKey, absorbedQueries) {
@@ -778,6 +855,14 @@ export function supabaseOpportunityStore(): OpportunityStore {
       if (error) throw new Error(`opportunities.setVolume: ${error.message}`);
     },
 
+    async setEvidence(opportunityId, evidence) {
+      const { error } = await untyped()
+        .from<OpportunityRow>("opportunities")
+        .update({ evidence })
+        .eq("id", opportunityId);
+      if (error) throw new Error(`opportunities.setEvidence: ${error.message}`);
+    },
+
     async setBusinessFit(opportunityId, fit, source, pageType) {
       const { error } = await untyped()
         .from<OpportunityRow>("opportunities")
@@ -813,14 +898,14 @@ export function supabaseOpportunityStore(): OpportunityStore {
     async commitPlan(siteId, entries) {
       const cleared = await untyped()
         .from<OpportunityRow>("opportunities")
-        .update({ plan_place: null, planned_for: null, plan_write_as: null })
+        .update({ plan_place: null, planned_for: null, plan_write_as: null, plan_reason: null })
         .eq("site_id", siteId)
         .not("plan_place", "is", null);
       if (cleared.error) throw new Error(`opportunities.commitPlan: ${cleared.error.message}`);
       for (const entry of entries) {
         const { error } = await untyped()
           .from<OpportunityRow>("opportunities")
-          .update({ plan_place: entry.place, planned_for: entry.plannedFor, plan_write_as: entry.writeAs })
+          .update({ plan_place: entry.place, planned_for: entry.plannedFor, plan_write_as: entry.writeAs, plan_reason: entry.reason })
           .eq("id", entry.opportunityId)
           .eq("site_id", siteId);
         if (error) throw new Error(`opportunities.commitPlan: ${error.message}`);
@@ -880,21 +965,43 @@ export function supabaseOpportunityStore(): OpportunityStore {
     },
 
     async markQueued(opportunityId) {
-      const { error } = await untyped()
-        .from<OpportunityRow>("opportunities")
+      const { data, error } = await untyped()
+        .from<{ id: string }>("opportunities")
         .update({ status: "queued" })
         .eq("id", opportunityId)
-        .eq("status", "open");
+        .eq("status", "open")
+        .select("id");
       if (error) throw new Error(`opportunities.markQueued: ${error.message}`);
+      return (data ?? []).length > 0;
     },
 
-    async markDismissed(opportunityId) {
+    async reopenIfQueued(opportunityId) {
       const { error } = await untyped()
         .from<OpportunityRow>("opportunities")
-        .update({ status: "dismissed" })
+        .update({ status: "open" })
+        .eq("id", opportunityId)
+        .eq("status", "queued");
+      if (error) throw new Error(`opportunities.reopenIfQueued: ${error.message}`);
+    },
+
+    async markDismissed(opportunityId, a) {
+      const { error } = await untyped()
+        .from<OpportunityRow>("opportunities")
+        .update({ status: "dismissed", ...(a?.stopped ? { stopped: true } : {}) })
         .eq("id", opportunityId)
         .in("status", ["open", "queued"]);
       if (error) throw new Error(`opportunities.markDismissed: ${error.message}`);
+    },
+
+    async dismissIfOpen(opportunityId) {
+      const { data, error } = await untyped()
+        .from<{ id: string }>("opportunities")
+        .update({ status: "dismissed", stopped: true })
+        .eq("id", opportunityId)
+        .eq("status", "open")
+        .select("id");
+      if (error) throw new Error(`opportunities.dismissIfOpen: ${error.message}`);
+      return (data ?? []).length > 0;
     },
 
     async rest(opportunityId, until) {
@@ -961,6 +1068,11 @@ export function supabaseOpportunityStore(): OpportunityStore {
       return readRefreshInputs(siteId);
     },
 
+    async refreshPages(siteId) {
+      const { ownLivePages } = await import("./refresh");
+      return ownLivePages(siteId);
+    },
+
     async trackedPrompts(siteId) {
       const { readPromptSet } = await import("@/lib/market/prompts/store");
       return (await readPromptSet(siteId)).prompts;
@@ -1003,6 +1115,12 @@ let store: OpportunityStore | null = null;
 export function opportunityStore(): OpportunityStore {
   if (store === null) store = supabaseOpportunityStore();
   return store;
+}
+
+/** One opportunity by id: a restarted draft is written again for the one it was written for. */
+export async function opportunityById(opportunityId: string): Promise<Opportunity | null> {
+  const row = await opportunityStore().byId(opportunityId);
+  return row === null ? null : readOpportunity(row);
 }
 
 /** The suites' one door in; `null` restores the real one. */

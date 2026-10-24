@@ -18,25 +18,18 @@
 //   your position   the current stored report's `ownRankedRows` (§6)
 //   the week's move `page_verdicts.movement` (§9), as `judgeWeek` wrote it
 //   live pages      §9's live `publications`
-//   kept ready      §7's own count — `supplyDepth`
 //
-// **Five reads, and not one of them per row.** The verdicts, the
+// **Four reads, and not one of them per row.** The verdicts, the
 // publications and the report come back whole and are joined in memory;
 // a per-row read would be one query per search on a screen that draws
 // thirty-eight of them.
-//
-// **Nothing is recomputed that was measured.** The one number derived here
-// is the difficulty ceiling, and it is `difficultyCeiling(ownRanked)` —
-// the same arithmetic over the same stored count that `readiness.ts`
-// applies when it decides a row, so the mark on the bar stands exactly
-// where the engine's own rule put it. A second rule here would be a second
-// answer to "what is this site judged against".
 //
 // **A read that fails is never a zero.** Every count that could not be
 // taken is `unmeasured`, which renders as the dash and its own line
 // (REQ-004); a `0` would be a claim this customer has nothing.
 import { dbAdmin } from "@/lib/db";
-import { measured, measuredZero, unmeasured, type Measured } from "@/lib/measure/measured";
+import { measured, unmeasured, type Measured } from "@/lib/measure/measured";
+import { readingOf } from "@/lib/measure/page-reading";
 import type { PositionChange, SearchFacts, SearchStatus, SearchTargetFacts } from "./search-model";
 
 export interface SearchSite {
@@ -70,10 +63,26 @@ function client(): MinimalClient {
 
 /** A live publication, joined to the opportunity its page was written for.
  *  The three foreign keys the baseline declares, read in one go. */
-interface LivePageRow {
+export interface LivePageRow {
   live_url: string | null;
   unpublished_at: string | null;
+  search_reading: unknown;
   drafts: { opportunity_id: string } | null;
+}
+
+/** Each live page's place by its opportunity, from the page's own reading:
+ *  the one the ladder, the verdict and the mail read. A page never read is
+ *  absent, and keeps the ranked rows' place. */
+export function livePlaces(rows: readonly LivePageRow[]): ReadonlyMap<string, Measured<number>> {
+  const places = new Map<string, Measured<number>>();
+  for (const row of rows) {
+    const reading = readingOf(row.search_reading);
+    const id = row.drafts?.opportunity_id;
+    if (reading === null || id === undefined) continue;
+    const readAt = new Date(reading.at);
+    places.set(id, reading.place === null ? unmeasured<number>("not_attempted", readAt) : measured(reading.place.value, readAt));
+  }
+  return places;
 }
 
 /** `page_verdicts` through `publications → drafts`, newest week first. The
@@ -105,16 +114,16 @@ export async function readSearchFacts(site: SearchSite, at: Date): Promise<Searc
   // Everything else degrades to its own unmeasured arm: a missing report
   // means no position and no ceiling, a missing verdict means no change
   // stated, an unreadable count of live pages means the dash.
-  const [open, withPages, livePages, verdicts, report, ready] = await Promise.all([
+  const [open, withPages, livePages, verdicts, report] = await Promise.all([
     store.openRankable(site.siteId),
     pagedRows(site.siteId),
     readLivePages(site.siteId),
     readMovements(site.siteId),
     store.currentReport(site.siteId).catch(() => null),
-    readReadyDepth(site.siteId, at),
   ]);
 
   const liveByOpportunity = new Set(livePages.rows.map((row) => row.drafts?.opportunity_id ?? ""));
+  const placeByOpportunity = livePlaces(livePages.rows);
   const { askedAs, doneWhen } = await import("../calendar/store");
   const { pageTargetOf } = await import("../_shell/page-target");
 
@@ -171,6 +180,7 @@ export async function readSearchFacts(site: SearchSite, at: Date): Promise<Searc
             }
           : null,
       change: verdicts.get(opportunity.id) ?? { kind: "none" },
+      ...(placeByOpportunity.has(opportunity.id) ? { position: placeByOpportunity.get(opportunity.id) } : {}),
     });
   }
 
@@ -189,27 +199,15 @@ export async function readSearchFacts(site: SearchSite, at: Date): Promise<Searc
     positions.set(row.keyword, measured(row.position, measuredAt ?? at));
   }
 
-  const { difficultyCeiling } = await import("@/lib/opportunities/winnability/bars");
-  const ownRanked = report?.ownRanked ?? unmeasured<number>("not_attempted", at);
-
   return {
     targets,
     positions,
-    // A count nobody could take is not a count of zero (REQ-004): the
-    // pages tile then shows the dash and its own line, rather than
-    // claiming this customer has no live pages.
-    livePages: livePages.ok
-      ? measured(livePages.rows.length, at)
-      : unmeasured<number>("undeterminable", at),
-    ready,
-    ownRanked,
     // Issue 1551: your market is the stored presence card's own count over
     // the twelve, so this tab and the Competitors tab say one number.
     market:
       report?.presence == null
         ? null
         : { top10: report.presence.you.top10Count, measured: report.presence.measuredSearches },
-    ceiling: ownRanked.kind === "unmeasured" ? null : difficultyCeiling(ownRanked.value),
     measuredAt,
   };
 }
@@ -275,7 +273,7 @@ async function readLivePages(
 ): Promise<{ ok: boolean; rows: readonly LivePageRow[] }> {
   const { data, error } = await client()
     .from<LivePageRow>("publications")
-    .select("live_url, unpublished_at, drafts(opportunity_id)")
+    .select("live_url, unpublished_at, search_reading, drafts(opportunity_id)")
     .eq("site_id", siteId)
     .not("published_at", "is", null);
   if (error !== null || data === null) return { ok: false, rows: [] };
@@ -331,19 +329,6 @@ function rawValue(m: unknown): number | null {
   const arm = m as { kind?: unknown; value?: unknown };
   if (arm.kind !== "measured" && arm.kind !== "zero") return null;
   return typeof arm.value === "number" ? arm.value : null;
-}
-
-/** §7's own count of days of pages the product holds. A count that could
- *  not be taken is unmeasured, never zero — zero is "your queue is empty",
- *  which is a different and alarming thing to tell a customer. */
-async function readReadyDepth(siteId: string, at: Date): Promise<Measured<number>> {
-  try {
-    const { supplyDepth } = await import("@/lib/opportunities/supply/depth");
-    const { unused } = await supplyDepth(siteId);
-    return unused === 0 ? measuredZero(0, at) : measured(unused, at);
-  } catch {
-    return unmeasured<number>("undeterminable", at);
-  }
 }
 
 /** The columns `openRankable` selects, so the queued and done rows arrive

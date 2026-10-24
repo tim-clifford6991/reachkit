@@ -41,6 +41,7 @@ import {
   AI_SEARCH_INDEXERS,
   AI_TRAINING_CRAWLERS,
   SEARCH_CRAWLERS,
+  SEARCH_REFERRER_HOSTS,
 } from "@/lib/config/constants";
 
 /** The AI apps this product can tell apart, as internal handles. Every word
@@ -55,7 +56,8 @@ export type CrawlEngine = (typeof SEARCH_CRAWLERS)[keyof typeof SEARCH_CRAWLERS]
  *
  * `answer_fetch`   an engine fetched it because a person asked a question
  * `index_fetch`    an engine fetched it to build the index it answers from
- * `referral`       a person arrived from an AI answer
+ * `referral`       a person arrived from an AI answer, or from Google or
+ *                  Bing search
  *
  * Three members, closed. The card counts the first two apart from the third
  * and never adds them together: a fetch is not a visitor.
@@ -67,7 +69,9 @@ export type BlogRead =
   | { readonly engine: BlogEngine; readonly kind: BlogReadKind }
   /** Googlebot or Bingbot by its agent string, still to be checked by
    *  address (`crawler.ts`). */
-  | { readonly engine: CrawlEngine; readonly kind: "crawl" };
+  | { readonly engine: CrawlEngine; readonly kind: "crawl" }
+  /** A person arriving from Google or Bing search (issue 1614). */
+  | { readonly engine: CrawlEngine; readonly kind: "referral" };
 
 /** What a request offers this decision. All three are optional because all
  *  three are absent from some real request, and none of them is stored. */
@@ -125,7 +129,7 @@ function engineOfReferrer(referer: string | null, utmSource: string | null): Blo
  * answer for the overwhelming majority of traffic and is not an error.
  *
  * The order is the rule: training crawler, then fetcher, then indexer, then
- * search crawler, then referrer. Nothing falls through to a guess.
+ * search crawler, then AI referrer, then search referrer. Nothing falls through to a guess.
  */
 export function classifyBlogRead(facts: RequestFacts): BlogRead | null {
   const agent = facts.userAgent ?? "";
@@ -146,5 +150,9 @@ export function classifyBlogRead(facts: RequestFacts): BlogRead | null {
   }
 
   const referred = engineOfReferrer(facts.referer, facts.utmSource);
-  return referred === null ? null : { engine: referred, kind: "referral" };
+  if (referred !== null) return { engine: referred, kind: "referral" };
+  const host = facts.referer === null ? null : hostOf(facts.referer);
+  // Own keys only: a host named `constructor` must not read the prototype.
+  if (host === null || !Object.hasOwn(SEARCH_REFERRER_HOSTS, host)) return null;
+  return { engine: SEARCH_REFERRER_HOSTS[host] as CrawlEngine, kind: "referral" };
 }

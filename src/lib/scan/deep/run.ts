@@ -30,7 +30,7 @@
 // derivation runs here rather than inside the pipeline because the
 // pipeline branches on no tier and the free path derives nothing — the
 // choice of *which* §7 entry point a pass uses belongs to the pass. The
-// deep pass derives and refills up to a week and its spares
+// deep pass derives toward a week and its spares
 // (`deriveForPass`), under the same `DEEP` cap the stages spent and counted
 // in the same row's cost (issue 798), on the report the pass just stored —
 // as a step of its own, after the pass's. A derivation that
@@ -38,7 +38,7 @@
 // and "zero proposals is legal, never faked".
 import { FIRST_DRAFT_STAGE, type OnboardingStage } from "./progress";
 import { dbAdmin } from "@/lib/db";
-import { deriveForPass } from "@/lib/opportunities";
+import { deriveForPass, planFirstWeek } from "@/lib/opportunities";
 import { claimOnboardingPass, runScan, spendOnStoredReport } from "../run";
 import type { ScanStatus } from "../store";
 import { readSiteCategory } from "../site-category";
@@ -188,8 +188,8 @@ export async function runDeepPass(a: {
   // The pass's measurements become supply, on the pass's own money and
   // under its own cap, from the report the first step stored. A derivation
   // that throws is logged: zero proposals is legal, never faked (§4.3).
-  const rivals = await step("opportunities", async () => {
-    const { rivalsChanged } = await afterDeepReport({ scanId: result.scanId, siteId: a.siteId, domain: a.domain, remeasure: a.remeasure === true });
+  await step("opportunities", async () => {
+    await afterDeepReport({ scanId: result.scanId, siteId: a.siteId, domain: a.domain, remeasure: a.remeasure === true });
 
     // The pass derived the paid voice; seed the customer's field from it, so
     // the first draft is written in it (issue 737). Setup could not: a
@@ -202,7 +202,7 @@ export async function runDeepPass(a: {
     } catch {
       // Settings and the next weekly refresh read it again.
     }
-    return { rivalsChanged };
+    return null;
   });
 
   const reason = await step("first-draft", async () => {
@@ -214,6 +214,14 @@ export async function runDeepPass(a: {
         console.warn(JSON.stringify({ event: "before_release_failed", siteId: a.siteId, detail: String(error) }));
       }
     }
+    // After the first draft, which commits from its own date where it ran,
+    // so Plan has a week before the first evening either way. Never holds
+    // the release.
+    try {
+      await planFirstWeek(a.siteId, new Date());
+    } catch (error) {
+      console.warn(JSON.stringify({ event: "first_week_not_planned", siteId: a.siteId, detail: String(error) }));
+    }
 
     const released = reasonFor(result.status);
     await releaseToApp({ siteId: a.siteId, reason: released });
@@ -223,15 +231,6 @@ export async function runDeepPass(a: {
     await recordStage(a.siteId, null);
     return released;
   });
-
-  // #1185 point 4: a rival change is measured at once, as a founder's own
-  // change is (§6, #837) — once: a re-measure never starts another.
-  if (rivals.rivalsChanged && a.remeasure !== true) {
-    await step("rivals-remeasure", async () => {
-      const { remeasureForRivals } = await import("../market-conclusion");
-      return remeasureForRivals({ siteId: a.siteId, domain: a.domain, scanId: result.scanId });
-    });
-  }
 
   return { scanId: result.scanId, status: result.status, reason };
 }
@@ -248,14 +247,13 @@ export async function afterDeepReport(a: {
   siteId: string;
   domain: string;
   remeasure: boolean;
-}): Promise<{ rivalsChanged: boolean }> {
-  let rivalsChanged = false;
+}): Promise<void> {
   try {
     await spendOnStoredReport({ scanId: a.scanId, tier: "deep" }, async ({ report, cost }) => {
       // SPEC §6 (owner D28, #1185): the rivals, re-checked from this
       // pass's own answers before anything is derived against them.
       const { recheckRivalsOf } = await import("../market-conclusion");
-      rivalsChanged = await recheckRivalsOf({ siteId: a.siteId, domain: a.domain, cost, report });
+      await recheckRivalsOf({ siteId: a.siteId, domain: a.domain, cost, report });
       try {
         await deriveForPass(cost, {
           tier: "deep",
@@ -283,7 +281,6 @@ export async function afterDeepReport(a: {
       })
     );
   }
-  return { rivalsChanged };
 }
 
 /** The pass's first step: the row, the category and the one pipeline. */

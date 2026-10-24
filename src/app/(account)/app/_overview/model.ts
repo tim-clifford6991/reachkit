@@ -25,9 +25,11 @@ import type { AnswerEngine } from "@/lib/opportunities/types";
 import { weekOf, withBreaks, type SeriesEntry } from "./changes";
 import type { Measured } from "@/lib/measure/measured";
 import type { CopyKey } from "@/lib/presentation/copy";
+import type { DnsRecord } from "@/lib/publish/setup/cards";
 import type { ShownFactor } from "@/lib/presentation/bands";
 import { OVERVIEW_TRAILING_WEEKS } from "@/lib/config/constants";
 import type { GoalKey } from "./goals";
+import type { MonthsFacts } from "@/lib/measure/figures";
 import { headDirection, type HeadDirection } from "./head";
 import { readGrowth, type GrowthModule, type WeeklyPoint } from "./growth";
 import { resolveRivals, type RivalFacts, type RivalGapModule } from "./rivals";
@@ -140,6 +142,8 @@ export interface OverviewModel {
   /** When the first weekly scan is due — what a tile with no reading yet
    *  says instead of a zero (issue 1457). */
   firstDueOn: Date;
+  /** `null` where the weekly passes could not be read. */
+  months: MonthsFacts | null;
   /** The searches-you-appear-in reading. No tile of its own since #353 —
    *  the approved set gives this number the growth card, which draws the
    *  whole series rather than one headline — and it is still assembled,
@@ -170,11 +174,24 @@ export interface OverviewModel {
   /** REQ-095's one statement, never two. Absent where the product has
    *  nothing to say about supply. */
   supply?: SupplyStatement;
+  /** The address to connect, or `null` once it is live. */
+  connect: AddressWaiting | null;
   /** At most two (§4.5: "up to two alerts"). */
   alerts: readonly Alert[];
   overflow?: Overflow;
   /** The technical issues left over after the cap, counted on their own. */
   issuesOverflow?: Overflow;
+}
+
+/** The hosted address still waiting for its DNS record, and the one record
+ *  that connects it. Until it is live no page can go live. */
+export interface AddressWaiting {
+  hostname: string;
+  record: DnsRecord;
+  /** When the domain list was last asked about the host, or `null`. */
+  checkedAt: Date | null;
+  /** When the hosted destination was made, the day the count starts. */
+  since: Date | null;
 }
 
 /** The page that went live last: the customer's own title for it, and the
@@ -245,6 +262,8 @@ export interface OverviewFacts {
   scoreEstimate?: ScoreEstimateFacts;
   /** The latest verdict's biggest gap (issue 1457). */
   biggestGap?: ShownFactor | null;
+  /** The months-scale figures and when the next reading is taken. */
+  months?: MonthsFacts;
   pagesPublished: Measured<number>;
   /** The live count a week before `today` — the pages tile's delta is the
    *  difference. Taken only once the weekly series has begun: before the
@@ -258,6 +277,9 @@ export interface OverviewFacts {
   /** Today, in the site's zone, and the seven days of its week. */
   today: Date;
   supply: SupplyFacts;
+  /** The hosted address still waiting for its record. Absent or `null`
+   *  where there is none. */
+  connect?: AddressWaiting | null;
   waiting: readonly WaitingItem[];
   /** Which of §6.2's three answer engines the latest pass actually asked
    *  (issue 867). The tile's number counts Google's AI Overview alone
@@ -343,6 +365,7 @@ export function assembleOverview(facts: OverviewFacts): OverviewModel {
     },
     biggestGap: facts.biggestGap ?? null,
     firstDueOn: facts.firstDueOn,
+    months: facts.months ?? null,
     searches: {
       headline: {
         value: latest?.value ?? { kind: "unmeasured", reason: "not_attempted", at: facts.today },
@@ -391,6 +414,7 @@ export function assembleOverview(facts: OverviewFacts): OverviewModel {
       searches: facts.weekSearches,
     },
     ...(supply ? { supply } : {}),
+    connect: facts.connect ?? null,
     alerts,
     ...(overflow ? { overflow } : {}),
     ...(issuesOverflow ? { issuesOverflow } : {}),

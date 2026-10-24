@@ -4,14 +4,14 @@
 import "../env";
 import { afterEach, describe, expect, it } from "vitest";
 import { weekMeasurementsFrom } from "../../../src/lib/opportunities/verdicts/measurements";
-import { placeOf } from "../../../src/lib/opportunities/verdicts/evaluate";
+import { placeOf, type PageReading } from "../../../src/lib/measure/page-reading";
 import { judgeWeek } from "../../../src/lib/opportunities/verdicts/judge";
 import { urlsIn } from "../../../src/lib/opportunities/verdicts/seen";
 import { pageQuestionsSectionOf } from "../../../src/lib/scan/sections";
 import { measured } from "../../../src/lib/measure/measured";
 import type { StoredReport } from "../../../src/lib/scan/report";
 import { serp } from "../fixtures";
-import { AT, DOMAIN, SITE_ID, WEEK, fakeStore, pageOf, releaseStore, reportWithOwnPlace } from "./harness";
+import { AT, DOMAIN, SITE_ID, WEEK, fakeStore, pageOf, readingAt, releaseStore, reportWithOwnPlace } from "./harness";
 
 afterEach(releaseStore);
 
@@ -22,7 +22,7 @@ const PAGE = "https://content.example.com/onboarding-checklist";
  *  question asked and its Google result bought: `organic` is that result. */
 function weekWithPageSerp(organic: { position: number; url: string }[], over: Partial<StoredReport> = {}): StoredReport {
   const pageQuestions = pageQuestionsSectionOf({
-    asked: [{ publicationId: "pub-1", liveUrl: PAGE, question: "What goes in an onboarding checklist?", search: TARGET, position: null }],
+    asked: [{ publicationId: "pub-1", liveUrl: PAGE, question: "What goes in an onboarding checklist?", search: TARGET, position: null, publishedAt: null, linked: false }],
     serps: [measured(serp({ organic: organic.map((row) => ({ ...row, domain: new URL(row.url).hostname, title: "A page" })) }), AT)],
     battery: [],
     retired: [],
@@ -56,26 +56,34 @@ describe("condition 1 — the result already bought for the page's question is i
 });
 
 describe("condition 2 — a target the keyword database does not track is not measured, never a zero", () => {
-  it("a bought result without the page, and no tracked demand, is not measured; tracked demand makes it a measured zero", () => {
+  it("a result bought ten deep without the page, and no tracked demand, is not measured; tracked demand makes it a measured zero", () => {
     const report = weekWithPageSerp([{ position: 1, url: "https://appcues.com/a" }]);
-    expect(placeIn(report)?.kind).toBe("unmeasured");
-    expect(placeIn(report, [TARGET])?.kind).toBe("zero");
+    const boughtTo = (depth?: number): StoredReport => ({
+      ...report,
+      pageQuestions: report.pageQuestions && {
+        ...report.pageQuestions,
+        rows: report.pageQuestions.rows.map((row) => ({ ...row, depth })),
+      },
+    });
+    expect(placeIn(boughtTo())?.kind).toBe("unmeasured");
+    expect(placeIn(boughtTo(), [TARGET])?.kind).toBe("zero");
+    // Owner B2: a result read 100 deep without the page says it is not in the top 100.
+    expect(placeIn(boughtTo(100))?.kind).toBe("zero");
   });
 });
 
 describe("condition 3 — a page never seen in any stored result is never not working", () => {
-  const OLD_PAGE = pageOf({ acceptance: { form: "top20", query: TARGET }, liveUrl: PAGE, volume: 90 });
   const week = weekWithPageSerp([{ position: 1, url: "https://appcues.com/a" }]);
+  const page = (reading: PageReading) => pageOf({ acceptance: { form: "top20", query: TARGET }, liveUrl: PAGE, volume: 90, reading });
 
-  it("unseen: too early in week 4 and later, so its cluster is not suppressed and no refresh is due; seen, it is not working", async () => {
-    const store = fakeStore({ pages: [OLD_PAGE], report: week, seen: ["https://appcues.com/a"] });
+  it("never held: too early, so its cluster is not suppressed and no refresh is due; held at 40 for 8 weeks, it is not working", async () => {
+    const store = fakeStore({ pages: [page(readingAt(null))], report: week });
     const { standings } = await judgeWeek({ siteId: SITE_ID, week: WEEK });
     expect(standings[0]?.standing).toMatchObject({ kind: "verdict", verdict: "too_early" });
     expect(store.inserted[0]).toMatchObject({ verdict: "too_early", measured: { kind: "zero" } });
     releaseStore();
 
-    // Seen once, in any stored result: the same week is not working.
-    fakeStore({ pages: [OLD_PAGE], report: week, seen: [`${PAGE}/`] });
+    fakeStore({ pages: [page(readingAt(40, { weeksAgo: 8 }))], report: week });
     const seen = await judgeWeek({ siteId: SITE_ID, week: WEEK });
     expect(seen.standings[0]?.standing).toMatchObject({ kind: "verdict", verdict: "not_working" });
   });

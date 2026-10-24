@@ -138,7 +138,7 @@ const WEEKLY_NEXT = [
   { targetQuery: "how to run payroll without an accountant" },
 ];
 
-/** Where a `toggle` kind's stop control points: Settings › Notifications,
+/** Where a `toggle` kind's stop control points: Settings › Mail,
  *  the customer's own three switches — never the address-wide opt-out. */
 const UNSUBSCRIBE = {
   href: `${APP}/app/settings`,
@@ -167,7 +167,7 @@ export async function composePreview(kind: PreviewKind): Promise<PreviewMail> {
   switch (kind) {
     case "magic-link": {
       const { buildMagicLink } = await import("../../../src/lib/mail/templates/magic-link");
-      const mail = buildMagicLink({ href: `${APP}/signin?t=preview`, address: "you@company.com" });
+      const mail = buildMagicLink({ href: `${APP}/signin?t=preview`, address: "you@example.com" });
       return composeMail({ kind, subject: mail.subject, blocks: mail.blocks, reason: mail.reason });
     }
     case "report": {
@@ -196,7 +196,7 @@ export async function composePreview(kind: PreviewKind): Promise<PreviewMail> {
     case "first-page": {
       const { buildFirstPage } = await import("../../../src/lib/mail/templates/first-page");
       const mail = buildFirstPage({
-        email: "you@company.com",
+        email: "you@example.com",
         pageTitle: "How to choose onboarding software",
         markdown: "# How to choose onboarding software\n\nThe complete page, as written.",
         targetQuery: "best onboarding tools",
@@ -244,15 +244,26 @@ export async function composePreview(kind: PreviewKind): Promise<PreviewMail> {
     case "weekly": {
       const { buildWeekly } = await import("../../../src/lib/mail/templates/weekly");
       const mail = buildWeekly({
-        // Issue 1329: D22's four headline numbers, on a hosted blog.
+        // Overview's numbers, on a hosted blog, in the first mail of a month.
         numbers: {
-          pageQuestions: { cited: measured(2, AT), asked: 4 },
-          mentions: { kind: "rate", rate: measured(34, AT), low: 22, high: 48 },
-          pagesCited: measured(3, AT),
-          weeks: 4,
-          top20: measured(5, AT),
-          top20Change: measured(2, AT),
-          aiVisits: { fetches: measured(12, AT), windowDays: 7 },
+          live: measured(12, AT),
+          planned: measured(7, AT),
+          google: {
+            steps: (["draft.ladder.found", "draft.ladder.showing", "draft.ladder.first-page"] as const).map((name, i) => ({
+              name,
+              count: measured([11, 5, 1][i]!, AT),
+              of: 12,
+            })),
+            early: false,
+            visits: measured(9, AT),
+            climb: { search: "tankless water heater austin", from: 62, to: 24, climbing: true },
+          },
+          ai: { linked: measured(2, AT), asked: 12, reads: measured(14, AT) },
+          month: {
+            score: { value: measured(31, AT), change: measured(4, AT) },
+            market: { value: measured(1, AT), of: 12, change: measured(1, AT) },
+            reputation: { value: measured(11, AT), answers: 184, weeks: 4 },
+          },
         },
         pages: measured(WEEKLY_PAGES, AT),
         next: measured(WEEKLY_NEXT, AT),
@@ -273,7 +284,7 @@ export async function composePreview(kind: PreviewKind): Promise<PreviewMail> {
     }
     case "nurture": {
       const { buildNurture } = await import("../../../src/lib/mail/templates/nurture");
-      const mail = buildNurture({ email: "you@company.com", domain: "example.com", touch: 1 });
+      const mail = buildNurture({ email: "you@example.com", domain: "example.com", touch: 1 });
       return composeMail({
         kind,
         subject: mail.subject,
@@ -307,11 +318,27 @@ export async function composeUnmeasuredWeek(): Promise<PreviewMail> {
   });
 }
 
+/** The draft-ready mail while a hosted address waits for its setting: no
+ *  moment is named, and the record the Overview shows rides below the line. */
+export async function composeWaitingForAddress(): Promise<PreviewMail> {
+  const composeMail = await composer();
+  const { buildDraftReady } = await import("../../../src/lib/mail/templates/draft-ready");
+  const mail = buildDraftReady({
+    telling: {
+      ...PREVIEW_TELLING,
+      destination: { says: "cannot_go_live_there", site: "help.harborplumbing.example", copy: "mail.draftReady.dest.addressNotConnected" },
+    } as TellableTelling,
+    stopHref: `${APP}/veto/preview`,
+    readHref: `${APP}/app/draft/preview`,
+    page: PREVIEW_PAGE,
+    record: { type: "CNAME", name: "help", value: "hosted.example.net" },
+  });
+  return composeMail({ kind: "draft-ready", subject: mail.subject, subjectVars: mail.subjectVars, blocks: mail.blocks, reason: mail.reason });
+}
+
 /** SPEC §8's retention mails (issue 641). Their lines are owner-owed, so a
  *  preview shows each `TODO(copy)` marker where a sentence will go. */
 export const RETENTION_PREVIEW_KINDS = [
-  "inactivity",
-  "veto-reminder",
   "payment-failed",
   "cancellation",
   "win-back",
@@ -321,23 +348,15 @@ export async function composeRetentionPreview(
   kind: (typeof RETENTION_PREVIEW_KINDS)[number]
 ): Promise<PreviewMail> {
   const composeMail = await composer();
-  const email = "you@company.com";
+  const email = "you@example.com";
   const mail = await (async () => {
     switch (kind) {
-      case "inactivity":
-        return (await import("../../../src/lib/mail/templates/inactivity")).buildInactivity({ email });
-      case "veto-reminder":
-        return (await import("../../../src/lib/mail/templates/veto-reminder")).buildVetoReminder({
-          email,
-          draftId: "preview",
-          page: PREVIEW_PAGE.title,
-          closesAt: "Tomorrow 07:00",
-        });
       case "payment-failed":
         return (await import("../../../src/lib/mail/templates/payment-failed")).buildPaymentFailed();
       case "cancellation":
         return (await import("../../../src/lib/mail/templates/cancellation")).buildCancellation({
           accessEndsOn: "2026-10-08",
+          refunded: false,
         });
       case "win-back":
         return (await import("../../../src/lib/mail/templates/win-back")).buildWinback({ email });
@@ -388,7 +407,7 @@ export async function composeRemainingPreview(
       const { buildFirstPageUnavailable } = await import(
         "../../../src/lib/mail/templates/first-page-unavailable"
       );
-      const mail = buildFirstPageUnavailable({ email: "you@company.com", causeLine: PREVIEW_CAUSE });
+      const mail = buildFirstPageUnavailable({ email: "you@example.com", causeLine: PREVIEW_CAUSE });
       return composeMail({
         kind,
         subject: mail.subject,

@@ -3,7 +3,7 @@
 //
 // The closed partition list, written once (BP-020 decision 5). Every
 // sentence the product speaks in its own voice is composed here from the
-// fifteen `keys/*.ts` partitions — no sixteenth import, no re-export by
+// sixteen `keys/*.ts` partitions — no seventeenth import, no re-export by
 // name. (Twelve until issue #19 added `keys/signin.ts` for the sign-in
 // screen's sentences, on the footing `keys/offer.ts`'s own header records
 // for the twelfth: BP-020 decision 5 named eleven partitions before the
@@ -11,7 +11,9 @@
 // some partition. `registry.test.ts` pins the list; growing it is a
 // two-line change here and a named row there, never a silent spread.
 // `keys/meta.ts` is the fifteenth, issue #326: every public route's
-// document title, description and share-image alt.) `COPY` and `COPY_META` are frozen object literals in the bundle,
+// document title, description and share-image alt. `keys/review.ts` is the
+// sixteenth: the owner's review screen. `keys/ops.ts` is the seventeenth: the
+// owner-only lines of the operations mails.) `COPY` and `COPY_META` are frozen object literals in the bundle,
 // never a fetch, a template store or an i18n catalogue (REQ-093 criterion
 // 5): with every language model unavailable, every value here still reads
 // the same, because nothing here ever reached for one.
@@ -37,6 +39,8 @@ import { LAWS_COPY } from "./keys/laws.ts";
 import { SIGNIN_COPY } from "./keys/signin.ts";
 import { CHROME_COPY } from "./keys/chrome.ts";
 import { META_COPY } from "./keys/meta.ts";
+import { REVIEW_COPY } from "./keys/review.ts";
+import { OPS_COPY } from "./keys/ops.ts";
 
 export interface CopyMeta {
   /** Which cross-cutting law, if any, governs this sentence. The conformance
@@ -81,6 +85,8 @@ const ENTRIES = {
   ...SIGNIN_COPY,
   ...CHROME_COPY,
   ...META_COPY,
+  ...REVIEW_COPY,
+  ...OPS_COPY,
 } as const satisfies Record<string, readonly [string, CopyMeta]>;
 
 type Entries = typeof ENTRIES;

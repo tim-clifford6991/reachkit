@@ -152,8 +152,8 @@ describe("selectTwelve — what never reaches the ranking", () => {
   });
 });
 
-describe("selectTwelve — a week reads something new (issue 1549)", () => {
-  it("two weekly passes on the same market share at most eight of their twelve", () => {
+describe("selectTwelve — the tracked twelve stay the same from week to week", () => {
+  it("the same market on two Mondays selects the identical twelve, whatever was measured the week before", () => {
     const first = selectTwelve({ profile: PROFILE, ownRanked: OWN_RANKED, market: FIXTURE.market });
     const second = selectTwelve({
       profile: PROFILE,
@@ -162,9 +162,25 @@ describe("selectTwelve — a week reads something new (issue 1549)", () => {
       recent: first.map((s) => s.keyword),
     });
 
-    expect(second).toHaveLength(BATTERY.QUESTIONS);
-    const shared = second.filter((s) => first.some((f) => f.keyword === s.keyword));
-    expect(shared.length).toBeLessThanOrEqual(BATTERY.QUESTIONS - SELECTION.minFresh);
+    expect(first).toHaveLength(BATTERY.QUESTIONS);
+    expect(second).toEqual(first);
+  });
+
+  it("a market that loses one tracked search changes only that search", () => {
+    const first = selectTwelve({ profile: PROFILE, ownRanked: OWN_RANKED, market: FIXTURE.market });
+    const gone = first[0]!.keyword;
+    const second = selectTwelve({
+      profile: PROFILE,
+      ownRanked: OWN_RANKED,
+      market: FIXTURE.market.filter((row) => row.keyword !== gone),
+      recent: first.map((s) => s.keyword),
+    });
+
+    const before = first.map((s) => s.keyword);
+    const after = second.map((s) => s.keyword);
+    expect(after).not.toContain(gone);
+    expect(after.filter((keyword) => !before.includes(keyword))).toHaveLength(1);
+    expect(before.filter((keyword) => !after.includes(keyword))).toEqual([gone]);
   });
 
   it("keeps a floor of how-to and informational searches", () => {

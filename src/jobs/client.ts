@@ -128,10 +128,9 @@ export function defineJobs(definition: JobDefinition): PlatformFunction[] {
         now: new Date(),
         attempt,
         step: (name, body) => step.run(name, body) as Promise<Awaited<ReturnType<typeof body>>>,
-        // Not a step: the key is the event's id, so a body run again sends
-        // nothing the platform has not already dropped.
+        // A step, so a tick re-entered after the send does not send again.
         send: async (events) => {
-          if (events.length > 0) await client.send(subjectEvents(definition.id, events));
+          if (events.length > 0) await step.sendEvent("send-subjects", subjectEvents(definition.id, events));
         },
       });
     }
@@ -145,6 +144,8 @@ export function defineJobs(definition: JobDefinition): PlatformFunction[] {
       triggers: [{ event: subjectEventName(definition.id) }],
       idempotency: idempotencyExpression(["key"]) as string,
       ...boundsOf(definition),
+      // Each step its own invocation, so a long stage keeps the whole time budget.
+      checkpointing: false,
       onFailure,
     },
     async ({ event, step, attempt }) =>

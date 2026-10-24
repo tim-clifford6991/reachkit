@@ -224,6 +224,8 @@ export async function startWeeklyScan(
 
 /** The week judged and told, after its measurement and its late answers. */
 async function tellWeek(a: DueSite & { readonly now: Date }, outcome: WeeklyOutcome): Promise<EngineResult> {
+  // A week the vendor refused for credit is still due: nothing is judged, planned or told until a pass measures it.
+  if (outcome.ran && outcome.status === "failed" && outcome.because === "vendor_funds") return { degraded: "vendor_funds" };
   // §6's verdict on every page published so far, written before the digest
   // reads it. A failed pass stored no report, so its week judges nothing.
   if (outcome.ran && outcome.status !== "failed") {
@@ -523,6 +525,10 @@ export async function generateDraft(a: {
   const step: StepRunner = a.step ?? ((_name, body) => body());
   const { decideDayPage, generateDayPage } = await import("@/lib/generate");
   const day = { siteId: a.siteId, publishDate: a.publishDate, now: a.now };
+  // Before the plan is read: deciding a day's page writes the week's plan.
+  const { dayHold } = await import("@/lib/publish/daily");
+  const held = await step("hold", () => dayHold(a.siteId, a.publishDate));
+  if (held !== null) return { degraded: held };
   const decided = await step("select", () => decideDayPage(day));
   // A date that already holds its draft is a day already done, not a
   // degraded tick.
@@ -795,7 +801,8 @@ export async function verifyLive(a: {
   // The outcome the check recorded is never a degradation — all three are
   // recorded facts about the page. A telling that could not go out is: the
   // customer was not told about a page ReachKit did look at.
-  return told.sent ? { done: true } : { degraded: `published-mail:${told.reason}` };
+  // A later page is told on Monday, so not telling it here is not a gap.
+  return told.sent || told.reason === "not-first-page" ? { done: true } : { degraded: `published-mail:${told.reason}` };
 }
 
 // ── Lead sequences — BP-029
@@ -983,33 +990,11 @@ export async function remindSetup(siteId: string): Promise<EngineResult> {
 
 // ── Retention / win-back — SPEC §8 (issue #569), built and wired here
 //
-// Five obligations on `account/maintenance`'s tick, one per retention mail
-// the tick owns (the sixth kind, the hosting-end notice, is the pair above).
+// Three obligations on `account/maintenance`'s tick, one per retention mail
+// the tick owns (the fourth kind, the hosting-end notice, is the pair above).
 // Every rule is `src/lib/mail/retention/`'s, imported at the call because it
 // reaches `@/lib/db`. Not sending is a decided, logged outcome, never a
 // degraded run.
-
-export async function accountsDueInactivity(): Promise<readonly string[]> {
-  const { accountsDueInactivity: due } = await import("@/lib/mail/retention");
-  return due(new Date());
-}
-
-export async function nudgeInactive(userId: string): Promise<EngineResult> {
-  const { sendInactivityNudge } = await import("@/lib/mail/retention");
-  await sendInactivityNudge(userId);
-  return { done: true };
-}
-
-export async function draftsDueVetoReminder(): Promise<readonly string[]> {
-  const { draftsDueVetoReminder: due } = await import("@/lib/mail/retention");
-  return due(new Date());
-}
-
-export async function remindVeto(draftId: string): Promise<EngineResult> {
-  const { sendVetoReminder } = await import("@/lib/mail/retention");
-  await sendVetoReminder(draftId);
-  return { done: true };
-}
 
 export async function accountsDuePaymentFailed(): Promise<readonly string[]> {
   const { accountsDuePaymentFailed: due } = await import("@/lib/mail/retention");

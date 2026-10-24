@@ -17,25 +17,18 @@
 // read-then-write window between them (ADR-060 point 3). `runScan` writes
 // its report into that same row, so the pass never inserts a second one.
 //
-// **A pass that produced no report leaves no week behind it.** The claim
-// is released, and the site is selected again on the very next hourly tick
-// — inside the same site-local week. A pass that produced a report keeps
+// **A pass that produced no report, or that the vendor refused for credit,
+// leaves no week behind it.** The claim is released — its row is marked
+// `failed` and kept, because the ledger's rows reference it — and the site
+// is selected again on the first tick at least 24 h after the refused
+// pass's event, inside the same site-local week, where the claim takes
+// that row back. A pass that produced a report keeps
 // its row whether it was whole or partial: a partly measured week is a
 // measured week that says what it missed (REQ-065 c4), never a failure to
 // repeat.
 //
-// **The week also buys what the engines already answer with this site**
-// (SPEC §6, 2026-09-22, #1004). One `search_mentions` request per site per
-// week, inside the same `afterReport` hook and the same `WEEKLY` cap, and
-// **after** the supply step: a pass with no cap left loses the
-// supplementary list rather than the calendar. The read writes its own row
-// whatever happened — bought, skipped for the cap, or failed — because a
-// week nobody bought and a week the engines named nobody in are two
-// different sentences on the AI answers tab, and only a stored row can
-// tell them apart.
-//
 // **What the week found becomes supply, before the account is read.**
-// §7's derivation and 0¢ refill are additive and run inside this pass's own cost
+// §7's derivation is additive and runs inside this pass's own cost
 // context and `WEEKLY` cap (§6.3 puts opportunity typing in the paid
 // budgets); it is handed to `runScan` as the hook it calls once the
 // report is stored, because the opportunity rows reference that row. The
@@ -56,7 +49,7 @@ import { sitesWithActiveAccess } from "./access";
 import { claimWeek, readSiteZone, releaseWeek } from "./store";
 import { runScan } from "../run";
 import { readSiteCategory } from "../site-category";
-import { isWeeklyDue, localClock, weekStartFor, weekStartInstant } from "./week";
+import { localClock, weekHasBegun, weekStartFor, weekStartInstant } from "./week";
 
 /** Why a week was not measured, before anything was spent. */
 export type WeeklyRefusal = "week_not_begun" | "already_measured" | "no_active_access" | "kill_switch";
@@ -73,7 +66,7 @@ export type WeeklyOutcome =
    *  week is due again on the next tick — so this is not `ran: false`,
    *  which would say nothing was attempted, and not `degraded`, which
    *  would say a partial measurement is readable. */
-  | { readonly ran: true; readonly scanId: string; readonly status: "failed" }
+  | { readonly ran: true; readonly scanId: string; readonly status: "failed"; readonly because?: "vendor_funds" }
   | { readonly ran: false; readonly because: WeeklyRefusal };
 
 /**
@@ -101,7 +94,7 @@ export async function runWeekly(a: {
   if (env.KILL_SWITCH) return refuse(a.siteId, "kill_switch");
 
   const weekStart = weekStartFor({ at: a.now, zone });
-  if (!hasBegun({ at: a.now, zone })) return refuse(a.siteId, "week_not_begun");
+  if (!weekHasBegun({ at: a.now, zone })) return refuse(a.siteId, "week_not_begun");
 
   const withAccess = await sitesWithActiveAccess("runWeekly", [a.siteId]);
   if (!withAccess.has(a.siteId)) return refuse(a.siteId, "no_active_access");
@@ -117,9 +110,9 @@ export async function runWeekly(a: {
   //    standard queue, the `WEEKLY` cap, which stages degrade — is
   //    `TIER_PARAMETERS.weekly`'s and is not restated here.
   let status: "done" | "degraded" | "failed";
-  let rivalsChanged = false;
+  let fundsRefused: true | undefined;
   try {
-    ({ status } = await runScan({
+    ({ status, fundsRefused } = await runScan({
       scanId: claim.scanId,
       siteId: a.siteId,
       domain: a.domain,
@@ -129,49 +122,25 @@ export async function runWeekly(a: {
       measuredSince: weekStartInstant({ weekStart, zone }),
       ...(category === undefined ? {} : { category }),
       concludesMarket: true,
+      failsWhenFundsRefused: true,
       afterReport: async ({ report, cost }) => {
-        // SPEC §6 (owner D28, #1185): the rivals, re-checked from this
-        // week's own answers before anything is derived against them.
-        const { recheckRivalsOf } = await import("../market-conclusion");
-        rivalsChanged = await recheckRivalsOf({ siteId: a.siteId, domain: a.domain, cost, report });
         try {
-          await deriveForPass(cost, {
-            tier: "weekly",
-            siteId: a.siteId,
-            report,
-            hasActiveAccess: true,
-          });
-          // SPEC §6 (2026-09-22, #1004) — this week's LLM Mentions, on the
-          // pass's own money and under the same `WEEKLY` cap. Last, and
-          // that ordering is the decision: a tight week loses the
-          // supplementary list before it loses the calendar, so the
-          // derivation above is asked first and this is what the 40c cap
-          // refuses when there is no room left. A refusal writes its own row
-          // and says so; it never stops the pass.
-          //
-          // Imported at the call, as `src/jobs/run.ts` does: this module is
-          // reached by the hourly tick, and a static edge into the vendor
-          // barrel would pull the DataForSEO transport — and the binding
-          // parse behind it — into every importer of the weekly seam.
           try {
-            const { readWeeklyMentions } = await import("@/lib/mentions");
-            await readWeeklyMentions(cost, {
+            // Typing goes first so the rival re-check spends what it leaves, never the reserve held for it.
+            await deriveForPass(cost, {
+              tier: "weekly",
               siteId: a.siteId,
-              domain: a.domain,
-              weekStart,
-              scanId: claim.scanId,
-              // D32 (#1162): bought only at a footprint of 30 or more.
-              ownRanked: report.ownRanked.kind === "unmeasured" ? null : report.ownRanked.value,
+              report,
+              hasActiveAccess: true,
             });
-          } catch (error) {
-            console.log(
-              JSON.stringify({
-                event: "llm_mentions_week_failed",
-                siteId: a.siteId,
-                weekStart,
-                because: error instanceof Error ? error.message : String(error),
-              })
-            );
+          } finally {
+            // SPEC §6 (D28; monthly, ruling B5): a re-check the cap refused stays due on every pass until one concludes.
+            const { readSiteMarket } = await import("@/lib/market/infer/stored");
+            const checkedAt = await readSiteMarket(a.siteId).then((site) => site?.stored.rivalsCheckedAt, () => undefined);
+            if (rivalsDue(checkedAt, weekStart, zone)) {
+              const { recheckRivalsOf } = await import("../market-conclusion");
+              await recheckRivalsOf({ siteId: a.siteId, domain: a.domain, cost, report });
+            }
           }
         } finally {
           // SPEC §6 (owner D58, issue 1287): the pass checks its own health
@@ -188,17 +157,16 @@ export async function runWeekly(a: {
     throw error;
   }
 
+  // A week the vendor refused for credit was stored `failed` by the pass itself, so it stays due until a pass after the top-up measures it.
+  if (fundsRefused === true) {
+    logWeekly({ siteId: a.siteId, weekStart, outcome: "vendor_funds" });
+    return { ran: true, scanId: claim.scanId, status: "failed", because: "vendor_funds" };
+  }
+
   if (status === "failed") {
     await releaseWeek(claim.scanId);
     logWeekly({ siteId: a.siteId, weekStart, outcome: "failed" });
     return { ran: true, scanId: claim.scanId, status: "failed" };
-  }
-
-  // #1185 point 4: a rival change is measured at once, as a founder's own
-  // change is (§6, #837), under the same daily bound.
-  if (rivalsChanged) {
-    const { remeasureForRivals } = await import("../market-conclusion");
-    await remeasureForRivals({ siteId: a.siteId, domain: a.domain, scanId: claim.scanId });
   }
 
   // 3. What came back, read through the one account of the week — so the
@@ -211,19 +179,9 @@ export async function runWeekly(a: {
   return { ran: true, scanId: claim.scanId, status: "done" };
 }
 
-/**
- * Has this site's own week begun?
- *
- * `weekStartFor` answers for any instant, so the week containing `now`
- * always has a Monday — the question REQ-065 c1 asks ("never before it
- * begins") is whether that Monday's due hour has arrived. On the site's
- * Monday that is the due hour itself (the hourly tick's own window); on
- * any later day of the week it has plainly passed, which is what makes a
- * retry inside the week possible at all.
- */
-function hasBegun(a: { at: Date; zone: string }): boolean {
-  if (isWeeklyDue(a)) return true;
-  return localClock(a.at, a.zone).date > weekStartFor(a);
+/** No re-check has concluded yet in the site-local month the week starts in. */
+function rivalsDue(checkedAt: string | undefined, weekStart: string, zone: string): boolean {
+  return checkedAt === undefined || localClock(new Date(checkedAt), zone).date.slice(0, 7) < weekStart.slice(0, 7);
 }
 
 function refuse(siteId: string, because: WeeklyRefusal): WeeklyOutcome {

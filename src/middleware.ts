@@ -99,8 +99,8 @@ const CSP_HEADER = "content-security-policy";
 
 /** Vercel's preview toolbar, which the platform injects into a preview
  *  deployment's HTML rather than this repository doing it. These are the
- *  origins it needs; on production it is not injected and they are simply
- *  never reached. */
+ *  origins it needs; production never gets the toolbar, so its policy names
+ *  none of them. */
 const VERCEL_LIVE = "https://vercel.live";
 const VERCEL_LIVE_IMG = "https://vercel.com";
 const VERCEL_LIVE_FONTS = "https://assets.vercel.com";
@@ -172,8 +172,10 @@ function mintNonce(): string {
 export function contentSecurityPolicy(
   nonce: string | null,
   isDev: boolean,
-  siteIcons = false
+  siteIcons = false,
+  toolbar = true
 ): string {
+  const live = (...origins: string[]): string => (toolbar ? ` ${origins.join(" ")}` : "");
   return [
     "default-src 'self'",
     "base-uri 'self'",
@@ -184,13 +186,13 @@ export function contentSecurityPolicy(
     // nowhere else, which is the one thing that differs between the two.
     nonce === null
       ? "script-src 'none'"
-      : `script-src 'self' 'nonce-${nonce}' ${VERCEL_LIVE}${isDev ? " 'unsafe-eval'" : ""}`,
-    `style-src 'self' 'unsafe-inline' ${VERCEL_LIVE}`,
-    `img-src 'self' data: blob: ${VERCEL_LIVE} ${VERCEL_LIVE_IMG}${siteIcons ? " https:" : ""}`,
-    `font-src 'self' ${VERCEL_LIVE} ${VERCEL_LIVE_FONTS}`,
+      : `script-src 'self' 'nonce-${nonce}'${live(VERCEL_LIVE)}${isDev ? " 'unsafe-eval'" : ""}`,
+    `style-src 'self' 'unsafe-inline'${live(VERCEL_LIVE)}`,
+    `img-src 'self' data: blob:${live(VERCEL_LIVE, VERCEL_LIVE_IMG)}${siteIcons ? " https:" : ""}`,
+    `font-src 'self'${live(VERCEL_LIVE, VERCEL_LIVE_FONTS)}`,
     // The dev server's hot-reload socket, and nothing else new.
-    `connect-src 'self' ${VERCEL_LIVE} ${VERCEL_LIVE_SOCKET}${isDev ? " ws:" : ""}`,
-    `frame-src 'self' ${VERCEL_LIVE}`,
+    `connect-src 'self'${live(VERCEL_LIVE, VERCEL_LIVE_SOCKET)}${isDev ? " ws:" : ""}`,
+    `frame-src 'self'${live(VERCEL_LIVE)}`,
   ].join("; ");
 }
 
@@ -294,6 +296,8 @@ export const PUBLIC_PATHS: readonly string[] = [
   GONE_PATH,
   "/share-card",
   "/llms.txt",
+  // RFC 9116: a researcher has no session.
+  "/.well-known/security.txt",
 ];
 
 /** The addresses of Next's own generated metadata assets under `(public)`:
@@ -448,6 +452,22 @@ function isHostedEdgeHost(req: NextRequest): boolean {
   return !LOCAL_HOSTS.has(name);
 }
 
+function blogReadOf(req: NextRequest): ReturnType<typeof classifyBlogRead> {
+  return classifyBlogRead({
+    userAgent: req.headers.get("user-agent"),
+    referer: req.headers.get("referer"),
+    utmSource: req.nextUrl.searchParams.get("utm_source"),
+  });
+}
+
+/** A classified read that was not written. The reason and nothing else:
+ *  no header, address or path of the request reaches a log. */
+function blogReadSkipped(
+  reason: "unverified_crawler" | "ranges_unreadable" | "page_lookup_deadline"
+): void {
+  console.warn(JSON.stringify({ event: "blog_read_skipped", reason }));
+}
+
 /**
  * SPEC §6 (2026-09-20, #908) measure (d) · SPEC §7 of the same date, issue
  * #921 — count this read of this page, after the response has gone.
@@ -477,18 +497,18 @@ function countBlogRead(
   live: LiveAnswer,
   event: Pick<NextFetchEvent, "waitUntil"> | undefined
 ): void {
-  const read = classifyBlogRead({
-    userAgent: req.headers.get("user-agent"),
-    referer: req.headers.get("referer"),
-    utmSource: req.nextUrl.searchParams.get("utm_source"),
-  });
+  const read = blogReadOf(req);
   if (read === null) return;
 
   const ip = req.headers.get("x-real-ip") ?? req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null;
   const write = (async (): Promise<void> => {
     if (read.kind === "crawl") {
-      const { isVerifiedCrawler } = await import("@/lib/publish/reads/crawler");
-      if (!(await isVerifiedCrawler(read.engine, ip))) return;
+      const { crawlerVerdict } = await import("@/lib/publish/reads/crawler");
+      const verdict = await crawlerVerdict(read.engine, ip);
+      if (verdict !== "verified") {
+        blogReadSkipped(verdict);
+        return;
+      }
     }
     const { recordBlogRead } = await import("@/lib/publish/reads/store");
     const { now } = await import("@/lib/config/now");
@@ -559,6 +579,8 @@ async function hostedRewrite(
     );
   } catch {
     answer = "page";
+    // `hostedAnswer` answers its own failures, so what lands here is the deadline.
+    if (blogReadOf(req) !== null) blogReadSkipped("page_lookup_deadline");
   }
 
   const destination = req.nextUrl.clone();
@@ -859,10 +881,12 @@ export async function middleware(
   // header. So `x-nonce` is not set: an unread header is a claim nothing
   // holds true.
   const nonce = mintNonce();
+  const toolbar = process.env.VERCEL_ENV !== "production";
   const policy = contentSecurityPolicy(
     nonce,
     process.env.NODE_ENV === "development",
     SITE_ICON_PATHS.includes(pathname),
+    toolbar,
   );
   const forwarded = new Headers(req.headers);
   forwarded.set(CSP_HEADER, policy);
@@ -881,7 +905,7 @@ export async function middleware(
   const hosted = await hostedRewrite(req, forwarded, event);
   if (hosted !== null) {
     return hosted.scriptFree
-      ? sealed(hosted.response, contentSecurityPolicy(null, false))
+      ? sealed(hosted.response, contentSecurityPolicy(null, false, false, toolbar))
       : sealed(hosted.response);
   }
 

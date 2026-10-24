@@ -94,8 +94,8 @@ const slugOf = (text: string): string => slugify(text).slice(0, 60);
 
 /** Each type's topic where `--topic` names none, in the site's language. */
 const DEFAULT_TOPIC: Readonly<Record<Language, (category: string) => Record<ContentType, string>>> = {
-  en: (category) => ({ listicle: `best ${category} tools`, how_to: `how to choose ${category}`, documentation: `what is ${category}`, research: `${category} statistics`, qa: `${category} questions`, insights: `${category} news`, update: "" }),
-  de: (category) => ({ listicle: `beste ${category}`, how_to: `wie finde ich ${category}`, documentation: `was ist ${category}`, research: `${category} statistik`, qa: `${category} fragen`, insights: `${category} neuigkeiten`, update: "" }),
+  en: (category) => ({ listicle: `best ${category} tools`, how_to: `how to choose ${category}`, documentation: `what is ${category}`, research: `${category} statistics`, qa: `${category} questions`, insights: `${category} news`, update: "", offering: `${category} prices` }),
+  de: (category) => ({ listicle: `beste ${category}`, how_to: `wie finde ich ${category}`, documentation: `was ist ${category}`, research: `${category} statistik`, qa: `${category} fragen`, insights: `${category} neuigkeiten`, update: "", offering: `${category} preise` }),
 };
 
 /** The opportunity type a tested page is written as: an update refreshes a
@@ -108,6 +108,7 @@ const OPPORTUNITY_TYPE: Readonly<Record<ContentType, OpportunityType>> = {
   qa: "answer_page",
   insights: "keyword_page",
   update: "refresh_page",
+  offering: "keyword_page",
 };
 
 function memoryStore(snapshot: PageSnapshot, report: ReturnType<typeof readStoredReport>): GenerateStore {
@@ -246,7 +247,7 @@ export async function main(opts: Options): Promise<number> {
     targetRef: live?.url ?? slugOf(topic),
     title: live?.title ?? topic,
     volume,
-    evidence: { family: type === "update" ? "improve" : "write", query: topic, volume },
+    evidence: { family: type === "update" ? "improve" : "write", query: topic, volume, ...(type === "offering" ? { shape: "offering" } : {}) },
     acceptance: { form: "top20", query: topic },
     fitBand: "winnable",
     effort: (EFFORT_BY_TYPE as Record<string, number>)[opportunityType] ?? 0.5,

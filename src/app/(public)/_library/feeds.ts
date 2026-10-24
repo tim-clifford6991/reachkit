@@ -3,6 +3,7 @@
 // composed from the articles and from copy keys, never typed twice.
 import { copy } from "@/lib/presentation/copy";
 import { ANSWERS, COMPARISONS, TEARDOWNS } from ".";
+import { HOW_FACTS } from "../_how/facts";
 
 function xmlEscape(value: string): string {
   return value
@@ -53,19 +54,19 @@ export function llmsText(origin: string): string {
   return [
     `# ${copy("chrome.wordmark")}`,
     "",
-    `> ${copy("landing.subline")}`,
+    `> ${copy("landing.subline", { weekPages: HOW_FACTS.weekPages })}`,
     "",
     copy("about.why.problem"),
     "",
     copy("about.why.answer"),
     "",
-    copy("pricing.subline"),
+    copy("pricing.subline", { weekPages: HOW_FACTS.weekPages }),
     "",
     `## ${copy("chrome.footer.product")}`,
     "",
-    line(copy("chrome.cta.scan"), "/", copy("meta.landing.description")),
+    line(copy("chrome.cta.scan"), "/", copy("meta.landing.description", { weekPages: HOW_FACTS.weekPages })),
     line(copy("chrome.nav.works"), "/how-it-works", copy("meta.how.description")),
-    line(copy("chrome.nav.pricing"), "/pricing", copy("meta.pricing.description")),
+    line(copy("chrome.nav.pricing"), "/pricing", copy("meta.pricing.description", { weekPages: HOW_FACTS.weekPages })),
     line(copy("chrome.nav.scans"), "/scans", copy("meta.scans.description")),
     line(copy("chrome.nav.about"), "/about", copy("meta.about.description")),
     "",

@@ -16,7 +16,7 @@
 // the response is ever logged. The ceiling is read before each call; a call
 // the page cannot afford is `not_attempted`, never a rule that failed.
 import { z } from "zod";
-import { PAGE_BLOCKS, RESEARCH, TITLE, VOICE } from "@/lib/config/constants";
+import { HEADING_GAPS, PAGE_BLOCKS, RESEARCH, RIVAL_PRICE_MAX_AGE_D, TITLE, VOICE } from "@/lib/config/constants";
 import type { CostContext } from "@/lib/costs";
 import { llm } from "@/lib/llm";
 import type { Tier } from "@/lib/llm/tiers";
@@ -25,7 +25,8 @@ import type { PageType } from "@/lib/opportunities/types";
 import { REGISTER_FLOOR } from "../rules/figures";
 import { HONESTY_INSTRUCTION } from "../rules/honest";
 import { AVOID_LIST } from "../rules/prose-english";
-import { languageRules, titleFormulas, type Template } from "../templates";
+import { AIM, type LengthRange } from "../length";
+import { languageRules, sectionBounds, titleFormulas, type Template } from "../templates";
 import { voiceRules } from "../voice/register";
 import type { ContextPack } from "./pack";
 import type { FixNote } from "./repair";
@@ -201,13 +202,23 @@ const ASKED_HEADINGS_RULE =
 const CORRECTIONS_RULE =
   "`pack.corrections` are facts about this business that AI answers state wrongly: `says` is what an answer said, `site` is what the business's own page at `url` states. State each `site` fact plainly, in one sentence of its own, with its figure or place as `site` gives it, in the section that speaks most to it. Never repeat, quote or mention what `says` said, and never say an AI answer was wrong.";
 
+/** Issue 1521 (owner, 2026-10-18, amends D42 #7): what a growing refresh
+ *  may add. */
+const GAPS_TASK =
+  `\`pack.gaps\` are subtopics the pages ranked above this one cover and it does not. Add at most ${HEADING_GAPS.sectionsMax} new sections, each on one of them: headed by that gap's \`heading\`, worded as a reader asks it, placed where it fits among the live sections, written only from the \`pack.claims\` whose \`url\` is in that gap's \`claims\`, and linking at least one of those urls. Add none on a gap those claims give nothing to say about, and say in \`updated\` which sections were added.`;
+
+/** Issue 1521: a comparison whose rival prices are older than D59 allows. */
+const STALE_PRICES_TASK =
+  `The live page states rival prices read more than ${RIVAL_PRICE_MAX_AGE_D} days ago: state each rival's price as \`pack.claims\` now give it, and drop a rival price no claim in \`pack\` states.`;
+
 export interface WriteInputs {
   template: Template;
   pack: ContextPack;
   /** How the business appears on a page of this type (issue 1136). */
   pageType: PageType | null;
-  /** The words of body text the page is held to. */
-  length: { floor: number; ceiling: number };
+  /** The words of body text the page is held to, and aims for where a
+   *  target is given. */
+  length: Pick<LengthRange, "floor" | "ceiling"> & { target?: number };
   /** The customer's page on the writer tier; a tier is named only by a
    *  caller with another ceiling. */
   tier?: Tier;
@@ -231,6 +242,19 @@ function templateFor(a: WriteInputs): Record<string, unknown> {
   };
 }
 
+/** What the writer is told of the page's length. A new page has no floor:
+ *  each section it answers is given an equal share of the maximum. */
+function lengthTask(a: WriteInputs): string {
+  const { floor, ceiling } = a.length;
+  const target = a.length.target ?? Math.round((floor + ceiling) / 2);
+  const counted = a.pack.type === "update" ? "The page's sections together — the short answer and the takeaways are not counted —" : "The page's body — the short answer, the takeaways and every section together —";
+  const sections = Math.max(1, a.template.sections.reduce((sum, slot) => sum + (slot.repeat?.min ?? 1), 0));
+  const each = floor > 0 ? Math.round(target / sections) : Math.round((AIM * ceiling) / sectionBounds(a.template).max);
+  const range = floor > 0 ? `between ${floor} and ${ceiling}` : `at most ${ceiling}`;
+  const least = floor > 0 ? `, and no section under ${Math.ceil((floor * 1.15) / sections)}` : "";
+  return `${counted} must be ${range} words, counted. Write about ${target} words — about ${each} a section${least}: a page ${floor > 0 ? `under ${floor} or ` : ""}over ${ceiling} is stopped. Give every paragraph something the reader can use — detail, an example, a comparison or a consequence drawn from \`pack\` — and never pad or restate a point to reach the length.`;
+}
+
 function taskFor(a: WriteInputs): string {
   const faq = a.template.blocks.faq;
   return [
@@ -240,7 +264,7 @@ function taskFor(a: WriteInputs): string {
       ? "`titles` is one entry: `pack.live.title`."
       : `\`titles\` is ${TITLE.candidates} different titles for the page, each one you would publish: the page's \`<title>\` and its H1 are the one of them that best holds \`titleRules\`, chosen in code. Each is the form a searcher types, follows one of \`template.titles\` and holds every rule in \`titleRules\`; make them differ in the specific they carry or in how they lead, not in a word.`,
     `\`description\` is the meta description: ${TITLE.description.min} to ${TITLE.description.max} characters, counted — write about 140 — in whole sentences, and its first sentence answers the target.`,
-    `${a.pack.type === "update" ? "The page's sections together — the short answer and the takeaways are not counted —" : "The page's body — the short answer, the takeaways and every section together —"} must be between ${a.length.floor} and ${a.length.ceiling} words, counted. Write about ${Math.round((a.length.floor + a.length.ceiling) / 2)} words — about ${Math.round((a.length.floor + a.length.ceiling) / 2 / Math.max(1, a.template.sections.reduce((sum, slot) => sum + (slot.repeat?.min ?? 1), 0)))} a section, and no section under ${Math.ceil((a.length.floor * 1.15) / Math.max(1, a.template.sections.reduce((sum, slot) => sum + (slot.repeat?.min ?? 1), 0)))}: a page under ${a.length.floor} or over ${a.length.ceiling} is stopped. Give every paragraph something the reader can use — detail, an example, a comparison or a consequence drawn from \`pack\` — and never pad or restate a point to reach the length.`,
+    lengthTask(a),
     faq === null
       ? "`faq` is empty: this page's own questions are its buyer questions."
       : `\`faq\`: ${faq.min} to ${faq.max} questions buyers ask about the target that the headings do not already ask, each answered in two or three sentences under the same \`rules\`; they are stored with the page, not printed in it.`,
@@ -249,7 +273,13 @@ function taskFor(a: WriteInputs): string {
         ? "`pack.live` is the page as it is live, its link to a page that moved already pointed in code at that page's new address (`pack.live.linkTo.url`) and named `pack.live.linkTo.title`. Return every section of it under its own heading, as it stands, that link included. Change nothing else, and say in `updated`, in one sentence, that a link now points at the page's new address."
         : a.pack.live?.linkTo !== undefined
         ? "`pack.live` is the page as it is live. Return every section of it under its own heading, as it stands. Add exactly one sentence, in the section that speaks most to it, that links `pack.live.linkTo.url` with link text naming what that newer page covers (`pack.live.linkTo.title`); the sentence states no figure and no fact that is not in `pack`. Change nothing else, and say in `updated`, in one sentence, that a link to the newer page was added."
-        : "`pack.live` is the page as it is live. Return every section of it under its own heading; rewrite only a section a fact in `pack` changes, and say in `updated`, in one sentence, what changed."
+        : [
+            "`pack.live` is the page as it is live. Return every section of it under its own heading; rewrite only a section a fact in `pack` changes, and say in `updated`, in one sentence, what changed.",
+            // Issue 1521: the answer box moves only with the answer.
+            "Return the live page's short answer (its `:::answer` box) word for word unless a fact in `pack` changes the answer to `pack.target.question`; then rewrite it to the new answer.",
+            ...(a.pack.gaps === undefined ? [] : [GAPS_TASK]),
+            ...(a.pack.live?.cause === "stale_prices" ? [STALE_PRICES_TASK] : []),
+          ].join(" ")
       : "`updated` is empty.",
     "`rules` hold throughout, and `honesty` says how this business appears on the page.",
   ].join(" ");

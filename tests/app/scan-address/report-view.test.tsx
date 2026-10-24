@@ -153,11 +153,11 @@ describe("REQ-004 c1 — the verdict strip names the score, its band, the domain
   const html = render(FIXTURE_REPORT);
 
   it("renders the score as a big figure — the UI face at 600, tabular (#1062)", () => {
-    expect(html).toContain('class="figure min-w-0">62<');
+    expect(html).toContain('class="figure min-w-0">30<');
   });
 
   it("renders the band as one of the four ruled words, through SCORE_BANDS", () => {
-    expect(html).toContain("band.score.findable");
+    expect(html).toContain("band.score.hard-to-find");
   });
 
   it("renders the domain and the date beside it, so the score is never a bare specimen", () => {
@@ -168,16 +168,16 @@ describe("REQ-004 c1 — the verdict strip names the score, its band, the domain
   });
 
   it("renders the one line naming the limiting factor", () => {
-    expect(html).toContain("verdict.limiting.presence");
+    expect(html).toContain("verdict.limiting.answerability");
   });
 
   it("names the category beside the score", () => {
     expect(html).toContain("product analytics");
   });
 
-  it("says how sure the score is beside it, with its range (issue 1439)", () => {
-    expect(html).toContain("verdict.estimate.close(58|66)");
-    expect(render(FIXTURE_COLD_START_REPORT)).toContain("verdict.estimate.rough(8|21)");
+  it("says how sure the score is beside it, with its range (issue 1439), rough or close alike", () => {
+    expect(html).toContain("verdict.estimate.range(25|35)");
+    expect(render(FIXTURE_COLD_START_REPORT)).toContain("verdict.estimate.range(8|21)");
   });
 
   it("draws no range where there is no score, nor on a report scored before it", () => {
@@ -196,16 +196,16 @@ describe("ruling 1b (2026-09-08) — the driver bars are back, on the header str
     // `components.md` §1: the registered `Progress` "is also the three
     // driver mini-bars of the report's header strip (§4.1); mini-bars are
     // *not* a sixth chart".
-    expect(strip.split("<progress").length - 1).toBe(3);
+    expect(strip.split("<progress").length - 1).toBe(4);
   });
 
   it("writes each factor's value in tenths beside its own name, never colour-alone", () => {
-    // The fixture's three are 70 / 90 / 40, which is what the approved set
-    // draws as 7/10, 9/10 and 4/10.
+    // The fixture's four parts are 70 / 20 and Presence's halves 8 / 32.
     for (const [name, tenths] of [
       ["verdict.factor.foundations", "7/10"],
-      ["verdict.factor.answerability", "9/10"],
-      ["verdict.factor.presence", "4/10"],
+      ["verdict.factor.answerability", "2/10"],
+      ["verdict.factor.google", "1/10"],
+      ["verdict.factor.ai", "3/10"],
     ] as const) {
       expect(strip).toContain(name);
       expect(strip).toContain(`>${tenths}<`);
@@ -216,8 +216,9 @@ describe("ruling 1b (2026-09-08) — the driver bars are back, on the header str
     // A bar drawn from the unrounded 46 under a label reading 5/10 would
     // be two claims about one measurement.
     expect(strip).toContain('value="7" max="10"');
-    expect(strip).toContain('value="9" max="10"');
-    expect(strip).toContain('value="4" max="10"');
+    expect(strip).toContain('value="2" max="10"');
+    expect(strip).toContain('value="3" max="10"');
+    expect(strip).toContain('value="1" max="10"');
   });
 
   it("no factor value reaches any other module — the ruling amends the header strip only", () => {
@@ -482,7 +483,7 @@ describe("SPEC §2, 2026-10-07 (issue 1328) — the result and the action first,
   it("each closed section opens from its own name", () => {
     const summaries = (html.match(/<summary[\s\S]*?<\/summary>/g) ?? []).join("");
     for (const key of [
-      "ai-answers.questions.title",
+      "report.ai.asked",
       "presence.absent-from.title",
       "problem.section.title",
       "method.blocked-readers.title",
@@ -598,8 +599,8 @@ describe("REQ-091/092 — cold start: a domain that ranks for nothing still read
     const start = html.indexOf('data-testid="ai-matrix"');
     expect(start).toBeGreaterThan(-1);
     const matrix = html.slice(start, html.indexOf('role="columnheader"', start));
-    // The count is on the row, not in a sentence beside it (#352).
-    expect(matrix).toContain("0/9");
+    // The tally is on the row, not in a sentence beside it (#352).
+    expect(matrix).toContain(">0</span>");
     expect(matrix).toContain("example.com");
     // Scoped to the drawing: the answers themselves still named rivals,
     // and the 12-questions list below says so. What a cold start empties

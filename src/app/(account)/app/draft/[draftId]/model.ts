@@ -22,11 +22,12 @@ import type { CopyKey } from "@/lib/presentation/copy";
 import type { RecordedFact } from "@/lib/generate/fact";
 import type { PackNeed } from "@/lib/generate/templates/types";
 import type { PageRecord } from "@/lib/publish/record";
-import type { Ladder } from "@/lib/publish/reads/ladder";
+import type { PageReading } from "@/lib/measure/page-reading";
+import type { Label } from "@/lib/opportunities/verdicts/types";
 import type { TakeDownStanding } from "@/lib/publish/take-down/standing";
 import type { PageTarget } from "../../_shell/page-target";
-import type { SetAside } from "../../_overview/done";
-import type { PageType } from "@/lib/opportunities/types";
+import type { PageType, PlanReason } from "@/lib/opportunities/types";
+import { weekStartFor } from "@/lib/scan/weekly/week";
 import type { RecordedChecks } from "@/lib/generate/rules/types";
 import type { PublishingMode } from "../../_shell/model";
 import type { State } from "../../calendar/stages";
@@ -105,10 +106,12 @@ export interface DoNothing {
 export interface TargetWhy {
   readonly fit: "answer" | "helps" | null;
   readonly rival: string | null;
+  /** The points the committed week placed it by (`opportunities.plan_reason`). */
+  readonly planReason?: PlanReason | null;
 }
 
 export type DraftTarget =
-  | { kind: "target"; target: PageTarget; why?: TargetWhy }
+  | { kind: "target"; target: PageTarget; why?: TargetWhy; update?: boolean }
   | { kind: "fix" }
   | { kind: "unknown" };
 
@@ -200,6 +203,7 @@ export const PACK_NEED_COPY: Readonly<Record<PackNeed, CopyKey>> = Object.freeze
   recent_results: "publish.needs-you.pack.need.recent_results",
   live_page: "publish.needs-you.pack.need.live_page",
   new_fact: "publish.needs-you.pack.need.new_fact",
+  rival_evidence: "publish.needs-you.pack.need.rival_evidence",
 });
 
 /** The handles of a recorded reason that this build has a phrase for. A
@@ -299,6 +303,8 @@ export interface DraftView {
    *  stated in its own place (S17's save line). `null` only where the facts
    *  carry none. */
   writtenAt: Date | null;
+  /** When the page-ready mail left; `null` where no mail did. */
+  emailedAt: Date | null;
   /** Every word that would publish. Never truncated, never summarised. */
   bodyMd: string;
   /** The text as generated, before any edit — what makes the authorship
@@ -327,10 +333,10 @@ export interface DraftView {
    * draft — a shape, not a placeholder, and the block is simply absent.
    */
   record: PageRecord | null;
-  /** How far the live page has got toward being found (issue 1553);
-   *  `null` for a page that is not live or whose ladder could not be read. */
-  ladder: Ladder | null;
-  /** *Take down* on a live page, *Put back* inside its window (issue 1532). */
+  /** The page's own publication, for a page that went live (board
+   *  `PageDetail`); `null` for one that never did. */
+  live: LiveFacts | null;
+  /** *Stop this page* on a live page, the stopped state after (R9). */
   takeDown: TakeDownStanding;
   /** The Checks list: the last battery, rule by rule. Empty where none is
    *  recorded — the rail then draws no row for them, rather than deducing
@@ -349,9 +355,6 @@ export interface DraftView {
   /** What this page is optimising for (issue 867) — the opportunity's own
    *  stored evidence, projected once for this screen and the day panel. */
   target: DraftTarget;
-  /** The site's topics on file that fill no day, by the stored reason
-   *  (issue 1395). Absent where the count could not be read. */
-  setAside?: SetAside;
   /** The site-local zone every date this view states is expressed in. */
   timeZone: string;
   /** What this page was written from (#931). */
@@ -379,6 +382,33 @@ export interface DraftView {
  *  Their name and their address and nothing of ReachKit's: SPEC §7 asks for
  *  the page "in the customer's own page frame", and a mark of ours on it
  *  would be the one thing the frame exists to show is absent. */
+/** When the page went live and where, the weekly pass's stored reading of
+ *  it, and the label that reading earns (`verdicts/verdict.ts`). */
+export interface LiveFacts {
+  since: Date;
+  url: string;
+  wordpress: boolean;
+  reading: PageReading | null;
+  label: Label | null;
+  /** What *Edit this page* does (R19): opens the editor on this version, or
+   *  opens the version of this address already waiting; `null` draws no
+   *  button (a version being written or going out, the reserved account). */
+  edit: LiveEdit;
+}
+
+export type LiveEdit = { kind: "editor" } | { kind: "version"; draftId: string } | null;
+
+/** The states of a waiting version the customer can open and act on. */
+const OPENABLE: readonly State[] = ["in_review", "needs_attention", "failed"];
+
+/** *Edit this page* given the version of the address already waiting, as
+ *  the live edit would answer `pending_version` with it (owner R19). */
+export function liveEditFor(waiting: { id: string; state: State } | null | "not_live"): LiveEdit {
+  if (waiting === "not_live") return null;
+  if (waiting === null) return { kind: "editor" };
+  return OPENABLE.includes(waiting.state) ? { kind: "version", draftId: waiting.id } : null;
+}
+
 export interface Publisher {
   /** What the frame calls them. The domain today — see `publisherOf` for
    *  why, and for what would change it. */
@@ -410,6 +440,8 @@ export interface DraftFacts {
   description: string;
   /** The `drafts` row's `created_at` — when the page was written. */
   writtenAt: Date | null;
+  /** When the page-ready mail left for this page; `null` where none did. */
+  emailedAt?: Date | null;
   bodyMd: string;
   bodyMdGenerated: string;
   state: State;
@@ -443,9 +475,9 @@ export interface DraftFacts {
   lastSavedAt: Date | null;
   /** The page's own record, or `null` where none could be read (#217). */
   record: PageRecord | null;
-  /** Issue 1553; absent for a page that is not live. */
-  ladder?: Ladder | null;
-  /** *Take down* or *Put back* (issue 1532); absent offers neither. */
+  /** Absent for a page that never went live. */
+  live?: LiveFacts | null;
+  /** Live or stopped (R9); absent draws neither. */
   takeDown?: TakeDownStanding;
   /** §8's battery, as generation recorded it. Empty is the honest answer
    *  for a draft it recorded nothing for. */
@@ -460,9 +492,6 @@ export interface DraftFacts {
   /** The opportunity this draft was written from, as this screen states it
    *  (issue 867). `unknown` where the row could not be read. */
   target: DraftTarget;
-  /** The site's topics on file that fill no day, by the stored reason
-   *  (issue 1395). Absent where the count could not be read. */
-  setAside?: SetAside;
   timeZone: string;
   /** What the editor's live rule pass reads (issue 932). `NO_RULE_FACTS`
    *  where nothing could be read. */
@@ -509,12 +538,23 @@ export function wordCount(bodyMd: string): number {
   return trimmed === "" ? 0 : trimmed.split(/\s+/).length;
 }
 
+const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+
+/** The weekly scan after a page goes live is the first to read it in Google
+ *  and AI answers: the site's Monday of the following week, as a noon-UTC
+ *  instant so formatting it in UTC names that calendar date. */
+export function firstReadingOn(publishesAt: Date, timeZone: string): Date {
+  const monday = weekStartFor({ at: new Date(publishesAt.getTime() + WEEK_MS), zone: timeZone });
+  return new Date(`${monday}T12:00:00Z`);
+}
+
 export function assembleDraft(facts: DraftFacts): DraftView {
   return {
     draftId: facts.draftId,
     title: facts.title,
     description: facts.description,
     writtenAt: facts.writtenAt,
+    emailedAt: facts.emailedAt ?? null,
     bodyMd: facts.bodyMd,
     bodyMdGenerated: facts.bodyMdGenerated,
     state: facts.state,
@@ -537,13 +577,12 @@ export function assembleDraft(facts: DraftFacts): DraftView {
     doNothing: doNothingOf(facts),
     lastSavedAt: facts.lastSavedAt,
     record: facts.record,
-    ladder: facts.ladder ?? null,
+    live: facts.live ?? null,
     takeDown: facts.takeDown ?? null,
     recordedChecks: facts.recordedChecks,
     knownCheck: facts.knownCheck,
     rulesFailed: facts.rulesFailed,
     target: facts.target,
-    ...(facts.setAside === undefined ? {} : { setAside: facts.setAside }),
     timeZone: facts.timeZone,
     writtenFrom: facts.writtenFrom,
     ...(facts.adds === undefined ? {} : { adds: facts.adds }),

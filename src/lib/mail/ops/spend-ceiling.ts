@@ -22,7 +22,7 @@
 // thing it is reporting on. Every arm ends in a log line.
 import { now } from "@/lib/config/now";
 import { env } from "@/lib/config/env";
-import { readDaySpendCents, alertThresholdsCents } from "@/lib/costs/daily";
+import { readDaySpendCents, readDayCeilingCents } from "@/lib/costs/daily";
 import type { SpendAlert } from "@/lib/costs/daily";
 import { registerSpendAlertSink } from "@/lib/costs/daily";
 import { sendEmail } from "../send";
@@ -77,11 +77,12 @@ export async function sendOpsAlert(a: {
  * alert, because the news is the switch, not the figure.
  */
 export async function reportKillSwitchEngaged(): Promise<void> {
-  const spentCents = (await readDaySpendCents(now())) ?? 0;
+  const at = now();
+  const spentCents = (await readDaySpendCents(at)) ?? 0;
   await sendOpsAlert({
     occasion: "kill-switch-engaged",
     spentCents,
-    ceilingCents: alertThresholdsCents().ceiling,
+    ceilingCents: await readDayCeilingCents(at),
   });
 }
 

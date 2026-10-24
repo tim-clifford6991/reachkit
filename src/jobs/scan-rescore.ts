@@ -21,7 +21,7 @@
 import { answerRescore, claimRescore } from "@/jobs/engine";
 import type { JobDefinition, Outcome } from "./types";
 
-export const RESCORE_TICK_CRON = "*/15 * * * *";
+export const RESCORE_TICK_CRON = "7,22,37,52 * * * *";
 
 export const scanRescore: JobDefinition = {
   id: "scan/rescore",

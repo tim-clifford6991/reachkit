@@ -95,7 +95,10 @@ describe('REQ-098 c1 — "Given a person with no session, when they reach ReachK
   it("no password field and no social sign-in", async () => {
     const html = await renderWithKeys();
     expect(html.toLowerCase()).not.toContain("password");
-    expect(html.toLowerCase()).not.toMatch(/google|github|apple|sso|oauth/);
+    // The form half is where a sign-in provider would sit; the preview beside it names Google as a search engine.
+    const form = /<main[\s\S]*<\/main>/.exec(html)?.[0] ?? "";
+    expect(form).toContain('type="submit"');
+    expect(form.toLowerCase()).not.toMatch(/google|github|apple|sso|oauth/);
   });
 
   it("no control that opens an account: the only link on the screen is the one criterion 2 fixes, to the landing page", async () => {
@@ -128,10 +131,8 @@ describe('REQ-098 c2 — "then it carries these strings verbatim: the heading �
     vi.resetModules();
     const { copy } = await import("@/lib/presentation/copy");
     expect(copy("signin.heading")).toBe("Welcome back");
-    expect(copy("signin.body")).toBe(
-      "Enter the email you paid with and we'll send you a sign-in link. No password: accounts are created by payment."
-    );
-    expect(copy("signin.field.placeholder")).toBe("you@company.com");
+    expect(copy("signin.body")).toBe("Enter the email you paid with. We’ll send you a link to sign in. There is no password.");
+    expect(copy("signin.field.placeholder")).toBe("you@example.com");
     // Changed 2026-09-21 (#937): REQ-098 c2 wrote "Send my link" for a
     // screen that drew nothing else; the 2026-09-20 board says which link
     // it sends, which is the only question a reader has at this control.
@@ -213,6 +214,7 @@ describe('SPEC §3 — "Sign-in copy is identical whatever the address, revealin
     await expect(sendLink(SIGN_IN_INITIAL, form)).resolves.toEqual({
       answer: "requested",
       value: "someone@example.com",
+      sentAt: expect.any(Number),
     });
     expect(requestMagicLink).toHaveBeenCalledWith("someone@example.com");
     vi.doUnmock("@/lib/account/provisioning/magic-link");
@@ -323,8 +325,8 @@ describe("against the real registry — every arm renders, and nothing is invent
 
   it("the answered arm echoes the address they typed, and looks none up", async () => {
     const text = await renderReal({ answer: "requested", value: "someone@example.com" });
-    // `signin.sent.to` is the set's own line, written: "sent to {address}".
-    expect(text).toContain("sent to someone@example.com");
+    // `signin.sent.to` is the board's own line: "Sent to {address}".
+    expect(text).toContain("Sent to someone@example.com");
   });
 
   it("every owed line on every arm is the marker, never a sentence somebody supplied", async () => {
@@ -358,15 +360,23 @@ describe("against the real registry — every arm renders, and nothing is invent
     expect(text).not.toContain("someone@example.com");
   });
 
-  it("the panel is a declared example on the reserved domain, with no line explaining it (5c)", async () => {
+  it("the preview is an example business on a reserved domain, in the app's own words (owner E6)", async () => {
     const { COPY } = await import("@/lib/presentation/copy");
-    const text = await renderReal({ answer: "none", value: "" });
-    expect(text).toContain("example.com");
-    expect(text).toContain(COPY["signin.panel.score-label"]);
-    expect(text).toContain(COPY["signin.panel.delta"]);
-    expect(text).toContain(COPY["signin.panel.line"]);
-    expect(text).toContain(">47<");
-    expect(text).toContain('value="47"');
+    const { SPECIMEN_SIGNIN } = await import("@/app/(public)/_landing/specimen");
+    const panel = /<aside[\s\S]*<\/aside>/.exec(await renderReal({ answer: "none", value: "" }))?.[0] ?? "";
+    expect(panel).toContain(SPECIMEN_SIGNIN.business);
+    expect(SPECIMEN_SIGNIN.address).toMatch(/\.example$/);
+    expect(panel).toContain(SPECIMEN_SIGNIN.address);
+    for (const key of ["signin.preview.google", "signin.preview.showing", "signin.preview.ai"] as const) {
+      expect(panel).toContain(COPY[key]);
+    }
+    for (const figure of [SPECIMEN_SIGNIN.found, SPECIMEN_SIGNIN.showing, SPECIMEN_SIGNIN.linked]) {
+      expect(panel).toContain(`>${figure}<`);
+    }
+    expect(panel).toContain(`of ${SPECIMEN_SIGNIN.live} live pages`);
+    expect(panel).toContain(COPY["signin.preview.example"]);
+    expect(panel).not.toMatch(/\bListed\b/);
+    expect(panel).not.toMatch(/\bnamed by AI\b/i);
   });
 });
 
@@ -385,11 +395,12 @@ describe("issue #1025 — the Round 7 full-width split, and the address is the f
     expect(html).toContain('data-arm-compact="declared:');
   });
 
-  it("the tile carries the board's second row: sixteen answers, one of them the reader's", async () => {
+  it("the preview's week is seven days, the first going live and the rest planned", async () => {
     const html = await renderWithKeys();
-    expect(html.match(/data-answer="/g)).toHaveLength(16);
-    expect(html.match(/data-answer="you"/g)).toHaveLength(1);
-    expect(html).toContain("signin.panel.answers");
+    const week = /<ol[^>]*data-testid="signin-preview-week"[^>]*>([\s\S]*?)<\/ol>/.exec(html)?.[1] ?? "";
+    expect(week.match(/<li/g)).toHaveLength(7);
+    expect(week.match(/calendar\.stage\.planned/g)).toHaveLength(6);
+    expect(html).toContain("signin.preview.days.pace");
   });
 
   it("the answered arm offers the way back to the field, not a second solid button", async () => {

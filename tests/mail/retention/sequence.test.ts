@@ -1,5 +1,5 @@
 // tests/mail/retention/sequence.test.ts — SPEC §8, Retention (issue #569):
-// four triggers, six kinds, each once, each stopped when its condition
+// three triggers, four kinds, each once, each stopped when its condition
 // resolves, and nothing sent while its copy is unwritten.
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { applyEnvFixture } from "../env-fixture";
@@ -26,16 +26,17 @@ vi.mock("@/lib/presentation/copy", async (importOriginal) => {
 /** Stands in for the vendor seam: every send that reaches it is recorded,
  *  and a test can make the next answer a refusal. `real` delegates to the
  *  real seam, for the unwritten-copy row. */
-const sent: { kind: string; to: string }[] = [];
+const sent: { kind: string; to: string; text: string }[] = [];
 let answer: { sent: true; id: string } | { sent: false; reason: "suppressed" } = { sent: true, id: "v" };
 let real = false;
 vi.mock("@/lib/mail/send", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/lib/mail/send")>();
+  const { composeMailParts } = await import("@/lib/mail/shell/compose");
   return {
     ...actual,
     sendEmail: async (m: Parameters<typeof actual.sendEmail>[0]) => {
       if (real) return actual.sendEmail(m);
-      if (answer.sent) sent.push({ kind: m.kind, to: m.to });
+      if (answer.sent) sent.push({ kind: m.kind, to: m.to, text: composeMailParts(m).text });
       return answer;
     },
   };
@@ -44,44 +45,36 @@ vi.mock("@/lib/mail/send", async (importOriginal) => {
 const retention = await import("@/lib/mail/retention");
 const { sendEmail } = await import("@/lib/mail/send");
 const { buildWinback } = await import("@/lib/mail/templates/win-back");
-import type { RetentionAccount, RetentionDraft, RetentionStore } from "@/lib/mail/retention";
+import type { RetentionAccount, RetentionStore } from "@/lib/mail/retention";
 
 const DAY = 86_400_000;
 const NOW = new Date("2026-10-01T12:00:00Z");
 const ago = (days: number) => new Date(NOW.getTime() - days * DAY);
 
 let accounts: Map<string, RetentionAccount>;
-let drafts: Map<string, RetentionDraft>;
-let published: Date | null;
+/** The `refunds` rows: the account and when its refund was made. */
+let refunds: { userId: string; at: Date }[];
 
 function account(over: Partial<RetentionAccount> = {}): RetentionAccount {
   return {
     id: "u1", email: "founder@example.com", planStatus: "active", paidThrough: new Date(NOW.getTime() + 20 * DAY),
-    cancelledAt: null, deletedAt: null, seenAt: ago(8), inactivityNudgedAt: null, paymentFailedMailedAt: null,
+    cancelledAt: null, deletedAt: null, paymentFailedMailedAt: null,
     cancellationMailedAt: null, winbackSentAt: null, ...over,
   };
 }
 
 const memory: RetentionStore = {
-  idleAccounts: async () => [...accounts.values()],
   pastDueAccounts: async () => [...accounts.values()],
   cancelledAccounts: async () => [...accounts.values()],
   account: async (id) => accounts.get(id) ?? null,
   siteOf: async () => ({ siteId: "s1", timezone: "UTC" }),
-  lastPublishedAt: async () => published,
-  draftsClosingBy: async () => [...drafts.values()],
-  draft: async (id) => {
-    const d = drafts.get(id);
-    return d === undefined ? null : { ...d, ownerId: "u1", timezone: "UTC" };
-  },
+  refundedSince: async (id, since) => refunds.some((r) => r.userId === id && r.at.getTime() >= since.getTime()),
   stampAccount: async (id, column, at) => {
-    const key = { inactivity_nudged_at: "inactivityNudgedAt", payment_failed_mailed_at: "paymentFailedMailedAt",
+    const key = { payment_failed_mailed_at: "paymentFailedMailedAt",
       cancellation_mailed_at: "cancellationMailedAt", winback_sent_at: "winbackSentAt" }[column];
     accounts.set(id, { ...accounts.get(id)!, [key]: at });
   },
-  stampVetoReminded: async (id, at) => void drafts.set(id, { ...drafts.get(id)!, vetoRemindedAt: at }),
   recordSeen: async () => {},
-  recordDraftOpened: async () => {},
 };
 
 beforeEach(() => {
@@ -89,55 +82,10 @@ beforeEach(() => {
   answer = { sent: true, id: "v" };
   real = false;
   accounts = new Map([["u1", account()]]);
-  drafts = new Map();
-  published = ago(2);
+  refunds = [];
   retention.setRetentionStore(memory);
   vi.spyOn(console, "log").mockImplementation(() => {});
   vi.spyOn(console, "warn").mockImplementation(() => {});
-});
-
-describe("idle 7 days while pages publish — the inactivity nudge", () => {
-  it("sends once per idle spell, and a sign-in starts a new spell", async () => {
-    expect(await retention.accountsDueInactivity(NOW)).toEqual(["u1"]);
-    expect((await retention.sendInactivityNudge("u1", NOW)).sent).toBe(true);
-    expect((await retention.sendInactivityNudge("u1", NOW)).sent).toBe(false);
-
-    const later = new Date(NOW.getTime() + 9 * DAY);
-    accounts.set("u1", { ...accounts.get("u1")!, seenAt: new Date(NOW.getTime() + DAY) });
-    published = new Date(NOW.getTime() + 3 * DAY);
-    expect(await retention.accountsDueInactivity(later)).toEqual(["u1"]);
-    expect(sent.map((s) => s.kind)).toEqual(["inactivity"]);
-  });
-
-  it("is not due under seven days, or when no page published during the spell", async () => {
-    accounts.set("u1", account({ seenAt: ago(6) }));
-    expect(await retention.accountsDueInactivity(NOW)).toEqual([]);
-    accounts.set("u1", account());
-    published = ago(9);
-    expect(await retention.accountsDueInactivity(NOW)).toEqual([]);
-  });
-});
-
-describe("veto under 6 h — the reminder, only on an unopened draft", () => {
-  const draft = (over: Partial<RetentionDraft> = {}): RetentionDraft => ({
-    id: "d1", state: "in_review", title: "Pricing for agencies", vetoDeadline: new Date(NOW.getTime() + 5 * 3_600_000),
-    openedAt: null, vetoRemindedAt: null, ...over,
-  });
-
-  it("sends once for an unopened draft closing within six hours", async () => {
-    drafts.set("d1", draft());
-    expect(await retention.draftsDueVetoReminder(NOW)).toEqual(["d1"]);
-    expect((await retention.sendVetoReminder("d1", NOW)).sent).toBe(true);
-    expect((await retention.sendVetoReminder("d1", NOW)).sent).toBe(false);
-  });
-
-  it("an opened, resolved or far-off draft is not reminded", async () => {
-    for (const over of [{ openedAt: ago(0) }, { state: "approved" }, { vetoDeadline: new Date(NOW.getTime() + 7 * 3_600_000) }]) {
-      drafts.set("d1", draft(over));
-      expect(await retention.draftsDueVetoReminder(NOW), JSON.stringify(over)).toEqual([]);
-    }
-    expect(sent).toEqual([]);
-  });
 });
 
 describe("payment failed, cancelled, access +30 d — stopped when resolved", () => {
@@ -170,6 +118,52 @@ describe("payment failed, cancelled, access +30 d — stopped when resolved", ()
     expect((await retention.sendWinback("u1", NOW)).sent).toBe(true);
     expect((await retention.sendWinback("u1", new Date(NOW.getTime() + 60 * DAY))).sent).toBe(false);
     expect(sent.map((s) => s.kind)).toEqual(["win-back"]);
+  });
+});
+
+describe("the cancellation mail says whether the first payment was refunded", () => {
+  const cancelledAt = ago(0.01);
+
+  it("a cancel refunded in its first 14 days says the refund was made and that ReachKit stopped", async () => {
+    accounts.set("u1", account({ cancelledAt, paidThrough: NOW, planStatus: "canceled" }));
+    refunds = [{ userId: "u1", at: NOW }];
+    expect((await retention.sendCancellation("u1", NOW)).sent).toBe(true);
+    expect(sent[0]!.text).toContain("Your first payment was refunded in full");
+    expect(sent[0]!.text).toContain("ReachKit stopped on");
+    expect(sent[0]!.text).not.toContain("You keep full access");
+  });
+
+  it("a refund recorded before access has ended waits, then sends once access ends", async () => {
+    accounts.set("u1", account({ cancelledAt, paidThrough: new Date(NOW.getTime() + 20 * DAY) }));
+    refunds = [{ userId: "u1", at: NOW }];
+    expect(await retention.sendCancellation("u1", NOW)).toEqual({ sent: false, kind: "cancellation", reason: "not-due" });
+    expect(accounts.get("u1")!.cancellationMailedAt).toBeNull();
+    expect(sent).toEqual([]);
+
+    accounts.set("u1", { ...accounts.get("u1")!, paidThrough: NOW, planStatus: "canceled" });
+    expect((await retention.sendCancellation("u1", NOW)).sent).toBe(true);
+    expect(sent[0]!.text).toContain("Your first payment was refunded in full");
+  });
+
+  it("a cancel with no refund keeps the line that access runs to the period end", async () => {
+    accounts.set("u1", account({ cancelledAt }));
+    expect((await retention.sendCancellation("u1", NOW)).sent).toBe(true);
+    expect(sent[0]!.text).toContain("You keep full access until");
+    expect(sent[0]!.text).not.toContain("refunded");
+  });
+
+  it("a refund from an earlier cancel, before a resume, is not claimed again", async () => {
+    accounts.set("u1", account({ cancelledAt }));
+    refunds = [{ userId: "u1", at: ago(20) }];
+    expect((await retention.sendCancellation("u1", NOW)).sent).toBe(true);
+    expect(sent[0]!.text).toContain("You keep full access until");
+  });
+
+  it("a refund made to another account sharing the web address is not this account's", async () => {
+    accounts.set("u1", account({ cancelledAt }));
+    refunds = [{ userId: "u2", at: NOW }];
+    expect((await retention.sendCancellation("u1", NOW)).sent).toBe(true);
+    expect(sent[0]!.text).not.toContain("refunded");
   });
 });
 

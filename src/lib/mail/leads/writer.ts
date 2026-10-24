@@ -39,7 +39,7 @@ import { TEMPLATES } from "@/lib/generate/templates";
 import { contentTypeOf, type ContentType } from "@/lib/opportunities/content-type";
 import { pageTypeOf } from "@/lib/opportunities/page-type";
 import { readDomainText, type MeasuredText } from "@/lib/measure/text";
-import { bestFreePage, freePageOpportunity } from "@/lib/opportunities/free-page";
+import { freePageOpportunity, proposedFreePage } from "@/lib/opportunities/free-page";
 import { readStoredReport, type StoredReport } from "@/lib/scan/report";
 import type { DraftWriter } from "./ports";
 import { leadStore } from "./store";
@@ -82,7 +82,7 @@ function factsOf(pages: readonly MeasuredText[]): SourcedFact[] {
 
 export const writeLeadPage: DraftWriter = async (a) => {
   const report = await reportOf(a.scanId);
-  const pick = report === null ? null : bestFreePage(report);
+  const pick = report === null ? null : proposedFreePage(report);
   if (report === null || pick === null || report.market.kind === "unmeasured") {
     log({ leadId: a.leadId, outcome: "no_pick" });
     return FAILED;
@@ -144,7 +144,7 @@ export const writeLeadPage: DraftWriter = async (a) => {
   }
   const type = pack.type;
   const template = TEMPLATES[type];
-  const length = lengthRangeFor(template, null);
+  const length = lengthRangeFor(template, { questions: pack.questions.length });
   const pageType = pageTypeOf(opportunity);
 
   return withCostContext(
@@ -155,7 +155,7 @@ export const writeLeadPage: DraftWriter = async (a) => {
         template,
         pack,
         pageType,
-        length: length ?? { floor: 0, ceiling: Number.MAX_SAFE_INTEGER },
+        length: length ?? { floor: 0, target: 0, ceiling: Number.MAX_SAFE_INTEGER },
         free: true,
       });
       if (written.kind === "unmeasured") return stepFailed(a.leadId, "write");

@@ -132,6 +132,16 @@ describe("the hosted index", () => {
     ]);
   });
 
+  it("reads as board HostedIndex: guides from the business, a search of them, the recent ones, and a footer of name, site and feed", async () => {
+    const doc = new DOMParser().parseFromString(await render(), "text/html");
+    expect(doc.querySelector("h1")?.textContent).toBe("Guides from example.com");
+    expect(doc.querySelector('input[name="q"]')?.getAttribute("aria-label")).toBe("Search the guides");
+    expect(doc.querySelector("#articles")?.textContent).toBe("Recent guides");
+    const footer = doc.querySelector("footer")!;
+    expect([...footer.firstElementChild!.children].map((part) => part.textContent)).toEqual(["© example.com", "example.com", "RSS"]);
+    expect(footer.querySelector('a[href="/rss.xml"]')).not.toBeNull();
+  });
+
   it("opens with the newest page as the featured card, and the rest as cards under it", async () => {
     const html = await render();
     const featured = html.slice(html.indexOf("Latest"), html.indexOf('id="articles"'));
@@ -150,10 +160,13 @@ describe("the hosted index", () => {
     expect(first).not.toContain('rel="prev"');
 
     const second = await render(undefined, "2");
-    expect(second).toContain('href="/guide-13"');
-    expect(second).not.toContain('href="/guide-12"');
+    // The cards page; "All guides" under them lists every page on each.
+    const cards = new DOMParser().parseFromString(second, "text/html").querySelector("[aria-labelledby='articles']")!.innerHTML;
+    expect(cards).toContain('href="/guide-13"');
+    expect(cards).not.toContain('href="/guide-12"');
     expect(second).not.toContain("Latest");
-    expect(second).toMatch(/<a href="\/" rel="prev"/);
+    expect(second).toMatch(/<a href="\/" rel="prev"[^>]*>Previous page<\/a>/);
+    expect(second).toMatch(/<a href="\/\?page=3" rel="next"[^>]*>Next page<\/a>/);
 
     // A search keeps its query.
     expect(await render("seats", "2")).toContain('href="/?q=seats&amp;page=3"');

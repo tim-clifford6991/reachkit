@@ -14,10 +14,10 @@ export const CHECKERS: readonly Comparison[] = [
     group: "checker",
     title: "ReachKit vs Rank Math",
     description:
-      "Rank Math checks a page and puts the checklist inside WordPress. ReachKit scans your market free, then publishes a page every day.",
-    summary: "A WordPress SEO plugin with a free analyzer. ReachKit measures your market and publishes pages.",
+      "Rank Math checks a page and puts the checklist inside WordPress. ReachKit scans your market free, then puts pages live every week.",
+    summary: "A WordPress add-on for Google, with a free page checker. ReachKit shows who gets your buyers and puts pages live.",
     intro:
-      "Rank Math is two things: a free SEO Analyzer that checks any URL, and a WordPress plugin that brings those checks into your editor. It is very good at showing what a page is missing while you write it. ReachKit starts from another question: which searches do buyers in your market make, and who shows up instead of you. Its free scan lists your technical issues too, and the paid plan publishes a page every day, new or updated, to close the gap.",
+      `Rank Math is two things: a free SEO Analyzer that checks any URL, and a WordPress plugin that brings those checks into your editor. It is very good at showing what a page is missing while you write it. ReachKit starts from another question: which searches do buyers in your market make, and who shows up instead of you. Its free scan lists your technical issues too, and the paid plan writes up to ${P.weekPages} pages a week, new or updated, to close the gap.`,
     theirs: {
       heading: "What Rank Math does well",
       paragraphs: [
@@ -26,14 +26,7 @@ export const CHECKERS: readonly Comparison[] = [
         "The paid plans are cheap for what they hold. On 2026-10-15 PRO was €7.99 a month billed annually, renewing at €8.99, with Business at €24.99 and Agency at €54.99 a month, all billed annually and before VAT.",
       ],
     },
-    ours: {
-      heading: "What ReachKit does instead",
-      paragraphs: [
-        `ReachKit works on any site, WordPress or not. The free scan needs no account and takes about a minute. It runs ${P.searches} Google searches buyers in your market make, checks whether AI answers mention or link you, and shows the competitors who appear instead. It also lists technical issues across up to ${P.pages} pages, each with a free fix.`,
-        "For a single page, the free tools at reachkit.app/tools check the title, meta description, main heading, canonical, structured data and share tags, and show how the page looks in a Google result. ReachKit has no editor plugin, so it will not sit beside you while you write.",
-        `The paid plan is ${P.price} a month. ReachKit publishes a page every day, new or updated, on a subdomain it hosts or on your WordPress. On WordPress it also rewrites missing page titles and meta descriptions for you.`,
-      ],
-    },
+    does: ["results"],
     rows: [
       { label: "Free check of any URL", reachkit: true, them: true },
       { label: "Works without WordPress", reachkit: true, them: "Partly: the web analyzer only" },
@@ -41,7 +34,7 @@ export const CHECKERS: readonly Comparison[] = [
       { label: "Google Search Console connection", reachkit: false, them: true },
       { label: "Keyword rank tracking", reachkit: "Partly: your market's searches only", them: true },
       { label: "Checks whether AI answers mention you", reachkit: true, them: "Partly: tracks traffic from AI search" },
-      { label: "Publishes a page every day for you", reachkit: true, them: false },
+      { label: "Puts pages live every week for you", reachkit: true, them: false },
       { label: "Price", reachkit: `${P.price} a month`, them: "Free plugin, paid plans from €7.99 a month" },
     ],
     pickThem: [
@@ -52,7 +45,7 @@ export const CHECKERS: readonly Comparison[] = [
     pickUs: [
       "Your site is not on WordPress, so the plugin is out of reach.",
       "You want to know which searches buyers make and who wins them.",
-      "You would rather have the pages written and published for you.",
+      "You would rather have the pages written and put live for you.",
     ],
     checked: CHECKED,
     sources: [
@@ -67,9 +60,9 @@ export const CHECKERS: readonly Comparison[] = [
     title: "ReachKit vs SEO Site Checkup",
     description:
       "SEO Site Checkup grades a page on 70+ factors, one free check a day. ReachKit's free scan reads your market and lists technical issues.",
-    summary: "A broad page grader with monitoring and client reports. ReachKit measures your market and publishes pages.",
+    summary: "A broad page grader with monitoring and client reports. ReachKit shows who gets your buyers and puts pages live.",
     intro:
-      "SEO Site Checkup grades a page against a long list of technical factors and returns a percentage score with passed, failed and warning counts. Around it sits a full toolset: backlinks, rank tracking, monitoring and white-label reports. ReachKit is narrower on the page and wider on the market. Its free scan shows which searches buyers make, who shows up instead of you and which technical issues to fix, and the paid plan publishes a page every day.",
+      "SEO Site Checkup grades a page against a long list of technical factors and returns a percentage score with passed, failed and warning counts. Around it sits a full toolset: backlinks, rank tracking, monitoring and white-label reports. ReachKit is narrower on the page and wider on the market. Its free scan shows which searches buyers make, who shows up instead of you and which technical issues to fix, and the paid plan puts pages live every week.",
     theirs: {
       heading: "What SEO Site Checkup does well",
       paragraphs: [
@@ -78,22 +71,15 @@ export const CHECKERS: readonly Comparison[] = [
         "On 2026-10-15 the plans were Basic at $39, Webmaster at $69 and Professional at $129 a month, or $29, $49 and $99 a month billed yearly, with a 7-day free trial.",
       ],
     },
-    ours: {
-      heading: "What ReachKit does instead",
-      paragraphs: [
-        `The free scan needs no account and takes about a minute. It works out your market, runs ${P.searches} Google searches buyers in it make, and records who is on the first page of each. It checks whether AI answers mention or link you and gives a Visibility Score from 0 to 100, always with its range.`,
-        `It lists technical issues across up to ${P.pages} pages: missing titles and meta descriptions, pages kept out of search, no sitemap, slow pages, broken links, phone usability, structured data and AI readers blocked by robots.txt. Each comes with a free fix. That is fewer checks than SEO Site Checkup runs, and ReachKit keeps no backlink index.`,
-        `The paid plan is ${P.price} a month, VAT included. ReachKit tracks up to ${P.competitors} competitors, scans your market again every Monday and publishes a page every day, new or updated, to win the searches you are missing.`,
-      ],
-    },
+    does: ["results"],
     rows: [
       { label: "Free check without an account", reachkit: true, them: "Partly: one check a day" },
       { label: "Page factors checked", reachkit: "Partly: the common issues", them: "70+ factors" },
       { label: "Backlink checker", reachkit: false, them: true },
       { label: "White-label client reports", reachkit: false, them: true },
-      { label: "Measures the searches buyers make", reachkit: true, them: "Partly: tracks keywords you choose" },
+      { label: "Checks the searches buyers make", reachkit: true, them: "Partly: tracks keywords you choose" },
       { label: "Checks whether AI answers mention you", reachkit: true, them: true },
-      { label: "Publishes a page every day for you", reachkit: true, them: false },
+      { label: "Puts pages live every week for you", reachkit: true, them: false },
       { label: "Price", reachkit: `${P.price} a month`, them: "From $29 a month billed yearly" },
     ],
     pickThem: [
@@ -104,7 +90,7 @@ export const CHECKERS: readonly Comparison[] = [
     pickUs: [
       "One free check a day is not enough to work with.",
       "You want to see which searches you lose, and to whom.",
-      "You want pages published for you, not another list to work through.",
+      "You want pages put live for you, not another list to work through.",
     ],
     checked: CHECKED,
     sources: [
@@ -119,9 +105,9 @@ export const CHECKERS: readonly Comparison[] = [
     title: "ReachKit vs Website Grader",
     description:
       "HubSpot's free Website Grader checks performance, mobile readiness, SEO and security. ReachKit's free scan reads your market and your issues.",
-    summary: "HubSpot's free four-area site grade. ReachKit measures your market and publishes pages.",
+    summary: "HubSpot's free four-area site grade. ReachKit shows who gets your buyers and puts pages live.",
     intro:
-      "Website Grader is HubSpot's free online tool. It grades a site against performance, mobile readiness, SEO and security, which makes it a good first look for a site that has never been checked. ReachKit's free scan answers a different question: which searches buyers in your market make, who shows up instead of you, and which technical issues stand in the way. The paid plan then publishes a page every day, new or updated.",
+      `Website Grader is HubSpot's free online tool. It grades a site against performance, mobile readiness, SEO and security, which makes it a good first look for a site that has never been checked. ReachKit's free scan answers a different question: which searches buyers in your market make, who shows up instead of you, and which technical issues stand in the way. The paid plan then writes up to ${P.weekPages} pages a week, new or updated.`,
     theirs: {
       heading: "What Website Grader does well",
       paragraphs: [
@@ -129,22 +115,15 @@ export const CHECKERS: readonly Comparison[] = [
         "It is written for beginners. The page explains in plain words why speed matters, what helps SEO, such as indexed pages, alt text and meta data, and points to a HubSpot Academy course on web optimisation for the next step.",
       ],
     },
-    ours: {
-      heading: "What ReachKit does instead",
-      paragraphs: [
-        `The free scan needs no account and takes about a minute. It runs ${P.searches} Google searches buyers in your market make, records who is on the first page, and checks whether AI answers mention or link you. You get a Visibility Score from 0 to 100 in four bars: Readiness, Content, Google and AI.`,
-        `It also lists technical issues across up to ${P.pages} pages, including slow pages, phone usability, missing titles and pages kept out of search, each with a free fix. ReachKit does not grade security, and it does not check Core Web Vitals in depth.`,
-        `The paid plan is ${P.price} a month, VAT included. ReachKit publishes a page every day, new or updated, written from your own site, and scans your market again every Monday.`,
-      ],
-    },
+    does: [],
     rows: [
       { label: "Free check", reachkit: true, them: true },
       { label: "Speed check", reachkit: "Partly: flags slow pages", them: true },
       { label: "Mobile readiness", reachkit: "Partly: phone usability", them: true },
       { label: "Security grade", reachkit: false, them: true },
-      { label: "Measures the searches buyers make", reachkit: true, them: false },
+      { label: "Checks the searches buyers make", reachkit: true, them: false },
       { label: "Shows competitors who appear instead of you", reachkit: true, them: false },
-      { label: "Publishes a page every day for you", reachkit: true, them: false },
+      { label: "Puts pages live every week for you", reachkit: true, them: false },
     ],
     pickThem: [
       "You have never checked your site and want a free first grade.",
@@ -154,7 +133,7 @@ export const CHECKERS: readonly Comparison[] = [
     pickUs: [
       "You want to know which searches buyers make and who wins them.",
       "You want technical issues listed page by page, with a fix for each.",
-      "You want pages published for you every day.",
+      "You want pages going live for you every week.",
     ],
     checked: CHECKED,
     sources: [{ label: "Website Grader by HubSpot", href: "https://website.grader.com/" }],
@@ -166,7 +145,7 @@ export const CHECKERS: readonly Comparison[] = [
     title: "ReachKit vs Screaming Frog",
     description:
       "Screaming Frog's SEO Spider crawls 500 URLs free on your desktop. ReachKit's free scan runs in the browser and reads your market too.",
-    summary: "A desktop crawler for professionals. ReachKit measures your market and publishes pages.",
+    summary: "A desktop program that reads every page of a site, for professionals. ReachKit shows who gets your buyers and puts pages live.",
     intro:
       `The Screaming Frog SEO Spider is a desktop crawler for Windows, macOS and Linux that walks your whole site and audits it for over 300 SEO issues. It is a professional instrument and one of the best known in SEO. ReachKit's free scan runs in the browser, reads up to ${P.pages} pages for the common technical issues, and adds what a crawl cannot see: the searches buyers make and who shows up instead of you. For a large site or a migration, you want the crawler.`,
     theirs: {
@@ -177,22 +156,15 @@ export const CHECKERS: readonly Comparison[] = [
         "A yearly paid licence removes the crawl limit and adds crawl configuration, saved crawls, scheduling, JavaScript rendering, crawl comparison, near duplicate content, structured data validation, accessibility auditing and Search Console integration.",
       ],
     },
-    ours: {
-      heading: "What ReachKit does instead",
-      paragraphs: [
-        `There is nothing to install. The free scan needs no account, takes about a minute and reads up to ${P.pages} pages for missing titles and meta descriptions, pages kept out of search, a missing sitemap, slow pages, broken links, phone usability, structured data and AI readers blocked by robots.txt. Each issue comes with a free fix. It will not find your hreflang mistakes.`,
-        `It also measures what no crawl knows. It runs ${P.searches} Google searches buyers in your market make, records who is on the first page and checks whether AI answers mention or link you.`,
-        `The paid plan is ${P.price} a month. ReachKit publishes a page every day, new or updated, and scans your market again every Monday.`,
-      ],
-    },
+    does: [],
     rows: [
       { label: "Runs in the browser, nothing to install", reachkit: true, them: false },
       { label: "Free with no sign up or email", reachkit: true, them: true },
       { label: "Pages crawled", reachkit: "Up to 100", them: "500 free, no limit when paid" },
       { label: "Broken links and redirects", reachkit: "Partly: broken links", them: true },
       { label: "hreflang and duplicate pages", reachkit: false, them: true },
-      { label: "Measures the searches buyers make", reachkit: true, them: false },
-      { label: "Publishes a page every day for you", reachkit: true, them: false },
+      { label: "Checks the searches buyers make", reachkit: true, them: false },
+      { label: "Puts pages live every week for you", reachkit: true, them: false },
     ],
     pickThem: [
       "Your site is large and you need every URL audited.",
@@ -202,7 +174,7 @@ export const CHECKERS: readonly Comparison[] = [
     pickUs: [
       "You do not want to install and set up a desktop app.",
       "Your site is small and the common issues are enough.",
-      "You want pages published for you, not a spreadsheet to work through.",
+      "You want pages put live for you, not a spreadsheet to work through.",
     ],
     checked: CHECKED,
     sources: [{ label: "Screaming Frog SEO Spider", href: "https://www.screamingfrog.co.uk/seo-spider/" }],
@@ -214,9 +186,9 @@ export const CHECKERS: readonly Comparison[] = [
     title: "ReachKit vs Seobility",
     description:
       "Seobility's free SEO Checker gives sub-scores and a task list, 5 checks a day. ReachKit's free scan reads your market and your issues.",
-    summary: "A well-structured page checker inside an SEO suite. ReachKit measures your market and publishes pages.",
+    summary: "A well-structured page checker inside a larger Google toolkit. ReachKit shows who gets your buyers and puts pages live.",
     intro:
-      `Seobility's free SEO Checker is one of the better ones. It returns an overall score, sub-scores for each part of the page and a prioritised task list. ReachKit's free scan lists the common technical issues across up to ${P.pages} pages, and adds the searches buyers in your market make and the competitors who show up instead of you. The paid plan then publishes a page every day, new or updated.`,
+      `Seobility's free SEO Checker is one of the better ones. It returns an overall score, sub-scores for each part of the page and a prioritised task list. ReachKit's free scan lists the common technical issues across up to ${P.pages} pages, and adds the searches buyers in your market make and the competitors who show up instead of you. The paid plan then writes up to ${P.weekPages} pages a week, new or updated.`,
     theirs: {
       heading: "What Seobility does well",
       paragraphs: [
@@ -225,21 +197,14 @@ export const CHECKERS: readonly Comparison[] = [
         "The free Basic plan gives 5 checks a day. On 2026-10-15 Premium was $69.90 a month for 50 a day, Professional $109.90 for 100 and Agency $239.90 for 200, before VAT, each with a 14-day free trial.",
       ],
     },
-    ours: {
-      heading: "What ReachKit does instead",
-      paragraphs: [
-        `The free scan needs no account and takes about a minute. It lists technical issues across up to ${P.pages} pages, from missing titles to broken links and AI readers blocked by robots.txt, each with a free fix. For one page, the free tools at reachkit.app/tools check the title, meta description, main heading, canonical and structured data. ReachKit does not check server configuration or backlinks.`,
-        `What it adds is your market. It runs ${P.searches} Google searches buyers in it make, records who is on the first page and checks whether AI answers mention or link you.`,
-        `The paid plan is ${P.price} a month, VAT included. ReachKit publishes a page every day, new or updated, on your site, and scans your market again every Monday.`,
-      ],
-    },
+    does: ["results"],
     rows: [
       { label: "Free check", reachkit: true, them: "Partly: 5 a day" },
       { label: "Sub-scores per part of the page", reachkit: false, them: true },
       { label: "Server configuration and backlink checks", reachkit: false, them: true },
       { label: "Ranking monitoring", reachkit: "Partly: your market's searches only", them: true },
       { label: "Checks whether AI answers mention you", reachkit: true, them: "Partly: rankings in AI Overviews" },
-      { label: "Publishes a page every day for you", reachkit: true, them: false },
+      { label: "Puts pages live every week for you", reachkit: true, them: false },
       { label: "Price", reachkit: `${P.price} a month`, them: "Free, paid plans from $69.90 a month" },
     ],
     pickThem: [
@@ -250,7 +215,7 @@ export const CHECKERS: readonly Comparison[] = [
     pickUs: [
       "You want to see which searches you lose, and to whom.",
       "You want issues listed across your site in one free scan.",
-      "You want pages published for you every day.",
+      "You want pages going live for you every week.",
     ],
     checked: CHECKED,
     sources: [{ label: "Seobility SEO Checker", href: "https://www.seobility.net/en/seocheck/" }],
@@ -262,9 +227,9 @@ export const CHECKERS: readonly Comparison[] = [
     title: "ReachKit vs SEOptimer",
     description:
       "SEOptimer audits a site and turns it into branded PDF reports and a lead widget. ReachKit's free scan reads your market and your issues.",
-    summary: "An SEO audit suite built for client reports. ReachKit measures your market and publishes pages.",
+    summary: "A site-check suite built for client reports. ReachKit shows who gets your buyers and puts pages live.",
     intro:
-      `SEOptimer is an SEO audit tool: you enter a website URL and get a free analysis with a prioritised list of recommendations. It is best known for turning that audit into branded PDF reports and an audit widget that agencies embed on their own sites to win leads. ReachKit's free scan also lists technical issues, across up to ${P.pages} pages, and adds the searches buyers in your market make and who shows up instead of you. The paid plan then publishes a page every day, new or updated.`,
+      `SEOptimer is an SEO audit tool: you enter a website URL and get a free analysis with a prioritised list of recommendations. It is best known for turning that audit into branded PDF reports and an audit widget that agencies embed on their own sites to win leads. ReachKit's free scan also lists technical issues, across up to ${P.pages} pages, and adds the searches buyers in your market make and who shows up instead of you. The paid plan then writes up to ${P.weekPages} pages a week, new or updated.`,
     theirs: {
       heading: "What SEOptimer does well",
       paragraphs: [
@@ -273,14 +238,7 @@ export const CHECKERS: readonly Comparison[] = [
         "Around the audit is a full toolset: keyword research, keyword tracking by country, language, search engine and device, backlink research and monitoring, a crawler that scans every page of a site, local SEO and Google Business Profile audits, and 60+ free tools. A 14-day free trial is offered.",
       ],
     },
-    ours: {
-      heading: "What ReachKit does instead",
-      paragraphs: [
-        `The free scan needs no account and takes about a minute. It runs ${P.searches} Google searches buyers in your market make, records who is on the first page of each and checks whether AI answers mention or link you. You get a Visibility Score from 0 to 100, always with its range.`,
-        `It lists technical issues across up to ${P.pages} pages, such as missing titles and meta descriptions, broken links, slow pages and AI readers blocked by robots.txt, each with a free fix. ReachKit keeps no backlink index and does no keyword research.`,
-        `ReachKit is built for a founder with one site. It makes no client reports and serves no agencies. The paid plan is ${P.price} a month, and it publishes a page every day, new or updated, written from your own site.`,
-      ],
-    },
+    does: ["choose", "write", "results"],
     rows: [
       { label: "Free audit from a URL", reachkit: true, them: true },
       { label: "Pages scanned", reachkit: `Up to ${P.pages}`, them: "Every page, with the crawler" },
@@ -288,8 +246,8 @@ export const CHECKERS: readonly Comparison[] = [
       { label: "White-label PDF reports", reachkit: false, them: true },
       { label: "Embeddable lead-gen audit widget", reachkit: false, them: true },
       { label: "Keyword and backlink research", reachkit: false, them: true },
-      { label: "Measures the searches buyers make", reachkit: true, them: "Partly: tracks keywords you choose" },
-      { label: "Publishes a page every day for you", reachkit: true, them: "Partly: a separate AI writing assistant" },
+      { label: "Checks the searches buyers make", reachkit: true, them: "Partly: tracks keywords you choose" },
+      { label: "Puts pages live every week for you", reachkit: true, them: "Partly: a separate AI writing assistant" },
     ],
     pickThem: [
       "You audit client sites and need branded PDF reports.",
@@ -299,7 +257,7 @@ export const CHECKERS: readonly Comparison[] = [
     pickUs: [
       "The only site you care about is your own.",
       "You want to know which searches buyers make and who wins them.",
-      "You want pages written and published for you every day.",
+      "You want pages written and live for you every week.",
     ],
     checked: "2026-10-08",
     sources: [
@@ -316,7 +274,7 @@ export const CHECKERS: readonly Comparison[] = [
     title: "ReachKit vs Yoast SEO",
     description:
       "Yoast's free online SEO checker needs no email. ReachKit's free scan adds your market: the searches buyers make and who wins them.",
-    summary: "A free online checker and a WordPress plugin. ReachKit measures your market and publishes pages.",
+    summary: "A free online checker and a WordPress plugin. ReachKit shows who gets your buyers and puts pages live.",
     intro:
       "Yoast runs a free online SEO checker: you enter a URL and run the scan, and you do not need to share an email address. It checks the page's key elements and its technical health. Yoast is also the WordPress plugin that puts SEO feedback beside the post as you write. ReachKit's free scan checks the common technical issues too, and adds the searches buyers in your market make and who shows up instead of you.",
     theirs: {
@@ -327,22 +285,15 @@ export const CHECKERS: readonly Comparison[] = [
         "The Premium plugin gives feedback as you write in WordPress, suggests internal links, previews posts on Facebook and X, and can draft titles and meta descriptions for you to review. On 2026-10-15 it was €118.80 a year before VAT.",
       ],
     },
-    ours: {
-      heading: "What ReachKit does instead",
-      paragraphs: [
-        `The free scan needs no account and takes about a minute. It lists technical issues across up to ${P.pages} pages: missing titles and meta descriptions, pages kept out of search, no sitemap, slow pages, broken links, phone usability, structured data and AI readers blocked by robots.txt, each with a free fix.`,
-        `It then looks past the page. It runs ${P.searches} Google searches buyers in your market make, records who is on the first page and checks whether AI answers mention or link you. A page can follow every rule and still not be found; this is where you see why.`,
-        `The paid plan is ${P.price} a month. ReachKit publishes a page every day, new or updated, and on WordPress it rewrites missing page titles and meta descriptions. It is never in your editor while you write.`,
-      ],
-    },
+    does: [],
     rows: [
       { label: "Free online check with no email", reachkit: true, them: true },
       { label: "Sitemap and robots.txt checks", reachkit: "Partly: a missing sitemap, AI readers in robots.txt", them: true },
       { label: "Broken link checks", reachkit: true, them: true },
       { label: "Feedback inside the editor as you write", reachkit: false, them: "Partly: the WordPress plugin" },
-      { label: "Measures the searches buyers make", reachkit: true, them: false },
+      { label: "Checks the searches buyers make", reachkit: true, them: false },
       { label: "Shows competitors who appear instead of you", reachkit: true, them: false },
-      { label: "Publishes a page every day for you", reachkit: true, them: false },
+      { label: "Puts pages live every week for you", reachkit: true, them: false },
     ],
     pickThem: [
       "You publish on WordPress and want SEO feedback as you write.",
@@ -352,7 +303,7 @@ export const CHECKERS: readonly Comparison[] = [
     pickUs: [
       "Your pages follow the rules and still nobody finds you.",
       "You want to know which searches buyers make and who wins them.",
-      "You want pages written and published for you.",
+      "You want pages written and put live for you.",
     ],
     checked: CHECKED,
     sources: [
@@ -367,7 +318,7 @@ export const CHECKERS: readonly Comparison[] = [
     title: "ReachKit vs Sitechecker",
     description:
       "Sitechecker checks your home page free in seconds, inside a platform for agencies. ReachKit is built for one founder and one site.",
-    summary: "A free home page check inside an agency platform. ReachKit measures your market and publishes pages.",
+    summary: "A free home page check inside an agency platform. ReachKit shows who gets your buyers and puts pages live.",
     intro:
       `Sitechecker's free check reads your home page for broken links, content issues and page speed, and its page promises the report in 2 seconds without sign up. Behind it is a platform built for agencies that manage many client sites. ReachKit is built for one founder with one site: its free scan lists technical issues across up to ${P.pages} pages and shows the searches buyers make and who shows up instead of you.`,
     theirs: {
@@ -377,14 +328,7 @@ export const CHECKERS: readonly Comparison[] = [
         "The platform is a full kit for agencies: a website crawler, monitoring for changes that matter to SEO, a rank tracker, a Search Console dashboard, an AI visibility tracker, SEO alerts and white labelling. It calls itself the SEO command center for agencies managing 10+ client sites, and offers 14 days of full access to start.",
       ],
     },
-    ours: {
-      heading: "What ReachKit does instead",
-      paragraphs: [
-        `The free scan needs no account and takes about a minute. It lists technical issues across up to ${P.pages} pages, including broken links and slow pages, each with a free fix. It does not check Core Web Vitals in depth.`,
-        `It also measures your market. It runs ${P.searches} Google searches buyers in it make, records who is on the first page and checks whether AI answers mention or link you.`,
-        `ReachKit serves one site, not a client list. The paid plan is ${P.price} a month, with no seats or tiers, and publishes a page every day, new or updated, on your site.`,
-      ],
-    },
+    does: ["results"],
     rows: [
       { label: "Free check with no sign up", reachkit: true, them: true },
       { label: "Pages in the free check", reachkit: "Up to 100", them: "Your home page" },
@@ -392,7 +336,7 @@ export const CHECKERS: readonly Comparison[] = [
       { label: "Many sites and white label", reachkit: false, them: true },
       { label: "Rank tracking", reachkit: "Partly: your market's searches only", them: true },
       { label: "Checks whether AI answers mention you", reachkit: true, them: true },
-      { label: "Publishes a page every day for you", reachkit: true, them: false },
+      { label: "Puts pages live every week for you", reachkit: true, them: false },
     ],
     pickThem: [
       "You manage many client sites and need them watched.",
@@ -402,7 +346,7 @@ export const CHECKERS: readonly Comparison[] = [
     pickUs: [
       "You have one site and no client list.",
       "You want the searches you lose, and to whom, in one free scan.",
-      "You want pages published for you every day.",
+      "You want pages going live for you every week.",
     ],
     checked: CHECKED,
     sources: [{ label: "Sitechecker home page", href: "https://sitechecker.pro/" }],
@@ -414,9 +358,9 @@ export const CHECKERS: readonly Comparison[] = [
     title: "ReachKit vs DebugBear",
     description:
       "DebugBear's free SEO checker reads one page, robots.txt and llms.txt beside its speed monitoring. ReachKit reads your market and your pages.",
-    summary: "A free page checker beside speed monitoring. ReachKit measures your market and publishes pages.",
+    summary: "A free page checker beside speed monitoring. ReachKit shows who gets your buyers and puts pages live.",
     intro:
-      `DebugBear's free Website SEO Checker reads one page and reports on what search engines and AI agents need from it. It sits beside DebugBear's main product, monitoring of site speed and Core Web Vitals. ReachKit does not monitor speed. Its free scan lists technical issues across up to ${P.pages} pages and shows the searches buyers in your market make and who shows up instead of you. The paid plan publishes a page every day, new or updated.`,
+      `DebugBear's free Website SEO Checker reads one page and reports on what search engines and AI agents need from it. It sits beside DebugBear's main product, monitoring of site speed and Core Web Vitals. ReachKit does not monitor speed. Its free scan lists technical issues across up to ${P.pages} pages and shows the searches buyers in your market make and who shows up instead of you. The paid plan writes up to ${P.weekPages} pages a week, new or updated.`,
     theirs: {
       heading: "What DebugBear does well",
       paragraphs: [
@@ -425,22 +369,15 @@ export const CHECKERS: readonly Comparison[] = [
         "Behind it is a performance product: Core Web Vitals monitoring, synthetic and real user monitoring, uptime and Lighthouse score monitoring, with free tools such as a speed test, a TTFB test and an INP debugger. The checker page shows no price; the way past it is a free trial.",
       ],
     },
-    ours: {
-      heading: "What ReachKit does instead",
-      paragraphs: [
-        `The free scan needs no account and takes about a minute. It lists technical issues across up to ${P.pages} pages: missing titles and meta descriptions, pages kept out of search, no sitemap, slow pages, broken links, phone usability, structured data and AI readers blocked by robots.txt, each with a free fix.`,
-        `It then measures your market. It runs ${P.searches} Google searches buyers in it make, records who is on the first page and checks whether AI answers mention or link you. ReachKit does not check Core Web Vitals in depth and does not alert you when a deploy slows the site.`,
-        `The paid plan is ${P.price} a month. ReachKit publishes a page every day, new or updated, and scans your market again every Monday.`,
-      ],
-    },
+    does: [],
     rows: [
       { label: "Free page check", reachkit: true, them: true },
       { label: "Indexing and robots.txt checks", reachkit: "Partly: noindex and AI readers in robots.txt", them: true },
       { label: "llms.txt and WebMCP checks", reachkit: false, them: true },
       { label: "Core Web Vitals and uptime monitoring", reachkit: false, them: true },
-      { label: "Measures the searches buyers make", reachkit: true, them: false },
+      { label: "Checks the searches buyers make", reachkit: true, them: false },
       { label: "Checks whether AI answers mention you", reachkit: true, them: false },
-      { label: "Publishes a page every day for you", reachkit: true, them: false },
+      { label: "Puts pages live every week for you", reachkit: true, them: false },
     ],
     pickThem: [
       "Your site is slow or Core Web Vitals are failing.",
@@ -450,7 +387,7 @@ export const CHECKERS: readonly Comparison[] = [
     pickUs: [
       "Your site is fast enough and still not found.",
       "You want to know which searches buyers make and who wins them.",
-      "You want pages published for you every day.",
+      "You want pages going live for you every week.",
     ],
     checked: CHECKED,
     sources: [{ label: "DebugBear Website SEO Checker", href: "https://www.debugbear.com/website-seo-checker" }],

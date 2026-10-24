@@ -81,7 +81,8 @@ import type { BandHandle } from "@/lib/measure/bands";
 import { unmeasured, measured, type Measured } from "@/lib/measure/measured";
 import type { RivalSize } from "@/lib/market/rivals/rival-size";
 import { trackedRivals } from "@/lib/market/rivals/tracked";
-import { readStoredReport, type StoredReport } from "@/lib/scan/report";
+import { readDeepReport } from "@/lib/scan/deep/report";
+import type { StoredReport } from "@/lib/scan/report";
 import { shownLimitingOf } from "@/lib/measure/verdict";
 import {
   nextDueOn,
@@ -90,13 +91,14 @@ import {
   weekStartFor,
   type WeekScan,
 } from "@/lib/scan/weekly";
-import type { AnswerEngine, LastLive, OverviewFacts } from "./model";
+import type { AddressWaiting, AnswerEngine, LastLive, OverviewFacts } from "./model";
 import { CALENDAR_DAY_ZONE } from "./week";
+import { monthFiguresOf, monthWeekOf, nextFirstMonday, type MonthsFacts } from "@/lib/measure/figures";
 import type { WeeklyPoint } from "./growth";
 import type { RivalFact, RivalFacts } from "./rivals";
 import { needsYouOf, waitsOnCustomer } from "@/lib/publish/record/needs-you";
 import type { State } from "@/lib/publish/types";
-import { waitingIssues, type WaitingIssue, type WaitingItem } from "./alerts";
+import { issuesReading, waitingIssues, type IssuesReading, type WaitingItem } from "./alerts";
 import type { WaitingPageFacts, WaitingTarget } from "./waiting";
 import type { CopyKey } from "@/lib/presentation/copy";
 import { STAGE_FILTER_COPY_KEY, STAGE_OF } from "../calendar/stages";
@@ -185,18 +187,8 @@ const MS_PER_WEEK = 7 * 86_400_000;
 type DeepPass = { value: Measured<number>; on: Date; report: StoredReport };
 
 async function deepPassReading(siteId: string): Promise<DeepPass | undefined> {
-  const { data, error } = await client()
-    .from<{ id: string; report: unknown; created_at: string }>("scans")
-    .select("id, report, created_at")
-    .eq("site_id", siteId)
-    .eq("tier", "deep")
-    .not("report", "is", null)
-    .order("created_at", { ascending: false })
-    .limit(1);
-  const row = data?.[0];
-  if (error !== null || row === undefined || row.report === null) return undefined;
-  const report = readStoredReport(row.report);
-  return { value: report.ownRanked, on: new Date(row.created_at), report };
+  const deep = await readDeepReport(siteId);
+  return deep === undefined ? undefined : { value: deep.report.ownRanked, ...deep };
 }
 
 /**
@@ -614,6 +606,7 @@ interface WeeklyFacts {
   /** The deep pass's searches reading, where it is week 0 — what the first
    *  Monday's searches delta is taken against (issue 794). */
   searchesWeekZero?: Measured<number>;
+  months: MonthsFacts;
 }
 
 /** Which stored report stands as the latest in a window, and the deep pass
@@ -646,18 +639,26 @@ function standingOf(
 /**
  * Issue 1550: the checks waiting on the customer, from the same report
  * Overview's needs-you reads them from — so an item there and the view it
- * opens hold the same issues. Empty where no report is stored yet.
+ * opens hold the same issues. No figures where no report is stored yet.
  */
-export async function readWaitingIssues(site: OverviewSite): Promise<readonly WaitingIssue[]> {
+export async function readWaitingIssues(site: OverviewSite): Promise<IssuesReading> {
   const now = clock();
   const weeks = windowWeeks(now, site.timeZone);
-  const [scans, deep] = await Promise.all([
+  const [scans, deep, host] = await Promise.all([
     readWeekScans({ siteId: site.siteId, weekStarts: weeks }),
     deepPassReading(site.siteId),
+    hostedHostname(site.siteId),
   ]);
   const report = standingOf(weeks, scans, deep, site.timeZone).latest ?? deep?.report ?? null;
-  if (report === null) return [];
-  return waitingIssues(report.siteIssues, { measuredAt: report.verdict.measuredAt });
+  if (report === null) return issuesReading(null, null, host);
+  return issuesReading(report.siteIssues, report.verdict.measuredAt, host);
+}
+
+/** The hosted address, live or waiting; `null` for a site without one or a failed read. */
+async function hostedHostname(siteId: string): Promise<string | null> {
+  const { hostedHostFor } = await import("@/lib/publish/destinations/hosted/hostname");
+  const host = await hostedHostFor(siteId).catch(() => null);
+  return host?.hostname ?? null;
 }
 
 async function weeklySeries(
@@ -708,6 +709,13 @@ async function weeklySeries(
 
   const score = scoreOf(latest, now);
   const scorePrevious = previousWeek === null ? undefined : scoreOf(previousWeek, now);
+  const monthWeek = monthWeekOf(measured);
+  const scan = monthFiguresOf(deep?.report ?? null);
+  const months: MonthsFacts = {
+    reading: monthWeek === null ? null : { week: monthWeek, ...monthFiguresOf(scans.get(monthWeek)?.report ?? null) },
+    scan: { score: scan.score, market: scan.market?.top10 ?? null },
+    next: nextFirstMonday(weeks.at(-1) as string),
+  };
   const searchesWeekZero = weekZero === null ? undefined : weekZero.report.ownRanked;
 
   if (first === -1) {
@@ -719,6 +727,7 @@ async function weeklySeries(
       rivals,
       score,
       latest,
+      months,
       ...(scorePrevious === undefined ? {} : { scorePrevious }),
       ...(aiWeekZero === undefined ? {} : { aiWeekZero }),
       ...(searchesWeekZero === undefined ? {} : { searchesWeekZero }),
@@ -757,6 +766,7 @@ async function weeklySeries(
     rivals,
     score,
     latest,
+    months,
     ...(scorePrevious === undefined ? {} : { scorePrevious }),
     ...(aiWeekZero === undefined ? {} : { aiWeekZero }),
     ...(searchesWeekZero === undefined ? {} : { searchesWeekZero }),
@@ -923,10 +933,10 @@ export async function readOverviewFacts(site: OverviewSite): Promise<OverviewFac
     deepRead,
     // SPEC §4 (2026-09-20): the page the screen leads with.
     waitingPageFacts(site, now),
-    // SPEC §5 (2026-09-20, #924): the hosted blog's address, while it is
-    // still waiting for its record. One row read, no vendor call — a
-    // screen deciding which item to draw may not spend one.
-    connectWaiting(site.siteId, now),
+    // SPEC §5 (2026-09-20): the hosted address, while it is still waiting
+    // for its record. One row read, no vendor call — a screen deciding what
+    // to draw may not spend one.
+    addressWaiting(site.siteId),
     lastLiveOf(site.siteId),
   ]);
   // issue 765/issue 784: a zero is either a market used up or one never measured, and
@@ -961,6 +971,7 @@ export async function readOverviewFacts(site: OverviewSite): Promise<OverviewFac
     ...(series.latest?.verdict?.estimate === undefined ? {} : { scoreEstimate: series.latest.verdict.estimate }),
     biggestGap: series.latest?.verdict?.limiting == null ? null : shownLimitingOf(series.latest.verdict),
     scorePoints: series.scorePoints,
+    months: series.months,
     ...(series.scorePrevious === undefined ? {} : { scorePrevious: series.scorePrevious }),
     rivals: series.rivals,
     today: now,
@@ -978,8 +989,8 @@ export async function readOverviewFacts(site: OverviewSite): Promise<OverviewFac
       // is not that arrival.
       firstArrivalShortfall: false,
     },
+    connect,
     waiting: [
-      ...connect,
       ...waiting,
       ...issuesWaiting(series.latest ?? deepPass?.report ?? null),
     ],
@@ -992,30 +1003,22 @@ export async function readOverviewFacts(site: OverviewSite): Promise<OverviewFac
 }
 
 /**
- * SPEC §5 (2026-09-20, #924): the hosted blog's address while it waits for
- * its DNS record — "it stays reachable from Overview's needs-you and from
- * Settings until the host is live".
- *
- * Empty the moment the host is live, which is a state the row already
- * carries, and empty for a site with no hosted destination at all. A read
- * that fails is empty too: an item the screen cannot justify is one it does
- * not draw.
- *
- * `since` is the clock rather than a stored instant, and that is honest
- * here: nothing records when a record *started* being missing, and the
- * field is only ever a tie-break between two items of the same rank — of
- * which there is at most one of these.
+ * SPEC §5 (2026-09-20): the hosted address while it waits for its DNS record,
+ * with the one record that connects it. `null` once the host is live, for a
+ * site with no hosted destination, for a host the record would not name
+ * exactly, and where the read fails: a state the screen cannot justify is
+ * one it does not draw.
  */
-async function connectWaiting(siteId: string, now: Date): Promise<readonly WaitingItem[]> {
+async function addressWaiting(siteId: string): Promise<AddressWaiting | null> {
   try {
     const { hostedHostFor } = await import("@/lib/publish/destinations/hosted/hostname");
     const host = await hostedHostFor(siteId);
-    if (host === null || host.state === "live") return [];
-    return [
-      { kind: "connect_blog", hostname: host.hostname, since: now, href: "/setup/connect" },
-    ];
+    if (host === null || host.state === "live") return null;
+    const [{ recordForHost }, { env }] = await Promise.all([import("@/lib/publish/setup/cards"), import("@/lib/config/env")]);
+    const record = recordForHost({ hostname: host.hostname, cnameTarget: env.HOSTED_EDGE_CNAME_TARGET });
+    return record === null ? null : { hostname: host.hostname, record, checkedAt: host.checkedAt, since: host.since };
   } catch {
-    return [];
+    return null;
   }
 }
 

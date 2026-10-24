@@ -170,3 +170,28 @@ describe("sendPublishedMail — one occasion, all three outcomes (REQ-062 c5)", 
     ]);
   });
 });
+
+describe("sendPublishedMail — the site's first live page only (SPEC §8, decision 2026-10-19-1593)", () => {
+  function seedPages(pages: readonly Row[]): void {
+    seed(found(true));
+    db.seed("publications", pages.map((page) => ({ site_id: "s1", live_url: LIVE_URL, verify: found(true), ...page })));
+  }
+
+  it("tells the first page that went live", async () => {
+    seedPages([
+      { id: "p1", published_at: "2026-09-01T16:00:00Z" },
+      { id: "p2", published_at: "2026-09-02T16:00:00Z" },
+    ]);
+    expect(await sendPublishedMail("p1")).toEqual({ sent: true, id: "vendor-1" });
+    expect(sent).toHaveLength(1);
+  });
+
+  it("tells no later page, even where page 1 was taken down since", async () => {
+    seedPages([
+      { id: "p1", published_at: "2026-09-01T16:00:00Z", unpublished_at: "2026-09-05T10:00:00Z" },
+      { id: "p2", published_at: "2026-09-02T16:00:00Z" },
+    ]);
+    expect(await sendPublishedMail("p2")).toEqual({ sent: false, reason: "not-first-page" });
+    expect(sent).toEqual([]);
+  });
+});

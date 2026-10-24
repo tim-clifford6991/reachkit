@@ -12,12 +12,17 @@
 //
 // The header and footer are the group layout's (ruling 3a) and have their
 // own suite in `tests/app/chrome/`; nothing here re-tests them.
+import "../../generate/env";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import { copy } from "@/lib/presentation/copy";
-import { legalBodyHtml } from "@/app/(public)/_legal/LegalPage.tsx";
+import { VETO, WEEK_PLAN } from "@/lib/config/constants";
+import { REFUND_WINDOW_DAYS } from "@/lib/account/billing/refund";
+import { headingsUnderTitle, parseMarkdown, toHtml } from "@/lib/publish/render/markdown";
+import { LEGAL_BODY_CLASSES, legalBodyHtml } from "@/app/(public)/_legal/LegalPage.tsx";
+import { legalSections } from "@/app/(public)/_legal/sections";
 import PrivacyPage from "@/app/(public)/privacy/page.tsx";
 import TermsPage from "@/app/(public)/terms/page.tsx";
 import ImprintPage from "@/app/(public)/imprint/page.tsx";
@@ -85,7 +90,24 @@ describe("S5 — the screen: eyebrow, title, updated line, one card", () => {
         expect(html).toContain(copy("legal.eyebrow"));
         expect(html).toContain(copy(route.title));
         expect(html).toContain(copy("legal.updated", { date: copy(route.updated) }));
-        expect(html).toContain(legalBodyHtml(copy(route.document)));
+        // Every heading and every block of the body, through the one renderer; a list the
+        // board draws as a table is the provider test's. A list is read item by item, since a
+        // figure may stand between two of its items.
+        const sections = legalSections(headingsUnderTitle(parseMarkdown(copy(route.document))), LEGAL_BODY_CLASSES);
+        for (const section of sections) {
+          if (section.headingHtml !== "") expect(html).toContain(section.headingHtml);
+          for (const block of section.blocks) {
+            if (section.heading?.id === "service-providers" && block.kind === "list") continue;
+            if (block.kind !== "list") {
+              expect(html).toContain(toHtml([block], LEGAL_BODY_CLASSES));
+              continue;
+            }
+            for (const item of block.items) {
+              const one = toHtml([{ ...block, items: [item] }], LEGAL_BODY_CLASSES);
+              expect(html).toContain(one.slice(one.indexOf("<li"), one.lastIndexOf("</li>") + 5));
+            }
+          }
+        }
       });
 
       it("the eyebrow stands above the title, and the title is the page's one h1", () => {
@@ -139,11 +161,10 @@ describe("S5 — the Markdown body goes through the product's one renderer", () 
     // directly under the page's `<h1>` — and it used to arrive as an `<h3>`,
     // skipping `h2` on a page whose only other heading is that `<h1>`.
     const html = renderToStaticMarkup(<PrivacyPage />);
-    expect(copy("legal.privacy.body")).toMatch(/^## Who we are\n/);
-    expect(html).toContain(legalBodyHtml(copy("legal.privacy.body")));
-    expect(html).toMatch(/<h2[^>]*>Who we are<\/h2>/);
-    expect(html).not.toMatch(/<h3[^>]*>Who we are<\/h3>/);
-    expect(html).not.toContain("## Who we are");
+    expect(copy("legal.privacy.body")).toMatch(/^## 1\. Who we are\n/);
+    expect(html).toMatch(/<h2 id="who-we-are"[^>]*>1\. Who we are<\/h2>/);
+    expect(html).not.toMatch(/<h3[^>]*>1\. Who we are<\/h3>/);
+    expect(html).not.toContain("## 1. Who we are");
   });
 
   it("the card carries no head — the page's h1 already names the document", () => {
@@ -223,5 +244,41 @@ describe("S5 — the three routes read nothing", () => {
       expect(src, file).not.toMatch(/currentSession|hasActiveAccess/);
       expect(src, file).not.toMatch(/db\b|supabase/i);
     }
+  });
+});
+
+describe("the Terms state the offer the product keeps", () => {
+  const html = renderToStaticMarkup(<TermsPage />);
+  const all = html.replace(/<[^>]*>/g, " ").replace(/&#x27;/g, "'").replace(/&amp;/g, "&").replace(/\s+/g, " ");
+  /** A numbered section's words, from its heading to the next one. */
+  const section = (id: string): string => {
+    const at = html.indexOf(`<h2 id="${id}"`);
+    expect(at, id).toBeGreaterThan(-1);
+    const end = html.indexOf("<h2 ", at + 1);
+    return html.slice(at, end === -1 ? undefined : end).replace(/<[^>]*>/g, " ").replace(/\s+/g, " ");
+  };
+
+  it("§1 says the weekly pace from the plan, never a page every day", () => {
+    expect(all).not.toMatch(/a page every day/i);
+    expect(section("the-service")).toContain(`up to ${WEEK_PLAN.days} pages a week for your site`);
+  });
+
+  it("§5 says the time to stop a page runs from the shortest to the longest window", () => {
+    expect(all).not.toMatch(/from none/i);
+    expect(section("your-content-and-the-pages-we-write")).toContain(`anywhere from ${VETO.minDays} to ${VETO.maxDays} days`);
+  });
+
+  it("§4 and §9 state the automatic refund in the window and keep the rule after it", () => {
+    expect(all).not.toMatch(/in one click/i);
+    const billing = section("price-billing-and-cancellation");
+    expect(billing).toContain(
+      `If you cancel within ${REFUND_WINDOW_DAYS} days of your first payment, we refund that payment in full, automatically`
+    );
+    expect(billing).toContain("ReachKit stops at once");
+    expect(billing).toContain("once for each web address");
+    expect(billing).toContain("Otherwise your access continues to the end of the period you have paid for");
+    expect(section("ending-things")).toContain(
+      `Cancelling takes effect at the end of your paid period, or at once when the ${REFUND_WINDOW_DAYS}-day refund in section 4 applies.`
+    );
   });
 });

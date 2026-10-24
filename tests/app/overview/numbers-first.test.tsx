@@ -35,14 +35,17 @@ const ROUTES = [
     Page: SearchPage,
     Loading: SearchLoading,
     head: "search",
-    loaded: ["search-tiles", "search-table"],
-    waiting: ["tiles-skeleton", "search-table-skeleton"],
+    // Board AppGoogle: the week over the name, and each page in Google between the tiles and the table.
+    lines: ["search-eyebrow", "search-measured"],
+    loaded: ["search-tiles", "search-pages", "search-table"],
+    waiting: ["tiles-skeleton", "search-pages-skeleton", "search-table-skeleton"],
   },
   {
     name: "/app/ai-answers",
     Page: AnswersPage,
     Loading: AnswersLoading,
     head: "ai-answers",
+    lines: ["ai-answers-measured"],
     // On a hosted blog *AI engines on your blog* stands between the two
     // (issue 1364); the waiting state cannot know the blog is hosted.
     loaded: ["answers-tiles", "blog-reads", "answers-grid"],
@@ -53,6 +56,7 @@ const ROUTES = [
     Page: RivalsPage,
     Loading: RivalsLoading,
     head: "rivals",
+    lines: ["rivals-measured"],
     loaded: ["rivals-presence", "rivals-table"],
     waiting: ["rival-presence-skeleton", "rival-table-skeleton"],
   },
@@ -73,14 +77,13 @@ function regions(screen: Element): (string | null)[] {
   );
 }
 
-describe.each(ROUTES)("$name", ({ Page, Loading, head, loaded, waiting }) => {
+describe.each(ROUTES)("$name", ({ Page, Loading, head, lines, loaded, waiting }) => {
   it("opens on its name, then the numbers, then the table or grid", async () => {
     const screen = dom(await Page());
     expect(regions(screen).slice(0, 1 + loaded.length)).toEqual([`${head}-title`, ...loaded]);
-    // The head says the name and the day, and nothing else.
+    // The head says the name and the day (and the week, where its board draws it), and nothing else.
     const header = screen.querySelector("header");
-    expect(header?.querySelectorAll("p")).toHaveLength(1);
-    expect(header?.querySelector("p")?.getAttribute("data-testid")).toBe(`${head}-measured`);
+    expect([...(header?.querySelectorAll("p") ?? [])].map((p) => p.getAttribute("data-testid"))).toEqual(lines);
   });
 
   it("keeps every sentence on a number tile or under a card's name closed", async () => {
@@ -99,7 +102,7 @@ describe.each(ROUTES)("$name", ({ Page, Loading, head, loaded, waiting }) => {
   it("waits in the same regions, under the same name", async () => {
     const screen = dom(await Page());
     const wait = dom(<Loading />);
-    expect(regions(wait).slice(0, 3)).toEqual([`${head}-title`, ...waiting]);
+    expect(regions(wait).slice(0, 1 + waiting.length)).toEqual([`${head}-title`, ...waiting]);
     expect(wait.querySelector("h1")?.textContent).toBe(screen.querySelector("h1")?.textContent);
   });
 });
@@ -114,5 +117,13 @@ describe("the parts that are one shape in two places", () => {
     const order = regions(screen);
     expect(order.indexOf("overview-rivals")).toBeGreaterThan(order.indexOf("rivals-table"));
     expect(screen.querySelectorAll('[data-testid="overview-rivals"] li').length).toBeGreaterThan(0);
+  });
+});
+
+describe("/app/ai-answers without LLM Mentions", () => {
+  it("draws the head, the numbers, the blog reads, the grid and the prompts, and no mention card", async () => {
+    const screen = dom(await AnswersPage());
+    expect(regions(screen)).toEqual(["ai-answers-title", "answers-tiles", "blog-reads", "answers-grid", "prompts-cards"]);
+    expect(screen.querySelector('[data-testid^="mentions-"]')).toBeNull();
   });
 });

@@ -17,6 +17,8 @@ import { readSettings } from "../provider";
 import { MarketPanel } from "../panels/MarketPanel";
 import { CompetitorsPanel } from "../panels/CompetitorsPanel";
 import { readDone } from "../../_overview/done-provider";
+import { readUnderstanding } from "../../_overview/understanding-provider";
+import { AlsoServesNote } from "@/app/_business/WhatWeRead";
 import { ProcessTimeline } from "../../_shell/ProcessTimeline";
 
 /** This tab's own `<title>` (#945, #925). Each sibling names itself
@@ -26,7 +28,7 @@ import { ProcessTimeline } from "../../_shell/ProcessTimeline";
 export const metadata: Metadata = { title: copy("meta.app.settings.market.title") };
 
 export default async function SettingsMarketTab(): Promise<React.JSX.Element> {
-  const [settings, done] = await Promise.all([readSettings(), readDone()]);
+  const [settings, done, understanding] = await Promise.all([readSettings(), readDone(), readUnderstanding()]);
 
   return (
     <div className="flex min-w-0 flex-col gap-6" data-testid="settings-tab-panel-market">
@@ -34,8 +36,10 @@ export default async function SettingsMarketTab(): Promise<React.JSX.Element> {
         market={settings.market}
         concluded={settings.concluded}
         domain={settings.domain}
+        locale={settings.locale}
         timeZone={settings.publishing.timeZone}
       />
+      <AlsoServesNote n={understanding.where.alsoServes} />
       <CompetitorsPanel competitors={settings.competitors} concluded={settings.concluded} />
       {/* SPEC §4 (2026-10-10, issue 1395): the process, kept here after
           setup — each step with this site's own figure. */}

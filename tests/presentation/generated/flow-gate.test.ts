@@ -2,7 +2,7 @@
 // WO-279 (supersedes WO-044)
 //
 // REQ-093 criteria 2 and 3, quoted verbatim in WO-279 `## Test plan`. Walks
-// the same governed surface tree `string-literal-sweep.test.ts` walks and
+// the governed surface tree (`local/no-voice-literal` lints the same roots) and
 // fails on two lexical patterns, both scoped to the "same expression" the
 // interface's own wording uses (BP-020 `## Public interface`):
 //
@@ -152,8 +152,7 @@ function relativeSignature(root: string, violations: Violation[]): Array<{ file:
     .sort((a, b) => (a.file === b.file ? a.rule.localeCompare(b.rule) : a.file.localeCompare(b.file)));
 }
 
-/** TST-028 finding 3, same rationale as `string-literal-sweep.test.ts`'s
- *  twin helper: an aggregate non-zero file count cannot tell a mistyped
+/** TST-028 finding 3: an aggregate non-zero file count cannot tell a mistyped
  *  glob from a governed directory that is genuinely empty today.
  *  `GOVERNED_GLOBS`' exact strings are asserted against ADR-010's decision,
  *  independent of file-system state; given the glob list is right,

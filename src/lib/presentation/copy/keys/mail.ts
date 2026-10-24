@@ -19,7 +19,7 @@ import type { CopyPartition } from "../registry.ts";
 
 export const MAIL_COPY = Object.freeze({
   // 2026-09-08, UI-SPEC S7 (ruling 11a). The approved set draws this page
-  // as one card — a mail chip over "Opted out", the address the link
+  // as one card — a mail chip over "Unsubscribed", the address the link
   // belonged to inside the line, and a quiet way back — and 11a makes its
   // unbracketed strings approved copy as written. So this line is the
   // set's, not the 2026-09-04 ruling's: that ruling wrote a sentence for a
@@ -27,20 +27,37 @@ export const MAIL_COPY = Object.freeze({
   // same line. It carries the `{address}` slot because the set writes the
   // address inside the sentence, in mono, and a sentence with a value in
   // it has a slot rather than two half-sentences.
-  "optout.confirmed": ["No more follow-up mail will reach {address}, for this domain or any other. The page you asked for stays yours.", { slots: { address: "text" }, fixedBy: "REQ-011 c3 · S7 (11a)" }],
+  "optout.confirmed": ["No more follow-up mail will go to {address}, about any site. Sign-in and account mail, if you have an account, still arrive.", { slots: { address: "text" }, fixedBy: "REQ-011 c3 · OptOut board (V22)" }],
   "optout.invalid": ["That unsubscribe link isn’t valid any more. Reply to any ReachKit email with \"stop\" and we’ll stop by hand.", { slots: {}, fixedBy: "REQ-011 c3" }],
 
   // The card's own head (UI-SPEC S7, 11a). The set draws one eyebrow over
-  // the mail chip and it states what happened: "Opted out".
-  "optout.head": ["Opted out", { slots: {}, fixedBy: "REQ-010 c11 · S7 (11a)" }],
+  // the mail chip and it states what happened: "Unsubscribed".
+  "optout.head": ["Unsubscribed", { slots: {}, fixedBy: "REQ-010 c11 · S7 (11a)" }],
   /** The same head on the two arms where nothing was opted out — an
    *  invalid link, or a store this product could not reach.
    *
    *  **It has to be its own key.** The set draws only the confirmation,
-   *  so 11a writes no eyebrow for the other two arms, and "Opted out" over
+   *  so 11a writes no eyebrow for the other two arms, and "Unsubscribed" over
    *  "that link isn’t valid any more" would be the page contradicting
    *  itself in its own head. */
-  "optout.head.unresolved": ["Not opted out", { slots: {}, fixedBy: "REQ-010 c11 · S7 (12a)" }],
+  "optout.head.unresolved": ["Not unsubscribed yet", { slots: {}, fixedBy: "REQ-010 c11 · S7 (12a)" }],
+
+  // The OptOut board (canvas V22): what an opt-out changes, which follow-ups
+  // were sent, where the report stays, and the by-hand way when a link fails.
+  "optout.changes.title": ["What this changes", { slots: {}, fixedBy: "REQ-010 c11 · OptOut board (V22)" }],
+  "optout.changes.followups": ["Follow-up emails about your free report", { slots: {}, fixedBy: "REQ-010 c11 · OptOut board (V22)" }],
+  "optout.changes.signin": ["Sign-in links", { slots: {}, fixedBy: "REQ-010 c11 · OptOut board (V22)" }],
+  "optout.changes.account": ["Receipts and account emails", { slots: {}, fixedBy: "REQ-010 c11 · OptOut board (V22)" }],
+  "optout.changes.stopped": ["Stopped", { slots: {}, fixedBy: "REQ-010 c11 · OptOut board (V22)" }],
+  "optout.changes.still": ["Still sent, if you have an account", { slots: {}, fixedBy: "REQ-010 c11 · OptOut board (V22)" }],
+  "optout.timeline.title": ["Follow-ups after your free report", { slots: {}, fixedBy: "REQ-010 c9 · OptOut board (V22)" }],
+  "optout.timeline.hours": ["{hours} hours", { slots: { hours: "text" }, fixedBy: "REQ-010 c9 · OptOut board (V22)" }],
+  "optout.timeline.sent": ["Sent", { slots: {}, fixedBy: "REQ-010 c9 · OptOut board (V22)" }],
+  "optout.timeline.not": ["Won’t be sent", { slots: {}, fixedBy: "REQ-010 c9 · OptOut board (V22)" }],
+  "optout.timeline.done": ["All follow-ups were already sent. No more will come.", { slots: {}, fixedBy: "REQ-010 c9 · OptOut board (V22)" }],
+  "optout.report": ["The page you asked for stays yours, and your free report stays at its address. To take the report down, write to {address}.", { slots: { address: "text" }, fixedBy: "REQ-002 c1 · OptOut board (V22)" }],
+  "optout.reply.row": ["Reply to any ReachKit email with \"stop\"", { slots: {}, fixedBy: "REQ-011 c3 · OptOut board (V22)" }],
+  "optout.reply.how": ["A person stops it by hand", { slots: {}, fixedBy: "REQ-011 c3 · OptOut board (V22)" }],
 
   // 2026-09-05, issue #30 (the mail seam, BUILD §12). Six keys the shell
   // and the whole-mail line need. Five are sentences the product speaks in
@@ -129,14 +146,14 @@ export const MAIL_COPY = Object.freeze({
   // `captureLead()` to one of these keys and never to a sentence of its
   // own or a vendor payload (REQ-003 c10, REQ-010 c1).
   "lead.accepted": ["Got it. Your page is being written and goes to that address as soon as it is done.", { slots: {}, fixedBy: "REQ-010 c1" }],
-  "lead.invalid_address": ["That doesn’t look like an email address. Try the form you@company.com.", { slots: {}, fixedBy: "REQ-010 c1" }],
+  "lead.invalid_address": ["That doesn’t look like an email address. Try the form you@example.com.", { slots: {}, fixedBy: "REQ-010 c1" }],
   "lead.unavailable": ["Your address couldn’t be saved just now, so nothing was sent. Try again in a few minutes.", { slots: {}, fixedBy: "REQ-003 c10" }],
 
   // The third arm of the opt-out page: the link is good and our store is
   // not. Telling the reader their link is invalid would be a false
   // statement about the one thing they came to do. This is the one key on
   // this list a *screen* reads through `copy()` (issue #261).
-  "optout.unavailable": ["That opt-out couldn’t be applied just now, so nothing has changed. Try the link again in a few minutes, or reply to any ReachKit email with \"stop\" and we’ll stop by hand.", { slots: {}, fixedBy: "REQ-010 c11" }],
+  "optout.unavailable": ["That unsubscribe couldn’t go through just now, so nothing has changed. Try the link again in a few minutes, or reply to any ReachKit email with \"stop\" and we’ll stop by hand.", { slots: {}, fixedBy: "REQ-010 c11" }],
 
   // 2026-09-06, issue #33 (Stripe, provisioning and the two backstops,
   // `BUILD.md` §13). Nine keys.
@@ -207,41 +224,47 @@ export const MAIL_COPY = Object.freeze({
   // omission arm: a mail whose subject could not be composed does not go
   // out at all, so the approved subject carries no number (issue #388).
   "mail.weekly.subject": ["Monday: what moved this week", { slots: {}, fixedBy: "§12" }],
-  // SPEC §8 (2026-10-07, issue 1329): the Monday mail leads with D22's four
-  // headline numbers, and the Discoverability Score is not in it. The
-  // words are the Overview tiles' own (`overview.tile.*`), kept here so the
-  // mail has its German: a second spelling of a number's name would be the
-  // second place the product speaks (ADR-001). Drafted (#759).
-  // Issue 1551 (SEO review R5.1): the published pages' own questions an AI
-  // answer linked lead, in the AI tab's words; the mention rate is named as
-  // the brand reputation it measures. Drafted (#759).
-  "mail.weekly.number.pageQuestions": ["Your pages cited", { slots: {}, fixedBy: "issue 1551 (drafted)" }],
-  "mail.weekly.number.pageQuestions.of": [
-    "of {asked} pages asked, this week",
-    { slots: { asked: "text" }, fixedBy: "issue 1551 (drafted)" },
+  // The simple model (owner, 2026-10-19): the Monday mail's numbers are
+  // Overview's, read by the same readers — Pages, Google, AI, and in the
+  // first mail of a month the figures that move over months (M-b). The
+  // Google steps are named by Overview's own `draft.ladder.*` words.
+  // Drafted (#759).
+  "mail.weekly.pages.live": ["Pages live", { slots: {}, fixedBy: "issue 1616 (drafted)" }],
+  "mail.weekly.pages.planned": ["Pages planned this week", { slots: {}, fixedBy: "issue 1616 (drafted)" }],
+  "mail.weekly.google.of": [
+    "of {n} live pages",
+    { slots: { n: "text" }, fixedBy: "issue 1616 (drafted)" },
   ],
-  "mail.weekly.number.mentionRate": ["Brand reputation: AI mention rate", { slots: {}, fixedBy: "issue 1551 (drafted)" }],
-  "mail.weekly.number.mentionRate.band": [
-    "likely {low}–{high}%",
-    { slots: { low: "text", high: "text" }, fixedBy: "SPEC §8 2026-10-07 (drafted)" },
+  "mail.weekly.google.early": ["Too early to count places: a new page usually takes weeks to show in Google’s results.", { slots: {}, fixedBy: "issue 1616 (drafted)" }],
+  "mail.weekly.google.visits": ["Visits from Google this week", { slots: {}, fixedBy: "issue 1616 (drafted)" }],
+  "mail.weekly.google.climb": [
+    "Biggest climb: {search}, from place {from} to {to}.",
+    { slots: { search: "text", from: "text", to: "text" }, fixedBy: "issue 1616 (drafted)" },
   ],
-  // D58 (issue 1287): before two weeks of the current prompt set exist the
-  // mail states the count and its sample, never a rate.
-  "mail.weekly.number.mentionRate.early": [
-    "of {answers} answers",
-    { slots: { answers: "text" }, fixedBy: "SPEC §8 2026-10-07 (drafted)" },
+  "mail.weekly.google.climb.climbing": [
+    "Biggest climb: {search}, from place {from} to {to}. Still climbing, so we leave it alone.",
+    { slots: { search: "text", from: "text", to: "text" }, fixedBy: "issue 1616 (drafted)" },
   ],
-  "mail.weekly.number.pagesCited": ["Your pages linked", { slots: {}, fixedBy: "SPEC §8 2026-10-07 (drafted)" }],
-  "mail.weekly.number.pagesCited.window": [
-    "in AI answers, last {weeks} weeks",
-    { slots: { weeks: "text" }, fixedBy: "SPEC §8 2026-10-07 (drafted)" },
+  "mail.weekly.google.climb.none": ["No page moved up this week. Pages climb over weeks, not days.", { slots: {}, fixedBy: "issue 1616 (drafted)" }],
+  "mail.weekly.ai.linked": ["Pages linked by AI", { slots: {}, fixedBy: "issue 1616 (drafted)" }],
+  "mail.weekly.ai.linked.of": [
+    "of {of} pages whose own question we asked AI",
+    { slots: { of: "text" }, fixedBy: "issue 1616 (drafted)" },
   ],
-  "mail.weekly.number.top20": ["Your pages on Google’s first two pages", { slots: {}, fixedBy: "SPEC §8 2026-10-07 (drafted)" }],
-  "mail.weekly.number.aiVisits": ["AI visits to your blog", { slots: {}, fixedBy: "SPEC §8 2026-10-07 (drafted)" }],
-  "mail.weekly.number.aiVisits.atLeast": ["at least", { slots: {}, fixedBy: "SPEC §8 2026-10-07 (drafted)" }],
-  "mail.weekly.number.aiVisits.window": [
-    "pages read, last {days} days",
-    { slots: { days: "text" }, fixedBy: "SPEC §8 2026-10-07 (drafted)" },
+  "mail.weekly.ai.early": ["Too early: no page’s own question has been asked yet", { slots: {}, fixedBy: "issue 1616 (drafted)" }],
+  "mail.weekly.ai.reads": ["Times AI read your pages this week", { slots: {}, fixedBy: "issue 1616 (drafted)" }],
+  "mail.weekly.month": ["This month: checked once a month. These move over months, not weeks.", { slots: {}, fixedBy: "issue 1616 (drafted)" }],
+  "mail.weekly.month.score": ["Visibility Score", { slots: {}, fixedBy: "issue 1616 (drafted)" }],
+  "mail.weekly.month.score.of": ["of 100", { slots: {}, fixedBy: "issue 1616 (drafted)" }],
+  "mail.weekly.month.market": ["Your market, on the first page", { slots: {}, fixedBy: "issue 1616 (drafted)" }],
+  "mail.weekly.month.market.of": [
+    "of {of} searches",
+    { slots: { of: "text" }, fixedBy: "issue 1616 (drafted)" },
+  ],
+  "mail.weekly.month.reputation": ["Reputation", { slots: {}, fixedBy: "issue 1616 (drafted)" }],
+  "mail.weekly.month.reputation.of": [
+    "of {answers} AI answers mentioned you, last {weeks} weeks",
+    { slots: { answers: "text", weeks: "text" }, fixedBy: "issue 1616 (drafted)" },
   ],
   // A headline number nobody measured says so, in the figure's place.
   "mail.weekly.number.unmeasured": ["Not measured this week", { slots: {}, fixedBy: "SPEC §8 2026-10-07 (drafted)" }],
@@ -253,6 +276,13 @@ export const MAIL_COPY = Object.freeze({
     { slots: { page: "text" }, fixedBy: "SPEC §8 2026-09-20" },
   ],
   "mail.weekly.needsYou.action": ["Open the page", { slots: {}, fixedBy: "SPEC §8 2026-09-20" }],
+  // The first row while the hosted address waits for its record, every
+  // Monday until it is connected. Drafted (#759).
+  "mail.weekly.connect": [
+    "Connect your website: your pages can’t go live at {host} until one setting is added where your web address is managed.",
+    { slots: { host: "text" }, fixedBy: "SPEC §5 2026-09-20 (drafted)" },
+  ],
+  "mail.weekly.connect.action": ["Connect your website", { slots: {}, fixedBy: "SPEC §5 2026-09-20 (drafted)" }],
   // SPEC §8 2026-09-29 (D16, issue 1147): the tracked questions whose
   // answer names the site this week and did not the week before, each by
   // its search and linked to the answer. It credits no page. Drafted (#759).
@@ -266,6 +296,9 @@ export const MAIL_COPY = Object.freeze({
   "mail.weekly.spares": ["spares, if a day’s page cannot be written", { slots: {}, fixedBy: "SPEC §7 2026-10-19 (drafted)" }],
   "mail.weekly.next.none": ["Nothing next: no open opportunity is left, and the plan is never padded.", { slots: {}, fixedBy: "SPEC §8 2026-09-20" }],
   "mail.weekly.next.item": ["{search}", { slots: { search: "text" }, fixedBy: "§12" }],
+  // Issue 1674: a committed day's row is its stop link (drafted).
+  "mail.weekly.next.day": ["{day}: {search} · Stop this page", { slots: { day: "text", search: "text" }, fixedBy: "issue 1674 (drafted)" }],
+  "mail.weekly.next.skipped": ["Days this week with no page planned: {count}", { slots: { count: "text" }, fixedBy: "issue 1674 (drafted)" }],
 
   // The three forms a judged page's row takes. Three sentences and not one
   // with a conditional: "this page" and "this page, which moved from here
@@ -357,6 +390,23 @@ export const MAIL_COPY = Object.freeze({
   // the moment the mail names, because c9's final sentence keeps the date,
   // the interval and the stop action exactly as the other criteria set
   // them.
+  // A hosted address still waiting for its record: no page goes live there
+  // until it is connected, so this mail names no moment. Drafted (#759).
+  "mail.draftReady.dest.addressNotConnected": [
+    "Your website isn’t connected yet, so this page can’t go live at {site}. Add the one setting below where your domain is managed; it’s on your Overview too. We check every hour, and it goes live once that works.",
+    { slots: { site: "text" }, fixedBy: "R20 2026-10-22 (drafted)" },
+  ],
+  "mail.draftReady.dest.addressNotConnected.noRecord": [
+    "Your website isn’t connected yet, so this page can’t go live at {site}. Add the one setting shown on your Overview. We check every hour, and it goes live once that works.",
+    { slots: { site: "text" }, fixedBy: "R20 2026-10-22 (drafted)" },
+  ],
+  "mail.draftReady.record.type": ["Type", { slots: {}, fixedBy: "R20 2026-10-22 (drafted)" }],
+  "mail.draftReady.record.name": ["Name", { slots: {}, fixedBy: "R20 2026-10-22 (drafted)" }],
+  "mail.draftReady.record.value": ["Value", { slots: {}, fixedBy: "R20 2026-10-22 (drafted)" }],
+  "mail.draftReady.waiting.subject": [
+    "Written, waiting for your website: {title}",
+    { slots: { title: "text" }, fixedBy: "SPEC §5 2026-09-20 (drafted)" },
+  ],
   "mail.draftReady.dest.cannotPublish": ["ReachKit cannot publish to {site} as things stand. Open Settings › Publishing: the destination there says what to change before this page can go live.", { slots: { site: "text" }, fixedBy: "REQ-057 c9" }],
 
   // 2026-09-07, issue #174. The two the mail itself owed, beside the seven
@@ -612,15 +662,15 @@ export const MAIL_COPY = Object.freeze({
     { slots: {}, fixedBy: "S20 (11a)" },
   ],
   "mail.reason.draftReady": [
-    "Daily draft-ready mail · switch off in Settings › Notifications.",
+    "Daily draft-ready mail · switch off in Settings › Mail.",
     { slots: {}, fixedBy: "S20 (11a)" },
   ],
   "mail.reason.published": [
-    "Published-page mail · switch off in Settings › Notifications.",
+    "Sent when your first page goes live · switch off in Settings › Mail.",
     { slots: {}, fixedBy: "S20 (11a)" },
   ],
   "mail.reason.weekly": [
-    "Monday movement mail · switch off in Settings › Notifications.",
+    "Monday movement mail · switch off in Settings › Mail.",
     { slots: {}, fixedBy: "S20 (11a)" },
   ],
   // #640: SPEC §8 gives every mail a "why it arrived" line; the setup
@@ -789,33 +839,21 @@ export const MAIL_COPY = Object.freeze({
   "mail.ops.incident.fact.draft": ["Draft", { slots: {}, fixedBy: "issue 1187" }],
   "mail.ops.incident.fact.rule": ["Rule", { slots: {}, fixedBy: "issue 1187" }],
   "mail.ops.incident.fact.sentence": ["Sentence", { slots: {}, fixedBy: "issue 1187" }],
+  // Issue 1587: DataForSEO credit runs out within a week, or is under ten dollars.
+  "mail.ops.incident.vendor-low": ["DataForSEO credit is running low. When it reaches zero every draft fails, so top up or turn on auto-recharge in the dashboard.", { slots: {}, fixedBy: "issue 1587 (drafted)" }],
+  "mail.ops.incident.fact.balance": ["Balance", { slots: {}, fixedBy: "issue 1587 (drafted)" }],
+  "mail.ops.incident.fact.days-left": ["Days left at last week's spend", { slots: {}, fixedBy: "issue 1587 (drafted)" }],
+  "mail.ops.incident.fact.dashboard": ["Dashboard", { slots: {}, fixedBy: "issue 1587 (drafted)" }],
+  // Issue 1842: Stripe refused an automatic 14-day refund.
+  "mail.ops.incident.refund-refused": ["Stripe refused an automatic 14-day refund, so the customer still has access and has not been paid back. Refund the invoice below by hand in the Stripe dashboard; the refund walk has the steps.", { slots: {}, fixedBy: "issue 1842 (drafted)" }],
+  "mail.ops.incident.fact.invoice": ["Invoice", { slots: {}, fixedBy: "issue 1842 (drafted)" }],
+  "mail.ops.incident.fact.account": ["Account", { slots: {}, fixedBy: "issue 1842 (drafted)" }],
+  "mail.ops.incident.fact.stripe-code": ["Stripe error code", { slots: {}, fixedBy: "issue 1842 (drafted)" }],
 
   // ── SPEC §8, Retention (issue 569). Owner-owed: the copy sheet is issue
   // 568. `sendEmail` refuses a mail that still carries the marker, so none of
   // these kinds sends until its sentences are written ("Unwritten keys send
   // nothing"). Slots are named for what the sequence can supply.
-  "mail.inactivity.subject": ["Your pages are still going out", { slots: {}, fixedBy: "SPEC §8 · issue 569" }],
-  "mail.inactivity.line": [
-    "You haven’t signed in for a week. ReachKit is still writing and publishing your pages, and every page goes live on its own unless you stop it first.",
-    { slots: {}, fixedBy: "SPEC §8 · issue 569" },
-  ],
-  "mail.inactivity.action": ["Sign in", { slots: {}, fixedBy: "SPEC §8 · issue 569" }],
-  "mail.reason.inactivity": [
-    "Sent after 7 days without a sign-in · signing in stops it.",
-    { slots: {}, fixedBy: "SPEC §8 · issue 569" },
-  ],
-  /** `{page}` is the draft's title; `{closesAt}` the moment its veto window
-   *  closes, in the customer's zone. */
-  "mail.vetoReminder.subject": ["A page publishes soon", { slots: {}, fixedBy: "SPEC §8 · issue 569" }],
-  "mail.vetoReminder.line": [
-    "“{page}” goes live on its own at {closesAt}. You can edit or stop it until then.",
-    { slots: { page: "text", closesAt: "date" }, fixedBy: "SPEC §8 · issue 569" },
-  ],
-  "mail.vetoReminder.action": ["Stop this page", { slots: {}, fixedBy: "SPEC §8 · issue 569" }],
-  "mail.reason.vetoReminder": [
-    "Sent when a page has less than 6 hours left to stop it.",
-    { slots: {}, fixedBy: "SPEC §8 · issue 569" },
-  ],
   "mail.paymentFailed.subject": ["Your payment didn’t go through", { slots: {}, fixedBy: "SPEC §8 · issue 569" }],
   "mail.paymentFailed.line": [
     "Your latest €49 payment for ReachKit didn’t go through. Update your payment details to settle it.",
@@ -828,6 +866,12 @@ export const MAIL_COPY = Object.freeze({
   "mail.cancellation.line": [
     "You keep full access until {accessEndsOn}, and nothing more is charged.",
     { slots: { accessEndsOn: "date" }, fixedBy: "SPEC §8 · issue 569" },
+  ],
+  /** In place of the line above when the cancel fell in the first 14 days
+   *  and the first payment was refunded (owner D4, E13). */
+  "mail.cancellation.refunded": [
+    "Your first payment was refunded in full, as promised for a cancel in the first 14 days. Your bank usually shows it within 5 to 10 business days. ReachKit stopped on {accessEndsOn}, and nothing more is charged.",
+    { slots: { accessEndsOn: "date" }, fixedBy: "issue 1591 (drafted)" },
   ],
   "mail.winback.subject": ["Pick up where you left off", { slots: {}, fixedBy: "SPEC §8 · issue 569" }],
   "mail.winback.line": [

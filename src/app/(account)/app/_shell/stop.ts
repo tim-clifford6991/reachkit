@@ -22,15 +22,15 @@
 import { now as clock } from "@/lib/config/now";
 import { stopCause, type WorkStop } from "@/lib/presentation/stopped";
 
-/** Whether the day's product-wide spend has reached `CAPS.DAILY_PRODUCT_C`,
+/** Whether the day's product-wide spend has reached the day's ceiling,
  *  over the same ledger the cost seam refuses calls from. A ledger that
  *  could not be read is not a stop the screen can state: the paid path
  *  holds on it (issue 792), but nothing is known to have been reached, and
  *  the founder is not told a fact nobody has. */
 async function dayCeilingReached(at: Date): Promise<boolean> {
-  const { readDaySpendCents, ceilingReached } = await import("@/lib/costs/daily");
-  const spent = await readDaySpendCents(at);
-  return spent !== null && ceilingReached(spent);
+  const { readDaySpendCents, readDayCeilingCents, ceilingReached } = await import("@/lib/costs/daily");
+  const [spent, ceilingCents] = await Promise.all([readDaySpendCents(at), readDayCeilingCents(at)]);
+  return spent !== null && ceilingReached(spent, ceilingCents);
 }
 
 /**

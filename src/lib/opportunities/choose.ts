@@ -4,7 +4,6 @@
 import { PLAN_DEPTH, WEEK_PLAN } from "@/lib/config/constants";
 import { placeFixPages, rankingOf, type RankLoad, type Rejection } from "./rank/open";
 import type { PlanEntry } from "./store";
-import type { PlaceRule } from "./types";
 
 const DAY_MS = 86_400_000;
 
@@ -16,8 +15,8 @@ export interface ChooseInput extends RankLoad {
 
 export interface Choice {
   /** The next `WEEK_PLAN.days` pages, one a day from `from`, then
-   *  `WEEK_PLAN.spares` spares, each with the rule that placed it. */
-  committed: (PlanEntry & { rule: PlaceRule | null })[];
+   *  `WEEK_PLAN.spares` spares, each with its points and the rule that placed it. */
+  committed: PlanEntry[];
   /** Every other open row, with why it is not in the week. */
   rejected: { opportunityId: string; reason: Rejection | "after_the_week" }[];
 }
@@ -32,7 +31,7 @@ export function choose(input: ChooseInput): Choice {
       place,
       plannedFor: place < WEEK_PLAN.days ? new Date((first + place) * DAY_MS).toISOString().slice(0, 10) : null,
       writeAs: entry.writeAs ?? null,
-      rule: entry.rule ?? null,
+      reason: entry.reason,
     })),
     rejected: [...rejected, ...ranked.slice(PLAN_DEPTH).map((entry) => ({ opportunityId: entry.opportunityId, reason: "after_the_week" as const }))],
   };

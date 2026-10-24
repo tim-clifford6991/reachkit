@@ -21,6 +21,7 @@ describe("S1 — the landing's chips carry the icons the approved set draws", ()
   const LANDING_FILES = [
     "app/(public)/page.tsx",
     "app/(public)/_landing/InsideReachKit.tsx",
+    "app/(public)/_landing/Storyboard.tsx",
     "app/(public)/_landing/Features.tsx",
     "app/(public)/_landing/ScanForm.tsx",
   ] as const;
@@ -53,11 +54,17 @@ describe("S1 — the landing's chips carry the icons the approved set draws", ()
     //
     // Issue #1396 replaced the "Demo video coming soon" frame with the
     // eight steps, which carry numbers, so `Play` went with the frame.
+    //
+    // The 2026-10-19 board draws the story card's five frames — globe,
+    // search, file, bot, coffee — and an arrow on each plain link onward.
     expect(iconsImported()).toEqual([
+      "ArrowRight",
       "Bot",
       "Check",
       "Clock",
+      "Coffee",
       "FileText",
+      "Globe",
       "MessageSquare",
       "Search",
       "Send",

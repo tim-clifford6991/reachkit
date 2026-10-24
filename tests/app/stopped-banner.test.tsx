@@ -46,7 +46,6 @@ vi.mock("@/lib/publish/switch", async (importOriginal) => ({
 }));
 
 const AT = new Date(Date.UTC(2026, 8, 14, 6, 0, 0));
-const MONTH = "2026-09";
 
 /** The deep pass the owner walked: complete, zero questions — §6's market
  *  too small — and so no SERPs, no rivals and no opportunities. */
@@ -113,7 +112,7 @@ async function overview(): Promise<Element> {
 }
 
 async function calendar(): Promise<Element> {
-  const page = await CalendarPage({ searchParams: Promise.resolve({ month: MONTH }) });
+  const page = await CalendarPage();
   return render(await settledMarkup(await AppLayout({ children: page })));
 }
 

@@ -2,14 +2,14 @@
 
 From `docs/walk/panel/2026-10-11.json`: 13 stored topics, 6 committed from 2026-10-19.
 
-| Place | Day | Search | Type | Fit | Volume | Rule | Written as |
-|---|---|---|---|---|---|---|---|
-| 0 | 2026-10-19 | best ux design agency | listed_page | 3 | 40 | best | — |
-| 1 | 2026-10-20 | user experience research agency | listed_page | 3 | 50 | best | — |
-| 2 | 2026-10-21 | ideo alternatives | comparison_page | 3 | — | over the D52 cap, as a Q&A | qa |
-| 3 | 2026-10-22 | koos alternatives | comparison_page | 3 | — | over the D52 cap, as a Q&A | qa |
-| 4 | 2026-10-23 | work & co alternatives | comparison_page | 3 | — | over the D52 cap, as a Q&A | qa |
-| 5 | 2026-10-24 | make it clear alternatives | comparison_page | 3 | — | over the D52 cap, as a Q&A | qa |
+| Place | Day | Search | Type | Page | Fit | Volume | Points | Parts | Rule | Written as |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 0 | 2026-10-19 | user experience research agency | listed_page | offering | 3 | 50 | 5 | fit 3 + demand 2 | best | — |
+| 1 | 2026-10-20 | best ux design agency | listed_page | offering | 3 | 40 | 5 | fit 3 + demand 2 | best | — |
+| 2 | 2026-10-21 | ideo alternatives | comparison_page | listicle | 3 | — | 3 | fit 3 | best, offering full | — |
+| 3 | 2026-10-22 | koos alternatives | comparison_page | listicle | 3 | — | 3 | fit 3 | over the D52 cap, as a Q&A | qa |
+| 4 | 2026-10-23 | work & co alternatives | comparison_page | listicle | 3 | — | 3 | fit 3 | over the D52 cap, as a Q&A | qa |
+| 5 | 2026-10-24 | make it clear alternatives | comparison_page | listicle | 3 | — | 3 | fit 3 | over the D52 cap, as a Q&A | qa |
 
 | Not chosen | Type | Fit | Volume | Reason |
 |---|---|---|---|---|

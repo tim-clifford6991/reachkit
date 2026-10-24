@@ -194,10 +194,9 @@ function watchNetwork(o: Options, spent: () => number): Watch {
 
 // ── One site ───────────────────────────────────────────────────────────────
 
-/** The pass's own steps, less the two the panel does not run. */
+/** The pass's own steps, less the one the panel does not run. */
 const step: PassStep = async (name, body) => {
   if (name === "first-draft") return "completed" as never;
-  if (name === "rivals-remeasure") return null as never;
   return body();
 };
 

@@ -51,9 +51,9 @@ export const META_COPY = Object.freeze({
   /** Spent twice: the landing's `<meta name="description">` and the web
    *  manifest's `description`, which describe the same product to two
    *  readers. Read from one key rather than written twice (rule 2.4). */
-  "meta.landing.description": ["Free scan, no account: see where Google and AI send buyers to your competitors, then let ReachKit publish a page every day, new or updated, to close the gap.", { slots: {}, fixedBy: "issue 326" }],
+  "meta.landing.description": ["Free scan, no account: see where Google and AI send buyers to your competitors, then let ReachKit publish up to {weekPages} pages a week, new or updated, to close the gap.", { slots: { weekPages: "text" }, fixedBy: "issue 326 · owner A1 2026-10-19" }],
   "meta.pricing.title": ["Pricing · €49 a month · ReachKit", { slots: {}, fixedBy: "issue 326" }],
-  "meta.pricing.description": ["One plan at €49 a month, VAT included: a page every day for your site, new or updated, a weekly scan of your market, and time to stop any page before it goes live.", { slots: {}, fixedBy: "issue 326" }],
+  "meta.pricing.description": ["One plan at €49 a month, VAT included: up to {weekPages} pages a week for your site, new or updated, a weekly scan of your market, and time to stop any page before it goes live.", { slots: { weekPages: "text" }, fixedBy: "issue 326 · owner A1 2026-10-19" }],
 
   /* ── The three legal pages ────────────────────────────────────────────
      Their on-screen headings are `legal.*.title` and are approved as
@@ -110,7 +110,7 @@ export const META_COPY = Object.freeze({
   "meta.report.description": ["How easily buyers find {domain} on Google and in AI answers, and the pages that would change it. Permanent link.", { slots: { domain: "text" }, fixedBy: "issue 326 · issue 1309" }],
   "meta.veto.title": ["Stop this page · ReachKit", { slots: {}, fixedBy: "issue 326" }],
   "meta.veto.description": ["A page ReachKit wrote for your site is waiting to publish. Stop it here in one step, or do nothing and it goes live as planned.", { slots: {}, fixedBy: "issue 326" }],
-  "meta.optout.title": ["Opted out · ReachKit", { slots: {}, fixedBy: "issue 326" }],
+  "meta.optout.title": ["Unsubscribed · ReachKit", { slots: {}, fixedBy: "issue 326" }],
   "meta.optout.description": ["This link stops every follow-up email from ReachKit to your address. The page you asked for stays yours.", { slots: {}, fixedBy: "issue 326" }],
   // Issue 1512: the 404 had no `<title>`. Next reads no `metadata` from a `not-found.tsx`, so the screen renders this one itself.
   "meta.notfound.title": ["Page not found · ReachKit", { slots: {}, fixedBy: "issue 1512 · drafted" }],
@@ -170,8 +170,8 @@ export const META_COPY = Object.freeze({
   // #924: the DNS step after setup is its own address, so it says which
   // screen it is rather than falling back to the account layout's floor.
   "meta.app.setup.connect.title": [
-    "Connect your blog · ReachKit",
-    { slots: {}, fixedBy: "issue 945" },
+    "Connect your website · ReachKit",
+    { slots: {}, fixedBy: "owner E11 · issue 1601" },
   ],
 
   /* ── Settings' six sibling tabs (#925) ────────────────────────────────

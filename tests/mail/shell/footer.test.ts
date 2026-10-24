@@ -56,11 +56,11 @@ describe("issue #376 — S20's footer, in both bodies", () => {
     // the register rather than against itself — a fourth kind added to
     // `MAIL_KINDS` without a footer line fails here, naming itself.
     const drawn = ["magic-link", "report", "first-page", "draft-ready", "published", "weekly", "nurture"];
-    // SPEC §8's three retention follow-ups carry a reason key (owner-owed, #568).
-    const retentionWithReason = ["inactivity", "veto-reminder", "win-back"];
+    // SPEC §8's win-back carries a reason key.
+    const retentionWithReason = ["win-back"];
     drawn.push(...retentionWithReason);
     const registered = Object.keys(MAIL_KINDS);
-    expect(registered).toHaveLength(16);
+    expect(registered).toHaveLength(14);
     expect([...NO_REASON_YET].sort()).toEqual(registered.filter((k) => !drawn.includes(k)).sort());
   });
 
@@ -126,7 +126,7 @@ describe("issue #376 — S20's footer, in both bodies", () => {
 
   it("the reason line is the one place a mail says why it arrived", () => {
     // S20 puts the stop instruction inside the reason for a togglable
-    // kind — "switch off in Settings › Notifications" — so the three
+    // kind — "switch off in Settings › Mail" — so the three
     // toggle kinds say how to stop without needing a second control.
     for (const key of [
       "mail.reason.draftReady",

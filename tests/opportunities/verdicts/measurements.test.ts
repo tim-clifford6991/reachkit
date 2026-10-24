@@ -10,7 +10,7 @@
 import "../env";
 import { afterEach, describe, expect, it } from "vitest";
 import { weekMeasurementsFrom } from "../../../src/lib/opportunities/verdicts/measurements";
-import { placeOf } from "../../../src/lib/opportunities/verdicts/evaluate";
+import { placeOf } from "../../../src/lib/measure/page-reading";
 import { measured, unmeasured } from "../../../src/lib/measure/measured";
 import { AT, DOMAIN, question, reportOf, serp } from "../fixtures";
 import { emptyReport, PAGE_URL, reportWithOwnPlace, releaseStore, WEEK } from "./harness";
@@ -92,6 +92,46 @@ describe("positions — each search's rows, from which a page takes its own plac
     expect(placeAt(reportWithOwnPlace(null, { ownRanked: measured(300, AT), ownRankedRows: elsewhere }))?.kind).toBe("zero");
   });
 
+  it("issue 1537 — on its own question's result, read past twenty, a page on page two is seen there on a site of any size", () => {
+    const TARGET = "water heater repair austin";
+    const capped = { ownRanked: measured(1200, AT), ownRankedRows: Array.from({ length: 300 }, (_, i) => ({ keyword: `other search ${i}`, position: 1 + (i % 50), searchVolume: 90, url: `https://${DOMAIN}/p${i}` })) };
+    const rival = { url: "https://rival.test/a", position: 1 };
+    const withRow = (organic: { url: string; position: number }[], depth?: number) =>
+      reportWithOwnPlace(null, {
+        ...capped,
+        pageQuestions: {
+          measuredAt: AT,
+          ownDomain: DOMAIN,
+          tracked: 13,
+          cap: 24,
+          retired: [],
+          rows: [
+            {
+              publicationId: "pub-1",
+              liveUrl: PAGE_URL,
+              question: { n: 13, wording: { source: "model", text: "Who repairs water heaters in Austin?" }, search: TARGET },
+              cell: { kind: "no_answer" },
+              engines: [],
+              organic,
+              ...(depth === undefined ? {} : { depth }),
+            },
+          ],
+        } as never,
+      });
+    const placeOn = (report: ReturnType<typeof withRow>) => {
+      const reading = weekMeasurementsFrom({ report, week: WEEK, targets: [TARGET] }).positions.get(TARGET);
+      return reading === undefined ? undefined : placeOf(reading, [PAGE_URL]);
+    };
+    const at14 = placeOn(withRow([rival, { url: PAGE_URL, position: 14 }], 100));
+    expect(at14?.kind === "measured" && at14.value).toBe(14);
+    // Absent from a result read past the verdict's line is a measured zero.
+    expect(placeOn(withRow([rival], 30))?.kind).toBe("zero");
+    // A ten-deep row stored before cannot say the page is not at 11–20.
+    expect(placeOn(withRow([rival]))?.kind).toBe("unmeasured");
+    // Nor can a thin market's slot past the deep twelve, which says it read ten.
+    expect(placeOn(withRow([rival], 10))?.kind).toBe("unmeasured");
+  });
+
   it("an earlier address of the same page counts as the page (issue 1487)", () => {
     const report = reportOf({
       questions: [question()],
@@ -100,44 +140,6 @@ describe("positions — each search's rows, from which a page takes its own plac
     const reading = weekMeasurementsFrom({ report, week: WEEK }).positions.get(SEARCH);
     const place = reading === undefined ? undefined : placeOf(reading, [PAGE_URL, "https://content.example.com/old-slug"]);
     expect(place?.kind === "measured" && place.value).toBe(5);
-  });
-});
-
-describe("namesCustomer — this week's AI answer, keyed by the question a named_on test records", () => {
-  it("the key is the question's own wording, which is what the acceptance test recorded", () => {
-    const week = weekMeasurementsFrom({ report: reportWithOwnPlace(3), week: WEEK });
-    expect(week.namesCustomer.has(question().text)).toBe(true);
-  });
-});
-
-describe("ownPagesCited — the site's own pages this week's answer cited (SPEC §4 2026-09-29, D16)", () => {
-  const cited = (referenceUrls?: string[]) =>
-    weekMeasurementsFrom({
-      report: reportOf({
-        questions: [question()],
-        serps: [
-          serp({
-            aiOverview: {
-              present: true,
-              asynchronousAiOverview: true,
-              referenceDomains: [DOMAIN, "appcues.com"],
-              ...(referenceUrls === undefined ? {} : { referenceUrls }),
-            },
-          }),
-        ],
-      }),
-      week: WEEK,
-    }).ownPagesCited.get(question().text);
-
-  it("keeps the site's own addresses and no one else's", () => {
-    expect(cited([`https://${DOMAIN}/guides/p`, "https://appcues.com/a"])).toMatchObject({
-      kind: "measured",
-      value: [`https://${DOMAIN}/guides/p`],
-    });
-  });
-
-  it("an answer stored without its addresses names the site and says nothing about which page", () => {
-    expect(cited()?.kind).toBe("unmeasured");
   });
 });
 
@@ -168,6 +170,5 @@ describe("the week's own identity", () => {
   it("a report that measured no question at all yields no search and no question — which judgeWeek never reaches, because such a week is no_week", () => {
     const week = weekMeasurementsFrom({ report: emptyReport(), week: WEEK });
     expect(week.positions.size).toBe(0);
-    expect(week.namesCustomer.size).toBe(0);
   });
 });

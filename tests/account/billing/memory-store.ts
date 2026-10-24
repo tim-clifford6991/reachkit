@@ -13,6 +13,7 @@ import type {
   BillingRow,
   BillingStore,
   HostingRow,
+  PeriodPageRow,
   SubscriptionFacts,
 } from "../../../src/lib/account/billing";
 
@@ -24,6 +25,18 @@ type Writable<T> = { -readonly [K in keyof T]: T[K] };
 export interface MemoryBilling {
   users: BillingRow[];
   sites: HostingRow[];
+  /** Delivered publications, and scans with their Monday mail and report, as `period` filters them. */
+  publications: (PeriodPageRow & { site_id: string; published_at: string; unpublished_at: string | null })[];
+  scans: {
+    site_id: string;
+    created_at: string;
+    status: "running" | "done" | "degraded" | "failed";
+    digest_sent_at?: string | null;
+    report?: unknown;
+  }[];
+  /** `sites.domain` as stored, per owner. */
+  domains: { user_id: string; domain: string | null }[];
+  refunds: { invoice_id: string; user_id: string; subscription_id: string | null; domains: readonly string[]; refunded_at: string }[];
   failAccountRead: boolean;
   failHostingRead: boolean;
   failWrite: boolean;
@@ -33,6 +46,10 @@ export function newMemoryBilling(): MemoryBilling {
   return {
     users: [],
     sites: [],
+    publications: [],
+    scans: [],
+    domains: [],
+    refunds: [],
     failAccountRead: false,
     failHostingRead: false,
     failWrite: false,
@@ -52,6 +69,7 @@ export function account(a: Partial<BillingRow> & { id: string }): BillingRow {
     cancelled_at: null,
     last_subscription_event_id: null,
     deleted_at: null,
+    created_at: new Date().toISOString(),
     ...a,
     id: a.id,
   };
@@ -129,6 +147,12 @@ export function memoryBillingStore(state: MemoryBilling): BillingStore {
   }
 
   return {
+    async payingSiteCount(at) {
+      if (state.failHostingRead) return { ok: false };
+      const count = state.sites.filter((s) => new Date(joined(s).owner_paid_through) > at).length;
+      return { ok: true, count };
+    },
+
     async paidThroughForSite(siteId) {
       if (state.failHostingRead) return { ok: false };
       const found = state.sites.find((s) => s.id === siteId);
@@ -239,6 +263,48 @@ export function memoryBillingStore(state: MemoryBilling): BillingStore {
           ? { hosting_end_notice_at: at.toISOString() }
           : { hosting_end_reminder_at: at.toISOString() };
       return patchSite(siteId, patch) ? { ok: true } : { ok: false };
+    },
+
+    async siteDomains(userId) {
+      if (state.failHostingRead) return { ok: false };
+      return {
+        ok: true,
+        domains: state.domains.flatMap((d) => (d.user_id === userId && d.domain !== null ? [d.domain] : [])),
+      };
+    },
+
+    async refundsFor(userId, domains) {
+      if (state.failAccountRead) return { ok: false };
+      return {
+        ok: true,
+        refunds: state.refunds.filter((r) => r.user_id === userId || r.domains.some((d) => domains.includes(d))),
+      };
+    },
+
+    async recordRefund(a) {
+      if (state.failWrite) return { ok: false };
+      if (!state.refunds.some((r) => r.invoice_id === a.invoiceId)) {
+        state.refunds.push({ invoice_id: a.invoiceId, user_id: a.userId, subscription_id: a.subscriptionId, domains: a.domains, refunded_at: a.at.toISOString() });
+      }
+      return { ok: true };
+    },
+
+    async period(siteId, from, to) {
+      if (state.failHostingRead) return { ok: false };
+      const within = (at: string): boolean => Date.parse(at) >= from.getTime() && Date.parse(at) < to.getTime();
+      return {
+        ok: true,
+        pages: state.publications.filter(
+          (p) => p.site_id === siteId && p.unpublished_at === null && within(p.published_at)
+        ),
+        reports: state.scans
+          .flatMap((s) => (s.site_id === siteId && s.digest_sent_at != null && within(s.digest_sent_at) ? [s.digest_sent_at] : []))
+          .sort(),
+        newestReport:
+          state.scans
+            .filter((s) => s.site_id === siteId && (s.status === "done" || s.status === "degraded") && s.report != null && within(s.created_at))
+            .sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at))[0]?.report ?? null,
+      };
     },
   };
 }

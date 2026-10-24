@@ -37,7 +37,7 @@
 //
 // **The hard rules bind what ReachKit generates, never what the customer
 // writes.** An edit the customer saves does not come through here.
-import { PAGE_BLOCKS, PIPELINE } from "@/lib/config/constants";
+import { HEADING_GAPS, PAGE_BLOCKS, PIPELINE } from "@/lib/config/constants";
 import type { CostContext } from "@/lib/costs";
 import type { Tier } from "@/lib/llm/tiers";
 import type { Opportunity } from "@/lib/opportunities";
@@ -72,7 +72,7 @@ import { builtFromOutside, packStatements, type ContextPack, type PackClaim } fr
 import { fixNotes, repairable, repairMechanical, type FixNote, type RepairRecord } from "./repair";
 import { completeTables, withSources } from "./sources";
 import { comparisonTable, withTable } from "./table";
-import { titleRuleFor } from "./title";
+import { titleRuleFor, unclaimedSuperlatives } from "./title";
 import { fixPage, writePage, type PageParts } from "./write";
 
 /** The stages a page can stop at without a rule failing. */
@@ -213,6 +213,8 @@ export async function generateDraft(c: CostContext, a: GenerateInputs): Promise<
     // D60: the search the page should rank for and the prompt it should be
     // cited for, as decided with its topic.
     ...(a.intent === undefined || a.intent === null ? {} : { intent: a.intent }),
+    // Why the week committed the slot this page fills.
+    ...(a.opportunity.planReason == null ? {} : { why: a.opportunity.planReason }),
     ...(priorRepairs.length === 0 ? {} : { repairs: priorRepairs }),
   };
   /** The date's row, written or rewritten. `attribution` is the byline the
@@ -255,8 +257,10 @@ export async function generateDraft(c: CostContext, a: GenerateInputs): Promise<
   }
 
   const liveWords = pack.live === null ? null : sectionWords(pack.live.markdown);
-  // Issue 1390: a short answer is held to its own length, not its type's.
-  const length = voiceLength(pack.voice) ?? lengthRangeFor(template, liveWords);
+  // Issue 1390: a short answer is capped at its own length, not its type's.
+  // Issue 1521: a refresh that may add sections on what the pages above it
+  // cover may grow to the update's grown share.
+  const length = lengthRangeFor(template, { questions: pack.questions.length, cap: voiceLength(pack.voice)?.ceiling, liveWords, grown: pack.gaps !== undefined });
   // D47: a comparison written as a Q&A for want of two rivals compares
   // nobody, so it is told to answer, not to compare.
   const becameQa = pack.type === "qa" && contentTypeOf(a.opportunity) === "listicle";
@@ -270,7 +274,7 @@ export async function generateDraft(c: CostContext, a: GenerateInputs): Promise<
     pageType,
     // An update with no live page to measure against never reaches here: its
     // pack is short. The fallback keeps the type total.
-    length: length ?? { floor: 0, ceiling: Number.MAX_SAFE_INTEGER },
+    length: length ?? { floor: 0, target: 0, ceiling: Number.MAX_SAFE_INTEGER },
     ...(a.tier === undefined ? {} : { tier: a.tier }),
   };
 
@@ -289,6 +293,7 @@ export async function generateDraft(c: CostContext, a: GenerateInputs): Promise<
     promises: pack.profile?.promises ?? [],
     queries: searches,
     names: [...names, ...pack.products.map((product) => product.domain.split(".")[0] ?? "")],
+    unclaimed: unclaimedSuperlatives(pack),
     // D51: an update keeps its live title.
     ...(pack.type === "update" && pack.live !== null
       ? { live: { title: pack.live.title, markdown: pack.live.markdown, year: new Date(pack.builtAt).getUTCFullYear() } }
@@ -350,6 +355,9 @@ export async function generateDraft(c: CostContext, a: GenerateInputs): Promise<
       // Which of the template's sections each heading fills.
       sections: page.laid.sections,
       ...(page.laid.updated === "" ? {} : { updateNote: page.laid.updated }),
+      // Issue 1521 (as 1507): a refresh that says nothing new keeps the
+      // live version's dates.
+      ...(page.laid.kept && pack.live?.datedAs !== undefined ? { datedAs: pack.live.datedAs } : {}),
       // The business facts the page states or links, each with the page it
       // was read from (#931) — the grounded one always among them.
       factsUsed: [grounding.fact, ...used.filter((fact) => fact.passage !== grounding.fact.passage)].map((fact) => ({
@@ -369,7 +377,7 @@ export async function generateDraft(c: CostContext, a: GenerateInputs): Promise<
       // Issue 1391: the pages code chose for this page to link, each with
       // why — what the draft screen's *Links on this page* reads.
       links: a.links.map((link) => ({ url: link.url, label: link.label, source: link.source, why: link.why ?? null })),
-      length: { words: bodyWords(page.markdown), floor: length?.floor ?? null, ceiling: length?.ceiling ?? null },
+      length: { words: bodyWords(page.markdown), floor: length?.floor ?? null, target: length?.target ?? null, ceiling: length?.ceiling ?? null },
       ...(repairs.length === 0 ? {} : { repairs: [...priorRepairs, ...repairs] }),
       // Issue 1394: the rules this run asked of the page and the ones it
       // failed first and then cleared, for the draft screen's Checks list.
@@ -437,6 +445,8 @@ export async function generateDraft(c: CostContext, a: GenerateInputs): Promise<
         ...(table?.baseline == null ? {} : { baseline: table.baseline }),
         // Issue 1486: a step that names the business is its own.
         businessName: a.site.businessName,
+        // Issue 1521: what a growing refresh may add, and on what.
+        ...(pack.type === "update" && pack.live !== null && pack.gaps !== undefined ? { growth: { live: pack.live.markdown, gaps: pack.gaps } } : {}),
       },
       titleRule: { ...titleRuleFor(pack, { description: candidate.laid.body.description, sections: candidate.laid.sections }), settled },
       // D61: a Q&A's questions are each their own.
@@ -524,7 +534,10 @@ export async function generateDraft(c: CostContext, a: GenerateInputs): Promise<
     const words = pack.type === "update" ? sectionWords(stopped.page.markdown) : bodyWords(stopped.page.markdown);
     return fixNotes(stopped.page.markdown, stopped.outcome.failed, briefRead, a.site, stopped.page.laid.body.title).map((note) => {
       if (note.rule === "required_blocks" && note.sentences.includes("length") && length !== null) {
-        return { ...note, sentences: [`length: ${pack.type === "update" ? "the sections have" : "the body has"} ${words} words and must have between ${length.floor} and ${length.ceiling}`] };
+        return { ...note, sentences: [`length: ${pack.type === "update" ? "the sections have" : "the body has"} ${words} words and must have ${length.floor > 0 ? `between ${length.floor} and ` : "at most "}${length.ceiling}`] };
+      }
+      if (note.rule === "required_blocks" && note.sentences.includes("new_sections")) {
+        return { ...note, sentences: [`new sections: at most ${HEADING_GAPS.sectionsMax} sections may be new, each headed by one of \`pack.gaps\` and linking a url of that gap's \`claims\`; return every other section under its live heading`] };
       }
       if (note.rule === "required_blocks" && note.sentences.includes("own_steps")) {
         return { ...note, sentences: [`steps: at most ${template.blocks.steps?.own ?? 1} step may be this business's own product or process; every other step is the task as \`pack.claims\` describe it, linking the claim's url`] };

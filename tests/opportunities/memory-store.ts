@@ -22,9 +22,11 @@ import type {
 import type { MarketConclusion } from "../../src/lib/market/infer/types";
 import type { Profile } from "../../src/lib/market/questions/profile";
 import type { HostedOwnPages } from "../../src/lib/publish/destinations/hosted/own-page";
+import { dismissedSearchesOf } from "../../src/lib/opportunities/store";
 import { topTensOf } from "../../src/lib/opportunities/cluster";
 import type { AskedBeside } from "../../src/lib/opportunities/derive/topics";
 import type { EarnGrounding } from "../../src/lib/opportunities/earn-grounding";
+import type { OwnLivePage } from "../../src/lib/opportunities/refresh";
 import type { NotWorkingVerdict } from "../../src/lib/opportunities/suppression";
 import type { StoredReport } from "../../src/lib/scan/report";
 import type { InventoryRow } from "../../src/lib/site-profile/types";
@@ -72,6 +74,10 @@ export interface MemoryState {
    *  index's own suite's subject (`tests/known-content/`); what this records
    *  is that the pass asks for one before it derives. */
   knownRefreshes: { siteId: string; domain: string; pages: number }[];
+
+  /** The site's live pages of ours, as `refreshPages` answers them; absent
+   *  reads as none. */
+  livePages?: OwnLivePage[];
 }
 
 export function newMemoryState(over: Partial<MemoryState> = {}): MemoryState {
@@ -220,8 +226,8 @@ export function memoryStore(state: MemoryState): OpportunityStore {
 
     async dismissedSearches(siteId) {
       return state.rows
-        .filter((row) => row.site_id === siteId && row.status === "dismissed" && row.family !== "fix" && row.target_query !== null)
-        .map((row) => ({ query: row.target_query!, volume: row.volume }));
+        .filter((row) => row.site_id === siteId && row.status === "dismissed" && row.family !== "fix")
+        .flatMap(dismissedSearchesOf);
     },
 
     async setCluster(opportunityId, clusterKey, absorbedQueries) {
@@ -281,6 +287,12 @@ export function memoryStore(state: MemoryState): OpportunityStore {
       row.fit_band = band;
     },
 
+    async setEvidence(opportunityId, evidence) {
+      const row = state.rows.find((r) => r.id === opportunityId);
+      if (row === undefined) return;
+      row.evidence = JSON.parse(JSON.stringify(evidence));
+    },
+
     async setBusinessFit(opportunityId, fit, source, pageType) {
       const row = state.rows.find((r) => r.id === opportunityId);
       if (row === undefined) return;
@@ -299,6 +311,7 @@ export function memoryStore(state: MemoryState): OpportunityStore {
         row.plan_place = null;
         row.planned_for = null;
         row.plan_write_as = null;
+        row.plan_reason = null;
       }
       for (const entry of entries) {
         const row = state.rows.find((r) => r.id === entry.opportunityId && r.site_id === siteId);
@@ -306,6 +319,7 @@ export function memoryStore(state: MemoryState): OpportunityStore {
         row.plan_place = entry.place;
         row.planned_for = entry.plannedFor;
         row.plan_write_as = entry.writeAs;
+        row.plan_reason = entry.reason;
       }
     },
 
@@ -335,16 +349,34 @@ export function memoryStore(state: MemoryState): OpportunityStore {
 
     async markQueued(opportunityId) {
       const row = state.rows.find((r) => r.id === opportunityId);
-      if (row === undefined || row.status !== "open") return;
+      if (row === undefined || row.status !== "open") return false;
       row.status = "queued";
+      state.statusChangedAt.set(row.id, state.now);
+      return true;
+    },
+
+    async reopenIfQueued(opportunityId) {
+      const row = state.rows.find((r) => r.id === opportunityId);
+      if (row === undefined || row.status !== "queued") return;
+      row.status = "open";
       state.statusChangedAt.set(row.id, state.now);
     },
 
-    async markDismissed(opportunityId) {
+    async markDismissed(opportunityId, a) {
       const row = state.rows.find((r) => r.id === opportunityId);
       if (row === undefined || (row.status !== "open" && row.status !== "queued")) return;
       row.status = "dismissed";
+      if (a?.stopped) row.stopped = true;
       state.statusChangedAt.set(row.id, state.now);
+    },
+
+    async dismissIfOpen(opportunityId) {
+      const row = state.rows.find((r) => r.id === opportunityId);
+      if (row === undefined || row.status !== "open") return false;
+      row.status = "dismissed";
+      row.stopped = true;
+      state.statusChangedAt.set(row.id, state.now);
+      return true;
     },
 
     async rest(opportunityId, until) {
@@ -383,6 +415,10 @@ export function memoryStore(state: MemoryState): OpportunityStore {
 
     async refreshKnownContent({ siteId, domain, inventory }) {
       state.knownRefreshes.push({ siteId, domain, pages: inventory.length });
+    },
+
+    async refreshPages() {
+      return state.livePages ?? [];
     },
   };
 }

@@ -1,135 +1,84 @@
-// SPEC §4, §6, §7 (issue 867; merged in issue 930) — what this page is for,
-// on the screen the founder edits it on.
-//
-// The owner, 2026-09-17: the customer was never shown what their content is
-// optimising for. Every value here was measured by the pass that chose the
-// page and copied onto its opportunity at creation: the search, how it is
-// asked, its demand, its difficulty against the ceiling this site is judged
-// by (§6, issue 858), the band, where the AI engines stood, and what "done"
-// means for it.
-//
-// **The rows are no longer this file's** (issue 930). Issue 867 merged the
-// *facts* into `_shell/page-target.ts`; what stayed doubled was the list
-// that renders them — this screen drew seven rows and the day panel drew
-// seven others, in a different order, with different opinions about which
-// values fold. `calendar/TargetRows.tsx` is now the one renderer and
-// `calendar/target.ts` the one projection, and this file is the card around
-// them plus the two states a draft's target can be in that have no rows at
-// all.
-//
-// The two members the day panel reads and this screen does not — the best
-// rival and where the site stands — are `null` here, stated rather than
-// implied: a screen that does not read a fact says so, and the renderer
-// draws no row for it (`TargetFacts`).
-//
-// daisyUI `card` in the route (docs/DESIGN.md rule 1): no new component, no
-// CSS of its own.
-// **Two notes** (SPEC §7, 2026-10-07, issue 1325; they were two halves of
-// one card, #1072): *What this page is for* and *In search results* are each
-// one closed line under the page, so neither is hidden under the other's
-// name.
+// SPEC §7 — why this page was written, and the search it is for (board
+// `AppDraft`): the week's reason in words, then one closed line naming the
+// search, how often it is searched and who answers it today. Every value was
+// stored on the opportunity when the page was chosen; nothing is re-measured.
 import type React from "react";
-import { Target } from "lucide-react";
+import { Search } from "lucide-react";
 import { copy } from "@/lib/presentation/copy";
-import { TargetRows } from "../../calendar/TargetRows";
-import { targetFactsOf } from "../../calendar/target";
-import type { DraftTarget, Publisher } from "./model";
-import { setAsideRows, type SetAside } from "../../_overview/done";
-import { CLOSED } from "../../_overview/present";
-import { NOTE, SearchResult } from "./ReviewCards";
+import { whyLineOf } from "../../calendar/card-lines";
+import { targetReadings } from "../../calendar/TargetRows";
+import type { DraftTarget } from "./model";
+import { NOTE } from "./ReviewCards";
 
 const FIT_COPY = Object.freeze({
   answer: "draft.why.fit.answer",
   helps: "draft.why.fit.helps",
 } as const);
 
-const WHY_GROUP = "flex min-w-0 flex-col gap-1 border-t border-base-300 pt-3 text-sm";
+type Target = Extract<DraftTarget, { kind: "target" }>;
 
-/**
- * Why this topic, and the topics set aside (SPEC §4, 2026-10-10; issue
- * 1395) — one level down, inside the note the target's rows already open
- * in. The fit is a category in words and never the stored number; demand is
- * the searches-a-month row above, so it is not said twice. A fact the pass
- * did not store draws no line, and a group with no line draws no heading.
- */
-function WhyThisTopic(p: {
-  target: Extract<DraftTarget, { kind: "target" }>;
-  setAside: SetAside | undefined;
-}): React.JSX.Element | null {
-  const why = p.target.why;
+/** The reason lines a target carries: the week's stored reason, then the fit. */
+function reasonLines(target: Target): string[] {
+  const why = target.why;
   const lines: string[] = [];
+  const planned = whyLineOf(why?.planReason);
+  if (planned !== null) lines.push(planned);
   if (why?.fit != null) lines.push(copy(FIT_COPY[why.fit]));
-  if (why?.rival != null) lines.push(copy("draft.why.rival", { rival: why.rival }));
-  const rows = p.setAside === undefined ? [] : setAsideRows(p.setAside);
-  if (lines.length === 0 && rows.length === 0) return null;
+  return lines;
+}
+
+function SearchRows(p: { target: Target }): React.JSX.Element {
+  const facts = p.target.target;
+  const { volume } = targetReadings(facts);
+  const rival = p.target.why?.rival ?? null;
   return (
-    <>
-      {lines.length === 0 ? null : (
-        <div className={WHY_GROUP} data-testid="draft-why">
-          <h3 className="eyebrow">{copy("draft.why.title")}</h3>
-          {lines.map((line) => (
-            <p key={line} className="min-w-0 wrap-anywhere">
-              {line}
-            </p>
-          ))}
-        </div>
-      )}
-      {rows.length === 0 ? null : (
-        <div className={WHY_GROUP} data-testid="draft-set-aside">
-          <h3 className="eyebrow">{copy("draft.set-aside.title")}</h3>
-          <ul className="flex min-w-0 list-none flex-col gap-1 p-0">
-            {rows.map((row) => (
-              <li key={row.key} className="min-w-0 wrap-anywhere">
-                {copy(row.key, { n: row.n })}
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-    </>
+    <details className="collapse collapse-arrow bg-base-200 min-w-0" data-testid="draft-search">
+      <summary className="collapse-title min-h-0 text-sm font-medium">{copy("draft.search.title")}</summary>
+      <dl className="collapse-content grid min-w-0 grid-cols-[max-content_minmax(0,1fr)] gap-x-4 gap-y-1.5 text-sm">
+        <dt className="text-base-content/70">{copy("draft.search.query")}</dt>
+        <dd className="num min-w-0 wrap-anywhere">{facts.search}</dd>
+        <dt className="text-base-content/70">{copy("draft.search.volume")}</dt>
+        <dd className="min-w-0 wrap-anywhere">{volume.isDash ? (volume.line ?? volume.text) : volume.text}</dd>
+        {rival === null ? null : (
+          <>
+            <dt className="text-base-content/70">{copy("draft.search.rival")}</dt>
+            <dd className="num min-w-0 wrap-anywhere">{rival}</dd>
+          </>
+        )}
+      </dl>
+    </details>
   );
 }
 
-/** The block, in each of the three states a draft's target can be in. A Fix
- *  page and an unreadable opportunity each say what is true of them; neither
- *  is drawn as an empty list. */
-export function TargetBlock(p: {
-  target: DraftTarget;
-  /** The topics on file that fill no day (issue 1395), where they could
-   *  be counted. */
-  setAside?: SetAside | undefined;
-  /** The search result's three facts, off the buffer the founder edits. */
-  title: string;
-  description: string;
-  publisher: Publisher;
-}): React.JSX.Element {
+/** The card, in each of the three states a draft's target can be in. */
+export function WhyThisPage(p: { target: DraftTarget }): React.JSX.Element {
+  const { target } = p;
   return (
-    <>
-      <section className={NOTE.card} data-testid="draft-target">
-        <div className={NOTE.pad}>
-          <details className={CLOSED.root}>
-            <summary className={CLOSED.head}>
-              <h2 className="eyebrow flex items-center gap-2">
-                <Target size={14} strokeWidth={1.75} aria-hidden />
-                {copy("draft.target.title")}
-              </h2>
-            </summary>
-            <div className={CLOSED.body}>
-              {p.target.kind === "target" ? (
-                <>
-                  <TargetRows facts={targetFactsOf(p.target.target)} />
-                  <WhyThisTopic target={p.target} setAside={p.setAside} />
-                </>
-              ) : (
-                <p className="text-sm text-base-content/70">
-                  {copy(p.target.kind === "fix" ? "draft.target.fix" : "draft.target.unknown")}
+    <section className={NOTE.card} aria-labelledby="draft-why-title" data-testid="draft-why">
+      <div className="card-body min-w-0 flex-row items-start gap-3 p-5">
+        <span className="bg-primary/10 text-primary rounded-box grid size-9 shrink-0 place-items-center" aria-hidden>
+          <Search size={18} strokeWidth={1.75} />
+        </span>
+        <div className="flex min-w-0 flex-1 flex-col gap-2">
+          <h2 id="draft-why-title" className="text-base font-semibold">
+            {copy("draft.why.title")}
+          </h2>
+          {target.kind === "target" ? (
+            <>
+              {reasonLines(target).map((line) => (
+                <p key={line} className="min-w-0 wrap-anywhere">
+                  {line}
                 </p>
-              )}
-            </div>
-          </details>
+              ))}
+              <SearchRows target={target} />
+            </>
+          ) : (
+            <p className="text-sm text-base-content/70">
+              {copy(target.kind === "fix" ? "draft.target.fix" : "draft.target.unknown")}
+            </p>
+          )}
         </div>
-      </section>
-      <SearchResult title={p.title} description={p.description} publisher={p.publisher} />
-    </>
+      </div>
+    </section>
   );
 }

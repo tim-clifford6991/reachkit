@@ -26,12 +26,16 @@
 // strength of ReachKit's own 502. `landmine.test.ts` is the assertion that
 // goes red the day it is proposed.
 import type { Measured } from "@/lib/measure/measured";
+import type { SearchRows } from "@/lib/measure/page-reading";
 import type { VerifyChecks } from "@/lib/publish/types";
 import type { SiteIssuesSection } from "@/lib/site-issues/types";
 import type { Barrier } from "../types";
 
 /** The three §9 names. */
 export type Verdict = "working" | "too_early" | "not_working";
+
+/** The four labels a page is shown with; `VERDICT_OF` stores them as three. */
+export type Label = "working" | "climbing" | "too_early" | "not_moving";
 
 /** The site-local Monday a standing belongs to, `YYYY-MM-DD` — the same
  *  calendar date `scans.week_start` carries, never an instant. A customer
@@ -173,32 +177,6 @@ export interface AiCitation {
   readonly cited: Measured<boolean>;
 }
 
-/** One address a week read on a search, and the place it held. */
-export interface PlacedUrl {
-  readonly url: string;
-  readonly position: number;
-}
-
-/**
- * What one week read for one search (issue 1518). Every page judged on it
- * takes its own place from these rows by its own addresses.
- *
- * - `serp`: the week's SERP for it, where it is one of the twelve (depth
- *   10, `transport.ts`). `null` where it is not.
- * - `ranked`: the site's own ranked rows for it, which the pass bought for
- *   its count and which reach depth 20 and beyond. A page on page two is
- *   seen here.
- * - `complete`: whether a page found in neither holds no place, as a
- *   measurement. True where the ranked rows are every search the site ranks
- *   for, or where the SERP is bought twenty deep; false where the purchase
- *   was capped, since a ten-deep SERP cannot see 11–20 (issue 1537).
- */
-export interface SearchRows {
-  readonly serp: readonly PlacedUrl[] | null;
-  readonly ranked: readonly PlacedUrl[];
-  readonly complete: boolean;
-}
-
 /** What `page_verdicts.measured` holds: the page's place for its search
  *  and, where its intent names a tracked prompt, whether that prompt's
  *  answers cited it. Rows written before D60 carry the place alone. */
@@ -229,17 +207,6 @@ export interface WeekMeasurements {
    *  its own addresses (`placeOf`, issue 1518), never as the best place of
    *  any page of the domain. A key absent is `search_untracked`. */
   readonly positions: ReadonlyMap<string, Measured<SearchRows>>;
-  /** Whether this week's AI answer for a question names the customer,
-   *  keyed by the question a `named_on` test records. A key absent is a
-   *  question this week did not ask, which is `not_measured`. */
-  readonly namesCustomer: ReadonlyMap<string, Measured<boolean>>;
-  /** The site's own pages this week's AI answer for a question cited,
-   *  keyed as `namesCustomer` is and holding exactly its keys (SPEC §4
-   *  2026-09-29, D16). A `named_on` test is decided from this and not from
-   *  `namesCustomer`: an answer that names the site and cites another of
-   *  its pages is not a result of this page. `unmeasured` where the
-   *  answer's addresses were not read. */
-  readonly ownPagesCited: ReadonlyMap<string, Measured<readonly string[]>>;
   /** The site's own pages the week's answers to each tracked prompt cited,
    *  keyed by the prompt's id (SPEC §6, D60, issue 1288). `unmeasured` where
    *  none of the week's asks of it answered; a key absent is a prompt this

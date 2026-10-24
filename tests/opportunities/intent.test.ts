@@ -4,14 +4,15 @@ import "./env";
 import { afterEach, describe, expect, it } from "vitest";
 import { measured, unmeasured } from "../../src/lib/measure/measured";
 import { closestPrompt, hasGoal, intentFor } from "../../src/lib/opportunities/intent";
-import { opportunityReady, type ReadinessContext } from "../../src/lib/opportunities/readiness";
+import { eligible, type ReadinessContext } from "../../src/lib/opportunities/readiness";
 import { refreshCandidates, unmetAfter, type OwnLivePage } from "../../src/lib/opportunities/refresh";
 import { isRetarget, type Opportunity } from "../../src/lib/opportunities/types";
 import { judgeWeek } from "../../src/lib/opportunities/verdicts/judge";
 import type { PageIntent } from "../../src/lib/opportunities/intent";
 import type { StoredReport } from "../../src/lib/scan/report";
 import { AT, SITE_ID } from "./fixtures";
-import { WEEK, fakeStore, pageOf, releaseStore, reportWithOwnPlace } from "./verdicts/harness";
+import { WEEK, fakeStore, pageOf, readingAt, releaseStore, reportWithOwnPlace } from "./verdicts/harness";
+import type { PageReading } from "../../src/lib/measure/page-reading";
 
 // Five of the prompts reachkit.app tracked on 2026-10-06.
 const PROMPTS = [
@@ -59,6 +60,7 @@ describe("D60 — the intent recorded when a topic is decided", () => {
       ...over,
     }) as unknown as Opportunity;
   const ctx: ReadinessContext = {
+    now: AT,
     grounded: true,
     earnGrounding: { comparison_table: true, integration_page: true, original_data_page: true },
     suppression: { clusters: new Set(), retiredUrls: new Set() },
@@ -70,11 +72,11 @@ describe("D60 — the intent recorded when a topic is decided", () => {
   };
 
   it("a topic with no measured volume and no matching prompt is not ready, so the day goes to the next one", () => {
-    expect(opportunityReady(topic({}), ctx)).toBe("no_intent");
-    expect(opportunityReady(topic({ volume: measured(90, AT) }), ctx)).toBeNull();
-    expect(opportunityReady(topic({ targetQuery: "tools to track where ai sends potential customers" }), ctx)).toBeNull();
+    expect(eligible(topic({}), ctx)).toBe("no_intent");
+    expect(eligible(topic({ volume: measured(90, AT) }), ctx)).toBeNull();
+    expect(eligible(topic({ targetQuery: "tools to track where ai sends potential customers" }), ctx)).toBeNull();
     // A site whose first weekly pass has not built its prompts holds nothing back.
-    expect(opportunityReady(topic({}), { ...ctx, prompts: [] })).toBeNull();
+    expect(eligible(topic({}), { ...ctx, prompts: [] })).toBeNull();
   });
 });
 
@@ -94,9 +96,9 @@ describe("D60 — the Monday verdict checks the ranking and the AI citation", ()
     };
   }
 
-  async function judge(a: { report: StoredReport; intent?: PageIntent | null }) {
+  async function judge(a: { report: StoredReport; intent?: PageIntent | null; reading?: PageReading }) {
     const recorded: { draftId: string; intent: PageIntent }[] = [];
-    const store = fakeStore({ pages: [{ ...page, intent: a.intent ?? null }], report: a.report });
+    const store = fakeStore({ pages: [{ ...page, intent: a.intent ?? null, ...(a.reading === undefined ? {} : { reading: a.reading }) }], report: a.report });
     Object.assign(store, {
       trackedPrompts: async () => [PROMPT],
       recordIntent: async (row: { draftId: string; intent: PageIntent }) => void recorded.push(row),
@@ -112,7 +114,7 @@ describe("D60 — the Monday verdict checks the ranking and the AI citation", ()
   });
 
   it("answers that cite another of the site's pages are not this page's result", async () => {
-    const { standing, row } = await judge({ report: week(null, ["https://content.example.com/another-page"]), intent: INTENT });
+    const { standing, row } = await judge({ report: week(null, ["https://content.example.com/another-page"]), intent: INTENT, reading: readingAt(null) });
     expect(standing).toMatchObject({ kind: "verdict", verdict: "too_early" });
     expect(row?.measured).toMatchObject({ ai: { cited: { kind: "zero", value: false } } });
   });

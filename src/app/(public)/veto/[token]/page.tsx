@@ -41,10 +41,15 @@ import type React from "react";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { CircleCheck, Clock } from "lucide-react";
+import { CircleCheck, Clock, Info } from "lucide-react";
 import { copy } from "@/lib/presentation/copy";
 import { previewVetoLink, redeemVetoLink, vetoLinkPath } from "@/lib/publish/publishable";
-import type { PreviewResult, RedeemResult, VetoPreview } from "@/lib/publish/publishable";
+import type { PreviewResult, VetoPreview, WeekDay } from "@/lib/publish/publishable";
+import type { PlanReason } from "@/lib/opportunities/types";
+import { whyLineOf } from "@/app/(account)/app/calendar/card-lines";
+import { formatTime } from "@/app/(account)/app/_shell/format";
+import { isPlannedStopToken, previewPlannedStop, stopPlannedPage, type PlannedPreview } from "@/lib/opportunities/stop";
+import { formatMailDay } from "@/lib/mail/blocks/format";
 import { PUBLIC_ROUTE_SEO } from "../../_seo/routes";
 import { staticMetadata } from "../../_seo/metadata";
 import { Surface } from "@/ui/layout";
@@ -110,19 +115,47 @@ async function withDeadline<T>(work: Promise<T>): Promise<T> {
  * says this is not a link ReachKit can act on, and a link it could not act on
  * is exactly what the reader is holding.
  */
-async function preview(token: string): Promise<PreviewResult> {
+/** A veto link, or the Monday mail's link to a page not written yet. */
+type Read =
+  | { ok: true; preview: Omit<VetoPreview, "draftId"> }
+  | Exclude<PreviewResult, { ok: true }>
+  | { ok: false; reason: "written" };
+
+async function preview(token: string): Promise<Read> {
   try {
-    return await withDeadline(previewVetoLink(token));
+    return isPlannedStopToken(token)
+      ? asRead(await withDeadline(previewPlannedStop(token)))
+      : await withDeadline(previewVetoLink(token));
   } catch {
     return { ok: false, reason: "unknown" };
   }
 }
 
-async function redeem(token: string): Promise<RedeemResult> {
+/** A planned page has no title or opening yet: its day names it. */
+function asRead(read: PlannedPreview): Read {
+  if (read.ok) {
+    const { day, ...rest } = read.planned;
+    return {
+      ok: true,
+      preview: {
+        ...rest,
+        title: copy("publish.veto.planned.title", { day: formatMailDay(day) }),
+        excerpt: null,
+        publishes: null,
+        unconnected: false,
+        mailedAt: null,
+      },
+    };
+  }
+  // A stopped planned day takes the week's next spare, so it draws no week.
+  return read.reason === "used" ? { ok: false, reason: "used", title: null, domain: read.domain, excerpt: null, week: null } : read;
+}
+
+async function redeem(token: string): Promise<void> {
   try {
-    return await withDeadline(redeemVetoLink(token));
+    await withDeadline<unknown>(isPlannedStopToken(token) ? stopPlannedPage(token) : redeemVetoLink(token));
   } catch {
-    return { ok: false, reason: "unknown" };
+    // The page re-reads the token on the way back and says what is true.
   }
 }
 
@@ -145,7 +178,7 @@ const ARMS = {
 
 /** The marker the stop action redirects with. Not a claim on its own: the
  *  done arm renders only where the token also reads back as spent, so a
- *  hand-typed `?done=1` on a live link shows the ask arm and stops nothing. */
+ *  `?done=1` on a live link shows the ask saying it is not stopped yet, and stops nothing. */
 const DONE = "done";
 
 /** The split, named once — the same two halves `/signin` draws. With no
@@ -176,13 +209,15 @@ const CHIP_OK = "grid size-12 flex-none place-items-center rounded-box bg-succes
  * difference between them is a fact about the page that this screen holds no
  * session to be told.
  */
-function refusal(reason: Exclude<PreviewResult, { ok: true }>["reason"]): { head: string; line: string } {
+function refusal(reason: Exclude<Read, { ok: true }>["reason"]): { head: string; line: string } {
   switch (reason) {
     case "used":
-      return { head: copy("publish.veto.done.head"), line: copy("publish.veto.alreadyUsed") };
+      return { head: copy("publish.veto.used.head"), line: copy("publish.veto.alreadyUsed") };
     case "expired":
     case "not_in_review":
       return { head: copy("publish.veto.closed.head"), line: copy("publish.veto.expired") };
+    case "written":
+      return { head: copy("publish.veto.closed.head"), line: copy("publish.veto.written") };
     case "unknown":
       return { head: copy("publish.veto.unknown.head"), line: copy("publish.veto.unknown") };
   }
@@ -198,8 +233,9 @@ function refusal(reason: Exclude<PreviewResult, { ok: true }>["reason"]): { head
 const PAGE_LOCALE = "en-US";
 
 /**
- * How the moment is written: `Tue 2 Sep 07:00`, as the set draws it —
- * weekday, day, short month, time, in the zone the customer publishes in.
+ * How the moment is written: `Mon 19 Oct, 4:00 PM`, as the board draws it —
+ * weekday, day, short month, then the clock as the app writes it, in the
+ * zone the customer publishes in.
  *
  * **No ISO date and no zone suffix**, which is what this used to print. A
  * stop link is read in a mail client by a person deciding whether tomorrow
@@ -214,18 +250,38 @@ const PAGE_LOCALE = "en-US";
  * order the set draws is fixed, not the locale's to choose.
  */
 function writeMoment(publishes: { at: Date; timeZone: string }): string {
+  return `${writeDay(publishes)}, ${formatTime(publishes.at, publishes.timeZone)}`;
+}
+
+/** `Mon 19 Oct`: the day half of `writeMoment`. */
+function writeDay(at: { at: Date; timeZone: string }): string {
   const parts = new Intl.DateTimeFormat(PAGE_LOCALE, {
-    timeZone: publishes.timeZone,
+    timeZone: at.timeZone,
     weekday: "short",
     day: "numeric",
     month: "short",
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-  }).formatToParts(publishes.at);
-  const part = (type: Intl.DateTimeFormatPartTypes): string =>
-    parts.find((p) => p.type === type)?.value ?? "";
-  return `${part("weekday")} ${part("day")} ${part("month")} ${part("hour")}:${part("minute")}`;
+  }).formatToParts(at.at);
+  const part = (type: Intl.DateTimeFormatPartTypes): string => parts.find((p) => p.type === type)?.value ?? "";
+  return `${part("weekday")} ${part("day")} ${part("month")}`;
+}
+
+/** The stored reason as the sentence's tail: its first letter lowered unless
+ *  it opens an acronym ("AI answers…"), with a full stop. `null` states none. */
+function writeReason(reason: PlanReason | null): string | null {
+  const line = whyLineOf(reason);
+  if (line === null) return null;
+  const lowered = /^[A-Z][A-Z]/.test(line) ? line : line.charAt(0).toLowerCase() + line.slice(1);
+  return `${lowered}.`;
+}
+
+/**
+ * The window between the mail and the moment: the clock alone where both
+ * fall on one day, as the board draws it, and the day too where they do not.
+ */
+function timeline(mailedAt: Date | null, publishes: { at: Date; timeZone: string }): { sent: string | null; live: string } {
+  const sameDay = mailedAt !== null && writeDay({ at: mailedAt, timeZone: publishes.timeZone }) === writeDay(publishes);
+  const write = (at: Date): string => (sameDay ? formatTime(at, publishes.timeZone) : writeMoment({ at, timeZone: publishes.timeZone }));
+  return { sent: mailedAt === null ? null : write(mailedAt), live: write(publishes.at) };
 }
 
 /** The weekday the page publishes, written whole (`Sunday`) in the zone the
@@ -236,12 +292,7 @@ function writeWeekday(publishes: { at: Date; timeZone: string }): string {
 }
 
 /**
- * The set's search row: `[search] · 2,400/mo`.
- *
- * The volume is grouped and carries its unit, and `/mo` is no copy key for
- * the reason `src/lib/mail/blocks/format.ts` gives of its own: it is the
- * number's dimension, not the product speaking, on the same footing as a
- * currency symbol.
+ * The set's search row: the search, and how often it is searched.
  *
  * A volume nobody measured leaves the search standing alone — never a
  * zero, which is REQ-004's trichotomy on this one row. A measured zero is
@@ -250,7 +301,7 @@ function writeWeekday(publishes: { at: Date; timeZone: string }): string {
  */
 function writeSearch(query: string, volume: number | null): string {
   if (volume === null) return query;
-  return `${query} · ${new Intl.NumberFormat(PAGE_LOCALE).format(volume)}/mo`;
+  return copy("publish.veto.ask.row.volume", { query, volume: new Intl.NumberFormat(PAGE_LOCALE).format(volume) });
 }
 
 /** Where a reader who has stopped a page is sent to reach their plan.
@@ -325,8 +376,9 @@ function pagePanel(p: {
   );
 }
 
-/** The ask arm: what the set draws, in its own order. */
-function Ask(p: { token: string; it: VetoPreview }): React.JSX.Element {
+/** The ask arm: what the board draws, in its own order. `failed` is the
+ *  reader back from a stop that did not land: the same page, saying so. */
+function Ask(p: { token: string; it: Omit<VetoPreview, "draftId">; failed?: boolean }): React.JSX.Element {
   async function stop(): Promise<void> {
     "use server";
     // The write, behind an act. Its result is not read here: the page
@@ -336,10 +388,13 @@ function Ask(p: { token: string; it: VetoPreview }): React.JSX.Element {
     redirect(`${vetoLinkPath(p.token)}?${DONE}=1`);
   }
 
-  const head =
-    p.it.publishes === null
+  // An unconnected address names no hour anywhere on the page (owner ruling Q11).
+  const publishes = p.it.unconnected ? null : p.it.publishes;
+  const head = p.it.unconnected
+    ? copy("publish.veto.ask.head.unconnected")
+    : publishes === null
       ? copy("publish.veto.ask.action")
-      : copy("publish.veto.ask.head", { when: writeMoment(p.it.publishes) });
+      : copy("publish.veto.ask.head", { when: writeMoment(publishes) });
 
   // **Whichever line names this screen is its `<h1>`** (owner ruling
   // 2026-09-23, #328). Where the token resolves to a draft, the draft's
@@ -350,14 +405,25 @@ function Ask(p: { token: string; it: VetoPreview }): React.JSX.Element {
   // `EYEBROW` carries every size, weight and colour either way, so nothing
   // on screen changes.
   const Head = p.it.title === null ? "h1" : "p";
+  const why = writeReason(p.it.reason);
+  const span = publishes === null ? null : timeline(p.it.mailedAt, publishes);
+  const when = publishes === null ? null : writeMoment(publishes);
 
-  return split(
+  const ask = split(
     <>
       <Head className={EYEBROW}>
         <Clock size={16} strokeWidth={1.75} aria-hidden />
         {head}
       </Head>
       {p.it.title === null ? null : <h1>{p.it.title}</h1>}
+      {why === null ? null : (
+        <p className="rounded-box bg-base-200 flex items-start gap-3 px-4 py-3 text-sm" data-testid="veto-why">
+          <Info size={20} strokeWidth={1.75} className="text-primary flex-none" aria-hidden />
+          <span>
+            <strong>{copy("publish.veto.why")}</strong> {why}
+          </span>
+        </p>
+      )}
       {p.it.query === null && p.it.domain === null ? null : (
         <dl className="rounded-box bg-base-200 flex flex-col gap-2 px-4 py-3">
           {p.it.query === null ? null : (
@@ -374,11 +440,30 @@ function Ask(p: { token: string; it: VetoPreview }): React.JSX.Element {
           )}
         </dl>
       )}
-      <form action={stop}>
+      {span === null ? null : (
+        <div className="flex flex-col gap-2" data-testid="veto-timeline">
+          <ul className="steps w-full text-xs">
+            {span.sent === null ? null : (
+              <li className="step step-primary">{copy("publish.veto.timeline.sent", { at: span.sent })}</li>
+            )}
+            <li className="step step-primary font-semibold">{copy("publish.veto.ask.head", { when: span.live })}</li>
+          </ul>
+          <p className="text-base-content/70 text-xs">{copy("publish.veto.before")}</p>
+        </div>
+      )}
+      {p.failed ? (
+        <div role="alert" className="rounded-box border-error flex flex-col gap-2 border px-4 py-3" data-testid="veto-failed">
+          <h2 className="text-error text-base">{copy("publish.veto.failed.head")}</h2>
+          <p className="text-sm">{copy("publish.veto.failed")}</p>
+          {when === null ? null : <p className="text-sm">{copy("publish.veto.failed.still", { when })}</p>}
+        </div>
+      ) : null}
+      <form action={stop} className="flex flex-col gap-2">
         {/* The screen's one solid button. */}
         <button type="submit" className="btn btn-primary btn-block">
           {copy("publish.veto.ask.action")}
         </button>
+        <p className="text-base-content/70 text-sm">{copy("publish.veto.consequence")}</p>
       </form>
       {/* The sentence, and the offer it used to end with as a control. A
           reader who does not want to stop the page may well want to read
@@ -392,7 +477,7 @@ function Ask(p: { token: string; it: VetoPreview }): React.JSX.Element {
     </>,
     pagePanel({
       heading:
-        p.it.publishes === null ? null : copy("publish.veto.panel.heading", { day: writeWeekday(p.it.publishes) }),
+        publishes === null ? null : copy("publish.veto.panel.heading", { day: writeWeekday(publishes) }),
       domain: p.it.domain,
       title: p.it.title,
       excerpt: p.it.excerpt,
@@ -404,6 +489,50 @@ function Ask(p: { token: string; it: VetoPreview }): React.JSX.Element {
               volume: new Intl.NumberFormat(PAGE_LOCALE).format(p.it.volume),
             }),
     })
+  );
+
+  return (
+    <>
+      {ask}
+      <section aria-labelledby="veto-choices" className="bg-base-100 px-4 py-12 sm:px-8 lg:px-18">
+        <h2 id="veto-choices" className="mb-5">
+          {copy("publish.veto.choices.title")}
+        </h2>
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          {choice(copy("publish.veto.choices.stop"), [
+            copy("publish.veto.choices.stop.1"),
+            copy("publish.veto.choices.stop.2"),
+            copy("publish.veto.choices.stop.3"),
+          ])}
+          {choice(copy("publish.veto.choices.none"), [
+            p.it.unconnected
+              ? copy("publish.veto.choices.none.1.unconnected")
+              : when === null
+                ? copy("publish.veto.choices.none.1.unset")
+                : copy("publish.veto.choices.none.1", { when }),
+            copy("publish.veto.choices.none.2"),
+            copy("publish.veto.choices.none.3"),
+          ])}
+        </div>
+      </section>
+    </>
+  );
+}
+
+/** One of the two choices: what the reader does, and the three things that follow. */
+function choice(head: string, lines: readonly string[]): React.JSX.Element {
+  return (
+    <div className="rounded-box border-base-300 flex flex-col gap-3 border p-4">
+      <h3 className="text-base">{head}</h3>
+      <ul className="flex flex-col gap-2 text-sm">
+        {lines.map((line) => (
+          <li key={line} className="flex items-start gap-2">
+            <CircleCheck size={20} strokeWidth={1.75} className="text-success flex-none" aria-hidden />
+            <span>{line}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }
 
@@ -427,6 +556,8 @@ function Told(p: {
   /** The reader pressed the control and it worked. A refusal reaches this
    *  component with `confirmed` unset. */
   confirmed?: boolean;
+  /** The stopped page's week, where it could be read. */
+  week?: readonly WeekDay[] | null;
 }): React.JSX.Element {
   return split(
     <>
@@ -451,6 +582,7 @@ function Told(p: {
       <p className="text-base-content/70 text-sm" data-testid="veto-message">
         {p.message}
       </p>
+      {p.week === undefined || p.week === null ? null : weekStrip(p.week)}
       {/* **It goes to `/signin`, not to the plan** (#937). This page takes
           no session by construction — the token *is* the authority — so a
           link straight into the app bounced a signed-out reader to a
@@ -471,6 +603,33 @@ function Told(p: {
   );
 }
 
+/** The board's "This week, after your stop": a day with no page names only the day. */
+function weekStrip(week: readonly WeekDay[]): React.JSX.Element {
+  return (
+    <div className="flex flex-col gap-2" data-testid="veto-week">
+      <h2 className="text-sm">{copy("publish.veto.week.title")}</h2>
+      <ul className="grid grid-cols-7 gap-1 text-center text-xs">
+        {week.map((day) => (
+          <li
+            key={day.date}
+            className={`rounded-box flex flex-col gap-1 border py-2 wrap-break-word ${day.stopped ? "border-base-300 bg-base-200 border-dashed font-semibold" : "border-base-300"}`}
+          >
+            <span className="text-base-content/70">{weekdayOf(day.date)}</span>
+            {day.stopped === null ? null : (
+              <span>{copy(day.stopped ? "publish.veto.week.stopped" : "publish.veto.week.ahead")}</span>
+            )}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+/** `Mon` for a `YYYY-MM-DD`: a date carries no zone, so it is read in UTC. */
+function weekdayOf(date: string): string {
+  return new Intl.DateTimeFormat(PAGE_LOCALE, { timeZone: "UTC", weekday: "short" }).format(new Date(`${date}T00:00:00Z`));
+}
+
 export default async function VetoPage(p: {
   params: TokenParams | Promise<TokenParams>;
   searchParams?: Query | Promise<Query>;
@@ -482,7 +641,7 @@ export default async function VetoPage(p: {
   // The done arm is told by two things agreeing: the reader came back from
   // the stop control, and the token now reads as spent. Either alone renders
   // what is true instead — a spent token reached cold says so, and `?done=1`
-  // typed against a live one shows the ask.
+  // against a live one shows the ask, saying the page is not stopped yet.
   if (query[DONE] !== undefined && !result.ok && result.reason === "used") {
     return (
       <Surface arms={ARMS}>
@@ -491,6 +650,7 @@ export default async function VetoPage(p: {
           head={copy("publish.veto.done.head")}
           page={{ title: result.title, domain: result.domain, excerpt: result.excerpt }}
           message={copy("publish.veto.stopped")}
+          week={result.week}
         />
       </Surface>
     );
@@ -505,9 +665,10 @@ export default async function VetoPage(p: {
     );
   }
 
+  // Back from the control with the link still live: the stop did not land.
   return (
     <Surface arms={ARMS}>
-      <Ask token={token} it={result.preview} />
+      <Ask token={token} it={result.preview} failed={query[DONE] !== undefined} />
     </Surface>
   );
 }

@@ -7,8 +7,7 @@ import { toolUseMessage } from "../../llm/fixtures";
 import { measured } from "../../../src/lib/measure/measured";
 import type { MarketConclusion } from "../../../src/lib/market/infer/types";
 import { setOpportunityStore } from "../../../src/lib/opportunities/store";
-import { opportunityReady, type ReadinessContext } from "../../../src/lib/opportunities/readiness";
-import { orderRanked } from "../../../src/lib/opportunities/rank/open";
+import { eligible, type ReadinessContext } from "../../../src/lib/opportunities/readiness";
 import type { Opportunity } from "../../../src/lib/opportunities/types";
 import { memoryStore, newMemoryState, type MemoryState } from "../memory-store";
 import { AT, PROFILE, SCAN_ID, SITE_ID, defaultReport, question, reportOf, search, serp, smallCounts } from "../fixtures";
@@ -118,7 +117,7 @@ describe("a pass writes targets from the market's own vocabulary at fit 3", () =
 
     expect(created).toHaveLength(1);
     expect(created[0]!.businessFit).toBe(1);
-    expect(opportunityReady(created[0]!, READY)).toBe("low_fit");
+    expect(eligible(created[0]!, READY)).toBe("low_fit");
   });
 
   it("no judgement is no proposal: the pass derives what it measured and nothing else", async () => {
@@ -203,6 +202,7 @@ describe("the top fit is bounded", () => {
 });
 
 const READY: ReadinessContext = {
+  now: AT,
   grounded: true,
   earnGrounding: { comparison_table: true, integration_page: true, original_data_page: true },
   suppression: { clusters: new Set(), retiredUrls: new Set() },
@@ -239,28 +239,12 @@ function row(over: Partial<Opportunity>): Opportunity {
 
 describe("readiness reads the stored fit", () => {
   it("a zero-volume how-to at fit 3 fills a day; the same search at fit 2 is held by the keyword gate", () => {
-    expect(opportunityReady(row({ businessFit: 3 }), READY)).toBeNull();
-    expect(opportunityReady(row({ businessFit: 2 }), READY)).toBe("keyword_gate");
+    expect(eligible(row({ businessFit: 3 }), READY)).toBeNull();
+    expect(eligible(row({ businessFit: 2 }), READY)).toBe("no_intent");
   });
 
   it("an update of a page at fit 1 is low_fit too", () => {
-    expect(opportunityReady(row({ family: "improve", type: "refresh_page", businessFit: 1 }), READY)).toBe("low_fit");
-  });
-});
-
-describe("ranking is fit first", () => {
-  const order = (scored: { opportunity: Opportunity; score: number }[]) =>
-    orderRanked(scored).map((entry) => entry.opportunityId);
-
-  it("volume never lifts a lower fit, and a best-X ranks last in its fit whatever its score", () => {
-    expect(
-      order([
-        { opportunity: row({ id: "fit2-loud", businessFit: 2, targetQuery: "a" }), score: 0.9 },
-        { opportunity: row({ id: "best-x", businessFit: 3, source: "best_x", targetQuery: "b" }), score: 0.8 },
-        { opportunity: row({ id: "product", businessFit: 3, source: "product", targetQuery: "c" }), score: 0 },
-        { opportunity: row({ id: "gap", businessFit: 3, source: "ai_gap", targetQuery: "d" }), score: 0.1 },
-      ])
-    ).toEqual(["gap", "product", "best-x", "fit2-loud"]);
+    expect(eligible(row({ family: "improve", type: "refresh_page", businessFit: 1 }), READY)).toBe("low_fit");
   });
 });
 

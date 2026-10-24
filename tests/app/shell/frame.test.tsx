@@ -428,6 +428,15 @@ describe("REQ-040 c5 / SPEC §4 (2026-09-20) — a viewport too narrow keeps all
     expect(root.querySelector("[data-testid='shell-dock']")).not.toBeNull();
   });
 
+  it("the side panel draws only what board Main draws: no Workspace heading, no blog or Help shortcut", async () => {
+    const panel = (await renderLayout()).querySelector("[data-testid='shell-sidebar']");
+    expect(panel?.querySelector("[data-testid='shell-sidebar-nav']")).not.toBeNull();
+    expect([...(panel?.querySelectorAll("h2") ?? [])].map((h) => h.textContent)).not.toContain("shell.workspace");
+    for (const gone of ["shell-shortcuts", "shell-blog-link", "shell-help-link"]) {
+      expect(panel?.querySelector(`[data-testid='${gone}']`), gone).toBeNull();
+    }
+  });
+
   it("the side panel is rendered once — not once per breakpoint (issue #911)", async () => {
     const root = await renderLayout();
     expect(root.querySelectorAll("[data-testid='shell-sidebar']")).toHaveLength(1);
@@ -621,13 +630,13 @@ describe("the frame is the route's one screen root, and it invents no sentence",
     expect(root.querySelector("main")?.textContent).toBe("screen");
   });
 
-  it("the *Waiting for you* card names the page, links to its review and clamps the title", () => {
+  it("the *Waiting for you* card names the page, links to its review and draws the whole title", () => {
     const card = render(<WaitingCard review={SCHEDULED.review} timeZone={ZONE} />);
     expect(card.getAttribute("href")).toBe("/app/draft/draft-1");
     expect(card.textContent).toContain("shell.waiting.head");
     const title = card.querySelector("[data-testid='shell-waiting-title']");
     expect(title?.textContent).toBe("How much does a bike service cost in 2026?");
-    expect(title?.className).toContain("line-clamp-2");
+    expect(title?.className).not.toMatch(/line-clamp|truncate/);
     // The time is a value, and a value is never clamped.
     const when = card.querySelector("[data-testid='shell-waiting-when']");
     expect(when?.textContent).toBe("shell.waiting.goes-live");

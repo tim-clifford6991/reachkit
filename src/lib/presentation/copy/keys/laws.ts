@@ -82,6 +82,9 @@ export const LAWS_COPY = Object.freeze({
     "Next page goes live {at}",
     { law: "next-publish", slots: { at: "date" }, fixedBy: "REQ-040 c4" },
   ],
+  // The hosted address is not connected yet, so no page can go live (the
+  // OverviewDNS board's sidebar line). Drafted; the owner corrects it.
+  "next-publish.address-waiting": ["Waiting for your domain", { law: "next-publish", slots: {}, fixedBy: "issue 1595" }],
   "next-publish.paused": ["Publishing is off.", { law: "next-publish", slots: {}, fixedBy: "REQ-040 c4" }],
   // A page is planned and not written yet (owner 2026-10-09, issue 1362).
   // It replaces the "nothing approved" cause: no customer approves a page.
@@ -140,6 +143,7 @@ export const LAWS_COPY = Object.freeze({
   ],
   "unmeasured.undeterminable": ["{what} couldn’t be measured: nothing came back that could be read.", { law: "unmeasured", slots: { what: "text" }, fixedBy: "REQ-004 c6" }],
   "unmeasured.not-attempted": ["{what} wasn’t measured: the scan stopped early, before it got there.", { law: "unmeasured", slots: { what: "text" }, fixedBy: "REQ-004 c9" }],
+  "unmeasured.not-yet": ["{what} isn’t measured yet.", { law: "unmeasured", slots: { what: "text" }, fixedBy: "issue 1599 · drafted" }],
   "unmeasured.dash": ["—", { law: "unmeasured", slots: {}, fixedBy: "REQ-004 c2" }],
   // The label the screen set draws over the three nav rows, in the eyebrow
   // role (S12, UI-SPEC §2's sidebar row). Approved as written (11a); the
@@ -193,11 +197,11 @@ export const LAWS_COPY = Object.freeze({
   "shell.shortcut.help": ["Help", { slots: {}, fixedBy: "issue 911" }],
   "shell.publishing.mode.autopilot": ["Autopilot", { slots: {}, fixedBy: "REQ-040 c3" }],
   // What the mode is doing, under the mode's own word (UI-SPEC S12's
-  // autopilot card: the eyebrow, then "Publishing daily", then the next
+  // autopilot card: the eyebrow, then "Publishing on", then the next
   // line). The autopilot arm is unbracketed in the set and so approved
   // (11a); the set draws no copilot sidebar, so its sentence is the
   // owner's (#460).
-  "shell.publishing.state.autopilot": ["Publishing daily", { slots: {}, fixedBy: "S12" }],
+  "shell.publishing.state.autopilot": ["Publishing on", { slots: {}, fixedBy: "S12" }],
   // UI-SPEC S13: before the first weekly pass, what the mode is doing is
   // waiting on the deep pass. The *next* line beside it is still
   // `nextPublishStatement`'s — the set draws "deep pass running" there,

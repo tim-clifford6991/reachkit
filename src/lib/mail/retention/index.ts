@@ -1,39 +1,30 @@
 // SPEC §8, Retention (issue #569) — the sequence, run by the maintenance
-// tick: four triggers, six kinds, each touch stopped when its condition
+// tick: three triggers, four kinds, each touch stopped when its condition
 // resolves.
 //
 // **Due at send time, never scheduled.** Like the setup reminders, nothing is
 // queued per account: each tick asks who is due now, and each send re-reads
-// the row and re-asks `rules.ts` immediately before composing. Signing in,
-// opening or resolving the draft, a payment succeeding or a resume makes the
-// next touch not due; there is no queue entry to cancel.
+// the row and re-asks `rules.ts` immediately before composing. A payment
+// succeeding or a resume makes the next touch not due; there is no queue
+// entry to cancel.
 //
 // **Stamped only after the mail left.** A touch that did not send — an
 // unwritten line, an opted-out address, a vendor failure — leaves its stamp
 // unset and is logged with the reason, so every decision is visible and none
 // is consumed by a mail that never arrived.
 //
-// The hosting-end notice, the sixth kind, is `account/billing`'s and already
+// The hosting-end notice, the fourth kind, is `account/billing`'s and already
 // runs on the same tick.
 import { formatMailDate } from "../blocks/format";
 import { wireSuppressionReader } from "../leads/wire";
 import { sendEmail, type SendResult } from "../send";
 import { buildCancellation } from "../templates/cancellation";
-import { buildInactivity } from "../templates/inactivity";
 import { buildPaymentFailed } from "../templates/payment-failed";
-import { buildVetoReminder } from "../templates/veto-reminder";
 import { buildWinback } from "../templates/win-back";
-import { RETENTION_MAIL } from "@/lib/config/constants";
-import {
-  cancellationDue,
-  inactivityDue,
-  paymentFailedDue,
-  vetoReminderDue,
-  winbackDue,
-} from "./rules";
-import { idleCutoff, retentionStore } from "./store";
+import { cancellationDue, paymentFailedDue, winbackDue } from "./rules";
+import { retentionStore } from "./store";
 
-export type RetentionKind = "inactivity" | "veto-reminder" | "payment-failed" | "cancellation" | "win-back";
+export type RetentionKind = "payment-failed" | "cancellation" | "win-back";
 
 export type RetentionOutcome =
   | { sent: true; kind: RetentionKind }
@@ -60,24 +51,6 @@ function sentTouch(kind: RetentionKind, subjectId: string): RetentionOutcome {
 
 // ── Due queries: one per trigger, each returning subject ids ─────────────
 
-export async function accountsDueInactivity(now: Date = new Date()): Promise<readonly string[]> {
-  const store = retentionStore();
-  const due: string[] = [];
-  for (const account of await store.idleAccounts(idleCutoff(now))) {
-    const site = await store.siteOf(account.id);
-    if (site === null) continue;
-    const lastPublishedAt = await store.lastPublishedAt(site.siteId);
-    if (inactivityDue({ account, lastPublishedAt, now })) due.push(account.id);
-  }
-  return due;
-}
-
-export async function draftsDueVetoReminder(now: Date = new Date()): Promise<readonly string[]> {
-  const until = new Date(now.getTime() + RETENTION_MAIL.vetoReminderHours * 3_600_000);
-  const drafts = await retentionStore().draftsClosingBy(until, now);
-  return drafts.filter((draft) => vetoReminderDue({ draft, now })).map((draft) => draft.id);
-}
-
 export async function accountsDuePaymentFailed(): Promise<readonly string[]> {
   return (await retentionStore().pastDueAccounts()).filter(paymentFailedDue).map((a) => a.id);
 }
@@ -93,46 +66,6 @@ export async function accountsDueWinback(now: Date = new Date()): Promise<readon
 }
 
 // ── Senders: re-read, re-decide, send, then stamp ───────────────────────
-
-export async function sendInactivityNudge(userId: string, now: Date = new Date()): Promise<RetentionOutcome> {
-  const kind = "inactivity";
-  const store = retentionStore();
-  const account = await store.account(userId);
-  const site = account === null ? null : await store.siteOf(userId);
-  if (account === null || site === null) return notDue(kind, userId);
-  const lastPublishedAt = await store.lastPublishedAt(site.siteId);
-  if (!inactivityDue({ account, lastPublishedAt, now })) return notDue(kind, userId);
-
-  wireSuppressionReader();
-  const mail = buildInactivity({ email: account.email });
-  const result = await sendEmail({ kind, to: account.email, ...mail });
-  if (!result.sent) return withheld(kind, userId, result);
-  await store.stampAccount(userId, "inactivity_nudged_at", now);
-  return sentTouch(kind, userId);
-}
-
-export async function sendVetoReminder(draftId: string, now: Date = new Date()): Promise<RetentionOutcome> {
-  const kind = "veto-reminder";
-  const store = retentionStore();
-  const draft = await store.draft(draftId);
-  if (draft === null || draft.vetoDeadline === null || !vetoReminderDue({ draft, now })) {
-    return notDue(kind, draftId);
-  }
-  const owner = await store.account(draft.ownerId);
-  if (owner === null || owner.deletedAt !== null) return notDue(kind, draftId);
-
-  wireSuppressionReader();
-  const mail = buildVetoReminder({
-    email: owner.email,
-    draftId,
-    page: draft.title,
-    closesAt: formatMailDate(draft.vetoDeadline, draft.timezone),
-  });
-  const result = await sendEmail({ kind, to: owner.email, ...mail });
-  if (!result.sent) return withheld(kind, draftId, result);
-  await store.stampVetoReminded(draftId, now);
-  return sentTouch(kind, draftId);
-}
 
 export async function sendPaymentFailed(userId: string, now: Date = new Date()): Promise<RetentionOutcome> {
   const kind = "payment-failed";
@@ -151,11 +84,16 @@ export async function sendCancellation(userId: string, now: Date = new Date()): 
   const kind = "cancellation";
   const store = retentionStore();
   const account = await store.account(userId);
-  if (account === null || !cancellationDue(account)) return notDue(kind, userId);
+  if (account === null || account.cancelledAt === null || !cancellationDue(account)) return notDue(kind, userId);
   const site = await store.siteOf(userId);
+  // The webhook stamps the cancel before it refunds, so only a refund at or after the stamp belongs to this cancel.
+  const refunded = await store.refundedSince(userId, account.cancelledAt);
+  // The refund is recorded before access ends, so wait until it has ended rather than name the old period end.
+  if (refunded && account.paidThrough.getTime() > now.getTime()) return notDue(kind, userId);
 
   const mail = buildCancellation({
     accessEndsOn: formatMailDate(account.paidThrough, site?.timezone ?? null),
+    refunded,
   });
   const result = await sendEmail({ kind, to: account.email, ...mail });
   if (!result.sent) return withheld(kind, userId, result);
@@ -180,4 +118,4 @@ export async function sendWinback(userId: string, now: Date = new Date()): Promi
 }
 
 export { setRetentionStore, retentionStore, type RetentionStore } from "./store";
-export type { RetentionAccount, RetentionDraft } from "./rules";
+export type { RetentionAccount } from "./rules";

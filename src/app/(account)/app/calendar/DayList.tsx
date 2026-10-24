@@ -8,8 +8,8 @@
 // the day's one number on the right. It is the card's own parts
 // (`DayCard.tsx`) laid out along a row instead of down a card.
 //
-// **This week, not the month.** The rows are the site-local week that
-// contains today, Monday through the plan horizon (`month.ts`'s `weekOf`).
+// **The same seven days as the cells, in the same order** (E5): Monday to
+// Sunday of the site-local week that contains today (`month.ts`'s `weekOf`).
 // Which week that is, is decided there and not here: this file draws the
 // cells it is handed.
 //
@@ -39,7 +39,8 @@
 "use client";
 
 import type React from "react";
-import { CardNumber, StageMark, UpdateMark, cardLineFor, pageShownBy } from "./DayCard";
+import { CardNumber, DayLines, KindChip, cardLineFor, pageShownBy } from "./DayCard";
+import { DayStateBadge } from "./WeekGrid";
 import { cardLabel, shortCauseFor } from "./card-lines";
 import { dayNumberOf } from "./day-number";
 import { dayNumber, weekdayShort, type DayKey } from "./dates";
@@ -51,6 +52,8 @@ export function DayList(p: {
   cells: readonly DayCell[];
   filter: StageFilter;
   selected: DayKey | null;
+  goesLive: string | null;
+  firstSkip: DayKey | null;
   onSelect: (day: DayKey) => void;
 }): React.JSX.Element {
   return (
@@ -95,7 +98,7 @@ export function DayList(p: {
                 </span>
               </span>
 
-              <span className="flex min-w-0 flex-col gap-1">
+              <span className="flex min-w-0 flex-col items-start gap-1">
                 {page === null ? (
                   line === null ? null : (
                     <span
@@ -107,26 +110,31 @@ export function DayList(p: {
                   )
                 ) : (
                   <>
+                    <KindChip update={page.update} />
                     <span
                       className="rk-cal-label line-clamp-2 min-w-0 text-sm font-semibold leading-tight"
                       data-testid="list-label"
                     >
                       {page.title}
                     </span>
-                    {/* The mark is the right-hand column's, not the
-                        stage row's — see the header. */}
-                    <StageMark page={page} mark={false} />
                   </>
                 )}
+                <DayLines
+                  cell={cell}
+                  page={page}
+                  goesLive={p.goesLive}
+                  firstSkip={cell.day === p.firstSkip}
+                  filtered={p.filter !== "all"}
+                  phone
+                />
+                <DayStateBadge cell={cell} filter={p.filter} />
               </span>
 
-              {/* The row's own column: the number, right-aligned, and the
-                  mark for an update beneath it. It is always drawn, even
-                  for a date with neither, so the three tracks are the same
-                  three on every row. */}
+              {/* The row's own column: the number, right-aligned. It is always
+                  drawn, even for a date with none, so the three tracks are
+                  the same three on every row. */}
               <span className="flex min-w-0 flex-col items-end gap-1" data-testid="list-number">
                 <CardNumber value={dayNumberOf(page)} />
-                {page?.update === true ? <UpdateMark /> : null}
               </span>
             </button>
           </li>

@@ -43,6 +43,11 @@ export interface StripeDoubleState {
   portalSessions: Record<string, unknown>[];
   portalError: Error | null;
   nextSubscriptionId: number;
+  /** What `invoices.list` answers: every invoice, filtered by customer and status. */
+  invoices: Record<string, unknown>[];
+  refundsCreated: { params: Record<string, unknown>; idempotencyKey: string | undefined }[];
+  /** Set to make `refunds.create` throw. */
+  refundError: Error | null;
 }
 
 export function newStripeDouble(): StripeDoubleState {
@@ -72,6 +77,26 @@ export function newStripeDouble(): StripeDoubleState {
     portalSessions: [],
     portalError: null,
     nextSubscriptionId: 1,
+    invoices: [],
+    refundsCreated: [],
+    refundError: null,
+  };
+}
+
+/** One paid invoice, in the shape `invoices.list` with `data.payments`
+ *  expanded returns it. */
+export function paidInvoiceDouble(a: { id: string; customer: string; paidAt: Date; amount?: number }): Record<string, unknown> {
+  const paidAt = Math.floor(a.paidAt.getTime() / 1000);
+  return {
+    id: a.id,
+    customer: a.customer,
+    status: "paid",
+    amount_paid: a.amount ?? 4900,
+    created: paidAt,
+    status_transitions: { paid_at: paidAt },
+    payments: {
+      data: [{ status: "paid", payment: { type: "payment_intent", payment_intent: `pi_${a.id}` } }],
+    },
   };
 }
 
@@ -198,6 +223,24 @@ export function stripeDouble(state: StripeDoubleState): Stripe {
         };
         state.subscriptions.set(id, created);
         return created;
+      },
+    },
+    invoices: {
+      list: async (params: { customer?: string; status?: string }) => ({
+        data: state.invoices.filter(
+          (i) => (params.customer === undefined || i.customer === params.customer) && (params.status === undefined || i.status === params.status)
+        ),
+        has_more: false,
+      }),
+    },
+    refunds: {
+      create: async (params: Record<string, unknown>, options?: { idempotencyKey?: string }) => {
+        raise(state.refundError);
+        const key = options?.idempotencyKey;
+        // Stripe answers a repeated idempotency key with the first refund.
+        const seen = state.refundsCreated.findIndex((r) => key !== undefined && r.idempotencyKey === key);
+        if (seen === -1) state.refundsCreated.push({ params, idempotencyKey: key });
+        return { id: `re_${seen === -1 ? state.refundsCreated.length : seen + 1}`, status: "succeeded" };
       },
     },
     billingPortal: {

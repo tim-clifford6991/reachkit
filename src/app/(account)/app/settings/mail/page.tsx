@@ -2,13 +2,16 @@
 // `/app/settings/mail`.
 //
 // One card, moved as it is: which of §12's recurring mails the customer
-// gets. The tab's word is the redesign's — "Mail" — and the card keeps
-// §4.7's own title, "Notifications". Same reason as the voice tab: the bar
-// names the subject, the card states what it holds.
+// gets. The tab and the card both say "Mail", the word the mail footers point to.
 import type React from "react";
 import type { Metadata } from "next";
 import { copy } from "@/lib/presentation/copy";
 import { readSettings } from "../provider";
+import { readShell } from "../../_shell/provider";
+import { readPublished } from "../../_overview/content-provider";
+import { contentOf } from "@/lib/measure/published";
+import { pageLadderOf } from "@/lib/measure/page-ladder";
+import { nextPageOf } from "../next-page";
 import { NotificationsPanel } from "../panels/NotificationsPanel";
 
 /** This tab's own `<title>` (#945, #925). Each sibling names itself
@@ -18,11 +21,14 @@ import { NotificationsPanel } from "../panels/NotificationsPanel";
 export const metadata: Metadata = { title: copy("meta.app.settings.mail.title") };
 
 export default async function SettingsMailTab(): Promise<React.JSX.Element> {
-  const settings = await readSettings();
+  const [settings, shell, published] = await Promise.all([readSettings(), readShell(), readPublished()]);
+  // Overview's own ladder over Overview's own read, so the two never count apart.
+  const content = contentOf(published);
+  const climbing = content === null ? 0 : (pageLadderOf(content.pages, published.now)?.climbing ?? 0);
 
   return (
     <div className="flex min-w-0 flex-col gap-6" data-testid="settings-tab-panel-mail">
-      <NotificationsPanel settings={settings} />
+      <NotificationsPanel settings={settings} next={nextPageOf(shell, settings.publishing.vetoHours)} climbing={climbing} />
     </div>
   );
 }

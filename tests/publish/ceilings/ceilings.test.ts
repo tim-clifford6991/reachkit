@@ -1,9 +1,9 @@
 // tests/publish/ceilings/ceilings.test.ts — BUILD §9's two ceilings.
 //
-// "no more than one publishes in any calendar day and no more than eight in
-// any calendar week, counted in the time zone the customer set, whatever
-// their settings or plan would otherwise allow; the two ceilings hold
-// independently of each other."
+// No more than one publishes in any calendar day and no more than the plan's
+// week (`WEEK_PLAN.days`) in any calendar week, counted in the time zone the
+// customer set, whatever their settings or plan would otherwise allow; the
+// two ceilings hold independently of each other.
 //
 // The discriminating fixture is the Sunday one: a page published on a
 // Sunday evening in the customer's zone counts in the week that Sunday
@@ -17,7 +17,7 @@ import { fakeDb, type Row } from "../harness";
 const db = fakeDb();
 vi.mock("@/lib/db", () => ({ dbAdmin: () => db.client, db: () => db.client }));
 
-import { RATE_LIMITS } from "@/lib/config/constants";
+import { RATE_LIMITS, WEEK_PLAN } from "@/lib/config/constants";
 import { ceilingRoom } from "@/lib/publish/ceilings";
 import {
   startOfLocalDay,
@@ -46,7 +46,30 @@ beforeEach(() => {
 describe("the pins are the only source of the two limits", () => {
   it("§9's hard limits, read from constants.ts and never restated here", () => {
     expect(RATE_LIMITS.publishesPerDay).toBe(1);
-    expect(RATE_LIMITS.publishesPerWeek).toBe(8);
+    expect(RATE_LIMITS.publishesPerWeek).toBe(WEEK_PLAN.days);
+    expect(RATE_LIMITS.publishesPerWeek).toBe(7);
+  });
+});
+
+describe("the week's ceiling is the plan's week, even across a clock change", () => {
+  // Berlin leaves summer time on Sunday 2026-10-25, inside the local week
+  // Monday 19th to Sunday 25th.
+  const BERLIN = "Europe/Berlin";
+
+  it("an eighth page in that local week is refused by the week, on a day with nothing out", async () => {
+    db.seed("sites", [site({ timezone: BERLIN })]);
+    db.seed("publications", [
+      publishedAt("2026-10-18T22:30:00.000Z"), // 00:30 Monday 19th, Berlin
+      publishedAt("2026-10-19T10:00:00.000Z"),
+      ...["20", "21", "22", "23", "24"].map((d) => publishedAt(`2026-10-${d}T10:00:00.000Z`)),
+    ]);
+    const sunday = new Date("2026-10-25T10:00:00.000Z"); // 11:00 Sunday, after the change
+    const room = await ceilingRoom("s1", sunday);
+    expect(room).toEqual({
+      room: false,
+      blockedBy: "week",
+      nextFreeAt: new Date("2026-10-25T23:00:00.000Z"), // Berlin's Monday midnight, in winter time
+    });
   });
 });
 
@@ -133,14 +156,11 @@ describe("the two ceilings hold independently", () => {
     expect(await ceilingRoom("s1", MONDAY)).toMatchObject({ room: false, blockedBy: "day" });
   });
 
-  it("the week alone blocks: eight this week, a free day today", async () => {
-    // Eight publications Monday-to-Sunday of the *previous* local week would
-    // not count, so these are eight in the week containing MONDAY: the local
-    // Monday is 2026-09-14, so they are eight on that Monday... which would
-    // also trip the day. Use a Tuesday reading with eight spread Mon-Tue.
+  it("the week alone blocks: seven this week, a free day today", async () => {
+    // Seven on Monday the 14th, read on the Tuesday, so only the week can block.
     const TUESDAY = new Date("2026-09-15T14:00:00.000Z");
     db.seed("publications", [
-      ...Array.from({ length: 8 }, (_, i) =>
+      ...Array.from({ length: 7 }, (_, i) =>
         publishedAt(`2026-09-14T${String(10 + i).padStart(2, "0")}:00:00.000Z`)
       ),
     ]);
@@ -151,7 +171,7 @@ describe("the two ceilings hold independently", () => {
   it("nextFreeAt on a week refusal is the customer's next Monday", async () => {
     const TUESDAY = new Date("2026-09-15T14:00:00.000Z");
     db.seed("publications", [
-      ...Array.from({ length: 8 }, (_, i) =>
+      ...Array.from({ length: 7 }, (_, i) =>
         publishedAt(`2026-09-14T${String(10 + i).padStart(2, "0")}:00:00.000Z`)
       ),
     ]);

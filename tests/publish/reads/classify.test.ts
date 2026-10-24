@@ -123,12 +123,39 @@ describe("§6(d) — visitors arriving from an AI answer", () => {
   });
 });
 
+describe("D6 — visitors arriving from Google or Bing search", () => {
+  const browser = "Mozilla/5.0 (Macintosh) AppleWebKit/537.36 Chrome/140 Safari/537.36";
+
+  it.each([
+    ["a country Google", "https://www.google.de/", "google"],
+    ["a bare Google with a query", "https://google.co.uk/search?q=plumber+leeds", "google"],
+    ["an image search", "https://www.google.com/imgres?imgurl=x", "google"],
+    ["Bing", "https://www.bing.com/", "bing"],
+  ])("%s is a referral", (_name, referer, engine) => {
+    expect(read({ userAgent: browser, referer })).toEqual({ engine, kind: "referral" });
+  });
+
+  it.each([
+    ["a host that only starts with google", "https://google.evil.example/"],
+    ["a Google host that is not search", "https://docs.google.com/document/d/1"],
+    ["a subdomain of Bing", "https://cn.bing.com.evil.example/"],
+    ["a prototype key", "https://constructor/"],
+  ])("%s is not", (_name, referer) => {
+    expect(read({ userAgent: browser, referer })).toBeNull();
+  });
+
+  it("the value names the engine and nothing of the address", () => {
+    const serialised = JSON.stringify(read({ referer: "https://www.google.fr/search?q=secret-term" }));
+    expect(serialised).toBe(JSON.stringify({ engine: "google", kind: "referral" }));
+  });
+});
+
 describe("ordinary traffic is nothing, and that is not an error", () => {
   it.each([
     ["a browser", { userAgent: "Mozilla/5.0 (Macintosh) AppleWebKit/537.36 Chrome/140 Safari/537.36" }],
     // Googlebot is no longer here: since issue 1553 it is a crawl claim,
     // counted only from Google's own addresses (`crawler.test.ts`).
-    ["a search referral", { referer: "https://www.google.com/search?q=x" }],
+    ["a non-search Google host", { referer: "https://mail.google.com/mail/u/0/" }],
     ["nothing at all", {}],
   ])("%s counts nothing", (_name, facts) => {
     expect(read(facts)).toBeNull();

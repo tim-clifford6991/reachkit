@@ -13,6 +13,7 @@ vi.mock("@/lib/publish/daily", () => ({
   alertMissingDrafts: async () => 0,
   alertStalledSites: async () => 0,
   missedDays: async () => [],
+  dayHold: async () => null,
 }));
 vi.mock("@/lib/publish/destinations/health", () => ({ sendBreakageMail: async () => ({ sent: false }) }));
 vi.mock("@/lib/generate", () => ({

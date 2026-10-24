@@ -43,6 +43,8 @@ export function pageTypeOf(
 ): PageType | null {
   const family = FAMILY_OF[o.type];
   if (family !== "write" && family !== "earn" && !isRetarget(o)) return null;
+  // An offering page's subject is the business's own service or product.
+  if (contentTypeOf(o) === "offering") return "product";
   if (o.pageType !== undefined && o.pageType !== null) return o.pageType;
   const source = o.source ?? null;
   if (source === "best_x") return "market_comparison";

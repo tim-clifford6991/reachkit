@@ -22,7 +22,7 @@
 //     left in `generating` — and its topic rests for 28 days (owner, D26,
 //     issue 1179);
 //   * a stopped draft does not cost its day (D26): the same run writes the
-//     week's best spare for the date (`takeSpare`), at most once more and
+//     week's next spare in committed order (`pageForDay`), at most once more and
 //     inside the one `CAP_DRAFT` context;
 //   * a pack short of what its template asks, or a new page whose pack adds
 //     too little (D12), writes nothing, and the day goes to the next topic
@@ -41,7 +41,6 @@ import {
   queueForDraft,
   restTopic,
   sitePagesFor,
-  takeSpare,
   updateInstead,
   type Opportunity,
 } from "@/lib/opportunities";
@@ -69,32 +68,27 @@ import { allowedFacts, readAllFacts, readDemoPhrases, type SourcedFact } from ".
 import { buildPack, builtFromOutside, questionsHeld, readPack, type ContextPack, type PackLivePage, type PackMeasurements } from "./pipeline/pack";
 import { generatePageFix } from "./pipeline/page-fix";
 import type { FixNote } from "./pipeline/repair";
-import { NO_RESEARCH, researchMarket, type MarketResearch } from "./pipeline/research";
+import { NO_RESEARCH, researchMarket, storedAsk, type MarketResearch } from "./pipeline/research";
 import { namedRivals } from "./rules/rivals";
 import { TEMPLATES } from "./templates";
 import { marketSearches, writingMarket } from "./voice/market";
-import { DraftDateTaken, generateStore, type RestartedDraft, type SiteFacts } from "./store";
+import { DraftDateTaken, PageStopped, generateStore, type RestartedDraft, type SiteFacts } from "./store";
 
 export type { GroundedFact, HardRule, RuleFailure, ComparisonSet, SiteRuleInputs } from "./rules/types";
 
-export { HARD_RULES } from "./rules/types";
-export { runHardRules, type BatteryOutcome } from "./rules";
-export { similarity } from "./rules/similarity";
-export { renderOf } from "./rules/text";
+export { type BatteryOutcome } from "./rules";
 
-export { claimCheck, type ClaimVerdict } from "./claims/check";
-export { listHash } from "./claims/hash";
+export { type ClaimVerdict } from "./claims/check";
 export { claimRecheckOutstanding, outstandingMatch } from "./claims/outstanding";
 export { sweepOutstandingRechecks, type SweepOutcome } from "./claims/sweep";
-export { recoveryOutcome, type Recovery } from "./claims/recovery";
+export { type Recovery } from "./claims/recovery";
 
-export { generateDraft, type GenerateOutcome } from "./pipeline";
-export { rejectionCause, type NearDuplicateCause } from "./pipeline/rejection";
+export { type GenerateOutcome } from "./pipeline";
+export { type NearDuplicateCause } from "./pipeline/rejection";
 export { type PipelineStep } from "./pipeline";
-export { type ContextPack, readPack } from "./pipeline/pack";
-export { TEMPLATES, type Template } from "./templates";
-export { DraftDateTaken, setGenerateStore, type GenerateStore, type RestartedDraft } from "./store";
-export { withDraftCost } from "./cost";
+export { type ContextPack } from "./pipeline/pack";
+export { type Template } from "./templates";
+export { PageStopped, setGenerateStore, type GenerateStore, type RestartedDraft } from "./store";
 
 /** Why a day has no page. Every arm is a fact, and none of them is a
  *  sentence: the calendar's own module owns the words. */
@@ -122,7 +116,9 @@ export type DayPageOutcome =
        *  them, where the run that stopped it held them (issue 1187). */
       stopped?: readonly FixNote[];
     }
-  | { ok: false; because: "step_failed"; draftId: string | null; step: string };
+  | { ok: false; because: "step_failed"; draftId: string | null; step: string }
+  /** DataForSEO refused the page's research for lack of credit. */
+  | { ok: false; because: "vendor_funds" };
 
 type NoPage = Extract<DayPageOutcome, { because: "no_site" | "no_scan" | "already_drafted" | "no_opportunity" }>;
 
@@ -194,12 +190,22 @@ export async function generateDayPage(a: {
         // A fix is a metadata-only update: one call, no regeneration loop —
         // the only rule it can fail is the customer's own do-not-claim list,
         // which a second attempt at the same page would read the same way.
-        const outcome =
-          opportunity.type === "fix_page"
-            ? await fixPage(page, own)
-            : mendable(opportunity)
-              ? await mendPage(page)
-              : await writePage({ ...page, attempts: MAX_AUTOMATIC_ATTEMPTS, startedAt: topic === 1 ? startedAt : Date.now() }, own);
+        let outcome: DayPageOutcome;
+        try {
+          outcome =
+            opportunity.type === "fix_page"
+              ? await fixPage(page, own)
+              : mendable(opportunity)
+                ? await mendPage(page)
+                : await writePage({ ...page, attempts: MAX_AUTOMATIC_ATTEMPTS, startedAt: topic === 1 ? startedAt : Date.now() }, own);
+        } catch (error) {
+          // The customer stopped this page while it was written: nothing was saved, and the day takes the week's next spare.
+          if (!(error instanceof PageStopped)) throw error;
+          const spare = cost.capHit() || Date.now() - startedAt > PIPELINE.nextTopicBeforeMs ? null : await pageForDay(a.siteId, a.publishDate, now);
+          if (spare === null || spare.id === opportunity.id) return { ok: false, because: "no_opportunity" };
+          opportunity = spare;
+          continue;
+        }
         await settle(outcome, opportunity.id, now, site.domain);
 
         // SPEC §7 (D26, issue 1179): a stopped draft does not cost its day.
@@ -217,8 +223,8 @@ export async function generateDayPage(a: {
         if (short && stopped === null) await restTopic(opportunity.id, now);
         // And only while the job's invocation has the time for a second page.
         if ((stopped === null && !short) || written >= DAY_TOPICS_MAX || cost.capHit() || Date.now() - startedAt > PIPELINE.nextTopicBeforeMs) return outcome;
-        // The stopped topic rests by now; the day takes the week's best spare.
-        const next = await takeSpare(a.siteId, now);
+        // The stopped topic rests by now, so the date's page is the week's next spare.
+        const next = await pageForDay(a.siteId, a.publishDate, now);
         if (next === null || next.id === first.id || next.id === opportunity.id) return outcome;
         // It keeps its row and gives up its date to the page written next.
         if (stopped !== null) await store.patchDraft(stopped, { scheduled_for: null });
@@ -229,8 +235,8 @@ export async function generateDayPage(a: {
     // Issue 886: another delivery of this tick wrote the date's row while
     // this one was writing its page. The index refused the second row, so
     // the day has exactly one page; this run wrote nothing, moves nothing,
-    // and leaves its opportunity open the way any run that wrote no row
-    // does.
+    // and the store gave back its claim, so its opportunity is open the way
+    // any run that wrote no row leaves it.
     if (error instanceof DraftDateTaken) return { ok: false, because: "already_drafted" };
     throw error;
   }
@@ -493,8 +499,13 @@ async function livePageOf(
     facts.find((sourced) => urlKey(sourced.fact.url) === key)?.sourceText ??
     "";
   if (markdown.trim() === "") return null;
-  const evidence = opportunity.evidence as { shortfall?: { kind?: unknown } } | undefined;
+  const evidence = opportunity.evidence as { shortfall?: { kind?: unknown; cause?: unknown; place?: unknown } } | undefined;
   const linkTo = linkBackOf(opportunity);
+  // Issue 1521 (as 1507): the date the live version is dated as, which a
+  // refresh that says nothing new keeps.
+  const version = ours === undefined ? null : ((await generateStore().liveVersionAt?.(a.siteId, url)) ?? null);
+  const versionMeta = (version?.draft.meta ?? null) as Record<string, unknown> | null;
+  const datedAs = version === null ? undefined : typeof versionMeta?.datedAs === "string" ? versionMeta.datedAs : version.publishedAt.toISOString();
   // Issue 1487: a link to a page that moved is pointed at its new address in
   // code, by the name the row records; the writer returns the page as it is.
   const moved =
@@ -506,6 +517,10 @@ async function livePageOf(
     title,
     markdown: moved,
     why: typeof evidence?.shortfall?.kind === "string" ? evidence.shortfall.kind : null,
+    // Issue 1521: why one of ours is refreshed, which says whether it may grow.
+    ...(evidence?.shortfall?.kind === "due" && typeof evidence.shortfall.cause === "string" ? { cause: evidence.shortfall.cause } : {}),
+    ...(evidence?.shortfall?.kind === "due" && typeof evidence.shortfall.place === "number" ? { place: evidence.shortfall.place } : {}),
+    ...(datedAs === undefined ? {} : { datedAs }),
     ...(linkTo === null ? {} : { linkTo }),
     ...(ours?.reportPassages === undefined ? {} : { reportPassages: ours.reportPassages }),
   };
@@ -649,7 +664,9 @@ async function writePage(a: PageInput & { attempts: number; startedAt?: number }
     //    read beside the market's searched terms too (owner, D62; issue
     //    1297): the pack says when it holds enough.
     const market = !template.research
-      ? NO_RESEARCH
+      ? type === "offering"
+        ? storedAsk(report, targetSearches(o))
+        : NO_RESEARCH
       : await researchMarket(cost, {
           siteId: a.siteId,
           locale,
@@ -689,6 +706,8 @@ async function writePage(a: PageInput & { attempts: number; startedAt?: number }
   for (let attempt = 1; ; attempt++) {
     const key = `${opportunity.id}:${opportunity.type}`;
     if (!packs.has(key)) packs.set(key, await packFor(opportunity));
+    // Research the vendor refused for credit is unmeasured, and no page is written from it.
+    if (cost.fundsRefused?.() === true) return { ok: false, because: "vendor_funds" };
     const built = packs.get(key) ?? null;
     if (built === null) return { ok: false, because: "step_failed", draftId: draftId ?? null, step: "pack" };
     const last: GenerateOutcome = await generateDraft(cost, {

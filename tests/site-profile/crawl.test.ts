@@ -527,10 +527,10 @@ describe("what SPEC §9's technical-issue checks read off the crawl (#570)", () 
     );
 
     const [home, read] = out.pages;
-    expect(home?.facts).toEqual({ metaDescription: "", noindex: false, phoneViewport: false, schemaTypes: 0, snippetBlocked: false });
+    expect(home?.facts).toEqual({ metaDescription: "", noindex: false, phoneViewport: false, schemaTypes: 0, snippetBlocked: false, identity: null });
     // The home document was handed over, not fetched: nothing to time.
     expect(home?.fetchMs).toBeNull();
-    expect(read?.facts).toEqual({ metaDescription: "Who we are.", noindex: false, phoneViewport: true, schemaTypes: 1, snippetBlocked: false });
+    expect(read?.facts).toEqual({ metaDescription: "Who we are.", noindex: false, phoneViewport: true, schemaTypes: 1, snippetBlocked: false, identity: { kind: "organization", type: "Organization" } });
     expect(typeof read?.fetchMs).toBe("number");
   });
 });
@@ -812,5 +812,80 @@ describe("issue 1509 — an about or team page is kept at more length, with the 
     expect(team?.about?.profiles).toEqual(["https://www.linkedin.com/in/ada-park/"]);
     expect(out.pages.find((p) => p.url === "https://example.com/pricing")).not.toHaveProperty("about");
     expect(out.pages[0]).not.toHaveProperty("about");
+  });
+});
+
+describe("SPEC §6 (D66) — the crawl stays in the measured market's section", () => {
+    const home = `<html><head><title>Start</title>
+    <link rel="alternate" hreflang="de" href="https://example.com/" />
+    <link rel="alternate" hreflang="en" href="https://example.com/en/" />
+    <link rel="alternate" hreflang="x-default" href="https://example.com/en/" />
+    </head><body><h1>Start</h1><a href="/de/">Deutsch</a><a href="/en/">English</a></body></html>`;
+  const sitemap = `<?xml version="1.0"?><urlset>${["/de/preise", "/de/kontakt", "/en/pricing", "/en/contact", "/impressum"]
+    .map((path) => `<url><loc>https://example.com${path}</loc></url>`)
+    .join("")}</urlset>`;
+  const documents: Record<string, FetchOutcome> = {
+    "https://example.com/sitemap.xml": ok("https://example.com/sitemap.xml", sitemap),
+    ...Object.fromEntries(
+      ["/de/", "/en/", "/de/preise", "/de/kontakt", "/en/pricing", "/en/contact", "/impressum"].map((path) => [
+        `https://example.com${path}`,
+        ok(`https://example.com${path}`, page(path)),
+      ])
+    ),
+  };
+  const pathsRead = async (locale?: { country: "DE"; language: "de" }) => {
+    const out = await crawlSite(
+      fakeCost(),
+      { domain: DOMAIN, homeUrl: HOME, homeHtml: home, sitemaps: [], ...(locale === undefined ? {} : { locale }) },
+      fakePorts(documents)
+    );
+    return out.pages.map((each) => new URL(each.url).pathname).sort();
+  };
+
+  it("a DE/de pass keeps the /de/ section and the unprefixed pages, and reads no /en/ page", async () => {
+    expect(await pathsRead({ country: "DE", language: "de" })).toEqual(["/", "/de/", "/de/kontakt", "/de/preise", "/impressum"]);
+  });
+
+  it("with no market given, every section is read as before", async () => {
+    expect(await pathsRead()).toContain("/en/pricing");
+  });
+
+  it("a site that shows no split loses no page", async () => {
+    const single = page("Home", `<a href="/de/">Deutschland</a><a href="/pricing">Pricing</a>`);
+    const out = await crawlSite(
+      fakeCost(),
+      { domain: DOMAIN, homeUrl: HOME, homeHtml: single, sitemaps: [], locale: { country: "US", language: "en" } },
+      fakePorts({ "https://example.com/de/": ok("https://example.com/de/", page("De")), "https://example.com/pricing": ok("https://example.com/pricing", page("Pricing")) })
+    );
+    expect(out.pages.map((each) => new URL(each.url).pathname).sort()).toEqual(["/", "/de/", "/pricing"]);
+  });
+
+  it.each([
+    ["a local business's state pages", ["/co/denver", "/ga/atlanta", "/pa/philadelphia"]],
+    ["a SaaS's two-letter product paths", ["/hr/", "/ml/"]],
+  ])("links alone never split a site: %s are all read", async (_, paths) => {
+    const single = page("Home", paths.map((path) => `<a href="${path}">${path}</a>`).join(""));
+    const out = await crawlSite(
+      fakeCost(),
+      { domain: DOMAIN, homeUrl: HOME, homeHtml: single, sitemaps: [], locale: { country: "US", language: "en" } },
+      fakePorts(Object.fromEntries(paths.map((path) => [`https://example.com${path}`, ok(`https://example.com${path}`, page(path))])))
+    );
+    expect(out.pages.map((each) => new URL(each.url).pathname).sort()).toEqual(["/", ...paths].sort());
+  });
+});
+
+describe("SPEC §6 (D66) — a bilingual US multi-location site keeps its state pages", () => {
+  it("a bilingual US site with hreflang /es/ keeps its /co/ and /ga/ state pages", async () => {
+    const home = `<html><head><title>Home</title>
+    <link rel="alternate" hreflang="en-us" href="https://example.com/" />
+    <link rel="alternate" hreflang="es-us" href="https://example.com/es/" />
+    </head><body><h1>Home</h1><a href="/co/denver">Denver</a><a href="/ga/atlanta">Atlanta</a><a href="/es/">Espanol</a></body></html>`;
+    const paths = ["/co/denver", "/ga/atlanta", "/es/"];
+    const out = await crawlSite(
+      fakeCost(),
+      { domain: DOMAIN, homeUrl: HOME, homeHtml: home, sitemaps: [], locale: { country: "US", language: "en" } },
+      fakePorts(Object.fromEntries(paths.map((path) => [`https://example.com${path}`, ok(`https://example.com${path}`, page(path))])))
+    );
+    expect(out.pages.map((each) => new URL(each.url).pathname).sort()).toEqual(["/", "/co/denver", "/ga/atlanta"]);
   });
 });

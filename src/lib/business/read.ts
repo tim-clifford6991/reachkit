@@ -56,6 +56,7 @@ export async function readBusinessUnderstanding(a: { siteId: string; domain: str
     storedName: site?.siteName ?? null,
     profile: profileOfReport(report),
     locale: report === null ? DEFAULT_LOCALE : localeOfReport(report),
+    alsoServes: report?.locale?.alsoServes?.length ?? 0,
     market: market?.stored ?? null,
     category: market?.category ?? null,
     edits:

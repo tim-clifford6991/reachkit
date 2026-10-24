@@ -5,16 +5,37 @@
 // Everything here reads `free_scan_listing`, the one view that decides what
 // is listed: each domain's newest finished free scan, never a removed or an
 // unreadable site (`supabase/migrations/*_scans_gallery.sql`). Search, the
-// category filter, the order and the page are all the database's, so the
-// page is server-rendered and paged rather than a list shipped whole.
+// kind filter, the order and the page are all the database's, so the page
+// is server-rendered and paged rather than a list shipped whole.
+//
+// A view's read is cached, keyed by the view and by an uncached fingerprint
+// of what may change the listing at once, so a crawler walking every filter
+// costs one read per view per window and a removal still shows at once.
+import { unstable_cache } from "next/cache";
+import { kindOfProfile } from "@/lib/business/retrofit";
 import { dbAdmin } from "@/lib/db";
+import type { BusinessKind } from "@/lib/market/kinds";
 import { isProtectionName } from "@/lib/measure/challenge";
 import { isPlaceholder } from "@/lib/measure/placeholder";
 import { brandName, domainBrand } from "@/lib/site-profile/site-name";
 import { challengedHomes } from "./challenged";
+import { removalsMark } from "./removal";
 
 export const GALLERY_SORTS = ["newest", "highest", "lowest", "az"] as const;
 export type GallerySort = (typeof GALLERY_SORTS)[number];
+
+/** Cards per page, and per *Show more reports*: four rows of four. */
+export const GALLERY_PAGE = 16;
+/** However far *Show more* is followed, one response stays bounded. */
+export const GALLERY_MOST = GALLERY_PAGE * 20;
+
+/** A requested card count as whole pages within the bound, so every way of
+ *  asking for one view is one view. */
+export function galleryShown(raw: number): number {
+  if (!Number.isFinite(raw)) return GALLERY_PAGE;
+  const bounded = Math.min(Math.max(raw, GALLERY_PAGE), GALLERY_MOST);
+  return Math.floor(bounded / GALLERY_PAGE) * GALLERY_PAGE;
+}
 
 /** One card. `company` falls back to the domain where the site names
  *  itself nowhere; `score` is null on a scan a ceiling cut off. */
@@ -23,19 +44,16 @@ export interface GalleryEntry {
   company: string;
   score: number | null;
   category: string | null;
+  /** The kind the stored category names, `null` where it names none. */
+  kind: BusinessKind | null;
   scannedAt: Date;
   hasLogo: boolean;
 }
 
 export interface GalleryPage {
   entries: readonly GalleryEntry[];
-  /** How many scans match the search and the category. */
+  /** How many scans match the search and the kind. */
   total: number;
-  /** Every category among the scans the search matches, most first, with
-   *  its count (`splitCategories` decides which are chips); `all` is the
-   *  search's own total. */
-  categories: readonly { name: string; count: number }[];
-  all: number;
 }
 
 interface Row {
@@ -92,46 +110,17 @@ export function searchTerm(raw: string | undefined): string {
 }
 
 /** A stored category as the gallery may show it: a placeholder the
- *  inference once stored (`<UNKNOWN>`, issue 1377) is no category — on a
- *  card, as a chip, or as the `?cat=` a link asks for. */
+ *  inference once stored (`<UNKNOWN>`, issue 1377) is no category, on a
+ *  card or as a kind. */
 export function listedCategory(raw: string | null | undefined): string | null {
   const category = (raw ?? "").trim();
   return isPlaceholder(category) ? null : category;
 }
 
-/** At most this many category chips beside *All*, on every width. */
-export const CHIPS_MAX = 8;
-/** A category is a chip from this many scans. */
-const CHIP_FROM = 2;
-
-/**
- * The categories as the toolbar holds them (issue 1377): the chips are the
- * ones with at least two scans, most first, at most `CHIPS_MAX` — so the
- * toolbar's size never follows the number of categories — and every other
- * one is under *More*, A to Z. The category being shown is always the
- * first chip, wherever it would have stood and even where the search
- * leaves it no scan, so the filter in force is on screen on a phone, whose
- * row shows two or three chips, and can be left.
- */
-export function splitCategories(
-  categories: GalleryPage["categories"],
-  current: string | null,
-): { chips: GalleryPage["categories"]; more: GalleryPage["categories"] } {
-  const most = categories.filter((c) => c.count >= CHIP_FROM).slice(0, CHIPS_MAX);
-  const chips =
-    current === null
-      ? most
-      : [
-          categories.find((c) => c.name === current) ?? { name: current, count: 0 },
-          ...most.filter((c) => c.name !== current),
-        ];
-  const shown = new Set(chips.map((c) => c.name));
-  return {
-    chips,
-    more: categories
-      .filter((c) => !shown.has(c.name))
-      .sort((x, y) => x.name.localeCompare(y.name)),
-  };
+/** The kind a stored category names on its own, read as the profile's kind
+ *  is (`kindOfProfile`): a category that decides none is listed under none. */
+export function kindOfCategory(category: string | null): BusinessKind | null {
+  return category === null ? null : kindOfProfile(category, "", false);
 }
 
 /** The stored name as a card shows it: the brand, never a page title's
@@ -163,11 +152,13 @@ async function homeTitles(domains: readonly string[]): Promise<ReadonlyMap<strin
 }
 
 function toEntry(row: Row, homeTitle?: string): GalleryEntry {
+  const category = listedCategory(row.category);
   return {
     domain: row.domain,
     company: shownCompany(row, homeTitle),
     score: row.score,
-    category: listedCategory(row.category),
+    category,
+    kind: kindOfCategory(category),
     scannedAt: new Date(row.scanned_at),
     hasLogo: row.has_logo,
   };
@@ -203,45 +194,32 @@ function ordered<T>(
   }
 }
 
-/** The gallery's first `shown` cards for one search, category and order. */
-export async function readGallery(a: {
+interface GalleryView {
   search: string;
-  category: string | null;
+  kind: BusinessKind | null;
   sort: GallerySort;
   shown: number;
-}): Promise<GalleryPage> {
+}
+
+async function readListing(a: GalleryView): Promise<GalleryPage> {
   let cards = searched(
     untyped()
       .from<Row>("free_scan_listing")
       .select(COLUMNS, { count: "exact" }),
     a.search,
   );
-  if (a.category !== null) cards = cards.eq("category", a.category);
-  const [page, chips] = await Promise.all([
-    ordered(cards, a.sort).range(0, a.shown - 1),
-    searched(
-      untyped()
-        .from<{ category: string | null }>("free_scan_listing")
-        .select("category"),
-      a.search,
-    ),
-  ]);
+  if (a.kind !== null) {
+    const categories = await categoriesOf(a.kind, a.search);
+    if (categories.length === 0) return { entries: [], total: 0 };
+    cards = cards.in("category", categories);
+  }
+  const page = await ordered(cards, a.sort).range(0, a.shown - 1);
   if (page.error)
     throw new Error(
       `gallery: could not read the free scans: ${page.error.message}`,
     );
-  if (chips.error)
-    throw new Error(
-      `gallery: could not count the categories: ${chips.error.message}`,
-    );
 
   const titles = await homeTitles((page.data ?? []).map((row) => row.domain));
-  const counts = new Map<string, number>();
-  for (const row of chips.data ?? []) {
-    const category = listedCategory(row.category);
-    if (category === null) continue;
-    counts.set(category, (counts.get(category) ?? 0) + 1);
-  }
   // Issue 1383: a card never states a score measured off a bot-protection
   // page. Only a scored card is asked about; an unscored one states none.
   const entries = (page.data ?? []).map((row) => toEntry(row, titles.get(row.domain)));
@@ -251,11 +229,58 @@ export async function readGallery(a: {
   return {
     entries: entries.map((entry) => (challenged.has(entry.domain) ? { ...entry, score: null } : entry)),
     total: page.count ?? page.data?.length ?? 0,
-    categories: [...counts]
-      .map(([name, count]) => ({ name, count }))
-      .sort((x, y) => y.count - x.count || x.name.localeCompare(y.name)),
-    all: chips.data?.length ?? 0,
   };
+}
+
+/** The stored categories, among the scans the search matches, that name
+ *  this kind: the view stores a category, never a kind. */
+async function categoriesOf(kind: BusinessKind, search: string): Promise<string[]> {
+  const { data, error } = await searched(
+    untyped()
+      .from<{ category: string | null }>("free_scan_listing")
+      .select("category"),
+    search,
+  );
+  if (error) throw new Error(`gallery: could not read the categories: ${error.message}`);
+  const stored = new Set((data ?? []).flatMap((row) => (row.category === null ? [] : [row.category])));
+  return [...stored].filter((category) => kindOfCategory(listedCategory(category)) === kind);
+}
+
+/**
+ * What may change the listing at once: the takedown list's size and newest
+ * row, and the newest finished free scan. Read uncached on every request,
+ * so a removal or a new scan is a new key, never a wait (#1069).
+ */
+async function listingFingerprint(): Promise<string> {
+  const [blocks, newest] = await Promise.all([
+    removalsMark().catch((e: unknown) => {
+      throw new Error(`gallery: ${e instanceof Error ? e.message : String(e)}`);
+    }),
+    untyped()
+      .from<{ finished_at: string | null }>("scans")
+      .select("finished_at")
+      .eq("tier", "free")
+      .in("status", ["done", "degraded"])
+      .order("finished_at", { ascending: false, nullsFirst: false })
+      .limit(1),
+  ]);
+  if (newest.error) throw new Error(`gallery: could not read the newest scan: ${newest.error.message}`);
+  return [blocks, newest.data?.[0]?.finished_at ?? ""].join("|");
+}
+
+// The fingerprint is in the arguments so it is in the key; the read ignores it.
+const cachedListing = unstable_cache(
+  (key: { view: GalleryView; fingerprint: string }) => readListing(key.view),
+  ["scan-gallery"],
+  { revalidate: 300 },
+);
+
+/** The gallery's first `shown` cards for one search, kind and order. */
+export async function readGallery(a: GalleryView): Promise<GalleryPage> {
+  const view: GalleryView = { search: a.search, kind: a.kind, sort: a.sort, shown: galleryShown(a.shown) };
+  const page = await cachedListing({ view, fingerprint: await listingFingerprint() });
+  // The data cache stores JSON, so a cached card's date comes back a string.
+  return { ...page, entries: page.entries.map((entry) => ({ ...entry, scannedAt: new Date(entry.scannedAt) })) };
 }
 
 /** One logo in the landing's strip: the company and whether it has a logo

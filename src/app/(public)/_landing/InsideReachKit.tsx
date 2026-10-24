@@ -1,4 +1,5 @@
-// SPEC §1 2026-09-24 (#1067) — the hero's *Inside ReachKit* preview.
+// SPEC §1 2026-09-24 (#1067) — the *Inside ReachKit* preview, drawn in the
+// second step card since the landing tells one story (2026-10-19).
 // src/app/(public)/_landing/InsideReachKit.tsx
 //
 // Boards `R12-1-Landing` / `R12-8-Phone-landing`: beside the title and the
@@ -17,16 +18,15 @@
 //
 // **daisyUI classes, no image** (DESIGN rules 1 and 2): `card`, `tabs`,
 // `badge`, `alert`; the week is CSS grid.
-// The deep floating shadow is spent here (`FLOAT`, #1064).
 //
 // **Every figure is `specimen.ts`'s and every sentence is a key.**
 import type React from "react";
 import { Clock, MessageSquare, Send, Zap } from "lucide-react";
 import { InsideTabs } from "./InsideTabs";
 import { copy } from "@/lib/presentation/copy";
-import { FLOAT } from "@/ui/lift";
 import { STAGE_BEACON, TONE_DOT } from "@/app/(account)/app/calendar/stages";
 import { Num } from "../scan/[domain]/_address/measured";
+import { HOW_FACTS } from "../_how/facts";
 import {
   SPECIMEN_HERO,
   SPECIMEN_HERO_BLOG,
@@ -83,8 +83,8 @@ function DayCell(p: { weekday: string; title: string | null }): React.JSX.Elemen
       {p.title === null ? (
         <span className="text-xs font-semibold leading-tight">
           {copy("landing.hero.week.measured", {
-            searches: String(SPECIMEN_HERO.searches),
-            questions: String(SPECIMEN_HERO.questions),
+            searches: String(HOW_FACTS.searches),
+            questions: String(HOW_FACTS.prompts),
           })}
         </span>
       ) : (
@@ -126,7 +126,7 @@ function WeekPanel(): React.JSX.Element {
         </p>
         <p className="flex min-w-0 items-center gap-2 text-sm font-semibold">
           <Send size={16} strokeWidth={1.75} className="text-primary shrink-0" aria-hidden />
-          {copy("landing.hero.work.reachkit")}
+          {copy("landing.hero.work.reachkit", { weekPages: String(HOW_FACTS.weekPages) })}
         </p>
       </div>
     </div>
@@ -188,7 +188,7 @@ function PagePanel(): React.JSX.Element {
 
 export function InsideReachKit(): React.JSX.Element {
   return (
-    <div className={`card bg-base-100 h-full min-w-0 ${FLOAT}`} data-testid={HERO_TEST_ID}>
+    <div className="card card-border bg-base-100 min-w-0" data-testid={HERO_TEST_ID}>
       <div className="card-body gap-4">
         <InsideTabs
           title={copy("landing.inside.title")}

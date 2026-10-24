@@ -13,7 +13,7 @@
 // which is the point: the explanation is why this page was chosen *then*,
 // not what the market looks like now.
 import { opportunityStore, readOpportunity } from "../store";
-import type { Acceptance, BusinessFit, Evidence, Family, OpportunityType, Winnability } from "../types";
+import type { Acceptance, BusinessFit, Evidence, Family, OpportunityType, PlanReason, Winnability } from "../types";
 
 export interface Choice {
   opportunityId: string;
@@ -26,6 +26,8 @@ export interface Choice {
   businessFit?: BusinessFit | null;
   acceptance: Acceptance;
   evidence: Evidence;
+  /** Why the committed week placed it; `null` where no commit holds it. */
+  planReason?: PlanReason | null;
 }
 
 /** `null` where no such opportunity exists — a day panel asking about a
@@ -43,5 +45,6 @@ export async function explainChoice(opportunityId: string): Promise<Choice | nul
     businessFit: opportunity.businessFit ?? null,
     acceptance: opportunity.acceptance,
     evidence: opportunity.evidence,
+    planReason: opportunity.planReason ?? null,
   };
 }

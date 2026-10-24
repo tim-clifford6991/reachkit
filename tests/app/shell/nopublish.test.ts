@@ -25,6 +25,7 @@ import {
 
 const NONE: NoPublishCauses = {
   reachkit_stopped: false,
+  address_waiting: false,
   publishing_paused: false,
   not_written: false,
   nothing_planned: false,
@@ -39,6 +40,7 @@ describe("the four causes, and the order they are resolved in", () => {
   it("the precedence is the four causes, stopped first, and nothing else", () => {
     expect([...NO_PUBLISH_PRECEDENCE]).toEqual([
       "reachkit_stopped",
+      "address_waiting",
       "publishing_paused",
       "not_written",
       "nothing_planned",

@@ -5,11 +5,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AI_READER_AGENTS } from "../../src/lib/config/constants";
 import { measured } from "../../src/lib/measure/measured";
 import { deriveOpportunities } from "../../src/lib/opportunities/derive";
-import { pageForDay } from "../../src/lib/opportunities/plan";
+import { pageForDay, supplyDepth } from "../../src/lib/opportunities/plan";
 import { assessReadiness } from "../../src/lib/opportunities/readiness";
-import { isPausedType, rankOpen } from "../../src/lib/opportunities/rank/open";
+import { rankOpen } from "../../src/lib/opportunities/rank/open";
 import { setOpportunityStore, type OpportunityRow } from "../../src/lib/opportunities/store";
-import { supplyDepth } from "../../src/lib/opportunities/supply/depth";
 import { fakeCost } from "./cost";
 import { memoryStore, newMemoryState, setStatus, type MemoryState } from "./memory-store";
 import {
@@ -93,10 +92,8 @@ describe("§7: one list, ordered by the formula", () => {
 
     const first = state.rows.find((row) => row.id === ranked[0]!.opportunityId)!;
     expect(first.target_query).toBe("onboarding platform");
-    // No row outscores the first. After it the days turn between the types
-    // of page (D36, D42), so the rest are not in score order where the
-    // supply holds more than one type — `rank/content-mix.test.ts`.
-    expect(ranked[0]!.score).toBe(Math.max(...ranked.map((entry) => entry.score)));
+    // No row has more points than the first.
+    expect(ranked[0]!.reason.points).toBe(Math.max(...ranked.map((entry) => entry.reason.points)));
   });
 
   it("the order is total — two reads of the same supply give the same list", async () => {
@@ -220,14 +217,5 @@ describe("§7 (D46): the mix leaves out only the types on its one list", () => {
     ];
 
     expect((await dayPage())?.targetQuery).toBe("best user onboarding software");
-  });
-
-  it("`isPausedType` reads the row's own type against the one list, which is empty", () => {
-    expect(isPausedType({ type: "keyword_page", targetQuery: "best user onboarding software" })).toBe(false);
-    expect(isPausedType({ type: "comparison_page", targetQuery: "appcues and userpilot" })).toBe(false);
-    expect(isPausedType({ type: "keyword_page", targetQuery: "latest user onboarding trends" })).toBe(false);
-    expect(isPausedType({ type: "keyword_page", targetQuery: "how to onboard a new user" })).toBe(false);
-    // It publishes no asset, so it has no type to pause.
-    expect(isPausedType({ type: "unblock", targetQuery: null })).toBe(false);
   });
 });

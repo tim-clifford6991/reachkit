@@ -49,7 +49,7 @@ describe("BUILD §4.7 — a switched-off mail is stopped, and nothing else is", 
     const outside = (Object.keys(MAIL_KINDS) as MailKind[]).filter(
       (kind) => !(TOGGLABLE_KINDS as readonly string[]).includes(kind)
     );
-    expect(outside).toHaveLength(13);
+    expect(outside).toHaveLength(11);
     for (const kind of outside) {
       state.reads = [];
       await expect(stoppedByPreference({ userId: "u1", kind }), kind).resolves.toBe("send");

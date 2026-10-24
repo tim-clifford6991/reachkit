@@ -11,8 +11,8 @@
 // here judges a page again or measures anything: a verdict is the week's
 // fact, and this only reads what it implies for the rows still open.
 import { CLUSTER_SUPPRESS_WEEKS, IMPROVE_RETIRE_AFTER_NOT_WORKING } from "@/lib/config/constants";
-import { canonicalUrl } from "./cluster";
-import type { Family, Opportunity, UnreadyReason } from "./types";
+import { canonicalUrl } from "@/lib/measure/page-reading";
+import type { Family, Opportunity } from "./types";
 
 /** One `not_working` verdict, with the opportunity behind the judged page.
  *  The three opportunity fields are `null` where the publication has no
@@ -69,14 +69,11 @@ export function suppressionOf(verdicts: readonly NotWorkingVerdict[], at: Date):
 }
 
 /**
- * The reason a verdict holds this open row back, or `null`.
- *
- * Retirement first: a retired URL is targeted by nothing, whatever family.
- * Then suppression, which is Write's alone — Improve of a live URL in a
+ * Whether a verdict holds this open row back: a retired URL, whatever the
+ * family, or a Write in a suppressed cluster. Improve of a live URL in a
  * suppressed cluster stays allowed, and a Fix is not new writing.
  */
-export function verdictReason(o: Opportunity, s: Suppression): UnreadyReason | null {
-  if (o.family !== "fix" && s.retiredUrls.has(urlKey(o.targetRef))) return "url_retired";
-  if (o.family === "write" && o.clusterKey !== null && s.clusters.has(o.clusterKey)) return "cluster_suppressed";
-  return null;
+export function heldByVerdict(o: Opportunity, s: Suppression): boolean {
+  if (o.family !== "fix" && s.retiredUrls.has(urlKey(o.targetRef))) return true;
+  return o.family === "write" && o.clusterKey !== null && s.clusters.has(o.clusterKey);
 }

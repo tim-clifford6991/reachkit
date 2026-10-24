@@ -13,6 +13,7 @@ import { measured, measuredZero, unmeasured, type Measured } from "../../../src/
 import type { DomainMeasurement } from "../../../src/lib/measure";
 import type { SerpResult } from "../../../src/lib/vendors/dataforseo/types";
 import type { StoredReport } from "../../../src/lib/scan/report";
+import { shownLimitingOf } from "../../../src/lib/measure/verdict";
 import { AT, ON_PAGE, PROFILE, ROBOTS, SERP, SELECTED, QUESTION } from "../report/fixtures";
 
 
@@ -247,6 +248,12 @@ describe("the six stages", () => {
     );
     await runScan({ domain: DOMAIN, tier: "free" });
     expect(storedReport().locale).toEqual({ country: "GB", language: "en", fellBack: { country: "FR", language: "fr" } });
+  });
+
+  it("a report records the other markets its home page declares, even one measured in the United States in English", async () => {
+    measureDomain.mockResolvedValue(measurement({ alsoServes: ["de-de", "fr-fr"] }));
+    await runScan({ domain: DOMAIN, tier: "free" });
+    expect(storedReport().locale).toEqual({ country: "US", language: "en", alsoServes: ["de-de", "fr-fr"] });
   });
 
   // Owner ruling 2026-10-15 (issue 1441): D67 for the free pass.
@@ -656,6 +663,105 @@ describe("a ceiling gives back what was measured", () => {
     // A report is still stored: the customer gets back what was measured.
     expect(storeCurrentReport).toHaveBeenCalledTimes(1);
     expect(report.onPage.kind).toBe("measured");
+  });
+});
+
+describe("the Google bar is the presence card's page-one share, bought with nothing more", () => {
+  const RIVAL_TOP: SerpResult["organic"] = SERP.organic;
+  /** A SERP with the site on its first page, organically or in its local pack only. */
+  const onPage = (via: "organic" | "pack", cited: readonly string[] = ["appcues.com"]): Measured<SerpResult> =>
+    measured(
+      {
+        ...SERP,
+        aiOverview: { ...SERP.aiOverview, referenceDomains: [...cited] },
+        ...(via === "organic"
+          ? { organic: [...RIVAL_TOP, { position: 3, domain: DOMAIN, url: `https://${DOMAIN}/`, title: "Example" }] }
+          : { localPack: [{ title: "Example", domain: `www.${DOMAIN}` }] }),
+      },
+      AT
+    );
+  const offPage = measured(SERP, AT) as Measured<SerpResult>;
+  /** Fifty ranked rows, every one on page one: the Labs reach the old bar read. */
+  const RANKED_TOP = Array.from({ length: 50 }, (_, i) => ({ keyword: `directory search ${i}`, position: 1 + (i % 3), searchVolume: 1000, url: `https://${DOMAIN}/` }));
+  const stored = (): { report: StoredReport; drivers: { searchPresence: Measured<number> } } =>
+    (storeCurrentReport.mock.calls.at(-1) as unknown as [{ report: StoredReport; drivers: { searchPresence: Measured<number> } }])[0];
+
+  it("10 SERPs measured, 3 with the site on page one, stores 30 beside a card of 3 of 10, with one SERP bought per search", async () => {
+    let asked = 0;
+    serpOrganic.mockImplementation(async () => {
+      asked += 1;
+      if (asked > 10) return unmeasured("undeterminable", AT);
+      return asked <= 3 ? onPage("organic") : offPage;
+    });
+    await runScan({ domain: DOMAIN, tier: "free" });
+    const { report, drivers } = stored();
+    expect(report.presence).toMatchObject({ measuredSearches: 10, you: { top10Count: 3 } });
+    expect(drivers.searchPresence).toEqual(measured(30, AT));
+    expect(report.verdict.halves?.google).toEqual(measured(30, AT));
+    expect(measureDomain).toHaveBeenCalledTimes(1);
+    expect(serpOrganic).toHaveBeenCalledTimes(TWELVE.length);
+  });
+
+  it("a big directory absent from its market reads Google 0 and is told its gap is Google", async () => {
+    measureDomain.mockResolvedValue(
+      measurement({
+        drivers: { ...measurement().drivers, searchPresence: measured(100, AT) },
+        ownRanked: measured(50_000, AT),
+        ownRankedRows: RANKED_TOP,
+      })
+    );
+    await runScan({ domain: DOMAIN, tier: "free" });
+    const { report, drivers } = stored();
+    expect(report.presence?.you.top10Count).toBe(0);
+    expect(drivers.searchPresence).toEqual(measuredZero(0, AT));
+    expect(shownLimitingOf(report.verdict)).toBe("google");
+    expect(report.ownRanked).toEqual(measured(50_000, AT));
+  });
+
+  it("a small local firm in the pack on every search measured reads Google 10/10 and has no Google gap", async () => {
+    measureDomain.mockResolvedValue(
+      measurement({
+        drivers: { ...measurement().drivers, searchPresence: measured(40.3, AT) },
+        ownRanked: measured(40, AT),
+        ownRankedRows: RANKED_TOP.slice(0, 40),
+      })
+    );
+    serpOrganic.mockResolvedValue(onPage("pack", [DOMAIN]));
+    await runScan({ domain: DOMAIN, tier: "free" });
+    const { report, drivers } = stored();
+    expect(report.presence?.measuredSearches).toBeGreaterThan(0);
+    expect(report.presence?.you.top10Count).toBe(report.presence?.measuredSearches);
+    expect(drivers.searchPresence).toEqual(measured(100, AT));
+    expect(shownLimitingOf(report.verdict)).not.toBe("google");
+  });
+
+  it("4 SERPs measured, none with the site on page one, stores the score's estimate over the share's Wilson range, bought with nothing more", async () => {
+    measureDomain.mockResolvedValue(
+      measurement({ drivers: { ...measurement().drivers, foundations: measured(100, AT), answerability: measured(30, AT) } })
+    );
+    const noAnswer = measured({ ...SERP, aiOverview: { present: false, asynchronousAiOverview: false, referenceDomains: [] } }, AT);
+    let asked = 0;
+    serpOrganic.mockImplementation(async () => {
+      asked += 1;
+      return asked <= 4 ? noAnswer : unmeasured("undeterminable", AT);
+    });
+    await runScan({ domain: DOMAIN, tier: "free" });
+    const { report } = stored();
+    expect(report.presence).toMatchObject({ measuredSearches: 4, you: { top10Count: 0 } });
+    expect(report.verdict.scoreAndBand).toMatchObject({ value: { score: 14 } });
+    expect(report.verdict.estimate).toEqual({ low: 14, high: 53, confidence: "rough" });
+    expect(report.verdict.halves?.google).toEqual(measuredZero(0, AT));
+    expect(measureDomain).toHaveBeenCalledTimes(1);
+    expect(serpOrganic).toHaveBeenCalledTimes(TWELVE.length);
+    expect(placeLocation).not.toHaveBeenCalled();
+    const costs = db.queries.filter((q) => q.table === "scans" && q.verb === "update" && q.values?.cost_cents !== undefined);
+    expect(costs.map((q) => q.values?.cost_cents)).toEqual([0]);
+  });
+
+  it("no SERP measured leaves the Google half unmeasured with the SERPs' reason, never 0", async () => {
+    serpOrganic.mockResolvedValue(unmeasured("undeterminable", AT));
+    await runScan({ domain: DOMAIN, tier: "free" });
+    expect(stored().drivers.searchPresence).toMatchObject({ kind: "unmeasured", reason: "undeterminable" });
   });
 });
 

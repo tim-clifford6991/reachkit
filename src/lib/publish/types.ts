@@ -556,6 +556,9 @@ export interface ToldRecord {
   kind: "interval" | "no_interval" | "approval_only";
   publishesAt: string | null;
   sentAt: string;
+  /** Whether a mail left with it; `false` where the customer had the mail
+   *  off. Absent on rows told before it was recorded. */
+  mailed?: boolean;
 }
 
 /** What the publishable rule and the guards are handed. The last four

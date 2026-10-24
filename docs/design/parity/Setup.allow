@@ -1,0 +1,17 @@
+Your first page goes live on its day at 4:00 PM, once your website is connected. We’re already writing it.	SPEC §4: the publish time is the customer's setting, so the line names no hour
+Copy this where harborplumbing.com is managed	sample data
+844	sample data
+Writing your first page · started 10:42 AM	sample data: the pass's own stage and start, which the panel's status line states
+Your website harborplumbing.com Stays exactly as it is.	sample data
+Your pages, live help.harborplumbing.com On your own web address. We run it for you.	sample data
+On a new address we run help.harborplumbing.com One setting, once. Recommended.	sample data
+Name help	sample data: the founder's own label
+Value hosted.reachkit.app	sample data: the deployment's HOSTED_EDGE_CNAME_TARGET
+Your first page goes live On its day at 4:00 PM, once the setting is found.	Q11 (#1595): no go-live hour while the address is not connected
+Each page goes live at 4:00 PM on its day, by itself.	Q11 (#1595): no go-live hour while the address is not connected
+Checking, after the press	#1738: annotation over the pressed button (DESIGN › Pressed)
+Not found yet	#1738: the not-found arm; tests/app/settings/check-connection.test.tsx presses for it on the rendered screen
+We can’t see the setting yet. A new setting can take a while to reach everyone. We look again on our own every hour, so you can leave this page.	#1738: the not-found arm; tests/app/settings/check-connection.test.tsx presses for it on the rendered screen
+Connected. Your first page goes live on its day. There’s nothing more for you to do.	#1738: the connected arm; tests/app/settings/check-connection.test.tsx presses for it on the rendered screen
+If you choose WordPress	#1738: annotation over a state of the step
+Connect your WordPress site	SPEC §5: WordPress is connected later, from Settings › Publishing; setup names what it will ask for

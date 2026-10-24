@@ -28,6 +28,7 @@ vi.mock("@/lib/publish/daily", () => ({
   alertMissingDrafts: async () => 0,
   alertStalledSites: async () => 0,
   missedDays: async () => [],
+  dayHold: async () => null,
 }));
 vi.mock("@/lib/generate", () => ({
   decideDayPage: async () => ({ ok: true, opportunityId: "opportunity-1" }),
@@ -54,13 +55,9 @@ vi.mock("@/lib/scan/stuck", () => ({
 // SPEC §8's retention sequence (issue #569) reads rows on every tick, so it
 // is stood in with nothing due, on the same footing as the obligations above.
 vi.mock("@/lib/mail/retention", () => ({
-  accountsDueInactivity: async () => [],
-  draftsDueVetoReminder: async () => [],
   accountsDuePaymentFailed: async () => [],
   accountsDueCancellation: async () => [],
   accountsDueWinback: async () => [],
-  sendInactivityNudge: async () => ({ sent: false, reason: "not-due" }),
-  sendVetoReminder: async () => ({ sent: false, reason: "not-due" }),
   sendPaymentFailed: async () => ({ sent: false, reason: "not-due" }),
   sendCancellation: async () => ({ sent: false, reason: "not-due" }),
   sendWinback: async () => ({ sent: false, reason: "not-due" }),

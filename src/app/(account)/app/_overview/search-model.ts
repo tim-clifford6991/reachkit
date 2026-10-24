@@ -19,17 +19,9 @@
 // it is the reason a row carries `Measured<number>` where a position would
 // otherwise be a `number | null`: `null` cannot say *why*.
 //
-// **Nothing here speaks.** The four status words, the four column heads and
-// the tile names are the registry's (`search-words.ts` holds the handles).
-// The depth §7 keeps ready is a pin, imported and never restated: a change
-// to a pin moves the screen, and a change to the screen cannot move a pin.
-// The fourth tile's goal is read through `./goals.ts`, which is the one
-// file in this directory allowed to name the goal pins — the pairing lives
-// there and the numbers live in the constants, and this screen reads
-// neither a second time.
-import { PLAN_DEPTH } from "@/lib/config/constants";
-import { GOALS } from "./goals";
-import { measured, measuredZero, unmeasured, type Measured } from "@/lib/measure/measured";
+// **Nothing here speaks.** The status words and the column heads are the
+// registry's (`search-words.ts` holds the handles).
+import { unmeasured, type Measured } from "@/lib/measure/measured";
 import type { PageTarget } from "../_shell/page-target";
 
 /**
@@ -46,10 +38,8 @@ export type SearchStatus = (typeof SEARCH_STATUSES)[number];
 /** The chips over the table: `all` is a filter and never a status, which is
  *  why it is a separate tuple rather than a fifth `SearchStatus` — the same
  *  shape, and the same reason, as the calendar's `STAGE_FILTERS`.
- *  `first_page` is the searches Google shows the site on its first page.
- *  `live` is the rows Overview's Google tile counts (issue 1551), so the
- *  tile opens exactly them. */
-export const SEARCH_FILTERS = ["all", "first_page", ...SEARCH_STATUSES] as const;
+ *  `live` is the rows Overview's Google figure links to (issue 1551). */
+export const SEARCH_FILTERS = ["all", ...SEARCH_STATUSES] as const;
 export type SearchFilter = (typeof SEARCH_FILTERS)[number];
 
 /**
@@ -104,48 +94,12 @@ export interface SearchRow {
   status: SearchStatus;
 }
 
-/** A headline number and the one thing it is read against. SPEC §4: "every
- *  headline number has a change, a goal or a denominator." Both arms below
- *  are a denominator or a goal, so a tile cannot be constructed bare. */
-export interface SearchTile {
-  value: Measured<number>;
-  /** What the number is out of — the live pages counted, or the depth the
-   *  product keeps ready. */
-  of: Measured<number>;
-  /** What the number says about **this** site, in the board's shape
-   *  (#1039) — absent where the tile's line is a fixed one, and where the
-   *  number was not measured: a dash says why, never a generality. */
-  reading?: TileReading;
-}
-
-/**
- * The site's own reading under a tile, as facts; the tile speaks them.
- *
- * `queue` is how long the kept-ready searches last at §7's one page a day,
- * in whole weeks once there are two of them and in days before that.
- * `pages` splits the live pages' searches into the first page, places
- * 11–100 and not yet seen (issue 1551).
- */
-export type TileReading =
-  | { kind: "queue"; weeks: number; days: number }
-  | { kind: "pages"; firstPage: number; further: number; unseen: number };
-
-export interface SearchTiles {
-  /** Open, ready, non-Fix rows — days of pages the product holds
-   *  (`supplyDepth`), out of `PLAN_DEPTH` (a week and its spares). */
-  goingAfter: SearchTile;
-  /** The searches the live pages target that Google shows the site for at
-   *  places 1–100, out of all of them, split first page · 11–100 · not yet
-   *  seen (owner, 2026-10-19, issue 1551) — `yourPages`, the rows the
-   *  `live` chip shows and Overview's Google tile counts. */
-  pages: SearchTile;
-  /** Your market: the twelve searches the market sizes the site against,
-   *  on which it holds a first-page place — the stored presence card's own
-   *  count. A months-scale outcome, said so on the tile (issue 1551). */
-  market: SearchTile;
-  /** Every search the site appears for at any position — the current
-   *  report's own `ownRanked` — against the product's goal. */
-  appearFor: SearchTile;
+/** Your market: of the twelve searches the market sizes the site against,
+ *  those on which it holds a first-page place — the stored presence card's
+ *  own count. `null` where the report holds no presence card. */
+export interface MarketTile {
+  top10: number;
+  of: number;
 }
 
 export interface SearchModel {
@@ -154,12 +108,7 @@ export interface SearchModel {
   /** How many rows each chip stands for, `all` included. Counted over the
    *  whole set, once, so the chips and the table can never disagree. */
   counts: Readonly<Record<SearchFilter, number>>;
-  tiles: SearchTiles;
-  /** The difficulty ceiling this site is judged against **today** — what
-   *  the mark on every bar stands at. `null` where the site's ranked count
-   *  was never measured, and the line above the table is then not drawn at
-   *  all rather than drawn against a ceiling nobody computed. */
-  ceiling: number | null;
+  market: MarketTile | null;
   /** The date the positions and the ranked count were measured, for the
    *  line that says when. `null` where the site has no readable report. */
   measuredAt: Date | null;
@@ -175,18 +124,10 @@ export interface SearchFacts {
    *  — the current stored report's `ownRankedRows`, projected. A search
    *  absent from the map is one the site holds no place for. */
   positions: ReadonlyMap<string, Measured<number>>;
-  /** Live, non-unpublished publications this site holds. Unmeasured where
-   *  they could not be read, and the pages tile is then the dash. */
-  livePages: Measured<number>;
-  /** Open, ready, non-Fix rows — `supplyDepth().unused`. */
-  ready: Measured<number>;
-  /** The whole site's ranked count from the current stored report. */
-  ownRanked: Measured<number>;
   /** The twelve market searches the current report measured, and how many
    *  the site holds a first-page place on (`presence.you.top10Count`).
    *  `null` where the report holds no presence card. */
   market: { top10: number; measured: number } | null;
-  ceiling: number | null;
   measuredAt: Date | null;
 }
 
@@ -196,13 +137,8 @@ export interface SearchTargetFacts {
   status: SearchStatus;
   rival: SearchRival | null;
   change: PositionChange;
-}
-
-/** A count, as one of the three arms rather than a bare integer: a zero the
- *  screen counted is a measurement (`zero`), and it is not the same fact as
- *  a count it could not take. */
-function counted(value: number, at: Date): Measured<number> {
-  return value === 0 ? measuredZero(0, at) : measured(value, at);
+  /** A live page's own reading of its place, which wins over `positions`. */
+  position?: Measured<number>;
 }
 
 /**
@@ -251,7 +187,7 @@ export function assembleSearch(facts: SearchFacts, at: Date): SearchModel {
   const rows: SearchRow[] = facts.targets.map((fact) => ({
     id: fact.id,
     target: fact.target,
-    position: facts.positions.get(fact.target.search) ?? unmeasured<number>("not_attempted", at),
+    position: fact.position ?? facts.positions.get(fact.target.search) ?? unmeasured<number>("not_attempted", at),
     change: fact.change,
     rival: fact.rival,
     status: fact.status,
@@ -259,87 +195,60 @@ export function assembleSearch(facts: SearchFacts, at: Date): SearchModel {
 
   rows.sort((a, b) => closeness(a) - closeness(b) || demandOf(b) - demandOf(a) || a.id.localeCompare(b.id));
 
-  const firstPage = onFirstPage(rows);
   const counts = {
     all: rows.length,
-    first_page: firstPage.length,
     live: rows.filter((row) => row.status === "live").length,
     your_review: rows.filter((row) => row.status === "your_review").length,
     up_next: rows.filter((row) => row.status === "up_next").length,
     too_big: rows.filter((row) => row.status === "too_big").length,
   } satisfies Record<SearchFilter, number>;
 
-  // Issue 1551: the pages tile counts the searches the live pages target,
-  // so the figure moves with the work published, never with the market's
-  // biggest searches. No scan, or no live page read: not a zero.
-  const pages = yourPages(rows);
-  const seen = pages.filter((row) => row.position.kind !== "unmeasured" && row.position.value <= DEEPEST_PLACE);
-  const pagesRead = facts.measuredAt !== null && facts.livePages.kind !== "unmeasured";
-  const firstPageCount = seen.filter((row) => onPage(row.position)).length;
-
   return {
     rows,
     counts,
-    tiles: {
-      goingAfter: {
-        value: facts.ready,
-        of: measured(PLAN_DEPTH, at),
-        reading: facts.ready.kind === "unmeasured" ? undefined : queueReading(facts.ready.value),
-      },
-      pages: pagesRead
-        ? {
-            value: counted(seen.length, at),
-            of: counted(pages.length, at),
-            reading: { kind: "pages", firstPage: firstPageCount, further: seen.length - firstPageCount, unseen: pages.length - seen.length },
-          }
-        : { value: unmeasured<number>("not_attempted", at), of: unmeasured<number>("not_attempted", at) },
-      market:
-        facts.market === null
-          ? { value: unmeasured<number>("not_attempted", at), of: unmeasured<number>("not_attempted", at) }
-          : { value: counted(facts.market.top10, at), of: counted(facts.market.measured, at) },
-      appearFor: { value: facts.ownRanked, of: measured(GOALS.searches_appeared_in.value, at) },
-    },
-    ceiling: facts.ceiling,
+    market: facts.market === null ? null : { top10: facts.market.top10, of: facts.market.measured },
     measuredAt: facts.measuredAt,
   };
 }
 
-/** §7: at most one page a day, so every kept-ready search is a day. */
-const DAYS_A_WEEK = 7;
-
-/** How long `ready` searches last. Whole weeks only, rounded down — "the
- *  next five weeks" is a promise, and a promise is never rounded up. */
-export function queueReading(ready: number): TileReading {
-  return { kind: "queue", weeks: Math.floor(ready / DAYS_A_WEEK), days: ready };
-}
-
-/** Google's first page — ten results is what "the first page" means to the
- *  customer — and the deepest place a ranked row reports. Named here so
- *  neither number is a literal in a filter. */
-export const FIRST_PAGE = 10 as const;
-export const DEEPEST_PLACE = 100 as const;
-
-/** Whether a place is on Google's first page. */
-function onPage(position: Measured<number> | undefined): boolean {
-  return position !== undefined && position.kind !== "unmeasured" && position.value <= FIRST_PAGE;
-}
-
-/** The searches Google shows the site on its first page for: the rows the
- *  `first_page` chip shows. */
-export function onFirstPage(rows: readonly SearchRow[]): readonly SearchRow[] {
-  return rows.filter((row) => onPage(row.position));
-}
-
-/** The searches the live pages target (issue 1551). One selector: the
- *  Google tab's pages tile, its `live` chip and Overview's Google tile all
- *  count these rows. */
-export function yourPages(rows: readonly SearchRow[]): readonly SearchRow[] {
-  return rows.filter((row) => row.status === "live");
-}
-
 /** The rows one chip stands for — the rows the table draws. */
 export function rowsFor(rows: readonly SearchRow[], filter: SearchFilter): readonly SearchRow[] {
-  if (filter === "all") return rows;
-  if (filter === "first_page") return onFirstPage(rows);
-  return rows.filter((row) => row.status === filter);
+  return filter === "all" ? rows : rows.filter((row) => row.status === filter);
+}
+
+/** What ReachKit is doing about one search this week (board AppGoogle):
+ *  its page or its update on a day of Plan's week, a live page left alone
+ *  while it climbs, or else the row's own status word. */
+export type Doing =
+  | { kind: "status" }
+  | { kind: "today" }
+  | { kind: "page"; day: string }
+  | { kind: "update"; day: string }
+  | { kind: "climbing" };
+
+/** A page on a day of Plan's week, by the search it targets. `day` is the
+ *  day as the cell names it ("Tue 20"). */
+export interface Planned {
+  day: string;
+  today: boolean;
+  update: boolean;
+}
+
+/** The key two readers of one search agree on. */
+export function searchKey(search: string): string {
+  return search.trim().toLowerCase().replace(/\s+/g, " ");
+}
+
+export function doingOf(
+  row: SearchRow,
+  planned: ReadonlyMap<string, Planned>,
+  climbing: ReadonlySet<string>
+): Doing {
+  const key = searchKey(row.target.search);
+  const page = planned.get(key);
+  if (page !== undefined) {
+    if (page.today) return { kind: "today" };
+    return page.update ? { kind: "update", day: page.day } : { kind: "page", day: page.day };
+  }
+  return row.status === "live" && climbing.has(key) ? { kind: "climbing" } : { kind: "status" };
 }
