@@ -43,7 +43,7 @@ describe("the question × engine grid", () => {
 
   it("names every mark in a written legend; Not measured only where a cell is one", () => {
     const legend = grid().querySelector('[data-testid="answers-legend"]');
-    for (const mark of ANSWER_MARKS) {
+    for (const mark of ANSWER_MARKS.filter((m) => m !== "names_no_one")) {
       expect(legend?.textContent, mark).toContain(copy(MARK_COPY_KEY[mark]));
     }
     const read = assembleAnswers({
@@ -52,6 +52,24 @@ describe("the question × engine grid", () => {
     });
     const items = [...(render(<AnswerGrid model={read} />).querySelector('[data-testid="answers-legend"]')?.children ?? [])].map((li) => li.textContent?.trim());
     expect(items).toEqual(["Links to this page", "Mentions you, no link", "Mentions someone else", "No answer"]);
+  });
+
+  it("draws Names no one in the legend only where a cell carries it, once, with its glyph and word", () => {
+    const legendOf = (root: Element): string[] =>
+      [...(root.querySelector('[data-testid="answers-legend"]')?.children ?? [])].map((li) => li.textContent?.trim() ?? "");
+    expect(legendOf(grid())).not.toContain("Names no one");
+
+    const [first, ...rest] = MODEL.questions;
+    const one = assembleAnswers({
+      ...FIXTURE_ANSWERS_FACTS,
+      weeks: [{ ...FIXTURE_ANSWERS_FACTS.weeks.at(-1)!, questions: [{ ...first!, marks: ["names_no_one", ...first!.marks.slice(1)] }, ...rest] }],
+    });
+    const root = render(<AnswerGrid model={one} />);
+    expect(legendOf(root).filter((item) => item === "Names no one")).toHaveLength(1);
+    const cells = [...root.querySelectorAll('[role="cell"][data-mark="names_no_one"]')];
+    expect(cells).toHaveLength(1);
+    expect(cells[0]?.getAttribute("aria-label")).toContain("Names no one");
+    expect(cells[0]?.querySelector("svg")?.getAttribute("class")).toContain("lucide-circle-dashed");
   });
 
   it("the legend says the marks in DESIGN's words, and an unmeasured cell is never a zero or a no-answer", () => {
