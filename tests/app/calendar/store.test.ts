@@ -246,6 +246,7 @@ describe("a planned date is planned, and claims nothing more", () => {
     withSupply(1);
     const facts = await readCalendarFacts({ site: SITE, month: "2026-09", now: NOW });
     expect(facts.drafts[0]!.why.youStand?.kind).toBe("unmeasured");
+    expect(facts.drafts[0]!.replaces).toBeUndefined();
   });
 
   it("an Improve target's 'you' is the position the shortfall measured", async () => {
@@ -269,6 +270,8 @@ describe("a planned date is planned, and claims nothing more", () => {
     const facts = await readCalendarFacts({ site: SITE, month: "2026-09", now: NOW });
     expect(facts.drafts[0]!.why.youStand).toEqual(measured(12, AT));
     expect(facts.drafts[0]!.why.bestRival).toBeNull();
+    // The update is tied to its live page by the address the row stored.
+    expect(facts.drafts[0]!.replaces).toBe("https://example.com/p");
   });
 
   it("names the search it targets and never the model's proposed title (ADR-012)", async () => {
