@@ -40,6 +40,8 @@ const UI = [
   /^src\/lib\/publish\/destinations\/hosted\//,
   /^src\/lib\/generate\/templates\//,
   /^src\/lib\/brand\//,
+  // The React-to-HTML seam a hosted article and its 410 are served through.
+  /^src\/lib\/mail\/shell\/render\.ts$/,
   /^src\/(middleware|proxy)\.ts$/,
   /\.css$/,
   /^public\//,
