@@ -26,6 +26,7 @@ import type { KnownContentCounts } from "../business-provider";
 
 export function KnownContentPanel(p: { known: KnownContentCounts }): React.JSX.Element {
   const { known } = p;
+  const max = known.ours + known.site + (known.wordpress ?? 0);
   return (
     <details className="collapse collapse-arrow card-border min-w-0 bg-base-100" data-testid="settings-known-content">
       <summary className="collapse-title font-semibold">{copy("settings.known.head")}</summary>
@@ -40,8 +41,10 @@ export function KnownContentPanel(p: { known: KnownContentCounts }): React.JSX.E
             <p className="text-sm" data-testid="settings-known-total">
               {copy("settings.known.total", { count: String(known.total) })}
             </p>
-            {/* The share we wrote of every page known; the lines below say the numbers. */}
-            <progress className="progress progress-primary w-full" value={known.ours} max={Math.max(known.total, 1)} aria-hidden data-testid="settings-known-meter" />
+            {/* The share we wrote of every page read; a blog not read is not counted. */}
+            {max > 0 && (
+              <progress className="progress progress-primary w-full" value={known.ours} max={max} aria-hidden data-testid="settings-known-meter" />
+            )}
             <ul className="flex min-w-0 flex-col gap-1 text-sm">
               <li data-testid="settings-known-ours">{copy("settings.known.ours", { count: String(known.ours) })}</li>
               <li data-testid="settings-known-site">{copy("settings.known.site", { count: String(known.site) })}</li>

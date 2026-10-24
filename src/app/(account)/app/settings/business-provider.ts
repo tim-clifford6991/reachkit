@@ -132,11 +132,11 @@ async function liveBodiesOf(siteId: string): Promise<{ pages: LivePage[]; lang: 
   }
 }
 
-/** The three counts, off the index. A read that fails is three zeroes — the
- *  card then says nothing is known yet, which is what a customer whose index
- *  could not be read is owed rather than an error where a number should be. */
+/** What a failed index read draws: nothing known yet, never a 0 for a blog not read. */
+export const UNREAD_INDEX: KnownContentCounts = { ours: 0, wordpress: null, site: 0, total: 0 };
+
+/** The three counts, off the index. */
 async function knownCountsFor(siteId: string): Promise<KnownContentCounts> {
-  const empty = { ours: 0, wordpress: 0, site: 0, total: 0 };
   try {
     const [{ knownContentFor }, { destinationOf }] = await Promise.all([
       import("@/lib/known-content"),
@@ -151,6 +151,6 @@ async function knownCountsFor(siteId: string): Promise<KnownContentCounts> {
     };
     return { ...counts, total: pages.length };
   } catch {
-    return empty;
+    return UNREAD_INDEX;
   }
 }

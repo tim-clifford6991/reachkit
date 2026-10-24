@@ -19,6 +19,7 @@ const { KnowledgePanel } = await import("@/app/(account)/app/settings/panels/Kno
 const { FactsPanel } = await import("@/app/(account)/app/settings/panels/FactsPanel");
 const { KnownContentPanel } = await import("@/app/(account)/app/settings/panels/KnownContentPanel");
 const { WrittenFromPanel } = await import("@/app/(account)/app/settings/panels/WrittenFromPanel");
+const { UNREAD_INDEX } = await import("@/app/(account)/app/settings/business-provider");
 
 const TZ = "America/Chicago";
 
@@ -269,6 +270,27 @@ describe("Content we already know about: three places, and a blog not read is ne
     const blog = text(fold(null)?.querySelector('[data-testid="settings-known-wordpress"]'));
     expect(blog).toBe("Posts on your blog: not read");
     expect(fold(null)?.textContent).not.toContain("0 posts on your blog");
+  });
+
+  it("a bar over 12 wrote, 34 site and 5 blog posts is 12 of 51", () => {
+    const meter = mount(<KnownContentPanel known={{ ours: 12, site: 34, wordpress: 5, total: 51 }} />).querySelector("progress");
+    expect([meter?.getAttribute("value"), meter?.getAttribute("max")]).toEqual(["12", "51"]);
+  });
+
+  it("a blog not read is not counted in the bar", () => {
+    expect(fold(null)?.querySelector("progress")?.getAttribute("max")).toBe("46");
+  });
+
+  it("with nothing known on a connected blog, no bar is drawn", () => {
+    const root = mount(<KnownContentPanel known={{ ours: 0, site: 0, wordpress: 0, total: 0 }} />);
+    expect(root.querySelector("progress")).toBeNull();
+  });
+
+  it("an index that could not be read says nothing is known yet, never 0", () => {
+    const root = mount(<KnownContentPanel known={UNREAD_INDEX} />);
+    expect(root.querySelector('[data-testid="settings-known-empty"]')).not.toBeNull();
+    expect(root.querySelector("progress")).toBeNull();
+    expect(root.querySelector('[data-testid="settings-known-content"]')?.textContent).not.toMatch(/\b0\b/);
   });
 });
 

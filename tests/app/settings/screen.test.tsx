@@ -410,6 +410,15 @@ describe("REQ-070 c3 — no control over an engine or spend parameter renders", 
   });
 });
 
+describe("E28 — a card title states its subject in words", () => {
+  it("no settings card title carries an icon (E28)", async () => {
+    const root = await mountTab("business");
+    const titles = [...root.querySelectorAll("h2, summary, .card-title")];
+    expect(titles.length).toBeGreaterThanOrEqual(5);
+    for (const title of titles) expect(title.querySelector("svg")).toBeNull();
+  });
+});
+
 // ── REQ-079 criterion 1 ────────────────────────────────────────────────────
 describe("REQ-079 c1 — each danger-zone action states its consequence before it runs", () => {
   it("the zone offers exactly two actions, folded shut at rest", async () => {
