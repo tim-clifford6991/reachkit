@@ -70,7 +70,7 @@ const DB = [
   /^\.github\/workflows\//,
   /^\.github\/actions\/db-substrate/,
   // What the live-schema suites import at run time; the test walks them.
-  /^src\/lib\/config\/(env|now|constants)\.ts$/,
+  /^src\/lib\/config\/((env|now|constants)\.ts$|constants\/)/,
   /^src\/lib\/opportunities\/(verdicts\/)?types\.ts$/,
   /^src\/lib\/opportunities\/store\.ts$/,
   /^src\/lib\/costs\/(index|daily)\.ts$/,

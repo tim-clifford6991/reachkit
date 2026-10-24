@@ -154,7 +154,7 @@ describe("ADR-022 — the unblock lines come from the pin and from nowhere else"
         if (entry.isDirectory()) {
           walk(full);
         } else if (statSync(full).isFile() && /\.tsx?$/.test(entry.name)) {
-          if (full.endsWith(path.join("config", "constants.ts"))) continue;
+          if (full.includes(path.join("config", "constants"))) continue;
           // Comments stripped first: `src/lib/egress/robots.ts` explains
           // *why* it matches a user-agent token case-insensitively by
           // quoting one, and a citation in prose composes no directive.

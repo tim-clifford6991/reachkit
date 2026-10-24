@@ -32,7 +32,7 @@ function copyRoot(): string {
   const dir = mkdtempSync(path.join(tmpdir(), "generated-docs-"));
   copies.push(dir);
   const sources = (readMeasures(ROOT) as { source: string }[]).map((m) => m.source.split("#")[0] ?? m.source);
-  for (const rel of ["src/jobs", "src/lib/config/constants.ts", "src/lib/measure/registry.ts", ...DOCS, ...sources]) {
+  for (const rel of ["src/jobs", "src/lib/config/constants", "src/lib/measure/registry.ts", ...DOCS, ...sources]) {
     cpSync(path.join(ROOT, rel), path.join(dir, rel), { recursive: true });
   }
   return dir;
@@ -58,7 +58,7 @@ describe("generated documents", () => {
 
   it.each([
     ["a definition", "src/lib/measure/registry.ts", "Overview's live pages, read by the same reader", "Every page of the site", DOCS[0]],
-    ["a constant a definition names", "src/lib/config/constants.ts", "BLOG_READS_WINDOW_D = 7 as const", "BLOG_READS_WINDOW_D = 9 as const", DOCS[0]],
+    ["a constant a definition names", "src/lib/config/constants/publish.ts", "BLOG_READS_WINDOW_D = 7 as const", "BLOG_READS_WINDOW_D = 9 as const", DOCS[0]],
     ["a job's schedule", "src/jobs/scan-rescore.ts", 'RESCORE_TICK_CRON = "7,22,37,52 * * * *"', 'RESCORE_TICK_CRON = "*/5 * * * *"', DOCS[1]],
     ["a job's key", "src/jobs/scan-run.ts", 'idempotencyKey: ["scanId"]', 'idempotencyKey: ["scanId", "tier"]', DOCS[1]],
   ])("a changed %s fails audit until the document is regenerated", (_, rel, from, to, doc) => {
