@@ -5,6 +5,7 @@
 // project, `renderToStaticMarkup`, the real registry.
 import { describe, expect, it, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
+import { parse } from "node-html-parser";
 import { createElement } from "react";
 import { applyEnvFixture } from "../../mail/env-fixture";
 
@@ -144,6 +145,17 @@ describe("the Plumber · Software switch, without JavaScript", () => {
     expect(shown).not.toContain(EXAMPLES.software.answer);
     for (const day of EXAMPLES.software.plan) if (day.title !== "") expect(shown).not.toContain(day.title);
     expect(count(html, 'aria-pressed="true"')).toBe(count(html, `>${copy("how.switch.plumber")}</button>`));
+  });
+});
+
+describe("the week of pages", () => {
+  it("each page day in the week strip draws its sketch", () => {
+    const days = parse(html).querySelectorAll("#pages ol > li");
+    const bands = days.map((li) => li.querySelectorAll("[aria-hidden]").filter((el) => el.querySelector("svg.lucide-file-text")));
+    expect(bands.map((b) => b.length)).toEqual(EXAMPLES.plumber.plan.map((day) => (day.kind === "skip" ? 0 : 1)));
+    expect(bands.map((b) => b.some((el) => el.classList.contains("text-primary")))).toEqual(
+      EXAMPLES.plumber.plan.map((day) => day.kind !== "skip" && day.state === "waiting")
+    );
   });
 });
 

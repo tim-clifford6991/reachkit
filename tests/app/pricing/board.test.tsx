@@ -5,6 +5,7 @@
 // counts every other string.
 import { describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
+import { parse } from "node-html-parser";
 import { applyEnvFixture } from "../../mail/env-fixture";
 
 applyEnvFixture();
@@ -141,6 +142,15 @@ describe("board Pricing — one week of your €49", () => {
     expect(week()).toContain(`${copy("pricing.week.mail")} Mon 19 Oct`);
     expect(week()).toContain(copy("pricing.week.mail.climbing", { n: EXAMPLES.plumber.mail.climbing }));
     expect(week()).toContain(copy("pricing.week.mail.calm"));
+  });
+
+  it("each page day in the week strip draws its sketch", () => {
+    const days = parse(html).querySelectorAll("#week ol > li");
+    const bands = days.map((li) => li.querySelectorAll("[aria-hidden]").filter((el) => el.querySelector("svg.lucide-file-text")));
+    expect(bands.map((b) => b.length)).toEqual(EXAMPLES.plumber.plan.map((day) => (day.kind === "skip" ? 0 : 1)));
+    expect(bands.map((b) => b.some((el) => el.classList.contains("text-primary")))).toEqual(
+      EXAMPLES.plumber.plan.map((day) => day.kind !== "skip" && day.state === "waiting")
+    );
   });
 });
 

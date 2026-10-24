@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { HARD_RULES } from "@/lib/generate/rules/types";
+import { PageSketch } from "@/ui/PageSketch";
 import { Num } from "../scan/[domain]/_address/measured";
 import { HOW_FACTS } from "./facts";
 import { ExampleSwitch } from "./ExampleSwitch";
@@ -326,6 +327,7 @@ export function WeekCard(e: Example, foot: React.ReactNode): React.JSX.Element {
                     {copy(day.kind === "new" ? "how.week.new" : "how.week.update")}
                   </span>
                 </span>
+                <PageSketch primary={day.state === "waiting"} />
                 <span className="text-sm font-semibold">{day.title}</span>
                 <span className={SMALL}>{day.reason}</span>
                 <span className="mt-auto flex flex-wrap items-center gap-1">
