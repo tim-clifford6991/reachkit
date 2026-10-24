@@ -231,6 +231,16 @@ describe("Technical issues, the cards' marks as board AppIssues draws them", () 
     }
   });
 
+  it("only the critical card carries the left accent, in the critical tone", () => {
+    const cards = everyCard().querySelectorAll('[data-testid="issue"]');
+    expect(cards.length).toBeGreaterThan(1);
+    for (const card of cards) {
+      const critical = card.getAttribute("data-check") === "phone_usability";
+      expect(card.classList.contains("border-l-4"), card.getAttribute("data-check")!).toBe(critical);
+      expect(card.classList.contains("border-l-error"), card.getAttribute("data-check")!).toBe(critical);
+    }
+  });
+
   it("the severity badge carries its signal", () => {
     const root = everyCard();
     const badge = (check: string) => root.querySelector(`[data-check="${check}"] [data-testid="issue-severity"]`)!;

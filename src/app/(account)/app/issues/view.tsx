@@ -30,6 +30,11 @@ const SEVERITY_TILE: Readonly<Record<WaitingIssue["severity"], string>> = {
   worth_fixing: "bg-base-200",
 };
 
+const SEVERITY_ACCENT: Readonly<Record<WaitingIssue["severity"], string>> = {
+  critical: "border-l-4 border-l-error",
+  worth_fixing: "",
+};
+
 const SEVERITY_FILL: Readonly<Record<WaitingIssue["severity"], string>> = {
   critical: "bg-error",
   worth_fixing: "bg-warning",
@@ -146,7 +151,7 @@ function IssueCard(p: { issue: WaitingIssue; pagesChecked: number }): React.JSX.
   const Icon = SITE_CHECK_ICON[issue.check];
   const Signal = SEVERITY_SIGNAL[issue.severity];
   return (
-    <section id={issue.check} className="card card-border min-w-0 scroll-mt-24 bg-base-100" data-testid="issue" data-check={issue.check}>
+    <section id={issue.check} className={`card card-border min-w-0 scroll-mt-24 bg-base-100 ${SEVERITY_ACCENT[issue.severity]}`} data-testid="issue" data-check={issue.check}>
       <div className="card-body min-w-0 gap-3 p-4">
         <div className="flex min-w-0 flex-wrap items-center gap-3">
           <span aria-hidden className={`rounded-field grid size-9 shrink-0 place-items-center ${SEVERITY_TILE[issue.severity]}`} data-testid="issue-tile">
