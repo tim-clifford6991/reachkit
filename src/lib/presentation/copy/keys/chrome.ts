@@ -41,19 +41,16 @@ export const CHROME_COPY = Object.freeze({
   /** The accessible name of the compact-band control that opens the
    *  links. It is the registered `Collapse`, listing them under the
    *  header — never a drawer or a dropdown (2026-09-07). */
-  "chrome.nav.menu": ["Menu", { slots: {}, fixedBy: "issue 266" }],
+  "chrome.nav.menu": ["Open menu", { slots: {}, fixedBy: "board PubLanding · owner 2026-10-20" }],
   /** #681's Light / Dark / System control. Owner-approved 2026-09-14. */
   "chrome.theme.label": ["Theme", { slots: {}, fixedBy: "issue 681" }],
   "chrome.theme.light": ["Light", { slots: {}, fixedBy: "issue 681" }],
   "chrome.theme.dark": ["Dark", { slots: {}, fixedBy: "issue 681" }],
   "chrome.theme.system": ["System", { slots: {}, fixedBy: "issue 681" }],
-  /** SPEC §1 2026-09-24 (#1066): the nav's two landing anchors, and the
-   *  header's solid CTA. Words from boards `R12-1-Landing` / `R12-8`.
-   *  *Free scans* joins them with the gallery (#1069). */
-  "chrome.nav.why": ["Why it matters", { slots: {}, fixedBy: "issue 1066" }],
-  "chrome.nav.how": ["How to start", { slots: {}, fixedBy: "issue 1066" }],
-  /** The gallery's place in the nav, between *How to start* and *Pricing*
-   *  (SPEC §1 2026-09-24; boards `R12-1` / `R12-3`, #1069). */
+  /** The public header's one theme button, named for what a press does (board `PubLanding`). */
+  "chrome.theme.to-dark": ["Switch to dark theme", { slots: {}, fixedBy: "board PubLanding · owner 2026-10-20" }],
+  "chrome.theme.to-light": ["Switch to light theme", { slots: {}, fixedBy: "board PubLanding · owner 2026-10-20 · drafted" }],
+  /** The gallery, third of the header's three links (owner 2026-10-20, Q1). */
   "chrome.nav.scans": ["Free scans", { slots: {}, fixedBy: "issue 1069" }],
   "chrome.cta.start": ["Free scan", { slots: {}, fixedBy: "issue 1582" }],
   /** Signed in, the header's one solid button into the app, in place of
@@ -65,9 +62,11 @@ export const CHROME_COPY = Object.freeze({
    *  and the close button's name are the board's words. Its link is the
    *  hero's own `landing.submit.label`. */
   "chrome.banner": [
-    "Every scan comes with your first page, proposed and free, at the end of your report.",
-    { slots: {}, fixedBy: "issue 1066" },
+    "Every free report proposes your first page. Leave your email and we write it for you, free.",
+    { slots: {}, fixedBy: "board PubLanding · owner 2026-10-20" },
   ],
+  /** The banner below `sm`, where the whole line is the link (board `PubLandingPhone`). */
+  "chrome.banner.short": ["Your first page, written for you", { slots: {}, fixedBy: "board PubLandingPhone · owner 2026-10-20" }],
   "chrome.banner.tag": ["Free", { slots: {}, fixedBy: "issue 1066" }],
   "chrome.banner.label": ["Announcement", { slots: {}, fixedBy: "issue 1066" }],
   "chrome.banner.dismiss": ["Dismiss", { slots: {}, fixedBy: "issue 1066" }],
@@ -75,6 +74,8 @@ export const CHROME_COPY = Object.freeze({
   /* ── The footer ──────────────────────────────────────────────────── */
   "chrome.footer.product": ["Product", { slots: {}, fixedBy: "the approved screen set · 3a" }],
   "chrome.footer.legal": ["Legal", { slots: {}, fixedBy: "the approved screen set · 3a" }],
+  "chrome.footer.contact": ["Contact", { slots: {}, fixedBy: "board PubLanding · owner 2026-10-20" }],
+  "chrome.footer.contact.address": ["hello@reachkit.app", { slots: {}, fixedBy: "board PubLanding · owner 2026-10-20" }],
   /** §4.2's removal address, named from the footer so a person who never
    *  opened an email can still find it. */
   "chrome.footer.opt-out": [

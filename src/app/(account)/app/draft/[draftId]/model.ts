@@ -203,6 +203,7 @@ export const PACK_NEED_COPY: Readonly<Record<PackNeed, CopyKey>> = Object.freeze
   recent_results: "publish.needs-you.pack.need.recent_results",
   live_page: "publish.needs-you.pack.need.live_page",
   new_fact: "publish.needs-you.pack.need.new_fact",
+  rival_evidence: "publish.needs-you.pack.need.rival_evidence",
 });
 
 /** The handles of a recorded reason that this build has a phrase for. A

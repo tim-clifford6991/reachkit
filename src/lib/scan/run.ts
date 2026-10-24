@@ -2954,6 +2954,7 @@ async function askTheTrackedPrompts(a: StageArgs): Promise<void> {
         ownUrls: reading.ownUrls,
         rivals: reading.rivals,
         ...(reading.alternatives.length === 0 ? {} : { alternatives: reading.alternatives }),
+        ...(reading.cited.length === 0 ? {} : { cited: reading.cited }),
         ...(reading.states.length === 0 ? {} : { states: reading.states }),
         namesABrand: reading.namesABrand,
       });

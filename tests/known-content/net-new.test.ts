@@ -16,7 +16,7 @@ import "../opportunities/env";
 import { describe, expect, it } from "vitest";
 import { applyKnownContent } from "@/lib/opportunities/derive/known";
 import type { Candidate } from "@/lib/opportunities/derive/candidate";
-import { opportunityReady, type ReadinessContext } from "@/lib/opportunities/readiness";
+import { eligible, type ReadinessContext } from "@/lib/opportunities/readiness";
 import type { KnownMatch, KnownPage } from "@/lib/known-content/types";
 import type { Opportunity } from "@/lib/opportunities/types";
 import { measured } from "@/lib/measure/measured";
@@ -146,6 +146,7 @@ describe("#928 — a topic their own blog already covers becomes an update of th
 
 describe("#928 — a topic that cannot become an update never fills a day", () => {
   const context = (over: Partial<ReadinessContext> = {}): ReadinessContext => ({
+    now: AT,
     grounded: true,
     earnGrounding: { comparison_table: true, integration_page: true, original_data_page: true },
     suppression: { clusters: new Set(), retiredUrls: new Set() },
@@ -171,22 +172,22 @@ describe("#928 — a topic that cannot become an update never fills a day", () =
   }
 
   it("the row is stored unready, naming the reason", () => {
-    expect(opportunityReady(row(), context({ coveredBy: () => match }))).toBe("already_covered");
+    expect(eligible(row(), context({ coveredBy: () => match }))).toBe("destination_cannot_address");
   });
 
   it("a row nothing covers passes the same gate", () => {
-    expect(opportunityReady(row(), context())).toBeNull();
+    expect(eligible(row(), context())).toBeNull();
   });
 
   it("the update itself is exempt: an Improve row's covering page is its own", () => {
     const update = row({ family: "improve", type: "refresh_page", targetRef: THEIR_POST });
-    expect(opportunityReady(update, context({ coveredBy: () => match }))).toBeNull();
+    expect(eligible(update, context({ coveredBy: () => match }))).toBeNull();
   });
 
   it("the destination's own refusal still speaks first — a page it cannot address is that, not a repeat", () => {
     const update = row({ family: "improve", type: "refresh_page", targetRef: THEIR_POST });
     expect(
-      opportunityReady(update, context({ canUpdate: () => false, coveredBy: () => match }))
+      eligible(update, context({ canUpdate: () => false, coveredBy: () => match }))
     ).toBe("destination_cannot_address");
   });
 });

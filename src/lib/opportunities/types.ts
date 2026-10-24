@@ -352,59 +352,42 @@ export type PageType = "product" | "market_comparison" | "answer";
 
 export type OpportunityStatus = "open" | "queued" | "done" | "dismissed";
 
-/** Why a row has not passed readiness, as handles — SPEC §6's clauses, one
- *  each, plus the state of a row nothing has assessed yet. The database
- *  mirrors this set in a check constraint, and the words a screen shows are
- *  the copy registry's, never these. */
+/** Why a row may not fill a day, as handles: the six `eligible()` answers
+ *  (owner ruling C6, 2026-10-19), plus the state of a row nothing has
+ *  assessed yet. The database's check constraint still admits the handles
+ *  merged away, which only rows not assessed since keep. The words a screen
+ *  shows are the copy registry's, never these. */
 export type UnreadyReason =
   | "not_assessed"
-  | "cluster_suppressed"
-  | "url_retired"
-  | "keyword_gate"
-  | "format_not_allowed"
-  | "no_grounding_fact"
-  /** SPEC §6's right-sizing law: the target is outsized for this site — its
-   *  band does not qualify it for a publishing day (issue 884). Stored, so
-   *  the database, the screens and the ranking cannot disagree about it,
-   *  and so the founder can be told why a target is on file and not
-   *  planned. */
-  | "outsized"
-  /** A `fix_page` the site's destination cannot update: not a WordPress
-   *  destination, a page on another host, a site root, or a fix that
-   *  destination has no field for. Or an Improve row on a hosted destination
-   *  whose page is not one of ReachKit's own live publications there
-   *  (issue 781). */
-  | "destination_cannot_address"
-  /** SPEC §7 (2026-09-20, #928): the site already has a page on this topic
-   *  and the destination cannot publish an update of it — a hosted site
-   *  whose covering page is their own WordPress, or a page on a host this
-   *  product does not write to. The topic is skipped and the page that
-   *  covers it becomes a link target instead (`known-content/links.ts`).
-   *  Where the destination *can* publish to it the row is not this: it was
-   *  derived as the update itself. */
-  | "already_covered"
-  | "low_fit"
-  /** SPEC §7 (D26, issue 1179): the generator stopped this topic's draft for
-   *  the last time, or the founder skipped that draft, and the topic rests
-   *  until `restUntil`. */
+  /** Held back by its own record: its draft was stopped for the last time or
+   *  skipped (D26), its cluster was judged not working, or its URL was
+   *  retired. Absorbs `cluster_suppressed` and `url_retired`. */
   | "resting"
-  /** SPEC §6 (D60, issue 1288): its search has no measured volume and no
-   *  tracked prompt is close to it, so a page for it could reach no goal. */
-  | "no_intent";
+  /** The site's destination cannot publish this page: an update of a page it
+   *  does not write to, or a topic one of the site's own pages already
+   *  covers (#928). Absorbs `already_covered`. */
+  | "destination_cannot_address"
+  /** The business is not the answer: a stored fit below the gate, or a fresh
+   *  top ten of another kind of business. */
+  | "low_fit"
+  /** The site's own measured pages ground no fact for this page. */
+  | "no_grounding_fact"
+  /** No demand of the kind its page needs (D60, issue 1506): no measured
+   *  volume and no tracked prompt near it, a comparison nobody was seen
+   *  asking, a keyword page below its gate, or a format page with no format
+   *  word. Absorbs `keyword_gate` and `format_not_allowed`. */
+  | "no_intent"
+  /** SPEC §6's right-sizing law: its band does not qualify it for a day. */
+  | "outsized";
 
 export const UNREADY_REASONS: readonly UnreadyReason[] = Object.freeze([
   "not_assessed",
-  "cluster_suppressed",
-  "url_retired",
-  "keyword_gate",
-  "format_not_allowed",
-  "no_grounding_fact",
-  "outsized",
-  "destination_cannot_address",
-  "already_covered",
-  "low_fit",
   "resting",
+  "destination_cannot_address",
+  "low_fit",
+  "no_grounding_fact",
   "no_intent",
+  "outsized",
 ]);
 
 export interface Opportunity {
@@ -505,10 +488,12 @@ export type PlaceRule =
   // What a page's own results planned (issue 1611), named in place of the tier.
   | "stalled near page one: gap refresh"
   | "not moving: refreshed once"
-  | "linked by AI: one more in its cluster";
+  | "linked by AI: one more in its cluster"
+  // A new site's third cluster, taken only where nothing else may fill the day.
+  | "best, a third cluster";
 
 /** One part of a row's points, as the plan stores it. */
-export type PointPart = "fit" | "demand" | "ai_gap" | "near_page_one" | "linked_by_ai" | "not_moving";
+export type PointPart = "fit" | "demand" | "ai_gap" | "near_page_one" | "linked_by_ai" | "not_moving" | "new_site";
 
 /** `opportunities.plan_reason`: the points a committed row ranked by, the
  *  parts they sum from, and the rule that placed it. */

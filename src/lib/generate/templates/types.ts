@@ -54,7 +54,10 @@ export type PackRequirement =
   /** The live page's text and recorded facts. */
   | { need: "live_page" }
   /** A fact the live page does not already state. */
-  | { need: "new_fact"; min: number };
+  | { need: "new_fact"; min: number }
+  /** No template's: on a "vs" between rivals that leaves out the business,
+   *  a claim about each rival off its own site, a study or a primary source. */
+  | { need: "rival_evidence" };
 
 export type PackNeed = PackRequirement["need"];
 

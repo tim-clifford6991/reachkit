@@ -4,3 +4,4 @@ Wrong address	#1736: annotation over the refused-address arm, which the screen s
 That doesn’t look like an email address. Check it and try again.	#1736: the refused-address line, shown only after a malformed address is sent (REQ-098 c6)
 Sending, after the press	#1736: annotation over the pressed button (DESIGN › Pressed)
 The button is disabled and spins until the link is sent. Then the next screen opens.	#1736: a designer's note on the pressed button, which the screen does (DESIGN › Pressed)
+Articles	#1512: the footer links the content host's index only where stored rows name one; the sweep seeds none

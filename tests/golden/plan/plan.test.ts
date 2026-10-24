@@ -4,13 +4,15 @@
 // the diff is the one intended. 0¢.
 import "../../opportunities/env";
 import { readdirSync } from "node:fs";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import { WEEK_PLAN } from "@/lib/config/constants";
 import { measured } from "@/lib/measure/measured";
 import { choose, type Choice } from "@/lib/opportunities/choose";
 import { contentTypeOf } from "@/lib/opportunities/content-type";
-import { readOpportunity, type OpportunityRow } from "@/lib/opportunities/store";
-import { AT, panelDomains, panelSite, rowOf, type PanelSite } from "./panel";
+import { planFirstWeek } from "@/lib/opportunities/plan";
+import { readOpportunity, setOpportunityStore, type OpportunityRow } from "@/lib/opportunities/store";
+import { memoryStore, newMemoryState } from "../../opportunities/memory-store";
+import { AT, panelDomains, panelSite, rowOf, SITE_ID, storedSerps, type PanelSite } from "./panel";
 
 /** A site whose stored rows commit no page, the gate that holds them, and
  *  where the finding is filed. A hold that clears fails its case. */
@@ -171,4 +173,20 @@ describe("each action a page's own results take is the stored rule", () => {
       await expect(render(site, chosen(site, ["linked"]))).toMatchFileSnapshot(`./results/${domain}.md`);
     });
   }
+});
+
+describe("the bakery and the electrician commit pages once readiness runs over their stored topics", () => {
+  afterEach(() => setOpportunityStore(null));
+
+  it.each(["baeckerei-hinkel.de", "fletcherelectric.co.uk"])("%s", async (domain) => {
+    const site = panelSite(domain);
+    // Every row unassessed, in the band the run did not store; readiness decides the rest.
+    const rows = site.rows.map((row) => ({ ...row, ready: false, unready_reason: "not_assessed", fit_band: "winnable" }));
+    const state = newMemoryState({ profile: site.profile, market: site.market, now: AT, rows });
+    const serps = storedSerps(domain);
+    setOpportunityStore({ ...memoryStore(state), topTenRows: async () => serps });
+    const days = (await planFirstWeek(SITE_ID, AT)).filter((entry) => entry.plannedFor !== null);
+    const held = state.rows.filter((row) => !row.ready).map((row) => `${row.target_query}: ${row.unready_reason}`);
+    expect(days.length, held.join("; ")).toBeGreaterThanOrEqual(1);
+  });
 });
