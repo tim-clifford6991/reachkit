@@ -57,7 +57,7 @@ export function ReportAtGlance(): React.JSX.Element {
             <strong>{copy("landing.glance.first")}</strong> {report.firstPage}
           </span>
         </p>
-        <figcaption className={SMALL}>{copy("how.start.caption", { business })}</figcaption>
+        <figcaption className={SMALL}>{copy("landing.glance.caption", { business })}</figcaption>
       </div>
     </figure>
   );

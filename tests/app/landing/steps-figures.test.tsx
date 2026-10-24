@@ -44,6 +44,9 @@ describe("the landing's step figures", () => {
       copy("landing.feature.fix.free"),
       copy("landing.feature.fix.free"),
     ]);
+    expect(textOf(glance?.querySelector("figcaption"))).toBe(
+      copy("landing.glance.caption", { business: plumber.business }),
+    );
     expect(glance?.querySelectorAll("a, button")).toHaveLength(0);
   });
 
