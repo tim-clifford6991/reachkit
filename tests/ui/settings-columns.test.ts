@@ -102,7 +102,7 @@ describe("SPEC §4 — the seven tabs are a daisyUI bar of addresses that cannot
     expect(columnsOffence('<div className="grid min-w-0 grid-cols-4 gap-1 md:grid-cols-7" data-layout="week">')).toBeNull();
   });
 
-  it("a card sits inside a layout only as a tile, and every tile is a bordered card (E39)", () => {
+  it("a card sits inside a layout only as a tile, and every tile is a bordered card or the one dashed add slot (E39)", () => {
     const offenders = files.flatMap((file) => nestingOffences(readFileSync(file, "utf8")).map((o) => `${path.basename(file)}: ${o}`));
     expect(offenders).toEqual([]);
   });
@@ -116,8 +116,11 @@ describe("SPEC §4 — the seven tabs are a daisyUI bar of addresses that cannot
     expect(nestingOffences(`<ul className="grid ${WELLS}" data-layout="wells"><li className="card card-border">A</li></ul>`)).not.toEqual([]);
     expect(nestingOffences(`<ul className="grid ${TILES}" data-layout="tiles"><li className="min-w-0">A</li></ul>`)).not.toEqual([]);
     expect(nestingOffences(`<ul className="grid ${TILES}" data-layout="tiles"><li className="card min-w-0">A</li></ul>`)).not.toEqual([]);
+    const add = `<li className="rounded-box border border-dashed p-4">Add</li>`;
+    expect(nestingOffences(`<ul className="grid ${TILES}" data-layout="tiles"><li className="card card-dash">A</li></ul>`)).not.toEqual([]);
+    expect(nestingOffences(`<ul className="grid ${TILES}" data-layout="tiles">${add}${add}</ul>`)).not.toEqual([]);
     expect(
-      nestingOffences(`<ul className="grid ${TILES}" data-layout="tiles"><li className="card card-border min-w-0"><div className="card-body p-4" /></li></ul>`)
+      nestingOffences(`<ul className="grid ${TILES}" data-layout="tiles"><li className="card card-border min-w-0"><div className="card-body p-4" /></li>${add}</ul>`)
     ).toEqual([]);
   });
 });
@@ -153,15 +156,20 @@ function columnsOffence(tag: string): string | null {
 
 const CARD = /(?:^|\s)card(?:\s|$)/;
 
-/** E39: no card inside a `data-layout` element, except each `li` of `tiles`, which must be a bordered card. */
+/** E39: no card inside a `data-layout` element, except each `li` of `tiles`: a bordered card, or the board's one dashed add slot. */
 function nestingOffences(source: string): string[] {
   const out: string[] = [];
   for (const { tag, body } of layoutElements(source)) {
     const layout = /data-layout="([^"]*)"/.exec(tag)?.[1];
+    let slots = 0;
     for (const inner of openingTags(body)) {
       const className = classOf(inner);
       if (layout === "tiles" && /^<li\b/.test(inner)) {
-        if (!CARD.test(className) || !/(?:^|\s)card-border(?:\s|$)/.test(className)) out.push(`a tile that is not a bordered card: ${inner}`);
+        const slot = !CARD.test(className) && /(?:^|\s)border-dashed(?:\s|$)/.test(className);
+        if (slot) slots++;
+        const tile = CARD.test(className) && /(?:^|\s)card-border(?:\s|$)/.test(className);
+        if (!tile && !slot) out.push(`a tile that is neither a bordered card nor the dashed add slot: ${inner}`);
+        if (slots > 1) out.push(`a second dashed add slot: ${inner}`);
       } else if (CARD.test(className)) out.push(`a card inside data-layout="${layout}": ${inner}`);
     }
   }
