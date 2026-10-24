@@ -25,6 +25,7 @@ const { doingOf, assembleSearch } = await import("@/app/(account)/app/_overview/
 const { FIXTURE_SEARCH_FACTS } = await import("@/app/(account)/app/_overview/search-fixture");
 const { readShell } = await import("@/app/(account)/app/_shell/provider");
 const { readPublished } = await import("@/app/(account)/app/_overview/content-provider");
+const { pageLadderOf } = await import("@/lib/measure/page-ladder");
 const { formatDay } = await import("@/app/(account)/app/_shell/format");
 const { copy } = await import("@/lib/presentation/copy");
 const { resetAccount, signedInAs } = await import("../account-door");
@@ -91,7 +92,7 @@ describe("board AppGoogle, on the account the layout sweep reads", () => {
     }
     const pagesTile = dom.querySelector('[data-testid="search-tile-pages"]');
     expect(text(pagesTile?.querySelector('[data-testid="search-tile-pages-value"]'))).toBe(String(pages.showing));
-    expect(text(pagesTile)).toContain(copy("overview.search.tile.your-pages.of", { of: String(pages.live) }));
+    expect(text(pagesTile)).toContain(copy("overview.search.tile.your-pages.of", { of: String(pages.read) }));
     expect(text(pagesTile)).toContain(
       copy("overview.search.tile.your-pages.split", {
         first: String(pages.firstPage),
@@ -124,6 +125,17 @@ describe("board AppGoogle, on the account the layout sweep reads", () => {
       copy("overview.search.pages.shown", { shown: "6", total: String(pages.live) })
     );
     expect(text(card?.querySelector('[data-testid="search-pages-all"]'))).toBe(copy("overview.search.show-all", { total: String(pages.live) }));
+  });
+
+  it("the pages tile counts what Overview's Google ladder counts: showing, over the pages a reading reached", async () => {
+    const [{ dom }, published] = await Promise.all([render(), readPublished()]);
+    const step = (all: readonly PublishedPage[]) =>
+      pageLadderOf(all, published.now)!.google.find((figure) => figure.name === "draft.ladder.showing")!;
+    const read = published.pages!.filter((p) => p.reading != null);
+    expect(read.length).toBeLessThan(published.pages!.length);
+    const tile = dom.querySelector('[data-testid="search-tile-pages"]');
+    expect(text(tile?.querySelector('[data-testid="search-tile-pages-value"]'))).toBe(String(step(published.pages!).count));
+    expect(text(tile)).toContain(copy("overview.search.tile.your-pages.of", { of: String(step(read).of) }));
   });
 
   it("your market's searches: the name and lead, the board's columns and what is done about each", async () => {
@@ -164,6 +176,7 @@ describe("a page with no reading", () => {
       renderToStaticMarkup(<SearchTiles pages={pages} visits={null} market={null} />),
       "text/html"
     );
+    expect(text(tiles.querySelector('[data-testid="search-tile-pages"]'))).toContain(copy("overview.search.tile.your-pages.of", { of: "1" }));
     expect(text(tiles.querySelector('[data-testid="search-tile-pages-split"]'))).toBe(
       copy("overview.search.tile.your-pages.split", { first: "1", further: "0", unseen: "0" })
     );

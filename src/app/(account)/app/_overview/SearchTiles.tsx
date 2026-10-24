@@ -83,7 +83,7 @@ export function SearchTiles(p: {
         : {
             figure: formatCount(pages.showing),
             quiet: pages.showing === 0,
-            against: copy("overview.search.tile.your-pages.of", { of: formatCount(pages.live) }),
+            against: copy("overview.search.tile.your-pages.of", { of: formatCount(pages.read) }),
             split: copy("overview.search.tile.your-pages.split", {
               first: formatCount(pages.firstPage),
               further: formatCount(pages.showing - pages.firstPage),
