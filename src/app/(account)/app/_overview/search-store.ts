@@ -18,25 +18,17 @@
 //   your position   the current stored report's `ownRankedRows` (§6)
 //   the week's move `page_verdicts.movement` (§9), as `judgeWeek` wrote it
 //   live pages      §9's live `publications`
-//   kept ready      §7's own count — `supplyDepth`
 //
-// **Five reads, and not one of them per row.** The verdicts, the
+// **Four reads, and not one of them per row.** The verdicts, the
 // publications and the report come back whole and are joined in memory;
 // a per-row read would be one query per search on a screen that draws
 // thirty-eight of them.
-//
-// **Nothing is recomputed that was measured.** The one number derived here
-// is the difficulty ceiling, and it is `difficultyCeiling(ownRanked)` —
-// the same arithmetic over the same stored count that `readiness.ts`
-// applies when it decides a row, so the mark on the bar stands exactly
-// where the engine's own rule put it. A second rule here would be a second
-// answer to "what is this site judged against".
 //
 // **A read that fails is never a zero.** Every count that could not be
 // taken is `unmeasured`, which renders as the dash and its own line
 // (REQ-004); a `0` would be a claim this customer has nothing.
 import { dbAdmin } from "@/lib/db";
-import { measured, measuredZero, unmeasured, type Measured } from "@/lib/measure/measured";
+import { measured, unmeasured, type Measured } from "@/lib/measure/measured";
 import { readingOf } from "@/lib/measure/page-reading";
 import type { PositionChange, SearchFacts, SearchStatus, SearchTargetFacts } from "./search-model";
 
@@ -122,13 +114,12 @@ export async function readSearchFacts(site: SearchSite, at: Date): Promise<Searc
   // Everything else degrades to its own unmeasured arm: a missing report
   // means no position and no ceiling, a missing verdict means no change
   // stated, an unreadable count of live pages means the dash.
-  const [open, withPages, livePages, verdicts, report, ready] = await Promise.all([
+  const [open, withPages, livePages, verdicts, report] = await Promise.all([
     store.openRankable(site.siteId),
     pagedRows(site.siteId),
     readLivePages(site.siteId),
     readMovements(site.siteId),
     store.currentReport(site.siteId).catch(() => null),
-    readReadyDepth(site.siteId, at),
   ]);
 
   const liveByOpportunity = new Set(livePages.rows.map((row) => row.drafts?.opportunity_id ?? ""));
@@ -208,27 +199,15 @@ export async function readSearchFacts(site: SearchSite, at: Date): Promise<Searc
     positions.set(row.keyword, measured(row.position, measuredAt ?? at));
   }
 
-  const { difficultyCeiling } = await import("@/lib/opportunities/winnability/bars");
-  const ownRanked = report?.ownRanked ?? unmeasured<number>("not_attempted", at);
-
   return {
     targets,
     positions,
-    // A count nobody could take is not a count of zero (REQ-004): the
-    // pages tile then shows the dash and its own line, rather than
-    // claiming this customer has no live pages.
-    livePages: livePages.ok
-      ? measured(livePages.rows.length, at)
-      : unmeasured<number>("undeterminable", at),
-    ready,
-    ownRanked,
     // Issue 1551: your market is the stored presence card's own count over
     // the twelve, so this tab and the Competitors tab say one number.
     market:
       report?.presence == null
         ? null
         : { top10: report.presence.you.top10Count, measured: report.presence.measuredSearches },
-    ceiling: ownRanked.kind === "unmeasured" ? null : difficultyCeiling(ownRanked.value),
     measuredAt,
   };
 }
@@ -350,19 +329,6 @@ function rawValue(m: unknown): number | null {
   const arm = m as { kind?: unknown; value?: unknown };
   if (arm.kind !== "measured" && arm.kind !== "zero") return null;
   return typeof arm.value === "number" ? arm.value : null;
-}
-
-/** §7's own count of days of pages the product holds. A count that could
- *  not be taken is unmeasured, never zero — zero is "your queue is empty",
- *  which is a different and alarming thing to tell a customer. */
-async function readReadyDepth(siteId: string, at: Date): Promise<Measured<number>> {
-  try {
-    const { supplyDepth } = await import("@/lib/opportunities/plan");
-    const { unused } = await supplyDepth(siteId);
-    return unused === 0 ? measuredZero(0, at) : measured(unused, at);
-  } catch {
-    return unmeasured<number>("undeterminable", at);
-  }
 }
 
 /** The columns `openRankable` selects, so the queued and done rows arrive

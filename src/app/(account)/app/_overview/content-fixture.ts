@@ -5,6 +5,29 @@ import type { Ladder } from "@/lib/measure/ladder";
 import type { PageReading } from "@/lib/measure/page-reading";
 import type { PublishedPage } from "@/lib/measure/published";
 
+/** Each page is read on one of `search-fixture.ts`'s live searches, in its
+ *  order, so the Google tab names one page by one search. Written out: that
+ *  fixture's module graph reaches the market's, and Overview's does not. */
+const SEARCHES = [
+  "best crm for small teams",
+  "crm pricing comparison",
+  "spreadsheet to crm migration",
+  "crm for a two person business",
+  "how much does a crm cost per user",
+  "free crm with unlimited contacts",
+  "crm that works with gmail",
+  "what is a sales pipeline",
+  "crm onboarding checklist",
+  "crm vs spreadsheet",
+  "best crm for consultants",
+  "crm data import mistakes",
+  "simple crm for tradespeople",
+  "crm contact deduplication",
+  "how to move customers off a spreadsheet",
+  "crm for a small accountancy practice",
+  "do i really need a crm",
+] as const;
+
 /** The Overview fixture's own today (`fixture.ts`). */
 export const CONTENT_FIXTURE_NOW = new Date(Date.UTC(2026, 8, 4, 14, 30, 0));
 
@@ -56,7 +79,7 @@ function readingAt(index: number): PageReading | null {
   return {
     at: READ_AT,
     crawled: true,
-    place: place === null ? null : { value: place, source: "serp", query: `fixture search ${index + 1}` },
+    place: place === null ? null : { value: place, source: "serp", query: SEARCHES[index] ?? `fixture search ${index + 1}` },
     first: place === null ? null : { at: at(9), place: place + (index === 8 || index === 9 ? 14 : 0) },
     best: place === null ? null : { at: READ_AT, place },
     // One page moved up this week: the best mover.
