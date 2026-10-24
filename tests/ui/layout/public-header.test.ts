@@ -4,6 +4,9 @@
 // *Sign in* and *Start free*; signed out, it is the header it was. A browser
 // suite because the claim is the request's: the session is read from the
 // cookie on the server, and no React render sees a cookie.
+//
+// Owner 2026-10-20 (Q1): the header has three links on every public route,
+// in the bar and in the phone menu.
 import { describe, expect, it } from "vitest";
 import { COPY } from "@/lib/presentation/copy";
 import { getBaseURL, getLiveAccountCookie, withPage } from "./browser";
@@ -57,5 +60,32 @@ describe("#1125 — the public header, signed in and signed out", () => {
     expect(facts.appHrefs).toEqual([]);
     expect(facts.signin).toBeGreaterThan(0);
     expect(facts.start).toBe(1);
+  }, 60_000);
+});
+
+const LINKS = [
+  ["/how-it-works", COPY["chrome.nav.works"]],
+  ["/pricing", COPY["chrome.nav.pricing"]],
+  ["/scans", COPY["chrome.nav.scans"]],
+];
+
+describe("owner 2026-10-20 (Q1) — three header links on every public route", () => {
+  it.each(PUBLIC_PATHS)("%s has How it works · Pricing · Free scans in the bar and in the menu at the narrowest width", async (path) => {
+    const baseURL = getBaseURL();
+    if (!baseURL) throw new Error("tests/ui/layout/public-header.test.ts: no app server is running.");
+    const found = await withPage(WIDTH, async (page) => {
+      await page.goto(baseURL + path, { waitUntil: "domcontentloaded" });
+      await page.locator('[data-testid="public-header-menu"] label.btn').click();
+      await page.locator('[data-testid="public-header-menu"] .menu a').first().waitFor({ state: "visible" });
+      return page.evaluate(() => {
+        const pairs = (selector: string) =>
+          [...document.querySelectorAll<HTMLAnchorElement>(selector)].map((a) => [a.getAttribute("href"), a.textContent?.trim()]);
+        return {
+          bar: pairs('[data-testid="public-header"] nav > div > ul a'),
+          menu: pairs('[data-testid="public-header-menu"] .menu a'),
+        };
+      });
+    });
+    expect(found).toEqual({ bar: LINKS, menu: LINKS });
   }, 60_000);
 });
