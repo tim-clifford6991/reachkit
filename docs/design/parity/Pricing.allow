@@ -23,3 +23,4 @@ Keep your pages WordPress pages stay where they are. Your export stays, with no 
 Can I get a refund?	#1598: the refund answer waits on the launch gate (owner 2026-10-20 Q13)
 Not sure yet? See your free report	owner 2026-10-15 #1463: a title is at most six words, so "Not sure yet?" is the eyebrow above it
 €49 a month, VAT included, billed in euros, in advance, through Stripe. No setup fee and no minimum term.	#1722: no public screen names a vendor (REQ-092 c8, tests/presentation/sweeps/vocabulary.ts), so the answer leaves out Stripe
+Articles	#1512: the footer links the content host's index only where stored rows name one; the sweep seeds none

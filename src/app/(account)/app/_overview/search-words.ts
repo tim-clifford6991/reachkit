@@ -11,7 +11,7 @@
 // daisyUI badge a status wears — see below for why that is not `BADGE`'s
 // job.
 import type { CopyKey } from "@/lib/presentation/copy";
-import type { SearchFilter, SearchStatus } from "./search-model";
+import type { Doing, SearchFilter, SearchStatus } from "./search-model";
 
 export const STATUS_COPY_KEY: Readonly<Record<SearchStatus, CopyKey>> = Object.freeze({
   live: "overview.search.status.live",
@@ -26,7 +26,6 @@ export const STATUS_COPY_KEY: Readonly<Record<SearchStatus, CopyKey>> = Object.f
  *  fall back wrongly. */
 export const FILTER_COPY_KEY: Readonly<Record<SearchFilter, CopyKey>> = Object.freeze({
   all: "overview.search.status.all",
-  first_page: "overview.search.tile.first-page",
   live: "overview.search.status.live",
   your_review: "overview.search.status.your-review",
   up_next: "overview.search.status.up-next",
@@ -51,13 +50,21 @@ export const STATUS_BADGE: Readonly<Record<SearchStatus, string>> = Object.freez
   too_big: "badge badge-outline",
 });
 
-/** The table's six columns, in the order SPEC §4 lists them. The tuple is
+/** The badge a cell wears for what is done this week: a day's page or update
+ *  wears the scheduled colour, a page left alone to climb the live one. */
+export const DOING_BADGE: Readonly<Record<Exclude<Doing["kind"], "status">, string>> = Object.freeze({
+  today: STATUS_BADGE.your_review,
+  page: STATUS_BADGE.your_review,
+  update: STATUS_BADGE.your_review,
+  climbing: STATUS_BADGE.live,
+});
+
+/** The table's five columns, in the board's order. The tuple is
  *  the set: the header row, the cells and the table's own column model all
- *  read it, so a seventh column is added in one place. */
+ *  read it, so a column is added in one place. */
 export const SEARCH_COLUMNS = [
   "search",
   "volume",
-  "difficulty",
   "you",
   "rival",
   "status",
@@ -67,7 +74,6 @@ export type SearchColumn = (typeof SEARCH_COLUMNS)[number];
 export const COLUMN_COPY_KEY: Readonly<Record<SearchColumn, CopyKey>> = Object.freeze({
   search: "overview.search.column.search",
   volume: "overview.search.column.volume",
-  difficulty: "overview.search.column.difficulty",
   you: "overview.search.column.you",
   rival: "overview.search.column.rival",
   status: "overview.search.column.status",
@@ -84,11 +90,9 @@ export const COLUMN_COPY_KEY: Readonly<Record<SearchColumn, CopyKey>> = Object.f
  * phone never shows.
  *
  * So the row stacks, in the order #963 asks for: the search and its demand,
- * then where you stand against the best rival, then the difficulty and the
- * status. The table's own column order is search · volume · difficulty ·
- * you · rival · status, which is **not** that order — so each cell is
- * placed explicitly rather than left to the grid's flow. Every class is
- * `max-sm:`, so the six-column table from `sm` up is untouched.
+ * then where you stand against the best competitor, then what we are doing.
+ * Each cell is placed explicitly rather than left to the grid's flow. Every
+ * class is `max-sm:`, so the table from `sm` up is untouched.
  */
 /** A labelled cell puts its word **above** the value on the phone shape,
  *  not beside it. Beside it, the label and the value share one 10rem
@@ -100,7 +104,6 @@ const STACKED = "max-sm:flex-col max-sm:items-start max-sm:gap-0";
 export const SEARCH_CELL_CLASS: Readonly<Record<SearchColumn, string>> = Object.freeze({
   search: "min-w-0 max-sm:col-start-1 max-sm:row-start-1",
   volume: "max-sm:col-start-2 max-sm:row-start-1 max-sm:justify-self-end max-sm:text-end",
-  difficulty: `min-w-0 max-sm:col-start-1 max-sm:row-start-3 ${STACKED}`,
   you: `min-w-0 max-sm:col-start-1 max-sm:row-start-2 ${STACKED}`,
   rival: `min-w-0 max-sm:col-start-2 max-sm:row-start-2 ${STACKED}`,
   status: "max-sm:col-start-2 max-sm:row-start-3",
@@ -121,7 +124,6 @@ export const SEARCH_CELL_CLASS: Readonly<Record<SearchColumn, string>> = Object.
 export const SEARCH_CELL_LABEL: Readonly<Record<SearchColumn, CopyKey | null>> = Object.freeze({
   search: null,
   volume: null,
-  difficulty: COLUMN_COPY_KEY.difficulty,
   you: COLUMN_COPY_KEY.you,
   rival: COLUMN_COPY_KEY.rival,
   status: null,

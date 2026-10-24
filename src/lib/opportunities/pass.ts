@@ -2,12 +2,11 @@
 //
 // One function, one path for both tiers (issue 1559): the pass derives what
 // its evidence supports, the questions buyers were seen asking folded into
-// the topic of the results page they were seen on, gives the new rows their
-// readiness, and counts the writable days out of `PLAN_DEPTH` (seven days
-// and three spares). It runs inside the pass's own cost context, under the
-// pass's own cap — §6.3 puts "Haiku ×~4 for opportunity typing" in the deep
-// and weekly budgets and nowhere else — and persists through the partial
-// unique index, so a re-derived target adds nothing. The week itself is
+// the topic of the results page they were seen on. It runs inside the pass's
+// own cost context, under the pass's own cap — §6.3 puts "Haiku ×~4 for
+// opportunity typing" in the deep and weekly budgets and nowhere else — and
+// persists through the partial unique index, so a re-derived target adds
+// nothing. The week itself is
 // committed after the week's verdicts (`planWeek`, from `weekly/refresh`);
 // a deep pass clears the site's week, so its next evening commits one from
 // what this pass wrote.
@@ -46,9 +45,8 @@ import type { InventoryRow } from "@/lib/site-profile/types";
 import { assessFixPages } from "./fix-page";
 import type { KnownMatch } from "@/lib/known-content/types";
 import { deriveOpportunities, type DeriveInput } from "./derive";
-import { assessReadiness, canUpdateFrom } from "./readiness";
+import { canUpdateFrom } from "./readiness";
 import { opportunityStore } from "./store";
-import { writableDays } from "./rank/open";
 import { rankedCountsFromSizes, type RankedCounts } from "./winnability/counts";
 
 /** Which pass is asking. The free tier is absent by construction: §6.6
@@ -59,7 +57,6 @@ export type PassTier = "deep" | "weekly";
 export interface PassOutcome {
   tier: PassTier;
   added: number;
-  unused: number;
 }
 
 /** #37's sizing as winnability reads it. An `unmeasured` arm is an empty
@@ -188,16 +185,12 @@ export async function deriveForPass(
   // beside its own closed row. The fixes that stand have their readiness
   // recorded with the week's (`planWeek`).
   await assessFixPages(a.siteId, { report: a.report });
-  if (a.tier === "weekly" && !a.hasActiveAccess) return { tier: a.tier, added: 0, unused: await writableDays(a.siteId) };
+  if (a.tier === "weekly" && !a.hasActiveAccess) return { tier: a.tier, added: 0 };
 
   // One derivation, not a loop: the report is a fixed set of measurements,
-  // and a pass with no money left spends none here. Its new rows have their
-  // readiness before the writable days are counted.
+  // and a pass with no money left spends none here. Its new rows are
+  // assessed by the week's commit, not here.
   const derived = c.capHit() ? null : await deriveOpportunities(c, input);
-  if (derived !== null && derived.created.length > 0) {
-    await assessReadiness(a.siteId, { at: a.report.verdict.measuredAt, only: new Set(derived.created.map((row) => row.id)) });
-  }
-  const unused = await writableDays(a.siteId, a.report.verdict.measuredAt);
   // A deep pass (onboarding, or the customer's re-measure) changed what the
   // site holds: its next evening commits the week again.
   if (a.tier === "deep") await store.commitPlan(a.siteId, []);
@@ -207,6 +200,6 @@ export async function deriveForPass(
     derived === null
       ? { derived: "not_run" as const, because: "spend_ceiling" as const, spentCents: c.spentCents() }
       : { derived: derived.created.length };
-  console.log(JSON.stringify({ event: "supply_pass", tier: a.tier, siteId: a.siteId, scanId: a.report.scanId, added, unused, ...derivation }));
-  return { tier: a.tier, added, unused };
+  console.log(JSON.stringify({ event: "supply_pass", tier: a.tier, siteId: a.siteId, scanId: a.report.scanId, added, ...derivation }));
+  return { tier: a.tier, added };
 }

@@ -10,7 +10,7 @@ import type { MarketConclusion } from "../../../src/lib/market/infer/types";
 import { contentTypeOf } from "../../../src/lib/opportunities/content-type";
 import { pageTypeOf } from "../../../src/lib/opportunities/page-type";
 import { setOpportunityStore } from "../../../src/lib/opportunities/store";
-import { opportunityReady, type ReadinessContext } from "../../../src/lib/opportunities/readiness";
+import { eligible, type ReadinessContext } from "../../../src/lib/opportunities/readiness";
 import type { Opportunity } from "../../../src/lib/opportunities/types";
 import { memoryStore, newMemoryState, type MemoryState } from "../memory-store";
 import { AT, PROFILE, SCAN_ID, SITE_ID, question, reportOf, serp, smallCounts } from "../fixtures";
@@ -209,6 +209,7 @@ describe("its type follows its words (condition 2)", () => {
 
 describe("D60 reads it as observed demand (condition 3)", () => {
   const ctx: ReadinessContext = {
+    now: AT,
     grounded: true,
     earnGrounding: { comparison_table: true, integration_page: true, original_data_page: true },
     suppression: { clusters: new Set(), retiredUrls: new Set() },
@@ -221,11 +222,11 @@ describe("D60 reads it as observed demand (condition 3)", () => {
 
   it("an unmeasured question matching no tracked prompt is ready where buyers were seen asking it, and no_intent where not", () => {
     const row = askedRow("why do users churn after signing up");
-    expect(opportunityReady(row, ctx)).toBeNull();
+    expect(eligible(row, ctx)).toBeNull();
     const plain = { ...(row.evidence as Extract<Opportunity["evidence"], { family: "write" }>), askedBeside: undefined };
-    expect(opportunityReady({ ...row, evidence: plain }, ctx)).toBe("no_intent");
+    expect(eligible({ ...row, evidence: plain }, ctx)).toBe("no_intent");
     // The rest of readiness still applies: a topic the site already covers is held.
     const covered = { ...ctx, coveredBy: () => ({ url: "https://example.com/churn", title: "Churn", score: 1 }) as never };
-    expect(opportunityReady(row, covered)).toBe("already_covered");
+    expect(eligible(row, covered)).toBe("destination_cannot_address");
   });
 });
