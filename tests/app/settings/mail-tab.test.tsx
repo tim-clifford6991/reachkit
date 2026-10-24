@@ -127,6 +127,22 @@ describe("Settings › Mail", () => {
     expect(caption(doc)).toBe("Monday mail A page is ready, one per page");
   });
 
+  it("each mail carries its icon: Inbox for the Monday mail, MailCheck for page-ready, Info on switched off", async () => {
+    const on = await mailTab();
+    const weekly = row(on, "weekly")!;
+    const ready = row(on, "draft-ready")!;
+    expect(weekly.querySelector('[data-testid="notification-weekly-preview"] > svg.lucide-inbox')).not.toBeNull();
+    expect(ready.querySelector('[data-testid="notification-draft-ready-preview"] > svg.lucide-mail-check')).not.toBeNull();
+    const week = on.querySelector('[data-testid="notifications-week"]')!;
+    expect(week.querySelectorAll("svg.lucide-inbox").length).toBeGreaterThan(0);
+    expect(week.querySelectorAll("svg.lucide-mail-check").length).toBeGreaterThan(0);
+    expect(week.querySelectorAll("svg.lucide-mail, svg.lucide-file-text")).toHaveLength(0);
+    for (const svg of on.querySelectorAll("svg")) expect(svg.getAttribute("aria-hidden")).toBe("true");
+
+    const off = row(await mailTab({ digestSentAt: "2026-10-19T08:00:00Z" }), "draft-ready")!;
+    expect(off.querySelector('[data-testid="notification-draft-ready-off"] > svg.lucide-info')).not.toBeNull();
+  });
+
   it("with both switched off, the strip draws no mail and says only sign-in and account mail still come", async () => {
     const doc = await mailTab({ notify: { weekly: false, "draft-ready": false } });
     expect(doc.querySelectorAll('[data-testid="notifications-week"] .grid svg')).toHaveLength(0);
