@@ -7,8 +7,12 @@ import { renderToStaticMarkup } from "react-dom/server";
 import React from "react";
 import { ReportView } from "@/app/(public)/scan/[domain]/_address/report-view";
 import { FIXTURE_DOMAINS, FIXTURE_REPORT, fixtureStateFor } from "@/app/(public)/scan/[domain]/_fixture/states";
-import { measured } from "@/lib/measure/measured";
+import { searchPresenceOf, searchPresenceRangeOf } from "@/lib/measure/drivers";
+import { measured, unmeasured } from "@/lib/measure/measured";
+import { NO_AI_ANSWERS } from "@/lib/measure/score";
+import { verdictOf } from "@/lib/measure/verdict";
 import { copy } from "@/lib/presentation/copy";
+import { FEEDS } from "@/lib/measure/partition";
 import type { CanonicalDomain } from "@/lib/scan/domain";
 import type { StoredReport } from "@/lib/scan/report";
 
@@ -50,5 +54,34 @@ describe("the Google bar equals the presence card's page-one share", () => {
     const skewed: StoredReport = { ...FIXTURE_REPORT, verdict: { ...FIXTURE_REPORT.verdict, halves: { google: measured(100, at), ai: measured(10, at) } } };
     const state: ReportState = { report: skewed, notice: null, control: { kind: "none" }, correction: { offered: true, as: "first" } };
     expect(disagreements([{ domain: "skewed.example.com", state }])).toEqual(["skewed.example.com: bar 10/10, card 1 of 12"]);
+  });
+});
+
+describe("the score's range spans a Google share counted over few searches", () => {
+  it("on page one for 0 of 4, AI answering none: the report reads somewhere between 14 and 53 beside a Google bar of 0", () => {
+    const at = FIXTURE_REPORT.verdict.measuredAt;
+    const stored = FIXTURE_REPORT.presence as NonNullable<StoredReport["presence"]>;
+    const card = { ...stored, measuredSearches: 4, you: { ...stored.you, top10Count: 0 } };
+    const verdict = verdictOf({
+      domain: FIXTURE_REPORT.verdict.domain,
+      measuredAt: at,
+      drivers: {
+        foundations: measured(100, at),
+        answerability: measured(30, at),
+        searchPresence: searchPresenceOf({ card, serps: [], at }),
+        aiPresence: unmeasured("undeterminable", at, NO_AI_ANSWERS),
+      },
+      inputs: Object.fromEntries(Object.keys(FEEDS).map((input) => [input, { read: true, empty: false }])) as Parameters<typeof verdictOf>[0]["inputs"],
+      robots: unmeasured("not_attempted", at),
+      searchRange: searchPresenceRangeOf(card),
+      searchesRead: 12,
+    });
+    expect(verdict.estimate?.confidence).toBe("rough");
+    const state: ReportState = { report: { ...FIXTURE_REPORT, presence: card, verdict }, notice: null, control: { kind: "none" }, correction: { offered: true, as: "first" } };
+    const container = document.createElement("div");
+    container.innerHTML = renderToStaticMarkup(<ReportView state={state} />);
+    expect(container.querySelector('[data-testid="verdict-estimate"]')?.textContent).toBe(copy("verdict.estimate.range", { low: "14", high: "53" }));
+    expect(googleBar(state)).toBe(0);
+    expect(disagreements([{ domain: "thin.example.com", state }])).toEqual([]);
   });
 });
