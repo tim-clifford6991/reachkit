@@ -174,6 +174,9 @@ describe("the board's rings and icons", () => {
     expect([bar?.getAttribute("value"), bar?.getAttribute("max")]).toEqual(
       [EXAMPLES.plumber.tally.n, EXAMPLES.plumber.tally.total].map(String)
     );
+    // Cell 4 opens its sample page's title with the board's page icon.
+    const title = inside?.querySelectorAll(".rounded-box.bg-base-200")[3]?.querySelector("svg.lucide-file-text")?.parentNode;
+    expect(title?.text).toBe(EXAMPLES.plumber.page.title);
   });
 
   it("at-a-glance tiles carry their icons", async () => {
@@ -183,6 +186,9 @@ describe("the board's rings and icons", () => {
     expect(stats[0]!.querySelector(".radial-progress")).not.toBeNull();
     expect(stats[1]!.querySelector(".rounded-field svg.lucide-sparkles")).not.toBeNull();
     expect(stats[2]!.querySelector(".rounded-field svg.lucide-file-text")).not.toBeNull();
+    // The AI figure carries the bar; the pages figure carries none.
+    expect(stats[1]!.querySelector("progress")).not.toBeNull();
+    expect(stats[2]!.querySelector("progress")).toBeNull();
   });
 
   it("after the report carries its icons", async () => {

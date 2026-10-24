@@ -27,6 +27,7 @@ import {
   Briefcase,
   ChartColumn,
   ChevronDown,
+  FileText,
   LayoutGrid,
   Laptop,
   Search,
@@ -420,7 +421,10 @@ function InsideReport(): React.JSX.Element {
             <div className={well}>
               <span className={step} aria-hidden>{INSIDE[3]}</span>
               <span className="font-semibold">{copy("how.start.missing", { n: e.report.missing })}</span>
-              <span className="text-base-content/70 text-sm">{e.page.title}</span>
+              <span className="text-base-content/70 flex min-w-0 items-start gap-1.5 text-sm">
+                <FileText size={16} strokeWidth={1.75} aria-hidden className="mt-0.5 flex-none" />
+                <span className="min-w-0 break-words">{e.page.title}</span>
+              </span>
             </div>
           </div>
         </div>
