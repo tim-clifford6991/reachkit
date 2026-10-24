@@ -103,13 +103,13 @@ describe("who gets your buyers today, and its two panels", () => {
 
   it("leads with its heading and the sentence naming who the buyers are sent to", () => {
     const b = buyersOf(ai, presence);
-    expect(b).toEqual({ holder: "rival-one.example.net", ai: 0, google: 1, out: 21 });
+    expect(b).toEqual({ holder: "rival-one.example.net", ai: 3, google: 1, out: 21 });
     expectInOrder(lines, [
       copy("report.jump.buyers"),
       copy("report.buyers.title"),
       copy("report.buyers.lead"),
-      `${copy("report.buyers.summary.one", { holder: "rival-one.example.net", n: "1", m: "21" })} ${copy("report.buyers.split", {
-        ai: copy("report.buyers.split.ai", { n: "0" }),
+      `${copy("report.buyers.summary", { holder: "rival-one.example.net", n: "4", m: "21" })} ${copy("report.buyers.split", {
+        ai: copy("report.buyers.split.ai", { n: "3" }),
         google: copy("report.buyers.split.google.one", { n: "1" }),
       })}`,
     ]);
@@ -119,7 +119,7 @@ describe("who gets your buyers today, and its two panels", () => {
     expectInOrder(lines, [
       copy("report.buyers.title"),
       copy("ai-answers.title"),
-      `${copy("report.figure.of", { count: "0", total: "9" })} ${copy("ai-answers.finding")}`,
+      `${copy("report.figure.of", { count: "3", total: "9" })} ${copy("ai-answers.finding")}`,
       copy("ai-answers.source", { total: "12" }),
       copy("report.ai.waffle"),
       copy("report.ai.quote", { search: "product analytics tools" }),

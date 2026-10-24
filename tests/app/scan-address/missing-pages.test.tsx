@@ -7,6 +7,7 @@ import { describe, expect, it } from "vitest";
 import { copy } from "@/lib/presentation/copy";
 import { unmeasured } from "@/lib/measure/measured";
 import { MissingPagesList } from "@/app/(public)/scan/[domain]/_modules/missing-pages";
+import { FIXTURE_REPORT } from "@/app/(public)/scan/[domain]/_fixture/states";
 import { cardsOf, missingPagesOf, type MissingPage } from "@/app/(public)/scan/[domain]/_problems/model";
 import { panelReport, renderReport } from "./panel-report";
 
@@ -19,7 +20,7 @@ describe("every missing page is listed", () => {
       volume: 100 + i,
       holder: null,
     }));
-    const html = renderToStaticMarkup(<MissingPagesList pages={pages} />);
+    const html = renderToStaticMarkup(<MissingPagesList pages={pages} freeSearch={null} />);
     expect(html).not.toContain("<details");
     const open = html.slice(html.indexOf("<ol"), html.indexOf("</ol>"));
     expect(open.match(/<li/g)).toHaveLength(14);
@@ -74,5 +75,65 @@ describe("a count no scan builds says not measured yet", () => {
     const report = { ...stored, questions: unmeasured<never>("not_attempted", stored.verdict.measuredAt) };
     const html = renderReport(report);
     expect(html).toContain(htmlText(copy("unmeasured.not-attempted", { what: copy("problem.missing-pages.title") })));
+  });
+});
+
+describe("the page the report writes free is marked in the list", () => {
+  const pages: MissingPage[] = ["first search", "second search", "free search", "fourth search"].map((search, i) => ({
+    search,
+    volume: 500 - i * 100,
+    holder: "rival.example.net",
+  }));
+  const free = htmlText(copy("report.missing.free"));
+  const read = htmlText(copy("report.missing.free.read"));
+  const order = (html: string): string[] => [...html.matchAll(/<li[^>]*>.*?>([a-z ]+ search)</g)].map((m) => m[1]!);
+
+  it("draws the free search first, marked free, with a link to the free page", () => {
+    const html = renderToStaticMarkup(<MissingPagesList pages={pages} freeSearch="free search" />);
+    expect(order(html)).toEqual(["free search", "first search", "second search", "fourth search"]);
+    const rows = html.split("<li").slice(1);
+    expect(rows[0]).toContain(free);
+    expect(rows[0]).toContain(`<a href="#first-page"`);
+    expect(rows[0]).toContain(`>${read}</a>`);
+    for (const row of rows.slice(1)) {
+      expect(row).not.toContain(free);
+      expect(row).not.toContain(read);
+    }
+  });
+
+  it("marks nothing and keeps the order where the report offers no free page", () => {
+    const html = renderToStaticMarkup(<MissingPagesList pages={pages} freeSearch={null} />);
+    expect(order(html)).toEqual(pages.map((page) => page.search));
+    expect(html).not.toContain(free);
+    expect(html).not.toContain(read);
+  });
+
+  it("marks nothing where the free page's search is not in the list", () => {
+    const html = renderToStaticMarkup(<MissingPagesList pages={pages} freeSearch="another search" />);
+    expect(order(html)).toEqual(pages.map((page) => page.search));
+    expect(html).not.toContain(free);
+    expect(html).not.toContain(read);
+  });
+});
+
+describe("the example.com fixture draws its missing pages", () => {
+  it("lists the seven pages it counts, the free page's search among them", () => {
+    const pages = missingPagesOf(FIXTURE_REPORT)!;
+    expect(pages).toHaveLength(7);
+    expect(pages.map((page) => page.search)).toContain(FIXTURE_REPORT.freePage!.target.keyword);
+    for (const page of pages) {
+      expect(page.search).not.toBe("");
+      expect(page.volume).not.toBeNull();
+    }
+    expect(pages.some((page) => page.holder !== null)).toBe(true);
+  });
+
+  it("renders the list under its count, the free page's row first", () => {
+    const html = renderReport(FIXTURE_REPORT);
+    const list = html.slice(html.indexOf('data-testid="report-missing-pages"'));
+    expect(html).toContain(`>${htmlText(copy("report.offer.found", { count: "7" }))}</h2>`);
+    const first = list.slice(list.indexOf("<li"), list.indexOf("</li>"));
+    expect(first).toContain(htmlText(FIXTURE_REPORT.freePage!.target.keyword));
+    expect(first).toContain(htmlText(copy("report.missing.free")));
   });
 });
