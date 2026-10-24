@@ -20,9 +20,9 @@
 // **A pass that produced no report, or that the vendor refused for credit,
 // leaves no week behind it.** The claim is released — its row is marked
 // `failed` and kept, because the ledger's rows reference it — and the site
-// is selected again on the first tick at least 24 h after the refused
-// pass's event, inside the same site-local week, where the claim takes
-// that row back. A pass that produced a report keeps
+// is selected again on the next hourly tick, inside the same site-local
+// week, where the claim takes that row back and the pass spends only what
+// is left of that row's `WEEKLY` cap. A pass that produced a report keeps
 // its row whether it was whole or partial: a partly measured week is a
 // measured week that says what it missed (REQ-065 c4), never a failure to
 // repeat.
