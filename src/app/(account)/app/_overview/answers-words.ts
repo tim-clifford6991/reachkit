@@ -16,7 +16,7 @@
 // its own written name, so a reader who sees neither colour still reads the
 // grid.
 import type { LucideIcon } from "lucide-react";
-import { CircleDashed, Link2, Minus, Slash, Tag, Users } from "lucide-react";
+import { CircleDashed, CircleMinus, Link, MessageSquare, Minus, Users } from "lucide-react";
 import type { CopyKey } from "@/lib/presentation/copy";
 import type { AnswerMark } from "./answers-model";
 
@@ -31,19 +31,18 @@ export const MARK_COPY_KEY: Readonly<Record<AnswerMark, CopyKey>> = Object.freez
 
 /**
  * The glyph each mark wears, at lucide's house stroke (docs/DESIGN.md rule
- * 3). The two the customer is looking for are the two that point at them —
- * a link and a tag; an answer that named someone else carries the crowd;
- * an answer that named nobody carries the empty, dashed circle;
- * an engine that served no answer carries the slash; an engine nobody
+ * 3), one glyph per concept across the product: a link, a speech bubble
+ * for a mention without one, the crowd for someone else, the empty dashed
+ * circle for no one, the struck circle for no answer; an engine nobody
  * reached is the em-dash, which is REQ-004's own mark for a reading that
  * was never taken and is the one the issue asks for by name.
  */
 export const MARK_ICON: Readonly<Record<AnswerMark, LucideIcon>> = Object.freeze({
-  links_to_you: Link2,
-  names_you: Tag,
+  links_to_you: Link,
+  names_you: MessageSquare,
   names_others: Users,
   names_no_one: CircleDashed,
-  no_answer: Slash,
+  no_answer: CircleMinus,
   not_measured: Minus,
 });
 
