@@ -38,3 +38,5 @@ Description in search results	#1748: the edit arm, behind Edit this page, which 
 Search result	#1748: the edit arm, behind Edit this page, which the route reading never presses; tests/app/draft/board.test.tsx reads it
 Done editing	#1748: the edit arm, behind Edit this page, which the route reading never presses; tests/app/draft/board.test.tsx reads it
 Discard changes	#1748: the edit arm, behind Edit this page, which the route reading never presses; tests/app/draft/board.test.tsx reads it
+Bold	#1748: the edit arm, behind Edit this page, which the route reading never presses; tests/app/draft/board.test.tsx reads it; E31: the format toolbar
+Italic	#1748: the edit arm, behind Edit this page, which the route reading never presses; tests/app/draft/board.test.tsx reads it; E31: the format toolbar

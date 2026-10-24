@@ -26,6 +26,7 @@ vi.mock("@/lib/publish/destinations/hosted/store", () => ({
 vi.mock("@/lib/scan/gallery", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/scan/gallery")>()),
   isListed: async (domain: string) => db.listed.has(domain),
+  listedScore: async (d: string) => (db.listed.has(d) ? 62 : null),
 }));
 
 const { default: LandingPage } = await import("@/app/(public)/page");
