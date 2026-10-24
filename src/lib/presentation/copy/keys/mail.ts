@@ -904,9 +904,14 @@ export const MAIL_COPY = Object.freeze({
   /** Owner D10: the first renewal is refunded when no page went live in the first month. */
   "mail.account.renewal_refunded.subject": ["Your renewal was refunded", { slots: {}, fixedBy: "issue 1592 (drafted)" }],
   "mail.account.renewal_refunded": [
-    "No page of yours went live in your first month, so this month’s payment was refunded in full. Your bank usually shows it within 5 to 10 business days. ReachKit keeps running as before, and nothing changes on your side.",
-    { slots: {}, fixedBy: "issue 1592 (drafted)" },
+    "No page of yours went live in your first month, so we refunded this month’s payment of {amount} in full. Your bank usually shows it within 5 to 10 business days.",
+    { slots: { amount: "text" }, fixedBy: "issue 1957 · E2 (2026-10-24)" },
   ],
+  "mail.account.renewal_refunded.renewing": [
+    "ReachKit keeps running, and your next payment is taken as usual on {date}. To stop it, use Cancel plan in Settings › Billing.",
+    { slots: { date: "date" }, fixedBy: "issue 1957 · E2 (2026-10-24)" },
+  ],
+  "mail.account.renewal_refunded.ending": ["ReachKit keeps running until {date}.", { slots: { date: "date" }, fixedBy: "issue 1957 · E2 (2026-10-24)" }],
   "mail.winback.subject": ["Pick up where you left off", { slots: {}, fixedBy: "SPEC §8 · issue 569" }],
   "mail.winback.line": [
     "ReachKit can start writing and publishing pages for your site again: a page every day, new or updated, each going live on its own unless you stop it first. €49 a month, cancel any time.",
