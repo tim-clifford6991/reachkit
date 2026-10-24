@@ -100,6 +100,11 @@ function isUpdate(choice: Choice): boolean {
   return family === "improve" || family === "fix";
 }
 
+/** The live page an update rewrites, by the address its row stored — never by title. */
+function replacesOf(choice: Choice): { replaces?: string } {
+  return choice.evidence.family === "improve" ? { replaces: choice.evidence.pageUrl } : {};
+}
+
 /** §4.6's `you`. An Improve target carries the customer's measured
  *  position; a Write target is one the customer is absent from, and the
  *  evidence records the rival's position and not a position of theirs — so
@@ -212,6 +217,7 @@ function pageOn(a: {
     // Issue 930: this week's place, read and never re-measured.
     standing: a.standing,
     update: isUpdate(a.choice),
+    ...replacesOf(a.choice),
     whyLine: whySentenceOf(a.choice.planReason),
   };
 }
@@ -247,6 +253,7 @@ function plannedOn(day: DayKey, choice: Choice, now: Date): DraftOnDay {
     // against, which is `day-number.ts`'s `volume` arm.
     standing: null,
     update: isUpdate(choice),
+    ...replacesOf(choice),
     whyLine: whySentenceOf(choice.planReason),
   };
 }

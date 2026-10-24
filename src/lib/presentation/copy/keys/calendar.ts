@@ -541,6 +541,7 @@ export const CALENDAR_COPY = Object.freeze({
   "calendar.live.place-up": ["Place {n} for “{search}”, up {up} since {date}.", { slots: { n: "text", search: "text", up: "text", date: "text" }, fixedBy: "board Plan (drafted)" }],
   "calendar.live.no-gain": ["Place {n}, no gain in {weeks} weeks.", { slots: { n: "text", weeks: "text" }, fixedBy: "board Plan (drafted)" }],
   "calendar.live.linked": ["Linked by {engines} on its own question.", { slots: { engines: "text" }, fixedBy: "board Plan (drafted)" }],
+  "calendar.live.update": ["An update goes live {day}.", { slots: { day: "text" }, fixedBy: "board Plan (drafted)" }],
   "calendar.live.found": ["Found by Google on {date}. Not in results yet.", { slots: { date: "text" }, fixedBy: "board Plan (drafted)" }],
   "calendar.live.ai-unread": ["not read yet", { slots: {}, fixedBy: "board Plan (drafted)" }],
   "calendar.live.count": ["{n} of {m} live pages", { slots: { n: "text", m: "text" }, fixedBy: "board Plan (drafted)" }],
