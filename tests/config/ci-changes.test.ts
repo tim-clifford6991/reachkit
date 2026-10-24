@@ -38,6 +38,7 @@ describe("what a pull request changed", () => {
     ["the hosted destination", "src/lib/publish/destinations/hosted/index.ts"],
     ["a page template", "src/lib/generate/templates/how-to.ts"],
     ["the mark", "src/lib/brand/mark.ts"],
+    ["the hosted render seam", "src/lib/mail/shell/render.ts"],
     ["a stylesheet", "src/ui/theme.css"],
     ["the middleware", "src/middleware.ts"],
     ["the lockfile", "package-lock.json"],
