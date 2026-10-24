@@ -7,6 +7,8 @@ import "../../generate/env";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import { formatDate } from "@/app/(account)/app/_shell/format";
+import { FIXTURE_SETTINGS_FACTS } from "@/app/(account)/app/settings/fixture";
+import { assembleSettings } from "@/app/(account)/app/settings/model";
 import { BillingPanel } from "@/app/(account)/app/settings/panels/BillingPanel";
 import { billingSummary, setBillingStore } from "@/lib/account/billing";
 import { copy } from "@/lib/presentation/copy";
@@ -41,7 +43,6 @@ async function billingCard(day: number): Promise<Document> {
         state: read.summary.state,
         accessUntil: "Oct 31, 2026",
         surfaceHref: "/app/settings",
-        cardLast4: null,
         refundUntil: read.summary.refundUntil === null ? null : formatDate(read.summary.refundUntil, "UTC"),
       }}
     />
@@ -72,7 +73,7 @@ describe("Settings › Billing — the cancel route and the first-14-days refund
   it("a cancelled plan says it, names the day everything runs to, and offers Resume my plan", () => {
     const html = renderToStaticMarkup(
       <BillingPanel
-        billing={{ readable: true, state: "cancelled", accessUntil: "Nov 7, 2026", surfaceHref: "/app/settings", cardLast4: null, refundUntil: null }}
+        billing={{ readable: true, state: "cancelled", accessUntil: "Nov 7, 2026", surfaceHref: "/app/settings", refundUntil: null }}
       />
     );
     const doc = new DOMParser().parseFromString(html, "text/html");
@@ -82,20 +83,14 @@ describe("Settings › Billing — the cancel route and the first-14-days refund
     expect(line(doc, "billing-state")).toBe(copy("settings.billing.cancelled"));
   });
 
-  it("the card's rows are Status, Plan, Next invoice and Card, in the board's order", () => {
-    const html = renderToStaticMarkup(
-      <BillingPanel
-        billing={{ readable: true, state: "active", accessUntil: "Nov 7, 2026", surfaceHref: "/app/settings", cardLast4: "4242", refundUntil: null }}
-      />
-    );
+  it("the specimen account's rows are Status, Plan and Next invoice, in the board's order, and no card row", () => {
+    const html = renderToStaticMarkup(<BillingPanel billing={assembleSettings(FIXTURE_SETTINGS_FACTS).billing} />);
     const doc = new DOMParser().parseFromString(html, "text/html");
     expect([...doc.querySelectorAll('[data-testid^="billing-row-"]')].map((row) => row.getAttribute("data-testid"))).toEqual([
       "billing-row-status",
       "billing-row-plan",
       "billing-row-next-invoice",
-      "billing-row-card",
     ]);
-    expect(line(doc, "billing-card")).toBe("ending 4242");
   });
 
   it("day 5 for a web address another account was refunded on: the route only", async () => {
