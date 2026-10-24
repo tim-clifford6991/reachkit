@@ -56,6 +56,8 @@ interface Shape {
   aiReads: number;
   aiVisits: number;
   clicks: number | null;
+  /** The place a week before, so the reading is carried forward from it. */
+  was?: number;
 }
 
 /** Twelve pages at different heights: two on the first page, three lower
@@ -74,15 +76,24 @@ function pageUrl(site: Site, i: number): string {
 }
 
 function readingFor(site: Site, shapes: readonly Shape[], i: number): PageReading {
+  const was = shapes[i]!.was;
+  const before =
+    was === undefined
+      ? null
+      : weekOf(site, shapes.map((s) => ({ ...s, place: s.was ?? s.place })), i, new Date(READ.getTime() - 7 * 86_400_000), null);
+  return weekOf(site, shapes, i, READ, before);
+}
+
+function weekOf(site: Site, shapes: readonly Shape[], i: number, now: Date, before: PageReading | null): PageReading {
   const shape = shapes[i]!;
   const report = weekWith({
     domain: site.domain,
     asked: shapes.map((s, n) => ({ publicationId: `p${n}`, liveUrl: pageUrl(site, n), search: `${site.search} ${n}`, place: s.place, linked: s.linked })),
   });
   return assembleReading({
-    before: null,
+    before,
     report,
-    now: READ,
+    now,
     page: {
       id: `p${i}`,
       liveUrl: pageUrl(site, i),
@@ -326,9 +337,10 @@ describe.each([
   });
 
   it("Showing's climbing badge carries the climbing icon", async () => {
-    const pubs = seedPages(panel, TWELVE);
+    // Pages 3 and 4 were at 70 a week before, so their best is a gain of more than ten places.
+    const pubs = seedPages(panel, TWELVE.map((s, i) => (i === 3 || i === 4 ? { ...s, was: 70 } : s)));
     const climbing = pubs.filter((pub) => verdict(readingOf(pub.search_reading)!, NOW) === "climbing").length;
-    expect(climbing).toBeGreaterThan(0);
+    expect(climbing).toBe(2);
     const { dom } = await render();
     const badge = dom.querySelector('[data-testid="overview-ladder-google"] [data-step="draft.ladder.showing"] .badge');
     expect(text(badge)).toBe(copy("overview.ladder.climbing", { n: String(climbing) }));
