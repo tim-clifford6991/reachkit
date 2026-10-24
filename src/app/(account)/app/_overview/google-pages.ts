@@ -101,3 +101,14 @@ export function plannedOf(week: Pick<WeekModel, "cells" | "today">): ReadonlyMap
   }
   return out;
 }
+
+/** Plan's week, by search, as Overview reaches it: at the call, so this graph
+ *  holds no vendor client. Empty where it cannot be read. */
+export async function readPlanned(): Promise<ReadonlyMap<string, Planned>> {
+  try {
+    const { planToday, readWeek } = await import("../calendar/provider");
+    return plannedOf(await readWeek(await planToday()));
+  } catch {
+    return new Map();
+  }
+}

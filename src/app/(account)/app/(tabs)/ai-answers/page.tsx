@@ -1,102 +1,79 @@
-// SPEC §4 · §6 (2026-09-20, #908) — Overview › AI answers.
+// SPEC §4 · §6 (board AppAI) — the AI tab: the week and the day AI was asked,
+// three tiles, each page in AI answers, which AI read and sent visits, and the
+// reputation card that closes on the grid of the twelve.
 //
-// §4 of that date: "AI answers tab: see §6 of this date for the measures.
-// 'AI rank position' and sentiment are never shown." §6(a): "A rolling
-// four-week rate — answers that name or link the site over all answers
-// asked — beside this week's n of 12; named and linked are counted apart."
-//
-// **Everything on it is already stored.** `readAnswers()` is the one call
-// this file makes; neither the tiles nor the grid fetches for itself, so
-// the render performs no measurement, no vendor call and no model call.
-// Nothing on this screen is bought, and nothing is recomputed — the marks
-// are §6.2's stored cells, split with the score's own `classifyReferences`.
+// **Every read is a stored one, and Overview's own.** The pages linked, the
+// reads and the visits are the readers Overview's AI figure draws; the
+// reputation is the month's reading Overview's months card draws. So a figure
+// here and on Overview is one number. No measurement, vendor call or model
+// call happens on render. "'AI rank position' and sentiment are never shown."
 //
 // **It declares no `Surface`**: the shell's own layout owns this route's
-// screen root, and the tab bar above it is `(tabs)/layout.tsx`'s. A second
-// screen root would be a second `[data-surface]` in the document.
-//
-// **It writes no sentence.** Every word is the registry's.
-//
-// **The numbers first** (SPEC §4, 2026-10-07, issue 1324): the head, the
-// two number tiles, then — on a hosted blog — *AI engines on your blog*
-// (owner 2026-10-09, issue 1364), then the grid. No sentence stands above
-// them; what a number or a card means is closed on it. The cards that read
-// further — share of voice, the pages quoted and the prompts — follow the
-// grid.
-//
-// **No client bundle.** The whole screen is server-rendered: there is
-// nothing on it to press, so there is no `"use client"`, no `nuqs` state
-// and no `Suspense` boundary — unlike the Search tab next door, which
-// holds its chosen chip in the URL.
-//
-// **The hosted-blog counts are the card under the tiles** (#921, §6 measure
-// (d); promoted from the bottom by issue 1364). They are the one reading on this screen that is not bought from a
-// vendor — they are ReachKit's own server counting what it served — and
-// they are drawn only for a site whose pages we host and who has published
-// one, because a card of zeroes would be a claim about engines rather than
-// a fact about the record.
-//
-// Everything on the redesign board for this screen is now on it.
+// screen root, and the tab bar above it is `(tabs)/layout.tsx`'s.
 import type React from "react";
 import type { Metadata } from "next";
 import { copy } from "@/lib/presentation/copy";
-import { formatDate } from "../../_shell/format";
+import { contentOf } from "@/lib/measure/published";
+import { formatDay } from "../../_shell/format";
 import { readShell } from "../../_shell/provider";
 import { readAnswers } from "../../_overview/answers-provider";
 import { readBlogReads } from "../../_overview/blog-reads-provider";
+import { readPublished } from "../../_overview/content-provider";
+import { readOverview } from "../../_overview/provider";
+import { readPromptsAt } from "../../_overview/prompts-provider";
+import { readUnderstanding } from "../../_overview/understanding-provider";
+import { aiPagesFor } from "../../_overview/ai-pages";
 import { AnswerGrid } from "../../_overview/AnswerGrid";
-import { AnswerTiles } from "../../_overview/AnswerTiles";
-import { BlogReads } from "../../_overview/BlogReads";
-import { readPrompts } from "../../_overview/prompts-provider";
-import { PromptCards, PromptRate } from "../../_overview/PromptCards";
+import { AiPagesCard, AiTiles, Reputation, WhoReads } from "../../_overview/AiTab";
 import { TabHead } from "../../_overview/TabHead";
 
-/** /app/ai-answers's own `<title>` (#945). Without it this screen announced
- *  nothing at all — the `(account)` layout's fallback is the floor, not
- *  the name of this screen. */
+/** /app/ai-answers's own `<title>` (#945). */
 export const metadata: Metadata = { title: copy("meta.app.ai-answers.title") };
 
 export default async function AiAnswersTabPage(): Promise<React.JSX.Element> {
-  // The zone is the shell's one stored preference, read through the shell's
-  // own request-cached provider rather than restated here: two readers of a
-  // customer's time zone is how two parts of one screen come to state two
-  // different days.
-  const [shell, model, blogReads, prompts] = await Promise.all([
+  const [shell, model, reads, published, overview, understanding] = await Promise.all([
     readShell(),
     readAnswers(),
     readBlogReads(),
-    readPrompts(),
+    readPublished(),
+    readOverview(),
+    readUnderstanding(),
   ]);
-  // A sentence with a date inside it, not a value — the same line, from the
-  // same key, the Search tab states over its own table. One sentence, one
-  // place to change it.
-  const measured =
-    model.measuredAt === null
-      ? null
-      : copy("overview.search.measured", { on: formatDate(model.measuredAt, shell.timeZone) });
+  const reputation = await readPromptsAt(overview.months?.reading?.week ?? null);
+  const content = contentOf(published);
+  const pages = content === null ? null : aiPagesFor(content.pages, model.pageQuestions, published.now);
+  const grid = model.questions.length === 0 ? null : <AnswerGrid model={model} />;
 
   return (
     <div className="flex min-w-0 flex-col gap-6" data-testid="ai-answers-tab">
       <TabHead
+        eyebrow={shell.weeks.kind === "counted" ? copy("overview.tab.eyebrow", { n: String(shell.weeks.weeks) }) : null}
         title={copy("overview.tile.ai-answers.label")}
         testId="ai-answers"
         measured={
-          measured === null ? null : (
+          model.measuredAt === null ? null : (
             <p className="text-xs text-base-content/70" data-testid="ai-answers-measured">
-              {measured}
+              {copy("overview.search.measured", { on: formatDay(model.measuredAt, shell.timeZone) })}
             </p>
           )
         }
       />
 
-      {/* D19 (#1162): once a weekly pass has asked the buyer prompts, they
-          are the AI measure and their rate replaces the twelve's. */}
-      <AnswerTiles model={model} rate={<PromptRate model={prompts} />} />
-      {/* Promoted (owner 2026-10-09, issue 1364): the engines reading the
-          customer's own pages, above the per-answer detail. */}
-      <BlogReads model={blogReads} />
-      <AnswerGrid model={model} />
-      <PromptCards model={prompts} />
+      <AiTiles pages={pages} reads={reads} />
+
+      <AiPagesCard pages={pages} place={understanding.where.place?.name ?? null} />
+
+      <WhoReads reads={reads} />
+
+      {reputation.kind === "measured" ? (
+        <Reputation model={reputation}>{grid}</Reputation>
+      ) : grid === null ? (
+        <section className="card card-border min-w-0 bg-base-100" data-testid="ai-empty">
+          <p className="card-body p-5 text-sm text-base-content/70">{copy("overview.answers.empty")}</p>
+        </section>
+      ) : (
+        <section className="card card-border min-w-0 bg-base-100 px-4">{grid}</section>
+      )}
     </div>
   );
 }
