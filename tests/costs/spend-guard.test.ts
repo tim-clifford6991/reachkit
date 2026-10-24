@@ -149,6 +149,26 @@ describe("a day with headroom spends normally, until this pass takes the last of
     expect(updates).toEqual([{ table: "scans", values: { cost_cents: 2, status: "done" } }]);
   });
 
+  it.each(["FREE", "DEEP", "WEEKLY", "DRAFT"] as const)(
+    "%s — a call of exactly its CAPS value runs; one cent more is skipped",
+    async (cap) => {
+      const capValue = CAPS[`${cap}_C`];
+      const ran: string[] = [];
+      let exact: unknown;
+      await withCostContext({ ...CTX, cap }, async (cost) => {
+        exact = await call(cost, capValue, ran);
+      });
+      expect(exact).toEqual({ payload: {}, fresh: true, costCents: capValue, storedAt: null });
+
+      let over: unknown;
+      await withCostContext({ ...CTX, cap }, async (cost) => {
+        over = await call(cost, capValue + 1, ran);
+      });
+      expect(over).toEqual({ skipped: "cap" });
+      expect(ran).toEqual(["vendor"]);
+    }
+  );
+
   it("one pass can reach the ceiling on its own: the call that takes it lands, the next is refused", async () => {
     ledgerHolds(CEILING - 2);
     const ran: string[] = [];
