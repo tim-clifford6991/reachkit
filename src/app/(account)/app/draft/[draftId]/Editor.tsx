@@ -66,6 +66,7 @@ import { HOSTED_BODY_CLASSES } from "@/app/(hosted)/hosted-page/body-classes";
 import { markPassage, parseMarkdown, toHtml } from "@/lib/publish/render/markdown";
 import { BREAK_COPY_KEY, isPlaced, liveBreaks, type Break, type MarkInputs } from "./marks";
 import { useDebounced } from "./useDebounced";
+import { AddressBar } from "./PublishedPageView";
 
 /** §7's panes. The third is a phone's only: from `lg` up the search result
  *  stands under the page, where there is room for both. */
@@ -303,6 +304,8 @@ export function Editor(p: {
   onFrame: (frame: PreviewFrame) => void;
   /** The facts the live rules read. `marks.ts` says why these and no more. */
   inputs: MarkInputs;
+  /** The address the page is or will be readable at, in the preview's bar. */
+  address: string;
   /** The page's address and the search-result pane's two lines. */
   searchResult: React.ReactNode;
 }): React.JSX.Element {
@@ -524,7 +527,7 @@ export function Editor(p: {
               className="mockup-browser border-base-300 bg-base-200 flex h-96 min-w-0 flex-col border"
               data-testid="draft-preview-frame-desktop"
             >
-              <div className="mockup-browser-toolbar min-w-0" />
+              <AddressBar url={p.address} />
               <div className="bg-base-100 min-h-0 min-w-0 flex-1 overflow-y-auto px-4 py-6" tabIndex={0}>
                 {page}
               </div>

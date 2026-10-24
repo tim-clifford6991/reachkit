@@ -39,6 +39,18 @@ export interface HeartbeatStore {
    *  about yet and the job has not run since `row` was read. True when this
    *  caller made the claim — the one that sends the mail. */
   claimAlert(row: JobRunRow, at: Date): Promise<boolean>;
+  /** Inserts the (job, error class, Berlin day) row unless it exists. True
+   *  when this caller inserted it — the one that sends the mail. */
+  claimErrorMail(key: ErrorMailKey, at: Date): Promise<boolean>;
+  /** Deletes the claim, so a mail that was not sent does not use up the day. */
+  releaseErrorMail(key: ErrorMailKey): Promise<void>;
+}
+
+export interface ErrorMailKey {
+  readonly jobId: string;
+  readonly errorName: string;
+  /** The Europe/Berlin calendar day, `YYYY-MM-DD`. */
+  readonly day: string;
 }
 
 /** A scheduled job and how often it is due. */
@@ -198,6 +210,29 @@ export async function beat(jobId: JobId, outcome: LoggedOutcome, now: Date): Pro
   }
 }
 
+/** Whether this tick mails the owner about a failing job. A store that
+ *  cannot answer mails anyway: a duplicate alert is better than a missing one.
+ *  With no store installed there is nothing to claim against, so it mails. */
+export async function claimErrorMail(key: ErrorMailKey, now: Date): Promise<"claimed" | "taken" | "unclaimed"> {
+  if (installed === null) return "unclaimed";
+  try {
+    return (await installed.store.claimErrorMail(key, now)) ? "claimed" : "taken";
+  } catch {
+    warn("ops_incident_alert", "claim_unavailable");
+    return "unclaimed";
+  }
+}
+
+/** Never throws: a claim left behind costs one day's mail, never the job. */
+export async function releaseErrorMail(key: ErrorMailKey): Promise<void> {
+  if (installed === null) return;
+  try {
+    await installed.store.releaseErrorMail(key);
+  } catch {
+    warn("ops_incident_alert", "release_failed");
+  }
+}
+
 /** The generated `Database` type does not carry `job_runs` — the same
  *  narrow cast `src/lib/site-profile/store.ts` documents. */
 interface MinimalResult<T> {
@@ -206,7 +241,8 @@ interface MinimalResult<T> {
 }
 interface MinimalQuery<T> extends PromiseLike<MinimalResult<T>> {
   select(columns: string): MinimalQuery<T>;
-  upsert(values: Record<string, unknown>, options: { onConflict: string }): MinimalQuery<T>;
+  upsert(values: Record<string, unknown>, options: { onConflict: string; ignoreDuplicates?: boolean }): MinimalQuery<T>;
+  delete(): MinimalQuery<T>;
   update(values: Record<string, unknown>): MinimalQuery<T>;
   eq(column: string, value: unknown): MinimalQuery<T>;
   or(filters: string): MinimalQuery<T>;
@@ -256,6 +292,25 @@ function databaseHeartbeatStore(): HeartbeatStore {
         .select("job_id");
       if (error !== null) throw new Error(error.message);
       return (data ?? []).length === 1;
+    },
+    async claimErrorMail(key, at) {
+      // `ignoreDuplicates` is `insert … on conflict do nothing returning`: only the inserting tick gets a row back.
+      const { data, error } = await (await client()).from<Row>("job_error_mails")
+        .upsert(
+          { job_id: key.jobId, error_name: key.errorName, day: key.day, mailed_at: at.toISOString() },
+          { onConflict: "job_id,error_name,day", ignoreDuplicates: true }
+        )
+        .select("job_id");
+      if (error !== null) throw new Error(error.message);
+      return (data ?? []).length === 1;
+    },
+    async releaseErrorMail(key) {
+      const { error } = await (await client()).from<Row>("job_error_mails")
+        .delete()
+        .eq("job_id", key.jobId)
+        .eq("error_name", key.errorName)
+        .eq("day", key.day);
+      if (error !== null) throw new Error(error.message);
     },
   };
 }

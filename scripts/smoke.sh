@@ -5,6 +5,12 @@
 #
 #   scripts/smoke.sh [domain]
 #   SMOKE_BASE_URL=https://reachkit.app scripts/smoke.sh example.com
+#   scripts/smoke.sh --free
+#
+# **`--free` spends nothing**: it sends GETs only, so the deployer can run it
+# on every deploy. It walks landing → old addresses → hosted page, then
+# `GET /api/health`, then the report the gallery lists first, which must carry
+# no incomplete or unreadable notice. It starts no scan and opens no stream.
 #
 # It walks the chain a stranger walks — landing → every old address → scan →
 # report → gallery card — against a
@@ -58,6 +64,11 @@ set -o pipefail
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 BASE_URL="${SMOKE_BASE_URL:-https://dev.reachkit.app}"
 BASE_URL="${BASE_URL%/}"
+FREE=""
+if [ "${1:-}" = --free ]; then
+  FREE=1; shift
+  [ "$#" = 0 ] || { echo "usage: scripts/smoke.sh --free" >&2; exit 2; }
+fi
 DOMAIN="${1:-${SMOKE_DOMAIN:-basecamp.com}}"
 
 [ "$#" -le 1 ] || { echo "usage: scripts/smoke.sh [domain]" >&2; exit 2; }
@@ -104,6 +115,18 @@ copy_text() {
   sed -n "s/.*\"$1\": *\[\"\([^\"]*\)\".*/\1/p" "$REPO"/src/lib/presentation/copy/keys/*.ts | head -1
 }
 
+# `notices_clear <page>` — the report says neither that it is incomplete nor
+# that the site could not be read.
+notices_clear() {
+  local incomplete unreadable
+  incomplete=$(copy_text "notice.incomplete")
+  incomplete=${incomplete%%:*}
+  [ -n "$incomplete" ] || fail "$step" "the copy registry binds no notice.incomplete"
+  grep -qF "$incomplete" "$1" && fail "$step" "the report shows the incomplete notice"
+  unreadable=$(copy_text "notice.site-unreadable")
+  [ -n "$unreadable" ] && grep -qF "$unreadable" "$1" && fail "$step" "the report says the site could not be read"
+}
+
 REPORT_CEILING_S=$(pin reportCeilingS)   # the pass's own bound — TIMING
 PLATFORM_CEILING_S=$(pin platformCeilingS) # the platform's hard stop
 FREE_CAP_C=$(pin FREE_C)                 # CAPS — one free pass's ceiling in cents
@@ -115,7 +138,11 @@ HOSTED_URL="${SMOKE_HOSTED_URL:-}"
 [ -z "$HOSTED_URL" ] && [ "$BASE_URL" = "https://reachkit.app" ] && HOSTED_URL="https://content.reachkit.app"
 HOSTED_URL="${HOSTED_URL%/}"
 
-echo "smoke: $BASE_URL · $DOMAIN · ceiling ${REPORT_CEILING_S}s, hard stop ${PLATFORM_CEILING_S}s, cap ${FREE_CAP_C}c"
+if [ -n "$FREE" ]; then
+  echo "smoke: $BASE_URL · free · GETs only"
+else
+  echo "smoke: $BASE_URL · $DOMAIN · ceiling ${REPORT_CEILING_S}s, hard stop ${PLATFORM_CEILING_S}s, cap ${FREE_CAP_C}c"
+fi
 
 # ── 1. landing ───────────────────────────────────────────────────────────
 # REQ-001 c1, the landing's whole contract: "exactly one text input and one
@@ -183,6 +210,35 @@ else
     [ -n "$lang" ] || fail "$step" "/$slug states no <html lang>"
     ok "$step" "/$slug · first byte ${best} ms ≤ ${TTFB_BUDGET_MS} ms · ${preloads} font preloads · lang $lang"
   fi
+fi
+
+if [ -n "$FREE" ]; then
+  # ── free 2. health ───────────────────────────────────────────────────
+  step=health
+  code=$(curl -sS -o "$WORK/health.json" -w '%{http_code}' --max-time 30 "$BASE_URL/api/health" 2>"$WORK/health.err") \
+    || fail "$step" "GET /api/health did not answer ($(tr -d '\n' < "$WORK/health.err"))"
+  [ "$code" = 200 ] || fail "$step" "GET /api/health answered $code: $(head -c 200 "$WORK/health.json")"
+  ok "$step" "200"
+
+  # ── free 3. report ───────────────────────────────────────────────────
+  # The newest report the gallery lists, whichever site it is, so the check
+  # holds for every deployment and needs no domain of its own.
+  step=report
+  listing="$WORK/listing.html"
+  code=$(curl -sS -o "$listing" -w '%{http_code}' --max-time 30 "$BASE_URL/scans" 2>"$WORK/listing.err") \
+    || fail "$step" "GET /scans did not answer ($(tr -d '\n' < "$WORK/listing.err"))"
+  [ "$code" = 200 ] || fail "$step" "GET /scans answered $code"
+  newest=$(grep -o 'href="/scan/[^"/?#]*"' "$listing" | head -1 | sed 's/href="\/scan\/\(.*\)"/\1/')
+  [ -n "$newest" ] || fail "$step" "GET /scans lists no report"
+  page="$WORK/report.html"
+  code=$(curl -sS -o "$page" -w '%{http_code}' --max-time 30 "$BASE_URL/scan/$newest" 2>"$WORK/report.err") \
+    || fail "$step" "GET /scan/$newest did not answer ($(tr -d '\n' < "$WORK/report.err"))"
+  [ "$code" = 200 ] || fail "$step" "GET /scan/$newest answered $code"
+  notices_clear "$page"
+  ok "$step" "200 · /scan/$newest, the newest listed · no incomplete or unreadable notice"
+
+  echo "smoke: PASS · $BASE_URL walked landing → health → report, GETs only"
+  exit 0
 fi
 
 # ── 2. scan-start ────────────────────────────────────────────────────────
@@ -333,13 +389,7 @@ for key in band.score.invisible band.score.hard-to-find band.score.findable band
 done
 [ -n "$blocked" ] || [ -n "$band_seen" ] || fail "$step" "the report carries no band word"
 
-incomplete=$(copy_text "notice.incomplete")
-incomplete=${incomplete%%:*}
-[ -n "$incomplete" ] || fail "$step" "the copy registry binds no notice.incomplete"
-grep -qF "$incomplete" "$page" && fail "$step" "the report shows the incomplete notice"
-
-unreadable=$(copy_text "notice.site-unreadable")
-[ -n "$unreadable" ] && grep -qF "$unreadable" "$page" && fail "$step" "the report says the site could not be read"
+notices_clear "$page"
 
 if [ -n "$blocked" ]; then
   ok "$step" "200 · bot protection kept the reader off $DOMAIN's own pages · market read from its listing in search · no score"

@@ -64,7 +64,7 @@ const PARTS: PageParts = {
     { key: "what", heading: "What is emergency plumbing, and who is it for?", body: "Emergency plumbing is for problems that cannot wait for a weekday booking: a burst pipe, a main valve that will not close, a water heater leaking onto the floor. It is for homes in Austin." },
     { key: "included", heading: "What is included?", body: "- Someone answers your call at any hour\n- Help shutting off your water while you wait\n- A plumber at your door to find the problem\n- A written price before any work starts" },
     { key: "price", heading: "How is it priced?", body: "A call-out is [$149](https://example.com/pricing). It covers the visit and finding the problem. You then get a written price for the repair, and you decide whether to go ahead." },
-    { key: "where_when", heading: "Where and when do you come out?", body: "24 hours a day, every day, in Austin, Round Rock, Pflugerville and Cedar Park." },
+    { key: "where_when", heading: "Where and when do you come out?", body: "It serves Austin, Round Rock, Pflugerville and Cedar Park." },
     {
       key: "how_it_works",
       heading: "How does it work?",
@@ -241,7 +241,8 @@ describe("owner R1: an offering page shows its dates, the made line and no bylin
     });
   }
 
-  it("the store reads a draft written as an offering page as one, and any other as not", async () => {
+  it("the store reads a draft written as an offering page as one, and any other as not, with its Where and when heading", async () => {
+    const sections = [{ key: "what", heading: "What is it?" }, { key: "where_when", heading: "Where and when do you come out?" }];
     const row = (id: string, contentType: string) => ({
       id,
       site_id: "site-1",
@@ -249,11 +250,12 @@ describe("owner R1: an offering page shows its dates, the made line and no bylin
       published_at: DAY,
       mode: "autopilot",
       sites: { domain: "example.com", category: null, timezone: null },
-      drafts: { title: id, body_md: "One paragraph.", attribution: null, meta: { contentType }, grounded_fact: null, opportunity_id: "o", opportunities: { id: "o", target_query: "q", scans: null } },
+      drafts: { title: id, body_md: "One paragraph.", attribution: null, meta: { contentType, sections }, grounded_fact: null, opportunity_id: "o", opportunities: { id: "o", target_query: "q", scans: null } },
     });
     publications.splice(0, publications.length, row("service", "offering"), row("answer", "qa"));
     const { livePagesForSite } = await import("@/lib/publish/destinations/hosted/store");
     const pages = await livePagesForSite("site-1", "content.example.com");
     expect(Object.fromEntries(pages.map((page) => [page.slug, page.offering]))).toEqual({ service: true, answer: false });
+    expect(pages.find((page) => page.slug === "service")?.whereWhen).toBe("Where and when do you come out?");
   });
 });

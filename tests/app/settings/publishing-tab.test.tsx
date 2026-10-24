@@ -111,3 +111,14 @@ it("with no address of our own, Goes live names none and leaves no empty line", 
   expect(text(last)).toBe("Goes live Mon, Oct 19, 4:00 PM");
   expect([...last.querySelectorAll("span")].filter((span) => (span.textContent ?? "").trim() === "")).toEqual([]);
 });
+
+it("the window stepper draws minus and plus, and the page-ready mail step draws MailCheck", () => {
+  const doc = tab();
+  for (const [id, icon] of [["veto-less", "lucide-minus"], ["veto-more", "lucide-plus"]] as const) {
+    const button = doc.querySelector(`[data-testid="${id}"]`)!;
+    expect(button.querySelector(`svg.${icon}`)?.getAttribute("aria-hidden")).toBe("true");
+    expect(text(button)).toBe("");
+  }
+  const emailed = doc.querySelectorAll('[data-testid="publishing-timeline"] ol > li')[1]!;
+  expect(emailed.querySelector("svg.lucide-mail-check")).not.toBeNull();
+});

@@ -83,6 +83,19 @@ describe("Settings › Billing — the cancel route and the first-14-days refund
     expect(line(doc, "billing-state")).toBe(copy("settings.billing.cancelled"));
   });
 
+  it("the Active badge carries CircleCheck; Cancelled carries no tick", async () => {
+    const active = await billingCard(20);
+    expect(active.querySelector('[data-testid="billing-state"] > svg.lucide-circle-check')?.getAttribute("aria-hidden")).toBe("true");
+    expect(line(active, "billing-state")).toBe(copy("settings.billing.active"));
+    const html = renderToStaticMarkup(
+      <BillingPanel
+        billing={{ readable: true, state: "cancelled", accessUntil: "Nov 7, 2026", surfaceHref: "/app/settings", refundUntil: null }}
+      />
+    );
+    const cancelled = new DOMParser().parseFromString(html, "text/html");
+    expect(cancelled.querySelector('[data-testid="billing-state"] svg')).toBeNull();
+  });
+
   it("the specimen account's rows are Status, Plan and Next invoice, in the board's order, and no card row", () => {
     const html = renderToStaticMarkup(<BillingPanel billing={assembleSettings(FIXTURE_SETTINGS_FACTS).billing} />);
     const doc = new DOMParser().parseFromString(html, "text/html");

@@ -629,3 +629,29 @@ describe("Settings › Market against board SettingsMarket", () => {
     expect(root.querySelector('[data-testid="process-timeline"]')).toBeNull();
   });
 });
+
+describe("Publishing, Mail, Billing and Account carry their board icons, never in a card title", () => {
+  it.each(["publishing", "mail", "billing", "account"] as const)("no settings card title carries an icon (E28): %s", async (tab) => {
+    const root = await mountTab(tab);
+    const titles = [...root.querySelectorAll("h2, summary, .card-title")];
+    expect(titles.length).toBeGreaterThanOrEqual(1);
+    for (const title of titles) expect(title.querySelector("svg")).toBeNull();
+  });
+
+  it("account's board icons: the sign-in well, Export, Sign out, and the danger list with its line", async () => {
+    const root = await mountTab("account");
+    const icons = (el: Element | null) => [...(el?.querySelectorAll("svg") ?? [])].map((svg) => [...svg.classList].filter((c) => c.startsWith("lucide-")).at(-1));
+    expect(icons(root.querySelector('[data-testid="account-signin"]'))).toEqual([
+      "lucide-mail",
+      "lucide-arrow-right",
+      "lucide-link",
+      "lucide-arrow-right",
+      "lucide-circle-check",
+    ]);
+    expect(icons(root.querySelector('[data-testid="action-export"]'))).toEqual(["lucide-download"]);
+    expect(icons(root.querySelector('[data-testid="action-sign_out"]'))).toEqual(["lucide-log-out"]);
+    expect(icons(root.querySelector('[data-testid="danger-compare"]'))).toEqual(["lucide-pause", "lucide-file-x", "lucide-trash-2"]);
+    expect(icons(root.querySelector('[data-testid="danger-pause-line"]'))).toEqual(["lucide-info"]);
+    for (const svg of root.querySelectorAll("[data-testid] svg")) expect(svg.getAttribute("aria-hidden")).toBe("true");
+  });
+});

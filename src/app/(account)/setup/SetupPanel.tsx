@@ -11,7 +11,7 @@
 "use client";
 
 import type React from "react";
-import { Check } from "lucide-react";
+import { Check, Coffee } from "lucide-react";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { PANEL, PANEL_BODY, QUIET } from "./frame";
 import { SETUP_STEPS, stepIndex, type SetupStepId } from "./steps";
@@ -98,7 +98,9 @@ function NextRail(p: { step: SetupStepId }): React.JSX.Element {
             </li>
           ))}
           <li className="flex min-w-0 gap-3">
-            <span className="status status-success mt-1.5 shrink-0" aria-hidden />
+            <span className="badge badge-sm badge-soft badge-success shrink-0" aria-hidden>
+              <Coffee strokeWidth={1.75} size={12} />
+            </span>
             <span className="flex min-w-0 flex-col">
               <span className="font-medium">{copy("setup.next.after")}</span>
               <span className={QUIET}>{copy("setup.next.after.line")}</span>
