@@ -452,7 +452,7 @@ function mendable(opportunity: Opportunity): boolean {
  */
 async function mendPage(a: PageInput): Promise<DayPageOutcome> {
   const store = generateStore();
-  const live = (await store.liveVersionAt?.(a.siteId, a.opportunity.targetRef)) ?? null;
+  const live = await store.liveVersionAt(a.siteId, a.opportunity.targetRef);
   if (live === null) return { ok: false, because: "step_failed", draftId: a.draftId ?? null, step: "mend" };
   const meta = (typeof live.draft.meta === "object" && live.draft.meta !== null ? live.draft.meta : {}) as Record<string, unknown>;
   const title = live.draft.title ?? "";
@@ -503,7 +503,7 @@ async function livePageOf(
   const linkTo = linkBackOf(opportunity);
   // Issue 1521 (as 1507): the date the live version is dated as, which a
   // refresh that says nothing new keeps.
-  const version = ours === undefined ? null : ((await generateStore().liveVersionAt?.(a.siteId, url)) ?? null);
+  const version = ours === undefined ? null : await generateStore().liveVersionAt(a.siteId, url);
   const versionMeta = (version?.draft.meta ?? null) as Record<string, unknown> | null;
   const datedAs = version === null ? undefined : typeof versionMeta?.datedAs === "string" ? versionMeta.datedAs : version.publishedAt.toISOString();
   // Issue 1487: a link to a page that moved is pointed at its new address in
@@ -561,7 +561,7 @@ async function writePage(a: PageInput & { attempts: number; startedAt?: number }
   // D66: the page is researched and written in the site's own country and language.
   const locale = await siteLocale(a.siteId);
   // Issue 1390: the voice the customer fixed in Settings, where they did.
-  const writingVoice = (await store.writingVoice?.(a.siteId)) ?? null;
+  const writingVoice = await store.writingVoice(a.siteId);
 
   // SPEC §7 (2026-10-04, issue 1248): the page is written for the site's
   // market in force (`sites.market`, D28) — the report's category is the one
@@ -616,7 +616,7 @@ async function writePage(a: PageInput & { attempts: number; startedAt?: number }
 
   // Issue 1509: what the site's live pages already say, so a fact said on
   // two of them is offered last. A read that fails offers them as before.
-  const livePages = (await store.livePages?.(a.siteId).catch(() => [])) ?? [];
+  const livePages = await store.livePages(a.siteId).catch(() => []);
 
   /** Stages 1 and 2 for one opportunity: its type, then its context pack. */
   const packFor = async (o: Opportunity): Promise<{ pack: ContextPack; links: LinkTarget[] } | null> => {
@@ -768,6 +768,6 @@ async function writePage(a: PageInput & { attempts: number; startedAt?: number }
  *  written only when a figure has changed (D42, 4). */
 async function previousResearchOf(siteId: string): Promise<PackMeasurements | null> {
   const store = generateStore();
-  const meta = store.lastMetaOfType === undefined ? null : await store.lastMetaOfType(siteId, "research");
+  const meta = await store.lastMetaOfType(siteId, "research");
   return readPack(meta)?.measurements ?? null;
 }

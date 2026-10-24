@@ -267,7 +267,7 @@ export async function readLiveSettingsFacts(
     voiceText: site?.voiceText ?? "",
     // Issue 1390. A read that fails is "not chosen": the select then shows
     // what ReachKit does, which is choose.
-    writingVoice: await bounded(() => import("@/lib/generate/store"), async (m) => (await m.generateStore().writingVoice?.(siteId)) ?? null).catch(() => null),
+    writingVoice: await bounded(() => import("@/lib/generate/store"), async (m) => m.generateStore().writingVoice(siteId)).catch(() => null),
     doNotClaim: site?.doNotClaim ?? [],
 
     destinations: destinations.list,

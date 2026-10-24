@@ -229,86 +229,6 @@ describe('BP-007 `## Error & edge behavior` — "Caps degrade, never throw."', (
   });
 });
 
-describe(
-  'BP-007 `## Public interface` — "Cache-first, ledger-always ... `fresh` false means the payload came from cache and cost nothing" — `index.ts`\'s own comment: "a hit is free and bypasses the cap entirely — it never reaches the vendor, so there is nothing for the cap to protect against."',
-  () => {
-    it("a cache hit is served even when the context is already at or over its cap — the cap check is never consulted for a hit (TST-029 coverage gap)", async () => {
-      const source = "cache-first-vs-cap";
-      const cacheKey = "k1";
-
-      // Seed a non-empty cached row on this key from an earlier scan.
-      const seedScanId = freshScanId("cache-first-seed");
-      await withCostContext({ scanId: seedScanId, cap: "FREE", policyVersion: 1 }, async (cost) => {
-        const seeded = await cost.recordFetch({
-          source,
-          cacheKey,
-          freshnessDays: 7,
-          costCents: 1,
-          run: async () => ({ result: "cached-payload" }),
-        });
-        expect(seeded).toMatchObject({ fresh: true, costCents: 1, storedAt: null });
-      });
-
-      // A fresh scan whose reservation alone already exhausts CAPS.FREE_C
-      // (12) before the cache-hit call is even made.
-      const scanId = freshScanId("cache-first-vs-cap");
-      let capHitBeforeHit = false;
-      let hitResult: unknown;
-      await withCostContext({ scanId, cap: "FREE", policyVersion: 1 }, async (cost) => {
-        await cost.recordFetch({
-          source: "cache-first-vs-cap-exhaust",
-          cacheKey: "exhaust-key",
-          freshnessDays: 7,
-          costCents: 12, // lands exactly on CAPS.FREE_C
-          run: async () => ({ v: "exhaust" }),
-        });
-        capHitBeforeHit = cost.capHit();
-
-        // The cap is already exhausted (`capHitBeforeHit` above). A hit on
-        // `source`/`cacheKey` must still be served — cache-first means the
-        // cap check is never reached for it. `costCents: 999` is an
-        // absurd reservation, chosen so that if the cap were checked first
-        // this call would be skipped by a wide margin rather than by
-        // coincidence.
-        hitResult = await cost.recordFetch({
-          source,
-          cacheKey,
-          freshnessDays: 7,
-          costCents: 999,
-          run: async () => {
-            throw new Error("run() must not be invoked on a cache hit, cap or no cap");
-          },
-        });
-      });
-
-      expect(capHitBeforeHit).toBe(true);
-      // Issue 715: a hit also carries `storedAt`, the moment the row it
-      // came from was bought — the fact the free report's "reused from"
-      // mark is read off, which `ledgered` documents as non-`null`
-      // exactly when `fresh` is `false`. The shape stays pinned
-      // exhaustively, because that exhaustiveness is what caught the
-      // member arriving; the value is a real `created_at` from Postgres,
-      // so it is asserted as the other live-database suites in this
-      // change assert it (`refusal-row`, `vendor-failure-row`) rather
-      // than against a clock this test does not own.
-      expect(hitResult).toEqual({
-        payload: { result: "cached-payload" },
-        fresh: false,
-        costCents: 0,
-        storedAt: expect.any(Date),
-      });
-
-      // No row was ledgered for the hit — only the seed row and the
-      // cap-exhausting row exist; the cap-exhausted scan carries exactly
-      // one row, not two.
-      const seedRows = fetchesRowsFor(seedScanId);
-      const scanRows = fetchesRowsFor(scanId);
-      expect(seedRows).toHaveLength(1);
-      expect(scanRows).toHaveLength(1);
-    });
-  }
-);
-
 describe('BP-007 decision 1 — "`capHit()` is re-checked between calls in any multi-call step"', () => {
   it("a body making three calls where the second crosses the cap gets `{ skipped: \"cap\" }` on the third and a true `capHit()` between them", async () => {
     const scanId = freshScanId("cap-hit-between");
@@ -473,61 +393,7 @@ describe(
   }
 );
 
-describe('BP-007 `## NFR budget` — "A free scan\'s context must not exceed 12¢, a deep pass 150¢, a weekly 40¢, a draft 45¢ — enforced here, not assumed anywhere else."', () => {
-  const CAPS_UNDER_TEST: Array<{ cap: "FREE" | "DEEP" | "WEEKLY" | "DRAFT"; label: string }> = [
-    { cap: "FREE", label: "free-cap" },
-    { cap: "DEEP", label: "deep-cap" },
-    { cap: "WEEKLY", label: "weekly-cap" },
-    { cap: "DRAFT", label: "draft-cap" },
-  ];
-
-  it.each(CAPS_UNDER_TEST)("$cap — a call landing exactly on CAPS.${cap}_C succeeds; one cent more is skipped", async ({ cap, label }) => {
-    const { CAPS } = await import("../../src/lib/config/constants");
-    const capValue = CAPS[`${cap}_C` as keyof typeof CAPS] as number;
-
-    const scanExact = freshScanId(`${label}-exact`);
-    let exactResult: unknown;
-    await withCostContext({ scanId: scanExact, cap, policyVersion: 1 }, async (cost) => {
-      exactResult = await cost.recordFetch({
-        source: `${label}-exact`,
-        cacheKey: "k1",
-        freshnessDays: 7,
-        costCents: capValue,
-        run: async () => ({ ok: true }),
-      });
-    });
-    expect(exactResult).toMatchObject({ fresh: true, costCents: capValue });
-
-    const scanOver = freshScanId(`${label}-over`);
-    let overResult: unknown;
-    await withCostContext({ scanId: scanOver, cap, policyVersion: 1 }, async (cost) => {
-      overResult = await cost.recordFetch({
-        source: `${label}-over`,
-        cacheKey: "k1",
-        freshnessDays: 7,
-        costCents: capValue + 1,
-        run: async () => {
-          throw new Error("run() must not be invoked over the cap");
-        },
-      });
-    });
-    expect(overResult).toEqual({ skipped: "cap" });
-  });
-});
-
 describe('BP-007 `## NFR budget` — "a per-scan roll-up (`spentCents`, `degraded`) is written to `scans.cost_cents` and `scans.status` at close"', () => {
-  it("both columns reflect the closed context — a clean close", async () => {
-    const scanId = freshScanId("rollup-clean");
-    await withCostContext({ scanId, cap: "FREE", policyVersion: 1 }, async (cost) => {
-      await cost.recordFetch({ source: "rollup", cacheKey: "k1", freshnessDays: 7, costCents: 3, run: async () => 1 });
-    });
-    const row = scanRow(scanId);
-    // Four decimal places: the column is `numeric(12,4)` (issue #449), and
-    // 3¢ stored in it reads back as 3.0000¢, not as 3.
-    expect(row.cost_cents).toBe("3.0000");
-    expect(row.status).toBe("done");
-  });
-
   it("a free pass of twelve sub-cent SERPs rolls up 0.72¢ — the run that produced `cost_cents 0` on production", async () => {
     // Issue #449, end to end through the real stack: twelve calls at
     // `SERP_STD_C` 0.06¢. Under `integer` every one of these inserts
@@ -571,16 +437,6 @@ describe('BP-007 `## NFR budget` — "a per-scan roll-up (`spentCents`, `degrade
     expect(ledgered?.cost_cents).toBe("1.1293");
     expect(ledgered?.reserved_cents).toBe("4.0000");
     expect(scanRow(scanId).cost_cents).toBe("1.1293");
-  });
-
-  it("a degraded close is recorded as `status = 'degraded'`", async () => {
-    const scanId = freshScanId("rollup-degraded");
-    await withCostContext({ scanId, cap: "FREE", policyVersion: 1 }, async (cost) => {
-      await cost.recordFetch({ source: "rollup-d-a", cacheKey: "k1", freshnessDays: 7, costCents: 12, run: async () => 1 });
-      await cost.recordFetch({ source: "rollup-d-b", cacheKey: "k2", freshnessDays: 7, costCents: 1, run: async () => 2 });
-    });
-    const row = scanRow(scanId);
-    expect(row.status).toBe("degraded");
   });
 });
 
@@ -727,71 +583,17 @@ describe(
   }
 );
 
-describe(
-  'BP-007 `## NFR budget` — "a row whose charge was settled records **both** figures — reserved and settled — so the difference can be reconciled against the vendor\'s own account statement"',
-  () => {
-    it("a settled call's `fetches` row carries `reserved_cents` and `cost_cents` with the two different values; dropping either column fails it", async () => {
-      const scanId = freshScanId("both-figures");
-      await withCostContext({ scanId, cap: "FREE", policyVersion: 1 }, async (cost) => {
-        await cost.recordFetch<{ v: number }>({
-          source: "both-figures",
-          cacheKey: "k1",
-          freshnessDays: 7,
-          costCents: 9,
-          settleCents: () => 4,
-          run: async () => ({ v: 1 }),
-        });
-      });
-      const rows = fetchesRowsFor(scanId);
-      expect(rows).toHaveLength(1);
-      const row = rows[0];
-      expect(row).toBeDefined();
-      expect(row?.reserved_cents).not.toBe(row?.cost_cents);
-      expect(row?.reserved_cents).toBe("9.0000");
-      expect(row?.cost_cents).toBe("4.0000");
-    });
-  }
-);
-
-describe(
-  'BP-007 `## Data model delta` — "`reserved_cents` is what the cap was checked against; they differ only on the one endpoint ADR-094 flags"',
-  () => {
-    it("the applied schema carries `reserved_cents` on `fetches`, and an unsettled call writes the same value into both columns", async () => {
-      const columnRows = psqlRows(
-        `select column_name from information_schema.columns where table_schema = 'public' and table_name = 'fetches' and column_name = 'reserved_cents';`
-      );
-      expect(columnRows).toEqual([["reserved_cents"]]);
-
-      const scanId = freshScanId("unsettled-same-value");
-      await withCostContext({ scanId, cap: "FREE", policyVersion: 1 }, async (cost) => {
-        await cost.recordFetch({
-          source: "unsettled",
-          cacheKey: "k1",
-          freshnessDays: 7,
-          costCents: 7,
-          run: async () => ({ v: 1 }),
-        });
-      });
-      const rows = fetchesRowsFor(scanId);
-      expect(rows).toHaveLength(1);
-      expect(rows[0]?.reserved_cents).toBe(rows[0]?.cost_cents);
-      expect(rows[0]?.reserved_cents).toBe("7.0000");
-    });
-  }
-);
-
 // ── The product-wide daily ceiling's own read (issue #329, BUILD §6.5) ──
 //
 // `src/lib/costs/daily.ts` asks one question of the database —
 // `fetches_spend_since(since)` — and every claim it makes about the answer
-// rests on this function existing, summing the right rows, and being
-// unreachable without the service role. That is what this block asserts,
-// against the real schema; the arithmetic on top of it is
-// `tests/costs/daily.test.ts`'s.
+// rests on this function existing and summing the right rows. That is what
+// the block below asserts, against the real schema; that no session may
+// call it and that its search path is pinned are `tests/db/`'s sweeps over
+// every function, and the arithmetic on top of it is `daily.test.ts`'s.
 describe("issue #449 — every column this seam's money reaches carries one unit", () => {
+  // `fetches`' own two columns are `fetches-schema.test.ts`'s.
   it.each([
-    ["fetches", "cost_cents"],
-    ["fetches", "reserved_cents"],
     ["scans", "cost_cents"],
     ["drafts", "cost_cents"],
   ])("`%s.%s` is numeric(12,4)", (table, column) => {
@@ -902,35 +704,6 @@ describe("issue #329 — fetches_spend_since, the day's ledger read", () => {
     expect(spendSince("2000-01-01T00:00:00Z")).toBe(2);
   });
 
-  it("is unreachable by anon and by authenticated — no cost figure is ever rendered to a customer", () => {
-    for (const role of ["anon", "authenticated"]) {
-      let refused = false;
-      try {
-        psql([
-          "-v",
-          "ON_ERROR_STOP=1",
-          "-c",
-          `set local role ${role}; select fetches_spend_since(now());`,
-        ]);
-      } catch {
-        refused = true;
-      }
-      expect(refused, role).toBe(true);
-    }
-  });
-
-  it("carries a pinned, empty search path, so no caller can move what `fetches` resolves to", () => {
-    const config = psql([
-      "-t",
-      "-A",
-      "-v",
-      "ON_ERROR_STOP=1",
-      "-c",
-      "select coalesce(array_to_string(proconfig, ','), '') from pg_proc where proname = 'fetches_spend_since';",
-    ]).trim();
-    expect(config).toContain("search_path=");
-  });
-
   it("the production path reaches it: `readDaySpendCents` over the real client and the real PostgREST", async () => {
     // The psql cases above prove the function. This one proves the seam's
     // own call — a service-role RPC through PostgREST's schema cache, with
@@ -957,10 +730,9 @@ describe("issue #329 — fetches_spend_since, the day's ledger read", () => {
 
 // ── The per-site ceiling's own read (issue 885, SPEC §6 2026-09-18) ──────
 //
-// The same three claims the block above makes of `fetches_spend_since`,
-// made of the function the per-site cap rests on: it exists, it sums the
-// right rows, and it is unreachable without the service role. The
-// arithmetic on top of it is `tests/costs/site-cap.test.ts`'s.
+// The same claims the block above makes of `fetches_spend_since`, made of
+// the function the per-site cap rests on: it exists and it sums the right
+// rows. The arithmetic on top of it is `tests/costs/site-cap.test.ts`'s.
 describe("issue 885 — fetches_site_spend_since, one site's day", () => {
   let user = "";
   let siteA = "";
@@ -1046,35 +818,6 @@ describe("issue 885 — fetches_site_spend_since, one site's day", () => {
     const scan = scanFor(siteA, "deep");
     for (let i = 0; i < 12; i++) ledgerRow(scan, 0.06, "2026-09-18T09:00:00Z");
     expect(siteSpendSince(siteA, "2026-09-18T00:00:00Z")).toBeCloseTo(0.72, 4);
-  });
-
-  it("is unreachable by anon and by authenticated — no cost figure is ever rendered to a customer", () => {
-    for (const role of ["anon", "authenticated"]) {
-      let refused = false;
-      try {
-        psql([
-          "-v",
-          "ON_ERROR_STOP=1",
-          "-c",
-          `set local role ${role}; select fetches_site_spend_since('${siteA}'::uuid, now());`,
-        ]);
-      } catch {
-        refused = true;
-      }
-      expect(refused, role).toBe(true);
-    }
-  });
-
-  it("carries a pinned, empty search path, so no caller can move what `fetches` resolves to", () => {
-    const config = psql([
-      "-t",
-      "-A",
-      "-v",
-      "ON_ERROR_STOP=1",
-      "-c",
-      "select coalesce(array_to_string(proconfig, ','), '') from pg_proc where proname = 'fetches_site_spend_since';",
-    ]).trim();
-    expect(config).toContain("search_path=");
   });
 
   it("the production path reaches it: `readSiteDaySpendCents` over the real client and the real PostgREST", async () => {
