@@ -244,6 +244,17 @@ export function searchPresenceOf(a: {
   return ofValue((SCALE * a.card.you.top10Count) / a.card.measuredSearches, a.at);
 }
 
+/** Where the Google share could lie given how few searches it was counted
+ *  over: its Wilson interval on the 0–100 scale, with the count read, so a
+ *  thin sample reads as rough. `null` where no card or no measured search. */
+export function searchPresenceRangeOf(
+  card: { measuredSearches: number; you: { top10Count: number } } | null
+): { low: number; high: number; read: number } | null {
+  if (card === null || card.measuredSearches === 0) return null;
+  const share = wilsonOf(card.you.top10Count, card.measuredSearches);
+  return { low: SCALE * share.low, high: SCALE * share.high, read: card.measuredSearches };
+}
+
 // ── AIPresence ──────────────────────────────────────────────────────────
 
 /** BUILD §5: "AIPresence = max(1, (0.4 × mentionRate + 0.6 × citationRate)
