@@ -1,33 +1,8 @@
-// BUILD §4.2 — one page, once, or a written message saying why not.
-//
-// The draft is generated **only after** the email is submitted (~7¢, spent
-// on identified leads only), and never on the visitor's request: this
-// function is the job's, and `captureLead` enqueues nothing and calls no
-// model. Writing the page itself is §8's (issue #44) and is reached through
-// the declared port in `ports.ts` — this module maps its two refusals to
-// two causes and holds no rule of its own about how a page is written.
-//
-// **One page per report, ever** (issue 826). The page is stored on the scan
-// that offered it, and the port is reached from exactly one place below:
-// only while the lead is `pending` and only by the lead that claims the scan.
-// Every later lead on that report is mailed the stored page for nothing, and
-// a page the hard rules refused is recorded once, so later leads are told
-// there is no page without a second attempt. A retry re-sends what was
-// written and never re-writes it.
-//
-// **Read ADR-041 before adding a suppression check to this send.**
-// `first-page` and `first-page-unavailable` are `stoppable: false`, so the
-// send seam does not consult `email_suppressions` for them. A suppressed
-// address that submitted the control for a *different* domain still
-// receives that domain's page. It reads as the one thing no mail system may
-// ever do, and it is REQ-010 c3: "a mail the founder cannot stop: it is the
-// thing they asked for, sent once, in answer to their own submission". The
-// opt-out in that same mail stops the follow-up, not the page.
-//
-// **Nothing is recorded as delivered that was not.** Every state advance
-// below happens after the send seam says `sent: true`, and the terminal
-// `abandoned` state says in the row itself that neither of the two things
-// the founder was owed arrived.
+// BUILD §4.2 — one page, once, or a written message saying why not. The job's, never the visitor's request: ~7¢ on identified leads only.
+// Writing the page is §8's, through the port in `ports.ts`; this module maps its two refusals to two causes.
+// One page per report (SPEC §2): stored on the scan, written only by the pending lead that claims it; later leads get it free, a retry re-sends.
+// Read ADR-041 before adding a suppression check: `first-page` kinds are unstoppable (REQ-010 c3), and their opt-out stops the follow-up, not the page.
+// Nothing is recorded as delivered that was not: every advance follows `sent: true`, and `abandoned` says neither owed thing arrived.
 import {
   FIRST_PAGE_CLAIM_STALE_MINUTES,
   FIRST_PAGE_RETRY_MINUTES,
@@ -44,20 +19,14 @@ import { scheduleSequence } from "./sequence";
 import { leadStore, type LeadRow } from "./store";
 import { wireSuppressionReader } from "./wire";
 
-/** The four ways a page can fail to arrive. One member per cause, and the
- *  union is closed: a fifth cause is a change to this type and to the map
- *  below, never a new string at a call site. */
+/** The four ways a page can fail to arrive; a fifth is a change to this union and the map below. */
 export type FirstPageFailure =
   | "no-page-to-write" // the current report no longer offers one
   | "writing-failed" // §8 could not produce a page
   | "writing-refused" // hard rules or the claim check refused it
   | "delivery-failed"; // the window closed on the page itself
 
-/** REQ-010 criterion 7's "and why", made enforceable. A `Record` over the
- *  union, so a cause with no key of its own is a compile error rather than
- *  a review comment. Exported because the report's own surface renders the
- *  **same** key in place for a founder still looking at it — one map, read
- *  twice, rather than two that drift. */
+/** Criterion 7's "and why": a `Record`, so a cause with no key fails to compile. The report reads the same map. */
 export const FIRST_PAGE_UNAVAILABLE_COPY: Readonly<Record<FirstPageFailure, CopyKey>> =
   Object.freeze({
     "no-page-to-write": "mail.firstPageUnavailable.no-page-to-write",
@@ -72,8 +41,7 @@ export type DeliveryOutcome =
   | { delivered: "none"; cause: FirstPageFailure };
 
 function log(a: Record<string, unknown>): void {
-  // Cause, retry count and state transition — never an address in clear
-  // text, never a page body.
+  // Cause, retry count and transition; never an address or a page body.
   console.log(JSON.stringify({ event: "lead_first_page", ...a }));
 }
 
@@ -83,11 +51,7 @@ function asFailure(value: string | null): FirstPageFailure {
     : "delivery-failed";
 }
 
-/** When this lead's next attempt is due. Driven by the two stored facts —
- *  the first attempt's time and how many have been made — never by an
- *  in-memory counter, because the job is re-entrant. A lead never attempted
- *  is due now; a lead past the end of `FIRST_PAGE_RETRY_MINUTES` is not due
- *  again, and the window closes on it. */
+/** When the next attempt is due, from stored facts since the job is re-entrant. Never attempted is now; past `FIRST_PAGE_RETRY_MINUTES` is never. */
 export function nextAttemptAt(lead: LeadRow): Date | null {
   if (lead.first_page_first_attempt_at === null) return new Date(0);
   const first = new Date(lead.first_page_first_attempt_at);
@@ -96,8 +60,7 @@ export function nextAttemptAt(lead: LeadRow): Date | null {
   return minutesAfter(first, spacing);
 }
 
-/** The job's due-work query: every lead owed one of the two things and
- *  ready for its next attempt. */
+/** Every lead owed one of the two things and ready for its next attempt. */
 export async function dueFirstPageDeliveries(now: Date): Promise<readonly string[]> {
   const read = await leadStore().leadsInFirstPageState(["pending", "written"]);
   if (!read.ok) return [];
@@ -118,9 +81,7 @@ export async function deliverFirstPage(leadId: string, now = new Date()): Promis
 
   const lead = read.lead;
 
-  // Three terminal states, answered from the row rather than re-attempted.
-  // "Sent once, in answer to their own submission" is what makes the second
-  // call a no-op rather than a second page.
+  // Terminal states are answered from the row, so a second call sends no second page.
   if (lead.first_page_state === "sent") return { delivered: "page" };
   if (lead.first_page_state === "notice_sent") {
     return { delivered: "unavailable-notice", cause: asFailure(lead.first_page_failure) };
@@ -129,9 +90,7 @@ export async function deliverFirstPage(leadId: string, now = new Date()): Promis
     return { delivered: "none", cause: asFailure(lead.first_page_failure) };
   }
 
-  // The 24-hour window is measured from the **first** attempt, which is why
-  // its time is a stored fact. Once it closes, no further attempt is made
-  // and nothing is shown or recorded as delivered.
+  // The 24-hour window runs from the stored first attempt; once closed, nothing is attempted or recorded as delivered.
   const firstAttemptAt =
     lead.first_page_first_attempt_at === null ? now : new Date(lead.first_page_first_attempt_at);
   if (now.getTime() >= hoursAfter(firstAttemptAt, FIRST_PAGE_RETRY_WINDOW_H).getTime()) {
@@ -146,8 +105,7 @@ export async function deliverFirstPage(leadId: string, now = new Date()): Promis
 
   const offerRead = await readFirstPageOffer(lead.scan_id);
   if (!offerRead.read) {
-    // We could not look. That is not "this scan found nothing worth
-    // writing", and it must not be told to the founder as if it were.
+    // Could not look is not "nothing worth writing", and must not be told as if it were.
     log({ leadId: lead.id, outcome: "deferred", cause: "offer-unreadable", attempts });
     return { delivered: "none", cause: "delivery-failed" };
   }
@@ -178,8 +136,7 @@ export async function deliverFirstPage(leadId: string, now = new Date()): Promis
   }
 
   if (title === null || markdown === null) {
-    // A row in `written` with no page on it is a state this module never
-    // produces; treating it as writable again would be a second generation.
+    // `written` without a page is never produced here; rewriting it would be a second generation.
     return sendNotice(lead, "writing-failed", now, attempts);
   }
 
@@ -224,8 +181,7 @@ type ReportPage =
   | { kind: "unavailable"; cause: FirstPageFailure }
   | { kind: "deferred"; cause: "stored-page-unreadable" | "page-being-written" };
 
-/** The report's one page: the stored one, or — for the lead that claims the
- *  scan — the one written now and stored for every later lead. */
+/** The report's one page: stored, or written now by the claimant and stored for later leads. */
 async function reportPage(
   lead: LeadRow,
   offer: Extract<FirstPageOffer, { offered: true }>,
@@ -268,22 +224,17 @@ async function reportPage(
     if (!settled.ok) log({ leadId: lead.id, outcome: "page-not-stored", scanId: lead.scan_id });
     return { kind: "page", title: written.title, markdown: written.markdown, wrote: true };
   }
-  // A refusal is the report's answer and is kept; a failure produced no page,
-  // so the claim is released for a later lead to try.
+  // A refusal is the report's answer and is kept; a failure releases the claim for a later lead.
   await store.settleScanFirstPage(lead.scan_id, { state: written.refused ? "refused" : "released" });
   return { kind: "unavailable", cause: written.refused ? "writing-refused" : "writing-failed" };
 }
 
-/** A vendor rejection with no retry window is permanent: the window ends
- *  early rather than spending six attempts on an address that will never
- *  accept mail. */
+/** A vendor rejection with no retry window ends the window early, rather than six attempts at an address that never accepts mail. */
 function isPermanent(result: { sent: false; reason: string; retryUntil?: Date }): boolean {
   return result.reason === "vendor" && result.retryUntil === undefined;
 }
 
-/** Criterion 7's message. Unstoppable on its own grounds — it closes the
- *  request the founder made — and it names its cause through the one
- *  exhaustive map. */
+/** Criterion 7's message: unstoppable since it closes the founder's request, naming its cause through the one map. */
 async function sendNotice(
   lead: LeadRow,
   cause: FirstPageFailure,
@@ -316,8 +267,7 @@ async function sendNotice(
   return { delivered: "unavailable-notice", cause };
 }
 
-/** The terminal state in which neither of the two things arrived. Nothing
- *  is shown or recorded as delivered. */
+/** Neither thing arrived; nothing is shown or recorded as delivered. */
 async function abandon(
   lead: LeadRow,
   cause: FirstPageFailure,

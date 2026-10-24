@@ -1,42 +1,11 @@
-// BUILD §4.2 — the address-wide suppression store.
-//
-// **Read ADR-042 before unifying this with the notification toggles.**
-// This store is keyed by an email address and reaches exactly the kinds
-// whose register row says `stoppable: 'opt-out'` — today, the nurture
-// sequence. `users.notify` is keyed by a user and reaches the three
-// recurring mails. They overlap in no row. Merging them has one obvious
-// default — an address-keyed suppression suppresses that address — and
-// that default takes a magic-link customer's sign-in mail away, silently,
-// discovered when they cannot get back in. This module never reads and
-// never writes `users.notify`, and imports nothing that does.
-//
-// **Read ADR-041 before adding a suppression check to the giveaway.** An
-// address on this store that submits the capture control for a *different*
-// domain still receives that domain's page. `first-page` and
-// `first-page-unavailable` are `stoppable: false`, so the send seam does
-// not consult this store for them at all — the check exists in one place
-// and reaches exactly the follow-up. An opt-out here stops what comes
-// next; it does not refuse a page the person has just asked for.
-//
-// **Why the write order is what it is.** A suppression must both record
-// the address and stop the sequences already running for it, and this
-// client has no transaction. So the suppression is written **first**: with
-// it in place every nurture send is refused at the seam (the store is
-// consulted immediately before the vendor call), and the sequence rows are
-// then converged to `stopped`. A failure between the two leaves rows
-// reading `running` that can send nothing, which is a stale label; the
-// reverse order would leave an address with no suppression row and no
-// running sequences — and the next delivery would start a fresh one. The
-// job's own send step re-reads this store and stops any row it finds
-// suppressed, so the label converges on the next invocation.
+// BUILD §4.2 — the address-wide suppression store. It reaches only kinds registered `stoppable: 'opt-out'` and never reads or writes `users.notify`.
+// Read ADR-042 before unifying it with the notification toggles: an address-keyed stop would silently take a customer's sign-in mail away.
+// Read ADR-041 before checking it in the giveaway: `first-page` kinds are `stoppable: false`, so an opt-out never refuses a page just asked for.
+// With no transaction, the suppression is written before sequences are stopped: a failure between leaves `running` rows the seam refuses,
+// while the reverse would leave no suppression and let the next delivery start a fresh sequence. The send step converges the label.
 import { leadStore, type SuppressionCause } from "./store";
 
-/** Three answers, not two. A boolean would have to call an unreadable
- *  store "not suppressed", which is the one answer that mails a person who
- *  opted out — and it is exactly what the send seam's `SuppressionReader`
- *  port refuses to accept. BP-029 declares `isSuppressed(): Promise<boolean>`;
- *  the seam that consumes it (§12, issue #30) was built to a three-answer
- *  port, and this follows the consumer. */
+/** Three answers, not a boolean: a boolean would call an unreadable store "not suppressed" and mail someone who opted out. */
 export type SuppressionAnswer = "send" | "suppressed" | "unreadable";
 
 export async function suppressionState(email: string): Promise<SuppressionAnswer> {
@@ -45,17 +14,12 @@ export async function suppressionState(email: string): Promise<SuppressionAnswer
   return read.suppressed ? "suppressed" : "send";
 }
 
-/** One address, one identity. Every read and every write in this feature
- *  goes through here, so a mixed-case address can never become a second,
- *  unsuppressed person. */
+/** One address, one identity. Every read and every write in this feature goes through here, so a mixed-case address can never become a second, unsuppressed person. */
 export function normaliseAddress(email: string): string {
   return email.trim().toLowerCase();
 }
 
-/** Ends every running and every waiting sequence for the address and
- *  blocks every future one. Releases nothing — REQ-010 criterion 12's last
- *  sentence: a sequence ended by a subscribe or an opt-out releases the
- *  ones waiting behind it into `stopped`, never into `running`. */
+/** Ends every running and waiting sequence for the address and blocks future ones; waiting ones go to `stopped`, never `running` (criterion 12). */
 export async function suppressAddress(
   email: string,
   cause: SuppressionCause
@@ -78,9 +42,7 @@ export async function suppressAddress(
   return { suppressed: true, stopped };
 }
 
-/** Every sequence that has not already reached a terminal state, set to
- *  `stopped`. `finished` and `dropped` are left alone: they are terminal
- *  and rewriting them would erase why they ended. */
+/** Every non-terminal sequence set to `stopped`; `finished` and `dropped` keep why they ended. */
 async function stopSequencesFor(address: string): Promise<number> {
   const store = leadStore();
   const read = await store.leadsForAddress(address);

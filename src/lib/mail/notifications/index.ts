@@ -1,25 +1,11 @@
-// BUILD §12 · §4.7 — the three toggles, and the one question the send seam asks.
-//
-// Settings holds three switches over the three recurring mails
-// (BUILD §4.7, "Notifications (3 toggles)"). They suppress no mail but
-// their own: with all three off, the sign-in link, anything the product
-// must say about the account or the subscription, the setup reminder and
-// the one unsuppressible draft-ready announcement all still arrive.
-//
-// `TOGGLABLE_KINDS` is derived from the register (`kinds.ts`), never
-// stated twice — a fourth `'toggle'` row would appear here the day it was
-// added, and `tests/mail/notifications/togglable-kinds.test.ts` asserts
-// the two agree. `MailKind` is imported **type-only** where it is only a
-// type, so this module and the register cannot form a runtime cycle.
-//
-// ADR-042: this store is keyed by user and reaches exactly these three
-// kinds. It never reads and never writes the address-wide suppression
-// store, and there is no code path from one to the other.
+// BUILD §12 · §4.7 — the three toggles over the recurring mails (BUILD §4.7, "Notifications (3 toggles)"), and the one question the send seam asks.
+// They stop only their own kinds: with all three off, sign-in, account, setup and the unsuppressible draft-ready mail still arrive.
+// `TOGGLABLE_KINDS` is derived from `kinds.ts` (asserted by `tests/mail/notifications/togglable-kinds.test.ts`); `MailKind` is type-only, so no cycle.
+// ADR-042: keyed by user, with no path to the address-wide suppression store.
 import { TOGGLE_KINDS, type MailKind } from "../kinds";
 import { firstMondayMailSent, prefsFrom, readStored, writeStoredKey } from "./store";
 
-/** The three recurring mails a customer can switch off. Derived from the
- *  register's `stoppable: 'toggle'` rows. */
+/** The three recurring mails a customer can switch off, from the register's `'toggle'` rows. */
 export type NotifyKind = Extract<MailKind, "draft-ready" | "published" | "weekly">;
 
 export const TOGGLABLE_KINDS: readonly NotifyKind[] = Object.freeze(
@@ -28,18 +14,13 @@ export const TOGGLABLE_KINDS: readonly NotifyKind[] = Object.freeze(
 
 export type NotifyPrefs = Readonly<Record<NotifyKind, boolean>>;
 
-/** Every switch on — what a customer who has never opened Settings has,
- *  and what an unreadable store must never be mistaken for. */
+/** Every switch on: a customer who never opened Settings, never an unreadable store. */
 export function allOn(): NotifyPrefs {
   return prefsFrom({}, TOGGLABLE_KINDS);
 }
 
-/** A key absent from `users.notify` reads as on (`draft-ready`: until the
- *  first Monday mail). A read that failed
- *  throws rather than answering "all on": a caller that wanted a
- *  displayable value and got a fabricated one would show the customer a
- *  setting they never chose. `stoppedByPreference()` below is the caller
- *  that must not throw, and it asks the store directly. */
+/** An absent key reads as on (`draft-ready`: until the first Monday mail). A failed read throws rather than show a setting never chosen;
+ *  `stoppedByPreference()` asks the store directly, since it must not throw. */
 export async function readNotifyPrefs(userId: string): Promise<NotifyPrefs> {
   const stored = await readStored(userId);
   if (!stored.readable) {
@@ -48,12 +29,7 @@ export async function readNotifyPrefs(userId: string): Promise<NotifyPrefs> {
   return prefsFrom(stored.stored, TOGGLABLE_KINDS, await firstMondayMailSent(userId));
 }
 
-/** Writes one key and leaves the other two untouched.
- *
- *  It enqueues nothing. A mail missed while its toggle was off is not
- *  sent afterwards, and the way to guarantee that is to have no code path
- *  that could — there is no queue, no backlog and no catch-up call
- *  anywhere in this module's dependencies. */
+/** Writes one key. It enqueues nothing: a mail missed while off is never sent later, and no queue or catch-up path exists to send it. */
 export async function setNotifyPref(a: {
   userId: string;
   kind: NotifyKind;
@@ -70,16 +46,8 @@ export async function setNotifyPref(a: {
   return prefsFrom({ ...stored.stored, [a.kind]: a.on }, TOGGLABLE_KINDS, await firstMondayMailSent(a.userId));
 }
 
-/** The question the send seam asks immediately before the vendor call —
- *  never at schedule time, because a customer who switches a mail off
- *  between the two must not receive it.
- *
- *  `'unreadable'` is its own answer, not a `'send'`: this store is the
- *  only record of a choice the customer made, and mailing them because we
- *  could not read it spends their trust on our outage. A kind outside
- *  `TOGGLABLE_KINDS` answers `'send'` **without touching the store** —
- *  that is what makes these three toggles unable to reach the sign-in
- *  mail even when the database is down. */
+/** The seam's question immediately before the vendor call. `'unreadable'` is not `'send'`: mailing on our outage spends the customer's trust.
+ *  A kind outside `TOGGLABLE_KINDS` answers `'send'` without touching the store, so the toggles cannot reach sign-in even with the database down. */
 export async function stoppedByPreference(a: {
   userId: string;
   kind: MailKind;

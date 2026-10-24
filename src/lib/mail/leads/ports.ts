@@ -1,30 +1,10 @@
-// BUILD §4.2 — the two things this feature reads and does not own.
-//
-// The giveaway needs a page to offer and a page to write, and neither is
-// this node's: the opportunity engine (`src/lib/opportunities/**`, §7)
-// decides what is worth writing, and the draft pipeline
-// (`src/lib/generate/**`, §8) writes it. Each is a **declared port** here,
-// with the narrowest shape this feature reads.
-//
-// Both defaults are the real ones (issue 787). The offer is the report's own
-// `freePage` — the one the card renders, so the card and the mail cannot
-// disagree — and the page is written by `./writer.ts` from that report's
-// best right-sized target under the FREE cap. The register functions are
-// the suites' door in.
+// BUILD §4.2 — the two things this feature reads and does not own, as narrow ports: what to offer (§7) and the page itself (§8).
+// The defaults are real: the offer is the report's own `freePage`, so card and mail agree, and `./writer.ts` writes the page. The setters are the suites' door.
 import { measured, measuredZero, unmeasured, type Measured } from "@/lib/measure/measured";
 import { readStoredReport, type StoredReport } from "@/lib/scan/report";
 import { leadStore } from "./store";
 
-/** What the report's free-page card and the giveaway mail both read. The
- *  six facts BP-029's `firstPageOffer()` returns, before the `offered`
- *  discriminant is put on them.
- *
- *  `format` is a plain string, deliberately. §7's eight-member closed enum
- *  is the opportunity engine's to declare (`OpportunityType`), and a second
- *  copy of it here would be the copy that goes stale. This feature never
- *  branches on the value — it carries it to the card and no further — so it
- *  needs the value, not the union, and issue #40 narrows this field to its
- *  own type when it lands. */
+/** What the free-page card and the giveaway mail both read. `format` is a plain string: this feature only carries it, and a copy of §7's enum would go stale. */
 export interface OfferedPage {
   readonly title: string;
   readonly pagesFound: number;
@@ -34,18 +14,12 @@ export interface OfferedPage {
   readonly format: string;
 }
 
-/** The first page a scan would have written, or `null` where the scan
- *  derived none worth writing. Never throws; `'unreadable'` is its own
- *  answer, because "we could not look" is not "there is nothing". */
+/** The first page a scan would write, or `null`. Never throws; `'unreadable'` is its own answer, since "could not look" is not "nothing". */
 export type OfferReader = (
   scanId: string
 ) => Promise<{ read: true; page: OfferedPage | null } | { read: false }>;
 
-/** The page itself. One call per report, ever — the guard is
- *  `giveaway.ts`'s, because it is a fact about the scan row (issue 826), not
- *  about this port. `refused` distinguishes §8's hard rules and claim check
- *  turning a page down from the pipeline failing to produce one: REQ-010
- *  criterion 7 owes the founder the cause, and those are two causes. */
+/** The page itself; the once-per-report guard is `giveaway.ts`'s, on the scan row. `refused` (§8's rules) and failure are two causes criterion 7 owes the founder. */
 export type DraftWriter = (a: {
   leadId: string;
   scanId: string;
@@ -55,11 +29,7 @@ export type DraftWriter = (a: {
   | { written: false; refused: boolean }
 >;
 
-// ── The offer reader ────────────────────────────────────────────────────
-//
-// The scan's stored report carries its one proposal (`report.freePage`,
-// derived by `src/lib/opportunities/free-page.ts` as the pass composed the
-// report). This reader projects it and ranks nothing of its own.
+// The offer reader: projects the stored `report.freePage` and ranks nothing of its own.
 
 const defaultOfferReader: OfferReader = async (scanId) => {
   const read = await leadStore().scanReport(scanId);
@@ -91,8 +61,7 @@ const defaultOfferReader: OfferReader = async (scanId) => {
   };
 };
 
-/** §8's steps, composed for a lead in `./writer.ts`. Imported on first use,
- *  so reading an offer never loads the model seam. */
+/** §8's steps for a lead, imported on first use so reading an offer never loads the model seam. */
 const defaultDraftWriter: DraftWriter = async (a) => {
   const { writeLeadPage } = await import("./writer");
   return writeLeadPage(a);

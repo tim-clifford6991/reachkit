@@ -1,37 +1,9 @@
-// BUILD §12, §11 — the occasion of the Monday digest.
-//
-// `buildWeekly` composed it and `weeklyDigest` read what it needs, and no
-// module called either: the weekly mail was never sent (#181). Journey 06
-// composed it and handed it to the send seam by hand, which is what this
-// module does for real.
-//
-// **Once per `(site_id, week_start)`, and the key is a stamp on the week's
-// own row.** `scans` already carries one row per site-week under a partial
-// unique index, so the digest's once-ness is a column on that row
-// (`digest_sent_at`) and not a table of its own. It is stamped **only
-// where the seam accepted the mail**: a send it refused — an owner-owed
-// line that will not compose, a switch the customer turned off, a vendor
-// that would not take it — leaves the week unstamped, so the next tick
-// offers it again. Recording a refusal as though it were a send would burn
-// the week, and the refusal that matters most is a line the owner has not
-// written yet: the mail has to go the moment they write it.
-//
-// **An unmeasured week still sends, saying so** (SPEC §8, Weekly: "Unmeasured
-// week still sends, saying so"). Its row exists — a failed pass leaves one —
-// and its account says `not_measured`: the digest carries no section and no
-// figure, only the whole-mail line naming the date the next measurement is
-// due, and it is stamped like any other week. A week with **no row at all**
-// has no key to be told once against and still sends nothing, and neither
-// does a site whose access has ended (`not_owed`: "Stops: … access ends").
-// A week measured only in part sends with the sections it missed named
-// (REQ-064 c4).
-//
-// **The digest is composed for the week, never re-measured.** Every figure
-// comes from what is already stored: the standings from `weeklyDigest`,
-// Overview's numbers through Overview's own readers, the technical checks that moved
-// from `weekMovement`, the week's pages and spares from the week this
-// Monday committed (issue 1559). A mail that re-measured to state a movement would report a
-// different week from the one it announces.
+// BUILD §12, §11 — the occasion of the Monday digest, once per `(site_id, week_start)`, stamped as `scans.digest_sent_at` on the week's row.
+// Stamped only where the seam accepted the mail: a refusal (unwritten line, switch off, vendor) leaves the week for the next tick,
+// so the mail goes the moment a missing line is written.
+// An unmeasured week still sends, saying so, with the next due date (SPEC §8). No row means no key, so nothing is sent, nor for `not_owed`
+// (access ended). A partial week names the sections it missed (REQ-064 c4).
+// Composed from stored figures, never re-measured, so the mail reports the week it announces.
 import { dbAdmin } from "@/lib/db";
 import { env } from "@/lib/config/env";
 import { ANSWER_RATE_WEEKS, BLOG_READS_WINDOW_D, WEEK_PLAN } from "@/lib/config/constants";
@@ -70,11 +42,7 @@ import {
   type WeeklyPage,
 } from "../templates/weekly";
 
-/** Why a digest did not go out. Every arm is reported; none is silent, and
- *  `not-composable` is its own arm rather than folded into `mail` —
- *  it is the one refusal that means "the owner has not written this yet",
- *  and an operator asking why Monday was quiet is owed that answer
- *  distinctly. */
+/** Why a digest did not go out. `not-composable` is its own arm: "the line is not written yet" is owed distinctly to whoever asks why Monday was quiet. */
 export type WeeklyDigestOutcome =
   | { sent: true; id: string }
   | {
@@ -82,11 +50,7 @@ export type WeeklyDigestOutcome =
       reason: "already-sent" | "not-measured" | "no-account" | "not-composable" | "mail";
     };
 
-/** The six parts a partial week can be missing, each under the one name
- *  the product calls it. A `Record`, so a seventh part could not be added
- *  without a name for it (REQ-064 c4 names the sections it missed, and an
- *  unnamed one would be a section the customer is told about and cannot
- *  identify). */
+/** The six parts a partial week can miss, by product name; a `Record`, so each needs a name the customer can identify (REQ-064 c4). */
 const SECTION_NAME: Readonly<Record<UnmeasuredPart, CopyKey>> = Object.freeze({
   on_page: "mail.section.on_page",
   market: "mail.section.market",
@@ -112,8 +76,7 @@ interface MinimalClient {
   from<T>(table: string): MinimalQuery<T>;
 }
 
-/** The same narrow cast the other mail occasions document: several columns
- *  this module reads are absent from the generated `Database` type. */
+/** The narrow cast the other occasions document: some columns read here are missing from the generated `Database` type. */
 function untyped(): MinimalClient {
   return dbAdmin() as unknown as MinimalClient;
 }
@@ -123,13 +86,7 @@ interface WeekRow {
   digest_sent_at: string | null;
 }
 
-/**
- * Sends one site's Monday digest for one week.
- *
- * Called by the weekly tick after the measurement, per site, and never
- * from inside the measurement itself: the pass records what it measured
- * and stops, and the two obligations of one tick are visible in the job.
- */
+/** Sends one site's digest for one week, from the weekly tick after the measurement, never inside it. */
 export async function sendWeeklyDigest(a: {
   siteId: string;
   weekStart: string;
@@ -137,9 +94,7 @@ export async function sendWeeklyDigest(a: {
 }): Promise<WeeklyDigestOutcome> {
   const now = a.now ?? new Date();
 
-  // The week's own row, and the stamp that says it has already been told.
-  // Read first: a re-run of the tick must reach neither the digest nor the
-  // seam.
+  // The week's row and its stamp, read first so a re-run reaches neither the digest nor the seam.
   const week = await readWeekRow(a);
   if (week === null) return { sent: false, reason: "not-measured" };
   if (week.digest_sent_at !== null) return { sent: false, reason: "already-sent" };
@@ -172,8 +127,7 @@ export async function sendWeeklyDigest(a: {
       ? unmeasuredWeek(account.nextDueOn, now, connect, greeting)
       : await measuredWeek(a.siteId, a.weekStart, account, connect, now, greeting, calendar);
 
-  // The footer's three ways out: pause every page, the mail settings, and
-  // this one mail's unsubscribe, which a mail client can also press itself.
+  // The footer's ways out: pause every page, the mail settings, and this mail's unsubscribe, which an inbox can press too.
   const unsubscribe = encodeURIComponent(unsubscribeTokenFor({ userId: recipient.userId, kind: "weekly" }));
   const result = await sendEmail({
     kind: "weekly",
@@ -191,9 +145,7 @@ export async function sendWeeklyDigest(a: {
   });
 
   if (!result.sent) {
-    // `not-composable` is the owner's unwritten line, reported as itself.
-    // Nothing is stamped either way: the week stays open and the next tick
-    // offers it again.
+    // `not-composable` is reported as itself; nothing is stamped, so the next tick offers the week again.
     return { sent: false, reason: result.reason === "not-composable" ? "not-composable" : "mail" };
   }
 
@@ -219,9 +171,7 @@ function weekDates(weekStart: string): string[] {
   return Array.from({ length: 7 }, (_, i) => new Date(Date.parse(`${weekStart}T12:00:00Z`) + i * 86_400_000).toISOString().slice(0, 10));
 }
 
-/** The hosted address still waiting for its record, with the setup step
- *  that connects it. `undefined` once it is live, for a site with no hosted
- *  address, and where the read fails: the mail is never held for it. */
+/** The hosted address waiting for its record, with its setup step; `undefined` once live, with none, or on a failed read. */
 async function addressToConnect(siteId: string): Promise<Connect | undefined> {
   try {
     const { hostedHostFor } = await import("@/lib/publish/destinations/hosted/hostname");
@@ -233,13 +183,11 @@ async function addressToConnect(siteId: string): Promise<Connect | undefined> {
   }
 }
 
-/** A week with no measurement: every section unmeasured, so every one is
- *  omitted, and the whole-mail line says so with the next due date. */
+/** A week with no measurement: every section omitted, and the whole-mail line gives the next due date. */
 function unmeasuredWeek(nextDueOn: Date, now: Date, connect: Connect | undefined, greeting: Greeting | undefined): Composed {
   const gap = unmeasured<never>("undeterminable", now);
   return {
-    // No numbers at all: the whole-mail line says the week was not
-    // measured, once, and four rows saying it again would repeat it.
+    // No numbers: the whole-mail line already says the week was not measured.
     mail: buildWeekly({ pages: gap, next: gap, ...(connect === undefined ? {} : { connect }), ...(greeting === undefined ? {} : { greeting }) }),
     measurement: { state: "none", nextDueOn },
   };
@@ -258,11 +206,7 @@ async function measuredWeek(
   const a = { siteId, weekStart };
 
   const digest = await weeklyDigest({ siteId: a.siteId, week: a.weekStart });
-  // The date every figure in this mail is stated as of. `weekMeasuredAt`
-  // is the week's own; the account's is the same date read from the same
-  // row, and it is the fallback only because the two arms come from two
-  // readers — never `now`, which would date a stored week to the moment
-  // the mail happened to be composed.
+  // The date every figure is stated as of: the week's own, else the account's from the same row, never `now`.
   const at = digest.weekMeasuredAt ?? account.measuredAt;
 
   const movement = await weekMovement({ siteId: a.siteId, weekStart: a.weekStart, at });
@@ -280,43 +224,30 @@ async function measuredWeek(
     ...(connect === undefined ? {} : { connect }),
     numbers: await weeklyNumbers(a.siteId, a.weekStart, now),
     ...(needsYou === undefined ? {} : { needsYou }),
-    // Measured, and measured-empty where the week judged nothing: "you
-    // have published nothing yet" is a result, and the template's own
-    // empty line states it.
+    // Measured-empty where the week judged nothing: "you have published nothing yet" is a result.
     pages: measured(pages, at),
     ...week,
-    // SPEC §9 on Monday: the checks whose count moved, from the same two
-    // stored weeks the deltas are read from.
+    // SPEC §9 on Monday: checks whose count moved between the same two stored weeks.
     issues: movement.issueChanges,
-    // SPEC §8 2026-09-29 (D16): the tracked questions that now name the
-    // site, each with its answer's address. No page is credited here.
+    // SPEC §8 (D16): tracked questions that now name the site, with the answer's address. No page is credited here.
     nowNamed: measured(
       movement.nowNamed.map((question) => ({ search: question.search, answerUrl: answerUrlOf(question.search) })),
       at
     ),
-    // D28 (#1185): what ReachKit changed about the market this week.
+    // D28: what ReachKit changed about the market this week.
     marketChanges: await marketChangesSince(a.siteId, a.weekStart),
   });
   return { mail, measurement: measurementStateOf(account) };
 }
 
-/** Where the answer to a tracked question is read: the search it was
- *  phrased from, on Google, which is the engine the reading is counted
- *  from (SPEC §4 2026-09-17). */
+/** Where a tracked question's answer is read: its search on Google, the engine the reading is counted from (SPEC §4). */
 function answerUrlOf(search: string): string {
   const url = new URL("https://www.google.com/search");
   url.searchParams.set("q", search);
   return url.toString();
 }
 
-/**
- * Overview's weekly figures (the simple model, owner 2026-10-19: "app and
- * Monday email, same numbers"), read at `now` with Overview's own readers.
- *
- * Every read fails soft: a page list that cannot be read leaves the live
- * count unmeasured and draws no Google or AI row, and a figure nothing read
- * says so. The mail is never held back for one number.
- */
+/** Overview's weekly figures, read at `now` with Overview's readers. Every read fails soft and says so; the mail is never held for one number. */
 async function weeklyNumbers(siteId: string, weekStart: string, now: Date): Promise<WeeklyNumbers> {
   const [content, reads] = await Promise.all([
     readPublishedPages(siteId).then((pages) => contentOf({ pages, now })).catch(() => null),
@@ -365,8 +296,7 @@ async function weekPages(siteId: string, weekStart: string): Promise<number> {
   return (await weekEntries(siteId, weekStart)).entries.length;
 }
 
-/** The pages this week carries, Monday to Sunday, by Plan's rule (Overview's
- *  "We chose {n} pages"): each date's scheduled draft, else its committed row. */
+/** The week's pages by Plan's rule: each date's scheduled draft, else its committed row. */
 async function weekEntries(
   siteId: string,
   weekStart: string
@@ -406,12 +336,7 @@ async function blogReadsOf(
   }
 }
 
-/**
- * The first mail of a month (M-b): the figures Overview's *Measures that move
- * over months* reads from this same first-Monday pass — its score and market
- * against the customer's scan, and reputation over the prompt window to it.
- * `undefined` where none of them was stored.
- */
+/** The month's first mail: the first-Monday pass's score and market against the scan, and reputation; `undefined` where none was stored. */
 async function monthNumbers(siteId: string, weekStart: string, now: Date): Promise<WeeklyNumbers["month"]> {
   const [reading, scan, rate] = await Promise.all([
     readWeekScans({ siteId, weekStarts: [weekStart] })
@@ -448,10 +373,7 @@ function counted(value: number, at: Date): Measured<number> {
   return value === 0 ? measuredZero(0, at) : measured(value, at);
 }
 
-/** The week's pages, Monday to Sunday, by the rule the planned count uses:
- *  each with its day, whether it updates a page, why it was chosen, and the
- *  links that stop or open it; and the spares. An empty week is a result the
- *  template states in one line — the calendar is never padded. */
+/** The week's pages with day, update flag, why and links, and the spares. An empty week is one stated line, never padded. */
 async function theWeek(
   siteId: string,
   weekStart: string,
@@ -462,8 +384,7 @@ async function theWeek(
   const days: WeeklyNext[] = [];
   for (const entry of entries) {
     const opportunity = open.get(entry.opportunityId) ?? (await opportunityById(entry.opportunityId).catch(() => null));
-    // An opportunity with no target search has nothing to name, and naming it
-    // some other way would be a second identity for one row.
+    // No target search, nothing to name: another name would be a second identity.
     if (opportunity === null || opportunity === undefined || opportunity.targetQuery === null) continue;
     const why = whyOf(opportunity.planReason);
     const draftHref = entry.draftId === null ? null : appHref(`/app/draft/${encodeURIComponent(entry.draftId)}`);
@@ -486,9 +407,7 @@ function stopHrefOf(siteId: string, opportunityId: string, day: string): string 
   return new URL(vetoLinkPath(token), env.NEXT_PUBLIC_APP_URL).toString();
 }
 
-/** The account, as the compose shell states it. A complete week says so
- *  and carries no line; a partial one names the sections it missed. The
- *  other two arms never reach here. */
+/** The account as the shell states it: complete carries no line, partial names its missing sections. */
 function measurementStateOf(account: {
   kind: "complete" | "partial";
   unmeasured?: readonly UnmeasuredPart[];
@@ -555,20 +474,8 @@ async function stampSent(scanId: string, at: Date): Promise<void> {
   }
 }
 
-/**
- * SPEC §8 (2026-09-20, #933) — "one needs-you item".
- *
- * One, and the newest: a page resting in `needs_attention` is the one thing
- * a customer must act on for the product to keep publishing, and a mail
- * that listed them all would be a second calendar. `undefined` where
- * nothing is waiting — the mail then says nothing about it, rather than
- * saying nothing is wrong.
- *
- * It states *that* a page needs them and opens it; **why** is the page's
- * own to say, on the screen that can also fix it (`needs-you.ts` derives
- * the cause, and the draft screen states it). A cause restated here would
- * be the second place the product words it.
- */
+/** SPEC §8's one needs-you item: the newest `needs_attention` page, since listing all would be a second calendar; `undefined` says nothing.
+ *  It says that a page needs them and opens it; why is the page's own to say (`needs-you.ts`), on the screen that can fix it. */
 async function oneNeedsYou(siteId: string): Promise<WeeklyNeedsYou | undefined> {
   try {
     const { data, error } = await untyped()
@@ -583,10 +490,7 @@ async function oneNeedsYou(siteId: string): Promise<WeeklyNeedsYou | undefined> 
     const title = (row.title ?? "").trim();
     return {
       line: "mail.weekly.needsYou",
-      // The page's own title where it has one — model text, and it reaches
-      // the reader through a slot in a written sentence, never as a
-      // sentence of ours. A page with no title yet is named by nothing, and
-      // the line's slot then carries its address in the app instead.
+      // The title is model text, so it reaches the reader in a slot, never as our sentence; with none, the slot carries the app address.
       vars: { page: title === "" ? row.id : title },
       href: new URL(`/app/draft/${encodeURIComponent(row.id)}`, env.NEXT_PUBLIC_APP_URL).toString(),
     };
@@ -595,9 +499,7 @@ async function oneNeedsYou(siteId: string): Promise<WeeklyNeedsYou | undefined> 
   }
 }
 
-/** D28 (#1185): the change ReachKit's latest conclusion made, where it was
- *  made this week — the category it now measures and the rivals it added or
- *  dropped, each with its reason. Fails soft: no line rather than no mail. */
+/** D28: the latest conclusion's change made this week (category, rivals added or dropped, reasons). Fails soft: no line, not no mail. */
 async function marketChangesSince(
   siteId: string,
   weekStart: string

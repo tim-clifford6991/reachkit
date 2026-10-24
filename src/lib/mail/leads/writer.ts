@@ -1,25 +1,6 @@
-// SPEC §2 · §8 (issue 787) — the lead's first page, written.
-//
-// The draft writer port's real implementation. A lead has no site, so §8's
-// `generateDraft` — which writes a `drafts` row and compares against a
-// site's published set — cannot be called for one. This runs the same stages
-// (SPEC §7, D41) and holds no rule of its own: the context pack is built from
-// the domain's own measured passages and its stored report, the page is one
-// write call laid out in code, and the whole stage-4 battery reads it.
-//
-// **A lead's pack is its own pages and its report.** It has no knowledge
-// base, no founder's answers and no account, and no research is read for it:
-// `CAPS.FREE_C` holds one write call and nothing beside it. A pack short of
-// what its type's template asks writes no page, as on a paid site.
-//
-// **The FREE cap.** One cost context per page, `CAPS.FREE_C`, ledgered
-// against the scan that offered the page and rolled up nowhere — spent only
-// on an identified lead (`giveaway.ts`). There is no fix call: one call per
-// report, ever (issue 826).
-//
-// **Nothing is stored here.** The page travels back to `deliverFirstPage`,
-// which stores it on the scan so every lead on the report is mailed the same
-// page, and a retry re-sends it and never re-writes.
+// SPEC §2 · §8 — the lead's first page. A lead has no site, so `generateDraft` cannot run; this runs §7's stages with no rule of its own.
+// The pack is the domain's own passages and stored report: no knowledge base, answers or research. One write call under `CAPS.FREE_C`,
+// ledgered against the scan, with no fix call. Nothing is stored here: `deliverFirstPage` stores the page on the scan.
 import { BATTERY, PACK } from "@/lib/config/constants";
 import { withCostContext } from "@/lib/costs";
 import { DRAFT_POLICY_VERSION } from "@/lib/generate/cost";
@@ -106,10 +87,7 @@ export const writeLeadPage: DraftWriter = async (a) => {
   const rivals = report.rivals.kind === "unmeasured" ? [] : report.rivals.value.map((rival) => rival.domain);
   const site = { businessName, domain: report.domain, doNotClaim: [], rivals };
 
-  // Stage 2: the pack. **No confirmed profile, and that is not a gap**
-  // (#927): a lead has no account, so there is nobody who could have
-  // confirmed anything, and writing from the crawl's uncorrected reading
-  // would put words in the mouth of someone who has never seen them.
+  // Stage 2: the pack. No confirmed profile: a lead has nobody who could confirm, and the crawl's reading would put words in their mouth.
   const packOf = (type: ContentType) =>
     buildPack({
       type,
@@ -126,15 +104,8 @@ export const writeLeadPage: DraftWriter = async (a) => {
       links: [],
       now: new Date(),
     });
-  // SPEC §2 (2026-10-04, drafted default): a lead's pack holds no research
-  // and no knowledge base, so where it is short of what the decided type's
-  // template asks, the page is a Q&A — the type the free scan's own measured
-  // questions and the domain's passages can hold. A lead's page is held to
-  // what its template asks of the pack, never to what a new page must add:
-  // nothing was read to compare it with.
-  // Issue 1486: a how-to is built from outside sources, which a lead's pack
-  // never holds, so its page is the Q&A. That Q&A is held to every need but
-  // those sources — the paid page's, read by research a lead is not bought.
+  // SPEC §2: a pack short of its type's template writes a Q&A, held to what the template asks, never to what a new page must add.
+  // A how-to needs outside sources a lead's pack never holds (SPEC §7), so its page is the Q&A, held to every need but those sources.
   const lacks = (built: ReturnType<typeof packOf>) => (built.type === "qa" ? built.missing.filter((need) => need !== "outside_sources") : built.missing);
   const first = packOf(decided);
   const pack = lacks(first).length === 0 || decided === "qa" ? first : packOf("qa");
@@ -170,17 +141,14 @@ export const writeLeadPage: DraftWriter = async (a) => {
       });
       const markdown = withClosing(completeTables(laid.body.bodyMarkdown), laid.closing, `https://${report.domain}/`);
 
-      // Stage 4: the checks, and no fix call. The lead's page follows its
-      // type's honesty rule as a paid site's does (SPEC §7, issue 1136); it
-      // has no knowledge base, so the fit check decides nothing here.
+      // Stage 4: the checks, no fix call. The type's honesty rule applies as on a paid site (SPEC §7); with no knowledge base, fit decides nothing.
       const outcome = await runHardRules(cost, {
         markdown,
         title: laid.body.title,
         rendered: renderOf(markdown),
         pageType,
         site,
-        // A lead has no published or queued pages; its own measured pages are
-        // the set a page must not duplicate.
+        // A lead has no published pages; its own measured pages are the set not to duplicate.
         comparison: {
           published: [],
           queued: [],
