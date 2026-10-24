@@ -1,9 +1,10 @@
-// Design parity inside `no overflow · axe`: each canvas board's strings against
-// the text the sweep's own server and seeds ship, and a missing count that only
-// goes down (docs/PROCESS.md › Gates). One browser for every address, at 1280, light.
+// Design parity inside `no overflow · axe`: each canvas board's strings and
+// components against what the sweep's own server and seeds ship, and missing
+// counts that only go down (docs/PROCESS.md › Gates). One browser for every address, at 1280, light.
 import { appendFileSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { compareComponents, readIcons } from "../../../scripts/design/components.mjs";
 import {
   boardFile,
   compare,
@@ -27,8 +28,9 @@ interface Row {
 const BOARDS = JSON.parse(readFileSync(path.join(PARITY_DIR, "boards.json"), "utf8")) as Record<string, Row>;
 const BASELINE = JSON.parse(readFileSync(path.join(PARITY_DIR, "baseline.json"), "utf8")) as Record<
   string,
-  { sha256: string; missing: number }
+  { sha256: string; missing: number; components?: number }
 >;
+const ICONS = readIcons();
 
 function cookieFor(row: Row): string {
   if (row.account === "live") return getLiveAccountCookie();
@@ -104,6 +106,9 @@ async function shipText(row: Row): Promise<string[]> {
   return Object.values(COPY).flatMap((value) => String(value).split(/\{[^}]*\}/));
 }
 
+/** The pages a row's text was read from; `shipText` has already refused one that did not answer. */
+const shipPages = (row: Row): string[] => (row.paths ?? []).map((p) => pages.get(keyOf(row, p))!.html);
+
 const summary: string[] = [];
 
 describe("design parity: a board's missing count only goes down", () => {
@@ -115,11 +120,21 @@ describe("design parity: a board's missing count only goes down", () => {
         mkdirSync(process.env.RK_PARITY_OUT, { recursive: true });
         writeFileSync(path.join(process.env.RK_PARITY_OUT, `${board}.txt`), texts.join("\n"), "utf8");
       }
-      const result = compare(readFileSync(file, "utf8"), texts, readAllow(board));
+      const html = readFileSync(file, "utf8");
+      const allow = readAllow(board);
+      const sha = sha256(file);
+      const result = compare(html, texts, allow);
       summary.push(table(board, result, BASELINE[board]?.missing));
-      const { ok, message } = verdict(board, result.missing, BASELINE[board], sha256(file), result.unused);
+      const verdicts = [verdict(board, result.missing, BASELINE[board], sha, result.unused)];
+      // Mail and state rows have no page to count components on.
+      if (row.read === "page" || row.read === "hosted") {
+        const parts = compareComponents(html, shipPages(row), allow, ICONS);
+        summary.push(table(board, parts, BASELINE[board]?.components, `${board} components`));
+        verdicts.push(verdict(board, parts.missing, BASELINE[board], sha, parts.unused, "components"));
+      }
+      const message = verdicts.map((v) => v.message).join("\n");
       console.log(message);
-      expect(ok, message).toBe(true);
+      expect(verdicts.every((v) => v.ok), message).toBe(true);
     }, 60_000);
   }
 
