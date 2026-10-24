@@ -24,8 +24,8 @@ import { heldPages } from "@/lib/publish/switch";
 import { pauseTokenFor } from "@/lib/publish/switch/pause-link";
 import { readPublishingSettings } from "@/lib/publish/settings/settings";
 import { readBlogReadFacts } from "@/lib/publish/reads/facts";
-import { assembleBlogReads, windowStartDay, type BlogReadsModel } from "@/lib/publish/reads/model";
-import { readSearchVisits } from "@/lib/publish/reads/store";
+import { assembleBlogReads, type BlogReadsModel, type VisitWeek } from "@/lib/publish/reads/model";
+import { readSearchVisitsWeekly } from "@/lib/publish/reads/store";
 import { readDeepReport } from "@/lib/scan/deep/report";
 import { accountForWeek, readPromptWindow, readWeekScans, weekMovement, type UnmeasuredPart } from "@/lib/scan/weekly";
 import { formatMailClock } from "../blocks/format";
@@ -258,7 +258,9 @@ async function weeklyNumbers(siteId: string, weekStart: string, now: Date): Prom
     () => unmeasured<number>("undeterminable", now)
   );
   const month = isFirstMonday(weekStart) ? await monthNumbers(siteId, weekStart, now) : undefined;
-  const ladder = content === null ? null : pageLadderOf(content.pages, now, reads === null ? null : await reads.visits);
+  const weeks = reads === null ? null : await reads.visits;
+  const ladder = content === null ? null : pageLadderOf(content.pages, now, weeks === null ? null : (weeks.at(-1)?.visits ?? 0));
+  const before = weeks?.at(-2)?.visits;
   if (ladder === null) {
     return { live: content === null ? unmeasured<number>("undeterminable", now) : counted(0, now), planned, ...(month === undefined ? {} : { month }) };
   }
@@ -278,7 +280,9 @@ async function weeklyNumbers(siteId: string, weekStart: string, now: Date): Prom
       steps,
       early: showing === 0,
       climbing: ladder.climbing,
-      ...(ladder.visits === null || ladder.visits === 0 ? {} : { visits: counted(ladder.visits, now) }),
+      ...(ladder.visits === null || ladder.visits === 0
+        ? {}
+        : { visits: counted(ladder.visits, now), ...(before === undefined ? {} : { visitsBefore: counted(before, now) }) }),
       ...(mover === undefined
         ? {}
         : { climb: mover === null ? null : { search: mover.search, from: mover.first.place, to: mover.place, climbing: mover.climbing } }),
@@ -326,11 +330,11 @@ async function weekEntries(
 async function blogReadsOf(
   siteId: string,
   now: Date
-): Promise<{ model: BlogReadsModel; visits: Promise<number | null> } | null> {
+): Promise<{ model: BlogReadsModel; visits: Promise<readonly VisitWeek[] | null> } | null> {
   try {
     const model = assembleBlogReads(await readBlogReadFacts({ siteId }, now, BLOG_READS_WINDOW_D), BLOG_READS_WINDOW_D, now);
     if (!model.show) return null;
-    return { model, visits: readSearchVisits({ siteId, sinceDay: windowStartDay(now, BLOG_READS_WINDOW_D) }).catch(() => null) };
+    return { model, visits: readSearchVisitsWeekly({ siteId, now }).catch(() => null) };
   } catch {
     return null;
   }

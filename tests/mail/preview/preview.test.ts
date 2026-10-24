@@ -191,7 +191,7 @@ describe("issue #376 — the shell renders S20, and every kind the set draws wea
       COPY["mail.weekly.google.title"],
       "Your 12 live pages, step by step toward the first page.",
       "Showing in results · 2 climbing",
-      "9 visits from Google this week.",
+      "9 visits from Google this week, up from 4.",
       COPY["mail.weekly.ai.title"],
       "2 of 12 pages linked by AI",
       "We asked AI each page’s own question. 2 answers linked to your page.",

@@ -48,7 +48,8 @@ async function shownTiles(): Promise<string[]> {
     .sort();
 }
 
-function shownMailRows(): string[] {
+/** `visitsBefore` picks the visits line: alone, or up, down or the same as the week before. */
+function shownMailRows(visitsBefore?: number): string[] {
   // Every optional number present, each its own value, so every row the mail
   // can carry is drawn and a sentence restating a figure is not a second row.
   const v = (value: number) => measured(value, AT);
@@ -59,6 +60,7 @@ function shownMailRows(): string[] {
       steps: (["draft.ladder.found", "draft.ladder.showing", "draft.ladder.first-page"] as const).map((name, i) => ({ name, count: v(13 + i), of: 5 })),
       early: false,
       visits: v(16),
+      ...(visitsBefore === undefined ? {} : { visitsBefore: v(visitsBefore) }),
     },
     ai: { linked: v(17), asked: 5, reads: v(18) },
     month: { score: { value: v(19) }, market: { value: v(20), of: 12 }, reputation: { value: v(21), answers: 40, weeks: 4 } },
@@ -140,7 +142,7 @@ describe("the measurement registry", () => {
   });
 
   it("holds every Monday mail number, and no row the mail does not draw", () => {
-    const rows = shownMailRows();
+    const rows = [...new Set([undefined, 15, 22, 16].flatMap(shownMailRows))].sort();
     expect(rows.length).toBeGreaterThan(0);
     expect(rows).toEqual(registered("mail"));
   });
