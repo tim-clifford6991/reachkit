@@ -19,9 +19,10 @@ const { BATTERY, VETO, WEEK_PLAN } = await import("@/lib/config/constants");
 const { HARD_RULES } = await import("@/lib/generate/rules/types");
 const { HOW_FACTS } = await import("@/app/(public)/_how/facts");
 const { AGENCY_BENCHMARK, EXAMPLES } = await import("@/app/(public)/_how/specimen");
-const { buysIcons, whenIcons } = await import("../how/drawn-icons");
+const { buysIcons, icons, weekCard, whenIcons } = await import("../how/drawn-icons");
 
 const html = renderToStaticMarkup(<PricingPage />);
+const root = parse(html);
 const price = copy("price.amount");
 const weekPages = { weekPages: WEEK_PLAN.days };
 
@@ -157,6 +158,28 @@ describe("board Pricing — one week of your €49", () => {
       EXAMPLES.plumber.plan.map((day) => day.kind !== "skip" && day.state === "waiting")
     );
   });
+  it("the week legend: circle-check, clock, calendar, refresh-cw; planned badges carry calendar", () => {
+    const week = weekCard(root, "week", copy("how.week.planned"));
+    expect(week.legend).toEqual(["circle-check", "clock", "calendar", "refresh-cw"]);
+    const planned = EXAMPLES.plumber.plan.filter((day) => day.kind !== "skip" && day.state === "planned");
+    expect(week.planned).toEqual(planned.map(() => ["calendar"]));
+  });
+
+  it("each page day reads date, sketch, New or Update, title", () => {
+    const days = weekCard(root, "week", copy("how.week.planned")).days;
+    expect(days.map(([date, sketch]) => [/^\w{3} \d+$/.test(date ?? ""), sketch])).toEqual(days.map(() => [true, "sketch"]));
+    expect(days.map((day) => day.slice(2))).toEqual(
+      EXAMPLES.plumber.plan.flatMap((day) =>
+        day.kind === "skip" ? [] : [[copy(day.kind === "new" ? "how.week.new" : "how.week.update"), text(day.title).trim()]]
+      )
+    );
+  });
+
+  it("the week's side cards: globe (+ lock), clock, inbox", () => {
+    const cards = root.querySelectorAll("#week .card-body").slice(-3);
+    expect(cards.map((card) => icons(card.querySelector("p")?.outerHTML ?? "")[0])).toEqual(["globe", "clock", "inbox"]);
+    expect(icons(cards[0]?.querySelectorAll("p")[1]?.outerHTML ?? "")).toEqual(["lock"]);
+  });
 });
 
 describe("board Pricing — everything in the €49", () => {
@@ -171,6 +194,21 @@ describe("board Pricing — everything in the €49", () => {
     expect(all()).toContain(`${HOW_FACTS.searches} Google searches and ${HOW_FACTS.prompts} questions asked to AI`);
     expect(all()).toContain(`Up to ${HARD_RULES.length} checks on every page`);
     expect(all()).toContain(`Up to ${WEEK_PLAN.days} pages a week`);
+  });
+
+  it("every item in Everything has its board icon", () => {
+    const tiles = root.querySelectorAll("#included ul")[0]!.children.map((li) => {
+      const tile = li.querySelector("[aria-hidden]");
+      return [li.querySelector("h3")?.text, tile?.classNames.includes("rounded-field grid size-9") && tile.classList.contains("bg-base-200"), icons(tile?.outerHTML ?? "")];
+    });
+    const board = {
+      research: "building2", rivals: "users", asks: "message-square", pages: "file-text", checks: "shield-check", live: "globe",
+      stop: "pencil", mail: "inbox", fix: "wrench", language: "languages", yours: "download",
+    };
+    const vars = { rivals: HOW_FACTS.rivals, searches: HOW_FACTS.searches, prompts: HOW_FACTS.prompts, checks: HOW_FACTS.checks, ...weekPages };
+    expect(tiles).toEqual(
+      Object.entries(board).map(([key, icon]) => [text(copy(`pricing.all.${key}` as Parameters<typeof copy>[0], vars)).trim(), true, [icon]])
+    );
   });
 
   it("no tile claims what Search Console would measure (D9)", () => {
@@ -210,6 +248,11 @@ describe("board Pricing — what you see from week 1", () => {
     expect([...at].sort((a, b) => a - b)).toEqual(at);
     expect(first()).toContain(copy("how.when.promise"));
     expect(first()).not.toContain(copy("how.when.maps"));
+  });
+
+  it("what takes longer opens with info", () => {
+    const well = root.querySelectorAll("#week1 h3").find((h) => h.text === copy("pricing.first.longer"))?.parentNode?.parentNode;
+    expect(icons(well?.outerHTML ?? "")).toEqual(["info"]);
   });
 
   it("the first months: timer, circle-check, inbox, search, eye, trending-up", () => {

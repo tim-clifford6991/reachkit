@@ -29,7 +29,7 @@ const { CHECK_LINES, ENGINES_NAMED, ENGINES_NAMED_COUNT, HOW_FACTS, MODEL_DECIDE
   "@/app/(public)/_how/facts"
 );
 const { EXAMPLES } = await import("@/app/(public)/_how/specimen");
-const { whenIcons } = await import("./drawn-icons");
+const { weekCard, whenIcons } = await import("./drawn-icons");
 
 const NOTHING: LiveExamples = { report: null, page: null, founder: null };
 const STORED: LiveExamples = {
@@ -156,6 +156,21 @@ describe("the week of pages", () => {
     expect(bands.map((b) => b.length)).toEqual(EXAMPLES.plumber.plan.map((day) => (day.kind === "skip" ? 0 : 1)));
     expect(bands.map((b) => b.some((el) => el.classList.contains("text-primary")))).toEqual(
       EXAMPLES.plumber.plan.map((day) => day.kind !== "skip" && day.state === "waiting")
+    );
+  });
+
+  it("the week legend: circle-check, clock, calendar, refresh-cw; planned badges carry calendar", () => {
+    const week = weekCard(parse(html), "pages", copy("how.week.planned"));
+    expect(week.legend).toEqual(["circle-check", "clock", "calendar", "refresh-cw"]);
+    const planned = EXAMPLES.plumber.plan.filter((day) => day.kind !== "skip" && day.state === "planned");
+    expect(week.planned).toEqual(planned.map(() => ["calendar"]));
+  });
+
+  it("each page day reads date, sketch, New or Update, title", () => {
+    expect(weekCard(parse(html), "pages", copy("how.week.planned")).days.map((day) => day.slice(1))).toEqual(
+      EXAMPLES.plumber.plan.flatMap((day) =>
+        day.kind === "skip" ? [] : [["sketch", copy(day.kind === "new" ? "how.week.new" : "how.week.update"), text(day.title).trim()]]
+      )
     );
   });
 });
