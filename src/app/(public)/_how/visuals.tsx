@@ -16,11 +16,11 @@ import {
   Eye,
   FileText,
   Globe,
+  Inbox,
   Info,
   Link,
   List,
   Lock,
-  Mail,
   MapPin,
   MessageSquare,
   Pencil,
@@ -170,25 +170,28 @@ export function AsWeRead(e: Example): React.JSX.Element {
           </p>
           <span className="badge badge-ghost badge-sm">{copy("how.read.pages", { pages: e.pagesRead })}</span>
         </div>
-        <dl className="divide-base-300 flex flex-col divide-y">
-          {rows.map(([label, value, from]) => (
-            <div key={label} className="grid min-w-0 grid-cols-1 gap-1 py-2 sm:grid-cols-[8rem_minmax(0,1fr)]">
-              <dt className={SMALL}>{copy(label)}</dt>
-              <dd className="flex min-w-0 flex-col">
-                <span className="text-sm font-semibold">{value}</span>
-                <span className="num text-base-content/70 flex items-center gap-1 text-xs">
-                  {/* The board turns ArrowRight so "from this source" keeps one icon. */}
-                  <ArrowRight {...SMALL_ICON} className="shrink-0 rotate-180" />
-                  {from}
-                </span>
-              </dd>
-            </div>
-          ))}
-        </dl>
-        <span className="badge badge-outline badge-sm self-end">
-          <Pencil {...SMALL_ICON} />
-          {copy("how.read.fix")}
-        </span>
+        <div className="relative flex flex-col gap-2">
+          <dl className="divide-base-300 flex flex-col divide-y">
+            {rows.map(([label, value, from]) => (
+              <div key={label} className="grid min-w-0 grid-cols-1 gap-1 py-2 sm:grid-cols-[8rem_minmax(0,1fr)]">
+                <dt className={SMALL}>{copy(label)}</dt>
+                <dd className="flex min-w-0 flex-col">
+                  <span className="text-sm font-semibold">{value}</span>
+                  <span className="num text-base-content/70 flex items-center gap-1 text-xs">
+                    {/* The board turns ArrowRight so "from this source" keeps one icon. */}
+                    <ArrowRight {...SMALL_ICON} className="text-base-content/50 shrink-0 rotate-180" />
+                    {from}
+                  </span>
+                </dd>
+              </div>
+            ))}
+          </dl>
+          {/* Beside the first fact on a wide card, as the board draws it; below the list on a phone. */}
+          <span className="badge badge-outline badge-sm self-end sm:absolute sm:top-2 sm:right-0">
+            <Pencil {...SMALL_ICON} />
+            {copy("how.read.fix")}
+          </span>
+        </div>
         <div className={WELL}>
           <p className="text-sm font-semibold">{copy("how.read.held")}</p>
           <ul className="flex flex-col gap-1 text-sm">
@@ -503,8 +506,8 @@ export function PageWithSources(e: Example): React.JSX.Element {
   );
 }
 
-/** `#found`: the Monday email, framed as a phone. */
-export function MondayEmail(e: Example): React.JSX.Element {
+/** `#found`, and the landing's step 3 without the linked count its board omits: the Monday email, framed as a phone. */
+export function MondayEmail(e: Example, show: { linked: boolean } = { linked: true }): React.JSX.Element {
   const days = weekDays().map((day) => day.split(" ")[0] ?? day);
   const rows = e.plan.slice(0, 2).map((page, i) => ({
     page,
@@ -525,17 +528,20 @@ export function MondayEmail(e: Example): React.JSX.Element {
           tabIndex={0}
           className="mockup-phone-display bg-base-100 flex flex-col gap-3 overflow-y-auto px-4 pt-12 pb-6 text-sm"
         >
-          <p className={SMALL}>{copy("signin.inbox.title")}</p>
+          <p className={SMALL}>{copy("landing.mail.inbox")}</p>
           <p className="flex items-center gap-1 font-semibold">
-            <Mail {...ICON} />
+            <Inbox {...ICON} />
             {copy("how.mail.subject")}
           </p>
           <p>{copy("how.mail.hi", { name: e.mail.name, week: e.mail.week, business: e.business })}</p>
-          <p className="rounded-box bg-success/10 p-2 text-xs">{copy("how.mail.calm", { time: LIVE_AT })}</p>
+          <p className="rounded-box bg-success/10 flex items-start gap-2 p-2 text-xs">
+            <CircleCheck {...ICON} className="text-success shrink-0" />
+            {copy("how.mail.calm", { time: LIVE_AT })}
+          </p>
           <ul className="flex flex-col gap-1 font-semibold">
             <li>{copy("how.mail.live", { n: e.mail.live })}</li>
             <li>{copy("how.mail.planned", { n: e.mail.planned })}</li>
-            <li>{copy("how.mail.linked", { n: e.mail.linked, total: e.mail.live })}</li>
+            {show.linked ? <li>{copy("how.mail.linked", { n: e.mail.linked, total: e.mail.live })}</li> : null}
           </ul>
           <p className={LABEL}>{copy("how.mail.pages")}</p>
           {rows.map((row) => (

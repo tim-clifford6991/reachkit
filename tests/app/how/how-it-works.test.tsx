@@ -334,6 +334,7 @@ describe("each section carries the board's added lines, in its own section", () 
         copy("how.found.title", { week: 1 }),
         copy("how.mail.why", { why: plumber.mail.why[0] }),
         copy("how.mail.why", { why: plumber.mail.why[1] }),
+        copy("how.mail.linked", { n: plumber.mail.linked, total: plumber.mail.live }),
         copy("how.goal.title"),
         copy("how.goal.badge"),
         copy("how.goal.linked"),

@@ -689,6 +689,10 @@ export const REPORT_COPY = Object.freeze({
   "landing.step.1.title": ["Scan your site", { slots: {}, fixedBy: "board Landing · issue 1596" }],
   "landing.step.1.body": ["Type your website. See who Google and AI send your buyers to instead of you, what holds your site back, and your first page, proposed free.", { slots: {}, fixedBy: "board Landing · issue 1596" }],
   "landing.step.1.more": ["See what we research", { slots: {}, fixedBy: "board Landing · issue 1596" }],
+  "landing.glance.rivals": ["Who buyers pick instead", { slots: {}, fixedBy: "board PubLanding · issue 1997 · drafted" }],
+  "landing.glance.first": ["Your first page, proposed free:", { slots: {}, fixedBy: "board PubLanding · issue 1997 · drafted" }],
+  "landing.mail.inbox": ["Inbox", { slots: {}, fixedBy: "board PubLanding · issue 1997" }],
+  "landing.glance.caption": ["{business} · example. It measures no site.", { slots: { business: "text" }, fixedBy: "board PubLanding · issue 1997" }],
   // Step 2's approved-set pair told a founder to pick and confirm the market
   // and the rivals. SPEC §5 (2026-10-02, D28) rules that out: ReachKit
   // identifies both, and the founder may override them but never has to.
