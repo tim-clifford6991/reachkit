@@ -34,6 +34,7 @@ import {
   SPECIMEN_HERO_CITED,
   SPECIMEN_HERO_DOMAIN,
   SPECIMEN_HERO_DUE,
+  SPECIMEN_HERO_PLACE,
   SPECIMEN_HERO_SEARCH,
   specimenAutopilotSince,
   specimenHeroWeek,
@@ -68,8 +69,8 @@ function AiAnswer(): React.JSX.Element {
   );
 }
 
-/** One day of the week. Monday measures, so it carries the week's two
- *  counts on the accent ground; the five that publish each carry one page
+/** One day of the week. Monday measures, so it says what it checked on the
+ *  accent ground; the five that publish each carry one page
  *  title and the hour it went live. The title wraps and the cell grows with
  *  it — a clamp is a box that clips, which the layout gate reports (#935). */
 function DayCell(p: { weekday: string; title: string | null }): React.JSX.Element {
@@ -82,10 +83,7 @@ function DayCell(p: { weekday: string; title: string | null }): React.JSX.Elemen
       <span className="num text-xs font-bold uppercase">{p.weekday}</span>
       {p.title === null ? (
         <span className="text-xs font-semibold leading-tight">
-          {copy("landing.hero.week.measured", {
-            searches: String(HOW_FACTS.searches),
-            questions: String(HOW_FACTS.prompts),
-          })}
+          {copy("how.top.monday", { buyers: copy("landing.inside.buyers", { place: SPECIMEN_HERO_PLACE }) })}
         </span>
       ) : (
         <>
