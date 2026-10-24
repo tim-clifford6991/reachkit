@@ -35,6 +35,8 @@ const ADDRESS_MOVED_SUBJECT = "mail.account.address_moved.subject" satisfies Cop
 const ADDRESS_MOVED = "mail.account.address_moved" satisfies CopyKey;
 const NO_SECOND_SUBSCRIPTION = "mail.account.no_second_subscription" satisfies CopyKey;
 const REACH_A_PERSON = "mail.account.reach_a_person" satisfies CopyKey;
+const RENEWAL_REFUNDED_SUBJECT = "mail.account.renewal_refunded.subject" satisfies CopyKey;
+const RENEWAL_REFUNDED = "mail.account.renewal_refunded" satisfies CopyKey;
 const DELETED_SUBJECT = "mail.account.deleted.subject" satisfies CopyKey;
 const DELETED_STILL_LIVE = "mail.account.deleted.still_live" satisfies CopyKey;
 const DELETED_THEIRS_TO_KEEP = "mail.account.deleted.theirs_to_keep" satisfies CopyKey;
@@ -263,6 +265,18 @@ export function buildHostingEnd(a: {
     blocks: [
       { block: "paragraph", text: HOSTING_END_STOPS_ON, vars: { date: a.stopsOn } },
       { block: "paragraph", text: HOSTING_END_EXPORT_STAYS },
+      { block: "notice", text: REACH_A_PERSON },
+    ],
+  };
+}
+
+/** Owner D10: the first renewal was refunded because no page went live in
+ *  the first month, and ReachKit keeps running. */
+export function buildRenewalRefunded(): AccountMail {
+  return {
+    subject: RENEWAL_REFUNDED_SUBJECT,
+    blocks: [
+      { block: "paragraph", text: RENEWAL_REFUNDED },
       { block: "notice", text: REACH_A_PERSON },
     ],
   };
