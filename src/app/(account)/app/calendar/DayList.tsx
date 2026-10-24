@@ -40,8 +40,7 @@
 
 import type React from "react";
 import { PageSketch } from "@/ui/PageSketch";
-import { CardNumber, DayLines, KindChip, cardLineFor, pageShownBy } from "./DayCard";
-import { DayStateBadge } from "./WeekGrid";
+import { CardNumber, DayLines, DayStateBadge, KindChip, cardLineFor, pageShownBy } from "./DayCard";
 import { cardLabel, shortCauseFor } from "./card-lines";
 import { dayNumberOf } from "./day-number";
 import { dayNumber, weekdayShort, type DayKey } from "./dates";

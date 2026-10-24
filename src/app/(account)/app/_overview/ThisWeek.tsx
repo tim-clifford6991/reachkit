@@ -1,21 +1,20 @@
-// SPEC §4 (board Main) — this week's pages, one row per day that holds one:
-// the day, new or update, the title and its state. The rows are Plan's own
-// week (`this-week.ts`), so the two screens cannot list two weeks.
+// SPEC §4 (board Main) — this week's pages as Plan's own day cards, Monday to
+// Sunday: the cells are Plan's week (`this-week.ts`), so the two screens
+// cannot draw two weeks.
 import type React from "react";
 import Link from "next/link";
 import { RefreshCw, Zap } from "lucide-react";
-import { copy, type CopyKey } from "@/lib/presentation/copy";
+import { copy } from "@/lib/presentation/copy";
 import { formatTime, SHELL_LOCALE } from "../_shell/format";
-import { addDays, cardDate, dayNumber, weekdayShort, type DayKey } from "../calendar/dates";
+import { addDays, cardDate, type DayKey } from "../calendar/dates";
+import { DayCardView, DayStateBadge, cardLineFor } from "../calendar/DayCard";
+import type { DayCell } from "../calendar/month";
+import type { StageFilter } from "../calendar/stages";
 import { CALENDAR_HREF } from "./week";
 
-export interface WeekRow {
-  day: DayKey;
-  today: boolean;
-  update: boolean;
-  title: string;
-  /** Plan's word for the day's state; `null` where it states none. */
-  state: CopyKey | null;
+export interface WeekDay {
+  /** Plan's own cell for the day. */
+  cell: DayCell;
   /** When a written page goes live, where that is today. */
   goesLiveToday: Date | null;
   /** The page's own screen; `null` before it is written. */
@@ -26,14 +25,16 @@ export interface WeekList {
   /** The week's first and last day, Monday to Sunday. */
   first: DayKey;
   last: DayKey;
-  /** How many days the week has. */
-  days: number;
   /** Today, in the site's zone. */
   today: DayKey;
   /** Today holds no page because nothing was worth writing. */
   skippedToday: boolean;
+  /** The week's first skipped day, which alone says what a skip is. */
+  firstSkip: DayKey | null;
+  /** How many days hold a page. */
+  pages: number;
   timeZone: string;
-  rows: readonly WeekRow[];
+  days: readonly WeekDay[];
 }
 
 const utc = (day: DayKey): Date => new Date(`${day}T00:00:00Z`);
@@ -46,53 +47,37 @@ function weekRange(first: DayKey, last: DayKey): string {
   );
 }
 
-function Row(p: { row: WeekRow; timeZone: string; scheduled: boolean }): React.JSX.Element {
-  const { row } = p;
-  // A page goes live today only while publishing will send it; otherwise Plan's word stands.
-  const goesLive = p.scheduled ? row.goesLiveToday : null;
+/** Overview draws the whole week: no stage filter narrows it. */
+const ALL: StageFilter = "all";
+
+/** Under the day: Plan's state badge, or, for a page going live today while
+ *  publishing will send it, when, with Edit and Stop on the page's own screen. */
+function DayControls(p: { day: WeekDay; timeZone: string; scheduled: boolean }): React.JSX.Element {
+  const { day } = p;
+  const goesLive = p.scheduled ? day.goesLiveToday : null;
+  if (goesLive === null) return <DayStateBadge cell={day.cell} filter={ALL} />;
   return (
-    <li className={`list-row min-w-0 items-start ${row.today ? "bg-primary/10" : ""}`} data-testid="overview-week-row" data-day={row.day}>
-      <span className="num w-14 shrink-0 text-xs text-base-content/70">
-        {weekdayShort(row.day)} {dayNumber(row.day)}
-      </span>
-      <span className="list-col-grow flex min-w-0 flex-col gap-1">
-        <span className={`badge badge-sm ${row.update ? "badge-ghost" : "badge-soft badge-primary"}`}>
-          {copy(row.update ? "how.week.update" : "how.week.new")}
-        </span>
-        <span className="min-w-0 font-semibold wrap-anywhere" data-testid="overview-week-title">
-          {row.title}
-        </span>
-      </span>
-      {goesLive === null ? (
-        row.state === null ? null : (
-          <span className="badge badge-sm badge-ghost shrink-0 whitespace-nowrap" data-testid="overview-week-state">
-            {copy(row.state)}
-          </span>
-        )
-      ) : (
-        <span className="flex shrink-0 flex-col items-end gap-1 text-xs font-semibold" data-testid="overview-week-state">
-          <span>{copy("overview.week.goes-live")}</span>
-          <span>{copy("overview.week.today-at", { time: formatTime(goesLive, p.timeZone) })}</span>
-          {row.href === null ? null : (
-            <span className="flex gap-3">
-              <Link className="link" href={row.href} prefetch={true}>
-                {copy("how.week.edit")}
-              </Link>
-              <Link className="link text-warning" href={row.href} prefetch={true}>
-                {copy("calendar.week.stop")}
-              </Link>
-            </span>
-          )}
+    <span className="flex min-w-0 flex-col gap-1 text-xs font-semibold" data-testid="overview-week-goes-live">
+      <span>{copy("overview.week.goes-live")}</span>
+      <span>{copy("overview.week.today-at", { time: formatTime(goesLive, p.timeZone) })}</span>
+      {day.href === null ? null : (
+        <span className="flex flex-wrap gap-3">
+          <Link className="link" href={day.href} prefetch={true}>
+            {copy("how.week.edit")}
+          </Link>
+          <Link className="link text-warning" href={day.href} prefetch={true}>
+            {copy("calendar.week.stop")}
+          </Link>
         </span>
       )}
-    </li>
+    </span>
   );
 }
 
 export function ThisWeek(p: { week: WeekList; scheduled: boolean }): React.JSX.Element | null {
   const { week } = p;
-  if (week.rows.length === 0) return null;
-  const title = copy("overview.week.pages", { n: String(week.rows.length) });
+  if (week.pages === 0) return null;
+  const title = copy("overview.week.pages", { n: String(week.pages) });
   return (
     <section className="card card-border min-w-0 bg-base-100" aria-labelledby="overview-week-title" data-testid="overview-week">
       <div className="card-body min-w-0 gap-3 p-5">
@@ -111,14 +96,24 @@ export function ThisWeek(p: { week: WeekList; scheduled: boolean }): React.JSX.E
             {copy("overview.week.calendar-link")}
           </Link>
         </div>
-        <ol className="list min-w-0" aria-label={title}>
-          {week.rows.map((row) => (
-            <Row key={row.day} row={row} timeZone={week.timeZone} scheduled={p.scheduled} />
+        <ol className="grid min-w-0 grid-cols-2 gap-2.5 sm:grid-cols-4 lg:grid-cols-7" aria-label={title}>
+          {week.days.map((day) => (
+            <DayCardView
+              key={day.cell.day}
+              cell={day.cell}
+              page={day.cell.page}
+              line={cardLineFor(day.cell, ALL)}
+              goesLive={null}
+              firstSkip={day.cell.day === week.firstSkip}
+              filtered={false}
+              selected={false}
+              controls={<DayControls day={day} timeZone={week.timeZone} scheduled={p.scheduled} />}
+            />
           ))}
         </ol>
         <p className="flex min-w-0 items-center gap-2 text-xs text-base-content/70" data-testid="overview-week-next">
           <RefreshCw size={14} strokeWidth={1.75} aria-hidden className="shrink-0" />
-          {copy("overview.week.next", { date: cardDate(addDays(week.first, 7)), n: String(week.days) })}
+          {copy("overview.week.next", { date: cardDate(addDays(week.first, 7)), n: String(week.days.length) })}
         </p>
       </div>
     </section>
