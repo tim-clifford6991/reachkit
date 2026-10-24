@@ -175,6 +175,8 @@ export interface SettingsModel {
     wouldTakeEffectOn: string;
   };
   competitors: readonly string[];
+  /** The rivals the current scan measured against; `null` before any scan. */
+  measuredRivals: readonly string[] | null;
   /** D28 (#1185): what ReachKit concluded — the category's reason and each
    *  rival's — and whether the founder overrode either. `null` where
    *  ReachKit has concluded nothing for this site yet. */
@@ -257,6 +259,8 @@ export interface SettingsFacts {
   editing: "domain" | "category" | null;
   category: string;
   competitors: readonly string[];
+  /** `pendingChanges()`'s measured side: who the current scan compared. */
+  measuredRivals: readonly string[] | null;
   /** D28 (#1185), from `sites.market`. */
   concluded: MarketConcluded | null;
   /** `sites.country` and `sites.language` (D66), and the other markets the
@@ -403,6 +407,7 @@ export function assembleSettings(facts: SettingsFacts): SettingsModel {
     // precedence is decided in one place whichever side settled it.
     market: { ...market, change: marketChange(market, facts.editing) },
     competitors: facts.competitors,
+    measuredRivals: facts.measuredRivals,
     concluded: facts.concluded,
     locale: {
       current: localeKey(facts.locale?.current ?? DEFAULT_LOCALE),
