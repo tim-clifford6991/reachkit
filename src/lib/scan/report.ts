@@ -646,6 +646,9 @@ export interface PromptAnswer {
    *  says buyers asking it were shown a rival's alternatives. Absent where
    *  it cited none, and on every answer stored before. */
   alternatives?: readonly string[];
+  /** The pages it cited on other sites, their homes left out. Absent where
+   *  it cited none, and on an answer no pass or re-score has read since. */
+  cited?: readonly string[];
   /** The prices, counts and countries it gave the business (issue 1539),
    *  each with the few words around it. Absent where it gave none, and on
    *  every answer stored before. */

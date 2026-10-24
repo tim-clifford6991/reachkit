@@ -44,7 +44,7 @@ import { refineType } from "./typing";
 import { applyKnownContent, type KnownContentGate } from "./known";
 import { writeCandidates } from "./write";
 import { judgeFit, type FitSearch } from "./fit";
-import { askedOfReport, askedSupply, askedTopics, brandsOf, type AskedSupply, candidateFor, comparisonWithoutDemand, noLongerRelevant, productsNamed, proposedTopics, rivalBrandOnly, rivalNamesOf, rivalPriceOf, sourceOf } from "./topics";
+import { askedOfReport, askedSupply, askedTopics, brandsOf, citedTopics, type AskedSupply, candidateFor, comparisonWithoutDemand, noLongerRelevant, productsNamed, proposedTopics, rivalBrandOnly, rivalNamesOf, rivalPriceOf, sourceOf } from "./topics";
 import { judgeTyped, writeBuyerSearches } from "./buyer-searches";
 
 export interface DeriveInput {
@@ -144,12 +144,14 @@ export async function deriveOpportunities(
   const market = a.market ?? null;
   const locale = a.locale ?? (await siteLocale(a.siteId));
   const named = brandsOf({ report: a.report, market });
+  // The business competitors in force; the search competitors are the report's.
+  const business = [...(market?.rivals.map((rival) => rival.domain) ?? []), ...(a.competitors ?? [])];
   const brands = [...named.own, ...named.rivals];
   const write = writeCandidates({
     ...base,
     ownRanked,
     rankedCounts: a.rankedCounts,
-    marketRivals: [...(market?.rivals.map((rival) => rival.domain) ?? []), ...(a.competitors ?? [])],
+    marketRivals: business,
     brands,
   });
   const improve = improveCandidates({
@@ -266,6 +268,12 @@ export async function deriveOpportunities(
     language: locale.language,
     asked,
     seen,
+    cited: citedTopics({
+      answers: a.report.prompts?.answers ?? [],
+      competitors: [...business, ...(a.report.rivals.kind === "measured" ? a.report.rivals.value.map((rival) => rival.domain) : [])],
+      searched: seen.map((serp) => serp.term),
+      language: locale.language,
+    }),
   });
   // Never judged again where a row on the search was dismissed (issue 1549).
   const offered = proposing.filter((topic) => {
