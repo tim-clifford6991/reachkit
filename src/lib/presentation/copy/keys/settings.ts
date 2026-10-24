@@ -346,12 +346,23 @@ export const SETTINGS_COPY = Object.freeze({
 
   "settings.market.title": ["Your site and market", { slots: {}, fixedBy: "BUILD §4.7" }],
   "settings.market.category": ["market", { slots: {}, fixedBy: "REQ-070 c1" }],
-  "settings.market.domain": ["domain", { slots: {}, fixedBy: "BUILD §10 (`sites.domain`), §4.4" }],
-  // §4.7, including its lower-case opening. Issue 837 (owner ruling
-  // 2026-09-17): a category change measures again right away.
-  "settings.market.effect": [
-    "changing your domain rebuilds your searches next Monday; changing your market scans it again right away",
-    { slots: {}, fixedBy: "BUILD §4.7" },
+  "settings.market.domain": ["Your website", { slots: {}, fixedBy: "BUILD §10 (`sites.domain`), §4.4 · board SettingsMarket" }],
+  "settings.market.lead": ["Where you’re measured, and against whom.", { slots: {}, fixedBy: "issue 1974 · board SettingsMarket" }],
+  // What a pass reads for this market, from the same stored rows the Competitors tab reads.
+  "settings.market.sets.title": ["What your market sets, each Monday", { slots: {}, fixedBy: "issue 1974 · board SettingsMarket" }],
+  "settings.market.sets.searches": ["{n} searches your buyers make most", { slots: { n: "text" }, fixedBy: "issue 1974 · board SettingsMarket" }],
+  "settings.market.sets.questions": ["{n} questions we ask AI for you", { slots: { n: "text" }, fixedBy: "issue 1974 · board SettingsMarket" }],
+  "settings.market.sets.competitors": ["{n} competitors to compare", { slots: { n: "text" }, fixedBy: "issue 1974 · board SettingsMarket" }],
+  "settings.market.sets.plan": ["Your plan of pages comes from these.", { slots: {}, fixedBy: "issue 1974 · board SettingsMarket" }],
+  "settings.market.sets.plan-link": ["See this week’s pages", { slots: {}, fixedBy: "issue 1974 · board SettingsMarket" }],
+  // Issue 837 (owner ruling 2026-09-17): a category change measures again right away.
+  "settings.market.consequence.website": [
+    "Change your website: your searches are rebuilt next Monday.",
+    { slots: {}, fixedBy: "BUILD §4.7 · board SettingsMarket" },
+  ],
+  "settings.market.consequence.market": [
+    "Change your market: we scan it again right away.",
+    { slots: {}, fixedBy: "BUILD §4.7 · issue 837 · board SettingsMarket" },
   ],
   // REQ-071's two dated statements about the market (issue #204). Both take
   // their date from `effectiveOn()` and neither computes one: c1 states the
@@ -435,7 +446,7 @@ export const SETTINGS_COPY = Object.freeze({
   // ── Competitors ────────────────────────────────────────────────────────
   // D28 (owner, 2026-10-02, #1185): drafted, named in the pull request.
   "settings.market.concluded": [
-    "ReachKit identified this market from your site and re-checks it every week. Edit it only if it’s wrong.",
+    "Found by ReachKit from your site. Checked again every Monday.",
     { slots: {}, fixedBy: "SPEC §5 2026-10-02 D28, issue 1185" },
   ],
   "settings.market.overridden": [
@@ -443,7 +454,7 @@ export const SETTINGS_COPY = Object.freeze({
     { slots: {}, fixedBy: "SPEC §5 2026-10-02 D28, issue 1185" },
   ],
   "settings.competitors.concluded": [
-    "ReachKit found these competitors in your market and re-checks them every week. Remove or add any if you like.",
+    "Found by ReachKit in your market and checked every Monday. Remove or add any if you like.",
     { slots: {}, fixedBy: "SPEC §5 2026-10-02 D28, issue 1185" },
   ],
   "settings.competitors.overridden": [
@@ -459,22 +470,47 @@ export const SETTINGS_COPY = Object.freeze({
     "{taken} of {max}",
     { slots: { taken: "text", max: "text" }, fixedBy: "REQ-071 c16" },
   ],
-  "settings.competitors.add": ["add", { slots: {}, fixedBy: 'BUILD §4.7 ("chips ×5, add/remove")' }],
-  // The add field's own name (issue #270). It had been labelled with the
-  // card's heading key, so the card read "Competitors … Competitors" — a
-  // heading and the field beneath it saying the same word, which names
-  // neither. The heading names the set; this names the one thing being
-  // typed, and it is the field's label *and* its placeholder because
-  // ADR-093's rendering half is "one string, once": `Input` omits a
-  // placeholder equal to the label rather than printing it twice.
-  //
-  // It replaces `settings.market.domain` as the placeholder, which was that
-  // card's word borrowed — a rival's domain is not this site's, and one key
-  // read by two cards is a sentence the owner cannot reword for one of them.
+  "settings.competitors.add": ["Add", { slots: {}, fixedBy: 'BUILD §4.7 ("chips ×5, add/remove")' }],
+  // The add field's own name, apart from the card's heading (issue #270).
   "settings.competitors.add-label": ["Add a competitor", { slots: {}, fixedBy: "BUILD §4.7" }],
   // REQ-071 c16. An empty rival set is a state the product designed (§2.5),
   // not a blank: the line takes no slot, because there is no date and no
   // change to name — only that comparison begins when a rival is added.
+  "settings.competitors.more": ["{n} more can be added", { slots: { n: "text" }, fixedBy: "issue 1974 · board SettingsMarket" }],
+  "settings.competitors.placeholder": ["competitor.com", { slots: {}, fixedBy: "issue 1974 · board SettingsMarket" }],
+  // One card per competitor (issue 1974): who found it, and its figures from the Competitors tab's readers.
+  "settings.competitors.found": ["Found by ReachKit", { slots: {}, fixedBy: "SPEC §5 D28 · board SettingsMarket" }],
+  "settings.competitors.added": ["Added by you", { slots: {}, fixedBy: "SPEC §5 D28 · board SettingsMarket" }],
+  "settings.competitors.google": ["On Google’s first page", { slots: {}, fixedBy: "issue 1974 · board SettingsMarket" }],
+  "settings.competitors.ai": ["Mentioned in AI answers", { slots: {}, fixedBy: "issue 1974 · board SettingsMarket" }],
+  "settings.competitors.figure": ["{n} of {of}", { slots: { n: "text", of: "text" }, fixedBy: "issue 1974 · board SettingsMarket" }],
+  "settings.competitors.not-measured": ["not measured", { slots: {}, fixedBy: "REQ-004 · issue 1974" }],
+  "settings.competitors.measured-from": ["Measured from {date}.", { slots: { date: "date" }, fixedBy: "REQ-071 c6 · board SettingsMarket" }],
+  "settings.competitors.remove": ["Remove", { slots: {}, fixedBy: "issue 1974 · board SettingsMarket" }],
+  "settings.competitors.you": ["You, for comparison", { slots: {}, fixedBy: "issue 1974 · board SettingsMarket" }],
+  "settings.competitors.you.ai": [
+    "Mentioned in {n} of {of} AI answers, last {weeks} weeks",
+    { slots: { n: "text", of: "text", weeks: "text" }, fixedBy: "issue 1974 · board SettingsMarket" },
+  ],
+  "settings.competitors.see": ["See Competitors →", { slots: {}, fixedBy: "issue 1974 · board SettingsMarket" }],
+  // Issue 858: a far larger competitor stays named apart from the comparison.
+  "settings.competitors.leaders": [
+    "Far larger in your searches, and not compared with you for now: {names}.",
+    { slots: { names: "text" }, fixedBy: "issue 858 · board SettingsMarket" },
+  ],
+  "settings.competitors.detail": ["Show the detail", { slots: {}, fixedBy: "issue 1974 · board SettingsMarket" }],
+  "settings.competitors.detail.google": [
+    "Google figures are from {date}: the {n} searches your buyers make most.",
+    { slots: { date: "date", n: "text" }, fixedBy: "issue 1974 · board SettingsMarket" },
+  ],
+  "settings.competitors.detail.ai": [
+    "AI figures are the last {weeks} weeks of answers to the {n} questions a buyer in your market might ask AI.",
+    { slots: { weeks: "text", n: "text" }, fixedBy: "issue 1974 · board SettingsMarket" },
+  ],
+  "settings.competitors.detail.change": [
+    "A competitor you add is measured from the next Monday scan. A competitor you remove is no longer compared with you; pages already planned stay planned.",
+    { slots: {}, fixedBy: "REQ-071 · board SettingsMarket" },
+  ],
   "settings.competitors.none-yet": ["No competitors yet. Comparison begins when you add one.", { slots: {}, fixedBy: "REQ-071 c16" }],
   // `addRival`'s own five refusals, one sentence each (issue #231). The
   // rules are `setup/rivals.ts`'s — REQ-071 c4 says they are the same rules

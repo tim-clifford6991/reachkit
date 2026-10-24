@@ -254,6 +254,7 @@ export async function readLiveSettingsFacts(
     // states it and offers the control that names one.
     category: answers.category ?? "",
     competitors: answers.rivals,
+    measuredRivals: measured?.rivals ?? null,
     concluded: await concludedFor(siteId),
     ...(await localeFor(siteId)),
 

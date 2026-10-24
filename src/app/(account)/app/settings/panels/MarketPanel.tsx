@@ -6,11 +6,8 @@
 // measured and published under" (REQ-070 c1), which belongs with the market
 // because changing either one has the same consequence and the same clock.
 //
-// That consequence is the card's one written line, and it is stated once for
-// the card rather than twice for the two controls: REQ-071 puts the domain,
-// the category and the competitor set all at the next weekly re-measurement
-// and never on save, so a second copy of the line beside the second control
-// would be the same sentence pretending to be two facts.
+// The consequences are stated once for the card, not beside each control, and
+// give way to the dated line while a change stands (REQ-071).
 //
 // **Edit opens a field, and the field is the write path** (issue #231).
 // Until now it was a control with no handler. It is wired to
@@ -33,7 +30,8 @@
 "use client";
 
 import type React from "react";
-import { Globe, RefreshCw } from "lucide-react";
+import Link from "next/link";
+import { Calendar, MapPin, RefreshCw, Search, Sparkles, Users, Zap } from "lucide-react";
 import { useState, useTransition } from "react";
 import { say } from "@/app/_toast/say";
 import { copy } from "@/lib/presentation/copy";
@@ -53,6 +51,10 @@ import {
   type MarketRemeasureState,
 } from "../market-state";
 import { marketChange, type SettingsModel } from "../model";
+
+const WELL = "flex min-w-0 items-center gap-2 rounded-box bg-base-200 px-3 py-2 text-sm";
+const WELL_ICON = { size: 20, strokeWidth: 1.75, className: "shrink-0 text-primary", "aria-hidden": true } as const;
+const LINE_ICON = { size: 16, strokeWidth: 1.75, className: "mt-0.5 shrink-0 text-base-content/70", "aria-hidden": true } as const;
 
 /** The two answers this card changes. `../model`'s own union — the same
  *  one `marketChange` and `CHANGE_COPY_KEY` are keyed by — so a third
@@ -84,6 +86,8 @@ export function MarketPanel(p: {
   /** REQ-073 c1's stated zone — the one this card writes a date in when a
    *  save answers before the re-read comes back. */
   timeZone: string;
+  /** What the market sets: stored counts, `null` where unread (never 0). */
+  sets: { searches: number | null; questions: number | null; competitors: number };
 }): React.JSX.Element {
   /** Which answer has a field open, and what is in it. `null` is the
    *  ordinary state of this card: nothing is being changed. */
@@ -110,16 +114,9 @@ export function MarketPanel(p: {
   // D28 (#1185): why ReachKit measures this market, and whether it keeps it
   // current or the founder's own category stands.
   const concluded = p.concluded ?? null;
-  const concludedLine =
-    concluded === null ? null : (
-      <div className="flex min-w-0 flex-col gap-1 pb-2" data-testid="market-concluded">
-        {concluded.categoryOverridden || concluded.categoryReason === "" ? null : (
-          <p className="text-sm wrap-anywhere">{concluded.categoryReason}</p>
-        )}
-        <p className="text-xs text-base-content/70 wrap-anywhere">
-          {copy(concluded.categoryOverridden ? "settings.market.overridden" : "settings.market.concluded")}
-        </p>
-      </div>
+  const reasonLine =
+    concluded === null || concluded.categoryOverridden || concluded.categoryReason === "" ? null : (
+      <p className="text-sm text-base-content/70 wrap-anywhere">{concluded.categoryReason}</p>
     );
 
   function open(next: Answer): void {
@@ -213,9 +210,9 @@ export function MarketPanel(p: {
         // category measures the market again at once, and what that costs is
         // said before the press.
         writtenLine("settings.market.category.starts-now")
-      : change === null && justSaved === null
-        ? writtenLine("settings.market.effect")
-        : null;
+      : null;
+  // The standing consequences give way to a dated line, so the card states one at a time.
+  const standing = editing !== "category" && change === null && justSaved === null;
 
   /** What the standalone control says: what it will do, or why the last
    *  press was refused. A started pass is answered once, by a toast, and
@@ -277,10 +274,10 @@ export function MarketPanel(p: {
   return (
     <section className="card card-border min-w-0 bg-base-100">
       <div className="card-body gap-4">
-        <h2 className="card-title text-base">
-          <Globe size={20} strokeWidth={1.75} aria-hidden />
-          {copy("settings.market.title")}
-        </h2>
+        <div className="flex min-w-0 flex-col gap-1">
+          <h2 className="card-title text-base">{copy("settings.market.title")}</h2>
+          <p className="text-sm text-base-content/70 wrap-anywhere">{copy("settings.market.lead")}</p>
+        </div>
 
         {/* The site first, the market second: the market is derived for the
             domain. An open field sits under its row. */}
@@ -300,23 +297,71 @@ export function MarketPanel(p: {
             )}
           </SettingRow>
 
-          <SettingRow
-            name={copy("settings.market.category")}
-            testId="setting-category"
-            below={editing === "category" ? editingField("category") : concludedLine}
-          >
-            {editing === "category" ? null : (
-              <>
-                <span className="min-w-0 wrap-anywhere">{p.market.category}</span>
-                <button type="button" className="btn btn-ghost btn-sm" onClick={() => open("category")}>
-                  {copy("settings.edit")}
-                </button>
-              </>
-            )}
-          </SettingRow>
-
           {p.locale === undefined ? null : <LocaleRow locale={p.locale} />}
         </div>
+
+        <div className="flex min-w-0 flex-col gap-2" data-testid="setting-category">
+          <div className="flex min-w-0 flex-wrap items-center gap-4">
+            <span className="grid size-11 shrink-0 place-items-center rounded-box bg-primary/10 text-primary">
+              <MapPin size={24} strokeWidth={1.75} aria-hidden />
+            </span>
+            <div className="flex min-w-0 flex-1 basis-64 flex-col gap-0.5">
+              <span className="text-xl font-bold wrap-anywhere">{p.market.category}</span>
+              {concluded === null ? null : (
+                <span className="text-sm text-base-content/70 wrap-anywhere" data-testid="market-concluded">
+                  {copy(concluded.categoryOverridden ? "settings.market.overridden" : "settings.market.concluded")}
+                </span>
+              )}
+            </div>
+            {editing === "category" ? null : (
+              <button type="button" className="btn btn-ghost btn-sm" onClick={() => open("category")}>
+                {copy("settings.edit")}
+              </button>
+            )}
+          </div>
+          {editing === "category" ? editingField("category") : reasonLine}
+        </div>
+
+        <div className="flex min-w-0 flex-col gap-2" data-testid="market-sets">
+          <p className="eyebrow">{copy("settings.market.sets.title")}</p>
+          <ul className="grid min-w-0 grid-cols-1 gap-2 sm:grid-cols-3">
+            {p.sets.searches === null ? null : (
+              <li className={WELL}>
+                <Search {...WELL_ICON} />
+                <span className="min-w-0 wrap-anywhere">{copy("settings.market.sets.searches", { n: String(p.sets.searches) })}</span>
+              </li>
+            )}
+            {p.sets.questions === null ? null : (
+              <li className={WELL}>
+                <Sparkles {...WELL_ICON} />
+                <span className="min-w-0 wrap-anywhere">{copy("settings.market.sets.questions", { n: String(p.sets.questions) })}</span>
+              </li>
+            )}
+            <li className={WELL}>
+              <Users {...WELL_ICON} />
+              <span className="min-w-0 wrap-anywhere">{copy("settings.market.sets.competitors", { n: String(p.sets.competitors) })}</span>
+            </li>
+          </ul>
+          <p className="flex flex-wrap gap-1 text-xs text-base-content/70">
+            {copy("settings.market.sets.plan")}
+            <Link className="link link-primary" href="/app/calendar">
+              {copy("settings.market.sets.plan-link")}
+            </Link>
+          </p>
+        </div>
+
+        {standing ? (
+          <ul className="flex min-w-0 flex-col gap-2 border-t border-base-300 pt-3 text-sm" data-testid="market-consequences">
+            <li className="flex min-w-0 items-start gap-2">
+              <Calendar {...LINE_ICON} />
+              <span className="min-w-0 wrap-anywhere">{copy("settings.market.consequence.website")}</span>
+            </li>
+            <li className="flex min-w-0 items-start gap-2">
+              <Zap {...LINE_ICON} />
+              <span className="min-w-0 wrap-anywhere">{copy("settings.market.consequence.market")}</span>
+            </li>
+          </ul>
+        ) : null}
 
         {/* Issue 866: the plain way to measure the market again — the same
             pass the thin-market choice starts, under the same daily bound.

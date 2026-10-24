@@ -102,6 +102,8 @@ describe("REQ-070 c1 — the model carries a value for each settable key and not
         "domain",
         "locale",
         "market",
+        // Read-only: who the last scan measured, so a newer competitor is not drawn as 0.
+        "measuredRivals",
         "notifications",
         "publishing",
         "voice",
