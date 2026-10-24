@@ -542,6 +542,58 @@ describe('REQ-003\'s non-goal — "No queue position, percentage estimate, or co
   });
 });
 
+describe("a finished stage carries what it found (issue 1905)", () => {
+  it("stages/summary · a summary is recorded through `append_scan_stage_event` and comes back out of `progress()` as written", async () => {
+    const scanId = freshScanId();
+    const summary = {
+      pagesRead: 38,
+      category: "Plumber",
+      readers: { google: "in", ai: "out" },
+      searches: [{ words: "emergency plumber austin", onPageOne: false }],
+    } as const;
+    await exitStage(scanId, "reading_your_market", summary);
+    await emitEnding(scanId, { kind: "report", complete: true, stoppedReason: "complete" });
+    expect(store.rpcCalls[0]!.args.p_event).toEqual({ stage: "reading_your_market", done: true, summary });
+    expect(said(await collectUntilEnding(progress(scanId)))[0]).toEqual({ stage: "reading_your_market", done: true, summary });
+  });
+
+  it("stages/summary · each field over its cap or malformed is dropped on its own, and nothing left records no summary", async () => {
+    const scanId = freshScanId();
+    const searches = Array.from({ length: 20 }, (_, i) => ({ words: `search ${i}`, onPageOne: i === 0 }));
+    await exitStage(scanId, "asking_the_twelve", {
+      pagesRead: 0,
+      category: "x".repeat(61),
+      readers: { google: "in", ai: "maybe" as "in" },
+      searches: [...searches, { words: "y".repeat(81), onPageOne: true }],
+    });
+    await exitStage(scanId, "scoring", { pagesRead: 0 });
+    expect(store.rpcCalls.map((call) => call.args.p_event)).toEqual([
+      { stage: "asking_the_twelve", done: true, summary: { searches: searches.slice(0, 12) } },
+      { stage: "scoring", done: true },
+    ]);
+  });
+
+  it("stages/summary · a stored log written before summaries replays byte for byte, and a summary on an entry is not read", async () => {
+    const before = [
+      { stage: "reading_your_site", done: false },
+      { stage: "reading_your_site", done: true },
+      { stage: "reading_access_rules", done: false, summary: { pagesRead: 3 } },
+      { stage: "reading_access_rules", done: true, summary: { pagesRead: "38", category: 7 } },
+      { ending: { kind: "report", complete: true, stoppedReason: "complete" } },
+    ];
+    const events = said(await collectUntilEnding(progress(freshScanId({ status: "done", stopped_reason: "complete", stage_events: before }))));
+    expect(JSON.stringify(events)).toBe(
+      JSON.stringify([
+        { stage: "reading_your_site", done: false },
+        { stage: "reading_your_site", done: true },
+        { stage: "reading_access_rules", done: false },
+        { stage: "reading_access_rules", done: true },
+        { ending: { kind: "report", complete: true, stoppedReason: "complete" } },
+      ])
+    );
+  });
+});
+
 describe('REQ-003\'s non-goal — "No spend, cost or cap figure shown to a visitor."', () => {
   it("stages/shape · no cost figure on the stream, including the ending arm", async () => {
     const scanId = freshScanId();

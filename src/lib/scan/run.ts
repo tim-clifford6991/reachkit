@@ -40,6 +40,7 @@
 // running. A correction is not a re-scan: it re-measures inside the scan
 // it corrects and always runs.
 import {
+  AI_READER_AGENTS,
   BATTERY,
   CACHE_WINDOWS_D,
   FREE_RESCAN_WINDOW_D,
@@ -88,7 +89,7 @@ import { offeringSeeds, offeringsOf, spreadAcrossOfferings } from "@/lib/market/
 import { marketSeeds, measuredMarketOf, unjudged } from "@/lib/market/questions/measured";
 import { serpDomainsToSize } from "@/lib/market/rivals/candidates";
 import type { RivalCandidate } from "@/lib/market/rivals/derive";
-import type { PresenceCard } from "@/lib/market/rivals/presence";
+import { ownPresenceBySearch, type PresenceCard } from "@/lib/market/rivals/presence";
 import { townHolds } from "@/lib/market/rivals/reach";
 import { sizeRivals, type RivalSize } from "@/lib/market/rivals/size";
 import { trackedRivals } from "@/lib/market/rivals/tracked";
@@ -150,9 +151,9 @@ import type {
   SupplySection,
   Tier,
 } from "./report";
-import { answersSectionOf, blockedAgentsOf, pageQuestionsSectionOf } from "./sections";
+import { answersSectionOf, blockedAgentsOf, categoryOf, pageQuestionsSectionOf } from "./sections";
 import { checkSite, type CrawlReading } from "@/lib/site-issues/checks";
-import { emitEnding, enterStage, exitStage } from "./stages";
+import { emitEnding, enterStage, exitStage, type StageSummary } from "./stages";
 import type { StageName } from "./stages";
 import { assembleReport, storeCurrentReport, type ScanStatus } from "./store";
 import { finishingOf } from "./finish-reads";
@@ -1535,6 +1536,7 @@ async function stagesOf(a: StageArgs, crawl: SiteCrawl): Promise<void> {
     await enterStage(scanId, stage);
     await a.onStage?.(stage);
   };
+  const exit = (stage: StageName): Promise<void> => exitStage(scanId, stage, summaryAt(stage, a));
 
   /** One stage's work, inside that stage's own budget. The `Bounds` handed
    *  down answers for the stage's ceilings as well as the pass's, so every
@@ -1579,7 +1581,7 @@ async function stagesOf(a: StageArgs, crawl: SiteCrawl): Promise<void> {
   }
   const measurement = read.value;
   if (!failed(measurement)) sections.measurement = measurement;
-  await exitStage(scanId, "reading_your_site");
+  await exit("reading_your_site");
   const siteLocale = failed(measurement) || measurement.homeRefusal !== null ? null : readSiteLocale(measurement);
   if (siteLocale !== null && a.siteId !== undefined && a.locale === undefined) {
     // The reading is the site's from here on (D66). A write that fails
@@ -1693,7 +1695,7 @@ async function stagesOf(a: StageArgs, crawl: SiteCrawl): Promise<void> {
   // waits for nothing, so it has nothing to spend its budget on.
   if (bounds.stopNow() !== null) return;
   await enter("reading_access_rules");
-  await exitStage(scanId, "reading_access_rules");
+  await exit("reading_access_rules");
 
   const placed = await placing;
   if (bounds.abandoned()) return;
@@ -1727,7 +1729,7 @@ async function stagesOf(a: StageArgs, crawl: SiteCrawl): Promise<void> {
   // An abandoned pass reports no exit either: a stage the ceilings cut off
   // emits no `done: true` (`stages.ts`), and the ending is already out.
   if (bounds.abandoned()) return;
-  if (!market.spent) await exitStage(scanId, "reading_your_market");
+  if (!market.spent) await exit("reading_your_market");
 
   // No stage-abandonment guard is threaded here, and none is owed:
   // `sizesRivals` is false on the free path and the budget applies on no
@@ -1738,7 +1740,7 @@ async function stagesOf(a: StageArgs, crawl: SiteCrawl): Promise<void> {
   await enter("checking_your_presence");
   const presence = await inBudget("checking_your_presence", (b) => sizeTrackedRivals({ ...a, bounds: b }));
   if (bounds.abandoned()) return;
-  if (!presence.spent) await exitStage(scanId, "checking_your_presence");
+  if (!presence.spent) await exit("checking_your_presence");
 
   if (bounds.stopNow() !== null) return;
   await enter("asking_the_twelve");
@@ -1789,7 +1791,7 @@ async function stagesOf(a: StageArgs, crawl: SiteCrawl): Promise<void> {
   // pass still ends `complete`.
   if (twelve.spent && stillCollecting(bounds, a.parameters)) await asking;
   if (bounds.abandoned()) return;
-  if (!twelve.spent) await exitStage(scanId, "asking_the_twelve");
+  if (!twelve.spent) await exit("asking_the_twelve");
 
   // Scoring itself buys nothing and is synchronous — it counts over SERPs
   // already paid for (§6.6's "zero extra cost"). Its budget row is the CPU
@@ -1815,7 +1817,7 @@ async function stagesOf(a: StageArgs, crawl: SiteCrawl): Promise<void> {
   await Promise.all([sizeSerpRivals(a), crawl.reading]);
   if (bounds.abandoned()) return;
   score(a);
-  await exitStage(scanId, "scoring");
+  await exit("scoring");
 }
 
 /**
@@ -3479,18 +3481,7 @@ function composeReport(a: {
           aiPresence: aiPresenceOf({ serps: s.serps, pageCells, ownDomain: a.domain, siteName: s.siteName, at: measuredAt }),
         };
 
-  const market: Measured<MarketSet> =
-    s.profile.kind === "unmeasured"
-      ? // Issue 1387: where the site's listing in search named no market,
-        // the record says which way it fell short.
-        unmeasured(s.profile.reason, measuredAt, s.marketThin ?? undefined)
-      : s.marketRows.kind === "unmeasured"
-        ? marketFromPool(s, measuredAt)
-        : {
-            kind: s.marketRows.kind,
-            value: marketSetOf({ profile: s.profile.value, suggestions: s.marketRows.value, pool: poolOf(s) }),
-            at: measuredAt,
-          };
+  const market = marketOf(s, measuredAt);
 
   const inputs: Readonly<Record<ScanInput, InputOutcome>> = {
     home_document: outcomeOf(onPage),
@@ -3631,6 +3622,44 @@ function composeReport(a: {
  * that pool, and it says the suggestions were not read; with nothing chosen
  * it is unmeasured, as before.
  */
+/** The market the report records, from what the pass has read so far. */
+function marketOf(s: Sections, at: Date): Measured<MarketSet> {
+  if (s.profile.kind === "unmeasured") {
+    // Issue 1387: where the site's listing in search named no market,
+    // the record says which way it fell short.
+    return unmeasured(s.profile.reason, at, s.marketThin ?? undefined);
+  }
+  if (s.marketRows.kind === "unmeasured") return marketFromPool(s, at);
+  return { kind: s.marketRows.kind, value: marketSetOf({ profile: s.profile.value, suggestions: s.marketRows.value, pool: poolOf(s) }), at };
+}
+
+// Google's own reader heads the pinned list, so the name is never written twice.
+const [GOOGLE_READER] = AI_READER_AGENTS;
+
+/** What a finished stage tells the waiting screen, copied from what the
+ *  pass already holds; a field it does not hold yet is left out. */
+function summaryAt(stage: StageName, a: Pick<StageArgs, "domain" | "sections" | "startedAt">): StageSummary {
+  const s = a.sections;
+  const summary: { -readonly [K in keyof StageSummary]: StageSummary[K] } = {};
+  // The crawl runs beside the later stages, so its count rides on whichever exit follows it.
+  const pages = s.siteCrawl?.pages.length ?? 0;
+  if (pages > 0) summary.pagesRead = pages;
+  const robots = s.measurement?.robots;
+  if (stage === "reading_access_rules" && robots !== undefined && robots.kind !== "unmeasured") {
+    const blocked = blockedAgentsOf(robots);
+    summary.readers = { google: blocked.includes(GOOGLE_READER) ? "out" : "in", ai: blocked.length > 0 ? "out" : "in" };
+  }
+  if (stage === "reading_your_market") {
+    const category = categoryOf(marketOf(s, a.startedAt));
+    if (category !== null) summary.category = category;
+  }
+  if (stage === "asking_the_twelve") {
+    const searches = ownPresenceBySearch({ serps: s.serps as readonly Measured<MarketSerp>[], selected: s.selected, ownDomain: a.domain });
+    summary.searches = searches.map((search) => ({ words: search.keyword, onPageOne: search.present }));
+  }
+  return summary;
+}
+
 function marketFromPool(s: Sections, at: Date): Measured<MarketSet> {
   const rows = s.marketRows;
   if (s.profile.kind === "unmeasured" || rows.kind !== "unmeasured") throw new Error("marketFromPool: a profile and unread suggestions only");
