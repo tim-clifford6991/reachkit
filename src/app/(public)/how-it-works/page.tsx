@@ -512,7 +512,7 @@ export default function HowItWorksPage(): React.JSX.Element {
               <details key={item.q} className="collapse collapse-arrow card-border bg-base-100 min-w-0">
                 <summary className="collapse-title font-semibold">{copy(item.q)}</summary>
                 <div className="collapse-content text-sm text-base-content/70">
-                  <p>{copy(item.a, item.vars)}</p>
+                  <p data-disclosure={item.a === "landing.faq.spam.a" ? true : undefined}>{copy(item.a, item.vars)}</p>
                 </div>
               </details>
             ))}
