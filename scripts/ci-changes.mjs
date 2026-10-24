@@ -6,6 +6,7 @@
 // `code` (owner, 2026-09-24, #1053): false only when every path is under
 // `docs/` or is markdown outside src/, tests/, supabase/, .github/ and
 // scripts/. The list is of what may skip, so a path nobody thought of runs.
+// The canvas boards and parity files are code: unit tests read them.
 //
 // `ui` (owner, 2026-10-18, #1525): true where a path can change what a screen
 // renders or how the sweep measures it. False sends `no overflow · axe` to
@@ -105,6 +106,16 @@ function designSuites(root) {
   return existsSync(dir) ? readdirSync(dir).filter((f) => f.endsWith(".test.ts")).sort().map((f) => `tests/ui/design/${f}`) : [];
 }
 
+// A state board is read in the component test boards.json names for it, which
+// no import links to the board or its allow lines, so those docs run it.
+const STATE_PARITY = /^docs\/design\/(boards\/canvas|parity)\//;
+
+function stateRenders(root) {
+  const file = path.join(root, "docs/design/parity/boards.json");
+  if (!existsSync(file)) return [];
+  return Object.values(JSON.parse(readFileSync(file, "utf8"))).flatMap((row) => (row.render ? [row.render] : []));
+}
+
 const WALK = /readdirSync|globSync|readdir\(|fs\.glob/;
 
 // Test files and helpers that read the tree from disk, so no import links them
@@ -119,7 +130,8 @@ export function walkers(root = process.cwd()) {
 
 export function related(paths, root = process.cwd()) {
   const files = paths.map((p) => p.trim()).filter(Boolean);
-  return [...new Set([...files, ...ALWAYS, ...designSuites(root), ...walkers(root)])];
+  const renders = files.some((f) => STATE_PARITY.test(f)) ? stateRenders(root) : [];
+  return [...new Set([...files, ...ALWAYS, ...designSuites(root), ...walkers(root), ...renders])];
 }
 
 export function classify(paths) {
@@ -130,7 +142,7 @@ export function classify(paths) {
   let db = files.length === 0;
   let full = files.length === 0;
   for (const f of files) {
-    const isCode = /^(src|tests|supabase|\.github|scripts)\//.test(f) || !(/^docs\//.test(f) || /\.md$/.test(f));
+    const isCode = /^(src|tests|supabase|\.github|scripts)\//.test(f) || STATE_PARITY.test(f) || !(/^docs\//.test(f) || /\.md$/.test(f));
     const isUi = UI.some((re) => re.test(f));
     const isDb = DB.some((re) => re.test(f)) || LIVE_SCHEMA_TESTS.includes(f);
     const isFull = FULL_UNIT.some((re) => re.test(f));

@@ -11,15 +11,9 @@ A burst pipe or a backed-up drain does most of its damage in the first hour. Her
 Written for people who search “emergency plumber austin”, about 1,300 times a month.	sample data: the page's search and volume
 Your two choices, and what each does	SPEC §0 six-word title; owner R12 B7 ships "What each choice does"
 It goes live Mon 19 Oct, 4:00 PM, on its own.	sample data: the publish moment
-Mon Stopped	sample data: the stopped page's day in its week
-Tue Goes ahead	sample data: a day of the stopped page's week
-Wed Goes ahead	sample data: a day of the stopped page's week
-Thu Goes ahead	sample data: a day of the stopped page's week
-Fri Goes ahead	sample data: a day of the stopped page's week
-Sat Goes ahead	sample data: a day of the stopped page's week
-Sun Goes ahead	sample data: a day of the stopped page's week
 The button is disabled and spins. It never says Stopped until the page is stopped.	#1714: a designer's note on the busy state, an annotation
 Still goes live Mon 19 Oct, 4:00 PM, unless stopped.	sample data: the publish moment
 Planned for Wed 21 Oct	sample data: the planned day
 Search slab leak repair cost austin	sample data: the planned page's search
 Mail sent Went live 4:00 PM now	#144: an expired link names no draft, so the closed arm states no time
+Emergency plumber in Austin: what to do in the first hour	sample data: the page's own title

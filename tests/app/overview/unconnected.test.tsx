@@ -13,10 +13,9 @@ applyEnvFixture();
 const EDGE = "hosted.reachkit.app";
 process.env.HOSTED_EDGE_CNAME_TARGET = EDGE;
 
-import { readFileSync } from "node:fs";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
-import { boardFile, compare, readAllow, segments } from "../../../scripts/design/parity.mjs";
+import { expectStateParity } from "../../ui/layout/state-parity";
 import { fakeDb, type FakeDb } from "../../publish/harness";
 
 const db: FakeDb = fakeDb();
@@ -30,6 +29,7 @@ vi.mock("@/lib/opportunities", () => ({
 
 const { LIVE_ACCOUNT, resetAccount, signedInAs } = await import("../account-door");
 const { default: OverviewPage } = await import("@/app/(account)/app/(tabs)/page");
+const { default: OverviewTabsLayout } = await import("@/app/(account)/app/(tabs)/layout");
 const { copy } = await import("@/lib/presentation/copy");
 
 const ZONE = "America/Chicago";
@@ -44,12 +44,6 @@ const TITLE = "Emergency plumber in Austin: what to do in the first hour";
 /** A local plumber's guides and a SaaS help centre (Q2). */
 const PLUMBER = { label: "help", domain: "harborplumbing.example" };
 const SAAS = { label: "guides", domain: "acmecrm.example" };
-
-/** What the account's layout draws around this page: the shell's menu,
- *  publishing line and theme control, and the Overview tabs. */
-const SHELL = ["ReachKit", "Overview", "Plan", "Settings", "Waiting for your domain", "Theme: light", "Google", "AI", "Competitors"];
-// owner 2026-10-15 #1463: a title is at most six words, so the screen reads "Add one setting to your domain".
-const RULED = ["Add one setting where your web address is managed"];
 
 function seed(destination: { kind: "hosted" | "wordpress"; hostname?: string; state?: "pending_dns" | "live" }): void {
   db.seed("destinations", [
@@ -178,11 +172,10 @@ describe("Overview for an address not connected yet", () => {
     expect(html).toContain(`data-host="${customer.label}.${customer.domain}"`);
   });
 
-  it("matches board OverviewDNS: every string it draws is on the page, but the layout's own and the allowed", async () => {
+  it("parity: OverviewDNS reads its rendered arms", async () => {
     seed({ kind: "hosted", hostname: `${PLUMBER.label}.${PLUMBER.domain}`, state: "pending_dns" });
-    const { html } = await screen();
-    const result = compare(readFileSync(boardFile("OverviewDNS"), "utf8"), segments(html), readAllow("OverviewDNS"));
-    expect(result.missing.filter((line) => !SHELL.includes(line) && !RULED.includes(line))).toEqual([]);
+    // The tabs over the page are the (tabs) layout's, inside the board's main.
+    expectStateParity("OverviewDNS", [renderToStaticMarkup(<OverviewTabsLayout>{await OverviewPage()}</OverviewTabsLayout>)]);
   });
 
   it("names no go-live time and draws no ladder, week or other module", async () => {

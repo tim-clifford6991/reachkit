@@ -10,6 +10,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import type { SignInState } from "@/app/(public)/signin/state";
 import { boardFile, compare, readAllow, segments } from "../../../scripts/design/parity.mjs";
 import { applyEnvFixture } from "../../mail/env-fixture";
+import { expectStateParity } from "../../ui/layout/state-parity";
 
 applyEnvFixture();
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -74,15 +75,17 @@ afterEach(() => {
 });
 
 describe("each arm matches its board's screen string for string", () => {
-  it.each([
-    ["AuthSignIn", {}],
-    ["AuthCheckEmail", { state: SENT }],
-    ["AuthExpired", { searchParams: { link: "dead" } }],
-  ] as [string, Arm][])("%s: nothing the board draws is missing", async (board, arm) => {
-    // A line excused only because the registry read cannot compose it must still be on the rendered arm.
-    const allow = readAllow(board).filter((line: { reason: string }) => !line.reason.includes("board.test.tsx"));
-    const result = compare(boardMain(board), textOf(await inBrowser(arm)), allow);
+  it("AuthSignIn: nothing the board draws is missing", async () => {
+    const result = compare(boardMain("AuthSignIn"), textOf(await inBrowser({})), readAllow("AuthSignIn"));
     expect(result.missing).toEqual([]);
+  });
+
+  it("parity: AuthCheckEmail reads its rendered arms", async () => {
+    expectStateParity("AuthCheckEmail", [await inBrowser({ state: SENT })]);
+  });
+
+  it("parity: AuthExpired reads its rendered arms", async () => {
+    expectStateParity("AuthExpired", [await inBrowser({ searchParams: { link: "dead" } })]);
   });
 });
 
@@ -134,6 +137,27 @@ describe("each section is on the screen in the board's order and words", () => {
       "works for 24 hours",
       "Nothing in your account changed. Your pages carry on as planned.",
     ]);
+  });
+});
+
+describe("sign-in's board icons", () => {
+  it("Send on the submit, a Check per assurance, Link on Linked by AI, an arrow between the steps", async () => {
+    const screen = document.createElement("div");
+    screen.innerHTML = await inBrowser({});
+    const icons = (el: Element | null | undefined, name: string): number => el?.querySelectorAll(`svg.lucide-${name}`).length ?? 0;
+    const submit = screen.querySelector('form button[type="submit"]');
+    expect([icons(submit, "send"), icons(submit, "arrow-right")]).toEqual([1, 0]);
+    const assurances = [...screen.querySelectorAll("form p")].find((p) => p.textContent?.includes("no password"));
+    expect([...assurances!.children].map((chip) => [icons(chip, "check"), chip.querySelectorAll("svg").length])).toEqual([
+      [1, 1],
+      [1, 1],
+      [1, 1],
+    ]);
+    const figures = screen.querySelector('[data-testid="signin-preview-figures"]');
+    expect([icons(figures, "link"), icons(screen, "link-2")]).toEqual([1, 0]);
+    const steps = [...screen.querySelectorAll('section[aria-labelledby="signin-how"] ol > li')];
+    expect(steps.map((step) => icons(step, "arrow-right"))).toEqual([1, 1, 0]);
+    for (const svg of screen.querySelectorAll("svg")) expect(svg.getAttribute("aria-hidden")).toBe("true");
   });
 });
 
