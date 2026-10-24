@@ -8,6 +8,7 @@
 // A triple is the whole difference between the routes, so a fourth legal
 // document is a fourth entry here and a four-line `page.tsx`, and there is
 // no branch in the renderer to extend.
+import { Ban, Cookie, Database, Download, type LucideIcon } from "lucide-react";
 import type { CopyKey } from "@/lib/presentation/copy";
 
 /** The three sentences a legal page is made of: its title, the date the
@@ -21,6 +22,8 @@ export interface LegalDocument {
   readonly body: CopyKey;
   /** A Markdown list drawn above the card; a document without one has none. */
   readonly summary?: CopyKey;
+  /** The tile beside each summary item, in the list's order. */
+  readonly summaryIcons?: readonly LucideIcon[];
   /** The route, for the tabs between the three documents. */
   readonly path: string;
   /** A figure the board draws in a section, by that section's anchor. */
@@ -35,6 +38,7 @@ export const PRIVACY: LegalDocument = Object.freeze({
   updated: "legal.privacy.updated",
   body: "legal.privacy.body",
   summary: "legal.privacy.summary",
+  summaryIcons: Object.freeze([Database, Ban, Cookie, Download]),
   path: "/privacy",
   figures: Object.freeze({
     "what-we-collect": "follow-ups",
