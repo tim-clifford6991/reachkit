@@ -3,10 +3,10 @@
 // its label, opening the page's own screen. A step not read says so.
 import type React from "react";
 import Link from "next/link";
-import { Eye, Globe, Link2, Search, Sparkles, Trophy, User, type LucideIcon } from "lucide-react";
+import { Eye, Globe, Link as LinkIcon, Search, Sparkles, Trophy, User, type LucideIcon } from "lucide-react";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { formatCount, formatDay } from "../_shell/format";
-import { LabelBadge } from "../_shell/verdict";
+import { LABEL, LabelBadge } from "../_shell/verdict";
 import type { PageLadder as Model, StepFigure } from "@/lib/measure/page-ladder";
 import { CLOSED } from "./present";
 
@@ -30,9 +30,10 @@ const STEP_ICON: Readonly<Record<StepName, LucideIcon>> = {
   "draft.ladder.showing": Eye,
   "draft.ladder.first-page": Trophy,
   "draft.ladder.read": Sparkles,
-  "draft.ladder.linked": Link2,
+  "draft.ladder.linked": LinkIcon,
   "draft.ladder.visit": User,
 };
+const Climbing = LABEL.climbing.icon;
 const iconOf = (name: CopyKey): LucideIcon | undefined => (STEP_ICON as Partial<Record<CopyKey, LucideIcon>>)[name];
 
 function Steps(p: { title: CopyKey; sub: CopyKey; steps: readonly StepFigure[]; climbing: number; testId: string }): React.JSX.Element {
@@ -63,7 +64,10 @@ function Steps(p: { title: CopyKey; sub: CopyKey; steps: readonly StepFigure[]; 
                 </>
               )}
               {step.name === "draft.ladder.showing" && p.climbing > 0 ? (
-                <span className="badge badge-soft badge-primary mt-1">{copy("overview.ladder.climbing", { n: formatCount(p.climbing) })}</span>
+                <span className={`${LABEL.climbing.badge} mt-1`}>
+                  <Climbing className="size-3.5 shrink-0" strokeWidth={1.75} aria-hidden />
+                  {copy("overview.ladder.climbing", { n: formatCount(p.climbing) })}
+                </span>
               ) : null}
             </li>
           );

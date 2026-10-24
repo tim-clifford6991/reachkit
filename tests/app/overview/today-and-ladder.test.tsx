@@ -175,7 +175,7 @@ const STEP_ICON = {
   "draft.ladder.showing": "lucide-eye",
   "draft.ladder.first-page": "lucide-trophy",
   "draft.ladder.read": "lucide-sparkles",
-  "draft.ladder.linked": "lucide-link-2",
+  "draft.ladder.linked": "lucide-link",
   "draft.ladder.visit": "lucide-user",
 } as const;
 const LABEL_ICON = { working: "lucide-check", climbing: "lucide-trending-up", too_early: "lucide-clock", not_moving: "lucide-minus" } as const;
@@ -323,6 +323,17 @@ describe.each([
       expect(badge.querySelector(`svg.${LABEL_ICON[label]}`)).not.toBeNull();
     }
     expect(new Set(labels).size).toBeGreaterThan(1);
+  });
+
+  it("Showing's climbing badge carries the climbing icon", async () => {
+    const pubs = seedPages(panel, TWELVE);
+    const climbing = pubs.filter((pub) => verdict(readingOf(pub.search_reading)!, NOW) === "climbing").length;
+    expect(climbing).toBeGreaterThan(0);
+    const { dom } = await render();
+    const badge = dom.querySelector('[data-testid="overview-ladder-google"] [data-step="draft.ladder.showing"] .badge');
+    expect(text(badge)).toBe(copy("overview.ladder.climbing", { n: String(climbing) }));
+    expect(badge?.firstElementChild?.matches(`svg.${LABEL_ICON.climbing}`)).toBe(true);
+    expect(badge?.firstElementChild?.getAttribute("aria-hidden")).toBe("true");
   });
 
   it("a page published since the reading is not read yet, never a page short of a step", async () => {
