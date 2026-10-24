@@ -85,8 +85,68 @@ describe("SPEC §4 — the seven tabs are a daisyUI bar of addresses that cannot
   });
 
   it("no tab draws two card columns — the columns are what the tabs replaced", () => {
-    for (const file of files) {
-      expect(readFileSync(file, "utf8"), file).not.toMatch(/grid-cols-2/);
-    }
+    const offenders = files.flatMap((file) =>
+      openingTags(readFileSync(file, "utf8"))
+        .map((tag) => columnsOffence(tag))
+        .filter((offence): offence is string => offence !== null)
+        .map((offence) => `${path.basename(file)}: ${offence}`)
+    );
+    expect(offenders).toEqual([]);
+  });
+
+  it("the rule refuses two card columns, a week without its phone tracks, and columns on a card (E38)", () => {
+    expect(columnsOffence('<div className="grid min-w-0 grid-cols-1 xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">')).not.toBeNull();
+    expect(columnsOffence('<div className="grid min-w-0 grid-cols-7 gap-1" data-layout="week">')).not.toBeNull();
+    expect(columnsOffence('<section className="card grid grid-cols-1 md:grid-cols-2" data-layout="pair">')).not.toBeNull();
+    expect(columnsOffence('<ol className="grid grid-cols-1 md:grid-cols-3" data-layout="columns">')).not.toBeNull();
+    expect(columnsOffence('<div className="grid min-w-0 grid-cols-4 gap-1 md:grid-cols-7" data-layout="week">')).toBeNull();
   });
 });
+
+// E38: inside one card or fold, columns only on a tag naming its layout, with exactly that layout's classes.
+const LAYOUTS: Readonly<Record<string, readonly string[]>> = {
+  pair: ["grid-cols-1", "md:grid-cols-2"],
+  choices: ["grid-cols-1", "md:grid-cols-2", "xl:grid-cols-4"],
+  steps: ["grid-cols-1", "md:grid-cols-3"],
+  compare: ["grid-cols-1", "md:grid-cols-3"],
+  week: ["grid-cols-4", "md:grid-cols-7"],
+};
+const COLUMNS = /(?:^|\s)(?:[a-z0-9]+:)*grid-cols-(?:[2-9]|1[0-2]|\[|\()/;
+const GRID_COLS = /^(?:[a-z0-9]+:)*grid-cols-/;
+
+/** Why one opening tag breaks the rule, or `null` where it keeps it. */
+function columnsOffence(tag: string): string | null {
+  const classes = /className=(?:"([^"]*)"|\{`([^`]*)`\})/.exec(tag);
+  const className = classes?.[1] ?? classes?.[2] ?? "";
+  if (!COLUMNS.test(className)) return null;
+  const layout = /data-layout="([^"]*)"/.exec(tag)?.[1];
+  const allowed = layout === undefined ? undefined : LAYOUTS[layout];
+  if (allowed === undefined) return `columns without an allowed data-layout: ${tag}`;
+  if (/(?:^|\s)card(?:\s|$)/.test(className)) return `columns on a card: ${tag}`;
+  const held = className.split(/\s+/).filter((c) => GRID_COLS.test(c)).sort();
+  if (held.join(" ") !== [...allowed].sort().join(" ")) return `${layout} is ${allowed.join(" ")}, not ${held.join(" ")}: ${tag}`;
+  return null;
+}
+
+/** Each JSX opening tag in a source file, braces and quotes respected, so `=>` inside one does not end it. */
+function openingTags(source: string): string[] {
+  const tags: string[] = [];
+  for (let i = source.indexOf("<"); i !== -1; i = source.indexOf("<", i + 1)) {
+    if (!/[A-Za-z]/.test(source[i + 1] ?? "")) continue;
+    let depth = 0;
+    let quote: string | null = null;
+    for (let j = i + 1; j < source.length; j++) {
+      const c = source[j]!;
+      if (quote !== null) {
+        if (c === quote) quote = null;
+      } else if (c === '"' || c === "'" || c === "`") quote = c;
+      else if (c === "{") depth++;
+      else if (c === "}") depth--;
+      else if (c === ">" && depth === 0) {
+        tags.push(source.slice(i, j + 1));
+        break;
+      }
+    }
+  }
+  return tags;
+}

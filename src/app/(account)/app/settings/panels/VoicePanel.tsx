@@ -137,7 +137,7 @@ export function VoicePanel(p: {
           {/* SPEC §7 (owner, 2026-10-10; issue 1390): who speaks on their pages, saved as it is chosen. */}
           <fieldset className="flex min-w-0 flex-col gap-3" data-testid="setting-writing_voice" disabled={savingWriting}>
             <legend className="card-title mb-3 min-w-0 wrap-anywhere text-base">{copy("settings.voice.writing.label")}</legend>
-            <div className="grid min-w-0 grid-cols-1 gap-2 md:grid-cols-2 xl:grid-cols-4">
+            <div className="grid min-w-0 grid-cols-1 gap-2 md:grid-cols-2 xl:grid-cols-4" data-layout="choices">
               {VOICE_CHOICES.map((choice) => {
                 const chosen = writing === choice.voice;
                 return (
@@ -253,7 +253,7 @@ function NoteExample(): React.JSX.Element {
   return (
     <figure className="flex min-w-0 flex-col gap-3" data-testid="voice-example">
       <p className="eyebrow">{copy("settings.voice.example.head")}</p>
-      <div className="grid min-w-0 grid-cols-1 gap-3 md:grid-cols-2">
+      <div className="grid min-w-0 grid-cols-1 gap-3 md:grid-cols-2" data-layout="pair">
         <div className="flex min-w-0 flex-col items-start gap-2 rounded-box bg-base-200 p-4">
           <span className="badge badge-ghost">{copy("settings.voice.example.without")}</span>
           <p className="text-sm wrap-anywhere">{copy("settings.voice.example.without.text")}</p>

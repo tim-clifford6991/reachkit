@@ -39,7 +39,7 @@ export function FlowPanel(p: {
         <h2 id="settings-flow-head" className="eyebrow">
           {copy("settings.business.flow.head")}
         </h2>
-        <ol className="grid min-w-0 grid-cols-1 gap-2 md:grid-cols-3">
+        <ol className="grid min-w-0 grid-cols-1 gap-2 md:grid-cols-3" data-layout="steps">
           <li className={STEP} data-testid="settings-flow-read">
             <Tile icon={Globe} />
             <span className="flex min-w-0 flex-col gap-0.5 wrap-anywhere">
