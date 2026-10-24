@@ -94,3 +94,4 @@ page 4 Drain cleaning in Austin: what’s included searched 880 times a month	sa
 page 5 Leak detection in Austin: how a plumber finds a hidden leak searched 320 times a month	sample data: Harbor Plumbing's page and volume; the row shows the search, not a page title (docs/spec/decisions/2026-10-19-1581.md); "page 5" is the ol counter's marker (#1110)
 All 14, nothing hidden. Pages 6 to 14 show the search each one answers. Sample for an example business.	sample data: Harbor Plumbing's 14 and the board's caption on its own sample; the fixture ships "All 7, nothing hidden."
 Local service	sample data: Harbor Plumbing's kind; the fixture's kind is software
+Articles	#1512: the footer links the content host's index only where stored rows name one; the sweep seeds none
