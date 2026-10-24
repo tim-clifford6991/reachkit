@@ -205,9 +205,11 @@ export type AnswerEngine = "ai_overview" | "ai_mode" | "chatgpt";
 
 /** Where one engine stood on this target's question when the pass measured
  *  it (issue 867): it named this site, it answered and named others, it
- *  served no answer, or nobody asked it. Four states and no number — the
- *  screen states which, and never counts them into a figure. */
-export type EngineStanding = "names_you" | "names_others" | "no_answer" | "unmeasured";
+ *  answered and named no one, it served no answer, or nobody asked it. Five
+ *  states and no number — the screen states which, and never counts them
+ *  into a figure. A row stored before `names_no_one` existed keeps its
+ *  `names_others`, so readers accept both. */
+export type EngineStanding = "names_you" | "names_others" | "names_no_one" | "no_answer" | "unmeasured";
 
 export interface TargetEngine {
   engine: AnswerEngine;
