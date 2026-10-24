@@ -29,6 +29,7 @@ const { CHECK_LINES, ENGINES_NAMED, ENGINES_NAMED_COUNT, HOW_FACTS, MODEL_DECIDE
   "@/app/(public)/_how/facts"
 );
 const { EXAMPLES } = await import("@/app/(public)/_how/specimen");
+const { whenIcons } = await import("./drawn-icons");
 
 const NOTHING: LiveExamples = { report: null, page: null, founder: null };
 const STORED: LiveExamples = {
@@ -145,6 +146,17 @@ describe("the Plumber · Software switch, without JavaScript", () => {
     expect(shown).not.toContain(EXAMPLES.software.answer);
     for (const day of EXAMPLES.software.plan) if (day.title !== "") expect(shown).not.toContain(day.title);
     expect(count(html, 'aria-pressed="true"')).toBe(count(html, `>${copy("how.switch.plumber")}</button>`));
+  });
+});
+
+describe("the week of pages", () => {
+  it("each page day in the week strip draws its sketch", () => {
+    const days = parse(html).querySelectorAll("#pages ol > li");
+    const bands = days.map((li) => li.querySelectorAll("[aria-hidden]").filter((el) => el.querySelector("svg.lucide-file-text")));
+    expect(bands.map((b) => b.length)).toEqual(EXAMPLES.plumber.plan.map((day) => (day.kind === "skip" ? 0 : 1)));
+    expect(bands.map((b) => b.some((el) => el.classList.contains("text-primary")))).toEqual(
+      EXAMPLES.plumber.plan.map((day) => day.kind !== "skip" && day.state === "waiting")
+    );
   });
 });
 
@@ -335,6 +347,16 @@ describe("each section carries the board's added lines, in its own section", () 
 
   it("the head, the value and the questions no longer carry the ship-only details", () => {
     for (const id of ["top", "value", "faq"]) expect(section(id), id).not.toContain(`>${copy("how.detail")}</summary>`);
+  });
+});
+
+describe("#found: each step of what to expect draws its own icon", () => {
+  it("what to expect: calendar, search, eye, trending-up in order", () => {
+    expect(whenIcons(section("found")).steps).toEqual(["calendar", "search", "eye", "trending-up"]);
+  });
+
+  it("the timeline's notes: info, map-pin", () => {
+    expect(whenIcons(section("found")).notes).toEqual(["info", "map-pin"]);
   });
 });
 

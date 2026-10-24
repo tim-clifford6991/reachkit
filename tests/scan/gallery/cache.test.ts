@@ -167,6 +167,16 @@ describe("the gallery's cache", () => {
     expect(listingReads()).toBe(2);
   });
 
+  it("states a listed domain's score uncached, and none for an unscored, a removed or an unlisted one", async () => {
+    const { listedScore } = await import("@/lib/scan/gallery");
+    db.scans = [...db.scans, { ...scan("cut.example", "2026-09-21T10:00:00.000Z"), score: null }];
+    expect(await listedScore("harbour.example")).toBe(47);
+    expect(await listedScore("cut.example")).toBeNull();
+    expect(await listedScore("nowhere.example")).toBeNull();
+    db.blocks = [{ domain: "harbour.example", blocked_at: "2026-10-22T13:00:00Z" }];
+    expect(await listedScore("harbour.example")).toBeNull();
+  });
+
   it("lists under a kind only the reports whose stored category names it, and a category that names none under none", async () => {
     const { readGallery } = await import("@/lib/scan/gallery");
     db.scans = [...db.scans, scan("ledger.example", "2026-09-21T10:00:00.000Z", "payroll software")];
