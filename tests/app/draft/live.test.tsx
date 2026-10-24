@@ -135,6 +135,17 @@ describe("the arms the board does not draw", () => {
     expect(at(host, "live-next").textContent).toContain(copy("draft.next.unmeasured"));
   });
 
+  it("the index state on Found by Google: the date found, not yet, or not measured", () => {
+    const foundStep = (live: Partial<LiveFacts>) =>
+      [...at(render(withLive(live)), "live-ladder-google").querySelectorAll("li")].find(
+        (li) => li.querySelector("span")?.textContent === copy("draft.ladder.found")
+      )?.lastElementChild?.textContent;
+    const unfound = { ...LIVE.reading!.reached, found: undefined };
+    expect(foundStep({})).toBe("Sep 16, 2026");
+    expect(foundStep({ reading: { ...LIVE.reading!, reached: unfound } })).toBe(copy("draft.ladder.not-yet"));
+    expect(foundStep({ reading: null })).toBe(copy("draft.ladder.unmeasured"));
+  });
+
   it("WordPress: Found by Google, Read by AI, the AI visit and the visits line are not drawn", () => {
     const host = render(withLive({ wordpress: true }));
     const steps = host.querySelectorAll('[data-testid^="live-ladder-"] li');
