@@ -67,6 +67,7 @@ describe("board PageDetail: the sections, in its order and words", () => {
     const title = at(host, "draft-title");
     const badges = at(host, "live-badges");
     expect(badges.textContent).toBe(copy("draft.live.since", { date: "Sep 14, 2026" }) + copy("review.label.climbing"));
+    expect(badges.querySelector(".badge:last-child svg.lucide-trending-up")).not.toBeNull();
     expect(at(host, "live-address").textContent).toBe(`${LIVE.url} ${copy("draft.live.new-tab")}`);
     expect(before(back, title) && before(title, badges)).toBe(true);
   });

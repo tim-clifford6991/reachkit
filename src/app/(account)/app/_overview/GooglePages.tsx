@@ -9,7 +9,7 @@ import { PlaceDots } from "@/ui/charts/PlaceDots";
 import { FIRST_PAGE } from "@/lib/measure/figures";
 import { formatCount } from "../_shell/format";
 import { shortDay } from "./Figures";
-import { LABEL } from "./PageLadder";
+import { LabelBadge } from "../_shell/verdict";
 import { searchKey, type Planned } from "./search-model";
 import type { GooglePageRow, GooglePages as Model, PlaceLine } from "./google-pages";
 
@@ -65,9 +65,7 @@ function Row(p: { row: GooglePageRow; planned: ReadonlyMap<string, Planned>; tim
       <div className="flex flex-wrap items-center justify-end gap-2">
         {row.place === null && row.label !== null ? <span className={`text-xs ${INK}`}>{copy("overview.search.place.out")}</span> : null}
         {row.label === null ? null : (
-          <span className={LABEL[row.label].badge} data-testid="search-page-label">
-            {copy(LABEL[row.label].key)}
-          </span>
+          <LabelBadge label={row.label} testId="search-page-label" />
         )}
       </div>
     </li>
