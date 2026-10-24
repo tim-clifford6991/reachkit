@@ -157,6 +157,9 @@ export interface BillingStore {
     at: Date
   ): Promise<{ ok: true } | { ok: false }>;
 
+  /** The stated zone of the account's first site, as the retention mails read it; `null` where none is stated. */
+  siteZone(userId: string): Promise<{ ok: true; timezone: string | null } | { ok: false }>;
+
   /** The stored domains of every site one account owns, as written. */
   siteDomains(userId: string): Promise<{ ok: true; domains: readonly string[] } | { ok: false }>;
 
@@ -419,6 +422,16 @@ export function supabaseBillingStore(): BillingStore {
         .update({ [NOTICE_COLUMN[which]]: at.toISOString() })
         .eq("id", siteId);
       return error ? { ok: false } : { ok: true };
+    },
+
+    async siteZone(userId) {
+      const { data, error } = await untyped()
+        .from<{ timezone: string | null }>("sites")
+        .select("timezone")
+        .eq("user_id", userId)
+        .limit(1);
+      if (error) return { ok: false };
+      return { ok: true, timezone: data?.[0]?.timezone ?? null };
     },
 
     async siteDomains(userId) {

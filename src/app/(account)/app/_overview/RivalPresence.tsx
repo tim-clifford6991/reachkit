@@ -1,8 +1,7 @@
-// SPEC §4 (2026-09-20, #908) — the two counting cards on the Rivals tab.
-//
-// "Who is on the first page for the twelve searches, who the three answer
-// engines name." #917 states the shape of each one: "a name-and-value line
-// with a **full-width** bar under it".
+// SPEC §4 (board AppCompetitors) — the counting cards on the Competitors tab:
+// who holds the top result on each of the twelve, who is on their first page,
+// and who AI answers mention over the month's reputation reading. Each is "a
+// name-and-value line with a **full-width** bar under it" (#917).
 //
 // **`PresenceBars` is Recharts and already exists** (`src/ui/charts`, #550;
 // DESIGN rule 2). It draws rivals first and the customer last in the
@@ -27,75 +26,39 @@
 // instead — REQ-004, at the card level.
 import type React from "react";
 import Link from "next/link";
-import { PresenceBars } from "@/ui/charts";
+import { PresenceBars, type PresenceBar } from "@/ui/charts";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
-import { CLOSED, formatCount } from "./present";
-import type { PresenceCard } from "./rivals-model";
+import { formatCount } from "./present";
+import type { PresenceCard, TopCard } from "./rivals-model";
 
-/**
- * The two cards' handles, as module constants.
- *
- * Not written at the call site: a `CopyKey` spelled as a JSX attribute is a
- * string literal on a surface, which is the one thing REQ-093's sweep
- * exists to stop (`search-words.ts` records the same rule for the Search
- * tab's four tiles). Here the keys are values, and the JSX passes them.
- */
-const CARD = Object.freeze({
-  firstPage: {
-    titleKey: "overview.rivals.first-page.title",
-    testId: "rivals-card-first-page",
-  },
-  named: {
-    titleKey: "overview.rivals.named.title",
-    testId: "rivals-card-named",
-  },
-}) satisfies Readonly<Record<string, { titleKey: CopyKey; testId: string }>>;
+const INK = "text-base-content/70";
+const TITLE = {
+  top: "overview.rivals.first.title",
+  firstPage: "overview.rivals.first-page.title",
+  named: "overview.rivals.named.title",
+} as const satisfies Record<string, CopyKey>;
 
-/** One card: its name, one line saying what the count is of, the bars, and
- *  whatever the caller puts beneath them. */
 function Card(p: {
   titleKey: CopyKey;
   testId: string;
   lead: string;
-  card: PresenceCard;
-  /** What the card says where it was measured and no tracked rival was
-   *  counted, already written by the caller (issue 1365). */
-  noRivalLine: string;
+  /** `null` where the pass read nothing for it: its written line, and no bars. */
+  bars: { you: PresenceBar; rivals: readonly PresenceBar[]; of: number } | null;
   children?: React.ReactNode;
 }): React.JSX.Element {
   return (
     <section className="card card-border min-w-0 bg-base-100" data-testid={p.testId}>
       <div className="flex min-w-0 flex-col gap-3 p-4">
-        {/* What the count is of, closed under the card's own name (SPEC
-            §4, 2026-10-07, issue 1324). */}
-        <details className={CLOSED.root}>
-          <summary className={CLOSED.head}>
-            <h2 className="card-title text-base">{copy(p.titleKey)}</h2>
-          </summary>
-          <div className={CLOSED.body}>
-            <p className="max-w-prose text-sm text-base-content/70">{p.lead}</p>
-          </div>
-        </details>
-        {p.card.of === 0 ? (
-          <p className="text-sm text-base-content/70" data-testid={`${p.testId}-unmeasured`}>
+        <h2 className="card-title text-base">{copy(p.titleKey)}</h2>
+        <p className={`max-w-prose text-sm ${INK}`} data-testid={`${p.testId}-lead`}>
+          {p.lead}
+        </p>
+        {p.bars === null ? (
+          <p className={`text-sm ${INK}`} data-testid={`${p.testId}-unmeasured`}>
             {copy("overview.rivals.card.unmeasured")}
           </p>
         ) : (
-          <>
-            {/* No row of empty bars for the rivals: that every one of them
-                counted zero is said once, in words (SPEC §4, 2026-10-09). */}
-            <PresenceBars
-              you={{ name: p.card.you.domain, value: p.card.you.count }}
-              rivals={p.card.noRival ? [] : p.card.rivals.map((row) => ({ name: row.domain, value: row.count }))}
-              measured={p.card.of}
-              label={copy(p.titleKey)}
-            />
-            {p.card.noRival ? (
-              <p className="text-sm text-base-content/70 wrap-anywhere" data-testid={`${p.testId}-no-rival`}>
-                {p.noRivalLine}
-              </p>
-            ) : null}
-          </>
+          <PresenceBars you={p.bars.you} rivals={p.bars.rivals} measured={p.bars.of} label={copy(p.titleKey)} />
         )}
         {p.children}
       </div>
@@ -103,59 +66,94 @@ function Card(p: {
   );
 }
 
+/** A presence card's bars, each with its bare count; no rival bars where none was counted. */
+function barsOf(card: PresenceCard): { you: PresenceBar; rivals: readonly PresenceBar[]; of: number } | null {
+  if (card.of === 0) return null;
+  const bar = (name: string, value: number): PresenceBar => ({ name, value, text: formatCount(value) });
+  return {
+    you: bar(copy("overview.prompts.share.you"), card.you.count),
+    rivals: card.noRival ? [] : card.rivals.map((row) => bar(row.domain, row.count)),
+    of: card.of,
+  };
+}
+
 export function RivalPresence(p: {
+  top: TopCard;
+  /** How many of the top results this week's pages go after. */
+  after: number;
   firstPage: PresenceCard;
-  named: PresenceCard;
-  /** Where the customer stood when they started, already written by the
-   *  caller — `null` where there is no earlier week to have started from. */
   startedLine: string | null;
-  /** The three engines the second card counts over, already written. */
-  enginesLine: string;
-  /** Each card's sentence for a week no tracked rival was counted on it,
-   *  and the line naming the rivals neither card counted — `null` where
-   *  there is none. All written by the caller. */
   noRivalOnFirstPage: string;
+  named: PresenceCard;
+  namedLead: string;
   noRivalNamed: string;
-  unseenLine: string | null;
-  /** Where "See every answer" goes — the AI answers tab, which draws every
-   *  one of the cells this card counts. */
   answersHref: string;
 }): React.JSX.Element {
+  const of = formatCount(p.top.of);
+  const top = (name: string, value: number): PresenceBar => ({ name, value, text: copy("overview.rivals.first.of", { n: formatCount(value), of }) });
+  const topLine = [
+    p.top.you === 0
+      ? copy("overview.rivals.first.line", { of, n: formatCount(p.firstPage.you.count) })
+      : copy("overview.rivals.first.you", { of, n: formatCount(p.top.you) }),
+    ...(p.after === 0 ? [] : [copy("overview.rivals.first.after", { m: formatCount(p.after) })]),
+  ].join(" ");
   return (
-    <div className="grid min-w-0 gap-4 lg:grid-cols-2" data-testid="rivals-presence">
+    <div className="flex min-w-0 flex-col gap-4" data-testid="rivals-presence">
       <Card
-        titleKey={CARD.firstPage.titleKey}
-        testId={CARD.firstPage.testId}
-        lead={copy("overview.rivals.first-page.lead", { of: formatCount(p.firstPage.of) })}
-        card={p.firstPage}
-        noRivalLine={p.noRivalOnFirstPage}
+        titleKey={TITLE.top}
+        testId="rivals-card-top"
+        lead={copy("overview.rivals.first.lead", { of })}
+        bars={
+          p.top.of === 0
+            ? null
+            : {
+                you: top(copy("overview.prompts.share.you"), p.top.you),
+                rivals: [
+                  ...p.top.holders.map((row) => top(row.domain, row.count)),
+                  ...(p.top.others === 0 ? [] : [top(copy("overview.rivals.first.others"), p.top.others)]),
+                ],
+                of: p.top.of,
+              }
+        }
       >
-        {p.startedLine === null ? null : (
-          <p className="text-xs text-base-content/70" data-testid="rivals-started">
-            {p.startedLine}
+        {p.top.of === 0 ? null : (
+          <p className="rounded-box bg-base-200 p-3 text-sm" data-testid="rivals-top-line">
+            {topLine}
           </p>
         )}
       </Card>
 
-      <Card
-        titleKey={CARD.named.titleKey}
-        testId={CARD.named.testId}
-        lead={p.enginesLine}
-        card={p.named}
-        noRivalLine={p.noRivalNamed}
-      >
-        {/* The count and the cells it was counted from are one reading, and
-            this is the way through to them. */}
-        <Link href={p.answersHref} prefetch={true} className="link link-primary text-xs" data-testid="rivals-see-answers">
-          {copy("overview.rivals.named.see-all")}
-        </Link>
-      </Card>
+      <div className="grid min-w-0 gap-4 lg:grid-cols-2">
+        <Card
+          titleKey={TITLE.firstPage}
+          testId="rivals-card-first-page"
+          lead={copy("overview.rivals.first-page.lead", { of: formatCount(p.firstPage.of) })}
+          bars={barsOf(p.firstPage)}
+        >
+          {p.firstPage.noRival ? (
+            <p className={`text-sm wrap-anywhere ${INK}`} data-testid="rivals-card-first-page-no-rival">
+              {p.noRivalOnFirstPage}
+            </p>
+          ) : null}
+          {p.startedLine === null ? null : (
+            <p className={`text-xs ${INK}`} data-testid="rivals-started">
+              {p.startedLine}
+            </p>
+          )}
+        </Card>
 
-      {p.unseenLine === null ? null : (
-        <p className="text-sm text-base-content/70 wrap-anywhere lg:col-span-2" data-testid="rivals-unseen">
-          {p.unseenLine}
-        </p>
-      )}
+        <Card titleKey={TITLE.named} testId="rivals-card-named" lead={p.namedLead} bars={barsOf(p.named)}>
+          {p.named.noRival ? (
+            <p className={`text-sm wrap-anywhere ${INK}`} data-testid="rivals-card-named-no-rival">
+              {p.noRivalNamed}
+            </p>
+          ) : null}
+          {/* The count and the answers it was counted from are one reading, and this is the way through to them. */}
+          <Link href={p.answersHref} prefetch={true} className="link link-primary text-xs" data-testid="rivals-see-answers">
+            {copy("overview.rivals.named.see-all")}
+          </Link>
+        </Card>
+      </div>
     </div>
   );
 }

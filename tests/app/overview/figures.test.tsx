@@ -216,13 +216,14 @@ describe.each([
 });
 
 describe("the AI tab reads Overview's figures with the same reader", () => {
-  it("its reads card counts this week's fetches as Overview does", async () => {
+  it("its tiles count this week's fetches and the pages linked as Overview does", async () => {
     seed(SAAS, FIVE);
     db.seed("publication_reads", [...READS]);
     const overview = await render();
     const { default: AiTab } = await import("@/app/(account)/app/(tabs)/ai-answers/page");
     const tab = new DOMParser().parseFromString(renderToStaticMarkup(await AiTab()), "text/html");
-    expect(text(tab.querySelector('[data-testid="blog-reads-fetches-value"]'))).toBe("7");
+    expect(text(tab.querySelector('[data-testid="ai-tile-reads-value"]'))).toBe("7");
+    expect(text(tab.querySelector('[data-testid="ai-tile-linked-value"]'))).toBe(text(overview.querySelector('[data-testid="overview-tile-ai-linked"]')));
     expect(text(overview.querySelector('[data-testid="overview-tile-ai-reads"]'))).toBe(copy("overview.ai.reads", { n: "7" }));
   });
 });

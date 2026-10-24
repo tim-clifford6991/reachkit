@@ -38,6 +38,7 @@ const ROUTES = [
     // Board AppGoogle: the week over the name, and each page in Google between the tiles and the table.
     lines: ["search-eyebrow", "search-measured"],
     loaded: ["search-tiles", "search-pages", "search-table"],
+    open: [],
     waiting: ["tiles-skeleton", "search-pages-skeleton", "search-table-skeleton"],
   },
   {
@@ -45,20 +46,22 @@ const ROUTES = [
     Page: AnswersPage,
     Loading: AnswersLoading,
     head: "ai-answers",
-    lines: ["ai-answers-measured"],
-    // On a hosted blog *AI engines on your blog* stands between the two
-    // (issue 1364); the waiting state cannot know the blog is hosted.
-    loaded: ["answers-tiles", "blog-reads", "answers-grid"],
-    waiting: ["tiles-skeleton", "answer-grid-skeleton"],
+    // Board AppAI: the week over the name; the tiles, then each page in AI answers.
+    lines: ["ai-answers-eyebrow", "ai-answers-measured"],
+    loaded: ["ai-tiles", "ai-pages"],
+    open: [],
+    waiting: ["tiles-skeleton", "ai-pages-skeleton"],
   },
   {
     name: "/app/rivals",
     Page: RivalsPage,
     Loading: RivalsLoading,
     head: "rivals",
-    lines: ["rivals-measured"],
+    // Board AppCompetitors: the week over the name; its cards hold no tiles, so their leads stand open.
+    lines: ["rivals-eyebrow", "rivals-measured"],
     loaded: ["rivals-presence", "rivals-table"],
-    waiting: ["rival-presence-skeleton", "rival-table-skeleton"],
+    open: ["rivals-card-top-lead", "rivals-top-line", "rivals-card-first-page-lead", "rivals-started", "rivals-card-named-lead"],
+    waiting: ["rival-top-skeleton", "rival-presence-skeleton", "rival-table-skeleton"],
   },
 ];
 
@@ -77,7 +80,7 @@ function regions(screen: Element): (string | null)[] {
   );
 }
 
-describe.each(ROUTES)("$name", ({ Page, Loading, head, lines, loaded, waiting }) => {
+describe.each(ROUTES)("$name", ({ Page, Loading, head, lines, loaded, open: openLines, waiting }) => {
   it("opens on its name, then the numbers, then the table or grid", async () => {
     const screen = dom(await Page());
     expect(regions(screen).slice(0, 1 + loaded.length)).toEqual([`${head}-title`, ...loaded]);
@@ -91,12 +94,10 @@ describe.each(ROUTES)("$name", ({ Page, Loading, head, lines, loaded, waiting })
     const closed = [...screen.querySelectorAll("details")];
     expect(closed.length).toBeGreaterThan(0);
     for (const details of closed) expect(details.hasAttribute("open")).toBe(false);
-    // The numbers region shows a figure, and no sentence outside a closed
-    // one — but for where the site stood when it started, which is a
-    // second number and not a sentence about the first.
+    // The numbers region holds no open sentence but those its board draws open, named.
     const numbers = screen.querySelector(`[data-testid="${loaded[0]}"]`);
     const open = [...(numbers?.querySelectorAll("p") ?? [])].filter((p) => p.closest("details") === null);
-    expect(open.map((p) => p.getAttribute("data-testid")).filter((id) => id !== "rivals-started")).toEqual([]);
+    expect(open.map((p) => p.getAttribute("data-testid"))).toEqual(openLines);
   });
 
   it("waits in the same regions, under the same name", async () => {
@@ -120,10 +121,10 @@ describe("the parts that are one shape in two places", () => {
   });
 });
 
-describe("/app/ai-answers without LLM Mentions", () => {
-  it("draws the head, the numbers, the blog reads, the grid and the prompts, and no mention card", async () => {
+describe("/app/ai-answers in board AppAI's order", () => {
+  it("draws the head, the tiles, each page, who read and sent visits, and the reputation, and no mention card", async () => {
     const screen = dom(await AnswersPage());
-    expect(regions(screen)).toEqual(["ai-answers-title", "answers-tiles", "blog-reads", "answers-grid", "prompts-cards"]);
+    expect(regions(screen)).toEqual(["ai-answers-title", "ai-tiles", "ai-pages", "ai-who", "ai-reputation"]);
     expect(screen.querySelector('[data-testid^="mentions-"]')).toBeNull();
   });
 });

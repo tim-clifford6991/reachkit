@@ -48,6 +48,9 @@ const U = "not_measured" satisfies AnswerMark;
  *  ReachKit published for that search where there is one. */
 type Spec = readonly [wording: string, search: string, page: AnswerPage | null];
 
+/** A page of `content-fixture.ts`, by its title and its number there. */
+const OWN = (title: string, n: number): AnswerPage => ({ title, url: `https://content.example.com/p/${n}` });
+
 const PAGE = (title: string, slug: string): AnswerPage => ({
   title,
   url: `https://content.example.com/${slug}`,
@@ -110,42 +113,13 @@ function questionsFor(marks: readonly (readonly AnswerMark[])[]): readonly Answe
   }));
 }
 
-/**
- * SPEC §6 (2026-09-20, #919) — three published pages whose own question
- * joined the tracked set, numbered on from the twelve.
- *
- * On the latest pass alone, which is the shape a real account has the week
- * after its first pages went live: the three older weeks tracked the twelve
- * and the grid draws whichever pass it is given. Three rather than twelve,
- * so the fixture shows the count *under* the cap — "15 of 24 at most" says
- * the set has room, which is the harder line to get right and the one a
- * reader has to be able to read.
- */
+/** SPEC §6 (2026-09-20, #919) — the published pages' own questions, on the
+ *  latest pass alone, each naming one of `content-fixture.ts`'s asked pages. */
 const PAGE_SPECS: readonly (readonly [Spec, readonly AnswerMark[]])[] = [
-  [
-    [
-      "Which CRM keeps its contact history when a deal is closed?",
-      "crm that keeps contact history",
-      PAGE("The CRMs that keep contact history after a deal closes", "crm-contact-history"),
-    ],
-    [L, O, N],
-  ],
-  [
-    [
-      "How long does it take to set up a CRM for a team of five?",
-      "crm setup time small team",
-      PAGE("How long setting up a CRM really takes", "crm-setup-time"),
-    ],
-    [O, O, O],
-  ],
-  [
-    [
-      "Can two people share one CRM licence?",
-      "share a crm licence",
-      PAGE("Sharing a CRM licence: what the terms actually allow", "share-crm-licence"),
-    ],
-    [N, U, O],
-  ],
+  [["Which payment terms should a small business offer?", "payment terms for a small business", OWN("Choosing payment terms", 13)], [O, O, L]],
+  [["Do I charge VAT on a freelance invoice?", "vat on a freelance invoice", OWN("VAT on a freelance invoice", 12)], [X, N, O]],
+  [["How should I number my invoices?", "invoice numbering rules", OWN("Invoice numbering rules", 11)], [O, O, N]],
+  [["What should a late payment reminder say?", "late payment reminder", OWN("Late payment reminders that work", 3)], [X, O, U]],
 ];
 
 const PAGE_QUESTIONS: readonly AnswerQuestion[] = Object.freeze(

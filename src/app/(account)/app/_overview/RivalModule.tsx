@@ -1,8 +1,9 @@
 // BUILD §4.5 — how far ahead each rival is, in both arms.
 //
-// SPEC §4: rivals' lines. Per rival: name · `RivalSparkline` (Recharts, no
-// tone prop — rival strength is never red) · the written figure · a `was`
-// badge. Below `RATIO_UNLOCK` the cold-start arm shows absolute counts
+// SPEC §4 (board AppCompetitors): closed under "How far ahead competitors
+// are". Per rival: name · `RivalSparkline` (Recharts, no tone prop — rival
+// strength is never red) · "{x}× your size" · "from {x}×" or "no clear
+// change". Below `RATIO_UNLOCK` the cold-start arm shows absolute counts
 // beside the customer's own and never the gap-shrinking line. Week 0 draws
 // the deep pass's sizes as the starting rows and says so (#793); where the
 // deep pass sized nobody it draws no rows, only when sizing arrives.
@@ -12,14 +13,13 @@
 // the competitors card, below the reachable rows — both or neither.
 import type React from "react";
 import Link from "next/link";
-import { Users } from "lucide-react";
 import { RivalSparkline } from "@/ui/charts";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import type { SwapOffer } from "@/lib/market/rivals/offer";
 import { DESTINATION_HREF } from "../_shell/destinations";
 import { formatDate } from "../_shell/format";
 import { writtenLine } from "../_shell/written";
-import { renderValue } from "./present";
+import { CLOSED, renderValue } from "./present";
 import type { MarketLeaders, RatioRival, RivalGapModule } from "./rivals";
 
 const RIVAL_LABEL = "overview.rivals.title" satisfies CopyKey;
@@ -31,15 +31,14 @@ const SWAP_HREF: Record<Extract<SwapOffer, { offered: true }>["destination"], st
 
 function Card(p: { children: React.ReactNode }): React.JSX.Element {
   return (
-    <section className="card card-border min-w-0 bg-base-100" data-testid={TEST_ID}>
-      <div className="card-body gap-4 p-5">
-        <h2 className="card-title text-xs font-semibold uppercase tracking-wide text-base-content/70">
-          <Users aria-hidden size={20} strokeWidth={1.75} />
-          {copy(RIVAL_LABEL)}
+    <details className={`card card-border min-w-0 bg-base-100 ${CLOSED.root}`} data-testid={TEST_ID}>
+      <summary className="collapse-title flex min-h-0 min-w-0 flex-wrap items-baseline gap-x-3 gap-y-1 p-4 pe-10">
+        <h2 className="text-base font-semibold">
+          {copy(RIVAL_LABEL)} <span className="text-sm font-normal text-base-content/70">{copy("overview.rivals.ahead.sub")}</span>
         </h2>
-        {p.children}
-      </div>
-    </section>
+      </summary>
+      <div className="collapse-content flex min-w-0 flex-col gap-4 px-4">{p.children}</div>
+    </details>
   );
 }
 
@@ -50,17 +49,17 @@ function Card(p: { children: React.ReactNode }): React.JSX.Element {
 function Leaders(p: {
   leaders: MarketLeaders;
   reachable: number;
-  /** Which of the two sentences this surface says (#983). The Overview's
-   *  own is the default, so a caller that does not care reads exactly what
-   *  it read before. */
-  lineKey?: CopyKey;
+  /** What a size is, ahead of the leaders' line. */
+  note: string | null;
 }): React.JSX.Element | null {
   const { domains, swap } = p.leaders;
-  if (domains.length === 0 || !swap.offered) return null;
+  const noted = p.note === null ? null : <p className="text-xs text-base-content/70">{p.note}</p>;
+  if (domains.length === 0 || !swap.offered) return noted;
   const none = p.reachable === 0 ? writtenLine("overview.rivals.none-reachable") : null;
-  const line = writtenLine(p.lineKey ?? "overview.rivals.leaders", { rivals: domains.join(", ") });
+  const leaders = writtenLine("overview.rivals.leaders", { rivals: domains.join(", ") });
   const control = writtenLine("overview.rivals.leaders.swap");
-  if (line === null || control === null) return null;
+  if (leaders === null || control === null) return noted;
+  const line = p.note === null ? leaders : `${p.note} ${leaders}`;
   return (
     <div className="flex flex-col gap-2" data-testid="overview-rivals-leaders">
       {none === null ? null : <p className="text-sm">{none}</p>}
@@ -111,7 +110,7 @@ function RivalRow(p: {
           )}
         </div>
         {p.previous === null ? null : (
-          <span className="badge badge-success badge-soft num">{p.previous}</span>
+          <span className="num text-xs text-base-content/70">{p.previous}</span>
         )}
       </div>
     </li>
@@ -122,11 +121,6 @@ export function RivalModule(p: {
   rivals: RivalGapModule;
   timeZone: string;
   weekZero?: { firstDueOn: Date; startingOn: Date } | null;
-  /** Which market-leaders sentence this surface says (owner ruling
-   *  2026-09-21, #983). A key and not a written line, because the sentence
-   *  takes a slot this module fills with the leaders it was handed — the
-   *  caller chooses the words, the module states the names. */
-  leadersKey?: CopyKey;
 }): React.JSX.Element {
   const weekZero = p.weekZero ?? null;
   if (weekZero !== null && !anySized(p.rivals)) {
@@ -168,7 +162,7 @@ export function RivalModule(p: {
             key={rival.domain}
             domain={rival.domain}
             value={copy("overview.rivals.ratio", { ratio: renderValue(rival.ratio, RIVAL_LABEL).text })}
-            previous={previousFigure(rival.previous)}
+            previous={previousFigure(rival.previous, renderValue(rival.ratio, RIVAL_LABEL).text)}
             series={rival.series}
             account={rival.breakAccount}
           />
@@ -193,7 +187,7 @@ export function RivalModule(p: {
       <Leaders
         leaders={p.rivals.leaders}
         reachable={p.rivals.rivals.length}
-        {...(p.leadersKey === undefined ? {} : { lineKey: p.leadersKey })}
+        note={p.rivals.kind === "ratio" && p.rivals.rivals.length > 0 ? copy("overview.rivals.ahead.size") : null}
       />
     </Card>
   );
@@ -219,13 +213,11 @@ function comparisonWindow(rivals: RivalGapModule, timeZone: string): string | nu
   });
 }
 
-/** The `was 276×` badge — none on the first ratio, and none across a change
- *  (the difference would not be movement). */
-function previousFigure(previous: RatioRival["previous"]): string | null {
+/** "from 4.6×" where the ratio moved since the reading before; "no clear
+ *  change" where it held; nothing where no earlier ratio can be compared. */
+function previousFigure(previous: RatioRival["previous"], now: string): string | null {
   if (previous.kind === "first_ratio" || previous.kind === "spans_change") return null;
   const rendered = renderValue(previous, RIVAL_LABEL);
   if (rendered.isDash) return null;
-  return copy("overview.rivals.was", {
-    previous: copy("overview.rivals.ratio", { ratio: rendered.text }),
-  });
+  return rendered.text === now ? copy("overview.rivals.flat") : copy("overview.rivals.from", { ratio: rendered.text });
 }
