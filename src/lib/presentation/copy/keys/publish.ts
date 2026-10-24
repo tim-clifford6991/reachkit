@@ -336,6 +336,8 @@ export const PUBLISH_COPY = Object.freeze({
     "This is the page you stopped.",
     { slots: {}, fixedBy: "issue 1025" },
   ],
+  /** The pill on the stopped page in the accent half, as the board draws it. */
+  "publish.veto.panel.stopped": ["Won’t go live", { slots: {}, fixedBy: "issue 2002" }],
   /** Under the page the accent half shows (#1025, `R7-S4`): what it was
    *  written for, and how often that is searched. Transcribed from the
    *  board, for the owner to confirm. */

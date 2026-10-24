@@ -5,7 +5,8 @@
 // project, `renderToStaticMarkup`, the real registry.
 import { describe, expect, it, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
-import { createElement } from "react";
+import { createElement, type ReactNode } from "react";
+import { parse } from "node-html-parser";
 import { applyEnvFixture } from "../../mail/env-fixture";
 
 applyEnvFixture();
@@ -352,5 +353,39 @@ describe("the AI sentence states the battery's real numbers (R15)", () => {
 
   it("says no month and no single asking anywhere on the page", () => {
     expect(text(html)).not.toMatch(/every month|once a month|each question once/i);
+  });
+});
+
+type Tree = { props?: { id?: string; draw?: unknown; children?: unknown } };
+/** The elements under a node that pass a test, without rendering it. */
+function elements(node: unknown, pass: (n: Tree) => boolean): Tree[] {
+  if (Array.isArray(node)) return node.flatMap((child) => elements(child, pass));
+  if (node === null || typeof node !== "object") return [];
+  const el = node as Tree;
+  return [...(pass(el) ? [el] : []), ...elements(el.props?.children, pass)];
+}
+
+describe("#start draws the free report's glance as the board does", () => {
+  it("each example's glance has its score ring, its icon tiles and its AI bar", () => {
+    // The switch's software drawing is not in the first render, so each example is drawn from #start's own switch.
+    const [start] = elements(HowItWorksPage(), (n) => n.props?.id === "start");
+    const [switched] = elements(start?.props?.children, (n) => typeof n.props?.draw === "function");
+    const draw = switched?.props?.draw as (e: (typeof EXAMPLES)["plumber"]) => ReactNode;
+    expect(section("start")).toContain(renderToStaticMarkup(draw(EXAMPLES.plumber)));
+    for (const e of [EXAMPLES.plumber, EXAMPLES.software]) {
+      const glance = parse(renderToStaticMarkup(draw(e)))
+        .querySelectorAll("figure")
+        .find((f) => f.getAttribute("aria-label") === copy("how.start.glance"));
+      expect(glance, e.business).toBeDefined();
+      expect(glance?.querySelector(".radial-progress")?.getAttribute("style"), e.business).toContain(`--value:${e.report.score}`);
+      expect(glance?.querySelector(".rounded-field svg.lucide-sparkles"), e.business).not.toBeNull();
+      expect(glance?.querySelector(".rounded-field svg.lucide-file-text"), e.business).not.toBeNull();
+      const bar = glance?.querySelector("progress.progress-primary");
+      expect([bar?.getAttribute("value"), bar?.getAttribute("max"), bar?.getAttribute("aria-hidden")], e.business).toEqual([
+        String(e.report.mentioned),
+        String(e.report.asked),
+        "true",
+      ]);
+    }
   });
 });

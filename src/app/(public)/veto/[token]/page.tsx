@@ -41,7 +41,8 @@ import type React from "react";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { CircleCheck, Clock, Info } from "lucide-react";
+import { Check, CircleQuestionMark, CircleStop, Clock, Coffee, FileText, Info, Lock, MessageCircleWarning, X, type LucideIcon } from "lucide-react";
+import { StopButton } from "./StopButton";
 import { copy } from "@/lib/presentation/copy";
 import { previewVetoLink, redeemVetoLink, vetoLinkPath } from "@/lib/publish/publishable";
 import type { PreviewResult, VetoPreview, WeekDay } from "@/lib/publish/publishable";
@@ -196,7 +197,10 @@ const PANEL_COLUMN = "flex w-full max-w-lg flex-col gap-5";
 const EYEBROW = "flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-base-content/70";
 const ROW_LABEL = "text-xs font-semibold uppercase tracking-wide text-base-content/70";
 /** The stopped arm's mark: a success-tinted square, as `R7-S5` draws it. */
-const CHIP_OK = "grid size-12 flex-none place-items-center rounded-box bg-success/10 text-success";
+const CHIP = "grid size-12 flex-none place-items-center rounded-box";
+const CHIP_OK = `${CHIP} bg-success/10 text-success`;
+/** A link that could not be spent is not good news: a neutral square. */
+const CHIP_QUIET = `${CHIP} bg-base-200 text-base-content/70`;
 
 /**
  * The heading and line for a link that cannot be spent; only a spent link
@@ -209,17 +213,17 @@ const CHIP_OK = "grid size-12 flex-none place-items-center rounded-box bg-succes
  * difference between them is a fact about the page that this screen holds no
  * session to be told.
  */
-function refusal(reason: Exclude<Read, { ok: true }>["reason"]): { head: string; line: string } {
+function refusal(reason: Exclude<Read, { ok: true }>["reason"]): { head: string; line: string; icon: LucideIcon } {
   switch (reason) {
     case "used":
-      return { head: copy("publish.veto.used.head"), line: copy("publish.veto.alreadyUsed") };
+      return { head: copy("publish.veto.used.head"), line: copy("publish.veto.alreadyUsed"), icon: CircleStop };
     case "expired":
     case "not_in_review":
-      return { head: copy("publish.veto.closed.head"), line: copy("publish.veto.expired") };
+      return { head: copy("publish.veto.closed.head"), line: copy("publish.veto.expired"), icon: Clock };
     case "written":
-      return { head: copy("publish.veto.closed.head"), line: copy("publish.veto.written") };
+      return { head: copy("publish.veto.closed.head"), line: copy("publish.veto.written"), icon: Clock };
     case "unknown":
-      return { head: copy("publish.veto.unknown.head"), line: copy("publish.veto.unknown") };
+      return { head: copy("publish.veto.unknown.head"), line: copy("publish.veto.unknown"), icon: CircleQuestionMark };
   }
 }
 
@@ -343,6 +347,7 @@ function pagePanel(p: {
   title: string | null;
   excerpt: string | null;
   caption: string | null;
+  stopped?: boolean;
 }): React.JSX.Element | null {
   if (p.domain === null && p.title === null && p.excerpt === null) return null;
   // The title sits one level under whatever heads this half, so no level
@@ -358,10 +363,17 @@ function pagePanel(p: {
             {/* The address is clamped by the box that holds it, in the UI
                 face: a site name can be any length. */}
             <div className="input w-full min-w-0">
+              <Lock size={16} strokeWidth={1.75} className="flex-none" aria-hidden />
               <span className="truncate">{p.domain ?? ""}</span>
             </div>
           </div>
           <div className="border-base-300 flex flex-col gap-3 border-t px-6 py-6">
+            {p.stopped ? (
+              <span className="badge badge-ghost gap-1 self-start">
+                <CircleStop size={16} strokeWidth={1.75} aria-hidden />
+                {copy("publish.veto.panel.stopped")}
+              </span>
+            ) : null}
             {p.title === null ? null : <Title>{p.title}</Title>}
             {p.excerpt === null ? null : (
               <p className="text-sm" data-testid="veto-excerpt">
@@ -453,16 +465,23 @@ function Ask(p: { token: string; it: Omit<VetoPreview, "draftId">; failed?: bool
       )}
       {p.failed ? (
         <div role="alert" className="rounded-box border-error flex flex-col gap-2 border px-4 py-3" data-testid="veto-failed">
+          {/* Warn is edge and ink, never a fill. */}
+          <span className={`${CHIP} border-warning text-warning border`} data-tone="warn" data-testid="veto-failed-chip">
+            <MessageCircleWarning size={20} strokeWidth={1.75} aria-hidden />
+          </span>
           <h2 className="text-error text-base">{copy("publish.veto.failed.head")}</h2>
           <p className="text-sm">{copy("publish.veto.failed")}</p>
-          {when === null ? null : <p className="text-sm">{copy("publish.veto.failed.still", { when })}</p>}
+          {when === null ? null : (
+            <p className="flex items-center gap-2 text-sm">
+              <Clock size={16} strokeWidth={1.75} className="flex-none" aria-hidden />
+              <span>{copy("publish.veto.failed.still", { when })}</span>
+            </p>
+          )}
         </div>
       ) : null}
       <form action={stop} className="flex flex-col gap-2">
         {/* The screen's one solid button. */}
-        <button type="submit" className="btn btn-primary btn-block">
-          {copy("publish.veto.ask.action")}
-        </button>
+        <StopButton label={copy("publish.veto.ask.action")} />
         <p className="text-base-content/70 text-sm">{copy("publish.veto.consequence")}</p>
       </form>
       {/* The sentence, and the offer it used to end with as a control. A
@@ -499,19 +518,22 @@ function Ask(p: { token: string; it: Omit<VetoPreview, "draftId">; failed?: bool
           {copy("publish.veto.choices.title")}
         </h2>
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-          {choice(copy("publish.veto.choices.stop"), [
-            copy("publish.veto.choices.stop.1"),
-            copy("publish.veto.choices.stop.2"),
-            copy("publish.veto.choices.stop.3"),
+          {choice({ text: copy("publish.veto.choices.stop"), icon: CircleStop, tone: "text-primary" }, [
+            { text: copy("publish.veto.choices.stop.1"), icon: X },
+            { text: copy("publish.veto.choices.stop.2"), icon: X },
+            { text: copy("publish.veto.choices.stop.3"), icon: Check },
           ])}
-          {choice(copy("publish.veto.choices.none"), [
-            p.it.unconnected
-              ? copy("publish.veto.choices.none.1.unconnected")
-              : when === null
-                ? copy("publish.veto.choices.none.1.unset")
-                : copy("publish.veto.choices.none.1", { when }),
-            copy("publish.veto.choices.none.2"),
-            copy("publish.veto.choices.none.3"),
+          {choice({ text: copy("publish.veto.choices.none"), icon: Coffee, tone: "text-success" }, [
+            {
+              text: p.it.unconnected
+                ? copy("publish.veto.choices.none.1.unconnected")
+                : when === null
+                  ? copy("publish.veto.choices.none.1.unset")
+                  : copy("publish.veto.choices.none.1", { when }),
+              icon: Check,
+            },
+            { text: copy("publish.veto.choices.none.2"), icon: Check },
+            { text: copy("publish.veto.choices.none.3"), icon: Check },
           ])}
         </div>
       </section>
@@ -519,16 +541,28 @@ function Ask(p: { token: string; it: Omit<VetoPreview, "draftId">; failed?: bool
   );
 }
 
-/** One of the two choices: what the reader does, and the three things that follow. */
-function choice(head: string, lines: readonly string[]): React.JSX.Element {
+type ChoiceLine = { text: string; icon: LucideIcon };
+
+/** One of the two choices: what the reader does, and the three things that
+ *  follow. Only a tick is success-toned: a cross beside "It won't go live"
+ *  says what is lost, not that something went well. */
+function choice(head: ChoiceLine & { tone: string }, lines: readonly ChoiceLine[]): React.JSX.Element {
   return (
-    <div className="rounded-box border-base-300 flex flex-col gap-3 border p-4">
-      <h3 className="text-base">{head}</h3>
+    <div className="rounded-box border-base-300 flex flex-col gap-3 border p-4" data-testid="veto-choice">
+      <div className="flex items-center gap-2">
+        <head.icon size={20} strokeWidth={1.75} className={`${head.tone} flex-none`} aria-hidden />
+        <h3 className="text-base">{head.text}</h3>
+      </div>
       <ul className="flex flex-col gap-2 text-sm">
         {lines.map((line) => (
-          <li key={line} className="flex items-start gap-2">
-            <CircleCheck size={20} strokeWidth={1.75} className="text-success flex-none" aria-hidden />
-            <span>{line}</span>
+          <li key={line.text} className="flex items-start gap-2">
+            <line.icon
+              size={20}
+              strokeWidth={1.75}
+              className={`${line.icon === Check ? "text-success" : "text-base-content/70"} flex-none`}
+              aria-hidden
+            />
+            <span>{line.text}</span>
           </li>
         ))}
       </ul>
@@ -558,13 +592,16 @@ function Told(p: {
   confirmed?: boolean;
   /** The stopped page's week, where it could be read. */
   week?: readonly WeekDay[] | null;
+  /** A refusal's neutral mark, where the board draws one. */
+  icon?: LucideIcon;
 }): React.JSX.Element {
+  const Icon = p.icon ?? null;
   return split(
     <>
       {p.confirmed ? (
         <>
           <span className={CHIP_OK} data-tone="ok" data-testid="veto-told">
-            <CircleCheck size={20} strokeWidth={1.75} aria-hidden />
+            <Check size={20} strokeWidth={1.75} aria-hidden />
           </span>
           <div role="status" className="flex flex-col gap-2">
             <h1>{p.head}</h1>
@@ -577,7 +614,14 @@ function Told(p: {
         // accent half, never in this column, so on the arms that are not
         // the confirmation this eyebrow is the only name the screen has.
         // `EYEBROW` carries the appearance either way.
-        <h1 className={EYEBROW}>{p.head}</h1>
+        <>
+          {Icon === null ? null : (
+            <span className={CHIP_QUIET} data-testid="veto-refused-chip">
+              <Icon size={20} strokeWidth={1.75} aria-hidden />
+            </span>
+          )}
+          <h1 className={EYEBROW}>{p.head}</h1>
+        </>
       )}
       <p className="text-base-content/70 text-sm" data-testid="veto-message">
         {p.message}
@@ -598,6 +642,7 @@ function Told(p: {
           // Not the ask arm's "goes live on …": this page no longer does.
           heading: p.confirmed ? copy("publish.veto.panel.heading.stopped") : null,
           caption: null,
+          stopped: p.confirmed === true,
           ...p.page,
         })
   );
@@ -616,7 +661,14 @@ function weekStrip(week: readonly WeekDay[]): React.JSX.Element {
           >
             <span className="text-base-content/70">{weekdayOf(day.date)}</span>
             {day.stopped === null ? null : (
-              <span>{copy(day.stopped ? "publish.veto.week.stopped" : "publish.veto.week.ahead")}</span>
+              <>
+                {day.stopped ? (
+                  <CircleStop size={16} strokeWidth={1.75} className="mx-auto" aria-hidden />
+                ) : (
+                  <FileText size={16} strokeWidth={1.75} className="mx-auto" aria-hidden />
+                )}
+                <span>{copy(day.stopped ? "publish.veto.week.stopped" : "publish.veto.week.ahead")}</span>
+              </>
             )}
           </li>
         ))}
@@ -657,10 +709,10 @@ export default async function VetoPage(p: {
   }
 
   if (!result.ok) {
-    const { head, line } = refusal(result.reason);
+    const { head, line, icon } = refusal(result.reason);
     return (
       <Surface arms={ARMS}>
-        <Told head={head} page={null} message={line} />
+        <Told head={head} page={null} message={line} icon={icon} />
       </Surface>
     );
   }
