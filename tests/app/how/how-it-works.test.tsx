@@ -29,6 +29,7 @@ const { CHECK_LINES, ENGINES_NAMED, ENGINES_NAMED_COUNT, HOW_FACTS, MODEL_DECIDE
   "@/app/(public)/_how/facts"
 );
 const { EXAMPLES } = await import("@/app/(public)/_how/specimen");
+const { whenIcons } = await import("./drawn-icons");
 
 const NOTHING: LiveExamples = { report: null, page: null, founder: null };
 const STORED: LiveExamples = {
@@ -346,6 +347,16 @@ describe("each section carries the board's added lines, in its own section", () 
 
   it("the head, the value and the questions no longer carry the ship-only details", () => {
     for (const id of ["top", "value", "faq"]) expect(section(id), id).not.toContain(`>${copy("how.detail")}</summary>`);
+  });
+});
+
+describe("#found: each step of what to expect draws its own icon", () => {
+  it("what to expect: calendar, search, eye, trending-up in order", () => {
+    expect(whenIcons(section("found")).steps).toEqual(["calendar", "search", "eye", "trending-up"]);
+  });
+
+  it("the timeline's notes: info, map-pin", () => {
+    expect(whenIcons(section("found")).notes).toEqual(["info", "map-pin"]);
   });
 });
 

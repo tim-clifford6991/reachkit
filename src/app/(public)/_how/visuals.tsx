@@ -5,17 +5,23 @@ import type React from "react";
 import {
   ArrowDown,
   Bot,
+  Calendar,
   Check,
   CircleCheck,
   CircleStop,
   Clock,
+  Eye,
   FileText,
+  Info,
   Mail,
+  MapPin,
   Pencil,
   RefreshCw,
   Search,
   Sparkles,
+  TrendingUp,
   X,
+  type LucideIcon,
 } from "lucide-react";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { HARD_RULES } from "@/lib/generate/rules/types";
@@ -534,16 +540,26 @@ export function WhatWeWorkToward(e: Example): React.JSX.Element {
   );
 }
 
-const WHEN = ["first", "found", "showing", "top"] as const;
+const WHEN = [
+  ["first", Calendar],
+  ["found", Search],
+  ["showing", Eye],
+  ["top", TrendingUp],
+] as const;
 
-/** One step of a timeline: when, and what happens then. */
+/** One step of a timeline: when, what happens then, and its own icon, so no step borrows the tick of "Live". */
 export interface WhenStep {
   readonly at: string;
   readonly what: string;
+  readonly icon: LucideIcon;
 }
 
 const WHEN_STEPS = (): readonly WhenStep[] =>
-  WHEN.map((step) => ({ at: copy(`how.when.${step}.at` as CopyKey), what: copy(`how.when.${step}.what` as CopyKey) }));
+  WHEN.map(([step, icon]) => ({
+    at: copy(`how.when.${step}.at` as CopyKey),
+    what: copy(`how.when.${step}.what` as CopyKey),
+    icon,
+  }));
 
 /** `#found`: what moves when, as time ranges and never as dates. Pricing
  *  draws the same card with its own first days and no Maps line. */
@@ -563,7 +579,7 @@ export function WhatToExpect(
             <li key={step.at}>
               {i > 0 ? <hr className="bg-base-300" /> : null}
               <div className="timeline-middle text-primary">
-                <CircleCheck {...ICON} />
+                <step.icon {...ICON} />
               </div>
               <div className="timeline-end mb-3 flex min-w-0 flex-col">
                 <span className="text-sm font-semibold">{step.at}</span>
@@ -573,8 +589,16 @@ export function WhatToExpect(
             </li>
           ))}
         </ul>
-        <p className="text-sm font-semibold">{copy("how.when.promise")}</p>
-        {p.maps === false ? null : <p className={SMALL}>{copy("how.when.maps")}</p>}
+        <p className="flex items-start gap-2 text-sm font-semibold">
+          <Info {...ICON} className="mt-0.5 shrink-0" />
+          {copy("how.when.promise")}
+        </p>
+        {p.maps === false ? null : (
+          <p className={`${SMALL} flex items-start gap-2`}>
+            <MapPin {...ICON} className="shrink-0" />
+            {copy("how.when.maps")}
+          </p>
+        )}
       </div>
     </div>
   );

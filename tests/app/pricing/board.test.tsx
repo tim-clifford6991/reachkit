@@ -19,6 +19,7 @@ const { BATTERY, VETO, WEEK_PLAN } = await import("@/lib/config/constants");
 const { HARD_RULES } = await import("@/lib/generate/rules/types");
 const { HOW_FACTS } = await import("@/app/(public)/_how/facts");
 const { AGENCY_BENCHMARK, EXAMPLES } = await import("@/app/(public)/_how/specimen");
+const { buysIcons, whenIcons } = await import("../how/drawn-icons");
 
 const html = renderToStaticMarkup(<PricingPage />);
 const price = copy("price.amount");
@@ -61,6 +62,10 @@ describe("board Pricing — the head and the plan card", () => {
       expect(top()).toContain(figure);
     }
     for (const chip of ["no contract", "no setup fee", "cancel any time"]) expect(top()).toContain(chip);
+  });
+
+  it("what €49 buys: four tiles with file-text, users, inbox, timer", () => {
+    expect(buysIcons(html, copy("pricing.buys", { price }))).toEqual(["file-text", "users", "inbox", "timer"]);
   });
 
   it("the card names the plan, how it is billed, its five rows, Start, the cancel line and the free path", () => {
@@ -205,6 +210,14 @@ describe("board Pricing — what you see from week 1", () => {
     expect([...at].sort((a, b) => a - b)).toEqual(at);
     expect(first()).toContain(copy("how.when.promise"));
     expect(first()).not.toContain(copy("how.when.maps"));
+  });
+
+  it("the first months: timer, circle-check, inbox, search, eye, trending-up", () => {
+    const week1 = html.slice(html.indexOf('<section id="week1"'), html.indexOf('<section id="compare"'));
+    expect(whenIcons(week1)).toEqual({
+      steps: ["timer", "circle-check", "inbox", "search", "eye", "trending-up"],
+      notes: ["info"],
+    });
   });
 });
 
