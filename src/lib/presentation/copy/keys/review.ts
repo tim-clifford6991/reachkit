@@ -34,6 +34,7 @@ export const REVIEW_COPY = Object.freeze({
   "review.part.near_page_one": ["near page one", { slots: {}, fixedBy: "issue 1702 (drafted)" }],
   "review.part.linked_by_ai": ["linked by AI", { slots: {}, fixedBy: "issue 1702 (drafted)" }],
   "review.part.not_moving": ["not moving", { slots: {}, fixedBy: "issue 1702 (drafted)" }],
+  "review.part.new_site": ["new site", { slots: {}, fixedBy: "issue 1552 (drafted)" }],
   "review.points.measures": ["Fit {fit} · volume {volume}", { slots: { fit: "text", volume: "text" }, fixedBy: "issue 1702 (drafted)" }],
   "review.why.rule": ["Placed by: {rule}", { slots: { rule: "text" }, fixedBy: "issue 1702 (drafted)" }],
   "review.rejected.title": ["Not chosen ({count})", { slots: { count: "text" }, fixedBy: "issue 1702 (drafted)" }],

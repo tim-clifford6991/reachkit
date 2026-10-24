@@ -213,6 +213,10 @@ export const PUBLISH_COPY = Object.freeze({
     "a fact the live page doesn’t already state",
     { slots: {}, fixedBy: "issue 1252 (drafted)" },
   ],
+  "publish.needs-you.pack.need.rival_evidence": [
+    "a fact about each competitor from its own site or a study",
+    { slots: {}, fixedBy: "issue 1552 (drafted)" },
+  ],
   "publish.needs-you.destination": [
     "This page is written and couldn’t be delivered to your site. It goes out as soon as the connection to your site works again.",
     { slots: {}, fixedBy: "issue 880" },

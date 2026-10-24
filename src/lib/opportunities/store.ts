@@ -145,6 +145,12 @@ export interface DraftedPage {
   writtenAs?: string | null;
 }
 
+/** One live page's opportunity and the cluster it was written for. */
+export interface LivePageCluster {
+  opportunityId: string;
+  clusterKey: string | null;
+}
+
 export interface OpportunityStore {
   insert(row: OpportunityInsert): Promise<InsertOutcome>;
   /** Open, non-`fix` rows for one site — the unused-supply set, and the
@@ -183,6 +189,9 @@ export interface OpportunityStore {
   /** The clusters of the site's live pages at any of `urls`. Optional: a
    *  store that cannot answer reads none. */
   clustersAt?(siteId: string, urls: readonly string[]): Promise<readonly string[]>;
+  /** The opportunities of the site's live pages, each with its cluster.
+   *  Optional: a store that cannot answer holds no cluster back. */
+  livePageClusters?(siteId: string): Promise<readonly LivePageCluster[]>;
   /** The top tens the given scans bought, by `queryKey`, a later scan's
    *  over an earlier one's (#1131) — what a held row's search is compared
    *  by. Only the questions and SERPs are read, never the whole report. */
@@ -664,6 +673,22 @@ export function supabaseOpportunityStore(): OpportunityStore {
         return wanted.has(canonicalUrl(row.live_url)) || wanted.has(canonicalUrl(now(row.live_url))) ? [key] : [];
       });
       return [...new Set(keys)];
+    },
+
+    async livePageClusters(siteId) {
+      const { data, error } = await untyped()
+        .from<{ drafts: { opportunity_id: string | null; opportunities: { cluster_key: string | null } | null } | null }>("publications")
+        .select("drafts(opportunity_id, opportunities(cluster_key))")
+        .eq("site_id", siteId)
+        .not("live_url", "is", null)
+        .is("unpublished_at", null);
+      if (error) throw new Error(`opportunities.livePageClusters: ${error.message}`);
+      const byId = new Map<string, string | null>();
+      for (const row of data ?? []) {
+        const id = row.drafts?.opportunity_id ?? null;
+        if (id !== null) byId.set(id, row.drafts?.opportunities?.cluster_key ?? null);
+      }
+      return [...byId].map(([opportunityId, clusterKey]) => ({ opportunityId, clusterKey }));
     },
 
     async topTens(scanIds) {
