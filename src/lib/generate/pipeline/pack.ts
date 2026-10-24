@@ -545,9 +545,39 @@ function ownTopicWords(pack: Omit<ContextPack, "missing">): Set<string> {
   return own(`${pack.business.category} ${typeof market?.job === "string" ? market.job : ""}`);
 }
 
+/**
+ * The rivals a "vs" search sets against each other without the business
+ * (owner ruling R31), each by name and domain; empty on any other search.
+ */
+export function rivalsOnlyVersus(pack: Pick<ContextPack, "target" | "business">): NamedRival[] {
+  const search = (pack.target.searches[0] ?? pack.target.question).toLowerCase();
+  if (!SHAPES.versus.test(search)) return [];
+  const own = { name: pack.business.name ?? brandOf(pack.business.domain), domain: pack.business.domain };
+  if (namesRival(search, own) || namesRival(search, { name: brandOf(pack.business.domain), domain: pack.business.domain })) return [];
+  const market = pack.business.market as { rivals?: unknown } | null;
+  const listed = Array.isArray(market?.rivals) ? (market.rivals as { name?: unknown; domain?: unknown }[]) : [];
+  const rivals: NamedRival[] = [];
+  for (const rival of [
+    ...listed.flatMap((each) => (typeof each.name === "string" && typeof each.domain === "string" ? [{ name: each.name, domain: each.domain }] : [])),
+    ...pack.business.rivals.map((domain) => ({ name: brandOf(domain), domain })),
+  ]) {
+    if (!rivals.some((known) => known.domain === rival.domain) && namesRival(search, rival)) rivals.push(rival);
+  }
+  return rivals.length >= 2 ? rivals : [];
+}
+
+/** A claim about a rival read first-hand: off its own site, or off a study
+ *  or a primary source about it — never off a top search result. */
+function firstHand(claim: PackClaim, domain: string): boolean {
+  if (claim.kind === "top_result") return false;
+  return claim.product === domain || ((claim.kind === "study" || claim.kind === "primary") && claim.about === domain);
+}
+
 function holds(requirement: PackRequirement, pack: Omit<ContextPack, "missing">, previousResearch: PackMeasurements | null): boolean {
   const knowledge = pack.profile?.knowledge;
   switch (requirement.need) {
+    case "rival_evidence":
+      return rivalsOnlyVersus(pack).every((rival) => pack.claims.some((claim) => firstHand(claim, rival.domain)));
     case "options":
       // D47: the options are the ones code can lay a table out of — the
       // business and that many rivals, each with a fact to set beside it.
@@ -632,7 +662,9 @@ export function correctionsFor(a: {
 
 /** What the template asks of the pack that it does not hold, by handle. */
 export function missingFrom(pack: Omit<ContextPack, "missing">, previousResearch: PackMeasurements | null = null): PackNeed[] {
-  return TEMPLATES[pack.type].packMustHold.filter((requirement) => !holds(requirement, pack, previousResearch)).map((requirement) => requirement.need);
+  // R31: every page but an update, whatever its template, is held to it.
+  const held: PackRequirement[] = [...TEMPLATES[pack.type].packMustHold, ...(pack.type === "update" ? [] : [{ need: "rival_evidence" as const }])];
+  return held.filter((requirement) => !holds(requirement, pack, previousResearch)).map((requirement) => requirement.need);
 }
 
 export interface PackInputs {

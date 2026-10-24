@@ -1,7 +1,8 @@
 // SPEC §7 — the one ranked list: integer points (`points.ts`), ties by
 // volume, then age, then id, so two reads of the same rows give one order.
-// The week keeps four rules and no others: no two days running on one topic,
-// the pace, at most two offering pages a week, and D52's one comparison.
+// The week keeps five rules and no others: no two days running on one topic,
+// the pace, at most two offering pages a week, D52's one comparison, and a
+// new site's one cluster filled before a third is opened.
 //
 // `unblock` never appears here: the store's `openRankable` excludes the Fix
 // family. A `not-yet` target never does either: readiness stores it
@@ -14,7 +15,7 @@ import { CONTENT_MIX, PACE, PLAN_DEPTH } from "@/lib/config/constants";
 import type { Profile } from "@/lib/market/questions/profile";
 import type { IntentPrompt } from "../intent";
 import { opportunityStore } from "../store";
-import { readOpportunity, type DraftedPage, type OpportunityRow } from "../store";
+import { readOpportunity, type DraftedPage, type LivePageCluster, type OpportunityRow } from "../store";
 import { canonicalUrl } from "@/lib/measure/page-reading";
 import { sameTopic } from "../cluster";
 import { CONTENT_TYPES, contentTypeOf, type ContentType } from "../content-type";
@@ -25,6 +26,11 @@ import { POINTS, pointsOf, volumeOrder, type Seen } from "./points";
 /** At most this many offering pages in any seven days (owner ruling of
  *  2026-10-19). Like the topic's rotation, it orders and never empties a day. */
 export const OFFERING_MAX = 2;
+
+/** A new site and what it is held to (owner ruling R31, 2026-10-24): one
+ *  ranking fewer than `rankedBelow` searches is new; it fills one cluster to
+ *  `clusterFull` pages before it opens more than `openClusters`. */
+export const NEW_SITE = Object.freeze({ rankedBelow: 30, clusterFull: 5, openClusters: 2, points: 1 });
 
 /** A row with its points. */
 export interface Scored {
@@ -54,7 +60,8 @@ function isOffering(o: Parameters<typeof pageTypeOf>[0]): boolean {
  *  includes the business, is taken only where the seven days hold fewer than
  *  `SELF_PROMOTING_MAX`; where only such rows are left, the best is written
  *  as a Q&A of its buyer question before the offering count gives way. The
- *  topic's rotation and the offering count give way before a day goes empty. */
+ *  topic's rotation, a new site's clusters and the offering count give way,
+ *  in that order, before a day goes empty. */
 export function orderRanked(
   scored: readonly Scored[],
   rotation: {
@@ -68,6 +75,9 @@ export function orderRanked(
      *  rather than answering one as a Q&A — what the writable-days count
      *  reads, since that Q&A needs buyer questions its pack may not hold. */
     holdCapped?: boolean;
+    /** A new site's pages by cluster: what it has live or drafted. Absent
+     *  opens any cluster. */
+    clusters?: ReadonlyMap<string, number>;
   } = {}
 ): Ranked[] {
   const left = [...scored].sort(byPoints);
@@ -75,6 +85,7 @@ export function orderRanked(
   const placed = [...(rotation.mix?.recent ?? [])];
   const from = rotation.mix?.from ?? 0;
   const out: Ranked[] = [];
+  const clusters = rotation.clusters === undefined ? null : new Map(rotation.clusters);
   let previous = rotation.after ?? null;
   const until = rotation.days === undefined ? Infinity : from + rotation.days;
   for (let day = from; left.length > 0 && day < until; day++) {
@@ -86,7 +97,9 @@ export function orderRanked(
     const own = (entry: Entry) => isOwnRefresh(entry.opportunity);
     const paced = window.filter((page) => page.kind !== "update").length >= PACE.NEW_PAGES_PER_WEEK;
     const offeringFull = window.filter((page) => page.offering).length >= OFFERING_MAX;
-    const room = (entry: Entry) => !offeringFull || !isOffering(entry.opportunity);
+    const offeringRoom = (entry: Entry) => !offeringFull || !isOffering(entry.opportunity);
+    const inClusters = (entry: Entry) => opensNoThird(entry.opportunity, clusters);
+    const room = (entry: Entry) => offeringRoom(entry) && inClusters(entry);
     const capped = (entry: Entry) =>
       kindOf(entry) === "listicle" && window.filter((page) => page.kind === "listicle").length >= CONTENT_MIX.SELF_PROMOTING_MAX;
     type Tier = readonly [PlaceRule, (entry: Entry) => boolean];
@@ -103,7 +116,9 @@ export function orderRanked(
       ["best", (entry) => fresh(entry) && room(entry)],
       ["best, same topic", room],
       // The offering cap holds until D52's Q&A has been tried; a Q&A tier reads only capped rows.
-      ...(rotation.holdCapped === true ? [] : ([[qa, fresh], [qa, () => true]] satisfies Tier[])),
+      ...(rotation.holdCapped === true ? [] : ([[qa, (entry: Entry) => fresh(entry) && inClusters(entry)], [qa, inClusters]] satisfies Tier[])),
+      ["best, a third cluster", offeringRoom],
+      ...(rotation.holdCapped === true ? [] : ([[qa, () => true]] satisfies Tier[])),
       ["best, offering full", fresh],
       ["best, offering full", () => true],
     ];
@@ -125,10 +140,39 @@ export function orderRanked(
       ...(asQa ? { writeAs: "qa" as const } : {}),
     });
     previous = entry!.opportunity;
+    const key = clusterOf(entry!.opportunity);
+    if (clusters !== null && key !== null) clusters.set(key, (clusters.get(key) ?? 0) + 1);
     const kind = asQa ? "qa" : kindOf(entry!);
     if (kind !== null) placed.push({ day, kind, offering: !asQa && isOffering(entry!.opportunity) });
   }
   return out;
+}
+
+/** A Write or Earn row: a new page of the site's. */
+function newPage(o: { family: string }): boolean {
+  return o.family === "write" || o.family === "earn";
+}
+
+/** The cluster a new page of the site's is written in, where it has one. */
+function clusterOf(o: Opportunity): string | null {
+  return newPage(o) ? o.clusterKey : null;
+}
+
+/** Whether a page keeps a new site in the clusters it has opened: one is
+ *  opened by a page in it, and a third waits until one holds `clusterFull`. */
+function opensNoThird(o: Opportunity, clusters: ReadonlyMap<string, number> | null): boolean {
+  const key = clusterOf(o);
+  if (clusters === null || key === null || (clusters.get(key) ?? 0) > 0) return true;
+  const open = [...clusters.values()].filter((n) => n > 0);
+  return open.length < NEW_SITE.openClusters || open.some((n) => n >= NEW_SITE.clusterFull);
+}
+
+/** What a new site writes first (R31): a new page on its own offering, or
+ *  on a question buyers were seen asking, that does not compare products. */
+function newSiteLed(o: Opportunity): boolean {
+  if (!newPage(o) || contentTypeOf(o) === "listicle") return false;
+  const asked = o.evidence?.family === "write" && o.evidence.askedBeside !== undefined;
+  return asked || pageTypeOf(o) === "product";
 }
 
 /** What a page's own results planned, where they planned this row. */
@@ -281,6 +325,11 @@ export interface RankLoad {
   prompts?: readonly IntentPrompt[];
   /** The clusters of the site's own pages a stored answer cited. */
   linkedClusters?: readonly string[];
+  /** The searches the site ranks for, as its current report counts them;
+   *  `null` or absent where no report is read, ordered as an established site. */
+  ownRanked?: number | null;
+  /** The site's live pages and their clusters. Absent holds no cluster back. */
+  livePages?: readonly LivePageCluster[];
 }
 
 /** Why a row the store holds open takes no place in the list. */
@@ -303,7 +352,7 @@ export function eligible(row: OpportunityRow, ctx: { profile: Profile | null }):
  *  where it is given (a week's spares, issue 1559). */
 export async function loadRanking(siteId: string, at: Date, only?: ReadonlySet<string>): Promise<RankLoad> {
   const store = opportunityStore();
-  const [rows, profile, fixRows, latest, drafted, cited, prompts] = await Promise.all([
+  const [rows, profile, fixRows, latest, drafted, cited, prompts, report] = await Promise.all([
     store.openRankable(siteId),
     store.profileForSite(siteId),
     store.openFixPages(siteId),
@@ -315,14 +364,23 @@ export async function loadRanking(siteId: string, at: Date, only?: ReadonlySet<s
     store.citedPages(siteId, at).catch(() => [] as readonly string[]),
     // Prompts that cannot be read add no demand.
     store.trackedPrompts === undefined ? [] : store.trackedPrompts(siteId).catch(() => [] as readonly IntentPrompt[]),
+    // A report that cannot be read orders the site as an established one.
+    Promise.resolve()
+      .then(() => store.currentReport(siteId))
+      .catch(() => null),
   ]);
+  // An unmeasured count is the cold-start 0, as the pass reads it.
+  const ownRanked = report === null ? null : report.ownRanked.kind === "measured" ? report.ownRanked.value : 0;
+  const isNew = ownRanked !== null && ownRanked < NEW_SITE.rankedBelow;
+  const livePages =
+    !isNew || store.livePageClusters === undefined ? undefined : await store.livePageClusters(siteId).catch(() => undefined);
   const scans = rows.filter((row) => named(row, only) && eligible(row, { profile }) === null).map((row) => row.scan_id);
   const topTens =
     scans.length === 0 ? new Map<string, readonly string[]>() : await store.topTens([...new Set([...scans, ...(latest === null ? [] : [latest.scan_id])])]);
   // A cluster that cannot be read earns no page.
   const linkedClusters =
     cited.length === 0 || store.clustersAt === undefined ? [] : await store.clustersAt(siteId, cited).catch(() => [] as readonly string[]);
-  return { rows, fixRows, profile, latest, drafted, cited, topTens, prompts, linkedClusters };
+  return { rows, fixRows, profile, latest, drafted, cited, topTens, prompts, linkedClusters, ownRanked, ...(livePages === undefined ? {} : { livePages }) };
 }
 
 function named(row: { id: string }, only: ReadonlySet<string> | undefined): boolean {
@@ -361,6 +419,26 @@ export function rankingOf(
     next.parts = [...next.parts, { part: "linked_by_ai", n: POINTS.linkedByAi }];
     next.points += POINTS.linkedByAi;
   }
+  const isNew = load.ownRanked != null && load.ownRanked < NEW_SITE.rankedBelow;
+  if (isNew) {
+    for (const entry of scored.filter((each) => newSiteLed(each.opportunity))) {
+      entry.parts = [...entry.parts, { part: "new_site", n: NEW_SITE.points }];
+      entry.points += NEW_SITE.points;
+    }
+  }
   const after = load.latest === null ? null : readOpportunity(load.latest);
-  return { scored, fixes, rotation: { after, topTens: load.topTens, mix: mixOf(load.drafted, at) }, rejected };
+  const clusters = isNew && load.livePages !== undefined ? clusterCounts(load.livePages, load.drafted) : undefined;
+  return { scored, fixes, rotation: { after, topTens: load.topTens, mix: mixOf(load.drafted, at), ...(clusters === undefined ? {} : { clusters }) }, rejected };
+}
+
+/** A new site's pages by cluster: each live page, and each drafted one that
+ *  still holds its day, counted once. */
+function clusterCounts(live: readonly LivePageCluster[], drafted: readonly DraftedPage[]): Map<string, number> {
+  const byId = new Map(live.map((page) => [page.opportunityId, page.clusterKey]));
+  for (const page of drafted) {
+    if (HOLDS_ITS_DAY.has(page.state) && newPage(page.row)) byId.set(page.row.id, page.row.cluster_key ?? null);
+  }
+  const counts = new Map<string, number>();
+  for (const key of byId.values()) if (key !== null) counts.set(key, (counts.get(key) ?? 0) + 1);
+  return counts;
 }
