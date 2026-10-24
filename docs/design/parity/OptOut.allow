@@ -1,5 +1,0 @@
-Sign-in links Still sent, if you have an account	#1740: composed on screen from two keys or a schedule figure; tests/app/opt-out/board.test.tsx reads it on the rendered arm
-Receipts and account emails Still sent, if you have an account	#1740: composed on screen from two keys or a schedule figure; tests/app/opt-out/board.test.tsx reads it on the rendered arm
-24 hours Sent	#1740: sample times; the hours come from the follow-up schedule and Sent is read per address, proven in tests/app/opt-out/board.test.tsx
-72 hours Won’t be sent	#1740: sample times; the hours come from the follow-up schedule and Sent is read per address, proven in tests/app/opt-out/board.test.tsx
-168 hours Won’t be sent	#1740: sample times; the hours come from the follow-up schedule and Sent is read per address, proven in tests/app/opt-out/board.test.tsx
