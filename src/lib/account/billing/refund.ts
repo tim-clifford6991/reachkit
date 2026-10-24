@@ -9,12 +9,17 @@
 // throws: the webhook still answers 200, and the next delivery tries again.
 // Hosted pages are untouched: they follow the 30-day path from the new
 // paid-through date like any other ended account.
+//
+// Owner D10 adds the first-renewal refund below (`2026-10-24-1592.md`): it
+// keeps access and has its own ledger, so it never touches D4's.
 import { after } from "next/server";
 import { parseDomain } from "@/lib/scan/domain";
 import { reportIncident } from "@/lib/mail/ops/incident";
+import { sendEmail } from "@/lib/mail/send";
+import { buildRenewalRefunded } from "@/lib/mail/templates/account";
 import { stripe, type Stripe } from "../stripe/client";
 import { endSubscriptionNow } from "./end-now";
-import { billingStore, type RefundRow } from "./store";
+import { billingStore, type BillingRow, type RefundRow } from "./store";
 
 export const REFUND_WINDOW_DAYS = 14;
 
@@ -174,5 +179,66 @@ export async function refundFirstFortnight(
     log({ outcome: `end_${ended.reason}`, invoice: invoiceId });
     return ended.reason;
   }
+  return "refunded";
+}
+
+export type RenewalRefundOutcome = "refunded" | "not_first_renewal" | "went_live" | "refunded_before" | "store" | "vendor";
+
+/** Owner D10: the first renewal is refunded, and access runs on, when no
+ *  page went live in the period that renewal closes. */
+export async function refundFirstRenewal(account: BillingRow, paid: Stripe.Invoice): Promise<RenewalRefundOutcome> {
+  if (paid.billing_reason !== "subscription_cycle" || paid.amount_paid <= 0) return "not_first_renewal";
+  const customerId = idOf(paid.customer);
+  const invoiceId = paid.id;
+  if (customerId === null || invoiceId === undefined) return "vendor";
+
+  let page: Stripe.ApiList<Stripe.Invoice>;
+  try {
+    page = await stripe().invoices.list({ customer: customerId, status: "paid", limit: 100, expand: ["data.payments"] });
+  } catch {
+    log({ outcome: "vendor", step: "invoices", invoice: invoiceId });
+    return "vendor";
+  }
+  // More than a page of paid invoices is long past a first renewal.
+  if (page.has_more) return "not_first_renewal";
+  const renewals = page.data.filter((invoice) => invoice.billing_reason === "subscription_cycle");
+  const invoice = renewals.find((candidate) => candidate.id === invoiceId);
+  if (invoice === undefined) return "vendor";
+  if (renewals.some((other) => other.id !== invoiceId && paidAt(other) <= paidAt(invoice))) return "not_first_renewal";
+
+  // A subscription invoice's own period looks back one period: the first month.
+  const live = await billingStore().wentLive(account.id, new Date(invoice.period_start * 1000), new Date(invoice.period_end * 1000));
+  if (!live.ok) return "store";
+  if (live.live) return "went_live";
+
+  const payment = paymentOf(invoice);
+  if (payment === null) {
+    log({ outcome: "no_payment", invoice: invoiceId });
+    return "vendor";
+  }
+  try {
+    await stripe().refunds.create(
+      { ...payment, reason: "requested_by_customer", metadata: { invoice: invoiceId } },
+      { idempotencyKey: `refund:${invoiceId}` }
+    );
+  } catch (error) {
+    if (!alreadyRefunded(error)) {
+      log({ outcome: "vendor", invoice: invoiceId });
+      const code = stripeCodeOf(error);
+      after(() => reportIncident({ occasion: "refund-refused", invoiceId, userId: account.id, code }));
+      return "vendor";
+    }
+  }
+
+  const recorded = await billingStore().recordRenewalRefund({ invoiceId, userId: account.id, at: new Date() });
+  if (!recorded.ok) {
+    log({ outcome: "store", invoice: invoiceId });
+    return "store";
+  }
+  // Only the delivery that recorded the refund tells the customer, so a re-delivery mails nothing.
+  if (!recorded.inserted) return "refunded_before";
+  const mail = buildRenewalRefunded();
+  const sent = await sendEmail({ kind: "account", to: account.email, subject: mail.subject, blocks: mail.blocks });
+  if (!sent.sent) log({ outcome: `mail_${sent.reason}`, invoice: invoiceId });
   return "refunded";
 }

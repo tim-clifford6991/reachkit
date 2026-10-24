@@ -902,6 +902,9 @@ describe("a market correction runs inside the scan it corrects", () => {
 
   it("never adopts an admission claim — a correction has none, so it cannot end no_claimed_slot (#786)", async () => {
     db.rows.set("scans", []);
+    // The seam's own fresh row, which the pass reads its opening spend from.
+    db.answer = (q) =>
+      q.table === "scans" && q.filters.some(([c, v]) => c === "id" && v === CLAIMED_ID) ? [{ cost_cents: 0 }] : null;
     const result = await runScan({ domain: DOMAIN, tier: "free", correctionOf: CORRECTED, scanId: CLAIMED_ID });
     expect(result).toEqual({ scanId: CLAIMED_ID, status: "done" });
     expect(measureDomain).toHaveBeenCalledTimes(1);

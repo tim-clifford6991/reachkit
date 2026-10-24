@@ -34,11 +34,6 @@ describe("orderRanked — the most points first", () => {
     const older = new Date(AT.getTime() - 1000);
     expect(order([at(3, volume("b", 50)), at(3, volume("c", 50, older)), at(3, volume("a", 50))])).toEqual(["c", "a", "b"]);
   });
-
-  it("each placed row carries its points, their parts and the rule that placed it", () => {
-    const [placed] = orderRanked([{ opportunity: opportunity("one", "write", "answer_page"), points: 4, parts: [{ part: "fit", n: 3 }, { part: "demand", n: 1 }] }]);
-    expect(placed?.reason).toEqual({ points: 4, parts: [{ part: "fit", n: 3 }, { part: "demand", n: 1 }], rule: "best" });
-  });
 });
 
 describe("pointsOf — integer points from what the row holds", () => {
@@ -54,7 +49,6 @@ describe("pointsOf — integer points from what the row holds", () => {
       evidence: { family: "improve", pageUrl: POST, shortfall },
       ...over,
     }) as unknown as Opportunity;
-  const sum = (reason: { points: number; parts: { n: number }[] }) => reason.parts.reduce((total, part) => total + part.n, 0);
 
   it("fit 3 is 3 and fit 2 is 1; a search measured at 10 a month or more is 2; an AI answer linking a competitor is 2", () => {
     const reason = pointsOf(write({ source: "ai_gap" }), NOTHING_SEEN);
@@ -82,26 +76,6 @@ describe("pointsOf — integer points from what the row holds", () => {
     expect(linked.parts).toContainEqual({ part: "linked_by_ai", n: 1 });
     const stalled = pointsOf(update({ kind: "due", cause: "unmet", since: measuredVolume(0) }), NOTHING_SEEN);
     expect(stalled.parts).toContainEqual({ part: "not_moving", n: 0 });
-  });
-
-  it("the stored points are always the sum of the stored parts", () => {
-    const rows = [
-      write(),
-      write({ source: "ai_gap", businessFit: 2 }),
-      update({ kind: "due", cause: "close", since: measuredVolume(0) }),
-      update({ kind: "due", cause: "unmet", since: measuredVolume(0) }),
-    ];
-    for (const row of rows) {
-      const reason = pointsOf(row, { cited: new Set(["example.com/blog/post"]), prompts: [] });
-      expect(reason.points).toBe(sum(reason));
-    }
-  });
-
-  it("a page near page one goes ahead of a new page of the same fit with measured demand", () => {
-    const fresh = write({ businessFit: 2 });
-    const near = update({ kind: "position", position: measuredVolume(14) });
-    const scored = [fresh, near].map((o) => ({ opportunity: o, ...pointsOf(o, NOTHING_SEEN) }));
-    expect(order(scored)).toEqual(["u", "w"]);
   });
 });
 

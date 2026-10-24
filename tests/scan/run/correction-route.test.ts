@@ -125,6 +125,8 @@ function answer(query: DbQuery): unknown[] | null {
       },
     ];
   }
+  // The seam's freshly claimed row, which the pass reads its opening spend from.
+  if (query.verb === "select" && filters.has("id") && filters.get("id") !== CORRECTED) return [{ cost_cents: 0 }];
   if (query.verb === "update" && filters.has("correction_state")) {
     if (filters.get("correction_state") !== correctionState) return [];
     correctionState = String(query.values?.correction_state);
