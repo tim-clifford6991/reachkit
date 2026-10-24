@@ -46,6 +46,6 @@
   "SettingsAccount": { "read": "page", "paths": ["/app/settings/account"] },
   "HostedIndex": { "read": "hosted", "host": "content.publisher.test", "paths": ["/"] },
   "HostedArticle": { "read": "hosted", "host": "content.publisher.test", "paths": ["/best-onboarding-tools"] },
-  "HostedService": { "read": "hosted", "host": "content.publisher.test", "paths": ["/onboarding-checklist-software"] },
+  "HostedService": { "read": "hosted", "host": "content.publisher.test", "paths": ["/emergency-plumber-austin"] },
   "HostedGone": { "read": "hosted", "host": "content.publisher.test", "paths": ["/a-page-that-was-removed"] }
 }

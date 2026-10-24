@@ -146,6 +146,10 @@ export interface HostedPage {
   /** Written as the business's own service or product page
    *  (`drafts.meta.contentType`); absent reads as not. */
   offering?: boolean;
+  /** The heading of an offering page's "Where and when" section, as
+   *  generation recorded it (`drafts.meta.sections`); absent or `null` where
+   *  it recorded none. */
+  whereWhen?: string | null;
   /** SPEC §0 business fit of the page's opportunity, 0–3, or `null` where
    *  no pass judged it: only a 3 earns the compact block. */
   businessFit?: number | null;
@@ -310,6 +314,7 @@ function toPage(row: PublicationRow, host: string): HostedPage | null {
     },
     byline: emptyToNull(draft.attribution ?? null),
     offering: draft.meta?.contentType === "offering",
+    whereWhen: readSectionHeading(draft.meta, "where_when"),
     businessFit: opportunity.business_fit ?? null,
     cluster: opportunity.cluster_key ?? null,
     publishedAt: datedAt(draft.meta) ?? new Date(row.published_at),
@@ -430,6 +435,15 @@ export function readDescription(meta: Record<string, unknown> | null): string | 
   if (typeof raw !== "string") return null;
   const text = raw.replace(/\s+/g, " ").trim();
   return text === "" ? null : text;
+}
+
+/** The heading generation recorded for one of the template's sections, or
+ *  `null` where `drafts.meta.sections` holds none for it. */
+function readSectionHeading(meta: Record<string, unknown> | null, key: string): string | null {
+  const sections = meta?.sections;
+  if (!Array.isArray(sections)) return null;
+  const found = sections.find((section): section is { key: string; heading: string } => section?.key === key && typeof section.heading === "string");
+  return found === undefined ? null : emptyToNull(found.heading);
 }
 
 /** `drafts.meta.heading`, read the same way. */
