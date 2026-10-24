@@ -2,12 +2,12 @@
 // The scan in progress against board PubScanning: the screen mounted as the
 // browser draws it, fed the stage stream a part-way scan records, and read
 // with the parity check's own reader.
-import { readFileSync } from "node:fs";
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { boardFile, compare, readAllow, segments } from "../../../scripts/design/parity.mjs";
+import { segments } from "../../../scripts/design/parity.mjs";
+import { expectStateParity } from "../../ui/layout/state-parity";
 
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -74,11 +74,6 @@ async function partWay(): Promise<HTMLElement> {
   return screen;
 }
 
-function boardMain(): string {
-  const html = readFileSync(boardFile("PubScanning"), "utf8");
-  return html.slice(html.indexOf("<main>"), html.indexOf("</main>") + "</main>".length);
-}
-
 /** Each string is on the screen, and in the order given. */
 function inOrder(screen: HTMLElement, wanted: string[]): void {
   const text = segments(screen.innerHTML).join("\n");
@@ -111,14 +106,8 @@ async function toTheEnd(screen: HTMLElement): Promise<void> {
 }
 
 describe("the scan in progress matches board PubScanning", () => {
-  it("nothing the board draws is missing but its allowed sample data, rulings and the cards' pending content", async () => {
-    // A line excused only because the registry read cannot compose it must still be on the rendered screen.
-    const allow = readAllow("PubScanning").filter((line: { reason: string }) => !line.reason.includes("scanning-board.test.tsx"));
-    // The registry read the sweep makes carries these; the rendered main does not: sample data, the
-    // header's Copy link (#1725) and the grey competitors card (owner R27, 2026-10-23).
-    for (const string of ["Homeowners", "Copy link", "a national plumbing chain"]) allow.push({ string, reason: "", n: 0, extra: 0 });
-    const result = compare(boardMain(), segments((await partWay()).innerHTML), allow);
-    expect(result.missing).toEqual([]);
+  it("parity: PubScanning reads its rendered arms", async () => {
+    expectStateParity("PubScanning", [(await partWay()).innerHTML]);
   });
 
   it("the head: the eyebrow, Scanning {domain} and the waiting line", async () => {

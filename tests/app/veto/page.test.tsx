@@ -23,6 +23,8 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { applyEnvFixture } from "../../mail/env-fixture";
 import { codeOf } from "../../mail/leads/source";
 import type { PreviewResult, RedeemResult, VetoPreview, WeekDay } from "../../../src/lib/publish/publishable";
+import type { PlannedPreview } from "../../../src/lib/opportunities/stop";
+import { expectStateParity } from "../../ui/layout/state-parity";
 
 applyEnvFixture();
 
@@ -87,6 +89,16 @@ vi.mock("react-dom", async (importOriginal) => ({
   ...(await importOriginal<typeof import("react-dom")>()),
   useFormStatus: () => ({ pending: formStatus.pending, data: null, method: null, action: null }),
 }));
+
+/** The Monday mail's link to a page not written yet: what its read answers for the test about to run. */
+let plannedAnswer: (() => Promise<PlannedPreview>) | null = null;
+vi.mock("@/lib/opportunities/stop", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../../../src/lib/opportunities/stop")>();
+  return {
+    ...actual,
+    previewPlannedStop: (token: string) => (plannedAnswer === null ? actual.previewPlannedStop(token) : plannedAnswer()),
+  };
+});
 
 vi.mock("next/navigation", () => ({
   redirect: (to: string) => {
@@ -228,6 +240,7 @@ async function ask(query: Record<string, string> = {}): Promise<React.ReactNode>
 }
 
 beforeEach(() => {
+  plannedAnswer = null;
   formStatus.pending = false;
   previewed.length = 0;
   redeemed.length = 0;
@@ -702,6 +715,24 @@ describe("every arm renders, each in its own words", () => {
     expect(headingsOf(tree, "h1")).toEqual([COPY[head]]);
     expect(toldLine(tree)).toBe(COPY[line]);
     expect(headingsOf(tree, "h1")).not.toContain(COPY["publish.veto.done.head"]);
+  });
+
+  it("parity: Veto reads its rendered arms", async () => {
+    const arms: React.ReactNode[] = [await ask(), await ask({ done: "1" })];
+    // The board's week: the stopped page on Monday, every other day going ahead.
+    const week = WEEK.map((day, i) => ({ date: day.date, stopped: i === 0 }));
+    previewAnswer = async () => spent("How teams pick an onboarding tool", week);
+    arms.push(await ask({ done: "1" }));
+    for (const reason of ["used", "expired", "unknown"] as const) {
+      previewAnswer = async () => (reason === "used" ? spent(null) : { ok: false, reason });
+      arms.push(await ask());
+    }
+    plannedAnswer = async () => ({
+      ok: true,
+      planned: { query: LIVE_PREVIEW.query, volume: LIVE_PREVIEW.volume, domain: "example.com", day: "2026-09-16", reason: null },
+    });
+    arms.push(await VetoPage({ params: { token: "planned.token" }, searchParams: {} }));
+    expectStateParity("Veto", arms.map((arm) => renderToStaticMarkup(arm as React.ReactElement)));
   });
 
   it("the closed and unusable arms say what the board says, with Stop as the word (E7)", () => {

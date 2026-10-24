@@ -2,9 +2,10 @@
 //
 // Cards stack at every width on every Settings tab: every top-level card shares one left edge,
 // columns live only inside a card on a `data-layout` grid, the only card inside one is a competitor
-// tile, Mail's week is four tracks on a phone and seven on a desktop, and Market's tiles and wells
-// fold to one track on a phone. Rendered and hydrated, light and dark; the canaries below prove
-// the ruler sees two card columns, a card inside a layout grid, and a week that does not fold.
+// tile, Mail's week is four tracks on a phone and seven on a desktop, and Market's tiles and the
+// wells of Market and Your business fold to one track on a phone. Rendered and hydrated, light and
+// dark; the canaries below prove the ruler sees two card columns, a card inside a layout grid, and a
+// week that does not fold.
 import { describe, expect, it } from "vitest";
 import { SETTINGS_TABS, SETTINGS_TAB_HREF } from "@/app/(account)/app/settings/tabs";
 import { getAccountCookie, getBaseURL, withPage } from "./browser";
@@ -31,6 +32,8 @@ interface Seen {
 function measureCards(root: string): Seen {
   const panel = document.querySelector(root);
   const scope = panel ?? document.body;
+  // Your business keeps its wells in a fold that is closed by default.
+  scope.querySelector('details[data-testid="settings-business-knowledge"]')?.setAttribute("open", "");
   const cards = Array.from(scope.querySelectorAll(".card:not(.card .card)")).filter(
     (card) => card.getBoundingClientRect().width > 0
   );
@@ -53,7 +56,7 @@ function measureCards(root: string): Seen {
 }
 
 /** What a measurement breaks, as lines; empty where the tab keeps every rule. */
-function offences(seen: Seen, width: number): string[] {
+function offences(seen: Seen, width: number, tab: string): string[] {
   const out: string[] = [];
   if (seen.cards === 0) out.push("no card was measured");
   const first = seen.lefts[0] ?? 0;
@@ -69,8 +72,10 @@ function offences(seen: Seen, width: number): string[] {
       out.push(`the tiles have ${seen.tilesTracks} tracks at ${width}px`);
   }
   if (seen.wellsTracks !== null) {
-    const want = width < 768 ? 1 : width === 1023 ? null : 3;
-    if (want !== null && seen.wellsTracks !== want) out.push(`the wells have ${seen.wellsTracks} tracks at ${width}px, not ${want}`);
+    // Market's three wells sit on three tracks; Your business's lists need only to sit side by side.
+    const holds =
+      width < 768 ? seen.wellsTracks === 1 : tab === "business" ? seen.wellsTracks >= 2 : width === 1023 || seen.wellsTracks === 3;
+    if (!holds) out.push(`the wells have ${seen.wellsTracks} tracks at ${width}px`);
   }
   return out;
 }
@@ -102,9 +107,10 @@ for (const tab of SETTINGS_TABS) {
             { extraHTTPHeaders: { Cookie: getAccountCookie() } }
           );
           for (const [theme, measured] of seen) {
-            expect(offences(measured, width), `${href} @ ${width}px ${theme}`).toEqual([]);
+            expect(offences(measured, width, tab), `${href} @ ${width}px ${theme}`).toEqual([]);
             // The week is what Mail is checked for; a tab that lost it would pass vacuously.
             if (tab === "mail") expect(measured.weekTracks, `${href} @ ${width}px ${theme}`).not.toBeNull();
+            if (tab === "business") expect(measured.wellsTracks, `${href} @ ${width}px ${theme}`).not.toBeNull();
             if (tab === "market") {
               expect(measured.tilesTracks, `${href} @ ${width}px ${theme}`).not.toBeNull();
               expect(measured.wellsTracks, `${href} @ ${width}px ${theme}`).not.toBeNull();
@@ -129,7 +135,7 @@ async function canary(width: number, body: string): Promise<string[]> {
     await page.setContent(`<!doctype html><html><head>${CANARY_STYLE}</head><body>${body}</body></html>`);
     return page.evaluate(measureCards, "#panel");
   });
-  return offences(seen, width);
+  return offences(seen, width, "canary");
 }
 
 describe("the ruler sees what it is for (canaries)", () => {
