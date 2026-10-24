@@ -23,6 +23,7 @@
 // unwritten and the next tick asks again.
 import { VENDOR_LOW } from "@/lib/config/constants";
 import { env } from "@/lib/config/env";
+import { berlinDay } from "@/lib/config/now";
 import { dbAdmin } from "@/lib/db";
 
 export const FIXED_VENDORS = ["vercel", "supabase", "jobs", "resend", "stripe"] as const;
@@ -159,10 +160,6 @@ async function weekSpendCents(day: string): Promise<number | null> {
   if (error) return null;
   const sum = (data ?? []).reduce((total, row) => total + Number(row.estimated_cents ?? 0), 0);
   return Number.isFinite(sum) ? sum : null;
-}
-
-function berlinDay(at: Date): string {
-  return new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Berlin", year: "numeric", month: "2-digit", day: "2-digit" }).format(at);
 }
 
 async function readUsage(day: string, now: Date): Promise<{ done: true } | { degraded: string }> {

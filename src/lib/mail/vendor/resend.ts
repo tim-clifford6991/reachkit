@@ -29,14 +29,14 @@ interface TransportResponse {
 export type VendorTransport = (payload: string, idempotencyKey: string) => Promise<TransportResponse>;
 
 /** `{template}:{subject}:{period}`: the kind, this recipient's mail as
- *  rendered, and the UTC day. The vendor sends one mail per key for a day,
+ *  rendered, and the caller's period or else the UTC day. The vendor sends one mail per key for a day,
  *  so a retry, or the same alert from the next tick, is not a second mail. */
 export function idempotencyKeyOf(v: VendorSend, now: Date): string {
   const subject = createHash("sha256")
     .update([v.to.trim().toLowerCase(), v.subject, v.html, v.text].join("\n"))
     .digest("hex")
     .slice(0, 32);
-  return `${v.kind}:${subject}:${now.toISOString().slice(0, 10)}`;
+  return `${v.kind}:${subject}:${v.period ?? now.toISOString().slice(0, 10)}`;
 }
 
 function httpsTransport(payload: string, idempotencyKey: string): Promise<TransportResponse> {

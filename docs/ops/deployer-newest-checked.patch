@@ -1,0 +1,100 @@
+--- a/deployer.sh
++++ b/deployer.sh
+@@ -7,29 +7,34 @@
+ # 2026-10-24 (E3, #1959): each dev build is checked with `smoke.sh --free` once Ready; production takes a SHA only
+ # when its dev check passed, is checked the same way once Ready, and a red check files one [deploy] issue.
+ # Roll forward only (RUNBOOK §1): nothing here points production at an earlier build.
++# Production takes the newest first-parent commit after deploy-prod.sha whose dev check passed, so a busy merge day
++# cannot keep moving the head past every checked commit; each deploy names its SHA, so a check describes its build.
+ # DEPLOYER_DRY=1 stubs Vercel, Inngest and GitHub writes to lines in $S/dry.calls; DEPLOYER_ONCE=1 runs one tick.
+ set -u
+ S=${S:-/root/ops/reachkit/state}; L=$S/prod-redeploy.log; R=tim-clifford6991/reachkit
+ P=prj_QJUivDYYshplvV0enuc2oZNIjcnd; TEAM=team_lFEcKlyuKD5risdEnak7iRIm; REPO=1354731443
+ PROD_EVERY_S=${PROD_EVERY_S:-7200}; BACKOFF_S=${BACKOFF_S:-7200}; TICK_S=600
+-MAIN=/root/projects/reachkitv3; WT=/root/projects/reachkitv3-wt; SELF=$(readlink -f "$0"); DRY=${DEPLOYER_DRY:-}
++MAIN=${DEPLOYER_MAIN:-/root/projects/reachkitv3}; WT=${DEPLOYER_WT:-/root/projects/reachkitv3-wt}; SELF=$(readlink -f "$0"); DRY=${DEPLOYER_DRY:-}
+ DEVCHECK_BASE_URL=${DEVCHECK_BASE_URL:-https://dev.reachkit.app}; PRODCHECK_BASE_URL=${PRODCHECK_BASE_URL:-https://reachkit.app}
+ TITLE="[deploy] production check red"
+ touch $S/deploy-dev.sha $S/deploy-prod.sha $S/deploy-prod.at $S/deploy-backoff.until
+ stamp(){ date -u +%F' '%H:%M; }
+-deploy(){ # $1 = production|preview ; prints dpl id or the error code
++body(){ # $1 = production|preview, $2 = the commit to build
++  local tgt=""; [ "$1" = production ] && tgt='"target":"production",'
++  echo "{\"name\":\"reachkit\",\"project\":\"$P\",${tgt}\"gitSource\":{\"type\":\"github\",\"repoId\":$REPO,\"ref\":\"main\",\"sha\":\"$2\"}}"
++}
++deploy(){ # $1 = production|preview, $2 = sha ; prints dpl id or the error code
+   vercel whoami >/dev/null 2>&1
+   T=$(python3 -c "import json;print(json.load(open('/root/.local/share/com.vercel.cli/auth.json'))['token'])" 2>/dev/null) || { echo no_token; return 2; }
+-  local tgt=""; [ "$1" = production ] && tgt='"target":"production",'
+   curl -s -X POST "https://api.vercel.com/v13/deployments?teamId=$TEAM&forceNew=1" -H "Authorization: Bearer $T" -H 'content-type: application/json' \
+-    -d "{\"name\":\"reachkit\",\"project\":\"$P\",${tgt}\"gitSource\":{\"type\":\"github\",\"repoId\":$REPO,\"ref\":\"main\"}}" \
++    -d "$(body "$@")" \
+     | python3 -c "import sys,json;d=json.load(sys.stdin);print(d.get('id') or d.get('error',{}).get('code') or 'unknown')"
+ }
+ inspect(){ vercel inspect "$1" 2>&1; }
+ sync_jobs(){ curl -s -o /dev/null -w '%{http_code}' -X PUT https://reachkit.app/api/jobs; }
+ minute(){ date -u +%M; }
+ if [ -n "$DRY" ]; then
+-  deploy(){ echo "deploy $1" >> $S/dry.calls; echo "dpl_dry$1"; }
++  deploy(){ echo "deploy $1 $(body "$@")" >> $S/dry.calls; echo "dpl_dry$1"; }
+   inspect(){ cat "$S/dry.inspect" 2>/dev/null || echo "${DEPLOYER_DRY_INSPECT:-Ready}"; }
+   sync_jobs(){ echo "inngest PUT" >> $S/dry.calls; echo 200; }
+   minute(){ echo "${DEPLOYER_MINUTE:-$(date -u +%M)}"; }
+@@ -72,10 +77,22 @@
+   [ "$st" != Ready ] && [ "$tries" -ge 2 ] && note=$'\n\n'"Attempt $tries of 2 failed: production stays held at this SHA until main moves."
+   file_issue "Production check red at \`$3\`, deployment \`$2\`, step \`$(head -1 <<<"${r#red }")\`:"$'\n\n```\n'"$(tail -1 <<<"$r")"$'\n```'"$note"
+ }
++newest_checked(){ # $1 deploy-prod.sha, $2 head: the newest commit in $1..$2 whose dev check passed, below 2 tries
++  local s list=$2
++  git -C $MAIN fetch -q origin main 2>/dev/null
++  if git -C $MAIN cat-file -e "$2^{commit}" 2>/dev/null; then
++    if [ -n "$1" ] && git -C $MAIN merge-base --is-ancestor "$1" "$2" 2>/dev/null; then list=$(git -C $MAIN rev-list --first-parent --max-count=50 "$1..$2")
++    elif [ "$(cat $S/prod-offmain 2>/dev/null)" != "${1:-none}" ]; then echo "${1:-none}" > $S/prod-offmain
++      echo "$(stamp) production: deploy-prod.sha ${1:-none} is not on main; head only" >> $L; fi
++  fi
++  for s in $list; do
++    [ "$(head -1 $S/dev-check.$s 2>/dev/null)" = pass ] && [ "$(cat $S/deploy-prod.tries.$s 2>/dev/null || echo 0)" -lt 2 ] && { echo "$s"; return; }
++  done
++}
+ detach(){ # its own unit, so a deployer restart or OOM kill cannot take the Ready poll and the Inngest sync with it
+   if [ -d /run/systemd/system ]; then
+     systemd-run --quiet --collect ${DEPLOYER_ONCE:+--wait} --unit="rk-deploy-sync-$2" -E PATH -E HOME -E S="$S" \
+-      -E DEVCHECK_BASE_URL="$DEVCHECK_BASE_URL" -E PRODCHECK_BASE_URL="$PRODCHECK_BASE_URL" -E DEPLOYER_DRY="$DRY" \
++      -E DEVCHECK_BASE_URL="$DEVCHECK_BASE_URL" -E PRODCHECK_BASE_URL="$PRODCHECK_BASE_URL" -E DEPLOYER_DRY="$DRY" -E DEPLOYER_MAIN="$MAIN" -E DEPLOYER_WT="$WT" \
+       -E DEPLOYER_DRY_INSPECT="${DEPLOYER_DRY_INSPECT:-}" -E DEPLOYER_DRY_OPEN="${DEPLOYER_DRY_OPEN:-}" bash "$SELF" after "$@"
+   else setsid -f bash "$SELF" after "$@" </dev/null >/dev/null 2>&1; fi
+ }
+@@ -101,24 +118,25 @@
+         if [ $tgt = preview ]; then f=$S/deploy-dev.sha; due=1; else f=$S/deploy-prod.sha; last=$(cat $S/deploy-prod.at 2>/dev/null || echo 0); [ $((now - ${last:-0})) -ge $PROD_EVERY_S ] && due=1 || due=0
+           case "$(cat $S/prod-check.last 2>/dev/null)" in red*) due=1 ;; esac; fi
+         [ "$due" = 1 ] && [ "$(cat $f)" != "$head" ] || continue
++        sha=$head
+         # 2026-10-22 (#1802, owner-approved): production only starts at :10–:40 so it is Ready before :50 (jobs fire at :00)
+         if [ $tgt = production ]; then m=$((10#$(minute))); { [ $m -ge 10 ] && [ $m -le 40 ]; } || continue
+           [ -n "$(find $S/deploy-prod.inflight -mmin -30 2>/dev/null)" ] && continue
+-          dc=$(head -1 $S/dev-check.$head 2>/dev/null); [ -n "$dc" ] || continue
+-          if [ "$dc" != pass ]; then
++          dc=$(head -1 $S/dev-check.$head 2>/dev/null)
++          if [ -n "$dc" ] && [ "$dc" != pass ]; then
+             [ -e $S/held.$head ] || { touch $S/held.$head; echo "$(stamp) production held: dev check red at $head (${dc#red })" >> $L
+               file_issue "Production held: the dev check is red at \`$head\` (${dc#red }). $(grep -m1 "dev check of $head" $L)"; }
+-            continue
+           fi
+-          [ "$(cat $S/deploy-prod.tries.$head 2>/dev/null || echo 0)" -ge 2 ] && continue
++          sha=$(newest_checked "$(cat $f)" "$head"); [ -n "$sha" ] || continue
+         fi
+-        id=$(deploy $tgt)
++        id=$(deploy $tgt "$sha")
++        why="main moved"; [ "$sha" = "$head" ] || why="newest checked; head $head"
+         case "$id" in
+           dpl_*) if [ $tgt = preview ]; then echo "$head" > $f
+-                 else echo $(( $(cat $S/deploy-prod.tries.$head 2>/dev/null || echo 0) + 1 )) > $S/deploy-prod.tries.$head; touch $S/deploy-prod.inflight; fi
+-                 echo "$(date -u +%F' '%H:%M) $tgt deploy of main $head ACCEPTED: $id trigger=deployer reason=\"main moved\"" >> $L
++                 else echo $(( $(cat $S/deploy-prod.tries.$sha 2>/dev/null || echo 0) + 1 )) > $S/deploy-prod.tries.$sha; touch $S/deploy-prod.inflight; fi
++                 echo "$(date -u +%F' '%H:%M) $tgt deploy of main $sha ACCEPTED: $id trigger=deployer reason=\"$why\"" >> $L
+                  # 2026-10-22 (#1802, owner-approved): once a production deploy is Ready, sync Inngest (nothing else does)
+-                 detach $tgt "$id" "$head";;
++                 detach $tgt "$id" "$sha";;
+           *) echo "$(date -u +%F' '%H:%M) $tgt deploy refused: $id trigger=deployer — backing off $((BACKOFF_S/60)) min" >> $L
+              echo $((now + BACKOFF_S)) > $S/deploy-backoff.until; break;;
+         esac

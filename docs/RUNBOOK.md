@@ -46,12 +46,16 @@ the next window deploys without the two-hour spacing. A failed build is retried,
 SHA. The Ready poll runs in its own unit (`rk-deploy-sync-<id>`), so a deployer restart cannot stop
 the Inngest sync. On start, the deployer polls again any production deploy it accepted in the last
 2 h that has no sync line. Still roll forward only. The box patch is `docs/ops/deployer.sh.patch`.
+2026-10-24 (E3, #2063): production takes the newest first-parent commit of `main` after
+`deploy-prod.sha` whose dev check passed, below 2 tries, not only the head, so a busy merge day no
+longer starves it. Each deploy names its SHA (`gitSource.sha`), so a check describes the build it
+names. Box patch `docs/ops/deployer-newest-checked.patch`; dry cases `docs/ops/deployer-dry.sh`.
 `/api/jobs` is served by production, so a job or pass change takes effect only once production is
 deployed. `Vercel` is not a check: Git deployments are off (`vercel.json` `git.deploymentEnabled: false`).
 
 Every production deploy is one line in `/root/ops/reachkit/state/prod-redeploy.log`, from the
-deployer or from `bin/redeploy.sh`. The line carries the UTC date and time, the target, main's
-full SHA at the call, the deployment id, the trigger (`deployer` or `hand`) and the reason. The
+deployer or from `bin/redeploy.sh`. The line carries the UTC date and time, the target, the full SHA
+it builds, the deployment id, the trigger (`deployer` or `hand`) and the reason. The
 deployer writes `main moved`; `redeploy.sh --reason "<why>"` writes the reason it is given. Both
 write `state/deploy-prod.sha`, the deployer once that deploy is Ready, so it never deploys a
 Ready SHA again. The deployer
@@ -90,7 +94,7 @@ next one, silently. Nothing in a deploy checks it.
 
 | | |
 |---|---|
-| `bin/redeploy.sh --reason "<why>"`, `bin/deploy-dev-once.sh`, `bin/deployer.sh` | **Cannot.** All three POST `gitSource.ref: "main"` — the tip of `main` at the moment of the call. None takes a commit, a ref or a deployment id, so no script on this box can put an older build on `reachkit.app`. This is already protected, by having no argument to abuse |
+| `bin/redeploy.sh --reason "<why>"`, `bin/deploy-dev-once.sh`, `bin/deployer.sh` | **Cannot.** The first two POST `gitSource.ref: "main"`, the tip of `main` at the moment of the call. The deployer adds `gitSource.sha`: main's head, or a commit of `main` newer than `deploy-prod.sha`. None takes a SHA, a ref or a deployment id as an argument, so no script on this box can put an older build on `reachkit.app` |
 | Vercel — the dashboard's rollback/promote control, `vercel rollback`, `vercel promote`, `POST /v1/projects/{id}/rollback/{dpl}`, `POST /v10/projects/{id}/promote/{dpl}` | **Can.** Production deployments are retained and the previous one is flagged a rollback candidate; promoting it re-aliases `reachkit.app` with no rebuild, in one click. Nothing prevents it. This door stays shut by decision, not by a guard — do not walk through it |
 | A deploy that fails to build | **Not a rollback at all.** A failed build is never aliased: `reachkit.app` keeps serving the build it already had. Nothing was reverted because nothing was replaced |
 
@@ -319,6 +323,12 @@ scheduled job whose `last_run_at` is more than **twice its interval** ago is mai
 `OWNER_EMAILS` through the incident mail (§6): *"A scheduled job has not run for more than
 twice its usual interval."* with the job, its last run and its interval. `stale_alerted_at` records
 that mail; the job is not mailed again until it has run and gone quiet again.
+
+**The failing-job mail.** A job that throws on its first delivery is mailed to `OWNER_EMAILS` at
+most once per job, error class and Europe/Berlin day. The row in `job_error_mails` decides that, not
+the mail vendor's key. A send that no owner address accepted deletes its row, so the next tick tries
+again. A store that cannot answer still mails and logs
+`{"event":"ops_incident_alert","outcome":"claim_unavailable"}`.
 
 **The outside check.** The heartbeat cannot see *every* job stopping, so `GET /api/health`
 reads the same rows on each request: `200 {"ok":true}` when every scheduled job with a row is within

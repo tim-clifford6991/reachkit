@@ -26,6 +26,10 @@ function store(rows: readonly JobRunRow[] | Error): HeartbeatStore {
       writes += 1;
       return true;
     },
+    async claimErrorMail() {
+      return true;
+    },
+    async releaseErrorMail() {},
   };
 }
 

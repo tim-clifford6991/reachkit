@@ -72,7 +72,7 @@ function seed(site: Site, pages: readonly Page[]): void {
 
 const dom = async (page: Promise<React.JSX.Element>): Promise<Document> => new DOMParser().parseFromString(renderToStaticMarkup(await page), "text/html");
 const text = (el: Element | null | undefined): string => (el?.textContent ?? "").replace(/\s+/gu, " ").trim();
-const weekLine = async (): Promise<string> => text((await dom(SettingsMailTab())).querySelector('[data-testid="notification-weekly-preview"] span'));
+const weekLine = async (): Promise<string> => text((await dom(SettingsMailTab())).querySelector('[data-testid="notification-weekly-preview"] .wrap-anywhere'));
 /** The ladder the Monday mail builds: its own read of the site's pages, at its own instant. */
 const mailClimbing = async (): Promise<number | undefined> => {
   const content = contentOf({ pages: await readPublishedPages(SITE_ID), now: NOW });

@@ -2,12 +2,12 @@
 // change. Runs `scripts/ci-changes.mjs` over sample diffs the way ci.yml's
 // `what changed` job pipes `git diff --name-only` into it.
 import { spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import ts from "typescript";
 import { describe, expect, it } from "vitest";
-import { classify, walkers } from "../../scripts/ci-changes.mjs";
+import { classify, related, walkers } from "../../scripts/ci-changes.mjs";
 import { LIVE_SCHEMA_TESTS } from "../../scripts/live-schema-tests.mjs";
 
 const ROOT = path.resolve(__dirname, "../..");
@@ -54,6 +54,19 @@ describe("what a pull request changed", () => {
     ["the parity script", "scripts/design/parity.mjs"],
   ])("%s alone runs the sweep", (_, file) => {
     expect(changes(file)).toMatchObject({ status: 0, ui: "true" });
+  });
+
+  it.each([
+    ["a canvas board", "docs/design/boards/canvas/OptOut.dc.html"],
+    ["an allow file", "docs/design/parity/OptOut.allow"],
+  ])("%s alone runs the unit tests that render the state boards", (_, file) => {
+    expect(changes(file)).toMatchObject({ status: 0, code: "true", unit: "affected" });
+    const r = spawnSync(process.execPath, [SCRIPT, "--related"], { cwd: ROOT, encoding: "utf8", input: `${file}\n` });
+    expect(r.status).toBe(0);
+    const renders = Object.values(JSON.parse(readFileSync(path.join(ROOT, "docs/design/parity/boards.json"), "utf8")) as { render?: string }[])
+      .flatMap((row) => (row.render ? [row.render] : []));
+    expect(renders).toContain("tests/app/opt-out/board.test.tsx");
+    expect(r.stdout.trim().split("\n")).toEqual(expect.arrayContaining(renders));
   });
 
   it("a documentation-only diff skips everything but audit", () => {
@@ -139,6 +152,27 @@ describe("what an affected unit run hands vitest related", () => {
       put("tests/new/imports.test.ts", 'import { x } from "../../src/x";\n');
       put("tests/ui/layout/sweep.test.ts", 'readdirSync("src");\n');
       expect(walkers(root)).toEqual(["tests/new/walks.test.ts"]);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("a theme.css-only diff runs every design suite", () => {
+    const r = spawnSync(process.execPath, [SCRIPT, "--related"], { cwd: ROOT, encoding: "utf8", input: "src/ui/theme.css\n" });
+    expect(r.status).toBe(0);
+    const files = r.stdout.trim().split("\n");
+    const suites = readdirSync(path.join(ROOT, "tests/ui/design")).filter((f) => f.endsWith(".test.ts"));
+    expect(suites).toEqual(expect.arrayContaining(["contrast.test.ts", "heading-layer.test.ts", "mark-and-glyphs.test.ts"]));
+    expect(files).toEqual(expect.arrayContaining(suites.map((f) => `tests/ui/design/${f}`)));
+  });
+
+  it("covers a new design suite without a list to edit", () => {
+    const root = mkdtempSync(path.join(tmpdir(), "design-"));
+    try {
+      mkdirSync(path.join(root, "tests/ui/design"), { recursive: true });
+      writeFileSync(path.join(root, "tests/ui/design/zz-probe.test.ts"), 'readFileSync("src/ui/theme.css");\n');
+      writeFileSync(path.join(root, "tests/ui/design/helper.ts"), "export const x = 1;\n");
+      expect(related(["src/ui/theme.css"], root)).toEqual(["src/ui/theme.css", "tests/config/ci-changes.test.ts", "tests/ui/design/zz-probe.test.ts"]);
     } finally {
       rmSync(root, { recursive: true, force: true });
     }

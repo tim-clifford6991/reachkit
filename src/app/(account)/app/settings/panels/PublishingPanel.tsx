@@ -32,7 +32,7 @@
 
 import type React from "react";
 import { useId, useOptimistic, useState } from "react";
-import { ArrowRight, Check, CircleCheck, Clock, FileText, Globe, House, Mail } from "lucide-react";
+import { ArrowRight, Check, CircleCheck, Clock, FileText, Globe, House, MailCheck, Minus, Plus } from "lucide-react";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { VETO } from "@/lib/config/constants";
 import { vetoHoursFromDays } from "@/lib/publish/settings/veto";
@@ -229,7 +229,7 @@ export function PublishingPanel(p: { settings: SettingsModel; next?: NextPage })
                 note={copy("settings.publishing.flow.written.note")}
               />
               <Step
-                icon={<Mail size={16} strokeWidth={1.75} aria-hidden />}
+                icon={<MailCheck size={16} strokeWidth={1.75} aria-hidden />}
                 title={copy("settings.publishing.flow.emailed")}
                 at={live ? next.written : null}
                 note={copy("settings.publishing.flow.emailed.note")}
@@ -423,7 +423,7 @@ export function PublishingPanel(p: { settings: SettingsModel; next?: NextPage })
                 data-testid="veto-less"
                 onClick={() => step(days - 1)}
               >
-                {copy("settings.publishing.veto.less")}
+                <Minus size={16} strokeWidth={1.75} aria-hidden />
               </button>
               <span className="join-item num flex items-center border border-base-300 px-3 text-sm">
                 {vetoWindowLabel(vetoHours)}
@@ -436,7 +436,7 @@ export function PublishingPanel(p: { settings: SettingsModel; next?: NextPage })
                 data-testid="veto-more"
                 onClick={() => step(days + 1)}
               >
-                {copy("settings.publishing.veto.more")}
+                <Plus size={16} strokeWidth={1.75} aria-hidden />
               </button>
             </span>
           </SettingRow>
