@@ -18,57 +18,45 @@
 // and a crawl that has run once, and three zeroes read as a broken card
 // rather than as a new account.
 //
-// daisyUI in the route: `card`, and the Settings rows (`SettingRow`, #1089).
-// No library added, no chart — three
-// numbers are three numbers.
+// daisyUI in the route: `collapse`, a fold as the board draws it, one
+// `progress` and a list. A blog that was never read says so, never 0.
 import type React from "react";
-import { Library } from "lucide-react";
 import { copy } from "@/lib/presentation/copy";
 import type { KnownContentCounts } from "../business-provider";
-import { SettingRow } from "./SettingRow";
-
-const ICON = { strokeWidth: 1.75, "aria-hidden": true } as const;
-
-/** The three sources, in the order a reader meets them: what we wrote for
- *  them, what they wrote, and what the crawl read. */
-const SOURCES = [
-  { key: "ours", label: "settings.known.ours" },
-  { key: "wordpress", label: "settings.known.wordpress" },
-  { key: "site", label: "settings.known.site" },
-] as const satisfies readonly { key: keyof KnownContentCounts; label: Parameters<typeof copy>[0] }[];
 
 export function KnownContentPanel(p: { known: KnownContentCounts }): React.JSX.Element {
+  const { known } = p;
+  const max = known.ours + known.site + (known.wordpress ?? 0);
   return (
-    <section className="card card-border min-w-0 bg-base-100" data-testid="settings-known-content">
-      <div className="card-body min-w-0 gap-3 p-4">
-        <h2 className="flex min-w-0 items-center gap-2 text-base font-semibold">
-          <Library {...ICON} size={18} />
-          {copy("settings.known.head")}
-        </h2>
-
-        {p.known.total === 0 ? (
+    <details className="collapse collapse-arrow card-border min-w-0 bg-base-100" data-testid="settings-known-content">
+      <summary className="collapse-title font-semibold">{copy("settings.known.head")}</summary>
+      <div className="collapse-content flex min-w-0 flex-col gap-3">
+        <p className="text-sm text-base-content/70">{copy("settings.known.note")}</p>
+        {known.total === 0 && known.wordpress === null ? (
           <p className="text-sm text-base-content/70" data-testid="settings-known-empty">
             {copy("settings.known.none")}
           </p>
         ) : (
           <>
-            <p className="text-sm text-base-content/70" data-testid="settings-known-total">
-              {copy("settings.known.total", { count: String(p.known.total) })}
+            <p className="text-sm" data-testid="settings-known-total">
+              {copy("settings.known.total", { count: String(known.total) })}
             </p>
-            {/* The settable-row shape every Settings tab draws (#1089): the
-                source at the near edge, its count at the far one. */}
-            <div className="flex min-w-0 flex-col">
-              {SOURCES.map((source) => (
-                <SettingRow key={source.key} name={copy(source.label)} testId={`settings-known-${source.key}`}>
-                  <span className="figure">{p.known[source.key]}</span>
-                </SettingRow>
-              ))}
-            </div>
+            {/* The share we wrote of every page read; a blog not read is not counted. */}
+            {max > 0 && (
+              <progress className="progress progress-primary w-full" value={known.ours} max={max} aria-hidden data-testid="settings-known-meter" />
+            )}
+            <ul className="flex min-w-0 flex-col gap-1 text-sm">
+              <li data-testid="settings-known-ours">{copy("settings.known.ours", { count: String(known.ours) })}</li>
+              <li data-testid="settings-known-site">{copy("settings.known.site", { count: String(known.site) })}</li>
+              <li className={known.wordpress === 0 || known.wordpress === null ? "text-base-content/70" : ""} data-testid="settings-known-wordpress">
+                {known.wordpress === null
+                  ? copy("settings.known.wordpress.unread")
+                  : copy("settings.known.wordpress", { count: String(known.wordpress) })}
+              </li>
+            </ul>
           </>
         )}
-
-        <p className="text-sm text-base-content/70">{copy("settings.known.note")}</p>
       </div>
-    </section>
+    </details>
   );
 }

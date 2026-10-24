@@ -2,13 +2,12 @@
 // were read to say about the business, each item with the page it was read
 // from, and the five questions only the founder can answer.
 //
-// daisyUI `card`, `list`, `badge`, `textarea`, `btn`; a lucide glyph at 1.75.
-// The read half has no controls: what a page says is corrected on the page.
-// The answers are one form and one save.
+// daisyUI `collapse`, `list`, `badge`, `input`, `btn`. A fold, as the board
+// draws it. The read half has no controls: what a page says is corrected on
+// the page. The answers are one form and one save.
 "use client";
 
 import type React from "react";
-import { BookOpen } from "lucide-react";
 import { KNOWLEDGE_BASE } from "@/lib/config/constants";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import {
@@ -67,6 +66,8 @@ function Group(p: { head: CopyKey; id: string; children: React.ReactNode }): Rea
 const SEP = " · ";
 const OFFERINGS = { head: "settings.knowledge.offerings", id: "offerings" } as const;
 const DIFFERENTIATORS = { head: "settings.knowledge.differentiators", id: "differentiators" } as const;
+/** The board's four first (problems, how you differ, questions, places), then the rest. */
+const ORDER = ["problems", "differentiators", "questions", "places", "offerings", "audience", "proof", "integrations"] as const;
 
 const ROW = "list-row min-w-0 flex-wrap items-start gap-2 px-0";
 
@@ -78,18 +79,74 @@ export function KnowledgePanel(p: { knowledge: KnowledgeBase; answers: FounderAn
     base.differentiators.length === 0 &&
     KNOWLEDGE_LISTS.every((name) => base[name].length === 0);
 
+  function group(name: (typeof ORDER)[number]): React.ReactNode {
+    if (name === "offerings") {
+      return base.offerings.length === 0 ? null : (
+        <Group {...OFFERINGS} key={name}>
+          {base.offerings.map((offering) => (
+            <li className={ROW} key={offering.name}>
+              <div className="flex min-w-0 grow flex-col gap-1">
+                <p className="min-w-0 font-medium wrap-anywhere">
+                  {offering.name}
+                  {offering.prices.length === 0 ? null : (
+                    <span className="num font-normal">
+                      {SEP}
+                      {offering.prices.join(SEP)}
+                    </span>
+                  )}
+                </p>
+                {[...offering.features, ...offering.uses].length === 0 ? null : (
+                  <p className="min-w-0 text-sm text-base-content/70 wrap-anywhere">
+                    {[...offering.features, ...offering.uses].join(SEP)}
+                  </p>
+                )}
+                <Source source={offering.source} />
+              </div>
+            </li>
+          ))}
+        </Group>
+      );
+    }
+    if (name === "differentiators") {
+      return base.differentiators.length === 0 ? null : (
+        <Group {...DIFFERENTIATORS} key={name}>
+          {base.differentiators.map((entry) => (
+            <li className={ROW} key={entry.text}>
+              <div className="flex min-w-0 grow flex-col gap-1">
+                <p className="min-w-0 wrap-anywhere">{entry.text}</p>
+                <span className="flex min-w-0 flex-wrap items-center gap-2 text-xs text-base-content/70">
+                  {entry.rival === null ? null : (
+                    <span className="min-w-0 wrap-anywhere">
+                      {copy("settings.knowledge.against", { rival: entry.rival })}
+                    </span>
+                  )}
+                  <Source source={entry.source} />
+                </span>
+              </div>
+            </li>
+          ))}
+        </Group>
+      );
+    }
+    return base[name].length === 0 ? null : (
+      <Group head={LIST_COPY[name]} id={name} key={name}>
+        {base[name].map((item) => (
+          <li className={ROW} key={item.text}>
+            <div className="flex min-w-0 grow flex-col gap-1">
+              <p className="min-w-0 wrap-anywhere">{item.text}</p>
+              <Source source={item.source} />
+            </div>
+          </li>
+        ))}
+      </Group>
+    );
+  }
+
   return (
-    <section className="card card-border min-w-0 bg-base-100" data-testid="settings-business-knowledge">
-      <div className="card-body gap-4">
-        <div className="flex min-w-0 flex-wrap items-center justify-between gap-2">
-          <h2 className="card-title min-w-0 flex-wrap text-base">
-            <BookOpen size={20} strokeWidth={1.75} aria-hidden />
-            {copy("settings.knowledge.title")}
-          </h2>
-          {writer.saved ? (
-            <span className={SAVED_BADGE_CLASS}>{copy("settings.answer.saved-badge")}</span>
-          ) : null}
-        </div>
+    <details className="collapse collapse-arrow card-border min-w-0 bg-base-100" data-testid="settings-business-knowledge">
+      <summary className="collapse-title font-semibold">{copy("settings.knowledge.title")}</summary>
+      <div className="collapse-content flex min-w-0 flex-col gap-4">
+        {writer.saved ? <span className={SAVED_BADGE_CLASS}>{copy("settings.answer.saved-badge")}</span> : null}
         <p className="text-sm text-base-content/70 wrap-anywhere">{copy("settings.knowledge.lead")}</p>
 
         {nothingRead ? (
@@ -98,66 +155,7 @@ export function KnowledgePanel(p: { knowledge: KnowledgeBase; answers: FounderAn
           </p>
         ) : null}
 
-        {base.offerings.length === 0 ? null : (
-          <Group {...OFFERINGS}>
-            {base.offerings.map((offering) => (
-              <li className={ROW} key={offering.name}>
-                <div className="flex min-w-0 grow flex-col gap-1">
-                  <p className="min-w-0 font-medium wrap-anywhere">
-                    {offering.name}
-                    {offering.prices.length === 0 ? null : (
-                      <span className="num font-normal">
-                        {SEP}
-                        {offering.prices.join(SEP)}
-                      </span>
-                    )}
-                  </p>
-                  {[...offering.features, ...offering.uses].length === 0 ? null : (
-                    <p className="min-w-0 text-sm text-base-content/70 wrap-anywhere">
-                      {[...offering.features, ...offering.uses].join(SEP)}
-                    </p>
-                  )}
-                  <Source source={offering.source} />
-                </div>
-              </li>
-            ))}
-          </Group>
-        )}
-
-        {base.differentiators.length === 0 ? null : (
-          <Group {...DIFFERENTIATORS}>
-            {base.differentiators.map((entry) => (
-              <li className={ROW} key={entry.text}>
-                <div className="flex min-w-0 grow flex-col gap-1">
-                  <p className="min-w-0 wrap-anywhere">{entry.text}</p>
-                  <span className="flex min-w-0 flex-wrap items-center gap-2 text-xs text-base-content/70">
-                    {entry.rival === null ? null : (
-                      <span className="min-w-0 wrap-anywhere">
-                        {copy("settings.knowledge.against", { rival: entry.rival })}
-                      </span>
-                    )}
-                    <Source source={entry.source} />
-                  </span>
-                </div>
-              </li>
-            ))}
-          </Group>
-        )}
-
-        {KNOWLEDGE_LISTS.map((name) =>
-          base[name].length === 0 ? null : (
-            <Group head={LIST_COPY[name]} id={name} key={name}>
-              {base[name].map((item) => (
-                <li className={ROW} key={item.text}>
-                  <div className="flex min-w-0 grow flex-col gap-1">
-                    <p className="min-w-0 wrap-anywhere">{item.text}</p>
-                    <Source source={item.source} />
-                  </div>
-                </li>
-              ))}
-            </Group>
-          )
-        )}
+        {ORDER.map(group)}
 
         <form
           action={(form) => writer.press(saveFounderAnswersAction, form)}
@@ -165,21 +163,26 @@ export function KnowledgePanel(p: { knowledge: KnowledgeBase; answers: FounderAn
           data-testid="knowledge-answers"
         >
           <div className="flex min-w-0 flex-col gap-1">
-            <h3 className="eyebrow">{copy("setup.business.questions")}</h3>
-            <p className="text-sm text-base-content/70 wrap-anywhere">{copy("setup.business.questions.note")}</p>
+            <h3 className="font-semibold">{copy("setup.business.questions")}</h3>
+            <p className="text-sm text-base-content/70 wrap-anywhere">{copy("settings.knowledge.things.lead")}</p>
           </div>
-          {FOUNDER_QUESTIONS.map((question) => (
-            <label key={question} className="flex min-w-0 flex-col gap-1.5">
-              <span className="min-w-0 text-sm wrap-anywhere">{copy(QUESTION_COPY[question])}</span>
-              <textarea
-                name={`${BUSINESS_ANSWER_FIELD}${question}`}
-                className="textarea min-w-0 w-full"
-                rows={2}
-                maxLength={KNOWLEDGE_BASE.ANSWER_CHARS}
-                defaultValue={p.answers[question] ?? ""}
-              />
-            </label>
-          ))}
+          <ol className="flex min-w-0 flex-col gap-3">
+            {FOUNDER_QUESTIONS.map((question, at) => (
+              <li key={question} className="min-w-0">
+                {/* "Thing n" names the field; the question says what it is used for (the fifth is the byline). */}
+                <label className="flex min-w-0 flex-col gap-1">
+                  <span className="text-sm text-base-content/70">{copy("settings.knowledge.thing", { n: String(at + 1) })}</span>
+                  <span className="min-w-0 text-xs text-base-content/70 wrap-anywhere">{copy(QUESTION_COPY[question])}</span>
+                  <input
+                    name={`${BUSINESS_ANSWER_FIELD}${question}`}
+                    className="input min-w-0 w-full"
+                    maxLength={KNOWLEDGE_BASE.ANSWER_CHARS}
+                    defaultValue={p.answers[question] ?? ""}
+                  />
+                </label>
+              </li>
+            ))}
+          </ol>
           <div>
             <button type="submit" className="btn btn-primary btn-sm" disabled={writer.busy}>
               {copy("settings.save")}
@@ -187,6 +190,6 @@ export function KnowledgePanel(p: { knowledge: KnowledgeBase; answers: FounderAn
           </div>
         </form>
       </div>
-    </section>
+    </details>
   );
 }

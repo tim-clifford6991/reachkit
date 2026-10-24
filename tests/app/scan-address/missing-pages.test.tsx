@@ -3,8 +3,10 @@
 // builds reads as not measured yet, never as a scan that stopped early.
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
+import { parse, type HTMLElement } from "node-html-parser";
 import { describe, expect, it } from "vitest";
 import { copy } from "@/lib/presentation/copy";
+import { fromStored } from "@/lib/presentation/generated";
 import { unmeasured } from "@/lib/measure/measured";
 import { MissingPagesList } from "@/app/(public)/scan/[domain]/_modules/missing-pages";
 import { FIXTURE_REPORT } from "@/app/(public)/scan/[domain]/_fixture/states";
@@ -14,20 +16,6 @@ import { panelReport, renderReport } from "./panel-report";
 const htmlText = (s: string): string => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#x27;");
 
 describe("every missing page is listed", () => {
-  it("a 14-page report renders all 14 open, under the line that says none is hidden", () => {
-    const pages: MissingPage[] = Array.from({ length: 14 }, (_, i) => ({
-      search: `search ${i + 1}`,
-      volume: 100 + i,
-      holder: null,
-    }));
-    const html = renderToStaticMarkup(<MissingPagesList pages={pages} freeSearch={null} />);
-    expect(html).not.toContain("<details");
-    const open = html.slice(html.indexOf("<ol"), html.indexOf("</ol>"));
-    expect(open.match(/<li/g)).toHaveLength(14);
-    for (const page of pages) expect(open).toContain(`>${page.search}<`);
-    expect(html.indexOf(`>${htmlText(copy("report.missing.all", { count: "14" }))}</p>`)).toBeGreaterThan(html.indexOf("</ol>"));
-  });
-
   it.each(["saas", "local"] as const)("the %s panel report lists every page it counted, each with its search", (which) => {
     const report = panelReport(which);
     const html = renderReport(report);
@@ -83,6 +71,7 @@ describe("the page the report writes free is marked in the list", () => {
     search,
     volume: 500 - i * 100,
     holder: "rival.example.net",
+    question: null,
   }));
   const free = htmlText(copy("report.missing.free"));
   const read = htmlText(copy("report.missing.free.read"));
@@ -135,5 +124,83 @@ describe("the example.com fixture draws its missing pages", () => {
     const first = list.slice(list.indexOf("<li"), list.indexOf("</li>"));
     expect(first).toContain(htmlText(FIXTURE_REPORT.freePage!.target.keyword));
     expect(first).toContain(htmlText(copy("report.missing.free")));
+  });
+});
+
+describe("pages 1 to 5 are cards, the rest dashed rows (2026-10-24 E16)", () => {
+  const listed = (count: number): MissingPage[] =>
+    Array.from({ length: count }, (_, i) => ({ search: `search ${i + 1}`, volume: 100 + i, holder: "rival.example.net", question: null }));
+  const draw = (pages: readonly MissingPage[], freeSearch: string | null = null): HTMLElement =>
+    parse(renderToStaticMarkup(<MissingPagesList pages={pages} freeSearch={freeSearch} />));
+  const cards = (root: HTMLElement): HTMLElement[] => root.querySelectorAll("li.card");
+  const rows = (root: HTMLElement): HTMLElement[] => root.querySelectorAll("li.border-dashed");
+  const text = (el: HTMLElement): string => el.textContent.replace(/\s+/g, " ").trim();
+
+  it("14 pages draw 5 cards and 9 rows", () => {
+    const root = draw(listed(14));
+    const [first, second] = root.querySelectorAll("ol");
+    expect(first!.getAttribute("role")).toBe("list");
+    expect(cards(first!)).toHaveLength(5);
+    cards(first!).forEach((card, i) => {
+      expect(card.querySelector("span.num")!.textContent).toBe(copy("report.missing.page", { n: String(i + 1) }));
+      expect(card.querySelector("[aria-hidden] svg.lucide-file-text")).not.toBeNull();
+      expect(text(card)).toContain(`search ${i + 1}`);
+    });
+    expect(second!.getAttribute("start")).toBe("6");
+    expect(second!.getAttribute("role")).toBe("list");
+    expect(rows(second!)).toHaveLength(9);
+    rows(second!).forEach((row, i) => {
+      expect(row.querySelector("span.num")!.textContent).toBe(String(i + 6));
+      expect(row.querySelector('svg.lucide-file-text[aria-hidden="true"]')).not.toBeNull();
+      expect(row.querySelector(".font-mono")!.textContent).toBe(`search ${i + 6}`);
+    });
+    expect(text(root)).toContain(copy("report.missing.all.rest", { count: "14" }));
+  });
+
+  it("3 pages draw 3 cards and no rows", () => {
+    const root = draw(listed(3));
+    expect(root.querySelectorAll("ol")).toHaveLength(1);
+    expect(cards(root)).toHaveLength(3);
+    expect(rows(root)).toHaveLength(0);
+    expect(text(root)).toContain(copy("report.missing.all", { count: "3" }));
+    expect(text(root)).not.toContain("Pages 6 to");
+  });
+
+  it("the tally names the rows: none for 1, the six line for 6", () => {
+    expect(text(draw(listed(1)))).not.toContain(copy("report.missing.all", { count: "1" }));
+    const six = draw(listed(6));
+    expect(rows(six)).toHaveLength(1);
+    expect(text(six)).toContain(copy("report.missing.all.six"));
+    expect(text(six)).not.toContain("Pages 6 to");
+  });
+
+  it("only the free card is outlined and linked", () => {
+    const root = draw(listed(14), "search 9");
+    const [first] = cards(root);
+    expect(root.querySelectorAll(".border-primary")).toEqual([first]);
+    expect(root.querySelectorAll('a[href="#first-page"]')).toHaveLength(1);
+    expect(first!.querySelector('a[href="#first-page"]')).not.toBeNull();
+    expect(root.querySelectorAll(".badge")).toHaveLength(1);
+    expect(first!.querySelector(".badge svg.lucide-gift")).not.toBeNull();
+    expect(text(first!)).toContain("search 9");
+    expect(first!.querySelector(".bg-primary\\/10")).not.toBeNull();
+  });
+
+  it("headline is the stored wording, else the search", () => {
+    const wording = "Which tool tracks activation without code?";
+    const pages: MissingPage[] = [
+      { search: "track activation", volume: 300, holder: null, question: fromStored("questions.wording", wording) },
+      { search: "amplitude alternative", volume: 200, holder: null, question: null },
+    ];
+    const [asked, plain] = cards(draw(pages));
+    expect(asked!.querySelector(".font-semibold")!.textContent).toBe(wording);
+    expect(text(asked!)).toContain("track activation");
+    expect(plain!.querySelector(".font-semibold")!.textContent).toBe("amplitude alternative");
+  });
+
+  it("the holder sits in mono inside its sentence", () => {
+    const [card] = cards(draw(listed(1)));
+    expect(card!.querySelector(".font-mono.break-all")!.textContent).toBe("rival.example.net");
+    expect(text(card!)).toContain(copy("report.missing.holder", { holder: "rival.example.net" }));
   });
 });

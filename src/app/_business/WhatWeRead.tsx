@@ -9,6 +9,7 @@
 // writes from. A field nothing was read for says so in one quiet line.
 import type React from "react";
 import Link from "next/link";
+import { Globe } from "lucide-react";
 import { COUNTRIES } from "@/lib/locale/locales";
 import type { BusinessUnderstanding } from "@/lib/business/types";
 import { copy } from "@/lib/presentation/copy";
@@ -44,7 +45,7 @@ export function AlsoServesNote(p: { n: number | undefined }): React.JSX.Element 
   );
 }
 
-export function WhatWeRead(p: { understanding: BusinessUnderstanding; editHref?: string }): React.JSX.Element {
+export function WhatWeRead(p: { understanding: BusinessUnderstanding; editHref?: string; tile?: boolean }): React.JSX.Element {
   const u = p.understanding;
   const none = copy("report.read.none");
   const rows: readonly { key: string; label: string; value: string | null }[] = [
@@ -61,7 +62,17 @@ export function WhatWeRead(p: { understanding: BusinessUnderstanding; editHref?:
   return (
     <section className="card bg-base-100 shadow-(--shadow-card) min-w-0" data-testid="what-we-read">
       <div className="card-body gap-3">
-        <h2 className="card-title">{copy("report.read.title")}</h2>
+        {p.tile === true ? (
+          // The report's sections each open with their icon; the signed-in card does not.
+          <div className="flex items-center gap-3">
+            <span aria-hidden className="rounded-field grid size-9 shrink-0 place-items-center bg-base-200">
+              <Globe className="size-5" strokeWidth={1.75} />
+            </span>
+            <h2 className="card-title">{copy("report.read.title")}</h2>
+          </div>
+        ) : (
+          <h2 className="card-title">{copy("report.read.title")}</h2>
+        )}
         <dl className="grid min-w-0 grid-cols-1 gap-x-6 gap-y-2 text-sm sm:grid-cols-[max-content_minmax(0,1fr)]">
           {rows.map((row) => (
             <div key={row.key} className="contents">
