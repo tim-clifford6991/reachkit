@@ -42,7 +42,7 @@ import { useRouter } from "next/navigation";
 import { Check } from "lucide-react";
 import { BATTERY } from "@/lib/config/constants";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
-import type { StageEvent, StageName } from "@/lib/scan/stages";
+import type { StageEvent, StageName, StageSummary } from "@/lib/scan/stages";
 import type { CanonicalDomain } from "@/lib/scan/domain";
 import type { StartScanResponse } from "@/app/api/scan/route";
 
@@ -96,6 +96,8 @@ export interface ScanStages {
   readonly entered: Readonly<Record<string, number>>;
   /** The page's first frame, in the browser's clock. */
   readonly startedAt: number;
+  /** What the finished stages found, the last value of each field kept. */
+  readonly found: StageSummary;
 }
 
 /** A stage's state on screen: finished, running, or not reached. */
@@ -132,6 +134,7 @@ export function useScanStages(p: {
   const [elapsed, setElapsed] = useState<Readonly<Record<string, number>>>({});
   const [entered, setEntered] = useState<Readonly<Record<string, number>>>({});
   const enteredAt = useRef<Record<string, number>>({});
+  const [found, setFound] = useState<StageSummary>({});
 
   // First frame, browser only: claim a scan if the address did not hand
   // one over. `location` is the canonical address and is ignored here —
@@ -178,6 +181,8 @@ export function useScanStages(p: {
         const now = (Date.now() - startedAt) / 1000;
         if (event.done) {
           setDone((previous) => new Set(previous).add(event.stage));
+          const summary = event.summary;
+          if (summary !== undefined) setFound((previous) => ({ ...previous, ...summary }));
           const start = enteredAt.current[event.stage];
           const took = start === undefined ? 0 : Math.round(now - start);
           if (took >= 1) setElapsed((previous) => (event.stage in previous ? previous : { ...previous, [event.stage]: took }));
@@ -194,7 +199,7 @@ export function useScanStages(p: {
     };
   }, [enabled, router, scanId, startedAt]);
 
-  return { done, active, elapsed, entered, startedAt };
+  return { done, active, elapsed, entered, startedAt, found };
 }
 
 /** The named stages themselves: daisyUI `steps steps-vertical` in the

@@ -855,16 +855,17 @@ describe("Monday: the week is re-measured, judged, and told (JN-005)", () => {
       next: measured([{ targetQuery: "agency capacity planning tool" }], MONDAY),
     });
     expect(whole.subject).toBe("mail.weekly.subject");
-    expect(whole.blocks.map((block) => block.block)).toEqual(["heading", "stats", "verdicts", "list", "action"]);
+    expect(whole.blocks.map((block) => block.block)).toEqual(["stats", "verdicts", "heading", "paragraph", "list", "paragraph", "action"]);
     expect(omittedIndexes(whole.blocks)).toEqual([]);
 
-    // A week that measured nothing states no number and omits both lists
-    // rather than printing a 0 for a measurement nobody made.
+    // A week that measured nothing states no number, omits the judged pages
+    // and draws no week rather than printing a 0 for a measurement nobody made.
     const partial = buildWeekly({
       pages: unmeasured("not_attempted", MONDAY),
       next: unmeasured("not_attempted", MONDAY),
     });
-    expect(omittedIndexes(partial.blocks)).toEqual([1, 2]);
+    expect(partial.blocks.map((block) => block.block)).toEqual(["verdicts", "paragraph", "action"]);
+    expect(omittedIndexes(partial.blocks)).toEqual([0]);
     // Every conditional section dropped: the mail carries the one line
     // that says so rather than standing empty.
     expect(chooseWholeMailLine({ blocks: partial.blocks })).toBe("mail.nothing_to_report");

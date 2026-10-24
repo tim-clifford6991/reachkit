@@ -110,6 +110,10 @@ export const META_COPY = Object.freeze({
   "meta.report.description": ["How easily buyers find {domain} on Google and in AI answers, and the pages that would change it. Permanent link.", { slots: { domain: "text" }, fixedBy: "issue 326 · issue 1309" }],
   "meta.veto.title": ["Stop this page · ReachKit", { slots: {}, fixedBy: "issue 326" }],
   "meta.veto.description": ["A page ReachKit wrote for your site is waiting to publish. Stop it here in one step, or do nothing and it goes live as planned.", { slots: {}, fixedBy: "issue 326" }],
+  "meta.unsubscribe.title": ["Unsubscribed · ReachKit", { slots: {}, fixedBy: "issue 1741 (drafted)" }],
+  "meta.unsubscribe.description": ["This link switches off one ReachKit mail. Sign-in and account mail still arrive.", { slots: {}, fixedBy: "issue 1741 (drafted)" }],
+  "meta.pause.title": ["Publishing paused · ReachKit", { slots: {}, fixedBy: "issue 1741 (drafted)" }],
+  "meta.pause.description": ["This link pauses every page ReachKit would publish for your site until you turn publishing on again.", { slots: {}, fixedBy: "issue 1741 (drafted)" }],
   "meta.optout.title": ["Unsubscribed · ReachKit", { slots: {}, fixedBy: "issue 326" }],
   "meta.optout.description": ["This link stops every follow-up email from ReachKit to your address. The page you asked for stays yours.", { slots: {}, fixedBy: "issue 326" }],
   // Issue 1512: the 404 had no `<title>`. Next reads no `metadata` from a `not-found.tsx`, so the screen renders this one itself.

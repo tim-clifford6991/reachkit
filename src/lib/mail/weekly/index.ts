@@ -36,26 +36,39 @@ import { dbAdmin } from "@/lib/db";
 import { env } from "@/lib/config/env";
 import { ANSWER_RATE_WEEKS, BLOG_READS_WINDOW_D, WEEK_PLAN } from "@/lib/config/constants";
 import { measurePrompts } from "@/lib/market/prompts/rate";
-import type { CopyKey } from "@/lib/presentation/copy";
+import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { aiPagesOf, bestMoverOf, isFirstMonday, monthFiguresOf } from "@/lib/measure/figures";
 import { measured, measuredZero, unmeasured, type Measured } from "@/lib/measure/measured";
 import { pageLadderOf } from "@/lib/measure/page-ladder";
 import { contentOf } from "@/lib/measure/published";
 import { readPublishedPages } from "@/lib/measure/published-store";
-import { committedWeek, weeklyDigest, type Opportunity } from "@/lib/opportunities";
-import { placedByDay, plannedByDay } from "@/lib/opportunities/days";
+import { committedWeek, opportunityById, weeklyDigest } from "@/lib/opportunities";
+import { placedByDay, plannedByDay, serviceWeek } from "@/lib/opportunities/days";
 import { plannedStopToken } from "@/lib/opportunities/stop";
+import { whyOf } from "@/lib/opportunities/why";
 import { vetoLinkPath } from "@/lib/publish/publishable";
 import { scheduledPagesFor } from "@/lib/publish/record";
 import { heldPages } from "@/lib/publish/switch";
+import { pauseTokenFor } from "@/lib/publish/switch/pause-link";
+import { readPublishingSettings } from "@/lib/publish/settings/settings";
 import { readBlogReadFacts } from "@/lib/publish/reads/facts";
 import { assembleBlogReads, windowStartDay, type BlogReadsModel } from "@/lib/publish/reads/model";
 import { readSearchVisits } from "@/lib/publish/reads/store";
 import { readDeepReport } from "@/lib/scan/deep/report";
 import { accountForWeek, readPromptWindow, readWeekScans, weekMovement, type UnmeasuredPart } from "@/lib/scan/weekly";
+import { formatMailClock } from "../blocks/format";
+import { unsubscribeTokenFor } from "../notifications/unsubscribe";
 import type { MeasurementState } from "../shell/compose";
 import { sendEmail } from "../send";
-import { buildWeekly, type GoogleStep, type WeeklyNeedsYou, type WeeklyNext, type WeeklyNumbers, type WeeklyPage } from "../templates/weekly";
+import {
+  buildWeekly,
+  type GoogleStep,
+  type WeeklyCalendar,
+  type WeeklyNeedsYou,
+  type WeeklyNext,
+  type WeeklyNumbers,
+  type WeeklyPage,
+} from "../templates/weekly";
 
 /** Why a digest did not go out. Every arm is reported; none is silent, and
  *  `not-composable` is its own arm rather than folded into `mail` —
@@ -139,11 +152,29 @@ export async function sendWeeklyDigest(a: {
   if (recipient === null) return { sent: false, reason: "no-account" };
 
   const connect = await addressToConnect(a.siteId);
+  const settings = await readPublishingSettings(a.siteId).catch(() => null);
+  const zone = settings?.timezone ?? "UTC";
+  const greeting =
+    recipient.createdAt === null
+      ? undefined
+      : { name: recipient.name, week: serviceWeek(dayIn(recipient.createdAt, zone), a.weekStart), business: recipient.domain };
+  const calendar: WeeklyCalendar | undefined =
+    settings === null
+      ? undefined
+      : {
+          days: weekDates(a.weekStart),
+          today: dayIn(now, zone),
+          time: formatMailClock(settings.publishTime),
+          planHref: appHref("/app/calendar"),
+        };
   const { mail, measurement } =
     account.kind === "not_measured"
-      ? unmeasuredWeek(account.nextDueOn, now, connect)
-      : await measuredWeek(a.siteId, a.weekStart, account, connect, now);
+      ? unmeasuredWeek(account.nextDueOn, now, connect, greeting)
+      : await measuredWeek(a.siteId, a.weekStart, account, connect, now, greeting, calendar);
 
+  // The footer's three ways out: pause every page, the mail settings, and
+  // this one mail's unsubscribe, which a mail client can also press itself.
+  const unsubscribe = encodeURIComponent(unsubscribeTokenFor({ userId: recipient.userId, kind: "weekly" }));
   const result = await sendEmail({
     kind: "weekly",
     to: recipient.email,
@@ -152,6 +183,11 @@ export async function sendWeeklyDigest(a: {
     blocks: mail.blocks,
     reason: mail.reason,
     measurement,
+    footerLinks: [
+      { label: "mail.weekly.footer.pause", href: appHref(`/pause/${encodeURIComponent(pauseTokenFor(a.siteId))}`) },
+      { label: "mail.weekly.footer.settings", href: appHref("/app/settings/mail") },
+    ],
+    optOut: { href: appHref(`/unsubscribe/${unsubscribe}`), oneClickHref: appHref(`/api/unsubscribe/${unsubscribe}`), mechanism: "unsubscribe" },
   });
 
   if (!result.sent) {
@@ -167,6 +203,21 @@ export async function sendWeeklyDigest(a: {
 
 type Composed = { mail: ReturnType<typeof buildWeekly>; measurement: MeasurementState };
 type Connect = { host: string; href: string };
+type Greeting = { name: string | null; week: number; business: string };
+
+function appHref(path: string): string {
+  return new URL(path, env.NEXT_PUBLIC_APP_URL).toString();
+}
+
+/** The site-local date an instant falls on, `YYYY-MM-DD`. */
+function dayIn(at: Date, timeZone: string): string {
+  return new Intl.DateTimeFormat("en-CA", { timeZone, year: "numeric", month: "2-digit", day: "2-digit" }).format(at);
+}
+
+/** Monday to Sunday of the week that starts on `weekStart`. */
+function weekDates(weekStart: string): string[] {
+  return Array.from({ length: 7 }, (_, i) => new Date(Date.parse(`${weekStart}T12:00:00Z`) + i * 86_400_000).toISOString().slice(0, 10));
+}
 
 /** The hosted address still waiting for its record, with the setup step
  *  that connects it. `undefined` once it is live, for a site with no hosted
@@ -184,12 +235,12 @@ async function addressToConnect(siteId: string): Promise<Connect | undefined> {
 
 /** A week with no measurement: every section unmeasured, so every one is
  *  omitted, and the whole-mail line says so with the next due date. */
-function unmeasuredWeek(nextDueOn: Date, now: Date, connect: Connect | undefined): Composed {
+function unmeasuredWeek(nextDueOn: Date, now: Date, connect: Connect | undefined, greeting: Greeting | undefined): Composed {
   const gap = unmeasured<never>("undeterminable", now);
   return {
     // No numbers at all: the whole-mail line says the week was not
     // measured, once, and four rows saying it again would repeat it.
-    mail: buildWeekly({ pages: gap, next: gap, ...(connect === undefined ? {} : { connect }) }),
+    mail: buildWeekly({ pages: gap, next: gap, ...(connect === undefined ? {} : { connect }), ...(greeting === undefined ? {} : { greeting }) }),
     measurement: { state: "none", nextDueOn },
   };
 }
@@ -200,7 +251,9 @@ async function measuredWeek(
   weekStart: string,
   account: { kind: "complete" | "partial"; measuredAt: Date; unmeasured?: readonly UnmeasuredPart[] },
   connect: Connect | undefined,
-  now: Date
+  now: Date,
+  greeting: Greeting | undefined,
+  calendar: WeeklyCalendar | undefined
 ): Promise<Composed> {
   const a = { siteId, weekStart };
 
@@ -220,8 +273,10 @@ async function measuredWeek(
   }));
 
   const needsYou = await oneNeedsYou(a.siteId);
-  const week = await theWeek(a.siteId, at);
+  const week = await theWeek(a.siteId, a.weekStart, at);
   const mail = buildWeekly({
+    ...(greeting === undefined ? {} : { greeting }),
+    ...(calendar === undefined ? {} : { calendar }),
     ...(connect === undefined ? {} : { connect }),
     numbers: await weeklyNumbers(a.siteId, a.weekStart, now),
     ...(needsYou === undefined ? {} : { needsYou }),
@@ -291,6 +346,7 @@ async function weeklyNumbers(siteId: string, weekStart: string, now: Date): Prom
     google: {
       steps,
       early: showing === 0,
+      climbing: ladder.climbing,
       ...(ladder.visits === null || ladder.visits === 0 ? {} : { visits: counted(ladder.visits, now) }),
       ...(mover === undefined
         ? {}
@@ -305,17 +361,34 @@ async function weeklyNumbers(siteId: string, weekStart: string, now: Date): Prom
   };
 }
 
+async function weekPages(siteId: string, weekStart: string): Promise<number> {
+  return (await weekEntries(siteId, weekStart)).entries.length;
+}
+
 /** The pages this week carries, Monday to Sunday, by Plan's rule (Overview's
  *  "We chose {n} pages"): each date's scheduled draft, else its committed row. */
-async function weekPages(siteId: string, weekStart: string): Promise<number> {
-  const days = Array.from({ length: 7 }, (_, i) => new Date(Date.parse(`${weekStart}T12:00:00Z`) + i * 86_400_000).toISOString().slice(0, 10));
-  const [pages, held, week] = await Promise.all([
+async function weekEntries(
+  siteId: string,
+  weekStart: string
+): Promise<{
+  entries: { day: string; opportunityId: string; draftId: string | null }[];
+  committed: Awaited<ReturnType<typeof committedWeek>>;
+}> {
+  const days = weekDates(weekStart);
+  const [pages, held, committed] = await Promise.all([
     scheduledPagesFor({ siteId, from: days[0]!, to: days[6]! }),
     heldPages(siteId),
     committedWeek(siteId),
   ]);
   const placed = placedByDay(pages, new Set(held.draftIds), weekStart).byDay;
-  return placed.size + plannedByDay(week.days, placed, days).size;
+  const planned = plannedByDay(committed.days, placed, days);
+  const entries = days.flatMap((day): { day: string; opportunityId: string; draftId: string | null }[] => {
+    const page = placed.get(day);
+    if (page !== undefined) return [{ day, opportunityId: page.opportunityId, draftId: page.draftId }];
+    const id = planned.get(day);
+    return id === undefined ? [] : [{ day, opportunityId: id, draftId: null }];
+  });
+  return { entries, committed };
 }
 
 /** The hosted pages' AI reads and Google visits, as Overview's providers read
@@ -375,30 +448,37 @@ function counted(value: number, at: Date): Measured<number> {
   return value === 0 ? measuredZero(0, at) : measured(value, at);
 }
 
-/** The week this Monday committed (SPEC §7, issue 1559): its pages in date
- *  order, each with its day and its stop link, and its spares. Measured-and-
- *  empty where the supply has run out — the calendar is never padded, and an
- *  empty week is a result the template states in one line. */
+/** The week's pages, Monday to Sunday, by the rule the planned count uses:
+ *  each with its day, whether it updates a page, why it was chosen, and the
+ *  links that stop or open it; and the spares. An empty week is a result the
+ *  template states in one line — the calendar is never padded. */
 async function theWeek(
   siteId: string,
+  weekStart: string,
   at: Date
 ): Promise<{ next: Measured<readonly WeeklyNext[]>; spares: Measured<readonly { targetQuery: string }[]>; skippedDays: number }> {
-  const week = await committedWeek(siteId);
-  // An opportunity with no target search has nothing to name, and naming it
-  // some other way would be a second identity for one row.
-  const named = (rows: readonly Opportunity[]) =>
-    rows.flatMap((row) => (row.targetQuery === null ? [] : [{ targetQuery: row.targetQuery }]));
-  const days = week.days.flatMap(({ date, opportunity }) =>
-    opportunity.targetQuery === null
-      ? []
-      : [{ targetQuery: opportunity.targetQuery, day: date, stopHref: stopHrefOf(siteId, opportunity.id, date) }]
-  );
-  // The week runs WEEK_PLAN.days dates from its first page; a date in it with
-  // no page planned is told, never padded.
-  const first = days[0]?.day;
-  const end = first === undefined ? "" : new Date(Date.parse(`${first}T00:00:00Z`) + WEEK_PLAN.days * 86_400_000).toISOString().slice(0, 10);
-  const skippedDays = first === undefined ? 0 : WEEK_PLAN.days - new Set(days.filter((d) => d.day < end).map((d) => d.day)).size;
-  return { next: measured(days, at), spares: measured(named(week.spares), at), skippedDays };
+  const { entries, committed } = await weekEntries(siteId, weekStart);
+  const open = new Map(committed.days.map(({ opportunity }) => [opportunity.id, opportunity]));
+  const days: WeeklyNext[] = [];
+  for (const entry of entries) {
+    const opportunity = open.get(entry.opportunityId) ?? (await opportunityById(entry.opportunityId).catch(() => null));
+    // An opportunity with no target search has nothing to name, and naming it
+    // some other way would be a second identity for one row.
+    if (opportunity === null || opportunity === undefined || opportunity.targetQuery === null) continue;
+    const why = whyOf(opportunity.planReason);
+    const draftHref = entry.draftId === null ? null : appHref(`/app/draft/${encodeURIComponent(entry.draftId)}`);
+    days.push({
+      targetQuery: opportunity.targetQuery,
+      day: entry.day,
+      update: opportunity.evidence.family === "improve" || opportunity.evidence.family === "fix",
+      ...(why === undefined ? {} : { why: copy(why.sentence) }),
+      // A written page is stopped where it is read; a planned one by its own signed link.
+      stopHref: draftHref ?? stopHrefOf(siteId, opportunity.id, entry.day),
+      editHref: draftHref ?? appHref("/app/calendar"),
+    });
+  }
+  const named = committed.spares.flatMap((row) => (row.targetQuery === null ? [] : [{ targetQuery: row.targetQuery }]));
+  return { next: measured(days, at), spares: measured(named, at), skippedDays: WEEK_PLAN.days - entries.length };
 }
 
 function stopHrefOf(siteId: string, opportunityId: string, day: string): string {
@@ -434,10 +514,12 @@ async function readWeekRow(a: { siteId: string; weekStart: string }): Promise<We
   return data?.[0] ?? null;
 }
 
-async function readRecipient(siteId: string): Promise<{ email: string; userId: string } | null> {
+async function readRecipient(
+  siteId: string
+): Promise<{ email: string; userId: string; name: string | null; domain: string; createdAt: Date | null } | null> {
   const { data: sites, error: siteError } = await untyped()
-    .from<{ id: string; user_id: string }>("sites")
-    .select("id, user_id")
+    .from<{ id: string; user_id: string; domain: string; created_at: string | null }>("sites")
+    .select("id, user_id, domain, created_at")
     .eq("id", siteId)
     .limit(1);
   if (siteError !== null) throw new Error(`sendWeeklyDigest(${siteId}): ${siteError.message}`);
@@ -445,13 +527,21 @@ async function readRecipient(siteId: string): Promise<{ email: string; userId: s
   if (site === undefined) return null;
 
   const { data: users, error: userError } = await untyped()
-    .from<{ email: string }>("users")
-    .select("email")
+    .from<{ email: string; name: string | null }>("users")
+    .select("email, name")
     .eq("id", site.user_id)
     .limit(1);
   if (userError !== null) throw new Error(`sendWeeklyDigest(${siteId}): ${userError.message}`);
-  const email = users?.[0]?.email;
-  return email === undefined ? null : { email, userId: site.user_id };
+  const user = users?.[0];
+  if (user === undefined) return null;
+  const created = site.created_at == null ? Number.NaN : Date.parse(site.created_at);
+  return {
+    email: user.email,
+    userId: site.user_id,
+    name: user.name ?? null,
+    domain: site.domain,
+    createdAt: Number.isNaN(created) ? null : new Date(created),
+  };
 }
 
 /** The stamp, written after the seam accepted the mail and never before. */

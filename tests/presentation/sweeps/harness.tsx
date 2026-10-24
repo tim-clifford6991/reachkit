@@ -83,6 +83,10 @@ export const ROUTE_HARNESS: Readonly<Record<string, HarnessRow>> = Object.freeze
     shell: false,
     async: true,
   },
+  // The Monday mail's two links, with a token that does not verify: the
+  // invalid arm writes no switch and no toggle.
+  "(public)/unsubscribe/[token]/page.tsx": { props: () => ({ params: { token: "sweep-fixture" } }), shell: false, async: true },
+  "(public)/pause/[token]/page.tsx": { props: () => ({ params: { token: "sweep-fixture" } }), shell: false, async: true },
   "(public)/veto/[token]/page.tsx": {
     // Deliberately a token that verifies against nothing: the page renders
     // its unknown-link arm, so it moves no page out of review and marks no

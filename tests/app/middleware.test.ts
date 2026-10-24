@@ -138,6 +138,11 @@ describe(
         // made on behalf of a reader who has none; a denial here answers a
         // pressed Unsubscribe control with a sign-in redirect.
         "/api/opt-out/:token": "/api/opt-out/abc123",
+        // The Monday mail's Unsubscribe and Pause all pages links, and the
+        // one-click endpoint its header names: their holder has no session.
+        "/unsubscribe/:token": "/unsubscribe/abc123",
+        "/api/unsubscribe/:token": "/api/unsubscribe/abc123",
+        "/pause/:token": "/pause/abc123",
         "/pricing": "/pricing",
         // Issue #1069 — the free-scans gallery and its logos.
         "/scans": "/scans",

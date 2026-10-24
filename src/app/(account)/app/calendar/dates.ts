@@ -194,11 +194,8 @@ export function weekRange(first: DayKey, last: DayKey): string {
   );
 }
 
-/** Which week of service `today` falls in, counting the week `first` falls in as 1. */
-export function serviceWeek(first: DayKey, today: DayKey): number {
-  const monday = (day: DayKey): number => utcOf(addDays(day, -weekdayIndex(day))).getTime();
-  return Math.max(1, Math.round((monday(today) - monday(first)) / (7 * 86_400_000)) + 1);
-}
+// The Monday mail's greeting counts weeks by the same rule.
+export { serviceWeek } from "@/lib/opportunities/days";
 
 /** A stored `HH:mm` publish time as the shell's clock writes it: "4:00 PM". */
 export function clockTime(hhmm: string): string {

@@ -13,7 +13,7 @@
 import { copy } from "@/lib/presentation/copy";
 import { generatedLabel } from "@/lib/presentation/generated";
 import { formatStat } from "./format";
-import { factRowsOf, rowsOf, statRowsOf } from "./rows";
+import { factRowsOf, rowsOf, statRowsOf, type RenderedRow } from "./rows";
 import { isMeasuredEmpty, omittedIndexes } from "./omit";
 import type { MailBlock } from "./types";
 
@@ -26,18 +26,19 @@ function statLines(labelText: string, value: string, note: string | null): strin
   return note === null ? head : `${head}\n${note}`;
 }
 
-function rowLines(
-  labelText: string,
-  rows: readonly { left: string; right?: string; href?: string }[],
-  emptyLine: string | null
-): string {
-  if (emptyLine !== null) return `${labelText}\n${emptyLine}`;
+function rowLines(labelText: string | null, rows: readonly RenderedRow[], emptyLine: string | null): string {
+  const head = labelText === null ? [] : [labelText];
+  if (emptyLine !== null) return [...head, emptyLine].join("\n");
   // A row that leads somewhere writes its address beside it, as an action does.
   const lines = rows.map((item) => {
     const side = item.right ?? item.href;
-    return side === undefined ? item.left : `${item.left}: ${side}`;
+    return [
+      side === undefined ? item.left : `${item.left}: ${side}`,
+      ...(item.detail ?? []),
+      ...(item.links ?? []).map((link) => actionLine(link.label, link.href)),
+    ].join("\n");
   });
-  return [labelText, ...lines].join("\n");
+  return [...head, ...lines].join("\n");
 }
 
 /** BUILD §12's plain-text twin of an action. The URL is written out beside
@@ -76,8 +77,8 @@ export function renderBlocksText(blocks: readonly MailBlock[]): {
       case "verdicts":
         parts.push(
           isMeasuredEmpty(block)
-            ? rowLines(copy(block.label), [], copy(block.emptyLine))
-            : rowLines(copy(block.label), rowsOf(block), null)
+            ? rowLines(block.label === undefined ? null : copy(block.label), [], copy(block.emptyLine))
+            : rowLines(block.label === undefined ? null : copy(block.label), rowsOf(block), null)
         );
         break;
       case "facts":

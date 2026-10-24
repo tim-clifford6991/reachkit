@@ -94,6 +94,8 @@ interface ComposeCommon {
    *  report's removal address is the only such slot today. */
   reasonVars?: CopyVars;
   optOut?: OptOutControl;
+  /** Footer links drawn before the stop control, on its line. */
+  footerLinks?: readonly { label: CopyKey; href: string }[];
 }
 
 export type ComposeInput =
@@ -229,6 +231,7 @@ function partsOf(m: ComposeInput): ComposedMailParts {
 
   const footer = {
     wordmark,
+    links: (m.footerLinks ?? []).map((link) => ({ label: copy(link.label), href: link.href })),
     // A reason still awaiting the owner's line renders nothing, the way the
     // imprint above does: SPEC §8 says an unwritten key sends nothing, and
     // a `TODO(copy)` in a delivered footer is exactly that sentence sent.

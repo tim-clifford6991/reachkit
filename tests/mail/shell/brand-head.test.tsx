@@ -17,6 +17,7 @@ describe("#1121 — the mail head shows the logo in every inbox", () => {
         imprint: null,
         plainTextNote: "",
         optOut: null,
+        links: [],
       })
     );
     const img = html.match(/<img[^>]*>/g) ?? [];
