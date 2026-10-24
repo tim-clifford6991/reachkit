@@ -121,6 +121,12 @@ describe("board AppGoogle, on the account the layout sweep reads", () => {
     const ranks = labels.map((label) => (label === "" ? order.length : order.indexOf(label)));
     expect(ranks).toEqual([...ranks].sort((a, b) => a - b));
     expect(new Set(labels)).toEqual(new Set([order[0], order[1], order[3], ""]));
+    // Each label wears its board icon: Check, TrendingUp, Minus, Clock.
+    const icon = new Map(order.map((word, i) => [word, ["lucide-check", "lucide-trending-up", "lucide-minus", "lucide-clock"][i]!]));
+    for (const row of rows.filter((_, i) => labels[i] !== "")) {
+      const label = row.querySelector('[data-testid="search-page-label"]')!;
+      expect(label.querySelector(`svg.${icon.get(text(label))}`)).not.toBeNull();
+    }
     expect(text(card?.querySelector('[data-testid="search-pages-shown"]'))).toBe(
       copy("overview.search.pages.shown", { shown: "6", total: String(pages.live) })
     );
