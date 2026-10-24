@@ -18,13 +18,15 @@ import type { AiAnswersSection, AnswerCell } from "@/lib/scan/report";
 import type { AnswerEngine, EngineStanding, TargetEngine, TargetFacts } from "../types";
 
 /** One cell's standing. An engine that answered and named the site is
- *  `names_you`; one that answered without it is `names_others`; the two
+ *  `names_you`; one that answered without it is `names_others`, or
+ *  `names_no_one` where it cited no address at all; the two
  *  remaining arms are not misses and are kept apart — an engine that served
  *  no answer said something, an engine nobody asked said nothing. */
 function standingOf(cell: AnswerCell): EngineStanding {
   if (cell.kind === "unmeasured") return "unmeasured";
   if (cell.kind === "no_answer") return "no_answer";
-  return cell.namesCustomer ? "names_you" : "names_others";
+  if (cell.namesCustomer) return "names_you";
+  return cell.citedDomains.length === 0 ? "names_no_one" : "names_others";
 }
 
 type AnswerRow = AiAnswersSection["rows"][number];
