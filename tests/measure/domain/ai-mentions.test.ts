@@ -64,11 +64,11 @@ describe("issue 1420 — the AI Overview's text is kept from the SERP already bo
     expect(long!.aiOverview.text!.length).toBeLessThan(10_000);
   });
 
-  it("an overview that names the brand and links only to review sites is a mention: 0.4 of the scale", () => {
+  it("an overview that names the brand and links only to review sites is a mention, and counts in full", () => {
     const [serp] = parseSerp({ items: [item("Rippling and ADP lead the category.")] })!;
     const serps = Array.from({ length: 4 }, () => measured<SerpResult>(serp!, AT));
     const m = aiPresenceOf({ serps, ownDomain: "rippling.com", at: AT });
-    expect(m.kind === "unmeasured" ? null : m.value).toBeCloseTo(40, 10);
+    expect(m.kind === "unmeasured" ? null : m.value).toBe(100);
   });
 });
 

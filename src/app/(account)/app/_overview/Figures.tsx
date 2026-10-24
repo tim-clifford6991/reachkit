@@ -12,6 +12,7 @@ import { PlaceLine } from "@/ui/charts/PlaceLine";
 import { ReadsBars } from "@/ui/charts/ReadsBars";
 import { formatCount, formatDay, SHELL_LOCALE } from "../_shell/format";
 import { FIRST_PAGE, type AiPages, type BestMover, type MonthsFacts } from "@/lib/measure/figures";
+import { shownKey } from "@/lib/measure/registry";
 import { percent, type PromptsModel } from "./prompts-model";
 
 /** Where each figure's rows are listed. */
@@ -47,7 +48,7 @@ export function AiFigure(p: { pages: AiPages | null; reads: BlogReadsModel }): R
         {p.pages === null ? null : (
           <>
             <p className="flex min-w-0 flex-wrap items-baseline gap-2.5">
-              <span className="num text-4xl font-semibold" data-testid="overview-tile-ai-linked">
+              <span className="num text-4xl font-semibold" data-testid={shownKey("overview-ai-linked")}>
                 {formatCount(p.pages.linked.length)}
               </span>
               <span className={`text-sm ${INK}`}>{copy("overview.ai.linked.of", { of: formatCount(p.pages.asked.length) })}</span>
@@ -62,7 +63,7 @@ export function AiFigure(p: { pages: AiPages | null; reads: BlogReadsModel }): R
         {reads === null || reads.fetches.kind === "unmeasured" ? null : (
           <div className="flex min-w-0 flex-wrap items-end gap-x-5 gap-y-3 border-t border-base-300 pt-3">
             <div className="flex min-w-0 flex-1 basis-36 flex-col gap-1">
-              <p className="text-sm" data-testid="overview-tile-ai-reads">
+              <p className="text-sm" data-testid={shownKey("overview-ai-reads")}>
                 {readsLine(reads.fetches.value)}
               </p>
               <p className={`text-xs ${INK}`}>{copy("overview.ai.reads.who")}</p>
@@ -101,7 +102,7 @@ export function MoverFigure(p: { mover: BestMover | null | undefined; timeZone: 
           <>
             <p className="num min-w-0 wrap-anywhere">{mover.search}</p>
             <p className="flex min-w-0 flex-wrap items-baseline gap-2.5">
-              <span className="num text-4xl font-semibold" data-testid="overview-tile-mover">
+              <span className="num text-4xl font-semibold" data-testid={shownKey("overview-best-mover")}>
                 {formatCount(mover.place)}
               </span>
               <span className={`text-sm ${INK}`}>{copy("overview.mover.place")}</span>
@@ -173,7 +174,7 @@ export function MonthsFigure(p: { months: MonthsFacts; reputation: PromptsModel;
           <div className="flex min-w-0 flex-wrap gap-3">
             {reading.score === null ? null : (
               <Measure
-                testId="overview-tile-score"
+                testId={shownKey("overview-score-month")}
                 label={copy("overview.months.score")}
                 figure={formatCount(reading.score)}
                 of={copy("overview.months.of", { of: "100" })}
@@ -182,7 +183,7 @@ export function MonthsFigure(p: { months: MonthsFacts; reputation: PromptsModel;
             )}
             {reading.market === null ? null : (
               <Measure
-                testId="overview-tile-market"
+                testId={shownKey("overview-market-month")}
                 label={copy("overview.search.tile.market")}
                 figure={`${formatCount(reading.market.top10)} ${copy("overview.months.of", { of: formatCount(reading.market.of) })}`}
                 of={null}
@@ -194,7 +195,7 @@ export function MonthsFigure(p: { months: MonthsFacts; reputation: PromptsModel;
             )}
             {rate === null ? null : (
               <Measure
-                testId="overview-tile-reputation"
+                testId={shownKey("overview-reputation")}
                 label={copy("overview.months.reputation")}
                 figure={`${formatCount(rate.linked + rate.named)} ${copy("overview.months.of", { of: formatCount(rate.samples) })}`}
                 of={null}

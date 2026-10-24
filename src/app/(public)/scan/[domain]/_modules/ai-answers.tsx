@@ -48,6 +48,7 @@ import type React from "react";
 import { Bot } from "lucide-react";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { SCORE_ESTIMATE } from "@/lib/config/constants";
+import { namesOrLinks } from "@/lib/measure/drivers";
 import { renderQuestion } from "@/lib/presentation/generated";
 import type {
   AiAnswersSection,
@@ -144,7 +145,7 @@ function AnswerState(p: { cell: AnswerCell }): React.JSX.Element {
   if (cell.kind === "no_answer") {
     return <span className="badge badge-ghost">{copy("ai-answers.question.no-answer")}</span>;
   }
-  return cell.namesCustomer ? (
+  return namesOrLinks(cell) ? (
     <span className="badge badge-success">{copy("ai-answers.engine.cell.cited")}</span>
   ) : (
     <span className="badge badge-error">{copy("ai-answers.question.not-you")}</span>
@@ -323,7 +324,7 @@ export function AnswerMatrix(p: {
  *  row alone (§4.1, §2.5). */
 function ownCellState(cell: AnswerCell): MatrixCell {
   if (cell.kind !== "answered") return "muted";
-  return cell.namesCustomer ? "cited" : "not-cited";
+  return namesOrLinks(cell) ? "cited" : "not-cited";
 }
 
 /** One cell of a rival's row, read the same way `citedCount` counts it —
@@ -411,7 +412,7 @@ export function answerQuoteOf(
  *  provenance line. */
 function QuestionRow(p: { row: { question: StoredQuestion; cell: AnswerCell } }): React.JSX.Element {
   const { question, cell } = p.row;
-  const namesCustomer = cell.kind === "answered" && cell.namesCustomer;
+  const namesCustomer = cell.kind === "answered" && namesOrLinks(cell);
   // The brands the AI answer named, from the cell that measured them
   // (#103). A question whose answer named nobody names none.
   const namedBrands = cell.kind === "answered" ? cell.citedDomains : [];

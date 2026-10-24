@@ -1,7 +1,8 @@
 /** @vitest-environment jsdom */
-// The Google bar and the presence card count the same thing: on every
-// report the fixture states draw, the bar's tenths are the card's page-one
-// share in tenths, wherever both are measured.
+// The Google bar and the presence card count the same thing, and so do the
+// AI bar and the AI-answers card: on every report the fixture states draw,
+// each bar's tenths are its card's share in tenths, wherever both are
+// measured.
 import { describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import React from "react";
@@ -54,6 +55,45 @@ describe("the Google bar equals the presence card's page-one share", () => {
     const skewed: StoredReport = { ...FIXTURE_REPORT, verdict: { ...FIXTURE_REPORT.verdict, halves: { google: measured(100, at), ai: measured(10, at) } } };
     const state: ReportState = { report: skewed, notice: null, control: { kind: "none" }, correction: { offered: true, as: "first" } };
     expect(disagreements([{ domain: "skewed.example.com", state }])).toEqual(["skewed.example.com: bar 10/10, card 1 of 12"]);
+  });
+});
+
+/** The tenths the rendered AI bar draws, and the "not you" marks on the AI card's questions. */
+function aiRead(state: ReportState): { bar: number | null; notYou: number } {
+  const container = document.createElement("div");
+  container.innerHTML = renderToStaticMarkup(<ReportView state={state} />);
+  const bar = container.querySelector<HTMLProgressElement>(`progress[aria-label="${copy("verdict.factor.ai")}"]`);
+  const notYou = [...container.querySelectorAll(".badge")].filter((badge) => badge.textContent === copy("ai-answers.question.not-you")).length;
+  return { bar: bar === null ? null : Number(bar.getAttribute("value")), notYou };
+}
+
+/** Each report whose AI bar or row marks disagree with the AI card's x of N. */
+function aiDisagreements(states: readonly { domain: string; state: ReportState }[]): string[] {
+  return states.flatMap(({ domain, state }) => {
+    const card = state.report.aiAnswers;
+    if (card === null || card.answeredSearches === 0) return [];
+    const { bar, notYou } = aiRead(state);
+    const share = Math.round((10 * card.customerCitations) / card.answeredSearches);
+    const marks = card.answeredSearches - card.customerCitations;
+    return [
+      ...(bar === null || bar === share ? [] : [`${domain}: bar ${bar}/10, card ${card.customerCitations} of ${card.answeredSearches}`]),
+      ...(notYou === marks ? [] : [`${domain}: ${notYou} questions marked not you, card ${card.customerCitations} of ${card.answeredSearches}`]),
+    ];
+  });
+}
+
+describe("the AI bar and the AI card's marks equal the card's named-or-linked count", () => {
+  it("on every report state, wherever both are measured", () => {
+    const compared = REPORT_STATES.filter(({ state }) => (state.report.aiAnswers?.answeredSearches ?? 0) > 0 && aiRead(state).bar !== null);
+    expect(compared.length).toBeGreaterThanOrEqual(2);
+    expect(aiDisagreements(REPORT_STATES)).toEqual([]);
+  });
+
+  it("a bar skewed off its card is caught", () => {
+    const at = FIXTURE_REPORT.verdict.measuredAt;
+    const skewed: StoredReport = { ...FIXTURE_REPORT, verdict: { ...FIXTURE_REPORT.verdict, halves: { google: measured(100 / 12, at), ai: measured(95, at) } } };
+    const state: ReportState = { report: skewed, notice: null, control: { kind: "none" }, correction: { offered: true, as: "first" } };
+    expect(aiDisagreements([{ domain: "skewed.example.com", state }])).toEqual(["skewed.example.com: bar 10/10, card 3 of 9"]);
   });
 });
 
