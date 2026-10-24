@@ -59,16 +59,18 @@
 // then on, put back or not: no cause plans a refresh of it, and it gains no
 // link refresh. While it is down it is not live and is read by none of this.
 //
-// **A page never seen** (issue 1538). A page no stored SERP or ranked row
-// has held is `not_verified` (`verdicts/seen.ts`) — never "not indexed".
-// After `UNSEEN_AFTER_DAYS` live it gets a different fix from a page that
-// is seen and not ranking: one link in from the strongest live page of its
-// cluster, planned as that page's `link` refresh, and D13's check against
-// pages written for other sites run again on its live text. Where that
-// check finds it close, the page itself is due an `unseen` refresh, whose
-// writing runs D13 once more and holds it if it is still close. A page not
-// verified is not retargeted for `unmet`: it was never seen to fail its
-// search. A page whose state could not be read is neither.
+// **A page not found yet** (issue 1538). A hosted page whose stored search
+// reading holds no Found step (`reached.found`) `UNSEEN_AFTER_DAYS` after it
+// went live gets a different fix from a page that is found and not ranking:
+// one link in from the live page of its cluster with the best reading,
+// planned as that page's `link` refresh, at most one in each
+// `UNSEEN_LINK_EVERY_DAYS`, and D13's check against pages written for other
+// sites run again on its live text. Where that check finds it close, the
+// page itself is due an `unseen` refresh, whose writing runs D13 once more
+// and holds it if it is still close. A page with no reading, or on
+// WordPress, where nothing measures Found, is neither. A page no stored SERP
+// or ranked row has held (`verdicts/seen.ts`, `not_verified`) is not
+// retargeted for `unmet`: it was never seen to fail its search.
 //
 // **Close to page one** (SPEC §7, owner 2026-10-18, issue 1521): a cause of
 // its own, `close` — the page's own address ranks 4–20 for its search in the
@@ -101,6 +103,7 @@ import {
   REFRESH_MIN_AGE_DAYS,
   RIVAL_PRICE_MAX_AGE_D,
   UNSEEN_AFTER_DAYS,
+  UNSEEN_LINK_EVERY_DAYS,
 } from "@/lib/config/constants";
 import { linkWords, sameWord } from "@/lib/generate/links/text";
 import { withheldReportPassages } from "@/lib/generate/pipeline/report-scope";
@@ -162,8 +165,13 @@ export interface OwnLivePage {
   /** Issue 1538: whether any stored SERP or ranked row held this page.
    *  `false` is `not_verified`; absent is not known, and plans nothing. */
   seen?: boolean;
-  /** The place the newest weekly verdict measured, where it held one. */
-  place?: number | null;
+  /** Issue 1538: whether its stored search reading reached Found. `false`
+   *  only where Found is measured — a hosted page with a reading; absent is
+   *  not measured, and plans nothing. */
+  found?: boolean;
+  /** Issue 1538: a `link` refresh into this page was planned within
+   *  `UNSEEN_LINK_EVERY_DAYS`. Absent reads as not so. */
+  linkedLately?: boolean;
   /** Issue 1538: D13's check, run again on the live text, found a page
    *  written for another site as close as the near-duplicate bar. Read only
    *  for a page `unseenDue`; absent reads as not so. */
@@ -288,11 +296,11 @@ export function refreshCauseOf(page: OwnLivePage, pools: RefreshPools, at: Date)
   return (page.structure ?? []).length > 0 && page.edited !== true ? "structure" : null;
 }
 
-/** Issue 1538: a live page of ours that no stored search result has held,
+/** Issue 1538: a live page of ours whose reading holds no Found step,
  *  `UNSEEN_AFTER_DAYS` after its version went live. */
 export function unseenDue(page: OwnLivePage, at: Date): boolean {
   return (
-    page.seen === false &&
+    page.found === false &&
     page.takenDown !== true &&
     page.row.targetQuery !== null &&
     at.getTime() - page.publishedAt.getTime() >= UNSEEN_AFTER_DAYS * DAY_MS
@@ -301,22 +309,22 @@ export function unseenDue(page: OwnLivePage, at: Date): boolean {
 
 /**
  * Issue 1538: for each page `unseenDue`, one link in from the strongest live
- * page of its cluster — the seen page whose newest verdict holds the best
- * place, the oldest first among equals — planned as that page's `link`
- * refresh (issue 1391). A sibling the customer edited, stopped or took
- * down, or younger than the floor, is passed over. Nothing is planned where
- * a seen sibling already links the page, or where the page has no cluster
- * or no such sibling. One row a sibling. Pure.
+ * page of its cluster — the sibling not itself unfound whose stored reading
+ * holds the best place, the oldest first among equals — planned as that
+ * page's `link` refresh (issue 1391). A sibling the customer edited, stopped
+ * or took down, or younger than the floor, is passed over. Nothing is
+ * planned where a sibling already links the page, where a link into it was
+ * planned lately, or where the page has no cluster or no such sibling. One
+ * row a sibling. Pure.
  */
 export function unseenLinkCandidates(pages: readonly OwnLivePage[], at: Date): Candidate[] {
   const planned = new Map<string, Candidate>();
   for (const page of pages) {
-    if (!unseenDue(page, at)) continue;
+    if (!unseenDue(page, at) || page.linkedLately === true) continue;
     const cluster = page.row.clusterKey ?? null;
     if (cluster === null) continue;
     const siblings = pages.filter(
       (other) =>
-        other.seen === true &&
         other.row.clusterKey === cluster &&
         other.takenDown !== true &&
         addressKey(other.url) !== addressKey(page.url)
@@ -326,13 +334,14 @@ export function unseenLinkCandidates(pages: readonly OwnLivePage[], at: Date): C
       .filter(
         (other) =>
           other.row.targetQuery !== null &&
+          other.found !== false &&
           other.edited !== true &&
           other.stopped !== true &&
           at.getTime() - other.publishedAt.getTime() >= REFRESH_MIN_AGE_DAYS * DAY_MS
       )
       .sort(
         (x, y) =>
-          (x.place ?? Number.POSITIVE_INFINITY) - (y.place ?? Number.POSITIVE_INFINITY) ||
+          (x.readPlace ?? Number.POSITIVE_INFINITY) - (y.readPlace ?? Number.POSITIVE_INFINITY) ||
           x.publishedAt.getTime() - y.publishedAt.getTime()
       )[0];
     if (strongest === undefined || planned.has(addressKey(strongest.url))) continue;
@@ -490,6 +499,7 @@ interface PublicationRow {
   id: string;
   live_url: string | null;
   published_at: string | null;
+  destination?: string;
   search_reading?: unknown;
   drafts: {
     title?: string | null;
@@ -526,7 +536,7 @@ export async function ownLivePages(siteId: string): Promise<OwnLivePage[]> {
   const client = untyped();
   const live = await client
     .from<PublicationRow>("publications")
-    .select(`id, live_url, published_at, search_reading, drafts(title, body_md, meta, transitions, opportunities(${COLUMNS}))`)
+    .select(`id, live_url, published_at, destination, search_reading, drafts(title, body_md, meta, transitions, opportunities(${COLUMNS}))`)
     .eq("site_id", siteId)
     .not("published_at", "is", null)
     .not("live_url", "is", null)
@@ -544,12 +554,9 @@ export async function ownLivePages(siteId: string): Promise<OwnLivePage[]> {
   const declined = new Map<string, boolean>();
   // D60: each version's judged weeks, and whether any found it working.
   const judged = new Map<string, { weeks: number; worked: boolean }>();
-  // Issue 1538: the place the newest verdict measured, where it held one.
-  const placed = new Map<string, number | null>();
   const readings = new Map<string, number[]>();
   for (const row of verdicts.data ?? []) {
     declined.set(row.publication_id, row.movement?.declined === true);
-    placed.set(row.publication_id, row.measured?.kind === "measured" && typeof row.measured.value === "number" ? row.measured.value : null);
     if (row.verdict === "not_judgeable") continue;
     if (row.measured?.kind === "measured" && typeof row.measured.value === "number") {
       readings.set(row.publication_id, [...(readings.get(row.publication_id) ?? []), row.measured.value]);
@@ -589,6 +596,7 @@ export async function ownLivePages(siteId: string): Promise<OwnLivePage[]> {
     const oldestPrice = type === "listicle" ? oldestPriceOf(meta.marketFacts) : undefined;
     const reading = readingOf(publication.search_reading);
     const readPlace = reading?.place?.value;
+    const found = foundIn(publication.search_reading, publication.destination);
     if (isFlatRefresh(readOpportunity(opportunity))) flat.add(url);
     // Issue 1507: a mended version is dated as the one it mended, so a
     // repair in code does not make a page look newer than its words.
@@ -608,7 +616,7 @@ export async function ownLivePages(siteId: string): Promise<OwnLivePage[]> {
       ownFigures: statesOwnFigures(meta, publication.drafts?.body_md ?? ""),
       takenDown: takenDownByCustomer(publication.drafts?.transitions),
       ...(seenUrls === null ? {} : { seen: indexStateOf([url, publication.live_url], seenUrls) === "seen" }),
-      place: placed.get(publication.id) ?? null,
+      ...(found === undefined ? {} : { found }),
       ...(readPlace === undefined ? {} : { readPlace }),
       readings: readings.get(publication.id) ?? [],
       ...(reading === null ? {} : { reading }),
@@ -625,6 +633,14 @@ export async function ownLivePages(siteId: string): Promise<OwnLivePage[]> {
     });
   }
   return [...pages.values()].filter((page) => ours.has(page.url));
+}
+
+/** Issue 1538: whether a stored search reading reached Found; `undefined`
+ *  where nothing measures it — no reading, or a WordPress page, which has
+ *  no server logs and no Search Console property of ours. */
+export function foundIn(searchReading: unknown, destination: string | undefined): boolean | undefined {
+  const reading = readingOf(searchReading);
+  return reading === null || destination === "wordpress" ? undefined : reading.reached.found !== undefined;
 }
 
 /** Issue 1521: when the oldest rival price among a version's recorded
@@ -705,10 +721,11 @@ export async function planRefreshes(a: { siteId: string; at: Date }): Promise<nu
     }
     const checked = pages.map((page) => (close.has(page) ? { ...page, closeElsewhere: true } : page));
     const stopped = unseen.length === 0 ? new Set<string>() : await stoppedRefreshes(a.siteId);
+    const linked = unseen.length === 0 ? new Set<string>() : await linkedLately(a.siteId, a.at);
     const candidates = [
       ...refreshCandidates(checked, pools, a.at),
       ...unseenLinkCandidates(
-        checked.map((page) => ({ ...page, stopped: stopped.has(addressKey(page.url)) })),
+        checked.map((page) => ({ ...page, stopped: stopped.has(addressKey(page.url)), linkedLately: linked.has(addressKey(page.url)) })),
         a.at
       ),
     ];
@@ -747,6 +764,24 @@ async function stoppedRefreshes(siteId: string): Promise<Set<string>> {
     .eq("status", "dismissed");
   if (error) throw new Error(`refresh: reading stopped refreshes for ${siteId}: ${error.message}`);
   return new Set((data ?? []).flatMap((row) => (row.target_ref === null ? [] : [addressKey(row.target_ref)])));
+}
+
+/** The addresses a `link` refresh planned within `UNSEEN_LINK_EVERY_DAYS`
+ *  links to, whatever became of it. */
+async function linkedLately(siteId: string, at: Date): Promise<Set<string>> {
+  const { data, error } = await untyped()
+    .from<{ evidence: unknown }>("opportunities")
+    .select("evidence")
+    .eq("site_id", siteId)
+    .eq("type", "refresh_page")
+    .gte("created_at", new Date(at.getTime() - UNSEEN_LINK_EVERY_DAYS * DAY_MS).toISOString());
+  if (error) throw new Error(`refresh: reading recent link refreshes for ${siteId}: ${error.message}`);
+  return new Set(
+    (data ?? []).flatMap((row) => {
+      const due = (row.evidence as { shortfall?: { kind?: unknown; cause?: unknown; link?: { url?: unknown } } } | null)?.shortfall;
+      return due?.kind === "due" && due.cause === "link" && typeof due.link?.url === "string" ? [addressKey(due.link.url)] : [];
+    })
+  );
 }
 
 /**
