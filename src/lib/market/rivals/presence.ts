@@ -99,6 +99,21 @@ function topHolderOf(serp: MarketSerp): string | null {
   return domain;
 }
 
+function ownPresenceOf(topTens: readonly { pair: MeasuredPair; domains: Set<string> }[], ownDomain: string) {
+  return topTens.map(({ pair, domains }) => ({ pair, present: [...domains].some((domain) => isOwnDomain(domain, ownDomain)) }));
+}
+
+/** Per measured search, in battery order, whether the site holds a top-ten
+ *  place: the count the card's `you.top10Count` is made of. */
+export function ownPresenceBySearch(a: {
+  serps: readonly Measured<MarketSerp>[];
+  selected: readonly SelectedSearchView[];
+  ownDomain: string;
+}): { keyword: string; present: boolean }[] {
+  const topTens = measuredPairs(a.serps, a.selected).map((pair) => ({ pair, domains: topTenDomains(pair.serp) }));
+  return ownPresenceOf(topTens, a.ownDomain).map(({ pair, present }) => ({ keyword: pair.search.keyword, present }));
+}
+
 /**
  * REQ-008's card, assembled from SERPs the scan already bought.
  *
@@ -120,11 +135,7 @@ export function buildPresenceCard(a: {
 }): PresenceCard {
   const pairs = measuredPairs(a.serps, a.selected);
   const topTens = pairs.map((pair) => ({ pair, domains: topTenDomains(pair.serp) }));
-
-  const ownPresence = topTens.map(({ pair, domains }) => ({
-    pair,
-    present: [...domains].some((domain) => isOwnDomain(domain, a.ownDomain)),
-  }));
+  const ownPresence = ownPresenceOf(topTens, a.ownDomain);
 
   const countFor = (rivalDomain: string): number => {
     const domain = registrableDomain(rivalDomain);
