@@ -10,6 +10,7 @@ import { boardFile, compare, readAllow, segments } from "../../../scripts/design
 import type { PageReading } from "@/lib/measure/page-reading";
 import type { PublishedPage } from "@/lib/measure/published";
 import type { BlogReadsModel } from "@/lib/publish/reads/model";
+import type { AnswerMark } from "@/app/(account)/app/_overview/answers-model";
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
@@ -177,6 +178,16 @@ describe("what is not measured is never 0", () => {
     );
     expect(dom.querySelector('[data-testid="ai-tile-visits"]')).toBeNull();
     expect(text(dom.querySelector('[data-testid="ai-tile-reads-value"]'))).toBe("14");
+  });
+
+  it("an answer that named no one counts as the answer it relabels: every count is unchanged", () => {
+    const q = (marks: AnswerMark[], id: string) => ({ n: 1, wording: fromStored("questions.wording", "Is it good?"), search: "is it good", marks, page: { title: `Page ${id}`, url: `https://example.com/${id}` } });
+    const all = [page("a", reading({ linkedBy: ["ai_overview"], reached: { linkedByAi: NOW.toISOString() } })), page("b", reading()), page("c", reading())];
+    const before = [q(["names_others", "names_you", "no_answer"], "a"), q(["names_others", "names_others", "not_measured"], "b"), q(["names_you", "names_others", "no_answer"], "c")];
+    const after = before.map((x) => ({ ...x, marks: x.marks.map((m) => (m === "names_others" ? "names_no_one" : m)) }));
+    const counts = (p: ReturnType<typeof aiPagesFor>) => ({ asked: p?.asked, linked: p?.linked, mentioned: p?.mentioned, rows: p?.rows.map((r) => r.id) });
+    expect(counts(aiPagesFor(all, after, NOW))).toEqual(counts(aiPagesFor(all, before, NOW)));
+    expect(counts(aiPagesFor(all, before, NOW))).toMatchObject({ asked: 3, linked: 1, mentioned: 1 });
   });
 
   it("a page AI has not read is not read by AI yet; a page with no question asked is not listed", () => {

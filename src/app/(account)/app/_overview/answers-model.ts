@@ -13,26 +13,29 @@ import type { AnswerEngine } from "@/lib/opportunities/types";
 /**
  * What one engine said about the site on one question.
  *
- * Five marks, closed, and two of them are not misses: an engine that served
+ * Six marks, closed, and two of them are not misses: an engine that served
  * no answer said something, and an engine nobody reached said nothing.
  *
  * The split the owner's 2026-09-20 ruling asks for is the first two:
  * **linked** is a cited domain that is the site's own, **named** is the
  * brand token appearing in a reference somewhere else. `names_others` is
  * wider than the approved board's "names a rival" on purpose — an answer
- * can cite a directory, a marketplace, or no domain at all, and none of
- * those is a rival — and the word beside the mark says so.
+ * can cite a directory or a marketplace, and neither is a rival — and the
+ * word beside the mark says so. An answer that cites no address and does
+ * not name the site is `names_no_one`: an answer, and a miss, that names
+ * nobody at all.
  *
  * It is the product's existing four-state reading of a cell
  * (`EngineStanding` in `@/lib/opportunities/types`) with its `names_you`
- * arm split in two. A sixth mark would be a requirement change, not a new
- * member, and `Record<AnswerMark, …>` in `answers-words.ts` makes one a
+ * arm split in two and its `names_others` arm split from `names_no_one`.
+ * A new mark is a requirement change, not a new member, and `Record<AnswerMark, …>` in `answers-words.ts` makes one a
  * compile error beside every word it would need.
  */
 export const ANSWER_MARKS = [
   "links_to_you",
   "names_you",
   "names_others",
+  "names_no_one",
   "no_answer",
   "not_measured",
 ] as const;
