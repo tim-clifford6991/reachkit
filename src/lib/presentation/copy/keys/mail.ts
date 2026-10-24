@@ -247,7 +247,7 @@ export const MAIL_COPY = Object.freeze({
   "mail.weekly.pages.live": ["Pages live", { slots: {}, fixedBy: "issue 1616 (drafted)" }],
   "mail.weekly.pages.planned": ["Pages planned this week", { slots: {}, fixedBy: "issue 1616 (drafted)" }],
   "mail.weekly.google.of": [
-    "of {n} live pages",
+    "of {n} pages read",
     { slots: { n: "text" }, fixedBy: "issue 1616 (drafted)" },
   ],
   "mail.weekly.google.early": ["Too early to count places: a new page usually takes weeks to show in Google’s results.", { slots: {}, fixedBy: "issue 1616 (drafted)" }],

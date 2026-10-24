@@ -256,6 +256,11 @@ describe.each([
     for (const name of ["draft.ladder.found", "draft.ladder.showing", "draft.ladder.first-page"]) {
       expect(String(figure(rows, name)), name).toBe(step(dom, name));
     }
+    // Each step counts over the pages read, as Overview's ladder does: four of the five live pages have a reading.
+    expect(text(dom.querySelector('[data-testid="overview-ladder"]'))).toContain(copy("overview.ladder.unread", { k: "1" }));
+    for (const row of rows.filter((r) => r.label.startsWith("draft.ladder.") || r.label === "mail.weekly.google.showing.climbing")) {
+      expect(copy(row.note!.text, row.note!.vars), row.label).toBe("of 4 pages read");
+    }
     const climbing = rows.find((row) => row.label === "mail.weekly.google.showing.climbing")?.labelVars?.n;
     const badge = text(dom.querySelector('li[data-step="draft.ladder.showing"] .badge'));
     expect(climbing === undefined ? "" : copy("overview.ladder.climbing", { n: String(climbing) })).toBe(badge);
