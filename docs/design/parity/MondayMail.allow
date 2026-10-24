@@ -6,7 +6,6 @@ How much does slab leak repair cost in Austin?	sample data
 844	sample data
 Inbox	the phone frame around the mail, not the mail (DESIGN.md › Boards, #1110)
 Monday: what moved this week	the subject line, sent as mail.weekly.subject, not drawn in the body (#1741)
-9 visits from Google this week, up from 4.	Overview stores no earlier week of visits, and the mail states Overview's numbers (docs/spec/decisions/2026-10-23-1616.md)
 Emergency plumber in Austin: what to do in the first hour	sample data; a page is named by its search, never its model-written title, and the SPEC line wins over a board (docs/spec/decisions/2026-10-19-1581.md)
 Why: your core service; AI answers link to a competitor for it.	sample data; the reason is the one Plan states for the stored plan_reason (SPEC §7)
 Why: stopped gaining at place 18 for 3 weeks; this update adds what the pages above it cover.	sample data; the reason is the one Plan states for the stored plan_reason (SPEC §7)

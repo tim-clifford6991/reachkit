@@ -552,6 +552,7 @@ export const OVERVIEW_COPY = Object.freeze({
   "overview.search.visits.label": ["Visits from Google", { slots: {}, fixedBy: "board AppGoogle (drafted)" }],
   "overview.search.visits.of": ["this week, to your pages", { slots: {}, fixedBy: "board AppGoogle (drafted)" }],
   "overview.search.visits.none": ["none yet", { slots: {}, fixedBy: "board AppGoogle (drafted)" }],
+  "overview.search.visits.chart": ["Visits from Google, week by week", { slots: {}, fixedBy: "board AppGoogle · E8 2026-10-24" }],
   "overview.search.visits.means": [
     "People who arrived on your pages from a Google search, counted on your pages themselves. Shown once there is at least one.",
     { slots: {}, fixedBy: "board AppGoogle (drafted)" },

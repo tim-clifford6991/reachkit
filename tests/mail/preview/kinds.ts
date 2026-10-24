@@ -279,6 +279,7 @@ export async function composePreview(kind: PreviewKind): Promise<PreviewMail> {
             early: false,
             climbing: 2,
             visits: measured(9, AT),
+            visitsBefore: measured(4, AT),
             climb: { search: "tankless water heater austin", from: 62, to: 24, climbing: true },
           },
           ai: { linked: measured(2, AT), asked: 12, reads: measured(14, AT) },
