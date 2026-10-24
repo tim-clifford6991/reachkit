@@ -76,13 +76,17 @@ function EmptyLine(): React.JSX.Element | null {
   );
 }
 
-const initial = (domain: string): string => domain.charAt(0).toUpperCase();
+// The board draws a rival as two letters: a hyphenated name's word initials, else its first two letters.
+const rivalInitials = (domain: string): string => {
+  const words = domain.replace(/^www\./i, "").split(".")[0]!.split(/[-_]+/).filter(Boolean);
+  return (words.length > 1 ? words[0]!.charAt(0) + words[1]!.charAt(0) : (words[0] ?? domain).slice(0, 2)).toUpperCase();
+};
 
 function Avatar(p: { domain: string; you?: boolean }): React.JSX.Element {
   return (
     <span className="avatar avatar-placeholder" aria-hidden>
       <span className={`${p.you ? "w-7 bg-primary text-primary-content" : "w-10 bg-base-200"} rounded-field font-semibold`}>
-        {initial(p.domain)}
+        {p.you ? p.domain.charAt(0).toUpperCase() : rivalInitials(p.domain)}
       </span>
     </span>
   );

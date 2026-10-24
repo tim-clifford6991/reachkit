@@ -135,7 +135,7 @@ describe.each([PLUMBER, SAAS])("$name: Your site and market, in the board's orde
     expect(root.textContent).toContain("Where you’re measured, and against whom.");
     expect(text(root.querySelector('[data-testid="setting-domain"]'))).toContain(`Your website${c.domain}`);
     const line = root.querySelector('[data-testid="setting-category"]');
-    expect(text(line)).toBe(`${c.category}Found by ReachKit from your site. Checked again every Monday.Edit`);
+    expect(text(line)).toBe(`${c.category}Found by ReachKit from your site. Checked again every Monday.Change`);
   });
 
   it("what your market sets: three wells from this account's stored counts, then the plan", () => {
@@ -171,7 +171,7 @@ describe.each([PLUMBER, SAAS])("$name: Your site and market, in the board's orde
     for (const domain of c.competitors) {
       const card = root.querySelector(`[data-testid="competitor-${domain}"]`);
       const figures = c.figures.cards[domain];
-      expect(text(card)).toContain(`${domain.charAt(0).toUpperCase()}${domain}${c.found.includes(domain) ? "Found by ReachKit" : "Added by you"}`);
+      expect(text(card)).toContain(`${domain.slice(0, 2).toUpperCase()}${domain}${c.found.includes(domain) ? "Found by ReachKit" : "Added by you"}`);
       if (figures !== null && figures !== undefined && figures.google !== null && figures.ai !== null) {
         expect(text(card?.querySelector(`[data-testid="competitor-google-${domain}"]`))).toBe(`On Google’s first page${figures.google.n} of ${figures.google.of}`);
         expect(text(card?.querySelector(`[data-testid="competitor-ai-${domain}"]`))).toBe(`Mentioned in AI answers${figures.ai.n} of ${figures.ai.of}`);
@@ -226,7 +226,7 @@ describe("the market tab's board icons and bars", () => {
     for (const domain of PLUMBER.competitors) {
       const card = root.querySelector(`[data-testid="competitor-${domain}"]`);
       const figures = PLUMBER.figures.cards[domain]!;
-      expect(text(card?.querySelector(".avatar.avatar-placeholder"))).toBe(domain.charAt(0).toUpperCase());
+      expect(text(card?.querySelector(".avatar.avatar-placeholder"))).toBe(domain.slice(0, 2).toUpperCase());
       expect(icons(card?.querySelector(".badge") ?? null)).toEqual(["lucide-sparkles"]);
       const bars = [...(card?.querySelectorAll("progress") ?? [])];
       expect(bars.map((bar) => [bar.getAttribute("value"), bar.getAttribute("max"), bar.getAttribute("aria-hidden")])).toEqual([
@@ -235,6 +235,13 @@ describe("the market tab's board icons and bars", () => {
       ]);
       expect(icons(card?.querySelector("form button") ?? null)).toEqual(["lucide-x"]);
     }
+  });
+
+  it("a two-word rival is drawn by its words' initials, a one-word rival by its first two letters", () => {
+    const root = competitors(PLUMBER, { list: ["www.austin-pipeworks.example", "rooter.example"] });
+    const avatar = (domain: string): string => text(root.querySelector(`[data-testid="competitor-${domain}"] .avatar.avatar-placeholder`));
+    expect(avatar("www.austin-pipeworks.example")).toBe("AP");
+    expect(avatar("rooter.example")).toBe("RO");
   });
 
   it("the add card is dashed with a Users tile, and You opens with the account's initial", () => {

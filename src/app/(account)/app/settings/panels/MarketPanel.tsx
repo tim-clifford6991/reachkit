@@ -315,7 +315,7 @@ export function MarketPanel(p: {
             </div>
             {editing === "category" ? null : (
               <button type="button" className="btn btn-ghost btn-sm" onClick={() => open("category")}>
-                {copy("settings.edit")}
+                {copy("settings.change")}
               </button>
             )}
           </div>

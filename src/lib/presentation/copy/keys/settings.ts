@@ -45,16 +45,8 @@ export const SETTINGS_COPY = Object.freeze({
   "settings.head": ["What you’re measured as, how pages go out, and your account.", { slots: {}, fixedBy: "BUILD §4.7" }],
 
   // ── One control word, several positions ────────────────────────────────
-  // §4.7 prints "Edit" beside the market chip. Every other value on this
-  // screen that is changed rather than switched is changed the same way, and
-  // one key serving several positions is WO-070's precedent (constitution
-  // rule 1.1) — naming a control by what it does, rather than minting a
-  // second, third and fourth word for the same act.
-  "settings.edit": ["Edit", { slots: {}, fixedBy: 'BUILD §4.7 ("chip + Edit")' }],
-  // S18 draws two words for the act, and both are approved (ruling 11a):
-  // "Edit" beside the market, "Change" beside the domain, the publish time
-  // and the time zone (issue #506). One key per drawn word, each serving
-  // every position the set gives it.
+  // S18 draws one word for the act beside the market, the domain, the publish
+  // time and the time zone, so one key serves every position.
   "settings.change": ["Change", { slots: {}, fixedBy: "S18 (11a)" }],
   // The other two words the field Edit opens needs (issue #231), and the
   // same one-key-serving-several-positions rule: what the button does is
