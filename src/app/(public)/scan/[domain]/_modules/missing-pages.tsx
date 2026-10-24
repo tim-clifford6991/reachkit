@@ -18,8 +18,9 @@ function Card(p: { page: MissingPage; n: number; free: boolean }): React.JSX.Ele
   const asked = page.question === null ? null : renderQuestion({ wording: page.question, provenance: page.search });
   const [before = "", after = ""] = copy("report.missing.holder", { holder: SENTINEL }).split(SENTINEL);
   return (
-    <li className={`card card-border card-sm bg-base-100 min-w-0 ${p.free ? "border-primary" : ""}`}>
-      <div className="card-body gap-2">
+    // Not a daisyUI `.card`: a page is an item of the section, and a `.card` is a module the cold-start law counts.
+    <li className={`rounded-box bg-base-100 flex min-w-0 flex-col border p-4 ${p.free ? "border-primary" : "border-base-200"}`}>
+      <div className="flex grow flex-col gap-2">
         <span className="num text-base-content/70 text-xs">{copy("report.missing.page", { n: String(p.n) })}</span>
         <PageSketch primary={p.free} />
         <span className="font-semibold">{asked === null ? page.search : asked[0].text}</span>
