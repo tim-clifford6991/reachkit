@@ -3,10 +3,10 @@
 // On a phone `/scans` shows scan cards, on load and while scrolling. The
 // sticky toolbar's chips wrapped, so production's fifty categories made it
 // 1,550px tall at 390×844 and no card was ever on screen — and the sweep
-// passed, since nothing was wider than its box. `seed.ts` lists the gallery
-// as production fills it: ten shared categories, a tail, two placeholders.
+// passed, since nothing was wider than its box. The filter is now the six
+// kinds of business, still one row however many categories `seed.ts` lists.
 import { expect, it } from "vitest";
-import { CHIPS_MAX } from "@/lib/scan/gallery";
+import { BUSINESS_KIND_NAMES } from "@/lib/market/kinds";
 import { getBaseURL, withPage } from "./browser";
 
 /** The phone in the owner's report. */
@@ -23,7 +23,6 @@ function measure() {
     /** The cards wholly on screen under the toolbar. */
     cardsShown: cards.filter((card) => card.top >= box.bottom && card.bottom <= window.innerHeight).length,
     chips: words("nav > ul a").length,
-    categories: words("nav a"),
   };
 }
 
@@ -40,8 +39,6 @@ it("issue 1377 — /scans at 390×844 shows a card on load and while scrolling, 
   expect(scrolled.toolbar.top, "the toolbar is not stuck").toBeLessThan(80);
   expect(scrolled.toolbar.height, "the toolbar grew past two rows").toBeLessThanOrEqual(120);
   expect(scrolled.cardsShown, "no whole card on screen while scrolling").toBeGreaterThanOrEqual(1);
-  // *All* and the chips; every seeded category is a link; no placeholder is.
-  expect(load.chips).toBe(CHIPS_MAX + 1);
-  expect(load.categories).toHaveLength(1 + 10 + 3 + 24);
-  expect(load.categories.filter((c) => /unknown|[<>]/i.test(c))).toEqual([]);
+  // *All* and one chip per kind of business.
+  expect(load.chips).toBe(BUSINESS_KIND_NAMES.length + 1);
 }, 60_000);
