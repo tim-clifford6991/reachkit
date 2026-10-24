@@ -65,6 +65,11 @@ describe("/about follows board PubAbout", () => {
     expect(hrefs).toEqual(["/how-it-works#research", "/how-it-works#questions", "/how-it-works#pages", "/how-it-works#found"]);
   });
 
+  it("the AI answer in Why draws Sparkles, never the retired Bot (E29)", () => {
+    expect(page.querySelector("section#why svg.lucide-sparkles")).not.toBeNull();
+    expect(page.querySelector("svg.lucide-bot")).toBeNull();
+  });
+
   it("contact and the who-builds-it card reach the same address", () => {
     expect(page.querySelector("section#contact a")?.getAttribute("href")).toBe(`mailto:${copy("about.contact.address")}`);
     expect(page.querySelector('section#top a[href="#contact"]')).not.toBeNull();
