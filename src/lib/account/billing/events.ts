@@ -40,6 +40,7 @@
 // every column here is set to a value, never incremented — so even an
 // event that slipped past the id check would leave the same row.
 import { stripe, type Stripe } from "../stripe/client";
+import { isTransient, redeliver } from "../stripe/transient";
 import { paidThroughOf } from "./period";
 import { refundFirstFortnight, refundFirstRenewal } from "./refund";
 import { recordedStatus } from "./status";
@@ -50,7 +51,7 @@ export type SubscriptionEventOutcome =
   /** Received, understood, and correctly nothing: a replay, an event about
    *  a subscription no account here owns, or one carrying no period to
    *  advance to. None of the three is a failure. */
-  | { applied: false; because: "replay" | "no_account" | "no_period" | "store" | "vendor" };
+  | { applied: false; because: "replay" | "no_account" | "no_period" | "vendor" };
 
 /** The subscription an event is about. `customer.subscription.*` carries
  *  the subscription itself; the two invoice events carry an invoice whose
@@ -70,7 +71,8 @@ async function subscriptionOf(event: Stripe.Event): Promise<Stripe.Subscription 
 
   try {
     return await stripe().subscriptions.retrieve(subscription);
-  } catch {
+  } catch (error) {
+    if (isTransient(error)) redeliver("subscription");
     return null;
   }
 }
@@ -82,12 +84,14 @@ async function accountOf(subscription: Stripe.Subscription): Promise<BillingRow 
   const store = billingStore();
 
   const bySubscription = await store.accountBySubscription(subscription.id);
-  if (bySubscription.ok && bySubscription.account !== null) return bySubscription.account;
+  if (!bySubscription.ok) redeliver("account");
+  if (bySubscription.account !== null) return bySubscription.account;
 
   const customer = subscription.customer;
   const customerId = typeof customer === "string" ? customer : customer.id;
   const byCustomer = await store.accountByStripeCustomer(customerId);
-  return byCustomer.ok ? byCustomer.account : null;
+  if (!byCustomer.ok) redeliver("account");
+  return byCustomer.account;
 }
 
 export async function onSubscriptionEvent(event: Stripe.Event): Promise<SubscriptionEventOutcome> {
@@ -104,7 +108,8 @@ export async function onSubscriptionEvent(event: Stripe.Event): Promise<Subscrip
   }
 
   if (account.last_subscription_event_id === event.id) {
-    // A redelivery still retries a refund the first delivery could not make.
+    // A redelivery finishes what a failed first delivery left after its event id was written.
+    await mirrorCancellation(account, subscription);
     await refundOn(event, account, subscription);
     return { applied: false, because: "replay" };
   }
@@ -124,19 +129,22 @@ export async function onSubscriptionEvent(event: Stripe.Event): Promise<Subscrip
     plan_status: recordedStatus(subscription.status) ?? account.plan_status,
     eventId: event.id,
   });
-  if (!written.ok) return { applied: false, because: "store" };
+  if (!written.ok) redeliver("subscription_facts");
 
-  // The vendor's own record of the cancellation, mirrored onto the column
-  // the Settings card reads. It is a record and not a gate: a cancelled
-  // account keeps access until `paid_through` passes (ADR-050, REQ-076 c3).
-  const cancelledNow = subscription.cancel_at_period_end || subscription.status === "canceled";
-  const cancelledHere = account.cancelled_at !== null;
-  if (cancelledNow !== cancelledHere) {
-    await billingStore().stampCancelled(account.id, cancelledNow ? new Date() : null);
-  }
-
+  await mirrorCancellation(account, subscription);
   await refundOn(event, account, subscription);
   return { applied: true };
+}
+
+/** The vendor's own record of the cancellation, mirrored onto the column
+ *  the Settings card reads. It is a record and not a gate: a cancelled
+ *  account keeps access until `paid_through` passes (ADR-050, REQ-076 c3). */
+async function mirrorCancellation(account: BillingRow, subscription: Stripe.Subscription): Promise<void> {
+  const cancelledNow = subscription.cancel_at_period_end || subscription.status === "canceled";
+  const cancelledHere = account.cancelled_at !== null;
+  if (cancelledNow === cancelledHere) return;
+  const stamped = await billingStore().stampCancelled(account.id, cancelledNow ? new Date() : null);
+  if (!stamped.ok) redeliver("cancelled_at");
 }
 
 const CANCEL_EVENTS: ReadonlySet<string> = new Set([
@@ -144,16 +152,11 @@ const CANCEL_EVENTS: ReadonlySet<string> = new Set([
   "customer.subscription.deleted",
 ]);
 
-/** D4's refund on the two cancellation events, D10's on a paid invoice. It
- *  never fails the event: a refund that could not be made is retried on the
- *  next delivery. */
+/** D4's refund on the two cancellation events, D10's on a paid invoice. A
+ *  failure that will pass throws, so Stripe redelivers the event. */
 async function refundOn(event: Stripe.Event, account: BillingRow, subscription: Stripe.Subscription): Promise<void> {
-  try {
-    if (CANCEL_EVENTS.has(event.type)) await refundFirstFortnight(account.id, subscription);
-    else if (event.type === "invoice.paid") await refundFirstRenewal(account, event.data.object as Stripe.Invoice);
-  } catch {
-    console.warn(JSON.stringify({ event: "billing_refund", outcome: "threw" }));
-  }
+  if (CANCEL_EVENTS.has(event.type)) await refundFirstFortnight(account.id, subscription);
+  else if (event.type === "invoice.paid") await refundFirstRenewal(account, event.data.object as Stripe.Invoice);
 }
 
 /** REQ-024 / §13 — the first period end, stamped by provisioning.
