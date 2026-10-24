@@ -114,6 +114,8 @@ export interface DraftOnDay {
    * a mark and decides nothing.
    */
   update: boolean;
+  /** The live address an Improve row rewrites, as the row stored it; absent on a new page. */
+  replaces?: string;
   /** The one line saying why the week holds this page, from the reason its
    *  commit stored; `null` where none is stored. */
   whyLine: string | null;

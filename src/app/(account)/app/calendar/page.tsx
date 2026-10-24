@@ -31,7 +31,7 @@ import { stalledLine, supplyLine } from "./supply";
 import { readOnboarding } from "../_shell/onboarding";
 import { FirstPageNotice } from "../_shell/OnboardingStatus";
 import { SupplyNotice } from "./SupplyNotice";
-import { PublishedList } from "./PublishedList";
+import { PublishedList, updateDays } from "./PublishedList";
 import { readPublishedFor } from "../_overview/content-provider";
 import { contentOf } from "@/lib/measure/published";
 import { readCategoryChoice } from "../_shell/remeasure";
@@ -126,7 +126,7 @@ export default async function CalendarPage(): Promise<React.JSX.Element> {
 
       {/* Every page published (issue 1457): what Overview's Content tile
           counts, and where it opens. */}
-      <PublishedList content={content} timeZone={week.timeZone} now={published.now} />
+      <PublishedList content={content} timeZone={week.timeZone} now={published.now} updates={updateDays(week)} />
 
       {/* One footnote under the grid: the rule. What supply is doing right
           now is stated at the top. */}
