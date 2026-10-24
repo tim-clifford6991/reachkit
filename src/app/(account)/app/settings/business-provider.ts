@@ -22,6 +22,8 @@ import { confirmedProfile, quotableFacts } from "@/lib/site-profile/business/con
 import type { BusinessProfile, QuotableFact } from "@/lib/site-profile/business/types";
 import { knowledgeBase } from "@/lib/site-profile/knowledge/merge";
 import type { FounderAnswers, KnowledgeBase } from "@/lib/site-profile/knowledge/types";
+import { DEFAULT_LOCALE, localeTag } from "@/lib/locale/locales";
+import { showsOnAPage, type LivePage, type OnAPage } from "./on-a-page";
 
 /** SPEC §7 (2026-09-20, #928) — "Content we already know about": how many
  *  pages this site has, per source. Three numbers and a total, because the
@@ -29,7 +31,8 @@ import type { FounderAnswers, KnowledgeBase } from "@/lib/site-profile/knowledge
  *  their blog, and what the crawl read of their main site. */
 export interface KnownContentCounts {
   readonly ours: number;
-  readonly wordpress: number;
+  /** `null` where no blog is connected, so it was never read: never shown as 0. */
+  readonly wordpress: number | null;
   readonly site: number;
   readonly total: number;
 }
@@ -52,23 +55,25 @@ export interface BusinessModel {
   readonly knowledge: KnowledgeBase;
   /** The five answers as stored, which the fields open on. */
   readonly answers: FounderAnswers;
+  /** "How it shows on a page", or `null` where no live page uses a promise or word. */
+  readonly onAPage: OnAPage | null;
 }
 
 export const readBusiness = cache(async function readBusiness(): Promise<BusinessModel> {
   const account = await requireSetUpAccount();
 
   if (isReservedFixtureAccount(account)) {
-    const { FIXTURE_BUSINESS_PROFILE, FIXTURE_KNOWLEDGE, FIXTURE_MARKET_READING, FIXTURE_QUOTABLE } = await import(
-      "./business-fixture"
-    );
+    const { FIXTURE_BUSINESS_PROFILE, FIXTURE_KNOWLEDGE, FIXTURE_LIVE_PAGES, FIXTURE_MARKET_READING, FIXTURE_QUOTABLE } =
+      await import("./business-fixture");
     const { NO_EDITS } = await import("@/lib/site-profile/business/types");
+    const profile = confirmedProfile({
+      profile: FIXTURE_BUSINESS_PROFILE,
+      market: FIXTURE_MARKET_READING,
+      edits: NO_EDITS,
+    });
     return {
       siteName: FIXTURE_BUSINESS_PROFILE.siteName,
-      profile: confirmedProfile({
-        profile: FIXTURE_BUSINESS_PROFILE,
-        market: FIXTURE_MARKET_READING,
-        edits: NO_EDITS,
-      }),
+      profile,
       facts: quotableFacts({ facts: FIXTURE_QUOTABLE, edits: NO_EDITS }),
       edited: false,
       // The reserved account's own index: four pages we wrote, six posts on
@@ -76,25 +81,56 @@ export const readBusiness = cache(async function readBusiness(): Promise<Busines
       known: { ours: 4, wordpress: 6, site: 9, total: 19 },
       knowledge: knowledgeBase({ stored: FIXTURE_KNOWLEDGE, answers: {} }),
       answers: {},
+      onAPage: onAPageOf(profile, FIXTURE_LIVE_PAGES, localeTag(DEFAULT_LOCALE)),
     };
   }
 
   const { readBusinessFacts } = await import("./business-store");
-  const [facts, known] = await Promise.all([readBusinessFacts(account), knownCountsFor(account.siteId)]);
+  const [facts, known, live] = await Promise.all([
+    readBusinessFacts(account),
+    knownCountsFor(account.siteId),
+    liveBodiesOf(account.siteId),
+  ]);
+  const profile = confirmedProfile({
+    profile: facts.profile,
+    market: facts.market,
+    edits: facts.edits,
+  });
   return {
     siteName: facts.profile?.siteName ?? null,
-    profile: confirmedProfile({
-      profile: facts.profile,
-      market: facts.market,
-      edits: facts.edits,
-    }),
+    profile,
     facts: quotableFacts({ facts: facts.quotable, edits: facts.edits }),
     known,
     edited: facts.edited,
     knowledge: knowledgeBase({ stored: facts.knowledge, answers: facts.edits.answers }),
     answers: facts.edits.answers,
+    onAPage: live === null ? null : onAPageOf(profile, live.pages, live.lang),
   };
 });
+
+function onAPageOf(profile: BusinessProfile, pages: readonly LivePage[], lang: string): OnAPage | null {
+  return showsOnAPage({
+    pages,
+    claims: profile.lists.claims.map((item) => item.text),
+    vocabulary: profile.lists.vocabulary.map((item) => item.text),
+    lang,
+  });
+}
+
+/** The site's live pages and the language they are written in; `null` where
+ *  they could not be read, so the block is not drawn. */
+async function liveBodiesOf(siteId: string): Promise<{ pages: LivePage[]; lang: string } | null> {
+  try {
+    const [{ readOurLiveBodies }, { siteLocale }] = await Promise.all([
+      import("@/lib/known-content/store"),
+      import("@/lib/locale/site"),
+    ]);
+    const [pages, locale] = await Promise.all([readOurLiveBodies(siteId), siteLocale(siteId)]);
+    return { pages, lang: localeTag(locale) };
+  } catch {
+    return null;
+  }
+}
 
 /** The three counts, off the index. A read that fails is three zeroes — the
  *  card then says nothing is known yet, which is what a customer whose index
@@ -102,11 +138,15 @@ export const readBusiness = cache(async function readBusiness(): Promise<Busines
 async function knownCountsFor(siteId: string): Promise<KnownContentCounts> {
   const empty = { ours: 0, wordpress: 0, site: 0, total: 0 };
   try {
-    const { knownContentFor } = await import("@/lib/known-content");
-    const pages = await knownContentFor(siteId);
+    const [{ knownContentFor }, { destinationOf }] = await Promise.all([
+      import("@/lib/known-content"),
+      import("@/lib/publish/destinations"),
+    ]);
+    const [pages, blog] = await Promise.all([knownContentFor(siteId), destinationOf(siteId, "wordpress")]);
     const counts = {
       ours: pages.filter((page) => page.source === "reachkit").length,
-      wordpress: pages.filter((page) => page.source === "wordpress").length,
+      // A blog is read only through its connection: with none, it was not read.
+      wordpress: blog === null ? null : pages.filter((page) => page.source === "wordpress").length,
       site: pages.filter((page) => page.source === "site").length,
     };
     return { ...counts, total: pages.length };
