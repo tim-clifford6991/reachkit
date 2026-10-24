@@ -835,7 +835,8 @@ describe("board PubReport — What we read and the first page say what they hold
 
   it("What we read links to the one correction while it is offered", () => {
     const page = parse(render(FIXTURE_REPORT));
-    const link = page.querySelector('details#read > summary a[href="#read-as"]');
+    const link = page.querySelector('details#read + a[href="#read-as"]');
+    expect(page.querySelector('details#read summary a')).toBeNull();
     expect(link?.text).toBe("verdict.not-your-market");
     expect(link?.classList.contains("min-h-11")).toBe(true);
     expect(page.querySelector('#read-as[data-testid="report-read-as"]')).not.toBeNull();
@@ -843,7 +844,7 @@ describe("board PubReport — What we read and the first page say what they hold
     expect(page.querySelectorAll("button").filter((b) => b.text === "verdict.not-your-market")).toHaveLength(1);
     for (const because of ["used", "exhausted", "in_progress", "report_too_old", "domain_removed"] as const) {
       const closed = parse(render(FIXTURE_REPORT, null, { kind: "none" }, { offered: false, because }));
-      expect(closed.querySelector('details#read a[href="#read-as"]'), because).toBeNull();
+      expect(closed.querySelector('a[href="#read-as"]'), because).toBeNull();
       expect(closed.querySelector("#read-as"), because).not.toBeNull();
     }
   });

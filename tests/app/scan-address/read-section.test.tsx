@@ -1,6 +1,6 @@
 /** @vitest-environment jsdom */
-// The link in What we read's summary leads up to the header's correction and
-// never toggles the section it sits in (board PubReport, 2026-10-24 E32).
+// What we read's correction link leads up to the header's correction, is no
+// part of the summary (nested interactive), and never toggles the section.
 import { describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import React from "react";
@@ -14,7 +14,9 @@ describe("What we read's correction link", () => {
       React.createElement(ReadSection, { understanding, correction: { offered: true, as: "first" } })
     );
     const details = document.querySelector<HTMLDetailsElement>("details#read")!;
-    document.querySelector<HTMLAnchorElement>('details#read > summary a[href="#read-as"]')!.click();
+    const link = document.querySelector<HTMLAnchorElement>('a[href="#read-as"]')!;
+    expect(link.closest("summary")).toBeNull();
+    link.click();
     expect(details.open).toBe(false);
     document.querySelector<HTMLElement>("details#read > summary")!.click();
     expect(details.open).toBe(true);

@@ -99,11 +99,15 @@ export function ReadSection(p: { understanding: BusinessUnderstanding; correctio
   const subtitle = [u.name, u.kind === null ? null : copy(`report.read.as.kind.${u.kind}`), u.where.place?.name ?? null]
     .filter((part): part is string => part !== null && part !== "")
     .join(" · ");
+  // A link inside <summary> is nested interactive, so it sits beside the
+  // details, drawn over the summary's end, and the summary leaves it room.
   return (
-    <details id="read" className="collapse collapse-arrow scroll-mt-20 rounded-none" data-testid="what-we-read">
-      <summary className="collapse-title min-h-0 px-px py-2 pe-10 after:end-2 after:top-6">
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
-          <div className="flex min-w-0 flex-1 items-center gap-3">
+    <div className="relative min-w-0">
+      <details id="read" className="collapse collapse-arrow scroll-mt-20 rounded-none" data-testid="what-we-read">
+        <summary
+          className={`collapse-title min-h-0 px-px py-2 after:end-2 after:top-6 ${p.correction.offered ? "pe-48 sm:pe-64" : "pe-10"}`}
+        >
+          <div className="flex min-w-0 items-center gap-3">
             <span aria-hidden className="rounded-field grid size-9 shrink-0 place-items-center bg-base-200">
               <Globe className="size-5" strokeWidth={1.75} />
             </span>
@@ -112,16 +116,19 @@ export function ReadSection(p: { understanding: BusinessUnderstanding; correctio
               {subtitle === "" ? null : <p className="text-base-content/70 text-sm font-normal">{subtitle}</p>}
             </div>
           </div>
-          {p.correction.offered ? (
-            <a href="#read-as" className="link link-primary inline-flex min-h-11 items-center text-sm">
-              {copy("verdict.not-your-market")}
-            </a>
-          ) : null}
+        </summary>
+        <div className="collapse-content min-w-0 px-px">
+          <Facts understanding={u} />
         </div>
-      </summary>
-      <div className="collapse-content min-w-0 px-px">
-        <Facts understanding={u} />
-      </div>
-    </details>
+      </details>
+      {p.correction.offered ? (
+        <a
+          href="#read-as"
+          className="link link-primary absolute end-10 top-2 inline-flex min-h-11 max-w-36 items-center text-end text-sm sm:max-w-none"
+        >
+          {copy("verdict.not-your-market")}
+        </a>
+      ) : null}
+    </div>
   );
 }
