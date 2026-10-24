@@ -46,6 +46,8 @@ const KEY = {
 export interface PresenceBar {
   readonly name: string;
   readonly value: number;
+  /** What stands beside the name; "{value}/{measured}" where none is given. */
+  readonly text?: string;
 }
 
 interface Row {
@@ -81,7 +83,7 @@ export function PresenceBars(p: {
       kind,
       length: ringed ? p.measured : Math.min(Math.max(bar.value, 0), p.measured),
       ringed,
-      ratio: `${bar.value}/${p.measured}`,
+      ratio: bar.text ?? `${bar.value}/${p.measured}`,
     };
   });
   const domain: [number, number] = [0, Math.max(p.measured, 1)];

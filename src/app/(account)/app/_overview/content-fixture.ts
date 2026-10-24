@@ -70,6 +70,10 @@ function ladderAt(index: number): Ladder {
 
 const READ_AT = "2026-08-31T06:00:00.000Z";
 
+/** The pages whose own question the weekly pass asked; `answers-fixture.ts`
+ *  holds those questions, by these pages' addresses. */
+export const ASKED: ReadonlySet<number> = new Set([2, 10, 11, 12]);
+
 /** The weekly reading behind that ladder; the newest two were never read. */
 function readingAt(index: number): PageReading | null {
   if (index < 2) return null;
@@ -84,7 +88,7 @@ function readingAt(index: number): PageReading | null {
     best: place === null ? null : { at: READ_AT, place },
     // One page moved up this week: the best mover.
     prev: place === null ? null : place + (index === 8 ? 9 : 0),
-    linkedBy: index === 12 ? ["chatgpt"] : [],
+    linkedBy: index === 12 ? ["chatgpt"] : ASKED.has(index) ? [] : null,
     aiReads: index >= 3 ? index : 0,
     variants: [],
     reached: {
@@ -92,6 +96,7 @@ function readingAt(index: number): PageReading | null {
       ...(shown ? { showing: at(9) } : {}),
       ...(index >= 3 ? { readByAi: at(4) } : {}),
       ...(index === 12 ? { linkedByAi: at(12) } : {}),
+      ...(index === 11 ? { aiVisit: at(11) } : {}),
     },
     google: shown ? { indexed: true, lastCrawl: at(3), impressions: (index - 5) * 9, clicks: index === 16 ? 3 : 0, bestPlace: place, bestQuery: null } : null,
     bing: null,
