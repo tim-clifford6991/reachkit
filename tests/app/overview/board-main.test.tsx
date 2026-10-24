@@ -223,6 +223,11 @@ describe("a week card, from Plan's own week assembly", () => {
     expect(week.cells.some((cell) => cell.page === null)).toBe(true);
   });
 
+  it("Overview's week cards draw no demand beside the date, though Plan's do", () => {
+    expect(plan.querySelectorAll('[data-testid="card-number"]').length).toBeGreaterThan(0);
+    expect(dom.querySelectorAll('[data-testid="overview-week"] [data-testid="card-number"]')).toHaveLength(0);
+  });
+
   it("a short week says its real count", () => {
     const pages = week.cells.filter((cell) => cell.page !== null).length;
     expect(pages).toBeLessThan(week.cells.length);

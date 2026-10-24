@@ -185,6 +185,8 @@ export function DayCardView(p: {
   selected: boolean;
   open?: (day: React.JSX.Element) => React.JSX.Element;
   controls: React.ReactNode;
+  // Overview's board draws no demand beside the date; Plan's does.
+  number?: boolean;
 }): React.JSX.Element {
   const { cell, page, line } = p;
   const day = (
@@ -193,7 +195,7 @@ export function DayCardView(p: {
         <span className="num shrink-0 text-xs font-semibold" data-testid="cell-date">
           {weekdayShort(cell.day)} {dayNumber(cell.day)}
         </span>
-        <CardNumber value={dayNumberOf(page)} />
+        {p.number === false ? null : <CardNumber value={dayNumberOf(page)} />}
       </span>
       {page === null ? null : <PageSketch primary={cell.today} />}
       {page === null ? (

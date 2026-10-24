@@ -107,6 +107,7 @@ export function ThisWeek(p: { week: WeekList; scheduled: boolean }): React.JSX.E
               firstSkip={day.cell.day === week.firstSkip}
               filtered={false}
               selected={false}
+              number={false}
               controls={<DayControls day={day} timeZone={week.timeZone} scheduled={p.scheduled} />}
             />
           ))}
