@@ -102,6 +102,12 @@ export const OFFER_COPY = Object.freeze({
     { slots: {}, fixedBy: "SPEC.md §3 (2026-09-13)" },
   ],
 
+  // The Checkout tick's sentence: an EU consumer's consent to start at once.
+  "offer.checkout.consent": [
+    "I agree to the [Terms]({terms}) and ask ReachKit to start at once: my site is measured the moment I pay. I understand my 14-day right of withdrawal ends once the service is fully provided. [How to withdraw]({terms}#withdrawal)",
+    { slots: { terms: "text" }, fixedBy: "issue 1590" },
+  ],
+
   // The values the `{value}` lines above take. The veto window carries its
   // number from `VETO.defaultHours` through `{hours}`, so it is written once.
   "offer.cadence.movement.value": ["every Monday", { slots: {}, fixedBy: "REQ-021 c2" }],

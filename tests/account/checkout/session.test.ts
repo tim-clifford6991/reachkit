@@ -154,3 +154,21 @@ describe("a vendor failure is an arm, never a payload", () => {
     expect(JSON.stringify(result)).not.toContain("raw vendor text");
   });
 });
+
+describe("EU withdrawal — the buyer ticks that the service starts now before paying", () => {
+  it("both origins require the terms tick, and its sentence links to how to withdraw", async () => {
+    await createCheckoutSession({ origin: { kind: "report", scanId: "scan-done" }, returnTo: OURS });
+    await createCheckoutSession({ origin: { kind: "pricing" }, returnTo: OURS });
+    expect(vendor.created).toHaveLength(2);
+    for (const sent of vendor.created) {
+      expect(sent.consent_collection).toEqual({ terms_of_service: "required" });
+      const { message } = (sent.custom_text as { terms_of_service_acceptance: { message: string } })
+        .terms_of_service_acceptance;
+      expect(message).toContain("start at once");
+      expect(message).toContain("14-day right of withdrawal");
+      expect(message).toContain(`](${ENV_FIXTURE.NEXT_PUBLIC_APP_URL}/terms#withdrawal)`);
+      // Stripe refuses a longer acceptance text.
+      expect(message.length).toBeLessThanOrEqual(1200);
+    }
+  });
+});
