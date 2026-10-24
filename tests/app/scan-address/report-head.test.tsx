@@ -56,7 +56,8 @@ describe("the head reads as the board: domain, where it was measured, what we re
       copy("report.read.as.locale", { language: "English", country: "United States" }),
       copy("verdict.not-your-market"),
     ]);
-    expect(lines.filter((line) => line === copy("verdict.not-your-market"))).toHaveLength(1);
+    const head = lines.slice(0, at(lines, copy("verdict.score.label")));
+    expect(head.filter((line) => line === copy("verdict.not-your-market"))).toHaveLength(1);
   });
 
   it("names the biggest gap, its two lines and the way to the missing pages (owner R12 B1)", () => {

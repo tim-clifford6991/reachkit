@@ -43,7 +43,8 @@ import type { CanonicalDomain } from "@/lib/scan/domain";
 import type { CorrectionOffer } from "@/lib/market/coherence/offer";
 import type { StoredReport } from "@/lib/scan/report";
 import { parse, type HTMLElement } from "node-html-parser";
-import { WhatWeRead } from "@/app/_business/WhatWeRead";
+import { ReadSection, WhatWeRead } from "@/app/_business/WhatWeRead";
+import type { BusinessUnderstanding } from "@/lib/business/types";
 import { understandBusiness } from "@/lib/business/understanding";
 
 
@@ -784,7 +785,7 @@ describe("board PubReport — each section under \"Everything else\" opens with 
   it("each closed section opens with its board icon", () => {
     expect(tiled(page.querySelector("#holds > summary"), "wrench")).not.toBeNull();
     expect(tiled(page.querySelector("#method > summary"), "list-checks")).not.toBeNull();
-    expect(tiled(page.querySelector('[data-testid="what-we-read"] .card-body'), "globe")).not.toBeNull();
+    expect(tiled(page.querySelector('[data-testid="what-we-read"] > summary'), "globe")).not.toBeNull();
     expect(tiled(page.querySelector('[data-testid="report-first-page"] > summary'), "gift")).not.toBeNull();
   });
 
@@ -799,5 +800,75 @@ describe("board PubReport — each section under \"Everything else\" opens with 
     const understanding = understandBusiness({ domain: "flixbus.de", profile: null, locale: { country: "DE", language: "de" }, alsoServes: 0 });
     const card = parse(renderToStaticMarkup(React.createElement(WhatWeRead, { understanding, editHref: "/app/settings/business" })));
     expect(card.querySelector("svg.lucide-globe")).toBeNull();
+  });
+});
+
+describe("board PubReport — What we read and the first page say what they hold while closed", () => {
+  const OFFERED: CorrectionOffer = { offered: true, as: "first" };
+  const fixtureUnderstanding = understandBusiness({
+    domain: "harbor.example.com",
+    profile: null,
+    locale: { country: "US", language: "en" },
+    alsoServes: 0,
+  });
+  const read = (u: BusinessUnderstanding, correction: CorrectionOffer = OFFERED): HTMLElement =>
+    parse(renderToStaticMarkup(React.createElement(ReadSection, { understanding: u, correction })));
+  const subtitleOf = (section: HTMLElement): string | null =>
+    section.querySelector("details#read > summary h2 + p")?.text ?? null;
+
+  it("What we read is closed under its own name", () => {
+    const page = parse(render(FIXTURE_REPORT));
+    const section = page.querySelector('details#read[data-testid="what-we-read"]');
+    expect(section?.hasAttribute("open")).toBe(false);
+    expect(section?.querySelector("summary h2")?.text).toBe("report.read.title");
+    expect(section?.querySelector(".collapse-content > dl")).not.toBeNull();
+  });
+
+  it("What we read says whose reading it is while closed", () => {
+    const u: BusinessUnderstanding = { ...fixtureUnderstanding, name: "Harbor Plumbing", kind: "local-service", where: { ...fixtureUnderstanding.where, place: { name: "Austin" } } };
+    expect(subtitleOf(read(u))).toBe("Harbor Plumbing · report.read.as.kind.local-service · Austin");
+    expect(subtitleOf(read({ ...u, kind: null, where: { ...u.where, place: null } }))).toBe("Harbor Plumbing");
+    const none = read({ ...u, name: null, kind: null, where: { ...u.where, place: null } });
+    expect(none.querySelector("details#read > summary h2")).not.toBeNull();
+    expect(none.querySelector("details#read > summary p")).toBeNull();
+  });
+
+  it("What we read links to the one correction while it is offered", () => {
+    const page = parse(render(FIXTURE_REPORT));
+    const link = page.querySelector('details#read > summary a[href="#read-as"]');
+    expect(link?.text).toBe("verdict.not-your-market");
+    expect(link?.classList.contains("min-h-11")).toBe(true);
+    expect(page.querySelector('#read-as[data-testid="report-read-as"]')).not.toBeNull();
+    // One control: the header's button is the only element that opens the field.
+    expect(page.querySelectorAll("button").filter((b) => b.text === "verdict.not-your-market")).toHaveLength(1);
+    for (const because of ["used", "exhausted", "in_progress", "report_too_old", "domain_removed"] as const) {
+      const closed = parse(render(FIXTURE_REPORT, null, { kind: "none" }, { offered: false, because }));
+      expect(closed.querySelector('details#read a[href="#read-as"]'), because).toBeNull();
+      expect(closed.querySelector("#read-as"), because).not.toBeNull();
+    }
+  });
+
+  it("the first page says its question while closed", () => {
+    const asked = FIXTURE_REPORT.aiAnswers!.rows.find((row) => row.question.search === FIXTURE_REPORT.freePage!.target.keyword);
+    expect(asked).toBeDefined();
+    const summary = parse(render(FIXTURE_REPORT)).querySelector('[data-testid="report-first-page"] > summary');
+    expect(summary?.querySelector("h2")?.text).toBe("free-page.title");
+    expect(summary?.text).toContain(asked!.question.wording.text);
+    expect(summary?.querySelector(".num")?.text).toBe(FIXTURE_REPORT.freePage!.target.keyword);
+
+    const unasked: StoredReport = {
+      ...FIXTURE_REPORT,
+      aiAnswers: { ...FIXTURE_REPORT.aiAnswers!, rows: FIXTURE_REPORT.aiAnswers!.rows.filter((row) => row !== asked) },
+    };
+    const bare = parse(render(unasked)).querySelector('[data-testid="report-first-page"] > summary');
+    expect(bare?.text).not.toContain(asked!.question.wording.text);
+    expect(bare?.querySelector("h2 + p")?.text).toBe(FIXTURE_REPORT.freePage!.target.keyword);
+  });
+
+  it("WhatWeRead without the report's section renders as before", () => {
+    expect(renderToStaticMarkup(React.createElement(WhatWeRead, { understanding: fixtureUnderstanding }))).toMatchSnapshot();
+    expect(
+      renderToStaticMarkup(React.createElement(WhatWeRead, { understanding: fixtureUnderstanding, editHref: "/app/settings/business" }))
+    ).toMatchSnapshot();
   });
 });
