@@ -34,7 +34,7 @@
 "use client";
 
 import type React from "react";
-import { Lock } from "lucide-react";
+import { ArrowRight, FileText, Lock } from "lucide-react";
 import { useActionState, useState, useTransition } from "react";
 import { copy } from "@/lib/presentation/copy";
 import { writtenLine } from "../../_shell/written";
@@ -44,7 +44,7 @@ import { beginEmailChangeAction, cancelEmailChangeAction } from "../account-acti
 import { EMAIL_CHANGE_INITIAL, NEW_EMAIL_FIELD, refusalKeyOf } from "../account-state";
 import type { SettingsModel } from "../model";
 
-export function AccountPanel(p: { account: SettingsModel["account"] }): React.JSX.Element {
+export function AccountPanel(p: { account: SettingsModel["account"]; pages: number }): React.JSX.Element {
   const action = useAction();
   const [changeState, submitChange, changing] = useActionState(beginEmailChangeAction, EMAIL_CHANGE_INITIAL);
   const [cancelling, startCancelling] = useTransition();
@@ -139,6 +139,36 @@ export function AccountPanel(p: { account: SettingsModel["account"] }): React.JS
             </p>
           );
         })}
+
+        <div
+          className="bg-base-200 rounded-box flex min-w-0 flex-wrap items-center gap-2 p-3 text-sm"
+          role="group"
+          aria-label={copy("settings.account.signin.label")}
+          data-testid="account-signin"
+        >
+          <span>{copy("settings.account.signin.mail")}</span>
+          <ArrowRight size={14} strokeWidth={1.75} aria-hidden />
+          <span>{copy("settings.account.signin.open")}</span>
+          <ArrowRight size={14} strokeWidth={1.75} aria-hidden />
+          <span>{copy("settings.account.signin.in")}</span>
+        </div>
+
+        {/* REQ-078: export is always available, so nothing gates this control. */}
+        <div className="border-base-300 flex min-w-0 flex-wrap items-center justify-between gap-3 border-t pt-4" data-testid="action-export">
+          <div className="flex min-w-0 items-start gap-2">
+            <FileText size={20} strokeWidth={1.75} aria-hidden className="shrink-0" />
+            <span className="flex min-w-0 flex-col">
+              <strong className="text-sm">{copy("settings.content.export")}</strong>
+              <span className="text-xs text-base-content/70 wrap-anywhere">
+                {copy("settings.account.export.note", { pages: String(p.pages) })}
+              </span>
+            </span>
+          </div>
+          <button type="button" className="btn btn-soft btn-primary btn-sm" onClick={() => action.run("export")} disabled={action.pending !== null}>
+            {action.pending === "export" ? <span className="loading loading-spinner loading-xs" aria-hidden /> : null}
+            {copy("settings.content.export")}
+          </button>
+        </div>
 
         <div className="border-base-300 flex min-w-0 flex-wrap items-center gap-2 border-t pt-4">
           <span data-testid="action-sign_out">

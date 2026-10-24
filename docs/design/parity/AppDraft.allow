@@ -32,9 +32,11 @@ Water spreading? Shut off the main valve, turn off the water heater, then call. 
 138 characters	sample data
 # Emergency plumber in Austin: what to do in the first hour If water is spreading, shut off the main valve first. In most Austin homes it sits where the water line enters the house, often in the garage or near the front hose bib. ## 1. Stop the water If you can’t find the house valve, the city meter box at the curb has one too.	sample data: the board's Markdown, which the editor draws in CodeMirror
 Your edit breaks one of the page rules, so this page won’t publish until the text passes them. Your words are saved.	#789: the edit arm, drawn only while the edit breaks a rule; tests/app/draft/view.test.tsx renders it
-Theme: light	#1744: the app shell's theme control, which that issue changes for every /app board
+Theme: light	DESIGN.md: the /app shell's theme control is the Light / Dark / System dropdown named Theme (#681)
 Back to the page	#1748: the edit arm, behind Edit this page, which the route reading never presses; tests/app/draft/board.test.tsx reads it
 Description in search results	#1748: the edit arm, behind Edit this page, which the route reading never presses; tests/app/draft/board.test.tsx reads it
 Search result	#1748: the edit arm, behind Edit this page, which the route reading never presses; tests/app/draft/board.test.tsx reads it
 Done editing	#1748: the edit arm, behind Edit this page, which the route reading never presses; tests/app/draft/board.test.tsx reads it
 Discard changes	#1748: the edit arm, behind Edit this page, which the route reading never presses; tests/app/draft/board.test.tsx reads it
+Bold	#1748: the edit arm, behind Edit this page, which the route reading never presses; tests/app/draft/board.test.tsx reads it; E31: the format toolbar
+Italic	#1748: the edit arm, behind Edit this page, which the route reading never presses; tests/app/draft/board.test.tsx reads it; E31: the format toolbar

@@ -31,55 +31,42 @@
 // readable. Nothing is clamped either — a question wraps and its row grows,
 // which is the box changing rather than the value.
 //
-// **The published pages' own questions are rows of this grid** (SPEC §6
-// 2026-09-20, #919), beneath the twelve and in the same shape: they are
-// tracked questions, asked of the same three engines in the same pass, and
-// a second grid for them would be the same picture twice. What keeps them
-// apart is arithmetic and not a component — the four-week rate and this
-// week's n of 12 count the twelve alone (`answers-model.ts`), and the line
-// under the title states how many questions are tracked in all against the
-// cap they obey.
-//
-// **Two things on the approved board are deliberately not here**: *Also
-// appearing for* and the cited-pages tile (#920, after the pilot), and the
-// hosted-blog engine counts (#921). Each is a card of its own beneath this
-// one when its issue lands; neither stands here as a placeholder.
+// **The twelve alone** (board AppAI): the published pages' own questions are
+// the tab's *Each page in AI answers*, so they are not drawn twice. The grid
+// is closed under its name, the last part of the reputation card.
 import type React from "react";
 import { copy } from "@/lib/presentation/copy";
 import { renderQuestion } from "@/lib/presentation/generated";
 import { ENGINE_LABEL } from "../_shell/page-target-words";
-import { CLOSED, formatCount } from "./present";
-import { PAGE_QUESTION_RETIRE_WEEKS } from "@/lib/config/constants";
+import { formatCount } from "./present";
 import { ANSWER_MARKS, type AnswerMark, type AnswerQuestion, type AnswersModel } from "./answers-model";
 import { MARK_COPY_KEY, MARK_ICON, MARK_TONE } from "./answers-words";
 
 /** One mark, drawn. `aria-hidden` on the glyph: the cell around it carries
  *  the written name, and a glyph with a name of its own would be read
  *  twice. */
-function Mark(p: { mark: AnswerMark }): React.JSX.Element {
+export function Mark(p: { mark: AnswerMark }): React.JSX.Element {
   const Glyph = MARK_ICON[p.mark];
   return (
     <Glyph size={16} strokeWidth={1.75} aria-hidden className={`shrink-0 ${MARK_TONE[p.mark]}`} />
   );
 }
 
-/** The legend, above the grid: every mark the grid can draw, with its word.
- *  All five always — a legend that shrank to the marks on screen would stop
- *  explaining the grid the week one of them disappeared. */
-function Legend(): React.JSX.Element {
+/** The board's four marks, and "names no one" and "not measured" only where
+ *  a cell on screen is one: the board's legend, and no mark left unexplained. */
+const ONLY_WHEN_USED: readonly AnswerMark[] = ["names_no_one", "not_measured"];
+
+export function Legend(p: { used: readonly AnswerMark[] }): React.JSX.Element {
+  const marks = ANSWER_MARKS.filter((mark) => !ONLY_WHEN_USED.includes(mark) || p.used.includes(mark));
   return (
-    <ul
-      className="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-1"
-      aria-label={copy("overview.answers.legend.label")}
-      data-testid="answers-legend"
-    >
-      {ANSWER_MARKS.map((mark) => (
-        <li key={mark} className="flex min-w-0 items-center gap-1.5 text-xs text-base-content/70">
+    <p className="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-1" data-testid="answers-legend">
+      {marks.map((mark) => (
+        <span key={mark} className="flex min-w-0 items-center gap-1.5 text-xs text-base-content/70">
           <Mark mark={mark} />
           {copy(MARK_COPY_KEY[mark])}
-        </li>
+        </span>
       ))}
-    </ul>
+    </p>
   );
 }
 
@@ -109,7 +96,7 @@ const GRID_COLUMNS: Readonly<Record<number, string>> = Object.freeze({
  */
 function askedColumns(model: AnswersModel): readonly Column[] {
   const all = model.engines.map((engine, index) => ({ engine, index }));
-  const rows = [...model.questions, ...model.pageQuestions];
+  const rows = model.questions;
   const asked = all.filter((column) => rows.some((row) => (row.marks[column.index] ?? "not_measured") !== "not_measured"));
   return asked.length === 0 ? all : asked;
 }
@@ -190,43 +177,17 @@ function Row(p: { question: AnswerQuestion; columns: readonly Column[] }): React
 }
 
 export function AnswerGrid(p: { model: AnswersModel }): React.JSX.Element {
-  if (p.model.questions.length === 0) {
-    return (
-      <section className="card card-border min-w-0 bg-base-100" data-testid="answers-grid">
-        <div className="card-body p-5">
-          <h2 className="card-title text-base!">{copy("overview.answers.grid.title")}</h2>
-          <p className="max-w-prose text-sm text-base-content/70">{copy("overview.answers.empty")}</p>
-        </div>
-      </section>
-    );
-  }
-
   const columns = askedColumns(p.model);
   return (
-    <section className="card card-border min-w-0 bg-base-100" data-testid="answers-grid">
-      <div className="flex min-w-0 flex-col gap-3 p-4">
-        {/* What the grid holds and how many questions it tracks, closed
-            under its own name (SPEC §4, 2026-10-07, issue 1324). The
-            legend stays: the marks cannot be read without it. */}
-        <details className={CLOSED.root}>
-          <summary className={CLOSED.head}>
-            <h2 className="card-title text-base!">{copy("overview.answers.grid.title")}</h2>
-          </summary>
-          <div className={CLOSED.body}>
-            <p className="max-w-prose text-sm text-base-content/70">
-              {copy("overview.answers.grid.lead", { of: formatCount(p.model.questions.length) })}
-            </p>
-            <p className="max-w-prose text-xs text-base-content/70" data-testid="answers-tracked">
-              {copy("overview.answers.grid.tracked", {
-                tracked: formatCount(p.model.tracked),
-                max: formatCount(p.model.cap),
-                weeks: formatCount(PAGE_QUESTION_RETIRE_WEEKS),
-              })}
-            </p>
-          </div>
-        </details>
-        <Legend />
-
+    <details className="collapse collapse-arrow min-w-0" data-testid="answers-grid">
+      <summary className="collapse-title flex min-h-0 min-w-0 flex-col gap-1 px-0 pe-10">
+        <h3 className="text-base font-semibold">{copy("overview.answers.grid.title")}</h3>
+        <span className="max-w-prose text-sm text-base-content/70">
+          {copy("overview.answers.grid.lead", { of: formatCount(p.model.questions.length) })}
+        </span>
+      </summary>
+      <div className="collapse-content flex min-w-0 flex-col gap-3 px-0">
+        <Legend used={p.model.questions.flatMap((q) => columns.map(({ index }) => q.marks[index] ?? "not_measured"))} />
         <div
           role="table"
           aria-label={copy("overview.answers.grid.label")}
@@ -247,11 +208,11 @@ export function AnswerGrid(p: { model: AnswersModel }): React.JSX.Element {
               </span>
             ))}
           </div>
-          {[...p.model.questions, ...p.model.pageQuestions].map((question) => (
+          {p.model.questions.map((question) => (
             <Row key={question.n} question={question} columns={columns} />
           ))}
         </div>
       </div>
-    </section>
+    </details>
   );
 }

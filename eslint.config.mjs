@@ -383,7 +383,7 @@ const noVoiceLiteral = {
 // HTML and ARIA tokens, URLs, a component's own discriminant or size token,
 // and a chart's dimensions. `aria-*` is always allowed.
 const STRUCTURAL_ATTRIBUTES = [
-  "className", "data-testid", "testId", "data-theme", "data-tone", "data-surface", "data-waiting",
+  "className", "data-testid", "testId", "data-theme", "data-tone", "data-surface", "data-waiting", "data-layout",
   "id", "htmlFor", "name", "type", "href", "src", "rel", "target", "scope", "role", "method", "action", "lang", "key",
   "state", "variant", "tone", "size", "direction", "terms", "tab", "kind", "mode", "width", "height",
 ];
@@ -583,7 +583,7 @@ export default tseslint.config(
   },
   {
     // (o)
-    files: ["src/lib/config/constants.ts"],
+    files: ["src/lib/config/constants.ts", "src/lib/config/constants/*.ts"],
     plugins: { local: localImportRules },
     rules: { "local/constants-hold-no-copy": "error" },
   },

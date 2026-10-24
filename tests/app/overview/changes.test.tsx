@@ -176,14 +176,14 @@ describe("REQ-071 c13 — the week count runs from the last change, not the firs
 
 // ── the comparison window ──────────────────────────────────────────────────
 describe("REQ-071 c12/c13 — a comparison that would cross a change is not made, and says so", () => {
-  it("the `was` badge is withheld when the two readings straddle the change", () => {
+  it("where it was before is withheld when the two readings straddle the change", () => {
     const model = assembleOverview(facts({ changes: [CHANGE] }));
     expect(model.rivals.kind).toBe("ratio");
     if (model.rivals.kind !== "ratio") throw new Error("unreachable");
     expect(model.rivals.rivals[0]?.previous.kind).toBe("spans_change");
 
     const markup = html(<RivalModule rivals={model.rivals} timeZone={ZONE} />);
-    expect(markup).not.toContain("overview.rivals.was");
+    expect(markup).not.toMatch(/overview\.rivals\.(from|flat)/);
   });
 
   it("the card states the window it can compare over instead", () => {
@@ -196,7 +196,7 @@ describe("REQ-071 c12/c13 — a comparison that would cross a change is not made
   it("with no change the comparison is made and the window line is absent", () => {
     const model = assembleOverview(facts({ changes: [] }));
     const markup = html(<RivalModule rivals={model.rivals} timeZone={ZONE} />);
-    expect(markup).toContain("overview.rivals.was");
+    expect(markup).toMatch(/overview\.rivals\.(from|flat)/);
     expect(markup).not.toContain("overview-rivals-comparison-window");
   });
 

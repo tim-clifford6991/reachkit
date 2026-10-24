@@ -68,4 +68,40 @@ describe("issue 1242 — a live hosted article is cached, and nothing else on th
     },
     TWO_VISITS_MS,
   );
+
+});
+
+describe("a page served as a string is styled from the customer's own host", () => {
+  it(
+    "the host serves the hosted sheet, and every face the sheet names, from its own address",
+    async () => {
+      await withPage(BAND_MIN.compact, async (page) => {
+        const response = await page.goto(addressOf("/style.css"));
+        if (response === null) throw new Error("tests/ui/layout/hosted-cache.test.ts: /style.css produced no response");
+        expect(response.status()).toBe(200);
+        expect(response.headers()["content-type"]).toContain("text/css");
+        const css = await response.text();
+        expect(css).toContain(".navbar");
+        expect(css).toContain("@font-face");
+        const faces = [...new Set([...css.matchAll(/url\((\/font\/[^)]+)\)/g)].map((match) => match[1] as string))];
+        expect(faces.length).toBeGreaterThan(0);
+        // Fetched from the page, so the request rides the browser's host mapping to the fixture host.
+        const answers = await page.evaluate(
+          async (paths) =>
+            Promise.all(
+              paths.map(async (path) => {
+                const answer = await fetch(path);
+                return { path, status: answer.status, type: answer.headers.get("content-type") };
+              })
+            ),
+          [...faces, "/font/not-a-face.woff2"]
+        );
+        for (const answer of answers.slice(0, -1)) {
+          expect(answer, answer.path).toMatchObject({ status: 200, type: "font/woff2" });
+        }
+        expect(answers.at(-1)?.status).toBe(404);
+      });
+    },
+    TWO_VISITS_MS,
+  );
 });

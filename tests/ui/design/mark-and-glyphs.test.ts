@@ -24,6 +24,7 @@ describe("S1 — the landing's chips carry the icons the approved set draws", ()
     "app/(public)/_landing/Storyboard.tsx",
     "app/(public)/_landing/Features.tsx",
     "app/(public)/_landing/ScanForm.tsx",
+    "app/(public)/_landing/RealSite.tsx",
   ] as const;
 
   /** Every lucide name the landing imports, deduplicated. */
@@ -57,26 +58,38 @@ describe("S1 — the landing's chips carry the icons the approved set draws", ()
     //
     // The 2026-10-19 board draws the story card's five frames — globe,
     // search, file, bot, coffee — and an arrow on each plain link onward.
+    // PubLanding's Pages card ticks each day a page goes live (circle check),
+    // and its real-site cards take the file and the globe.
+    //
+    // One icon per concept (2026-10-24 E29): the story frames are your
+    // business (building-2), research (scan-search) and being found
+    // (trending-up); AI is sparkles; the fix card is a wrench; the AI
+    // drawing ticks who is named and crosses who is not.
     expect(iconsImported()).toEqual([
       "ArrowRight",
-      "Bot",
+      "Building2",
       "Check",
+      "CircleCheck",
+      "CircleX",
       "Clock",
       "Coffee",
       "FileText",
       "Globe",
       "MessageSquare",
+      "ScanSearch",
       "Search",
       "Send",
-      "ShieldCheck",
+      "Sparkles",
+      "TrendingUp",
+      "Wrench",
       "Zap",
     ]);
   });
 
-  it("the four feature cards take bot, search, shield and file, in that order (#1067)", () => {
+  it("the four feature cards take sparkles, search, wrench and file, in that order (E29)", () => {
     const source = read("app/(public)/_landing/Features.tsx");
     const order = [...source.matchAll(/body: "landing\.feature\.\w+\.body", Icon: (\w+)/g)].map((m) => m[1]);
-    expect(order).toEqual(["Bot", "Search", "ShieldCheck", "FileText"]);
+    expect(order).toEqual(["Sparkles", "Search", "Wrench", "FileText"]);
   });
 
   it("each card head takes its glyph, at lucide stroke 1.75", () => {

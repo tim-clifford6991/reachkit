@@ -1,17 +1,16 @@
-// docs/DESIGN.md (calm layer, 2026-09-24, #1066) — the public header's
-// theme control: two states, light and dark, the first visit following the
-// system. The `/app` shell keeps the three-way `ThemeToggle` dropdown.
+// docs/DESIGN.md (calm layer) — the public header's theme control: one
+// button that switches between light and dark, the first visit following the
+// system (board `PubLanding`). The `/app` shell keeps the three-way
+// `ThemeToggle` dropdown.
 //
-// A daisyUI `join` of two ghost buttons, lucide glyphs at 1.75, the current
-// one pressed. It writes the same choice `ThemeToggle` does (`./theme.ts`),
-// so the two controls never disagree about what is stored. Like that
-// control it holds no copy key: its three names arrive written.
+// It writes the same choice `ThemeToggle` does (`./theme.ts`), so the two
+// controls never disagree about what is stored. Like that control it holds no
+// copy key: its two names arrive written.
 "use client";
 
 import type React from "react";
 import { useSyncExternalStore } from "react";
 import { Moon, Sun } from "lucide-react";
-import type { ThemeNames } from "./names";
 import { applyThemeChoice, readThemeChoice, subscribeThemeChoice } from "./theme";
 
 type Shown = "light" | "dark";
@@ -36,32 +35,24 @@ function subscribeShown(onChange: () => void): () => void {
   };
 }
 
-/** The server cannot know; neither half is pressed until hydration. The
- *  ground is already right — the before-paint script set it. */
+/** The server cannot know, so it names the press to dark; the ground is
+ *  already right because the before-paint script set it. */
 const SERVER_SHOWN = null;
 
-const OPTIONS: readonly { value: Shown; Icon: typeof Sun }[] = [
-  { value: "light", Icon: Sun },
-  { value: "dark", Icon: Moon },
-];
-
-export function ThemeSwitch(p: { names: Pick<ThemeNames, "control" | "light" | "dark"> }): React.JSX.Element {
+export function ThemeSwitch(p: { names: { toDark: string; toLight: string } }): React.JSX.Element {
   const shown = useSyncExternalStore<Shown | null>(subscribeShown, readShown, () => SERVER_SHOWN);
+  const next: Shown = shown === "dark" ? "light" : "dark";
+  const Icon = next === "dark" ? Moon : Sun;
   return (
-    <div role="group" aria-label={p.names.control} className="join" data-testid="theme-switch">
-      {OPTIONS.map(({ value, Icon }) => (
-        <button
-          key={value}
-          type="button"
-          className={`btn btn-sm btn-square join-item ${shown === value ? "btn-soft btn-primary" : "btn-ghost"}`}
-          aria-label={p.names[value]}
-          aria-pressed={shown === value}
-          data-theme-choice={value}
-          onClick={() => applyThemeChoice(value)}
-        >
-          <Icon aria-hidden size={16} strokeWidth={1.75} />
-        </button>
-      ))}
-    </div>
+    <button
+      type="button"
+      className="btn btn-ghost btn-sm btn-square"
+      aria-label={next === "dark" ? p.names.toDark : p.names.toLight}
+      data-testid="theme-switch"
+      data-theme-choice={next}
+      onClick={() => applyThemeChoice(next)}
+    >
+      <Icon aria-hidden size={16} strokeWidth={1.75} />
+    </button>
   );
 }

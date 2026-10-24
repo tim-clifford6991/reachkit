@@ -25,7 +25,7 @@ import type {
   TellableTelling,
 } from "../../../src/lib/mail/templates/draft-ready";
 import type { WeeklyPage } from "../../../src/lib/mail/templates/weekly";
-import type { CopyKey } from "../../../src/lib/presentation/copy";
+import { COPY, type CopyKey } from "../../../src/lib/presentation/copy";
 import type { PublishedTelling } from "../../../src/lib/publish/verify/telling";
 
 const AT = new Date("2026-09-08T07:00:00.000Z");
@@ -131,20 +131,40 @@ const WEEKLY_PAGES: readonly WeeklyPage[] = [
   },
 ];
 
-/** The set's own next three, in its order. */
+/** The board's sample week: Monday to Sunday from the Monday it is sent, the
+ *  first three written out with why, and the publish time Plan states. */
+const WEEK_DAYS = ["2026-10-19", "2026-10-20", "2026-10-21", "2026-10-22", "2026-10-23", "2026-10-24", "2026-10-25"];
+const WEEKLY_CALENDAR = { days: WEEK_DAYS, today: WEEK_DAYS[0]!, time: "4:00 PM", planHref: `${APP}/app/calendar` };
 const WEEKLY_NEXT = [
-  { targetQuery: "payroll software for five people" },
-  { targetQuery: "holiday pay rules for part-time staff" },
-  { targetQuery: "how to run payroll without an accountant" },
-];
+  ["emergency plumber austin", false, "calendar.reason.ai-gap"],
+  ["toilet repair austin", true, "calendar.reason.near-page-one"],
+  ["slab leak repair cost austin", false, "calendar.reason.asked"],
+  ["water heater installation austin", false, null],
+  ["drain cleaning austin", true, null],
+  ["sewer line repair cost austin", false, null],
+  ["gas leak plumber austin", false, null],
+].map(([targetQuery, update, why], i) => ({
+  targetQuery: targetQuery as string,
+  day: WEEK_DAYS[i]!,
+  update: update as boolean,
+  ...(why === null ? {} : { why: COPY[why as CopyKey] }),
+  stopHref: `${APP}/veto/preview-${i}`,
+  editHref: `${APP}/app/calendar`,
+}));
 
-/** Where a `toggle` kind's stop control points: Settings › Mail,
- *  the customer's own three switches — never the address-wide opt-out. */
+/** Where a `toggle` kind's stop control points: its own signed unsubscribe
+ *  page — never the address-wide opt-out. */
 const UNSUBSCRIBE = {
-  href: `${APP}/app/settings`,
-  oneClickHref: `${APP}/api/opt-out/preview-token`,
+  href: `${APP}/unsubscribe/preview-token`,
+  oneClickHref: `${APP}/api/unsubscribe/preview-token`,
   mechanism: "unsubscribe",
 } as const;
+
+/** The Monday mail's other two footer links. */
+const WEEKLY_FOOTER = [
+  { label: "mail.weekly.footer.pause", href: `${APP}/pause/preview-token` },
+  { label: "mail.weekly.footer.settings", href: `${APP}/app/settings/mail` },
+] as const;
 
 /** The seven the set draws, in its own order. */
 export const PREVIEW_KINDS = [
@@ -244,23 +264,33 @@ export async function composePreview(kind: PreviewKind): Promise<PreviewMail> {
     case "weekly": {
       const { buildWeekly } = await import("../../../src/lib/mail/templates/weekly");
       const mail = buildWeekly({
-        // Issue 1329: D22's four headline numbers, on a hosted blog.
+        greeting: { name: "Dana", week: 3, business: "harborplumbing.example" },
+        calendar: WEEKLY_CALENDAR,
+        // Overview's numbers, on a hosted blog, in the first mail of a month.
         numbers: {
-          pageQuestions: { cited: measured(2, AT), asked: 4 },
-          mentions: { kind: "rate", rate: measured(34, AT), low: 22, high: 48 },
-          pagesCited: measured(3, AT),
-          weeks: 4,
-          top20: measured(5, AT),
-          top20Change: measured(2, AT),
-          aiVisits: { fetches: measured(12, AT), windowDays: 7 },
+          live: measured(12, AT),
+          planned: measured(7, AT),
+          google: {
+            steps: (["draft.ladder.found", "draft.ladder.showing", "draft.ladder.first-page"] as const).map((name, i) => ({
+              name,
+              count: measured([11, 5, 1][i]!, AT),
+              of: 12,
+            })),
+            early: false,
+            climbing: 2,
+            visits: measured(9, AT),
+            visitsBefore: measured(4, AT),
+            climb: { search: "tankless water heater austin", from: 62, to: 24, climbing: true },
+          },
+          ai: { linked: measured(2, AT), asked: 12, reads: measured(14, AT) },
+          month: {
+            score: { value: measured(31, AT), change: measured(4, AT) },
+            market: { value: measured(1, AT), of: 12, change: measured(1, AT) },
+            reputation: { value: measured(11, AT), answers: 184, weeks: 4 },
+          },
         },
         pages: measured(WEEKLY_PAGES, AT),
         next: measured(WEEKLY_NEXT, AT),
-        needsYou: {
-          line: "mail.weekly.needsYou",
-          vars: { page: "Onboarding checklists that actually get used" },
-          href: `${APP}/app/draft/preview`,
-        },
       });
       return composeMail({
         kind,
@@ -269,6 +299,7 @@ export async function composePreview(kind: PreviewKind): Promise<PreviewMail> {
         reason: mail.reason,
         measurement: { state: "complete" },
         optOut: UNSUBSCRIBE,
+        footerLinks: WEEKLY_FOOTER,
       });
     }
     case "nurture": {
@@ -294,6 +325,7 @@ export async function composeUnmeasuredWeek(): Promise<PreviewMail> {
   const { buildWeekly } = await import("../../../src/lib/mail/templates/weekly");
   const { unmeasured } = await import("../../../src/lib/measure/measured");
   const mail = buildWeekly({
+    greeting: { name: "Dana", week: 3, business: "harborplumbing.example" },
     pages: unmeasured("not_attempted", AT),
     next: unmeasured("not_attempted", AT),
   });
@@ -304,6 +336,7 @@ export async function composeUnmeasuredWeek(): Promise<PreviewMail> {
     reason: mail.reason,
     measurement: { state: "none", nextDueOn: new Date("2026-09-14T06:00:00.000Z") },
     optOut: UNSUBSCRIBE,
+    footerLinks: WEEKLY_FOOTER,
   });
 }
 
@@ -345,6 +378,7 @@ export async function composeRetentionPreview(
       case "cancellation":
         return (await import("../../../src/lib/mail/templates/cancellation")).buildCancellation({
           accessEndsOn: "2026-10-08",
+          refunded: false,
         });
       case "win-back":
         return (await import("../../../src/lib/mail/templates/win-back")).buildWinback({ email });

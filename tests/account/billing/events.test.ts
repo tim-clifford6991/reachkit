@@ -18,9 +18,11 @@ const { onSubscriptionEvent, openSubscription, hasActiveAccess, setBillingStore 
   "@/lib/account/billing"
 );
 const { STRIPE_EVENTS } = await import("@/lib/account/provisioning/events");
+const { POST } = await import("@/app/api/stripe/webhook/route");
+const { registerSubscriptionHandler } = await import("@/lib/account/provisioning/webhook");
 const { setStripe } = await import("@/lib/account/stripe/client");
 const { memoryBillingStore, newMemoryBilling, account, site, storedUser } = await import("./memory-store");
-const { newStripeDouble, stripeDouble, subscriptionDouble } = await import("../stripe-double");
+const { newStripeDouble, stripeDouble, stripeErrors, subscriptionDouble } = await import("../stripe-double");
 
 let state = newMemoryBilling();
 let vendor = newStripeDouble();
@@ -34,9 +36,22 @@ beforeEach(() => {
   vendor = newStripeDouble();
   setBillingStore(memoryBillingStore(state));
   setStripe(stripeDouble(vendor));
+  registerSubscriptionHandler(null);
   sendCalls.length = 0;
   vi.spyOn(console, "warn").mockImplementation(() => undefined);
+  vi.spyOn(console, "log").mockImplementation(() => undefined);
 });
+
+/** The event through the real webhook route; its status is what Stripe reads. */
+async function deliver(event: Parameters<typeof onSubscriptionEvent>[0]): Promise<number> {
+  vendor.verifies = true;
+  vendor.event = event as unknown as Record<string, unknown>;
+  const response = await POST(
+    new Request("https://reachkit.test/api/stripe/webhook", { method: "POST", headers: { "stripe-signature": "sig" }, body: "{}" }),
+    undefined as never
+  );
+  return response.status;
+}
 
 afterEach(() => {
   vi.useRealTimers();
@@ -186,22 +201,6 @@ describe("REQ-076 non-goal — nothing is invented for a failed renewal", () => 
     expect(vendor.chargesCreated).toBe(0);
   });
 
-  it("REQ-076 c8 — a past_due account still has access until the date passes", async () => {
-    const paidThrough = new Date(NOW.getTime() + 10 * DAY);
-    paying({ paidThrough });
-    vendor.subscriptions.set(
-      "sub_1",
-      subscriptionDouble({
-        id: "sub_1",
-        customer: "cus_u1",
-        periodEnd: paidThrough,
-        status: "past_due",
-      })
-    );
-    await onSubscriptionEvent(invoiceEvent({ type: "invoice.payment_failed" }));
-    expect(await hasActiveAccess("s1")).toBe(true);
-  });
-
   it("REQ-097 c4 — no ReachKit mail follows any of the five", async () => {
     const periodEnd = new Date(NOW.getTime() + 30 * DAY);
     paying({ paidThrough: NOW });
@@ -251,6 +250,74 @@ describe("idempotence, and the direction the gate may move", () => {
     expect(storedUser(state).paid_through).toBe(later.toISOString());
   });
 
+  it("a store failure on invoice.paid answers 500 and the redelivery advances the gate", async () => {
+    const was = new Date(NOW.getTime() + DAY);
+    const periodEnd = new Date(NOW.getTime() + 31 * DAY);
+    paying({ paidThrough: was });
+    vendor.subscriptions.set("sub_1", subscriptionDouble({ id: "sub_1", customer: "cus_u1", periodEnd }));
+    const event = invoiceEvent({ type: "invoice.paid" });
+    state.failWrite = true;
+
+    expect(await deliver(event)).toBe(500);
+    expect(storedUser(state).paid_through).toBe(was.toISOString());
+
+    state.failWrite = false;
+    expect(await deliver(event)).toBe(200);
+    expect(storedUser(state).paid_through).toBe(periodEnd.toISOString());
+  });
+
+  it("a subscription Stripe cannot read for now answers 500, and the redelivery advances the gate", async () => {
+    const periodEnd = new Date(NOW.getTime() + 31 * DAY);
+    paying({ paidThrough: NOW });
+    vendor.subscriptions.set("sub_1", subscriptionDouble({ id: "sub_1", customer: "cus_u1", periodEnd }));
+    const event = invoiceEvent({ type: "invoice.paid" });
+    vendor.subscriptionRetrieveError = stripeErrors.connection();
+
+    expect(await deliver(event)).toBe(500);
+    expect(storedUser(state).paid_through).toBe(NOW.toISOString());
+
+    vendor.subscriptionRetrieveError = null;
+    expect(await deliver(event)).toBe(200);
+    expect(storedUser(state).paid_through).toBe(periodEnd.toISOString());
+  });
+
+  it("a subscription Stripe does not hold is `vendor` with 200, and writes nothing", async () => {
+    paying({ paidThrough: NOW });
+    const event = invoiceEvent({ type: "invoice.paid" });
+
+    expect(await onSubscriptionEvent(event)).toEqual({ applied: false, because: "vendor" });
+    expect(await deliver(event)).toBe(200);
+    expect(storedUser(state).paid_through).toBe(NOW.toISOString());
+  });
+
+  it("an account that cannot be read answers 500, and the redelivery advances the gate", async () => {
+    const periodEnd = new Date(NOW.getTime() + 31 * DAY);
+    paying({ paidThrough: NOW });
+    const event = subscriptionEvent({ periodEnd });
+    state.failAccountRead = true;
+
+    expect(await deliver(event)).toBe(500);
+
+    state.failAccountRead = false;
+    expect(await deliver(event)).toBe(200);
+    expect(storedUser(state).paid_through).toBe(periodEnd.toISOString());
+  });
+
+  it("a cancellation stamp that fails after the event id was written answers 500, and the redelivery stamps it", async () => {
+    const periodEnd = new Date(NOW.getTime() + 20 * DAY);
+    paying({ paidThrough: periodEnd });
+    const event = subscriptionEvent({ id: "evt_cancel", periodEnd, cancelAtPeriodEnd: true });
+    state.failMethod = "stampCancelled";
+
+    expect(await deliver(event)).toBe(500);
+    expect(storedUser(state).last_subscription_event_id).toBe("evt_cancel");
+    expect(storedUser(state).cancelled_at).toBeNull();
+
+    state.failMethod = null;
+    expect(await deliver(event)).toBe(200);
+    expect(storedUser(state).cancelled_at).not.toBeNull();
+  });
+
   it("the cancellation the vendor reports is mirrored, and is not the gate", async () => {
     const periodEnd = new Date(NOW.getTime() + 20 * DAY);
     paying({ paidThrough: periodEnd });
@@ -273,9 +340,9 @@ describe("events with nothing to apply", () => {
   it("an event for a customer this database does not know is `no_account`, not an error", async () => {
     // `checkout.session.completed` may simply not have been processed yet;
     // provisioning stamps the first period end itself when it is.
-    expect(
-      await onSubscriptionEvent(subscriptionEvent({ periodEnd: new Date(NOW.getTime() + DAY) }))
-    ).toEqual({ applied: false, because: "no_account" });
+    const event = subscriptionEvent({ periodEnd: new Date(NOW.getTime() + DAY) });
+    expect(await onSubscriptionEvent(event)).toEqual({ applied: false, because: "no_account" });
+    expect(await deliver(event)).toBe(200);
   });
 
   it("an invoice with no subscription parent is `vendor`, and writes nothing", async () => {

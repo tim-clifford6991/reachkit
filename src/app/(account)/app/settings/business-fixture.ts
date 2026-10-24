@@ -16,6 +16,7 @@
 import type { SiteProfile } from "@/lib/site-profile/types";
 import type { MarketReading } from "@/lib/site-profile/business/confirm";
 import type { StoredKnowledge } from "@/lib/site-profile/knowledge/types";
+import type { LivePage } from "./on-a-page";
 
 /** The instant the fixture's site was last read. A fixed date, like every
  *  other date in the fixture set: a relative one would make the screen's
@@ -160,3 +161,21 @@ export const FIXTURE_KNOWLEDGE: StoredKnowledge = Object.freeze({
   readAt: READ_AT.toISOString(),
   demoPhrases: [],
 });
+
+/** The fixture's live pages, as `readOurLiveBodies` returns them: the newest
+ *  uses a promise and two words in one sentence, under a heading that is not one. */
+export const FIXTURE_LIVE_PAGES: readonly LivePage[] = Object.freeze([
+  {
+    url: "https://example.com/blog/winter-drivetrain-care",
+    title: "Winter drivetrain care",
+    markdown:
+      "# Winter drivetrain care\n\nSalt and grit wear a chain out fast in winter.\n\nA winter tune-up cleans the drivetrain on the stand, with the full price quoted before work starts.\n",
+    publishedAt: new Date("2026-09-21T13:00:00.000Z"),
+  },
+  {
+    url: "https://example.com/blog/first-service",
+    title: "Your first service",
+    markdown: "Bring the bike in clean and we check the drivetrain first.\n",
+    publishedAt: new Date("2026-09-07T13:00:00.000Z"),
+  },
+]);

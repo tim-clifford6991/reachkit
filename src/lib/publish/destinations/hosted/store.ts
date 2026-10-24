@@ -143,6 +143,19 @@ export interface HostedPage {
   /** SPEC §7 (2026-09-29): the page's byline as generation recorded it
    *  (`drafts.attribution`), or `null` for a page with none. */
   byline: string | null;
+  /** Written as the business's own service or product page
+   *  (`drafts.meta.contentType`); absent reads as not. */
+  offering?: boolean;
+  /** The heading of an offering page's "Where and when" section, as
+   *  generation recorded it (`drafts.meta.sections`); absent or `null` where
+   *  it recorded none. */
+  whereWhen?: string | null;
+  /** SPEC §0 business fit of the page's opportunity, 0–3, or `null` where
+   *  no pass judged it: only a 3 earns the compact block. */
+  businessFit?: number | null;
+  /** SPEC §6 parent topic of the page's opportunity (`opportunities/cluster.ts`),
+   *  or `null` where it has none; absent reads as none. */
+  cluster?: string | null;
   /** When this version went live. On a page that has been refreshed it is
    *  the update's date, and `firstPublishedAt` is the page's own. */
   publishedAt: Date;
@@ -183,6 +196,8 @@ interface PublicationRow {
     opportunities: {
       id: string;
       target_query: string;
+      business_fit: number | null;
+      cluster_key: string | null;
       scans: { created_at: string } | null;
     } | null;
   } | null;
@@ -198,7 +213,7 @@ const PAGE_COLUMNS =
   // credential-adjacent column stay absent by construction.
   "sites!inner(domain, category, timezone), " +
   "drafts!inner(title, body_md, attribution, meta, grounded_fact, opportunity_id, " +
-  "opportunities!inner(id, target_query, scans(created_at)))";
+  "opportunities!inner(id, target_query, business_fit, cluster_key, scans(created_at)))";
 
 /**
  * The site whose hosted pages are served on this domain, or `null`.
@@ -298,6 +313,10 @@ function toPage(row: PublicationRow, host: string): HostedPage | null {
       timeZone: emptyToNull(row.sites?.timezone ?? null),
     },
     byline: emptyToNull(draft.attribution ?? null),
+    offering: draft.meta?.contentType === "offering",
+    whereWhen: readSectionHeading(draft.meta, "where_when"),
+    businessFit: opportunity.business_fit ?? null,
+    cluster: opportunity.cluster_key ?? null,
     publishedAt: datedAt(draft.meta) ?? new Date(row.published_at),
     firstPublishedAt: datedAt(draft.meta) ?? new Date(row.published_at),
     liveUrl,
@@ -328,6 +347,11 @@ export interface HostedIdentity {
    *  its own Organization and the profiles it links. Absent or `null` where
    *  no pass kept one, and the pages then link the bare domain. */
   mainSite?: MainSite | null;
+  /** What the adopted market says the business sells, in a buyer's words,
+   *  and the one place it serves where it serves one, with its region where
+   *  one is stored: the compact block's headline and the "Serves" line.
+   *  Absent or `null` where no market was adopted. */
+  offer?: { category: string; place: string | null; region?: string | null } | null;
 }
 
 interface IdentityRow {
@@ -338,11 +362,20 @@ interface IdentityRow {
   claims: unknown;
 }
 
-/** The job off `sites.market`, read off the stored blob rather than through
- *  the market module, which this file must not put in the hosted graph. */
-function marketJobOf(market: unknown): string | null {
-  const current = (market as { current?: { job?: unknown } } | null)?.current;
-  return typeof current?.job === "string" ? emptyToNull(current.job) : null;
+/** The adopted market off `sites.market`, read off the stored blob rather
+ *  than through the market module, which this file must not put in the
+ *  hosted graph. */
+function marketOf(market: unknown): { job: string | null; offer: HostedIdentity["offer"] } {
+  const current = (market as { current?: { job?: unknown; category?: unknown; serves?: { name?: unknown; region?: unknown } | null } } | null)?.current;
+  const text = (value: unknown): string | null => (typeof value === "string" ? emptyToNull(value) : null);
+  const category = text(current?.category);
+  return {
+    job: text(current?.job),
+    offer:
+      category === null
+        ? null
+        : { category, place: text(current?.serves?.name), region: text(current?.serves?.region) },
+  };
 }
 
 /**
@@ -378,7 +411,8 @@ export async function hostedIdentity(a: { siteId: string; domain: string }): Pro
     const claim = Array.isArray(row?.claims)
       ? row.claims.find((entry): entry is string => typeof entry === "string" && entry.trim() !== "")
       : undefined;
-    const job = emptyToNull(edits?.job ?? null) ?? marketJobOf(site.data?.[0]?.market);
+    const market = marketOf(site.data?.[0]?.market);
+    const job = emptyToNull(edits?.job ?? null) ?? market.job;
     return {
       // Issue 1511: the name the main site's own Organization markup gives
       // itself, where it gives one, so the page and its markup never
@@ -387,6 +421,7 @@ export async function hostedIdentity(a: { siteId: string; domain: string }): Pro
       logoType: emptyToNull(row?.logo_type ?? null),
       line: job ?? emptyToNull(claim ?? null),
       ...(mainSite === null ? {} : { mainSite }),
+      ...(market.offer === null ? {} : { offer: market.offer }),
     };
   } catch {
     return fallback;
@@ -400,6 +435,15 @@ export function readDescription(meta: Record<string, unknown> | null): string | 
   if (typeof raw !== "string") return null;
   const text = raw.replace(/\s+/g, " ").trim();
   return text === "" ? null : text;
+}
+
+/** The heading generation recorded for one of the template's sections, or
+ *  `null` where `drafts.meta.sections` holds none for it. */
+function readSectionHeading(meta: Record<string, unknown> | null, key: string): string | null {
+  const sections = meta?.sections;
+  if (!Array.isArray(sections)) return null;
+  const found = sections.find((section): section is { key: string; heading: string } => section?.key === key && typeof section.heading === "string");
+  return found === undefined ? null : emptyToNull(found.heading);
 }
 
 /** `drafts.meta.heading`, read the same way. */

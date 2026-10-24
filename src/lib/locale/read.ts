@@ -66,7 +66,7 @@ const PHONE_PREFIXES = [...PHONE_COUNTRY.keys()].sort((a, b) => b.length - a.len
 
 /** The country the first international number names. `+1` names two
  *  countries, so it names none. */
-function countryOfPhone(text: string): Country | null {
+export function countryOfPhone(text: string): Country | null {
   for (const match of text.matchAll(/(?:\+|\b00)\s?(\d[\d\s().\-/]{6,18}\d)/g)) {
     const digits = match[1]!.replace(/\D/g, "");
     const prefix = PHONE_PREFIXES.find((each) => digits.startsWith(each));
@@ -81,7 +81,7 @@ function escaped(text: string): string {
 
 /** The country whose own currency mark the page shows most. The dollar and
  *  the euro belong to no one country and are not read. */
-function countryOfCurrency(text: string): Country | null {
+export function countryOfCurrency(text: string): Country | null {
   let best: { country: Country; count: number } | null = null;
   for (const country of Object.keys(COUNTRIES) as Country[]) {
     let count = 0;
@@ -118,7 +118,11 @@ function countryOfAddress(text: string): Country | null {
     const count = lines.filter((line) => alone.test(line) || (/\b\d{4,5}\b/.test(line) && within.test(line))).length;
     if (count > 0 && (best === null || count > best.count)) best = { country, count };
   }
-  if (best !== null) return best.country;
+  return best?.country ?? countryOfPostcode(text);
+}
+
+/** The country whose own way of writing a postcode the text shows. */
+export function countryOfPostcode(text: string): Country | null {
   for (const [country, pattern] of POSTCODES) if (pattern.test(text)) return country;
   return null;
 }
@@ -250,7 +254,9 @@ export function readLocaleSignals(a: { domain: string; html: string | null }): L
 /** The supported locale a site is measured in, read from its address and
  *  home page, and what of the reading is not measured. */
 export function readLocale(a: { domain: string; html: string | null }): ResolvedLocale {
-  return resolveLocale(readLocaleSignals(a));
+  const resolved = resolveLocale(readLocaleSignals(a));
+  // Nothing was read, so D66's default is a guess, and the report says so.
+  return a.html === null && countryOfDomain(a.domain) === null ? { ...resolved, basis: "default" } : resolved;
 }
 
 /** English words that are also language codes: a path that starts with one

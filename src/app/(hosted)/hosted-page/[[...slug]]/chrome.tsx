@@ -2,13 +2,98 @@
 // customer's header, their about card and their footer line.
 //
 // Shared by the article and the index so the two cannot draw the business
-// two ways. daisyUI classes and lucide only, no client JavaScript, and no
+// two ways. daisyUI classes and lucide's drawings only, no client JavaScript, and no
 // primary colour: the product's colour would be our branding on their page.
 import type React from "react";
-import { ArrowUpRight, CalendarCheck, ClipboardCheck, Rss } from "lucide-react";
+import { createElement } from "react";
 import { copy } from "@/lib/presentation/copy/reader";
 import type { HostedIdentity } from "@/lib/publish/destinations/hosted";
+import type { BookKind } from "@/lib/site-profile/main-site-row";
 import { FEED_PATH, QUIET_LINE } from "./present";
+
+/** lucide's own drawings, inlined as its `[tag, attributes]` pairs: its `Icon`
+ *  is a client module, and the 410 route renders this chrome outside React
+ *  Server Components, where calling one throws. */
+type GlyphNode = readonly (readonly ["path" | "rect" | "circle", Record<string, string>])[];
+export const GLYPHS = {
+  "arrow-up-right": [
+    ["path", { d: "M7 7h10v10" }],
+    ["path", { d: "M7 17 17 7" }],
+  ],
+  "book-open": [
+    ["path", { d: "M12 5v16" }],
+    ["path", { d: "M20.001 19A2 2 0 0022 17V5a2 2 0 00-1.999-2L16 3.002A5 5 0 0012 5a5 5 0 00-4-2H4a2 2 0 00-2 2v12a2 2 0 001.999 2H8a5 5 0 014 2 5 5 0 014-2z" }],
+  ],
+  "calendar-check": [
+    ["path", { d: "M8 2v3" }],
+    ["path", { d: "M16 2v3" }],
+    ["rect", { x: "3", y: "3", width: "18", height: "18", rx: "2" }],
+    ["path", { d: "M3 9h18" }],
+    ["path", { d: "m9 15 2 2 4-4" }],
+  ],
+  "clipboard-check": [
+    ["rect", { width: "8", height: "4", x: "8", y: "2", rx: "1", ry: "1" }],
+    ["path", { d: "M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" }],
+    ["path", { d: "m9 14 2 2 4-4" }],
+  ],
+  "file-x": [
+    ["path", { d: "M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z" }],
+    ["path", { d: "M14 2v5a1 1 0 0 0 1 1h5" }],
+    ["path", { d: "m14.5 12.5-5 5" }],
+    ["path", { d: "m9.5 12.5 5 5" }],
+  ],
+  list: [
+    ["path", { d: "M3 5h.01" }],
+    ["path", { d: "M3 12h.01" }],
+    ["path", { d: "M3 19h.01" }],
+    ["path", { d: "M8 5h13" }],
+    ["path", { d: "M8 12h13" }],
+    ["path", { d: "M8 19h13" }],
+  ],
+  "map-pin": [
+    ["path", { d: "M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0" }],
+    ["circle", { cx: "12", cy: "10", r: "3" }],
+  ],
+  phone: [
+    [
+      "path",
+      {
+        d: "M13.832 16.568a1 1 0 0 0 1.213-.303l.355-.465A2 2 0 0 1 17 15h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2A18 18 0 0 1 2 4a2 2 0 0 1 2-2h3a2 2 0 0 1 2 2v3a2 2 0 0 1-.8 1.6l-.468.351a1 1 0 0 0-.292 1.233 14 14 0 0 0 6.392 6.384",
+      },
+    ],
+  ],
+  rss: [
+    ["path", { d: "M4 11a9 9 0 0 1 9 9" }],
+    ["path", { d: "M4 4a16 16 0 0 1 16 16" }],
+    ["circle", { cx: "5", cy: "19", r: "1" }],
+  ],
+  search: [
+    ["path", { d: "m21 21-4.34-4.34" }],
+    ["circle", { cx: "11", cy: "11", r: "8" }],
+  ],
+} as const satisfies Record<string, GlyphNode>;
+
+/** The attributes lucide's `Icon` writes at size 16 and stroke 1.75. */
+const GLYPH_SVG = {
+  xmlns: "http://www.w3.org/2000/svg",
+  width: 16,
+  height: 16,
+  viewBox: "0 0 24 24",
+  fill: "none",
+  stroke: "currentColor",
+  strokeWidth: 1.75,
+  strokeLinecap: "round",
+  strokeLinejoin: "round",
+} as const;
+
+/** Decorative: every glyph here sits beside the words it stands for. */
+export function Glyph({ name, size = GLYPH_SVG.width }: { name: keyof typeof GLYPHS; size?: number }): React.JSX.Element {
+  return (
+    <svg {...GLYPH_SVG} width={size} height={size} className={`lucide lucide-${name} flex-none`} aria-hidden="true">
+      {GLYPHS[name].map(([tag, attributes], i) => createElement(tag, { key: i, ...attributes }))}
+    </svg>
+  );
+}
 
 /** Where the logo is served on the customer's own host (`../logo.img`). */
 export const LOGO_PATH = "/logo.img";
@@ -64,22 +149,63 @@ function VisitButton({ business, width }: { business: HostedBusiness; width: str
   return (
     <a href={mainSiteOf(business)} className={`btn btn-sm min-w-0 ${width}`}>
       <span className="truncate">{copy("hosted.visit", { site: business.name })}</span>
-      <ArrowUpRight size={16} strokeWidth={1.75} aria-hidden className="flex-none" />
+      <Glyph name="arrow-up-right" />
     </a>
   );
 }
 
-/** The main site's own book and quote pages, as the scan stored them. */
-const ACTIONS = {
-  book: { label: "hosted.action.book", Icon: CalendarCheck },
-  quote: { label: "hosted.action.quote", Icon: ClipboardCheck },
-} as const;
+/** One of the business's own actions: its phone, or a page of its main site. */
+interface Action {
+  kind: "call" | "book" | "quote";
+  href: string;
+  label: string;
+  /** What the header writes: a phone's number alone, else the label. */
+  short: string;
+  glyph: keyof typeof GLYPHS;
+}
 
-/** Half the header at most, so the name beside it keeps the other half. */
+/** A book page's label says what it books; a visit is named only where the
+ *  business serves a place, and a reading stored before counts as a visit. */
+function bookLabel(book: BookKind | undefined, local: boolean): string {
+  if (book === "demo") return copy("hosted.action.book.demo");
+  if (book === "call") return copy("hosted.action.book.call");
+  return copy(local ? "hosted.action.book" : "hosted.action.book.online");
+}
+
+/** What the business offers a reader, from what is stored and nothing else:
+ *  one primary action — its phone, else its book page, else its quote page —
+ *  and the others as quiet links, at most two. */
+export function actionsOf(business: HostedBusiness): { primary: Action | null; quiet: Action[] } {
+  const phone = business.mainSite?.phone ?? null;
+  const local = (business.offer?.place ?? null) !== null;
+  const pages = (business.mainSite?.actions ?? []).map(({ kind, url, book }): Action => {
+    const label = kind === "quote" ? copy("hosted.action.quote") : bookLabel(book, local);
+    return { kind, href: url, label, short: label, glyph: kind === "book" ? "calendar-check" : "clipboard-check" };
+  });
+  const all: Action[] =
+    phone === null
+      ? pages
+      : [{ kind: "call", href: `tel:${phone.replace(/[^\d+]/g, "")}`, label: copy("hosted.action.call", { phone }), short: phone, glyph: "phone" }, ...pages];
+  return { primary: all[0] ?? null, quiet: all.slice(1, 3) };
+}
+
+function PrimaryButton({ action, text, width }: { action: Action; text: string; width: string }): React.JSX.Element {
+  return (
+    <a href={action.href} className={`btn btn-sm min-w-0 ${width}`}>
+      <Glyph name={action.glyph} />
+      <span className="truncate">{text}</span>
+    </a>
+  );
+}
+
+/** Half the header at most, so the name beside it keeps the other half;
+ *  beside the primary action, the two share a little more than that. */
 const HEADER_BUTTON = "max-w-[50%]";
+const HEADER_PAIR = "max-w-[35%]";
 const CARD_BUTTON = "max-w-full";
 
 export function HostedHeader({ business }: { business: HostedBusiness }): React.JSX.Element {
+  const { primary } = actionsOf(business);
   return (
     <header className="border-base-300 border-b">
       <div className="navbar mx-auto w-full max-w-5xl flex-nowrap gap-3 px-4">
@@ -87,15 +213,91 @@ export function HostedHeader({ business }: { business: HostedBusiness }): React.
           <Logo business={business} />
           <span className="truncate">{business.name}</span>
         </a>
-        <VisitButton business={business} width={HEADER_BUTTON} />
+        {primary === null ? null : <PrimaryButton action={primary} text={primary.short} width={HEADER_PAIR} />}
+        <VisitButton business={business} width={primary === null ? HEADER_BUTTON : HEADER_PAIR} />
       </div>
     </header>
   );
 }
 
-/** The card an article ends with: who published it, in one line of their
- *  own, who wrote it where a person did (issue 1509), and the way to their
- *  product. */
+/** The place the adopted market stores, with its region where one is stored
+ *  and the name does not already carry it; `null` where none is stored. */
+function servesOf(business: HostedBusiness): string | null {
+  const place = business.offer?.place ?? null;
+  if (place === null) return null;
+  const region = business.offer?.region ?? null;
+  const named = place.split(",").some((part) => part.trim().toLowerCase() === region?.toLowerCase());
+  return region === null || named ? place : `${place}, ${region}`;
+}
+
+/** "Serves {place}." with lucide's pin, inline so it reads with the line beside it. */
+function Serves({ place }: { place: string }): React.JSX.Element {
+  return (
+    <span className="inline-flex items-center gap-1.5">
+      <Glyph name="map-pin" />
+      {copy("hosted.about.serves", { place })}
+    </span>
+  );
+}
+
+/** The business's one line, then the place it serves: each only where stored. */
+export function BusinessLine({ business, className }: { business: HostedBusiness; className: string }): React.JSX.Element {
+  const place = servesOf(business);
+  return (
+    <>
+      {business.line === null ? null : <p className={className}>{business.line}</p>}
+      {place === null ? null : (
+        <p className={className}>
+          <Serves place={place} />
+        </p>
+      )}
+    </>
+  );
+}
+
+/** The compact block's question: the adopted market's category and place,
+ *  else the business's name. */
+function compactHeading(business: HostedBusiness): string {
+  const offer = business.offer ?? null;
+  if (offer === null) return copy("hosted.compact.heading.name", { publisher: business.name });
+  return offer.place === null
+    ? copy("hosted.compact.heading", { category: offer.category })
+    : copy("hosted.compact.heading.place", { category: offer.category, place: offer.place });
+}
+
+/** The compact block: one question and the primary action, never a quiet
+ *  link. Nothing where no action is stored. Where it draws the business
+ *  (`described`), its line and place follow the question in one sentence. */
+export function CompactAction({ business, described = false }: { business: HostedBusiness; described?: boolean }): React.JSX.Element | null {
+  const { primary } = actionsOf(business);
+  if (primary === null) return null;
+  const heading = compactHeading(business);
+  const place = described ? servesOf(business) : null;
+  const line = described ? business.line : null;
+  return (
+    <aside className="card bg-base-200 my-8" aria-label={heading}>
+      <div className="card-body flex-row flex-wrap items-center justify-between gap-3 p-5">
+        {line === null && place === null ? (
+          <p className="text-base-content min-w-0 font-bold">{heading}</p>
+        ) : (
+          <div className="min-w-0 flex-1 basis-60">
+            <p className="text-base-content font-bold">{heading}</p>
+            <p className="text-base-content/70 text-sm">
+              {line}
+              {line === null || place === null ? null : " "}
+              {place === null ? null : <Serves place={place} />}
+            </p>
+          </div>
+        )}
+        <PrimaryButton action={primary} text={primary.label} width={CARD_BUTTON} />
+      </div>
+    </aside>
+  );
+}
+
+/** The full block: who published the page, in one line of their own, who
+ *  wrote it where a person did (issue 1509), then the primary action, at
+ *  most two quiet links and the way to their main site. */
 export function AboutCard({
   business,
   author = null,
@@ -104,16 +306,14 @@ export function AboutCard({
   author?: { name: string; url: string | null } | null;
 }): React.JSX.Element {
   const written = author === null ? null : copy("hosted.about.author", { author: author.name });
-  const actions = business.mainSite?.actions ?? [];
+  const { primary, quiet } = actionsOf(business);
   return (
     <aside className="card card-border bg-base-100 mt-10" aria-label={copy("hosted.about", { publisher: business.name })}>
       <div className="card-body flex-row flex-wrap items-center gap-4">
         <Logo business={business} large />
         <div className="min-w-0 flex-1 basis-48">
           <p className="text-base-content font-bold">{copy("hosted.about", { publisher: business.name })}</p>
-          {business.line === null ? null : (
-            <p className="text-base-content/70 line-clamp-3 text-sm">{business.line}</p>
-          )}
+          <BusinessLine business={business} className="text-base-content/70 line-clamp-3 text-sm" />
           {written === null ? null : (
             <p className="text-base-content/70 text-sm">
               {author === null || author.url === null ? written : (
@@ -124,23 +324,21 @@ export function AboutCard({
             </p>
           )}
         </div>
-        <VisitButton business={business} width={CARD_BUTTON} />
+        {primary === null ? null : <PrimaryButton action={primary} text={primary.label} width={CARD_BUTTON} />}
         {/* Plain links only where the main site links the page itself; `role` keeps a styled list a list in Safari. */}
-        {actions.length === 0 ? null : (
-          <ul role="list" className="flex basis-full flex-wrap gap-x-5 gap-y-1 text-sm">
-            {actions.map(({ kind, url }) => {
-              const { label, Icon } = ACTIONS[kind];
-              return (
-                <li key={kind}>
-                  <a href={url} className="link link-hover inline-flex items-center gap-1.5">
-                    <Icon size={16} strokeWidth={1.75} aria-hidden className="flex-none" />
-                    {copy(label)}
-                  </a>
-                </li>
-              );
-            })}
+        {quiet.length === 0 ? null : (
+          <ul role="list" className="flex flex-wrap gap-x-5 gap-y-1 text-sm">
+            {quiet.map(({ kind, href, label, glyph }) => (
+              <li key={kind}>
+                <a href={href} className="link link-hover inline-flex items-center gap-1.5">
+                  <Glyph name={glyph} />
+                  {label}
+                </a>
+              </li>
+            ))}
           </ul>
         )}
+        <VisitButton business={business} width={CARD_BUTTON} />
       </div>
     </aside>
   );
@@ -163,7 +361,7 @@ export function HostedFooter({ business }: { business: HostedBusiness }): React.
         </span>
         <span className={FOOTER_PART}>
           <a href={FEED_PATH} className="link link-hover inline-flex items-center gap-1.5">
-            <Rss size={16} strokeWidth={1.75} aria-hidden className="flex-none" />
+            <Glyph name="rss" />
             {copy("hosted.footer.rss")}
           </a>
         </span>

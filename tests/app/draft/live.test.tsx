@@ -15,6 +15,7 @@ import { boardFile, compare, readAllow, segments } from "../../../scripts/design
 import { copy } from "@/lib/presentation/copy";
 import { DraftScreen } from "@/app/(account)/app/draft/[draftId]/DraftScreen";
 import { assembleDraft, type DraftFacts, type LiveFacts } from "@/app/(account)/app/draft/[draftId]/model";
+import type { Label } from "@/lib/opportunities/verdicts/types";
 import { FIXTURE_DRAFTS, FIXTURE_PUBLISHED_DRAFT_ID } from "@/app/(account)/app/draft/[draftId]/fixture";
 
 const PUBLISHED = FIXTURE_DRAFTS[FIXTURE_PUBLISHED_DRAFT_ID]!;
@@ -67,6 +68,7 @@ describe("board PageDetail: the sections, in its order and words", () => {
     const title = at(host, "draft-title");
     const badges = at(host, "live-badges");
     expect(badges.textContent).toBe(copy("draft.live.since", { date: "Sep 14, 2026" }) + copy("review.label.climbing"));
+    expect(badges.querySelector(".badge:last-child svg.lucide-trending-up")).not.toBeNull();
     expect(at(host, "live-address").textContent).toBe(`${LIVE.url} ${copy("draft.live.new-tab")}`);
     expect(before(back, title) && before(title, badges)).toBe(true);
   });
@@ -135,12 +137,73 @@ describe("the arms the board does not draw", () => {
     expect(at(host, "live-next").textContent).toContain(copy("draft.next.unmeasured"));
   });
 
+  it("the index state on Found by Google: the date found, not yet, or not measured", () => {
+    const foundStep = (live: Partial<LiveFacts>) =>
+      [...at(render(withLive(live)), "live-ladder-google").querySelectorAll("li")].find(
+        (li) => li.querySelector("span:not(.step-icon)")?.textContent === copy("draft.ladder.found")
+      )?.lastElementChild?.textContent;
+    const unfound = { ...LIVE.reading!.reached, found: undefined };
+    expect(foundStep({})).toBe("Sep 16, 2026");
+    expect(foundStep({ reading: { ...LIVE.reading!, reached: unfound } })).toBe(copy("draft.ladder.not-yet"));
+    expect(foundStep({ reading: null })).toBe(copy("draft.ladder.unmeasured"));
+  });
+
   it("WordPress: Found by Google, Read by AI, the AI visit and the visits line are not drawn", () => {
     const host = render(withLive({ wordpress: true }));
     const steps = host.querySelectorAll('[data-testid^="live-ladder-"] li');
-    const words = [...steps].map((li) => li.querySelector("span")?.textContent);
+    const words = [...steps].map((li) => li.querySelector("span:not(.step-icon)")?.textContent);
     expect(words).toEqual([copy("draft.ladder.live"), copy("draft.ladder.showing"), copy("draft.ladder.first-page"), copy("draft.ladder.linked")]);
     expect(host.querySelector('[data-testid="live-visits"]')).toBeNull();
+  });
+});
+
+describe("the verdict badge draws the shared icon, per label", () => {
+  const ICON: Readonly<Record<Label, string>> = {
+    working: "lucide-check",
+    climbing: "lucide-trending-up",
+    too_early: "lucide-clock",
+    not_moving: "lucide-minus",
+  };
+  for (const [label, icon] of Object.entries(ICON) as [Label, string][]) {
+    it(label, () => {
+      const badge = at(render(withLive({ label })), "live-badges").lastElementChild!;
+      expect(badge.textContent).toBe(copy(`review.label.${label}`));
+      expect(badge.querySelector(`svg.${icon}`)).not.toBeNull();
+    });
+  }
+});
+
+describe("the live page's board icons", () => {
+  const host = render();
+
+  it("Live since opens with the globe", () => {
+    expect(at(host, "live-badges").firstElementChild!.querySelector("svg.lucide-globe")).not.toBeNull();
+  });
+
+  it("the address carries the new-tab mark and says it opens a new tab", () => {
+    const address = at(host, "live-address");
+    expect(address.querySelector("svg.lucide-external-link")).not.toBeNull();
+    expect(address.querySelector(".sr-only")?.textContent).toBe(` ${copy("draft.live.new-tab")}`);
+  });
+
+  it("a reached step draws its ladder's icon: the tick on Google, sparkles in AI answers", () => {
+    const icons = (testId: string) =>
+      [...at(host, testId).querySelectorAll("li")].map((li) => li.querySelector(".step-icon svg")?.getAttribute("class") ?? null);
+    expect(icons("live-ladder-google").map((c) => c?.includes("lucide-check") ?? null)).toEqual([true, true, true, null]);
+    expect(icons("live-ladder-ai").map((c) => c?.includes("lucide-sparkles") ?? null)).toEqual([true, true, null]);
+  });
+
+  it("an unmeasured step keeps its words and draws no reached icon", () => {
+    const unread = render(withLive({ reading: null, label: null }));
+    const steps = [...unread.querySelectorAll('[data-testid^="live-ladder-"] li')].slice(1);
+    expect(steps.every((li) => li.querySelector(".step-icon") === null)).toBe(true);
+    expect(steps.every((li) => li.textContent!.endsWith(copy("draft.ladder.unmeasured")))).toBe(true);
+  });
+
+  it("what happens next draws the refresh, not the bulb", () => {
+    const next = at(host, "live-next");
+    expect(next.querySelector("svg.lucide-refresh-cw")).not.toBeNull();
+    expect(next.querySelector("svg.lucide-lightbulb")).toBeNull();
   });
 });
 

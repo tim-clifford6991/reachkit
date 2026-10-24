@@ -39,7 +39,8 @@
 "use client";
 
 import type React from "react";
-import { CardNumber, UpdateMark, cardLineFor, pageShownBy } from "./DayCard";
+import { PageSketch } from "@/ui/PageSketch";
+import { CardNumber, DayLines, KindChip, cardLineFor, pageShownBy } from "./DayCard";
 import { DayStateBadge } from "./WeekGrid";
 import { cardLabel, shortCauseFor } from "./card-lines";
 import { dayNumberOf } from "./day-number";
@@ -52,6 +53,8 @@ export function DayList(p: {
   cells: readonly DayCell[];
   filter: StageFilter;
   selected: DayKey | null;
+  goesLive: string | null;
+  firstSkip: DayKey | null;
   onSelect: (day: DayKey) => void;
 }): React.JSX.Element {
   return (
@@ -81,7 +84,7 @@ export function DayList(p: {
               aria-label={cardLabel({ cell, page, line })}
               onClick={() => p.onSelect(cell.day)}
             >
-              <span className="flex min-w-0 flex-col items-center">
+              <span className="flex min-w-0 flex-col items-center gap-1">
                 <span className="text-[11px] font-semibold opacity-70">
                   {weekdayShort(cell.day)}
                 </span>
@@ -94,6 +97,11 @@ export function DayList(p: {
                 >
                   {dayNumber(cell.day)}
                 </span>
+                {page === null ? null : (
+                  <span className="self-stretch">
+                    <PageSketch primary={cell.today} />
+                  </span>
+                )}
               </span>
 
               <span className="flex min-w-0 flex-col items-start gap-1">
@@ -108,29 +116,31 @@ export function DayList(p: {
                   )
                 ) : (
                   <>
+                    <KindChip update={page.update} />
                     <span
                       className="rk-cal-label line-clamp-2 min-w-0 text-sm font-semibold leading-tight"
                       data-testid="list-label"
                     >
                       {page.title}
                     </span>
-                    {page.whyLine === null ? null : (
-                      <span className="min-w-0 text-xs wrap-anywhere opacity-70" data-testid="list-why">
-                        {page.whyLine}
-                      </span>
-                    )}
                   </>
                 )}
+                <DayLines
+                  cell={cell}
+                  page={page}
+                  goesLive={p.goesLive}
+                  firstSkip={cell.day === p.firstSkip}
+                  filtered={p.filter !== "all"}
+                  phone
+                />
                 <DayStateBadge cell={cell} filter={p.filter} />
               </span>
 
-              {/* The row's own column: the number, right-aligned, and the
-                  mark for an update beneath it. It is always drawn, even
-                  for a date with neither, so the three tracks are the same
-                  three on every row. */}
+              {/* The row's own column: the number, right-aligned. It is always
+                  drawn, even for a date with none, so the three tracks are
+                  the same three on every row. */}
               <span className="flex min-w-0 flex-col items-end gap-1" data-testid="list-number">
                 <CardNumber value={dayNumberOf(page)} />
-                {page?.update === true ? <UpdateMark /> : null}
               </span>
             </button>
           </li>

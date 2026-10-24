@@ -27,6 +27,7 @@ import { BLOG_READS_RETENTION_W } from "@/lib/config/constants";
 import type { BlogEngine, BlogRead, BlogReadKind } from "./classify";
 import { ladderOf, type Ladder } from "@/lib/measure/ladder";
 import { readingOf, type PageReading } from "@/lib/measure/page-reading";
+import { windowStartDay, type VisitWeek } from "./model";
 
 /** Days per week — spelled once so the retention pin can stay in weeks,
  *  which is how §6 states every window on this screen. */
@@ -163,6 +164,34 @@ export async function readBlogReads(a: {
     });
   }
   return rows;
+}
+
+/**
+ * Visits from Google search to the site's hosted pages, per seven days ending
+ * today, oldest first, over the weeks kept; `null` where the counts could not
+ * be read. Weeks before the first visit are left out, so a gap is never a 0.
+ */
+export async function readSearchVisitsWeekly(a: { siteId: string; now: Date }): Promise<readonly VisitWeek[] | null> {
+  const { data, error } = await untyped()
+    .from<{ day: string; hits: number }>("publication_reads")
+    .select("day, hits")
+    .eq("site_id", a.siteId)
+    .eq("engine", "google")
+    .eq("kind", "referral")
+    .gte("day", windowStartDay(a.now, BLOG_READS_RETENTION_W * DAYS_PER_WEEK));
+  if (error) return null;
+  const weeks = Array.from({ length: BLOG_READS_RETENTION_W }, (_, i) => ({
+    start: windowStartDay(a.now, (BLOG_READS_RETENTION_W - i) * DAYS_PER_WEEK),
+    visits: 0,
+  }));
+  const today = Date.parse(utcDay(a.now));
+  for (const row of data ?? []) {
+    const back = Math.floor((today - Date.parse(row.day)) / (DAYS_PER_WEEK * 86_400_000));
+    const week = back >= 0 ? weeks[BLOG_READS_RETENTION_W - 1 - back] : undefined;
+    if (week !== undefined) week.visits += row.hits;
+  }
+  const first = weeks.findIndex((week) => week.visits > 0);
+  return first === -1 ? [] : weeks.slice(first);
 }
 
 /** One live page's ladder (issue 1553), keyed by its publication and its

@@ -13,7 +13,8 @@
 // line and the robots `Sitemap:` line. Neither can block a crawler.
 import { measured, measuredZero, type Measured } from "@/lib/measure/measured";
 import type { CopyKey } from "@/lib/presentation/copy";
-import { SITE_CHECK_TITLE } from "@/lib/presentation/site-issues";
+import { SITE_CHECK_DOER, SITE_CHECK_TITLE } from "@/lib/presentation/site-issues";
+import type { IdentityReading } from "@/lib/site-issues/checks";
 import { DOER_OF, type IssueSeverity, type SiteIssuesSection } from "@/lib/site-issues/types";
 import type { Severity } from "./model";
 
@@ -38,15 +39,6 @@ export const CHECK_ORDER: readonly TechnicalCheck[] = Object.freeze([
   "structured_data",
 ]);
 
-export type Doer = "free_fix" | "reachkit_writes" | "reachkit_rewrites";
-
-export const DOER_KEY: Readonly<Record<Doer, CopyKey>> = Object.freeze({
-  free_fix: "check.doer.free-fix",
-  reachkit_writes: "check.doer.reachkit-writes",
-  reachkit_rewrites: "check.doer.reachkit-rewrites",
-});
-
-
 /** What the engine reports for one check. `sitemapUrl` is the address the
  *  site's sitemap is served at, where the engine found one to point to. */
 export interface CheckReading {
@@ -70,6 +62,8 @@ export interface CheckCard {
   doer: CopyKey;
   reading: CheckReading | null;
   fix: CheckFix;
+  /** Structured data only: who the site's labels say runs it. */
+  identity?: IdentityReading;
 }
 
 // HTML and robots.txt protocol text, pasted as-is — not sentences a person
@@ -93,16 +87,23 @@ function fixFor(check: TechnicalCheck, reading: CheckReading | null): CheckFix {
   return lines.length === 0 ? { kind: "doer_only" } : { kind: "paste", lines };
 }
 
-export function checkCardsOf(readings: CheckReadings): readonly CheckCard[] {
+/** The report's plain names where its board differs from the account's view (board AppIssues keeps "Broken internal links"). */
+const REPORT_TITLE: Partial<Readonly<Record<TechnicalCheck, CopyKey>>> = Object.freeze({
+  broken_links: "check.broken-links.plain",
+  structured_data: "check.structured-data.plain",
+});
+
+export function checkCardsOf(readings: CheckReadings, identity?: IdentityReading): readonly CheckCard[] {
   return CHECK_ORDER.map((check): CheckCard => {
     const reading = readings[check] ?? null;
     return {
       check,
-      title: SITE_CHECK_TITLE[check],
+      title: REPORT_TITLE[check] ?? SITE_CHECK_TITLE[check],
       // SPEC §9, 2026-09-14 — the engine's own map (`DOER_OF`).
-      doer: DOER_KEY[DOER_OF[check]],
+      doer: SITE_CHECK_DOER[DOER_OF[check]],
       reading,
       fix: fixFor(check, reading),
+      ...(check === "structured_data" && identity !== undefined ? { identity } : {}),
     };
   });
 }

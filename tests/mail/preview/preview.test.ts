@@ -78,7 +78,8 @@ const BUTTONS: Readonly<Record<(typeof PREVIEW_KINDS)[number], number>> = {
   "first-page": 0,
   "draft-ready": 2,
   published: 1,
-  weekly: 2,
+  // The board draws one button; a needs-you week adds the page's own.
+  weekly: 1,
   nurture: 1,
 };
 
@@ -156,11 +157,12 @@ describe("issue #376 — the shell renders S20, and every kind the set draws wea
     const mail = await composeUnmeasuredWeek();
     expect(mail.subject).toBe(COPY["mail.weekly.subject"]);
     expect(mail.wholeMailLine).toBe("mail.week_unmeasured");
-    // The verdicts and the next three are measurements, and both are
-    // dropped. No number is stated and none is said to be missing four
-    // times over: the whole-mail line says it once. The heading and the
-    // button stand, which is what "still arrives, saying so" means.
-    expect(mail.omitted).toEqual([1, 2]);
+    // The verdicts are dropped and the week's pages are not drawn at all. No
+    // number is stated and none is said to be missing four times over: the
+    // whole-mail line says it once. The greeting and the button stand,
+    // which is what "still arrives, saying so" means.
+    expect(mail.omitted).toEqual([1]);
+    expect(mail.text).not.toContain(COPY["mail.weekly.next"]);
     expect(mail.text).not.toContain(COPY["mail.weekly.number.unmeasured"]);
     for (const body of [mail.html, mail.text]) expect(body).toContain("2026-09-14");
 
@@ -180,26 +182,51 @@ describe("issue #376 — the shell renders S20, and every kind the set draws wea
     writeSample("draft-ready-waiting-for-address", mail, "variant");
   });
 
-  it("the Monday mail leads with the headline numbers, the pages cited first, and the score is not in it", async () => {
-    // SPEC §8 (2026-10-07, issue 1329; order: issue 1551). The figures are the fixture's.
+  it("the Monday mail reads as board MondayMail, section by section, in its order", async () => {
     const mail = await composePreview("weekly");
-    const numbers = [
-      `${COPY["mail.weekly.number.pageQuestions"]}: 2 · of 4 pages asked, this week`,
-      `${COPY["mail.weekly.number.aiVisits"]}: at least 12 · pages read, last 7 days`,
-      `${COPY["mail.weekly.number.top20"]}: 5 (+2)`,
-      `${COPY["mail.weekly.number.pagesCited"]}: 3 · in AI answers, last 4 weeks`,
-      `${COPY["mail.weekly.number.mentionRate"]}: 34% · likely 22–48%`,
+    const sections = [
+      "Hi Dana, here’s week 3 for harborplumbing.example.",
+      "Nothing needs you. Each page goes live at 4:00 PM on its day unless you stop it.",
+      COPY["mail.weekly.pages.live"],
+      COPY["mail.weekly.google.title"],
+      "Your 12 live pages, step by step toward the first page.",
+      "Showing in results · 2 climbing",
+      "9 visits from Google this week, up from 4.",
+      COPY["mail.weekly.ai.title"],
+      "2 of 12 pages linked by AI",
+      "We asked AI each page’s own question. 2 answers linked to your page.",
+      "AI read your pages 14 times this week.",
+      COPY["mail.weekly.month"],
+      COPY["mail.weekly.month.intro"],
+      "31 up from 27",
+      "1 of 12 up from 0",
+      "Reputation: AI answers that mentioned you, last 4 weeks",
+      COPY["mail.weekly.next"],
+      "Up to 7 pages a week, new or updated. Never filler.",
+      COPY["mail.weekly.strip.today"],
+      "Mon · New page · goes live today, 4:00 PM",
+      "emergency plumber austin",
+      `Why: ${COPY["calendar.reason.ai-gap"]}`,
+      COPY["mail.weekly.next.stop"],
+      COPY["mail.weekly.next.edit"],
+      "Tue · Update · goes live Tue 20 Oct, 4:00 PM",
+      "Wed · New page · goes live Wed 21 Oct, 4:00 PM",
+      "Thu–Sun · 4 more",
+      "See all 7 and their reasons",
+      COPY["mail.weekly.pace"],
+      COPY["mail.weekly.action"],
+      COPY["mail.reason.weekly"],
+      COPY["mail.weekly.footer.pause"],
+      COPY["mail.weekly.footer.settings"],
+      COPY["mail.unsubscribe.label"],
     ];
-    // The twin states them one to a line, straight under the heading and
-    // above everything else the mail says.
-    expect(mail.text).toContain([COPY["mail.weekly.heading"], numbers.join("\n")].join("\n\n"));
-    const firstOf = (body: string, parts: readonly string[]): number => Math.min(...parts.map((part) => body.indexOf(part)));
-    const after = [COPY["mail.weekly.verdicts"], COPY["mail.weekly.next"], COPY["mail.weekly.action"]];
-    for (const body of [mail.html, mail.text]) {
-      expect(body.indexOf(COPY["mail.weekly.number.aiVisits"])).toBeGreaterThan(0);
-      expect(body.indexOf(COPY["mail.weekly.number.aiVisits"])).toBeLessThan(firstOf(body, after));
-      expect(body).not.toMatch(/Visibility Score/i);
+    for (const body of [mail.html.replace(/<[^>]+>/g, ""), mail.text]) {
+      const at = sections.map((part) => body.indexOf(part));
+      for (const [i, part] of sections.entries()) expect(at[i], part).toBeGreaterThan(-1);
+      expect(at, "the board's order").toEqual([...at].sort((x, y) => x - y));
     }
+    // The fifth to seventh pages are counted, not written out.
+    expect(mail.text).not.toContain("sewer line repair cost austin");
   });
 
   for (const kind of previewable) {

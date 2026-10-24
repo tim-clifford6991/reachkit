@@ -1,5 +1,4 @@
 harborplumbing.com	sample data
-5 3 2 1 1	sample data
 a national plumbing chain 5 of 12	sample data
 a national plumbing chain’s pages 7	sample data
 a national plumbing chain 64	sample data
@@ -15,3 +14,27 @@ low water pressure austin 140 a month Up next	sample data
 140	sample data
 plumber austin 6,600 a month Too big for now	sample data
 6,600	sample data
+Theme: light	DESIGN.md: the /app shell's theme control is the Light / Dark / System dropdown named Theme (#681)
+Measured Monday 19 October.	sample data: the day is the account's own stored reading
+austinpipeworks.example 3 of 12	sample data
+capitolrooter.example 2 of 12	sample data
+a home-improvement store 1 of 12	sample data
+You 0 of 12	sample data: the count is the account's own top results
+You’re not the top result on any of the 12 yet, and you’re on the first page for 1. This week’s pages go after 3 of them.	sample data: the fixture account holds one top result, so its line is "You're the top result on 1 of the 12" (#1747)
+austinpipeworks.example 5	sample data
+capitolrooter.example 4	sample data
+You were on 0 of 12 when you started.	sample data: the count is the account's own first week
+Of 184 AI answers to your buyers’ 23 questions, last 4 weeks. Checked monthly.	sample data: the counts are the account's own month reading
+You 11	sample data
+austinpipeworks.example 41	sample data
+capitolrooter.example 29	sample data
+austinpipeworks.example	sample data
+capitolrooter.example	sample data
+Goes live today	sample data: the fixture's Plan week holds none of these searches; the cell reads Plan's week as the Google tab does (#1747)
+slab leak repair cost austin 260 a month Page Wed 21	sample data
+Page Wed 21	sample data: the day is the account's own Plan week
+Page Fri 23	sample data: the day is the account's own Plan week
+Too big for now	sample data: the fixture's too-big rows sit past the first nine, behind Show all (#1747)
+4.2× your size from 4.6×	sample data: the ratios are the account's own competitors
+2.8× your size no clear change	sample data: the ratios are the account's own competitors
+Size means how many searches each site shows up for, against yours. Far larger competitors in your searches: a national plumbing chain. They aren’t tracked against you for now.	sample data: the far-larger names are the account's own

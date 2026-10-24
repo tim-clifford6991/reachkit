@@ -28,6 +28,20 @@ describe("the parity CLI", () => {
   it("prints matched, missing and allowed counts and every missing string for a local page", async () => {
     const { stdout } = await run(process.execPath, [SCRIPT, "--board", "Board", "--boards", FIXTURES, "--file", PAGE]);
     for (const line of EXPECTED) expect(stdout).toContain(line);
+    expect(stdout).not.toContain("unused allow line");
+  });
+
+  it("lists an allow line whose string ships, or that the board does not draw, as unused", async () => {
+    const { stdout, stderr } = await run(process.execPath, [
+      SCRIPT, "--board", "Board", "--boards", FIXTURES, "--allow", FIXTURES, "--file", PAGE,
+    ]);
+    expect(stdout).toContain("| 9 | 5 | 1 | — |");
+    expect(stdout).toContain("- unused allow line: docs/design/parity/Board.allow:1 Pricing (delete it: the string ships)");
+    expect(stdout).toContain("- unused allow line: docs/design/parity/Board.allow:2 Austin Plumbing (delete it: the board does not draw it)");
+    expect(stdout).not.toContain("- missing: 14-day money-back guarantee");
+    expect(stdout).not.toMatch(/unused allow line: .*14-day/);
+    expect(stderr).toContain("warning: unused allow line docs/design/parity/Board.allow:1 Pricing");
+    expect(stderr).toContain("warning: unused allow line docs/design/parity/Board.allow:2 Austin Plumbing");
   });
 
   it("reads a page by GET with --url", async () => {

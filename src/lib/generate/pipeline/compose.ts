@@ -438,6 +438,8 @@ export function liveLead(markdown: string): { answer: string; takeaways: string[
   return { answer, takeaways, closing: paragraphs.at(-1)?.raw.trim() ?? "" };
 }
 
+const numberedItems = (body: string): number => body.split("\n").filter((line) => /^\d+[.)]\s/.test(line)).length;
+
 /** One section as the page carries it, recorded with the row
  *  (`drafts.meta.sections`) so the blocks check knows which heading is which
  *  of the template's sections. */
@@ -480,8 +482,11 @@ export function layoutPage(parts: PageParts, template: Template, a: TidyInputs):
   const proper = properNouns([...parts.sections.map((section) => section.body), ...a.facts], a.names);
   const cased = ownCapitals([...parts.sections.map((section) => section.body), parts.answer, ...a.facts]);
   const written = parts.sections.filter((section) => section.body.trim() !== "" && section.heading.trim() !== "");
+  // E10: steps a section may leave out stand only where they are as many as the template's least.
+  const short = (slot: Template["sections"][number], body: string): boolean =>
+    slot.block === "steps" && slot.repeat?.min === 0 && numberedItems(body) < (template.blocks.steps?.min ?? 0);
   const ordered = template.sections.flatMap((slot) =>
-    written.filter((section) => slotKey(section.key) === slot.key).slice(0, slot.repeat?.max ?? 1)
+    written.filter((section) => slotKey(section.key) === slot.key && !short(slot, section.body)).slice(0, slot.repeat?.max ?? 1)
   );
   const seen = new Set<string>();
   const sections = ordered.flatMap((section) => {
@@ -507,7 +512,7 @@ export function layoutPage(parts: PageParts, template: Template, a: TidyInputs):
   const unclaimed = a.unclaimed ?? ((line: string) => line);
   const description = fitDescription(tidyText(collapse(unclaimed(parts.description))));
   const laid = sections.map(({ key, heading, body }) => {
-    const items = body.split("\n").filter((line) => /^\d+[.)]\s/.test(line)).length;
+    const items = numberedItems(body);
     return { key, heading, ...(items > 1 ? { items } : {}) };
   });
   const proposed = parts.titles.map((each) => cleaned(unclaimed(each))).filter((each) => each !== "");
@@ -534,7 +539,7 @@ export function layoutPage(parts: PageParts, template: Template, a: TidyInputs):
             .filter((section) => section.key === "question")
             .map((section) => ({ question: section.heading, answer: openingOf(section.body) }))
             .filter((entry) => entry.answer !== "")
-        : faqOf(parts.faq),
+        : faqOf(parts.faq).slice(0, template.blocks.faq.max),
     sections: laid,
     updated: kept === null ? tidyText(oneLine(parts.updated)) : "",
     kept: kept !== null,

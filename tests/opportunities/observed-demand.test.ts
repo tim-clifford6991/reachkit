@@ -10,7 +10,7 @@ import { readPromptAnswer } from "../../src/lib/market/prompts/answer";
 import { measured } from "../../src/lib/measure/measured";
 import { comparisonBrands, composedSearch, proposedTopics, type MeasuredAnswer } from "../../src/lib/opportunities/derive/topics";
 import { liveTopicFailure, type LiveTopicPage, type LiveTopicSite } from "../../src/lib/opportunities/live-topics";
-import { opportunityReady, type ReadinessContext } from "../../src/lib/opportunities/readiness";
+import { eligible, type ReadinessContext } from "../../src/lib/opportunities/readiness";
 import { readOpportunity, type OpportunityRow } from "../../src/lib/opportunities/store";
 import type { Opportunity } from "../../src/lib/opportunities/types";
 import stored from "./fixtures/live-topics-1506.json";
@@ -36,6 +36,7 @@ const brandsOf = (site: StoredSite) => {
 };
 
 const CTX: ReadinessContext = {
+  now: AT,
   grounded: true,
   earnGrounding: { comparison_table: true, integration_page: true, original_data_page: true },
   suppression: { clusters: new Set(), retiredUrls: new Set() },
@@ -73,7 +74,7 @@ describe("a rival's alternatives is ready only on observed demand (condition 1)"
     const alternatives = site.topics.filter((topic) => topic.status === "open" && /alternative/.test(topic.query) && topic.ready === true);
     expect(alternatives.length).toBeGreaterThan(0);
     const ctx = { ...CTX, brands: brandsOf(site) };
-    expect(alternatives.map((topic) => [topic.query, opportunityReady(row(topic.query, { type: "comparison_page" }), ctx)])).toEqual(
+    expect(alternatives.map((topic) => [topic.query, eligible(row(topic.query, { type: "comparison_page" }), ctx)])).toEqual(
       alternatives.map((topic) => [topic.query, "no_intent"])
     );
   });
@@ -83,11 +84,11 @@ describe("a rival's alternatives is ready only on observed demand (condition 1)"
   const asked = (term: string, peopleAlsoAsk: string[], related: string[] = []) => [{ term, peopleAlsoAsk, related }];
 
   it("its own measured volume, or buyers seen asking it beside another search, makes it ready", () => {
-    expect(opportunityReady(row("profound alternatives"), ctx)).toBe("no_intent");
-    expect(opportunityReady(row("profound alternatives", withVolume(210)), ctx)).toBeNull();
-    expect(opportunityReady(row("profound alternatives", withVolume(0)), ctx)).toBe("no_intent");
-    expect(opportunityReady(row("profound alternatives"), { ...ctx, asked: asked("geo tools", [], ["profound alternatives"]) })).toBeNull();
-    expect(opportunityReady(row("profound alternatives"), { ...ctx, asked: asked("geo tools", ["What are the best Profound alternatives?"]) })).toBeNull();
+    expect(eligible(row("profound alternatives"), ctx)).toBe("no_intent");
+    expect(eligible(row("profound alternatives", withVolume(210)), ctx)).toBeNull();
+    expect(eligible(row("profound alternatives", withVolume(0)), ctx)).toBe("no_intent");
+    expect(eligible(row("profound alternatives"), { ...ctx, asked: asked("geo tools", [], ["profound alternatives"]) })).toBeNull();
+    expect(eligible(row("profound alternatives"), { ...ctx, asked: asked("geo tools", ["What are the best Profound alternatives?"]) })).toBeNull();
   });
 
   it("a measured answer counts only where it names the rival and cites an address that holds \"alternative\"", () => {
@@ -95,9 +96,9 @@ describe("a rival's alternatives is ready only on observed demand (condition 1)"
       { promptId: "8089172d", named: false, linked: false, rivals: ["tryprofound.com"], ...over },
     ];
     const cited = ["https://www.example.org/blog/profound-alternatives"];
-    expect(opportunityReady(row("profound alternatives"), { ...ctx, answers: answer({ alternatives: cited }) })).toBeNull();
-    expect(opportunityReady(row("profound alternatives"), { ...ctx, answers: answer({}) })).toBe("no_intent");
-    expect(opportunityReady(row("profound alternatives"), { ...ctx, answers: answer({ rivals: ["peec.ai"], alternatives: cited }) })).toBe("no_intent");
+    expect(eligible(row("profound alternatives"), { ...ctx, answers: answer({ alternatives: cited }) })).toBeNull();
+    expect(eligible(row("profound alternatives"), { ...ctx, answers: answer({}) })).toBe("no_intent");
+    expect(eligible(row("profound alternatives"), { ...ctx, answers: answer({ rivals: ["peec.ai"], alternatives: cited }) })).toBe("no_intent");
   });
 
   it("reads the addresses an answer cited that hold \"alternative\", in English and German", () => {
@@ -125,15 +126,15 @@ describe("a tracked prompt counts for a \"vs\" only where its measured answer na
 
   it("a prompt that names Acuity only, answered without SavvyCal, is not demand for it", () => {
     const answers: MeasuredAnswer[] = [{ promptId: prompt.id, named: false, linked: false, rivals: ["acuityscheduling.com", "koalendar.com"] }];
-    expect(opportunityReady(row(query, { type: "comparison_page" }), { ...ctx, answers })).toBe("no_intent");
-    expect(opportunityReady(row(query, { type: "comparison_page" }), ctx)).toBe("no_intent");
+    expect(eligible(row(query, { type: "comparison_page" }), { ...ctx, answers })).toBe("no_intent");
+    expect(eligible(row(query, { type: "comparison_page" }), ctx)).toBe("no_intent");
   });
 
   it("its measured answer naming SavvyCal and Acuity is", () => {
     const answers: MeasuredAnswer[] = [{ promptId: prompt.id, named: true, linked: false, rivals: ["acuityscheduling.com"] }];
-    expect(opportunityReady(row(query, { type: "comparison_page" }), { ...ctx, answers })).toBeNull();
+    expect(eligible(row(query, { type: "comparison_page" }), { ...ctx, answers })).toBeNull();
     // An answer to another prompt says nothing of this one.
-    expect(opportunityReady(row(query, { type: "comparison_page" }), { ...ctx, answers: [{ ...answers[0]!, promptId: "other" }] })).toBe("no_intent");
+    expect(eligible(row(query, { type: "comparison_page" }), { ...ctx, answers: [{ ...answers[0]!, promptId: "other" }] })).toBe("no_intent");
   });
 });
 
@@ -142,16 +143,16 @@ describe("a search ReachKit composed needs the same evidence (condition 3)", () 
   const ctx = { ...CTX, brands: brandsOf(site), composed: (query: string) => composedSearch(query, site.market) };
 
   it("wesbos.com: \"javascript tutorial pricing\", composed from the synonym \"JavaScript tutorials\", is not ready", () => {
-    expect(opportunityReady(row("javascript tutorial pricing", { type: "keyword_page", businessFit: 3 }), ctx)).toBe("no_intent");
-    expect(opportunityReady(row("javascript tutorial pricing", { type: "keyword_page", businessFit: 3, ...withVolume(90) }), ctx)).toBeNull();
+    expect(eligible(row("javascript tutorial pricing", { type: "keyword_page", businessFit: 3 }), ctx)).toBe("no_intent");
+    expect(eligible(row("javascript tutorial pricing", { type: "keyword_page", businessFit: 3, ...withVolume(90) }), ctx)).toBeNull();
   });
 
   it("a row the pass marked composed is held whatever the market says now; a search nobody composed is not judged", () => {
     const marked = row("full stack web development course pricing", { type: "keyword_page", businessFit: 3 });
     const composed = { ...marked, evidence: { ...marked.evidence, composed: true } as Opportunity["evidence"] };
-    expect(opportunityReady(marked, ctx)).toBeNull();
-    expect(opportunityReady(composed, ctx)).toBe("no_intent");
-    expect(opportunityReady(composed, { ...ctx, asked: [{ term: "web development courses", peopleAlsoAsk: [], related: ["full stack web development course pricing"] }] })).toBeNull();
+    expect(eligible(marked, ctx)).toBeNull();
+    expect(eligible(composed, ctx)).toBe("no_intent");
+    expect(eligible(composed, { ...ctx, asked: [{ term: "web development courses", peopleAlsoAsk: [], related: ["full stack web development course pricing"] }] })).toBeNull();
   });
 });
 

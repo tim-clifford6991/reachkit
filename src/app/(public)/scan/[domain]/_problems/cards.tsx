@@ -24,6 +24,7 @@ import type { Measured } from "@/lib/measure/measured";
 import { SEVERITY_INDEX, type ProblemCard, type ProblemName, type Severity } from "./model";
 import type { CheckCard } from "./checks";
 import { CopyLines } from "./copy-lines";
+import { typeWords } from "@/lib/business/identity";
 
 /** Red only for the customer's own problem being shown to them — which is
  *  exactly what a `high` severity is. */
@@ -177,7 +178,7 @@ const STATUS_TONE: Readonly<Record<Severity, string>> = Object.freeze({
 
 /** SPEC §9's eight checks, one row each. A check that was not run, or ran
  *  and could not measure, has a grey dot and its why-line for a screen
- *  reader: no figure, no severity, no dash, and never "Nothing to fix". The
+ *  reader, and shows "Couldn't run": no figure, no severity, no dash, and never "Nothing to fix". The
  *  who-does-it badge is the ruling's and is always shown; where the row is
  *  too narrow for the name and the badge, the badge takes the next line. A
  *  check with lines to paste opens them under its row. */
@@ -194,6 +195,9 @@ function CheckRow(p: { card: CheckCard }): React.JSX.Element {
         : undefined;
   const tone =
     measured === null || measured.severity.kind === "unmeasured" ? "" : STATUS_TONE[measured.severity.value];
+  // The status word the row shows: the count where there is one, "Nothing to fix" on a zero, "Couldn't run" without a reading.
+  const status =
+    fix.kind === "none_needed" ? copy("check.none-needed") : measured === null ? copy("check.status.not-run") : null;
   // What the dot says, for a reader that cannot see its colour: the why-line
   // where there is no reading, "Nothing to fix" on a zero, the severity
   // word otherwise.
@@ -204,16 +208,31 @@ function CheckRow(p: { card: CheckCard }): React.JSX.Element {
       : measured !== null && measured.severity.kind !== "unmeasured"
         ? copy(SEVERITY[SEVERITY_INDEX[measured.severity.value]])
         : undefined);
+  const identity = card.identity;
+  // A reading that was not measured says nothing: never "none", never "missing".
+  const identityLine =
+    identity?.kind === "found"
+      ? copy("check.identity.found", { type: typeWords(identity.type) })
+      : identity?.kind === "none"
+        ? copy("check.identity.none")
+        : null;
   const row = (
     <>
       <span className={`status status-lg shrink-0 ${tone}`}>
-        {said === undefined ? null : <span className="sr-only">{said}</span>}
+        {said === undefined || fix.kind === "none_needed" ? null : <span className="sr-only">{said}</span>}
       </span>
       <span className="flex flex-1 flex-wrap items-baseline gap-x-2 text-sm font-medium">
         <span>{title}</span>
-        {measured === null ? null : (
+        {status !== null ? (
+          <span className="text-base-content/70">{status}</span>
+        ) : measured === null ? null : (
           <span className="text-base-content/70">
             <MeasuredNum value={measured.count} what={title} />
+          </span>
+        )}
+        {identityLine === null ? null : (
+          <span className="text-base-content/70 basis-full text-xs font-normal" data-identity={identity?.kind}>
+            {identityLine}
           </span>
         )}
       </span>

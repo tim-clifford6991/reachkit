@@ -435,11 +435,11 @@ describe("the about card links the main site's own book and quote pages, and not
   const parsed = (html: string): Document => new DOMParser().parseFromString(html, "text/html");
 
   it("a local business that links both draws two plain links in the card, and none in the header or footer", async () => {
-    state.identity = { mainSite: stored(PLUMBER) };
+    state.identity = { mainSite: stored(PLUMBER), offer: { category: "plumbing", place: "Austin" } };
     const doc = parsed(await render());
     const links = [...doc.querySelectorAll("aside ul[role=list] a")];
     expect(links.map((a) => [a.textContent, a.getAttribute("href")])).toEqual([
-      ["Book an appointment", "https://example.com/book"],
+      ["Book a visit", "https://example.com/book"],
       ["Ask for a quote", "https://example.com/get-a-quote"],
     ]);
     for (const a of links) expect(a.getAttributeNames().sort()).toEqual(["class", "href"]);
@@ -459,7 +459,7 @@ describe("the about card links the main site's own book and quote pages, and not
       state.identity = mainSite === undefined ? {} : { mainSite };
       const html = await render();
       expect(parsed(html).querySelector("aside ul")).toBeNull();
-      expect(html).not.toContain("Book an appointment");
+      expect(html).not.toContain("Book a visit");
       expect(html).not.toContain("Ask for a quote");
     }
   });
@@ -478,9 +478,14 @@ describe("lists in the body are styled, and nothing is drawn that the body does 
     const lists = [...body.querySelectorAll("ul, ol")];
     expect(lists.length).toBe(4);
     for (const list of lists) {
-      const box = list.closest(".not-prose");
+      // An ordered list is steps, a list in its own right wherever it sits.
+      if (list.tagName === "OL") {
+        expect(list.getAttribute("role")).toBe("list");
+        continue;
+      }
+      const box = list.parentElement!.closest(".not-prose");
       // Outside a box `prose` sets the marker; inside one the box must name it.
-      if (box !== null) expect(box.classList).toContain(list.tagName === "OL" ? "[&_ol]:list-decimal" : "[&_ul]:list-disc");
+      if (box !== null) expect(box.classList).toContain("[&_ul]:list-disc");
     }
     expect(body.querySelectorAll("img, svg, picture, canvas")).toHaveLength(0);
   });

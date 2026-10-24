@@ -54,7 +54,7 @@ function withBattery(
 
 function render(section: AiAnswersSection): string {
   return renderToStaticMarkup(
-    React.createElement(AiAnswersCard, { section, measuredOn: "6 Sep 2026" })
+    React.createElement(AiAnswersCard, { section, serps: [] })
   );
 }
 
@@ -63,10 +63,6 @@ function render(section: AiAnswersSection): string {
  *  figure rather than transcribing a second copy of it. */
 function citedCount(cells: readonly AnswerCell[]): number {
   return cells.filter((c) => c.kind === "answered" && c.citedDomains.length > 0).length;
-}
-
-function answeredCount(cells: readonly AnswerCell[]): number {
-  return cells.filter((c) => c.kind === "answered").length;
 }
 
 /** The card's matrix, as markup: the CSS grid (issue 730), from its root to
@@ -132,7 +128,10 @@ describe("§6.2 — the paid battery is drawn as three answer columns", () => {
   });
 
   it("says, in writing, that an engine named the customer — the state the one-column card renders as nothing", () => {
-    expect(count(html, "ai-answers.engine.cell.cited")).toBe(FREE_SECTION.rows.length);
+    // Every battery engine named the customer, and so did the AI Overviews the fixture marks named.
+    const overviews = FREE_SECTION.rows.filter((row) => row.cell.kind === "answered" && row.cell.named === true).length;
+    expect(overviews).toBe(3);
+    expect(count(html, "ai-answers.engine.cell.cited")).toBe(FREE_SECTION.rows.length + overviews);
   });
 
   it("names no engine as never asked, because every one of them was", () => {
@@ -222,9 +221,7 @@ describe("what the columns deliberately do not move", () => {
     // 1444): the answers that mention the customer, of those that appeared.
     expect(html).toContain(`report.figure.of(${FREE_SECTION.customerCitations}|${FREE_SECTION.answeredSearches})`);
     expect(html).toContain("ai-answers.finding");
-    expect(chart(html)).toContain(
-      `${FREE_SECTION.customerCitations}/${FREE_SECTION.answeredSearches}`
-    );
+    expect(chart(html)).toContain(`>${FREE_SECTION.customerCitations}</span>`);
   });
 
   it("leaves the rival rows as the AI-Overview reading", () => {
@@ -235,7 +232,7 @@ describe("what the columns deliberately do not move", () => {
     const matrix = chart(html);
     for (const rival of FREE_SECTION.rivals) {
       expect(matrix).toContain(rival.domain);
-      expect(matrix).toContain(`${citedCount(rival.cells)}/${answeredCount(rival.cells)}`);
+      expect(matrix).toContain(`>${citedCount(rival.cells)}</span>`);
     }
     expect(matrix).toContain(FREE_SECTION.ownDomain);
   });

@@ -1,7 +1,8 @@
 // SPEC §7 (2026-09-20, #908, issue 930) — the parts a day draws, shared by
 // the week's cells (`WeekGrid`) and the phone list (`DayList`): the page a
 // stage filter leaves, the two words an empty day says, the day's one
-// number (`day-number.ts` decides which) and the mark for an update.
+// number (`day-number.ts` decides which), the New or Update chip and the
+// lines under a day.
 //
 // The clamped title carries `rk-cal-label` and the two-word reason
 // `rk-cal-empty` — the truncations this screen declared to the layout sweep
@@ -9,8 +10,9 @@
 "use client";
 
 import type React from "react";
-import { RefreshCw } from "lucide-react";
-import { horizonShortFor, kindWord, shortCauseFor } from "./card-lines";
+import { Plus, RefreshCw } from "lucide-react";
+import { copy } from "@/lib/presentation/copy";
+import { horizonShortFor, shortCauseFor } from "./card-lines";
 import type { DayNumber } from "./day-number";
 import type { StageFilter } from "./stages";
 import type { DayCell, PageOnDay } from "./month";
@@ -83,18 +85,62 @@ export function CardNumber(p: { value: DayNumber }): React.JSX.Element | null {
   );
 }
 
-/** The mark for an update, drawn outside the stage row. The phone list
- *  puts it in the row's right-hand column, under the number (issue 965);
- *  the card draws it inside `StageMark`, where there is no column to put
- *  it in. One glyph and one label, spelled once. */
-export function UpdateMark(): React.JSX.Element {
+const CELL = "cell";
+const LIST = "list";
+
+/** What a page is, as the board's chip: New, or Update. */
+export function KindChip(p: { update: boolean }): React.JSX.Element {
+  const Icon = p.update ? RefreshCw : Plus;
   return (
-    <RefreshCw
-      size={12}
-      strokeWidth={1.75}
-      className="shrink-0 opacity-70"
-      aria-label={kindWord(true)}
-      data-testid="card-update-mark"
-    />
+    <span className="badge badge-sm badge-soft badge-primary shrink-0 gap-1 font-semibold" data-testid="day-kind">
+      <Icon aria-hidden className="size-3" />
+      {copy(p.update ? "calendar.card.update" : "calendar.chip.new")}
+    </span>
+  );
+}
+
+/** The lines a day adds under its page or in its place: why the week holds
+ *  the page, when today's page goes live, or what a stopped or skipped day
+ *  means. `goesLive` is absent while the address does not work, so no time
+ *  is promised. */
+export function DayLines(p: {
+  cell: DayCell;
+  page: PageOnDay | null;
+  goesLive: string | null;
+  /** The week's first skipped day says what a skip is; the others do not repeat it. */
+  firstSkip: boolean;
+  /** A stage filter is on, so an empty day says nothing. */
+  filtered: boolean;
+  /** The phone list spells its test hooks `list-*`, the week `cell-*`. */
+  phone: boolean;
+}): React.JSX.Element | null {
+  const { cell, page } = p;
+  const prefix = p.phone ? LIST : CELL;
+  if (page !== null) {
+    const today = cell.today && p.goesLive !== null && (page.stage === "your_review" || page.stage === "scheduled");
+    return (
+      <>
+        {page.whyLine === null ? null : (
+          <span className="flex min-w-0 flex-col" data-testid={`${prefix}-why`}>
+            <span className="text-xs font-semibold uppercase tracking-wide text-base-content/70">{copy("calendar.week.why")}</span>
+            <span className="min-w-0 text-xs wrap-anywhere" data-testid={`${prefix}-why-line`}>
+              {page.whyLine}
+            </span>
+          </span>
+        )}
+        {today ? (
+          <span className="min-w-0 text-xs font-semibold" data-testid={`${prefix}-goes-live`}>
+            {copy("calendar.week.today", { time: p.goesLive! })}
+          </span>
+        ) : null}
+      </>
+    );
+  }
+  if (p.filtered) return null;
+  const line = cell.empty?.cause === "page_cannot_go_live" ? "calendar.day.stopped.line" : p.firstSkip ? "calendar.day.skipped.line" : null;
+  return line === null ? null : (
+    <span className="min-w-0 text-xs wrap-anywhere text-base-content/70" data-testid={`${prefix}-state-line`}>
+      {copy(line)}
+    </span>
   );
 }

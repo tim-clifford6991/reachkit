@@ -119,6 +119,7 @@ describe("SPEC §5 (2026-09-12) — the customer chose the label, so the Host is
     await expect(resolveHost("blog.example.com")).resolves.toEqual({
       kind: "gone",
       reason: "access_ended",
+      siteId: "site-9",
     });
   });
 });
@@ -129,6 +130,7 @@ describe("REQ-076 c10 / REQ-079 c6 — a site that has stopped is gone, and both
     await expect(resolveHost("content.example.com")).resolves.toEqual({
       kind: "gone",
       reason: "access_ended",
+      siteId: "site-1",
     });
   });
 
@@ -136,7 +138,7 @@ describe("REQ-076 c10 / REQ-079 c6 — a site that has stopped is gone, and both
     serving.set("site-1", { serve: false, because: "account_deleted" });
     const answer = await resolveHost("content.example.com");
     expect(answer.kind).toBe("gone");
-    expect(answer).toEqual({ kind: "gone", reason: "account_deleted" });
+    expect(answer).toEqual({ kind: "gone", reason: "account_deleted", siteId: "site-1" });
   });
 
   it("a gone site is never a redirect and never unknown: the address existed", async () => {
@@ -209,6 +211,7 @@ describe("it fails closed, and it writes nothing", () => {
       await expect(resolveHost("content.example.com")).resolves.toEqual({
         kind: "gone",
         reason: "account_deleted",
+        siteId: "site-1",
       });
     } finally {
       spy.mockRestore();

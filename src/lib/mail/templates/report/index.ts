@@ -1,27 +1,7 @@
-// BUILD §12 — the report mail, drawn for the first time by UI-SPEC S20.
-//
-// `report` has been a row in `MAIL_KINDS` since the seam was built and had
-// no template: the occasion is stated (§12) and nothing composed it. The
-// approved set draws it, so this is where its blocks live — one directory
-// per kind, named for the kind (ADR-040), a block list and nothing else.
-//
-// **It carries no stop control, and the register is why.** `stoppable:
-// false`: a free report is a thing the reader asked for at a public
-// address, sent once, and the footer's own line says how to have the
-// report itself taken down (`removal.address`, REQ-002 c1) rather than how
-// to unsubscribe from a series there is none of.
-//
-// **Verdict, next step, one action** (SPEC §8, #638). The verdict is the
-// three fact rows and — where the score could be computed — the report's
-// own biggest gap, its title and its line (`verdict.limiting.*`, the same
-// keys the report header renders). The next step is one line, and
-// the action is the one button: open the report.
-//
-// The three fact rows are the report's own head, in the set's order and
-// wording: the score with its band word (6a names the number), the AI
-// answers count, the Google search count. Each arrives already written —
-// the score through `formatStat`, the band through `BAND_LABELS` — because
-// a fact row states a value and never formats one.
+// BUILD §12 — the report mail (UI-SPEC S20), as a block list only (ADR-040).
+// No stop control (`stoppable: false`): the reader asked for it once, and the footer says how to have the report taken down (REQ-002 c1).
+// Verdict, next step, one action (SPEC §8): three fact rows in the report head's order, the biggest gap where a score exists, one line,
+// and the button to open the report. Values arrive written (`formatStat`, `BAND_LABELS`); a fact row never formats.
 import type { CopyKey } from "@/lib/presentation/copy";
 import type { ShownFactor } from "@/lib/measure/verdict";
 import { LIMITING_LINES } from "@/lib/presentation/bands";
@@ -47,34 +27,23 @@ export interface ReportMail {
   readonly reasonVars: Readonly<Record<string, string | number>>;
 }
 
-/**
- * The values the mail states, each already written by the caller that
- * measured it.
- *
- * `aiAnswers` and `googleSearch` are the two `n of m` lines the report's
- * own head carries. They are strings and not numbers for the reason every
- * fact row's value is: this arm states a fact, and a second numeral
- * formatter living here is what §2.3's one-mono-rule exists to prevent.
- */
+/** The values the mail states, each written by the caller that measured it; the `n of m` lines are strings, as every fact value is. */
 export interface ReportFacts {
   readonly domain: string;
   readonly score: string;
   readonly band: string;
   readonly aiAnswers: string;
   readonly googleSearch: string;
-  /** The bar holding the score down (`shownLimitingOf`), or `null` where
-   *  the score could not be computed — an unmeasured verdict names no gap. */
+  /** The bar holding the score down, or `null` without a score: an unmeasured verdict names no gap. */
   readonly limiting: ShownFactor | null;
 }
 
 export function buildReport(a: {
   facts: ReportFacts;
   href: string;
-  /** The address a removal request goes to — `removal.address`, read by
-   *  the caller so this template holds no second copy of it (REQ-002 c1). */
+  /** `removal.address`, read by the caller so this template holds no second copy (REQ-002 c1). */
   removalAddress: string;
-  /** SPEC §9: the report's own stored checks (#573). Absent or `null` where
-   *  the pass ran none — the rows are then absent, never nine zeros. */
+  /** SPEC §9: the report's stored checks; absent or `null` gives no rows, never nine zeros. */
   issues?: SiteIssuesSection | null;
 }): ReportMail {
   const { facts } = a;
@@ -90,17 +59,13 @@ export function buildReport(a: {
       {
         block: "facts",
         items: [
-          // The set writes the score and its band word on one row —
-          // "62 · Hard to find" — because a number without its word is the
-          // thing §2.5 refuses. The joiner is the caller's, for the same
-          // reason: it is layout, and this file authors nothing.
+          // Score and band word on one row, since §2.5 refuses a number without its word; the joiner is the caller's.
           { label: FACT_SCORE, value: `${facts.score} · ${facts.band}` },
           { label: FACT_AI_ANSWERS, value: facts.aiAnswers },
           { label: FACT_GOOGLE, value: facts.googleSearch },
         ],
       },
-      // SPEC §9: the faults the report counted, each titled as its card is
-      // and figured as the Overview figures it. No fault, no block.
+      // SPEC §9: the counted faults, titled as their cards. No fault, no block.
       ...(issues.length === 0 ? [] : [{ block: "facts", items: issues } as const]),
       ...(facts.limiting === null
         ? []

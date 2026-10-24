@@ -23,7 +23,7 @@
 // again from the answer's stored text (`statementsOf`), so a stored report
 // carries it without a new pass.
 import { retrofitReading, type Retrofit } from "@/lib/business/retrofit";
-import { aiPresenceOf, aiPresenceRangeOf, aiSampleOf, classifyReferences, foundationsOf, localPackSearches, searchPresenceOf } from "@/lib/measure/drivers";
+import { aiPresenceOf, aiPresenceRangeOf, aiSampleOf, classifyReferences, foundationsOf, searchPresenceOf, searchPresenceRangeOf } from "@/lib/measure/drivers";
 import { isProtectionName } from "@/lib/measure/challenge";
 import { contentOf, detectPricingUrl, measuredPagesOf, storedFactsOf } from "@/lib/measure/pages";
 import { isStoredDocument } from "@/lib/measure/own-fetch";
@@ -41,6 +41,7 @@ import type { RivalSizeBand } from "@/lib/market/rivals/band";
 import type { RivalCandidate } from "@/lib/market/rivals/derive";
 import { isOwnDomain, registrableDomain } from "@/lib/market/rivals/domains";
 import { brandOf } from "@/lib/market/questions/select";
+import { citedPagesOf } from "@/lib/market/prompts/answer";
 import { statementsOf } from "@/lib/market/prompts/misstated";
 import type { Profile } from "@/lib/market/questions/profile-types";
 import type { PresenceCard } from "@/lib/market/rivals/presence";
@@ -207,20 +208,12 @@ function membersOf(r: RescoreReport): RescoredMembers {
   };
 }
 
-/** The search-presence driver from the ranked rows the report kept, or
- *  `null` where it kept a count but not its rows (a report of version 8 or
- *  before): then the stored driver stands. A stored SERP whose local pack
- *  shows the site counts that search as a top-ten result (issue 1441). */
-function searchPresenceFrom(r: RescoreReport, at: Date): Measured<number> | null {
-  if (r.ownRanked.kind === "unmeasured") return searchPresenceOf({ ranked: r.ownRanked, at });
-  if (r.ownRankedRows.length === 0 && r.ownRanked.value > 0) return null;
-  const searches = r.questions.kind === "unmeasured" ? [] : r.questions.value.map((question) => question.search.keyword);
-  const localPack = localPackSearches({ serps: r.serps, searches, ownDomain: r.domain });
-  return searchPresenceOf({
-    ranked: measured({ rows: r.ownRankedRows, total: r.ownRanked.value }, at),
-    at,
-    ...(localPack.length === 0 ? {} : { localPack }),
-  });
+/** The search-presence driver from the presence card counted again over
+ *  the stored SERPs, or `null` where no search was measured or no card was
+ *  stored: then the stored driver stands until the next scan. */
+function searchPresenceFrom(card: PresenceCard | null, serps: RescoreReport["serps"], at: Date): Measured<number> | null {
+  if (card === null || card.measuredSearches === 0) return null;
+  return searchPresenceOf({ card, serps, at });
 }
 
 /** The cards over the stored SERPs, where the pass that stored them got as
@@ -364,8 +357,20 @@ export function rescoreScan(scan: RescoreScan): Rescored {
   // not stored, the stored value stands.
   const answerability = contentFrom(r, scan, at, kept) ?? dated(stored?.answerability ?? r.verdict.factors.answerability, at);
 
-  const searchPresence = searchPresenceFrom(r, at);
-  if (searchPresence === null) kept.push("search presence: the report kept its ranked count but not the rows");
+  // The profile as this re-score completes it (issue 1470). A free scan's
+  // town that profile reads as no market of its own (issue 1480) still
+  // stands: its searches were bought there and are read as they were, and
+  // the scan is stale until its next pass measures it nationally (issue
+  // 1504), as a stored country stands.
+  const profile = clearedProfileOf(r);
+  const reading = readingOf(r, profile, scan.market ?? null);
+  const read = withReading(r, profile, reading);
+  const stale = read.locale?.place !== undefined && !placeStands(read);
+  if (stale) kept.push(KEPT_TOWN_BOUGHT);
+  const cards = cardsAfter(read, scan, kept);
+
+  const searchPresence = searchPresenceFrom(cards.presence, r.serps, at);
+  if (searchPresence === null) kept.push("search presence: the report kept no measured search, so its stored value stands");
   // Issue 1551: the page questions' stored AI-Overview cells count beside
   // the twelve's, read as stored. A report written before the section has
   // none.
@@ -399,7 +404,7 @@ export function rescoreScan(scan: RescoreScan): Rescored {
     access_rules: outcomeOf(robots),
     business_profile: asStored("business_profile"),
     market_suggestions: asStored("market_suggestions"),
-    own_ranked_rows: outcomeOf(drivers.searchPresence),
+    own_ranked_rows: outcomeOf(r.ownRanked),
     question_serps: outcomeOf(foldSerps(r.serps, at)),
   };
   const aiSample = aiSampleOf({ serps: r.serps, pageCells, ownDomain: r.domain, siteName: scan.siteName });
@@ -410,22 +415,12 @@ export function rescoreScan(scan: RescoreScan): Rescored {
     inputs,
     robots,
     aiRange: aiPresenceRangeOf(aiSample),
+    searchRange: searchPresenceRangeOf(cards.presence),
     searchesRead: aiSample.read,
     ...(presence === undefined ? {} : { presence }),
   });
 
-  // The profile as this re-score completes it (issue 1470). A free scan's
-  // town that profile reads as no market of its own (issue 1480) still
-  // stands: its searches were bought there and are read as they were, and
-  // the scan is stale until its next pass measures it nationally (issue
-  // 1504), as a stored country stands.
-  const profile = clearedProfileOf(r);
-  const reading = readingOf(r, profile, scan.market ?? null);
-  const read = withReading(r, profile, reading);
-  const stale = read.locale?.place !== undefined && !placeStands(read);
-  if (stale) kept.push(KEPT_TOWN_BOUGHT);
-
-  let after: RescoredMembers = { ...membersOf(r), verdict, ...cardsAfter(read, scan, kept) };
+  let after: RescoredMembers = { ...membersOf(r), verdict, ...cards };
 
   // A home read that was a protection's page is no reading of the site
   // (issue 1383): the report says what a new scan of it would say.
@@ -487,6 +482,9 @@ function promptChanges(r: RescoreReport, scan: Pick<RescoreScan, "siteName" | "a
               each.key.startsWith(`${asked.text}|`) &&
               Number(/\|run:(\d+)$/.exec(each.key)?.[1] ?? 1) === answer.run
           );
+    // The pages it cited are read again wherever they were stored.
+    const cited = stored?.citedUrls == null ? null : citedPagesOf(stored.citedUrls, r.domain);
+    if (cited !== null && !same(answer.cited ?? [], cited)) changes.push({ path: ["prompts", "answers", i, "cited"], value: cited });
     const text = stored?.whole ?? stored?.text ?? null;
     if (text === null) return;
     const rivals = scan.market?.rivals ?? answer.rivals.map((domain) => ({ name: brandOf(domain), domain }));

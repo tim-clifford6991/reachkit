@@ -60,7 +60,7 @@ async function mount(account: AccountView): Promise<HTMLElement> {
   const container = document.createElement("div");
   document.body.appendChild(container);
   await act(async () => {
-    createRoot(container).render(<AccountPanel account={account} />);
+    createRoot(container).render(<AccountPanel account={account} pages={0} />);
   });
   return container;
 }

@@ -273,14 +273,11 @@ describe("the thirteen keys the owner ruled 2026-09-04 (WO-041 `## Log`, this da
     expect(copy("offer.cadence.page", { weekPages: 7 })).toBe(
       "Up to 7 pages a week for your site, new or updated"
     );
-    expect(copy("offer.cadence.measure", { value: "every week" })).toBe(
-      "Your market scanned every week"
-    );
     expect(copy("offer.cadence.movement", { value: "every week" })).toBe(
       "What moved, in your inbox every week"
     );
     expect(copy("offer.veto.window", { value: "24 hours" })).toBe(
-      "Every page goes live on its own after 24 hours. You can edit or stop it before then, and cancel any time, yourself"
+      "Every page goes live on its own after 24 hours. You can edit or stop it before then."
     );
   });
 
@@ -316,7 +313,7 @@ describe("the thirteen keys the owner ruled 2026-09-04 (WO-041 `## Log`, this da
 
   it("email placeholders name a reserved example domain, not someone's inbox", () => {
     expect(copy("signin.field.placeholder")).toBe("you@example.com");
-    expect(copy("free-page.email.placeholder")).toBe("you@example.com");
+    expect(copy("free-page.email.placeholder")).toBe("you@yourdomain.example");
     expect(copy("lead.invalid_address")).toBe(
       "That doesn’t look like an email address. Try the form you@example.com."
     );
@@ -328,20 +325,6 @@ describe("the thirteen keys the owner ruled 2026-09-04 (WO-041 `## Log`, this da
     expect(COPY["price.vat_included"]).toBe("VAT included");
     expect(copy("price.vat_included")).toBe("VAT included");
     expect(OWNER_OWED).not.toContain("price.vat_included");
-
-    // `offer.cancel_self_service` was the other one. It moved to the
-    // `TODO(copy)` marker on 2026-09-05 (issue #13) — §4.1 module 6
-    // requires the pricing card to carry it, and an empty value would have
-    // thrown the whole report screen away — and it is **written now**: the
-    // owner's approved screen set draws it under the Start control on both
-    // surfaces that carry the offer, unbracketed, which ruling 11a of
-    // 2026-09-08 makes approved copy as written (issue #352). Not a
-    // sentence supplied on the owner's behalf: their own. Board `R12-2`
-    // (2026-09-24, #1068) adds who cancels; it now names where, since
-    // cancelling runs through Settings and Stripe's portal.
-    expect(COPY["offer.cancel_self_service"]).toBe("Cancel any time from Settings.");
-    expect(AWAITING_COPY).not.toContain("offer.cancel_self_service");
-    expect(OWNER_OWED).not.toContain("offer.cancel_self_service");
   });
 });
 

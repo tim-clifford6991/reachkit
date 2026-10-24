@@ -1,9 +1,9 @@
 // BUILD §3, §4.2 — the public footer, a daisyUI footer.
 // src/app/(public)/_chrome/Footer.tsx
 //
-// SPEC §1: brand, rights, removal address, Product, Legal. The legal column
-// reaches the three static routes, and the removal address is named so a
-// person who never opened an email can still find the way out.
+// Board `PubLanding`: brand, then Product · Learn · Legal · Contact, then
+// one line with the rights and the removal address, named so a person who
+// never opened an email can still find the way out.
 // **The column titles are not headings** (#328). They were level-six
 // headings, which land two or three levels under whatever `<h1>` the page
 // above carries — `heading-order`, on all eight public routes — and they
@@ -25,7 +25,8 @@ const LEGAL: readonly { href: string; key: "legal.privacy.title" | "legal.terms.
   { href: "/imprint", key: "legal.imprint.title" },
 ];
 
-const LEARN: readonly { href: string; key: "chrome.nav.compare" | "chrome.nav.tools" | "chrome.nav.teardowns" }[] = [
+const LEARN: readonly { href: string; key: "chrome.nav.scans" | "chrome.nav.compare" | "chrome.nav.tools" | "chrome.nav.teardowns" }[] = [
+  { href: "/scans", key: "chrome.nav.scans" },
   { href: "/compare", key: "chrome.nav.compare" },
   { href: "/tools", key: "chrome.nav.tools" },
   { href: "/teardowns", key: "chrome.nav.teardowns" },
@@ -47,13 +48,9 @@ async function ArticlesLink(): Promise<React.JSX.Element | null> {
 export function Footer(): React.JSX.Element {
   return (
     <footer className="border-t border-base-300 bg-base-100" data-testid="public-footer">
-      <div className="footer mx-auto max-w-6xl px-4 py-10 text-sm sm:footer-horizontal">
-        <aside className="max-w-sm">
+      <div className="footer mx-auto max-w-6xl px-4 pt-10 pb-8 text-sm sm:footer-horizontal">
+        <aside>
           <Brand href="/" />
-          <p className="text-base-content/70">{copy("chrome.footer.rights")}</p>
-          <p className="text-base-content/70">
-            {copy("chrome.footer.opt-out", { address: copy("removal.address") })}
-          </p>
         </aside>
 
         <nav aria-label={copy("chrome.footer.product")}>
@@ -101,7 +98,17 @@ export function Footer(): React.JSX.Element {
             </Link>
           ))}
         </nav>
+
+        <nav aria-label={copy("chrome.footer.contact")}>
+          <div className="footer-title opacity-70">{copy("chrome.footer.contact")}</div>
+          <a href={`mailto:${copy("chrome.footer.contact.address")}`} className="link link-hover">
+            {copy("chrome.footer.contact.address")}
+          </a>
+        </nav>
       </div>
+      <p className="border-base-300 text-base-content/70 mx-auto max-w-6xl border-t px-4 py-5 text-sm">
+        {[copy("chrome.footer.rights"), copy("chrome.footer.opt-out", { address: copy("removal.address") })].join(" · ")}
+      </p>
     </footer>
   );
 }

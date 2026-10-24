@@ -44,7 +44,7 @@ import type { LinkTarget } from "../links/select";
 import { headingLines, sameSubtopic, subtopicOf, topicWords } from "../rules/gaps";
 import { alikeHeadings } from "../rules/headings";
 import { renderOf } from "../rules/text";
-import { TEMPLATES, type PackNeed, type PackRequirement } from "../templates";
+import { sectionBounds, TEMPLATES, type PackNeed, type PackRequirement, type SectionFacts, type Template } from "../templates";
 import type { WritingMarket } from "../voice/market";
 import type { PromptKnowledge, PromptProfile } from "../voice/profile-block";
 import { chooseVoice, type PageVoice, type WritingVoice } from "../voice/register";
@@ -545,9 +545,39 @@ function ownTopicWords(pack: Omit<ContextPack, "missing">): Set<string> {
   return own(`${pack.business.category} ${typeof market?.job === "string" ? market.job : ""}`);
 }
 
+/**
+ * The rivals a "vs" search sets against each other without the business
+ * (owner ruling R31), each by name and domain; empty on any other search.
+ */
+export function rivalsOnlyVersus(pack: Pick<ContextPack, "target" | "business">): NamedRival[] {
+  const search = (pack.target.searches[0] ?? pack.target.question).toLowerCase();
+  if (!SHAPES.versus.test(search)) return [];
+  const own = { name: pack.business.name ?? brandOf(pack.business.domain), domain: pack.business.domain };
+  if (namesRival(search, own) || namesRival(search, { name: brandOf(pack.business.domain), domain: pack.business.domain })) return [];
+  const market = pack.business.market as { rivals?: unknown } | null;
+  const listed = Array.isArray(market?.rivals) ? (market.rivals as { name?: unknown; domain?: unknown }[]) : [];
+  const rivals: NamedRival[] = [];
+  for (const rival of [
+    ...listed.flatMap((each) => (typeof each.name === "string" && typeof each.domain === "string" ? [{ name: each.name, domain: each.domain }] : [])),
+    ...pack.business.rivals.map((domain) => ({ name: brandOf(domain), domain })),
+  ]) {
+    if (!rivals.some((known) => known.domain === rival.domain) && namesRival(search, rival)) rivals.push(rival);
+  }
+  return rivals.length >= 2 ? rivals : [];
+}
+
+/** A claim about a rival read first-hand: off its own site, or off a study
+ *  or a primary source about it — never off a top search result. */
+function firstHand(claim: PackClaim, domain: string): boolean {
+  if (claim.kind === "top_result") return false;
+  return claim.product === domain || ((claim.kind === "study" || claim.kind === "primary") && claim.about === domain);
+}
+
 function holds(requirement: PackRequirement, pack: Omit<ContextPack, "missing">, previousResearch: PackMeasurements | null): boolean {
   const knowledge = pack.profile?.knowledge;
   switch (requirement.need) {
+    case "rival_evidence":
+      return rivalsOnlyVersus(pack).every((rival) => pack.claims.some((claim) => firstHand(claim, rival.domain)));
     case "options":
       // D47: the options are the ones code can lay a table out of — the
       // business and that many rivals, each with a fact to set beside it.
@@ -632,7 +662,45 @@ export function correctionsFor(a: {
 
 /** What the template asks of the pack that it does not hold, by handle. */
 export function missingFrom(pack: Omit<ContextPack, "missing">, previousResearch: PackMeasurements | null = null): PackNeed[] {
-  return TEMPLATES[pack.type].packMustHold.filter((requirement) => !holds(requirement, pack, previousResearch)).map((requirement) => requirement.need);
+  // R31: every page but an update, whatever its template, is held to it.
+  const held: PackRequirement[] = [...TEMPLATES[pack.type].packMustHold, ...(pack.type === "update" ? [] : [{ need: "rival_evidence" as const }])];
+  return held.filter((requirement) => !holds(requirement, pack, previousResearch)).map((requirement) => requirement.need);
+}
+
+/** How many of a section's facts the pack holds: distinct inclusions, the
+ *  places the business's own pages state (never one only the founder gave),
+ *  and one where it states a difference or a promise. */
+function factsHeld(facts: SectionFacts, pack: ContextPack): number {
+  const knowledge = pack.profile?.knowledge;
+  switch (facts) {
+    case "inclusions":
+      return new Set((knowledge?.offerings ?? []).flatMap((offering) => offering.features.map(fold))).size;
+    case "places":
+      return new Set((knowledge?.places ?? []).filter((place) => place.from !== "founder").map((place) => fold(place.text))).size;
+    case "difference":
+      return holds({ need: "difference" }, pack, null) ? 1 : 0;
+  }
+}
+
+/**
+ * The template a pack's page is written and checked to (E10): a section the
+ * pack holds too few facts for is left out, questions buyers asked fewer than
+ * the template's least leave no FAQ, and the length's ceiling keeps each
+ * section's share, so a page with fewer sections is never padded.
+ */
+export function fittedTemplate(pack: ContextPack): Template {
+  const template = TEMPLATES[pack.type];
+  const sections = template.sections.filter((slot) => slot.onlyWith === undefined || factsHeld(slot.onlyWith.facts, pack) >= slot.onlyWith.min);
+  const faq = template.blocks.faq;
+  const asked = faq === null || faq.asked !== true || holds({ need: "buyer_questions", min: faq.min }, pack, null);
+  if (sections.length === template.sections.length && asked) return template;
+  const share = sectionBounds({ ...template, sections }).max / sectionBounds(template).max;
+  return {
+    ...template,
+    sections,
+    blocks: { ...template.blocks, faq: asked ? faq : { min: 0, max: 0 } },
+    length: "ceiling" in template.length ? { ...template.length, ceiling: Math.round(template.length.ceiling * share) } : template.length,
+  };
 }
 
 export interface PackInputs {
@@ -694,7 +762,7 @@ export function freshFirst<T extends { fact: { passage: string } }>(facts: reado
  * The stored-row check of issue 1509: of the business-fact passages a live
  * page states (its pack's facts found word for word in its text), the share
  * also stated on `PACK.repeatedOn` or more of the site's other live pages.
- * `null` for a page that states none. Held to `REPEATED_FACT_SHARE_MAX`.
+ * `null` for a page that states none.
  */
 export function repeatedFactShare(a: { markdown: string; facts: readonly string[]; others: readonly string[] }): number | null {
   const page = pageText(a.markdown);

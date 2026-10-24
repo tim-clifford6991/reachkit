@@ -89,17 +89,21 @@ export function presenceOf(d: Pick<Drivers, "searchPresence" | "aiPresence">): M
   return { kind: zero ? "zero" : "measured", value, at };
 }
 
-/** Where Presence could lie (issue 1439): a half that was read is its value,
- *  AI presence its Wilson range where the answers behind it are known
- *  (`aiRange`), and a half not read the whole of its scale. Where AI
- *  answered none of the searches read there is no AI term. */
+/** Where Presence could lie (issue 1439): each half that was read is its
+ *  Wilson range where the sample behind it is known (`searchRange`,
+ *  `aiRange`) and its value otherwise, and a half not read the whole of its
+ *  scale. Where AI answered none of the searches read there is no AI term. */
 export function presenceRangeOf(
   d: Pick<Drivers, "searchPresence" | "aiPresence">,
-  aiRange?: { low: number; high: number } | null
+  aiRange?: { low: number; high: number } | null,
+  searchRange?: { low: number; high: number } | null
 ): { low: number; high: number } {
   const search = halfOf(d.searchPresence);
   const ai = halfOf(d.aiPresence);
-  const sp = search.kind === "value" ? { low: search.value, high: search.value } : { low: 0, high: SCALE_CEILING };
+  const sp =
+    search.kind === "value"
+      ? { low: searchRange?.low ?? search.value, high: searchRange?.high ?? search.value }
+      : { low: 0, high: SCALE_CEILING };
   if (ai.kind === "absent") return { low: Math.max(PRESENCE_FLOOR, sp.low), high: Math.max(PRESENCE_FLOOR, sp.high) };
   const ap =
     ai.kind === "unknown" ? { low: PRESENCE_FLOOR, high: SCALE_CEILING } : (aiRange ?? { low: ai.value, high: ai.value });

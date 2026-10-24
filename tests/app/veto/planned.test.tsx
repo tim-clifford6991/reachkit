@@ -3,6 +3,7 @@
 // pressing stops it, and a page written since is sent to the plan.
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type React from "react";
+import { renderToStaticMarkup } from "react-dom/server";
 import { applyEnvFixture } from "../../mail/env-fixture";
 import { fakeDb } from "../../publish/harness";
 
@@ -49,6 +50,17 @@ const strings = (tree: React.ReactNode): string[] =>
 
 const status = () => db.rows("opportunities")[0]!.status;
 
+/** The neutral chip a link that cannot be spent draws, and the lucide icons inside it. */
+function refusedChip(tree: React.ReactNode): { cls: string; icons: string[] } {
+  const chip = nodes(tree).find((node) => node.props?.["data-testid"] === "veto-refused-chip");
+  if (chip === undefined) return { cls: "", icons: [] };
+  const markup = renderToStaticMarkup(chip as unknown as React.ReactElement);
+  return { cls: String(chip.props.className), icons: [...markup.matchAll(/class="lucide lucide-([a-z-]+)/g)].map((m) => m[1]!) };
+}
+
+const tinted = (tree: React.ReactNode): boolean =>
+  nodes(tree).some((node) => String(node.props?.className ?? "").includes("bg-success"));
+
 beforeEach(() => {
   redirected.length = 0;
   db.reset();
@@ -89,10 +101,45 @@ describe("the stop link to a page not written yet", () => {
     expect(done).toContain(COPY["publish.veto.done.head"]);
   });
 
+  it("says why ReachKit chose the planned page, from the reason the week stored", async () => {
+    db.rows("opportunities")[0]!.plan_reason = { points: 4, parts: [{ part: "demand", n: 2 }], rule: null };
+    const why = nodes(await VetoPage({ params: { token: TOKEN } })).find((node) => node.props?.["data-testid"] === "veto-why");
+    const said = nodes(why as unknown as React.ReactNode).flatMap((node) => {
+      const children = node.props?.children;
+      return (Array.isArray(children) ? children : [children]).filter((c): c is string => typeof c === "string");
+    });
+    expect(said).toContain(COPY["publish.veto.why"]);
+    expect(said).toContain("searched every month.");
+  });
+
+  it("a planned page whose week kept no reason states none", async () => {
+    const tree = await VetoPage({ params: { token: TOKEN } });
+    expect(nodes(tree).some((node) => node.props?.["data-testid"] === "veto-why")).toBe(false);
+  });
+
   it("a page written since its mail is sent to the plan, and is not stopped here", async () => {
     db.rows("opportunities")[0]!.status = "queued";
     const tree = await VetoPage({ params: { token: TOKEN } });
     expect(strings(tree)).toContain(COPY["publish.veto.written"]);
     expect(nodes(tree).some((node) => node.type === "form")).toBe(false);
+  });
+
+  it("a planned day already stopped, reached again, draws the used arm's neutral circle-stop chip", async () => {
+    db.rows("opportunities")[0]!.status = "dismissed";
+    const tree = await VetoPage({ params: { token: TOKEN } });
+    expect(strings(tree)).toContain(COPY["publish.veto.used.head"]);
+    const chip = refusedChip(tree);
+    expect(chip.cls).toContain("bg-base-200");
+    expect(chip.icons).toEqual(["circle-stop"]);
+    expect(tinted(tree)).toBe(false);
+  });
+
+  it("a page written since its mail draws the closed arm's neutral clock chip", async () => {
+    db.rows("opportunities")[0]!.status = "queued";
+    const tree = await VetoPage({ params: { token: TOKEN } });
+    const chip = refusedChip(tree);
+    expect(chip.cls).toContain("bg-base-200");
+    expect(chip.icons).toEqual(["clock"]);
+    expect(tinted(tree)).toBe(false);
   });
 });

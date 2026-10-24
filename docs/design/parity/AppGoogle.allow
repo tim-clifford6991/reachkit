@@ -14,9 +14,7 @@ water heater repair or replace	sample data
 a national plumbing chain’s page	sample data
 toilet repair austin 320 a month · capitolrooter.example Update Tue 20	sample data
 320	sample data
-18	sample data
 720	sample data
-24	sample data
 1,300	sample data
 260	sample data
 880	sample data
@@ -24,3 +22,38 @@ toilet repair austin 320 a month · capitolrooter.example Update Tue 20	sample d
 170	sample data
 48	sample data
 6,600	sample data
+Theme: light	DESIGN.md: the /app shell's theme control is the Light / Dark / System dropdown named Theme (#681)
+Measured Monday 19 October.	sample data: the day is the account's own stored reading
+of 12 pages showing in results	sample data: the count is the account's own live pages
+1 on the first page 4 at places 11–100 7 not yet seen What this means	sample data: the counts are the account's own pages
+2 Oct 5 4 Oct 12 9 Oct 19 What this means	sample data: the weeks and visits are the account's own, drawn by Recharts (E8 2026-10-24)
+1 on the first page 11 not yet What this means	sample data: the counts are the account's own market
+How to shut off water to a house in an emergency	sample data
+how to shut off water to a house	sample data
+Place 8 for “water heater flush austin”, up 6 since Oct 12.	sample data: the place, search, gain and day are the page's own reading
+Place 11 for “how to shut off water to a house”, up 30 since Oct 5.	sample data: the place, search, gain and day are the page's own reading
+Place 24 for “tankless water heater austin”, up 38 since Oct 5.	sample data: the place, search, gain and day are the page's own reading
+Place 18 for “toilet repair austin”, no gain in 3 weeks. An update goes live Tue 20.	sample data: the place, search, weeks and day are the page's own reading and Plan's week
+Place 48 for “sewer camera inspection austin”, no gain in 8 weeks. An update goes live Sun 25.	sample data: the place, search, weeks and day are the page's own reading and Plan's week
+Not moving	sample data: no fixture page has gone 8 weeks without a gain
+Found by Google on Oct 14. Not in results yet.	sample data: the day is the page's own first crawl
+6 of 12 live pages	sample data: the count is the account's own live pages
+Show all 12	sample data: the count is the account's own live pages
+What buyers in Austin search, who Google shows, and what ReachKit is doing about each.	sample data: the fixture business sells beyond one place, so the lead names none (#1746)
+water heater flush austin 110 a month · a national plumbing chain’s page Page is live	sample data
+capitolrooter.example	sample data
+Update Tue 20	sample data: the day is the account's own Plan week
+tankless water heater austin 720 a month · capitolrooter.example Climbing, left alone	sample data
+emergency plumber austin 1,300 a month · austinpipeworks.example Goes live today	sample data
+austinpipeworks.example	sample data
+slab leak repair cost austin 260 a month · capitolrooter.example Page Wed 21	sample data
+Page Wed 21	sample data: the day is the account's own Plan week
+drain cleaning austin 880 a month · a national plumbing chain’s page Page Fri 23	sample data
+Page Fri 23	sample data: the day is the account's own Plan week
+water softener austin 590 a month · a home-improvement store’s guide Page Sat 24	sample data
+a home-improvement store’s guide	sample data
+Page Sat 24	sample data: the day is the account's own Plan week
+sewer camera inspection austin 170 a month · austinpipeworks.example Update Sun 25	sample data
+Update Sun 25	sample data: the day is the account's own Plan week
+plumber austin 6,600 a month · a national plumbing chain’s page Too big for now	sample data
+9 of 12 · closest to the first page first	sample data: the counts are the account's own searches

@@ -2,3 +2,5 @@ harborplumbing.com	sample data
 Harbor Plumbing · Austin	sample data
 Dana Ruiz	sample data
 dana@harborplumbing.com	sample data
+Theme: light	DESIGN.md: the /app shell's theme control is the Light / Dark / System dropdown named Theme (#681)
+Settings section	#1101: below sm the seven tabs wrap as links, so no section select is drawn

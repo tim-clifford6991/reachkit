@@ -34,6 +34,7 @@ export {
   type RedeemResult,
   type VetoPreview,
   type VetoRefusal,
+  type WeekDay,
 } from "./veto";
 export {
   PUBLISHABLE_RULE,

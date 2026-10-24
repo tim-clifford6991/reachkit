@@ -22,20 +22,19 @@ vi.mock("next/navigation", () => ({
 }));
 
 import { SearchTable } from "@/app/(account)/app/_overview/SearchTable";
-import { SearchTiles } from "@/app/(account)/app/_overview/SearchTiles";
-import { assembleSearch } from "@/app/(account)/app/_overview/search-model";
+import { assembleSearch, type SearchModel, type SearchRow } from "@/app/(account)/app/_overview/search-model";
 import { FIXTURE_SEARCH_FACTS } from "@/app/(account)/app/_overview/search-fixture";
+import { measured, unmeasured } from "@/lib/measure/measured";
 import { copy } from "@/lib/presentation/copy";
-import { measuredZero, unmeasured } from "@/lib/measure/measured";
 
 const AT = FIXTURE_SEARCH_FACTS.measuredAt ?? new Date(0);
 const MODEL = assembleSearch(FIXTURE_SEARCH_FACTS, AT);
 
-function table(searchParams: Record<string, string> = {}): Element {
+function table(searchParams: Record<string, string> = {}, model: SearchModel = MODEL): Element {
   const container = document.createElement("div");
   container.innerHTML = renderToStaticMarkup(
     <NuqsTestingAdapter searchParams={searchParams}>
-      <SearchTable model={MODEL} />
+      <SearchTable model={model} doing={{}} lead={copy("overview.search.table.lead.anywhere")} />
     </NuqsTestingAdapter>
   );
   return container;
@@ -56,19 +55,18 @@ describe("the table", () => {
     );
   });
 
-  it("holds SPEC §4's six columns, in its order", () => {
+  it("holds the board's five columns, in its order, and no difficulty", () => {
     const heads = [...table().querySelectorAll("thead th")].map((th) => th.textContent);
     expect(heads).toEqual([
       copy("overview.search.column.search"),
       copy("overview.search.column.volume"),
-      copy("overview.search.column.difficulty"),
       copy("overview.search.column.you"),
       copy("overview.search.column.rival"),
       copy("overview.search.column.status"),
     ]);
   });
 
-  it("is two shapes in one DOM: stacked rows below `sm`, six columns above", () => {
+  it("is two shapes in one DOM: stacked rows below `sm`, columns above", () => {
     // #963: at 390 four of the six columns were off the right edge of the
     // scroller. Below `sm` the row is a three-line grid and the box does
     // not scroll at all; nothing is written twice.
@@ -79,8 +77,8 @@ describe("the table", () => {
     const row = node.querySelector('[data-testid="search-row"]');
     expect(row?.className).toContain("max-sm:grid");
     expect(row?.className).toContain("sm:table-row");
-    // Six cells, once — the phone shape re-places them, it adds none.
-    expect(row?.querySelectorAll("td")).toHaveLength(6);
+    // Five cells, once — the phone shape re-places them, it adds none.
+    expect(row?.querySelectorAll("td")).toHaveLength(5);
   });
 
   it("the box that can scroll is still reachable from a keyboard (#947)", () => {
@@ -98,7 +96,6 @@ describe("the table", () => {
       (el) => el.textContent
     );
     expect(spoken).toEqual([
-      copy("overview.search.column.difficulty"),
       copy("overview.search.column.you"),
       copy("overview.search.column.rival"),
     ]);
@@ -134,9 +131,9 @@ describe("the table", () => {
 });
 
 describe("the chips", () => {
-  it("are the first page and one per status, each carrying its own count, plus the reset that clears them", () => {
+  it("are one per status, each carrying its own count, plus the reset that clears them", () => {
     const chips = [...table().querySelectorAll('[data-testid^="search-chip-"]')];
-    expect(chips).toHaveLength(6);
+    expect(chips).toHaveLength(5);
     for (const status of ["live", "your_review", "up_next", "too_big"] as const) {
       const chip = chips.find((c) => c.getAttribute("data-testid") === `search-chip-${status}`);
       expect(chip?.getAttribute("aria-label"), status).toContain(String(MODEL.counts[status]));
@@ -158,84 +155,53 @@ describe("the chips", () => {
   });
 });
 
-describe("difficulty against the site's ceiling", () => {
-  it("every measured difficulty draws a bar with the ceiling marked on it", () => {
-    const el = table();
-    const bars = [...el.querySelectorAll('[data-testid="difficulty-bar"]')];
-    expect(bars.length).toBeGreaterThan(0);
-    for (const bar of bars) {
-      expect(bar.querySelector("progress")).not.toBeNull();
-      expect(bar.querySelector('[data-testid="difficulty-ceiling-mark"]')).not.toBeNull();
-      expect(bar.getAttribute("aria-label")).toContain(String(MODEL.ceiling));
-    }
+/** Four rows, one per status: volumes 1,300, 650 and two not measured; places 7, 11 and two not in the top 100. */
+const NOT_MEASURED = unmeasured<number>("not_attempted", AT);
+const ROWS: SearchRow[] = [
+  { status: "live", volume: measured(1300, AT), position: measured(7, AT) },
+  { status: "your_review", volume: measured(650, AT), position: measured(11, AT) },
+  { status: "up_next", volume: NOT_MEASURED, position: NOT_MEASURED },
+  { status: "too_big", volume: NOT_MEASURED, position: NOT_MEASURED },
+].map(({ status, volume, position }, i) => ({
+  ...MODEL.rows[0]!,
+  id: `row-${i}`,
+  status: status as SearchRow["status"],
+  target: { ...MODEL.rows[0]!.target, search: `search ${i}`, volume },
+  position,
+}));
+const FOUR: SearchModel = { ...MODEL, rows: ROWS };
+const rowsOf = (): Element[] => [...table({}, FOUR).querySelectorAll('[data-testid="search-row"]')];
+
+describe("what each row draws beside its words", () => {
+  it("each status badge carries its icon", () => {
+    const icons = rowsOf().map((row) => row.querySelector('.badge svg[aria-hidden="true"]:not(.lucide-trophy)')?.getAttribute("class") ?? "");
+    expect(icons.map((c) => c.split(" ").find((name) => name.startsWith("lucide-")))).toEqual([
+      "lucide-circle-check",
+      "lucide-clock",
+      "lucide-list",
+      "lucide-circle-minus",
+    ]);
   });
 
-  it("and the line over the table says where the mark stands and that it moves", () => {
-    expect(el(table(), "search-ceiling")?.textContent).toBe(
-      copy("overview.search.ceiling", { ceiling: String(MODEL.ceiling) })
-    );
-  });
-});
-
-describe("the four tiles", () => {
-  it("each carry a denominator or a goal beside the number", () => {
-    const container = document.createElement("div");
-    container.innerHTML = renderToStaticMarkup(<SearchTiles tiles={MODEL.tiles} />);
-    for (const id of [
-      "search-tile-going-after",
-      "search-tile-pages",
-      "search-tile-market",
-      "search-tile-appear-for",
-    ]) {
-      const tile = container.querySelector(`[data-testid="${id}"]`);
-      expect(tile, id).not.toBeNull();
-      // The figure, then what it is read against: two values, never one.
-      expect(tile?.querySelectorAll("span.figure, span.num").length, id).toBeGreaterThanOrEqual(2);
-    }
-    expect(container.innerHTML).not.toContain("TODO(copy)");
-  });
-});
-
-describe("two tiles state this site's own reading, in the board's shape (#1039)", () => {
-  function tiles(tiles: typeof MODEL.tiles): Element {
-    const container = document.createElement("div");
-    container.innerHTML = renderToStaticMarkup(<SearchTiles tiles={tiles} />);
-    return container;
-  }
-
-  it("the queue says how long it lasts, and the pages tile splits its searches by place", () => {
-    const el0 = tiles({
-      ...MODEL.tiles,
-      goingAfter: { ...MODEL.tiles.goingAfter, reading: { kind: "queue", weeks: 5, days: 35 } },
-      pages: { ...MODEL.tiles.pages, reading: { kind: "pages", firstPage: 1, further: 3, unseen: 2 } },
-    });
-    expect(el(el0, "search-tile-going-after-means")?.textContent).toBe(
-      copy("overview.search.tile.going-after.weeks", { weeks: "5" })
-    );
-    expect(el(el0, "search-tile-pages-means")?.textContent).toBe(
-      copy("overview.search.tile.your-pages.split", { first: "1", further: "3", unseen: "2" })
-    );
+  it("volume bars at volume of largest; unmeasured, none", () => {
+    const bars = rowsOf().map((row) => row.querySelector("progress"));
+    expect(bars.map((bar) => (bar === null ? null : [bar.getAttribute("value"), bar.getAttribute("max")]))).toEqual([
+      ["1300", "1300"],
+      ["650", "1300"],
+      null,
+      null,
+    ]);
+    expect(bars[0]?.getAttribute("aria-hidden")).toBe("true");
   });
 
-  it("a queue under two weeks is counted in days", () => {
-    const el0 = tiles({
-      ...MODEL.tiles,
-      goingAfter: { ...MODEL.tiles.goingAfter, reading: { kind: "queue", weeks: 1, days: 10 } },
-    });
-    expect(el(el0, "search-tile-going-after-means")?.textContent).toBe(
-      copy("overview.search.tile.going-after.days", { days: "10" })
-    );
-  });
-
-  it("an unmeasured count keeps its dash and says why, never the old generality", () => {
-    const el0 = tiles({
-      ...MODEL.tiles,
-      goingAfter: { value: unmeasured<number>("not_attempted", AT), of: MODEL.tiles.goingAfter.of },
-    });
-    expect(el(el0, "search-tile-going-after-value")?.textContent).toBe(copy("unmeasured.dash"));
-    expect(el(el0, "search-tile-going-after-means")?.textContent).toBe(
-      copy("unmeasured.not-attempted", { what: copy("overview.search.tile.going-after") })
-    );
+  it("trophy only on the first page", () => {
+    expect(rowsOf().map((row) => row.querySelector("svg.lucide-trophy") !== null)).toEqual([true, false, false, false]);
+    const badge = rowsOf()[0]?.querySelector("svg.lucide-trophy")?.parentElement;
+    expect(badge?.className).toBe("badge badge-success badge-soft");
+    expect(badge?.firstElementChild?.matches("svg.lucide-trophy")).toBe(true);
+    expect(badge?.children[1]?.textContent).toBe("#7");
+    const eleventh = [...(rowsOf()[1]?.querySelectorAll("span.num") ?? [])].find((n) => n.textContent === "#11");
+    expect(eleventh?.parentElement?.classList.contains("badge")).toBe(false);
   });
 });
 
@@ -244,19 +210,3 @@ function el(root: Element, testId: string): Element | null {
   return root.querySelector(`[data-testid="${testId}"]`);
 }
 
-describe("a zero tile is quiet (the calm layer, #1089)", () => {
-  it("a week-0 zero is a flat cell with a small number; a measured count keeps its card", () => {
-    const container = document.createElement("div");
-    container.innerHTML = renderToStaticMarkup(
-      <SearchTiles
-        tiles={{ ...MODEL.tiles, market: { ...MODEL.tiles.market, value: measuredZero<number>(0, AT) } }}
-      />
-    );
-    const quiet = el(container, "search-tile-market");
-    expect(quiet?.hasAttribute("data-quiet")).toBe(true);
-    expect(el(container, "search-tile-market-value")?.className).not.toContain("text-3xl");
-
-    expect(MODEL.tiles.appearFor.value.kind).toBe("measured");
-    expect(el(container, "search-tile-appear-for")?.hasAttribute("data-quiet")).toBe(false);
-  });
-});

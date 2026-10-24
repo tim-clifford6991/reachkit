@@ -53,6 +53,7 @@ import type { MainSite } from "@/lib/site-profile/main-site-row";
 import { assembleReport } from "@/lib/scan/store";
 import { previousWeekStart, weekStartFor } from "@/lib/scan/weekly";
 import { DEFAULT_HOSTED_LABEL } from "@/lib/publish/destinations/hosted/label";
+import { windowStartDay } from "@/lib/publish/reads/model";
 import type { AppAccount } from "@/app/(account)/app/_session/account";
 import type { AuthStub } from "./auth-stub";
 import {
@@ -449,6 +450,19 @@ export function seedLiveAccount(): void {
     publishing: LIVE_PUBLISHING,
   });
   seedMeasuredWeeks(LIVE_ACCOUNT);
+  seedGoogleVisits(LIVE_ACCOUNT.siteId, [2, 4, 9]);
+}
+
+/** Visits from Google on the site's live hosted page, one day in each of the last weeks, oldest first, so the Google tab draws its chart from the database. */
+function seedGoogleVisits(siteId: string, weeks: readonly number[]): void {
+  const values = weeks
+    .map((hits, i) => `('${windowStartDay(sweepNow(), (weeks.length - 1 - i) * 7 + 1)}'::date, ${hits})`)
+    .join(", ");
+  sql(
+    `insert into publication_reads (site_id, publication_id, day, engine, kind, hits) ` +
+      `select p.site_id, p.id, v.day, 'google', 'referral', v.hits from publications p, (values ${values}) as v(day, hits) ` +
+      `where p.site_id = '${siteId}' and p.destination = 'hosted';`
+  );
 }
 
 /**
@@ -562,9 +576,10 @@ export function seedHostedPublisher(): void {
   });
 
   // The business as its blog draws it (issue 1140): a name, a kept logo and
-  // one line, so the header, the about card and the index are measured with
+  // the boards' one line, so the header, the about card and the index are measured with
   // the picture and the sentence rather than the first-letter fallback. Its
-  // main site links a book and a quote page, so the card draws both links.
+  // main site states a phone and links a book and a quote page, so the
+  // header draws the call, and the full block the call and both links.
   const mainSite: MainSite = {
     home: `https://${PUBLISHER_ACCOUNT.domain}/`,
     organization: { id: null, name: null, logo: null },
@@ -575,11 +590,13 @@ export function seedHostedPublisher(): void {
       { kind: "book", url: `https://${PUBLISHER_ACCOUNT.domain}/book` },
       { kind: "quote", url: `https://${PUBLISHER_ACCOUNT.domain}/get-a-quote` },
     ],
+    // The boards' fictional 555 number.
+    phone: "(512) 555-0142",
   };
   sql(
     `insert into site_profiles (domain, site_name, claims, logo_image, logo_type, main_site) values ` +
       `('${PUBLISHER_ACCOUNT.domain}', 'Publisher & Sons Onboarding Software', ` +
-      `'["Onboarding checklists with one owner for every step, so a new hire reaches their first real task in the first week"]'::jsonb, ` +
+      `'["Licensed plumbers in Austin, TX: repairs, water heaters and 24-hour emergency calls."]'::jsonb, ` +
       `'\\x${ONE_PIXEL_PNG}'::bytea, 'image/png', '${JSON.stringify(mainSite)}'::jsonb);`
   );
 
@@ -602,7 +619,128 @@ export function seedHostedPublisher(): void {
         `'https://content.${PUBLISHER_ACCOUNT.domain}/more-${index}', '2026-08-2${index}T09:00:00.000Z', 'delivered');`
     );
   });
+
+  // The business's own service page (owner R1, 2026-10-22; E10), the one board
+  // HostedService reads: dated, made line kept, no byline, every section, and
+  // the sections and questions generation records beside it.
+  const meta = JSON.stringify({
+    contentType: "offering",
+    description: PUBLISHER_OFFERING.description,
+    faq: PUBLISHER_OFFERING.faq,
+    sections: PUBLISHER_OFFERING.sections,
+    ...PUBLISHER_PAGE.made,
+  }).replaceAll("'", "''");
+  const [opportunityId] = rows(
+    `insert into opportunities (site_id, scan_id, type, family, target_query, target_ref, proposed_slug, title, volume, fit_band, effort, evidence, acceptance) ` +
+      `select site_id, scan_id, type, family, '${PUBLISHER_OFFERING.search}', '${PUBLISHER_OFFERING.slug}', '${PUBLISHER_OFFERING.slug}', '${PUBLISHER_OFFERING.title}', volume, fit_band, effort, evidence, acceptance ` +
+      `from opportunities where site_id = '${PUBLISHER_ACCOUNT.siteId}' limit 1 returning id;`
+  );
+  const [draftId] = rows(
+    `insert into drafts (opportunity_id, site_id, state, title, body_md, attribution, meta) values ` +
+      `('${opportunityId}', '${PUBLISHER_ACCOUNT.siteId}', 'published', '${PUBLISHER_OFFERING.title}', ` +
+      `'${PUBLISHER_OFFERING.bodyMd.replaceAll("'", "''")}', 'Dana Ruiz · Head of onboarding', '${meta}'::jsonb) returning id;`
+  );
+  sql(
+    `insert into publications (draft_id, site_id, destination, mode, live_url, published_at, delivery_state) values ` +
+      `('${draftId}', '${PUBLISHER_ACCOUNT.siteId}', 'hosted', 'autopilot', ` +
+      `'https://content.${PUBLISHER_ACCOUNT.domain}/${PUBLISHER_OFFERING.slug}', '2026-08-19T09:00:00.000Z', 'delivered');`
+  );
+  // Every page's search is the business's own offering, so each draws the
+  // compact block after its takeaways or short answer.
+  sql(`update opportunities set business_fit = 3 where site_id = '${PUBLISHER_ACCOUNT.siteId}';`);
+  // The boards' sample business is a local service: its market serves a
+  // place and region, so its book page reads as a visit and every full
+  // block says "Serves Austin, TX." as the boards do.
+  sql(
+    `update sites set market = '{"current":{"category":"a plumber","serves":{"name":"Austin","region":"TX"}}}'::jsonb ` +
+      `where id = '${PUBLISHER_ACCOUNT.siteId}';`
+  );
+  // Two published pages on one topic, so the index draws "All guides" with a topic card and the A–Z rest.
+  sql(
+    `update opportunities set status = 'done', cluster_key = 'checklist onboarding' ` +
+      `where site_id = '${PUBLISHER_ACCOUNT.siteId}' and target_query in ('${PUBLISHER_OFFERING.search}', 'more guides 0');`
+  );
 }
+
+/** The board's plumber offering page, with every fact (E10): an emergency
+ *  call-out in Austin, its eight sections in the fixed order, its steps, four
+ *  questions, and the site's other live guides for "More guides". The values
+ *  are the board's sample data. */
+const PLUMBER = "https://harborplumbing.example";
+export const PUBLISHER_OFFERING = Object.freeze({
+  slug: "emergency-plumber-austin",
+  search: "emergency plumber austin",
+  title: "Emergency plumber in Austin: 24-hour call-outs from $149",
+  description: "Harbor Plumbing answers emergency calls 24 hours a day across Austin, from a $149 call-out with a written price first.",
+  sections: [
+    { key: "what", heading: "What it is and who it’s for" },
+    { key: "included", heading: "What’s included", items: 4 },
+    { key: "price", heading: "How it’s priced" },
+    { key: "where_when", heading: "Where and when" },
+    { key: "how_it_works", heading: "How it works", items: 4 },
+    { key: "why", heading: "Why Harbor Plumbing" },
+  ],
+  faq: [
+    { question: "Is the call-out price the same at night?", answer: `Yes. The call-out is [$149 at any hour](${PLUMBER}/pricing), as listed on our pricing page.` },
+    {
+      question: "What should I do while I wait?",
+      answer: `Shut off the water at the main valve, open the lowest tap to drain the pipes, and switch off the water heater. Our guide [How to shut off water to a house in an emergency](https://content.${PUBLISHER_ACCOUNT.domain}/${PUBLISHER_PAGE.slug}) shows each step.`,
+    },
+    { question: "Will I know the price before you start?", answer: "Yes. After finding the problem, the plumber gives you a written price. No work starts until you agree to it." },
+    { question: "Do you cover my area?", answer: "We cover the areas listed above. If your town isn’t listed, call and ask." },
+  ],
+  bodyMd: [
+    ":::answer",
+    "Harbor Plumbing answers emergency calls 24 hours a day across Austin. A call-out is $149, and you get a written price before any work starts. Call (512) 555-0142 and we’ll talk you through shutting off your water while the van is on its way.",
+    ":::",
+    "",
+    "## What it is and who it’s for",
+    "",
+    "Emergency plumbing is for problems that can’t wait for a weekday booking. It’s for homes in Austin.",
+    "",
+    "## What’s included",
+    "",
+    // A lead-in sentence, so the sweep measures a checklist.
+    "Every call-out includes:",
+    "",
+    "- Someone answers your call at any hour",
+    "- Help shutting off your water while you wait",
+    "- A plumber at your door to find the problem",
+    "- A written price before any work starts",
+    "",
+    `From [harborplumbing.example/emergency](${PLUMBER}/emergency).`,
+    "",
+    "## How it’s priced",
+    "",
+    `A call-out is [$149](${PLUMBER}/pricing). The call-out covers the visit and finding the problem. You then get a written price for the repair, and you decide whether to go ahead.`,
+    "",
+    `From [harborplumbing.example/pricing](${PLUMBER}/pricing).`,
+    "",
+    "## Where and when",
+    "",
+    "It serves the areas the main site lists:",
+    "",
+    "- Austin",
+    "- Round Rock",
+    "- Pflugerville",
+    "- Cedar Park",
+    "",
+    "## How it works",
+    "",
+    "1. **You call.** Ring (512) 555-0142 and tell us what’s happening.",
+    "2. **You get an arrival window.** We tell you on the phone when the plumber will reach you.",
+    "3. **You get a written quote.** The plumber finds the problem and writes down the price.",
+    "4. **We do the work.** Only once you’ve said yes to the price.",
+    "",
+    "## Why Harbor Plumbing",
+    "",
+    `- Licensed plumbers, as stated on [harborplumbing.example](${PLUMBER}/about).`,
+    "- A written price before any work starts.",
+    "- We stay on the line and talk you through the shut-off while the van is on its way.",
+    "",
+    "Water running now? [Call Harbor Plumbing on (512) 555-0142](tel:+15125550142).",
+  ].join("\n"),
+});
 
 /** Titles of different lengths, so a card grid is measured with a short
  *  title beside one that wraps. */
@@ -641,8 +779,8 @@ const PUBLISHER_MORE_PAGES = [
  * so no report fixture and no account answers for any of them.
  *
  * Issue 1377: and the categories as production fills them — ten with two
- * scans (two over the chips' cap), a tail with one each, and the placeholder
- * two stored rows carry. All older than the four above.
+ * scans, a tail with one each, and the placeholder two stored rows carry.
+ * All older than the four above.
  */
 const FREE_SCANS: readonly { domain: string; name: string | null; score: number | null; category: string | null; logo: boolean }[] = [
   { domain: "harbourbikes.example", name: "Harbour Bike Repair", score: 47, category: "Local services", logo: true },

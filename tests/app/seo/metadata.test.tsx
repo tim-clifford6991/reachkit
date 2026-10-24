@@ -101,6 +101,8 @@ const OWNER: Readonly<Record<string, { module: string; generated?: Record<string
   "/tools/on-page-check": { module: "@/app/(public)/tools/on-page-check/page" },
   "/veto/{token}": { module: "@/app/(public)/veto/[token]/page" },
   "/opt-out/{token}": { module: "@/app/(public)/opt-out/[token]/page" },
+  "/unsubscribe/{token}": { module: "@/app/(public)/unsubscribe/[token]/page" },
+  "/pause/{token}": { module: "@/app/(public)/pause/[token]/page" },
 };
 
 /** The `<head>` a route actually ships, from the module that exports it. */
@@ -211,7 +213,7 @@ describe("the canonical address is the address, and never a pattern", () => {
   // The path *is* the credential on both of these: a `<link rel="canonical">`
   // would restate the stop link inside the document, and there is no one URL
   // a single-use address should be indexed under in any case.
-  for (const route of ["/veto/{token}", "/opt-out/{token}"]) {
+  for (const route of ["/veto/{token}", "/opt-out/{token}", "/unsubscribe/{token}", "/pause/{token}"]) {
     it(`${route} declares no canonical — the path is the credential`, async () => {
       const meta = await metadataOf(route);
       expect(meta.alternates).toBeUndefined();
@@ -246,8 +248,10 @@ describe("indexing is one fact, read by the page and by the sitemap", () => {
     // two token paths, and S9 for the sign-in form.
     expect(refused.map((r) => r.route).sort()).toEqual([
       "/opt-out/{token}",
+      "/pause/{token}",
       "/scan/{domain}",
       "/signin",
+      "/unsubscribe/{token}",
       "/veto/{token}",
     ]);
     for (const row of refused) {
@@ -291,8 +295,9 @@ describe("every sentence in a public <head> is a key, and the owner is told whic
     // and `/about` are drafted (issue 1396).
     const keys = PUBLIC_ROUTE_SEO_ROWS.flatMap((row) => [row.title, row.description]);
     // Issue 1458 adds eight rows: six with keys of their own and three
-    // articles sharing the two `meta.article.*` slot keys.
-    expect(keys).toHaveLength(40);
+    // articles sharing the two `meta.article.*` slot keys. Issue 1741 adds
+    // the Monday mail's two token pages, drafted.
+    expect(keys).toHaveLength(44);
     for (const key of keys) {
       expect(AWAITING_COPY, key).not.toContain(key);
       expect(COPY[key], key).not.toBe("");

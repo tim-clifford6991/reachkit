@@ -36,6 +36,16 @@ and it is not a gate.
 Dev (`dev.reachkit.app`) deploys from `main` via `rk-deployer`. If it has not moved after a
 merge, run `bash /root/ops/reachkit/bin/deploy-dev-once.sh`. Production is batched (at most
 every two hours) and receives every merge, the same as dev (no freeze, owner 2026-09-17, #844).
+2026-10-24 (E3, #1959): production is held only while the free dev check is red. Once a dev build is
+Ready, the deployer runs `scripts/smoke.sh --free` against it. The check sends GETs only and spends
+nothing. It runs from a detached tree at that SHA and writes `state/dev-check.<sha>`. Production
+takes a SHA only when that file reads `pass`. Once production is Ready and Inngest is synced, the
+same check runs against `reachkit.app` and writes `state/prod-check.last`. A red check, or a hold,
+files one `[deploy] production check red` issue, or comments on the open one. After a red check,
+the next window deploys without the two-hour spacing. A failed build is retried, at most twice per
+SHA. The Ready poll runs in its own unit (`rk-deploy-sync-<id>`), so a deployer restart cannot stop
+the Inngest sync. On start, the deployer polls again any production deploy it accepted in the last
+2 h that has no sync line. Still roll forward only. The box patch is `docs/ops/deployer.sh.patch`.
 `/api/jobs` is served by production, so a job or pass change takes effect only once production is
 deployed. `Vercel` is not a check: Git deployments are off (`vercel.json` `git.deploymentEnabled: false`).
 
@@ -43,7 +53,8 @@ Every production deploy is one line in `/root/ops/reachkit/state/prod-redeploy.l
 deployer or from `bin/redeploy.sh`. The line carries the UTC date and time, the target, main's
 full SHA at the call, the deployment id, the trigger (`deployer` or `hand`) and the reason. The
 deployer writes `main moved`; `redeploy.sh --reason "<why>"` writes the reason it is given. Both
-write `state/deploy-prod.sha`, so the deployer never deploys the same SHA again. The deployer
+write `state/deploy-prod.sha`, the deployer once that deploy is Ready, so it never deploys a
+Ready SHA again. The deployer
 starts production only at :10–:40, so the build is Ready before the hourly jobs fire. Once the
 build is Ready, either script `PUT`s `https://reachkit.app/api/jobs` to sync Inngest and logs
 `inngest sync <code>` against the deployment id.
@@ -308,6 +319,12 @@ scheduled job whose `last_run_at` is more than **twice its interval** ago is mai
 `OWNER_EMAILS` through the incident mail (§6): *"A scheduled job has not run for more than
 twice its usual interval."* with the job, its last run and its interval. `stale_alerted_at` records
 that mail; the job is not mailed again until it has run and gone quiet again.
+
+**The failing-job mail.** A job that throws on its first delivery is mailed to `OWNER_EMAILS` at
+most once per job, error class and Europe/Berlin day. The row in `job_error_mails` decides that, not
+the mail vendor's key. A send that no owner address accepted deletes its row, so the next tick tries
+again. A store that cannot answer still mails and logs
+`{"event":"ops_incident_alert","outcome":"claim_unavailable"}`.
 
 **The outside check.** The heartbeat cannot see *every* job stopping, so `GET /api/health`
 reads the same rows on each request: `200 {"ok":true}` when every scheduled job with a row is within
@@ -819,7 +836,9 @@ fix for every one of them is the owner writing the copy key, never a code change
 answers 200 and access is unchanged, and `OWNER_EMAILS` gets one incident mail (*"Stripe refused an
 automatic 14-day refund…"*) with the invoice, the account id and Stripe's error code, beside the log
 line `billing_refund outcome=vendor`. Stripe does not redeliver a 200, so refund that invoice by hand
-(`docs/walk/refund.md`).
+(`docs/walk/refund.md`). A failure that will pass (a connection error, a Stripe 5xx or 429, a store
+read or write that failed) sends no alert: the webhook answers 500 and logs `billing_redeliver`, and
+Stripe redelivers it for up to 3 days, then emails the Stripe account that the endpoint keeps failing.
 
 Failed and unsent mail is visible in two places: Resend's own dashboard for what left, and the
 runtime log for what did not (`event: "spend_alert_failed"`, and the per-kind `*_not_sent` lines).

@@ -11,7 +11,7 @@ import { measured } from "../../src/lib/measure/measured";
 import { collapse } from "../../src/lib/opportunities/cluster";
 import type { Candidate } from "../../src/lib/opportunities/derive/candidate";
 import { earnGroundingOf } from "../../src/lib/opportunities/earn-grounding";
-import { assessReadiness, opportunityReady, type ReadinessContext } from "../../src/lib/opportunities/readiness";
+import { assessReadiness, eligible, type ReadinessContext } from "../../src/lib/opportunities/readiness";
 import { rankOpen } from "../../src/lib/opportunities/rank/open";
 import { setOpportunityStore, type OpportunityRow } from "../../src/lib/opportunities/store";
 import { supplyDepth } from "../../src/lib/opportunities/plan";
@@ -198,6 +198,7 @@ describe("SPEC §6 (owner, 2026-09-15): an Earn asset needs a grounding fact of 
 
   it("readiness refuses an Earn row whose asset its site cannot ground, and stores no_grounding_fact", () => {
     const ctx: ReadinessContext = {
+      now: AT,
       grounded: true,
       earnGrounding: { comparison_table: false, integration_page: true, original_data_page: true },
       suppression: { clusters: new Set(), retiredUrls: new Set() },
@@ -210,11 +211,11 @@ describe("SPEC §6 (owner, 2026-09-15): an Earn asset needs a grounding fact of 
     };
     const earn = (asset: EarnAsset) =>
       held({ id: asset, type: "listed_page", family: "earn", targetQuery: QUERY, evidence: { ...earnEvidence(QUERY), asset } as Evidence });
-    expect(opportunityReady(earn("comparison_table"), ctx)).toBe("no_grounding_fact");
-    expect(opportunityReady(earn("integration_page"), ctx)).toBeNull();
-    expect(opportunityReady(earn("original_data_page"), ctx)).toBeNull();
+    expect(eligible(earn("comparison_table"), ctx)).toBe("no_grounding_fact");
+    expect(eligible(earn("integration_page"), ctx)).toBeNull();
+    expect(eligible(earn("original_data_page"), ctx)).toBeNull();
     // A Write row is not held to an Earn asset's kind.
-    expect(opportunityReady(held({ id: "w", type: "answer_page", family: "write", targetQuery: QUERY }), ctx)).toBeNull();
+    expect(eligible(held({ id: "w", type: "answer_page", family: "write", targetQuery: QUERY }), ctx)).toBeNull();
   });
 });
 

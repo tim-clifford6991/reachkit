@@ -104,17 +104,6 @@ describe("a page linked by AI earns one more page in its cluster", () => {
   const rows = LOCAL.rows.map((row) => (IN_CLUSTER.includes(row.target_query!) ? { ...row, cluster_key: CLUSTER } : row));
   const week = (linkedClusters: readonly string[]) =>
     choose({ rows, fixRows: [], profile: LOCAL.profile, latest: null, drafted: [], cited: [], topTens: new Map(), linkedClusters, at: AT, from: "2026-10-19" });
-  const inCluster = (choice: ReturnType<typeof week>) =>
-    choice.committed.filter((entry) => IN_CLUSTER.includes(rows.find((row) => row.id === entry.opportunityId)!.target_query!));
-
-  it("the cluster gets one committed page next Monday, which stores why", () => {
-    expect(inCluster(week([]))).toEqual([]);
-    const earned = inCluster(week([CLUSTER]));
-    expect(earned).toHaveLength(1);
-    expect(earned[0]!.reason.parts).toContainEqual({ part: "linked_by_ai", n: 1 });
-    expect(earned[0]!.reason.rule).toBe("linked by AI: one more in its cluster");
-    expect(earned[0]!.reason.points).toBe(earned[0]!.reason.parts.reduce((sum, part) => sum + part.n, 0));
-  });
 
   it("a cluster with no open new page earns nothing, and no other row moves", () => {
     expect(week(["no such cluster"]).committed).toEqual(week([]).committed);

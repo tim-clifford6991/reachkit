@@ -6,6 +6,7 @@ import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 import { applyEnvFixture } from "../mail/env-fixture";
+import { SETS } from "./settings/market-fixtures";
 
 applyEnvFixture();
 
@@ -15,7 +16,7 @@ vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: () => undefined
 const { PublishingCard } = await import("@/app/(account)/app/_shell/PublishingCard");
 const { assembleShell } = await import("@/app/(account)/app/_shell/model");
 const { FIXTURE_SHELL_FACTS } = await import("@/app/(account)/app/_shell/fixture");
-const { PlanHead } = await import("@/app/(account)/app/calendar/PlanHead");
+const { PlanHead, planHeadWords } = await import("@/app/(account)/app/calendar/PlanHead");
 const { AddressView } = await import("@/app/(public)/scan/[domain]/_address/view");
 const { MarketPanel } = await import("@/app/(account)/app/settings/panels/MarketPanel");
 const { assembleSettings } = await import("@/app/(account)/app/settings/model");
@@ -37,8 +38,8 @@ describe("the words a customer reads on four screens", () => {
   });
 
   it("the Plan head states the week's rule, with no daily ceiling", () => {
-    const root = render(<PlanHead />);
-    expect(read(root, "p")).toBe("Each goes live on its day unless you stop it. Up to 7 pages a week, new or updated. Never filler.");
+    const root = render(<PlanHead words={planHeadWords({ week: 3, chosen: "2026-10-19", publishTime: null }, 7)} />);
+    expect(read(root, "p")).toBe("Chosen Monday, October 19. Each goes live on its day unless you stop it.");
     expect(root.textContent).not.toMatch(/a day\b/);
   });
 
@@ -50,7 +51,7 @@ describe("the words a customer reads on four screens", () => {
 
   it("the Market panel is titled with \"and\", never \"&\"", () => {
     const model = assembleSettings(FIXTURE_SETTINGS_FACTS);
-    const root = render(<MarketPanel market={model.market} domain={model.domain} timeZone="Europe/Berlin" />);
+    const root = render(<MarketPanel market={model.market} domain={model.domain} timeZone="Europe/Berlin" sets={SETS} />);
     expect(read(root, ".card-title")).toBe("Your site and market");
   });
 });

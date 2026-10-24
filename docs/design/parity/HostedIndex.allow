@@ -1,12 +1,10 @@
 help.harborplumbing.com/	sample data
 H Harbor Plumbing	sample data
-(512) 555-0142	sample data
 Visit harborplumbing.com	sample data
 Guides from Harbor Plumbing	sample data
 e.g. water heater leak	sample data
 19 Oct 2026	sample data
 18 Oct 2026	sample data
-Emergency plumber in Austin: 24-hour call-outs from $149	sample data
 17 Oct 2026	sample data
 What to do when a pipe bursts in a freeze	sample data
 16 Oct 2026	sample data
@@ -26,10 +24,7 @@ How long does a water heater last in hard water?	sample data
 Emergencies & leaks 5 guides	sample data
 Water heaters 4 guides	sample data
 Drains & toilets 2 guides	sample data
-Need a plumber in Austin?	sample data
-© Harbor Plumbing ·	sample data
 harborplumbing.com	sample data
-Licensed plumbers in Austin, TX: repairs, water heaters and 24-hour emergency calls. Sample	sample data
 How to shut off water to a house in an emergency: 3 steps	sample data
 Burst pipe? Find the main shut-off valve, close it (a quarter turn for a lever, clockwise for a wheel), then drain the pipes. Three steps and when to call.	sample data
 Call-outs from $149, a written quote before work starts, and what to do while you wait.	sample data
@@ -52,8 +47,4 @@ Should you drain your water heater every year?	sample data
 What flushing does, how to do it, and when to skip it.	sample data
 Page 1 of 2	sample data: the sweep's site has one page of guides; hosted.index.pageOf and .older draw on a longer list (tests/hosted/serving/index-page.test.tsx)
 Next page	sample data: the sweep's site has one page of guides; hosted.index.pageOf and .older draw on a longer list (tests/hosted/serving/index-page.test.tsx)
-All guides	owner 2026-10-20 Q7: guides by topic (R2) wait on #1743
-Every guide on this site, by topic.	owner 2026-10-20 Q7: guides by topic (R2) wait on #1743
-Water supply 2 guides	owner 2026-10-20 Q7: guides by topic (R2) wait on #1743
-Licensed plumbers in Austin, TX: repairs, water heaters and 24-hour emergency calls. Serves Austin, TX. Sample	owner 2026-10-20 Q7: the business block (E8, R1) waits on #1743
-Call (512) 555-0142	owner 2026-10-20 Q7: the business block (E8, R1) waits on #1743
+Water supply 2 guides	sample data: a topic is led by one of the site's own pages, and the sweep's site has its own (hosted.index.topicCount)

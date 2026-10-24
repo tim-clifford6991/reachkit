@@ -1,23 +1,6 @@
-// BUILD §12 · §2.1 · §2.3 — the eight arms, as React Email components.
-//
-// One component per arm, built from `react-email`'s own elements (#934):
-// `Row`/`Column` are the `<tr>`/`<td>` an inbox is relied on to lay out,
-// and `Heading`, `Text` and `Button` are the leaves. Nothing here
-// writes a tag by hand where the library ships one, and nothing here
-// composes a string of markup — the escaping, the attribute quoting and
-// the button's Outlook padding are the library's, not ours.
-//
-// What did not move with the markup: omission is still `omit.ts`'s single
-// decision, read once at the top; every row is still `rows.ts`'s, so the
-// two bodies cannot state different facts; every sentence is still a
-// `copy()` call; every colour, face and rung is still a `tokens.ts` name.
-// This file contains no hex, no font stack and no sentence.
-//
-// Numerals — BUILD §2.3, "every numeral, date, URL, search query and
-// code-like string is JetBrains Mono with tabular-nums". A screen gets
-// that from `.num` in `type.css`; a mail has no stylesheet, so `<Mono>`
-// below is the one place the same two declarations are written inline, and
-// every numeral in a mail goes through it.
+// BUILD §12 · §2.1 · §2.3 — the eight arms as `react-email` components, so escaping and Outlook padding are the library's.
+// Omission is `omit.ts`'s, rows are `rows.ts`'s, sentences are `copy()`'s and styles are `tokens.ts` names: no hex, font stack or sentence here.
+// A mail has no stylesheet, so `<Mono>` writes §2.3's mono tabular numerals inline and every numeral goes through it.
 import type { ReactNode } from "react";
 import { Button, Column, Heading, Link, Row, Text } from "react-email";
 import { copy } from "@/lib/presentation/copy";
@@ -28,23 +11,18 @@ import { isMeasuredEmpty, omittedIndexes } from "./omit";
 import { factRowsOf, rowsOf, statRowsOf, type RenderedRow, type StatRowText } from "./rows";
 import type { MailBlock } from "./types";
 
-/** Attribute values that are layout tokens rather than voice, bound to a
- *  name because `tests/presentation/copy/string-literal-sweep.test.ts`
- *  presumes a bare literal in a JSX attribute is product voice. */
+/** Layout tokens bound to names, since the string-literal sweep reads a bare JSX attribute literal as voice. */
 const RIGHT = "right" as const;
+/** Between two links on one row. Layout, not voice. */
+const LINK_SEPARATOR = " · " as const;
 const HALF = "50%" as const;
-/** The heading level a mail block draws. `h3` and not `h1`: the card's own
- *  head carries the wordmark, so a section heading is a third-level one —
- *  which is what the shell drew before this port and what S20 draws. */
+/** `h3`, because the card's head carries the wordmark (S20). */
 const HEADING_LEVEL = "h3" as const;
 
-/** The one number up top is the only size in a mail off ruling 10a's
- *  ladder: S20 draws the headline figure larger than `--h2`, and there is
- *  no rung above it to name. */
+/** The only size off the type ladder: S20 draws the headline figure above `--h2`, and no rung is named there. */
 const HERO_SIZE = "36px";
 
-/** BUILD §2.3's numerals, inline. Every number, date, domain and URL in a
- *  mail is drawn through this and nothing else. */
+/** BUILD §2.3's numerals, inline: every number, date, domain and URL in a mail. */
 function Mono({ children }: { children: string }): ReactNode {
   return (
     <span
@@ -55,9 +33,7 @@ function Mono({ children }: { children: string }): ReactNode {
   );
 }
 
-/** One block's own cell: the padding, the face and the ink every arm sits
- *  in. `Row`/`Column` put the styles on the `<td>` itself, which is where
- *  Outlook reads a font from. */
+/** One block's cell; the styles sit on the `<td>`, where Outlook reads a font from. */
 function Block({ children, marker }: { children: ReactNode; marker: string }): ReactNode {
   return (
     <Row data-rk-block={marker}>
@@ -118,14 +94,14 @@ function RuledRows({
   rows,
   emptyLine,
 }: {
-  label: string;
+  label: string | null;
   rows: readonly RenderedRow[];
   emptyLine: string | null;
 }): ReactNode {
   if (emptyLine !== null) {
     return (
       <>
-        <Eyebrow>{label}</Eyebrow>
+        {label === null ? null : <Eyebrow>{label}</Eyebrow>}
         <Text style={{ margin: 0, fontSize: token("--t-body"), lineHeight: 1.55, color: token("--ink-2") }}>
           {emptyLine}
         </Text>
@@ -134,7 +110,7 @@ function RuledRows({
   }
   return (
     <>
-      <Eyebrow>{label}</Eyebrow>
+      {label === null ? null : <Eyebrow>{label}</Eyebrow>}
       {rows.map((item, index) => (
         <Row key={index}>
           <Column style={{ ...RULED_CELL, color: token("--color-base-content") }}>
@@ -144,6 +120,23 @@ function RuledRows({
               <Link href={item.href} style={{ color: token("--color-primary") }}>
                 {item.left}
               </Link>
+            )}
+            {(item.detail ?? []).map((line, at) => (
+              <div key={at} style={{ paddingTop: "2px", color: token("--ink-2") }}>
+                {line}
+              </div>
+            ))}
+            {item.links === undefined ? null : (
+              <div style={{ paddingTop: "4px" }}>
+                {item.links.map((link, at) => (
+                  <span key={at}>
+                    {at === 0 ? null : LINK_SEPARATOR}
+                    <Link href={link.href} style={{ color: token("--color-primary") }}>
+                      {link.label}
+                    </Link>
+                  </span>
+                ))}
+              </div>
             )}
           </Column>
           {item.right === undefined ? null : (
@@ -157,11 +150,7 @@ function RuledRows({
   );
 }
 
-/** The `dl` the approved shell draws (UI-SPEC S20): a label in mono at the
- *  small rung, its value in mono on the same row, hairline-ruled.
- *  `<dl>` is the set's own markup; the rows inside it are `Row`/`Column`,
- *  because a `dl`'s own display is the one an inbox lays out least
- *  predictably. */
+/** S20's hairline-ruled mono `dl`; its rows are `Row`/`Column`, since inboxes lay out a `dl`'s own display least predictably. */
 function Facts({ rows }: { rows: readonly { label: string; value: string }[] }): ReactNode {
   return (
     <dl style={{ margin: 0 }}>
@@ -179,14 +168,7 @@ function Facts({ rows }: { rows: readonly { label: string; value: string }[] }):
   );
 }
 
-/**
- * SPEC §8 (2026-09-20, #933) — the one number up top.
- *
- * The headline figure, its label above it and its change beside it. The
- * change is a second cell on the same row rather than a line under the
- * number: they are one reading, and an inbox that drops a float still lays
- * out a table row.
- */
+/** SPEC §8's headline number; its change is a second cell on the row, since an inbox that drops a float still lays out a table row. */
 function Hero(a: {
   label: string;
   value: string;
@@ -221,28 +203,18 @@ function Hero(a: {
   );
 }
 
-/**
- * SPEC §8 (2026-09-20, #933) — the numbers beside it, two to a row.
- *
- * Rows of two cells: an inbox lays out table cells and nothing else
- * reliably, so the "grid" is `Row`s of two `Column`s and a row with one
- * number left in it simply has one. Each number keeps its own label above
- * it and its own change beside it.
- */
+/** SPEC §8's numbers, two `Column`s to a `Row`: table cells are all an inbox lays out reliably. */
 function Stats({
   items,
 }: {
   items: readonly StatRowText[];
 }): ReactNode {
-  // What the figure is read against — or, where nobody measured it, the
-  // line that says so in the figure's place.
+  // What the figure is read against, or the unmeasured line in its place.
   const line = (text: string): ReactNode => (
     <div style={{ fontSize: token("--t-sm"), color: token("--ink-2"), paddingTop: "2px" }}>{text}</div>
   );
   const cell = (item: StatRowText, key: number): ReactNode => (
-    // A gutter between the two cells, on the cell rather than as a gap: a
-    // long label in the left one would otherwise run straight into the
-    // right one's on a phone, which is what #933's 390 shot caught.
+    // A gutter on the cell, so a long left label does not run into the right one on a phone.
     <Column
       key={key}
       width={HALF}
@@ -299,10 +271,7 @@ function Stats({
   return <>{pairs}</>;
 }
 
-/** A URL is only ever emitted as an `href`, and only when it is one of the
- *  two schemes an inbox should follow. Anything else is rendered as text,
- *  never as a link — a mail is the one surface where a hostile `href`
- *  costs the reader their account. */
+/** Only the two schemes an inbox should follow become an `href`; anything else is text, since a hostile link in a mail costs an account. */
 function safeHref(href: string): string | null {
   let url: URL;
   try {
@@ -314,15 +283,7 @@ function safeHref(href: string): string | null {
   return url.toString();
 }
 
-/**
- * S20's one button, drawn by `react-email`'s own `Button` — which carries
- * the Outlook padding hack this seam used to approximate with a `bgcolor`
- * cell around the link.
- *
- * #933's second variant is the same button with the fill taken off and the
- * line left on: a mail may offer two things to do — read the page, or stop
- * it — and two solid fills would be two primaries.
- */
+/** S20's button through `react-email`'s `Button` (Outlook padding included). `secondary` drops the fill, since two solid fills are two primaries. */
 function Action({
   label,
   href,
@@ -397,8 +358,7 @@ function PageBody({ label, markdown }: { label: string; markdown: string }): Rea
   );
 }
 
-/** One arm, as the node that draws it. Every value it states has already
- *  been kept by `omit.ts`. */
+/** One arm as its node; every value it states was kept by `omit.ts`. */
 function arm(block: MailBlock): ReactNode {
   switch (block.block) {
     case "heading":
@@ -429,18 +389,19 @@ function arm(block: MailBlock): ReactNode {
           <div style={{ fontSize: token("--h2"), fontWeight: 700, color: token("--color-base-content") }}>
             <Mono>{formatStat(block.value, block.format)}</Mono>
           </div>
-          {/* The note travels with its value or not at all: this arm is
-              only reached when the value was kept. */}
+          {/* The note travels with its value: this arm is reached only when the value was kept. */}
           {block.note === undefined ? null : <Note>{copy(block.note)}</Note>}
         </>
       );
     case "list":
-    case "verdicts":
+    case "verdicts": {
+      const label = block.label === undefined ? null : copy(block.label);
       return isMeasuredEmpty(block) ? (
-        <RuledRows label={copy(block.label)} rows={[]} emptyLine={copy(block.emptyLine)} />
+        <RuledRows label={label} rows={[]} emptyLine={copy(block.emptyLine)} />
       ) : (
-        <RuledRows label={copy(block.label)} rows={rowsOf(block)} emptyLine={null} />
+        <RuledRows label={label} rows={rowsOf(block)} emptyLine={null} />
       );
+    }
     case "facts":
       return <Facts rows={factRowsOf(block)} />;
     case "hero":
@@ -474,9 +435,7 @@ function arm(block: MailBlock): ReactNode {
   }
 }
 
-/** The block list as the nodes the frame draws, minus the blocks `omit.ts`
- *  drops. Returns the same `omitted` indexes the text renderer returns —
- *  the one decision, read twice. */
+/** The kept blocks as the frame's nodes, with the same `omitted` indexes the text renderer returns. */
 export function blockNodes(blocks: readonly MailBlock[]): {
   nodes: ReactNode;
   omitted: readonly number[];

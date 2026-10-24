@@ -1,24 +1,7 @@
-// BUILD §12 — the `published` mail: "live URL + 24h checks".
-//
-// One directory per mail kind, named for the kind (ADR-040), holding a
-// block list and nothing else: no shell, no formatter of its own beyond the
-// one date it states, no vendor knowledge and no sentence.
-//
-// **One message on the same occasion, whichever of the three outcomes the
-// one check recorded** (REQ-062 c5). A failed check is never a reason to
-// send nothing, and neither is an absent page nor an unconfirmed check.
-// Nothing in this file decides whether there is a mail — it is handed a
-// telling and it lays it out.
-//
-// **The recorded outcome goes in place of the four outcomes, never
-// alongside them.** Under `page_not_found` and `could_not_confirm` there is
-// no `verdicts` block at all: those arms carry no check outcomes, and a
-// block of four rows beside them would read as "four checks, none failed",
-// which is the opposite of what was recorded.
-//
-// **A condition of the site is named separately from the page's own
-// outcomes** (c5, c6) — its own block, with its own date, never a fifth row
-// among the four checks.
+// BUILD §12 — the `published` mail: "live URL + 24h checks", as a block list only (ADR-040).
+// One message whichever outcome the check recorded (REQ-062 c5): a failure, a missing page or an unconfirmed check is never silence.
+// The recorded outcome replaces the four checks: no `verdicts` block under `page_not_found` or `could_not_confirm`, which would read "none failed".
+// A condition of the site is its own block with its own date, never a fifth check row (c5, c6).
 import type { CopyKey } from "@/lib/presentation/copy";
 import type { PublishedTelling } from "@/lib/publish/verify/telling";
 import { CHECK_IDS, type CheckId } from "@/lib/publish/verify/checks";
@@ -34,8 +17,7 @@ const REASON = "mail.reason.published" satisfies CopyKey;
 const CHECKS_LABEL = "mail.published.checks_label" satisfies CopyKey;
 const CHECKS_EMPTY = "mail.published.checks_empty" satisfies CopyKey;
 
-/** One subject line per check, named once each. A `Record` over `CheckId`,
- *  so a fifth check could not be added without its own name. */
+/** One subject per check: a `Record` over `CheckId`, so a fifth check needs its own name. */
 const CHECK_NAME: Readonly<Record<CheckId, CopyKey>> = Object.freeze({
   reachable: "mail.published.check.reachable",
   indexable: "mail.published.check.indexable",
@@ -43,11 +25,7 @@ const CHECK_NAME: Readonly<Record<CheckId, CopyKey>> = Object.freeze({
   aiReadable: "mail.published.check.ai_readable",
 });
 
-/** Three words, and the third is its own word.
- *
- *  `check_not_measured` is never `check_failed`: a check ReachKit could not
- *  observe is not a check this page failed, and saying so would blame the
- *  page for a condition of the site it sits in (REQ-062 c6). */
+/** `check_not_measured` is never `check_failed`: that would blame the page for a condition of its site (REQ-062 c6). */
 const CHECK_VERDICT = Object.freeze({
   passed: "mail.published.check_passed" satisfies CopyKey,
   failed: "mail.published.check_failed" satisfies CopyKey,
@@ -59,15 +37,10 @@ const SITE_CONDITION_LINE: Readonly<Record<SiteConditionKind, CopyKey>> = Object
   robots_blocks_site: "mail.published.site_condition.robots_blocks_site",
 });
 
-/** The locale the shell states dates in — `src/app/(account)/app/_shell/
- *  format.ts`'s `SHELL_LOCALE`, which `src/lib/**` may not import (a lib
- *  module never reaches into `src/app`). One value, written the way `Intl`
- *  spells DECISIONS 2026-08-28's US-English ruling. */
+/** The shell's US-English `SHELL_LOCALE`, restated since `src/lib` never imports `src/app`. */
 const MAIL_LOCALE = "en-US";
 
-/** REQ-062 criterion 2: the moment the check ran, in the time zone the
- *  customer set. Numeric and with the zone named — a time with no zone
- *  beside it is a time the customer has to guess about. */
+/** REQ-062 c2: when the check ran, in the customer's zone, with the zone named so nobody has to guess. */
 export function formatCheckedAt(at: Date, timeZone: string): string {
   return new Intl.DateTimeFormat(MAIL_LOCALE, {
     timeZone,
@@ -99,14 +72,7 @@ export interface PublishedMail {
   readonly blocks: readonly MailBlock[];
 }
 
-/**
- * The `published` mail for one telling.
- *
- * `timeZone` is the site's own, so the date reads in the zone the customer
- * set (REQ-062 c2). The four outcomes travel as a `verdicts` block — the
- * one arm of the mail vocabulary that pairs a subject with a written
- * verdict — under `found`, and under no other arm.
- */
+/** The `published` mail for one telling, dated in the site's own zone; the four outcomes are a `verdicts` block under `found` only. */
 export function buildPublished(a: {
   telling: PublishedTelling;
   timeZone: string;
@@ -115,23 +81,10 @@ export function buildPublished(a: {
   const checkedAt = formatCheckedAt(telling.result.checkedAt, a.timeZone);
 
   const blocks: MailBlock[] = [
-    // S20's shape: one line, the fact rows, one solid button. The address
-    // moves from the button's label into a fact row — the set puts the
-    // address where it can be read and the button where it can be pressed.
-    //
-    // **No heading, and that is a gap, not a choice.** S20 heads this mail
-    // on the page's own title ("[page title 4] is live") and
-    // `PublishedTelling` carries no title: it is read from the
-    // `publications` row, which has the live URL and not the page. Giving
-    // it one is a query change with a schema test behind it, so it is
-    // issue #388's rather than smuggled into a mail PR.
+    // S20's shape: one line, the fact rows, one solid button, with the address in a row rather than the button.
+    // No heading yet: S20 heads it with the page title, which `PublishedTelling` does not carry from the `publications` row.
     { block: "paragraph", text: telling.copy, vars: { checkedAt } },
-    // The second row's label is its own key, never the arm's own line
-    // (issue #457). `telling.copy` — `mail.published.verified` on the
-    // found arm — is the paragraph above, and it carries `{checkedAt}`;
-    // a facts label is read with no vars (`blocks/html.ts`'s
-    // `factRowsOf`), so handing the slotted key to both places composes
-    // nothing at all once the owner's sentence lands.
+    // The row's label is its own key: `telling.copy` carries `{checkedAt}`, and a facts label is read with no vars.
     {
       block: "facts",
       items: [
@@ -146,9 +99,7 @@ export function buildPublished(a: {
     blocks.push({
       block: "verdicts",
       label: CHECKS_LABEL,
-      // Always a measured list: the four rows exist because the check ran
-      // and produced them. `measuredZero` is not the arm — an empty list of
-      // checks is not a thing this mail can be handed.
+      // Always measured: the rows exist because the check ran.
       items: measured(verdictRows(telling.result.checks), telling.result.checkedAt),
       emptyLine: CHECKS_EMPTY,
     });

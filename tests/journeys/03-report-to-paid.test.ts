@@ -47,6 +47,7 @@
 // writes no `fetches` row: nothing on it spends, and the one thing that
 // will spend has not started.
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { captureMail } from "./harness";
 import { createHmac } from "node:crypto";
 import { renderToStaticMarkup } from "react-dom/server";
 import { NextRequest } from "next/server";
@@ -243,7 +244,7 @@ function theBuyerPays(sessionId: string): void {
   );
 }
 
-beforeEach(() => {
+beforeEach(async () => {
   db.reset();
   inbox.length = 0;
   deepPasses = [];
@@ -285,10 +286,7 @@ beforeEach(() => {
 
   registerDeepPassQueue(async (request) => void deepPasses.push({ ...request }));
 
-  __setVendorTransportForTesting(async (payload: string) => {
-    inbox.push(JSON.parse(payload) as SentMail);
-    return { status: 200, headers: {}, body: JSON.stringify({ id: `resend-${inbox.length}` }) };
-  });
+  await captureMail(inbox);
 });
 
 afterEach(() => {
@@ -445,7 +443,7 @@ describe("Start → Checkout → webhook → magic link → /setup (JN-002 steps
     expect(html).toContain("offer.cadence.page");
     expect(html).toContain("offer.veto.window");
     expect(html).toContain("offer.start");
-    expect(html).toContain("offer.cancel_self_service");
+    expect(html).toContain("pricing.plan.cancel");
 
     // No account, no password, no questionnaire before the control
     // (REQ-020 c1) — and beginning checkout writes nothing at all.

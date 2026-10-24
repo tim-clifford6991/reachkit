@@ -48,6 +48,8 @@ const SAAS = { label: "guides", domain: "acmecrm.example" };
 /** What the account's layout draws around this page: the shell's menu,
  *  publishing line and theme control, and the Overview tabs. */
 const SHELL = ["ReachKit", "Overview", "Plan", "Settings", "Waiting for your domain", "Theme: light", "Google", "AI", "Competitors"];
+// owner 2026-10-15 #1463: a title is at most six words, so the screen reads "Add one setting to your domain".
+const RULED = ["Add one setting where your web address is managed"];
 
 function seed(destination: { kind: "hosted" | "wordpress"; hostname?: string; state?: "pending_dns" | "live" }): void {
   db.seed("destinations", [
@@ -180,7 +182,7 @@ describe("Overview for an address not connected yet", () => {
     seed({ kind: "hosted", hostname: `${PLUMBER.label}.${PLUMBER.domain}`, state: "pending_dns" });
     const { html } = await screen();
     const result = compare(readFileSync(boardFile("OverviewDNS"), "utf8"), segments(html), readAllow("OverviewDNS"));
-    expect(result.missing.filter((line) => !SHELL.includes(line))).toEqual([]);
+    expect(result.missing.filter((line) => !SHELL.includes(line) && !RULED.includes(line))).toEqual([]);
   });
 
   it("names no go-live time and draws no ladder, week or other module", async () => {
@@ -206,8 +208,8 @@ describe("Overview for an address not connected yet", () => {
   it("once the host is live, Overview is the ordinary one", async () => {
     seed({ kind: "hosted", hostname: `${PLUMBER.label}.${PLUMBER.domain}`, state: "live" });
     const { h1, html } = await screen();
-    expect(h1).toBe(copy("overview.head.due.today", { time: "4:00 PM" }));
-    expect(html).toContain('data-testid="overview-tiles"');
+    expect(h1).toBe(copy("overview.head.title"));
+    expect(html).toContain('data-testid="overview-waiting"');
     expect(html).not.toContain('data-testid="overview-connect"');
   });
 
@@ -216,6 +218,6 @@ describe("Overview for an address not connected yet", () => {
     const { html } = await screen();
     expect(html).not.toContain('data-testid="dns-record"');
     expect(html).not.toContain('data-testid="overview-connect"');
-    expect(html).toContain('data-testid="overview-tiles"');
+    expect(html).toContain('data-testid="overview-head"');
   });
 });

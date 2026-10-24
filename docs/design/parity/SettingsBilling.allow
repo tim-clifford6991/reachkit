@@ -3,3 +3,10 @@ Harbor Plumbing · Austin	sample data
 12 pages went live on help.harborplumbing.com	sample data
 €49 a month	sample data
 Sat 7 Nov 2026 · €49.00	sample data
+Theme: light	DESIGN.md: the /app shell's theme control is the Light / Dark / System dropdown named Theme (#681)
+Settings section	#1101: below sm the seven tabs wrap as links, so no section select is drawn
+Billing period Wed 7 Oct to Sat 7 Nov. Everything is included in €49.	sample data: the account's own period
+2 Monday reports 12 Oct and 19 Oct	sample data
+Wed 7 Oct Today Sat 7 Nov	sample data: the account's own period
+Billed in euros. Cancel any time; everything keeps running until the period ends.	D4 (#1707): the specimen account is inside its first 14 days, so the refund line stands in its place
+Visa ending 4242 (sample)	sample data: the card's brand is not read, so the row says "ending 4242"

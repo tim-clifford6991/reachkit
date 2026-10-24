@@ -196,10 +196,12 @@ export function everyPlaceRegistered(doc: ParentNode): Finding[] {
  *  customer with presence, once for one with none — and comparing the
  *  modules on the screen. A module that is on the warm screen and not on
  *  the cold one was dropped for holding nothing. */
+/** A card that is a list item is a data row, which a cold screen rightly has fewer of. */
+export const moduleCount = (doc: ParentNode): number => doc.querySelectorAll(".card:not(li)").length;
+
 export function noModuleHidden(warm: ParentNode, cold: ParentNode): Finding[] {
-  const count = (doc: ParentNode): number => doc.querySelectorAll(".card").length;
-  const warmCount = count(warm);
-  const coldCount = count(cold);
+  const warmCount = moduleCount(warm);
+  const coldCount = moduleCount(cold);
   if (coldCount >= warmCount) return [];
   return [
     {

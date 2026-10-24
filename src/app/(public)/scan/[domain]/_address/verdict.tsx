@@ -1,9 +1,9 @@
-// BUILD §4.1 module 1 — the report's header card (SPEC §2)
+// BUILD §4.1 module 1 — the report's head (SPEC §2, board PubReport)
 //
-// The domain, when it was measured, the market and its correction; the
-// score under its own name, its band word, the biggest gap as a short title
-// and one line; and the four mini-bars `n/10` — Readiness, Content, Google
-// and AI (issue 1444) — which live here and on no other card (SPEC §2).
+// The domain, when and where it was measured, what the scan read the
+// business as with its one correction, the biggest gap in its own card and
+// the jump chips; beside them the score in its own card, its band and
+// range, and its parts as `n/10` — Readiness, Content, Google and AI.
 //
 // daisyUI in the route (DESIGN rule 1): `card`, `radial-progress`, `badge`,
 // `progress`, `btn`. The value is spoken in tenths and the bar is drawn from
@@ -20,7 +20,6 @@ import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { LIMITING_LINES, SCORE_BANDS } from "@/lib/presentation/bands";
 import { shownLimitingOf, type ShownFactor, type Verdict } from "@/lib/measure/verdict";
 import type { Measured } from "@/lib/measure/measured";
-import type { ScoreEstimate } from "@/lib/measure/score";
 import type { CorrectionOffer } from "@/lib/market/coherence/offer";
 import { CategoryCorrection } from "./correction";
 import { dash, Num, unmeasuredLineFor } from "./measured";
@@ -33,12 +32,6 @@ const FACTOR_NAMES: Readonly<Record<ShownFactor, CopyKey>> = Object.freeze({
   google: "verdict.factor.google",
   ai: "verdict.factor.ai",
   presence: "verdict.factor.presence",
-});
-
-/** How sure the score is, in words (issue 1439). */
-const ESTIMATE_LINES: Readonly<Record<ScoreEstimate["confidence"], CopyKey>> = Object.freeze({
-  rough: "verdict.estimate.rough",
-  close: "verdict.estimate.close",
 });
 
 /** `score.ts`'s own tie-break order: their own page today, their own
@@ -146,6 +139,92 @@ function ScoreRing(p: { score: number }): React.JSX.Element {
   );
 }
 
+/** The report's anchors the jump chips lead to, each one a section below. */
+const JUMPS: readonly { href: string; label: CopyKey }[] = [
+  { href: "#buyers", label: "report.jump.buyers" },
+  { href: "#start", label: "report.missing.eyebrow" },
+  { href: "#holds", label: "problem.section.title" },
+  { href: "#first-page", label: "report.jump.first-page" },
+];
+
+/** The biggest gap in its own card: its title, its line, and why, with the
+ *  way to the pages the report found where it found any. */
+function GapCard(p: { factor: ShownFactor; seeMissing: boolean }): React.JSX.Element {
+  const lines = LIMITING_LINES[p.factor];
+  return (
+    <section className="card card-border border-l-warning bg-base-100 border-l-4" data-testid="report-gap">
+      <div className="card-body gap-1 p-5">
+        <h2 className="text-lg font-semibold">{copy(lines.title)}</h2>
+        <p>{copy(lines.line)}</p>
+        <p className="flex flex-wrap items-baseline gap-x-2">
+          <span>{copy(lines.why)}</span>
+          {p.seeMissing ? (
+            <a href="#start" className="link link-primary">
+              {copy("report.gap.see-missing")}
+            </a>
+          ) : null}
+        </p>
+      </div>
+    </section>
+  );
+}
+
+/** The Visibility Score in its own card: the figure, its band and range,
+ *  what it is made of, and the parts as `n/10`. */
+function ScoreCard(p: { verdict: Verdict; limiting: ShownFactor | null; rescored?: { on: string; before: number } }): React.JSX.Element {
+  const { verdict } = p;
+  const scoreAndBand = verdict.scoreAndBand;
+  const bars = barsOf(verdict);
+  return (
+    <section className="card bg-base-100 shadow-(--shadow-card) min-w-0" data-testid="report-score">
+      <div className="card-body items-center gap-4 p-6">
+        <p className="eyebrow">{copy("verdict.score.label")}</p>
+        {scoreAndBand.kind === "unmeasured" ? (
+          <span className="text-5xl leading-none">
+            <Num unmeasured figure>
+              {dash()}
+            </Num>
+          </span>
+        ) : (
+          <>
+            <ScoreRing score={scoreAndBand.value.score} />
+            <p className="flex flex-wrap items-center justify-center gap-2">
+              <span className={`badge ${BADGE_TONE[BAND_TONE[scoreAndBand.value.band]]}`}>
+                {copy(SCORE_BANDS[scoreAndBand.value.band])}
+              </span>
+              {/* A report scored before issue 1439 carries no range and draws none. */}
+              {verdict.estimate === undefined ? null : (
+                <span className="text-base-content/70 text-sm" data-testid="verdict-estimate">
+                  <Num phrase>
+                    {copy("verdict.estimate.range", {
+                      low: String(verdict.estimate.low),
+                      high: String(verdict.estimate.high),
+                    })}
+                  </Num>
+                </span>
+              )}
+            </p>
+            {p.rescored === undefined ? null : (
+              <p className="text-base-content/70 text-center text-sm" data-testid="verdict-rescored">
+                <Num phrase>{copy("verdict.rescored", { date: p.rescored.on, before: String(p.rescored.before) })}</Num>
+              </p>
+            )}
+          </>
+        )}
+        <p className="text-base-content/70 text-center text-sm">
+          {copy(bars.length === 4 ? "verdict.score.parts" : "verdict.score.parts.three")}
+        </p>
+        <MissingFactors verdict={verdict} />
+        <div className="grid w-full grid-cols-1 gap-4">
+          {bars.map((bar) => (
+            <DriverBar key={bar.factor} factor={bar.factor} value={bar.value} limiting={bar.factor === p.limiting} />
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 export function VerdictStrip(p: {
   verdict: Verdict;
   category: string | null;
@@ -156,85 +235,65 @@ export function VerdictStrip(p: {
   /** Where the report was measured, already worded, where that is not US
    *  Google in English (D66). Absent, the line every report carried. */
   measurement?: string;
+  /** What the scan read the business as, one badge each, already worded. */
+  readAs: readonly string[];
+  /** The lines that say how the market was read, under what we read. */
+  notes?: React.ReactNode;
+  /** Whether the report found pages the site is missing, for the gap's link. */
+  seeMissing: boolean;
+  /** Where a re-score moved the score through the Google half: when, already formatted, and the score it read before. */
+  rescored?: { on: string; before: number };
 }): React.JSX.Element {
   const { verdict } = p;
-  const scoreAndBand = verdict.scoreAndBand;
   const limiting = shownLimitingOf(verdict);
-  const bars = barsOf(verdict);
 
   return (
-    <section className="card bg-base-100 shadow-(--shadow-card)">
-      {/* Board `R12-2-Report`: what the report says on the left, the score
-          on the right; at compact the score comes first. */}
-      <div className="card-body grid gap-8 p-6 md:grid-cols-[minmax(0,1fr)_auto] md:items-center md:p-8">
-        <div className="flex min-w-0 flex-col gap-4 max-md:order-2">
-          <div className="flex min-w-0 flex-col gap-1.5">
-            <p className="eyebrow">{copy("report.eyebrow")}</p>
-            {/* The domain is what this report is *about*, so it is the
-                page's `<h1>` (owner ruling 2026-09-23, #328). */}
-            <h1 className="min-w-0 overflow-x-auto text-3xl font-semibold">
-              <Num>{verdict.domain}</Num>
-            </h1>
-            <div className="text-base-content/70 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
-              <Num phrase>
-                {p.category === null
-                  ? copy("report.measured-at.no-category", { date: p.measuredOn })
-                  : copy("report.measured-at", { date: p.measuredOn, category: p.category })}
-              </Num>
-              {/* SPEC §2 (#715): what was measured, in one line that is
-                  always shown — beside the date it was measured on. */}
-              <span>{p.measurement ?? copy("report.measurement")}</span>
-              {/* The category correction: an inline field that re-measures
-                  on the market given, and follows the rerun here (#786). */}
-              <CategoryCorrection domain={verdict.domain} offer={p.correction} />
-            </div>
-          </div>
+    <div className="grid gap-6 md:grid-cols-[minmax(0,1fr)_minmax(0,20rem)] md:items-start">
+      <div className="flex min-w-0 flex-col gap-4">
+        <div className="flex min-w-0 flex-col gap-1.5">
+          <p className="eyebrow">{copy("report.eyebrow")}</p>
+          {/* The domain is what this report is *about*, so it is the
+              page's `<h1>` (owner ruling 2026-09-23, #328). */}
+          <h1 className="min-w-0 overflow-x-auto text-3xl font-semibold">
+            <Num>{verdict.domain}</Num>
+          </h1>
+          <p className="text-base-content/70 flex flex-wrap gap-x-1 text-sm">
+            <Num phrase>
+              {p.category === null
+                ? copy("report.measured-at.no-category", { date: p.measuredOn })
+                : copy("report.measured-at", { date: p.measuredOn, category: p.category })}
+            </Num>
+            <span>{p.measurement ?? copy("report.measurement")}</span>
+          </p>
+        </div>
 
-          {limiting === null ? null : (
-            <div className="flex max-w-2xl flex-col gap-1">
-              <p className="text-lg font-semibold">{copy(LIMITING_LINES[limiting].title)}</p>
-              <p>{copy(LIMITING_LINES[limiting].line)}</p>
-            </div>
-          )}
-          <MissingFactors verdict={verdict} />
-
-          <div className={`grid grid-cols-1 gap-5 ${bars.length === 4 ? "sm:grid-cols-2" : "sm:grid-cols-3"}`}>
-            {bars.map((bar) => (
-              <DriverBar key={bar.factor} factor={bar.factor} value={bar.value} limiting={bar.factor === limiting} />
+        <div id="read-as" className="flex scroll-mt-20 flex-wrap items-center gap-2" data-testid="report-read-as">
+          <span className="text-base-content/70 text-sm">{copy("report.read.as.title")}</span>
+          <ul className="flex flex-wrap gap-1.5">
+            {p.readAs.map((badge) => (
+              <li key={badge} className="badge badge-outline h-auto py-0.5 whitespace-normal">
+                {badge}
+              </li>
             ))}
-          </div>
+          </ul>
+          {/* The category correction: an inline field that re-measures on
+              the market given, and follows the rerun here (#786). */}
+          <CategoryCorrection domain={verdict.domain} offer={p.correction} />
         </div>
+        {p.notes}
 
-        <div className="flex flex-col items-center gap-2.5 max-md:order-1">
-          {scoreAndBand.kind === "unmeasured" ? (
-            <span className="text-5xl leading-none">
-              <Num unmeasured figure>
-                {dash()}
-              </Num>
-            </span>
-          ) : (
-            <>
-              <ScoreRing score={scoreAndBand.value.score} />
-              <span className={`badge ${BADGE_TONE[BAND_TONE[scoreAndBand.value.band]]}`}>
-                {copy(SCORE_BANDS[scoreAndBand.value.band])}
-              </span>
-              {/* Issue 1439: how sure the score is, briefly, beside it. A
-                  report scored before it carries no range and draws none. */}
-              {verdict.estimate === undefined ? null : (
-                <p className="text-base-content/70 text-sm" data-testid="verdict-estimate">
-                  <Num phrase>
-                    {copy(ESTIMATE_LINES[verdict.estimate.confidence], {
-                      low: String(verdict.estimate.low),
-                      high: String(verdict.estimate.high),
-                    })}
-                  </Num>
-                </p>
-              )}
-            </>
-          )}
-          <p className="text-base-content/70 text-xs">{copy("verdict.score.label")}</p>
-        </div>
+        {limiting === null ? null : <GapCard factor={limiting} seeMissing={p.seeMissing} />}
+
+        <nav aria-label={copy("report.jump.label")} className="flex flex-wrap gap-2">
+          {JUMPS.map((jump) => (
+            <a key={jump.href} href={jump.href} className="badge badge-outline h-auto py-1 whitespace-normal">
+              {copy(jump.label)}
+            </a>
+          ))}
+        </nav>
       </div>
-    </section>
+
+      <ScoreCard verdict={verdict} limiting={limiting} {...(p.rescored === undefined ? {} : { rescored: p.rescored })} />
+    </div>
   );
 }

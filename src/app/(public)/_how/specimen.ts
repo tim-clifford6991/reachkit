@@ -82,7 +82,16 @@ export interface Example {
     readonly answer: string;
   };
   readonly area: string;
-  readonly report: { readonly score: number; readonly mentioned: number; readonly asked: number; readonly missing: number };
+  readonly report: {
+    readonly score: number;
+    readonly mentioned: number;
+    readonly asked: number;
+    readonly missing: number;
+    /** Who buyers pick instead, the leader first. */
+    readonly rivals: readonly string[];
+    /** The first page the report proposes, free. */
+    readonly firstPage: string;
+  };
 }
 
 const HARBOR: Example = {
@@ -176,7 +185,14 @@ const HARBOR: Example = {
     answer: "… Harbor Plumbing lists its slab leak prices and offers same-day call-outs.",
   },
   area: "Austin, Texas",
-  report: { score: 27, mentioned: 1, asked: 12, missing: 14 },
+  report: {
+    score: 27,
+    mentioned: 1,
+    asked: 12,
+    missing: 14,
+    rivals: ["austinpipeworks.example", "capitolrooter.example", "a national plumbing chain"],
+    firstPage: "Slab leak repair cost in Austin",
+  },
 };
 
 const TIDYSLOT: Example = {
@@ -269,7 +285,14 @@ const TIDYSLOT: Example = {
     answer: "… Tidyslot checks every connected diary before it offers a time.",
   },
   area: "online",
-  report: { score: 31, mentioned: 0, asked: 12, missing: 11 },
+  report: {
+    score: 31,
+    mentioned: 0,
+    asked: 12,
+    missing: 11,
+    rivals: ["bookwell.example", "slotly.example", "a software review site"],
+    firstPage: "How to stop double bookings across Outlook and Google",
+  },
 };
 
 export const EXAMPLES: Readonly<Record<ExampleKind, Example>> = { plumber: HARBOR, software: TIDYSLOT };

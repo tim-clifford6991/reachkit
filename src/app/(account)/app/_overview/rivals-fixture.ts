@@ -34,9 +34,8 @@ const OWN = "example.com";
 
 const RIVALS: readonly string[] = Object.freeze([BIG, SECOND]);
 
-/** The twelve the pass reads, and the thirty-six answers it asks. */
+/** The twelve the pass reads. */
 const FIRST_PAGE_OF = 12;
-const NAMED_OF = 36;
 
 /**
  * One row: the search, its demand, which rival holds it, where that rival
@@ -89,19 +88,39 @@ function rowOf(spec: Spec): RivalPoolFacts {
   };
 }
 
-/** Who is on the first page of the twelve, and who the thirty-six answers
- *  name. The customer's own row is a measured `2` and `3` — small, real,
- *  and the reason the screen exists. */
+/** Who is on the first page of the twelve. The customer's own row is a
+ *  measured `2` — small, real, and the reason the screen exists. */
 const FIRST_PAGE: ReadonlyMap<string, number> = new Map([
   [BIG, 9],
   [SECOND, 7],
   [OWN, 2],
 ]);
 
-const NAMED: ReadonlyMap<string, number> = new Map([
-  [BIG, 14],
-  [SECOND, 9],
-  [OWN, 3],
+/** Who holds place 1 on each of the twelve: two rivals, three other sites
+ *  (the fifth is drawn as "others"), and the customer once. */
+const TOP: ReadonlyMap<string, number> = new Map([
+  [BIG, 4],
+  [SECOND, 3],
+  ["crmreviews.example", 2],
+  ["softwaredirectory.example", 1],
+  ["comparisons.example", 1],
+  [OWN, 1],
+]);
+
+/** The twelve, as Plan's fixture week names its searches. */
+const TWELVE: readonly string[] = Object.freeze([
+  "best crm for small teams",
+  "crm pricing comparison",
+  "spreadsheet to crm migration",
+  "crm for a two person business",
+  "how much does a crm cost per user",
+  "free crm with unlimited contacts",
+  "crm that works with gmail",
+  "what is a sales pipeline",
+  "crm onboarding checklist",
+  "crm vs spreadsheet",
+  "best crm for consultants",
+  "crm data import mistakes",
 ]);
 
 export const FIXTURE_RIVALS_FACTS: RivalsFacts = Object.freeze({
@@ -109,8 +128,7 @@ export const FIXTURE_RIVALS_FACTS: RivalsFacts = Object.freeze({
   ownDomain: OWN,
   firstPage: FIRST_PAGE,
   firstPageOf: FIRST_PAGE_OF,
-  named: NAMED,
-  namedOf: NAMED_OF,
+  top: { holders: TOP, of: FIRST_PAGE_OF, searches: TWELVE },
   // Where the customer stood in the first week this window measured.
   firstPageAtStart: 1,
   firstPageHolders: Object.freeze([]),

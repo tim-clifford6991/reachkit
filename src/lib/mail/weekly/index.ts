@@ -1,57 +1,48 @@
-// BUILD §12, §11 — the occasion of the Monday digest.
-//
-// `buildWeekly` composed it and `weeklyDigest` read what it needs, and no
-// module called either: the weekly mail was never sent (#181). Journey 06
-// composed it and handed it to the send seam by hand, which is what this
-// module does for real.
-//
-// **Once per `(site_id, week_start)`, and the key is a stamp on the week's
-// own row.** `scans` already carries one row per site-week under a partial
-// unique index, so the digest's once-ness is a column on that row
-// (`digest_sent_at`) and not a table of its own. It is stamped **only
-// where the seam accepted the mail**: a send it refused — an owner-owed
-// line that will not compose, a switch the customer turned off, a vendor
-// that would not take it — leaves the week unstamped, so the next tick
-// offers it again. Recording a refusal as though it were a send would burn
-// the week, and the refusal that matters most is a line the owner has not
-// written yet: the mail has to go the moment they write it.
-//
-// **An unmeasured week still sends, saying so** (SPEC §8, Weekly: "Unmeasured
-// week still sends, saying so"). Its row exists — a failed pass leaves one —
-// and its account says `not_measured`: the digest carries no section and no
-// figure, only the whole-mail line naming the date the next measurement is
-// due, and it is stamped like any other week. A week with **no row at all**
-// has no key to be told once against and still sends nothing, and neither
-// does a site whose access has ended (`not_owed`: "Stops: … access ends").
-// A week measured only in part sends with the sections it missed named
-// (REQ-064 c4).
-//
-// **The digest is composed for the week, never re-measured.** Every figure
-// comes from what is already stored: the standings from `weeklyDigest`,
-// D22's four headline numbers from the prompt window, the week's verdict
-// rows and the hosted blog's read counts, the technical checks that moved
-// from `weekMovement`, the week's pages and spares from the week this
-// Monday committed (issue 1559). A mail that re-measured to state a movement would report a
-// different week from the one it announces.
+// BUILD §12, §11 — the occasion of the Monday digest, once per `(site_id, week_start)`, stamped as `scans.digest_sent_at` on the week's row.
+// Stamped only where the seam accepted the mail: a refusal (unwritten line, switch off, vendor) leaves the week for the next tick,
+// so the mail goes the moment a missing line is written.
+// An unmeasured week still sends, saying so, with the next due date (SPEC §8). No row means no key, so nothing is sent, nor for `not_owed`
+// (access ended). A partial week names the sections it missed (REQ-064 c4).
+// Composed from stored figures, never re-measured, so the mail reports the week it announces.
 import { dbAdmin } from "@/lib/db";
 import { env } from "@/lib/config/env";
-import { ANSWER_RATE_WEEKS, BLOG_READS_WINDOW_D, MENTION_RATE_MIN_WEEKS, WEEK_PLAN } from "@/lib/config/constants";
+import { ANSWER_RATE_WEEKS, BLOG_READS_WINDOW_D, WEEK_PLAN } from "@/lib/config/constants";
 import { measurePrompts } from "@/lib/market/prompts/rate";
-import type { CopyKey } from "@/lib/presentation/copy";
+import { copy, type CopyKey } from "@/lib/presentation/copy";
+import { aiPagesOf, bestMoverOf, isFirstMonday, monthFiguresOf } from "@/lib/measure/figures";
 import { measured, measuredZero, unmeasured, type Measured } from "@/lib/measure/measured";
-import { committedWeek, weeklyDigest, type Opportunity } from "@/lib/opportunities";
+import { pageLadderOf } from "@/lib/measure/page-ladder";
+import { contentOf } from "@/lib/measure/published";
+import { readPublishedPages } from "@/lib/measure/published-store";
+import { committedWeek, opportunityById, weeklyDigest } from "@/lib/opportunities";
+import { placedByDay, plannedByDay, serviceWeek } from "@/lib/opportunities/days";
 import { plannedStopToken } from "@/lib/opportunities/stop";
+import { whyOf } from "@/lib/opportunities/why";
 import { vetoLinkPath } from "@/lib/publish/publishable";
-import { accountForWeek, previousWeekStart, readPromptWindow, weekMovement, type UnmeasuredPart } from "@/lib/scan/weekly";
+import { scheduledPagesFor } from "@/lib/publish/record";
+import { heldPages } from "@/lib/publish/switch";
+import { pauseTokenFor } from "@/lib/publish/switch/pause-link";
+import { readPublishingSettings } from "@/lib/publish/settings/settings";
+import { readBlogReadFacts } from "@/lib/publish/reads/facts";
+import { assembleBlogReads, type BlogReadsModel, type VisitWeek } from "@/lib/publish/reads/model";
+import { readSearchVisitsWeekly } from "@/lib/publish/reads/store";
+import { readDeepReport } from "@/lib/scan/deep/report";
+import { accountForWeek, readPromptWindow, readWeekScans, weekMovement, type UnmeasuredPart } from "@/lib/scan/weekly";
+import { formatMailClock } from "../blocks/format";
+import { unsubscribeTokenFor } from "../notifications/unsubscribe";
 import type { MeasurementState } from "../shell/compose";
 import { sendEmail } from "../send";
-import { buildWeekly, type WeeklyNeedsYou, type WeeklyNext, type WeeklyNumbers, type WeeklyPage } from "../templates/weekly";
+import {
+  buildWeekly,
+  type GoogleStep,
+  type WeeklyCalendar,
+  type WeeklyNeedsYou,
+  type WeeklyNext,
+  type WeeklyNumbers,
+  type WeeklyPage,
+} from "../templates/weekly";
 
-/** Why a digest did not go out. Every arm is reported; none is silent, and
- *  `not-composable` is its own arm rather than folded into `mail` —
- *  it is the one refusal that means "the owner has not written this yet",
- *  and an operator asking why Monday was quiet is owed that answer
- *  distinctly. */
+/** Why a digest did not go out. `not-composable` is its own arm: "the line is not written yet" is owed distinctly to whoever asks why Monday was quiet. */
 export type WeeklyDigestOutcome =
   | { sent: true; id: string }
   | {
@@ -59,11 +50,7 @@ export type WeeklyDigestOutcome =
       reason: "already-sent" | "not-measured" | "no-account" | "not-composable" | "mail";
     };
 
-/** The six parts a partial week can be missing, each under the one name
- *  the product calls it. A `Record`, so a seventh part could not be added
- *  without a name for it (REQ-064 c4 names the sections it missed, and an
- *  unnamed one would be a section the customer is told about and cannot
- *  identify). */
+/** The six parts a partial week can miss, by product name; a `Record`, so each needs a name the customer can identify (REQ-064 c4). */
 const SECTION_NAME: Readonly<Record<UnmeasuredPart, CopyKey>> = Object.freeze({
   on_page: "mail.section.on_page",
   market: "mail.section.market",
@@ -89,8 +76,7 @@ interface MinimalClient {
   from<T>(table: string): MinimalQuery<T>;
 }
 
-/** The same narrow cast the other mail occasions document: several columns
- *  this module reads are absent from the generated `Database` type. */
+/** The narrow cast the other occasions document: some columns read here are missing from the generated `Database` type. */
 function untyped(): MinimalClient {
   return dbAdmin() as unknown as MinimalClient;
 }
@@ -100,13 +86,7 @@ interface WeekRow {
   digest_sent_at: string | null;
 }
 
-/**
- * Sends one site's Monday digest for one week.
- *
- * Called by the weekly tick after the measurement, per site, and never
- * from inside the measurement itself: the pass records what it measured
- * and stops, and the two obligations of one tick are visible in the job.
- */
+/** Sends one site's digest for one week, from the weekly tick after the measurement, never inside it. */
 export async function sendWeeklyDigest(a: {
   siteId: string;
   weekStart: string;
@@ -114,9 +94,7 @@ export async function sendWeeklyDigest(a: {
 }): Promise<WeeklyDigestOutcome> {
   const now = a.now ?? new Date();
 
-  // The week's own row, and the stamp that says it has already been told.
-  // Read first: a re-run of the tick must reach neither the digest nor the
-  // seam.
+  // The week's row and its stamp, read first so a re-run reaches neither the digest nor the seam.
   const week = await readWeekRow(a);
   if (week === null) return { sent: false, reason: "not-measured" };
   if (week.digest_sent_at !== null) return { sent: false, reason: "already-sent" };
@@ -129,11 +107,28 @@ export async function sendWeeklyDigest(a: {
   if (recipient === null) return { sent: false, reason: "no-account" };
 
   const connect = await addressToConnect(a.siteId);
+  const settings = await readPublishingSettings(a.siteId).catch(() => null);
+  const zone = settings?.timezone ?? "UTC";
+  const greeting =
+    recipient.createdAt === null
+      ? undefined
+      : { name: recipient.name, week: serviceWeek(dayIn(recipient.createdAt, zone), a.weekStart), business: recipient.domain };
+  const calendar: WeeklyCalendar | undefined =
+    settings === null
+      ? undefined
+      : {
+          days: weekDates(a.weekStart),
+          today: dayIn(now, zone),
+          time: formatMailClock(settings.publishTime),
+          planHref: appHref("/app/calendar"),
+        };
   const { mail, measurement } =
     account.kind === "not_measured"
-      ? unmeasuredWeek(account.nextDueOn, now, connect)
-      : await measuredWeek(a.siteId, a.weekStart, account, connect);
+      ? unmeasuredWeek(account.nextDueOn, now, connect, greeting)
+      : await measuredWeek(a.siteId, a.weekStart, account, connect, now, greeting, calendar);
 
+  // The footer's ways out: pause every page, the mail settings, and this mail's unsubscribe, which an inbox can press too.
+  const unsubscribe = encodeURIComponent(unsubscribeTokenFor({ userId: recipient.userId, kind: "weekly" }));
   const result = await sendEmail({
     kind: "weekly",
     to: recipient.email,
@@ -142,12 +137,15 @@ export async function sendWeeklyDigest(a: {
     blocks: mail.blocks,
     reason: mail.reason,
     measurement,
+    footerLinks: [
+      { label: "mail.weekly.footer.pause", href: appHref(`/pause/${encodeURIComponent(pauseTokenFor(a.siteId))}`) },
+      { label: "mail.weekly.footer.settings", href: appHref("/app/settings/mail") },
+    ],
+    optOut: { href: appHref(`/unsubscribe/${unsubscribe}`), oneClickHref: appHref(`/api/unsubscribe/${unsubscribe}`), mechanism: "unsubscribe" },
   });
 
   if (!result.sent) {
-    // `not-composable` is the owner's unwritten line, reported as itself.
-    // Nothing is stamped either way: the week stays open and the next tick
-    // offers it again.
+    // `not-composable` is reported as itself; nothing is stamped, so the next tick offers the week again.
     return { sent: false, reason: result.reason === "not-composable" ? "not-composable" : "mail" };
   }
 
@@ -157,10 +155,23 @@ export async function sendWeeklyDigest(a: {
 
 type Composed = { mail: ReturnType<typeof buildWeekly>; measurement: MeasurementState };
 type Connect = { host: string; href: string };
+type Greeting = { name: string | null; week: number; business: string };
 
-/** The hosted address still waiting for its record, with the setup step
- *  that connects it. `undefined` once it is live, for a site with no hosted
- *  address, and where the read fails: the mail is never held for it. */
+function appHref(path: string): string {
+  return new URL(path, env.NEXT_PUBLIC_APP_URL).toString();
+}
+
+/** The site-local date an instant falls on, `YYYY-MM-DD`. */
+function dayIn(at: Date, timeZone: string): string {
+  return new Intl.DateTimeFormat("en-CA", { timeZone, year: "numeric", month: "2-digit", day: "2-digit" }).format(at);
+}
+
+/** Monday to Sunday of the week that starts on `weekStart`. */
+function weekDates(weekStart: string): string[] {
+  return Array.from({ length: 7 }, (_, i) => new Date(Date.parse(`${weekStart}T12:00:00Z`) + i * 86_400_000).toISOString().slice(0, 10));
+}
+
+/** The hosted address waiting for its record, with its setup step; `undefined` once live, with none, or on a failed read. */
 async function addressToConnect(siteId: string): Promise<Connect | undefined> {
   try {
     const { hostedHostFor } = await import("@/lib/publish/destinations/hosted/hostname");
@@ -172,14 +183,12 @@ async function addressToConnect(siteId: string): Promise<Connect | undefined> {
   }
 }
 
-/** A week with no measurement: every section unmeasured, so every one is
- *  omitted, and the whole-mail line says so with the next due date. */
-function unmeasuredWeek(nextDueOn: Date, now: Date, connect: Connect | undefined): Composed {
+/** A week with no measurement: every section omitted, and the whole-mail line gives the next due date. */
+function unmeasuredWeek(nextDueOn: Date, now: Date, connect: Connect | undefined, greeting: Greeting | undefined): Composed {
   const gap = unmeasured<never>("undeterminable", now);
   return {
-    // No numbers at all: the whole-mail line says the week was not
-    // measured, once, and four rows saying it again would repeat it.
-    mail: buildWeekly({ pages: gap, next: gap, ...(connect === undefined ? {} : { connect }) }),
+    // No numbers: the whole-mail line already says the week was not measured.
+    mail: buildWeekly({ pages: gap, next: gap, ...(connect === undefined ? {} : { connect }), ...(greeting === undefined ? {} : { greeting }) }),
     measurement: { state: "none", nextDueOn },
   };
 }
@@ -189,16 +198,15 @@ async function measuredWeek(
   siteId: string,
   weekStart: string,
   account: { kind: "complete" | "partial"; measuredAt: Date; unmeasured?: readonly UnmeasuredPart[] },
-  connect: Connect | undefined
+  connect: Connect | undefined,
+  now: Date,
+  greeting: Greeting | undefined,
+  calendar: WeeklyCalendar | undefined
 ): Promise<Composed> {
   const a = { siteId, weekStart };
 
   const digest = await weeklyDigest({ siteId: a.siteId, week: a.weekStart });
-  // The date every figure in this mail is stated as of. `weekMeasuredAt`
-  // is the week's own; the account's is the same date read from the same
-  // row, and it is the fallback only because the two arms come from two
-  // readers — never `now`, which would date a stored week to the moment
-  // the mail happened to be composed.
+  // The date every figure is stated as of: the week's own, else the account's from the same row, never `now`.
   const at = digest.weekMeasuredAt ?? account.measuredAt;
 
   const movement = await weekMovement({ siteId: a.siteId, weekStart: a.weekStart, at });
@@ -209,104 +217,159 @@ async function measuredWeek(
   }));
 
   const needsYou = await oneNeedsYou(a.siteId);
+  const week = await theWeek(a.siteId, a.weekStart, at);
   const mail = buildWeekly({
+    ...(greeting === undefined ? {} : { greeting }),
+    ...(calendar === undefined ? {} : { calendar }),
     ...(connect === undefined ? {} : { connect }),
-    // SPEC §8 (2026-10-07, issue 1329): the headline numbers lead.
-    numbers: {
-      ...(await headlineNumbers(a.siteId, a.weekStart, at)),
-      // Issue 1551: the pages' own questions cited lead, from the same
-      // stored week the movement is read from.
-      ...(movement.pagesCited.kind === "unmeasured"
-        ? {}
-        : {
-            pageQuestions: {
-              cited: counted(movement.pagesCited.value.cited, at),
-              asked: movement.pagesCited.value.asked,
-            },
-          }),
-    },
+    numbers: await weeklyNumbers(a.siteId, a.weekStart, now),
     ...(needsYou === undefined ? {} : { needsYou }),
-    // Measured, and measured-empty where the week judged nothing: "you
-    // have published nothing yet" is a result, and the template's own
-    // empty line states it.
+    // Measured-empty where the week judged nothing: "you have published nothing yet" is a result.
     pages: measured(pages, at),
-    ...(await theWeek(a.siteId, at)),
-    // SPEC §9 on Monday: the checks whose count moved, from the same two
-    // stored weeks the deltas are read from.
+    ...week,
+    // SPEC §9 on Monday: checks whose count moved between the same two stored weeks.
     issues: movement.issueChanges,
-    // SPEC §8 2026-09-29 (D16): the tracked questions that now name the
-    // site, each with its answer's address. No page is credited here.
+    // SPEC §8 (D16): tracked questions that now name the site, with the answer's address. No page is credited here.
     nowNamed: measured(
       movement.nowNamed.map((question) => ({ search: question.search, answerUrl: answerUrlOf(question.search) })),
       at
     ),
-    // D28 (#1185): what ReachKit changed about the market this week.
+    // D28: what ReachKit changed about the market this week.
     marketChanges: await marketChangesSince(a.siteId, a.weekStart),
   });
   return { mail, measurement: measurementStateOf(account) };
 }
 
-/** Where the answer to a tracked question is read: the search it was
- *  phrased from, on Google, which is the engine the reading is counted
- *  from (SPEC §4 2026-09-17). */
+/** Where a tracked question's answer is read: its search on Google, the engine the reading is counted from (SPEC §4). */
 function answerUrlOf(search: string): string {
   const url = new URL("https://www.google.com/search");
   url.searchParams.set("q", search);
   return url.toString();
 }
 
-/**
- * D22's four headline numbers (SPEC §4, 2026-10-02), each from stored rows.
- *
- * Every read fails soft into `unmeasured`, and the row then says the number
- * was not measured: the mail is never held back for one number, and a read
- * that failed is never a zero.
- */
-async function headlineNumbers(siteId: string, weekStart: string, at: Date): Promise<WeeklyNumbers> {
-  const [prompts, top20, aiVisits] = await Promise.all([
-    promptNumbers(siteId, weekStart, at),
-    top20Pages(siteId, weekStart, at),
-    aiVisitsOf(siteId, at),
+/** Overview's weekly figures, read at `now` with Overview's readers. Every read fails soft and says so; the mail is never held for one number. */
+async function weeklyNumbers(siteId: string, weekStart: string, now: Date): Promise<WeeklyNumbers> {
+  const [content, reads] = await Promise.all([
+    readPublishedPages(siteId).then((pages) => contentOf({ pages, now })).catch(() => null),
+    blogReadsOf(siteId, now),
   ]);
-  return { ...prompts, weeks: ANSWER_RATE_WEEKS, ...top20, ...(aiVisits === undefined ? {} : { aiVisits }) };
+  const planned = await weekPages(siteId, weekStart).then(
+    (n) => counted(n, now),
+    () => unmeasured<number>("undeterminable", now)
+  );
+  const month = isFirstMonday(weekStart) ? await monthNumbers(siteId, weekStart, now) : undefined;
+  const weeks = reads === null ? null : await reads.visits;
+  const ladder = content === null ? null : pageLadderOf(content.pages, now, weeks === null ? null : (weeks.at(-1)?.visits ?? 0));
+  const before = weeks?.at(-2)?.visits;
+  if (ladder === null) {
+    return { live: content === null ? unmeasured<number>("undeterminable", now) : counted(0, now), planned, ...(month === undefined ? {} : { month }) };
+  }
+  const live = (content?.pages ?? []).filter((page) => page.publishedAt <= now);
+  const ai = aiPagesOf(live);
+  const mover = bestMoverOf(live, now);
+  const steps = ladder.google.flatMap((step) =>
+    step.name === "draft.ladder.live"
+      ? []
+      : [{ name: step.name as GoogleStep, count: step.count === null ? unmeasured<number>("undeterminable", now) : counted(step.count, now), of: step.of }]
+  );
+  const showing = ladder.google.find((step) => step.name === "draft.ladder.showing")?.count;
+  return {
+    live: counted(ladder.live, now),
+    planned,
+    google: {
+      steps,
+      early: showing === 0,
+      climbing: ladder.climbing,
+      ...(ladder.visits === null || ladder.visits === 0
+        ? {}
+        : { visits: counted(ladder.visits, now), ...(before === undefined ? {} : { visitsBefore: counted(before, now) }) }),
+      ...(mover === undefined
+        ? {}
+        : { climb: mover === null ? null : { search: mover.search, from: mover.first.place, to: mover.place, climbing: mover.climbing } }),
+    },
+    ai: {
+      linked: ai === null ? unmeasured<number>("not_attempted", now) : counted(ai.linked.length, now),
+      asked: ai?.asked.length ?? 0,
+      ...(reads === null || reads.model.fetches.kind === "unmeasured" ? {} : { reads: reads.model.fetches }),
+    },
+    ...(month === undefined ? {} : { month }),
+  };
 }
 
-/**
- * D22 · D19 (#1162): the AI mention rate as the Overview states it — the
- * same window, the same measure — and the pages those answers cited. Both
- * are unmeasured where no pass in the window asked the prompts, or the
- * window cannot be read.
- */
-async function promptNumbers(
+async function weekPages(siteId: string, weekStart: string): Promise<number> {
+  return (await weekEntries(siteId, weekStart)).entries.length;
+}
+
+/** The week's pages by Plan's rule: each date's scheduled draft, else its committed row. */
+async function weekEntries(
   siteId: string,
-  weekStart: string,
-  at: Date
-): Promise<Pick<WeeklyNumbers, "mentions" | "pagesCited">> {
-  const gap = unmeasured<number>("undeterminable", at);
-  const none = { mentions: { kind: "rate", rate: gap, low: 0, high: 0 }, pagesCited: gap } as const;
+  weekStart: string
+): Promise<{
+  entries: { day: string; opportunityId: string; draftId: string | null }[];
+  committed: Awaited<ReturnType<typeof committedWeek>>;
+}> {
+  const days = weekDates(weekStart);
+  const [pages, held, committed] = await Promise.all([
+    scheduledPagesFor({ siteId, from: days[0]!, to: days[6]! }),
+    heldPages(siteId),
+    committedWeek(siteId),
+  ]);
+  const placed = placedByDay(pages, new Set(held.draftIds), weekStart).byDay;
+  const planned = plannedByDay(committed.days, placed, days);
+  const entries = days.flatMap((day): { day: string; opportunityId: string; draftId: string | null }[] => {
+    const page = placed.get(day);
+    if (page !== undefined) return [{ day, opportunityId: page.opportunityId, draftId: page.draftId }];
+    const id = planned.get(day);
+    return id === undefined ? [] : [{ day, opportunityId: id, draftId: null }];
+  });
+  return { entries, committed };
+}
+
+/** The hosted pages' AI reads and Google visits, as Overview's providers read
+ *  them; `null` off a hosted blog, before a page is live there, or on a failed read. */
+async function blogReadsOf(
+  siteId: string,
+  now: Date
+): Promise<{ model: BlogReadsModel; visits: Promise<readonly VisitWeek[] | null> } | null> {
   try {
-    const window = await readPromptWindow({ siteId, weekStart });
-    const measure = measurePrompts(window.weeks.flatMap((week) => week.samples));
-    if (measure.rate === null) return none;
-    const percent = (fraction: number): number => Math.round(fraction * 100);
-    const mentioned = measure.rate.linked + measure.rate.named;
-    return {
-      // D58: no rate before two weeks of the current prompt set — the
-      // count and its sample stand in its place.
-      mentions:
-        window.weeks.length >= MENTION_RATE_MIN_WEEKS
-          ? {
-              kind: "rate",
-              rate: counted(percent(measure.rate.rate), at),
-              low: percent(measure.rate.low),
-              high: percent(measure.rate.high),
-            }
-          : { kind: "count", mentioned: counted(mentioned, at), answers: measure.rate.samples },
-      pagesCited: counted(measure.pages.length, at),
-    };
+    const model = assembleBlogReads(await readBlogReadFacts({ siteId }, now, BLOG_READS_WINDOW_D), BLOG_READS_WINDOW_D, now);
+    if (!model.show) return null;
+    return { model, visits: readSearchVisitsWeekly({ siteId, now }).catch(() => null) };
   } catch {
-    return none;
+    return null;
   }
+}
+
+/** The month's first mail: the first-Monday pass's score and market against the scan, and reputation; `undefined` where none was stored. */
+async function monthNumbers(siteId: string, weekStart: string, now: Date): Promise<WeeklyNumbers["month"]> {
+  const [reading, scan, rate] = await Promise.all([
+    readWeekScans({ siteId, weekStarts: [weekStart] })
+      .then((weeks) => monthFiguresOf(weeks.get(weekStart)?.report ?? null))
+      .catch(() => monthFiguresOf(null)),
+    readDeepReport(siteId)
+      .then((deep) => monthFiguresOf(deep?.report ?? null))
+      .catch(() => monthFiguresOf(null)),
+    readPromptWindow({ siteId, weekStart })
+      .then((window) => measurePrompts(window.weeks.flatMap((week) => week.samples)).rate)
+      .catch(() => null),
+  ]);
+  const change = (value: number, before: number | null) => (before === null ? {} : { change: counted(value - before, now) });
+  const month = {
+    ...(reading.score === null ? {} : { score: { value: counted(reading.score, now), ...change(reading.score, scan.score) } }),
+    ...(reading.market === null
+      ? {}
+      : {
+          market: {
+            value: counted(reading.market.top10, now),
+            of: reading.market.of,
+            ...change(reading.market.top10, scan.market?.top10 ?? null),
+          },
+        }),
+    ...(rate === null
+      ? {}
+      : { reputation: { value: counted(rate.linked + rate.named, now), answers: rate.samples, weeks: ANSWER_RATE_WEEKS } }),
+  };
+  return Object.keys(month).length === 0 ? undefined : month;
 }
 
 /** A count that was taken: a zero is a result, in its own arm. */
@@ -314,98 +377,33 @@ function counted(value: number, at: Date): Measured<number> {
   return value === 0 ? measuredZero(0, at) : measured(value, at);
 }
 
-/** The best place D22's third number counts (SPEC §4, 2026-10-02). */
-const TOP_PLACES = 20;
-
-/**
- * D22's third: the published pages whose search the site holds a top-20
- * place for, counted from the week's own verdict rows — the place
- * `judgeWeek` stored beside each verdict (`page_verdicts.measured`). The
- * same rows the mail's *pages judged* list is read from, so the count and
- * the list cannot disagree, and nothing is measured again for it.
- *
- * A week that judged no page holds no place, which is a zero that was
- * measured: this function is reached only for a week that was. A week that
- * judged pages and stored a place for none of them is unmeasured.
- *
- * The change is against the Monday before, where that week stored places
- * too: two measurements or no change stated.
- */
-async function top20Pages(
+/** The week's pages with day, update flag, why and links, and the spares. An empty week is one stated line, never padded. */
+async function theWeek(
   siteId: string,
   weekStart: string,
   at: Date
-): Promise<Pick<WeeklyNumbers, "top20" | "top20Change">> {
-  try {
-    const { verdictStore } = await import("@/lib/opportunities/verdicts/store");
-    const store = verdictStore();
-    const [thisWeek, weekBefore] = await Promise.all([
-      store.verdictsForWeek({ siteId, week: weekStart }),
-      store.verdictsForWeek({ siteId, week: previousWeekStart(weekStart) }),
-    ]);
-    const now = placedInTop(thisWeek.map((row) => row.measured));
-    if (now === null) return { top20: unmeasured<number>("undeterminable", at) };
-    const before = weekBefore.length === 0 ? null : placedInTop(weekBefore.map((row) => row.measured));
-    return {
-      top20: counted(now, at),
-      ...(before === null ? {} : { top20Change: counted(now - before, at) }),
-    };
-  } catch {
-    return { top20: unmeasured<number>("undeterminable", at) };
-  }
-}
-
-/** How many of a week's stored places are inside the top twenty. `null`
- *  where rows exist and none of them stored a place. */
-function placedInTop(places: readonly (Measured<number> | null)[]): number | null {
-  const read = places.filter((place) => place !== null && place.kind !== "unmeasured");
-  if (places.length > 0 && read.length === 0) return null;
-  return read.filter((place) => place?.kind === "measured" && place.value >= 1 && place.value <= TOP_PLACES).length;
-}
-
-/**
- * D22's fourth: pages an answer engine fetched on the hosted blog, over the
- * window the AI answers tab reads — the same facts and the same model, so
- * the mail and the tile state one number. `undefined` off a hosted blog or
- * before a page is live there, and the mail then has no such row.
- */
-async function aiVisitsOf(siteId: string, at: Date): Promise<WeeklyNumbers["aiVisits"]> {
-  try {
-    const [{ readBlogReadFacts }, { assembleBlogReads }] = await Promise.all([
-      import("@/lib/publish/reads/facts"),
-      import("@/lib/publish/reads/model"),
-    ]);
-    const reads = assembleBlogReads(await readBlogReadFacts({ siteId }, at, BLOG_READS_WINDOW_D), BLOG_READS_WINDOW_D, at);
-    return reads.show ? { fetches: reads.fetches, windowDays: reads.windowDays } : undefined;
-  } catch {
-    return undefined;
-  }
-}
-
-/** The week this Monday committed (SPEC §7, issue 1559): its pages in date
- *  order, each with its day and its stop link, and its spares. Measured-and-
- *  empty where the supply has run out — the calendar is never padded, and an
- *  empty week is a result the template states in one line. */
-async function theWeek(
-  siteId: string,
-  at: Date
 ): Promise<{ next: Measured<readonly WeeklyNext[]>; spares: Measured<readonly { targetQuery: string }[]>; skippedDays: number }> {
-  const week = await committedWeek(siteId);
-  // An opportunity with no target search has nothing to name, and naming it
-  // some other way would be a second identity for one row.
-  const named = (rows: readonly Opportunity[]) =>
-    rows.flatMap((row) => (row.targetQuery === null ? [] : [{ targetQuery: row.targetQuery }]));
-  const days = week.days.flatMap(({ date, opportunity }) =>
-    opportunity.targetQuery === null
-      ? []
-      : [{ targetQuery: opportunity.targetQuery, day: date, stopHref: stopHrefOf(siteId, opportunity.id, date) }]
-  );
-  // The week runs WEEK_PLAN.days dates from its first page; a date in it with
-  // no page planned is told, never padded.
-  const first = days[0]?.day;
-  const end = first === undefined ? "" : new Date(Date.parse(`${first}T00:00:00Z`) + WEEK_PLAN.days * 86_400_000).toISOString().slice(0, 10);
-  const skippedDays = first === undefined ? 0 : WEEK_PLAN.days - new Set(days.filter((d) => d.day < end).map((d) => d.day)).size;
-  return { next: measured(days, at), spares: measured(named(week.spares), at), skippedDays };
+  const { entries, committed } = await weekEntries(siteId, weekStart);
+  const open = new Map(committed.days.map(({ opportunity }) => [opportunity.id, opportunity]));
+  const days: WeeklyNext[] = [];
+  for (const entry of entries) {
+    const opportunity = open.get(entry.opportunityId) ?? (await opportunityById(entry.opportunityId).catch(() => null));
+    // No target search, nothing to name: another name would be a second identity.
+    if (opportunity === null || opportunity === undefined || opportunity.targetQuery === null) continue;
+    const why = whyOf(opportunity.planReason);
+    const draftHref = entry.draftId === null ? null : appHref(`/app/draft/${encodeURIComponent(entry.draftId)}`);
+    days.push({
+      targetQuery: opportunity.targetQuery,
+      day: entry.day,
+      update: opportunity.evidence.family === "improve" || opportunity.evidence.family === "fix",
+      ...(why === undefined ? {} : { why: copy(why.sentence) }),
+      // A written page is stopped where it is read; a planned one by its own signed link.
+      stopHref: draftHref ?? stopHrefOf(siteId, opportunity.id, entry.day),
+      editHref: draftHref ?? appHref("/app/calendar"),
+    });
+  }
+  const named = committed.spares.flatMap((row) => (row.targetQuery === null ? [] : [{ targetQuery: row.targetQuery }]));
+  return { next: measured(days, at), spares: measured(named, at), skippedDays: WEEK_PLAN.days - entries.length };
 }
 
 function stopHrefOf(siteId: string, opportunityId: string, day: string): string {
@@ -413,9 +411,7 @@ function stopHrefOf(siteId: string, opportunityId: string, day: string): string 
   return new URL(vetoLinkPath(token), env.NEXT_PUBLIC_APP_URL).toString();
 }
 
-/** The account, as the compose shell states it. A complete week says so
- *  and carries no line; a partial one names the sections it missed. The
- *  other two arms never reach here. */
+/** The account as the shell states it: complete carries no line, partial names its missing sections. */
 function measurementStateOf(account: {
   kind: "complete" | "partial";
   unmeasured?: readonly UnmeasuredPart[];
@@ -441,10 +437,12 @@ async function readWeekRow(a: { siteId: string; weekStart: string }): Promise<We
   return data?.[0] ?? null;
 }
 
-async function readRecipient(siteId: string): Promise<{ email: string; userId: string } | null> {
+async function readRecipient(
+  siteId: string
+): Promise<{ email: string; userId: string; name: string | null; domain: string; createdAt: Date | null } | null> {
   const { data: sites, error: siteError } = await untyped()
-    .from<{ id: string; user_id: string }>("sites")
-    .select("id, user_id")
+    .from<{ id: string; user_id: string; domain: string; created_at: string | null }>("sites")
+    .select("id, user_id, domain, created_at")
     .eq("id", siteId)
     .limit(1);
   if (siteError !== null) throw new Error(`sendWeeklyDigest(${siteId}): ${siteError.message}`);
@@ -452,13 +450,21 @@ async function readRecipient(siteId: string): Promise<{ email: string; userId: s
   if (site === undefined) return null;
 
   const { data: users, error: userError } = await untyped()
-    .from<{ email: string }>("users")
-    .select("email")
+    .from<{ email: string; name: string | null }>("users")
+    .select("email, name")
     .eq("id", site.user_id)
     .limit(1);
   if (userError !== null) throw new Error(`sendWeeklyDigest(${siteId}): ${userError.message}`);
-  const email = users?.[0]?.email;
-  return email === undefined ? null : { email, userId: site.user_id };
+  const user = users?.[0];
+  if (user === undefined) return null;
+  const created = site.created_at == null ? Number.NaN : Date.parse(site.created_at);
+  return {
+    email: user.email,
+    userId: site.user_id,
+    name: user.name ?? null,
+    domain: site.domain,
+    createdAt: Number.isNaN(created) ? null : new Date(created),
+  };
 }
 
 /** The stamp, written after the seam accepted the mail and never before. */
@@ -472,20 +478,8 @@ async function stampSent(scanId: string, at: Date): Promise<void> {
   }
 }
 
-/**
- * SPEC §8 (2026-09-20, #933) — "one needs-you item".
- *
- * One, and the newest: a page resting in `needs_attention` is the one thing
- * a customer must act on for the product to keep publishing, and a mail
- * that listed them all would be a second calendar. `undefined` where
- * nothing is waiting — the mail then says nothing about it, rather than
- * saying nothing is wrong.
- *
- * It states *that* a page needs them and opens it; **why** is the page's
- * own to say, on the screen that can also fix it (`needs-you.ts` derives
- * the cause, and the draft screen states it). A cause restated here would
- * be the second place the product words it.
- */
+/** SPEC §8's one needs-you item: the newest `needs_attention` page, since listing all would be a second calendar; `undefined` says nothing.
+ *  It says that a page needs them and opens it; why is the page's own to say (`needs-you.ts`), on the screen that can fix it. */
 async function oneNeedsYou(siteId: string): Promise<WeeklyNeedsYou | undefined> {
   try {
     const { data, error } = await untyped()
@@ -500,10 +494,7 @@ async function oneNeedsYou(siteId: string): Promise<WeeklyNeedsYou | undefined> 
     const title = (row.title ?? "").trim();
     return {
       line: "mail.weekly.needsYou",
-      // The page's own title where it has one — model text, and it reaches
-      // the reader through a slot in a written sentence, never as a
-      // sentence of ours. A page with no title yet is named by nothing, and
-      // the line's slot then carries its address in the app instead.
+      // The title is model text, so it reaches the reader in a slot, never as our sentence; with none, the slot carries the app address.
       vars: { page: title === "" ? row.id : title },
       href: new URL(`/app/draft/${encodeURIComponent(row.id)}`, env.NEXT_PUBLIC_APP_URL).toString(),
     };
@@ -512,9 +503,7 @@ async function oneNeedsYou(siteId: string): Promise<WeeklyNeedsYou | undefined> 
   }
 }
 
-/** D28 (#1185): the change ReachKit's latest conclusion made, where it was
- *  made this week — the category it now measures and the rivals it added or
- *  dropped, each with its reason. Fails soft: no line rather than no mail. */
+/** D28: the latest conclusion's change made this week (category, rivals added or dropped, reasons). Fails soft: no line, not no mail. */
 async function marketChangesSince(
   siteId: string,
   weekStart: string

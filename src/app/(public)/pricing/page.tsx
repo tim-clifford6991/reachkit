@@ -16,7 +16,31 @@
 // for the launch gate (owner 2026-10-20, Q13).
 import React, { use } from "react";
 import type { Metadata } from "next";
-import { Check, CircleCheck, CircleStop, Clock, Mail, Pencil, X } from "lucide-react";
+import {
+  Building2,
+  Check,
+  CircleCheck,
+  CircleStop,
+  Clock,
+  Download,
+  Eye,
+  FileText,
+  Globe,
+  Inbox,
+  Info,
+  Languages,
+  Lock,
+  MessageSquare,
+  Pencil,
+  Search,
+  ShieldCheck,
+  Timer,
+  TrendingUp,
+  Users,
+  Wrench,
+  X,
+  type LucideIcon,
+} from "lucide-react";
 import { Surface } from "@/ui/layout";
 import { HOSTED_RETENTION_DAYS, VETO, WEEK_PLAN } from "@/lib/config/constants";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
@@ -25,7 +49,8 @@ import { ScanForm } from "../_landing/ScanForm";
 import { scanFormWords } from "../_landing/scan-form-words";
 import { HOW_FACTS as F } from "../_how/facts";
 import { EXAMPLES, weekSpan } from "../_how/specimen";
-import { WeekCard, WhatToExpect } from "../_how/visuals";
+import { ICON_TILE, WeekCard, WhatToExpect } from "../_how/visuals";
+import { PlanBuys } from "../_how/buys";
 import { ThreeWays } from "../_how/compare";
 import { PUBLIC_ROUTE_SEO } from "../_seo/routes";
 import { staticMetadata } from "../_seo/metadata";
@@ -91,26 +116,11 @@ function Section(p: {
   );
 }
 
-/** What €49 a month buys, as four figures. */
+/** What €49 a month buys, then the plan's three terms. */
 function Buys(): React.JSX.Element {
-  const tiles = [
-    [copy("pricing.buys.pages", weekPages), copy("pricing.buys.pages.what")],
-    [copy("pricing.buys.rivals", { rivals: F.rivals }), copy("pricing.buys.rivals.what")],
-    [copy("pricing.buys.mail"), copy("pricing.buys.mail.what")],
-    [copy("pricing.buys.time", { minutes: F.setupMinutes }), copy("pricing.buys.time.what")],
-  ] as const;
-  const label = copy("pricing.buys", { price: price() });
   return (
     <div className="flex flex-col gap-3">
-      <p className="eyebrow">{label}</p>
-      <ul aria-label={label} className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        {tiles.map(([value, what]) => (
-          <li key={value} className={`${CARD} gap-1 p-4`}>
-            <span className="num text-xl font-bold">{value}</span>
-            <span className={SMALL}>{what}</span>
-          </li>
-        ))}
-      </ul>
+      <PlanBuys />
       <p className={`${SMALL} flex flex-wrap gap-x-4 gap-y-1`}>
         {(["pricing.chip.contract", "pricing.chip.setup", "pricing.chip.cancel"] as const).map((key) => (
           <span key={key} className="flex items-center gap-1">
@@ -135,6 +145,14 @@ function FreeFirst(): React.JSX.Element {
   );
 }
 
+function SideIcon({ icon: Icon }: { icon: LucideIcon }): React.JSX.Element {
+  return (
+    <span aria-hidden className="rounded-field bg-primary/10 text-primary grid size-7 shrink-0 place-items-center">
+      <Icon {...ICON} />
+    </span>
+  );
+}
+
 /** The three cards under the example week: where a page goes, the email
  *  before it, and the Monday email. */
 function WeekParts(): React.JSX.Element {
@@ -144,17 +162,20 @@ function WeekParts(): React.JSX.Element {
       <div className={CARD}>
         <div className="card-body gap-3">
           <p className="flex items-center gap-2 font-semibold">
-            <CircleCheck {...ICON} className="text-success" />
+            <SideIcon icon={Globe} />
             {copy("pricing.week.address")}
           </p>
-          <p className="rounded-box bg-base-200 min-w-0 px-3 py-2 font-mono text-sm break-all">{`${e.blog}${e.pagePath}`}</p>
+          <p className="rounded-box bg-base-200 flex min-w-0 items-center gap-2 px-3 py-2 font-mono text-sm">
+            <Lock {...ICON} className="shrink-0" />
+            <span className="min-w-0 break-all">{`${e.blog}${e.pagePath}`}</span>
+          </p>
           <p className={SMALL}>{copy("pricing.week.address.line")}</p>
         </div>
       </div>
       <div className={CARD}>
         <div className="card-body gap-3">
           <p className="flex items-center gap-2 font-semibold">
-            <Mail {...ICON} className="text-primary" />
+            <SideIcon icon={Clock} />
             {copy("pricing.week.emailed")}
           </p>
           <span className="flex flex-wrap gap-1">
@@ -173,7 +194,7 @@ function WeekParts(): React.JSX.Element {
       <div className={CARD}>
         <div className="card-body gap-3">
           <p className="flex flex-wrap items-center gap-2 font-semibold">
-            <Mail {...ICON} className="text-primary" />
+            <SideIcon icon={Inbox} />
             {copy("pricing.week.mail")}
             <span className={`num ${SMALL} font-normal`}>{weekSpan().monday}</span>
           </p>
@@ -213,6 +234,20 @@ const INCLUDED = [
   { key: "yours", vars: {} },
 ] as const;
 
+const INCLUDED_ICON: Record<(typeof INCLUDED)[number]["key"], LucideIcon> = {
+  research: Building2,
+  rivals: Users,
+  asks: MessageSquare,
+  pages: FileText,
+  checks: ShieldCheck,
+  live: Globe,
+  stop: Pencil,
+  mail: Inbox,
+  fix: Wrench,
+  language: Languages,
+  yours: Download,
+};
+
 const NOT_DONE: readonly CopyKey[] = [
   "pricing.all.not.maps",
   "how.value.not.ads",
@@ -226,13 +261,21 @@ function Included(): React.JSX.Element {
   return (
     <>
       <ul className="grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {INCLUDED.map(({ key, vars }) => (
-          <li key={key} className={`${CARD} gap-2 p-5`}>
-            <span className="badge badge-soft badge-primary badge-sm">{copy(`pricing.all.${key}.when` as CopyKey)}</span>
-            <h3 className="text-base font-semibold">{copy(`pricing.all.${key}` as CopyKey, vars)}</h3>
-            <p className={SMALL}>{copy(`pricing.all.${key}.line` as CopyKey, vars)}</p>
-          </li>
-        ))}
+        {INCLUDED.map(({ key, vars }) => {
+          const Icon = INCLUDED_ICON[key];
+          return (
+            <li key={key} className={`${CARD} gap-2 p-5`}>
+              <span className="flex items-center justify-between gap-2">
+                <span aria-hidden className={ICON_TILE}>
+                  <Icon className="size-5" strokeWidth={1.75} />
+                </span>
+                <span className="badge badge-soft badge-primary badge-sm">{copy(`pricing.all.${key}.when` as CopyKey)}</span>
+              </span>
+              <h3 className="text-base font-semibold">{copy(`pricing.all.${key}` as CopyKey, vars)}</h3>
+              <p className={SMALL}>{copy(`pricing.all.${key}.line` as CopyKey, vars)}</p>
+            </li>
+          );
+        })}
       </ul>
       <div className="rounded-box bg-base-200 flex flex-col gap-2 p-4">
         <h3 className="text-sm font-semibold">{copy("pricing.all.not")}</h3>
@@ -258,12 +301,13 @@ const FROM_WEEK_ONE: readonly CopyKey[] = [
 
 function FromWeekOne(): React.JSX.Element {
   const steps = [
-    { at: copy("pricing.months.day1.at"), what: copy("pricing.months.day1.what", { minutes: F.setupMinutes }) },
-    { at: copy("pricing.months.day2.at"), what: copy("pricing.months.day2.what") },
-    { at: copy("pricing.months.monday.at"), what: copy("pricing.months.monday.what") },
-    ...(["found", "showing", "top"] as const).map((step) => ({
+    { at: copy("pricing.months.day1.at"), what: copy("pricing.months.day1.what", { minutes: F.setupMinutes }), icon: Timer },
+    { at: copy("pricing.months.day2.at"), what: copy("pricing.months.day2.what"), icon: CircleCheck },
+    { at: copy("pricing.months.monday.at"), what: copy("pricing.months.monday.what"), icon: Inbox },
+    ...([["found", Search], ["showing", Eye], ["top", TrendingUp]] as const).map(([step, icon]) => ({
       at: copy(`how.when.${step}.at`),
       what: copy(`how.when.${step}.what`),
+      icon,
     })),
   ];
   return (
@@ -278,7 +322,7 @@ function FromWeekOne(): React.JSX.Element {
           ))}
         </ul>
         <div className="rounded-box bg-base-200 flex items-start gap-3 p-4">
-          <Clock {...ICON} className="mt-1 shrink-0" />
+          <Info {...ICON} className="mt-1 shrink-0" />
           <div className="flex flex-col gap-1">
             <h3 className="text-sm font-semibold">{copy("pricing.first.longer")}</h3>
             <p className="text-sm">{copy("pricing.first.longer.line")}</p>

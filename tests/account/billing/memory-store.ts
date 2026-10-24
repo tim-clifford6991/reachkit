@@ -25,15 +25,30 @@ type Writable<T> = { -readonly [K in keyof T]: T[K] };
 export interface MemoryBilling {
   users: BillingRow[];
   sites: HostingRow[];
-  /** Delivered publications and finished scans, as `period` filters them. */
-  publications: (PeriodPageRow & { site_id: string; published_at: string; unpublished_at: string | null })[];
-  scans: { site_id: string; created_at: string; status: "running" | "done" | "degraded" | "failed" }[];
+  /** Delivered publications, and scans with their Monday mail and report, as `period` filters them. */
+  publications: (PeriodPageRow & {
+    site_id: string;
+    published_at: string;
+    unpublished_at: string | null;
+    /** Absent is `delivered`; a claimed or failed delivery never went live. */
+    delivery_state?: "claimed" | "delivered" | "failed";
+  })[];
+  scans: {
+    site_id: string;
+    created_at: string;
+    status: "running" | "done" | "degraded" | "failed";
+    digest_sent_at?: string | null;
+    report?: unknown;
+  }[];
   /** `sites.domain` as stored, per owner. */
   domains: { user_id: string; domain: string | null }[];
   refunds: { invoice_id: string; user_id: string; subscription_id: string | null; domains: readonly string[]; refunded_at: string }[];
+  renewalRefunds: { invoice_id: string; user_id: string; refunded_at: string }[];
   failAccountRead: boolean;
   failHostingRead: boolean;
   failWrite: boolean;
+  /** One method answering not-ok, where a broad switch would fail an earlier step too. */
+  failMethod: keyof BillingStore | null;
 }
 
 export function newMemoryBilling(): MemoryBilling {
@@ -44,9 +59,11 @@ export function newMemoryBilling(): MemoryBilling {
     scans: [],
     domains: [],
     refunds: [],
+    renewalRefunds: [],
     failAccountRead: false,
     failHostingRead: false,
     failWrite: false,
+    failMethod: null,
   };
 }
 
@@ -140,7 +157,7 @@ export function memoryBillingStore(state: MemoryBilling): BillingStore {
     return true;
   }
 
-  return {
+  const store: BillingStore = {
     async payingSiteCount(at) {
       if (state.failHostingRead) return { ok: false };
       const count = state.sites.filter((s) => new Date(joined(s).owner_paid_through) > at).length;
@@ -259,6 +276,11 @@ export function memoryBillingStore(state: MemoryBilling): BillingStore {
       return patchSite(siteId, patch) ? { ok: true } : { ok: false };
     },
 
+    async siteZone(userId) {
+      if (state.failHostingRead) return { ok: false };
+      return { ok: true, timezone: state.sites.find((s) => s.user_id === userId)?.timezone ?? null };
+    },
+
     async siteDomains(userId) {
       if (state.failHostingRead) return { ok: false };
       return {
@@ -283,6 +305,26 @@ export function memoryBillingStore(state: MemoryBilling): BillingStore {
       return { ok: true };
     },
 
+    async wentLive(userId, from, to) {
+      if (state.failHostingRead) return { ok: false };
+      const owned = new Set(state.sites.filter((s) => s.user_id === userId).map((s) => s.id));
+      const live = state.publications.some(
+        (p) =>
+          owned.has(p.site_id) &&
+          (p.delivery_state ?? "delivered") === "delivered" &&
+          Date.parse(p.published_at) >= from.getTime() &&
+          Date.parse(p.published_at) < to.getTime()
+      );
+      return { ok: true, live };
+    },
+
+    async recordRenewalRefund(a) {
+      if (state.failWrite) return { ok: false };
+      if (state.renewalRefunds.some((r) => r.invoice_id === a.invoiceId)) return { ok: true, inserted: false };
+      state.renewalRefunds.push({ invoice_id: a.invoiceId, user_id: a.userId, refunded_at: a.at.toISOString() });
+      return { ok: true, inserted: true };
+    },
+
     async period(siteId, from, to) {
       if (state.failHostingRead) return { ok: false };
       const within = (at: string): boolean => Date.parse(at) >= from.getTime() && Date.parse(at) < to.getTime();
@@ -291,8 +333,17 @@ export function memoryBillingStore(state: MemoryBilling): BillingStore {
         pages: state.publications.filter(
           (p) => p.site_id === siteId && p.unpublished_at === null && within(p.published_at)
         ),
-        scans: state.scans.filter((s) => s.site_id === siteId && (s.status === "done" || s.status === "degraded") && within(s.created_at)).length,
+        reports: state.scans
+          .flatMap((s) => (s.site_id === siteId && s.digest_sent_at != null && within(s.digest_sent_at) ? [s.digest_sent_at] : []))
+          .sort(),
+        newestReport:
+          state.scans
+            .filter((s) => s.site_id === siteId && (s.status === "done" || s.status === "degraded") && s.report != null && within(s.created_at))
+            .sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at))[0]?.report ?? null,
       };
     },
   };
+  return new Proxy(store, {
+    get: (target, key) => (key === state.failMethod ? async () => ({ ok: false }) : Reflect.get(target, key)),
+  });
 }

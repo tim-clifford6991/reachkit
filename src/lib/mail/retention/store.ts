@@ -1,9 +1,5 @@
-// SPEC §8, Retention (issue #569) — the rows the sequence reads and the
-// stamps it writes. A port with one Supabase implementation and a door for
-// suites, the shape `account/billing/store.ts` uses.
-//
-// Each due read narrows by the indexed, cheap conditions; the rest of each
-// rule is `rules.ts`'s, re-asked by the sender against a fresh read.
+// SPEC §8, Retention — the rows the sequence reads and the stamps it writes, as a port with a suites' door.
+// Due reads narrow by cheap indexed conditions; the rest of each rule is `rules.ts`'s, re-asked against a fresh read.
 import { dbAdmin } from "@/lib/db";
 import { seenIsStale, type RetentionAccount } from "./rules";
 
@@ -22,6 +18,8 @@ export interface RetentionStore {
   cancelledAccounts(): Promise<readonly RetentionAccount[]>;
   account(userId: string): Promise<RetentionAccount | null>;
   siteOf(userId: string): Promise<RetentionSite | null>;
+  /** Whether a first-14-days refund was made to this account at or after `since`. */
+  refundedSince(userId: string, since: Date): Promise<boolean>;
   stampAccount(userId: string, column: AccountStamp, at: Date): Promise<void>;
   /** A sign-in or an /app visit. Writes only when the stored value is stale. */
   recordSeen(userId: string, at: Date): Promise<void>;
@@ -35,6 +33,7 @@ interface Query<T> extends PromiseLike<Result<T>> {
   select(columns: string): Query<T>;
   update(values: Record<string, unknown>): Query<T>;
   eq(column: string, value: unknown): Query<T>;
+  gte(column: string, value: unknown): Query<T>;
   is(column: string, value: null): Query<T>;
   not(column: string, operator: string, value: unknown): Query<T>;
   limit(n: number): Query<T>;
@@ -117,6 +116,14 @@ export function supabaseRetentionStore(): RetentionStore {
         "site"
       );
       return found[0] === undefined ? null : { siteId: found[0].id, timezone: found[0].timezone };
+    },
+
+    async refundedSince(userId, since) {
+      const found = await rows(
+        untyped().from<{ invoice_id: string }>("refunds").select("invoice_id").eq("user_id", userId).gte("refunded_at", since.toISOString()).limit(1),
+        "refund"
+      );
+      return found.length > 0;
     },
 
     async stampAccount(userId, column, at) {

@@ -25,15 +25,6 @@ describe('BP-002 decision 2 — "A migration whose name carries no assigned topi
     expect(topicOf("00000000000099_widgets.sql")).toBeNull();
   });
 
-  it("removing the check (never inspecting the result) would let the unassigned name through — the mutation this test guards against", () => {
-    // The "check" is `topicOf(...) !== null`. Watch it fail first: without
-    // this assertion, an unassigned filename passes silently.
-    const result = topicOf("00000000000099_widgets.sql");
-    expect(result === null ? "fails registry check" : "passes").toBe(
-      "fails registry check"
-    );
-  });
-
   it("a name carrying two assigned topic tokens is ambiguous and resolves to null", () => {
     expect(topicOf("00000000000098_leads_scans.sql")).toBeNull();
   });

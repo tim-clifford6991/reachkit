@@ -1,12 +1,5 @@
-// The owner's incident alert, sent (issue 330). Owner ruling 2026-09-15: no
-// error-tracking vendor — Vercel's logs stay, and the existing mail seam
-// tells `OWNER_EMAILS` when a job fails, when a job exhausts its retries,
-// and when a deployment refuses to boot.
-//
-// **Nothing here throws.** The same rule as the spend alert beside it: a
-// report about a failure must not become a second failure — not of the job
-// being retried, and not of the boot whose own refusal is the news. Every
-// arm ends in one log line naming the occasion and the outcome.
+// The owner's incident alert: no error-tracking vendor, so this seam tells `OWNER_EMAILS` when a job fails, exhausts its retries, or a deploy refuses to boot.
+// Nothing here throws: a report about a failure must not become a second one. Every arm ends in one log line.
 import { env } from "@/lib/config/env";
 import { sendEmail } from "../send";
 import { buildIncidentAlert, type OpsIncident } from "../templates/ops";
@@ -20,9 +13,8 @@ export function errorNameOf(error: unknown): string {
   return error instanceof Error ? error.name : "unknown";
 }
 
-/** Whether at least one owner address was accepted by the seam — the
- *  answer a caller that carries its own once-ness stamps on (issue 796). */
-export async function reportIncident(incident: OpsIncident): Promise<boolean> {
+/** Whether at least one owner address was accepted, for a caller that stamps its own once-ness. */
+export async function reportIncident(incident: OpsIncident, period?: string): Promise<boolean> {
   const mail = buildIncidentAlert(incident);
   let owners: readonly string[];
   try {
@@ -34,7 +26,7 @@ export async function reportIncident(incident: OpsIncident): Promise<boolean> {
   let accepted = false;
   for (const to of owners) {
     try {
-      const result = await sendEmail({ kind: "ops", to, subject: mail.subject, blocks: mail.blocks });
+      const result = await sendEmail({ kind: "ops", to, subject: mail.subject, blocks: mail.blocks, ...(period === undefined ? {} : { period }) });
       log(incident.occasion, result.sent ? "sent" : result.reason);
       if (result.sent) accepted = true;
     } catch {

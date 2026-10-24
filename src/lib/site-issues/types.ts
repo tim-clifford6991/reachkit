@@ -5,6 +5,7 @@
 // measured over, one severity and who does the work — or could not run, and
 // then carries one reason and nothing that could be read as "no issues
 // found". The report cards render these; nothing here is a sentence.
+import type { Identity } from "@/lib/business/identity";
 
 /** §9's nine, in the order the rule lists them. Closed: a tenth check is a
  *  change to what the product measures. */
@@ -93,6 +94,10 @@ export interface SiteIssuesSection {
   /** Why the crawl ended — so "100 pages" reads as a cap, not a whole site. */
   stoppedBy: "complete" | "page_cap" | "byte_cap" | "time_budget" | "not_run";
   issues: readonly SiteIssue[];
+  /** The first crawled page whose structured data says who runs the site,
+   *  `null` where none does. Absent where it was not measured: the crawl did
+   *  not run, or the report was written before issue 1915. Not a tenth check. */
+  identity?: (Identity & { page: string }) | null;
 }
 
 /** Who fixes each check — owner ruling 2026-09-14 (SPEC §9), the same map

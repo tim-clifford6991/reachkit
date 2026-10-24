@@ -1,24 +1,13 @@
-// BUILD §12 — the plain-text rendering of the same block list.
-//
-// The same `MailBlock[]`, rendered a second time, through the same
-// omission decision (`omit.ts`), the same numeral formatter
-// (`format.ts`) and the same row builder (`rows.ts`'s `rowsOf`). A
-// template authors no text body and cannot omit one: `composeMail()`
-// calls both renderers on one list, so the plain-text alternative is a
-// property of the seam rather than of any template's diligence.
-//
-// This file holds no second omission rule and no second formatter. What
-// differs between the two bodies is layout — line breaks, a URL written
-// out beside its label — and nothing else.
+// BUILD §12 — the plain-text twin of the same block list, through the same omission, formatter and row builder.
+// `composeMail()` renders both bodies from one list, so no template can author or forget the text body; only layout differs.
 import { copy } from "@/lib/presentation/copy";
 import { generatedLabel } from "@/lib/presentation/generated";
 import { formatStat } from "./format";
-import { factRowsOf, rowsOf, statRowsOf } from "./rows";
+import { factRowsOf, rowsOf, statRowsOf, type RenderedRow } from "./rows";
 import { isMeasuredEmpty, omittedIndexes } from "./omit";
 import type { MailBlock } from "./types";
 
-/** A plain-text body's one structural convention: blocks are separated by
- *  a blank line, rows within a block by a single one. Layout, not voice. */
+/** Blocks are separated by a blank line, rows within a block by one newline. */
 const BLOCK_SEPARATOR = "\n\n";
 
 function statLines(labelText: string, value: string, note: string | null): string {
@@ -26,22 +15,22 @@ function statLines(labelText: string, value: string, note: string | null): strin
   return note === null ? head : `${head}\n${note}`;
 }
 
-function rowLines(
-  labelText: string,
-  rows: readonly { left: string; right?: string; href?: string }[],
-  emptyLine: string | null
-): string {
-  if (emptyLine !== null) return `${labelText}\n${emptyLine}`;
+function rowLines(labelText: string | null, rows: readonly RenderedRow[], emptyLine: string | null): string {
+  const head = labelText === null ? [] : [labelText];
+  if (emptyLine !== null) return [...head, emptyLine].join("\n");
   // A row that leads somewhere writes its address beside it, as an action does.
   const lines = rows.map((item) => {
     const side = item.right ?? item.href;
-    return side === undefined ? item.left : `${item.left}: ${side}`;
+    return [
+      side === undefined ? item.left : `${item.left}: ${side}`,
+      ...(item.detail ?? []),
+      ...(item.links ?? []).map((link) => actionLine(link.label, link.href)),
+    ].join("\n");
   });
-  return [labelText, ...lines].join("\n");
+  return [...head, ...lines].join("\n");
 }
 
-/** BUILD §12's plain-text twin of an action. The URL is written out beside
- *  its label — never a bare naked URL with nothing saying what it is. */
+/** BUILD §12's text action: the URL beside its label, never bare. */
 function actionLine(labelText: string, href: string): string {
   return `${labelText}: ${href}`;
 }
@@ -76,18 +65,16 @@ export function renderBlocksText(blocks: readonly MailBlock[]): {
       case "verdicts":
         parts.push(
           isMeasuredEmpty(block)
-            ? rowLines(copy(block.label), [], copy(block.emptyLine))
-            : rowLines(copy(block.label), rowsOf(block), null)
+            ? rowLines(block.label === undefined ? null : copy(block.label), [], copy(block.emptyLine))
+            : rowLines(block.label === undefined ? null : copy(block.label), rowsOf(block), null)
         );
         break;
       case "facts":
-        // One row per line, `label: value` — the plain-text twin of the
-        // `dl`, in the same order, from the same builder.
+        // The `dl`'s twin: one `label: value` per line, in the same order.
         parts.push(factRowsOf(block).map((item) => `${item.label}: ${item.value}`).join("\n"));
         break;
       case "hero":
-        // The headline number, its label and — where one was measured —
-        // its change, in the twin's own two lines.
+        // The headline number and, where measured, its change.
         parts.push(
           statLines(
             copy(block.label),
@@ -99,13 +86,11 @@ export function renderBlocksText(blocks: readonly MailBlock[]): {
         );
         break;
       case "stats":
-        // One number per line, in the same order and from the same builder
-        // the HTML grid reads: the twin states the same four numbers.
+        // One number per line, from the builder the HTML grid reads.
         parts.push(
           statRowsOf(block)
             .map((item) => {
-              // A number nobody measured is its written line, on the line
-              // its figure would stand on.
+              // An unmeasured number is its written line, where its figure would stand.
               if (item.value === null) return `${item.label}: ${item.line ?? ""}`;
               const value = item.before === null ? item.value : `${item.before} ${item.value}`;
               const figure = item.change === null ? value : `${value} (${item.change})`;

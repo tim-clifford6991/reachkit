@@ -21,7 +21,8 @@
 // here, because the full stops a reader pauses on are copy.
 import type { CopyKey } from "@/lib/presentation/copy";
 import { copy } from "@/lib/presentation/copy";
-import type { PlanReason, PointPart } from "@/lib/opportunities/types";
+import type { PlanReason } from "@/lib/opportunities/types";
+import { whyOf } from "@/lib/opportunities/why";
 import { writtenLine } from "../_shell/written";
 import { cardDate } from "./dates";
 import type { EmptyCause } from "./empty";
@@ -109,21 +110,16 @@ export function kindWord(update: boolean): string {
   return copy(update ? "calendar.card.update" : "calendar.card.new-page");
 }
 
-/** The parts a page's why line can state, most specific first. */
-const WHY_LINE: readonly { part: PointPart; n?: number; key: CopyKey }[] = [
-  { part: "near_page_one", key: "calendar.week.why.near-page-one" },
-  { part: "not_moving", key: "calendar.week.why.not-moving" },
-  { part: "ai_gap", key: "calendar.week.why.ai-gap" },
-  { part: "linked_by_ai", key: "calendar.week.why.linked-by-ai" },
-  { part: "demand", n: 2, key: "calendar.week.why.searched" },
-  { part: "demand", n: 1, key: "calendar.week.why.asked" },
-  { part: "fit", n: 3, key: "calendar.week.why.fit" },
-];
-
-/** A page's one why line, from the reason the week stored for it, or
+/** A page's one why label, from the reason the week stored for it, or
  *  `null` where none is stored or no part says more than the fit. */
 export function whyLineOf(reason: PlanReason | null | undefined): string | null {
-  const parts = reason?.parts ?? [];
-  const found = WHY_LINE.find((line) => parts.some((part) => part.part === line.part && (line.n === undefined || part.n === line.n)));
+  const found = whyOf(reason);
   return found === undefined ? null : writtenLine(found.key);
+}
+
+/** The same reason as Plan's day row says it: one sentence, never invented
+ *  where nothing is stored. */
+export function whySentenceOf(reason: PlanReason | null | undefined): string | null {
+  const found = whyOf(reason);
+  return found === undefined ? null : writtenLine(found.sentence);
 }

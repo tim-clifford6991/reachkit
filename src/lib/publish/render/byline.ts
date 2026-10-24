@@ -54,11 +54,31 @@ export function bylineLine(a: {
   tag?: string;
 }): string {
   const say = a.say ?? copy;
-  const date = writePageDate(a.published, a.timeZone, a.tag);
-  const updated = a.updated === null ? null : writePageDate(a.updated, a.timeZone, a.tag);
-  return updated === null || updated === date
+  const { date, updated } = datesOf(a);
+  return updated === null
     ? say("hosted.published", { date, publisher: a.byline })
     : say("hosted.updated", { date, updated, publisher: a.byline });
+}
+
+/** The two dates as the page writes them; `updated` is `null` where the
+ *  update falls on the day the page was published. */
+function datesOf(a: { published: Date; updated: Date | null; timeZone: string | null; tag?: string }): {
+  date: string;
+  updated: string | null;
+} {
+  const date = writePageDate(a.published, a.timeZone, a.tag);
+  const updated = a.updated === null ? null : writePageDate(a.updated, a.timeZone, a.tag);
+  return { date, updated: updated === date ? null : updated };
+}
+
+/** The same dates with no byline: an offering page is the business's own
+ *  (owner R1, 2026-10-22). */
+export function datedLine(a: Omit<Parameters<typeof bylineLine>[0], "byline">): string {
+  const say = a.say ?? copy;
+  const { date, updated } = datesOf(a);
+  return updated === null
+    ? say("hosted.dated", { date })
+    : say("hosted.dated.updated", { date, updated });
 }
 
 /** The line as the first paragraph of a post's content; `""` for a page

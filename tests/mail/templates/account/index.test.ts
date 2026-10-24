@@ -4,8 +4,9 @@ import { applyEnvFixture } from "../../env-fixture";
 
 applyEnvFixture();
 
-const { buildAddressMoved, buildChaseWithLink, buildChaseWithoutLink, buildSecondPurchase } =
+const { buildAddressMoved, buildChaseWithLink, buildChaseWithoutLink, buildRenewalRefunded, buildSecondPurchase } =
   await import("../../../../src/lib/mail/templates/account");
+const { renderBlocksText } = await import("../../../../src/lib/mail/blocks/text");
 const { MAIL_KINDS } = await import("../../../../src/lib/mail/kinds");
 const { COPY } = await import("../../../../src/lib/presentation/copy");
 const { COPY_META, OWNER_OWED } = await import("../../../../src/lib/presentation/copy/registry");
@@ -143,5 +144,34 @@ describe("the register row, and the sentences it speaks", () => {
       }
     }
     expect([...spoken].sort()).toEqual([...ACCOUNT_MAIL_KEYS].sort());
+  });
+});
+
+describe("owner D10 · E2 — the first-renewal refund mail states the amount, then the renewal or end date", () => {
+  const REFUNDED =
+    "No page of yours went live in your first month, so we refunded this month’s payment of €49.00 in full. Your bank usually shows it within 5 to 10 business days.";
+  const PERSON = "To reach a person, reply to this mail.";
+  const text = (next: Parameters<typeof buildRenewalRefunded>[0]["next"]): string =>
+    renderBlocksText(buildRenewalRefunded({ amount: "€49.00", next }).blocks).text;
+
+  it("renewing: the next payment's day and the way to stop it", () => {
+    expect(text({ kind: "renewing", date: "November 30, 2026" })).toBe(
+      [
+        REFUNDED,
+        "ReachKit keeps running, and your next payment is taken as usual on November 30, 2026. To stop it, use Cancel plan in Settings › Billing.",
+        PERSON,
+      ].join("\n\n")
+    );
+  });
+
+  it("cancelled: the day ReachKit stops, and no next payment", () => {
+    const ending = text({ kind: "ending", date: "November 30, 2026" });
+    expect(ending).toBe([REFUNDED, "ReachKit keeps running until November 30, 2026.", PERSON].join("\n\n"));
+    expect(ending).not.toContain("next payment");
+    expect(ending).not.toContain("Cancel plan in Settings");
+  });
+
+  it("no readable subscription: the refund sentence alone, with no day", () => {
+    expect(text(null)).toBe([REFUNDED, PERSON].join("\n\n"));
   });
 });

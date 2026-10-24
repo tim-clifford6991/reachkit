@@ -1,41 +1,32 @@
-// SPEC §4 (2026-09-20, #908) — Overview › Search.
+// SPEC §4 (board AppGoogle) — the Google tab: the week and the day its places
+// were read, the three tiles, each live page in Google, then your market's
+// searches and what ReachKit is doing about each this week.
 //
-// "Search tab: every search ReachKit is going after — searches a month,
-// difficulty against the site's ceiling, the site's position and change,
-// the best rival and its position, and status (page is live · your review ·
-// up next · too big for now). Read from stored opportunities, the site's
-// own ranked keywords and the weekly verdicts; nothing is bought for the
-// screen."
-//
-// **One read, and the two modules are pure over it.** `readSearch()` is the
-// one call this file makes; neither the tiles nor the table fetches for
-// itself, so the render performs no measurement, no vendor call and no
-// model call.
+// **Every read is a stored one.** The pages and visits are Overview's own
+// readers, so a figure here and on Overview is one number; Plan's week is
+// reached at the call, as Overview reaches it, so this graph holds no vendor
+// client. No measurement, vendor call or model call happens on render.
 //
 // **It declares no `Surface`**: the shell's own layout owns this route's
-// screen root, and the tab bar above it is `(tabs)/layout.tsx`'s. A second
-// screen root would be a second `[data-surface]` in the document.
+// screen root, and the tab bar above it is `(tabs)/layout.tsx`'s.
 //
-// **It writes no sentence.** Every word is the registry's.
-//
-// **The numbers first** (SPEC §4, 2026-10-07, issue 1324): the head is the
-// screen's name and the day it was measured, then the tiles, then the
-// table. No sentence stands above them; what a number means is closed on
-// its own tile.
-//
-// **`Suspense`**: the table holds the chosen chip in the URL through
-// `nuqs`, which reads the query string with Next's own `useSearchParams` —
-// "We recommend wrapping the Client Component that uses `useSearchParams`
-// in a `<Suspense/>` boundary"
-// (`01-app/03-api-reference/04-functions/use-search-params.md`). The
-// table's own skeleton holds its place — the one `loading.tsx` draws.
+// **`Suspense`**: the table holds the chosen chip in the URL through `nuqs`,
+// which reads `useSearchParams` and so wants a `<Suspense/>` boundary
+// (`01-app/03-api-reference/04-functions/use-search-params.md`).
 import type React from "react";
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { copy } from "@/lib/presentation/copy";
-import { formatDate } from "../../_shell/format";
+import { formatDay } from "../../_shell/format";
 import { readShell } from "../../_shell/provider";
 import { readSearch } from "../../_overview/search-provider";
+import { readPublished } from "../../_overview/content-provider";
+import { readGoogleVisitWeeks } from "../../_overview/blog-reads-provider";
+import { readUnderstanding } from "../../_overview/understanding-provider";
+import { doingOf, type Doing } from "../../_overview/search-model";
+import { climbingSearches, googlePagesOf, readPlanned } from "../../_overview/google-pages";
+import { contentOf } from "@/lib/measure/published";
+import { GooglePages } from "../../_overview/GooglePages";
 import { SearchTable } from "../../_overview/SearchTable";
 import { SearchTiles } from "../../_overview/SearchTiles";
 import { SearchTableSkeleton } from "../../_overview/skeletons";
@@ -47,37 +38,44 @@ import { TabHead } from "../../_overview/TabHead";
 export const metadata: Metadata = { title: copy("meta.app.search.title") };
 
 export default async function SearchTabPage(): Promise<React.JSX.Element> {
-  // The zone is the shell's one stored preference, read through the shell's
-  // own request-cached provider rather than restated here: two readers of a
-  // customer's time zone is how two parts of one screen come to state two
-  // different days.
-  const [shell, model] = await Promise.all([readShell(), readSearch()]);
-  const measured =
-    model.measuredAt === null
-      ? null
-      : copy("overview.search.measured", { on: formatDate(model.measuredAt, shell.timeZone) });
+  const [shell, model, published, visits, understanding, planned] = await Promise.all([
+    readShell(),
+    readSearch(),
+    readPublished(),
+    readGoogleVisitWeeks(),
+    readUnderstanding(),
+    readPlanned(),
+  ]);
+  const content = contentOf(published);
+  const pages = content === null ? null : googlePagesOf(content.pages, published.now);
+  const climbing = pages === null ? new Set<string>() : climbingSearches(pages);
+  const doing: Record<string, Doing> = {};
+  for (const row of model.rows) doing[row.id] = doingOf(row, planned, climbing);
+  // A local business is bought from in its place; one that sells further names none.
+  const place = understanding.where.place?.name ?? null;
+  const lead = place === null ? copy("overview.search.table.lead.anywhere") : copy("overview.search.table.lead", { place });
 
   return (
     <div className="flex min-w-0 flex-col gap-6" data-testid="search-tab">
       <TabHead
+        eyebrow={shell.weeks.kind === "counted" ? copy("overview.tab.eyebrow", { n: String(shell.weeks.weeks) }) : null}
         title={copy("overview.tab.search")}
         testId="search"
         measured={
-          measured === null ? null : (
-            // A sentence with a date inside it, not a value: the UI face,
-            // the same way the shell states "re-measured 1 Oct 2026" beside
-            // the site (owner's review of this PR).
+          model.measuredAt === null ? null : (
             <p className="text-xs text-base-content/70" data-testid="search-measured">
-              {measured}
+              {copy("overview.search.measured", { on: formatDay(model.measuredAt, shell.timeZone) })}
             </p>
           )
         }
       />
 
-      <SearchTiles tiles={model.tiles} />
+      <SearchTiles pages={pages} visits={visits} market={model.market} />
+
+      <GooglePages pages={pages} planned={planned} timeZone={shell.timeZone} />
 
       <Suspense fallback={<SearchTableSkeleton />}>
-        <SearchTable model={model} />
+        <SearchTable model={model} doing={doing} lead={lead} />
       </Suspense>
     </div>
   );

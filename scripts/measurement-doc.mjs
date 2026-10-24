@@ -2,20 +2,22 @@
 // Writes docs/MEASUREMENT.md from src/lib/measure/registry.ts.
 // --check writes nothing and exits 1 when the document differs; `audit` runs
 // the same comparison. It reads files only: the audit job has no TypeScript.
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import vm from "node:vm";
 
 export const REGISTRY = "src/lib/measure/registry.ts";
 export const MEASUREMENT_DOC = "docs/MEASUREMENT.md";
-const CONSTANTS = "src/lib/config/constants.ts";
+const CONSTANTS_DIR = "src/lib/config/constants";
+/** The stage files `src/lib/config/constants.ts` re-exports, repository-relative. */
+export const constantFiles = (root) => readdirSync(path.join(root, CONSTANTS_DIR)).sort().map((f) => `${CONSTANTS_DIR}/${f}`);
 
 const read = (root, rel) => readFileSync(path.join(root, rel), "utf8");
 
 /** A literal constant's value: a string, a number, or a template whose
  *  `${NAME}` parts are constants of the same files. */
-export function readConstant(root, name, files = [CONSTANTS]) {
+export function readConstant(root, name, files = constantFiles(root)) {
   for (const rel of files) {
     const m = read(root, rel).match(new RegExp(`export const ${name}\\b[^=]*=\\s*([^;\\n]+)`));
     if (m === null) continue;
@@ -48,7 +50,7 @@ export function measureProblems(root, measures) {
     for (const field of ["id", "definition", "source", "cadence"]) {
       if (typeof measure[field] !== "string" || measure[field].trim() === "") problems.push(`${at}: no ${field}`);
     }
-    if (!["tile", "mail"].includes(measure.shown?.on) || typeof measure.shown?.key !== "string") problems.push(`${at}: shown needs on and key`);
+    if (!["tile", "mail", "report"].includes(measure.shown?.on) || typeof measure.shown?.key !== "string") problems.push(`${at}: shown needs on and key`);
     if (ids.has(measure.id)) problems.push(`${at}: id listed twice`);
     if (keys.has(measure.shown?.key)) problems.push(`${at}: ${measure.shown?.key} is shown by two measures`);
     ids.add(measure.id);
@@ -86,6 +88,7 @@ export function measurementDoc(root) {
     "",
     ...section("tile", "Overview tiles"),
     ...section("mail", "Monday mail"),
+    ...section("report", "Free report"),
   ].join("\n");
 }
 

@@ -3,7 +3,30 @@
 // Content tile has a total, a last-four-weeks count below it and a newest.
 import type { Ladder } from "@/lib/measure/ladder";
 import type { PageReading } from "@/lib/measure/page-reading";
-import type { PublishedPage } from "./content";
+import type { PublishedPage } from "@/lib/measure/published";
+
+/** Each page is read on one of `search-fixture.ts`'s live searches, in its
+ *  order, so the Google tab names one page by one search. Written out: that
+ *  fixture's module graph reaches the market's, and Overview's does not. */
+const SEARCHES = [
+  "best crm for small teams",
+  "crm pricing comparison",
+  "spreadsheet to crm migration",
+  "crm for a two person business",
+  "how much does a crm cost per user",
+  "free crm with unlimited contacts",
+  "crm that works with gmail",
+  "what is a sales pipeline",
+  "crm onboarding checklist",
+  "crm vs spreadsheet",
+  "best crm for consultants",
+  "crm data import mistakes",
+  "simple crm for tradespeople",
+  "crm contact deduplication",
+  "how to move customers off a spreadsheet",
+  "crm for a small accountancy practice",
+  "do i really need a crm",
+] as const;
 
 /** The Overview fixture's own today (`fixture.ts`). */
 export const CONTENT_FIXTURE_NOW = new Date(Date.UTC(2026, 8, 4, 14, 30, 0));
@@ -47,6 +70,10 @@ function ladderAt(index: number): Ladder {
 
 const READ_AT = "2026-08-31T06:00:00.000Z";
 
+/** The pages whose own question the weekly pass asked; `answers-fixture.ts`
+ *  holds those questions, by these pages' addresses. */
+export const ASKED: ReadonlySet<number> = new Set([2, 10, 11, 12]);
+
 /** The weekly reading behind that ladder; the newest two were never read. */
 function readingAt(index: number): PageReading | null {
   if (index < 2) return null;
@@ -56,11 +83,12 @@ function readingAt(index: number): PageReading | null {
   return {
     at: READ_AT,
     crawled: true,
-    place: place === null ? null : { value: place, source: "serp", query: `fixture search ${index + 1}` },
+    place: place === null ? null : { value: place, source: "serp", query: SEARCHES[index] ?? `fixture search ${index + 1}` },
     first: place === null ? null : { at: at(9), place: place + (index === 8 || index === 9 ? 14 : 0) },
     best: place === null ? null : { at: READ_AT, place },
-    prev: place,
-    linkedBy: index === 12 ? ["chatgpt"] : [],
+    // One page moved up this week: the best mover.
+    prev: place === null ? null : place + (index === 8 ? 9 : 0),
+    linkedBy: index === 12 ? ["chatgpt"] : ASKED.has(index) ? [] : null,
     aiReads: index >= 3 ? index : 0,
     variants: [],
     reached: {
@@ -68,6 +96,7 @@ function readingAt(index: number): PageReading | null {
       ...(shown ? { showing: at(9) } : {}),
       ...(index >= 3 ? { readByAi: at(4) } : {}),
       ...(index === 12 ? { linkedByAi: at(12) } : {}),
+      ...(index === 11 ? { aiVisit: at(11) } : {}),
     },
     google: shown ? { indexed: true, lastCrawl: at(3), impressions: (index - 5) * 9, clicks: index === 16 ? 3 : 0, bestPlace: place, bestQuery: null } : null,
     bing: null,

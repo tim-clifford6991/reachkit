@@ -229,7 +229,7 @@ beforeEach(() => {
   db.reset();
   livePages = LIVE_PAGES;
   history = [];
-  db.rows.set("scans", [{ id: CLAIMED_ID, fromIncompleteRescan: false }]);
+  db.rows.set("scans", [{ id: CLAIMED_ID, fromIncompleteRescan: false, cost_cents: 0 }]);
   db.answer = (query) => {
     if (query.table === "publications") {
       return Array.from({ length: livePages }, (_, i) => publicationRow(i + 1));
@@ -299,7 +299,7 @@ describe("SPEC §6 — with 30 live pages the pass still asks exactly 24 questio
     ] as const) {
       vi.clearAllMocks();
       livePages = pages;
-      db.rows.set("scans", [{ id: CLAIMED_ID, fromIncompleteRescan: false }]);
+      db.rows.set("scans", [{ id: CLAIMED_ID, fromIncompleteRescan: false, cost_cents: 0 }]);
       await runScan({ domain: DOMAIN, siteId: SITE_ID, scanId: CLAIMED_ID, tier: "weekly" });
       expect(serpOrganic, `${pages} live pages`).toHaveBeenCalledTimes(BATTERY_PINS.QUESTIONS + expected);
       expect(storedReport().pageQuestions?.rows ?? []).toHaveLength(expected);
@@ -503,7 +503,7 @@ describe("SPEC §6 — beside the twelve, never inside them", () => {
     // the site (issue 1551).
     vi.clearAllMocks();
     livePages = 0;
-    db.rows.set("scans", [{ id: CLAIMED_ID, fromIncompleteRescan: false }]);
+    db.rows.set("scans", [{ id: CLAIMED_ID, fromIncompleteRescan: false, cost_cents: 0 }]);
     await runScan({ domain: DOMAIN, siteId: SITE_ID, scanId: CLAIMED_ID, tier: "weekly" });
     const without = storedReport();
 

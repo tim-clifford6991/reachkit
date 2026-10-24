@@ -151,6 +151,8 @@ export function organizationIdOf(business: HostedBusiness): string {
 function publisherOf(business: HostedBusiness, origin: string): Record<string, unknown> {
   const declaredLogo = business.mainSite?.organization.logo ?? null;
   const sameAs = business.mainSite?.sameAs ?? [];
+  // Every hosted page's header shows the stored number, written as here.
+  const telephone = business.mainSite?.phone ?? null;
   return {
     "@type": "Organization",
     "@id": organizationIdOf(business),
@@ -162,6 +164,7 @@ function publisherOf(business: HostedBusiness, origin: string): Record<string, u
         ? {}
         : { logo: { "@type": "ImageObject", url: `${origin}${LOGO_PATH}` } }),
     ...(sameAs.length === 0 ? {} : { sameAs: [...sameAs] }),
+    ...(telephone === null ? {} : { telephone }),
   };
 }
 
@@ -191,6 +194,44 @@ export function blogPostingSchema(a: {
     image: ARTICLE_SHAPES.map((shape) => shareImageUrl(origin, a.page.slug, shape)),
     author: authorOf(a.page.byline, a.business),
     publisher: publisherOf(a.business, origin),
+  });
+}
+
+/** `WebPage` with its `Service`, on an offering page (owner R1, 2026-10-22):
+ *  the business's own page about what it provides, so no posting and no
+ *  person, and the dates are the two the page prints. `areaServed` is the
+ *  page's visible "Where and when" list, and absent where it draws none (E10). */
+export function offeringSchema(a: {
+  page: HostedPage;
+  canonical: string;
+  business: HostedBusiness;
+  areas?: readonly string[];
+}): string {
+  const name = a.page.heading ?? a.page.title;
+  const service = `${a.canonical}#service`;
+  return jsonLd({
+    "@context": SCHEMA_CONTEXT,
+    "@graph": [
+      {
+        "@type": "WebPage",
+        "@id": `${a.canonical}#webpage`,
+        url: a.canonical,
+        name,
+        datePublished: a.page.firstPublishedAt.toISOString(),
+        dateModified: a.page.publishedAt.toISOString(),
+        inLanguage: readerTag(),
+        mainEntity: { "@id": service },
+        publisher: publisherOf(a.business, originOf(a.canonical)),
+      },
+      {
+        "@type": "Service",
+        "@id": service,
+        name,
+        url: a.canonical,
+        provider: { "@id": organizationIdOf(a.business) },
+        ...(a.areas === undefined || a.areas.length === 0 ? {} : { areaServed: [...a.areas] }),
+      },
+    ],
   });
 }
 

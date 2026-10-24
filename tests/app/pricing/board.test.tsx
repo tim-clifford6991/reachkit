@@ -5,6 +5,7 @@
 // counts every other string.
 import { describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
+import { parse } from "node-html-parser";
 import { applyEnvFixture } from "../../mail/env-fixture";
 
 applyEnvFixture();
@@ -18,8 +19,10 @@ const { BATTERY, VETO, WEEK_PLAN } = await import("@/lib/config/constants");
 const { HARD_RULES } = await import("@/lib/generate/rules/types");
 const { HOW_FACTS } = await import("@/app/(public)/_how/facts");
 const { AGENCY_BENCHMARK, EXAMPLES } = await import("@/app/(public)/_how/specimen");
+const { buysIcons, icons, weekCard, whenIcons } = await import("../how/drawn-icons");
 
 const html = renderToStaticMarkup(<PricingPage />);
+const root = parse(html);
 const price = copy("price.amount");
 const weekPages = { weekPages: WEEK_PLAN.days };
 
@@ -62,6 +65,10 @@ describe("board Pricing — the head and the plan card", () => {
     for (const chip of ["no contract", "no setup fee", "cancel any time"]) expect(top()).toContain(chip);
   });
 
+  it("what €49 buys: four tiles with file-text, users, inbox, timer", () => {
+    expect(buysIcons(html, copy("pricing.buys", { price }))).toEqual(["file-text", "users", "inbox", "timer"]);
+  });
+
   it("the card names the plan, how it is billed, its five rows, Start, the cancel line and the free path", () => {
     const card = top();
     const order = [
@@ -84,13 +91,10 @@ describe("board Pricing — the head and the plan card", () => {
     expect(html).toContain('href="#start"');
   });
 
-  it("the report's card keeps its own cancel line and gains none of the pricing page's", () => {
+  it("the report's card states the same cancel line and none of the pricing page's billing line (board PubReport)", () => {
     const report = text(renderToStaticMarkup(<PricingCard />));
-    expect(report).toContain(copy("offer.cancel_self_service"));
-    expect(report).not.toContain(copy("pricing.plan.cancel"));
+    expect(report).toContain(copy("pricing.plan.cancel"));
     expect(report).not.toContain(copy("pricing.plan.billing", { price }));
-    // The report's line is the first sentence of the pricing card's own, so it is read outside that one.
-    expect(top().replace(copy("pricing.plan.cancel"), "")).not.toContain(copy("offer.cancel_self_service"));
   });
 
   it("shows no guarantee while the launch gate is shut (owner 2026-10-20, Q13)", () => {
@@ -145,6 +149,37 @@ describe("board Pricing — one week of your €49", () => {
     expect(week()).toContain(copy("pricing.week.mail.climbing", { n: EXAMPLES.plumber.mail.climbing }));
     expect(week()).toContain(copy("pricing.week.mail.calm"));
   });
+
+  it("each page day in the week strip draws its sketch", () => {
+    const days = parse(html).querySelectorAll("#week ol > li");
+    const bands = days.map((li) => li.querySelectorAll("[aria-hidden]").filter((el) => el.querySelector("svg.lucide-file-text")));
+    expect(bands.map((b) => b.length)).toEqual(EXAMPLES.plumber.plan.map((day) => (day.kind === "skip" ? 0 : 1)));
+    expect(bands.map((b) => b.some((el) => el.classList.contains("text-primary")))).toEqual(
+      EXAMPLES.plumber.plan.map((day) => day.kind !== "skip" && day.state === "waiting")
+    );
+  });
+  it("the week legend: circle-check, clock, calendar, refresh-cw; planned badges carry calendar", () => {
+    const week = weekCard(root, "week", copy("how.week.planned"));
+    expect(week.legend).toEqual(["circle-check", "clock", "calendar", "refresh-cw"]);
+    const planned = EXAMPLES.plumber.plan.filter((day) => day.kind !== "skip" && day.state === "planned");
+    expect(week.planned).toEqual(planned.map(() => ["calendar"]));
+  });
+
+  it("each page day reads date, sketch, New or Update, title", () => {
+    const days = weekCard(root, "week", copy("how.week.planned")).days;
+    expect(days.map(([date, sketch]) => [/^\w{3} \d+$/.test(date ?? ""), sketch])).toEqual(days.map(() => [true, "sketch"]));
+    expect(days.map((day) => day.slice(2))).toEqual(
+      EXAMPLES.plumber.plan.flatMap((day) =>
+        day.kind === "skip" ? [] : [[copy(day.kind === "new" ? "how.week.new" : "how.week.update"), text(day.title).trim()]]
+      )
+    );
+  });
+
+  it("the week's side cards: globe (+ lock), clock, inbox", () => {
+    const cards = root.querySelectorAll("#week .card-body").slice(-3);
+    expect(cards.map((card) => icons(card.querySelector("p")?.outerHTML ?? "")[0])).toEqual(["globe", "clock", "inbox"]);
+    expect(icons(cards[0]?.querySelectorAll("p")[1]?.outerHTML ?? "")).toEqual(["lock"]);
+  });
 });
 
 describe("board Pricing — everything in the €49", () => {
@@ -159,6 +194,21 @@ describe("board Pricing — everything in the €49", () => {
     expect(all()).toContain(`${HOW_FACTS.searches} Google searches and ${HOW_FACTS.prompts} questions asked to AI`);
     expect(all()).toContain(`Up to ${HARD_RULES.length} checks on every page`);
     expect(all()).toContain(`Up to ${WEEK_PLAN.days} pages a week`);
+  });
+
+  it("every item in Everything has its board icon", () => {
+    const tiles = root.querySelectorAll("#included ul")[0]!.children.map((li) => {
+      const tile = li.querySelector("[aria-hidden]");
+      return [li.querySelector("h3")?.text, tile?.classNames.includes("rounded-field grid size-9") && tile.classList.contains("bg-base-200"), icons(tile?.outerHTML ?? "")];
+    });
+    const board = {
+      research: "building2", rivals: "users", asks: "message-square", pages: "file-text", checks: "shield-check", live: "globe",
+      stop: "pencil", mail: "inbox", fix: "wrench", language: "languages", yours: "download",
+    };
+    const vars = { rivals: HOW_FACTS.rivals, searches: HOW_FACTS.searches, prompts: HOW_FACTS.prompts, checks: HOW_FACTS.checks, ...weekPages };
+    expect(tiles).toEqual(
+      Object.entries(board).map(([key, icon]) => [text(copy(`pricing.all.${key}` as Parameters<typeof copy>[0], vars)).trim(), true, [icon]])
+    );
   });
 
   it("no tile claims what Search Console would measure (D9)", () => {
@@ -199,6 +249,19 @@ describe("board Pricing — what you see from week 1", () => {
     expect(first()).toContain(copy("how.when.promise"));
     expect(first()).not.toContain(copy("how.when.maps"));
   });
+
+  it("what takes longer opens with info", () => {
+    const well = root.querySelectorAll("#week1 h3").find((h) => h.text === copy("pricing.first.longer"))?.parentNode?.parentNode;
+    expect(icons(well?.outerHTML ?? "")).toEqual(["info"]);
+  });
+
+  it("the first months: timer, circle-check, inbox, search, eye, trending-up", () => {
+    const week1 = html.slice(html.indexOf('<section id="week1"'), html.indexOf('<section id="compare"'));
+    expect(whenIcons(week1)).toEqual({
+      steps: ["timer", "circle-check", "inbox", "search", "eye", "trending-up"],
+      notes: ["info"],
+    });
+  });
 });
 
 describe("board Pricing — €49 against the other ways", () => {
@@ -217,6 +280,12 @@ describe("board Pricing — €49 against the other ways", () => {
     expect(compare()).toContain(`ReachKit ${price} a month, VAT included`);
     expect(compare()).toContain(`¹ Most common SEO retainer, Ahrefs survey of ${AGENCY_BENCHMARK.providers} providers`);
     expect(compare()).toContain(text(copy("pricing.compare.limit")));
+  });
+
+  it("ReachKit's way draws sparkles for AI, never bot", () => {
+    const markup = html.slice(html.indexOf('<section id="compare"'), html.indexOf('<section id="before"'));
+    expect(markup).toContain("lucide-sparkles");
+    expect(markup).not.toContain("lucide-bot");
   });
 });
 

@@ -128,10 +128,11 @@ describe("Plan waits in the shape of the Plan that arrives (issue 1320)", () => 
     return PLAN.slice(PLAN.lastIndexOf("<", at), PLAN.indexOf(">", at));
   };
 
-  it("is headed as the loaded screen is", () => {
-    // The name has no read behind it, so it is there from the first paint
-    // and is not replaced.
-    expect(PLAN).toContain(`>${COPY["shell.nav.plan"]}</h1>`);
+  it("is named as the loaded screen is", () => {
+    // The name has no read behind it, so the eyebrow says it from the first
+    // paint; the week's heading and lead arrive with the week.
+    expect(PLAN).toContain(`<span class="eyebrow">${COPY["shell.nav.plan"]}</span>`);
+    expect(COPY["calendar.eyebrow"].startsWith(`${COPY["shell.nav.plan"]} `)).toBe(true);
   });
 
   it("is the week's list below lg and its seven cells from it (E5)", () => {

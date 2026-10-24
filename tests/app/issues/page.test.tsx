@@ -5,6 +5,7 @@
 import "../../generate/env";
 import { afterEach, describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
+import { parse } from "node-html-parser";
 import { copy } from "@/lib/presentation/copy";
 import { issuesReading, readAlerts, waitingIssues } from "@/app/(account)/app/_overview/alerts";
 import { FIXTURE_MEASURED_AT, FIXTURE_SITE_ISSUES } from "@/app/(account)/app/issues/fixture";
@@ -49,6 +50,23 @@ describe("Technical issues, where a needs-you item lands", () => {
     expect(markup).not.toContain('data-check="page_titles"');
     expect(markup).not.toContain('data-check="structured_data"');
     expect(markup).not.toContain('data-check="noindex_pages"');
+  });
+
+  it("names the checks the customer fixes as problems", () => {
+    const section: SiteIssuesSection = {
+      pagesChecked: 12,
+      checkedPages: null,
+      stoppedBy: "complete",
+      issues: [
+        { check: "sitemap", ran: true, count: 1, over: 1, unit: "site", severity: "worth_fixing", doer: "free_fix", pages: null },
+        { check: "ai_readers_blocked", ran: true, count: 2, over: 6, unit: "ai_readers", severity: "worth_fixing", doer: "free_fix", pages: [] },
+      ],
+    };
+    const markup = renderToStaticMarkup(
+      <IssuesView reading={issuesReading(section, FIXTURE_MEASURED_AT, null)} timeZone="America/New_York" />
+    );
+    expect(markup).toContain("No page list for Google");
+    expect(markup).toContain("AI shut out of your site");
   });
 });
 
@@ -165,5 +183,75 @@ describe("Technical issues, as board AppIssues lays it out", () => {
     expect(markup).toContain(copy("overview.issues.unreadable"));
     expect(markup).not.toContain('data-testid="issues-unscanned"');
     expect(markup).not.toContain('data-testid="issues-empty"');
+  });
+});
+
+/** Every check a card can carry, with pages where the check names them, and one critical. */
+const EVERY_CARD: SiteIssuesSection = {
+  pagesChecked: 12,
+  checkedPages: null,
+  stoppedBy: "complete",
+  issues: [
+    { check: "noindex_pages", ran: true, count: 1, over: 12, unit: "pages", severity: "worth_fixing", doer: "free_fix", pages: ["https://a.example/hidden"] },
+    { check: "sitemap", ran: true, count: 1, over: 1, unit: "site", severity: "worth_fixing", doer: "free_fix", pages: null },
+    { check: "slow_pages", ran: true, count: 1, over: 12, unit: "pages", severity: "worth_fixing", doer: "free_fix", pages: ["https://a.example/slow"], ms: [4_500] },
+    { check: "broken_links", ran: true, count: 1, over: 20, unit: "links", severity: "worth_fixing", doer: "free_fix", pages: ["https://a.example/old"] },
+    { check: "phone_usability", ran: true, count: 1, over: 12, unit: "pages", severity: "critical", doer: "free_fix", pages: ["https://a.example/phone"] },
+    { check: "ai_readers_blocked", ran: true, count: 2, over: 6, unit: "ai_readers", severity: "worth_fixing", doer: "free_fix", pages: [] },
+  ],
+};
+
+function everyCard() {
+  return parse(renderToStaticMarkup(<IssuesView reading={issuesReading(EVERY_CARD, FIXTURE_MEASURED_AT, null)} timeZone="UTC" />));
+}
+
+describe("Technical issues, the cards' marks as board AppIssues draws them", () => {
+  it("each issue card opens with its check icon", () => {
+    const icon: Record<string, string> = {
+      noindex_pages: "eye-off",
+      sitemap: "list-tree",
+      slow_pages: "gauge",
+      broken_links: "unlink",
+      phone_usability: "smartphone",
+      ai_readers_blocked: "lock",
+    };
+    const cards = everyCard().querySelectorAll('[data-testid="issue"]');
+    expect(cards.map((c) => c.getAttribute("data-check")).sort()).toEqual(Object.keys(icon).sort());
+    for (const card of cards) {
+      const check = card.getAttribute("data-check")!;
+      const head = card.querySelector(".card-body > div")!;
+      const tile = head.firstElementChild!;
+      expect(tile.getAttribute("data-testid"), check).toBe("issue-tile");
+      expect(tile.getAttribute("aria-hidden"), check).toBe("true");
+      expect(tile.querySelector("svg")!.classList.contains(`lucide-${icon[check]}`), check).toBe(true);
+      const critical = check === "phone_usability";
+      expect(tile.classList.contains("bg-error/10"), check).toBe(critical);
+      expect(tile.classList.contains("text-error"), check).toBe(critical);
+      expect(tile.classList.contains("bg-base-200"), check).toBe(!critical);
+    }
+  });
+
+  it("the severity badge carries its signal", () => {
+    const root = everyCard();
+    const badge = (check: string) => root.querySelector(`[data-check="${check}"] [data-testid="issue-severity"]`)!;
+    for (const [check, signal, word] of [
+      ["phone_usability", "signal-high", "severity.high"],
+      ["slow_pages", "signal-medium", "severity.mid"],
+    ] as const) {
+      const svg = badge(check).querySelector("svg")!;
+      expect(svg.classList.contains(`lucide-${signal}`), check).toBe(true);
+      expect(svg.getAttribute("aria-hidden"), check).toBe("true");
+      expect(badge(check).text.trim(), check).toBe(copy(word));
+    }
+    expect(root.querySelectorAll("svg.lucide-signal-low")).toHaveLength(0);
+  });
+
+  it("page links show they open a new tab", () => {
+    const links = everyCard().querySelectorAll('a[target="_blank"]');
+    expect(links.length).toBe(4);
+    for (const link of links) {
+      expect(link.querySelector("svg.lucide-external-link")?.getAttribute("aria-hidden"), link.text).toBe("true");
+      expect(link.querySelector(".sr-only")?.text.trim(), link.text).toBe(copy("draft.live.new-tab"));
+    }
   });
 });

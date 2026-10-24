@@ -42,6 +42,10 @@ import type { AddressControl, AddressNotice } from "@/app/(public)/scan/[domain]
 import type { CanonicalDomain } from "@/lib/scan/domain";
 import type { CorrectionOffer } from "@/lib/market/coherence/offer";
 import type { StoredReport } from "@/lib/scan/report";
+import { parse, type HTMLElement } from "node-html-parser";
+import { ReadSection, WhatWeRead } from "@/app/_business/WhatWeRead";
+import type { BusinessUnderstanding } from "@/lib/business/types";
+import { understandBusiness } from "@/lib/business/understanding";
 
 
 function render(
@@ -153,11 +157,11 @@ describe("REQ-004 c1 — the verdict strip names the score, its band, the domain
   const html = render(FIXTURE_REPORT);
 
   it("renders the score as a big figure — the UI face at 600, tabular (#1062)", () => {
-    expect(html).toContain('class="figure min-w-0">62<');
+    expect(html).toContain('class="figure min-w-0">31<');
   });
 
   it("renders the band as one of the four ruled words, through SCORE_BANDS", () => {
-    expect(html).toContain("band.score.findable");
+    expect(html).toContain("band.score.hard-to-find");
   });
 
   it("renders the domain and the date beside it, so the score is never a bare specimen", () => {
@@ -168,16 +172,16 @@ describe("REQ-004 c1 — the verdict strip names the score, its band, the domain
   });
 
   it("renders the one line naming the limiting factor", () => {
-    expect(html).toContain("verdict.limiting.presence");
+    expect(html).toContain("verdict.limiting.answerability");
   });
 
   it("names the category beside the score", () => {
     expect(html).toContain("product analytics");
   });
 
-  it("says how sure the score is beside it, with its range (issue 1439)", () => {
-    expect(html).toContain("verdict.estimate.close(58|66)");
-    expect(render(FIXTURE_COLD_START_REPORT)).toContain("verdict.estimate.rough(8|21)");
+  it("says how sure the score is beside it, with its range (issue 1439), rough or close alike", () => {
+    expect(html).toContain("verdict.estimate.range(25|35)");
+    expect(render(FIXTURE_COLD_START_REPORT)).toContain("verdict.estimate.range(8|21)");
   });
 
   it("draws no range where there is no score, nor on a report scored before it", () => {
@@ -196,16 +200,16 @@ describe("ruling 1b (2026-09-08) — the driver bars are back, on the header str
     // `components.md` §1: the registered `Progress` "is also the three
     // driver mini-bars of the report's header strip (§4.1); mini-bars are
     // *not* a sixth chart".
-    expect(strip.split("<progress").length - 1).toBe(3);
+    expect(strip.split("<progress").length - 1).toBe(4);
   });
 
   it("writes each factor's value in tenths beside its own name, never colour-alone", () => {
-    // The fixture's three are 70 / 90 / 40, which is what the approved set
-    // draws as 7/10, 9/10 and 4/10.
+    // The fixture's four parts are 70 / 20 and Presence's halves 8 / 32.
     for (const [name, tenths] of [
       ["verdict.factor.foundations", "7/10"],
-      ["verdict.factor.answerability", "9/10"],
-      ["verdict.factor.presence", "4/10"],
+      ["verdict.factor.answerability", "2/10"],
+      ["verdict.factor.google", "1/10"],
+      ["verdict.factor.ai", "3/10"],
     ] as const) {
       expect(strip).toContain(name);
       expect(strip).toContain(`>${tenths}<`);
@@ -216,8 +220,9 @@ describe("ruling 1b (2026-09-08) — the driver bars are back, on the header str
     // A bar drawn from the unrounded 46 under a label reading 5/10 would
     // be two claims about one measurement.
     expect(strip).toContain('value="7" max="10"');
-    expect(strip).toContain('value="9" max="10"');
-    expect(strip).toContain('value="4" max="10"');
+    expect(strip).toContain('value="2" max="10"');
+    expect(strip).toContain('value="3" max="10"');
+    expect(strip).toContain('value="1" max="10"');
   });
 
   it("no factor value reaches any other module — the ruling amends the header strip only", () => {
@@ -482,7 +487,7 @@ describe("SPEC §2, 2026-10-07 (issue 1328) — the result and the action first,
   it("each closed section opens from its own name", () => {
     const summaries = (html.match(/<summary[\s\S]*?<\/summary>/g) ?? []).join("");
     for (const key of [
-      "ai-answers.questions.title",
+      "report.ai.asked",
       "presence.absent-from.title",
       "problem.section.title",
       "method.blocked-readers.title",
@@ -598,8 +603,8 @@ describe("REQ-091/092 — cold start: a domain that ranks for nothing still read
     const start = html.indexOf('data-testid="ai-matrix"');
     expect(start).toBeGreaterThan(-1);
     const matrix = html.slice(start, html.indexOf('role="columnheader"', start));
-    // The count is on the row, not in a sentence beside it (#352).
-    expect(matrix).toContain("0/9");
+    // The tally is on the row, not in a sentence beside it (#352).
+    expect(matrix).toContain(">0</span>");
     expect(matrix).toContain("example.com");
     // Scoped to the drawing: the answers themselves still named rivals,
     // and the 12-questions list below says so. What a cold start empties
@@ -765,5 +770,106 @@ describe("issue #785 — the report's offer begins checkout, and states a refusa
     );
     expect(count(refused, "offer.checkout.refused")).toBe(1);
     expect(render(FIXTURE_REPORT)).not.toContain("offer.checkout.refused");
+  });
+});
+
+describe("board PubReport — each section under \"Everything else\" opens with its icon", () => {
+  const page = parse(render(FIXTURE_REPORT));
+
+  /** The icon inside `head`, and only where it sits in a decorative tile. */
+  function tiled(head: HTMLElement | null, icon: string): HTMLElement | null {
+    const svg = head?.querySelector(`svg.lucide-${icon}`) ?? null;
+    return svg?.parentNode?.getAttribute("aria-hidden") === "true" ? svg : null;
+  }
+
+  it("each closed section opens with its board icon", () => {
+    expect(tiled(page.querySelector("#holds > summary"), "wrench")).not.toBeNull();
+    expect(tiled(page.querySelector("#method > summary"), "list-checks")).not.toBeNull();
+    expect(tiled(page.querySelector('[data-testid="what-we-read"] > summary'), "globe")).not.toBeNull();
+    expect(tiled(page.querySelector('[data-testid="report-first-page"] > summary'), "gift")).not.toBeNull();
+  });
+
+  it("the holds subtitle reads while closed", () => {
+    const summary = page.querySelector("#holds > summary");
+    expect(summary?.querySelector("h2 + p")?.text).toBe("problem.section.sub");
+    expect(page.querySelector("#holds > .collapse-content")?.text).not.toContain("problem.section.sub");
+    expect(page.toString().split("problem.section.sub")).toHaveLength(2);
+  });
+
+  it("What we read draws no tile where the caller does not ask for one", () => {
+    const understanding = understandBusiness({ domain: "flixbus.de", profile: null, locale: { country: "DE", language: "de" }, alsoServes: 0 });
+    const card = parse(renderToStaticMarkup(React.createElement(WhatWeRead, { understanding, editHref: "/app/settings/business" })));
+    expect(card.querySelector("svg.lucide-globe")).toBeNull();
+  });
+});
+
+describe("board PubReport — What we read and the first page say what they hold while closed", () => {
+  const OFFERED: CorrectionOffer = { offered: true, as: "first" };
+  const fixtureUnderstanding = understandBusiness({
+    domain: "harbor.example.com",
+    profile: null,
+    locale: { country: "US", language: "en" },
+    alsoServes: 0,
+  });
+  const read = (u: BusinessUnderstanding, correction: CorrectionOffer = OFFERED): HTMLElement =>
+    parse(renderToStaticMarkup(React.createElement(ReadSection, { understanding: u, correction })));
+  const subtitleOf = (section: HTMLElement): string | null =>
+    section.querySelector("details#read > summary h2 + p")?.text ?? null;
+
+  it("What we read is closed under its own name", () => {
+    const page = parse(render(FIXTURE_REPORT));
+    const section = page.querySelector('details#read[data-testid="what-we-read"]');
+    expect(section?.hasAttribute("open")).toBe(false);
+    expect(section?.querySelector("summary h2")?.text).toBe("report.read.title");
+    expect(section?.querySelector(".collapse-content > dl")).not.toBeNull();
+  });
+
+  it("What we read says whose reading it is while closed", () => {
+    const u: BusinessUnderstanding = { ...fixtureUnderstanding, name: "Harbor Plumbing", kind: "local-service", where: { ...fixtureUnderstanding.where, place: { name: "Austin" } } };
+    expect(subtitleOf(read(u))).toBe("Harbor Plumbing · report.read.as.kind.local-service · Austin");
+    expect(subtitleOf(read({ ...u, kind: null, where: { ...u.where, place: null } }))).toBe("Harbor Plumbing");
+    const none = read({ ...u, name: null, kind: null, where: { ...u.where, place: null } });
+    expect(none.querySelector("details#read > summary h2")).not.toBeNull();
+    expect(none.querySelector("details#read > summary p")).toBeNull();
+  });
+
+  it("What we read links to the one correction while it is offered", () => {
+    const page = parse(render(FIXTURE_REPORT));
+    const link = page.querySelector('details#read + a[href="#read-as"]');
+    expect(page.querySelector('details#read summary a')).toBeNull();
+    expect(link?.text).toBe("verdict.not-your-market");
+    expect(link?.classList.contains("min-h-11")).toBe(true);
+    expect(page.querySelector('#read-as[data-testid="report-read-as"]')).not.toBeNull();
+    // One control: the header's button is the only element that opens the field.
+    expect(page.querySelectorAll("button").filter((b) => b.text === "verdict.not-your-market")).toHaveLength(1);
+    for (const because of ["used", "exhausted", "in_progress", "report_too_old", "domain_removed"] as const) {
+      const closed = parse(render(FIXTURE_REPORT, null, { kind: "none" }, { offered: false, because }));
+      expect(closed.querySelector('a[href="#read-as"]'), because).toBeNull();
+      expect(closed.querySelector("#read-as"), because).not.toBeNull();
+    }
+  });
+
+  it("the first page says its question while closed", () => {
+    const asked = FIXTURE_REPORT.aiAnswers!.rows.find((row) => row.question.search === FIXTURE_REPORT.freePage!.target.keyword);
+    expect(asked).toBeDefined();
+    const summary = parse(render(FIXTURE_REPORT)).querySelector('[data-testid="report-first-page"] > summary');
+    expect(summary?.querySelector("h2")?.text).toBe("free-page.title");
+    expect(summary?.text).toContain(asked!.question.wording.text);
+    expect(summary?.querySelector(".num")?.text).toBe(FIXTURE_REPORT.freePage!.target.keyword);
+
+    const unasked: StoredReport = {
+      ...FIXTURE_REPORT,
+      aiAnswers: { ...FIXTURE_REPORT.aiAnswers!, rows: FIXTURE_REPORT.aiAnswers!.rows.filter((row) => row !== asked) },
+    };
+    const bare = parse(render(unasked)).querySelector('[data-testid="report-first-page"] > summary');
+    expect(bare?.text).not.toContain(asked!.question.wording.text);
+    expect(bare?.querySelector("h2 + p")?.text).toBe(FIXTURE_REPORT.freePage!.target.keyword);
+  });
+
+  it("WhatWeRead without the report's section renders as before", () => {
+    expect(renderToStaticMarkup(React.createElement(WhatWeRead, { understanding: fixtureUnderstanding }))).toMatchSnapshot();
+    expect(
+      renderToStaticMarkup(React.createElement(WhatWeRead, { understanding: fixtureUnderstanding, editHref: "/app/settings/business" }))
+    ).toMatchSnapshot();
   });
 });

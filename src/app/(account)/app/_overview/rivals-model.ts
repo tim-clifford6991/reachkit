@@ -1,10 +1,10 @@
 // SPEC §4 (2026-09-20, #908) — the Rivals tab, in one shape.
 //
-// "Rivals tab: who is on the first page for the twelve searches, who the
-// three answer engines name, how far ahead each rival's footprint is over
-// twelve weeks, and the searches rivals win that the site does not, each
-// with what ReachKit is doing about it. Market leaders stay on their own
-// secondary line (§6, #858). Read from the stored weekly report."
+// Board AppCompetitors: who holds the top result on each of the twelve, who
+// is on their first page, the searches rivals win that the site does not with
+// what ReachKit is doing about each, and how far ahead each rival is. Market
+// leaders stay on their own secondary line (§6, #858). Read from the stored
+// weekly report; who AI answers mention is the month's reputation reading.
 //
 // **This file is pure.** Facts in, model out — the same split `model.ts`,
 // `search-model.ts` and `answers-model.ts` make, and for the same reason:
@@ -12,19 +12,19 @@
 // browser. Reading the facts is `rivals-store.ts`'s (a real account) and
 // `rivals-fixture.ts`'s (the reserved fixture account).
 //
-// **Two of the four cards are not assembled here at all.** *How far ahead
+// **The gap card is not assembled here at all.** *How far ahead
 // they are* is `rivals.ts`'s `RivalGapModule`, which the Overview tab
 // already reads and `RivalModule.tsx` already draws — one derivation of the
 // gap, so the tile on the Overview and the card on this tab cannot come to
 // disagree about which rival is nearest. Market leaders ride on that same
 // module (§6, #858).
 //
-// **A count nobody could take is not a count of zero** (REQ-004). Both
-// presence cards carry the denominator they were counted over — the twelve
-// that were *measured*, the answers that were *asked* — and a card with no
-// denominator at all is drawn as its written line instead of as a row of
-// empty bars.
+// **A count nobody could take is not a count of zero** (REQ-004). Each card
+// carries the denominator it was counted over — the twelve that were
+// *measured* — and a card with no denominator at all is drawn as its written
+// line instead of as a row of empty bars.
 import { measured, measuredZero, unmeasured, type Measured } from "@/lib/measure/measured";
+import type { PromptsModel } from "./prompts-model";
 
 /** One site on a presence card: a tracked rival, or the customer. */
 export interface PresenceRow {
@@ -90,9 +90,20 @@ export interface RivalSearchRow {
   status: RivalSearchStatus;
 }
 
+/** Who holds the top Google result on each measured search of the twelve. */
+export interface TopCard {
+  /** The sites holding it, most first; the rest are `others`. */
+  holders: readonly PresenceRow[];
+  others: number;
+  you: number;
+  of: number;
+  /** The searches those results were read on, for Plan's week. */
+  searches: readonly string[];
+}
+
 export interface RivalsModel {
+  top: TopCard;
   firstPage: PresenceCard;
-  named: PresenceCard;
   /** Where the customer stood on the first-page card in the first week this
    *  window measured — the "when you started" line. `null` where there is
    *  no earlier week to compare with, and the line is then not drawn at all
@@ -101,10 +112,6 @@ export interface RivalsModel {
   /** The other sites that hold the most first-page places, most first —
    *  named where no tracked rival holds one (issue 1365). */
   firstPageHolders: readonly string[];
-  /** The tracked rivals neither card counted anywhere, where some rival
-   *  was counted: stated in words under the cards. Empty where every rival
-   *  is one, because both cards then say so themselves. */
-  unseen: readonly string[];
   /** The rows, already in the screen's one order (below). */
   rows: readonly RivalSearchRow[];
   /** The tracked rivals, in the customer's own order — the chips, after
@@ -127,10 +134,8 @@ export interface RivalsFacts {
   firstPage: ReadonlyMap<string, number>;
   /** How many of the twelve the pass could read at all. */
   firstPageOf: number;
-  /** How many of the asked answers named or linked each domain. */
-  named: ReadonlyMap<string, number>;
-  /** How many answers were asked and read — at most twelve × three. */
-  namedOf: number;
+  /** The top result on each measured search, by site; the customer's own included. */
+  top: { holders: ReadonlyMap<string, number>; of: number; searches: readonly string[] };
   firstPageAtStart: number | null;
   /** Sites that are neither the customer's nor a tracked rival's nor a
    *  forum or network, by how many measured first pages they hold. */
@@ -199,19 +204,12 @@ export function assembleRivals(facts: RivalsFacts): RivalsModel {
   }
 
   const firstPage = cardOf(facts.rivals, facts.ownDomain, facts.firstPage, facts.firstPageOf);
-  const named = cardOf(facts.rivals, facts.ownDomain, facts.named, facts.namedOf);
-  // A card that was not measured says nothing of a rival either way.
-  const cards = [firstPage, named].filter((card) => card.of > 0);
-  const nowhere = cards.length === 0 ? [] : facts.rivals.filter((domain) =>
-    cards.every((card) => card.rivals.every((row) => row.domain !== domain || row.count === 0))
-  );
 
   return {
+    top: topOf(facts),
     firstPage,
-    named,
     firstPageAtStart: facts.firstPageAtStart,
     firstPageHolders: firstPage.noRival ? facts.firstPageHolders : [],
-    unseen: nowhere.length === facts.rivals.length ? [] : nowhere,
     rows,
     rivals: facts.rivals,
     counts,
@@ -223,6 +221,21 @@ export function assembleRivals(facts: RivalsFacts): RivalsModel {
  *  customer. A domain the map has no entry for counted zero over what was
  *  measured — which is a measurement, not a gap in one, because `of` is
  *  already what could be read. */
+const TOP_NAMED = 4;
+
+function topOf(facts: RivalsFacts): TopCard {
+  const theirs = [...facts.top.holders.entries()]
+    .filter(([domain]) => domain !== facts.ownDomain)
+    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+  return {
+    holders: theirs.slice(0, TOP_NAMED).map(([domain, count]) => ({ domain, count })),
+    others: theirs.slice(TOP_NAMED).reduce((sum, [, count]) => sum + count, 0),
+    you: facts.top.holders.get(facts.ownDomain) ?? 0,
+    of: facts.top.of,
+    searches: facts.top.searches,
+  };
+}
+
 function cardOf(
   rivals: readonly string[],
   ownDomain: string,
@@ -235,6 +248,19 @@ function cardOf(
     you: { domain: ownDomain, count: counts.get(ownDomain) ?? 0 },
     of,
     noRival: of > 0 && rows.length > 0 && rows.every((row) => row.count === 0),
+  };
+}
+
+/** Who the month's AI answers mention: the customer, and each site they named.
+ *  Read by the Competitors tab and by Settings › Market, so both state one figure. */
+export function namedOf(reputation: PromptsModel): PresenceCard {
+  if (reputation.kind !== "measured") return { rivals: [], you: { domain: "", count: 0 }, of: 0, noRival: false };
+  const rivals = reputation.rivals.map((rival) => ({ domain: rival.domain, count: rival.answers }));
+  return {
+    rivals,
+    you: { domain: "", count: reputation.rate.linked + reputation.rate.named },
+    of: reputation.rate.samples,
+    noRival: rivals.every((row) => row.count === 0),
   };
 }
 

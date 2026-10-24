@@ -29,8 +29,8 @@ export const DE_TEMPLATES: TemplateWords = {
     insights: { titles: ["{platform} {change} ({Monat Jahr}): {die Zahl, der Preis oder das Produkt, das sich geändert hat}"] },
     update: { titles: ["The live page's own title."] },
     offering: {
-      titles: ["{das Angebot in den Worten der Suche}: {sein Preis, seine Zeiten oder sein Ort aus pack}"],
-      titleNever: "Never name a place the business's own pages do not state it serves.",
+      titles: ["{das Angebot in den Worten der Suche}: {sein Preis oder ein Ort aus pack}"],
+      titleNever: "Never name a place the business's own pages do not state it serves. Never state opening hours, days or availability times; the business has no stored hours fact.",
     },
   },
   rules: [

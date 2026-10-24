@@ -55,7 +55,7 @@ export interface AnswersSite {
 }
 
 /**
- * One engine's cell, as one of the five marks.
+ * One engine's cell, as one of the six marks.
  *
  * The two arms that are not readings pass straight through: a cell nobody
  * reached is `not_measured` and leaves every denominator, and an engine
@@ -76,7 +76,8 @@ export function markOf(cell: AnswerCell, ownDomain: string): AnswerMark {
   const { cited, mentioned } = classifyReferences(cell.citedDomains, ownDomain);
   if (cited) return "links_to_you";
   if (mentioned || cell.named === true) return "names_you";
-  return "names_others";
+  // An answer that cites no address and does not name the site names nobody; "someone else" would be false.
+  return cell.citedDomains.length === 0 ? "names_no_one" : "names_others";
 }
 
 export async function readAnswerFacts(site: AnswersSite, at: Date): Promise<AnswersFacts> {

@@ -20,7 +20,7 @@ export function MeasuredSkeleton(): React.JSX.Element {
 }
 
 /** A row of number tiles, in the arriving row's own grid: the name, then
- *  the figure's row at the height `SearchTiles` and `AnswerTiles` hold
+ *  the figure's row at the height `SearchTiles` holds
  *  (`TILE_FIGURE`). `name` is the name's own height where it is not one
  *  line: four tiles across leave Search's names two. */
 export function NumberTilesSkeleton(p: {
@@ -89,17 +89,32 @@ export function FilteredTableSkeleton(p: {
 const SEARCH_ROW = "h-27 sm:h-9 xl:h-6";
 const RIVAL_ROW = "h-21 sm:h-8 xl:h-7";
 
-/** The Search table's shape: four chips and the line under them, nine rows. */
+/** The Search table's shape: its name and lead, the chips, nine rows. */
 export function SearchTableSkeleton(): React.JSX.Element {
   return (
     <FilteredTableSkeleton
       testId="search-table-skeleton"
-      title={false}
+      title
       note
       chips={["w-28", "w-32", "w-24", "w-36"]}
       rows={9}
       row={SEARCH_ROW}
     />
+  );
+}
+
+/** Each page in Google: its name, the chart's well and six page rows. */
+export function GooglePagesSkeleton(): React.JSX.Element {
+  return (
+    <Waiting className="card card-border bg-base-100 min-w-0" testId="search-pages-skeleton">
+      <div className="flex min-w-0 flex-col gap-4 p-4 sm:p-5">
+        <Box className="h-6 w-56 max-w-full" />
+        <Box className="h-28 w-full" />
+        {Array.from({ length: 6 }, (_, at) => (
+          <Box key={at} className="h-16 w-full" />
+        ))}
+      </div>
+    </Waiting>
   );
 }
 
@@ -138,28 +153,6 @@ export function RivalPresenceSkeleton(): React.JSX.Element {
           </div>
         </div>
       ))}
-    </Waiting>
-  );
-}
-
-/** The grid of questions on AI answers: its name, the legend, and a row
- *  per question — a block with its engines under it below `sm`, one line
- *  of the grid from it. */
-export function AnswerGridSkeleton(): React.JSX.Element {
-  return (
-    <Waiting className="card card-border bg-base-100 min-w-0" testId="answer-grid-skeleton">
-      <div className="flex min-w-0 flex-col gap-3 p-4">
-        <Box className="h-6 w-64 max-w-full" />
-        <Box className="h-14 w-full sm:h-4 sm:w-96" />
-        <div className="flex min-w-0 flex-col">
-          <Box className="hidden h-8 w-full sm:block" />
-          {Array.from({ length: 12 }, (_, at) => (
-            <div key={at} className="border-base-300 border-t py-2">
-              <Box className="h-33 w-full sm:h-12.5" />
-            </div>
-          ))}
-        </div>
-      </div>
     </Waiting>
   );
 }

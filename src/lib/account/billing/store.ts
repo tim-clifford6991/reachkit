@@ -18,6 +18,7 @@
 // serving its pages — a question a policy that hid the row would answer
 // wrong by hiding it.
 import { dbAdmin } from "@/lib/db";
+import { SITE_PASS_TIERS } from "@/lib/scan/report";
 
 /** The `users` row, as billing reads it. Narrow on purpose: a column not
  *  named here cannot be read by accident. `plan_status` is on the list
@@ -83,6 +84,7 @@ export interface HostingRow {
 /** One page delivered to a site, as the month's card counts it: the draft's
  *  title and its last recorded battery, and whether it was a refresh. */
 export interface PeriodPageRow {
+  readonly published_at: string;
   readonly title: string | null;
   readonly refresh: boolean;
   readonly rule_failures: unknown;
@@ -155,6 +157,9 @@ export interface BillingStore {
     at: Date
   ): Promise<{ ok: true } | { ok: false }>;
 
+  /** The stated zone of the account's first site, as the retention mails read it; `null` where none is stated. */
+  siteZone(userId: string): Promise<{ ok: true; timezone: string | null } | { ok: false }>;
+
   /** The stored domains of every site one account owns, as written. */
   siteDomains(userId: string): Promise<{ ok: true; domains: readonly string[] } | { ok: false }>;
 
@@ -174,13 +179,28 @@ export interface BillingStore {
     at: Date;
   }): Promise<{ ok: true } | { ok: false }>;
 
-  /** The pages delivered to a site in `[from, to)` that are still up, and
-   *  how many of its scans finished in that span. */
+  /** Whether any of the account's publications went live in `[from, to)`,
+   *  taken down since or not. Drafts are never read. */
+  wentLive(userId: string, from: Date, to: Date): Promise<{ ok: true; live: boolean } | { ok: false }>;
+
+  /** Records a first-renewal refund. `inserted` is false where an earlier
+   *  delivery already recorded this invoice. */
+  recordRenewalRefund(a: {
+    invoiceId: string;
+    userId: string;
+    at: Date;
+  }): Promise<{ ok: true; inserted: boolean } | { ok: false }>;
+
+  /** The pages delivered to a site in `[from, to)` that are still up, when
+   *  each Monday mail went in that span, and the newest finished weekly or deep pass's report. */
   period(
     siteId: string,
     from: Date,
     to: Date
-  ): Promise<{ ok: true; pages: readonly PeriodPageRow[]; scans: number } | { ok: false }>;
+  ): Promise<
+    | { ok: true; pages: readonly PeriodPageRow[]; reports: readonly string[]; newestReport: unknown }
+    | { ok: false }
+  >;
 }
 
 // ── The Supabase implementation
@@ -203,6 +223,7 @@ interface MinimalQueryBuilder<T> extends PromiseLike<QueryResult<T>> {
   lt(column: string, value: string): MinimalQueryBuilder<T>;
   in(column: string, values: readonly string[]): MinimalQueryBuilder<T>;
   limit(count: number): MinimalQueryBuilder<T>;
+  order(column: string, options: { ascending: boolean }): MinimalQueryBuilder<T>;
   insert(rows: object): MinimalQueryBuilder<T>;
   overlaps(column: string, values: readonly string[]): MinimalQueryBuilder<T>;
 }
@@ -263,6 +284,7 @@ function toHostingRow(row: HostingJoinRow): HostingRow {
 }
 
 interface PeriodJoinRow {
+  published_at: string;
   drafts: { title: string | null; rule_failures: unknown; meta: unknown; opportunities: { type: string } };
 }
 
@@ -402,6 +424,16 @@ export function supabaseBillingStore(): BillingStore {
       return error ? { ok: false } : { ok: true };
     },
 
+    async siteZone(userId) {
+      const { data, error } = await untyped()
+        .from<{ timezone: string | null }>("sites")
+        .select("timezone")
+        .eq("user_id", userId)
+        .limit(1);
+      if (error) return { ok: false };
+      return { ok: true, timezone: data?.[0]?.timezone ?? null };
+    },
+
     async siteDomains(userId) {
       const { data, error } = await untyped()
         .from<{ domain: string | null }>("sites")
@@ -437,34 +469,67 @@ export function supabaseBillingStore(): BillingStore {
       return error && error.code !== "23505" ? { ok: false } : { ok: true };
     },
 
+    async wentLive(userId, from, to) {
+      const { data, error } = await untyped()
+        .from<{ id: string }>("publications")
+        .select("id, sites!inner(user_id)")
+        .eq("sites.user_id", userId)
+        .eq("delivery_state", "delivered")
+        .gte("published_at", from.toISOString())
+        .lt("published_at", to.toISOString())
+        .limit(1);
+      if (error) return { ok: false };
+      return { ok: true, live: (data ?? []).length > 0 };
+    },
+
+    async recordRenewalRefund(a) {
+      const { error } = await untyped()
+        .from<{ invoice_id: string }>("renewal_refunds")
+        .insert({ invoice_id: a.invoiceId, user_id: a.userId, refunded_at: a.at.toISOString() });
+      if (error?.code === "23505") return { ok: true, inserted: false };
+      return error ? { ok: false } : { ok: true, inserted: true };
+    },
+
     async period(siteId, from, to) {
-      const [pages, scans] = await Promise.all([
+      const [pages, digests, newest] = await Promise.all([
         untyped()
           .from<PeriodJoinRow>("publications")
-          .select("drafts!inner(title, rule_failures, meta, opportunities!inner(type))")
+          .select("published_at, drafts!inner(title, rule_failures, meta, opportunities!inner(type))")
           .eq("site_id", siteId)
           .eq("delivery_state", "delivered")
           .is("unpublished_at", null)
           .gte("published_at", from.toISOString())
           .lt("published_at", to.toISOString()),
         untyped()
-          .from<{ id: string }>("scans")
-          .select("id")
+          .from<{ digest_sent_at: string }>("scans")
+          .select("digest_sent_at")
           .eq("site_id", siteId)
+          .gte("digest_sent_at", from.toISOString())
+          .lt("digest_sent_at", to.toISOString()),
+        untyped()
+          .from<{ report: unknown }>("scans")
+          .select("report")
+          .eq("site_id", siteId)
+          .in("tier", SITE_PASS_TIERS)
           .in("status", ["done", "degraded"])
+          .not("report", "is", null)
           .gte("created_at", from.toISOString())
-          .lt("created_at", to.toISOString()),
+          .lt("created_at", to.toISOString())
+          .order("created_at", { ascending: false })
+          .limit(1),
       ]);
-      if (pages.error || scans.error) return { ok: false };
+      if (pages.error || digests.error || newest.error) return { ok: false };
       return {
         ok: true,
-        pages: (pages.data ?? []).map(({ drafts }) => ({
+        pages: (pages.data ?? []).map(({ published_at, drafts }) => ({
+          published_at,
           title: drafts.title,
           refresh: drafts.opportunities.type === "refresh_page",
           rule_failures: drafts.rule_failures,
           meta: drafts.meta,
         })),
-        scans: (scans.data ?? []).length,
+        reports: (digests.data ?? []).map((row) => row.digest_sent_at).sort(),
+        newestReport: newest.data?.[0]?.report ?? null,
       };
     },
   };

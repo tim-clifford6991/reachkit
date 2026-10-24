@@ -57,7 +57,7 @@ const { calls } = vi.hoisted(() => ({ calls: [] as string[] }));
 vi.mock("@/app/(account)/app/_session/account", async (importOriginal) => {
   const actual = await importOriginal<Record<string, unknown>>();
   const { RESERVED_ACCOUNT } = await import("../accounts");
-  return { ...actual, requireSetUpAccount: async () => RESERVED_ACCOUNT };
+  return { ...actual, requireSetUpAccount: async () => RESERVED_ACCOUNT, requireAppAccount: async () => RESERVED_ACCOUNT };
 });
 
 vi.mock("@/lib/presentation/copy", async (importOriginal) => {
@@ -120,6 +120,8 @@ import SettingsBillingTab from "@/app/(account)/app/settings/billing/page";
 import SettingsAccountTab from "@/app/(account)/app/settings/account/page";
 import { SETTINGS_TABS, SETTINGS_TAB_HREF, settingsTabOf } from "@/app/(account)/app/settings/tabs";
 import { BillingPanel } from "@/app/(account)/app/settings/panels/BillingPanel";
+import { PublishingPanel } from "@/app/(account)/app/settings/panels/PublishingPanel";
+import { destinationView } from "@/lib/publish/destinations/view";
 import { ACTIONS, SETTABLE } from "@/app/(account)/app/settings/settable";
 import { FIXTURE_SETTINGS_FACTS } from "@/app/(account)/app/settings/fixture";
 import { PRICE_KEYS, UNREACHABLE_BILLING_KEYS } from "@/app/(account)/app/settings/billing";
@@ -229,7 +231,7 @@ describe("REQ-070 c1 — the rendered control set is exactly the SETTABLE keys",
   // of it.
   it("each of §4.7's nine cards is on exactly one tab, and the danger zone is in Account", async () => {
     const where: Readonly<Record<string, (typeof SETTINGS_TABS)[number]>> = {
-      "settings.content.title": "business",
+      "settings.content.export": "account",
       "settings.market.title": "market",
       "settings.competitors.title": "market",
       "settings.publishing.title": "publishing",
@@ -240,7 +242,12 @@ describe("REQ-070 c1 — the rendered control set is exactly the SETTABLE keys",
       "danger.zone.title": "account",
     };
     const drawn = new Map<(typeof SETTINGS_TABS)[number], string>();
-    for (const tab of SETTINGS_TABS) drawn.set(tab, (await mountTab(tab)).textContent ?? "");
+    // A link that names a tab (Mail's "Change it under Account") is a pointer, not the card.
+    for (const tab of SETTINGS_TABS) {
+      const root = await mountTab(tab);
+      root.querySelectorAll("a").forEach((a) => a.remove());
+      drawn.set(tab, root.textContent ?? "");
+    }
 
     for (const [title, tab] of Object.entries(where)) {
       expect(drawn.get(tab), `${title} belongs on the ${tab} tab`).toContain(title);
@@ -254,10 +261,8 @@ describe("REQ-070 c1 — the rendered control set is exactly the SETTABLE keys",
   });
 
   it("the danger zone is the foot of Account, below the account card", async () => {
-    // #925: "keep the danger zone out of the way". Out of the way is below
-    // the two ordinary things a customer came for, not behind a disclosure —
-    // REQ-079 c1 has each of its actions state its consequence before it
-    // runs, and that step is what does the keeping.
+    // #925: "keep the danger zone out of the way": below the two ordinary
+    // things a customer came for, and folded shut (board SettingsAccount).
     const text = (await mountTab("account")).textContent ?? "";
     expect(text.indexOf("settings.account.title")).toBeLessThan(text.indexOf("danger.zone.title"));
   });
@@ -284,14 +289,21 @@ describe("REQ-070 c1 — the rendered control set is exactly the SETTABLE keys",
     expect(settingsTabOf("/app/settings/nothing-here")).toBeUndefined();
   });
 
-  it("the market card states the one line §4.7 gives it, and states it once", async () => {
+  it("the market card states each consequence §4.7 gives it, and states it once", async () => {
     const root = await mountTab("market");
-    const occurrences = (root.textContent ?? "").split("settings.market.effect").length - 1;
-    expect(occurrences).toBe(1);
+    for (const key of ["settings.market.consequence.website", "settings.market.consequence.market"]) {
+      expect((root.textContent ?? "").split(key).length - 1, key).toBe(1);
+    }
   });
 
   it("destination health renders as a word, never as a tone alone", async () => {
-    const root = await mountScreen();
+    const settings = assembleSettings({
+      ...FIXTURE_SETTINGS_FACTS,
+      destinations: [
+        destinationView({ id: "dest-wordpress", kind: "wordpress", health: "expired", reason: "credentials_expired", lastCheckedAt: new Date("2026-09-06T07:00:00.000Z"), heldPages: 3 }),
+      ],
+    });
+    const root = await mount(<PublishingPanel settings={settings} />);
     const expired = root.querySelector('[data-testid="destination-dest-wordpress"]');
     expect(expired?.textContent).toContain("settings.destination.health.expired");
     // ADR-086: a broken destination carries an action leading somewhere,
@@ -381,43 +393,62 @@ describe("REQ-070 c3 — no control over an engine or spend parameter renders", 
     }
   });
 
-  it("and none is hidden behind a flag or a disclosure — a hidden control is still an offered one", async () => {
+  it("and none is hidden behind a flag — a folded control is still an offered one", async () => {
     const root = await mountScreen();
-    // Nothing on the screen is withheld from the count: no collapsed section
-    // and no `hidden` subtree, so every control counted above is one that
-    // exists, not one that happened to be open.
-    expect(root.querySelectorAll("details")).toHaveLength(0);
+    // The boards fold the danger zone, Billing's detail and Your business's
+    // three cards, and a closed fold keeps its controls in the document: every
+    // control counted above exists, and no `hidden` subtree withholds one.
+    expect([...root.querySelectorAll("details")].map((d) => d.getAttribute("data-testid")).sort()).toEqual([
+      "billing-month-detail",
+      "settings-business-facts",
+      "settings-business-knowledge",
+      "settings-competitors-detail",
+      "settings-danger",
+      "settings-known-content",
+    ]);
+    expect(root.querySelector('details[data-testid="settings-danger"] [data-testid="confirm-delete_account"] button')).not.toBeNull();
     expect(root.querySelectorAll("[hidden]")).toHaveLength(0);
     expect(root.querySelectorAll('[data-testid^="setting-"]')).toHaveLength(SETTABLE.length);
   });
 });
 
+describe("E28 — a card title states its subject in words", () => {
+  it.each([
+    ["business", 5],
+    ["voice", 3],
+  ] as const)("no settings card title carries an icon (E28): %s", async (tab, least) => {
+    const root = await mountTab(tab);
+    const titles = [...root.querySelectorAll("h2, summary, legend, .card-title")];
+    expect(titles.length).toBeGreaterThanOrEqual(least);
+    for (const title of titles) expect(title.querySelector("svg")).toBeNull();
+  });
+});
+
 // ── REQ-079 criterion 1 ────────────────────────────────────────────────────
 describe("REQ-079 c1 — each danger-zone action states its consequence before it runs", () => {
-  it("the zone offers exactly two actions and its standing line", async () => {
+  it("the zone offers exactly two actions, folded shut at rest", async () => {
     const root = await mountScreen();
-    expect(root.querySelectorAll('[data-testid^="danger-"]')).toHaveLength(2);
-    expect(root.textContent).toContain("danger.export-first");
+    expect(testIds(root, "danger-").filter((id) => id === "unpublish_all" || id === "delete_account")).toEqual([
+      "delete_account",
+      "unpublish_all",
+    ]);
+    expect((root.querySelector('[data-testid="settings-danger"]') as HTMLDetailsElement).open).toBe(false);
   });
 
-  it("at rest there is no control that runs either one", async () => {
+  it("each action states its consequence before its confirming control, which is held until the word is typed", async () => {
     const root = await mountScreen();
-    expect(root.querySelectorAll('[data-testid^="confirm-"]')).toHaveLength(0);
-  });
-
-  it("the first press opens the consequence step and runs nothing", async () => {
-    const root = await mountScreen();
-    await click(root.querySelector('[data-testid="action-delete_account"] button') as Element);
+    for (const action of ["unpublish_all", "delete_account"]) {
+      const step = root.querySelector(`[data-testid="danger-${action}"]`)!;
+      const consequence = step.querySelector(`[data-testid="consequence-${action}"]`)!;
+      const confirm = step.querySelector(`[data-testid="confirm-${action}"] button`) as HTMLButtonElement;
+      expect(consequence.compareDocumentPosition(confirm) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+      expect(confirm.disabled).toBe(true);
+    }
     expect(calls).toEqual([]);
-    expect(root.querySelector('[data-testid="consequence-delete_account"]')).not.toBeNull();
-    expect(root.querySelector('[data-testid="confirm-delete_account"]')).not.toBeNull();
-    // Opening one does not open the other.
-    expect(root.querySelector('[data-testid="consequence-unpublish_all"]')).toBeNull();
   });
 
   it("the step's own export control is what reaches the seam, and the confirming one is held (#259)", async () => {
     const root = await mountScreen();
-    await click(root.querySelector('[data-testid="action-unpublish_all"] button') as Element);
     expect(calls).toEqual([]);
 
     // REQ-079 c3's first gate: the archive is handed over before anything
@@ -599,5 +630,19 @@ describe("REQ-097 c6 — a billing surface that cannot be produced is written on
     await click(root.querySelector('[data-testid="action-invoices"] button') as Element);
     expect(root.querySelector('[data-testid="action-invoices"]')).not.toBeNull();
     expect(root.querySelector('[data-testid="billing-plan"]')?.textContent).toBe(planBefore);
+  });
+});
+
+describe("Settings › Market against board SettingsMarket", () => {
+  it("no settings card title carries an icon (E28): market", async () => {
+    const root = await mountTab("market");
+    const titles = [...root.querySelectorAll("h2, summary, .card-title")];
+    expect(titles.length).toBeGreaterThanOrEqual(3);
+    for (const title of titles) expect(title.querySelector("svg")).toBeNull();
+  });
+
+  it("the market tab draws no process timeline: board SettingsMarket has none", async () => {
+    const root = await mountTab("market");
+    expect(root.querySelector('[data-testid="process-timeline"]')).toBeNull();
   });
 });

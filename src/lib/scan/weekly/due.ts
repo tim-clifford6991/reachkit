@@ -17,11 +17,12 @@
 // over rows already in hand, because no PostgREST filter can ask a
 // question in each row's own zone.
 //
-// The already-stamped exclusion is what makes a retry free: a site whose
-// run failed, or was refused for credit, had its claim released to a
+// The already-stamped exclusion is what makes a retry possible: a site
+// whose run failed, or was refused for credit, had its claim released to a
 // `failed` row, and is selected again on every hourly tick after it until
-// its own week ends. A site whose run completed, wholly or partly, carries
-// its row and is never selected again for that week.
+// its own week ends. A retry opens no new budget: it spends only what is
+// left of that row's `WEEKLY` cap. A site whose run completed, wholly or
+// partly, carries its row and is never selected again for that week.
 import { sitesWithActiveAccess } from "./access";
 import { sitesWithAZone, weekStatuses } from "./store";
 import { isWeeklyDue, weekHasBegun, weekKey, weekStartFor } from "./week";

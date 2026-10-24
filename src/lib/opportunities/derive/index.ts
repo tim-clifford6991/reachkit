@@ -44,7 +44,7 @@ import { refineType } from "./typing";
 import { applyKnownContent, type KnownContentGate } from "./known";
 import { writeCandidates } from "./write";
 import { judgeFit, type FitSearch } from "./fit";
-import { askedOfReport, askedSupply, askedTopics, brandsOf, type AskedSupply, candidateFor, comparisonWithoutDemand, noLongerRelevant, productsNamed, proposedTopics, rivalBrandOnly, rivalNamesOf, rivalPriceOf, sourceOf } from "./topics";
+import { askedOfReport, askedSupply, askedTopics, brandsOf, citedTopics, type AskedSupply, candidateFor, comparisonWithoutDemand, noLongerRelevant, productsNamed, proposedTopics, rivalBrandOnly, rivalNamesOf, rivalPriceOf, sourceOf } from "./topics";
 import { judgeTyped, writeBuyerSearches } from "./buyer-searches";
 
 export interface DeriveInput {
@@ -144,12 +144,14 @@ export async function deriveOpportunities(
   const market = a.market ?? null;
   const locale = a.locale ?? (await siteLocale(a.siteId));
   const named = brandsOf({ report: a.report, market });
+  // The business competitors in force; the search competitors are the report's.
+  const business = [...(market?.rivals.map((rival) => rival.domain) ?? []), ...(a.competitors ?? [])];
   const brands = [...named.own, ...named.rivals];
   const write = writeCandidates({
     ...base,
     ownRanked,
     rankedCounts: a.rankedCounts,
-    marketRivals: [...(market?.rivals.map((rival) => rival.domain) ?? []), ...(a.competitors ?? [])],
+    marketRivals: business,
     brands,
   });
   const improve = improveCandidates({
@@ -205,7 +207,7 @@ export async function deriveOpportunities(
   // topic with a draft or a publication is never touched, and neither is
   // the search an operator retargeted a live page to (issue 1285). A store
   // that cannot say which topics were drafted prunes nothing.
-  const drafted = store.draftedOpportunityIds === undefined ? null : await store.draftedOpportunityIds(a.siteId).catch(() => null);
+  const drafted = await store.draftedOpportunityIds(a.siteId).catch(() => null);
   const irrelevant = (row: (typeof held)[number]): boolean =>
     drafted !== null &&
     !drafted.has(row.id) &&
@@ -231,7 +233,7 @@ export async function deriveOpportunities(
   // Issue 1549: a topic a gate dismissed is not written down again by a
   // pass that read nothing new for it — only a measured volume above the
   // one it was dismissed at brings it back. One the customer stopped never comes back.
-  const dismissed = store.dismissedSearches === undefined ? [] : await store.dismissedSearches(a.siteId).catch(() => []);
+  const dismissed = await store.dismissedSearches(a.siteId).catch(() => []);
   let stillDismissed = 0;
   const notDismissed = (candidate: Pick<Candidate, "targetQuery" | "volume">): boolean => {
     if (!dismissedUnchanged(candidate, dismissed)) return true;
@@ -252,7 +254,7 @@ export async function deriveOpportunities(
   const written = await writeBuyerSearches(c, { market, prompts: a.prompts ?? [], brands, locale });
   // SPEC §6 (issue 1519): what buyers were seen asking beside the site's
   // searches — this report's SERPs and D62's store — at 0¢.
-  const stored = store.askedBeside === undefined ? [] : await store.askedBeside(a.siteId, ASKED_TOPICS.maxAgeDays).catch(() => []);
+  const stored = await store.askedBeside(a.siteId, ASKED_TOPICS.maxAgeDays).catch(() => []);
   const seen = [...askedOfReport(a.report), ...stored];
   const asked = askedTopics(seen, a.report.verdict.measuredAt);
   const proposing = proposedTopics({
@@ -266,6 +268,12 @@ export async function deriveOpportunities(
     language: locale.language,
     asked,
     seen,
+    cited: citedTopics({
+      answers: a.report.prompts?.answers ?? [],
+      competitors: [...business, ...(a.report.rivals.kind === "measured" ? a.report.rivals.value.map((rival) => rival.domain) : [])],
+      searched: seen.map((serp) => serp.term),
+      language: locale.language,
+    }),
   });
   // Never judged again where a row on the search was dismissed (issue 1549).
   const offered = proposing.filter((topic) => {
@@ -319,7 +327,7 @@ export async function deriveOpportunities(
     }
     const volume = measured(read, readAt);
     const evidence = { ...row.evidence, volume };
-    await store.setVolume?.(row.id, read, evidence);
+    await store.setVolume(row.id, read, evidence);
     existing.push({ ...row, volume, evidence });
   }
 

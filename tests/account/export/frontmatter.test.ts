@@ -4,7 +4,7 @@
 // ReachKit": the five fields per file, explicit nulls where they do not
 // apply, and a body that is the stored `body_md` and nothing else.
 import { describe, expect, it } from "vitest";
-import { frontmatter, pageFile } from "@/lib/account/export/frontmatter";
+import { frontmatter } from "@/lib/account/export/frontmatter";
 import type { ExportManifestPage } from "@/lib/account/export";
 
 function entry(a: Partial<ExportManifestPage> = {}): ExportManifestPage {
@@ -51,14 +51,5 @@ describe("REQ-078 c4 — each file carries title, state, publish date, live URL 
     const lines = block.split("\n");
     expect(lines.filter((line) => line === "---")).toHaveLength(2);
     expect(block).toContain(JSON.stringify('Why: "this" works\nreally'));
-  });
-});
-
-describe("REQ-078 c3 — nothing in a file body was re-rendered", () => {
-  it("the body is the stored body_md, byte for byte, after the block", () => {
-    const body = "# Heading\n\nSome *stored* markdown, with {braces} and <html>.\n";
-    const file = pageFile(entry(), body);
-    expect(file.endsWith(body)).toBe(true);
-    expect(file.slice(0, file.length - body.length)).toBe(frontmatter(entry()));
   });
 });

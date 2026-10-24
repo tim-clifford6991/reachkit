@@ -1,78 +1,48 @@
-// SPEC §4 · §6 (2026-09-20, #908) — the AI answers tab, in one shape.
+// SPEC §6 (2026-09-20, #908) — the AI answers tab's grid, in one shape: the
+// latest pass's twelve and the published pages' own questions, each with one
+// mark per engine. "'AI rank position' and sentiment are never shown": neither
+// has a member here.
 //
-// §6 of that date: "a rolling four-week rate — answers that name or link
-// the site over all answers asked — beside this week's n of 12; named and
-// linked are counted apart." §4 of the same date closes the screen: "'AI
-// rank position' and sentiment are never shown." Neither has a member here
-// to be rendered from, which is the only way that stays true.
-//
-// **This file is pure.** Facts in, model out — the same split `model.ts`
-// and `search-model.ts` make, and for the same reason: every rule below is
-// then decided by a test with no database and no browser. Reading the facts
-// is `answers-store.ts`'s (a real account) and `answers-fixture.ts`'s (the
-// reserved fixture account).
-//
-// **Nothing here is recomputed that was measured.** A cell arrives as one
-// of the five marks `answers-store.ts` derived from the stored answer with
-// `classifyReferences` — the score's own reading of "linked" and "named",
-// reused rather than restated — and this file only counts them.
-//
-// **The window's denominator is what was measured, never 12 × 3 × 4.** An
-// unmeasured cell leaves the denominator and is never a miss (§6.2's rule,
-// applied to a window instead of to one week); the full grid is stated
-// beside the rate as the shape of the window, not as its divisor.
-import { ANSWER_RATE_WEEKS, BATTERY, TRACKED_QUESTIONS_MAX } from "@/lib/config/constants";
-import { measured, measuredZero, unmeasured, type Measured } from "@/lib/measure/measured";
+// **This file is pure.** Facts in, model out. Reading the facts is
+// `answers-store.ts`'s (a real account) and `answers-fixture.ts`'s (the
+// reserved fixture account). A mark is the score's own reading of the stored
+// cell (`classifyReferences`), never recomputed here.
 import type { GeneratedText } from "@/lib/presentation/generated";
 import type { AnswerEngine } from "@/lib/opportunities/types";
-import { GOALS } from "./goals";
 
 /**
  * What one engine said about the site on one question.
  *
- * Five marks, closed, and two of them are not misses: an engine that served
+ * Six marks, closed, and two of them are not misses: an engine that served
  * no answer said something, and an engine nobody reached said nothing.
  *
  * The split the owner's 2026-09-20 ruling asks for is the first two:
  * **linked** is a cited domain that is the site's own, **named** is the
  * brand token appearing in a reference somewhere else. `names_others` is
  * wider than the approved board's "names a rival" on purpose — an answer
- * can cite a directory, a marketplace, or no domain at all, and none of
- * those is a rival — and the word beside the mark says so.
+ * can cite a directory or a marketplace, and neither is a rival — and the
+ * word beside the mark says so. An answer that cites no address and does
+ * not name the site is `names_no_one`: an answer, and a miss, that names
+ * nobody at all.
  *
  * It is the product's existing four-state reading of a cell
  * (`EngineStanding` in `@/lib/opportunities/types`) with its `names_you`
- * arm split in two. A sixth mark would be a requirement change, not a new
- * member, and `Record<AnswerMark, …>` in `answers-words.ts` makes one a
+ * arm split in two and its `names_others` arm split from `names_no_one`.
+ * A new mark is a requirement change, not a new member, and `Record<AnswerMark, …>` in `answers-words.ts` makes one a
  * compile error beside every word it would need.
  */
 export const ANSWER_MARKS = [
   "links_to_you",
   "names_you",
   "names_others",
+  "names_no_one",
   "no_answer",
   "not_measured",
 ] as const;
 export type AnswerMark = (typeof ANSWER_MARKS)[number];
 
-/** The two marks that are the tab's subject: the answer reached the site's
- *  own name, one way or the other. Named once, because the rate tile, the
- *  split beneath it and this week's count all ask the same question. */
-export function reachesYou(mark: AnswerMark): boolean {
-  return mark === "links_to_you" || mark === "names_you";
-}
 
-/** A tracked question an engine answered with a link to the site: what
- *  "cited" means on this tab, and in the Monday mail's first number. */
-export function citesYou(question: Pick<AnswerQuestion, "marks">): boolean {
-  return question.marks.includes("links_to_you");
-}
 
-/** A cell the pass actually read. The denominator of every rate on this
- *  screen is exactly these — "an unmeasured cell leaves the denominator". */
-export function wasAsked(mark: AnswerMark): boolean {
-  return mark !== "not_measured";
-}
 
 /**
  * §6.2's three answer columns, in the order the grid lays them out.
@@ -93,12 +63,6 @@ const ENGINE_ORDER: Readonly<Record<AnswerEngine, number>> = Object.freeze({
 export const ANSWER_ENGINES: readonly AnswerEngine[] = Object.freeze(
   (Object.keys(ENGINE_ORDER) as AnswerEngine[]).sort((a, b) => ENGINE_ORDER[a] - ENGINE_ORDER[b])
 );
-
-/** The one engine this screen's *n of 12* is counted from — the Overview
- *  tile's own rule (`model.ts`'s `COUNTED_FROM`, §6.2: "the three counts
- *  stay the AI-Overview counts"), so the two screens name the same engine
- *  and the tile's line says which. */
-export const COUNTED_FROM: AnswerEngine = "ai_overview";
 
 /** The customer's own live page for a question's search, where one is
  *  published. Title and address only: this tab links to the page, it does
@@ -127,58 +91,18 @@ export interface AnswerQuestion {
   page: AnswerPage | null;
 }
 
-/** The rolling rate, and the two readings it is made of. */
-export interface AnswerRate {
-  /** Answers that named or linked the site, over the window. */
-  value: Measured<number>;
-  /** All answers asked that could be read — the denominator. */
-  of: Measured<number>;
-  /** The same numerator, counted apart (§6, 2026-09-20). */
-  linked: number;
-  named: number;
-}
 
-/** This week's n of 12, with its denominator and its goal — §4's data rule,
- *  and no change at all (REQ-041 c12: no reading of AI-answer movement). */
-export interface AnswerWeek {
-  value: Measured<number>;
-  of: number;
-  goal: number;
-  engine: AnswerEngine;
-}
 
-/** Issue 1551 (owner, 2026-10-19; SEO review R5.1): the published pages'
- *  own questions whose AI answer links the site, this week — the AI signal
- *  a page moves first, so the tab leads with it. */
-export interface PagesCited {
-  /** Page questions an engine answered linking the site. Unmeasured where
-   *  the latest pass read none of them. */
-  value: Measured<number>;
-  /** Page questions the latest pass read. */
-  of: number;
-}
 
 export interface AnswersModel {
-  pagesCited: PagesCited;
-  rate: AnswerRate;
-  week: AnswerWeek;
   /** The latest measured pass's **twelve**, in the pass's own order. Empty
-   *  where no pass has stored an AI-answers section yet, and the screen
-   *  then says so in words rather than drawing an empty grid. */
+   *  where no pass has stored an AI-answers section yet. */
   questions: readonly AnswerQuestion[];
   /** SPEC §6 (2026-09-20, #919) — the published pages' own questions from
-   *  that same pass, beside the twelve and never mixed into them. The grid
-   *  draws both; the rate and this week's n of 12 count the twelve, which
-   *  is what they counted before a page had a question and what they still
-   *  mean. Empty on a pass that asked none. */
+   *  that same pass, beside the twelve and never mixed into them. */
   pageQuestions: readonly AnswerQuestion[];
-  /** What the latest pass tracked in all, and the cap it obeyed — the
-   *  screen's "{n} of {max} at most". */
-  tracked: number;
-  cap: number;
   engines: readonly AnswerEngine[];
-  /** The date the latest pass measured, for the line that says when.
-   *  `null` where no pass has. */
+  /** The date the latest pass measured; `null` where no pass has. */
   measuredAt: Date | null;
 }
 
@@ -193,107 +117,19 @@ export interface AnswerWeekFacts {
   pageQuestions?: readonly AnswerQuestion[];
 }
 
-/** Everything the AI answers tab reads, before it is a model. */
+/** Everything the AI answers tab reads, before it is a model: the passes
+ *  that stored an AI-answers section, oldest first. */
 export interface AnswersFacts {
-  /** The passes inside the four-week window that stored an AI-answers
-   *  section, oldest first. A week with no row is absent rather than
-   *  present-and-empty: those are two different facts, and an empty week
-   *  would lower the rate as though twelve questions had been asked and
-   *  nobody named. */
   weeks: readonly AnswerWeekFacts[];
   measuredAt: Date | null;
 }
 
-export function assembleAnswers(facts: AnswersFacts, at: Date): AnswersModel {
+export function assembleAnswers(facts: AnswersFacts): AnswersModel {
   const latest = facts.weeks.at(-1);
-
-  let asked = 0;
-  let linked = 0;
-  let named = 0;
-  for (const week of facts.weeks) {
-    for (const question of week.questions) {
-      for (const mark of question.marks) {
-        if (!wasAsked(mark)) continue;
-        asked += 1;
-        if (mark === "links_to_you") linked += 1;
-        else if (mark === "names_you") named += 1;
-      }
-    }
-  }
-
-  // A window in which nothing could be read is not a window in which the
-  // engines named nobody (REQ-004): both halves of the rate are unmeasured,
-  // and the tile draws the dash with its own written line.
-  const reached = linked + named;
-  const rate: AnswerRate = {
-    value: asked === 0 ? unmeasured<number>("not_attempted", at) : counted(reached, at),
-    of: asked === 0 ? unmeasured<number>("not_attempted", at) : measured(asked, at),
-    linked,
-    named,
-  };
-
-  // This week's n of 12, counted from Google's AI Overview alone — the same
-  // engine the Overview's tile counts from, said on the tile's own line. A
-  // week whose pass never reached that column is unmeasured, never a zero.
-  const column = ANSWER_ENGINES.indexOf(COUNTED_FROM);
-  const thisWeek = latest?.questions ?? [];
-  const readable = thisWeek.filter((q) => wasAsked(q.marks[column] ?? "not_measured"));
-  const week: AnswerWeek = {
-    value:
-      readable.length === 0
-        ? unmeasured<number>("not_attempted", at)
-        : counted(readable.filter((q) => reachesYou(q.marks[column] as AnswerMark)).length, at),
-    of: BATTERY.QUESTIONS,
-    goal: GOALS.ai_answers.value,
-    engine: COUNTED_FROM,
-  };
-
-  // **The two rates above counted the twelve, and they still do** (#919).
-  // A page question is a tracked question and is drawn as one; it is not
-  // added to the four-week rate or to this week's n of 12, because both are
-  // published figures a customer has been watching, and a figure that moves
-  // because ReachKit published a page has stopped being a measurement of
-  // the market. The cap line below says how many questions are tracked in
-  // all, which is the fact §6 asks this screen to state.
-  const pageQuestions = latest?.pageQuestions ?? [];
-  const pagesAsked = pageQuestions.filter((q) => q.marks.some(wasAsked));
-  const pagesCited: PagesCited = {
-    value:
-      pagesAsked.length === 0
-        ? unmeasured<number>("not_attempted", at)
-        : counted(pagesAsked.filter(citesYou).length, at),
-    of: pagesAsked.length,
-  };
   return {
-    pagesCited,
-    rate,
-    week,
-    questions: thisWeek,
-    pageQuestions,
-    tracked: thisWeek.length + pageQuestions.length,
-    cap: TRACKED_QUESTIONS_MAX,
+    questions: latest?.questions ?? [],
+    pageQuestions: latest?.pageQuestions ?? [],
     engines: ANSWER_ENGINES,
     measuredAt: facts.measuredAt,
   };
-}
-
-/** The shape of the window, for the line that says why four weeks: twelve
- *  questions × three engines × four passes.
- *
- *  A statement about **the window**, never about the rate's divisor. The
- *  divisor is what was actually measured, which is smaller wherever a pass
- *  was missed or an engine went unread — so a site with one pass behind it
- *  reads the same sentence and a much smaller denominator, rather than a
- *  sentence that quietly shrinks to "over the last 1 weeks". */
-export const FULL_WINDOW = Object.freeze({
-  questions: BATTERY.QUESTIONS,
-  engines: ANSWER_ENGINES.length,
-  weeks: ANSWER_RATE_WEEKS,
-});
-
-/** A count, as one of the three arms rather than a bare integer: a zero the
- *  screen counted is a measurement, and it is not the same fact as a count
- *  it could not take. */
-function counted(value: number, at: Date): Measured<number> {
-  return value === 0 ? measuredZero(0, at) : measured(value, at);
 }

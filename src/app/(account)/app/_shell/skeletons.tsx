@@ -151,22 +151,6 @@ export function CardSkeleton(p: {
   );
 }
 
-/** A table: a header row and `rows` rows of it, inside a card. */
-export function TableSkeleton(p: { testId: string; rows?: number }): React.JSX.Element {
-  const rows = p.rows ?? 6;
-  return (
-    <Waiting className="card card-border bg-base-100 min-w-0" testId={p.testId}>
-      <div className="card-body min-w-0 gap-3">
-        <Box className="h-4 w-48" />
-        <Box className="h-8 w-full" />
-        {Array.from({ length: rows }, (_, at) => (
-          <Box key={at} className="h-6 w-full" />
-        ))}
-      </div>
-    </Waiting>
-  );
-}
-
 /** The page in its frame: the browser chrome, a headline and body lines. */
 export function PageSkeleton(): React.JSX.Element {
   return (

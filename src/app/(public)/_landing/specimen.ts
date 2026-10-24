@@ -23,17 +23,7 @@
 // because what the frame shows is the Overview (REQ-099 c4: "every word
 // visible inside it is one the product itself renders on that screen").
 // What is here is figures, dates and a week's shape.
-/** One day of the specimen week: its date, its state, and the state's
- *  written word — the cell's accessible name (`Features.tsx`). */
-export interface WeekDay {
-  readonly date: string;
-  readonly state: "done" | "today" | "to-come" | "nothing-measured";
-  readonly mark: string;
-}
-
-/** Seven, by type: a week with a day dropped has no call shape. */
-export type SevenDays = readonly [WeekDay, WeekDay, WeekDay, WeekDay, WeekDay, WeekDay, WeekDay];
-import { copy, type CopyKey } from "@/lib/presentation/copy";
+import type { CopyKey } from "@/lib/presentation/copy";
 
 /* The S1 hero's own two — a six-week growth series and three tiles — went
    with `HeroShot.tsx` when the owner replaced that hero (2026-09-21,
@@ -63,31 +53,6 @@ export function specimenSigninWeek(): readonly string[] {
   return Array.from({ length: 7 }, (_, day) =>
     new Date(SIGNIN_WEEK_MONDAY + day * 86_400_000).toLocaleDateString("en-US", { weekday: "short", timeZone: "UTC" })
   );
-}
-
-/** The seven days of the specimen week.
- *
- *  **Three states, not four.** The set's week fixture marks one day
- *  *unmeasured*; the week card names each cell by its state's word
- *  (`mark`), and the product has written words for three of its four
- *  states — done, today and next (`overview.week.day.*`). The fourth has
- *  no sentence yet, and a specimen is not a place to mint one: the rule is
- *  that copy is added as a key with the marker, and a `TODO(copy)` printed
- *  inside a week cell on the landing hero would be worse than a week that
- *  shows the three states the product can name. Issue #353 draws the
- *  Overview and owns the fourth word; this follows it when it lands. */
-export function specimenWeek(): SevenDays {
-  const done = copy("overview.week.day.done");
-  const day = (date: string, state: "done" | "today" | "to-come", mark: string) => ({ date, state, mark }) as const;
-  return [
-    day("26", "done", done),
-    day("27", "done", done),
-    day("28", "done", done),
-    day("29", "done", done),
-    day("30", "done", done),
-    day("01", "today", copy("overview.week.day.today")),
-    day("02", "to-come", copy("overview.week.day.to-come")),
-  ];
 }
 
 /* ── The hero component's own figures (#935) ──────────────────────────────
@@ -189,11 +154,15 @@ export const SPECIMEN_HERO_CITED = ["harborplumbing.example", "austinpipeworks.e
 /** The competitor the example business's buyers pick instead. */
 export const SPECIMEN_HERO_RIVAL = "austinpipeworks.example";
 
+/** The rivals the story card counts after the first, and the town its buyers live in. */
+export const SPECIMEN_HERO_MORE_RIVALS = 2;
+export const SPECIMEN_HERO_PLACE = "Austin";
+
 /** *Your page*: how long until the waiting page goes live. */
 export const SPECIMEN_HERO_DUE = "6h 12m";
 
 /** The four feature cards' drawings. */
 export const SPECIMEN_FEATURES = Object.freeze({
-  /** Searches out of twelve that the top rival, and the business, rank for. */
-  google: { rival: 10, you: 1, total: 12 },
+  /** Where a national chain's page sits for the Google card's search. */
+  google: { rivalPlace: 2 },
 });

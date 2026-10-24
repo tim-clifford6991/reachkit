@@ -15,6 +15,7 @@ import { NOT_BUILT } from "../_address/measured";
 import { combine, mapMeasured, measured, measuredZero, type Measured } from "@/lib/measure/measured";
 import { rankedFreePages } from "@/lib/opportunities/free-page";
 import type { CopyKey } from "@/lib/presentation/copy";
+import type { GeneratedText } from "@/lib/presentation/generated";
 import type { StoredReport } from "@/lib/scan/report";
 
 /** Exactly three, closed. "Three problems" is the union, not a length
@@ -133,6 +134,13 @@ export interface MissingPage {
   volume: number | null;
   /** The competitor first in the search today, where one is. */
   holder: string | null;
+  /** The stored question phrased from this search, where the report holds one. */
+  question: GeneratedText | null;
+}
+
+/** The stored question phrased from `search`, where the report holds one. */
+export function storedQuestionOf(report: StoredReport, search: string | null): GeneratedText | null {
+  return report.aiAnswers?.rows.find((row) => row.question.search === search)?.question.wording ?? null;
 }
 
 /** Every page the report found missing, read from what it stored at 0¢: the
@@ -144,6 +152,7 @@ export function missingPagesOf(report: StoredReport): readonly MissingPage[] | n
     search: page.targetQuery ?? "",
     volume: page.volume === null || page.volume.kind === "unmeasured" ? null : page.volume.value,
     holder: page.evidence.family === "write" ? page.evidence.rival.domain : null,
+    question: storedQuestionOf(report, page.targetQuery),
   }));
 }
 

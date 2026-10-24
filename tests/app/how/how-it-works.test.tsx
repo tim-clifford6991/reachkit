@@ -5,7 +5,8 @@
 // project, `renderToStaticMarkup`, the real registry.
 import { describe, expect, it, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
-import { createElement } from "react";
+import { createElement, type ReactNode } from "react";
+import { parse } from "node-html-parser";
 import { applyEnvFixture } from "../../mail/env-fixture";
 
 applyEnvFixture();
@@ -28,6 +29,7 @@ const { CHECK_LINES, ENGINES_NAMED, ENGINES_NAMED_COUNT, HOW_FACTS, MODEL_DECIDE
   "@/app/(public)/_how/facts"
 );
 const { EXAMPLES } = await import("@/app/(public)/_how/specimen");
+const { weekCard, whenIcons } = await import("./drawn-icons");
 
 const NOTHING: LiveExamples = { report: null, page: null, founder: null };
 const STORED: LiveExamples = {
@@ -144,6 +146,32 @@ describe("the Plumber · Software switch, without JavaScript", () => {
     expect(shown).not.toContain(EXAMPLES.software.answer);
     for (const day of EXAMPLES.software.plan) if (day.title !== "") expect(shown).not.toContain(day.title);
     expect(count(html, 'aria-pressed="true"')).toBe(count(html, `>${copy("how.switch.plumber")}</button>`));
+  });
+});
+
+describe("the week of pages", () => {
+  it("each page day in the week strip draws its sketch", () => {
+    const days = parse(html).querySelectorAll("#pages ol > li");
+    const bands = days.map((li) => li.querySelectorAll("[aria-hidden]").filter((el) => el.querySelector("svg.lucide-file-text")));
+    expect(bands.map((b) => b.length)).toEqual(EXAMPLES.plumber.plan.map((day) => (day.kind === "skip" ? 0 : 1)));
+    expect(bands.map((b) => b.some((el) => el.classList.contains("text-primary")))).toEqual(
+      EXAMPLES.plumber.plan.map((day) => day.kind !== "skip" && day.state === "waiting")
+    );
+  });
+
+  it("the week legend: circle-check, clock, calendar, refresh-cw; planned badges carry calendar", () => {
+    const week = weekCard(parse(html), "pages", copy("how.week.planned"));
+    expect(week.legend).toEqual(["circle-check", "clock", "calendar", "refresh-cw"]);
+    const planned = EXAMPLES.plumber.plan.filter((day) => day.kind !== "skip" && day.state === "planned");
+    expect(week.planned).toEqual(planned.map(() => ["calendar"]));
+  });
+
+  it("each page day reads date, sketch, New or Update, title", () => {
+    expect(weekCard(parse(html), "pages", copy("how.week.planned")).days.map((day) => day.slice(1))).toEqual(
+      EXAMPLES.plumber.plan.flatMap((day) =>
+        day.kind === "skip" ? [] : [["sketch", copy(day.kind === "new" ? "how.week.new" : "how.week.update"), text(day.title).trim()]]
+      )
+    );
   });
 });
 
@@ -306,6 +334,7 @@ describe("each section carries the board's added lines, in its own section", () 
         copy("how.found.title", { week: 1 }),
         copy("how.mail.why", { why: plumber.mail.why[0] }),
         copy("how.mail.why", { why: plumber.mail.why[1] }),
+        copy("how.mail.linked", { n: plumber.mail.linked, total: plumber.mail.live }),
         copy("how.goal.title"),
         copy("how.goal.badge"),
         copy("how.goal.linked"),
@@ -337,6 +366,16 @@ describe("each section carries the board's added lines, in its own section", () 
   });
 });
 
+describe("#found: each step of what to expect draws its own icon", () => {
+  it("what to expect: calendar, search, eye, trending-up in order", () => {
+    expect(whenIcons(section("found")).steps).toEqual(["calendar", "search", "eye", "trending-up"]);
+  });
+
+  it("the timeline's notes: info, map-pin", () => {
+    expect(whenIcons(section("found")).notes).toEqual(["info", "map-pin"]);
+  });
+});
+
 describe("the AI sentence states the battery's real numbers (R15)", () => {
   it("is the sentence built from the constants, and its answers are engines × unbranded questions × weeks", () => {
     const unbranded = HOW_FACTS.prompts - TRACKED_PROMPTS.SPLIT.branded;
@@ -352,5 +391,39 @@ describe("the AI sentence states the battery's real numbers (R15)", () => {
 
   it("says no month and no single asking anywhere on the page", () => {
     expect(text(html)).not.toMatch(/every month|once a month|each question once/i);
+  });
+});
+
+type Tree = { props?: { id?: string; draw?: unknown; children?: unknown } };
+/** The elements under a node that pass a test, without rendering it. */
+function elements(node: unknown, pass: (n: Tree) => boolean): Tree[] {
+  if (Array.isArray(node)) return node.flatMap((child) => elements(child, pass));
+  if (node === null || typeof node !== "object") return [];
+  const el = node as Tree;
+  return [...(pass(el) ? [el] : []), ...elements(el.props?.children, pass)];
+}
+
+describe("#start draws the free report's glance as the board does", () => {
+  it("each example's glance has its score ring, its icon tiles and its AI bar", () => {
+    // The switch's software drawing is not in the first render, so each example is drawn from #start's own switch.
+    const [start] = elements(HowItWorksPage(), (n) => n.props?.id === "start");
+    const [switched] = elements(start?.props?.children, (n) => typeof n.props?.draw === "function");
+    const draw = switched?.props?.draw as (e: (typeof EXAMPLES)["plumber"]) => ReactNode;
+    expect(section("start")).toContain(renderToStaticMarkup(draw(EXAMPLES.plumber)));
+    for (const e of [EXAMPLES.plumber, EXAMPLES.software]) {
+      const glance = parse(renderToStaticMarkup(draw(e)))
+        .querySelectorAll("figure")
+        .find((f) => f.getAttribute("aria-label") === copy("how.start.glance"));
+      expect(glance, e.business).toBeDefined();
+      expect(glance?.querySelector(".radial-progress")?.getAttribute("style"), e.business).toContain(`--value:${e.report.score}`);
+      expect(glance?.querySelector(".rounded-field svg.lucide-sparkles"), e.business).not.toBeNull();
+      expect(glance?.querySelector(".rounded-field svg.lucide-file-text"), e.business).not.toBeNull();
+      const bar = glance?.querySelector("progress.progress-primary");
+      expect([bar?.getAttribute("value"), bar?.getAttribute("max"), bar?.getAttribute("aria-hidden")], e.business).toEqual([
+        String(e.report.mentioned),
+        String(e.report.asked),
+        "true",
+      ]);
+    }
   });
 });

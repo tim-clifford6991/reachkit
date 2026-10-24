@@ -278,6 +278,21 @@ export function memoryStore(over: Partial<MemoryStore> = {}): MemoryStore {
     async clusterPages(_siteId, clusterKey) {
       return store.cluster.get(clusterKey) ?? [];
     },
+    async writingVoice() {
+      return null;
+    },
+    async liveVersionAt() {
+      return null;
+    },
+    async versionsAt() {
+      return [];
+    },
+    async livePages() {
+      return [];
+    },
+    async lastMetaOfType() {
+      return null;
+    },
     ...over,
   };
   return store;

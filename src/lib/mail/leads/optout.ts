@@ -1,35 +1,8 @@
-// BUILD §4.2 — the opt-out token: one capability, no expiry, idempotent.
-//
-// The link every lead-directed mail carries (REQ-010 criterion 11, "any of
-// these emails"). It is signed over an **email address** and it can do
-// exactly one thing: suppress that address's follow-up. It is a different
-// token, over a different subject, from the kind-scoped
-// `/unsubscribe/{token}` the three notification switches use — ADR-042
-// fixes two formats permanently, and the two signing keys are separated by
-// their HKDF labels so neither token can ever be presented as the other.
-//
-// **No expiry is encoded**, so none can be checked: a link in a mail
-// someone finds a year later must still work, or the reader is holding a
-// mail they cannot switch off.
-//
-// **Applying is the arrival.** `applyOptOutToken` writes, and the page
-// behind the link calls it on arrival rather than offering a button to
-// press. The kind-scoped unsubscribe deliberately splits reading from
-// writing so a mail client's link prefetch cannot switch a customer's mail
-// off; here the trade runs the other way. A prefetch that suppresses
-// follow-up costs the reader nothing they cannot undo — submitting the
-// capture control again still delivers the page they ask for, because
-// `first-page` is unstoppable — while a button costs a reader who cannot
-// press one their only way out. Over-stopping follow-up is the safe
-// direction, and REQ-010 c11 says using the link stops the mail, not that
-// pressing a second control does.
-//
-// **Signing key.** `BUILD.md` §15's binding list carries no opt-out secret
-// and `src/lib/config/env.ts` is the owner's file, so the key is derived
-// from an existing server-only secret through HKDF with a fixed, unique
-// label — domain-separated, so it is neither the salt itself nor
-// exchangeable with the unsubscribe token's key. Owner-owed: a dedicated
-// binding would be better, and swapping to one is one line here.
+// BUILD §4.2 — the opt-out token: one capability, no expiry, idempotent. Signed over an email address, it only suppresses that address's follow-up.
+// It is ADR-042's second format, apart from the kind-scoped unsubscribe; HKDF labels separate the keys so neither token passes as the other.
+// No expiry, so a mail found a year later can still be switched off.
+// Applied on arrival, not by a button: a prefetch that over-stops follow-up costs nothing (`first-page` is unstoppable), a button can cost the only way out.
+// The key is derived by HKDF from an existing server-only secret with a unique label; a dedicated binding would be one line here.
 import { createHmac, hkdfSync, timingSafeEqual } from "node:crypto";
 import { env } from "@/lib/config/env";
 import { normaliseAddress, suppressAddress } from "./suppress";
@@ -50,17 +23,13 @@ function macOf(payload: string): Buffer {
   return createHmac("sha256", signingKey()).update(payload).digest();
 }
 
-/** Signed on the normalised address, so the token for `Anna@Example.com`
- *  and the token for `anna@example.com` verify to one person. */
+/** Signed on the normalised address, so a mixed-case address is the same person. */
 export function optOutTokenFor(email: string): string {
   const payload = normaliseAddress(email);
   return `${base64url(payload)}${SEPARATOR}${base64url(macOf(payload))}`;
 }
 
-/** Pure. Verifies the signature and returns the address it names. Writes
- *  nothing and touches no store — the suites and the route both read
- *  through it, and it is what makes the token's format assertable without
- *  a database. */
+/** Pure: verifies the signature and returns the address, so the format is assertable without a database. */
 export function readOptOutToken(token: string): { email: string } | { error: "invalid" } {
   const parts = token.split(SEPARATOR);
   if (parts.length !== 2) return { error: "invalid" };
@@ -81,13 +50,7 @@ export function readOptOutToken(token: string): { email: string } | { error: "in
   return { email: payload };
 }
 
-/** The only writer. Idempotent: applying the same link twice succeeds both
- *  times, because the suppression insert is idempotent on its primary key.
- *
- *  `'unavailable'` is a third arm BP-029 does not print, and it is the same
- *  arm `applyUnsubscribeToken` already ships (§12): telling a reader their
- *  link is invalid when it is our store that is down is a false statement
- *  about the one thing they came here to do. */
+/** The only writer, idempotent on the suppression's primary key. `'unavailable'` is not "invalid link": our store being down is not the reader's fault. */
 export async function applyOptOutToken(
   token: string
 ): Promise<{ email: string } | { error: "invalid" } | { error: "unavailable" }> {

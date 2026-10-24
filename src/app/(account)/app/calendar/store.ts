@@ -45,7 +45,7 @@ import {
   type Choice,
 } from "@/lib/opportunities";
 import { writtenLine } from "../_shell/written";
-import { whyLineOf } from "./card-lines";
+import { whySentenceOf } from "./card-lines";
 import { pageTargetOf } from "../_shell/page-target";
 import { dayKeyOf, daysOfMonth, planHorizonEnd, type DayKey, type MonthKey } from "./dates";
 import {
@@ -56,6 +56,7 @@ import {
   pendingChanges,
 } from "@/lib/market/changes";
 import { readStop } from "../_shell/stop";
+import { plannedByDay } from "@/lib/opportunities/days";
 import { readPublishingFacts, type ScheduledPage } from "./drafts-read";
 import { weekStartFor } from "@/lib/scan/weekly/week";
 import type { PageStanding } from "./day-number";
@@ -68,6 +69,8 @@ export interface CalendarSite {
   siteId: string;
   /** REQ-073 c1's stated zone. Every date on this screen is site-local. */
   timeZone: string;
+  /** When the account signed up, which Plan counts its weeks of service from. */
+  createdAt?: Date;
 }
 
 // ── The "Why this page" rows, from the evidence stored at creation ───────
@@ -95,6 +98,11 @@ function bestRival(choice: Choice, at: Date): BestRival | null {
 function isUpdate(choice: Choice): boolean {
   const family = choice.evidence.family;
   return family === "improve" || family === "fix";
+}
+
+/** The live page an update rewrites, by the address its row stored — never by title. */
+function replacesOf(choice: Choice): { replaces?: string } {
+  return choice.evidence.family === "improve" ? { replaces: choice.evidence.pageUrl } : {};
 }
 
 /** §4.6's `you`. An Improve target carries the customer's measured
@@ -209,7 +217,8 @@ function pageOn(a: {
     // Issue 930: this week's place, read and never re-measured.
     standing: a.standing,
     update: isUpdate(a.choice),
-    whyLine: whyLineOf(a.choice.planReason),
+    ...replacesOf(a.choice),
+    whyLine: whySentenceOf(a.choice.planReason),
   };
 }
 
@@ -244,7 +253,8 @@ function plannedOn(day: DayKey, choice: Choice, now: Date): DraftOnDay {
     // against, which is `day-number.ts`'s `volume` arm.
     standing: null,
     update: isUpdate(choice),
-    whyLine: whyLineOf(choice.planReason),
+    ...replacesOf(choice),
+    whyLine: whySentenceOf(choice.planReason),
   };
 }
 
@@ -421,7 +431,6 @@ export async function readCalendarFacts(a: {
 
   // Each committed row on the date it was committed for; a date no commit
   // covers stays empty and says why (issue 1559).
-  const committed = new Map(week.days.map((day) => [day.date, day.opportunity.id]));
   const dates = fillableDates({ month: a.month, today });
 
   const drafts: DraftOnDay[] = [];
@@ -452,10 +461,7 @@ export async function readCalendarFacts(a: {
   //     already live is worse than a month that says something of ours
   //     failed, which is what every date then resolves to
   //     (`drafts-read.ts`'s own note, and ADR-061 point 2).
-  for (const day of publishing.readable ? dates : []) {
-    if (publishing.pagesByDay.has(day)) continue;
-    const opportunityId = committed.get(day);
-    if (opportunityId === undefined) continue;
+  for (const [day, opportunityId] of plannedByDay(week.days, publishing.pagesByDay, publishing.readable ? dates : [])) {
     const choice = await explainChoice(opportunityId);
     if (choice === null) continue;
     drafts.push(plannedOn(day, choice, a.now));

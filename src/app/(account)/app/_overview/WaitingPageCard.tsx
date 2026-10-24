@@ -1,8 +1,7 @@
 // SPEC §4 (owner E4, 2026-10-19; board Main) — today's page, first on
 // `/app` while one is in review: when it goes live, its title, that nothing
-// is needed, *Read or edit* and *Stop this page* with what Stop does. It
-// carries the screen's `h1`, the head line about this page, so it is said
-// once; the one solid button opens the page and Stop is the warning ghost.
+// is needed, *Read or edit* and *Stop this page* with what Stop does. The one
+// solid button opens the page and Stop is the warning ghost.
 import type React from "react";
 import Link from "next/link";
 import { BookOpen } from "lucide-react";
@@ -10,7 +9,6 @@ import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { formatDateTime, formatTime } from "../_shell/format";
 import { writtenLine } from "../_shell/written";
 import { dayKeyOf } from "../calendar/dates";
-import type { HeadNote } from "./ScoreHead";
 import { StopThisPage } from "./StopThisPage";
 import type { WaitingPage } from "./waiting";
 
@@ -33,10 +31,6 @@ function When(p: { goesLiveAt: Date | null; timeZone: string; now: Date }): Reac
 
 export function WaitingPageCard(p: {
   page: WaitingPage;
-  /** The screen's head line, already written. */
-  head: string;
-  /** The quiet lines under the page, already written. */
-  notes: readonly HeadNote[];
   /** Whether a publish is scheduled at all — the shell's own answer. */
   scheduled: boolean;
   timeZone: string;
@@ -50,8 +44,7 @@ export function WaitingPageCard(p: {
   return (
     <section className="card card-border min-w-0 bg-base-100" data-testid={TEST_ID}>
       <div className="card-body min-w-0 gap-4 p-4 sm:p-5 md:flex-row md:items-start md:justify-between">
-        <div className="flex min-w-0 flex-col gap-1" data-testid="overview-head">
-          <h1>{p.head}</h1>
+        <div className="flex min-w-0 flex-col gap-1">
           {held ? null : (
             <p className="text-xs font-semibold uppercase tracking-wide text-base-content/70" data-testid="overview-waiting-when">
               <When goesLiveAt={page.goesLiveAt} timeZone={p.timeZone} now={p.now} />
@@ -61,11 +54,6 @@ export function WaitingPageCard(p: {
             {page.title}
           </p>
           <p className="text-sm">{copy("overview.today.ready")}</p>
-          {p.notes.map((note) => (
-            <p key={note.testId} className="min-w-0 text-sm text-base-content/70" data-testid={note.testId}>
-              {note.line}
-            </p>
-          ))}
         </div>
 
         <div className="flex min-w-0 flex-col gap-2 md:max-w-xs">

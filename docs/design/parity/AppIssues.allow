@@ -8,4 +8,4 @@ harborplumbing.com/gallery opens in a new tab	sample data
 harborplumbing.com/reviews opens in a new tab	sample data
 harborplumbing.com/specials-2024 opens in a new tab	sample data
 harborplumbing.com/blog/old-post opens in a new tab	sample data
-Theme: light	#1744: the app shell's theme control, which that issue changes for every /app board
+Theme: light	DESIGN.md: the /app shell's theme control is the Light / Dark / System dropdown named Theme (#681)

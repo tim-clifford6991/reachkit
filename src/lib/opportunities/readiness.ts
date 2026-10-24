@@ -1,61 +1,35 @@
 // SPEC §6 — "A day is filled only by an opportunity that passes readiness.
 // Never pad the calendar."
 //
-// `opportunityReady()` is the one predicate, and its answer is stored on the
-// row (`ready`, `unready_reason`), so supply and next-work read the column and
-// never re-derive it. Owner, 2026-09-15:
+// `eligible()` is the one check, and its answer is stored on the row
+// (`ready`, `unready_reason`), so supply and next-work read the column and
+// never re-derive it. It answers one of six reasons (owner ruling C6,
+// 2026-10-19), in this order:
 //
-//   - a grounding fact is at least one passage from the site's own measured
-//     page text; with none, every Write/Earn/Improve row is
-//     `no_grounding_fact` and supply is 0;
-//   - a `keyword_page` is ready only when volume ≥ `KEYWORD_PAGE_MIN_VOLUME`,
-//     the band is `winnable`, the intent is commercial or transactional, and
-//     no owned URL ranks for it (else it is Improve's) — otherwise
-//     `keyword_gate`. At business fit 3 the volume, the band's tighter half
-//     and the intent are waived: a fit-3 search is a write target below the
-//     floor, a problem or how-to included (owner, 2026-10-03, issue 1134);
-//   - a row whose stored business fit is below 2 is `low_fit`, whatever its
-//     family (§6, 2026-09-29). A row no pass has judged is read as before;
-//   - a `format_page` is ready only when its query contains comparison / vs /
-//     alternative / integration / template — otherwise `format_not_allowed`;
-//   - a `listed_page` (Earn) is ready only when the site's own pages hold a
-//     passage of the kind its asset needs (`earn-grounding.ts`, issue 478) —
-//     otherwise `no_grounding_fact`.
+//   - `resting` — the topic's draft was stopped or skipped (D26), its cluster
+//     was judged not working, or its URL retired (`suppression.ts`);
+//   - `destination_cannot_address` — an Improve the destination cannot
+//     deliver (issue 781), or a topic a page of the site already covers
+//     (#928);
+//   - `low_fit` — a stored business fit below the gate (§6, 2026-09-29), or
+//     a fresh top ten of another kind of business (`derive/top-ten-kind.ts`);
+//   - `no_grounding_fact` — the site's own pages ground no fact, or none of
+//     the kind an Earn asset needs (`earn-grounding.ts`);
+//   - `no_intent` — a comparison nobody was seen asking (issue 1506), a
+//     keyword page below its gate (§6, 2026-09-15; waived at fit 3 and for a
+//     question buyers asked), a format page with no format word, or a topic
+//     with no measured volume and no tracked prompt near it (D60);
+//   - `outsized` — SPEC §6's right-sizing law (issue 884).
 //
-// And SPEC §6's Monday verdicts (issue 477): a Write in a cluster judged not
-// working is `cluster_suppressed`, anything targeting a retired URL is
-// `url_retired` (`suppression.ts`).
-//
-// And SPEC §7's daily decision (issue 781): an Improve row is an update of an
-// existing page, so it is ready only where the site's destination can make
-// that update — `destination_cannot_address` otherwise. A hosted destination
-// can update only a page ReachKit itself published there (a new version at
-// the same address); WordPress updates any page of the site, as before.
-//
-// And SPEC §7's rest (D26, issue 1179): a topic whose draft was stopped for
-// the last time, or skipped, is `resting` until its `restUntil` — whatever
-// else is true of it (`isResting`, read by both assessments).
-//
-// And SPEC §6's topics from what buyers were seen asking (issue 1519): a
-// "People also ask" question or related search on a stored SERP is observed
-// demand, so D60 never holds it as `no_intent`.
-//
-// And SPEC §6's topics with demand (issue 1506): a "vs" that sets products
-// against each other — the business against a rival, or two rivals — is
-// `no_intent` unless its search has a measured volume above zero, a
-// measured AI answer names one of its rivals — a tracked prompt that names
-// one, or the answer the row was found in — or buyers were seen asking it
-// beside the market's searches (D62's store). And a row whose stored top
-// ten, at most 30 days old, holds six or more results of another kind of
-// business than this one is `low_fit` (`derive/top-ten-kind.ts`), as a fit
-// below the gate is.
+// It is assessed in two places only: the week's commit (`planWeek`) and the
+// evening check of the committed rows (`pageForDay`).
 //
 // And SPEC §7's offering page (owner ruling B6, 2026-10-19): the same fresh
 // top ten decides whether a new Write page is written as one, stored on the
 // row's evidence (`shapedEvidence`) so every reader types it alike.
 //
-// The Fix family keeps its own predicate (`fixPageReadiness`): its readiness
-// is a question about the destination, not about the market.
+// The Fix family keeps its own check (`fixPageReadiness`): its readiness is a
+// question about the destination, not about the market.
 import { SHAPES } from "@/lib/locale/language";
 import { KEYWORD_PAGE_MIN_VOLUME, TOPIC_FIT } from "@/lib/config/constants";
 import { classifyIntent, type PlacedBusiness } from "@/lib/market/questions/select";
@@ -68,7 +42,7 @@ import { isResting, OUTSIZED, qualifiesForADay, type Winnability } from "./types
 import { demandBand } from "./winnability/band";
 import { difficultyCeiling } from "./winnability/bars";
 import { NO_EARN_GROUNDING, type EarnGrounding } from "./earn-grounding";
-import { suppressionOf, verdictReason, type Suppression } from "./suppression";
+import { heldByVerdict, suppressionOf, type Suppression } from "./suppression";
 import { hasGoal, intentFor, type IntentPrompt } from "./intent";
 import type { KnownMatch } from "@/lib/known-content/types";
 import { queryKey } from "./cluster";
@@ -78,6 +52,8 @@ import { freshRead, freshTopTen, offeringTopTen, otherKindTopTen, OTHER_KIND_TOP
 import type { Evidence, Opportunity, UnreadyReason } from "./types";
 
 export interface ReadinessContext {
+  /** The clock a topic's rest is read against. */
+  now: Date;
   /** The site's own measured pages yield at least one passage. */
   grounded: boolean;
   /** Which Earn assets the site's own pages hold a passage for. */
@@ -178,85 +154,42 @@ export function comparisonWithoutAsking(
   });
 }
 
-/**
- * Why this row may not fill a day, or `null` where it may. Pure, and the
- * same for every family: a family's own gate is one more branch after the
- * shared ones.
- */
-export function opportunityReady(o: Opportunity, ctx: ReadinessContext): UnreadyReason | null {
-  const verdict = verdictReason(o, ctx.suppression);
-  if (verdict !== null) return verdict;
+/** Why this row may not fill a day, or `null` where it may. Pure. */
+export function eligible(o: Opportunity, ctx: ReadinessContext): UnreadyReason | null {
+  if (isResting(o, ctx.now) || heldByVerdict(o, ctx.suppression)) return "resting";
   if (o.family === "improve" && !ctx.canUpdate(o.targetRef)) return "destination_cannot_address";
-  // SPEC §7 (2026-09-20, #928). It speaks here — after the destination's own
-  // answer and before everything about the market — because it is a fact
-  // about this site's own pages rather than about the search: a topic the
-  // site already covers is not a day's work whatever its volume, its band or
-  // its grounding says. An Improve row is exempt by construction: it *is*
-  // the update of an existing page, and the page it covers is its own.
-  if (o.family !== "improve" && ctx.coveredBy(o) !== null) return "already_covered";
-  // SPEC §6 (2026-09-29, issue 1134): the fit the pass judged and stored. A
-  // target the business is not the answer to is never a day of supply.
+  // An Improve row is the update of the page that covers its topic.
+  if (o.family !== "improve" && ctx.coveredBy(o) !== null) return "destination_cannot_address";
   const fit = o.businessFit ?? null;
   if (o.family !== "fix" && fit !== null && fit < TOPIC_FIT.gate) return "low_fit";
-  // Issue 1506: the same reason where the stored top ten says it.
   const topTen = o.family === "fix" ? null : (ctx.topTen?.(o) ?? null);
   if (topTen !== null && otherKindTopTen(topTen, ctx.business ?? null, o) !== null) return "low_fit";
   if (!ctx.grounded) return "no_grounding_fact";
   if (o.evidence.family === "earn" && !ctx.earnGrounding[o.evidence.asset]) return "no_grounding_fact";
-
   const query = o.targetQuery ?? "";
-  if (o.family !== "fix" && comparisonWithoutAsking(o, ctx)) return "no_intent";
-  if (o.type === "keyword_page") {
-    // Issue 1561: a placed business's service asked for in its place is
-    // commercial, read by the same classifier.
-    const intent = ctx.profile === null ? null : classifyIntent(query, ctx.profile, placedBusiness(ctx.business));
-    // The band the keyword gate asks for is `winnable` — tighter than the
-    // shared rule above, which admits `reach` too. It stays here because it
-    // is this type's own gate (§6, 2026-09-15) and not the right-sizing law.
-    const atTopFit = fit !== null && fit >= TOPIC_FIT.writeAt;
-    // Issue 1549: a question buyers were seen asking beside the site's
-    // searches is observed demand (issue 1519) and an answer page by its
-    // nature, so the commercial-intent and volume half waives for it as for
-    // a top-fit search.
-    const asked = o.evidence.family === "write" && o.evidence.askedBeside !== undefined;
-    const passes =
-      (atTopFit ||
-        asked ||
-        (volumeOf(o) >= KEYWORD_PAGE_MIN_VOLUME &&
-          o.fitBand === "winnable" &&
-          intent !== null &&
-          COMMERCIAL_INTENTS.has(intent))) &&
-      !ctx.ownRanks(query);
-    if (!passes) return "keyword_gate";
-  }
-  if (o.type === "format_page" && !FORMAT_WORDS.test(query)) return "format_not_allowed";
-
-  // SPEC §6's right-sizing law, for every type that takes a publishing day
-  // (issue 884, owner's ruling 2026-09-18). It was enforced at read time by
-  // the ranking (issue 881) while only `keyword_page` carried it here, so a
-  // row could be stored `ready: true` and still be incapable of filling a
-  // day — the database, the screens and the ranking each holding a
-  // different answer. The decision is made once, here, and stored; the
-  // ranking and the supply count read the column.
-  //
-  // It speaks **after** each type's own gate, so a `keyword_page` still
-  // reports `keyword_gate` — that gate is the tighter one and names the
-  // type's own rule — and the new reason is reached only where nothing more
-  // specific applies.
-  //
-  // The Fix family carries no band and takes no search: `fixPageReadiness`
-  // is its own predicate, and `fit_band` is null for exactly that family (a
-  // check constraint holds it), so this asks nothing of it.
-  if (o.family !== "fix" && !qualifiesForADay(o.fitBand)) return "outsized";
-  // SPEC §6 (D60, issue 1288): a topic with no measured volume and no
-  // matching tracked prompt is not written. One buyers were seen asking
-  // beside the site's searches is observed demand (issue 1519).
-  const prompts = ctx.prompts ?? [];
+  // A question buyers were seen asking beside the site's searches is observed demand (issue 1519).
   const observed = o.evidence.family === "write" && o.evidence.askedBeside !== undefined;
+  if (o.family !== "fix" && comparisonWithoutAsking(o, ctx)) return "no_intent";
+  if (o.type === "keyword_page" && !keywordGate(o, query, observed, ctx)) return "no_intent";
+  if (o.type === "format_page" && !FORMAT_WORDS.test(query)) return "no_intent";
+  // Before the prompt check, so a row too big for the site is always said to be.
+  if (o.family !== "fix" && !qualifiesForADay(o.fitBand)) return "outsized";
+  const prompts = ctx.prompts ?? [];
   if (o.family !== "fix" && !observed && query.trim() !== "" && prompts.length > 0 && !hasGoal(intentFor({ query, volume: o.volume }, prompts))) {
     return "no_intent";
   }
   return null;
+}
+
+/** A keyword page's own gate: commercial volume in the winnable band, or a
+ *  fit-3 or asked search (issues 1134, 1549); never one an owned URL ranks
+ *  for, which is Improve's. */
+function keywordGate(o: Opportunity, query: string, observed: boolean, ctx: ReadinessContext): boolean {
+  const fit = o.businessFit ?? null;
+  const atTopFit = fit !== null && fit >= TOPIC_FIT.writeAt;
+  const intent = ctx.profile === null ? null : classifyIntent(query, ctx.profile, placedBusiness(ctx.business));
+  const commercial = volumeOf(o) >= KEYWORD_PAGE_MIN_VOLUME && o.fitBand === "winnable" && intent !== null && COMMERCIAL_INTENTS.has(intent);
+  return (atTopFit || observed || commercial) && !ctx.ownRanks(query);
 }
 
 /** The evidence a new page carries once its fresh stored results page
@@ -415,12 +348,10 @@ export async function assessReadiness(
     store.currentReport(siteId),
     store.profileForSite(siteId),
     store.hasGroundingFact(siteId),
-    store.trackedPrompts === undefined ? [] : store.trackedPrompts(siteId),
+    store.trackedPrompts(siteId),
     store.marketFor(siteId).then((read) => read.market).catch(() => null),
-    store.topTenRows === undefined
-      ? new Map<string, TopTenRead>()
-      : store.topTenRows([...new Set(rows.map((row) => row.scan_id))]),
-    store.askedBeside === undefined ? [] : store.askedBeside(siteId, OTHER_KIND_TOP_TEN.maxAgeDays).catch(() => []),
+    store.topTenRows([...new Set(rows.map((row) => row.scan_id))]),
+    store.askedBeside(siteId, OTHER_KIND_TOP_TEN.maxAgeDays).catch(() => []),
   ]);
   // Read only where there is an Earn row to answer: it re-reads the site's
   // measured pages and its profile, which nothing else here needs.
@@ -429,12 +360,12 @@ export async function assessReadiness(
     : NO_EARN_GROUNDING;
   // Read only where there is an update to deliver.
   const ownPages = rows.some((row) => row.family === "improve") ? await store.hostedOwnPages(siteId) : null;
-  // SPEC §7 (2026-09-20, #928): one narrowed read per row whose topic could
-  // be covered, before the loop — so the predicate the decision reads is a
-  // resolved answer and `opportunityReady` stays pure and synchronous.
+  // One narrowed read per row whose topic could be covered, before the loop,
+  // so `eligible` stays pure and synchronous.
   const covered = await coveredTopics(siteId, rows.map(readOpportunity));
   const readOf = (o: Opportunity) => (o.targetQuery === null ? null : (topTens.get(queryKey(o.targetQuery)) ?? null));
   const ctx: ReadinessContext = {
+    now,
     grounded,
     earnGrounding,
     suppression: suppressionOf(verdicts, a.at),
@@ -467,13 +398,13 @@ export async function assessReadiness(
     // A row committed to a date is reshaped only by the week's full pass,
     // so the evening check never makes more of a chosen week offering pages.
     const evidence = a.only === undefined || row.planned_for == null ? shapedEvidence(read, fresh(read), ctx.business ?? null) : read.evidence;
-    const reshaped = shapeOf(evidence) !== shapeOf(read.evidence) && store.setEvidence !== undefined;
-    if (reshaped) await store.setEvidence!(read.id, evidence);
+    const reshaped = shapeOf(evidence) !== shapeOf(read.evidence);
+    if (reshaped) await store.setEvidence(read.id, evidence);
     const stored = reshaped ? { ...read, evidence } : read;
     const band = ownRanked === null ? null : rebandFor(stored, ownRanked);
     if (band !== null && band !== stored.fitBand) await store.setFitBand(stored.id, band);
     const opportunity = band === null ? stored : { ...stored, fitBand: band };
-    const reason = isResting(stored, now) ? "resting" : opportunityReady(opportunity, ctx);
+    const reason = eligible(opportunity, ctx);
     if (reason === null) ready += 1;
     if (stored.ready !== (reason === null) || stored.unreadyReason !== reason) {
       await store.setReadiness(opportunity.id, reason);

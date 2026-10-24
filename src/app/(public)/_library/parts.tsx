@@ -3,7 +3,7 @@
 // classes in place, no wrapper of a daisyUI part.
 import type React from "react";
 import Link from "next/link";
-import { ArrowRight, RefreshCw } from "lucide-react";
+import { ArrowRight, Calendar, FileText, Mail, RefreshCw, Search, Sparkles, User, type LucideIcon } from "lucide-react";
 import { Surface } from "@/ui/layout";
 import { SITE_PROFILE } from "@/lib/config/constants";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
@@ -12,7 +12,7 @@ import { ScanForm } from "../_landing/ScanForm";
 import { scanFormWords } from "../_landing/scan-form-words";
 import { HOW_FACTS } from "../_how/facts";
 import { EXAMPLES } from "../_how/specimen";
-import { ReportGlance } from "../_how/visuals";
+import { ICON_TILE, ReportGlance } from "../_how/visuals";
 import { longDate, type Source } from ".";
 
 /** Attribute values, never sentences (the copy sweep). */
@@ -59,20 +59,6 @@ export function LibraryPage(p: {
   );
 }
 
-/** One titled card of paragraphs. */
-export function TextCard(p: { heading: string; paragraphs: readonly string[] }): React.JSX.Element {
-  return (
-    <section className={CARD}>
-      <div className={BODY}>
-        <h2>{p.heading}</h2>
-        {p.paragraphs.map((text) => (
-          <p key={text}>{text}</p>
-        ))}
-      </div>
-    </section>
-  );
-}
-
 type Row = readonly [CopyKey, CopyKey];
 
 /** The two-column section above the loop: what this page gives, beside what ReachKit gives your site. */
@@ -85,8 +71,17 @@ interface Weekly {
   readonly rows: readonly Row[];
 }
 
+/** The icons a board draws on its close: one per loop step, and one per compare side. */
+interface Icons {
+  readonly steps: readonly [LucideIcon, LucideIcon, LucideIcon, LucideIcon];
+  readonly them: LucideIcon;
+  readonly us: LucideIcon;
+}
+
 interface Close {
   readonly weekly?: Weekly;
+  /** Drawn where the board draws them. */
+  readonly icons?: Icons;
   readonly heading?: CopyKey;
   readonly lead: CopyKey;
   /** About ends on the field and a link to How it works, without the report card. */
@@ -204,6 +199,7 @@ const CLOSE = {
     },
     lead: "how.start.body",
     glance: true,
+    icons: { steps: [Search, Calendar, FileText, Mail], them: User, us: Sparkles },
   },
 } as const satisfies Record<string, Close>;
 
@@ -266,6 +262,24 @@ function LoopSample(p: { step: (typeof LOOP)[number] }): React.JSX.Element {
   );
 }
 
+/** A loop step's number, and its icon tile where the close has one. */
+function StepMark(p: { step: number; Icon?: LucideIcon }): React.JSX.Element {
+  const badge = (
+    <span className="badge badge-soft badge-primary badge-sm" aria-hidden>
+      {p.step}
+    </span>
+  );
+  if (p.Icon === undefined) return badge;
+  return (
+    <span className="flex items-center gap-2">
+      {badge}
+      <span aria-hidden className={`${ICON_TILE} text-primary`}>
+        <p.Icon size={16} strokeWidth={1.75} />
+      </span>
+    </span>
+  );
+}
+
 /** The call under a page's opening: down to the scan field at the foot. */
 export function ScanJump(): React.JSX.Element {
   return (
@@ -282,7 +296,9 @@ export function ScanJump(): React.JSX.Element {
 /** The weekly loop ReachKit runs, and your part in it. Compare and Answer
  *  pages draw it beside their own "what ReachKit does" section; `detail`
  *  opens the whole loop in one paragraph. */
-export function LearnLoop(p: { detail?: { summary: string; body: string } } = {}): React.JSX.Element {
+export function LearnLoop(
+  p: { detail?: { summary: string; body: string }; steps?: Icons["steps"] } = {}
+): React.JSX.Element {
   return (
     <div className="flex min-w-0 flex-col gap-4" data-testid="learn-loop">
       <figure className="flex min-w-0 flex-col gap-3">
@@ -290,9 +306,7 @@ export function LearnLoop(p: { detail?: { summary: string; body: string } } = {}
           {LOOP.map((step) => (
             <li key={step} className={`${CARD} min-w-0`}>
               <div className="card-body gap-2 p-4">
-                <span className="badge badge-soft badge-primary badge-sm" aria-hidden>
-                  {step}
-                </span>
+                <StepMark step={step} Icon={p.steps?.[step - 1]} />
                 <h3 className="text-base font-semibold">{copy(`library.close.loop.${step}.title` as CopyKey)}</h3>
                 <div className="flex min-w-0 flex-col items-start gap-2">
                   <span className="badge badge-ghost badge-sm">{copy(`library.close.loop.${step}.when` as CopyKey, FIGURES)}</span>
@@ -342,8 +356,19 @@ export interface WeeklyWords {
   readonly detail?: { summary: string; body: string };
 }
 
+/** A compare row's side, opening with its icon where the close has one. */
+function Side(p: { text: string; className: string; Icon?: LucideIcon }): React.JSX.Element {
+  if (p.Icon === undefined) return <span className={p.className}>{p.text}</span>;
+  return (
+    <span className={`${p.className} flex min-w-0 items-start gap-2`}>
+      <p.Icon size={16} strokeWidth={1.75} aria-hidden className="mt-1 flex-none" />
+      <span className="min-w-0">{p.text}</span>
+    </span>
+  );
+}
+
 /** What this page gives beside what ReachKit gives, the weekly loop, and your part. */
-export function WeeklyLoop(p: { w: WeeklyWords }): React.JSX.Element {
+export function WeeklyLoop(p: { w: WeeklyWords; icons?: Icons }): React.JSX.Element {
   const w = p.w;
   return (
     <section className="flex min-w-0 flex-col gap-4">
@@ -362,15 +387,15 @@ export function WeeklyLoop(p: { w: WeeklyWords }): React.JSX.Element {
           <ul className="divide-base-300 flex min-w-0 flex-col divide-y">
             {w.rows.map(([them, us]) => (
               <li key={them} className="grid min-w-0 grid-cols-1 gap-1 py-2 sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] sm:gap-3">
-                <span className="text-base-content/70">{them}</span>
+                <Side text={them} className="text-base-content/70" Icon={p.icons?.them} />
                 <ArrowRight size={16} strokeWidth={1.75} aria-hidden className="text-primary hidden sm:block" />
-                <span className="font-semibold">{us}</span>
+                <Side text={us} className="font-semibold" Icon={p.icons?.us} />
               </li>
             ))}
           </ul>
         </div>
       </div>
-      <LearnLoop detail={w.detail} />
+      <LearnLoop detail={w.detail} steps={p.icons?.steps} />
     </section>
   );
 }
@@ -401,7 +426,7 @@ export function LearnClose(p: { variant: LearnCloseVariant; domain?: string }): 
     p.domain === undefined ? copy("landing.start.cta") : copy("library.close.scan.domain", { domain: p.domain });
   return (
     <div className="mt-6 flex min-w-0 flex-col gap-6" data-testid="learn-close" data-variant={p.variant}>
-      {close.weekly === undefined ? null : <WeeklyLoop w={wordsOf(close.weekly)} />}
+      {close.weekly === undefined ? null : <WeeklyLoop w={wordsOf(close.weekly)} icons={close.icons} />}
       <section id={START_ID} className={`${CARD} bg-base-200 scroll-mt-20`}>
         <div className={BODY}>
           <h2>{copy(close.heading ?? "landing.close.heading")}</h2>

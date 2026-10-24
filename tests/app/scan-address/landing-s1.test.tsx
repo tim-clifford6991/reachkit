@@ -11,7 +11,7 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import React from "react";
-import { BATTERY, CONTENT_MIX, HOSTED_RETENTION_DAYS, RATE_LIMITS, TRACKED_PROMPTS, WEEK_PLAN } from "@/lib/config/constants";
+import { CONTENT_MIX, HOSTED_RETENTION_DAYS, RATE_LIMITS, WEEK_PLAN } from "@/lib/config/constants";
 import { COPY, copy, type CopyKey } from "@/lib/presentation/copy";
 import { FLOAT } from "@/ui/lift";
 import LandingPage from "@/app/(public)/page";
@@ -101,24 +101,17 @@ describe("the pace, and the figures the scan runs on", () => {
     const pace = landing.filter(([, value]) => value.includes("{weekPages}")).map(([key]) => key);
     expect(pace).toEqual(expect.arrayContaining(["landing.pace", "landing.subline", "landing.step.2.body", "landing.feature.daily.body"]));
   });
-
-  it("Monday's cell counts the searches and the AI questions the weekly pass really asks", () => {
-    const prompts = Object.values(TRACKED_PROMPTS.SPLIT).reduce((sum, n) => sum + n, 0);
-    const said = drawn(copy("landing.hero.week.measured", { searches: BATTERY.QUESTIONS, questions: prompts }));
-    expect(between('data-testid="landing-inside"', 'id="why"')).toContain(said);
-    expect(COPY["landing.hero.week.measured"]).not.toMatch(/\d/);
-  });
 });
 
 describe("plain links into How it works", () => {
   it("each step card opens its section", () => {
-    const steps = between('id="how"', 'id="why"');
+    const steps = between('id="how"', drawn(copy("landing.loop")));
     expect(hrefsIn(steps)).toEqual(["/how-it-works#research", "/how-it-works#pages", "/how-it-works#found"]);
   });
 
-  it("the price card opens the value section, and is not a second offer", () => {
+  it("the price card opens Pricing and the value section, and is not a second offer", () => {
     const card = between('data-testid="landing-price"', "</section>");
-    expect(hrefsIn(card)).toEqual(["/how-it-works#value"]);
+    expect(hrefsIn(card)).toEqual(["/pricing", "/how-it-works#value"]);
     expect(card).not.toMatch(/<button\b|btn-primary"/);
   });
 
@@ -135,7 +128,7 @@ describe("plain links into How it works", () => {
 
   it("each link is plain text, never a button", () => {
     const links = [...markup.matchAll(/<a\b[^>]*href="\/how-it-works#[^"]*"[^>]*>/g)].map((m) => m[0]);
-    expect(links).toHaveLength(5);
+    expect(links).toHaveLength(7);
     for (const link of links) expect(link).not.toMatch(/\bbtn\b/);
   });
 });

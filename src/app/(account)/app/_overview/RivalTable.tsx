@@ -43,11 +43,13 @@ import {
 import { copy } from "@/lib/presentation/copy";
 import { CLOSED, FILTER_PILL, formatCount, renderValue } from "./present";
 import { ALL_RIVALS, type RivalSearchRow, type RivalsModel } from "./rivals-model";
+import type { Planned } from "./search-model";
 import {
   RIVAL_CELL_CLASS,
   RIVAL_COLUMN_COPY_KEY,
   RIVAL_STATUS_BADGE,
   RIVAL_STATUS_COPY_KEY,
+  RIVAL_STATUS_ICON,
   type RivalColumn,
 } from "./rivals-words";
 
@@ -83,7 +85,12 @@ function WinnerCell(p: { row: RivalSearchRow }): React.JSX.Element {
   );
 }
 
-export function RivalTable(p: { model: RivalsModel }): React.JSX.Element {
+export function RivalTable(p: {
+  model: RivalsModel;
+  /** Plan's page or update for a row's search this week, by search; the status word elsewhere. */
+  planned: Readonly<Record<string, Planned>>;
+}): React.JSX.Element {
+  const { planned } = p;
   const [rival, setRival] = useQueryState(RIVAL, parseAsString.withDefault(ALL_RIVALS));
   const [showAll, setShowAll] = useState(false);
 
@@ -143,16 +150,25 @@ export function RivalTable(p: { model: RivalsModel }): React.JSX.Element {
       column.accessor((row) => row.status, {
         id: "doing",
         header: () => copy(RIVAL_COLUMN_COPY_KEY.doing),
-        cell: (ctx) => (
-          <span
-            className={`${RIVAL_STATUS_BADGE[ctx.getValue()]} h-auto whitespace-normal sm:whitespace-nowrap`}
-          >
-            {copy(RIVAL_STATUS_COPY_KEY[ctx.getValue()])}
-          </span>
-        ),
+        cell: (ctx) => {
+          const week = planned[ctx.row.original.search];
+          const Icon = RIVAL_STATUS_ICON[ctx.getValue()];
+          return (
+            <span
+              className={`${week === undefined ? RIVAL_STATUS_BADGE[ctx.getValue()] : "badge badge-primary badge-soft"} h-auto whitespace-normal sm:whitespace-nowrap`}
+            >
+              {week === undefined ? <Icon className="size-3.5" aria-hidden /> : null}
+              {week === undefined
+                ? copy(RIVAL_STATUS_COPY_KEY[ctx.getValue()])
+                : week.today
+                  ? copy("overview.search.doing.today")
+                  : copy(week.update ? "overview.search.doing.update" : "overview.search.doing.page", { day: week.day })}
+            </span>
+          );
+        },
       }),
     ],
-    []
+    [planned]
   );
 
   // The library takes a mutable array; the model hands out a readonly one,
@@ -224,10 +240,13 @@ export function RivalTable(p: { model: RivalsModel }): React.JSX.Element {
             state in which no chip is chosen, which is what the component
             already means by unchecked. Its accessible name is still the
             registry's word; the × over it is daisyUI's own. */}
+        <span id="rivals-filter-label" className="text-xs font-semibold text-base-content/70">
+          {copy("overview.rivals.filter.label")}
+        </span>
         <div
           className="filter"
           role="radiogroup"
-          aria-label={copy("overview.rivals.filter.label")}
+          aria-labelledby="rivals-filter-label"
           data-testid="rivals-filters"
         >
           <input

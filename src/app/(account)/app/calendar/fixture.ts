@@ -24,7 +24,7 @@
 // carries every state the grid can draw, including both weekend columns, so
 // one screenshot exercises the whole of §4.6.
 import { measured, measuredZero, unmeasured } from "@/lib/measure/measured";
-import { whyLineOf } from "./card-lines";
+import { whySentenceOf } from "./card-lines";
 import type { CalendarFacts, DraftOnDay, WhyThisPage } from "./month";
 import type { DayKey } from "./dates";
 import type { State } from "./stages";
@@ -239,7 +239,7 @@ const DRAFTS: readonly DraftOnDay[] = Object.entries(SCHEDULE).map(([day, state]
     // the mark and its absence are both on the owner's own preview.
     update: index % 3 === 2,
     // A planned page states why the week holds it, so the preview shows the line.
-    whyLine: state === "planned" ? whyLineOf({ points: 5, parts: [{ part: "fit", n: 3 }, { part: "demand", n: 2 }], rule: "best" }) : null,
+    whyLine: state === "planned" ? whySentenceOf({ points: 5, parts: [{ part: "fit", n: 3 }, { part: "demand", n: 2 }], rule: "best" }) : null,
   };
 });
 
@@ -288,3 +288,7 @@ export const FIXTURE_CALENDAR_FACTS: CalendarFacts = Object.freeze({
   // empty dates keep the exhausted line.
   supplyMeasured: true,
 });
+
+/** The fixture account's week: its third, chosen on its Monday, going live at
+ *  the hour its scheduled pages carry (13:00 UTC is 09:00 in New York). */
+export const FIXTURE_PLAN_HEAD = Object.freeze({ week: 3, chosen: "2026-09-14", publishTime: "09:00" });

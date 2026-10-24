@@ -1,6 +1,5 @@
 help.harborplumbing.com/how-to-shut-off-water-to-a-house	sample data
 H Harbor Plumbing	sample data
-(512) 555-0142	sample data
 Visit harborplumbing.com	sample data
 Plumbing	sample data
 Written with AI from 6 facts on harborplumbing.com, checked against 14 checks before publishing.	E10: the check count comes from code (docs/spec/decisions/2026-10-19-1581.md)
@@ -16,7 +15,6 @@ Harbor Plumbing, “Emergency plumbing”	sample data
 Source: harborplumbing.com/emergency · retrieved 18 Oct 2026.	sample data
 H	sample data
 Harbor Plumbing	sample data
-Serves Austin, TX	sample data
 What to do when a pipe bursts in a freeze	sample data
 Water heater leaking from the bottom: 5 causes	sample data
 How much does an emergency plumber cost in Austin?	sample data
@@ -30,20 +28,19 @@ Most homes have one main valve, where the supply line enters: often by the water
 A lever valve is closed when the handle sits across the pipe; a wheel valve closes clockwise.	sample data
 The valve inside the curb box beside the meter may belong to the water utility. If yours will not close, call the utility’s emergency number on your bill.	sample data
 After the water is off, turn off the water heater’s power or gas so it does not heat an empty tank.	sample data
-Water still running?	owner 2026-10-20 Q7: the business block (E8, R1) waits on #1743
-Harbor Plumbing answers emergency calls 24 hours a day in Austin. Sample	owner 2026-10-20 Q7: the business block (E8, R1) waits on #1743
-Call (512) 555-0142	owner 2026-10-20 Q7: the business block (E8, R1) waits on #1743
+Water still running?	owner 2026-10-22 R1: the compact block asks in the stored market's category and place (hosted.compact.heading), not the board's topic line
+Harbor Plumbing answers emergency calls 24 hours a day in Austin. Sample	owner 2026-10-22 R1: a qualifier such as "24 hours a day" appears only where the main site states it, and none is stored
 Where is the main water shut-off valve?	sample data
 In most houses it sits where the water line comes into the house.	sample data
-Where to look, in this order	owner 2026-10-20 Q7: inline step and list visuals (E9) wait on #1743
-1 In the garage, or a closet on the street side In many homes in central Texas the line comes in through a slab	owner 2026-10-20 Q7: inline step and list visuals (E9) wait on #1743
-3 On an outside wall, near a hose bib	owner 2026-10-20 Q7: inline step and list visuals (E9) wait on #1743
-4 In the curb box in front of the house If you can’t find it indoors	owner 2026-10-20 Q7: inline step and list visuals (E9) wait on #1743
+Where to look, in this order	sample data: the board's own steps and list; a step number is drawn by CSS, not text (tests/hosted/serving/visuals.test.tsx)
+1 In the garage, or a closet on the street side In many homes in central Texas the line comes in through a slab	sample data: the board's own steps and list; a step number is drawn by CSS, not text (tests/hosted/serving/visuals.test.tsx)
+3 On an outside wall, near a hose bib	sample data: the board's own steps and list; a step number is drawn by CSS, not text (tests/hosted/serving/visuals.test.tsx)
+4 In the curb box in front of the house If you can’t find it indoors	sample data: the board's own steps and list; a step number is drawn by CSS, not text (tests/hosted/serving/visuals.test.tsx)
 How do you turn off a lever valve and a wheel valve?	sample data
 Turn a lever (ball) valve a quarter turn until the handle sits across the pipe. Turn a wheel (gate) valve clockwise until it stops; it can take several turns, and it should not be forced.	sample data
-1 Close the main valve.	owner 2026-10-20 Q7: inline step and list visuals (E9) wait on #1743
-2 Open the lowest faucet in the house, and an outside tap, to drain the pipes.	owner 2026-10-20 Q7: inline step and list visuals (E9) wait on #1743
-3 Turn off the water heater: switch off its breaker, or set the gas control to “pilot”.	owner 2026-10-20 Q7: inline step and list visuals (E9) wait on #1743
+1 Close the main valve.	sample data: the board's own steps and list; a step number is drawn by CSS, not text (tests/hosted/serving/visuals.test.tsx)
+2 Open the lowest faucet in the house, and an outside tap, to drain the pipes.	sample data: the board's own steps and list; a step number is drawn by CSS, not text (tests/hosted/serving/visuals.test.tsx)
+3 Turn off the water heater: switch off its breaker, or set the gas control to “pilot”.	sample data: the board's own steps and list; a step number is drawn by CSS, not text (tests/hosted/serving/visuals.test.tsx)
 What if the valve is stuck or you can’t find it?	sample data
 Don’t force it with a wrench. An old gate valve can break off in the pipe. The meter-side valve in the curb box may need a meter key, and some utilities ask homeowners to call them instead. The emergency number is on your water bill (	sample data
 ). Sample source	sample data: the board's own Sample tag
@@ -53,16 +50,14 @@ What should you do once the water is off?	sample data
 Mop up standing water and move valuables. Take photos for your insurer before you clean up. Leave the valve closed until the leak is repaired.	sample data
 When should you call an emergency plumber?	sample data
 Call one straight away in any of these cases.	sample data
-Water is coming through a ceiling or a wall	owner 2026-10-20 Q7: inline step and list visuals (E9) wait on #1743
-The main valve will not close	owner 2026-10-20 Q7: inline step and list visuals (E9) wait on #1743
-You smell gas near the water heater: leave the house first, then call the gas utility.	owner 2026-10-20 Q7: inline step and list visuals (E9) wait on #1743
+Water is coming through a ceiling or a wall	sample data: the board's own checklist, a tick drawn by CSS (tests/hosted/serving/visuals.test.tsx)
+The main valve will not close	sample data: the board's own checklist, a tick drawn by CSS (tests/hosted/serving/visuals.test.tsx)
+You smell gas near the water heater: leave the house first, then call the gas utility.	owner R30, 2026-10-23: the board's warning-tinted row is dropped; no stored field marks a warning (ux-designer on #1789, https://github.com/tim-clifford6991/reachkit/issues/1789#issuecomment-6373611928)
 Sample	sample data: the board's own Sample tag
 We answer emergency calls	sample data
 . A call-out is	sample data
 , and we give a written price before any work starts. If you can’t close your valve, stay on the line and we’ll talk you through it while the van is on its way. Sample	sample data
-If water is still running after you close the valve,	owner 2026-10-20 Q7: the business block (E8, R1) waits on #1743
+If water is still running after you close the valve,	owner 2026-10-22 R1: the full block is the action, the quiet links and Visit, with no sentence written for one topic
 Sources Sample	sample data: the board's own Sample tag
 , read on 18 Oct 2026	sample data: a sample date (body.sources.read)
-Licensed plumbers in Austin, TX: repairs, water heaters and 24-hour emergency calls. Sample	sample data
-Book a visit	owner 2026-10-20 Q7: the business block (E8, R1) waits on #1743
 More guides from Harbor Plumbing Sample titles	sample data: the board's own Sample tag

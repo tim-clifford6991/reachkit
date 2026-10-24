@@ -14,9 +14,10 @@
 // opens the collapse around it; the robots lines a founder pastes live
 // here, under the method that says where to paste them.
 import type React from "react";
+import { ListChecks } from "lucide-react";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { METHOD_ANCHOR, PasteBlock } from "./cards";
-import { PROBLEM_ORDER, type ProblemName } from "./model";
+import type { ProblemName } from "./model";
 
 const METHOD_COPY: Readonly<Record<ProblemName, { title: CopyKey; body: CopyKey }>> = Object.freeze({
   blocked_readers: { title: "method.blocked-readers.title", body: "method.blocked-readers.body" },
@@ -35,41 +36,50 @@ export function MethodSections(p: {
   const snippetPages = p.readers?.snippetPages ?? [];
   const trainingOptOut = p.readers?.trainingOptOut ?? [];
   return (
-    <div id="method" className="flex scroll-mt-20 flex-col gap-2">
-      <p className="eyebrow">{copy("method.title")}</p>
-      {p.for.map((problem) => {
-        const lines = p.lines?.[problem];
-        return (
-          <details key={problem} className="collapse collapse-arrow bg-base-100 shadow-(--shadow-card)">
-            <summary className="collapse-title font-medium">{copy(METHOD_COPY[problem].title)}</summary>
-            <div id={METHOD_ANCHOR[problem]} className="collapse-content flex scroll-mt-20 flex-col gap-3 text-sm">
-              <p>{copy(METHOD_COPY[problem].body)}</p>
-              {lines === undefined || lines.length === 0 ? null : <PasteBlock lines={lines} />}
-              {problem !== "blocked_readers" || snippetPages.length === 0 ? null : (
-                <div className="flex flex-col gap-1">
-                  <p>{copy("method.blocked-readers.snippet-pages")}</p>
-                  <ul className="list-inside list-disc">
-                    {snippetPages.map((url) => (
-                      <li key={url} className="min-w-0 break-all">
-                        {url}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-              {problem !== "blocked_readers" || trainingOptOut.length === 0 ? null : (
-                <p className="text-base-content/70">
-                  {copy("method.blocked-readers.training-choice", { crawlers: trainingOptOut.join(", ") })}
-                </p>
-              )}
-            </div>
-          </details>
-        );
-      })}
-    </div>
+    // Closed under its own name like What holds you back (board PubReport); a link into a step opens both.
+    <details id="method" className="collapse collapse-arrow scroll-mt-20 rounded-none" data-testid="report-method">
+      <summary className="collapse-title min-h-0 px-px py-2 pe-10 after:end-2 after:top-6">
+        <div className="flex items-center gap-3">
+          <span aria-hidden className="rounded-field grid size-9 shrink-0 place-items-center bg-base-200">
+            <ListChecks className="size-5" strokeWidth={1.75} />
+          </span>
+          <div className="min-w-0">
+            <h2 className="text-2xl font-bold">{copy("method.title")}</h2>
+            <p className="text-base-content/70 text-sm font-normal">{copy("method.section.sub")}</p>
+          </div>
+        </div>
+      </summary>
+      <div className="collapse-content flex min-w-0 flex-col gap-2 px-px">
+        {p.for.map((problem) => {
+          const lines = p.lines?.[problem];
+          return (
+            <details key={problem} className="collapse collapse-arrow bg-base-100 shadow-(--shadow-card)">
+              <summary className="collapse-title font-medium">{copy(METHOD_COPY[problem].title)}</summary>
+              <div id={METHOD_ANCHOR[problem]} className="collapse-content flex scroll-mt-20 flex-col gap-3 text-sm">
+                <p>{copy(METHOD_COPY[problem].body)}</p>
+                {lines === undefined || lines.length === 0 ? null : <PasteBlock lines={lines} />}
+                {problem !== "blocked_readers" || snippetPages.length === 0 ? null : (
+                  <div className="flex flex-col gap-1">
+                    <p>{copy("method.blocked-readers.snippet-pages")}</p>
+                    <ul className="list-inside list-disc">
+                      {snippetPages.map((url) => (
+                        <li key={url} className="min-w-0 break-all">
+                          {url}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                {problem !== "blocked_readers" || trainingOptOut.length === 0 ? null : (
+                  <p className="text-base-content/70">
+                    {copy("method.blocked-readers.training-choice", { crawlers: trainingOptOut.join(", ") })}
+                  </p>
+                )}
+              </div>
+            </details>
+          );
+        })}
+      </div>
+    </details>
   );
 }
-
-/** The order the sections render in is the cards' own, re-exported here so
- *  a caller cannot pass a different one by accident. */
-export const METHOD_ORDER = PROBLEM_ORDER;

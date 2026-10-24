@@ -20,8 +20,8 @@
 //
 // One exported constant, not a generator: a fixture that varied per call
 // would make the layout conformance sweep non-deterministic. Its state is the
-// ordinary one — a running plan, an autopilot site with five rivals and two
-// destinations — because that is the state the screen is designed against.
+// ordinary one — a running plan, an autopilot site with two rivals and a
+// live hosted address — because that is the state the boards draw.
 // The states that branch (a cancelled plan; a destination in `error`; no
 // competitors yet) are exercised by `tests/app/settings/`, which drives
 // `assembleSettings` and the panels directly.
@@ -32,9 +32,9 @@
 import { ACCOUNT_NOTE_KEYS } from "@/lib/account/identity/notes";
 import { destinationView } from "@/lib/publish/destinations/view";
 import type { MonthGot } from "@/lib/account/billing";
-import { HARD_RULES } from "@/lib/generate/rules/types";
 import type { BillingFacts, SettingsFacts } from "./model";
 import { FIXTURE_DOMAIN } from "../_shell/fixture";
+import { FIXTURE_RIVALS_FACTS } from "../_overview/rivals-fixture";
 
 /** The billing facts, as `billingSummary` answers them (#34). Three
  *  members and no billing value: REQ-097 criterion 5 keeps the next
@@ -77,23 +77,16 @@ export const FIXTURE_SETTINGS_FACTS: SettingsFacts = Object.freeze({
   // of its own.
   pendingChange: null,
   editing: null,
-  competitors: Object.freeze([
-    "appcues.com",
-    "userpilot.com",
-    "pendo.io",
-    "whatfix.com",
-    "chameleon.io",
-  ]),
+  // The Competitors tab fixture's tracked pair, so both screens read one set.
+  competitors: FIXTURE_RIVALS_FACTS.rivals,
+  measuredRivals: FIXTURE_RIVALS_FACTS.rivals,
   // D28 (#1185): what ReachKit concluded, each with its reason.
   concluded: Object.freeze({
     category: "user onboarding software",
     categoryReason: "The site sells in-app product tours and checklists that help new users get started.",
     reasons: Object.freeze({
-      "appcues.com": "In-app onboarding flows sold to product teams.",
-      "userpilot.com": "Product tours and onboarding checklists for SaaS teams.",
-      "pendo.io": "Product analytics with in-app guides for onboarding.",
-      "whatfix.com": "Digital adoption platform with guided onboarding.",
-      "chameleon.io": "In-app tours and tooltips for product-led teams.",
+      [FIXTURE_RIVALS_FACTS.rivals[0] as string]: "In-app onboarding flows sold to product teams.",
+      [FIXTURE_RIVALS_FACTS.rivals[1] as string]: "Product tours and onboarding checklists for SaaS teams.",
     }),
     categoryOverridden: false,
     rivalsOverridden: false,
@@ -109,31 +102,26 @@ export const FIXTURE_SETTINGS_FACTS: SettingsFacts = Object.freeze({
   publishingEnabled: true,
   voiceText: "Plain and specific. No hype, no superlatives, first person plural.",
   doNotClaim: Object.freeze(["fastest on the market", "GDPR certified"]),
-  // **One destination, and one only.** §9 publishes to the destination the
-  // customer chose and to no other, and the `destinations` migration makes
-  // that a database invariant (one live row per site). A fixture showing two
-  // would be a specimen of a state the database refuses.
+  // **One destination, and one only** — the database allows one live row
+  // per site. A live hosted address on the shell fixture's own blog host,
+  // the state the Publishing board draws; the broken arms are exercised by
+  // `tests/app/settings/destinations.test.tsx` over facts of its own.
   //
-  // Its state is `expired` / `credentials_expired` — a credential that has
-  // run out, which is the ordinary broken case and the one §9 names: the
-  // queue holds, one line says so, and Reconnect is offered. The screen is
-  // designed against a destination that needs the customer, because a
-  // destination that does not need them draws nothing.
-  //
-  // Built through the registry's own `destinationView`, never hand-written:
-  // the action and the copy keys the panel renders are the engine's mapping,
+  // Built through the registry's own `destinationView`, never hand-written,
   // so a fixture cannot show a control the engine would not offer.
   destinationsReadable: true,
   // A hostname, never a sentence — the value setup's fixture carries.
   cnameTarget: "content.dev.reachkit.app",
   destinations: Object.freeze([
     destinationView({
-      id: "dest-wordpress",
-      kind: "wordpress",
-      health: "expired",
-      reason: "credentials_expired",
+      id: "dest-hosted",
+      kind: "hosted",
+      health: "ok",
+      reason: null,
       lastCheckedAt: new Date("2026-09-06T07:00:00.000Z"),
-      heldPages: 3,
+      heldPages: 0,
+      hostname: "blog.example.com",
+      hostnameState: "live",
     }),
   ]),
   name: "Dana Whitfield",
@@ -146,24 +134,19 @@ export const FIXTURE_SETTINGS_FACTS: SettingsFacts = Object.freeze({
   // module rather than repeated, so the fixture and the read cannot state
   // a different pair.
   noteKeys: ACCOUNT_NOTE_KEYS,
-  // Two on, one off — so the screen is drawn in a state where the switches
-  // are the customer's own choices rather than a uniform default.
-  notifyPrefs: Object.freeze({ weekly: false }),
+  // Both switches on, the Mail board's own state.
+  notifyPrefs: Object.freeze({}),
   billing: FIXTURE_BILLING,
   publishedPages: 17,
 });
 
-/** The period ending on `FIXTURE_BILLING.paidThrough`, with a long title and
- *  a page whose checks were not recorded, so both arms of a row are drawn. */
+/** The period ending on `FIXTURE_BILLING.paidThrough`: two pages live, two
+ *  Monday mails, and the newest pass's searches and AI questions. */
 export const FIXTURE_MONTH_GOT: MonthGot = Object.freeze({
   from: new Date("2026-09-01T00:00:00.000Z"),
   to: new Date("2026-10-01T00:00:00.000Z"),
   live: 2,
-  refreshed: 1,
-  scans: 4,
-  pages: [
-    { title: "Best onboarding tools for a small support team that answers every ticket itself", refresh: false, checks: { passed: HARD_RULES.length - 2, total: HARD_RULES.length } },
-    { title: "How teams pick an onboarding tool", refresh: false, checks: null },
-    { title: "Onboarding checklist", refresh: true, checks: { passed: HARD_RULES.length, total: HARD_RULES.length } },
-  ],
+  liveAt: [new Date("2026-09-08T13:00:00.000Z"), new Date("2026-09-10T13:00:00.000Z")],
+  reports: [new Date("2026-09-07T12:00:00.000Z"), new Date("2026-09-14T12:00:00.000Z")],
+  asked: { searches: 12, questions: 23 },
 });

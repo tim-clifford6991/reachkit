@@ -42,6 +42,9 @@ export interface PresenceCard {
   /** Up to `ABSENT_FROM_MAX` of the biggest searches the customer does not
    *  hold a top-ten place on, biggest volume first. */
   absentFrom: readonly { keyword: string; volume: number; topHolder: string | null }[];
+  /** The biggest measured search and who holds its first place. Absent where
+   *  nothing was measured, and on every card stored before it. */
+  mostSearched?: { keyword: string; volume: number; topHolder: string | null };
   framing: "shown" | "suppressed_no_rivals";
 }
 
@@ -96,6 +99,21 @@ function topHolderOf(serp: MarketSerp): string | null {
   return domain;
 }
 
+function ownPresenceOf(topTens: readonly { pair: MeasuredPair; domains: Set<string> }[], ownDomain: string) {
+  return topTens.map(({ pair, domains }) => ({ pair, present: [...domains].some((domain) => isOwnDomain(domain, ownDomain)) }));
+}
+
+/** Per measured search, in battery order, whether the site holds a top-ten
+ *  place: the count the card's `you.top10Count` is made of. */
+export function ownPresenceBySearch(a: {
+  serps: readonly Measured<MarketSerp>[];
+  selected: readonly SelectedSearchView[];
+  ownDomain: string;
+}): { keyword: string; present: boolean }[] {
+  const topTens = measuredPairs(a.serps, a.selected).map((pair) => ({ pair, domains: topTenDomains(pair.serp) }));
+  return ownPresenceOf(topTens, a.ownDomain).map(({ pair, present }) => ({ keyword: pair.search.keyword, present }));
+}
+
 /**
  * REQ-008's card, assembled from SERPs the scan already bought.
  *
@@ -117,11 +135,7 @@ export function buildPresenceCard(a: {
 }): PresenceCard {
   const pairs = measuredPairs(a.serps, a.selected);
   const topTens = pairs.map((pair) => ({ pair, domains: topTenDomains(pair.serp) }));
-
-  const ownPresence = topTens.map(({ pair, domains }) => ({
-    pair,
-    present: [...domains].some((domain) => isOwnDomain(domain, a.ownDomain)),
-  }));
+  const ownPresence = ownPresenceOf(topTens, a.ownDomain);
 
   const countFor = (rivalDomain: string): number => {
     const domain = registrableDomain(rivalDomain);
@@ -139,6 +153,12 @@ export function buildPresenceCard(a: {
     .sort((x, y) => y.volume - x.volume || (x.keyword < y.keyword ? -1 : x.keyword > y.keyword ? 1 : 0))
     .slice(0, ABSENT_FROM_MAX);
 
+  let biggest: MeasuredPair | null = null;
+  for (const pair of pairs) {
+    const { volume, keyword } = pair.search;
+    if (biggest === null || volume > biggest.search.volume || (volume === biggest.search.volume && keyword < biggest.search.keyword)) biggest = pair;
+  }
+
   const card: PresenceCard = {
     measuredSearches: pairs.length,
     you: {
@@ -147,6 +167,9 @@ export function buildPresenceCard(a: {
     },
     rivals: a.rivals.map((rival) => ({ domain: rival.domain, top10Count: countFor(rival.domain) })),
     absentFrom,
+    ...(biggest === null
+      ? {}
+      : { mostSearched: { keyword: biggest.search.keyword, volume: biggest.search.volume, topHolder: topHolderOf(biggest.serp) } }),
     framing: a.rivals.length === 0 ? "suppressed_no_rivals" : "shown",
   };
 

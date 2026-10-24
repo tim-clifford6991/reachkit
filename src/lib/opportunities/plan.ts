@@ -22,7 +22,6 @@ import { PLAN_DEPTH, SUPPLY_SHORT_BELOW, WEEK_PLAN } from "@/lib/config/constant
 import { stoppedOnCeiling } from "@/lib/scan/market-floor";
 import { choose } from "./choose";
 import { assessFixPages } from "./fix-page";
-import { isPausedType } from "./paused";
 import { loadRanking, mixOf, writableDays } from "./rank/open";
 import { assessReadiness } from "./readiness";
 import { opportunityStore, readOpportunity, type OpportunityRow, type PlanEntry } from "./store";
@@ -94,12 +93,12 @@ export async function pageForDay(siteId: string, date: string, now: Date = new D
 }
 
 /**
- * The week's next spare: the first in committed order that is still open,
- * ready and of a type the mix writes. Nothing ranks here (issue 1559).
+ * The week's next spare: the first in committed order that is still open
+ * and ready. Nothing ranks here (issue 1559).
  */
 async function takeSpare(siteId: string): Promise<Opportunity | null> {
   const { spares } = await committedWeek(siteId);
-  return spares.find((spare) => spare.ready && !isPausedType(spare)) ?? null;
+  return spares.find((spare) => spare.ready) ?? null;
 }
 
 /** The committed week as the digest, the calendar and the daily job read
@@ -123,6 +122,13 @@ export async function committedWeek(
     ),
     spares: rows.filter((row) => row.planned_for == null).map((row) => planned(row)),
   };
+}
+
+/** The first date the committed week holds, written or not: the day the
+ *  pass chose it. `null` before the site's first commit. */
+export async function weekChosenOn(siteId: string): Promise<string | null> {
+  const dates = (await opportunityStore().plannedRows(siteId)).flatMap((row) => (row.planned_for == null ? [] : [row.planned_for]));
+  return dates.length === 0 ? null : dates.reduce((a, b) => (a < b ? a : b));
 }
 
 /** The row as the day writes it: a comparison over D52's cap the commit

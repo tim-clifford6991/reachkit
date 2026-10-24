@@ -1,0 +1,5 @@
+---
+section: §0
+---
+
+2026-10-24  **The AI bar counts what the AI card counts** (ruling E5, delegated by the owner to ux-designer and seo-master, 2026-10-24; #1622). An AI answer counts for the site where it **named or linked** it. That one predicate, `namesOrLinks` in `src/lib/measure/drivers.ts`, decides the AI bar, the AI-answers card's x of N and that card's row marks. Until now the card counted links only. `AIPresence = max(1, 100 × answers that named or linked the site ÷ answered AI Overviews read)`. It replaces §5's `0.4 × mention rate + 0.6 × citation rate`, and the 2026-10-14 line's "§5's weights are unchanged" (#1420). What a mention and a link are is #1420's rule, unchanged. On the free report the AI bar is `round(10 × x ÷ N)` of the card beside it. On a paid scan the page questions' AI-Overview cells stay in AIPresence (#1551). #1439's rules are unchanged: an unread AI is never 0, and AI answering none of at least 4 searches leaves Presence to search presence. The range is the Wilson interval of the one rate. No string changes. Stored scans are re-scored at 0¢ from their stored cells and SERPs through `scan/rescore`, with no vendor call.
