@@ -24,11 +24,13 @@
 // failed would leave a customer with no access and a live subscription
 // still charging them.
 import { stripe } from "../stripe/client";
+import { isTransient } from "../stripe/transient";
 import { billingStore } from "./store";
 
 export type EndSubscriptionNow =
   | { ok: true; endedAt: Date }
-  | { ok: false; reason: "store" | "vendor" };
+  /** `transient`: the vendor failure will pass, so a webhook caller fails for redelivery. */
+  | { ok: false; reason: "store" | "vendor"; transient?: true };
 
 export async function endSubscriptionNow(
   userId: string,
@@ -45,9 +47,9 @@ export async function endSubscriptionNow(
   if (account.stripe_subscription_id !== null && account.plan_status !== "canceled") {
     try {
       await stripe().subscriptions.cancel(account.stripe_subscription_id);
-    } catch {
+    } catch (error) {
       console.warn(JSON.stringify({ event: "billing_end_now", outcome: "vendor" }));
-      return { ok: false, reason: "vendor" };
+      return isTransient(error) ? { ok: false, reason: "vendor", transient: true } : { ok: false, reason: "vendor" };
     }
   }
 
