@@ -112,14 +112,21 @@ function VolumeCell(p: { row: SearchRow; table: Table<SearchRow> }): React.JSX.E
 function YouCell(p: { row: SearchRow }): React.JSX.Element {
   const place = renderValue(p.row.position, COLUMN_COPY_KEY.you);
   const change = p.row.change;
+  const placeText = (
+    <span className="num" title={place.line} aria-label={place.isDash ? place.line : undefined}>
+      {place.isDash ? place.text : copy("overview.search.position", { position: place.text })}
+    </span>
+  );
   return (
     <span className="flex items-center gap-1.5 whitespace-nowrap">
-      <span className="num" title={place.line} aria-label={place.isDash ? place.line : undefined}>
-        {place.isDash ? place.text : copy("overview.search.position", { position: place.text })}
-      </span>
       {p.row.position.kind === "measured" && p.row.position.value <= FIRST_PAGE_PLACES ? (
-        <Trophy className="size-3.5 text-success" aria-hidden />
-      ) : null}
+        <span className="badge badge-success badge-soft">
+          <Trophy className="size-3.5" aria-hidden />
+          {placeText}
+        </span>
+      ) : (
+        placeText
+      )}
       {change.kind === "moved" ? (
         <span className={change.better ? "badge badge-success badge-soft" : "badge badge-ghost"}>
           <span className="num">{copy(change.better ? "overview.delta.up" : "overview.delta.down")}</span>

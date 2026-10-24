@@ -174,7 +174,7 @@ const rowsOf = (): Element[] => [...table({}, FOUR).querySelectorAll('[data-test
 
 describe("what each row draws beside its words", () => {
   it("each status badge carries its icon", () => {
-    const icons = rowsOf().map((row) => row.querySelector('.badge svg[aria-hidden="true"]')?.getAttribute("class") ?? "");
+    const icons = rowsOf().map((row) => row.querySelector('.badge svg[aria-hidden="true"]:not(.lucide-trophy)')?.getAttribute("class") ?? "");
     expect(icons.map((c) => c.split(" ").find((name) => name.startsWith("lucide-")))).toEqual([
       "lucide-circle-check",
       "lucide-clock",
@@ -196,6 +196,12 @@ describe("what each row draws beside its words", () => {
 
   it("trophy only on the first page", () => {
     expect(rowsOf().map((row) => row.querySelector("svg.lucide-trophy") !== null)).toEqual([true, false, false, false]);
+    const badge = rowsOf()[0]?.querySelector("svg.lucide-trophy")?.parentElement;
+    expect(badge?.className).toBe("badge badge-success badge-soft");
+    expect(badge?.firstElementChild?.matches("svg.lucide-trophy")).toBe(true);
+    expect(badge?.children[1]?.textContent).toBe("#7");
+    const eleventh = [...(rowsOf()[1]?.querySelectorAll("span.num") ?? [])].find((n) => n.textContent === "#11");
+    expect(eleventh?.parentElement?.classList.contains("badge")).toBe(false);
   });
 });
 
