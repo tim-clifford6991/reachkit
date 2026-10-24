@@ -9,9 +9,12 @@
 // `2026-10-19-1596`), one story with one example business, below the chrome
 // the group layout draws:
 //   1. the hero — title, subline, the one field — beside the story card
-//      (`Storyboard.tsx`), with the trust strip under both;
+//      (`Storyboard.tsx`), with the trust strip under both; on a phone a
+//      five-step strip sits under the subline and the trust strip comes
+//      before the story card (board *PubLandingPhone*);
 //   2. the three steps, each linking to its How it works section, the
-//      second holding the *Inside ReachKit* preview;
+//      second holding the *Inside ReachKit* preview, then the weekly loop
+//      and the owner's one-time part;
 //   3. *Why you should care* — four features (`Features.tsx`);
 //   4. what the one plan gets you, and its price card;
 //   5. the questions owners ask;
@@ -59,6 +62,12 @@ const STEPS = [
   { n: "2", title: "landing.step.2.title", body: "landing.step.2.body", tag: "landing.step.2.tag", more: "landing.step.2.more", href: "/how-it-works#pages" },
   { n: "3", title: "landing.step.3.title", body: "landing.step.3.body", tag: "landing.step.3.tag", more: "landing.step.3.more", href: "/how-it-works#found" },
 ] as const;
+
+/** The phone's strip under the hero: the story card's five frames, short. */
+const FLOW = ["landing.flow.1", "landing.flow.2", "landing.flow.3", "landing.flow.4", "landing.flow.5"] as const;
+
+/** The owner's part, once, in setup's order. */
+const PART = ["landing.part.answer", "how.part.three", "landing.part.done"] as const;
 
 /** What the one plan holds, after the pace. */
 const INCLUDED: readonly { key: CopyKey; vars?: Record<string, string> }[] = [
@@ -134,6 +143,13 @@ export default function LandingPage(props: {
             <div className="flex min-w-0 flex-col items-center text-center lg:items-start lg:text-left">
               <h1 className="t-hero">{copy("landing.headline")}</h1>
               <p className="mt-4 max-w-xl text-lg text-base-content/70">{copy("landing.subline", { weekPages: WEEK_PAGES })}</p>
+              <ol className="steps mt-6 w-full text-xs lg:hidden" aria-label={copy("landing.story.title")}>
+                {FLOW.map((key) => (
+                  <li key={key} className="step step-primary">
+                    {copy(key)}
+                  </li>
+                ))}
+              </ol>
               <div className="mt-8 w-full max-w-xl">
                 <ScanForm searchParams={props.searchParams} words={scanFormWords()} />
               </div>
@@ -144,11 +160,12 @@ export default function LandingPage(props: {
                 <More href="/how-it-works" label={copy("landing.hero.how")} />
               </p>
             </div>
+            {/* Before the story card on a phone, under both on a wide screen. */}
+            <p className="text-center text-sm text-base-content/70 lg:order-last lg:col-span-2">
+              {copy("landing.trust", { price: PRICE(), checks: String(HOW_FACTS.checks) })}
+            </p>
             <Storyboard />
           </div>
-          <p className={`${INNER} mt-10 text-center text-sm text-base-content/70`}>
-            {copy("landing.trust", { price: PRICE(), checks: String(HOW_FACTS.checks) })}
-          </p>
         </section>
 
         {/* ══ THE THREE STEPS ══ */}
@@ -179,6 +196,29 @@ export default function LandingPage(props: {
                 </li>
               ))}
             </ol>
+            <p className="mt-6 text-center text-sm font-semibold">{copy("landing.loop")}</p>
+            <div className="card card-border bg-base-200 mt-6 min-w-0">
+              <div className="card-body gap-4">
+                <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
+                  <p className="font-semibold">
+                    {copy("landing.part.once", { minutes: String(HOW_FACTS.setupMinutes) })}
+                  </p>
+                  <ol className="steps text-xs">
+                    {PART.map((key) => (
+                      <li key={key} className="step step-primary">
+                        {copy(key)}
+                      </li>
+                    ))}
+                  </ol>
+                  <p className="text-sm font-semibold">{copy("landing.part.after")}</p>
+                </div>
+                <p className={`${BODY} text-sm`}>{copy("landing.part.body")}</p>
+              </div>
+            </div>
+            <div className="mt-6 flex flex-wrap items-center gap-x-6 gap-y-3">
+              <FieldCta label={copy("landing.start.cta")} soft />
+              <More href="/how-it-works" label={copy("landing.how.full")} />
+            </div>
           </div>
         </section>
 
