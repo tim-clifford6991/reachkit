@@ -367,6 +367,18 @@ describe("the Monday mail says which way visits from Google moved since last wee
     expect(bars.slice(-2)).toEqual([line?.before, line?.n]);
   });
 
+  it("a second week of none after visits writes no line, while the Google tab still shows 0 over three bars", async () => {
+    seed(SAAS, FIVE);
+    visits(5, 0, 0);
+    await mail(WEEK, NOW);
+    expect(line()).toEqual([]);
+    const tile = new DOMParser()
+      .parseFromString(renderToStaticMarkup(<SearchTiles pages={null} visits={await readGoogleVisitWeeks()} market={null} />), "text/html")
+      .querySelector('[data-testid="search-tile-visits"]');
+    expect(text(tile?.querySelector('[data-testid="search-tile-visits-value"]'))).toBe("0");
+    expect(tile?.querySelectorAll(`figure[aria-label="${copy("overview.search.visits.chart")}"] li`).length).toBe(3);
+  });
+
   it("a site with no visit in any kept week writes no line", async () => {
     seed(SAAS, FIVE);
     visits(0);
