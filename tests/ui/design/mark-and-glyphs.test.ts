@@ -24,6 +24,7 @@ describe("S1 — the landing's chips carry the icons the approved set draws", ()
     "app/(public)/_landing/Storyboard.tsx",
     "app/(public)/_landing/Features.tsx",
     "app/(public)/_landing/ScanForm.tsx",
+    "app/(public)/_landing/RealSite.tsx",
   ] as const;
 
   /** Every lucide name the landing imports, deduplicated. */
@@ -57,10 +58,13 @@ describe("S1 — the landing's chips carry the icons the approved set draws", ()
     //
     // The 2026-10-19 board draws the story card's five frames — globe,
     // search, file, bot, coffee — and an arrow on each plain link onward.
+    // PubLanding's Pages card ticks each day a page goes live (circle check),
+    // and its real-site cards take the file and the globe.
     expect(iconsImported()).toEqual([
       "ArrowRight",
       "Bot",
       "Check",
+      "CircleCheck",
       "Clock",
       "Coffee",
       "FileText",

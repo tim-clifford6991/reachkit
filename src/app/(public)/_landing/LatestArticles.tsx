@@ -11,6 +11,7 @@
 import type React from "react";
 import { ArrowRight } from "lucide-react";
 import { copy } from "@/lib/presentation/copy";
+import { writePageDate } from "@/lib/publish/render/byline";
 import { readOwnArticles } from "../_chrome/own-articles";
 
 const LABEL_ID = "latest-articles";
@@ -41,10 +42,13 @@ export async function LatestArticles(): Promise<React.JSX.Element | null> {
         <ul className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-3">
           {own.latest.map((article) => (
             <li key={article.url} className="card card-border bg-base-100 min-w-0">
-              <div className="card-body">
+              <div className="card-body gap-2">
                 <a href={article.url} className="link link-hover card-title break-words">
                   {article.title}
                 </a>
+                <time dateTime={article.published.toISOString().slice(0, 10)} className="text-base-content/70 text-sm">
+                  {writePageDate(article.published, null)}
+                </time>
               </div>
             </li>
           ))}

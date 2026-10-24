@@ -40,8 +40,10 @@ import "@/ui/type.css";
 import "@/ui/layout/layout.css";
 import "@/ui/layout/surface.css";
 import { fontVariables } from "@/ui/fonts";
+import { renderMailHtml } from "@/lib/mail/shell/render";
 import { DEFAULT_LOCALE, localeTag } from "@/lib/locale/locales";
 import { siteLocale } from "@/lib/locale/site";
+import { FONT_PATH, PRELOADED_FACES, STYLE_PATH } from "./hosted-page/font/faces";
 import { normaliseHost, resolveHost } from "./resolve-host";
 
 /** The language a host's pages are written in, as `<html lang>` states it:
@@ -112,6 +114,50 @@ export function HostedDocument({
     <html lang={lang} className={fontVariables}>
       <body>
         <div className="bg-base-100 text-base-content min-h-screen">{children}</div>
+      </body>
+    </html>
+  );
+}
+
+const CHARSET = "utf-8";
+const VIEWPORT = "width=device-width, initial-scale=1";
+const FONT_AS = "font";
+const FONT_TYPE = "font/woff2";
+const CROSS_ORIGIN = "anonymous";
+
+/** A whole hosted page as a route handler answers it: no script, styled by the host's own `/style.css`. */
+export async function hostedHtml({
+  lang,
+  title,
+  head,
+  body,
+}: {
+  lang: string;
+  title: string;
+  head?: React.ReactNode;
+  body: React.ReactNode;
+}): Promise<string> {
+  return renderMailHtml(
+    <html lang={lang} className={fontVariables}>
+      <head>
+        <meta charSet={CHARSET} />
+        <meta name="viewport" content={VIEWPORT} />
+        <title>{title}</title>
+        <link rel="stylesheet" href={STYLE_PATH} />
+        {PRELOADED_FACES.map((face) => (
+          <link
+            key={face}
+            rel="preload"
+            href={`${FONT_PATH}${face}`}
+            as={FONT_AS}
+            type={FONT_TYPE}
+            crossOrigin={CROSS_ORIGIN}
+          />
+        ))}
+        {head}
+      </head>
+      <body>
+        <div className="bg-base-100 text-base-content min-h-screen">{body}</div>
       </body>
     </html>
   );

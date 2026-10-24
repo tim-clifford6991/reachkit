@@ -65,15 +65,16 @@ const QUESTION_WORDING = [
   "What does product analytics usually cost per month?",
 ] as const;
 
-/** Three of the twelve returned no AI answer at all; the other nine did,
- *  and none of the nine named the customer — the shape §4.1's own example
- *  describes ("rivals' cited rows filled grey, customer's row empty"). */
+/** Three of the twelve returned no AI answer at all; the other nine did.
+ *  The first three of the nine named the customer without linking it, and
+ *  the other six neither named nor linked it. */
 function cellFor(index: number): AnswerCell {
   if (index >= 9) return { kind: "no_answer" };
   return {
     kind: "answered",
     citedDomains: index % 2 === 0 ? [RIVALS[0], RIVALS[1]] : [RIVALS[0], RIVALS[2]],
     namesCustomer: false,
+    ...(index < 3 ? { named: true as const } : {}),
   };
 }
 
@@ -250,21 +251,20 @@ export const FIXTURE_REPORT: StoredReport = {
   verdict: {
     domain: OWN_DOMAIN as CanonicalDomain,
     measuredAt: MEASURED_AT,
-    scoreAndBand: measured({ score: 30, band: "hard-to-find" }, MEASURED_AT),
+    scoreAndBand: measured({ score: 31, band: "hard-to-find" }, MEASURED_AT),
     // How sure it is (issue 1439), invented to sit around the score above.
     estimate: { low: 25, high: 35, confidence: "close" },
-    // The three the score is composed of, invented *coherently*:
-    // `∛(70 × 20 × 20)` is 30, the score above, and content is the factor
-    // the limiting line names (the tie with presence goes to the site's own
-    // pages first). Presence shows as its two halves, Google the presence
-    // card's 1 of 12, so the card draws the four parts 7/10, 2/10, 1/10
-    // and 3/10.
+    // The three the score is composed of, invented *coherently*: Presence
+    // is the mean of its halves, Google the presence card's 1 of 12 and AI
+    // the AI-answers card's 3 of 9, so 20.8; `∛(70 × 20 × 20.8)` rounds to
+    // 31, the score above, and content is the factor the limiting line
+    // names. The card draws the four parts 7/10, 2/10, 1/10 and 3/10.
     factors: {
       foundations: measured(70, MEASURED_AT),
       answerability: measured(20, MEASURED_AT),
-      presence: measured(20, MEASURED_AT),
+      presence: measured(125 / 6, MEASURED_AT),
     },
-    halves: { google: measured(100 / 12, MEASURED_AT), ai: measured(95 / 3, MEASURED_AT) },
+    halves: { google: measured(100 / 12, MEASURED_AT), ai: measured(100 / 3, MEASURED_AT) },
     limiting: { kind: "factor", factor: "answerability" },
     missing: [],
     unmeasuredElsewhere: [],
@@ -294,7 +294,7 @@ export const FIXTURE_REPORT: StoredReport = {
   aiAnswers: {
     measuredSearches: 12,
     answeredSearches: 9,
-    customerCitations: 0,
+    customerCitations: 3,
     measuredAt: MEASURED_AT,
     ownDomain: OWN_DOMAIN,
     rivals: RIVALS.map((domain, offset) => ({ domain, cells: rivalCells(offset) })),

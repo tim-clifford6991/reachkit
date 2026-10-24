@@ -3,13 +3,6 @@ Autopilot on since Oct 5 harborplumbing.com	sample data
 9:41	sample data
 ReachKit 8:00 AM To: Dana	sample data
 Hi Dana, here’s week 3 for Harbor Plumbing.	sample data
-“water heater replacement cost austin”	sample data
-a national plumbing chain’s page	sample data
-Tue 4:00 PM	sample data
-Wed 4:00 PM	sample data
-Thu 4:00 PM	sample data
-Fri 4:00 PM	sample data
-Sat 4:00 PM	sample data
 14 days money-back guarantee	owner 2026-10-20 Q13: shown once the launch gate opens
 14-day money-back guarantee	owner 2026-10-20 Q13: shown once the launch gate opens
 Or use Cancel your contract at the foot of any page.	owner 2026-10-20 Q13: shown once the launch gate opens
@@ -18,7 +11,6 @@ You scan. We write. You see it work.	SPEC §0 · R12 (B3): a title is at most si
 Your free report, at a glance	#1596: the step 1 visual is a known gap until its issue lands
 27 of 100 Hard to find Visibility Score: how easy you are to find	#1596: the step 1 visual is a known gap until its issue lands
 Who buyers pick instead austinpipeworks.example +2 more	#1596: the step 1 visual is a known gap until its issue lands
-AI is shut out of your site Free fix · 10 min	#1596: the step 1 visual is a known gap until its issue lands
 Your first page, proposed free: Slab leak repair cost in Austin	#1596: the step 1 visual is a known gap until its issue lands
 Inbox	#1596: the step 3 Monday-email visual is a known gap until its issue lands
 Monday: what moved this week	#1596: the step 3 Monday-email visual is a known gap until its issue lands
@@ -30,3 +22,15 @@ Mon · New page · goes live today, 4:00 PM Emergency plumber in Austin: what to
 Tue · Update · goes live Tue 20 Oct, 4:00 PM Toilet repair in Austin: running, leaking or clogged Why: stopped gaining at place 18 for 3 weeks; this update adds what the pages above it cover. Stop this page · Edit	#1596: the step 3 Monday-email visual is a known gap until its issue lands
 The Monday email · example business	#1596: the step 3 Monday-email visual is a known gap until its issue lands
 Found on Google & AI	#1717 · R12 (B5): ships "Found on Google and AI"
+See it on a real site	Q8 · SPEC §1: drawn only where a listed report or ReachKit's own live page is stored (issue 1396); the sweep seeds none
+A real free report podia.com Open the report →	Q8: drawn only while podia.com's report is listed on the gallery; the sweep seeds none
+A real page ReachKit wrote, live now ReachKit’s own blog is written by ReachKit, the same way.	SPEC §1: drawn only where ReachKit's own site has a live page (issue 1396); the sweep seeds none
+Proof slots · render nothing until real data exists	owner 2026-10-20 (#1727 Deliberate): the board's proof slots render nothing until real data exists
+Needs a named, consenting paying customer, one quote, and kind of business plus town.	owner 2026-10-20 (#1727 Deliberate): the board's proof slots render nothing until real data exists
+A before and after from stored rows, with the customer’s consent.	owner 2026-10-20 (#1727 Deliberate): the board's proof slots render nothing until real data exists
+Not shown until the owner decides a threshold.	owner 2026-10-20 (#1727 Deliberate): the board's proof slots render nothing until real data exists
+“Recently scanned” is not proof and is never labelled as such.	owner 2026-10-20 (#1727 Deliberate): the board's proof slots render nothing until real data exists
+BrightLocal 2026 share of consumers using AI for local recommendations. Only after the primary source is read; US-only.	owner 2026-10-20 (#1727 Deliberate): the board's proof slots render nothing until real data exists
+Latest articles	#1512: the landing lists ReachKit's newest articles only where stored rows name some; the sweep seeds none
+All articles →	#1512: the landing lists ReachKit's newest articles only where stored rows name some; the sweep seeds none
+Articles	#1512: the footer links the content host's index only where stored rows name one; the sweep seeds none

@@ -3,12 +3,14 @@
 // one entry in src/lib/measure/registry.ts, and the registry names nothing
 // that is not shown. The tiles are read off the rendered Overview, the mail
 // rows off the block list `buildWeekly` composes with every number present,
-// and the report's figures off the rendered fixture report.
+// and the report's figures off the rendered fixture report. On the report,
+// figures shown under one name share one source.
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import React from "react";
 import { applyEnvFixture } from "../mail/env-fixture";
 import type { WeeklyNumbers } from "@/lib/mail/templates/weekly";
+import type { Measure } from "@/lib/measure/registry";
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
@@ -82,37 +84,54 @@ function shownMailRows(): string[] {
 /** A header bar's `n/10`, or a card's "x of N". */
 const FIGURE = /^(\d+\/10|\d+ of \d+)$/;
 
-/** The name each figure on the rendered report is shown under: the rest of
- *  the smallest element around the figure that says anything else. */
-function reportFigureNames(report: typeof FIXTURE_REPORT): string[] {
+/** Each figure on the rendered report: the label it is shown under (the
+ *  rest of the smallest element around it that says anything else), and the
+ *  name a reader knows it by — a bar's own label, a card figure's card heading. */
+function reportFigureNames(report: typeof FIXTURE_REPORT): { label: string; name: string }[] {
   const container = document.createElement("div");
   container.innerHTML = renderToStaticMarkup(
     React.createElement(ReportView, {
       state: { report, notice: null, control: { kind: "none" }, correction: { offered: true, as: "first" } },
     })
   );
-  const names: string[] = [];
+  const figures: { label: string; name: string }[] = [];
   const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT);
   for (let node = walker.nextNode(); node !== null; node = walker.nextNode()) {
     const figure = (node.textContent ?? "").trim();
     if (!FIGURE.test(figure)) continue;
     let around = node.parentElement;
     while (around !== null && (around.textContent ?? "").trim() === figure) around = around.parentElement;
-    names.push((around?.textContent ?? "").replace(figure, "").trim() || `(${figure} under no name)`);
+    const label = (around?.textContent ?? "").replace(figure, "").trim() || `(${figure} under no name)`;
+    const heading = figure.endsWith("/10") ? null : node.parentElement?.closest(".card")?.querySelector("h3")?.textContent?.trim();
+    figures.push({ label, name: heading || label });
   }
-  return names;
+  return figures;
 }
 
 /** Every figure the report can draw: a stored report showing Presence whole,
  *  and one that kept its Google and AI halves apart. */
-function shownReportFigures(): string[] {
+function reportFigures(): { label: string; name: string }[] {
   const at = FIXTURE_REPORT.verdict.measuredAt;
   const whole = { ...FIXTURE_REPORT, verdict: { ...FIXTURE_REPORT.verdict, halves: undefined } };
   const halves = {
     ...FIXTURE_REPORT,
     verdict: { ...FIXTURE_REPORT.verdict, halves: { google: measured(30, at), ai: measured(50, at) } },
   };
-  return [...new Set([...reportFigureNames(whole), ...reportFigureNames(halves)])].sort();
+  const seen = new Map([...reportFigureNames(whole), ...reportFigureNames(halves)].map((figure) => [figure.label, figure]));
+  return [...seen.values()];
+}
+
+const shownReportFigures = (): string[] => reportFigures().map((figure) => figure.label).sort();
+
+/** Each name the report shows two or more different sources under. */
+function namesWithTwoSources(measures: readonly Measure[]): string[] {
+  const sources = new Map<string, Set<string>>();
+  for (const { label, name } of reportFigures()) {
+    const measure = measures.find((m) => m.shown.on === "report" && copy(m.shown.key as Parameters<typeof copy>[0]) === label);
+    if (measure === undefined) continue;
+    sources.set(name, (sources.get(name) ?? new Set()).add(measure.source));
+  }
+  return [...sources].filter(([, of]) => of.size > 1).map(([name, of]) => `${name}: ${[...of].sort().join(" · ")}`);
 }
 
 describe("the measurement registry", () => {
@@ -130,5 +149,17 @@ describe("the measurement registry", () => {
     const figures = shownReportFigures();
     expect(figures.length).toBeGreaterThan(0);
     expect(figures).toEqual(registered("report").map((key) => copy(key as Parameters<typeof copy>[0])).sort());
+  });
+
+  it("names one source under each name the report shows, Google and AI included", () => {
+    const names = new Set(reportFigures().map((figure) => figure.name));
+    expect(names).toContain(copy("verdict.factor.google"));
+    expect(names).toContain(copy("verdict.factor.ai"));
+    expect(namesWithTwoSources(MEASURES)).toEqual([]);
+  });
+
+  it("a bar registered under a source its card does not share is caught", () => {
+    const skewed = MEASURES.map((m) => (m.id === "report-ai-presence" ? { ...m, source: "src/lib/measure/drivers.ts#aiPresenceOf" } : m));
+    expect(namesWithTwoSources(skewed)).toEqual([`${copy("verdict.factor.ai")}: src/lib/measure/drivers.ts#aiPresenceOf · src/lib/measure/drivers.ts#namesOrLinks`]);
   });
 });

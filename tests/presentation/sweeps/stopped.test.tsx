@@ -289,14 +289,24 @@ describe("REQ-092 c8 — no internal cause, anywhere the statement renders", () 
       "/how-it-works": "how-disclosure",
       "/about": "about-disclosure",
     };
+    // The questions' "Is this AI spam?" answer names the model too, as boards
+    // PubLanding and PubHowItWorks do; only that answer is taken out.
+    const FAQ_DISCLOSED = new Set(["/", "/how-it-works"]);
     const swept = (r: (typeof stopped)[number]): ParentNode => {
       if (r.route.url === BILLING) return billingSwept(r.doc.body);
       const testId = DISCLOSED[r.route.url];
-      if (testId === undefined) return r.doc.body;
+      if (testId === undefined && !FAQ_DISCLOSED.has(r.route.url)) return r.doc.body;
       const body = r.doc.body.cloneNode(true) as HTMLElement;
-      const documents = body.querySelectorAll(`[data-testid='${testId}']`);
-      expect(documents, `${r.route.url} renders its disclosure`).toHaveLength(1);
-      documents.forEach((el) => el.remove());
+      if (testId !== undefined) {
+        const documents = body.querySelectorAll(`[data-testid='${testId}']`);
+        expect(documents, `${r.route.url} renders its disclosure`).toHaveLength(1);
+        documents.forEach((el) => el.remove());
+      }
+      if (FAQ_DISCLOSED.has(r.route.url)) {
+        const answers = body.querySelectorAll("[data-disclosure]");
+        expect(answers, `${r.route.url} renders its spam answer`).toHaveLength(1);
+        answers.forEach((el) => el.remove());
+      }
       return body;
     };
     const findings = stopped.flatMap((r) =>

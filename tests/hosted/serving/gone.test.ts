@@ -157,6 +157,23 @@ describe("A: a page removed from a live site answers 410 with the short body", (
   });
 });
 
+describe("A: the 410 is styled by the site's own sheet", () => {
+  it("links /style.css once and preloads at most two faces from the same host", async () => {
+    const doc = parse(await (await gone.GET(request())).text());
+    const sheets = doc.querySelectorAll('link[rel="stylesheet"]');
+    expect(sheets).toHaveLength(1);
+    expect(sheets[0]?.getAttribute("href")).toBe("/style.css");
+    const preloads = [...doc.querySelectorAll('link[rel="preload"]')];
+    expect(preloads.length).toBeGreaterThan(0);
+    expect(preloads.length).toBeLessThanOrEqual(2);
+    for (const link of preloads) {
+      expect(link.getAttribute("as")).toBe("font");
+      expect(link.getAttribute("href")).toMatch(/^\/font\/[^/]+\.woff2$/);
+    }
+    expect(doc.querySelector("script")).toBeNull();
+  });
+});
+
 describe("A: a body that cannot be drawn still answers 410, never 500", () => {
   it("410, noindex, no-store and the empty document in the site's language", async () => {
     state.identityFails = true;

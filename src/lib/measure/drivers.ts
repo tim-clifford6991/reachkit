@@ -11,8 +11,11 @@
 // searches, not §5's ranked-reach formula, so the Google bar counts what the
 // presence card counts.
 //
+// AIPresence is the other: the share of AI answers that name or link the
+// site, so the AI bar counts what the AI-answers card counts.
+//
 // The coefficients that BUILD §5 states as numbers of formula *shape*
-// (0.4, 0.6, the "/ 3") live here beside the sentence they transcribe. The two that are pins — the direct-answer window and
+// (the "/ 3") live here beside the sentence they transcribe. The two that are pins — the direct-answer window and
 // the answerability floor — are read from `SCORING`; the closed reader
 // list is `AI_READER_AGENTS`. Nothing here is customer-visible.
 import { AI_READER_AGENTS, SCORE_ESTIMATE, SCORING } from "@/lib/config/constants";
@@ -257,10 +260,8 @@ export function searchPresenceRangeOf(
 
 // ── AIPresence ──────────────────────────────────────────────────────────
 
-/** BUILD §5: "AIPresence = max(1, (0.4 × mentionRate + 0.6 × citationRate)
- *  × 100)". Each coefficient beside its term. */
-const AI_MENTION_WEIGHT = 0.4;
-const AI_CITATION_WEIGHT = 0.6;
+/** AIPresence is `max(1, 100 × answers naming or linking the site ÷ answers
+ *  read)`; the floor is §5's. */
 const AI_PRESENCE_FLOOR = 1;
 
 /** A reference as DataForSEO returns it — a bare host, a host with a path,
@@ -464,7 +465,7 @@ export interface AnswerSaid {
  *  **Exported for the AI answers tab** (SPEC §6, 2026-09-20, #918), which
  *  draws *named* and *linked* as two marks and has to split them the way
  *  the score already splits them. One implementation, so a cell on that
- *  screen and the rates inside `aiPresenceOf` can never come to disagree
+ *  screen and the rate inside `aiPresenceOf` can never come to disagree
  *  about what being named means. It is pure and takes no clock, so the
  *  screen reads stored references with it and measures nothing. */
 export function classifyReferences(
@@ -494,6 +495,12 @@ export function classifyReferences(
   return { cited, mentioned };
 }
 
+/** An AI answer counts for the site where it named it or linked it: the one
+ *  reading the AI bar, the AI-answers card's x of N and its row marks share. */
+export function namesOrLinks(cell: { namesCustomer: boolean; ownUrls?: readonly string[]; named?: true }): boolean {
+  return cell.named === true || cell.namesCustomer || (cell.ownUrls?.length ?? 0) > 0;
+}
+
 /** What AIPresence reads of one SERP: its AI Overview's references, and its
  *  addresses and text where they were kept. */
 type AiOverviewRead = {
@@ -514,8 +521,7 @@ export type PageAnswerCell =
 export interface AiSample {
   read: number;
   answered: number;
-  mentioned: number;
-  cited: number;
+  hits: number;
 }
 
 /** The counts AI presence and its range are read from. A SERP we could not
@@ -531,14 +537,13 @@ export function aiSampleOf(a: {
    *  2026-10-19, issue 1551): read beside the twelve, as stored. */
   pageCells?: readonly PageAnswerCell[];
 }): AiSample {
-  const sample: AiSample = { read: 0, answered: 0, mentioned: 0, cited: 0 };
+  const sample: AiSample = { read: 0, answered: 0, hits: 0 };
   for (const cell of a.pageCells ?? []) {
     if (cell.kind === "unmeasured") continue;
     sample.read++;
     if (cell.kind === "no_answer") continue;
     sample.answered++;
-    if (cell.named === true) sample.mentioned++;
-    if (cell.namesCustomer || (cell.ownUrls?.length ?? 0) > 0) sample.cited++;
+    if (namesOrLinks(cell)) sample.hits++;
   }
   for (const serp of a.serps) {
     if (serp.kind === "unmeasured" || serp.value.aiOverview.unread === true) continue;
@@ -551,21 +556,20 @@ export function aiSampleOf(a: {
       ...(text === undefined ? {} : { text }),
       siteName: a.siteName ?? null,
     });
-    if (mentioned) sample.mentioned++;
-    if (cited) sample.cited++;
+    if (namesOrLinks({ namesCustomer: cited, ...(mentioned ? { named: true as const } : {}) })) sample.hits++;
   }
   return sample;
 }
 
-/** §5's weighting of the two rates, over 0–100 and floored. */
-function aiPresenceValue(mentionRate: number, citationRate: number): number {
-  return Math.max(AI_PRESENCE_FLOOR, (AI_MENTION_WEIGHT * mentionRate + AI_CITATION_WEIGHT * citationRate) * SCALE);
+/** The share over 0–100, floored. */
+function aiPresenceValue(rate: number): number {
+  return Math.max(AI_PRESENCE_FLOOR, rate * SCALE);
 }
 
-/** BUILD §5's AIPresence, judged on the AI answers that exist (owner, issue
- *  1439). The rates are over the read SERPs that **showed** an AI answer: a
+/** AIPresence, judged on the AI answers that exist (owner, issue 1439). The
+ *  rate is over the read SERPs that **showed** an AI answer: a
  *  search Google answers without one is no answer that left the site out,
- *  so it is in neither rate. How often AI answers appear is the AI-answers
+ *  so it is not in the rate. How often AI answers appear is the AI-answers
  *  card's context line, never a penalty here. The SERPs are the twelve's
  *  and, since issue 1551 (owner, 2026-10-19), the page questions' cells
  *  beside them, so a page cited on its own question moves the score.
@@ -598,8 +602,8 @@ export function aiPresenceOf(a: {
       ? unmeasured("undeterminable", a.at, NO_AI_ANSWERS)
       : unmeasured(unmeasuredReasonOf(a.serps) ?? "undeterminable", a.at);
   }
-  const raw = aiPresenceValue(sample.mentioned / sample.answered, sample.cited / sample.answered);
-  return sample.mentioned === 0 && sample.cited === 0 ? measuredZero(raw, a.at) : measured(raw, a.at);
+  const raw = aiPresenceValue(sample.hits / sample.answered);
+  return sample.hits === 0 ? measuredZero(raw, a.at) : measured(raw, a.at);
 }
 
 /** The Wilson score interval of `hits` in `n`, at `SCORE_ESTIMATE.z`: a
@@ -617,12 +621,11 @@ export function wilsonOf(hits: number, n: number): { low: number; high: number }
 }
 
 /** Where AI presence could lie given the answers behind it (issue 1439):
- *  each rate's Wilson interval, carried through §5's weighting. `null` where
+ *  the rate's Wilson interval on the same scale. `null` where
  *  AI answered none of enough searches read — there is no AI term to range
  *  over. Over no answer otherwise it is the whole scale. */
 export function aiPresenceRangeOf(sample: AiSample): { low: number; high: number } | null {
   if (sample.answered === 0 && sample.read >= SCORE_ESTIMATE.noneMinReads) return null;
-  const mention = wilsonOf(sample.mentioned, sample.answered);
-  const citation = wilsonOf(sample.cited, sample.answered);
-  return { low: aiPresenceValue(mention.low, citation.low), high: aiPresenceValue(mention.high, citation.high) };
+  const share = wilsonOf(sample.hits, sample.answered);
+  return { low: aiPresenceValue(share.low), high: aiPresenceValue(share.high) };
 }
