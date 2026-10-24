@@ -28,6 +28,7 @@
 "use client";
 
 import type React from "react";
+import { FileX, Info, Pause, Trash2, type LucideIcon } from "lucide-react";
 import { Linked } from "../Linked";
 import { useState, useTransition } from "react";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
@@ -60,10 +61,10 @@ const DANGER: readonly { action: Extract<ActionKey, "unpublish_all" | "delete_ac
 ];
 
 /** What each of the three ways out does, in the board's order: pausing, then the two above. */
-const COMPARE: readonly { name: CopyKey; values: readonly [CopyKey, CopyKey, CopyKey, CopyKey, CopyKey] }[] = [
-  { name: "danger.pause", values: ["danger.value.stay-up", "danger.value.none-until-on", "danger.value.kept", "danger.value.not-needed", "danger.value.one-switch"] },
-  { name: "danger.unpublish-all", values: ["danger.value.taken-down", "danger.value.none-off", "danger.value.kept", "danger.value.first", "danger.value.turn-on"] },
-  { name: "danger.delete-account", values: ["danger.value.taken-down", "danger.value.none", "danger.value.closed", "danger.value.first", "danger.value.no"] },
+const COMPARE: readonly { name: CopyKey; icon: LucideIcon; values: readonly [CopyKey, CopyKey, CopyKey, CopyKey, CopyKey] }[] = [
+  { name: "danger.pause", icon: Pause, values: ["danger.value.stay-up", "danger.value.none-until-on", "danger.value.kept", "danger.value.not-needed", "danger.value.one-switch"] },
+  { name: "danger.unpublish-all", icon: FileX, values: ["danger.value.taken-down", "danger.value.none-off", "danger.value.kept", "danger.value.first", "danger.value.turn-on"] },
+  { name: "danger.delete-account", icon: Trash2, values: ["danger.value.taken-down", "danger.value.none", "danger.value.closed", "danger.value.first", "danger.value.no"] },
 ];
 const FACTS: readonly CopyKey[] = ["danger.fact.live", "danger.fact.new", "danger.fact.kept", "danger.fact.export", "danger.fact.undo"];
 
@@ -80,8 +81,11 @@ export function DangerZone(): React.JSX.Element {
         </span>
       </summary>
       <div className="collapse-content flex min-w-0 flex-col gap-4">
-        <p className="text-sm wrap-anywhere">
-          <Linked sentence={copy("danger.pause.line")} word={copy("danger.pause.link")} href={SETTINGS_TAB_HREF.publishing} />
+        <p className="flex min-w-0 items-start gap-2 text-sm" data-testid="danger-pause-line">
+          <Info size={16} strokeWidth={1.75} aria-hidden className="mt-0.5 shrink-0 text-primary" />
+          <span className="min-w-0 wrap-anywhere">
+            <Linked sentence={copy("danger.pause.line")} word={copy("danger.pause.link")} href={SETTINGS_TAB_HREF.publishing} />
+          </span>
         </p>
 
         <div className="flex min-w-0 flex-col gap-2" data-testid="danger-compare">
@@ -89,7 +93,10 @@ export function DangerZone(): React.JSX.Element {
           <ul className="grid min-w-0 grid-cols-1 gap-3 md:grid-cols-3" data-layout="compare">
             {COMPARE.map((way) => (
               <li key={way.name} className="bg-base-200 rounded-box flex min-w-0 flex-col gap-2 p-3">
-                <span className="text-sm font-semibold">{copy(way.name)}</span>
+                <span className="inline-flex min-w-0 items-center gap-2 text-sm font-semibold">
+                  <way.icon size={20} strokeWidth={1.75} aria-hidden />
+                  {copy(way.name)}
+                </span>
                 <ul className="flex min-w-0 flex-col gap-1">
                   {way.values.map((value, i) => (
                     <li key={FACTS[i]} className="flex min-w-0 flex-col text-sm">

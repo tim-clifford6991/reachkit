@@ -28,6 +28,8 @@ interface SendCommon {
   /** A page going live under autopilot at a zero veto window, where the mail is the whole telling
    *  (`MAIL_KINDS['draft-ready'].unsuppressibleWhen`). Only `false`, so no `true` is left lying around. */
   suppressible?: false;
+  /** The vendor idempotency key's day, for a caller whose once-ness is not the UTC day. */
+  period?: string;
 }
 
 export type SendInput =
@@ -141,6 +143,7 @@ export async function sendEmail(m: SendInput): Promise<SendResult> {
     text: composed.text,
     // RFC 8058: the headers go out exactly where the mail carries a stop control, so an unstoppable kind never claims it can.
     listUnsubscribe: m.optOut?.oneClickHref,
+    ...(m.period === undefined ? {} : { period: m.period }),
   });
 
   if (result.ok) {

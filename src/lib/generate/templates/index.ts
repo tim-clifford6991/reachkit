@@ -13,7 +13,7 @@ import { research } from "./research";
 import type { Template, TemplateWords } from "./types";
 import { update } from "./update";
 
-export type { PackNeed, PackRequirement, Template, TemplateSection, TemplateWords } from "./types";
+export type { PackNeed, PackRequirement, SectionFacts, Template, TemplateSection, TemplateWords } from "./types";
 
 export const TEMPLATES: Readonly<Record<ContentType, Template>> = Object.freeze({
   listicle,

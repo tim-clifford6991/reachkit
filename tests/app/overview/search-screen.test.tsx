@@ -22,18 +22,19 @@ vi.mock("next/navigation", () => ({
 }));
 
 import { SearchTable } from "@/app/(account)/app/_overview/SearchTable";
-import { assembleSearch } from "@/app/(account)/app/_overview/search-model";
+import { assembleSearch, type SearchModel, type SearchRow } from "@/app/(account)/app/_overview/search-model";
 import { FIXTURE_SEARCH_FACTS } from "@/app/(account)/app/_overview/search-fixture";
+import { measured, unmeasured } from "@/lib/measure/measured";
 import { copy } from "@/lib/presentation/copy";
 
 const AT = FIXTURE_SEARCH_FACTS.measuredAt ?? new Date(0);
 const MODEL = assembleSearch(FIXTURE_SEARCH_FACTS, AT);
 
-function table(searchParams: Record<string, string> = {}): Element {
+function table(searchParams: Record<string, string> = {}, model: SearchModel = MODEL): Element {
   const container = document.createElement("div");
   container.innerHTML = renderToStaticMarkup(
     <NuqsTestingAdapter searchParams={searchParams}>
-      <SearchTable model={MODEL} doing={{}} lead={copy("overview.search.table.lead.anywhere")} />
+      <SearchTable model={model} doing={{}} lead={copy("overview.search.table.lead.anywhere")} />
     </NuqsTestingAdapter>
   );
   return container;
@@ -151,6 +152,56 @@ describe("the chips", () => {
   it("and the chip that is chosen says so to a screen reader", () => {
     const chosen = el(table({ show: "live" }), "search-chip-live");
     expect(chosen?.hasAttribute("checked")).toBe(true);
+  });
+});
+
+/** Four rows, one per status: volumes 1,300, 650 and two not measured; places 7, 11 and two not in the top 100. */
+const NOT_MEASURED = unmeasured<number>("not_attempted", AT);
+const ROWS: SearchRow[] = [
+  { status: "live", volume: measured(1300, AT), position: measured(7, AT) },
+  { status: "your_review", volume: measured(650, AT), position: measured(11, AT) },
+  { status: "up_next", volume: NOT_MEASURED, position: NOT_MEASURED },
+  { status: "too_big", volume: NOT_MEASURED, position: NOT_MEASURED },
+].map(({ status, volume, position }, i) => ({
+  ...MODEL.rows[0]!,
+  id: `row-${i}`,
+  status: status as SearchRow["status"],
+  target: { ...MODEL.rows[0]!.target, search: `search ${i}`, volume },
+  position,
+}));
+const FOUR: SearchModel = { ...MODEL, rows: ROWS };
+const rowsOf = (): Element[] => [...table({}, FOUR).querySelectorAll('[data-testid="search-row"]')];
+
+describe("what each row draws beside its words", () => {
+  it("each status badge carries its icon", () => {
+    const icons = rowsOf().map((row) => row.querySelector('.badge svg[aria-hidden="true"]:not(.lucide-trophy)')?.getAttribute("class") ?? "");
+    expect(icons.map((c) => c.split(" ").find((name) => name.startsWith("lucide-")))).toEqual([
+      "lucide-circle-check",
+      "lucide-clock",
+      "lucide-list",
+      "lucide-circle-minus",
+    ]);
+  });
+
+  it("volume bars at volume of largest; unmeasured, none", () => {
+    const bars = rowsOf().map((row) => row.querySelector("progress"));
+    expect(bars.map((bar) => (bar === null ? null : [bar.getAttribute("value"), bar.getAttribute("max")]))).toEqual([
+      ["1300", "1300"],
+      ["650", "1300"],
+      null,
+      null,
+    ]);
+    expect(bars[0]?.getAttribute("aria-hidden")).toBe("true");
+  });
+
+  it("trophy only on the first page", () => {
+    expect(rowsOf().map((row) => row.querySelector("svg.lucide-trophy") !== null)).toEqual([true, false, false, false]);
+    const badge = rowsOf()[0]?.querySelector("svg.lucide-trophy")?.parentElement;
+    expect(badge?.className).toBe("badge badge-success badge-soft");
+    expect(badge?.firstElementChild?.matches("svg.lucide-trophy")).toBe(true);
+    expect(badge?.children[1]?.textContent).toBe("#7");
+    const eleventh = [...(rowsOf()[1]?.querySelectorAll("span.num") ?? [])].find((n) => n.textContent === "#11");
+    expect(eleventh?.parentElement?.classList.contains("badge")).toBe(false);
   });
 });
 

@@ -14,7 +14,7 @@
 import type React from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowRight, Building2, Check, FileText, MessageSquare, RefreshCw, TrendingUp, User, Wallet, X } from "lucide-react";
+import { ArrowRight, Building2, Check, FileText, MessageSquare, RefreshCw, Sparkles, TrendingUp, User, Wallet, X } from "lucide-react";
 import { Surface } from "@/ui/layout";
 import { HOSTED_RETENTION_DAYS } from "@/lib/config/constants";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
@@ -446,7 +446,8 @@ export default function HowItWorksPage(): React.JSX.Element {
           }
         >
           <Switched draw={PageWithSources} />
-          <p className={SMALL} data-testid={DISCLOSURE_TEST_ID}>
+          <p className={`${SMALL} inline-flex items-center gap-1.5`} data-testid={DISCLOSURE_TEST_ID}>
+            <Sparkles size={16} strokeWidth={1.75} aria-hidden className="text-primary shrink-0" />
             {copy("how.disclosure")}
           </p>
         </Section>

@@ -50,7 +50,7 @@ import { AUTOSAVE_DEBOUNCE_MS, TIMING } from "@/lib/config/constants";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { copy } from "@/lib/presentation/copy";
-import { ArrowLeft, LoaderCircle } from "lucide-react";
+import { ArrowLeft, Check, CircleCheck, LoaderCircle, Plus, RefreshCw, TriangleAlert } from "lucide-react";
 import {
   formatCount,
   formatDate,
@@ -73,7 +73,6 @@ import type { DraftCommand } from "./actions";
 import { draftStore, type SaveBody } from "./save";
 import { Editor, type EditorPane, type PreviewFrame } from "./Editor";
 import { liveBreaks, type MarkInputs } from "./marks";
-import { Check } from "lucide-react";
 import { PageRecordBlock } from "./PageRecordBlock";
 import { LivePage } from "./LivePage";
 import { WhyThisPage } from "./TargetBlock";
@@ -362,16 +361,13 @@ export function DraftScreen(p: {
       </div>
     );
   /** #789: the saved text breaks a page rule and is held until a save passes. */
-  const rulesHeld =
-    current && checked.rulesFailed ? (
-      <p
-        role="alert"
-        className="alert alert-warning text-sm"
-        data-testid="draft-rules-held"
-      >
-        {copy("draft.edit.rules-held")}
-      </p>
-    ) : null;
+  const heldAlert = (
+    <p role="alert" className="alert alert-warning text-sm" data-testid="draft-rules-held">
+      <TriangleAlert size={20} strokeWidth={1.75} className="shrink-0" aria-hidden />
+      <span>{copy("draft.edit.rules-held")}</span>
+    </p>
+  );
+  const rulesHeld = current && checked.rulesFailed ? heldAlert : null;
   // Rule 2: the highlight is a function of the buffer, never of a stored flag.
   const grounded = factPresentIn(bodyMd, view.grounded.passage);
 
@@ -434,9 +430,7 @@ export function DraftScreen(p: {
    */
   const rulesLive =
     breaks.length > 0 || (current && checked.rulesFailed) ? (
-      <p role="alert" className="alert alert-warning text-sm" data-testid="draft-rules-held">
-        {copy("draft.edit.rules-held")}
-      </p>
+      heldAlert
     ) : (
       // Nothing broken is a zero state, so it is quiet (DESIGN.md, the calm
       // layer, #1095): a flat grey ground, a tick and the one line — not a
@@ -472,8 +466,9 @@ export function DraftScreen(p: {
    *  one — and is what a stopped page reads as the moment Stop is pressed. */
   const stage = STAGE_OF[state];
   /** A new page or an update of one the site has; nothing where unread. */
-  const kind =
-    view.target.kind === "unknown" ? null : kindWord(view.target.kind === "fix" || view.target.update === true);
+  const update = view.target.kind !== "unknown" && (view.target.kind === "fix" || view.target.update === true);
+  const KindIcon = update ? RefreshCw : Plus;
+  const kind = view.target.kind === "unknown" ? null : kindWord(update);
 
   /** The claim badge, in every one of its four states — including the empty
    *  do-not-claim list, which states that there was nothing to check
@@ -502,10 +497,15 @@ export function DraftScreen(p: {
         className={`badge badge-soft ${TONE_BADGE[STAGE_TONE[stage]]}`}
         data-testid={`draft-stage-${stage}`}
       >
-        <span
-          className={`size-1.5 shrink-0 rounded-full bg-current ${STAGE_BEACON[stage]}`}
-          aria-hidden
-        />
+        {/* Ready draws the board's tick; every other stage keeps its dot. */}
+        {stage === "your_review" ? (
+          <CircleCheck className="size-3.5 shrink-0" strokeWidth={1.75} aria-hidden />
+        ) : (
+          <span
+            className={`size-1.5 shrink-0 rounded-full bg-current ${STAGE_BEACON[stage]}`}
+            aria-hidden
+          />
+        )}
         {copy(STAGE_FILTER_COPY_KEY[stage])}
       </span>
     );
@@ -784,6 +784,7 @@ export function DraftScreen(p: {
               frame={frame}
               onFrame={setFrame}
               inputs={markInputs}
+              address={view.publisher.url}
               searchResult={searchResult}
             />
             <p className="text-sm text-base-content/70" data-testid="draft-edit-footnote">
@@ -875,7 +876,8 @@ export function DraftScreen(p: {
               >
                 {stageBadge}
                 {kind === null ? null : (
-                  <span className="badge badge-ghost" data-testid="draft-kind">
+                  <span className="badge badge-ghost gap-1" data-testid="draft-kind">
+                    <KindIcon className="size-3.5 shrink-0" strokeWidth={1.75} aria-hidden />
                     {kind}
                   </span>
                 )}

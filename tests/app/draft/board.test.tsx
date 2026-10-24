@@ -15,7 +15,7 @@ import { describe, expect, it } from "vitest";
 import { boardFile, compare, readAllow, segments } from "../../../scripts/design/parity.mjs";
 import { copy } from "@/lib/presentation/copy";
 import { DraftScreen } from "@/app/(account)/app/draft/[draftId]/DraftScreen";
-import { assembleDraft } from "@/app/(account)/app/draft/[draftId]/model";
+import { assembleDraft, type DraftView } from "@/app/(account)/app/draft/[draftId]/model";
 import { FIXTURE_DRAFTS, FIXTURE_DRAFT_ID } from "@/app/(account)/app/draft/[draftId]/fixture";
 
 const VIEW = assembleDraft(FIXTURE_DRAFTS[FIXTURE_DRAFT_ID]!);
@@ -25,8 +25,14 @@ const BOARD = readFileSync(boardFile("AppDraft"), "utf8");
  *  reading in `tests/ui/layout/parity.test.ts` holds these. */
 const SHELL = ["ReachKit", "Overview", "Plan", "Settings", "Publishing on", "Theme: light"];
 
-function readArm(): string {
-  return renderToStaticMarkup(<DraftScreen view={VIEW} generatedLabel="Written by ReachKit" />);
+function readArm(view: DraftView = VIEW): string {
+  return renderToStaticMarkup(<DraftScreen view={view} generatedLabel="Written by ReachKit" />);
+}
+
+function readHost(view: DraftView = VIEW): HTMLElement {
+  const host = document.createElement("div");
+  host.innerHTML = readArm(view);
+  return host;
 }
 
 async function editArm(): Promise<string> {
@@ -129,5 +135,33 @@ describe("board AppDraft: the edit arm", () => {
       copy("draft.editor.tab.preview"),
       copy("draft.editor.tab.search"),
     ]);
+  });
+});
+
+describe("the draft's board icons", () => {
+  it("the Ready badge carries the tick", () => {
+    expect(at(readHost(), "draft-stage-your_review").querySelector("svg.lucide-circle-check")).not.toBeNull();
+  });
+
+  it("a new page's badge carries the plus, an update's the refresh", () => {
+    expect(at(readHost(), "draft-kind").querySelector("svg.lucide-plus")).not.toBeNull();
+    const update = readHost({ ...VIEW, target: { ...VIEW.target, update: true } } as DraftView);
+    expect(at(update, "draft-kind").textContent).toBe(copy("calendar.card.update"));
+    expect(at(update, "draft-kind").querySelector("svg.lucide-refresh-cw")).not.toBeNull();
+  });
+
+  it("the preview's address bar opens with the lock, in the read arm and the editor", async () => {
+    expect(readHost().querySelector(".mockup-browser-toolbar svg.lucide-lock")).not.toBeNull();
+    const edit = document.createElement("div");
+    edit.innerHTML = await editArm();
+    const toolbar = at(edit, "draft-preview-frame-desktop").querySelector(".mockup-browser-toolbar");
+    expect(toolbar?.querySelector("svg.lucide-lock")).not.toBeNull();
+    expect(toolbar?.textContent).toContain(new URL(VIEW.publisher.url).host);
+  });
+
+  it("a page that broke a rule says so behind the warning sign", () => {
+    const held = at(readHost({ ...VIEW, rulesFailed: true }), "draft-rules-held");
+    expect(held.querySelector("svg.lucide-triangle-alert")).not.toBeNull();
+    expect(held.textContent).toBe(copy("draft.edit.rules-held"));
   });
 });
