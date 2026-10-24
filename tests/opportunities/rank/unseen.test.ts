@@ -1,9 +1,10 @@
-// Issue 1538, condition 2 — a page no stored search result has held after
-// 28 days live gets one link in from its cluster's strongest live page, and
+// Issue 1538 — a page whose stored reading holds no Found step 28 days after
+// it went live gets one link in from its cluster's strongest live page, and
 // a rewrite only where D13's check finds it close to another site's page.
 import "../env";
 import { describe, expect, it } from "vitest";
 import {
+  foundIn,
   refreshCauseOf,
   unseenLinkCandidates,
   type OwnLivePage,
@@ -45,32 +46,60 @@ function livePage(slug: string, a: Partial<OwnLivePage> & { age: number }): OwnL
   };
 }
 
-const unseen = livePage("crm-for-dentists", { age: 28, seen: false, title: "CRM for dentists" });
+const unseen = livePage("crm-for-dentists", { age: 28, found: false, seen: false, title: "CRM for dentists" });
 const siblings = [
-  livePage("crm-pricing", { age: 200, seen: true, place: 12 }),
-  livePage("best-crm", { age: 100, seen: true, place: 4 }),
-  livePage("crm-setup", { age: 300, seen: true, place: 2, edited: true }),
-  livePage("crm-glossary", { age: 90, seen: true, place: 1, row: { ...livePage("x", { age: 1 }).row, clusterKey: "other" } }),
+  livePage("crm-pricing", { age: 200, found: true, readPlace: 12 }),
+  livePage("best-crm", { age: 100, found: true, readPlace: 4 }),
+  livePage("crm-setup", { age: 300, found: true, readPlace: 2, edited: true }),
+  livePage("crm-glossary", { age: 90, found: true, readPlace: 1, row: { ...livePage("x", { age: 1 }).row, clusterKey: "other" } }),
 ];
+const linkedTo = (pages: readonly OwnLivePage[]) => unseenLinkCandidates(pages, AT).map((candidate) => candidate.targetRef);
 
-describe("a page not verified for 28 days gets a link in from its cluster's strongest page", () => {
-  it("the seen sibling with the best place, the customer's own passed over, links it", () => {
+describe("a page not found 28 days after going live gets a link in from its cluster's strongest page", () => {
+  it("the sibling with the best reading, the customer's own passed over, links it as its refresh", () => {
     const planned = unseenLinkCandidates([unseen, ...siblings], AT);
     expect(planned.map((candidate) => candidate.targetRef)).toEqual(["https://blog.example.com/best-crm"]);
+    expect(planned[0]).toMatchObject({ type: "refresh_page" });
     expect(planned[0]?.evidence).toMatchObject({
       shortfall: { kind: "due", cause: "link", link: { url: unseen.url, title: "CRM for dentists" } },
     });
   });
 
-  it("nothing before 28 days, nothing for a seen page, nothing where its state is not known", () => {
-    expect(unseenLinkCandidates([{ ...unseen, publishedAt: daysAgo(27) }, ...siblings], AT)).toEqual([]);
-    expect(unseenLinkCandidates([{ ...unseen, seen: true }, ...siblings], AT)).toEqual([]);
-    expect(unseenLinkCandidates([{ ...unseen, seen: undefined }, ...siblings], AT)).toEqual([]);
+  it("27 days live: nothing; 28 days: the link", () => {
+    expect(linkedTo([{ ...unseen, publishedAt: daysAgo(27) }, ...siblings])).toEqual([]);
+    expect(linkedTo([{ ...unseen, publishedAt: daysAgo(28) }, ...siblings])).toEqual(["https://blog.example.com/best-crm"]);
   });
 
-  it("nothing once a seen sibling links it", () => {
+  it("a page found, and a page whose Found is not measured, get nothing", () => {
+    expect(linkedTo([{ ...unseen, found: true }, ...siblings])).toEqual([]);
+    expect(linkedTo([{ ...unseen, found: undefined }, ...siblings])).toEqual([]);
+  });
+
+  it("no sibling: nothing, and a sibling itself not found is no sibling", () => {
+    expect(linkedTo([unseen, siblings[3]!])).toEqual([]);
+    expect(linkedTo([unseen, { ...siblings[1]!, found: false }])).toEqual([]);
+  });
+
+  it("a sibling that already links it: nothing", () => {
     const linked = siblings.map((page, i) => (i === 0 ? { ...page, markdown: `See [dentists](${unseen.url}).` } : page));
-    expect(unseenLinkCandidates([unseen, ...linked], AT)).toEqual([]);
+    expect(linkedTo([unseen, ...linked])).toEqual([]);
+  });
+
+  it("a link into it planned lately: nothing", () => {
+    expect(linkedTo([{ ...unseen, linkedLately: true }, ...siblings])).toEqual([]);
+  });
+});
+
+describe("Found is measured only on a hosted page with a stored reading", () => {
+  const reading = (reached: Record<string, string>) => ({ at: "2026-10-19T06:00:00.000Z", crawled: false, reached });
+  it("hosted: found where the reading reached Found, not found where it did not", () => {
+    expect(foundIn(reading({ found: "2026-09-20T06:00:00.000Z" }), "hosted")).toBe(true);
+    expect(foundIn(reading({}), "hosted")).toBe(false);
+  });
+
+  it("no reading, or WordPress: not measured, never not found", () => {
+    expect(foundIn(null, "hosted")).toBeUndefined();
+    expect(foundIn(reading({}), "wordpress")).toBeUndefined();
   });
 });
 
