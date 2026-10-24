@@ -25,7 +25,7 @@ export const offering: Template = {
     },
     {
       key: "where_when",
-      task: `Say where and when the business offers it: open with one sentence of the hours its own pages state, or, where they state none, that it serves the places below; then a bulleted list of the places in \`profile.knowledge.places\` read from its own pages, one place an item, word for word, and no other. ${SEARCH_WORDS}`,
+      task: `Say where the business offers it: open with one sentence that it serves the places below; then a bulleted list of the places in \`profile.knowledge.places\` read from its own pages, one place an item, word for word, and no other. ${SEARCH_WORDS}`,
       onlyWith: { facts: "places", min: 1 },
     },
     {

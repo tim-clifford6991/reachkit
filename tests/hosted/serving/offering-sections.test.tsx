@@ -136,7 +136,7 @@ describe("E26: where and when: clock on hours, map-pin per area; step tiles are 
   it("(a) the opening line carries the clock, each place the pin, and no step a glyph", () => {
     const doc = render(stored(PLUMBER));
     const line = doc.querySelector("svg.lucide-clock")?.closest("p");
-    expect(text(line)).toBe("24 hours a day, every day, in the areas the main site lists:");
+    expect(text(line)).toBe("It serves the areas the main site lists:");
     const pins = doc.querySelectorAll("li svg.lucide-map-pin");
     expect([...pins].map((pin) => text(pin.closest("li")))).toEqual(whereList(doc));
     const steps = [...doc.querySelectorAll("article ol li")];

@@ -704,7 +704,7 @@ export const PUBLISHER_OFFERING = Object.freeze({
     "",
     "## Where and when",
     "",
-    `[24 hours a day, every day](${PLUMBER}/emergency), in the areas the main site lists:`,
+    "It serves the areas the main site lists:",
     "",
     "- Austin",
     "- Round Rock",

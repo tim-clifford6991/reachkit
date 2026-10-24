@@ -44,8 +44,8 @@
   "SettingsMail": { "sha256": "8313c4e879339f1c00380adf1e9432370d51a733bb588e29d8a6e543ba32caf4", "missing": 0 },
   "SettingsBilling": { "sha256": "2d9b7abde6ddf7d207571c97bdf4e8f6c8648b777b8dceb434d90ddae484cc5b", "missing": 0 },
   "SettingsAccount": { "sha256": "969f0f65080bad9eee51becf1baf292780b1674b815e86b9ae51948523bff1e7", "missing": 0 },
-  "HostedIndex": { "sha256": "d7b2dd4afb636758422b492a6291c02cdece0fdc96bd476d10860db81a3e5b8d", "missing": 0 },
+  "HostedIndex": { "sha256": "084efab0759aa7d5cfb59e27a6baf8452c925de4a311a2fc8720f9ee05123e2d", "missing": 0 },
   "HostedArticle": { "sha256": "26c40ee1ce7d29f1cc71c18011b4565ec8ff11ea977ffc9452fd5469b310d846", "missing": 0 },
-  "HostedService": { "sha256": "1b9542e7e5e6f41dd894493d922c1774fbd40a31721f49fae2ec13ea8885596e", "missing": 1 },
+  "HostedService": { "sha256": "749edd0da55bb6ae8d0193a48ea25c9f716ba373ef4a2d365d357b340044f42a", "missing": 0 },
   "HostedGone": { "sha256": "9f65bbe7b9c067831bdf1a8c375b93a76bd54937602b449c6e97b3b68b05ebdc", "missing": 0 }
 }

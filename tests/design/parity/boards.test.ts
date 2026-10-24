@@ -38,7 +38,7 @@ describe("the HostedService board (E10)", () => {
     const before = section?.previousElementSibling;
     return [...(section?.querySelectorAll(".note") ?? []), ...(before?.classList.contains("note") ? [before] : [])]
       .map((note) => note.text)
-      .filter((text) => text.includes("Only with its facts (E10)"));
+      .filter((text) => text.startsWith("Only with its facts (E10"));
   };
 
   it("marks each conditional section with its rule as a note, which parity does not read, and never the answer, what or price", () => {

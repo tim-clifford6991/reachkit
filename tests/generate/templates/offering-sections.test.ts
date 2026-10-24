@@ -31,6 +31,8 @@ afterEach(() => setGenerateStore(null));
 interface Written {
   /** The sections the writer was asked for, by key. */
   asked: string[];
+  /** Each asked section's task, by key. */
+  tasks: Record<string, string>;
   /** How many questions the writer was asked for, at most. */
   faqAsked: number;
   /** The sections the row records, by key, and the questions it stores. */
@@ -51,11 +53,12 @@ async function write({ pack, parts }: OfferingFixture): Promise<Written> {
     facts: FACTS,
     links: [],
   });
-  const input = llmMock.mock.calls[0]![1].input as { template: { sections: { key: string }[]; blocks: { faq: { max: number } } } };
+  const input = llmMock.mock.calls[0]![1].input as { template: { sections: { key: string; task: string }[]; blocks: { faq: { max: number } } } };
   const row = [...store.rows.values()][0]!;
   const meta = row.meta as { sections: { key: string }[]; faq: unknown[] };
   return {
     asked: input.template.sections.map((section) => section.key),
+    tasks: Object.fromEntries(input.template.sections.map((section) => [section.key, section.task])),
     faqAsked: input.template.blocks.faq.max,
     sections: meta.sections.map((section) => section.key),
     faq: meta.faq,
@@ -100,6 +103,18 @@ describe("E10: an offering page draws only the sections its stored facts support
 
   it("a place only the founder gave is no place the business's own pages state", async () => {
     expect((await write(OFFERING_FIXTURES["a plumber whose one place only the founder gave"])).sections).toEqual(without("where_when"));
+  });
+
+  it("where and when asks for the places only, never hours, days or times no stored fact traces", async () => {
+    const task = (await write(OFFERING_FIXTURES["(a) a local plumber with every fact"])).tasks.where_when!;
+    expect(task).toContain("profile.knowledge.places");
+    expect(task.match(/\b(hours?|days?|times?|when|open(ing)? (hours|times))\b/gi)).toBeNull();
+  });
+
+  it("hours the pages state, with no place, open no where and when", async () => {
+    const page = await write(OFFERING_FIXTURES["a plumber whose pages state its hours but no place"]);
+    expect(page.asked).toEqual(without("where_when"));
+    expect(page.sections).toEqual(without("where_when"));
   });
 
   it("one inclusion is no list of what is included", async () => {
