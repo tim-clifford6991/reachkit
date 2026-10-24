@@ -27,7 +27,7 @@
 
 import type React from "react";
 import { useState, useTransition } from "react";
-import { PenLine, X } from "lucide-react";
+import { ArrowRight, Ban, Check, FileText, MailCheck, X } from "lucide-react";
 import { copy } from "@/lib/presentation/copy";
 import { writtenLine } from "../../_shell/written";
 import { saveVoiceAction, saveWritingVoiceAction } from "../change-actions";
@@ -46,7 +46,12 @@ function formWith(entry: string): FormData {
   return form;
 }
 
-export function VoicePanel(p: { settings: SettingsModel }): React.JSX.Element {
+export function VoicePanel(p: {
+  settings: SettingsModel;
+  /** The name the guide voice and the held-back example use; the domain where the site has none. */
+  business?: string | null;
+}): React.JSX.Element {
+  const business = p.business ?? p.settings.domain;
   // Issue 1196: the voice text's own press — it answers, and spins while it
   // is asked, like every other Settings save.
   const [savingVoice, startSavingVoice] = useTransition();
@@ -61,7 +66,7 @@ export function VoicePanel(p: { settings: SettingsModel }): React.JSX.Element {
     });
   }
   // SPEC §7 (owner, 2026-10-10; issue 1390): who speaks on their pages.
-  // Saved as it is chosen: one select, no second press.
+  // Saved as it is chosen: one radio list, no second press.
   const [writing, setWriting] = useState<string>(p.settings.voice.writing ?? WRITING_VOICE_AUTO);
   const [savingWriting, startSavingWriting] = useTransition();
   function chooseWriting(value: string): void {
@@ -97,63 +102,86 @@ export function VoicePanel(p: { settings: SettingsModel }): React.JSX.Element {
   const [text, setText] = useState(p.settings.voice.text);
 
   return (
-    <section className="card card-border min-w-0 bg-base-100">
-      <div className="card-body gap-4">
-        <h2 className="card-title min-w-0 flex-wrap text-base">
-          <PenLine size={20} strokeWidth={1.75} aria-hidden />
-          <span className="min-w-0 wrap-anywhere">{copy("settings.voice.title")}</span>
-          {writer.saved ? (
-            <span className={SAVED_BADGE_CLASS} data-testid="voice-saved">
-              {copy("settings.answer.saved-badge")}
+    <>
+      <section className="card card-border min-w-0 bg-base-100">
+        <div className="card-body gap-4">
+          <h2 className="card-title min-w-0 wrap-anywhere text-base">{copy("settings.voice.title")}</h2>
+          <p className="text-sm text-base-content/70 wrap-anywhere">{copy("settings.voice.lead")}</p>
+          {/* SPEC §5 (2026-09-12): the summary setup showed, stored where
+              drafting reads it. One field and one press. */}
+          <form action={saveVoice} className="flex min-w-0 flex-col gap-3">
+            <label className="flex min-w-0 flex-col gap-1" data-testid="setting-voice_text">
+              <span className="text-sm font-semibold">{copy("settings.content.voice")}</span>
+              <textarea
+                className="textarea h-auto w-full"
+                rows={4}
+                name={VOICE_FIELD}
+                value={text}
+                onChange={(e) => setText(e.target.value)}
+                {...(placeholder === null ? {} : { placeholder })}
+              />
+            </label>
+            <NoteExample />
+            <span>
+              <button type="submit" className="btn btn-soft btn-primary btn-sm" disabled={savingVoice}>
+                {savingVoice ? <span className="loading loading-spinner loading-xs" aria-hidden /> : null}
+                {copy("settings.voice.save")}
+              </button>
             </span>
-          ) : null}
-        </h2>
+          </form>
+        </div>
+      </section>
 
-        {/* SPEC §5 (2026-09-12): the summary setup showed, stored where
-            drafting reads it. One field and one press. */}
-        <form action={saveVoice} className="flex min-w-0 flex-col gap-3">
-          <label className="flex min-w-0 flex-col gap-1" data-testid="setting-voice_text">
-            <span className="text-sm text-base-content/70">{copy("settings.content.voice")}</span>
-            <textarea
-              className="textarea h-auto w-full"
-              rows={4}
-              name={VOICE_FIELD}
-              value={text}
-              onChange={(e) => setText(e.target.value)}
-              {...(placeholder === null ? {} : { placeholder })}
-            />
-          </label>
-          <span>
-            <button type="submit" className="btn btn-soft btn-primary btn-sm" disabled={savingVoice}>
-              {savingVoice ? <span className="loading loading-spinner loading-xs" aria-hidden /> : null}
-              {copy("settings.voice.save")}
-            </button>
-          </span>
-        </form>
+      <section className="card card-border min-w-0 bg-base-100">
+        <div className="card-body gap-4">
+          {/* SPEC §7 (owner, 2026-10-10; issue 1390): who speaks on their pages, saved as it is chosen. */}
+          <fieldset className="flex min-w-0 flex-col gap-3" data-testid="setting-writing_voice" disabled={savingWriting}>
+            <legend className="card-title mb-3 min-w-0 wrap-anywhere text-base">{copy("settings.voice.writing.label")}</legend>
+            <div className="grid min-w-0 grid-cols-1 gap-2 md:grid-cols-2 xl:grid-cols-4">
+              {VOICE_CHOICES.map((choice) => {
+                const chosen = writing === choice.voice;
+                return (
+                  <label
+                    key={choice.voice}
+                    className={`flex min-w-0 cursor-pointer items-start gap-3 rounded-box border p-3 ${
+                      chosen ? "border-primary bg-primary/10" : "border-base-300"
+                    }`}
+                    data-testid={`writing-voice-${choice.voice}`}
+                  >
+                    <input
+                      type="radio"
+                      className="radio radio-primary radio-sm mt-0.5"
+                      name={WRITING_VOICE_FIELD}
+                      value={choice.voice}
+                      checked={chosen}
+                      onChange={() => chooseWriting(choice.voice)}
+                    />
+                    <span className="flex min-w-0 flex-col gap-1 wrap-anywhere">
+                      <span className="text-sm font-semibold">{copy(choice.key)}</span>
+                      <span className="text-sm text-base-content/70">
+                        {choice.voice === "guide" ? copy(choice.example, { business }) : copy(choice.example)}
+                      </span>
+                    </span>
+                  </label>
+                );
+              })}
+            </div>
+          </fieldset>
+          <p className="text-sm text-base-content/70 wrap-anywhere">{copy("settings.voice.writing.note")}</p>
+        </div>
+      </section>
 
-        <label className="border-base-300 flex min-w-0 flex-col gap-1 border-t pt-4" data-testid="setting-writing_voice">
-          <span className="text-sm text-base-content/70">{copy("settings.voice.writing.label")}</span>
-          <select
-            className="select w-full"
-            name={WRITING_VOICE_FIELD}
-            value={writing}
-            disabled={savingWriting}
-            onChange={(e) => chooseWriting(e.target.value)}
-          >
-            <option value={WRITING_VOICE_AUTO}>{copy("settings.voice.writing.auto")}</option>
-            {WRITING_VOICE_OPTIONS.map((option) => (
-              <option key={option.voice} value={option.voice}>
-                {copy(option.key)}
-              </option>
-            ))}
-          </select>
-          <span className="text-xs text-base-content/70 wrap-anywhere">{copy("settings.voice.writing.note")}</span>
-        </label>
-
-        <div className="border-base-300 flex min-w-0 flex-col gap-3 border-t pt-4" data-testid="setting-do_not_claim">
-          <h3 className="text-xs font-semibold uppercase tracking-wide text-base-content/70">
-            {copy("settings.voice.never-claim")}
-          </h3>
+      <section className="card card-border min-w-0 bg-base-100">
+        <div className="card-body gap-4" data-testid="setting-do_not_claim">
+          <h2 className="card-title min-w-0 flex-wrap text-base">
+            <span className="min-w-0 wrap-anywhere">{copy("settings.voice.never-claim")}</span>
+            {writer.saved ? (
+              <span className={SAVED_BADGE_CLASS} data-testid="voice-saved">
+                {copy("settings.answer.saved-badge")}
+              </span>
+            ) : null}
+          </h2>
+          <p className="text-sm text-base-content/70 wrap-anywhere">{copy("settings.voice.never-claim.lead")}</p>
           {/* Each claim with its own way out: a filter the customer cannot
               remove from is not theirs. A claim is a sentence, so it wraps. */}
           <div className="flex min-w-0 flex-wrap gap-2">
@@ -182,7 +210,7 @@ export function VoicePanel(p: { settings: SettingsModel }): React.JSX.Element {
             className="flex min-w-0 flex-wrap items-end gap-2"
           >
             <label className="flex min-w-0 grow flex-col gap-1">
-              <span className="text-sm text-base-content/70">{copy("settings.voice.add-claim")}</span>
+              <span className="text-sm font-semibold">{copy("settings.voice.add-claim")}</span>
               <input
                 className="input w-full"
                 name={CLAIM_FIELD}
@@ -204,10 +232,70 @@ export function VoicePanel(p: { settings: SettingsModel }): React.JSX.Element {
               {copy("settings.voice.add")}
             </button>
           </form>
+          <HeldBackExample business={business} />
+          {filterNote === null ? null : <p className="text-sm text-base-content/70 wrap-anywhere">{filterNote}</p>}
         </div>
+      </section>
+    </>
+  );
+}
 
-        {filterNote === null ? null : <p className="text-xs text-base-content/70 wrap-anywhere">{filterNote}</p>}
+const ICON = { size: 16, strokeWidth: 1.75, "aria-hidden": true } as const;
+
+/** Every voice on offer, ReachKit's own choice first, each with its fixed example sentence. */
+const VOICE_CHOICES = [
+  { voice: WRITING_VOICE_AUTO, key: "settings.voice.writing.auto", example: "settings.voice.writing.auto.example" },
+  ...WRITING_VOICE_OPTIONS,
+] as const;
+
+/** The same paragraph without and with a note: fixed words, labelled as an example. */
+function NoteExample(): React.JSX.Element {
+  return (
+    <figure className="flex min-w-0 flex-col gap-3" data-testid="voice-example">
+      <p className="eyebrow">{copy("settings.voice.example.head")}</p>
+      <div className="grid min-w-0 grid-cols-1 gap-3 md:grid-cols-2">
+        <div className="flex min-w-0 flex-col items-start gap-2 rounded-box bg-base-200 p-4">
+          <span className="badge badge-ghost">{copy("settings.voice.example.without")}</span>
+          <p className="text-sm wrap-anywhere">{copy("settings.voice.example.without.text")}</p>
+        </div>
+        <div className="flex min-w-0 flex-col items-start gap-2 rounded-box border border-primary/30 p-4">
+          <span className="badge badge-soft badge-primary gap-1" data-testid="voice-example-with">
+            <Check {...ICON} />
+            {copy("settings.voice.example.with")}
+          </span>
+          <p className="text-sm wrap-anywhere">{copy("settings.voice.example.with.text")}</p>
+        </div>
       </div>
-    </section>
+      <figcaption className="text-xs text-base-content/70 wrap-anywhere">{copy("settings.voice.example.caption")}</figcaption>
+    </figure>
+  );
+}
+
+/** What happens to a page that says an entry on the list, as one fixed example. */
+function HeldBackExample(p: { business: string }): React.JSX.Element {
+  const label = copy("settings.voice.held.example");
+  return (
+    <figure
+      className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2 rounded-box bg-base-200 p-4 text-sm"
+      aria-label={label}
+      data-testid="voice-held-back"
+    >
+      <span className="flex min-w-0 items-center gap-2">
+        <span className="grid size-8 shrink-0 place-items-center rounded-field bg-base-100 text-base-content/70">
+          <FileText {...ICON} />
+        </span>
+        <span className="min-w-0 wrap-anywhere">{copy("settings.voice.held.quote", { business: p.business })}</span>
+      </span>
+      <ArrowRight {...ICON} className="shrink-0 text-base-content/70" />
+      <span className="badge badge-soft badge-warning h-auto gap-1">
+        <Ban {...ICON} />
+        {copy("settings.voice.held.badge")}
+      </span>
+      <ArrowRight {...ICON} className="shrink-0 text-base-content/70" />
+      <span className="flex min-w-0 items-center gap-2">
+        <MailCheck {...ICON} className="shrink-0 text-primary" />
+        <span className="min-w-0 wrap-anywhere">{copy("settings.voice.held.told")}</span>
+      </span>
+    </figure>
   );
 }

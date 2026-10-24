@@ -411,10 +411,13 @@ describe("REQ-070 c3 — no control over an engine or spend parameter renders", 
 });
 
 describe("E28 — a card title states its subject in words", () => {
-  it("no settings card title carries an icon (E28)", async () => {
-    const root = await mountTab("business");
-    const titles = [...root.querySelectorAll("h2, summary, .card-title")];
-    expect(titles.length).toBeGreaterThanOrEqual(5);
+  it.each([
+    ["business", 5],
+    ["voice", 3],
+  ] as const)("no settings card title carries an icon (E28): %s", async (tab, least) => {
+    const root = await mountTab(tab);
+    const titles = [...root.querySelectorAll("h2, summary, legend, .card-title")];
+    expect(titles.length).toBeGreaterThanOrEqual(least);
     for (const title of titles) expect(title.querySelector("svg")).toBeNull();
   });
 });

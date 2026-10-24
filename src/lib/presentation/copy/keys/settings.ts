@@ -909,7 +909,7 @@ export const SETTINGS_COPY = Object.freeze({
   // REQ-053's own promise, in the set's words: the list is a filter and not
   // a preference, and a draft that matches one is held and named back.
   "settings.voice.filter-note": [
-    "A hard filter on every page. A draft that matches an entry is held and returned to you naming it.",
+    "A page that says one of these is held back and does not go live. We tell you which entry it matched.",
     { slots: {}, fixedBy: "REQ-053" },
   ],
   /** The voice card's save control (SPEC.md §5, 2026-09-12: "the same
@@ -925,9 +925,36 @@ export const SETTINGS_COPY = Object.freeze({
   "settings.voice.writing.guide": ["A neutral guide, naming your business", { slots: {}, fixedBy: "SPEC.md §7 (2026-10-10, issue 1390)" }],
   "settings.voice.writing.short": ["Short answers, 600 to 900 words", { slots: {}, fixedBy: "SPEC.md §7 (2026-10-10, issue 1390)" }],
   "settings.voice.writing.note": [
-    "ReachKit picks the voice that fits your business and each question. Change it here whenever you like; your next page follows it.",
+    "ReachKit picks the voice that fits your business and each question. Change it whenever you like; your next page follows it.",
     { slots: {}, fixedBy: "SPEC.md §7 (2026-10-10, issue 1390)" },
   ],
+  // Board SettingsVoice and E15 (ux-designer, 2026-10-24): fixed example words, one set for every
+  // kind of business, never a model's output and never presented as written for this customer.
+  "settings.voice.lead": ["Describe it in your own words. Every new page follows it.", { slots: {}, fixedBy: "board SettingsVoice" }],
+  "settings.voice.example.head": ["The same paragraph, before and after your note", { slots: {}, fixedBy: "board SettingsVoice" }],
+  "settings.voice.example.without": ["Without a note", { slots: {}, fixedBy: "board SettingsVoice" }],
+  "settings.voice.example.without.text": [
+    "Our team of experienced professionals delivers comprehensive, high-quality solutions tailored to every customer.",
+    { slots: {}, fixedBy: "E15 (ux-designer, 2026-10-24)" },
+  ],
+  "settings.voice.example.with": ["With a note", { slots: {}, fixedBy: "E15 (ux-designer, 2026-10-24)" }],
+  "settings.voice.example.with.text": [
+    "Not sure what you need? Ask us first. You see the full price up front, and we answer the same day.",
+    { slots: {}, fixedBy: "E15 (ux-designer, 2026-10-24)" },
+  ],
+  "settings.voice.example.caption": ["Example. Your next page follows your note.", { slots: {}, fixedBy: "E15 (ux-designer, 2026-10-24)" }],
+  "settings.voice.writing.auto.example": ["Picks the voice that fits each question.", { slots: {}, fixedBy: "board SettingsVoice" }],
+  "settings.voice.writing.ours.example": ["“We answer every question the same day.”", { slots: {}, fixedBy: "E15 (ux-designer, 2026-10-24)" }],
+  "settings.voice.writing.guide.example": [
+    "“{business} answers every question the same day.”",
+    { slots: { business: "text" }, fixedBy: "E15 (ux-designer, 2026-10-24)" },
+  ],
+  "settings.voice.writing.short.example": ["“A quick answer first, then only what you need.”", { slots: {}, fixedBy: "board SettingsVoice" }],
+  "settings.voice.never-claim.lead": ["Things your pages must never say. Checked on every page.", { slots: {}, fixedBy: "board SettingsVoice" }],
+  "settings.voice.held.example": ["Example: a page that makes a claim on your list", { slots: {}, fixedBy: "board SettingsVoice" }],
+  "settings.voice.held.quote": ["“{business} is the cheapest in town.”", { slots: { business: "text" }, fixedBy: "E15 (ux-designer, 2026-10-24)" }],
+  "settings.voice.held.badge": ["Held back, not live", { slots: {}, fixedBy: "board SettingsVoice" }],
+  "settings.voice.held.told": ["You’re told it matched “Cheapest in town”", { slots: {}, fixedBy: "E15 (ux-designer, 2026-10-24)" }],
   "settings.voice.placeholder": ["Plain and direct. Short sentences. We say “customers”, never “users”.", { slots: {}, fixedBy: "REQ-055" }],
 
   // REQ-075's own promise, and the reason the three switches above it are
@@ -946,7 +973,7 @@ export const SETTINGS_COPY = Object.freeze({
   // naming which one failed tells the customer nothing they can act on. The
   // sentence is the owner's; the key and the single-line shape are not.
   "export.failed": ["The export couldn’t be produced just now. Nothing partial was sent. Try again in a moment.", { slots: {}, fixedBy: "REQ-078 c5" }],
-  "settings.content.voice": ["Brand voice", { slots: {}, fixedBy: "BUILD §8 rule 7" }],
+  "settings.content.voice": ["Your note", { slots: {}, fixedBy: "BUILD §8 rule 7" }],
 
 
   // ── SPEC §7 (2026-09-20, #928): "Content we already know about" (R4-11).
