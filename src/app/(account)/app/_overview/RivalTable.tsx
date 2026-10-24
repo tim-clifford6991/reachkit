@@ -83,7 +83,12 @@ function WinnerCell(p: { row: RivalSearchRow }): React.JSX.Element {
   );
 }
 
-export function RivalTable(p: { model: RivalsModel }): React.JSX.Element {
+export function RivalTable(p: {
+  model: RivalsModel;
+  /** Plan's page or update for a row's search this week, by search; the status word elsewhere. */
+  doing: Readonly<Record<string, string>>;
+}): React.JSX.Element {
+  const { doing } = p;
   const [rival, setRival] = useQueryState(RIVAL, parseAsString.withDefault(ALL_RIVALS));
   const [showAll, setShowAll] = useState(false);
 
@@ -143,16 +148,19 @@ export function RivalTable(p: { model: RivalsModel }): React.JSX.Element {
       column.accessor((row) => row.status, {
         id: "doing",
         header: () => copy(RIVAL_COLUMN_COPY_KEY.doing),
-        cell: (ctx) => (
-          <span
-            className={`${RIVAL_STATUS_BADGE[ctx.getValue()]} h-auto whitespace-normal sm:whitespace-nowrap`}
-          >
-            {copy(RIVAL_STATUS_COPY_KEY[ctx.getValue()])}
-          </span>
-        ),
+        cell: (ctx) => {
+          const planned = doing[ctx.row.original.search];
+          return (
+            <span
+              className={`${planned === undefined ? RIVAL_STATUS_BADGE[ctx.getValue()] : "badge badge-primary badge-soft"} h-auto whitespace-normal sm:whitespace-nowrap`}
+            >
+              {planned ?? copy(RIVAL_STATUS_COPY_KEY[ctx.getValue()])}
+            </span>
+          );
+        },
       }),
     ],
-    []
+    [doing]
   );
 
   // The library takes a mutable array; the model hands out a readonly one,
@@ -224,10 +232,13 @@ export function RivalTable(p: { model: RivalsModel }): React.JSX.Element {
             state in which no chip is chosen, which is what the component
             already means by unchecked. Its accessible name is still the
             registry's word; the × over it is daisyUI's own. */}
+        <span id="rivals-filter-label" className="text-xs font-semibold text-base-content/70">
+          {copy("overview.rivals.filter.label")}
+        </span>
         <div
           className="filter"
           role="radiogroup"
-          aria-label={copy("overview.rivals.filter.label")}
+          aria-labelledby="rivals-filter-label"
           data-testid="rivals-filters"
         >
           <input

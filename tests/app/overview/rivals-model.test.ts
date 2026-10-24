@@ -3,7 +3,7 @@
 //
 // The model is pure over its facts, so the rules worth holding are held
 // here rather than read off a render: the screen's one order, the chips'
-// counts, both counting cards' denominators, and REQ-004 — a reading nobody
+// counts, the cards' denominators, and REQ-004 — a reading nobody
 // took never becomes a zero, and a card the pass never reached draws no
 // bars at all.
 import { describe, expect, it } from "vitest";
@@ -47,12 +47,7 @@ function facts(over: Partial<RivalsFacts> = {}): RivalsFacts {
       [OWN, 2],
     ]),
     firstPageOf: 12,
-    named: new Map([
-      [BIG, 14],
-      [SMALL, 9],
-      [OWN, 3],
-    ]),
-    namedOf: 36,
+    top: { holders: new Map([[BIG, 5], [SMALL, 3], ["a.example", 1], ["b.example", 1], ["c.example", 1], [OWN, 1]]), of: 12, searches: [] },
     firstPageAtStart: 1,
     firstPageHolders: [],
     pool: [],
@@ -71,9 +66,8 @@ describe("the two counting cards", () => {
 
   it("counts each card over what was measured, not over what was asked for", () => {
     // Nine of the twelve could be read; the bars are drawn against nine.
-    const model = assembleRivals(facts({ firstPageOf: 9, namedOf: 27 }));
+    const model = assembleRivals(facts({ firstPageOf: 9 }));
     expect(model.firstPage.of).toBe(9);
-    expect(model.named.of).toBe(27);
   });
 
   it("gives a domain the pass never saw a counted zero, not a gap", () => {
@@ -94,6 +88,18 @@ describe("the two counting cards", () => {
   });
 });
 
+describe("who your buyers see first", () => {
+  it("names the top result's holders, most first, folds the rest into others, and counts the customer apart", () => {
+    const { top } = assembleRivals(facts());
+    expect(top.holders.map((row) => [row.domain, row.count])).toEqual([[BIG, 5], [SMALL, 3], ["a.example", 1], ["b.example", 1]]);
+    expect([top.others, top.you, top.of]).toEqual([1, 1, 12]);
+  });
+
+  it("the customer holding none is a counted zero, not a gap", () => {
+    expect(assembleRivals(facts({ top: { holders: new Map([[BIG, 12]]), of: 12, searches: [] } })).top.you).toBe(0);
+  });
+});
+
 // SPEC §4 (2026-10-09, issue 1365).
 describe("a rival counted nowhere", () => {
   it("a measured card on which no rival was counted says so, and names who holds those first pages", () => {
@@ -102,31 +108,10 @@ describe("a rival counted nowhere", () => {
     );
     expect(model.firstPage.noRival).toBe(true);
     expect(model.firstPageHolders).toEqual(["holder.example", "other.example"]);
-    // The other card counted them, so it draws its bars and nobody is unseen.
-    expect(model.named.noRival).toBe(false);
-    expect(model.unseen).toEqual([]);
   });
 
   it("names the holders only where no rival is on a first page", () => {
     expect(assembleRivals(facts({ firstPageHolders: ["holder.example"] })).firstPageHolders).toEqual([]);
-  });
-
-  it("names the rival neither card counted, beside one that was", () => {
-    const model = assembleRivals(facts({ firstPage: new Map([[BIG, 4]]), named: new Map([[BIG, 2]]) }));
-    expect(model.firstPage.noRival).toBe(false);
-    expect(model.unseen).toEqual([SMALL]);
-  });
-
-  it("leaves that line out where both cards already say it of every rival", () => {
-    const model = assembleRivals(facts({ firstPage: new Map(), named: new Map() }));
-    expect(model.firstPage.noRival && model.named.noRival).toBe(true);
-    expect(model.unseen).toEqual([]);
-  });
-
-  it("a card that was not measured says nothing of a rival", () => {
-    const model = assembleRivals(facts({ firstPageOf: 0, firstPage: new Map(), named: new Map([[BIG, 2]]) }));
-    expect(model.firstPage.noRival).toBe(false);
-    expect(model.unseen).toEqual([SMALL]);
   });
 });
 

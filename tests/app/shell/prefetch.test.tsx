@@ -99,13 +99,14 @@ describe("SPEC §4 (2026-10-08) — a link to another screen of the app prefetch
   it("Rivals' way through to AI answers", () => {
     const drawn = anchors(
       <RivalPresence
+        top={RIVALS.top}
+        topLine=""
         firstPage={RIVALS.firstPage}
-        named={RIVALS.named}
         startedLine={null}
-        enginesLine="Google AI Overview"
+        named={RIVALS.firstPage}
+        namedLead=""
         noRivalOnFirstPage=""
         noRivalNamed=""
-        unseenLine={null}
         answersHref={TAB_HREF.ai_answers}
       />
     );
