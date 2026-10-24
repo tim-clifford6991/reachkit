@@ -37,7 +37,7 @@ export interface StepFigure {
   line: CopyKey;
   /** Pages that reached it; `null` where no page it can be read on was read. */
   count: number | null;
-  /** The pages it can be read on. */
+  /** The pages it can be read on that have a reading; "live" counts every live page. */
   of: number;
 }
 
@@ -64,6 +64,8 @@ export interface PageLadder {
   live: number;
   /** The newest reading's instant; `null` where no page was read. */
   readAt: Date | null;
+  /** Live pages with no reading yet, so a step's `of` can sit below `live`. */
+  unread: number;
   google: StepFigure[];
   ai: StepFigure[];
   climbing: number;
@@ -84,7 +86,7 @@ function figures(defs: readonly StepDef[], pages: readonly PublishedPage[]): Ste
     if (on.length === 0) return [];
     const read = def.step === "live" ? on : on.filter((page) => page.reading != null);
     const count = read.length === 0 ? null : read.filter((page) => reached(page, def.step)).length;
-    return [{ n: i + 1, name: def.name, line: def.line, count, of: on.length }];
+    return [{ n: i + 1, name: def.name, line: def.line, count, of: read.length }];
   });
 }
 
@@ -111,6 +113,7 @@ export function pageLadderOf(all: readonly PublishedPage[], now: Date, visits: n
   return {
     live: pages.length,
     readAt: readings.length === 0 ? null : new Date(Math.max(...readings.map((r) => Date.parse(r.at)))),
+    unread: pages.length - readings.length,
     google,
     ai,
     climbing: readings.filter((r) => verdict(r, now) === "climbing").length,
