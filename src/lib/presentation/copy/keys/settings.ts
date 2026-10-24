@@ -112,6 +112,29 @@ export const SETTINGS_COPY = Object.freeze({
      them (`setup.profile.purpose.*`) and so is the line above them
      (`setup.profile.purposes`). A second spelling of a word the product
      already says is a second place to change it. */
+  // The strip above the card: what this tab does to a page, in three steps.
+  "settings.business.flow.head": ["How this tab shapes your pages", { slots: {}, fixedBy: "issue 1750 (drafted)" }],
+  "settings.business.flow.read": ["We read your site", { slots: {}, fixedBy: "issue 1750 (drafted)" }],
+  "settings.business.flow.read.detail": [
+    "{count} pages of your site, last on {on}",
+    { slots: { count: "text", on: "date" }, fixedBy: "issue 1750 (drafted)" },
+  ],
+  "settings.business.flow.check": ["You check what we learned", { slots: {}, fixedBy: "issue 1750 (drafted)" }],
+  "settings.business.flow.check.detail": ["Change any line below. Nothing here is required.", { slots: {}, fixedBy: "issue 1750 (drafted)" }],
+  "settings.business.flow.write": ["Every page is written from it", { slots: {}, fixedBy: "issue 1750 (drafted)" }],
+  "settings.business.flow.write.next": [
+    "Next: {when}.",
+    { slots: { when: "date" }, fixedBy: "issue 1750 (drafted)" },
+  ],
+  "settings.business.flow.plan": ["See the plan", { slots: {}, fixedBy: "issue 1750 (drafted)" }],
+  // One sentence quoted from a live page, and which of the lists it uses.
+  "settings.business.example.head": ["How it shows on a page", { slots: {}, fixedBy: "issue 1750 (drafted)" }],
+  "settings.business.example.from.claims": ["from What you promise", { slots: {}, fixedBy: "issue 1750 (drafted)" }],
+  "settings.business.example.from.vocabulary": ["from Words you use", { slots: {}, fixedBy: "issue 1750 (drafted)" }],
+  "settings.business.example.from.both": ["from What you promise and Words you use", { slots: {}, fixedBy: "issue 1750 (drafted)" }],
+  "settings.business.example.note": ["Example. Change a line above and your next page follows it.", { slots: {}, fixedBy: "issue 1750 (drafted)" }],
+  // The three folds under the card, named for a screen reader.
+  "settings.business.more": ["More about your business", { slots: {}, fixedBy: "issue 1750 (drafted)" }],
   "settings.business.title": [
     "What we know about {business}",
     { slots: { business: "text" }, fixedBy: "SPEC §7 2026-09-20" },
@@ -195,9 +218,12 @@ export const SETTINGS_COPY = Object.freeze({
   // How many of the site's pages carry the passage. Two keys, because the
   // unit is a word with a plural and "1 pages" is not a sentence the
   // product says.
-  "settings.business.facts.one-page": ["1 page", { slots: {}, fixedBy: "SPEC §7 2026-09-20" }],
+  "settings.business.facts.quote": [
+    "“{passage}”",
+    { slots: { passage: "text" }, fixedBy: "issue 1750 (drafted)" },
+  ],
   "settings.business.facts.pages": [
-    "{count} pages",
+    "· on {count} pages",
     { slots: { count: "text" }, fixedBy: "SPEC §7 2026-09-20" },
   ],
   "settings.business.facts.switch-off": [
@@ -253,21 +279,26 @@ export const SETTINGS_COPY = Object.freeze({
     "Not read yet",
     { slots: {}, fixedBy: "SPEC §7 2026-09-20" },
   ],
-  "settings.business.pages-read": [
-    "{count} pages read",
-    { slots: { count: "text" }, fixedBy: "SPEC §7 2026-09-20" },
+  "settings.business.read-line": [
+    "Last read {on} · {count} pages read",
+    { slots: { on: "date", count: "text" }, fixedBy: "issue 1750 (drafted)" },
   ],
   // SPEC §0 and §5 (2026-09-29, issue 1133): the knowledge base — what the
   // pages were read to say, each with its page, and the founder's five
   // answers. Every line is drafted for the owner; the five questions
   // themselves are `setup.business.question.*`.
   "settings.knowledge.title": [
-    "What we know about your business",
+    "What buyers ask and why you",
     { slots: {}, fixedBy: "issue 1133 (drafted)" },
   ],
   "settings.knowledge.lead": [
     "Read from your own pages, each with the page it came from. Your pages are written from this.",
     { slots: {}, fixedBy: "issue 1133 (drafted)" },
+  ],
+  "settings.knowledge.things.lead": ["Optional. Each one you add can appear on a page.", { slots: {}, fixedBy: "issue 1750 (drafted)" }],
+  "settings.knowledge.thing": [
+    "Thing {n}",
+    { slots: { n: "text" }, fixedBy: "issue 1750 (drafted)" },
   ],
   "settings.knowledge.none": [
     "Nothing read yet. Read your site again and this fills in.",
@@ -952,7 +983,8 @@ export const SETTINGS_COPY = Object.freeze({
     "Nothing yet. We read your site on Monday, and your blog the moment you connect one.",
     { slots: {}, fixedBy: "SPEC §7 2026-09-20" },
   ],
-  "settings.known.ours": ["pages we wrote", { slots: {}, fixedBy: "SPEC §7 2026-09-20" }],
-  "settings.known.wordpress": ["posts on your blog", { slots: {}, fixedBy: "SPEC §7 2026-09-20" }],
-  "settings.known.site": ["pages on your site", { slots: {}, fixedBy: "SPEC §7 2026-09-20" }],
+  "settings.known.ours": ["{count} pages we wrote", { slots: { count: "text" }, fixedBy: "issue 1750 (drafted)" }],
+  "settings.known.wordpress": ["{count} posts on your blog", { slots: { count: "text" }, fixedBy: "issue 1750 (drafted)" }],
+  "settings.known.wordpress.unread": ["Posts on your blog: not read", { slots: {}, fixedBy: "issue 1750 (drafted)" }],
+  "settings.known.site": ["{count} pages on your site", { slots: { count: "text" }, fixedBy: "issue 1750 (drafted)" }],
 }) satisfies CopyPartition;

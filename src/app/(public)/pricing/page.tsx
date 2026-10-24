@@ -16,7 +16,20 @@
 // for the launch gate (owner 2026-10-20, Q13).
 import React, { use } from "react";
 import type { Metadata } from "next";
-import { Check, CircleCheck, CircleStop, Clock, Mail, Pencil, X } from "lucide-react";
+import {
+  Check,
+  CircleCheck,
+  CircleStop,
+  Clock,
+  Eye,
+  Inbox,
+  Mail,
+  Pencil,
+  Search,
+  Timer,
+  TrendingUp,
+  X,
+} from "lucide-react";
 import { Surface } from "@/ui/layout";
 import { HOSTED_RETENTION_DAYS, VETO, WEEK_PLAN } from "@/lib/config/constants";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
@@ -244,12 +257,13 @@ const FROM_WEEK_ONE: readonly CopyKey[] = [
 
 function FromWeekOne(): React.JSX.Element {
   const steps = [
-    { at: copy("pricing.months.day1.at"), what: copy("pricing.months.day1.what", { minutes: F.setupMinutes }) },
-    { at: copy("pricing.months.day2.at"), what: copy("pricing.months.day2.what") },
-    { at: copy("pricing.months.monday.at"), what: copy("pricing.months.monday.what") },
-    ...(["found", "showing", "top"] as const).map((step) => ({
+    { at: copy("pricing.months.day1.at"), what: copy("pricing.months.day1.what", { minutes: F.setupMinutes }), icon: Timer },
+    { at: copy("pricing.months.day2.at"), what: copy("pricing.months.day2.what"), icon: CircleCheck },
+    { at: copy("pricing.months.monday.at"), what: copy("pricing.months.monday.what"), icon: Inbox },
+    ...([["found", Search], ["showing", Eye], ["top", TrendingUp]] as const).map(([step, icon]) => ({
       at: copy(`how.when.${step}.at`),
       what: copy(`how.when.${step}.what`),
+      icon,
     })),
   ];
   return (

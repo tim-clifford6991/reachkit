@@ -18,6 +18,7 @@ import type { Label } from "@/lib/opportunities/verdicts/types";
 import type { AnswerEngine } from "@/lib/opportunities/types";
 import { PlaceLine } from "@/ui/charts/PlaceLine";
 import { formatCount, formatDate } from "../../_shell/format";
+import { LabelBadge } from "../../_shell/verdict";
 import { ENGINE_LABEL } from "../../_shell/page-target-words";
 import { TakeDownControl } from "../../calendar/TakeDown";
 import { putBackWords, stopWords } from "../../calendar/take-down-words";
@@ -25,13 +26,6 @@ import type { DraftView, LiveFacts } from "./model";
 import { PublishedPageView } from "./PublishedPageView";
 import { NOTE } from "./ReviewCards";
 import { WhyThisPage } from "./TargetBlock";
-
-const LABEL: Readonly<Record<Label, { key: CopyKey; badge: string }>> = {
-  working: { key: "review.label.working", badge: "badge badge-soft badge-success" },
-  climbing: { key: "review.label.climbing", badge: "badge badge-soft badge-primary" },
-  too_early: { key: "review.label.too_early", badge: "badge badge-soft" },
-  not_moving: { key: "review.label.not_moving", badge: "badge badge-soft badge-warning" },
-};
 
 const NEXT: Readonly<Record<Label, CopyKey>> = {
   working: "draft.next.working",
@@ -214,7 +208,6 @@ export function LivePage(p: { view: DraftView; live: LiveFacts; onEdit: () => vo
   const { view, live } = p;
   const standing = view.takeDown;
   const stopped = standing?.kind === "stopped";
-  const label = live.label === null ? null : LABEL[live.label];
   return (
     <div className="flex min-w-0 flex-col gap-6" data-testid="draft-view">
       <nav data-testid="draft-back">
@@ -236,7 +229,7 @@ export function LivePage(p: { view: DraftView; live: LiveFacts; onEdit: () => vo
           ) : (
             <span className="badge badge-soft badge-success">{copy("draft.live.since", { date: formatDate(live.since, view.timeZone) })}</span>
           )}
-          <span className={label?.badge ?? "badge badge-ghost"}>{copy(label?.key ?? "review.label.unmeasured")}</span>
+          {live.label === null ? <span className="badge badge-ghost">{copy("review.label.unmeasured")}</span> : <LabelBadge label={live.label} />}
         </p>
         {stopped ? null : (
           <a href={live.url} target="_blank" rel="noopener" className="link link-hover num min-w-0 wrap-anywhere" data-testid="live-address">

@@ -20,10 +20,10 @@
 // daisyUI in the route: `collapse` ringed in the theme primary, `card`,
 // `badge`, `input`, `btn`; lucide for the head glyph at stroke 1.75.
 import type React from "react";
-import { FileText, Link2 } from "lucide-react";
+import { Gift, Link2 } from "lucide-react";
 import { NURTURE_MAX_TOUCHES } from "@/lib/config/constants";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
-import { fromStored, renderGenerated } from "@/lib/presentation/generated";
+import { fromStored, renderGenerated, renderQuestion, type GeneratedText } from "@/lib/presentation/generated";
 import { inlineText, parseMarkdown, type Inline } from "@/lib/publish/render/markdown";
 import type { FreePageSection } from "@/lib/scan/report";
 import type { CanonicalDomain } from "@/lib/scan/domain";
@@ -45,13 +45,16 @@ const FORMAT_LINE: Readonly<Record<string, CopyKey>> = Object.freeze({
   keyword_page: "free-page.format.keyword_page",
 });
 
-function Head(p: { right?: React.ReactNode }): React.JSX.Element {
+function Head(p: { right?: React.ReactNode; subtitle?: React.ReactNode }): React.JSX.Element {
   return (
-    <div className="flex flex-wrap items-center gap-2">
-      <p className="eyebrow flex items-center gap-2">
-        <FileText size={14} strokeWidth={1.75} aria-hidden />
-        {copy("free-page.title")}
-      </p>
+    <div className="flex flex-wrap items-center gap-3">
+      <span aria-hidden className="rounded-field grid size-9 shrink-0 place-items-center bg-base-200">
+        <Gift className="size-5" strokeWidth={1.75} />
+      </span>
+      <div className="min-w-0">
+        <h2 className="text-2xl font-bold">{copy("free-page.title")}</h2>
+        {p.subtitle ?? null}
+      </div>
       {p.right ?? null}
     </div>
   );
@@ -176,6 +179,8 @@ function FirstLines(p: { address: string; title: string; lines: Line[]; label: s
 
 export function FreePageCard(p: {
   section: FreePageSection;
+  /** The stored question phrased from the page's search, where the report holds one. */
+  question: GeneratedText | null;
   scanId: string;
   domain: string;
   written?: WrittenPage;
@@ -202,6 +207,8 @@ export function FreePageCard(p: {
   const slug = renderGenerated(section.slug, written ?? proposed);
   const address = `${p.domain}/${slug.text}`;
   const body = written === null ? null : renderGenerated(written.body, written);
+  // REQ-093: the subtitle is the buyer's stored question beside its search, never the model's title.
+  const asked = p.question === null ? null : renderQuestion({ wording: p.question, provenance: section.target.keyword });
 
   return (
     // Board `R12-2-Report` (#1068): the proposal on the left, the one field
@@ -215,7 +222,15 @@ export function FreePageCard(p: {
       data-testid="report-first-page"
     >
       <summary className="collapse-title">
-        <Head right={<span className="badge badge-soft badge-primary badge-sm">{copy("free-page.badge")}</span>} />
+        <Head
+          right={<span className="badge badge-soft badge-primary badge-sm">{copy("free-page.badge")}</span>}
+          subtitle={
+            <p className="text-base-content/70 flex flex-wrap gap-x-2 text-sm font-normal">
+              {asked === null ? <Num phrase>{section.target.keyword}</Num> : <span>{asked[0].text}</span>}
+              {asked === null ? null : <Num phrase>{asked[1].text}</Num>}
+            </p>
+          }
+        />
       </summary>
       <div
         id="first-page"
