@@ -42,6 +42,9 @@ import type { AddressControl, AddressNotice } from "@/app/(public)/scan/[domain]
 import type { CanonicalDomain } from "@/lib/scan/domain";
 import type { CorrectionOffer } from "@/lib/market/coherence/offer";
 import type { StoredReport } from "@/lib/scan/report";
+import { parse, type HTMLElement } from "node-html-parser";
+import { WhatWeRead } from "@/app/_business/WhatWeRead";
+import { understandBusiness } from "@/lib/business/understanding";
 
 
 function render(
@@ -766,5 +769,35 @@ describe("issue #785 — the report's offer begins checkout, and states a refusa
     );
     expect(count(refused, "offer.checkout.refused")).toBe(1);
     expect(render(FIXTURE_REPORT)).not.toContain("offer.checkout.refused");
+  });
+});
+
+describe("board PubReport — each section under \"Everything else\" opens with its icon", () => {
+  const page = parse(render(FIXTURE_REPORT));
+
+  /** The icon inside `head`, and only where it sits in a decorative tile. */
+  function tiled(head: HTMLElement | null, icon: string): HTMLElement | null {
+    const svg = head?.querySelector(`svg.lucide-${icon}`) ?? null;
+    return svg?.parentNode?.getAttribute("aria-hidden") === "true" ? svg : null;
+  }
+
+  it("each closed section opens with its board icon", () => {
+    expect(tiled(page.querySelector("#holds > summary"), "wrench")).not.toBeNull();
+    expect(tiled(page.querySelector("#method > summary"), "list-checks")).not.toBeNull();
+    expect(tiled(page.querySelector('[data-testid="what-we-read"] .card-body'), "globe")).not.toBeNull();
+    expect(tiled(page.querySelector('[data-testid="report-first-page"] > summary'), "gift")).not.toBeNull();
+  });
+
+  it("the holds subtitle reads while closed", () => {
+    const summary = page.querySelector("#holds > summary");
+    expect(summary?.querySelector("h2 + p")?.text).toBe("problem.section.sub");
+    expect(page.querySelector("#holds > .collapse-content")?.text).not.toContain("problem.section.sub");
+    expect(page.toString().split("problem.section.sub")).toHaveLength(2);
+  });
+
+  it("What we read draws no tile where the caller does not ask for one", () => {
+    const understanding = understandBusiness({ domain: "flixbus.de", profile: null, locale: { country: "DE", language: "de" }, alsoServes: 0 });
+    const card = parse(renderToStaticMarkup(React.createElement(WhatWeRead, { understanding, editHref: "/app/settings/business" })));
+    expect(card.querySelector("svg.lucide-globe")).toBeNull();
   });
 });

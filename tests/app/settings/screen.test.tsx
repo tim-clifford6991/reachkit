@@ -394,16 +394,28 @@ describe("REQ-070 c3 — no control over an engine or spend parameter renders", 
 
   it("and none is hidden behind a flag — a folded control is still an offered one", async () => {
     const root = await mountScreen();
-    // The boards fold two sections (the danger zone, Billing's detail), and a
-    // closed fold keeps its controls in the document: every control counted
-    // above exists, and no `hidden` subtree withholds one from the count.
+    // The boards fold the danger zone, Billing's detail and Your business's
+    // three cards, and a closed fold keeps its controls in the document: every
+    // control counted above exists, and no `hidden` subtree withholds one.
     expect([...root.querySelectorAll("details")].map((d) => d.getAttribute("data-testid")).sort()).toEqual([
       "billing-month-detail",
+      "settings-business-facts",
+      "settings-business-knowledge",
       "settings-danger",
+      "settings-known-content",
     ]);
     expect(root.querySelector('details[data-testid="settings-danger"] [data-testid="confirm-delete_account"] button')).not.toBeNull();
     expect(root.querySelectorAll("[hidden]")).toHaveLength(0);
     expect(root.querySelectorAll('[data-testid^="setting-"]')).toHaveLength(SETTABLE.length);
+  });
+});
+
+describe("E28 — a card title states its subject in words", () => {
+  it("no settings card title carries an icon (E28)", async () => {
+    const root = await mountTab("business");
+    const titles = [...root.querySelectorAll("h2, summary, .card-title")];
+    expect(titles.length).toBeGreaterThanOrEqual(5);
+    for (const title of titles) expect(title.querySelector("svg")).toBeNull();
   });
 });
 

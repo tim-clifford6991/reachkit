@@ -11,8 +11,8 @@
 // came from, and let them refuse it. Nothing here is generated and nothing
 // is paraphrased.
 //
-// daisyUI in the route: `card`, `list`, `list-row`, `badge`, `btn`, `link`.
-// No library added.
+// daisyUI in the route: `collapse`, `list`, `list-row`, `badge`, `btn`,
+// `link`. A fold, as the board draws it. No library added.
 //
 // **A passage is prose, so it wraps; it is never a scroller.** A quoted
 // sentence can run to a paragraph, and the one thing that must not happen to
@@ -28,7 +28,6 @@
 "use client";
 
 import type React from "react";
-import { Quote } from "lucide-react";
 import { copy } from "@/lib/presentation/copy";
 import type { QuotableFact } from "@/lib/site-profile/business/types";
 import {
@@ -39,15 +38,6 @@ import {
   BUSINESS_FACT_FIELD,
 } from "../panel-state";
 import { SAVED_BADGE_CLASS, useSetting } from "./useSetting";
-
-/** How many of the site's pages carry this passage. Two keys, because the
- *  unit is a word with a plural: "1 pages" is not a sentence the product
- *  says, and a count slot cannot fix that by itself. */
-function pagesLine(pages: number): string {
-  return pages === 1
-    ? copy("settings.business.facts.one-page")
-    : copy("settings.business.facts.pages", { count: String(pages) });
-}
 
 /** The page an address belongs to, as a reader reads it: the path, or the
  *  host where the path is the root. Not a second copy of the URL — the
@@ -77,7 +67,11 @@ function Fact(p: {
     >
       <div className="flex min-w-0 grow flex-col gap-1">
         <p className={`min-w-0 wrap-anywhere ${fact.on ? "" : "text-base-content/70 line-through"}`}>
-          {fact.passage}
+          {copy("settings.business.facts.quote", { passage: fact.passage })}
+          {/* One page is its link alone; more say how many. */}
+          {fact.pages > 1 ? (
+            <span className="text-base-content/70"> {copy("settings.business.facts.pages", { count: String(fact.pages) })}</span>
+          ) : null}
         </p>
         <span className="flex min-w-0 flex-wrap items-center gap-2 text-xs">
           <a
@@ -88,7 +82,6 @@ function Fact(p: {
           >
             {shortAddress(fact.url)}
           </a>
-          <span className="text-base-content/70">{pagesLine(fact.pages)}</span>
           {fact.on ? null : (
             <span className="badge badge-ghost badge-sm">
               {copy("settings.business.facts.off")}
@@ -129,17 +122,10 @@ export function FactsPanel(p: { facts: readonly QuotableFact[] }): React.JSX.Ele
   const writer = useSetting();
 
   return (
-    <section className="card card-border min-w-0 bg-base-100" data-testid="settings-business-facts">
-      <div className="card-body gap-4">
-        <div className="flex min-w-0 flex-wrap items-center justify-between gap-2">
-          <h2 className="card-title min-w-0 flex-wrap text-base">
-            <Quote size={20} strokeWidth={1.75} aria-hidden />
-            {copy("settings.business.facts.title")}
-          </h2>
-          {writer.saved ? (
-            <span className={SAVED_BADGE_CLASS}>{copy("settings.answer.saved-badge")}</span>
-          ) : null}
-        </div>
+    <details className="collapse collapse-arrow card-border min-w-0 bg-base-100" data-testid="settings-business-facts">
+      <summary className="collapse-title font-semibold">{copy("settings.business.facts.title")}</summary>
+      <div className="collapse-content flex min-w-0 flex-col gap-4">
+        {writer.saved ? <span className={SAVED_BADGE_CLASS}>{copy("settings.answer.saved-badge")}</span> : null}
         <p className="text-sm text-base-content/70 wrap-anywhere">
           {copy("settings.business.facts.lead")}
         </p>
@@ -156,6 +142,6 @@ export function FactsPanel(p: { facts: readonly QuotableFact[] }): React.JSX.Ele
           </ul>
         )}
       </div>
-    </section>
+    </details>
   );
 }
