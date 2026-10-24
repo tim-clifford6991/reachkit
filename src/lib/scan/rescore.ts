@@ -23,7 +23,7 @@
 // again from the answer's stored text (`statementsOf`), so a stored report
 // carries it without a new pass.
 import { retrofitReading, type Retrofit } from "@/lib/business/retrofit";
-import { aiPresenceOf, aiPresenceRangeOf, aiSampleOf, classifyReferences, foundationsOf, searchPresenceOf } from "@/lib/measure/drivers";
+import { aiPresenceOf, aiPresenceRangeOf, aiSampleOf, classifyReferences, foundationsOf, searchPresenceOf, searchPresenceRangeOf } from "@/lib/measure/drivers";
 import { isProtectionName } from "@/lib/measure/challenge";
 import { contentOf, detectPricingUrl, measuredPagesOf, storedFactsOf } from "@/lib/measure/pages";
 import { isStoredDocument } from "@/lib/measure/own-fetch";
@@ -414,6 +414,7 @@ export function rescoreScan(scan: RescoreScan): Rescored {
     inputs,
     robots,
     aiRange: aiPresenceRangeOf(aiSample),
+    searchRange: searchPresenceRangeOf(cards.presence),
     searchesRead: aiSample.read,
     ...(presence === undefined ? {} : { presence }),
   });
