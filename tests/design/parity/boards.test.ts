@@ -5,11 +5,11 @@ import { describe, expect, it } from "vitest";
 import { parse } from "node-html-parser";
 import { boardIcons, readIcons } from "../../../scripts/design/components.mjs";
 import { BOARDS_DIR, PARITY_DIR, boardFile, segments } from "../../../scripts/design/parity.mjs";
-import { renderProblem } from "../../ui/layout/state-parity";
+import { chromeProblem, renderProblem } from "../../ui/layout/state-parity";
 
 const rows = JSON.parse(readFileSync(path.join(PARITY_DIR, "boards.json"), "utf8")) as Record<
   string,
-  { read: string; paths?: string[]; render?: string }
+  { read: string; paths?: string[]; render?: string; chrome?: string }
 >;
 const boards = readdirSync(BOARDS_DIR)
   .filter((f) => f.endsWith(".dc.html"))
@@ -37,6 +37,12 @@ describe("docs/design/parity/boards.json", () => {
     expect(renderProblem("OptOut", {})).toContain("no \"render\"");
     expect(renderProblem("OptOut", { render: "tests/app/opt-out/gone.test.tsx" })).toContain("does not exist");
     expect(renderProblem("Veto", { render: "tests/app/opt-out/board.test.tsx" })).toContain('never calls expectStateParity("Veto"');
+  });
+
+  it("names, for each state row under (public), the page board whose header and footer it draws", () => {
+    expect(Object.entries(rows).map(([board, row]) => chromeProblem(board, row)).filter(Boolean)).toEqual([]);
+    expect(chromeProblem("Veto", { read: "state", render: "tests/app/veto/page.test.tsx" })).toContain('no "chrome"');
+    expect(chromeProblem("SetupZone", { read: "state", render: "tests/app/setup/connect-board.test.tsx" })).toBeNull();
   });
 });
 
