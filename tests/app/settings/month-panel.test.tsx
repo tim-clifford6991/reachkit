@@ -110,3 +110,13 @@ it("a month that could not be read says so, with no figure", () => {
   expect(doc.querySelector('[data-testid="billing-month-live"]')).toBeNull();
   expect(doc.body.textContent).not.toMatch(/\d/);
 });
+
+it("month tiles carry their icons in board order, and an unmeasured figure still shows its words", () => {
+  const icons = (doc: Document) =>
+    [...doc.querySelectorAll("ul > li[data-testid]")].map((li) => [...(li.querySelector(":scope > svg")?.classList ?? [])].find((c) => c.startsWith("lucide-")));
+  expect(icons(rendered(GOT))).toEqual(["lucide-file-text", "lucide-inbox", "lucide-search", "lucide-calendar"]);
+  const unread = rendered({ ...GOT, asked: null }, { planned: null });
+  expect(icons(unread)).toEqual(["lucide-file-text", "lucide-inbox", "lucide-search", "lucide-calendar"]);
+  expect(text(unread, "billing-month-asked")).toContain(copy("settings.month.not-measured"));
+  expect(text(unread, "billing-month-asked")).not.toMatch(/^0\b/);
+});

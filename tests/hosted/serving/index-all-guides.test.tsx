@@ -97,6 +97,21 @@ describe("the hosted index lists every live guide by topic", () => {
     expect(linked(section).sort()).toEqual(pages.map((p) => p.slug).sort());
   });
 
+  it("index search and group icons (E26)", () => {
+    const pages = [1, 2, 3, 4].map((i) => guide(i, { cluster: i < 3 ? "water heater" : "drain" }));
+    const doc = render(pages);
+    const button = doc.querySelector("form[role='search'] button[type='submit']")!;
+    expect(button.querySelector("svg.lucide-search")?.getAttribute("aria-hidden")).toBe("true");
+    expect(button.textContent).toBe("Search");
+    const cards = allGuides(doc).querySelectorAll(".card");
+    expect(cards).toHaveLength(2);
+    for (const card of cards) {
+      expect([...card.querySelectorAll("svg")].map((svg) => svg.getAttribute("class"))).toEqual([
+        "lucide lucide-book-open flex-none",
+      ]);
+    }
+  });
+
   it("with no topic is one flat A–Z list, on every page of the newest-first paging", () => {
     const pages = Array.from({ length: 30 }, (_, i) => guide(i));
     for (const n of [1, 2, 3]) {

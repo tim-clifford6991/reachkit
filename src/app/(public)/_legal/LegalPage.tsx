@@ -55,7 +55,8 @@
 import type React from "react";
 import Link from "next/link";
 import { Surface } from "@/ui/layout";
-import { copy } from "@/lib/presentation/copy";
+import type { LucideIcon } from "lucide-react";
+import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { NURTURE_H } from "@/lib/config/constants";
 import {
   headingsUnderTitle,
@@ -223,6 +224,32 @@ function Providers(p: { list: Extract<Block, { kind: "list" }> }): React.JSX.Ele
   );
 }
 
+/** The summary list as the board's wells, each item beside its tile. */
+function Summary(p: { summary: CopyKey; icons: readonly LucideIcon[] }): React.JSX.Element {
+  const list = parseMarkdown(copy(p.summary)).find((b) => b.kind === "list");
+  return (
+    <section className="rounded-box bg-base-200 flex flex-col gap-3 p-4" data-testid="legal-summary">
+      <p className="text-base-content/70 text-xs font-semibold tracking-wide uppercase">{copy("legal.summary.title")}</p>
+      <ul className="flex flex-wrap gap-3">
+        {(list?.kind === "list" ? list.items : []).map((item, i) => {
+          const Icon = p.icons[i];
+          return (
+            <li key={inlineText(item)} className="rounded-box bg-base-100 flex min-w-0 flex-[1_1_12.5rem] items-start gap-3 p-4">
+              {Icon === undefined ? null : (
+                <span className="rounded-box bg-primary/10 text-primary grid size-9 flex-none place-items-center">
+                  <Icon size={16} strokeWidth={1.75} aria-hidden />
+                </span>
+              )}
+              <Html blocks={[{ kind: "paragraph", children: item }]} />
+            </li>
+          );
+        })}
+      </ul>
+      <p className="text-base-content/70 text-xs">{copy("legal.summary.note")}</p>
+    </section>
+  );
+}
+
 function Html(p: { blocks: readonly Block[] }): React.JSX.Element | null {
   return p.blocks.length === 0 ? null : (
     <div dangerouslySetInnerHTML={{ __html: toHtml(p.blocks, LEGAL_BODY_CLASSES) }} />
@@ -320,13 +347,7 @@ export function LegalPage(p: { document: LegalDocument }): React.JSX.Element {
           </nav>
         </div>
         {p.document.summary === undefined ? null : (
-          <section className="rounded-box bg-base-200 flex flex-col gap-2 p-4" data-testid="legal-summary">
-            <p className="text-base-content/70 text-xs font-semibold tracking-wide uppercase">
-              {copy("legal.summary.title")}
-            </p>
-            <div dangerouslySetInnerHTML={{ __html: legalBodyHtml(copy(p.document.summary)) }} />
-            <p className="text-base-content/70 text-xs">{copy("legal.summary.note")}</p>
-          </section>
+          <Summary summary={p.document.summary} icons={p.document.summaryIcons ?? []} />
         )}
         {/* The board's two columns from `lg`, one below it, with the card held
             to the ruled reading measure (`--w-read`). */}
