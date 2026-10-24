@@ -21,7 +21,22 @@ import type React from "react";
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowRight, ArrowUpDown, ChartColumn, ChevronDown, Search } from "lucide-react";
+import {
+  ArrowRight,
+  ArrowUpDown,
+  Briefcase,
+  ChartColumn,
+  ChevronDown,
+  FileText,
+  LayoutGrid,
+  Laptop,
+  Search,
+  Store,
+  Utensils,
+  Video,
+  Wrench,
+  type LucideIcon,
+} from "lucide-react";
 import { Surface } from "@/ui/layout";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { SCORE_BANDS } from "@/lib/presentation/bands";
@@ -43,6 +58,7 @@ import { ScoreStrip } from "@/ui/charts/ScoreStrip";
 import { ScanForm } from "../_landing/ScanForm";
 import { scanFormWords } from "../_landing/scan-form-words";
 import { EXAMPLES } from "../_how/specimen";
+import { SCORE_RING } from "../_how/visuals";
 import { LearnClose, ScanJump } from "../_library/parts";
 import { PUBLIC_ROUTE_SEO } from "../_seo/routes";
 import { staticMetadata } from "../_seo/metadata";
@@ -173,19 +189,35 @@ const KIND_WORD: Readonly<Record<BusinessKind, CopyKey>> = {
   creator: "gallery.kind.creator",
 };
 
-/** A score and its band, or "Not scored": a report with no score never reads 0. */
+const KIND_ICON: Readonly<Record<BusinessKind, LucideIcon>> = {
+  "local-service": Wrench,
+  shop: Store,
+  hospitality: Utensils,
+  "professional-services": Briefcase,
+  software: Laptop,
+  creator: Video,
+};
+
+/** A score in its ring with its band, or "Not scored": a report with no score never reads 0 and draws no ring. */
 function ScoreLine(p: { score: number | null }): React.JSX.Element {
   if (p.score === null) {
     return <p className="text-base-content/70 text-sm">{copy("gallery.card.no-score")}</p>;
   }
   const band = bandOf(p.score);
+  const score = copy("gallery.card.score", { score: String(p.score), max: String(SCORE_MAX) });
   return (
-    <p className="flex flex-wrap items-center gap-2">
-      <span className="num text-lg font-semibold">
-        {copy("gallery.card.score", { score: String(p.score), max: String(SCORE_MAX) })}
-      </span>
-      <span className={`${BADGE[BAND_TONE[band]]} badge-sm`}>{copy(SCORE_BANDS[band])}</span>
-    </p>
+    <div className="flex items-center gap-3">
+      <div
+        role="img"
+        aria-label={score}
+        className={`${SCORE_RING} flex-none [--size:3rem]`}
+        style={{ "--value": p.score } as React.CSSProperties}
+      />
+      <p className="flex flex-wrap items-center gap-2">
+        <span className="num text-lg font-semibold">{score}</span>
+        <span className={`${BADGE[BAND_TONE[band]]} badge-sm`}>{copy(SCORE_BANDS[band])}</span>
+      </p>
+    </div>
   );
 }
 
@@ -194,6 +226,7 @@ function Card(p: { entry: GalleryEntry }): React.JSX.Element {
   const meta = [entry.kind === null ? null : copy(KIND_WORD[entry.kind]), entry.category, formatDay(entry.scannedAt)]
     .filter((part) => part !== null)
     .join(" · ");
+  const Kind = entry.kind === null ? null : KIND_ICON[entry.kind];
   return (
     <li className="min-w-0">
       <Link
@@ -212,7 +245,10 @@ function Card(p: { entry: GalleryEntry }): React.JSX.Element {
             </div>
           </div>
           <ScoreLine score={entry.score} />
-          <p className="text-base-content/70 text-xs break-words">{meta}</p>
+          <p className="text-base-content/70 flex min-w-0 items-start gap-1.5 text-xs">
+            {Kind === null ? null : <Kind size={16} strokeWidth={1.75} aria-hidden className="flex-none" />}
+            <span className="min-w-0 break-words">{meta}</span>
+          </p>
           <span className="text-base-content/70 mt-auto hidden items-center gap-1 text-sm sm:inline-flex">
             {copy("gallery.card.view")}
             <ArrowRight
@@ -359,6 +395,11 @@ function InsideReport(): React.JSX.Element {
             <div className={well}>
               <span className={step} aria-hidden>{INSIDE[0]}</span>
               <span className="flex flex-wrap items-center gap-2">
+                <span
+                  aria-hidden
+                  className={`${SCORE_RING} [--size:3rem]`}
+                  style={{ "--value": e.report.score } as React.CSSProperties}
+                />
                 <span className="num text-lg font-semibold">
                   {copy("gallery.card.score", { score: String(e.report.score), max: String(SCORE_MAX) })}
                 </span>
@@ -375,11 +416,15 @@ function InsideReport(): React.JSX.Element {
             <div className={well}>
               <span className={step} aria-hidden>{INSIDE[2]}</span>
               <span className="font-semibold">{copy("how.rivals.tally", { n: e.tally.n, total: e.tally.total })}</span>
+              <progress aria-hidden className="progress progress-primary" value={e.tally.n} max={e.tally.total} />
             </div>
             <div className={well}>
               <span className={step} aria-hidden>{INSIDE[3]}</span>
               <span className="font-semibold">{copy("how.start.missing", { n: e.report.missing })}</span>
-              <span className="text-base-content/70 text-sm">{e.page.title}</span>
+              <span className="text-base-content/70 flex min-w-0 items-start gap-1.5 text-sm">
+                <FileText size={16} strokeWidth={1.75} aria-hidden className="mt-0.5 flex-none" />
+                <span className="min-w-0 break-words">{e.page.title}</span>
+              </span>
             </div>
           </div>
         </div>
@@ -414,9 +459,9 @@ export default async function ScansPage(props: {
   ]);
   const listing = newest ?? gallery;
   const shown = gallery.entries.length;
-  const pills: readonly { kind: BusinessKind | null; label: string }[] = [
-    { kind: null, label: copy("gallery.filter.all") },
-    ...BUSINESS_KIND_NAMES.map((kind) => ({ kind, label: copy(KIND_WORD[kind]) })),
+  const pills: readonly { kind: BusinessKind | null; label: string; Icon: LucideIcon }[] = [
+    { kind: null, label: copy("gallery.filter.all"), Icon: LayoutGrid },
+    ...BUSINESS_KIND_NAMES.map((kind) => ({ kind, label: copy(KIND_WORD[kind]), Icon: KIND_ICON[kind] })),
   ];
   const showing = copy("gallery.showing", { shown: String(shown), total: String(gallery.total) });
 
@@ -494,6 +539,7 @@ export default async function ScansPage(props: {
                           aria-current={current ? "true" : undefined}
                           className={`btn btn-sm rounded-full font-medium whitespace-nowrap ${current ? "border-base-content bg-base-content text-base-100" : "btn-ghost"}`}
                         >
+                          <pill.Icon size={16} strokeWidth={1.75} aria-hidden />
                           {pill.label}
                         </Link>
                       </li>

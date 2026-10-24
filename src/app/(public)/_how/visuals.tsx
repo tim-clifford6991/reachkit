@@ -5,18 +5,27 @@ import type React from "react";
 import {
   ArrowDown,
   Bot,
+  Calendar,
   Check,
   CircleCheck,
   CircleStop,
   Clock,
+  Eye,
+  FileText,
+  Info,
   Mail,
+  MapPin,
   Pencil,
   RefreshCw,
   Search,
+  Sparkles,
+  TrendingUp,
   X,
+  type LucideIcon,
 } from "lucide-react";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { HARD_RULES } from "@/lib/generate/rules/types";
+import { PageSketch } from "@/ui/PageSketch";
 import { Num } from "../scan/[domain]/_address/measured";
 import { HOW_FACTS } from "./facts";
 import { ExampleSwitch } from "./ExampleSwitch";
@@ -27,6 +36,11 @@ const CARD = "card card-border bg-base-100 min-w-0";
 const SMALL = "text-base-content/70 text-xs";
 const LABEL = "text-primary text-xs font-semibold";
 const WELL = "rounded-box bg-base-200 flex min-w-0 flex-col gap-1 p-3";
+/** A score's ring as the free report draws it, sized by the caller with `[--size:…]`. */
+export const SCORE_RING =
+  "radial-progress text-primary after:hidden shadow-[inset_0_0_0_5px_var(--color-base-200)] [--thickness:5px]";
+/** The icon tile a figure opens with. */
+export const ICON_TILE = "rounded-field grid size-9 flex-none place-items-center bg-base-200";
 
 /** A visual drawn for both example businesses, the plumber shown first. */
 export function Switched(p: { draw: (e: Example) => React.ReactNode }): React.JSX.Element {
@@ -326,6 +340,7 @@ export function WeekCard(e: Example, foot: React.ReactNode): React.JSX.Element {
                     {copy(day.kind === "new" ? "how.week.new" : "how.week.update")}
                   </span>
                 </span>
+                <PageSketch primary={day.state === "waiting"} />
                 <span className="text-sm font-semibold">{day.title}</span>
                 <span className={SMALL}>{day.reason}</span>
                 <span className="mt-auto flex flex-wrap items-center gap-1">
@@ -525,16 +540,26 @@ export function WhatWeWorkToward(e: Example): React.JSX.Element {
   );
 }
 
-const WHEN = ["first", "found", "showing", "top"] as const;
+const WHEN = [
+  ["first", Calendar],
+  ["found", Search],
+  ["showing", Eye],
+  ["top", TrendingUp],
+] as const;
 
-/** One step of a timeline: when, and what happens then. */
+/** One step of a timeline: when, what happens then, and its own icon, so no step borrows the tick of "Live". */
 export interface WhenStep {
   readonly at: string;
   readonly what: string;
+  readonly icon: LucideIcon;
 }
 
 const WHEN_STEPS = (): readonly WhenStep[] =>
-  WHEN.map((step) => ({ at: copy(`how.when.${step}.at` as CopyKey), what: copy(`how.when.${step}.what` as CopyKey) }));
+  WHEN.map(([step, icon]) => ({
+    at: copy(`how.when.${step}.at` as CopyKey),
+    what: copy(`how.when.${step}.what` as CopyKey),
+    icon,
+  }));
 
 /** `#found`: what moves when, as time ranges and never as dates. Pricing
  *  draws the same card with its own first days and no Maps line. */
@@ -554,7 +579,7 @@ export function WhatToExpect(
             <li key={step.at}>
               {i > 0 ? <hr className="bg-base-300" /> : null}
               <div className="timeline-middle text-primary">
-                <CircleCheck {...ICON} />
+                <step.icon {...ICON} />
               </div>
               <div className="timeline-end mb-3 flex min-w-0 flex-col">
                 <span className="text-sm font-semibold">{step.at}</span>
@@ -564,8 +589,16 @@ export function WhatToExpect(
             </li>
           ))}
         </ul>
-        <p className="text-sm font-semibold">{copy("how.when.promise")}</p>
-        {p.maps === false ? null : <p className={SMALL}>{copy("how.when.maps")}</p>}
+        <p className="flex items-start gap-2 text-sm font-semibold">
+          <Info {...ICON} className="mt-0.5 shrink-0" />
+          {copy("how.when.promise")}
+        </p>
+        {p.maps === false ? null : (
+          <p className={`${SMALL} flex items-start gap-2`}>
+            <MapPin {...ICON} className="shrink-0" />
+            {copy("how.when.maps")}
+          </p>
+        )}
       </div>
     </div>
   );
@@ -638,25 +671,37 @@ export function YourPart(e: Example): React.JSX.Element {
 }
 
 /** `#start`, and every Learn page's close with its own caption: the three
- *  figures a free report opens on. */
+ *  figures a free report opens on: the score in its ring, and an icon tile on each other figure. */
 export function ReportGlance(e: Example, caption?: string): React.JSX.Element {
   return (
-    <figure className={CARD}>
+    <figure className={CARD} aria-label={copy("how.start.glance")}>
       <div className="card-body gap-3">
         <p className={LABEL}>{copy("how.start.glance")}</p>
         <div className="stats stats-vertical min-w-0">
           {/* Spans, so the score, its band and its name read as one line. */}
           <div className="stat px-0">
+            <span
+              aria-hidden
+              className={`stat-figure ${SCORE_RING} [--size:4rem]`}
+              style={{ "--value": e.report.score } as React.CSSProperties}
+            />
             <span className="stat-value text-3xl">{copy("how.start.score", { score: e.report.score, max: 100 })}</span>
             <span className="stat-title text-base-content font-semibold">{copy("band.score.hard-to-find")}</span>
             <span className="stat-desc text-base-content/70 whitespace-normal">{copy("how.start.score.name")}</span>
           </div>
           <div className="stat px-0">
+            <span aria-hidden className={`stat-figure ${ICON_TILE}`}>
+              <Sparkles {...ICON} />
+            </span>
             <div className="stat-desc text-base-content text-sm whitespace-normal">
               {copy("how.start.ai", { n: e.report.mentioned, total: e.report.asked })}
             </div>
+            <progress aria-hidden className="progress progress-primary mt-2" value={e.report.mentioned} max={e.report.asked} />
           </div>
           <div className="stat px-0">
+            <span aria-hidden className={`stat-figure ${ICON_TILE}`}>
+              <FileText {...ICON} />
+            </span>
             <div className="stat-desc text-base-content text-sm whitespace-normal">
               {copy("how.start.missing", { n: e.report.missing })}
             </div>

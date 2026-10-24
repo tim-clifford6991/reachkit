@@ -33,6 +33,7 @@ const { copy } = await import("@/lib/presentation/copy");
 const { HOW_FACTS } = await import("@/app/(public)/_how/facts");
 const { WEEK_PLAN } = await import("@/lib/config/constants");
 const { SPECIMEN_HERO } = await import("@/app/(public)/_landing/specimen");
+const { buysIcons, whenIcons } = await import("../how/drawn-icons");
 
 const article = (slug: string, title: string, day: number): Page => ({
   title,
@@ -147,6 +148,11 @@ describe("What €49 a month gets you: the tiles, everything in the plan, the pl
     expect(weekly.text).not.toMatch(/money-back/i);
   });
 
+  it("what €49 buys: four tiles with file-text, users, inbox, timer", async () => {
+    const weekly = (await render()).querySelector("section#weekly")!;
+    expect(buysIcons(weekly.toString(), copy("pricing.buys", { price }))).toEqual(["file-text", "users", "inbox", "timer"]);
+  });
+
   it("everything in the one plan: seven items, the last the pages Google and Bing found on the address we run", async () => {
     const card = (await render()).querySelector("section#weekly h3")!.parentNode as HTMLElement;
     expect(flat(card.querySelector("h3")!)).toBe(copy("landing.price.all"));
@@ -214,6 +220,11 @@ describe("Questions owners ask", () => {
   it("what to expect, when, comes before the first question", async () => {
     const text = flat((await render()).querySelector("section#faq")!);
     inOrder(text, [copy("landing.faq.heading"), copy("how.when.title"), copy("how.when.sub"), copy("how.when.promise"), copy("how.when.maps"), copy("landing.faq.spam.q")]);
+  });
+
+  it("what to expect: calendar, search, eye, trending-up in order, then the notes: info, map-pin", async () => {
+    const faq = (await render()).querySelector("section#faq")!;
+    expect(whenIcons(faq.toString())).toEqual({ steps: ["calendar", "search", "eye", "trending-up"], notes: ["info", "map-pin"] });
   });
 
   it("the spam answer names Claude, and the results answer says search engines move at their own pace", async () => {
