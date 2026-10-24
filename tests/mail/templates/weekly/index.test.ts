@@ -175,6 +175,14 @@ describe("the numbers are Pages, Google and AI, then the pages, the week and the
     expect(JSON.stringify(full().blocks)).not.toContain("mail.weekly.month");
   });
 
+  it("the month's score is its figure and change alone, with no confidence word in either body", async () => {
+    const month = { score: { value: measured(31, AT), change: measured(4, AT) } };
+    const mail = buildWeekly({ numbers: numbers({ month }), pages: measured([], AT), next: measured([], AT) });
+    const composed = await composeMail({ kind: "weekly", subject: mail.subject, blocks: mail.blocks, reason: mail.reason, measurement: { state: "complete" } });
+    expect(composed.text).toContain("31 up from 27");
+    expect(`${composed.html} ${composed.text}`).not.toMatch(/\b(rough|close) estimate\b/iu);
+  });
+
   it("a month's figure that fell says down from, and one with no stored change says only the figure", () => {
     const month = { score: { value: measured(25, AT), change: measured(-3, AT) }, market: { value: measured(1, AT), of: 12 } };
     const blocks = buildWeekly({ numbers: numbers({ month }), pages: measured([], AT), next: measured([], AT) }).blocks;
