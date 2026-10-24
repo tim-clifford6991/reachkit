@@ -5,10 +5,11 @@
 // always pointed at — so nothing in the product has to learn a new link for
 // the screen to become seven (`./tabs.ts`).
 //
-// **What stands here.** The business profile the site read writes, every
-// item correctable, the facts we may quote, what the writer already knows
-// about, and the closed list of what a page is written from. Export
-// everything moved to Account, where board SettingsAccount draws it.
+// **What stands here**, in board SettingsIndex's order: how the tab shapes a
+// page, the business profile with a sentence it shaped on a live page, then
+// three folds (what buyers ask, the facts we may quote, what the writer
+// already knows about). The closed list of what a page is written from
+// stands beside them (SPEC §7, 2026-10-10, #1393).
 //
 // Two columns above the large breakpoint and one below it: the profile and
 // its facts are the reading, and *What every page is written from* is the
@@ -29,10 +30,12 @@ import type React from "react";
 import type { Metadata } from "next";
 import { copy } from "@/lib/presentation/copy";
 import { profileIsEmpty } from "@/lib/site-profile/business/confirm";
+import { readShell } from "../_shell/provider";
 import { readSettings } from "./provider";
 import { readBusiness } from "./business-provider";
 import { BusinessPanel } from "./panels/BusinessPanel";
 import { FactsPanel } from "./panels/FactsPanel";
+import { FlowPanel } from "./panels/FlowPanel";
 import { KnowledgePanel } from "./panels/KnowledgePanel";
 import { KnownContentPanel } from "./panels/KnownContentPanel";
 import { WrittenFromPanel } from "./panels/WrittenFromPanel";
@@ -56,7 +59,8 @@ export default async function SettingsBusinessTab(): Promise<React.JSX.Element> 
   // profile, the market reading, the customer's corrections and the
   // grounding passages, which no other tab draws and none should pay for
   // (`./business-provider.ts`). Both are request-cached.
-  const [settings, business] = await Promise.all([readSettings(), readBusiness()]);
+  const [settings, business, shell] = await Promise.all([readSettings(), readBusiness(), readShell()]);
+  const timeZone = settings.publishing.timeZone;
 
   return (
     <div
@@ -64,24 +68,27 @@ export default async function SettingsBusinessTab(): Promise<React.JSX.Element> 
       data-testid="settings-tab-panel-business"
     >
       <div className="flex min-w-0 flex-col gap-6">
+        <FlowPanel
+          pagesRead={business.profile.pagesRead}
+          readAt={business.profile.readAt}
+          next={shell.publishing.next}
+          timeZone={timeZone}
+        />
         <BusinessPanel
           profile={business.profile}
           siteName={business.siteName}
           empty={profileIsEmpty(business.profile)}
+          example={business.onAPage}
+          timeZone={timeZone}
         />
-        <KnowledgePanel knowledge={business.knowledge} answers={business.answers} />
-        <FactsPanel facts={business.facts} />
-        {/* #928: what the writer already knows about — theirs as well as
-            ours. It sits under the facts because both answer the same
-            question a customer has about a page: where did this come from,
-            and what was it checked against. */}
-        <KnownContentPanel known={business.known} />
+        <section className="flex min-w-0 flex-col gap-3" aria-label={copy("settings.business.more")}>
+          <KnowledgePanel knowledge={business.knowledge} answers={business.answers} />
+          <FactsPanel facts={business.facts} />
+          <KnownContentPanel known={business.known} />
+        </section>
       </div>
 
-      <WrittenFromPanel
-        profile={business.profile}
-        timeZone={settings.publishing.timeZone}
-      />
+      <WrittenFromPanel profile={business.profile} />
     </div>
   );
 }
