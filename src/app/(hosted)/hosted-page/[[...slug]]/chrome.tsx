@@ -15,7 +15,7 @@ import { FEED_PATH, QUIET_LINE } from "./present";
  *  is a client module, and the 410 route renders this chrome outside React
  *  Server Components, where calling one throws. */
 type GlyphNode = readonly (readonly ["path" | "rect" | "circle", Record<string, string>])[];
-const GLYPHS = {
+export const GLYPHS = {
   "arrow-up-right": [
     ["path", { d: "M7 7h10v10" }],
     ["path", { d: "M7 17 17 7" }],
@@ -36,6 +36,20 @@ const GLYPHS = {
     ["path", { d: "M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" }],
     ["path", { d: "m9 14 2 2 4-4" }],
   ],
+  "file-x": [
+    ["path", { d: "M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z" }],
+    ["path", { d: "M14 2v5a1 1 0 0 0 1 1h5" }],
+    ["path", { d: "m14.5 12.5-5 5" }],
+    ["path", { d: "m9.5 12.5 5 5" }],
+  ],
+  list: [
+    ["path", { d: "M3 5h.01" }],
+    ["path", { d: "M3 12h.01" }],
+    ["path", { d: "M3 19h.01" }],
+    ["path", { d: "M8 5h13" }],
+    ["path", { d: "M8 12h13" }],
+    ["path", { d: "M8 19h13" }],
+  ],
   "map-pin": [
     ["path", { d: "M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0" }],
     ["circle", { cx: "12", cy: "10", r: "3" }],
@@ -53,6 +67,10 @@ const GLYPHS = {
     ["path", { d: "M4 4a16 16 0 0 1 16 16" }],
     ["circle", { cx: "5", cy: "19", r: "1" }],
   ],
+  search: [
+    ["path", { d: "m21 21-4.34-4.34" }],
+    ["circle", { cx: "11", cy: "11", r: "8" }],
+  ],
 } as const satisfies Record<string, GlyphNode>;
 
 /** The attributes lucide's `Icon` writes at size 16 and stroke 1.75. */
@@ -69,9 +87,9 @@ const GLYPH_SVG = {
 } as const;
 
 /** Decorative: every glyph here sits beside the words it stands for. */
-export function Glyph({ name }: { name: keyof typeof GLYPHS }): React.JSX.Element {
+export function Glyph({ name, size = GLYPH_SVG.width }: { name: keyof typeof GLYPHS; size?: number }): React.JSX.Element {
   return (
-    <svg {...GLYPH_SVG} className={`lucide lucide-${name} flex-none`} aria-hidden="true">
+    <svg {...GLYPH_SVG} width={size} height={size} className={`lucide lucide-${name} flex-none`} aria-hidden="true">
       {GLYPHS[name].map(([tag, attributes], i) => createElement(tag, { key: i, ...attributes }))}
     </svg>
   );

@@ -14,7 +14,7 @@ export function errorNameOf(error: unknown): string {
 }
 
 /** Whether at least one owner address was accepted, for a caller that stamps its own once-ness. */
-export async function reportIncident(incident: OpsIncident): Promise<boolean> {
+export async function reportIncident(incident: OpsIncident, period?: string): Promise<boolean> {
   const mail = buildIncidentAlert(incident);
   let owners: readonly string[];
   try {
@@ -26,7 +26,7 @@ export async function reportIncident(incident: OpsIncident): Promise<boolean> {
   let accepted = false;
   for (const to of owners) {
     try {
-      const result = await sendEmail({ kind: "ops", to, subject: mail.subject, blocks: mail.blocks });
+      const result = await sendEmail({ kind: "ops", to, subject: mail.subject, blocks: mail.blocks, ...(period === undefined ? {} : { period }) });
       log(incident.occasion, result.sent ? "sent" : result.reason);
       if (result.sent) accepted = true;
     } catch {

@@ -6,7 +6,7 @@ import { copy, readerTag } from "@/lib/presentation/copy/reader";
 import { Surface } from "@/ui/layout";
 import { hostedHtml } from "../../document";
 import { normaliseHost } from "../../resolve-host";
-import { AboutCard, HostedFooter, HostedHeader, INDEX_PATH, type HostedBusiness } from "./chrome";
+import { AboutCard, Glyph, HostedFooter, HostedHeader, INDEX_PATH, type HostedBusiness } from "./chrome";
 
 const ROBOTS = "noindex";
 
@@ -22,12 +22,16 @@ export function HostedGoneBody({ business }: { business: HostedBusiness }): Reac
       <meta name="robots" content={ROBOTS} />
       <HostedHeader business={business} />
       <main className="mx-auto w-full max-w-2xl px-4 py-16">
+        <span className="rounded-box bg-base-200 text-base-content mb-4 grid size-14 place-items-center">
+          <Glyph name="file-x" size={24} />
+        </span>
         <h1 className="text-base-content text-4xl font-extrabold tracking-tight text-balance">
           {copy("hosted.gone.heading")}
         </h1>
         <p className="text-base-content/70 mt-3">{copy("hosted.gone.line", { publisher: business.name })}</p>
         <p className="mt-6">
-          <a href={INDEX_PATH} className="link">
+          <a href={INDEX_PATH} className="btn btn-ghost">
+            <Glyph name="list" />
             {copy("hosted.gone.index")}
           </a>
         </p>

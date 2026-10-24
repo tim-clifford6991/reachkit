@@ -2,6 +2,7 @@
 // surface that states one: the free report's cards and the Overview's
 // "Needs you". One map, so the report and the dashboard cannot name the same
 // check two ways.
+import { EyeOff, Gauge, Heading, ListTree, Lock, Smartphone, Tags, TextAlignStart, Unlink, type LucideIcon } from "lucide-react";
 import type { IssueDoer, IssueSeverity, SiteCheck } from "@/lib/site-issues/types";
 import type { CopyKey } from "./copy";
 import { SEVERITY } from "./bands";
@@ -18,6 +19,19 @@ export const SITE_CHECK_TITLE: Readonly<Record<SiteCheck, CopyKey>> = Object.fre
   phone_usability: "check.phone-usability.title",
   structured_data: "check.structured-data.title",
   ai_readers_blocked: "problem.blocked-readers.title",
+});
+
+/** Each check's icon, as board `AppIssues` opens its card with. */
+export const SITE_CHECK_ICON: Readonly<Record<SiteCheck, LucideIcon>> = Object.freeze({
+  page_titles: Heading,
+  meta_descriptions: TextAlignStart,
+  noindex_pages: EyeOff,
+  sitemap: ListTree,
+  slow_pages: Gauge,
+  broken_links: Unlink,
+  phone_usability: Smartphone,
+  structured_data: Tags,
+  ai_readers_blocked: Lock,
 });
 
 /** Who fixes a check, in SPEC §9's words (the 2026-09-14 ruling), as the

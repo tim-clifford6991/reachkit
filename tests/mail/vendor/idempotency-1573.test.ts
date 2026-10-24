@@ -66,4 +66,13 @@ describe("Idempotency-Key on every send", () => {
     expect(keys[1]).toBe(keys[0]);
     expect(new Set(keys).size).toBe(3);
   });
+
+  it("a caller's period replaces the UTC day, and a mail without one keeps it", async () => {
+    vi.setSystemTime(new Date("2026-07-14T22:30:00Z"));
+    await sendViaVendor({ ...mail("ops"), period: "2026-07-15" });
+    await sendViaVendor(mail("ops"));
+    const [withPeriod, without] = requests.map((request) => String(request.headers["Idempotency-Key"]));
+    expect(withPeriod).toMatch(/^ops:[0-9a-f]{32}:2026-07-15$/);
+    expect(without).toBe(withPeriod!.replace(/2026-07-15$/, "2026-07-14"));
+  });
 });

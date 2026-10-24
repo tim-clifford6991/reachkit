@@ -4,10 +4,10 @@
 // a stored section without a session.
 import type React from "react";
 import Link from "next/link";
-import { ArrowLeft, Check, Wrench } from "lucide-react";
+import { ArrowLeft, Check, ExternalLink, SignalHigh, SignalMedium, Wrench, type LucideIcon } from "lucide-react";
 import { SITE_ISSUES } from "@/lib/config/constants";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
-import { SITE_CHECK_TITLE, SITE_SEVERITY_WORD } from "@/lib/presentation/site-issues";
+import { SITE_CHECK_ICON, SITE_CHECK_TITLE, SITE_SEVERITY_WORD } from "@/lib/presentation/site-issues";
 import { SITE_CHECKS, type SiteCheck } from "@/lib/site-issues/types";
 import type { IssuesReading, WaitingIssue } from "../_overview/alerts";
 import { formatCount } from "../_overview/present";
@@ -18,6 +18,16 @@ const OVERVIEW = "/app";
 const SEVERITY_BADGE: Readonly<Record<WaitingIssue["severity"], string>> = {
   critical: "badge badge-soft badge-error",
   worth_fixing: "badge badge-soft badge-warning",
+};
+
+const SEVERITY_SIGNAL: Readonly<Record<WaitingIssue["severity"], LucideIcon>> = {
+  critical: SignalHigh,
+  worth_fixing: SignalMedium,
+};
+
+const SEVERITY_TILE: Readonly<Record<WaitingIssue["severity"], string>> = {
+  critical: "bg-error/10 text-error",
+  worth_fixing: "bg-base-200",
 };
 
 const SEVERITY_FILL: Readonly<Record<WaitingIssue["severity"], string>> = {
@@ -133,12 +143,20 @@ function Summary(p: { issues: readonly WaitingIssue[]; pagesChecked: number; hos
 function IssueCard(p: { issue: WaitingIssue; pagesChecked: number }): React.JSX.Element {
   const { issue } = p;
   const named = issue.pages.length;
+  const Icon = SITE_CHECK_ICON[issue.check];
+  const Signal = SEVERITY_SIGNAL[issue.severity];
   return (
     <section id={issue.check} className="card card-border min-w-0 scroll-mt-24 bg-base-100" data-testid="issue" data-check={issue.check}>
       <div className="card-body min-w-0 gap-3 p-4">
         <div className="flex min-w-0 flex-wrap items-center gap-3">
+          <span aria-hidden className={`rounded-field grid size-9 shrink-0 place-items-center ${SEVERITY_TILE[issue.severity]}`} data-testid="issue-tile">
+            <Icon className="size-5" strokeWidth={1.75} aria-hidden />
+          </span>
           <h2 className="card-title min-w-0 flex-1 text-base">{copy(SITE_CHECK_TITLE[issue.check])}</h2>
-          <span className={SEVERITY_BADGE[issue.severity]}>{copy(SITE_SEVERITY_WORD[issue.severity])}</span>
+          <span className={SEVERITY_BADGE[issue.severity]} data-testid="issue-severity">
+            <Signal className="size-3.5" strokeWidth={1.75} aria-hidden />
+            {copy(SITE_SEVERITY_WORD[issue.severity])}
+          </span>
         </div>
         {named === 0 ? (
           <p className="text-sm text-base-content/70">{copy("overview.issues.site")}</p>
@@ -173,6 +191,8 @@ function IssueCard(p: { issue: WaitingIssue; pagesChecked: number }): React.JSX.
                   <li key={page} className="list-row min-w-0 items-baseline px-0 py-2">
                     <a className="link list-col-grow min-w-0 font-mono text-sm break-all" href={page} rel="noopener noreferrer" target="_blank">
                       {page}
+                      <ExternalLink className="ms-1 inline size-3.5 align-[-0.125em]" strokeWidth={1.75} aria-hidden />
+                      <span className="sr-only"> {copy("draft.live.new-tab")}</span>
                     </a>
                     {issue.ms?.[i] === undefined ? null : <span className="text-sm tabular-nums">{seconds(issue.ms[i])}</span>}
                   </li>
