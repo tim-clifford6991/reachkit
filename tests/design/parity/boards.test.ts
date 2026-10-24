@@ -2,8 +2,9 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
+import { parse } from "node-html-parser";
 import { boardIcons, readIcons } from "../../../scripts/design/components.mjs";
-import { BOARDS_DIR, PARITY_DIR } from "../../../scripts/design/parity.mjs";
+import { BOARDS_DIR, PARITY_DIR, boardFile, segments } from "../../../scripts/design/parity.mjs";
 
 const rows = JSON.parse(readFileSync(path.join(PARITY_DIR, "boards.json"), "utf8")) as Record<string, { read: string; paths?: string[] }>;
 const boards = readdirSync(BOARDS_DIR)
@@ -41,5 +42,28 @@ describe("docs/design/parity/icons.json", () => {
   it("has no entry for a shape no board draws", () => {
     const hashes = new Set(drawn.map((i) => i.hash));
     expect(Object.keys(icons).filter((h) => !hashes.has(h)), "unused entries").toEqual([]);
+  });
+});
+
+describe("the HostedService board (E10)", () => {
+  const html = readFileSync(boardFile("HostedService"), "utf8");
+  const board = parse(html);
+
+  it("draws no \"It's an emergency if\"", () => {
+    expect(segments(html, { board: true }).filter((s: string) => /emergency if/i.test(s))).toEqual([]);
+  });
+
+  /** The E10 notes inside a section, or just before it. */
+  const rulesOf = (id: string): string[] => {
+    const section = board.querySelector(`section[aria-labelledby="${id}"]`);
+    const before = section?.previousElementSibling;
+    return [...(section?.querySelectorAll(".note") ?? []), ...(before?.classList.contains("note") ? [before] : [])]
+      .map((note) => note.text)
+      .filter((text) => text.startsWith("Only with its facts (E10"));
+  };
+
+  it("marks each conditional section with its rule as a note, which parity does not read, and never the answer, what or price", () => {
+    for (const id of ["incl", "where", "how", "why", "faq", "more"]) expect(rulesOf(id), id).toHaveLength(1);
+    for (const id of ["what", "price"]) expect(rulesOf(id), id).toEqual([]);
   });
 });
