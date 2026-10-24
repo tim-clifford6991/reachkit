@@ -1,6 +1,6 @@
 // The month card's reads, through the real store: Monday mails sent in the
 // period, and the newest finished weekly or deep pass's report, never a
-// failed, running or free one, and the same pass Overview counts.
+// failed, running or free one.
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { beforeEach, expect, it, vi } from "vitest";
@@ -14,7 +14,7 @@ vi.mock("@/lib/db", () => ({ dbAdmin: () => db.client, db: () => db.client }));
 
 const { supabaseBillingStore, setBillingStore } = await import("@/lib/account/billing/store");
 const { monthGot } = await import("@/lib/account/billing");
-const { readDoneFacts } = await import("@/app/(account)/app/_overview/done-store");
+const { askedOf, readStoredReport } = await import("@/lib/scan/report");
 
 const FROM = new Date("2026-09-07T12:00:00.000Z");
 const TO = new Date("2026-10-07T12:00:00.000Z");
@@ -77,7 +77,7 @@ it("with only free-tier scans in the period, nothing is measured, never zero", a
   }
 });
 
-it("Billing and Overview count the same pass from the same rows", async () => {
+it("Billing counts the newest weekly pass as its stored report counts it, not a newer free scan", async () => {
   db.seed("scans", [
     { id: "w1", site_id: "site-1", tier: "weekly", status: "done", created_at: "2026-09-14T06:00:00.000Z", digest_sent_at: null, report: WEEKLY },
     { id: "f1", site_id: "site-1", tier: "free", status: "done", created_at: "2026-09-16T10:00:00.000Z", digest_sent_at: null, report: FREE },
@@ -85,9 +85,8 @@ it("Billing and Overview count the same pass from the same rows", async () => {
   setBillingStore(supabaseBillingStore());
   try {
     const billing = (await monthGot("u1", "site-1"))?.asked;
-    const overview = (await readDoneFacts({ siteId: "site-1", domain: "savvycal.com", timeZone: "UTC" })).lastMeasured;
     expect(billing).not.toBeNull();
-    expect(billing).toEqual({ searches: overview?.searches, questions: overview?.questions });
+    expect(billing).toEqual(askedOf(readStoredReport(WEEKLY)));
   } finally {
     setBillingStore(null);
   }

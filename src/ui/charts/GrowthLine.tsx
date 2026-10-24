@@ -85,12 +85,19 @@ function runsOf(weeks: readonly GrowthWeek[]): { runOf: number[]; sizes: number[
   return { runOf, sizes };
 }
 
-export function GrowthLine(p: {
-  weeks: readonly [GrowthWeek, ...GrowthWeek[]];
-  label: string;
-  /** Drawn where present; nothing is drawn where it is absent. */
-  target?: GrowthTarget;
-}): React.JSX.Element {
+export function GrowthLine(
+  p: {
+    weeks: readonly [GrowthWeek, ...GrowthWeek[]];
+    /** Drawn where present; nothing is drawn where it is absent. */
+    target?: GrowthTarget;
+  } & (
+    | { label: string; compact?: false }
+    /** A mark beside a figure that already states its values in words: fixed
+     *  small, hidden from readers, so it takes no label, tooltip or list. */
+    | { label?: never; compact: true }
+  )
+): React.JSX.Element {
+  const compact = p.compact === true;
   const { runOf, sizes } = runsOf(p.weeks);
   const rows: Row[] = p.weeks.map((week, i) => {
     const row: Row = {
@@ -105,29 +112,36 @@ export function GrowthLine(p: {
   const last = p.weeks.filter(isMeasured).at(-1);
 
   return (
-    <figure aria-label={p.label} className="m-0 w-full">
+    <figure
+      {...(compact ? { "aria-hidden": true, "data-points": p.weeks.length } : { "aria-label": p.label })}
+      className={compact ? "m-0 h-9 w-24 flex-none" : "m-0 w-full"}
+    >
       <AreaChart
         responsive
+        // An aria-hidden mark must hold nothing focusable; the layer makes the svg a tab stop.
+        accessibilityLayer={!compact}
         data={rows}
-        margin={{ top: 20, right: 16, bottom: 4, left: 16 }}
-        style={{ width: "100%", aspectRatio: 300 / 80 }}
+        margin={compact ? { top: 4, right: 4, bottom: 4, left: 4 } : { top: 20, right: 16, bottom: 4, left: 16 }}
+        style={compact ? { width: "100%", height: "100%" } : { width: "100%", aspectRatio: 300 / 80 }}
       >
         <XAxis dataKey={KEY.name} hide />
         {/* The target is part of the frame, not an overlay: a reference
             line above the domain's top would be clipped away, and a goal
             the chart cannot draw is worse than no goal. */}
         <YAxis hide domain={[0, (max: number) => Math.max(max, p.target?.value ?? 0, 1)]} />
-        <Tooltip
-          cursor={false}
-          filterNull={false}
-          isAnimationActive={false}
-          content={({ active, payload }) => {
-            const row = payload?.[0]?.payload as Row | undefined;
-            return active && row ? (
-              <p className="num rounded-field bg-base-content px-2 py-1 text-xs text-base-100">{row.tip}</p>
-            ) : null;
-          }}
-        />
+        {compact ? null : (
+          <Tooltip
+            cursor={false}
+            filterNull={false}
+            isAnimationActive={false}
+            content={({ active, payload }) => {
+              const row = payload?.[0]?.payload as Row | undefined;
+              return active && row ? (
+                <p className="num rounded-field bg-base-content px-2 py-1 text-xs text-base-100">{row.tip}</p>
+              ) : null;
+            }}
+          />
+        )}
         {sizes.map((size, run) => (
           <Area
             key={`run${run}`}
@@ -137,7 +151,7 @@ export function GrowthLine(p: {
             stroke={PAINT.you}
             strokeWidth={2.25}
             fill={PAINT.you}
-            fillOpacity={size > 1 ? 0.1 : 0}
+            fillOpacity={size > 1 && !compact ? 0.1 : 0}
             dot={size === 1 ? { r: 2.2, fill: PAINT.you, fillOpacity: 1, stroke: PAINT.surface, strokeWidth: 2 } : false}
             activeDot={false}
           />
@@ -161,15 +175,17 @@ export function GrowthLine(p: {
             fill={PAINT.you}
             stroke={PAINT.surface}
             strokeWidth={2}
-            label={{ value: last.value, position: KEY.top, fill: PAINT.you, className: "num", fontSize: 12 }}
+            label={compact ? undefined : { value: last.value, position: KEY.top, fill: PAINT.you, className: "num", fontSize: 12 }}
           />
         ) : null}
       </AreaChart>
-      <ul className="sr-only">
-        {rows.map((row) => (
-          <li key={row.name}>{row.tip}</li>
-        ))}
-      </ul>
+      {compact ? null : (
+        <ul className="sr-only">
+          {rows.map((row) => (
+            <li key={row.name}>{row.tip}</li>
+          ))}
+        </ul>
+      )}
     </figure>
   );
 }
