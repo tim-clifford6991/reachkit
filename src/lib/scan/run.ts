@@ -99,7 +99,7 @@ import { listingLocaleOf } from "@/lib/locale/listing";
 import { askedIn, localSearch, placeCandidates, placeOf, statedPlace as statedPlaceOf, type PlaceFrom } from "@/lib/locale/place";
 import { readStoredLocale, writeSiteLocale } from "@/lib/locale/site";
 import { aiPresenceOf, aiSampleOf, BOT_PROTECTION, classifyReferences, measureDomain, searchPresenceOf, withMeasuredPages, type DomainMeasurement } from "@/lib/measure";
-import { aiPresenceRangeOf } from "@/lib/measure/drivers";
+import { aiPresenceRangeOf, searchPresenceRangeOf } from "@/lib/measure/drivers";
 import { measured, measuredZero, unmeasured, type Measured } from "@/lib/measure/measured";
 import { foldSerps, outcomeOf, type InputOutcome, type ScanInput } from "@/lib/measure/partition";
 import type { OnPageFacts } from "@/lib/measure/parse";
@@ -3464,6 +3464,7 @@ function composeReport(a: {
   const onPage: Measured<OnPageFacts> = m === null ? unmeasured("not_attempted", measuredAt) : m.onPage;
   const robots: Measured<RobotsPolicy> = m === null ? unmeasured("not_attempted", measuredAt) : m.robots;
 
+  const searchCard = s.presence ?? carried?.presence ?? null;
   const drivers: Drivers =
     m === null
       ? {
@@ -3474,7 +3475,7 @@ function composeReport(a: {
         }
       : {
           ...m.drivers,
-          searchPresence: searchPresenceOf({ card: s.presence ?? carried?.presence ?? null, serps: s.serps, at: measuredAt }),
+          searchPresence: searchPresenceOf({ card: searchCard, serps: s.serps, at: measuredAt }),
           aiPresence: aiPresenceOf({ serps: s.serps, pageCells, ownDomain: a.domain, siteName: s.siteName, at: measuredAt }),
         };
 
@@ -3516,6 +3517,7 @@ function composeReport(a: {
     inputs,
     robots,
     aiRange: aiPresenceRangeOf(aiSample),
+    searchRange: searchPresenceRangeOf(searchCard),
     searchesRead: aiSample.read,
   });
 
