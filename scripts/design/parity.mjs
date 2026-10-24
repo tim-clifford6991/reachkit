@@ -23,7 +23,7 @@ const BLOCK = new Set([
 ]);
 const LABELLED = new Set(["input", "textarea", "button", "a"]);
 // A board's own annotations: the "Other states" strip, the designer's notes and the labels over each state.
-const BOARD_ONLY = ["states", "note", "statetag"];
+export const BOARD_ONLY = ["states", "note", "statetag"];
 
 /** The visible strings of a document, one per block. `board` drops the board's annotations. */
 export function segments(html, { board = false } = {}) {

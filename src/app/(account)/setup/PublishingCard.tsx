@@ -21,7 +21,7 @@
 
 import type React from "react";
 import { useId, useRef, useState } from "react";
-import { Circle, CircleCheck, Globe, Settings2, Sparkles } from "lucide-react";
+import { Circle, CircleCheck, FileText, Globe, Layers, Milestone, Monitor, Sparkles, type LucideIcon } from "lucide-react";
 import { copy } from "@/lib/presentation/copy";
 import {
   dnsRecordFor,
@@ -40,6 +40,10 @@ const LABEL_REFUSAL_COPY = {
 
 const TEST_ID = "setup-publishing";
 const QUIET = "block text-sm text-base-content/70";
+const TILE = "grid shrink-0 place-items-center rounded-box";
+
+/** Board Setup's mark for each place pages can live. */
+const DESTINATION_ICON = { hosted: Globe, wordpress: Layers } as const satisfies Record<DestinationKind, LucideIcon>;
 
 export function PublishingCard(p: {
   cards: SetupCards;
@@ -100,6 +104,7 @@ export function PublishingCard(p: {
             {p.cards.destination.map((option) => (
               <Option
                 key={option.kind}
+                icon={DESTINATION_ICON[option.kind]}
                 title={copy(option.name)}
                 line={copy(option.copy)}
                 detail={option.kind === "hosted" ? host : null}
@@ -157,9 +162,10 @@ export function PublishingCard(p: {
  *  choice it explains. Hosted only: on WordPress there is no setting to add. */
 function HowItConnects(p: { domain: string; host: string }): React.JSX.Element {
   const nodes = [
-    { icon: Globe, title: copy("setup.connect.how.site"), value: p.domain, pill: null, line: copy("setup.connect.how.site.line") },
-    { icon: Settings2, title: copy("setup.connect.how.setting"), value: null, pill: copy("setup.connect.how.yours"), line: copy("setup.connect.how.setting.line") },
-    { icon: Sparkles, title: copy("setup.connect.how.live"), value: p.host, pill: null, line: copy("setup.connect.how.live.line") },
+    // The founder's one act carries the primary tile; their site and their pages are context.
+    { icon: Monitor, tile: "bg-base-200", title: copy("setup.connect.how.site"), value: p.domain, pill: null, line: copy("setup.connect.how.site.line") },
+    { icon: Milestone, tile: "bg-primary/10 text-primary", title: copy("setup.connect.how.setting"), value: null, pill: copy("setup.connect.how.yours"), line: copy("setup.connect.how.setting.line") },
+    { icon: FileText, tile: "bg-success/10 text-success", title: copy("setup.connect.how.live"), value: p.host, pill: null, line: copy("setup.connect.how.live.line") },
   ];
   return (
     <figure className="card bg-base-100 shadow-sm" data-testid="setup-how">
@@ -170,7 +176,9 @@ function HowItConnects(p: { domain: string; host: string }): React.JSX.Element {
             <li key={node.title}>
               {index === 0 ? null : <hr />}
               <div className="timeline-middle">
-                <node.icon aria-hidden size={20} strokeWidth={1.75} className="text-primary" />
+                <span className={`${TILE} size-9 ${node.tile}`} aria-hidden>
+                  <node.icon size={20} strokeWidth={1.75} />
+                </span>
               </div>
               <div className="timeline-end mb-3 min-w-0">
                 <span className="flex flex-wrap items-center gap-2 font-medium">
@@ -193,6 +201,7 @@ function HowItConnects(p: { domain: string; host: string }): React.JSX.Element {
  *  is the primary edge and tint plus `aria-pressed` — never the solid
  *  primary, which is the submit's. */
 function Option(p: {
+  icon: LucideIcon;
   title: string;
   line: string;
   /** A value under the title: the address the hosted option would serve. */
@@ -221,6 +230,9 @@ function Option(p: {
             strokeWidth={1.75}
             className={p.chosen ? "text-primary" : "text-base-content/40"}
           />
+          <span className={`${TILE} size-8 bg-base-200`} aria-hidden>
+            <p.icon size={16} strokeWidth={1.75} />
+          </span>
           {p.title}
         </span>
         {p.detail === null ? null : <span className="num text-sm wrap-anywhere">{p.detail}</span>}

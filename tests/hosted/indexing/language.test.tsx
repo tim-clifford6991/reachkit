@@ -35,11 +35,12 @@ vi.mock("@/lib/publish/destinations/hosted", () => ({
     domain === "example.com" ? { siteId: "site-1", domain, host: `content.${domain}` } : null,
   hostedSiteForHostname: async () => null,
   livePagesForSite: async () => [],
+  taggedForHosted: async () => undefined,
   hostedIdentity: async () => ({ name: "Bäckerei Beispiel", logoType: null, line: null }),
 }));
 
 const HostedPageLayout = (await import("@/app/(hosted)/hosted-page/layout")).default;
-const HostedLiveLayout = (await import("@/app/(hosted)/hosted-live/[host]/layout")).default;
+const { GET: cached } = await import("@/app/(hosted)/hosted-live/[host]/[slug]/route");
 const { GET: feed } = await import("@/app/(hosted)/hosted-page/rss.xml/route");
 
 function htmlTag(markup: string): string {
@@ -57,12 +58,13 @@ describe("issue 1514 — a hosted page is in its site's language", () => {
     expect(htmlTag(markup)).toContain('lang="de-DE"');
   });
 
-  it("the cached article's document states it from the host in its path", async () => {
+  it("the cached route's document states it from the host in its path", async () => {
     state.host = "";
-    const markup = renderToStaticMarkup(
-      await HostedLiveLayout({ children: null, params: Promise.resolve({ host: "content.example.com" }) })
-    );
-    expect(htmlTag(markup)).toContain('lang="de-DE"');
+    const response = await cached(new Request("https://ignored.example/"), {
+      params: Promise.resolve({ host: "content.example.com", slug: "not-live-now" }),
+    });
+    expect(response.status).toBe(404);
+    expect(htmlTag(await response.text())).toContain('lang="de-DE"');
   });
 
   it("each site its own: a UK site is en-GB, and a host that serves none the default", async () => {

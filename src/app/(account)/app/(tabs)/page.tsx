@@ -26,7 +26,6 @@ import { copy } from "@/lib/presentation/copy";
 import { dayKeyOf } from "../calendar/dates";
 import { ISSUES_HREF } from "../_overview/alerts";
 import { OverviewHead } from "../_overview/OverviewHead";
-import { ThisWeek, type WeekList } from "../_overview/ThisWeek";
 import { WaitingPageCard } from "../_overview/WaitingPageCard";
 import { WeekWaiting } from "../_overview/WeekWaiting";
 import { OVERVIEW, REGION } from "../_overview/frame";
@@ -69,11 +68,13 @@ export default async function OverviewPage(): Promise<React.JSX.Element> {
   }
 
   const running = onboarding.kind === "running";
-  // Plan's own week, reached at the call: Plan's provider reaches the market's
-  // modules, and this screen's graph holds no vendor client. Where it cannot be
-  // read the list is not drawn and the rest stands.
-  const [week, blogReads, googleVisits, reputation] = await Promise.all([
-    running ? null : import("../_overview/this-week").then((m): Promise<WeekList | null> => m.readThisWeek()).catch(() => null),
+  // Plan's own week and day cards, reached at the call: Plan's modules reach the
+  // market's, and this screen's graph holds no vendor client. Where it cannot be
+  // read the week is not drawn and the rest stands.
+  const [thisWeek, blogReads, googleVisits, reputation] = await Promise.all([
+    running
+      ? null
+      : import("../_overview/this-week").then(async (m) => ({ week: await m.readThisWeek(), ThisWeek: m.ThisWeek })).catch(() => null),
     readBlogReads(),
     readGoogleVisits(),
     readPromptsAt(overview.months?.reading?.week ?? null),
@@ -88,7 +89,8 @@ export default async function OverviewPage(): Promise<React.JSX.Element> {
   const live = content?.pages.filter((page) => page.publishedAt <= published.now) ?? [];
   const aiPages = aiPagesOf(live);
   const mover = bestMoverOf(live, published.now);
-  const weekPages = week?.rows.length ?? 0;
+  const week = thisWeek?.week ?? null;
+  const weekPages = week?.pages ?? 0;
 
   // The head. A page that cannot go out without the customer outranks "nothing needs you".
   const today = formatDay(overview.today, shell.timeZone);
@@ -170,9 +172,9 @@ export default async function OverviewPage(): Promise<React.JSX.Element> {
         <div className="min-w-0" data-frame={REGION.week}>
           <WeekWaiting />
         </div>
-      ) : week !== null && weekPages > 0 ? (
+      ) : thisWeek !== null && week !== null && weekPages > 0 ? (
         <div className="min-w-0" data-frame={REGION.week}>
-          <ThisWeek week={week} scheduled={shell.publishing.next !== null} />
+          <thisWeek.ThisWeek week={week} scheduled={shell.publishing.next !== null} />
         </div>
       ) : (
         <>
