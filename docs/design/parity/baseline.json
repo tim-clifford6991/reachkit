@@ -8,7 +8,7 @@
   "PubAbout": { "sha256": "fa7340da43762d9cad618f2aa4059f601e3756103f74d71d53e0836ebf44ccd3", "missing": 0 },
   "PubCompare": { "sha256": "9bf356c57559f64ca76f59a62e567231956e4214a31efbe4dbbc5fca203202ba", "missing": 1 },
   "PubCompareTool": { "sha256": "2b8514009a2b105a4011ab91570d841cc6c00da5195dfa66789fa2b6b67d51e8", "missing": 1 },
-  "PubTeardowns": { "sha256": "3dcfea1078036f2ae1086353cc420636a2ed6155959998b4bc0736c9150141a9", "missing": 0 },
+  "PubTeardowns": { "sha256": "737866bb5ddd3991546fa8bff4db32edff8127bc07dcf3cc74faac4f7803f827", "missing": 0 },
   "PubTeardown": { "sha256": "49081e852de073c649cdc28aade6d21b5c7c3d4b734849f4f7bcdee427876df1", "missing": 0 },
   "PubAnswer": { "sha256": "25e64e61809fdf65a4aa8b6c44ca91bd67836c61551bbc917dfe9ad8beeae1af", "missing": 0 },
   "PubTools": { "sha256": "cdb9f30b0c09c0eb8899f5cead30e7461a90d5f270c8550cd6a5cd3b17e303a7", "missing": 0 },
