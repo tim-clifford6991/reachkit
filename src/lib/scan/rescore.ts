@@ -41,6 +41,7 @@ import type { RivalSizeBand } from "@/lib/market/rivals/band";
 import type { RivalCandidate } from "@/lib/market/rivals/derive";
 import { isOwnDomain, registrableDomain } from "@/lib/market/rivals/domains";
 import { brandOf } from "@/lib/market/questions/select";
+import { citedPagesOf } from "@/lib/market/prompts/answer";
 import { statementsOf } from "@/lib/market/prompts/misstated";
 import type { Profile } from "@/lib/market/questions/profile-types";
 import type { PresenceCard } from "@/lib/market/rivals/presence";
@@ -481,6 +482,9 @@ function promptChanges(r: RescoreReport, scan: Pick<RescoreScan, "siteName" | "a
               each.key.startsWith(`${asked.text}|`) &&
               Number(/\|run:(\d+)$/.exec(each.key)?.[1] ?? 1) === answer.run
           );
+    // The pages it cited are read again wherever they were stored.
+    const cited = stored?.citedUrls == null ? null : citedPagesOf(stored.citedUrls, r.domain);
+    if (cited !== null && !same(answer.cited ?? [], cited)) changes.push({ path: ["prompts", "answers", i, "cited"], value: cited });
     const text = stored?.whole ?? stored?.text ?? null;
     if (text === null) return;
     const rivals = scan.market?.rivals ?? answer.rivals.map((domain) => ({ name: brandOf(domain), domain }));
