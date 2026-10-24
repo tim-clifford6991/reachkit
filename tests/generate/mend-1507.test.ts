@@ -52,7 +52,7 @@ const REFRESH = opportunity({
   evidence: { family: "improve", query: "reachkit vs aeo engine", pageUrl: B.liveUrl, shortfall: { kind: "due", cause: "structure", defects: ["glued_numeral", "link_markup"] } },
 } as never);
 
-let store: MemoryStore & { liveVersionAt: NonNullable<MemoryStore["liveVersionAt"]> };
+let store: MemoryStore;
 
 beforeEach(async () => {
   llmMock.mockReset();

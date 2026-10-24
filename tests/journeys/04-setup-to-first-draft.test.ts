@@ -71,8 +71,7 @@ import {
   newMemoryState as newOpportunityState,
   type MemoryState as OpportunityState,
 } from "../opportunities/memory-store";
-import type { FetchOutcome, RobotsPolicy } from "../../src/lib/egress/types";
-import { toolUseMessage } from "../llm/fixtures";
+import type { FetchOutcome } from "../../src/lib/egress/types";
 
 // ── Postgres ────────────────────────────────────────────────────────────
 
@@ -103,24 +102,12 @@ const client = {
   },
 };
 
-// No test reaches a vendor: the research step's reads and its one search are
-// stood in for, and the page is written from the business's own facts.
-vi.mock("@/lib/generate/pipeline/research", async (importOriginal) => {
-  const { researchStandIn } = await import("../generate/fixtures");
-  return researchStandIn(await importOriginal<object>());
-});
+vi.mock("@/lib/generate/pipeline/research", async (importOriginal) => (await import("./harness")).researchStandIn(importOriginal));
 vi.mock("@/lib/db", () => ({ dbAdmin: () => client, db: () => client }));
 
 // ── The copy registry ───────────────────────────────────────────────────
 
-vi.mock("@/lib/presentation/copy", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@/lib/presentation/copy")>();
-  return {
-    ...actual,
-    copy: (key: string, vars?: Record<string, string | number>) =>
-      vars === undefined ? key : `${key}(${Object.values(vars).join(",")})`,
-  };
-});
+vi.mock("@/lib/presentation/copy", async (importOriginal) => (await import("./harness")).copyByKey(importOriginal));
 
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
 
@@ -131,22 +118,7 @@ vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
  *  transport a server request would, and nothing else. */
 const cookieJar = new Map<string, string>();
 
-vi.mock("next/headers", () => ({
-  cookies: async () => ({
-    getAll: () => [...cookieJar].map(([name, value]) => ({ name, value })),
-    get: (name: string) => {
-      const value = cookieJar.get(name);
-      return value === undefined ? undefined : { name, value };
-    },
-    set: (name: string, value: string) => {
-      cookieJar.set(name, value);
-    },
-    delete: (name: string) => {
-      cookieJar.delete(name);
-    },
-  }),
-  headers: async () => new Headers(),
-}));
+vi.mock("next/headers", async () => (await import("./harness")).nextHeaders(cookieJar));
 
 // ── The job platform ────────────────────────────────────────────────────
 
@@ -154,16 +126,12 @@ const jobEvents: { name: string; payload: Record<string, unknown> }[] = [];
 /** The site's zone at the moment each event was sent (issue #783): the
  *  deep pass, and so its first-draft kickoff, starts from that event. */
 const zoneWhenSent: (string | null)[] = [];
-vi.mock("@/jobs/client", () => ({
-  // #971's stage push goes through `client.realtime` (`src/jobs/realtime.ts`);
-  // a mock without it throws on every stage, which the pass swallows into a
-  // `setup_stage_not_published` log. Doubled as the no-op it is here.
-  client: { realtime: { publish: async () => undefined } },
-  sendJobEvent: async (name: string, payload: Record<string, unknown>) => {
+vi.mock("@/jobs/client", async () =>
+  (await import("./harness")).jobsClient((name, payload) => {
     jobEvents.push({ name, payload });
     zoneWhenSent.push(site.timezone);
-  },
-}));
+  })
+);
 
 // The switch `provider.ts` writes down in its own header — see this file's.
 vi.mock("@/app/(account)/setup/_setup/provider", async (importOriginal) => {
@@ -200,17 +168,7 @@ vi.mock("@/lib/egress/safe-fetch", async (importOriginal) => ({
   }),
 }));
 
-vi.mock("@/lib/egress/robots", () => ({
-  readRobots: async (origin: string): Promise<RobotsPolicy> => ({
-    ok: true,
-    origin,
-    readAt: READ_AT,
-    disallowsAll: false,
-    disallowedAgents: { gptbot: true },
-    sitemaps: [],
-    absent: false,
-  }),
-}));
+vi.mock("@/lib/egress/robots", async () => (await import("./harness")).openRobots({ readAt: () => READ_AT, disallowedAgents: { gptbot: true } }));
 
 // The domain the founder types at setup resolves; §4.3 refuses one that
 // does not, and that arm is asserted below.
@@ -234,45 +192,7 @@ const PROFILE_ANSWER = {
 
 const modelCalls: string[] = [];
 
-vi.mock("@anthropic-ai/sdk", () => {
-  class FakeAnthropic {
-    messages = {
-      create: async (request: { messages: { content: string }[] }) => {
-        const input = request.messages[0]?.content ?? "";
-        modelCalls.push(input);
-        const answer = input.includes("Label an already-derived")
-          ? typingAnswerFor(input)
-          : input.includes('"home"')
-            ? PROFILE_ANSWER
-            : {
-                questions: (JSON.parse(input) as { keywords: { id: string; keyword: string }[] }).keywords.map((row) => ({
-                  id: row.id,
-                  text: `What's the best ${row.keyword}?`,
-                })),
-              };
-        // The phrasing answers the way the vendor does under a forced tool
-        // (issue #512); every other answer keeps the text path.
-        if ("questions" in answer) return toolUseMessage(answer, 900, 220, "question-phrasing");
-        return {
-          content: [{ type: "text", text: JSON.stringify(answer) }],
-          usage: { input_tokens: 900, output_tokens: 220 },
-        };
-      },
-    };
-  }
-  return { default: FakeAnthropic };
-});
-
-/** §7's labeller, doing only what §7 lets it do: it keeps the type the
- *  evidence already derived and proposes a slug and a title for it. */
-function typingAnswerFor(input: string): Record<string, unknown> {
-  const asked = JSON.parse(input) as { derivedType: string; derivedSlug: string; targetQuery: string };
-  return {
-    type: asked.derivedType,
-    slug: asked.derivedSlug,
-    title: `The best ${asked.targetQuery}`,
-  };
-}
+vi.mock("@anthropic-ai/sdk", async () => (await import("./harness")).anthropicForScan({ profile: PROFILE_ANSWER, calls: modelCalls }));
 
 // ── DataForSEO ──────────────────────────────────────────────────────────
 

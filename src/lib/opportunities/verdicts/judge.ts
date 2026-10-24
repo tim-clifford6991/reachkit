@@ -125,7 +125,7 @@ export async function judgeWeek(a: {
   // SPEC §6 (D60, issue 1288): each page's intent, against the prompts
   // tracked today. A set that could not be read matches nothing and
   // changes nothing stored.
-  const prompts = store.trackedPrompts === undefined ? [] : await store.trackedPrompts(a.siteId).catch(() => []);
+  const prompts = await store.trackedPrompts(a.siteId).catch(() => []);
 
   const standings: PageStanding[] = [];
   const rows: VerdictInsert[] = [];
@@ -134,7 +134,7 @@ export async function judgeWeek(a: {
     const priorRows = byPage.get(page.publicationId) ?? [];
     const intent = intentOf(page, prompts);
     if (intent !== null && !sameIntent(intent, page.intent ?? null) && page.draftId != null) {
-      await store.recordIntent?.({ draftId: page.draftId, intent });
+      await store.recordIntent({ draftId: page.draftId, intent });
     }
     const decided = judgeOne({ page, intent, measurements, earlier, week: a.week, priorRows });
     standings.push({ publicationId: page.publicationId, standing: decided.standing });

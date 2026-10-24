@@ -91,18 +91,6 @@ describe("ADR-050 point 3 — no other module computes an access predicate", () 
 });
 
 describe("REQ-076 c5 — a lapsed customer can still sign in", () => {
-  it("the magic-link module imports no billing symbol", () => {
-    // BP-060: "`requestMagicLink` does not consult this node, by design and
-    // by test." A customer whose access has ended is still sent a link, and
-    // signing in still works — Settings is where they resume from.
-    const magicLink = fs.readFileSync(
-      path.join(SRC, "lib/account/provisioning/magic-link.ts"),
-      "utf8"
-    );
-    expect(magicLink).not.toMatch(/from\s+"[^"]*account\/billing/);
-    expect(magicLink).not.toContain("hasActiveAccess");
-  });
-
   it("nothing on the sign-in path consults the gate", () => {
     const signInFiles = [
       "lib/account/provisioning/magic-link.ts",

@@ -68,9 +68,9 @@
 // waiting, and nobody is waiting on Monday), so each is a `task_post` and
 // then a `task_get`. The journey stubs `setTimeout` to fire immediately.
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { envelope } from "./harness";
 import { fakeDb, type DbQuery } from "../scan/run/harness";
-import type { FetchOutcome, RobotsPolicy } from "../../src/lib/egress/types";
-import { toolUseMessage } from "../llm/fixtures";
+import type { FetchOutcome } from "../../src/lib/egress/types";
 
 const db = fakeDb();
 
@@ -185,17 +185,7 @@ vi.mock("@/lib/egress/safe-fetch", () => ({
   }),
 }));
 
-vi.mock("@/lib/egress/robots", () => ({
-  readRobots: async (origin: string): Promise<RobotsPolicy> => ({
-    ok: true,
-    origin,
-    readAt: READ_AT,
-    disallowsAll: false,
-    disallowedAgents: { gptbot: true },
-    sitemaps: [],
-    absent: false,
-  }),
-}));
+vi.mock("@/lib/egress/robots", async () => (await import("./harness")).openRobots({ readAt: () => READ_AT, disallowedAgents: { gptbot: true } }));
 
 // ── Anthropic ───────────────────────────────────────────────────────────
 
@@ -211,39 +201,7 @@ const PROFILE_ANSWER = {
 
 const modelCalls: string[] = [];
 
-vi.mock("@anthropic-ai/sdk", () => {
-  class FakeAnthropic {
-    messages = {
-      create: async (request: { messages: { content: string }[] }) => {
-        const input = request.messages[0]?.content ?? "";
-        modelCalls.push(input);
-        const answer = input.includes("Label an already-derived")
-          ? typingAnswerFor(input)
-          : input.includes('"home"')
-            ? PROFILE_ANSWER
-            : {
-                questions: (JSON.parse(input) as { keywords: { id: string; keyword: string }[] }).keywords.map((row) => ({
-                  id: row.id,
-                  text: `What's the best ${row.keyword}?`,
-                })),
-              };
-        // The phrasing answers the way the vendor does under a forced tool
-        // (issue #512); every other answer keeps the text path.
-        if ("questions" in answer) return toolUseMessage(answer, 900, 220, "question-phrasing");
-        return {
-          content: [{ type: "text", text: JSON.stringify(answer) }],
-          usage: { input_tokens: 900, output_tokens: 220 },
-        };
-      },
-    };
-  }
-  return { default: FakeAnthropic };
-});
-
-function typingAnswerFor(input: string): Record<string, unknown> {
-  const asked = JSON.parse(input) as { derivedType: string; derivedSlug: string; targetQuery: string };
-  return { type: asked.derivedType, slug: asked.derivedSlug, title: `The best ${asked.targetQuery}` };
-}
+vi.mock("@anthropic-ai/sdk", async () => (await import("./harness")).anthropicForScan({ profile: PROFILE_ANSWER, calls: modelCalls }));
 
 // ── DataForSEO ──────────────────────────────────────────────────────────
 
@@ -268,10 +226,6 @@ const SUGGESTIONS = [
 ];
 
 const RIVALS = ["asana.com", "monday.com", "clickup.com"] as const;
-
-function envelope(result: unknown): unknown {
-  return { tasks: [{ id: "task-fixture", status_code: 20000, status_message: "Ok.", result: [result] }] };
-}
 
 const vendorRequests: { url: string; task: Record<string, unknown> }[] = [];
 

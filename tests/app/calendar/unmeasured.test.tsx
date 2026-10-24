@@ -22,6 +22,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { measured } from "@/lib/measure/measured";
 import { COPY } from "@/lib/presentation/copy";
 import type { OpportunityStore } from "@/lib/opportunities/store";
+import { memoryStore, newMemoryState } from "../../opportunities/memory-store";
 import type { StoredReport } from "@/lib/scan/report";
 
 const NOW = new Date(Date.UTC(2026, 8, 15, 14, 0, 0));
@@ -93,11 +94,12 @@ function storeWith(a: {
     questions: measured(Array.from({ length: a.questions }, (_, i) => ({ id: `q${i}` })), AT),
   } as unknown as StoredReport;
   return {
+    ...memoryStore(newMemoryState()),
     countUnused: async () => 0,
     lastStatusChangeAt: async () => (a.everHeld ? AT : null),
     latestCompletedScanAt: async () => AT,
     currentReport: async () => report,
-  } as unknown as OpportunityStore;
+  };
 }
 
 function render(el: React.ReactElement): Element {
@@ -164,7 +166,7 @@ describe("#765 — zero supply says which zero it is", () => {
       currentReport: async () => {
         throw new Error("the database is down");
       },
-    } as unknown as OpportunityStore);
+    });
     expect((await emptyDay()).cause).toBe("unattributed");
   });
 });
@@ -220,7 +222,7 @@ describe("#784 — the calendar's one supply statement says which zero it is", (
       currentReport: async () => {
         throw new Error("the database is down");
       },
-    } as unknown as OpportunityStore);
+    });
     expect(await statement()).toBeNull();
   });
 });

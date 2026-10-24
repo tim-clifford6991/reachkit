@@ -363,7 +363,7 @@ export async function loadRanking(siteId: string, at: Date, only?: ReadonlySet<s
     // before it.
     store.citedPages(siteId, at).catch(() => [] as readonly string[]),
     // Prompts that cannot be read add no demand.
-    store.trackedPrompts === undefined ? [] : store.trackedPrompts(siteId).catch(() => [] as readonly IntentPrompt[]),
+    store.trackedPrompts(siteId).catch(() => [] as readonly IntentPrompt[]),
     // A report that cannot be read orders the site as an established one.
     Promise.resolve()
       .then(() => store.currentReport(siteId))
@@ -372,14 +372,12 @@ export async function loadRanking(siteId: string, at: Date, only?: ReadonlySet<s
   // An unmeasured count is the cold-start 0, as the pass reads it.
   const ownRanked = report === null ? null : report.ownRanked.kind === "measured" ? report.ownRanked.value : 0;
   const isNew = ownRanked !== null && ownRanked < NEW_SITE.rankedBelow;
-  const livePages =
-    !isNew || store.livePageClusters === undefined ? undefined : await store.livePageClusters(siteId).catch(() => undefined);
+  const livePages = !isNew ? undefined : await store.livePageClusters(siteId).catch(() => undefined);
   const scans = rows.filter((row) => named(row, only) && eligible(row, { profile }) === null).map((row) => row.scan_id);
   const topTens =
     scans.length === 0 ? new Map<string, readonly string[]>() : await store.topTens([...new Set([...scans, ...(latest === null ? [] : [latest.scan_id])])]);
   // A cluster that cannot be read earns no page.
-  const linkedClusters =
-    cited.length === 0 || store.clustersAt === undefined ? [] : await store.clustersAt(siteId, cited).catch(() => [] as readonly string[]);
+  const linkedClusters = cited.length === 0 ? [] : await store.clustersAt(siteId, cited).catch(() => [] as readonly string[]);
   return { rows, fixRows, profile, latest, drafted, cited, topTens, prompts, linkedClusters, ownRanked, ...(livePages === undefined ? {} : { livePages }) };
 }
 

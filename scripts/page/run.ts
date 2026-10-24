@@ -182,6 +182,21 @@ function memoryStore(snapshot: PageSnapshot, report: ReturnType<typeof readStore
     async restartedDrafts() {
       return [];
     },
+    async writingVoice() {
+      return null;
+    },
+    async liveVersionAt() {
+      return null;
+    },
+    async versionsAt() {
+      return [];
+    },
+    async livePages() {
+      return [];
+    },
+    async lastMetaOfType() {
+      return null;
+    },
   };
 }
 
