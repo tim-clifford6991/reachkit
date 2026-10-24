@@ -21,7 +21,7 @@ import type React from "react";
 import { copy } from "@/lib/presentation/copy/reader";
 import type { HostedPage } from "@/lib/publish/destinations/hosted";
 import { Surface } from "@/ui/layout";
-import { actionsOf, CompactAction, Glyph, HostedFooter, HostedHeader, type HostedBusiness } from "./chrome";
+import { actionsOf, BusinessLine, CompactAction, Glyph, HostedFooter, HostedHeader, type HostedBusiness } from "./chrome";
 import { indexHref, writeDate } from "./present";
 import { blogSchema } from "./seo";
 
@@ -216,9 +216,7 @@ export function HostedIndex({
         <h1 className="text-base-content text-4xl font-extrabold tracking-tight text-balance">
           {copy("hosted.index.title", { publisher: business.name })}
         </h1>
-        {business.line === null ? null : (
-          <p className="text-base-content/70 mt-3 max-w-2xl text-lg">{business.line}</p>
-        )}
+        <BusinessLine business={business} className="text-base-content/70 mt-3 max-w-2xl text-lg" />
 
         <form method="get" action="/" role="search" className="join my-8 w-full max-w-2xl">
           <input
@@ -306,7 +304,7 @@ export function HostedIndex({
         )}
 
         {/* E8: the index asks once, under its guides, where a phone is stored. */}
-        {actionsOf(business).primary?.kind === "call" ? <CompactAction business={business} /> : null}
+        {actionsOf(business).primary?.kind === "call" ? <CompactAction business={business} described /> : null}
       </main>
 
       <HostedFooter business={business} />

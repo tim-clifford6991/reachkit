@@ -14,7 +14,7 @@
 import type React from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowRight, Check, RefreshCw, User, Wallet, X } from "lucide-react";
+import { ArrowRight, Building2, Check, FileText, MessageSquare, RefreshCw, TrendingUp, User, Wallet, X } from "lucide-react";
 import { Surface } from "@/ui/layout";
 import { HOSTED_RETENTION_DAYS } from "@/lib/config/constants";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
@@ -73,10 +73,10 @@ const lower = (text: string): string => text.charAt(0).toLowerCase() + text.slic
 
 /** The four steps, each opening the section that tells it. */
 const STEPS = [
-  { n: 1, href: "#research", when: {} },
-  { n: 2, href: "#questions", when: {} },
-  { n: 3, href: "#pages", when: weekPages },
-  { n: 4, href: "#found", when: FIRST_WEEK },
+  { n: 1, href: "#research", when: {}, icon: Building2 },
+  { n: 2, href: "#questions", when: {}, icon: MessageSquare },
+  { n: 3, href: "#pages", when: weekPages, icon: FileText },
+  { n: 4, href: "#found", when: FIRST_WEEK, icon: TrendingUp },
 ] as const;
 
 const stepKey = (n: number, part: "title" | "when" | "line"): CopyKey => `how.step.${n}.${part}` as CopyKey;
@@ -185,6 +185,9 @@ function Head(): React.JSX.Element {
                   <span className="flex items-center gap-2">
                     <span className="bg-primary text-primary-content grid size-7 shrink-0 place-items-center rounded-full text-sm font-semibold">
                       {step.n}
+                    </span>
+                    <span className="rounded-field bg-primary/10 text-primary grid size-8 shrink-0 place-items-center">
+                      <step.icon {...ICON} />
                     </span>
                     <span className="badge badge-soft badge-primary badge-sm h-auto whitespace-normal">
                       {copy(stepKey(step.n, "when"), step.when)}

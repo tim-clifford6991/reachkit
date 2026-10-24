@@ -573,7 +573,7 @@ export async function ownLivePages(siteId: string): Promise<OwnLivePage[]> {
   const { verdictStore } = await import("./verdicts/store");
   const { indexStateOf } = await import("./verdicts/seen");
   const store = verdictStore();
-  const seenUrls = store.seenUrls === undefined ? null : await store.seenUrls(siteId).catch(() => null);
+  const seenUrls = await store.seenUrls(siteId).catch(() => null);
   const pages = new Map<string, OwnLivePage>();
   const ours = new Set<string>();
   // Issue 1521: what the page at an address was first written as — a
@@ -699,8 +699,6 @@ async function readPools(siteId: string): Promise<RefreshPools> {
 export async function planRefreshes(a: { siteId: string; at: Date }): Promise<number> {
   try {
     const store = opportunityStore();
-    // A store that holds no pages plans none.
-    if (store.refreshInputs === undefined) return 0;
     const { pages, pools } = await store.refreshInputs(a.siteId);
     if (pages.length === 0) return 0;
     // A refresh whose version is live is finished. Nothing else moves a
@@ -794,7 +792,6 @@ async function linkedLately(siteId: string, at: Date): Promise<Set<string>> {
 export async function planLinkBacks(a: { siteId: string; url: string; at: Date }): Promise<number> {
   try {
     const store = opportunityStore();
-    if (store.refreshPages === undefined) return 0;
     const pages = await store.refreshPages(a.siteId);
     if (pages.length < 2) return 0;
     const stopped = await stoppedRefreshes(a.siteId);
@@ -847,7 +844,6 @@ export function movedLinkCandidates(
 export async function planMovedLinks(a: { siteId: string; from: readonly string[]; to: string; title: string; at: Date }): Promise<number> {
   try {
     const store = opportunityStore();
-    if (store.refreshPages === undefined) return 0;
     const pages = await store.refreshPages(a.siteId);
     const stopped = await stoppedRefreshes(a.siteId);
     const candidates = movedLinkCandidates(
@@ -900,7 +896,6 @@ export function stalePriceCandidates(pages: readonly OwnLivePage[], at: Date): C
 export async function planStructureRefreshes(a: { siteId: string; at: Date }): Promise<number> {
   try {
     const store = opportunityStore();
-    if (store.refreshPages === undefined) return 0;
     const pages = await store.refreshPages(a.siteId);
     if (pages.length === 0) return 0;
     const stopped = await stoppedRefreshes(a.siteId);

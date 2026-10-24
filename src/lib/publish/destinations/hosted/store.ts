@@ -343,9 +343,10 @@ export interface HostedIdentity {
    *  no pass kept one, and the pages then link the bare domain. */
   mainSite?: MainSite | null;
   /** What the adopted market says the business sells, in a buyer's words,
-   *  and the one place it serves where it serves one: the compact block's
-   *  headline. Absent or `null` where no market was adopted. */
-  offer?: { category: string; place: string | null } | null;
+   *  and the one place it serves where it serves one, with its region where
+   *  one is stored: the compact block's headline and the "Serves" line.
+   *  Absent or `null` where no market was adopted. */
+  offer?: { category: string; place: string | null; region?: string | null } | null;
 }
 
 interface IdentityRow {
@@ -360,12 +361,15 @@ interface IdentityRow {
  *  than through the market module, which this file must not put in the
  *  hosted graph. */
 function marketOf(market: unknown): { job: string | null; offer: HostedIdentity["offer"] } {
-  const current = (market as { current?: { job?: unknown; category?: unknown; serves?: { name?: unknown } | null } } | null)?.current;
+  const current = (market as { current?: { job?: unknown; category?: unknown; serves?: { name?: unknown; region?: unknown } | null } } | null)?.current;
   const text = (value: unknown): string | null => (typeof value === "string" ? emptyToNull(value) : null);
   const category = text(current?.category);
   return {
     job: text(current?.job),
-    offer: category === null ? null : { category, place: text(current?.serves?.name) },
+    offer:
+      category === null
+        ? null
+        : { category, place: text(current?.serves?.name), region: text(current?.serves?.region) },
   };
 }
 

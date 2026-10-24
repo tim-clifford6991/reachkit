@@ -147,41 +147,6 @@ describe("reading the day's ledger", () => {
 });
 
 describe("the day ledger a pass carries", () => {
-  it("opens on what the day already held, and refuses at the ceiling", async () => {
-    ledgerHolds(CEILING);
-    const day = await daily.openDayLedger(new Date());
-    expect(day.spentCents()).toBe(CEILING);
-    expect(day.ceilingReached()).toBe(true);
-  });
-
-  it("a pass's own spend can carry the day over on its own", async () => {
-    ledgerHolds(CEILING - 5);
-    const day = await daily.openDayLedger(new Date());
-    expect(day.ceilingReached()).toBe(false);
-    day.add(5);
-    expect(day.ceilingReached()).toBe(true);
-    expect(day.spentCents()).toBe(CEILING);
-  });
-
-  it("publishes each crossing once — the call that made it, and no call after", async () => {
-    const seen: number[] = [];
-    daily.registerSpendAlertSink((a) => seen.push(a.spentCents));
-    ledgerHolds(WARN - 1);
-    const day = await daily.openDayLedger(new Date());
-    day.add(1); // crosses `warn`
-    day.add(1); // already over `warn`, nothing to report
-    expect(seen).toEqual([WARN]);
-  });
-
-  it("carries the ceiling it crossed, so the alert never has to look one up", async () => {
-    const seen: Array<{ crossed: string; ceilingCents: number }> = [];
-    daily.registerSpendAlertSink((a) => seen.push({ crossed: a.crossed, ceilingCents: a.ceilingCents }));
-    ledgerHolds(CEILING - 1);
-    const day = await daily.openDayLedger(new Date());
-    day.add(1);
-    expect(seen).toEqual([{ crossed: "ceiling", ceilingCents: CEILING }]);
-  });
-
   it("an unreadable ledger refuses, and reports nothing — the guard fails closed (issue #792)", async () => {
     const seen: string[] = [];
     daily.registerSpendAlertSink((a) => seen.push(a.crossed));

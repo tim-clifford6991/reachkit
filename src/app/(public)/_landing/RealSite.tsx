@@ -9,13 +9,17 @@ import { copy } from "@/lib/presentation/copy";
 const LABEL_ID = "proof";
 const CARD = "card card-border bg-base-100 min-w-0";
 const ICON = { size: 16, strokeWidth: 1.75, "aria-hidden": true } as const;
+// The ring only draws the score; the line beside it states it.
+const RING = "radial-progress text-primary after:hidden shadow-[inset_0_0_0_5px_var(--color-base-200)] [--size:2.5rem] [--thickness:5px]";
 const TILE = "rounded-field bg-primary/10 text-primary grid size-8 shrink-0 place-items-center";
 
 export async function RealSite(): Promise<React.JSX.Element | null> {
   // Loaded here, not at the top: the database client checks its environment when it loads.
   const { readLiveExamples } = await import("../_how/examples");
+  const { listedScore } = await import("@/lib/scan/gallery");
   const { report, page } = await readLiveExamples();
   if (report === null && page === null) return null;
+  const score = report === null ? null : await listedScore(report).catch(() => null);
   return (
     <section aria-labelledby={LABEL_ID} className="border-base-300 border-t py-16 lg:py-24">
       <div className="mx-auto w-full max-w-6xl px-4">
@@ -30,6 +34,14 @@ export async function RealSite(): Promise<React.JSX.Element | null> {
                 <span className="flex min-w-0 flex-col gap-1">
                   <span className="eyebrow">{copy("about.proof.report")}</span>
                   <span className="num font-semibold">{report}</span>
+                  {score === null ? null : (
+                    <span className="bg-base-200 rounded-field flex items-center gap-2.5 p-2.5">
+                      <span aria-hidden className={RING} style={{ "--value": score } as React.CSSProperties} />
+                      <span className="text-sm">
+                        {copy("verdict.score.label")} <span className="num font-semibold">{score}</span> {copy("verdict.score.of")}
+                      </span>
+                    </span>
+                  )}
                   <span className="link-primary flex items-center gap-1 text-sm font-semibold">
                     {copy("about.proof.open")}
                     <ArrowRight size={14} strokeWidth={1.75} aria-hidden />

@@ -25,6 +25,7 @@ import { fakeDb } from "../publish/harness";
 import { LIVE_ACCOUNT } from "./accounts";
 import { measuredZero } from "@/lib/measure/measured";
 import type { OpportunityStore } from "@/lib/opportunities/store";
+import { memoryStore, newMemoryState } from "../opportunities/memory-store";
 import type { StoredReport } from "@/lib/scan/report";
 
 const db = fakeDb();
@@ -94,12 +95,13 @@ const { COPY } = await import("@/lib/presentation/copy");
 const { resetAccount, signedInAs } = await import("./account-door");
 
 /** Zero supply over a market never measured (issue 765's reads). */
-const THIN_SUPPLY = {
+const THIN_SUPPLY: OpportunityStore = {
+  ...memoryStore(newMemoryState()),
   countUnused: async () => 0,
   lastStatusChangeAt: async () => null,
   latestCompletedScanAt: async () => AT,
   currentReport: async () => THIN,
-} as unknown as OpportunityStore;
+};
 
 function render(html: string): Element {
   const container = document.createElement("div");

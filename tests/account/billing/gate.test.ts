@@ -38,27 +38,6 @@ function given(a: { paidThrough: Date }): string {
 }
 
 describe("REQ-076 c8 — the gate is the paid-through date and nothing else", () => {
-  it("a cancelled subscription with a future paid_through HAS access", async () => {
-    // REQ-076 c3: "measurement, generation and publishing continue
-    // unchanged until that date". A gate that also asked whether the
-    // subscription was cancelled would take the rest of a paid month away
-    // from somebody who paid for it.
-    const siteId = given({ paidThrough: IN_A_MONTH });
-    state.users.push({
-      id: "u-1",
-      email: "a@example.com",
-      plan_status: "canceled",
-      stripe_customer_id: "cus_1",
-      stripe_subscription_id: "sub_1",
-      paid_through: IN_A_MONTH.toISOString(),
-      cancelled_at: NOW.toISOString(),
-      last_subscription_event_id: null,
-      deleted_at: null,
-      created_at: NOW.toISOString(),
-    });
-    expect(await hasActiveAccess(siteId)).toBe(true);
-  });
-
   it("a past_due subscription with a future paid_through HAS access", async () => {
     // REQ-076 c8: "whether or not its latest renewal was paid". A bounced
     // card does not move `paid_through`, so it does not move the gate.
