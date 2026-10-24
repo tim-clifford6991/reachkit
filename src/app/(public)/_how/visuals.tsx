@@ -14,7 +14,6 @@ import {
   FileText,
   Inbox,
   Info,
-  Mail,
   MapPin,
   Pencil,
   RefreshCw,
