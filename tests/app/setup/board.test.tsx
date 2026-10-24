@@ -63,7 +63,9 @@ describe("Site and Check match their boards string for string", () => {
     ["Setup2", "check"],
   ] as const)("%s: nothing the board draws is missing but its allowed sample data and states", async (board, step) => {
     const html = readFileSync(boardFile(board), "utf8");
-    const result = compare(html, textOf(await mount(step)), readAllow(board));
+    // #1737: the empty-group arm, which "a group nothing was read for" below reads on its own render.
+    const arms = [{ string: "Nothing read for this yet. Add what we missed." }];
+    const result = compare(html, textOf(await mount(step)), [...readAllow(board), ...arms]);
     expect(result.missing).toEqual([]);
   });
 });
