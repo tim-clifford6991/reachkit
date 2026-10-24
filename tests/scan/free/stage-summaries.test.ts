@@ -11,6 +11,8 @@ import type { SerpResult } from "../../../src/lib/vendors/dataforseo/types";
 import type { RobotsPolicy } from "../../../src/lib/egress/types";
 import { readStoredReport, type StoredReport } from "../../../src/lib/scan/report";
 import { categoryOf } from "../../../src/lib/scan/sections";
+import { profileOfReport, understandBusiness } from "../../../src/lib/business/understanding";
+import { measuredLocale } from "../../../src/lib/locale/locales";
 import type { StageSummary } from "../../../src/lib/scan/stages";
 
 const db = fakeDb();
@@ -74,6 +76,7 @@ vi.mock("@/lib/scan/correction", () => ({
 }));
 
 const { runScan } = await import("../../../src/lib/scan/run");
+const { freshSections, summaryAt } = await import("../../../src/lib/scan/pass/sections");
 
 const CLAIMED_ID = "44444444-4444-4444-8444-444444444444";
 
@@ -98,6 +101,11 @@ function withReaderOutAndOneFound(report: StoredReport): StoredReport {
   } as StoredReport;
 }
 
+/** The local read again, measured in the town it sells in. */
+function inItsTown(report: StoredReport): StoredReport {
+  return { ...report, locale: { country: "US", language: "en", place: { name: "Austin", region: "Texas", location: "Austin,Texas,United States" } } } as StoredReport;
+}
+
 const PANEL = {
   saas: () => walkReport("2026-10-15-1449-after", "savvycal.com"),
   local: () => walkReport("2026-10-15", "austinplumbery.com"),
@@ -116,7 +124,7 @@ function replay(stored: StoredReport): void {
     robots: stored.robots,
     ownRanked: stored.ownRanked,
     ownRankedRows: stored.ownRankedRows,
-    locale: { country: "US", language: "en" },
+    locale: stored.locale ?? { country: "US", language: "en" },
     localeFellBack: null,
     homeRefusal: null,
   };
@@ -180,6 +188,15 @@ describe("each finished stage carries what it found, and the report says the sam
       expect(at("reading_access_rules").readers).toEqual({ google: blocked.includes("Googlebot") ? "out" : "in", ai: blocked.length > 0 ? "out" : "in" });
 
       expect(at("reading_your_market").category).toBe(categoryOf(report.market));
+      // Who buys and where: what the report's read-as chips draw from the stored report.
+      const reading = understandBusiness({ domain: report.domain, profile: profileOfReport(report), locale: measuredLocale(report) });
+      expect(at("reading_your_market").buyer).toBe(reading.buyers[0]);
+      // Where: the town the report was measured in, else the one its reading names.
+      expect(at("reading_your_market").place).toBe(report.locale?.place?.name ?? reading.where.place?.name);
+      // 0¢: every doubled vendor and model port is asked as often as the report needs, and no more.
+      for (const port of [measureDomain, buildSiteProfileWithCrawl, deriveProfile, deriveMarketSet, phraseQuestions]) expect(port).toHaveBeenCalledOnce();
+      expect(serpOrganic).toHaveBeenCalledTimes(report.questions.kind === "unmeasured" ? 0 : report.questions.value.length);
+      expect(placeLocation).not.toHaveBeenCalled();
 
       const searches = at("asking_the_twelve").searches ?? [];
       expect(searches.length).toBe(report.presence!.measuredSearches);
@@ -190,8 +207,27 @@ describe("each finished stage carries what it found, and the report says the sam
       // The other stages name no field of their own.
       for (const stage of ["reading_your_site", "checking_your_presence", "scoring"]) expect(Object.keys(at(stage)).filter((k) => k !== "pagesRead")).toEqual([]);
       expect(Object.keys(at("reading_access_rules")).filter((k) => k !== "pagesRead")).toEqual(["readers"]);
+      expect(Object.keys(at("reading_your_market")).filter((k) => k !== "pagesRead")).toEqual(["category", "buyer", ...(report.locale?.place === undefined && reading.where.place === null ? [] : ["place"])]);
     });
   }
+
+  it("the variants are not trivial: a local site measured in its town names it, and a SaaS site names no town", async () => {
+    const reads = [
+      [inItsTown(walkReport("2026-10-15", "austinplumbery.com")), "Austin"],
+      [PANEL.saas(), undefined],
+    ] as const;
+    for (const [read, place] of reads) {
+      vi.clearAllMocks();
+      db.reset();
+      db.rows.set("scans", [{ id: CLAIMED_ID, fromIncompleteRescan: false }]);
+      replay(read);
+      await runScan({ domain: read.domain as Parameters<typeof runScan>[0]["domain"], tier: "free" });
+      const market = summaries().find((e) => e.stage === "reading_your_market")!.summary!;
+      expect(market.place).toBe(place);
+      expect(market.place).toBe(storedReport().locale?.place?.name);
+      expect(market.buyer).toBeTruthy();
+    }
+  });
 
   it("the variant is not trivial: a reader is shut out and one search is found", async () => {
     const read = PANEL["local, one reader shut out and one search found"]();
@@ -200,5 +236,34 @@ describe("each finished stage carries what it found, and the report says the sam
     const events = summaries();
     expect(events.find((e) => e.stage === "reading_access_rules")!.summary!.readers).toEqual({ google: "in", ai: "out" });
     expect(events.find((e) => e.stage === "asking_the_twelve")!.summary!.searches!.filter((s) => s.onPageOne)).toHaveLength(1);
+  });
+});
+
+describe("a paid pass's market stage names its concluded buyer, the founder's answer first (D49)", () => {
+  const read = walkReport("2026-10-15", "austinplumbery.com");
+  if (read.market.kind === "unmeasured") throw new Error("a panel read with no market");
+  const profile = read.market.value.profile;
+  const at = new Date(read.verdict.measuredAt);
+  const concluded = {
+    buyer: "homeowners and businesses in Austin needing plumbing work",
+    job: "fix leaks",
+    category: "plumber",
+    synonyms: [],
+    differentiators: [],
+    notOurMarket: [],
+    categoryReason: "",
+    rivals: [],
+  };
+  const summaryWith = (founderBuyer: string | null) => {
+    const sections = { ...freshSections(at), profile: measured(profile, at), marketRows: measured([], at), market: concluded, founderBuyer };
+    return summaryAt("reading_your_market", { domain: read.domain as never, sections, startedAt: at });
+  };
+
+  it("the concluded buyer, where the founder gave none", () => {
+    expect(summaryWith(null).buyer).toBe(concluded.buyer);
+  });
+
+  it("the founder's own answer outranks it", () => {
+    expect(summaryWith("Landlords with rental flats").buyer).toBe("Landlords with rental flats");
   });
 });
