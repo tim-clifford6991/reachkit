@@ -27,7 +27,6 @@
 // **not** go through the body renderer at all — the title and the
 // description, which land in the head, in the `<h1>` and (the title)
 // inside the `application/ld+json` block, and are model-written too.
-import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { applyEnvFixture } from "../../mail/env-fixture";
 
@@ -56,14 +55,14 @@ vi.mock("@/lib/publish/destinations/hosted", async () => {
     hostedSiteForHostname: async () => null,
     livePageBySlug: async () => state.page,
     livePagesForSite: async () => (state.page === null ? [] : [state.page]),
+    taggedForHosted: async () => undefined,
     hostedIdentity: async (a: { domain: string }) => ({ name: a.domain, logoType: null, line: null }),
     hostedAddress: async () => ({ state: "none", publicationId: null }),
   };
 });
 
-const Page = (await import("@/app/(hosted)/hosted-page/[[...slug]]/page")).default;
+const { GET } = await import("@/app/(hosted)/hosted-live/[host]/[slug]/route");
 const { COPY } = await import("@/lib/presentation/copy");
-const { generateMetadata } = await import("@/app/(hosted)/hosted-page/[[...slug]]/page");
 
 /** One live page with a hostile body. Everything else about it is ordinary:
  *  what is under test is what the body does, not what the page is. */
@@ -94,19 +93,13 @@ function pageWith(over: Record<string, unknown>): unknown {
   };
 }
 
-async function render(): Promise<string> {
-  const tree = await Page({ params: Promise.resolve({ slug: ["a-page"] }) });
-  return renderToStaticMarkup(tree);
-}
-
-/** The served bytes, parsed. */
+/** The served bytes, as the cached route answers them, parsed. */
 async function served(): Promise<{ html: string; doc: Document }> {
-  const html = await render();
-  const doc = new DOMParser().parseFromString(
-    `<!doctype html><html><body>${html}</body></html>`,
-    "text/html"
-  );
-  return { html, doc };
+  const response = await GET(new Request("https://content.example.com/a-page"), {
+    params: Promise.resolve({ host: state.host, slug: "a-page" }),
+  });
+  const html = await response.text();
+  return { html, doc: new DOMParser().parseFromString(html, "text/html") };
 }
 
 /**
@@ -121,7 +114,8 @@ async function served(): Promise<{ html: string; doc: Document }> {
  */
 function active(doc: Document): string[] {
   const found: string[] = [];
-  for (const element of Array.from(doc.querySelectorAll("*"))) {
+  // The body: the head's links are the template's own sheet, icon and canonical.
+  for (const element of Array.from(doc.body.querySelectorAll("*"))) {
     const tag = element.tagName.toLowerCase();
     if (tag === "script" && element.getAttribute("type") !== "application/ld+json") {
       found.push("script");
@@ -335,15 +329,15 @@ describe("the title and the description are model-written too, and land inert", 
   it("a description carrying markup is the customer's own string, escaped where it lands", async () => {
     state.page = pageWith({ description: '"><script>alert(1)</script>' });
 
-    // The route hands Next the string and never builds the `<meta>` itself,
-    // which is what keeps the escaping the framework's one job.
-    const metadata = await generateMetadata({ params: Promise.resolve({ slug: ["a-page"] }) });
-    expect(metadata.description).toBe('"><script>alert(1)</script>');
+    // React writes the attribute, so the string is the tag's value and never markup.
+    const { html, doc } = await served();
+    expect(doc.querySelector('meta[name="description"]')?.getAttribute("content")).toBe('"><script>alert(1)</script>');
+    expect(html).not.toContain("<script>alert(1)");
+    expect([...doc.querySelectorAll("script")].map((script) => script.getAttribute("type"))).not.toContain(null);
 
     // The page does not print it, so since issue 1489 no JSON-LD restates
     // it either: it lands in the head and nowhere in the body.
-    const { html, doc } = await served();
     expect(active(doc)).toEqual([]);
-    expect(html).not.toContain("alert(1)");
+    expect(doc.body.textContent).not.toContain("alert(1)");
   });
 });

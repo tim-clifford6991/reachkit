@@ -5,8 +5,12 @@ import { describe, expect, it } from "vitest";
 import { parse } from "node-html-parser";
 import { boardIcons, readIcons } from "../../../scripts/design/components.mjs";
 import { BOARDS_DIR, PARITY_DIR, boardFile, segments } from "../../../scripts/design/parity.mjs";
+import { renderProblem } from "../../ui/layout/state-parity";
 
-const rows = JSON.parse(readFileSync(path.join(PARITY_DIR, "boards.json"), "utf8")) as Record<string, { read: string; paths?: string[] }>;
+const rows = JSON.parse(readFileSync(path.join(PARITY_DIR, "boards.json"), "utf8")) as Record<
+  string,
+  { read: string; paths?: string[]; render?: string }
+>;
 const boards = readdirSync(BOARDS_DIR)
   .filter((f) => f.endsWith(".dc.html"))
   .map((f) => f.slice(0, -".dc.html".length));
@@ -22,6 +26,17 @@ describe("docs/design/parity/boards.json", () => {
       expect(["page", "mail", "hosted", "state"], board).toContain(row.read);
       if (row.read === "page" || row.read === "hosted") expect(row.paths?.length, board).toBeGreaterThan(0);
     }
+  });
+
+  it("names, for each state row, the render test that checks that board", () => {
+    const states = Object.entries(rows).filter(([, row]) => row.read === "state");
+    expect(states.map(([board, row]) => renderProblem(board, row)).filter(Boolean)).toEqual([]);
+  });
+
+  it("fails a state row with no render test, a missing file, or one that never checks that board", () => {
+    expect(renderProblem("OptOut", {})).toContain("no \"render\"");
+    expect(renderProblem("OptOut", { render: "tests/app/opt-out/gone.test.tsx" })).toContain("does not exist");
+    expect(renderProblem("Veto", { render: "tests/app/opt-out/board.test.tsx" })).toContain('never calls expectStateParity("Veto"');
   });
 });
 

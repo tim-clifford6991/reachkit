@@ -1,21 +1,19 @@
-// SPEC §4 (board Main) — Plan's week as Overview lists it. Reached at the call
+// SPEC §4 (board Main) — Plan's week as Overview draws it. Reached at the call
 // from `(tabs)/page.tsx`: Plan's modules reach the market's, and Overview's own
 // graph holds no vendor client.
 import { dayKeyOf } from "../calendar/dates";
-import { dayStateOf, type DayCell, type PageOnDay, type WeekModel } from "../calendar/month";
-import { DAY_STATE_COPY_KEY } from "../calendar/stages";
-import type { WeekList, WeekRow } from "./ThisWeek";
+import { dayStateOf, type DayCell, type WeekModel } from "../calendar/month";
+import type { WeekDay, WeekList } from "./ThisWeek";
 
-function rowOf(cell: DayCell & { page: PageOnDay }, week: WeekModel): WeekRow {
+export { ThisWeek } from "./ThisWeek";
+
+function dayOf(cell: DayCell, week: WeekModel): WeekDay {
   const { page } = cell;
-  const state = dayStateOf(cell);
+  if (page === null) return { cell, goesLiveToday: null, href: null };
   const at = page.stage === "your_review" || page.stage === "scheduled" ? (page.vetoDeadline ?? page.publishAt) : null;
   return {
-    day: cell.day,
-    today: cell.day === week.today,
-    update: page.update,
-    title: page.title,
-    state: state === null ? null : DAY_STATE_COPY_KEY[state],
+    // Why a page was chosen is Plan's to say; Overview links there instead.
+    cell: { ...cell, page: { ...page, whyLine: null } },
     goesLiveToday: at !== null && dayKeyOf(at, week.timeZone) === week.today ? at : null,
     href: page.draftId === null ? null : `/app/draft/${page.draftId}`,
   };
@@ -29,11 +27,12 @@ export function weekListOf(week: WeekModel): WeekList | null {
   return {
     first: first.day,
     last: last.day,
-    days: week.cells.length,
     timeZone: week.timeZone,
     today: week.today,
     skippedToday: today !== undefined && dayStateOf(today) === "skipped",
-    rows: week.cells.flatMap((cell) => (cell.page === null ? [] : [rowOf({ ...cell, page: cell.page }, week)])),
+    firstSkip: week.cells.find((cell) => dayStateOf(cell) === "skipped")?.day ?? null,
+    pages: week.cells.filter((cell) => cell.page !== null).length,
+    days: week.cells.map((cell) => dayOf(cell, week)),
   };
 }
 

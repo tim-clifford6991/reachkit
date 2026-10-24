@@ -7,6 +7,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { boardFile, segments, words } from "../../../scripts/design/parity.mjs";
 import { applyEnvFixture } from "../../mail/env-fixture";
 import { blankLead, memoryStore, newMemoryState, type MemoryState } from "../../mail/leads/memory-store";
+import { expectStateParity } from "../../ui/layout/state-parity";
 
 applyEnvFixture();
 
@@ -36,8 +37,12 @@ function report(id: string, started: string, sent: number) {
   });
 }
 
+async function markup(token: string): Promise<string> {
+  return renderToStaticMarkup(await OptOutPage({ params: { token } }));
+}
+
 async function rendered(token: string): Promise<string[]> {
-  return segments(renderToStaticMarkup(await OptOutPage({ params: { token } })));
+  return segments(await markup(token));
 }
 
 /** One board card's strings, normalised as the parity check compares them. */
@@ -71,6 +76,14 @@ describe("each arm is the board's card: its sections, order and words", () => {
     const texts = await rendered(optOutTokenFor(ADDRESS));
     expect(normalised(texts)).toEqual(boardCard("div.card", 1));
   });
+});
+
+it("parity: OptOut reads its rendered arms", async () => {
+  state.leads = [report("harbor", "2026-10-19T09:00:00.000Z", 1)];
+  const confirmed = await markup(optOutTokenFor(ADDRESS));
+  const invalid = await markup("not-a-token");
+  state.failSuppressionWrite = true;
+  expectStateParity("OptOut", [confirmed, invalid, await markup(optOutTokenFor(ADDRESS))]);
 });
 
 describe("the timeline is true for the address", () => {

@@ -15,7 +15,7 @@
 import type React from "react";
 import Link from "next/link";
 import { useState } from "react";
-import { Check, Circle } from "lucide-react";
+import { Check, Coffee, FileText, RefreshCcw, Search, type LucideIcon } from "lucide-react";
 import { Surface } from "@/ui/layout";
 import { ENTER_PUBLIC } from "@/ui/motion";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
@@ -33,10 +33,10 @@ const QUIET = "text-sm text-base-content/70";
 /** The three things that happen, in order: reserved is done, the founder
  *  waits on the middle one, and the last is what they wait for. */
 const STAGES = [
-  { id: "reserved", title: "setup.connect.stage.reserved", line: "setup.connect.stage.reserved.line" },
-  { id: "waiting", title: "setup.connect.stage.waiting", line: "setup.connect.stage.waiting.line" },
-  { id: "live", title: "setup.connect.stage.live", line: "setup.connect.stage.live.line" },
-] as const satisfies readonly { id: string; title: CopyKey; line: CopyKey }[];
+  { id: "reserved", icon: Check, title: "setup.connect.stage.reserved", line: "setup.connect.stage.reserved.line" },
+  { id: "waiting", icon: Search, title: "setup.connect.stage.waiting", line: "setup.connect.stage.waiting.line" },
+  { id: "live", icon: FileText, title: "setup.connect.stage.live", line: "setup.connect.stage.live.line" },
+] as const satisfies readonly { id: string; icon: LucideIcon; title: CopyKey; line: CopyKey }[];
 
 const STEPS = [
   "setup.connect.steps.1",
@@ -52,6 +52,7 @@ const CHECK_WORDS: CheckWords = {
   live: "setup.connect.connected",
   pending: "setup.connect.notfound",
   pendingTitle: "setup.connect.notfound.title",
+  icon: RefreshCcw,
 };
 
 /** Monday to Sunday, in the screen's English (1 January 2024 was a Monday). */
@@ -153,13 +154,11 @@ export function ConnectScreen(p: { hostname: string; record: DnsRecord }): React
                         <li key={stage.id} data-testid="setup-connect-stage" data-state={done ? "done" : current ? "current" : "pending"}>
                           {index === 0 ? null : <hr className={done ? "bg-primary" : ""} />}
                           <div className="timeline-middle">
-                            {done ? (
-                              <Check {...ICON} size={16} className="text-success" />
-                            ) : current ? (
-                              <span className="status status-primary" aria-hidden />
-                            ) : (
-                              <Circle {...ICON} size={14} className="text-base-content/40" />
-                            )}
+                            <stage.icon
+                              {...ICON}
+                              size={16}
+                              className={done ? "text-success" : current ? "text-primary" : "text-base-content/70"}
+                            />
                           </div>
                           <p className="timeline-end mb-4 min-w-0 text-start">
                             <span className="block text-sm font-semibold">{copy(stage.title)}</span>
@@ -186,11 +185,17 @@ export function ConnectScreen(p: { hostname: string; record: DnsRecord }): React
 
               <section className="card card-border min-w-0 bg-base-100" data-testid="setup-connect-week">
                 <div className="card-body gap-4 p-5">
-                  <h2 className="text-lg font-semibold">{copy("setup.next.after")}</h2>
+                  <div className="flex items-center gap-3">
+                    <span className="grid size-10 shrink-0 place-items-center rounded-box bg-success/10 text-success" aria-hidden>
+                      <Coffee {...ICON} size={20} />
+                    </span>
+                    <h2 className="text-lg font-semibold">{copy("setup.next.after")}</h2>
+                  </div>
                   <ol className="grid grid-cols-7 gap-1" aria-hidden>
                     {WEEKDAYS.map((day) => (
-                      <li key={day} className="num rounded-box bg-base-200 py-2 text-center text-xs">
+                      <li key={day} className="num grid justify-items-center gap-1 rounded-box bg-base-200 py-2 text-xs">
                         {day}
+                        <FileText {...ICON} size={16} className="text-base-content/70" />
                       </li>
                     ))}
                   </ol>

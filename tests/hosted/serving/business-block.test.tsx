@@ -8,7 +8,7 @@
 // Four kinds of site: a local plumber, a SaaS with nothing but its home, a
 // German Handwerker and a site with no reading at all. 0¢.
 import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { applyEnvFixture } from "../../mail/env-fixture";
 import { readIn, readingIn } from "@/lib/presentation/copy/reader";
 import { mainSiteOf } from "@/lib/site-profile/main-site-row";
@@ -16,7 +16,24 @@ import type { HostedPage } from "@/lib/publish/destinations/hosted";
 
 applyEnvFixture();
 
-const { HostedArticle } = await import("@/app/(hosted)/hosted-page/[[...slug]]/article");
+/** The site and page the cached route is asked for. */
+const served: { language: "en" | "de"; business: unknown; page: unknown } = { language: "en", business: null, page: null };
+
+vi.mock("@/lib/account/billing", () => ({ hostedServingState: async () => ({ serve: true }) }));
+vi.mock("@/lib/locale/site", () => ({
+  siteLocale: async () => ({ language: served.language, country: served.language === "de" ? "DE" : "US" }),
+}));
+vi.mock("@/lib/publish/destinations/hosted", () => ({
+  tags: { site: (s: string) => `hosted:site:${s}`, page: (p: string) => `hosted:page:${p}` },
+  hostedSiteForHostname: async (host: string) => ({ siteId: "site-1", domain: host.replace(/^content\./, ""), host }),
+  hostedSiteForDomain: async () => null,
+  livePagesForSite: async () => [served.page],
+  retiredSlugsForSite: async () => new Set<string>(),
+  hostedIdentity: async () => served.business,
+  taggedForHosted: async () => undefined,
+}));
+
+const { GET } = await import("@/app/(hosted)/hosted-live/[host]/[slug]/route");
 const { HostedIndex } = await import("@/app/(hosted)/hosted-page/[[...slug]]/listing");
 const { readMainSite } = await import("@/lib/site-profile/main-site");
 type HostedBusiness = import("@/app/(hosted)/hosted-page/[[...slug]]/chrome").HostedBusiness;
@@ -156,11 +173,10 @@ function renderIn(language: "en" | "de", draw: () => React.JSX.Element): string 
   });
 }
 
-function article(site: Site, a: { fit: number | null; offering?: boolean; bodyMd?: string }): string {
-  const page = pageFor(site.business, a);
-  return renderIn(site.language, () => (
-    <HostedArticle resolved={{ page, canonical: page.liveUrl, others: [], business: site.business }} />
-  ));
+async function article(site: Site, a: { fit: number | null; offering?: boolean; bodyMd?: string }): Promise<string> {
+  Object.assign(served, { language: site.language, business: site.business, page: pageFor(site.business, a) });
+  const params = Promise.resolve({ host: `content.${site.business.domain}`, slug: "shut-off-water" });
+  return (await GET(new Request("https://ignored.example/"), { params })).text();
 }
 
 const parsed = (html: string): Document => new DOMParser().parseFromString(html, "text/html");
@@ -180,14 +196,14 @@ const QUIET = /\/(book|get-a-quote|termin)$/;
 describe("condition 1 — the compact block follows its rule", () => {
   for (const [name, site] of Object.entries(SITES)) {
     for (const fit of [3, 2, null]) {
-      it(`${name}, fit ${fit}: it renders iff the fit is 3 and an action is stored`, () => {
-        const doc = parsed(article(site, { fit }));
+      it(`${name}, fit ${fit}: it renders iff the fit is 3 and an action is stored`, async () => {
+        const doc = parsed(await article(site, { fit }));
         expect(compactBlocks(doc, site)).toHaveLength(fit === 3 && site.stored ? 1 : 0);
       });
     }
 
-    it(`${name}: it comes after the takeaways, never before the answer box, and outside every question section`, () => {
-      const doc = parsed(article(site, { fit: 3 }));
+    it(`${name}: it comes after the takeaways, never before the answer box, and outside every question section`, async () => {
+      const doc = parsed(await article(site, { fit: 3 }));
       for (const compact of compactBlocks(doc, site)) {
         const answer = boxLabelled(doc, site.language === "de" ? "Die kurze Antwort" : "The short answer");
         const takeaways = boxLabelled(doc, site.language === "de" ? "Das Wichtigste in Kürze" : "Key takeaways");
@@ -198,29 +214,29 @@ describe("condition 1 — the compact block follows its rule", () => {
     });
   }
 
-  it("a page with no takeaways draws it after the short answer, and the answer stays the first content", () => {
+  it("a page with no takeaways draws it after the short answer, and the answer stays the first content", async () => {
     const site = SITES["a local plumber with phone, book and quote"]!;
-    const doc = parsed(article(site, { fit: 3, bodyMd: BODY.replace(/:::takeaways[\s\S]*?:::\n/, "") }));
+    const doc = parsed(await article(site, { fit: 3, bodyMd: BODY.replace(/:::takeaways[\s\S]*?:::\n/, "") }));
     const [compact] = compactBlocks(doc, site);
     expect(follows(compact!, boxLabelled(doc, "The short answer"))).toBe(true);
     expect(doc.querySelector("article .prose")?.firstElementChild?.textContent).toMatch(/^The short answer/);
   });
 
-  it("the headline asks in the market's category and place, else names the business", () => {
+  it("the headline asks in the market's category and place, else names the business", async () => {
     const plumber = SITES["a local plumber with phone, book and quote"]!;
-    expect(compactBlocks(parsed(article(plumber, { fit: 3 })), plumber)[0]?.textContent).toContain("Need emergency plumbing in Austin?");
+    expect(compactBlocks(parsed(await article(plumber, { fit: 3 })), plumber)[0]?.textContent).toContain("Need emergency plumbing in Austin?");
     const unplaced = { ...plumber, business: { ...plumber.business, offer: { category: "drain cleaning", place: null } } };
-    expect(compactBlocks(parsed(article(unplaced, { fit: 3 })), unplaced)[0]?.textContent).toContain("Need drain cleaning?");
+    expect(compactBlocks(parsed(await article(unplaced, { fit: 3 })), unplaced)[0]?.textContent).toContain("Need drain cleaning?");
     const unknown = { ...plumber, business: { ...plumber.business, offer: null } };
-    expect(compactBlocks(parsed(article(unknown, { fit: 3 })), unknown)[0]?.textContent).toContain("Questions for Harbor Plumbing?");
+    expect(compactBlocks(parsed(await article(unknown, { fit: 3 })), unknown)[0]?.textContent).toContain("Questions for Harbor Plumbing?");
   });
 });
 
 describe("condition 2 — the full block and the header follow their limits", () => {
   for (const [name, site] of Object.entries(SITES)) {
     for (const offering of [false, true]) {
-      it(`${name}, ${offering ? "an offering page" : "a guide"}: no quiet link in the header or the compact block, and at most 1 + 2 in a full block`, () => {
-        const doc = parsed(article(site, { fit: 3, offering }));
+      it(`${name}, ${offering ? "an offering page" : "a guide"}: no quiet link in the header or the compact block, and at most 1 + 2 in a full block`, async () => {
+        const doc = parsed(await article(site, { fit: 3, offering }));
         const header = doc.querySelector("header")!;
         expect([...header.querySelectorAll("a")].filter((a) => QUIET.test(a.getAttribute("href") ?? ""))).toEqual([]);
         expect(header.querySelectorAll("a.btn").length).toBe(site.stored ? 2 : 1);
@@ -236,9 +252,9 @@ describe("condition 2 — the full block and the header follow their limits", ()
     }
   }
 
-  it("the plumber's full block is the call, then Book a visit and Ask for a quote, then Visit", () => {
+  it("the plumber's full block is the call, then Book a visit and Ask for a quote, then Visit", async () => {
     const site = SITES["a local plumber with phone, book and quote"]!;
-    const [full] = fullBlocks(parsed(article(site, { fit: 3 })), site);
+    const [full] = fullBlocks(parsed(await article(site, { fit: 3 })), site);
     expect([...full!.querySelectorAll("a")].map((a) => [a.textContent, a.getAttribute("href")])).toEqual([
       ["Call (512) 555-0142", "tel:5125550142"],
       ["Book a visit", "https://harborplumbing.example/book"],
@@ -247,17 +263,17 @@ describe("condition 2 — the full block and the header follow their limits", ()
     ]);
   });
 
-  it("a guide carries the full block at its foot only", () => {
+  it("a guide carries the full block at its foot only", async () => {
     const site = SITES["a local plumber with phone, book and quote"]!;
-    const doc = parsed(article(site, { fit: 3 }));
+    const doc = parsed(await article(site, { fit: 3 }));
     const [full, ...more] = fullBlocks(doc, site);
     expect(more).toEqual([]);
     expect(follows(full!, [...doc.querySelectorAll("article .prose")].at(-1)!)).toBe(true);
   });
 
-  it("an offering page carries it directly under the short answer, and again at the foot", () => {
+  it("an offering page carries it directly under the short answer, and again at the foot", async () => {
     const site = SITES["a local plumber with phone, book and quote"]!;
-    const doc = parsed(article(site, { fit: 3, offering: true }));
+    const doc = parsed(await article(site, { fit: 3, offering: true }));
     const [under, foot, ...more] = fullBlocks(doc, site);
     expect(more).toEqual([]);
     expect(under!.previousElementSibling?.lastElementChild?.textContent).toMatch(/^The short answer/);
@@ -267,7 +283,7 @@ describe("condition 2 — the full block and the header follow their limits", ()
   it("a site with nothing stored shows Visit only, and the page is the render it had before", async () => {
     const site = SITES["a site with nothing stored"]!;
     for (const offering of [false, true]) {
-      const html = article(site, { fit: 3, offering });
+      const html = await article(site, { fit: 3, offering });
       const blocks = fullBlocks(parsed(html), site);
       expect(blocks).toHaveLength(1);
       expect([...blocks[0]!.querySelectorAll("a")].map((a) => a.textContent)).toEqual(["Visit Nothing Stored"]);
@@ -294,8 +310,8 @@ function telephones(html: string): string[] {
 describe("condition 3 — the markup tells the truth", () => {
   for (const [name, site] of Object.entries(SITES)) {
     for (const offering of [false, true]) {
-      it(`${name}, ${offering ? "an offering page" : "a guide"}: telephone is the visible tel: text, or absent; no potentialAction, Review or AggregateRating`, () => {
-        const html = article(site, { fit: 3, offering });
+      it(`${name}, ${offering ? "an offering page" : "a guide"}: telephone is the visible tel: text, or absent; no potentialAction, Review or AggregateRating`, async () => {
+        const html = await article(site, { fit: 3, offering });
         const shown = parsed(html).querySelector('header a[href^="tel:"]')?.textContent ?? null;
         expect(shown).toBe(site.phone);
         const stated = telephones(html);
@@ -309,9 +325,9 @@ describe("condition 3 — the markup tells the truth", () => {
     }
   }
 
-  it("the German Handwerker's blocks are labelled in German", () => {
+  it("the German Handwerker's blocks are labelled in German", async () => {
     const site = SITES["a German Handwerker"]!;
-    const doc = parsed(article(site, { fit: 3 }));
+    const doc = parsed(await article(site, { fit: 3 }));
     expect(compactBlocks(doc, site)[0]?.textContent).toBe("Sie suchen Sanitär-Notdienst in Düsseldorf?0211 123456 anrufen");
     expect([...fullBlocks(doc, site)[0]!.querySelectorAll("a")].map((a) => a.textContent)).toEqual([
       "0211 123456 anrufen",
@@ -333,7 +349,7 @@ describe("the index: the header phone, and the compact block where a phone is st
 
   for (const [name, site] of Object.entries(SITES)) {
     const phone = site.phone;
-    it(`${name}: ${phone === null ? "no call and no compact block" : "the call in the header and once in a compact block"}`, () => {
+    it(`${name}: ${phone === null ? "no call and no compact block" : "the call in the header and once in a compact block"}`, async () => {
       const doc = index(site);
       expect(doc.querySelector('header a[href^="tel:"]')?.textContent ?? null).toBe(phone);
       const compact = [...doc.querySelectorAll("main aside")];
@@ -342,7 +358,7 @@ describe("the index: the header phone, and the compact block where a phone is st
     });
   }
 
-  it("a site whose only stored action is a page draws no compact block on its index", () => {
+  it("a site whose only stored action is a page draws no compact block on its index", async () => {
     const site = SITES["a German Handwerker"]!;
     const bookOnly = { ...site, business: { ...site.business, mainSite: { ...site.business.mainSite!, phone: null } } };
     expect(index(bookOnly).querySelectorAll("main aside")).toHaveLength(0);
@@ -357,31 +373,31 @@ describe("a book button says what it books", () => {
     const read = readMainSite({ domain: site.business.domain, homeUrl: `https://${site.business.domain}/`, homeHtml: `<header>${link}</header>`, pages: [], ours: null });
     return { ...site, business: { ...site.business, mainSite: mainSiteOf(JSON.parse(JSON.stringify(read))) } };
   };
-  const primary = (site: Site): [string | null, string | null] => {
-    const button = parsed(article(site, { fit: 3 })).querySelector("header a.btn")!;
+  const primary = async (site: Site): Promise<[string | null, string | null]> => {
+    const button = parsed(await article(site, { fit: 3 })).querySelector("header a.btn")!;
     return [button.textContent, button.getAttribute("href")];
   };
 
-  it("book sub-kinds: a demo, a call, and a local visit, from the link the scan stored", () => {
-    expect(primary(reading(SAAS, '<a href="/demo">Book a demo</a>'))).toEqual(["Book a demo", "https://tallyhq.example/demo"]);
-    expect(primary(reading(SAAS, '<a href="/book-a-call">Schedule a call</a>'))).toEqual(["Book a call", "https://tallyhq.example/book-a-call"]);
-    expect(primary(reading(PLUMBER, '<a href="/booking">Book now</a>'))).toEqual(["Book a visit", "https://harborplumbing.example/booking"]);
-    expect(primary(reading(SAAS, '<a href="/booking">Book now</a>'))).toEqual(["Book online", "https://tallyhq.example/booking"]);
+  it("book sub-kinds: a demo, a call, and a local visit, from the link the scan stored", async () => {
+    expect(await primary(reading(SAAS, '<a href="/demo">Book a demo</a>'))).toEqual(["Book a demo", "https://tallyhq.example/demo"]);
+    expect(await primary(reading(SAAS, '<a href="/book-a-call">Schedule a call</a>'))).toEqual(["Book a call", "https://tallyhq.example/book-a-call"]);
+    expect(await primary(reading(PLUMBER, '<a href="/booking">Book now</a>'))).toEqual(["Book a visit", "https://harborplumbing.example/booking"]);
+    expect(await primary(reading(SAAS, '<a href="/booking">Book now</a>'))).toEqual(["Book online", "https://tallyhq.example/booking"]);
   });
 
-  it("a SaaS site with no phone leads its header with Book a demo, and nothing on the page says Book a visit", () => {
-    const html = article(SAAS, { fit: 3, offering: true });
-    expect(primary(SAAS)).toEqual(["Book a demo", "https://www.tallyhq.example/demo"]);
+  it("a SaaS site with no phone leads its header with Book a demo, and nothing on the page says Book a visit", async () => {
+    const html = await article(SAAS, { fit: 3, offering: true });
+    expect(await primary(SAAS)).toEqual(["Book a demo", "https://www.tallyhq.example/demo"]);
     expect(html).not.toContain("Book a visit");
   });
 
-  it("a book row stored before sub-kinds reads Book online, unless the business serves a place", () => {
+  it("a book row stored before sub-kinds reads Book online, unless the business serves a place", async () => {
     const before = { home: "https://www.tallyhq.example/", actions: [{ kind: "book", url: "https://www.tallyhq.example/book" }] };
     const saas = { ...SAAS, business: { ...SAAS.business, mainSite: mainSiteOf(before) } };
-    const html = article(saas, { fit: 3, offering: true });
-    expect(primary(saas)).toEqual(["Book online", "https://www.tallyhq.example/book"]);
+    const html = await article(saas, { fit: 3, offering: true });
+    expect(await primary(saas)).toEqual(["Book online", "https://www.tallyhq.example/book"]);
     expect(html).not.toContain("Book a visit");
     const placed = { ...saas, business: { ...saas.business, offer: { category: "plumbing", place: "Austin" } } };
-    expect(primary(placed)[0]).toBe("Book a visit");
+    expect((await primary(placed))[0]).toBe("Book a visit");
   });
 });
