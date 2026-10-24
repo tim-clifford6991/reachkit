@@ -21,7 +21,6 @@
 import { readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { topicOf } from "../../src/lib/db/topics";
 import {
   psql,
   psqlRows,
@@ -217,40 +216,6 @@ describe(
 );
 
 describe(
-  'BP-002 `## Data model delta`: "`users.notify jsonb` … `users` · BP-017 (leaf: BP-059)" and "`sites.timezone` … `sites` · BP-017 (leaf: BP-057)"',
-  () => {
-    it("both migration names resolve to BP-017 and to no other node", () => {
-      expect(topicOf("00000000000003_users_notify_column.sql")).toEqual({
-        token: "users",
-        owner: "BP-017",
-      });
-      expect(topicOf("00000000000004_sites_timezone_column.sql")).toEqual({
-        token: "sites",
-        owner: "BP-017",
-      });
-    });
-  }
-);
-
-describe(
-  '`structure.md` rule 3a: "A column added to `users`, `sites` or any other baseline table after the baseline is a migration under that table\'s token or a sub-token of it — never \'part of the baseline\'"',
-  () => {
-    it("the baseline file is unmodified", () => {
-      const baselineText = readFileSync(BASELINE_MIGRATION, "utf8");
-      expect(baselineText).not.toMatch(/\bnotify\b/);
-      expect(baselineText).not.toMatch(/\btimezone\b/);
-    });
-
-    it("the two columns arrive in the two migrations above and nowhere else", () => {
-      const usersNotifyText = readFileSync(USERS_NOTIFY_MIGRATION, "utf8");
-      const sitesTimezoneText = readFileSync(SITES_TIMEZONE_MIGRATION, "utf8");
-      expect(usersNotifyText).toMatch(/add column notify/);
-      expect(sitesTimezoneText).toMatch(/add column timezone/);
-    });
-  }
-);
-
-describe(
   'REQ-073 criterion 1: "where they have set nothing, … the time zone is the one their browser reported at first sign-in"',
   () => {
     it("no fallback zone is written by the schema", () => {
@@ -408,34 +373,6 @@ describe(
         `select c.confdeltype from pg_constraint c join pg_class t on t.oid = c.conrelid where t.relname = 'sites' and c.conname = 'sites_provisioned_from_scan_id_fkey';`
       );
       expect(rows).toEqual([["a"]]); // 'a' = NO ACTION; 'c' would be CASCADE
-    });
-  }
-);
-
-describe(
-  '`structure.md` rule 3a — each payment migration carries exactly one sub-token, and resolves to the leaf that owns those columns',
-  () => {
-    it("the three filenames resolve to users_billing, users_provisioning and sites_provisioning", () => {
-      expect(topicOf("20260906090000_users_billing_columns.sql")).toEqual({
-        token: "users_billing",
-        owner: "BP-030",
-      });
-      expect(topicOf("20260906090100_users_provisioning_keys.sql")).toEqual({
-        token: "users_provisioning",
-        owner: "BP-032",
-      });
-      expect(topicOf("20260906090200_sites_provisioning_columns.sql")).toEqual({
-        token: "sites_provisioning",
-        owner: "BP-031",
-      });
-    });
-
-    it("the baseline file is unmodified — no payment column arrives in it", () => {
-      const baselineText = readFileSync(BASELINE_MIGRATION, "utf8");
-      expect(baselineText).not.toMatch(/\bvat_number\b/);
-      expect(baselineText).not.toMatch(/\bcheckout_session_id\b/);
-      expect(baselineText).not.toMatch(/\bfirst_signed_in_at\b/);
-      expect(baselineText).not.toMatch(/\bprovisioned_from_scan_id\b/);
     });
   }
 );
@@ -609,49 +546,27 @@ describe(
     });
   }
 );
-
-describe(
-  '`structure.md` rule 3a — each identity migration carries exactly one sub-token, and resolves to the leaf that owns those columns',
-  () => {
-    it("every identity filename resolves to users_identity", () => {
-      expect(topicOf("20260906100000_users_identity_columns.sql")).toEqual({
-        token: "users_identity",
-        owner: "BP-061",
-      });
-      expect(topicOf("20260906100100_users_identity_links.sql")).toEqual({
-        token: "users_identity",
-        owner: "BP-061",
-      });
-      expect(topicOf("20260910120000_users_identity_supabase_auth.sql")).toEqual({
-        token: "users_identity",
-        owner: "BP-061",
-      });
-    });
-
-    it("the baseline file is unmodified — no identity column arrives in it", () => {
-      const baselineText = readFileSync(BASELINE_MIGRATION, "utf8");
-      expect(baselineText).not.toMatch(/\bpending_email\b/);
-      expect(baselineText).not.toMatch(/\bauth_links\b/);
-      expect(baselineText).not.toMatch(/\bsessions_valid_from\b/);
-    });
-
-    it("neither identity migration introduces an on-delete cascade", () => {
-      for (const file of [
-        USERS_IDENTITY_COLUMNS_MIGRATION,
-        USERS_IDENTITY_LINKS_MIGRATION,
-        USERS_IDENTITY_SUPABASE_AUTH_MIGRATION,
-      ]) {
-        // Comments stripped: both files *name* ADR-051 point 2 in prose, and
-        // a promise stated in a header must not fail the test that checks
-        // the promise is kept — the same footing the TypeScript suites in
-        // `tests/account/**` strip their own sources on.
-        const sql = readFileSync(file, "utf8").replace(/^\s*--.*$/gm, "");
-        expect(sql).not.toMatch(/on delete cascade/i);
-      }
-    });
-  }
-);
 // ── BUILD §13, issue #34 — the subscription gate and the hosting clock
+
+// Each migration's own topic is `tests/db/migration-naming.test.ts`'s sweep.
+describe("`structure.md` rule 3a — a column added after the baseline arrives in its own migration, never in the baseline", () => {
+  it("the baseline file holds none of the columns the later migrations add", () => {
+    const baselineText = readFileSync(BASELINE_MIGRATION, "utf8");
+    for (const column of [
+      "notify",
+      "timezone",
+      "vat_number",
+      "checkout_session_id",
+      "first_signed_in_at",
+      "provisioned_from_scan_id",
+      "pending_email",
+      "auth_links",
+      "sessions_valid_from",
+    ]) {
+      expect(baselineText, column).not.toMatch(new RegExp(`\\b${column}\\b`));
+    }
+  });
+});
 
 describe("ADR-050 — users.paid_through is the gate, and plan_status carries the landmine", () => {
   it("paid_through is timestamptz, NOT NULL, and defaults to now()", () => {
@@ -749,23 +664,5 @@ describe("REQ-076 c10, c11 — the hosted-retention clock and the two notice sta
       `select conname from pg_constraint where contype = 'f' and confdeltype <> 'a' and conrelid in ('public.users'::regclass, 'public.sites'::regclass);`
     );
     expect(rows).toEqual([]);
-  });
-});
-
-describe("structure.md rule 3a — the two sub-tokens", () => {
-  it("each migration file carries its own sub-token and no other", () => {
-    const subscription = readFileSync(USERS_SUBSCRIPTION_MIGRATION, "utf8");
-    const hosting = readFileSync(SITES_HOSTING_MIGRATION, "utf8");
-    expect(subscription).toContain("users_subscription");
-    expect(hosting).toContain("sites_hosting");
-    // The subscription file touches `users` alone; the hosting file `sites`
-    // alone. A file that altered both would own two topics.
-    expect(subscription).not.toMatch(/alter table sites/);
-    expect(hosting).not.toMatch(/alter table users/);
-  });
-
-  it("both topics resolve through the one topic map", () => {
-    expect(topicOf(path.basename(USERS_SUBSCRIPTION_MIGRATION))).toBeTruthy();
-    expect(topicOf(path.basename(SITES_HOSTING_MIGRATION))).toBeTruthy();
   });
 });

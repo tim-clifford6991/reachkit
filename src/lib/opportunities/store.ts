@@ -172,8 +172,8 @@ export interface OpportunityStore {
   clusterable(siteId: string): Promise<readonly OpportunityRow[]>;
   /** The ids of this site's rows a draft was ever written from, published
    *  or not (SPEC §6, D59, issue 1287): the rows a pass's relevance prune
-   *  never touches. Optional: a store that cannot answer prunes nothing. */
-  draftedOpportunityIds?(siteId: string): Promise<ReadonlySet<string>>;
+   *  never touches. */
+  draftedOpportunityIds(siteId: string): Promise<ReadonlySet<string>>;
   /** The non-Fix row whose page was drafted or published last — the day
    *  before the first one the ranking plans (#1181). */
   latestPage(siteId: string): Promise<OpportunityRow | null>;
@@ -186,29 +186,26 @@ export interface OpportunityStore {
    *  weeks ending at `at` (SPEC §6, D15, issue 1146), read from the stored
    *  passes. Nothing is bought. */
   citedPages(siteId: string, at: Date): Promise<readonly string[]>;
-  /** The clusters of the site's live pages at any of `urls`. Optional: a
-   *  store that cannot answer reads none. */
-  clustersAt?(siteId: string, urls: readonly string[]): Promise<readonly string[]>;
-  /** The opportunities of the site's live pages, each with its cluster.
-   *  Optional: a store that cannot answer holds no cluster back. */
-  livePageClusters?(siteId: string): Promise<readonly LivePageCluster[]>;
+  /** The clusters of the site's live pages at any of `urls`. */
+  clustersAt(siteId: string, urls: readonly string[]): Promise<readonly string[]>;
+  /** The opportunities of the site's live pages, each with its cluster. */
+  livePageClusters(siteId: string): Promise<readonly LivePageCluster[]>;
   /** The top tens the given scans bought, by `queryKey`, a later scan's
    *  over an earlier one's (#1131) — what a held row's search is compared
    *  by. Only the questions and SERPs are read, never the whole report. */
   topTens(scanIds: readonly string[]): Promise<ReadonlyMap<string, readonly string[]>>;
   /** The same top tens with each result's domain, address and title, and
-   *  when the scan bought them (issue 1506). Optional: a store that cannot
-   *  answer reads no top ten, and no row is held for its make-up. */
-  topTenRows?(scanIds: readonly string[]): Promise<ReadonlyMap<string, TopTenRead>>;
+   *  when the scan bought them (issue 1506). */
+  topTenRows(scanIds: readonly string[]): Promise<ReadonlyMap<string, TopTenRead>>;
   /** D62's store (issue 1506): the "People also ask" and related searches
    *  of the SERPs this site's research read, each with its search, bought in
-   *  the last `days`. Optional: a store that cannot answer reads none. */
-  askedBeside?(siteId: string, days: number): Promise<readonly AskedBeside[]>;
+   *  the last `days`. */
+  askedBeside(siteId: string, days: number): Promise<readonly AskedBeside[]>;
   /** Issue 1549: the searches of this site's dismissed non-Fix rows, each
    *  with the volume it was dismissed at (`null` where none was measured),
    *  and whether the customer stopped it — a stopped row's absorbed
-   *  searches with it. Optional: a store that cannot answer holds nothing back. */
-  dismissedSearches?(siteId: string): Promise<readonly DismissedSearch[]>;
+   *  searches with it. */
+  dismissedSearches(siteId: string): Promise<readonly DismissedSearch[]>;
   /** Issue 1559: replaces the site's committed week with `entries` — every
    *  row's place cleared first, then each entry's written. */
   commitPlan(siteId: string, entries: readonly PlanEntry[]): Promise<void>;
@@ -247,13 +244,11 @@ export interface OpportunityStore {
    *  stored numbers. */
   setFitBand(opportunityId: string, band: Winnability): Promise<void>;
   /** The volume a pass read for a row it already held unmeasured (SPEC §6,
-   *  D64, issue 1301): the column, and the same figure in its evidence.
-   *  Optional: a store that cannot write it leaves the row unmeasured. */
-  setVolume?(opportunityId: string, volume: number, evidence: Evidence): Promise<void>;
+   *  D64, issue 1301): the column, and the same figure in its evidence. */
+  setVolume(opportunityId: string, volume: number, evidence: Evidence): Promise<void>;
   /** The row's evidence with the shape its stored results page gives it
-   *  (`readiness.ts`). Optional: a store that cannot write it keeps the
-   *  shape the row was typed by. */
-  setEvidence?(opportunityId: string, evidence: Evidence): Promise<void>;
+   *  (`readiness.ts`). */
+  setEvidence(opportunityId: string, evidence: Evidence): Promise<void>;
   /** Stores the pass's business-fit judgement on a row it already held
    *  (issue 1134): judged once, read by readiness and the ranking. */
   setBusinessFit(
@@ -339,16 +334,14 @@ export interface OpportunityStore {
   }): Promise<void>;
   /** SPEC §7 (*Pace*, issue 1139): the live pages ReachKit wrote for this
    *  site, each at its current version, and the two pools a newer fact is
-   *  read from. Optional: a store that holds no published pages has nothing
-   *  to answer, and `planRefreshes` then plans nothing. */
-  refreshInputs?(siteId: string): Promise<RefreshInputs>;
+   *  read from. */
+  refreshInputs(siteId: string): Promise<RefreshInputs>;
   /** `refreshInputs`' pages without its pools, for the planners that read
    *  no text: a link back, a moved link and the hourly re-check. */
-  refreshPages?(siteId: string): Promise<readonly OwnLivePage[]>;
+  refreshPages(siteId: string): Promise<readonly OwnLivePage[]>;
   /** SPEC §6 (D60, issue 1288): the prompts the site tracks today, which a
-   *  topic's intent is matched against. Optional: a double without it
-   *  answers none, and no topic is held for lacking a prompt. */
-  trackedPrompts?(siteId: string): Promise<readonly { id: string; text: string }[]>;
+   *  topic's intent is matched against. */
+  trackedPrompts(siteId: string): Promise<readonly { id: string; text: string }[]>;
 }
 
 // ── Reviving a row ──────────────────────────────────────────────────────

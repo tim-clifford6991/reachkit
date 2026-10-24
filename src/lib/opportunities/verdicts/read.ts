@@ -123,7 +123,7 @@ export async function weeklyDigest(a: {
     store.publishedPages(a.siteId),
     store.weekReport({ siteId: a.siteId, week: a.week }),
     // Rows that could not be read state no page's index state.
-    store.seenUrls === undefined ? Promise.resolve(null) : store.seenUrls(a.siteId).catch(() => null),
+    store.seenUrls(a.siteId).catch(() => null),
   ]);
   const byId = new Map(pages.map((page) => [page.publicationId, page]));
 

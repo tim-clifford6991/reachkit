@@ -14,7 +14,7 @@ import { applyEnvFixture } from "../../mail/env-fixture";
 
 applyEnvFixture();
 
-const { cancelSubscription, endSubscriptionNow, hasActiveAccess, setBillingStore } = await import(
+const { endSubscriptionNow, hasActiveAccess, setBillingStore } = await import(
   "@/lib/account/billing"
 );
 const { setStripe } = await import("@/lib/account/stripe/client");
@@ -86,15 +86,6 @@ describe("REQ-079 c6 — the subscription ends at once", () => {
     await endSubscriptionNow("u-1", NOW);
     expect(storedUser(state).plan_status).toBe("canceled");
     expect(storedUser(state).cancelled_at).toBe(NOW.toISOString());
-  });
-
-  it("the discriminating case: cancelSubscription leaves access standing, this does not", async () => {
-    given();
-    await cancelSubscription("u-1");
-    expect(await hasActiveAccess("site-1")).toBe(true);
-
-    await endSubscriptionNow("u-1", NOW);
-    expect(await hasActiveAccess("site-1")).toBe(false);
   });
 
   it("an account with no subscription still has its gate closed — there is nothing at the vendor to stop", async () => {

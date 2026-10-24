@@ -306,6 +306,6 @@ async function ownVersions(
   opportunity: { type: string; targetRef: string } | null
 ): Promise<{ exceptVersionsAt?: { url: string; draftIds: string[] } }> {
   const store = generateStore();
-  if (opportunity?.type !== "refresh_page" || store.versionsAt === undefined) return {};
+  if (opportunity?.type !== "refresh_page") return {};
   return { exceptVersionsAt: { url: opportunity.targetRef, draftIds: await store.versionsAt(siteId, opportunity.targetRef) } };
 }

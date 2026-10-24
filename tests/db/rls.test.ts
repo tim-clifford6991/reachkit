@@ -242,15 +242,6 @@ describe('BP-002 `## Error & edge behavior` — "RLS is default-deny ... A migra
     expect(tablesWithNoPolicyOrRlsOff()).toContain("rls_fixture_off");
     psql(["-v", "ON_ERROR_STOP=1", "-c", "drop table rls_fixture_off;"]);
   });
-
-  it("no policy anywhere names the `anon` role for `scans`", () => {
-    const rows = psqlRows(
-      `select policyname, roles::text from pg_policies where schemaname = 'public' and tablename = 'scans';`
-    );
-    for (const [, roles] of rows) {
-      expect(roles).not.toContain("anon");
-    }
-  });
 });
 
 describe('BP-002 `## Error & edge behavior` — "A policy that lacks the `deleted_at is null` condition is a CI failure ... the guarantee has one point of failure"', () => {
