@@ -21,6 +21,7 @@ import { siteLocale } from "@/lib/locale/site";
 import {
   guidesBlock,
   headingsUnderTitle,
+  inlineHtml,
   inlineText,
   markPassage,
   labelledIn,
@@ -43,7 +44,7 @@ import { movedSlugsForSite } from "@/lib/publish/destinations/hosted/store";
 import { topicSimilarity } from "@/lib/known-content/similarity";
 import { Surface } from "@/ui/layout";
 import { resolveHost } from "../../resolve-host";
-import { AboutCard, actionsOf, CompactAction, HostedFooter, HostedHeader, INDEX_PATH, mainSiteOf, type HostedBusiness } from "./chrome";
+import { AboutCard, actionsOf, CompactAction, Glyph, HostedFooter, HostedHeader, INDEX_PATH, mainSiteOf, type HostedBusiness } from "./chrome";
 import { bylineLine, datedLine } from "@/lib/publish/render/byline";
 import { withFaq, type FaqEntry } from "@/lib/publish/render/faq";
 import { isSourcesHeading, madeLine } from "@/lib/publish/render/made";
@@ -247,6 +248,23 @@ function Contents({ headings }: { headings: readonly HeadingEntry[] }): React.JS
   );
 }
 
+/** An offering page's "Where and when" (E10): its opening line and its list
+ *  of places, by their index in `blocks`, found under the heading generation
+ *  recorded. `null` where the page records none or the section lists no place. */
+function whereWhenOf(blocks: readonly Block[], heading: string | null | undefined): { line: number; list: number; places: string[] } | null {
+  if (heading === null || heading === undefined) return null;
+  const at = blocks.findIndex((block) => block.kind === "heading" && titleKey(inlineText(block.children)) === titleKey(heading));
+  const top = blocks[at];
+  if (top?.kind !== "heading") return null;
+  const next = blocks.findIndex((block, i) => i > at && block.kind === "heading" && block.level <= top.level);
+  const within = (i: number): boolean => i > at && (next < 0 || i < next);
+  const list = blocks.findIndex((block, i) => within(i) && block.kind === "list" && !block.ordered);
+  const listed = blocks[list];
+  if (listed?.kind !== "list") return null;
+  const line = blocks.findIndex((block, i) => within(i) && i < list && block.kind === "paragraph");
+  return { line, list, places: listed.items.map((item) => inlineText(item).replace(/\s+/g, " ").trim()) };
+}
+
 /** The article's `<head>`: its own title, description, canonical and share
  *  tags. */
 export function articleHead(resolved: Resolved): Metadata {
@@ -303,21 +321,22 @@ export function HostedArticle({ resolved }: { resolved: Resolved }): React.JSX.E
     withoutLinksTo(headingsUnderTitle(asked.blocks), (href) => retiredHere(href, canonical, resolved.retired)),
     (href) => movedHere(href, canonical, resolved.moved)
   );
-  // What the page says about itself as data: always the posting and the
-  // breadcrumb, and the questions only where the page draws them.
-  const faq = faqSchema(asked.faq, canonical);
   const offering = page.offering === true;
-  const dataBlocks = [
-    (offering ? offeringSchema : blogPostingSchema)({ page, canonical, business }),
-    breadcrumbSchema({ page, canonical, business }),
-    ...(faq === null ? [] : [faq]),
-  ];
   const grounded = page.grounded;
   // The mark first, the ids after: an id is minted from a heading's words
   // and the mark changes none of them.
   const { blocks, headings } = withHeadingIds(
     grounded === null ? levelled : markPassage(levelled, grounded.passage).blocks
   );
+  const where = offering ? whereWhenOf(blocks, page.whereWhen) : null;
+  // What the page says about itself as data: always the posting and the
+  // breadcrumb, and the questions only where the page draws them.
+  const faq = faqSchema(asked.faq, canonical);
+  const dataBlocks = [
+    offering ? offeringSchema({ page, canonical, business, ...(where === null ? {} : { areas: where.places }) }) : blogPostingSchema({ page, canonical, business }),
+    breadcrumbSchema({ page, canonical, business }),
+    ...(faq === null ? [] : [faq]),
+  ];
   // The business's action inside the body (owner R1, 2026-10-22), only
   // where one is stored: on an offering page the full block under the short
   // answer, and where the page's search is its own offering (fit 3) the
@@ -327,14 +346,45 @@ export function HostedArticle({ resolved }: { resolved: Resolved }): React.JSX.E
   const answerAt = blocks.findIndex((block) => block.kind === "answer");
   const takeawaysAt = blocks.findIndex((block) => block.kind === "takeaways");
   const compactAt = stored && page.businessFit === 3 ? (takeawaysAt >= 0 ? takeawaysAt : answerAt) : -1;
+  // "Where and when" draws lucide's clock on its opening line and its pin on
+  // each place, in place of the two blocks the serialiser would draw.
+  const whereLine = where === null ? null : blocks[where.line];
+  const whereParts = where === null ? [] : [
+    ...(whereLine?.kind === "paragraph" ? [{
+      after: where.line - 1,
+      node: (
+        <div key="where-line" className="prose prose-lg max-w-none">
+          <p className="flex items-center gap-2">
+            <Glyph name="clock" />
+            <span dangerouslySetInnerHTML={{ __html: inlineHtml(whereLine.children, HOSTED_BODY_CLASSES) }} />
+          </p>
+        </div>
+      ),
+    }] : []),
+    {
+      after: where.list - 1,
+      node: (
+        <ul key="where-list" role="list" className="my-6 flex flex-wrap gap-x-5 gap-y-2 text-lg">
+          {where.places.map((place, i) => (
+            <li key={i} className="flex items-center gap-1.5">
+              <Glyph name="map-pin" />
+              {place}
+            </li>
+          ))}
+        </ul>
+      ),
+    },
+  ];
+  const drawnHere = new Set(where === null ? [] : [where.list, ...(whereLine?.kind === "paragraph" ? [where.line] : [])]);
   const inserts = [
     ...(stored && offering && answerAt >= 0 ? [{ after: answerAt, node: <AboutCard key="full" business={business} /> }] : []),
     ...(compactAt >= 0 ? [{ after: compactAt, node: <CompactAction key="compact" business={business} /> }] : []),
+    ...whereParts,
   ].sort((a, b) => a.after - b.after);
   const bodyParts: React.ReactNode[] = [];
   let from = 0;
   for (const { after, node } of [...inserts, { after: blocks.length - 1, node: null }]) {
-    const html = toHtml(blocks.slice(from, after + 1), HOSTED_BODY_CLASSES);
+    const html = toHtml(blocks.slice(from, after + 1).filter((_, i) => !drawnHere.has(from + i)), HOSTED_BODY_CLASSES);
     if (html !== "" || from === 0) bodyParts.push(<div key={`body-${from}`} className="prose prose-lg max-w-none" dangerouslySetInnerHTML={{ __html: html }} />);
     if (node !== null) bodyParts.push(node);
     from = after + 1;

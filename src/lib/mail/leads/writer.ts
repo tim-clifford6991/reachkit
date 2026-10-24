@@ -8,7 +8,7 @@ import { bodyWords, lengthRangeFor } from "@/lib/generate/length";
 import { packStatements, targetSearches } from "@/lib/generate/pipeline";
 import { layoutPage, withClosing } from "@/lib/generate/pipeline/compose";
 import { sitePassages, type SourcedFact } from "@/lib/generate/pipeline/grounding";
-import { buildPack } from "@/lib/generate/pipeline/pack";
+import { buildPack, fittedTemplate } from "@/lib/generate/pipeline/pack";
 import { NO_RESEARCH } from "@/lib/generate/pipeline/research";
 import { completeTables } from "@/lib/generate/pipeline/sources";
 import { titleRuleFor } from "@/lib/generate/pipeline/title";
@@ -16,7 +16,6 @@ import { writePage } from "@/lib/generate/pipeline/write";
 import { pickTitle } from "@/lib/generate/rules/title";
 import { runHardRules } from "@/lib/generate/rules";
 import { renderOf } from "@/lib/generate/rules/text";
-import { TEMPLATES } from "@/lib/generate/templates";
 import { contentTypeOf, type ContentType } from "@/lib/opportunities/content-type";
 import { pageTypeOf } from "@/lib/opportunities/page-type";
 import { readDomainText, type MeasuredText } from "@/lib/measure/text";
@@ -114,7 +113,7 @@ export const writeLeadPage: DraftWriter = async (a) => {
     return REFUSED;
   }
   const type = pack.type;
-  const template = TEMPLATES[type];
+  const template = fittedTemplate(pack);
   const length = lengthRangeFor(template, { questions: pack.questions.length });
   const pageType = pageTypeOf(opportunity);
 

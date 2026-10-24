@@ -267,6 +267,8 @@ function taskFor(a: WriteInputs): string {
     lengthTask(a),
     faq === null
       ? "`faq` is empty: this page's own questions are its buyer questions."
+      : faq.max === 0
+      ? "`faq` is empty: too few buyer questions this pack can answer were asked, so the page carries none."
       : `\`faq\`: ${faq.min} to ${faq.max} questions buyers ask about the target that the headings do not already ask, each answered in two or three sentences under the same \`rules\`; they are stored with the page, not printed in it.`,
     a.pack.type === "update"
       ? a.pack.live?.linkTo?.replaces !== undefined

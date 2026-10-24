@@ -44,7 +44,7 @@ import type { LinkTarget } from "../links/select";
 import { headingLines, sameSubtopic, subtopicOf, topicWords } from "../rules/gaps";
 import { alikeHeadings } from "../rules/headings";
 import { renderOf } from "../rules/text";
-import { TEMPLATES, type PackNeed, type PackRequirement } from "../templates";
+import { sectionBounds, TEMPLATES, type PackNeed, type PackRequirement, type SectionFacts, type Template } from "../templates";
 import type { WritingMarket } from "../voice/market";
 import type { PromptKnowledge, PromptProfile } from "../voice/profile-block";
 import { chooseVoice, type PageVoice, type WritingVoice } from "../voice/register";
@@ -665,6 +665,42 @@ export function missingFrom(pack: Omit<ContextPack, "missing">, previousResearch
   // R31: every page but an update, whatever its template, is held to it.
   const held: PackRequirement[] = [...TEMPLATES[pack.type].packMustHold, ...(pack.type === "update" ? [] : [{ need: "rival_evidence" as const }])];
   return held.filter((requirement) => !holds(requirement, pack, previousResearch)).map((requirement) => requirement.need);
+}
+
+/** How many of a section's facts the pack holds: distinct inclusions, the
+ *  places the business's own pages state (never one only the founder gave),
+ *  and one where it states a difference or a promise. */
+function factsHeld(facts: SectionFacts, pack: ContextPack): number {
+  const knowledge = pack.profile?.knowledge;
+  switch (facts) {
+    case "inclusions":
+      return new Set((knowledge?.offerings ?? []).flatMap((offering) => offering.features.map(fold))).size;
+    case "places":
+      return new Set((knowledge?.places ?? []).filter((place) => place.from !== "founder").map((place) => fold(place.text))).size;
+    case "difference":
+      return holds({ need: "difference" }, pack, null) ? 1 : 0;
+  }
+}
+
+/**
+ * The template a pack's page is written and checked to (E10): a section the
+ * pack holds too few facts for is left out, questions buyers asked fewer than
+ * the template's least leave no FAQ, and the length's ceiling keeps each
+ * section's share, so a page with fewer sections is never padded.
+ */
+export function fittedTemplate(pack: ContextPack): Template {
+  const template = TEMPLATES[pack.type];
+  const sections = template.sections.filter((slot) => slot.onlyWith === undefined || factsHeld(slot.onlyWith.facts, pack) >= slot.onlyWith.min);
+  const faq = template.blocks.faq;
+  const asked = faq === null || faq.asked !== true || holds({ need: "buyer_questions", min: faq.min }, pack, null);
+  if (sections.length === template.sections.length && asked) return template;
+  const share = sectionBounds({ ...template, sections }).max / sectionBounds(template).max;
+  return {
+    ...template,
+    sections,
+    blocks: { ...template.blocks, faq: asked ? faq : { min: 0, max: 0 } },
+    length: "ceiling" in template.length ? { ...template.length, ceiling: Math.round(template.length.ceiling * share) } : template.length,
+  };
 }
 
 export interface PackInputs {

@@ -199,11 +199,13 @@ export function blogPostingSchema(a: {
 
 /** `WebPage` with its `Service`, on an offering page (owner R1, 2026-10-22):
  *  the business's own page about what it provides, so no posting and no
- *  person, and the dates are the two the page prints. */
+ *  person, and the dates are the two the page prints. `areaServed` is the
+ *  page's visible "Where and when" list, and absent where it draws none (E10). */
 export function offeringSchema(a: {
   page: HostedPage;
   canonical: string;
   business: HostedBusiness;
+  areas?: readonly string[];
 }): string {
   const name = a.page.heading ?? a.page.title;
   const service = `${a.canonical}#service`;
@@ -221,7 +223,14 @@ export function offeringSchema(a: {
         mainEntity: { "@id": service },
         publisher: publisherOf(a.business, originOf(a.canonical)),
       },
-      { "@type": "Service", "@id": service, name, url: a.canonical, provider: { "@id": organizationIdOf(a.business) } },
+      {
+        "@type": "Service",
+        "@id": service,
+        name,
+        url: a.canonical,
+        provider: { "@id": organizationIdOf(a.business) },
+        ...(a.areas === undefined || a.areas.length === 0 ? {} : { areaServed: [...a.areas] }),
+      },
     ],
   });
 }

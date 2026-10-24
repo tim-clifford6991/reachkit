@@ -606,12 +606,19 @@ export function seedHostedPublisher(): void {
     );
   });
 
-  // The business's own product page (owner R1, 2026-10-22), the one board
-  // HostedService reads: dated, made line kept, no byline.
-  const meta = JSON.stringify({ contentType: "offering", description: PUBLISHER_OFFERING.description, ...PUBLISHER_PAGE.made }).replaceAll("'", "''");
+  // The business's own service page (owner R1, 2026-10-22; E10), the one board
+  // HostedService reads: dated, made line kept, no byline, every section, and
+  // the sections and questions generation records beside it.
+  const meta = JSON.stringify({
+    contentType: "offering",
+    description: PUBLISHER_OFFERING.description,
+    faq: PUBLISHER_OFFERING.faq,
+    sections: PUBLISHER_OFFERING.sections,
+    ...PUBLISHER_PAGE.made,
+  }).replaceAll("'", "''");
   const [opportunityId] = rows(
     `insert into opportunities (site_id, scan_id, type, family, target_query, target_ref, proposed_slug, title, volume, fit_band, effort, evidence, acceptance) ` +
-      `select site_id, scan_id, type, family, 'onboarding checklist software', '${PUBLISHER_OFFERING.slug}', '${PUBLISHER_OFFERING.slug}', '${PUBLISHER_OFFERING.title}', volume, fit_band, effort, evidence, acceptance ` +
+      `select site_id, scan_id, type, family, '${PUBLISHER_OFFERING.search}', '${PUBLISHER_OFFERING.slug}', '${PUBLISHER_OFFERING.slug}', '${PUBLISHER_OFFERING.title}', volume, fit_band, effort, evidence, acceptance ` +
       `from opportunities where site_id = '${PUBLISHER_ACCOUNT.siteId}' limit 1 returning id;`
   );
   const [draftId] = rows(
@@ -637,38 +644,87 @@ export function seedHostedPublisher(): void {
   // Two published pages on one topic, so the index draws "All guides" with a topic card and the A–Z rest.
   sql(
     `update opportunities set status = 'done', cluster_key = 'checklist onboarding' ` +
-      `where site_id = '${PUBLISHER_ACCOUNT.siteId}' and target_query in ('onboarding checklist software', 'more guides 0');`
+      `where site_id = '${PUBLISHER_ACCOUNT.siteId}' and target_query in ('${PUBLISHER_OFFERING.search}', 'more guides 0');`
   );
 }
 
-/** A SaaS business's offering page, in the offering template's sections. */
+/** The board's plumber offering page, with every fact (E10): an emergency
+ *  call-out in Austin, its eight sections in the fixed order, its steps, four
+ *  questions, and the site's other live guides for "More guides". The values
+ *  are the board's sample data. */
+const PLUMBER = "https://harborplumbing.example";
 export const PUBLISHER_OFFERING = Object.freeze({
-  slug: "onboarding-checklist-software",
-  title: "Onboarding checklist software with one owner for every step",
-  description: "Checklists a new hire can see, one owner for each step, and an export of everything you wrote.",
+  slug: "emergency-plumber-austin",
+  search: "emergency plumber austin",
+  title: "Emergency plumber in Austin: 24-hour call-outs from $149",
+  description: "Harbor Plumbing answers emergency calls 24 hours a day across Austin, from a $149 call-out with a written price first.",
+  sections: [
+    { key: "what", heading: "What it is and who it’s for" },
+    { key: "included", heading: "What’s included", items: 4 },
+    { key: "price", heading: "How it’s priced" },
+    { key: "where_when", heading: "Where and when" },
+    { key: "how_it_works", heading: "How it works", items: 4 },
+    { key: "why", heading: "Why Harbor Plumbing" },
+  ],
+  faq: [
+    { question: "Is the call-out price the same at night?", answer: `Yes. The call-out is [$149 at any hour](${PLUMBER}/pricing), as listed on our pricing page.` },
+    {
+      question: "What should I do while I wait?",
+      answer: `Shut off the water at the main valve, open the lowest tap to drain the pipes, and switch off the water heater. Our guide [How to shut off water to a house in an emergency](https://content.${PUBLISHER_ACCOUNT.domain}/${PUBLISHER_PAGE.slug}) shows each step.`,
+    },
+    { question: "Will I know the price before you start?", answer: "Yes. After finding the problem, the plumber gives you a written price. No work starts until you agree to it." },
+    { question: "Do you cover my area?", answer: "We cover the areas listed above. If your town isn’t listed, call and ask." },
+  ],
   bodyMd: [
     ":::answer",
-    "Publisher & Sons gives every onboarding step one owner and a checklist the new hire can see, so a stalled account always has a name against it.",
+    "Harbor Plumbing answers emergency calls 24 hours a day across Austin. A call-out is $149, and you get a written price before any work starts. Call (512) 555-0142 and we’ll talk you through shutting off your water while the van is on its way.",
     ":::",
     "",
-    "## What is it, and who is it for?",
+    "## What it is and who it’s for",
     "",
-    "Onboarding checklist software for people teams that hire every month.",
+    "Emergency plumbing is for problems that can’t wait for a weekday booking. It’s for homes in Austin.",
     "",
-    "## What is included?",
+    "## What’s included",
     "",
     // A lead-in sentence, so the sweep measures a checklist.
-    "Every plan includes:",
+    "Every call-out includes:",
     "",
-    "- One owner for every step",
-    "- A checklist the new hire can see",
-    "- An export of everything you wrote",
+    "- Someone answers your call at any hour",
+    "- Help shutting off your water while you wait",
+    "- A plumber at your door to find the problem",
+    "- A written price before any work starts",
     "",
-    "## How does it work?",
+    `From [harborplumbing.example/emergency](${PLUMBER}/emergency).`,
     "",
-    "1. You write the checklist once.",
-    "2. Each step gets an owner.",
-    "3. The new hire sees what is next.",
+    "## How it’s priced",
+    "",
+    `A call-out is [$149](${PLUMBER}/pricing). The call-out covers the visit and finding the problem. You then get a written price for the repair, and you decide whether to go ahead.`,
+    "",
+    `From [harborplumbing.example/pricing](${PLUMBER}/pricing).`,
+    "",
+    "## Where and when",
+    "",
+    `[24 hours a day, every day](${PLUMBER}/emergency), in the areas the main site lists:`,
+    "",
+    "- Austin",
+    "- Round Rock",
+    "- Pflugerville",
+    "- Cedar Park",
+    "",
+    "## How it works",
+    "",
+    "1. **You call.** Ring (512) 555-0142 and tell us what’s happening.",
+    "2. **You get an arrival window.** We tell you on the phone when the plumber will reach you.",
+    "3. **You get a written quote.** The plumber finds the problem and writes down the price.",
+    "4. **We do the work.** Only once you’ve said yes to the price.",
+    "",
+    "## Why Harbor Plumbing",
+    "",
+    `- Licensed plumbers, as stated on [harborplumbing.example](${PLUMBER}/about).`,
+    "- A written price before any work starts.",
+    "- We stay on the line and talk you through the shut-off while the van is on its way.",
+    "",
+    "Water running now? [Call Harbor Plumbing on (512) 555-0142](tel:+15125550142).",
   ].join("\n"),
 });
 

@@ -2,7 +2,8 @@
 import { readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
-import { BOARDS_DIR, PARITY_DIR } from "../../../scripts/design/parity.mjs";
+import { parse } from "node-html-parser";
+import { BOARDS_DIR, PARITY_DIR, boardFile, segments } from "../../../scripts/design/parity.mjs";
 
 const rows = JSON.parse(readFileSync(path.join(PARITY_DIR, "boards.json"), "utf8")) as Record<string, { read: string; paths?: string[] }>;
 const boards = readdirSync(BOARDS_DIR)
@@ -20,5 +21,28 @@ describe("docs/design/parity/boards.json", () => {
       expect(["page", "mail", "hosted", "state"], board).toContain(row.read);
       if (row.read === "page" || row.read === "hosted") expect(row.paths?.length, board).toBeGreaterThan(0);
     }
+  });
+});
+
+describe("the HostedService board (E10)", () => {
+  const html = readFileSync(boardFile("HostedService"), "utf8");
+  const board = parse(html);
+
+  it("draws no \"It's an emergency if\"", () => {
+    expect(segments(html, { board: true }).filter((s: string) => /emergency if/i.test(s))).toEqual([]);
+  });
+
+  /** The E10 notes inside a section, or just before it. */
+  const rulesOf = (id: string): string[] => {
+    const section = board.querySelector(`section[aria-labelledby="${id}"]`);
+    const before = section?.previousElementSibling;
+    return [...(section?.querySelectorAll(".note") ?? []), ...(before?.classList.contains("note") ? [before] : [])]
+      .map((note) => note.text)
+      .filter((text) => text.includes("Only with its facts (E10)"));
+  };
+
+  it("marks each conditional section with its rule as a note, which parity does not read, and never the answer, what or price", () => {
+    for (const id of ["incl", "where", "how", "why", "faq", "more"]) expect(rulesOf(id), id).toHaveLength(1);
+    for (const id of ["what", "price"]) expect(rulesOf(id), id).toEqual([]);
   });
 });
