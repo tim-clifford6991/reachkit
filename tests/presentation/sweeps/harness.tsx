@@ -201,13 +201,6 @@ export const ROUTE_HARNESS: Readonly<Record<string, HarnessRow>> = Object.freeze
     shell: false,
     async: true,
   },
-  // Issue 1242. The same article, by the route that is cached: its host is
-  // in its path instead of in a header.
-  "(hosted)/hosted-live/[host]/[slug]/page.tsx": {
-    props: () => ({ params: { host: "content.example.com", slug: "best-onboarding-tools" } }),
-    shell: false,
-    async: true,
-  },
   "(account)/app/draft/[draftId]/page.tsx": {
     props: () => ({ params: { draftId: "draft-2026-09-15" } }),
     shell: true,

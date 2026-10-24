@@ -9,6 +9,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { NuqsTestingAdapter } from "nuqs/adapters/testing";
 import { boardFile, compare, readAllow, segments } from "../../../scripts/design/parity.mjs";
+import { expectStateParity } from "../../ui/layout/state-parity";
 
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn() }), redirect: vi.fn() }));
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -143,12 +144,11 @@ describe("the time-zone screen matches board SetupZone", () => {
     return mount(<ZoneScreen />);
   }
 
-  it("nothing the board draws is missing once the browser has been silent ten seconds", async () => {
+  it("parity: SetupZone reads its rendered arms", async () => {
     vi.useFakeTimers();
     const root = await zone();
     await act(async () => vi.advanceTimersByTime(10_000));
-    const result = compare(readFileSync(boardFile("SetupZone"), "utf8"), textOf(root), readAllow("SetupZone"));
-    expect(result.missing).toEqual([]);
+    expectStateParity("SetupZone", [root.innerHTML]);
   });
 
   it("the head without a full stop, the line, why it matters, and nothing to press", async () => {

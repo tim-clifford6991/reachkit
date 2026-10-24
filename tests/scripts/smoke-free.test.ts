@@ -43,9 +43,24 @@ async function stub(faults: Faults = {}): Promise<string> {
   return `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
 }
 
+const ARTICLE = '<!doctype html><html lang="en-US"><head><link rel="stylesheet" href="/style.css"></head><body><script type="application/ld+json">{}</script></body></html>';
+
+/** A content host whose index features one article, answered as `article`. */
+async function hosted(article = ARTICLE): Promise<string> {
+  const server = createServer((req, res) => {
+    const pathname = new URL(req.url ?? "/", "http://stub").pathname;
+    if (pathname === "/") return void res.writeHead(200).end('<section aria-labelledby="featured"><a href="/a-page">A page</a></section>');
+    if (pathname === "/a-page") return void res.writeHead(200).end(article);
+    res.writeHead(404).end();
+  });
+  servers.push(server);
+  await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+  return `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
+}
+
 /** `smoke.sh --free` against `origin`, with its exit code and output. */
-async function free(origin: string) {
-  const env = { ...process.env, SMOKE_BASE_URL: origin, SMOKE_HOSTED_URL: "" };
+async function free(origin: string, hostedUrl = "") {
+  const env = { ...process.env, SMOKE_BASE_URL: origin, SMOKE_HOSTED_URL: hostedUrl };
   try {
     const { stdout, stderr } = await run("bash", ["scripts/smoke.sh", "--free"], { cwd: ROOT, env });
     return { code: 0, stdout, stderr };
@@ -83,6 +98,21 @@ describe("smoke.sh --free walks the visitor's chain without spending", () => {
     const r = await free(await stub({ listing: "<p>Nothing yet</p>" }));
     expect(r.code).toBe(1);
     expect(r.stderr).toMatch(/^FAIL report .*lists no report/m);
+  });
+
+  it("passes a cached article that is its HTML and its sheet", async () => {
+    const r = await free(await stub(), await hosted());
+    expect(r.stdout).toMatch(/^ok {3}hosted .*\/a-page/m);
+    expect(r.code).toBe(0);
+  });
+
+  it.each([
+    ["a script with a src", '<script src="/_next/static/chunks/a.js"></script>', /ships a <script src>/],
+    ["React flight data", "<script>(self.__next_f=self.__next_f||[]).push([0])</script>", /ships React flight data/],
+  ])("fails at hosted when the cached article carries %s", async (_, extra, message) => {
+    const r = await free(await stub(), await hosted(ARTICLE.replace("</body>", `${extra}</body>`)));
+    expect(r.code).toBe(1);
+    expect(r.stderr).toMatch(new RegExp(`^FAIL hosted .*${message.source}`, "m"));
   });
 
   it("refuses a domain beside --free", async () => {
