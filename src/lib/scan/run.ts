@@ -987,6 +987,8 @@ export async function runScan(a: RunScanArgs): Promise<{ scanId: string; status:
     priorCents = Number.isFinite(carried) ? carried : 0;
   } else if (a.scanId !== undefined) {
     scanId = a.scanId;
+    // A weekly row taken back after a failure keeps the week's one budget; a fresh row reads 0.
+    priorCents = await readSpentCents(scanId);
   } else {
     scanId = crypto.randomUUID();
     const { claimed } = await claimPassRow({
