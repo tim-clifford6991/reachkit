@@ -12,6 +12,7 @@ import {
   Clock,
   Eye,
   FileText,
+  Inbox,
   Info,
   Mail,
   MapPin,
@@ -434,8 +435,8 @@ export function PageWithSources(e: Example): React.JSX.Element {
   );
 }
 
-/** `#found`: the Monday email, framed as a phone. */
-export function MondayEmail(e: Example): React.JSX.Element {
+/** `#found`, and the landing's step 3 without the linked count its board omits: the Monday email, framed as a phone. */
+export function MondayEmail(e: Example, show: { linked: boolean } = { linked: true }): React.JSX.Element {
   const days = weekDays().map((day) => day.split(" ")[0] ?? day);
   const rows = e.plan.slice(0, 2).map((page, i) => ({
     page,
@@ -458,15 +459,18 @@ export function MondayEmail(e: Example): React.JSX.Element {
         >
           <p className={SMALL}>{copy("signin.inbox.title")}</p>
           <p className="flex items-center gap-1 font-semibold">
-            <Mail {...ICON} />
+            <Inbox {...ICON} />
             {copy("how.mail.subject")}
           </p>
           <p>{copy("how.mail.hi", { name: e.mail.name, week: e.mail.week, business: e.business })}</p>
-          <p className="rounded-box bg-success/10 p-2 text-xs">{copy("how.mail.calm", { time: LIVE_AT })}</p>
+          <p className="rounded-box bg-success/10 flex items-start gap-2 p-2 text-xs">
+            <CircleCheck {...ICON} className="text-success shrink-0" />
+            {copy("how.mail.calm", { time: LIVE_AT })}
+          </p>
           <ul className="flex flex-col gap-1 font-semibold">
             <li>{copy("how.mail.live", { n: e.mail.live })}</li>
             <li>{copy("how.mail.planned", { n: e.mail.planned })}</li>
-            <li>{copy("how.mail.linked", { n: e.mail.linked, total: e.mail.live })}</li>
+            {show.linked ? <li>{copy("how.mail.linked", { n: e.mail.linked, total: e.mail.live })}</li> : null}
           </ul>
           <p className={LABEL}>{copy("how.mail.pages")}</p>
           {rows.map((row) => (
