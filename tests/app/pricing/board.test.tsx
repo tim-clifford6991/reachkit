@@ -281,6 +281,12 @@ describe("board Pricing — €49 against the other ways", () => {
     expect(compare()).toContain(`¹ Most common SEO retainer, Ahrefs survey of ${AGENCY_BENCHMARK.providers} providers`);
     expect(compare()).toContain(text(copy("pricing.compare.limit")));
   });
+
+  it("ReachKit's way draws sparkles for AI, never bot", () => {
+    const markup = html.slice(html.indexOf('<section id="compare"'), html.indexOf('<section id="before"'));
+    expect(markup).toContain("lucide-sparkles");
+    expect(markup).not.toContain("lucide-bot");
+  });
 });
 
 describe("board Pricing — before you pay, and the free report", () => {
