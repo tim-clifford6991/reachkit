@@ -109,9 +109,9 @@ describe("plain links into How it works", () => {
     expect(hrefsIn(steps)).toEqual(["/how-it-works#research", "/how-it-works#pages", "/how-it-works#found"]);
   });
 
-  it("the price card opens the value section, and is not a second offer", () => {
+  it("the price card opens Pricing and the value section, and is not a second offer", () => {
     const card = between('data-testid="landing-price"', "</section>");
-    expect(hrefsIn(card)).toEqual(["/how-it-works#value"]);
+    expect(hrefsIn(card)).toEqual(["/pricing", "/how-it-works#value"]);
     expect(card).not.toMatch(/<button\b|btn-primary"/);
   });
 
@@ -128,7 +128,7 @@ describe("plain links into How it works", () => {
 
   it("each link is plain text, never a button", () => {
     const links = [...markup.matchAll(/<a\b[^>]*href="\/how-it-works#[^"]*"[^>]*>/g)].map((m) => m[0]);
-    expect(links).toHaveLength(5);
+    expect(links).toHaveLength(7);
     for (const link of links) expect(link).not.toMatch(/\bbtn\b/);
   });
 });

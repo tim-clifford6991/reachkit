@@ -198,9 +198,11 @@ describe(
       // sign-in, a price or a checkout is what c1 and c10 refuse, and the
       // three assertions above already name those by their words.
       const hrefs = [...markup.matchAll(/<a\b[^>]*href="([^"]*)"/gi)].map((m) => m[1]);
-      // `/how-it-works` and its sections explain the product and ask for nothing.
+      // `/how-it-works` and its sections explain the product, and `/pricing`
+      // states the price, as the plan card's See pricing does on the board;
+      // neither asks for anything.
       for (const href of hrefs) {
-        expect(href, `${href} leaves the page before the visitor has submitted`).toMatch(/^(#|\/how-it-works(#[a-z]+)?$)/);
+        expect(href, `${href} leaves the page before the visitor has submitted`).toMatch(/^(#|\/how-it-works(#[a-z]+)?$|\/pricing$)/);
       }
 
       // Source assertion: page.tsx imports no session, auth or account

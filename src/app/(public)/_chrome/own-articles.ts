@@ -22,7 +22,7 @@ export interface OwnArticles {
   /** The content host's index. */
   index: string;
   /** The newest live articles, newest first, at most `LATEST_SHOWN`. */
-  latest: readonly { title: string; url: string }[];
+  latest: readonly { title: string; url: string; published: Date }[];
 }
 
 async function read(): Promise<OwnArticles | null> {
@@ -41,7 +41,7 @@ async function read(): Promise<OwnArticles | null> {
   const latest = [...pages]
     .sort((a, b) => b.firstPublishedAt.getTime() - a.firstPublishedAt.getTime())
     .slice(0, LATEST_SHOWN)
-    .map((page) => ({ title: page.title, url: page.liveUrl }));
+    .map((page) => ({ title: page.title, url: page.liveUrl, published: page.firstPublishedAt }));
   return { index: `https://${host}${INDEX_PATH}`, latest };
 }
 

@@ -26,6 +26,7 @@ import { scanFormWords } from "../_landing/scan-form-words";
 import { HOW_FACTS as F } from "../_how/facts";
 import { EXAMPLES, weekSpan } from "../_how/specimen";
 import { WeekCard, WhatToExpect } from "../_how/visuals";
+import { PlanBuys } from "../_how/buys";
 import { ThreeWays } from "../_how/compare";
 import { PUBLIC_ROUTE_SEO } from "../_seo/routes";
 import { staticMetadata } from "../_seo/metadata";
@@ -91,26 +92,11 @@ function Section(p: {
   );
 }
 
-/** What €49 a month buys, as four figures. */
+/** What €49 a month buys, then the plan's three terms. */
 function Buys(): React.JSX.Element {
-  const tiles = [
-    [copy("pricing.buys.pages", weekPages), copy("pricing.buys.pages.what")],
-    [copy("pricing.buys.rivals", { rivals: F.rivals }), copy("pricing.buys.rivals.what")],
-    [copy("pricing.buys.mail"), copy("pricing.buys.mail.what")],
-    [copy("pricing.buys.time", { minutes: F.setupMinutes }), copy("pricing.buys.time.what")],
-  ] as const;
-  const label = copy("pricing.buys", { price: price() });
   return (
     <div className="flex flex-col gap-3">
-      <p className="eyebrow">{label}</p>
-      <ul aria-label={label} className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        {tiles.map(([value, what]) => (
-          <li key={value} className={`${CARD} gap-1 p-4`}>
-            <span className="num text-xl font-bold">{value}</span>
-            <span className={SMALL}>{what}</span>
-          </li>
-        ))}
-      </ul>
+      <PlanBuys />
       <p className={`${SMALL} flex flex-wrap gap-x-4 gap-y-1`}>
         {(["pricing.chip.contract", "pricing.chip.setup", "pricing.chip.cancel"] as const).map((key) => (
           <span key={key} className="flex items-center gap-1">
