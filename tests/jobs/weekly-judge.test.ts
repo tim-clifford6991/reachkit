@@ -82,7 +82,7 @@ describe("the Monday tick judges the week it measured", () => {
     });
     opportunities.notWorking = [{ week: WEEK, clusterKey: "onboarding", family: "write", targetRef: "onboarding-checklist" }];
     await tick();
-    expect(opportunities.rows[0]!.unready_reason).toBe("cluster_suppressed");
+    expect(opportunities.rows[0]!.unready_reason).toBe("resting");
   });
 
   it("**a failed pass judges nothing** — there is no report to judge against", async () => {

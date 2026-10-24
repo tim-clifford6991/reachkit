@@ -13,6 +13,7 @@
 // (`scripts/panel/evidence/<domain>.json`). 0¢: nothing is measured.
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import type { Language } from "@/lib/locale/locales";
+import type { MarketConclusion } from "@/lib/market/infer/types";
 import type { Profile } from "@/lib/market/questions/profile";
 import { measured, unmeasured } from "@/lib/measure/measured";
 import { queryKey } from "@/lib/opportunities/cluster";
@@ -38,7 +39,7 @@ export interface StoredTopic {
 interface StoredSite {
   site: { domain: string; language: string };
   siteName: string | null;
-  market: { buyer: string; job: string; category: string; synonyms?: string[] } | null;
+  market: MarketConclusion | null;
   topics?: StoredTopic[];
 }
 
@@ -47,6 +48,8 @@ export interface PanelSite {
   /** The run the topics come from, `docs/walk/panel/<run>.json`. */
   run: string;
   profile: Profile;
+  /** The run's own market conclusion, as readiness reads it. */
+  market: MarketConclusion;
   rows: OpportunityRow[];
 }
 
@@ -75,7 +78,7 @@ export function panelSite(domain: string): PanelSite {
       const read = freshRead(serps.get(queryKey(row.target_query ?? "")), AT);
       return { ...row, evidence: shapedEvidence(readOpportunity(row), read, business) };
     });
-    return { domain, run, profile: profileOf(site), rows };
+    return { domain, run, profile: profileOf(site), market: site.market, rows };
   }
   throw new Error(`no stored panel run holds topics for ${domain}`);
 }

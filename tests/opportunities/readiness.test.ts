@@ -8,13 +8,14 @@ import { measured } from "../../src/lib/measure/measured";
 import { clusterKey, collapse } from "../../src/lib/opportunities/cluster";
 import { canonicalUrl } from "../../src/lib/measure/page-reading";
 import type { Candidate } from "../../src/lib/opportunities/derive/candidate";
-import { opportunityReady, type ReadinessContext } from "../../src/lib/opportunities/readiness";
+import { eligible, type ReadinessContext } from "../../src/lib/opportunities/readiness";
 import { rankOpen } from "../../src/lib/opportunities/rank/open";
 import { setOpportunityStore, type OpportunityRow } from "../../src/lib/opportunities/store";
 import { restTopic } from "../../src/lib/opportunities/drafted";
 import { supplyDepth } from "../../src/lib/opportunities/plan";
 import { assessReadiness, canUpdateFrom } from "../../src/lib/opportunities/readiness";
-import type { Opportunity } from "../../src/lib/opportunities/types";
+import { UNREADY_REASONS, type Opportunity, type UnreadyReason } from "../../src/lib/opportunities/types";
+import type { KnownMatch } from "../../src/lib/known-content/types";
 import { memoryStore, newMemoryState, type MemoryState } from "./memory-store";
 import { AT, PROFILE, SITE_ID } from "./fixtures";
 
@@ -258,6 +259,7 @@ describe("collapse — one survivor per cluster, over held rows and new candidat
 });
 
 const CTX: ReadinessContext = {
+  now: AT,
   grounded: true,
   earnGrounding: { comparison_table: true, integration_page: true, original_data_page: true },
   suppression: { clusters: new Set(), retiredUrls: new Set() },
@@ -269,17 +271,17 @@ const CTX: ReadinessContext = {
   coveredBy: () => null,
 };
 
-describe("opportunityReady — the one predicate", () => {
+describe("eligible — the one predicate", () => {
   const keyword = (over: Partial<Opportunity> = {}) =>
     held({ id: "k", type: "keyword_page", family: "write", targetQuery: "best user onboarding software", ...over });
 
   it("a keyword page passes only with every gate: volume, winnable, commercial intent, no owned URL ranking", () => {
-    expect(opportunityReady(keyword(), CTX)).toBeNull();
-    expect(opportunityReady(keyword({ volume: measured(KEYWORD_PAGE_MIN_VOLUME - 1, AT) }), CTX)).toBe("keyword_gate");
-    expect(opportunityReady(keyword({ fitBand: "reach" }), CTX)).toBe("keyword_gate");
-    expect(opportunityReady(keyword({ targetQuery: "what is user onboarding" }), CTX)).toBe("keyword_gate");
-    expect(opportunityReady(keyword(), { ...CTX, ownRanks: () => true })).toBe("keyword_gate");
-    expect(opportunityReady(keyword(), { ...CTX, profile: null })).toBe("keyword_gate");
+    expect(eligible(keyword(), CTX)).toBeNull();
+    expect(eligible(keyword({ volume: measured(KEYWORD_PAGE_MIN_VOLUME - 1, AT) }), CTX)).toBe("no_intent");
+    expect(eligible(keyword({ fitBand: "reach" }), CTX)).toBe("no_intent");
+    expect(eligible(keyword({ targetQuery: "what is user onboarding" }), CTX)).toBe("no_intent");
+    expect(eligible(keyword(), { ...CTX, ownRanks: () => true })).toBe("no_intent");
+    expect(eligible(keyword(), { ...CTX, profile: null })).toBe("no_intent");
   });
 
   it("issue 884 — an outsized target is stored unready with its own reason, for every type that takes a day", () => {
@@ -296,29 +298,58 @@ describe("opportunityReady — the one predicate", () => {
         ...over,
       });
 
-    expect(opportunityReady(outsized("answer_page", "write"), CTX)).toBe("outsized");
-    expect(opportunityReady(outsized("comparison_page", "write"), CTX)).toBe("outsized");
-    expect(opportunityReady(outsized("format_page", "write", { targetQuery: "seo tool comparison" }), CTX)).toBe("outsized");
-    expect(opportunityReady(outsized("listed_page", "earn"), CTX)).toBe("outsized");
-    expect(opportunityReady(outsized("answerable_page", "improve"), CTX)).toBe("outsized");
+    expect(eligible(outsized("answer_page", "write"), CTX)).toBe("outsized");
+    expect(eligible(outsized("comparison_page", "write"), CTX)).toBe("outsized");
+    expect(eligible(outsized("format_page", "write", { targetQuery: "seo tool comparison" }), CTX)).toBe("outsized");
+    expect(eligible(outsized("listed_page", "earn"), CTX)).toBe("outsized");
+    expect(eligible(outsized("answerable_page", "improve"), CTX)).toBe("outsized");
     // A `keyword_page` keeps its own tighter gate, which speaks first.
-    expect(opportunityReady(outsized("keyword_page", "write"), CTX)).toBe("keyword_gate");
+    expect(eligible(outsized("keyword_page", "write"), CTX)).toBe("no_intent");
     // And the two bands that qualify are not refused by the shared rule.
-    expect(opportunityReady(held({ id: "r", type: "answer_page", family: "write", targetQuery: "best seo software", fitBand: "reach" }), CTX)).toBeNull();
+    expect(eligible(held({ id: "r", type: "answer_page", family: "write", targetQuery: "best seo software", fitBand: "reach" }), CTX)).toBeNull();
   });
 
   it("a format page passes only for comparison / vs / alternative / integration / template", () => {
     const format = (q: string) => held({ id: "f", type: "format_page", family: "write", targetQuery: q });
     for (const q of ["appcues vs userpilot", "userpilot alternatives", "slack integration", "onboarding email templates", "onboarding tool comparison"]) {
-      expect(opportunityReady(format(q), CTX), q).toBeNull();
+      expect(eligible(format(q), CTX), q).toBeNull();
     }
-    expect(opportunityReady(format("onboarding glossary"), CTX)).toBe("format_not_allowed");
+    expect(eligible(format("onboarding glossary"), CTX)).toBe("no_intent");
   });
 
   it("with no grounding fact every Write, Earn and Improve row is no_grounding_fact", () => {
     for (const [family, type] of [["write", "answer_page"], ["improve", "expand_page"], ["earn", "listed_page"]] as const) {
-      expect(opportunityReady(held({ id: family, type, family, targetQuery: "best onboarding tool" }), { ...CTX, grounded: false })).toBe("no_grounding_fact");
+      expect(eligible(held({ id: family, type, family, targetQuery: "best onboarding tool" }), { ...CTX, grounded: false })).toBe("no_grounding_fact");
     }
+  });
+});
+
+describe("eligible answers one of six reasons, each absorbing the gates it names (owner ruling C6)", () => {
+  const answer = (over: Partial<Opportunity> = {}) => held({ id: "a", type: "answer_page", family: "write", targetQuery: "what is a product tour", ...over });
+  const covering = { page: { url: "https://example.com/product-tours" }, score: 1 } as unknown as KnownMatch;
+  const SOON = new Date(AT.getTime() + 86_400_000);
+  // Old handle → the reason that now holds the same row, with the row and context that made the old one.
+  const MERGED: readonly [old: string, merged: UnreadyReason, row: Opportunity, ctx: ReadinessContext][] = [
+    ["resting", "resting", answer({ restUntil: SOON }), CTX],
+    ["cluster_suppressed", "resting", answer({ clusterKey: "tours" }), { ...CTX, suppression: { clusters: new Set(["tours"]), retiredUrls: new Set() } }],
+    ["url_retired", "resting", answer({ targetRef: "https://example.com/tours" }), { ...CTX, suppression: { clusters: new Set(), retiredUrls: new Set([canonicalUrl("https://example.com/tours")]) } }],
+    ["destination_cannot_address", "destination_cannot_address", held({ id: "i", type: "expand_page", family: "improve", targetQuery: "product tours" }), { ...CTX, canUpdate: () => false }],
+    ["already_covered", "destination_cannot_address", answer(), { ...CTX, coveredBy: () => covering }],
+    ["low_fit", "low_fit", answer({ businessFit: 1 }), CTX],
+    ["no_grounding_fact", "no_grounding_fact", answer(), { ...CTX, grounded: false }],
+    ["keyword_gate", "no_intent", held({ id: "k", type: "keyword_page", family: "write", targetQuery: "what is user onboarding" }), CTX],
+    ["format_not_allowed", "no_intent", held({ id: "f", type: "format_page", family: "write", targetQuery: "onboarding glossary" }), CTX],
+    ["no_intent", "no_intent", answer({ volume: null }), { ...CTX, prompts: [{ id: "p", text: "Which invoicing apps suit a freelancer?" }] }],
+    ["outsized", "outsized", answer({ fitBand: "not-yet" }), CTX],
+  ];
+
+  it.each(MERGED)("%s → %s", (_old, merged, row, ctx) => {
+    expect(eligible(row, ctx)).toBe(merged);
+  });
+
+  it("the six are every reason but the unassessed state", () => {
+    expect(new Set(MERGED.map(([, merged]) => merged))).toEqual(new Set(UNREADY_REASONS.filter((reason) => reason !== "not_assessed")));
+    expect(UNREADY_REASONS).toHaveLength(7);
   });
 });
 
@@ -328,21 +359,21 @@ describe("issue 781 — an Improve is ready only where the site's destination ca
   const hosted = canUpdateFrom({ host: "blog.example.com", slugs: ["onboarding-checklist"] });
 
   it("a hosted destination updates only ReachKit's own live publication on its host", () => {
-    expect(opportunityReady(improve("https://blog.example.com/onboarding-checklist/"), { ...CTX, canUpdate: hosted })).toBeNull();
+    expect(eligible(improve("https://blog.example.com/onboarding-checklist/"), { ...CTX, canUpdate: hosted })).toBeNull();
     for (const url of [
       "https://example.com/onboarding-checklist",
       "https://blog.example.com/never-published",
       "https://blog.example.com/",
       "https://blog.example.com/guides/onboarding-checklist",
     ]) {
-      expect(opportunityReady(improve(url), { ...CTX, canUpdate: hosted }), url).toBe("destination_cannot_address");
+      expect(eligible(improve(url), { ...CTX, canUpdate: hosted }), url).toBe("destination_cannot_address");
     }
   });
 
   it("any other destination keeps its updates, and a Write is never asked", () => {
-    expect(opportunityReady(improve("https://example.com/pricing"), { ...CTX, canUpdate: canUpdateFrom(null) })).toBeNull();
+    expect(eligible(improve("https://example.com/pricing"), { ...CTX, canUpdate: canUpdateFrom(null) })).toBeNull();
     const write = held({ id: "w", type: "answer_page", family: "write", targetQuery: "what is a product tour" });
-    expect(opportunityReady(write, { ...CTX, canUpdate: () => false })).toBeNull();
+    expect(eligible(write, { ...CTX, canUpdate: () => false })).toBeNull();
   });
 });
 

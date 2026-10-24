@@ -72,7 +72,7 @@ describe("a cluster judged not working", () => {
     await assessReadiness(SITE_ID, { at: NEXT_WEEK });
 
     expect(state.rows.map((r) => [r.id, r.unready_reason])).toEqual([
-      ["write-own", "cluster_suppressed"],
+      ["write-own", "resting"],
       ["write-other", null],
       ["improve-own", null],
     ]);
@@ -88,7 +88,7 @@ describe("a cluster judged not working", () => {
     state.rows.push(row({ id: "write-own", family: "write", type: "answer_page", target_ref: "onboarding-faq" }));
     state.notWorking = [notWorking()];
     await assessReadiness(SITE_ID, { at: NEXT_WEEK });
-    expect(state.rows[0]!.unready_reason).toBe("cluster_suppressed");
+    expect(state.rows[0]!.unready_reason).toBe("resting");
 
     await assessReadiness(SITE_ID, { at: PAST_WINDOW });
     expect(state.rows[0]!.unready_reason).toBeNull();
@@ -116,7 +116,7 @@ describe("an owned URL whose Improve was judged not working twice", () => {
 
     await assessReadiness(SITE_ID, { at: NEXT_WEEK });
     expect(state.rows.map((r) => [r.id, r.unready_reason])).toEqual([
-      ["improve-own", "url_retired"],
+      ["improve-own", "resting"],
       ["improve-other", null],
     ]);
     expect((await rankOpen(SITE_ID)).map((r) => r.opportunityId)).toEqual(["improve-other"]);
@@ -150,7 +150,7 @@ describe("suppression follows the label a page's reading gives", () => {
     await assessReadiness(SITE_ID, { at: NEXT_WEEK });
     expect(state.rows.map((r) => [r.id, r.unready_reason])).toEqual([
       ["write-climbing", null],
-      ["write-flat", "cluster_suppressed"],
+      ["write-flat", "resting"],
     ]);
   });
 });

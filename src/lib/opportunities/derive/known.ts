@@ -20,7 +20,7 @@
 //     them, so nothing is invented: a `thin` or `position` shortfall would
 //     be a measurement of that page that nobody took.
 //   · *Covered, and it cannot* — the candidate stays as it was. Readiness
-//     stores `already_covered` against it (`readiness.ts`), so it never
+//     stores `destination_cannot_address` against it (`readiness.ts`), so it never
 //     fills a day, and the page that covers it becomes a link target.
 //   · *Not covered* — untouched. Most pages are net new, and this function
 //     is a pass over a list for them.
@@ -107,7 +107,7 @@ export function applyKnownContent(candidates: readonly Candidate[], gate: KnownC
     const match = gate.covered(candidate);
     if (match === null || match.page.url === null) return candidate;
     // A young covering page is left alone: the candidate stays as it was,
-    // and readiness stores it `already_covered`, as for a page we cannot
+    // and readiness stores it `destination_cannot_address`, as for a page we cannot
     // update.
     if (tooYoungToRefresh(match.page, gate.at)) return candidate;
     return gate.canUpdate(match.page.url) ? asUpdate(candidate, match, gate.at) : candidate;
