@@ -117,7 +117,7 @@ describe("design parity: a board's missing count only goes down", () => {
       }
       const result = compare(readFileSync(file, "utf8"), texts, readAllow(board));
       summary.push(table(board, result, BASELINE[board]?.missing));
-      const { ok, message } = verdict(board, result.missing, BASELINE[board], sha256(file));
+      const { ok, message } = verdict(board, result.missing, BASELINE[board], sha256(file), result.unused);
       console.log(message);
       expect(ok, message).toBe(true);
     }, 60_000);

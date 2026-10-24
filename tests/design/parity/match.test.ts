@@ -43,6 +43,11 @@ describe("a board string against the ship text", () => {
   it("excuses an allowed string only when the page lacks it", () => {
     const board = "<main><p>Harbor Plumbing</p><p>Pricing</p></main>";
     const result = compare(board, ["Pricing"], [{ string: "Harbor Plumbing" }, { string: "Pricing" }]);
-    expect(result).toEqual({ matched: ["Pricing"], allowed: ["Harbor Plumbing"], missing: [] });
+    expect(result).toEqual({
+      matched: ["Pricing"],
+      allowed: ["Harbor Plumbing"],
+      missing: [],
+      unused: [{ string: "Pricing", n: undefined, ships: true }],
+    });
   });
 });
