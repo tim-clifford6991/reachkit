@@ -333,19 +333,22 @@ export function WeekCard(e: Example, foot: React.ReactNode): React.JSX.Element {
                 key={days[i]}
                 className={`rounded-box flex min-w-0 flex-col gap-2 border p-3 ${day.state === "waiting" ? "border-primary bg-primary/5" : "border-base-300"}`}
               >
-                <span className="flex flex-wrap items-center justify-between gap-1">
-                  <span className="num text-base-content/70 text-xs">{days[i]}</span>
-                  <span className="badge badge-ghost badge-sm gap-1">
-                    {day.kind === "update" ? <RefreshCw size={12} strokeWidth={1.75} aria-hidden /> : null}
-                    {copy(day.kind === "new" ? "how.week.new" : "how.week.update")}
-                  </span>
-                </span>
+                <span className="num text-base-content/70 text-xs">{days[i]}</span>
                 <PageSketch primary={day.state === "waiting"} />
+                <span className="badge badge-ghost badge-sm gap-1 self-start">
+                  {day.kind === "update" ? <RefreshCw size={12} strokeWidth={1.75} aria-hidden /> : null}
+                  {copy(day.kind === "new" ? "how.week.new" : "how.week.update")}
+                </span>
                 <span className="text-sm font-semibold">{day.title}</span>
                 <span className={SMALL}>{day.reason}</span>
                 <span className="mt-auto flex flex-wrap items-center gap-1">
                   {day.state === "live" ? <LiveBadge at={LIVE_AT} /> : null}
-                  {day.state === "planned" ? <span className="badge badge-ghost badge-sm">{copy("how.week.planned")}</span> : null}
+                  {day.state === "planned" ? (
+                    <span className="badge badge-ghost badge-sm gap-1">
+                      <Calendar size={12} strokeWidth={1.75} aria-hidden />
+                      {copy("how.week.planned")}
+                    </span>
+                  ) : null}
                   {day.state === "waiting" ? (
                     <>
                       <span className="flex items-center gap-1 text-xs">
@@ -369,15 +372,15 @@ export function WeekCard(e: Example, foot: React.ReactNode): React.JSX.Element {
         </ol>
         <p className={`${SMALL} flex flex-wrap gap-x-4 gap-y-1`}>
           <span className="flex items-center gap-1">
-            <CircleCheck size={12} strokeWidth={1.75} aria-hidden />
+            <CircleCheck size={12} strokeWidth={1.75} aria-hidden className="text-success" />
             {copy("how.week.legend.live")}
           </span>
           <span className="flex items-center gap-1">
-            <Mail size={12} strokeWidth={1.75} aria-hidden />
+            <Clock size={12} strokeWidth={1.75} aria-hidden className="text-primary" />
             {copy("how.week.legend.emailed")}
           </span>
           <span className="flex items-center gap-1">
-            <Clock size={12} strokeWidth={1.75} aria-hidden />
+            <Calendar size={12} strokeWidth={1.75} aria-hidden />
             {copy("how.week.planned")}
           </span>
           <span className="flex items-center gap-1">
