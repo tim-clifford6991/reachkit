@@ -953,6 +953,7 @@ export const SETTINGS_COPY = Object.freeze({
   "settings.voice.never-claim.lead": ["Things your pages must never say. Checked on every page.", { slots: {}, fixedBy: "board SettingsVoice" }],
   "settings.voice.held.example": ["Example: a page that makes a claim on your list", { slots: {}, fixedBy: "board SettingsVoice" }],
   "settings.voice.held.quote": ["“{business} is the cheapest in town.”", { slots: { business: "text" }, fixedBy: "E15 (ux-designer, 2026-10-24)" }],
+  "settings.voice.held.claim": ["the cheapest in town", { slots: {}, fixedBy: "board SettingsVoice" }],
   "settings.voice.held.badge": ["Held back, not live", { slots: {}, fixedBy: "board SettingsVoice" }],
   "settings.voice.held.told": ["You’re told it matched “Cheapest in town”", { slots: {}, fixedBy: "E15 (ux-designer, 2026-10-24)" }],
   "settings.voice.placeholder": ["Plain and direct. Short sentences. We say “customers”, never “users”.", { slots: {}, fixedBy: "REQ-055" }],

@@ -1,4 +1,4 @@
-// tests/ui/settings-columns.test.ts — BUILD §4.7, §2.2, ADR-093
+// tests/ui/settings-columns.test.ts — BUILD §4.7, §2.2, ADR-093, E38, E39
 //
 // Two claims about the Settings screen's arrangement, both of which used to be
 // carried by a stylesheet of its own and are now carried by stock utilities.
@@ -101,10 +101,34 @@ describe("SPEC §4 — the seven tabs are a daisyUI bar of addresses that cannot
     expect(columnsOffence('<ol className="grid grid-cols-1 md:grid-cols-3" data-layout="columns">')).not.toBeNull();
     expect(columnsOffence('<div className="grid min-w-0 grid-cols-4 gap-1 md:grid-cols-7" data-layout="week">')).toBeNull();
   });
+
+  it("a card sits inside a layout only as a tile, and every tile is a bordered card (E39)", () => {
+    const offenders = files.flatMap((file) => nestingOffences(readFileSync(file, "utf8")).map((o) => `${path.basename(file)}: ${o}`));
+    expect(offenders).toEqual([]);
+  });
+
+  it("the rule refuses wells on fixed tracks, tiles at 15rem, cards in wells and a tile that is no card (E39)", () => {
+    expect(columnsOffence(`<ul className="grid min-w-0 grid-cols-1 sm:grid-cols-3" data-layout="wells">`)).not.toBeNull();
+    expect(columnsOffence(`<ul className="grid min-w-0 ${WELLS} sm:grid-cols-3" data-layout="wells">`)).not.toBeNull();
+    expect(columnsOffence('<ul className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,15rem),1fr))]" data-layout="tiles">')).not.toBeNull();
+    expect(columnsOffence(`<ul className="grid min-w-0 ${TILES} gap-3" data-layout="tiles">`)).toBeNull();
+    expect(columnsOffence(`<ul className="grid min-w-0 ${WELLS} gap-2" data-layout="wells">`)).toBeNull();
+    expect(nestingOffences(`<ul className="grid ${WELLS}" data-layout="wells"><li className="card card-border">A</li></ul>`)).not.toEqual([]);
+    expect(nestingOffences(`<ul className="grid ${TILES}" data-layout="tiles"><li className="min-w-0">A</li></ul>`)).not.toEqual([]);
+    expect(nestingOffences(`<ul className="grid ${TILES}" data-layout="tiles"><li className="card min-w-0">A</li></ul>`)).not.toEqual([]);
+    expect(
+      nestingOffences(`<ul className="grid ${TILES}" data-layout="tiles"><li className="card card-border min-w-0"><div className="card-body p-4" /></li></ul>`)
+    ).toEqual([]);
+  });
 });
 
 // E38: inside one card or fold, columns only on a tag naming its layout, with exactly that layout's classes.
+// E39: competitor tiles fill 250px tracks; the market's wells share one row however many are shown.
+const TILES = "grid-cols-[repeat(auto-fill,minmax(min(100%,250px),1fr))]";
+const WELLS = "grid-cols-[repeat(auto-fit,minmax(min(100%,180px),1fr))]";
 const LAYOUTS: Readonly<Record<string, readonly string[]>> = {
+  tiles: [TILES],
+  wells: [WELLS],
   pair: ["grid-cols-1", "md:grid-cols-2"],
   choices: ["grid-cols-1", "md:grid-cols-2", "xl:grid-cols-4"],
   steps: ["grid-cols-1", "md:grid-cols-3"],
@@ -116,16 +140,68 @@ const GRID_COLS = /^(?:[a-z0-9]+:)*grid-cols-/;
 
 /** Why one opening tag breaks the rule, or `null` where it keeps it. */
 function columnsOffence(tag: string): string | null {
-  const classes = /className=(?:"([^"]*)"|\{`([^`]*)`\})/.exec(tag);
-  const className = classes?.[1] ?? classes?.[2] ?? "";
+  const className = classOf(tag);
   if (!COLUMNS.test(className)) return null;
   const layout = /data-layout="([^"]*)"/.exec(tag)?.[1];
   const allowed = layout === undefined ? undefined : LAYOUTS[layout];
   if (allowed === undefined) return `columns without an allowed data-layout: ${tag}`;
-  if (/(?:^|\s)card(?:\s|$)/.test(className)) return `columns on a card: ${tag}`;
+  if (CARD.test(className)) return `columns on a card: ${tag}`;
   const held = className.split(/\s+/).filter((c) => GRID_COLS.test(c)).sort();
   if (held.join(" ") !== [...allowed].sort().join(" ")) return `${layout} is ${allowed.join(" ")}, not ${held.join(" ")}: ${tag}`;
   return null;
+}
+
+const CARD = /(?:^|\s)card(?:\s|$)/;
+
+/** E39: no card inside a `data-layout` element, except each `li` of `tiles`, which must be a bordered card. */
+function nestingOffences(source: string): string[] {
+  const out: string[] = [];
+  for (const { tag, body } of layoutElements(source)) {
+    const layout = /data-layout="([^"]*)"/.exec(tag)?.[1];
+    for (const inner of openingTags(body)) {
+      const className = classOf(inner);
+      if (layout === "tiles" && /^<li\b/.test(inner)) {
+        if (!CARD.test(className) || !/(?:^|\s)card-border(?:\s|$)/.test(className)) out.push(`a tile that is not a bordered card: ${inner}`);
+      } else if (CARD.test(className)) out.push(`a card inside data-layout="${layout}": ${inner}`);
+    }
+  }
+  return out;
+}
+
+function classOf(tag: string): string {
+  const classes = /className=(?:"([^"]*)"|\{`([^`]*)`\})/.exec(tag);
+  return classes?.[1] ?? classes?.[2] ?? "";
+}
+
+/** Each element carrying `data-layout`, with the source between its opening and matching closing tag. */
+function layoutElements(source: string): { tag: string; body: string }[] {
+  const found: { tag: string; body: string }[] = [];
+  let from = 0;
+  for (const tag of openingTags(source)) {
+    const at = source.indexOf(tag, from);
+    from = at + 1;
+    if (!/data-layout="/.test(tag) || tag.endsWith("/>")) continue;
+    const name = /^<([A-Za-z][\w.]*)/.exec(tag)![1]!;
+    const open = new RegExp(`<${name}[\\s>]`, "g");
+    const close = `</${name}>`;
+    let depth = 1;
+    let i = at + tag.length;
+    while (depth > 0) {
+      const end = source.indexOf(close, i);
+      if (end === -1) break;
+      open.lastIndex = i;
+      const next = open.exec(source);
+      if (next !== null && next.index < end) {
+        depth++;
+        i = next.index + 1;
+      } else {
+        depth--;
+        i = end + close.length;
+        if (depth === 0) found.push({ tag, body: source.slice(at + tag.length, end) });
+      }
+    }
+  }
+  return found;
 }
 
 /** Each JSX opening tag in a source file, braces and quotes respected, so `=>` inside one does not end it. */

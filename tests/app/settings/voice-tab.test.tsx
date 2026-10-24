@@ -176,6 +176,11 @@ describe("the examples are fixed words, labelled as an example, never written fo
       copy("settings.voice.writing.guide.example", { business: FIXTURE_SETTINGS_FACTS.domain })
     );
   });
+
+  it("the held-back quote strikes through its listed claim, and only that", async () => {
+    const struck = [...(await mount()).querySelectorAll('[data-testid="voice-held-back"] s')].map((s) => s.textContent);
+    expect(struck).toEqual([copy("settings.voice.held.claim")]);
+  });
 });
 
 describe("the voice tab's board icons", () => {

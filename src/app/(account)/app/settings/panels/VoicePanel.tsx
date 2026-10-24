@@ -271,6 +271,19 @@ function NoteExample(): React.JSX.Element {
   );
 }
 
+/** The quote with its listed claim struck through, as the board draws it; the whole quote where the claim is not in it. */
+function StruckClaim(p: { quote: string; claim: string }): React.JSX.Element {
+  const at = p.quote.indexOf(p.claim);
+  if (at === -1) return <>{p.quote}</>;
+  return (
+    <>
+      {p.quote.slice(0, at)}
+      <s>{p.claim}</s>
+      {p.quote.slice(at + p.claim.length)}
+    </>
+  );
+}
+
 /** What happens to a page that says an entry on the list, as one fixed example. */
 function HeldBackExample(p: { business: string }): React.JSX.Element {
   const label = copy("settings.voice.held.example");
@@ -284,7 +297,9 @@ function HeldBackExample(p: { business: string }): React.JSX.Element {
         <span className="grid size-8 shrink-0 place-items-center rounded-field bg-base-100 text-base-content/70">
           <FileText {...ICON} />
         </span>
-        <span className="min-w-0 wrap-anywhere">{copy("settings.voice.held.quote", { business: p.business })}</span>
+        <span className="min-w-0 wrap-anywhere">
+          <StruckClaim quote={copy("settings.voice.held.quote", { business: p.business })} claim={copy("settings.voice.held.claim")} />
+        </span>
       </span>
       <ArrowRight {...ICON} className="shrink-0 text-base-content/70" />
       <span className="badge badge-soft badge-warning h-auto gap-1">
