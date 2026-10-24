@@ -1,6 +1,7 @@
 // The landing draws the icons boards PubLanding and PubLandingPhone name, one
 // per concept (AI is sparkles, your business is building-2), the real report's
-// card draws its stored score as a ring, and the FAQ's questions carry none.
+// card draws its stored score as a ring and states it in text, and the FAQ's
+// questions carry none.
 // The store and the gallery are the database seam; nothing else is replaced.
 import "../../generate/env";
 import React from "react";
@@ -72,21 +73,27 @@ describe("the landing's icons are the boards'", () => {
     const head = drawing.querySelectorAll("p").find((p) => p.text.includes(copy("landing.feature.ai.mentions")))!;
     expect(glyphs(head)).toEqual(["sparkles"]);
     const named = drawing.querySelectorAll("ul > li");
-    expect(named.map(glyphs)).toEqual([["circle-check"], ["circle-check"], ["circle-x"]]);
-    const missing = named[2]!;
+    expect(named.map(glyphs)).toEqual([["circle-check"], ["circle-check"]]);
+    expect(drawing.querySelector("ul svg.lucide-circle-x")).toBeNull();
+    const missing = drawing.querySelector("svg.lucide-circle-x")!.parentNode as HTMLElement;
     expect(missing.text).toContain(copy("landing.feature.ai.you", { you: SPECIMEN_HERO_BUSINESS }));
     expect(missing.classList.contains("text-error")).toBe(true);
   });
 
-  it("the real report's card draws its score ring; unscored, none", async () => {
+  it("the real report's card draws its score ring and states the score; unscored, neither", async () => {
     const card = () => render().then((page) => page.querySelector('section[aria-labelledby="proof"] a[href="/scan/podia.com"]')!);
-    const ring = (await card()).querySelector(".radial-progress")!;
+    const scored = await card();
+    const ring = scored.querySelector(".radial-progress")!;
     expect(ring.getAttribute("aria-hidden")).toBe("true");
     expect(ring.getAttribute("style")).toContain("--value:62");
+    expect(scored.text).toContain(`${copy("verdict.score.label")} 62 ${copy("verdict.score.of")}`);
+    expect(scored.querySelectorAll(".skeleton")).toHaveLength(0);
 
     db.listed = new Map([["podia.com", null]]);
     const unscored = await card();
     expect(unscored.querySelector(".radial-progress")).toBeNull();
+    expect(unscored.text).not.toContain(copy("verdict.score.of"));
+    expect(unscored.text).not.toContain("62");
     expect(unscored.text).toContain(copy("about.proof.open"));
   });
 

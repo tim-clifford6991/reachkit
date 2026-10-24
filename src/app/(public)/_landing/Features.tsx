@@ -47,11 +47,11 @@ function AnswersDrawing(): React.JSX.Element {
           <CircleCheck {...MARK} className="text-base-content/70 shrink-0" />
           <Num>{SPECIMEN_HERO_RIVAL}</Num>
         </li>
-        <li className={`${NAMED} text-error font-semibold`}>
-          <CircleX {...MARK} />
-          {copy("landing.feature.ai.you", { you: SPECIMEN_HERO_BUSINESS })}
-        </li>
       </ul>
+      <p className="border-base-300 text-error flex items-center gap-2 border-t pt-1.5 text-sm font-semibold">
+        <CircleX {...MARK} />
+        {copy("landing.feature.ai.you", { you: SPECIMEN_HERO_BUSINESS })}
+      </p>
       <Example />
     </div>
   );

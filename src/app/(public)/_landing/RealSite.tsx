@@ -9,7 +9,7 @@ import { copy } from "@/lib/presentation/copy";
 const LABEL_ID = "proof";
 const CARD = "card card-border bg-base-100 min-w-0";
 const ICON = { size: 16, strokeWidth: 1.75, "aria-hidden": true } as const;
-// A drawing of the report's score, which the report itself states.
+// The ring only draws the score; the line beside it states it.
 const RING = "radial-progress text-primary after:hidden shadow-[inset_0_0_0_5px_var(--color-base-200)] [--size:2.5rem] [--thickness:5px]";
 const TILE = "rounded-field bg-primary/10 text-primary grid size-8 shrink-0 place-items-center";
 
@@ -35,7 +35,12 @@ export async function RealSite(): Promise<React.JSX.Element | null> {
                   <span className="eyebrow">{copy("about.proof.report")}</span>
                   <span className="num font-semibold">{report}</span>
                   {score === null ? null : (
-                    <span aria-hidden className={RING} style={{ "--value": score } as React.CSSProperties} />
+                    <span className="bg-base-200 rounded-field flex items-center gap-2.5 p-2.5">
+                      <span aria-hidden className={RING} style={{ "--value": score } as React.CSSProperties} />
+                      <span className="text-sm">
+                        {copy("verdict.score.label")} <span className="num font-semibold">{score}</span> {copy("verdict.score.of")}
+                      </span>
+                    </span>
                   )}
                   <span className="link-primary flex items-center gap-1 text-sm font-semibold">
                     {copy("about.proof.open")}
