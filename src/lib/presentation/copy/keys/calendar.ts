@@ -250,6 +250,7 @@ export const CALENDAR_COPY = Object.freeze({
   // capitalised as one.
   "calendar.why.engine.names-you": ["Mentions you", { slots: {}, fixedBy: "issue 930" }],
   "calendar.why.engine.names-others": ["Mentions competitors", { slots: {}, fixedBy: "issue 930" }],
+  "calendar.why.engine.names-no-one": ["Names no one", { slots: {}, fixedBy: "SPEC §6 2026-10-24" }],
   "calendar.why.engine.no-answer": ["No answer", { slots: {}, fixedBy: "issue 930" }],
   // One engine's standing, as one phrase: "ChatGPT — names others".
   "calendar.why.engine.line": [

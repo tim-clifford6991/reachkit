@@ -425,6 +425,26 @@ describe("issue #183 — the mail names the page, and says why §7 chose it", ()
     expect(blocksOf().find((b) => b.text === "mail.draftReady.autopilotWindow")).toBeDefined();
   });
 
+  it("an engine that answered and named no one is nobody, never other sites; others or the customer still win", async () => {
+    const answeredWith = async (standings: readonly string[]): Promise<string | undefined> => {
+      const answer = WRITE_CHOICE as { evidence: Record<string, unknown> };
+      choice.answer = {
+        ...answer,
+        evidence: { ...answer.evidence, target: { engines: standings.map((standing, i) => ({ engine: ["ai_overview", "ai_mode", "chatgpt"][i], standing })) } },
+      };
+      // A fresh, untold draft each time: a page already told on this pair is not told again.
+      seed();
+      sent = [];
+      await sendDraftReadyMail({ draftId: "d1", destination: "wordpress", at: AT });
+      const facts = blocksOf().find((b) => b.block === "facts") as unknown as { items: readonly { label: string; value: string }[] };
+      return facts.items.find((item) => item.label === "mail.draftReady.fact.answeredBy")?.value;
+    };
+    expect(await answeredWith(["names_no_one", "no_answer"])).toBe("nobody");
+    expect(await answeredWith(["names_no_one", "names_others"])).toBe("other sites");
+    expect(await answeredWith(["names_no_one", "names_you"])).toBe("you");
+    choice.answer = WRITE_CHOICE;
+  });
+
   it("a page whose opportunity has been purged is still named, and states no why-data", async () => {
     choice.answer = null;
     await sendDraftReadyMail({ draftId: "d1", destination: "wordpress", at: AT });
