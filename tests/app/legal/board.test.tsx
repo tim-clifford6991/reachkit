@@ -110,6 +110,30 @@ describe("board Legal — the rights", () => {
   });
 });
 
+describe("board Legal — In short carries its four icons; headings none", () => {
+  it("each In short item sits beside its own tile, Database, Ban, Cookie, Download, in the board's order", () => {
+    const items = privacy.querySelectorAll('[data-testid="legal-summary"] li');
+    expect(items.map((li) => li.querySelectorAll("svg").map((svg) => svg.classList.value.find((c) => c !== "lucide" && c.startsWith("lucide-"))))).toEqual([
+      ["lucide-database"],
+      ["lucide-ban"],
+      ["lucide-cookie"],
+      ["lucide-download"],
+    ]);
+    expect(items.map((li) => li.text)).toEqual(
+      copy("legal.privacy.summary")
+        .split("\n")
+        .map((line) => line.replace(/^- /, "")),
+    );
+  });
+
+  for (const { Page, path } of PAGES) {
+    it(`${path}: no section heading holds an icon`, () => {
+      const root = parse(renderToStaticMarkup(<Page />));
+      expect(root.querySelectorAll("h2 svg")).toEqual([]);
+    });
+  }
+});
+
 describe("board Legal — parity", () => {
   it("the three routes leave no board string missing but the shared header's and footer's", () => {
     const board = readFileSync(boardFile("Legal"), "utf8");

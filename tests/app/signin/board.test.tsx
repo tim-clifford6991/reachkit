@@ -140,6 +140,27 @@ describe("each section is on the screen in the board's order and words", () => {
   });
 });
 
+describe("sign-in's board icons", () => {
+  it("Send on the submit, a Check per assurance, Link on Linked by AI, an arrow between the steps", async () => {
+    const screen = document.createElement("div");
+    screen.innerHTML = await inBrowser({});
+    const icons = (el: Element | null | undefined, name: string): number => el?.querySelectorAll(`svg.lucide-${name}`).length ?? 0;
+    const submit = screen.querySelector('form button[type="submit"]');
+    expect([icons(submit, "send"), icons(submit, "arrow-right")]).toEqual([1, 0]);
+    const assurances = [...screen.querySelectorAll("form p")].find((p) => p.textContent?.includes("no password"));
+    expect([...assurances!.children].map((chip) => [icons(chip, "check"), chip.querySelectorAll("svg").length])).toEqual([
+      [1, 1],
+      [1, 1],
+      [1, 1],
+    ]);
+    const figures = screen.querySelector('[data-testid="signin-preview-figures"]');
+    expect([icons(figures, "link"), icons(screen, "link-2")]).toEqual([1, 0]);
+    const steps = [...screen.querySelectorAll('section[aria-labelledby="signin-how"] ol > li')];
+    expect(steps.map((step) => icons(step, "arrow-right"))).toEqual([1, 1, 0]);
+    for (const svg of screen.querySelectorAll("svg")) expect(svg.getAttribute("aria-hidden")).toBe("true");
+  });
+});
+
 describe("the times are the reader's own, written by the browser", () => {
   it("the same send reads on each reader's clock", async () => {
     expect(textOf(await inBrowser({ state: SENT }, "America/New_York"))).toContain(

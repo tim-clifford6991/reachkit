@@ -46,10 +46,10 @@ const { copy } = await import("@/lib/presentation/copy");
 const { readShell } = await import("@/app/(account)/app/_shell/provider");
 const { readOverview } = await import("@/app/(account)/app/_overview/provider");
 const { planToday, readWeek } = await import("@/app/(account)/app/calendar/provider");
-const { assembleMonth, dayStateOf, weekOf } = await import("@/app/(account)/app/calendar/month");
+const { assembleMonth, weekOf } = await import("@/app/(account)/app/calendar/month");
 const { FIXTURE_CALENDAR_FACTS } = await import("@/app/(account)/app/calendar/fixture");
 const { addDays, cardDate } = await import("@/app/(account)/app/calendar/dates");
-const { DAY_STATE_COPY_KEY } = await import("@/app/(account)/app/calendar/stages");
+const { WeekGrid } = await import("@/app/(account)/app/calendar/WeekGrid");
 const { formatDay, formatTime } = await import("@/app/(account)/app/_shell/format");
 
 const text = (el: Element | null | undefined): string => (el?.textContent ?? "").replace(/\s+/gu, " ").trim();
@@ -98,7 +98,7 @@ describe("board Main, on the account the layout sweep reads", () => {
     expect(text(dom.body)).not.toMatch(/\b(rough|close) estimate\b/iu);
   });
 
-  it("this week's pages are Plan's week: one row per day with a page, its title and its state, then the next Monday", async () => {
+  it("this week's pages are Plan's week: a card for each day, its title on each day with a page, then the next Monday", async () => {
     const [{ dom }, week] = await Promise.all([render(), planToday().then(readWeek)]);
     const card = dom.querySelector('[data-testid="overview-week"]');
     const withPage = week.cells.filter((cell) => cell.page !== null);
@@ -106,9 +106,9 @@ describe("board Main, on the account the layout sweep reads", () => {
     expect(text(card)).toContain(copy("how.week.auto"));
     const why = [...(card?.querySelectorAll("a") ?? [])].find((a) => text(a) === copy("overview.week.calendar-link"));
     expect(why?.getAttribute("href")).toBe("/app/calendar");
-    const rows = [...(card?.querySelectorAll('[data-testid="overview-week-row"]') ?? [])];
-    expect(rows.map((row) => row.getAttribute("data-day"))).toEqual(withPage.map((cell) => cell.day));
-    expect(rows.map((row) => text(row.querySelector('[data-testid="overview-week-title"]')))).toEqual(
+    const cards = [...(card?.querySelectorAll("ol > li") ?? [])];
+    expect(cards.map((li) => li.getAttribute("data-testid"))).toEqual(week.cells.map((cell) => `calendar-cell-${cell.day}`));
+    expect(cards.flatMap((li) => [...li.querySelectorAll('[data-testid="cell-label"]')].map(text))).toEqual(
       withPage.map((cell) => cell.page!.title)
     );
     expect(text(card?.querySelector('[data-testid="overview-week-next"]'))).toBe(
@@ -148,7 +148,7 @@ describe("board Main, on the account the layout sweep reads", () => {
   });
 });
 
-describe("a week row, from Plan's own week assembly", () => {
+describe("a week card, from Plan's own week assembly", () => {
   const ZONE = FIXTURE_CALENDAR_FACTS.timeZone;
   // The fixture's page in review, its window closing at 4 PM the same day.
   const closes = new Date(Date.UTC(2026, 8, 15, 20, 0, 0));
@@ -157,30 +157,75 @@ describe("a week row, from Plan's own week assembly", () => {
     drafts: FIXTURE_CALENDAR_FACTS.drafts.map((d) => (d.scheduledFor === "2026-09-15" ? { ...d, vetoDeadline: closes } : d)),
   };
   const week = weekOf([assembleMonth(facts, "2026-09")], "2026-09-15");
-  const dom = new DOMParser().parseFromString(renderToStaticMarkup(<ThisWeek week={weekListOf(week)!} scheduled={true} />), "text/html");
-  const row = (day: string) => dom.querySelector(`[data-day="${day}"]`);
+  const overview = (scheduled: boolean): Document =>
+    new DOMParser().parseFromString(renderToStaticMarkup(<ThisWeek week={weekListOf(week)!} scheduled={scheduled} />), "text/html");
+  const dom = overview(true);
+  const card = (root: Document | Element, day: string) => root.querySelector(`[data-testid="calendar-cell-${day}"]`);
+  const plan = (() => {
+    const root = document.createElement("div");
+    root.innerHTML = renderToStaticMarkup(
+      <WeekGrid cells={week.cells} filter="all" selected={null} destination={week.destination} goesLive={null} firstSkip={null} onSelect={() => {}} />
+    );
+    return root;
+  })();
 
-  it("today's written page goes live today at its time, with Edit and Stop on its own page", () => {
-    const today = week.cells.find((cell) => cell.day === week.today)!;
-    expect(today.page!.vetoDeadline).toEqual(closes);
-    const state = text(row(today.day)?.querySelector('[data-testid="overview-week-state"]'));
-    expect(state).toContain(copy("overview.week.goes-live"));
-    expect(state).toContain(copy("overview.week.today-at", { time: formatTime(closes, ZONE) }));
-    const links = [...(row(today.day)?.querySelectorAll("a") ?? [])];
-    expect(links.map(text)).toEqual([copy("how.week.edit"), copy("calendar.week.stop")]);
-    for (const link of links) expect(link.getAttribute("href")).toBe(`/app/draft/${today.page!.draftId}`);
+  it("Overview draws the week as 7 day cards, each Plan's own, today's primary", () => {
+    const cards = [...dom.querySelectorAll('[data-testid="overview-week"] ol > li')];
+    expect(cards.map((li) => li.getAttribute("data-testid"))).toEqual(week.cells.map((cell) => `calendar-cell-${cell.day}`));
+    expect(cards).toHaveLength(7);
+    for (const cell of week.cells) expect(card(dom, cell.day)?.className, cell.day).toBe(card(plan, cell.day)?.className);
+    const today = card(dom, week.today)!;
+    expect(today.className).toContain("border-primary");
+    expect(today.querySelector('[aria-hidden="true"].rounded-box')?.className).toContain("bg-primary/10");
+    for (const cell of week.cells.filter((c) => c.page !== null && c.day !== week.today)) {
+      expect(card(dom, cell.day)?.querySelector('[aria-hidden="true"].rounded-box')?.className, cell.day).toContain("bg-base-200");
+    }
   });
 
-  it("every other day with a page says new or update and Plan's own state word; a day with none is not a row", () => {
+  it("today's card goes live with Edit and Stop links on its own page", () => {
+    const today = week.cells.find((cell) => cell.day === week.today)!;
+    expect(today.page!.vetoDeadline).toEqual(closes);
+    const live = card(dom, today.day)?.querySelector('[data-testid="overview-week-goes-live"]');
+    expect(text(live)).toContain(copy("overview.week.goes-live"));
+    expect(text(live)).toContain(copy("overview.week.today-at", { time: formatTime(closes, ZONE) }));
+    const links = [...(card(dom, today.day)?.querySelectorAll("a") ?? [])];
+    expect(links.map(text)).toEqual([copy("how.week.edit"), copy("calendar.week.stop")]);
+    for (const link of links) expect(link.getAttribute("href")).toBe(`/app/draft/${today.page!.draftId}`);
+    expect(card(dom, today.day)?.querySelector("button")).toBeNull();
+  });
+
+  it("with publishing not scheduled, today's card shows Plan's state and neither link", () => {
+    const today = card(overview(false), week.today);
+    expect(today?.querySelector('[data-testid="overview-week-goes-live"]')).toBeNull();
+    expect(today?.querySelectorAll("a")).toHaveLength(0);
+    expect(today?.querySelector('[data-testid="day-state"]')?.innerHTML).toBe(card(plan, week.today)?.querySelector('[data-testid="day-state"]')?.innerHTML);
+  });
+
+  it("every other day draws Plan's chip and state badge, and a day with none is never drawn as a page", () => {
     for (const cell of week.cells) {
+      const mine = card(dom, cell.day);
+      const theirs = card(plan, cell.day);
       if (cell.page === null) {
-        expect(row(cell.day)).toBeNull();
-        continue;
+        expect(mine?.hasAttribute("data-empty"), cell.day).toBe(true);
+        expect(mine?.querySelector('[data-testid="cell-label"]')).toBeNull();
+        expect(mine?.querySelector('[data-testid="day-kind"]')).toBeNull();
+      } else {
+        expect(mine?.querySelector('[data-testid="day-kind"]')?.outerHTML, cell.day).toBe(theirs?.querySelector('[data-testid="day-kind"]')?.outerHTML);
       }
-      expect(text(row(cell.day))).toContain(copy(cell.page.update ? "how.week.update" : "how.week.new"));
       if (cell.day === week.today) continue;
-      expect(text(row(cell.day)?.querySelector('[data-testid="overview-week-state"]'))).toBe(copy(DAY_STATE_COPY_KEY[dayStateOf(cell)!]));
+      expect(mine?.querySelector('[data-testid="day-state"]')?.outerHTML ?? null, cell.day).toBe(
+        theirs?.querySelector('[data-testid="day-state"]')?.outerHTML ?? null
+      );
+      expect(text(mine?.querySelector('[data-testid="cell-empty-line"], [data-testid="calendar-horizon-marker"]'))).toBe(
+        text(theirs?.querySelector('[data-testid="cell-empty-line"], [data-testid="calendar-horizon-marker"]'))
+      );
     }
+    expect(week.cells.some((cell) => cell.page === null)).toBe(true);
+  });
+
+  it("Overview's week cards draw no demand beside the date, though Plan's do", () => {
+    expect(plan.querySelectorAll('[data-testid="card-number"]').length).toBeGreaterThan(0);
+    expect(dom.querySelectorAll('[data-testid="overview-week"] [data-testid="card-number"]')).toHaveLength(0);
   });
 
   it("a short week says its real count", () => {
@@ -196,7 +241,7 @@ describe("a day with nothing worth writing", () => {
     const on = (day: string, now: Date) => weekListOf(weekOf([assembleMonth({ ...FIXTURE_CALENDAR_FACTS, now }, "2026-09")], day))!;
     const sunday = on("2026-09-20", new Date(Date.UTC(2026, 8, 20, 14, 0, 0)));
     expect(sunday.skippedToday).toBe(true);
-    expect(sunday.rows.some((row) => row.day === "2026-09-20")).toBe(false);
+    expect(sunday.days.find((day) => day.cell.day === "2026-09-20")?.cell.page).toBeNull();
     expect(on("2026-09-15", FIXTURE_CALENDAR_FACTS.now).skippedToday).toBe(false);
   });
 });
@@ -265,17 +310,17 @@ describe("the head and the states, for a live account over stored rows", () => {
     site({ publishing_enabled: false });
     db.seed("drafts", [IN_REVIEW]);
     const { dom } = await render();
-    const today = dom.querySelector('[data-testid="overview-week"] [data-day="2026-10-09"]');
+    const today = dom.querySelector('[data-testid="overview-week"] [data-testid="calendar-cell-2026-10-09"]');
     expect(today).not.toBeNull();
     expect(text(today)).not.toContain(copy("overview.week.goes-live"));
     expect(text(today)).not.toContain(copy("overview.week.today-at", { time: "4:00 PM" }));
-    expect(text(today?.querySelector('[data-testid="overview-week-state"]'))).not.toBe("");
+    expect(text(today?.querySelector('[data-testid="day-state"]'))).not.toBe("");
   });
 
   it("publishing on: the same page due today goes live today at its time", async () => {
     db.seed("drafts", [IN_REVIEW]);
     const { dom } = await render();
-    const today = dom.querySelector('[data-testid="overview-week"] [data-day="2026-10-09"]');
+    const today = dom.querySelector('[data-testid="overview-week"] [data-testid="calendar-cell-2026-10-09"]');
     expect(text(today)).toContain(copy("overview.week.today-at", { time: "4:00 PM" }));
   });
 
