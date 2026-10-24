@@ -86,7 +86,7 @@ export function DangerZone(): React.JSX.Element {
 
         <div className="flex min-w-0 flex-col gap-2" data-testid="danger-compare">
           <p className="eyebrow">{copy("danger.compare.title")}</p>
-          <ul className="grid min-w-0 grid-cols-1 gap-3 md:grid-cols-3">
+          <ul className="grid min-w-0 grid-cols-1 gap-3 md:grid-cols-3" data-layout="compare">
             {COMPARE.map((way) => (
               <li key={way.name} className="bg-base-200 rounded-box flex min-w-0 flex-col gap-2 p-3">
                 <span className="text-sm font-semibold">{copy(way.name)}</span>

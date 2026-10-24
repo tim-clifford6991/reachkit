@@ -23,10 +23,10 @@ export const VOICE_FIELD = "voice_text";
 export const WRITING_VOICE_FIELD = "writing_voice";
 export const WRITING_VOICE_AUTO = "auto";
 
-/** The three voices a customer may fix, each with the key of its option's
- *  words. Type-only import: this file is a browser's too. */
+/** The three voices a customer may fix, each with the keys of its option's
+ *  words and its fixed example sentence. Type-only import: this file is a browser's too. */
 export const WRITING_VOICE_OPTIONS = [
-  { voice: "ours", key: "settings.voice.writing.ours" },
-  { voice: "guide", key: "settings.voice.writing.guide" },
-  { voice: "short", key: "settings.voice.writing.short" },
-] as const satisfies readonly { voice: WritingVoice; key: CopyKey }[];
+  { voice: "ours", key: "settings.voice.writing.ours", example: "settings.voice.writing.ours.example" },
+  { voice: "guide", key: "settings.voice.writing.guide", example: "settings.voice.writing.guide.example" },
+  { voice: "short", key: "settings.voice.writing.short", example: "settings.voice.writing.short.example" },
+] as const satisfies readonly { voice: WritingVoice; key: CopyKey; example: CopyKey }[];

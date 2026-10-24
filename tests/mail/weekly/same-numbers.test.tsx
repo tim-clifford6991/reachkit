@@ -42,6 +42,8 @@ const { LIVE_ACCOUNT, resetAccount, signedInAs } = await import("../../app/accou
 const { default: OverviewPage } = await import("@/app/(account)/app/(tabs)/page");
 const { sendWeeklyDigest } = await import("@/lib/mail/weekly");
 const { copy } = await import("@/lib/presentation/copy");
+const { readGoogleVisitWeeks } = await import("@/app/(account)/app/_overview/blog-reads-provider");
+const { SearchTiles } = await import("@/app/(account)/app/_overview/SearchTiles");
 
 const ACCOUNT = { ...LIVE_ACCOUNT, timeZone: "UTC" };
 const SITE_ID = ACCOUNT.siteId;
@@ -265,7 +267,7 @@ describe.each([
     const badge = text(dom.querySelector('li[data-step="draft.ladder.showing"] .badge'));
     expect(climbing === undefined ? "" : copy("overview.ladder.climbing", { n: String(climbing) })).toBe(badge);
     expect(text(dom.querySelector('[data-testid="overview-ladder-visits"]'))).toBe(
-      copy("overview.ladder.visits", { n: String(said("mail.weekly.google.visits")?.n) })
+      copy("overview.ladder.visits", { n: String(said("mail.weekly.google.visits.down")?.n) })
     );
     const linked = said("mail.weekly.ai.linked");
     expect(text(dom.querySelector('[data-testid="overview-tile-ai-linked"]'))).toBe(String(linked?.n));
@@ -276,6 +278,20 @@ describe.each([
     const mover = dom.querySelector('[data-testid="overview-mover"]');
     expect(climb).toMatchObject({ vars: { search: `${site.search} 0`, to: text(mover?.querySelector('[data-testid="overview-tile-mover"]')) } });
     expect(text(mover)).toContain(`${site.search} 0`);
+  });
+
+  it("the Google tab's visits chart and the mail's line read one count: this week is the last bar, last week the bar before", async () => {
+    seed(site, FIVE);
+    await mail(WEEK, NOW);
+    const weeks = await readGoogleVisitWeeks();
+    const tile = new DOMParser()
+      .parseFromString(renderToStaticMarkup(<SearchTiles pages={null} visits={weeks} market={null} />), "text/html")
+      .querySelector('[data-testid="search-tile-visits"]');
+    const bars = [...(tile?.querySelectorAll(`figure[aria-label="${copy("overview.search.visits.chart")}"] li`) ?? [])].map((li) => text(li).split(" · ")[1]);
+    const line = said("mail.weekly.google.visits.down");
+    expect(line).toEqual({ n: "5", before: "30" });
+    expect(text(tile?.querySelector('[data-testid="search-tile-visits-value"]'))).toBe(line?.n);
+    expect(bars).toEqual([line?.before, line?.n]);
   });
 
   it("Reputation, the score and the market are in the first Monday mail of a month only, as Overview's months read them", async () => {
@@ -302,6 +318,46 @@ describe.each([
     expect(text(dom.querySelector('[data-testid="overview-tile-market"]'))).toContain(`${read("mail.weekly.month.market").now} ${of("12")}`);
     expect(month["mail.weekly.month.reputation"]).toBe("11 of 46");
     expect(text(dom.querySelector('[data-testid="overview-tile-reputation"]'))).toContain(`11 ${of("46")}`);
+  });
+});
+
+describe("the Monday mail says which way visits from Google moved since last week", () => {
+  /** Google visits on the hosted pages, oldest week first, the last being the week ending today. */
+  function visits(...weeks: number[]): void {
+    db.seed(
+      "publication_reads",
+      weeks.map((hits, i) => ({
+        site_id: SITE_ID,
+        publication_id: "p0",
+        day: new Date(NOW.getTime() - (weeks.length - 1 - i) * 7 * 86_400_000).toISOString().slice(0, 10),
+        engine: "google",
+        kind: "referral",
+        hits,
+      }))
+    );
+  }
+  const line = (): string[] =>
+    sent[0]!.blocks.flatMap((block) =>
+      block.block === "paragraph" && block.text.startsWith("mail.weekly.google.visits") ? [copy(block.text as never, block.vars as never)] : []
+    );
+
+  it.each([
+    [[4, 9], "9 visits from Google this week, up from 4."],
+    [[9, 4], "4 visits from Google this week, down from 9."],
+    [[5, 5], "5 visits from Google this week, the same as last week."],
+    [[9], "9 visits from Google this week."],
+  ])("weeks %j: %s", async (weeks, sentence) => {
+    seed(SAAS, FIVE);
+    visits(...weeks);
+    await mail(WEEK, NOW);
+    expect(line()).toEqual([sentence]);
+  });
+
+  it("visits that could not be read write no line, never a 0", async () => {
+    seed(SAAS, FIVE);
+    db.unreadable.add("publication_reads");
+    await mail(WEEK, NOW);
+    expect(line()).toEqual([]);
   });
 });
 

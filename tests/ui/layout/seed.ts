@@ -53,6 +53,7 @@ import type { MainSite } from "@/lib/site-profile/main-site-row";
 import { assembleReport } from "@/lib/scan/store";
 import { previousWeekStart, weekStartFor } from "@/lib/scan/weekly";
 import { DEFAULT_HOSTED_LABEL } from "@/lib/publish/destinations/hosted/label";
+import { windowStartDay } from "@/lib/publish/reads/model";
 import type { AppAccount } from "@/app/(account)/app/_session/account";
 import type { AuthStub } from "./auth-stub";
 import {
@@ -449,6 +450,19 @@ export function seedLiveAccount(): void {
     publishing: LIVE_PUBLISHING,
   });
   seedMeasuredWeeks(LIVE_ACCOUNT);
+  seedGoogleVisits(LIVE_ACCOUNT.siteId, [2, 4, 9]);
+}
+
+/** Visits from Google on the site's live hosted page, one day in each of the last weeks, oldest first, so the Google tab draws its chart from the database. */
+function seedGoogleVisits(siteId: string, weeks: readonly number[]): void {
+  const values = weeks
+    .map((hits, i) => `('${windowStartDay(sweepNow(), (weeks.length - 1 - i) * 7 + 1)}'::date, ${hits})`)
+    .join(", ");
+  sql(
+    `insert into publication_reads (site_id, publication_id, day, engine, kind, hits) ` +
+      `select p.site_id, p.id, v.day, 'google', 'referral', v.hits from publications p, (values ${values}) as v(day, hits) ` +
+      `where p.site_id = '${siteId}' and p.destination = 'hosted';`
+  );
 }
 
 /**

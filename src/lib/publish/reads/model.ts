@@ -72,6 +72,12 @@ export interface BlogReadsModel {
   show: boolean;
 }
 
+/** One week of visits from Google search, keyed by its first day. */
+export interface VisitWeek {
+  start: string;
+  visits: number;
+}
+
 /**
  * The first day of the card's window, as the stored `date`.
  *
