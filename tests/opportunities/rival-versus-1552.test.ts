@@ -11,7 +11,7 @@ import { describe, expect, it } from "vitest";
 import type { MarketConclusion } from "../../src/lib/market/infer/types";
 import { measured } from "../../src/lib/measure/measured";
 import { comparisonBrands, comparisonUnasked, type MeasuredAnswer } from "../../src/lib/opportunities/derive/topics";
-import { opportunityReady, type ReadinessContext } from "../../src/lib/opportunities/readiness";
+import { eligible, type ReadinessContext } from "../../src/lib/opportunities/readiness";
 import { readOpportunity, type OpportunityRow } from "../../src/lib/opportunities/store";
 import type { Opportunity } from "../../src/lib/opportunities/types";
 import stored from "./fixtures/live-topics-1506.json";
@@ -30,6 +30,7 @@ function panelSite(run: string, domain: string): StoredSite {
 }
 
 const CTX: ReadinessContext = {
+  now: AT,
   grounded: true,
   earnGrounding: { comparison_table: true, integration_page: true, original_data_page: true },
   suppression: { clusters: new Set(), retiredUrls: new Set() },
@@ -66,11 +67,11 @@ describe("a rival-only \"vs\" needs demand ReachKit did not compose (issue 1552)
   const both: MeasuredAnswer[] = [{ promptId: "41bb898a", named: false, linked: false, rivals: ["peec.ai", "otterly.ai"] }];
 
   it("SaaS: reachkit.app's \"peec ai vs otterly\" at 0 searches, with only the templated prompt, is no_intent", () => {
-    expect(opportunityReady(row("peec ai vs otterly"), { ...ctx, answers: both })).toBe("no_intent");
+    expect(eligible(row("peec ai vs otterly"), { ...ctx, answers: both })).toBe("no_intent");
     // Measured volume, or buyers seen asking it beside another search, still makes it ready.
-    expect(opportunityReady(row("peec ai vs otterly", 90), { ...ctx, answers: both })).toBeNull();
+    expect(eligible(row("peec ai vs otterly", 90), { ...ctx, answers: both })).toBeNull();
     const asked = [{ term: "generative engine optimization", peopleAlsoAsk: ["Is Peec AI better than Otterly?"], related: [] }];
-    expect(opportunityReady(row("peec ai vs otterly"), { ...ctx, answers: both, asked })).toBeNull();
+    expect(eligible(row("peec ai vs otterly"), { ...ctx, answers: both, asked })).toBeNull();
   });
 
   it("a \"vs\" the business is a side of still counts its prompt's measured answer", () => {
@@ -90,6 +91,6 @@ describe("a rival-only \"vs\" needs demand ReachKit did not compose (issue 1552)
     const prompt = (site.prompts ?? []).filter((each) => each.kind === "comparison")[2]!;
     const prompts = [{ id: "templated", text: prompt.text }];
     const answers: MeasuredAnswer[] = [{ promptId: "templated", named: false, linked: false, rivals: [...rivals] }];
-    expect(opportunityReady(row(query), { ...CTX, brands, prompts, answers })).toBe("no_intent");
+    expect(eligible(row(query), { ...CTX, brands, prompts, answers })).toBe("no_intent");
   });
 });

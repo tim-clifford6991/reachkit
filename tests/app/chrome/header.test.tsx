@@ -1,9 +1,8 @@
 // BUILD §3 — the public chrome: the banner and the header.
 //
-// 2026-09-24, #1066: the rows below assert the calm-layer chrome (SPEC §1,
-// boards R12-1 / R12-8 / R12-10) — the banner, the nav's links, the two-state
-// theme switch, and *Start free* solid. The history that follows describes
-// the shapes those rows replaced.
+// Boards `PubLanding` / `PubLandingPhone` (owner 2026-10-20): the banner in
+// its two widths, the three links, the one theme button, and *Free scan*
+// solid. The history that follows describes the shapes those rows replaced.
 // tests/app/chrome/header.test.tsx
 //
 // The header is applied by `(public)/layout.tsx`, and the cold-start and
@@ -28,7 +27,7 @@
 //     What that row was protecting — that the **CTA** is an anchor and not
 //     a script-driven control — is asserted directly instead.
 //
-// The theme control (#681) is rendered twice, once per width arm, because
+// The theme button is rendered twice, once per width arm, because
 // CSS cannot move one element between two containers. Only one is ever
 // displayed; the bar's is wrapped in `public-header-theme` and the menu's
 // is inside `public-header-menu`, so the rows below count per arm rather
@@ -142,24 +141,28 @@ describe("SPEC §1, owner 2026-09-15 (issue 714) — the same chrome on the repo
 });
 
 describe("SPEC §1, 2026-09-24 (#1066) — the banner and the nav", () => {
-  it("the banner sits above the header, with its one line, its tag, a way to the field and a dismiss button", () => {
+  it("the banner sits above the header: its tag, the board's line and Scan my site, the phone's shorter link, and a dismiss button", () => {
     const html = markup(ELSEWHERE);
     expect(html.indexOf('data-testid="public-banner"')).toBeLessThan(html.indexOf('data-testid="public-header"'));
     const banner = html.slice(html.indexOf('data-testid="public-banner"'), html.indexOf('data-testid="public-header"'));
-    expect(banner).toContain(COPY["chrome.banner"]);
-    expect(banner).toContain(COPY["chrome.banner.tag"]);
-    expect(banner).toContain('href="/#landing-field"');
+    expect(COPY["chrome.banner"]).toBe("Every free report proposes your first page. Leave your email and we write it for you, free.");
+    const at = [COPY["chrome.banner.tag"], COPY["chrome.banner"], COPY["landing.submit.label"], COPY["chrome.banner.short"]].map((w) => banner.indexOf(`>${w}<`));
+    expect(at.every((i) => i > 0)).toBe(true);
+    expect([...at].sort((x, y) => x - y)).toEqual(at);
+    expect(banner.match(/href="\/#landing-field"/g)).toHaveLength(2);
     expect(banner).toContain(`aria-label="${COPY["chrome.banner.dismiss"]}"`);
   });
 
-  it("the nav is Why it matters · How it works · How to start · Free scans · Pricing, then Sign in and Start free (#1069, issue 1396)", () => {
+  it("the nav is How it works · Pricing · Free scans, then Sign in and Free scan (owner 2026-10-20, Q1)", () => {
     const bar = withoutDrawer(markup(ELSEWHERE));
-    const words = [COPY["chrome.nav.why"], COPY["chrome.nav.works"], COPY["chrome.nav.how"], COPY["chrome.nav.scans"], COPY["chrome.nav.pricing"], COPY["chrome.nav.signin"], START];
-    const at = words.map((w) => bar.indexOf(w));
-    expect(at.every((i) => i > 0)).toBe(true);
-    expect([...at].sort((x, y) => x - y)).toEqual(at);
-    expect(bar).toContain('href="/scans"');
-    expect(bar).toContain('href="/how-it-works"');
+    const nav = [...bar.matchAll(/<li><a class="btn btn-ghost btn-sm font-medium" href="([^"]*)">([^<]*)<\/a><\/li>/g)].map((m) => [m[1], m[2]]);
+    expect(nav).toEqual([
+      ["/how-it-works", "How it works"],
+      ["/pricing", "Pricing"],
+      ["/scans", "Free scans"],
+    ]);
+    expect(bar.indexOf("Free scans")).toBeLessThan(bar.indexOf(COPY["chrome.nav.signin"]));
+    expect(bar.indexOf(COPY["chrome.nav.signin"])).toBeLessThan(bar.indexOf(START));
   });
 
   it("Start free is the header's one solid primary, on every arm; Sign in is a ghost", () => {
@@ -179,31 +182,32 @@ describe("SPEC §1, 2026-09-24 (#1066) — the banner and the nav", () => {
     expect(markup(ELSEWHERE)).toContain('<a class="btn btn-primary btn-sm" href="/#landing-field">');
   });
 
-  it("the theme control is two states, light and dark, in the bar and in the drawer", () => {
+  it("the theme control is one button, Switch to dark theme, in the bar and in the drawer, with no Theme label", () => {
     const html = markup(ELSEWHERE);
     expect(html.match(/data-testid="theme-switch"/g)).toHaveLength(2);
-    expect(withoutDrawer(html).match(/data-theme-choice="(light|dark|system)"/g)).toEqual([
-      'data-theme-choice="light"',
-      'data-theme-choice="dark"',
-    ]);
+    const bar = withoutDrawer(html);
+    expect(bar.match(/data-theme-choice="(light|dark|system)"/g)).toEqual(['data-theme-choice="dark"']);
+    expect(bar).toContain(`aria-label="${COPY["chrome.theme.to-dark"]}"`);
+    expect(COPY["chrome.theme.to-dark"]).toBe("Switch to dark theme");
+    expect(html).not.toContain(`>${COPY["chrome.theme.label"]}<`);
     expect(html).not.toContain('data-testid="theme-toggle"');
   });
 
-  it("issue 1510 — the two section links are /#why and /#how, in the bar and in the drawer", () => {
+  it("no link points at a landing section but the field", () => {
     const html = markup(ELSEWHERE);
-    for (const part of [withoutDrawer(html), drawer(html)]) {
-      const hrefs = [...part.matchAll(/href="(\/#[^"]*)"/g)].map((m) => m[1]);
-      expect(hrefs).toContain("/#why");
-      expect(hrefs).toContain("/#how");
-      expect(hrefs.filter((h) => !["/#why", "/#how", "/#landing-field"].includes(h ?? ""))).toEqual([]);
-    }
+    const hrefs = [...html.matchAll(/href="(\/#[^"]*)"/g)].map((m) => m[1]);
+    expect(hrefs.filter((h) => h !== "/#landing-field")).toEqual([]);
   });
 
-  it("the drawer holds every link, the switch and Sign in, and Start free stays in the bar", () => {
+  it("the drawer holds the same three links, the switch and Sign in; its toggle is Open menu; Free scan stays in the bar", () => {
     const html = markup(ELSEWHERE);
     const menu = drawer(html);
-    for (const href of ["/#why", "/#how", "/pricing", "/signin"]) expect(menu).toContain(`href="${href}"`);
+    const links = [...menu.matchAll(/<li><a href="([^"]*)">([^<]*)<\/a><\/li>/g)].map((m) => m[1]);
+    expect(links).toEqual(["/how-it-works", "/pricing", "/scans"]);
+    expect(menu).toContain('href="/signin"');
     expect(menu).toContain('data-testid="theme-switch"');
+    expect(html).toContain(`aria-label="${COPY["chrome.nav.menu"]}"`);
+    expect(COPY["chrome.nav.menu"]).toBe("Open menu");
     expect(menu).not.toContain(START);
     expect(withoutDrawer(html)).toContain(START);
   });

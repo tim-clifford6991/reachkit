@@ -10,6 +10,7 @@ import { PLAN_DEPTH } from "../../src/lib/config/constants";
 import { measured, unmeasured } from "../../src/lib/measure/measured";
 import type { RivalSize } from "../../src/lib/market/rivals/size";
 import { deriveForPass, rankedCountsOf } from "../../src/lib/opportunities/pass";
+import { planWeek, supplyDepth } from "../../src/lib/opportunities/plan";
 import { setOpportunityStore } from "../../src/lib/opportunities/store";
 import { cappedCost, fakeCost } from "./cost";
 import { memoryStore, newMemoryState, type MemoryState } from "./memory-store";
@@ -22,6 +23,12 @@ vi.mock("@anthropic-ai/sdk", () => ({
 }));
 
 let state: MemoryState;
+
+/** Days of pages once the week's commit has assessed the pass's rows. */
+async function committedSupply(): Promise<number> {
+  await planWeek(SITE_ID, { now: AT });
+  return (await supplyDepth(SITE_ID, AT)).unused;
+}
 
 beforeEach(() => {
   state = newMemoryState();
@@ -120,7 +127,7 @@ describe("the deep pass derives what its evidence supports", () => {
     // Every row belongs to the pass that derived it: `scan_id` is the
     // report's own, never a second id minted here.
     expect(state.rows.every((row) => row.scan_id === report.scanId)).toBe(true);
-    expect(outcome.unused).toBe(state.rows.filter((row) => row.family !== "fix").length);
+    expect(await committedSupply()).toBe(state.rows.filter((row) => row.family !== "fix").length);
     // The Done-when this issue exists for: a sized market yields days of
     // pages, not only Fix instructions (which take no publishing day).
     expect(state.rows.filter((row) => row.family === "write").length).toBeGreaterThan(0);
@@ -148,13 +155,13 @@ describe("the deep pass derives what its evidence supports", () => {
       { questions: [question()], serps: [serp()] },
       { rivalSizes: measured(sized(40), AT) }
     );
-    const outcome = await deriveForPass(fakeCost().ctx, {
+    await deriveForPass(fakeCost().ctx, {
       tier: "deep",
       siteId: SITE_ID,
       report,
       hasActiveAccess: true,
     });
-    expect(outcome.unused).toBeLessThan(PLAN_DEPTH);
+    expect(await committedSupply()).toBeLessThan(PLAN_DEPTH);
   });
 });
 
@@ -236,10 +243,9 @@ describe("the weekly pass tops up", () => {
     });
     if (again.tier !== "weekly") throw new Error("unreachable");
     expect(again.added).toBe(0);
-    expect(again.unused).toBe(first.unused);
   });
 
-  it("adds nothing where access has lapsed, and still reports the supply that stands", async () => {
+  it("adds nothing where access has lapsed", async () => {
     const report = defaultReport({ rivalSizes: measured(sized(40), AT) });
     const outcome = await deriveForPass(fakeCost().ctx, {
       tier: "weekly",
@@ -250,7 +256,6 @@ describe("the weekly pass tops up", () => {
     if (outcome.tier !== "weekly") throw new Error("unreachable");
     expect(outcome.added).toBe(0);
     expect(state.rows).toHaveLength(0);
-    expect(outcome.unused).toBe(0);
   });
 });
 
