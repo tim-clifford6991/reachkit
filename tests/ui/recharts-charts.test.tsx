@@ -155,6 +155,7 @@ describe("GrowthLine compact", () => {
     expect(texts(host)).toEqual([]);
     expect(host.querySelector(".recharts-tooltip-wrapper")).toBeNull();
     expect(host.querySelector("ul")).toBeNull();
+    expect(host.querySelectorAll('[tabindex]:not([tabindex="-1"]), a[href], button, input, select, textarea')).toHaveLength(0);
   });
 });
 

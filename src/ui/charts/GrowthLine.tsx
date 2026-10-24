@@ -118,6 +118,8 @@ export function GrowthLine(
     >
       <AreaChart
         responsive
+        // An aria-hidden mark must hold nothing focusable; the layer makes the svg a tab stop.
+        accessibilityLayer={!compact}
         data={rows}
         margin={compact ? { top: 4, right: 4, bottom: 4, left: 4 } : { top: 20, right: 16, bottom: 4, left: 16 }}
         style={compact ? { width: "100%", height: "100%" } : { width: "100%", aspectRatio: 300 / 80 }}
