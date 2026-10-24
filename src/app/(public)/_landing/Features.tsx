@@ -9,7 +9,7 @@
 //
 // The phone board draws the same four drawings, so every width shows them.
 import type React from "react";
-import { Bot, CircleCheck, FileText, Search, ShieldCheck } from "lucide-react";
+import { CircleCheck, CircleX, FileText, Search, Sparkles, Wrench } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { Num } from "../scan/[domain]/_address/measured";
@@ -26,19 +26,30 @@ function Example(): React.JSX.Element {
   return <p className="text-base-content/70 text-xs">{copy("landing.feature.example")}</p>;
 }
 
+const MARK = { size: 16, strokeWidth: 1.75, className: "shrink-0", "aria-hidden": true } as const;
+const NAMED = "flex min-w-0 items-center gap-2";
+
 /** One AI answer: the businesses it mentions, and the example business it leaves out. */
 function AnswersDrawing(): React.JSX.Element {
   return (
     <div className="flex flex-col gap-2 text-sm">
       <p className="rounded-box bg-base-200 px-3 py-2 font-semibold">{copy("landing.feature.ai.ask")}</p>
-      <p className="text-base-content/70 text-xs">{copy("landing.feature.ai.mentions")}</p>
+      <p className="text-primary flex items-center gap-2 text-xs font-semibold">
+        <Sparkles {...MARK} />
+        {copy("landing.feature.ai.mentions")}
+      </p>
       <ul className="flex flex-col gap-1">
-        <li>{copy("landing.feature.ai.chain")}</li>
-        <li>
+        <li className={NAMED}>
+          <CircleCheck {...MARK} className="text-base-content/70 shrink-0" />
+          {copy("landing.feature.ai.chain")}
+        </li>
+        <li className={NAMED}>
+          <CircleCheck {...MARK} className="text-base-content/70 shrink-0" />
           <Num>{SPECIMEN_HERO_RIVAL}</Num>
         </li>
-        <li>
-          <span className="badge badge-soft badge-warning">{copy("landing.feature.ai.you", { you: SPECIMEN_HERO_BUSINESS })}</span>
+        <li className={`${NAMED} text-error font-semibold`}>
+          <CircleX {...MARK} />
+          {copy("landing.feature.ai.you", { you: SPECIMEN_HERO_BUSINESS })}
         </li>
       </ul>
       <Example />
@@ -112,9 +123,9 @@ const FEATURES: readonly {
   Icon: LucideIcon;
   Drawing: () => React.JSX.Element;
 }[] = [
-  { title: "landing.feature.ai.title", body: "landing.feature.ai.body", Icon: Bot, Drawing: AnswersDrawing },
+  { title: "landing.feature.ai.title", body: "landing.feature.ai.body", Icon: Sparkles, Drawing: AnswersDrawing },
   { title: "landing.feature.google.title", body: "landing.feature.google.body", Icon: Search, Drawing: GoogleDrawing },
-  { title: "landing.feature.fix.title", body: "landing.feature.fix.body", Icon: ShieldCheck, Drawing: FixDrawing },
+  { title: "landing.feature.fix.title", body: "landing.feature.fix.body", Icon: Wrench, Drawing: FixDrawing },
   { title: "landing.feature.daily.title", body: "landing.feature.daily.body", Icon: FileText, Drawing: DailyDrawing,
     vars: { weekPages: String(HOW_FACTS.weekPages), hours: String(HOW_FACTS.windowHours) } },
 ];
