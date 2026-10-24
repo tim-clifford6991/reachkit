@@ -11,7 +11,7 @@
 import { COUNTRIES, LANGUAGES, SUPPORTED_LOCALES, localeKey } from "@/lib/locale/locales";
 import type React from "react";
 import { useId, useMemo, useState, useTransition, type Dispatch, type KeyboardEvent, type SetStateAction } from "react";
-import { Globe, ListOrdered } from "lucide-react";
+import { Globe, ListOrdered, MapPin, MonitorCheck } from "lucide-react";
 import { copy } from "@/lib/presentation/copy";
 import { fromStored, renderQuestion } from "@/lib/presentation/generated";
 import { rederiveQuestions } from "@/lib/market/questions/rederive";
@@ -95,8 +95,9 @@ export function SiteCard(p: {
         {state.address.state === "measured" && !editingAddress ? (
           <div className="flex flex-col gap-1.5">
             <p className={QUIET}>{copy("setup.address.label")}</p>
-            <div className={ROW}>
-              <p className="num min-w-0 wrap-anywhere" data-testid="setup-address-value">
+            <div className={`${ROW} rounded-box bg-base-200 py-1 pr-1 pl-3`}>
+              <MonitorCheck {...ICON} className="shrink-0 text-base-content/70" />
+              <p className="num min-w-0 flex-1 wrap-anywhere" data-testid="setup-address-value">
                 {state.address.domain}
               </p>
               <button type="button" className={CHANGE} onClick={() => setEditingAddress(true)}>
@@ -196,15 +197,21 @@ export function SiteCard(p: {
           <p className={QUIET}>{copy("setup.place.note")}</p>
         </div>
         {chosen === null ? null : (
-          <p className="flex flex-wrap gap-x-1 rounded-box bg-base-200 px-3 py-2 text-sm" data-testid="setup-place-preview">
-            <span className="font-medium">
-              {copy("setup.place.preview", {
-                area: p.place.trim() === "" ? COUNTRIES[chosen.country].location : p.place.trim(),
-                language: LANGUAGES[chosen.language].name,
-              })}
+          <div className="flex min-w-0 items-center gap-3 text-sm" data-testid="setup-place-preview">
+            {/* Ruling 2026-10-24 E30: an icon band, never a map; the place is the words beside it. */}
+            <span aria-hidden className="grid h-14 w-20 shrink-0 place-items-center rounded-box bg-base-200 text-primary" data-testid="setup-place-band">
+              <MapPin {...ICON} />
             </span>
-            <span className="text-base-content/70">{copy("setup.place.preview.line")}</span>
-          </p>
+            <p className="flex min-w-0 flex-col">
+              <span className="font-medium">
+                {copy("setup.place.preview", {
+                  area: p.place.trim() === "" ? COUNTRIES[chosen.country].location : p.place.trim(),
+                  language: LANGUAGES[chosen.language].name,
+                })}
+              </span>
+              <span className="text-base-content/70">{copy("setup.place.preview.line")}</span>
+            </p>
+          </div>
         )}
       </div>
     </section>

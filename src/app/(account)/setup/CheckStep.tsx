@@ -6,7 +6,7 @@
 
 import type React from "react";
 import type { Dispatch, SetStateAction } from "react";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Building2, CircleQuestionMark, Eye, FileText, MessageCircle, MonitorCheck, ShieldCheck, Users, type LucideIcon } from "lucide-react";
 import { copy } from "@/lib/presentation/copy";
 import { settledCategory, type SetupState } from "@/lib/market/setup/state";
 import type { FounderAnswers } from "@/lib/site-profile/knowledge/types";
@@ -56,25 +56,36 @@ export function CheckStep(p: {
               <span className="text-sm font-medium">{copy("setup.check.pages", { n: String(p.pagesRead) })}</span>
             </p>
             <figcaption className="flex min-w-0 flex-wrap items-center gap-2 text-sm">
-              <span className="badge badge-ghost">{copy("setup.check.figure.site")}</span>
+              <span className="badge badge-ghost">
+                <MonitorCheck {...ICON} />
+                {copy("setup.check.figure.site")}
+              </span>
               <ArrowRight {...ICON} />
-              <span>{copy("setup.check.figure.read")}</span>
+              <span className="flex items-center gap-1">
+                <Eye {...ICON} />
+                {copy("setup.check.figure.read")}
+              </span>
               <ArrowRight {...ICON} />
-              <span className="badge badge-ghost">{copy("setup.check.figure.pages")}</span>
+              <span className="badge badge-ghost">
+                <FileText {...ICON} />
+                {copy("setup.check.figure.pages")}
+              </span>
             </figcaption>
           </div>
         </figure>
       )}
 
-      <Section id="business" title={copy("setup.check.business")} summary={p.job}>
-        <p className="rounded-box bg-base-200 px-3 py-2 text-sm" data-testid="setup-business-assurance">
-          {copy("setup.business.assurance")}
+      <Section id="business" icon={Building2} title={copy("setup.check.business")} summary={p.job}>
+        <p className="flex items-start gap-2 rounded-box bg-base-200 px-3 py-2 text-sm" data-testid="setup-business-assurance">
+          <ShieldCheck {...ICON} size={20} className="shrink-0 text-base-content/70" />
+          <span>{copy("setup.business.assurance")}</span>
         </p>
         <BusinessPanel draft={p.draft} onDraft={p.onDraft} job={p.job} onJob={p.onJob} />
       </Section>
 
       <Section
         id="market"
+        icon={Users}
         title={copy("setup.check.market")}
         summary={
           market === null
@@ -93,12 +104,13 @@ export function CheckStep(p: {
         />
       </Section>
 
-      <Section id="voice" title={copy("setup.check.voice")} summary={firstSentence(p.voice)}>
+      <Section id="voice" icon={MessageCircle} title={copy("setup.check.voice")} summary={firstSentence(p.voice)}>
         <VoiceCard profile={p.profile} voice={p.voice} onVoice={p.onVoice} />
       </Section>
 
       <Section
         id="asks"
+        icon={CircleQuestionMark}
         title={copy("setup.business.questions")}
         pill={copy("setup.check.optional")}
         summary={copy("setup.check.asks.summary")}
@@ -112,6 +124,7 @@ export function CheckStep(p: {
 /** One section: its name, what was read of it, and its controls when opened. */
 function Section(p: {
   id: string;
+  icon: LucideIcon;
   title: string;
   summary: string;
   /** The pill before the summary: "read" where ReachKit filled it in. */
@@ -122,14 +135,19 @@ function Section(p: {
   const pill = p.pill ?? (summary === "" ? null : copy("setup.check.read"));
   return (
     <details className={SECTION} data-testid={`setup-check-${p.id}`}>
-      <summary className="collapse-title flex min-w-0 flex-col gap-1">
-        <strong className="font-medium">{p.title}</strong>
-        {pill === null ? null : (
-          <span className={`flex min-w-0 flex-wrap items-center gap-x-2 wrap-anywhere ${QUIET}`}>
-            <span className="badge badge-ghost badge-sm">{pill}</span>
-            {summary}
-          </span>
-        )}
+      <summary className="collapse-title flex min-w-0 items-start gap-3">
+        <span className="grid size-9 shrink-0 place-items-center rounded-box bg-primary/10 text-primary" aria-hidden>
+          <p.icon strokeWidth={1.75} size={20} />
+        </span>
+        <span className="flex min-w-0 flex-col gap-1">
+          <strong className="font-medium">{p.title}</strong>
+          {pill === null ? null : (
+            <span className={`flex min-w-0 flex-wrap items-center gap-x-2 wrap-anywhere ${QUIET}`}>
+              <span className="badge badge-ghost badge-sm">{pill}</span>
+              {summary}
+            </span>
+          )}
+        </span>
       </summary>
       <div className="collapse-content grid min-w-0 grid-cols-1 gap-4">{p.children}</div>
     </details>
