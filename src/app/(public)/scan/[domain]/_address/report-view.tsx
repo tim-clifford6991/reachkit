@@ -26,7 +26,7 @@
 // with one written line (REQ-004 c10/c11) — never an empty card, never a
 // spinner — and the rest of the report stays usable.
 import type React from "react";
-import { CircleAlert } from "lucide-react";
+import { CircleAlert, Wrench } from "lucide-react";
 import { Surface } from "@/ui/layout";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import type { ScoreFactorName } from "@/lib/measure/score";
@@ -616,10 +616,17 @@ export function ReportView(p: {
             keeps the cards' 1px ring inside the collapse's clip. */}
         <details id="holds" className="collapse collapse-arrow col-span-full scroll-mt-20 rounded-none" data-testid="report-problems">
           <summary className="collapse-title min-h-0 px-px py-2 pe-10 after:end-2 after:top-6">
-            <h2 className="text-2xl font-bold">{copy("problem.section.title")}</h2>
+            <div className="flex items-center gap-3">
+              <span aria-hidden className="rounded-field grid size-9 shrink-0 place-items-center bg-base-200">
+                <Wrench className="size-5" strokeWidth={1.75} />
+              </span>
+              <div className="min-w-0">
+                <h2 className="text-2xl font-bold">{copy("problem.section.title")}</h2>
+                <p className="text-base-content/70 text-sm font-normal">{copy("problem.section.sub")}</p>
+              </div>
+            </div>
           </summary>
           <div className="collapse-content flex min-w-0 flex-col gap-3 px-px">
-            <p className="text-base-content/70 text-sm">{copy("problem.section.sub")}</p>
             <ProblemCards cards={cards} firstPage={report.freePage !== null} />
             <CheckCards
               cards={checkCardsOf(
@@ -646,7 +653,7 @@ export function ReportView(p: {
             board puts it — after the method, before the first page. */}
         {understanding === null ? null : (
           <div className="col-span-full">
-            <WhatWeRead understanding={understanding} />
+            <WhatWeRead understanding={understanding} tile />
           </div>
         )}
 
