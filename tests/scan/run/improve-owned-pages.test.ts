@@ -86,6 +86,7 @@ vi.mock("@/lib/scan/correction", () => ({
 const { runScan } = await import("../../../src/lib/scan/run");
 const { deriveForPass } = await import("../../../src/lib/opportunities/pass");
 const { rankOpen } = await import("../../../src/lib/opportunities/rank/open");
+const { planFirstWeek } = await import("../../../src/lib/opportunities/plan");
 const { setOpportunityStore } = await import("../../../src/lib/opportunities/store");
 
 const CLAIMED_ID = "55555555-5555-4555-8555-555555555555";
@@ -193,6 +194,8 @@ async function deepPass(): Promise<StoredReport> {
     },
   });
   if (stored === null) throw new Error("the pass stored no report");
+  // As setup does once the pass ends: the first week's commit assesses its rows.
+  await planFirstWeek(SITE_ID);
   return stored;
 }
 

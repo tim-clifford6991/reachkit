@@ -8,7 +8,7 @@ import {
 } from "../../../src/lib/config/constants";
 import { measured } from "../../../src/lib/measure/measured";
 import { setOpportunityStore } from "../../../src/lib/opportunities/store";
-import { supplyDepth, supplyNotice } from "../../../src/lib/opportunities/plan";
+import { planWeek, supplyDepth, supplyNotice } from "../../../src/lib/opportunities/plan";
 import { deriveForPass } from "../../../src/lib/opportunities/pass";
 import { cappedCost, fakeCost } from "../cost";
 import { memoryStore, newMemoryState, setStatus, type MemoryState } from "../memory-store";
@@ -272,7 +272,8 @@ describe("§11's weekly pass is additive and idempotent", () => {
 
 /** One pass over `report` (`deriveForPass`), its rivals sized as
  *  `smallCounts` sizes them. */
-function pass(
+/** A pass, then the week's commit that assesses its rows, and the supply after. */
+async function pass(
   ctx: Parameters<typeof deriveForPass>[0],
   report: ReturnType<typeof defaultReport>,
   tier: "deep" | "weekly" = "weekly",
@@ -282,7 +283,9 @@ function pass(
     [...smallCounts().keys()].map((domain) => ({ domain, state: "sized" as const, rankedCount: 40, band: "near" as const, at: AT, current: true })),
     AT
   );
-  return deriveForPass(ctx, { tier, siteId: SITE_ID, report: { ...report, rivalSizes }, hasActiveAccess });
+  const outcome = await deriveForPass(ctx, { tier, siteId: SITE_ID, report: { ...report, rivalSizes }, hasActiveAccess });
+  await planWeek(SITE_ID, { now: AT });
+  return { ...outcome, unused: (await supplyDepth(SITE_ID, AT)).unused };
 }
 
 /** Derives without going through a pass, so a suite can set supply up
