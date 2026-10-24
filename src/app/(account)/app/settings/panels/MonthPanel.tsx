@@ -2,6 +2,7 @@
 // tiles, the period bar and the detail, as board SettingsBilling draws them.
 import type React from "react";
 import Link from "next/link";
+import { Calendar, FileText, Inbox, Search, type LucideIcon } from "lucide-react";
 import { copy } from "@/lib/presentation/copy";
 import type { MonthGot } from "@/lib/account/billing";
 import { addDays, dayKeyOf, fullDate, type DayKey } from "../../calendar/dates";
@@ -26,9 +27,10 @@ export interface MonthContext {
 }
 
 /** One tile: a count, what it counts, and a line under it. A zero is quiet; an unread count says so. */
-function Tile(p: { value: number | null; label: string; cap: string | null; testId: string }): React.JSX.Element {
+function Tile(p: { icon: LucideIcon; value: number | null; label: string; cap: string | null; testId: string }): React.JSX.Element {
   return (
     <li className="bg-base-200 rounded-box flex min-w-0 flex-1 basis-48 flex-col gap-1 p-3" data-testid={p.testId}>
+      <p.icon size={20} strokeWidth={1.75} aria-hidden className="text-primary" />
       {p.value === null ? (
         <span className={`text-base wrap-anywhere ${INK}`}>{copy("settings.month.not-measured")}</span>
       ) : (
@@ -91,13 +93,15 @@ export function MonthPanel(p: { got: MonthGot | null; context: MonthContext }): 
 
         <ul className="flex min-w-0 flex-wrap gap-3">
           <Tile
+            icon={FileText}
             value={got.live}
             label={copy("settings.month.live")}
             cap={context.host === null ? null : copy("settings.month.live.where", { host: context.host })}
             testId="billing-month-live"
           />
-          <Tile value={got.reports.length} label={copy("settings.month.reports")} cap={got.reports.length === 0 ? null : reports} testId="billing-month-reports" />
+          <Tile icon={Inbox} value={got.reports.length} label={copy("settings.month.reports")} cap={got.reports.length === 0 ? null : reports} testId="billing-month-reports" />
           <Tile
+            icon={Search}
             value={got.asked === null ? null : got.asked.searches + (got.asked.questions ?? 0)}
             label={copy("settings.month.asked")}
             cap={
@@ -110,6 +114,7 @@ export function MonthPanel(p: { got: MonthGot | null; context: MonthContext }): 
             testId="billing-month-asked"
           />
           <Tile
+            icon={Calendar}
             value={context.planned === null ? null : context.planned.length}
             label={copy("settings.month.planned")}
             cap={copy("settings.month.planned.cap", { days: String(WEEK_PLAN.days) })}
