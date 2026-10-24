@@ -33,6 +33,9 @@ interface Written {
   asked: string[];
   /** Each asked section's task, by key. */
   tasks: Record<string, string>;
+  /** The title formulas and the title rule the writer was given. */
+  titles: string[];
+  titleNever: string;
   /** How many questions the writer was asked for, at most. */
   faqAsked: number;
   /** The sections the row records, by key, and the questions it stores. */
@@ -53,12 +56,14 @@ async function write({ pack, parts }: OfferingFixture): Promise<Written> {
     facts: FACTS,
     links: [],
   });
-  const input = llmMock.mock.calls[0]![1].input as { template: { sections: { key: string; task: string }[]; blocks: { faq: { max: number } } } };
+  const input = llmMock.mock.calls[0]![1].input as { template: { titles: string[]; titleNever: string; sections: { key: string; task: string }[]; blocks: { faq: { max: number } } } };
   const row = [...store.rows.values()][0]!;
   const meta = row.meta as { sections: { key: string }[]; faq: unknown[] };
   return {
     asked: input.template.sections.map((section) => section.key),
     tasks: Object.fromEntries(input.template.sections.map((section) => [section.key, section.task])),
+    titles: input.template.titles,
+    titleNever: input.template.titleNever,
     faqAsked: input.template.blocks.faq.max,
     sections: meta.sections.map((section) => section.key),
     faq: meta.faq,
@@ -109,6 +114,19 @@ describe("E10: an offering page draws only the sections its stored facts support
     const task = (await write(OFFERING_FIXTURES["(a) a local plumber with every fact"])).tasks.where_when!;
     expect(task).toContain("profile.knowledge.places");
     expect(task.match(/\b(hours?|days?|times?|when|open(ing)? (hours|times))\b/gi)).toBeNull();
+  });
+
+  it("the writer's titles offer a price or a place, never hours, and its title rule forbids hours", async () => {
+    for (const fixture of Object.values(OFFERING_FIXTURES)) {
+      llmMock.mockReset();
+      store = memoryStore();
+      setGenerateStore(store);
+      const page = await write(fixture);
+      expect(page.titles.join(" ")).toMatch(/price/i);
+      expect(page.titles.join(" ")).toMatch(/place/i);
+      expect(page.titles.join(" ")).not.toMatch(/hours/i);
+      expect(page.titleNever).toMatch(/hours/i);
+    }
   });
 
   it("hours the pages state, with no place, open no where and when", async () => {

@@ -21,7 +21,6 @@ import { siteLocale } from "@/lib/locale/site";
 import {
   guidesBlock,
   headingsUnderTitle,
-  inlineHtml,
   inlineText,
   markPassage,
   labelledIn,
@@ -248,10 +247,10 @@ function Contents({ headings }: { headings: readonly HeadingEntry[] }): React.JS
   );
 }
 
-/** An offering page's "Where and when" (E10): its opening line and its list
- *  of places, by their index in `blocks`, found under the heading generation
- *  recorded. `null` where the page records none or the section lists no place. */
-function whereWhenOf(blocks: readonly Block[], heading: string | null | undefined): { line: number; list: number; places: string[] } | null {
+/** An offering page's "Where and when" (E10): its list of places, by its
+ *  index in `blocks`, found under the heading generation recorded. `null`
+ *  where the page records none or the section lists no place. */
+function whereWhenOf(blocks: readonly Block[], heading: string | null | undefined): { list: number; places: string[] } | null {
   if (heading === null || heading === undefined) return null;
   const at = blocks.findIndex((block) => block.kind === "heading" && titleKey(inlineText(block.children)) === titleKey(heading));
   const top = blocks[at];
@@ -261,8 +260,7 @@ function whereWhenOf(blocks: readonly Block[], heading: string | null | undefine
   const list = blocks.findIndex((block, i) => within(i) && block.kind === "list" && !block.ordered);
   const listed = blocks[list];
   if (listed?.kind !== "list") return null;
-  const line = blocks.findIndex((block, i) => within(i) && i < list && block.kind === "paragraph");
-  return { line, list, places: listed.items.map((item) => inlineText(item).replace(/\s+/g, " ").trim()) };
+  return { list, places: listed.items.map((item) => inlineText(item).replace(/\s+/g, " ").trim()) };
 }
 
 /** The article's `<head>`: its own title, description, canonical and share
@@ -346,21 +344,8 @@ export function HostedArticle({ resolved }: { resolved: Resolved }): React.JSX.E
   const answerAt = blocks.findIndex((block) => block.kind === "answer");
   const takeawaysAt = blocks.findIndex((block) => block.kind === "takeaways");
   const compactAt = stored && page.businessFit === 3 ? (takeawaysAt >= 0 ? takeawaysAt : answerAt) : -1;
-  // "Where and when" draws lucide's clock on its opening line and its pin on
-  // each place, in place of the two blocks the serialiser would draw.
-  const whereLine = where === null ? null : blocks[where.line];
+  // "Where and when" draws lucide's map-pin on each place (E41: no clock until an hours fact exists).
   const whereParts = where === null ? [] : [
-    ...(whereLine?.kind === "paragraph" ? [{
-      after: where.line - 1,
-      node: (
-        <div key="where-line" className="prose prose-lg max-w-none">
-          <p className="flex items-center gap-2">
-            <Glyph name="clock" />
-            <span dangerouslySetInnerHTML={{ __html: inlineHtml(whereLine.children, HOSTED_BODY_CLASSES) }} />
-          </p>
-        </div>
-      ),
-    }] : []),
     {
       after: where.list - 1,
       node: (
@@ -375,7 +360,7 @@ export function HostedArticle({ resolved }: { resolved: Resolved }): React.JSX.E
       ),
     },
   ];
-  const drawnHere = new Set(where === null ? [] : [where.list, ...(whereLine?.kind === "paragraph" ? [where.line] : [])]);
+  const drawnHere = new Set(where === null ? [] : [where.list]);
   const inserts = [
     ...(stored && offering && answerAt >= 0 ? [{ after: answerAt, node: <AboutCard key="full" business={business} /> }] : []),
     ...(compactAt >= 0 ? [{ after: compactAt, node: <CompactAction key="compact" business={business} /> }] : []),

@@ -1,10 +1,10 @@
 /** @vitest-environment jsdom */
-// E10 and E26 (2026-10-24): the hosted offering page draws the sections its
+// E10, E26 and E41 (2026-10-24): the hosted offering page draws the sections its
 // draft holds, in the fixed order answer › what › included › price › where
 // and when › how it works › why › questions › more guides. Its Service's
 // `areaServed` is the visible "Where and when" list, absent with the section;
-// that section draws lucide's clock on its opening line and its pin on each
-// place, and the steps are numbers. Drafts laid out by code from stored packs;
+// that section draws lucide's pin on each place and no clock until an hours
+// fact exists (E41), and the steps are numbers. Drafts laid out by code from stored packs;
 // no model, no vendor. 0¢.
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
@@ -132,12 +132,18 @@ describe("E10: the hosted offering page draws the draft's sections in the fixed 
   });
 });
 
-describe("E26: where and when: clock on hours, map-pin per area; step tiles are numbers", () => {
-  it("(a) the opening line carries the clock, each place the pin, and no step a glyph", () => {
+describe("E26, E41: where and when: map-pin per area, no clock; step tiles are numbers", () => {
+  it("(a) a plain opening line right before the pin list, no clock, each place the pin, and no step a glyph", () => {
     const doc = render(stored(PLUMBER));
-    const line = doc.querySelector("svg.lucide-clock")?.closest("p");
-    expect(text(line)).toBe("It serves the areas the main site lists:");
+    expect(doc.querySelector("svg.lucide-clock")).toBeNull();
     const pins = doc.querySelectorAll("li svg.lucide-map-pin");
+    const list = pins[0]?.closest("ul");
+    // The last element before the list in document order: the prose block's closing paragraph.
+    const prior = list?.previousElementSibling;
+    const line = prior?.tagName === "P" ? prior : prior?.lastElementChild;
+    expect(line?.tagName).toBe("P");
+    expect(line?.querySelector("svg")).toBeNull();
+    expect(text(line)).toBe("It serves the areas the main site lists:");
     expect([...pins].map((pin) => text(pin.closest("li")))).toEqual(whereList(doc));
     const steps = [...doc.querySelectorAll("article ol li")];
     expect(steps).toHaveLength(4);

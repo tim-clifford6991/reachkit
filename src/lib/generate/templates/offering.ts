@@ -10,8 +10,8 @@ export const offering: Template = {
   type: "offering",
   // The business's own offer, so no outside source is required.
   for: `Say what this business offers for this search, from its own facts in \`facts\` and \`profile.knowledge\` only — what it is and who it is for, its price or how it is priced, and each other section \`template.sections\` holds — and point the reader to the one action. ${SEARCH_WORDS}`,
-  titles: ["{the offering in the search's words}: {its price, hours or place from pack}"],
-  titleNever: "Never name a place the business's own pages do not state it serves.",
+  titles: ["{the offering in the search's words}: {its price or a place from pack}"],
+  titleNever: "Never name a place the business's own pages do not state it serves. Never state opening hours, days or availability times; the business has no stored hours fact.",
   sections: [
     { key: "what", task: `Say what the offering is and who it is for, from the business's facts. ${SEARCH_WORDS}` },
     {
@@ -25,7 +25,7 @@ export const offering: Template = {
     },
     {
       key: "where_when",
-      task: `Say where the business offers it: open with one sentence that it serves the places below; then a bulleted list of the places in \`profile.knowledge.places\` read from its own pages, one place an item, word for word, and no other. ${SEARCH_WORDS}`,
+      task: `Say where the business offers it: open with one sentence that it serves the places below; then a bulleted list of the places in \`profile.knowledge.places\` read from its own pages, one place an item, word for word, and no other. Its heading asks where only. ${SEARCH_WORDS}`,
       onlyWith: { facts: "places", min: 1 },
     },
     {

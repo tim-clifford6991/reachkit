@@ -88,7 +88,7 @@ export function writerAnswer(steps = 4): PageParts {
       { key: "what", heading: "What is emergency plumbing, and who is it for?", body: "Emergency plumbing is for problems that cannot wait for a weekday booking. It is for homes in Austin." },
       { key: "included", heading: "What is included in an emergency call-out?", body: "Every call-out includes:\n\n- Someone answers your call at any hour\n- Help shutting off your water while you wait\n- A plumber at your door to find the problem\n- A written price before any work starts" },
       { key: "price", heading: "How is an emergency call-out priced?", body: "A call-out is [$149](https://harborplumbing.example/pricing). It covers the visit and finding the problem." },
-      { key: "where_when", heading: "Where and when does the emergency plumber come out?", body: "It serves the areas the main site lists:\n\n- Austin\n- Round Rock\n- Pflugerville\n- Cedar Park" },
+      { key: "where_when", heading: "Where does the emergency plumber come out?", body: "It serves the areas the main site lists:\n\n- Austin\n- Round Rock\n- Pflugerville\n- Cedar Park" },
       {
         key: "how_it_works",
         heading: "How does an emergency call-out work?",

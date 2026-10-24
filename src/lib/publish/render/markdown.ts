@@ -709,8 +709,7 @@ function open(tag: keyof HtmlClasses, classes: HtmlClasses, extra = ""): string 
   return openAs(tag, tag, classes, extra);
 }
 
-/** A run of inlines out as HTML, for a block a page draws around its own markup. */
-export function inlineHtml(nodes: readonly Inline[], classes: HtmlClasses = {}): string {
+function inlineHtml(nodes: readonly Inline[], classes: HtmlClasses): string {
   return nodes
     .map((node) => {
       switch (node.kind) {
