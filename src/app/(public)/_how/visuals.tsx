@@ -4,6 +4,7 @@
 import type React from "react";
 import {
   ArrowDown,
+  ArrowRight,
   Ban,
   Calendar,
   Check,
@@ -14,8 +15,10 @@ import {
   Coffee,
   Eye,
   FileText,
+  Globe,
   Info,
   Link,
+  List,
   Lock,
   Mail,
   MapPin,
@@ -32,6 +35,7 @@ import {
   Users,
   Wrench,
   X,
+  Zap,
   type LucideIcon,
 } from "lucide-react";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
@@ -158,7 +162,12 @@ export function AsWeRead(e: Example): React.JSX.Element {
     <figure className={CARD}>
       <div className="card-body gap-4">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <p className={LABEL}>{copy("how.read.title")}</p>
+          <p className={`${LABEL} flex items-center gap-2`}>
+            <span className="rounded-field bg-primary/10 text-primary grid size-9 flex-none place-items-center">
+              <Globe {...ICON} />
+            </span>
+            {copy("how.read.title")}
+          </p>
           <span className="badge badge-ghost badge-sm">{copy("how.read.pages", { pages: e.pagesRead })}</span>
         </div>
         <dl className="divide-base-300 flex flex-col divide-y">
@@ -167,25 +176,35 @@ export function AsWeRead(e: Example): React.JSX.Element {
               <dt className={SMALL}>{copy(label)}</dt>
               <dd className="flex min-w-0 flex-col">
                 <span className="text-sm font-semibold">{value}</span>
-                <span className="num text-base-content/70 text-xs">{from}</span>
+                <span className="num text-base-content/70 flex items-center gap-1 text-xs">
+                  {/* The board turns ArrowRight so "from this source" keeps one icon. */}
+                  <ArrowRight {...SMALL_ICON} className="shrink-0 rotate-180" />
+                  {from}
+                </span>
               </dd>
             </div>
           ))}
         </dl>
-        <p className={SMALL}>{copy("how.read.fix")}</p>
+        <span className="badge badge-outline badge-sm self-end">
+          <Pencil {...SMALL_ICON} />
+          {copy("how.read.fix")}
+        </span>
         <div className={WELL}>
           <p className="text-sm font-semibold">{copy("how.read.held")}</p>
           <ul className="flex flex-col gap-1 text-sm">
-            <li className="flex flex-wrap justify-between gap-2">
-              {copy("how.read.held.ai")}
+            <li className="flex flex-wrap items-center gap-2">
+              <Zap {...ICON} className="text-warning shrink-0" />
+              <span className="min-w-0 flex-1">{copy("how.read.held.ai")}</span>
               <span className="badge badge-soft badge-primary badge-sm">{copy("how.read.held.free", { minutes: HOW_FACTS.fixMinutes })}</span>
             </li>
-            <li className="flex flex-wrap justify-between gap-2">
-              {copy("how.read.held.list")}
+            <li className="flex flex-wrap items-center gap-2">
+              <List {...ICON} className="text-warning shrink-0" />
+              <span className="min-w-0 flex-1">{copy("how.read.held.list")}</span>
               <span className="badge badge-soft badge-primary badge-sm">{copy("how.read.held.free", { minutes: HOW_FACTS.fixMinutes })}</span>
             </li>
-            <li className="flex flex-wrap justify-between gap-2">
-              {copy("how.read.held.slow", { count: e.slowPages })}
+            <li className="flex flex-wrap items-center gap-2">
+              <Clock {...ICON} className="text-base-content/70 shrink-0" />
+              <span className="min-w-0 flex-1">{copy("how.read.held.slow", { count: e.slowPages })}</span>
               <span className="badge badge-ghost badge-sm">{copy("how.read.held.report")}</span>
             </li>
           </ul>

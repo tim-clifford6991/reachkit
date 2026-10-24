@@ -15,6 +15,7 @@ applyEnvFixture();
 const { default: HowItWorksPage } = await import("@/app/(public)/how-it-works/page");
 const visuals = await import("@/app/(public)/_how/visuals");
 const { EXAMPLES } = await import("@/app/(public)/_how/specimen");
+const { copy } = await import("@/lib/presentation/copy");
 
 const dom = (markup: string): Document => new DOMParser().parseFromString(markup, "text/html");
 const page = dom(renderToStaticMarkup(HowItWorksPage()));
@@ -111,6 +112,22 @@ describe("how it works draws its board icons in every section", () => {
   it("your part: a timer, the line, the plug, then edit and stop", () => {
     expect(icons(within("#you-do figure"))).toEqual(["timer", "link", "plug", "arrow-down", "pencil", "circle-stop"]);
     sameIconsBothArms(visuals.YourPart);
+  });
+
+  it("#research: Globe, a turned arrow per source, Pencil on the fix, Zap / List / Clock on what holds you back", () => {
+    const read = figure("research", plumber.business);
+    expect(icons(read)).toEqual(["globe", ...each(5, ["arrow-right"]), "pencil", "zap", "list", "clock"]);
+    for (const arrow of read.querySelectorAll("svg.lucide-arrow-right")) expect(arrow.classList).toContain("rotate-180");
+    expect(read.querySelector("svg.lucide-bot")).toBeNull();
+    sameIconsBothArms(visuals.AsWeRead);
+  });
+
+  it("#true: the disclosure line opens with sparkles", () => {
+    const disclosure = within('[data-testid="how-disclosure"]');
+    expect(icons(disclosure)).toEqual(["sparkles"]);
+    expect(disclosure.firstElementChild?.matches("svg.lucide-sparkles")).toBe(true);
+    expect(disclosure.textContent).toBe(copy("how.disclosure"));
+    expect(disclosure.querySelector("svg.lucide-bot")).toBeNull();
   });
 
   it("the compare: you, an agency, and ReachKit with sparkles", () => {
