@@ -39,7 +39,7 @@ import type React from "react";
 import { useEffect, useState, useSyncExternalStore, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { parseAsStringLiteral, useQueryState } from "nuqs";
-import { ArrowLeft, Check } from "lucide-react";
+import { ArrowLeft, Check, Clock } from "lucide-react";
 import { Surface } from "@/ui/layout";
 import { Brand } from "@/app/_brand/Brand";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
@@ -445,7 +445,10 @@ export function SetupForm(p: { model: SetupScreenModel }): React.JSX.Element {
                   <span className="font-medium">
                     {copy("setup.step.count", { n: String(at + 1), total: String(SETUP_STEPS.length) })}
                   </span>
-                  <span className="badge badge-ghost badge-sm">{copy("setup.step.time")}</span>
+                  <span className="badge badge-ghost badge-sm">
+                    <Clock {...ICON} size={12} />
+                    {copy("setup.step.time")}
+                  </span>
                 </p>
                 <h1 className="text-xl font-semibold wrap-anywhere">{copy(STEP_COPY[step].question)}</h1>
                 <p className={QUIET} data-testid="setup-step-line">

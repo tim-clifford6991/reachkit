@@ -36,6 +36,16 @@ and it is not a gate.
 Dev (`dev.reachkit.app`) deploys from `main` via `rk-deployer`. If it has not moved after a
 merge, run `bash /root/ops/reachkit/bin/deploy-dev-once.sh`. Production is batched (at most
 every two hours) and receives every merge, the same as dev (no freeze, owner 2026-09-17, #844).
+2026-10-24 (E3, #1959): production is held only while the free dev check is red. Once a dev build is
+Ready, the deployer runs `scripts/smoke.sh --free` against it. The check sends GETs only and spends
+nothing. It runs from a detached tree at that SHA and writes `state/dev-check.<sha>`. Production
+takes a SHA only when that file reads `pass`. Once production is Ready and Inngest is synced, the
+same check runs against `reachkit.app` and writes `state/prod-check.last`. A red check, or a hold,
+files one `[deploy] production check red` issue, or comments on the open one. After a red check,
+the next window deploys without the two-hour spacing. A failed build is retried, at most twice per
+SHA. The Ready poll runs in its own unit (`rk-deploy-sync-<id>`), so a deployer restart cannot stop
+the Inngest sync. On start, the deployer polls again any production deploy it accepted in the last
+2 h that has no sync line. Still roll forward only. The box patch is `docs/ops/deployer.sh.patch`.
 `/api/jobs` is served by production, so a job or pass change takes effect only once production is
 deployed. `Vercel` is not a check: Git deployments are off (`vercel.json` `git.deploymentEnabled: false`).
 
@@ -43,7 +53,8 @@ Every production deploy is one line in `/root/ops/reachkit/state/prod-redeploy.l
 deployer or from `bin/redeploy.sh`. The line carries the UTC date and time, the target, main's
 full SHA at the call, the deployment id, the trigger (`deployer` or `hand`) and the reason. The
 deployer writes `main moved`; `redeploy.sh --reason "<why>"` writes the reason it is given. Both
-write `state/deploy-prod.sha`, so the deployer never deploys the same SHA again. The deployer
+write `state/deploy-prod.sha`, the deployer once that deploy is Ready, so it never deploys a
+Ready SHA again. The deployer
 starts production only at :10–:40, so the build is Ready before the hourly jobs fire. Once the
 build is Ready, either script `PUT`s `https://reachkit.app/api/jobs` to sync Inngest and logs
 `inngest sync <code>` against the deployment id.
