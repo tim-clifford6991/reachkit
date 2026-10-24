@@ -115,6 +115,25 @@ describe("board AppAI, on the account the layout sweep reads", () => {
     expect(text(card?.querySelector('[data-testid="ai-pages-shown"]'))).toBe(copy("overview.answers.pages.shown", { shown: "4", total: "4" }));
   });
 
+  it("each mark draws its E29 icon, in the cells and in the legend", async () => {
+    const dom = await render();
+    const glyph = (el: Element | null | undefined) => (el?.querySelector("svg")?.getAttribute("class") ?? "").split(" ").filter((c) => c.startsWith("lucide-"));
+    const icon: Readonly<Record<AnswerMark, string>> = {
+      links_to_you: "lucide-link",
+      names_you: "lucide-message-square",
+      names_others: "lucide-users",
+      names_no_one: "lucide-circle-dashed",
+      no_answer: "lucide-circle-minus",
+      not_measured: "lucide-minus",
+    };
+    const cells = [...dom.querySelectorAll("[data-mark]")];
+    for (const mark of ["links_to_you", "names_you", "no_answer"] as const) expect(cells.some((cell) => cell.getAttribute("data-mark") === mark)).toBe(true);
+    for (const cell of cells) expect(glyph(cell)).toEqual([icon[cell.getAttribute("data-mark") as AnswerMark]]);
+    const legend = [...(dom.querySelector('[data-testid="answers-legend"]')?.children ?? [])].map(glyph).flat();
+    expect(legend).toEqual(expect.arrayContaining(["lucide-link", "lucide-message-square", "lucide-circle-minus"]));
+    expect(dom.querySelector(".lucide-link-2, .lucide-tag, .lucide-slash")).toBeNull();
+  });
+
   it("which AI read and sent visits, closed, summed as the reads tile counts them", async () => {
     const [dom, blog] = await Promise.all([render(), readBlogReads()]);
     const who = dom.querySelector('[data-testid="ai-who"]');
@@ -169,6 +188,20 @@ describe("what is not measured is never 0", () => {
     expect(text(dom.querySelector('[data-testid="ai-tile-linked-value"]'))).toBe(copy("draft.ladder.unmeasured"));
     expect(text(dom.querySelector('[data-testid="ai-tile-linked-split"]'))).toBe(copy("overview.answers.pages-cited.none"));
     expect(text(dom.body)).not.toMatch(/\b0\b/u);
+  });
+
+  it("the linked tile draws linked of asked; unmeasured, none", () => {
+    const tile = (pages: { asked: number; linked: number } | null) =>
+      new DOMParser()
+        .parseFromString(renderToStaticMarkup(<AiTiles pages={pages && { rows: [], mentioned: 0, ...pages }} reads={reads()} />), "text/html")
+        .querySelector('[data-testid="ai-tile-linked"]');
+    const bar = tile({ asked: 12, linked: 3 })?.querySelector("progress");
+    expect([bar?.getAttribute("value"), bar?.getAttribute("max"), bar?.getAttribute("aria-hidden")]).toEqual(["3", "12", "true"]);
+    const unmeasured = tile(null);
+    expect(unmeasured?.querySelector("progress")).toBeNull();
+    expect(text(unmeasured?.querySelector('[data-testid="ai-tile-linked-value"]'))).toBe(copy("draft.ladder.unmeasured"));
+    expect(text(unmeasured?.querySelector('[data-testid="ai-tile-linked-split"]'))).toBe(copy("overview.answers.pages-cited.none"));
+    expect(tile({ asked: 0, linked: 0 })?.querySelector("progress")).toBeNull();
   });
 
   it("a hosted site with no visit yet leaves the visits tile out, and reads still show", () => {

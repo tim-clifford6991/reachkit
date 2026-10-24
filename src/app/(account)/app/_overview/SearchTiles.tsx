@@ -26,7 +26,7 @@ export interface TileText {
   against: string | null;
   split: string | null;
   means: string;
-  /** The weeks behind the figure, under it. */
+  /** The figure drawn, under it: its weeks, or its share. */
   spark?: React.ReactNode;
 }
 
@@ -49,12 +49,12 @@ export function Tile(p: TileText): React.JSX.Element {
             </span>
             {p.against === null ? null : <span className={`num num-phrase min-w-0 text-sm ${INK}`}>{p.against}</span>}
           </div>
+          {p.spark}
           {p.split === null ? null : (
             <span className={`text-xs ${INK}`} data-testid={`${p.testId}-split`}>
               {p.split}
             </span>
           )}
-          {p.spark}
           <span className="text-xs font-semibold">{copy("overview.means")}</span>
         </summary>
         <div className={CLOSED.tileBody}>
