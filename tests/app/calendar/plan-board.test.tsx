@@ -142,7 +142,7 @@ describe("Live pages: each page's steps as dots, its standing and its label", ()
 
   it("a page in results says its place, how far it rose and since when, and its dots reach Showing", async () => {
     const row = byTitle(await fixturePage(), "How to price a small project");
-    expect(row.querySelector("p")?.textContent).toMatch(/^Place 36 for “fixture search 9”, up 14 since \w{3} \d+, 2026\.$/);
+    expect(row.querySelector("p")?.textContent).toMatch(/^Place 36 for “crm onboarding checklist”, up 14 since \w{3} \d+, 2026\.$/);
     expect(text(row.querySelector('[data-testid="plan-live-google"]'))).toBe(`Google: ${COPY["draft.ladder.showing"]}`);
     expect([...row.querySelectorAll('[data-testid="plan-live-google"] [data-reached]')].map((dot) => dot.getAttribute("data-reached"))).toEqual([
       "yes",
