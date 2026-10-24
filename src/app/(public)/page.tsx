@@ -42,13 +42,15 @@ import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { ScanForm } from "./_landing/ScanForm";
 import { scanFormWords } from "./_landing/scan-form-words";
 import { InsideReachKit } from "./_landing/InsideReachKit";
+import { ReportAtGlance } from "./_landing/ReportAtGlance";
 import { Storyboard } from "./_landing/Storyboard";
 import { Features } from "./_landing/Features";
 import { FieldCta } from "./_landing/FieldCta";
 import { LatestArticles } from "./_landing/LatestArticles";
 import { RealSite } from "./_landing/RealSite";
 import { PlanBuys } from "./_how/buys";
-import { WhatToExpect } from "./_how/visuals";
+import { MondayEmail, WhatToExpect } from "./_how/visuals";
+import { EXAMPLES } from "./_how/specimen";
 import { BrandMark } from "@/app/_brand/Brand";
 import { FAQ_SECTION_ID, FIELD_SECTION_ID, HOW_SECTION_ID, PRICE_SECTION_ID, WHY_SECTION_ID } from "./_landing/sections";
 import { HOW_FACTS } from "./_how/facts";
@@ -197,7 +199,9 @@ export default function LandingPage(props: {
                       <p className="text-sm text-base-content/70">{copy(step.body, { weekPages: WEEK_PAGES })}</p>
                       <More href={step.href} label={copy(step.more)} />
                     </div>
+                    {step.n === "1" && <ReportAtGlance />}
                     {step.n === "2" && <InsideReachKit />}
+                    {step.n === "3" && MondayEmail(EXAMPLES.plumber, { linked: false })}
                   </div>
                 </li>
               ))}

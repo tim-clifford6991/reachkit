@@ -12,7 +12,7 @@ import { searchPresenceOf, searchPresenceRangeOf } from "@/lib/measure/drivers";
 import { measured, unmeasured } from "@/lib/measure/measured";
 import { NO_AI_ANSWERS } from "@/lib/measure/score";
 import { verdictOf } from "@/lib/measure/verdict";
-import { copy } from "@/lib/presentation/copy";
+import { COPY, copy } from "@/lib/presentation/copy";
 import { FEEDS } from "@/lib/measure/partition";
 import type { CanonicalDomain } from "@/lib/scan/domain";
 import type { StoredReport } from "@/lib/scan/report";
@@ -98,7 +98,7 @@ describe("the AI bar and the AI card's marks equal the card's named-or-linked co
 });
 
 describe("the score's range spans a Google share counted over few searches", () => {
-  it("on page one for 0 of 4, AI answering none: the report reads somewhere between 14 and 53 beside a Google bar of 0", () => {
+  it("on page one for 0 of 4, AI answering none: the report reads somewhere between 14 and 53, with no confidence word, beside a Google bar of 0", () => {
     const at = FIXTURE_REPORT.verdict.measuredAt;
     const stored = FIXTURE_REPORT.presence as NonNullable<StoredReport["presence"]>;
     const card = { ...stored, measuredSearches: 4, you: { ...stored.you, top10Count: 0 } };
@@ -121,6 +121,9 @@ describe("the score's range spans a Google share counted over few searches", () 
     const container = document.createElement("div");
     container.innerHTML = renderToStaticMarkup(<ReportView state={state} />);
     expect(container.querySelector('[data-testid="verdict-estimate"]')?.textContent).toBe(copy("verdict.estimate.range", { low: "14", high: "53" }));
+    // The range alone says how sure: no confidence word beside it, and none left to draw.
+    expect(container.textContent).not.toMatch(/\b(rough|close) estimate\b/iu);
+    expect(Object.keys(COPY).filter((key) => key === "verdict.estimate.rough" || key === "verdict.estimate.close")).toEqual([]);
     expect(googleBar(state)).toBe(0);
     expect(disagreements([{ domain: "thin.example.com", state }])).toEqual([]);
   });
