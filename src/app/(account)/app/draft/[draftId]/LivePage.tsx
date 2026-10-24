@@ -10,7 +10,7 @@
 // not drawn.
 import type React from "react";
 import Link from "next/link";
-import { ArrowLeft, Lightbulb, Pencil } from "lucide-react";
+import { ArrowLeft, Check, ExternalLink, Globe, Pencil, RefreshCw, Sparkles, type LucideIcon } from "lucide-react";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { FIRST_PAGE_PLACES } from "@/lib/measure/page-reading";
 import { SEARCH_READING_WINDOW_D } from "@/lib/config/constants";
@@ -36,9 +36,9 @@ const NEXT: Readonly<Record<Label, CopyKey>> = {
 
 const PAUSE_HREF = "/app/settings/publishing";
 const LADDER = {
-  google: { title: "draft.ladder.google", testId: "live-ladder-google" },
-  ai: { title: "draft.ladder.ai", testId: "live-ladder-ai" },
-} as const satisfies Record<string, { title: CopyKey; testId: string }>;
+  google: { title: "draft.ladder.google", testId: "live-ladder-google", icon: Check },
+  ai: { title: "draft.ladder.ai", testId: "live-ladder-ai", icon: Sparkles },
+} as const satisfies Record<string, { title: CopyKey; testId: string; icon: LucideIcon }>;
 const STOP_NOTE_ID = "live-stop-note";
 const WEEK_ID = "live-week";
 
@@ -91,7 +91,8 @@ function aiSteps(live: LiveFacts, timeZone: string): Step[] {
   return steps;
 }
 
-function Ladder(p: { title: CopyKey; steps: readonly Step[]; measured: boolean; testId: string }): React.JSX.Element {
+function Ladder(p: { title: CopyKey; steps: readonly Step[]; measured: boolean; testId: string; icon: LucideIcon }): React.JSX.Element {
+  const Icon = p.icon;
   return (
     <div className="flex min-w-0 flex-col gap-2" data-testid={p.testId}>
       <h3 className="text-base font-semibold">{copy(p.title)}</h3>
@@ -100,6 +101,11 @@ function Ladder(p: { title: CopyKey; steps: readonly Step[]; measured: boolean; 
           const reached = step.at !== null;
           return (
             <li key={step.key} className={`step${reached ? " step-primary" : ""}`} data-reached={reached ? "yes" : "not-yet"}>
+              {reached ? (
+                <span className="step-icon">
+                  <Icon size={16} strokeWidth={1.75} aria-hidden />
+                </span>
+              ) : null}
               <span className="block font-semibold">{copy(step.key)}</span>
               <span className="num num-phrase block text-xs text-base-content/70">
                 {step.detail ?? step.at ?? copy(p.measured ? "draft.ladder.not-yet" : "draft.ladder.unmeasured")}
@@ -227,13 +233,17 @@ export function LivePage(p: { view: DraftView; live: LiveFacts; onEdit: () => vo
               {copy("draft.stopped.badge")}
             </span>
           ) : (
-            <span className="badge badge-soft badge-success">{copy("draft.live.since", { date: formatDate(live.since, view.timeZone) })}</span>
+            <span className="badge badge-soft badge-success gap-1">
+              <Globe className="size-3.5 shrink-0" strokeWidth={1.75} aria-hidden />
+              {copy("draft.live.since", { date: formatDate(live.since, view.timeZone) })}
+            </span>
           )}
           {live.label === null ? <span className="badge badge-ghost">{copy("review.label.unmeasured")}</span> : <LabelBadge label={live.label} />}
         </p>
         {stopped ? null : (
           <a href={live.url} target="_blank" rel="noopener" className="link link-hover num min-w-0 wrap-anywhere" data-testid="live-address">
             {live.url}
+            <ExternalLink size={14} strokeWidth={1.75} className="ms-1 inline align-baseline" aria-hidden />
             <span className="sr-only"> {copy("draft.live.new-tab")}</span>
           </a>
         )}
@@ -248,7 +258,7 @@ export function LivePage(p: { view: DraftView; live: LiveFacts; onEdit: () => vo
           </div>
           {stopped ? null : (
             <p className="rounded-box bg-base-200 flex min-w-0 items-start gap-2.5 p-3 text-sm" data-testid="live-next">
-              <Lightbulb size={16} strokeWidth={1.75} className="text-primary mt-0.5 shrink-0" aria-hidden />
+              <RefreshCw size={16} strokeWidth={1.75} className="text-primary mt-0.5 shrink-0" aria-hidden />
               <span className="min-w-0 wrap-anywhere">
                 <strong>{copy("draft.next.title")}</strong> {copy(live.label === null ? "draft.next.unmeasured" : NEXT[live.label])}
               </span>

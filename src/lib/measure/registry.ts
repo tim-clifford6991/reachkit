@@ -74,8 +74,32 @@ const LIST = (
       id: "mail-google-visits",
       shown: { on: "mail", key: "mail.weekly.google.visits" },
       definition:
-        "Overview's visits from Google this week, counted on the hosted pages over the last {BLOG_READS_WINDOW_D} days. No row off a hosted blog or with none counted.",
-      source: "src/lib/publish/reads/store.ts#readSearchVisits",
+        "Overview's visits from Google this week, counted on the hosted pages over the last {BLOG_READS_WINDOW_D} days. Said alone in the first week with a visit. No row off a hosted blog or with none counted.",
+      source: "src/lib/publish/reads/store.ts#readSearchVisitsWeekly",
+      cadence: "Weekly, in the Monday mail.",
+    },
+    {
+      id: "mail-google-visits-up",
+      shown: { on: "mail", key: "mail.weekly.google.visits.up" },
+      definition:
+        "The Google tab's last two weekly bars, read by the same function: this week's visits from Google above the {BLOG_READS_WINDOW_D} days before.",
+      source: "src/lib/publish/reads/store.ts#readSearchVisitsWeekly",
+      cadence: "Weekly, in the Monday mail.",
+    },
+    {
+      id: "mail-google-visits-down",
+      shown: { on: "mail", key: "mail.weekly.google.visits.down" },
+      definition:
+        "The Google tab's last two weekly bars, read by the same function: this week's visits from Google below the {BLOG_READS_WINDOW_D} days before.",
+      source: "src/lib/publish/reads/store.ts#readSearchVisitsWeekly",
+      cadence: "Weekly, in the Monday mail.",
+    },
+    {
+      id: "mail-google-visits-same",
+      shown: { on: "mail", key: "mail.weekly.google.visits.same" },
+      definition:
+        "The Google tab's last two weekly bars, read by the same function: this week's visits from Google equal to the {BLOG_READS_WINDOW_D} days before.",
+      source: "src/lib/publish/reads/store.ts#readSearchVisitsWeekly",
       cadence: "Weekly, in the Monday mail.",
     },
     {

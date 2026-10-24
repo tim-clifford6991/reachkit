@@ -59,7 +59,7 @@ describe("board Plan, on the fixture account's week", () => {
   it("the four numbers: pages this week, live so far, spares kept ready, stopped by you", async () => {
     const root = await fixturePage();
     const numbers = [...root.querySelectorAll('[data-testid="plan-numbers"] > div')].map((tile) =>
-      [...tile.querySelectorAll(".card-body > span")].map(text).join(" ")
+      [...tile.querySelectorAll('[data-testid$="-text"] > span')].map(text).join(" ")
     );
     expect(numbers).toEqual([
       `5 ${COPY["calendar.numbers.week"]}`,
@@ -67,6 +67,19 @@ describe("board Plan, on the fixture account's week", () => {
       `2 ${COPY["calendar.numbers.spares"]}`,
       `0 ${COPY["calendar.numbers.stopped"]}`,
     ]);
+  });
+
+  it("each plan count opens with its icon tile", async () => {
+    const root = await fixturePage();
+    const tiles = [...root.querySelectorAll('[data-testid="plan-numbers"] > div')].map((tile) => tile.querySelector(".card-body")!.firstElementChild!);
+    expect(tiles.map((tile) => [tile.getAttribute("aria-hidden"), tile.className, tile.querySelector("svg")?.getAttribute("class")])).toEqual(
+      ["calendar", "globe", "list", "circle-stop"].map((icon) => [
+        "true",
+        "rounded-field grid size-9 shrink-0 place-items-center bg-base-200",
+        expect.stringMatching(new RegExp(`\\blucide-${icon}\\b.*\\bsize-5\\b`)),
+      ])
+    );
+    expect(tiles.map((tile) => tile.querySelector("svg")?.getAttribute("stroke-width"))).toEqual(["1.75", "1.75", "1.75", "1.75"]);
   });
 
   it("the week card: its range, that it runs by itself, and when every page goes live in the site's zone", async () => {

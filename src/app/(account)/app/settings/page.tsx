@@ -9,13 +9,8 @@
 // page, the business profile with a sentence it shaped on a live page, then
 // three folds (what buyers ask, the facts we may quote, what the writer
 // already knows about). The closed list of what a page is written from
-// stands beside them (SPEC §7, 2026-10-10, #1393).
-//
-// Two columns above the large breakpoint and one below it: the profile and
-// its facts are the reading, and *What every page is written from* is the
-// note beside them. One column on a phone, in that order, so the reading
-// comes first (`docs/DESIGN.md`'s no-overflow rule decides the switch, and
-// `xl:` is where the sidebar has already taken its width).
+// (SPEC §7, 2026-10-10, #1393) is the last card: no Settings card sits beside
+// another (E38).
 //
 // This file is the composition and nothing else. It makes one read
 // (`readSettings`, request-cached) and hands the card the slice it states —
@@ -63,31 +58,25 @@ export default async function SettingsBusinessTab(): Promise<React.JSX.Element> 
   const timeZone = settings.publishing.timeZone;
 
   return (
-    <div
-      className="grid min-w-0 grid-cols-1 items-start gap-x-4 gap-y-6 xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]"
-      data-testid="settings-tab-panel-business"
-    >
-      <div className="flex min-w-0 flex-col gap-6">
-        <FlowPanel
-          pagesRead={business.profile.pagesRead}
-          readAt={business.profile.readAt}
-          next={shell.publishing.next}
-          timeZone={timeZone}
-        />
-        <BusinessPanel
-          profile={business.profile}
-          siteName={business.siteName}
-          empty={profileIsEmpty(business.profile)}
-          example={business.onAPage}
-          timeZone={timeZone}
-        />
-        <section className="flex min-w-0 flex-col gap-3" aria-label={copy("settings.business.more")}>
-          <KnowledgePanel knowledge={business.knowledge} answers={business.answers} />
-          <FactsPanel facts={business.facts} />
-          <KnownContentPanel known={business.known} />
-        </section>
-      </div>
-
+    <div className="flex min-w-0 flex-col gap-6" data-testid="settings-tab-panel-business">
+      <FlowPanel
+        pagesRead={business.profile.pagesRead}
+        readAt={business.profile.readAt}
+        next={shell.publishing.next}
+        timeZone={timeZone}
+      />
+      <BusinessPanel
+        profile={business.profile}
+        siteName={business.siteName}
+        empty={profileIsEmpty(business.profile)}
+        example={business.onAPage}
+        timeZone={timeZone}
+      />
+      <section className="flex min-w-0 flex-col gap-3" aria-label={copy("settings.business.more")}>
+        <KnowledgePanel knowledge={business.knowledge} answers={business.answers} />
+        <FactsPanel facts={business.facts} />
+        <KnownContentPanel known={business.known} />
+      </section>
       <WrittenFromPanel profile={business.profile} />
     </div>
   );

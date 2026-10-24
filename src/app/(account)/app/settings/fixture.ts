@@ -20,7 +20,7 @@
 //
 // One exported constant, not a generator: a fixture that varied per call
 // would make the layout conformance sweep non-deterministic. Its state is the
-// ordinary one — a running plan, an autopilot site with five rivals and a
+// ordinary one — a running plan, an autopilot site with two rivals and a
 // live hosted address — because that is the state the boards draw.
 // The states that branch (a cancelled plan; a destination in `error`; no
 // competitors yet) are exercised by `tests/app/settings/`, which drives
@@ -34,6 +34,7 @@ import { destinationView } from "@/lib/publish/destinations/view";
 import type { MonthGot } from "@/lib/account/billing";
 import type { BillingFacts, SettingsFacts } from "./model";
 import { FIXTURE_DOMAIN } from "../_shell/fixture";
+import { FIXTURE_RIVALS_FACTS } from "../_overview/rivals-fixture";
 
 /** The billing facts, as `billingSummary` answers them (#34). Three
  *  members and no billing value: REQ-097 criterion 5 keeps the next
@@ -76,23 +77,16 @@ export const FIXTURE_SETTINGS_FACTS: SettingsFacts = Object.freeze({
   // of its own.
   pendingChange: null,
   editing: null,
-  competitors: Object.freeze([
-    "appcues.com",
-    "userpilot.com",
-    "pendo.io",
-    "whatfix.com",
-    "chameleon.io",
-  ]),
+  // The Competitors tab fixture's tracked pair, so both screens read one set.
+  competitors: FIXTURE_RIVALS_FACTS.rivals,
+  measuredRivals: FIXTURE_RIVALS_FACTS.rivals,
   // D28 (#1185): what ReachKit concluded, each with its reason.
   concluded: Object.freeze({
     category: "user onboarding software",
     categoryReason: "The site sells in-app product tours and checklists that help new users get started.",
     reasons: Object.freeze({
-      "appcues.com": "In-app onboarding flows sold to product teams.",
-      "userpilot.com": "Product tours and onboarding checklists for SaaS teams.",
-      "pendo.io": "Product analytics with in-app guides for onboarding.",
-      "whatfix.com": "Digital adoption platform with guided onboarding.",
-      "chameleon.io": "In-app tours and tooltips for product-led teams.",
+      [FIXTURE_RIVALS_FACTS.rivals[0] as string]: "In-app onboarding flows sold to product teams.",
+      [FIXTURE_RIVALS_FACTS.rivals[1] as string]: "Product tours and onboarding checklists for SaaS teams.",
     }),
     categoryOverridden: false,
     rivalsOverridden: false,
