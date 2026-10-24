@@ -89,17 +89,32 @@ export function FilteredTableSkeleton(p: {
 const SEARCH_ROW = "h-27 sm:h-9 xl:h-6";
 const RIVAL_ROW = "h-21 sm:h-8 xl:h-7";
 
-/** The Search table's shape: four chips and the line under them, nine rows. */
+/** The Search table's shape: its name and lead, the chips, nine rows. */
 export function SearchTableSkeleton(): React.JSX.Element {
   return (
     <FilteredTableSkeleton
       testId="search-table-skeleton"
-      title={false}
+      title
       note
       chips={["w-28", "w-32", "w-24", "w-36"]}
       rows={9}
       row={SEARCH_ROW}
     />
+  );
+}
+
+/** Each page in Google: its name, the chart's well and six page rows. */
+export function GooglePagesSkeleton(): React.JSX.Element {
+  return (
+    <Waiting className="card card-border bg-base-100 min-w-0" testId="search-pages-skeleton">
+      <div className="flex min-w-0 flex-col gap-4 p-4 sm:p-5">
+        <Box className="h-6 w-56 max-w-full" />
+        <Box className="h-28 w-full" />
+        {Array.from({ length: 6 }, (_, at) => (
+          <Box key={at} className="h-16 w-full" />
+        ))}
+      </div>
+    </Waiting>
   );
 }
 

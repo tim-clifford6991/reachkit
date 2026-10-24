@@ -1,9 +1,9 @@
 // SPEC §4 (2026-09-20, #908) — every search ReachKit is going after, and
 // where the customer stands on it.
 //
-// "search · searches a month · difficulty against the ceiling · you · best
-// rival · status", the chips with their counts over it, nine rows and then
-// *Show all*.
+// Board AppGoogle: "Search · A month · You · Best competitor · What we're
+// doing", under its name and lead, the chips with their counts over it, nine
+// rows and then *Show all*. Difficulty is on Review, not here.
 //
 // **`@tanstack/react-table` 8, rendered as a daisyUI `table`**
 // (docs/DESIGN.md's library list, 2026-09-20 — "Sorting, filtering and
@@ -23,19 +23,15 @@
 // `filter` collapses to the chosen chip with a reset beside it, which is
 // the component working rather than a departure from the board.
 //
-// **Two shapes, one DOM** (#963). Six columns do not fit a 390px card:
-// measured while proving #958, the card is 358px and the table 802px, so
-// four of the six sat off the right edge of the scroller and a phone user
-// saw a search and its volume and none of what the table is for. Below
-// `sm` the row is a three-line grid — the search and its demand, then where
-// you stand against the best rival, then the difficulty and the status —
-// and the box does not scroll at all. From `sm` up it is the six-column
-// daisyUI `table`, unchanged, scrolling sideways inside its own box so the
-// page never does.
+// **Two shapes, one DOM** (#963). The columns do not fit a 390px card, so
+// below `sm` the row is a three-line grid — the search and its demand, then
+// where you stand against the best competitor, then what we are doing — and
+// the box does not scroll at all. From `sm` up it is the daisyUI `table`,
+// scrolling sideways inside its own box so the page never does.
 //
-// The four cells are rendered **once**. `SEARCH_CELL_CLASS` places each one
+// The cells are rendered **once**. `SEARCH_CELL_CLASS` places each one
 // on the phone shape (the table's column order is not the reading order) and
-// `SEARCH_CELL_LABEL` gives the three that do not say what they are the
+// `SEARCH_CELL_LABEL` gives the two that do not say what they are the
 // column's own word beside them. No second markup, no content written twice.
 //
 // **Nothing is clamped and nothing is cut.** The search wraps and the row
@@ -55,10 +51,10 @@ import {
 } from "@tanstack/react-table";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { FILTER_PILL, formatCount, renderValue } from "./present";
-import { DifficultyBar } from "./DifficultyBar";
-import { SEARCH_FILTERS, rowsFor, type SearchModel, type SearchRow } from "./search-model";
+import { SEARCH_FILTERS, rowsFor, type Doing, type SearchModel, type SearchRow } from "./search-model";
 import {
   COLUMN_COPY_KEY,
+  DOING_BADGE,
   FILTER_COPY_KEY,
   SEARCH_CELL_CLASS,
   SEARCH_CELL_LABEL,
@@ -132,12 +128,36 @@ function RivalCell(p: { row: SearchRow }): React.JSX.Element {
 
 const column = createColumnHelper<SearchRow>();
 
-export function SearchTable(p: { model: SearchModel }): React.JSX.Element {
+const STATUS_ONLY: Doing = { kind: "status" };
+const NOWRAP = "max-sm:h-auto max-sm:whitespace-normal sm:whitespace-nowrap";
+
+/** What is done about the search this week, else its status word. */
+function DoingCell(p: { row: SearchRow; doing: Doing }): React.JSX.Element {
+  const { doing } = p;
+  if (doing.kind === "status") {
+    return <span className={`${STATUS_BADGE[p.row.status]} ${NOWRAP}`}>{copy(STATUS_COPY_KEY[p.row.status])}</span>;
+  }
+  const text =
+    doing.kind === "today"
+      ? copy("overview.search.doing.today")
+      : doing.kind === "climbing"
+        ? copy("overview.search.doing.climbing")
+        : copy(doing.kind === "update" ? "overview.search.doing.update" : "overview.search.doing.page", { day: doing.day });
+  return <span className={`${DOING_BADGE[doing.kind]} ${NOWRAP}`}>{text}</span>;
+}
+
+export function SearchTable(p: {
+  model: SearchModel;
+  /** Per row id; a row absent here shows its status word. */
+  doing: Readonly<Record<string, Doing>>;
+  lead: string;
+}): React.JSX.Element {
   const [filter, setFilter] = useQueryState(
     SHOW,
     parseAsStringLiteral(SEARCH_FILTERS).withDefault("all")
   );
   const [showAll, setShowAll] = useState(false);
+  const doing = p.doing;
 
   const columns = useMemo(
     () => [
@@ -170,30 +190,6 @@ export function SearchTable(p: { model: SearchModel }): React.JSX.Element {
         header: () => copy(COLUMN_COPY_KEY.volume),
         cell: (ctx) => <Value value={ctx.getValue()} subject={COLUMN_COPY_KEY.volume} />,
       }),
-      column.accessor((row) => row.target, {
-        id: "difficulty",
-        header: () => copy(COLUMN_COPY_KEY.difficulty),
-        cell: (ctx) => {
-          const target = ctx.getValue();
-          const value = renderValue(target.difficulty, COLUMN_COPY_KEY.difficulty);
-          // On the phone shape the bar folds under the number where the
-          // column is narrower than both (#1040: 6px over at 320px).
-          return (
-            <span className="flex items-center gap-2 whitespace-nowrap max-sm:flex-wrap">
-              <span
-                className="num w-6 text-right"
-                title={value.line}
-                aria-label={value.isDash ? value.line : undefined}
-              >
-                {value.text}
-              </span>
-              {target.difficulty.kind === "unmeasured" ? null : (
-                <DifficultyBar difficulty={target.difficulty.value} ceiling={target.ceiling} />
-              )}
-            </span>
-          );
-        },
-      }),
       column.accessor((row) => row, {
         id: "you",
         header: () => copy(COLUMN_COPY_KEY.you),
@@ -204,19 +200,13 @@ export function SearchTable(p: { model: SearchModel }): React.JSX.Element {
         header: () => copy(COLUMN_COPY_KEY.rival),
         cell: (ctx) => <RivalCell row={ctx.getValue()} />,
       }),
-      column.accessor((row) => row.status, {
+      column.accessor((row) => row, {
         id: "status",
         header: () => copy(COLUMN_COPY_KEY.status),
-        cell: (ctx) => (
-          <span
-            className={`${STATUS_BADGE[ctx.getValue()]} max-sm:h-auto max-sm:whitespace-normal sm:whitespace-nowrap`}
-          >
-            {copy(STATUS_COPY_KEY[ctx.getValue()])}
-          </span>
-        ),
+        cell: (ctx) => <DoingCell row={ctx.getValue()} doing={doing[ctx.getValue().id] ?? STATUS_ONLY} />,
       }),
     ],
-    []
+    [doing]
   );
 
   // The library takes a mutable array; the model hands out a readonly one,
@@ -244,15 +234,20 @@ export function SearchTable(p: { model: SearchModel }): React.JSX.Element {
 
   const shown = table.getRowModel().rows.length;
   const total = rows.length;
-  const ceiling =
-    p.model.ceiling === null
-      ? null
-      : copy("overview.search.ceiling", { ceiling: formatCount(p.model.ceiling) });
+  const head = (
+    <div className="flex min-w-0 flex-col gap-1">
+      <h2 className="text-lg font-semibold">{copy("overview.search.table.title")}</h2>
+      <p className="text-sm text-base-content/70" data-testid="search-lead">
+        {p.lead}
+      </p>
+    </div>
+  );
 
   if (p.model.rows.length === 0) {
     return (
       <section className="card card-border min-w-0 bg-base-100" data-testid="search-table">
-        <div className="card-body p-5">
+        <div className="card-body gap-3 p-4">
+          {head}
           <p className="text-sm text-base-content/70">{copy("overview.search.empty")}</p>
         </div>
       </section>
@@ -262,9 +257,9 @@ export function SearchTable(p: { model: SearchModel }): React.JSX.Element {
   return (
     <section className="card card-border min-w-0 overflow-hidden bg-base-100" data-testid="search-table">
       <div className="flex min-w-0 flex-col gap-3 p-4">
-        {/* daisyUI `filter`: five chips with their counts — the first
-            page, then the four statuses — and a reset that appears beside
-            the chosen one. `all` is that reset — it is the
+        {head}
+        {/* daisyUI `filter`: the four statuses with their counts, and a
+            reset beside the chosen one. `all` is that reset — it is the
             state in which no chip is chosen, which is what the component
             already means by unchecked, so there is no extra chip standing
             for "no filter". Its accessible name is still the registry's
@@ -295,11 +290,6 @@ export function SearchTable(p: { model: SearchModel }): React.JSX.Element {
             />
           ))}
         </div>
-        {ceiling === null ? null : (
-          <p className="text-xs text-base-content/70" data-testid="search-ceiling">
-            {ceiling}
-          </p>
-        )}
       </div>
 
       {/* BUILD §2.2's own rule, and docs/DESIGN.md's no-overflow rule read
@@ -315,7 +305,7 @@ export function SearchTable(p: { model: SearchModel }): React.JSX.Element {
         data-testid="search-table-scroll"
       >
         <table className="table table-sm" aria-label={copy("overview.search.table.label")}>
-          {/* The heads belong to the six-column shape. On the phone shape
+          {/* The heads belong to the table shape. On the phone shape
               each value carries the head's own word beside it instead, so
               they are not drawn rather than drawn and read out over a list
               that no longer has columns. */}

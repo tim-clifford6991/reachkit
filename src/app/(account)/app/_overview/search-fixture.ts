@@ -140,17 +140,10 @@ const POSITIONS: ReadonlyMap<string, Measured<number>> = new Map(
   )
 );
 
-const LIVE = TARGETS.filter((target) => target.status === "live");
-
 export const FIXTURE_SEARCH_FACTS: SearchFacts = Object.freeze({
   targets: TARGETS,
   positions: POSITIONS,
-  livePages: measured(LIVE.length, MEASURED_AT),
-  // The queue §7 keeps: every open, ready row on file.
-  ready: measured(TARGETS.filter((target) => target.status === "up_next").length, MEASURED_AT),
-  ownRanked: measured(OWN_RANKED, MEASURED_AT),
   // Your market: the twelve, three of them with a first-page place.
   market: { top10: 3, measured: 12 },
-  ceiling: CEILING,
   measuredAt: MEASURED_AT,
 });
