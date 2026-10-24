@@ -26,7 +26,7 @@ import { readOverview } from "../../_overview/provider";
 import { readPromptsAt } from "../../_overview/prompts-provider";
 import { readRivals } from "../../_overview/rivals-provider";
 import { readPlanned } from "../../_overview/google-pages";
-import { searchKey } from "../../_overview/search-model";
+import { searchKey, type Planned } from "../../_overview/search-model";
 import { formatCount } from "../../_overview/present";
 import type { PresenceCard } from "../../_overview/rivals-model";
 import type { PromptsModel } from "../../_overview/prompts-model";
@@ -56,14 +56,7 @@ export default async function RivalsTabPage(): Promise<React.JSX.Element> {
   const [shell, model, overview, planned] = await Promise.all([readShell(), readRivals(), readOverview(), readPlanned()]);
   const reputation = await readPromptsAt(overview.months?.reading?.week ?? null);
 
-  const of = formatCount(model.top.of);
   const after = model.top.searches.filter((search) => planned.has(searchKey(search))).length;
-  const topLine = [
-    model.top.you === 0
-      ? copy("overview.rivals.first.line", { of, n: formatCount(model.firstPage.you.count) })
-      : copy("overview.rivals.first.you", { of, n: formatCount(model.top.you) }),
-    ...(after === 0 ? [] : [copy("overview.rivals.first.after", { m: formatCount(after) })]),
-  ].join(" ");
   const started =
     model.firstPageAtStart === null
       ? null
@@ -80,14 +73,11 @@ export default async function RivalsTabPage(): Promise<React.JSX.Element> {
   // SPEC §4 (2026-10-09, issue 1365): a card on which no tracked rival was
   // counted says so, and names who holds those first pages where it can.
   const holders = model.firstPageHolders.join(", ");
-  // What each row's search gets from Plan's week: its page or update, by day.
-  const doing: Record<string, string> = {};
+  // What each row's search gets from Plan's week, as plain facts the client table can take.
+  const doing: Record<string, Planned> = {};
   for (const row of model.rows) {
     const week = planned.get(searchKey(row.search));
-    if (week === undefined) continue;
-    doing[row.search] = week.today
-      ? copy("overview.search.doing.today")
-      : copy(week.update ? "overview.search.doing.update" : "overview.search.doing.page", { day: week.day });
+    if (week !== undefined) doing[row.search] = week;
   }
 
   return (
@@ -107,7 +97,7 @@ export default async function RivalsTabPage(): Promise<React.JSX.Element> {
 
       <RivalPresence
         top={model.top}
-        topLine={topLine}
+        after={after}
         firstPage={model.firstPage}
         startedLine={started}
         noRivalOnFirstPage={holders === "" ? copy("overview.rivals.first-page.none") : copy("overview.rivals.first-page.none.holders", { holders })}
@@ -118,7 +108,7 @@ export default async function RivalsTabPage(): Promise<React.JSX.Element> {
       />
 
       <Suspense fallback={<RivalTableSkeleton />}>
-        <RivalTable model={model} doing={doing} />
+        <RivalTable model={model} planned={doing} />
       </Suspense>
 
       <RivalModule rivals={overview.rivals} timeZone={shell.timeZone} weekZero={overview.weekZero} />

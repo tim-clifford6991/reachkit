@@ -50,7 +50,9 @@ function Card(p: {
     <section className="card card-border min-w-0 bg-base-100" data-testid={p.testId}>
       <div className="flex min-w-0 flex-col gap-3 p-4">
         <h2 className="card-title text-base">{copy(p.titleKey)}</h2>
-        <p className={`max-w-prose text-sm ${INK}`}>{p.lead}</p>
+        <p className={`max-w-prose text-sm ${INK}`} data-testid={`${p.testId}-lead`}>
+          {p.lead}
+        </p>
         {p.bars === null ? (
           <p className={`text-sm ${INK}`} data-testid={`${p.testId}-unmeasured`}>
             {copy("overview.rivals.card.unmeasured")}
@@ -77,8 +79,8 @@ function barsOf(card: PresenceCard): { you: PresenceBar; rivals: readonly Presen
 
 export function RivalPresence(p: {
   top: TopCard;
-  /** The line under the top results, with how many this week's pages go after. */
-  topLine: string;
+  /** How many of the top results this week's pages go after. */
+  after: number;
   firstPage: PresenceCard;
   startedLine: string | null;
   noRivalOnFirstPage: string;
@@ -89,6 +91,12 @@ export function RivalPresence(p: {
 }): React.JSX.Element {
   const of = formatCount(p.top.of);
   const top = (name: string, value: number): PresenceBar => ({ name, value, text: copy("overview.rivals.first.of", { n: formatCount(value), of }) });
+  const topLine = [
+    p.top.you === 0
+      ? copy("overview.rivals.first.line", { of, n: formatCount(p.firstPage.you.count) })
+      : copy("overview.rivals.first.you", { of, n: formatCount(p.top.you) }),
+    ...(p.after === 0 ? [] : [copy("overview.rivals.first.after", { m: formatCount(p.after) })]),
+  ].join(" ");
   return (
     <div className="flex min-w-0 flex-col gap-4" data-testid="rivals-presence">
       <Card
@@ -110,7 +118,7 @@ export function RivalPresence(p: {
       >
         {p.top.of === 0 ? null : (
           <p className="rounded-box bg-base-200 p-3 text-sm" data-testid="rivals-top-line">
-            {p.topLine}
+            {topLine}
           </p>
         )}
       </Card>

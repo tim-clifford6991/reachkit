@@ -43,6 +43,7 @@ import {
 import { copy } from "@/lib/presentation/copy";
 import { CLOSED, FILTER_PILL, formatCount, renderValue } from "./present";
 import { ALL_RIVALS, type RivalSearchRow, type RivalsModel } from "./rivals-model";
+import type { Planned } from "./search-model";
 import {
   RIVAL_CELL_CLASS,
   RIVAL_COLUMN_COPY_KEY,
@@ -86,9 +87,9 @@ function WinnerCell(p: { row: RivalSearchRow }): React.JSX.Element {
 export function RivalTable(p: {
   model: RivalsModel;
   /** Plan's page or update for a row's search this week, by search; the status word elsewhere. */
-  doing: Readonly<Record<string, string>>;
+  planned: Readonly<Record<string, Planned>>;
 }): React.JSX.Element {
-  const { doing } = p;
+  const { planned } = p;
   const [rival, setRival] = useQueryState(RIVAL, parseAsString.withDefault(ALL_RIVALS));
   const [showAll, setShowAll] = useState(false);
 
@@ -149,18 +150,22 @@ export function RivalTable(p: {
         id: "doing",
         header: () => copy(RIVAL_COLUMN_COPY_KEY.doing),
         cell: (ctx) => {
-          const planned = doing[ctx.row.original.search];
+          const week = planned[ctx.row.original.search];
           return (
             <span
-              className={`${planned === undefined ? RIVAL_STATUS_BADGE[ctx.getValue()] : "badge badge-primary badge-soft"} h-auto whitespace-normal sm:whitespace-nowrap`}
+              className={`${week === undefined ? RIVAL_STATUS_BADGE[ctx.getValue()] : "badge badge-primary badge-soft"} h-auto whitespace-normal sm:whitespace-nowrap`}
             >
-              {planned ?? copy(RIVAL_STATUS_COPY_KEY[ctx.getValue()])}
+              {week === undefined
+                ? copy(RIVAL_STATUS_COPY_KEY[ctx.getValue()])
+                : week.today
+                  ? copy("overview.search.doing.today")
+                  : copy(week.update ? "overview.search.doing.update" : "overview.search.doing.page", { day: week.day })}
             </span>
           );
         },
       }),
     ],
-    [doing]
+    [planned]
   );
 
   // The library takes a mutable array; the model hands out a readonly one,

@@ -27,6 +27,7 @@ import { RivalTable } from "@/app/(account)/app/_overview/RivalTable";
 import { assembleRivals, type PresenceCard, type RivalsModel } from "@/app/(account)/app/_overview/rivals-model";
 import { FIXTURE_RIVALS_FACTS } from "@/app/(account)/app/_overview/rivals-fixture";
 import { RIVAL_STATUS_COPY_KEY } from "@/app/(account)/app/_overview/rivals-words";
+import type { Planned } from "@/app/(account)/app/_overview/search-model";
 import { copy } from "@/lib/presentation/copy";
 
 const MODEL = assembleRivals(FIXTURE_RIVALS_FACTS);
@@ -37,10 +38,10 @@ function el(node: React.JSX.Element): Element {
   return container;
 }
 
-function table(searchParams: Record<string, string> = {}, doing: Record<string, string> = {}): Element {
+function table(searchParams: Record<string, string> = {}, planned: Record<string, Planned> = {}): Element {
   return el(
     <NuqsTestingAdapter searchParams={searchParams}>
-      <RivalTable model={MODEL} doing={doing} />
+      <RivalTable model={MODEL} planned={planned} />
     </NuqsTestingAdapter>,
   );
 }
@@ -59,11 +60,11 @@ const NAMED: PresenceCard = {
   noRival: false,
 };
 
-const presence = (model: RivalsModel = MODEL, startedLine: string | null = copy("overview.rivals.first-page.started", { count: "1", of: "12" })): Element =>
+const presence = (model: RivalsModel = MODEL, startedLine: string | null = copy("overview.rivals.first-page.started", { count: "1", of: "12" }), after = 3): Element =>
   el(
     <RivalPresence
       top={model.top}
-      topLine="the top line"
+      after={after}
       firstPage={model.firstPage}
       startedLine={startedLine}
       named={NAMED}
@@ -94,7 +95,15 @@ describe("the counting cards", () => {
       `${copy("overview.rivals.first.others")} · ${copy("overview.rivals.first.of", { n: String(MODEL.top.others), of })}`,
       `${copy("overview.prompts.share.you")} · ${copy("overview.rivals.first.of", { n: String(MODEL.top.you), of })}`,
     ]);
-    expect(card?.querySelector('[data-testid="rivals-top-line"]')?.textContent).toBe("the top line");
+    expect(card?.querySelector('[data-testid="rivals-top-line"]')?.textContent).toBe(
+      `${copy("overview.rivals.first.you", { n: String(MODEL.top.you), of })} ${copy("overview.rivals.first.after", { m: "3" })}`,
+    );
+  });
+
+  it("holding no top result, the line says so and counts the first page instead; with no page going after one, it stops there", () => {
+    const model: RivalsModel = { ...MODEL, top: { ...MODEL.top, you: 0 } };
+    const line = presence(model, null, 0).querySelector('[data-testid="rivals-top-line"]')?.textContent;
+    expect(line).toBe(copy("overview.rivals.first.line", { of: String(MODEL.top.of), n: String(MODEL.firstPage.you.count) }));
   });
 
   it("who AI answers mention: the counts it is handed, and its lead", () => {
@@ -210,12 +219,17 @@ describe("the table", () => {
     }
   });
 
-  it("a row whose search Plan's week holds says what goes live and when; the rest keep their status word", () => {
-    const search = MODEL.rows[0]!.search;
-    const doing = copy("overview.search.doing.page", { day: "Wed 21" });
-    const rows = [...table({}, { [search]: doing }).querySelectorAll('[data-testid="rivals-row"]')];
-    expect(rows[0]?.querySelector(".badge")?.textContent).toBe(doing);
-    expect(rows[1]?.querySelector(".badge")?.textContent).toBe(copy(RIVAL_STATUS_COPY_KEY[MODEL.rows[1]!.status]));
+  it("a row whose search Plan's week holds says what goes live and when, or that it goes live today; the rest keep their status word", () => {
+    const [first, second, third] = MODEL.rows;
+    const rows = [
+      ...table({}, {
+        [first!.search]: { day: "Wed 21", today: false, update: false },
+        [second!.search]: { day: "Mon 19", today: true, update: false },
+      }).querySelectorAll('[data-testid="rivals-row"]'),
+    ];
+    expect(rows[0]?.querySelector(".badge")?.textContent).toBe(copy("overview.search.doing.page", { day: "Wed 21" }));
+    expect(rows[1]?.querySelector(".badge")?.textContent).toBe(copy("overview.search.doing.today"));
+    expect(rows[2]?.querySelector(".badge")?.textContent).toBe(copy(RIVAL_STATUS_COPY_KEY[third!.status]));
   });
 
   it("scrolls sideways inside its own box, so a phone never scrolls the page", () => {

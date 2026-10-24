@@ -100,7 +100,7 @@ describe("SPEC §4 (2026-10-08) — a link to another screen of the app prefetch
     const drawn = anchors(
       <RivalPresence
         top={RIVALS.top}
-        topLine=""
+        after={0}
         firstPage={RIVALS.firstPage}
         startedLine={null}
         named={RIVALS.firstPage}
