@@ -22,6 +22,8 @@ const { WrittenFromPanel } = await import("@/app/(account)/app/settings/panels/W
 const { UNREAD_INDEX } = await import("@/app/(account)/app/settings/business-provider");
 
 const TZ = "America/Chicago";
+const WELL_LISTS = ["problems", "differentiators", "questions", "places"] as const;
+const STACKED_LISTS = ["offerings", "audience", "proof", "integrations"] as const;
 
 function mount(element: React.JSX.Element): HTMLElement {
   const root = document.createElement("div");
@@ -212,6 +214,31 @@ describe.each(CUSTOMERS)("$name: What buyers ask and why you", (c) => {
     expect(heads.indexOf("Problems you solve")).toBe(0);
     expect(heads.indexOf("How you differ")).toBe(1);
     expect(fold?.textContent).toContain(c.knowledge.problems[0]!.text);
+  });
+
+  it("the board's four lists are wells in one grid, in board order, and the rest stack after it", () => {
+    const offering = { name: "Service plan", features: [], prices: [], uses: [], source: { kind: "founder" } } as const;
+    const knowledge = { ...c.knowledge, offerings: [...c.knowledge.offerings, offering] };
+    const fold = mount(<KnowledgePanel knowledge={knowledge} answers={{}} />);
+    const grids = fold.querySelectorAll('[data-layout="wells"]');
+    expect(grids).toHaveLength(1);
+    const read = WELL_LISTS.filter((name) => knowledge[name].length > 0);
+    expect([...grids[0]!.querySelectorAll(":scope > [data-testid]")].map((el) => el.getAttribute("data-testid"))).toEqual(
+      read.map((name) => `knowledge-${name}`)
+    );
+    expect(grids[0]!.querySelector(".card")).toBeNull();
+    for (const name of STACKED_LISTS.filter((list) => knowledge[list].length > 0)) {
+      expect(fold.querySelector(`[data-testid="knowledge-${name}"]`)).not.toBeNull();
+      expect(grids[0]!.querySelector(`[data-testid="knowledge-${name}"]`)).toBeNull();
+    }
+  });
+
+  it("an empty list leaves no well, and with all four empty no wells grid is drawn", () => {
+    const without = (names: readonly (typeof WELL_LISTS)[number][]) =>
+      mount(<KnowledgePanel knowledge={{ ...c.knowledge, ...Object.fromEntries(names.map((n) => [n, []])) }} answers={{}} />);
+    const read = WELL_LISTS.filter((name) => c.knowledge[name].length > 0);
+    expect(without(["problems"]).querySelectorAll('[data-layout="wells"] > section')).toHaveLength(read.length - 1);
+    expect(without(WELL_LISTS).querySelector('[data-layout="wells"]')).toBeNull();
   });
 
   it("Five things only you know: optional, Thing 1 to Thing 5", () => {
