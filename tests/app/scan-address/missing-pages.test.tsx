@@ -132,7 +132,7 @@ describe("pages 1 to 5 are cards, the rest dashed rows (2026-10-24 E16)", () => 
     Array.from({ length: count }, (_, i) => ({ search: `search ${i + 1}`, volume: 100 + i, holder: "rival.example.net", question: null }));
   const draw = (pages: readonly MissingPage[], freeSearch: string | null = null): HTMLElement =>
     parse(renderToStaticMarkup(<MissingPagesList pages={pages} freeSearch={freeSearch} />));
-  const cards = (root: HTMLElement): HTMLElement[] => (root.tagName === "OL" ? root : root.querySelector("ol")!).querySelectorAll("li");
+  const cards = (root: HTMLElement): HTMLElement[] => root.querySelectorAll("li.card");
   const rows = (root: HTMLElement): HTMLElement[] => root.querySelectorAll("li.border-dashed");
   const text = (el: HTMLElement): string => el.textContent.replace(/\s+/g, " ").trim();
 
