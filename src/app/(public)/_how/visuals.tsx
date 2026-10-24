@@ -9,10 +9,12 @@ import {
   CircleCheck,
   CircleStop,
   Clock,
+  FileText,
   Mail,
   Pencil,
   RefreshCw,
   Search,
+  Sparkles,
   X,
 } from "lucide-react";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
@@ -27,6 +29,11 @@ const CARD = "card card-border bg-base-100 min-w-0";
 const SMALL = "text-base-content/70 text-xs";
 const LABEL = "text-primary text-xs font-semibold";
 const WELL = "rounded-box bg-base-200 flex min-w-0 flex-col gap-1 p-3";
+/** A score's ring as the free report draws it, sized by the caller with `[--size:…]`. */
+export const SCORE_RING =
+  "radial-progress text-primary after:hidden shadow-[inset_0_0_0_5px_var(--color-base-200)] [--thickness:5px]";
+/** The icon tile a figure opens with. */
+export const ICON_TILE = "rounded-field grid size-9 flex-none place-items-center bg-base-200";
 
 /** A visual drawn for both example businesses, the plumber shown first. */
 export function Switched(p: { draw: (e: Example) => React.ReactNode }): React.JSX.Element {
@@ -638,25 +645,37 @@ export function YourPart(e: Example): React.JSX.Element {
 }
 
 /** `#start`, and every Learn page's close with its own caption: the three
- *  figures a free report opens on. */
+ *  figures a free report opens on: the score in its ring, and an icon tile on each other figure. */
 export function ReportGlance(e: Example, caption?: string): React.JSX.Element {
   return (
-    <figure className={CARD}>
+    <figure className={CARD} aria-label={copy("how.start.glance")}>
       <div className="card-body gap-3">
         <p className={LABEL}>{copy("how.start.glance")}</p>
         <div className="stats stats-vertical min-w-0">
           {/* Spans, so the score, its band and its name read as one line. */}
           <div className="stat px-0">
+            <span
+              aria-hidden
+              className={`stat-figure ${SCORE_RING} [--size:4rem]`}
+              style={{ "--value": e.report.score } as React.CSSProperties}
+            />
             <span className="stat-value text-3xl">{copy("how.start.score", { score: e.report.score, max: 100 })}</span>
             <span className="stat-title text-base-content font-semibold">{copy("band.score.hard-to-find")}</span>
             <span className="stat-desc text-base-content/70 whitespace-normal">{copy("how.start.score.name")}</span>
           </div>
           <div className="stat px-0">
+            <span aria-hidden className={`stat-figure ${ICON_TILE}`}>
+              <Sparkles {...ICON} />
+            </span>
             <div className="stat-desc text-base-content text-sm whitespace-normal">
               {copy("how.start.ai", { n: e.report.mentioned, total: e.report.asked })}
             </div>
+            <progress aria-hidden className="progress progress-primary mt-2" value={e.report.mentioned} max={e.report.asked} />
           </div>
           <div className="stat px-0">
+            <span aria-hidden className={`stat-figure ${ICON_TILE}`}>
+              <FileText {...ICON} />
+            </span>
             <div className="stat-desc text-base-content text-sm whitespace-normal">
               {copy("how.start.missing", { n: e.report.missing })}
             </div>
