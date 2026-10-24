@@ -172,6 +172,18 @@ describe("REQ-043 c8 — the panel says why this page exists", () => {
     }
   });
 
+  it("an engine that answered and named no one wears its own word, never 'competitors'", () => {
+    const cell = cellFor(MODEL, "2026-09-15");
+    if (cell?.page == null) throw new Error("no page on 2026-09-15");
+    const engines = cell.page.why.engines.map((e, i) => (i === 0 ? { ...e, standing: "names_no_one" as const } : e));
+    const one = render(
+      <DayPanelView cell={{ ...cell, page: { ...cell.page, why: { ...cell.page.why, engines } } }} timeZone={FIXTURE_TIME_ZONE} stopped={MODEL.stopped} onClose={() => undefined} />
+    );
+    const chip = one.querySelector(`[data-testid="engine-${engines[0]!.engine}"] .badge`);
+    expect(chip?.textContent).toBe("calendar.why.engine.names-no-one");
+    expect(chip?.className).toContain("badge-ghost");
+  });
+
   it("every value is mono, and the one criterion is not a value (§2.3; #297)", () => {
     const why = root.querySelector('[data-testid="target-rows"]');
     // Since #354 the block is S15's definition list: five `<dt>` keys and

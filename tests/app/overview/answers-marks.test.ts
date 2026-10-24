@@ -47,6 +47,18 @@ describe("what one engine said about the site, as one mark", () => {
     expect(markOf(answered("wikipedia.org", "rival.example"), OWN)).toBe("names_others");
   });
 
+  it("an answer that cites no address and does not name the site names no one", () => {
+    expect(markOf(answered(), OWN)).toBe("names_no_one");
+  });
+
+  it("an answer that cites no address but names the site in its text names it", () => {
+    expect(markOf({ kind: "answered", citedDomains: [], namesCustomer: false, named: true }, OWN)).toBe("names_you");
+  });
+
+  it("an answer that cites only another site still names someone else", () => {
+    expect(markOf(answered("rival.com"), OWN)).toBe("names_others");
+  });
+
   it("an engine that served no answer is not a place the site was ignored", () => {
     expect(markOf({ kind: "no_answer" }, OWN)).toBe("no_answer");
   });

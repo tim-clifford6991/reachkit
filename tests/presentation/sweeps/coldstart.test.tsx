@@ -273,6 +273,17 @@ describe("the rules discriminate — the synthetic tree, and what each rule catc
     };
     expect(rules.noModuleHidden(make(3), make(2))).toHaveLength(1);
     expect(rules.noModuleHidden(make(3), make(3))).toEqual([]);
+
+    const body = (html: string): ParentNode => {
+      const doc = document.implementation.createHTMLDocument("pair");
+      doc.body.innerHTML = html;
+      return doc.body;
+    };
+    const rows = `<ol>${'<li class="card">row</li>'.repeat(5)}</ol>`;
+    // Fewer list rows on the cold screen is not a hidden module.
+    expect(rules.noModuleHidden(body(`<section class="card">${rows}</section>`), body('<section class="card"><p>line</p></section>'))).toEqual([]);
+    // Rows that stay do not mask a module that went.
+    expect(rules.noModuleHidden(body(`<div class="card"></div><div class="card"></div>${rows}`), body(`<div class="card"></div>${rows}`))).toHaveLength(1);
   });
 });
 
@@ -341,7 +352,7 @@ describe("REQ-091 c2 — every route renders for a domain that ranks for nothing
     // The comparison is only worth making where there are modules to drop.
     // Asserted rather than assumed: a render that produced no card at all
     // would satisfy the rule above and mean nothing.
-    const modules = warm.reduce((sum, r) => sum + r.doc.querySelectorAll(".card").length, 0);
+    const modules = warm.reduce((sum, r) => sum + rules.moduleCount(r.doc.body), 0);
     expect(modules, "the warm sweep rendered no module at all — the comparison is vacuous").toBeGreaterThan(4);
   });
 });
@@ -413,8 +424,8 @@ describe("the sweep states its own coverage (rule 5.5)", () => {
       `places seeded in PLACES: ${Object.keys(PLACES).length}`,
       `places rendered on the cold-start sweep: ${placesRendered.size}`,
       `TODO(copy) markers on the cold-start screens: ${awaiting}`,
-      `modules (.card) on the cold-start screens: ${cold.reduce((n, r) => n + r.doc.querySelectorAll(".card").length, 0)}`,
-      `modules (.card) on the warm screens: ${warm.reduce((n, r) => n + r.doc.querySelectorAll(".card").length, 0)}`,
+      `modules (.card, not li) on the cold-start screens: ${cold.reduce((n, r) => n + rules.moduleCount(r.doc.body), 0)}`,
+      `modules (.card, not li) on the warm screens: ${warm.reduce((n, r) => n + rules.moduleCount(r.doc.body), 0)}`,
     ].join(" · ");
     console.log(`tests/presentation/sweeps/coldstart: ${report}`);
 

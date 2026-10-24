@@ -215,7 +215,8 @@ function answeredBy(engines: readonly TargetEngine[]): CopyKey | undefined {
   if (engines.some((engine) => engine.standing === "names_others")) {
     return "mail.draftReady.fact.others";
   }
-  if (engines.length > 0 && engines.every((engine) => engine.standing === "no_answer")) {
+  // An engine that answered and named no one is "nobody" too, never "other sites".
+  if (engines.length > 0 && engines.every((engine) => engine.standing === "no_answer" || engine.standing === "names_no_one")) {
     return "mail.draftReady.fact.nobody";
   }
   return undefined;

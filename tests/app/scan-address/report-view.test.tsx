@@ -153,7 +153,7 @@ describe("REQ-004 c1 — the verdict strip names the score, its band, the domain
   const html = render(FIXTURE_REPORT);
 
   it("renders the score as a big figure — the UI face at 600, tabular (#1062)", () => {
-    expect(html).toContain('class="figure min-w-0">30<');
+    expect(html).toContain('class="figure min-w-0">31<');
   });
 
   it("renders the band as one of the four ruled words, through SCORE_BANDS", () => {

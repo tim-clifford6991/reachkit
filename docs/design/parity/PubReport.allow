@@ -22,9 +22,7 @@ emergency plumber austin	sample data
 2,400	sample data
 a national plumbing chain	sample data
 water heater repair austin	sample data
-1,300	sample data
 drain cleaning austin	sample data
-880	sample data
 slab leak repair austin	sample data
 480	sample data
 tankless water heater installation austin	sample data
@@ -84,3 +82,13 @@ Every figure on this artboard is a sample for the fictional Harbor Plumbing, Aus
 The first lines. The full page comes by email. Written with Claude, an AI model, from your own site.	owner R26 2026-10-23: stored first lines once written (tests/app/scan-address/first-page-preview.test.tsx)
 480 times a month	sample data: the page's search volume is Harbor Plumbing's
 Cost guide	sample data: the board's type for Harbor Plumbing's page; the report names the Write types it can offer
+This report found 14 pages your site is missing sample	sample data: Harbor Plumbing's 14 pages and the board's sample tag; the fixture counts its own 7
+page 1 How much does slab leak repair cost in Austin? searched 480 times a month	sample data: Harbor Plumbing's buyer question and volume; the card shows the stored question (2026-10-24 E16)
+capitolrooter.example free · written for you	sample data: capitolrooter.example is Harbor Plumbing's rival; the free mark ships on the free card (tests/app/scan-address/missing-pages.test.tsx, #1968)
+page 2 Emergency plumber in Austin: what to do in the first hour searched 2,400 times a month	sample data: Harbor Plumbing's buyer question and volume; the card shows the stored question (2026-10-24 E16)
+page 3 Water heater repair in Austin: prices and how long it takes searched 1,300 times a month	sample data: Harbor Plumbing's buyer question and volume; the card shows the stored question (2026-10-24 E16)
+page 4 Drain cleaning in Austin: what’s included searched 880 times a month	sample data: Harbor Plumbing's buyer question and volume; the card shows the stored question (2026-10-24 E16)
+page 5 Leak detection in Austin: how a plumber finds a hidden leak searched 320 times a month	sample data: Harbor Plumbing's buyer question and volume; the card shows the stored question (2026-10-24 E16)
+All 14, nothing hidden. Pages 6 to 14 show the search each one answers. Sample for an example business.	sample data: Harbor Plumbing's 14 and the board's caption on its own sample; the fixture ships "All 7, nothing hidden. Pages 6 to 7 show the search each one answers." (2026-10-24 E16)
+Local service	sample data: Harbor Plumbing's kind; the fixture's kind is software
+Articles	#1512: the footer links the content host's index only where stored rows name one; the sweep seeds none

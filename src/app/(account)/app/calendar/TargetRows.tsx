@@ -31,12 +31,13 @@ import { ENGINE_LABEL, ENGINE_STANDING, formatCount } from "../_shell/page-targe
 import type { EngineStanding } from "@/lib/opportunities/types";
 import type { TargetFacts } from "./target";
 
-/** The daisyUI badge each engine standing wears. Total over the four, so a
- *  fifth standing is a compile error here rather than an unmarked chip.
+/** The daisyUI badge each engine standing wears. Total over the five, so a
+ *  new standing is a compile error here rather than an unmarked chip.
  *  Colour is never the whole statement — every chip carries its word. */
 const STANDING_BADGE: Readonly<Record<EngineStanding, string>> = Object.freeze({
   names_you: "badge-success",
   names_others: "badge-warning",
+  names_no_one: "badge-ghost",
   no_answer: "badge-ghost",
   unmeasured: "badge-ghost",
 });

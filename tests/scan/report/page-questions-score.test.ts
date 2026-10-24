@@ -24,14 +24,14 @@ describe("AI presence over the twelve and the page questions", () => {
       at: AT,
     });
     expect(without).toMatchObject({ kind: "zero", value: 1 });
-    // One citation over the three AI answers shown: 0.6 × 1/3 × 100.
+    // One answer linking the site over the three AI answers shown: 1/3 × 100.
     expect(withPage.kind).toBe("measured");
-    expect(withPage.kind !== "unmeasured" && withPage.value).toBeCloseTo(20, 10);
+    expect(withPage.kind !== "unmeasured" && withPage.value).toBeCloseTo(100 / 3, 10);
   });
 
-  it("a page question named but not linked is a mention", () => {
+  it("a page question named but not linked counts as one linked does", () => {
     const m = aiPresenceOf({ serps: [], pageCells: [{ kind: "answered", namesCustomer: false, named: true }], ownDomain: "acme.test", at: AT });
-    expect(m.kind !== "unmeasured" && m.value).toBeCloseTo(40, 10);
+    expect(m.kind !== "unmeasured" && m.value).toBe(100);
   });
 });
 
@@ -70,8 +70,8 @@ describe("a stored scan is scored again with its page questions, at 0¢", () => 
     if (!("result" in before) || !("result" in after)) throw new Error("not readable");
     expect(before.result.drivers.aiPresence).toMatchObject({ kind: "zero", value: 1 });
     // The twelve's one AI answer names somebody else; the page question's
-    // cites the site: one citation over two answers.
-    expect(after.result.drivers.aiPresence.kind !== "unmeasured" && after.result.drivers.aiPresence.value).toBeCloseTo(30, 10);
+    // cites the site: one of two answers.
+    expect(after.result.drivers.aiPresence.kind !== "unmeasured" && after.result.drivers.aiPresence.value).toBe(50);
     expect(after.result.score).toBeGreaterThan(before.result.score ?? 0);
     expect(after.result.changes.some((change) => change.path[0] === "verdict")).toBe(true);
   });
