@@ -273,6 +273,11 @@ export function memoryBillingStore(state: MemoryBilling): BillingStore {
       return patchSite(siteId, patch) ? { ok: true } : { ok: false };
     },
 
+    async siteZone(userId) {
+      if (state.failHostingRead) return { ok: false };
+      return { ok: true, timezone: state.sites.find((s) => s.user_id === userId)?.timezone ?? null };
+    },
+
     async siteDomains(userId) {
       if (state.failHostingRead) return { ok: false };
       return {

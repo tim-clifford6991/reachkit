@@ -16,9 +16,11 @@ import { after } from "next/server";
 import { parseDomain } from "@/lib/scan/domain";
 import { reportIncident } from "@/lib/mail/ops/incident";
 import { sendEmail } from "@/lib/mail/send";
+import { formatMailLongDate, formatMailMoney } from "@/lib/mail/blocks/format";
 import { buildRenewalRefunded } from "@/lib/mail/templates/account";
 import { stripe, type Stripe } from "../stripe/client";
 import { endSubscriptionNow } from "./end-now";
+import { paidThroughOf } from "./period";
 import { billingStore, type BillingRow, type RefundRow } from "./store";
 
 export const REFUND_WINDOW_DAYS = 14;
@@ -182,6 +184,26 @@ export async function refundFirstFortnight(
   return "refunded";
 }
 
+/** The day the refunded plan renews or ends, in the site's zone; `null` where the subscription says neither, so no day is invented. */
+async function nextDayOf(userId: string, paid: Stripe.Invoice, invoiceId: string): Promise<Parameters<typeof buildRenewalRefunded>[0]["next"]> {
+  const details = paid.parent?.type === "subscription_details" ? paid.parent.subscription_details : null;
+  const subscriptionId = idOf(details?.subscription);
+  if (subscriptionId === null) return null;
+  let subscription: Stripe.Subscription;
+  try {
+    subscription = await stripe().subscriptions.retrieve(subscriptionId);
+  } catch {
+    log({ outcome: "subscription_unread", invoice: invoiceId });
+    return null;
+  }
+  const ending = subscription.cancel_at_period_end || subscription.status === "canceled";
+  if (!ending && subscription.status !== "active") return null;
+  const end = paidThroughOf(subscription);
+  if (end === null) return null;
+  const zone = await billingStore().siteZone(userId);
+  return { kind: ending ? "ending" : "renewing", date: formatMailLongDate(end, zone.ok ? zone.timezone : null) };
+}
+
 export type RenewalRefundOutcome = "refunded" | "not_first_renewal" | "went_live" | "refunded_before" | "store" | "vendor";
 
 /** Owner D10: the first renewal is refunded, and access runs on, when no
@@ -237,7 +259,10 @@ export async function refundFirstRenewal(account: BillingRow, paid: Stripe.Invoi
   }
   // Only the delivery that recorded the refund tells the customer, so a re-delivery mails nothing.
   if (!recorded.inserted) return "refunded_before";
-  const mail = buildRenewalRefunded();
+  const mail = buildRenewalRefunded({
+    amount: formatMailMoney(invoice.amount_paid, invoice.currency),
+    next: await nextDayOf(account.id, paid, invoiceId),
+  });
   const sent = await sendEmail({ kind: "account", to: account.email, subject: mail.subject, blocks: mail.blocks });
   if (!sent.sent) log({ outcome: `mail_${sent.reason}`, invoice: invoiceId });
   return "refunded";

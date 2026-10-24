@@ -77,6 +77,17 @@ export function formatMailDate(at: Date, timeZone: string | null): string {
   }).format(at);
 }
 
+/** A day a mail names in full, `November 24, 2026`, in the customer's zone or UTC as above. */
+export function formatMailLongDate(at: Date, timeZone: string | null): string {
+  return new Intl.DateTimeFormat(MAIL_LOCALE, { timeZone: timeZone ?? "UTC", year: "numeric", month: "long", day: "numeric" }).format(at);
+}
+
+/** A vendor amount in minor units as a mail states it: `€49.00`. Each currency has its own minor unit. */
+export function formatMailMoney(minor: number, currency: string): string {
+  const format = new Intl.NumberFormat(MAIL_LOCALE, { style: "currency", currency });
+  return format.format(minor / 10 ** (format.resolvedOptions().maximumFractionDigits ?? 2));
+}
+
 /** A planned day (`YYYY-MM-DD`) as a mail names it: `Tue, Oct 20`. A date
  *  carries no zone, so it is read and written in UTC. */
 export function formatMailDay(date: string): string {

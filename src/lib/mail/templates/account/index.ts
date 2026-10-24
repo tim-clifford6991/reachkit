@@ -37,6 +37,10 @@ const NO_SECOND_SUBSCRIPTION = "mail.account.no_second_subscription" satisfies C
 const REACH_A_PERSON = "mail.account.reach_a_person" satisfies CopyKey;
 const RENEWAL_REFUNDED_SUBJECT = "mail.account.renewal_refunded.subject" satisfies CopyKey;
 const RENEWAL_REFUNDED = "mail.account.renewal_refunded" satisfies CopyKey;
+const RENEWAL_REFUNDED_NEXT = Object.freeze({
+  renewing: "mail.account.renewal_refunded.renewing" satisfies CopyKey,
+  ending: "mail.account.renewal_refunded.ending" satisfies CopyKey,
+});
 const DELETED_SUBJECT = "mail.account.deleted.subject" satisfies CopyKey;
 const DELETED_STILL_LIVE = "mail.account.deleted.still_live" satisfies CopyKey;
 const DELETED_THEIRS_TO_KEEP = "mail.account.deleted.theirs_to_keep" satisfies CopyKey;
@@ -271,12 +275,17 @@ export function buildHostingEnd(a: {
 }
 
 /** Owner D10: the first renewal was refunded because no page went live in
- *  the first month, and ReachKit keeps running. */
-export function buildRenewalRefunded(): AccountMail {
+ *  the first month. `next` is the day the plan renews or ends, written by
+ *  the caller; `null` where it could not be read, so no day is invented. */
+export function buildRenewalRefunded(a: {
+  amount: string;
+  next: { kind: "renewing" | "ending"; date: string } | null;
+}): AccountMail {
   return {
     subject: RENEWAL_REFUNDED_SUBJECT,
     blocks: [
-      { block: "paragraph", text: RENEWAL_REFUNDED },
+      { block: "paragraph", text: RENEWAL_REFUNDED, vars: { amount: a.amount } },
+      ...(a.next === null ? [] : [{ block: "paragraph" as const, text: RENEWAL_REFUNDED_NEXT[a.next.kind], vars: { date: a.next.date } }]),
       { block: "notice", text: REACH_A_PERSON },
     ],
   };
