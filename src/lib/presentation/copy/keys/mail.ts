@@ -95,7 +95,22 @@ export const MAIL_COPY = Object.freeze({
   "mail.section.ai_answers": ["AI", { slots: {}, fixedBy: "REQ-064 c4" }],
   "mail.section.rivals": ["competitors", { slots: {}, fixedBy: "REQ-064 c4" }],
   "mail.section.score": ["Visibility Score", { slots: {}, fixedBy: "REQ-064 c4" }],
-  "mail.unsubscribe.label": ["Switch off this mail", { slots: {}, fixedBy: "§12" }],
+  "mail.unsubscribe.label": ["Unsubscribe", { slots: {}, fixedBy: "board MondayMail · issue 1741 (drafted)" }],
+  // The pages behind the Monday mail's Unsubscribe and Pause all pages links.
+  "unsubscribe.head": ["Unsubscribed", { slots: {}, fixedBy: "issue 1741 (drafted)" }],
+  "unsubscribe.done": ["You won’t get this mail any more: {mail}. Turn it back on in Settings › Mail.", { slots: { mail: "text" }, fixedBy: "issue 1741 (drafted)" }],
+  "unsubscribe.changes.still": ["Still sent", { slots: {}, fixedBy: "issue 1741 (drafted)" }],
+  "unsubscribe.invalid": ["That link isn’t valid, so nothing has changed. You can switch any ReachKit mail off in Settings › Mail.", { slots: {}, fixedBy: "issue 1741 (drafted)" }],
+  "unsubscribe.unavailable": ["That couldn’t go through just now, so nothing has changed. Try the link again in a few minutes, or switch the mail off in Settings › Mail.", { slots: {}, fixedBy: "issue 1741 (drafted)" }],
+  "unsubscribe.settings": ["Mail settings", { slots: {}, fixedBy: "issue 1741 (drafted)" }],
+  "unsubscribe.ask": ["Press Unsubscribe to stop this mail: {mail}. Sign-in links and account mail still arrive.", { slots: { mail: "text" }, fixedBy: "issue 1741 (drafted)" }],
+  "pause.head": ["Publishing is paused", { slots: {}, fixedBy: "issue 1741 (drafted)" }],
+  "pause.done": ["No page goes live until you turn publishing on again in Settings › Publishing. Pages already written wait there, and nothing is deleted.", { slots: {}, fixedBy: "issue 1741 (drafted)" }],
+  "pause.head.unresolved": ["Not paused", { slots: {}, fixedBy: "issue 1741 (drafted)" }],
+  "pause.invalid": ["That link isn’t valid, so nothing has changed. You can pause publishing in Settings › Publishing.", { slots: {}, fixedBy: "issue 1741 (drafted)" }],
+  "pause.unavailable": ["That couldn’t go through just now, so nothing has changed. Try the link again in a few minutes, or pause publishing in Settings › Publishing.", { slots: {}, fixedBy: "issue 1741 (drafted)" }],
+  "pause.settings": ["Publishing settings", { slots: {}, fixedBy: "issue 1741 (drafted)" }],
+  "pause.ask": ["Press Pause all pages and no page goes live until you turn publishing on again in Settings › Publishing. Nothing is deleted.", { slots: {}, fixedBy: "issue 1741 (drafted)" }],
   "mail.optout.label": ["Opt out of all follow-up mail", { slots: {}, fixedBy: "§12" }],
 
   // 2026-09-05, issue #31 (lead capture, the giveaway page and the nurture
@@ -232,11 +247,14 @@ export const MAIL_COPY = Object.freeze({
   "mail.weekly.pages.live": ["Pages live", { slots: {}, fixedBy: "issue 1616 (drafted)" }],
   "mail.weekly.pages.planned": ["Pages planned this week", { slots: {}, fixedBy: "issue 1616 (drafted)" }],
   "mail.weekly.google.of": [
-    "of {n} live pages",
+    "of {n} pages read",
     { slots: { n: "text" }, fixedBy: "issue 1616 (drafted)" },
   ],
   "mail.weekly.google.early": ["Too early to count places: a new page usually takes weeks to show in Google’s results.", { slots: {}, fixedBy: "issue 1616 (drafted)" }],
-  "mail.weekly.google.visits": ["Visits from Google this week", { slots: {}, fixedBy: "issue 1616 (drafted)" }],
+  "mail.weekly.google.title": ["Google", { slots: {}, fixedBy: "board MondayMail · issue 1741 (drafted)" }],
+  "mail.weekly.google.intro": ["Your {n} live pages, step by step toward the first page.", { slots: { n: "text" }, fixedBy: "board MondayMail · issue 1741 (drafted)" }],
+  "mail.weekly.google.showing.climbing": ["Showing in results · {n} climbing", { slots: { n: "text" }, fixedBy: "board MondayMail · issue 1741 (drafted)" }],
+  "mail.weekly.google.visits": ["{n} visits from Google this week.", { slots: { n: "text" }, fixedBy: "board MondayMail · issue 1741 (drafted)" }],
   "mail.weekly.google.climb": [
     "Biggest climb: {search}, from place {from} to {to}.",
     { slots: { search: "text", from: "text", to: "text" }, fixedBy: "issue 1616 (drafted)" },
@@ -246,26 +264,19 @@ export const MAIL_COPY = Object.freeze({
     { slots: { search: "text", from: "text", to: "text" }, fixedBy: "issue 1616 (drafted)" },
   ],
   "mail.weekly.google.climb.none": ["No page moved up this week. Pages climb over weeks, not days.", { slots: {}, fixedBy: "issue 1616 (drafted)" }],
-  "mail.weekly.ai.linked": ["Pages linked by AI", { slots: {}, fixedBy: "issue 1616 (drafted)" }],
-  "mail.weekly.ai.linked.of": [
-    "of {of} pages whose own question we asked AI",
-    { slots: { of: "text" }, fixedBy: "issue 1616 (drafted)" },
-  ],
+  "mail.weekly.ai.title": ["AI", { slots: {}, fixedBy: "board MondayMail · issue 1741 (drafted)" }],
+  "mail.weekly.ai.linked": ["{n} of {of} pages linked by AI", { slots: { n: "text", of: "text" }, fixedBy: "board MondayMail · issue 1741 (drafted)" }],
+  "mail.weekly.ai.asked": ["We asked AI each page’s own question. {n} answers linked to your page.", { slots: { n: "text" }, fixedBy: "board MondayMail · issue 1741 (drafted)" }],
   "mail.weekly.ai.early": ["Too early: no page’s own question has been asked yet", { slots: {}, fixedBy: "issue 1616 (drafted)" }],
-  "mail.weekly.ai.reads": ["Times AI read your pages this week", { slots: {}, fixedBy: "issue 1616 (drafted)" }],
-  "mail.weekly.month": ["This month: checked once a month. These move over months, not weeks.", { slots: {}, fixedBy: "issue 1616 (drafted)" }],
+  "mail.weekly.ai.reads": ["AI read your pages {n} times this week.", { slots: { n: "text" }, fixedBy: "board MondayMail · issue 1741 (drafted)" }],
+  "mail.weekly.month": ["This month", { slots: {}, fixedBy: "board MondayMail · issue 1741 (drafted)" }],
+  "mail.weekly.month.intro": ["Checked once a month. These move over months, not weeks.", { slots: {}, fixedBy: "board MondayMail · issue 1741 (drafted)" }],
   "mail.weekly.month.score": ["Visibility Score", { slots: {}, fixedBy: "issue 1616 (drafted)" }],
-  "mail.weekly.month.score.of": ["of 100", { slots: {}, fixedBy: "issue 1616 (drafted)" }],
   "mail.weekly.month.market": ["Your market, on the first page", { slots: {}, fixedBy: "issue 1616 (drafted)" }],
-  "mail.weekly.month.market.of": [
-    "of {of} searches",
-    { slots: { of: "text" }, fixedBy: "issue 1616 (drafted)" },
-  ],
-  "mail.weekly.month.reputation": ["Reputation", { slots: {}, fixedBy: "issue 1616 (drafted)" }],
-  "mail.weekly.month.reputation.of": [
-    "of {answers} AI answers mentioned you, last {weeks} weeks",
-    { slots: { answers: "text", weeks: "text" }, fixedBy: "issue 1616 (drafted)" },
-  ],
+  "mail.weekly.month.reputation": ["Reputation: AI answers that mentioned you, last {weeks} weeks", { slots: { weeks: "text" }, fixedBy: "board MondayMail · issue 1741 (drafted)" }],
+  "mail.weekly.month.of": ["{n} of {of}", { slots: { n: "text", of: "text" }, fixedBy: "board MondayMail · issue 1741 (drafted)" }],
+  "mail.weekly.month.up": ["{now} up from {before}", { slots: { now: "text", before: "text" }, fixedBy: "board MondayMail · issue 1741 (drafted)" }],
+  "mail.weekly.month.down": ["{now} down from {before}", { slots: { now: "text", before: "text" }, fixedBy: "board MondayMail · issue 1741 (drafted)" }],
   // A headline number nobody measured says so, in the figure's place.
   "mail.weekly.number.unmeasured": ["Not measured this week", { slots: {}, fixedBy: "SPEC §8 2026-10-07 (drafted)" }],
   // The one item waiting on them, and the button that opens it. The line
@@ -292,12 +303,33 @@ export const MAIL_COPY = Object.freeze({
   "mail.weekly.verdicts.none": ["No pages published yet, so none to judge.", { slots: {}, fixedBy: "REQ-064 c3" }],
   // SPEC §7 (issue 1559): the week this Monday committed, and its spares.
   // Drafted (#759).
-  "mail.weekly.next": ["this week’s pages", { slots: {}, fixedBy: "SPEC §7 2026-10-19 (drafted)" }],
+  "mail.weekly.next": ["This week’s pages", { slots: {}, fixedBy: "board MondayMail · issue 1741 (drafted)" }],
+  "mail.weekly.next.intro": ["Up to {n} pages a week, new or updated. Never filler.", { slots: { n: "text" }, fixedBy: "board MondayMail · issue 1741 (drafted)" }],
   "mail.weekly.spares": ["spares, if a day’s page cannot be written", { slots: {}, fixedBy: "SPEC §7 2026-10-19 (drafted)" }],
   "mail.weekly.next.none": ["Nothing next: no open opportunity is left, and the plan is never padded.", { slots: {}, fixedBy: "SPEC §8 2026-09-20" }],
   "mail.weekly.next.item": ["{search}", { slots: { search: "text" }, fixedBy: "§12" }],
-  // Issue 1674: a committed day's row is its stop link (drafted).
-  "mail.weekly.next.day": ["{day}: {search} · Stop this page", { slots: { day: "text", search: "text" }, fixedBy: "issue 1674 (drafted)" }],
+  // The week strip, Monday to Sunday, and one row per page: its day, its search, why, and its two links.
+  "mail.weekly.strip.day": ["{day}", { slots: { day: "text" }, fixedBy: "board MondayMail · issue 1741 (drafted)" }],
+  "mail.weekly.strip.today": ["Today", { slots: {}, fixedBy: "board MondayMail · issue 1741 (drafted)" }],
+  "mail.weekly.strip.new": ["New", { slots: {}, fixedBy: "board MondayMail · issue 1741 (drafted)" }],
+  "mail.weekly.strip.update": ["Update", { slots: {}, fixedBy: "board MondayMail · issue 1741 (drafted)" }],
+  "mail.weekly.strip.none": ["No page", { slots: {}, fixedBy: "board MondayMail · issue 1741 (drafted)" }],
+  "mail.weekly.next.day.new.today": ["{day} · New page · goes live today, {time}", { slots: { day: "text", time: "text" }, fixedBy: "board MondayMail · issue 1741 (drafted)" }],
+  "mail.weekly.next.day.new": ["{day} · New page · goes live {date}, {time}", { slots: { day: "text", date: "text", time: "text" }, fixedBy: "board MondayMail · issue 1741 (drafted)" }],
+  "mail.weekly.next.day.update.today": ["{day} · Update · goes live today, {time}", { slots: { day: "text", time: "text" }, fixedBy: "board MondayMail · issue 1741 (drafted)" }],
+  "mail.weekly.next.day.update": ["{day} · Update · goes live {date}, {time}", { slots: { day: "text", date: "text", time: "text" }, fixedBy: "board MondayMail · issue 1741 (drafted)" }],
+  "mail.weekly.next.why": ["Why: {reason}", { slots: { reason: "text" }, fixedBy: "board MondayMail · issue 1741 (drafted)" }],
+  "mail.weekly.next.stop": ["Stop this page", { slots: {}, fixedBy: "board MondayMail · issue 1741 (drafted)" }],
+  "mail.weekly.next.edit": ["Edit", { slots: {}, fixedBy: "board MondayMail · issue 1741 (drafted)" }],
+  "mail.weekly.next.more": ["{from} · {n} more", { slots: { from: "text", n: "text" }, fixedBy: "board MondayMail · issue 1741 (drafted)" }],
+  "mail.weekly.next.more.span": ["{from}–{to} · {n} more", { slots: { from: "text", to: "text", n: "text" }, fixedBy: "board MondayMail · issue 1741 (drafted)" }],
+  "mail.weekly.next.all": ["See all {n} and their reasons", { slots: { n: "text" }, fixedBy: "board MondayMail · issue 1741 (drafted)" }],
+  "mail.weekly.calm": ["Nothing needs you. Each page goes live at {time} on its day unless you stop it.", { slots: { time: "text" }, fixedBy: "board MondayMail · issue 1741 (drafted)" }],
+  "mail.weekly.hi": ["Hi {name}, here’s week {week} for {business}.", { slots: { name: "text", week: "text", business: "text" }, fixedBy: "board MondayMail · issue 1741 (drafted)" }],
+  "mail.weekly.hi.unnamed": ["Here’s week {week} for {business}.", { slots: { week: "text", business: "text" }, fixedBy: "board MondayMail · issue 1741 (drafted)" }],
+  "mail.weekly.pace": ["Pages climb at Google’s pace, not ours. Google takes from a few days to a few weeks to find a page; reaching the first page takes months.", { slots: {}, fixedBy: "board MondayMail · issue 1741 (drafted)" }],
+  "mail.weekly.footer.pause": ["Pause all pages", { slots: {}, fixedBy: "board MondayMail · issue 1741 (drafted)" }],
+  "mail.weekly.footer.settings": ["Mail settings", { slots: {}, fixedBy: "board MondayMail · issue 1741 (drafted)" }],
   "mail.weekly.next.skipped": ["Days this week with no page planned: {count}", { slots: { count: "text" }, fixedBy: "issue 1674 (drafted)" }],
 
   // The three forms a judged page's row takes. Three sentences and not one
@@ -669,10 +701,7 @@ export const MAIL_COPY = Object.freeze({
     "Sent when your first page goes live · switch off in Settings › Mail.",
     { slots: {}, fixedBy: "S20 (11a)" },
   ],
-  "mail.reason.weekly": [
-    "Monday movement mail · switch off in Settings › Mail.",
-    { slots: {}, fixedBy: "S20 (11a)" },
-  ],
+  "mail.reason.weekly": ["You get this one mail each Monday.", { slots: {}, fixedBy: "board MondayMail · issue 1741 (drafted)" }],
   // #640: SPEC §8 gives every mail a "why it arrived" line; the setup
   // reminder had none, and no approved sentence exists for it.
   "mail.reason.setupReminder": [
@@ -721,7 +750,6 @@ export const MAIL_COPY = Object.freeze({
   "mail.draftReady.fact.answeredBy": ["answered today by", { slots: {}, fixedBy: "S20 (11a)" }],
   "mail.draftReady.fact.you": ["you", { slots: {}, fixedBy: "S20 (11a)" }],
   "mail.published.action": ["View the page", { slots: {}, fixedBy: "S20 (11a)" }],
-  "mail.weekly.heading": ["What moved this week", { slots: {}, fixedBy: "S20 (11a)" }],
   // D28 (owner, 2026-10-02, #1185): what ReachKit changed about the market
   // it measures. Drafted, named in the pull request.
   "mail.weekly.market.changed": [
@@ -736,7 +764,7 @@ export const MAIL_COPY = Object.freeze({
     "No longer measured as a competitor: {rival}.",
     { slots: { rival: "text" }, fixedBy: "SPEC §8 2026-10-02 D28, issue 1185" },
   ],
-  "mail.weekly.action": ["Open the overview", { slots: {}, fixedBy: "S20 (11a)" }],
+  "mail.weekly.action": ["Open your overview", { slots: {}, fixedBy: "board MondayMail · issue 1741 (drafted)" }],
   "mail.nurture.action": ["Start ReachKit €49", { slots: {}, fixedBy: "S20 (11a)" }],
 
   // ── The one mail nobody outside this company ever receives (issue #329,

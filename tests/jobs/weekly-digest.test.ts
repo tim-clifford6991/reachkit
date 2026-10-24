@@ -50,7 +50,10 @@ vi.mock("@/lib/scan/weekly", async (importOriginal) => {
 const engine = vi.hoisted(() => ({
   standings: [] as unknown[],
   measuredAt: new Date(Date.UTC(2026, 8, 7, 6, 0, 0)) as Date | null,
-  week: { days: [], spares: [] } as { days: { date: string; opportunity: { targetQuery: string | null } }[]; spares: { targetQuery: string | null }[] },
+  week: { days: [], spares: [] } as {
+    days: { date: string; opportunity: { id: string; targetQuery: string | null; evidence: { family: string } } }[];
+    spares: { targetQuery: string | null }[];
+  },
 }));
 vi.mock("@/lib/opportunities", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/lib/opportunities")>();
@@ -78,8 +81,10 @@ const WEEK = "2026-09-07";
 
 function seed(over: { scan?: Row } = {}): void {
   db.reset();
-  db.seed("users", [{ id: "user-1", email: "founder@example.com" }]);
-  db.seed("sites", [{ id: "site-1", user_id: "user-1", timezone: "America/New_York" }]);
+  db.seed("users", [{ id: "user-1", email: "founder@example.com", name: "Dana" }]);
+  db.seed("sites", [
+    { id: "site-1", user_id: "user-1", domain: "harbor-plumbing.example", created_at: "2026-08-24T15:00:00Z", timezone: "America/New_York", publish_time: "16:00" },
+  ]);
   db.seed("scans", [
     {
       id: "scan-week",
@@ -102,7 +107,10 @@ beforeEach(() => {
   engine.standings = [];
   engine.measuredAt = new Date(Date.UTC(2026, 8, 7, 6, 0, 0));
   engine.week = {
-    days: ["o1", "o2", "o3"].map((id, n) => ({ date: `2026-09-${String(8 + n).padStart(2, "0")}`, opportunity: { targetQuery: `search ${id}` } })),
+    days: ["o1", "o2", "o3"].map((id, n) => ({
+      date: `2026-09-${String(8 + n).padStart(2, "0")}`,
+      opportunity: { id, targetQuery: `search ${id}`, evidence: { family: "new" } },
+    })),
     spares: [],
   };
   seed();
@@ -117,11 +125,37 @@ describe("the Monday digest goes out for a week that was measured", () => {
     expect(sent[0]!.kind).toBe("weekly");
     expect(sent[0]!.to).toBe("founder@example.com");
     expect(sent[0]!.subject).toBe("mail.weekly.subject");
-    // Overview's numbers lead, straight under the heading; the pages, the
-    // next three and the one button follow. No page is live, so there is no
-    // Google or AI group.
-    // A three-page week also says how many of its days have no page.
-    expect(sent[0]!.blocks.map((b) => b.block)).toEqual(["heading", "stats", "verdicts", "list", "paragraph", "action"]);
+    // The greeting and the calm line, then Overview's numbers; the pages, the
+    // week and the one button follow. No page is live, so there is no Google
+    // or AI group. A three-page week also says how many of its days have no page.
+    const said = sent[0]!.blocks.map((b) => (b as { text?: string }).text ?? b.block);
+    expect(said).toEqual([
+      "mail.weekly.hi",
+      "mail.weekly.calm",
+      "stats",
+      "verdicts",
+      "mail.weekly.next",
+      "mail.weekly.next.intro",
+      "facts",
+      "list",
+      "mail.weekly.next.skipped",
+      "mail.weekly.pace",
+      "action",
+    ]);
+  });
+
+  it("greets the account by name, counts the week of service as Plan does, and names the site; the calm line states its publish time", async () => {
+    await sendWeeklyDigest({ siteId: "site-1", weekStart: WEEK, now: NOW });
+    const [hello, calm] = sent[0]!.blocks as unknown as { vars: Record<string, string> }[];
+    // Signed up on Monday 24 Aug, so the week of 7 Sep is its third.
+    expect(hello!.vars).toEqual({ name: "Dana", week: "3", business: "harbor-plumbing.example" });
+    expect(calm!.vars).toEqual({ time: "4:00 PM" });
+
+    db.seed("users", [{ id: "user-1", email: "founder@example.com", name: null }]);
+    theScan().digest_sent_at = null;
+    sent = [];
+    await sendWeeklyDigest({ siteId: "site-1", weekStart: WEEK, now: NOW });
+    expect(sent[0]!.blocks[0]).toMatchObject({ text: "mail.weekly.hi.unnamed", vars: { week: "3", business: "harbor-plumbing.example" } });
   });
 
   it("a complete week says so, and carries no missed-section line", async () => {
@@ -145,19 +179,29 @@ describe("the Monday digest goes out for a week that was measured", () => {
   });
 
   it("issue 1559 — the week this Monday committed is listed in date order, and its spares after it", async () => {
-    const day = (n: number) => ({ date: `2026-09-${String(8 + n).padStart(2, "0")}`, opportunity: { targetQuery: `search d${n}` } });
+    const day = (n: number) => ({
+      date: `2026-09-${String(7 + n).padStart(2, "0")}`,
+      opportunity: { id: `d${n}`, targetQuery: `search d${n}`, evidence: { family: n === 1 ? "improve" : "new" } },
+    });
     engine.week = {
       days: [0, 1, 2, 3, 4, 5, 6].map(day),
       spares: [{ targetQuery: "search s1" }, { targetQuery: "search s2" }, { targetQuery: "search s3" }],
     };
     await sendWeeklyDigest({ siteId: "site-1", weekStart: WEEK, now: NOW });
     const lists = sent[0]!.blocks.filter((b) => b.block === "list") as unknown as {
-      label: string;
-      items: { kind: string; value: { label: string; vars: { search: string } }[] };
+      label?: string;
+      items: { kind: string; value: { label: string; vars: Record<string, string>; detail?: { vars: { search: string } }[] }[] };
     }[];
-    const week = lists.find((list) => list.label === "mail.weekly.next")!;
+    const week = lists.find((list) => list.label === undefined)!;
     const spares = lists.find((list) => list.label === "mail.weekly.spares")!;
-    expect(week.items.value.map((row) => row.vars.search)).toEqual([0, 1, 2, 3, 4, 5, 6].map((n) => `search d${n}`));
+    // The first three written out in date order, an update said as one, and the other four counted.
+    expect(week.items.value.map((row) => row.detail?.[0]?.vars.search ?? row.vars.n)).toEqual(["search d0", "search d1", "search d2", "4"]);
+    expect(week.items.value.map((row) => row.label)).toEqual([
+      "mail.weekly.next.day.new.today",
+      "mail.weekly.next.day.update",
+      "mail.weekly.next.day.new",
+      "mail.weekly.next.more.span",
+    ]);
     expect(spares.items.value.map((row) => row.vars.search)).toEqual(["search s1", "search s2", "search s3"]);
   });
 });
@@ -243,11 +287,11 @@ describe("no row, no telling — and an unmeasured week that has one says so", (
     expect(sent).toHaveLength(1);
     expect(sent[0]?.measurement).toEqual({ state: "none", nextDueOn });
     // No figure is stated for a week nobody measured: there is no group
-    // of numbers at all, and the verdicts and the next three go in
-    // unmeasured, so both are omitted. The whole-mail line says why, once.
-    expect((sent[0]?.blocks ?? []).map((b) => b.block)).toEqual(["heading", "verdicts", "list", "action"]);
+    // of numbers at all, the verdicts go in unmeasured and are omitted, and
+    // the week's pages are not drawn. The whole-mail line says why, once.
+    expect((sent[0]?.blocks ?? []).map((b) => b.block)).toEqual(["heading", "verdicts", "paragraph", "action"]);
     const sections = (sent[0]?.blocks ?? []).filter((b) => ["list", "verdicts"].includes(b.block));
-    expect(sections.map((b) => (b as { items?: { kind: string } }).items?.kind)).toEqual(["unmeasured", "unmeasured"]);
+    expect(sections.map((b) => (b as { items?: { kind: string } }).items?.kind)).toEqual(["unmeasured"]);
     expect(theScan().digest_sent_at).not.toBeNull();
     expect(await sendWeeklyDigest({ siteId: "site-1", weekStart: WEEK, now: NOW })).toEqual({ sent: false, reason: "already-sent" });
   });

@@ -185,6 +185,18 @@ export const PUBLIC_ROUTE_SEO = Object.freeze({
     description: "meta.veto.description",
     indexable: false,
   },
+  unsubscribe: {
+    route: "/unsubscribe/{token}",
+    title: "meta.unsubscribe.title",
+    description: "meta.unsubscribe.description",
+    indexable: false,
+  },
+  pause: {
+    route: "/pause/{token}",
+    title: "meta.pause.title",
+    description: "meta.pause.description",
+    indexable: false,
+  },
   optOut: {
     route: "/opt-out/{token}",
     title: "meta.optout.title",

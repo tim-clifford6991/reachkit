@@ -47,6 +47,8 @@ interface SendCommon {
   /** The reason line's own slots, where its sentence takes one. */
   reasonVars?: CopyVars;
   optOut?: OptOutControl;
+  /** Footer links drawn before the stop control. */
+  footerLinks?: readonly { label: CopyKey; href: string }[];
   /** The one occasion a togglable mail is sent anyway: a page going live
    *  under autopilot at a veto window of zero, where the mail is the whole
    *  of the customer's telling and no interval in which to stop it exists
@@ -224,6 +226,7 @@ function compose(m: SendInput): ReturnType<typeof composeMail> {
         reason: m.reason,
         reasonVars: m.reasonVars,
         optOut: m.optOut,
+        footerLinks: m.footerLinks,
         measurement: m.measurement,
       })
     : composeMail({
@@ -234,6 +237,7 @@ function compose(m: SendInput): ReturnType<typeof composeMail> {
         reason: m.reason,
         reasonVars: m.reasonVars,
         optOut: m.optOut,
+        footerLinks: m.footerLinks,
       });
 }
 

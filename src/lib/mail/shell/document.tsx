@@ -54,6 +54,8 @@ export interface DocumentParts {
   /** Rendered when the caller supplies a stop control. Its label is
    *  chosen by the mechanism, in `compose.ts`, never by a template. */
   optOut: { href: string; label: string } | null;
+  /** Footer links set before the stop control, on its line. */
+  links: readonly { href: string; label: string }[];
 }
 
 /** The card's own width, and the page inset around it. Lengths, not voice. */
@@ -156,6 +158,7 @@ function WholeMailLine({ line }: { line: string }): ReactNode {
 }
 
 function Footer(parts: DocumentParts): ReactNode {
+  const footerLinks = parts.optOut === null ? parts.links : [...parts.links, parts.optOut];
   const band = [parts.wordmark, parts.imprint, parts.plainTextNote]
     .filter((piece): piece is string => piece !== null && piece !== "")
     .join(BAND_SEPARATOR);
@@ -173,14 +176,16 @@ function Footer(parts: DocumentParts): ReactNode {
         }}
       >
         {parts.reason === null ? null : <Text style={FOOTER_LINE}>{parts.reason}</Text>}
-        {parts.optOut === null ? null : (
+        {footerLinks.length === 0 ? null : (
           <Text style={{ ...FOOTER_LINE, paddingTop: "8px" }}>
-            <Link
-              href={parts.optOut.href}
-              style={{ color: token("--ink-3"), textDecoration: "underline" }}
-            >
-              {parts.optOut.label}
-            </Link>
+            {footerLinks.map((link, at) => (
+              <span key={at}>
+                {at === 0 ? null : BAND_SEPARATOR}
+                <Link href={link.href} style={{ color: token("--ink-3"), textDecoration: "underline" }}>
+                  {link.label}
+                </Link>
+              </span>
+            ))}
           </Text>
         )}
         <Text style={{ ...FOOTER_LINE, paddingTop: "8px" }}>{band}</Text>
