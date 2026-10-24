@@ -130,3 +130,78 @@ describe("a report with no score", () => {
     expect(strip).toContain(copy("gallery.strip.range", { low: "25", high: "60" }));
   });
 });
+
+/** The board's icon for each kind of business, by lucide name. */
+const KIND_ICON: Readonly<Record<string, string>> = {
+  "local-service": "wrench",
+  shop: "store",
+  hospitality: "utensils",
+  "professional-services": "briefcase",
+  software: "laptop",
+  creator: "video",
+};
+
+describe("the board's rings and icons", () => {
+  it("a scored card has a ring, an unscored card none", async () => {
+    const cards = parse(await render()).querySelectorAll('[data-testid="gallery-cards"] > li');
+    const ring = cards[0]!.querySelector(".radial-progress");
+    expect(ring?.getAttribute("role")).toBe("img");
+    expect(ring?.getAttribute("aria-label")).toBe(copy("gallery.card.score", { score: "27", max: "100" }));
+    expect(ring?.getAttribute("style")).toContain("--value:27");
+    expect(cards[2]!.querySelector(".radial-progress")).toBeNull();
+  });
+
+  it("each kind's pill and card carry its icon", async () => {
+    const { BUSINESS_KIND_NAMES } = await import("@/lib/market/kinds");
+    const page = parse(await render());
+    expect(page.querySelector('nav[aria-label] a[href="/scans"] svg.lucide-layout-grid')).not.toBeNull();
+    for (const kind of BUSINESS_KIND_NAMES) {
+      const icon = `svg.lucide-${KIND_ICON[kind]}`;
+      expect(page.querySelector(`nav[aria-label] a[href="/scans?kind=${kind}"] ${icon}`), kind).not.toBeNull();
+      const card = parse(await render({ kind })).querySelector('[data-testid="gallery-cards"] > li');
+      if (ENTRIES.some((e) => e.kind === kind)) expect(card?.querySelector(icon), kind).not.toBeNull();
+    }
+    // A report with no kind names none, so it draws none.
+    const kindless = page.querySelectorAll('[data-testid="gallery-cards"] > li')[2]!;
+    expect(Object.values(KIND_ICON).some((name) => kindless.querySelector(`svg.lucide-${name}`) !== null)).toBe(false);
+  });
+
+  it("the inside mockup draws a score ring and its AI bar", async () => {
+    const inside = parse(await render()).querySelector('section[aria-labelledby="inside-h"] .mockup-browser');
+    const { EXAMPLES } = await import("@/app/(public)/_how/specimen");
+    expect(inside?.querySelector(".radial-progress")?.getAttribute("style")).toContain(`--value:${EXAMPLES.plumber.report.score}`);
+    const bar = inside?.querySelector("progress.progress-primary");
+    expect([bar?.getAttribute("value"), bar?.getAttribute("max")]).toEqual(
+      [EXAMPLES.plumber.tally.n, EXAMPLES.plumber.tally.total].map(String)
+    );
+    // Cell 4 opens its sample page's title with the board's page icon.
+    const title = inside?.querySelectorAll(".rounded-box.bg-base-200")[3]?.querySelector("svg.lucide-file-text")?.parentNode;
+    expect(title?.text).toBe(EXAMPLES.plumber.page.title);
+  });
+
+  it("at-a-glance tiles carry their icons", async () => {
+    const glance = parse(await render()).querySelector('[data-variant="scans"] #start figure');
+    const stats = glance?.querySelectorAll(".stat") ?? [];
+    expect(stats).toHaveLength(3);
+    expect(stats[0]!.querySelector(".radial-progress")).not.toBeNull();
+    expect(stats[1]!.querySelector(".rounded-field svg.lucide-sparkles")).not.toBeNull();
+    expect(stats[2]!.querySelector(".rounded-field svg.lucide-file-text")).not.toBeNull();
+    // The AI figure carries the bar; the pages figure carries none.
+    expect(stats[1]!.querySelector("progress")).not.toBeNull();
+    expect(stats[2]!.querySelector("progress")).toBeNull();
+  });
+
+  it("after the report carries its icons", async () => {
+    const close = parse(await render()).querySelector('[data-variant="scans"]')!;
+    const steps = close.querySelectorAll('[data-testid="learn-loop"] ol > li');
+    expect(steps.map((li) => li.querySelector(".rounded-field svg")?.getAttribute("class"))).toEqual(
+      ["search", "calendar", "file-text", "mail"].map((name) => `lucide lucide-${name}`)
+    );
+    const rows = close.querySelectorAll("ul.divide-y > li");
+    expect(rows.length).toBeGreaterThan(0);
+    for (const row of rows) {
+      expect(row.querySelector("svg.lucide-user")).not.toBeNull();
+      expect(row.querySelector("svg.lucide-sparkles")).not.toBeNull();
+    }
+  });
+});

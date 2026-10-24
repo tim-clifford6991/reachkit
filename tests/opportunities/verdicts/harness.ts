@@ -197,6 +197,14 @@ export function fakeStore(a: {
         rows.push(row);
       }
     },
+    async trackedPrompts() {
+      return [];
+    },
+    async recordIntent() {},
+    // A store whose scans cannot be read states no page's index state.
+    async seenUrls() {
+      throw new Error("fake store: no stored scans");
+    },
   };
   setVerdictStore(store);
   return store;

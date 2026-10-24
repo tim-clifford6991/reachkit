@@ -138,17 +138,21 @@ export interface MissingPage {
   question: GeneratedText | null;
 }
 
+/** The stored question phrased from `search`, where the report holds one. */
+export function storedQuestionOf(report: StoredReport, search: string | null): GeneratedText | null {
+  return report.aiAnswers?.rows.find((row) => row.question.search === search)?.question.wording ?? null;
+}
+
 /** Every page the report found missing, read from what it stored at 0¢: the
  *  pages "page 1 of N" counts. `null` where the report did not measure its
  *  questions or its market, so nothing can say what is missing. */
 export function missingPagesOf(report: StoredReport): readonly MissingPage[] | null {
   if (report.questions.kind === "unmeasured" || report.market.kind === "unmeasured") return null;
-  const asked = report.aiAnswers?.rows ?? [];
   return rankedFreePages(report).map((page) => ({
     search: page.targetQuery ?? "",
     volume: page.volume === null || page.volume.kind === "unmeasured" ? null : page.volume.value,
     holder: page.evidence.family === "write" ? page.evidence.rival.domain : null,
-    question: asked.find((row) => row.question.search === page.targetQuery)?.question.wording ?? null,
+    question: storedQuestionOf(report, page.targetQuery),
   }));
 }
 

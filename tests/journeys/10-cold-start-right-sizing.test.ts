@@ -21,9 +21,24 @@
 // (the SDK client), the customer's own server, Vercel and Resend. Nothing
 // is bought and nothing is sent.
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { fakeDb, installTransitionRpc, type FakeDb, type Row, installSiteSpendRpc } from "../publish/harness";
-import { toolUseMessage } from "../llm/fixtures";
-import type { FetchOutcome, RobotsPolicy } from "../../src/lib/egress/types";
+import { fakeDb, type FakeDb } from "../publish/harness";
+import {
+  JOURNEY_TIMEOUT_MS,
+  captureMail,
+  collapseTimers,
+  deliverer,
+  envelope,
+  installPassRpcs,
+  passClient,
+  pageOutcome,
+  rankedEnvelope,
+  realTimers,
+  signIn,
+  stubVendorFetch,
+  submitSetup,
+  type QueuedEvent,
+  type SentMail,
+} from "./harness";
 
 // Vercel's domain list is bound, so the hosted health refresh asks it.
 process.env.VERCEL_API_TOKEN = "token-journey-10";
@@ -33,145 +48,23 @@ process.env.VERCEL_PROJECT_ID = "prj_journey_10";
 
 const db: FakeDb = fakeDb();
 
-/** The storing double, plus the one builder member it does not carry
- *  (`upsert`, the site profile's write) and what a storing double cannot
- *  know: each table's column defaults, and that a nullable column the
- *  insert left out reads `null`, not absent. */
-const COLUMN_DEFAULTS: Readonly<Record<string, () => Row>> = {
-  scans: () => ({ digest_sent_at: null, report: null, is_current: false, created_at: new Date().toISOString() }),
-  opportunities: () => ({
-    status: "open",
-    ready: false,
-    unready_reason: "not_assessed",
-    absorbed_queries: [],
-    cluster_key: null,
-    created_at: new Date().toISOString(),
-    status_changed_at: new Date().toISOString(),
-  }),
-  drafts: () => ({
-    body_md: null,
-    meta: null,
-    grounded_fact: null,
-    cost_cents: 0,
-    scheduled_for: null,
-    veto_deadline: null,
-    attribution: null,
-    hard_rule_attempts: 0,
-    rule_failures: null,
-    claim_check: null,
-    transitions: [],
-    publishable_since: null,
-    hard_rules_passed: false,
-    opened_at: null,
-    veto_reminded_at: null,
-    approved_at: null,
-    approved_by: null,
-    told: null,
-    veto_token_hash: null,
-    veto_token_expires_at: null,
-    veto_token_used_at: null,
-    created_at: new Date().toISOString(),
-  }),
-  fetches: () => ({ created_at: new Date().toISOString() }),
-};
+const client = passClient(db, "journey 10");
 
-const client = {
-  from(table: string) {
-    const builder = (db.client as { from(t: string): Record<string, unknown> }).from(table) as {
-      insert(values: Row | Row[]): unknown;
-      upsert?: (values: Row, opts?: { onConflict?: string }) => unknown;
-    };
-    const insert = builder.insert.bind(builder);
-    const defaults = COLUMN_DEFAULTS[table];
-    builder.insert = (values: Row | Row[]) => {
-      if (Array.isArray(values) && values.length !== 1) throw new Error(`journey 10: a ${values.length}-row insert into ${table}`);
-      const one = Array.isArray(values) ? values[0]! : values;
-      return insert(defaults === undefined ? one : { ...defaults(), ...one });
-    };
-    builder.upsert = (values: Row, opts: { onConflict?: string } = {}) => {
-      const key = opts.onConflict ?? "id";
-      const held = db.rows(table).find((row) => row[key] === values[key]);
-      if (held !== undefined) {
-        Object.assign(held, values);
-        return Promise.resolve({ data: [held], error: null });
-      }
-      return builder.insert(values);
-    };
-    return builder;
-  },
-  rpc: (fn: string, args: Row) => (db.client as { rpc(f: string, a: Row): unknown }).rpc(fn, args),
-};
-
-// No test reaches a vendor: the research step's reads and its one search are
-// stood in for, and the page is written from the business's own facts.
-vi.mock("@/lib/generate/pipeline/research", async (importOriginal) => {
-  const { researchStandIn } = await import("../generate/fixtures");
-  return researchStandIn(await importOriginal<object>());
-});
+vi.mock("@/lib/generate/pipeline/research", async (importOriginal) => (await import("./harness")).researchStandIn(importOriginal));
 vi.mock("@/lib/db", () => ({ dbAdmin: () => client, db: () => client }));
-
-vi.mock("@/lib/presentation/copy", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@/lib/presentation/copy")>();
-  return {
-    ...actual,
-    copy: (key: string, vars?: Record<string, string | number>) =>
-      vars === undefined ? key : `${key}(${Object.values(vars).join(",")})`,
-  };
-});
-
-vi.mock("next/navigation", () => ({
-  useRouter: () => ({ refresh: vi.fn() }),
-  redirect: (to: string) => {
-    throw new Error(`journey 10: redirected to ${to}`);
-  },
-}));
-// The hosted adapter clears the edge's cache on delivery; outside a request
-// there is no cache, which that module already tolerates. A Server Function
-// revalidates the app it changed (issue 837).
-vi.mock("next/cache", () => ({ revalidateTag: () => undefined, revalidatePath: () => undefined }));
-
+vi.mock("@/lib/presentation/copy", async (importOriginal) => (await import("./harness")).copyByKey(importOriginal));
+vi.mock("next/navigation", async () => (await import("./harness")).nextNavigation("journey 10"));
+vi.mock("next/cache", async () => (await import("./harness")).nextCache());
 const cookieJar = new Map<string, string>();
-vi.mock("next/headers", () => ({
-  cookies: async () => ({
-    getAll: () => [...cookieJar].map(([name, value]) => ({ name, value })),
-    get: (name: string) => {
-      const value = cookieJar.get(name);
-      return value === undefined ? undefined : { name, value };
-    },
-    set: (name: string, value: string) => {
-      cookieJar.set(name, value);
-    },
-    delete: (name: string) => {
-      cookieJar.delete(name);
-    },
-  }),
-  headers: async () => new Headers(),
-}));
-
-vi.mock("@/app/(account)/setup/_setup/provider", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("../../src/app/(account)/setup/_setup/provider")>();
-  const { liveSetupStore } = await import("../../src/app/(account)/setup/_setup/store");
-  return { ...actual, setupStore: () => liveSetupStore() };
-});
+vi.mock("next/headers", async () => (await import("./harness")).nextHeaders(cookieJar));
+vi.mock("@/app/(account)/setup/_setup/provider", async (importOriginal) => (await import("./harness")).liveSetupProvider(importOriginal));
 
 // ── The job platform ────────────────────────────────────────────────────
 
-interface QueuedEvent {
-  name: string;
-  data: Record<string, unknown>;
-  at: Date | null;
-}
 const queued: QueuedEvent[] = [];
-
-vi.mock("@/jobs/client", () => ({
-  // #971's stage push goes through `client.realtime` (`src/jobs/realtime.ts`);
-  // a mock without it throws on every stage, which the pass swallows into a
-  // `setup_stage_not_published` log. Doubled as the no-op it is here.
-  client: { realtime: { publish: async () => undefined } },
-  sendJobEvent: async (name: string, data: Record<string, unknown>, options: { at?: Date } = {}) => {
-    queued.push({ name, data, at: options.at ?? null });
-  },
-}));
+vi.mock("@/jobs/client", async () =>
+  (await import("./harness")).jobsClient((name, data, at) => queued.push({ name, data, at }))
+);
 
 // ── The market ──────────────────────────────────────────────────────────
 
@@ -209,20 +102,6 @@ const OWN_RANKED: readonly (readonly [string, number, string])[] = [
   ["daily seo pages", 10, `https://${DOMAIN}/`],
   ["reachkit pricing", 10, `https://${DOMAIN}/pricing`],
 ];
-
-function envelope(result: unknown): unknown {
-  return { tasks: [{ id: "task-fixture", status_code: 20000, status_message: "Ok.", result: [result] }] };
-}
-
-function rankedEnvelope(rows: readonly (readonly [string, number, string])[], total: number): unknown {
-  return envelope({
-    total_count: total,
-    items: rows.map(([keyword, volume, url], i) => ({
-      keyword_data: { keyword, keyword_info: { search_volume: volume } },
-      ranked_serp_element: { serp_item: { rank_group: 8 + i, url } },
-    })),
-  });
-}
 
 type Condition = [string, string, number | null];
 type Filter = Condition | (Filter | "and" | "or")[];
@@ -309,45 +188,18 @@ const vercelDomainCalls: string[] = [];
  *  list reports as `verified`. */
 let recordPointed = false;
 
-function outcome(url: string, status: number, body: string): FetchOutcome {
-  return {
-    ok: true,
-    status,
-    url,
-    html: body,
-    bytes: body.length,
-    readAt: new Date(),
-    headers: {},
-  } as FetchOutcome;
-}
-
 vi.mock("@/lib/egress/safe-fetch", async (importOriginal) => ({
   ...(await importOriginal<Record<string, unknown>>()),
-  safeFetch: async (url: string, opts: { method?: string; body?: string } = {}): Promise<FetchOutcome> => {
+  safeFetch: async (url: string, opts: { method?: string; body?: string } = {}) => {
     if (url.startsWith("https://api.vercel.com/")) {
       vercelDomainCalls.push(`${opts.method ?? "GET"} ${url}`);
-      return outcome(url, 200, JSON.stringify({ name: HOST, verified: recordPointed }));
+      return pageOutcome(url, 200, JSON.stringify({ name: HOST, verified: recordPointed }));
     }
-    return outcome(url, 200, HOME_HTML);
+    return pageOutcome(url, 200, HOME_HTML);
   },
 }));
-
-vi.mock("@/lib/egress/robots", () => ({
-  readRobots: async (origin: string): Promise<RobotsPolicy> => ({
-    ok: true,
-    origin,
-    readAt: new Date(),
-    disallowsAll: false,
-    disallowedAgents: {},
-    sitemaps: [],
-    absent: false,
-  }),
-}));
-
-vi.mock("@/lib/egress/dns", () => ({
-  resolvesInDns: async (host: string) => host === DOMAIN,
-  hostnameTaken: async () => false,
-}));
+vi.mock("@/lib/egress/robots", async () => (await import("./harness")).openRobots());
+vi.mock("@/lib/egress/dns", async () => (await import("./harness")).dnsKnowing(DOMAIN));
 
 // ── Anthropic ───────────────────────────────────────────────────────────
 
@@ -385,78 +237,24 @@ function pageFor(asked: { opportunity?: { targetQuery?: string | null }; grounde
   };
 }
 
-vi.mock("@anthropic-ai/sdk", () => {
-  class FakeAnthropic {
-    messages = {
-      create: async (request: { messages: { content: string }[] }) => {
-        const input = request.messages[0]?.content ?? "";
-        const asked = JSON.parse(input) as Record<string, unknown> & { task?: string };
-        const task = String(asked.task ?? (input.includes('"home"') ? "profile" : "unknown"));
-        modelTasks.push(task);
-        const text = (answer: unknown) => ({
-          content: [{ type: "text", text: JSON.stringify(answer) }],
-          usage: { input_tokens: 800, output_tokens: 300 },
-        });
-        if (task.startsWith("Each entry under `keywords`")) {
-          const keywords = asked.keywords as { id: string; keyword: string }[];
-          return toolUseMessage(
-            { questions: keywords.map((row) => ({ id: row.id, text: `What is the best ${row.keyword}?` })) },
-            800,
-            200,
-            "question-phrasing"
-          );
-        }
-        if (task.startsWith("Describe the business")) return text(PROFILE_ANSWER);
-        if (task.startsWith("Label an already-derived")) {
-          const typing = asked as unknown as { derivedType: string; derivedSlug: string; targetQuery: string };
-          return text({ type: typing.derivedType, slug: typing.derivedSlug, title: `The best ${typing.targetQuery}` });
-        }
-        if (task.startsWith("Read the pages of one business")) {
-          return text({
-            siteName: "ReachKit",
-            products: ["seo content"],
-            claims: [],
-            voice: {
-              text: "Plain, calm and practical.",
-              tone: "calm",
-              person: "second",
-              vocabulary: ["brief", "searches"],
-              claimsToKeep: [],
-              claimsToAvoid: [],
-            },
-          });
-        }
-        // The research step's read of public pages: nothing to cite.
-        if (task.startsWith("Copy out the claims")) return text({ claims: [] });
-        // The one write call (SPEC §7, D41): the page for the pack's own
-        // target, stating the pack's first fact.
-        if (task.startsWith("Write one page")) {
-          const pack = asked.pack as { target: { question: string }; facts: { url: string; passage: string }[] };
-          const page = pageFor({ opportunity: { targetQuery: pack.target.question }, grounded: pack.facts[0] });
-          const { partsFromPage } = await import("../generate/fixtures");
-          return text(partsFromPage(page, page.slug));
-        }
-        throw new Error(`journey 10: no model answer for task: ${task.slice(0, 80)}`);
-      },
-    };
-  }
-  return { default: FakeAnthropic };
-});
+vi.mock("@anthropic-ai/sdk", async () =>
+  (await import("./harness")).anthropicFor({
+    journey: "journey 10",
+    profile: PROFILE_ANSWER,
+    site: { siteName: "ReachKit", products: ["seo content"], vocabulary: ["brief", "searches"] },
+    pageFor,
+    tasks: modelTasks,
+  })
+);
 
 // ── The modules, after the doubles above are in place ───────────────────
 
-const { runJob } = await import("../../src/jobs/run");
 const { scanRun } = await import("../../src/jobs/scan-run");
-const { POST: setupRoute } = await import("../../src/app/api/setup/route");
 const { setActiveAccessReader, resetActiveAccessReader } = await import(
   "../../src/app/(account)/setup/_setup/store"
 );
 const { registerActiveAccessGate } = await import("../../src/lib/scan/weekly/access");
 const { setIdentityAuth } = await import("../../src/lib/account/identity/auth");
-const { addAuthUser, fakeIdentityAuth, newFakeAuth, signedInCookie } = await import(
-  "../account/identity/fake-auth"
-);
-const { __setVendorTransportForTesting } = await import("../../src/lib/mail/vendor/resend");
 const { difficultyCeiling, qualifyingDemand } = await import("../../src/lib/opportunities/winnability/bars");
 const { readOverviewFacts } = await import("../../src/app/(account)/app/_overview/store");
 const { assembleOverview } = await import("../../src/app/(account)/app/_overview/model");
@@ -464,7 +262,7 @@ const { RivalModule } = await import("../../src/app/(account)/app/_overview/Riva
 const { renderToStaticMarkup } = await import("react-dom/server");
 const { createElement } = await import("react");
 
-import type { JobDefinition, Outcome } from "../../src/jobs/types";
+import type { Outcome } from "../../src/jobs/types";
 
 const USER_ID = "44444444-4444-4444-8444-444444444410";
 const SITE_ID = "22222222-2222-4222-8222-222222222210";
@@ -475,82 +273,12 @@ const TIME_ZONE = "America/Chicago";
 const SUBMITTED_AT = new Date("2026-09-20T20:00:00.000Z");
 const HOUR = 3_600_000;
 
-interface SentMail {
-  to: string[];
-  subject: string;
-  html: string;
-}
 const inbox: SentMail[] = [];
 const runs: { job: string; outcome: Outcome }[] = [];
 
-function setUpTheDatabase(): void {
+async function setUpTheDatabase(): Promise<void> {
   db.reset();
-  installTransitionRpc(db);
-  // One onboarding row per site, held by its primary key.
-  db.uniqueIndexes.push({ table: "scans", columns: ["id"] });
-  db.rpcs.set("fetches_spend_since", (args: Row) =>
-    db
-      .rows("fetches")
-      .filter((row) => String(row.created_at) >= String(args.p_since))
-      .reduce((total, row) => total + Number(row.cost_cents ?? 0), 0)
-  );
-  // And the site's own day (issue 885), read by the same seam before the
-  // same calls.
-  installSiteSpendRpc(db);
-  db.rpcs.set("append_scan_stage_event", () => null);
-  // `apply_setup_choice`, as the migration writes it: the mode on the site,
-  // and one destination created waiting for DNS.
-  db.rpcs.set("apply_setup_choice", (args: Row) => {
-    const site = db.rows("sites").find((row) => row.id === args.p_site_id);
-    if (site === undefined) throw new Error("apply_setup_choice: no site");
-    site.mode = args.p_mode;
-    const id = "dest-journey-10";
-    db.rows("destinations").push({
-      id,
-      site_id: args.p_site_id,
-      kind: args.p_kind,
-      config: null,
-      health: "expired",
-      health_reason: null,
-      health_changed_at: new Date().toISOString(),
-      last_checked_at: new Date().toISOString(),
-      publish_capable: null,
-      stamp_capable: null,
-      hostname: args.p_hostname,
-      hostname_state: args.p_hostname === null ? null : "pending_dns",
-      hostname_checked_at: null,
-      deleted_at: null,
-    });
-    return id;
-  });
-  // `store_current_report`: the claimed row takes the report and becomes
-  // the domain's current one.
-  db.rpcs.set("store_current_report", (args: Row) => {
-    for (const row of db.rows("scans")) {
-      if (row.domain === args.p_domain && args.p_make_current === true) row.is_current = false;
-    }
-    let row = db.rows("scans").find((scan) => scan.id === args.p_scan_id);
-    if (row === undefined) {
-      row = { id: args.p_scan_id, created_at: new Date().toISOString() };
-      db.rows("scans").push(row);
-    }
-    Object.assign(row, {
-      domain: args.p_domain,
-      site_id: args.p_site_id,
-      tier: args.p_tier,
-      status: args.p_status,
-      score: args.p_score,
-      // jsonb columns: a later step reads back plain data, never the
-      // objects the pass held.
-      drivers: JSON.parse(JSON.stringify(args.p_drivers)),
-      report: JSON.parse(JSON.stringify(args.p_report)),
-      cost_cents: args.p_cost_cents,
-      stopped_reason: args.p_stopped_reason,
-      is_current: args.p_make_current,
-      completed_at: new Date().toISOString(),
-    });
-    return null;
-  });
+  await installPassRpcs(db, "dest-journey-10");
 
   db.seed("users", [
     {
@@ -607,10 +335,10 @@ function setUpTheDatabase(): void {
   }
 }
 
-beforeEach(() => {
+beforeEach(async () => {
   vi.useFakeTimers({ toFake: ["Date"] });
   vi.setSystemTime(SUBMITTED_AT);
-  setUpTheDatabase();
+  await setUpTheDatabase();
   queued.length = 0;
   runs.length = 0;
   inbox.length = 0;
@@ -621,47 +349,11 @@ beforeEach(() => {
 
   setActiveAccessReader(async () => true);
   registerActiveAccessGate(async (siteIds) => new Set(siteIds));
-
-  cookieJar.clear();
-  const auth = newFakeAuth();
-  addAuthUser(auth, { id: USER_ID, email: EMAIL });
-  setIdentityAuth(fakeIdentityAuth(auth));
-  const [name, value] = signedInCookie(auth, USER_ID).split("=") as [string, string];
-  cookieJar.set(name, value);
-
-  __setVendorTransportForTesting(async (payload: string) => {
-    inbox.push(JSON.parse(payload) as SentMail);
-    return { status: 200, headers: {}, body: JSON.stringify({ id: `resend-${inbox.length}` }) };
-  });
-
-  vi.stubGlobal(
-    "fetch",
-    vi.fn(async (url: string, init?: RequestInit) => {
-      const body = typeof init?.body === "string" ? (JSON.parse(init.body) as unknown[]) : [];
-      const task = (body[0] ?? {}) as Record<string, unknown>;
-      vendorRequests.push({ url, task });
-      return { ok: true, status: 200, statusText: "OK", json: async () => vendorAnswer(url, task) };
-    })
-  );
+  await signIn(cookieJar, { id: USER_ID, email: EMAIL });
+  await captureMail(inbox);
+  stubVendorFetch(vendorRequests, vendorAnswer);
   collapseTimers();
 });
-
-const realSetTimeout = globalThis.setTimeout;
-
-/** The standard queue's ten-second poll, collapsed for the deep pass
- *  (journey 04's reason): every timer fires at once. */
-function collapseTimers(): void {
-  vi.stubGlobal("setTimeout", ((fn: () => void) => {
-    fn();
-    return 0;
-  }) as unknown as typeof setTimeout);
-}
-
-/** Real timers again once the pass is over: a delivery races its own
- *  timeout, and a timeout that fires at once is a delivery that timed out. */
-function realTimers(): void {
-  vi.stubGlobal("setTimeout", realSetTimeout);
-}
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -673,50 +365,14 @@ afterEach(() => {
 
 // ── The founder's steps, and the platform's ─────────────────────────────
 
-async function submitSetup(): Promise<{ status: number; body: Record<string, unknown> }> {
-  const response = await setupRoute(
-    new Request("https://reachkit.example/api/setup", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        domain: DOMAIN,
-        category: CATEGORY,
-        competitors: [...RIVALS],
-        mode: "autopilot",
-        destination: { kind: "hosted", label: "content" },
-      }),
-    }),
-    undefined
-  );
-  return { status: response.status, body: (await response.json()) as Record<string, unknown> };
-}
-
-const EVENT_JOBS: Readonly<Record<string, JobDefinition>> = {
-  "scan/run": scanRun,
-};
-
-/** Delivers every queued event of this name whose moment has come,
- *  through `runJob()`. */
-async function deliver(name: string, now: Date): Promise<Outcome[]> {
-  const job = EVENT_JOBS[name]!;
-  const out: Outcome[] = [];
-  for (;;) {
-    const next = queued.find((event) => event.name === name && (event.at === null || event.at <= now));
-    if (next === undefined) return out;
-    queued.splice(queued.indexOf(next), 1);
-    const result = await runJob(job, { data: next.data, now });
-    runs.push({ job: job.id, outcome: result });
-    out.push(result);
-  }
-}
-
-const JOURNEY_TIMEOUT_MS = 60_000;
+const setup = { domain: DOMAIN, category: CATEGORY, competitors: [...RIVALS], mode: "autopilot", destination: { kind: "hosted", label: "content" } };
+const deliver = deliverer({ queued, jobs: { "scan/run": scanRun }, runs });
 
 describe("a cold-start site is offered right-sized questions, reachable rivals and winnable targets (issue 858)", () => {
   it(
     "setup → deep pass → derivation: long-tail questions, far rivals kept out of 'your rivals', a ready winnable or reach write target, and an Overview that does not lead with a giant",
     async () => {
-      const submitted = await submitSetup();
+      const submitted = await submitSetup(setup);
       expect(submitted).toEqual({ status: 200, body: { ok: true, siteId: SITE_ID } });
 
       const [pass] = await deliver("scan/run", SUBMITTED_AT);

@@ -33,7 +33,7 @@ beforeEach(() => db.reset());
 describe("D53 — the hosted blog's line is written from the business", () => {
   it("is the job the market was concluded with, not the founder's setup answer", async () => {
     seed({ job: JOB, reworded: null });
-    expect(await hostedIdentity(SITE)).toEqual({ name: "ReachKit", logoType: null, line: JOB, offer: { category: "AI SEO", place: null } });
+    expect(await hostedIdentity(SITE)).toEqual({ name: "ReachKit", logoType: null, line: JOB, offer: { category: "AI SEO", place: null, region: null } });
   });
 
   it("is the founder's own wording of what the business does where they reworded it", async () => {
@@ -44,6 +44,14 @@ describe("D53 — the hosted blog's line is written from the business", () => {
   it("falls back to the site's own first claim, and still never to a setup answer", async () => {
     seed({ job: null, reworded: null });
     expect((await hostedIdentity(SITE)).line).toBe("A free scan shows where buyers go.");
+  });
+});
+
+describe("E10 — the place it serves is the market's stored place and region, never more", () => {
+  it("reads serves.name and serves.region off the adopted market", async () => {
+    seed({ job: JOB, reworded: null });
+    db.seed("sites", [{ id: SITE.siteId, market: { current: { category: "a plumber", serves: { name: "Austin", region: "TX" } } } }]);
+    expect((await hostedIdentity(SITE)).offer).toEqual({ category: "a plumber", place: "Austin", region: "TX" });
   });
 });
 
