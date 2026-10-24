@@ -6,6 +6,7 @@ import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 import { applyEnvFixture } from "../mail/env-fixture";
+import { SETS } from "./settings/market-fixtures";
 
 applyEnvFixture();
 
@@ -50,7 +51,7 @@ describe("the words a customer reads on four screens", () => {
 
   it("the Market panel is titled with \"and\", never \"&\"", () => {
     const model = assembleSettings(FIXTURE_SETTINGS_FACTS);
-    const root = render(<MarketPanel market={model.market} domain={model.domain} timeZone="Europe/Berlin" />);
+    const root = render(<MarketPanel market={model.market} domain={model.domain} timeZone="Europe/Berlin" sets={SETS} />);
     expect(read(root, ".card-title")).toBe("Your site and market");
   });
 });

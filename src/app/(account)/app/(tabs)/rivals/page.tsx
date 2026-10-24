@@ -28,8 +28,7 @@ import { readRivals } from "../../_overview/rivals-provider";
 import { readPlanned } from "../../_overview/google-pages";
 import { searchKey, type Planned } from "../../_overview/search-model";
 import { formatCount } from "../../_overview/present";
-import type { PresenceCard } from "../../_overview/rivals-model";
-import type { PromptsModel } from "../../_overview/prompts-model";
+import { namedOf } from "../../_overview/rivals-model";
 import { RivalModule } from "../../_overview/RivalModule";
 import { RivalPresence } from "../../_overview/RivalPresence";
 import { RivalTable } from "../../_overview/RivalTable";
@@ -39,18 +38,6 @@ import { TAB_HREF } from "../../_overview/tabs";
 
 /** /app/rivals's own `<title>` (#945). */
 export const metadata: Metadata = { title: copy("meta.app.rivals.title") };
-
-/** Who the month's AI answers mention: the customer, and each site they named. */
-function namedOf(reputation: PromptsModel): PresenceCard {
-  if (reputation.kind !== "measured") return { rivals: [], you: { domain: "", count: 0 }, of: 0, noRival: false };
-  const rivals = reputation.rivals.map((rival) => ({ domain: rival.domain, count: rival.answers }));
-  return {
-    rivals,
-    you: { domain: "", count: reputation.rate.linked + reputation.rate.named },
-    of: reputation.rate.samples,
-    noRival: rivals.every((row) => row.count === 0),
-  };
-}
 
 export default async function RivalsTabPage(): Promise<React.JSX.Element> {
   const [shell, model, overview, planned] = await Promise.all([readShell(), readRivals(), readOverview(), readPlanned()]);
