@@ -15,6 +15,7 @@ import {
   verdict,
 } from "../../../scripts/design/parity.mjs";
 import { getAccountCookie, getBaseURL, getLiveAccountCookie, getSetupAccountCookie, withPage } from "./browser";
+import { renderProblem } from "./state-parity";
 
 interface Row {
   read: "page" | "hosted" | "mail" | "state";
@@ -22,6 +23,7 @@ interface Row {
   account?: "live" | "setup";
   host?: string;
   fixture?: string;
+  render?: string;
 }
 
 const BOARDS = JSON.parse(readFileSync(path.join(PARITY_DIR, "boards.json"), "utf8")) as Record<string, Row>;
@@ -93,21 +95,23 @@ async function shipText(row: Row): Promise<string[]> {
       return segments(read.html);
     });
   }
-  if (row.read === "mail") {
-    const { applyEnvFixture } = await import("../../mail/env-fixture");
-    applyEnvFixture();
-    const { composePreview } = await import("../../mail/preview/kinds");
-    const mail = await composePreview(row.fixture as Parameters<typeof composePreview>[0]);
-    return segments(mail.html);
-  }
-  const { COPY } = await import("@/lib/presentation/copy");
-  return Object.values(COPY).flatMap((value) => String(value).split(/\{[^}]*\}/));
+  // A mail row; a state row never gets here.
+  const { applyEnvFixture } = await import("../../mail/env-fixture");
+  applyEnvFixture();
+  const { composePreview } = await import("../../mail/preview/kinds");
+  const mail = await composePreview(row.fixture as Parameters<typeof composePreview>[0]);
+  return segments(mail.html);
 }
 
 const summary: string[] = [];
 
 describe("design parity: a board's missing count only goes down", () => {
   for (const [board, row] of Object.entries(BOARDS)) {
+    if (row.read === "state") {
+      // A state board is read in its component test, which renders each arm the sweep cannot reach.
+      it(`${board} (state, read in ${row.render})`, () => expect(renderProblem(board, row)).toBeNull());
+      continue;
+    }
     it(`${board} (${row.read}${row.paths ? ` ${row.paths.join(", ")}` : ""})`, async () => {
       const file = boardFile(board);
       const texts = await shipText(row);
