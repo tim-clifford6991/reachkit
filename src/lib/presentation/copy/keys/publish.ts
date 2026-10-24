@@ -539,6 +539,9 @@ export const PUBLISH_COPY = Object.freeze({
   // by a person — linked to the main site's page that names them, where it
   // has one. Drafted under #759's ruling; the owner corrects the wording.
   "hosted.about.author": ["Written by {author}", { slots: { author: "text" }, fixedBy: "issue 1509 · drafted" }],
+  // The one place the adopted market stores that the business serves, never
+  // inferred: a business with none says nothing. Drafted; the owner corrects it.
+  "hosted.about.serves": ["Serves {place}.", { slots: { place: "text" }, fixedBy: "E10 2026-10-24 · drafted" }],
   // The business's own actions: its stored phone, and its main site's own
   // book and quote pages. None claims more than that the number or page
   // exists. The headline asks in the adopted market's own category and
