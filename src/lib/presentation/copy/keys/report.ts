@@ -1031,6 +1031,12 @@ export const REPORT_COPY = Object.freeze({
   "report.missing.volume": ["searched {volume} times a month", { slots: { volume: "text" }, fixedBy: "owner E1 2026-10-19 · issue 1599 · drafted" }],
   "report.missing.holder": ["answered today by {holder}", { slots: { holder: "text" }, fixedBy: "owner E1 2026-10-19 · issue 1599 · drafted" }],
   "report.missing.all": ["All {count}, nothing hidden.", { slots: { count: "text" }, fixedBy: "board PubReport · owner Q3 2026-10-20 · issue 1599" }],
+  "report.missing.all.six": ["All 6, nothing hidden. Page 6 shows the search it answers.", { slots: {}, fixedBy: "board PubReport · 2026-10-24 E16 · issue 1982" }],
+  "report.missing.all.rest": [
+    "All {count}, nothing hidden. Pages 6 to {count} show the search each one answers.",
+    { slots: { count: "text" }, fixedBy: "board PubReport · 2026-10-24 E16 · issue 1982" },
+  ],
+  "report.missing.page": ["page {n}", { slots: { n: "text" }, fixedBy: "board PubReport · 2026-10-24 E16 · issue 1982" }],
   "report.missing.free": ["free · written for you", { slots: {}, fixedBy: "board PubReport · issue 1968" }],
   "report.missing.free.read": ["Read it free ↓", { slots: {}, fixedBy: "board PubReport · issue 1968" }],
   "report.rest.eyebrow": ["Everything else in your report · open any", { slots: {}, fixedBy: "board PubReport · issue 1724" }],
