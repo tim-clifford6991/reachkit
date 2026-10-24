@@ -34,7 +34,7 @@
 "use client";
 
 import type React from "react";
-import { ArrowRight, Download, Link, LogOut, Mail, ShieldCheck } from "lucide-react";
+import { ArrowRight, CircleCheck, Download, Link, LogOut, Mail } from "lucide-react";
 import { useActionState, useState, useTransition } from "react";
 import { copy } from "@/lib/presentation/copy";
 import { writtenLine } from "../../_shell/written";
@@ -154,7 +154,7 @@ export function AccountPanel(p: { account: SettingsModel["account"]; pages: numb
           </span>
           <ArrowRight size={14} strokeWidth={1.75} aria-hidden />
           <span className="inline-flex items-center gap-1">
-            <ShieldCheck size={16} strokeWidth={1.75} aria-hidden className="text-primary" />
+            <CircleCheck size={16} strokeWidth={1.75} aria-hidden className="text-success" />
             {copy("settings.account.signin.in")}
           </span>
         </div>

@@ -660,7 +660,7 @@ describe("Publishing, Mail, Billing and Account carry their board icons, never i
       "lucide-arrow-right",
       "lucide-link",
       "lucide-arrow-right",
-      "lucide-shield-check",
+      "lucide-circle-check",
     ]);
     expect(icons(root.querySelector('[data-testid="action-export"]'))).toEqual(["lucide-download"]);
     expect(icons(root.querySelector('[data-testid="action-sign_out"]'))).toEqual(["lucide-log-out"]);
