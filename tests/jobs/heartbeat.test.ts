@@ -39,6 +39,10 @@ function memoryStore(rows: Map<string, MemoryRow>, failing = false): HeartbeatSt
       rows.set(row.jobId, { ...current, staleAlertedAt: at.toISOString() });
       return true;
     },
+    async claimErrorMail() {
+      return true;
+    },
+    async releaseErrorMail() {},
   };
 }
 

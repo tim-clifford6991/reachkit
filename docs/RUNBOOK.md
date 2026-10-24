@@ -320,6 +320,12 @@ scheduled job whose `last_run_at` is more than **twice its interval** ago is mai
 twice its usual interval."* with the job, its last run and its interval. `stale_alerted_at` records
 that mail; the job is not mailed again until it has run and gone quiet again.
 
+**The failing-job mail.** A job that throws on its first delivery is mailed to `OWNER_EMAILS` at
+most once per job, error class and Europe/Berlin day. The row in `job_error_mails` decides that, not
+the mail vendor's key. A send that no owner address accepted deletes its row, so the next tick tries
+again. A store that cannot answer still mails and logs
+`{"event":"ops_incident_alert","outcome":"claim_unavailable"}`.
+
 **The outside check.** The heartbeat cannot see *every* job stopping, so `GET /api/health`
 reads the same rows on each request: `200 {"ok":true}` when every scheduled job with a row is within
 twice its interval, `503` with `stale` (the job ids, mailed or not) or `reason` (`no-runs`,

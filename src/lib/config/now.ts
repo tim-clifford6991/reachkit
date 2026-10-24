@@ -102,6 +102,11 @@ export function now(): Date {
   return fixedNow() ?? new Date();
 }
 
+/** The Europe/Berlin calendar day of `at`, as `YYYY-MM-DD`: the owner's day, whatever the server's zone. */
+export function berlinDay(at: Date): string {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Berlin", year: "numeric", month: "2-digit", day: "2-digit" }).format(at);
+}
+
 /**
  * The boot invariant (issue #305). Throws when `RK_FIXED_NOW` is set on a
  * real deployment, and when it is set to something that is not an instant.
