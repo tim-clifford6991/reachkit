@@ -10,6 +10,7 @@
 // file. The one thing this module decides that is not a word is which
 // daisyUI badge a status wears — see below for why that is not `BADGE`'s
 // job.
+import { CircleCheck, CircleMinus, Clock, List, type LucideIcon } from "lucide-react";
 import type { CopyKey } from "@/lib/presentation/copy";
 import type { Doing, SearchFilter, SearchStatus } from "./search-model";
 
@@ -48,6 +49,14 @@ export const STATUS_BADGE: Readonly<Record<SearchStatus, string>> = Object.freez
   your_review: "badge badge-warning badge-soft",
   up_next: "badge badge-ghost",
   too_big: "badge badge-outline",
+});
+
+/** The icon each status draws before its word: one icon per concept across the product. */
+export const STATUS_ICON: Readonly<Record<SearchStatus, LucideIcon>> = Object.freeze({
+  live: CircleCheck,
+  your_review: Clock,
+  up_next: List,
+  too_big: CircleMinus,
 });
 
 /** The badge a cell wears for what is done this week: a day's page or update

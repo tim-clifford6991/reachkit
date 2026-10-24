@@ -30,7 +30,7 @@
   "OverviewDNS": { "sha256": "93bbe737f471342fcab3d90871d6780343793c186599e7373c8dbdab7c607281", "missing": 0 },
   "AppGoogle": { "sha256": "a8b4e1f0ff6e0a3dcc230813bc5a8e5ab616364e81dd6c635b2075c6bf2254e7", "missing": 0 },
   "AppAI": { "sha256": "e5e0da500deccb25a9e13ce4a203381c545f62dc7830401f80e6ded21fa450fb", "missing": 0 },
-  "AppCompetitors": { "sha256": "df447b6ccc2ae4e0435d47cb686e9684fd12213ed45d7d12ab965cb08fe54e37", "missing": 0 },
+  "AppCompetitors": { "sha256": "b9c5a9b9e8fac80bd67680bb71238b0b1aadc47e6c7b1713df93cf29b43690c5", "missing": 0 },
   "Plan": { "sha256": "b7de3dba2d516d92dd6ffdc2b3f96715baadcd3b0b74dee9a7bb35139b5b6b2a", "missing": 0 },
   "PageDetail": { "sha256": "f92b4753a8f2eefdb33588017cf59b154488fda63efdde61d72ae4b848dfc92d", "missing": 0 },
   "AppDraft": { "sha256": "ee25107931ee7fbdf555cd3f0d8d9557b967c7ad099ae3dd38a30e3cff28d6da", "missing": 0 },

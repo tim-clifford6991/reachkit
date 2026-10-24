@@ -54,6 +54,12 @@ describe("board AppCompetitors, on the account the layout sweep reads", () => {
     expect(line.startsWith(copy("overview.rivals.first.you", { n: String(model.top.you), of: String(model.top.of) }))).toBe(true);
   });
 
+  it("the top line opens with info", async () => {
+    const { dom } = await render();
+    const first = dom.querySelector('[data-testid="rivals-top-line"]')?.firstElementChild;
+    expect(first?.matches('svg.lucide-info[aria-hidden="true"]')).toBe(true);
+  });
+
   it("who AI answers mention is Overview's month reading, the customer's count first among equals", async () => {
     const [{ dom }, overview] = await Promise.all([render(), readOverview()]);
     const reputation = await readPromptsAt(overview.months?.reading?.week ?? null);
