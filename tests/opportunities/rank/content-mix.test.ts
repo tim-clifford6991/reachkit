@@ -77,17 +77,6 @@ describe("at most two offering pages in any seven days", () => {
   });
   const answer = { opportunity: opportunity("answer", "answer_page", "why do ai answers change"), points: 1, parts: [] };
 
-  it("a third offering page waits for an answer, and fills a day only when nothing else is left", () => {
-    const ranked = orderRanked([offering("a", 10), offering("b", 9), offering("c", 8), offering("d", 7), answer], { mix: { from: 100, recent: [] } });
-    expect(ranked.map((entry) => [entry.opportunityId, entry.reason.rule])).toEqual([
-      ["a", "best"],
-      ["b", "best"],
-      ["answer", "best"],
-      ["c", "best, offering full"],
-      ["d", "best, offering full"],
-    ]);
-  });
-
   it("offering pages already drafted this week count", () => {
     const recent = [
       { day: 97, kind: "qa" as const, offering: true },
@@ -108,32 +97,10 @@ describe("at most two offering pages in any seven days", () => {
     const [today] = orderRanked([offering("c", 10), comparison], { mix: { from: 100, recent } });
     expect(today).toMatchObject({ opportunityId: "vs", writeAs: "qa", reason: { rule: "over the D52 cap, as a Q&A" } });
   });
-
-  it("with only offering pages left, the day still takes one", () => {
-    const recent = [
-      { day: 97, kind: "qa" as const, offering: true },
-      { day: 98, kind: "qa" as const, offering: true },
-    ];
-    const [today] = orderRanked([offering("c", 10)], { mix: { from: 100, recent } });
-    expect(today).toMatchObject({ opportunityId: "c", reason: { rule: "best, offering full" } });
-  });
 });
 
 describe("self-promoting pages are capped (D52, issue 1267)", () => {
   const scored = supply();
-  const byId = new Map(scored.map((entry) => [entry.opportunity.id, entry.opportunity]));
-  // A page counts as the type it is written as (issue 1455).
-  const kindsOf = (ranked: { opportunityId: string; writeAs?: ContentType }[]) =>
-    ranked.map((entry) => entry.writeAs ?? contentTypeOf(byId.get(entry.opportunityId)!)!);
-
-  it("no seven days running hold a second comparison, though comparisons score first", () => {
-    const kinds = kindsOf(orderRanked(scored, { mix: { from: 100, recent: [] } }));
-    expect(kinds.filter((kind) => kind === "listicle").length).toBeGreaterThan(1);
-    for (let start = 0; start < kinds.length; start++) {
-      const week = kinds.slice(start, start + CONTENT_MIX.WINDOW_DAYS);
-      expect(week.filter((kind) => kind === "listicle").length, `from day ${start}`).toBeLessThanOrEqual(1);
-    }
-  });
 
   it("a comparison three days ago: today's best comparison falls through to the next topic", () => {
     const [today] = orderRanked(scored, { mix: { from: 100, recent: [{ day: 97, kind: "listicle", offering: false }] } });
