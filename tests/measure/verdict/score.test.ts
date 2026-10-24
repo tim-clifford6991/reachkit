@@ -9,6 +9,9 @@ import { describe, expect, it, vi } from "vitest";
 import { SCORING } from "@/lib/config/constants";
 import { measured, measuredZero, unmeasured } from "../../../src/lib/measure/measured.ts";
 import { searchPresenceOf, searchPresenceRangeOf } from "../../../src/lib/measure/drivers.ts";
+import { FEEDS, type InputOutcome, type ScanInput } from "../../../src/lib/measure/partition.ts";
+import { verdictOf } from "../../../src/lib/measure/verdict.ts";
+import type { CanonicalDomain } from "../../../src/lib/scan/domain.ts";
 import {
   computeScore,
   estimateOf,
@@ -390,6 +393,20 @@ describe("the Google half's range is the Wilson interval of its share, and its s
   });
 
   it("twelve measured searches are no thin sample, however few AI results were read", () => {
-    expect(estimateFor(12, 12, 3).estimate?.confidence).toBe("close");
+    const v = verdictOf({
+      domain: "example.com" as CanonicalDomain,
+      measuredAt: AT,
+      drivers: {
+        foundations: measured(100, AT),
+        answerability: measured(30, AT),
+        searchPresence: searchPresenceOf({ card: card(12, 12), serps: [], at: AT }),
+        aiPresence: unmeasured("undeterminable", AT, NO_AI_ANSWERS),
+      },
+      inputs: Object.fromEntries(Object.keys(FEEDS).map((input) => [input, { read: true, empty: false }])) as Record<ScanInput, InputOutcome>,
+      robots: unmeasured("not_attempted", AT),
+      searchRange: searchPresenceRangeOf(card(12, 12)),
+      searchesRead: 3,
+    });
+    expect(v.estimate?.confidence).toBe("close");
   });
 });
