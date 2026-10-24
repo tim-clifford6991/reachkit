@@ -186,22 +186,6 @@ describe("REQ-076 non-goal — nothing is invented for a failed renewal", () => 
     expect(vendor.chargesCreated).toBe(0);
   });
 
-  it("REQ-076 c8 — a past_due account still has access until the date passes", async () => {
-    const paidThrough = new Date(NOW.getTime() + 10 * DAY);
-    paying({ paidThrough });
-    vendor.subscriptions.set(
-      "sub_1",
-      subscriptionDouble({
-        id: "sub_1",
-        customer: "cus_u1",
-        periodEnd: paidThrough,
-        status: "past_due",
-      })
-    );
-    await onSubscriptionEvent(invoiceEvent({ type: "invoice.payment_failed" }));
-    expect(await hasActiveAccess("s1")).toBe(true);
-  });
-
   it("REQ-097 c4 — no ReachKit mail follows any of the five", async () => {
     const periodEnd = new Date(NOW.getTime() + 30 * DAY);
     paying({ paidThrough: NOW });

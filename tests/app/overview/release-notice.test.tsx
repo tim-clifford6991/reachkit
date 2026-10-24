@@ -21,6 +21,7 @@ import { fakeDb } from "../../publish/harness";
 import { LIVE_ACCOUNT } from "../accounts";
 import { measured, measuredZero } from "@/lib/measure/measured";
 import type { OpportunityStore } from "@/lib/opportunities/store";
+import { memoryStore, newMemoryState } from "../../opportunities/memory-store";
 import type { StoredReport } from "@/lib/scan/report";
 
 const db = fakeDb();
@@ -91,11 +92,12 @@ function storeWith(a: {
 }): OpportunityStore {
   const report = reportWith(a.questions, a.stoppedReason);
   return {
+    ...memoryStore(newMemoryState()),
     countUnused: async () => a.unused,
     lastStatusChangeAt: async () => (a.everHeld ? AT : null),
     latestCompletedScanAt: async () => AT,
     currentReport: async () => report,
-  } as unknown as OpportunityStore;
+  };
 }
 
 async function screen(): Promise<Element> {
@@ -227,7 +229,7 @@ describe("#784 — a market too small is told, and a never-measured zero is not 
       currentReport: async () => {
         throw new Error("the database is down");
       },
-    } as unknown as OpportunityStore);
+    });
     expect(text(await screen(), "overview-supply")).toBeNull();
   });
 });

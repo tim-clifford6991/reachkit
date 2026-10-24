@@ -420,6 +420,31 @@ export function memoryStore(state: MemoryState): OpportunityStore {
     async refreshPages() {
       return state.livePages ?? [];
     },
+
+    async refreshInputs() {
+      return { pages: state.livePages ?? [], pools: { siteText: [], market: [] } };
+    },
+
+    async clustersAt() {
+      return [];
+    },
+
+    async livePageClusters() {
+      return [];
+    },
+
+    async topTenRows() {
+      return new Map();
+    },
+
+    async trackedPrompts() {
+      return [];
+    },
+
+    async setVolume(opportunityId, volume, evidence) {
+      const row = state.rows.find((r) => r.id === opportunityId);
+      if (row !== undefined) Object.assign(row, { volume, evidence });
+    },
   };
 }
 
