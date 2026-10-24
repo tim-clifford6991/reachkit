@@ -406,9 +406,9 @@ async function defaultDeps(): Promise<LiveTopicDeps> {
         const [report, site, prompts, open, asked, scans] = await Promise.all([
           store.currentReport(siteId),
           readSiteMarket(siteId),
-          store.trackedPrompts === undefined ? [] : store.trackedPrompts(siteId),
+          store.trackedPrompts(siteId),
           store.openRankable(siteId),
-          store.askedBeside === undefined ? [] : store.askedBeside(siteId, OTHER_KIND_TOP_TEN.maxAgeDays),
+          store.askedBeside(siteId, OTHER_KIND_TOP_TEN.maxAgeDays),
           db
             .from<{ ranked: unknown; created_at: string }>("scans")
             .select("ranked:report->ownRankedRows, created_at")
@@ -417,7 +417,7 @@ async function defaultDeps(): Promise<LiveTopicDeps> {
         ]);
         if (scans.error !== null) throw new Error(`live-topics: reading ranked keywords: ${scans.error.message}`);
         const market = site?.stored.current ?? null;
-        const topTens = await store.topTenRows!([...new Set(held.map((address) => address.opportunity.scanId))]);
+        const topTens = await store.topTenRows([...new Set(held.map((address) => address.opportunity.scanId))]);
         const pages: LiveTopicPage[] = held.map((address) => {
           const own = new Set(address.versions.map((version) => version.id));
           const since = Math.min(...address.versions.map((version) => Date.parse(version.published_at)));

@@ -46,6 +46,7 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { fakeDb, installTransitionRpc, type FakeDb, type Row } from "../publish/harness";
+import { deliverer, type QueuedEvent, captureMail } from "./harness";
 
 const db: FakeDb = fakeDb();
 
@@ -84,18 +85,11 @@ const client = {
 
 vi.mock("@/lib/db", () => ({ dbAdmin: () => client, db: () => client }));
 
-vi.mock("@/lib/presentation/copy", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@/lib/presentation/copy")>();
-  return {
-    ...actual,
-    copy: (key: string, vars?: Record<string, string | number>) =>
-      vars === undefined ? key : `${key}(${Object.values(vars).join(",")})`,
-  };
-});
+vi.mock("@/lib/presentation/copy", async (importOriginal) => (await import("./harness")).copyByKey(importOriginal));
 
 /** The hosted adapter clears the edge's cache tags on delivery; outside a
  *  request there is no cache, which that module already tolerates. */
-vi.mock("next/cache", () => ({ revalidateTag: () => undefined, revalidatePath: () => undefined }));
+vi.mock("next/cache", async () => (await import("./harness")).nextCache());
 
 /** The Host a request to the hosted edge carries. The page route reads it
  *  through `next/headers`, exactly as it does in the deployment. */
@@ -105,21 +99,10 @@ vi.mock("next/headers", () => ({
   cookies: async () => ({ getAll: () => [], get: () => undefined }),
 }));
 
-interface QueuedEvent {
-  name: string;
-  data: Record<string, unknown>;
-  at: Date | null;
-}
 const queued: QueuedEvent[] = [];
-vi.mock("@/jobs/client", () => ({
-  // #971's stage push goes through `client.realtime` (`src/jobs/realtime.ts`);
-  // a mock without it throws on every stage, which the pass swallows into a
-  // `setup_stage_not_published` log. Doubled as the no-op it is here.
-  client: { realtime: { publish: async () => undefined } },
-  sendJobEvent: async (name: string, data: Record<string, unknown>, options: { at?: Date } = {}) => {
-    queued.push({ name, data, at: options.at ?? null });
-  },
-}));
+vi.mock("@/jobs/client", async () =>
+  (await import("./harness")).jobsClient((name, data, at) => queued.push({ name, data, at }))
+);
 
 // ── The egress seam: answered by the hosted edge itself ─────────────────
 //
@@ -389,20 +372,7 @@ async function answerFor(url: string): Promise<{ status: number; body: string }>
   return servedDocument(parsed.host, segments[0] ?? null);
 }
 
-/** Delivers every queued event of one name whose moment has come, through
- *  `runJob()` — the one path every invocation takes. */
-async function deliver(name: string, now: Date): Promise<Outcome[]> {
-  const job = name === "publish/verify" ? publishVerify : publishRetry;
-  const out: Outcome[] = [];
-  for (;;) {
-    const next = queued.find((event) => event.name === name && (event.at === null || event.at <= now));
-    if (next === undefined) return out;
-    queued.splice(queued.indexOf(next), 1);
-    const result = await runJob(job, { data: next.data, now });
-    runs.push({ job: job.id, outcome: result });
-    out.push(result);
-  }
-}
+const deliver = deliverer({ queued, jobs: { "publish/verify": publishVerify, "publish/retry": publishRetry }, runs });
 
 /** The hourly publish tick: a clock job, so it carries no event. */
 async function publishTick(now: Date): Promise<Outcome> {
@@ -423,7 +393,7 @@ function draft(): Row {
   return row;
 }
 
-beforeEach(() => {
+beforeEach(async () => {
   vi.useFakeTimers({ toFake: ["Date"] });
   vi.setSystemTime(WRITTEN_AT);
   seedTheDatabase();
@@ -432,10 +402,7 @@ beforeEach(() => {
   inbox.length = 0;
   fetched.length = 0;
   serving.host = "";
-  __setVendorTransportForTesting(async (payload: string) => {
-    inbox.push(JSON.parse(payload) as SentMail);
-    return { status: 200, headers: {}, body: JSON.stringify({ id: `resend-${inbox.length}` }) };
-  });
+  await captureMail(inbox);
 });
 
 afterEach(() => {

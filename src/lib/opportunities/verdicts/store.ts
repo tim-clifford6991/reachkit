@@ -148,15 +148,13 @@ export interface VerdictStore {
    *  skipped rather than raised: idempotency is the index, not a guard. */
   insert(rows: readonly VerdictInsert[]): Promise<void>;
   /** SPEC §6 (D60, issue 1288): the prompts the site tracks today, which a
-   *  page's intent is matched against. Optional, as `recordIntent` is: a
-   *  double without them judges on the search alone. */
-  trackedPrompts?(siteId: string): Promise<readonly IntentPrompt[]>;
+   *  page's intent is matched against. */
+  trackedPrompts(siteId: string): Promise<readonly IntentPrompt[]>;
   /** Writes a page's intent onto its draft (`drafts.meta.intent`). */
-  recordIntent?(a: { draftId: string; intent: PageIntent }): Promise<void>;
+  recordIntent(a: { draftId: string; intent: PageIntent }): Promise<void>;
   /** Issue 1538: every address any of the site's stored scans held in a
-   *  SERP or a ranked row, the page questions' results included (1548). Optional: a store without it states no page's
-   *  index state. */
-  seenUrls?(siteId: string): Promise<readonly string[]>;
+   *  SERP or a ranked row, the page questions' results included (1548). */
+  seenUrls(siteId: string): Promise<readonly string[]>;
 }
 
 // ── Reading the two stored blobs ────────────────────────────────────────
