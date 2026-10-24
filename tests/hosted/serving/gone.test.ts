@@ -176,6 +176,20 @@ describe("A: the 410 is styled by the site's own sheet", () => {
   });
 });
 
+describe("A: the short body draws lucide's glyphs without its client Icon", () => {
+  it("gone draws file-x and list", async () => {
+    const response = await gone.GET(request());
+    expect(response.status).toBe(410);
+    expect(response.headers.get("X-Robots-Tag")).toBe("noindex");
+    expect(response.headers.get("Cache-Control")).toBe("no-store");
+    const main = parse(await response.text()).querySelector("main")!;
+    const head = main.querySelector("svg.lucide-file-x");
+    expect(head?.compareDocumentPosition(main.querySelector("h1")!)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+    const index = [...main.querySelectorAll("a")].find((a) => a.textContent === ENGLISH.index);
+    expect(index?.querySelector("svg.lucide-list")?.getAttribute("aria-hidden")).toBe("true");
+  });
+});
+
 describe("A: a body that cannot be drawn still answers 410, never 500", () => {
   it("410, noindex, no-store and the empty document in the site's language", async () => {
     state.identityFails = true;

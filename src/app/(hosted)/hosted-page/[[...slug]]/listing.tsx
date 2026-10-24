@@ -228,6 +228,7 @@ export function HostedIndex({
             className="input join-item w-full"
           />
           <button type="submit" className="btn join-item">
+            <Glyph name="search" />
             {copy("hosted.index.searchSubmit")}
           </button>
         </form>
