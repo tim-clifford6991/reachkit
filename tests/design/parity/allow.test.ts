@@ -97,7 +97,7 @@ describe("docs/design/parity/*.allow", () => {
 
   it("a component line below the gap excuses n and leaves the rest missing", () => {
     const ring = '<svg viewBox="0 0 100 100"><circle r="40" fill="none"></circle></svg>';
-    const parts = compareComponents(`<main>${ring}${ring}</main>`, ["<main></main>"], [{ string: "component:ring 1", n: 1, reason: "#1992" }]);
+    const parts = compareComponents(`<main>${ring}${ring}</main>`, ["<main></main>"], [{ string: "component:ring 1", n: 1 }]);
     expect([parts.missing, parts.allowed, parts.unused]).toEqual([["ring"], ["ring"], []]);
   });
 
