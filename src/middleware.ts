@@ -701,7 +701,7 @@ export const GUARDED_SEGMENTS: readonly string[] = [
   // `src/app/(account)/**` — the two segments §4.3 and §4.4 serve.
   "app",
   "setup",
-  // `src/app/(hosted)/**` — the three destinations `hostedRewrite` writes.
+  // `src/app/(hosted)/**` — the four destinations `hostedRewrite` writes.
   // Guarded rather than left to fall through: they are reachable by path on
   // a ReachKit host as well as by rewrite on a `content.` one, and an
   // address on `reachkit.app` that answered a customer's published page
