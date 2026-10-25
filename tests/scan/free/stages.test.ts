@@ -573,6 +573,20 @@ describe("a finished stage carries what it found (issue 1905)", () => {
     ]);
   });
 
+  it("stages/summary · a buyer and a place are kept whole up to their caps, and past a cap dropped, never cut", async () => {
+    const scanId = freshScanId();
+    const buyer = "b".repeat(200);
+    const place = "p".repeat(60);
+    await exitStage(scanId, "reading_your_market", { buyer, place });
+    await exitStage(scanId, "reading_your_market", { category: "Plumber", buyer: `${buyer}b`, place: `${place}p` });
+    await exitStage(scanId, "reading_your_market", { buyer: " ", place: "" });
+    expect(store.rpcCalls.map((call) => call.args.p_event)).toEqual([
+      { stage: "reading_your_market", done: true, summary: { buyer, place } },
+      { stage: "reading_your_market", done: true, summary: { category: "Plumber" } },
+      { stage: "reading_your_market", done: true },
+    ]);
+  });
+
   it("stages/summary · a stored log written before summaries replays byte for byte, and a summary on an entry is not read", async () => {
     const before = [
       { stage: "reading_your_site", done: false },
