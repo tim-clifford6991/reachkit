@@ -1,35 +1,11 @@
-// BUILD §9 — one mail per breakage, and only to a customer who has not
-// come back on their own.
-//
-// A destination that has needed reconnecting for 24 hours, whose customer
-// has not signed in since it broke, gets **one** `account` mail: pages are
-// being held, how many, and reconnecting releases them. No further mail
-// about that destination until it is reconnected and breaks again.
-//
-// **Four conjuncts, and each one is falsifiable on its own:**
-//
-//   health <> 'ok'                             it is actually broken
-//   now - health_changed_at >= 24 h            and has been, for long enough
-//   broken_mail_sent_at is null                and we have not written yet
-//   lastSignInAt < health_changed_at           and they have not seen it
-//
-// The last is what keeps this mail from being noise. A customer who signed
-// in after the destination broke has already been shown the state and the
-// Reconnect action on every screen they opened; writing to them as well
-// says nothing they were not told.
-//
-// **The guard is data, not memory.** `broken_mail_sent_at` is stamped when
-// the send is handed off and cleared by `writeHealth` on every transition
-// back to `ok`. So "until it is reconnected and breaks again" needs no
-// rule anyone has to remember and survives a redeploy, a retry and a
-// second tick on the same day.
-//
-// **It rides an existing job.** The occasion is one where the customer has
-// *not* come to a screen, so no read path can supply it; it is evaluated
-// inside `draft/generate`'s per-site daily loop — the same loop that would
-// otherwise be preparing the page that is now being held. §11's kill
-// switch stops that job, so a breakage mail can be delayed by a stop,
-// during which the product already says its work stopped.
+// BUILD §9 — one `account` mail per breakage, only to a customer who has not come back on their own: pages are held, how
+// many, and reconnecting releases them. No further mail until it is reconnected and breaks again. Four conjuncts:
+//   health <> 'ok'                     it is actually broken
+//   now - health_changed_at >= 24 h    and has been, for long enough
+//   broken_mail_sent_at is null        and we have not written yet
+//   lastSignInAt < health_changed_at   and they have not seen it on a screen since
+// The guard is data: stamped on hand-off, cleared by `writeHealth` back at `ok`, so it survives redeploys and retries.
+// It rides `draft/generate`'s per-site daily loop, since no read path sees a customer who stays away.
 import { DESTINATION_BREAKAGE_MAIL_DELAY_H } from "@/lib/config/constants";
 import { env } from "@/lib/config/env";
 import { sendEmail } from "@/lib/mail/send";
@@ -40,12 +16,10 @@ import { liveDestinations, markBreakageMailSent } from "../store";
 
 const HOUR_MS = 3_600_000;
 
-/** Where the mail's one action lands: the screen that carries the
- *  destinations list and its Reconnect control (§4.7). */
+/** The mail's one action: the destinations list and its Reconnect control (§4.7). */
 export const DESTINATIONS_PATH = "/app/settings";
 
-/** The occasion, and its payload. A copy key and a count — never a
- *  sentence, and never anything a vendor said. */
+/** The occasion and payload: a copy key and a count, never a sentence or anything a vendor said. */
 export type BreakageMail =
   | { due: false }
   | {
@@ -65,30 +39,14 @@ interface OwnerRow {
   first_signed_in_at: string | null;
 }
 
-/** The moment Supabase Auth last signed this customer in
- *  (`auth.users.last_sign_in_at`, #468), or `null` where it never has.
- *  Imported at the call: identity reaches the auth admin client, which this
- *  module's other readers do not need. */
+/** `auth.users.last_sign_in_at`, or `null`; imported at the call, as only this reaches the auth admin client. */
 async function lastSignedIn(userId: string): Promise<Date | null> {
   const { identityAuth } = await import("@/lib/account/identity/auth");
   return identityAuth().lastSignInAt(userId);
 }
 
-/**
- * The moment this customer last signed in, or `null` where they never
- * have.
- *
- * **The last sign-in is Supabase Auth's own record of it** (#468):
- * `auth.users.last_sign_in_at` moves on every redeemed link.
- * `users.first_signed_in_at` is read as the floor beneath it, so a customer
- * whose auth record cannot be read still counts as having been here.
- *
- * The criterion this answers is "has not signed in **since** it broke", so
- * the first sign-in alone would not do: a customer who signed in on the
- * day they paid and again this morning would be written to about a
- * destination they have already seen the state of on every screen they
- * opened.
- */
+/** The customer's last sign-in, from Supabase Auth, with `users.first_signed_in_at` as the floor if that cannot be
+ *  read. The last, not the first, since the rule is "has not signed in since it broke". */
 async function ownerOf(siteId: string): Promise<{ email: string; lastSignInAt: Date | null } | null> {
   const site = await publishDb()
     .from<SiteOwner>("sites")
@@ -114,12 +72,7 @@ async function ownerOf(siteId: string): Promise<{ email: string; lastSignInAt: D
   };
 }
 
-/**
- * Whether one breakage mail is due for this site right now.
- *
- * Returns the occasion and its payload, never a sentence and never a send:
- * what to say is the copy registry's, and sending is `sendBreakageMail`'s.
- */
+/** Whether one breakage mail is due now: the occasion, never a sentence or a send. */
 export async function breakageMailDue(siteId: string, now: Date): Promise<BreakageMail> {
   const rows = await liveDestinations(siteId);
   const broken = rows.find((row) => row.health !== "ok" && row.broken_mail_sent_at === null);
@@ -131,8 +84,7 @@ export async function breakageMailDue(siteId: string, now: Date): Promise<Breaka
 
   const owner = await ownerOf(siteId);
   if (owner === null) return { due: false };
-  // Never signed in at all is "has not signed in since it broke" — the
-  // strongest form of the condition, not an exception to it.
+  // Never signed in at all is the strongest form of "not since it broke".
   if (owner.lastSignInAt !== null && owner.lastSignInAt.getTime() >= brokeAt) return { due: false };
 
   const held = await heldPages(siteId);
@@ -150,18 +102,8 @@ export type BreakageMailOutcome =
   | { sent: true; destinationId: string; held: number }
   | { sent: false; reason: "not-due" | "mail" };
 
-/**
- * Sends the one breakage mail if it is due, and stamps the guard.
- *
- * The stamp is written **after** the send, never before: a stamp written
- * first would turn a send that never happened into a breakage the customer
- * is never told about, and the next tick asking again is exactly what
- * should happen when a send fails.
- *
- * It never throws. It is called from inside a daily per-site loop whose
- * other work — preparing tomorrow's page — must not be lost because a mail
- * did not go out.
- */
+/** Sends the mail if due, then stamps the guard, never before, so a failed send is asked again next tick. Never throws:
+ *  the daily loop's other work must not be lost to a mail. */
 export async function sendBreakageMail(siteId: string, now: Date): Promise<BreakageMailOutcome> {
   let due: BreakageMail;
   try {

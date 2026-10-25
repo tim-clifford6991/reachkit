@@ -1,20 +1,7 @@
-// BUILD §9 — the freshness promise, kept on the read path.
-//
-// The date the customer reads about a destination is never more than
-// `DESTINATION_HEALTH_MAX_AGE_H` old, **whether or not a publish was
-// attempted in between**. That promise is about the moment they read it,
-// so it is kept where they read it: `listDestinations` calls this, and a
-// stale row is re-checked in line before the list is returned.
-//
-// Refreshing only on publish would fail it exactly where it matters most —
-// a destination breaks, publishing stops, so nothing attempts a publish,
-// so nothing refreshes, and the customer reads a date from before the
-// breakage. And a job would fail it in a second way: §11's kill
-// switch stops `publish/execute` and `draft/generate`, and a stop must not
-// take the truth of a date on a screen with it.
-//
-// The cost is that a read path can make a network call, which is why it is
-// debounced and why at most one live destination per site exists to check.
+// BUILD §9 — the freshness promise, kept on the read path: the date a customer reads about a destination is never more
+// than `DESTINATION_HEALTH_MAX_AGE_H` old, whether or not a publish was attempted. `listDestinations` re-checks a stale row in line.
+// Not on publish, since a broken destination stops publishing and so would never refresh; not in a job, since §11's
+// kill switch must not take the truth of a date with it. A read can call the network, so it is debounced.
 import { DESTINATION_HEALTH_DEBOUNCE_S, DESTINATION_HEALTH_MAX_AGE_H } from "@/lib/config/constants";
 import type { DestinationView } from "../../types";
 import { heldPages } from "../../switch";
@@ -31,28 +18,16 @@ export type { BreakageMail } from "./breakage-mail";
 const HOUR_MS = 3_600_000;
 const SECOND_MS = 1_000;
 
-/** When each destination was last checked *by this process*. The debounce
- *  is a burst collapser, not a correctness mechanism: the stored
- *  `last_checked_at` is what the freshness promise is made against, and a
- *  process that has never seen a destination simply checks it. */
+/** When this process last checked each destination: a burst collapser only, as the promise is made on `last_checked_at`. */
 const lastCheckedHere = new Map<string, number>();
 
-/** Vitest keeps one module instance per file; a debounce that outlived a
- *  test would make the next one's first read a no-op. */
+/** Vitest keeps one module instance per file, so a debounce would make the next test's first read a no-op. */
 export function __resetHealthDebounceForTesting(): void {
   lastCheckedHere.clear();
 }
 
-/**
- * What the capability probe last found for this destination, as recorded
- * on its row.
- *
- * Three values and not two: `true` and `false` are answers, and `null` is
- * "not asked" — a hosted destination, which has no such distinction to
- * draw, or a WordPress destination no check has reached yet. A caller that
- * read `null` as `false` would tell a customer their account cannot publish
- * before anything had asked it (ADR-086 Decision 1).
- */
+/** What the capability probe last recorded. `null` is "not asked" (hosted, or WordPress no check has reached), never
+ *  `false`, which would tell a customer they cannot publish before anything asked (ADR-086 decision 1). */
 export async function publishCapability(destinationId: string): Promise<boolean | null> {
   const row = await readDestination(destinationId);
   return row?.publish_capable ?? null;
@@ -69,14 +44,8 @@ function debounced(destinationId: string, now: Date): boolean {
   return last !== undefined && now.getTime() - last < DESTINATION_HEALTH_DEBOUNCE_S * SECOND_MS;
 }
 
-/**
- * The destination as a surface sees it, with its state no older than the
- * freshness window.
- *
- * Returns `null` for a destination that is not there — a row that never
- * existed, or one whose id no longer resolves. A caller renders nothing
- * rather than a blank destination.
- */
+/** The destination as a surface sees it, no older than the freshness window; `null` where it is not there, so the
+ *  caller renders nothing rather than a blank destination. */
 export async function ensureFreshHealth(destinationId: string): Promise<DestinationView | null> {
   const now = new Date();
   let row = await readDestination(destinationId);
@@ -96,9 +65,7 @@ export async function ensureFreshHealth(destinationId: string): Promise<Destinat
     reason: row.health_reason,
     lastCheckedAt: new Date(row.last_checked_at),
     heldPages: held.count,
-    // SPEC §5: the customer's own host and the word for its state, read
-    // off the row the check has just refreshed — so the address on the
-    // screen and the state beside it are one reading, never two.
+    // SPEC §5: the host and its state from the one row just refreshed, never two readings.
     hostname: row.hostname,
     hostnameState: row.hostname_state,
   });

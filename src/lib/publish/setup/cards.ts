@@ -1,37 +1,15 @@
-// SPEC §5 — the destination cards' data: *Hosted* (chosen, shows the CNAME
-// record) vs *WordPress — connect later*.
-//
-// **No mode pair** (SPEC §7, 2026-09-11; #476): Autopilot is the only mode
-// and no screen offers a choice. `PublishingMode` stays because the publish
-// machine still reads `sites.mode`; setup always records `autopilot`.
-//
-// The archived plan is WO-221. Three properties this module exists to make
-// structural rather than reviewable:
-//
-//  1. **The default is data on the option**, not a fallback applied when
-//     a field is missing — so a submit carrying no explicit choice records
-//     the value the founder was shown, and the screen and the writer cannot
-//     disagree about what "default" meant.
-//  2. **`dns` has exactly two shapes** — the record, or the stated pending
-//     shape — and no third. There is no `null`, no empty string and no
-//     placeholder, so no surface can render a blank where a value would
-//     sit (REQ-028 c2).
-//  3. **Every option carries a copy key and this module writes no
-//     sentence.** The destination names are already in the registry; the
-//     one written line each option states is its own key.
-//
-// Pure: no network call, no health check, no clock. The edge hostname the
-// record points at is an env binding and is passed in by the adapter —
-// never a string in a card, and never a read this module makes, which is
-// what keeps its whole contract decidable in a unit test.
+// SPEC §5 — the destination cards' data: *Hosted* (chosen, shows the CNAME record) vs *WordPress — connect later*.
+// No mode pair (SPEC §7): Autopilot is the only mode; `PublishingMode` stays because the machine reads `sites.mode`.
+// The default is data on the option, so a submit with no choice records what the founder was shown.
+// `dns` has exactly two shapes, the record or the stated pending one, never a blank (REQ-028 c2).
+// Every option carries a copy key and this module writes no sentence. Pure: the edge hostname is passed in.
 import type { CopyKey } from "@/lib/presentation/copy";
 import { DEFAULT_HOSTED_LABEL, hostFor } from "../destinations/hosted/label";
 
 export type PublishingMode = "autopilot";
 export type DestinationKind = "hosted" | "wordpress";
 
-/** The one record a founder points at the hosted blog. `name` is the host
- *  they create it on; `value` is what it points at. */
+/** The one record a founder points at the hosted blog: `name` is their host, `value` what it points at. */
 export interface DnsRecord {
   type: "CNAME";
   name: string;
@@ -52,9 +30,7 @@ export interface DestinationOption {
   copy: "setup.destination.hosted" | "setup.destination.wordpress";
   /** Present only for `hosted`. Two shapes, never a blank (REQ-028 c2). */
   dns?: DnsRecord | DnsPending;
-  /** The subdomain label the record above is composed with — the
-   *  customer's own choice, or the default they have not changed (SPEC §5,
-   *  2026-09-12). Present only for `hosted`, like the record itself. */
+  /** The label the record is composed with, chosen or default (SPEC §5); `hosted` only. */
   label?: string;
 }
 
@@ -62,25 +38,8 @@ export interface SetupCards {
   destination: readonly DestinationOption[];
 }
 
-/** The `<label>.{customer-domain}` CNAME (SPEC §5, 2026-09-12), or the
- *  stated pending shape where no site address has been given yet.
- *
- *  **The label travels with the field the customer is typing in**, so the
- *  record under the card always names the host they have chosen rather
- *  than the one they started on. `null` is the default label, which is
- *  what the card is drawn with before they touch it. */
-/**
- * The record a hosted host that is waiting for DNS still needs, composed
- * from the host itself.
- *
- * **One derivation, three screens** (#924). Setup's connect step shows it,
- * Settings shows it for as long as the host waits (#754), and the Overview
- * item points at the first. Composing it in each place is how they would
- * come to state two records for one host — so the host is split back into
- * the label and the domain it was composed from, `dnsRecordFor` builds it,
- * and a host the record would not name exactly gets no record rather than
- * a different one.
- */
+/** The record a host waiting for DNS still needs, composed from the host, so setup, Settings and Overview state one
+ *  record. A host the record would not name exactly gets none rather than a different one. */
 export function recordForHost(a: {
   hostname: string;
   cnameTarget: string;
@@ -95,6 +54,8 @@ export function recordForHost(a: {
   return "pending" in record || record.name !== a.hostname ? null : record;
 }
 
+/** The `<label>.{customer-domain}` CNAME (SPEC §5), or the pending shape with no site address yet. The label follows
+ *  the field being typed; `null` is the default. */
 export function dnsRecordFor(a: {
   siteDomain: string | null;
   cnameTarget: string;
@@ -110,13 +71,11 @@ export function dnsRecordFor(a: {
   };
 }
 
-/** Both destination options, every time, with the pre-selection carried as
- *  data on the option. */
+/** Both options, every time, with the pre-selection as data. */
 export function setupCards(a: {
   siteDomain: string | null;
   cnameTarget: string;
-  /** The label the founder has chosen, or absent for the default they are
-   *  shown before they choose one (SPEC §5: "default `content`"). */
+  /** The chosen label, or absent for the default (SPEC §5: "default `content`"). */
   label?: string | null;
 }): SetupCards {
   const label = a.label ?? DEFAULT_HOSTED_LABEL;
@@ -140,9 +99,7 @@ export function setupCards(a: {
   };
 }
 
-/** The destination a founder who touched neither card submits — read off
- *  the cards themselves, so "the value the founder was shown" and "the value
- *  recorded" are the same fact read twice, never two constants. */
+/** What a founder who touched neither card submits, read off the cards, so shown and recorded are one fact. */
 export function preselected(cards: SetupCards): { destination: DestinationKind } {
   const destination = cards.destination.find((option) => option.preselected);
   if (!destination) {

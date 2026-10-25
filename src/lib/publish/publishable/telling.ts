@@ -1,52 +1,21 @@
-// BUILD §9 · §12 — the telling: what the customer is told, when the pair
-// changes, and the one mail that cannot be suppressed.
-//
-// §9's promise is draft-by-default, and REQ-057 c8 states what makes it
-// true across a draft's whole life: "No page publishes on a pair the
-// customer was never told about, and no page publishes at all without their
-// having been told, on the pair it actually publishes under, either the
-// interval they have to stop it or that no interval exists."
-//
-// **This module writes no mail and no sentence.** It returns the occasion,
-// the copy key and the values the key interpolates. `sendEmail()` sends;
-// the strings are the owner's.
-//
-// Two kinds, derived from the governing pair **alone** — nothing about
-// the destination enters the kind:
-//
+// BUILD §9 · §12 — the telling: what the customer is told, when the pair changes, and the one mail that cannot be
+// suppressed. REQ-057 c8: "No page publishes on a pair the customer was never told about, and no page publishes at all
+// without their having been told, on the pair it actually publishes under, either the interval they have to stop it or
+// that no interval exists."
+// It writes no mail and no sentence: the occasion, the copy key and its values. Two kinds, from the pair alone:
 //   autopilot, window > 0  → `interval`      (c1)
 //   autopilot, window = 0  → `no_interval`   (c7)
-//
-// There is no `approval_only` (owner 2026-10-08, issue 1337): autopilot
-// only, and no telling says an approval is needed.
-//
-// The destination clause is composed separately, at the moment the telling
-// is composed, and is **not part of the pair** (BP-046 decision 5). Putting
-// destination health in the pair would make every health flap re-open the
-// telling and hold pages on a precondition c8 never names; what holds a
-// page against a destination that cannot publish is the
-// `destination_working` guard, which already exists.
-//
-// The archived plan is WO-216.
+// No telling says an approval is needed. The destination clause is not part of the pair (BP-046 decision 5), or every
+// health flap would re-open the telling; `destination_working` holds such a page.
 import { publishDb } from "../db";
 import { adapterFor, destinationOf, withConfig } from "../destinations";
 import type { DestinationKind, DraftView, GoverningPair, ToldRecord, VetoLink } from "../types";
 import { samePair } from "../settings/pair";
 import { becomesPublishable } from "./predicate";
 
-/**
- * REQ-057 criterion 9. What the telling says about the destination.
- *
- * Present for a page bound for the customer's own site — decided from
- * `hostedByUs === false` on the adapter, **never** from
- * `kind === 'wordpress'`. Since ADR-084 `servesPublicly` is true at both
- * destinations and can no longer answer that question; the two properties
- * are coextensive today, which is exactly why a kind check would pass every
- * test that exists.
- *
- * `null` at a destination ReachKit serves, which criterion 9 does not speak
- * about, unless its address is not connected yet.
- */
+/** REQ-057 c9: what the telling says about the destination, for a page bound for the customer's own site, decided from
+ *  `hostedByUs === false`, never `kind === 'wordpress'`, which would pass every test today. `servesPublicly` is true at
+ *  both since ADR-084. `null` at a destination we serve, unless its address is not connected yet. */
 export type DestinationClause =
   | {
       says: "goes_live_there";
@@ -55,19 +24,12 @@ export type DestinationClause =
         | "mail.draftReady.dest.goesLiveThen"
         | "mail.draftReady.dest.goesLiveAtOnce";
     }
-  /** ReachKit already reads that site as one it cannot publish to. The
-   *  telling says the page cannot go live there as things stand and what
-   *  must change. It **suppresses nothing else**: the date criteria 1, 7
-   *  and 8 have it name is still named, the stop action is still offered,
-   *  and the zero-window mail is still unsuppressible. It only stops the
-   *  telling asserting the page goes live there then, or that approving it
-   *  will make it live. */
+  /** We read the site as one we cannot publish to, so the telling says so and what must change. It suppresses nothing
+   *  else: the date, the stop action and the zero-window mail stay; it only stops claiming the page goes live there. */
   | {
       says: "cannot_go_live_there";
       site: string;
-      /** `addressNotConnected` for a hosted address still waiting for its
-       *  record: no page goes live before it is, so that mail names no
-       *  moment. */
+      /** `addressNotConnected`: a hosted address waiting for its record, so the mail names no moment. */
       copy: "mail.draftReady.dest.cannotPublish" | "mail.draftReady.dest.addressNotConnected";
     };
 
@@ -85,42 +47,28 @@ export type Telling =
       destination: DestinationClause | null;
       copy: "mail.draftReady.autopilotZero";
     }
-  /** The page has no publish moment to name yet — the site has no stated
-   *  time zone, so no date exists to tell the customer. The page is held by
-   *  the same absence (`becomesPublishable` answers `zone_not_set`), so
-   *  nothing publishes untold; this arm exists so a caller cannot compose a
-   *  mail naming a moment nobody could compute. */
+  /** No stated zone, so no moment to name; the page is held by the same absence, and no mail names an uncomputable moment. */
   | { kind: "not_yet_tellable"; because: "zone_not_set" };
 
 export type TellingKind = Telling["kind"];
 
 export interface TellingInput {
   draft: DraftView;
-  /** The destination the page is bound for. The clause is read for this one
-   *  destination, at the moment the telling is composed. */
+  /** The destination the page is bound for, whose clause is read as the telling is composed. */
   destination: DestinationKind;
-  /** The stop action, issued by the caller before composing. Absent for
-   *  every kind but `interval`, which is the only kind that offers one. */
+  /** The stop action, issued by the caller; only `interval` offers one. */
   stopAction?: VetoLink;
 }
 
-/**
- * The telling owed for a page right now.
- *
- * Asynchronous because criterion 9's third arm binds on what ReachKit reads
- * "at the moment that telling is sent": the destination's health is read
- * here, never taken from `drafts.told`. Every other input is a pure
- * function of the `DraftView`.
- */
+/** The telling owed now. Async because criterion 9 reads the destination's health "at the moment that telling is sent",
+ *  never from `drafts.told`; everything else is the `DraftView`'s. */
 export async function tellingFor(a: TellingInput): Promise<Telling> {
   const kind = kindOf(a.draft.governing);
   const destination = await destinationClause(a.draft.siteId, a.destination, kind);
 
   const answer = becomesPublishable(withoutHolds(a.draft));
   if (!answer.publishable) {
-    // The only way a page under autopilot with a started window has no
-    // moment to name is a site with no stated zone. Nothing is composed
-    // around a date nobody could compute.
+    // Only a site with no stated zone has no moment to name.
     return { kind: "not_yet_tellable", because: "zone_not_set" };
   }
 
@@ -142,24 +90,13 @@ export async function tellingFor(a: TellingInput): Promise<Telling> {
   };
 }
 
-/**
- * The kind, from the governing pair alone.
- *
- * Nothing about the destination, the draft's state or the clock enters
- * here — which is what lets the same three kinds serve criterion 1's first
- * telling and criterion 8's further ones without a fourth arm.
- */
+/** The kind, from the pair alone, so criterion 1's first telling and criterion 8's later ones share it. */
 export function kindOf(pair: GoverningPair): Exclude<TellingKind, "not_yet_tellable"> {
   return pair.vetoHours === 0 ? "no_interval" : "interval";
 }
 
-/** True only for `kind: 'no_interval'`: that telling is the whole of the
- *  telling, so no notification setting suppresses it and it carries no
- *  unsubscribe link — "because no link would stop it" (REQ-057 c7).
- *
- *  Adding an unsubscribe link to that mail will look like a compliance fix
- *  and is not one: the link would stop nothing, which is a false statement
- *  to the customer about the one thing they might act on. */
+/** Only `no_interval`: that mail is the whole telling, so no setting suppresses it and it carries no unsubscribe link,
+ *  "because no link would stop it" (REQ-057 c7). Adding one is not a compliance fix but a false statement. */
 export function isUnsuppressible(t: Telling): boolean {
   return t.kind === "no_interval";
 }
@@ -168,14 +105,8 @@ export type ToldAnswer =
   | { told: true }
   | { told: false; because: "never_told" | "pair_changed" };
 
-/**
- * REQ-057 c8's precondition, as the `customer_told` guard reads it.
- *
- * One comparison, over the four members of the governing pair **and no
- * fifth**. The destination clause is stored in `drafts.told` as sent and is
- * deliberately not compared: a destination that goes healthy → unhealthy
- * between two evaluations must not re-open the telling obligation.
- */
+/** REQ-057 c8's precondition for `customer_told`: the four pair members and no fifth. The stored destination clause is
+ *  not compared, so a health change never re-opens the telling. */
 export function toldCurrentPair(d: DraftView): ToldAnswer {
   const record = d.told;
   if (record === null) return { told: false, because: "never_told" };
@@ -184,9 +115,7 @@ export function toldCurrentPair(d: DraftView): ToldAnswer {
     : { told: false, because: "pair_changed" };
 }
 
-/** Writes `drafts.told`: the pair, what was said, the moment named and the
- *  moment it was sent. Called by the sender **after** the send succeeded —
- *  a send that failed leaves the telling owed, and the page held. */
+/** Writes `drafts.told` after a successful send only, so a failed send leaves the telling owed and the page held. */
 export async function recordTold(
   draftId: string,
   t: Telling,
@@ -211,19 +140,8 @@ export async function recordTold(
   }
 }
 
-/**
- * Criterion 9's clause, composed at send time.
- *
- * `hostedByUs === true` ⇒ `null`, except while its address waits for its
- * record, when the page cannot go live there at all. `false` ⇒ the site is named, and whether the
- * clause says the page goes live there or that it cannot is read from the
- * destination's health **now**.
- *
- * A kind with no adapter in this build has no `hostedByUs` to read, and no
- * clause is composed: a page bound for a destination the product cannot
- * reach is held by `destination_working`, and a mail must not assert
- * anything about a site nothing can answer for.
- */
+/** Criterion 9's clause at send time. Hosted by us is `null` unless its address waits for its record; otherwise the
+ *  site is named, live or not by its health now. No adapter, no clause: `destination_working` holds that page. */
 async function destinationClause(
   siteId: string,
   kind: DestinationKind,
@@ -237,12 +155,7 @@ async function destinationClause(
   if (row === null) return null;
 
   const site = await siteOf(row.id);
-  // `ok` is the whole test, and it stays the whole test. The
-  // `cannot_publish` reason ADR-086 adds (a credential that can create
-  // posts but cannot publish them) is a `HealthReason` now
-  // (`src/lib/publish/types.ts`) and arrives on a row whose health is
-  // `error` — so it joins this arm rather than a new one, which is what
-  // criterion 9 asks for: one thing to say for both.
+  // `ok` is the whole test: ADR-086's `cannot_publish` arrives as `error` and joins this arm, one thing to say for both.
   if (row.health !== "ok") {
     return { says: "cannot_go_live_there", site, copy: "mail.draftReady.dest.cannotPublish" };
   }
@@ -257,9 +170,7 @@ async function destinationClause(
   };
 }
 
-/** A hosted address still waiting for its record: the page cannot go live
- *  until it is connected. A live host, no host, or a read that fails says
- *  nothing, as before. */
+/** A hosted address waiting for its record; a live host, no host or a failed read says nothing. */
 async function hostedClause(siteId: string): Promise<DestinationClause | null> {
   try {
     const { hostedHostFor } = await import("../destinations/hosted/hostname");
@@ -271,21 +182,8 @@ async function hostedClause(siteId: string): Promise<DestinationClause | null> {
   }
 }
 
-/**
- * The address the clause names.
- *
- * Read from the destination's own config through the sealed-credential
- * door, which decrypts it, hands it to this callback and returns **what
- * this callback returns** — an address, never the config. The credential
- * that sits beside the address in the same object has no way out of the
- * callback and is not logged, thrown with or stored (issue #54; before it,
- * this function was handed the ciphertext and read an empty address out of
- * it).
- *
- * The empty string where there is nothing to name: a destination with no
- * credential stored has no address to put in a sentence, and the clause
- * that carries it is composed from a state, not from this.
- */
+/** The address the clause names, read through `withConfig`, which returns the address and never the config. `""` with
+ *  no credential stored. */
 async function siteOf(destinationId: string): Promise<string> {
   try {
     return await withConfig(destinationId, async (cfg: Record<string, unknown>) => {
@@ -297,16 +195,8 @@ async function siteOf(destinationId: string): Promise<string> {
   }
 }
 
-/**
- * The draft as the *telling* reads it.
- *
- * `becomesPublishable` is asked one question here — when does this page go
- * out — and the two holds that are about the page's own text rather than
- * about its moment (an unsaved edit, an outstanding claim re-check) would
- * make it answer "never", which is not a telling and not what the customer
- * needs to be told. Those two hold the page at the guard; they do not
- * change the date it is bound for.
- */
+/** The draft as the telling reads it: when does it go out. An unsaved edit or claim re-check holds it at the guard but
+ *  does not change its date, so they are cleared here. */
 function withoutHolds(d: DraftView): DraftView {
   return { ...d, hasUnsavedEdit: false, claimRecheckOutstanding: false };
 }

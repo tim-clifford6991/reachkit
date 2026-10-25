@@ -1,22 +1,11 @@
-// BUILD §9 — the `destinations` rows, read and written in one place.
-//
-// Every read here names its columns and **none of them names `config`**.
-// That is the mechanism behind §9's "credentials … never logged": the
-// ciphertext is not absent from these selects by care taken at each call
-// site, it is absent because there is one select list and it does not have
-// it. `config/` is the only module that ever names the column, and the
-// only thing it does with the value is hand it to one callback.
-//
-// A row is *live* when `deleted_at is null`. Disconnect keeps the row —
-// published pages stay live and their publications point at it (ADR-080) —
-// so every read a surface or a publish attempt makes filters on it, and
-// the partial unique index means a site has at most one such row.
+// BUILD §9 — the `destinations` rows, read and written in one place. There is one select list and it never names
+// `config`, which is how §9's "credentials … never logged" holds; only `config/` names the column.
+// Live is `deleted_at is null`: disconnect keeps the row because publications point at it (ADR-080), and a partial
+// unique index keeps a site to one live row.
 import { publishDb } from "../db";
 import type { DestinationHealth, DestinationKind, HealthReason } from "../types";
 
-/** The `destinations` row as this subsystem reads it. Thirteen columns,
- *  and no fourteenth: `config` is not here, and there is nowhere on this shape for
- *  a vendor message to live. */
+/** The row as read here: no `config`, and nowhere for a vendor message to live. */
 export interface DestinationRecord {
   id: string;
   site_id: string;
@@ -29,25 +18,19 @@ export interface DestinationRecord {
   deleted_at: string | null;
   publish_capable: boolean | null;
   stamp_capable: boolean | null;
-  /** SPEC §5 (2026-09-12): the host this destination serves the customer's
-   *  pages at, and what the project's domain list says about it. Null for
-   *  a destination that serves at no host of its own. */
+  /** SPEC §5: the host the pages are served at and the domain list's word for it; null with no host of its own. */
   hostname: string | null;
   hostname_state: "pending_dns" | "live" | null;
 }
 
-/** The one select list. Written once so that no caller can widen it. */
+/** The one select list, written once so no caller can widen it. */
 export const RECORD_COLUMNS =
   "id, site_id, kind, health, health_reason, health_changed_at, " +
   "broken_mail_sent_at, last_checked_at, deleted_at, publish_capable, stamp_capable, " +
-  // SPEC §5: the customer's own host and its state. Neither is
-  // credential-adjacent — the host is the address on their own domain that
-  // they are asked to point — and both are what a surface states.
+  // SPEC §5: the host and its state, which a surface states; neither is credential-adjacent.
   "hostname, hostname_state";
 
-/** One destination by id, live or disconnected. `reconnect` and
- *  `disconnect` both address a row by id and both must be able to see a
- *  row they are about to change the liveness of. */
+/** One destination by id, live or disconnected, since `reconnect` and `disconnect` change its liveness. */
 export async function readDestination(destinationId: string): Promise<DestinationRecord | null> {
   const { data, error } = await publishDb()
     .from<DestinationRecord>("destinations")
@@ -58,10 +41,7 @@ export async function readDestination(destinationId: string): Promise<Destinatio
   return data[0] ?? null;
 }
 
-/** A site's live destinations, oldest first. At most one today (the
- *  partial unique index), and read as a list because that is what a
- *  surface renders and because the index — not this query — is what keeps
- *  it at one. */
+/** A site's live destinations, oldest first: a list, as surfaces render one, kept to one by the index. */
 export async function liveDestinations(siteId: string): Promise<DestinationRecord[]> {
   const { data, error } = await publishDb()
     .from<DestinationRecord>("destinations")
@@ -73,19 +53,8 @@ export async function liveDestinations(siteId: string): Promise<DestinationRecor
   return data;
 }
 
-/**
- * Records what a check concluded.
- *
- * `health_changed_at` moves **only when the state actually changed** — it
- * is when the destination broke, not when it was last looked at, and the
- * 24 hours before one breakage mail are counted from it. A check that
- * confirms an unchanged state still stamps `last_checked_at`, which is the
- * date the customer reads.
- *
- * Reaching `ok` clears `broken_mail_sent_at`. That clearing is the whole
- * of "no further mail about that destination until it is reconnected and
- * breaks again": the guard is data, not a rule a caller has to remember.
- */
+/** Records a check. `health_changed_at` moves only on a change, since the breakage mail's 24 hours count from it;
+ *  `last_checked_at` always moves. Reaching `ok` clears `broken_mail_sent_at`, so the next breakage mails again. */
 export async function writeHealth(a: {
   destinationId: string;
   health: DestinationHealth;
@@ -106,17 +75,8 @@ export async function writeHealth(a: {
     .eq("id", a.destinationId);
 }
 
-/**
- * Records what the capability probe found.
- *
- * Its own write, and only where the probe actually answered: `null` on the
- * column means "not asked, or could not be asked", and it is a third value
- * rather than a missing `false` on purpose. A hosted destination is never
- * asked — there is no account there whose permission to publish could
- * differ from its permission to create — and a probe whose read failed
- * leaves the last answer standing rather than overwriting it with a
- * network blip (ADR-084 Decision 3, ADR-086 Decision 1).
- */
+/** Records the capability probe, only where it answered: `null` is "not asked", never `false`; hosted is never asked,
+ *  and a failed read leaves the last answer standing (ADR-084 decision 3, ADR-086 decision 1). */
 export async function writePublishCapable(destinationId: string, capable: boolean): Promise<void> {
   await publishDb()
     .from<never>("destinations")
@@ -124,21 +84,8 @@ export async function writePublishCapable(destinationId: string, capable: boolea
     .eq("id", destinationId);
 }
 
-/**
- * Records what the stamp probe found (issue #160).
- *
- * Its own write, beside `writePublishCapable` and never folded into it.
- * The two columns hold two facts with two consequences — one selects a
- * health state and holds a queue, the other decides only whether REQ-060
- * criterion 6's mail has a place to name — and one writer taking both
- * would be the merge ADR-083 Decision 4's note forbids, arriving through
- * the back door of a convenience.
- *
- * `null` means "not asked, or could not be asked", the same third value
- * `publish_capable` carries and for the same reason: a probe whose read
- * failed leaves the last answer standing rather than overwriting it with a
- * network blip.
- */
+/** Records the stamp probe, never folded into `writePublishCapable`: one holds a queue, the other only names a place in
+ *  REQ-060 c6's mail (ADR-083 decision 4). `null` is "not asked", as there. */
 export async function writeStampCapable(destinationId: string, capable: boolean): Promise<void> {
   await publishDb()
     .from<never>("destinations")
@@ -146,10 +93,7 @@ export async function writeStampCapable(destinationId: string, capable: boolean)
     .eq("id", destinationId);
 }
 
-/** Stamps the once-per-breakage guard. Called when the mail has been
- *  handed to the mail seam and not before: a stamp written first would
- *  turn a send that never happened into a breakage nobody is ever told
- *  about. */
+/** Stamps the once-per-breakage guard after the mail seam has the mail, never before, or a failed send is never told. */
 export async function markBreakageMailSent(destinationId: string, at: Date): Promise<void> {
   await publishDb()
     .from<never>("destinations")

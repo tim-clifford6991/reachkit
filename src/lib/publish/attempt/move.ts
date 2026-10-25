@@ -1,31 +1,10 @@
-// SPEC §7 (2026-10-17, issue 1487) — a retargeted page leaves its old
-// address.
-//
-// The new version is already delivered at the address its new search
-// names. This writes the rest of the move:
-//
-//   · every version still live at the old address takes `published →
-//     unpublished` through `transition()`, its row's `unpublished_at` with
-//     it, as `unpublish()` pairs the two (ADR-080: the live set is never
-//     changed by a row edit alone). No unpublish outcome is recorded: the
-//     page was not taken down, and the old address answers 301 to the new
-//     one, read by `addressOf` from the update itself;
-//   · every live page of the site that linked the old address is planned a
-//     `link` refresh (§7, *Links in both directions*), whose new version
-//     links the new address by the name `pageName` gives the moved page. No
-//     live page's text is edited in place.
-//
-// A merge (issue 1506) is the same move into a page that already stands at
-// its own address: the topic recheck retires a page into the live page of
-// its cluster, and the rows it leaves name that page (`merged_into`).
-//
-// `repairMoves` runs it each hour for a retarget the move was not written
-// for — one published before issue 1487 at its old address, or one whose
-// move did not complete — and plans the link refresh of a page that was
-// younger than §6's floor when the page moved. 0¢: rows only.
-//
-// It never throws: the page went live at its new address whether or not
-// the rest could be written, and the log says what was not.
+// SPEC §7 — a retargeted page leaves its old address, once the new version is live at the address its new search names:
+//   · every version live at the old address takes `published → unpublished` through `transition()` with its row's
+//     `unpublished_at` (ADR-080: never a row edit alone), and no unpublish outcome, as the old address answers 301;
+//   · every live page linking the old address is planned a `link` refresh (§7); no live page's text is edited in place.
+// A merge is the same move into a page at its own address, and the rows it leaves name it (`merged_into`).
+// `repairMoves` runs hourly for a retarget whose move was never written or did not complete. 0¢: rows only.
+// It never throws: the page is live at its new address either way, and the log says what was not written.
 import { pageName } from "@/lib/generate/links/text";
 import { publishDb } from "../db";
 import { invalidateHosted } from "../destinations/hosted/cache";
@@ -53,10 +32,7 @@ export async function moveAddress(a: {
   at: Date;
   /** Who moved it: the actor that published the new version. */
   by: Actor;
-  /** Issue 1506: the old page went into `to`, a page written for its own
-   *  search, rather than being republished there. Nothing updates the old
-   *  address, so each row left there names `to` (`merged_into`) and the
-   *  address answers with it. */
+  /** The old page went into `to`, a page for its own search, so each row left there names `to` (`merged_into`). */
   merge?: boolean;
 }): Promise<void> {
   try {
@@ -83,8 +59,7 @@ export async function moveAddress(a: {
         .from<{ id: string }>("publications")
         .update({ unpublished_at: a.at.toISOString(), ...(a.merge === true ? { merged_into: a.to.publicationId } : {}) })
         .eq("id", row.id);
-      // A row that could not be written stays live, and its draft with it:
-      // the two leave together or not at all.
+      // A row that could not be written stays live with its draft: they leave together or not at all.
       if (written.error !== null && written.error !== undefined) {
         console.error(JSON.stringify({ event: "hosted_move_row_refused", publicationId: row.id, message: written.error.message }));
         continue;
@@ -95,8 +70,7 @@ export async function moveAddress(a: {
       }
     }
 
-    // The links: the old address on the host the site answers at now, and as
-    // the update stored it, are one page.
+    // The old address as stored and on the current host are one page.
     const pages = await livePagesForSite(siteId, host);
     const moved = pages.find((page) => page.publicationId === a.to.publicationId);
     const title = moved === undefined ? "" : pageName({ url: a.to.url, title: moved.title, h1: moved.heading ?? "" });
@@ -119,18 +93,9 @@ interface RetargetRow extends Row {
 /** The repair's actor: it runs inside the hourly publish tick. */
 const PUBLISH_TICK: Actor = { kind: "system", job: "publish/execute" };
 
-/**
- * Every live hosted retarget, moved where its move was not written (SPEC §7,
- * issue 1487). Idempotent: a retarget at its new address with nothing left
- * at the old one and no link left to plan changes nothing.
- *
- * A retarget still at its old address — published before the move existed —
- * is recorded at the address the hosted destination gives it now
- * (`liveUrlOnHost`, with the slug its new search names), as delivery would
- * have recorded it; its draft stays `published`, its text is untouched. It
- * is left where it is when a newer version of the page is live at the old
- * address, or another live page holds the new slug (the adapter's refusal).
- */
+/** Every live hosted retarget, moved where its move was not written (SPEC §7); idempotent. One still at its old address
+ *  is recorded at `liveUrlOnHost` with its new slug, draft and text untouched, unless a newer version is live there or
+ *  another page holds the slug. */
 export async function repairMoves(a: { now: Date; by?: Actor }): Promise<{ moved: number }> {
   const by = a.by ?? PUBLISH_TICK;
   const { isRetarget } = await import("@/lib/opportunities/types");
@@ -149,8 +114,7 @@ export async function repairMoves(a: { now: Date; by?: Actor }): Promise<{ moved
     const opportunity = row.drafts?.opportunities ?? null;
     if (!isLive(row) || opportunity === null || opportunity.target_ref === null) continue;
     if (!isRetarget({ evidence: opportunity.evidence as never })) continue;
-    // The new address in the site's language (issue 1514). A page that
-    // moved before is at another slug than this one and is left alone below.
+    // The new address in the site's language; a page already moved elsewhere is left alone below.
     const to = slugify(opportunity.target_query ?? "", (await siteLocale(row.site_id)).language);
     const from = slugOf(opportunity.target_ref);
     const at = slugOf(row.live_url ?? "");

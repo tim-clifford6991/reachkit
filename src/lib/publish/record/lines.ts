@@ -1,55 +1,20 @@
-// BUILD §9, §4.6 — the record's facts as the keys a surface renders them
-// under, and nothing else.
-//
-// **The record decides; the screen reads** (issue #217). `index.ts` already
-// keeps that discipline for the two facts it had a surface for — the
-// address label and REQ-060 criterion 4's line are chosen there and named
-// as keys, never as sentences. This file is the same discipline for the two
-// that had none: what ReachKit's one check found, and what a page's
-// unpublish call found. A component that picked either key itself would be
-// a second place the choice is made, and the day panel and the draft view
-// would disagree about a page the first time one of them was edited.
-//
-// **Pure, and deliberately not in `index.ts`.** That module resolves
-// `publishDb()`; this one imports two types and `CopyKey`. Every surface
-// that states a page's standing renders through here, so a database client
-// behind it would be paid for on the draft view, the day panel and Overview
-// alike and needed by none of them.
-//
-// **Seven verification lines, and `page_not_found` and `could_not_confirm`
-// are two of them — ADR-085's landmine, at the surface this time.** They
-// render as the same quiet line and have opposite consequences: one stops
-// the page being shown as live and retires it from weekly judgement, the
-// other asserts nothing and leaves the page exactly as it was. Collapsing
-// them into one key is the edit that will be proposed by whoever is looking
-// at two identical grey lines on a day panel, and
-// `tests/publish/record/lines.test.ts` is what fails when they do.
-//
-// **`kind` is carried beside the key on purpose.** A surface needs to know
-// which of the seven it is holding — to choose a tone, which is
-// presentation and is not this module's — and re-deriving that from the
-// disposition would put the same `switch` in every component. So the choice
-// is made once, here, and what a screen does with it is the screen's.
+// BUILD §9, §4.6 — the record's facts as the keys a surface renders them under. The record decides and the screen reads,
+// so the day panel and the draft view never pick keys of their own and disagree.
+// Pure and apart from `index.ts`, which resolves `publishDb()`, so no surface pays for a database client.
+// `page_not_found` and `could_not_confirm` stay two lines (ADR-085): they look alike, but one retires the page from
+// weekly judgement and the other asserts nothing; `tests/publish/record/lines.test.ts` fails if they merge.
+// `kind` rides beside the key so a surface can choose a tone without its own `switch`.
 import type { CopyKey } from "@/lib/presentation/copy";
 import type { UnpublishOutcome, VerifyDisposition } from "../types";
 import type { NeedsYouKind } from "./needs-you";
 
-/** REQ-060 criterion 4's line (issue #156), named here rather than in
- *  `index.ts` since #217.
- *
- *  It sits in the module's **pure** leaf because a fixture screen needs the
- *  key and must not pay for a database client to get it: `index.ts`
- *  resolves `publishDb()`, and the reserved fixture account's draft view
- *  reaches no database at all. `index.ts` re-exports it, so every existing
- *  caller's spelling is unchanged, and the key is still named in exactly
- *  three files in `src/` — none of them a surface, which is the law
- *  `tests/publish/record/seo-note.test.ts` holds. */
+/** REQ-060 c4's line, in the pure leaf so the fixture draft view reaches no database; `index.ts` re-exports it.
+ *  No surface names the key (`tests/publish/record/seo-note.test.ts`). */
 export const SEO_COPY = Object.freeze({
   noSeoPlugin: "publish.wordpress.noSeoPlugin",
 } as const satisfies Record<string, CopyKey>);
 
-/** Which of the seven a record earned. Presentation-neutral: it names the
- *  standing, never how it looks. */
+/** Which of the seven a record earned: the standing, never how it looks. */
 export type VerificationKind =
   | "found"
   | "page_not_found"
@@ -62,16 +27,11 @@ export type VerificationKind =
 export interface VerificationLine {
   kind: VerificationKind;
   copy: CopyKey;
-  /** The moment the line states — when the check ran, or when it falls due.
-   *  `null` where there is no moment to state, which is every `never` arm
-   *  and `due` itself: "due" is about now, and printing now as a date would
-   *  read as an observation. */
+  /** When the check ran or falls due; `null` for `never` and `due`, since printing now would read as an observation. */
   at: Date | null;
 }
 
-/** One key per kind, total. A `Record` over the union rather than a
- *  `switch`, so an eighth kind is a compile error here and not a line that
- *  silently goes missing. Every sentence is the owner's. */
+/** One key per kind, a `Record` so a new kind is a compile error, not a missing line. */
 export const VERIFICATION_COPY: Readonly<Record<VerificationKind, CopyKey>> = Object.freeze({
   found: "record.verification.found",
   page_not_found: "record.verification.pageNotFound",
@@ -95,14 +55,7 @@ function line(kind: VerificationKind, at: Date | null): VerificationLine {
   return { kind, copy: VERIFICATION_COPY[kind], at };
 }
 
-/**
- * What the record's verification says, as one line.
- *
- * Total over `VerifyDisposition`'s four arms and, inside `done`, over
- * `VerifyOutcome`'s three — so REQ-062 criterion 7 holds at the surface the
- * way the record holds it in the type: a screen cannot state a page's
- * standing and omit what ReachKit saw, because it gets both from one call.
- */
+/** The verification as one line, total over every arm, so a screen gets the standing and what we saw from one call (REQ-062 c7). */
 export function verificationLine(verification: VerifyDisposition): VerificationLine {
   switch (verification.kind) {
     case "done":
@@ -124,9 +77,7 @@ export function verificationLine(verification: VerifyDisposition): VerificationL
         ? line("never_taken_down_first", null)
         : line("never_no_live_address", null);
   }
-  // Unreachable: both switches above are exhaustive over closed unions. The
-  // arm exists so a ninth member added to either is a compile error at the
-  // `switch` rather than an undefined line on a screen.
+  // Unreachable: both switches are exhaustive, so a new member is a compile error, not an undefined line.
   return line("never_no_live_address", null);
 }
 
@@ -135,20 +86,8 @@ export function unpublishedLine(outcome: UnpublishOutcome): CopyKey {
   return UNPUBLISHED_COPY[outcome];
 }
 
-/**
- * Why a page needs the customer, as the sentence each cause is stated
- * under (issue 880).
- *
- * The same discipline as the seven verification lines above, for the fact
- * that had none: the day panel and the Overview alert read this one map,
- * so they cannot tell a customer two different stories about one page. A
- * surface that picked its own key would be the second place the choice is
- * made — which is how "Reconnect WordPress" came to be the answer to a
- * rules failure on a hosted site.
- *
- * Total over `NeedsYouKind`, so a fifth cause is a compile error here
- * rather than a page that says nothing about itself.
- */
+/** Why a page needs the customer, one key per cause, so the day panel and the Overview alert tell one story.
+ *  Total over `NeedsYouKind`, so a new cause is a compile error. */
 export const NEEDS_YOU_COPY: Readonly<Record<NeedsYouKind, CopyKey>> = Object.freeze({
   rules: "publish.needs-you.rules",
   step: "publish.needs-you.step",
