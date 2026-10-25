@@ -2,6 +2,7 @@
 // seconds. Sentences arrive as props: the registry stays off the client.
 "use client";
 
+import { Clock } from "lucide-react";
 import type React from "react";
 import { useEffect, useState } from "react";
 
@@ -17,6 +18,7 @@ export function ZoneSlow(p: { line: string; address: string }): React.JSX.Elemen
   if (!late) return null;
   return (
     <div className="alert alert-warning alert-soft text-sm" data-testid={SLOW_TEST_ID}>
+      <Clock aria-hidden size={20} strokeWidth={1.75} />
       <p>
         {p.line} <a className="link" href={`mailto:${p.address}`}>{p.address}</a>
       </p>

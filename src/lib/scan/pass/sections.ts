@@ -1,9 +1,10 @@
 // src/lib/scan/pass/sections.ts — what a pass accumulates, the stage arguments, and the helpers every stage shares.
 import { AI_READER_AGENTS } from "@/lib/config/constants";
+import { understandBusiness } from "@/lib/business/understanding";
 import type { CostContext } from "@/lib/costs";
 import { dbAdmin } from "@/lib/db";
 import type { CoherenceVerdict } from "@/lib/market/coherence/check";
-import type { MarketConclusion } from "@/lib/market/infer/types";
+import { EMPTY_STORED_MARKET, type MarketConclusion } from "@/lib/market/infer/types";
 import type { BatteryAnswers } from "@/lib/market/questions/matrix";
 import type { PageQuestionCandidate } from "@/lib/market/questions/tracked";
 import { marketSetOf, type MarketSet, type SuggestionRow } from "@/lib/market/questions/market-set";
@@ -520,7 +521,7 @@ const [GOOGLE_READER] = AI_READER_AGENTS;
 
 /** What a finished stage tells the waiting screen, copied from what the
  *  pass already holds; a field it does not hold yet is left out. */
-export function summaryAt(stage: StageName, a: Pick<StageArgs, "domain" | "sections" | "startedAt">): StageSummary {
+export function summaryAt(stage: StageName, a: Pick<StageArgs, "domain" | "sections" | "startedAt" | "locale">): StageSummary {
   const s = a.sections;
   const summary: { -readonly [K in keyof StageSummary]: StageSummary[K] } = {};
   // The crawl runs beside the later stages, so its count rides on whichever exit follows it.
@@ -532,8 +533,22 @@ export function summaryAt(stage: StageName, a: Pick<StageArgs, "domain" | "secti
     summary.readers = { google: blocked.includes(GOOGLE_READER) ? "out" : "in", ai: blocked.length > 0 ? "out" : "in" };
   }
   if (stage === "reading_your_market") {
-    const category = categoryOf(marketOf(s, a.startedAt));
+    const market = marketOf(s, a.startedAt);
+    const category = categoryOf(market);
     if (category !== null) summary.category = category;
+    if (market.kind !== "unmeasured") {
+      // The report's own reading, so the screen and the report name the same buyer and town.
+      const read = understandBusiness({
+        domain: a.domain,
+        profile: market.value.profile,
+        locale: localeOfPass(a),
+        market: s.market === null ? null : { ...EMPTY_STORED_MARKET, current: s.market },
+        edits: { buyers: s.founderBuyer },
+      });
+      const buyer = read.buyers[0];
+      if (buyer !== undefined) summary.buyer = buyer;
+      if (read.where.place !== null) summary.place = read.where.place.name;
+    }
   }
   if (stage === "asking_the_twelve") {
     const searches = ownPresenceBySearch({ serps: s.serps as readonly Measured<MarketSerp>[], selected: s.selected, ownDomain: a.domain });

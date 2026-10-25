@@ -57,16 +57,14 @@ describe('BP-001 `## Module / boundary` — "It does **not** own `src/app/(hoste
   });
 
   it("the group's own four surfaces are on disk", () => {
-    // Each of the two rendered routes has its own root layout since issue
-    // 1514, drawing the group's one document.
+    // The uncached route has its own root layout; the cached article is a route handler.
     for (const file of [
       "document.tsx",
       "hosted-page/layout.tsx",
       "hosted-page/not-found.tsx",
-      "hosted-live/[host]/layout.tsx",
       "resolve-host.ts",
       "hosted-page/[[...slug]]/page.tsx",
-      "hosted-live/[host]/[slug]/page.tsx",
+      "hosted-live/[host]/[slug]/route.ts",
       "robots.txt/route.ts",
       "sitemap.xml/route.ts",
       "hosted-gone/route.ts",

@@ -630,6 +630,16 @@ export default tseslint.config(
     },
   },
   {
+    // A customer's host runs no script, and lucide's Icon is a client component.
+    files: ["src/app/(hosted)/**/*.{ts,tsx}"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        { paths: [{ name: "lucide-react", message: "Hosted pages draw Glyph from ./chrome; lucide-react is a client component." }] },
+      ],
+    },
+  },
+  {
     ignores: [".next/**", "node_modules/**", "coverage/**", "src/**/*.generated.ts"],
   }
 );

@@ -5,7 +5,6 @@
 // sections in the template's order, the steps, the questions and the one
 // action. The parts are the board's own Harbor Plumbing sample, its headings
 // written as questions as every page's are (SPEC §7, 2026-09-29). 0¢.
-import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 import type { HostedPage } from "@/lib/publish/destinations/hosted";
 import { applyEnvFixture } from "../../mail/env-fixture";
@@ -45,12 +44,13 @@ vi.mock("@/lib/publish/destinations/hosted", async () => {
     hostedSiteForHostname: async () => null,
     livePageBySlug: async () => state.page,
     livePagesForSite: async () => (state.page === null ? [] : [state.page]),
+    taggedForHosted: async () => undefined,
     hostedIdentity: async () => state.identity,
     hostedAddress: async () => ({ state: "none", publicationId: null }),
   };
 });
 
-const Page = (await import("@/app/(hosted)/hosted-page/[[...slug]]/page")).default;
+const { GET } = await import("@/app/(hosted)/hosted-live/[host]/[slug]/route");
 
 /** What the writer returns for "emergency plumber austin", in the board's words. */
 const PARTS: PageParts = {
@@ -111,7 +111,8 @@ async function render(page: unknown = storedDraft().page, identity: unknown = HA
   state.page = page;
   state.identity = identity;
   const slug = (page as { slug: string }).slug;
-  return renderToStaticMarkup(await Page({ params: Promise.resolve({ slug: [slug] }) }));
+  const params = Promise.resolve({ host: "content.example.com", slug });
+  return (await GET(new Request("https://content.example.com/"), { params })).text();
 }
 
 describe("the hosted Service board renders an offering draft", () => {

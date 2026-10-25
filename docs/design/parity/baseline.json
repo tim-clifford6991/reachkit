@@ -3,7 +3,7 @@
   "PubLandingPhone": { "sha256": "fcea33d7ca12f2ff4a3a12dc1e77a45e3a5ec2ace0f658fa787ac31040557199", "missing": 0 },
   "PubHowItWorks": { "sha256": "f635c971941fc883ef7117f115ce1e08e1b2ecb7c9fde6ea5f05e7c10cb926c4", "missing": 0 },
   "Pricing": { "sha256": "219fc07d38d370007b55048250139423643e50bfeaa4e55b6dd8d8e9fb3d25cc", "missing": 0 },
-  "PubScanning": { "sha256": "8f618b807fe32bcc497c3da79e7868181e2db0b58cea89a40d4532deb7a08af7", "missing": 0 },
+  "PubScanning": { "sha256": "eb7ed1456e1bbe40d7a78df05570ccdccf7e5d4ecebe11a7483dd80503fd6451", "missing": 0 },
   "PubReport": { "sha256": "c313d9bd1ae366591676ff1f5b31ae7aec55bae66778347318d2b8213e0b6acb", "missing": 0 },
   "PubAbout": { "sha256": "fa7340da43762d9cad618f2aa4059f601e3756103f74d71d53e0836ebf44ccd3", "missing": 0 },
   "PubCompare": { "sha256": "9bf356c57559f64ca76f59a62e567231956e4214a31efbe4dbbc5fca203202ba", "missing": 0 },
@@ -44,8 +44,8 @@
   "SettingsMail": { "sha256": "8313c4e879339f1c00380adf1e9432370d51a733bb588e29d8a6e543ba32caf4", "missing": 0 },
   "SettingsBilling": { "sha256": "2d9b7abde6ddf7d207571c97bdf4e8f6c8648b777b8dceb434d90ddae484cc5b", "missing": 0 },
   "SettingsAccount": { "sha256": "969f0f65080bad9eee51becf1baf292780b1674b815e86b9ae51948523bff1e7", "missing": 0 },
-  "HostedIndex": { "sha256": "084efab0759aa7d5cfb59e27a6baf8452c925de4a311a2fc8720f9ee05123e2d", "missing": 0 },
+  "HostedIndex": { "sha256": "62fd3f4150570c71cad8353715ccd0cbd48c9eba305be04cee7905faf6eded0d", "missing": 0 },
   "HostedArticle": { "sha256": "979fe841d4a3620b78761b815705b7b0c13fb9000bd7d18b30afbb6c99e7a454", "missing": 0 },
-  "HostedService": { "sha256": "15b1c1dfd9835ea0542b157092dd70e33530c4f47fe1295b39ddace12c2d576d", "missing": 0 },
+  "HostedService": { "sha256": "116781edc0fc0354504972d9d7f66659388f9d9b71355cae64c28801065b8e61", "missing": 0 },
   "HostedGone": { "sha256": "9f65bbe7b9c067831bdf1a8c375b93a76bd54937602b449c6e97b3b68b05ebdc", "missing": 0 }
 }

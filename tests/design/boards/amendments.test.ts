@@ -186,6 +186,14 @@ describe("icons are structural only (E26, E27, E29)", () => {
     }
   });
 
+  it("HostedIndex's compact block draws MapPin before Serves, as the full block does (E10, H1)", () => {
+    const compact = board("HostedIndex").querySelector('section[aria-labelledby="biz-compact"]')!;
+    const html = compact.innerHTML;
+    expect(html).toContain(MAP_PIN);
+    expect(html.indexOf(MAP_PIN)).toBeLessThan(html.indexOf("Serves"));
+    expect(compact.text).toContain("24-hour emergency calls. Serves Austin, TX.Sample");
+  });
+
   it("Setup1's Where your buyers are is a MapPin band beside its words, not a map drawing (E30)", () => {
     const figure = board("Setup1").querySelector('figure[aria-label^="Where your buyers are"]')!;
     expect(figure.querySelectorAll("svg")).toHaveLength(1);
@@ -201,6 +209,15 @@ describe("icons are structural only (E26, E27, E29)", () => {
     expect(svgs[0]!.getAttribute("viewBox")).toBe("0 0 24 24");
     expect(svgs[0]!.innerHTML).toContain(CLOCK);
     expect(svgs[0]!.parentNode!.querySelector("strong")).toBe(figure.querySelector("strong"));
+  });
+});
+
+describe("the places heading asks where only (E41)", () => {
+  // An article may ask "When should you call…?"; only the offering page has a places section.
+  it("no HostedService heading promises when, its places heading included", () => {
+    const service = board("HostedService");
+    for (const h2 of service.querySelectorAll("h2")) expect(h2.text).not.toMatch(/\bwhen\b/i);
+    expect(service.querySelector("h2#where")).not.toBeNull();
   });
 });
 
