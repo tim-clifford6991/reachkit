@@ -27,7 +27,7 @@
 import { runDeepPass } from "@/lib/scan/deep/run";
 import { sendSetupReminder, sitesDueSetupReminder as sitesDueSetupReminderRows } from "@/lib/mail/setup/reminders";
 import { TIMING } from "@/lib/config/constants";
-import { dueSites, runWeekly, type DueSite, type WeeklyOutcome } from "@/lib/scan/weekly";
+import { dueSites, refreshWeeklyKnowledge, runWeekly, type DueSite, type WeeklyOutcome } from "@/lib/scan/weekly";
 import type { StepRunner } from "./types";
 
 /** A site and the zone its own clock runs in. Due-ness is computed from
@@ -202,6 +202,8 @@ export async function startWeeklyScan(
 
   if (outcome.ran && outcome.status !== "failed") {
     const scanId = outcome.scanId;
+    // The knowledge read keeps its own clock, so it never shares the pass's invocation.
+    await step(`knowledge-${a.siteId}`, () => refreshWeeklyKnowledge({ scanId, siteId: a.siteId, domain: a.domain }));
     for (let round = 1; round <= TIMING.weeklyCollectRounds; round += 1) {
       const { left } = await step(`late-answers-${a.siteId}-${round}`, async () => {
         const { collectLateAnswers } = await import("@/lib/scan/weekly/collect");

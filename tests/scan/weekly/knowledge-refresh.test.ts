@@ -13,9 +13,13 @@ import { cachedCostContext, type FakeContext } from "../../vendors/harness";
 import { OWN_FETCH_SOURCE } from "@/lib/measure/own-fetch";
 
 const runScan = vi.fn();
-vi.mock("@/lib/scan/run", () => ({ runScan: (a: unknown) => runScan(a) }));
+const spendOnStoredReport = vi.fn();
+vi.mock("@/lib/scan/run", () => ({
+  runScan: (a: unknown) => runScan(a),
+  spendOnStoredReport: (a: unknown, body: unknown) => spendOnStoredReport(a, body),
+}));
 
-const { runWeekly, registerActiveAccessGate } = await import("@/lib/scan/weekly");
+const { refreshWeeklyKnowledge, runWeekly, registerActiveAccessGate } = await import("@/lib/scan/weekly");
 const { assembleReport } = await import("@/lib/scan/store");
 const { fullSections } = await import("../report/fixtures");
 
@@ -68,6 +72,7 @@ let log: { lines: Record<string, unknown>[]; restore: () => void };
 beforeEach(() => {
   DB.reset();
   runScan.mockReset();
+  spendOnStoredReport.mockReset();
   registerActiveAccessGate(async (ids) => new Set(ids));
   process.env.KILL_SWITCH = "false";
   log = captureLog();
@@ -141,6 +146,8 @@ function site(s: Site): {
     await call.afterReport({ report, cost: fake.ctx }).catch(() => undefined);
     return { scanId: call.scanId, status: "done" };
   });
+  // The scan's own spend record opens the read's context under the tier's cap; here it is the served one.
+  spendOnStoredReport.mockImplementation(async (_a: unknown, body: (x: unknown) => Promise<void>) => body({ report, cost: fake.ctx }));
 
   return {
     fake,
@@ -154,7 +161,8 @@ function site(s: Site): {
         const page = html(text);
         ledger.push({ scan_id: scan.id, source: OWN_FETCH_SOURCE, payload: { url, status: 200, html: page, bytes: page.length, readAt } });
       }
-      await runWeekly({ siteId: "site-1", domain: s.domain, zone: "UTC", now: at(day) });
+      const outcome = await runWeekly({ siteId: "site-1", domain: s.domain, zone: "UTC", now: at(day) });
+      if (outcome.ran) await refreshWeeklyKnowledge({ scanId: outcome.scanId, siteId: "site-1", domain: s.domain });
     },
     knowledgeCalls: () => fake.calls.filter((call) => call.source === "site-knowledge").length,
     stored: () => profile.knowledge as StoredReading,
@@ -205,6 +213,7 @@ describe.each(SITES)("$domain ($kind): the weekly pass rebuilds the knowledge ba
 
     await monday(MONDAYS[1]!, s.prices.after);
     expect(fake.ctx.cap).toBe("WEEKLY");
+    expect(spendOnStoredReport).toHaveBeenLastCalledWith({ scanId: expect.any(String), tier: "weekly" }, expect.any(Function));
     expect(knowledgeCalls()).toBe(2);
     expect(log.lines.filter((line) => line.event === "site_knowledge_read").at(-1)).toMatchObject({ asked: 0, stoppedBy: "cap" });
   });
