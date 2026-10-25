@@ -1,29 +1,11 @@
-// BUILD §9 — the one shape `publications.verify` takes on disk, and the
-// only reader of it.
-//
-// The **discriminant is stored**: a reader cannot obtain the four check
-// outcomes without having gone through the arm that produces them, which is
-// what makes ADR-085's separation survive a round trip through `jsonb`.
-// `page_not_found` and `could_not_confirm` carry different payloads on
-// disk, exactly as they do in the type, so a row cannot be read back into
-// one collapsed shape.
-//
-// A row this reader cannot make sense of is `null`, never a fabricated
-// outcome: the check is then simply not recorded, and `dueNow` will offer
-// the publication again — which is the safe direction, since no assertion
-// about the page has been manufactured from a payload nobody wrote.
-//
-// Declared in its own module so `due.ts`, `verify.ts` and `site.ts` each
-// read the column through one projection and none of them imports another.
+// BUILD §9 — the one on-disk shape of `publications.verify`, and its only reader, shared by `due.ts`, `verify.ts` and `site.ts`.
+// The discriminant is stored, so ADR-085's separation of `page_not_found` and `could_not_confirm` survives `jsonb`.
+// An unreadable row is `null`, never a fabricated outcome, and `dueNow` offers the publication again.
 import { measured, unmeasured, type Measured, type UnmeasuredReason } from "@/lib/measure/measured";
 import type { NotConfirmed, SiteCondition, SiteConditionKind, VerifyChecks, VerifyOutcome } from "../types";
 import { CHECK_IDS, type CheckId } from "./checks";
 
-/** What one recorded check holds: the outcome, and the condition of the
- *  site it was found on where this check found one. The site condition
- *  lives inside this jsonb rather than on `destinations` — a fact this node
- *  observes does not belong in a row the destination health check owns, and
- *  a second column would be a second place to keep it in step. */
+/** One recorded check: the outcome, and the site condition it found, kept here rather than on `destinations`. */
 export interface RecordedCheck {
   result: VerifyOutcome;
   siteCondition: SiteCondition | null;
@@ -124,12 +106,7 @@ function readCondition(value: unknown): SiteCondition | null {
   return { kind: row.kind as SiteConditionKind, foundAt };
 }
 
-/**
- * Reads one `publications.verify` payload back.
- *
- * Total: any value, including `null` and a shape nothing in this product
- * wrote, answers `null`. It never throws and never invents an arm.
- */
+/** Reads one payload back. Total: anything unrecognised is `null`; it never throws and never invents an arm. */
 export function readStoredCheck(payload: unknown): RecordedCheck | null {
   const row = asObject(payload);
   if (row === null) return null;

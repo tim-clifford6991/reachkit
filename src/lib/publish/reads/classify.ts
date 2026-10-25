@@ -1,38 +1,9 @@
-// SPEC §6 (2026-09-20, #908) measure (d) · SPEC §7 (2026-09-20) — what one
-// request to a hosted page was, decided from three strings and nothing
-// else.
-//
-// §7 of that date: "Hosted pages count answer-engine fetches and
-// answer-engine referrals (§6 of this date) — server-side, no cookie, no
-// visitor identity, no client script. Nothing else about a visit is kept."
-//
-// **This file is pure, and it is the whole of the decision.** Agent string,
-// referrer and `utm_source` in; one `{ engine, kind }` or `null` out. No
-// clock, no store, no request object, no header names — so every rule below
-// is settled by a test with no database and no browser, and the route above
-// it has nothing to decide.
-//
-// **What it deliberately cannot do.** It returns no identifier, no address,
-// no agent string and no host: the caller is handed two closed enumerations
-// and cannot store anything else even by accident, because there is nothing
-// else in the value. That is §7's "no visitor identity" made structural
-// rather than promised.
-//
-// **Training crawlers are excluded by name, first.** §6(d): "training
-// crawlers are not progress and are not shown." `GPTBot` and `ClaudeBot`
-// are tested before anything else and end the decision — a string that
-// carries one of them is not counted, whatever else it also carries. An
-// agent list that grew a token containing one of theirs would otherwise
-// quietly start counting a training crawl as a customer's progress.
-//
-// **A fetcher outranks a referrer.** An engine's own fetch carries no
-// referrer of a person's, and a crafted one must never turn a robot's
-// fetch into a visit.
-//
-// **A search crawler is a claim here, not a count** (issue 1553). Googlebot
-// and Bingbot are returned as `crawl`, and the route counts one only after
-// `crawler.ts` finds the request's address inside that engine's published
-// ranges. The agent string alone proves nothing: anyone can send it.
+// SPEC §6 measure (d) · SPEC §7 — what one request to a hosted page was: "server-side, no cookie, no visitor identity,
+// no client script. Nothing else about a visit is kept."
+// Pure and the whole decision: agent, referrer and `utm_source` in, `{ engine, kind }` or `null` out. It returns two closed
+// enums and nothing else, so "no visitor identity" is structural.
+// Training crawlers are excluded by name first (§6(d)), whatever else the string carries. A fetcher outranks a referrer,
+// so a crafted one never turns a robot into a visit. A search crawler is a claim: `crawler.ts` checks its address.
 import {
   AI_ANSWER_FETCHERS,
   AI_BLOG_ENGINES,
@@ -44,11 +15,10 @@ import {
   SEARCH_REFERRER_HOSTS,
 } from "@/lib/config/constants";
 
-/** The AI apps this product can tell apart, as internal handles. Every word
- *  a customer reads for one of them is a registry key. */
+/** The AI apps we can tell apart, as handles; every word a customer reads for one is a registry key. */
 export type BlogEngine = (typeof AI_BLOG_ENGINES)[number];
 
-/** The two search engines whose crawlers are counted (issue 1553). */
+/** The two search engines whose crawlers are counted. */
 export type CrawlEngine = (typeof SEARCH_CRAWLERS)[keyof typeof SEARCH_CRAWLERS];
 
 /**
@@ -59,40 +29,32 @@ export type CrawlEngine = (typeof SEARCH_CRAWLERS)[keyof typeof SEARCH_CRAWLERS]
  * `referral`       a person arrived from an AI answer, or from Google or
  *                  Bing search
  *
- * Three members, closed. The card counts the first two apart from the third
- * and never adds them together: a fetch is not a visitor.
+ * Closed. The card never adds fetches to referrals: a fetch is not a visitor.
  */
 export const BLOG_READ_KINDS = ["answer_fetch", "index_fetch", "referral"] as const;
 export type BlogReadKind = (typeof BLOG_READ_KINDS)[number];
 
 export type BlogRead =
   | { readonly engine: BlogEngine; readonly kind: BlogReadKind }
-  /** Googlebot or Bingbot by its agent string, still to be checked by
-   *  address (`crawler.ts`). */
+  /** Googlebot or Bingbot by agent string, still to be checked by address (`crawler.ts`). */
   | { readonly engine: CrawlEngine; readonly kind: "crawl" }
-  /** A person arriving from Google or Bing search (issue 1614). */
+  /** A person arriving from Google or Bing search. */
   | { readonly engine: CrawlEngine; readonly kind: "referral" };
 
-/** What a request offers this decision. All three are optional because all
- *  three are absent from some real request, and none of them is stored. */
+/** What a request offers; each is absent from some real request, and none is stored. */
 export interface RequestFacts {
   readonly userAgent: string | null;
   readonly referer: string | null;
   readonly utmSource: string | null;
 }
 
-/** A token appears in an agent string. Case-sensitive on purpose: every
- *  token here is a product name the vendor publishes with that exact
- *  casing, and a case-insensitive match would let `chatgpt-user` in a
- *  hand-written string stand for OpenAI's fetcher. */
+/** Case-sensitive on purpose: vendors publish these exact casings, and `chatgpt-user` must not stand for OpenAI's fetcher. */
 function carries(agent: string, token: string): boolean {
   return agent.includes(token);
 }
 
-/** The referrer's host, or `null` for anything that is not an absolute
- *  address. A `Referer` header is attacker-controlled in exactly the way a
- *  query string is, so it is parsed rather than searched: a URL whose
- *  *path* contains `chatgpt.com` is not a referral from ChatGPT. */
+/** The referrer's host, parsed rather than searched since `Referer` is attacker-controlled: a path containing
+ *  `chatgpt.com` is not a referral from ChatGPT. */
 function hostOf(referer: string): string | null {
   try {
     return new URL(referer).hostname.toLowerCase();
@@ -114,8 +76,7 @@ function engineOfReferrer(referer: string | null, utmSource: string | null): Blo
       if (isHostOrSubdomain(host, known)) return engine;
     }
   }
-  // `utm_source` is the other half: most AI apps strip the referrer, and
-  // some of them tag the link instead. Lower-cased here, never in the pin.
+  // Most AI apps strip the referrer and some tag the link instead; lower-cased here, never in the pin.
   if (utmSource !== null) {
     const source = utmSource.trim().toLowerCase();
     const tagged = (AI_REFERRER_SOURCES as Readonly<Record<string, BlogEngine>>)[source];
@@ -124,13 +85,8 @@ function engineOfReferrer(referer: string | null, utmSource: string | null): Blo
   return null;
 }
 
-/**
- * One request, as one countable read — or `null`, which is the ordinary
- * answer for the overwhelming majority of traffic and is not an error.
- *
- * The order is the rule: training crawler, then fetcher, then indexer, then
- * search crawler, then AI referrer, then search referrer. Nothing falls through to a guess.
- */
+/** One request as one countable read, or `null`, the ordinary answer. The order is the rule: training crawler, fetcher,
+ *  indexer, search crawler, AI referrer, search referrer. Nothing falls through to a guess. */
 export function classifyBlogRead(facts: RequestFacts): BlogRead | null {
   const agent = facts.userAgent ?? "";
 

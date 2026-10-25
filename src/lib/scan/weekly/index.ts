@@ -9,7 +9,7 @@
 export type { DueSite } from "./due";
 export { dueSites } from "./due";
 export type { WeeklyOutcome, WeeklyRefusal } from "./run";
-export { runWeekly } from "./run";
+export { refreshWeeklyKnowledge, runWeekly } from "./run";
 export type { UnmeasuredPart, WeekAccount } from "./account";
 export { accountForWeek, nextDueOn, unmeasuredPartsOf } from "./account";
 export type { ActiveAccessGate } from "./access";

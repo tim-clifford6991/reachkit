@@ -6,14 +6,10 @@
 //                               ↓ veto                  ↓ fail
 //                            skipped            failed → retry ×3 → needs_attention
 //     published → unpublished (always available)
-//     unpublished → published (the customer's put-back, issue 1532)
+//     unpublished → published (the customer's put-back)
 //
-// Seventeen edges, ten states, one terminal. The table is data and nothing
-// else — no function, no clock, no row read — so it can be asserted member
-// by member without a database. `transition()` (`./index.ts`) is the only
-// thing that moves a page along it.
-//
-// The archived plan is WO-207.
+// Seventeen edges, ten states, one terminal, as data only so it is asserted without a database; `transition()`
+// (`./index.ts`) is the only thing that moves a page along it.
 import type { State } from "../types";
 
 /** The ten states, in the order §9 draws them. */
@@ -49,10 +45,10 @@ export const STATES: readonly State[] = Object.freeze([
  *    why §8's bound on *automatic* regeneration is not raised by it.
  *  - `needs_attention → skipped` — §9 c3's promise that no page is left in
  *    a state it has no way out of.
- *  - `needs_attention → in_review` — SPEC §7 (#833, #1180): the founder
+ *  - `needs_attention → in_review` — SPEC §7: the founder
  *    fixes a page the rules stopped, and a save that passes every hard rule
  *    takes it into review with a fresh veto window.
- *  - `unpublished → published` — SPEC §7 (issue 1532): the customer puts
+ *  - `unpublished → published` — SPEC §7: the customer puts
  *    back a page they took down themselves, the same version at the same
  *    address, inside `TAKE_DOWN.PUT_BACK_DAYS`. Only the customer, and only
  *    after their own take-down (`put_back_window`): a page the system or
@@ -83,13 +79,10 @@ export const TRANSITIONS: readonly (readonly [State, State])[] = Object.freeze([
   Object.freeze(["unpublished", "published"] as const),
 ] as const);
 
-/** The one state no edge leaves. Written once and asserted against
- *  `TRANSITIONS` rather than maintained as a second list. */
+/** The one state no edge leaves, asserted against `TRANSITIONS`, never a second list. */
 export const TERMINAL: readonly State[] = Object.freeze(["skipped"] as const);
 
-/** Why a move was refused. Two members: the move is not one of the seventeen,
- *  or it is and a named guard said no. A refusal is never an exception and
- *  never leaves the page somewhere else. */
+/** Not one of the seventeen, or a named guard said no; never an exception, never the page moved elsewhere. */
 export type Refusal = "not_a_transition" | "guard";
 
 /** The eleven named guards. A guard is a condition on an *edge*, evaluated
@@ -98,7 +91,7 @@ export type GuardId =
   /** every edge whose target is `publishing`: only a draft whose text as
    *  it stands passed every hard rule — so a draft one of those rules
    *  stopped is never published by starting an attempt, and neither is a
-   *  founder's edit that breaks one (SPEC §7, 2026-09-16, #789). */
+   *  founder's edit that breaks one (SPEC §7). */
   | "draft_passed_hard_rules"
   /** needs_attention → generating / in_review: only a page whose draft
    *  never entered review, so §8's bound on automatic regeneration is never
@@ -107,11 +100,10 @@ export type GuardId =
   /** needs_attention → generating / in_review: and only when the customer
    *  starts it. */
   | "customer_initiated"
-  /** approved/failed → publishing: the publishable rule (#46). */
+  /** approved/failed → publishing: the publishable rule. */
   | "publishable_and_due"
   /** approved → publishing: the customer was told, on the pair actually in
-   *  force, either the interval they have to stop it or that none exists
-   *  (#46). */
+   *  force, either the interval they have to stop it or that none exists. */
   | "customer_told"
   /** every edge whose target is `publishing`: BUILD §8 hard rule 4 and
    *  REQ-053 c5 — no claim re-check is outstanding on this draft. On
@@ -136,22 +128,15 @@ export type GuardId =
   | "within_ceilings"
   /** every edge whose target is `publishing`. */
   | "destination_working"
-  /** unpublished → published (issue 1532): the page's last move is its
-   *  customer's own take-down, inside `TAKE_DOWN.PUT_BACK_DAYS`. */
+  /** unpublished → published: the page's last move is its customer's own take-down, inside `TAKE_DOWN.PUT_BACK_DAYS`. */
   | "put_back_window";
 
-/** The key an edge is looked up under. One spelling, written once, so the
- *  table and every lookup cannot disagree. */
+/** The key an edge is looked up under, spelled once. */
 export function edgeKey(from: State, to: State): string {
   return `${from}→${to}`;
 }
 
-/**
- * Is this pair one of the seventeen? The one membership question about the
- * table, answered here beside it rather than at each caller — and answered
- * in the leaf that reaches nothing, so a surface may ask it without
- * pulling `transition()`'s database in behind the answer.
- */
+/** Is this pair one of the seventeen? Here, in the leaf, so a surface asks without pulling in a database. */
 export function isTransition(from: State, to: State): boolean {
   return TRANSITIONS.some(([f, t]) => f === from && t === to);
 }
@@ -166,7 +151,7 @@ export function isTransition(from: State, to: State): boolean {
  * has to be true of every route into an attempt, not of the ordinary one
  * only. Each also carries `draft_passed_hard_rules`, third, beside the claim
  * re-check it is a sibling of: a founder's edit re-runs the battery, and an
- * edit that breaks a rule holds the page on every route (#789).
+ * edit that breaks a rule holds the page on every route.
  *
  * **`no_outstanding_claim_recheck` is second on all three, under the stop
  * and above everything else.** BUILD §8 hard rule 4 is a fact about the
@@ -230,7 +215,7 @@ export const GUARDS: Readonly<Record<string, readonly GuardId[]>> = Object.freez
 });
 
 /**
- * Whether the founder may edit a draft's text (SPEC §7, #789, #1180): while
+ * Whether the founder may edit a draft's text (SPEC §7): while
  * it can still be approved, or while it rests in `needs_attention` without
  * ever having entered review — the page the rules stopped, which a passing
  * save takes into review. A page that went out and came back is read, not

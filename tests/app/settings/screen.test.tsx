@@ -468,25 +468,13 @@ describe("REQ-079 c1 — each danger-zone action states its consequence before i
 
 // ── REQ-097 ────────────────────────────────────────────────────────────────
 describe("REQ-097 — the Billing card renders no number ReachKit computed", () => {
-  // **2026-09-09, on the review of #391 (issue #374).** REQ-097 c5
-  // reads "no ReachKit surface states any of those values", and the ruling
-  // on issue #34 settled §4.7's four things down to the plan, the price and
-  // the control. The approved screen set draws the next-invoice row and the
-  // card row, and the review — having been shown c5 and that ruling in the
-  // PR body — asked for both. So the two rows are drawn, and **c5 needs
-  // amending to say so**; that is named in #391 and is the owner's to do.
-  //
-  // What this file still holds is the half of c5 that no ruling touched:
-  // every figure on the card is one ReachKit itself owns. The next-invoice
-  // row is not a vendor read at all — the day is `users.paid_through`, this
-  // product's own access gate, and the amount is the same `price.amount`
-  // key every price surface speaks. The card row is the one exception and
-  // it is drawn only where something read one: `users` holds no card, so
-  // the live path answers `null` and the row is absent (`billing.ts`).
-  it("it states the next invoice and the card, from facts it owns", async () => {
+  // Every figure on the card is one ReachKit owns: the next-invoice day is
+  // `users.paid_through` and its amount is `price.amount`. No card on file is
+  // stated; Stripe's portal holds it (REQ-097 c5).
+  it("it states the next invoice from facts it owns, and no card on file", async () => {
     const root = await mountScreen();
     expect(root.querySelector('[data-testid="billing-next-invoice"]')).not.toBeNull();
-    expect(root.querySelector('[data-testid="billing-card"]')).not.toBeNull();
+    expect(root.textContent).not.toContain("4242");
     expect(root.querySelector('[data-testid="billing-price"]')).not.toBeNull();
     // The plan ROW is gone: there is one plan (REQ-022 c3), the pill states
     // whether it is running, and the figure states its price — a row
@@ -533,11 +521,6 @@ describe("REQ-097 — the Billing card renders no number ReachKit computed", () 
     // (ADR-050) and the date REQ-076 c3 requires the customer be told.
     const summary = billingCard();
     text = text.split(summary.accessUntil).join("");
-    // The one vendor-held value on the card, and the only one: it is drawn
-    // where something read it and nowhere else, so subtracting it here is
-    // subtracting a fact rather than excusing a computation.
-    if (summary.cardLast4 !== null) text = text.split(summary.cardLast4).join("");
-
     // Whatever is left is the card's words. If a figure survived this
     // subtraction, ReachKit rendered a billing number of its own.
     expect(text).not.toMatch(/[0-9]/);

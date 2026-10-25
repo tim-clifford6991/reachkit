@@ -1,67 +1,29 @@
-// BUILD §4.3 — applySetupChoice(): two writes, one transaction, zero
-// network calls, and never a fallback destination.
-//
-// §4.3's third card is "Mode + destination". Recording it is two rows: the
-// publishing mode on the site, and the destination the founder chose. They
-// commit together, in `apply_setup_choice` (see
-// `supabase/migrations/20260906130000_sites_setup.sql`), because a founder
-// who ends setup with a mode recorded and no destination — or a
-// destination and no mode — is in a state no screen in this product
-// describes and no later step repairs.
-//
-// **Zero network calls, and that is a budget, not an accident.** Nothing
-// here resolves DNS, reaches a WordPress site, adds a domain to the
-// project or checks a destination's health — the host the founder chose
-// arrives as an argument, already decided. §4.3's footer is a founder pressing one control and the product
-// starting; a DNS lookup on that path would put a third party's timeout
-// between the press and the pass. `tests/publish/setup/apply.test.ts`
-// asserts it with the egress seam stubbed to throw, so an edit that adds a
-// check here fails a test rather than quietly slowing setup down.
-//
-// **The destination is created deferred, and that is not a fourth state.**
-// `config` null and `health = 'expired'` is an ordinary broken
-// destination, reached by the same reconnect path as any other. It is what
-// lets "WordPress — connect later, ask me after the first page" (§4.3)
-// complete setup with no credential collected, and what lets a founder who
-// has pointed no DNS record finish setup and still get their first page —
-// held as a draft they can read, by §9's own guard, not published
-// somewhere else.
-//
-// **There is no fallback destination, because a fallback would be the
-// bug.** The one thing a founder must be able to trust at setup is that
-// their pages do not appear somewhere they did not choose. No branch here
-// substitutes one kind for another, and `connected` is `false`
-// unconditionally and by type: nothing is connected at setup, so no caller
-// can be written that waits on one.
+// BUILD §4.3 — applySetupChoice(): the mode and the chosen destination commit together in `apply_setup_choice`, since
+// either alone is a state no screen describes and no later step repairs.
+// Zero network calls, a budget: a DNS lookup would put a third party's timeout between the founder's press and the pass.
+// The destination is created deferred (`config` null, `health = 'expired'`), an ordinary broken destination, so setup
+// completes with no credential or DNS record and the first page is held as a draft by §9's guard.
+// No fallback destination, which would be the bug: pages never appear somewhere the founder did not choose, and
+// `connected` is `false` by type.
 import { dbAdmin } from "@/lib/db";
 import { HostnameTakenError } from "@/lib/publish/destinations/hosted/label";
 import type { DestinationKind, PublishingMode } from "./cards";
 
-/** The unique index a second claim on a host violates
- *  (`supabase/migrations/20260912120000_destinations_hostname.sql`). Postgres
- *  names it in the violation's message. */
+/** The unique index a second claim on a host violates; Postgres names it in the message. */
 const HOSTNAME_INDEX = "destinations_one_live_hostname";
 
-/** SPEC §7 (2026-09-11; #476): Autopilot is the only mode, so setup records
- *  it and takes no mode from the founder. */
+/** SPEC §7: Autopilot is the only mode, so setup takes none from the founder. */
 const SETUP_MODE: PublishingMode = "autopilot";
 
 export interface SetupChoice {
   siteId: string;
   destinationKind: DestinationKind;
-  /** The host this destination will serve the customer's pages at —
-   *  `<label>.<their domain>`, the label being theirs since SPEC §5's
-   *  ruling of 2026-09-12. `null` for a destination that serves at no host
-   *  of its own, which is every WordPress one.
-   *
-   *  It commits with the mode and the destination and not after them: a
-   *  destination row written without the host the founder was shown the
-   *  record for is a founder pointing a CNAME at a host nothing serves. */
+  /** `<label>.<their domain>` (SPEC §5), or `null` for WordPress. It commits with the rest, or a founder points a
+   *  CNAME at a host nothing serves. */
   hostname: string | null;
 }
 
-/** `connected` is a literal, not a boolean: there is no arm in which
- *  setup connects a destination, so there is none in this type either. */
+/** `connected` is a literal: setup never connects a destination. */
 export interface SetupChoiceApplied {
   ok: true;
   destinationId: string;
@@ -75,14 +37,7 @@ interface MinimalRpcClient {
   ): PromiseLike<{ data: unknown; error: { message: string } | null }>;
 }
 
-/**
- * Records the mode and creates the deferred destination, in one
- * transaction.
- *
- * Throws rather than returning a failure arm: both writes landing or
- * neither is the whole point, and a caller handed "it half worked" would
- * have nothing useful to do with it.
- */
+/** Records the mode and creates the deferred destination in one transaction. Throws: "half worked" helps no caller. */
 export async function applySetupChoice(a: SetupChoice): Promise<SetupChoiceApplied> {
   const { data, error } = await (dbAdmin() as unknown as MinimalRpcClient).rpc(
     "apply_setup_choice",
@@ -94,8 +49,7 @@ export async function applySetupChoice(a: SetupChoice): Promise<SetupChoiceAppli
     }
   );
   if (error) {
-    // The one refusal a founder can act on: another site holds this host.
-    // The transaction rolled back, so nothing of it landed.
+    // The one refusal a founder can act on: another site holds this host, and nothing landed.
     if (a.hostname !== null && error.message.includes(HOSTNAME_INDEX)) {
       throw new HostnameTakenError(a.hostname);
     }

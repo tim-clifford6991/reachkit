@@ -1,53 +1,15 @@
-// BUILD §9 — the condition of the site a published page sits in: named,
-// dated, recorded on the check that learned it, and read back for later
-// pages.
-//
-// **"Only from an answer the site gave" is the whole of this module, and
-// the wrong version is the one a competent engineer writes first — ADR-085
-// Decision 6.** REQ-062 criterion 6 used to cover reachability; the
-// 2026-09-01 fold moved that case into criterion 4's third outcome and
-// added the sentence that a condition is recorded *only from an answer*. So
-// any suppression keyed on "the site could not be reached" is wrong twice
-// over: the case has moved, and criterion 6 may not fire on a non-answer at
-// all.
-//
-// The failure mode is worth stating because it is silent and durable. A
-// sitemap fetch that times out looks, to a naive implementation, exactly
-// like a site that publishes no sitemap — and recording
-// `publishes_no_sitemap` from it does two things at once: it tells the
-// customer something about their site ReachKit never observed, and, because
-// the condition is read back for every later page on that destination, it
-// stops the sitemap check ever being reported again for that site. Every
-// screen stays correct while the check quietly dies. The non-answer
-// fixtures in `tests/publish/verify/site.test.ts` are what stop that.
-//
-// Where the answer did not come, the cost falls on one page and stops
-// there: that one check is `unmeasured` for this page alone, with its
-// reason; no condition is written; nothing about the site is stated as the
-// customer's to act on; and no later page's check is suppressed.
-// `unmeasured`, never `false` — nothing anywhere defaults a
-// `Measured<boolean>` to `false`.
-//
-// **`null` is not a clean bill of health.** It means no check has ever had
-// an answer to record a condition from. The type is `SiteCondition | null`
-// precisely so there is no third value a surface could read as "we looked
-// and the site is fine" — ReachKit's only look at this site is whatever the
-// last page's check happened to fetch, and REQ-062 bounds the condition to
-// exactly that freshness. Nothing here goes back to look: this module makes
-// **no outbound request of any kind**, which a source assertion holds.
-//
-// Stored inside `publications.verify`, not on `destinations`: a fact this
-// node observes does not belong in a row the destination health check owns,
-// and a second column would be a second place to keep it in step.
-//
-// The archived plan is WO-262.
+// BUILD §9 — the condition of the site a published page sits in: named, dated, recorded on the check that learned it,
+// and read back for later pages.
+// Recorded only from an answer the site gave (ADR-085 decision 6, REQ-062 c6): a timed-out sitemap fetch is not "no
+// sitemap", which would tell the customer something never observed and silence the sitemap check for every later page.
+// A non-answer costs one page only: that check is `unmeasured` with its reason, never `false`, and no condition is written.
+// `null` is not a clean bill of health, only "no answer yet". This module makes no outbound request of any kind.
+// Stored inside `publications.verify`, not on `destinations`, whose row the health check owns.
 import { publishDb } from "../db";
 import type { DestinationKind, SiteCondition } from "../types";
 import { readStoredCheck } from "./stored";
 
-/** Declared in `src/lib/publish/types.ts` and re-exported here, for the
- *  same reason the verification shapes are: the page record and the
- *  published mail both name it. */
+/** Declared in `types.ts`, as the page record and the published mail both name it. */
 export type { SiteCondition, SiteConditionKind } from "../types";
 
 /** What the site said about its sitemap, as this page's check found it.
@@ -81,21 +43,8 @@ export interface SiteReadings {
   at: Date;
 }
 
-/**
- * The recordability predicate this module owns: which condition, if any,
- * the readings of one check entitle ReachKit to record.
- *
- * Pure. `null` is the answer for every non-answer, and for a site that
- * answered and is in neither condition — the two are told apart by the
- * readings, never by this return value, which is why nothing downstream may
- * read `null` as "the site is fine".
- *
- * Where both conditions hold, `robots_blocks_site` is the one recorded: it
- * is the broader stop — a site whose robots blocks the permitted readers
- * across the whole site is not a site whose sitemap is the customer's next
- * problem — and the sitemap check's own `unmeasured` reason still carries
- * what that check found for this page.
- */
+/** Which condition, if any, one check's readings entitle us to record. `null` covers non-answers and a site in neither
+ *  condition alike, so it never means "the site is fine". With both, `robots_blocks_site` wins as the broader stop. */
 export function conditionFrom(readings: SiteReadings): SiteCondition | null {
   if (readings.robots.kind === "blocks") {
     return { kind: "robots_blocks_site", foundAt: readings.at };
@@ -111,23 +60,8 @@ interface ConditionRow {
   verify_due_at: string | null;
 }
 
-/**
- * The site's condition as of the last check that got an answer from it.
- *
- * One read over the destination's own publications, newest check first,
- * answered from the condition each check recorded beside its outcome —
- * never a second column, and never a fresh probe. Going back to a site to
- * see whether a recorded condition has been put right is REQ-062's non-goal
- * in terms, and a later page's own check already fetches what this read
- * reports.
- *
- * The row count is bounded by §9's publishing ceilings — at most eight
- * pages a week per site — so this is a small range scan over
- * `idx_publications_site_published`'s own population and not a table sweep.
- *
- * `null` where no check on this destination has ever had an answer to
- * record a condition from. That is **not** "the site is fine".
- */
+/** The site's condition as of the last check that got an answer, read from what each check recorded, never a fresh
+ *  probe (REQ-062's non-goal). §9's ceilings bound the rows, so this is a small range scan. `null` is not "fine". */
 export async function siteConditionFor(a: {
   siteId: string;
   destination: DestinationKind;

@@ -1,21 +1,7 @@
-// BUILD §9 — the two ceilings: one a day, seven a week, in the customer's
-//
-// BUILD §14 guardrail 7 — autopilot rate limits, independent of the monthly
-// cap.
-// own zone, on a Monday-start week.
-//
-// §9: autopilot hard limits regardless of settings, one publish a day and
-// the plan's week (`WEEK_PLAN.days`) a week. Regardless of settings is the whole point — this module reads
-// the two limits from the pins and reads **no per-site column that could
-// hold a rate**, so no value a customer or a plan writes anywhere can raise
-// either one. It exports nothing that returns a rate.
-//
-// The two ceilings hold independently: a week with room still refuses a
-// second page on a day that has one, and a free day with seven already
-// published in the week still refuses the eighth. A refusal is a hold, never
-// a failure — it names which ceiling blocked and when the block lifts.
-//
-// The archived plan is WO-211.
+// BUILD §9 — the two ceilings, a day's and a week's, in the customer's own zone on a Monday-start week.
+// BUILD §14 guardrail 7 — autopilot rate limits, independent of the monthly cap.
+// §9: hard limits regardless of settings, so the limits come from the pins and no per-site column that could hold a
+// rate is read, and nothing here returns a rate. They hold independently. A refusal is a hold naming the ceiling and when it lifts.
 import { RATE_LIMITS } from "@/lib/config/constants";
 import { publishDb } from "../db";
 import {
@@ -25,33 +11,16 @@ import {
   startOfNextLocalWeek,
 } from "./local-week";
 
-/**
- * Three arms, not two.
- *
- * `zone_not_set` is a hold with no `nextFreeAt` because no clock clears it:
- * `sites.timezone` is nullable by design (REQ-073 c1 forbids a zone the
- * customer never stated), and a site whose zone we cannot read is a site
- * whose calendar day we cannot count. Counting it in the server's zone
- * would publish on the wrong day, which is the one thing the ceiling is
- * stated in the customer's zone to prevent.
- *
- * `unreadable` is a hold for the same reason (issue 792): the site or its
- * publications could not be read, so nothing is known about how many pages
- * went out. Counting that as none could publish a second page in a day. The
- * hold writes nothing, and the next tick asks again.
- */
+/** `zone_not_set` holds with no `nextFreeAt`, as no clock clears it: REQ-073 c1 forbids a zone never stated, and the
+ *  server's zone would publish on the wrong day. `unreadable` holds too, since "none known" is not "none went out";
+ *  it writes nothing and the next tick asks again. */
 export type CeilingRoom =
   | { room: true }
   | { room: false; blockedBy: "day" | "week"; nextFreeAt: Date }
   | { room: false; blockedBy: "zone_not_set" }
   | { room: false; blockedBy: "unreadable" };
 
-/**
- * Is there room to publish for this site at this moment?
- *
- * The day is reported before the week when both block: it is the nearer
- * boundary, so it is the one the customer is waiting on.
- */
+/** Room to publish now? When both block, the day is reported: it is the nearer boundary the customer waits on. */
 export async function ceilingRoom(siteId: string, at: Date): Promise<CeilingRoom> {
   const timeZone = await siteTimeZone(siteId);
   if (timeZone === UNREADABLE) return unreadable(siteId, "sites");
@@ -60,9 +29,7 @@ export async function ceilingRoom(siteId: string, at: Date): Promise<CeilingRoom
   const dayStart = startOfLocalDay(at, timeZone);
   const weekStart = startOfLocalWeek(at, timeZone);
 
-  // One read over the wider of the two windows; the day is a slice of it.
-  // A published page counts against its ceiling whether or not it was later
-  // unpublished — the day it went out is the day it used.
+  // One read over the week; the day is a slice. A page counts even if later unpublished: the day it went out is used.
   const published = await publishedSince(siteId, weekStart);
   if (published === UNREADABLE) return unreadable(siteId, "publications");
 
@@ -86,8 +53,7 @@ function unreadable(siteId: string, table: string): CeilingRoom {
   return { room: false, blockedBy: "unreadable" };
 }
 
-/** `null` is a site that exists and has no zone, or no site at all — the
- *  same hold it always was. A read that errored is `UNREADABLE`. */
+/** `null` is no zone or no site, both a hold; a read that errored is `UNREADABLE`. */
 async function siteTimeZone(siteId: string): Promise<string | null | typeof UNREADABLE> {
   const { data, error } = await publishDb()
     .from<{ timezone: string | null }>("sites")

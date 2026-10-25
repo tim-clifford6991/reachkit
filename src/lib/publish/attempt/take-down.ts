@@ -1,30 +1,11 @@
-// SPEC §7 (issue 1532) — the customer takes one live page down, and puts it
-// back within `TAKE_DOWN.PUT_BACK_DAYS`.
-//
-// **Take down** is `unpublish()` with the customer as actor and the reason
-// `take_down`, for every live version at the page's address — the address
-// serves its newest version, and a refresh leaves the older ones live
-// beside it, so taking one down would leave the address answering. Nothing
-// here decides what the destination does: the hosted row answers 410, the
-// cache is cleared and the address announced, and the sitemap, the feed and
-// the other pages' links drop it, all because `unpublished_at` is set
-// (#1242, #1506, #1511). A WordPress post is returned to draft by its
-// adapter; where the site could not be written, its destination's health is
-// checked again so the failure shows where every destination fault does.
-// Afterwards, its topic is dropped for good, as every stopped topic is, and
-// a refresh of the address that has not gone out is stopped — the system
-// never puts the page back.
-//
-// **Put back** is §9's `unpublished → published`, which only the customer
-// may take and only after their own take-down (`put_back_window`), and only
-// for a hosted page: a WordPress post returned to draft would need a call
-// that publishes a post, which ADR-084 Decision 1 keeps out of that client
-// until the owner rules. The same versions return to the same address: the
-// destination is asked first, then
-// each row's `unpublished_at` is cleared and each draft takes the edge. No
-// row is deleted and no text is edited (ADR-080); the draft's transitions
-// keep both moves. The topic stays dropped: the page is back, and nothing
-// is written on it again.
+// SPEC §7 — the customer takes one live page down, and puts it back within `TAKE_DOWN.PUT_BACK_DAYS`.
+// Take down is `unpublish()` with the customer as actor and reason `take_down`, for every live version at the address,
+// since a refresh leaves older ones live beside it. Setting `unpublished_at` is what makes the hosted row answer 410
+// and drops it from the sitemap, feed and links; a WordPress post returns to draft, and a failed write re-checks health.
+// Its topic is dropped for good and an unsent refresh of the address is stopped: the system never puts the page back.
+// Put back is §9's `unpublished → published`: the customer only, after their own take-down, hosted only, since
+// re-publishing a WordPress post is a call ADR-084 decision 1 keeps out of that client. The destination is asked first,
+// then each row's `unpublished_at` is cleared and each draft takes the edge. No row is deleted and no text edited (ADR-080).
 import { publishDb } from "../db";
 import { adapterFor as defaultAdapterFor, destinationOf, withConfig } from "../destinations";
 import { NoConfigError } from "../destinations/config";
@@ -46,8 +27,7 @@ import { unpublish } from "./unpublish";
 export interface TakeDownDeps {
   adapterFor?: (destination: DestinationKind) => DestinationAdapter | null;
   announce?: AnnounceSend;
-  /** Checks a destination's health again where a write into it failed.
-   *  Defaults to the health check every other fault goes through. */
+  /** Re-checks a destination's health after a failed write; defaults to the usual health check. */
   recheckHealth?: (destinationId: string) => Promise<void>;
 }
 
@@ -103,8 +83,7 @@ export async function takeDown(a: { draftId: string; userId: string; at?: Date; 
   const down = versions.filter((_, index) => results[index]?.ok === true).map((version) => version.draft_id);
   if (down.length === 0) return { ok: false, refused: "failed" };
 
-  // After the move, and never able to undo it: the page is down whether or
-  // not these rows could be written.
+  // After the move, never undoing it: the page is down whether or not these rows are written.
   try {
     const own = await opportunitiesOf(down);
     await stopRefreshesOf(row.site_id, row.live_url, own, by, at);
@@ -202,17 +181,13 @@ async function draftsOf(ids: readonly string[]): Promise<DraftRow[]> {
   return error !== null || data === null ? [] : data;
 }
 
-/** Issue 1549: the topics of pages the system withdrew (`content/recheck`)
- *  rest as a stopped one does, never left `queued` behind an address that
- *  no longer serves a page — a queued topic holds its search and its
- *  cluster, so nothing would ever be written on it again. */
+/** The topics of pages the system withdrew (`content/recheck`) rest as a stopped one's do, never left `queued`, which
+ *  would hold their search and cluster for ever. */
 export async function restTopicsOfDrafts(draftIds: readonly string[], until: Date): Promise<void> {
   await restTopics(await opportunitiesOf(draftIds), until);
 }
 
-/** Issue 1549: the topics of pages the system withdrew as off the site's
- *  topic are dismissed, never left `queued`: the page was withdrawn because
- *  its topic is not the site's, so it is not written again. */
+/** The topics of pages withdrawn as off the site's topic are dismissed, never left `queued`. */
 export async function dismissTopicsOfDrafts(draftIds: readonly string[]): Promise<void> {
   const ids = await opportunitiesOf(draftIds);
   if (ids.length === 0) return;
@@ -230,9 +205,7 @@ async function opportunitiesOf(draftIds: readonly string[]): Promise<string[]> {
   return [...new Set(drafts.flatMap((draft) => (draft.opportunity_id === null ? [] : [draft.opportunity_id])))];
 }
 
-/** The topic is dropped for good, as a stopped one is, and from `done` too:
- *  a page that met its test and was then stopped is still a topic the
- *  customer did not want a page on. */
+/** Dropped for good, as a stopped topic is, `done` included: the customer did not want a page on it. */
 async function dropTopics(ids: readonly string[]): Promise<void> {
   if (ids.length === 0) return;
   const { error } = await publishDb()
@@ -243,8 +216,7 @@ async function dropTopics(ids: readonly string[]): Promise<void> {
   if (error !== null) throw new Error(`take-down: dropping topics: ${error.message}`);
 }
 
-/** A withdrawn page's topic rests: `open` and resting holds its one place
- *  in the unique index, so it is not proposed again until the rest is over. */
+/** A withdrawn page's topic rests, `open` and holding its place in the unique index until the rest is over. */
 async function restTopics(ids: readonly string[], until: Date): Promise<void> {
   if (ids.length === 0) return;
   const { error } = await publishDb()
@@ -255,10 +227,8 @@ async function restTopics(ids: readonly string[], until: Date): Promise<void> {
   if (error !== null) throw new Error(`take-down: resting topics: ${error.message}`);
 }
 
-/** A refresh of the address that has not gone out would put the page back
- *  without the customer: its draft is stopped, and an unwritten row is
- *  dismissed. The rows the taken-down versions were written for are not
- *  among them — they rest instead. */
+/** An unsent refresh of the address would put the page back without the customer: its draft is stopped and an
+ *  unwritten row dismissed. The taken-down versions' own rows are not among them. */
 async function stopRefreshesOf(siteId: string, liveUrl: string, own: readonly string[], by: Actor, at: Date): Promise<void> {
   const db = publishDb();
   const { data } = await db
@@ -282,8 +252,7 @@ async function stopRefreshesOf(siteId: string, liveUrl: string, own: readonly st
   for (const id of ids) if (!written.has(id)) await opportunityStore().markDismissed(id);
 }
 
-/** The adapter's `restore`, with the credential in plaintext for that one
- *  call only — `unpublish()`'s own pattern. */
+/** The adapter's `restore`, with the credential plaintext for that one call, as in `unpublish()`. */
 async function restoreAt(adapter: DestinationAdapter, row: PublicationRow): Promise<RestoreResult> {
   const restore = adapter.restore!;
   const pub = toPublication(row);
@@ -297,8 +266,7 @@ async function restoreAt(adapter: DestinationAdapter, row: PublicationRow): Prom
   }
 }
 
-/** A write into the customer's WordPress that failed shows as that
- *  destination's health, as every other fault there does. */
+/** A failed write into the customer's WordPress shows as its health, as every fault there does. */
 async function recheckHealthOf(siteId: string, destination: string, deps: TakeDownDeps | undefined): Promise<void> {
   if (destination !== "wordpress") return;
   try {

@@ -218,6 +218,7 @@ export async function askTheTrackedPrompts(a: StageArgs): Promise<void> {
           ownUrls: answer.ownUrls,
           rivals: answer.rivals,
           ...(answer.alternatives === undefined ? {} : { alternatives: answer.alternatives }),
+          ...(answer.cited === undefined ? {} : { cited: answer.cited }),
         })),
     };
     for (const [id, answer] of evidence) if (kept.has(id)) sections.marketPrompts.push(answer);
