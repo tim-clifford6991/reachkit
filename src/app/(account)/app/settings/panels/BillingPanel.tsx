@@ -102,13 +102,6 @@ export function BillingPanel(p: { billing: BillingSummary }): React.JSX.Element 
   const nextInvoice = billing.readable
     ? [billing.accessUntil, amount].filter((part) => part !== null).join(" · ")
     : null;
-  // The card on file. Drawn only where something read one — see
-  // `billing.ts`: `users` holds no card, so this is the fixture's row and
-  // the live account has none until a Stripe read exists.
-  const cardOnFile =
-    billing.readable && billing.cardLast4 !== null
-      ? copy("settings.billing.card-ending", { last4: billing.cardLast4 })
-      : null;
 
   const pill = (key: CopyKey, run: () => void): React.JSX.Element => (
     <button type="button" className="btn btn-soft btn-primary btn-sm" onClick={run} disabled={action.pending !== null}>
@@ -176,13 +169,6 @@ export function BillingPanel(p: { billing: BillingSummary }): React.JSX.Element 
             <SettingRow name={copy("settings.billing.next-invoice")} testId="billing-row-next-invoice">
               <span className="num num-phrase min-w-0 wrap-anywhere" data-testid="billing-next-invoice">
                 {nextInvoice}
-              </span>
-            </SettingRow>
-          )}
-          {cardOnFile === null ? null : (
-            <SettingRow name={copy("settings.billing.card")} testId="billing-row-card">
-              <span className="num min-w-0 wrap-anywhere" data-testid="billing-card">
-                {cardOnFile}
               </span>
             </SettingRow>
           )}
