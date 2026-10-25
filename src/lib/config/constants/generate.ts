@@ -16,18 +16,16 @@ export const PIPELINE = Object.freeze({
  *  passages handed to the writer, the site's published and planned pages
  *  (D36: at most 100), and a Q&A page's questions (D42: 5–8). A business
  *  fact already stated on `repeatedOn` of the site's live pages is offered
- *  last (issue 1509): each page says something its siblings do not. */
+ *  last: each page says something its siblings do not. */
 export const PACK = Object.freeze({ facts: 40, pages: 100, questions: 8, repeatedOn: 2 } as const);
 
-/** SPEC §7 (owner, D61; issue 1295): two headings are too alike where they
- *  share this fraction of the longer one's words, or open with this many of
- *  the same words. */
+/** SPEC §7 (D61): two headings are too alike where they share this fraction
+ *  of the longer one's words, or open with this many of the same words. */
 export const DISTINCT_HEADINGS = Object.freeze({ overlap: 0.6, opening: 6 } as const);
 
 /**
- * How much of the **confirmed business profile** a generation prompt may
- * carry (issue #927 · SPEC §7, 2026-09-20: "The confirmed business profile
- * … joins the writer's inputs").
+ * How much of the confirmed business profile a generation prompt may carry
+ * (SPEC §7: the confirmed business profile joins the writer's inputs).
  *
  * **A bounded block, because a prompt's budget is the draft's cost.** The
  * profile is the customer's own curated lists, and a customer may add to
@@ -35,27 +33,24 @@ export const DISTINCT_HEADINGS = Object.freeze({ overlap: 0.6, opening: 6 } as c
  * is the ceiling this protects — a page written from an unbounded list is a
  * page that spends the day's budget on vocabulary.
  *
- * **Four of the five item caps are numbers this product already pinned**,
- * restated here rather than imported because their homes reach the language
- * model (`src/lib/site-profile/summary.ts`'s `VOICE_LIST_MAX`) or are about
- * what a model may *answer* with rather than what a prompt may *carry*:
+ * **Four of the item caps restate pins held elsewhere**, rather than importing
+ * them, because their homes reach the language model
+ * (`src/lib/site-profile/summary.ts`'s `VOICE_LIST_MAX`) or bound what a
+ * model may *answer* with rather than what a prompt may *carry*:
  *
  *   · `products` 8 and `promises` 8 — `VOICE_LIST_MAX.products` / `.claims`;
- *   · `audience` 4 — `PROFILE_LIST_BOUNDS.audienceTerms.max`, §6.7's own
- *     "2–4 audience/use-case terms";
+ *   · `audience` 4 — `PROFILE_LIST_BOUNDS.audienceTerms.max`;
  *   · `vocabulary` 12 — `PROFILE_LIST_BOUNDS.vocabulary.max`.
  *
- * `itemChars` and `jobChars` are this issue's own: an item is a product name
- * or a promise, not a paragraph, and *what you do* is one sentence.
+ * `itemChars` and `jobChars`: an item is a product name or a promise, not a
+ * paragraph, and *what you do* is one sentence.
  *
  * `blockChars` is the ceiling over all of it together, applied last, so the
- * worst case is one number rather than the product of six. It was 1,200
- * while the profile was five short lists; the knowledge base (SPEC §5,
- * 2026-09-29, #1133) is offerings with their features and prices, proof,
- * buyers' questions and the founder's answers, and 6,000 characters —
- * about 1,500 tokens, under half a cent a call on the small tier — is the
- * drafted cap the issue names. What is trimmed first is named in
- * `src/lib/generate/voice/profile-block.ts`.
+ * worst case is one number rather than the product of six. The knowledge base
+ * (SPEC §5) is offerings with their features and prices, proof, buyers'
+ * questions and the founder's answers, and 6,000 characters — about 1,500
+ * tokens, under half a cent a call on the small tier — is a drafted cap. What
+ * is trimmed first is named in `src/lib/generate/voice/profile-block.ts`.
  *
  * `knowledgeItems` is how many entries each knowledge list may carry, and
  * `knowledgeItemChars` how long one may be: a differentiator or a customer
@@ -73,9 +68,8 @@ export const PROFILE_PROMPT_CAPS = Object.freeze({
   blockChars: 6000,
 } as const);
 
-/** SPEC §7 Rules (2026-09-12; rewritten 2026-10-10, issue 1391): every
- *  asset links to the customer's own pages and to earlier assets in its
- *  cluster. (`src/lib/generate/links/`)
+/** SPEC §7 Rules: every asset links to the customer's own pages and to
+ *  earlier assets in its cluster. (`src/lib/generate/links/`)
  *
  *  `SITE_MIN`–`SITE_MAX` — a page carries three to six links into the
  *  customer's own site. Up to `SITE_MAX` pages are offered to the writer,
@@ -110,38 +104,31 @@ export const GENERATION = Object.freeze({
   duplicateThreshold: 0.85, regenerations: 1,
 } as const);
 
-/** SPEC §7 *honesty by page type* (issue 1136): the most sentences naming
- *  the business one fit check reads. A page of 2,500 words that names it in
- *  every paragraph stays inside the check's one small call. */
+/** SPEC §7 *honesty by page type*: the most sentences naming the business one
+ *  fit check reads. A page of 2,500 words that names it in every paragraph
+ *  stays inside the check's one small call. */
 export const FIT_CHECK_MAX_SENTENCES = 40;
 
 // Generation
-export const SHINGLE_SIZE = 5 as const;                      // BP-042 · REQ-050 c9
-export const NEAR_DUPLICATE_MAX = 0.85 as const;             // BP-042 · REQ-050 c9 · BUILD §8
+export const SHINGLE_SIZE = 5 as const;
+export const NEAR_DUPLICATE_MAX = 0.85 as const;             // BUILD §8
 
-/** SPEC §7 (owner, D13, issue 1144): a draft is compared with what ReachKit
- *  wrote for **other** sites, at `NEAR_DUPLICATE_MAX` — the same bar as the
- *  same-site check, so there is no second threshold here. `months` is the
- *  ruling's; `pagesMax` bounds one read, newest first (a drafted default:
- *  a run that reaches it logs that it did); `noteSentences` is how many of
- *  the draft's own shared sentences the one rewrite is told to avoid. */
+/** SPEC §7 (D13): a draft is compared with what ReachKit wrote for **other**
+ *  sites, at `NEAR_DUPLICATE_MAX` — the same bar as the same-site check, so
+ *  there is no second threshold here. `months` is the ruling's; `pagesMax`
+ *  bounds one read, newest first (a drafted default: a run that reaches it
+ *  logs that it did); `noteSentences` is how many of the draft's own shared
+ *  sentences the one rewrite is told to avoid. */
 export const ELSEWHERE = Object.freeze({ months: 12, pagesMax: 1000, noteSentences: 12 } as const);
 
-/** BP-042 decision 5: "`no_machine_address` is a pinned pattern battery" —
- *  "a pinned list matching the named forms (an instruction or assertion
- *  directed at an assistant, a crawler or a ranking system about how to
- *  treat, cite, rank or recommend the page), applied to the rendered text."
- *  Chosen here as a parameter (constitution rule 1.1 — "internal names,
- *  type members" and enforcement fidelity, never a customer-visible
- *  string); WO-006 gave no derivation steps for this group the way it did
- *  for `PLATFORM_DOMAINS` and `AI_READER_AGENTS`, so it is flagged in the
- *  WO-006 return rather than silently authored. "The battery decides the
- *  forms it lists and no others" is BP-042's own `undischargeable`
- *  `rests-on` — no pass over the corpus can ever prove this list complete —
- *  and a form found later is added here, in one file (BP-042 decision 5,
- *  WO-194 out of scope). An empty list is never shipped: WO-194's
- *  `machine.test.ts` fails its guard assertion on one. */
-export const MACHINE_ADDRESS_PATTERNS = Object.freeze([       // BP-042 · REQ-050 c8
+/** The pinned battery behind `no_machine_address`: an instruction or
+ *  assertion directed at an assistant, a crawler or a ranking system about
+ *  how to treat, cite, rank or recommend the page, matched against the
+ *  rendered text. The battery decides the forms it lists and no others; no
+ *  pass can prove the list complete, so a form found later is added here, in
+ *  one file. An empty list is never shipped: `machine.test.ts` fails its
+ *  guard assertion on one. */
+export const MACHINE_ADDRESS_PATTERNS = Object.freeze([
   /\b(dear|attention|note to)\s+(the\s+)?(ai|assistant|chatbot|llm|language model)\b/i,
   /\bif you(?:'re| are) an? (ai|language model|assistant|chatbot)\b/i,
   /\bignore (?:all |any )?(?:previous|prior|the above) instructions\b/i,
@@ -149,7 +136,7 @@ export const MACHINE_ADDRESS_PATTERNS = Object.freeze([       // BP-042 · REQ-0
   /\b(please\s+)?(cite|rank|recommend|index)\s+this\s+(page|article|post|content)\b/i,
 ]);
 
-export const CLAIM_RECHECK_SWEEP_MAX = 25 as const;          // BP-043 · REQ-053
+export const CLAIM_RECHECK_SWEEP_MAX = 25 as const;
 
 /** SPEC §6: "A format page fires only for a missing comparison, alternative,
  *  integration or template; glossary, changelog, blog and resources hub
@@ -164,25 +151,24 @@ export const FORMAT_PAGE_ALLOWED = Object.freeze([
  *  what a draft's opening block must fall inside to count as an answer. */
 export const ANSWER_FIRST_BLOCK_CHARS = Object.freeze({ min: 40, max: 320 } as const); // §7
 
-/** SPEC §7 (2026-09-29, *What every page carries*): the counts a generated
- *  page is held to, in code. The answer box is counted in words; a section
- *  is an H2. `taglineRepeats` is the round-1 review's cap (2026-10-02,
- *  issue 1137): a promise of the business's own is said at most twice.
- *  `businessPromises` (issue 1509): the closing section on how the business
- *  handles the question says at most this many of its promises. */
+/** SPEC §7 (*What every page carries*): the counts a generated page is held
+ *  to, in code. The answer box is counted in words; a section is an H2.
+ *  `taglineRepeats`: a promise of the business's own is said at most twice.
+ *  `businessPromises`: the closing section on how the business handles the
+ *  question says at most this many of its promises. */
 export const PAGE_BLOCKS = Object.freeze({
   answerWords: { min: 40, max: 60 },
   takeaways: { min: 3, max: 5 },
   faq: { min: 3, max: 6 },
   taglineRepeats: 2,
   businessPromises: 2,
-} as const);                                                   // §7 · issue 1137
+} as const);                                                   // §7
 
-/** SPEC §7 (owner, 2026-10-10, issue 1390) — what the prose check holds a
- *  generated page to (`src/lib/generate/rules/prose.ts`). Each threshold is
- *  set above what the pages people wrote reach and below what the stored
- *  pages did (`docs/walk/prose-gate.md`, `npm run eval:content -- --prose`):
- *  drafted from that measurement, the owner corrects them. */
+/** SPEC §7 — what the prose check holds a generated page to
+ *  (`src/lib/generate/rules/prose.ts`). Each threshold is set above what the
+ *  pages people wrote reach and below what the stored pages did
+ *  (`docs/walk/prose-gate.md`, `npm run eval:content -- --prose`): drafted
+ *  from that measurement, the owner corrects them. */
 export const PROSE = Object.freeze({
   /** Joining dashes: more than `perThousand` a thousand words, and at least
    *  `least` — a short page with one aside is not stopped. People's pages
@@ -203,26 +189,25 @@ export const PROSE = Object.freeze({
   evenSentences: { least: 0.3, minSentences: 20 },
   /** Tell phrases (`prose-english.ts`): one construction used `samePattern`
    *  times, or `most` of any kind together. People's pages reached two of a
-   *  construction and six together; one undated agency article of 2026 has
-   *  three reframes and is stopped. */
+   *  construction and six together. */
   tellPhrases: { samePattern: 3, most: 7 },
-} as const);                                                   // §7 · issue 1390
+} as const);                                                   // §7
 
-/** SPEC §7 (owner, 2026-10-10, issue 1390) — the page's voice
- *  (`src/lib/generate/voice/register.ts`). The short answer's length is the
- *  owner's; a simple question's longest is drafted. */
+/** SPEC §7 — the page's voice (`src/lib/generate/voice/register.ts`). The
+ *  short answer's length is the owner's; a simple question's longest is
+ *  drafted. */
 export const VOICE = Object.freeze({
   short: { words: { floor: 600, ceiling: 900 }, questionWords: 10 },
   /** Named statistics or quotations a page aims to carry, each from the
    *  pack with its source. */
   evidence: { min: 2, max: 4 },
-} as const);                                                   // §7 · issue 1390
+} as const);                                                   // §7
 
-/** SPEC §7 (owner, D51; issue 1266) — what the stage-4 `title` check holds a
- *  page's `<title>` and its meta description to. The numbers, the year's
- *  types and the banned patterns are the ruling's; the engine names and the
- *  first three words of a search term are how code reads "an engine" and
- *  "the search term" (drafted). */
+/** SPEC §7 (D51) — what the stage-4 `title` check holds a page's `<title>`
+ *  and its meta description to. The numbers, the year's types and the banned
+ *  patterns are the ruling's; the engine names and the first three words of
+ *  a search term are how code reads "an engine" and "the search term"
+ *  (drafted). */
 export const TITLE = Object.freeze({
   chars: { min: 30, max: 65 },
   /** The length a title is written for, and preferred among those proposed. */
@@ -255,42 +240,41 @@ export const TITLE = Object.freeze({
     "comprehensive",
   ],
   engines: ["chatgpt", "perplexity", "claude", "gemini", "copilot", "google", "ai overview", "ai overviews", "ai mode"],
-} as const);                                                   // §7 · D51 · issues 1266, 1389
+} as const);                                                   // §7 · D51
 
 
 
 /** How many of a site's own passages a caller that needs only a few reads
  *  (`readFacts`): setup's voice sample and the lead's free page. A paid
  *  page's context pack carries `PACK.facts`. */
-export const BRIEF_MAX_FACTS = 8 as const;                     // §7 · issue 475
+export const BRIEF_MAX_FACTS = 8 as const;                     // §7
 
-/** SPEC §7 (2026-09-29, *Two pools of facts*; issue 1135) — the research
- *  step's bounds. Chosen, not transcribed, except where the ruling names
- *  the figure: "at most two primary studies found by one search", and "a
- *  market statistic older than three years is not used". The rest are sized
- *  so the step stays a fraction of `CAPS.DRAFT_C`: thirteen pages of
- *  `readWords` words are four small-tier calls, about 7¢. */
+/** SPEC §7 (*Two pools of facts*) — the research step's bounds. Chosen,
+ *  except where the ruling names the figure: "at most two primary studies
+ *  found by one search", and "a market statistic older than three years is
+ *  not used". The rest are sized so the step stays a fraction of
+ *  `CAPS.DRAFT_C`: thirteen pages of `readWords` words are four small-tier
+ *  calls, about 7¢. */
 export const RESEARCH = Object.freeze({
   /** The target's top results that are read, from the stored top ten. */
   topResults: 3,
   /** The named rivals whose own pricing and feature pages are read. */
   rivals: 4,
-  /** Owner, 2026-10-18 (issue 1508, amends #1135): a listicle reads the
-   *  own pages of up to this many products, an alternatives page's subject
-   *  among them. Every other page keeps `rivals`. */
+  /** SPEC §7: a listicle reads the own pages of up to this many products, an
+   *  alternatives page's subject among them. Every other page keeps `rivals`. */
   options: 8,
-  /** Issue 1508: the products a listicle's options may be found among are
-   *  the ones named on `namedOn` of the first `namedFrom` top results
-   *  already read (the claim calls still read `topResults`). */
+  /** The products a listicle's options may be found among are the ones named
+   *  on `namedOn` of the first `namedFrom` top results already read (the
+   *  claim calls still read `topResults`). */
   namedFrom: 5,
   namedOn: 2,
-  /** Issue 1508 (drafted default): a listicle counts at least `optionsMin`
-   *  options, the business among them, or it is not written that day (D26);
-   *  under `optionsAim` its method section says why only those qualified. */
+  /** Drafted default: a listicle counts at least `optionsMin` options, the
+   *  business among them, or it is not written that day (D26); under
+   *  `optionsAim` its method section says why only those qualified. */
   optionsMin: 4,
   optionsAim: 5,
-  /** D56 (issue 1282): a rival's pages are found in its own sitemap — at
-   *  most this many addresses of it, from this many sitemaps of an index. */
+  /** D56: a rival's pages are found in its own sitemap — at most this many
+   *  addresses of it, from this many sitemaps of an index. */
   sitemaps: 3,
   sitemapUrls: 2000,
   /** Ruled: at most two, found by one search. */
@@ -314,33 +298,31 @@ export const RESEARCH = Object.freeze({
   newsSearches: 3,
   recentRead: 8,
   recentPages: 5,
-  /** Issue 1262: the read results one judgement holds against the market,
-   *  and how many words of each it is shown. */
+  /** The read results one judgement holds against the market, and how many
+   *  words of each it is shown. */
   recentJudged: 8,
   judgedWords: 120,
   /** D41 (drafted default): a *current insights* page reads web results
    *  published inside this many days. */
   recentDays: 30,
-  /** A Q&A's questions (owner, D61; issue 1295): the related searches of the
-   *  target's SERP whose volume one keyword-overview call measures. */
+  /** A Q&A's questions (D61): the related searches of the target's SERP
+   *  whose volume one keyword-overview call measures. */
   relatedSearches: 10,
-  /** A market comparison stands on at least this many cited market facts
-   *  (issue 1135's done-when). */
+  /** A market comparison stands on at least this many cited market facts. */
   comparisonMinFacts: 3,
   readTimeoutMs: 10_000,
   /** A public page read today is not read again inside this window. */
   freshnessDays: 7,
 } as const);
 
-/** SPEC §7 (owner 2026-10-18, issue 1521; amends D42 #7) — a refresh closes
- *  the gap to the pages above it. The research step records the H2 and H3
- *  headings of the top results it reads; a subtopic `coveredBy` of them
- *  head and the live page does not is a gap. A `close`, `unmet` or
- *  `lost_position` refresh may add up to `sectionsMax` sections from the
- *  gaps, each on a claim of the pack, and grow up to `growShare` of the live
- *  page, where its own place is `nearPageOne` (owner 2026-10-19: the write
- *  and fix it grows cost up to 3.7¢ more). The owner's are 2, 3, 40% and
- *  11–20; `headingsPerPage` is a drafted bound on what one page's markup
+/** SPEC §7 — a refresh closes the gap to the pages above it. The research
+ *  step records the H2 and H3 headings of the top results it reads; a
+ *  subtopic `coveredBy` of them head and the live page does not is a gap. A
+ *  `close`, `unmet` or `lost_position` refresh may add up to `sectionsMax`
+ *  sections from the gaps, each on a claim of the pack, and grow up to
+ *  `growShare` of the live page, where its own place is `nearPageOne` (the
+ *  write and fix it grows cost up to 3.7¢ more). The owner's are 2, 3, 40%
+ *  and 11–20; `headingsPerPage` is a drafted bound on what one page's markup
  *  yields. */
 export const HEADING_GAPS = Object.freeze({
   coveredBy: 2,
@@ -350,8 +332,7 @@ export const HEADING_GAPS = Object.freeze({
   nearPageOne: Object.freeze({ min: 11, max: 20 } as const),
 } as const);
 
-/** SPEC §7 (2026-09-29, D12; issue 1143) — *a new page adds what the web
- *  does not say*.
+/** SPEC §7 (D12) — *a new page adds what the web does not say*.
  *
  *  `min` and `businessMin` are the ruling's: at least three claims found
  *  neither in the target's top results nor on the customer's pages, at least
@@ -372,10 +353,9 @@ export const ADDS = Object.freeze({
   updateMin: 0.3,
 } as const);
 
-/** SPEC §7 (2026-10-17, issue 1486; drafted default the owner may correct):
- *  a how-to or a Q&A is built from cited outside facts. Its pack holds claims
- *  from at least `min` distinct public pages, and its body links at least
- *  that many of them (`cites_market`). Two, as the content review of
- *  17 October measured: page D's pack held 24 claims from six pages, and its
- *  body linked none. */
+/** SPEC §7 (drafted default the owner may correct): a how-to or a Q&A is
+ *  built from cited outside facts. Its pack holds claims from at least `min`
+ *  distinct public pages, and its body links at least that many of them
+ *  (`cites_market`), because a pack full of claims can still yield a body
+ *  that links none. */
 export const CITES_MARKET = Object.freeze({ min: 2 } as const);
