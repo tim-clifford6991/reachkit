@@ -289,3 +289,10 @@ export const PUBLISHER_PAGE = Object.freeze({
     }),
   ]),
 });
+
+/** A local trade whose category and 60-character town are long enough to wrap their read-as chips on a phone. */
+export const LONG_READ_AS = Object.freeze({
+  domain: "eastriding-heating.example.org",
+  category: "emergency plumbing, boiler servicing and central heating repair",
+  town: "Kingston upon Hull and the villages of the East Riding coast",
+});
