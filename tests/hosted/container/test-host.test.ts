@@ -84,8 +84,8 @@ describe("issue 762 — HOSTED_TEST_HOST names one platform host as a hosted hos
 
   it("bound, exactly that host is rewritten into the hosted group", async () => {
     const middleware = await middlewareWith(TEST_HOST, "preview");
-    expect(rewrittenTo(await middleware(requestTo("/a-page", TEST_HOST)))).toBe("/hosted-page/a-page");
-    expect(rewrittenTo(await middleware(requestTo("/setup", TEST_HOST)))).toBe("/hosted-page/setup");
+    expect(rewrittenTo(await middleware(requestTo("/a-page", TEST_HOST)))).toBe("/hosted-article/a-page");
+    expect(rewrittenTo(await middleware(requestTo("/setup", TEST_HOST)))).toBe("/hosted-article/setup");
   });
 
   it("bound, the root of the host is the hosted index, not ReachKit's landing", async () => {
@@ -96,7 +96,7 @@ describe("issue 762 — HOSTED_TEST_HOST names one platform host as a hosted hos
   it("the match is on the lower-cased hostname, port and case aside", async () => {
     const middleware = await middlewareWith(TEST_HOST.toUpperCase(), "preview");
     const response = await middleware(requestTo("/a-page", `${TEST_HOST.toUpperCase()}:443`));
-    expect(rewrittenTo(response)).toBe("/hosted-page/a-page");
+    expect(rewrittenTo(response)).toBe("/hosted-article/a-page");
   });
 
   it.each([
@@ -148,7 +148,7 @@ describe("issue 1045 — content.reachkit.app is the dogfood's hosted host", () 
     const middleware = await middlewareWith(undefined, "production");
     expect(rewrittenTo(await middleware(requestTo("/", "content.reachkit.app")))).toBe("/hosted-page");
     expect(rewrittenTo(await middleware(requestTo("/a-page", "content.reachkit.app")))).toBe(
-      "/hosted-page/a-page"
+      "/hosted-article/a-page"
     );
   });
 

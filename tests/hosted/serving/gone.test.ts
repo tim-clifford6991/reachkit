@@ -92,6 +92,7 @@ const gone = await import("@/app/(hosted)/hosted-gone/route");
 const NotFound = (await import("@/app/(hosted)/hosted-page/not-found")).default;
 const Page = (await import("@/app/(hosted)/hosted-page/[[...slug]]/page")).default;
 const cached = await import("@/app/(hosted)/hosted-live/[host]/[slug]/route");
+const article = await import("@/app/(hosted)/hosted-article/[slug]/route");
 const { readingIn } = await import("@/lib/presentation/copy/reader");
 
 beforeEach(() => {
@@ -111,9 +112,17 @@ function parse(html: string): Document {
   return new DOMParser().parseFromString(html, "text/html");
 }
 
-/** The 404 as a request draws it: the page throws, and the route's not-found screen is the body. */
-async function notFoundPage(slug: string): Promise<{ thrown: unknown; doc: Document }> {
-  const thrown = await Page({ params: Promise.resolve({ slug: [slug] }) }).then(
+/** The 404 of an address that could name a page, as the article's uncached route answers it. */
+async function notFoundPage(slug: string): Promise<{ status: number; doc: Document }> {
+  const response = await article.GET(new Request(`https://${state.host}/${slug}`, { headers: { host: state.host } }), {
+    params: Promise.resolve({ slug }),
+  });
+  return { status: response.status, doc: parse(await response.text()) };
+}
+
+/** The 404 of a deeper path, which the catch-all answers with its not-found screen. */
+async function deeperNotFound(): Promise<{ thrown: unknown; doc: Document }> {
+  const thrown = await Page({ params: Promise.resolve({ slug: ["a", "b"] }) }).then(
     () => null,
     (error: unknown) => error
   );
@@ -246,8 +255,14 @@ describe("A: a body that cannot be drawn still answers 410, never 500", () => {
 });
 
 describe("B: an unknown address on a live site answers 404 with the same body", () => {
-  it("the page answers not found, and the not-found screen is variant A with noindex", async () => {
-    const { thrown, doc } = await notFoundPage("never-a-page");
+  it("the article's route answers 404 with variant A under noindex", async () => {
+    const { status, doc } = await notFoundPage("never-a-page");
+    expect(status).toBe(404);
+    expectVariantA(doc, ENGLISH);
+  });
+
+  it("a deeper path answers not found, and the not-found screen is variant A with noindex", async () => {
+    const { thrown, doc } = await deeperNotFound();
     expect((thrown as { digest?: string } | null)?.digest).toBe("NEXT_HTTP_ERROR_FALLBACK;404");
     expectVariantA(doc, ENGLISH);
   });
@@ -279,8 +294,8 @@ describe("C: a site that is gone answers 410 with the empty document", () => {
 describe("D: a host no site claims answers 404 with nothing", () => {
   it("the not-found screen is empty", async () => {
     state.host = "content.stranger.example";
-    const { thrown, doc } = await notFoundPage("anything");
-    expect((thrown as { digest?: string } | null)?.digest).toBe("NEXT_HTTP_ERROR_FALLBACK;404");
+    const { status, doc } = await notFoundPage("anything");
+    expect(status).toBe(404);
     expect(doc.body.textContent?.trim()).toBe("");
     expect(doc.querySelector("a")).toBeNull();
   });

@@ -91,7 +91,12 @@ export function nextNavigation(journey: string) {
  *  Function revalidates the app it changed (issue 837); outside a request
  *  there is no cache. */
 export function nextCache() {
-  return { revalidateTag: () => undefined, revalidatePath: () => undefined };
+  return {
+    revalidateTag: () => undefined,
+    revalidatePath: () => undefined,
+    // A served article tags its render; outside Next there is no cache to tag.
+    unstable_cache: <A extends unknown[], R>(fn: (...args: A) => R) => fn,
+  };
 }
 
 /** A `robots.txt` that allows every page. */

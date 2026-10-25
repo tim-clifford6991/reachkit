@@ -4,35 +4,10 @@
 // One hosted render states one language everywhere an engine reads it:
 // `<html lang>`, the article's `inLanguage` and its `og:locale` are the
 // site's tag (D66), never two tags on one page.
-//
-// **React's `cache` is a per-request memo here, as it is in a server
-// render.** The reader's language (`copy/reader.ts`) is held in `cache`,
-// which memoises only inside a React Server Components render; outside
-// one, as in this process, it calls through and the language said by
-// `readIn` is lost. So `cache` is replaced by a memo keyed on its
-// arguments, for this file's one render, which is what a request gives it.
-import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 import { applyEnvFixture } from "../../mail/env-fixture";
 
 applyEnvFixture();
-
-vi.mock("react", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("react")>();
-  const cache = <A extends unknown[], R>(fn: (...args: A) => R): ((...args: A) => R) => {
-    const held = new Map<string, R>();
-    return (...args: A) => {
-      const key = JSON.stringify(args);
-      if (!held.has(key)) held.set(key, fn(...args));
-      return held.get(key)!;
-    };
-  };
-  return { ...actual, default: { ...actual, cache }, cache };
-});
-
-vi.mock("next/headers", () => ({
-  headers: async () => new Headers({ host: "content.example.com" }),
-}));
 
 vi.mock("@/lib/account/billing", () => ({
   hostedServingState: async () => ({ serve: true }),
@@ -75,24 +50,22 @@ vi.mock("@/lib/publish/destinations/hosted", async () => {
     livePagesForSite: async () => [PAGE],
     hostedIdentity: async () => ({ name: "Bäckerei Beispiel", logoType: null, line: null, mainSite: null }),
     hostedAddress: async () => ({ state: "none", publicationId: null }),
+    taggedForHosted: async () => undefined,
   };
 });
 
-const HostedPageLayout = (await import("@/app/(hosted)/hosted-page/layout")).default;
-const HostedPage = (await import("@/app/(hosted)/hosted-page/[[...slug]]/page")).default;
-const { generateMetadata } = await import("@/app/(hosted)/hosted-page/[[...slug]]/page");
+const { GET } = await import("@/app/(hosted)/hosted-article/[slug]/route");
 
 describe("issue 1514 — one hosted render states one language", () => {
   it("<html lang>, inLanguage and og:locale are the same tag", async () => {
-    const params = Promise.resolve({ slug: ["sauerteigbrot-backen"] });
-    const meta = await generateMetadata({ params });
-    const markup = renderToStaticMarkup(await HostedPageLayout({ children: await HostedPage({ params }) }));
+    const request = new Request("https://content.example.com/sauerteigbrot-backen", { headers: { host: "content.example.com" } });
+    const markup = await (await GET(request, { params: Promise.resolve({ slug: "sauerteigbrot-backen" }) })).text();
 
     const lang = /<html[^>]* lang="([^"]+)"/.exec(markup)?.[1];
     const posting = [...markup.matchAll(/<script type="application\/ld\+json">(.*?)<\/script>/g)]
       .map((m) => JSON.parse(m[1]!) as Record<string, unknown>)
       .find((schema) => schema["@type"] === "BlogPosting");
-    const ogLocale = String((meta.openGraph as { locale?: string }).locale).replace("_", "-");
+    const ogLocale = /<meta property="og:locale" content="([^"]+)"/.exec(markup)?.[1]?.replace("_", "-");
 
     expect(lang).toBe("de-DE");
     expect(posting?.inLanguage).toBe(lang);
