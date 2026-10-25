@@ -1,0 +1,19 @@
+--- a/deployer.sh
++++ b/deployer.sh
+@@ -78,12 +78,14 @@
+   file_issue "Production check red at \`$3\`, deployment \`$2\`, step \`$(head -1 <<<"${r#red }")\`:"$'\n\n```\n'"$(tail -1 <<<"$r")"$'\n```'"$note"
+ }
+ newest_checked(){ # $1 deploy-prod.sha, $2 head: the newest commit in $1..$2 whose dev check passed, below 2 tries
+-  local s list=$2
+-  git -C $MAIN fetch -q origin main 2>/dev/null
++  local s list=$2 fetched=1
++  git -C $MAIN fetch -q origin main 2>/dev/null || fetched=""
+   if git -C $MAIN cat-file -e "$2^{commit}" 2>/dev/null; then
+     if [ -n "$1" ] && git -C $MAIN merge-base --is-ancestor "$1" "$2" 2>/dev/null; then list=$(git -C $MAIN rev-list --first-parent --max-count=50 "$1..$2")
+     elif [ "$(cat $S/prod-offmain 2>/dev/null)" != "${1:-none}" ]; then echo "${1:-none}" > $S/prod-offmain
+       echo "$(stamp) production: deploy-prod.sha ${1:-none} is not on main; head only" >> $L; fi
++  elif [ -z "$fetched" ] && [ "$(cat $S/prod-nofetch 2>/dev/null)" != "$2" ]; then echo "$2" > $S/prod-nofetch
++    echo "$(stamp) production: fetch failed; head only" >> $L
+   fi
+   for s in $list; do
+     [ "$(head -1 $S/dev-check.$s 2>/dev/null)" = pass ] && [ "$(cat $S/deploy-prod.tries.$s 2>/dev/null || echo 0)" -lt 2 ] && { echo "$s"; return; }

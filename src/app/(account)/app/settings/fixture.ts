@@ -51,11 +51,6 @@ const FIXTURE_BILLING: BillingFacts = Object.freeze({
   state: "active",
   paidThrough: new Date("2026-10-01T00:00:00.000Z"),
   surfaceHref: "https://billing.stripe.com/p/session/fixture",
-  // The approved S18 draws a card row, and this is the fixture's own four
-  // digits for it (#374). The live path answers `null` — `users` holds no
-  // card — so the row is drawn here and nowhere else until a Stripe read
-  // exists; `billing.ts` states why it is not invented in between.
-  cardLast4: "4242",
   // Shown in the specimen so the layout sweep measures the refund line.
   refundUntil: new Date("2026-09-15T00:00:00.000Z"),
 });

@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
-# deployer-dry.sh: dry ticks S1–S11 of the box deployer against a throwaway git repo it builds and deletes.
+# deployer-dry.sh: dry ticks S1–S12 of the box deployer against a throwaway git repo it builds and deletes.
 # Every tick runs DEPLOYER_DRY=1 DEPLOYER_ONCE=1, so Vercel, Inngest and GitHub writes are lines in $S/dry.calls,
 # and both checks run a stub smoke.sh inside the throwaway repo. Nothing reads the main checkout or spends.
-# usage: bash docs/ops/deployer-dry.sh <deployer.sh> [S1 … S11]   (default: every case; exit 1 if one fails)
+# usage: bash docs/ops/deployer-dry.sh <deployer.sh> [S1 … S12]   (default: every case; exit 1 if one fails)
 set -u
 DEP=$(readlink -f "${1:?usage: deployer-dry.sh <deployer.sh> [case …]}"); shift
-cases=${*:-S1 S2 S3 S4 S5 S6 S7 S8 S9 S10 S11}
+cases=${*:-S1 S2 S3 S4 S5 S6 S7 S8 S9 S10 S11 S12}
 # a deployer that ignores DEPLOYER_MAIN would check in the main checkout; S1 never reaches a check on it
 grep -q DEPLOYER_MAIN "$DEP" || [ "$cases" = S1 ] || { echo "$DEP does not read DEPLOYER_MAIN: run S1 only"; exit 2; }
 W=$(mktemp -d); trap 'rm -rf "$W"' EXIT
@@ -18,16 +18,17 @@ mkdir -p "$W/main/scripts" "$W/wt"; printf '#!/bin/sh\n# --free\nexit 0\n' > "$W
 "${G[@]}" commit -q --allow-empty -m C; C=$("${G[@]}" rev-parse HEAD)
 "${G[@]}" commit -q --allow-empty -m D; D=$("${G[@]}" rev-parse HEAD)
 Z=$("${G[@]}" commit-tree "$("${G[@]}" mktree </dev/null)" -m Z)
+git init -q "$W/far"; E=$(git -C "$W/far" -c user.name=dry -c user.email=dry@example.invalid commit-tree "$(git -C "$W/far" mktree </dev/null)" -m E)
 "${G[@]}" push -q origin main
 bad=0
-names(){ sed -e "s/$A/<A>/g; s/$B/<B>/g; s/$C/<C>/g; s/$D/<D>/g; s/$X/<X>/g; s/$Z/<Z>/g"; }
+names(){ sed -e "s/$A/<A>/g; s/$B/<B>/g; s/$C/<C>/g; s/$D/<D>/g; s/$X/<X>/g; s/$Z/<Z>/g; s/$E/<E>/g"; }
 fresh(){ # deploy-prod.sha = A, last deploy 3 h ago and its check passed, dev already at the head
   S=$W/s.$1; mkdir -p "$S"; echo "$A" > "$S/deploy-prod.sha"; echo $(( $(date +%s) - 10800 )) > "$S/deploy-prod.at"
   echo "pass $A" > "$S/prod-check.last"; echo "$D" > "$S/deploy-dev.sha"; echo 0 > "$S/deploy-backoff.until"; : > "$S/prod-redeploy.log"; : > "$S/dry.calls"
   echo "== $1: $2"
 }
 pass(){ for s in "$@"; do echo pass > "$S/dev-check.$s"; done; }
-tick(){ S=$S DEPLOYER_DRY=1 DEPLOYER_ONCE=1 DEPLOYER_HEAD=$D DEPLOYER_MAIN=$W/main DEPLOYER_WT=$W/wt DEPLOYER_MINUTE=${MIN:-20} \
+tick(){ S=$S DEPLOYER_DRY=1 DEPLOYER_ONCE=1 DEPLOYER_HEAD=${HEAD:-$D} DEPLOYER_MAIN=$W/main DEPLOYER_WT=$W/wt DEPLOYER_MINUTE=${MIN:-20} \
   DEVCHECK_BASE_URL=http://127.0.0.1:9 PRODCHECK_BASE_URL=http://127.0.0.1:9 bash "$DEP" >/dev/null 2>&1; }
 n(){ grep -c -- "$1" "$S/${2:-dry.calls}" || true; }
 expect(){ if [ "$2" = "$3" ]; then echo "  ok   $1 = $3"; else echo "  FAIL $1 = $2, expected $3"; bad=1; fi; }
@@ -66,6 +67,9 @@ S10) fresh S10 "state/prod-frozen exists, dev is at C, C passes"; pass "$C"; tou
   expect "preview names head D" "$(n "^deploy preview .*\"ref\":\"main\",\"sha\":\"$D\"" | head -1)" 1 ;;
 S11) fresh S11 "deploy-prod.inflight is 1 min old, C passes"; pass "$C"; touch "$S/deploy-prod.inflight"; tick; show
   expect "deploy calls" "$(n '^deploy')" 0 ;;
+S12) fresh S12 "origin renamed away, main's head E was never fetched, dev already at E (two ticks)"; echo "$E" > "$S/deploy-dev.sha"
+  mv "$W/origin.git" "$W/origin.gone"; HEAD=$E tick; HEAD=$E tick; mv "$W/origin.gone" "$W/origin.git"; show
+  expect "fetch-failed line" "$(n "production: fetch failed; head only" prod-redeploy.log)" 1; expect "deploy calls" "$(n '^deploy')" 0 ;;
 *) echo "unknown case $k"; bad=1 ;;
 esac; done
 exit $bad

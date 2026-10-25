@@ -754,8 +754,6 @@ export const SETTINGS_COPY = Object.freeze({
   "settings.billing.active": ["active", { slots: {}, fixedBy: "REQ-076 c3" }],
   "settings.billing.cancelled": ["cancelled", { slots: {}, fixedBy: "REQ-076 c3" }],
   "settings.billing.next-invoice": ["next invoice", { slots: {}, fixedBy: "BUILD §4.7" }],
-  "settings.billing.card": ["card", { slots: {}, fixedBy: "BUILD §4.7" }],
-  "settings.billing.card-ending": ["ending {last4}", { slots: { last4: "text" }, fixedBy: "issue 1751 · board SettingsBilling · drafted" }],
   "settings.billing.status": ["Status", { slots: {}, fixedBy: "issue 1751 · board SettingsBilling · drafted" }],
   "settings.billing.plan": ["Plan", { slots: {}, fixedBy: "issue 1751 · board SettingsBilling · drafted" }],
   "settings.billing.billed": ["Billed in euros. Cancel any time; everything keeps running until the period ends.", { slots: {}, fixedBy: "issue 1751 · board SettingsBilling · drafted" }],

@@ -45,7 +45,7 @@
 // `collapse`, `divider`, `btn`; lucide for the head glyph at stroke 1.75.
 //
 import type React from "react";
-import { Bot } from "lucide-react";
+import { Sparkles } from "lucide-react";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { SCORE_ESTIMATE } from "@/lib/config/constants";
 import { namesOrLinks } from "@/lib/measure/drivers";
@@ -371,7 +371,7 @@ function Head(p: { right?: React.ReactNode }): React.JSX.Element {
   return (
     <div className="flex flex-wrap items-center justify-between gap-2">
       <h3 className="flex items-center gap-2 text-lg font-semibold">
-        <Bot size={18} strokeWidth={1.75} aria-hidden />
+        <Sparkles size={18} strokeWidth={1.75} aria-hidden />
         {copy("ai-answers.title")}
       </h3>
       {p.right}

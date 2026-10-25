@@ -10,7 +10,7 @@
 import type React from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowRight, Bot, Check, Mail, Search, X } from "lucide-react";
+import { ArrowRight, Check, Mail, Search, Sparkles, X } from "lucide-react";
 import { Surface } from "@/ui/layout";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { PUBLIC_ROUTE_SEO } from "../_seo/routes";
@@ -166,7 +166,7 @@ export default async function AboutPage(): Promise<React.JSX.Element> {
                   <p className="rounded-box bg-base-200 self-end px-3 py-2 text-sm">{plumber.question}</p>
                   <div className="rounded-box border-base-300 flex flex-col gap-1 border p-3">
                     <span className={`${SMALL} flex items-center gap-1`}>
-                      <Bot {...ICON} />
+                      <Sparkles {...ICON} />
                       {copy("how.rivals.answer")}
                     </span>
                     <span className="text-sm">{plumber.answer}</span>
