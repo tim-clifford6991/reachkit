@@ -35,7 +35,8 @@ function numbers(value, at = "", out = new Map()) {
 }
 
 // `base` is budgets.json as the base commit holds it, or null where that commit has none.
-export function budgetFindings({ budgets, base, files }) {
+// A lines number changes only beside a dated decision file the same pull request adds.
+export function budgetFindings({ budgets, base, files, decided = false }) {
   const findings = [];
   if (typeof budgets?.citations !== "number") {
     findings.push("scripts/budgets.json has no citations count");
@@ -49,10 +50,64 @@ export function budgetFindings({ budgets, base, files }) {
     }
   }
   const was = numbers(base);
-  for (const [key, value] of numbers(budgets)) {
-    if (was.has(key) && value > was.get(key)) {
+  const now = numbers(budgets);
+  for (const key of was.keys()) {
+    if (key.startsWith("lines.") && !now.has(key) && !decided) {
+      findings.push(`scripts/budgets.json removes ${key} without a new docs/spec/decisions/ file`);
+    }
+  }
+  for (const [key, value] of now) {
+    if (key.startsWith("lines.")) {
+      if (was.has(key) && value !== was.get(key) && !decided) {
+        findings.push(`scripts/budgets.json changes ${key} from ${was.get(key)} to ${value} without a new docs/spec/decisions/ file`);
+      }
+    } else if (was.has(key) && value > was.get(key)) {
       findings.push(`scripts/budgets.json raises ${key} from ${was.get(key)} to ${value}; a budget only goes down`);
     }
+  }
+  return findings;
+}
+
+const MEASURED = /^(?:src|tests|scripts)\/.*\.(?:ts|tsx|mjs|js|css)$/;
+
+export function isMeasured(rel) {
+  return MEASURED.test(rel);
+}
+
+export function lineCount(text) {
+  return text.split("\n").length - (text === "" || text.endsWith("\n") ? 1 : 0);
+}
+
+// Lines come from the pull request's diff against its base: `changes` is `git diff --numstat` per file and `lines` the head's count per file.
+export function lineFindings({ budget, changes, lines }) {
+  const findings = [];
+  if (!budget) return ["scripts/budgets.json has no lines budget"];
+  const missing = ["fileMax", "tests.floor", "tests.share"].filter((k) => !numbers(budget).has(k));
+  if (missing.length) return [`scripts/budgets.json has no lines.${missing.join(", lines.")}`];
+  const measured = changes.filter((c) => isMeasured(c.rel));
+  for (const { rel, added, deleted } of measured) {
+    const now = lines.get(rel) ?? 0;
+    const was = now - added + deleted;
+    if (now <= budget.fileMax || (was > budget.fileMax && now <= was)) continue;
+    findings.push(
+      was > budget.fileMax
+        ? `${rel} grows from ${was} to ${now} lines; a file over ${budget.fileMax} may only shrink`
+        : `${rel} has ${now} lines, over the ${budget.fileMax}-line file cap; split it by concept`,
+    );
+  }
+  const net = (prefix) =>
+    measured.filter((c) => c.rel.startsWith(prefix)).reduce((sum, c) => sum + c.added - c.deleted, 0);
+  for (const [area, cap] of Object.entries(budget.areas ?? {})) {
+    const grew = net(`${area}/`);
+    const total = [...lines].filter(([rel]) => rel.startsWith(`${area}/`)).reduce((sum, [, n]) => sum + n, 0);
+    if (grew > 0 && total > cap) {
+      findings.push(`${area} grows by ${grew} to ${total} lines; it may not grow while over ${cap}`);
+    }
+  }
+  const tests = net("tests/");
+  const allowed = Math.max(budget.tests.floor, Math.floor(budget.tests.share * Math.max(0, net("src/"))));
+  if (tests > allowed) {
+    findings.push(`tests grow by ${tests} net lines, over the ${allowed} this pull request's src allows`);
   }
   return findings;
 }

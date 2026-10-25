@@ -1,3 +1,8 @@
 {
-  "citations": 3725
+  "citations": 3725,
+  "lines": {
+    "fileMax": 600,
+    "areas": { "src/lib/opportunities": 9000 },
+    "tests": { "share": 0.5, "floor": 200 }
+  }
 }
