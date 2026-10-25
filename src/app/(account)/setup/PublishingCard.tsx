@@ -21,7 +21,7 @@
 
 import type React from "react";
 import { useId, useRef, useState } from "react";
-import { Circle, CircleCheck, FileText, Globe, Layers, Milestone, Monitor, Sparkles, type LucideIcon } from "lucide-react";
+import { Circle, CircleCheck, FileText, Globe, Layers, Milestone, Monitor, type LucideIcon } from "lucide-react";
 import { copy } from "@/lib/presentation/copy";
 import {
   dnsRecordFor,
@@ -95,10 +95,7 @@ export function PublishingCard(p: {
       ) : null}
       <section className="card bg-base-100 shadow-sm" data-testid={TEST_ID}>
         <div className="card-body gap-4">
-          <h2 className="card-title text-base">
-            <Sparkles aria-hidden size={20} strokeWidth={1.75} />
-            {copy("setup.destination.where")}
-          </h2>
+          <h2 className="card-title text-base">{copy("setup.destination.where")}</h2>
 
           <div className="grid gap-3 sm:grid-cols-2" data-testid="setup-destination">
             {p.cards.destination.map((option) => (
