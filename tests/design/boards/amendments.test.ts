@@ -5,6 +5,7 @@ import { type HTMLElement, parse } from "node-html-parser";
 import { describe, expect, it } from "vitest";
 import { copy } from "@/lib/presentation/copy";
 import { BOARDS_DIR } from "../../../scripts/design/parity.mjs";
+import { boardIcons } from "../../../scripts/design/components.mjs";
 
 const raw = (name: string) => readFileSync(path.join(BOARDS_DIR, `${name}.dc.html`), "utf8");
 const board = (name: string) => parse(raw(name));
@@ -209,6 +210,12 @@ describe("icons are structural only (E26, E27, E29)", () => {
     expect(svgs[0]!.getAttribute("viewBox")).toBe("0 0 24 24");
     expect(svgs[0]!.innerHTML).toContain(CLOCK);
     expect(svgs[0]!.parentNode!.querySelector("strong")).toBe(figure.querySelector("strong"));
+  });
+
+  it("PubReport's We read you as draws Tag, MapPin and Languages, and the buyer chip no icon (E44)", () => {
+    const chips = board("PubReport").querySelectorAll("#read-as li");
+    expect(chips.map((li) => boardIcons(li.innerHTML).map((icon) => icon.name))).toEqual([["tag"], [], ["map-pin"], ["languages"]]);
+    expect(chips.map((li) => li.text)).toEqual(["Plumber · local service", "Homeowners", "In and around Austin", "English, United States"]);
   });
 });
 

@@ -52,7 +52,7 @@ import { unblockLines } from "../_problems/unblock";
 import { RemovalAddressLine } from "./removal";
 import type { AddressControl, AddressNotice, WrittenPage } from "./state";
 import { refusalLine } from "./refusal";
-import { VerdictStrip } from "./verdict";
+import { VerdictStrip, type ReadAsChip } from "./verdict";
 import { rescoredOf } from "./rescored";
 import { RescanControl } from "./rescan";
 import { startReportCheckout } from "./checkout";
@@ -406,7 +406,7 @@ function whereOf(understanding: BusinessUnderstanding | null): { badge: string |
 /** What the scan read the business as, one badge each: what it is, who
  *  buys, where, and the market it was measured in. A field nothing was read
  *  for draws no badge. */
-function readAsOf(report: StoredReport, understanding: BusinessUnderstanding | null, where: string | null): string[] {
+function readAsOf(report: StoredReport, understanding: BusinessUnderstanding | null, where: string | null): ReadAsChip[] {
   const category = categoryOf(report.market);
   const kind = understanding?.kind == null ? null : copy(`report.read.as.kind.${understanding.kind}`);
   const what = category !== null && kind !== null ? copy("report.read.as.what", { category, kind }) : (category ?? kind);
@@ -416,10 +416,10 @@ function readAsOf(report: StoredReport, understanding: BusinessUnderstanding | n
     country: new Intl.DisplayNames(REPORT_TAG, { type: "region" }).of(measured.country) ?? measured.country,
   });
   return [
-    ...(what === null ? [] : [what]),
-    ...(understanding?.buyers[0] === undefined ? [] : [understanding.buyers[0]]),
-    ...(where === null ? [] : [where]),
-    locale,
+    ...(what === null ? [] : [{ kind: "what" as const, text: what }]),
+    ...(understanding?.buyers[0] === undefined ? [] : [{ kind: "buyer" as const, text: understanding.buyers[0] }]),
+    ...(where === null ? [] : [{ kind: understanding?.where.place == null ? ("reach" as const) : ("place" as const), text: where }]),
+    { kind: "measured" as const, text: locale },
   ];
 }
 
