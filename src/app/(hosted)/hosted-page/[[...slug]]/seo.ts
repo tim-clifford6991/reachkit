@@ -291,12 +291,29 @@ export function blogSchema(a: {
   });
 }
 
+interface FeedAlternates {
+  canonical: string;
+  types: Record<string, { url: string; title: string }[]>;
+}
+
 /** The `<link rel="alternate">` to the feed, beside the canonical. */
-function alternatesOf(canonical: string, business: HostedBusiness): Metadata["alternates"] {
+function alternatesOf(canonical: string, business: HostedBusiness): FeedAlternates {
   return {
     canonical,
     types: { [FEED_TYPE]: [{ url: `${originOf(canonical)}${FEED_PATH}`, title: indexTitle(business) }] },
   };
+}
+
+interface ShareTags {
+  openGraph: {
+    url: string;
+    title: string;
+    description?: string;
+    siteName: string;
+    locale: string;
+    images: { url: string; width: number; height: number; alt: string }[];
+  };
+  twitter: { card: "summary_large_image"; title: string; description?: string; images: string[] };
 }
 
 /** The share tags both kinds of page carry: the card a pasted link draws. */
@@ -306,7 +323,7 @@ function shareTags(a: {
   description: string | undefined;
   business: HostedBusiness;
   image: string;
-}): Pick<Metadata, "twitter"> & { openGraph: Record<string, unknown> } {
+}): ShareTags {
   const described = a.description === undefined ? {} : { description: a.description };
   return {
     openGraph: {
@@ -321,12 +338,21 @@ function shareTags(a: {
   };
 }
 
+/** An article's head, typed so the static article can draw every tag of it. */
+export type ArticleMetadata = typeof HEAD_SIGNALS & {
+  title: string;
+  description: string | undefined;
+  alternates: FeedAlternates;
+  openGraph: ShareTags["openGraph"] & { type: "article"; publishedTime: string; modifiedTime: string };
+  twitter: ShareTags["twitter"];
+};
+
 export function articleMetadata(a: {
   page: HostedPage;
   canonical: string;
   description: string | undefined;
   business: HostedBusiness;
-}): Metadata {
+}): ArticleMetadata {
   const share = shareTags({
     canonical: a.canonical,
     title: a.page.title,

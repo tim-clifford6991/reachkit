@@ -60,6 +60,8 @@ async function at(seconds: number, event: { stage: string; done: boolean; summar
   await act(async () => FakeEventSource.opened[0]!.emit(event));
 }
 
+const BUYER = "homeowners and businesses in Austin needing plumbing work";
+
 /** The board's moment: three stages done in 4, 2 and 6 seconds, the fourth started at 0:12. */
 async function partWay(): Promise<HTMLElement> {
   const screen = await mount();
@@ -69,7 +71,7 @@ async function partWay(): Promise<HTMLElement> {
   await at(6, { stage: "reading_access_rules", done: true, summary: { readers: { google: "in", ai: "out" } } });
   await at(6, { stage: "reading_your_market", done: false });
   // The crawl ends beside the market, so its count rides on the market's exit.
-  await at(12, { stage: "reading_your_market", done: true, summary: { pagesRead: 38, category: "Plumber" } });
+  await at(12, { stage: "reading_your_market", done: true, summary: { pagesRead: 38, category: "Plumber", buyer: BUYER, place: "Austin" } });
   await at(12, { stage: "checking_your_presence", done: false });
   return screen;
 }
@@ -220,6 +222,28 @@ describe("the cards fill in from what each finished stage found", () => {
     ]);
   });
 
+  it("what we read: the category under Tag, the town under MapPin, and who buys in full on its own line", async () => {
+    const read = card(await partWay(), copy("report.read.title"));
+    const chips = [...read.querySelectorAll("li")];
+    expect(chips.map((li) => [li.querySelector("svg")?.classList.contains("lucide-tag"), li.querySelector("svg")?.classList.contains("lucide-map-pin"), li.textContent])).toEqual([
+      [true, false, "Plumber"],
+      [false, true, copy("report.read.where.local", { place: "Austin" })],
+    ]);
+    expect(read.querySelector(".lucide-users, .lucide-wrench")).toBeNull();
+    const buyer = [...read.querySelectorAll("p")].find((p) => p.textContent?.startsWith("Who buys:"));
+    expect(buyer?.textContent).toBe(copy("scan.filling.buyer", { buyer: BUYER }));
+    expect(buyer?.querySelector("svg")).toBeNull();
+  });
+
+  it("a 200-character buyer is drawn whole, never cut", async () => {
+    const screen = await mount();
+    const long = `${"homeowners, landlords and property managers ".repeat(5)}`.slice(0, 200);
+    await at(1, { stage: "reading_your_market", done: true, summary: { category: "Plumber", buyer: long } });
+    const read = card(screen, copy("report.read.title"));
+    expect(read.textContent).toContain(copy("scan.filling.buyer", { buyer: long }));
+    expect(read.textContent).not.toContain("…");
+  });
+
   it("a site that lets every reader in shows no fix line", async () => {
     const screen = await mount();
     await at(1, { stage: "reading_access_rules", done: true, summary: { readers: { google: "in", ai: "in" } } });
@@ -249,6 +273,10 @@ describe("the cards fill in from what each finished stage found", () => {
     const read = card(screen, copy("report.read.title"));
     expect(read.textContent).toContain("Plumber");
     expect(read.textContent).not.toContain(copy("scan.filling.pages", { pages: "0" }));
+    // An old event, or a site that sells wider than a town: no town chip, no buyer line, no empty chip.
+    expect(read.querySelector(".lucide-map-pin")).toBeNull();
+    expect(read.textContent).not.toContain("Who buys:");
+    expect([...read.querySelectorAll("li")].map((li) => li.textContent)).toEqual(["Plumber"]);
     for (const c of cards(screen)) expect(c.textContent).not.toMatch(/(^|\D)0(\D|$)/);
   });
 });
