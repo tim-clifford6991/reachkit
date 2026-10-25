@@ -299,6 +299,7 @@ export const REPORT_COPY = Object.freeze({
   "scan.filling.searches": ["{searches} searches buyers make", { slots: { searches: "text" }, fixedBy: "board PubScanning · issue 1725" }],
   "scan.filling.ai": ["What AI answers say", { slots: {}, fixedBy: "board PubScanning · issue 1725" }],
   "scan.filling.pages": ["{pages} pages read", { slots: { pages: "text" }, fixedBy: "board PubScanning · issue 1905" }],
+  "scan.filling.buyer": ["Who buys: {buyer}", { slots: { buyer: "text" }, fixedBy: "board PubScanning · E44 · issue 2064" }],
   "scan.filling.reader.google": ["Google", { slots: {}, fixedBy: "board PubScanning · issue 1905" }],
   "scan.filling.reader.ai": ["AI", { slots: {}, fixedBy: "board PubScanning · issue 1905" }],
   "scan.filling.reader.in": ["let in", { slots: {}, fixedBy: "board PubScanning · issue 1905" }],

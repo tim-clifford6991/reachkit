@@ -20,7 +20,7 @@
 import type React from "react";
 import { useSyncExternalStore } from "react";
 import Link from "next/link";
-import { ArrowRight, Ban, Check, Search, Sparkles } from "lucide-react";
+import { ArrowRight, Ban, Check, MapPin, Search, Sparkles, Tag } from "lucide-react";
 import { Surface } from "@/ui/layout";
 import { SKELETON_EXIT, ViewTransition } from "@/ui/motion";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
@@ -45,15 +45,26 @@ const FILLING: readonly { readonly title: CopyKey; readonly stage: StageName; re
 ];
 
 function whatWeRead(found: StageSummary): React.ReactNode {
-  if (found.pagesRead === undefined && found.category === undefined) return null;
+  if (found.pagesRead === undefined && found.category === undefined && found.buyer === undefined && found.place === undefined) return null;
+  // The report's read-as chips, in its words: a chip that would hold nothing is not drawn.
+  const chips = [
+    ...(found.category === undefined ? [] : [{ Icon: Tag, text: found.category }]),
+    ...(found.place === undefined ? [] : [{ Icon: MapPin, text: copy("report.read.where.local", { place: found.place }) }]),
+  ];
   return (
     <div className="flex flex-col gap-2">
       {found.pagesRead === undefined ? null : <p className="text-sm">{copy("scan.filling.pages", { pages: String(found.pagesRead) })}</p>}
-      {found.category === undefined ? null : (
+      {chips.length === 0 ? null : (
         <ul className="flex flex-wrap gap-2">
-          <li className="badge badge-soft">{found.category}</li>
+          {chips.map(({ Icon, text }) => (
+            <li key={text} className="badge badge-soft h-auto py-0.5 whitespace-normal">
+              <Icon size={14} strokeWidth={1.75} aria-hidden />
+              {text}
+            </li>
+          ))}
         </ul>
       )}
+      {found.buyer === undefined ? null : <p className="text-sm wrap-anywhere">{copy("scan.filling.buyer", { buyer: found.buyer })}</p>}
     </div>
   );
 }
