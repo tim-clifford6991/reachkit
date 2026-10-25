@@ -1,69 +1,32 @@
-// BUILD §9, §4.6 — why a page needs the customer, from the page's own
-// record (issue 880).
-//
-// **The fault this module answers.** Every page whose stage is `needs_you`
-// was offered "Reconnect WordPress", whatever put it there and whatever
-// the site publishes to. The owner's dogfood page (2026-09-18) rests in
-// `needs_attention` because three §8 hard rules stopped the writing —
-// `rules:no_private_figure,no_unsourced_testimonial,honest_row` — on a site
-// whose destination is hosted, healthy and live. The founder was told to
-// fix a connection that is not broken and never told the real reason,
-// which was on the row the whole time.
-//
-// **The cause is read, never guessed.** `needs_attention` is reached by
-// four different movers and each records why on the transition it takes:
-//
-//   `rules:<rule,rule>`      §8 rule 4 — the hard rules stopped the writing
-//                            (`src/lib/generate/index.ts`'s `rulesReason`)
-//   `step_failed:<step>`     issue 813 — a step could not run twice
-//   `step_failed:adds`       issue 1143 — the page adds too little
-//   `step_failed:elsewhere`  issue 1144 — too close to a page elsewhere
-//   `step_failed:pack:<need,need>`  issue 1252 — the context pack was short
-//                            of what the page's template asks, so nothing
-//                            was written
-//   `reason_needs_customer`  §9 — a publish failure no retry could clear
-//                            (`attempt/retry.ts`'s `decideRetry`)
-//   `retries_exhausted`      §9 — the publish was tried ×3 and did not go
-//
-// So the cause is the last `→ needs_attention` transition's own `reason`,
-// parsed here and nowhere else. A reason this build does not recognise, or
-// a row with none, is `unknown` — which states that the page needs them and
-// claims nothing about why, rather than borrowing the loudest of the four.
-//
-// **Pure, and in the record's pure leaf beside `lines.ts`.** The day panel,
-// the Overview alert and any later surface read the same derivation, so
-// they cannot disagree about one page; and none of them pays for a
-// database client to ask.
+// BUILD §9, §4.6 — why a page needs the customer, read from its own record, never guessed: a stage alone would offer
+// "Reconnect" to a page the writing rules stopped on a healthy destination.
+// The cause is the last `→ needs_attention` transition's `reason`, parsed here and nowhere else:
+//   `rules:<rule,rule>`             §8 rule 4, the hard rules stopped the writing (`generate`'s `rulesReason`)
+//   `step_failed:<step>`            a step could not run, twice
+//   `step_failed:adds`              the page adds too little
+//   `step_failed:elsewhere`         too close to a page elsewhere
+//   `step_failed:pack:<need,need>`  the context pack was short of what the template asks, so nothing was written
+//   `reason_needs_customer`         §9, a publish failure no retry could clear (`decideRetry`)
+//   `retries_exhausted`             §9, the publish was tried ×3 and did not go
+// Anything else is `unknown`, which claims nothing about why. Pure, so every surface reads one derivation without a db client.
 import type { State } from "../types";
 
-/** Why a page rests in `needs_attention`. Closed, and each member carries
- *  what its own sentence and its own action need — nothing more. */
+/** Why a page rests in `needs_attention`; closed, each member carrying what its sentence and action need. */
 export type NeedsYouCause =
   /** §8's hard rules stopped the writing. The rules are the pipeline's own
    *  handles (`brand_gap`, …), never sentences: the draft screen
    *  lists them as its rails, and the panel states the cause. */
   | { kind: "rules"; rules: readonly string[] }
-  /** A step of the pipeline could not run, twice (issue 813). */
+  /** A step of the pipeline could not run, twice. */
   | { kind: "step"; step: string }
-  /** A new page was written and adds too little that the web and the site
-   *  do not already say (SPEC §7, D12, issue 1143). It waits on a fact only
-   *  the founder has. */
+  /** The page adds too little the web and the site do not already say (SPEC §7, D12); it waits on a founder's fact. */
   | { kind: "adds" }
-  /** The page was written, and written again, and still reads almost the
-   *  same as a page ReachKit wrote for another site (SPEC §7, D13, issue
-   *  1144). The cause carries nothing about that page: the founder is told
-   *  only that this one was held. */
+  /** Twice written, it still reads almost the same as a page for another site (SPEC §7, D13); it carries nothing about that page. */
   | { kind: "elsewhere" }
-  /** The context pack was short of what the page's template asks (SPEC §7,
-   *  D41 stage 2, issue 1252), so nothing was written. `missing` is the
-   *  pack's own handles (`options`, `own_price`, …), never sentences; empty
-   *  where the reason names none. */
+  /** The context pack was short of what the template asks (SPEC §7, D41 stage 2), so nothing was written. `missing` is
+   *  the pack's handles (`options`, `own_price`, …), never sentences. */
   | { kind: "pack"; missing: string[] }
-  /** The page could not be delivered, for a reason no retry clears — an
-   *  expired or invalid credential, a record that does not point here, a
-   *  destination that refused it, or no destination at all. Which of those
-   *  is the destination's own state to state, on the destination; what this
-   *  says is that the page is waiting on it. */
+  /** Undeliverable for a reason no retry clears; which one is the destination's own state to say. */
   | { kind: "destination" }
   /** The publish was attempted the full three times and did not go. */
   | { kind: "delivery" }
@@ -78,10 +41,7 @@ interface TransitionLike {
   reason?: unknown;
 }
 
-/** The reason recorded on the page's last move into `needs_attention`, or
- *  `null` where it has never taken one. Defensive over the stored column:
- *  a malformed transitions blob is a page with no stated cause, never a
- *  throw on a route the customer reads. */
+/** The reason on the last move into `needs_attention`, or `null`; a malformed blob has no cause, never a throw. */
 export function restedReasonOf(transitions: unknown): string | null {
   if (!Array.isArray(transitions)) return null;
   const rested = [...(transitions as TransitionLike[])]
@@ -90,8 +50,7 @@ export function restedReasonOf(transitions: unknown): string | null {
   return typeof rested?.reason === "string" && rested.reason !== "" ? rested.reason : null;
 }
 
-/** The cause a recorded reason names. `null` reason, or one this build does
- *  not know, is `unknown`. */
+/** The cause a recorded reason names; `null` or unrecognised is `unknown`. */
 export function needsYouCauseOf(reason: string | null): NeedsYouCause {
   if (reason === null) return { kind: "unknown" };
   if (reason.startsWith("rules:")) {
@@ -121,35 +80,19 @@ export function needsYouCauseOf(reason: string | null): NeedsYouCause {
   return { kind: "unknown" };
 }
 
-/** The cause a page's own record states, for a page that rests needing the
- *  customer — and `null` for a page in any other state, which needs nothing
- *  of them and has no cause to state. */
+/** The cause for a page resting in `needs_attention`; `null` in any other state. */
 export function needsYouOf(a: { state: State; transitions: unknown }): NeedsYouCause | null {
   if (a.state !== "needs_attention") return null;
   return needsYouCauseOf(restedReasonOf(a.transitions));
 }
 
-/**
- * Whether a page waiting on the customer is waiting on the **destination**.
- *
- * The two delivery causes and no other: a page the hard rules stopped was
- * never sent anywhere, so nothing about the destination is true of it. This
- * is the one question the reconnect control turns on, asked once here so
- * that no surface answers it with a stage.
- */
+/** Whether it waits on the destination: the two delivery causes only. The reconnect control turns on this, never a stage. */
 export function waitsOnDestination(cause: NeedsYouCause | null): boolean {
   return cause !== null && (cause.kind === "destination" || cause.kind === "delivery");
 }
 
-/**
- * Whether a page resting in `needs_attention` waits on the customer at all
- * (issue 1477). Every site runs on autopilot, where owner action is never a
- * required step: a page the writing stopped — its rules, a step, too little
- * added, too close to a page elsewhere, a short pack — rests, its topic
- * comes back, and the day goes to another topic. A page that could not be
- * delivered waits on a destination only the customer can reconnect, and a
- * page whose record states no cause claims none.
- */
+/** Whether it waits on the customer at all. On autopilot, owner action is never required: a page the writing stopped
+ *  rests and the day goes to another topic. Only a destination to reconnect, or no stated cause, waits on them. */
 export function waitsOnCustomer(cause: NeedsYouCause | null): boolean {
   return cause === null || waitsOnDestination(cause) || cause.kind === "unknown";
 }

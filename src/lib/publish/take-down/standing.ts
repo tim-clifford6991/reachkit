@@ -1,12 +1,6 @@
-// SPEC §7 (issue 1532) — a live page its customer took down, read off the
-// draft's own transitions.
-//
-// A take-down is §9's `published → unpublished` with the customer as actor
-// and the reason `take_down`. Nothing else is stored for it: the record of
-// the move is the fact, so the put-back window, the guard on its edge, the
-// rechecks and the refresh planner all read the same record and cannot
-// disagree about which page the customer took down. Pure, and the leaf the
-// machine's guard reads, so it reaches no database.
+// SPEC §7 — a live page its customer took down, read off the draft's transitions: §9's `published → unpublished` with
+// the customer as actor and reason `take_down`. Nothing else is stored, so the put-back window, its guard, the rechecks
+// and the refresh planner cannot disagree. Pure: the machine's guard reads it.
 import { TAKE_DOWN, TOPIC_REST_DAYS } from "@/lib/config/constants";
 import type { State, TransitionRecord, UnpublishOutcome } from "../types";
 
@@ -25,16 +19,12 @@ function isTakeDown(record: Partial<TransitionRecord> | undefined): boolean {
   return record?.to === "unpublished" && record.reason === TAKE_DOWN_REASON && record.actor?.kind === "customer";
 }
 
-/** Whether the customer ever took this page down — put back since or not.
- *  The system leaves such a page to them: it is never refreshed or
- *  re-checked again. */
+/** Whether the customer ever took this page down, put back since or not; such a page is never refreshed or re-checked. */
 export function takenDownByCustomer(transitions: unknown): boolean {
   return asRecords(transitions).some(isTakeDown);
 }
 
-/** Until when the page can be put back: its last move is the customer's
- *  take-down, and the window runs `TAKE_DOWN.PUT_BACK_DAYS` from it.
- *  `null` where the last move is anything else. */
+/** `TAKE_DOWN.PUT_BACK_DAYS` after a last move that is the customer's take-down; otherwise `null`. */
 export function putBackUntil(transitions: unknown): Date | null {
   const records = asRecords(transitions);
   const last = records[records.length - 1];
@@ -49,10 +39,8 @@ export function canPutBack(transitions: unknown, now: Date): boolean {
   return until !== null && now.getTime() < until.getTime();
 }
 
-/** The outcomes after which the same page can stand at the same address
- *  again: the hosted row. A WordPress post returned to draft is not among
- *  them — publishing it again is a call ADR-084 Decision 1 keeps out of
- *  that client. */
+/** The outcomes after which the page can stand at the same address again: hosted only, since re-publishing a WordPress
+ *  post is a call ADR-084 decision 1 keeps out of that client. */
 export const RESTORABLE: readonly UnpublishOutcome[] = Object.freeze(["removed"] as const);
 
 /** What the page's own screen draws: a live page with *Stop this page*, or
@@ -79,9 +67,8 @@ export function takeDownStanding(a: {
   return { kind: "stopped", wordpress: a.unpublishOutcome === "returned_to_draft", putBackUntil: open ? until : null };
 }
 
-/** Issue 1549: the topics of pages the system withdrew rest for
- *  `TOPIC_REST_DAYS`, as a stopped draft's do (D26). The page is down
- *  whether or not the rows could be written. */
+/** The topics of pages the system withdrew rest for `TOPIC_REST_DAYS`, as a stopped draft's do (D26); the page is
+ *  down whether or not the rows could be written. */
 export async function restWithdrawn(
   deps: { rest: (draftIds: readonly string[], until: Date) => Promise<void> },
   draftIds: readonly string[],

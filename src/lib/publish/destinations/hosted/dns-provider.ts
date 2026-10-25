@@ -1,22 +1,8 @@
-// SPEC §5 — where a founder adds their CNAME, named from their domain's
-// nameservers (issue 760; owner ruling 2026-09-16).
-//
-// A small closed table, not a parser: a nameserver whose name ends in a
-// suffix below is that provider's, and nothing else is anybody's. **An
-// unknown nameserver is named as itself**, never mapped to a plausible
-// brand — the founder can recognise it or search for it, and a wrong brand
-// would send them to a dashboard their domain is not on. A suffix one
-// provider runs for several (NS1's `nsone.net` also serves Netlify DNS,
-// is left out for the same reason. `googledomains.com` serves both
-// Squarespace Domains (every domain moved from Google Domains) and Google
-// Cloud DNS; since issue 856 it is named "Squarespace" and given
-// Squarespace's steps, the owner's "Google/Squarespace" guide.
-//
-// Each provider carries the guide its steps are drawn from (issue 856): the
-// six the owner named, and the generic guide for every other provider.
-//
-// Provider names are brands, carried as data into the registry's
-// `{provider}` slot — never a sentence.
+// SPEC §5 — where a founder adds their CNAME, named from their domain's nameservers by a small closed suffix table.
+// An unknown nameserver is named as itself, never mapped to a plausible brand that would send the founder to the wrong
+// dashboard; a suffix one provider runs for several (NS1's `nsone.net`) is left out for the same reason.
+// `googledomains.com` serves Squarespace Domains and Google Cloud DNS; it is named "Squarespace" with the Google/Squarespace guide.
+// Each provider carries its guide (six of their own, `generic` for the rest). Names are brands, data for `{provider}`, never a sentence.
 import { parse as pslParse } from "psl";
 
 /** What the founder can be told about where their DNS is. */

@@ -1,22 +1,6 @@
-// SPEC §6 (2026-09-20, #908) measure (d) — the *AI engines on your blog*
-// card's facts, for a real account.
-//
-// Read by the app's `blog-reads-provider.ts` and by the Monday mail
-// (`src/lib/mail/weekly`), which is why it lives here and not beside the
-// card: `src/lib` never imports `src/app`. It measures nothing and buys
-// nothing: every value is a projection of rows the hosted route already
-// wrote, plus two cheap questions about the site — does it publish anywhere
-// we host, and has it published anything yet.
-//
-// **Three reads, none of them per page.** The counts come back as one
-// window of roll-up cells (`publication_reads`, already one row per page,
-// day, engine and reason), and the two site questions are a single row and
-// a column of ids.
-//
-// **A failed count is `null`, never an empty window.** A site nobody has
-// read and a site whose counts could not be fetched are two different
-// sentences on the screen, and the model draws the second one rather than
-// zeroes.
+// SPEC §6 measure (d) — the *AI engines on your blog* card's facts. Here, not beside the card, because the Monday mail
+// reads them too and `src/lib` never imports `src/app`. It buys nothing: rows the hosted route wrote, plus two site questions.
+// Three reads, none per page. A failed count is `null`, never an empty window, so the screen never draws zeroes for it.
 import { dbAdmin } from "@/lib/db";
 import { BLOG_READS_WINDOW_D } from "@/lib/config/constants";
 import { AI_BLOG_ENGINES, BLOG_READS_RETENTION_W } from "@/lib/config/constants";
@@ -43,9 +27,7 @@ function untyped(): MinimalClient {
   return dbAdmin() as unknown as MinimalClient;
 }
 
-/** Does this site publish anywhere ReachKit serves? A WordPress site's
- *  visitors reach a server this product does not own, and counting them
- *  would be a measurement we cannot take. */
+/** Does this site publish anywhere ReachKit serves? A WordPress site's visitors reach a server we cannot count on. */
 async function hasHostedDestination(siteId: string): Promise<boolean> {
   const { data, error } = await untyped()
     .from<{ id: string }>("destinations")
@@ -58,8 +40,7 @@ async function hasHostedDestination(siteId: string): Promise<boolean> {
   return (data?.length ?? 0) > 0;
 }
 
-/** How many hosted pages are live. Ids only — the card needs a count, not a
- *  page. */
+/** How many hosted pages are live; ids only. */
 async function liveHostedPages(siteId: string): Promise<number> {
   const { data, error } = await untyped()
     .from<{ id: string }>("publications")
@@ -82,8 +63,7 @@ export async function readBlogReadFacts(
     liveHostedPages(site.siteId),
     readBlogReads({
       siteId: site.siteId,
-      // This window and the one before it, for the change (issue 1364), and
-      // every week kept, for the weekly reads.
+      // This window and the one before, for the change, and every week kept, for the weekly reads.
       sinceDay: windowStartDay(at, Math.max(windowDays * 2, BLOG_READS_RETENTION_W * 7)),
       knownEngines: AI_BLOG_ENGINES,
       knownKinds: BLOG_READ_KINDS,

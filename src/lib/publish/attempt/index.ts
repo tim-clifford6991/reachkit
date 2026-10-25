@@ -1,38 +1,10 @@
-// BUILD §9 — `publish()`: the delivery call after the claim, and the
-// outcome written exactly as it happened.
-//
-// Three properties this file exists to keep, in order of how quietly they
-// break:
-//
-//  1. **The adapter is called after the claim, never inside it.** The
-//     `publications` row is written first (ADR-080) — it is what a crashed
-//     attempt leaves behind for the next one to find — and only then does
-//     anything leave the process.
-//  2. **`made_live_by_us` is `result.madeLive` and nothing else.** Not
-//     `servesPublicly`, not `hostedByUs`, not `liveUrl != null`, not
-//     `kind === 'hosted'`. Those are facts about the *destination*;
-//     `madeLive` is a fact about what this call did to this page, declared
-//     by the adapter that did or did not do it (ADR-084 Decision 4).
-//  3. **`verify_due_at` reads the address, never the kind.** A delivery
-//     that came back with a live address is due for the 24-hour check;
-//     one that did not is not. Deriving it from the destination kind is
-//     how WordPress silently leaves the verified population.
-//  4. **`seo_written` keeps "no answer" and "no plugin wrote" apart**
-//     (issue #156). `undefined` on the result is a destination with no
-//     such answer to give and stores `null`; an empty array is REQ-060
-//     criterion 4's answer — delivered, and written into no plugin — and
-//     stores `'{}'`. Written on this update and nowhere else: the fact
-//     belongs to the delivery that learned it, and a claim that never
-//     delivered leaves the column null.
-//
-// The outcome is written **as it happened**: a page that reached its
-// destination is recorded delivered even if the switch was thrown
-// mid-flight, and a page that did not is recorded failed. Neither is ever
-// inferred from the switch — what the customer reads after switching off
-// must never say nothing was published while a page went out, and never
-// say a page went out that did not.
-//
-// The archived plan is WO-213.
+// BUILD §9 — `publish()`: the delivery after the claim, and the outcome written exactly as it happened.
+//  1. The adapter is called after the claim, never inside it: the `publications` row comes first (ADR-080).
+//  2. `made_live_by_us` is `result.madeLive` and nothing else, never `servesPublicly`, `hostedByUs`, `liveUrl != null`
+//     or `kind === 'hosted'`: what this call did to this page, declared by the adapter (ADR-084 decision 4).
+//  3. `verify_due_at` reads the address, never the kind, or WordPress silently leaves the verified population.
+//  4. `seo_written` keeps "no answer" (`null`) apart from "no plugin wrote" (`'{}'`, REQ-060 c4), written on this update only.
+// Written as it happened, never inferred from the switch: a page that went out mid-pause is delivered, one that did not is failed.
 import { PUBLISH_DELIVER_TIMEOUT_MS, PUBLISH_VERIFY_DELAY_H } from "@/lib/config/constants";
 import { publishDb } from "../db";
 import { adapterFor as defaultAdapterFor, withConfig } from "../destinations";
@@ -56,15 +28,8 @@ import type { AnnounceSend } from "../destinations/hosted/announce";
 
 export type { FailureReason } from "../types";
 
-/**
- * The reasons a repeated attempt could clear — §9's "retry ×3" applies to
- * these and to no others. The other five members of `FailureReason` need
- * the customer, so a page carrying one goes to `needs_attention` at once
- * rather than failing three times first.
- *
- * Policy, not shape, which is why it lives here and the union lives in the
- * leaf.
- */
+/** The reasons a repeated attempt could clear, the only ones §9's "retry ×3" covers; the rest need the customer, so the
+ *  page goes to `needs_attention` at once. Policy, so here, while the union lives in the leaf. */
 export const RETRYABLE: readonly FailureReason[] = Object.freeze([
   "network",
   "timeout",
@@ -79,9 +44,7 @@ export function isRetryable(reason: FailureReason): boolean {
 export type PublishResult =
   | { ok: true; publicationId: string; liveUrl?: string; alreadyPublished: boolean }
   | { ok: false; reason: FailureReason; retryable: boolean; attemptNo: number }
-  /** `matchedEntry` rides on the `claim_recheck` hold and on no other —
-   *  the do-not-claim entry the page matched, in the customer's own words
-   *  (BUILD §8 hard rule 4). */
+  /** `matchedEntry` rides the `claim_recheck` hold only: the customer's own words (BUILD §8 hard rule 4). */
   | { ok: false; reason: "held"; heldBy: HeldBy; matchedEntry?: string };
 
 export interface PublishArgs {
@@ -90,16 +53,11 @@ export interface PublishArgs {
   by: Actor;
   at?: Date;
   deps?: GuardDeps;
-  /** The adapter registry. Injected so a caller under test drives a stub
-   *  without a destination, and so #49 and #54 supply their adapters by
-   *  registering them rather than by editing this file. */
+  /** The adapter registry, injected so a test drives a stub without a destination. */
   adapterFor?: (kind: DestinationKind) => DestinationAdapter | null;
-  /** How the change is announced to IndexNow and the WebSub hub
-   *  (`../destinations/hosted/announce.ts`). Injected so a suite answers
-   *  for the network; the engine passes none. */
+  /** How the change is announced (`../destinations/hosted/announce.ts`), injected for suites; the engine passes none. */
   announce?: AnnounceSend;
-  /** How the live check asks an address (`../links/live.ts`). Injected so a
-   *  suite answers for the network; the engine passes none. */
+  /** How the live check asks an address (`../links/live.ts`), injected for suites; the engine passes none. */
   askAddress?: AskAddress;
 }
 
@@ -116,10 +74,7 @@ export async function publish(a: PublishArgs): Promise<PublishResult> {
   });
   if (!claimed.ok) return claimed;
 
-  // A delivered row already exists: the previous attempt reached the
-  // destination and its outcome was never recorded here. There is nothing
-  // to deliver — the adapter is not called at all — and the page is
-  // reconciled to `published` rather than sent again.
+  // Already delivered, its outcome unrecorded: reconciled to `published`, never sent again, the adapter not called.
   if (claimed.alreadyPublished) {
     const row = await readOutcome(claimed.publicationId);
     await transition(a.draftId, "published", a.by, {
@@ -146,24 +101,16 @@ export async function publish(a: PublishArgs): Promise<PublishResult> {
   if (rendered === null) {
     return failWith(a, claimed.publicationId, claimed.attemptNo, "destination_rejected", at);
   }
-  // SPEC §7 (2026-10-10, issue 1391): every link is asked once before the
-  // page goes out, and the page that goes out links none that is gone.
+  // SPEC §7: every link is asked once, and the page that goes out links none that is gone.
   const page = await withLiveLinks(rendered, a.draftId, at, a.askAddress);
 
-  // Everything above this line has committed. Each byte the adapter sends
-  // is bounded by the egress seam it goes through (BUILD §6.4: 8 s default,
-  // 15 s hard maximum); `PUBLISH_DELIVER_TIMEOUT_MS` bounds the *attempt* —
-  // an adapter makes several requests, and a destination that answers each
-  // one slowly would otherwise hold a claimed publication open with no
-  // bound at all. Two bounds on two different things, not one number in two
-  // places.
+  // Everything above has committed. The egress seam bounds each request (BUILD §6.4); `PUBLISH_DELIVER_TIMEOUT_MS` bounds
+  // the whole attempt, since several slow requests would otherwise hold a claim open unbounded.
   let result: DeliveryResult;
   try {
     result = await withinDeliveryBound(delivered(adapter, page, claimed.destinationId, a.draftId));
   } catch {
-    // An adapter that threw told us nothing about what happened at the
-    // destination. `timeout` is the retryable reason, and the idempotency
-    // key reconciles a delivery that did land on the next attempt.
+    // A throw says nothing about the destination: retryable `timeout`, and the idempotency key reconciles a landed delivery.
     result = { ok: false, madeLive: false, reason: "timeout" };
   }
 
@@ -182,21 +129,12 @@ export async function publish(a: PublishArgs): Promise<PublishResult> {
       live_url: liveUrl,
       remote_id: result.remoteId ?? null,
       failure_reason: null,
-      // ADR-084 Decision 4 — copied straight off the `DeliveryResult` and
-      // derived from nothing else.
+      // ADR-084 decision 4: off the `DeliveryResult`, derived from nothing else.
       made_live_by_us: result.madeLive,
-      // REQ-060 criterion 4 (issue #156), and the same discipline: what the
-      // adapter *read back* from the destination, copied across as it is.
-      // `undefined` and `[]` are two answers and stay two — absent is "this
-      // destination has no such answer to give", empty is "delivered, and
-      // written into no plugin", and only the second carries criterion 4's
-      // line. The explicit `=== undefined` is what keeps them apart: a
-      // falsy test would store `null` for both and put the line nowhere,
-      // and a `?? []` would store the empty array for both and put it on
-      // every hosted page.
+      // REQ-060 c4: what the adapter read back, as is. `=== undefined` keeps "no such answer" apart from "written into no
+      // plugin"; a falsy test or `?? []` would merge them and misplace c4's line.
       seo_written: result.seoWritten === undefined ? null : [...result.seoWritten],
-      // BP-049's rule, landing on the write where `delivery_state` becomes
-      // `delivered`: the address decides, never the kind.
+      // BP-049: the address decides, never the kind.
       verify_due_at:
         liveUrl === null
           ? null
@@ -204,11 +142,8 @@ export async function publish(a: PublishArgs): Promise<PublishResult> {
     })
     .eq("id", claimed.publicationId);
 
-  // SPEC §7 (2026-10-17, issue 1487): a page that moved leaves its old
-  // address, which answers 301 to this one, and the pages that linked the
-  // old address are planned an update that links this one by its new name.
-  // Only where the destination did publish elsewhere: WordPress keeps the
-  // post's own address.
+  // SPEC §7: a moved page leaves its old address, which answers 301, and its linkers are planned an update; only where
+  // it did publish elsewhere, since WordPress keeps the post's address.
   if (page.moveTo !== undefined && page.updateOf !== undefined && liveUrl !== null && liveUrl.endsWith(`/${page.moveTo}`)) {
     const { moveAddress } = await import("./move");
     await moveAddress({ from: page.updateOf, to: { publicationId: claimed.publicationId, url: liveUrl }, at, by: a.by });
@@ -220,9 +155,7 @@ export async function publish(a: PublishArgs): Promise<PublishResult> {
     reason: "delivered",
   });
 
-  // SPEC §7 (2026-10-18, issue 1511): search engines are told, once, which
-  // addresses this delivery changed — a move's old address with its new one.
-  // Hosted only; it never fails the delivery.
+  // SPEC §7: engines are told once which addresses changed, a move's old one with its new; hosted only, never failing delivery.
   if (a.destination === "hosted" && liveUrl !== null) {
     const { announceForDraft } = await import("../destinations/hosted/announce");
     await announceForDraft({ draftId: a.draftId, urls: page.updateOf === undefined ? [liveUrl] : [page.updateOf, liveUrl], ...(a.announce === undefined ? {} : { send: a.announce }) });
@@ -236,15 +169,8 @@ export async function publish(a: PublishArgs): Promise<PublishResult> {
   };
 }
 
-/**
- * The page as it goes out: its links asked, the gone ones taken out, and
- * what was found written on the row (`drafts.meta.linkCheck`) beside the
- * body that was delivered — the hosted page is served from that row, and
- * the draft screen reads each link's status from it.
- *
- * Never a reason a page does not publish: a check that could not run, or a
- * write that failed, delivers the page as it was written.
- */
+/** The page as it goes out: links asked, gone ones removed, and `drafts.meta.linkCheck` written beside the delivered
+ *  body, which the hosted page and the draft screen read. Never a reason not to publish. */
 async function withLiveLinks(page: RenderedPage, draftId: string, at: Date, ask?: AskAddress): Promise<RenderedPage> {
   if (page.metadataOnly !== undefined || page.bodyMd.trim() === "") return page;
   try {
@@ -272,17 +198,14 @@ async function withLiveLinks(page: RenderedPage, draftId: string, at: Date, ask?
         })
       );
     }
-    // The body delivered is the body stored: where the row could not be
-    // written, the page goes out as the row has it.
+    // The body delivered is the body stored: if the row was not written, the page goes as the row has it.
     return written.error === null ? { ...page, bodyMd: checked.markdown, meta } : page;
   } catch {
     return page;
   }
 }
 
-/** One outcome write and one edge, for every way a delivery did not land.
- *  The reason is written as it happened; whether a retry follows is the
- *  retry policy's question, not this one's. */
+/** One outcome write and one edge for every way a delivery did not land; a retry is the policy's question. */
 async function failWith(
   a: PublishArgs,
   publicationId: string,
@@ -352,9 +275,7 @@ function metadataFixOf(meta: Record<string, unknown>): { title: string | null; d
   return title === null && description === null ? null : { title, description };
 }
 
-/** The last path segment of an existing page's URL — how a destination
- *  looks that page up. `null` for a site root, which no destination in this
- *  build can address by slug. */
+/** An existing page's last path segment, how a destination looks it up; `null` for a site root. */
 function slugOfUrl(url: string): string | null {
   let pathname: string;
   try {
@@ -366,9 +287,7 @@ function slugOfUrl(url: string): string | null {
   return segments.length === 0 ? null : (segments[segments.length - 1] ?? null);
 }
 
-/** The site a page is written for, as the note on how it was made needs it
- *  (issue 1397): its domain and its language. A site whose language cannot
- *  be read is left out, and the page then carries no note. */
+/** The site's domain and language for the made-with note; unreadable, no note. */
 async function siteOf(row: DraftPageRow): Promise<Pick<RenderedPage, "site">> {
   const domain = row.sites?.domain ?? null;
   if (domain === null || domain.trim() === "") return {};
@@ -380,16 +299,8 @@ async function siteOf(row: DraftPageRow): Promise<Pick<RenderedPage, "site">> {
   }
 }
 
-/** What the adapter is handed. The *rendering* — the one clean typographic
- *  template, the canonical, the `FAQPage` schema — is the hosted edge's
- *  (#49); this assembles the page's own facts and nothing more, and writes
- *  no sentence of its own.
- *
- *  Two addresses, because §7 has two sorts of asset to address: a Write
- *  target publishes at the slug its opportunity proposed, and an Improve
- *  target changes the page its opportunity already named. `fix` addresses
- *  neither — its `target_ref` is where a barrier was found, not a page to
- *  rewrite — so it resolves to `null` exactly as it did before. */
+/** What the adapter is handed: the page's facts, no rendering and no sentence. A Write target publishes at its proposed
+ *  slug, an Improve target changes the page it named (§7); a fix's `target_ref` is a barrier, not a page to rewrite. */
 async function renderedPage(draftId: string): Promise<RenderedPage | null> {
   const { data, error } = await publishDb()
     .from<DraftPageRow>("drafts")
@@ -407,9 +318,7 @@ async function renderedPage(draftId: string): Promise<RenderedPage | null> {
     ...(await siteOf(data)),
   };
 
-  // SPEC §9 (#690): a `fix_page` updates the page it names, and only that
-  // page's metadata. A draft with nothing recorded to change has nothing to
-  // deliver.
+  // SPEC §9: a `fix_page` updates only the named page's metadata; nothing recorded to change, nothing to deliver.
   if (opportunity?.type === "fix_page") {
     const updateOf = opportunity.target_ref;
     const metadataOnly = metadataFixOf(page.meta);
@@ -420,16 +329,10 @@ async function renderedPage(draftId: string): Promise<RenderedPage | null> {
   if (opportunity?.family === "improve") {
     const stored = opportunity.target_ref;
     if (typeof stored !== "string" || stored.length === 0) return null;
-    // SPEC §7 (2026-09-18): one of the site's own hosted pages is updated at
-    // the host it answers at now. The address stored when the update was
-    // derived may name a host that has since moved (issue 1182), and the
-    // adapter refuses an address that is not on the site's host.
+    // SPEC §7: updated at the host it answers at now, as the stored address may name a moved host the adapter refuses.
     const updateOf = (await storedAddressesNow(data.site_id))(stored);
     const slug = slugOfUrl(updateOf) ?? "";
-    // SPEC §7 (2026-10-17, issue 1487): a retarget changes what the page is
-    // about, so its address says the new search, as a new page's does. A
-    // refresh keeps its search and so keeps its address.
-    // Its new address is written in the site's language (issue 1514).
+    // SPEC §7: a retarget's address says its new search, in the site's language; a refresh keeps its address.
     const moveTo = isRetarget(opportunity) ? slugify(opportunity.target_query ?? "", page.site?.language) : "";
     return { ...page, slug, updateOf, ...(moveTo === "" || moveTo === slug ? {} : { moveTo }) };
   }
@@ -439,18 +342,8 @@ async function renderedPage(draftId: string): Promise<RenderedPage | null> {
   return { ...page, slug };
 }
 
-/**
- * The delivery, with the credential in plaintext for exactly as long as it
- * takes.
- *
- * The adapter is handed the **decrypted** config, and it is `withConfig`
- * that decrypts it: that function reads the ciphertext, calls this back
- * with the plaintext and returns what this returns — never the config — so
- * a credential cannot leave by the door it came in through. Nothing above
- * this line has ever held one. A destination with no row to read (a kind
- * this build has no destination for) is called with an empty config, which
- * is what the hosted adapter has always been handed.
- */
+/** The delivery, with the credential plaintext only inside `withConfig`, which returns the callback's value, never the
+ *  config. No destination row means an empty config, as hosted gets. */
 async function delivered(
   adapter: DestinationAdapter,
   page: RenderedPage,
@@ -463,28 +356,13 @@ async function delivered(
       adapter.deliver(page, cfg, idempotencyKey)
     );
   } catch (cause) {
-    // A destination with no credential stored is an ordinary destination:
-    // the hosted blog has none and never will. The adapter is called with
-    // an empty config and says for itself whether it can work without one
-    // — which is where that judgement belongs, and it is the same call the
-    // hosted adapter has always received.
+    // No credential is ordinary (hosted has none): the adapter gets an empty config and judges for itself.
     if (cause instanceof NoConfigError) return adapter.deliver(page, {}, idempotencyKey);
     throw cause;
   }
 }
 
-/**
- * The delivery, bounded.
- *
- * A rejection — the adapter's own or this bound's — is caught by the caller
- * and becomes the retryable `timeout` reason, which is the honest reading:
- * an attempt that ran out of time told us nothing about what happened at
- * the destination, and the idempotency key reconciles a delivery that did
- * land on the next attempt.
- *
- * The timer is cleared on both arms, so a bounded call that returned early
- * does not hold the process open.
- */
+/** The delivery, bounded; the caller turns a rejection into retryable `timeout`. The timer is cleared either way. */
 function withinDeliveryBound(delivery: Promise<DeliveryResult>): Promise<DeliveryResult> {
   let timer: ReturnType<typeof setTimeout> | undefined;
   const bound = new Promise<never>((_resolve, reject) => {

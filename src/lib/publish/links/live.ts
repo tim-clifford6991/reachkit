@@ -1,25 +1,9 @@
-// SPEC §7 (2026-10-10, issue 1391) — "Live check at publish".
-//
-// Every address a page links — the customer's own pages, their articles,
-// the public pages a market fact was read from — is asked once at the
-// moment the page goes out, and the page that goes out links none that
-// answered *gone*.
-//
-//   · A link into the customer's own site that is gone is unwrapped: the
-//     sentence stands, the link does not. A listed link that was only the
-//     link is taken out with its line.
-//   · A source that is gone takes its claim with it: the sentence that
-//     cites it, or the table row, is dropped — a market fact stands only
-//     beside the page it was read from (§7, *Two pools of facts*).
-//
-// **Gone is 404 or 410, and nothing else.** A timeout, a 403 from a bot
-// wall, a 500 and a name that did not resolve this minute are all answers
-// about the asking, not about the page, and taking a sentence out for one
-// of them would cut a true claim on a slow afternoon. Such a link is
-// recorded `unchecked` and stays.
-//
-// The fetch is `safeFetch` — the one guarded way this product reads an
-// address it did not mint. It has no `HEAD`; one bounded `GET` is the check.
+// SPEC §7, "Live check at publish": every address a page links is asked once as it goes out, and it links none that
+// answered gone.
+//   · A gone link into the customer's own site is unwrapped; a listed link that was only the link goes with its line.
+//   · A gone source takes its claim with it, sentence or table row: a market fact stands only beside its page (§7).
+// Gone is 404 or 410 and nothing else: a timeout, a 403 or a 500 is about the asking, so the link stays `unchecked`.
+// One bounded `GET` through `safeFetch`, which has no `HEAD`.
 import { CROSS_LINKS } from "@/lib/config/constants";
 import { linksOf, renderOf, sourceBlocksOf, splitSentences } from "@/lib/generate/rules/text";
 import { onSite, urlKey } from "@/lib/generate/links/select";
@@ -66,8 +50,7 @@ function statusOf(http: number | null): LinkStatus {
   return http !== null && http >= 200 && http < 400 ? "live" : "unchecked";
 }
 
-/** Each distinct address asked once, a few at a time, inside one budget.
- *  An address the budget did not reach is `unchecked`. Never throws. */
+/** Each distinct address asked once, a few at a time, in one budget; unreached is `unchecked`. Never throws. */
 export async function checkLinks(urls: readonly string[], ask: AskAddress = askOnce): Promise<CheckedLink[]> {
   const distinct = new Map<string, string>();
   for (const url of urls) {
@@ -101,10 +84,7 @@ const LIST_RE = /^[ \t]*(?:[-*+]|\d+[.)])[ \t]+/;
 const ROW_RE = /^[ \t]*\|.*\|[ \t]*$/;
 const DELIMITER_RE = /^[ \t]*\|(?:[ \t]*:?-{1,}:?[ \t]*\|)+[ \t]*$/;
 
-/**
- * The page without its gone links. Pure: `gone` is the set of `urlKey`s the
- * check answered *gone* for.
- */
+/** The page without its gone links; `gone` is the set of `urlKey`s answered gone. */
 export function withoutGoneLinks(
   markdown: string,
   a: { domain: string; gone: ReadonlySet<string> }
@@ -135,8 +115,7 @@ export function withoutGoneLinks(
       continue;
     }
     if (lines.some((line) => ROW_RE.test(line))) {
-      // A table: a row that cites a gone source is the claim, and goes. The
-      // header row names columns and only loses the link.
+      // A row citing a gone source is the claim and goes; the header row only loses the link.
       const kept = lines.flatMap((line, index) => {
         const url = goneSource(line);
         const header = DELIMITER_RE.test(lines[index + 1] ?? "");
@@ -152,8 +131,7 @@ export function withoutGoneLinks(
 
     const marker = MARKER_RE.exec(block.raw)?.[0] ?? "";
     const rest = block.raw.slice(marker.length);
-    // A listed link that is nothing but the link: unwrapped it would be a
-    // bare name in a list, so the line goes.
+    // A listed link that is only the link would be a bare name unwrapped, so the line goes.
     const only = /^\[([^\]\n]*)\]\(([^)\s]+)\)[.]?$/.exec(rest.trim());
     if (LIST_RE.test(block.raw) && only !== null && isGone(only[2] ?? "")) {
       removed.push({ url: only[2] ?? "", kind: onSite(only[2] ?? "", a.domain) ? "site" : "source", text: renderOf(only[1] ?? "").trim() });
@@ -173,19 +151,14 @@ export function withoutGoneLinks(
 
   let out = markdown;
   for (const edit of edits.sort((x, y) => y.from - x.from)) out = out.slice(0, edit.from) + edit.text + out.slice(edit.to);
-  // A list the check emptied leaves its heading over nothing at the end of
-  // the page — the sources list is the last thing on it.
+  // An emptied sources list at the end of the page takes its heading too.
   out = out
     .replace(/\n{3,}/g, "\n\n")
     .replace(/(?:\n|^)[ \t]*#{1,6}[ \t]+[^\n]*\s*$/, (tail) => (edits.some((edit) => edit.text === "") ? "\n" : tail));
   return { markdown: out, removed };
 }
 
-/**
- * The whole check for one page: ask every address the body links, take the
- * gone ones out, and say what was found. Never throws — a check that could
- * not run leaves the page as it was written and records nothing removed.
- */
+/** The whole check for one page. Never throws: a check that could not run leaves the page as written. */
 export async function checkPageLinks(a: {
   markdown: string;
   domain: string;

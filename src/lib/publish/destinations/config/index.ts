@@ -1,17 +1,6 @@
-// BUILD §9 — the sealed credential: plaintext for the duration of one
-// call, and nothing that outlives it.
-//
-// This directory is the **only** place a destination credential is ever in
-// plaintext, and `withConfig` is the only door. It reads the ciphertext,
-// decrypts it, invokes the callback with it, and returns **the callback's
-// value** — never the config. That is a property of the signature and not
-// of the discipline of the caller: `R` is unrelated to `T`, so a callback
-// written to return the config is a type error at the call site rather
-// than a credential on a screen.
-//
-// No read path any surface uses selects `config` at all (`store.ts` holds
-// the one select list, and it does not name the column), so the ciphertext
-// never leaves the database except into this callback.
+// BUILD §9 — the sealed credential: plaintext for one call and nothing that outlives it. This directory is the only place
+// a credential is plaintext, and `withConfig` the only door: it returns the callback's value, never the config, and `R`
+// is unrelated to `T` so returning the config is a type error. No surface's select list names `config` (`store.ts`).
 import { publishDb } from "../../db";
 import { seal, SealError, unseal } from "./seal";
 
@@ -21,9 +10,7 @@ interface ConfigRow {
   config: string | null;
 }
 
-/** A destination with no credential to hand over — never connected, or
- *  disconnected since. Distinct from a seal failure: nothing is wrong, and
- *  nothing is there. */
+/** No credential to hand over (never connected, or disconnected); unlike a seal failure, nothing is wrong. */
 export class NoConfigError extends Error {
   constructor() {
     super("src/lib/publish/destinations/config: the destination holds no credential.");
@@ -31,14 +18,7 @@ export class NoConfigError extends Error {
   }
 }
 
-/**
- * Runs `fn` with the destination's decrypted config and returns what `fn`
- * returned.
- *
- * The plaintext exists for the duration of the call and is referenced
- * nowhere after it: this function keeps no cache, writes no log line and
- * returns nothing derived from it.
- */
+/** Runs `fn` with the decrypted config and returns what it returned; no cache, no log line, nothing derived. */
 export async function withConfig<T, R>(
   destinationId: string,
   fn: (cfg: T) => Promise<R>
@@ -54,17 +34,9 @@ export async function withConfig<T, R>(
   return fn(unseal(row.config) as T);
 }
 
-/**
- * Destroys the stored credential and takes the destination out of the live
- * set, in one statement.
- *
- * One statement on purpose: a `deleted_at` written without the null, or a
- * null written without the `deleted_at`, are both states this product must
- * never hold — the first is a disconnected destination that still carries
- * the customer's password, the second is a live destination with nothing
- * to publish through. The row itself survives, and so does every
- * publication pointing at it (ADR-080).
- */
+/** Destroys the credential and takes the destination out of the live set in one statement, since either write alone is
+ *  a state never held: a disconnected destination with a password, or a live one with nothing to publish through.
+ *  The row survives, and so does every publication pointing at it (ADR-080). */
 export async function destroyConfig(destinationId: string, at: Date): Promise<void> {
   const { error } = await publishDb()
     .from<never>("destinations")
@@ -77,8 +49,7 @@ export async function destroyConfig(destinationId: string, at: Date): Promise<vo
   }
 }
 
-/** Writes a credential, sealed. The plaintext is not returned, not logged
- *  and not read back. */
+/** Writes a credential, sealed; the plaintext is not returned, logged or read back. */
 export async function storeConfig(destinationId: string, config: unknown): Promise<void> {
   const { error } = await publishDb()
     .from<never>("destinations")

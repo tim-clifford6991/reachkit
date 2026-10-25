@@ -195,7 +195,7 @@ describe("the board's rings and icons", () => {
     const close = parse(await render()).querySelector('[data-variant="scans"]')!;
     const steps = close.querySelectorAll('[data-testid="learn-loop"] ol > li');
     expect(steps.map((li) => li.querySelector(".rounded-field svg")?.getAttribute("class"))).toEqual(
-      ["search", "calendar", "file-text", "mail"].map((name) => `lucide lucide-${name}`)
+      ["search", "calendar", "file-text", "inbox"].map((name) => `lucide lucide-${name}`)
     );
     const rows = close.querySelectorAll("ul.divide-y > li");
     expect(rows.length).toBeGreaterThan(0);

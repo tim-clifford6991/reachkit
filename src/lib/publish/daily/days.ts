@@ -1,26 +1,10 @@
-// SPEC §7, issue 1455 — every draft day kept, and a day with no page told.
-//
-// reachkit.app published nothing on 15 and 16 October and nothing said so.
-// `draft/generate` recorded `degraded generate:no_opportunity` in
-// `job_runs`, the next hourly `skipped` overwrote it, and Vercel keeps an
-// hour of logs. Two things here mean that cannot happen quietly again:
-//
-//   * **The day's reason, kept** (`draft_days`). In a site's due hour the
-//     tick writes how the day ended — a page drafted, no page and why, or
-//     the step that threw — under the site and the date the page was for.
-//     A later tick never overwrites another site's or another date's row.
-//   * **The publish time, checked.** In the hour a site's publish time
-//     falls in, a date that holds no page going out is mailed to the owner
-//     once, with the reason the due hour recorded. A day the customer acted
-//     on — a page they stopped or took down — is not mailed: that is their
-//     choice and not a fault. Neither is a site's first day, before it has
-//     any page dated earlier: nothing was owed yet.
-//
-// The selection is `sitesForDailyTick`'s, so a site whose customer stopped
-// publishing, or whose access ended, is never checked.
-//
-// **Nothing here throws into the tick.** A record or an alert that fails
-// logs one line and returns: it must not cost the site its page.
+// SPEC §7 — every draft day kept, and a day with no page told, since `job_runs` is overwritten hourly and logs are short:
+//   * The day's reason (`draft_days`): in a site's due hour the tick writes how the day ended under the site and date;
+//     a later tick never overwrites another site's or date's row.
+//   * The publish time, checked: in that hour, a date holding no page going out is mailed to the owner once, with the
+//     recorded reason. A day the customer acted on is not mailed, nor a site's first day, when nothing was owed yet.
+// The sites are `sitesForDailyTick`'s, so a stopped or lapsed site is never checked.
+// Nothing here throws into the tick: a failed record or alert logs one line and must not cost the site its page.
 import { AUTOPILOT_STALL } from "@/lib/config/constants";
 import { nextPublishTimeAtOrAfter, publishDateAtOrAfter } from "../settings/clock";
 import { publishDb } from "../db";
@@ -31,8 +15,7 @@ const MS_PER_HOUR = 3_600_000;
 /** How a due hour ended for one site. */
 export type DayOutcome = "drafted" | "no_page" | "failed";
 
-/** The reason a day held until the customer's address is connected is
- *  recorded under. Not a fault, so no missing-draft mail is sent for it. */
+/** A day held until the customer's address is connected: not a fault, so no missing-draft mail. */
 const WAITING_FOR_ADDRESS = "waiting_for_address";
 
 /** One site's page for one date. */
@@ -41,9 +24,7 @@ export interface DraftDay {
   readonly publishDate: string;
 }
 
-/** The states a date's page holds when the day is accounted for: going out,
- *  out, or stopped or taken down by the customer. A page still generating,
- *  stopped by the checks, or failed at the destination is not. */
+/** A day is accounted for when its page is going out, out, or stopped or taken down by the customer. */
 const ACCOUNTED: ReadonlySet<string> = new Set(["in_review", "approved", "publishing", "published", "skipped", "unpublished"]);
 
 export interface DraftDayStore {
@@ -57,15 +38,11 @@ export interface DraftDayStore {
   /** Of these days, the ones whose due hour recorded how it ended. */
   decidedOn(days: readonly DraftDay[]): Promise<readonly DraftDay[]>;
   domainOf(siteId: string): Promise<string | null>;
-  /** Marks the date told about, only if it has not been. True for the one
-   *  caller that made the claim — the one that sends the mail. */
+  /** Marks the date told about once; true only for the caller that made the claim and sends the mail. */
   claimMissingAlert(siteId: string, publishDate: string, at: Date): Promise<boolean>;
-  /** When the site's latest page was delivered, or `null` where none has
-   *  been (issue 1536). Absent, no stall is checked. */
+  /** When the site's latest page was delivered, or `null`; absent, no stall is checked. */
   lastDeliveredAt?(siteId: string): Promise<Date | null>;
-  /** Whether the site's destination is not connected yet: Overview's
-   *  connect state for hosted, no credential for WordPress. Absent,
-   *  never. */
+  /** Whether the destination is not connected yet (hosted: Overview's connect state; WordPress: no credential). */
   waitingForAddress?(siteId: string): Promise<boolean>;
 }
 
@@ -89,8 +66,7 @@ function settingsOf(site: DailySite) {
   return { mode: "autopilot" as const, vetoHours: site.vetoHours, publishTime: site.publishTime, timezone: site.timeZone };
 }
 
-/** The site-local date whose publish time falls in the hour `hour` starts,
- *  or `null` where none does. */
+/** The site-local date whose publish time falls in the hour `hour` starts, or `null`. */
 export function publishDateInHour(hour: Date, site: DailySite): string | null {
   const publishes = nextPublishTimeAtOrAfter(hour, settingsOf(site));
   return publishes.getTime() - hour.getTime() < MS_PER_HOUR ? publishDateAtOrAfter(hour, settingsOf(site)) : null;
@@ -111,9 +87,7 @@ export async function recordDraftDay(a: {
   }
 }
 
-/** Why the day's page is held, or `null`: until the site's address is
- *  connected only its first page is written. A read that fails holds
- *  nothing. Never throws. */
+/** Why the day's page is held, or `null`: until the address is connected only the first page is written. Never throws. */
 export async function dayHold(siteId: string, publishDate: string): Promise<string | null> {
   try {
     const store = draftDays();
@@ -125,11 +99,8 @@ export async function dayHold(siteId: string, publishDate: string): Promise<stri
   }
 }
 
-/** Of these days, the ones a site was owed and no due hour recorded an
- *  ending for: a tick the platform missed, or a run killed before it
- *  recorded. A site's first day, before it has any page dated earlier, was
- *  not owed. On an unreadable store, none — the next tick asks again. Never
- *  throws. */
+/** The owed days no due hour recorded (a missed tick, or a run killed first); a first day was not owed. An unreadable
+ *  store gives none, and the next tick asks again. Never throws. */
 export async function missedDays<T extends DraftDay>(days: readonly T[]): Promise<readonly T[]> {
   if (days.length === 0) return [];
   try {
@@ -147,9 +118,7 @@ export async function missedDays<T extends DraftDay>(days: readonly T[]): Promis
   }
 }
 
-/** Mails the owner about every site among `sites` whose publish time falls
- *  in this hour and whose date holds no page going out. Once a date. Never
- *  throws. Returns how many were told. */
+/** Mails the owner once a date for each site whose publish time is this hour with no page going out. Never throws. */
 export async function alertMissingDrafts(a: { sites: readonly DailySite[]; hour: Date }): Promise<number> {
   let told = 0;
   for (const site of a.sites) {
@@ -188,16 +157,9 @@ function localDate(at: Date, timeZone: string): string {
   return new Intl.DateTimeFormat("en-CA", { timeZone, year: "numeric", month: "2-digit", day: "2-digit" }).format(at);
 }
 
-/**
- * Issue 1536: mails the owner about every site among `sites` whose publish
- * time falls in this hour and that has gone `AUTOPILOT_STALL.stallFactor`
- * times its cadence with no page delivered — on that day, and on each such
- * span after it while none is. reachkit.app's last page went out on 14
- * October and nothing said so for five days: each day was told on its own,
- * never the run of them. A site with no page delivered yet, and a date
- * whose page is going out, are not told. Never throws. Returns how many
- * were told.
- */
+/** Mails the owner for each site whose publish time is this hour and that has gone `AUTOPILOT_STALL.stallFactor` times
+ *  its cadence with no page delivered, and on each such span after, so a run of empty days is told as a run. A site with
+ *  none delivered yet, or a page going out that day, is not told. Never throws. */
 export async function alertStalledSites(a: { sites: readonly DailySite[]; hour: Date }): Promise<number> {
   const span = AUTOPILOT_STALL.cadenceDays * AUTOPILOT_STALL.stallFactor;
   let told = 0;

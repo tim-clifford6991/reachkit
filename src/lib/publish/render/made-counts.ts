@@ -1,10 +1,5 @@
-// SPEC §7 (2026-10-11, issue 1397) — the two numbers of the note that says
-// how a published page was made, read off the page's own row. The sentences
-// are `./made.ts`'s.
-//
-// Kept apart from them because the hosted store reads these and the
-// middleware reaches the hosted store: this file imports nothing, so no
-// copy and no renderer joins that graph.
+// SPEC §7 — the two numbers of the note on how a published page was made, read off its row; the sentences are `./made.ts`'s.
+// It imports nothing because the middleware reaches the hosted store, which reads these, and no copy or renderer may join that graph.
 
 export interface MadeCounts {
   /** Facts the page states or links that were read from the site itself. */
@@ -25,13 +20,8 @@ function onSite(url: unknown, domain: string): boolean {
   }
 }
 
-/**
- * The note's two numbers, read off `drafts.meta`, or `null` where the row
- * records no fact from the site or no count of the rules it was held to. A
- * row written before that count was stored has none, and the page says
- * nothing rather than a number nobody stored; it gains the note when it is
- * next written.
- */
+/** The note's two numbers off `drafts.meta`, or `null` where the row has no fact from the site or no rule count,
+ *  so the page says nothing rather than a number nobody stored. */
 export function madeCounts(meta: Readonly<Record<string, unknown>> | null, domain: string): MadeCounts | null {
   const used = meta?.factsUsed;
   if (!Array.isArray(used)) return null;

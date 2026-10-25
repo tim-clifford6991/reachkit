@@ -1,38 +1,13 @@
-// BUILD §9 · §4.7 — the four values the customer sets, and the one written
-// line each pair produces.
-//
-// §4.7: "**Publishing** (mode toggle, veto window stepper 0–7d default 24h,
-// publish time, …)". §9: "Autopilot = auto-approve when the veto window
-// (default 24h, settable 0–7d) expires without a veto. Copilot = explicit
-// approve only."
-//
-// Four values, one home. The mode a sidebar card shows and the mode this
-// screen shows are the same column read through the same function
-// (REQ-073 c5), and the writer is `save.ts` — the only place `sites.mode`,
-// `sites.veto_hours`, `sites.publish_time` and `sites.timezone` are
-// written.
-//
-// **The days-to-hours conversion exists here and nowhere else.** The screen
-// offers whole days 1–7 (`VETO.minDays`/`VETO.maxDays`); the column stores
-// hours because BUILD §10 names it `veto_hours`. Two conversions would be
-// two chances to disagree about what "1 day" is.
-//
-// **No read path falls back to the server's zone.** REQ-073 c1 gives the
-// zone one source — "the one their browser reported at first sign-in, which
-// they may change here at any time afterwards" — so a site with no zone
-// yields `timezone: null`, which every caller must hold a page against
-// rather than guess around.
-//
-// This module exports no function that returns a rate: the ceilings are
-// `ceilings/`'s, and REQ-070 c3 keeps engine parameters off every screen.
-//
-// The archived plans are WO-218 and WO-219.
+// BUILD §9 · §4.7 — the four values the customer sets, and the one written line each pair produces. Every surface reads
+// them through one function (REQ-073 c5), and `save.ts` is their only writer.
+// Whole days 1–7 on screen, hours in `veto_hours` (BUILD §10); the one conversion is `veto.ts`'s.
+// No read falls back to the server's zone: REQ-073 c1's one source is the browser at first sign-in, so none is `null`
+// and every caller holds a page against it. No function here returns a rate (REQ-070 c3).
 import { VETO } from "@/lib/config/constants";
 import { publishDb } from "../db";
 import { governingVetoHours, isWholeDays, vetoHoursFromDays } from "./veto";
 
-/** Autopilot only (SPEC §7, 2026-09-11; owner 2026-10-08, issue 1337).
- *  A stored row that still says `copilot` is read as autopilot. */
+/** Autopilot only (SPEC §7); a stored `copilot` reads as autopilot. */
 export type Mode = "autopilot";
 
 export interface PublishingSettings {
@@ -45,9 +20,7 @@ export interface PublishingSettings {
   timezone: string | null;
 }
 
-/** The four fields a patch can name, and the four the validator answers
- *  about. A fifth would be a fifth setting, which REQ-070 c1's closed list
- *  does not carry. */
+/** The four fields a patch can name; REQ-070 c1's list is closed. */
 export type SettingsField = "mode" | "vetoHours" | "publishTime" | "timezone";
 
 export const SETTINGS_FIELDS: readonly SettingsField[] = Object.freeze([
@@ -59,16 +32,10 @@ export const SETTINGS_FIELDS: readonly SettingsField[] = Object.freeze([
 
 const HH_MM = /^([01][0-9]|2[0-3]):[0-5][0-9]$/;
 
-/** The days-to-hours conversion, re-exported from the leaf that holds it
- *  (`veto.ts`, issue #374). It is still one implementation and this is
- *  still the module WO-178 step 4 names; what the leaf buys is that the
- *  settings screen's own formatter can read it without evaluating this
- *  file, which imports `publishDb` and so parses every binding. */
+/** Re-exported from the `veto.ts` leaf, which the settings screen's formatter reads without parsing every binding. */
 export { vetoDaysFromHours, vetoHoursFromDays } from "./veto";
 
-/** Does the runtime resolve this as an IANA zone? The runtime's own zone
- *  database is the only source; there is no second list to fall out of
- *  date. */
+/** Does the runtime resolve this IANA zone? Its database is the only source, with no second list to go stale. */
 export function isResolvableZone(zone: unknown): zone is string {
   if (typeof zone !== "string" || zone.length === 0) return false;
   try {
@@ -79,14 +46,7 @@ export function isResolvableZone(zone: unknown): zone is string {
   }
 }
 
-/**
- * The four independent closed checks. Returns the fields that failed, in
- * `SETTINGS_FIELDS` order, so a refusal names every bad value at once
- * rather than the first.
- *
- * A patch is refused **whole**: nothing is partially saved, so a customer
- * who mistypes a zone does not find their mode changed.
- */
+/** Every failed field in `SETTINGS_FIELDS` order, not just the first; the patch is refused whole. */
 export function invalidFields(patch: Partial<PublishingSettings>): readonly SettingsField[] {
   const bad: SettingsField[] = [];
 
@@ -99,8 +59,7 @@ export function invalidFields(patch: Partial<PublishingSettings>): readonly Sett
     const wholeDays = isWholeDays(hours);
     const inRange =
       hours >= vetoHoursFromDays(VETO.minDays) && hours <= vetoHoursFromDays(VETO.maxDays);
-    // A 36-hour window is refused: the stepper offers whole days and a
-    // value between two of them is not a setting the screen can show.
+    // A 36-hour window is refused: the screen shows whole days only.
     if (!wholeDays || !inRange) bad.push("vetoHours");
   }
 
@@ -122,23 +81,19 @@ interface SiteSettingsRow {
   timezone: string | null;
 }
 
-/** `HH:mm` from the column's `time` rendering (`09:00:00`), which carries
- *  seconds the screen never shows. */
+/** `HH:mm` from the column's `time` rendering (`09:00:00`). */
 function toHhMm(value: string | null): string {
   if (value === null) return DEFAULT_PUBLISH_TIME;
   const [hh = "", mm = ""] = value.split(":");
   return `${hh.padStart(2, "0")}:${mm.padStart(2, "0")}`;
 }
 
-/** BUILD §10's own column default (`publish_time time not null default
- *  '09:00'`), read back in the shape the screen shows. Stated here only for
- *  a row that answered null, which the not-null column cannot produce; it
- *  is the same value, never a second decision. */
+/** BUILD §10's column default (`publish_time ... default '09:00'`), for a null the column cannot produce; never a second decision. */
 const DEFAULT_PUBLISH_TIME = "09:00";
 
 export function toPublishingSettings(row: SiteSettingsRow): PublishingSettings {
   return {
-    // Autopilot only: a stored `copilot` is read as autopilot (issue 1337).
+    // Autopilot only: a stored `copilot` is read as autopilot.
     mode: "autopilot",
     vetoHours: governingVetoHours(row.veto_hours),
     publishTime: toHhMm(row.publish_time),
@@ -147,15 +102,8 @@ export function toPublishingSettings(row: SiteSettingsRow): PublishingSettings {
   };
 }
 
-/**
- * The site's four values, with REQ-073 c1's defaults applied: the veto
- * window is 24 hours where nothing is set, and the zone is whatever the
- * customer's browser reported at first sign-in — never the server's.
- *
- * A site row that cannot be read is not a site to publish for, and the
- * defaults are not an answer about it: the read throws rather than
- * returning a settings object nobody chose.
- */
+/** The site's four values with REQ-073 c1's defaults; the zone is the browser's, never the server's. An unreadable row
+ *  throws rather than returning settings nobody chose. */
 export async function readPublishingSettings(siteId: string): Promise<PublishingSettings> {
   const { data, error } = await publishDb()
     .from<SiteSettingsRow>("sites")
@@ -173,13 +121,7 @@ export type PairCopyKey =
   | "settings.publishing.pair.autopilotWindow"
   | "settings.publishing.pair.autopilotZero";
 
-/**
- * The one place in the product where a mode-and-window pair becomes a
- * statement: what the selected pair does to a draft the customer never acts
- * on. Two pairs, two keys, and a third is a type error.
- *
- * It returns a key and writes no string — the sentences are the owner's.
- */
+/** The one place a pair becomes a statement: what it does to a draft the customer never acts on. A key, never a string. */
 export function explainPair(s: Pick<PublishingSettings, "mode" | "vetoHours">): PairCopyKey {
   return s.vetoHours === 0
     ? "settings.publishing.pair.autopilotZero"
@@ -190,23 +132,8 @@ export type AdoptResult =
   | { adopted: true }
   | { adopted: false; reason: "already_set" | "invalid" };
 
-/**
- * REQ-073 c1's first-sign-in write: the zone the browser reported.
- *
- * Writes `sites.timezone` **only while it is null**. A zone the customer
- * set is never overwritten — a customer who publishes in Lisbon and signs
- * in from an airport in Denver must not have their publish hour moved by
- * the airport.
- *
- * The `reported` value goes through the same IANA check a patch does; there
- * is no second, looser validation for the automatic path.
- *
- * The read and the write are two statements, which the one client any code
- * here may hold cannot join (`src/lib/publish/db.ts` documents the same
- * limitation). Two first sign-ins racing is not a case that exists — this
- * runs on one browser's first authenticated request — and the losing write
- * would in any case write the same zone.
- */
+/** REQ-073 c1's first-sign-in write, only while `sites.timezone` is null, so signing in from an airport never moves a
+ *  publish hour. The same IANA check as a patch. Read and write are two statements; a racing write writes the same zone. */
 export async function adoptBrowserTimezone(
   siteId: string,
   reported: string
