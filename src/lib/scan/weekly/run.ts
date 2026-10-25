@@ -43,6 +43,7 @@
 // The week then reads `not_measured` with its next due date, which is
 // REQ-065 c3's account and not a silent skip.
 import { env } from "@/lib/config/env";
+import type { CostContext } from "@/lib/costs";
 import { deriveForPass } from "@/lib/opportunities";
 import { accountForWeek, type UnmeasuredPart } from "./account";
 import { sitesWithActiveAccess } from "./access";
@@ -143,6 +144,8 @@ export async function runWeekly(a: {
             }
           }
         } finally {
+          // SPEC §5 (2026-10-25): only a page whose text changed is read again, on what typing and the re-check leave of the cap.
+          await refreshKnowledge(cost, { siteId: a.siteId, domain: a.domain });
           // SPEC §6 (owner D58, issue 1287): the pass checks its own health
           // last, against the rivals it leaves in force. It never throws.
           const { recordPassHealth } = await import("../health-record");
@@ -182,6 +185,18 @@ export async function runWeekly(a: {
 /** No re-check has concluded yet in the site-local month the week starts in. */
 function rivalsDue(checkedAt: string | undefined, weekStart: string, zone: string): boolean {
   return checkedAt === undefined || localClock(new Date(checkedAt), zone).date.slice(0, 7) < weekStart.slice(0, 7);
+}
+
+/** A read that fails costs the knowledge base, never the week or its health check. */
+async function refreshKnowledge(cost: CostContext, site: { siteId: string; domain: string }): Promise<void> {
+  try {
+    const { buildKnowledge } = await import("@/lib/site-profile/knowledge/build");
+    await buildKnowledge(cost, site);
+  } catch (error) {
+    console.log(
+      JSON.stringify({ event: "site_knowledge_failed", domain: site.domain, because: error instanceof Error ? error.message : String(error) })
+    );
+  }
 }
 
 function refuse(siteId: string, because: WeeklyRefusal): WeeklyOutcome {
