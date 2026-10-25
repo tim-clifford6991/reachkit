@@ -103,11 +103,17 @@ export interface StageSummary {
   /** Pages the site's crawl read; never 0, which would read as measured. */
   pagesRead?: number;
   category?: string;
+  /** Who buys, as the report's reading words it: a phrase, never cut. */
+  buyer?: string;
+  /** The town a local site sells in; absent for a site that sells wider. */
+  place?: string;
   readers?: { google: "in" | "out"; ai: "in" | "out" };
   searches?: readonly { words: string; onPageOne: boolean }[];
 }
 
 const CATEGORY_MAX = 60;
+const BUYER_MAX = 200;
+const PLACE_MAX = 60;
 const WORDS_MAX = 80;
 
 const isReader = (value: unknown): value is "in" | "out" => value === "in" || value === "out";
@@ -120,6 +126,9 @@ export function asSummary(value: unknown): StageSummary | undefined {
   const out: { -readonly [K in keyof StageSummary]: StageSummary[K] } = {};
   if (typeof v.pagesRead === "number" && Number.isInteger(v.pagesRead) && v.pagesRead >= 1) out.pagesRead = v.pagesRead;
   if (typeof v.category === "string" && v.category.trim() !== "" && v.category.length <= CATEGORY_MAX) out.category = v.category;
+  // Past its cap a phrase is dropped, never cut, so the screen never shows half of one.
+  if (typeof v.buyer === "string" && v.buyer.trim() !== "" && v.buyer.length <= BUYER_MAX) out.buyer = v.buyer;
+  if (typeof v.place === "string" && v.place.trim() !== "" && v.place.length <= PLACE_MAX) out.place = v.place;
   const readers = v.readers as Record<string, unknown> | null | undefined;
   if (typeof readers === "object" && readers !== null && isReader(readers.google) && isReader(readers.ai)) {
     out.readers = { google: readers.google, ai: readers.ai };
