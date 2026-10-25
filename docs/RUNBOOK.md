@@ -50,6 +50,10 @@ the Inngest sync. On start, the deployer polls again any production deploy it ac
 `deploy-prod.sha` whose dev check passed, below 2 tries, not only the head, so a busy merge day no
 longer starves it. Each deploy names its SHA (`gitSource.sha`), so a check describes the build it
 names. Box patch `docs/ops/deployer-newest-checked.patch`; dry cases `docs/ops/deployer-dry.sh`.
+2026-10-25 (#2079): `bin/redeploy.sh` refuses, exit 3, while `state/deploy-prod.inflight` is under
+30 min old, builds the head it read by `gitSource.sha`, records that SHA and marks its own build in
+flight; a failed `git fetch` in the deployer is logged. Box patches `docs/ops/redeploy.sh.patch` and
+`docs/ops/deployer-fetch-failed.patch`; dry cases `docs/ops/redeploy-dry.sh`.
 `/api/jobs` is served by production, so a job or pass change takes effect only once production is
 deployed. `Vercel` is not a check: Git deployments are off (`vercel.json` `git.deploymentEnabled: false`).
 
@@ -94,7 +98,7 @@ next one, silently. Nothing in a deploy checks it.
 
 | | |
 |---|---|
-| `bin/redeploy.sh --reason "<why>"`, `bin/deploy-dev-once.sh`, `bin/deployer.sh` | **Cannot.** The first two POST `gitSource.ref: "main"`, the tip of `main` at the moment of the call. The deployer adds `gitSource.sha`: main's head, or a commit of `main` newer than `deploy-prod.sha`. None takes a SHA, a ref or a deployment id as an argument, so no script on this box can put an older build on `reachkit.app` |
+| `bin/redeploy.sh --reason "<why>"`, `bin/deploy-dev-once.sh`, `bin/deployer.sh` | **Cannot.** `deploy-dev-once.sh` POSTs `gitSource.ref: "main"`, the tip of `main` at the moment of the call. `redeploy.sh` adds `gitSource.sha`: main's head as it read it. The deployer adds `gitSource.sha`: main's head, or a commit of `main` newer than `deploy-prod.sha`. None takes a SHA, a ref or a deployment id as an argument, so no script on this box can put an older build on `reachkit.app` |
 | Vercel — the dashboard's rollback/promote control, `vercel rollback`, `vercel promote`, `POST /v1/projects/{id}/rollback/{dpl}`, `POST /v10/projects/{id}/promote/{dpl}` | **Can.** Production deployments are retained and the previous one is flagged a rollback candidate; promoting it re-aliases `reachkit.app` with no rebuild, in one click. Nothing prevents it. This door stays shut by decision, not by a guard — do not walk through it |
 | A deploy that fails to build | **Not a rollback at all.** A failed build is never aliased: `reachkit.app` keeps serving the build it already had. Nothing was reverted because nothing was replaced |
 

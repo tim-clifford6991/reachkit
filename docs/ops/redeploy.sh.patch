@@ -1,0 +1,59 @@
+--- a/redeploy.sh
++++ b/redeploy.sh
+@@ -2,24 +2,46 @@
+ # redeploy.sh [--retry] [--reason "<why>"] — production redeploy of origin/main on Vercel through the REST API.
+ # Refreshes the CLI token first (a stale one answers 403 to everything). Prints only ids and codes.
+ # --retry: keep trying every 20 min until ACCEPTED (Hobby: 100 deployments / rolling day; "retry in 24 hours").
++# It refuses (exit 3) while deploy-prod.inflight is under 30 min old, so a hand build never lands on the deployer's;
++# it builds the head it read by SHA and records that same SHA. REDEPLOY_DRY=1 stubs Vercel, GitHub and Inngest.
+ set -u
+-S=/root/ops/reachkit/state; L=$S/prod-redeploy.log
++S=${S:-/root/ops/reachkit/state}; L=$S/prod-redeploy.log; DRY=${REDEPLOY_DRY:-}; POLL_S=${REDEPLOY_POLL_S:-20}
+ # 2026-10-22 (#1802, owner-approved): every line says why and who triggered it
+ RETRY=""; REASON="unspecified"; while [ $# -gt 0 ]; do case "$1" in --retry) RETRY=1;; --reason) shift; REASON="${1:-unspecified}";; esac; shift; done
+ P=prj_QJUivDYYshplvV0enuc2oZNIjcnd; TEAM=team_lFEcKlyuKD5risdEnak7iRIm; REPO=1354731443
+-try() {
++body(){ echo "{\"name\":\"reachkit\",\"project\":\"$P\",\"target\":\"production\",\"gitSource\":{\"type\":\"github\",\"repoId\":$REPO,\"ref\":\"main\",\"sha\":\"$1\"}}"; }
++main_head(){ gh api repos/tim-clifford6991/reachkit/commits/main -q .sha 2>/dev/null; }
++post(){ # $1 = sha; prints the Vercel answer
+   vercel whoami >/dev/null 2>&1
+-  T=$(python3 -c "import json;print(json.load(open('/root/.local/share/com.vercel.cli/auth.json'))['token'])" 2>/dev/null) || { echo "no token"; return 2; }
+-  r=$(curl -s -X POST "https://api.vercel.com/v13/deployments?teamId=$TEAM&forceNew=1" -H "Authorization: Bearer $T" -H 'content-type: application/json' \
+-      -d "{\"name\":\"reachkit\",\"project\":\"$P\",\"target\":\"production\",\"gitSource\":{\"type\":\"github\",\"repoId\":$REPO,\"ref\":\"main\"}}")
++  T=$(python3 -c "import json;print(json.load(open('/root/.local/share/com.vercel.cli/auth.json'))['token'])" 2>/dev/null) || return 2
++  curl -s -X POST "https://api.vercel.com/v13/deployments?teamId=$TEAM&forceNew=1" -H "Authorization: Bearer $T" -H 'content-type: application/json' -d "$(body "$1")"
++}
++inspect(){ vercel inspect "$1" 2>&1; }
++sync_jobs(){ curl -s -o /dev/null -w '%{http_code}' -X PUT https://reachkit.app/api/jobs; }
++if [ -n "$DRY" ]; then
++  main_head(){ echo "${REDEPLOY_HEAD:-}"; }
++  post(){ echo "deploy production $(body "$1")" >> $S/dry.calls; echo '{"id":"dpl_dryhand"}'; }
++  inspect(){ cat "$S/dry.inspect" 2>/dev/null; }
++  sync_jobs(){ echo "inngest PUT" >> $S/dry.calls; echo 200; }
++fi
++try() {
++  local age head r id st c
++  if [ -n "$(find $S/deploy-prod.inflight -mmin -30 2>/dev/null)" ]; then
++    age=$(( ($(date +%s) - $(stat -c %Y $S/deploy-prod.inflight)) / 60 ))
++    echo "$(date -u +%F' '%H:%M) redeploy refused: production build in flight (inflight ${age}m old) trigger=hand reason=\"$REASON\"" | tee -a "$L"; return 3
++  fi
++  head=$(main_head); r='{"error":{"code":"no_head"}}'
++  if [ -n "$head" ]; then r=$(post "$head") || { echo "no token"; return 2; }; fi
+   id=$(python3 -c "import sys,json;d=json.load(sys.stdin);print(d.get('id') or d.get('error',{}).get('code') or 'unknown')" <<<"$r")
+-  case "$id" in dpl_*) head=$(gh api repos/tim-clifford6991/reachkit/commits/main -q .sha 2>/dev/null)
++  case "$id" in dpl_*)
+       # 2026-10-22 (#1802, owner-approved): record what was shipped so the deployer does not ship the same SHA again
+-      [ -n "$head" ] && echo "$head" > $S/deploy-prod.sha && date +%s > $S/deploy-prod.at
+-      echo "$(date -u +%F' '%H:%M) production redeploy of main ${head:-unknown} ACCEPTED: $id trigger=hand reason=\"$REASON\"" | tee -a "$L"
++      echo "$head" > $S/deploy-prod.sha && date +%s > $S/deploy-prod.at; touch $S/deploy-prod.inflight
++      echo "$(date -u +%F' '%H:%M) production redeploy of main $head ACCEPTED: $id trigger=hand reason=\"$REASON\"" | tee -a "$L"
+       # 2026-10-22 (#1802): once Ready, sync Inngest here too, so a hand redeploy needs no hand PUT
+-      ( for i in $(seq 1 60); do st=$(vercel inspect $id 2>&1 | grep -m1 -oE "Ready|Error|Canceled"); [ -n "$st" ] && break; sleep 20; done
+-        c=$(curl -s -o /dev/null -w '%{http_code}' -X PUT https://reachkit.app/api/jobs); echo "$(date -u +%F' '%H:%M) production $id ${st:-timeout}; inngest sync $c" >> "$L" ) >/dev/null 2>&1 &
++      ( for i in $(seq 1 60); do st=$(inspect $id | grep -m1 -oE "Ready|Error|Canceled"); [ -n "$st" ] && break; sleep $POLL_S; done
++        # a timed-out poll leaves the in-flight mark to expire, so nothing builds over a build that may still land
++        [ -n "$st" ] && rm -f $S/deploy-prod.inflight
++        c=$(sync_jobs); echo "$(date -u +%F' '%H:%M) production $id ${st:-timeout}; inngest sync $c" >> "$L" ) >/dev/null 2>&1 &
+       return 0;;
+     *) echo "$(date -u +%F' '%H:%M) redeploy refused: $id trigger=hand reason=\"$REASON\"" | tee -a "$L"; return 1;; esac
+ }
