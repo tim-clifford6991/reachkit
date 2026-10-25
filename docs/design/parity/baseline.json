@@ -21,7 +21,7 @@
   "Setup1": { "sha256": "bacde949605717ebcf2ff708dab8f13ec27335b7bed8f59f02e615a553fa9e74", "missing": 0 },
   "Setup2": { "sha256": "a488e55e8d8aefe5a32fea62116c3b50db1fe8c252b1e345dc7dc457e17edd10", "missing": 0 },
   "Setup": { "sha256": "792aea27d7785965efdde87afd78dcbd9f10fb34ce1dba56efe5542a2159cc0f", "missing": 0 },
-  "SetupZone": { "sha256": "5e551a8c4cf16f4dc37d1683e3c8b9c0e7cbc87ba89c0722061b6726427f6aa8", "missing": 0 },
+  "SetupZone": { "sha256": "d2204ad3da04a5f31cf2311d7faf0c3766f348d736a9555ef658172c0eb76e50", "missing": 0 },
   "Veto": { "sha256": "f64e048cc141a940095f49227aaabbbe911faa517fb1b790cc97b75a087328d4", "missing": 0 },
   "OptOut": { "sha256": "053555815d78e8e49a93c211502d43f2c6fcdbabae0c2f401ae2560c752f1c10", "missing": 0 },
   "Legal": { "sha256": "e745326d3691edc1bd6d182fabae389a601b6e1731d0745a52bb9756659d6604", "missing": 0 },
@@ -44,8 +44,8 @@
   "SettingsMail": { "sha256": "8313c4e879339f1c00380adf1e9432370d51a733bb588e29d8a6e543ba32caf4", "missing": 0 },
   "SettingsBilling": { "sha256": "2d9b7abde6ddf7d207571c97bdf4e8f6c8648b777b8dceb434d90ddae484cc5b", "missing": 0 },
   "SettingsAccount": { "sha256": "969f0f65080bad9eee51becf1baf292780b1674b815e86b9ae51948523bff1e7", "missing": 0 },
-  "HostedIndex": { "sha256": "084efab0759aa7d5cfb59e27a6baf8452c925de4a311a2fc8720f9ee05123e2d", "missing": 0 },
+  "HostedIndex": { "sha256": "62fd3f4150570c71cad8353715ccd0cbd48c9eba305be04cee7905faf6eded0d", "missing": 0 },
   "HostedArticle": { "sha256": "979fe841d4a3620b78761b815705b7b0c13fb9000bd7d18b30afbb6c99e7a454", "missing": 0 },
-  "HostedService": { "sha256": "15b1c1dfd9835ea0542b157092dd70e33530c4f47fe1295b39ddace12c2d576d", "missing": 0 },
+  "HostedService": { "sha256": "116781edc0fc0354504972d9d7f66659388f9d9b71355cae64c28801065b8e61", "missing": 0 },
   "HostedGone": { "sha256": "9f65bbe7b9c067831bdf1a8c375b93a76bd54937602b449c6e97b3b68b05ebdc", "missing": 0 }
 }

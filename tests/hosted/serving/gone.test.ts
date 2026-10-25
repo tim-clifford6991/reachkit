@@ -12,16 +12,17 @@ applyEnvFixture();
 type Serving = { serve: true } | { serve: false; because: "retention_elapsed" | "account_deleted" };
 type Locale = { country: string; language: string };
 
-const state: { host: string; serving: Serving; stored: Locale | null; identityFails: boolean } = {
+const state: { host: string; serving: Serving; stored: Locale | null; identityFails: boolean; live: unknown[] } = {
   host: "content.example.com",
   serving: { serve: true },
   stored: null,
   identityFails: false,
+  live: [],
 };
 
 const OLD_TITLE = "How to winterize outdoor faucets";
 
-// The 410 route's server bundle as production builds it: lucide's `Icon` is a
+// The hosted routes' server bundle as production builds it: lucide's `Icon` is a
 // client module there, so calling any icon throws instead of drawing.
 vi.mock("lucide-react", async (importOriginal) => {
   const real = await importOriginal<Record<string, unknown>>();
@@ -60,7 +61,8 @@ vi.mock("@/lib/publish/destinations/hosted", async () => {
       domain === "example.com" ? { siteId: "site-1", domain, host: `content.${domain}` } : null,
     hostedSiteForHostname: async () => null,
     livePageBySlug: async () => null,
-    livePagesForSite: async () => [],
+    livePagesForSite: async () => state.live,
+    taggedForHosted: async () => undefined,
     hostedIdentity: async () => {
       if (state.identityFails) throw new Error("identity read failed");
       return {
@@ -89,6 +91,7 @@ vi.mock("@/lib/publish/destinations/hosted", async () => {
 const gone = await import("@/app/(hosted)/hosted-gone/route");
 const NotFound = (await import("@/app/(hosted)/hosted-page/not-found")).default;
 const Page = (await import("@/app/(hosted)/hosted-page/[[...slug]]/page")).default;
+const cached = await import("@/app/(hosted)/hosted-live/[host]/[slug]/route");
 const { readingIn } = await import("@/lib/presentation/copy/reader");
 
 beforeEach(() => {
@@ -96,6 +99,7 @@ beforeEach(() => {
   state.serving = { serve: true };
   state.stored = null;
   state.identityFails = false;
+  state.live = [];
 });
 
 function request(language?: string): Request {
@@ -187,6 +191,42 @@ describe("A: the short body draws lucide's glyphs without its client Icon", () =
     expect(head?.compareDocumentPosition(main.querySelector("h1")!)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
     const index = [...main.querySelectorAll("a")].find((a) => a.textContent === ENGLISH.index);
     expect(index?.querySelector("svg.lucide-list")?.getAttribute("aria-hidden")).toBe("true");
+  });
+});
+
+describe("the cached article draws its glyphs without lucide's client Icon", () => {
+  it("an offering page answers 200 with the header's call and the places' pins", async () => {
+    const at = new Date("2026-10-19T11:00:00.000Z");
+    const liveUrl = "https://content.example.com/emergency-plumber-austin";
+    state.live = [
+      {
+        publicationId: "pub-2",
+        siteId: "site-1",
+        slug: "emergency-plumber-austin",
+        title: "Emergency plumber in Austin",
+        heading: null,
+        bodyMd: "## Where and when\n\n- Austin\n- Round Rock",
+        description: null,
+        faq: [],
+        grounded: null,
+        made: null,
+        publisher: { name: "example.com", category: null, timeZone: "UTC" },
+        byline: null,
+        offering: true,
+        whereWhen: "Where and when",
+        businessFit: 3,
+        publishedAt: at,
+        firstPublishedAt: at,
+        liveUrl,
+        record: { opportunityId: "opp-1", targetQuery: "emergency plumber austin", measuredOn: at, mode: "autopilot", liveUrl },
+      },
+    ];
+    const params = Promise.resolve({ host: "content.example.com", slug: "emergency-plumber-austin" });
+    const response = await cached.GET(new Request(liveUrl), { params });
+    expect(response.status).toBe(200);
+    const doc = parse(await response.text());
+    expect(doc.querySelectorAll("main svg.lucide-map-pin").length).toBeGreaterThanOrEqual(2);
+    expect(doc.querySelector('header a[href^="tel:"] svg')).not.toBeNull();
   });
 });
 

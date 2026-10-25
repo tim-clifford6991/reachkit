@@ -4,7 +4,7 @@
 import type React from "react";
 import { copy, readerTag } from "@/lib/presentation/copy/reader";
 import { Surface } from "@/ui/layout";
-import { hostedHtml } from "../../document";
+import { hostedHtml, hostedLanguageOf } from "../../document";
 import { normaliseHost } from "../../resolve-host";
 import { AboutCard, Glyph, HostedFooter, HostedHeader, INDEX_PATH, type HostedBusiness } from "./chrome";
 
@@ -61,4 +61,14 @@ export function HostedEmpty(): React.JSX.Element {
  *  host as every hosted response with no title of its own is. */
 export async function goneDocument(business: HostedBusiness, host: string): Promise<string> {
   return hostedHtml({ lang: readerTag(), title: normaliseHost(host), body: <HostedGoneBody business={business} /> });
+}
+
+/** The cached article's 404, for an address that stopped being live between the middleware's read and the render. */
+export async function emptyDocument(host: string): Promise<string> {
+  return hostedHtml({
+    lang: await hostedLanguageOf(host),
+    title: normaliseHost(host),
+    head: <meta name="robots" content={ROBOTS} />,
+    body: <HostedEmpty />,
+  });
 }

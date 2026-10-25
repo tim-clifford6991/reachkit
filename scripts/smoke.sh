@@ -170,7 +170,7 @@ ok "$step" "$(tail -1 <<<"$paths_out")"
 
 # ── 1b. hosted ───────────────────────────────────────────────────────────
 # SPEC §7 (2026-10-18, issue 1514, B6): a customer's cached article answers
-# within the budget and preloads at most two fonts, and states a language.
+# within the budget, preloads at most two fonts, ships no script, and states a language.
 # Before the scan, which spends: it costs nothing and needs no fresh domain.
 # The article is the index's newest; it is asked four times, the first
 # answer, which may fill the cache, is not timed, and the fastest of the
@@ -206,6 +206,9 @@ else
     in_header=$(grep -i '^link:' "$WORK/hosted-head.txt" | grep -o 'rel=preload; as="font"' | wc -l)
     preloads=$((in_page + in_header))
     [ "$preloads" -le "$FONT_PRELOADS" ] || fail "$step" "/$slug preloads $preloads fonts, more than $FONT_PRELOADS"
+    # A cached article is its HTML and its sheet: no script to download, no flight data.
+    if grep -q '<script[^>]*src=' "$article"; then fail "$step" "/$slug ships a <script src>"; fi
+    if grep -q 'self.__next_f' "$article"; then fail "$step" "/$slug ships React flight data"; fi
     lang=$(grep -o '<html[^>]* lang="[^"]*"' "$article" | sed 's/.* lang="\([^"]*\)"/\1/' | head -1)
     [ -n "$lang" ] || fail "$step" "/$slug states no <html lang>"
     ok "$step" "/$slug · first byte ${best} ms ≤ ${TTFB_BUDGET_MS} ms · ${preloads} font preloads · lang $lang"

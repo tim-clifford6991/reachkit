@@ -51,6 +51,10 @@ describe("issue 1242 — a live hosted article is cached, and nothing else on th
         // would be one request's served to every other.
         expect(answer.headers["content-security-policy"]).toContain("script-src 'none'");
         expect(answer.html).not.toMatch(/<script[^>]*\snonce=/);
+        // Static HTML and its sheet: no script but the data blocks, no flight data, one stylesheet.
+        expect(answer.html.match(/<script(?![^>]*type="application\/ld\+json")[^>]*>/g) ?? []).toEqual([]);
+        expect(answer.html).not.toContain("self.__next_f");
+        expect(answer.html.match(/<link[^>]*rel="stylesheet"[^>]*>/g)).toEqual(['<link rel="stylesheet" href="/style.css">']);
       }
       expect(second.headers["x-nextjs-cache"]).toBe("HIT");
     },
