@@ -23,7 +23,10 @@ jobs:
       contents: read
       issues: write
     steps:
+      # Depth 2 holds the base commit, whose scripts/budgets.json a pull request may not raise.
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
       - uses: actions/setup-node@v4
         with:
           node-version: 22
