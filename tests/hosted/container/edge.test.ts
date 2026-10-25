@@ -102,14 +102,17 @@ describe("every path on a customer's own domain lands in the hosted group", () =
     // without it `/setup` on a customer's own domain would render the
     // account container's setup screen.
     const response = await middleware(requestTo("/setup", "content.example.com"));
-    expect(rewrittenTo(response)).toBe("/hosted-page/setup");
+    expect(rewrittenTo(response)).toBe("/hosted-article/setup");
   });
 
   it("a public ReachKit screen cannot be reached there either", async () => {
-    for (const path of ["/pricing", "/signin", "/scan/example.com"]) {
+    for (const path of ["/pricing", "/signin"]) {
       const response = await middleware(requestTo(path, "content.example.com"));
-      expect(rewrittenTo(response), path).toBe(`/hosted-page${path}`);
+      expect(rewrittenTo(response), path).toBe(`/hosted-article${path}`);
     }
+    expect(rewrittenTo(await middleware(requestTo("/scan/example.com", "content.example.com")))).toBe(
+      "/hosted-page/scan/example.com"
+    );
     // The site root is one of them: `/hosted-page` matches no route (the
     // catch-all needs a segment), so a customer's own domain answers 404
     // at its root rather than the ReachKit landing page.
@@ -152,7 +155,7 @@ describe("every path on a customer's own domain lands in the hosted group", () =
       const response = await middleware(requestTo("/a-page", host));
       // No row carries these hosts in this suite, so none of them is a site
       // and none is sent to the cached article.
-      expect(rewrittenTo(response), host).toBe("/hosted-page/a-page");
+      expect(rewrittenTo(response), host).toBe("/hosted-article/a-page");
     }
   });
 });
@@ -165,7 +168,7 @@ describe("410 rather than 404, and only where a page was actually taken down", (
 
   it("an address that never served one is not gone — it goes to the page, which 404s", async () => {
     const response = await middleware(requestTo("/never-published", "content.example.com"));
-    expect(rewrittenTo(response)).toBe("/hosted-page/never-published");
+    expect(rewrittenTo(response)).toBe("/hosted-article/never-published");
   });
 
   it("a re-published page is not gone: the live check comes first", async () => {
@@ -206,12 +209,18 @@ describe("a cold function's slow read (issue 1194)", () => {
     expect(rewrittenTo(await response)).toBe("/hosted-gone");
   });
 
+  it("a dotted name or a deeper path is never an article address", async () => {
+    for (const path of ["/style.css", "/rss.xml", "/font/inter-latin-400-normal.woff2", "/a-page/more"]) {
+      expect(rewrittenTo(await middleware(requestTo(path, "content.example.com"))), path).toBe(`/hosted-page${path}`);
+    }
+  });
+
   it("a read that never answers renders — it is never a 410 on a guess", async () => {
     vi.useFakeTimers();
     addressRead.wait = () => new Promise(() => {});
     const response = middleware(requestTo("/taken-down", "content.example.com"));
     await vi.advanceTimersByTimeAsync(10_000);
-    expect(rewrittenTo(await response)).toBe("/hosted-page/taken-down");
+    expect(rewrittenTo(await response)).toBe("/hosted-article/taken-down");
   });
 });
 
@@ -248,17 +257,17 @@ describe("the cached article is reached only by a page found live on this reques
     // The site is served at another host now; no row claims the old one.
     sites.delete("example.com");
     expect(rewrittenTo(await middleware(requestTo("/a-page", "content.example.com")))).toBe(
-      "/hosted-page/a-page"
+      "/hosted-article/a-page"
     );
   });
 
-  it("a read that never answers is not: the uncached route decides for itself", async () => {
+  it("a read that never answers is not: the article's uncached route decides for itself", async () => {
     vi.useFakeTimers();
     try {
       addressRead.wait = () => new Promise(() => {});
       const response = middleware(requestTo("/a-page", "content.example.com"));
       await vi.advanceTimersByTimeAsync(10_000);
-      expect(rewrittenTo(await response)).toBe("/hosted-page/a-page");
+      expect(rewrittenTo(await response)).toBe("/hosted-article/a-page");
     } finally {
       vi.useRealTimers();
     }

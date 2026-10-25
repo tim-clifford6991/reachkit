@@ -65,7 +65,7 @@ export function shareImageUrl(origin: string, slug: string | null, shape: ShareS
 /** What every hosted head says to a crawler beside its canonical: its
  *  pictures may be shown large (Discover asks for it), and its icon is the
  *  customer's. */
-const HEAD_SIGNALS = {
+export const HEAD_SIGNALS = {
   robots: { "max-image-preview": "large" },
   icons: { icon: ICON_PATH },
 } satisfies Metadata;
@@ -297,7 +297,7 @@ interface FeedAlternates {
 }
 
 /** The `<link rel="alternate">` to the feed, beside the canonical. */
-function alternatesOf(canonical: string, business: HostedBusiness): FeedAlternates {
+export function alternatesOf(canonical: string, business: HostedBusiness): FeedAlternates {
   return {
     canonical,
     types: { [FEED_TYPE]: [{ url: `${originOf(canonical)}${FEED_PATH}`, title: indexTitle(business) }] },
@@ -317,7 +317,7 @@ interface ShareTags {
 }
 
 /** The share tags both kinds of page carry: the card a pasted link draws. */
-function shareTags(a: {
+export function shareTags(a: {
   canonical: string;
   title: string;
   description: string | undefined;
@@ -335,43 +335,6 @@ function shareTags(a: {
       images: [{ url: a.image, ...OG_SIZE, alt: a.title }],
     },
     twitter: { card: "summary_large_image", title: a.title, ...described, images: [a.image] },
-  };
-}
-
-/** An article's head, typed so the static article can draw every tag of it. */
-export type ArticleMetadata = typeof HEAD_SIGNALS & {
-  title: string;
-  description: string | undefined;
-  alternates: FeedAlternates;
-  openGraph: ShareTags["openGraph"] & { type: "article"; publishedTime: string; modifiedTime: string };
-  twitter: ShareTags["twitter"];
-};
-
-export function articleMetadata(a: {
-  page: HostedPage;
-  canonical: string;
-  description: string | undefined;
-  business: HostedBusiness;
-}): ArticleMetadata {
-  const share = shareTags({
-    canonical: a.canonical,
-    title: a.page.title,
-    description: a.description,
-    business: a.business,
-    image: shareImageUrl(originOf(a.canonical), a.page.slug),
-  });
-  return {
-    ...HEAD_SIGNALS,
-    title: a.page.title,
-    description: a.description,
-    alternates: alternatesOf(a.canonical, a.business),
-    openGraph: {
-      ...share.openGraph,
-      type: "article",
-      publishedTime: a.page.firstPublishedAt.toISOString(),
-      modifiedTime: a.page.publishedAt.toISOString(),
-    },
-    twitter: share.twitter,
   };
 }
 
