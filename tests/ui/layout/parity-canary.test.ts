@@ -46,6 +46,12 @@ describe("parity canary: a page that drops a board component fails the reading",
     expect(compare(componentBoard, segments(componentPage)).missing).toEqual([]);
   });
 
+  it("reads the components count, not the strings count, when the two differ", () => {
+    const parts = compareComponents(componentBoard, [componentPage]);
+    expect(verdict("Board", parts.missing, { sha256: sha, missing: 0, components: 2 }, sha, parts.unused, "components").ok).toBe(true);
+    expect(verdict("Board", parts.missing, { sha256: sha, missing: 2, components: 0 }, sha, parts.unused, "components").ok).toBe(false);
+  });
+
   it("a page that draws every board component holds a components baseline of 0", () => {
     const parts = compareComponents(componentBoard, [`${componentPage}${lucide("file-text")}<div class="radial-progress"></div>`]);
     expect(verdict("Board", parts.missing, { sha256: sha, missing: 0, components: 0 }, sha, parts.unused, "components").ok).toBe(true);
