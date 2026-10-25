@@ -1,9 +1,6 @@
 // BUILD §9 — "Pause all pages" from the Monday mail: a signed link that switches publishing off.
-//
-// Signed over the site alone, under its own HKDF label, so it can do this one
-// thing and nothing else: it is never a sign-in, an unsubscribe or a stop of one
-// page. It moves no page and takes no transition; it records the switch through
-// `setPublishing`, as Settings does. Applying it twice writes once.
+// Signed over the site alone under its own HKDF label, so it is never a sign-in, an unsubscribe or a stop of one page.
+// It takes no transition; it records the switch through `setPublishing`, as Settings does. Applying it twice writes once.
 import { createHmac, hkdfSync, timingSafeEqual } from "node:crypto";
 import { env } from "@/lib/config/env";
 import { publishDb } from "../db";

@@ -1,35 +1,13 @@
-// BUILD §9 — the authenticated REST calls to a customer's own WordPress,
-// and the one place the application password is in memory.
-//
-// Every byte leaving this module goes through `safeFetch` — SSRF-guarded,
-// DNS-pinned, size-capped — and there is no other door: a `fetch(` here is
-// a lint error and the assertion in `client.test.ts` reads this file's own
-// source for one.
-//
-// **The application password exists for the duration of one call.** It
-// arrives in the `WordPressConfig` the sealed-credential seam
-// (`destinations/config`) hands the adapter, it is composed into one
-// `Authorization` header, and nothing here logs it, returns it, throws with
-// it or stores it. `safeFetch` logs five fields — host, reason, status,
-// bytes, duration — and no header is among them, so §9's "never logged" is
-// a property of the seam rather than care taken at each call site.
-//
-// **Robots checking is off, deliberately** (BP-048's stated rule 1.1
-// choice). These are authenticated API calls to a site whose administrator
-// gave us a credential for exactly this; `robots.txt` governs crawling, not
-// an API the site's own owner authorised. Leaving it on would let a
-// customer's own `Disallow: /` stop the publishing they are paying for.
-//
-// **This module classifies nothing.** Every call returns what the site did
-// — an HTTP answer, or no answer at all — and `errors.ts` is the one place
-// that turns either into a `FailureReason`. The vendor payload stops there.
-//
-// The archived plan is WO-236.
+// BUILD §9 — the authenticated REST calls to a customer's own WordPress, and the one place the application password is
+// in memory. Every byte leaves through `safeFetch` (SSRF-guarded, DNS-pinned, size-capped); a `fetch(` here fails `client.test.ts`.
+// The password lives for one call, composed into one `Authorization` header and never logged, returned, thrown or
+// stored; `safeFetch` logs no header, so §9's "never logged" is the seam's property.
+// Robots checking is off (BP-048 rule 1.1): `robots.txt` governs crawling, not an API the site's owner authorised.
+// This module classifies nothing; `errors.ts` turns every answer into a `FailureReason`.
 import { WORDPRESS } from "@/lib/config/constants";
 import { safeFetch } from "@/lib/egress";
 
-/** The shape `destinations.config` holds for a WordPress destination,
- *  sealed at rest and decrypted for the duration of one call. */
+/** `destinations.config` for WordPress, sealed at rest and decrypted for one call. */
 export interface WordPressConfig {
   /** The customer's site root. The REST root is derived, never stored twice. */
   baseUrl: string;
@@ -38,26 +16,14 @@ export interface WordPressConfig {
   applicationPassword: string;
 }
 
-/**
- * What one call to the customer's site did.
- *
- * `ok: true` means the site answered — with any status, including 401 and
- * 500. That is not a success and this module does not say it is: a status
- * is an answer, and telling an answer apart from a silence is the whole
- * distinction `already_gone` and `unreachable` rest on (ADR-082, carried
- * forward by ADR-084 Decision 4).
- *
- * `body` is the parsed JSON, or `null` where what came back was not JSON.
- * The raw text is not carried: it is the vendor payload, and it has no
- * route to a screen, a mail or an export.
- */
+/** What one call did. `ok: true` means the site answered, with any status, never a success: an answer against a silence
+ *  is what `already_gone` and `unreachable` rest on (ADR-084 decision 4). `body` is parsed JSON or `null`; the raw text,
+ *  the vendor payload, is not carried. */
 export type WordPressAnswer =
   | { ok: true; status: number; body: unknown }
   | { ok: false; transport: TransportFailure };
 
-/** Why no answer came back. `safeFetch`'s own reasons, narrowed to the
- *  ones an authenticated API call can produce, plus `unreadable` for a
- *  200 whose body is not the JSON a REST API is defined to return. */
+/** Why no answer came back: `safeFetch`'s reasons an authenticated API call can produce. */
 export type TransportFailure =
   | "dns"
   | "refused"
@@ -65,15 +31,12 @@ export type TransportFailure =
   | "too_large"
   | "blocked_by_policy";
 
-/** The REST root for a site. Derived at every call from `baseUrl` and held
- *  nowhere: two copies of an address are two addresses that can disagree. */
+/** The REST root, derived from `baseUrl` at every call and held nowhere. */
 export function restRoot(baseUrl: string): string {
   return `${baseUrl.replace(/\/+$/, "")}${WORDPRESS.restBase}`;
 }
 
-/** The one composition of the credential, and the only place it is a
- *  string. Not exported: nothing outside this file needs it, and a header
- *  a caller could build is a header a caller could log. */
+/** The only place the credential is a string; not exported, as a header a caller could build it could log. */
 function authorization(cfg: WordPressConfig): string {
   const pair = `${cfg.username}:${cfg.applicationPassword}`;
   return `Basic ${Buffer.from(pair, "utf8").toString("base64")}`;
@@ -85,8 +48,7 @@ async function call(
   init?: { method: "POST"; json: unknown }
 ): Promise<WordPressAnswer> {
   const outcome = await safeFetch(`${restRoot(cfg.baseUrl)}${path}`, {
-    // The site's own `robots.txt` does not govern an API its administrator
-    // authorised us against — see the module header.
+    // `robots.txt` does not govern an API its administrator authorised.
     respectRobots: false,
     headers:
       init === undefined
@@ -100,10 +62,7 @@ async function call(
   });
 
   if (!outcome.ok) {
-    // `robots_disallowed` and `status` cannot arise here — robots checking
-    // is off, and a redirect chain that never settles is the site refusing
-    // to answer. Both fold into the reasons that mean the same thing to a
-    // caller: nothing came back.
+    // Robots is off, and a redirect chain that never settles is a refusal: both mean nothing came back.
     const transport: TransportFailure =
       outcome.reason === "robots_disallowed" || outcome.reason === "status"
         ? "refused"
@@ -114,9 +73,7 @@ async function call(
   return { ok: true, status: outcome.status, body: parseJson(outcome.html) };
 }
 
-/** The body as JSON, or `null`. A parse failure is not an error arm: a
- *  site that answered with something other than JSON answered, and what
- *  that means is `errors.ts`'s to say. */
+/** The body as JSON, or `null`; a non-JSON answer is still an answer, for `errors.ts` to read. */
 function parseJson(text: string): unknown {
   try {
     return JSON.parse(text);
@@ -126,32 +83,20 @@ function parseJson(text: string): unknown {
 }
 
 // ── The call shapes, and no others ──────────────────────────────────────
-//
-// There is deliberately no "publish this post" call. ADR-084 Decision 1
-// makes the create the one call that publishes, and a status-write that
-// could raise a draft to `publish` is exactly the second half of the
-// two-step that ruling forbids. `setPostDraft` below writes `draft` and
-// nothing else, and `updatePost` writes no status at all — their literal
-// types say so — so no create-then-publish sequence can be composed out of
-// this file.
+// No "publish this post" call: the create is the one call that publishes (ADR-084 decision 1). `setPostDraft` writes
+// `draft` only and `updatePost` no status, by their literal types, so no create-then-publish can be composed here.
 
-/** The REST index. One read, and the answer to three questions: is this a
- *  WordPress REST endpoint at all, does the credential reach it, and which
- *  SEO plugins are installed (`seo.ts` reads the namespaces). */
+/** The REST index: is this WordPress REST, does the credential reach it, which SEO plugins (`seo.ts`). */
 export function readRestIndex(cfg: WordPressConfig): Promise<WordPressAnswer> {
   return call(cfg, "/");
 }
 
-/** The credential's own account, with its capabilities. `context=edit` is
- *  what makes WordPress return the capability map at all — without it the
- *  answer is the public profile and carries nothing to read. */
+/** The credential's own account; `context=edit` is what returns the capability map. */
 export function readSelf(cfg: WordPressConfig): Promise<WordPressAnswer> {
   return call(cfg, "/wp/v2/users/me?context=edit");
 }
 
-/** Candidates for a marker. Bounded, `status=any` because a post we lost
- *  the answer to may be in any state, `context=edit` because the raw
- *  content is where the marker lives and the rendered content is not. */
+/** Candidates for a marker, bounded; `status=any` as a lost post may be in any state, `context=edit` for the raw content. */
 export function searchPosts(cfg: WordPressConfig, marker: string): Promise<WordPressAnswer> {
   const query = new URLSearchParams({
     search: marker,
@@ -162,19 +107,8 @@ export function searchPosts(cfg: WordPressConfig, marker: string): Promise<WordP
   return call(cfg, `/wp/v2/posts?${query.toString()}`);
 }
 
-/**
- * One page of the site's posts, newest first (#928).
- *
- * The known-content index's read: **all** posts, not only ours, because
- * what it answers is "does this site already cover this topic" and the
- * customer's own posts are most of the answer. `status=any` for the same
- * reason a draft of ours counts: a post waiting to go live is a topic the
- * site is about to cover.
- *
- * `_fields` is the whole of what is read back — id, address, title, excerpt,
- * content, date and status — and `content` is read for its headings alone;
- * nothing stores a post's body (`known_content`'s own header says why).
- */
+/** One page of the site's posts, newest first, for the known-content index: all posts, not only ours, drafts included,
+ *  since "does the site cover this topic" is mostly the customer's. `content` is read for headings only; no body is stored. */
 export function listPosts(
   cfg: WordPressConfig,
   a: { page: number; perPage: number }
@@ -196,9 +130,7 @@ export function readPost(cfg: WordPressConfig, postId: string): Promise<WordPres
   return call(cfg, `/wp/v2/posts/${encodeURIComponent(postId)}?context=edit`);
 }
 
-/** Candidates at a known address. A page the customer wrote themselves
- *  carries no marker of ours, so the slug off its URL is the only handle on
- *  it; `status=any` and `context=edit` for the reasons above. */
+/** Candidates at a known address: a customer's own page has no marker, so its slug is the only handle. */
 export function findPostBySlug(cfg: WordPressConfig, slug: string): Promise<WordPressAnswer> {
   const query = new URLSearchParams({
     slug,
@@ -209,9 +141,7 @@ export function findPostBySlug(cfg: WordPressConfig, slug: string): Promise<Word
   return call(cfg, `/wp/v2/posts?${query.toString()}`);
 }
 
-/** Rewrites a post that is already there — §7's third asset kind. The
- *  literal type is the guard: `status` is not a field it accepts, so this
- *  call can neither raise a draft nor take a live page down. */
+/** Rewrites an existing post (§7's third asset kind); it accepts no `status`, so it cannot raise or take down a page. */
 export function updatePost(
   cfg: WordPressConfig,
   postId: string,
@@ -227,9 +157,7 @@ export function updatePost(
   });
 }
 
-/** **The one create call**, carrying the status, the SEO fields, the stamp
- *  and the marker in the same request (ADR-084 Decision 1). Its body is
- *  composed by the adapter; this file makes the request and nothing else. */
+/** The one create call: status, SEO fields, stamp and marker in one request (ADR-084 decision 1); the adapter composes it. */
 export function createPost(
   cfg: WordPressConfig,
   post: Readonly<Record<string, unknown>>
@@ -237,10 +165,7 @@ export function createPost(
   return call(cfg, "/wp/v2/posts", { method: "POST", json: post });
 }
 
-/** Returns a post to draft — the one field `unpublish` writes into a post
- *  ReachKit itself made live (REQ-060's non-goals; ADR-081/082's ruling as
- *  ADR-084 Decision 4 carries it). The literal type is the guard: this
- *  function cannot be asked to publish anything. */
+/** Returns a post to draft, the one field `unpublish` writes into a post we made live (ADR-084 decision 4); it cannot publish. */
 export function setPostDraft(cfg: WordPressConfig, postId: string): Promise<WordPressAnswer> {
   return call(cfg, `/wp/v2/posts/${encodeURIComponent(postId)}`, {
     method: "POST",
@@ -254,10 +179,7 @@ export function findTag(cfg: WordPressConfig, slug: string): Promise<WordPressAn
   return call(cfg, `/wp/v2/tags?${query.toString()}`);
 }
 
-/** The stamp's term, created. A credential that may not create a term
- *  answers with a status, and `stampApplied: false` is the delivered
- *  page's honest record of it (ADR-083 Decision 4) — never a failed
- *  delivery. */
+/** The stamp's term, created; a refusal is `stampApplied: false` on a delivered page (ADR-083 decision 4), never a failure. */
 export function createTag(
   cfg: WordPressConfig,
   slug: string,

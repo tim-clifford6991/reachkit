@@ -1,24 +1,7 @@
-// BUILD §9 — calendar boundaries in the customer's own zone.
-//
-// §9's ceilings are counted "in any calendar day" and "in any calendar
-// week", and REQ-065's week starts on Monday. Both boundaries are the
-// *customer's*, so this module answers every question of the site's own
-// zone through `Intl.DateTimeFormat` — the platform's own IANA database,
-// so no dependency and no offset table can go stale.
-//
-// **Why this exists beside `src/lib/scan/weekly/week.ts`.** That module owns
-// the site-local *week key* — `weekStartFor`, the calendar date that is
-// `scans.week_start` — and the *due hour* a job runs at. Both are different
-// questions from this one, and neither answers it: the ceilings need the
-// **instants** a local day and a local week begin at, to count publications
-// between them, and `week.ts` exports no instant (`instantOfLocal` is
-// private to it). So the boundary arithmetic is here and the reading of the
-// clock is not duplicated in spirit: both modules read the same
-// `sites.timezone` through the same platform API and derive the week start
-// from the same `WEEK_START` pin, and a test asserts the two agree on fixed
-// dates across two DST transitions — the drift a second zone helper could
-// otherwise hide. If `week.ts` ever exports the instant, this file's two
-// boundary functions become one-liners over it.
+// BUILD §9 — calendar boundaries in the customer's own zone, for §9's "any calendar day" and "any calendar week"
+// (REQ-065: weeks start Monday), via `Intl.DateTimeFormat`'s IANA data, so no offset table goes stale.
+// Beside `src/lib/scan/weekly/week.ts` because the ceilings need the instants a local day and week begin at, which it
+// does not export; a test holds the two to agree across DST transitions.
 import { WEEK_START } from "@/lib/config/constants";
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
@@ -33,8 +16,7 @@ const WEEKDAY_INDEX: Readonly<Record<string, number>> = Object.freeze({
   Sun: 7,
 });
 
-/** `WEEK_START` is pinned as the word "monday"; the number is that same
- *  fact derived, never written twice. */
+/** The number derived from the pinned `WEEK_START` word, never written twice. */
 function weekStartIndex(): number {
   const word = WEEK_START;
   const key = word.slice(0, 1).toUpperCase() + word.slice(1, 3).toLowerCase();
@@ -58,9 +40,7 @@ export interface LocalDate {
   weekday: number;
 }
 
-/** Reads `instant` in `timeZone`. Throws on a zone the platform does not
- *  know rather than falling back to UTC — a site whose zone we cannot read
- *  is not a site whose calendar day we may guess at. */
+/** Reads `instant` in `timeZone`; throws on an unknown zone rather than guessing a calendar day in UTC. */
 export function localDate(instant: Date, timeZone: string): LocalDate {
   const parts = new Intl.DateTimeFormat("en-US", {
     timeZone,
@@ -108,15 +88,8 @@ function offsetMs(instant: Date, timeZone: string): number {
   return asUtc - Math.floor(instant.getTime() / 1000) * 1000;
 }
 
-/** The instant at which a given local wall-clock midnight occurs.
- *
- *  Two passes, not one: the offset that turns a wall clock into an instant
- *  is itself a function of the instant, so the first pass uses the offset
- *  in force at the reference moment and the second uses the offset in force
- *  at the answer. That converges everywhere except the hour a zone skips
- *  over its own midnight, where it lands on the first instant that exists
- *  on the day — which is the boundary a customer in that zone would count
- *  from. */
+/** The instant of a local midnight, in two passes since the offset depends on the instant. Where a zone skips its
+ *  midnight it lands on the day's first existing instant, which a customer there counts from. */
 function instantOfLocalMidnight(
   year: number,
   month: number,
@@ -136,17 +109,13 @@ export function startOfLocalDay(instant: Date, timeZone: string): Date {
   return instantOfLocalMidnight(local.year, local.month, local.day, instant, timeZone);
 }
 
-/** The instant the customer's next calendar day begins — a refusal's
- *  `nextFreeAt` when the day ceiling is what blocked. */
+/** The instant the next local day begins: the day ceiling's `nextFreeAt`. */
 export function startOfNextLocalDay(instant: Date, timeZone: string): Date {
   const dayStart = startOfLocalDay(instant, timeZone);
   return startOfLocalDay(new Date(dayStart.getTime() + MS_PER_DAY + MS_PER_DAY / 2), timeZone);
 }
 
-/** The instant the customer's Monday-start calendar week containing
- *  `instant` begins. A page published on a Sunday counts in the week that
- *  Sunday *ends*, not the one it begins — which is the assertion a
- *  UTC-week implementation fails. */
+/** The instant the local Monday-start week begins; a Sunday counts in the week it ends. */
 export function startOfLocalWeek(instant: Date, timeZone: string): Date {
   const local = localDate(instant, timeZone);
   const daysBack = (local.weekday - WEEK_START_INDEX + 7) % 7;

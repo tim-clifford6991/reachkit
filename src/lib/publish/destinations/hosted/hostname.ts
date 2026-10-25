@@ -1,32 +1,10 @@
-// SPEC §5 — the customer's own subdomain, from a typed label to a served
-// host.
-//
-// §5's ruling of 2026-09-12: "on save the app adds the hostname to the
-// project's domain list through the Vercel Domains API with our server-only
-// token, the certificate is automatic once the CNAME resolves, and settings
-// shows 'live' or 'waiting for DNS'." Three things have to happen in one
-// order for that sentence to be true, and this module is where they are
-// kept together: the host is stored on the destination row (by the one
-// transaction that creates it), it is attached to the project, and the
-// word the customer reads is written back.
-//
-// **Idempotent by asking, not by remembering.** Every entry point here can
-// be called again for a host already attached: the vendor's own answer for
-// a hostname this project holds is the same answer the first call got, so
-// the setup submit, a later health check and a retry after a failure
-// converge on one domain entry and never on two. The one thing remembered
-// is *when the vendor was last asked*, which bounds the calls the scheduled
-// health pass makes and decides nothing about the host.
-//
-// **It is not on the edge's path.** `store.ts` holds the Host lookup the
-// hosted edge makes, and this module is imported only by the setup store,
-// the health check and the founder's own "check connection" action — so
-// nothing a middleware-reachable file imports reaches the vendor seam.
-//
-// **No sentence, and no vendor payload.** What a caller learns is a state
-// with two members, which is what the customer reads two words for — and,
-// for a founder who pressed the button, whether anything was asked at all
-// (`checkHostnameNow`, issue #757).
+// SPEC §5 — the customer's own subdomain, from a typed label to a served host: "on save the app adds the hostname to the
+// project's domain list through the Vercel Domains API with our server-only token, the certificate is automatic once the
+// CNAME resolves, and settings shows 'live' or 'waiting for DNS'." Stored, attached, and its word written back, in order.
+// Idempotent by asking, not remembering: the vendor answers a held host the same way, so submit, health check and retry
+// converge on one entry. Only when it was last asked is remembered, to bound the scheduled pass.
+// Off the edge's path: only setup, the health check and "check connection" import it, so no middleware-reachable file
+// reaches the vendor seam. No sentence and no vendor payload: a two-word state, and whether anything was asked.
 import {
   DESTINATION_HOSTNAME_CHECK_FLOOR_S,
   DESTINATION_HOSTNAME_RECHECK_H,
@@ -36,49 +14,26 @@ import { addProjectDomain } from "@/lib/vendors/vercel/domains";
 
 const HOUR_MS = 3_600_000;
 
-/** What the project's domain list says about a host, as the row holds it.
- *  Two members, because SPEC §5 rules the customer reads two words —
- *  "waiting for DNS" until the record resolves, "live" after. */
+/** The domain list's word for a host: SPEC §5's two, "waiting for DNS" then "live". */
 export type HostnameState = "pending_dns" | "live";
 
-/** The destination rows this module reads. `config` is not named here,
- *  for the reason `store.ts` gives: there is one select list per question
- *  and none of them has the column. */
+/** The rows read here; one select list per question, none naming `config`. */
 interface HostnameRow {
   id: string;
   site_id: string;
   hostname: string | null;
 }
 
-/** The row the attachment pass reads: what the domain list last said, and
- *  when it was asked. */
+/** What the domain list last said, and when it was asked. */
 interface HostnameCheckRow {
   id: string;
   hostname_state: HostnameState | null;
   hostname_checked_at: string | null;
 }
 
-/**
- * Whether another site already serves at this host.
- *
- * §5: an "already-taken label" is refused in one written line. The
- * database refuses it too (`destinations_one_live_hostname`), and that is
- * the guarantee; this is the readable form of the same refusal, asked
- * before a founder presses the one control rather than after.
- *
- * `exceptSiteId` is the site doing the asking: a founder re-reading their
- * own setup screen must not be told their own host is taken.
- *
- * **Fails closed towards refusal is wrong here, and so is fails open.** A
- * read that errors answers `false` — not taken — because the unique index
- * is what actually decides, and a founder blocked by a database blip from
- * a name nobody holds has been refused something true.
- *
- * That is the answer a founder *typing* is given. The submit asks
- * `hostnameTakenStrict` instead (issue 608): there, a read that could not
- * answer is not a free name, because the next thing that happens is a
- * write.
- */
+/** Whether another site serves at this host: §5's "already-taken label", asked before the press;
+ *  `destinations_one_live_hostname` is the guarantee. `exceptSiteId` keeps a founder's own host from reading as taken.
+ *  While typing, a read that errors is "not taken", since the index decides; the submit asks `hostnameTakenStrict`. */
 export async function hostnameTaken(a: {
   hostname: string;
   exceptSiteId?: string;
@@ -90,10 +45,7 @@ export async function hostnameTaken(a: {
   }
 }
 
-/** `hostnameTaken`, with a read that errors thrown rather than read as
- *  "not taken". The setup submit asks this before it writes any row, so a
- *  collision is refused as `label_taken` and never reaches the unique
- *  index after the founder's answers are already on disk. */
+/** `hostnameTaken` that throws on a read error, for the submit, so a collision is `label_taken` before any row is written. */
 export async function hostnameTakenStrict(a: {
   hostname: string;
   exceptSiteId?: string;
@@ -111,29 +63,10 @@ export async function hostnameTakenStrict(a: {
   return data.some((row) => row.site_id !== a.exceptSiteId);
 }
 
-/**
- * Adds the host to the project's domain list, and records what the list
- * then said about it.
- *
- * **The word is the vendor's own answer and nothing else.** Our resolver
- * can see that a record resolves; it cannot see whether it resolves at a
- * project that has been told about this host, and a host Vercel does not
- * hold is answered by Vercel's own 404. So only `attached` *and*
- * `verified` is "live" — which is also the moment the certificate exists —
- * and every answer short of that is "waiting for DNS".
- *
- * **A pass that could not ask leaves the recorded word standing.** A
- * deployment with no token and a vendor that did not answer carry no fact
- * about the host: neither raises one to "live", and neither tells a
- * customer whose pages are being served that they are waiting.
- *
- * **At most one vendor call per host per `DESTINATION_HOSTNAME_RECHECK_H`.**
- * The scheduled health pass reaches this for every hosted destination, so
- * the call is gated on `hostname_checked_at` — read here, written below.
- *
- * **A failure is never louder than a wait.** No vendor message reaches a
- * screen: the destination states its own health, as §5 requires.
- */
+/** Attaches the host and records the domain list's word, the vendor's answer alone: our resolver cannot see whether the
+ *  record resolves at a project that holds the host, so only attached and verified is "live", else "waiting for DNS".
+ *  A pass that could not ask leaves the word standing. At most one call per host per `DESTINATION_HOSTNAME_RECHECK_H`,
+ *  gated on `hostname_checked_at`. No vendor message reaches a screen. */
 export async function syncHostname(a: {
   destinationId: string;
   hostname: string;
@@ -145,10 +78,7 @@ export async function syncHostname(a: {
   const recorded: HostnameState = row?.hostname_state ?? "pending_dns";
   if (askedRecently(row?.hostname_checked_at ?? null, now)) return recorded;
 
-  // A founder's press at `/setup` that verified this host is the vendor's
-  // answer already (issue #791): the row created at submit records it rather
-  // than asking again — and rather than losing it to a vendor that does not
-  // answer the second time.
+  // A `/setup` press that verified this host is already the vendor's answer, kept rather than lost to a second ask.
   const answer = takeVerifiedAtSetup(a.hostname, now) ?? (await askVendor(a.hostname));
   await writeHostnameState({
     destinationId: a.destinationId,
@@ -158,28 +88,19 @@ export async function syncHostname(a: {
   return answer.asked ? answer.state : recorded;
 }
 
-/** The vendor's answer about one host, with "nothing was asked" kept apart
- *  from "waiting for DNS". `syncHostname` folds the second arm back into
- *  the recorded word, because a scheduled pass has nobody to tell; a
- *  founder who pressed a button does (#757). */
+/** "Nothing was asked" kept apart from "waiting for DNS": a scheduled pass folds it, a founder's press reports it. */
 type VendorAnswer = { asked: true; state: HostnameState } | { asked: false };
 
-/** Attaches the host — idempotently, `addProjectDomain`'s own promise — and
- *  judges what the domain list said. The one place the judgement is made,
- *  so the save, the health pass and the founder's press cannot come to
- *  read one vendor answer two ways. */
+/** Attaches the host (idempotent, per `addProjectDomain`) and judges the answer, in one place for every caller. */
 async function askVendor(hostname: string): Promise<VendorAnswer> {
   const vendor = await addProjectDomain(hostname);
-  // "We could not ask" is not an answer about the host. `elsewhere` is one
-  // — another project holds it, so this one does not serve it.
+  // "Could not ask" is no answer; `elsewhere` is one: another project holds the host.
   if (!vendor.ok && vendor.because !== "elsewhere") return { asked: false };
   return { asked: true, state: vendor.ok && vendor.verified ? "live" : "pending_dns" };
 }
 
 /**
- * What a founder's own "check connection" press learned (issue #757).
- *
- * Three answers, never folded into two:
+ * What a founder's own "check connection" press learned, three answers never folded into two:
  *
  *   * `asked` — the domain list answered, and `state` is its word.
  *   * `could_not_ask` — no token is bound, or the vendor did not answer.
@@ -195,18 +116,12 @@ export type HostnameCheck =
   | { outcome: "could_not_ask" }
   | { outcome: "too_soon"; askAgainAt: string; askAgainInS: number };
 
-/** When each site's founder last pressed, per server instance. Keyed by
- *  site, not host: a founder cycling labels is one founder asking. A row's
- *  own `hostname_checked_at` is read beside it where a destination exists,
- *  so an instance that has not seen this site still honours a recent ask. */
+/** When each site's founder last pressed, per instance, keyed by site since cycling labels is one founder asking; the
+ *  row's `hostname_checked_at` is read beside it. */
 const lastPressed = new Map<string, number>();
 
-/** Hosts a founder's `/setup` press found verified before any destination
- *  held them, and when (issue #791). Per server instance, like `lastPressed`:
- *  a submit that lands on another instance asks the vendor, which gives the
- *  same answer. Read once, by the first `syncHostname` for the host — the
- *  submit's — and good for `DESTINATION_HOSTNAME_RECHECK_H`, the window any
- *  recorded answer stands for. */
+/** Hosts a `/setup` press verified before any destination held them, per instance; read once by the submit's
+ *  `syncHostname` and good for `DESTINATION_HOSTNAME_RECHECK_H`. Another instance just asks the vendor. */
 const verifiedAtSetup = new Map<string, number>();
 
 function takeVerifiedAtSetup(hostname: string, now: Date): VendorAnswer | null {
@@ -219,34 +134,19 @@ function takeVerifiedAtSetup(hostname: string, now: Date): VendorAnswer | null {
     : null;
 }
 
-/**
- * Asks the vendor about one host now, on a founder's press — before setup
- * is submitted, or from Settings — and records the answer on the
- * destination where one already holds the host.
- *
- * **Keyed on the hostname, not on a row** (owner ruling 2026-09-16): at
- * setup the host is `<label>.<address>` and no destination exists yet, and
- * the founder must be able to verify their record there. The host is the
- * caller's to derive from the session's own site; nothing here trusts one.
- *
- * **It bypasses `DESTINATION_HOSTNAME_RECHECK_H`, and has a floor of its
- * own.** An hour-old answer handed back to a founder who has just created
- * their record is a lie; a button with no floor is a loop against the
- * vendor. So a press inside the floor asks nothing and says so.
- */
+/** Asks the vendor now, on a founder's press at setup or in Settings, recording on a destination that holds the host.
+ *  Keyed on the hostname, since at setup no destination exists; the caller derives it from the session's own site.
+ *  It bypasses the hourly window with a floor of its own: a press inside the floor asks nothing and says so. */
 export async function checkHostnameNow(a: {
   siteId: string;
   hostname: string;
-  /** The destination already holding this host, or `null` before setup has
-   *  created one. */
+  /** The destination holding this host, or `null` before setup creates one. */
   destinationId: string | null;
   now?: Date;
 }): Promise<HostnameCheck> {
   const now = a.now ?? new Date();
   const row = a.destinationId === null ? null : await readHostnameCheck(a.destinationId);
-  // Either stamp may be absent, unreadable or ahead of this clock; none of
-  // those is a reason to refuse the founder, as `askedRecently` rules for
-  // the pass.
+  // An absent, unreadable or future stamp never refuses the founder, as in `askedRecently`.
   const stamps = [
     lastPressed.get(a.siteId) ?? Number.NaN,
     row?.hostname_checked_at == null ? Number.NaN : Date.parse(row.hostname_checked_at),
@@ -276,9 +176,7 @@ export async function checkHostnameNow(a: {
   return answer.asked ? { outcome: "asked", state: answer.state } : { outcome: "could_not_ask" };
 }
 
-/** The site's live hosted destination and the host it serves at, or `null`
- *  where it has none — a WordPress site, or a founder who has not submitted
- *  setup yet. Its own select list, for the reason the module header gives. */
+/** The site's live hosted destination and its host, or `null` (WordPress, or setup not submitted). */
 export async function hostedDestinationOf(
   siteId: string
 ): Promise<{ id: string; hostname: string } | null> {
@@ -294,21 +192,8 @@ export async function hostedDestinationOf(
   return row === undefined || row.hostname === null ? null : { id: row.id, hostname: row.hostname };
 }
 
-/**
- * This site's hosted host and what the domain list last said about it
- * (#924), in one select and with no vendor call.
- *
- * `listDestinations` answers a richer question and reaches the vendor to
- * keep its health fresh; two screens need only "which host, and is it live
- * yet" — the connect step after setup, and the Overview item that keeps it
- * reachable until it is. Neither may spend a vendor call to decide what to
- * draw.
- *
- * `null` where the site has no hosted destination or the row names no
- * host. A row that was never checked reads `pending_dns`, which is what it
- * is: nobody has confirmed the record exists. `checkedAt` is when the domain
- * list was last asked, and `since` when the row was made.
- */
+/** The hosted host and the domain list's last word, in one select with no vendor call, for screens that only draw "which
+ *  host, and is it live yet". `null` with no hosted host; never checked reads `pending_dns`. */
 export async function hostedHostFor(
   siteId: string
 ): Promise<{ hostname: string; state: HostnameState; checkedAt: Date | null; since: Date | null } | null> {
@@ -343,9 +228,7 @@ function dateOrNull(at: string | null | undefined): Date | null {
   return Number.isNaN(ms) ? null : new Date(ms);
 }
 
-/** What the project's domain list last said about this destination's host,
- *  and when it was asked. Its own select list, for the reason the module
- *  header gives: one question, one list. */
+/** What the domain list last said about this destination's host, and when. */
 async function readHostnameCheck(destinationId: string): Promise<HostnameCheckRow | null> {
   const { data, error } = await publishDb()
     .from<HostnameCheckRow>("destinations")
@@ -356,10 +239,7 @@ async function readHostnameCheck(destinationId: string): Promise<HostnameCheckRo
   return data[0] ?? null;
 }
 
-/** Whether the vendor has already been asked about this host inside the
- *  window. A row that was never asked, or carries an unreadable date, is
- *  asked — a throttle that cannot read its own stamp must not become a
- *  reason never to attach a host. */
+/** Asked inside the window? Never asked, or an unreadable stamp, is asked, so the throttle never blocks attaching a host. */
 function askedRecently(at: string | null, now: Date): boolean {
   if (at === null) return false;
   const last = Date.parse(at);
@@ -367,18 +247,9 @@ function askedRecently(at: string | null, now: Date): boolean {
   return now.getTime() - last < DESTINATION_HOSTNAME_RECHECK_H * HOUR_MS;
 }
 
-/** Records what the project's domain list said, and when it was asked.
- *  `state: null` is a pass that asked and got no answer: the date is
- *  stamped — so the next pass is still throttled — and the word the
- *  customer reads is left as it was.
- *
- *  **`live` is also health `ok`, in the same write** (issue #791). The
- *  domain list verifying the host is the moment the certificate exists and
- *  the edge serves it, so the `destination_working` guard must not go on
- *  reading an older `expired` until some later pass happens to agree. The
- *  columns are `writeHealth`'s own: `health_changed_at` moves only when the
- *  state changed, and reaching `ok` clears `broken_mail_sent_at`. A host that
- *  is not verified leaves health to the check (`health/check.ts`). */
+/** Records the domain list's word and when; `state: null` stamps the date only, keeping the throttle and the word.
+ *  `live` is also health `ok` in the same write, so `destination_working` stops reading an old `expired`, with
+ *  `writeHealth`'s rules. An unverified host leaves health to `health/check.ts`. */
 export async function writeHostnameState(a: {
   destinationId: string;
   state: HostnameState | null;
@@ -402,10 +273,7 @@ export async function writeHostnameState(a: {
   await publishDb().from<never>("destinations").update(values).eq("id", a.destinationId);
 }
 
-/** The destination's recorded health, for `writeHostnameState`'s
- *  changed-or-not. A read that fails reads as changed: stamping
- *  `health_changed_at` on a row that was already `ok` costs nothing a
- *  customer sees, since the breakage mail counts only from a broken state. */
+/** The recorded health, for changed-or-not; a failed read counts as changed, which no customer sees. */
 async function readHealth(destinationId: string): Promise<string | null> {
   const { data, error } = await publishDb()
     .from<{ health: string }>("destinations")

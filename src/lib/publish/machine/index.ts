@@ -1,23 +1,10 @@
-// BUILD §9 — `transition()`, the only mover of state.
-//
-// Nothing else in the product writes `drafts.state`. Every move goes
-// through here, is checked against the seventeen edges, and is recorded — the
-// state change and the record are **one statement** (`publish_transition`,
-// `supabase/migrations/20260906120100_drafts_publishing.sql`), so a state
-// that moved without a record is not a bug this code could have but a
-// write Postgres cannot perform.
-//
-// Order, and it matters:
-//   1. membership — a move outside the seventeen writes nothing at all;
+// BUILD §9 — `transition()`, the only mover of state: nothing else writes `drafts.state`. The state change and its
+// record are one statement (`publish_transition`), so a move without a record is a write Postgres cannot perform.
+// In order:
+//   1. membership: a move outside the seventeen writes nothing;
 //   2. the named guards, in list order, lazily, first failure wins;
-//   3. the update-and-append, conditional on the state still being the one
-//      that was checked (an optimistic lock, so two concurrent movers
-//      cannot both win).
-//
-// The refusal is a value, never an exception, and never leaves the page
-// somewhere else: `state` in the refusal is the state the page still holds.
-//
-// The archived plan is WO-209.
+//   3. the update-and-append, conditional on the checked state (an optimistic lock, so two movers cannot both win).
+// A refusal is a value, never an exception, and its `state` is the one the page still holds.
 import { governingVetoHours } from "../settings/veto";
 import { publishDb } from "../db";
 import type { Actor, DraftView, State, ToldRecord, TransitionRecord } from "../types";
@@ -57,24 +44,16 @@ export type TransitionResult =
       refused: Refusal;
       failedGuard?: GuardId;
       state: State;
-      /** Present only where `no_outstanding_claim_recheck` refused and the
-       *  draft's last check named an entry: the do-not-claim entry the page
-       *  matched, in the customer's own words. Absent where the page is
-       *  held by a stale list hash rather than by a failed check — there is
-       *  nothing to name yet, and naming something would attribute a claim
-       *  to a customer who never made it. */
+      /** Where `no_outstanding_claim_recheck` refused and the last check named an entry: the customer's own words.
+       *  Absent for a stale list hash, so no claim is attributed to them. */
       matchedEntry?: string;
     };
 
 export interface TransitionOptions {
   reason?: string;
-  /** The guard dependencies. Injected so a caller under test drives one
-   *  guard without a database, and so `src/lib/publish/publishable/rule.ts`
-   *  arrives by being passed rather than by editing this file. */
+  /** The guard dependencies, injected so a test drives one guard without a database. */
   deps?: GuardDeps;
-  /** The clock the guards are evaluated against. Defaults to now; a caller
-   *  that already fixed a moment passes it so the ceilings and the
-   *  publishable rule agree with the rest of its own pass. */
+  /** The guards' clock; a caller that fixed a moment passes it so its whole pass agrees. */
   at?: Date;
 }
 
@@ -87,9 +66,7 @@ export async function transition(
   const at = options.at ?? new Date();
   const draft = await machineDraftFor(draftId);
   if (draft === null) {
-    // No row is not a refusal of a move — there is no page to move and no
-    // state to report. `planned` would be a guess; the caller is told the
-    // move was not one of the seventeen for a page that does not exist.
+    // No page: `planned` would be a guess, so the move is simply not a transition.
     return { ok: false, refused: "not_a_transition", state: to };
   }
 
@@ -102,12 +79,8 @@ export async function transition(
 
   const deps = options.deps ?? DEFAULT_GUARD_DEPS;
 
-  // BUILD §8 hard rule 4 · REQ-053 c5 — the hand-off gate, and the one
-  // place the claim re-check is read. Resolved here rather than in
-  // `machineDraftFor` so it costs a read on the edges that hand a page over and
-  // on no other: `planned → skipped` asks a database nothing about claims.
-  // Both consumers see the same value — this guard, and the publishable
-  // rule's fourth conjunct through `becomesPublishable`.
+  // BUILD §8 hard rule 4 · REQ-053 c5 — the hand-off gate and the one read of the claim re-check, only on edges into
+  // `publishing`; the guard and the publishable rule's fourth conjunct see the same value.
   const gated: MachineDraft =
     to === "publishing"
       ? { ...draft, claimRecheckOutstanding: await deps.claimRecheckOutstanding(draftId) }
@@ -116,9 +89,7 @@ export async function transition(
   for (const guard of GUARDS[edgeKey(from, to)] ?? []) {
     const passed = await GUARD_FNS[guard]({ draft: gated, by, at, deps });
     if (!passed) {
-      // The entry is the customer's own words, so it travels in the
-      // refusal and never into the log line — which carries ids and names
-      // from closed unions and nothing else.
+      // The customer's own words travel in the refusal, never into the log line.
       const held =
         guard === "no_outstanding_claim_recheck" ? await deps.outstandingMatch(draftId) : null;
       log({
@@ -156,9 +127,7 @@ export async function transition(
   });
 
   if (error !== null || data !== true) {
-    // The row moved under us — another mover won the optimistic lock. The
-    // page is not where this call thought it was, so nothing was written
-    // and nothing is claimed about where it is now.
+    // Another mover won the optimistic lock: nothing was written, and nothing is claimed about where the page is.
     log({ draftId, from, to, actor: by.kind, outcome: "refused", refused: "not_a_transition" });
     return { ok: false, refused: "not_a_transition", state: from };
   }
@@ -170,26 +139,10 @@ export async function transition(
   return { ok: true, state: to };
 }
 
-/**
- * SPEC §7 (2026-09-15, issue 712): "a vetoed draft dismisses" its
- * opportunity. Two exceptions, both for a draft the generator stopped,
- * whose topic rests while the draft waits in `needs_attention` (owner, D26,
- * 2026-10-02, issue 1179):
- *
- *   - skipping *that* draft refuses the page, not the target — the topic
- *     rests for `TOPIC_REST_DAYS` from the skip and can fill a later day;
- *   - the founder's edit that passes takes it into review (#1180), and the
- *     topic is queued behind its page as any written draft's is, so the
- *     rest does not end with a second page on it.
- *
- * Here rather than at each door a page is moved through — the stop link,
- * the draft screen, the calendar — because this is the one place every
- * move is made.
- *
- * After the move, and never able to undo it: the page is moved whether or
- * not the opportunity's row could be written. Imported at the call for the
- * reason `guards.ts` imports `@/lib/generate` at its call.
- */
+/** SPEC §7: "a vetoed draft dismisses" its opportunity, except for a draft the generator stopped (D26):
+ *   - skipping it refuses the page, not the target: the topic rests for `TOPIC_REST_DAYS` and can fill a later day;
+ *   - the founder's passing edit takes it into review, and the topic is queued behind its page.
+ *  Here, the one place every move is made. After the move, never undoing it; imported at the call, as in `guards.ts`. */
 async function settleOpportunityOf(draftId: string, from: State, to: State, at: Date): Promise<void> {
   try {
     const { data } = await publishDb()
@@ -218,8 +171,7 @@ async function settleOpportunityOf(draftId: string, from: State, to: State, at: 
   }
 }
 
-/** Whether the page's last move into `needs_attention` came from
- *  `generating` — a page the generator stopped, not a publish that failed. */
+/** Whether the last move into `needs_attention` came from `generating`: stopped by the generator, not a failed publish. */
 function restedFromGenerating(transitions: unknown): boolean {
   if (!Array.isArray(transitions)) return false;
   const rested = [...(transitions as Partial<TransitionRecord>[])].reverse().find((move) => move?.to === "needs_attention");
@@ -236,9 +188,7 @@ interface TransitionLog {
   failedGuard?: GuardId;
 }
 
-/** One structured line per call. Every field is an id or a name from a
- *  closed union — never a credential, never a vendor payload, never a
- *  sentence, and never the draft's own text. */
+/** One line per call: ids and closed-union names only, never a credential, payload, sentence or draft text. */
 function log(line: TransitionLog): void {
   console.log(JSON.stringify({ event: "publish_transition", ...line }));
 }
@@ -262,20 +212,8 @@ interface DraftRow {
   } | null;
 }
 
-/**
- * The draft as the machine reads it, by id.
- *
- * Exported since #174 so the one occasion outside this module that needs
- * the same view — the `draft-ready` mail, which must read the governing
- * pair and the told record to know what it owes — reads it through the
- * same select and the same mapping. A second reader with its own column
- * list is how two answers to "what was this customer told?" come to exist.
- *
- * `claimRecheckOutstanding` reads `false` on the view this returns, as the
- * mapping's own note says: it is derived per edge by `transition()`, and a
- * caller reading a draft for any other purpose gets the conservative
- * literal, which publishes nothing on its own.
- */
+/** The draft as the machine reads it, exported so the `draft-ready` mail reads the pair and told record through the same
+ *  select and mapping, never a second answer to "what was this customer told?". */
 export async function machineDraftFor(draftId: string): Promise<MachineDraft | null> {
   const { data, error } = await publishDb()
     .from<DraftRow>("drafts")
@@ -288,29 +226,10 @@ export async function machineDraftFor(draftId: string): Promise<MachineDraft | n
   return toMachineDraft(data);
 }
 
-/** The row as the machine reads it.
- *
- *  `hasUnsavedEdit` reads `false` where #44's column is absent, and the
- *  hard-rule outcome reads `false` unless the row records it — the
- *  conservative arm every time: a draft that has not recorded passing the
- *  hard rules has not passed them.
- *
- *  `claimRecheckOutstanding` reads `false` **here and is not left there**:
- *  it is derived, not stored, so no column could populate it. `transition()`
- *  resolves it from `claimRecheckOutstanding(draftId)` on every edge whose
- *  target is `publishing` and hands the guards the resolved draft. A caller
- *  that builds a `MachineDraft` from a row for any other purpose gets the
- *  conservative literal, which cannot publish anything on its own.
- *
- *  `told` is the **record**, not a verdict: whether the customer has been
- *  told on the pair now in force is decided by comparing it against
- *  `governing`, and that comparison is the veto leaf's (`toldCurrentPair`).
- *  A row with no record has never been told, which holds the page.
- *
- *  `publishTime` and `timezone` are on the pair because REQ-073 c4's change
- *  — the one REQ-057 c8 tracks — includes both, and either one moves *when*
- *  a page publishes. A null zone travels as null; nothing here substitutes
- *  the server's. */
+/** The row as the machine reads it, conservative every time: unrecorded hard rules have not passed.
+ *  `claimRecheckOutstanding` is `false` here and derived by `transition()` on edges into `publishing`; it is not stored.
+ *  `told` is the record, not a verdict: `toldCurrentPair` compares it with `governing`, and none holds the page.
+ *  `publishTime` and `timezone` are on the pair because either moves when a page publishes (REQ-073 c4); a null zone stays null. */
 export function toMachineDraft(row: DraftRow): MachineDraft {
   const state = STATES.find((candidate) => candidate === row.state) ?? "planned";
   const transitions = Array.isArray(row.transitions)
@@ -336,10 +255,7 @@ export function toMachineDraft(row: DraftRow): MachineDraft {
   return { ...view, hardRulesPassed: row.hard_rules_passed === true, transitions };
 }
 
-/** BUILD §10's own column default (`publish_time time not null default
- *  '09:00'`), read back as `HH:mm` — the column renders seconds the pair
- *  never carries. Not a second decision about the hour: the same value the
- *  column already holds. */
+/** BUILD §10's column default (`default '09:00'`), read back as `HH:mm`; the same value, never a second decision. */
 function publishTimeOf(value: string | null): string {
   if (value === null) return "09:00";
   const [hh = "09", mm = "00"] = value.split(":");

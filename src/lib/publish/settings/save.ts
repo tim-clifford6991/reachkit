@@ -1,30 +1,10 @@
-// BUILD §9 · §4.7 — the one writer of the four publishing settings.
-//
-// `sites.mode`, `sites.veto_hours`, `sites.publish_time` and
-// `sites.timezone` are written here and nowhere else, so the mode a sidebar
-// card changes and the mode the Settings screen changes are the same change
-// (REQ-073 c5) and both run the re-deadline pass.
-//
-// Order, and it matters:
-//
-//   1. validate the patch **whole** — an invalid patch writes nothing at
-//      all, so a customer who mistypes a zone does not find their mode
-//      changed;
-//   2. compute each draft's new deadline with `newVetoDeadline`, the pure
-//      function that is REQ-073 c4's four rules;
-//   3. apply the site's four values and every draft's deadline in **one**
-//      statement (`save_publishing_settings`), so a change is never
-//      half-applied across drafts.
-//
-// **A settings change clears the telling rather than sending one**
-// (BP-046 decision 3). This function sends no mail. Every draft whose
-// governing pair changed comes back in `applied.retellOwed` with its
-// `drafts.told` cleared, and the `customer_told` guard holds it until the
-// customer has been told again. A customer stepping the window from 1 to 2
-// to 3 days sends no mail at all — and can never cause a publication they
-// were not told about, because clearing the record can only delay a page.
-//
-// The archived plan is WO-220.
+// BUILD §9 · §4.7 — the one writer of the four publishing settings, so every surface's change is the same change
+// (REQ-073 c5) and runs the re-deadline pass. In order:
+//   1. validate the patch whole, so a mistyped zone changes nothing;
+//   2. compute each draft's deadline with `newVetoDeadline` (REQ-073 c4);
+//   3. apply the site's values and every deadline in one statement (`save_publishing_settings`), never half-applied.
+// A change clears the telling rather than sending one (BP-046 decision 3): no mail here; drafts whose pair changed come
+// back in `retellOwed`, held by `customer_told` until told again. Clearing can only delay a page, never publish one untold.
 import { publishDb } from "../db";
 import type { Actor, GoverningPair, State, ToldRecord } from "../types";
 import { STATES } from "../machine/table";
@@ -57,20 +37,8 @@ interface DraftSettingsRow {
   created_at: string | null;
 }
 
-/**
- * When the page entered review, read from its own append-only transition
- * record — the last move whose target was `in_review`.
- *
- * Read from the record rather than stored a second time on the row: the
- * record is written in the same statement as the state change
- * (`publish_transition`), so it cannot disagree with the state, and a
- * column would need a writer that could forget.
- *
- * A draft with no such record has not entered review; the fallback is the
- * row's own creation, which is the earliest moment any window could have
- * started, and rule 3's `max` means an earlier value can only ever be
- * ignored.
- */
+/** When the page entered review: the last move to `in_review` in its transition record, written with the state so it
+ *  cannot disagree. With none, the row's creation, which rule 3's `max` can only ignore. */
 export function enteredReviewAt(transitions: unknown, createdAt: string | null): Date {
   const entries = Array.isArray(transitions) ? transitions : [];
   let latest: string | null = null;
@@ -104,9 +72,7 @@ export async function savePublishingSettings(
   if (invalid.length > 0) return { ok: false, invalid };
 
   const previous = await readPublishingSettings(siteId);
-  // Only the members the patch actually names are taken. A plain spread
-  // would let `{ timezone: undefined }` — which every optional-property
-  // caller can produce — overwrite the customer's stated zone with nothing.
+  // Only the members the patch names: a spread would let `{ timezone: undefined }` erase the customer's zone.
   const next: PublishingSettings = {
     mode: patch.mode ?? previous.mode,
     vetoHours: patch.vetoHours ?? previous.vetoHours,
@@ -130,8 +96,7 @@ export async function savePublishingSettings(
         changedAt: at,
       });
       const toldPair = toldPairOf(row.told);
-      // A draft nobody has been told about has nothing to re-open: the
-      // telling is already owed and clearing a null record changes nothing.
+      // Never told: the telling is already owed.
       const clearTold = toldPair !== null && !samePair(toldPair, nextPair);
       return { draft_id: row.id, veto_deadline: deadline.toISOString(), clear_told: clearTold };
     });
@@ -169,8 +134,7 @@ async function readDrafts(siteId: string): Promise<DraftSettingsRow[]> {
   return data;
 }
 
-/** One structured line. Ids and counts only — never a setting's value,
- *  which is the customer's, and never a sentence. */
+/** Ids and counts only, never a setting's value or a sentence. */
 function log(line: { siteId: string; actor: Actor["kind"]; drafts: number }): void {
   console.log(JSON.stringify({ event: "publishing_settings_saved", ...line }));
 }

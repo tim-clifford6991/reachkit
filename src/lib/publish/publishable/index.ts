@@ -1,9 +1,5 @@
-// BUILD §9 — the veto leaf's public face.
-//
-// A barrel and nothing else. `machine/guards.ts` imports `./rule` by file
-// rather than this barrel: the barrel re-exports `veto.ts`, which imports
-// `transition()`, and importing it from the machine would close a cycle
-// this leaf exists on the other side of (ADR-092).
+// BUILD §9 — the veto leaf's public face, a barrel only. `machine/guards.ts` imports `./rule` by file, since this barrel
+// re-exports `veto.ts`, which imports `transition()`, and that would close a cycle (ADR-092).
 export {
   becomesPublishable,
   type NotPublishable,

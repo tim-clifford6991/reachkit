@@ -1,17 +1,7 @@
-// BUILD §9 — health is a state, and this is what decides it.
-//
-// §9: "expired credential is a **state** (reconnect prompt, queue holds),
-// not an error loop." A state has to be *found* by something, and this is
-// that something: one check, one conclusion, one write.
-//
-// **It makes no write to the customer's site.** Every arm below is a read
-// — a DNS resolution, or the adapter's own read of its end — so a health
-// check running while a delivery is in flight cannot interfere with it,
-// and a credential is never proved by creating something with it.
-//
-// **It writes `health_changed_at` only when the state actually changed.**
-// That column is when the destination broke, not when it was last looked
-// at, and one breakage mail is counted from it (`breakage-mail.ts`).
+// BUILD §9 — "expired credential is a state (reconnect prompt, queue holds), not an error loop": this check finds that
+// state, in one conclusion and one write.
+// It never writes to the customer's site: every arm is a read, so it cannot interfere with a delivery, and a credential
+// is never proved by creating something. `health_changed_at` moves only on a change (`breakage-mail.ts` counts from it).
 import { resolvesInDns } from "@/lib/egress";
 import { hostFor } from "../hosted/label";
 import { syncHostname } from "../hosted/hostname";
@@ -43,54 +33,20 @@ async function siteDomain(siteId: string): Promise<string | null> {
   return data.domain;
 }
 
-/**
- * What the hosted destination's state is.
- *
- * The record the customer has to point is the first question, and DNS
- * resolution answers it on its own: a name that does not resolve is a
- * record that was never set, and until it is, no page is delivered there
- * and none is recorded as live at that address.
- *
- * **The name it resolves is the one the customer chose** (SPEC §5,
- * 2026-09-12), read off the destination row. A row written before the
- * label became a choice carries none, and the default label is what it has
- * always been served at — so nothing here resolves a host with an empty
- * first label.
- *
- * **The hostname is attached to the project here too, and that is where
- * "idempotently" lives.** The submit attaches it once; this check attaches
- * it again — at most once an hour per host, the throttle `syncHostname`
- * keeps — so a founder whose save happened while the vendor was unreachable
- * is not left with a record pointing at a project that has never heard of
- * them. The word the customer reads is the domain list's own answer and is
- * decided there, never from the resolution below: a record can resolve
- * perfectly at a host this project was never told about, and that host
- * serves the platform's 404 rather than the customer's pages.
- *
- * A name that *does* resolve raises the one question resolution cannot
- * answer — whether it points at our edge or at somebody else's server —
- * and the adapter is asked, because the adapter is the end that would
- * know. It answers `ok`: the edge route serves (`src/app/(hosted)/`), and
- * `src/lib/publish/destinations/hosted/` is the end that answers for it.
- *
- * A site with no domain yet has nothing to point: that is `never_connected`
- * and not a failure of anybody's DNS.
- */
+/** The hosted destination's state. A name that does not resolve is a record never set, so nothing is delivered there.
+ *  The name is the customer's chosen host off the row, else the default label, never an empty first label.
+ *  The host is attached to the project again here, throttled by `syncHostname`, so a save made while the vendor was down
+ *  is repaired; the customer's word is the domain list's answer, never the resolution's.
+ *  A name that resolves is the adapter's to judge. No domain yet is `never_connected`, nobody's DNS failure. */
 async function hostedHealth(row: DestinationRecord): Promise<{ health: DestinationHealth; reason: HealthReason | null }> {
   const domain = await siteDomain(row.site_id);
   if (domain === null || domain.trim() === "") {
     return { health: "expired", reason: "never_connected" };
   }
   const host = row.hostname ?? hostFor({ label: null, domain });
-  // Made whether or not the record resolves — the host has to be on the
-  // project before a certificate can be issued for it — and throttled
-  // inside `syncHostname`, so a health pass per destination is not a vendor
-  // call per destination.
+  // Whether or not it resolves, as a certificate needs the host on the project first; throttled inside `syncHostname`.
   const state = await syncHostname({ destinationId: row.id, hostname: host });
-  // Issue #791: the domain list verifying the host is the stronger answer —
-  // the record points at this project and the certificate exists — so a
-  // verified host is `ok` whatever this resolver sees, and is the same word
-  // `syncHostname` has just written beside `live`.
+  // A host the domain list verified is `ok` whatever this resolver sees: the record points here and the certificate exists.
   if (state === "live") return { health: "ok", reason: null };
   const resolves = await resolvesInDns(host);
   if (!resolves) {
@@ -101,48 +57,25 @@ async function hostedHealth(row: DestinationRecord): Promise<{ health: Destinati
   return adapter.health({});
 }
 
-/**
- * What a credential-bearing destination's state is.
- *
- * No credential is `never_connected` — the deferred connection §9's setup
- * makes, and the same state a disconnect leaves behind. It is `expired`
- * rather than `error` because the customer's next move is the same one:
- * connect it, and the pages that were waiting go out.
- */
+/** A credential-bearing destination's state. No credential is `never_connected`, `expired` not `error`, since the
+ *  customer's next move is to connect it and the waiting pages go out. */
 async function credentialHealth(row: DestinationRecord): Promise<{ health: DestinationHealth; reason: HealthReason | null }> {
   const adapter = adapterFor(row.kind);
   if (adapter === null) {
-    // No adapter for the kind: nothing can be published through it and
-    // no probe can be run against it. `destination_rejected` is the true
-    // reading — the destination is not one this build can serve.
+    // No adapter for the kind: not a destination this build can serve.
     return { health: "error", reason: "destination_rejected" };
   }
   try {
     return await withConfig(row.id, (cfg) => adapter.health(cfg as Record<string, unknown>));
   } catch (cause) {
     if (cause instanceof NoConfigError) return { health: "expired", reason: "never_connected" };
-    // Anything else is the destination's end failing to answer. The cause
-    // is not carried: a vendor payload has no route to a screen, a mail or
-    // an export (§9 — credentials and their errors are never shown).
+    // The destination failed to answer; the cause is not carried, since a vendor payload never reaches a person (§9).
     return { health: "error", reason: "unreachable" };
   }
 }
 
-/**
- * What the credential may do, asked of the destination's own end.
- *
- * Returns `null` where the question does not arise (an adapter that
- * declares no probe — a destination ReachKit runs has no account whose
- * permission to publish could differ from its permission to create) **and
- * where it could not be put**. Those two are one return value here and two
- * different things on the row: neither writes, so the last real answer
- * stands, and nothing is recorded on the strength of a network blip.
- *
- * **It is asked beside `health` and never inside it** (ADR-086): a site can
- * answer its REST index perfectly and refuse to publish, and folding the
- * two would make one answer stand for both — after which re-entering the
- * same, valid credential would appear to clear a state the probe decided.
- */
+/** What the credential may do; `null` where no probe exists or it could not be asked, and neither writes, so the last
+ *  answer stands. Asked beside `health`, never inside it (ADR-086), or re-entering the credential would clear it. */
 async function publishCapable(row: DestinationRecord): Promise<boolean | null> {
   const adapter = adapterFor(row.kind);
   if (adapter?.canPublish === undefined) return null;
@@ -150,23 +83,13 @@ async function publishCapable(row: DestinationRecord): Promise<boolean | null> {
   try {
     return await withConfig(row.id, (cfg) => probe(cfg as Record<string, unknown>));
   } catch {
-    // "We could not ask" is not "the answer is no". The cause is not
-    // carried: a vendor payload has no route to a screen, a mail or an
-    // export.
+    // "We could not ask" is not "no"; the cause is not carried.
     return null;
   }
 }
 
-/**
- * Whether this destination's site will carry the findability stamp, asked
- * of the destination's own end (issue #160, ADR-083 Decision 4).
- *
- * The same shape of question as `publishCapable` above and **a separate
- * call**, because it is a separate question: a site can publish and refuse
- * the term, and a site can take the term and refuse to publish. `null`
- * again covers both "not asked" — an adapter that declares no stamp probe —
- * and "could not be asked", and neither writes.
- */
+/** Whether the site will carry the findability stamp (ADR-083 decision 4): a separate call, as a site can publish and
+ *  refuse the term or the reverse. `null` is not asked or could not be, and neither writes. */
 async function stampCapable(row: DestinationRecord): Promise<boolean | null> {
   const adapter = adapterFor(row.kind);
   if (adapter?.canStamp === undefined) return null;
@@ -174,23 +97,13 @@ async function stampCapable(row: DestinationRecord): Promise<boolean | null> {
   try {
     return await withConfig(row.id, (cfg) => probe(cfg as Record<string, unknown>));
   } catch {
-    // "We could not ask" is not "the answer is no". The cause is not
-    // carried, for the reason `publishCapable` gives.
+    // "We could not ask" is not "no"; the cause is not carried.
     return null;
   }
 }
 
-/**
- * Checks one destination and records what it found.
- *
- * `publish_capable === false` outranks every other answer (ADR-086): a
- * credential that can create a post and cannot publish it is `failing`,
- * with a line of its own and an action that leads to a different account.
- * It is the one probe result on the row that is a health input, and it is
- * read here rather than folded into the adapter's answer so that
- * re-entering the same credential cannot clear it — the state is decided
- * by what the probe found, never by the act of reconnecting.
- */
+/** Checks one destination and records it. `publish_capable === false` outranks every answer (ADR-086), with its own
+ *  line and an action to another account; read here, so reconnecting the same credential cannot clear it. */
 export async function checkHealth(destinationId: string): Promise<HealthCheck> {
   const checkedAt = new Date();
   const row = await readDestination(destinationId);
@@ -200,24 +113,13 @@ export async function checkHealth(destinationId: string): Promise<HealthCheck> {
 
   const answered = row.kind === "hosted" ? await hostedHealth(row) : await credentialHealth(row);
 
-  // The capability probe, run beside the state read and recorded where it
-  // answered. The fresh answer is what the state is decided from; where the
-  // probe was not asked or could not be, the last recorded answer stands —
-  // which is what keeps `cannot_publish` from being cleared by anything but
-  // a probe that found otherwise.
+  // The fresh answer decides; unasked, the last stands, so only a probe that finds otherwise clears `cannot_publish`.
   const capable = await publishCapable(row);
   if (capable !== null) await writePublishCapable(destinationId, capable);
   const stands = capable ?? row.publish_capable;
 
-  // The stamp probe, recorded and **read by nothing below** (issue #160).
-  // ADR-083 Decision 4 puts the question here — "so the state is known
-  // before a customer is told about a place, rather than discovered by a
-  // customer following a mail to a filter that returns nothing" — and this
-  // is the whole of what the check does with the answer. A site that
-  // publishes perfectly and will not take a `post_tag` term is a working
-  // destination: letting `false` reach `found` would take a customer's
-  // publishing down over a list, which is not a breakage and not this
-  // column's job. `stands` above is deliberately not widened to see it.
+  // The stamp probe is recorded and read by nothing below (ADR-083 decision 4): refusing a `post_tag` term is not a
+  // breakage, so `stands` never sees it.
   const stampable = await stampCapable(row);
   if (stampable !== null) await writeStampCapable(destinationId, stampable);
 

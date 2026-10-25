@@ -1,13 +1,6 @@
-// SPEC §7 (issue 1184) — why pages stall, counted.
-//
-// A week's pages, and how many of them stopped on the way to review, by
-// cause. The cause is the one `./needs-you` reads — the page's last move
-// into `needs_attention` — so this count and the sentence a stopped page
-// states about itself cannot disagree. A page stopped by the writing rules
-// counts once as a page and once for each rule that stopped it, which is
-// why the causes may add up to more than the pages.
-//
-// Pure, like `needs-you.ts`: the read is `./stalled-read`.
+// SPEC §7 — why pages stall, counted: a week's pages and how many stopped on the way to review, by cause.
+// The cause is `./needs-you`'s (the last move into `needs_attention`), so this count and the page's own sentence agree.
+// A page stopped by rules counts once per rule, so causes may add up to more than the pages. Pure; the read is `./stalled-read`.
 import { needsYouCauseOf, restedReasonOf } from "./needs-you";
 
 export interface StalledCause {

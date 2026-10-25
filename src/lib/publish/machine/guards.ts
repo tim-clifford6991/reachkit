@@ -1,17 +1,6 @@
-// BUILD §9 — the eleven named guards, one function each.
-//
-// A guard answers one question about one edge and delegates every fact it
-// does not own: the switch and ReachKit's own stop are `switch/index.ts`'s,
-// the ceilings are `ceilings/index.ts`'s, the publishable rule and the
-// telling are the veto leaf's (#46). None of them is re-implemented here —
-// a second copy of a rule is the thing that drifts.
-//
-// Guards are evaluated lazily, in the order `GUARDS` lists them, and the
-// first that fails names itself in the refusal. Laziness is not an
-// optimisation: it is what keeps a move that is refused by the switch from
-// counting a week of publications first.
-//
-// The archived plan is WO-209.
+// BUILD §9 — the eleven named guards, one function each, each delegating every fact it does not own (the switch, the
+// ceilings, the veto leaf's rule and telling), since a second copy of a rule drifts.
+// Evaluated lazily in `GUARDS` order, the first failure naming itself, so a move the switch refuses never counts a week first.
 import type { Actor, DraftView, TransitionRecord } from "../types";
 import { isPublishingOn, reachKitStopped } from "../switch";
 import { ceilingRoom } from "../ceilings";
@@ -23,41 +12,20 @@ import type { GuardId } from "./table";
 /** The draft as the machine reads it: the view the rules take, plus the two
  *  row facts only the machine consults. */
 export interface MachineDraft extends DraftView {
-  /** #8's hard rules, as recorded on the draft row by #44's pipeline. A
-   *  draft that never ran them is not a draft that passed them. */
+  /** §8's hard rules as the pipeline recorded them; never ran is not passed. */
   hardRulesPassed: boolean;
-  /** `drafts.transitions`, append-only. Read for one question only —
-   *  whether the page ever entered review — and rendered by no surface. */
+  /** `drafts.transitions`, append-only, read here only for whether the page ever entered review. */
   transitions: readonly TransitionRecord[];
 }
 
-/**
- * The two predicates the veto leaf (#46) owns.
- *
- * They are a seam, not a re-implementation: `becomesPublishable` is the
- * approved-and-due rule and `toldCurrentPair` is REQ-057 c8's telling, and
- * both belong to the module that owns the veto window.
- */
+/** The seam for the veto leaf's two predicates: approved-and-due, and REQ-057 c8's telling. */
 export interface PublishableRule {
   becomesPublishable(draft: DraftView, at: Date): boolean;
   toldCurrentPair(draft: DraftView): boolean;
 }
 
-/**
- * The refusing rule — no longer the default, and kept.
- *
- * It was the default until #46 landed, on the grounds §9 states: "no page
- * publishes at all without their having been told, on the pair it actually
- * publishes under, either the interval they have to stop it or that no
- * interval exists", so a rule answering `true` while the telling was
- * unbuilt would have published pages the customer was never told about.
- *
- * It stays because it is the one value that proves the two guards are load
- * bearing: a test that drives `approved → publishing` with this rule and
- * every other guard open must be refused at `publishable_and_due`. Deleting
- * it because "nothing in `src/` uses it" removes the only thing that fails
- * when the guards stop being consulted.
- */
+/** The refusing rule, kept because it proves the two guards are load-bearing: with it and every other guard open,
+ *  `approved → publishing` must be refused at `publishable_and_due`. Unused in `src/`, it is the test's only failure. */
 export const PUBLISHABLE_RULE_NOT_BUILT: PublishableRule = Object.freeze({
   becomesPublishable(): boolean {
     return false;
@@ -67,27 +35,15 @@ export const PUBLISHABLE_RULE_NOT_BUILT: PublishableRule = Object.freeze({
   },
 });
 
-/** Everything a guard may reach for. Injected so each guard stays a pure
- *  function of what it is handed, and so a test drives one guard without a
- *  database. */
+/** Everything a guard may reach for, injected so each stays pure and a test needs no database. */
 export interface GuardDeps {
-  /** BUILD §8 hard rule 4 · REQ-053 c5 — `src/lib/generate`'s derived
-   *  predicate, injected rather than imported at the guard. The module it
-   *  comes from cannot compel its own call: "the promise that no approval,
-   *  schedule or retry puts a page carrying a forbidden claim on the
-   *  customer's site is enforced at the publishing engine's one hand-off
-   *  gate" — this is that gate, and this is the call. */
+  /** BUILD §8 hard rule 4 · REQ-053 c5 — "no approval, schedule or retry puts a page carrying a forbidden claim on the
+   *  customer's site", enforced at the engine's one hand-off gate: this call. */
   claimRecheckOutstanding(draftId: string): Promise<boolean>;
-  /** The entry the last check matched: a string the **customer** wrote,
-   *  never model output, so a held page can name what holds it. `null` for
-   *  every verdict but a failed one — a page held by a stale list hash has
-   *  nothing yet to name, and inventing one would attribute a claim to a
-   *  customer who never made it. */
+  /** The entry the last check matched, a string the customer wrote, never model output; `null` but on a failed
+   *  verdict, so no claim is attributed to a customer who never made it. */
   outstandingMatch(draftId: string): Promise<{ matchedEntry: string } | null>;
-  /** REQ-092 c1's stop, as one boolean. Takes the site so a per-account
-   *  stop can arrive here without a signature change; the halt §11 binds to
-   *  publishing is deployment-wide, so the default implementation declares
-   *  no parameter and reads none. */
+  /** REQ-092 c1's stop. Takes the site for a per-account stop; §11's halt is deployment-wide, so the default reads none. */
   reachKitStopped(siteId: string): Promise<boolean>;
   isPublishingOn(siteId: string): Promise<boolean>;
   hasCeilingRoom(siteId: string, at: Date): Promise<boolean>;
@@ -96,11 +52,7 @@ export interface GuardDeps {
 }
 
 export const DEFAULT_GUARD_DEPS: GuardDeps = Object.freeze({
-  // Imported at the call, not at the top of the file. `@/lib/generate`
-  // reaches `@/lib/db`, and this module is on the import path of surfaces
-  // that render a draft's state without ever moving one; a static import
-  // would put a database client in their module graph. The module is cached
-  // after the first call, so the deferral costs nothing at run time.
+  // At the call: `@/lib/generate` reaches `@/lib/db`, and surfaces that only render a draft's state import this module.
   async claimRecheckOutstanding(draftId: string): Promise<boolean> {
     const { claimRecheckOutstanding } = await import("@/lib/generate");
     return claimRecheckOutstanding(draftId);
@@ -115,10 +67,7 @@ export const DEFAULT_GUARD_DEPS: GuardDeps = Object.freeze({
     return (await ceilingRoom(siteId, at)).room;
   },
   destinationWorking,
-  // The seam #45 declared and #46 fills. Imported by file, not through
-  // `publishable/index.ts`: the barrel re-exports `veto.ts`, which imports
-  // `transition()`, and reaching it from here would close the cycle this
-  // leaf sits on the other side of (ADR-092).
+  // By file, not the `publishable/` barrel, which re-exports `veto.ts` and would close a cycle (ADR-092).
   rule: PUBLISHABLE_RULE,
 });
 
@@ -157,28 +106,14 @@ export const GUARD_FNS: Readonly<Record<GuardId, (c: GuardContext) => Promise<bo
       return c.deps.rule.toldCurrentPair(c.draft);
     },
 
-    /** REQ-092 c5, and the whole of it: the guard **refuses**, and a
-     *  refusal takes no transition (`transition()` returns before the RPC).
-     *  So a draft in review or approved when a stop begins keeps the state
-     *  it holds and the `publishable_since` it holds — it is not skipped,
-     *  not discarded, not marked published — and the resume order it is
-     *  already in is what it resumes in. Nothing here writes anything;
-     *  holding a page is the absence of an edge. */
+    /** REQ-092 c5: a refusal takes no transition, so a page keeps its state and `publishable_since` and resumes in
+     *  order. Holding a page is the absence of an edge. */
     async reachkit_not_stopped(c: GuardContext): Promise<boolean> {
       return !(await c.deps.reachKitStopped(c.draft.siteId));
     },
 
-    /** BUILD §8 hard rule 4 · REQ-053 c5: "no approval, schedule or retry
-     *  can put a page carrying a forbidden claim on the customer's site."
-     *
-     *  The fact is read off the draft rather than fetched here, because
-     *  `transition()` resolves it once for the whole hand-off — the same
-     *  value the publishable rule reads as criterion 2's fourth conjunct,
-     *  so the guard and the rule can never disagree about one page.
-     *
-     *  Outstanding-ness is derived from two hashes and holds a page from
-     *  the instant the customer saves a change; a draft the store cannot
-     *  read is outstanding, which is the safe direction. */
+    /** BUILD §8 hard rule 4 · REQ-053 c5, read off the draft, which `transition()` resolves once, so this guard and the
+     *  publishable rule cannot disagree. An unreadable draft is outstanding, the safe direction. */
     async no_outstanding_claim_recheck(c: GuardContext): Promise<boolean> {
       return !c.draft.claimRecheckOutstanding;
     },
