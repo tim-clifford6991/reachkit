@@ -7,7 +7,6 @@
 // the `link` refresh (issue 1487) rewrote D. The page now draws that link at
 // the address it answers with now, at render, from D's stored body as it
 // stands: the row is not edited and its dates do not move.
-import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { applyEnvFixture } from "../../mail/env-fixture";
 
@@ -60,6 +59,7 @@ vi.mock("@/lib/publish/destinations/hosted", async () => {
     livePagesForSite: async () => [pageD],
     hostedIdentity: async (a: { domain: string }) => ({ name: a.domain, logoType: null, line: null }),
     hostedAddress: async () => ({ state: "none", publicationId: null }),
+    taggedForHosted: async () => undefined,
   };
 });
 
@@ -68,11 +68,12 @@ vi.mock("@/lib/publish/destinations/hosted/store", async (importOriginal) => ({
   movedSlugsForSite: async () => state.moved,
 }));
 
-const Page = (await import("@/app/(hosted)/hosted-page/[[...slug]]/page")).default;
+const { GET } = await import("@/app/(hosted)/hosted-article/[slug]/route");
 
 async function render(): Promise<Document> {
-  const tree = await Page({ params: Promise.resolve({ slug: ["how-to-rank-in-ai-overview"] }) });
-  return new DOMParser().parseFromString(renderToStaticMarkup(tree), "text/html");
+  const request = new Request("https://content.example.com/how-to-rank-in-ai-overview", { headers: { host: "content.example.com" } });
+  const response = await GET(request, { params: Promise.resolve({ slug: "how-to-rank-in-ai-overview" }) });
+  return new DOMParser().parseFromString(await response.text(), "text/html");
 }
 
 const bodyLinks = (doc: Document): string[] =>

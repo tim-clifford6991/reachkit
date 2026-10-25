@@ -16,6 +16,10 @@ vi.mock("@/lib/scan/weekly", async (importOriginal) => ({
     seen.order.push("pass");
     return seen.outcome;
   },
+  refreshWeeklyKnowledge: async (a: { scanId: string }) => {
+    seen.order.push(`knowledge:${a.scanId}`);
+    return null;
+  },
 }));
 vi.mock("@/lib/scan/weekly/collect", () => ({
   collectLateAnswers: async (a: { scanId: string }) => {
@@ -62,7 +66,29 @@ describe("the weekly tick reads its late answers before it tells the week (#1160
   it("reads again while asks are still queued, each round a step, then judges and sends", async () => {
     seen.left = [2, 0];
     expect(await tick()).toEqual({ done: true });
-    expect(seen.order).toEqual(["pass", "read:scan-1", "read:scan-1", "judge", "digest"]);
-    expect(steps).toEqual(["measure-site-1", "late-answers-site-1-1", "late-answers-site-1-2", "search-site-1", "tell-site-1"]);
+    expect(seen.order).toEqual(["pass", "knowledge:scan-1", "read:scan-1", "read:scan-1", "judge", "digest"]);
+    expect(steps).toEqual([
+      "measure-site-1",
+      "knowledge-site-1",
+      "late-answers-site-1-1",
+      "late-answers-site-1-2",
+      "search-site-1",
+      "tell-site-1",
+    ]);
+  });
+});
+
+describe("the weekly tick reads the knowledge base in a step of its own, after the pass (SPEC §5, 2026-10-25)", () => {
+  it("a pass that stored no report reads nothing into the knowledge base", async () => {
+    seen.outcome = { ran: true, scanId: "scan-1", status: "failed" };
+    await tick();
+    expect(seen.order).not.toContain("knowledge:scan-1");
+    expect(steps).not.toContain("knowledge-site-1");
+  });
+
+  it("a week already measured reads nothing again", async () => {
+    seen.outcome = { ran: false, because: "already_measured" };
+    await tick();
+    expect(steps).toEqual(["measure-site-1", "search-site-1", "tell-site-1"]);
   });
 });

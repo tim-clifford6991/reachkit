@@ -12,9 +12,10 @@
 // **Why the address is `/hosted-page/{…slug}` and the customer's is not.**
 // `src/middleware.ts` rewrites every request on a `content.` Host — except
 // `/robots.txt` and `/sitemap.xml`, which resolve the Host themselves — to
-// this catch-all, or, for an address it has just found live, to the cached
-// article beside it (`hosted-live/[host]/[slug]`, issue 1242; the article
-// both draw is `article.tsx`). A rewrite, never a redirect: the visitor stays at
+// this catch-all, or, for an address that can name a page, to one of the
+// two article routes beside it (`hosted-live/[host]/[slug]` for a page it
+// found live, issue 1242, else `hosted-article/[slug]`; the article both
+// draw is `article.tsx`). A rewrite, never a redirect: the visitor stays at
 // `content.{their domain}/{slug}`, which is the address the canonical link,
 // the sitemap entry and `publications.live_url` all name. The rewrite is
 // also the authorisation boundary: with it, *no* path on a customer's
@@ -83,29 +84,17 @@ import type { Metadata } from "next";
 import type React from "react";
 import { livePagesForSite, type HostedPage } from "@/lib/publish/destinations/hosted";
 import { resolveHost } from "../../resolve-host";
-import { HostedArticle, articleHead, businessOf, loadArticle, type Resolved } from "./article";
+import { businessOf } from "./article";
 import type { HostedBusiness } from "./chrome";
 import { HostedIndex, indexPageCount, pageOf, queryOf } from "./listing";
 import { indexMetadata } from "./seo";
 
 /** This route is not cached: it reads the Host header and the index's
- *  query, and it is where every address the middleware did not find live
- *  ends — the index, a 404, and a page whose read missed its deadline. A
- *  live article is cached, by its own route (`hosted-live/[host]/[slug]`,
- *  issue 1242); nothing that has to be asked again on each request is. */
+ *  query. It draws the index and the 404 of an address that cannot name a
+ *  page; an article is a static string from its own routes
+ *  (`hosted-live/[host]/[slug]`, cached, and `hosted-article/[slug]`). */
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
-
-/** The article at this slug on the Host that was asked, or `null`. */
-async function load(slug: string): Promise<Resolved | null> {
-  return loadArticle((await headers()).get("host") ?? "", slug);
-}
-
-/** The catch-all takes an array; only a single-segment address is a page.
- *  `content.{domain}/a/b` is not a deeper page, it is not a page at all. */
-function oneSegment(slug: readonly string[]): string | null {
-  return slug.length === 1 ? (slug[0] ?? null) : null;
-}
 
 /** The root of the host — no segment at all — is the index (SPEC §7,
  *  2026-09-16), not a 404. */
@@ -152,18 +141,12 @@ export async function generateMetadata({
   searchParams?: Search;
 }): Promise<Metadata> {
   const { slug } = await params;
-  if (isIndex(slug)) {
-    const index = await loadIndex();
-    if (index === null) return {};
-    const list = await listOf(index, searchParams);
-    if (list === null) return {};
-    return indexMetadata({ ...index, ...list });
-  }
-  if (slug === undefined) return {};
-  const segment = oneSegment(slug);
-  const resolved = segment === null ? null : await load(segment);
-  if (resolved === null) return {};
-  return articleHead(resolved);
+  if (!isIndex(slug)) return {};
+  const index = await loadIndex();
+  if (index === null) return {};
+  const list = await listOf(index, searchParams);
+  if (list === null) return {};
+  return indexMetadata({ ...index, ...list });
 }
 
 export default async function HostedPageRoute({
@@ -174,20 +157,13 @@ export default async function HostedPageRoute({
   searchParams?: Search;
 }): Promise<React.JSX.Element> {
   const { slug } = await params;
-  if (isIndex(slug)) {
-    const index = await loadIndex();
-    // An unknown or stopped Host has no index either: the same 404.
-    if (index === null) notFound();
-    const list = await listOf(index, searchParams);
-    if (list === null) notFound();
-    return <HostedIndex {...index} {...list} />;
-  }
-  if (slug === undefined) notFound();
-  const segment = oneSegment(slug);
-  const resolved = segment === null ? null : await load(segment);
-  // An unknown Host, an address this site never published at, and a page in
-  // any state but live all end here: 404, and never another customer's
-  // page, never a ReachKit page, never a fallback.
-  if (resolved === null) notFound();
-  return <HostedArticle resolved={resolved} />;
+  // Any other address here cannot name a page (a deeper path, a dotted
+  // name): 404, never another customer's page and never a ReachKit page.
+  if (!isIndex(slug)) notFound();
+  const index = await loadIndex();
+  // An unknown or stopped Host has no index either: the same 404.
+  if (index === null) notFound();
+  const list = await listOf(index, searchParams);
+  if (list === null) notFound();
+  return <HostedIndex {...index} {...list} />;
 }

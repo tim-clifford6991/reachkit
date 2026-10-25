@@ -410,13 +410,14 @@ function hostnameOf(req: NextRequest): string {
   return withoutPort.endsWith(".") ? withoutPort.slice(0, -1) : withoutPort;
 }
 
-/** The three destinations a hosted request is rewritten to, and no fourth:
- *  the page as the Host names it (the index, a 404, and a page this file
- *  could not confirm), the `410 Gone` document, and a live article by its
- *  host and slug — the one that is cached (issue 1242). */
+/** The four destinations a hosted request is rewritten to, and no fifth:
+ *  the page as the Host names it (the index and a 404), an article address
+ *  this file did not find live, the `410 Gone` document, and a live article
+ *  by its host and slug — the one that is cached (issue 1242). */
 const HOSTED_PAGE_PREFIX = "/hosted-page";
 const HOSTED_GONE_PATH = "/hosted-gone";
 const HOSTED_LIVE_SEGMENT = "hosted-live";
+const HOSTED_ARTICLE_SEGMENT = "hosted-article";
 
 /** The paths on a `content.` host that resolve the Host themselves and are
  *  therefore served where they stand, not rewritten. */
@@ -616,7 +617,9 @@ async function hostedRewrite(
   // The root is the hosted index, which the optional catch-all serves at
   // the prefix itself (SPEC §7, 2026-09-16).
   const page = pathname === "/" ? HOSTED_PAGE_PREFIX : `${HOSTED_PAGE_PREFIX}${pathname}`;
-  destination.pathname = answer === "gone" ? HOSTED_GONE_PATH : page;
+  // An address that could name a page but was not found live is answered by the article's own static renderer.
+  const article = /^\/[^/.]+$/.test(pathname) ? `/${HOSTED_ARTICLE_SEGMENT}${pathname}` : page;
+  destination.pathname = answer === "gone" ? HOSTED_GONE_PATH : article;
   // `forwarded` carries this request's CSP and nonce (issue #331). A
   // rewrite is still a render, and a render that never saw the nonce emits
   // script tags the policy on the way out refuses.
@@ -698,13 +701,14 @@ export const GUARDED_SEGMENTS: readonly string[] = [
   // `src/app/(account)/**` — the two segments §4.3 and §4.4 serve.
   "app",
   "setup",
-  // `src/app/(hosted)/**` — the three destinations `hostedRewrite` writes.
+  // `src/app/(hosted)/**` — the four destinations `hostedRewrite` writes.
   // Guarded rather than left to fall through: they are reachable by path on
   // a ReachKit host as well as by rewrite on a `content.` one, and an
   // address on `reachkit.app` that answered a customer's published page
   // would be this product serving someone else's site.
   "hosted-gone",
   "hosted-page",
+  HOSTED_ARTICLE_SEGMENT,
   // The cached article (issue 1242). `middleware` answers 404 for it by
   // path before the session is asked, signed in or not: it names its host
   // in its path, so a session must not be a way to read it here.

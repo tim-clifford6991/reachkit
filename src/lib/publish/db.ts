@@ -1,23 +1,6 @@
-// BUILD §9 — the one cast boundary this subsystem holds, and why.
-//
-// Every column this issue adds — `publications.delivery_state`,
-// `attempt_no`, `claimed_at`, `failure_reason`, `remote_id`,
-// `made_live_by_us`, `unpublish_outcome`, `verify_due_at`;
-// `drafts.transitions`, `publishable_since`, `hard_rules_passed`;
-// `sites.publishing_enabled` — lands in its own migration and is **absent
-// from `src/lib/db/types.generated.ts`**, which is regenerated on its own
-// schedule and was not regenerated for any migration in this repository.
-// `src/lib/scan/admission.ts` documents the same gap for
-// `scans.network_hash` and works around it the same way.
-//
-// So the module declares the row shapes it reads, and reaches Postgres
-// through one narrow, explicitly cast builder — declared here, once, rather
-// than at each of the six call sites. Regenerating the `Database` type
-// deletes this file and nothing else changes: the query text is already the
-// query text.
-//
-// `@/lib/db` is the only import: the two clients are the only way any code
-// reaches Postgres, and this file holds no query of its own.
+// BUILD §9 — the one cast boundary this subsystem holds. Its columns (`publications.delivery_state`, `drafts.transitions`,
+// `sites.publishing_enabled` and the rest) are absent from `src/lib/db/types.generated.ts`, so callers declare row shapes
+// and reach Postgres through this one cast builder. Regenerating the `Database` type deletes this file and nothing else.
 import { dbAdmin } from "@/lib/db";
 
 export interface QueryResult<T> {

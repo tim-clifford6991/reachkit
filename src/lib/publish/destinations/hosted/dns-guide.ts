@@ -1,15 +1,6 @@
-// SPEC §5 — the steps a founder follows to add their CNAME, per DNS provider
-// (issue 856; owner 2026-09-17: "we need proper guidance for our users").
-//
-// Chosen by the nameserver lookup (issue 760): Cloudflare, GoDaddy,
-// Namecheap, Squarespace, Route 53 and Vercel have their own steps, fields
-// in that dashboard's own labels and — where the dashboard has a stable
-// address — a link to it. Every other provider, an unknown nameserver and a
-// lookup that has not answered get the generic steps.
-//
-// Data only: every word is a registry key, and the record's values are the
-// record's. Imported by the client record block, so nothing here reaches a
-// server module.
+// SPEC §5 — the steps a founder follows to add their CNAME, chosen by the nameserver lookup. Six providers have their
+// own steps, fields in their dashboard's labels and a link where stable; everyone else gets the generic steps.
+// Data only, every word a registry key; the client record block imports it, so nothing here reaches a server module.
 import type { CopyKey } from "@/lib/presentation/copy";
 import type { DnsGuideId } from "./dns-provider";
 
@@ -22,8 +13,7 @@ export interface DnsGuide {
   steps: readonly CopyKey[];
   /** The record as the provider's form asks for it, top to bottom. */
   fields: readonly { label: CopyKey; value: GuideValue }[];
-  /** The provider's DNS page for `zone`, or `null` where there is no
-   *  stable address to link. */
+  /** The provider's DNS page for `zone`, or `null` with no stable address. */
   link: ((zone: string) => string) | null;
   /** Cloudflare's one proxy instruction is drawn beside the steps. */
   proxy: boolean;
@@ -146,10 +136,7 @@ export const DNS_GUIDES: Readonly<Record<DnsGuideId, DnsGuide>> = {
   },
 };
 
-/** What goes in the provider's name field: the host less its zone
- *  (`content.acme.com` in `acme.com` → `content`; under a site address that
- *  is itself a subdomain, `content.shop`). A host outside the zone is
- *  entered whole. */
+/** The provider's name field: the host less its zone (`content.acme.com` in `acme.com` → `content`), else whole. */
 export function nameInZone(host: string, zone: string): string {
   const h = host.toLowerCase();
   const z = zone.toLowerCase();

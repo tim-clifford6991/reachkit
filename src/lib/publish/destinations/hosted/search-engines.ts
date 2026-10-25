@@ -1,12 +1,8 @@
-// Issue 1553 — the weekly pass's search-engine step, for one site.
+// The weekly pass's search-engine step for one site: ReachKit verifies every live hosted host in Google Search Console
+// and Bing Webmaster Tools under its own account, with no customer step, and reads each page's way toward being found.
+// In order, once a week:
 //
-// The SEO metrics review of 2026-10-19 (R2, owner: "approved for all"):
-// ReachKit verifies every live hosted host in Google Search Console and
-// Bing Webmaster Tools under its own account, with no customer step, and
-// reads each page's way toward being found. In order, once a week:
-//
-//   1. Every live hosted page IndexNow never accepted is announced, once
-//      (`announceUnannounced`): the pages published before issue 1511.
+//   1. Every live hosted page IndexNow never accepted is announced, once (`announceUnannounced`).
 //   2. The host is verified (the meta method: the hosted index prints the
 //      token stored on the destination) and its sitemap submitted, in
 //      Google and in Bing. Each step is stored as it lands, so a pass that
@@ -18,13 +14,8 @@
 //      `@/lib/measure/page-reading` from the newest stored report, the
 //      reads counted on the page, and the two engines' readings.
 //
-// **Inert without credentials.** With neither binding the pass asks no
-// engine and still writes steps 1 and 4, so the ladder shows what
-// ReachKit can prove. 0¢: every call is free, and nothing is bought.
-//
-// **Never in the way.** It never throws: a refusal or a failed read leaves
-// that engine's reading out this week, and the verdicts and mail run after
-// it as they did before.
+// Inert without credentials: steps 1 and 4 still run, so the ladder shows what ReachKit can prove. 0¢: every call is free.
+// It never throws: a refusal or failed read leaves that engine out this week, and the verdicts and mail still run.
 import { SEARCH_READING_WINDOW_D, GSC_PROPERTIES_PER_ACCOUNT } from "@/lib/config/constants";
 import { gscAccounts, gscClient, type GscAccount, type GscSend } from "@/lib/vendors/gsc";
 import { bingClient, type BingClient } from "@/lib/vendors/bing-wmt";

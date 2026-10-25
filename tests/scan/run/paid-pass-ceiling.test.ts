@@ -177,6 +177,7 @@ const TWELVE = Array.from({ length: BATTERY_PINS.QUESTIONS }, (_, i) => ({
 }));
 
 const answered = (cited: string[]): AiAnswer => ({ answered: true, text: "…", citedDomains: cited });
+const TOURS = "https://www.appcues.com/product-tours";
 
 /**
  * The pass, once on the real clock with every vendor answering at once, so
@@ -388,7 +389,7 @@ describe("the weekly pass at production's measured queue waits (issue 1160)", ()
     await loadedOnce({ domain: DOMAIN, siteId: "site-1160", tier: "weekly" });
     serpOrganic.mockImplementation(answersAfter(177, measured(SERP, AT)));
     llmScraper.mockImplementation(answersAfter(166, measured(answered(["example.com"]), AT)));
-    aiMode.mockImplementation(answersAfter(187, measured(answered(["appcues.com"]), AT)));
+    aiMode.mockImplementation(answersAfter(187, measured({ ...answered(["appcues.com"]), citedUrls: [TOURS] }, AT)));
 
     vi.useFakeTimers();
     try {
@@ -433,6 +434,7 @@ describe("the weekly pass at production's measured queue waits (issue 1160)", ()
       expect(chatgpt.every((answer) => answer.linked)).toBe(true);
       const mode = report.prompts?.answers.filter((answer) => answer.engine === "ai_mode") ?? [];
       expect(mode.every((answer) => !answer.linked && answer.rivals.includes("appcues.com"))).toBe(true);
+      expect(mode.every((answer) => answer.cited?.includes(TOURS))).toBe(true);
       // Scoring was reached and sized the domains the twelve's top tens hold.
       expect(rankedKeywords).toHaveBeenCalled();
       expect(report.rivalSizes.kind).not.toBe("unmeasured");

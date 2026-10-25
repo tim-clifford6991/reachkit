@@ -1,55 +1,27 @@
-// SPEC §7 (2026-10-18, issue 1511) — search engines are told about a hosted
-// page the moment it changes: IndexNow, and the feed's WebSub hub.
-//
-// **One request each, per change.** A publish, an update and an unpublish
-// each call this once with the address(es) the change touched, and the index
-// with them, because the index lists the newest pages. A move (issue 1487)
-// is one change: its old address, its new one and the index, in the one
-// request.
-//
-// **Hosted only, and only while the host is live.** IndexNow proves the
-// sender owns the host by a key file at its root (`/<key>.txt`, served by
-// `src/app/(hosted)/hosted-page/indexnow/[key]/route.ts`). ReachKit can
-// place that file on a host it serves and on no other, so a WordPress
-// destination sends none, and a host whose record is not live yet sends none
-// either: the engine would fetch a key file the host does not serve and
-// answer 403.
-//
-// **Never in the way.** A refusal, a 429 or a network failure is logged and
-// dropped: no retry, no loop, and the publish it follows has already
-// happened. Both services are free and public, so this is 0¢.
-//
-// **Recorded** (issue 1553). An accepted IndexNow request stamps
-// `publications.announced_at` on every live page whose address it carried,
-// and `announceUnannounced` sends once for the live hosted pages that have
-// no stamp: the pages published before issue 1511, and any whose request
-// was dropped. A stamped page is never sent again by it.
-//
-// The key is not a secret. IndexNow publishes it at the host's root by
-// design; it only has to be stable per site, so it is derived from the
-// site's id and never stored.
+// SPEC §7 — search engines are told about a hosted page the moment it changes: IndexNow, and the feed's WebSub hub.
+// One request each per change, carrying the touched addresses and the index; a move is one change.
+// Hosted and live hosts only: IndexNow checks a key file at the host's root, which we serve on our hosts alone.
+// Never in the way: a refusal, a 429 or a network failure is logged and dropped, with no retry. Both services are free, so 0¢.
+// An accepted request stamps `publications.announced_at`; `announceUnannounced` sends once for live pages with no stamp.
+// The key is not a secret (IndexNow publishes it), so it is derived from the site's id and never stored.
 import { createHash } from "node:crypto";
 import { safeFetch, type FetchOutcome, type SafeFetchOpts } from "@/lib/egress";
 import { publishDb } from "../../db";
 import { hostedHostFor } from "./hostname";
 
-/** The shared IndexNow endpoint: a submission reaches every participating
- *  engine. */
+/** The shared IndexNow endpoint, which reaches every participating engine. */
 export const INDEXNOW_ENDPOINT = "https://api.indexnow.org/indexnow";
-/** Google's public WebSub hub, the one Google's sitemap guide documents
- *  for feeds. The feed names it (`rss.xml`) and each change pings it. */
+/** Google's public WebSub hub, which the feed names and each change pings. */
 export const WEBSUB_HUB = "https://pubsubhubbub.appspot.com/";
 /** The feed, on the customer's own host. */
 export const HOSTED_FEED_PATH = "/rss.xml";
 
-/** The two requests, as `safeFetch` makes them. Injected by tests: no suite
- *  pings either service. */
+/** The two requests as `safeFetch` makes them; injected so no suite pings either service. */
 export type AnnounceSend = (url: string, opts: SafeFetchOpts) => Promise<FetchOutcome>;
 
 const SEND_OPTS = { respectRobots: false, userAgent: "reachkit-verify", timeoutMs: 8000 } as const;
 
-/** The site's IndexNow key: 32 hex characters, the same for the site every
- *  time. */
+/** The site's IndexNow key: 32 hex characters, stable per site. */
 export function indexNowKey(siteId: string): string {
   return createHash("sha256").update(`indexnow:${siteId}`).digest("hex").slice(0, 32);
 }
@@ -72,8 +44,7 @@ function log(event: string, fields: Record<string, unknown>): void {
   console.log(JSON.stringify({ event, ...fields }));
 }
 
-/** 200 and 202 are both "received" (IndexNow, WebSub); anything else —
- *  a 4xx, a 429, a 5xx, no answer — is dropped. */
+/** 2xx is "received"; anything else is dropped. */
 function accepted(outcome: FetchOutcome | null): boolean {
   return outcome?.ok === true && outcome.status >= 200 && outcome.status < 300;
 }
@@ -83,10 +54,7 @@ function statusOf(outcome: FetchOutcome | null): number | string {
   return outcome.ok ? outcome.status : (outcome.status ?? outcome.reason);
 }
 
-/**
- * Tells IndexNow and the WebSub hub that `urls` changed on the site's hosted
- * host. Never throws, and never retries.
- */
+/** Tells IndexNow and the WebSub hub that `urls` changed on the hosted host. Never throws, never retries. */
 export async function announceHosted(a: { siteId: string; urls: readonly string[]; send?: AnnounceSend; at?: Date }): Promise<void> {
   try {
     const live = await hostedHostFor(a.siteId);
@@ -138,9 +106,7 @@ export async function announceForDraft(a: { draftId: string; urls: readonly stri
   }
 }
 
-/** Announces, in one request, every live hosted page of the site that
- *  IndexNow has never accepted. Never throws; a site with none sends
- *  nothing. */
+/** Announces in one request every live hosted page IndexNow never accepted. Never throws. */
 export async function announceUnannounced(a: { siteId: string; send?: AnnounceSend; at?: Date }): Promise<void> {
   try {
     const { data } = await publishDb()

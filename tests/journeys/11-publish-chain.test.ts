@@ -157,6 +157,7 @@ const { GET: sitemapRoute } = await import("../../src/app/(hosted)/sitemap.xml/r
 const { GET: robotsRoute } = await import("../../src/app/(hosted)/robots.txt/route");
 const goneRoute = await import("../../src/app/(hosted)/hosted-gone/route");
 const hostedPage = await import("../../src/app/(hosted)/hosted-page/[[...slug]]/page");
+const articleRoute = await import("../../src/app/(hosted)/hosted-article/[slug]/route");
 const { __setVendorTransportForTesting } = await import("../../src/lib/mail/vendor/resend");
 const { HOSTED_GONE_STATUS } = await import("../../src/lib/config/constants");
 const { listHash } = await import("../../src/lib/generate/claims/hash");
@@ -319,21 +320,26 @@ function seedTheDatabase(): void {
   db.seed("publications", []);
 }
 
-/** The document the hosted edge serves at one address, composed the way
- *  Next composes it: the route's own `generateMetadata` in the head and the
- *  route's own render in the body. Nothing here writes markup of its own
- *  beyond the shell those two land in. */
+/** The document the hosted edge serves at one address: an article's own
+ *  route answers a page, and the index is composed the way Next composes
+ *  it, the route's own `generateMetadata` in the head and its render in the
+ *  body. Nothing here writes markup of its own beyond that shell. */
 async function servedDocument(host: string, slug: string | null): Promise<{ status: number; body: string }> {
   const answer = await hostedAnswer(host, slug === null ? "/" : `/${slug}`);
   if (answer === "gone") {
     const response = await goneRoute.GET();
     return { status: response.status, body: await response.text() };
   }
+  if (slug !== null) {
+    const request = new Request(`https://${host}/${slug}`, { headers: { host } });
+    const response = await articleRoute.GET(request, { params: Promise.resolve({ slug }) });
+    return { status: response.status, body: await response.text() };
+  }
 
   const previous = serving.host;
   serving.host = host;
   try {
-    const params = Promise.resolve(slug === null ? {} : { slug: [slug] });
+    const params = Promise.resolve({});
     const metadata = await hostedPage.generateMetadata({ params });
     const tree = await hostedPage.default({ params, searchParams: Promise.resolve({}) });
     const canonical = metadata.alternates?.canonical;
@@ -346,7 +352,7 @@ async function servedDocument(host: string, slug: string | null): Promise<{ stat
         `</head><body>${renderToStaticMarkup(tree)}</body></html>`,
     };
   } catch {
-    // `notFound()` throws: an address this site never published at.
+    // `notFound()` throws: a host with no index.
     return { status: 404, body: "" };
   } finally {
     serving.host = previous;
@@ -453,7 +459,7 @@ describe("the publish chain, end to end (issue 888)", () => {
       // produced, their own domain as the publisher, and the canonical on
       // their host — not ours.
       expect(live.body).toContain(`<title>${TITLE}</title>`);
-      expect(live.body).toContain(`<link rel="canonical" href="https://${FIRST_HOST}/${SLUG}">`);
+      expect(live.body).toContain(`<link rel="canonical" href="https://${FIRST_HOST}/${SLUG}"`);
       expect(live.body).toContain(PASSAGE);
       expect(live.body).toContain("<mark");
       expect(live.body).toContain(DOMAIN);
@@ -550,7 +556,7 @@ describe("the publish chain, end to end (issue 888)", () => {
       // carries are both the new address, never the stored one.
       const moved = await servedDocument(MOVED_HOST, SLUG);
       expect(moved.status).toBe(200);
-      expect(moved.body).toContain(`<link rel="canonical" href="https://${MOVED_HOST}/${SLUG}">`);
+      expect(moved.body).toContain(`<link rel="canonical" href="https://${MOVED_HOST}/${SLUG}"`);
       expect(moved.body).toContain(TITLE);
       const listed = await answerFor(`https://${MOVED_HOST}/sitemap.xml`);
       expect([...listed.body.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1])).toEqual([

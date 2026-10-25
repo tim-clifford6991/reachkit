@@ -1,44 +1,11 @@
-// BUILD §9 · SPEC §7 — the veto window, opened and closed by the clock
-// (issue 709).
-//
-// SPEC §7: "Autopilot only: generate → veto → publish", and its Done when:
-// "An untouched draft publishes at window end on their domain." Every piece
-// of that sentence was built — the machine's edges, the publishable rule,
-// the telling and its mail (#174), the claim and the delivery — and nothing
-// took a page through them: the pipeline writes a row in `generating` and
-// stops, and no job moved it on. These are the two moves that were missing,
-// and each is one call into the module that owns the rule.
-//
-// **Opening the window** (`enterReview`) is the draft tick's, right after
-// a generation that passed: the deadline is stamped, the page enters
-// review, and the customer is told through `sendDraftReadyMail` — which
-// mints the one stop link and records the telling the `customer_told` guard
-// reads. The deadline is written before the move, because the telling
-// names the moment the page publishes and reads it off the row.
-//
-// **Closing it** (`dueApprovals`) is the hourly publish tick's. A page in
-// review whose window has run out, that the customer was told about on the
-// pair in force, and that is publishable and due now, is approved by the
-// system; it and every approved page that is due are handed back addressed
-// the way `publishApproved()` takes them. The claim then re-asks every
-// guard on `approved → publishing` at the moment of the attempt, so nothing
-// here is a second copy of the switch, the ceilings or the destination: a
-// page those hold is offered, held there, and offered again next hour —
-// exactly as a due retry is (`./due.ts`).
-//
-// **Scheduling the attempt** (`publishDueAt`, issue #790) names the moment a
-// page in review or approved first becomes publishable and due, and the
-// destination it goes to — so the engine can send one `publish/execute`
-// for that moment instead of leaving the page to the next hourly sweep.
-// The event re-enters through `dueApproval`, the one-page form of the
-// sweep's read, so a delivered event and the tick are the same attempt and
-// the tick stays the backstop for any event that was lost.
-//
-// **An untold page is never approved by a clock.** REQ-057 c8: no page
-// publishes without the customer having been told on the pair it publishes
-// under. The guard would hold it at the claim anyway; not approving it here
-// keeps a page nobody told about in review, where the customer can still
-// see and stop it.
+// BUILD §9 · SPEC §7 — the veto window, opened and closed by the clock: "An untouched draft publishes at window end on
+// their domain." Each move is one call into the module that owns the rule.
+// Opening (`enterReview`) is the draft tick's after a passing generation: stamp the deadline before the move, since the
+// telling reads it, then enter review and tell the customer through `sendDraftReadyMail`.
+// Closing (`dueApprovals`) is the hourly tick's: a told, publishable, due page is approved by the system and handed on;
+// the claim re-asks every guard, so a held page is offered again next hour, as a due retry is (`./due.ts`).
+// `publishDueAt` names the moment for one `publish/execute`, which re-enters through `dueApproval`; the tick is the backstop.
+// An untold page is never approved by a clock (REQ-057 c8): it stays in review, where the customer can still stop it.
 import { VETO } from "@/lib/config/constants";
 import { localClock } from "@/lib/scan/weekly/week";
 import { publishDb, type PublishQuery } from "../db";
@@ -49,8 +16,7 @@ import { becomesPublishable } from "../publishable/predicate";
 import { customerTold, publishableAndDue } from "../publishable/rule";
 import type { Actor, DestinationKind } from "../types";
 
-/** One page ready for its attempt, addressed the way `publishApproved()`
- *  takes it — the same shape a due retry has. */
+/** One page ready for its attempt, shaped as a due retry is. */
 export interface DueApproval {
   readonly draftId: string;
   readonly destinationId: string;
@@ -86,27 +52,18 @@ async function liveDestination(siteId: string): Promise<DestinationRow | null> {
   return data[0] ?? null;
 }
 
-/**
- * `generating → in_review`, with the window it opens and the telling it
- * owes. Called once per passing generation; a page anywhere but
- * `generating` is left where it is.
- *
- * With a customer as `by`, the same window opens from `needs_attention`
- * instead (SPEC §7, #1180): the founder's edit of a page the rules stopped
- * passed every hard rule, and the page enters review on a fresh window.
- */
+/** `generating → in_review`, with its window and its telling; any other state is left. With a customer as `by`, it
+ *  opens from `needs_attention` (SPEC §7): their edit of a stopped page passed every hard rule. */
 export async function enterReview(a: { draftId: string; at: Date; by?: Actor }): Promise<ReviewEntry> {
   const by = a.by ?? OPENED_BY;
   const from = by.kind === "customer" ? "needs_attention" : "generating";
   const draft = await machineDraftFor(a.draftId);
   if (draft === null) return { kind: "not_entered", reason: "no_draft" };
   if (draft.state !== from) return { kind: "not_entered", reason: "not_generating" };
-  // The edge carries no guard of its own; the battery's record is the
-  // condition, and only the run that put the page through it may write it.
+  // The edge has no guard; the battery's record is the condition.
   if (!draft.hardRulesPassed) return { kind: "not_entered", reason: "hard_rules" };
 
-  // The telling names the destination the page goes to. A site with none
-  // has nowhere to publish and nothing true to be told.
+  // The telling names the destination; with none there is nothing true to tell.
   const destination = await liveDestination(draft.siteId);
   if (destination === null) return { kind: "not_entered", reason: "no_destination" };
 
@@ -121,9 +78,7 @@ export async function enterReview(a: { draftId: string; at: Date; by?: Actor }):
     throw new Error(`publish/window: could not stamp the veto deadline: ${stamped.error.message}`);
   }
 
-  // The day the page goes out untouched, which is the only date its row
-  // may carry (issue 1337). A site with no zone publishes nothing, and its
-  // page is dated by the deadline alone until it has one.
+  // The day it goes out untouched, the only date its row may carry; with no zone, the deadline's UTC date.
   const publishes =
     draft.governing.timezone === null
       ? localClock(deadline, "UTC").date
@@ -143,16 +98,8 @@ const UNIQUE_VIOLATION = "23505";
 
 const isoDate = (ms: number): string => new Date(ms).toISOString().slice(0, 10);
 
-/**
- * The page's row takes the day it publishes on (`from`), or the first date
- * after it that no page of the site holds.
- *
- * Two rows need it. A stopped draft the run moved on from gave its date to
- * the page written in its place (SPEC §7, D26, issue 1179), and holds none.
- * A page rewritten or edited after its day's due hour holds a date its new
- * window ends too late for (issue 1337). A row whose date is `from` or
- * later keeps it: neither update matches.
- */
+/** The row takes its publish day `from`, or the first later date no page of the site holds: an undated row (its date
+ *  went to a replacement, SPEC §7 D26) or one dated before its new window ends. A row at `from` or later keeps its date. */
 async function takeDate(draftId: string, from: string): Promise<void> {
   const start = Date.parse(`${from}T00:00:00.000Z`);
   const dayBefore = isoDate(start - MS_PER_DAY);
@@ -183,11 +130,7 @@ interface WaitingRow {
   veto_deadline: string | null;
 }
 
-/**
- * The pages whose attempt is due now: in review with the window run out
- * (approved here), or already approved. Each is publishable and due by the
- * rule the claim's own guard reads, and was told on the pair in force.
- */
+/** Pages due now: in review with the window run out (approved here) or approved, each told and publishable and due. */
 export async function dueApprovals(now: Date): Promise<readonly DueApproval[]> {
   const waiting = await publishDb()
     .from<WaitingRow>("drafts")
@@ -208,10 +151,9 @@ export async function dueApprovals(now: Date): Promise<readonly DueApproval[]> {
   return due;
 }
 
-/** One waiting page: approved here if its window has run out, and handed
- *  back when its attempt is due now. `null` for anything else. */
+/** One waiting page, approved if its window ran out and handed back when due; otherwise `null`. */
 async function approveIfDue(row: WaitingRow, now: Date): Promise<DueApproval | null> {
-  // The window is still open: the cheap test first, before a per-page read.
+  // The cheap test before a per-page read.
   if (row.state === "in_review" && (row.veto_deadline === null || new Date(row.veto_deadline) > now)) return null;
 
   const draft = await machineDraftFor(row.id);
@@ -219,8 +161,7 @@ async function approveIfDue(row: WaitingRow, now: Date): Promise<DueApproval | n
   if (!customerTold(draft) || !publishableAndDue(draft, now)) return null;
 
   const destination = await liveDestination(row.site_id);
-  // Disconnected since it was told: nothing to address the attempt to,
-  // and it returns to the tick the moment the customer reconnects.
+  // Disconnected since it was told: it returns once the customer reconnects.
   if (destination === null) return null;
 
   if (draft.state === "in_review") {
@@ -230,12 +171,7 @@ async function approveIfDue(row: WaitingRow, now: Date): Promise<DueApproval | n
   return { draftId: row.id, destinationId: destination.id };
 }
 
-/**
- * The sweep's read for one page — what a scheduled `publish/execute` asks
- * when it arrives. The same conditions, the same approval at window end,
- * and the same `null` for a page that is not due, was stopped, or has
- * already gone out.
- */
+/** The sweep's read for one page, asked by a scheduled `publish/execute`, with the same conditions and approval. */
 export async function dueApproval(draftId: string, now: Date): Promise<DueApproval | null> {
   const { data, error } = await publishDb()
     .from<WaitingRow>("drafts")
@@ -257,12 +193,7 @@ export interface PublishDue {
   readonly at: Date;
 }
 
-/**
- * When a page in review or approved first becomes publishable and due, by
- * the rule the claim's own guard reads — or `null` where it has no such
- * moment yet (copilot without an approval, no zone, a claim re-check) or
- * nowhere to go. Reads only; the attempt at that moment re-asks every guard.
- */
+/** When a page first becomes publishable and due, or `null` with no such moment or nowhere to go; reads only. */
 export async function publishDueAt(draftId: string): Promise<PublishDue | null> {
   const draft = await machineDraftFor(draftId);
   if (draft === null || (draft.state !== "in_review" && draft.state !== "approved")) return null;

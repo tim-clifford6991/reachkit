@@ -1,46 +1,13 @@
-// BUILD §9 — the approve-and-deliver edge (BP-015).
-//
-// `publish/execute` carries a draft and a destination id; this is what the
-// engine calls with them. It is the *orchestration* of one attempt and
-// holds no rule of its own: the edge and its nine guards are
-// `machine/`'s, the claim and the delivery are `./index.ts`'s, the retry
-// policy is `./retry.ts`'s, and each is called once.
-//
-// **Three outcomes and no fourth**, because a page must never rest
-// somewhere none of them describes:
-//
-//   · `delivered` — the `publications` row says delivered, the page is
-//     `published`, and `verifyDue` says whether an address came back for
-//     the +24h check to look at. The *enqueue* is the engine's, not this
-//     file's: `src/lib/**` may not import `src/jobs/**` (ARCHITECTURE rule
-//     2), and a leaf that sent its own job events would be the arrow
-//     pointing the wrong way.
-//   · `held` — the switch is off, a ceiling is reached, ReachKit itself is
-//     stopped, the claim needs re-checking. §9's holds move no page and
-//     this returns none: the page keeps the state it holds and resumes in
-//     the order it was held.
-//   · `failed` — the outcome was written as it happened and the retry
-//     policy has already been applied, in this same invocation. That is
-//     what keeps §9's promise that no page rests in `failed` with neither
-//     a further attempt due nor the move to `needs_attention` made.
-//
-// **The kind is read from the row, never from the payload.** The event
-// carries a destination *id*; `publish()` claims against a destination
-// *kind*, because the claim re-reads the site's live destination at the
-// moment of the attempt rather than trusting an id minted when the page
-// was approved (`destinations/index.ts` says why). So the id is resolved
-// to its kind here and the claim decides the rest.
-//
-// **A retry that is due is not scheduled from here, and that is named
-// rather than faked.** `scheduleRetry` returns the moment a retryable
-// failure becomes due again; nothing in this product claims a `failed`
-// page at that moment yet — no job has that trigger and
-// `publish/execute`'s own idempotency key is `(draftId, destinationId)`,
-// so re-sending its event would be deduped rather than delayed. The page
-// is left in `failed` with its reason written, which is exactly where
-// §9 says it waits, and the scheduler that wakes it is a separate seam.
-// Reporting a retry as though it had been queued would be worse than
-// saying so.
+// BUILD §9 — the approve-and-deliver edge (BP-015): what the engine calls for `publish/execute`. Orchestration only;
+// the guards are `machine/`'s, the claim and delivery `./index.ts`'s, the retry policy `./retry.ts`'s.
+// Three outcomes, so a page never rests somewhere none describes:
+//   · `delivered` — `verifyDue` says whether an address came back for the +24h check; the engine enqueues it, since
+//     `src/lib/**` may not import `src/jobs/**` (ARCHITECTURE rule 2).
+//   · `held` — §9's holds move no page; it resumes in the order it was held.
+//   · `failed` — the retry policy is applied in this same invocation, so no page rests in `failed` unattended.
+// The kind is read from the row, never the payload: the claim re-reads the site's live destination at the attempt.
+// A due retry is never re-sent from here, since `publish/execute`'s key `(draftId, destinationId)` would dedupe it;
+// `./due.ts` finds it on the tick.
 import { publishDb } from "../db";
 import { capture } from "@/lib/analytics";
 import { readDestination } from "../destinations/store";
@@ -55,17 +22,14 @@ export type ApprovedDelivery =
   | { kind: "held"; heldBy: HeldBy }
   | { kind: "failed"; reason: FailureReason; decision: RetryDecision };
 
-/** The actor every move on this edge is recorded under. The job is the
- *  one making them — a customer's approval is what *sent* the event, and
- *  that move is already in the page's own history. */
+/** The job makes every move on this edge; whatever sent the event is already in the page's history. */
 const BY: Actor = { kind: "system", job: "publish/execute" };
 
 interface DraftSiteRow {
   site_id: string;
 }
 
-/** The page's site, for the switch the retry policy reads. One statement,
- *  and the only read this file makes that the calls below do not. */
+/** The page's site, for the switch the retry policy reads. */
 async function siteOf(draftId: string): Promise<string | null> {
   const { data, error } = await publishDb()
     .from<DraftSiteRow>("drafts")
@@ -80,23 +44,14 @@ export async function deliverApproved(a: {
   draftId: string;
   destinationId: string;
   at?: Date;
-  /** The guard facts, injected exactly as `publish()` takes them, so a
-   *  suite drives this edge without standing up all nine. The engine
-   *  passes none and the real guards run. */
+  /** The guard facts as `publish()` takes them, for suites; the engine passes none and the real guards run. */
   deps?: GuardDeps;
 }): Promise<ApprovedDelivery> {
   const at = a.at ?? new Date();
   const destination = await readDestination(a.destinationId);
 
-  // A destination row that is gone, or was disconnected between the
-  // approval and this tick, is a **hold** and not a failure — the same
-  // answer the `destination_working` guard gives for a site with none, and
-  // the machine has no `approved → needs_attention` edge to take instead.
-  // §9's holds move no page: this one keeps its state and goes out when
-  // the customer reconnects, which is what the reconnect prompt is for.
-  // `?? null` and not a bare `!== null`: a row read without the column is
-  // not a disconnected destination, and treating an absent value as a
-  // deletion would hold every page on a read that named one column fewer.
+  // A destination gone or disconnected is a hold, as `destination_working` answers, and it goes out on reconnect.
+  // `?? null`: a row read without the column is not a disconnected destination.
   if (destination === null || (destination.deleted_at ?? null) !== null) {
     return { kind: "held", heldBy: "destination_not_working" };
   }
@@ -110,15 +65,11 @@ export async function deliverApproved(a: {
   });
 
   if (result.ok) {
-    // Issue 336: the third product event, on the delivery that made the
-    // page live and never on a re-entry that found it already published.
-    // The subject is the site, hashed inside the seam.
+    // The product event, only on the delivery that made the page live; the subject is the site, hashed in the seam.
     if (!result.alreadyPublished) {
       const siteId = await siteOf(a.draftId);
       await capture("draft_published", { subject: siteId ?? a.draftId });
-      // SPEC §7 (2026-10-10, issue 1391), links in both directions: the
-      // nearest older live pages are planned an update that links this one.
-      // It plans rows and writes no page; it never fails the delivery.
+      // SPEC §7, links both ways: the nearest older live pages are planned an update linking this one; it never fails delivery.
       if (siteId !== null && result.liveUrl !== undefined) {
         const { planLinkBacks } = await import("@/lib/opportunities");
         await planLinkBacks({ siteId, url: result.liveUrl, at });
@@ -127,9 +78,7 @@ export async function deliverApproved(a: {
     return {
       kind: "delivered",
       publicationId: result.publicationId,
-      // The address decides, exactly as it does on the write that set
-      // `verify_due_at` (BP-049): a delivery that came back with one is
-      // due for the check, one that did not is not.
+      // The address decides, as on the write that set `verify_due_at` (BP-049).
       verifyDue: result.liveUrl !== undefined,
       alreadyPublished: result.alreadyPublished,
     };

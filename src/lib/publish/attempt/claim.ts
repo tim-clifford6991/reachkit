@@ -1,65 +1,17 @@
-// BUILD §9 — the claim: the one place a publish attempt is taken, and the
-// conflict clause that refuses only a delivered row.
-//
-// ADR-080 (2026-08-31), the ruling this file exists to serve: "The
-// `publications` row (written before the destination call) plus the
-// destination-side marker are the at-most-once guarantee; neither may be
-// tidied away."
-//
-// Order, and every step of it is load-bearing:
-//
-//   1. `transition()` to `publishing` — which evaluates the named guards
-//      for whichever edge applies, so the switch, the ceilings, the
-//      destination, the publishable rule and the telling are all checked
-//      **here, at the moment of the attempt**, and in exactly one place.
-//      A refusal is turned into the word that says which of them held it.
-//   2. the `publications` row — written **before** the adapter is called,
-//      never after. A row written after the delivery would guarantee
-//      nothing: it is the row that a crashed attempt leaves behind for the
-//      next one to find.
-//   3. nothing else. **The adapter is not called from this file** — that is
-//      `publish()`'s, after this has committed, and the split is visible in
-//      the module graph rather than only in a comment.
-//
-// **The switch is read where the decision is made.** §9's "instant" is
-// exactly that: `publishing_switch_on` is a guard on every edge whose
-// target is `publishing`, evaluated inside this call, so an invocation that
-// began before the switch was recorded and reaches here after it is
-// refused.
-//
-// **A deviation flagged once (and not fabricated around).** The archived
-// plan writes the claim as one SQL statement —
-// `insert … on conflict (draft_id, destination) do update set attempt_no =
-// attempt_no + 1, claimed_at = now() where publications.delivery_state <>
-// 'delivered' returning id` — inside one serialisable transaction. The only
-// client any code here may hold is a PostgREST client (`dbAdmin()`), where
-// each `.from(...)` is its own HTTP request and its own implicit
-// transaction and that clause is not expressible; `src/lib/scan/admission.ts`
-// documents the same limitation for `claimFreeScanSlot`. So the clause is
-// reached by two mechanisms Postgres enforces atomically regardless of the
-// calling transaction's isolation level, rather than by an isolation level
-// this client cannot request:
-//
-//   - **at-most-once** is `idx_publications_one_per_draft_destination`
-//     (`20260906120000_publications_core.sql`). Two attempts racing from two
-//     processes can both find no row; only one of their inserts can ever
-//     succeed, and the loser is rejected by the database and re-reads.
-//   - **"refuses only a delivered row"** is carried on the *update itself*
-//     (`.neq('delivery_state', 'delivered')`), not on the read before it —
-//     so a delivery that lands between the read and the write still wins,
-//     and the claim is told it did.
-//
-// Two edits here would each look like tidying and each would break ADR-080:
-//
-//   - `do nothing` on conflict — it refuses the legitimate retry of an
-//     attempt that failed, which §9 requires to be retried three times.
-//   - adding `made_live_by_us` or `live_url` to the update's `set` list. A
-//     re-claim of a `failed` row would reset the discriminator, and on the
-//     day a page can be made live at a destination we do not own, that
-//     turns "ReachKit never made this page live" into "ReachKit made it
-//     live" silently, on a retry, with every test green.
-//
-// The archived plan is WO-212.
+// BUILD §9 — the claim: the one place a publish attempt is taken, and the conflict clause that refuses only a delivered
+// row. ADR-080: "The `publications` row (written before the destination call) plus the destination-side marker are the
+// at-most-once guarantee; neither may be tidied away." In order:
+//   1. `transition()` to `publishing` evaluates every guard here, at the moment of the attempt, in one place, so a
+//      switch recorded before this call refuses it (§9's "instant"); a refusal becomes the word naming the guard.
+//   2. the `publications` row, written before the adapter is called, never after: it is what a crashed attempt leaves.
+//   3. nothing else: the adapter is `publish()`'s, after this commits.
+// PostgREST cannot express `insert … on conflict … where delivery_state <> 'delivered'` in one transaction, so two
+// mechanisms Postgres enforces atomically carry it:
+//   - at-most-once is `idx_publications_one_per_draft_destination`: of two racing inserts one wins, the loser re-reads;
+//   - "refuses only a delivered row" rides the update itself (`.neq('delivery_state', 'delivered')`), so a delivery
+//     landing between read and write still wins.
+// Two tidy-looking edits break ADR-080: `do nothing` on conflict, which refuses §9's three retries; and adding
+// `made_live_by_us` or `live_url` to the update's `set` list, which would reset the discriminator on a retry.
 import { publishDb } from "../db";
 import { destinationOf } from "../destinations";
 import type { GuardDeps } from "../machine";
@@ -67,23 +19,16 @@ import { transition } from "../machine";
 import type { Actor, DestinationKind } from "../types";
 import { ceilingRoom } from "../ceilings";
 
-/** Why an attempt did not begin. Every member is a **hold** — the page
- *  keeps the state it holds and is never skipped, discarded or moved to
- *  needs-attention on account of one. */
+/** Why an attempt did not begin. Every member is a hold: the page keeps its state, never skipped or moved. */
 export type HeldBy =
-  /** BUILD §8 hard rule 4 · REQ-053 c5 — the page carries a claim the
-   *  customer has forbidden, or was last checked against a list they have
-   *  since changed. A hold like every other member: the page keeps its
-   *  state and nothing is written. It clears when a re-check passes
-   *  against the list now in force, which is what makes it a state and not
-   *  an error. */
+  /** BUILD §8 hard rule 4 · REQ-053 c5 — a forbidden claim, or a check against a list since changed; it clears when a
+   *  re-check passes against the list in force. */
   | "claim_recheck"
   | "switch_off"
   | "ceiling_day"
   | "ceiling_week"
   | "zone_not_set"
-  /** The ceilings could not be counted (issue 792) — held, never counted
-   *  as nothing published. */
+  /** The ceilings could not be counted: held, never counted as none published. */
   | "ceiling_unreadable"
   | "destination_not_working"
   | "not_publishable"
@@ -96,24 +41,15 @@ export type ClaimResult =
       publicationId: string;
       alreadyPublished: boolean;
       attemptNo: number;
-      /** The row the credential is sealed on. **Not the credential**: the
-       *  claim never holds one, and the delivery reads it through
-       *  `withConfig` for the duration of the one call it is needed in
-       *  (issue #54). A claim that carried the config would be the
-       *  ciphertext travelling as though it were the plaintext, which is
-       *  what it used to be. */
+      /** The row the credential is sealed on, never the credential; the delivery reads it through `withConfig`. */
       destinationId: string;
     }
   | {
       ok: false;
       reason: "held";
       heldBy: HeldBy;
-      /** Present only on `claim_recheck`, and only where the draft's last
-       *  check named an entry: the do-not-claim entry the page matched, in
-       *  the customer's own words. Rendered through `draft.claim.matched`.
-       *  Absent where a stale list hash holds the page — nothing has been
-       *  matched yet, and naming an entry would attribute a claim to a
-       *  customer who never made it. */
+      /** On `claim_recheck` only, where the last check named an entry: the customer's own words, rendered through
+       *  `draft.claim.matched`. Absent for a stale list hash, so no claim is attributed to them. */
       matchedEntry?: string;
     };
 
@@ -143,8 +79,7 @@ interface DraftRow {
   sites?: { mode?: string | null } | null;
 }
 
-/** Postgres' unique-violation SQLSTATE. A losing insert is not an error
- *  this code handles by guessing — it re-reads and finds the winner's row. */
+/** Postgres' unique-violation SQLSTATE: a losing insert re-reads the winner's row. */
 const UNIQUE_VIOLATION = "23505";
 
 export async function claim(a: ClaimArgs): Promise<ClaimResult> {
@@ -155,8 +90,7 @@ export async function claim(a: ClaimArgs): Promise<ClaimResult> {
 
   const destination = await destinationOf(draft.site_id, a.destination);
 
-  // 1. The move. Every guard on the edge is evaluated here, by the one
-  //    thing that owns them.
+  // 1. The move: every guard on the edge, evaluated by the one thing that owns them.
   const moved = await transition(a.draftId, "publishing", a.by, {
     at,
     ...(a.deps === undefined ? {} : { deps: a.deps }),
@@ -167,9 +101,7 @@ export async function claim(a: ClaimArgs): Promise<ClaimResult> {
       ok: false,
       reason: "held",
       heldBy: await heldWord(moved.failedGuard, draft.site_id, at),
-      // Carried straight through from the refusal: the machine read it, and
-      // reading it a second time here could name a different entry than the
-      // one that actually held the page.
+      // From the refusal itself: a second read could name a different entry than the one that held the page.
       ...(moved.matchedEntry === undefined ? {} : { matchedEntry: moved.matchedEntry }),
     };
   }
@@ -196,14 +128,12 @@ export async function claim(a: ClaimArgs): Promise<ClaimResult> {
         destinationId: destination?.id ?? "",
       };
     }
-    // The insert lost the unique index to a concurrent claim. The winner's
-    // row is the one that exists; re-read and continue as a retry would.
+    // Lost the unique index to a concurrent claim: re-read the winner's row and continue as a retry.
   }
 
   const row = existing ?? (await readPublication(a.draftId, a.destination));
   if (row === null) {
-    // Neither our insert nor a re-read produced a row: something other than
-    // a race refused the write. Nothing was claimed, so nothing is claimed.
+    // Something other than a race refused the write, so nothing is claimed.
     return { ok: false, reason: "held", heldBy: "destination_not_working" };
   }
 
@@ -217,9 +147,7 @@ export async function claim(a: ClaimArgs): Promise<ClaimResult> {
     };
   }
 
-  // The conflict clause, carried on the write: only a row that is not
-  // already delivered may be re-claimed, and `made_live_by_us` and
-  // `live_url` appear in no `set` list here.
+  // The conflict clause on the write: only an undelivered row is re-claimed; `made_live_by_us` and `live_url` are in no `set` list.
   const attemptNo = row.attempt_no + 1;
   const { error } = await publishDb()
     .from<PublicationRow>("publications")
@@ -244,9 +172,7 @@ export async function claim(a: ClaimArgs): Promise<ClaimResult> {
   };
 }
 
-/** The guard that refused, as the word a surface can act on. `within_ceilings`
- *  is asked which ceiling it was — the day and the week lift at different
- *  moments and a customer is owed the one that applies. */
+/** The refusing guard as a word a surface can act on; the ceilings say which, as day and week lift at different moments. */
 async function heldWord(
   failedGuard: string | undefined,
   siteId: string,
@@ -301,13 +227,8 @@ async function readPublication(
   return row ?? null;
 }
 
-/**
- * The acceptance test the page is judged by, recorded on the publication
- * as it is claimed (SPEC §6, issue 795) — so every published page has one and
- * the weekly verdict never depends on the opportunity row being read back.
- * The opportunity's own test where it carries one; otherwise "top 20 for"
- * the search it targets. `null` only where the draft names neither.
- */
+/** The acceptance test the page is judged by, recorded at claim (SPEC §6) so the weekly verdict never reads the
+ *  opportunity back: its own test, else "top 20 for" its search, `null` with neither. */
 async function acceptanceAtPublish(opportunityId: string | null): Promise<unknown> {
   if (opportunityId === null) return null;
   const { data, error } = await publishDb()
@@ -340,13 +261,8 @@ async function insertPublication(a: {
       delivery_state: "claimed",
       attempt_no: 1,
       claimed_at: a.claimedAt.toISOString(),
-      // `made_live_by_us` is written at its column default, `false`, and is
-      // named in no `set` list on either limb: at claim time no delivery has
-      // happened, so nothing is yet known about whether ReachKit made the
-      // page live, and `false` is the only honest value. Setting it here
-      // from the destination's kind would be right today and would still be
-      // the wrong fact — the discriminator is what *this call did to this
-      // page*, not a property of the destination.
+      // `made_live_by_us` stays at its default `false`: nothing is delivered yet, and the discriminator is what this
+      // call did to the page, never a property of the destination's kind.
     })
     .select("id");
   if (error !== null) {

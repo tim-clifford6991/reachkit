@@ -51,6 +51,14 @@ export function renderProblem(board: string, row: { render?: string }): string |
   return null;
 }
 
+/** Why a public `state` row's header and footer would go unread: its render test draws a `(public)` route and the row names no page board to match. */
+export function chromeProblem(board: string, row: { read: string; render?: string; chrome?: string }): string | null {
+  if (row.read !== "state" || !row.render || row.chrome) return null;
+  const file = path.resolve(PARITY_DIR, "../../..", row.render);
+  if (!existsSync(file) || !readFileSync(file, "utf8").includes("app/(public)/")) return null;
+  return `${board} renders under (public) with no "chrome" board`;
+}
+
 /** Fails exactly as a `page` row of tests/ui/layout/parity.test.ts fails, and adds the board to the job summary. */
 export function expectStateParity(board: string, htmls: string[], dirs: { boards?: string; parity?: string } = {}): void {
   const read = stateParity(board, htmls, dirs);

@@ -1,18 +1,7 @@
-// SPEC §5 — the first step of "check connection": what public DNS says about
-// the founder's record (issue 856, owner 2026-09-17).
-//
-// No vendor credential is needed to tell a founder whether they added the
-// record right: public DNS answers it. So the press asks this first, on
-// every deployment, and the domain list (the certificate) stays the second
-// step where it is bound.
-//
-// **Four answers, not three.** The owner named three — found and pointing
-// here, found and pointing elsewhere (and where), and not yet. A resolver
-// that did not answer is a fourth, and is never read as "no record yet".
-//
-// A proxied Cloudflare record answers Cloudflare's addresses and no CNAME:
-// that is a record pointing elsewhere, and the address is what is shown —
-// the guide beside it says to set the record to DNS only.
+// SPEC §5 — the first step of "check connection": what public DNS says about the founder's record. It needs no vendor
+// credential, so it runs on every deployment, and the domain list (the certificate) stays the second step.
+// Four answers: points here, points elsewhere (and where), not yet, and a resolver that did not answer, never read as "not yet".
+// A proxied Cloudflare record answers addresses and no CNAME: that points elsewhere, and the guide says to set it to DNS only.
 import { publicRecordOf, type PublicRecord } from "@/lib/egress";
 
 export type PublicDns =
