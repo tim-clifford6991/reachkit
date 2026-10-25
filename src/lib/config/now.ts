@@ -5,24 +5,15 @@
 // testable. The surfaces are where a clock had to be read, and each of them
 // read `new Date()` for itself. This module is that read, named once.
 //
-// **Why it exists** (issue #305). The live account's Overview draws a
-// twelve-week trailing window ending at *this* week, and the layout sweep's
-// seed writes its measured weeks against the same wall clock — so the
-// committed baseline of `/app` was a picture of the week it was taken in, and
-// every Monday it became a picture of last week. `/app/calendar` was worse and
-// had already been dropped from the sweep for it (#295, #299): it draws the
-// month today falls in and marks today's cell. Neither can be pinned in the
-// seed alone, because pinning the rows while the window still ends at *now*
-// walks the seeded weeks out of the window about twelve weeks later and takes
-// the two measurement tiles unmeasured with them — a weekly wobble traded for
-// a cliff.
-//
-// So the fix is one instant, read by both halves: the seed writes its weeks
-// against it and the render path reads the same value back.
+// **Why one instant.** Overview draws a twelve-week window ending at this week
+// and `/app/calendar` marks today's cell, so a test seed written against the
+// wall clock drifts out of what the screens draw. Pinning the seed alone walks
+// its weeks out of the window. So one instant is read by both halves: the seed
+// writes its weeks against it and the render path reads the same value back.
 //
 // **`RK_FIXED_NOW` is not a deployment binding, which is why it is not in
-// `env.ts`.** That schema is BP-005's contract — every member required, "no
-// default and no fallback, so a deployment cannot start half-configured".
+// `env.ts`.** That schema requires every member, with no default and no
+// fallback, so a deployment cannot start half-configured.
 // This is the opposite kind of thing: a binding a real deployment must never
 // carry. It is honoured only where the deployment is not real, and
 // `assertClockBinding()` — called from `src/instrumentation.ts`, the one boot
@@ -108,7 +99,7 @@ export function berlinDay(at: Date): string {
 }
 
 /**
- * The boot invariant (issue #305). Throws when `RK_FIXED_NOW` is set on a
+ * The boot invariant. Throws when `RK_FIXED_NOW` is set on a
  * real deployment, and when it is set to something that is not an instant.
  *
  * Silent otherwise: a process with no binding is the ordinary case, and one
