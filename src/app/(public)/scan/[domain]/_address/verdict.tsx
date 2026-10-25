@@ -282,7 +282,7 @@ export function VerdictStrip(p: {
               const Icon = READ_AS_ICON[kind];
               return (
                 <li key={text} className="badge badge-outline h-auto py-0.5 whitespace-normal">
-                  {Icon === null ? null : <Icon size={14} strokeWidth={1.75} aria-hidden />}
+                  {Icon === null ? null : <Icon size={14} strokeWidth={1.75} className="shrink-0" aria-hidden />}
                   {text}
                 </li>
               );

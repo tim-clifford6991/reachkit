@@ -39,6 +39,7 @@ import {
   seedSetupAccount,
   seedFreeScans,
   seedLedger,
+  seedLongReadAs,
   seedWeekZeroAccount,
   seedUnconnectedAccount,
   UNCONNECTED_ACCOUNT,
@@ -217,6 +218,7 @@ export default async function setup(): Promise<() => Promise<void>> {
   seedUnconnectedAccount();
   seedFreeScans();
   seedLedger();
+  seedLongReadAs();
   // The customer the hosted edge serves (#418). No cookie is minted for it
   // and none is wanted: `/hosted-page/{slug}` answers a stranger on a
   // stranger's domain with no session at all, so the only thing this

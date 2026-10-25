@@ -58,7 +58,7 @@ function whatWeRead(found: StageSummary): React.ReactNode {
         <ul className="flex flex-wrap gap-2">
           {chips.map(({ Icon, text }) => (
             <li key={text} className="badge badge-soft h-auto py-0.5 whitespace-normal">
-              <Icon size={14} strokeWidth={1.75} aria-hidden />
+              <Icon size={14} strokeWidth={1.75} className="shrink-0" aria-hidden />
               {text}
             </li>
           ))}
@@ -73,10 +73,10 @@ function reader(Icon: typeof Search, name: CopyKey, state: "in" | "out"): React.
   const State = state === "in" ? Check : Ban;
   return (
     <span className="flex items-center gap-1 rounded-box bg-base-200 px-3 py-1 text-sm">
-      <Icon size={14} strokeWidth={1.75} aria-hidden />
+      <Icon size={14} strokeWidth={1.75} className="shrink-0" aria-hidden />
       <span>{copy(name)}</span>
       <span className={`flex items-center gap-1 ${state === "in" ? "text-success" : "text-error"}`}>
-        <State size={14} strokeWidth={1.75} aria-hidden />
+        <State size={14} strokeWidth={1.75} className="shrink-0" aria-hidden />
         {copy(state === "in" ? "scan.filling.reader.in" : "scan.filling.reader.out")}
       </span>
     </span>

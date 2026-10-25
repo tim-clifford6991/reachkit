@@ -44,7 +44,8 @@
 import { readdirSync } from "node:fs";
 import path from "node:path";
 import { LIVE_ACCOUNT, RESERVED_ACCOUNT, WEEK_ZERO_ACCOUNT } from "../../app/accounts";
-import { VERDICT, fullSections } from "../../scan/report/fixtures";
+import { AT, PROFILE, SELECTED, VERDICT, fullSections } from "../../scan/report/fixtures";
+import { marketSetOf } from "@/lib/market/questions/market-set";
 import type { PromptAnswer, PromptsSection } from "../../../src/lib/scan/report";
 import { bandRivalSize } from "@/lib/market/rivals/band";
 import { measured } from "@/lib/measure/measured";
@@ -63,6 +64,7 @@ import {
   acceptanceFor,
   ACCESS_ENDS_ON,
   LIVE_DRAFTS,
+  LONG_READ_AS,
   PUBLISHER_PAGE,
   scheduledFor,
   seededVolume,
@@ -71,10 +73,8 @@ import {
   writeEvidence,
 } from "./seed-rows";
 
-
 const ROOT = path.resolve(__dirname, "../../..");
 const MIGRATIONS_DIR = path.join(ROOT, "supabase/migrations");
-
 
 /**
  * The third account: paid, and **still in setup** (issue #272).
@@ -751,27 +751,6 @@ const PUBLISHER_MORE_PAGES = [
 ] as const;
 
 /**
- * The founder who is still in setup (issue #272), and the report their
- * address already has behind it.
- *
- * Written here rather than through `seedSite` because every one of that
- * function's promises is the opposite of what these two screens need: it
- * stamps `setup_completed_at` so the gate lets `/app` through, and it gives
- * the site a scan, an opportunity and a draft — a site that has been running
- * for a while. This account has paid, has answered nothing, and has a deep
- * pass under way. `plan_status` and `paid_through` are the reserved
- * account's, because a founder on the setup screen has certainly paid
- * (§4.3: "post-payment, once") and `hasActiveAccess()` has to be true for
- * them.
- *
- * The report is REQ-021 c6 versus c7: `readSetupScreen` reads the completed
- * report for the address this account will use, and with one there the
- * market card renders its inferred arm and the address field is filled —
- * the denser of the two, and therefore the one the layout law has to hold
- * for. Without it the screen is legal and emptier, which is a picture of
- * less.
- */
-/**
  * The free-scans gallery's listing (#1069): enough finished free scans that
  * `/scans` is measured with cards on it rather than its empty arm — one
  * with a logo, one drawn as a letter, one a ceiling cut off, and a company
@@ -819,6 +798,18 @@ export function seedFreeScans(): void {
   });
 }
 
+/** A stored report whose read-as chips wrap at 390px, so their icons are measured on two lines. */
+export function seedLongReadAs(): void {
+  const { category, town } = LONG_READ_AS;
+  const domain = LONG_READ_AS.domain as CanonicalDomain;
+  const profile = { ...PROFILE, category, town, kind: "local-service", reach: "local" } as const;
+  const market = measured(marketSetOf({ profile, suggestions: [{ keyword: SELECTED.keyword, volume: 1900 }] }), AT);
+  const report = assembleReport({ ...fullSections({ market }), domain, tier: "free", verdict: { ...VERDICT, domain } });
+  const { scoreAndBand } = report.verdict;
+  const score = scoreAndBand.kind === "measured" ? scoreAndBand.value.score : null;
+  sql(`insert into scans (domain, tier, status, score, is_current, report) values ('${domain}', 'deep', 'done', ${score}, true, '${quote(JSON.stringify(report))}'::jsonb);`);
+}
+
 /**
  * The ledger the owner's cost page reads (issue 1478): a week of the
  * reserved account's own calls, a free scan's, and what the vendors billed,
@@ -861,6 +852,12 @@ export function seedLedger(): void {
   );
 }
 
+/**
+ * The founder who is still in setup (issue #272): paid, no answers, a deep
+ * pass under way, and no `setup_completed_at`, so `seedSite` (which stamps
+ * one) is the wrong writer. The completed report is REQ-021 c6's denser arm:
+ * with it the market card renders its inferred arm and the address is filled.
+ */
 export function seedSetupAccount(): void {
   const { userId, siteId, domain, timeZone } = SETUP_ACCOUNT;
   const email = EMAIL_OF[userId];
