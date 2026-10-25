@@ -9,7 +9,7 @@ import { existsSync, lstatSync, readFileSync, readdirSync, unlinkSync, writeFile
 import path from "node:path";
 import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
-import { budgetFindings } from "./lib/budgets.mjs";
+import { budgetFindings, isMeasured, lineCount, lineFindings } from "./lib/budgets.mjs";
 import { mainCheckoutFinding } from "./lib/main-checkout.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -291,7 +291,19 @@ function checkBudgets(texts) {
   } catch {
     base = null;
   }
-  for (const finding of budgetFindings({ budgets, base, files: texts })) add("repo", finding);
+  // A scheduled or box run reports on main and has no pull request base, so it skips every line rule.
+  const diffed = !wantIssue && run("git", ["-C", ROOT, "rev-parse", "--verify", "-q", "HEAD^1"]).ok;
+  const diff = (...extra) => run("git", ["-C", ROOT, "diff", "--no-renames", "HEAD^1", ...extra], { maxBuffer: 32 * 1024 * 1024 });
+  const decided = !diffed || /^docs\/spec\/decisions\//m.test(diff("--name-only", "--diff-filter=A").stdout);
+  for (const finding of budgetFindings({ budgets, base, files: texts, decided })) add("repo", finding);
+  if (!diffed) return;
+  const numstat = diff("--numstat", "--", "src", "tests", "scripts");
+  if (!numstat.ok) return add("repo", `git diff --numstat HEAD^1 failed (${numstat.stderr.trim() || numstat.status})`);
+  const changes = numstat.stdout.split("\n").map((l) => l.split("\t")).filter((c) => c.length === 3 && c[0] !== "-")
+    .map(([added, deleted, rel]) => ({ rel, added: Number(added), deleted: Number(deleted) }));
+  const lines = new Map(texts.filter((t) => isMeasured(t.rel)).map((t) => [t.rel, lineCount(t.text)]));
+  for (const { rel } of changes) if (!lines.has(rel)) lines.set(rel, lineCount(readRel(rel) ?? ""));
+  for (const finding of lineFindings({ budget: budgets?.lines, changes, lines })) add("repo", finding);
 }
 
 // Issue 1482: a Coherence registry parent stays open while its row stands.
