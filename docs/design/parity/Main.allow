@@ -32,4 +32,3 @@ Emergency plumber in Austin: what to do in the first hour	sample data: the sweep
 AI read your pages 14 times this week.	sample data: the count is the account's own reads this week
 24 place in Google up 38 since Oct 5	sample data: the place, the gain and the day it was first seen are the account's best mover's
 checked monthly · next on Mon 16 Nov	sample data: the day is the account's next first Monday
-ChatGPT, Perplexity and Claude fetching a page to answer someone. Training crawlers are not counted.	#1615: REQ-092 c8 names no vendor or model on /app under a stop, and Claude is ReachKit's own model; ships "ChatGPT, Perplexity and other AI apps", which also counts Gemini and Copilot

@@ -118,11 +118,11 @@ export function SearchTiles(p: {
       means: copy("overview.search.visits.means"),
       ...(visits === null
         ? NOT_MEASURED
-        : visits === 0
+        : p.visits?.length === 0
           ? { figure: copy("overview.search.visits.none"), quiet: true, against: null, split: null }
           : {
               figure: formatCount(visits),
-              quiet: false,
+              quiet: visits === 0,
               against: copy("overview.search.visits.of"),
               split: null,
               spark: visitsSpark(p.visits ?? []),

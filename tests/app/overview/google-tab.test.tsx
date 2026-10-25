@@ -238,6 +238,18 @@ describe("visits from Google, week by week", () => {
     expect(text(t)).not.toMatch(/\b0\b/);
   });
 
+  it("a week of none after a week with visits is the figure 0 over the bars, this week's last at 0, never none yet", () => {
+    const t = tile([
+      { start: "2026-10-08", visits: 5 },
+      { start: "2026-10-15", visits: 0 },
+    ]);
+    expect(text(t?.querySelector('[data-testid="search-tile-visits-value"]'))).toBe("0");
+    expect(text(t)).toContain(copy("overview.search.visits.of"));
+    expect(text(t)).not.toContain(copy("overview.search.visits.none"));
+    const chart = t?.querySelector(`figure[aria-label="${copy("overview.search.visits.chart")}"]`);
+    expect([...(chart?.querySelectorAll("li") ?? [])].map(text)).toEqual(["Oct 8 · 5", "Oct 15 · 0"]);
+  });
+
   it("a hosted site with no visit yet says none yet, with no chart", () => {
     const t = tile([]);
     expect(text(t?.querySelector('[data-testid="search-tile-visits-value"]'))).toBe(copy("overview.search.visits.none"));

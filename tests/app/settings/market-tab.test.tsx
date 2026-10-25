@@ -359,7 +359,7 @@ describe("board SettingsMarket, on the account the layout sweep reads", () => {
     const frame = [
       "ReachKit", "Overview", "Plan", "Settings", "Publishing on",
       "What you’re measured as, how pages go out, and your account.",
-      "Your business", "Market and competitors", "Publishing", "Your voice", "Mail", "Billing", "Account", "Settings section",
+      "Your business", "Market and competitors", "Publishing", "Your voice", "Mail", "Billing", "Account",
     ];
     expect(missing.filter((s: string) => !frame.includes(s))).toEqual([]);
   });
