@@ -202,7 +202,7 @@ export function baselineLine(board, sha, missing, components) {
 
 /**
  * A board's count against `baseline.json`: never up, and every gain committed.
- * A changed board file passes with its new count; the next PR on its route commits it.
+ * A changed board file passes only so CI can print the line to commit; tests/design/parity/fingerprints.test.ts refuses the merge until it is committed.
  * `key` names the count: board strings (`missing`) or board components (`components`).
  * @param {string} board
  * @param {string[]} missing
