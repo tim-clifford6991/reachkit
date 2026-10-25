@@ -50,7 +50,13 @@ export function budgetFindings({ budgets, base, files, decided = false }) {
     }
   }
   const was = numbers(base);
-  for (const [key, value] of numbers(budgets)) {
+  const now = numbers(budgets);
+  for (const key of was.keys()) {
+    if (key.startsWith("lines.") && !now.has(key) && !decided) {
+      findings.push(`scripts/budgets.json removes ${key} without a new docs/spec/decisions/ file`);
+    }
+  }
+  for (const [key, value] of now) {
     if (key.startsWith("lines.")) {
       if (was.has(key) && value !== was.get(key) && !decided) {
         findings.push(`scripts/budgets.json changes ${key} from ${was.get(key)} to ${value} without a new docs/spec/decisions/ file`);
@@ -76,6 +82,8 @@ export function lineCount(text) {
 export function lineFindings({ budget, changes, lines }) {
   const findings = [];
   if (!budget) return ["scripts/budgets.json has no lines budget"];
+  const missing = ["fileMax", "tests.floor", "tests.share"].filter((k) => !numbers(budget).has(k));
+  if (missing.length) return [`scripts/budgets.json has no lines.${missing.join(", lines.")}`];
   const measured = changes.filter((c) => isMeasured(c.rel));
   for (const { rel, added, deleted } of measured) {
     const now = lines.get(rel) ?? 0;

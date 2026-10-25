@@ -294,7 +294,7 @@ function checkBudgets(texts) {
   // A scheduled or box run reports on main and has no pull request base, so it skips every line rule.
   const diffed = !wantIssue && run("git", ["-C", ROOT, "rev-parse", "--verify", "-q", "HEAD^1"]).ok;
   const diff = (...extra) => run("git", ["-C", ROOT, "diff", "--no-renames", "HEAD^1", ...extra], { maxBuffer: 32 * 1024 * 1024 });
-  const decided = !diffed || /^docs\/spec\/decisions\//m.test(diff("--name-only", "--diff-filter=A").stdout);
+  const decided = !diffed || /^docs\/spec\/decisions\/\d{4}-\d{2}-\d{2}-/m.test(diff("--name-only", "--diff-filter=A").stdout);
   for (const finding of budgetFindings({ budgets, base, files: texts, decided })) add("repo", finding);
   if (!diffed) return;
   const numstat = diff("--numstat", "--", "src", "tests", "scripts");

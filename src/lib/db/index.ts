@@ -16,12 +16,9 @@
 // package — Next's canonical mechanism for this — is not present in this
 // repository's dependency tree (`package.json` is not in this work order's
 // file plan, and installing a package here would touch it — a deviation
-// this work order's return states plainly), so the build-time half is a
-// lint-level guard instead, implemented in `tests/db/clients.test.ts`
-// itself: a checker function applies the rule ("no file carrying the
-// `'use client'` directive may import `dbAdmin` from this module") to the
-// real `src/` tree and, separately, to a fixture client component, to
-// prove it discriminates. The runtime half — `typeof window`, below — is
+// this work order's return states plainly), so the build-time half is the
+// eslint rule `local/no-db-admin-in-client` in `eslint.config.mjs`. The
+// runtime half — `typeof window`, below — is
 // the separate, independent guard on `dbAdmin()` itself.
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { env } from "@/lib/config/env";

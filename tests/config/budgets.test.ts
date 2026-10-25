@@ -142,5 +142,35 @@ describe("hygiene holds the line budgets against the pull request's base", () =>
       "- repo: scripts/budgets.json changes lines.fileMax from 600 to 650 without a new docs/spec/decisions/ file",
     ]);
     expect(r.pr(() => (raise(), r.write("docs/spec/decisions/2026-10-25-1626.md", "# ruling\n")))).toEqual([]);
+    expect(r.pr(() => (raise(), r.write("docs/spec/decisions/ruling.md", "# ruling\n")))).toHaveLength(1);
+  });
+
+  it("removes a lines number only beside a new dated decision file, and a missing one is a finding", () => {
+    const r = seeded();
+    const edit = (change: (lines: Record<string, unknown>) => void) => () => {
+      const budgets = JSON.parse(readFileSync(BUDGETS, "utf8"));
+      change(budgets.lines);
+      r.write("scripts/budgets.json", JSON.stringify(budgets));
+    };
+    const dated = () => r.write("docs/spec/decisions/2026-10-25-1626.md", "# ruling\n");
+    const noAreas = edit((l) => (l.areas = {}));
+    expect(r.pr(noAreas)).toEqual([
+      "- repo: scripts/budgets.json removes lines.areas.src/lib/opportunities without a new docs/spec/decisions/ file",
+    ]);
+    expect(r.pr(() => (noAreas(), dated()))).toEqual([]);
+    expect(r.pr(edit((l) => delete l.areas))).toEqual([
+      "- repo: scripts/budgets.json removes lines.areas.src/lib/opportunities without a new docs/spec/decisions/ file",
+    ]);
+    expect(r.pr(edit((l) => delete l.fileMax))).toEqual([
+      "- repo: scripts/budgets.json removes lines.fileMax without a new docs/spec/decisions/ file",
+      "- repo: scripts/budgets.json has no lines.fileMax",
+    ]);
+    const noTests = edit((l) => delete l.tests);
+    expect(r.pr(noTests)).toEqual([
+      "- repo: scripts/budgets.json removes lines.tests.share without a new docs/spec/decisions/ file",
+      "- repo: scripts/budgets.json removes lines.tests.floor without a new docs/spec/decisions/ file",
+      "- repo: scripts/budgets.json has no lines.tests.floor, lines.tests.share",
+    ]);
+    expect(r.pr(() => (noTests(), dated()))).toEqual(["- repo: scripts/budgets.json has no lines.tests.floor, lines.tests.share"]);
   });
 });
