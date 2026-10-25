@@ -9,6 +9,7 @@ import { existsSync, lstatSync, readFileSync, readdirSync, unlinkSync, writeFile
 import path from "node:path";
 import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
+import { budgetFindings } from "./lib/budgets.mjs";
 import { mainCheckoutFinding } from "./lib/main-checkout.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -250,6 +251,7 @@ function checkRepo() {
     if (f === "docs/archive" || f.startsWith("docs/archive/")) add("repo", `tracked ${f}`);
   }
 
+  const texts = [];
   for (const rel of files) {
     if (SKIP_SCAN.has(rel)) continue;
     if (!TEXT.has(extOf(rel))) continue;
@@ -268,7 +270,28 @@ function checkRepo() {
       continue;
     }
     scanText("repo", rel, text);
+    texts.push({ rel, text });
   }
+  checkBudgets(texts);
+}
+
+// On a pull request the checkout is the merge commit, so HEAD^1 is the base it merges into.
+function checkBudgets(texts) {
+  let budgets;
+  try {
+    budgets = JSON.parse(readRel("scripts/budgets.json") ?? "null");
+  } catch {
+    add("repo", "scripts/budgets.json is not valid JSON");
+    return;
+  }
+  const shown = run("git", ["-C", ROOT, "show", "HEAD^1:scripts/budgets.json"]);
+  let base = null;
+  try {
+    base = shown.ok ? JSON.parse(shown.stdout) : null;
+  } catch {
+    base = null;
+  }
+  for (const finding of budgetFindings({ budgets, base, files: texts })) add("repo", finding);
 }
 
 // Issue 1482: a Coherence registry parent stays open while its row stands.
