@@ -8,6 +8,7 @@ How a screen is built today. Rulings and their history are in git; this page hol
 2. **Recharts 3** — every series (line, bar, sparkline), each in a `ResponsiveContainer`, stroked and filled from the theme's chart colours, labelled directly with no legend box. A grid that is not a series (rivals × questions, the week strip, the AI-answers matrix) is CSS grid.
 3. **lucide-react** — stroke 1.75, 20px in chrome, 16px in badges. No emoji.
    - 2026-10-24 E29 (ux-designer, owner-delegated): one icon per concept; the boards' choice wins: AI `Sparkles`; Page-ready mail `MailCheck`; Monday mail `Inbox` (everywhere); Planned `Calendar`; Written/waiting `Clock`; Live `CircleCheck`; Update `RefreshCw`; New `Plus`; Stop `CircleStop`; Edit `Pencil`; Your business `Building2`; Links to this page `Link`; Mentions you, no link `MessageSquare`; No answer / too big `CircleMinus`; Names no one `CircleDashed`; Up next `List`. Retired: `Bot` (use `Sparkles`), `Link2` (use `Link`). An icon is imported under its own name, never an alias. `tests/ui/design/icon-vocabulary.test.ts` holds the retired list.
+     - Page-ready mail `MailCheck` only; the sign-in link mail `Mail`.
 
 Spacing and type are Tailwind's scale (`p-4`, `text-sm`). Colour is the `reachkit` theme. There is no pixel baseline. The gates check the strategy in this page. The owner looks at `dev.reachkit.app` for taste.
 
