@@ -159,6 +159,13 @@ describe("the draft's board icons", () => {
     expect(toolbar?.textContent).toContain(new URL(VIEW.publisher.url).host);
   });
 
+  it("the links card is headed by the link, never the retired link-2 (E29)", () => {
+    const linked = readHost({ ...VIEW, bodyMd: `${VIEW.bodyMd}\n\nSee [the full study](https://example.org/study).\n` });
+    const head = at(linked, "draft-links").querySelector("h2");
+    expect(head?.querySelector("svg.lucide-link")).not.toBeNull();
+    expect(linked.querySelector("svg.lucide-link-2")).toBeNull();
+  });
+
   it("a page that broke a rule says so behind the warning sign", () => {
     const held = at(readHost({ ...VIEW, rulesFailed: true }), "draft-rules-held");
     expect(held.querySelector("svg.lucide-triangle-alert")).not.toBeNull();
