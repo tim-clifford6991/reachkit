@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Design parity: the visible strings of each canvas board, and which of them
-// the shipped page carries. Strings only, never markup or pixels (DESIGN.md › Boards).
+// the shipped page carries. Never markup or pixels (DESIGN.md › Boards); components.mjs counts components.
 //
 //   node scripts/design/parity.mjs --board Pricing --url https://reachkit.app/pricing
 //   node scripts/design/parity.mjs --board Pricing --file page.html
@@ -132,6 +132,9 @@ export function boardStrings(html) {
 export const CITATION =
   /owner \d{4}-\d{2}-\d{2}|\b(?:DESIGN|SPEC) (?:§\d+|\d{4}-\d{2}-\d{2})|\b[DEGQR]\d{1,2}\b|#\d{3,}|docs\/spec\/decisions\/\S+\.md|\bsample data\b/i;
 
+// An allow line for a component rather than a string (components.mjs).
+export const COMPONENT = "component:";
+
 export function parseAllow(text) {
   return text
     .split("\n")
@@ -160,6 +163,7 @@ export function readAllow(board, dir = PARITY_DIR) {
 export function compare(boardHtml, shipTexts, allow = []) {
   const index = shipIndex(shipTexts);
   const key = (s) => words(s).join(" ");
+  allow = allow.filter((a) => !a.string.startsWith(COMPONENT));
   const allowed = new Set(allow.map((a) => key(a.string)));
   /** @type {{ matched: string[], allowed: string[], missing: string[], unused: { string: string, n?: number, ships: boolean }[] }} */
   const result = { matched: [], allowed: [], missing: [], unused: [] };
@@ -180,7 +184,7 @@ export function compare(boardHtml, shipTexts, allow = []) {
 
 /** Where an unused allow line is, and why it goes. */
 export function unusedLine(board, u) {
-  return `docs/design/parity/${board}.allow:${u.n ?? "?"} ${u.string} (delete it: ${u.ships ? "the string ships" : "the board does not draw it"})`;
+  return `docs/design/parity/${board}.allow:${u.n ?? "?"} ${u.string} (${u.why ?? `delete it: ${u.ships ? "the string ships" : "the board does not draw it"}`})`;
 }
 
 export function boardFile(board, dir = BOARDS_DIR) {
@@ -191,43 +195,50 @@ export function sha256(file) {
   return createHash("sha256").update(readFileSync(file)).digest("hex");
 }
 
-export function baselineLine(board, sha, missing) {
-  return `"${board}": { "sha256": "${sha}", "missing": ${missing} }`;
+export function baselineLine(board, sha, missing, components) {
+  const counts = Object.entries({ missing, components }).filter(([, v]) => v !== undefined);
+  return `"${board}": { "sha256": "${sha}"${counts.map(([k, v]) => `, "${k}": ${v}`).join("")} }`;
 }
 
 /**
  * A board's count against `baseline.json`: never up, and every gain committed.
  * A changed board file passes with its new count; the next PR on its route commits it.
+ * `key` names the count: board strings (`missing`) or board components (`components`).
  * @param {string} board
  * @param {string[]} missing
- * @param {{ sha256: string, missing: number } | undefined} entry
+ * @param {{ sha256: string, missing: number, components?: number } | undefined} entry
  * @param {string} sha
- * @param {{ string: string, n?: number, ships: boolean }[]} [unused]
+ * @param {{ string: string, n?: number, ships: boolean, why?: string }[]} [unused]
+ * @param {"missing" | "components"} [key]
  * @returns {{ ok: boolean, message: string }}
  */
-export function verdict(board, missing, entry, sha, unused = []) {
+export function verdict(board, missing, entry, sha, unused = [], key = "missing") {
   if (unused.length > 0) {
     return { ok: false, message: `${board}: an allow line excuses nothing.\n${unused.map((u) => `  - ${unusedLine(board, u)}`).join("\n")}` };
   }
-  const line = baselineLine(board, sha, missing.length);
+  const counts = { missing: entry?.missing, components: entry?.components, [key]: missing.length };
+  const line = baselineLine(board, sha, counts.missing, counts.components);
   const list = missing.map((s) => `  - ${s}`).join("\n");
+  const what = key === "missing" ? "board strings" : "board components";
   if (!entry) return { ok: false, message: `${board} has no row in docs/design/parity/baseline.json. Commit:\n${line}` };
+  const baseline = entry[key];
+  if (baseline === undefined) return { ok: false, message: `${board} has no "${key}" in docs/design/parity/baseline.json. Commit:\n${line}` };
   if (entry.sha256 !== sha) {
-    return { ok: true, message: `${board}: the board file changed; ${missing.length} missing now. The next pull request on its route commits:\n${line}` };
+    return { ok: true, message: `${board}: the board file changed; ${missing.length} ${what} missing now. The next pull request on its route commits:\n${line}` };
   }
-  if (missing.length > entry.missing) {
-    return { ok: false, message: `${board}: ${missing.length} board strings missing, baseline ${entry.missing}. Missing:\n${list}` };
+  if (missing.length > baseline) {
+    return { ok: false, message: `${board}: ${missing.length} ${what} missing, baseline ${baseline}. Missing:\n${list}` };
   }
-  if (missing.length < entry.missing) {
-    return { ok: false, message: `${board}: ${missing.length} missing, below its baseline of ${entry.missing}. Lock the gain in docs/design/parity/baseline.json:\n${line}` };
+  if (missing.length < baseline) {
+    return { ok: false, message: `${board}: ${missing.length} ${what} missing, below its baseline of ${baseline}. Lock the gain in docs/design/parity/baseline.json:\n${line}` };
   }
-  return { ok: true, message: `${board}: ${missing.length} missing, as its baseline.` };
+  return { ok: true, message: `${board}: ${missing.length} ${what} missing, as its baseline.` };
 }
 
 /** The table a job summary and the CLI print for one board. */
-export function table(board, result, baseline) {
+export function table(board, result, baseline, heading = board) {
   const lines = [
-    `#### ${board}`,
+    `#### ${heading}`,
     "",
     "| matched | missing | allowed | baseline |",
     "|---|---|---|---|",

@@ -2,11 +2,13 @@
 import { readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
+import { COMPONENT_LINE, compareComponents } from "../../../scripts/design/components.mjs";
 import {
   BOARDS_DIR,
   boardFile,
   boardStrings,
   CITATION,
+  COMPONENT,
   compare,
   PARITY_DIR,
   parseAllow,
@@ -27,7 +29,11 @@ function problems(board: string, text: string, strings: string[]): string[] {
     else if (!CITATION.test(reason)) out.push(`${board}.allow:${n} cites no ruling, decision file or issue: ${reason}`);
     else if (/\bpending\b/i.test(reason)) out.push(`${board}.allow:${n} cites a ruling still pending: ${reason}`);
     if (key === "theme light" && !reason.startsWith("DESIGN.md")) out.push(`${board}.allow:${n} cites no DESIGN.md › Theme for the theme control: ${reason}`);
-    if (!known.has(key)) out.push(`${board}.allow:${n} is no string on the board: ${string}`);
+    if (string.startsWith(COMPONENT)) {
+      if (!COMPONENT_LINE.test(string)) out.push(`${board}.allow:${n} is not component:<token> <n>: ${string}`);
+      // A missing component is a build gap, never sample content, so it needs a ruling or an issue.
+      if (/\bsample data\b/i.test(reason)) out.push(`${board}.allow:${n} cites sample data for a component: ${reason}`);
+    } else if (!known.has(key)) out.push(`${board}.allow:${n} is no string on the board: ${string}`);
     if (seen.has(key)) out.push(`${board}.allow:${n} repeats: ${string}`);
     seen.add(key);
   }
@@ -68,6 +74,38 @@ describe("docs/design/parity/*.allow", () => {
     const used = compare(html, page, allow.slice(2));
     expect(used.unused).toEqual([]);
     expect(verdict("Board", used.missing, { sha256: sha256(board), missing: 5 }, sha256(board), used.unused).ok).toBe(true);
+  });
+
+  it("a component line excuses up to n of its gap, and fails when it ships, is not drawn, or excuses more than the gap", () => {
+    const ring = '<svg viewBox="0 0 100 100"><circle r="40" fill="none"></circle></svg>';
+    const board = `<main><p>Board</p>${ring}${ring}<div class="card"></div></main>`;
+    const page = '<main><p>Board</p><div class="card"></div></main>';
+    const line = (string: string, n: number) => ({ string, n, reason: "#1992" });
+    const used = compareComponents(board, [page], [line("component:ring 2", 1)]);
+    expect([used.missing, used.allowed, used.unused]).toEqual([[], ["ring", "ring"], []]);
+    const unused = compareComponents(board, [page], [line("component:ring 3", 1), line("component:card 1", 2), line("component:chart 1", 3)]);
+    const failed = verdict("Board", unused.missing, { sha256: "x", missing: 0, components: 0 }, "x", unused.unused, "components");
+    expect(failed.ok).toBe(false);
+    expect(failed.message).toContain("Board.allow:1 component:ring 3 (lower it to 2)");
+    expect(failed.message).toContain("Board.allow:2 component:card 1 (delete it: the component ships)");
+    expect(failed.message).toContain("Board.allow:3 component:chart 1 (delete it: the board does not draw it)");
+    expect(compare(board, ["Board"], [line("component:ring 2", 1)]).unused).toEqual([]);
+    expect(problems("Board", "component:ring two\t#1992\n", ["Board"]).join()).toContain("not component:<token> <n>");
+    expect(problems("Board", "component:ring 1\tsample data\n", ["Board"]).join()).toContain("cites sample data for a component");
+    expect(problems("Board", "component:ring 1\t#1992\n", ["Board"])).toEqual([]);
+  });
+
+  it("a component line below the gap excuses n and leaves the rest missing", () => {
+    const ring = '<svg viewBox="0 0 100 100"><circle r="40" fill="none"></circle></svg>';
+    const parts = compareComponents(`<main>${ring}${ring}</main>`, ["<main></main>"], [{ string: "component:ring 1", n: 1 }]);
+    expect([parts.missing, parts.allowed, parts.unused]).toEqual([["ring"], ["ring"], []]);
+  });
+
+  it("a page or hosted row with no components count fails, and names the line to commit", () => {
+    const result = verdict("Board", [], { sha256: "x", missing: 0 }, "x", [], "components");
+    expect(result.ok).toBe(false);
+    expect(result.message).toContain('Board has no "components" in docs/design/parity/baseline.json');
+    expect(result.message).toContain('"Board": { "sha256": "x", "missing": 0, "components": 0 }');
   });
 
   it("reads a board string that starts with # as a line, and a # line with no tab as a comment", () => {
