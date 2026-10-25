@@ -10,11 +10,9 @@
 // value on the surface is the customer's, and nothing on it is the
 // product's colour.
 //
-// The page is called directly and rendered to static markup, the same
-// convention `head.test.tsx` uses, so there is no browser here and no
-// second renderer: what is asserted is the HTML a visitor's first byte
-// carries.
-import { renderToStaticMarkup } from "react-dom/server";
+// The cached route's `GET` is called directly, so there is no browser here
+// and no second renderer: what is asserted is the HTML a visitor's first
+// byte carries.
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { applyEnvFixture } from "../../mail/env-fixture";
 import { MARK_CLASS } from "@/app/(account)/app/draft/[draftId]/present";
@@ -55,6 +53,7 @@ vi.mock("@/lib/publish/destinations/hosted", async () => {
     hostedSiteForHostname: async () => null,
     livePageBySlug: async () => state.page,
     livePagesForSite: async () => (state.page === null ? [] : [state.page, ...state.others]),
+    taggedForHosted: async () => undefined,
     hostedIdentity: async (a: { domain: string }) => ({
       name: a.domain,
       logoType: null,
@@ -65,7 +64,7 @@ vi.mock("@/lib/publish/destinations/hosted", async () => {
   };
 });
 
-const Page = (await import("@/app/(hosted)/hosted-page/[[...slug]]/page")).default;
+const { GET } = await import("@/app/(hosted)/hosted-live/[host]/[slug]/route");
 const { COPY } = await import("@/lib/presentation/copy");
 const { readMainSite } = await import("@/lib/site-profile/main-site");
 const { mainSiteOf } = await import("@/lib/site-profile/main-site-row");
@@ -110,8 +109,8 @@ function livePage(over: Record<string, unknown> = {}): unknown {
 }
 
 async function render(): Promise<string> {
-  const tree = await Page({ params: Promise.resolve({ slug: ["a-page"] }) });
-  return renderToStaticMarkup(tree);
+  const params = Promise.resolve({ host: state.host, slug: "a-page" });
+  return (await GET(new Request("https://content.example.com/a-page"), { params })).text();
 }
 
 beforeEach(() => {

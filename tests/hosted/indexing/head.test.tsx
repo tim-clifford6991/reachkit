@@ -11,7 +11,6 @@
 // question-and-answer section emits **no `FAQPage` at all** — never an empty
 // `FAQPage`, which would be a structured claim about a section that is not
 // on the page, on a domain that is not ours.
-import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { applyEnvFixture } from "../../mail/env-fixture";
 
@@ -61,11 +60,13 @@ vi.mock("@/lib/publish/destinations/hosted", async () => {
       mainSite: state.mainSite,
     }),
     hostedAddress: async () => ({ state: "none", publicationId: null }),
+    taggedForHosted: async () => undefined,
   };
 });
 
 const Page = (await import("@/app/(hosted)/hosted-page/[[...slug]]/page")).default;
 const { generateMetadata } = await import("@/app/(hosted)/hosted-page/[[...slug]]/page");
+const { GET } = await import("@/app/(hosted)/hosted-article/[slug]/route");
 
 function livePage(faq: { question: string; answer: string }[]): unknown {
   return {
@@ -97,9 +98,24 @@ function livePage(faq: { question: string; answer: string }[]): unknown {
   };
 }
 
+/** The article as its route answers it, on the Host that was asked. */
+function served(): Promise<Response> {
+  const request = new Request("https://content.example.com/a-page", { headers: { host: state.host } });
+  return GET(request, { params: Promise.resolve({ slug: "a-page" }) });
+}
+
 async function render(): Promise<string> {
-  const tree = await Page({ params: Promise.resolve({ slug: ["a-page"] }) });
-  return renderToStaticMarkup(tree);
+  return (await served()).text();
+}
+
+async function head(): Promise<HTMLHeadElement> {
+  return new DOMParser().parseFromString(await render(), "text/html").head;
+}
+
+/** What one tag of the article's head says: its `content`, else its `href`. */
+async function said(selector: string): Promise<string | null> {
+  const tag = (await head()).querySelector(selector);
+  return tag?.getAttribute("content") ?? tag?.getAttribute("href") ?? null;
 }
 
 beforeEach(() => {
@@ -112,26 +128,23 @@ beforeEach(() => {
 
 describe("REQ-059 c3 — the canonical is on the customer's own domain", () => {
   it("it names content.{their domain}/{slug}, never a ReachKit address", async () => {
-    const metadata = await generateMetadata({ params: Promise.resolve({ slug: ["a-page"] }) });
-    expect(metadata.alternates?.canonical).toBe("https://content.example.com/a-page");
-    expect(String(metadata.alternates?.canonical)).not.toContain("reachkit");
+    const canonical = await said('link[rel="canonical"]');
+    expect(canonical).toBe("https://content.example.com/a-page");
+    expect(String(canonical)).not.toContain("reachkit");
   });
 
   it("the title is the customer's page title, not a sentence of ours", async () => {
-    const metadata = await generateMetadata({ params: Promise.resolve({ slug: ["a-page"] }) });
-    expect(metadata.title).toBe("The best onboarding tools");
+    expect((await head()).querySelector("title")?.textContent).toBe("The best onboarding tools");
   });
 
   it("the description is the one generation wrote for the page", async () => {
-    const metadata = await generateMetadata({ params: Promise.resolve({ slug: ["a-page"] }) });
-    expect(metadata.description).toBe("Which onboarding tools small teams pick, and why.");
+    expect(await said('meta[name="description"]')).toBe("Which onboarding tools small teams pick, and why.");
   });
 
   it("a page with no stored description is described by its own first paragraph, cut at a word", async () => {
     const long = `${"word ".repeat(60)}end.`;
     state.page = { ...(livePage([]) as object), description: null, bodyMd: `## Heading\n\n**${long}**` };
-    const metadata = await generateMetadata({ params: Promise.resolve({ slug: ["a-page"] }) });
-    const description = String(metadata.description);
+    const description = String(await said('meta[name="description"]'));
     expect(description.startsWith("word word")).toBe(true);
     expect(description.endsWith("word…")).toBe(true);
     expect(description.length).toBeLessThanOrEqual(161);
@@ -139,14 +152,13 @@ describe("REQ-059 c3 — the canonical is on the customer's own domain", () => {
 
   it("a page with neither declares no description, never an empty one", async () => {
     state.page = { ...(livePage([]) as object), description: null, bodyMd: "## Only a heading" };
-    const metadata = await generateMetadata({ params: Promise.resolve({ slug: ["a-page"] }) });
-    expect(metadata.description).toBeUndefined();
+    expect(await said('meta[name="description"]')).toBeNull();
   });
 
-  it("an address with no page declares nothing at all", async () => {
+  it("an address with no page declares no canonical and no description", async () => {
     state.page = null;
-    const metadata = await generateMetadata({ params: Promise.resolve({ slug: ["a-page"] }) });
-    expect(metadata).toEqual({});
+    expect(await said('link[rel="canonical"]')).toBeNull();
+    expect(await said('meta[name="description"]')).toBeNull();
   });
 });
 
@@ -182,10 +194,8 @@ describe("issue 697 — every page describes itself in structured data", () => {
     expect(facts.schemaTypes).toBeGreaterThan(0);
   });
 
-  it("the crawl's own reader finds the description once Next writes it into the head", async () => {
-    const metadata = await generateMetadata({ params: Promise.resolve({ slug: ["a-page"] }) });
-    const head = `<head><meta name="description" content="${String(metadata.description)}"/></head>`;
-    expect(readPageFacts("https://content.example.com/a-page", head).metaDescription).toBe(
+  it("the crawl's own reader finds the description in the served head", async () => {
+    expect(readPageFacts("https://content.example.com/a-page", await render()).metaDescription).toBe(
       "Which onboarding tools small teams pick, and why."
     );
   });
@@ -303,7 +313,9 @@ describe("the render itself — the whole page at first byte, and no sentence of
 
   it("an address the site never published at is a 404, never another page", async () => {
     state.page = null;
-    await expect(render()).rejects.toThrow();
+    const response = await served();
+    expect(response.status).toBe(404);
+    expect(await response.text()).not.toContain("The best onboarding tools");
   });
 
   it("a deeper path is not a page at all", async () => {
@@ -314,7 +326,9 @@ describe("the render itself — the whole page at first byte, and no sentence of
 
   it("an unknown Host renders nothing, even with a page in hand", async () => {
     state.host = "content.stranger.example";
-    await expect(render()).rejects.toThrow();
+    const response = await served();
+    expect(response.status).toBe(404);
+    expect(await response.text()).not.toContain("The best onboarding tools");
   });
 });
 
@@ -353,13 +367,11 @@ describe("#980 — a hosted response with no title of its own carries the visito
     expect(head.manifest).toBeNull();
   });
 
-  it("a published page's own title still wins — the layout's is only the floor", async () => {
+  it("a published page's own title still wins — the host is only the floor", async () => {
     state.host = "content.example.com";
-    const page = await generateMetadata({ params: Promise.resolve({ slug: ["a-page"] }) });
-    // Next resolves a page's metadata over its layout's; what this holds is
-    // that the page still states one, so there is something to resolve.
-    expect(page.title).toBe("The best onboarding tools");
-    expect(page.title).not.toBe("content.example.com");
+    const title = (await head()).querySelector("title")?.textContent;
+    expect(title).toBe("The best onboarding tools");
+    expect(title).not.toBe("content.example.com");
   });
 
   it("it is the host and nothing else: no ReachKit name anywhere in it", async () => {
@@ -448,11 +460,11 @@ describe("issue 1141 — the structured data says what the page shows", () => {
 
 describe("issue 1514 — the head states the customer's icon and lets its pictures show large", () => {
   it("an article and the index both carry max-image-preview:large and the customer's own icon", async () => {
-    for (const params of [{ slug: ["a-page"] }, {}]) {
-      const metadata = await generateMetadata({ params: Promise.resolve(params) });
-      expect(metadata.robots).toEqual({ "max-image-preview": "large" });
-      expect(metadata.icons).toEqual({ icon: "/icon.img" });
-    }
+    expect(await said('meta[name="robots"]')).toBe("max-image-preview:large");
+    expect(await said('link[rel="icon"]')).toBe("/icon.img");
+    const metadata = await generateMetadata({ params: Promise.resolve({}) });
+    expect(metadata.robots).toEqual({ "max-image-preview": "large" });
+    expect(metadata.icons).toEqual({ icon: "/icon.img" });
   });
 
   it("a host that serves no site still names the empty icon, never one that 404s", async () => {
@@ -473,26 +485,25 @@ describe("issue 1514 — the head states the customer's icon and lets its pictur
 
 describe("issue 1141 — a shared link draws a card, and the head names the feed", () => {
   it("an article carries its own share image, on the customer's host", async () => {
-    const metadata = await generateMetadata({ params: Promise.resolve({ slug: ["a-page"] }) });
-    expect(metadata.openGraph).toMatchObject({
-      type: "article",
-      url: "https://content.example.com/a-page",
-      title: "The best onboarding tools",
-      description: "Which onboarding tools small teams pick, and why.",
-      siteName: "example.com",
-      publishedTime: "2026-09-01T09:00:00.000Z",
-      images: [
-        {
-          url: "https://content.example.com/share.img/a-page",
-          width: 1200,
-          height: 630,
-          alt: "The best onboarding tools",
-        },
-      ],
-    });
-    expect(metadata.twitter).toMatchObject({
-      card: "summary_large_image",
-      images: ["https://content.example.com/share.img/a-page"],
+    const tags = Object.fromEntries(
+      [...(await head()).querySelectorAll("meta[property], meta[name^='twitter:']")].map((tag) => [
+        tag.getAttribute("property") ?? tag.getAttribute("name"),
+        tag.getAttribute("content"),
+      ])
+    );
+    expect(tags).toMatchObject({
+      "og:type": "article",
+      "og:url": "https://content.example.com/a-page",
+      "og:title": "The best onboarding tools",
+      "og:description": "Which onboarding tools small teams pick, and why.",
+      "og:site_name": "example.com",
+      "article:published_time": "2026-09-01T09:00:00.000Z",
+      "og:image": "https://content.example.com/share.img/a-page",
+      "og:image:width": "1200",
+      "og:image:height": "630",
+      "og:image:alt": "The best onboarding tools",
+      "twitter:card": "summary_large_image",
+      "twitter:image": "https://content.example.com/share.img/a-page",
     });
   });
 
@@ -533,15 +544,17 @@ describe("issue 1141 — a shared link draws a card, and the head names the feed
   });
 
   it("both link the feed, and nothing in either head names ReachKit", async () => {
-    for (const params of [{ slug: ["a-page"] }, {}]) {
-      const metadata = await generateMetadata({ params: Promise.resolve(params) });
-      expect(metadata.alternates?.types).toEqual({
-        "application/rss+xml": [
-          { url: "https://content.example.com/rss.xml", title: "Articles · example.com" },
-        ],
-      });
-      expect(JSON.stringify(metadata).toLowerCase()).not.toContain("reachkit");
-    }
+    const article = await head();
+    const feeds = [...article.querySelectorAll('link[rel="alternate"]')].map((link) => [link.getAttribute("type"), link.getAttribute("href"), link.getAttribute("title")]);
+    expect(feeds).toEqual([["application/rss+xml", "https://content.example.com/rss.xml", "Articles · example.com"]]);
+    expect(article.outerHTML.toLowerCase()).not.toContain("reachkit");
+    const metadata = await generateMetadata({ params: Promise.resolve({}) });
+    expect(metadata.alternates?.types).toEqual({
+      "application/rss+xml": [
+        { url: "https://content.example.com/rss.xml", title: "Articles · example.com" },
+      ],
+    });
+    expect(JSON.stringify(metadata).toLowerCase()).not.toContain("reachkit");
   });
 });
 

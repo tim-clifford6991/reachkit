@@ -789,6 +789,12 @@ describe("board PubReport — each section under \"Everything else\" opens with 
     expect(tiled(page.querySelector('[data-testid="report-first-page"] > summary'), "gift")).not.toBeNull();
   });
 
+  it("the AI answers card is headed by Sparkles, never the retired Bot (E29)", () => {
+    const head = page.querySelectorAll("h3").find((h) => h.text.trim() === "ai-answers.title");
+    expect(head?.querySelector("svg.lucide-sparkles")).not.toBeNull();
+    expect(page.querySelector("svg.lucide-bot")).toBeNull();
+  });
+
   it("the holds subtitle reads while closed", () => {
     const summary = page.querySelector("#holds > summary");
     expect(summary?.querySelector("h2 + p")?.text).toBe("problem.section.sub");

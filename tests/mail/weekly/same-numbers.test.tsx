@@ -353,6 +353,39 @@ describe("the Monday mail says which way visits from Google moved since last wee
     expect(line()).toEqual([sentence]);
   });
 
+  it("a week of none after a week with visits says down from it, and the Google tab's figure and bars read the same counts", async () => {
+    seed(SAAS, FIVE);
+    visits(5, 0);
+    await mail(WEEK, NOW);
+    const line = said("mail.weekly.google.visits.down");
+    expect(line).toEqual({ n: "0", before: "5" });
+    const tile = new DOMParser()
+      .parseFromString(renderToStaticMarkup(<SearchTiles pages={null} visits={await readGoogleVisitWeeks()} market={null} />), "text/html")
+      .querySelector('[data-testid="search-tile-visits"]');
+    const bars = [...(tile?.querySelectorAll(`figure[aria-label="${copy("overview.search.visits.chart")}"] li`) ?? [])].map((li) => text(li).split(" · ")[1]);
+    expect(text(tile?.querySelector('[data-testid="search-tile-visits-value"]'))).toBe(line?.n);
+    expect(bars.slice(-2)).toEqual([line?.before, line?.n]);
+  });
+
+  it("a second week of none after visits writes no line, while the Google tab still shows 0 over three bars", async () => {
+    seed(SAAS, FIVE);
+    visits(5, 0, 0);
+    await mail(WEEK, NOW);
+    expect(line()).toEqual([]);
+    const tile = new DOMParser()
+      .parseFromString(renderToStaticMarkup(<SearchTiles pages={null} visits={await readGoogleVisitWeeks()} market={null} />), "text/html")
+      .querySelector('[data-testid="search-tile-visits"]');
+    expect(text(tile?.querySelector('[data-testid="search-tile-visits-value"]'))).toBe("0");
+    expect(tile?.querySelectorAll(`figure[aria-label="${copy("overview.search.visits.chart")}"] li`).length).toBe(3);
+  });
+
+  it("a site with no visit in any kept week writes no line", async () => {
+    seed(SAAS, FIVE);
+    visits(0);
+    await mail(WEEK, NOW);
+    expect(line()).toEqual([]);
+  });
+
   it("visits that could not be read write no line, never a 0", async () => {
     seed(SAAS, FIVE);
     db.unreadable.add("publication_reads");

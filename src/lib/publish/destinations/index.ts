@@ -1,24 +1,8 @@
-// BUILD §9 — the destination registry: the read model a surface may see,
-// and connect / disconnect / reconnect.
-//
-// A destination is an object with a state, a date it was last checked, one
-// action that fixes it, and a queue that holds rather than loses. §9 makes
-// that explicit for the credential case — "expired credential is a
-// **state** (reconnect prompt, queue holds), not an error loop" — and this
-// module is where that shape lives for every case.
-//
-// **`DestinationView` is the whole of what a surface may see**, and the
-// only shape it may see it in. Settings, Overview and the calendar all
-// read the same view, so the three cannot come to describe one destination
-// differently. There is no field on it that can hold a vendor string and
-// no read path here selects `config`.
-//
-// The adapters themselves are their own issues: hosted is #49 and
-// WordPress is #54. `adapterFor` lives in `registry.ts` and is re-exported
-// here — the split is ADR-092's, so that `health/` can resolve an adapter
-// and this file can call `health/` without either importing the other.
-//
-// The archived plans are WO-223 … WO-227.
+// BUILD §9 — the destination registry: the read model a surface may see, and connect / disconnect / reconnect.
+// A destination has a state, a last-checked date, one action that fixes it, and a queue that holds rather than loses:
+// §9's "expired credential is a state (reconnect prompt, queue holds), not an error loop", for every case.
+// `DestinationView` is all a surface may see, read alike by Settings, Overview and the calendar; nothing on it can hold
+// a vendor string, and nothing here selects `config`. `adapterFor` is re-exported from `registry.ts` (ADR-092).
 import type { Actor, DestinationKind, DestinationView, HealthReason } from "../types";
 import { isPublishingOn, heldPages } from "../switch";
 import { publishDb } from "../db";
@@ -34,26 +18,13 @@ export { checkHealth, ensureFreshHealth, breakageMailDue, sendBreakageMail } fro
 export { withConfig } from "./config";
 export type { DestinationRecord } from "./store";
 
-/** One line per lifecycle event. Never a credential, never a response body
- *  — a destination id, a kind, a state and who did it (BP-058's
- *  observability budget). */
+/** One line per lifecycle event: id, kind, state and actor, never a credential or body (BP-058). */
 function log(a: { at: string; destinationId: string; kind?: DestinationKind; actor: Actor["kind"]; health?: string }): void {
   console.log(JSON.stringify({ event: "destination", ...a }));
 }
 
-/**
- * A site already has a live destination.
- *
- * A throw and not a `{ ok: false }` arm: the closed reason union describes
- * what a *check* found about a destination, and "this site already has
- * one" is not one of those — it is a caller offering Connect where the
- * surface should have offered Reconnect or Disconnect. Making it a reason
- * would put it in front of the customer as a state of their destination,
- * which it is not.
- *
- * The database refuses it too (`destinations_one_live_per_site`), and that
- * is the guarantee; this is the readable form of the same refusal.
- */
+/** A site already has a live destination: a throw, not a reason, since it is a caller's mistake and not a state to show
+ *  the customer. `destinations_one_live_per_site` is the guarantee; this is its readable form. */
 export class AlreadyConnectedError extends Error {
   constructor(siteId: string) {
     super(`src/lib/publish/destinations: site ${siteId} already has a live destination.`);
@@ -61,29 +32,15 @@ export class AlreadyConnectedError extends Error {
   }
 }
 
-/** What a caller may learn about a site's destination without opening its
- *  credential. **`config` is not on it** (issue #54): the ciphertext used
- *  to travel on this shape typed as though it were the plaintext, and the
- *  two callers that read it — the delivery and the telling — now open it
- *  through `withConfig`, for the duration of the one call each needs it
- *  in. `store.ts` holds the same discipline for the same reason: there is
- *  one select list and it does not name the column. */
+/** What a caller may learn without opening the credential; `config` is not on it, and callers needing it use `withConfig`. */
 export interface DestinationRow {
   id: string;
   kind: DestinationKind;
   health: "ok" | "expired" | "error";
 }
 
-/**
- * The site's live destination of a kind, read fresh.
- *
- * Read inside the claim rather than cached: §9 makes an expired credential
- * a state the queue holds against, and a stale health reading is exactly
- * how a page goes out to a destination that had already stopped working.
- *
- * A disconnected destination is not one of these: its credential was
- * destroyed and nothing further is sent to it.
- */
+/** The site's live destination of a kind, read fresh inside the claim, since a stale health reading is how a page goes
+ *  to a destination that already stopped working. A disconnected one is not live. */
 export async function destinationOf(
   siteId: string,
   kind: DestinationKind
@@ -100,17 +57,8 @@ export async function destinationOf(
   return row ?? null;
 }
 
-/**
- * The `destination_working` guard's fact: the site has a live destination
- * and it is healthy.
- *
- * `health = 'ok'` and `deleted_at is null` are the whole test. Where it is
- * false the publish attempt fails with `no_destination` — a reason no
- * repeated attempt could clear — and the page comes to rest needing the
- * customer. **There is no fallback destination, ever**: a page goes to the
- * destination the customer chose or it goes nowhere, and the partial
- * unique index means there is no second row one could fall back to.
- */
+/** `destination_working`: a live destination with `health = 'ok'`, the whole test. There is no fallback destination,
+ *  ever: a page goes where the customer chose or nowhere. */
 export async function destinationWorking(siteId: string): Promise<boolean> {
   const { data, error } = await publishDb()
     .from<{ id: string }>("destinations")
@@ -123,16 +71,8 @@ export async function destinationWorking(siteId: string): Promise<boolean> {
   return data.length > 0;
 }
 
-/**
- * The site's live destination is waiting for the customer's DNS record:
- * its host is `pending_dns` (SPEC §5).
- *
- * Asked beside `destinationWorking`, never instead of it: a destination
- * that does not work because nobody has pointed its record yet is the one
- * the customer can fix from the record Settings shows, so the calendar
- * names that cause on its own (#754). A read that fails answers `false`,
- * which is the general "not connected" — never a record nobody read.
- */
+/** The live destination's host is `pending_dns` (SPEC §5). Asked beside `destinationWorking` so the calendar can name
+ *  the record to set; a failed read is `false`, the general "not connected". */
 export async function destinationWaitingOnDns(siteId: string): Promise<boolean> {
   const { data, error } = await publishDb()
     .from<{ id: string }>("destinations")
@@ -145,21 +85,8 @@ export async function destinationWaitingOnDns(siteId: string): Promise<boolean> 
   return data.length > 0;
 }
 
-/**
- * What the site publishes to and whether it is working (issue 880) — the
- * stored row, read and **not** re-checked.
- *
- * Its own read beside `listDestinations` precisely because that one calls
- * `ensureFreshHealth`, which reaches the vendor. The question here is
- * whether to offer a *reconnect* control on a page that is waiting on the
- * destination, and a screen deciding which button to draw may not spend a
- * vendor call to decide it. The freshness promise is kept where it is made
- * — on Settings, which states the destination — and the row's own health
- * is what the calendar reads.
- *
- * `null` where the site has no live destination at all: nothing to name
- * and nothing to reconnect.
- */
+/** What the site publishes to and whether it works, from the stored row, never re-checked: choosing whether to draw a
+ *  reconnect control may not spend a vendor call. `null` with no live destination. */
 export async function destinationStanding(
   siteId: string
 ): Promise<{ kind: DestinationKind; healthy: boolean } | null> {
@@ -168,15 +95,8 @@ export async function destinationStanding(
   return { kind: row.kind, healthy: row.health === "ok" };
 }
 
-/**
- * Every live destination this site has, as a surface sees it, each with a
- * state no older than the freshness window.
- *
- * The re-check happens here, on the read path, because §9's promise is
- * about the date the customer reads — "never more than 24 hours old
- * whether or not a publish was attempted in between". At most one live
- * destination exists per site, so this does not fan out.
- */
+/** Every live destination as a surface sees it, re-checked on the read path for §9's "never more than 24 hours old"; at
+ *  most one per site, so no fan-out. */
 export async function listDestinations(siteId: string): Promise<DestinationView[]> {
   const rows = await liveDestinations(siteId);
   const views = await Promise.all(rows.map((row) => ensureFreshHealth(row.id)));
@@ -187,22 +107,9 @@ export type ConnectResult =
   | { ok: true; destinationId: string; health: "ok" | "expired" | "error" }
   | { ok: false; reason: HealthReason };
 
-/**
- * Connects a destination to a site.
- *
- * **`config: null` is a deferred connection**, and it is an ordinary
- * outcome rather than a failure: the row is created `expired` /
- * `never_connected`, no network call is made and the result is `ok`. That
- * is what setup needs — a founder who has chosen a destination and not yet
- * pointed the record or linked the account has a destination, in a state
- * with one action against it, and their first page is held rather than
- * published somewhere they did not choose.
- *
- * A non-null config is stored sealed and then **validated by the check**,
- * never by the act of connecting. A credential that does not work leaves a
- * destination in the state the check found, with the reason it found — the
- * customer sees it as a state and not as a rejected form.
- */
+/** Connects a destination. `config: null` is a deferred connection, not a failure: `expired`/`never_connected`, no
+ *  network call, `ok`, and the first page held. A config is stored sealed and validated by the check, never by connecting,
+ *  so a bad credential is a state, not a rejected form. */
 export async function connect(a: {
   siteId: string;
   kind: DestinationKind;
@@ -240,34 +147,13 @@ export async function connect(a: {
   if (checked.health !== "ok") {
     return { ok: false, reason: checked.reason ?? "credentials_invalid" };
   }
-  // SPEC §7 (2026-09-20, #928): "every post on a connected WordPress (read
-  // through the connection **when it is made** and every Monday)". This is
-  // the first half, and it is here rather than in the screen's action
-  // because this is the moment the connection exists — a credential that
-  // has just been checked, before the customer has done anything else. It
-  // reads the site's posts and writes them to the known-content index, so
-  // the first page planned after a connection already knows what their blog
-  // covers.
+  // SPEC §7: "every post on a connected WordPress (read through the connection when it is made and every Monday)", here
+  // where the checked connection first exists, so the first page planned knows what the blog covers.
   await indexKnownContent(a.siteId);
   return { ok: true, destinationId: created.id, health: "ok" };
 }
 
-/**
- * Disconnects a destination: its credential is destroyed and nothing
- * further is sent to it.
- *
- * **It calls no `unpublish` and touches no publication row.** Pages
- * already published stay live — they are the customer's, on the
- * customer's site — and the publication rows that record them are half of
- * §9's at-most-once guarantee (ADR-080). Deleting them here is exactly the
- * tidy-up that guarantee exists to forbid: a disconnect-and-reconnect
- * cycle would then start every page over as a first attempt against a
- * destination that already holds the posts.
- */
-/** The known-content refresh, as `connect` reaches it (#928). Never throws
- *  and never delays an answer the customer is waiting on beyond its own
- *  bounded read: a connection that worked is a connection that worked, and
- *  an index that could not be built is rebuilt on Monday. */
+/** The known-content refresh `connect` reaches. Never throws: an index that could not be built is rebuilt on Monday. */
 async function indexKnownContent(siteId: string): Promise<void> {
   try {
     const { refreshKnownContentFor } = await import("@/lib/known-content");
@@ -277,6 +163,9 @@ async function indexKnownContent(siteId: string): Promise<void> {
   }
 }
 
+/** Disconnects a destination: its credential is destroyed and nothing further is sent to it. It calls no `unpublish`
+ *  and touches no publication row: those rows are half of §9's at-most-once guarantee (ADR-080), and deleting them would
+ *  make a reconnect re-attempt every page against a site that already holds the posts. */
 export async function disconnect(
   destinationId: string,
   by: Actor
@@ -290,24 +179,9 @@ export type ReconnectResult =
   | { ok: true; held: number; releasing: boolean }
   | { ok: false; reason: HealthReason };
 
-/**
- * Reconnects a broken destination.
- *
- * On success the destination reads as working and the customer is told how
- * many pages are waiting. **Where publishing is on**, those pages resume
- * in the order they were held, under §9's ordinary ceilings — this
- * function publishes nothing itself; it clears the guard that was holding
- * them. Where publishing is switched off, none of them publishes: they
- * stay held, listed and exportable until the customer switches it on, and
- * `releasing` says which of the two happened.
- *
- * **Re-entering the stored credential does not clear
- * `error`/`cannot_publish`, and no branch here makes that true** — the
- * check is what decides health, and it re-runs the same probe against the
- * same credential and finds the same answer. A short-circuit that treated
- * a submitted credential as proof of capability would break it and would
- * pass every other assertion in this module.
- */
+/** Reconnects a broken destination and says how many pages wait. It publishes nothing: it clears the guard, so with
+ *  publishing on they resume in held order under the ceilings, and off they stay held; `releasing` says which.
+ *  Re-entering the same credential never clears `cannot_publish`: the check decides, never the submission. */
 export async function reconnect(a: {
   destinationId: string;
   config: unknown;
@@ -315,8 +189,7 @@ export async function reconnect(a: {
 }): Promise<ReconnectResult> {
   const row = await readDestination(a.destinationId);
   if (row === null || row.deleted_at !== null) {
-    // A disconnected destination is not a broken one: its credential was
-    // destroyed on purpose and connecting it again is `connect`.
+    // A disconnected destination is not broken; connecting it again is `connect`.
     return { ok: false, reason: "never_connected" };
   }
 

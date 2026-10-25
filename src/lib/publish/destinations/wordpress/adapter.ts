@@ -1,63 +1,18 @@
-// BUILD §9 — the WordPress adapter: one create call that publishes live in
-// the customer's own site, at most one post per (draft, destination).
-//
-// §9's WordPress clause reads "REST + application password, posts as draft
-// + Yoast/RankMath meta when detected". The owner's ruling of 2026-09-01
-// inverted the middle of it — `DECISIONS.md`, ADR-084: "Every CMS publishes
-// live in one call" — and left the rest standing. So: REST, an application
-// password, the SEO fields when detected, and a page that is publicly
-// readable on the customer's own site from the moment the delivery
-// completes.
-//
-// **The two booleans differ here, and this adapter is the reason there are
-// two** (ADR-084 Decision 2). `servesPublicly: true` is what puts a live
-// address on the publication row, which is what makes the 24-hour check and
-// the weekly verdict reach this destination — by rules that already read
-// the address and were not edited for it. `hostedByUs: false` is what keeps
-// the `removed` unpublish arm hosted-only: without the split, the obvious
-// reading of `servesPublicly === true` here is "so we can remove it", and
-// unpublish would reach for a delete call against a site ReachKit does not
-// own. Merging them fails two assertions in this module's test and nothing
-// else in the product.
-//
-// **One create call, and the two-step is forbidden rather than merely
-// unnecessary** (ADR-084 Decision 1). The natural WordPress sequence —
-// create a draft, write the plugin fields, publish — opens a window in
-// which a post sits in the customer's site as a draft ReachKit meant to
-// publish, and a crash inside that window re-creates by accident exactly
-// the population the ruling removes; the marker search, which answers "is
-// this the post for draft X?", would then have to also answer "and did we
-// finish?", the second job ADR-083 Decision 3 forbids loading onto a mark.
-// The test asserts a request *count*, not a request *shape*, because a
-// second write added later would otherwise read as a harmless follow-up.
-//
-// **`madeLive: true` and `liveUrl: string` are narrowed by type, and the
-// narrowing has inverted.** Until 2026-09-01 this adapter would have
-// narrowed them the other way to uphold a promise that a WordPress post is
-// never made live by us. That promise is gone. Widening `madeLive` back to
-// `boolean` is not a simplification: it is what would let a later edit
-// report a delivery as published with nothing live behind it.
-//
-// **The marker is the second half of the at-most-once guarantee**
-// (ADR-080). The unique index on `(draft_id, destination_id)` protects a
-// table in our database; it cannot see inside a customer's WordPress. The
-// case §9 names — a retry of an attempt whose outcome was never confirmed —
-// is precisely the one where we called the destination, it created the
-// post, and we lost the answer. The search for the marker is what makes
-// that retry find the post instead of making a second one, and it looks for
-// the marker and never for the stamp (`marks.ts`).
-//
-// **The stamp is asked about before it is written** (#160, ADR-083
-// Decision 4). `canStamp` is a third read beside `health` and `canPublish`,
-// answering a question neither of them does: whether this site will carry
-// the `post_tag` term at all. It gates the one place this adapter would
-// create a term in somebody's site, and the check records what it found on
-// the destination row — so a customer is told where their posts are
-// gathered from a fact, rather than finding out by following a mail to an
-// empty filter. It is **not** a health input: a site that publishes and
-// refuses the term is working.
-//
-// The archived plans are WO-237, WO-264.
+// BUILD §9 — the WordPress adapter: REST, an application password, the SEO fields when detected, and one create call
+// that publishes live in the customer's own site (ADR-084: "Every CMS publishes live in one call"), at most one post per
+// (draft, destination).
+// The two booleans differ here (ADR-084 decision 2): `servesPublicly: true` gives the row a live address, so the 24-hour
+// check and the weekly verdict reach it; `hostedByUs: false` keeps the `removed` arm hosted-only, never a delete call
+// against a site we do not own.
+// One create call; the two-step (draft, fields, publish) is forbidden (ADR-084 decision 1), since a crash inside it
+// leaves a draft we meant to publish and would load "did we finish?" onto the marker (ADR-083 decision 3). The test
+// counts requests, so a later second write fails it.
+// `madeLive: true` and `liveUrl: string` are narrowed by type; widening `madeLive` would let a delivery report published
+// with nothing live.
+// The marker is the second half of at-most-once (ADR-080): the unique index cannot see inside the customer's site, so a
+// retry whose answer was lost finds the post by marker, never by stamp (`marks.ts`).
+// The stamp is asked about before it is written (ADR-083 decision 4): `canStamp` gates the one term we would create.
+// It is not a health input: a site that publishes and refuses the term is working.
 import type {
   DeliveryResult,
   DestinationAdapter,
@@ -92,20 +47,10 @@ import { WORDPRESS } from "@/lib/config/constants";
 export type { WordPressConfig } from "./client";
 export type { SeoPlugin } from "./seo";
 
-/**
- * What a WordPress delivery is, beyond what every delivery is.
- *
- * `madeLive` and `liveUrl` are narrowed: every post this adapter creates is
- * live at an address the site itself returned. `seoWritten` is possibly
- * empty — REQ-060 criterion 4's case, a delivered page with no SEO plugin
- * to write into — and `stampApplied: false` is a delivered page whose site
- * would not take the term (ADR-083 Decision 4): criterion 6's list is unmet
- * for it, which is stated rather than inferred.
- */
+/** A WordPress delivery: live at an address the site returned. `seoWritten` may be empty (REQ-060 c4), and
+ *  `stampApplied: false` states that c6's list is unmet for the post (ADR-083 decision 4). */
 export type WordPressDelivery = DeliveryResult & {
-  /** The permalink the create response returned. **Not computed by us and
-   *  not derived from the slug**: the site's own answer for the post it
-   *  just made live. */
+  /** The permalink the site returned, never computed from the slug. */
   liveUrl: string;
   madeLive: true;
   /** The WordPress post id. Opaque to us; never rendered. */
@@ -115,11 +60,8 @@ export type WordPressDelivery = DeliveryResult & {
   deliveredAt: Date;
 };
 
-/** A probe that could not ask. **Not an answer**: a transport failure means
- *  ReachKit could not put the question, and reading it as "no" would hold a
- *  working customer's publishing on a network blip while telling them their
- *  account lacks a permission it has. It carries a classified reason and no
- *  part of any payload. */
+/** A probe that could not ask, which is not "no": a blip must not hold a working customer's publishing. A classified
+ *  reason, no payload. */
 export class WordPressProbeError extends Error {
   readonly reason: FailureReason;
   constructor(reason: FailureReason) {
@@ -129,9 +71,7 @@ export class WordPressProbeError extends Error {
   }
 }
 
-/** The config, or nothing. A destination whose stored config is not this
- *  shape has a credential that will never work, which is
- *  `credentials_invalid` and not a thing to retry. */
+/** The config, or nothing: another shape will never work, `credentials_invalid`, not retried. */
 function configOf(cfg: DestinationConfig): WordPressConfig | null {
   const { baseUrl, username, applicationPassword } = cfg as Partial<WordPressConfig>;
   if (typeof baseUrl !== "string" || baseUrl === "") return null;
@@ -150,9 +90,7 @@ function stringField(post: unknown, field: string): string | null {
   return typeof value === "string" && value !== "" ? value : null;
 }
 
-/** The id of a thing WordPress answered with — a post, or a term. The
- *  publication row holds a post id as a string; WordPress answers with a
- *  number, and the conversion happens once, here. */
+/** A post's or term's id as the string the row holds; WordPress answers a number. */
 function idOf(thing: unknown): string | null {
   if (typeof thing !== "object" || thing === null) return null;
   const id = (thing as { id?: unknown }).id;
@@ -160,9 +98,7 @@ function idOf(thing: unknown): string | null {
   return typeof id === "string" && id !== "" ? id : null;
 }
 
-/** The raw body, as `context=edit` returns it. The marker lives in the raw
- *  content; the rendered content is the site's own transformation of it and
- *  is not what a confirmation may rest on. */
+/** The raw body under `context=edit`, where the marker lives; the rendered content is the site's, not ours to confirm on. */
 function rawContent(post: unknown): string {
   if (typeof post !== "object" || post === null) return "";
   const content = (post as { content?: unknown }).content;
@@ -183,17 +119,8 @@ function descriptionOf(page: RenderedPage): string {
   return typeof description === "string" ? description : "";
 }
 
-/**
- * The post's content: the byline and the page's dates (SPEC §7, 2026-09-29,
- * issue 1137), then the body through the one renderer. A WordPress post has
- * no template of ours to print the line, so it is the content's first
- * paragraph; a page with no recorded name carries none. The dates are in
- * UTC: the adapter holds the site's address, not its zone. After the byline,
- * the note on how the page was made (SPEC §7, 2026-10-11, issue 1397), in
- * the site's language; a page handed no site carries none. The body carries
- * the page's buyer questions as the hosted page draws them (SPEC §7,
- * 2026-10-17, issue 1489), from the same `withFaq`.
- */
+/** The post's content (SPEC §7): the byline and dates as the first paragraph (UTC, as the adapter holds no zone), the
+ *  made-with note in the site's language, then the body through the one renderer with `withFaq`'s questions. */
 function contentOf(page: RenderedPage, dates: { published: Date; updated: Date | null }): string {
   const site = page.site;
   const say: Say | undefined = site === undefined ? undefined : (key, vars) => copyIn(site.language, key, vars);
@@ -207,15 +134,7 @@ function deliveredAtOf(post: unknown): Date {
   return Number.isNaN(parsed) ? new Date() : new Date(parsed);
 }
 
-/**
- * The delivery this post is, whether we have just created it or found it
- * from a previous attempt whose answer we lost.
- *
- * The same reading either way, deliberately: a post found by its marker is
- * the post that attempt created, and describing it differently from a
- * fresh one is how a retried page comes to be recorded with a different
- * address from the one it is live at.
- */
+/** The delivery a post is, created now or found from a lost attempt, read the same way so a retry records the live address. */
 function deliveryOf(
   post: unknown,
   plugins: readonly SeoPlugin[],
@@ -225,9 +144,7 @@ function deliveryOf(
   const liveUrl = stringField(post, "link");
   const id = idOf(post);
   if (liveUrl === null || id === null) {
-    // An answer with no address and no id is one this module cannot read.
-    // It is not retried: an unclassifiable outcome at a destination we do
-    // not own must not be hammered three times.
+    // Unreadable, and not retried: a site we do not own is not hammered three times.
     return failed("destination_rejected");
   }
   if (stringField(post, "status") !== "publish") return failed(NOT_PUBLISHED);
@@ -244,9 +161,7 @@ function deliveryOf(
   return delivery;
 }
 
-/** Two addresses name the same page where they differ only in scheme, a
- *  `www.` label or a trailing slash. Narrow on purpose: a query string is
- *  part of a page's identity and is not stripped. */
+/** The same page when only scheme, `www.` or a trailing slash differ; a query string is identity and stays. */
 function sameAddress(a: string, b: string): boolean {
   const strip = (url: string): string =>
     url
@@ -259,10 +174,8 @@ function sameAddress(a: string, b: string): boolean {
   return strip(a) === strip(b);
 }
 
-/** The delivery an update is. `madeLive: false` because ReachKit did not put
- *  this page on the site — which is what keeps `unpublish` from returning a
- *  page of the customer's own to draft. No stamp: ADR-083 Decision 2 puts
- *  one on a post only by ReachKit creating it. */
+/** An update's delivery: `madeLive: false`, so `unpublish` never returns the customer's own page to draft. No stamp,
+ *  which only a post we create gets (ADR-083 decision 2). */
 function updateDeliveryOf(
   post: unknown,
   plugins: readonly SeoPlugin[],
@@ -281,14 +194,7 @@ function updateDeliveryOf(
   };
 }
 
-/**
- * §7's third asset kind: the page the opportunity named, rewritten where it
- * already stands.
- *
- * A page this adapter cannot find at that address is **refused, never
- * created** — a create here would hand the customer a second page at a new
- * address in place of the update they were told about.
- */
+/** §7's third asset kind, rewritten where it stands; not found there, it is refused, never created as a second page. */
 async function updated(
   cfg: WordPressConfig,
   page: RenderedPage,
@@ -297,8 +203,7 @@ async function updated(
   seoPage: { title: string; description: string },
   idempotencyKey: string
 ): Promise<DeliveryResult> {
-  // The page this draft already rewrote, by its own marker: no second write,
-  // and `madeLive` stays false because ReachKit did not create it.
+  // Already rewritten, by its marker: no second write.
   const already = await existingPost(cfg, idempotencyKey);
   if (already !== null) return updateDeliveryOf(already, plugins, seoPage);
 
@@ -315,11 +220,10 @@ async function updated(
   if (id === null) return failed("destination_rejected");
 
   const meta = seoMetaFor(plugins, seoPage);
-  // The marker rides the rewritten body, so a retry finds this page through
-  // `existingPost` and writes nothing a second time.
+  // The marker rides the body, so a retry finds this page and writes nothing twice.
   const written = await updatePost(cfg, id, {
     title: page.title,
-    // The page they already had keeps its own date; today is its update.
+    // Their page keeps its own date; today is its update.
     content: bodyWithMarker(contentOf(page, { published: deliveredAtOf(target), updated: new Date() }), idempotencyKey),
     ...(Object.keys(meta).length === 0 ? {} : { meta }),
   });
@@ -327,17 +231,8 @@ async function updated(
   return updateDeliveryOf(written.body, plugins, seoPage);
 }
 
-/**
- * SPEC §9 (#690): a page's metadata changed where it stands — its title
- * where the fix names one, its SEO plugin's description where the fix names
- * one — and its content never sent, so it cannot change.
- *
- * Found the way every update is found: by the slug off its address, and
- * confirmed by that address. A description with no SEO plugin to hold it is
- * refused — WordPress itself has no description field, and saying it was
- * written would be false. Idempotent without a marker: writing the same
- * values twice leaves the page as the first write did.
- */
+/** SPEC §9: only the title and/or SEO description change, and the content is never sent. Found by slug, confirmed by
+ *  address. A description with no plugin is refused, as WordPress has no such field. Idempotent without a marker. */
 async function metadataUpdated(
   cfg: WordPressConfig,
   page: RenderedPage,
@@ -369,15 +264,8 @@ async function metadataUpdated(
   return updateDeliveryOf(written.body, plugins, seoPage);
 }
 
-/**
- * The post this draft already has in the site, if it has one.
- *
- * The site's own search finds candidates and the marker confirms one
- * exactly, so a search that ranks loosely cannot produce somebody else's
- * post. A search that fails to answer is **not** "no post": it throws the
- * reason, because creating a post on the strength of a failed search is
- * precisely how the second article appears on a paying customer's blog.
- */
+/** The post this draft already has: the search finds candidates and the marker confirms one exactly. A failed search
+ *  throws, never "no post", which is how a second article would appear. */
 async function existingPost(cfg: WordPressConfig, draftId: string): Promise<unknown | null> {
   const answer = await searchPosts(cfg, markerToken(draftId));
   if (!succeeded(answer)) throw new WordPressProbeError(reasonFor(answer));
@@ -385,23 +273,11 @@ async function existingPost(cfg: WordPressConfig, draftId: string): Promise<unkn
   return candidates.find((post) => carriesMarker(rawContent(post), draftId)) ?? null;
 }
 
-/**
- * The stamp's term id, looked up and created if the site does not have it
- * yet.
- *
- * `null` where the credential or the install will not permit the term. That
- * is **not** a failed delivery (ADR-083 Decision 4): the page is still
- * published, `stampApplied: false` records what happened, and REQ-060
- * criterion 6's list is unmet for that post — stated, never inferred.
- */
+/** The stamp's term id, created if missing; `null` where not permitted, never a failed delivery (ADR-083 decision 4). */
 async function stampTerm(cfg: WordPressConfig): Promise<number | null> {
   const found = await findStampTerm(cfg);
   if (found !== null) return found;
-  // The term is not there, so making it is a **write into the customer's
-  // site**, and issue #160 is that we ask first. The lookup comes before
-  // the probe on purpose: a site that already has the term needs no
-  // question put to it, and the ordinary second delivery therefore costs
-  // no extra read.
+  // Creating it writes into the customer's site, so ask first; the lookup comes first so a later delivery costs no read.
   if (!(await mayStamp(cfg))) return null;
   const created = await createTag(cfg, WORDPRESS.stampSlug, WORDPRESS.stampName);
   if (!succeeded(created)) return null;
@@ -409,16 +285,8 @@ async function stampTerm(cfg: WordPressConfig): Promise<number | null> {
   return id === null ? null : Number(id);
 }
 
-/** The stamp probe as the delivery path asks it: a question, and never a
- *  reason to fail a delivery.
- *
- *  A probe that could not be read answers `false` **here and nowhere
- *  else** — not because a blip means the site refuses the term, but because
- *  "we could not ask" is not permission to write into somebody's site. The
- *  page still publishes, `stampApplied: false` records what happened, and
- *  the next delivery asks again. The recorded fact on the destination row
- *  is untouched: `checkHealth` is what writes that, and it writes nothing
- *  when the probe could not answer. */
+/** The stamp probe on the delivery path, never failing a delivery. Unreadable is `false` here only, since "could not
+ *  ask" is no permission to write; the row's fact is `checkHealth`'s, untouched. */
 async function mayStamp(cfg: WordPressConfig): Promise<boolean> {
   try {
     return await canStamp(cfg);
@@ -427,9 +295,7 @@ async function mayStamp(cfg: WordPressConfig): Promise<boolean> {
   }
 }
 
-/** The stamp's term id if the site already has the term, and `null` if it
- *  does not. A lookup and never a create: this is what the idempotent path
- *  asks, and a term that does not exist on the site cannot be on a post. */
+/** The stamp's term id if the site has it, else `null`; a lookup, never a create, for the idempotent path. */
 async function findStampTerm(cfg: WordPressConfig): Promise<number | null> {
   const found = await findTag(cfg, WORDPRESS.stampSlug);
   if (!succeeded(found) || !Array.isArray(found.body)) return null;
@@ -448,14 +314,10 @@ async function deliver(
   const seoPage = { title: page.title, description: descriptionOf(page) };
 
   try {
-    // Detection runs before the create so the fields can ride it — the
-    // ordering ADR-084 Decision 1 fixes, and the one a create-then-write
-    // implementation would invert.
+    // Detection before the create, so the fields ride it (ADR-084 decision 1).
     const plugins = await detectSeoPlugins(config);
 
-    // §7's update goes first, and runs its own marker check: a page ReachKit
-    // did not create must never be recorded as one it made live, which is
-    // what `deliveryOf` below would say of it.
+    // §7's update first, with its own marker check, so a page we did not create is never recorded as made live.
     if (page.updateOf !== undefined && page.metadataOnly !== undefined) {
       return await metadataUpdated(config, page, page.updateOf, page.metadataOnly, plugins);
     }
@@ -465,12 +327,8 @@ async function deliver(
 
     const already = await existingPost(config, idempotencyKey);
     if (already !== null) {
-      // The post this draft already has. No second create, whatever the
-      // publication row says: the row is the guard in our database and
-      // this is the guard in theirs. The stamp is **looked up, never
-      // created** here — a delivery that already happened is not an
-      // occasion to write anything into their site, and ADR-083 Decision 2
-      // puts the stamp on a post only by ReachKit creating it.
+      // No second create: the row guards our database and this guards theirs. The stamp is looked up, never created
+      // here (ADR-083 decision 2).
       return deliveryOf(already, plugins, seoPage, await findStampTerm(config));
     }
 
@@ -480,18 +338,9 @@ async function deliver(
     const created = await createPost(config, {
       title: page.title,
       slug: page.slug,
-      // ADR-084 Decision 1: the status, the SEO fields, the stamp and the
-      // marker, in one request. There is no call in `client.ts` that could
-      // raise a draft to `publish`, so no two-step can be composed here.
+      // ADR-084 decision 1: status, SEO fields, stamp and marker in one request; `client.ts` cannot compose a two-step.
       status: "publish",
-      // **The one point a body leaves this adapter, and the one place it
-      // becomes HTML** (issue #158). A draft's body is Markdown; a
-      // WordPress post's `content` is HTML, and a body sent as Markdown
-      // publishes `## A heading` and `[label](href)` as literal
-      // punctuation on the customer's own domain. The renderer is the same
-      // one the draft view's preview, the copy-as-HTML control and the
-      // hosted template read, so what the customer saw before approving is
-      // what their site gets.
+      // The one place a body becomes HTML, through the renderer every preview shares, so the site gets what the customer saw.
       content: bodyWithMarker(contentOf(page, { published: new Date(), updated: null }), idempotencyKey),
       ...(stampTermId === null ? {} : { tags: [stampTermId] }),
       ...(Object.keys(meta).length === 0 ? {} : { meta }),
@@ -501,25 +350,13 @@ async function deliver(
     return deliveryOf(created.body, plugins, seoPage, stampTermId);
   } catch (cause) {
     if (cause instanceof WordPressProbeError) return failed(cause.reason);
-    // Nothing else this path can throw carries anything a caller may see.
+    // Nothing else thrown here carries anything a caller may see.
     return failed("destination_rejected");
   }
 }
 
-/**
- * What the destination's own end can be seen to be, right now.
- *
- * One authenticated read of the REST index, and **no write to the
- * customer's site**: a health check that proved a capability by creating
- * something could interfere with a delivery in flight, and it runs on the
- * read path, in line, when a customer opens a screen.
- *
- * Whether the credential may *publish* is a different question and is not
- * asked here — `canPublish` below asks it, and the check records what it
- * found on the destination row (ADR-086 Decision 1). Folding it in would
- * make re-entering the same credential appear to clear a state the probe
- * decided.
- */
+/** One authenticated read of the REST index, never a write, as it runs in line on the read path. Publishing is
+ *  `canPublish`'s question (ADR-086 decision 1), never folded in. */
 async function health(
   cfg: DestinationConfig
 ): Promise<{ health: DestinationHealth; reason: HealthReason | null }> {
@@ -532,110 +369,50 @@ async function health(
     return { health: "expired", reason: "credentials_expired" };
   }
   if (!succeeded(answer)) return { health: "error", reason: "destination_rejected" };
-  // An address that answers 200 with something that is not a REST index is
-  // not a WordPress site we can publish to, and saying `ok` would be a
-  // claim rather than a reading.
+  // A 200 that is not a REST index is not a WordPress site we can publish to.
   const namespaces = (answer.body as { namespaces?: unknown }).namespaces;
   if (!Array.isArray(namespaces)) return { health: "error", reason: "destination_rejected" };
   return { health: "ok", reason: null };
 }
 
-/**
- * **REQ-060 criterion 7 and ADR-084 Decision 3.** Can this credential
- * *publish*, not merely create?
- *
- * WordPress's default role map gives `edit_posts` to Contributor and
- * `publish_posts` only from Author upward, so an application password from
- * a Contributor-level user can create a post and have WordPress quietly
- * hold it at `draft` whatever the request asked for — the one route by
- * which the ruling of 2026-09-01 could produce, unnoticed, exactly the
- * outcome it abolishes: a page ReachKit reports as published sitting
- * invisible in a drafts folder.
- *
- * **It never creates a post to find out.** One authenticated read of the
- * credential's own account, with the capability map WordPress returns under
- * `context=edit`. A probe that created and deleted a post would leave one
- * behind whenever the delete failed, and would do it on the read path.
- *
- * **`false` is an answer; a failed read is not.** `false` puts the
- * destination in `error`/`cannot_publish`, holds its queue and offers a
- * remedy that costs the customer a WordPress account with the capability.
- * A read that could not be made throws, and the check records nothing —
- * because "we could not ask" is not "the answer is no".
- */
+/** REQ-060 c7, ADR-084 decision 3: can this credential publish, not merely create? A Contributor can create a post
+ *  WordPress quietly holds at `draft`. One read of the account's `context=edit` capability map, never a test post.
+ *  `false` is an answer (`cannot_publish`, queue held); a failed read throws and records nothing. */
 export async function canPublish(cfg: WordPressConfig): Promise<boolean> {
   const answer = await readSelf(cfg);
   if (!succeeded(answer)) throw new WordPressProbeError(reasonFor(answer));
   const capabilities = (answer.body as { capabilities?: unknown }).capabilities;
   if (typeof capabilities !== "object" || capabilities === null) {
-    // An account answer with no capability map is one this probe cannot
-    // read. It is not `false`: see the paragraph above.
+    // No capability map is unreadable, not `false`.
     throw new WordPressProbeError("destination_rejected");
   }
   return (capabilities as Record<string, unknown>).publish_posts === true;
 }
 
-/** The probe as the health check reaches it: config in, answer out, and
- *  the narrowing in one place. */
+/** The probe as the health check reaches it. */
 export function canPublishWith(cfg: DestinationConfig): Promise<boolean> {
   const config = configOf(cfg);
   if (config === null) return Promise.reject(new WordPressProbeError("credentials_invalid"));
   return canPublish(config);
 }
 
-/**
- * **ADR-083 Decision 4, REQ-060 criterion 6 and issue #160.** Can this
- * site carry the findability stamp — the `post_tag` term that brings
- * ReachKit's posts up together in the customer's own WordPress?
- *
- * **A different question from `canPublish`, and a different answer.** A
- * site can publish and refuse the term, and a site can take the term and
- * refuse to publish: `publish_posts` is the Author role's, `manage_categories`
- * the Editor's, and WordPress's default map hands them out separately. So
- * this reads its own capability and returns its own boolean.
- *
- * **The two probes do not share an implementation, deliberately** (the
- * issue's own note, BP-048 decision 4 in terms). One function returning a
- * capability *set* is the shape that invites a caller to gate publishing on
- * the stamp or the stamp on publishing, and the two gate entirely different
- * things: `canPublish` false holds the queue and is a health input;
- * `canStamp` false is a **working** destination that publishes normally and
- * only loses criterion 6's list. The near-duplicate body below is what
- * keeps an edit to one from silently becoming an edit to both.
- *
- * **It never writes a term to find out.** One authenticated read of the
- * credential's own account — the same `context=edit` capability map
- * `canPublish` reads, and no more of the customer's site touched than that.
- * A probe that created the term to see whether it could would leave one
- * behind on every site it was ever asked about, including sites that then
- * publish nothing.
- *
- * **It is conservative by exactly one case, and says so.**
- * `manage_categories` is what creating the term needs; a site that already
- * has the term needs only to assign it, and such a site reads `false` here.
- * Nothing is lost by that: the delivery path looks the term up before it
- * asks this question at all, and `WordPressDelivery.stampApplied` is read
- * back from the site's own answer per post, so what a customer is told
- * about a *post* is never this probe's guess.
- *
- * **`false` is an answer; a read that failed is not** — the same line
- * `canPublish` draws, for the same reason.
- */
+/** ADR-083 decision 4, REQ-060 c6: can this site carry the findability stamp? Its own capability, `manage_categories`
+ *  (Editor), apart from `publish_posts` (Author). The two probes deliberately share no implementation (BP-048 decision
+ *  4), as a capability set invites gating one on the other. One read of the same capability map, never a test term.
+ *  Conservative by one case: a site that has the term reads `false`, harmlessly, since delivery looks the term up first
+ *  and `stampApplied` is read back per post. `false` is an answer; a failed read is not. */
 export async function canStamp(cfg: WordPressConfig): Promise<boolean> {
   const answer = await readSelf(cfg);
   if (!succeeded(answer)) throw new WordPressProbeError(reasonFor(answer));
   const capabilities = (answer.body as { capabilities?: unknown }).capabilities;
   if (typeof capabilities !== "object" || capabilities === null) {
-    // An account answer with no capability map is one this probe cannot
-    // read. It is not `false`: a recorded `false` would tell a customer
-    // there is no list to look in when nothing had asked.
+    // No capability map is unreadable, not `false`, which would deny a list nothing had asked about.
     throw new WordPressProbeError("destination_rejected");
   }
   return (capabilities as Record<string, unknown>).manage_categories === true;
 }
 
-/** The stamp probe as the health check reaches it: config in, answer out,
- *  and the narrowing in one place. */
+/** The stamp probe as the health check reaches it. */
 export function canStampWith(cfg: DestinationConfig): Promise<boolean> {
   const config = configOf(cfg);
   if (config === null) return Promise.reject(new WordPressProbeError("credentials_invalid"));
@@ -645,21 +422,15 @@ export function canStampWith(cfg: DestinationConfig): Promise<boolean> {
 export const WORDPRESS_ADAPTER: DestinationAdapter = Object.freeze({
   kind: "wordpress" as const,
 
-  /** The page is publicly readable on the customer's own domain from the
-   *  moment the delivery completes, so it carries a live address, is
-   *  verified at 24 hours and receives a weekly verdict. */
+  /** Publicly readable on the customer's domain once delivered: a live address, the 24-hour check, a weekly verdict. */
   servesPublicly: true,
 
-  /** ReachKit does not run this site and cannot take a page off it. This
-   *  is what keeps the `removed` arm hosted-only. Never merged back into
-   *  `servesPublicly` (ADR-084 Decision 2). */
+  /** We do not run this site, which keeps `removed` hosted-only; never merged with `servesPublicly` (ADR-084 decision 2). */
   hostedByUs: false,
 
   deliver,
 
-  /** Bound, not implemented here: the four arms and the discriminator live
-   *  in `unpublish.ts`, and this file contains no branch on
-   *  `made_live_by_us`. */
+  /** The four arms and the discriminator live in `unpublish.ts`; nothing here branches on `made_live_by_us`. */
   unpublish: unpublishWordPress,
 
   health,
@@ -667,8 +438,6 @@ export const WORDPRESS_ADAPTER: DestinationAdapter = Object.freeze({
   /** The capability probe, beside `health` and never inside it. */
   canPublish: canPublishWith,
 
-  /** The stamp probe, beside the publish probe and never merged with it:
-   *  two questions, two answers, and only one of them is a health input
-   *  (issue #160). */
+  /** The stamp probe, never merged with the publish probe; only that one is a health input. */
   canStamp: canStampWith,
 });

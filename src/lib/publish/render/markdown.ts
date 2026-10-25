@@ -1,114 +1,28 @@
-// BUILD §9 · §4.6 · SPEC §7 (2026-09-20) — the one Markdown renderer, and
-// the one place a delivered page's body becomes HTML.
+// BUILD §9 · §4.6 · SPEC §7 — the one Markdown renderer, and the one place a delivered page's body becomes HTML.
+// Here under `src/lib/publish/` because every reader can reach it: the draft preview and copy-as-HTML (§4.6), the
+// hosted template and the WordPress adapter all go through `toHtml`, so the customer, the publisher of record, never
+// gets three different HTMLs (BP-044 decision 3).
 //
-// **It lives here, under `src/lib/publish/`, because that is the only side
-// of the fence both readers can reach** (issue #158). A draft's body is
-// Markdown and every sink puts it in front of a reader as HTML: the draft
-// view's preview pane and copy-as-HTML control (§4.6), the hosted template
-// (§9's `content.{customer-domain}` edge), and the WordPress adapter, which
-// sends it as the post's `content`. It parses once and serialises once, and
-// every caller goes through `toHtml`.
+// The parse is `mdast-util-from-markdown` (micromark) with `docs/DESIGN.md`'s two extensions, GFM tables and
+// directives; the serialiser is ours: a closed set of elements, every text node escaped, every `href` scheme-vetted,
+// and no raw HTML ever passed through.
 //
-// Two renderers would mean the HTML the customer copies, the HTML the
-// hosted page serves and the HTML that publishes into their own WordPress
-// differ from one another — and the customer is the publisher of record for
-// whichever they use. That is the decision, recorded in the archived BP-044
-// decision 3 and ruled again by the owner on 2026-09-06 (`DECISIONS.md`,
-// #119).
+// The closed set holds both ways. A node with no element of ours (raw HTML, images, since SPEC §7 says "No images",
+// footnotes, any future extension) renders as its own source text, sliced by position, so `<script>` in a body is
+// escaped text. No allowlist and no blocklist: no input markup reaches the output as markup.
+// The attributes are closed too, all written here: `href` (vetted against `MARKDOWN_LINK_SCHEMES`, the only value a
+// body influences), `class` (the caller's table), `tabindex`, `role` and `aria-label` on the two scrolling boxes
+// (constants, the name from the registry), `id` on a heading (from `withHeadingIds`, letters, digits and hyphens
+// only), and `role="list"` on every list, since WebKit drops a styled list's semantics. A body has no syntax that
+// reaches an attribute.
+// A scrolling box is focusable, or its far columns need a mouse (axe's `scrollable-region-focusable`). `group`, not
+// `region`: a landmark must be uniquely named, and two tables would share one constant name (`landmark-unique`).
+// A soft line ending is a space, as CommonMark keeps the newline, so published bytes stay stable.
 //
-// ## The parser is a standard one now (issue 929)
-//
-// The same ruling ended "No Markdown dependency until fidelity demands
-// one", and SPEC §7 of 2026-09-20 is where fidelity demanded one: "the
-// published subset gains a table, a short-answer box and related guides …
-// one serialiser still serves screen, hosted page, WordPress and copy-out,
-// and every character of text is still escaped." A hand-written line
-// scanner can carry six block kinds; it cannot carry a GFM table without
-// becoming a second Markdown implementation with its own bugs.
-//
-// So the **parse** is `mdast-util-from-markdown` (micromark) with the two
-// extensions `docs/DESIGN.md` lists — GFM tables and directives — and the
-// **serialiser is ours, unchanged in kind**: a closed set of emitted
-// elements, every text node escaped, every `href` scheme-vetted, and no
-// raw HTML ever passed through.
-//
-// ## What did not change, and must not
-//
-// **The closed set is still the rule, and now it is the rule in both
-// directions.** A CommonMark parser produces nodes this product has no
-// element for — raw HTML, images (SPEC §7: "No images"), footnotes, and
-// whatever a future extension adds. Every one of them renders as **the
-// literal source text that produced it**, sliced from the input by the
-// node's own position, which is the same safe direction the hand-written
-// grammar took for a construct it did not know.
-//
-// That is what keeps a body inert (#888, #895): an `html` node's source
-// text *is* the markup, so `<script>alert(1)</script>` in a body is five
-// escaped characters and a word — exactly what a customer who typed it
-// would expect to see. There is no allowlist of tags to keep and no
-// blocklist to strip, because no markup from the input ever reaches the
-// output as markup. The elements this module can emit are the closed set
-// `toHtml` names below and nothing else.
-//
-// **The attributes are a closed set too, and every one of them is written
-// here.** There are six: `href`, whose value is scheme-vetted against
-// `MARKDOWN_LINK_SCHEMES` and is the only attribute value a body has any
-// say in at all; `class`, whose value is the caller's own table;
-// `tabindex`, `role` and `aria-label` on the two boxes that scroll — a
-// table's and a fence's — whose values are **constants this module mints**
-// (`"0"`, `"group"`, and a sentence read from the registry); and `id` on a
-// heading (SPEC §7, 2026-09-29, issue 1140), which `withHeadingIds` mints
-// from the heading's own text for a table of contents. An id is letters,
-// digits and hyphens and nothing else, so a heading's words choose which
-// id it gets and never what the attribute can hold; the parser mints none,
-// so only a caller that asks for them emits any.
-// Every list carries `role="list"`, a constant, for every destination: a
-// styled list loses its list semantics in WebKit without it.
-//
-// A body cannot forge them and cannot override them: it has no syntax that
-// reaches an attribute, a `<div role="region">` written into a body is an
-// `html` node and therefore escaped text, and the box is emitted by
-// `toHtml` from the block rather than from anything the input said. So the
-// closed-set rule holds in the presence of the three, which is why they
-// could be added at all (owner, PR #973).
-//
-// **Why that element carries them.** A table scrolls sideways inside its
-// own box — an author's table cannot be stacked into one column without
-// per-column labels, so the scroll is the right call — and a box that
-// scrolls must be reachable from a keyboard or its far columns are
-// unreachable without a mouse. That is axe's `scrollable-region-focusable`
-// (serious), the rule #962 fixed on every other scrolling pane in the
-// product; `tabindex="0"` makes the box focusable and the role with a name
-// is what a reader who lands on it is announced.
-//
-// **`group`, not `region`.** `region` is a landmark, and a landmark has to
-// be uniquely named on its page — two tables in one body, with the one
-// constant name this module can give them, is axe's `landmark-unique`
-// (moderate), measured. A distinct name per table could only come from the
-// body, which the closed set forbids. `group` is the role for a named
-// container that is not a landmark, so it repeats as often as an author
-// writes a table and is announced the same way each time.
-//
-// **A soft line ending is a space.** CommonMark keeps the newline inside
-// the text node; the hand-written parser joined wrapped lines with a space.
-// The space is kept, so the bytes already published for a body of
-// paragraphs are the bytes this module still produces for it.
-//
-// ## The two new containers, and who may mint them
-//
-// `:::answer` — the short-answer box — is admitted **from the body**: it
-// wraps the page's own opening answer, claims nothing a reader cannot
-// check, and emits no structured data (`FAQPage` is built from the
-// questions `./faq.ts` draws from `drafts.meta.faq`, never from a guess at
-// the body's headings — the archived BP-047 decision 2, kept).
-//
-// `:::guides` — related guides — is **not**. SPEC §7 (2026-09-20) has the
-// links come from what ReachKit already knows it published, "chosen in
-// code, never by the model", so `guidesBlock()` is the only way to make
-// one and a `:::guides` written into a body renders as its own literal
-// text like any other construct this module does not admit. Which pages
-// are chosen is the caller's, from the index issue 928 builds; what is
-// here is the block, the mint that vets every address, and the renderer.
+// `:::answer`, the short-answer box, is admitted from the body: it claims nothing a reader cannot check and emits no
+// structured data (`FAQPage` is built from `drafts.meta.faq` by `./faq.ts`, never from the body).
+// `:::guides` is not: related guides are "chosen in code, never by the model" (SPEC §7), so only `guidesBlock()`
+// makes one and a written one renders as its own text.
 import { fromMarkdown } from "mdast-util-from-markdown";
 import { directive } from "micromark-extension-directive";
 import { directiveFromMarkdown } from "mdast-util-directive";
@@ -157,9 +71,7 @@ export type Block =
     }
   | { kind: "code"; text: string }
   | { kind: "rule" }
-  /** SPEC §7 (2026-09-20). A header row and a body, with each column's
-   *  declared alignment, and the name its scrolling box is announced by
-   *  (`label`, the registry's — see the header). */
+  /** SPEC §7: a header row and a body, each column's declared alignment, and the registry's name for its scrolling box. */
   | {
       kind: "table";
       label: string;
@@ -167,14 +79,11 @@ export type Block =
       rows: readonly (readonly Cell[])[];
       align: readonly Align[];
     }
-  /** SPEC §7 (2026-09-20) — the short-answer box. It holds ordinary blocks
-   *  and never another container: a box inside a box says nothing. */
+  /** SPEC §7 — the short-answer box, holding ordinary blocks and never another container. */
   | { kind: "answer"; label: string; children: readonly Block[] }
-  /** SPEC §7 (owner, 2026-09-29, D4) — the key takeaways: the same box
-   *  under its own label, holding the page's three to five points. */
+  /** SPEC §7 (D4) — the key takeaways: the same box under its own label, holding three to five points. */
   | { kind: "takeaways"; label: string; children: readonly Block[] }
-  /** SPEC §7 (2026-09-20) — related guides. Minted by `guidesBlock` and
-   *  never by the parser. */
+  /** SPEC §7 — related guides, minted by `guidesBlock`, never by the parser. */
   | { kind: "guides"; label: string; items: readonly GuideLink[] };
 
 /** One related guide: a page the site already has. Both members are
@@ -215,8 +124,7 @@ function unwrap(text: string): string {
 const WORD_START = /^[\p{L}\p{N}]/u;
 const WORD_END = /[\p{L}\p{N}]$/u;
 
-/** A link glued into a word ("B[2](u)B") is that word, not a link: a body
- *  stored before the link step unwrapped them renders whole. */
+/** A link glued into a word ("B[2](u)B") is that word, not a link, so such a body renders whole. */
 function unglued(inlines: readonly Inline[]): Inline[] {
   return inlines.flatMap((node, i) => {
     if (node.kind !== "link") return [node];
@@ -284,7 +192,7 @@ export function parseInline(text: string): Inline[] {
 
 /** SPEC §7's short-answer box, as a body writes it. */
 const SHORT_ANSWER = "answer";
-/** SPEC §7's key takeaways (2026-09-29, D4), as a body writes them. */
+/** SPEC §7's key takeaways (D4), as a body writes them. */
 const TAKEAWAYS = "takeaways";
 
 function parse(md: string): ReturnType<typeof fromMarkdown> {
@@ -392,12 +300,8 @@ function blocksOf(nodes: readonly RootContent[], src: string, insideAnswer: bool
  *  the browser too, so it holds no translation: the server hands one in. */
 export type Say = (key: CopyKey, vars?: Record<string, string | number>) => string;
 
-/**
- * The blocks with the three labels this module mints — the table's, the
- * short answer's and the takeaways' — said in the page's own language
- * (SPEC §6, owner D66, issue 1311). The words a page's writer wrote are
- * untouched.
- */
+/** The blocks with the three labels this module mints said in the page's own language (SPEC §6, D66); the writer's
+ *  words are untouched. */
 export function labelledIn(blocks: readonly Block[], say: Say): Block[] {
   return blocks.map((block) => {
     if (block.kind === "table") return { ...block, label: say("body.table.label") };
@@ -464,13 +368,8 @@ function headingId(text: string): string {
   return id === "" ? "section" : id;
 }
 
-/**
- * SPEC §7 (2026-09-29, issue 1140) — every top-level heading given an id
- * minted from its own text, and the list of them for a table of contents.
- * Two headings with the same words get `-2`, `-3` in the order they appear,
- * so an id names one heading. Headings inside a box are left alone: the
- * box is one stop in the page, not a section of it.
- */
+/** SPEC §7 — every top-level heading given an id from its own text, and the list for a table of contents. Repeats get
+ *  `-2`, `-3` in order; headings inside a box are left alone, as the box is one stop, not a section. */
 export function withHeadingIds(blocks: readonly Block[]): { blocks: Block[]; headings: HeadingEntry[] } {
   const taken = new Set<string>();
   const headings: HeadingEntry[] = [];
@@ -600,12 +499,8 @@ function redirectBlock(block: Block, finalOf: (href: string) => string | null): 
   }
 }
 
-/**
- * SPEC §7 (2026-10-18, issue 1511): a link to an address that moved is drawn
- * at the address it answers with now, by `finalOf` (`null` keeps it). Done
- * at render: the stored body is not edited (ADR-080), the page's dates do
- * not move, and the `link` refresh still follows.
- */
+/** SPEC §7: a link to a moved address is drawn at where it answers now, by `finalOf` (`null` keeps it), at render, so
+ *  the stored body is not edited (ADR-080) and the page's dates do not move. */
 export function withLinksMoved(blocks: readonly Block[], finalOf: (href: string) => string | null): Block[] {
   return blocks.map((block) => redirectBlock(block, finalOf));
 }
@@ -642,13 +537,8 @@ function unlinkBlock(block: Block, gone: (href: string) => boolean): Block {
   }
 }
 
-/**
- * SPEC §7 (issue 1506): a link to an address that answers 410 is unwrapped
- * at render, its words kept — the same treatment the link step gives a
- * link it cannot stand behind (`generate/links/apply.ts`). No live page's
- * text is edited (ADR-080): the next version of the page simply has no
- * link there to unwrap.
- */
+/** SPEC §7: a link to an address answering 410 is unwrapped at render, its words kept, as the link step does
+ *  (`generate/links/apply.ts`). No live page's text is edited (ADR-080). */
 export function withoutLinksTo(blocks: readonly Block[], gone: (href: string) => boolean): Block[] {
   return blocks.map((block) => unlinkBlock(block, gone));
 }
@@ -667,24 +557,10 @@ export function escapeHtml(text: string): string {
     .replace(/'/g, "&#39;");
 }
 
-/**
- * The one place the *rendered* page and the *copied* page are allowed to
- * differ, and they differ only by class attributes.
- *
- * §2.2 allows custom CSS for five things and a draft body is none of them,
- * so what the customer reads on screen is styled with stock utilities — and
- * the only way to put a utility on a `<li>` produced by a Markdown renderer
- * is to let the renderer carry a class table. Passing one produces the
- * screen's render; passing none produces the bytes the copy-out control
- * hands over and the hosted template publishes. **Same function, same
- * parse, same element structure** — which is exactly the promise a second
- * renderer would break (the archived BP-044 decision 3).
- *
- * Seven keys are not element names: `tableWrap`, `answer`, `takeaways` and `guides` name
- * the containers SPEC §7's new blocks are drawn in, and `answerLabel` and
- * `guidesLabel` the eyebrow each carries. They are a `div` and a `p`
- * whichever map is passed, so the structure is still the parse's.
- */
+/** The one place the rendered and copied page may differ, and only by class attributes: §2.2 allows no custom CSS for a
+ *  body, so the screen passes a class table of stock utilities and the copy-out and hosted template pass none. Same
+ *  function, same parse, same structure, which a second renderer would break. `tableWrap`, `answer`, `takeaways`,
+ *  `guides`, `answerLabel` and `guidesLabel` name containers and eyebrows, a `div` and a `p` whatever the map. */
 export type HtmlClasses = Partial<
   Record<
     | "h1" | "h2" | "h3" | "h4" | "h5" | "h6"
@@ -770,11 +646,7 @@ export function toHtml(blocks: readonly Block[], classes: HtmlClasses = {}): str
           return `${open("p", classes)}${inlineHtml(block.children, classes)}</p>`;
         case "quote":
           return `${open("blockquote", classes)}${inlineHtml(block.children, classes)}</blockquote>`;
-        // A fence scrolls sideways too — a code line is verbatim and must
-        // not be re-wrapped — so its box is focusable for the same reason
-        // the table's is. It takes `tabindex` and no name: what a reader
-        // lands on is the code, which describes itself, where a table
-        // region without one is a box of unannounced columns.
+        // A fence scrolls too, as code is verbatim, so its box is focusable; no name, as the code describes itself.
         case "code":
           return `${openAs("pre", "pre", classes, ' tabindex="0"')}${open("code", classes)}${escapeHtml(block.text)}</code></pre>`;
         case "rule":
@@ -788,17 +660,13 @@ export function toHtml(blocks: readonly Block[], classes: HtmlClasses = {}): str
           const key = block.leadIn === true && classes.checklist !== undefined ? "checklist" : tag;
           return `${openAs(tag, key, classes, ' role="list"')}${items}</${tag}>`;
         }
-        // SPEC §7 (2026-09-20): a table, in a box of its own so a phone
-        // scrolls the table rather than the page (`docs/DESIGN.md`'s
-        // no-overflow rule, and §2.2's "always inside an `overflow-x-auto`
-        // wrap"). The wrapper is what scrolls; the table keeps its shape.
+        // SPEC §7: a table in its own box, so a phone scrolls the table, not the page (DESIGN.md's no-overflow rule).
         case "table": {
           const head = `${open("thead", classes)}${open("tr", classes)}${cellsHtml("th", block.head, block.align, classes)}</tr></thead>`;
           const body = block.rows
             .map((row) => `${open("tr", classes)}${cellsHtml("td", row, block.align, classes)}</tr>`)
             .join("");
-          // The box is **reachable from a keyboard**, because it scrolls.
-          // See the header: three constant attributes, minted here.
+          // Focusable because it scrolls: three constant attributes, minted here (see the header).
           const box = openAs(
             "div",
             "tableWrap",
@@ -850,56 +718,9 @@ export function renderMarkdownHtml(md: string, say?: Say): string {
   return toHtml(say === undefined ? blocks : labelledIn(blocks, say));
 }
 
-/**
- * Every heading in a body, one level down — for a screen that already has
- * its own `<h1>` above the body it renders.
- *
- * **A body's heading is a heading *within* the screen.** The draft screen
- * (S16) and the legal screen (S5) both print their own title as the page's
- * `<h1>`, and both render a Markdown body under it. The approved set draws
- * that body's `##` one rung under the screen's head — its `.doc h2` sits at
- * `--h3` — so a `##` that stayed an `<h2>` would have to be *restyled* to a
- * size that is not its step. `heading-scale.test.ts` renders every route and
- * requires each `h1..h4` to compute its own step of the ladder, so the shift
- * is made on the level instead: a `##` arrives as an `<h3>` and earns the
- * 20px the set draws (issues #355, #493).
- *
- * `h6` stays `h6`: the scale bottoms out and nothing below it exists.
- *
- * It is a transform over parsed blocks, not an argument to the serialiser:
- * `renderMarkdownHtml` and the copy-out stay unshifted — those are the bytes
- * that publish, and on a destination the title is supplied beside them
- * rather than by a heading of ours standing over them.
- */
-/**
- * Every heading in a body, levelled so the **shallowest sits at `<h2>`** —
- * one under the `<h1>` the screen prints above it, with nothing skipped.
- *
- * **Why this is not `demoteHeadings` above** (owner ruling 2026-09-23,
- * #328). That one shifts by a fixed `+1`, which is right only for a body
- * whose own top level is `#`. The owner's legal bodies open at `##`, so
- * they arrived as `<h3>` **directly under the page's `<h1>`** — `h2`
- * skipped, which is what `heading-order` reported on `/privacy` and
- * `/terms`. Shifting by a fixed amount cannot fix that without breaking
- * the other case: `+0` would make a `#`-rooted body a second `<h1>`.
- *
- * So the shift is computed from the body rather than assumed: the
- * shallowest heading becomes `<h2>` and every deeper one keeps its
- * distance from it. A body that opens at `#` is levelled exactly as
- * `demoteHeadings` levelled it, which is why #493's own fixture is
- * unchanged; a body that opens at `##` or `###` now starts at `<h2>` too.
- *
- * **What moves on screen.** A section head in the owner's legal bodies was
- * an `<h3>` (`--h3`, 20px) and is an `<h2>` (`--h2`, 25px). That is the
- * ladder's own step for the element: `src/ui/type.css` gives every `h2`
- * `--h2`, and the level moves rather than the size, so no heading is
- * restyled to reach a step that is not its own. `heading-scale.test.ts`
- * still reads each level computing that step. The words are untouched.
- *
- * `demoteHeadings` stays exactly as it is: the draft screen renders a
- * customer's article, whose headings the writer controls, and no body it
- * draws reported a skipped level.
- */
+/** Every heading levelled so the shallowest sits at `<h2>`, one under the screen's `<h1>`, with nothing skipped: a fixed
+ *  `+1` would leave a `##`-rooted legal body skipping `h2` (`heading-order`), and `+0` would make a `#` a second `<h1>`.
+ *  The level moves, never the size, so each heading computes its own step (`heading-scale.test.ts`). */
 export function headingsUnderTitle(blocks: readonly Block[]): Block[] {
   const shallowest = shallowestHeading(blocks);
   if (shallowest === null) return [...blocks];
@@ -934,6 +755,9 @@ function shiftHeadings(blocks: readonly Block[], by: number): Block[] {
   });
 }
 
+/** Every heading one level down, for the draft screen, which prints its own `<h1>` above a body the writer controls,
+ *  so a `##` earns its own step as an `<h3>` rather than being restyled (`heading-scale.test.ts`). `h6` stays `h6`.
+ *  A transform over blocks, so `renderMarkdownHtml` and the copy-out publish unshifted bytes. */
 export function demoteHeadings(blocks: readonly Block[]): Block[] {
   return blocks.map((block) => {
     if (block.kind === "answer" || block.kind === "takeaways") {

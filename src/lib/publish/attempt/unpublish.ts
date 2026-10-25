@@ -1,34 +1,9 @@
-// BUILD §9 — `unpublish()`: available for as long as the page is published.
-//
-// One edge, five outcomes, and **the edge is the same in all five**.
-//
-// This function branches on nothing. It reads the page's publication row,
-// hands it to the adapter, records the arm that came back, and takes
-// `published → unpublished`. Which family of arms applies is the adapter's
-// question and is read there from `hostedByUs` — never from
-// `servesPublicly`, which is now true at both destinations (ADR-084
-// Decision 2). Re-deriving the arm here would agree with the adapter today
-// and diverge the first time either changes, which is why the discriminator
-// is consulted in exactly one place and this is not it.
-//
-// `unreachable` is `ok: true` on purpose and takes the edge exactly as the
-// other four do: the page did reach `unpublished` and the product did stop
-// treating it as live. What failed is the write into a site we do not own,
-// and that is the outcome, not a failure of the action. Reading it as a
-// failure and holding the page in `published` would leave the customer's
-// stop un-taken — the one thing §9 promises in every branch.
-//
-// **No publication row is ever deleted** (ADR-080 decision 2). The row is
-// what proves a page was published; `unpublished_at` is what says it no
-// longer is.
-//
-// `named_for_removal` has no members in production since 2026-09-01 and is
-// kept for exactly the reason the union's other empty arm was once kept: it
-// is the outcome §9 promises for a page ReachKit created but did not make
-// live. A `default:` arm that folded it into `returned_to_draft` would
-// break nothing here except the five-arm pass-through test.
-//
-// The archived plan is WO-214.
+// BUILD §9 — `unpublish()`, available as long as the page is published: one edge, five outcomes, the same edge in all five.
+// It branches on nothing: the adapter picks the arm (from `hostedByUs`, never `servesPublicly`, ADR-084 decision 2),
+// and the discriminator is consulted in exactly one place, which is not here.
+// `unreachable` is `ok: true` and takes the edge: holding the page in `published` would leave the customer's stop un-taken.
+// No publication row is ever deleted (ADR-080 decision 2): the row proves a page was published, `unpublished_at` that it no longer is.
+// `named_for_removal` has no members today and is kept: §9 promises it for a page we created but did not make live.
 import { publishDb } from "../db";
 import { adapterFor as defaultAdapterFor } from "../destinations";
 import { destinationOf, withConfig } from "../destinations";
@@ -50,14 +25,11 @@ export interface UnpublishArgs {
   at?: Date;
   deps?: GuardDeps;
   adapterFor?: (destination: DestinationKind) => DestinationAdapter | null;
-  /** How the change is announced (`../destinations/hosted/announce.ts`).
-   *  Injected so a suite answers for the network. */
+  /** How the change is announced (`../destinations/hosted/announce.ts`), injected so a suite answers for the network. */
   announce?: AnnounceSend;
-  /** The reason the move is recorded under; `unpublish` unless named. The
-   *  customer's take-down is `take_down` (issue 1532). */
+  /** The reason the move is recorded under; `unpublish` unless named, `take_down` for the customer's take-down. */
   reason?: string;
-  /** `false` where another version at the same address announces it: one
-   *  request an address (issue 1511). */
+  /** `false` where another version at the same address announces it: one request an address. */
   announceAddress?: boolean;
 }
 
@@ -110,9 +82,7 @@ export async function unpublish(a: UnpublishArgs): Promise<UnpublishResult> {
     reason: a.reason ?? "unpublish",
   });
 
-  // SPEC §7 (2026-10-18, issue 1511): the address that now answers 410 is
-  // announced once, so search engines drop it. Hosted only; never a reason
-  // the stop is not taken.
+  // SPEC §7: the address now answering 410 is announced once so engines drop it; it never blocks the stop.
   if (destination === "hosted" && row.live_url !== null && a.announceAddress !== false) {
     const { announceHosted } = await import("../destinations/hosted/announce");
     await announceHosted({ siteId: row.site_id, urls: [row.live_url], ...(a.announce === undefined ? {} : { send: a.announce }) });
@@ -121,17 +91,8 @@ export async function unpublish(a: UnpublishArgs): Promise<UnpublishResult> {
   return result;
 }
 
-/**
- * The adapter's `unpublish`, with the credential in plaintext for the
- * duration of that one call and not one moment longer.
- *
- * `withConfig` returns what the callback returns and never the config, so
- * this function cannot leak one however it is edited. A destination whose
- * credential has been destroyed — disconnected since the page was
- * published — is called with an empty config rather than not at all: the
- * arm the adapter takes for a page it never made live writes nothing and
- * needs no credential, and the customer's stop is taken either way.
- */
+/** The adapter's `unpublish`, with the credential plaintext for that one call. A destroyed credential gets an empty
+ *  config rather than no call, so the customer's stop is taken either way. */
 async function takenDown(
   adapter: DestinationAdapter,
   pub: Publication,
@@ -159,8 +120,7 @@ async function readPublication(draftId: string): Promise<PublicationRow | null> 
   return row ?? null;
 }
 
-/** The row as the adapter reads it. A mapping and nothing else: every
- *  member is carried across, none is compared with anything here. */
+/** The row as the adapter reads it: a mapping, comparing nothing. */
 function toPublication(row: PublicationRow): Publication {
   return {
     id: row.id,

@@ -47,7 +47,7 @@ import { deriveForPass } from "@/lib/opportunities";
 import { accountForWeek, type UnmeasuredPart } from "./account";
 import { sitesWithActiveAccess } from "./access";
 import { claimWeek, readSiteZone, releaseWeek } from "./store";
-import { runScan } from "../run";
+import { runScan, spendOnStoredReport } from "../run";
 import { readSiteCategory } from "../site-category";
 import { localClock, weekHasBegun, weekStartFor, weekStartInstant } from "./week";
 
@@ -182,6 +182,28 @@ export async function runWeekly(a: {
 /** No re-check has concluded yet in the site-local month the week starts in. */
 function rivalsDue(checkedAt: string | undefined, weekStart: string, zone: string): boolean {
   return checkedAt === undefined || localClock(new Date(checkedAt), zone).date.slice(0, 7) < weekStart.slice(0, 7);
+}
+
+/**
+ * SPEC §5 (2026-10-25): the knowledge base read again from the pages this
+ * week's crawl read; only a page whose text changed is asked about. It is
+ * the tick's own step, because the read keeps its own clock and the pass
+ * fills its invocation. It spends on the scan's own record, so what the
+ * pass spent counts against the `WEEKLY` cap. A read that fails costs the
+ * knowledge base, never the week.
+ */
+export async function refreshWeeklyKnowledge(a: { scanId: string; siteId: string; domain: string }): Promise<null> {
+  try {
+    await spendOnStoredReport({ scanId: a.scanId, tier: "weekly" }, async ({ cost }) => {
+      const { buildKnowledge } = await import("@/lib/site-profile/knowledge/build");
+      await buildKnowledge(cost, { siteId: a.siteId, domain: a.domain });
+    });
+  } catch (error) {
+    console.log(
+      JSON.stringify({ event: "site_knowledge_failed", scanId: a.scanId, because: error instanceof Error ? error.message : String(error) })
+    );
+  }
+  return null;
 }
 
 function refuse(siteId: string, because: WeeklyRefusal): WeeklyOutcome {

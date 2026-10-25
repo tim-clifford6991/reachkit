@@ -197,14 +197,7 @@ export const ROUTE_HARNESS: Readonly<Record<string, HarnessRow>> = Object.freeze
   // a customer's own domain and carries nothing of ReachKit's — no
   // navigation, no publishing line, no sentence of ours at all.
   "(hosted)/hosted-page/[[...slug]]/page.tsx": {
-    props: () => ({ params: { slug: ["best-onboarding-tools"] } }),
-    shell: false,
-    async: true,
-  },
-  // Issue 1242. The same article, by the route that is cached: its host is
-  // in its path instead of in a header.
-  "(hosted)/hosted-live/[host]/[slug]/page.tsx": {
-    props: () => ({ params: { host: "content.example.com", slug: "best-onboarding-tools" } }),
+    props: () => ({ params: {}, searchParams: {} }),
     shell: false,
     async: true,
   },

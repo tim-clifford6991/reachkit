@@ -12,16 +12,17 @@ applyEnvFixture();
 type Serving = { serve: true } | { serve: false; because: "retention_elapsed" | "account_deleted" };
 type Locale = { country: string; language: string };
 
-const state: { host: string; serving: Serving; stored: Locale | null; identityFails: boolean } = {
+const state: { host: string; serving: Serving; stored: Locale | null; identityFails: boolean; live: unknown[] } = {
   host: "content.example.com",
   serving: { serve: true },
   stored: null,
   identityFails: false,
+  live: [],
 };
 
 const OLD_TITLE = "How to winterize outdoor faucets";
 
-// The 410 route's server bundle as production builds it: lucide's `Icon` is a
+// The hosted routes' server bundle as production builds it: lucide's `Icon` is a
 // client module there, so calling any icon throws instead of drawing.
 vi.mock("lucide-react", async (importOriginal) => {
   const real = await importOriginal<Record<string, unknown>>();
@@ -60,7 +61,8 @@ vi.mock("@/lib/publish/destinations/hosted", async () => {
       domain === "example.com" ? { siteId: "site-1", domain, host: `content.${domain}` } : null,
     hostedSiteForHostname: async () => null,
     livePageBySlug: async () => null,
-    livePagesForSite: async () => [],
+    livePagesForSite: async () => state.live,
+    taggedForHosted: async () => undefined,
     hostedIdentity: async () => {
       if (state.identityFails) throw new Error("identity read failed");
       return {
@@ -89,6 +91,8 @@ vi.mock("@/lib/publish/destinations/hosted", async () => {
 const gone = await import("@/app/(hosted)/hosted-gone/route");
 const NotFound = (await import("@/app/(hosted)/hosted-page/not-found")).default;
 const Page = (await import("@/app/(hosted)/hosted-page/[[...slug]]/page")).default;
+const cached = await import("@/app/(hosted)/hosted-live/[host]/[slug]/route");
+const article = await import("@/app/(hosted)/hosted-article/[slug]/route");
 const { readingIn } = await import("@/lib/presentation/copy/reader");
 
 beforeEach(() => {
@@ -96,6 +100,7 @@ beforeEach(() => {
   state.serving = { serve: true };
   state.stored = null;
   state.identityFails = false;
+  state.live = [];
 });
 
 function request(language?: string): Request {
@@ -107,9 +112,17 @@ function parse(html: string): Document {
   return new DOMParser().parseFromString(html, "text/html");
 }
 
-/** The 404 as a request draws it: the page throws, and the route's not-found screen is the body. */
-async function notFoundPage(slug: string): Promise<{ thrown: unknown; doc: Document }> {
-  const thrown = await Page({ params: Promise.resolve({ slug: [slug] }) }).then(
+/** The 404 of an address that could name a page, as the article's uncached route answers it. */
+async function notFoundPage(slug: string): Promise<{ status: number; doc: Document }> {
+  const response = await article.GET(new Request(`https://${state.host}/${slug}`, { headers: { host: state.host } }), {
+    params: Promise.resolve({ slug }),
+  });
+  return { status: response.status, doc: parse(await response.text()) };
+}
+
+/** The 404 of a deeper path, which the catch-all answers with its not-found screen. */
+async function deeperNotFound(): Promise<{ thrown: unknown; doc: Document }> {
+  const thrown = await Page({ params: Promise.resolve({ slug: ["a", "b"] }) }).then(
     () => null,
     (error: unknown) => error
   );
@@ -190,6 +203,42 @@ describe("A: the short body draws lucide's glyphs without its client Icon", () =
   });
 });
 
+describe("the cached article draws its glyphs without lucide's client Icon", () => {
+  it("an offering page answers 200 with the header's call and the places' pins", async () => {
+    const at = new Date("2026-10-19T11:00:00.000Z");
+    const liveUrl = "https://content.example.com/emergency-plumber-austin";
+    state.live = [
+      {
+        publicationId: "pub-2",
+        siteId: "site-1",
+        slug: "emergency-plumber-austin",
+        title: "Emergency plumber in Austin",
+        heading: null,
+        bodyMd: "## Where and when\n\n- Austin\n- Round Rock",
+        description: null,
+        faq: [],
+        grounded: null,
+        made: null,
+        publisher: { name: "example.com", category: null, timeZone: "UTC" },
+        byline: null,
+        offering: true,
+        whereWhen: "Where and when",
+        businessFit: 3,
+        publishedAt: at,
+        firstPublishedAt: at,
+        liveUrl,
+        record: { opportunityId: "opp-1", targetQuery: "emergency plumber austin", measuredOn: at, mode: "autopilot", liveUrl },
+      },
+    ];
+    const params = Promise.resolve({ host: "content.example.com", slug: "emergency-plumber-austin" });
+    const response = await cached.GET(new Request(liveUrl), { params });
+    expect(response.status).toBe(200);
+    const doc = parse(await response.text());
+    expect(doc.querySelectorAll("main svg.lucide-map-pin").length).toBeGreaterThanOrEqual(2);
+    expect(doc.querySelector('header a[href^="tel:"] svg')).not.toBeNull();
+  });
+});
+
 describe("A: a body that cannot be drawn still answers 410, never 500", () => {
   it("410, noindex, no-store and the empty document in the site's language", async () => {
     state.identityFails = true;
@@ -206,8 +255,14 @@ describe("A: a body that cannot be drawn still answers 410, never 500", () => {
 });
 
 describe("B: an unknown address on a live site answers 404 with the same body", () => {
-  it("the page answers not found, and the not-found screen is variant A with noindex", async () => {
-    const { thrown, doc } = await notFoundPage("never-a-page");
+  it("the article's route answers 404 with variant A under noindex", async () => {
+    const { status, doc } = await notFoundPage("never-a-page");
+    expect(status).toBe(404);
+    expectVariantA(doc, ENGLISH);
+  });
+
+  it("a deeper path answers not found, and the not-found screen is variant A with noindex", async () => {
+    const { thrown, doc } = await deeperNotFound();
     expect((thrown as { digest?: string } | null)?.digest).toBe("NEXT_HTTP_ERROR_FALLBACK;404");
     expectVariantA(doc, ENGLISH);
   });
@@ -239,8 +294,8 @@ describe("C: a site that is gone answers 410 with the empty document", () => {
 describe("D: a host no site claims answers 404 with nothing", () => {
   it("the not-found screen is empty", async () => {
     state.host = "content.stranger.example";
-    const { thrown, doc } = await notFoundPage("anything");
-    expect((thrown as { digest?: string } | null)?.digest).toBe("NEXT_HTTP_ERROR_FALLBACK;404");
+    const { status, doc } = await notFoundPage("anything");
+    expect(status).toBe(404);
     expect(doc.body.textContent?.trim()).toBe("");
     expect(doc.querySelector("a")).toBeNull();
   });

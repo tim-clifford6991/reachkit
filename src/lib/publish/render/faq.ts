@@ -1,19 +1,7 @@
-// SPEC §7 (owner, 2026-10-17, issue 1489) — a page's buyer questions, shown
-// on the page.
-//
-// "Show the FAQ on the page." The questions generation stores beside a page
-// (`drafts.meta.faq`) are drawn as a section of the body, in code, above its
-// sources list, on the hosted page and in a WordPress post alike. The writer
-// still never writes them into the body (#1137); code lays them out, as it
-// lays out the sources list and the related guides.
-//
-// **The data restates what is drawn, and only that.** `withFaq` returns the
-// body with the section in it and the pairs as the reader sees them: each
-// question and answer is the text of the very blocks the one serialiser
-// (`markdown.ts`) renders, so `FAQPage` cannot state a sentence the page
-// does not show. A question the body already asks as a heading — a Q&A
-// page's own sections — is not drawn twice: its pair is that heading and
-// the paragraph under it.
+// SPEC §7 — a page's buyer questions (`drafts.meta.faq`), drawn by code as a section above its sources list on both
+// destinations; the writer never writes them into the body.
+// The data restates only what is drawn: each pair is the text of the blocks `markdown.ts` renders, so `FAQPage` cannot
+// state a sentence the page does not show. A question already asked as a heading is that heading and its paragraph.
 import { copy } from "@/lib/presentation/copy";
 import { inlineText, parseInline, type Block, type Say } from "./markdown";
 import { isSourcesHeading } from "./made";
@@ -24,11 +12,8 @@ export interface FaqEntry {
   answer: string;
 }
 
-/** `drafts.meta.faq`, read defensively: a meta blob is jsonb and nothing
- *  in the database constrains its shape, so an entry missing either half
- *  is dropped rather than shown as a question with no answer. An absent
- *  or empty section yields an empty array, and the page draws no section
- *  and no `FAQPage` for it — never an empty one. */
+/** `drafts.meta.faq`, read defensively since jsonb has no shape: an entry missing a half is dropped, and none draws no
+ *  section and no `FAQPage`, never an empty one. */
 export function readFaq(meta: Readonly<Record<string, unknown>> | null): readonly FaqEntry[] {
   const raw = meta?.faq;
   if (!Array.isArray(raw)) return [];
@@ -43,8 +28,7 @@ export function readFaq(meta: Readonly<Record<string, unknown>> | null): readonl
   return Object.freeze(entries);
 }
 
-/** The words of a question, for finding it among the body's headings:
- *  case, spacing and the closing mark do not make two different. */
+/** A question's words for matching headings; case, spacing and the closing mark do not count. */
 function questionKey(text: string): string {
   return text.replace(/\s+/g, " ").trim().replace(/[?!.:]+$/, "").toLowerCase();
 }
@@ -54,15 +38,8 @@ function shown(children: Parameters<typeof inlineText>[0]): string {
   return inlineText(children).replace(/\s+/g, " ").trim();
 }
 
-/**
- * The body with its buyer questions drawn, and the pairs it now shows.
- *
- * A question the body already asks as a heading keeps its place, and its
- * pair is that heading and the paragraph under it. The rest are a section
- * of their own, headed in the page's language at the level of the body's
- * sources list (else its top level), each question one level under it:
- * above the sources list where the body ends with one, else last.
- */
+/** The body with its questions drawn, and the pairs it shows. The rest form a section at the sources list's level (else
+ *  the top level), each question one level under, above the sources list or else last. */
 export function withFaq(
   blocks: readonly Block[],
   faq: readonly FaqEntry[],
@@ -88,8 +65,7 @@ export function withFaq(
   if (section.length === 0) return { blocks: [...blocks], faq: pairs };
 
   const sources = blocks.findIndex((block) => block.kind === "heading" && isSourcesHeading(inlineText(block.children), say));
-  // The sources list's own level where the body has one, so the two sit
-  // side by side; else the body's top level.
+  // Beside the sources list at its level, else the body's top level.
   const beside = blocks[sources];
   const top =
     beside?.kind === "heading"

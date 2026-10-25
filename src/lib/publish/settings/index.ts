@@ -1,8 +1,4 @@
-// BUILD §9 · §4.7 — the publishing settings leaf's public face.
-//
-// A barrel and nothing else: no logic lives here, and every module inside
-// the leaf imports its siblings by file so the import graph stays readable
-// at file granularity (ADR-092).
+// BUILD §9 · §4.7 — the publishing settings leaf's public face. A barrel only: siblings import each other by file (ADR-092).
 export {
   SETTINGS_FIELDS,
   adoptBrowserTimezone,

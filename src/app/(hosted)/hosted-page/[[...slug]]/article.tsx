@@ -1,21 +1,18 @@
 // BUILD §9 — the hosted article: the page a live address draws, whichever
 // route reaches it.
 //
-// Two routes draw it (issue 1242) and they must draw the same page:
+// Two routes answer the static string `articleDocument` returns:
 // `hosted-live/[host]/[slug]`, which `src/middleware.ts` rewrites a live
-// address to and which is cached, and `hosted-page/[[...slug]]`, the
-// uncached route, which draws it only when the middleware could not
-// confirm the address in time. The first is handed its host in its path;
-// the second reads the Host header. Both resolve that host here, through
-// the same `resolveHost`, so neither can serve a page its host does not
-// serve now.
+// address to and which is cached, and `hosted-article/[slug]`, the uncached
+// route for an address the middleware did not find live. The first is
+// handed its host in its path; the second reads the Host header. Both
+// resolve that host here, through the same `resolveHost`, so neither can
+// serve a page its host does not serve now.
 //
 // What the page holds and why is `page.tsx`'s header, beside this file.
-import { cache } from "react";
-import type { Metadata } from "next";
 import type React from "react";
 import { HOSTED_BODY_CLASSES, HOSTED_GUIDES_CLASSES } from "../body-classes";
-import { copy, readIn, readerLanguage, readerTag } from "@/lib/presentation/copy/reader";
+import { copy, readIn, readerLanguage, readerTag, readingIn } from "@/lib/presentation/copy/reader";
 import { localeTag } from "@/lib/locale/locales";
 import { siteLocale } from "@/lib/locale/site";
 import {
@@ -36,19 +33,31 @@ import {
   hostedIdentity,
   livePagesForSite,
   retiredSlugsForSite,
+  taggedForHosted,
   type HostedPage,
 } from "@/lib/publish/destinations/hosted";
 import { slugOf } from "@/lib/publish/destinations/hosted/moved";
 import { movedSlugsForSite } from "@/lib/publish/destinations/hosted/store";
 import { topicSimilarity } from "@/lib/known-content/similarity";
 import { Surface } from "@/ui/layout";
+import { hostedHtml } from "../../document";
 import { resolveHost } from "../../resolve-host";
 import { AboutCard, actionsOf, CompactAction, Glyph, HostedFooter, HostedHeader, INDEX_PATH, mainSiteOf, type HostedBusiness } from "./chrome";
 import { bylineLine, datedLine } from "@/lib/publish/render/byline";
 import { withFaq, type FaqEntry } from "@/lib/publish/render/faq";
 import { isSourcesHeading, madeLine } from "@/lib/publish/render/made";
 import { writeDate } from "./present";
-import { articleMetadata, blogPostingSchema, breadcrumbSchema, jsonLd, offeringSchema } from "./seo";
+import {
+  alternatesOf,
+  blogPostingSchema,
+  breadcrumbSchema,
+  HEAD_SIGNALS,
+  jsonLd,
+  offeringSchema,
+  originOf,
+  shareImageUrl,
+  shareTags,
+} from "./seo";
 import { pageAuthorOf } from "./author";
 
 export interface Resolved {
@@ -75,11 +84,8 @@ export async function businessOf(site: { siteId: string; domain: string }): Prom
   return { ...(await hostedIdentity(site)), domain: site.domain };
 }
 
-/** One resolution per render, shared by `generateMetadata` and the page.
- *  `cache` is React's own render-scoped memo — not a data cache, and not
- *  a TTL — so the two entry points cannot disagree about which page they
- *  are describing, and the row is read once. */
-export const loadArticle = cache(async (host: string, slug: string): Promise<Resolved | null> => {
+/** The page this host serves at this slug now, with what its render draws beside it, or `null`. */
+async function loadArticle(host: string, slug: string): Promise<Resolved | null> {
   const disposition = await resolveHost(host);
   // Every other disposition is somebody else's answer: `unknown` is the
   // 404 each route falls through to, and `gone` is answered 410 by
@@ -110,7 +116,7 @@ export const loadArticle = cache(async (host: string, slug: string): Promise<Res
     // argument to it that yields a ReachKit address.
     canonical: page.liveUrl,
   };
-});
+}
 
 /** A description's length in a search result, past which it is cut. */
 const DESCRIPTION_CHARS = 160;
@@ -263,10 +269,76 @@ function whereWhenOf(blocks: readonly Block[], heading: string | null | undefine
   return { list, places: listed.items.map((item) => inlineText(item).replace(/\s+/g, " ").trim()) };
 }
 
-/** The article's `<head>`: its own title, description, canonical and share
- *  tags. */
-export function articleHead(resolved: Resolved): Metadata {
-  return articleMetadata({ ...resolved, description: descriptionOf(resolved.page) });
+/** One `<meta>`: the attribute that names it, its name, and its content where it has one. */
+type MetaTag = readonly ["name" | "property", string, string | undefined];
+
+function metaTags(tags: readonly MetaTag[]): React.ReactNode[] {
+  return tags.map(([attribute, name, content]) =>
+    content === undefined ? null : <meta key={`${name} ${content}`} {...{ [attribute]: name }} content={content} />
+  );
+}
+
+/** The article's `<head>`: its own description, canonical, feed link and share tags; `hostedHtml` writes the title. */
+export function ArticleHead({ resolved }: { resolved: Resolved }): React.JSX.Element {
+  const { page, canonical, business } = resolved;
+  const description = descriptionOf(page);
+  const { openGraph: og, twitter } = shareTags({
+    canonical,
+    title: page.title,
+    description,
+    business,
+    image: shareImageUrl(originOf(canonical), page.slug),
+  });
+  const robots = Object.entries(HEAD_SIGNALS.robots).map((pair) => pair.join(":")).join(", ");
+  return (
+    <>
+      {metaTags([
+        ["name", "description", description],
+        ["name", "robots", robots],
+      ])}
+      <link rel="canonical" href={canonical} />
+      {Object.entries(alternatesOf(canonical, business).types).flatMap(([type, feeds]) =>
+        feeds.map((feed) => <link key={feed.url} rel="alternate" type={type} href={feed.url} title={feed.title} />)
+      )}
+      {metaTags([
+        ["property", "og:title", og.title],
+        ["property", "og:description", og.description],
+        ["property", "og:url", og.url],
+        ["property", "og:site_name", og.siteName],
+        ["property", "og:locale", og.locale],
+        ...og.images.flatMap((image): MetaTag[] => [
+          ["property", "og:image", image.url],
+          ["property", "og:image:width", String(image.width)],
+          ["property", "og:image:height", String(image.height)],
+          ["property", "og:image:alt", image.alt],
+        ]),
+        ["property", "og:type", "article"],
+        ["property", "article:published_time", page.firstPublishedAt.toISOString()],
+        ["property", "article:modified_time", page.publishedAt.toISOString()],
+        ["name", "twitter:card", twitter.card],
+        ["name", "twitter:title", twitter.title],
+        ["name", "twitter:description", twitter.description],
+        ...twitter.images.map((image): MetaTag => ["name", "twitter:image", image]),
+      ])}
+      <link rel="icon" href={HEAD_SIGNALS.icons.icon} />
+    </>
+  );
+}
+
+/** The cached article as its route answers it, or `null` where the host serves no such page now. */
+export async function articleDocument(host: string, slug: string): Promise<string | null> {
+  return readingIn(async () => {
+    const resolved = await loadArticle(host, slug);
+    if (resolved === null) return null;
+    // The tags let a publish or an unpublish clear this copy at once.
+    await taggedForHosted(resolved.page);
+    return hostedHtml({
+      lang: readerTag(),
+      title: resolved.page.title,
+      head: <ArticleHead resolved={resolved} />,
+      body: <HostedArticle resolved={resolved} />,
+    });
+  });
 }
 
 /** Whether `href` is an address of the page's own host that answers 410. */

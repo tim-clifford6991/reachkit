@@ -280,7 +280,8 @@ async function weeklyNumbers(siteId: string, weekStart: string, now: Date): Prom
       steps,
       early: showing === 0,
       climbing: ladder.climbing,
-      ...(ladder.visits === null || ladder.visits === 0
+      // A week of none is a line only when it fell from an earlier week's visits.
+      ...(ladder.visits === null || (ladder.visits === 0 && !before)
         ? {}
         : { visits: counted(ladder.visits, now), ...(before === undefined ? {} : { visitsBefore: counted(before, now) }) }),
       ...(mover === undefined

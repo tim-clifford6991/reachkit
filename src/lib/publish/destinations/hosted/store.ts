@@ -1,22 +1,9 @@
-// BUILD §9 — everything the hosted edge reads, in one place.
-//
-// The edge answers on a stranger's domain with no session, no cookie and
-// no payment, so it reads through `publishDb()` (the admin client) and
-// **writes nothing at all**: nothing under `src/app/(hosted)/` can advance
-// the state machine, and nothing here gives it a way to.
-//
-// **Two select lists and no third.** Every column named below is one the
-// page, the sitemap or §9's page record needs; `sites.user_id`,
-// `destinations.config` and every other credential-adjacent column is
-// absent by construction rather than by care taken at the call site.
-//
-// **"Live" is one predicate, written once**: a `hosted` publication that
-// has a `published_at` and no `unpublished_at`. The page render, the
-// sitemap and the 410 all read it from here, so an unpublished page cannot
-// be gone from one and present in another.
-//
-// The archived plans are WO-229 (the host resolution this feeds) and
-// WO-230/WO-231 (the page and the sitemap).
+// BUILD §9 — everything the hosted edge reads, in one place. The edge answers strangers with no session, so it reads
+// through `publishDb()` and writes nothing: nothing under `src/app/(hosted)/` can advance the state machine.
+// Every column named is one the page, the sitemap or §9's record needs; `sites.user_id`, `destinations.config` and
+// every credential-adjacent column are absent by construction.
+// "Live" is one predicate, written once (`published_at` set, `unpublished_at` null), so the page, the sitemap and the
+// 410 cannot disagree.
 import { readRecordedFact, type RecordedFact } from "@/lib/generate/fact";
 import { madeCounts, type MadeCounts } from "../../render/made-counts";
 import { readFaq, type FaqEntry } from "../../render/faq";
@@ -30,28 +17,16 @@ import { mainSiteOf, type MainSite } from "@/lib/site-profile/main-site-row";
 
 export { readFaq, type FaqEntry } from "../../render/faq";
 
-/** A site, as the edge sees it: an id and the domain that resolved to it.
- *  There is nothing about its owner on this shape. */
+/** A site as the edge sees it, with nothing about its owner. */
 export interface HostedSite {
   siteId: string;
   domain: string;
-  /** The host this site's pages are served at — `<label>.<domain>`, as the
-   *  customer chose it (SPEC §5, 2026-09-12). Composed from the stored
-   *  label where the destination row carries one and from the default
-   *  where it does not, so a row written before the label became a choice
-   *  still names the host it has always served at. */
+  /** `<label>.<domain>` (SPEC §5): the stored host, else the default label. */
   host: string;
 }
 
-/** §9: "Every published page records: opportunity id, target query,
- *  measurement date, approved-vs-autopilot, live URL." Five members, and
- *  the type is what makes the sentence checkable — a record missing one of
- *  them does not typecheck.
- *
- *  `measuredOn` is nullable because it is the date of the scan the
- *  opportunity was derived from, and a scan row that has been purged
- *  leaves a page whose measurement date is genuinely unknown. `null` says
- *  that; a fabricated date would not. */
+/** §9: "Every published page records: opportunity id, target query, measurement date, approved-vs-autopilot, live URL",
+ *  checkable as a type. `measuredOn` is null where the scan row was purged, never a fabricated date. */
 export interface PublishedPageRecord {
   opportunityId: string;
   targetQuery: string;
@@ -60,88 +35,40 @@ export interface PublishedPageRecord {
   liveUrl: string;
 }
 
-/**
- * Who the page is published by, as the edge can know it (UI-SPEC S19).
- *
- * §14.6: "Customer is publisher of record: their domain, their identity."
- * The set draws a brand mark, a brand name, a category eyebrow and a
- * byline on this surface, and this is every fact behind them.
- *
- * **`name` is the customer's domain, because that is the identity this
- * product holds.** No column carries a trading name — setup asks for a
- * domain, a category, competitors, a voice and a do-not-claim list, and
- * none of those is a brand — and a name derived from anything else would
- * be a name the customer never gave, printed as theirs on their own site.
- * The domain is the one identity fact they did give.
- *
- * `category` and `timeZone` are nullable because both columns are: a site
- * that stated no category draws no eyebrow, and one that stated no zone
- * has its publication date written in UTC rather than in a zone this
- * product picked for it (REQ-073 c1).
- */
+/** Who the page is published by (UI-SPEC S19; §14.6: "Customer is publisher of record: their domain, their identity").
+ *  `name` is the domain, the one identity fact the customer gave, never a name we derived. No category draws no eyebrow;
+ *  no zone writes dates in UTC, never a zone we picked (REQ-073 c1). */
 export interface HostedPublisher {
   name: string;
   category: string | null;
   timeZone: string | null;
 }
 
-/**
- * §8's grounded fact, as generation recorded it on the page.
- *
- * The set marks the passage inside the body and states its source under
- * it. Read from `drafts.grounded_fact` — the column §8 hard rule 1 freezes
- * — and never from anywhere else: a passage the page is not grounded in,
- * marked as though it were, is a claim about the evidence.
- *
- * **The one shape, not this module's own** (issue #415): `RecordedFact` is
- * what `src/lib/generate/fact.ts` writes and what the draft view reads, so
- * what the customer approved and what a visitor is shown cannot be two
- * different records. The name stays because this module speaks it.
- *
- * `null` for a page generation recorded no grounding for; the body then
- * renders whole and unmarked and no source line is drawn, which is what a
- * page with no recorded source honestly is.
- */
+/** §8's grounded fact from `drafts.grounded_fact` (hard rule 1) and nowhere else, marked in the body with its source.
+ *  `RecordedFact` is the shape generation writes and the draft view reads, so approved and shown are one record.
+ *  `null` renders the body whole and unmarked. */
 export type HostedGrounding = RecordedFact;
 
-/** One live hosted page. `slug` is the last segment of the address the
- *  page was actually published at, so the address the customer's visitor
- *  typed and the address recorded on the row cannot drift apart.
- *
- *  **`liveUrl` is that slug on the host the page is being addressed on
- *  now**, not the address stored when it was published (SPEC §7,
- *  2026-09-18, issue 888). A hosted page is its `publications` row and the
- *  row belongs to a *site*; the host is the site's, and a site whose host
- *  changed under its live pages serves every one of them at the new
- *  address. So the canonical the page declares, the entry its sitemap
- *  carries and the address §9's record names are one string composed from
- *  the resolving host — a stored address that no longer answers is never
- *  one of them. */
+/** One live hosted page. `slug` is the published address's last segment. `liveUrl` is that slug on the host addressed
+ *  now (SPEC §7), since the host is the site's and can move, so the canonical, the sitemap entry and the record agree. */
 export interface HostedPage {
   publicationId: string;
   siteId: string;
   slug: string;
   title: string;
-  /** The page's H1 (SPEC §7, D51): the longer form generation wrote beside
-   *  the title (`drafts.meta.heading`), or `null` where it wrote none and
-   *  the title is the heading. */
+  /** The H1 (SPEC §7, D51) from `drafts.meta.heading`, or `null` where the title is the heading. */
   heading: string | null;
   bodyMd: string;
-  /** The description generation wrote for this page (`drafts.meta.description`),
-   *  or `null` for a draft that has none stored. */
+  /** `drafts.meta.description`, or `null`. */
   description: string | null;
   faq: readonly FaqEntry[];
   /** What the page is grounded in, or `null` where nothing was recorded. */
   grounded: HostedGrounding | null;
-  /** SPEC §7 (2026-10-11, issue 1397): the two numbers of the note that
-   *  says how the page was made, or `null` for a row that records no fact
-   *  read from the site or no count of its rules. */
+  /** SPEC §7: the made-with note's two numbers, or `null` where the row records neither. */
   made: MadeCounts | null;
-  /** Whose page it is — the header, the eyebrow, the byline and the
-   *  footer are drawn from this and from nothing else. */
+  /** Whose page it is: the header, eyebrow, byline and footer come from this alone. */
   publisher: HostedPublisher;
-  /** SPEC §7 (2026-09-29): the page's byline as generation recorded it
-   *  (`drafts.attribution`), or `null` for a page with none. */
+  /** SPEC §7: the byline as generation recorded it (`drafts.attribution`), or `null`. */
   byline: string | null;
   /** Written as the business's own service or product page
    *  (`drafts.meta.contentType`); absent reads as not. */
@@ -159,8 +86,7 @@ export interface HostedPage {
   /** When this version went live. On a page that has been refreshed it is
    *  the update's date, and `firstPublishedAt` is the page's own. */
   publishedAt: Date;
-  /** When the address first carried a page: the oldest live publication at
-   *  this slug (issue 781 — an update is a new publication at the slug). */
+  /** When the address first carried a page: the oldest live publication at the slug, as an update is a new one. */
   firstPublishedAt: Date;
   liveUrl: string;
   record: PublishedPageRecord;
@@ -171,8 +97,7 @@ interface SiteRow {
   domain: string;
 }
 
-/** A live hosted destination and the site it belongs to, as the Host
- *  lookup reads it. No credential-adjacent column is named. */
+/** A live hosted destination and its site, as the Host lookup reads it. */
 interface DestinationHostRow {
   site_id: string;
   hostname: string | null;
@@ -203,26 +128,15 @@ interface PublicationRow {
   } | null;
 }
 
-/** The one select list for a live page. It reaches through the two
- *  relationships §9's page record needs and no others. */
+/** The one select list for a live page, through the two relationships §9's record needs. */
 const PAGE_COLUMNS =
   "id, site_id, live_url, published_at, mode, " +
-  // The publisher's own three, and nothing else off `sites`: the domain is
-  // the name S19 draws, the category is its eyebrow, and the zone is what
-  // the byline's date is written in. `user_id` and every
-  // credential-adjacent column stay absent by construction.
+  // The publisher's three and nothing else off `sites`: name, eyebrow, and the byline date's zone.
   "sites!inner(domain, category, timezone), " +
   "drafts!inner(title, body_md, attribution, meta, grounded_fact, opportunity_id, " +
   "opportunities!inner(id, target_query, business_fit, cluster_key, scans(created_at)))";
 
-/**
- * The site whose hosted pages are served on this domain, or `null`.
- *
- * **Exact match, one lookup, and no fallback of any kind.** An unclaimed
- * domain resolves to nothing — never to "the only site there is", never to
- * a default. That is what makes the unknown-Host 404 a property of this
- * function rather than a branch someone has to remember to write.
- */
+/** The site served on this domain, or `null`: exact match, no fallback, so an unknown Host 404s by construction. */
 export async function hostedSiteForDomain(domain: string): Promise<HostedSite | null> {
   const name = domain.trim().toLowerCase();
   if (name === "") return null;
@@ -237,21 +151,8 @@ export async function hostedSiteForDomain(domain: string): Promise<HostedSite | 
   return { siteId: row.id, domain: row.domain, host: hostFor({ label: null, domain: row.domain }) };
 }
 
-/**
- * The site whose hosted pages are served on this **host**, or `null`.
- *
- * SPEC §5's ruling of 2026-09-12 made the subdomain label the customer's,
- * so a Host header is no longer a pinned label over a domain this product
- * can take apart — `blog.example.com` and `news.example.com` are two
- * customers' choices and neither is derivable from the other. The host is
- * stored whole on the destination row and matched whole here.
- *
- * **Exact match, one lookup, no fallback of any kind** — the property
- * `hostedSiteForDomain` has and for the same reason: an unclaimed host
- * resolves to nothing, never to "the only site there is". The partial
- * unique index means at most one live destination claims a host, so this
- * has exactly one answer.
- */
+/** The site served on this host, or `null`. The label is the customer's (SPEC §5), so the host is stored and matched
+ *  whole: exact match, no fallback, and the partial unique index gives one answer. */
 export async function hostedSiteForHostname(host: string): Promise<HostedSite | null> {
   const name = host.trim().toLowerCase();
   if (name === "") return null;
@@ -287,10 +188,7 @@ function toPage(row: PublicationRow, host: string): HostedPage | null {
 
   const measured = opportunity.scans?.created_at ?? null;
   const domain = row.sites?.domain ?? null;
-  // A publication whose site has no domain has no publisher to name and no
-  // address it could have been served at. `null`, like every other row this
-  // function cannot compose a whole page from — never a page with a blank
-  // where the customer's own name goes.
+  // No domain, no publisher and no address: `null`, never a page with a blank for the customer's name.
   if (domain === null || domain.trim() === "") return null;
 
   // The one composer, on the host that resolved: see `HostedPage.liveUrl`.
@@ -330,11 +228,7 @@ function toPage(row: PublicationRow, host: string): HostedPage | null {
   };
 }
 
-/**
- * How the business is drawn on its own blog (SPEC §7, 2026-09-29, issue
- * 1140): the name it calls itself, whether a logo is kept for it, and one
- * line about it.
- */
+/** How the business is drawn on its own blog (SPEC §7): its name, whether a logo is kept, and one line about it. */
 export interface HostedIdentity {
   /** The name its stored profile gives it (`storedSiteName`), else the
    *  domain — the one name it gave. */
@@ -343,9 +237,7 @@ export interface HostedIdentity {
   logoType: string | null;
   /** One line saying what the business does, or `null` where none is held. */
   line: string | null;
-  /** What the scan read of the main site (issue 1511): its canonical home,
-   *  its own Organization and the profiles it links. Absent or `null` where
-   *  no pass kept one, and the pages then link the bare domain. */
+  /** The main site's canonical home, Organization and profiles, as the scan read them; else the pages link the bare domain. */
   mainSite?: MainSite | null;
   /** What the adopted market says the business sells, in a buyer's words,
    *  and the one place it serves where it serves one, with its region where
@@ -362,9 +254,7 @@ interface IdentityRow {
   claims: unknown;
 }
 
-/** The adopted market off `sites.market`, read off the stored blob rather
- *  than through the market module, which this file must not put in the
- *  hosted graph. */
+/** The adopted market off the stored `sites.market` blob, never the market module, which must stay out of the hosted graph. */
 function marketOf(market: unknown): { job: string | null; offer: HostedIdentity["offer"] } {
   const current = (market as { current?: { job?: unknown; category?: unknown; serves?: { name?: unknown; region?: unknown } | null } } | null)?.current;
   const text = (value: unknown): string | null => (typeof value === "string" ? emptyToNull(value) : null);
@@ -378,15 +268,9 @@ function marketOf(market: unknown): { job: string | null; offer: HostedIdentity[
   };
 }
 
-/**
- * The identity of the site at `domain`. Three short columns of its profile,
- * and one line about the business: what it does — the founder's own wording
- * of that where they reworded it, else the job its market was concluded
- * with — else the first claim the profile kept. Never an answer to one of
- * setup's questions (SPEC §7, D53, issue 1268): those are notes for the
- * writer, and one was printed as the index's description. A read that fails
- * draws the domain and a tile; it never takes the page down.
- */
+/** The site's identity: three profile columns and one line, the founder's own wording of what it does, else its
+ *  market's job, else the first kept claim. Never a setup answer (SPEC §7, D53), which is a note for the writer. A failed
+ *  read draws the domain and a tile, never taking the page down. */
 export async function hostedIdentity(a: { siteId: string; domain: string }): Promise<HostedIdentity> {
   const fallback: HostedIdentity = { name: a.domain, logoType: null, line: null };
   try {
@@ -399,8 +283,7 @@ export async function hostedIdentity(a: { siteId: string; domain: string }): Pro
         .limit(1),
       publishDb().from<{ market: unknown }>("sites").select("market").eq("id", a.siteId).limit(1),
       readBusinessEdits(a.siteId).catch(() => null),
-      // Its own read: until issue 1511's column is applied, it is none and
-      // the identity above still stands.
+      // Its own read, so a schema without the column leaves the identity standing.
       Promise.resolve(
         publishDb().from<{ main_site: unknown }>("site_profiles").select("main_site").eq("domain", a.domain).limit(1)
       )
@@ -414,9 +297,7 @@ export async function hostedIdentity(a: { siteId: string; domain: string }): Pro
     const market = marketOf(site.data?.[0]?.market);
     const job = emptyToNull(edits?.job ?? null) ?? market.job;
     return {
-      // Issue 1511: the name the main site's own Organization markup gives
-      // itself, where it gives one, so the page and its markup never
-      // contradict the main site; else the stored brand.
+      // The main site's own Organization name where given, so page and markup never contradict it; else the stored brand.
       name: mainSite?.organization.name ?? (row === undefined ? null : storedSiteName(row, row.home_title)) ?? a.domain,
       logoType: emptyToNull(row?.logo_type ?? null),
       line: job ?? emptyToNull(claim ?? null),
@@ -428,8 +309,7 @@ export async function hostedIdentity(a: { siteId: string; domain: string }): Pro
   }
 }
 
-/** `drafts.meta.description`, read as defensively as the FAQ: a blank or
- *  non-string value is no description, never an empty meta tag. */
+/** `drafts.meta.description`, read defensively: blank is none, never an empty meta tag. */
 export function readDescription(meta: Record<string, unknown> | null): string | null {
   const raw = meta?.description;
   if (typeof raw !== "string") return null;
@@ -446,12 +326,8 @@ function readSectionHeading(meta: Record<string, unknown> | null, key: string): 
   return found === undefined ? null : emptyToNull(found.heading);
 }
 
-/** `drafts.meta.heading`, read the same way. */
-/** The date a mended version keeps (SPEC §7, issue 1507): a version that
- *  only repaired its predecessor in code — a list counted again, a repeated
- *  link gone — is dated as that predecessor, so its updated date, its
- *  `dateModified` and its sitemap `lastmod` do not move. `null` for every
- *  other version, which is dated when it went live. */
+/** The date a mended version keeps (SPEC §7): a version that only repaired its predecessor in code is dated as it, so
+ *  its updated date, `dateModified` and `lastmod` do not move. `null` for every other version. */
 function datedAt(meta: Record<string, unknown> | null): Date | null {
   const raw = meta?.datedAs;
   if (typeof raw !== "string") return null;
@@ -459,6 +335,7 @@ function datedAt(meta: Record<string, unknown> | null): Date | null {
   return Number.isNaN(at.getTime()) ? null : at;
 }
 
+/** `drafts.meta.heading`, read the same way. */
 function readHeading(meta: Record<string, unknown> | null): string | null {
   const raw = meta?.heading;
   if (typeof raw !== "string") return null;
@@ -466,31 +343,14 @@ function readHeading(meta: Record<string, unknown> | null): string | null {
   return text === "" ? null : text;
 }
 
-/** A stated value, or `null` — an empty string is not a category and not a
- *  zone, and a surface that drew one would draw an empty eyebrow. */
+/** A stated value, or `null`: an empty string would draw an empty eyebrow. */
 function emptyToNull(value: string | null): string | null {
   return value === null || value.trim() === "" ? null : value;
 }
 
-/**
- * Every live hosted page of one site, newest first, addressed on `host`.
- *
- * The sitemap is exactly this list, and the page render finds its page in
- * it — one predicate, one query, so a page cannot be absent from the
- * sitemap and present at its address, or the reverse.
- *
- * **`host` is an argument and not a column** (SPEC §7, 2026-09-18, issue
- * 888). Every caller has already resolved the host this site is being
- * served at — the edge from the Host header, the adapter from the site's
- * destination row — and passing it is what makes "the address a page
- * states is the address it answers at" hold by construction rather than by
- * a stored string staying true. A host that changed under live pages
- * re-addresses all of them here, in one place.
- *
- * **One page per address** (issue 781): an update of a hosted page is a new
- * publication at the same slug, so the newest live row at a slug is the page
- * and every older one is a version it replaced — never listed beside it.
- */
+/** Every live hosted page, newest first, on `host`: the sitemap is exactly this list and the render finds its page in
+ *  it. `host` is an argument (SPEC §7), so a page states the address it answers at by construction. One page per
+ *  address: the newest live row at a slug, never listed beside the versions it replaced. */
 export async function livePagesForSite(siteId: string, host: string): Promise<HostedPage[]> {
   const { data, error } = await publishDb()
     .from<PublicationRow>("publications")
@@ -501,8 +361,7 @@ export async function livePagesForSite(siteId: string, host: string): Promise<Ho
     .is("unpublished_at", null)
     .order("published_at", { ascending: false });
   if (error !== null || data === null) return [];
-  // Newest first, so the first row at a slug is the page and every later
-  // one an older version of it — whose date is when the page was published.
+  // The first row at a slug is the page; later ones are older versions, giving its first date.
   const bySlug = new Map<string, HostedPage>();
   for (const row of data) {
     const page = toPage(row, host);
@@ -514,16 +373,7 @@ export async function livePagesForSite(siteId: string, host: string): Promise<Ho
   return [...bySlug.values()];
 }
 
-/**
- * One live hosted page of one site, by the slug in the visitor's address.
- *
- * Matched in this process rather than in the query because the slug is the
- * last segment of `live_url` and the narrow query builder this subsystem
- * reaches Postgres through carries no pattern operator. A site publishes
- * at most one page a day and seven a week (§9), so the list this walks is
- * the site's whole published history and is small by the product's own
- * hard limits — not by an assumption about customer behaviour.
- */
+/** One live page by slug, matched here since the query builder has no pattern operator; §9's ceilings keep the list small. */
 export async function livePageBySlug(
   siteId: string,
   slug: string,
@@ -537,27 +387,9 @@ export type { HostedAddress, HostedAddressState } from "./moved";
 
 const NO_ADDRESS: HostedAddress = Object.freeze({ state: "none", publicationId: null });
 
-/**
- * Whether this site serves a page at this slug, moved it to another, served
- * one and has stopped, or neither — the 301's and the 410's own facts, in
- * one read.
- *
- * **One narrow read, because it runs before routing on every request to a
- * customer's host** (issue 1194). It selects four short columns and the
- * address each row updates, so it costs one round trip however long the
- * site's pages are. The read it replaced was the whole page list, bodies
- * and all, followed by a second query, and on a cold function the pair
- * outlasted the caller's deadline — a taken-down address then answered 404.
- *
- * What each state means is `addressOf`'s (`./moved.ts`): live first, then
- * moved (issue 1487), then retired, else none.
- *
- * **A live address names its publication** (issue 1242): the middleware
- * counts an answer engine's read against it, and this is the only read it
- * makes.
- *
- * **A read that fails is `none`.** No answer is not a takedown.
- */
+/** Live, moved, retired or none at this slug: the 301's and the 410's facts, in one narrow read, since it runs before
+ *  routing on every request and must beat the middleware's deadline cold. The states are `addressOf`'s. A live address
+ *  names its publication, which the middleware counts reads against. A failed read is `none`, never a takedown. */
 export async function hostedAddress(siteId: string, slug: string): Promise<HostedAddress> {
   const rows = await addressRows(siteId);
   return rows === null ? NO_ADDRESS : addressOf(rows, slug);
@@ -577,8 +409,7 @@ async function addressRows(siteId: string): Promise<AddressRow[] | null> {
   const read = (columns: string) =>
     publishDb().from<Row>("publications").select(columns).eq("site_id", siteId).eq("destination", "hosted");
   let { data, error } = await read("id, live_url, published_at, unpublished_at, merged_into, drafts(opportunities(family, target_ref))");
-  // Until `merged_into` is applied (issue 1506's migration, after the
-  // deploy), the read without it answers as before: no address is merged.
+  // A schema without `merged_into` is read without it: no address is merged.
   if (error !== null) ({ data, error } = await read("id, live_url, published_at, unpublished_at, drafts(opportunities(family, target_ref))"));
   if (error !== null || data === null) return null;
   return data.map((row) => {
@@ -594,12 +425,7 @@ async function addressRows(siteId: string): Promise<AddressRow[] | null> {
   });
 }
 
-/**
- * The slugs of a site's host that answer 410 (issue 1506): an address that
- * served a page and now serves none, by `addressOf`'s own reading — moved
- * and merged addresses answer 301 and are not among them. A read that fails
- * is none: a link is never unwrapped on a guess.
- */
+/** The slugs answering 410, by `addressOf`; moved and merged ones answer 301. A failed read is none, never unwrapping on a guess. */
 export async function retiredSlugsForSite(siteId: string): Promise<ReadonlySet<string>> {
   const rows = await addressRows(siteId);
   if (rows === null) return new Set();
@@ -607,14 +433,8 @@ export async function retiredSlugsForSite(siteId: string): Promise<ReadonlySet<s
   return new Set([...slugs].filter((slug) => addressOf(rows, slug).state === "retired"));
 }
 
-/**
- * The slugs of a site's host that answer 301, each with the slug it answers
- * with now (SPEC §7, 2026-10-18, issue 1511): a link to a moved address is
- * drawn at the page's final one, so no page links a redirect while the
- * `link` refresh is still weeks away. By `addressOf`'s own reading, the
- * same one the middleware's 301 makes. A read that fails is none, and never
- * throws: the link is then drawn as it was written, which still redirects.
- */
+/** The slugs answering 301 and where (SPEC §7), so a link is drawn at the final address before its refresh lands. By
+ *  `addressOf`, as the middleware reads it. Never throws; a failed read draws links as written, which still redirect. */
 export async function movedSlugsForSite(siteId: string): Promise<ReadonlyMap<string, string>> {
   try {
     const rows = await addressRows(siteId);
@@ -631,16 +451,8 @@ export async function movedSlugsForSite(siteId: string): Promise<ReadonlyMap<str
   }
 }
 
-/**
- * The site a draft belongs to, and the domain its hosted pages are served
- * on.
- *
- * The hosted adapter's one read. `deliver` is handed a rendered page, a
- * config and the draft id, and none of the three carries the customer's
- * own domain — which is the one thing a hosted address cannot be composed
- * without. A site with no domain yet answers `null` here, and the delivery
- * fails with a reason rather than composing an address on a blank.
- */
+/** The draft's site and domain, the hosted adapter's one read, since `deliver` is handed no domain. No domain is `null`,
+ *  and delivery fails with a reason rather than composing on a blank. */
 export async function siteForDraft(draftId: string): Promise<HostedSite | null> {
   const { data, error } = await publishDb()
     .from<{ site_id: string; sites: { domain: string | null } | null }>("drafts")
@@ -650,9 +462,7 @@ export async function siteForDraft(draftId: string): Promise<HostedSite | null> 
   if (error !== null || data === null) return null;
   const domain = data.sites?.domain ?? null;
   if (domain === null || domain.trim() === "") return null;
-  // The host the customer chose, where they chose one. A site whose
-  // destination row carries none is served at the default label, which is
-  // the host it has always been served at — never a blank first label.
+  // The chosen host, else the default label, never a blank first label.
   const chosen = await hostnameOfSite(data.site_id);
   return {
     siteId: data.site_id,
@@ -661,15 +471,8 @@ export async function siteForDraft(draftId: string): Promise<HostedSite | null> 
   };
 }
 
-/**
- * The pages a site's hosted destination could update (issue 781): its host and
- * the slugs live there. `null` where the site's live destination is not
- * hosted — that destination answers for itself.
- *
- * A read that fails is a hosted site with no page to update, never a guess
- * that it is not hosted: an update is offered only where it can be
- * delivered.
- */
+/** The host and live slugs a hosted destination could update; `null` where not hosted. A failed read offers no page,
+ *  never a guess, as an update is offered only where deliverable. */
 export async function hostedOwnPagesOfSite(siteId: string): Promise<HostedOwnPages | null> {
   const NONE: HostedOwnPages = { host: "", slugs: [] };
   const { data, error } = await publishDb()
@@ -689,17 +492,8 @@ export async function hostedOwnPagesOfSite(siteId: string): Promise<HostedOwnPag
   return { host, slugs: pages.map((page) => page.slug) };
 }
 
-/**
- * The host a site's hosted pages are served at **now**, or `null` where no
- * host can be read at all (SPEC §7, 2026-09-18, issue 888).
- *
- * The stored host where the destination row carries one, and the default
- * label over the site's own domain where it does not — the same two arms
- * `siteForDraft` composes a delivery address from, so the address a page is
- * published at and the address it is re-addressed at later are decided the
- * same way. `null` is "we cannot say", and every caller keeps the address
- * it already had rather than composing one on a blank.
- */
+/** The host the pages are served at now (SPEC §7): stored, else the default label, as `siteForDraft` composes it.
+ *  `null` is "cannot say", and callers keep the address they had. */
 export async function hostedHostOfSite(siteId: string): Promise<string | null> {
   const chosen = await hostnameOfSite(siteId);
   if (chosen !== null) return chosen;
@@ -714,18 +508,8 @@ export async function hostedHostOfSite(siteId: string): Promise<string | null> {
   return hostFor({ label: null, domain });
 }
 
-/**
- * The address one hosted publication answers at **now**.
- *
- * What the 24-hour check fetches and what the `published` mail links, for a
- * page whose host may have moved under it since it was published (SPEC §7,
- * 2026-09-18, issue 888). The slug is the one the page was published at —
- * that never moves — and the host is the site's current one.
- *
- * **It falls back to the stored address, never to a blank.** A host that
- * cannot be read is not a reason to fetch nothing or to link nowhere; it is
- * a reason to use the last address we know, which is what the row holds.
- */
+/** One publication's address now, for the 24-hour check and the `published` mail (SPEC §7): its slug on the site's
+ *  current host, else the stored address, never a blank. */
 export async function hostedAddressNow(a: {
   siteId: string;
   liveUrl: string;
@@ -743,25 +527,8 @@ export async function hostedAddressNow(a: {
  */
 export type AddressNow = (row: { destination: string | null; liveUrl: string }) => string;
 
-/**
- * The re-addresser for one whole site (issue 896).
- *
- * `hostedAddressNow` answers for one publication and costs a read. The
- * calendar draws a month of them, the Monday verdicts judge every page a
- * site has live, and a generated page cross-links to several — so the host
- * is read **once for the site** and then applied, and a screen showing
- * thirty pages costs one query rather than thirty.
- *
- * **The `hosted` test is inside, not at each caller.** A WordPress page is
- * on a host this product does not own: its stored address is the only one
- * there is, and composing another would be a guess about somebody else's
- * site (SPEC §7, 2026-09-18, issue 888). Keeping that distinction in the
- * one composer is what stops the fourth reader from forgetting it.
- *
- * **It falls back to the stored address, never to a blank** — a host that
- * cannot be read is a reason to use the last address we know, which is
- * what the row holds.
- */
+/** The re-addresser for a whole site: the host read once and applied, so thirty pages cost one query. The `hosted` test
+ *  is inside: a WordPress address is the only one there is (SPEC §7). Falls back to the stored address, never a blank. */
 export async function hostedAddressesNow(siteId: string): Promise<AddressNow> {
   const host = await hostedHostOfSite(siteId);
   return (row) => {
@@ -771,23 +538,9 @@ export async function hostedAddressesNow(siteId: string): Promise<AddressNow> {
   };
 }
 
-/**
- * The re-addresser for an address that was **copied off** a publication
- * (issue 1182).
- *
- * `hostedAddressesNow` is handed a publication row and knows its
- * destination. A refresh's `target_ref` is not a row: it is the address the
- * page had on the day the refresh was derived, written onto an opportunity,
- * and a host that moves afterwards leaves it naming the old one — which
- * `addressesOwnPage` then rightly refuses, so the refresh can never be
- * delivered (SPEC §7, 2026-09-18: "every live page is served at whatever
- * host the site's hosted destination carries **now**").
- *
- * **Only an address this site's hosted publications were recorded at is
- * moved.** Anything else — a page on the customer's own site, a WordPress
- * post — comes straight back: composing another address for it would be a
- * guess about somebody else's site. A read that fails moves nothing.
- */
+/** The re-addresser for an address copied off a publication, like a refresh's `target_ref`, which a moved host would
+ *  leave undeliverable (SPEC §7: "every live page is served at whatever host the site's hosted destination carries now").
+ *  Only addresses our hosted publications were recorded at move; anything else comes back as is. A failed read moves nothing. */
 export async function storedAddressesNow(siteId: string): Promise<(url: string) => string> {
   const same = (url: string): string => url;
   const host = await hostedHostOfSite(siteId);
@@ -808,16 +561,12 @@ export async function storedAddressesNow(siteId: string): Promise<(url: string) 
   return (url) => now.get(addressKey(url)) ?? url;
 }
 
-/** One address in the form two spellings of it share: no trailing slash,
- *  and no case, which a host does not have. */
+/** One address as two spellings share it: no trailing slash, no case. */
 function addressKey(url: string): string {
   return url.trim().replace(/\/+$/, "").toLowerCase();
 }
 
-/** The host a site's live hosted destination serves at, or `null`. Read
- *  here rather than through `hostname.ts` so that the delivery path — and
- *  everything else the edge's module graph reaches — stays clear of the
- *  vendor seam. */
+/** The live hosted destination's host, or `null`; read here, not via `hostname.ts`, so the edge's graph avoids the vendor seam. */
 async function hostnameOfSite(siteId: string): Promise<string | null> {
   const { data, error } = await publishDb()
     .from<{ hostname: string | null }>("destinations")
@@ -831,11 +580,7 @@ async function hostnameOfSite(siteId: string): Promise<string | null> {
   return host === null || host.trim() === "" ? null : host.trim().toLowerCase();
 }
 
-/**
- * The meta tokens the host's index prints for Search Console and Bing
- * Webmaster Tools (issue 1553): `google-site-verification` and
- * `msvalidate.01`. Each is public by design. `null` for one never issued.
- */
+/** The index's `google-site-verification` and `msvalidate.01` tokens, public by design; `null` for one never issued. */
 export async function searchVerificationOfSite(siteId: string): Promise<{ google: string | null; bing: string | null }> {
   const { data, error } = await publishDb()
     .from<{ search_verification: { google?: { token?: unknown }; bing?: { token?: unknown } } | null }>("destinations")

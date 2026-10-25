@@ -1,20 +1,7 @@
-// Issue 1553 — is this Googlebot or Bingbot, or something saying it is?
-//
-// An agent string is free text. Google and Bing each publish the addresses
-// their crawler fetches from (`SEARCH_CRAWLER_RANGES`), and both say to
-// check a crawler by its address. A `crawl` claim from `classify.ts` is
-// counted only when the request's address is inside the claimed engine's
-// ranges; anything else is not counted at all.
-//
-// **The address is checked and dropped.** It is a parameter here and is
-// never returned, logged or stored: the caller gets a yes or no, and the
-// count it writes holds the day, the page and the engine, as every other
-// read does (SPEC §7, 2026-09-20, as amended by issue 1553).
-//
-// **Ranges are read at most once a day per process**, and a list that
-// could not be read verifies nobody: an unread list is not a list that
-// holds everyone. Membership is `node:net`'s `BlockList`, the primitive
-// `egress/policy.ts` already uses for the same question.
+// Is this Googlebot or Bingbot, or something saying it is? An agent string is free text, so a `crawl` claim from
+// `classify.ts` counts only when the address is inside the engine's published ranges (`SEARCH_CRAWLER_RANGES`).
+// The address is checked and dropped, never returned, logged or stored; the count holds the day, page and engine (SPEC §7).
+// Ranges are read at most once a day per process, and an unread list verifies nobody. Membership is `node:net`'s `BlockList`.
 import { BlockList, isIP } from "node:net";
 import { SEARCH_CRAWLER_RANGES, SEARCH_CRAWLER_RANGES_TTL_H } from "@/lib/config/constants";
 import { safeFetch } from "@/lib/egress";
@@ -25,8 +12,7 @@ const HOUR_MS = 3_600_000;
 /** Reads one engine's published list; injected by tests. */
 export type RangesFetch = (url: string) => Promise<unknown>;
 
-/** The published JSON, as a `BlockList`. A prefix this cannot read adds
- *  nothing. */
+/** The published JSON as a `BlockList`; an unreadable prefix adds nothing. */
 export function rangesFrom(json: unknown): BlockList {
   const list = new BlockList();
   const prefixes = (json as { prefixes?: unknown } | null)?.prefixes;

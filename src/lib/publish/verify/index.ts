@@ -1,8 +1,5 @@
-// BUILD §9 — the verification leaf's public surface.
-//
-// `verifyLive()` is the name ARCHITECTURE.md's `src/lib/publish/**` row
-// declares; everything else here is read by the page record, the published
-// mail and the calendar's ways through.
+// BUILD §9 — the verification leaf's public surface: `verifyLive()`, and what the page record, the published mail
+// and the calendar read.
 export { type Answer, type ClassifiedAnswer } from "./answer";
 export {
   type RobotsReading,

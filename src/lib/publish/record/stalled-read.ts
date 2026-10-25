@@ -1,8 +1,5 @@
-// SPEC §7 (issue 1184) — the pages of a window of dates, counted by
-// `./stalled`. One read, for one site or for every site.
-//
-// The window is `drafts.scheduled_for`, a site-local calendar date, so a
-// week is the same seven dates in every zone and no instant is compared.
+// SPEC §7 — the pages of a window of dates, counted by `./stalled`, in one read for one site or every site.
+// The window is `drafts.scheduled_for`, a site-local date, so a week is the same seven dates in every zone.
 import { publishDb } from "../db";
 import { stalledCount, type StalledCount } from "./stalled";
 

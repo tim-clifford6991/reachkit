@@ -20,7 +20,7 @@
 // daisyUI in the route: `collapse` ringed in the theme primary, `card`,
 // `badge`, `input`, `btn`; lucide for the head glyph at stroke 1.75.
 import type React from "react";
-import { Gift, Link2 } from "lucide-react";
+import { Gift, Link } from "lucide-react";
 import { NURTURE_MAX_TOUCHES } from "@/lib/config/constants";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { fromStored, renderGenerated, renderQuestion, type GeneratedText } from "@/lib/presentation/generated";
@@ -163,7 +163,7 @@ function FirstLines(p: { address: string; title: string; lines: Line[]; label: s
                 line.text
               ) : (
                 <span key={i} className="text-base-content/70 inline-flex items-center gap-1 text-xs">
-                  <Link2 size={14} strokeWidth={1.75} aria-hidden />
+                  <Link size={14} strokeWidth={1.75} aria-hidden />
                   {copy("free-page.source", { source: line.source })}
                 </span>
               )

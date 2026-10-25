@@ -11,6 +11,7 @@ vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn() }), redire
 const { SetupForm } = await import("@/app/(account)/setup/SetupForm");
 const { ConnectScreen } = await import("@/app/(account)/setup/connect/ConnectScreen");
 const { ZoneScreen } = await import("@/app/(account)/setup/zone/ZoneScreen");
+const { ZONE_SLOW_MS } = await import("@/app/(account)/setup/zone/ZoneSlow");
 const { assembleSetup } = await import("@/app/(account)/setup/_setup/facts");
 const { FIXTURE_SETUP_FACTS } = await import("@/app/(account)/setup/_setup/fixture");
 const { COPY } = await import("@/lib/presentation/copy");
@@ -20,6 +21,7 @@ const RECORD = { type: "CNAME", name: "content.example.com", value: "edge.exampl
 const roots: Root[] = [];
 afterEach(() => {
   for (const root of roots.splice(0)) act(() => root.unmount());
+  vi.useRealTimers();
 });
 
 async function mount(node: React.ReactNode): Promise<HTMLElement> {
@@ -65,6 +67,12 @@ describe("Setup's Connect step carries board Setup's icons", () => {
     expect(allHidden(root.querySelector('[data-testid="setup-destination"]')!)).toBe(true);
   });
 
+  it("Where should pages live? carries no icon: a hosting choice is not AI", async () => {
+    const heading = [...(await publishingStep()).querySelectorAll("h2")].find((h) => h.textContent === COPY["setup.destination.where"]);
+    expect(heading).toBeDefined();
+    expect(heading!.querySelector("svg")).toBeNull();
+  });
+
   it("After you add it: check, search, file-text, and no status dot", async () => {
     const what = (await connectScreen()).querySelector('[data-testid="setup-connect-what"]')!;
     const stages = [...what.querySelectorAll('[data-testid="setup-connect-stage"]')];
@@ -105,5 +113,17 @@ describe("the time-zone screen", () => {
     expect(clock).not.toBeNull();
     expect(clock!.getAttribute("aria-hidden")).toBe("true");
     expect(clock!.parentElement!.textContent).toContain(COPY["setup.zone.example"]);
+  });
+
+  it("the slow line opens with clock, before its sentence", async () => {
+    vi.useFakeTimers();
+    const root = await mount(<ZoneScreen />);
+    await act(async () => vi.advanceTimersByTime(ZONE_SLOW_MS));
+    const slow = root.querySelector('[data-testid="setup-zone-slow"]')!;
+    expect(icons(slow)).toEqual(["clock"]);
+    const clock = slow.querySelector("svg.lucide-clock")!;
+    expect(clock.getAttribute("aria-hidden")).toBe("true");
+    expect(clock.compareDocumentPosition(slow.querySelector("p")!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(slow.querySelector("p")!.textContent).toContain(COPY["setup.zone.slow"]);
   });
 });

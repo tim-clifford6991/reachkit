@@ -1,21 +1,8 @@
-// Issue #791 — hosted health, refreshed on a clock.
-//
-// `destination_working` reads `destinations.health = 'ok'`, and before this
-// the only things that re-checked a hosted destination were a connect, a
-// reconnect and Settings' own read. A founder who pointed their record and
-// never opened Settings kept `expired` — and no page — until somebody did.
-// `account/maintenance` asks this query on every tick and hands each id to
-// `checkHealth`.
-//
-// **Two windows, because the two states wait on different things.** A
-// destination that is not `ok` is waiting on the founder's record, which can
-// land at any minute: it is re-checked once `DESTINATION_HOSTNAME_RECHECK_H`
-// has passed, the same window that bounds the vendor call inside the check.
-// One that is `ok` only has to keep the date the customer reads inside
-// `DESTINATION_HEALTH_MAX_AGE_H`.
-//
-// Hosted only: a WordPress check reaches the customer's own site with their
-// credential, and nothing in this issue asks that to happen on a clock.
+// Hosted health, refreshed on a clock: `destination_working` reads `health = 'ok'`, so a founder who points their record
+// and never opens Settings still gets pages. `account/maintenance` asks this every tick and hands each id to `checkHealth`.
+// Two windows: one not `ok` waits on a record that can land any minute (`DESTINATION_HOSTNAME_RECHECK_H`, the window that
+// bounds the check's vendor call); one `ok` only keeps the customer's date inside `DESTINATION_HEALTH_MAX_AGE_H`.
+// Hosted only: a WordPress check reaches the customer's own site with their credential, which nothing asks of a clock.
 import {
   DESTINATION_HEALTH_MAX_AGE_H,
   DESTINATION_HOSTNAME_RECHECK_H,

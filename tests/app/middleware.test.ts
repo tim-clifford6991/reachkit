@@ -375,6 +375,7 @@ describe("#405 — an unmatched address falls through to the root 404, signed ou
       // host. A page of a customer's, served from `reachkit.app`, would be
       // this product speaking on someone else's site.
       "/hosted-page/best-onboarding-tools",
+      "/hosted-article/best-onboarding-tools",
       "/hosted-gone",
     ]) {
       if (!(await isDenied(pathname))) reachable.push(pathname);

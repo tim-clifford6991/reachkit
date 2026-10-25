@@ -1,91 +1,32 @@
 // BUILD §9 — the one read behind every surface that states a published
 // page's standing.
 //
-// Read-only: it takes no transition, writes no row and repairs nothing.
-//
-// **The address's label is decided by the page's current state, not by what
-// ReachKit once did to it, and that is a bug fix rather than a
-// refinement.** REQ-056 criterion 6 used to split on whether ReachKit
-// *made* the page live — a fact about the past — and hung its "never an
-// address that does not resolve to that page" guard on that split. A page
-// ReachKit published and then took down stayed in the first arm and was
-// shown "the address it is publicly readable at" for a page that is not.
-// The two arms were not disjoint. The fixture that carries one page through
-// the `published → unpublished` edge is what holds the fix: an
-// implementation splitting on `made_live_by_us` passes every static fixture
-// and fails that one.
-//
-// The guard has changed meaning with it, and the new meaning is the honest
-// one: it is no longer a promise that the address resolves — ReachKit
-// cannot verify that and never looks again — but a ban on claiming liveness
-// at an address ReachKit itself stopped serving or asked the customer's
-// site to stop serving.
-//
-// **`verification` is not optional, and that is the whole mechanism —
-// ADR-085 Decision 5.** REQ-062 criterion 7 is a law over surfaces, not a
-// field: wherever any surface states a page's state, it carries the
-// recorded outcome and its date alongside. It is enforced by there being
-// one place to read a page's observed standing, returning the state and the
-// outcome **inside the same value** with neither field optional. A surface
-// cannot obtain the state without the outcome, because they are one object.
-// That is the same mechanism `Measured<T>` uses for REQ-004: the promise
-// holds on surfaces that do not exist yet, because the type will not let
-// them render without it. A rule each surface follows is a rule two of them
-// will stop following — and there are three.
-//
-// **`page_not_found` and `could_not_confirm` reach this record as two
-// values and must leave it as two — ADR-085 (landmine).** They render as
-// the same grey line and have opposite consequences: one stops the page
-// being shown as live and retires it from weekly judgement, the other
-// leaves the page's publish state unchanged and still shown as it was. The
-// merge will be proposed by whoever is looking at two identical grey lines
-// on a day panel; the paired fixture in
-// `tests/publish/record/record.test.ts` is what fails when they do.
-//
-// **REQ-060 criterion 4's line lives here and on no other surface** (issue
-// #156). "One written line on that page's own record — and no other
-// surface" is a law about where a sentence may appear, so it is kept the
-// way this module keeps the address label: there is one place the fact is
-// read from a column and turned into a key, and every surface that states a
-// page's standing already comes through it. The three ways of having no
-// line — nothing delivered, a destination with no plugins to find, and a
-// plugin that did write — are one `null` on the way out and three different
-// facts on the way in, which is why the column is three-valued and the
-// derivation is its own function.
-//
-// The archived plan is WO-263.
+// Read-only: no transition, no write, no repair.
+// The address label follows the page's current state, never what ReachKit once did to it, so a page taken down is never
+// shown "publicly readable at" (REQ-056 c6); the `published → unpublished` fixture fails a split on `made_live_by_us`.
+// The guard bans claiming liveness at an address we stopped serving; it does not promise the address resolves.
+// `verification` is not optional (ADR-085 decision 5): REQ-062 c7 is a law over surfaces, held by returning state and
+// outcome in one value, as `Measured<T>` does for REQ-004, so no surface can render one without the other.
+// `page_not_found` and `could_not_confirm` stay two (ADR-085): one retires the page from weekly judgement, the other
+// leaves it as it was; `tests/publish/record/record.test.ts`'s paired fixture fails if they merge.
+// REQ-060 c4's line lives here and on no other surface: one place reads the three-valued column into a key.
 import type { CopyKey } from "@/lib/presentation/copy";
 import { publishDb } from "../db";
-// Issue 896. The address a page answers at is composed in one place
-// (`destinations/hosted/store.ts`, issue 888's `hostedAddressNow`), and
-// this module is the read behind every surface that states one — so it
-// composes the address there rather than handing a column on. The leaf,
-// not the `destinations/` barrel: the barrel carries the adapters, and the
-// note above `SEO_COPY` says why this module does not pull them behind it.
+// The address is composed in `destinations/hosted/store.ts`, imported as a leaf, since the barrel carries the adapters.
 import { hostedAddressesNow } from "../destinations/hosted/store";
 import type { State, UnpublishOutcome, VerifyDisposition } from "../types";
 import { dispositionOf, DISPOSITION_COLUMNS, type DispositionRow } from "../verify/due";
 import { needsYouOf, type NeedsYouCause } from "./needs-you";
 
-/** How an address may be spoken of, decided by the page's **current
- *  state**, not by what ReachKit once did to it. Two keys, not one string
- *  and not a boolean: the pair is a customer-visible distinction and both
- *  sentences are the owner's. This module names the keys and supplies the
- *  address; it mints neither sentence, and it never interpolates the tense
- *  into one key. */
+/** How an address may be spoken of, by the page's current state: two keys, never one with the tense interpolated. */
 export type AddressLabel =
   | "record.address.publiclyReadableAt" // while the page stands `published`
   | "record.address.wasPublishedAt"; // from the moment it moves to `unpublished`
 
 export type RecordedAddress =
   | { offered: true; label: AddressLabel; url: string }
-  /** REQ-056 c6's last sentence: where ReachKit never made the page live at
-   *  its destination, no address is offered at all and the record says so
-   *  in place of one. Carries **no `url` field** — not an empty string and
-   *  not a null — so a surface cannot render an address it was not given.
-   *  Disjoint from the unpublished case by construction: this arm is
-   *  decided from `made_live_by_us`, and the published/unpublished split is
-   *  decided from the state. */
+  /** REQ-056 c6: never made live by us, no address is offered and the record says so. No `url` field at all, so none
+   *  can be rendered. Decided from `made_live_by_us`; the published/unpublished split is the state's. */
   | { offered: false; because: "never_made_live"; copy: "record.address.neverMadeLive" };
 
 export interface PageRecord {
@@ -93,84 +34,44 @@ export interface PageRecord {
   state: State;
   opportunityId: string;
   targetQuery: string;
-  /** The date of the measurement behind the page (REQ-056 c6) — the scan
-   *  the opportunity was derived from.
-   *
-   *  **Null where there is no such date, never a stand-in for one** (issue
-   *  #268). The opportunity a draft points at can fail to come back — the
-   *  row is gone, or this reader may not see it — and the record then has
-   *  no measurement to state. It used to carry `new Date(0)` through that
-   *  gap, which is not a missing date but a *wrong* one: epoch zero is a
-   *  real instant, so every surface downstream formatted it and a customer
-   *  read `Dec 31, 1969` as the day their page was measured. Null cannot be
-   *  formatted by accident; a surface has to decide what to do about it,
-   *  and the rule it decides by is the draft view's own: no row without a
-   *  fact. */
+  /** The date of the scan behind the page (REQ-056 c6), or null where the opportunity cannot be read: never a stand-in
+   *  like epoch zero, which a surface would format as a real date. No row without a fact. */
   measuredAt: Date | null;
   /** c6's "approved or published automatically". */
   mode: "approved" | "autopilot";
   address: RecordedAddress;
-  /** The outcome REQ-056 c15 or c16 named for this page, and **no other
-   *  account of what is at that address**. Non-null exactly when
-   *  `state === 'unpublished'`. */
+  /** The outcome REQ-056 c15 or c16 named, and no other account of the address; non-null exactly when `unpublished`. */
   unpublishOutcome: UnpublishOutcome | null;
-  /** REQ-062 c7. The whole `VerifyOutcome`, `checkedAt` included, or the
-   *  disposition where no check has run. **Not optional, and not separable
-   *  from `state`.** */
+  /** REQ-062 c7: the whole `VerifyOutcome` or the disposition; not optional, not separable from `state`. */
   verification: VerifyDisposition;
-  /** REQ-060 criterion 4's line, **and this is the only surface it appears
-   *  on** (issue #156).
-   *
-   *  Non-null exactly where a delivery recorded that the destination's site
-   *  wrote the title and description into no SEO plugin. Null everywhere
-   *  else, and the three cases that are "everywhere else" are different
-   *  facts rather than one: a page nothing has delivered, a destination
-   *  with no plugins to find, and a page one plugin did write.
-   *
-   *  It names the key and mints no sentence — the line is the owner's, the
-   *  same way the three address keys are. */
+  /** REQ-060 c4's line, on this surface only: non-null exactly where a delivery recorded no SEO plugin written. A key,
+   *  never a sentence. */
   seoNote: CopyKey | null;
 }
 
-/** The three keys this module names. All three sentences are the owner's;
- *  nothing here mints one. */
+/** The three address keys; nothing here mints a sentence. */
 export const ADDRESS_COPY = Object.freeze({
   publiclyReadableAt: "record.address.publiclyReadableAt",
   wasPublishedAt: "record.address.wasPublishedAt",
   neverMadeLive: "record.address.neverMadeLive",
 } as const satisfies Record<string, CopyKey>);
 
-/** REQ-060 criterion 4's line (issue #156), declared in this module's pure
- *  leaf and re-exported here so every caller's spelling is unchanged.
- *
- *  It is named in the record module rather than imported from the WordPress
- *  leaf that also names it: this module is on the import graph of every
- *  surface that states a page's standing, and pulling the adapter's REST
- *  client behind it to reach one string constant would be a dependency
- *  bought for nothing. It moved to `lines.ts` with #217 for the same shape
- *  of reason one file down: a fixture screen needs the key and must not pay
- *  for `publishDb()` to get it. `tests/publish/record/seo-note.test.ts`
- *  asserts the two spellings are the same key, which is the coupling that
- *  actually matters. */
+/** REQ-060 c4's line from the pure `lines.ts`, never the WordPress leaf, whose REST client every standing surface would
+ *  then import. `tests/publish/record/seo-note.test.ts` holds the two spellings to one key. */
 export { SEO_COPY } from "./lines";
 export type { NeedsYouCause, NeedsYouKind } from "./needs-you";
 
-// Imported as well as re-exported: `seoNoteOf` below names the key, and a
-// re-export alone does not bring it into this module's scope.
+// Imported as well, since a re-export does not bring it into scope for `seoNoteOf`.
 import { SEO_COPY as SEO_COPY_VALUE } from "./lines";
 
 interface PublicationRow extends DispositionRow {
   mode: string;
   made_live_by_us: boolean;
   unpublish_outcome: string | null;
-  /** The two columns the address is re-composed from (issue 896). The
-   *  site, because a hosted page's host belongs to the site and not to the
-   *  publication; the destination, because only the one ReachKit serves
-   *  may be re-addressed at all. */
+  /** The address is re-composed from these: a hosted host is the site's, and only our destination is re-addressed. */
   site_id: string;
   destination: string | null;
-  /** REQ-060 c4. `null` where no delivery recorded an answer; an empty
-   *  array is an answer and is the case that carries the line. */
+  /** REQ-060 c4: `null` is no answer; an empty array is the answer that carries the line. */
   seo_written: string[] | null;
 }
 
@@ -193,21 +94,8 @@ const UNPUBLISH_OUTCOMES: readonly UnpublishOutcome[] = [
   "unreachable",
 ];
 
-/**
- * The address this record states, composed for the host the page answers
- * at **now** (SPEC §7, 2026-09-18; issue 896).
- *
- * A hosted page's host can move under it after publication — the owner's
- * test destination moves on a deploy, a customer can repoint their record
- * — and the edge serves every live page on whatever host resolves. So the
- * day panel's "publicly readable at" names where the page is, not where it
- * was put; offering the old address is offering a link that 404s.
- *
- * **A page that stands `unpublished` keeps its stored address.** It
- * answers nowhere, and its record says `wasPublishedAt` — a statement
- * about the past, whose address is the one the page was published at and
- * not a host it never served on.
- */
+/** The address for the host the page answers at now (SPEC §7): a hosted host can move under its pages, and the old
+ *  address would 404. An `unpublished` page keeps its stored address, as `wasPublishedAt` speaks of the past. */
 async function liveUrlNow(a: {
   state: State;
   row:
@@ -215,9 +103,7 @@ async function liveUrlNow(a: {
     | undefined;
 }): Promise<string | null> {
   const row = a.row;
-  // Nothing ReachKit made live has an address to re-compose, and
-  // `addressOf` reads that same `null` as its never-made-live arm — so the
-  // arm that offers no address at all costs no read either.
+  // Never made live: `addressOf` reads this `null` as its never-made-live arm, at no read.
   if (row === undefined || row.live_url === null || !row.made_live_by_us) return null;
   if (a.state === "unpublished") return row.live_url;
   const addressNow = await hostedAddressesNow(row.site_id);
@@ -240,31 +126,15 @@ function addressOf(a: {
   };
 }
 
-/**
- * REQ-060 criterion 4's line, or nothing.
- *
- * **The empty array is the whole condition, and `null` is not it.** A page
- * nothing has delivered, and a page delivered to a destination that has no
- * SEO plugins to find, both carry `null` and both must carry no line —
- * criterion 4 is about a site where the plugins *could* have been found and
- * were not. A page one plugin wrote carries a non-empty array and no line,
- * which is what makes "one present and one not" silent rather than
- * half-spoken: the criterion asks about no plugin, not about every plugin.
- */
+/** REQ-060 c4's line, or nothing: the empty array is the whole condition. `null` (nothing delivered, or no plugins to
+ *  find) and a non-empty array (one plugin wrote) carry no line. */
 function seoNoteOf(written: readonly string[] | null | undefined): CopyKey | null {
   if (written === null || written === undefined) return null;
   return written.length === 0 ? SEO_COPY_VALUE.noSeoPlugin : null;
 }
 
-/**
- * The one read behind every surface that states a published page's
- * standing: the day panel, the draft view and Overview all call this, and
- * none of them re-derives liveness from a column.
- *
- * `null` where the draft does not exist. A draft that exists but was never
- * published has a record: its state says so, its address is the
- * never-made-live arm, and its verification is a disposition.
- */
+/** The one read behind every surface stating a page's standing, so none re-derives liveness from a column. `null` where
+ *  the draft does not exist; an unpublished draft still has a record. */
 export async function pageRecordFor(
   draftId: string,
   now: Date = new Date()
@@ -297,9 +167,7 @@ export async function pageRecordFor(
   if (oppError !== null) throw new Error(`pageRecordFor(${draftId}): ${oppError.message}`);
   const opportunity = opportunities?.[0];
 
-  // No date until a scan supplies one. Every arm below that fails to find
-  // one leaves it null rather than substituting an instant nothing
-  // measured (issue #268).
+  // No date until a scan supplies one, never an instant nothing measured.
   let measuredAt: Date | null = null;
   if (opportunity !== undefined) {
     const { data: scans, error: scanError } = await db
@@ -327,9 +195,7 @@ export async function pageRecordFor(
       madeLiveByUs: publication?.made_live_by_us ?? false,
       liveUrl: await liveUrlNow({ state, row: publication }),
     }),
-    // Non-null exactly when the page stands `unpublished`: the column
-    // records what the last unpublish call *found*, and a page that is not
-    // unpublished has no such finding to carry.
+    // Non-null exactly when `unpublished`: what the last unpublish call found.
     unpublishOutcome:
       state === "unpublished" && outcome !== null && UNPUBLISH_OUTCOMES.includes(outcome as UnpublishOutcome)
         ? (outcome as UnpublishOutcome)
@@ -342,18 +208,9 @@ export async function pageRecordFor(
   };
 }
 
-// ── The month's worth, in one read (issue #175) ─────────────────────────
-//
-// `pageRecordFor` is one page's whole standing and costs three reads; a
-// calendar drawing thirty-one dates cannot ask it thirty-one times. So the
-// month is its own read: the same columns, for every page §9 has put on a
-// date inside a window, and nothing derived that the row does not carry.
-//
-// **It states no liveness of its own.** `liveUrl` is handed on exactly
-// where ReachKit made the page live at its destination and the page still
-// stands published — the same split `addressOf` makes above, and made in
-// one place so a grid and a panel cannot disagree about whether a page is
-// readable at an address.
+// ── The month's worth, in one read ───────────────────────────────────────
+// A calendar cannot ask `pageRecordFor` thirty-one times, so the month is its own read of the same columns. It states
+// no liveness of its own: `liveUrl` follows `addressOf`'s split, so a grid and a panel cannot disagree.
 
 /** One page §9 has put on a date, as a surface reads it off the row. */
 export interface ScheduledPage {
@@ -367,27 +224,16 @@ export interface ScheduledPage {
   readonly vetoDeadline: Date | null;
   /** The moment the customer approved the page, where they did. */
   readonly approvedAt: Date | null;
-  /** Whether the page ever reached review — read off the append-only
-   *  transitions and nowhere else, which is the same thing the machine's
-   *  own `never_entered_review` guard reads (#143). */
+  /** Whether the page ever reached review, from the transitions, as `never_entered_review` reads it. */
   readonly enteredReview: boolean;
   /** The address, where ReachKit made the page live and it still stands
    *  published. `null` in every other case, never an empty string. */
   readonly liveUrl: string | null;
-  /** REQ-062 criterion 7, on the month read as well as the page one
-   *  (issue #217): the day panel states what became of a page, so it
-   *  carries what ReachKit saw and when — from the same `dispositionOf`
-   *  the single-page record uses, never a second reading of the columns. */
+  /** REQ-062 c7 on the month read too, from the same `dispositionOf` as the page record. */
   readonly verification: VerifyDisposition;
-  /** What the last unpublish call found, for a page that stands
-   *  `unpublished`. `null` for every other state, exactly as on
-   *  `PageRecord`. */
+  /** What the last unpublish call found, for an `unpublished` page; otherwise `null`, as on `PageRecord`. */
   readonly unpublishOutcome: UnpublishOutcome | null;
-  /** Why this page needs the customer (issue 880), read off the same
-   *  append-only transitions `enteredReview` is read from — the rules that
-   *  stopped it, the step that could not run, or the delivery it is
-   *  waiting on. `null` for a page in any other state, which needs nothing
-   *  of them. */
+  /** Why the page needs the customer, from its transitions; `null` in any other state. */
   readonly needsYou: NeedsYouCause | null;
 }
 
@@ -406,9 +252,7 @@ interface LivePublicationRow extends DispositionRow {
   draft_id: string;
   made_live_by_us: boolean;
   unpublish_outcome: string | null;
-  /** Issue 896, as on `PublicationRow`. The site is the caller's own
-   *  argument here and is read anyway, so the two reads compose the
-   *  address from the same two columns. */
+  /** As on `PublicationRow`, so both reads compose the address from the same columns. */
   destination: string | null;
 }
 
@@ -421,9 +265,7 @@ function asDate(value: string | null): Date | null {
   return Number.isNaN(at.getTime()) ? null : at;
 }
 
-/** `drafts.transitions` is append-only JSON; only one question is asked of
- *  it here, and a row whose column is absent or misshapen answers `false`
- *  — a page that has not recorded reaching review has not reached it. */
+/** Whether the transitions record reaching review; absent or misshapen is `false`. */
 function enteredReviewFrom(transitions: unknown): boolean {
   if (!Array.isArray(transitions)) return false;
   return transitions.some(
@@ -431,22 +273,12 @@ function enteredReviewFrom(transitions: unknown): boolean {
   );
 }
 
-/**
- * Every page scheduled for one site between two site-local dates,
- * inclusive.
- *
- * Two indexed reads and no more, whatever the number of dates: the drafts
- * in the window, and the publications behind the ones that went out. A
- * window with no pages in it is an empty array — a legitimate empty, and
- * never an error.
- */
+/** Every page scheduled between two site-local dates, inclusive, in two indexed reads whatever the window; empty is legitimate. */
 export async function scheduledPagesFor(a: {
   siteId: string;
   from: string;
   to: string;
-  /** The clock due-ness is decided against, injected so a month's
-   *  dispositions are testable without travelling in time — the same
-   *  parameter `pageRecordFor` takes, for the same reason. */
+  /** The clock due-ness is decided against, injected for tests, as on `pageRecordFor`. */
   now?: Date;
 }): Promise<readonly ScheduledPage[]> {
   const db = publishDb();
@@ -474,9 +306,7 @@ export async function scheduledPagesFor(a: {
   const byDraft = new Map<string, LivePublicationRow>();
   for (const row of live.data ?? []) byDraft.set(row.draft_id, row);
 
-  // Issue 896: the site's host, read **once** for the whole month rather
-  // than once per date, and applied to every hosted address below. A month
-  // of thirty live pages is one query, not thirty.
+  // The site's host, read once for the whole month.
   const addressNow = await hostedAddressesNow(a.siteId);
 
   const now = a.now ?? new Date();
@@ -493,21 +323,14 @@ export async function scheduledPagesFor(a: {
       vetoDeadline: asDate(row.veto_deadline),
       approvedAt: asDate(row.approved_at),
       enteredReview: enteredReviewFrom(row.transitions),
-      // Issue 880: why the page needs them, from its own record — never
-      // from its stage, which says only that it does.
+      // From its own record, never its stage.
       needsYou: needsYouOf({ state, transitions: row.transitions }),
-      // Issue 896: the address the page answers at now. `View live page`
-      // on this grid, and the key the week's verdict is joined by
-      // (`calendar/store.ts`'s `readStandings`), are the same string —
-      // both sides of that join re-address, so a host that moved does not
-      // quietly empty the join instead of breaking the link.
+      // The address now; `readStandings` re-addresses its side of the join too, so a moved host never empties it.
       liveUrl:
         state === "published" && publication?.made_live_by_us === true && publication.live_url !== null
           ? addressNow({ destination: publication.destination, liveUrl: publication.live_url })
           : null,
-      // The same two derivations `pageRecordFor` makes, from the same
-      // columns and the same functions — so a grid, a panel and a draft
-      // view cannot disagree about what became of one page.
+      // The same derivations as `pageRecordFor`, so grid, panel and draft view agree.
       verification:
         publication === undefined
           ? { kind: "never", because: "no_live_address" }
