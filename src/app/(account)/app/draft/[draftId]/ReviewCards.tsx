@@ -25,7 +25,7 @@
 // a value and carries `.num`, so where it will not fit the box grows taller
 // (`src/ui/type.css` states that rule and why).
 import type React from "react";
-import { Check, Link2, LoaderCircle, Minus, Quote, Search, ShieldCheck, Sparkles, X } from "lucide-react";
+import { Check, Link, LoaderCircle, Minus, Quote, Search, ShieldCheck, Sparkles, X } from "lucide-react";
 import { copy } from "@/lib/presentation/copy";
 import { formatDate } from "../../_shell/format";
 import { CLOSED } from "../../_overview/present";
@@ -541,7 +541,7 @@ export function LinksCard(p: { links: PageLinks }): React.JSX.Element | null {
         <details className={CLOSED.root}>
           <summary className={CLOSED.head}>
             <h2 className={CARD_HEAD}>
-              <Link2 size={14} strokeWidth={1.75} aria-hidden />
+              <Link size={14} strokeWidth={1.75} aria-hidden />
               {copy("draft.links.title")}
             </h2>
           </summary>

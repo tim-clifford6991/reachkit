@@ -3,7 +3,7 @@
 // classes in place, no wrapper of a daisyUI part.
 import type React from "react";
 import Link from "next/link";
-import { ArrowRight, Calendar, FileText, Mail, RefreshCw, Search, Sparkles, User, type LucideIcon } from "lucide-react";
+import { ArrowRight, Calendar, FileText, Inbox, RefreshCw, Search, Sparkles, User, type LucideIcon } from "lucide-react";
 import { Surface } from "@/ui/layout";
 import { SITE_PROFILE } from "@/lib/config/constants";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
@@ -199,7 +199,7 @@ const CLOSE = {
     },
     lead: "how.start.body",
     glance: true,
-    icons: { steps: [Search, Calendar, FileText, Mail], them: User, us: Sparkles },
+    icons: { steps: [Search, Calendar, FileText, Inbox], them: User, us: Sparkles },
   },
 } as const satisfies Record<string, Close>;
 

@@ -112,6 +112,8 @@ describe("once the page is written", () => {
     expect(read).toContain("Slab leak repair cost in Austin");
     expect(read).toContain("Harbor Plumbing finds a slab leak with listening equipment before opening any floor.");
     expect(read).toContain("from harborplumbing.example/slab-leaks");
+    expect(preview).toMatch(/class="[^"]*\blucide-link(?=["\s])/);
+    expect(preview).not.toContain("lucide-link-2");
     expect(read).toContain(`harborplumbing.example/${r.freePage!.slug.text}`);
     expect(read).toMatch(/\w… /);
     expect(read).toContain(CAPTION);
