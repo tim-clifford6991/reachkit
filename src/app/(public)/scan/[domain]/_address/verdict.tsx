@@ -14,6 +14,7 @@
 // value. A factor with no value draws no bar — a track at zero would claim a
 // measurement of zero.
 import type React from "react";
+import { Languages, MapPin, Tag, type LucideIcon } from "lucide-react";
 import { BAND_TONE } from "@/ui/bands";
 import type { Tone } from "@/ui/types";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
@@ -23,6 +24,13 @@ import type { Measured } from "@/lib/measure/measured";
 import type { CorrectionOffer } from "@/lib/market/coherence/offer";
 import { CategoryCorrection } from "./correction";
 import { dash, Num, unmeasuredLineFor } from "./measured";
+
+/** One reading in "We read you as": what it is, who buys, a town or a
+ *  country-wide reach, and the market measured. */
+export type ReadAsChip = { kind: "what" | "buyer" | "place" | "reach" | "measured"; text: string };
+
+// One icon per concept (E29, E44): MapPin is a town only, and the buyer takes none because Users means competitors.
+const READ_AS_ICON: Record<ReadAsChip["kind"], LucideIcon | null> = { what: Tag, buyer: null, place: MapPin, reach: null, measured: Languages };
 
 /** A bar's own name, for the `{what}` slot of the two unmeasured lines and
  *  for its own label. */
@@ -236,7 +244,7 @@ export function VerdictStrip(p: {
    *  Google in English (D66). Absent, the line every report carried. */
   measurement?: string;
   /** What the scan read the business as, one badge each, already worded. */
-  readAs: readonly string[];
+  readAs: readonly ReadAsChip[];
   /** The lines that say how the market was read, under what we read. */
   notes?: React.ReactNode;
   /** Whether the report found pages the site is missing, for the gap's link. */
@@ -270,11 +278,15 @@ export function VerdictStrip(p: {
         <div id="read-as" className="flex scroll-mt-20 flex-wrap items-center gap-2" data-testid="report-read-as">
           <span className="text-base-content/70 text-sm">{copy("report.read.as.title")}</span>
           <ul className="flex flex-wrap gap-1.5">
-            {p.readAs.map((badge) => (
-              <li key={badge} className="badge badge-outline h-auto py-0.5 whitespace-normal">
-                {badge}
-              </li>
-            ))}
+            {p.readAs.map(({ kind, text }) => {
+              const Icon = READ_AS_ICON[kind];
+              return (
+                <li key={text} className="badge badge-outline h-auto py-0.5 whitespace-normal">
+                  {Icon === null ? null : <Icon size={14} strokeWidth={1.75} aria-hidden />}
+                  {text}
+                </li>
+              );
+            })}
           </ul>
           {/* The category correction: an inline field that re-measures on
               the market given, and follows the rerun here (#786). */}
