@@ -63,14 +63,26 @@ export type PortalLinkResult =
  *  of a billing control. */
 let configurationId: string | null = null;
 
-async function portalConfiguration(): Promise<string> {
-  if (configurationId !== null) return configurationId;
-  const created = await stripe().billingPortal.configurations.create({
-    business_profile: {},
-    // The vendor's own parameter type wants a mutable array where
-    // `PORTAL_FEATURES` declares a frozen tuple. The tuple is the thing the
-    // test asserts against and the thing a reader should meet, so the copy
-    // is made here, at the call, rather than by loosening the declaration.
+/** What every customer's portal shows (#1122). Declared here because this
+ *  module owns the configuration; a dashboard edit would be overwritten. */
+export const PORTAL_BUSINESS_PROFILE = Object.freeze({
+  headline: "ReachKit — up to 7 pages a week for your site",
+  privacy_policy_url: "https://reachkit.app/privacy",
+  terms_of_service_url: "https://reachkit.app/terms",
+} as const);
+
+export const PORTAL_DEFAULT_RETURN_URL = "https://reachkit.app/app/settings/billing";
+
+/** Marks the one configuration this repository owns, so a cold start finds
+ *  and updates it instead of creating another. */
+const PORTAL_METADATA_KEY = "reachkit_portal";
+
+function portalParams() {
+  return {
+    business_profile: { ...PORTAL_BUSINESS_PROFILE },
+    default_return_url: PORTAL_DEFAULT_RETURN_URL,
+    // The vendor's parameter type wants a mutable array where
+    // `PORTAL_FEATURES` declares a frozen tuple; the copy is made here.
     features: {
       ...PORTAL_FEATURES,
       customer_update: {
@@ -78,8 +90,21 @@ async function portalConfiguration(): Promise<string> {
         allowed_updates: [...PORTAL_FEATURES.customer_update.allowed_updates],
       },
     },
-  });
-  configurationId = created.id;
+    metadata: { [PORTAL_METADATA_KEY]: "1" },
+  };
+}
+
+async function portalConfiguration(): Promise<string> {
+  if (configurationId !== null) return configurationId;
+  const params = portalParams();
+  // Reuse: find the active configuration this code created earlier and bring
+  // it up to the declaration, rather than leaving a new one per cold start.
+  const list = await stripe().billingPortal.configurations.list({ active: true, limit: 100 });
+  const ours = list.data.find((c) => c.metadata?.[PORTAL_METADATA_KEY] === "1");
+  const config = ours
+    ? await stripe().billingPortal.configurations.update(ours.id, params)
+    : await stripe().billingPortal.configurations.create(params);
+  configurationId = config.id;
   return configurationId;
 }
 

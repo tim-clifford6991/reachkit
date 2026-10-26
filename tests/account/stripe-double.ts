@@ -277,6 +277,21 @@ export function stripeDouble(state: StripeDoubleState): Stripe {
           state.portalConfigurations.push(params);
           return { id: `bpc_${state.portalConfigurations.length}` };
         },
+        list: async () => {
+          raise(state.portalError);
+          return {
+            data: state.portalConfigurations.map((params, i) => ({
+              id: `bpc_${i + 1}`,
+              metadata: (params.metadata ?? {}) as Record<string, string>,
+            })),
+          };
+        },
+        update: async (id: string, params: Record<string, unknown>) => {
+          raise(state.portalError);
+          const i = Number(id.slice(4)) - 1;
+          state.portalConfigurations[i] = params;
+          return { id };
+        },
       },
       sessions: {
         create: async (params: Record<string, unknown>) => {
