@@ -56,8 +56,8 @@ const CHECKS_PER_HOUR = 30;
 const HOUR_MS = 60 * 60 * 1000;
 const recent = new Map<NetworkKey, number[]>();
 
-export function takeCheck(forwardedFor: string | null, nowMs: number = Date.now()): boolean {
-  const key = networkKeyOf(forwardedFor);
+export function takeCheck(requestHeaders: Pick<Headers, "get">, nowMs: number = Date.now()): boolean {
+  const key = networkKeyOf(requestHeaders);
   const kept = (recent.get(key) ?? []).filter((at) => nowMs - at < HOUR_MS);
   if (kept.length >= CHECKS_PER_HOUR) {
     recent.set(key, kept);
@@ -110,10 +110,10 @@ export function pageTags(url: string, html: string, headers: Readonly<Record<str
 }
 
 /** Read the page a visitor named. Never throws. */
-export async function readPage(raw: string, forwardedFor: string | null): Promise<PageRead> {
+export async function readPage(raw: string, requestHeaders: Pick<Headers, "get">): Promise<PageRead> {
   const url = pageAddress(raw);
   if (url === null) return { ok: false, problem: "address" };
-  if (!takeCheck(forwardedFor)) return { ok: false, problem: "limit" };
+  if (!takeCheck(requestHeaders)) return { ok: false, problem: "limit" };
   const outcome = await safeFetch(url, { timeoutMs: 8000, userAgent: "reachkit-measure" });
   if (!outcome.ok) {
     return { ok: false, problem: outcome.reason === "robots_disallowed" ? "robots" : "read", url };

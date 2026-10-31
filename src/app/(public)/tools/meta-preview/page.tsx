@@ -174,7 +174,7 @@ function Preview(p: { tags: PageTags; example: boolean }): React.JSX.Element {
 }
 
 async function Result(p: { raw: string }): Promise<React.JSX.Element> {
-  const read = await readPage(p.raw, (await headers()).get("x-forwarded-for"));
+  const read = await readPage(p.raw, await headers());
   if (!read.ok) return <ReadProblem read={read} />;
   return <Preview tags={read.tags} example={false} />;
 }
