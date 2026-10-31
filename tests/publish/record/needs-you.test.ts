@@ -149,16 +149,11 @@ describe("what is critical for the customer", () => {
   const NOW = new Date("2026-10-31T08:00:00.000Z");
   const rested = (reason: string, at: string) => ({ from: "failed", to: "needs_attention", reason, at });
 
-  it("a destination they must fix, their own live edit, and a cause this build cannot read", () => {
-    for (const reason of ["reason_needs_customer", "live_edit", "something_new"]) {
-      expect(critical(needsYouCauseOf(reason), NOW), reason).toBe(true);
-    }
-  });
-
-  it("never a page the writing stopped: the system rescues or sets it aside", () => {
-    for (const reason of ["rules:brand_gap", "step_failed:claim_check", "step_failed:adds", "step_failed:elsewhere", "step_failed:pack:buyer_questions"]) {
-      expect(critical(needsYouCauseOf(reason), NOW), reason).toBe(false);
-    }
+  it.each([
+    ...["reason_needs_customer", "live_edit", "something_new"].map((reason) => [reason, true] as const),
+    ...["rules:brand_gap", "step_failed:claim_check", "step_failed:adds", "step_failed:elsewhere", "step_failed:pack:buyer_questions"].map((reason) => [reason, false] as const),
+  ])("%s is critical: %s (a destination to fix, their words, an unread cause; never a writing stop)", (reason, told) => {
+    expect(critical(needsYouCauseOf(reason), NOW)).toBe(told);
     expect(critical(null, NOW)).toBe(false);
   });
 

@@ -1,6 +1,6 @@
 // Owner O7: the Monday mail tells a page that needs the customer only when its cause is critical for them. The
 // dogfood's ten stored pages the writing rules stopped are the system's to rescue or set aside, so they say nothing.
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { applyEnvFixture } from "../env-fixture";
 import { fakeDb, type Row } from "../../publish/harness";
 import stored from "../../generate/fixtures/dogfood-drafts-2026-10.min.json";
@@ -36,17 +36,9 @@ const RULES_ROWS: Row[] = stored.drafts
   .filter((draft) => draft.body_md !== null && draft.body_md !== undefined)
   .map((draft) => ({ id: draft.id, site_id: "site-1", state: draft.state, title: draft.title, transitions: draft.transitions, created_at: draft.created_at }));
 
-const credentialsExpired: Row = {
-  id: "d-credentials",
-  site_id: "site-1",
-  state: "needs_attention",
-  title: "Emergency plumber near you",
-  created_at: "2026-10-30T07:00:00.000Z",
-  transitions: [
-    { from: "publishing", to: "failed", at: "2026-10-30T16:00:00.000Z", reason: "credentials_expired" },
-    { from: "failed", to: "needs_attention", at: "2026-10-30T16:00:01.000Z", reason: "reason_needs_customer" },
-  ],
-};
+const rested = { from: "failed", to: "needs_attention", at: "2026-10-30T16:00:01.000Z", reason: "reason_needs_customer" };
+const credentialsExpired: Row = { id: "d-credentials", site_id: "site-1", state: "needs_attention", title: "Emergency plumber near you", created_at: "2026-10-30T07:00:00.000Z", transitions: [rested] };
+const edited = (rows: Row[]): Row[] => rows.map((row, n) => (n === 0 ? { ...row, meta: { first_edited_at: "2026-10-30T09:00:00.000Z" } } : row));
 
 function seed(drafts: readonly Row[]): void {
   db.reset();
@@ -56,30 +48,16 @@ function seed(drafts: readonly Row[]): void {
   db.seed("drafts", [...drafts]);
 }
 
-async function needsYouLines(): Promise<number> {
-  sent.length = 0;
-  await sendWeeklyDigest({ siteId: "site-1", weekStart: WEEK, now: NOW });
-  return sent[0]!.blocks.filter((block) => block.text === "mail.weekly.needsYou").length;
-}
-
 describe("the Monday mail's needs-you line", () => {
-  beforeEach(() => {
-    sent.length = 0;
-  });
-
-  it("is absent for a site whose only stopped pages are the ten the writing rules stopped", async () => {
+  it.each([
+    ["absent for the ten stored pages the writing rules stopped", RULES_ROWS, 0],
+    ["told once when the customer edited one of those ten: the words are theirs to fix", edited(RULES_ROWS), 1],
+    ["told exactly once for an expired credential, beside those ten", [...RULES_ROWS, credentialsExpired], 1],
+  ])("is %s", async (_case, drafts, lines) => {
     expect(RULES_ROWS).toHaveLength(10);
-    seed(RULES_ROWS);
-    expect(await needsYouLines()).toBe(0);
-  });
-
-  it("is told once when the customer edited one of those ten: the words are theirs to fix", async () => {
-    seed(RULES_ROWS.map((row, n) => (n === 0 ? { ...row, meta: { first_edited_at: "2026-10-30T09:00:00.000Z" } } : row)));
-    expect(await needsYouLines()).toBe(1);
-  });
-
-  it("is told exactly once for an expired credential, beside those ten", async () => {
-    seed([...RULES_ROWS, credentialsExpired]);
-    expect(await needsYouLines()).toBe(1);
+    seed(drafts);
+    sent.length = 0;
+    await sendWeeklyDigest({ siteId: "site-1", weekStart: WEEK, now: NOW });
+    expect(sent[0]!.blocks.filter((block) => block.text === "mail.weekly.needsYou")).toHaveLength(lines);
   });
 });

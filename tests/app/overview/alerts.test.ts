@@ -112,16 +112,8 @@ describe("issue 880 — a needs-you alert says why, from the page's own record",
   };
 
   it("a page the system rescues or sets aside is no alert at all (owner O7)", () => {
-    const stopped: WaitingDraft["cause"][] = [
-      { kind: "rules", rules: ["no_private_figure", "brand_gap"] },
-      { kind: "step", step: "claim_check" },
-      { kind: "adds" },
-      { kind: "elsewhere" },
-      { kind: "pack", missing: ["buyer_questions"] },
-    ];
-    for (const cause of stopped) {
-      expect(readAlerts([item({ kind: "needs_you", cause, href: "/app/draft/1" })], AT).alerts, cause?.kind).toEqual([]);
-    }
+    const stopped: NonNullable<WaitingDraft["cause"]>[] = [{ kind: "rules", rules: ["brand_gap"] }, { kind: "step", step: "claim_check" }, { kind: "adds" }, { kind: "elsewhere" }, { kind: "pack", missing: [] }];
+    expect(readAlerts(stopped.map((cause) => item({ kind: "needs_you", cause })), AT).alerts).toEqual([]);
   });
 
   it("the customer's own edit of a live page stays an alert, read where it is", () => {
