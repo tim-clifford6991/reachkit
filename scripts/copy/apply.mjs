@@ -20,6 +20,8 @@ const BUDGETS = "scripts/budgets.json";
 const LANE_FILES = { L1: ["chrome", "meta"], L2: ["report", "offer", "bands"] };
 const laneOf = (file) => Object.keys(LANE_FILES).find((l) => LANE_FILES[l].includes(file)) ?? "L3";
 
+// A proposal that means "remove this key" also needs its call sites removed, so it is never written as text.
+const DELETES = /^\s*(?:\((?:delete|cut|remove|drop)\)|delete)?\s*$/i;
 const slotsOf = (text) => [...text.matchAll(/\{([\w$.-]+)\}/g)].map((m) => m[1]);
 const sameSet = (a, b) => [...new Set(a)].sort().join() === [...new Set(b)].sort().join();
 const escape = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -86,6 +88,7 @@ export function apply({ root, lane, inputs, write = true }) {
     const meta = [after.match(/slots:\s*\{([^}]*)\}/)?.[1], after.match(/fixedBy:\s*"([^"]*)"/)?.[1] ?? ""];
     const why =
       typeof r.proposed !== "string" ? "no proposed text"
+      : DELETES.test(r.proposed) ? "delete: a hand edit (key and its call sites)"
       : r.needsRuling && !/^no\b/i.test(String(r.needsRuling)) ? "needs a ruling"
       : hits.length !== 1 ? `in ${hits.length} partitions`
       : laneOf(e.file.replace(/\.ts$/, "")) !== lane ? `${e.file} is not lane ${lane}`
