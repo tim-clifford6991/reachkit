@@ -146,6 +146,27 @@ describe("a page that still fails is set aside at 0¢, the row kept and its topi
     expect(llm).not.toHaveBeenCalled();
   });
 
+  it("a page no rule fails that reads almost the same as a page for another site is set aside as retired:elsewhere", async () => {
+    arrange(SAAS_HOSTED);
+    const id = await stopped(SAAS_HOSTED, { failed: STALE });
+    db.seed("drafts", [...db.rows("drafts"), { id: "d-elsewhere", site_id: "s-other", state: "in_review", body_md: row(id).body_md, created_at: new Date().toISOString() }]);
+    await recheck(SAAS_HOSTED);
+    expect([row(id).state, row(id).rule_failures]).toEqual(["skipped", []]);
+    retiredBy(id, "retired:elsewhere");
+  });
+
+  it("a page stopped at a step is never set aside once the customer edited it or it entered review", async () => {
+    arrange(SAAS_HOSTED);
+    const [edited, reviewed] = [await stopped(SAAS_HOSTED), await stopped(SAAS_HOSTED, { topic: "billing" })];
+    (row(edited).meta as Row).first_edited_at = AT.toISOString();
+    Object.assign(lastMove(edited), { reason: "step_failed:adds" });
+    Object.assign(lastMove(reviewed), { reason: "step_failed:write" });
+    row(reviewed).transitions = [{ from: "generating", to: "in_review", at: AT.toISOString() }, ...(row(reviewed).transitions as Row[])];
+    const before = [snapshot(db, "drafts", edited), snapshot(db, "drafts", reviewed)];
+    await recheck(SAAS_HOSTED);
+    expect([snapshot(db, "drafts", edited), snapshot(db, "drafts", reviewed)]).toEqual(before);
+  });
+
   it("a page the customer edited and a live page's edit are never set aside, however they fail", async () => {
     arrange(SAAS_HOSTED);
     const failed = [{ rule: "fit_claim", detail: { rule: "fit_claim", sentences: ["Example keeps every seat on one bill."] } }];
@@ -307,12 +328,21 @@ describe("OR4: a promise-figure title never enters review", () => {
     ["abe42ff7", "retired:title"],
     ["bf8de9bf", "retired:title"],
     ["a71279ff", "retired:title"],
+    ["b8c28f61", "retired:title"],
     ["b03e044f", null],
     ["fba1d84d", null],
   ] as const)("%s, still failing under today's rules after the 0¢ mends, is set aside as %s", async (id, reason) => {
     arrange(SAAS_HOSTED);
     const outcome = await recheckRow(at(id), dogfood(at(id)));
     expect([retiredFor(outcome), outcome.kind === "checked" ? outcome.spentCents : 0]).toEqual([reason, 0]);
+  });
+
+  it("a page no rule fails whose fit check cannot run at 0¢ is set aside as retired:fit_claim, never an empty reason", async () => {
+    arrange(SAAS_HOSTED);
+    const b03 = at("b03e044f");
+    const unasked = { ...b03, rule_failures: (b03.rule_failures as Row[]).filter((each) => each.rule !== "fit_claim"), meta: { ...(b03.meta as Row), checks: undefined } };
+    const outcome = await recheckRow(unasked, dogfood(b03));
+    expect([outcome, retiredFor(outcome)]).toMatchObject([{ kind: "checked", passed: false, failed: [], fit: "unrun", spentCents: 0 }, "retired:fit_claim"]);
   });
 
   it.each(["a9ac66a2", "86083a2b"])("%s, whose pack was short and so was never written, is set aside as retired:pack, unread", (id) => {

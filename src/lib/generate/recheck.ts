@@ -58,7 +58,7 @@ export interface RecheckWorld {
 export type RecheckOutcome =
   | { kind: "skipped"; reason: NotCandidate }
   | { kind: "held"; reason: "title_promise_figure"; figures: string[] }
-  | { kind: "checked"; passed: boolean; failed: RuleFailure[]; cleared: HardRule[]; spentCents: number; patch: DraftPatch };
+  | { kind: "checked"; passed: boolean; failed: RuleFailure[]; cleared: HardRule[]; close: boolean; fit: FitVerdict["state"]; spentCents: number; patch: DraftPatch };
 
 /** What the re-check mended, as the row records it (`drafts.meta.recheck`). */
 export interface RecheckFixes {
@@ -118,6 +118,8 @@ export async function recheckRow(row: DraftRow, world: RecheckWorld): Promise<Re
     passed,
     failed,
     cleared: [...new Set(stopped.map((failure) => failure.rule))].filter((rule) => !failed.some((failure) => failure.rule === rule)),
+    close: checked.close !== null,
+    fit: checked.outcome.fit.state,
     spentCents: REFUSED.spentCents(),
     patch: {
       ...(fixes.title === undefined ? {} : { title }),
@@ -181,7 +183,10 @@ export function retiredUnread(row: DraftRow, now: Date): string | null {
 export function retiredFor(outcome: RecheckOutcome): string | null {
   if (outcome.kind === "held") return "retired:title";
   if (outcome.kind === "skipped" || outcome.passed) return null;
-  return `retired:${[...new Set(outcome.failed.map((failure) => failure.rule))].join(",")}`;
+  const rules = [...new Set(outcome.failed.map((failure) => failure.rule))];
+  // No rule failed: a page elsewhere is too close, or a check could not run at 0¢; the record names which.
+  const causes = rules.length > 0 ? rules : [outcome.close ? "elsewhere" : outcome.fit !== "passed" ? "fit_claim" : "do_not_claim"];
+  return `retired:${causes.join(",")}`;
 }
 
 /** The fit check's stored verdict, kept only for the sentences today's reading still asks about. `undefined` where no
