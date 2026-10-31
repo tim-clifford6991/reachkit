@@ -38,7 +38,8 @@ const RULES_ROWS: Row[] = stored.drafts
 
 const rested = { from: "failed", to: "needs_attention", at: "2026-10-30T16:00:01.000Z", reason: "reason_needs_customer" };
 const credentialsExpired: Row = { id: "d-credentials", site_id: "site-1", state: "needs_attention", title: "Emergency plumber near you", created_at: "2026-10-30T07:00:00.000Z", transitions: [rested] };
-const edited = (rows: Row[]): Row[] => rows.map((row, n) => (n === 0 ? { ...row, meta: { first_edited_at: "2026-10-30T09:00:00.000Z" } } : row));
+const edited = (rows: Row[], reason?: string): Row[] =>
+  rows.map((row, n) => (n === 0 ? { ...row, meta: { first_edited_at: "2026-10-30T09:00:00.000Z" }, ...(reason === undefined ? {} : { transitions: [{ from: "generating", to: "needs_attention", reason }] }) } : row));
 
 function seed(drafts: readonly Row[]): void {
   db.reset();
@@ -52,6 +53,7 @@ describe("the Monday mail's needs-you line", () => {
   it.each([
     ["absent for the ten stored pages the writing rules stopped", RULES_ROWS, 0],
     ["told once when the customer edited one of those ten: the words are theirs to fix", edited(RULES_ROWS), 1],
+    ["told once for an edited page a short pack stopped, too", edited(RULES_ROWS, "step_failed:pack:buyer_questions"), 1],
     ["told exactly once for an expired credential, beside those ten", [...RULES_ROWS, credentialsExpired], 1],
   ])("is %s", async (_case, drafts, lines) => {
     expect(RULES_ROWS).toHaveLength(10);
