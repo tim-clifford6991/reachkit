@@ -187,6 +187,24 @@ describe("a move that is one of the fifteen moves the page and records it", () =
   });
 });
 
+describe("a stopped page set aside by the recheck keeps its topic's rest as the stop left it", () => {
+  const RECHECK: Actor = { kind: "system", job: "draft/recheck" };
+  const stop = { from: "generating", to: "needs_attention", actor: { kind: "system", job: "draft/generate" }, reason: "rules:plain_prose", at: AT.toISOString() };
+
+  it.each([
+    ["the recheck's retire", RECHECK, null],
+    ["the customer's skip", CUSTOMER, new Date(AT.getTime() + 28 * 86_400_000).toISOString()],
+  ] as const)("%s: one record appended, earlier ones byte for byte, and rest_until %s", async (_, by, restUntil) => {
+    seedDraft("needs_attention", { opportunity_id: "o1", transitions: [stop] });
+    db.seed("opportunities", [{ id: "o1", site_id: "s1", status: "queued", rest_until: null, evidence: {} }]);
+    const before = JSON.stringify(draftRow().transitions);
+    expect(await transition("d1", "skipped", by, { at: AT, reason: "retired:plain_prose" })).toEqual({ ok: true, state: "skipped" });
+    const records = draftRow().transitions as TransitionRecord[];
+    expect([JSON.stringify(records.slice(0, -1)), records.at(-1)]).toEqual([`[${before.slice(1, -1)}]`, { from: "needs_attention", to: "skipped", actor: by, reason: "retired:plain_prose", at: AT.toISOString() }]);
+    expect(db.rows("opportunities")[0]!.rest_until ?? null).toBe(restUntil);
+  });
+});
+
 describe("REQ-092 c5 — a ReachKit stop holds a prepared page, it does not drop it", () => {
   it.each(["approved", "failed", "needs_attention"] as const)(
     "%s → publishing is refused by the stop, and the page keeps the state it holds",
