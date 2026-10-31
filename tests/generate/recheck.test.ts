@@ -1,11 +1,12 @@
 // tests/generate/recheck.test.ts — SPEC §7 (owner O7): a stored page the rules stopped is read again under today's
 // rules at 0¢, and the newest that passes enters review. Each page is written by the real pipeline in the database
-// double, then stopped as `rest()` stops it; the stored dogfood rows pin the promise-figure hold (OR4).
+// double, then stopped as `rest()` stops it; the stored dogfood rows pin what code mends of each and the promise-figure
+// hold (OR4).
 import "./env";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fakeDb, type Row } from "../publish/harness";
 import { AT, fakeCost, opportunity, pack, pageParts, prose } from "./fixtures";
-import { LOCAL_WORDPRESS, SAAS_HOSTED, measuredText, seedWorld, type LiveSite } from "./live-edit-world";
+import { LOCAL_WORDPRESS, SAAS_HOSTED, measuredText, seedWorld, snapshot, type LiveSite } from "./live-edit-world";
 import stored from "./fixtures/dogfood-drafts-2026-10.min.json";
 
 const db = fakeDb();
@@ -20,6 +21,10 @@ import { generateDraft } from "@/lib/generate/pipeline";
 import { siteRulesOf } from "@/lib/generate/pipeline/battery";
 import { readAllFacts } from "@/lib/generate/pipeline/grounding";
 import { candidacy, recheckRow, recheckStopped, type RecheckWorld } from "@/lib/generate/recheck";
+import type { ContextPack } from "@/lib/generate/pipeline/pack";
+import { promiseFigures } from "@/lib/generate/pipeline/title";
+import { answerBoxOf } from "@/lib/generate/rules/blocks";
+import { renderOf } from "@/lib/generate/rules/text";
 import { generateStore, setGenerateStore, type DraftRow } from "@/lib/generate/store";
 import { insertFor } from "@/lib/opportunities/derive/persist";
 
@@ -92,6 +97,7 @@ describe("a page that still fails stays stopped", () => {
     arrange(SAAS_HOSTED);
     const id = await stopped(SAAS_HOSTED, { attempts: 1 });
     row(id).title = "Project management software plan that fits a small team";
+    (row(id).meta as Row).titles = [{ title: row(id).title }];
     await recheck(SAAS_HOSTED);
     expect(row(id)).toMatchObject({ state: "needs_attention", rule_failures: [{ rule: "title", detail: { faults: ["specific"] } }] });
     row(id).hard_rule_attempts = 2;
@@ -101,11 +107,11 @@ describe("a page that still fails stays stopped", () => {
 });
 
 describe("OR4: a promise-figure title never enters review", () => {
-  // Five bodies are exported; the other rows' holds read the title and pack, stopped with the reason `rest()` writes.
+  // The two rows short of their pack hold no body, and are stopped with the reason `rest()` writes.
   const rows = stored.drafts.map((each: Row) => ({
     site_id: "s-dogfood",
-    ...{ body_md: each.has_body ? "(not exported)" : null, grounded_fact: { passage: "p", url: "https://reachkit.app/", readAt: null } },
-    transitions: [{ from: "generating", to: "needs_attention", at: each.created_at, reason: each.has_body ? `rules:${((each.rule_failures ?? []) as Row[]).map((failure) => failure.rule).join(",")}` : "step_failed:pack" }],
+    ...{ body_md: null, grounded_fact: { passage: "p", url: "https://reachkit.app/", readAt: null } },
+    transitions: [{ from: "generating", to: "needs_attention", at: each.created_at, reason: "step_failed:pack" }],
     ...each,
   })) as unknown as DraftRow[];
   const at = (id: string) => rows.find((each) => each.id.startsWith(id))!;
@@ -118,28 +124,112 @@ describe("OR4: a promise-figure title never enters review", () => {
 
   it.each([
     ["b03e044f", true, []],
-    ["bf8de9bf", false, [{ rule: "rival_negative" }, { rule: "title", detail: { faults: ["business"] } }]],
+    // Its FAQ pair denying a rival is dropped and "17" clears today; no clean candidate names the business.
+    ["bf8de9bf", false, [{ rule: "title", detail: { faults: ["business"] } }]],
     ["d98284cc", false, [{ rule: "plain_prose", detail: { faults: [{ tell: "repeated_phrase" }] } }]],
     ["5dcc61c2", false, [{ rule: "required_blocks", detail: { block: "question_headings" } }]],
-    // One attempt: its title is not settled, so the missing specific still stops it.
-    ["f1ec6a58", false, [{ rule: "rival_negative" }, { rule: "required_blocks", detail: { block: "sections" } }, { rule: "title", detail: { faults: ["specific"] } }]],
+    // Its FAQ pair denying a rival is dropped. One attempt: its title is not settled, so the missing specific still
+    // stops it, and its sections take a writer.
+    ["f1ec6a58", false, [{ rule: "required_blocks", detail: { block: "sections" } }, { rule: "title", detail: { faults: ["specific"] } }]],
   ] as const)("%s, replayed on its own stored body under today's rules: passed %s, failing exactly what it prints, at 0¢", async (id, passed, failed) => {
     arrange(SAAS_HOSTED);
     expect(await recheckRow(at(id), dogfood(at(id)))).toMatchObject({ kind: "checked", passed, failed, spentCents: 0 });
   });
 
-  it("the five stored titles that carry the business's promise are held, and no other is", async () => {
+  const checked = async (id: string) => {
+    const outcome = await recheckRow(at(id), dogfood(at(id)));
+    if (outcome.kind !== "checked") throw new Error(`${id} was ${outcome.kind}`);
+    return { ...outcome, meta: outcome.patch.meta as Row & { recheck?: Row } };
+  };
+
+  it.each([
+    ["fba1d84d", "What is AEO? Answer engine optimization in one page", true],
+    // Its stored title carries the business's own "€49 a month"; the one clean candidate still fails its wording.
+    ["b8c28f61", "Answer engine optimization vs generative engine optimization (2026)", false],
+    // #2134's classifier finds "12" in no promise of the business's, and "25" in its "about 25 questions".
+    ["a71279ff", "Profound answer engine optimization: 12 Google searches weekly", true],
+  ] as const)("re-pick never takes a promise-figure title: %s takes %j, its H1 follows, the stored title is kept, at 0¢", async (id, title, passed) => {
     arrange(SAAS_HOSTED);
-    const held = await Promise.all(rows.map(async (each) => ((await recheckRow(each, dogfood(at("b03e044f")))).kind === "held" ? [each.id.slice(0, 8)] : [])));
-    expect(held.flat().sort()).toEqual(["a6d24b00", "a71279ff", "abe42ff7", "b8c28f61", "fba1d84d"]);
+    const outcome = await checked(id);
+    expect(outcome).toMatchObject({ passed, spentCents: 0, patch: { title }, meta: { recheck: { titleBefore: at(id).title, title } } });
+    expect(promiseFigures(title, (at(id).meta as { pack: ContextPack }).pack)).toEqual([]);
+    expect(outcome.meta).not.toHaveProperty("heading");
+    expect((at(id).meta as { titles: Row[] }).titles.map((each) => each.title)).toContain(title);
   });
 
-  it("the same page with a promise title makes no move", async () => {
+  it.each([
+    ["a6d24b00", ["7"]],
+    // Both its other candidates carry a "1" #2134's classifier reads as the business's "1 email every Monday".
+    ["abe42ff7", ["7"]],
+  ] as const)("re-pick never takes a promise-figure title: %s has no clean candidate, so it is held and nothing is written", async (id, figures) => {
     arrange(SAAS_HOSTED);
-    const id = await stopped(SAAS_HOSTED);
-    Object.assign(row(id), { title: "Which plan fits a small team: up to 7 pages a week", meta: { ...(row(id).meta as Row), pack: { ...pack(), profile: (at("fba1d84d").meta as { pack: Row }).pack.profile } } });
-    await recheck(SAAS_HOSTED);
-    expect(row(id).state).toBe("needs_attention");
+    expect(await recheckRow(at(id), dogfood(at(id)))).toEqual({ kind: "held", reason: "title_promise_figure", figures });
+  });
+
+  it("no other stored row is held", async () => {
+    arrange(SAAS_HOSTED);
+    const held = await Promise.all(rows.map(async (each) => ((await recheckRow(each, dogfood(each))).kind === "held" ? [each.id.slice(0, 8)] : [])));
+    expect(held.flat().sort()).toEqual(["a6d24b00", "abe42ff7"]);
+  });
+
+  it.each(["5dcc61c2", "a71279ff", "b03e044f"])("%s: its description is cut to 155 or fewer at a word, every word its own", async (id) => {
+    arrange(SAAS_HOSTED);
+    const before = (at(id).meta as Row).description as string;
+    const { meta } = await checked(id);
+    const after = meta.description as string;
+    expect([[...before].length > 155, [...after].length <= 155, before.startsWith(after), /^[\s.,;:]/.test(before.slice(after.length))]).toEqual([true, true, true, true]);
+    expect(meta.recheck).toMatchObject({ descriptionBefore: before, description: after });
+  });
+
+  it("a page stored with no description takes its short answer's first sentences, fitted", async () => {
+    arrange(SAAS_HOSTED);
+    const b03 = at("b03e044f");
+    const outcome = await recheckRow({ ...b03, meta: { ...(b03.meta as Row), description: "" } }, dogfood(b03));
+    const after = (outcome as { patch: { meta: Row } }).patch.meta.description as string;
+    expect([after.length >= 120, after.length <= 155, renderOf(answerBoxOf(b03.body_md!)!).replace(/\s+/g, " ").startsWith(after)]).toEqual([true, true, true]);
+  });
+
+  it.each([
+    ["f1ec6a58", "Do these tools work for a local or small business, not just enterprise brands?"],
+    ["bf8de9bf", "Is Peec AI or Otterly cheaper?"],
+  ])("%s: the FAQ pair whose answer denies a rival is dropped, the FAQ keeping its least", async (id, question) => {
+    arrange(SAAS_HOSTED);
+    const faq = (at(id).meta as { faq: Row[] }).faq;
+    const { meta, failed } = await checked(id);
+    expect(meta.faq).toEqual(faq.filter((entry) => entry.question !== question));
+    expect(meta.recheck).toMatchObject({ faqDropped: [question] });
+    expect(failed.map((failure) => failure.rule)).not.toContain("rival_negative");
+  });
+
+  it("bf8de9bf with its FAQ already at the least keeps every pair, and the rival-negative stop stands", async () => {
+    arrange(SAAS_HOSTED);
+    const bf8 = at("bf8de9bf");
+    const faq = (bf8.meta as { faq: Row[] }).faq.slice(1);
+    const outcome = await recheckRow({ ...bf8, meta: { ...(bf8.meta as Row), faq } }, dogfood(bf8));
+    expect(outcome).toMatchObject({ kind: "checked", passed: false, failed: [{ rule: "rival_negative" }, { rule: "title" }], patch: { meta: { faq } } });
+    expect((outcome as { patch: { meta: { recheck?: Row } } }).patch.meta.recheck?.faqDropped).toBeUndefined();
+  });
+
+  it.each([
+    [SAAS_HOSTED.kind, SAAS_HOSTED, "up to 7 pages a week", { job: null, products: [], promises: ["Up to 7 pages a week, written for you"] }],
+    // A local business whose profile states its price, on a page that informs.
+    [LOCAL_WORDPRESS.kind, LOCAL_WORDPRESS, "from £89 a visit", { job: null, products: ["Boiler service"], promises: ["Boiler service from £89 a visit"] }],
+  ] as const)("for %s, a candidate carrying the business's own figure is never picked: the clean one enters review, and with none the page makes no move", async (_, live, figure, profile) => {
+    arrange(live);
+    const id = await stopped(live);
+    const clean = row(id).title as string;
+    const promised = `Which plan fits a small team: ${figure}`;
+    Object.assign(row(id), { title: promised, meta: { ...(row(id).meta as Row), pack: { ...pack(), profile }, titles: [{ title: promised }, { title: clean }] } });
+    await recheck(live);
+    expect(row(id)).toMatchObject({ state: "in_review", title: clean, meta: { recheck: { titleBefore: promised, title: clean } } });
+    expect(llm).not.toHaveBeenCalled();
+
+    const other = await stopped(live, { topic: "billing" });
+    Object.assign(row(other), { title: promised, meta: { ...(row(other).meta as Row), pack: { ...pack(), profile }, titles: [{ title: promised }] } });
+    row(id).scheduled_for = "2026-09-12";
+    const before = snapshot(db, "drafts", other);
+    await recheck(live);
+    expect(snapshot(db, "drafts", other)).toBe(before);
   });
 
   it("pages short of their pack, edited, or older than a topic's rest are not candidates", () => {
@@ -149,6 +239,31 @@ describe("OR4: a promise-figure title never enters review", () => {
     expect(candidacy(b03, new Date(built + 28 * DAY))).toBeNull();
     expect(candidacy(b03, new Date(built + 29 * DAY))).toBe("stale");
     expect(candidacy({ ...b03, meta: { ...(b03.meta as object), first_edited_at: NOW.toISOString() } }, new Date(built))).toBe("edited");
+  });
+});
+
+describe("only a stopped page no one has touched is mended", () => {
+  it("a page in review and a page the customer edited are left byte for byte, however much code could mend", async () => {
+    arrange(SAAS_HOSTED);
+    const long = "A small team picks the plan whose seats cover everyone who opens the tool each day, and checks its limits first. ".repeat(2);
+    const reviewed = await stopped(SAAS_HOSTED);
+    const edited = await stopped(SAAS_HOSTED, { topic: "billing" });
+    for (const id of [reviewed, edited]) Object.assign(row(id), { title: "Which plan fits a small team: up to 7 pages a week", meta: { ...(row(id).meta as Row), description: long } });
+    Object.assign(row(reviewed), { state: "in_review", transitions: [...(row(reviewed).transitions as Row[]), { from: "needs_attention", to: "in_review", at: AT.toISOString() }] });
+    (row(edited).meta as Row).first_edited_at = AT.toISOString();
+    const before = [snapshot(db, "drafts", reviewed), snapshot(db, "drafts", edited)];
+    await recheck(SAAS_HOSTED);
+    expect([snapshot(db, "drafts", reviewed), snapshot(db, "drafts", edited)]).toEqual(before);
+  });
+
+  it("the sentence carrying a do-not-claim entry word for word is dropped, and the battery decides: it passes", async () => {
+    arrange(SAAS_HOSTED);
+    const id = await stopped(SAAS_HOSTED, { first: "Acme also ships a desktop app for every seat. ", failed: [{ rule: "do_not_claim", detail: { rule: "do_not_claim", matchedEntry: "desktop app" } }] });
+    db.rows("sites")[0]!.do_not_claim = ["desktop app"];
+    await recheck(SAAS_HOSTED);
+    expect(row(id)).toMatchObject({ state: "in_review", meta: { recheck: { sentenceDropped: ["Acme also ships a desktop app for every seat."] } } });
+    expect(row(id).body_md).not.toContain("desktop app");
+    expect(llm).not.toHaveBeenCalled();
   });
 });
 
