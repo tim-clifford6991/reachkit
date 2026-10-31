@@ -534,13 +534,19 @@ describe("a topic a rule stop rested since 2026-10-17 is offered again, and no o
     const reRested = rested("unrest-skipped-later", { reason: "rules:title", until: "now() + interval '28 days'" });
     const before17 = "timestamptz '2026-10-16 18:00:00+00'";
     const early = rested("unrest-before-17", { reason: "rules:title", at: before17, until: `${before17} + interval '28 days'` });
+    const afterFix = "timestamptz '2026-10-31 14:30:00+00'";
+    const genuine = rested("unrest-after-fix", { reason: "rules:title", at: afterFix, until: `${afterFix} + interval '28 days'` });
+    const stopped = rested("unrest-stopped", { reason: "rules:title" });
+    psql(["-v", "ON_ERROR_STOP=1", "-c", `update opportunities set stopped = true where id = '${stopped.id}';`]);
     const dismissed = rested("unrest-dismissed", { reason: "rules:title", status: "dismissed" });
     const done = rested("unrest-done", { reason: "rules:title", status: "done" });
     psql(["-v", "ON_ERROR_STOP=1", "-c",
       `insert into publications (draft_id, site_id, destination, mode) values ('${done.draft}', '${SITE_ID}', 'hosted', 'autopilot');`]);
     const before = untouched(ruled.id);
     unrest();
-    expect([ruled, step, reRested, early, dismissed, done].map(({ id }) => restOf(id))).toEqual(["t", "f", "f", "f", "f", "f"]);
+    expect([ruled, step, reRested, early, genuine, stopped, dismissed, done].map(({ id }) => restOf(id))).toEqual(
+      ["t", "f", "f", "f", "f", "f", "f", "f"]
+    );
     expect(untouched(ruled.id)).toEqual(before);
     const once = untouched("");
     unrest();
