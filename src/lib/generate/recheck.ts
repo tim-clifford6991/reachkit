@@ -4,20 +4,27 @@
 // A candidate never entered review, was stopped by the rules at generation, carries no edit of the customer's, has a
 // body, and was written from a pack no older than a topic's rest. Its stored words go through the same battery a page
 // as written does (`./pipeline/battery.ts`), with every model call refused: the fit check's stored verdict stands for
-// the sentences today's reading still asks about. A title carrying the business's promise figure is held (OR4).
+// the sentences today's reading still asks about. Before the battery, code mends what it can from the row's own words:
+// the title is re-picked from the writer's stored candidates, never one carrying the business's promise figure (OR4),
+// which is held where none is clean; the description is fitted; a FAQ pair or a do-not-claim sentence the rules fail
+// is dropped.
 import { TOPIC_REST_DAYS } from "@/lib/config/constants";
 import type { CostContext } from "@/lib/costs";
 import type { Opportunity } from "@/lib/opportunities";
 import type { Actor, TransitionRecord } from "@/lib/publish/types";
 import { brandSentences, type FitVerdict } from "./claims/fit";
 import { readRecordedFact } from "./fact";
-import { batteryBasis, checkPage, siteRulesOf } from "./pipeline/battery";
+import { batteryBasis, checkPage, siteRulesOf, type BatteryBasis, type CheckedPage } from "./pipeline/battery";
 import { buildComparisonSet } from "./pipeline/comparison";
+import { fitDescription } from "./pipeline/compose";
 import { allowedFacts, readAllFacts, readDemoPhrases, type SourcedFact } from "./pipeline/grounding";
 import type { ContextPack } from "./pipeline/pack";
+import { withoutBrokenPairs, withoutClaimed } from "./pipeline/repair";
 import { promiseFigures, titleRuleFor } from "./pipeline/title";
 import { readRecordedRules, readRecordedRun, recordedRulesValue, recordedRunValue, recordedVerdictValue } from "./record";
 import { batteryCleared } from "./rules";
+import { answerBoxOf } from "./rules/blocks";
+import { pickTitle } from "./rules/title";
 import type { HardRule, RuleFailure, SiteRuleInputs } from "./rules/types";
 import { generateStore, type DraftPatch, type DraftRow } from "./store";
 import { confirmedForWriting } from "./voice/confirmed";
@@ -51,6 +58,16 @@ export type RecheckOutcome =
   | { kind: "held"; reason: "title_promise_figure"; figures: string[] }
   | { kind: "checked"; passed: boolean; failed: RuleFailure[]; cleared: HardRule[]; spentCents: number; patch: DraftPatch };
 
+/** What the re-check mended, as the row records it (`drafts.meta.recheck`). */
+export interface RecheckFixes {
+  titleBefore?: string;
+  title?: string;
+  descriptionBefore?: string;
+  description?: string;
+  faqDropped?: string[];
+  sentenceDropped?: string[];
+}
+
 type Meta = Record<string, unknown>;
 const metaOf = (row: DraftRow): Meta => (typeof row.meta === "object" && row.meta !== null ? (row.meta as Meta) : {});
 const packOf = (row: DraftRow): ContextPack | null => (metaOf(row).pack as ContextPack | undefined) ?? null;
@@ -74,11 +91,6 @@ export async function recheckRow(row: DraftRow, world: RecheckWorld): Promise<Re
   const skipped = candidacy(row, world.now);
   if (skipped !== null) return { kind: "skipped", reason: skipped };
   const pack = packOf(row)!;
-  const markdown = row.body_md!;
-  const title = row.title ?? "";
-  const figures = promiseFigures(title, pack);
-  if (figures.length > 0) return { kind: "held", reason: "title_promise_figure", figures };
-
   const meta = metaOf(row);
   const recorded = readRecordedFact(row.grounded_fact)!;
   const grounding = world.facts.find((sourced) => sourced.fact.passage === recorded.passage) ?? {
@@ -86,13 +98,10 @@ export async function recheckRow(row: DraftRow, world: RecheckWorld): Promise<Re
     sourceText: "",
   };
   const basis = batteryBasis({ pack, opportunity: world.opportunity, site: world.site, facts: world.facts, grounding, ...(world.demoPhrases === undefined ? {} : { demoPhrases: world.demoPhrases }) });
-  const page = {
-    title,
-    heading: typeof meta.heading === "string" ? meta.heading : title,
-    description: typeof meta.description === "string" ? meta.description : "",
-    sections: Array.isArray(meta.sections) ? meta.sections : [],
-    faq: Array.isArray(meta.faq) ? meta.faq : [],
-  };
+  const { page, markdown, fixes } = mend(row, pack, basis);
+  const { title } = page;
+  const figures = promiseFigures(title, pack);
+  if (figures.length > 0) return { kind: "held", reason: "title_promise_figure", figures };
   const stopped = readRecordedRules(row.rule_failures) ?? [];
   const fit = storedFit(row, stopped, { title, markdown, site: world.site, titleOwed: (titleRuleFor(pack, page).business?.length ?? 0) > 0 });
   const comparison = await buildComparisonSet({ siteId: row.site_id, exceptDraftId: row.id });
@@ -109,11 +118,46 @@ export async function recheckRow(row: DraftRow, world: RecheckWorld): Promise<Re
     cleared: [...new Set(stopped.map((failure) => failure.rule))].filter((rule) => !failed.some((failure) => failure.rule === rule)),
     spentCents: REFUSED.spentCents(),
     patch: {
+      ...(fixes.title === undefined ? {} : { title }),
       body_md: checked.markdown,
-      meta: { ...meta, checks: recordedRunValue(checked.outcome, broken), ...(checked.repairs.length === 0 ? {} : { repairs: [...priorRepairs, ...checked.repairs] }) },
+      meta: {
+        // The H1 follows a re-picked title, as an edit's does.
+        ...(fixes.title === undefined ? meta : Object.fromEntries(Object.entries(meta).filter(([key]) => key !== "heading"))),
+        description: page.description,
+        faq: page.faq,
+        ...(Object.keys(fixes).length === 0 ? {} : { recheck: { ...(meta.recheck as RecheckFixes | undefined), ...fixes } }),
+        checks: recordedRunValue(checked.outcome, broken),
+        ...(checked.repairs.length === 0 ? {} : { repairs: [...priorRepairs, ...checked.repairs] }),
+      },
       claim_check: recordedVerdictValue(checked.outcome.claim),
       rule_failures: failed,
       hard_rules_passed: passed,
+    },
+  };
+}
+
+/** The stored page with what code mends from its own words, no word added: the title the picker takes today of the
+ *  writer's candidates that carry no promise figure, the description fitted (the short answer's where none was
+ *  written), and the FAQ pairs and do-not-claim sentences the rules fail dropped. */
+function mend(row: DraftRow, pack: ContextPack, basis: BatteryBasis): { page: CheckedPage; markdown: string; fixes: RecheckFixes } {
+  const meta = metaOf(row);
+  const stored = row.title ?? "";
+  const sections = Array.isArray(meta.sections) ? meta.sections : [];
+  const before = typeof meta.description === "string" ? meta.description : "";
+  const description = fitDescription(before.trim() === "" ? (answerBoxOf(row.body_md!) ?? "") : before);
+  const proposed = (Array.isArray(meta.titles) ? (meta.titles as { title?: unknown }[]) : []).flatMap((each) => (typeof each?.title === "string" ? [each.title] : []));
+  const clean = [...proposed, stored].filter((each) => promiseFigures(each, pack).length === 0);
+  const title = clean.length === 0 ? stored : pickTitle(clean, titleRuleFor(pack, { description, sections })).chosen;
+  const faq = withoutBrokenPairs(Array.isArray(meta.faq) ? meta.faq : [], { min: basis.template.blocks.faq?.min ?? 0, rivals: basis.rivalsNamed, facts: basis.brief.marketFacts });
+  const claimed = withoutClaimed(row.body_md!, basis.site.doNotClaim);
+  return {
+    page: { title, heading: title === stored && typeof meta.heading === "string" ? meta.heading : title, description, sections, faq: faq.faq },
+    markdown: claimed.markdown,
+    fixes: {
+      ...(title === stored ? {} : { titleBefore: stored, title }),
+      ...(description === before ? {} : { descriptionBefore: before, description }),
+      ...(faq.dropped.length === 0 ? {} : { faqDropped: faq.dropped }),
+      ...(claimed.dropped.length === 0 ? {} : { sentenceDropped: claimed.dropped }),
     },
   };
 }
