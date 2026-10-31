@@ -108,20 +108,22 @@ describe("issue #376 — S20's footer, in both bodies", () => {
     expect(mail.html).not.toContain("<p style=\"margin:0\"></p>");
   });
 
-  it("the imprint, once written, sits between the wordmark and the plain-text note", async () => {
-    // The set brackets the imprint, so it was owner-owed and empty, and the
-    // band read wordmark · plain-text note. Issue #458 filled it on the
-    // owner's 2026-09-10 approval, so the band now carries all three parts,
-    // in the set's order, in both bodies.
-    const imprint = COPY["mail.shell.imprint"];
-    expect(imprint).not.toBe("");
-    expect(OWNER_OWED).not.toContain("mail.shell.imprint");
+  it("placeholder imprint renders no band", async () => {
+    // The owner has not written the imprint yet; a customer must never read the placeholder.
+    expect(COPY["mail.shell.imprint"]).toContain("[[");
     const mail = await composeMail({ kind: "report", ...BASE, reason: "mail.reason.report", reasonVars: { address: "x@y.z" } });
-    const band = [COPY["mail.shell.wordmark"], imprint, COPY["mail.shell.plaintext_note"]].join(" · ");
+    const band = [COPY["mail.shell.wordmark"], COPY["mail.shell.plaintext_note"]].join(" · ");
     expect(mail.html).toContain(band);
-    expect(mail.text).toContain(band);
-    // And not the two-part band it replaced.
-    expect(mail.text).not.toContain("ReachKit · plain-text version attached");
+    expect(mail.html).not.toContain(COPY["mail.shell.imprint"]);
+    expect(mail.text).not.toContain(COPY["mail.shell.imprint"]);
+    // The text twin closes on the two-part band, with no empty line where the imprint was.
+    expect(mail.text.split("\n").slice(-3)).toMatchInlineSnapshot(`
+      [
+        "————————————————————————",
+        "Own this site and want the report taken down? Write to x@y.z.",
+        "ReachKit · plain-text version attached",
+      ]
+    `);
   });
 
   it("the reason line is the one place a mail says why it arrived", () => {

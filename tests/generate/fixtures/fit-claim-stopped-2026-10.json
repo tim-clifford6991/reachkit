@@ -1,0 +1,109 @@
+{
+  "source": "Read-only production export /root/projects/reports/dogfood-drafts-2026-10.json (2026-10-31): the drafts stopped on fit_claim since 2026-10-17, with the internal links each was handed. Bodies are not exported.",
+  "drafts": [
+    {
+      "id": "b03e044f-fe31-4532-8d66-2a46c97ccfaf",
+      "created_at": "2026-10-25T08:05:34.361746+00:00",
+      "state": "needs_attention",
+      "title": "4 AI visibility tools for small businesses to compare (2026)",
+      "links": [
+        {
+          "url": "https://reachkit.app/pricing",
+          "label": "Pricing"
+        },
+        {
+          "url": "https://reachkit.app/how-it-works",
+          "label": "How ReachKit works"
+        },
+        {
+          "url": "https://reachkit.app/about",
+          "label": "About ReachKit"
+        },
+        {
+          "url": "https://content.reachkit.app/how-to-rank-in-ai-overview",
+          "label": "How to rank in AI Overview for your business"
+        },
+        {
+          "url": "https://reachkit.app/compare/seobility",
+          "label": "ReachKit vs Seobility"
+        },
+        {
+          "url": "https://reachkit.app/compare/seobility-competitor-analysis",
+          "label": "ReachKit vs Seobility Competitor Analysis"
+        },
+        {
+          "url": "https://reachkit.app/",
+          "label": "Get found on Google and AI."
+        },
+        {
+          "url": "https://content.reachkit.app/reachkit-vs-aeo-engine",
+          "label": "ReachKit vs AEO Engine: 7 buyer questions, answered"
+        }
+      ],
+      "rule_failures": [
+        {
+          "rule": "fit_claim",
+          "detail": {
+            "rule": "fit_claim",
+            "sentences": [
+              "ReachKit vs Seobility",
+              "ReachKit vs Seobility Competitor Analysis"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "5dcc61c2-8ea3-42be-9aea-b7d7d8e97dea",
+      "created_at": "2026-10-22T07:02:44.235007+00:00",
+      "state": "needs_attention",
+      "title": "AI visibility solutions with best GEO (2026)",
+      "links": [
+        {
+          "url": "https://reachkit.app/pricing",
+          "label": "Pricing"
+        },
+        {
+          "url": "https://reachkit.app/how-it-works",
+          "label": "How ReachKit works"
+        },
+        {
+          "url": "https://reachkit.app/about",
+          "label": "About ReachKit"
+        },
+        {
+          "url": "https://content.reachkit.app/best-answer-engine-optimization-services-for-ai-visibility",
+          "label": "Best Answer Engine Optimization Services for AI Visibility"
+        },
+        {
+          "url": "https://content.reachkit.app/reachkit-vs-aeo-engine",
+          "label": "ReachKit vs AEO Engine: 7 buyer questions, answered"
+        },
+        {
+          "url": "https://reachkit.app/compare/seobility",
+          "label": "ReachKit vs Seobility"
+        },
+        {
+          "url": "https://reachkit.app/",
+          "label": "Get found on Google and AI."
+        },
+        {
+          "url": "https://reachkit.app/compare/seobility-competitor-analysis",
+          "label": "ReachKit vs Seobility Competitor Analysis"
+        }
+      ],
+      "rule_failures": [
+        {
+          "rule": "fit_claim",
+          "detail": {
+            "rule": "fit_claim",
+            "sentences": [
+              "ReachKit vs Seobility",
+              "ReachKit vs Seobility Competitor Analysis"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}
