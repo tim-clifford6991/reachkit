@@ -62,7 +62,7 @@ export type HardRule =
    *  value is missing (`./cells.ts`). */
   | "no_placeholder_cell"
   /** SPEC §7 (D41 stage 4, issue 1249): no sentence from the site's
-   *  demo-phrase list or its menus (`./demo.ts`). */
+   *  demo-phrase list (`./demo.ts`). */
   | "no_demo_text"
   /** SPEC §7 (owner, D61; issue 1295): no two H2s of a Q&A share most of
    *  their words or their opening (`./headings.ts`). */

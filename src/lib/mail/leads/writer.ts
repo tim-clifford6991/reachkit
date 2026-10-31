@@ -159,7 +159,7 @@ export const writeLeadPage: DraftWriter = async (a) => {
         sourceText: grounding.sourceText,
         brief: { facts: passages, queries: targetSearches(opportunity) },
         blocks: { template, sections: laid.sections, length, faq: laid.faq, domain: report.domain },
-        demoPhrases: pages.flatMap((page) => [...(page.examples ?? []), ...(page.menus ?? [])]),
+        demoPhrases: pages.flatMap((page) => [...(page.examples ?? [])]),
       });
 
       if (!outcome.passed) {
