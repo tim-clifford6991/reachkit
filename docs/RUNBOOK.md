@@ -587,7 +587,10 @@ exported, and no change is typed back through the connector.
 
 **Nobody asks for it (issue 1481).** The build stamps the deployment with its derivation
 (`RK_DERIVATION`, from `scripts/derivation.mjs`: a fingerprint of the files under `src/lib` the
-re-score reads a scan with; `node scripts/derivation.mjs --files` lists them). Production's tick,
+re-score reaches by its static value imports, the ones it runs to score a scan. A type-only import
+and a lazy `import()` are not followed, so the vendor transport is not among them; `node scripts/derivation.mjs --files`
+lists them, and `src/lib/config/constants.ts` is among them). Each run reads every stored report
+once, and per domain only the home reads those reports are scored with. Production's tick,
 every 15 minutes, finds no run at the deployed derivation and asks a dry run itself
 (`auto = true`). A dry run that moves nothing settles it. Where the dry run's guard holds
 (`RESCORE_GUARD` in `src/lib/config/constants.ts`: no score moves more than 15 points, no scored
