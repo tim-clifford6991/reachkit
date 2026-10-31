@@ -132,7 +132,7 @@ describe("Plan waits in the shape of the Plan that arrives (issue 1320)", () => 
     // The name has no read behind it, so the eyebrow says it from the first
     // paint; the week's heading and lead arrive with the week.
     expect(PLAN).toContain(`<span class="eyebrow">${COPY["shell.nav.plan"]}</span>`);
-    expect(COPY["calendar.eyebrow"].startsWith(`${COPY["shell.nav.plan"]} `)).toBe(true);
+    expect(COPY["calendar.title"].startsWith(COPY["shell.nav.plan"])).toBe(true);
   });
 
   it("is the week's list below lg and its seven cells from it (E5)", () => {

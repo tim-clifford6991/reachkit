@@ -71,7 +71,7 @@ The nav label, the heading in the docs and the screen name are the same word. Is
 
 | What the person sees | Route today | Called in docs and issues |
 |---|---|---|
-| Plan | `/app/calendar` | Plan — not “calendar”, not `F7` |
+| This week | `/app/calendar` | This week, not “calendar”, not `F7`. “Plan” was its label until 2026-10-31 (owner R8); the route keeps the old word |
 | The draft | `/app/draft/{draftId}` | Draft. The editor is the editing state of that draft, not a second screen |
 | Overview, Settings | unchanged | those words |
 | Google | `/app/search` | Google. “Search” was its label until 2026-10-15 (#1444); the route keeps the old word |

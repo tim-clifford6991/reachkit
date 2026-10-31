@@ -20,7 +20,7 @@ austinpipeworks.example 3 of 12	sample data
 capitolrooter.example 2 of 12	sample data
 a home-improvement store 1 of 12	sample data
 You 0 of 12	sample data: the count is the account's own top results
-You’re not the top result on any of the 12 yet, and you’re on the first page for 1. This week’s pages go after 3 of them.	sample data: the fixture account holds one top result, so its line is "You're the top result on 1 of the 12" (#1747)
+You’re not the top result on any of the 12 yet. You’re on Google’s first page for 1. This week’s pages go after 3 of them.	sample data: the fixture account holds one top result, so its line is "You're the top result on 1 of the 12" (#1747)
 austinpipeworks.example 5	sample data
 capitolrooter.example 4	sample data
 You were on 0 of 12 when you started.	sample data: the count is the account's own first week

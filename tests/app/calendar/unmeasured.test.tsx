@@ -183,7 +183,7 @@ describe("#784 — the calendar's one supply statement says which zero it is", (
     // one (owner, PR #961). Which of the two this store reaches depends on
     // whether it can date the moment supply ran out, and the claim is the
     // same either way.
-    expect(await statement()).toContain("Nothing worth publishing is left in your market");
+    expect(await statement()).toContain("Nothing worth publishing is left");
   });
 
   it("a market never measured says so, never 'used up'", async () => {

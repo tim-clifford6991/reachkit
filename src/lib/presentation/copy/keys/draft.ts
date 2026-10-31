@@ -301,7 +301,7 @@ export const DRAFT_COPY = Object.freeze({
   // The back link §4.6 asks for, the unsaved indicator c7 asks for, and the
   // one written line an unknown draft id resolves to.
   "draft.back": [
-    "Back to Plan",
+    "Back to This week",
     { slots: {}, fixedBy: "SPEC §7 2026-09-20" },
   ],
   /** Issue 1196: a page pressed *Write it again*, while the draft tick has

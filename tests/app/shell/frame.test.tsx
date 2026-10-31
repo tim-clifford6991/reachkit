@@ -705,7 +705,7 @@ describe("the frame is the route's one screen root, and it invents no sentence",
     // The three the nav is built from are never owed: a nav with no words is
     // not a nav (they are transcriptions of §4.4's own list, not new copy).
     expect(COPY["shell.nav.overview"]).toBe("Overview");
-    expect(COPY["shell.nav.plan"]).toBe("Plan");
+    expect(COPY["shell.nav.plan"]).toBe("This week");
     expect(COPY["shell.nav.settings"]).toBe("Settings");
   });
 });

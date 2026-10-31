@@ -160,7 +160,7 @@ export const META_COPY = Object.freeze({
   "meta.app.search.title": ["Google · ReachKit", { slots: {}, fixedBy: "issue 945" }],
   "meta.app.ai-answers.title": ["AI · ReachKit", { slots: {}, fixedBy: "issue 945" }],
   "meta.app.rivals.title": ["Competitors · ReachKit", { slots: {}, fixedBy: "issue 945" }],
-  "meta.app.plan.title": ["Plan · ReachKit", { slots: {}, fixedBy: "issue 945" }],
+  "meta.app.plan.title": ["This week · ReachKit", { slots: {}, fixedBy: "issue 945" }],
   "meta.app.draft.title": ["Your page · ReachKit", { slots: {}, fixedBy: "issue 945" }],
   // Owner ruling 2026-09-21 (#984): the page editor's tab says which page.
   // The title is the draft's own — model-written, and reaching a browser

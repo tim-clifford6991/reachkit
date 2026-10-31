@@ -67,7 +67,7 @@ describe.each(CUSTOMERS)("$name: How this tab shapes your pages", (c) => {
     expect(root.textContent).toContain("Change any line below. Nothing here is required.");
     expect(text(root.querySelector('[data-testid="settings-flow-next"]'))).toBe(`Next: ${formatMoment(next, TZ)}.`);
     const plan = root.querySelector('a[href="/app/calendar"]');
-    expect(text(plan)).toBe("See the plan");
+    expect(text(plan)).toBe("See this week’s pages");
   });
 });
 
@@ -87,7 +87,7 @@ describe("Next: is the shell's next publish, and is not drawn while there is non
     const root = flow(shell.publishing.next);
     expect(root.querySelector('[data-testid="settings-flow-next"]')).toBeNull();
     expect(root.textContent).not.toContain("Next:");
-    expect(text(root.querySelector('a[href="/app/calendar"]'))).toBe("See the plan");
+    expect(text(root.querySelector('a[href="/app/calendar"]'))).toBe("See this week’s pages");
   });
 
   it("scheduled: the time is the shell's, in the site's zone", () => {

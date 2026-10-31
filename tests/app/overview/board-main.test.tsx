@@ -140,7 +140,7 @@ describe("board Main, on the account the layout sweep reads", () => {
     };
     const mine = new Set([
       ...span((s) => s.startsWith("Week "), (s) => s.includes("chosen")),
-      ...span((s) => s.startsWith("This week"), (s) => s.startsWith("Next Monday")),
+      ...span((s) => s.startsWith("This week’s"), (s) => s.startsWith("Next Monday")),
       ...span((s) => s.includes("worth fixing"), () => true),
     ]);
     expect(mine.size).toBeGreaterThan(15);

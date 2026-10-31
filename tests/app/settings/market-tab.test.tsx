@@ -357,7 +357,7 @@ describe("board SettingsMarket, on the account the layout sweep reads", () => {
     const { missing } = compare(readFileSync(boardFile("SettingsMarket"), "utf8"), segments(html), readAllow("SettingsMarket"));
     // Drawn by the shell and the Settings layout, not by this tab.
     const frame = [
-      "ReachKit", "Overview", "Plan", "Settings", "Publishing on",
+      "ReachKit", "Overview", "This week", "Settings", "Publishing on",
       "What you’re measured as, how pages go out, and your account.",
       "Your business", "Market and competitors", "Publishing", "Your voice", "Mail", "Billing", "Account",
     ];
