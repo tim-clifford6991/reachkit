@@ -452,6 +452,7 @@ function walk(dir: string, out: string[]): void {
 export interface EnumerateOptions {
   segmentFixtures?: Readonly<Record<string, string>>;
   extraSegmentValues?: Readonly<Record<string, readonly string[]>>;
+  queryFixtures?: Readonly<Record<string, readonly string[]>>;
   hostFixtures?: Readonly<Record<string, string>>;
   /** The `Cookie` header to give every `(account)` route. The browser
    *  sweep passes the seeded session; everything else takes the fixture. */
@@ -467,6 +468,7 @@ export interface EnumerateOptions {
 export function enumerateRoutes(appRoot: string, options: EnumerateOptions = {}): EnumeratedRoute[] {
   const segmentFixtures = options.segmentFixtures ?? SEGMENT_FIXTURES;
   const extraSegmentValues = options.extraSegmentValues ?? EXTRA_SEGMENT_VALUES;
+  const queryFixtures = options.queryFixtures ?? QUERY_FIXTURES;
   const hostFixtures = options.hostFixtures ?? HOST_FIXTURES;
   const accountCookie = options.accountCookie ?? ACCOUNT_SESSION_COOKIE;
 
@@ -516,7 +518,7 @@ export function enumerateRoutes(appRoot: string, options: EnumerateOptions = {})
 
     return urlPaths.flatMap((urlSegments) => {
       const bare = "/" + urlSegments.join("/");
-      return (QUERY_FIXTURES[bare] ?? [""]).map((query) => {
+      return (queryFixtures[bare] ?? [""]).map((query) => {
         const route: EnumeratedRoute = { path: bare + query };
         if (host !== undefined) route.host = host;
         if (cookie !== undefined) route.cookie = cookie;

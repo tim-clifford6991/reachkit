@@ -305,7 +305,7 @@ describe("REQ-091 c2 — every route renders for a domain that ranks for nothing
     // substitutes. A route either walk misses fails here.
     const layout = await import("../../ui/layout/routes");
     const mine = enumerateRoutes(APP_ROOT);
-    const theirs = layout.enumerateRoutes(APP_ROOT, { extraSegmentValues: {} });
+    const theirs = layout.enumerateRoutes(APP_ROOT, { extraSegmentValues: {}, queryFixtures: {} });
     expect(mine.length).toBe(theirs.length);
     expect(mine.map((r) => r.url.split("/").length).sort()).toEqual(
       theirs.map((r) => r.path.split("/").length).sort()
