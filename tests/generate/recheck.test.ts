@@ -19,7 +19,7 @@ import { generateDayPage } from "@/lib/generate";
 import { generateDraft } from "@/lib/generate/pipeline";
 import { siteRulesOf } from "@/lib/generate/pipeline/battery";
 import { readAllFacts } from "@/lib/generate/pipeline/grounding";
-import { candidacy, recheckRow, recheckStopped } from "@/lib/generate/recheck";
+import { candidacy, recheckRow, recheckStopped, type RecheckWorld } from "@/lib/generate/recheck";
 import { generateStore, setGenerateStore, type DraftRow } from "@/lib/generate/store";
 import { insertFor } from "@/lib/opportunities/derive/persist";
 
@@ -46,17 +46,12 @@ function arrange(live: LiveSite): void {
   db.seed("opportunities", [...db.rows("opportunities"), { ...(insertFor(written) as unknown as Row), id: written.id, status: "open", created_at: AT.toISOString() }]);
 }
 
-/** What the day's run reads of the site, as the pipeline and the re-check are both handed it. */
-async function worldOf(live: LiveSite) {
-  const store = generateStore();
-  return { site: siteRulesOf((await store.siteFacts(live.siteId))!, (await store.latestReport(live.siteId))!), facts: await readAllFacts({ siteId: live.siteId, scanId: "scan-1" }), opportunity: opportunity({ siteId: live.siteId }), now: NOW };
-}
-
 /** A page the pipeline wrote and the rules then stopped as `rest()` does; every later model call throws. */
 async function stopped(live: LiveSite, a: { topic?: string; failed?: Row[]; attempts?: number; builtAt?: Date; first?: string } = {}): Promise<string> {
   const topic = a.topic ?? "seats";
   llm.mockResolvedValue({ kind: "measured", value: pageParts(`${a.first ?? ""}${prose(topic, 300, 4)}\n\nTeams on the starter plan get 25 seats and unlimited projects for a flat monthly fee, per [the pricing page](${live.sourceUrl}).`, {}, topic), at: AT });
-  const world = await worldOf(live);
+  const store = generateStore();
+  const world = { site: siteRulesOf((await store.siteFacts(live.siteId))!, (await store.latestReport(live.siteId))!), facts: await readAllFacts({ siteId: live.siteId, scanId: "scan-1" }), opportunity: opportunity({ siteId: live.siteId }) };
   const outcome = await generateDraft(fakeCost(), { ...world, siteId: live.siteId, scheduledFor: "2026-09-20", pack: pack({ builtAt: (a.builtAt ?? AT).toISOString() }), links: [] });
   llm.mockReset().mockRejectedValue(new Error("the re-check asks no model"));
   const id = outcome.draftId!;
@@ -83,24 +78,9 @@ describe("a stored page that passes today's rules enters review by itself, at 0Â
     expect(await generateDayPage({ siteId: live.siteId, publishDate: D, now: NOW })).toEqual({ ok: false, because: "already_drafted" });
     expect(llm).not.toHaveBeenCalled();
   });
-
-  it("recheckRow reads it with failed = [] and spends 0", async () => {
-    arrange(SAAS_HOSTED);
-    const id = await stopped(SAAS_HOSTED);
-    expect(await recheckRow((await generateStore().draftById(id))!, await worldOf(SAAS_HOSTED))).toMatchObject({ kind: "checked", passed: true, failed: [], cleared: ["title", "fit_claim"], spentCents: 0 });
-  });
 });
 
 describe("a page that still fails stays stopped", () => {
-  it("with exactly the rules generation stopped it for", async () => {
-    arrange(SAAS_HOSTED);
-    const id = await stopped(SAAS_HOSTED, { first: "We tested every tool for months. " });
-    const failed = row(id).rule_failures;
-    await recheck(SAAS_HOSTED);
-    expect(row(id)).toMatchObject({ state: "needs_attention", rule_failures: failed, hard_rules_passed: false });
-    expect(failed).not.toEqual([]);
-  });
-
   it("a stored fit failure stands while today's reading still asks about its sentence", async () => {
     arrange(SAAS_HOSTED);
     const id = await stopped(SAAS_HOSTED, { first: "Example keeps every seat on one bill. ", failed: [{ rule: "fit_claim", detail: { rule: "fit_claim", sentences: ["Example keeps every seat on one bill."] } }] });
@@ -121,18 +101,36 @@ describe("a page that still fails stays stopped", () => {
 });
 
 describe("OR4: a promise-figure title never enters review", () => {
-  // Bodies are not exported: the hold reads the title and the pack, and the stop is the reason `rest()` writes.
-  const rows = stored.drafts.map((each) => ({
+  // Five bodies are exported; the other rows' holds read the title and pack, stopped with the reason `rest()` writes.
+  const rows = stored.drafts.map((each: Row) => ({
+    site_id: "s-dogfood",
+    ...{ body_md: each.has_body ? "(not exported)" : null, grounded_fact: { passage: "p", url: "https://reachkit.app/", readAt: null } },
+    transitions: [{ from: "generating", to: "needs_attention", at: each.created_at, reason: each.has_body ? `rules:${((each.rule_failures ?? []) as Row[]).map((failure) => failure.rule).join(",")}` : "step_failed:pack" }],
     ...each,
-    ...{ site_id: "s-dogfood", opportunity_id: "o-dogfood", body_md: each.has_body ? "(not exported)" : null, grounded_fact: { passage: "p", url: "https://reachkit.app/", readAt: null } },
-    transitions: [{ from: "generating", to: "needs_attention", at: each.created_at, reason: each.has_body ? `rules:${(each.rule_failures ?? []).map((failure) => failure.rule).join(",")}` : "step_failed:pack" }],
   })) as unknown as DraftRow[];
   const at = (id: string) => rows.find((each) => each.id.startsWith(id))!;
+  /** The dogfood site as its pack records it; each passage stands for the page it was read off word for word. */
+  const dogfood = ({ meta, grounded_fact }: DraftRow) => {
+    const { pack: p } = meta as { pack: Row & { business: { rivals: string[]; name: string } } };
+    const facts = [grounded_fact as Row, ...(p.facts as Row[])].map((fact) => ({ fact: { ...fact, readAt: new Date(fact.readAt as string) }, sourceText: fact.passage }));
+    return { site: { businessName: p.business.name, domain: "reachkit.app", doNotClaim: [], rivals: p.business.rivals }, facts, opportunity: opportunity({ type: "comparison_page", targetQuery: (p.target as { searches: string[] }).searches[0], pageType: null }), now: new Date("2026-10-31T08:00:00.000Z") } as unknown as RecheckWorld;
+  };
+
+  it.each([
+    ["b03e044f", true, []],
+    ["bf8de9bf", false, [{ rule: "rival_negative" }, { rule: "title", detail: { faults: ["business"] } }]],
+    ["d98284cc", false, [{ rule: "plain_prose", detail: { faults: [{ tell: "repeated_phrase" }] } }]],
+    ["5dcc61c2", false, [{ rule: "required_blocks", detail: { block: "question_headings" } }]],
+    // One attempt: its title is not settled, so the missing specific still stops it.
+    ["f1ec6a58", false, [{ rule: "rival_negative" }, { rule: "required_blocks", detail: { block: "sections" } }, { rule: "title", detail: { faults: ["specific"] } }]],
+  ] as const)("%s, replayed on its own stored body under today's rules: passed %s, failing exactly what it prints, at 0Â¢", async (id, passed, failed) => {
+    arrange(SAAS_HOSTED);
+    expect(await recheckRow(at(id), dogfood(at(id)))).toMatchObject({ kind: "checked", passed, failed, spentCents: 0 });
+  });
 
   it("the five stored titles that carry the business's promise are held, and no other is", async () => {
     arrange(SAAS_HOSTED);
-    const world = { site: { businessName: "ReachKit", domain: "reachkit.app", doNotClaim: [], rivals: [] }, facts: [], opportunity: opportunity(), now: new Date("2026-10-31T08:00:00.000Z") };
-    const held = await Promise.all(rows.map(async (each) => ((await recheckRow(each, world)).kind === "held" ? [each.id.slice(0, 8)] : [])));
+    const held = await Promise.all(rows.map(async (each) => ((await recheckRow(each, dogfood(at("b03e044f")))).kind === "held" ? [each.id.slice(0, 8)] : [])));
     expect(held.flat().sort()).toEqual(["a6d24b00", "a71279ff", "abe42ff7", "b8c28f61", "fba1d84d"]);
   });
 
