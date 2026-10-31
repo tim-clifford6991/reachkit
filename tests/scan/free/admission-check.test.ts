@@ -81,7 +81,7 @@ beforeAll(async () => {
   const mod = await import("../../../src/lib/scan/admission.ts");
   admitFreeScan = mod.admitFreeScan;
   networkKeyOf = mod.networkKeyOf;
-  NETWORK = networkKeyOf("203.0.113.10");
+  NETWORK = networkKeyOf(new Headers({ "x-forwarded-for": "203.0.113.10" }));
 });
 
 type Row = Record<string, unknown>;
@@ -513,38 +513,38 @@ describe(
 
 describe("networkKeyOf · a network key is opaque, salted and stable", () => {
   it("is deterministic and salted: the same address always yields the same key, and the key is not the raw address", () => {
-    const a = networkKeyOf("203.0.113.5");
-    const b = networkKeyOf("203.0.113.5");
+    const a = networkKeyOf(new Headers({ "x-forwarded-for": "203.0.113.5" }));
+    const b = networkKeyOf(new Headers({ "x-forwarded-for": "203.0.113.5" }));
     expect(a).toBe(b);
     expect(a).not.toContain("203.0.113.5");
     expect(a).toBe(createHmac("sha256", IP_HASH_SALT).update("203.0.113.5").digest("hex"));
   });
 
   it("takes only the first entry of a multi-hop x-forwarded-for header", () => {
-    const first = networkKeyOf("203.0.113.5, 70.41.3.18, 150.172.238.178");
-    const direct = networkKeyOf("203.0.113.5");
+    const first = networkKeyOf(new Headers({ "x-forwarded-for": "203.0.113.5, 70.41.3.18, 150.172.238.178" }));
+    const direct = networkKeyOf(new Headers({ "x-forwarded-for": "203.0.113.5" }));
     expect(first).toBe(direct);
   });
 
   it("truncates an IPv6 address to its /64 prefix before hashing: two addresses in the same /64 collide", () => {
-    const a = networkKeyOf("2001:db8:abcd:0012:0000:0000:0000:0001");
-    const b = networkKeyOf("2001:db8:abcd:0012:ffff:ffff:ffff:ffff");
-    const differentPrefix = networkKeyOf("2001:db8:abcd:0013:0000:0000:0000:0001");
+    const a = networkKeyOf(new Headers({ "x-forwarded-for": "2001:db8:abcd:0012:0000:0000:0000:0001" }));
+    const b = networkKeyOf(new Headers({ "x-forwarded-for": "2001:db8:abcd:0012:ffff:ffff:ffff:ffff" }));
+    const differentPrefix = networkKeyOf(new Headers({ "x-forwarded-for": "2001:db8:abcd:0013:0000:0000:0000:0001" }));
     expect(a).toBe(b);
     expect(a).not.toBe(differentPrefix);
   });
 
   it("a null header yields a stable key and never throws", () => {
-    expect(() => networkKeyOf(null)).not.toThrow();
-    const a = networkKeyOf(null);
-    const b = networkKeyOf(null);
+    expect(() => networkKeyOf(new Headers())).not.toThrow();
+    const a = networkKeyOf(new Headers());
+    const b = networkKeyOf(new Headers());
     expect(a).toBe(b);
   });
 
   it("an unparseable header yields the same stable 'unknown' key as null, and never throws", () => {
-    expect(() => networkKeyOf("not-an-address")).not.toThrow();
-    const garbage = networkKeyOf("not-an-address");
-    const nullKey = networkKeyOf(null);
+    expect(() => networkKeyOf(new Headers({ "x-forwarded-for": "not-an-address" }))).not.toThrow();
+    const garbage = networkKeyOf(new Headers({ "x-forwarded-for": "not-an-address" }));
+    const nullKey = networkKeyOf(new Headers());
     expect(garbage).toBe(nullKey);
   });
 });

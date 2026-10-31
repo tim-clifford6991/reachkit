@@ -506,11 +506,10 @@ function countBlogRead(
   const read = blogReadOf(req);
   if (read === null) return;
 
-  const ip = req.headers.get("x-real-ip") ?? req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null;
   const write = (async (): Promise<void> => {
     if (read.kind === "crawl") {
-      const { crawlerVerdict } = await import("@/lib/publish/reads/crawler");
-      const verdict = await crawlerVerdict(read.engine, ip);
+      const [{ clientAddressOf }, { crawlerVerdict }] = await Promise.all([import("@/lib/scan/admission"), import("@/lib/publish/reads/crawler")]);
+      const verdict = await crawlerVerdict(read.engine, clientAddressOf(req.headers));
       if (verdict !== "verified") {
         blogReadSkipped(verdict);
         return;

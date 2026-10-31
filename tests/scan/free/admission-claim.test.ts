@@ -115,7 +115,7 @@ beforeAll(async () => {
   const mod = await import("../../../src/lib/scan/admission.ts");
   claimFreeScanSlot = mod.claimFreeScanSlot;
   networkKeyOf = mod.networkKeyOf;
-  NETWORK = networkKeyOf("203.0.113.10");
+  NETWORK = networkKeyOf(new Headers({ "x-forwarded-for": "203.0.113.10" }));
 });
 
 // ── The mocked-client harness (admission-check.test.ts's own, extended
@@ -447,7 +447,7 @@ describe("REQ-003 c7 — two simultaneous claims resolve to one scan (live subst
   it.each([2, 20])(
     "admission/claim · %i simultaneous claims for one network resolve to exactly one scan",
     async (n) => {
-      const network = liveNetworkKeyOf(`203.0.113.${90 + n}`);
+      const network = liveNetworkKeyOf(new Headers({ "x-forwarded-for": `203.0.113.${90 + n}` }));
       const domain = `concurrency-${n}.example.com` as CanonicalDomain;
 
       const results = await Promise.all(
