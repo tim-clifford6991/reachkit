@@ -181,7 +181,7 @@ export function withoutSerials(text: string, language: Language = "en"): string 
 
 /** Each figure with what may be its unit: a mark glued to it, or the words after it up to a stop. */
 const unitsOf = (text: string): Array<{ figure: string; units: string[] }> =>
-  [...text.matchAll(/(?<![\p{L}\d.,])(\d[\d,]*(?:\.\d+)?)([^\s\d.,;:!?)]*)((?:[^\S\n]+\p{L}+){0,3})/gu)].map(([, figure, glued, after]) => ({
+  [...text.matchAll(/(?<![\p{L}\d.,])(\d(?:[\d,]*\d)?(?:\.\d+)?)([^\s\d.,;:!?)]*)((?:[^\S\n]+\p{L}+){0,3})/gu)].map(([, figure, glued, after]) => ({
     figure: numeralsOf(figure!)[0]?.normalised ?? figure!,
     units: glued ? [glued.toLowerCase()] : after!.toLowerCase().split(/\s+/).filter(Boolean),
   }));
@@ -191,11 +191,13 @@ function hasSpecific(title: string, a: TitleRuleInputs): boolean {
   const held = new Map<string, Set<string>>();
   for (const { figure, units } of unitsOf(withoutSerials(a.holds, language))) held.set(figure, (held.get(figure) ?? new Set()).add(units[0] ?? ""));
   // A held figure counts with its own unit ("7 pages" is not "7 major"); a bare one, a count, holds any.
-  const stated = unitsOf(withoutSerials(title, language).replace(YEAR_RE, "")).some(({ figure, units }) => {
+  const holds = ({ figure, units }: { figure: string; units: string[] }) => {
     const unit = held.get(figure);
     return unit !== undefined && (units.length === 0 || unit.has("") || units.some((word) => unit.has(word)));
-  });
-  if (stated) return true;
+  };
+  const stated = unitsOf(withoutSerials(title, language).replace(YEAR_RE, ""));
+  // One held figure does not carry another the pack never states.
+  if (stated.length > 0) return stated.every(holds);
   const free = wordsPattern(languagePack(language).title.free, false);
   if (free.test(title) && free.test(a.holds)) return true;
   return addedNames(a, [...TITLE.engines, ...a.rivals, ...a.places]).some((name) => names(title, name));

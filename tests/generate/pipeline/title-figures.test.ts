@@ -27,6 +27,12 @@ describe("the stored dogfood drafts that chose a promise title", () => {
 
   it("on the Q&A page, a title whose figure is the promise has no specific, though a rival claims 7 engines", () => {
     const row = draft("qa");
+    // A rival's "9 Answer Engines" is held; the promise beside it is not. Every candidate the
+    // writer proposed carries the promise, so the pick faults and goes to the fix call.
+    expect(titleFaults(row.title, ruleOf(row))).toContain("specific");
+    expect(row.titles.every((each) => PROMISE.test(each.title))).toBe(true);
+    const picked = pickTitle(row.titles.map((each) => each.title), ruleOf(row));
+    expect(picked.candidates.find((each) => each.title === picked.chosen)?.faults).toContain("specific");
     expect(row.pack.claims.map((claim) => claim.passage)).toContain("Tracks all 7 major AI search engines.");
     for (const title of ["AI search visibility tool: up to 7 pages a week", "Ai search tracking app: up to 7 pages a week live"]) {
       expect(titleFaults(title, ruleOf(row))).toContain("specific");
