@@ -586,10 +586,11 @@ themselves. It asks no model, and the network is refused while each scan is scor
 exported, and no change is typed back through the connector.
 
 **Nobody asks for it (issue 1481).** The build stamps the deployment with its derivation
-(`RK_DERIVATION`, from `scripts/derivation.mjs`: a fingerprint of the files under `src/lib` the
-re-score reaches by its static value imports, the ones it runs to score a scan. A type-only import
-and a lazy `import()` are not followed, so the vendor transport is not among them; `node scripts/derivation.mjs --files`
-lists them, and `src/lib/config/constants.ts` is among them). Each run reads every stored report
+(`RK_DERIVATION`, from `scripts/derivation.mjs`: a fingerprint of the declarations under `src/lib`
+the re-score executes to score a scan, followed name by name through imports and barrels, without
+comments or layout. Types and a lazy `import()` are not followed, so the vendor transport, the copy
+registry and the constants it never reads are not among them; `node scripts/derivation.mjs --files`
+lists the files it reads from). Each run reads every stored report
 once, and per domain only the home reads those reports are scored with. Production's tick,
 every 15 minutes, finds no run at the deployed derivation and asks a dry run itself
 (`auto = true`). A dry run that moves nothing settles it. Where the dry run's guard holds

@@ -380,9 +380,9 @@ function slotKey(key: string): string {
 }
 
 /** A meta description over its most keeps the whole sentences that fit,
- *  where that leaves it long enough (D51). Nothing is cut mid-sentence: a
- *  description still outside its range is the `title` check's to stop. */
-function fitDescription(text: string): string {
+ *  where that leaves it long enough, and is otherwise cut at its last word
+ *  that fits; no word is added, and its length never stops a page (R-A). */
+export function fitDescription(text: string): string {
   const { min, max } = TITLE.description;
   if ([...text].length <= max) return text;
   const sentences = text.split(SENTENCE_END_RE);
@@ -392,7 +392,10 @@ function fitDescription(text: string): string {
     if ([...next].length > max) break;
     kept = next;
   }
-  return [...kept].length >= min ? kept : text;
+  if ([...kept].length >= min) return kept;
+  const head = [...text].slice(0, max + 1).join("");
+  const cut = head.search(/\s\S*$/);
+  return cut > 0 ? head.slice(0, cut).replace(/[\s,;:–—-]+$/u, "") : text;
 }
 
 /** The heading of the sources list code writes, in each language. */
