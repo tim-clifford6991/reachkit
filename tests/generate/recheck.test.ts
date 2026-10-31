@@ -146,12 +146,13 @@ describe("OR4: a promise-figure title never enters review", () => {
     ["fba1d84d", "What is AEO? Answer engine optimization in one page", true],
     // Its stored title carries the business's own "€49 a month"; the one clean candidate still fails its wording.
     ["b8c28f61", "Answer engine optimization vs generative engine optimization (2026)", false],
-    // #2134's classifier finds "12" in no promise of the business's, and "25" in its "about 25 questions".
-    ["a71279ff", "Profound answer engine optimization: 12 Google searches weekly", true],
+    // "12" is in no promise, but it is the business's figure beside a rival's name: the settled title still stops.
+    ["a71279ff", "Profound answer engine optimization: 12 Google searches weekly", false],
   ] as const)("re-pick never takes a promise-figure title: %s takes %j, its H1 follows, the stored title is kept, at 0¢", async (id, title, passed) => {
     arrange(SAAS_HOSTED);
     const outcome = await checked(id);
     expect(outcome).toMatchObject({ passed, spentCents: 0, patch: { title }, meta: { recheck: { titleBefore: at(id).title, title } } });
+    if (id === "a71279ff") expect(outcome.failed).toEqual([{ rule: "title", detail: { rule: "title", faults: ["specific", "figure_owner"] } }]);
     expect(promiseFigures(title, (at(id).meta as { pack: ContextPack }).pack)).toEqual([]);
     expect(outcome.meta).not.toHaveProperty("heading");
     expect((at(id).meta as { titles: Row[] }).titles.map((each) => each.title)).toContain(title);
