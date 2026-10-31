@@ -110,7 +110,7 @@ describe("who gets your buyers, and its two panels", () => {
   const lines = shown(FIXTURE_REPORT);
 
   it("the section is its heading and the two panels: the headline above already said who leads", () => {
-    expect(buyersOf(ai, presence)).toEqual({ holder: "rival-one.example.net", ai: 3, google: 1, out: 21 });
+    expect(buyersOf(ai, presence, FIXTURE_REPORT.serps)).toEqual({ holder: "rival-one.example.net", ai: 3, google: 1, out: 21 });
     const i = at(lines, copy("report.buyers.title"));
     expect(lines[i + 1]).toBe(copy("ai-answers.title"));
     expect(lines.filter((line) => line === copy("report.top.title", { holder: "rival-one.example.net" }))).toHaveLength(1);
@@ -189,13 +189,13 @@ describe("the states the board does not draw", () => {
   });
 
   it("nobody found and the customer at zero: buyers can't find you yet, before the score", () => {
-    const b = buyersOf(FIXTURE_COLD_START_REPORT.aiAnswers!, FIXTURE_COLD_START_REPORT.presence!);
+    const b = buyersOf(FIXTURE_COLD_START_REPORT.aiAnswers!, FIXTURE_COLD_START_REPORT.presence!, FIXTURE_COLD_START_REPORT.serps);
     expect(b).toMatchObject({ holder: null, ai: 0, google: 0 });
     expectInOrder(shown(FIXTURE_COLD_START_REPORT), [copy("report.top.title.none"), copy("report.top.line", { n: "0", m: String(b.out) }), copy("verdict.score.label")]);
   });
 
   it("a panel not measured: no headline, so no count is summed over the missing half or shown as 0", () => {
-    expect(headlineOf(FIXTURE_DEGRADED_REPORT.aiAnswers, FIXTURE_DEGRADED_REPORT.presence)).toBeNull();
+    expect(headlineOf(FIXTURE_DEGRADED_REPORT.aiAnswers, FIXTURE_DEGRADED_REPORT.presence, FIXTURE_DEGRADED_REPORT.serps)).toBeNull();
     const lines = shown(FIXTURE_DEGRADED_REPORT);
     expect(at(lines, copy("report.buyers.title"))).toBeGreaterThan(-1);
     for (const key of ["report.top.title.none", "report.top.title.you-lead"] as const) expect(at(lines, copy(key))).toBe(-1);
@@ -217,6 +217,57 @@ describe("the states the board does not draw", () => {
   });
 });
 
+describe("who gets your buyers counts searches, each once (wrong-rival F3)", () => {
+  const SEARCHES = ["search one", "search two", "search three", "search four"];
+  const answered = { kind: "answered", citedDomains: [], namesCustomer: false } as const;
+
+  // Synthetic rivals on plain names: a subdomain of example.net would be example.net itself.
+  /** A synthetic market: per rival, the searches (by index) whose top ten, local pack or AI answer it was on. */
+  function market(found: Record<string, { top?: number[]; pack?: number[]; ai?: number[] }>, you = { ai: 0, google: 0 }) {
+    const domains = Object.keys(found);
+    const on = (i: number, where: "top" | "pack") => domains.filter((d) => found[d]![where]?.includes(i)).map((d) => ({ position: 1, domain: `www.${d}`, url: `https://www.${d}/`, title: d }));
+    const section = {
+      ...ai,
+      customerCitations: you.ai,
+      rows: SEARCHES.map((search, i) => ({ ...ai.rows[0]!, question: { ...ai.rows[0]!.question, n: i + 1, search } })),
+      rivals: domains.map((domain) => ({ domain, cells: SEARCHES.map((_, i) => (found[domain]!.ai?.includes(i) ? { ...answered, citedDomains: [domain] } : answered)) })),
+    };
+    const card = {
+      ...presence,
+      you: { ...presence.you, top10Count: you.google },
+      rivals: domains.map((domain) => ({ domain, top10Count: SEARCHES.filter((_, i) => found[domain]!.top?.includes(i) || found[domain]!.pack?.includes(i)).length })),
+    };
+    const serps: StoredReport["serps"] = SEARCHES.map((_, i) => ({
+      kind: "measured",
+      at: new Date("2026-10-31T09:00:00.000Z"),
+      value: { organic: on(i, "top"), localPack: on(i, "pack"), aiOverview: { present: true, asynchronousAiOverview: true, referenceDomains: [] } },
+    }));
+    return [section, card, serps] as const;
+  }
+
+  it("one search in both top ten and AI counts once", () => {
+    const [a, p, serps] = market({ "rival-a.com": { top: [0, 1], ai: [0, 1] }, "rival-b.com": { top: [0, 1], pack: [2] } });
+    expect(buyersOf(a, p, serps).holder).toBe("rival-b.com");
+  });
+
+  it("four rivals on one search each name nobody, and the headline says buyers can't find you", () => {
+    const [a, p, serps] = market({
+      "rival-a.com": { top: [0], ai: [0] },
+      "rival-b.com": { top: [1] },
+      "rival-c.com": { pack: [2] },
+      "rival-d.com": { ai: [3] },
+    });
+    expect(buyersOf(a, p, serps).holder).toBeNull();
+    expect(headlineOf(a, p, serps)?.title).toBe(copy("report.top.title.none"));
+  });
+
+  it("a rival on two searches is named, and only above the customer's own count", () => {
+    const found = { "rival-a.com": { top: [0], ai: [1] }, "rival-b.com": { top: [2] } };
+    expect(buyersOf(...market(found)).holder).toBe("rival-a.com");
+    expect(buyersOf(...market(found, { ai: 1, google: 1 })).holder).toBeNull();
+  });
+});
+
 describe("the customer panel's stored reports, a SaaS and a local business", () => {
   it("the customer found at least as often as every competitor leads, and is never told buyers can't find it", () => {
     for (const [walk, domain, n, m] of [
@@ -224,7 +275,7 @@ describe("the customer panel's stored reports, a SaaS and a local business", () 
       ["2026-10-15", "alexander.co.uk", "5", "9"],
     ] as const) {
       const report = walkReport(walk, domain);
-      expect(buyersOf(report.aiAnswers!, report.presence!).holder, domain).toBeNull();
+      expect(buyersOf(report.aiAnswers!, report.presence!, report.serps).holder, domain).toBeNull();
       const lines = shown(report);
       expectInOrder(lines, [copy("report.top.title.you-lead"), copy("report.top.line", { n, m }), copy("verdict.score.label")]);
       expect(at(lines, copy("report.top.title.none")), domain).toBe(-1);
@@ -234,7 +285,7 @@ describe("the customer panel's stored reports, a SaaS and a local business", () 
   it("draws no headline where both panels measured nothing", () => {
     for (const domain of ["ifleeds.com", "flintplumb.com"]) {
       const report = walkReport("2026-10-15-1441-after", domain);
-      expect(buyersOf(report.aiAnswers!, report.presence!).out, domain).toBe(0);
+      expect(buyersOf(report.aiAnswers!, report.presence!, report.serps).out, domain).toBe(0);
       const html = renderReport(report);
       expect(html, domain).toContain(`id="buyers-h"`);
       expect(html, domain).not.toContain(copy("report.top.title.none"));
@@ -248,14 +299,18 @@ describe("the customer panel's stored reports, a SaaS and a local business", () 
     );
   });
 
-  for (const which of ["saas", "local"] as const) {
+  // The SaaS's leader is on three searches; every local rival is on one, its top ten and AI answer counted once.
+  for (const [which, title] of [
+    ["saas", copy("report.top.title", { holder: "calendly.com" })],
+    ["local", copy("report.top.title.none")],
+  ] as const) {
     it(`${which}: the head, the headline and who gets your buyers draw from what was stored`, () => {
       const report = panelReport(which);
       const lines = shown(report);
       expectInOrder(lines, [
         copy("report.read.as.title"),
         copy("verdict.not-your-market"),
-        copy("report.top.title", { holder: buyersOf(report.aiAnswers!, report.presence!).holder! }),
+        title,
         copy("report.top.offer", { count: String(report.freePage!.totalPages) }),
         copy("verdict.score.label"),
         copy("report.buyers.title"),
