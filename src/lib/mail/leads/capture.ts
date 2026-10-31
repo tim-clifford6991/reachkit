@@ -2,6 +2,8 @@
 // Fails closed (REQ-003 c10), unlike the scan limiter: telling a founder their address was taken when it was not costs them the page.
 // No model, vendor or queue on the visitor's request; the page is written in the job, so the confirmation states only "accepted".
 // Read ADR-041 before adding a suppression check: a suppressed address still gets a new domain's page, via `stoppable: false`.
+import { takeLimits } from "@/lib/limits";
+import type { NetworkKey } from "@/lib/scan/admission";
 import { leadStore } from "./store";
 import { normaliseAddress } from "./suppress";
 
@@ -10,14 +12,23 @@ const ADDRESS_FORM = /^[^\s@]+@[^\s@.]+(\.[^\s@.]+)+$/;
 
 export type CaptureResult =
   | { captured: true; leadId: string }
-  | { captured: false; reason: "invalid-address" | "unavailable" };
+  | { captured: false; reason: "invalid-address" | "unavailable" | "limited" };
 
+/** `network` is the request's hashed client address, never a field the visitor sends. */
 export async function captureLead(a: {
   scanId: string;
   email: string;
+  network: NetworkKey;
 }): Promise<CaptureResult> {
   const email = normaliseAddress(a.email);
   if (!ADDRESS_FORM.test(email)) return { captured: false, reason: "invalid-address" };
+
+  // Counted before the scan read, so an unknown scan id costs the same as a known one and a flood mails nobody.
+  // Postgres reads any case, braces and hyphens of a uuid as one scan, so the cap counts its hex digits alone.
+  const scanKey = a.scanId.toLowerCase().replace(/[^0-9a-f]/g, "");
+  if (!(await takeLimits("lead", { network: a.network, email, scanId: scanKey }))) {
+    return { captured: false, reason: "limited" };
+  }
 
   const store = leadStore();
 
