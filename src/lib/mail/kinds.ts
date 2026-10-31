@@ -23,7 +23,7 @@ export const MAIL_KINDS = Object.freeze({
   "draft-ready": {
     occasionsFrom: "§12",
     stoppable: "toggle",
-    unsuppressibleWhen: "autopilot at a veto window of zero — the mail is the whole of the telling (§4.7)",
+    unsuppressibleWhen: "autopilot with zero time to stop a page — the mail is the whole of the telling (§4.7)",
   },
   published: { occasionsFrom: "§12", stoppable: "toggle" },
   weekly: { occasionsFrom: "§12", stoppable: "toggle" },

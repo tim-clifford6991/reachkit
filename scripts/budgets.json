@@ -4,5 +4,22 @@
     "fileMax": 600,
     "areas": { "src/lib/opportunities": 9000 },
     "tests": { "share": 0.5, "floor": 200 }
+  },
+  "plainWords": {
+    "bands": 0,
+    "calendar": 14,
+    "chrome": 104,
+    "danger": 5,
+    "draft": 25,
+    "laws": 0,
+    "mail": 54,
+    "meta": 18,
+    "offer": 1,
+    "overview": 33,
+    "publish": 13,
+    "report": 68,
+    "settings": 22,
+    "setup": 16,
+    "signin": 5
   }
 }
