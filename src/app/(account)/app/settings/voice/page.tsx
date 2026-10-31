@@ -11,6 +11,8 @@ import type React from "react";
 import type { Metadata } from "next";
 import { copy } from "@/lib/presentation/copy";
 import { readSettings } from "../provider";
+import { readsLanded } from "../model";
+import { landed, Unread } from "../Unread";
 import { VoicePanel } from "../panels/VoicePanel";
 import { readBusinessName } from "./name";
 
@@ -21,11 +23,13 @@ import { readBusinessName } from "./name";
 export const metadata: Metadata = { title: copy("meta.app.settings.voice.title") };
 
 export default async function SettingsVoiceTab(): Promise<React.JSX.Element> {
-  const [settings, business] = await Promise.all([readSettings(), readBusinessName()]);
+  // The examples read as unnamed where the name did not load, as they do where none is stored.
+  const [all, business] = await Promise.all([landed(readSettings(), "settings"), landed(readBusinessName(), "businessName")]);
+  const settings = readsLanded(all, "site", "pages");
 
   return (
     <div className="flex min-w-0 flex-col gap-6" data-testid="settings-tab-panel-voice">
-      <VoicePanel settings={settings} business={business} />
+      {settings === null ? <Unread testId="settings-unread-voice" /> : <VoicePanel settings={settings} business={business} />}
     </div>
   );
 }

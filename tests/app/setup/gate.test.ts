@@ -72,6 +72,7 @@ const GATED_PATHS = ["/app", "/app/calendar", "/app/draft/abc", "/api/report/x"]
 /** REQ-025 c5's exception, as concrete paths. */
 const WAY_OUT = [
   "/app/settings",
+  "/app/settings/billing",
   "/api/settings",
   "/api/export",
   "/api/account/session",

@@ -9,6 +9,8 @@ import type React from "react";
 import type { Metadata } from "next";
 import { copy } from "@/lib/presentation/copy";
 import { readSettings } from "../provider";
+import { readsLanded } from "../model";
+import { landed, Unread } from "../Unread";
 import { MarketPanel } from "../panels/MarketPanel";
 import { CompetitorsPanel } from "../panels/CompetitorsPanel";
 import { marketFigures } from "../market-figures";
@@ -25,13 +27,25 @@ import { AlsoServesNote } from "@/app/_business/WhatWeRead";
 export const metadata: Metadata = { title: copy("meta.app.settings.market.title") };
 
 export default async function SettingsMarketTab(): Promise<React.JSX.Element> {
-  const [settings, understanding, rivals, overview] = await Promise.all([
-    readSettings(),
-    readUnderstanding(),
-    readRivals(),
-    readOverview(),
+  const [all, understanding, rivals, overview] = await Promise.all([
+    landed(readSettings(), "settings"),
+    landed(readUnderstanding(), "understanding"),
+    landed(readRivals(), "rivals"),
+    landed(readOverview(), "overview"),
   ]);
-  const reputation = await readPromptsAt(overview.months?.reading?.week ?? null);
+  const settings = readsLanded(all, "answers", "measured");
+  // The month's questions are read at the overview's week, so they wait on it.
+  const reputation = overview === null ? null : await landed(readPromptsAt(overview.months?.reading?.week ?? null), "reputation");
+  // Both cards state the measured sets, so a set that did not load leaves both on their error line.
+  if (settings === null || rivals === null || overview === null || reputation === null) {
+    return (
+      <div className="flex min-w-0 flex-col gap-6" data-testid="settings-tab-panel-market">
+        <Unread testId="settings-unread-market" />
+        {understanding === null ? null : <AlsoServesNote n={understanding.where.alsoServes} />}
+        <Unread testId="settings-unread-competitors" />
+      </div>
+    );
+  }
   const timeZone = settings.publishing.timeZone;
   const searches = rivals.firstPage.of === 0 ? null : rivals.firstPage.of;
   const questions = reputation.kind === "measured" ? aiSearchesOf(reputation.prompts).asked.length : null;
@@ -46,7 +60,7 @@ export default async function SettingsMarketTab(): Promise<React.JSX.Element> {
         timeZone={timeZone}
         sets={{ searches, questions, competitors: settings.competitors.length }}
       />
-      <AlsoServesNote n={understanding.where.alsoServes} />
+      {understanding === null ? null : <AlsoServesNote n={understanding.where.alsoServes} />}
       <CompetitorsPanel
         competitors={settings.competitors}
         concluded={settings.concluded}
