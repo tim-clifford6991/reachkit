@@ -1,9 +1,10 @@
 // Issue 1458 — the two free tools read one page and report what a search
 // engine and a share card would see. A recorded page, never the network.
 import "../../generate/env";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { onPageChecks } from "@/app/(public)/tools/_check/checks";
-import { pageAddress, pageTags, takeCheck } from "@/app/(public)/tools/_check/read";
+import { pageAddress, pageTags, readPage } from "@/app/(public)/tools/_check/read";
+import { ReadProblem } from "@/app/(public)/tools/_check/ToolForm";
 import { copy } from "@/lib/presentation/copy";
 
 const PAGE = `<!doctype html><html lang="en"><head>
@@ -81,11 +82,18 @@ describe("business details for Google: only a label that says who runs the site"
 });
 
 describe("the hourly brake", () => {
-  it("stops one network after thirty checks in an hour, and lets it go after", () => {
-    const at = 1_000_000;
-    for (let i = 0; i < 30; i++) expect(takeCheck(new Headers({ "x-forwarded-for": "203.0.113.9" }), at + i)).toBe(true);
-    expect(takeCheck(new Headers({ "x-forwarded-for": "203.0.113.9" }), at + 31)).toBe(false);
-    expect(takeCheck(new Headers({ "x-forwarded-for": "198.51.100.4" }), at + 31)).toBe(true);
-    expect(takeCheck(new Headers({ "x-forwarded-for": "203.0.113.9" }), at + 60 * 60 * 1000 + 31)).toBe(true);
+  afterEach(() => vi.unstubAllGlobals());
+
+  it("a check the shared limiter refuses shows the hourly-limit line and reads no page", async () => {
+    const asked: string[] = [];
+    vi.stubGlobal("fetch", (input: RequestInfo | URL) => {
+      asked.push(String(input));
+      return Promise.resolve(new Response("false", { status: 200, headers: { "content-type": "application/json" } }));
+    });
+    const read = await readPage("shop.example.com/service", new Headers({ "x-forwarded-for": "203.0.113.9" }));
+    expect(read).toEqual({ ok: false, problem: "limit" });
+    expect(asked).toEqual(["https://fixture.supabase.co/rest/v1/rpc/take_rate_limits"]);
+    if (read.ok) return;
+    expect(ReadProblem({ read }).props.children).toBe(copy("tools.problem.limit"));
   });
 });
