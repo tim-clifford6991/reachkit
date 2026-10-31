@@ -38,6 +38,8 @@ beforeAll(async () => {
   limits = await import("@/lib/limits");
   admission = await import("@/lib/scan/admission");
   resetSchema();
+  // Production's default privileges grant every new table to these roles, so the migration's revoke is what is proven.
+  run("alter default privileges in schema public grant all on tables to anon, authenticated, service_role;");
   for (const file of APPLIED) psql(["-v", "ON_ERROR_STOP=1", "-f", path.join(MIGRATIONS, file)]);
   run("NOTIFY pgrst, 'reload schema';");
   execFileSync("sleep", ["0.3"]); // PostgREST's schema-cache reload is async.
@@ -45,7 +47,10 @@ beforeAll(async () => {
 
 beforeEach(() => run("truncate rate_limits;"));
 
-afterAll(() => resetSchema());
+afterAll(() => {
+  resetSchema();
+  run("alter default privileges in schema public revoke all on tables from anon, authenticated, service_role;");
+});
 
 describe("rate_limits — one count every instance shares", () => {
   const headers = new Headers({ "x-forwarded-for": "203.0.113.7" });
@@ -92,7 +97,7 @@ describe("rate_limits — one count every instance shares", () => {
     expect(value("select relrowsecurity from pg_class where relname = 'rate_limits';")).toBe("t");
     expect(value("select count(*) from pg_policies where tablename = 'rate_limits';")).toBe("0");
     for (const role of ["anon", "authenticated"]) {
-      for (const privilege of ["select", "insert", "update", "delete"]) {
+      for (const privilege of ["select", "insert", "update", "delete", "truncate", "references", "trigger"]) {
         expect(value(`select has_table_privilege('${role}', 'rate_limits', '${privilege}');`)).toBe("f");
       }
       expect(value(`select has_function_privilege('${role}', '${SIGNATURE}', 'execute');`)).toBe("f");
