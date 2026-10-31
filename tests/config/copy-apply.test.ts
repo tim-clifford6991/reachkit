@@ -19,6 +19,7 @@ const FILES = {
   "report.conflict": ["One thing", { slots: {}, fixedBy: "x" }],
   "offer.start": ["Order now", { slots: {}, fixedBy: "x" }],
   "report.failed": ["Failed", { slots: {}, fixedBy: "x" }],
+  "report.gone": ["Said twice", { slots: {}, fixedBy: "x" }],
 });
 `,
   "src/lib/presentation/copy/keys/chrome.ts": `export const CHROME_COPY = Object.freeze({
@@ -40,6 +41,7 @@ const rows = [
   { key: "report.conflict", current: "One thing", proposed: "A thing" },
   { key: "chrome.other", current: "Other lane", proposed: "Another lane" },
   { key: "report.failed", current: "Failed", proposed: "Did not finish" },
+  { key: "report.gone", current: "Said twice", proposed: "(delete)" },
 ];
 const second = {
   keys: [{ key: "report.conflict", current: "One thing", proposed: "The thing" }],
@@ -71,15 +73,25 @@ describe("scripts/copy/apply.mjs", () => {
       "offer.start": "exempt or locked",
       "report.conflict": "conflict: another proposal differs",
       "chrome.other": "chrome.ts is not lane L2",
+      "report.gone": "delete: a hand edit (key and its call sites)",
       "report.cut": "cut: a hand edit",
       "src/app/x.tsx": "jsx: a hand edit",
     });
     const keys = read("src/lib/presentation/copy/keys/report.ts");
-    for (const kept of ['"Old words"', '"Hi {name}"', '"One thing"', '"Order now"']) expect(keys).toContain(kept);
+    for (const kept of ['"Old words"', '"Hi {name}"', '"One thing"', '"Order now"', '"report.gone": ["Said twice"']) expect(keys).toContain(kept);
+  });
+
+  it("never writes a delete sentinel as text, and lists it as manual", () => {
+    for (const proposed of ["(delete)", "(Cut)", "(remove)", "(drop)", "DELETE", "", "  "]) {
+      const dry = apply({ root, lane: "L2", inputs: [{ name: "d.json", json: [{ key: "report.gone", current: "Said twice", proposed }] }], write: false });
+      expect(dry.applied, JSON.stringify(proposed)).toEqual([]);
+      expect(dry.manual).toEqual([{ what: "report.gone", why: "delete: a hand edit (key and its call sites)", source: "d.json" }]);
+      expect(dry.written).toEqual([]);
+    }
   });
 
   it("lists every cut and jsx entry as manual and applies none", () => {
-    expect(result.manual.filter((m) => /hand edit/.test(m.why))).toEqual([
+    expect(result.manual.filter((m) => /^(cut|jsx):/.test(m.why))).toEqual([
       { what: "report.cut", why: "cut: a hand edit" },
       { what: "src/app/x.tsx", why: "jsx: a hand edit" },
     ]);
