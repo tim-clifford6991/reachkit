@@ -76,7 +76,7 @@ export const SETTINGS_COPY = Object.freeze({
   "settings.answer.refused": ["That didn’t save. Nothing changed.", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
   /** Issue 1196: a press whose request never came back — the network or the
    *  server failed, not a refusal. Drafted; the owner may correct it. */
-  "settings.answer.could-not-ask": ["We couldn’t reach ReachKit just now. Nothing changed. Try again in a moment.", { slots: {}, fixedBy: "issue 1196" }],
+  "settings.answer.could-not-ask": ["We couldn’t reach ReachKit, so nothing changed. Try again.", { slots: {}, fixedBy: "issue 1196" }],
   // The canvas's own badge on a settings card (R4-11), shown where the
   // last change on that card was stored. It is the quiet half of the same
   // answer the toast speaks — a customer who looked away still sees that
@@ -166,7 +166,7 @@ export const SETTINGS_COPY = Object.freeze({
     { slots: {}, fixedBy: "SPEC §7 2026-09-20" },
   ],
   "settings.business.claimsToAvoid": [
-    "Claims we won’t make",
+    "Never say",
     { slots: {}, fixedBy: "SPEC §7 2026-09-20" },
   ],
   "settings.business.tone": ["Tone", { slots: {}, fixedBy: "SPEC §7 2026-09-20" }],
@@ -361,13 +361,13 @@ export const SETTINGS_COPY = Object.freeze({
   // date a change being typed *would* take effect, before it is saved; c6
   // states the date a saved change takes effect, until the pass adopts it.
   "settings.market.pending": [
-    "A new {change} takes effect on {date}. Until then no new page is written, and earlier measurements are kept apart, not carried across.",
+    "Your new {change} starts on {date}. No new page is written until then.",
     { slots: { date: "date", change: "text" }, fixedBy: "REQ-071 c1" },
   ],
   // Issue 837 (owner ruling 2026-09-17): a saved category measures the
   // market again right away. Drafted under issue 759's ruling.
   "settings.market.remeasuring": [
-    "Saved. We’re scanning your market again now.",
+    "Saved. We’re checking your market again now.",
     { slots: {}, fixedBy: "issue 837" },
   ],
   // Issue 866 (owner decision 2026-09-17): a category is measured again at
@@ -376,15 +376,15 @@ export const SETTINGS_COPY = Object.freeze({
   // press, in place of REQ-071 c1's dated line, which stays the domain's),
   // what an unchanged save did, and a saved category no pass has adopted yet.
   "settings.market.category.starts-now": [
-    "Saving a different market scans it again right away. It uses one of the few scans allowed each day.",
+    "Saving a new market starts a new check right away.",
     { slots: {}, fixedBy: "issue 866" },
   ],
   "settings.market.category.unchanged": [
-    "Saved. That’s the market we already measure, so nothing was scanned again.",
+    "Saved. That’s your current market, so nothing changed.",
     { slots: {}, fixedBy: "issue 866" },
   ],
   "settings.market.category.cleared": [
-    "Saved. With no market of your own we go back to the one read from your site, and nothing was scanned again.",
+    "Saved. We’ll use the market we read from your site.",
     { slots: {}, fixedBy: "issue 866" },
   ],
   "settings.market.category.not-measured-yet": [
@@ -406,32 +406,32 @@ export const SETTINGS_COPY = Object.freeze({
     { slots: {}, fixedBy: "issue 866" },
   ],
   "settings.market.effectiveOn": [
-    "Saved. Takes effect with the scan on {date}.",
+    "Saved. Takes effect with the check on {date}.",
     { slots: { date: "date" }, fixedBy: "REQ-071 c6" },
   ],
   // The word each change kind is named by. One key per kind, because
   // `{change}` is a **sentence fragment the owner writes** and never the
   // engine's own `ChangeKind` handle: "domain" and "category" are internal
   // names, and REQ-071's line reads them out to a customer.
-  "settings.market.change.domain": ["domain", { slots: {}, fixedBy: "REQ-071 c1" }],
+  "settings.market.change.domain": ["website", { slots: {}, fixedBy: "REQ-071 c1" }],
   "settings.market.change.category": ["market", { slots: {}, fixedBy: "REQ-071 c1" }],
   // The one way a market save is refused (issue #231). `saveDomain` answers
   // `unreachable` for a value that is not a registrable domain and for one
   // that does not resolve — one refusal, because the customer's remedy is
   // the same either way and REQ-071 c9 names one. A category save has no
   // refusal: any non-empty string is a market somebody could be measured in.
-  "settings.market.refused.unreachable": ["We can’t reach that domain, so it wasn’t saved. Check the spelling.", { slots: {}, fixedBy: "REQ-071 c9" }],
+  "settings.market.refused.unreachable": ["We can’t reach that website, so it wasn’t saved. Check the spelling.", { slots: {}, fixedBy: "REQ-071 c9" }],
   // D66 after setup (issue 1692). Drafted (#759).
   "settings.locale.note": [
-    "Changing it starts a new scan. Earlier results stay, marked with the date.",
+    "Changing it starts a new check. Older results stay, with their dates.",
     { slots: {}, fixedBy: "SPEC §6 · D66 · issue 1692" },
   ],
   "settings.locale.unchanged": [
-    "That’s the country and language we already measure, so nothing was scanned again.",
+    "That’s your current country and language, so nothing changed.",
     { slots: {}, fixedBy: "SPEC §6 · D66 · issue 1692" },
   ],
   "settings.locale.refused": [
-    "We don’t measure that country in that language, so it wasn’t saved.",
+    "We don’t cover that country in that language, so it wasn’t saved.",
     { slots: {}, fixedBy: "SPEC §6 · D66 · issue 1692" },
   ],
 
@@ -476,8 +476,8 @@ export const SETTINGS_COPY = Object.freeze({
   "settings.competitors.google": ["On Google’s first page", { slots: {}, fixedBy: "issue 1974 · board SettingsMarket" }],
   "settings.competitors.ai": ["Mentioned in AI answers", { slots: {}, fixedBy: "issue 1974 · board SettingsMarket" }],
   "settings.competitors.figure": ["{n} of {of}", { slots: { n: "text", of: "text" }, fixedBy: "issue 1974 · board SettingsMarket" }],
-  "settings.competitors.not-measured": ["not measured", { slots: {}, fixedBy: "REQ-004 · issue 1974" }],
-  "settings.competitors.measured-from": ["Measured from {date}.", { slots: { date: "date" }, fixedBy: "REQ-071 c6 · board SettingsMarket" }],
+  "settings.competitors.not-measured": ["not checked yet", { slots: {}, fixedBy: "REQ-004 · issue 1974" }],
+  "settings.competitors.measured-from": ["Checked from {date}.", { slots: { date: "date" }, fixedBy: "REQ-071 c6 · board SettingsMarket" }],
   "settings.competitors.remove": ["Remove", { slots: {}, fixedBy: "issue 1974 · board SettingsMarket" }],
   "settings.competitors.you": ["You, for comparison", { slots: {}, fixedBy: "issue 1974 · board SettingsMarket" }],
   "settings.competitors.you.ai": [
@@ -511,10 +511,10 @@ export const SETTINGS_COPY = Object.freeze({
   // would put setup's voice on Settings. The map over them is total, so a
   // sixth refusal in the engine is a compile error rather than a refusal
   // that says nothing.
-  "settings.competitors.refused.not-a-domain": ["Enter a competitor’s domain, like competitor.com.", { slots: {}, fixedBy: "REQ-071 c4" }],
-  "settings.competitors.refused.does-not-resolve": ["That domain doesn’t resolve, so it can’t be added. Check the spelling.", { slots: {}, fixedBy: "REQ-071 c4" }],
-  "settings.competitors.refused.own-domain": ["That’s your own domain. Competitors are other sites.", { slots: {}, fixedBy: "REQ-071 c4" }],
-  "settings.competitors.refused.already-present": ["That domain is already one of your competitors.", { slots: {}, fixedBy: "REQ-071 c4" }],
+  "settings.competitors.refused.not-a-domain": ["Enter a web address, like competitor.com.", { slots: {}, fixedBy: "REQ-071 c4" }],
+  "settings.competitors.refused.does-not-resolve": ["We can’t find a website at that address. Check the spelling.", { slots: {}, fixedBy: "REQ-071 c4" }],
+  "settings.competitors.refused.own-domain": ["That’s your own website.", { slots: {}, fixedBy: "REQ-071 c4" }],
+  "settings.competitors.refused.already-present": ["That site is already on your list.", { slots: {}, fixedBy: "REQ-071 c4" }],
   "settings.competitors.refused.set-full": ["Your list is full. Remove a competitor before adding another.", { slots: {}, fixedBy: "REQ-071 c4" }],
 
   // ── Publishing ─────────────────────────────────────────────────────────
@@ -589,11 +589,11 @@ export const SETTINGS_COPY = Object.freeze({
   // Three keys, one per pair, and a fourth pair is a type error. The
   // sentences are the owner's.
   "settings.publishing.pair.autopilotWindow": [
-    "A draft you don’t touch publishes at the first publish time after your time to stop it runs out.",
+    "A page you leave alone goes live by itself. It goes at the first publish time after its time to stop.",
     { slots: {}, fixedBy: "SPEC §7 2026-09-20" },
   ],
   "settings.publishing.pair.autopilotZero": [
-    "With no time to stop a page, a draft you don’t touch publishes at your next publish time.",
+    "With no time to stop, a page goes live at your next publish time.",
     { slots: {}, fixedBy: "SPEC §7 2026-09-20" },
   ],
 
@@ -649,7 +649,7 @@ export const SETTINGS_COPY = Object.freeze({
     "Connect a different account",
     { slots: {}, fixedBy: "ADR-086 · REQ-060 c7" },
   ],
-  "settings.publishing.set-dns": ["Set up the DNS record", { slots: {}, fixedBy: "BUILD §9 · REQ-059 c2" }],
+  "settings.publishing.set-dns": ["Connect your website", { slots: {}, fixedBy: "BUILD §9 · REQ-059 c2" }],
 
   // ── The customer's own subdomain (SPEC §5, ruling of 2026-09-12) ───────
   //
@@ -668,7 +668,7 @@ export const SETTINGS_COPY = Object.freeze({
     { slots: {}, fixedBy: "SPEC §5 · §12 ruling 7 (2026-09-12)" },
   ],
   "settings.destination.hostname.waiting": [
-    "waiting for DNS",
+    "waiting for the setting",
     { slots: {}, fixedBy: "SPEC §5 · §12 ruling 7 (2026-09-12)" },
   ],
 
@@ -681,7 +681,7 @@ export const SETTINGS_COPY = Object.freeze({
   // may. Drafted and shipped under the owner ruling of 2026-09-16 (#759).
   "settings.destination.check.button": ["Check connection", { slots: {}, fixedBy: "SPEC §5 (2026-09-16, issue 757)" }],
   "settings.destination.check.live": ["Connected. Your pages will publish to this address.", { slots: {}, fixedBy: "SPEC §5 (2026-09-16, issue 757)" }],
-  "settings.destination.check.pending-dns": ["Not connected yet. A new DNS record usually takes a few minutes, sometimes a few hours. Check again shortly.", { slots: {}, fixedBy: "SPEC §5 (2026-09-16, issue 757)" }],
+  "settings.destination.check.pending-dns": ["Not connected yet. New settings can take a few hours, and we check every hour.", { slots: {}, fixedBy: "SPEC §5 (2026-09-16, issue 757)" }],
   "settings.destination.check.could-not-ask": ["We couldn’t check just now. Try again in a moment.", { slots: {}, fixedBy: "SPEC §5 (2026-09-16, issue 757)" }],
   // A deployment with no verification bound: pressing again changes nothing,
   // so this line never says to try again, and it is ReachKit's to fix, not
@@ -689,19 +689,19 @@ export const SETTINGS_COPY = Object.freeze({
   // line only, under the public DNS answer, and says what that answer
   // confirmed: `not-configured` where the record points here,
   // `not-configured.unconfirmed` where it does not, or could not be read.
-  "settings.destination.check.not-configured": ["Your record is in place. The last step, ReachKit confirming the secure connection, is on our side. There’s nothing more for you to do.", { slots: {}, fixedBy: "SPEC §5 (2026-09-17, issues 840, 856)" }],
-  "settings.destination.check.not-configured.unconfirmed": ["The last step, ReachKit confirming the secure connection, is on our side. Once your record points at the right place, there’s nothing more for you to do.", { slots: {}, fixedBy: "SPEC §5 (2026-09-17, issue 856)" }],
+  "settings.destination.check.not-configured": ["Your setting is in place. We finish the secure connection, with nothing more for you to do.", { slots: {}, fixedBy: "SPEC §5 (2026-09-17, issues 840, 856)" }],
+  "settings.destination.check.not-configured.unconfirmed": ["Once your setting points to the right place, we finish the rest.", { slots: {}, fixedBy: "SPEC §5 (2026-09-17, issue 856)" }],
   // The press's first step (issue 856): what public DNS says about the
   // record, before any vendor is asked. `{target}` is where the record
   // points instead — a host name, or an address where a proxy answers.
   "settings.destination.check.dns.points-here": ["Record found, pointing at the right place.", { slots: {}, fixedBy: "SPEC §5 (2026-09-17, issue 856)" }],
-  "settings.destination.check.dns.points-elsewhere": ["Record found, pointing elsewhere: {target}. Change it to the target shown above.", { slots: { target: "text" }, fixedBy: "SPEC §5 (2026-09-17, issue 856)" }],
-  "settings.destination.check.dns.not-yet": ["No record yet. DNS changes can take a few minutes. Check again shortly.", { slots: {}, fixedBy: "SPEC §5 (2026-09-17, issue 856)" }],
-  "settings.destination.check.dns.unknown": ["We couldn’t look up your record in public DNS just now.", { slots: {}, fixedBy: "SPEC §5 (2026-09-17, issue 856)" }],
+  "settings.destination.check.dns.points-elsewhere": ["Your setting points to {target}. Change it to the value shown above.", { slots: { target: "text" }, fixedBy: "SPEC §5 (2026-09-17, issue 856)" }],
+  "settings.destination.check.dns.not-yet": ["No setting found yet. It can take a few hours.", { slots: {}, fixedBy: "SPEC §5 (2026-09-17, issue 856)" }],
+  "settings.destination.check.dns.unknown": ["We couldn’t check your setting. Try again soon.", { slots: {}, fixedBy: "SPEC §5 (2026-09-17, issue 856)" }],
   /** `seconds` is how long until the press may ask again, as a whole
    *  number, counting down on screen. The registry does not pluralise, so
    *  the number stands after a colon (issue 840). */
-  "settings.destination.check.too-soon": ["Just checked. Seconds until you can check again: {seconds}", { slots: { seconds: "text" }, fixedBy: "SPEC §5 (2026-09-17, issue 840)" }],
+  "settings.destination.check.too-soon": ["Checked a moment ago. You can check again in {seconds} seconds.", { slots: { seconds: "text" }, fixedBy: "SPEC §5 (2026-09-17, issue 840)" }],
 
   // ── Notifications ──────────────────────────────────────────────────────
   // One key per `stoppable: 'toggle'` row of `MAIL_KINDS`, named by the row's
@@ -794,7 +794,7 @@ export const SETTINGS_COPY = Object.freeze({
   ],
   "settings.billing.try-again": ["Try again in a moment.", { slots: {}, fixedBy: "REQ-097 c6" }],
   /** Issue 1196: a plan resumed in place. Drafted; the owner may correct it. */
-  "settings.billing.resumed": ["Your plan is running again.", { slots: {}, fixedBy: "issue 1196" }],
+  "settings.billing.resumed": ["Your subscription is running again.", { slots: {}, fixedBy: "issue 1196" }],
   "settings.billing.reach-a-person": [
     "Or write to hello@reachkit.app.",
     { slots: {}, fixedBy: "REQ-097 c6" },
@@ -826,17 +826,17 @@ export const SETTINGS_COPY = Object.freeze({
   "settings.month.reports": ["Monday reports", { slots: {}, fixedBy: "issue 1751 · board SettingsBilling · drafted" }],
   "settings.month.asked": ["searches and AI questions", { slots: {}, fixedBy: "issue 1751 · board SettingsBilling · drafted" }],
   "settings.month.asked.split": ["{searches} searches and {questions} AI questions, checked each week", { slots: { searches: "text", questions: "text" }, fixedBy: "issue 1751 · board SettingsBilling · drafted" }],
-  "settings.month.asked.split.unmeasured": ["{searches} searches, checked each week. AI questions were not measured this pass.", { slots: { searches: "text" }, fixedBy: "issue 1907 · drafted" }],
+  "settings.month.asked.split.unmeasured": ["{searches} searches, checked each week. AI questions weren’t checked this time.", { slots: { searches: "text" }, fixedBy: "issue 1907 · drafted" }],
   "settings.month.planned": ["pages planned this week", { slots: {}, fixedBy: "issue 1751 · board SettingsBilling · drafted" }],
   "settings.month.planned.cap": ["up to {days} a week, never filler", { slots: { days: "text" }, fixedBy: "issue 1751 · board SettingsBilling · drafted" }],
-  "settings.month.not-measured": ["not measured", { slots: {}, fixedBy: "E3 · drafted" }],
+  "settings.month.not-measured": ["not checked", { slots: {}, fixedBy: "E3 · drafted" }],
   "settings.month.bar": ["This billing period, {from} to {to}: {live} pages live so far, {planned} planned this week", { slots: { from: "date", to: "date", live: "text", planned: "text" }, fixedBy: "issue 1751 · board SettingsBilling · drafted" }],
   "settings.month.today": ["Today", { slots: {}, fixedBy: "issue 1751 · board SettingsBilling · drafted" }],
   "settings.month.legend.live": ["A page went live", { slots: {}, fixedBy: "issue 1751 · board SettingsBilling · drafted" }],
   "settings.month.legend.planned": ["Planned this week", { slots: {}, fixedBy: "issue 1751 · board SettingsBilling · drafted" }],
   "settings.month.first": ["Your first page goes live {when}.", { slots: { when: "date" }, fixedBy: "issue 1751 · board SettingsBilling · drafted" }],
   "settings.month.detail": ["Show the detail", { slots: {}, fixedBy: "issue 1751 · board SettingsBilling · drafted" }],
-  "settings.month.unread": ["This month could not be read just now. Your plan below is unaffected.", { slots: {}, fixedBy: "E3 · drafted" }],
+  "settings.month.unread": ["This month didn’t load. Your subscription is unaffected.", { slots: {}, fixedBy: "E3 · drafted" }],
   "settings.panel.unread": ["This part didn’t load. Try again in a minute.", { slots: {}, fixedBy: "issue 2115 · drafted" }],
   "settings.month.note": [
     "Counted from your own pages and measurements. A page that went live is one that is on your address today. The searches and AI questions are the ones in Market and competitors.",
@@ -875,7 +875,7 @@ export const SETTINGS_COPY = Object.freeze({
   "settings.account.invoices-elsewhere": ["Invoices and receipts go to the address in your billing portal, and change there, not here.", { slots: {}, fixedBy: "REQ-077 c1" }],
   "settings.account.email-in-use": ["That address already belongs to a ReachKit account.", { slots: {}, fixedBy: "REQ-077 c2" }],
   "settings.account.email-invalid": ["That isn’t an address we can send to.", { slots: {}, fixedBy: "REQ-077 c2" }],
-  "settings.account.email-change-unavailable": ["The change couldn’t start just now. Nothing has changed. Try again in a moment.", { slots: {}, fixedBy: "REQ-077 c2" }],
+  "settings.account.email-change-unavailable": ["That didn’t work, so nothing changed. Try again in a minute.", { slots: {}, fixedBy: "REQ-077 c2" }],
 
   // 2026-09-07, issue #134 — the four the pending-change state needs, now
   // that something renders it. Two of them are *labels on controls* — a
@@ -912,7 +912,7 @@ export const SETTINGS_COPY = Object.freeze({
   "settings.voice.title": ["How your pages sound", { slots: {}, fixedBy: "REQ-055" }],
   "settings.voice.never-claim": ["Never claim", { slots: {}, fixedBy: "REQ-053" }],
   "settings.voice.add-claim": [
-    "add a claim your pages must never make",
+    "add something your pages must never say",
     { slots: {}, fixedBy: "REQ-053" },
   ],
   "settings.voice.add": ["Add", { slots: {}, fixedBy: "REQ-053" }],
@@ -998,18 +998,18 @@ export const SETTINGS_COPY = Object.freeze({
   // source labels and the two count lines are drafted in the registry's
   // voice under the 2026-09-16 ruling (#759), and the PR names each one.
   // The site link map (SPEC §7, 2026-10-10, issue 1391).
-  "settings.linkmap.head": ["How your articles link your site", { slots: {}, fixedBy: "issue 1391 (drafted)" }],
-  "settings.linkmap.none": ["No article is live yet. Once one is, this shows which of your pages it links.", { slots: {}, fixedBy: "issue 1391 (drafted)" }],
-  "settings.linkmap.receiving": ["Your pages that articles link to", { slots: {}, fixedBy: "issue 1391 (drafted)" }],
-  "settings.linkmap.receiving.none": ["No live article links a page of your site yet.", { slots: {}, fixedBy: "issue 1391 (drafted)" }],
-  "settings.linkmap.alone": ["Articles that stand alone", { slots: {}, fixedBy: "issue 1391 (drafted)" }],
-  "settings.linkmap.alone.none": ["Every live article links to your site and is linked from another article.", { slots: {}, fixedBy: "issue 1391 (drafted)" }],
-  "settings.linkmap.alone.in": ["No other article links to it yet.", { slots: {}, fixedBy: "issue 1391 (drafted)" }],
+  "settings.linkmap.head": ["How your pages link your site", { slots: {}, fixedBy: "issue 1391 (drafted)" }],
+  "settings.linkmap.none": ["None of our pages is live yet. Once one is, this shows which of your pages it links.", { slots: {}, fixedBy: "issue 1391 (drafted)" }],
+  "settings.linkmap.receiving": ["Pages on your site we link to", { slots: {}, fixedBy: "issue 1391 (drafted)" }],
+  "settings.linkmap.receiving.none": ["None of our pages link to your site yet.", { slots: {}, fixedBy: "issue 1391 (drafted)" }],
+  "settings.linkmap.alone": ["Pages that stand alone", { slots: {}, fixedBy: "issue 1391 (drafted)" }],
+  "settings.linkmap.alone.none": ["Every live page links to your site, and another page links to it.", { slots: {}, fixedBy: "issue 1391 (drafted)" }],
+  "settings.linkmap.alone.in": ["No other page links to it yet.", { slots: {}, fixedBy: "issue 1391 (drafted)" }],
   "settings.linkmap.alone.out": ["It links to no page of yours.", { slots: {}, fixedBy: "issue 1391 (drafted)" }],
-  "settings.linkmap.alone.both": ["No other article links to it, and it links to no page of yours.", { slots: {}, fixedBy: "issue 1391 (drafted)" }],
-  "settings.linkmap.receiving.one": ["Linked from 1 article", { slots: {}, fixedBy: "issue 1391 (drafted)" }],
-  "settings.linkmap.note": ["We choose and check these links. When a new article goes live, the closest older ones are updated to link it.", { slots: {}, fixedBy: "issue 1391 (drafted)" }],
-  "settings.linkmap.receiving.count": ["Linked from {count} articles", { slots: { count: "text" }, fixedBy: "issue 1391 (drafted)" }],
+  "settings.linkmap.alone.both": ["No other page links to it, and it links to none of yours.", { slots: {}, fixedBy: "issue 1391 (drafted)" }],
+  "settings.linkmap.receiving.one": ["Linked from 1 page", { slots: {}, fixedBy: "issue 1391 (drafted)" }],
+  "settings.linkmap.note": ["We choose and check these links. When a page goes live, we update older pages to link it.", { slots: {}, fixedBy: "issue 1391 (drafted)" }],
+  "settings.linkmap.receiving.count": ["Linked from {count} pages", { slots: { count: "text" }, fixedBy: "issue 1391 (drafted)" }],
   "settings.known.head": [
     "Content we already know about",
     { slots: {}, fixedBy: "SPEC §7 2026-09-20" },

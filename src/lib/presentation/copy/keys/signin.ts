@@ -52,7 +52,7 @@ export const SIGNIN_COPY = Object.freeze({
   "signin.heading": ["Welcome back", { slots: {}, fixedBy: "REQ-098 c2" }],
   "signin.eyebrow": ["Sign in", { slots: {}, fixedBy: "board AuthSignIn · drafted" }],
   "signin.body": [
-    "Enter the email you paid with. We’ll send you a link to sign in. There is no password.",
+    "Enter the email you paid with. We’ll send you a sign-in link.",
     { slots: {}, fixedBy: "board AuthSignIn" },
   ],
   // The three facts under the button, and the three steps under the split (board AuthSignIn).
@@ -123,7 +123,7 @@ export const SIGNIN_COPY = Object.freeze({
     "Sign in to ReachKit. The link works for 24 hours. Press it on any device.",
     { slots: {}, fixedBy: "board AuthCheckEmail" },
   ],
-  "signin.inbox.updated": ["Updated Just Now", { slots: {}, fixedBy: "board AuthCheckEmail" }],
+  "signin.inbox.updated": ["Updated just now", { slots: {}, fixedBy: "board AuthCheckEmail" }],
   "signin.inbox.eyebrow": ["Your inbox", { slots: {}, fixedBy: "board AuthCheckEmail" }],
   "signin.inbox.from": ["From ReachKit, with the subject Your sign-in link.", { slots: {}, fixedBy: "board AuthCheckEmail" }],
   "signin.inbox.inside": ["Inside the email", { slots: {}, fixedBy: "board AuthCheckEmail" }],

@@ -93,7 +93,7 @@ describe("not measured is never 0", () => {
   it("AI questions not measured: the searches are counted and the questions named in words, never 0", () => {
     const unmeasured = rendered({ ...GOT, asked: { searches: 5, questions: null } });
     expect(text(unmeasured, "billing-month-asked")).toBe(
-      "5 searches and AI questions 5 searches, checked each week. AI questions were not measured this pass."
+      "5 searches and AI questions 5 searches, checked each week. AI questions weren’t checked this time."
     );
     expect(unmeasured.body.textContent).not.toMatch(/\b0 AI questions/);
   });

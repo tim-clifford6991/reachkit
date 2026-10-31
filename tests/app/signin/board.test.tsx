@@ -92,7 +92,7 @@ describe("each arm matches its board's screen string for string", () => {
 describe("each section is on the screen in the board's order and words", () => {
   it("sign in: the body, the three facts under the button, then how signing in works in three steps", async () => {
     inOrder(textOf(await inBrowser({})), [
-      "Enter the email you paid with. We’ll send you a link to sign in. There is no password.",
+      "Enter the email you paid with. We’ll send you a sign-in link.",
       "Send my sign-in link",
       "no password link works 24 hours nothing to install",
       "New to ReachKit?",

@@ -31,7 +31,7 @@ export const DANGER_COPY = Object.freeze({
   "danger.unpublish-all": ["Take every page down", { slots: {}, fixedBy: "BUILD §4.7 · board SettingsAccount" }],
   "danger.delete-account": ["Delete my account", { slots: {}, fixedBy: "BUILD §4.7 · board SettingsAccount" }],
   // The fold's lead, the pause pointer ("pause publishing" is its link), and what each one does (issue 1751).
-  "danger.zone.lead": ["Take every page down, or delete your account. To only stop new pages, pause publishing.", { slots: {}, fixedBy: "issue 1751 · board SettingsAccount · drafted" }],
+  "danger.zone.lead": ["Take every page down, or delete your account.", { slots: {}, fixedBy: "issue 1751 · board SettingsAccount · drafted" }],
   "danger.pause.line": ["To stop new pages without taking any down, pause publishing instead.", { slots: {}, fixedBy: "issue 1751 · board SettingsAccount · drafted" }],
   "danger.pause.link": ["pause publishing", { slots: {}, fixedBy: "issue 1751 · board SettingsAccount · drafted" }],
   "danger.compare.title": ["What each one does", { slots: {}, fixedBy: "issue 1751 · board SettingsAccount · drafted" }],
@@ -62,13 +62,13 @@ export const DANGER_COPY = Object.freeze({
   //
   // c3, the refusal: "if it cannot be produced, or they do not take it, the
   // action does not proceed and says why."
-  "danger.export-failed": ["Your export wasn’t taken in full, so the action didn’t run.", { slots: {}, fixedBy: "REQ-079 c3" }],
+  "danger.export-failed": ["Your export didn’t finish, so nothing was changed.", { slots: {}, fixedBy: "REQ-079 c3" }],
   // c4's last clause, the two arms of what an unpublish-everything run
   // leaves behind: "the pages at any destination that could not be reached
   // are listed as still live with one written line saying so", and the line
   // for a run that left none.
-  "danger.some-still-live": ["Some pages are still live: their destination couldn’t be reached. They are listed below.", { slots: {}, fixedBy: "REQ-079 c4" }],
-  "danger.all-taken-down": ["Every page is down. Nothing is still live at any destination.", { slots: {}, fixedBy: "REQ-079 c4" }],
+  "danger.some-still-live": ["We couldn’t reach your site, so some pages are still live. They’re listed below.", { slots: {}, fixedBy: "REQ-079 c4" }],
+  "danger.all-taken-down": ["Every page is down.", { slots: {}, fixedBy: "REQ-079 c4" }],
 
   // 2026-09-07, issue #259 — the sentences the ticket-and-download
   // handshake speaks, now that a screen reaches it. Every one is a
@@ -116,7 +116,7 @@ export const DANGER_COPY = Object.freeze({
    * `taken-down-count` carries c5's switch: a run that took pages down also
    * switches publishing off, and it stays off until the customer switches
    * it on themselves. The count is the run's own `takenDown`. */
-  "danger.nothing-changed": ["Nothing changed: your pages, your account and your plan are as they were.", { slots: {}, fixedBy: "REQ-079 c3" }],
+  "danger.nothing-changed": ["Nothing changed. Your pages and account are as they were.", { slots: {}, fixedBy: "REQ-079 c3" }],
   "danger.taken-down-count": [
     "Pages taken down: {pages}. Publishing is now off and stays off until you switch it on.",
     { slots: { pages: "text" }, fixedBy: "REQ-079 c4 · c5" },
