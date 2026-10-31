@@ -192,6 +192,7 @@ describe('advisor `rls_enabled_no_policy` — the tables that are policy-less by
     // `renewal_refunds` is the first-renewal refund ledger, written only by the same webhook.
     // `job_error_mails` is the job runner's once-a-Berlin-day claim on a failing job's owner mail.
     // `signin_links` is the live sign-in link, sealed, read and written only by identity.
+    // `rate_limits` is the shared abuse-limit count, reached only through `take_rate_limits`.
     expect(policyLess).toEqual([
       "domain_blocks",
       "draft_days",
@@ -201,6 +202,7 @@ describe('advisor `rls_enabled_no_policy` — the tables that are policy-less by
       "job_runs",
       "llm_mention_reads",
       "llm_mentions",
+      "rate_limits",
       "refunds",
       "renewal_refunds",
       "rescore_runs",

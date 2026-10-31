@@ -51,6 +51,8 @@ export const MIGRATION_TOPICS: readonly MigrationTopic[] = [
   { token: "suppressions", owner: "BP-029" },
   // The job heartbeat (issue #799): `job_runs`, written by `src/jobs/run.ts`.
   { token: "jobs", owner: "issue 799" },
+  // The shared abuse-limit count: `rate_limits`, taken only through `src/lib/limits`.
+  { token: "limits", owner: "issue 2152" },
 ];
 
 // The open sub-token list (`structure.md` rule 3a) — each narrows exactly
