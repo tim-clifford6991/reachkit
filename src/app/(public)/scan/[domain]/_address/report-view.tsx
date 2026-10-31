@@ -570,7 +570,7 @@ export function ReportView(p: {
                 <MarketFromSearchLine report={report} />
               </>
             }
-            top={<HeadlineBlock ai={report.aiAnswers} presence={report.presence} missing={missingPages?.length ?? 0} free={report.freePage !== null} />}
+            top={<HeadlineBlock ai={report.aiAnswers} presence={report.presence} serps={report.serps} missing={missingPages?.length ?? 0} free={report.freePage !== null} />}
             independent={copy("report.independent", { company: understanding?.name ?? report.domain })}
           />
         </div>

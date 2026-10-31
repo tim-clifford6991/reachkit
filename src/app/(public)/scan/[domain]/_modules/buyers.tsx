@@ -6,29 +6,38 @@
 // a missing half. The section below holds the two cards under its heading.
 import type React from "react";
 import { copy } from "@/lib/presentation/copy";
-import type { AiAnswersSection, PresenceSection } from "@/lib/scan/report";
+import { registrableDomain } from "@/lib/market/rivals/domains";
+import type { AiAnswersSection, PresenceSection, StoredReport } from "@/lib/scan/report";
 
-/** The rival named by most AI answers and first pages together, only where
- *  it was named more often than the customer, and the customer's own count
- *  over the same two denominators. */
-export function buyersOf(ai: AiAnswersSection, presence: PresenceSection): {
+/** One search is one buyer's question: a rival found on a single one is not where buyers are sent. */
+const HOLDER_MIN_SEARCHES = 2;
+
+/** The rival found on the most searches, each search counted once whether in
+ *  its first page, its local pack or its AI answer, only where that is at least
+ *  `HOLDER_MIN_SEARCHES` and more than the customer's own count over the same two denominators. */
+export function buyersOf(ai: AiAnswersSection, presence: PresenceSection, serps: StoredReport["serps"]): {
   holder: string | null;
   ai: number;
   google: number;
   out: number;
 } {
-  const tally = new Map<string, number>();
-  for (const rival of ai.rivals) {
-    const cited = rival.cells.filter((c) => c.kind === "answered" && c.citedDomains.length > 0).length;
-    tally.set(rival.domain, (tally.get(rival.domain) ?? 0) + cited);
-  }
-  for (const rival of presence.rivals) tally.set(rival.domain, (tally.get(rival.domain) ?? 0) + rival.top10Count);
+  const found = new Map<string, Set<string>>();
+  const add = (domain: string, i: number): void => {
+    const search = ai.rows[i]?.question.search;
+    if (search !== undefined) found.set(domain, (found.get(domain) ?? new Set()).add(search));
+  };
+  for (const rival of ai.rivals) rival.cells.forEach((c, i) => (c.kind === "answered" && c.citedDomains.length > 0 ? add(rival.domain, i) : undefined));
+  serps.forEach((serp, i) => {
+    if (serp.kind === "unmeasured") return;
+    const shown = new Set([...serp.value.organic, ...(serp.value.localPack ?? [])].map((row) => registrableDomain(row.domain)));
+    for (const rival of presence.rivals) if (shown.has(rival.domain)) add(rival.domain, i);
+  });
   let holder: string | null = null;
-  let most = 0;
-  for (const [domain, count] of tally) {
-    if (count > most) {
+  let most = HOLDER_MIN_SEARCHES - 1;
+  for (const [domain, searches] of found) {
+    if (searches.size > most) {
       holder = domain;
-      most = count;
+      most = searches.size;
     }
   }
   const you = ai.customerCitations + presence.you.top10Count;
@@ -42,9 +51,9 @@ export function buyersOf(ai: AiAnswersSection, presence: PresenceSection): {
 
 /** The headline's title and line, or `null` where a card was not measured:
  *  nothing measured is never shown as a count of zero. */
-export function headlineOf(ai: AiAnswersSection | null, presence: PresenceSection | null): { title: string; line: string } | null {
+export function headlineOf(ai: AiAnswersSection | null, presence: PresenceSection | null, serps: StoredReport["serps"]): { title: string; line: string } | null {
   if (ai === null || presence === null) return null;
-  const b = buyersOf(ai, presence);
+  const b = buyersOf(ai, presence, serps);
   if (b.out === 0) return null;
   const n = b.ai + b.google;
   const m = String(b.out);
@@ -61,8 +70,8 @@ function offerLine(count: number, free: boolean): string | null {
 }
 
 /** The report's headline: who gets the buyers, then the pages it found, which lead to the offer. */
-export function HeadlineBlock(p: { ai: AiAnswersSection | null; presence: PresenceSection | null; missing: number; free: boolean }): React.JSX.Element | null {
-  const top = headlineOf(p.ai, p.presence);
+export function HeadlineBlock(p: { ai: AiAnswersSection | null; presence: PresenceSection | null; serps: StoredReport["serps"]; missing: number; free: boolean }): React.JSX.Element | null {
+  const top = headlineOf(p.ai, p.presence, p.serps);
   const offer = offerLine(p.missing, p.free);
   if (top === null && offer === null) return null;
   return (
