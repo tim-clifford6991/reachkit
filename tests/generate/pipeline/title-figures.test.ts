@@ -5,37 +5,53 @@ import { describe, expect, it } from "vitest";
 import { titleBrief, titleRuleFor } from "../../../src/lib/generate/pipeline/title";
 import { titleFaults } from "../../../src/lib/generate/rules/title";
 import { pack } from "../fixtures";
+import stored from "../fixtures/dogfood-promise-titles-2026-10.json";
 import type { ContentType } from "../../../src/lib/opportunities/content-type";
 
-const DESCRIPTION = "How answer engine optimisation and generative engine optimisation differ, what each one measures, and where a small site starts first.";
+type Evidence = { title: string; type: string; factsUsed: string[]; profileItems: string[]; marketFacts: string[] };
 
-// A SaaS and a local business, each with its promise on its own pages and in its profile. The brief
-// lists no lone digit on any page, so only the plumber's promise is one it could offer.
-const CUSTOMERS = [
-  { promise: "ReachKit publishes up to 7 pages a week across 9 answer engines.", search: "aeo vs geo", title: "AEO vs GEO: the difference in up to 7 pages a week", figure: null },
-  { promise: "Our plumbers answer 24/7 and reach you in 2 hours.", search: "why is my boiler making noises", title: "Boiler noises: why they happen, fixed 24/7 in 2 hours", figure: /24\/7/ },
-];
-
-function promisePack(type: ContentType, customer: (typeof CUSTOMERS)[number]) {
+/** A pack as the stored draft's meta records it: the site's facts it used, its profile, its market facts. */
+function packOf(row: Evidence, type: ContentType = row.type as ContentType) {
   const base = pack();
   return pack({
     type,
-    target: { question: customer.search, searches: [customer.search] },
-    facts: [...base.facts, { ...base.facts[0]!, passage: customer.promise }],
-    profile: { job: null, products: [], audience: [], promises: [customer.promise], vocabulary: [] },
+    target: { question: row.title, searches: [] },
+    facts: row.factsUsed.map((passage) => ({ ...base.facts[0]!, passage })),
+    claims: row.marketFacts.map((passage) => ({ ...base.claims[0]!, passage })),
+    profile: { job: null, products: [], audience: [], promises: row.profileItems, vocabulary: [] },
   });
 }
 
-describe.each(CUSTOMERS)("a title's specific for $search", (customer) => {
-  it("on a Q&A page, the brief offers no promise figure and a title carrying one has no specific", () => {
-    const qa = promisePack("qa", customer);
-    expect((titleBrief(qa).figures as string[]).join("\n")).not.toMatch(customer.figure ?? /\b7\b/);
-    expect(titleFaults(customer.title, titleRuleFor(qa, { description: DESCRIPTION }))).toContain("specific");
+const aeoVsGeo = stored.drafts.find((row) => row.type === "documentation")!;
+const PROMISE = /7 pages a week/;
+
+describe("a stored dogfood draft's title inputs", () => {
+  it.each(stored.drafts)("on the $type page, what the title may hold carries no promise", (row) => {
+    expect(titleRuleFor(packOf(row), { description: "" }).holds).not.toMatch(PROMISE);
   });
 
-  it("on the offering page, the promise is still the page's own figure", () => {
-    const offering = promisePack("offering", customer);
-    if (customer.figure !== null) expect((titleBrief(offering).figures as string[]).join("\n")).toMatch(customer.figure);
-    expect(titleFaults(customer.title, titleRuleFor(offering, { description: DESCRIPTION }))).not.toContain("specific");
+  it("the documentation page's promise title now lacks its specific", () => {
+    expect(aeoVsGeo.title).toBe("AEO vs GEO: the difference in up to 7 pages a week");
+    expect(titleFaults(aeoVsGeo.title, titleRuleFor(packOf(aeoVsGeo), aeoVsGeo))).toContain("specific");
+  });
+
+  it("the same pack as an offering page still holds the promise as its figure", () => {
+    expect(titleRuleFor(packOf(aeoVsGeo, "offering"), { description: "" }).holds).toMatch(PROMISE);
+    expect(titleFaults(aeoVsGeo.title, titleRuleFor(packOf(aeoVsGeo, "offering"), aeoVsGeo))).not.toContain("specific");
+  });
+});
+
+// A local business: its promise is a figure the brief lists, so the brief itself is held to it.
+const PLUMBER = { title: "Boiler noises: why they happen, fixed 24/7 in 2 hours", factsUsed: ["Our plumbers answer 24/7 and reach you in 2 hours."], marketFacts: [] };
+const plumber = (type: ContentType) => packOf({ ...PLUMBER, type, profileItems: PLUMBER.factsUsed });
+
+describe("a plumber's title brief", () => {
+  it("offers no promise figure on a Q&A page", () => {
+    expect((titleBrief(plumber("qa")).figures as string[]).join("\n")).not.toMatch(/24\/7/);
+    expect(titleFaults(PLUMBER.title, titleRuleFor(plumber("qa"), { description: "" }))).toContain("specific");
+  });
+
+  it("still offers it on the offering page", () => {
+    expect((titleBrief(plumber("offering")).figures as string[]).join("\n")).toMatch(/24\/7/);
   });
 });
