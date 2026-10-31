@@ -93,6 +93,8 @@ const PURGE_ORDER: readonly {
   // Destination credentials.
   { table: "destinations", column: "site_id", from: "siteIds" },
   { table: "sites", column: "user_id", from: "userIds" },
+  // The live sign-in link, sealed; it refers to `users` with no cascade.
+  { table: "signin_links", column: "user_id", from: "userIds" },
   // The sign-in address it was reached at: the account, then the Supabase
   // Auth user whose id it is (#468) — last, because `users.id` refers to
   // it and carries no cascade.

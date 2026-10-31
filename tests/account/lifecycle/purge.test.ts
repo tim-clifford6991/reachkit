@@ -121,10 +121,10 @@ describe("REQ-079 c7 — idempotent, resumable, and loud when it cannot finish",
     expect(await purgeAccount("u-1")).toEqual({ purged: true });
     // The second run finds no site behind the account, so every site-,
     // scan-, draft- and publication-scoped step has an empty id list and
-    // issues no delete at all. What is left is the three steps keyed on the
+    // issues no delete at all. What is left is the four steps keyed on the
     // user id, each of which matches nothing and removes nothing.
     expect(first).toContain("drafts");
-    expect(tables()).toEqual(["sites", "users", "auth.users"]);
+    expect(tables()).toEqual(["sites", "signin_links", "users", "auth.users"]);
     expect(state.accounts).toEqual([]);
     expect(state.sites).toEqual([]);
   });
