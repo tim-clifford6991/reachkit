@@ -47,29 +47,29 @@ const STEPS: readonly { n: number; href: string; title: CopyKey; line: CopyKey }
   { n: 4, href: `${HOW}#found`, title: "how.step.4.title", line: "how.step.4.line" },
 ];
 
-const GAPS: readonly { name: CopyKey; problem: CopyKey; answer: CopyKey }[] = [
-  { name: "about.gap.see.name", problem: "about.gap.see.problem", answer: "about.gap.see.answer" },
-  { name: "about.gap.time.name", problem: "about.gap.time.problem", answer: "about.gap.time.answer" },
+const GAPS: readonly { name: CopyKey; answer: CopyKey }[] = [
+  { name: "about.gap.see.name", answer: "about.gap.see.answer" },
+  { name: "about.gap.time.name", answer: "about.gap.time.answer" },
 ];
 
 const NEVER: readonly CopyKey[] = ["how.never.invent", "how.never.hide", "about.never.promise", "about.never.filler"];
 const ALWAYS: readonly CopyKey[] = ["about.rules.source", "about.rules.checks", "about.rules.unmeasured"];
 
-function Head(p: { id: string; eyebrow: string; title: string; lead: string }): React.JSX.Element {
+function Head(p: { id: string; eyebrow: string; title: string; lead?: string }): React.JSX.Element {
   return (
     <div className="flex min-w-0 flex-col gap-2">
       <p className={EYEBROW}>{p.eyebrow}</p>
       <h2 id={`${p.id}-h`}>{p.title}</h2>
-      <p>{p.lead}</p>
+      {p.lead === undefined ? null : <p>{p.lead}</p>}
     </div>
   );
 }
 
-function Gap(p: { name: CopyKey; problem: CopyKey; answer: CopyKey }): React.JSX.Element {
+function Gap(p: { name: CopyKey; answer: CopyKey }): React.JSX.Element {
   return (
     <li className="grid min-w-0 grid-cols-1 gap-2 sm:grid-cols-2">
       <span className="rounded-box bg-base-200 flex min-w-0 flex-col p-3">
-        <span className="font-semibold">{copy(p.name)}</span><span className={SMALL}>{copy(p.problem)}</span>
+        <span className="font-semibold">{copy(p.name)}</span>
       </span>
       <span className="text-primary flex min-w-0 items-center gap-2 font-semibold">
         <Check {...ICON} />
@@ -264,7 +264,6 @@ export default async function AboutPage(): Promise<React.JSX.Element> {
               id="proof"
               eyebrow={copy("about.proof.eyebrow")}
               title={copy("about.proof.title")}
-              lead={copy("about.proof.lead")}
             />
             {page === null && report === null ? null : (
               <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2">

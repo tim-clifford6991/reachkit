@@ -195,7 +195,7 @@ export function PricingCard(
           note={
             named ? (
               <p className="text-base-content/70 text-center text-sm">
-                {copy("pricing.plan.billing", { price: copy("price.amount") })}
+                {copy("pricing.plan.billing")}
               </p>
             ) : null
           }

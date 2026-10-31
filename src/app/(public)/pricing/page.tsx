@@ -1,9 +1,9 @@
 // src/app/(public)/pricing/page.tsx — BUILD §4.1 module 6, REQ-021 c4/c5 (issue #19)
 //
 // The one price surface away from any report (board Pricing): the plan and
-// what €49 buys, one example week, everything in the plan, what to expect
-// from week 1, the comparison with the other ways, the questions asked before
-// paying, and the free scan for anyone not ready yet.
+// what €49 buys, what ReachKit doesn't do, what to expect from week 1, the
+// comparison with the other ways, the questions asked before paying, and the
+// free scan for anyone not ready yet.
 //
 // The offer is `PricingCard`, the report's own component in its `pricing`
 // wording, so the two surfaces state the same price and one Start (REQ-021
@@ -11,45 +11,19 @@
 // The scan field at the foot is the landing's own form, a second path that
 // asks for a website and never for an account.
 //
-// No figure is typed: counts come from `_how/facts.ts` and the constants, the
-// example week from `_how/specimen.ts`. The 14-day guarantee and its rows wait
+// No figure is typed: counts come from `_how/facts.ts` and the constants. The 14-day guarantee and its rows wait
 // for the launch gate (owner 2026-10-20, Q13).
 import React, { use } from "react";
 import type { Metadata } from "next";
-import {
-  Building2,
-  Check,
-  CircleCheck,
-  CircleStop,
-  Clock,
-  Download,
-  Eye,
-  FileText,
-  Globe,
-  Inbox,
-  Info,
-  Languages,
-  Lock,
-  MessageSquare,
-  Pencil,
-  Search,
-  ShieldCheck,
-  Timer,
-  TrendingUp,
-  Users,
-  Wrench,
-  X,
-  type LucideIcon,
-} from "lucide-react";
+import { Check, CircleCheck, Eye, Inbox, Info, Search, Timer, TrendingUp, X } from "lucide-react";
 import { Surface } from "@/ui/layout";
-import { HOSTED_RETENTION_DAYS, VETO, WEEK_PLAN } from "@/lib/config/constants";
+import { HOSTED_RETENTION_DAYS, WEEK_PLAN } from "@/lib/config/constants";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { PricingCard } from "../scan/[domain]/_modules/pricing";
 import { ScanForm } from "../_landing/ScanForm";
 import { scanFormWords } from "../_landing/scan-form-words";
 import { HOW_FACTS as F } from "../_how/facts";
-import { EXAMPLES, weekSpan } from "../_how/specimen";
-import { ICON_TILE, WeekCard, WhatToExpect } from "../_how/visuals";
+import { WhatToExpect } from "../_how/visuals";
 import { PlanBuys } from "../_how/buys";
 import { ThreeWays } from "../_how/compare";
 import { PUBLIC_ROUTE_SEO } from "../_seo/routes";
@@ -82,7 +56,6 @@ const START_ID = "start";
 const INNER = "mx-auto w-full max-w-6xl px-4";
 const LEAD = "text-base-content/70 max-w-2xl text-lg";
 const SMALL = "text-base-content/70 text-sm";
-const CARD = "card card-border bg-base-100 min-w-0";
 const ICON = { size: 16, strokeWidth: 1.75, "aria-hidden": true } as const;
 
 const price = (): string => copy("price.amount");
@@ -91,7 +64,7 @@ const weekPages = { weekPages: WEEK_PLAN.days };
 /** One section: its eyebrow, its title and lead, then what it shows. */
 function Section(p: {
   id: string;
-  eyebrow: string;
+  eyebrow?: string;
   title: string;
   body?: string;
   band?: boolean;
@@ -106,7 +79,7 @@ function Section(p: {
     >
       <div className={`${INNER} flex flex-col gap-8`}>
         <div className="flex flex-col gap-3">
-          <p className="eyebrow">{p.eyebrow}</p>
+          {p.eyebrow === undefined ? null : <p className="eyebrow">{p.eyebrow}</p>}
           <h2 id={heading}>{p.title}</h2>
           {p.body === undefined ? null : <p className={LEAD}>{p.body}</p>}
         </div>
@@ -145,109 +118,7 @@ function FreeFirst(): React.JSX.Element {
   );
 }
 
-function SideIcon({ icon: Icon }: { icon: LucideIcon }): React.JSX.Element {
-  return (
-    <span aria-hidden className="rounded-field bg-primary/10 text-primary grid size-7 shrink-0 place-items-center">
-      <Icon {...ICON} />
-    </span>
-  );
-}
-
-/** The three cards under the example week: where a page goes, the email
- *  before it, and the Monday email. */
-function WeekParts(): React.JSX.Element {
-  const e = EXAMPLES.plumber;
-  return (
-    <div className="grid min-w-0 grid-cols-1 gap-4 md:grid-cols-3">
-      <div className={CARD}>
-        <div className="card-body gap-3">
-          <p className="flex items-center gap-2 font-semibold">
-            <SideIcon icon={Globe} />
-            {copy("pricing.week.address")}
-          </p>
-          <p className="rounded-box bg-base-200 flex min-w-0 items-center gap-2 px-3 py-2 font-mono text-sm">
-            <Lock {...ICON} className="shrink-0" />
-            <span className="min-w-0 break-all">{`${e.blog}${e.pagePath}`}</span>
-          </p>
-          <p className={SMALL}>{copy("pricing.week.address.line")}</p>
-        </div>
-      </div>
-      <div className={CARD}>
-        <div className="card-body gap-3">
-          <p className="flex items-center gap-2 font-semibold">
-            <SideIcon icon={Clock} />
-            {copy("pricing.week.emailed")}
-          </p>
-          <span className="flex flex-wrap gap-1">
-            <span className="badge badge-ghost badge-sm gap-1">
-              <Pencil size={12} strokeWidth={1.75} aria-hidden />
-              {copy("how.week.edit")}
-            </span>
-            <span className="badge badge-ghost badge-sm gap-1">
-              <CircleStop size={12} strokeWidth={1.75} aria-hidden />
-              {copy("how.week.stop")}
-            </span>
-          </span>
-          <p className={SMALL}>{copy("how.part.window", { hours: VETO.defaultHours })}</p>
-        </div>
-      </div>
-      <div className={CARD}>
-        <div className="card-body gap-3">
-          <p className="flex flex-wrap items-center gap-2 font-semibold">
-            <SideIcon icon={Inbox} />
-            {copy("pricing.week.mail")}
-            <span className={`num ${SMALL} font-normal`}>{weekSpan().monday}</span>
-          </p>
-          <div className="grid grid-cols-3 gap-2">
-            {[
-              copy("how.mail.live", { n: e.mail.live }),
-              copy("pricing.week.mail.climbing", { n: e.mail.climbing }),
-              copy("how.mail.planned", { n: e.mail.planned }),
-            ].map((line) => (
-              <p key={line} className="rounded-box bg-base-200 p-2 text-xs">
-                {line}
-              </p>
-            ))}
-          </div>
-          <p className="text-success flex items-center gap-1 text-sm font-semibold">
-            <Check {...ICON} />
-            {copy("pricing.week.mail.calm")}
-          </p>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-/** Everything in the plan, each with how often it runs. */
-const INCLUDED = [
-  { key: "research", vars: {} },
-  { key: "rivals", vars: { rivals: F.rivals } },
-  { key: "asks", vars: { searches: F.searches, prompts: F.prompts } },
-  { key: "pages", vars: weekPages },
-  { key: "checks", vars: { checks: F.checks } },
-  { key: "live", vars: {} },
-  { key: "stop", vars: {} },
-  { key: "mail", vars: {} },
-  { key: "fix", vars: {} },
-  { key: "language", vars: {} },
-  { key: "yours", vars: {} },
-] as const;
-
-const INCLUDED_ICON: Record<(typeof INCLUDED)[number]["key"], LucideIcon> = {
-  research: Building2,
-  rivals: Users,
-  asks: MessageSquare,
-  pages: FileText,
-  checks: ShieldCheck,
-  live: Globe,
-  stop: Pencil,
-  mail: Inbox,
-  fix: Wrench,
-  language: Languages,
-  yours: Download,
-};
-
+/** What the plan leaves out. */
 const NOT_DONE: readonly CopyKey[] = [
   "pricing.all.not.maps",
   "how.value.not.ads",
@@ -257,47 +128,22 @@ const NOT_DONE: readonly CopyKey[] = [
   "how.value.not.promise",
 ];
 
-function Included(): React.JSX.Element {
+/** Under the card: the one list of what the plan leaves out. */
+function NotDone(): React.JSX.Element {
   return (
-    <>
-      <ul className="grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {INCLUDED.map(({ key, vars }) => {
-          const Icon = INCLUDED_ICON[key];
-          return (
-            <li key={key} className={`${CARD} gap-2 p-5`}>
-              <span className="flex items-center justify-between gap-2">
-                <span aria-hidden className={ICON_TILE}>
-                  <Icon className="size-5" strokeWidth={1.75} />
-                </span>
-                <span className="badge badge-soft badge-primary badge-sm">{copy(`pricing.all.${key}.when` as CopyKey)}</span>
-              </span>
-              <h3 className="text-base font-semibold">{copy(`pricing.all.${key}` as CopyKey, vars)}</h3>
-              <p className={SMALL}>{copy(`pricing.all.${key}.line` as CopyKey, vars)}</p>
-            </li>
-          );
-        })}
+    <div className="rounded-box bg-base-200 flex flex-col gap-2 p-4">
+      <h3 className="text-sm font-semibold">{copy("pricing.all.not")}</h3>
+      <ul className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
+        {NOT_DONE.map((key) => (
+          <li key={key} className="flex items-center gap-1">
+            <X size={14} strokeWidth={1.75} aria-hidden />
+            {copy(key)}
+          </li>
+        ))}
       </ul>
-      <div className="rounded-box bg-base-200 flex flex-col gap-2 p-4">
-        <h3 className="text-sm font-semibold">{copy("pricing.all.not")}</h3>
-        <ul className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
-          {NOT_DONE.map((key) => (
-            <li key={key} className="flex items-center gap-1">
-              <X size={14} strokeWidth={1.75} aria-hidden />
-              {copy(key)}
-            </li>
-          ))}
-        </ul>
-      </div>
-    </>
+    </div>
   );
 }
-
-const FROM_WEEK_ONE: readonly CopyKey[] = [
-  "pricing.first.plan",
-  "pricing.first.live",
-  "pricing.first.google",
-  "pricing.first.ai",
-];
 
 function FromWeekOne(): React.JSX.Element {
   const steps = [
@@ -313,14 +159,6 @@ function FromWeekOne(): React.JSX.Element {
   return (
     <div className="grid min-w-0 grid-cols-1 items-start gap-8 lg:grid-cols-2">
       <div className="flex min-w-0 flex-col gap-4">
-        <ul className="flex flex-col gap-2">
-          {FROM_WEEK_ONE.map((key) => (
-            <li key={key} className="flex items-start gap-2">
-              <Check {...ICON} className="text-success mt-1 shrink-0" />
-              <span>{copy(key)}</span>
-            </li>
-          ))}
-        </ul>
         <div className="rounded-box bg-base-200 flex items-start gap-3 p-4">
           <Info {...ICON} className="mt-1 shrink-0" />
           <div className="flex flex-col gap-1">
@@ -346,11 +184,11 @@ function questions(): readonly Question[] {
   return [
     { q: "pricing.faq.pay.q", a: "pricing.faq.pay.a", vars: { price: price() } },
     landing("trial", { price: price() }),
-    landing("start"),
-    landing("approve", { hours: F.windowHours, min: F.windowMinDays, max: F.windowMaxDays }),
+    landing("start", { minutes: F.setupMinutes }),
+    landing("approve", { hours: F.windowHours }),
     landing("results"),
     landing("stop", { days: String(HOSTED_RETENTION_DAYS) }),
-    landing("local", weekPages),
+    landing("local"),
     { q: "how.faq.software.q", a: "how.faq.software.a" },
   ];
 }
@@ -381,39 +219,16 @@ export default function PricingPage(props: {
               <p className={LEAD}>{copy("pricing.subline", weekPages)}</p>
               <Buys />
             </div>
-            <div className="min-w-0">
+            <div className="flex min-w-0 flex-col gap-4">
               <PricingCard startAction={startCheckout} terms="pricing" refused={refused} free={<FreeFirst />} />
+              <NotDone />
             </div>
           </div>
         </section>
 
         <Section
-          id="week"
-          band
-          eyebrow={copy("pricing.week.eyebrow")}
-          title={copy("pricing.week.title", { price: price() })}
-          body={copy("pricing.week.body", weekPages)}
-        >
-          {WeekCard(
-            EXAMPLES.plumber,
-            <p className={SMALL}>{copy("pricing.week.caption", { week: EXAMPLES.plumber.mail.week, ...weekPages })}</p>
-          )}
-          <WeekParts />
-        </Section>
-
-        <Section
-          id="included"
-          eyebrow={copy("pricing.all.eyebrow")}
-          title={copy("pricing.all.title", { price: price() })}
-          body={copy("pricing.all.body")}
-        >
-          <Included />
-        </Section>
-
-        <Section
           id="week1"
           band
-          eyebrow={copy("pricing.first.eyebrow")}
           title={copy("pricing.first.title")}
           body={copy("pricing.first.body")}
         >

@@ -24,7 +24,7 @@ const WEEK_PACE: readonly CopyKey[] = [
 ];
 
 /** The short forms of the same promise: a heading or a plan's name. */
-const WEEK_PACE_SHORT: readonly CopyKey[] = ["pricing.all.pages", "plan.single"];
+const WEEK_PACE_SHORT: readonly CopyKey[] = ["plan.single"];
 
 /** The landing states its pace as the owner's A1 sentence (2026-10-19). */
 const LANDING_PACE: readonly CopyKey[] = [

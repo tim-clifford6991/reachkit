@@ -256,8 +256,8 @@ describe("what the page says about itself", () => {
 
   it("states the links a page carries in the constants' own figures", () => {
     const links = text(section("true"));
-    expect(links).toContain(`${CROSS_LINKS.SITE_MIN} to ${CROSS_LINKS.SITE_MAX} links`);
-    expect(links).toContain(`up to ${CROSS_LINKS.BACK_PAGES_MAX} of your earlier pages`);
+    expect(links).toContain(`${CROSS_LINKS.SITE_MIN} to ${CROSS_LINKS.SITE_MAX} of your other pages`);
+    expect(links).toContain(`up to ${CROSS_LINKS.BACK_PAGES_MAX} older pages`);
   });
 
   it("still links every free report", () => {

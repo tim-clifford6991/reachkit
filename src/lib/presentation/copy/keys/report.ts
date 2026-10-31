@@ -801,8 +801,8 @@ export const REPORT_COPY = Object.freeze({
   /** The closing band: its heading, its line, and the line under its button. */
   "landing.close.heading": ["See who gets your buyers today.", { slots: {}, fixedBy: "board R12-1 · issue 1067" }],
   "landing.close.body": [
-    "The report is free and yours to keep. ReachKit is €49 a month, VAT included, when you want the pages written.",
-    { slots: {}, fixedBy: "board R12-1 · issue 1067" },
+    "The report is free and yours to keep. ReachKit is {price} a month when you want the pages.",
+    { slots: { price: "text" }, fixedBy: "board R12-1 · issue 1067" },
   ],
   /** *What {price} a month gets you*: what the one plan holds, and its card. */
   "landing.price.heading": ["What {price} a month gets you", { slots: { price: "text" }, fixedBy: "board Landing · issue 1596" }],
@@ -825,17 +825,17 @@ export const REPORT_COPY = Object.freeze({
   "landing.faq.eyebrow": ["Questions", { slots: {}, fixedBy: "board Landing · issue 1596" }],
   "landing.faq.heading": ["Questions owners ask", { slots: {}, fixedBy: "board Landing · issue 1596" }],
   "landing.faq.spam.q": ["Is this AI spam?", { slots: {}, fixedBy: "board Landing · issue 1596" }],
-  "landing.faq.spam.a": ["No. Pages are written with Claude, an AI model, but only from facts on your own site and from sources each page links to. Before a page goes live it is read against up to {checks} checks: no invented people, reviews or numbers, and nothing your site doesn’t back up. A page that fails twice never goes live. We plan a page only where your market has a real question to answer, so some weeks have fewer than {weekPages}. Google’s own guidance is that using AI is fine and using it mainly to game Google’s results is not. We write to answer your buyers.", { slots: { checks: "text", weekPages: "text" }, fixedBy: "board Landing · issue 1596" }],
+  "landing.faq.spam.a": ["No. Claude, an AI model, writes each page from your site and linked sources. A page that fails its checks twice never goes live.", { slots: {}, fixedBy: "board Landing · issue 1596" }],
   "landing.faq.approve.q": ["Do I have to approve each page?", { slots: {}, fixedBy: "board Landing · issue 1596" }],
-  "landing.faq.approve.a": ["No. Each page goes live on its own {hours} hours after it is written. In your first week we email each page to you first. After that, the Monday mail lists the week’s pages. You can read, edit or stop any page, or do nothing at all. You can set that window anywhere from {min} to {max} days.", { slots: { hours: "text", min: "text", max: "text" }, fixedBy: "board Landing · issue 1596 · decision 2026-10-19-1593 (drafted)" }],
+  "landing.faq.approve.a": ["No. Each page goes live by itself {hours} hours after it is written. You can edit or stop it first, or do nothing.", { slots: { hours: "text" }, fixedBy: "board Landing · issue 1596 · decision 2026-10-19-1593 (drafted)" }],
   "landing.faq.results.q": ["How long until I see results?", { slots: {}, fixedBy: "board Landing · issue 1596" }],
   "landing.faq.results.a": ["Your pages go live in week 1. Each Monday email shows where they sit on Google, and whether AI links to them.", { slots: {}, fixedBy: "board Landing · issue 1596" }],
   "landing.faq.stop.q": ["What if I want to stop?", { slots: {}, fixedBy: "board Landing · issue 1596" }],
   "landing.faq.stop.a": ["Cancel any time from Settings, and you’re not charged again. Section four of our Terms says when your access ends. Pages on your WordPress stay where they are. Pages on the blog address we run for you stay live for {days} days after your access ends, and we email you a week before they stop. Your export of every page stays available, with no end date.", { slots: { days: "text" }, fixedBy: "board Landing · issue 1596 · ruling D5 · ruling R22" }],
   "landing.faq.local.q": ["Will it work for a local business?", { slots: {}, fixedBy: "board Landing · issue 1596" }],
-  "landing.faq.local.a": ["Yes. ReachKit reads what kind of business you are and measures the searches where your buyers are, including the ones with your town in them. Pages answer what local buyers ask: prices, what’s included, how long a job takes. One honest limit: for searches that show a map, Google lists businesses from Google Maps first, and your Google Maps listing (Business Profile) and reviews count most there. ReachKit’s pages help your website, not your Maps listing. In a small local market some weeks have fewer than {weekPages} good pages to write, and we never fill a week with filler.", { slots: { weekPages: "text" }, fixedBy: "board Landing · issue 1596" }],
+  "landing.faq.local.a": ["Yes, we track the searches local buyers make, including ones with your town. Our pages help your website, not your Google Maps listing.", { slots: {}, fixedBy: "board Landing · issue 1596" }],
   "landing.faq.start.q": ["What do I need to start?", { slots: {}, fixedBy: "board Landing · issue 1596" }],
-  "landing.faq.start.a": ["A website you can connect. You pay first, with no account form, then spend about 10 minutes on setup. Connecting is one setting where your web address is managed, for a blog address such as blog.yourdomain.com (we show you what to copy), or your WordPress login. Your first page is written while you do it.", { slots: {}, fixedBy: "board Landing · issue 1596" }],
+  "landing.faq.start.a": ["A website and about {minutes} minutes. After you pay, copy one line to connect it, or log in with WordPress.", { slots: { minutes: "text" }, fixedBy: "board Landing · issue 1596" }],
   "landing.faq.german.q": ["Does it work in German?", { slots: {}, fixedBy: "board Landing · issue 1596" }],
   "landing.faq.german.a": [
     "Yes. Sites in {germanCountries} are checked and written in German. Sites in {englishCountries}, and everywhere else, get English.",

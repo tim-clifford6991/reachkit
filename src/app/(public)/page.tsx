@@ -86,15 +86,12 @@ const INCLUDED: readonly { key: CopyKey; vars?: Record<string, string> }[] = [
  *  contract* wait for the launch gate and are not drawn. */
 function questions(): readonly { id: string; vars?: Record<string, string>; more?: string }[] {
   return [
-    { id: "spam", vars: { checks: String(HOW_FACTS.checks), weekPages: WEEK_PAGES } },
-    {
-      id: "approve",
-      vars: { hours: String(HOW_FACTS.windowHours), min: String(HOW_FACTS.windowMinDays), max: String(HOW_FACTS.windowMaxDays) },
-    },
+    { id: "spam" },
+    { id: "approve", vars: { hours: String(HOW_FACTS.windowHours) } },
     { id: "results", more: "/how-it-works#found" },
     { id: "stop", vars: { days: String(HOSTED_RETENTION_DAYS) } },
-    { id: "local", vars: { weekPages: WEEK_PAGES } },
-    { id: "start" },
+    { id: "local" },
+    { id: "start", vars: { minutes: String(HOW_FACTS.setupMinutes) } },
     { id: "german", vars: measuredCountryLists() },
     { id: "trial", vars: { price: PRICE() } },
   ];
@@ -331,7 +328,7 @@ export default function LandingPage(props: {
               <div className="card-body grid grid-cols-1 items-center gap-6 lg:grid-cols-[minmax(0,1fr)_auto] lg:gap-12 lg:p-12">
                 <div className="min-w-0">
                   <h2 className="mb-3">{copy("landing.close.heading")}</h2>
-                  <p className={BODY}>{copy("landing.close.body")}</p>
+                  <p className={BODY}>{copy("landing.close.body", { price: PRICE() })}</p>
                 </div>
                 <div className="flex flex-col items-stretch gap-2 text-center lg:items-center">
                   <FieldCta label={copy("landing.start.cta")} />
