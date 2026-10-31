@@ -55,7 +55,7 @@ const STAMPED_WINDOW_H = REMINDER_OFFSETS_H.at(-1)! + REMINDER_OFFSETS_H[0]!;
 /** Why a send did nothing. Every arm is reported; none is a silent skip. */
 export type ReminderOutcome =
   | { sent: true; index: number }
-  | { sent: false; reason: "not-due" | "live" | "no-link" | "mail" };
+  | { sent: false; reason: "not-due" | "live" | "cancelled" | "no-link" | "mail" };
 
 /** The `sites.setup_*` columns are missing from the generated `Database` type: the narrow cast `src/lib/scan/deep/release.ts` documents. */
 interface ReminderRow {
@@ -174,15 +174,17 @@ async function readReminderRow(siteId: string): Promise<ReminderRow | null> {
   return data?.[0] ?? null;
 }
 
-/** `users.email`, the only thing read off that table. */
-async function addressFor(userId: string): Promise<string | null> {
+/** `users.email`, or `"cancelled"` once the founder has cancelled or withdrawn: a reminder to connect is never sent after either. */
+async function addressFor(userId: string): Promise<string | "cancelled" | null> {
   const { data, error } = await untyped()
-    .from<{ email: string }>("users")
-    .select("email")
+    .from<{ email: string; cancelled_at: string | null; deleted_at: string | null }>("users")
+    .select("email, cancelled_at, deleted_at")
     .eq("id", userId)
     .limit(1);
   if (error) throw new Error(`sendSetupReminder: could not read user ${userId}: ${error.message}`);
-  return data?.[0]?.email ?? null;
+  const user = data?.[0];
+  if (user?.cancelled_at || user?.deleted_at) return "cancelled";
+  return user?.email ?? null;
 }
 
 /** Sends one founder's next reminder: due-ness, link, mail, then counter, so a failure at any step consumes nothing. */
@@ -203,6 +205,7 @@ export async function sendSetupReminder(
   if (standing?.live) return { sent: false, reason: "live" };
 
   const to = await addressFor(row.user_id);
+  if (to === "cancelled") return { sent: false, reason: "cancelled" };
   if (to === null) return { sent: false, reason: "no-link" };
 
   // REQ-025 c6: no reminder before there is an account; no account means no link, no send, and the founder due again.

@@ -297,6 +297,16 @@ describe("R15 — a stamped setup is reminded until the first page is live", () 
     expect(sent).not.toHaveBeenCalled();
   });
 
+  it.each([["cancelled_at"], ["deleted_at"]])("stamped then %s set → none", async (column) => {
+    stampedNotLive();
+    db.tables.users![0]![column] = at(2).toISOString();
+    for (const hours of REMINDER_OFFSETS_H) {
+      expect(await sendSetupReminder(SITE, at(hours + 0.1))).toEqual({ sent: false, reason: "cancelled" });
+    }
+    expect(sent).not.toHaveBeenCalled();
+    expect(db.tables.sites![0]!.setup_reminders_sent).toBe(0);
+  });
+
   it("connect-pending body + landsOn /setup/connect, naming the DNS provider", async () => {
     stampedNotLive();
     db.tables.drafts!.push({ id: "d-1", site_id: SITE, body_md: "# Page" });
