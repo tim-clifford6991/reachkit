@@ -46,6 +46,12 @@ export function unclaimedSuperlatives(pack: Pick<ContextPack, "type" | "target" 
   };
 }
 
+/** A title's figure describes the page, so the business's own words count only on the page that sells or refreshes them. */
+function evidenceOf(pack: ContextPack): string[] {
+  const claims = pack.claims.map((claim) => claim.passage);
+  return pack.type === "offering" || pack.type === "update" ? [...pack.facts.map((fact) => fact.passage), ...claims, ...packStatements(pack)] : claims;
+}
+
 export function titleRuleFor(pack: ContextPack, page: TitledPage): TitleRuleInputs {
   const market = (pack.business.market ?? {}) as PackMarket;
   const named = Array.isArray(market.rivals) ? market.rivals.flatMap((rival) => text((rival as { name?: unknown } | null)?.name)) : [];
@@ -77,9 +83,7 @@ export function titleRuleFor(pack: ContextPack, page: TitledPage): TitleRuleInpu
     rivals: pack.type === "listicle" ? [...new Set([...named, ...domains])].filter((name) => name.length > 2) : [],
     places: [...text(market.area?.place?.name), ...text(market.area?.place?.region)],
     holds: [
-      ...pack.facts.map((fact) => fact.passage),
-      ...pack.claims.map((claim) => claim.passage),
-      ...packStatements(pack),
+      ...evidenceOf(pack),
       ...pack.target.searches,
       [...counts.values(), ...listed, pack.questions.length, options ?? 0].filter((count) => count > 1).join(" "),
     ].join("\n"),
@@ -97,7 +101,7 @@ export function titleRuleFor(pack: ContextPack, page: TitledPage): TitleRuleInpu
  *  neither is the number of an episode or an issue. */
 function figuresOf(pack: ContextPack): string[] {
   const said = withoutSerials(
-    [...pack.facts.map((fact) => fact.passage), ...pack.claims.map((claim) => claim.passage), ...packStatements(pack)].join("\n"),
+    evidenceOf(pack).join("\n"),
     pack.locale?.language ?? "en"
   );
   const seen = new Set<string>();

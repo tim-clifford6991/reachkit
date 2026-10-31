@@ -146,7 +146,7 @@ describe("what a title is held to is read off the pack", () => {
   });
 
   it("the writer is shown the figures the pack states, and told a statement where the search is one", () => {
-    const brief = titleBrief(pack({ target: { question: "What is the best project management software?", searches: ["best project management software"] } }));
+    const brief = titleBrief(pack({ type: "offering", target: { question: "What is the best project management software?", searches: ["best project management software"] } }));
     expect(brief.figures).toEqual(["plan get 25 seats and unlimited"]);
     expect((brief.rules as string[]).join(" ")).toContain("never a question");
   });

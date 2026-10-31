@@ -287,7 +287,7 @@ const CLEAN_MARKDOWN = [
 ].join("\n");
 
 const PAGE_BODY = {
-  title: "Project management software for small teams: 25 seats, one fee",
+  title: "Project management software for small teams: guests view free",
   question: "Which project management software should a small team pick?",
   slug: "best-project-management-software",
   description:

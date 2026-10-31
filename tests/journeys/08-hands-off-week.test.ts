@@ -270,7 +270,7 @@ const TOPICS = [
 function pageFor(query: string) {
   const index = Math.max(0, TOPICS.findIndex(([topic]) => query.includes(topic)));
   const [topic, advice] = TOPICS[index] ?? TOPICS[0];
-  const title = `${topic.charAt(0).toUpperCase()}${topic.slice(1)}: 25 seats on a flat fee`;
+  const title = `${topic.charAt(0).toUpperCase()}${topic.slice(1)}: guests who only view are free`;
   const question = `Which ${topic} fit a growing company?`;
   const markdown = [
     `## ${question}`,
