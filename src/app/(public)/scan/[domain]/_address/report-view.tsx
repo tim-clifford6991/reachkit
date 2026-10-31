@@ -485,6 +485,10 @@ export function ReportView(p: {
   const measurement = measurementLine(report);
   const rescored = rescoredOf(report);
   const cards = cardsOf(report, unblockLines(report.blockedAgents));
+  const checks = checkCardsOf(
+    readingsOf(report.siteIssues, report.verdict.measuredAt),
+    identityReading(report.siteIssues, report.onPage.kind === "unmeasured" ? null : report.onPage.value.schemaTypes)
+  );
   const cutOff = cutByCeiling(report);
   const missingPages = missingPagesOf(report);
   const profile = profileOfReport(report);
@@ -622,18 +626,13 @@ export function ReportView(p: {
               </span>
               <div className="min-w-0">
                 <h2 className="text-2xl font-bold">{copy("problem.section.title")}</h2>
-                <p className="text-base-content/70 text-sm font-normal">{copy("problem.section.sub")}</p>
+                <p className="text-base-content/70 text-sm font-normal">{copy("problem.section.sub", { problems: String(cards.length), checks: String(checks.length) })}</p>
               </div>
             </div>
           </summary>
           <div className="collapse-content flex min-w-0 flex-col gap-3 px-px">
             <ProblemCards cards={cards} firstPage={report.freePage !== null} />
-            <CheckCards
-              cards={checkCardsOf(
-                readingsOf(report.siteIssues, report.verdict.measuredAt),
-                identityReading(report.siteIssues, report.onPage.kind === "unmeasured" ? null : report.onPage.value.schemaTypes)
-              )}
-            />
+            <CheckCards cards={checks} />
           </div>
         </details>
         {/* The method: three sections, each closed, where each problem

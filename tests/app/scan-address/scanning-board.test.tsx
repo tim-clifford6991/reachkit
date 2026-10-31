@@ -149,7 +149,7 @@ describe("the scan in progress matches board PubScanning", () => {
     expect(screen.querySelector('a[href="/how-it-works"]')).not.toBeNull();
   });
 
-  it("Your report, filling in: six cards in the board's order, each saying whether its stage has run", async () => {
+  it("Your report so far: six cards in the board's order, each saying whether its stage has run", async () => {
     const screen = await partWay();
     inOrder(screen, [
       copy("scan.filling.title"),

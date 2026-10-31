@@ -265,24 +265,22 @@ describe("the thirteen band words are the ruled words", () => {
 describe("the thirteen keys the owner ruled 2026-09-04 (WO-041 `## Log`, this date's ruling)", () => {
   it("price and offer — unslotted", () => {
     expect(copy("price.amount")).toBe("€49");
-    expect(copy("price.interval")).toBe("per month, VAT included");
+    expect(copy("price.interval")).toBe("a month · tax included");
     expect(copy("offer.start")).toBe("Start ReachKit");
   });
 
   it("price and offer — slotted, {value}", () => {
     expect(copy("offer.cadence.page", { weekPages: 7 })).toBe(
-      "Up to 7 pages a week for your site, new or updated"
+      "Up to 7 pages a week, new or updated"
     );
-    expect(copy("offer.cadence.movement", { value: "every week" })).toBe(
-      "What moved, in your inbox every week"
-    );
+    expect(copy("offer.cadence.movement")).toBe("A Monday email shows what went live and what moved.");
     expect(copy("offer.veto.window", { value: "24 hours" })).toBe(
       "Every page goes live on its own after 24 hours. You can edit or stop it before then."
     );
   });
 
   it("report — no-presence-yet line for the first page of the rival list", () => {
-    expect(copy("place.report.first-page.rival")).toBe("No competitor holds this yet");
+    expect(copy("place.report.first-page.rival")).toBe("No competitor yet");
   });
 
   it("stopped-work law — two of the five lines", () => {
@@ -322,8 +320,8 @@ describe("the thirteen keys the owner ruled 2026-09-04 (WO-041 `## Log`, this da
   it("the one key this ruling did not cover carries the owner's later sentence", () => {
     // `price.vat_included` stood empty, guarded by the empty-value throw,
     // until the owner approved its sentence on 2026-09-10 (#459).
-    expect(COPY["price.vat_included"]).toBe("VAT included");
-    expect(copy("price.vat_included")).toBe("VAT included");
+    expect(COPY["price.vat_included"]).toBe("Tax included");
+    expect(copy("price.vat_included")).toBe("Tax included");
     expect(OWNER_OWED).not.toContain("price.vat_included");
   });
 });
@@ -343,7 +341,7 @@ describe("the five keys the owner ruled 2026-09-11 (DECISIONS 2026-09-11, #516)"
   it("the three that stood at the marker carry the owner's sentences", () => {
     expect(COPY["record.verification.never.noLiveAddress"]).toBe("not checked");
     expect(COPY["notice.site-unreadable"]).toBe(
-      "We couldn’t read this site’s home page, so nothing here could be measured. Check the address and scan again."
+      "We couldn’t read this site’s home page. Check the address and scan again."
     );
     expect(COPY["settings.voice.remove-claim"]).toBe("Remove {claim}");
     expect(copy("settings.voice.remove-claim", { claim: "cheapest" })).toBe("Remove cheapest");

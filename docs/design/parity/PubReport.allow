@@ -47,22 +47,22 @@ Cancel your contract	owner 2026-10-20 Q13: shown once the launch gate opens
 Your free report sample	sample data: the board's sample tag beside the eyebrow
 Visibility Score sample	sample data: the board's sample tag beside the eyebrow
 sample	sample data: the board's sample tag beside the AI heading
-measured 19 Oct 2026 · Plumber. Measured in Google United States, in English.	sample data: the date and the category are Harbor Plumbing's
+Scanned 19 Oct 2026 · Plumber. Searched on Google in the US, in English.	sample data: the date and the category are Harbor Plumbing's
 Biggest gap: your pages don’t answer buyers’ questions	SPEC §0 2026-10-15: a title is at most six words; owner R12 2026-10-22 B1 ships "Biggest gap: Content" and two lines
-Hard to find somewhere between 22 and 32	sample data
-Readiness 6/10	sample data
-Content 1/10	sample data
+Hard to find likely 22 to 32	sample data
+Website basics 6/10	sample data
+Answers questions 1/10	sample data
 Google 2/10	sample data
 Buyers are sent mostly to a national plumbing chain. You showed up 3 times out of 24. 1 AI answer + 2 Google searches	sample data
 1 of 12 AI answers that mention you	sample data
 austinpipeworks.example 5	sample data
 capitolrooter.example 2	sample data
 You harborplumbing.com 1	sample data
-One of the answers, asked emergency plumber austin “For a burst pipe or no hot water, many Austin homeowners call Austin Pipeworks or Capitol Rooter.”	sample data: the search and the quoted answer are Harbor Plumbing's
+One answer, for emergency plumber austin “For a burst pipe or no hot water, many Austin homeowners call Austin Pipeworks or Capitol Rooter.”	sample data: the search and the quoted answer are Harbor Plumbing's
 austinpipeworks.example 8	sample data
 capitolrooter.example 5	sample data
 You harborplumbing.com 2	sample data
-Searched most: emergency plumber austin, about 2,400 times a month. First: a national plumbing chain	sample data
+Most searched: emergency plumber austin, about 2,400 times a month. First on Google: a national plumbing chain.	sample data
 austinpipeworks.example	sample data
 capitolrooter.example	sample data
 Every figure here is a sample for the fictional Harbor Plumbing, Austin. Competitor websites are fictional too.	sample data: the board's caption on its own sample
@@ -75,7 +75,7 @@ Pages hidden from search Nothing to fix	sample data: the statuses are Harbor Plu
 No page list for Google Free fix · 10 min	sample data: the statuses are Harbor Plumbing's; the sample report ran no checks
 Slow pages 2 pages	sample data: the statuses are Harbor Plumbing's; the sample report ran no checks
 Hard to use on a phone Nothing to fix	sample data: the statuses are Harbor Plumbing's; the sample report ran no checks
-That’s page 1 of 14 we found for you. sample	sample data: the page count is Harbor Plumbing's
+1 of the 14 pages we found. sample	sample data: the page count is Harbor Plumbing's
 Harbor Plumbing finds a slab leak with listening equipment before opening any floor. from harborplumbing.com/slab-leaks The price depends on where the leak is and how it is reached…	owner R26 2026-10-23: stored first lines once written (tests/app/scan-address/first-page-preview.test.tsx)
 Drawn open as it looks when reached from “Get your first page free ↓”. It starts closed, like the sections above.	#1714: the board's own caption on how it draws the first page
 Every figure on this artboard is a sample for the fictional Harbor Plumbing, Austin. Competitor websites are fictional too.	sample data: the board's caption on its own sample
@@ -89,6 +89,6 @@ page 2 Emergency plumber in Austin: what to do in the first hour searched 2,400 
 page 3 Water heater repair in Austin: prices and how long it takes searched 1,300 times a month	sample data: Harbor Plumbing's buyer question and volume; the card shows the stored question (2026-10-24 E16)
 page 4 Drain cleaning in Austin: what’s included searched 880 times a month	sample data: Harbor Plumbing's buyer question and volume; the card shows the stored question (2026-10-24 E16)
 page 5 Leak detection in Austin: how a plumber finds a hidden leak searched 320 times a month	sample data: Harbor Plumbing's buyer question and volume; the card shows the stored question (2026-10-24 E16)
-All 14, nothing hidden. Pages 6 to 14 show the search each one answers. Sample for an example business.	sample data: Harbor Plumbing's 14 and the board's caption on its own sample; the fixture ships "All 7, nothing hidden. Pages 6 to 7 show the search each one answers." (2026-10-24 E16)
+All 14, nothing hidden. Pages 6 to 14 show their search. Sample for an example business.	sample data: Harbor Plumbing's 14 and the board's caption on its own sample; the fixture ships "All 7, nothing hidden. Pages 6 to 7 show the search each one answers." (2026-10-24 E16)
 Local service	sample data: Harbor Plumbing's kind; the fixture's kind is software
 Articles	#1512: the footer links the content host's index only where stored rows name one; the sweep seeds none

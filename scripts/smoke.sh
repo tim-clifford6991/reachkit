@@ -120,7 +120,8 @@ copy_text() {
 notices_clear() {
   local incomplete unreadable
   incomplete=$(copy_text "notice.incomplete")
-  incomplete=${incomplete%%:*}
+  # The fixed words after the last slot: the part every incomplete report prints verbatim.
+  incomplete=${incomplete##*\}}
   [ -n "$incomplete" ] || fail "$step" "the copy registry binds no notice.incomplete"
   grep -qF "$incomplete" "$1" && fail "$step" "the report shows the incomplete notice"
   unreadable=$(copy_text "notice.site-unreadable")

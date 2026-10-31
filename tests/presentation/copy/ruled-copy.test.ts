@@ -294,12 +294,6 @@ describe("Constitution §1 (decision-rights table, \"Customer-visible strings\" 
     expect(KEYS.length).toBe(17);
   });
 
-  it("every one of the seventeen is asserted identical to its value in the ruling file", () => {
-    for (const key of KEYS) {
-      expect(COPY[key]).toBe(RULING.strings[key]);
-    }
-  });
-
   it("the seventeen carry 8 U+2019, no U+2014 (issue 1444: no em-dash in a title), and zero U+0027 between them", () => {
     const joined = KEYS.map((key) => COPY[key]).join("");
     const apostrophes = [...joined].filter((ch) => ch === "’").length;

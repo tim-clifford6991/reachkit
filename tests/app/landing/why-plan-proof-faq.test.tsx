@@ -228,10 +228,10 @@ describe("Questions owners ask", () => {
     expect(whenIcons(faq.toString())).toEqual({ steps: ["calendar", "search", "eye", "trending-up"], notes: ["info", "map-pin"] });
   });
 
-  it("the spam answer names Claude, and the results answer says search engines move at their own pace", async () => {
+  it("the spam answer names Claude, and the results answer says where the Monday email shows the pages", async () => {
     const text = flat((await render()).querySelector("section#faq")!);
     expect(text).toContain("written with Claude, an AI model");
-    expect(text).toContain("After that, search engines move at their own pace.");
+    expect(text).toContain("Each Monday email shows where they sit on Google, and whether AI links to them.");
   });
 
   it("the section ends with every question, with the detail, on How it works", async () => {
