@@ -1,7 +1,7 @@
 // scripts/derivation.mjs — issue 1481
 //
 // The re-score's derivation: one fingerprint of every file under `src/lib`
-// that `src/lib/scan/rescore-run.ts` reaches through its static imports —
+// that `src/lib/scan/rescore-run.ts` reaches through its static value imports —
 // the scoring, the drivers, the rivals, the markets and the reading a stored
 // scan is given again (issues 1426, 1433, 1470). `next.config.ts` computes it
 // at build and the deployment carries it as `RK_DERIVATION`, so the
@@ -9,15 +9,29 @@
 // asks for the dry run and the apply itself.
 //
 // A dynamic `import()` is not followed: the re-score reaches the database
-// that way, and the database is not how a scan is read. Plain JavaScript, so
-// the build can import it without TypeScript.
+// that way, and the database is not how a scan is read. A type-only import is
+// not followed either: the build erases it, so its module never runs while a
+// scan is scored. Plain JavaScript, so the build can import it without
+// TypeScript.
 import { createHash } from "node:crypto";
 import { existsSync, readFileSync, statSync } from "node:fs";
 import { dirname, join, relative, resolve } from "node:path";
 
 const ENTRY = "src/lib/scan/rescore-run.ts";
 const SCOPE = "src/lib/";
-const STATIC_IMPORT = /(?:^|\n)\s*(?:import|export)\s[^;]*?from\s*["']([^"']+)["']|(?:^|\n)\s*import\s*["']([^"']+)["']/g;
+const STATIC_IMPORT = /(?:^|\n)\s*(?:import|export)\s([^;]*?)from\s*["']([^"']+)["']|(?:^|\n)\s*import\s*["']([^"']+)["']/g;
+
+/** Whether an import or re-export clause names a value: `type X`,
+ *  `{ type X }` and `{ type X, type Y }` name only types. */
+function namesAValue(clause) {
+  if (clause === undefined) return true;
+  const c = clause.trim();
+  if (/^type\s/.test(c)) return false;
+  const braces = /^\{([^}]*)\}$/.exec(c);
+  if (braces === null) return true;
+  const names = braces[1].split(",").map((n) => n.trim()).filter((n) => n !== "");
+  return names.length === 0 || names.some((n) => !/^type\s/.test(n));
+}
 
 function resolved(root, from, specifier) {
   const base = specifier.startsWith("@/")
@@ -42,7 +56,8 @@ export function derivationFiles(root = process.cwd()) {
     seen.add(file);
     const text = readFileSync(file, "utf8");
     for (const match of text.matchAll(STATIC_IMPORT)) {
-      const next = resolved(root, file, match[1] ?? match[2]);
+      if (!namesAValue(match[1])) continue;
+      const next = resolved(root, file, match[2] ?? match[3]);
       if (next !== null && relative(root, next).startsWith(SCOPE)) queue.push(next);
     }
   }
