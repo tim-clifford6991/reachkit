@@ -15,6 +15,7 @@ import { runHardRules } from "../../../src/lib/generate/rules";
 import type { TitleRuleInputs } from "../../../src/lib/generate/rules/title";
 import { renderOf } from "../../../src/lib/generate/rules/text";
 import type { PromptKnowledge } from "../../../src/lib/generate/voice/profile-block";
+import STOPPED from "../fixtures/fit-claim-stopped-2026-10.json";
 
 const SITE = { businessName: "ReachKit", domain: "reachkit.app" };
 const TITLE = "ReachKit vs Seobility";
@@ -47,6 +48,16 @@ describe("a title the title rule makes name the business is not a fit claim", ()
 
   it("leaves the required title out, and still sends a body sentence that names the business", () => {
     expect(brandSentences({ ...SITE, title: TITLE, markdown: `Both tools audit pages.\n\n${CLAIM}`, titleOwed: true })).toEqual([CLAIM]);
+  });
+
+  it("the stopped drafts' flagged lines were their own links, and a line that is only a link is not read", () => {
+    for (const draft of STOPPED.drafts) {
+      const flagged = draft.rule_failures.flatMap((failure) => failure.detail.sentences);
+      expect(draft.links.map((link) => link.label)).toEqual(expect.arrayContaining(flagged));
+      const related = draft.links.map((link) => `- [${link.label}](${link.url})`).join("\n");
+      expect(brandSentences({ ...SITE, title: draft.title, markdown: `${CLAIM}\n\n${related}` })).toEqual([CLAIM]);
+    }
+    expect(brandSentences({ ...SITE, title: "", markdown: `See [${CLAIM}](https://reachkit.app/) today.` })).toHaveLength(1);
   });
 
   it("still reads a title the title rule does not make name the business", () => {

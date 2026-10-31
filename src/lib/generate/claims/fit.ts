@@ -55,11 +55,13 @@ const FIT_CHECK_SCHEMA = z.strictObject({
 
 const TABLE_LINE_RE = /^[ \t]*\|.*\|[ \t]*$/;
 const TABLE_RULE_RE = /^[ \t|:-]+$/;
+const LINK_LINE_RE = /^[ \t]*(?:[-*+]|\d+\.)?[ \t]*\[[^\]]+\]\([^)]+\)[ \t]*$/;
 
 /** The sentences a fit check reads: the title and every sentence of the
  *  body that names the business, once each, in order. A title the title rule
  *  makes name the business ("ReachKit vs Seobility") claims no fit and is
- *  left out. A table is read row
+ *  left out, and so is a line that is only a link: its label is another
+ *  page's title, not a claim of this one. A table is read row
  *  by row — the rules' own splitter takes a whole table as one block, and a
  *  whole comparison is not a claim about one business. */
 export function brandSentences(a: {
@@ -72,7 +74,7 @@ export function brandSentences(a: {
   const tokens = brandTokens(a);
   const out: string[] = [];
   const lines = a.markdown.split("\n");
-  const prose = lines.filter((line) => !TABLE_LINE_RE.test(line)).join("\n");
+  const prose = lines.filter((line) => !TABLE_LINE_RE.test(line) && !LINK_LINE_RE.test(line)).join("\n");
   const rows = lines
     .filter((line) => TABLE_LINE_RE.test(line) && !TABLE_RULE_RE.test(line))
     .map((line) => renderOf(line).replace(/\s+/g, " ").trim());
