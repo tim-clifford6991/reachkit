@@ -28,6 +28,7 @@ import {
   siteInputs,
   type MemoryStore,
 } from "../fixtures";
+import { GERMAN_NOT, GERMAN_NOT_FITTED } from "../fixtures/german-description";
 
 const { llmMock, readMeasuredTextMock } = vi.hoisted(() => ({
   llmMock: vi.fn(),
@@ -103,6 +104,13 @@ describe("a page that clears every check", () => {
     expect((row?.meta as { pack: unknown }).pack).toEqual(pack());
     // A page no week committed states no why.
     expect((row?.meta as { why?: unknown }).why).toBeUndefined();
+  });
+
+  it("a German page's description is cut by German function words, whatever the checks then say", async () => {
+    answers(pageParts(CLEAN_MARKDOWN, { description: GERMAN_NOT }), pageParts(CLEAN_MARKDOWN, { description: GERMAN_NOT }));
+    const { draftId } = await run({ pack: pack({ locale: { country: "DE", language: "de" } }) });
+    const row = store.rows.get(draftId ?? "");
+    expect((row?.meta as { description?: string }).description).toBe(GERMAN_NOT_FITTED);
   });
 
   it("a page the week committed keeps why it holds the slot", async () => {
