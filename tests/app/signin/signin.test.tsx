@@ -207,6 +207,7 @@ describe('SPEC §3 — "Sign-in copy is identical whatever the address, revealin
     vi.resetModules();
     const requestMagicLink = vi.fn(async () => ({ answered: true }));
     vi.doMock("@/lib/account/provisioning/magic-link", () => ({ requestMagicLink }));
+    vi.doMock("next/headers", () => ({ headers: async () => new Headers({ "x-forwarded-for": "203.0.113.7" }) }));
     const { sendLink } = await import(ACTIONS_MODULE);
     const { SIGN_IN_INITIAL } = await import(STATE_MODULE);
     const form = new FormData();
@@ -216,8 +217,9 @@ describe('SPEC §3 — "Sign-in copy is identical whatever the address, revealin
       value: "someone@example.com",
       sentAt: expect.any(Number),
     });
-    expect(requestMagicLink).toHaveBeenCalledWith("someone@example.com");
+    expect(requestMagicLink).toHaveBeenCalledWith("someone@example.com", expect.stringMatching(/^[0-9a-f]{64}$/));
     vi.doUnmock("@/lib/account/provisioning/magic-link");
+    vi.doUnmock("next/headers");
   });
 });
 
