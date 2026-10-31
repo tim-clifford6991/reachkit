@@ -3,6 +3,7 @@
 // No page rests in `failed` without a further attempt scheduled or the move to `needs_attention` made, except while
 // publishing is off: a due retry is withheld, since the customer paused on purpose and is not needed.
 import { PUBLISH_RETRY_BACKOFF_MIN } from "@/lib/config/constants";
+import { critical, needsYouOf } from "../record/needs-you";
 import { isPublishingOn } from "../switch";
 import type { GuardDeps } from "../machine";
 import { transition } from "../machine";
@@ -11,6 +12,18 @@ import { isRetryable } from "./index";
 
 /** §9's "×3", read off the backoff pin so the count and the schedule cannot disagree. */
 export const MAX_RETRIES = PUBLISH_RETRY_BACKOFF_MIN.length;
+
+/** Owner O7's daily re-attempt of a publish tried to exhaustion, made through `needs_attention → publishing`, whose
+ *  guards all still hold it. */
+export const REATTEMPT_BY: Actor = { kind: "system", job: "publish/retry" };
+
+/** Whether a page resting on a publish tried to exhaustion is re-attempted now: a day after its last claim, while the
+ *  cause is not yet critical. A destination the customer must fix is never re-attempted here. */
+export function reattemptDue(page: { state: unknown; transitions: unknown; claimedAt: Date }, now: Date): boolean {
+  const cause = page.state === "needs_attention" ? needsYouOf({ state: "needs_attention", transitions: page.transitions }) : null;
+  if (cause?.kind !== "delivery" || critical(cause, now)) return false;
+  return now.getTime() - page.claimedAt.getTime() >= 86_400_000;
+}
 
 export type RetryDecision =
   | { kind: "retry"; dueAt: Date; retryNo: number }

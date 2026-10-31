@@ -8,8 +8,18 @@
 //   `step_failed:pack:<need,need>`  the context pack was short of what the template asks, so nothing was written
 //   `reason_needs_customer`         §9, a publish failure no retry could clear (`decideRetry`)
 //   `retries_exhausted`             §9, the publish was tried ×3 and did not go
+//   `live_edit`                     the customer's own edit of a live page, held until it passes
 // Anything else is `unknown`, which claims nothing about why. Pure, so every surface reads one derivation without a db client.
+import { DELIVERY_REATTEMPT_DAYS } from "@/lib/config/constants";
 import type { State } from "../types";
+
+/** Every reason a writer may record on a move into `needs_attention`; closed, so a new one is classified before it compiles. */
+export type StopReason =
+  | `rules:${string}`
+  | `step_failed:${string}`
+  | "reason_needs_customer"
+  | "retries_exhausted"
+  | "live_edit";
 
 /** Why a page rests in `needs_attention`; closed, each member carrying what its sentence and action need. */
 export type NeedsYouCause =
@@ -28,12 +38,16 @@ export type NeedsYouCause =
   | { kind: "pack"; missing: string[] }
   /** Undeliverable for a reason no retry clears; which one is the destination's own state to say. */
   | { kind: "destination" }
-  /** The publish was attempted the full three times and did not go. */
-  | { kind: "delivery" }
+  /** The publish was attempted the full three times and did not go. `since` is the first time it rested so, where read. */
+  | { kind: "delivery"; since?: string }
+  /** The customer's own edit of a live page breaks a rule; their words wait on them. */
+  | { kind: "live_edit" }
   /** The row records no reason this build can read. */
   | { kind: "unknown" };
 
 export type NeedsYouKind = NeedsYouCause["kind"];
+/** The causes that can be critical, and so the only ones with a sentence. */
+export type CriticalKind = Extract<NeedsYouKind, "destination" | "delivery" | "live_edit" | "unknown">;
 
 interface TransitionLike {
   to?: unknown;
@@ -77,13 +91,25 @@ export function needsYouCauseOf(reason: string | null): NeedsYouCause {
   }
   if (reason === "reason_needs_customer") return { kind: "destination" };
   if (reason === "retries_exhausted") return { kind: "delivery" };
+  if (reason === "live_edit") return { kind: "live_edit" };
   return { kind: "unknown" };
 }
 
 /** The cause for a page resting in `needs_attention`; `null` in any other state. */
 export function needsYouOf(a: { state: State; transitions: unknown }): NeedsYouCause | null {
   if (a.state !== "needs_attention") return null;
-  return needsYouCauseOf(restedReasonOf(a.transitions));
+  const cause = needsYouCauseOf(restedReasonOf(a.transitions));
+  const since = cause.kind === "delivery" ? exhaustedSince(a.transitions) : null;
+  return since === null ? cause : { kind: "delivery", since };
+}
+
+/** When the page first rested with its publish tried to exhaustion, or `null`. */
+export function exhaustedSince(transitions: unknown): string | null {
+  if (!Array.isArray(transitions)) return null;
+  const first = (transitions as TransitionLike[]).find(
+    (move) => move !== null && typeof move === "object" && move.to === "needs_attention" && move.reason === "retries_exhausted"
+  ) as (TransitionLike & { at?: unknown }) | undefined;
+  return typeof first?.at === "string" ? first.at : null;
 }
 
 /** Whether it waits on the destination: the two delivery causes only. The reconnect control turns on this, never a stage. */
@@ -91,8 +117,24 @@ export function waitsOnDestination(cause: NeedsYouCause | null): boolean {
   return cause !== null && (cause.kind === "destination" || cause.kind === "delivery");
 }
 
-/** Whether it waits on the customer at all. On autopilot, owner action is never required: a page the writing stopped
- *  rests and the day goes to another topic. Only a destination to reconnect, or no stated cause, waits on them. */
-export function waitsOnCustomer(cause: NeedsYouCause | null): boolean {
-  return cause === null || waitsOnDestination(cause) || cause.kind === "unknown";
+/** Whether the cause is critical for the customer (owner O7): a destination they must fix, their own words, or a cause
+ *  this build cannot read. A page the writing stopped is the system's to rescue or set aside, and a publish that did not
+ *  go is re-attempted daily until it is older than `DELIVERY_REATTEMPT_DAYS`. Only a critical cause is told; no cause is none. */
+export function critical(cause: NeedsYouCause | null, now: Date): boolean {
+  switch (cause?.kind) {
+    case undefined:
+      return false;
+    case "destination":
+    case "live_edit":
+    case "unknown":
+      return true;
+    case "delivery":
+      return cause.since === undefined || now.getTime() - Date.parse(cause.since) > DELIVERY_REATTEMPT_DAYS * 86_400_000;
+    case "rules":
+    case "step":
+    case "adds":
+    case "elsewhere":
+    case "pack":
+      return false;
+  }
 }

@@ -44,10 +44,13 @@ export async function deliverApproved(a: {
   draftId: string;
   destinationId: string;
   at?: Date;
+  /** Who makes the moves; the job, unless a daily re-attempt names itself. */
+  by?: Actor;
   /** The guard facts as `publish()` takes them, for suites; the engine passes none and the real guards run. */
   deps?: GuardDeps;
 }): Promise<ApprovedDelivery> {
   const at = a.at ?? new Date();
+  const by = a.by ?? BY;
   const destination = await readDestination(a.destinationId);
 
   // A destination gone or disconnected is a hold, as `destination_working` answers, and it goes out on reconnect.
@@ -59,7 +62,7 @@ export async function deliverApproved(a: {
   const result = await publish({
     draftId: a.draftId,
     destination: destination.kind,
-    by: BY,
+    by,
     at,
     ...(a.deps === undefined ? {} : { deps: a.deps }),
   });
@@ -91,7 +94,7 @@ export async function deliverApproved(a: {
     siteId: (await siteOf(a.draftId)) ?? "",
     reason: result.reason,
     attemptNo: result.attemptNo,
-    by: BY,
+    by,
     at,
     ...(a.deps === undefined ? {} : { deps: a.deps }),
   });

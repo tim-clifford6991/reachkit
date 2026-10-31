@@ -111,20 +111,30 @@ describe("issue 880 — a needs-you alert says why, from the page's own record",
     return alert;
   };
 
-  it("the owner's own page: the §8 rules stopped it, so it is read — never reconnected", () => {
-    const alert = needsYou({ kind: "rules", rules: ["no_private_figure", "brand_gap"] });
-    expect(alert.lineKey).toBe(NEEDS_YOU_COPY.rules);
-    expect(alert.actionKey).toBe("overview.alert.needs-you.read");
-    // The fault: "Reconnect", and a line claiming the page could not be
-    // delivered, on a page that was never sent anywhere.
-    expect(alert.actionKey).not.toBe("overview.alert.needs-you.action");
-    expect(alert.lineKey).not.toBe("overview.alert.needs-you.cause");
+  it("a page the system rescues or sets aside is no alert at all (owner O7)", () => {
+    const stopped: WaitingDraft["cause"][] = [
+      { kind: "rules", rules: ["no_private_figure", "brand_gap"] },
+      { kind: "step", step: "claim_check" },
+      { kind: "adds" },
+      { kind: "elsewhere" },
+      { kind: "pack", missing: ["buyer_questions"] },
+    ];
+    for (const cause of stopped) {
+      expect(readAlerts([item({ kind: "needs_you", cause, href: "/app/draft/1" })], AT).alerts, cause?.kind).toEqual([]);
+    }
   });
 
-  it("a step that could not run is read too, and says so", () => {
-    const alert = needsYou({ kind: "step", step: "claim_check" });
-    expect(alert.lineKey).toBe(NEEDS_YOU_COPY.step);
+  it("the customer's own edit of a live page stays an alert, read where it is", () => {
+    const alert = needsYou({ kind: "live_edit" });
+    expect(alert.lineKey).toBe(NEEDS_YOU_COPY.live_edit);
     expect(alert.actionKey).toBe("overview.alert.needs-you.read");
+  });
+
+  it("a publish tried to exhaustion is re-attempted for seven days, and only then an alert", () => {
+    const day = 86_400_000;
+    const since = (days: number) => new Date(AT.getTime() - days * day).toISOString();
+    expect(readAlerts([item({ kind: "needs_you", cause: { kind: "delivery", since: since(7) } })], AT).alerts).toEqual([]);
+    expect(needsYou({ kind: "delivery", since: since(8) }).lineKey).toBe(NEEDS_YOU_COPY.delivery);
   });
 
   it("a page waiting on the destination keeps the reconnect and the delivery line", () => {

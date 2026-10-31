@@ -10,11 +10,13 @@
 // read the same stage and have opposite answers.
 import { describe, expect, it } from "vitest";
 import {
+  critical,
   needsYouCauseOf,
   needsYouOf,
   restedReasonOf,
   waitsOnDestination,
 } from "@/lib/publish/record/needs-you";
+import type { transition } from "@/lib/publish/machine";
 import { NEEDS_YOU_COPY } from "@/lib/publish/record/lines";
 import { COPY } from "@/lib/presentation/copy";
 
@@ -130,10 +132,7 @@ describe("one sentence per cause, and every one of them written", () => {
     for (const key of keys) expect(COPY[key], key).not.toBe("");
   });
 
-  it("the rules sentence does not claim a delivery, and the delivery one does not blame the writing", () => {
-    // The two the fault conflated. A page the rules stopped was never
-    // sent; a page waiting on a destination was written correctly.
-    expect(COPY[NEEDS_YOU_COPY.rules]).not.toMatch(/deliver/i);
+  it("the delivery sentence does not blame the writing", () => {
     expect(COPY[NEEDS_YOU_COPY.destination]).not.toMatch(/rules/i);
   });
 
@@ -141,5 +140,41 @@ describe("one sentence per cause, and every one of them written", () => {
     for (const key of Object.values(NEEDS_YOU_COPY)) {
       expect(COPY[key], key).not.toMatch(/WordPress/i);
     }
+  });
+});
+
+// Owner O7: only a cause critical for the customer is told.
+describe("what is critical for the customer", () => {
+  const NOW = new Date("2026-10-31T08:00:00.000Z");
+  const rested = (reason: string, at: string) => ({ from: "failed", to: "needs_attention", reason, at });
+
+  it("a destination they must fix, their own live edit, and a cause this build cannot read", () => {
+    for (const reason of ["reason_needs_customer", "live_edit", "something_new"]) {
+      expect(critical(needsYouCauseOf(reason), NOW), reason).toBe(true);
+    }
+  });
+
+  it("never a page the writing stopped: the system rescues or sets it aside", () => {
+    for (const reason of ["rules:brand_gap", "step_failed:claim_check", "step_failed:adds", "step_failed:elsewhere", "step_failed:pack:buyer_questions"]) {
+      expect(critical(needsYouCauseOf(reason), NOW), reason).toBe(false);
+    }
+    expect(critical(null, NOW)).toBe(false);
+  });
+
+  it("a publish tried to exhaustion becomes critical after seven days, counted from its first rest", () => {
+    const transitions = (first: string) => [rested("retries_exhausted", first), { from: "needs_attention", to: "publishing", at: "2026-10-30T08:00:00.000Z" }, rested("retries_exhausted", "2026-10-30T08:05:00.000Z")];
+    const cause = (first: string) => needsYouOf({ state: "needs_attention", transitions: transitions(first) });
+    expect(cause("2026-10-24T08:00:00.000Z")).toEqual({ kind: "delivery", since: "2026-10-24T08:00:00.000Z" });
+    expect(critical(cause("2026-10-24T08:00:00.000Z"), NOW)).toBe(false);
+    expect(critical(cause("2026-10-24T07:59:00.000Z"), NOW)).toBe(true);
+  });
+
+  it("an unclassified reason into needs_attention does not compile; any reason into another state does", () => {
+    type Into<S extends Parameters<typeof transition>[1]> = NonNullable<Parameters<typeof transition<S>>[3]>;
+    const classified: Into<"needs_attention">[] = [{ reason: "rules:brand_gap" }, { reason: "retries_exhausted" }, { reason: "live_edit" }];
+    // @ts-expect-error a cause nobody classified
+    const unclassified: Into<"needs_attention"> = { reason: "rate_limited" };
+    const elsewhere: Into<"publishing"> = { reason: "publish/execute" };
+    expect([...classified, unclassified, elsewhere]).toHaveLength(5);
   });
 });

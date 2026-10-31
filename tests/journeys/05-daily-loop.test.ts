@@ -1125,8 +1125,10 @@ describe("the daily loop: pick → generate → tell → publish → +24h check 
       expect(db.rows("publications")).toHaveLength(1);
       expect(wordpress.posts).toEqual([]);
 
-      // And the tick lets it alone now — it has come to rest.
-      expect(await dueRetries(new Date(Date.now() + 86_400_000))).toEqual([]);
+      // Owner O7: the tick lets it rest for a day, then re-attempts it as itself, and past seven days leaves it to the customer.
+      expect(await dueRetries(new Date(Date.now() + 3_600_000))).toEqual([]);
+      expect(await dueRetries(new Date(Date.now() + 86_400_000))).toEqual([{ draftId, destinationId: DEST_ID, by: { kind: "system", job: "publish/retry" } }]);
+      expect(await dueRetries(new Date(Date.now() + 8 * 86_400_000))).toEqual([]);
     },
     JOURNEY_TIMEOUT_MS
   );

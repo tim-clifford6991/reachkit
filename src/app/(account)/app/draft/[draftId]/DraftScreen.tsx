@@ -84,8 +84,7 @@ import { kindWord } from "../../calendar/card-lines";
 import { NO_LINK_RECORD, linksOnPage } from "./links-panel";
 import { useDebounced } from "./useDebounced";
 import { SHAPE } from "./shape";
-import { NEEDS_YOU_COPY } from "@/lib/publish/record/lines";
-import { PACK_NEED_COPY, wordCount, type ClaimState, type DraftView } from "./model";
+import { wordCount, type ClaimState, type DraftView } from "./model";
 import { NO_CHECKS, type RecordedChecks } from "@/lib/generate/rules/types";
 
 /** The three fields the founder edits (#789), as one value: the buffer, the
@@ -341,25 +340,6 @@ export function DraftScreen(p: {
   const current = sameText(text, checked.text);
   const claim = current ? checked.claim : claimAfterSave();
   const recordedChecks = current ? checked.recordedChecks : NO_CHECKS;
-  /** Issue 1252: the page was not written because its context pack was
-   *  short. The cause's own sentence — the one the Plan and Overview state
-   *  for this page — and, under it, what was missing. Gone once the page
-   *  leaves `needs_attention`. */
-  const packShort =
-    view.packShort === undefined || state !== "needs_attention" ? null : (
-      <div role="alert" className="alert alert-warning alert-vertical justify-items-start text-start text-sm" data-testid="draft-pack-short">
-        <p className="min-w-0 wrap-anywhere">{copy(NEEDS_YOU_COPY.pack)}</p>
-        {view.packShort.missing.length === 0 ? null : (
-          <ul className="min-w-0 list-disc ps-5" data-testid="draft-pack-missing">
-            {view.packShort.missing.map((need) => (
-              <li className="min-w-0 wrap-anywhere" key={need}>
-                {copy(PACK_NEED_COPY[need])}
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
-    );
   /** #789: the saved text breaks a page rule and is held until a save passes. */
   const heldAlert = (
     <p role="alert" className="alert alert-warning text-sm" data-testid="draft-rules-held">
@@ -904,7 +884,6 @@ export function DraftScreen(p: {
 
           <WhyThisPage target={view.target} />
 
-          {packShort}
           {rulesHeld}
           {body}
           {droppedGrounding}

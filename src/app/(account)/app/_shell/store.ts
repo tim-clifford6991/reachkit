@@ -26,7 +26,7 @@
 // stop, and `readStop` does not read `scans` at all.
 import { dbAdmin } from "@/lib/db";
 import { now as clock } from "@/lib/config/now";
-import { needsYouOf, waitsOnCustomer } from "@/lib/publish/record/needs-you";
+import { critical, needsYouOf } from "@/lib/publish/record/needs-you";
 import type { State } from "@/lib/publish/types";
 import { readStop } from "./stop";
 import { nextDueOn } from "@/lib/scan/weekly";
@@ -134,9 +134,8 @@ async function waiting(siteId: string): Promise<{ count: number; review: Waiting
     .in("state", WAITING_STATES);
   if (error !== null || data === null) return { count: 0, review: null };
 
-  // Issue 1477: the count is Overview's — a page the writing stopped waits
-  // on nobody.
-  const rows = data.filter((row) => waitsOnCustomer(needsYouOf({ state: row.state as State, transitions: row.transitions })));
+  // The count is Overview's: a page in review, or one whose cause is critical (owner O7).
+  const rows = data.filter((row) => row.state === "in_review" || critical(needsYouOf({ state: row.state as State, transitions: row.transitions }), clock()));
   const pages = rows.map(waitingPage);
   // A page with no time yet sorts last: a time the customer can act before
   // is more urgent than one nobody has set.
