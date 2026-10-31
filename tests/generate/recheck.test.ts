@@ -8,6 +8,7 @@ import { fakeDb, type Row } from "../publish/harness";
 import { AT, fakeCost, opportunity, pack, pageParts, prose } from "./fixtures";
 import { LOCAL_WORDPRESS, SAAS_HOSTED, measuredText, seedWorld, snapshot, type LiveSite } from "./live-edit-world";
 import stored from "./fixtures/dogfood-drafts-2026-10.min.json";
+import { GERMAN_NOT, GERMAN_NOT_FITTED } from "./fixtures/german-description";
 
 const db = fakeDb();
 const { site, llm } = vi.hoisted(() => ({ site: { current: null as LiveSite | null }, llm: vi.fn() }));
@@ -178,8 +179,19 @@ describe("OR4: a promise-figure title never enters review", () => {
     const before = (at(id).meta as Row).description as string;
     const { meta } = await checked(id);
     const after = meta.description as string;
-    expect([[...before].length > 155, [...after].length <= 155, before.startsWith(after), /^[\s.,;:]/.test(before.slice(after.length))]).toEqual([true, true, true, true]);
+    // A cut ends with a full stop, the one character code may add.
+    const own = before.startsWith(after) ? after : after.slice(0, -1);
+    expect([[...before].length > 155, [...after].length <= 155, /[.!?]$/.test(after), before.startsWith(own), /^[\s.,;:]/.test(before.slice(own.length))]).toEqual([true, true, true, true, true]);
     expect(meta.recheck).toMatchObject({ descriptionBefore: before, description: after });
+    if (id === "b03e044f") expect(after).toBe("The best AI visibility tools for small businesses show where AI answers send buyers to rivals, then help fix it.");
+  });
+
+  it("a German page's description is cut by German function words: its own \"Not\" stands, though English reads \"not\" as one", async () => {
+    arrange(SAAS_HOSTED);
+    const b03 = at("b03e044f");
+    const meta = b03.meta as Row & { pack: Row };
+    const outcome = await recheckRow({ ...b03, meta: { ...meta, description: GERMAN_NOT, pack: { ...meta.pack, locale: { country: "DE", language: "de" } } } }, dogfood(b03));
+    expect((outcome as { patch: { meta: Row } }).patch.meta.description).toBe(GERMAN_NOT_FITTED);
   });
 
   it("a page stored with no description takes its short answer's first sentences, fitted", async () => {

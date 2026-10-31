@@ -144,7 +144,7 @@ function mend(row: DraftRow, pack: ContextPack, basis: BatteryBasis): { page: Ch
   const stored = row.title ?? "";
   const sections = Array.isArray(meta.sections) ? meta.sections : [];
   const before = typeof meta.description === "string" ? meta.description : "";
-  const description = fitDescription(before.trim() === "" ? (answerBoxOf(row.body_md!) ?? "") : before);
+  const description = fitDescription(before.trim() === "" ? (answerBoxOf(row.body_md!) ?? "") : before, pack.locale?.language);
   const proposed = (Array.isArray(meta.titles) ? (meta.titles as { title?: unknown }[]) : []).flatMap((each) => (typeof each?.title === "string" ? [each.title] : []));
   const clean = [...proposed, stored].filter((each) => promiseFigures(each, pack).length === 0);
   const title = clean.length === 0 ? stored : pickTitle(clean, titleRuleFor(pack, { description, sections })).chosen;

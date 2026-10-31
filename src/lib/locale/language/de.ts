@@ -117,6 +117,12 @@ export const DE: LanguagePack = {
     "dein", "deine", "unser", "unsere", "ihr", "ihre", "es", "ich", "du", "wir", "sie", "man",
     "kann", "können", "als", "auch", "nicht", "dass",
   ]),
+  // Drafted; the owner may correct the list.
+  descriptionTail: new Set([
+    "sowie", "bzw", "wie", "durch", "gegen", "bis", "wenn", "weil", "ob", "aber", "sondern", "denn",
+    "damit", "beim", "ins", "vor", "zwischen", "pro", "je", "welche", "welcher", "welches", "wird",
+    "werden", "hat", "haben", "war", "wurde", "seine", "seinen", "seinem", "ihren", "ihrem", "jede", "jeden",
+  ]),
   genericTokens: withStems([
     "beste", "bester", "bestes", "besten", "top", "vs", "versus", "alternative", "alternativen",
     "vergleich", "vergleichen", "erfahrungen", "bewertungen", "test", "testsieger", "software",

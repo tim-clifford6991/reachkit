@@ -22,6 +22,8 @@
 //
 // Deterministic, no I/O.
 import { PAGE_BLOCKS, TITLE } from "@/lib/config/constants";
+import { LANGUAGE_PACKS, languagePack } from "@/lib/locale/language";
+import type { Language } from "@/lib/locale/locales";
 import { FACT_LABEL_RE } from "../rules/blocks";
 import { SENTENCE_END_RE, isQuestionShaped, renderOf, sourceBlocksOf } from "../rules/text";
 import type { Template } from "../templates";
@@ -49,6 +51,9 @@ export interface TidyInputs {
   /** What the business does not claim, taken out of each proposed title and
    *  the description (`unclaimedSuperlatives`). Absent, nothing is. */
   unclaimed?: (line: string) => string;
+  /** The page's language, whose function words a cut description may not
+   *  end on. Absent, no language's may. */
+  language?: Language;
 }
 
 const collapse = (text: string): string => text.replace(/\s+/g, " ").trim();
@@ -379,23 +384,43 @@ function slotKey(key: string): string {
   return key.trim().toLowerCase().replace(/[\s_-]*\d+$/, "");
 }
 
-/** A meta description over its most keeps the whole sentences that fit,
- *  where that leaves it long enough, and is otherwise cut at its last word
- *  that fits; no word is added, and its length never stops a page (R-A). */
-export function fitDescription(text: string): string {
-  const { min, max } = TITLE.description;
+/** The words a cut description may not end on, in `language`, or in every
+ *  language where the page's is not known. */
+function tailWords(language: Language | undefined): ReadonlySet<string> {
+  const packs = language === undefined ? LANGUAGE_PACKS : [languagePack(language)];
+  return new Set(packs.flatMap((pack) => [...pack.stopWords, ...pack.descriptionTail]));
+}
+
+/** A meta description over its most keeps the whole sentences that fit, or
+ *  is cut at the last clause that fits where that keeps at least half its
+ *  most, or else at the last word, never ending on a function word; only a
+ *  full stop is added, and its length never stops a page (R-A). */
+export function fitDescription(text: string, language: Language | undefined): string {
+  const { max } = TITLE.description;
   if ([...text].length <= max) return text;
-  const sentences = text.split(SENTENCE_END_RE);
   let kept = "";
-  for (const sentence of sentences) {
+  for (const sentence of text.split(SENTENCE_END_RE)) {
     const next = kept === "" ? sentence : `${kept} ${sentence}`;
     if ([...next].length > max) break;
     kept = next;
   }
-  if ([...kept].length >= min) return kept;
-  const head = [...text].slice(0, max + 1).join("");
-  const cut = head.search(/\s\S*$/);
-  return cut > 0 ? head.slice(0, cut).replace(/[\s,;:–—-]+$/u, "") : text;
+  if (kept !== "") return kept;
+  // One character is left for the full stop a cut ends with.
+  const head = [...text].slice(0, max).join("");
+  const tail = tailWords(language);
+  const bare = (word: string): string => word.toLowerCase().replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, "");
+  const cutAt = (at: number): string => {
+    const words = head.slice(0, at).split(/\s+/);
+    while (words.length > 1 && tail.has(bare(words.at(-1)!))) words.pop();
+    const cut = words.join(" ").replace(/[\s,;:–—-]+$/u, "");
+    return /[.!?]$/.test(cut) ? cut : `${cut}.`;
+  };
+  const clause = [...head.matchAll(/[,;:)\]](?=\s)|\s[–—](?=\s)/gu)].at(-1);
+  // An early comma ("In 2026, …") would leave a fragment, not a thought.
+  const byClause = clause === undefined ? "" : cutAt(clause.index + clause[0].length);
+  if ([...byClause].length >= max / 2) return byClause;
+  const word = head.search(/\s\S*$/);
+  return word > 0 ? cutAt(word) : text;
 }
 
 /** The heading of the sources list code writes, in each language. */
@@ -513,7 +538,7 @@ export function layoutPage(parts: PageParts, template: Template, a: TidyInputs):
   const text = sections.map((section) => `## ${section.heading}${section.body === "" ? "" : `\n\n${section.body}`}`);
   const cleaned = (text: string): string => recased(sentenceCase(tidyText(collapse(text)), proper), cased);
   const unclaimed = a.unclaimed ?? ((line: string) => line);
-  const description = fitDescription(tidyText(collapse(unclaimed(parts.description))));
+  const description = fitDescription(tidyText(collapse(unclaimed(parts.description))), a.language);
   const laid = sections.map(({ key, heading, body }) => {
     const items = numberedItems(body);
     return { key, heading, ...(items > 1 ? { items } : {}) };

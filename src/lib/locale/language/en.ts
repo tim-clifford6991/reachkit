@@ -64,6 +64,12 @@ export const EN: LanguagePack = {
     "from", "with", "is", "are", "be", "my", "your", "our", "their", "it",
     "its", "that", "this", "i", "you", "we", "do", "does", "can",
   ]),
+  // Drafted; the owner may correct the list.
+  descriptionTail: new Set([
+    "about", "into", "than", "as", "per", "but", "nor", "so", "via", "versus", "vs",
+    "if", "when", "while", "because", "then", "through", "without", "over", "under",
+    "between", "which", "who", "whose", "will", "has", "have", "was", "were", "not", "every", "each",
+  ]),
   genericTokens: new Set([
     "best", "top", "vs", "versus", "alternative", "comparison", "compare",
     "review", "software", "tool", "app", "platform", "solution", "how",

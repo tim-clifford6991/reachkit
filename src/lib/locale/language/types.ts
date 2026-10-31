@@ -100,6 +100,9 @@ export interface LanguagePack {
   shapes: ShapeWords;
   /** Function words: dropped before two searches are compared. */
   stopWords: ReadonlySet<string>;
+  /** Function words beside `stopWords` that a cut meta description may not
+   *  end on: a dangling "than" or "sowie" is no complete thought. */
+  descriptionTail: ReadonlySet<string>;
   /** Words that carry a search's shape and not its subject. */
   genericTokens: ReadonlySet<string>;
   /** Words a price-only search may hold beside the product's name. */
