@@ -345,7 +345,7 @@ describe("D26 (issue 1179) — a stopped draft does not cost its day, and its to
     ]);
   }
 
-  it("the next evening does not pick the rested topic and states its empty day; Skip rests it from the skip", async () => {
+  it("the next evening does not pick the rested topic and states its empty day; the stopped page is set aside, the rest as the stop left it", async () => {
     await stoppedEvening();
     const [stopped] = db.rows("drafts");
     expect(stopped).toMatchObject({ state: "needs_attention", scheduled_for: "2026-09-08" });
@@ -357,7 +357,13 @@ describe("D26 (issue 1179) — a stopped draft does not cost its day, and its to
     expect(empty).toEqual({ outcome: "degraded", subjectId: null, step: "generate:no_opportunity" });
     expect(llmMock).not.toHaveBeenCalled();
     expect(db.rows("drafts")).toHaveLength(1);
+    expect([stopped?.state, (stopped?.transitions as { actor: unknown }[]).at(-1)?.actor, restingUntil(opportunityId)]).toEqual(["skipped", { kind: "system", job: "draft/recheck" }, rested]);
+  });
 
+  it("Skip on a stopped page rests its topic from the skip", async () => {
+    await stoppedEvening();
+    const [stopped] = db.rows("drafts");
+    const rested = restingUntil(opportunityId);
     expect(await skipDraft(String(stopped?.id))).toBeNull();
     expect(stopped?.state).toBe("skipped");
     expect(Date.parse(String(restingUntil(opportunityId)))).toBeGreaterThan(Date.parse(String(rested)));

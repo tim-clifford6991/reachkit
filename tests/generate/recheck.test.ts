@@ -21,7 +21,7 @@ import { generateDayPage } from "@/lib/generate";
 import { generateDraft } from "@/lib/generate/pipeline";
 import { siteRulesOf } from "@/lib/generate/pipeline/battery";
 import { readAllFacts } from "@/lib/generate/pipeline/grounding";
-import { candidacy, recheckRow, recheckStopped, type RecheckWorld } from "@/lib/generate/recheck";
+import { candidacy, recheckRow, recheckStopped, retiredFor, retiredUnread, type RecheckWorld } from "@/lib/generate/recheck";
 import type { ContextPack } from "@/lib/generate/pipeline/pack";
 import { promiseFigures } from "@/lib/generate/pipeline/title";
 import { answerBoxOf } from "@/lib/generate/rules/blocks";
@@ -38,6 +38,9 @@ const STALE = [
   { rule: "fit_claim", detail: { rule: "fit_claim", sentences: ["Acme vs Rival"] } },
 ];
 const row = (id: string): Row => db.rows("drafts").find((each) => each.id === id)!;
+const lastMove = (id: string): Row => (row(id).transitions as Row[]).at(-1)!;
+/** The row but for its state and moves: its words and verdicts, byte for byte. */
+const wordsOf = (id: string): string => JSON.stringify({ ...row(id), state: undefined, transitions: undefined });
 
 beforeEach(() => {
   llm.mockReset();
@@ -86,24 +89,94 @@ describe("a stored page that passes today's rules enters review by itself, at 0�
   });
 });
 
-describe("a page that still fails stays stopped", () => {
-  it("a stored fit failure stands while today's reading still asks about its sentence", async () => {
+describe("a page that still fails is set aside at 0¢, the row kept and its topic's rest as the stop left it", () => {
+  const retiredBy = (id: string, reason: string) => expect(lastMove(id)).toEqual({ from: "needs_attention", to: "skipped", actor: { kind: "system", job: "draft/recheck" }, reason, at: NOW.toISOString() });
+
+  it("still failing rows are set aside: one move each, every row and publication kept, the topic un-rested still", async () => {
     arrange(SAAS_HOSTED);
     const id = await stopped(SAAS_HOSTED, { first: "Example keeps every seat on one bill. ", failed: [{ rule: "fit_claim", detail: { rule: "fit_claim", sentences: ["Example keeps every seat on one bill."] } }] });
-    await recheck(SAAS_HOSTED);
-    expect(row(id)).toMatchObject({ state: "needs_attention", rule_failures: [{ rule: "fit_claim" }] });
+    const topic = db.rows("opportunities").find((each) => each.id === row(id).opportunity_id)!;
+    topic.rest_until = null;
+    const before = row(id).transitions as Row[];
+    const counts = () => [db.rows("drafts").length, db.rows("publications").length, JSON.stringify(db.rows("publications"))];
+    const rowsBefore = counts();
+    expect(await recheck(SAAS_HOSTED)).toBeNull();
+    expect(row(id)).toMatchObject({ state: "skipped", rule_failures: [{ rule: "fit_claim" }] });
+    expect(row(id).transitions).toEqual([...before, lastMove(id)]);
+    retiredBy(id, "retired:fit_claim");
+    expect([counts(), topic.rest_until]).toEqual([rowsBefore, null]);
+    expect(llm).not.toHaveBeenCalled();
   });
 
-  it("a title whose only fault is its specific is held until the fix call has settled it, and then passes", async () => {
+  it("a title short only of its specific is set aside while unsettled, and a settled one beside it enters review in the same run", async () => {
     arrange(SAAS_HOSTED);
-    const id = await stopped(SAAS_HOSTED, { attempts: 1 });
-    row(id).title = "Project management software plan that fits a small team";
-    (row(id).meta as Row).titles = [{ title: row(id).title }];
+    const title = "Project management software plan that fits a small team";
+    const [unsettled, settled] = [await stopped(SAAS_HOSTED, { attempts: 1, builtAt: new Date(AT.getTime() + DAY) }), await stopped(SAAS_HOSTED, { topic: "billing" })];
+    for (const id of [unsettled, settled]) Object.assign(row(id), { title, meta: { ...(row(id).meta as Row), titles: [{ title }] } });
     await recheck(SAAS_HOSTED);
-    expect(row(id)).toMatchObject({ state: "needs_attention", rule_failures: [{ rule: "title", detail: { faults: ["specific"] } }] });
-    row(id).hard_rule_attempts = 2;
+    expect([row(unsettled).state, row(settled).state]).toEqual(["skipped", "in_review"]);
+    expect(row(unsettled).rule_failures).toMatchObject([{ rule: "title", detail: { faults: ["specific"] } }]);
+    retiredBy(unsettled, "retired:title");
+  });
+
+  it("with only failing candidates every one is set aside, and the day goes on to write its next topic", async () => {
+    arrange(SAAS_HOSTED);
+    const failed = [{ rule: "fit_claim", detail: { rule: "fit_claim", sentences: ["Example keeps every seat on one bill."] } }];
+    const ids = [await stopped(SAAS_HOSTED, { first: "Example keeps every seat on one bill. ", failed }), await stopped(SAAS_HOSTED, { topic: "billing", first: "Example keeps every seat on one bill. ", failed })];
+    expect(await recheck(SAAS_HOSTED)).toBeNull();
+    expect(ids.map((id) => row(id).state)).toEqual(["skipped", "skipped"]);
+    expect(llm).not.toHaveBeenCalled();
+    const next = opportunity({ id: "44444444-4444-4444-8444-444444444444", siteId: SAAS_HOSTED.siteId });
+    db.seed("opportunities", [...db.rows("opportunities"), { ...(insertFor(next) as unknown as Row), id: next.id, status: "open", created_at: AT.toISOString() }]);
+    llm.mockResolvedValue({ kind: "measured", value: pageParts(`${prose("onboarding", 300, 4)}\n\nTeams on the starter plan get 25 seats and unlimited projects for a flat monthly fee, per [the pricing page](${SAAS_HOSTED.sourceUrl}).`, {}, "onboarding"), at: AT });
+    const day = await generateDayPage({ siteId: SAAS_HOSTED.siteId, publishDate: D, now: NOW, opportunityId: next.id });
+    // The set-aside rows hold no date of the day's, so its own write runs for the topic it was given.
+    expect(day).not.toEqual({ ok: false, because: "already_drafted" });
+    expect(day).not.toEqual({ ok: false, because: "no_opportunity" });
+  });
+
+  it("OR3: a pack older than a topic's rest is set aside as stale and never read by the battery", async () => {
+    arrange(SAAS_HOSTED);
+    const id = await stopped(SAAS_HOSTED, { builtAt: new Date(NOW.getTime() - 29 * DAY), failed: STALE });
+    const unread = wordsOf(id);
     await recheck(SAAS_HOSTED);
-    expect(row(id).state).toBe("in_review");
+    retiredBy(id, "retired:stale");
+    // The battery's verdict columns are written on every read row, so unchanged columns mean it never ran.
+    expect(wordsOf(id)).toBe(unread);
+    expect(llm).not.toHaveBeenCalled();
+  });
+
+  it("a page no rule fails that reads almost the same as a page for another site is set aside as retired:elsewhere", async () => {
+    arrange(SAAS_HOSTED);
+    const id = await stopped(SAAS_HOSTED, { failed: STALE });
+    db.seed("drafts", [...db.rows("drafts"), { id: "d-elsewhere", site_id: "s-other", state: "in_review", body_md: row(id).body_md, created_at: new Date().toISOString() }]);
+    await recheck(SAAS_HOSTED);
+    expect([row(id).state, row(id).rule_failures]).toEqual(["skipped", []]);
+    retiredBy(id, "retired:elsewhere");
+  });
+
+  it("a page stopped at a step is never set aside once the customer edited it or it entered review", async () => {
+    arrange(SAAS_HOSTED);
+    const [edited, reviewed] = [await stopped(SAAS_HOSTED), await stopped(SAAS_HOSTED, { topic: "billing" })];
+    (row(edited).meta as Row).first_edited_at = AT.toISOString();
+    Object.assign(lastMove(edited), { reason: "step_failed:adds" });
+    Object.assign(lastMove(reviewed), { reason: "step_failed:write" });
+    row(reviewed).transitions = [{ from: "generating", to: "in_review", at: AT.toISOString() }, ...(row(reviewed).transitions as Row[])];
+    const before = [snapshot(db, "drafts", edited), snapshot(db, "drafts", reviewed)];
+    await recheck(SAAS_HOSTED);
+    expect([snapshot(db, "drafts", edited), snapshot(db, "drafts", reviewed)]).toEqual(before);
+  });
+
+  it("a page the customer edited and a live page's edit are never set aside, however they fail", async () => {
+    arrange(SAAS_HOSTED);
+    const failed = [{ rule: "fit_claim", detail: { rule: "fit_claim", sentences: ["Example keeps every seat on one bill."] } }];
+    const edited = await stopped(SAAS_HOSTED, { first: "Example keeps every seat on one bill. ", failed });
+    const live = await stopped(SAAS_HOSTED, { topic: "billing", first: "Example keeps every seat on one bill. ", failed });
+    (row(edited).meta as Row).first_edited_at = AT.toISOString();
+    Object.assign(lastMove(live), { actor: { kind: "customer", userId: "u1" }, reason: "live_edit" });
+    const before = [snapshot(db, "drafts", edited), snapshot(db, "drafts", live)];
+    await recheck(SAAS_HOSTED);
+    expect([snapshot(db, "drafts", edited), snapshot(db, "drafts", live)]).toEqual(before);
   });
 });
 
@@ -227,7 +300,7 @@ describe("OR4: a promise-figure title never enters review", () => {
     [SAAS_HOSTED.kind, SAAS_HOSTED, "up to 7 pages a week", { job: null, products: [], promises: ["Up to 7 pages a week, written for you"] }],
     // A local business whose profile states its price, on a page that informs.
     [LOCAL_WORDPRESS.kind, LOCAL_WORDPRESS, "from £89 a visit", { job: null, products: ["Boiler service"], promises: ["Boiler service from £89 a visit"] }],
-  ] as const)("for %s, a candidate carrying the business's own figure is never picked: the clean one enters review, and with none the page makes no move", async (_, live, figure, profile) => {
+  ] as const)("for %s, a candidate carrying the business's own figure is never picked: the clean one enters review, and with none the page is set aside, its words unmoved", async (_, live, figure, profile) => {
     arrange(live);
     const id = await stopped(live);
     const clean = row(id).title as string;
@@ -240,9 +313,41 @@ describe("OR4: a promise-figure title never enters review", () => {
     const other = await stopped(live, { topic: "billing" });
     Object.assign(row(other), { title: promised, meta: { ...(row(other).meta as Row), pack: { ...pack(), profile }, titles: [{ title: promised }] } });
     row(id).scheduled_for = "2026-09-12";
-    const before = snapshot(db, "drafts", other);
+    const before = wordsOf(other);
     await recheck(live);
-    expect(snapshot(db, "drafts", other)).toBe(before);
+    expect([row(other).state, lastMove(other).reason, wordsOf(other)]).toEqual(["skipped", "retired:title", before]);
+  });
+
+  it.each([
+    ["d98284cc", "retired:plain_prose"],
+    ["5dcc61c2", "retired:required_blocks"],
+    // One attempt: its unsettled title still stops it beside the sections a writer owes.
+    ["f1ec6a58", "retired:required_blocks,title"],
+    // OR4: no clean candidate, so it is never published.
+    ["a6d24b00", "retired:title"],
+    ["abe42ff7", "retired:title"],
+    ["bf8de9bf", "retired:title"],
+    ["a71279ff", "retired:title"],
+    ["b8c28f61", "retired:title"],
+    ["b03e044f", null],
+    ["fba1d84d", null],
+  ] as const)("%s, still failing under today's rules after the 0¢ mends, is set aside as %s", async (id, reason) => {
+    arrange(SAAS_HOSTED);
+    const outcome = await recheckRow(at(id), dogfood(at(id)));
+    expect([retiredFor(outcome), outcome.kind === "checked" ? outcome.spentCents : 0]).toEqual([reason, 0]);
+  });
+
+  it("a page no rule fails whose fit check cannot run at 0¢ is set aside as retired:fit_claim, never an empty reason", async () => {
+    arrange(SAAS_HOSTED);
+    const b03 = at("b03e044f");
+    const unasked = { ...b03, rule_failures: (b03.rule_failures as Row[]).filter((each) => each.rule !== "fit_claim"), meta: { ...(b03.meta as Row), checks: undefined } };
+    const outcome = await recheckRow(unasked, dogfood(b03));
+    expect([outcome, retiredFor(outcome)]).toMatchObject([{ kind: "checked", passed: false, failed: [], fit: "unrun", spentCents: 0 }, "retired:fit_claim"]);
+  });
+
+  it.each(["a9ac66a2", "86083a2b"])("%s, whose pack was short and so was never written, is set aside as retired:pack, unread", (id) => {
+    const short = { ...at(id), transitions: [{ from: "generating", to: "needs_attention", reason: "step_failed:pack:buyer_questions,facts_on_topic" }] };
+    expect([candidacy(short, NOW), retiredUnread(short, NOW)]).toEqual(["no_page", "retired:pack"]);
   });
 
   it("pages short of their pack, edited, or older than a topic's rest are not candidates", () => {
