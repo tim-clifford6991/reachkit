@@ -7,10 +7,12 @@
 // the sentences today's reading still asks about. Before the battery, code mends what it can from the row's own words:
 // the title is re-picked from the writer's stored candidates, never one carrying the business's promise figure (OR4),
 // which is held where none is clean; the description is fitted; a FAQ pair or a do-not-claim sentence the rules fail
-// is dropped.
+// is dropped. What still fails, or was never a page to check, is set aside at 0¢ (`needs_attention → skipped`), the row
+// kept and its topic's rest as the stop left it.
 import { TOPIC_REST_DAYS } from "@/lib/config/constants";
 import type { CostContext } from "@/lib/costs";
 import type { Opportunity } from "@/lib/opportunities";
+import { needsYouCauseOf } from "@/lib/publish/record/needs-you";
 import type { Actor, TransitionRecord } from "@/lib/publish/types";
 import { brandSentences, type FitVerdict } from "./claims/fit";
 import { readRecordedFact } from "./fact";
@@ -56,7 +58,7 @@ export interface RecheckWorld {
 export type RecheckOutcome =
   | { kind: "skipped"; reason: NotCandidate }
   | { kind: "held"; reason: "title_promise_figure"; figures: string[] }
-  | { kind: "checked"; passed: boolean; failed: RuleFailure[]; cleared: HardRule[]; spentCents: number; patch: DraftPatch };
+  | { kind: "checked"; passed: boolean; failed: RuleFailure[]; cleared: HardRule[]; close: boolean; fit: FitVerdict["state"]; spentCents: number; patch: DraftPatch };
 
 /** What the re-check mended, as the row records it (`drafts.meta.recheck`). */
 export interface RecheckFixes {
@@ -116,6 +118,8 @@ export async function recheckRow(row: DraftRow, world: RecheckWorld): Promise<Re
     passed,
     failed,
     cleared: [...new Set(stopped.map((failure) => failure.rule))].filter((rule) => !failed.some((failure) => failure.rule === rule)),
+    close: checked.close !== null,
+    fit: checked.outcome.fit.state,
     spentCents: REFUSED.spentCents(),
     patch: {
       ...(fixes.title === undefined ? {} : { title }),
@@ -162,6 +166,29 @@ function mend(row: DraftRow, pack: ContextPack, basis: BatteryBasis): { page: Ch
   };
 }
 
+/** The reason a row the battery need not read is set aside with, or `null` where it is read or left alone: a pack
+ *  older than a topic's rest, or a page the writing stopped before it was one. */
+export function retiredUnread(row: DraftRow, now: Date): string | null {
+  const why = candidacy(row, now);
+  if (why === "stale") return "retired:stale";
+  if (why !== "no_page" && why !== "not_rules") return null;
+  const last = (Array.isArray(row.transitions) ? (row.transitions as Partial<TransitionRecord>[]) : []).at(-1);
+  if (last?.from !== "generating" || !(last.reason ?? "").startsWith("step_failed:")) return null;
+  const cause = needsYouCauseOf(last.reason ?? null);
+  return `retired:${cause.kind === "step" ? cause.step : cause.kind}`;
+}
+
+/** The reason a read row that still fails is set aside with, or `null` where it passed or was not read. A title held
+ *  for its promise figure has no clean exit (OR4), so it fails as its title. */
+export function retiredFor(outcome: RecheckOutcome): string | null {
+  if (outcome.kind === "held") return "retired:title";
+  if (outcome.kind === "skipped" || outcome.passed) return null;
+  const rules = [...new Set(outcome.failed.map((failure) => failure.rule))];
+  // No rule failed: a page elsewhere is too close, or a check could not run at 0¢; the record names which.
+  const causes = rules.length > 0 ? rules : [outcome.close ? "elsewhere" : outcome.fit !== "passed" ? "fit_claim" : "do_not_claim"];
+  return `retired:${causes.join(",")}`;
+}
+
 /** The fit check's stored verdict, kept only for the sentences today's reading still asks about. `undefined` where no
  *  fit check was recorded, which a refused call then leaves unrun. */
 function storedFit(row: DraftRow, stopped: readonly RuleFailure[], page: { title: string; markdown: string; site: SiteRuleInputs; titleOwed: boolean }): FitVerdict | undefined {
@@ -172,9 +199,9 @@ function storedFit(row: DraftRow, stopped: readonly RuleFailure[], page: { title
   return still.length === 0 ? { state: "passed" } : { state: "failed", sentences: still };
 }
 
-/** The daily re-check for one site and date: nothing where the date already holds a page; otherwise the newest
- *  candidate that passes enters review. The id of a page entered and told, or `null`. Never a throw: a re-check that
- *  could not read leaves the day to its own write. */
+/** The daily re-check for one site and date: nothing where the date already holds a page; otherwise each candidate
+ *  read, newest first, is set aside while it still fails, and the first that passes enters review. The id of a page
+ *  entered and told, or `null`. Never a throw: a re-check that could not read leaves the day to its own write. */
 export async function recheckStopped(a: { siteId: string; publishDate: string; now: Date }): Promise<string | null> {
   try {
     return await rescue(a);
@@ -187,7 +214,14 @@ export async function recheckStopped(a: { siteId: string; publishDate: string; n
 async function rescue(a: { siteId: string; publishDate: string; now: Date }): Promise<string | null> {
   const store = generateStore();
   if (await store.draftOnDate(a.siteId, a.publishDate)) return null;
-  const rows = (await store.draftsShortOfHandOff(a.siteId, ROWS_READ)).filter((row) => candidacy(row, a.now) === null).sort((x, y) => builtAt(y) - builtAt(x));
+  const shortOf = await store.draftsShortOfHandOff(a.siteId, ROWS_READ);
+  const { transition } = await import("@/lib/publish/machine");
+  const retire = (id: string, reason: string) => transition(id, "skipped", RECHECK, { at: a.now, reason });
+  for (const row of shortOf) {
+    const reason = retiredUnread(row, a.now);
+    if (reason !== null) await retire(row.id, reason);
+  }
+  const rows = shortOf.filter((row) => candidacy(row, a.now) === null).sort((x, y) => builtAt(y) - builtAt(x));
   if (rows.length === 0) return null;
   const site = await store.siteFacts(a.siteId);
   const report = await store.latestReport(a.siteId);
@@ -202,9 +236,11 @@ async function rescue(a: { siteId: string; publishDate: string; now: Date }): Pr
     if (opportunity === null) continue;
     const outcome = await recheckRow(row, { site: siteRulesOf(site, report), facts, demoPhrases, opportunity, now: a.now });
     console.log(JSON.stringify({ event: "draft_rechecked", siteId: a.siteId, draftId: row.id, outcome: outcome.kind === "checked" ? (outcome.passed ? "passed" : "failed") : outcome.reason, ...(outcome.kind === "checked" ? { failed: outcome.failed.map((failure) => failure.rule).join(",") } : {}) }));
-    if (outcome.kind !== "checked") continue;
-    await store.patchDraft(row.id, outcome.patch);
-    if (!outcome.passed) continue;
+    if (outcome.kind === "skipped") continue;
+    if (outcome.kind === "checked") await store.patchDraft(row.id, outcome.patch);
+    const retired = retiredFor(outcome);
+    if (retired !== null) await retire(row.id, retired);
+    if (retired !== null || outcome.kind !== "checked") continue;
     const { enterReview } = await import("@/lib/publish/attempt/window");
     const entry = await enterReview({ draftId: row.id, at: a.now, by: RECHECK, reason: `recheck:${outcome.cleared.join(",")}` });
     // A page that could not enter review is not left marked as one that may.
