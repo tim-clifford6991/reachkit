@@ -123,7 +123,7 @@ A new dated ruling is its own file under `docs/spec/decisions/`, headed by the s
 - One live Stripe Price; boot refuses a mismatch.
 - 2026-09-18  Boot also refuses a price the vendor says does not exist (#889) — a test-mode `STRIPE_PRICE_ID` asked for with a live-mode key, which is the state production is in. The refusal names the mode of the configured key and never the key. A vendor that could not be read at all is still logged and still serves: a read that did not happen establishes nothing.
 - Account is created by the payment webhook, never a signup form. A second payment from the same address buys no second subscription and says so.
-- Magic link only: no password, no social. Link lasts 24 h; a new one spends older ones. Sign-in copy is identical whatever the address, revealing nothing about who has an account.
+- Magic link only: no password, no social. Link lasts 24 h. A link asked for again within 15 minutes is the same link; after that, a new link replaces the old (owner default 2026-10-31, #2098). Sign-in copy is identical whatever the address, revealing nothing about who has an account.
 - 2026-09-14  Stripe success URL is this deployment’s `/auth/checkout`, which signs the payer in and sends them to `/setup`. Cancel returns to the page they started from. Never a host this process does not name.
 - Plan and price are ours; every other billing number is read from Stripe.
 - Cancel names the exact date access ends; export stays with no end date.

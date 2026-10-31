@@ -62,4 +62,6 @@ export const LIVE_SCHEMA_TESTS = [
   // Issue 1478: every ledger row's site, activity, draft and outcome, the
   // roll-ups derived from the ledger, `vendor_days` and `cost_site_day`.
   "tests/costs/attribution-schema.test.ts",
+  // The sealed sign-in link, out of every customer session's reach.
+  "tests/account/identity/signin-links-schema.test.ts",
 ];

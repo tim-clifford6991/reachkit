@@ -298,6 +298,8 @@ export const CACHE_WINDOWS_D = Object.freeze({
 } as const);
 export const EMAIL_CHANGE_TTL_H = 24 as const;
 export const SIGNIN_LINK_TTL_H = 24 as const;
+/** A sign-in link asked for again inside this many minutes is the same link (REQ-024 c4). */
+export const SIGNIN_LINK_REUSE_MIN = 15 as const;
 export const ERASURE_DAYS = 30 as const;
 export const DANGER_TICKET_TTL_MINUTES = 30 as const;
 export const EXPORT_DEADLINE_MS = 120_000 as const;

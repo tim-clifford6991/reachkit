@@ -14,6 +14,8 @@ export interface MemoryIdentity {
   sites: { id: string; user_id: string }[];
   /** `users.last_seen_at`, by account (SPEC §8, #569). */
   seen: Map<string, Date>;
+  /** `signin_links`, by account. */
+  signInLinks: Map<string, { sealed: string; issuedAt: string }>;
   failAccountRead: boolean;
   failPendingRead: boolean;
   failCompleteChange: boolean;
@@ -25,6 +27,7 @@ export function newMemoryIdentity(): MemoryIdentity {
     users: [],
     sites: [],
     seen: new Map(),
+    signInLinks: new Map(),
     failAccountRead: false,
     failPendingRead: false,
     failCompleteChange: false,
@@ -150,6 +153,16 @@ export function memoryIdentityStore(state: MemoryIdentity): IdentityStore {
 
     async siteForAccount(userId) {
       return { ok: true, siteId: state.sites.find((s) => s.user_id === userId)?.id ?? null };
+    },
+
+    async signInLink(userId) {
+      return { ok: true, link: state.signInLinks.get(userId) ?? null };
+    },
+
+    async writeSignInLink(userId, link) {
+      if (link === null) state.signInLinks.delete(userId);
+      else state.signInLinks.set(userId, { sealed: link.sealed, issuedAt: link.issuedAt.toISOString() });
+      return { ok: true };
     },
   };
 }

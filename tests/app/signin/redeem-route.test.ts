@@ -144,7 +144,8 @@ describe('REQ-098 c7 — a link that no longer works lands on the sign-in screen
       async () => {
         const user = account("founder@example.com");
         const first = await issueLink({ userId: user.id, to: user.email, purpose: "sign_in", now: NOW });
-        await issueLink({ userId: user.id, to: user.email, purpose: "sign_in", now: NOW });
+        const later = new Date(NOW.getTime() + 16 * 60 * 1000);
+        await issueLink({ userId: user.id, to: user.email, purpose: "sign_in", now: later });
         if (!first.issued) throw new Error("not issued");
         return first.url;
       },

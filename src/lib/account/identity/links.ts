@@ -20,19 +20,24 @@
 // own mailer sends nothing: `generateLink` is the admin call that mails
 // nobody.
 //
-// **The newest link is the working one** (REQ-024 c4). Supabase keeps one
-// live token per user and token type and overwrites it on every
-// `generateLink`, so the previous sign-in link stops working the moment a
-// new one is minted. The `email_change` half is also held on our side:
-// `users.pending_email_token_hash` names the one link the change waits on,
-// and redemption refuses any other before it asks Supabase.
+// **A link asked for again within 15 minutes is the same link; after that,
+// a new link replaces the old** (REQ-024 c4, owner default 2026-10-31).
+// Supabase keeps one live token per user and token type and overwrites it
+// on every `generateLink`, so a sign-in link is kept here sealed under its
+// own label and re-sent while it is unspent and young: a flood of requests
+// mails the customer a link that still works. Redeeming clears it. Whoever
+// can unseal it already holds the service-role key that mints one. The
+// `email_change` half always mints, and is held on our side by
+// `users.pending_email_token_hash`, which names the one link the change
+// waits on; redemption refuses any other before it asks Supabase.
 //
 // **Expired, spent and never-issued are one answer** (REQ-098 criterion 7).
 // The arms below carry different `reason`s for the observability line and
 // one and the same `lineKey`, so the screen says the same sentence and
 // takes the same path whichever it was.
-import { EMAIL_CHANGE_TTL_H, SIGNIN_LINK_TTL_H } from "@/lib/config/constants";
+import { EMAIL_CHANGE_TTL_H, SIGNIN_LINK_REUSE_MIN, SIGNIN_LINK_TTL_H } from "@/lib/config/constants";
 import { env } from "@/lib/config/env";
+import { sealer } from "@/lib/crypto/seal";
 import { confirmLinkPath, type ConfirmType } from "./addresses";
 import { identityAuth, type CookieIO, type GeneratedLink } from "./auth";
 import { completeEmailChange } from "./email-change-complete";
@@ -43,6 +48,39 @@ const MS_PER_HOUR = 60 * 60 * 1000;
 
 function ttlHoursFor(purpose: LinkPurpose): number {
   return purpose === "email_change" ? EMAIL_CHANGE_TTL_H : SIGNIN_LINK_TTL_H;
+}
+
+/** A literal, never composed: changing it strands every stored link, which then mints anew. */
+export const SIGNIN_LINK_LABEL = "reachkit/account/sign-in-link/v1";
+
+const signInSeal = sealer(SIGNIN_LINK_LABEL, (operation) => new Error(`could not ${operation} a sign-in link.`));
+
+interface MintedLink {
+  tokenHash: string;
+  type: ConfirmType;
+}
+
+/** The stored sign-in link while it is younger than the reuse window; anything unreadable is no link. */
+async function liveSignInLink(userId: string, now: Date): Promise<(MintedLink & { issuedAt: Date }) | null> {
+  const read = await identityStore().signInLink(userId);
+  if (!read.ok || read.link === null) return null;
+  const issuedAt = new Date(read.link.issuedAt);
+  const age = now.getTime() - issuedAt.getTime();
+  if (!(age >= 0 && age < SIGNIN_LINK_REUSE_MIN * 60 * 1000)) return null;
+  try {
+    return { ...(signInSeal.unseal(read.link.sealed) as MintedLink), issuedAt };
+  } catch {
+    return null;
+  }
+}
+
+function linkOn(minted: MintedLink, purpose: LinkPurpose, issuedAt: Date): IssuedLink {
+  return {
+    issued: true,
+    url: new URL(confirmLinkPath(minted.tokenHash, minted.type), env.NEXT_PUBLIC_APP_URL).toString(),
+    expiresAt: new Date(issuedAt.getTime() + ttlHoursFor(purpose) * MS_PER_HOUR),
+    tokenHash: minted.tokenHash,
+  };
 }
 
 /**
@@ -62,6 +100,11 @@ export async function issueLink(a: {
 
   let generated: GeneratedLink;
   if (a.purpose === "sign_in") {
+    const live = await liveSignInLink(a.userId, now);
+    if (live !== null) {
+      logLink({ event: "auth_link_issued", userId: a.userId, purpose: a.purpose, outcome: "reused" });
+      return linkOn(live, a.purpose, live.issuedAt);
+    }
     generated = await auth.generateLink({ kind: "sign_in", email: to });
   } else {
     // An email change is minted against the address the account signs in
@@ -86,13 +129,13 @@ export async function issueLink(a: {
     return { issued: false, reason: "vendor" };
   }
 
+  const minted: MintedLink = { tokenHash: generated.tokenHash, type: generated.type };
+  if (a.purpose === "sign_in") {
+    // Best-effort: a link that cannot be stored still works, it just is not re-sent.
+    await identityStore().writeSignInLink(a.userId, { sealed: signInSeal.seal(minted), issuedAt: now });
+  }
   logLink({ event: "auth_link_issued", userId: a.userId, purpose: a.purpose, outcome: "issued" });
-  return {
-    issued: true,
-    url: new URL(confirmLinkPath(generated.tokenHash, generated.type), env.NEXT_PUBLIC_APP_URL).toString(),
-    expiresAt: new Date(now.getTime() + ttlHoursFor(a.purpose) * MS_PER_HOUR),
-    tokenHash: generated.tokenHash,
-  };
+  return linkOn(minted, a.purpose, now);
 }
 
 function purposeOf(type: ConfirmType): LinkPurpose {
@@ -141,6 +184,8 @@ export async function redeemLink(
   // 15-minute chase keeps reading the first. Whether it stamped is also
   // what says where this customer is going next (REQ-024 c4).
   const stamp = await store.stampFirstSignedIn(verified.userId, now);
+  // Spent, so never re-sent.
+  await store.writeSignInLink(verified.userId, null);
   // SPEC §8 (#569): a sign-in ends an idle spell. Best-effort — a failed
   // stamp never stands between a customer and their account.
   await store.stampSeen(verified.userId, now);

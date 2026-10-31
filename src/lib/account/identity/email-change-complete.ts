@@ -72,6 +72,8 @@ export async function completeEmailChange(a: {
   // it on every `generateLink`, so minting one — sent to nobody — is what
   // spends it.
   const superseded = await identityAuth().generateLink({ kind: "sign_in", email: newEmail });
+  // The stored sign-in link is the one just spent, so it must not be re-sent.
+  await identityStore().writeSignInLink(account.id, null);
   if (!superseded.ok) {
     logLink({ event: "email_change_old_links_kept", userId: account.id, purpose, outcome: "vendor" });
   }

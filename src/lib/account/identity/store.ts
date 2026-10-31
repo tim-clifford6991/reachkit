@@ -6,10 +6,10 @@
 // deliberately: same three-answer discipline, same `dbAdmin()` cast at one
 // boundary, same swap door for the tests.
 //
-// **No link and no session lives here any more** (#468). Supabase Auth
+// **No session lives here** (#468), and no link in the clear. Supabase Auth
 // holds both (`./auth.ts`); what is left is the account row itself — the
-// address, the pending change beside it, the first-sign-in stamp — and the
-// account's one site.
+// address, the pending change beside it, the first-sign-in stamp, the live
+// sign-in link sealed — and the account's one site.
 //
 // **Nothing here throws.** Every method says what it did or says it could
 // not. A store that cannot be read is a different fact from a store that
@@ -93,6 +93,18 @@ export interface IdentityStore {
   }): Promise<{ ok: true } | { ok: false; conflict?: true }>;
 
   siteForAccount(userId: string): Promise<{ ok: true; siteId: string | null } | { ok: false }>;
+
+  /** The live sign-in link, sealed, and when it was minted; `null` once spent
+   *  or never stored. A database without `signin_links` fails this read alone
+   *  and the caller mints as before. */
+  signInLink(
+    userId: string
+  ): Promise<{ ok: true; link: { sealed: string; issuedAt: string } | null } | { ok: false }>;
+
+  writeSignInLink(
+    userId: string,
+    link: { sealed: string; issuedAt: Date } | null
+  ): Promise<{ ok: true } | { ok: false }>;
 }
 
 // ── The Supabase implementation
@@ -105,6 +117,8 @@ interface QueryResult<T> {
 interface MinimalQueryBuilder<T> extends PromiseLike<QueryResult<T>> {
   select(columns: string): MinimalQueryBuilder<T>;
   update(patch: object): MinimalQueryBuilder<T>;
+  upsert(row: object): MinimalQueryBuilder<T>;
+  delete(): MinimalQueryBuilder<T>;
   eq(column: string, value: string): MinimalQueryBuilder<T>;
   or(filter: string): MinimalQueryBuilder<T>;
   is(column: string, value: null): MinimalQueryBuilder<T>;
@@ -239,6 +253,25 @@ export function supabaseIdentityStore(): IdentityStore {
         .limit(1);
       if (error) return { ok: false };
       return { ok: true, siteId: data?.[0]?.id ?? null };
+    },
+
+    async signInLink(userId) {
+      const { data, error } = await untyped()
+        .from<{ sealed: string; issued_at: string }>("signin_links")
+        .select("sealed, issued_at")
+        .eq("user_id", userId)
+        .limit(1);
+      if (error) return { ok: false };
+      const row = data?.[0];
+      return { ok: true, link: row ? { sealed: row.sealed, issuedAt: row.issued_at } : null };
+    },
+
+    async writeSignInLink(userId, link) {
+      const table = untyped().from<{ user_id: string }>("signin_links");
+      const { error } = link
+        ? await table.upsert({ user_id: userId, sealed: link.sealed, issued_at: link.issuedAt.toISOString() })
+        : await table.delete().eq("user_id", userId);
+      return error ? { ok: false } : { ok: true };
     },
   };
 }
