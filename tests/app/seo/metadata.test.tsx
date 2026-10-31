@@ -86,6 +86,7 @@ const OWNER: Readonly<Record<string, { module: string; generated?: Record<string
   "/imprint": { module: "@/app/(public)/imprint/page" },
   // The screen is a Client Component; its metadata is the segment layout's.
   "/signin": { module: "@/app/(public)/signin/layout" },
+  "/auth/confirm": { module: "@/app/(public)/auth/confirm/page" },
   "/scan/{domain}": { module: "@/app/(public)/scan/[domain]/page", generated: { domain: "example.com" } },
   // Issue 1458: the pages earlier versions published.
   "/compare": { module: "@/app/(public)/compare/page" },
@@ -247,6 +248,7 @@ describe("indexing is one fact, read by the page and by the sitemap", () => {
     // ADR-002 · REQ-001 c8 for the report, issue #144's reasoning for the
     // two token paths, and S9 for the sign-in form.
     expect(refused.map((r) => r.route).sort()).toEqual([
+      "/auth/confirm",
       "/opt-out/{token}",
       "/pause/{token}",
       "/scan/{domain}",
@@ -296,8 +298,9 @@ describe("every sentence in a public <head> is a key, and the owner is told whic
     const keys = PUBLIC_ROUTE_SEO_ROWS.flatMap((row) => [row.title, row.description]);
     // Issue 1458 adds eight rows: six with keys of their own and three
     // articles sharing the two `meta.article.*` slot keys. Issue 1741 adds
-    // the Monday mail's two token pages, drafted.
-    expect(keys).toHaveLength(44);
+    // the Monday mail's two token pages, drafted. Issue 2099 adds the
+    // sign-in link's page, drafted.
+    expect(keys).toHaveLength(46);
     for (const key of keys) {
       expect(AWAITING_COPY, key).not.toContain(key);
       expect(COPY[key], key).not.toBe("");

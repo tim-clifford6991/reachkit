@@ -236,8 +236,8 @@ export const PUBLIC_PATHS: readonly string[] = [
   // would redirect a denied visitor to a denied page forever — a property
   // worth holding independently of any row on this list.
   SIGNIN_PATH,
-  // Issue #468 (was `/signin/:token`, #35): the route that redeems a
-  // sign-in or email-change link through Supabase's `verifyOtp`.
+  // Issue #468 (was `/signin/:token`, #35): the page a sign-in or
+  // email-change link lands on; its one button posts to the redeem route.
   // Unauthenticated by necessity — the whole point of the link is that its
   // holder has no session yet, so a denial here would send a working link
   // to the screen that says links do not work.

@@ -53,6 +53,8 @@ export interface FakeAuthState {
   failVerify: boolean;
   failSignOut: boolean;
   failDelete: boolean;
+  /** Every `verifyLink` asked, whatever it answered. */
+  verifyCalls: number;
   now: () => Date;
   next: number;
 }
@@ -70,6 +72,7 @@ export function newFakeAuth(): FakeAuthState {
     failVerify: false,
     failSignOut: false,
     failDelete: false,
+    verifyCalls: 0,
     now: () => new Date(),
     next: 1,
   };
@@ -151,6 +154,7 @@ export function fakeIdentityAuth(state: FakeAuthState): IdentityAuth {
     },
 
     async verifyLink(io, a) {
+      state.verifyCalls += 1;
       if (state.failVerify) return { ok: false, reason: "unknown" };
       const token = state.tokens.find((t) => t.hash === a.tokenHash && t.type === a.type);
       if (token === undefined) return { ok: false, reason: "unknown" };

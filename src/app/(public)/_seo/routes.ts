@@ -17,7 +17,7 @@
 // teardowns and the answer page. Each declares the addresses it serves, and
 // those are what the sitemap names.
 //
-// **Four routes are `indexable: false`, and each for its own reason:**
+// **These routes are `indexable: false`, and each for its own reason:**
 //
 //   · `/scan/{domain}` — ADR-002 decision 1 and REQ-001 c8: report pages
 //     are `noindex` forever and appear in no sitemap the product
@@ -32,10 +32,9 @@
 //     screen whose whole job is to hand out a credential by mail. It is
 //     reachable, linked from every header, and left out of the index
 //     deliberately.
+//   · `/auth/confirm` — its address carries a sign-in link's token.
 //
-// **`/auth/confirm` takes no row** (was `/signin/{token}` until #468). It
-// is a route handler that redeems a link and redirects; it renders no
-// document, so it has no `<head>` to fill. The 404 and error pages take no row either — they are not routes,
+// The 404 and error pages take no row — they are not routes,
 // they have no address of their own, and Next reads no `metadata` export
 // from `not-found.tsx` or `error.tsx`.
 import { WEEK_PLAN } from "@/lib/config/constants";
@@ -171,6 +170,12 @@ export const PUBLIC_ROUTE_SEO = Object.freeze({
     route: "/signin",
     title: "meta.signin.title",
     description: "meta.signin.description",
+    indexable: false,
+  },
+  confirm: {
+    route: "/auth/confirm",
+    title: "meta.confirm.title",
+    description: "meta.confirm.description",
     indexable: false,
   },
   report: {

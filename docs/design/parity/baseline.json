@@ -18,6 +18,7 @@
   "AuthSignIn": { "sha256": "dafe25bfab383495663f297bac1a0de42c95366060a17d48805a3d21083af66c", "missing": 0, "components": 5, "plainWords": 1 },
   "AuthCheckEmail": { "sha256": "4da6282879cf13e33b3c6a8e6bc7948f624c3739119237ee36adbb9cbff4efc1", "missing": 0, "plainWords": 4 },
   "AuthExpired": { "sha256": "a35f19ec1a9640b3486b0e1d1f89bc0c338c00bdc29b270c86172c69f3a6c5c1", "missing": 0, "plainWords": 3 },
+  "AuthConfirm": { "sha256": "919c95390820c423b4fd22a6821d62ea9e94a31179b6b61d7185998170ac88fd", "missing": 0, "components": 0, "plainWords": 1 },
   "Setup1": { "sha256": "bacde949605717ebcf2ff708dab8f13ec27335b7bed8f59f02e615a553fa9e74", "missing": 0, "components": 8, "plainWords": 2 },
   "Setup2": { "sha256": "1c4b79d22fa082d8b24594a544b4675605caec8b8d35b7a07d00bf3e9849ef7d", "missing": 0, "components": 27, "plainWords": 4 },
   "Setup": { "sha256": "7159c6f10db8ecdf02dc02ded961d9562ce68282db8940d0021ad9a1744f4eb8", "missing": 0, "components": 5, "plainWords": 6 },

@@ -87,6 +87,18 @@ export const EXTRA_SEGMENT_VALUES: Readonly<Record<string, readonly string[]>> =
 };
 
 /**
+ * The query a page is swept with, where its bare address only redirects.
+ * A sign-in link's page needs a hash and a type to draw its button; the
+ * hash spends nothing, because only the button's post asks Supabase.
+ */
+export const QUERY_FIXTURES: Readonly<Record<string, readonly string[]>> = {
+  "/auth/confirm": [
+    "?token_hash=layout-sweep-fixture&type=magiclink",
+    "?token_hash=layout-sweep-fixture&type=email_change",
+  ],
+};
+
+/**
  * The approved screen every route is built against (issue #358).
  *
  * One row per enumerated route, keyed by the URL the enumerator produces —
@@ -157,6 +169,10 @@ export const ROUTE_REFERENCE: Readonly<Record<string, `S${number}`>> = {
   "/pause/layout-sweep-fixture": "S7",
   /** REFERENCE: S9 — Sign in (§S9; REQ-098) */
   "/signin": "S9",
+  /** REFERENCE: S9 — Sign in, the nearest approved screen: the page a sign-in link lands on (board AuthConfirm) */
+  "/auth/confirm?token_hash=layout-sweep-fixture&type=magiclink": "S9",
+  /** REFERENCE: S9 — Sign in, the email-change arm of the same page */
+  "/auth/confirm?token_hash=layout-sweep-fixture&type=email_change": "S9",
   /** REFERENCE: S10 — Setup (§S10; REQ-025…028, REQ-021 c7) */
   "/setup": "S10",
   /**
@@ -436,6 +452,7 @@ function walk(dir: string, out: string[]): void {
 export interface EnumerateOptions {
   segmentFixtures?: Readonly<Record<string, string>>;
   extraSegmentValues?: Readonly<Record<string, readonly string[]>>;
+  queryFixtures?: Readonly<Record<string, readonly string[]>>;
   hostFixtures?: Readonly<Record<string, string>>;
   /** The `Cookie` header to give every `(account)` route. The browser
    *  sweep passes the seeded session; everything else takes the fixture. */
@@ -451,6 +468,7 @@ export interface EnumerateOptions {
 export function enumerateRoutes(appRoot: string, options: EnumerateOptions = {}): EnumeratedRoute[] {
   const segmentFixtures = options.segmentFixtures ?? SEGMENT_FIXTURES;
   const extraSegmentValues = options.extraSegmentValues ?? EXTRA_SEGMENT_VALUES;
+  const queryFixtures = options.queryFixtures ?? QUERY_FIXTURES;
   const hostFixtures = options.hostFixtures ?? HOST_FIXTURES;
   const accountCookie = options.accountCookie ?? ACCOUNT_SESSION_COOKIE;
 
@@ -498,11 +516,14 @@ export function enumerateRoutes(appRoot: string, options: EnumerateOptions = {})
       }
     }
 
-    return urlPaths.map((urlSegments) => {
-      const route: EnumeratedRoute = { path: "/" + urlSegments.join("/") };
-      if (host !== undefined) route.host = host;
-      if (cookie !== undefined) route.cookie = cookie;
-      return route;
+    return urlPaths.flatMap((urlSegments) => {
+      const bare = "/" + urlSegments.join("/");
+      return (queryFixtures[bare] ?? [""]).map((query) => {
+        const route: EnumeratedRoute = { path: bare + query };
+        if (host !== undefined) route.host = host;
+        if (cookie !== undefined) route.cookie = cookie;
+        return route;
+      });
     });
   });
 
