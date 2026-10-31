@@ -184,3 +184,16 @@ describe("a kind whose copy is unwritten sends nothing at all", () => {
     }
   });
 });
+
+describe("the payment-failed and win-back buttons", () => {
+  it("land on the billing tab, which a payer who has not finished setup still reaches", async () => {
+    const { buildPaymentFailed } = await import("@/lib/mail/templates/payment-failed");
+    const { isAllowedWhileIncomplete } = await import("@/app/(account)/setup/gate");
+    for (const mail of [buildPaymentFailed(), buildWinback({ email: "founder@example.com" })]) {
+      const action = mail.blocks.find((block) => block.block === "action");
+      const path = new URL(action && "href" in action ? action.href : "").pathname;
+      expect(path).toBe("/app/settings/billing");
+      expect(isAllowedWhileIncomplete(path)).toBe(true);
+    }
+  });
+});

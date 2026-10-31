@@ -8,9 +8,12 @@
 // card itself says why (`../panels/BillingPanel.tsx`).
 import type React from "react";
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { copy } from "@/lib/presentation/copy";
-import { readMonthGot, readSettings } from "../provider";
+import { readBillingSummary, readMonthGot } from "../provider";
+import { landed, Unread } from "../Unread";
 import { readShell } from "../../_shell/provider";
+import { CardSkeleton } from "../../_shell/skeletons";
 import { planToday, readWeek } from "../../calendar/provider";
 import { nextPageOf } from "../next-page";
 import { BillingPanel } from "../panels/BillingPanel";
@@ -23,27 +26,37 @@ import { MonthPanel } from "../panels/MonthPanel";
 export const metadata: Metadata = { title: copy("meta.app.settings.billing.title") };
 
 export default async function SettingsBillingTab(): Promise<React.JSX.Element> {
-  const [settings, month, shell, today] = await Promise.all([readSettings(), readMonthGot(), readShell(), planToday()]);
-  // This week's pages still to go live, as Plan shows them; unread is never zero.
-  const planned = await readWeek(today)
-    .then((week) => week.cells.flatMap((cell) => (cell.page !== null && cell.page.stage !== "live" ? [cell.day] : [])))
-    .catch(() => null);
-  const host = settings.destinations.find((d) => d.kind === "hosted" && d.hostnameState === "live")?.hostname ?? null;
-
+  const billing = await readBillingSummary();
   return (
     <div className="flex min-w-0 flex-col gap-6" data-testid="settings-tab-panel-billing">
-      <MonthPanel
-        got={month.got}
-        context={{
-          timeZone: month.timeZone,
-          today,
-          price: copy("price.amount"),
-          host,
-          planned,
-          first: nextPageOf(shell, settings.publishing.vetoHours).live,
-        }}
-      />
-      <BillingPanel billing={settings.billing} />
+      {/* Its own boundary, so cancelling never waits on the month's reads. */}
+      <Suspense fallback={<CardSkeleton testId="billing-month-skeleton" rows={3} />}>
+        <Month />
+      </Suspense>
+      <BillingPanel billing={billing} />
     </div>
+  );
+}
+
+async function Month(): Promise<React.JSX.Element> {
+  const [month, shell, today] = await Promise.all([landed(readMonthGot(), "month"), landed(readShell(), "shell"), landed(planToday(), "today")]);
+  if (month === null || shell === null || today === null) return <Unread testId="settings-unread-month" />;
+  // This week's pages still to go live, as Plan shows them; unread is never zero.
+  const week = await landed(readWeek(today), "week");
+  const planned = week?.cells.flatMap((cell) => (cell.page !== null && cell.page.stage !== "live" ? [cell.day] : [])) ?? null;
+  return (
+    <MonthPanel
+      got={month.got}
+      context={{
+        timeZone: month.timeZone,
+        today,
+        price: copy("price.amount"),
+        // The shell's blog is the hosted destination once it is live.
+        host: shell.blog === null ? null : new URL(shell.blog).hostname,
+        planned,
+        // `live` does not depend on the stop window, so no settings read is needed.
+        first: nextPageOf(shell, 0).live,
+      }}
+    />
   );
 }
