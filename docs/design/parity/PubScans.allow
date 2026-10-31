@@ -54,7 +54,7 @@ Showing 12 of 127 reports	sample data: the board's counts; the page counts what 
 Visibility Score: one number for how easy a business is to find, out of 100. Shown from 40 to 65. One of the 12, bupa.co.uk, is not scored.	sample data: composed from the newest reports' scores; tests/app/scans/board.test.tsx reads the range and the unscored report
 Empty state, when a search finds nothing	#1110: the board's own caption over the empty arm, not a string of the screen
 No free scan matches that yet.	#1732: the empty arm, shown when a search finds nothing; tests/app/scans/board.test.tsx searches for it
-Scan it now: it takes under a minute, and it will be listed here.	#1732: the empty arm, shown when a search finds nothing; tests/app/scans/board.test.tsx searches for it
+Scan it now. It takes under a minute, then it shows here.	#1732: the empty arm, shown when a search finds nothing; tests/app/scans/board.test.tsx searches for it
 Scan this site	#1732: the empty arm, shown when a search finds nothing; tests/app/scans/board.test.tsx searches for it
 The 12 newest reports, by Visibility Score Hard to find Findable	SPEC 2026-10-15 (#1444): a title is at most six words, so it ships as "The 12 newest, by Visibility Score" (#1732)
 Articles	#1512: the footer links the content host's index only where stored rows name one; the sweep seeds none
