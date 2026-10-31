@@ -82,13 +82,14 @@ async function redeem(url: string, at = NOW) {
 }
 
 describe("#468 — Supabase mints the token; this product stores none", () => {
-  it("issue asks Supabase for a magic link to the lowercased address and writes nothing of ours", async () => {
+  it("issue asks Supabase for a magic link to the lowercased address and writes nothing of ours in the clear", async () => {
     const user = account();
-    const before = JSON.stringify(state);
+    const before = JSON.stringify(state.users);
     const issued = await issueLink({ userId: user.id, to: "Founder@Example.com", purpose: "sign_in", now: NOW });
     expect(issued.issued).toBe(true);
     expect(auth.generated).toEqual([{ kind: "sign_in", email: "founder@example.com" }]);
-    expect(JSON.stringify(state)).toBe(before);
+    expect(JSON.stringify(state.users)).toBe(before);
+    expect(state.signInLinks.get(user.id)?.sealed).not.toContain(auth.tokens[0]?.hash);
   });
 
   it("the link carries Supabase's hash, and the expiry is the pinned TTL", async () => {
@@ -129,11 +130,13 @@ describe("#468 — Supabase mints the token; this product stores none", () => {
   });
 });
 
-describe('REQ-024 c4 — "never to a dead end": the newest link is the one that works (GoTrue keeps it)', () => {
+describe('REQ-024 c4 — "never to a dead end": after 15 minutes the newest link is the one that works (GoTrue keeps it)', () => {
+  const LATER = new Date(NOW.getTime() + 16 * 60 * 1000);
+
   it("issuing a second link supersedes the first, and only the second redeems", async () => {
     const user = account();
     const first = await issueLink({ userId: user.id, to: user.email, purpose: "sign_in", now: NOW });
-    const second = await issueLink({ userId: user.id, to: user.email, purpose: "sign_in", now: NOW });
+    const second = await issueLink({ userId: user.id, to: user.email, purpose: "sign_in", now: LATER });
     if (!first.issued || !second.issued) throw new Error("not issued");
 
     expect(await redeem(second.url)).toMatchObject({ ok: true });
@@ -143,7 +146,7 @@ describe('REQ-024 c4 — "never to a dead end": the newest link is the one that 
   it("three requests leave exactly one live link", async () => {
     const user = account();
     for (let i = 0; i < 3; i++) {
-      await issueLink({ userId: user.id, to: user.email, purpose: "sign_in", now: NOW });
+      await issueLink({ userId: user.id, to: user.email, purpose: "sign_in", now: new Date(NOW.getTime() + i * 16 * 60 * 1000) });
     }
     expect(auth.tokens).toHaveLength(3);
     expect(auth.tokens.filter((t) => !t.superseded && !t.used)).toHaveLength(1);

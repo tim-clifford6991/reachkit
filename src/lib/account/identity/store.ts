@@ -6,10 +6,10 @@
 // deliberately: same three-answer discipline, same `dbAdmin()` cast at one
 // boundary, same swap door for the tests.
 //
-// **No link and no session lives here any more** (#468). Supabase Auth
+// **No session lives here** (#468), and no link in the clear. Supabase Auth
 // holds both (`./auth.ts`); what is left is the account row itself — the
-// address, the pending change beside it, the first-sign-in stamp — and the
-// account's one site.
+// address, the pending change beside it, the first-sign-in stamp, the live
+// sign-in link sealed — and the account's one site.
 //
 // **Nothing here throws.** Every method says what it did or says it could
 // not. A store that cannot be read is a different fact from a store that
@@ -93,6 +93,18 @@ export interface IdentityStore {
   }): Promise<{ ok: true } | { ok: false; conflict?: true }>;
 
   siteForAccount(userId: string): Promise<{ ok: true; siteId: string | null } | { ok: false }>;
+
+  /** The live sign-in link, sealed, and when it was minted; `null` once spent
+   *  or never stored. Read apart from `ACCOUNT_COLUMNS`, so a database without
+   *  the two columns fails this read alone and the caller mints as before. */
+  signInLink(
+    userId: string
+  ): Promise<{ ok: true; link: { sealed: string; issuedAt: string } | null } | { ok: false }>;
+
+  writeSignInLink(
+    userId: string,
+    link: { sealed: string; issuedAt: Date } | null
+  ): Promise<{ ok: true } | { ok: false }>;
 }
 
 // ── The Supabase implementation
@@ -239,6 +251,29 @@ export function supabaseIdentityStore(): IdentityStore {
         .limit(1);
       if (error) return { ok: false };
       return { ok: true, siteId: data?.[0]?.id ?? null };
+    },
+
+    async signInLink(userId) {
+      const { data, error } = await untyped()
+        .from<{ signin_link_sealed: string | null; signin_link_issued_at: string | null }>("users")
+        .select("signin_link_sealed, signin_link_issued_at")
+        .eq("id", userId)
+        .limit(1);
+      if (error) return { ok: false };
+      const row = data?.[0];
+      if (!row?.signin_link_sealed || !row.signin_link_issued_at) return { ok: true, link: null };
+      return { ok: true, link: { sealed: row.signin_link_sealed, issuedAt: row.signin_link_issued_at } };
+    },
+
+    async writeSignInLink(userId, link) {
+      const { error } = await untyped()
+        .from<IdentityAccountRow>("users")
+        .update({
+          signin_link_sealed: link?.sealed ?? null,
+          signin_link_issued_at: link?.issuedAt.toISOString() ?? null,
+        })
+        .eq("id", userId);
+      return error ? { ok: false } : { ok: true };
     },
   };
 }
