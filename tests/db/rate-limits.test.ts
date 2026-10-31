@@ -7,7 +7,7 @@ import { applyEnvFixture } from "../mail/env-fixture";
 import { REST_URL, SERVICE_ROLE_KEY, loopbackFetch, psql, psqlRows } from "./substrate";
 
 const MIGRATIONS = path.resolve(import.meta.dirname, "../../supabase/migrations");
-const APPLIED = ["00000000000001_baseline.sql", "00000000000002_rls.sql", "20261031120000_rate_limits.sql"];
+const APPLIED = ["00000000000001_baseline.sql", "00000000000002_rls.sql", "20261031130000_rate_limits.sql"];
 const SIGNATURE = "take_rate_limits(text[], text[], integer[], integer[])";
 
 let limits: typeof import("@/lib/limits");
