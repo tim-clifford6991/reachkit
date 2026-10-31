@@ -273,6 +273,15 @@ function checkRepo() {
     texts.push({ rel, text });
   }
   checkBudgets(texts);
+  checkLimiterSeam(texts);
+}
+
+// One module counts abuse limits, so every rule is shared across instances and none drifts into a local copy.
+function checkLimiterSeam(texts) {
+  const inSrc = (token) => texts.filter((t) => t.rel.startsWith("src/") && t.text.includes(token)).map((t) => t.rel);
+  const callers = inSrc("take_rate_limits");
+  if (callers.join() !== "src/lib/limits/index.ts") add("repo", `take_rate_limits is called from ${callers.join(", ") || "nowhere"}; only src/lib/limits may`);
+  for (const rel of inSrc("takeCheck")) add("repo", `${rel} names takeCheck; free checks count through src/lib/limits`);
 }
 
 // On a pull request the checkout is the merge commit, so HEAD^1 is the base it merges into.

@@ -6,7 +6,8 @@ import { parse, type HTMLElement } from "node-html-parser";
 import { safeFetch } from "@/lib/egress";
 import { parseOnPage } from "@/lib/measure/parse";
 import { readPageFacts } from "@/lib/site-issues";
-import { networkKeyOf, type NetworkKey } from "@/lib/scan/admission";
+import { takeLimits } from "@/lib/limits";
+import { networkKeyOf } from "@/lib/scan/admission";
 import { parseDomain } from "@/lib/scan/domain";
 
 /** The tags a search engine and a share card read off one page. */
@@ -47,25 +48,6 @@ export function pageAddress(raw: string): string | null {
   if (!parseDomain(url.hostname).ok) return null;
   url.hash = "";
   return url.toString();
-}
-
-/** Free checks per network per hour. Held in this instance's memory: a
- *  check costs nothing, so the limit is a brake on one visitor driving the
- *  reader, not a budget. */
-const CHECKS_PER_HOUR = 30;
-const HOUR_MS = 60 * 60 * 1000;
-const recent = new Map<NetworkKey, number[]>();
-
-export function takeCheck(requestHeaders: Pick<Headers, "get">, nowMs: number = Date.now()): boolean {
-  const key = networkKeyOf(requestHeaders);
-  const kept = (recent.get(key) ?? []).filter((at) => nowMs - at < HOUR_MS);
-  if (kept.length >= CHECKS_PER_HOUR) {
-    recent.set(key, kept);
-    return false;
-  }
-  kept.push(nowMs);
-  recent.set(key, kept);
-  return true;
 }
 
 function text(node: HTMLElement | null): string {
@@ -113,7 +95,9 @@ export function pageTags(url: string, html: string, headers: Readonly<Record<str
 export async function readPage(raw: string, requestHeaders: Pick<Headers, "get">): Promise<PageRead> {
   const url = pageAddress(raw);
   if (url === null) return { ok: false, problem: "address" };
-  if (!takeCheck(requestHeaders)) return { ok: false, problem: "limit" };
+  if (!(await takeLimits("tool_check", { network: networkKeyOf(requestHeaders) }))) {
+    return { ok: false, problem: "limit" };
+  }
   const outcome = await safeFetch(url, { timeoutMs: 8000, userAgent: "reachkit-measure" });
   if (!outcome.ok) {
     return { ok: false, problem: outcome.reason === "robots_disallowed" ? "robots" : "read", url };
