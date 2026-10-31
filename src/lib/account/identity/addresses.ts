@@ -29,11 +29,15 @@ export function isAuthCookieName(name: string): boolean {
 /** The screen anyone without a session meets (REQ-098 criterion 1). */
 export const SIGNIN_PATH = "/signin";
 
-/** The route that redeems a link (#468): Supabase's `token_hash` and the
+/** Where a link lands (#468): Supabase's `token_hash` and the
  *  verification type ride in the query, on this product's own host. Public
  *  by necessity — the whole point of the link is that its holder has no
- *  session yet. */
+ *  session yet. It shows one button and spends nothing, so a mail scanner
+ *  that opens the link leaves it working. */
 export const CONFIRM_PATH = "/auth/confirm";
+
+/** Where that button posts; the only address that spends a link. */
+export const REDEEM_PATH = "/auth/confirm/redeem";
 
 /** Where Stripe sends a completed Checkout Session. Public by necessity —
  *  the buyer has just paid and has no session yet. The route provisions
@@ -50,10 +54,15 @@ export const CHECKOUT_SESSION_QUERY_KEY = "session_id";
 /** The two verification types a link of ours is ever issued as. */
 export type ConfirmType = "magiclink" | "email_change";
 
-/** The query keys the confirm route reads. Supabase's own spelling, so a
- *  link is the shape its documentation describes. */
+/** The query keys a link carries, and the form fields the confirm page
+ *  posts them back under. Supabase's own spelling, so a link is the shape
+ *  its documentation describes. */
 export const TOKEN_HASH_QUERY_KEY = "token_hash";
 export const TYPE_QUERY_KEY = "type";
+
+export function confirmTypeOf(value: string | null | undefined): ConfirmType | null {
+  return value === "magiclink" || value === "email_change" ? value : null;
+}
 
 /** The query marker the sign-in screen reads to speak `signin.link_dead`.
  *  REQ-098 criterion 7: expired, spent and never-issued are one case with
@@ -69,7 +78,7 @@ export const LINK_QUERY_KEY = "link";
 export const LANDING_QUERY_KEY = "next";
 export const CONNECT_LANDING_PATH = "/setup/connect";
 
-export function linkLandingOf(value: string | null): string | null {
+export function linkLandingOf(value: string | null | undefined): string | null {
   return value === CONNECT_LANDING_PATH ? value : null;
 }
 

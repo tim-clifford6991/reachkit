@@ -87,6 +87,12 @@ export const ROUTE_HARNESS: Readonly<Record<string, HarnessRow>> = Object.freeze
   // invalid arm writes no switch and no toggle.
   "(public)/unsubscribe/[token]/page.tsx": { props: () => ({ params: { token: "sweep-fixture" } }), shell: false, async: true },
   "(public)/pause/[token]/page.tsx": { props: () => ({ params: { token: "sweep-fixture" } }), shell: false, async: true },
+  // A sign-in link's page with a hash that spends nothing: only its button's post asks Supabase.
+  "(public)/auth/confirm/page.tsx": {
+    props: () => ({ searchParams: Promise.resolve({ token_hash: "sweep-fixture", type: "magiclink" }) }),
+    shell: false,
+    async: true,
+  },
   "(public)/veto/[token]/page.tsx": {
     // Deliberately a token that verifies against nothing: the page renders
     // its unknown-link arm, so it moves no page out of review and marks no

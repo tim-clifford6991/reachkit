@@ -103,8 +103,8 @@ Two other places will take them:
    taken from the subscription; a `sites` row carries the scanned domain, or a null domain for a
    purchase with no report behind it.
 6. A `magic-link` mail leaves for the paying address. It is late or absent before #325.
-7. Opening the link lands on `/auth/confirm`, which sets the session and redirects a
-   never-signed-in customer to `/setup`. A link lasts 24 hours and issuing a new one spends every
+7. Opening the link lands on `/auth/confirm`, which shows one **Sign in** button and spends
+   nothing. Pressing it sets the session and redirects a never-signed-in customer to `/setup`. A link lasts 24 hours and issuing a new one spends every
    older one.
 
 ## 8. The three checks after it
