@@ -2,7 +2,7 @@
 // deploy by itself, and a public report is never silently stale.
 //
 // The deployment carries its derivation: `scripts/derivation.mjs`'s
-// fingerprint of every file under `src/lib` the re-score reads a scan with,
+// fingerprint of the code under `src/lib` the re-score reads a scan with,
 // computed by `next.config.ts` at build as `RK_DERIVATION`. Each
 // `rescore_runs` row records the derivation it ran with, so the tick can tell
 // a deploy that changed how a scan is read from one that did not, and ask the

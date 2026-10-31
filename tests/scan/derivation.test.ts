@@ -1,8 +1,8 @@
-// Issue 1481 — the deployment's derivation: a fingerprint of the files under
-// `src/lib` the re-score reaches. A change to one of them is a new derivation,
-// which the `scan/rescore` tick re-scores every stored scan for; a change
-// anywhere else is not.
-import { appendFileSync, cpSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+// Issue 1481 — the deployment's derivation: a fingerprint of the code under
+// `src/lib` the re-score executes. A change to it is a new derivation, which
+// the `scan/rescore` tick re-scores every stored scan for; a change anywhere
+// else is not.
+import { appendFileSync, cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -24,11 +24,23 @@ function tree(files: Record<string, string>): string {
   return root;
 }
 
+function copied(): string {
+  const root = tree({});
+  cpSync("src/lib", join(root, "src/lib"), { recursive: true });
+  return root;
+}
+
+function edit(root: string, file: string, from: string, to: string): void {
+  const text = readFileSync(join(root, file), "utf8");
+  expect(text).toContain(from);
+  writeFileSync(join(root, file), text.replace(from, to));
+}
+
 const FILES = {
   "src/lib/scan/rescore-run.ts":
-    'import { rescoreScan } from "./rescore";\nimport type { Drivers } from "@/lib/measure/score";\nimport { type Row, type Cell } from "./row";\nexport const lazy = () => import("@/lib/db");\n',
+    'import { rescoreScan } from "./rescore";\nimport type { Drivers } from "@/lib/measure/score";\nimport { type Row, type Cell } from "./row";\nexport const lazy = () => import("@/lib/db");\nexport const run = () => rescoreScan();\n',
   "src/lib/scan/row.ts": "export type Row = 1;\nexport type Cell = 2;\n",
-  "src/lib/scan/rescore.ts": 'export { band } from "../measure/bands";\nexport function rescoreScan() {}\n',
+  "src/lib/scan/rescore.ts": 'import { band } from "../measure/bands";\nexport function rescoreScan() {\n  return band;\n}\n',
   "src/lib/measure/score.ts": "export type Drivers = { score: number };\n",
   "src/lib/measure/bands.ts": "export const band = 25;\n",
   "src/lib/db/index.ts": "export const dbAdmin = () => null;\n",
@@ -53,6 +65,48 @@ describe("the re-score's derivation", () => {
     expect(derivation(tree({ ...FILES, "src/app/report.tsx": "export {};\n" }))).toBe(base);
   });
 
+  it("barrel re-exports are resolved to the used file", () => {
+    const files = derivationFiles(
+      tree({
+        "src/lib/scan/rescore-run.ts":
+          'import { GUARD } from "@/lib/config/constants";\nimport { fromStored } from "@/lib/presentation/text";\nexport const run = () => [GUARD, fromStored("a")];\n',
+        "src/lib/config/constants.ts": 'export * from "./constants/scan";\nexport * from "./constants/ui";\n',
+        "src/lib/config/constants/scan.ts": "export const GUARD = 15;\n",
+        "src/lib/config/constants/ui.ts": "export const NAV = 3;\n",
+        "src/lib/presentation/text.ts":
+          'import { copy } from "./copy";\nexport const fromStored = (t: string) => ({ t });\nexport const label = () => copy("k");\n',
+        "src/lib/presentation/copy/index.ts": 'export { copy } from "./registry";\n',
+        "src/lib/presentation/copy/registry.ts": "export const copy = (k: string) => k;\n",
+      }),
+    );
+    expect(files).toEqual([
+      "src/lib/config/constants.ts",
+      "src/lib/config/constants/scan.ts",
+      "src/lib/presentation/text.ts",
+      "src/lib/scan/rescore-run.ts",
+    ]);
+  });
+
+  it("a copy key the re-score does not read leaves it unchanged; a constant it reads changes it", () => {
+    const root = copied();
+    const settled = derivation(root);
+    edit(root, "src/lib/presentation/copy/keys/chrome.ts", '"chrome.wordmark": ["ReachKit"', '"chrome.wordmark": ["Reach Kit"');
+    expect(derivation(root)).toBe(settled);
+    edit(root, "src/lib/config/constants/scan.ts", "maxScoreMove: 15,", "maxScoreMove: 16,");
+    const guarded = derivation(root);
+    expect(guarded).not.toBe(settled);
+    edit(root, "src/lib/config/constants/scan.ts", "export const SCORING = Object.freeze({", "export const SCORING = Object.freeze({ extra: 1,");
+    expect(derivation(root)).not.toBe(guarded);
+  });
+
+  it("scoring roots stay in the set", () => {
+    const files = derivationFiles();
+    for (const file of ["src/lib/scan/rescore-run.ts", "src/lib/scan/rescore.ts", "src/lib/scan/derivation.ts", "src/lib/scan/report.ts", "src/lib/measure/score.ts", "src/lib/measure/drivers.ts", "src/lib/measure/bands.ts", "src/lib/measure/verdict.ts", "src/lib/config/constants/scan.ts"]) {
+      expect(files).toContain(file);
+    }
+    expect(files.filter((file: string) => file.startsWith("src/lib/presentation/copy/"))).toEqual([]);
+  });
+
   it("reaches the repository's own scoring, rivals and reading, and not the vendor's transport or a module only its types reach", () => {
     const files = derivationFiles();
     for (const file of ["src/lib/scan/rescore.ts", "src/lib/measure/score.ts", "src/lib/business/retrofit.ts", "src/lib/config/constants.ts"]) {
@@ -65,13 +119,11 @@ describe("the re-score's derivation", () => {
   });
 
   it("a deploy that changes only the vendor's transport asks a settled derivation nothing, so no stored scan is read; one that changes the re-score asks a dry run", async () => {
-    const root = mkdtempSync(join(tmpdir(), "derivation-"));
-    roots.push(root);
-    cpSync("src/lib", join(root, "src/lib"), { recursive: true });
+    const root = copied();
     const settled = derivation(root);
-    appendFileSync(join(root, "src/lib/vendors/dataforseo/transport.ts"), "// a deploy\n");
+    appendFileSync(join(root, "src/lib/vendors/dataforseo/transport.ts"), "export const deployed = 1;\n");
     const transport = derivation(root);
-    appendFileSync(join(root, "src/lib/scan/rescore.ts"), "// a deploy\n");
+    appendFileSync(join(root, "src/lib/scan/rescore.ts"), "globalThis.deployed = 1;\n");
     const scoring = derivation(root);
     expect(transport).toBe(settled);
     expect(scoring).not.toBe(settled);
