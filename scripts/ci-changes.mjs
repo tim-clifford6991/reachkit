@@ -78,6 +78,7 @@ const DB = [
   /^src\/lib\/opportunities\/store\.ts$/,
   /^src\/lib\/costs\/(index|daily)\.ts$/,
   /^src\/lib\/scan\/admission\.ts$/,
+  /^src\/lib\/limits\//,
   /^src\/lib\/scan\/weekly\/(index|access)\.ts$/,
   /^src\/lib\/account\/billing\/index\.ts$/,
   /^tests\/ui\/layout\/seed-rows\.ts$/,

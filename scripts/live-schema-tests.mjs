@@ -64,4 +64,6 @@ export const LIVE_SCHEMA_TESTS = [
   "tests/costs/attribution-schema.test.ts",
   // The sealed sign-in link, out of every customer session's reach.
   "tests/account/identity/signin-links-schema.test.ts",
+  // The shared abuse-limit count, its windows, sweep and grants.
+  "tests/db/rate-limits.test.ts",
 ];
