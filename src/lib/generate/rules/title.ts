@@ -6,9 +6,8 @@
 // its head, one specific the pack holds, a question only where the search is
 // one, the year's place, no banned pattern, not the title of another page of
 // the site, the business on a page that compares products, an H1 that is
-// the title, and the meta description's length —
-// which rides with it, because a page has one fix call and the two are
-// written together.
+// the title, and a meta description that is there at all — code fits its
+// length, which never stops a page (owner R-A).
 //
 // The writer proposes several titles and `pickTitle` chooses among them by
 // these same rules (issue 1389): no model judges a title.
@@ -73,6 +72,7 @@ export type TitleFault =
   /** Issue 1552: a comparison's title does not name the business. */
   | "business"
   | "heading"
+  /** The page has no meta description; its length never stops one. */
   | "description"
   /** Issue 1507: the description states a figure the body does not. */
   | "description_figures";
@@ -294,12 +294,11 @@ const figureReading = (a: TitleRuleInputs): { language: Language; years: number[
  *  H1 is the title: another wording passes only where it is the title's near
  *  twin and holds every rule the title holds. */
 export function titleFaults(title: string, a: TitleRuleInputs, heading: string = title, markdown?: string): TitleFault[] {
-  const description = [...a.description.trim()].length;
   const apart = heading.trim() !== title.trim() && (titleOverlap(heading, title) < TITLE.headingMin || wordingFaults(heading, a).length > 0);
   return [
     ...wordingFaults(title, a),
     ...(apart ? (["heading"] as const) : []),
-    ...(description < TITLE.description.min || description > TITLE.description.max ? (["description"] as const) : []),
+    ...(a.description.trim() === "" ? (["description"] as const) : []),
     ...(markdown !== undefined && descriptionFiguresMissing(a.description, markdown, figureReading(a)).length > 0 ? (["description_figures"] as const) : []),
   ];
 }
@@ -398,7 +397,7 @@ export function titleNotes(title: string, a: TitleRuleInputs, faults: readonly T
     count: `title: it counts ${countedIn(title) ?? 0} options and the page counts ${a.options ?? 0}: state ${a.options ?? 0}, the number \`options\` holds, or no count`,
     business: `title: the search compares products, and this page is the business's own: the title names it, as "${a.business?.[0] ?? ""}", beside the products the search names`,
     heading: "heading: the H1 is the title itself",
-    description: `description: it has ${[...a.description.trim()].length} characters and must have ${TITLE.description.min} to ${TITLE.description.max}, opening with the answer`,
+    description: `description: write one of ${TITLE.description.min} to ${TITLE.description.max} characters, opening with the answer`,
     description_figures: `description: every figure it states is one the body states; ${descriptionFiguresMissing(a.description, markdown, figureReading(a))
       .map((figure) => `"${figure}"`)
       .join(", ")} is not in the body`,
