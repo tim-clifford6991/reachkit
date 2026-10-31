@@ -8,6 +8,7 @@
 import { languagePack, SHAPES } from "@/lib/locale/language";
 import { TITLE } from "@/lib/config/constants";
 import { brandOf } from "@/lib/market/questions/select";
+import { namedRivals } from "../rules/rivals";
 import { numeralsOf } from "../rules/figures";
 import { addedNames, asksQuestion, names, withoutSerials, type TitleRuleInputs } from "../rules/title";
 import { packStatements, type ContextPack } from "./pack";
@@ -74,6 +75,10 @@ export function titleRuleFor(pack: ContextPack, page: TitledPage): TitleRuleInpu
   const products = [...named, ...domains, ...brands(pack.baseline)].filter((name) => name.length > 2);
   const compares = searches.some((search) => SHAPES.comparison.test(search.toLowerCase()) && products.some((product) => names(search, product)));
   const business = [...new Set([...text(pack.business.name), ...brands(pack.business.domain)])].filter((name) => name.length > 2);
+  // Every market rival on every page type: a figure beside a name is that owner's own.
+  const ownPassages = (domain: string): string => pack.claims.filter((claim) => claim.product === domain).map((claim) => claim.passage).join("\n");
+  const rivalOwners = namedRivals(pack.business.rivals ?? [], pack.business.market).map((rival) => ({ names: [...text(rival.name), brandOf(rival.domain)].filter((name) => name.length > 2), holds: ownPassages(rival.domain) }));
+  const pageCounts = [...counts.values(), ...listed, pack.questions.length, options ?? 0].filter((count) => count > 1).join(" ");
   return {
     type: pack.type,
     terms: [...new Set([...searches, pack.target.question])],
@@ -86,7 +91,7 @@ export function titleRuleFor(pack: ContextPack, page: TitledPage): TitleRuleInpu
     holds: [
       ...evidenceOf(pack),
       ...pack.target.searches,
-      [...counts.values(), ...listed, pack.questions.length, options ?? 0].filter((count) => count > 1).join(" "),
+      pageCounts,
     ].join("\n"),
     year: new Date(pack.builtAt).getUTCFullYear(),
     titles: pack.pages.flatMap((each) => text(each.title)),
@@ -94,6 +99,7 @@ export function titleRuleFor(pack: ContextPack, page: TitledPage): TitleRuleInpu
     ...(pack.locale === undefined ? {} : { language }),
     ...(options === undefined ? {} : { options }),
     ...(compares && business.length > 0 ? { business } : {}),
+    owners: { rivals: rivalOwners, business: { names: business, holds: [...pack.facts.map((fact) => fact.passage), ...packStatements(pack), ownPassages(pack.business.domain)].join("\n") }, page: pageCounts },
   };
 }
 
