@@ -32,13 +32,14 @@
 import { SHAPES } from "@/lib/locale/language";
 import type { BusinessKind } from "@/lib/market/kinds";
 import {
-  isAcademicDomain,
   isArticleRow,
   isExplainerTitle,
+  isJobRow,
   isListingAddress,
   isListingHost,
   isMarketplaceHost,
   isOwnContentUrl,
+  isPublicHost,
   isRoundupPage,
   registrableDomain,
 } from "@/lib/market/rivals/domains";
@@ -178,10 +179,6 @@ export const OFFERING_TOP_TEN = Object.freeze({
  *  third party that lists others, an article, or a provider's own page. */
 export type ResultClass = "job" | "public" | "third_party" | "article" | "provider";
 
-const JOB_HOST = /^(jobs|careers|karriere|stellen)\./;
-const JOB_SEGMENT = /^(jobs?|job-details|vacanc(y|ies)|careers?|stellen(angebote)?|stellenmarkt|jobsuche)$/;
-const JOB_TITLE = /(?<![\p{L}\p{N}])(jobs?|vacanc(y|ies)|salary|salaries|stellenangebote?|gehalt)(?![\p{L}\p{N}])/iu;
-const PUBLIC_HOST = /(^|\.)(gov|mil)(\.[a-z]{2})?$|(^|\.)(gc\.ca|nhs\.uk|police\.uk|bund\.de|gv\.at|admin\.ch|europa\.eu)$/;
 const SEARCH_PARAM = /^(find_desc|find_loc|q|query|search|s|k|keyword|what|where)$/;
 const DIRECTORY_SEGMENT =
   /^(search|suche|find|directory|verzeichnis|branchen|firmen|companies|categories|listings?|profiles?|biz|doctor-locator|filialen|threads?|forums?|community|groups|questions)$/;
@@ -217,8 +214,8 @@ export function resultClass(row: TopTenRow): ResultClass {
   const host = row.domain.toLowerCase().replace(/^www\./, "");
   const { path, params } = segmentsOf(row.url);
   const title = row.title ?? "";
-  if (JOB_HOST.test(host) || path.some((segment) => JOB_SEGMENT.test(segment)) || JOB_TITLE.test(title)) return "job";
-  if (PUBLIC_HOST.test(host) || isAcademicDomain(host)) return "public";
+  if (isJobRow(row)) return "job";
+  if (isPublicHost(host)) return "public";
   const name = (registrableDomain(host) ?? host).split(".")[0] ?? "";
   if (
     isListingAddress(row.url ?? row.domain) ||

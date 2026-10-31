@@ -23,7 +23,7 @@
 import { ABSENT_FROM_MAX } from "@/lib/config/constants";
 import type { Measured } from "@/lib/measure/measured";
 import type { MarketSerp, SelectedSearchView } from "../views";
-import { isOwnDomain, isPlatformDomain, registrableDomain } from "./domains";
+import { isOwnDomain, isSourceRow, registrableDomain, type SourceReading } from "./domains";
 import type { RivalCandidate } from "./derive";
 
 export interface PresenceCard {
@@ -87,16 +87,11 @@ function topTenDomains(serp: MarketSerp): Set<string> {
 }
 
 /** The domain at position 1, or `null` where that position is held by a
- *  platform rather than a product — a platform is not a rival and is not
- *  presented as one holding ground (§6.6's partition, applied to this one
- *  field). `null` too where no row carries position 1 at all, or where its
- *  host does not parse. */
-function topHolderOf(serp: MarketSerp): string | null {
+ *  source rather than a business (`isSourceRow`: a platform, a public body,
+ *  a job page or an article), or where no row carries position 1 at all. */
+function topHolderOf(serp: MarketSerp, reading: SourceReading): string | null {
   const first = serp.organic.find((row) => row.position === 1);
-  if (first === undefined) return null;
-  const domain = registrableDomain(first.domain);
-  if (domain === null || isPlatformDomain(first.domain)) return null;
-  return domain;
+  return first === undefined || isSourceRow(first, reading) ? null : registrableDomain(first.domain);
 }
 
 function ownPresenceOf(topTens: readonly { pair: MeasuredPair; domains: Set<string> }[], ownDomain: string) {
@@ -132,10 +127,15 @@ export function buildPresenceCard(a: {
   selected: readonly SelectedSearchView[];
   ownDomain: string;
   rivals: readonly RivalCandidate[];
+  /** Where the market is local and what it set aside as sources, as the
+   *  rivals were derived. Absent: national, and no stored sources. */
+  local?: boolean;
+  sources?: readonly string[];
 }): PresenceCard {
   const pairs = measuredPairs(a.serps, a.selected);
   const topTens = pairs.map((pair) => ({ pair, domains: topTenDomains(pair.serp) }));
   const ownPresence = ownPresenceOf(topTens, a.ownDomain);
+  const reading = { local: a.local === true, sources: a.sources ?? [], rivals: a.rivals.map((rival) => rival.domain) };
 
   const countFor = (rivalDomain: string): number => {
     const domain = registrableDomain(rivalDomain);
@@ -148,7 +148,7 @@ export function buildPresenceCard(a: {
     .map(({ pair }) => ({
       keyword: pair.search.keyword,
       volume: pair.search.volume,
-      topHolder: topHolderOf(pair.serp),
+      topHolder: topHolderOf(pair.serp, reading),
     }))
     .sort((x, y) => y.volume - x.volume || (x.keyword < y.keyword ? -1 : x.keyword > y.keyword ? 1 : 0))
     .slice(0, ABSENT_FROM_MAX);
@@ -169,7 +169,7 @@ export function buildPresenceCard(a: {
     absentFrom,
     ...(biggest === null
       ? {}
-      : { mostSearched: { keyword: biggest.search.keyword, volume: biggest.search.volume, topHolder: topHolderOf(biggest.serp) } }),
+      : { mostSearched: { keyword: biggest.search.keyword, volume: biggest.search.volume, topHolder: topHolderOf(biggest.serp, reading) } }),
     framing: a.rivals.length === 0 ? "suppressed_no_rivals" : "shown",
   };
 
