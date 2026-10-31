@@ -17,10 +17,11 @@ import type { MarketConclusion } from "@/lib/market/infer/types";
 import type { Profile } from "@/lib/market/questions/profile";
 import { measured, unmeasured } from "@/lib/measure/measured";
 import { queryKey } from "@/lib/opportunities/cluster";
-import { freshRead, type KindOfBusiness, type TopTenRead, type TopTenRow } from "@/lib/opportunities/derive/top-ten-kind";
+import { freshRead, type KindOfBusiness, type TopTenRead } from "@/lib/opportunities/derive/top-ten-kind";
 import { shapedEvidence } from "@/lib/opportunities/readiness";
 import { readOpportunity, type OpportunityRow } from "@/lib/opportunities/store";
 import { FAMILY_OF, type OpportunityType } from "@/lib/opportunities/types";
+import type { SerpResult } from "@/lib/vendors/dataforseo/types";
 
 const PANEL = "docs/walk/panel";
 export const AT = new Date("2026-10-19T06:00:00.000Z");
@@ -83,17 +84,31 @@ export function panelSite(domain: string): PanelSite {
   throw new Error(`no stored panel run holds topics for ${domain}`);
 }
 
+/** The site's stored vendor answers (`scripts/panel/evidence/<domain>.json`), oldest first. */
+export function storedEvidence(domain: string): { source: string; cache_key: string; created_at: string; payload: unknown[] | null }[] {
+  const file = `scripts/panel/evidence/${domain}.json`;
+  if (!existsSync(file)) return [];
+  const evidence: ReturnType<typeof storedEvidence> = JSON.parse(readFileSync(file, "utf8"));
+  return evidence.sort((a, b) => a.created_at.localeCompare(b.created_at));
+}
+
+/** The newest stored organic SERP, whole, for each search the site's passes bought. */
+export function storedPayloads(domain: string): Map<string, { search: string; at: Date; serp: SerpResult }> {
+  const serps = new Map<string, { search: string; at: Date; serp: SerpResult }>();
+  for (const row of storedEvidence(domain).filter((entry) => entry.source === "serp/google/organic")) {
+    const serp = row.payload?.[0] as SerpResult | undefined;
+    if (serp === undefined || (serp.organic ?? []).length === 0) continue;
+    const search = row.cache_key.split("|")[0]!;
+    serps.set(queryKey(search), { search, at: new Date(row.created_at), serp });
+  }
+  return serps;
+}
+
 /** The newest stored organic SERP for each search the site's passes bought. */
 export function storedSerps(domain: string): Map<string, TopTenRead> {
-  const file = `scripts/panel/evidence/${domain}.json`;
   const serps = new Map<string, TopTenRead>();
-  if (!existsSync(file)) return serps;
-  const evidence: { source: string; cache_key: string; created_at: string; payload: { organic?: TopTenRow[]; localPack?: unknown[] }[] | null }[] =
-    JSON.parse(readFileSync(file, "utf8"));
-  for (const row of evidence.filter((entry) => entry.source === "serp/google/organic").sort((a, b) => a.created_at.localeCompare(b.created_at))) {
-    const serp = row.payload?.[0];
-    if (serp === undefined || (serp.organic ?? []).length === 0) continue;
-    serps.set(queryKey(row.cache_key.split("|")[0]!), { at: new Date(row.created_at), rows: serp.organic!, localPack: (serp.localPack ?? []).length > 0 });
+  for (const [key, { at, serp }] of storedPayloads(domain)) {
+    serps.set(key, { at, rows: serp.organic, localPack: (serp.localPack ?? []).length > 0 });
   }
   return serps;
 }
