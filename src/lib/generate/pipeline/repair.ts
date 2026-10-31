@@ -17,6 +17,7 @@
 // Deterministic, no I/O. The rules' own text model (`../rules/text.ts`) is
 // the only notion of a block and a sentence used here, so a repair and the
 // check that reads it cannot disagree about where a sentence ends.
+import { literalClaimMatch } from "../claims/literal";
 import { widenNumberLinks } from "../links/text";
 import { ANSWER_FIRST_BLOCK_CHARS } from "@/lib/config/constants";
 import {
@@ -309,6 +310,29 @@ export function repairMechanical(markdown: string, rules: readonly HardRule[], i
   }
   // Issue 1507: a step dropped with its sentence leaves no gap in the count.
   return out === markdown ? out : renumberSteps(out);
+}
+
+/** A stored FAQ without the pairs whose answer the rival-negative rule fails on its own: all of them go, or none where
+ *  what is left would fall short of the template's least, and the battery then keeps the failure. Of the rules whose
+ *  sentence a repair drops, only this one reads the FAQ. */
+export function withoutBrokenPairs(
+  faq: readonly { question: string; answer: string }[],
+  a: { min: number; rivals: readonly NamedRival[]; facts: BriefRuleInputs["marketFacts"] }
+): { faq: { question: string; answer: string }[]; dropped: string[] } {
+  const broken = faq.filter((entry) => checkRivalNegative({ markdown: "", faq: [entry], rivals: a.rivals, facts: a.facts }) !== null);
+  if (broken.length === 0 || faq.length - broken.length < a.min) return { faq: [...faq], dropped: [] };
+  return { faq: faq.filter((entry) => !broken.includes(entry)), dropped: broken.map((entry) => entry.question) };
+}
+
+/** The page without each sentence that states a do-not-claim entry word for word, and the sentences dropped. */
+export function withoutClaimed(markdown: string, list: readonly string[]): { markdown: string; dropped: string[] } {
+  const dropped: string[] = [];
+  const out = mapSentences(markdown, (piece) => {
+    if (list.length === 0 || literalClaimMatch(wordsOf(piece), list) === null) return piece;
+    dropped.push(wordsOf(piece));
+    return null;
+  });
+  return { markdown: dropped.length === 0 ? markdown : renumberSteps(out), dropped };
 }
 
 function sentencesFor(

@@ -49,6 +49,11 @@
 //     business — its name or its domain's label — as one of them. A search
 //     that compares category terms ("aeo vs geo") names no product, and is
 //     not held to it.
+//   * **A figure's owner** (seo-master, 2026-10-31): a title that names a
+//     rival states a figure only where that rival's own pages hold it, or
+//     the business's own where the title names the business too, or the
+//     page counts it. "Profound …: 12 Google searches weekly" gives the
+//     business's figure to a rival, and stops the page.
 //
 // Deterministic, no I/O. A failure carries handles, never a sentence.
 import { languagePack } from "@/lib/locale/language";
@@ -75,7 +80,15 @@ export type TitleFault =
   /** The page has no meta description; its length never stops one. */
   | "description"
   /** Issue 1507: the description states a figure the body does not. */
-  | "description_figures";
+  | "description_figures"
+  /** A figure beside a rival's name that no owner the title names holds. */
+  | "figure_owner";
+
+/** Who may own a figure a title states: the names it goes by and its own passages. */
+export interface FigureOwner {
+  names: readonly string[];
+  holds: string;
+}
 
 export interface TitleRuleInputs {
   type: ContentType;
@@ -113,6 +126,8 @@ export interface TitleRuleInputs {
   /** Issue 1552: on a page whose search compares products, the names the
    *  business goes by; the title names one. Absent on any other page. */
   business?: readonly string[];
+  /** Every market rival and the business, each with its own passages, and the counts of the page's own parts. */
+  owners?: { rivals: readonly FigureOwner[]; business: FigureOwner; page: string };
 }
 
 const YEAR_RE = /\b(?:19|20)\d\d\b/g;
@@ -186,21 +201,36 @@ const unitsOf = (text: string): Array<{ figure: string; units: string[] }> =>
     units: glued ? [glued.toLowerCase()] : after!.toLowerCase().split(/\s+/).filter(Boolean),
   }));
 
-function hasSpecific(title: string, a: TitleRuleInputs): boolean {
-  const language = languageOf(a);
+/** Whether passages hold a figure: with its own unit ("7 pages" is not "7 major"); a bare one, a count, holds any. */
+function heldIn(passages: string, language: Language): (stated: { figure: string; units: string[] }) => boolean {
   const held = new Map<string, Set<string>>();
-  for (const { figure, units } of unitsOf(withoutSerials(a.holds, language))) held.set(figure, (held.get(figure) ?? new Set()).add(units[0] ?? ""));
-  // A held figure counts with its own unit ("7 pages" is not "7 major"); a bare one, a count, holds any.
-  const holds = ({ figure, units }: { figure: string; units: string[] }) => {
+  for (const { figure, units } of unitsOf(withoutSerials(passages, language))) held.set(figure, (held.get(figure) ?? new Set()).add(units[0] ?? ""));
+  return ({ figure, units }) => {
     const unit = held.get(figure);
     return unit !== undefined && (units.length === 0 || unit.has("") || units.some((word) => unit.has(word)));
   };
-  const stated = unitsOf(withoutSerials(title, language).replace(YEAR_RE, ""));
+}
+
+const statedIn = (title: string, language: Language) => unitsOf(withoutSerials(title, language).replace(YEAR_RE, ""));
+
+function hasSpecific(title: string, a: TitleRuleInputs): boolean {
+  const language = languageOf(a);
+  const stated = statedIn(title, language);
   // One held figure does not carry another the pack never states.
-  if (stated.length > 0) return stated.every(holds);
+  if (stated.length > 0) return stated.every(heldIn(a.holds, language));
   const free = wordsPattern(languagePack(language).title.free, false);
   if (free.test(title) && free.test(a.holds)) return true;
   return addedNames(a, [...TITLE.engines, ...a.rivals, ...a.places]).some((name) => names(title, name));
+}
+
+/** Whether a title that names a rival states a figure no owner it names holds, nor the page counts. */
+function figureUnowned(title: string, a: TitleRuleInputs): boolean {
+  const owners = a.owners;
+  const named = (owner: FigureOwner) => owner.names.some((name) => names(title, name));
+  if (owners === undefined || !owners.rivals.some(named)) return false;
+  const language = languageOf(a);
+  const held = [...owners.rivals.filter(named), ...(named(owners.business) ? [owners.business] : [])].map((owner) => heldIn(`${owner.holds}\n${owners.page}`, language));
+  return statedIn(title, language).some((figure) => !held.some((holds) => holds(figure)));
 }
 
 /** Whether a text is a question: it opens as one, or carries the mark. */
@@ -270,6 +300,7 @@ function wordingFaults(title: string, a: TitleRuleInputs): TitleFault[] {
     closestTitle(title, a.titles) !== null && "overlap",
     a.options !== undefined && countedIn(title) !== null && countedIn(title) !== a.options && "count",
     a.business !== undefined && a.business.length > 0 && !a.business.some((name) => names(title, name)) && "business",
+    figureUnowned(title, a) && "figure_owner",
   ];
   return faults.filter((fault) => fault !== false);
 }
@@ -413,6 +444,7 @@ export function titleNotes(title: string, a: TitleRuleInputs, faults: readonly T
     business: `title: the search compares products, and this page is the business's own: the title names it, as "${a.business?.[0] ?? ""}", beside the products the search names`,
     heading: "heading: the H1 is the title itself",
     description: `description: write one of ${TITLE.description.min} to ${TITLE.description.max} characters, opening with the answer`,
+    figure_owner: "title: a figure beside a product's name must be one that product's own pages state, or the business's own where the title names the business too; state no figure that belongs to another",
     description_figures: `description: every figure it states is one the body states; ${descriptionFiguresMissing(a.description, markdown, figureReading(a))
       .map((figure) => `"${figure}"`)
       .join(", ")} is not in the body`,
