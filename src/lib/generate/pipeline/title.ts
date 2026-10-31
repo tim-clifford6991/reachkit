@@ -8,6 +8,7 @@
 import { languagePack, SHAPES } from "@/lib/locale/language";
 import { TITLE } from "@/lib/config/constants";
 import { brandOf } from "@/lib/market/questions/select";
+import { numeralsOf } from "../rules/figures";
 import { addedNames, asksQuestion, names, withoutSerials, type TitleRuleInputs } from "../rules/title";
 import { packStatements, type ContextPack } from "./pack";
 import { comparisonTable } from "./table";
@@ -115,6 +116,22 @@ function figuresOf(pack: ContextPack): string[] {
     if (out.length === TITLE.figuresTold) break;
   }
   return out;
+}
+
+/** The figures a title states that are the business's own promise, offer or price: a promise figure is never a
+ *  title's specific on a page that does not sell it (owner OR4, 2026-10-31). Empty on an offering page or an update. */
+export function promiseFigures(title: string, pack: ContextPack): string[] {
+  if (pack.type === "offering" || pack.type === "update") return [];
+  const knowledge = pack.profile?.knowledge;
+  const own = [
+    ...(pack.profile?.promises ?? []),
+    ...(knowledge?.offerings ?? []).flatMap((offering) => [offering.name, ...offering.features, ...offering.prices]),
+    ...(knowledge?.differentiators ?? []).map((item) => item.text),
+  ];
+  const figures = (line: string): string[] =>
+    numeralsOf(withoutSerials(line, pack.locale?.language ?? "en")).map((numeral) => numeral.normalised).filter((figure) => !/^(?:19|20)\d\d$/.test(figure));
+  const promised = new Set(own.flatMap(figures));
+  return [...new Set(figures(title))].filter((figure) => promised.has(figure));
 }
 
 /** The same reading, as the writer is told it. */

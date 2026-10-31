@@ -30,6 +30,7 @@ vi.mock("@/lib/generate", () => ({
   generateDayPage: doubles.generateDayPage,
   restartedDrafts: async () => [],
 }));
+vi.mock("@/lib/generate/recheck", () => ({ recheckStopped: async () => null }));
 vi.mock("@/lib/publish/destinations/health", () => ({ sendBreakageMail: async () => ({ sent: false }) }));
 vi.mock("@/lib/publish/attempt/window", () => ({ enterReview: async () => ({ kind: "untold", reason: "test" }) }));
 
@@ -100,7 +101,7 @@ describe("draft/generate — the tick sends one keyed event per due site", () =>
     expect(queue.accepted).toHaveLength(25);
   });
 
-  it("a site's run is its stages as steps — notice, hold, select, write, review — and records the day", async () => {
+  it("a site's run is its stages as steps — notice, hold, recheck, select, write, review — and records the day", async () => {
     const steps: string[] = [];
     const outcome = await draftGenerate.perSubject!({
       data: { key: "draft:site-1:2026-09-08", siteId: "site-1", publishDate: "2026-09-08", hour: EVENING.toISOString() },
@@ -110,7 +111,7 @@ describe("draft/generate — the tick sends one keyed event per due site", () =>
         return JSON.parse(JSON.stringify((await body()) ?? null));
       },
     });
-    expect(steps).toEqual(["notice", "hold", "select", "write", "review"]);
+    expect(steps).toEqual(["notice", "hold", "recheck", "select", "write", "review"]);
     expect(doubles.generateDayPage).toHaveBeenCalledWith({ siteId: "site-1", publishDate: "2026-09-08", now: EVENING, opportunityId: "o1" });
     expect(outcome).toEqual({ outcome: "degraded", subjectId: "site-1", step: "draft-ready:test" });
     expect(recorded.get("site-1/2026-09-08")).toBe("no_page");

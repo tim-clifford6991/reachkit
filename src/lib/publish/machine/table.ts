@@ -45,9 +45,8 @@ export const STATES: readonly State[] = Object.freeze([
  *    why §8's bound on *automatic* regeneration is not raised by it.
  *  - `needs_attention → skipped` — §9 c3's promise that no page is left in
  *    a state it has no way out of.
- *  - `needs_attention → in_review` — SPEC §7: the founder
- *    fixes a page the rules stopped, and a save that passes every hard rule
- *    takes it into review with a fresh veto window.
+ *  - `needs_attention → in_review` — a stopped page that passes every hard rule, after the founder's edit or the
+ *    daily re-check under today's rules, enters review with a fresh veto window (docs/spec/decisions/2026-10-31-2160.md).
  *  - `unpublished → published` — SPEC §7: the customer puts
  *    back a page they took down themselves, the same version at the same
  *    address, inside `TAKE_DOWN.PUT_BACK_DAYS`. Only the customer, and only
@@ -205,7 +204,6 @@ export const GUARDS: Readonly<Record<string, readonly GuardId[]>> = Object.freez
   ] as const),
   [edgeKey("needs_attention", "in_review")]: Object.freeze([
     "never_entered_review",
-    "customer_initiated",
     "draft_passed_hard_rules",
   ] as const),
   [edgeKey("unpublished", "published")]: Object.freeze([

@@ -52,7 +52,6 @@ import { contentTypeOf } from "@/lib/opportunities/content-type";
 import { intentFor } from "@/lib/opportunities/intent";
 import { withDraftCost } from "./cost";
 import { readRecordedRules, recordedVerdictValue } from "./record";
-import type { SiteRuleInputs } from "./rules/types";
 import { mendedInCode, repairStructure } from "./rules/structure";
 import { claimCheck } from "./claims/check";
 import { confirmedForWriting } from "./voice/confirmed";
@@ -65,6 +64,7 @@ import { withMovedLink } from "./links/moved";
 import { urlKey, type LinkTarget } from "./links/select";
 import { generateDraft, targetSearches, type GenerateOutcome } from "./pipeline";
 import { allowedFacts, readAllFacts, readDemoPhrases, type SourcedFact } from "./pipeline/grounding";
+import { siteRulesOf } from "./pipeline/battery";
 import { buildPack, builtFromOutside, questionsHeld, readPack, type ContextPack, type PackLivePage, type PackMeasurements } from "./pipeline/pack";
 import { generatePageFix } from "./pipeline/page-fix";
 import type { FixNote } from "./pipeline/repair";
@@ -541,18 +541,7 @@ async function writePage(a: PageInput & { attempts: number; startedAt?: number }
   const startedAt = a.startedAt ?? Date.now();
   let opportunity = a.opportunity;
 
-  // The one name the product holds for the business is the brand the
-  // profile measured off their own home page — what the site calls itself.
-  // It is also the byline of a page whose founder gave setup no name (SPEC
-  // §7, 2026-09-29).
-  const measuredBrand =
-    report.market.kind === "unmeasured" ? null : (report.market.value.profile.brandTokens[0] ?? null);
-  const ruleInputs: SiteRuleInputs = {
-    businessName: measuredBrand,
-    domain: site.domain,
-    doNotClaim: site.doNotClaim,
-    rivals: site.rivals,
-  };
+  const ruleInputs = siteRulesOf(site, report);
   // SPEC §7 (2026-09-20), #927: the **confirmed** business profile — the
   // knowledge base and the founder's answers, with the customer's own
   // corrections applied over the crawl — through `readConfirmedBusiness`
@@ -640,7 +629,7 @@ async function writePage(a: PageInput & { attempts: number; startedAt?: number }
         writingFor,
         // The founder's own line from setup's fifth question (#1133), else the
         // business's name.
-        byline: confirmed.profile?.knowledge?.byline ?? measuredBrand,
+        byline: confirmed.profile?.knowledge?.byline ?? ruleInputs.businessName,
         voice: site.voiceText,
         writingVoice,
         profile: confirmed.profile,

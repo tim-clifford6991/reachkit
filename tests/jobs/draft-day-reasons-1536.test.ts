@@ -16,6 +16,7 @@ vi.mock("@/lib/publish/daily", () => ({
   dayHold: async () => null,
 }));
 vi.mock("@/lib/publish/destinations/health", () => ({ sendBreakageMail: async () => ({ sent: false }) }));
+vi.mock("@/lib/generate/recheck", () => ({ recheckStopped: async () => null }));
 vi.mock("@/lib/generate", () => ({
   decideDayPage: async () => ({ ok: true, opportunityId: "o1" }),
   generateDayPage,

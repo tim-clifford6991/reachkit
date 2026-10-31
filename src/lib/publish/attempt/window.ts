@@ -52,11 +52,11 @@ async function liveDestination(siteId: string): Promise<DestinationRow | null> {
   return data[0] ?? null;
 }
 
-/** `generating → in_review`, with its window and its telling; any other state is left. With a customer as `by`, it
- *  opens from `needs_attention` (SPEC §7): their edit of a stopped page passed every hard rule. */
-export async function enterReview(a: { draftId: string; at: Date; by?: Actor }): Promise<ReviewEntry> {
+/** `generating → in_review`, with its window and its telling; any other state is left. With a customer or the daily
+ *  re-check as `by`, it opens from `needs_attention` (SPEC §7): the stopped page now passes every hard rule. */
+export async function enterReview(a: { draftId: string; at: Date; by?: Actor; reason?: string }): Promise<ReviewEntry> {
   const by = a.by ?? OPENED_BY;
-  const from = by.kind === "customer" ? "needs_attention" : "generating";
+  const from = by.kind === "customer" || by.job === "draft/recheck" ? "needs_attention" : "generating";
   const draft = await machineDraftFor(a.draftId);
   if (draft === null) return { kind: "not_entered", reason: "no_draft" };
   if (draft.state !== from) return { kind: "not_entered", reason: "not_generating" };
@@ -85,7 +85,7 @@ export async function enterReview(a: { draftId: string; at: Date; by?: Actor }):
       : publishDateAtOrAfter(deadline, settingsOf(draft.governing));
   await takeDate(a.draftId, publishes);
 
-  const moved = await transition(a.draftId, "in_review", by, { at: a.at });
+  const moved = await transition(a.draftId, "in_review", by, { at: a.at, ...(a.reason === undefined ? {} : { reason: a.reason }) });
   if (!moved.ok) return { kind: "not_entered", reason: "moved" };
 
   const { sendDraftReadyMail } = await import("@/lib/mail/draft-ready");

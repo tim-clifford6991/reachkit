@@ -41,37 +41,32 @@ import { HEADING_GAPS, PAGE_BLOCKS, PIPELINE } from "@/lib/config/constants";
 import type { CostContext } from "@/lib/costs";
 import type { Tier } from "@/lib/llm/tiers";
 import type { Opportunity } from "@/lib/opportunities";
-import { contentTypeOf } from "@/lib/opportunities/content-type";
 import type { PageIntent } from "@/lib/opportunities/intent";
-import { pageTypeOf } from "@/lib/opportunities/page-type";
 import { readRecordedFact, recordedFactValue } from "../fact";
 import { recoveryOutcome, type Recovery } from "../claims/recovery";
-import { bodyWords, lengthRangeFor, sectionWords } from "../length";
+import { bodyWords, sectionWords } from "../length";
 import { applyLinks } from "../links/apply";
 import type { LinkTarget } from "../links/select";
 import { urlKey } from "../links/select";
 import { recordedRulesValue, recordedRunValue, recordedVerdictValue } from "../record";
-import { batteryCleared, runHardRules, type BatteryOutcome } from "../rules";
+import { batteryCleared, type BatteryOutcome } from "../rules";
 import { answerBoxWords, renumberSteps, withoutBrokenLinks } from "../rules/blocks";
 import { proseNotes } from "../rules/prose";
 import { linksOf, renderOf } from "../rules/text";
 import { pickTitle, specificOnly, titleNotes, type TitleCandidate } from "../rules/title";
 import { RIVAL_SCOPE_VERSION } from "../live-recheck";
-import { namedRivals } from "../rules/rivals";
 import { HARD_RULES, type GroundedFact, type HardRule, type RuleFailure, type SiteRuleInputs } from "../rules/types";
 import { generateStore, type DraftRow } from "../store";
 import type { PackNeed } from "../templates";
 import { profileItemsUsed } from "../voice/profile-block";
-import { voiceLength } from "../voice/register";
 import { buildComparisonSet } from "./comparison";
 import { layoutPage, withClosing, type LaidPage } from "./compose";
-import { closeElsewhere } from "./elsewhere";
 import type { SourcedFact } from "./grounding";
-import { reportFactsAllowed } from "./report-scope";
-import { builtFromOutside, fittedTemplate, packStatements, type ContextPack, type PackClaim } from "./pack";
-import { fixNotes, repairable, repairMechanical, type FixNote, type RepairRecord } from "./repair";
+import { fittedTemplate, packStatements, type ContextPack } from "./pack";
+import { batteryBasis, checkPage, scopeOf } from "./battery";
+import { fixNotes, type FixNote, type RepairRecord } from "./repair";
 import { completeTables, withSources } from "./sources";
-import { comparisonTable, withTable } from "./table";
+import { withTable } from "./table";
 import { titleRuleFor, unclaimedSuperlatives } from "./title";
 import { fixPage, writePage, type PageParts } from "./write";
 
@@ -256,18 +251,8 @@ export async function generateDraft(c: CostContext, a: GenerateInputs): Promise<
     return { ok: false, reason: "step_failed", draftId, step, ...(step === "pack" ? { missing: pack.missing } : {}) };
   }
 
-  const liveWords = pack.live === null ? null : sectionWords(pack.live.markdown);
-  // Issue 1390: a short answer is capped at its own length, not its type's.
-  // Issue 1521: a refresh that may add sections on what the pages above it
-  // cover may grow to the update's grown share.
-  const length = lengthRangeFor(template, { questions: pack.questions.length, cap: voiceLength(pack.voice)?.ceiling, liveWords, grown: pack.gaps !== undefined });
-  // D47: a comparison written as a Q&A for want of two rivals compares
-  // nobody, so it is told to answer, not to compare.
-  const becameQa = pack.type === "qa" && contentTypeOf(a.opportunity) === "listicle";
-  const pageType = becameQa && pageTypeOf(a.opportunity) === "market_comparison" ? "answer" : pageTypeOf(a.opportunity);
-  // D47: the listicle's table, laid out from the pack before a word is
-  // written. The writer is handed the same one (`./write.ts`).
-  const table = pack.type === "listicle" && template.blocks.table !== undefined ? comparisonTable(pack, template.blocks.table.rivals) : null;
+  const basis = batteryBasis({ pack, opportunity: a.opportunity, site: a.site, facts: a.facts, grounding, ...(a.demoPhrases === undefined ? {} : { demoPhrases: a.demoPhrases }) });
+  const { length, pageType, table, searches, names, passages, cited, brief: briefRead } = basis;
   const writing = {
     template,
     pack,
@@ -282,10 +267,6 @@ export async function generateDraft(c: CostContext, a: GenerateInputs): Promise<
   const written = await writePage(c, writing);
   if (written.kind === "unmeasured") return stepFailed(a.siteId, "write", a.draftId);
 
-  const searches = pack.target.searches;
-  const names = [a.site.businessName ?? "", a.site.domain.split(".")[0] ?? "", ...a.site.rivals];
-  const passages = [...pack.facts.map((fact) => fact.passage), ...packStatements(pack)];
-  const cited = pack.claims.map((claim) => ({ ...claim, readAt: new Date(claim.readAt) }));
   const tidy = {
     // Both pools: a quotation stands where it is either's exact words.
     sources: [...pack.facts, ...pack.claims].map((fact) => ({ passage: fact.passage, url: fact.url })),
@@ -387,8 +368,6 @@ export async function generateDraft(c: CostContext, a: GenerateInputs): Promise<
     };
   };
 
-  /** What `cites_market` holds the page to: the template's own count. */
-  const citesMin = template.packMustHold.reduce((most, need) => (need.need === "outside_sources" ? Math.max(most, need.min) : most), 0);
   const primaryFirst = pack.claims.some((claim) => claim.kind === "primary") ? "a `primary` one first, " : "";
 
   /** Every rule a check of this run failed, before any repair or fix. */
@@ -398,114 +377,11 @@ export async function generateDraft(c: CostContext, a: GenerateInputs): Promise<
 
   // 4. Check: code only, against this customer's own three sets.
   const comparison = await buildComparisonSet({ siteId: a.siteId, exceptDraftId: draftId });
-  const briefRead = {
-    facts: passages,
-    queries: searches,
-    marketFacts: pack.claims.map((claim) => ({ url: claim.url, passage: claim.passage, ...scopeOf(claim) })),
-    // Issue 1536: the table's own lines are code's, from the pack.
-    ...(table === null ? {} : { laid: [table.checked, ...(table.currencies === null ? [] : [table.currencies])] }),
-    // Issue 1490: the report's own sentences, withheld from every page that
-    // is not research — a refresh's live page among them.
-    ...(reportFactsAllowed(pack.type)
-      ? {}
-      : {
-          reportPassages: [
-            ...a.facts.filter((sourced) => sourced.report === true).map((sourced) => sourced.fact.passage),
-            ...(pack.live?.reportPassages ?? []),
-          ],
-        }),
-  };
-  const rivalsNamed = namedRivals(a.site.rivals, pack.business.market);
-  const battery = (candidate: Finished, markdown: string, fit?: BatteryOutcome["fit"], settled = false): Promise<BatteryOutcome> =>
-    runHardRules(c, {
-      ...(fit === undefined ? {} : { fit }),
-      markdown,
-      title: candidate.laid.body.title,
-      rendered: renderOf(markdown),
-      pageType,
-      // D44: the one model check, on a listicle or comparison only.
-      ...(pack.type === "listicle" && pack.profile?.knowledge !== undefined
-        ? { knowledge: pack.profile.knowledge, market: pack.business.market }
-        : {}),
-      site: a.site,
-      comparison,
-      grounded: grounding.fact,
-      sourceText: grounding.sourceText,
-      brief: briefRead,
-      factPages: pack.facts.map((fact) => fact.url),
-      blocks: {
-        template,
-        sections: candidate.laid.sections,
-        length,
-        faq: candidate.laid.faq,
-        domain: a.site.domain,
-        // D52: the rivals the verdict may name as the better pick.
-        // Issue 1508: never the baseline, which no verdict may choose.
-        ...(table === null ? {} : { rivals: table.options.slice(1) }),
-        ...(table?.baseline == null ? {} : { baseline: table.baseline }),
-        // Issue 1486: a step that names the business is its own.
-        businessName: a.site.businessName,
-        // Issue 1521: what a growing refresh may add, and on what.
-        ...(pack.type === "update" && pack.live !== null && pack.gaps !== undefined ? { growth: { live: pack.live.markdown, gaps: pack.gaps } } : {}),
-      },
-      titleRule: { ...titleRuleFor(pack, { description: candidate.laid.body.description, sections: candidate.laid.sections }), settled },
-      // D61: a Q&A's questions are each their own.
-      distinctHeadings: pack.type === "qa",
-      // Issue 1486: a how-to or a Q&A links the outside pages it is built
-      // from.
-      ...(builtFromOutside(pack.type) ? { cites: { claimUrls: pack.claims.map((claim) => claim.url), min: citesMin } } : {}),
-      heading: candidate.laid.body.heading,
-      rivalsNamed,
-      ...(a.demoPhrases === undefined ? {} : { demoPhrases: a.demoPhrases }),
-      // Issue 1390: how the page reads. A passage stated word for word is
-      // not the writer's, and the page's own subject may be said as often
-      // as it needs.
-      prose: {
-        language: pack.locale?.language ?? "en",
-        passages: [...pack.facts.map((fact) => fact.passage), ...pack.claims.map((claim) => claim.passage)],
-        subjects: [...searches, ...names.filter((name) => name !== ""), ...pack.claims.map((claim) => claim.title), ...pack.links.map((link) => link.label)],
-      },
-    });
-
-  /** One page through stage 4: the checks, the repairs code can make (#1178)
-   *  kept only where the page then passes, and the pages written for other
-   *  sites (D13) where the rules passed. `settled` is the page after its fix
-   *  call, whose title no longer stops it for want of a specific. */
   const check = async (candidate: Finished, settled = false) => {
-    let markdown = candidate.markdown;
-    let outcome = await battery(candidate, markdown, undefined, settled);
-    if (!outcome.passed) for (const failure of outcome.failed) broken.add(failure.rule);
-    const repairs: RepairRecord[] = [];
-    const tried = outcome.passed || outcome.fit.state === "unrun" ? [] : repairable(outcome.failed);
-    if (tried.length > 0) {
-      const repaired = withSources(
-        repairMechanical(markdown, tried, {
-          brief: briefRead,
-          sources: [
-            ...a.facts.map((sourced) => ({ url: sourced.fact.url, text: sourced.sourceText })),
-            ...pack.claims.map((claim) => ({ url: claim.url, text: claim.passage })),
-          ],
-          rivals: a.site.rivals,
-          rivalsNamed,
-        }),
-        cited
-      );
-      const again = repaired === markdown ? null : await battery(candidate, repaired, outcome.fit, settled);
-      const still = new Set(again === null || again.passed ? [] : again.failed.map((failure) => failure.rule));
-      for (const rule of tried) repairs.push({ rule, cleared: again !== null && !still.has(rule) });
-      console.log(JSON.stringify({ event: "draft_repaired", siteId: a.siteId, draftId, repairs }));
-      // Kept where the page then passes, and where it at least fails fewer
-      // checks and no new one: the fix call is then told only what code
-      // could not put right.
-      const before = new Set(outcome.passed ? [] : outcome.failed.map((failure) => failure.rule));
-      const fewer = again !== null && !again.passed && again.failed.length < before.size && again.failed.every((failure) => before.has(failure.rule));
-      if (again !== null && (batteryCleared(again) || fewer)) {
-        markdown = repaired;
-        outcome = again;
-      }
-    }
-    const close = batteryCleared(outcome) ? await closeElsewhere({ siteId: a.siteId, markdown }) : null;
-    return { page: { ...candidate, markdown }, outcome, repairs, close };
+    const { laid } = candidate;
+    const page = { title: laid.body.title, heading: laid.body.heading, description: laid.body.description, sections: laid.sections, faq: laid.faq };
+    const checked = await checkPage(c, basis, page, candidate.markdown, { siteId: a.siteId, draftId, comparison, broken }, settled);
+    return { ...checked, page: { ...candidate, markdown: checked.markdown } };
   };
 
   const record = async (checked: Awaited<ReturnType<typeof check>>, repairs: readonly RepairRecord[], attempts: number | null): Promise<void> => {
@@ -740,15 +616,4 @@ export function notWritersToFix(notes: readonly FixNote[], parts: PageParts): bo
         return words !== "" && !own.some((text) => text.includes(words));
       })
   );
-}
-
-/** What a market fact says of a rival beyond its words (issue 1485): its
- *  kind, the rival it is from or about, and the plan it is true of. */
-function scopeOf(claim: PackClaim): { kind: string; product?: string; about?: string; plan?: string | null } {
-  return {
-    kind: claim.kind,
-    ...(claim.product === undefined ? {} : { product: claim.product }),
-    ...(claim.about === undefined ? {} : { about: claim.about }),
-    ...(claim.plan === undefined ? {} : { plan: claim.plan }),
-  };
 }

@@ -203,6 +203,10 @@ describe("GUARDS names guards only on edges that exist", () => {
     ]);
   });
 
+  it("needs_attention → in_review is open to the system's re-check, only before review and after the hard rules pass", () => {
+    expect(GUARDS[edgeKey("needs_attention", "in_review")]).toEqual(["never_entered_review", "draft_passed_hard_rules"]);
+  });
+
   it("every route into an attempt is open only to a draft whose text passed the hard rules (#789)", () => {
     // A founder's edit re-runs the battery; an edit that breaks a rule must
     // hold the page on the ordinary route and the retry alike.
