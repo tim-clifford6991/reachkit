@@ -110,8 +110,8 @@ async function claim(domain: string, network: ReturnType<typeof networkKeyOf>) {
   return result;
 }
 
-const NETWORK_A = networkKeyOf("203.0.113.10");
-const NETWORK_B = networkKeyOf("198.51.100.7");
+const NETWORK_A = networkKeyOf(new Headers({ "x-forwarded-for": "203.0.113.10" }));
+const NETWORK_B = networkKeyOf(new Headers({ "x-forwarded-for": "198.51.100.7" }));
 
 beforeEach(() => {
   rows.length = 0;
@@ -205,14 +205,14 @@ describe("one domain's day (issue 885)", () => {
   async function fillTheDomain(): Promise<void> {
     for (let i = 0; i < FREE_BOUNDS.scansPerDomainPerDay; i++) {
       vi.setSystemTime(new Date(START.getTime() + i * MINUTE_MS));
-      const result = await claim(DOMAIN, networkKeyOf(`192.0.2.${i + 1}`));
+      const result = await claim(DOMAIN, networkKeyOf(new Headers({ "x-forwarded-for": `192.0.2.${i + 1}` })));
       expect(result.claimed, `claim ${i}`).toBe(true);
     }
   }
 
   it("one address is measured only so many times a day, whoever asks", async () => {
     await fillTheDomain();
-    const refused = await claim(DOMAIN, networkKeyOf("192.0.2.200"));
+    const refused = await claim(DOMAIN, networkKeyOf(new Headers({ "x-forwarded-for": "192.0.2.200" })));
     expect(refused.claimed).toBe(false);
     if (refused.claimed) throw new Error("unreachable");
     expect(refused.refusal).toMatchObject({ refuse: "domain_daily" });
@@ -220,15 +220,15 @@ describe("one domain's day (issue 885)", () => {
 
   it("another address from the same stranger is not refused", async () => {
     await fillTheDomain();
-    expect((await claim("other.example.com", networkKeyOf("192.0.2.200"))).claimed).toBe(true);
+    expect((await claim("other.example.com", networkKeyOf(new Headers({ "x-forwarded-for": "192.0.2.200" })))).claimed).toBe(true);
   });
 
   it("the owner is told once, naming the bound and never the address", async () => {
     const seen: SpendAlert[] = [];
     registerSpendAlertSink((alert) => seen.push({ ...alert }));
     await fillTheDomain();
-    await claim(DOMAIN, networkKeyOf("192.0.2.200"));
-    await claim(DOMAIN, networkKeyOf("192.0.2.201"));
+    await claim(DOMAIN, networkKeyOf(new Headers({ "x-forwarded-for": "192.0.2.200" })));
+    await claim(DOMAIN, networkKeyOf(new Headers({ "x-forwarded-for": "192.0.2.201" })));
 
     expect(seen).toEqual([
       {

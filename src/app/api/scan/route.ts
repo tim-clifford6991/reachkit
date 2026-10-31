@@ -4,7 +4,7 @@
 // canonicaliser and a starter … the report is only ever served by `GET
 // /scan/{domain}`"). A thin adapter (`structure.md` rule 1): it parses the
 // body, calls WO-051's `parseDomain`, WO-057's `networkKeyOf` over
-// `x-forwarded-for`, and WO-058's `claimFreeScanSlot`, and returns a
+// the request headers, and WO-058's `claimFreeScanSlot`, and returns a
 // location. It contains no admission logic, no SQL and no rendering.
 //
 // **Content negotiation** (WO-062 `## File plan`): a JSON request
@@ -251,7 +251,7 @@ export async function POST(request: Request): Promise<Response> {
   }
 
   const location = canonicalLocation(parsed.domain);
-  const network = networkKeyOf(request.headers.get("x-forwarded-for"));
+  const network = networkKeyOf(request.headers);
 
   const claim = await claimFreeScanSlot({
     domain: parsed.domain,
