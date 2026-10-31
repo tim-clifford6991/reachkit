@@ -38,9 +38,9 @@ import { env } from "@/lib/config/env";
 
 const SEE_OTHER = 303;
 
-/** Our own page's post. The page sends no referrer, and under that policy a
- *  browser sends `Origin: null` with `Sec-Fetch-Site: same-origin`, so that
- *  pair counts as ours too. Anything else, including no `Origin`, is not. */
+/** Our own page's post. A browser under a stricter referrer policy sends
+ *  `Origin: null` with `Sec-Fetch-Site: same-origin`, so that pair counts
+ *  as ours too. Anything else, including no `Origin`, is not. */
 function isOwnPost(headers: Pick<Headers, "get">, appOrigin: string): boolean {
   const origin = headers.get("origin");
   if (origin === appOrigin) return true;

@@ -25,8 +25,8 @@ import { PUBLIC_ROUTE_SEO } from "../../_seo/routes";
 import { staticMetadata } from "../../_seo/metadata";
 import { ConfirmForm } from "./ConfirmForm";
 
-/** The token rides in this page's address, so no request from it names the address. */
-export const metadata: Metadata = { ...staticMetadata(PUBLIC_ROUTE_SEO.confirm), referrer: "no-referrer" };
+/** The token rides in this page's address, so a referrer carries the origin only; the post still sends its real `Origin`. */
+export const metadata: Metadata = { ...staticMetadata(PUBLIC_ROUTE_SEO.confirm), referrer: "strict-origin" };
 
 type ConfirmSearchParams = Partial<Record<string, string | string[]>>;
 

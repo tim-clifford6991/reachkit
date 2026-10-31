@@ -42,10 +42,9 @@ const { COPY } = await import("../../../src/lib/presentation/copy/registry");
 const ORIGIN = "https://reachkit.example";
 const NOW = new Date();
 
-/** What Chromium 151 sent when it posted this page's form: under the page's
- *  `no-referrer` policy the `Origin` is `null`, and `Sec-Fetch-Site` still
- *  says the post came from the page's own origin. */
-const OWN_PAGE = { origin: "null", "sec-fetch-site": "same-origin" } as const;
+/** What Chromium 151 sent when it posted this page's form under its
+ *  `strict-origin` policy: the real `Origin`, from the page's own origin. */
+const OWN_PAGE = { origin: ORIGIN, "sec-fetch-site": "same-origin" } as const;
 
 let state = newMemoryIdentity();
 let auth = newFakeAuth();
@@ -164,9 +163,9 @@ describe("opening the link spends nothing; the press signs in", () => {
     expect(html).toContain(COPY["signin.confirm.submit"]);
   });
 
-  it("a post whose browser kept the Origin is ours as well", async () => {
+  it("a post from a browser that blanked the Origin on its own page is ours as well", async () => {
     const { url } = await liveLink();
-    const response = await press(page(await land(url)).form, { origin: ORIGIN });
+    const response = await press(page(await land(url)).form, { origin: "null", "sec-fetch-site": "same-origin" });
     expect(response.cookies.get(FAKE_AUTH_COOKIE)).toBeDefined();
   });
 
@@ -221,8 +220,8 @@ describe("token leaves the URL", () => {
 });
 
 describe("interstitial leaks no referrer and is noindex", () => {
-  it("the page's head says no-referrer and noindex", () => {
-    expect(metadata.referrer).toBe("no-referrer");
+  it("the page's head sends no path in a referrer (strict-origin) and says noindex", () => {
+    expect(metadata.referrer).toBe("strict-origin");
     expect(metadata.robots).toEqual({ index: false, follow: false });
   });
 });
