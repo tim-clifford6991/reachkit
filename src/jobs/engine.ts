@@ -44,6 +44,7 @@ export type ScanTier = "free" | "deep" | "weekly";
  *  hold could be forgotten. A **type** import, so it is erased and drags
  *  no database client onto this seam's graph. */
 import type { DailySelection } from "@/lib/publish/daily";
+import type { Actor } from "@/lib/publish/types";
 import type { DayPageOutcome } from "@/lib/generate";
 export type { DailySelection };
 
@@ -615,15 +616,9 @@ async function reviewWritten(
 //
 // Imported at the call, for the same reason as `activeSites()` above.
 
-export async function publishApproved(a: {
-  readonly draftId: string;
-  readonly destinationId: string;
-}): Promise<EngineResult> {
+export async function publishApproved(a: { readonly draftId: string; readonly destinationId: string; readonly by?: Actor }): Promise<EngineResult> {
   const { deliverApproved } = await import("@/lib/publish/attempt/deliver");
-  const outcome = await deliverApproved({
-    draftId: a.draftId,
-    destinationId: a.destinationId,
-  });
+  const outcome = await deliverApproved({ draftId: a.draftId, destinationId: a.destinationId, ...(a.by === undefined ? {} : { by: a.by }) });
 
   if (outcome.kind === "held") return { degraded: `held:${outcome.heldBy}` };
   if (outcome.kind === "failed") return { degraded: `publish:${outcome.reason}` };

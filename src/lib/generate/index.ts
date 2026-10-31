@@ -395,7 +395,7 @@ async function alertStoppedTwice(a: {
  * Never a throw on a refused move: the page is stopped either way, and a
  * row another mover moved first is logged rather than forced.
  */
-async function rest(draftId: string, opportunityId: string, reason: string, now: Date): Promise<void> {
+async function rest(draftId: string, opportunityId: string, reason: `rules:${string}` | `step_failed:${string}`, now: Date): Promise<void> {
   const { transition } = await import("@/lib/publish/machine");
   const moved = await transition(draftId, "needs_attention", { kind: "system", job: "draft/generate" }, { reason });
   if (!moved.ok) {

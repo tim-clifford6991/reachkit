@@ -160,7 +160,7 @@ describe("“ReachKit rewrites” is said only with where it is true", () => {
 
 describe("a page set aside asks the customer for nothing", () => {
   it("the note and the day's line say what happened and name no task", () => {
-    for (const key of ["draft.adds.ask", "publish.needs-you.adds", "publish.needs-you.pack"] satisfies CopyKey[]) {
+    for (const key of ["draft.adds.ask"] satisfies CopyKey[]) {
       expect(text(key), key).toMatch(/next topic/);
       expect(text(key), key).not.toMatch(/\b(?:tell us|add (?:a|it|what)|write (?:it|the page) again)\b/i);
     }

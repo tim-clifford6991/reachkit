@@ -6,7 +6,7 @@
 // `kind` rides beside the key so a surface can choose a tone without its own `switch`.
 import type { CopyKey } from "@/lib/presentation/copy";
 import type { UnpublishOutcome, VerifyDisposition } from "../types";
-import type { NeedsYouKind } from "./needs-you";
+import type { CriticalKind, NeedsYouCause } from "./needs-you";
 
 /** REQ-060 c4's line, in the pure leaf so the fixture draft view reaches no database; `index.ts` re-exports it.
  *  No surface names the key (`tests/publish/record/seo-note.test.ts`). */
@@ -86,15 +86,16 @@ export function unpublishedLine(outcome: UnpublishOutcome): CopyKey {
   return UNPUBLISHED_COPY[outcome];
 }
 
-/** Why a page needs the customer, one key per cause, so the day panel and the Overview alert tell one story.
- *  Total over `NeedsYouKind`, so a new cause is a compile error. */
-export const NEEDS_YOU_COPY: Readonly<Record<NeedsYouKind, CopyKey>> = Object.freeze({
-  rules: "publish.needs-you.rules",
-  step: "publish.needs-you.step",
-  adds: "publish.needs-you.adds",
-  elsewhere: "publish.needs-you.elsewhere",
-  pack: "publish.needs-you.pack",
+/** Why a page needs the customer, one key per cause that can be critical, so the day panel and the Overview alert tell
+ *  one story. A cause the system resolves itself has no sentence. */
+export const NEEDS_YOU_COPY: Readonly<Record<CriticalKind, CopyKey>> = Object.freeze({
   destination: "publish.needs-you.destination",
   delivery: "publish.needs-you.delivery",
+  live_edit: "publish.needs-you.live-edit",
   unknown: "publish.needs-you.unknown",
 });
+
+/** The sentence for a cause, or `null` where it has none. */
+export function needsYouLine(cause: NeedsYouCause | null): CopyKey | null {
+  return cause !== null && Object.hasOwn(NEEDS_YOU_COPY, cause.kind) ? NEEDS_YOU_COPY[cause.kind as CriticalKind] : null;
+}

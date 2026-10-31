@@ -29,8 +29,8 @@
 // A caller's array order is never trusted: two customers with the same
 // waiting items must see the same two alerts.
 import type { CopyKey } from "@/lib/presentation/copy";
-import { NEEDS_YOU_COPY } from "@/lib/publish/record/lines";
-import { waitsOnDestination, type NeedsYouCause } from "@/lib/publish/record/needs-you";
+import { needsYouLine } from "@/lib/publish/record/lines";
+import { critical, waitsOnDestination, type NeedsYouCause } from "@/lib/publish/record/needs-you";
 import { SITE_CHECK_FIX, SITE_CHECK_TITLE, SITE_SEVERITY_WORD } from "@/lib/presentation/site-issues";
 import { OVERVIEW_ALERT_CAP } from "@/lib/config/constants";
 import { SITE_CHECKS, type SiteCheck, type SiteIssue, type SiteIssuesSection } from "@/lib/site-issues/types";
@@ -213,7 +213,8 @@ export function readAlerts(
   overflow?: Overflow;
   issuesOverflow?: Overflow;
 } {
-  const ranked = [...waiting].sort(byRankThenAge);
+  // Owner O7: a page whose cause the system resolves itself is never an alert.
+  const ranked = waiting.filter((item) => item.kind !== "needs_you" || item.cause == null || critical(item.cause, at)).sort(byRankThenAge);
   const shown = ranked.slice(0, OVERVIEW_ALERT_CAP);
   const rest = ranked.slice(OVERVIEW_ALERT_CAP);
   const remaining = rest.filter((item) => item.kind !== "site_issue").length;
@@ -246,9 +247,7 @@ export function readAlerts(
     const lineKey =
       item.kind === "pending_veto" && left === undefined
         ? PENDING_NO_WINDOW_KEY
-        : cause === null
-          ? copyKeys.lineKey
-          : NEEDS_YOU_COPY[cause.kind];
+        : (needsYouLine(cause) ?? copyKeys.lineKey);
     // The control: reconnecting is for a page waiting on delivery. Every
     // other cause is read and acted on where the page is — which is where
     // the alert already points.

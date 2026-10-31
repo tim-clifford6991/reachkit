@@ -167,16 +167,19 @@ describe("a page that still fails is set aside at 0¢, the row kept and its topi
     expect([snapshot(db, "drafts", edited), snapshot(db, "drafts", reviewed)]).toEqual(before);
   });
 
-  it("a page the customer edited and a live page's edit are never set aside, however they fail", async () => {
+  it("a page the customer edited, a live page's edit and an expired credential are never set aside, however they fail", async () => {
     arrange(SAAS_HOSTED);
     const failed = [{ rule: "fit_claim", detail: { rule: "fit_claim", sentences: ["Example keeps every seat on one bill."] } }];
     const edited = await stopped(SAAS_HOSTED, { first: "Example keeps every seat on one bill. ", failed });
     const live = await stopped(SAAS_HOSTED, { topic: "billing", first: "Example keeps every seat on one bill. ", failed });
+    const credentials = await stopped(SAAS_HOSTED, { topic: "invoices", first: "Example keeps every seat on one bill. ", failed });
     (row(edited).meta as Row).first_edited_at = AT.toISOString();
     Object.assign(lastMove(live), { actor: { kind: "customer", userId: "u1" }, reason: "live_edit" });
-    const before = [snapshot(db, "drafts", edited), snapshot(db, "drafts", live)];
+    Object.assign(lastMove(credentials), { from: "failed", actor: { kind: "system", job: "publish/execute" }, reason: "reason_needs_customer" });
+    const ids = [edited, live, credentials];
+    const before = ids.map((id) => snapshot(db, "drafts", id));
     await recheck(SAAS_HOSTED);
-    expect([snapshot(db, "drafts", edited), snapshot(db, "drafts", live)]).toEqual(before);
+    expect(ids.map((id) => snapshot(db, "drafts", id))).toEqual(before);
   });
 });
 

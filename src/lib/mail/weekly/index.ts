@@ -20,6 +20,7 @@ import { plannedStopToken } from "@/lib/opportunities/stop";
 import { whyOf } from "@/lib/opportunities/why";
 import { vetoLinkPath } from "@/lib/publish/publishable";
 import { scheduledPagesFor } from "@/lib/publish/record";
+import { critical, needsYouOf } from "@/lib/publish/record/needs-you";
 import { heldPages } from "@/lib/publish/switch";
 import { pauseTokenFor } from "@/lib/publish/switch/pause-link";
 import { readPublishingSettings } from "@/lib/publish/settings/settings";
@@ -216,7 +217,7 @@ async function measuredWeek(
     ...(standing.indexState === undefined ? {} : { indexState: standing.indexState }),
   }));
 
-  const needsYou = await oneNeedsYou(a.siteId);
+  const needsYou = await oneNeedsYou(a.siteId, now);
   const week = await theWeek(a.siteId, a.weekStart, at);
   const mail = buildWeekly({
     ...(greeting === undefined ? {} : { greeting }),
@@ -479,18 +480,17 @@ async function stampSent(scanId: string, at: Date): Promise<void> {
   }
 }
 
-/** SPEC §8's one needs-you item: the newest `needs_attention` page, since listing all would be a second calendar; `undefined` says nothing.
- *  It says that a page needs them and opens it; why is the page's own to say (`needs-you.ts`), on the screen that can fix it. */
-async function oneNeedsYou(siteId: string): Promise<WeeklyNeedsYou | undefined> {
+/** SPEC §8's one needs-you item: one `needs_attention` page whose cause is critical (owner O7), since listing all would be a
+ *  second calendar; `undefined` says nothing. Why is the page's own to say (`needs-you.ts`), on the screen that can fix it. */
+async function oneNeedsYou(siteId: string, now: Date): Promise<WeeklyNeedsYou | undefined> {
   try {
     const { data, error } = await untyped()
-      .from<{ id: string; title: string | null }>("drafts")
-      .select("id, title")
+      .from<{ id: string; title: string | null; transitions: unknown; meta: unknown }>("drafts")
+      .select("id, title, transitions, meta")
       .eq("site_id", siteId)
-      .eq("state", "needs_attention")
-      .limit(1);
+      .eq("state", "needs_attention");
     if (error !== null) return undefined;
-    const row = data?.[0];
+    const row = data?.find((each) => critical(needsYouOf({ state: "needs_attention", transitions: each.transitions, meta: each.meta }), now));
     if (row === undefined) return undefined;
     const title = (row.title ?? "").trim();
     return {

@@ -63,7 +63,6 @@ import { pageRecordFor } from "@/lib/publish/record";
 import { readingOf } from "@/lib/measure/page-reading";
 import { verdict } from "@/lib/opportunities/verdicts/verdict";
 import { takeDownStanding } from "@/lib/publish/take-down/standing";
-import { needsYouOf } from "@/lib/publish/record/needs-you";
 import { askedAs, doneWhen } from "../../calendar/store";
 import type { Choice } from "@/lib/opportunities/derive/explain";
 import { pageTargetOf } from "../../_shell/page-target";
@@ -71,7 +70,6 @@ import {
   NO_RULE_FACTS,
   PACK_PAGES_SHOWN,
   knownNeeds,
-  type PackShort,
   type PackView,
   type ClaimState,
   type DraftFacts,
@@ -179,16 +177,6 @@ function packAt(meta: Record<string, unknown> | null, at: Date): { pack?: PackVi
       missing: knownNeeds(texts(pack.missing)),
     },
   };
-}
-
-/** Whether the page rests because its pack was short, and of what (issue
- *  1252). The cause is the record's own (`needsYouOf`); the handles are the
- *  ones the stop recorded, or the stored pack's where it recorded none. */
-function packShortAt(row: DraftRow, pack: PackView | undefined): { packShort?: PackShort } {
-  const cause = needsYouOf({ state: row.state as State, transitions: row.transitions });
-  if (cause === null || cause.kind !== "pack") return {};
-  const named = knownNeeds(cause.missing);
-  return { packShort: { missing: named.length > 0 ? named : (pack?.missing ?? []) } };
 }
 
 /** What the page adds (`meta.adds`, issue 1143), read as defensively as
@@ -552,7 +540,6 @@ export async function readDraftRow(a: {
     },
     ...addsAt(row.meta, row.state),
     linkRecord: linkRecordAt(row.meta),
-    ...packShortAt(row, pack),
     domain: a.site.domain,
     state: row.state as State,
     // The fact §9's `never_entered_review` guard reads (#1180).

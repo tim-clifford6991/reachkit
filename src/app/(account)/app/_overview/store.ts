@@ -96,7 +96,7 @@ import { CALENDAR_DAY_ZONE } from "./week";
 import { monthFiguresOf, monthWeekOf, nextFirstMonday, type MonthsFacts } from "@/lib/measure/figures";
 import type { WeeklyPoint } from "./growth";
 import type { RivalFact, RivalFacts } from "./rivals";
-import { needsYouOf, waitsOnCustomer } from "@/lib/publish/record/needs-you";
+import { needsYouOf } from "@/lib/publish/record/needs-you";
 import type { State } from "@/lib/publish/types";
 import { issuesReading, waitingIssues, type IssuesReading, type WaitingItem } from "./alerts";
 import type { WaitingPageFacts, WaitingTarget } from "./waiting";
@@ -504,17 +504,16 @@ async function waitingItems(siteId: string): Promise<readonly WaitingItem[]> {
       created_at: string;
       veto_deadline: string | null;
       transitions: unknown;
+      meta: unknown;
     }>("drafts")
     // `transitions` is why the page needs them (issue 880), read off the
-    // same append-only column §9 records every move on.
-    .select("id, state, title, created_at, veto_deadline, transitions")
+    // same append-only column §9 records every move on; `meta`, whether it holds the customer's words.
+    .select("id, state, title, created_at, veto_deadline, transitions, meta")
     .eq("site_id", siteId)
     .in("state", ["in_review", "needs_attention"])
     .order("created_at", { ascending: true });
   if (error !== null || data === null) return [];
-  // Issue 1477: a page the writing stopped is not one the customer is asked
-  // to act on; the day's run has gone on to another topic.
-  return data.filter((row) => waitsOnCustomer(needsYouOf({ state: row.state as State, transitions: row.transitions }))).map((row) => ({
+  return data.map((row) => ({
     kind: row.state === "needs_attention" ? ("needs_you" as const) : ("pending_veto" as const),
     // The customer's own words for their page, never a sentence this
     // product composed.
@@ -526,7 +525,7 @@ async function waitingItems(siteId: string): Promise<readonly WaitingItem[]> {
     // Issue 880: the page's own cause, so the alert states it and offers
     // the act that matches — never "Reconnect" for a page the writing
     // rules stopped.
-    cause: needsYouOf({ state: row.state as State, transitions: row.transitions }),
+    cause: needsYouOf({ state: row.state as State, transitions: row.transitions, meta: row.meta }),
     href: `/app/draft/${row.id}`,
   }));
 }
