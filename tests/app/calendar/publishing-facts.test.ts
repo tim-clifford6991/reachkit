@@ -405,7 +405,7 @@ describe("the empty-date arms, from rows", () => {
 describe("issue 880 — why the page needs them, and the act that matches", () => {
   const RULES = "rules:no_private_figure,no_unsourced_testimonial,brand_gap";
 
-  function restedOnRules(): void {
+  function restedOnRules(meta?: Record<string, unknown>): void {
     seed({
       drafts: [
         draft({
@@ -416,6 +416,7 @@ describe("issue 880 — why the page needs them, and the act that matches", () =
             { from: "planned", to: "generating", at: "2026-09-15T22:00:00.000Z" },
             { from: "generating", to: "needs_attention", at: "2026-09-15T22:04:00.000Z", reason: RULES },
           ],
+          ...(meta === undefined ? {} : { meta }),
         }),
       ],
     });
@@ -428,6 +429,11 @@ describe("issue 880 — why the page needs them, and the act that matches", () =
       kind: "rules",
       rules: ["no_private_figure", "no_unsourced_testimonial", "brand_gap"],
     });
+  });
+
+  it("and once the customer edited it, the words are theirs: an own-words cause (owner O7)", async () => {
+    restedOnRules({ first_edited_at: "2026-09-15T23:00:00.000Z" });
+    expect((await readPublishingFacts({ siteId: SITE_ID, month: MONTH, today: TODAY })).pagesByDay.get("2026-09-16")?.needsYou).toEqual({ kind: "live_edit" });
   });
 
   it("and the site's own destination is read as what it is — hosted, and working", async () => {

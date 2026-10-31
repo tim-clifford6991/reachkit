@@ -179,3 +179,28 @@ describe("many pages", () => {
     expect(db.queries.filter((q) => q.table === "destinations")).toHaveLength(0);
   });
 });
+
+// Owner O7: a page whose retries ran out is offered once a day by the retry job itself, through the guarded edge.
+describe("a page resting on its exhausted retries", () => {
+  const DAY = 24 * 60;
+  const exhausted = (reason: string) => ({
+    state: "needs_attention",
+    transitions: [{ from: "failed", to: "needs_attention", reason, at: CLAIMED.toISOString() }],
+  });
+
+  it("is offered 23 h after its last claim, as the retry job's own move", async () => {
+    seed({ draft: exhausted("retries_exhausted"), publication: { attempt_no: MAX_RETRIES + 1 } });
+    expect(await dueRetries(after(DAY - 61))).toEqual([]);
+    expect(await dueRetries(after(DAY - 60))).toEqual([{ draftId: "d1", destinationId: "dest-1", by: { kind: "system", job: "publish/retry" } }]);
+  });
+
+  it("is not offered once its first rest is more than seven days old", async () => {
+    seed({ draft: exhausted("retries_exhausted"), publication: { attempt_no: MAX_RETRIES + 5, claimed_at: after(7 * DAY).toISOString() } });
+    expect(await dueRetries(after(8 * DAY + 1))).toEqual([]);
+  });
+
+  it("an expired credential is never offered", async () => {
+    seed({ draft: exhausted("reason_needs_customer"), publication: { attempt_no: 1, failure_reason: "credentials_expired" } });
+    expect(await dueRetries(after(2 * DAY))).toEqual([]);
+  });
+});

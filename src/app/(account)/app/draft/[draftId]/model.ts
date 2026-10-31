@@ -218,16 +218,6 @@ export function knownNeeds(handles: readonly string[]): PackNeed[] {
  * customer's own pages say, as generation listed them (`drafts.meta.adds`).
  * Absent on a page written before the list was made.
  */
-/**
- * A page that was not written because its context pack was short (SPEC §7,
- * D41 stage 2; issue 1252): "the page stops naming what is missing". The
- * handles are the ones the stop recorded on its own transition; where that
- * names none, the stored pack's.
- */
-export interface PackShort {
-  readonly missing: readonly PackNeed[];
-}
-
 export interface PageAdds {
   readonly claims: readonly { readonly claim: string; readonly business: boolean }[];
   /** The page is held for adding too little, and waits on a fact only the
@@ -364,8 +354,6 @@ export interface DraftView {
   /** Which pages code chose to link and what the check at publish found
    *  (issue 1391). Absent reads as nothing recorded. */
   linkRecord?: LinkRecord;
-  /** The page rests unwritten because its pack was short (issue 1252). */
-  packShort?: PackShort;
   /** The customer's own frame: the name and the address the page publishes
    *  at, so the viewer can draw the page as a reader will meet it (#931). */
   publisher: Publisher;
@@ -456,9 +444,6 @@ export interface DraftFacts {
   adds?: PageAdds;
   /** `meta.links` and `meta.linkCheck` (issue 1391). */
   linkRecord?: LinkRecord;
-  /** Set where the page rests in `needs_attention` because its context
-   *  pack was short of what its template asks (issue 1252). */
-  packShort?: PackShort;
   /** The customer's own domain (#931). */
   domain: string;
   /** The passage and its source, as recorded at generation — `null` where
@@ -587,7 +572,6 @@ export function assembleDraft(facts: DraftFacts): DraftView {
     writtenFrom: facts.writtenFrom,
     ...(facts.adds === undefined ? {} : { adds: facts.adds }),
     ...(facts.linkRecord === undefined ? {} : { linkRecord: facts.linkRecord }),
-    ...(facts.packShort === undefined ? {} : { packShort: facts.packShort }),
     publisher: publisherOf(facts),
     ruleFacts: facts.ruleFacts,
     domain: facts.domain,
