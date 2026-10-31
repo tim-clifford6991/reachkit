@@ -41,6 +41,11 @@ const steps = (doc: Document) => [...doc.querySelectorAll('[data-testid="publish
 describe("Settings › Publishing, on", () => {
   const doc = tab();
 
+  it("links the time-to-stop step's This week to the calendar (owner R8)", () => {
+    const link = doc.querySelector('[data-testid="publishing-timeline"] a[href="/app/calendar"]');
+    expect(link?.textContent).toBe("This week");
+  });
+
   it("heads the card with the switch and what it means", () => {
     expect(text(doc.querySelector('[data-testid="publishing-lead"]'))).toBe("On. A page goes live on each planned day.");
     expect(text(doc.querySelector('[data-testid="setting-publishing_enabled"]'))).toBe("On");
@@ -55,7 +60,7 @@ describe("Settings › Publishing, on", () => {
     expect(steps(doc)).toEqual([
       "Written Sun, Oct 18, 4:00 PM Checked against your facts and your never-claim list",
       "Emailed to you Sun, Oct 18, 4:00 PM With Read, Edit and Stop",
-      "1 day to read, edit or stop it From the mail or from Plan. Do nothing and it goes live on its own.",
+      "1 day to read, edit or stop it From the mail or from This week. Do nothing and it goes live on its own.",
       "Goes live Mon, Oct 19, 4:00 PM blog.example.com",
     ]);
     expect(doc.querySelector('[data-testid="publishing-timeline"] a')?.getAttribute("href")).toBe("/app/calendar");
@@ -91,7 +96,7 @@ it("a two-day time to stop a page moves Written and Emailed two days before it g
   expect(steps(tab({ vetoHours: 48 })).slice(0, 3)).toEqual([
     "Written Sat, Oct 17, 4:00 PM Checked against your facts and your never-claim list",
     "Emailed to you Sat, Oct 17, 4:00 PM With Read, Edit and Stop",
-    "2 days to read, edit or stop it From the mail or from Plan. Do nothing and it goes live on its own.",
+    "2 days to read, edit or stop it From the mail or from This week. Do nothing and it goes live on its own.",
   ]);
 });
 

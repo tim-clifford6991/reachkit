@@ -391,7 +391,7 @@ describe("the done arm, and the refusals that wear its shape", () => {
     // pins: the destination and the word have to move together.
     expect(links[0]?.props.href).toBe("/signin");
     expect(links[0]?.props.children).toBe(COPY["publish.veto.calendar"]);
-    expect(COPY["publish.veto.calendar"]).toBe("Sign in to open your plan");
+    expect(COPY["publish.veto.calendar"]).toBe("Sign in to open This week");
     // Not solid: the done arm asks nothing of the reader, and the page it
     // offers is one they may or may not want.
     expect(classOf(links[0] as Node)).toContain("btn-soft");
@@ -739,7 +739,7 @@ describe("every arm renders, each in its own words", () => {
     for (const key of ["publish.veto.used.head", "publish.veto.closed.head", "publish.veto.unknown.head", "publish.veto.unknown", "publish.veto.failed.head", "publish.veto.failed"] as const) {
       expect(BOARD.replace(/’/g, "'")).toContain(COPY[key].replace(/’/g, "'"));
     }
-    expect(COPY["publish.veto.expired"]).toContain("can be stopped from its page in Plan");
+    expect(COPY["publish.veto.expired"]).toContain("can be stopped from its page in This week");
     expect(COPY["publish.veto.expired"]).not.toContain("taken down");
   });
 });

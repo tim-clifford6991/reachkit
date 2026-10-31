@@ -51,7 +51,7 @@ afterEach(() => provider.setCalendarSiteReader(null));
 describe("board Plan, on the fixture account's week", () => {
   it("the head names the week of service, its page count and the day it was chosen", async () => {
     const head = (await fixturePage()).querySelector('[data-testid="plan-head"]')!;
-    expect(text(head.querySelector(".eyebrow"))).toBe("Plan · week 3");
+    expect(text(head.querySelector(".eyebrow"))).toBe("Week 3");
     expect(text(head.querySelector("h1"))).toBe("This week’s 5 pages");
     expect(text(head.querySelector("p"))).toBe("Chosen Monday, September 14. Each goes live on its day unless you stop it.");
   });
@@ -228,7 +228,7 @@ describe("the states board Plan names", () => {
 
   it("before the first commit the head says the first week is being chosen; a short week counts its real pages", () => {
     expect(planHeadWords({ week: 1, chosen: null, publishTime: null }, 0)).toEqual({
-      eyebrow: "Plan · week 1",
+      eyebrow: "Week 1",
       title: COPY["calendar.title.none"],
       lead: COPY["calendar.first-week"],
     });

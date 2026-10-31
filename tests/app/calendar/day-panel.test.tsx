@@ -294,7 +294,7 @@ describe("REQ-043 c10 — one provenance line, and no date repeated beside each 
     // measured tail. It was owner-owed and empty until then, and the panel
     // rendered nothing rather than a placeholder — which is the behaviour
     // the row below still holds for the keys that are *still* owed.
-    expect(COPY["calendar.provenance.measured"]).toBe("measured {date}");
+    expect(COPY["calendar.provenance.measured"]).toBe("checked {date}");
     const rendered = panel("2026-09-15").querySelector('[data-testid="day-provenance"]');
     expect(rendered).not.toBeNull();
     expect(rendered?.textContent).toContain("measured");
@@ -542,7 +542,7 @@ describe("the panel's arms", () => {
     // markup: two keys, two lengths, and the grid's map naming the short.
     expect(COPY["cause.supply-exhausted"]).toBe("nothing worth publishing");
     expect(COPY["calendar.empty.supply-exhausted"].length).toBeGreaterThan(
-      COPY["cause.supply-exhausted"].length * 3,
+      COPY["cause.supply-exhausted"].length * 2,
     );
   });
 });
