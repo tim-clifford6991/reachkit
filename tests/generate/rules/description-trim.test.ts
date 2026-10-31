@@ -72,6 +72,19 @@ describe("a meta description is fitted in code (R-A)", () => {
     expect(fitDescription(`${first} Dazu zeigt die Übersicht, welche Mitbewerber ChatGPT und Gemini stattdessen nennen und wie Sie dagegenhalten.`, "de")).toBe(first);
   });
 
+  it("an early clause boundary is no cut: the word cut is taken, its function words trimmed", () => {
+    const en =
+      "In 2026, AI answers from ChatGPT and Gemini decide which local businesses buyers call first and this guide shows how to get named in them with pages written for the searches your customers type each day.";
+    expect(fitDescription(en, "en")).toBe(
+      "In 2026, AI answers from ChatGPT and Gemini decide which local businesses buyers call first and this guide shows how to get named in them with pages."
+    );
+    const de =
+      "Kurz gesagt: Wer in KI-Antworten von ChatGPT und Gemini genannt werden will braucht eigene Seiten für die Suchen seiner Kunden und Antworten auf die Fragen der Käufer mit Preisen und Leistungen.";
+    expect(fitDescription(de, "de")).toBe(
+      "Kurz gesagt: Wer in KI-Antworten von ChatGPT und Gemini genannt werden will braucht eigene Seiten für die Suchen seiner Kunden und Antworten."
+    );
+  });
+
   it("keeps whole sentences even where they come to under 120 characters (R-A)", () => {
     const first = "AI visibility tools track whether ChatGPT, Google AI and Perplexity name your business, and which rivals they name instead.";
     expect(fitDescription(`${first} Four tools are compared on price.`, "en")).toBe(first);

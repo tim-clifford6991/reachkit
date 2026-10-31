@@ -392,9 +392,9 @@ function tailWords(language: Language | undefined): ReadonlySet<string> {
 }
 
 /** A meta description over its most keeps the whole sentences that fit, or
- *  is cut at the last clause that fits, or else the last word, never ending
- *  on a function word; only a full stop is added, and its length never stops
- *  a page (R-A). */
+ *  is cut at the last clause that fits where that keeps at least half its
+ *  most, or else at the last word, never ending on a function word; only a
+ *  full stop is added, and its length never stops a page (R-A). */
 export function fitDescription(text: string, language: Language | undefined): string {
   const { max } = TITLE.description;
   if ([...text].length <= max) return text;
@@ -407,15 +407,20 @@ export function fitDescription(text: string, language: Language | undefined): st
   if (kept !== "") return kept;
   // One character is left for the full stop a cut ends with.
   const head = [...text].slice(0, max).join("");
-  const clause = [...head.matchAll(/[,;:)\]](?=\s)|\s[–—](?=\s)/gu)].at(-1);
-  const at = clause === undefined ? head.search(/\s\S*$/) : clause.index + clause[0].length;
-  if (at <= 0) return text;
   const tail = tailWords(language);
-  const words = head.slice(0, at).split(/\s+/);
   const bare = (word: string): string => word.toLowerCase().replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, "");
-  while (words.length > 1 && tail.has(bare(words.at(-1)!))) words.pop();
-  const cut = words.join(" ").replace(/[\s,;:–—-]+$/u, "");
-  return /[.!?]$/.test(cut) ? cut : `${cut}.`;
+  const cutAt = (at: number): string => {
+    const words = head.slice(0, at).split(/\s+/);
+    while (words.length > 1 && tail.has(bare(words.at(-1)!))) words.pop();
+    const cut = words.join(" ").replace(/[\s,;:–—-]+$/u, "");
+    return /[.!?]$/.test(cut) ? cut : `${cut}.`;
+  };
+  const clause = [...head.matchAll(/[,;:)\]](?=\s)|\s[–—](?=\s)/gu)].at(-1);
+  // An early comma ("In 2026, …") would leave a fragment, not a thought.
+  const byClause = clause === undefined ? "" : cutAt(clause.index + clause[0].length);
+  if ([...byClause].length >= max / 2) return byClause;
+  const word = head.search(/\s\S*$/);
+  return word > 0 ? cutAt(word) : text;
 }
 
 /** The heading of the sources list code writes, in each language. */

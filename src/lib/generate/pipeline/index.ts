@@ -275,18 +275,13 @@ export async function generateDraft(c: CostContext, a: GenerateInputs): Promise<
     queries: searches,
     names: [...names, ...pack.products.map((product) => product.domain.split(".")[0] ?? "")],
     unclaimed: unclaimedSuperlatives(pack),
-    ...(pack.locale === undefined ? {} : { language: pack.locale.language }),
+    language: pack.locale?.language,
     // D51: an update keeps its live title.
     ...(pack.type === "update" && pack.live !== null
       ? { live: { title: pack.live.title, markdown: pack.live.markdown, year: new Date(pack.builtAt).getUTCFullYear() } }
       : {}),
   };
-  const linking = {
-    domain: a.site.domain,
-    targets: a.links,
-    groundedUrl: grounding.fact.url,
-    factUrls: pack.facts.map((fact) => fact.url),
-  };
+  const linking = { domain: a.site.domain, targets: a.links, groundedUrl: grounding.fact.url, factUrls: pack.facts.map((fact) => fact.url) };
 
   /** The parts laid out as the page (SPEC §7, issue 1137): the body's links
    *  held to the chosen pages, no table cell left empty, the closing line
