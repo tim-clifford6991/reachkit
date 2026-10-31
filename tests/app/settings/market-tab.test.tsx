@@ -265,7 +265,7 @@ describe("not measured is never 0", () => {
 
   it("a competitor added since the last scan reads when it is measured from, on both lines", () => {
     const card = competitors(SAAS).querySelector('[data-testid="competitor-ledgerly.example"]');
-    const from = `Measured from ${model.market.wouldTakeEffectOn}.`;
+    const from = `Checked from ${model.market.wouldTakeEffectOn}.`;
     expect(text(card?.querySelector('[data-testid="competitor-google-ledgerly.example"]'))).toBe(`On Google’s first page${from}`);
     expect(text(card?.querySelector('[data-testid="competitor-ai-ledgerly.example"]'))).toBe(`Mentioned in AI answers${from}`);
   });
@@ -284,9 +284,9 @@ describe("not measured is never 0", () => {
     const figures = marketFigures({ competitors: ["billwise.example"], measured: ["billwise.example"], firstPage: read, named: unread });
     const root = competitors(SAAS, { list: ["billwise.example"], figures });
     const card = root.querySelector('[data-testid="competitor-billwise.example"]');
-    expect(text(card?.querySelector('[data-testid="competitor-ai-billwise.example"]'))).toBe("Mentioned in AI answersnot measured");
+    expect(text(card?.querySelector('[data-testid="competitor-ai-billwise.example"]'))).toBe("Mentioned in AI answersnot checked yet");
     expect(card?.querySelectorAll("progress")).toHaveLength(1);
-    expect(text(root.querySelector('[data-testid="competitors-you-ai"]'))).toBe("Mentioned in AI answers not measured");
+    expect(text(root.querySelector('[data-testid="competitors-you-ai"]'))).toBe("Mentioned in AI answers not checked yet");
   });
 
   it("an unread count draws no well rather than a 0", () => {

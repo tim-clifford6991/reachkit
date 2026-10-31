@@ -55,7 +55,7 @@ describe("the danger zone", () => {
   it("is folded shut, its summary saying what is inside and how to only stop new pages", () => {
     expect(zone.hasAttribute("open")).toBe(false);
     expect(text(zone.querySelector("summary"))).toBe(
-      "Danger zone Take every page down, or delete your account. To only stop new pages, pause publishing."
+      "Danger zone Take every page down, or delete your account."
     );
     const pause = zone.querySelector(".collapse-content > p")!;
     expect(text(pause)).toBe("To stop new pages without taking any down, pause publishing instead.");
