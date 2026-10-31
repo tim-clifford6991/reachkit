@@ -178,8 +178,11 @@ describe("OR4: a promise-figure title never enters review", () => {
     const before = (at(id).meta as Row).description as string;
     const { meta } = await checked(id);
     const after = meta.description as string;
-    expect([[...before].length > 155, [...after].length <= 155, before.startsWith(after), /^[\s.,;:]/.test(before.slice(after.length))]).toEqual([true, true, true, true]);
+    // A cut ends with a full stop, the one character code may add.
+    const own = before.startsWith(after) ? after : after.slice(0, -1);
+    expect([[...before].length > 155, [...after].length <= 155, /[.!?]$/.test(after), before.startsWith(own), /^[\s.,;:]/.test(before.slice(own.length))]).toEqual([true, true, true, true, true]);
     expect(meta.recheck).toMatchObject({ descriptionBefore: before, description: after });
+    if (id === "b03e044f") expect(after).toBe("The best AI visibility tools for small businesses show where AI answers send buyers to rivals, then help fix it.");
   });
 
   it("a page stored with no description takes its short answer's first sentences, fitted", async () => {
