@@ -14,7 +14,7 @@ export interface MemoryIdentity {
   sites: { id: string; user_id: string }[];
   /** `users.last_seen_at`, by account (SPEC §8, #569). */
   seen: Map<string, Date>;
-  /** `users.signin_link_sealed` and `signin_link_issued_at`, by account. */
+  /** `signin_links`, by account. */
   signInLinks: Map<string, { sealed: string; issuedAt: string }>;
   failAccountRead: boolean;
   failPendingRead: boolean;

@@ -95,8 +95,8 @@ export interface IdentityStore {
   siteForAccount(userId: string): Promise<{ ok: true; siteId: string | null } | { ok: false }>;
 
   /** The live sign-in link, sealed, and when it was minted; `null` once spent
-   *  or never stored. Read apart from `ACCOUNT_COLUMNS`, so a database without
-   *  the two columns fails this read alone and the caller mints as before. */
+   *  or never stored. A database without `signin_links` fails this read alone
+   *  and the caller mints as before. */
   signInLink(
     userId: string
   ): Promise<{ ok: true; link: { sealed: string; issuedAt: string } | null } | { ok: false }>;
@@ -117,6 +117,8 @@ interface QueryResult<T> {
 interface MinimalQueryBuilder<T> extends PromiseLike<QueryResult<T>> {
   select(columns: string): MinimalQueryBuilder<T>;
   update(patch: object): MinimalQueryBuilder<T>;
+  upsert(row: object): MinimalQueryBuilder<T>;
+  delete(): MinimalQueryBuilder<T>;
   eq(column: string, value: string): MinimalQueryBuilder<T>;
   or(filter: string): MinimalQueryBuilder<T>;
   is(column: string, value: null): MinimalQueryBuilder<T>;
@@ -255,24 +257,20 @@ export function supabaseIdentityStore(): IdentityStore {
 
     async signInLink(userId) {
       const { data, error } = await untyped()
-        .from<{ signin_link_sealed: string | null; signin_link_issued_at: string | null }>("users")
-        .select("signin_link_sealed, signin_link_issued_at")
-        .eq("id", userId)
+        .from<{ sealed: string; issued_at: string }>("signin_links")
+        .select("sealed, issued_at")
+        .eq("user_id", userId)
         .limit(1);
       if (error) return { ok: false };
       const row = data?.[0];
-      if (!row?.signin_link_sealed || !row.signin_link_issued_at) return { ok: true, link: null };
-      return { ok: true, link: { sealed: row.signin_link_sealed, issuedAt: row.signin_link_issued_at } };
+      return { ok: true, link: row ? { sealed: row.sealed, issuedAt: row.issued_at } : null };
     },
 
     async writeSignInLink(userId, link) {
-      const { error } = await untyped()
-        .from<IdentityAccountRow>("users")
-        .update({
-          signin_link_sealed: link?.sealed ?? null,
-          signin_link_issued_at: link?.issuedAt.toISOString() ?? null,
-        })
-        .eq("id", userId);
+      const table = untyped().from<{ user_id: string }>("signin_links");
+      const { error } = link
+        ? await table.upsert({ user_id: userId, sealed: link.sealed, issued_at: link.issuedAt.toISOString() })
+        : await table.delete().eq("user_id", userId);
       return error ? { ok: false } : { ok: true };
     },
   };
