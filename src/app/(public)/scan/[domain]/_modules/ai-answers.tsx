@@ -499,7 +499,7 @@ export function AiAnswersCard(p: {
             <span>{copy("ai-answers.finding")}</span>
           </p>
         )}
-        <p className="grow-0 text-base-content/70 text-sm">{copy("ai-answers.source", { total: measured })}</p>
+        <p className="grow-0 text-base-content/70 text-sm">{copy("ai-answers.source", { total: measured, answered: String(section.answeredSearches) })}</p>
         {/* SPEC §2: a correction reuses the AI answers already read, and the
             card says so — only then. */}
         {section.coverage === "cached_only" ? (
@@ -556,7 +556,6 @@ export function AiAnswersCard(p: {
               })}
             </p>
             <QuestionRows rows={section.rows} />
-            <p className="text-base-content/70 text-xs">{copy("ai-answers.method", { total: measured })}</p>
           </div>
         </details>
       </div>

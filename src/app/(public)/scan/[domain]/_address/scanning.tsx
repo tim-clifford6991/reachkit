@@ -112,8 +112,6 @@ function theSearches(found: StageSummary): React.ReactNode {
   );
 }
 
-const GET_STEPS: readonly CopyKey[] = ["scan.get.step.1", "scan.get.step.2", "scan.get.step.3"];
-
 const GET_ITEMS: readonly (readonly [CopyKey, CopyKey])[] = [
   ["scan.get.score", "scan.get.score.line"],
   ["scan.get.rivals", "scan.get.rivals.line"],
@@ -199,7 +197,6 @@ export function ScanningView(p: {
                 )}
               </div>
               <ScanProgress domain={p.domain} scanId={p.scanId} stages={stages} />
-              <p className="text-base-content/70 text-sm">{copy("scan.progress.caption")}</p>
             </div>
           </section>
 
@@ -208,13 +205,6 @@ export function ScanningView(p: {
               <h2 id="scan-get" className="card-title">
                 {copy("scan.get.title")}
               </h2>
-              <ol className="flex flex-wrap gap-2">
-                {GET_STEPS.map((step) => (
-                  <li key={step} className="badge badge-soft">
-                    {copy(step)}
-                  </li>
-                ))}
-              </ol>
               <ul className="flex flex-col gap-3">
                 {GET_ITEMS.map(([name, line]) => (
                   <li key={name} className="flex gap-3">

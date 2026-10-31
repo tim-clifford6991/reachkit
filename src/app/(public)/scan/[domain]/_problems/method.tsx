@@ -1,7 +1,8 @@
 // BUILD §4.1 module 4 — the DIY collapses
 //
-// The complete method, free, on the same page: three collapsed sections,
-// one per problem, in the cards' own order. Every sentence is a `CopyKey`.
+// Do it yourself, free, on the same page: three collapsed sections, one per
+// problem, in the cards' own order, each a lead and its steps. Every
+// sentence is a `CopyKey`.
 //
 // daisyUI `collapse` on `details`/`summary`, never a lazy fetch: the whole
 // method is in the first response, readable with JavaScript off, and
@@ -19,10 +20,22 @@ import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { METHOD_ANCHOR, PasteBlock } from "./cards";
 import type { ProblemName } from "./model";
 
-const METHOD_COPY: Readonly<Record<ProblemName, { title: CopyKey; body: CopyKey }>> = Object.freeze({
-  blocked_readers: { title: "method.blocked-readers.title", body: "method.blocked-readers.body" },
-  missing_pages: { title: "method.missing-pages.title", body: "method.missing-pages.body" },
-  unquotable_pages: { title: "method.unquotable-pages.title", body: "method.unquotable-pages.body" },
+const METHOD_COPY: Readonly<Record<ProblemName, { title: CopyKey; body: CopyKey; steps: readonly CopyKey[] }>> = Object.freeze({
+  blocked_readers: {
+    title: "method.blocked-readers.title",
+    body: "method.blocked-readers.body",
+    steps: ["method.blocked-readers.step.1", "method.blocked-readers.step.2", "method.blocked-readers.step.3"],
+  },
+  missing_pages: {
+    title: "method.missing-pages.title",
+    body: "method.missing-pages.body",
+    steps: ["method.missing-pages.step.1", "method.missing-pages.step.2", "method.missing-pages.step.3", "method.missing-pages.step.4", "method.missing-pages.step.5"],
+  },
+  unquotable_pages: {
+    title: "method.unquotable-pages.title",
+    body: "method.unquotable-pages.body",
+    steps: ["method.unquotable-pages.step.1", "method.unquotable-pages.step.2", "method.unquotable-pages.step.3", "method.unquotable-pages.step.4"],
+  },
 });
 
 export function MethodSections(p: {
@@ -43,10 +56,7 @@ export function MethodSections(p: {
           <span aria-hidden className="rounded-field grid size-9 shrink-0 place-items-center bg-base-200">
             <ListChecks className="size-5" strokeWidth={1.75} />
           </span>
-          <div className="min-w-0">
-            <h2 className="text-2xl font-bold">{copy("method.title")}</h2>
-            <p className="text-base-content/70 text-sm font-normal">{copy("method.section.sub")}</p>
-          </div>
+          <h2 className="min-w-0 text-2xl font-bold">{copy("method.title")}</h2>
         </div>
       </summary>
       <div className="collapse-content flex min-w-0 flex-col gap-2 px-px">
@@ -57,6 +67,11 @@ export function MethodSections(p: {
               <summary className="collapse-title font-medium">{copy(METHOD_COPY[problem].title)}</summary>
               <div id={METHOD_ANCHOR[problem]} className="collapse-content flex scroll-mt-20 flex-col gap-3 text-sm">
                 <p>{copy(METHOD_COPY[problem].body)}</p>
+                <ol className="list-inside list-decimal">
+                  {METHOD_COPY[problem].steps.map((key) => (
+                    <li key={key}>{copy(key)}</li>
+                  ))}
+                </ol>
                 {lines === undefined || lines.length === 0 ? null : <PasteBlock lines={lines} />}
                 {problem !== "blocked_readers" || snippetPages.length === 0 ? null : (
                   <div className="flex flex-col gap-1">

@@ -26,7 +26,7 @@ function render(report: typeof FIXTURE_REPORT): string {
 
 /** Every number the page puts in front of "searches", whatever the sentence. */
 function searchCounts(html: string): string[] {
-  return [...html.matchAll(/(\d+) (?:biggest )?searches/g)].map((match) => match[1] ?? "");
+  return [...html.matchAll(/(\d+) (?:biggest |buyer )?searches/g)].map((match) => match[1] ?? "");
 }
 
 function shortReport(): typeof FIXTURE_REPORT {
@@ -63,7 +63,7 @@ describe("issue 1309 — one report, one count of measured searches", () => {
     const html = render(shortReport());
     const counts = searchCounts(html);
 
-    expect(counts.length).toBeGreaterThanOrEqual(3);
+    expect(counts.length).toBeGreaterThanOrEqual(2);
     expect(new Set(counts)).toEqual(new Set(["2"]));
     // The ten are named as questions found, beside the two measured.
     expect(html).toContain(copy("ai-answers.questions.title.partial", { total: "10", measured: "2" }));

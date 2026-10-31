@@ -327,7 +327,6 @@ function NewestStrip(p: { entries: readonly GalleryEntry[] }): React.JSX.Element
   const bands = BAND_ORDER.filter((band) => scored.some((entry) => bandOf(entry.score) === band));
   const caption = [
     copy("gallery.strip.caption"),
-    copy("gallery.strip.range", { low: String(axis.low), high: String(axis.high) }),
     unscored.length === 0
       ? null
       : unscored.length === 1

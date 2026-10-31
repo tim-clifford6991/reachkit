@@ -180,11 +180,7 @@ describe('REQ-021 c4 — "Given a surface that offers ReachKit away from any rep
     expect(html).toContain(copy("offer.pricing.veto", { hours: String(VETO.defaultHours) }));
     expect(html).toContain(copy("pricing.subline", { weekPages: WEEK_PLAN.days }));
     expect(html).not.toMatch(/every day/i);
-    expect(html).not.toContain(
-      copy("offer.veto.window", {
-        value: copy("offer.veto.window.value", { hours: String(VETO.defaultHours) }),
-      })
-    );
+    expect(html).not.toContain(copy("offer.veto.window"));
     // The card holds every string; this page's own body holds none.
     expect(PAGE_BODY).not.toContain("€");
   });

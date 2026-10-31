@@ -1,10 +1,9 @@
-// SPEC §2, board PubReport — who gets the buyers today
+// SPEC §2, board PubReport — who gets the buyers (owner R12, 2026-10-31)
 //
-// The section over the AI and Google cards: its heading and lead, and one
-// sentence naming the competitor the buyers were sent to most, with the
-// customer's own count over both cards. The sentence is drawn only where
-// both cards measured something, so a count is never summed over a missing
-// half.
+// The report leads with it: a headline naming the competitor the buyers
+// were sent to most, with the customer's own count over both cards, drawn
+// only where both cards measured something, so a count is never summed over
+// a missing half. The section below holds the two cards under its heading.
 import type React from "react";
 import { copy } from "@/lib/presentation/copy";
 import type { AiAnswersSection, PresenceSection } from "@/lib/scan/report";
@@ -41,43 +40,54 @@ export function buyersOf(ai: AiAnswersSection, presence: PresenceSection): {
   };
 }
 
-function summaryLine(b: ReturnType<typeof buyersOf>): string {
+/** The headline's title and line, or `null` where a card was not measured:
+ *  nothing measured is never shown as a count of zero. */
+export function headlineOf(ai: AiAnswersSection | null, presence: PresenceSection | null): { title: string; line: string } | null {
+  if (ai === null || presence === null) return null;
+  const b = buyersOf(ai, presence);
+  if (b.out === 0) return null;
   const n = b.ai + b.google;
-  const counts = { n: String(n), m: String(b.out) };
-  if (b.holder === null) return copy(n === 1 ? "report.buyers.summary.none.one" : "report.buyers.summary.none", counts);
-  return copy(n === 1 ? "report.buyers.summary.one" : "report.buyers.summary", { ...counts, holder: b.holder });
+  const m = String(b.out);
+  // A site found at least as often as every competitor leads; "can't find you" is only true at zero.
+  const title = b.holder === null ? copy(n > 0 ? "report.top.title.you-lead" : "report.top.title.none") : copy("report.top.title", { holder: b.holder });
+  return { title, line: n === 1 ? copy("report.top.line.one", { m }) : copy("report.top.line", { n: String(n), m }) };
 }
 
-function splitLine(b: ReturnType<typeof buyersOf>): string {
-  return copy("report.buyers.split", {
-    ai: copy(b.ai === 1 ? "report.buyers.split.ai.one" : "report.buyers.split.ai", { n: String(b.ai) }),
-    google: copy(b.google === 1 ? "report.buyers.split.google.one" : "report.buyers.split.google", { n: String(b.google) }),
-  });
+/** The offer line: the count is the missing-pages list's own, and "free" only where a first page exists. */
+function offerLine(count: number, free: boolean): string | null {
+  if (count === 0) return null;
+  if (count === 1) return copy(free ? "report.top.offer.one" : "report.top.offer.no-free.one");
+  return copy(free ? "report.top.offer" : "report.top.offer.no-free", { count: String(count) });
 }
 
-export function BuyersSection(p: {
-  ai: AiAnswersSection | null;
-  presence: PresenceSection | null;
-  children: React.ReactNode;
-}): React.JSX.Element {
-  const counted = p.ai === null || p.presence === null ? null : buyersOf(p.ai, p.presence);
-  // Nothing measured is never shown as a count of zero.
-  const buyers = counted === null || counted.out === 0 ? null : counted;
+/** The report's headline: who gets the buyers, then the pages it found, which lead to the offer. */
+export function HeadlineBlock(p: { ai: AiAnswersSection | null; presence: PresenceSection | null; missing: number; free: boolean }): React.JSX.Element | null {
+  const top = headlineOf(p.ai, p.presence);
+  const offer = offerLine(p.missing, p.free);
+  if (top === null && offer === null) return null;
+  return (
+    <div className="flex min-w-0 flex-col gap-1" data-testid="report-top">
+      {top === null ? null : (
+        <>
+          <h2 className="text-2xl font-bold">{top.title}</h2>
+          <p>{top.line}</p>
+        </>
+      )}
+      {offer === null ? null : (
+        <a href="#start" className="link link-primary font-semibold" data-testid="report-top-offer">
+          {offer}
+        </a>
+      )}
+    </div>
+  );
+}
+
+export function BuyersSection(p: { children: React.ReactNode }): React.JSX.Element {
   return (
     <section id="buyers" aria-labelledby="buyers-h" className="col-span-full grid scroll-mt-20 grid-cols-subgrid gap-y-5">
-      <div className="col-span-full flex max-w-3xl flex-col gap-2">
-        <p className="eyebrow">{copy("report.jump.buyers")}</p>
-        <h2 id="buyers-h" className="text-2xl font-bold">
-          {copy("report.buyers.title")}
-        </h2>
-        <p className="text-base-content/70">{copy("report.buyers.lead")}</p>
-        {buyers === null ? null : (
-          <p className="flex flex-wrap items-baseline gap-x-2" data-testid="report-buyers-summary">
-            <span className="font-semibold">{summaryLine(buyers)}</span>
-            <span className="text-base-content/70 text-sm">{splitLine(buyers)}</span>
-          </p>
-        )}
-      </div>
+      <h2 id="buyers-h" className="col-span-full text-2xl font-bold">
+        {copy("report.buyers.title")}
+      </h2>
       {p.children}
     </section>
   );

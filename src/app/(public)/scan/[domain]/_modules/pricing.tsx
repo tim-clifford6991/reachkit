@@ -6,11 +6,10 @@
 // payment (REQ-004 c5), so there is no tier parameter anywhere on this
 // screen to pass.
 //
-// This module mints no copy key: all eight sentences are `offer.ts`'s,
-// ruled by the owner on 2026-09-04. The one number it renders that is a
-// pin rather than an owner string is the veto window — `VETO.defaultHours`
-// — which travels into `offer.veto.window.value`'s `{hours}` slot, so
-// "24h veto" is written down once, in `constants.ts`.
+// This module mints no copy key: its sentences are `offer.ts`'s. The
+// pricing page's veto line takes `VETO.defaultHours` through its `{hours}`
+// slot, so the window is written down once, in `constants.ts`; the report's
+// says no hours, because the window can be set.
 //
 // The start control begins checkout (§3, §13): on the report its origin is
 // the report's scan (issue #785), on `/pricing` it is scanless.
@@ -33,18 +32,7 @@
 // identical either way; only where Start goes differs — the report screen
 // passes its own report-origin action (issue #785).
 import type React from "react";
-import {
-  ArrowRight,
-  Building2,
-  Check,
-  CircleCheck,
-  FileText,
-  Globe,
-  PencilLine,
-  ShieldCheck,
-  TrendingUp,
-  type LucideIcon,
-} from "lucide-react";
+import { ArrowRight, Check, ShieldCheck } from "lucide-react";
 import { VETO, WEEK_PLAN } from "@/lib/config/constants";
 import { copy } from "@/lib/presentation/copy";
 import { HOW_FACTS } from "@/app/(public)/_how/facts";
@@ -71,9 +59,7 @@ const TERM_LINES: Readonly<Record<OfferTerms, () => readonly string[]>> = {
     copy("offer.cadence.page", { weekPages: WEEK_PLAN.days }),
     copy("pricing.plan.checked"),
     copy("offer.cadence.movement"),
-    copy("offer.veto.window", {
-      value: copy("offer.veto.window.value", { hours: String(VETO.defaultHours) }),
-    }),
+    copy("offer.veto.window"),
   ],
   pricing: () => [
     copy("landing.pace", { weekPages: WEEK_PLAN.days }),
@@ -95,7 +81,6 @@ function PriceBox(p: {
   terms?: React.ReactNode;
   note?: React.ReactNode;
   free?: React.ReactNode;
-  after?: React.ReactNode;
 }): React.JSX.Element {
   return (
     <div className="flex flex-col gap-4">
@@ -106,7 +91,6 @@ function PriceBox(p: {
         </span>
         <span className="text-base-content/70 text-sm">{copy("price.interval")}</span>
       </div>
-      {p.after ?? null}
       {p.note ?? null}
       {p.terms ?? null}
       {/* Issue #624: the vendor refused to open checkout. One written line
@@ -124,23 +108,6 @@ function PriceBox(p: {
       {p.free ?? null}
     </div>
   );
-}
-
-/** The board's three steps from the scan to the Monday mail. */
-const STEPS: readonly (readonly [LucideIcon, "offer.steps.scanned" | "offer.steps.write" | "offer.steps.progress"])[] = [
-  [CircleCheck, "offer.steps.scanned"],
-  [FileText, "offer.steps.write"],
-  [TrendingUp, "offer.steps.progress"],
-];
-
-/** What happens to each page, one chip each; the check count is the pipeline's own. */
-function chipsOf(): readonly (readonly [LucideIcon, string])[] {
-  return [
-    [Building2, copy("offer.chip.facts")],
-    [ShieldCheck, copy("offer.chip.checks", { checks: String(HOW_FACTS.checks) })],
-    [PencilLine, copy("offer.chip.stop")],
-    [Globe, copy("offer.chip.live")],
-  ];
 }
 
 function Terms(p: { specs: readonly string[] }): React.JSX.Element {
@@ -191,24 +158,6 @@ export function PricingCard(
           <div className="flex min-w-0 flex-1 flex-col gap-4">
             <h2 className="text-3xl font-bold">{p.heading ?? copy("offer.close.heading")}</h2>
             {p.line === undefined ? null : <p className="max-w-prose">{p.line}</p>}
-            <ol className="flex list-none flex-wrap gap-2 p-0">
-              {STEPS.map(([Icon, key], i) => (
-                <li key={key} className="badge badge-soft badge-primary gap-1.5">
-                  <Icon size={14} strokeWidth={1.75} aria-hidden />
-                  <span className="num">{i + 1}</span> {copy(key)}
-                </li>
-              ))}
-            </ol>
-            <ul className="grid list-none grid-cols-1 gap-2 p-0 sm:grid-cols-2">
-              {chipsOf().map(([Icon, line]) => (
-                <li key={line} className="flex items-center gap-2.5 text-sm">
-                  <span className="rounded-field bg-primary/10 text-primary grid size-8 shrink-0 place-items-center">
-                    <Icon size={16} strokeWidth={1.75} aria-hidden />
-                  </span>
-                  <span>{line}</span>
-                </li>
-              ))}
-            </ul>
             <Terms specs={specs} />
             <p className="text-base-content/70 flex flex-wrap gap-x-1 text-sm">
               <span>{copy("how.steps.part", { minutes: String(HOW_FACTS.setupMinutes) })}</span>
@@ -219,17 +168,7 @@ export function PricingCard(
             </p>
           </div>
           <div className="bg-primary/5 rounded-box ring-primary/15 shrink-0 p-6 ring-1 lg:w-96">
-            <PriceBox
-              start={control}
-              cancel={cancel}
-              refused={p.refused}
-              free={p.free}
-              after={
-                <p className="text-base-content/70 text-center text-sm">
-                  {copy("offer.price.euros", { price: copy("price.amount") })}
-                </p>
-              }
-            />
+            <PriceBox start={control} cancel={cancel} refused={p.refused} free={p.free} />
           </div>
         </div>
       </section>

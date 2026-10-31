@@ -59,13 +59,12 @@ function allUnmeasured(): AiAnswersSection {
 }
 
 describe("issue 873 — the card states what the report measured, and never claims twelve", () => {
-  it("the questions heading and the method line carry the pass's own count", () => {
+  it("the questions heading and the source line carry the pass's own count", () => {
     const six: AiAnswersSection = { ...SECTION, rows: SECTION.rows.slice(0, 6), measuredSearches: 6 };
     const html = render(six);
 
     expect(html).toContain("report.ai.asked(6)");
-    expect(html).toContain("ai-answers.source(6)");
-    expect(html).toContain("ai-answers.method(6)");
+    expect(html).toContain(`ai-answers.source(6|${six.answeredSearches})`);
     expect(html).not.toContain("report.ai.asked(12)");
   });
 
@@ -74,8 +73,8 @@ describe("issue 873 — the card states what the report measured, and never clai
     const html = render(nine);
     expect(html).toContain("ai-answers.questions.title.partial(9|6)");
     expect(html).toContain("ai-answers.questions.measured.partial(6|9)");
-    // The method line calls only the measured ones the market's searches.
-    expect(html).toContain("ai-answers.method(6)");
+    // The source line calls only the measured ones the market's searches.
+    expect(html).toContain(`ai-answers.source(6|${nine.answeredSearches})`);
   });
 
   it("a full report says so in the same line, not only a short one", () => {

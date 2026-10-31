@@ -51,7 +51,7 @@ Patagonia	sample data: the board's own sample reports; tests/app/scans/board.tes
 patagonia.com	sample data: the board's own sample reports; tests/app/scans/board.test.tsx reads a card's score, band, kind, category and day
 Shops · outdoor clothing and gear · Oct 18	sample data: the board's own sample reports; tests/app/scans/board.test.tsx reads a card's score, band, kind, category and day
 Showing 12 of 127 reports	sample data: the board's counts; the page counts what is listed
-Visibility Score: one number for how easy a business is to find, out of 100. Shown from 40 to 65. One of the 12, bupa.co.uk, is not scored.	sample data: composed from the newest reports' scores; tests/app/scans/board.test.tsx reads the range and the unscored report
+Visibility Score: one number for how easy a business is to find, out of 100. One of the 12, bupa.co.uk, is not scored.	sample data: composed from the newest reports' scores; tests/app/scans/board.test.tsx reads the unscored report
 Empty state, when a search finds nothing	#1110: the board's own caption over the empty arm, not a string of the screen
 No free scan matches that yet.	#1732: the empty arm, shown when a search finds nothing; tests/app/scans/board.test.tsx searches for it
 Scan it now. It takes under a minute, then it shows here.	#1732: the empty arm, shown when a search finds nothing; tests/app/scans/board.test.tsx searches for it
