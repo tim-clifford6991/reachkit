@@ -18,7 +18,7 @@ const rule = (over: Partial<TitleRuleInputs> = {}): TitleRuleInputs => ({
   asks: false,
   rivals: ["Profound", "Peec AI"],
   places: [],
-  holds: "Seven tools compared. 7 options. Plans start at $29 a month. Our own page was named in 0 of 10 answers.",
+  holds: "Seven tools compared. 7 options. Plans start at $29 a month. Our own page was named in 0 of 10 answers.\n7",
   year: 2026,
   titles: [],
   description: DESCRIPTION,
