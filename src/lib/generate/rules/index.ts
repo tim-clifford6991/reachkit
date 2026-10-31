@@ -259,6 +259,7 @@ export async function runHardRules(
     markdown: a.markdown,
     businessName: a.site.businessName,
     domain: a.site.domain,
+    titleOwed: (a.titleRule?.business?.length ?? 0) > 0,
     knowledge: a.knowledge,
     market: given.market,
   });
