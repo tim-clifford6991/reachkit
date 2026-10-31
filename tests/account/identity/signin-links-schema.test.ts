@@ -8,7 +8,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { psql, psqlRows } from "../../db/substrate";
 
 const MIGRATIONS = path.resolve(import.meta.dirname, "../../../supabase/migrations");
-const APPLIED = ["00000000000001_baseline.sql", "00000000000002_rls.sql", "20261031160000_signin_links.sql"];
+const APPLIED = ["00000000000001_baseline.sql", "00000000000002_rls.sql", "20261031160000_users_signin_links.sql"];
 
 function value(sql: string): string | undefined {
   return psqlRows(sql)[0]?.[0];
