@@ -35,8 +35,6 @@ export interface MeasuredText {
   /** What the page's example and demo elements said (`prose.ts`). Never
    *  part of `text`; the facts read drops these phrases site-wide. */
   examples?: readonly string[];
-  /** What the page's menus said (`prose.ts`). Never part of `text`. */
-  menus?: readonly string[];
   /** The questions the page itself asks (`questions.ts`). */
   questions?: readonly string[];
   /** The text is the page as a browser draws it, not as it is served (SPEC
@@ -174,7 +172,6 @@ async function textOfScans(scanIds: readonly string[]): Promise<MeasuredText[]> 
       text: read.text,
       measuredAt: new Date(document.readAt),
       examples: read.examples,
-      menus: read.menus,
       questions: read.questions,
       ...(rendered ? { rendered: true as const } : {}),
     });
