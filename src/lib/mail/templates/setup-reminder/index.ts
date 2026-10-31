@@ -9,6 +9,10 @@ const SUBJECT = "mail.setupReminder.subject" satisfies CopyKey;
 const BODY = "mail.setupReminder.body" satisfies CopyKey;
 const ACTION = "mail.setupReminder.action" satisfies CopyKey;
 const REASON = "mail.reason.setupReminder" satisfies CopyKey;
+const WRITTEN = "mail.setupReminder.written" satisfies CopyKey;
+const CONNECT_AT = "mail.setupReminder.connect" satisfies CopyKey;
+const CONNECT = "mail.setupReminder.connectAny" satisfies CopyKey;
+const CONNECT_ACTION = "setup.connect.title" satisfies CopyKey;
 
 export interface SetupReminderMail {
   readonly subject: CopyKey;
@@ -17,15 +21,29 @@ export interface SetupReminderMail {
   readonly reason: CopyKey;
 }
 
-export function buildSetupReminder(a: { signInHref: string }): SetupReminderMail {
+/** A stamped site that is not live is asked for the one missing step, Connect, by its DNS provider where that is known. */
+export interface ConnectPending {
+  readonly written: boolean;
+  readonly provider: string | null;
+}
+
+function connectBlocks(c: ConnectPending): MailBlock[] {
+  const step: MailBlock =
+    c.provider === null
+      ? { block: "paragraph", text: CONNECT }
+      : { block: "paragraph", text: CONNECT_AT, vars: { provider: c.provider } };
+  return c.written ? [{ block: "paragraph", text: WRITTEN }, step] : [step];
+}
+
+export function buildSetupReminder(a: { signInHref: string; connect?: ConnectPending }): SetupReminderMail {
   return {
     subject: SUBJECT,
     reason: REASON,
     blocks: [
       // Opens on its subject line, as the other sequence mails do.
       { block: "heading", text: SUBJECT },
-      { block: "paragraph", text: BODY },
-      { block: "action", label: ACTION, href: a.signInHref },
+      ...(a.connect === undefined ? [{ block: "paragraph", text: BODY } as const] : connectBlocks(a.connect)),
+      { block: "action", label: a.connect === undefined ? ACTION : CONNECT_ACTION, href: a.signInHref },
     ],
   };
 }

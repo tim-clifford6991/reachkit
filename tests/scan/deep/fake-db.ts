@@ -80,6 +80,11 @@ export function fakeDb(tables: Record<string, Row[]> = {}): FakeDb {
             filters.push((row) => (row[column] ?? null) === value);
             return self;
           },
+          // PostgREST's `.not(column, "is", null)`, the only negation a caller uses.
+          not(column: string, _operator: "is", value: unknown) {
+            filters.push((row) => (row[column] ?? null) !== value);
+            return self;
+          },
           lt(column: string, value: unknown) {
             filters.push((row) => String(row[column]) < String(value));
             return self;
