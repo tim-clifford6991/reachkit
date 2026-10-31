@@ -65,6 +65,14 @@ export const DEAD_LINK_MARKER = "dead";
 /** The query key that marker rides on. */
 export const LINK_QUERY_KEY = "link";
 
+/** The one landing a link may ask for past the default, by name, so the query can never send its holder off-site. */
+export const LANDING_QUERY_KEY = "next";
+export const CONNECT_LANDING_PATH = "/setup/connect";
+
+export function linkLandingOf(value: string | null): string | null {
+  return value === CONNECT_LANDING_PATH ? value : null;
+}
+
 /** Where a link points, as a path and query. The origin is
  *  `NEXT_PUBLIC_APP_URL`'s and is added by the issuer, which is the one
  *  place that reads `env`. */

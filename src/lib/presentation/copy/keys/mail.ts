@@ -150,12 +150,13 @@ export const MAIL_COPY = Object.freeze({
   "mail.nurture.body.2": ["Every page ReachKit writes for {domain} targets one search your competitors already answer. Each Monday it scans your whole market again and tells you what moved.", { slots: { domain: "text" }, fixedBy: "REQ-010 c9" }],
   "mail.nurture.body.3": ["This is the last follow-up about {domain}. Your report and your first page stay yours. When you want the rest written and published, ReachKit starts at €49 a month, cancel any time.", { slots: { domain: "text" }, fixedBy: "REQ-010 c9" }],
 
-  // BUILD §4.3's setup reminder (REQ-025 c6). Three keys: the subject, the
-  // one line asking them to finish, and the label on the sign-in link that
-  // lands them back on the setup screen.
+  // BUILD §4.3's setup reminder (REQ-025 c6); the last three ask a stamped founder who is not live to connect (R15).
   "mail.setupReminder.subject": ["Finish your setup", { slots: {}, fixedBy: "REQ-025 c6" }],
   "mail.setupReminder.body": ["Setup is waiting for you: three questions, then your first page gets written.", { slots: {}, fixedBy: "REQ-025 c6" }],
   "mail.setupReminder.action": ["Finish setup", { slots: {}, fixedBy: "REQ-025 c6" }],
+  "mail.setupReminder.written": ["Your first page is written and waiting.", { slots: {}, fixedBy: "owner R15 · issue 2142 (drafted)" }],
+  "mail.setupReminder.connect": ["One setting at {provider} puts it live.", { slots: { provider: "text" }, fixedBy: "owner R15 · issue 2142 (drafted)" }],
+  "mail.setupReminder.connectAny": ["Connecting your website puts it live.", { slots: {}, fixedBy: "owner R15 · issue 2142 (drafted)" }],
 
   // What `POST /api/lead` answers with. The adapter maps each arm of
   // `captureLead()` to one of these keys and never to a sentence of its
@@ -707,10 +708,7 @@ export const MAIL_COPY = Object.freeze({
   "mail.reason.weekly": ["You get this one mail each Monday.", { slots: {}, fixedBy: "board MondayMail · issue 1741 (drafted)" }],
   // #640: SPEC §8 gives every mail a "why it arrived" line; the setup
   // reminder had none, and no approved sentence exists for it.
-  "mail.reason.setupReminder": [
-    "Up to three reminders while setup is unfinished · finishing setup stops them.",
-    { slots: {}, fixedBy: "SPEC §8 · issue 640" },
-  ],
+  "mail.reason.setupReminder": ["Up to three reminders until your first page is live · going live stops them.", { slots: {}, fixedBy: "SPEC §8 · owner R15" }],
   "mail.reason.nurture": [
     "Opt out of all follow-up: one link, every domain, for good.",
     { slots: {}, fixedBy: "S20 (11a)" },

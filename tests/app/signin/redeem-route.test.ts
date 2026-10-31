@@ -113,6 +113,21 @@ describe("a working link signs the customer in", () => {
   });
 });
 
+describe("R15 — a reminder's link may ask for /setup/connect, and nothing else", () => {
+  it.each([
+    ["/setup/connect", "/setup/connect"],
+    ["https://evil.example/", "/setup"],
+    ["/app/settings", "/setup"],
+  ])("next=%s lands on %s", async (next, landing) => {
+    const { url } = await liveLink();
+    const asked = new URL(url);
+    asked.searchParams.set("next", next);
+    const response = await open(asked.toString());
+    expect(new URL(response.headers.get("location") ?? "").origin).toBe(asked.origin);
+    expect(locationOf(response)).toBe(landing);
+  });
+});
+
 describe('REQ-098 c7 — a link that no longer works lands on the sign-in screen', () => {
   it.each([
     ["never issued", async () => confirmUrl("a-hash-nobody-ever-minted")],

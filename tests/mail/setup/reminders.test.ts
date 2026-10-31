@@ -5,6 +5,7 @@
 // before there is an account to sign in to.
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { readFileSync } from "node:fs";
+import dns from "node:dns";
 import path from "node:path";
 import { applyEnvFixture } from "../env-fixture";
 import { fakeDb, type FakeDb } from "../../scan/deep/fake-db";
@@ -54,6 +55,7 @@ function site(overrides: Record<string, unknown> = {}) {
   return {
     id: SITE,
     user_id: USER,
+    domain: "acme.example",
     created_at: PAID_AT.toISOString(),
     setup_completed_at: null,
     setup_reminders_sent: 0,
@@ -66,7 +68,22 @@ beforeEach(() => {
   sent.mockResolvedValue({ sent: true, id: "vendor-1" });
   db = fakeDb({ sites: [site()], users: [{ id: USER, email: "founder@example.com" }] });
   setSignInLinkIssuer(async (a) => `https://reachkit.example/signin/token?next=${a.landsOn}`);
+  vi.spyOn(dns.promises, "resolveNs").mockRejectedValue(new Error("ENOTFOUND"));
 });
+
+/** Setup stamped with a hosted destination still waiting on DNS: the founder who chose "Do this later" (R15). */
+function stampedNotLive(): void {
+  db.tables.sites![0]!.setup_completed_at = at(1).toISOString();
+  db.tables.destinations = [{ id: "dest-1", site_id: SITE, kind: "hosted", health: "expired", deleted_at: null }];
+  db.tables.publications = [];
+  db.tables.drafts = [];
+}
+
+function mailAt(call: number) {
+  return sent.mock.calls[call]![0] as {
+    blocks: { block: string; text?: string; label?: string; href?: string; vars?: Record<string, string> }[];
+  };
+}
 
 describe("REQ-025 c6 — three offsets, the last no later than seven days after the payment", () => {
   it("the offsets are the pinned ones, never restated here", () => {
@@ -128,18 +145,20 @@ describe("REQ-025 c6 — the due-work query, and what it never returns", () => {
 });
 
 describe("REQ-025 c6 — stopped at send time, not at schedule time", () => {
-  it("a founder who submits at hour 71 receives no hour-72 mail", async () => {
+  it.each([
+    ["its first page is published", () => db.tables.publications!.push({ id: "p-1", site_id: SITE, published_at: at(71).toISOString() })],
+    ["its destination turns ok", () => (db.tables.destinations![0]!.health = "ok")],
+  ])("goes live at hour 71 → hour-72 send refused: %s", async (_name, goLive) => {
+    stampedNotLive();
+    db.tables.sites![0]!.setup_reminders_sent = 1;
     // Due at the moment the tick asked...
     expect(await sitesDueSetupReminder(at(72))).toEqual([SITE]);
-    // ...and finished before the send ran.
-    db.tables.sites![0]!.setup_completed_at = at(71).toISOString();
+    // ...and live before the send ran.
+    goLive();
 
-    expect(await sendSetupReminder(SITE, at(72))).toEqual({
-      sent: false,
-      reason: "already-complete",
-    });
+    expect(await sendSetupReminder(SITE, at(72))).toEqual({ sent: false, reason: "live" });
     expect(sent).not.toHaveBeenCalled();
-    expect(db.tables.sites![0]!.setup_reminders_sent).toBe(0);
+    expect(db.tables.sites![0]!.setup_reminders_sent).toBe(1);
   });
 
   it("mutation check — deciding at schedule time would send it: the row is re-read inside the send", () => {
@@ -245,6 +264,84 @@ describe("the counter moves only on a send that happened", () => {
     expect(db.tables.sites![0]!.setup_reminders_sent).toBe(3);
     expect(await sendSetupReminder(SITE, at(10_000))).toEqual({ sent: false, reason: "not-due" });
     expect(sent).toHaveBeenCalledTimes(3);
+  });
+});
+
+describe("R15 — a stamped setup is reminded until the first page is live", () => {
+  it("stamped but not live is due at 24/72/168h, three at most", async () => {
+    stampedNotLive();
+    for (const [index, hours] of [...REMINDER_OFFSETS_H].entries()) {
+      expect(await sitesDueSetupReminder(at(hours - 0.1))).toEqual([]);
+      expect(await sitesDueSetupReminder(at(hours + 0.1))).toEqual([SITE]);
+      expect(await sendSetupReminder(SITE, at(hours + 0.1))).toEqual({ sent: true, index });
+    }
+    expect(db.tables.sites![0]!.setup_reminders_sent).toBe(3);
+    expect(await sitesDueSetupReminder(at(180))).toEqual([]);
+  });
+
+  it("a site stamped long before is not sent its backlog at once", async () => {
+    stampedNotLive();
+    expect(await sitesDueSetupReminder(at(30 * 24))).toEqual([]);
+  });
+
+  it.each([
+    ["a published page", () => db.tables.publications!.push({ id: "p-1", site_id: SITE, published_at: at(10).toISOString() })],
+    ["a destination with health ok", () => (db.tables.destinations![0]!.health = "ok")],
+  ])("live before 24h → none: %s", async (_name, goLive) => {
+    stampedNotLive();
+    goLive();
+    for (const hours of REMINDER_OFFSETS_H) {
+      expect(await sitesDueSetupReminder(at(hours))).toEqual([]);
+      expect(await sendSetupReminder(SITE, at(hours))).toEqual({ sent: false, reason: "live" });
+    }
+    expect(sent).not.toHaveBeenCalled();
+  });
+
+  it.each([["cancelled_at"], ["deleted_at"]])("stamped then %s set → none", async (column) => {
+    stampedNotLive();
+    db.tables.users![0]![column] = at(2).toISOString();
+    for (const hours of REMINDER_OFFSETS_H) {
+      expect(await sendSetupReminder(SITE, at(hours + 0.1))).toEqual({ sent: false, reason: "cancelled" });
+    }
+    expect(sent).not.toHaveBeenCalled();
+    expect(db.tables.sites![0]!.setup_reminders_sent).toBe(0);
+  });
+
+  it("connect-pending body + landsOn /setup/connect, naming the DNS provider", async () => {
+    stampedNotLive();
+    db.tables.drafts!.push({ id: "d-1", site_id: SITE, body_md: "# Page" });
+    vi.mocked(dns.promises.resolveNs).mockResolvedValue(["ada.ns.cloudflare.com", "bob.ns.cloudflare.com"]);
+    const landsOn: string[] = [];
+    setSignInLinkIssuer(async (a) => (landsOn.push(a.landsOn), "https://reachkit.example/auth/confirm?t=1"));
+
+    expect(await sendSetupReminder(SITE, at(24))).toEqual({ sent: true, index: 0 });
+    expect(landsOn).toEqual(["/setup/connect"]);
+    expect(mailAt(0).blocks).toEqual([
+      { block: "heading", text: "mail.setupReminder.subject" },
+      { block: "paragraph", text: "mail.setupReminder.written" },
+      { block: "paragraph", text: "mail.setupReminder.connect", vars: { provider: "Cloudflare" } },
+      { block: "action", label: "setup.connect.title", href: "https://reachkit.example/auth/confirm?t=1" },
+    ]);
+  });
+
+  it("with no page written and no provider known, only the connect step is asked", async () => {
+    stampedNotLive();
+    expect(await sendSetupReminder(SITE, at(24))).toEqual({ sent: true, index: 0 });
+    expect(mailAt(0).blocks.filter((b) => b.block === "paragraph")).toEqual([
+      { block: "paragraph", text: "mail.setupReminder.connectAny" },
+    ]);
+  });
+
+  it("the default issuer's link asks the confirm route for /setup/connect", async () => {
+    stampedNotLive();
+    registerSignInLinkIssuer(async () => ({ issued: true, url: "https://reachkit.example/auth/confirm?token_hash=t", expiresAt: new Date() }));
+    resetSignInLinkIssuer();
+    try {
+      await sendSetupReminder(SITE, at(24));
+      expect(new URL(mailAt(0).blocks.at(-1)!.href!).searchParams.get("next")).toBe("/setup/connect");
+    } finally {
+      registerSignInLinkIssuer(null);
+    }
   });
 });
 
