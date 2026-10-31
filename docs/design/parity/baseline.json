@@ -31,7 +31,7 @@
   "AppGoogle": { "sha256": "b7d6941ea6293b587e19351dfeee126c64c28238dc1491d06570c20fc0571534", "missing": 0, "components": 20, "plainWords": 1 },
   "AppAI": { "sha256": "c769fd95dff4748a40ef7f63686efcb9da7515423650451e95e1c9a1e15c25df", "missing": 0, "components": 2, "plainWords": 8 },
   "AppCompetitors": { "sha256": "43f2b0a69822e475df2377d161ead881b964136e8459262f81274858020d3c8c", "missing": 0, "components": 23, "plainWords": 2 },
-  "Plan": { "sha256": "b4b8e7d645fe8e8ad872fd3ae425fc7fa36e8f844b50a2e0cbf372340b5e02a2", "missing": 0, "components": 9, "plainWords": 22 },
+  "Plan": { "sha256": "a462587b369899e59535b1a42165a1410b678160ddb711d501c6b638b6c11875", "missing": 0, "components": 9, "plainWords": 21 },
   "PageDetail": { "sha256": "5d4d878521a6d1ac20badf8eb746d62ebe9b8a574d377073f53b6df9500ff155", "missing": 0, "components": 7, "plainWords": 8 },
   "AppDraft": { "sha256": "10049dc2d4629bd8319c28a9b801b1a5d98cbbee11a1d48126f650bb199e29c3", "missing": 0, "components": 15, "plainWords": 18 },
   "AppIssues": { "sha256": "2874a5d955a5ebcfabd0b9c0b0c6bc7d4122438c8b59b996bab574b709f1ab6f", "missing": 0, "components": 2, "plainWords": 3 },

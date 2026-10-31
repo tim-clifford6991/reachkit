@@ -167,7 +167,7 @@ describe("board AppAI, on the account the layout sweep reads", () => {
     const html = renderToStaticMarkup(await AiPage());
     const { missing } = compare(readFileSync(boardFile("AppAI"), "utf8"), segments(html), readAllow("AppAI"));
     // The sidebar and the tab bar are the layouts', which this render does not draw.
-    const chrome = ["ReachKit", "Overview", "Plan", "Settings", "Publishing on", "Google", "Competitors"];
+    const chrome = ["ReachKit", "Overview", "This week", "Settings", "Publishing on", "Google", "Competitors"];
     expect(missing.filter((s: string) => !chrome.includes(s))).toEqual([]);
   });
 
