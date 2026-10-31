@@ -191,6 +191,7 @@ describe('advisor `rls_enabled_no_policy` — the tables that are policy-less by
     // `refunds` is the first-14-days refund ledger, read and written only by the billing webhook.
     // `renewal_refunds` is the first-renewal refund ledger, written only by the same webhook.
     // `job_error_mails` is the job runner's once-a-Berlin-day claim on a failing job's owner mail.
+    // `signin_links` is the live sign-in link, sealed, read and written only by identity.
     expect(policyLess).toEqual([
       "domain_blocks",
       "draft_days",
@@ -203,6 +204,7 @@ describe('advisor `rls_enabled_no_policy` — the tables that are policy-less by
       "refunds",
       "renewal_refunds",
       "rescore_runs",
+      "signin_links",
       "vendor_days",
     ]);
   });
