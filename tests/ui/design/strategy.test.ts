@@ -1,72 +1,25 @@
-// tests/ui/design/strategy.test.ts — owner 2026-10-15, #1463; issue 1484.
+// tests/ui/design/strategy.test.ts — owner 2026-10-15, #1463; issue 1484; owner O6.
 //
 // The strategy half of a screen change. Layout and axe stay on the
-// `no overflow · axe` gate. This file holds the two rules that are sentences:
-// a title is at most six words with no em-dash, and a retired name does not
-// come back. docs/DESIGN.md names this file. The trailing "· ReachKit" on a
-// meta title is the brand, not a seventh word.
+// `no overflow · axe` gate. This file holds the rules that are sentences:
+// a title is at most six words with no em-dash, a retired name does not come
+// back, and the plain-words counts of scripts/lib/plain-words.mjs only fall.
+// docs/DESIGN.md names this file. The trailing "· ReachKit" on a meta title is
+// the brand, not a seventh word.
 //
 // A retired name is looked for wherever a customer reads one (issue 1484):
 // the copy registry, the text written straight into JSX under `src/app`,
-// `src/ui` and the mail shell, and the sentences of the mail code. A `{slot}`
-// is a value, not a word, so it is never read as one.
+// `src/ui` and the mail shell, the sentences of the mail code, and the boards.
+// A `{slot}` is a value, not a word, so it is never read as one.
 import { readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import ts from "typescript";
 import { describe, expect, it } from "vitest";
+import { boardPlainWords, boardStrings, BOARDS_DIR, PARITY_DIR } from "../../../scripts/design/parity.mjs";
+import { EXEMPT_BOARDS, entries, isExempt, keyFileCounts, retiredIn, SOFT, TITLE_KEY, violations } from "../../../scripts/lib/plain-words.mjs";
 import { read, SRC_DIR, walkFiles } from "./vocabulary";
 
 const KEYS = path.resolve(import.meta.dirname, "../../../src/lib/presentation/copy/keys");
-const ENTRY_RE = /"([\w$.-]+)"\s*:\s*\[\s*"((?:[^"\\]|\\.)*)"/g;
-const TITLE_KEY = /\.(title|heading|subject)$/;
-
-/** Each retired name, and the pattern that finds it. The last five are the
- *  2026-10-15 vocabulary (SPEC §0, #1444): Visibility Score, Readiness,
- *  Content and competitors replaced them. */
-const RETIRED: readonly { name: string; pattern: RegExp }[] = [
-  { name: "AI Visibility", pattern: /\bAI Visibility\b/i },
-  { name: "Measure again", pattern: /\bMeasure again\b/i },
-  { name: "re-measure", pattern: /\bre-measure/i },
-  { name: "top ten", pattern: /\btop ten\b/i },
-  { name: "top 20", pattern: /\btop 20\b/i },
-  { name: "Discoverability Score", pattern: /\bDiscoverability Score\b/i },
-  { name: "findability", pattern: /\bfindability\b/i },
-  { name: "Foundations", pattern: /\bFoundations\b/i },
-  { name: "Answerability", pattern: /\bAnswerability\b/i },
-  { name: "rival(s)", pattern: /\brivals?\b/i },
-  // A4 (Free scan), the 19 Oct ladder ruling (no Listed rung) and #1444: AI
-  // mentions or links, never names, cites or quotes. Plain "named" and
-  // "listed" stay legal outside the AI and ladder sense.
-  { name: "Start free", pattern: /\bStart free\b/i },
-  { name: "cited", pattern: /\bcited\b/i },
-  { name: "Listed", pattern: /\bListed\b/ },
-  { name: "Listed", pattern: /\blisted (in|on|by) (Google|Bing)\b/i },
-  { name: "named by AI", pattern: /\bnamed (by|in) (AI|ChatGPT|Gemini|Perplexity|an AI|AI answers?)\b/i },
-  { name: "named by AI", pattern: /\bNamed by\b/ },
-  { name: "quoted by AI", pattern: /\bquoted (by|in) (AI|ChatGPT|Gemini|Perplexity|an AI|AI answers?)\b/i },
-  { name: "quoted by AI", pattern: /\bQuoted by\b/ },
-  // Q6: a stopped topic is dropped for good. "Write it again" on a held page stays.
-  { name: "write this one again", pattern: /\b(write this one again|ask us to write)\b/i },
-  // The Terms' old claims: a daily page, a zero window, a one-click cancel and no refund at all.
-  { name: "a page every day for your site", pattern: /\ba page every day for your site\b/i },
-  { name: "from none", pattern: /\bfrom none\b/i },
-  { name: "in one click:", pattern: /\bin one click:/i },
-  { name: "Payments already made are not refunded", pattern: /(?:^|[.!?]\s+)Payments already made are not refunded unless\b/ },
-  // Up to 7 pages a week, and a week may skip a day: no daily pace and no daily ceiling.
-  { name: "Publishing daily", pattern: /\bPublishing daily\b/i },
-  { name: "one page a day", pattern: /\bone page a day\b/i },
-  { name: "at most one a day", pattern: /\bat most one a day\b/i },
-  { name: "daily pages", pattern: /\bdaily pages?\b/i },
-  { name: "daily at", pattern: /\bdaily at\b/i },
-  // The mail and its page say "unsubscribe".
-  { name: "Opted out", pattern: /\bOpted out\b/ },
-  // D3: only week 1 is emailed first. B5: competitors are watched weekly, re-checked monthly. Cancelling runs through Settings.
-  { name: "We email each page first", pattern: /\bWe email each page first\b/i },
-  { name: "Emailed before it goes live", pattern: /\bEmailed before it goes live\b/i },
-  { name: "after we email it", pattern: /\bafter we email it\b/i },
-  { name: "Cancel in one click", pattern: /\bCancel in one click\b/i },
-  { name: "competitors checked", pattern: /\bcompetitors\b[^.]{0,20}\bchecked\b/i },
-];
 
 /** The attributes whose value a customer reads or hears. */
 const READ_ATTRIBUTES = new Set(["alt", "aria-label", "aria-description", "label", "placeholder", "title"]);
@@ -83,29 +36,15 @@ interface Text {
   text: string;
 }
 
-function entries(): { key: string; sentence: string }[] {
-  const out: { key: string; sentence: string }[] = [];
-  for (const name of readdirSync(KEYS)) {
-    if (!name.endsWith(".ts")) continue;
-    const text = readFileSync(path.join(KEYS, name), "utf8");
-    for (const match of text.matchAll(ENTRY_RE)) {
-      const key = match[1];
-      const raw = match[2];
-      if (key === undefined || raw === undefined) continue;
-      out.push({ key, sentence: JSON.parse(`"${raw}"`) });
-    }
-  }
-  return out;
+function keyFiles(): { name: string; source: string }[] {
+  return readdirSync(KEYS)
+    .filter((name) => name.endsWith(".ts"))
+    .map((name) => ({ name, source: readFileSync(path.join(KEYS, name), "utf8") }));
 }
 
 function titleWords(sentence: string): { dash: boolean; words: string[] } {
   const core = sentence.replace(/\s*[·|]\s*ReachKit\s*$/u, "");
   return { dash: core.includes("—"), words: core.split(/\s+/).filter(Boolean) };
-}
-
-function retiredIn(text: string): string | undefined {
-  const words = text.replace(/\{[\w$.-]+\}/g, " ");
-  return RETIRED.find((retired) => retired.pattern.test(words))?.name;
 }
 
 function parse(rel: string): ts.SourceFile {
@@ -166,7 +105,7 @@ const REPO_ROOT = path.resolve(SRC_DIR, "..");
 const under = (root: string, keep: (rel: string) => boolean): string[] => walkFiles(path.join(REPO_ROOT, root), keep);
 
 describe("UI strategy: titles and retired names (#1463)", () => {
-  const copy = entries();
+  const copy = keyFiles().flatMap(({ source }) => entries(source).map(({ key, value }) => ({ key, sentence: value })));
 
   it("reads the copy registry", () => {
     expect(copy.length).toBeGreaterThan(100);
@@ -284,5 +223,69 @@ describe("UI strategy: titles and retired names (#1463)", () => {
       return hit ? [`${where} uses "${hit}": ${text}`] : [];
     });
     expect(offenders).toEqual([]);
+  });
+});
+
+describe("UI strategy: plain words (O6, docs/spec/decisions/2026-10-31-2145.md)", () => {
+  const budgets = JSON.parse(read("scripts/budgets.json")) as { plainWords: Record<string, number> };
+  const baseline = JSON.parse(read("docs/design/parity/baseline.json")) as Record<string, { plainWords?: number }>;
+  const rules = (text: string, options?: { key?: string; heading?: boolean }) => violations(text, options).map((v) => v.word ?? `${v.rule} ${v.n}`);
+
+  it("counts a long sentence, a long paragraph, a long heading and each soft word", () => {
+    expect(rules("One two three four five six seven eight nine ten eleven twelve thirteen fourteen fifteen sixteen.")).toEqual(["sentence 16"]);
+    expect(rules("One two three four five six seven eight nine ten eleven twelve thirteen fourteen fifteen.")).toEqual([]);
+    expect(rules("We read your site. We write a page. You stop it or it goes live.")).toEqual(["paragraph 3"]);
+    expect(rules("We read your site.\nWe write a page. You stop it or it goes live.")).toEqual([]);
+    expect(rules("Your pages this week, at a glance", { heading: true })).toEqual(["heading 7"]);
+    expect(rules("This week, at a glance · ReachKit", { heading: true })).toEqual([]);
+    const soft = ["Better SEO", "Google indexed it", "We crawl it", "Add a CNAME record", "The weekly pass", "We re-score it", "Supply is short", "Two spares", "Your draft", "An opportunity", "We fetched it"];
+    expect(soft.map((text) => rules(text))).toEqual(SOFT.map((word) => [word.name]));
+  });
+
+  it("reads a slot, a placeholder, an abbreviation and an aria list the way the standard says", () => {
+    expect(rules("In and around {place} we write one two three four five six seven eight nine ten.")).toEqual(["sentence 16"]);
+    expect(rules("Ask [[owner: the name]], e.g. Acme. It is fine. Done.")).toEqual(["paragraph 3"]);
+    expect(rules("{date}. {stage}. {title}", { key: "calendar.row.aria" })).toEqual([]);
+    expect(rules("Add a CNAME record", { key: "setup.dns.record" })).toEqual([]);
+  });
+
+  it("never counts an exempt key, file or board", () => {
+    const long = `"k": ["${"word ".repeat(20)}"]`;
+    const keys = ["hosted.a", "body.a", "fact.a", "ai-answers.engine.a", "legal.terms.body", "legal.withdraw.entry", "offer.checkout.consent", "offer.start.priced"];
+    const source = keys.map((key) => long.replace('"k"', `"${key}"`)).join(",\n");
+    expect(keys.every((key) => isExempt(key))).toBe(true);
+    expect(keyFileCounts([{ name: "chrome.ts", source }, { name: "review.ts", source: long }, { name: "ops.ts", source: long }, { name: "de/page.ts", source: long }])).toEqual({ chrome: 0 });
+    expect(keyFileCounts([{ name: "chrome.ts", source: long }])).toEqual({ chrome: 1 });
+    expect(["HostedPage", "Review", "AppCosts", "Legal"].every((board) => EXEMPT_BOARDS.test(board))).toBe(true);
+    expect(EXEMPT_BOARDS.test("PubReport")).toBe(false);
+  });
+
+  it("each key file's count is at most its budget, and every key file has exactly one budget", () => {
+    const measured = keyFileCounts(keyFiles());
+    expect(Object.keys(budgets.plainWords).sort()).toEqual(Object.keys(measured).sort());
+    const over = Object.entries(measured).flatMap(([file, n]) => (n > (budgets.plainWords[file] ?? 0) ? [`${file}: ${n}, budget ${budgets.plainWords[file]}`] : []));
+    expect(over).toEqual([]);
+    for (const [file, n] of Object.entries(measured)) if (n < (budgets.plainWords[file] ?? 0)) console.info(`lower plainWords.${file} in scripts/budgets.json to ${n}`);
+  });
+
+  it("each board's count equals its baseline row, and an exempt board has none", () => {
+    const boards = readdirSync(BOARDS_DIR).filter((f) => f.endsWith(".dc.html")).map((f) => f.slice(0, -".dc.html".length));
+    const off = boards.flatMap((board) => {
+      const want = EXEMPT_BOARDS.test(board) ? undefined : boardPlainWords(readFileSync(path.join(BOARDS_DIR, `${board}.dc.html`), "utf8"));
+      return baseline[board]?.plainWords === want ? [] : [`${board}: ${want}, baseline ${baseline[board]?.plainWords} in ${path.relative(REPO_ROOT, PARITY_DIR)}/baseline.json`];
+    });
+    expect(off).toEqual([]);
+  });
+
+  it("a board does not use a retired name", () => {
+    const boards = readdirSync(BOARDS_DIR).filter((f) => f.endsWith(".dc.html") && !EXEMPT_BOARDS.test(f.slice(0, -".dc.html".length)));
+    const offenders = boards.flatMap((f) =>
+      boardStrings(readFileSync(path.join(BOARDS_DIR, f), "utf8")).flatMap((text) => {
+        const hit = retiredIn(text);
+        return hit ? [`${f} uses "${hit}": ${text}`] : [];
+      }),
+    );
+    expect(offenders).toEqual([]);
+    expect(["Next Monday we measure again", "Pick a keyword", "Moz Keyword Gap"].map(retiredIn)).toEqual(["Measure again", "keyword", undefined]);
   });
 });

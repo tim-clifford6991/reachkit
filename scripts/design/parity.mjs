@@ -9,6 +9,7 @@ import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { parse } from "node-html-parser";
+import { violations } from "../lib/plain-words.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 export const BOARDS_DIR = path.join(ROOT, "docs/design/boards/canvas");
@@ -128,6 +129,13 @@ export function boardStrings(html) {
   return out;
 }
 
+/** A board's plain-words violations: each string it draws, its h1–h4 read as headings. */
+export function boardPlainWords(html) {
+  const root = parse(html.replace(/<!doctype[^>]*>/i, ""), { comment: false });
+  const headings = new Set(root.querySelectorAll("h1, h2, h3, h4").map((h) => segments(h.outerHTML, { board: true }).join(" ")));
+  return boardStrings(html).reduce((n, s) => n + violations(s, { heading: headings.has(s) }).length, 0);
+}
+
 // One line per string: `string<TAB>reason`; the reason cites a ruling, a decision file or an issue.
 export const CITATION =
   /owner \d{4}-\d{2}-\d{2}|\b(?:DESIGN|SPEC) (?:§\d+|\d{4}-\d{2}-\d{2})|\b[DEGQR]\d{1,2}\b|#\d{3,}|docs\/spec\/decisions\/\S+\.md|\bsample data\b/i;
@@ -195,8 +203,8 @@ export function sha256(file) {
   return createHash("sha256").update(readFileSync(file)).digest("hex");
 }
 
-export function baselineLine(board, sha, missing, components) {
-  const counts = Object.entries({ missing, components }).filter(([, v]) => v !== undefined);
+export function baselineLine(board, sha, missing, components, plainWords) {
+  const counts = Object.entries({ missing, components, plainWords }).filter(([, v]) => v !== undefined);
   return `"${board}": { "sha256": "${sha}"${counts.map(([k, v]) => `, "${k}": ${v}`).join("")} }`;
 }
 
@@ -206,7 +214,7 @@ export function baselineLine(board, sha, missing, components) {
  * `key` names the count: board strings (`missing`) or board components (`components`).
  * @param {string} board
  * @param {string[]} missing
- * @param {{ sha256: string, missing: number, components?: number } | undefined} entry
+ * @param {{ sha256: string, missing: number, components?: number, plainWords?: number } | undefined} entry
  * @param {string} sha
  * @param {{ string: string, n?: number, ships: boolean, why?: string }[]} [unused]
  * @param {"missing" | "components"} [key]
@@ -217,7 +225,7 @@ export function verdict(board, missing, entry, sha, unused = [], key = "missing"
     return { ok: false, message: `${board}: an allow line excuses nothing.\n${unused.map((u) => `  - ${unusedLine(board, u)}`).join("\n")}` };
   }
   const counts = { missing: entry?.missing, components: entry?.components, [key]: missing.length };
-  const line = baselineLine(board, sha, counts.missing, counts.components);
+  const line = baselineLine(board, sha, counts.missing, counts.components, entry?.plainWords);
   const list = missing.map((s) => `  - ${s}`).join("\n");
   const what = key === "missing" ? "board strings" : "board components";
   if (!entry) return { ok: false, message: `${board} has no row in docs/design/parity/baseline.json. Commit:\n${line}` };

@@ -68,6 +68,8 @@ A check may report *skipped* by path (owner C1 and C3, 2026-10-19, #1585): on a 
 
 Before pushing, an engineer runs `npm run typecheck`, `npm run lint`, and only the test files that cover the files it changed, with `bash /root/ops/reachkit/bin/heavy.sh npm run test:unit -- <paths>`. Release QA runs unit tests the same way. `npm run test:unit` is the command CI's unit step runs, with the same projects, workers and 20 s timeout, so a red or green means the same everywhere (#1784). Each heavy command goes through `bash /root/ops/reachkit/bin/heavy.sh`. CI runs the unit tests the change reaches, and the nightly run all of them. An engineer does not run the whole `vitest run --project node --project ui` locally. A red full suite is read from the CI log (owner, 2026-10-08).
 
+Two open pull requests may edit one hot copy key file only in separate key blocks (owner R14, 2026-10-22): release QA proves it at GO with `git merge-tree --write-tree` of the two heads; `docs/design/parity/baseline.json` is excepted, as its rows rebase by line.
+
 Where the jobs run is `docs/RUNBOOK.md` §1: GitHub-hosted, no self-hosted runner while the repo is public. There is no fifth merge gate.
 
 ### Coherence
