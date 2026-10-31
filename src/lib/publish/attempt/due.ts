@@ -2,18 +2,21 @@
 // The due moment is derived, `claimed_at + PUBLISH_RETRY_BACKOFF_MIN[attempt_no - 1]` as `decideRetry` does, never a
 // `retry_due_at` column that would be a second copy of the schedule. The claim bumps both, so a second tick finds nothing due;
 // `(draft_id, destination)` is a post's at-most-once key, never a retry key.
-// Due: `delivery_state = 'failed'`, the page still in `failed`, and `attempt_no` inside `MAX_RETRIES` with the moment passed.
+// Due: `delivery_state = 'failed'`, the page still in `failed`, and `attempt_no` inside `MAX_RETRIES` with the moment passed;
+// or the page resting on retries exhausted, re-attempted once a day (`reattemptDue`).
 // The switch is not asked here: the claim's guard reads it at the attempt, so a held page is offered again next tick.
 // One statement for the failed rows and one for their destinations, never one per page.
 import { PUBLISH_RETRY_BACKOFF_MIN } from "@/lib/config/constants";
 import { publishDb } from "../db";
-import type { DestinationKind } from "../types";
-import { MAX_RETRIES } from "./retry";
+import type { Actor, DestinationKind } from "../types";
+import { MAX_RETRIES, REATTEMPT_BY, reattemptDue } from "./retry";
 
 /** One page whose retry has come round, addressed as `publishApproved()` takes it. */
 export interface DueRetry {
   readonly draftId: string;
   readonly destinationId: string;
+  /** Set on a daily re-attempt, so its moves name it. */
+  readonly by?: Actor;
 }
 
 const MS_PER_MINUTE = 60_000;
@@ -24,7 +27,7 @@ interface FailedRow {
   destination: DestinationKind;
   attempt_no: number;
   claimed_at: string;
-  drafts?: { state?: string | null; site_id?: string | null } | null;
+  drafts?: { state?: string | null; site_id?: string | null; transitions?: unknown } | null;
 }
 
 interface DestinationRow {
@@ -44,14 +47,16 @@ export function retryDueAt(claimedAt: Date, attemptNo: number): Date | null {
 export async function dueRetries(now: Date): Promise<readonly DueRetry[]> {
   const failed = await publishDb()
     .from<FailedRow>("publications")
-    .select("id, draft_id, destination, attempt_no, claimed_at, drafts(state, site_id)")
+    .select("id, draft_id, destination, attempt_no, claimed_at, drafts(state, site_id, transitions)")
     .eq("delivery_state", "failed");
   if (failed.error !== null) {
     throw new Error(`publish/due: could not read the failed publications: ${failed.error.message}`);
   }
 
   const rows = failed.data ?? [];
+  const reattempt = (row: FailedRow) => reattemptDue({ state: row.drafts?.state, transitions: row.drafts?.transitions, claimedAt: new Date(row.claimed_at) }, now);
   const due = rows.filter((row) => {
+    if (reattempt(row)) return true;
     if (row.drafts?.state !== "failed") return false;
     const dueAt = retryDueAt(new Date(row.claimed_at), row.attempt_no);
     return dueAt !== null && dueAt.getTime() <= now.getTime();
@@ -88,7 +93,7 @@ export async function dueRetries(now: Date): Promise<readonly DueRetry[]> {
     const destinationId = byPair.get(`${siteId} ${row.destination}`);
     // Disconnected since: nothing to address, so it waits, and returns once the customer reconnects.
     if (destinationId === undefined) continue;
-    retries.push({ draftId: row.draft_id, destinationId });
+    retries.push({ draftId: row.draft_id, destinationId, ...(reattempt(row) ? { by: REATTEMPT_BY } : {}) });
   }
 
   logSweep({ failed: rows.length, due: retries.length });

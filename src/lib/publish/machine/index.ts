@@ -5,6 +5,7 @@
 //   2. the named guards, in list order, lazily, first failure wins;
 //   3. the update-and-append, conditional on the checked state (an optimistic lock, so two movers cannot both win).
 // A refusal is a value, never an exception, and its `state` is the one the page still holds.
+import type { StopReason } from "../record/needs-you";
 import { governingVetoHours } from "../settings/veto";
 import { publishDb } from "../db";
 import type { Actor, DraftView, State, ToldRecord, TransitionRecord } from "../types";
@@ -49,19 +50,20 @@ export type TransitionResult =
       matchedEntry?: string;
     };
 
-export interface TransitionOptions {
-  reason?: string;
+export interface TransitionOptions<To extends State = State> {
+  /** A move into `needs_attention` names a classified cause, so whether it is told is decided where it is written. */
+  reason?: "needs_attention" extends To ? (State extends To ? string : StopReason) : string;
   /** The guard dependencies, injected so a test drives one guard without a database. */
   deps?: GuardDeps;
   /** The guards' clock; a caller that fixed a moment passes it so its whole pass agrees. */
   at?: Date;
 }
 
-export async function transition(
+export async function transition<To extends State>(
   draftId: string,
-  to: State,
+  to: To,
   by: Actor,
-  options: TransitionOptions = {}
+  options: TransitionOptions<To> = {}
 ): Promise<TransitionResult> {
   const at = options.at ?? new Date();
   const draft = await machineDraftFor(draftId);

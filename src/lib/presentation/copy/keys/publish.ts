@@ -132,39 +132,7 @@ export const PUBLISH_COPY = Object.freeze({
   // are being held and nothing has been lost, because in that state the
   // credential is valid and the page has already failed rather than been
   // held. Wording that distinction is the owner's.
-  // Issue 880 — why a page needs the customer, one sentence per cause, from
-  // the page's own record (`src/lib/publish/record/needs-you.ts`). Until
-  // now every such page was told to reconnect WordPress, whatever stopped
-  // it and whatever the site publishes to. Drafted under issue 759's
-  // ruling; the owner corrects the wording.
-  "publish.needs-you.rules": [
-    "This page didn’t meet our writing rules, so it wasn’t published. Read it to see which rules stopped it, or write it again.",
-    { slots: {}, fixedBy: "issue 880" },
-  ],
-  "publish.needs-you.step": [
-    "We couldn’t finish writing this page: a step failed twice. Nothing was published. Write it again to start over.",
-    { slots: {}, fixedBy: "issue 880" },
-  ],
-  // Issue 1143 (drafted): a new page that adds too little the web and the
-  // site do not already say. Not a step that failed — the page was written.
-  "publish.needs-you.adds": [
-    "This page says too little that isn’t already on your site or in the top results, so it wasn’t published. We set it aside and took the next topic.",
-    { slots: {}, fixedBy: "issue 1143 (drafted)" },
-  ],
-  // Issue 1144 (drafted): the page reads too much like one written for
-  // another site. It says that and nothing about the other page.
-  "publish.needs-you.elsewhere": [
-    "This page came out too close to a page published elsewhere, so we held it back. Nothing was published. Write it again for a different take.",
-    { slots: {}, fixedBy: "issue 1144 (drafted)" },
-  ],
-  // Issue 1252 (drafted): the context pack was short of what the page's
-  // template asks, so nothing was written. The sentence, then one short
-  // noun phrase per thing the pack lacked — the draft screen lists them
-  // under it, and *Written from your business* lists them again in the pack.
-  "publish.needs-you.pack": [
-    "We didn’t write this page because we don’t have enough to write it from. Nothing was published, and we took the next topic.",
-    { slots: {}, fixedBy: "issue 1252 (drafted)" },
-  ],
+  // What a short pack lacked, one phrase per handle; the draft's pack card lists them.
   "publish.needs-you.pack.need.options": [
     "three options to compare, each competitor with a fact from its own pricing or feature page",
     { slots: {}, fixedBy: "issue 1252 (drafted)" },
@@ -217,6 +185,8 @@ export const PUBLISH_COPY = Object.freeze({
     "a fact about each competitor from its own site or a study",
     { slots: {}, fixedBy: "issue 1552 (drafted)" },
   ],
+  // Why a page needs the customer, one sentence per cause that can be critical (owner O7), from the page's own record
+  // (`src/lib/publish/record/needs-you.ts`). Drafted under issue 759's ruling; the owner corrects the wording.
   "publish.needs-you.destination": [
     "This page is written and couldn’t be delivered to your site. It goes out as soon as the connection to your site works again.",
     { slots: {}, fixedBy: "issue 880" },
@@ -224,6 +194,10 @@ export const PUBLISH_COPY = Object.freeze({
   "publish.needs-you.delivery": [
     "We tried to publish this page several times and it didn’t go through. Check where your pages are published, and nothing is lost in the meantime.",
     { slots: {}, fixedBy: "issue 880" },
+  ],
+  "publish.needs-you.live-edit": [
+    "Your change to this page breaks one of our checks. Open it to fix your words.",
+    { slots: {}, fixedBy: "owner O7 (drafted)" },
   ],
   "publish.needs-you.unknown": [
     "This page stopped before it went out and needs you. Read it to see where it got to, or write it again.",

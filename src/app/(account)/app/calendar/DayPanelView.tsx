@@ -40,7 +40,7 @@ import { X } from "lucide-react";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import type { Tone } from "@/ui/types";
 import {
-  NEEDS_YOU_COPY,
+  needsYouLine,
   unpublishedLine,
   verificationLine,
   type VerificationKind,
@@ -460,7 +460,8 @@ function PageDayPanel(p: {
   // Why the page needs them (issue 880), from its own record and never from
   // its stage. One sentence per cause, chosen once in `NEEDS_YOU_COPY`, so
   // this panel and the Overview alert cannot tell one page's story two ways.
-  const needsYouLine = page.needsYou === null ? null : writtenLine(NEEDS_YOU_COPY[page.needsYou.kind]);
+  const causeKey = needsYouLine(page.needsYou);
+  const needsYouSentence = causeKey === null ? null : writtenLine(causeKey);
 
   return (
     <Panel
@@ -488,7 +489,7 @@ function PageDayPanel(p: {
         <DayActions cell={shown} destination={p.destination} onCommand={command} busy={busy} pressed={busy ? pressed : null} />
 
         <div className="flex flex-col gap-1 text-sm">
-          {needsYouLine === null ? null : <p data-testid="day-needs-you-line">{needsYouLine}</p>}
+          {needsYouSentence === null ? null : <p data-testid="day-needs-you-line">{needsYouSentence}</p>}
           {publishLine === null ? null : <p data-testid="day-publish-line">{publishLine}</p>}
           {vetoLine === null ? null : <p data-testid="day-veto-line">{vetoLine}</p>}
         </div>

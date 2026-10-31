@@ -355,20 +355,10 @@ describe("REQ-043 c9 — the panel renders exactly the projection, and adds noth
     expect(root.querySelectorAll('[data-testid^="day-action-"]')).toHaveLength(3);
   });
 
-  it("issue 880 — it states why the page needs them, from the page's own record", () => {
+  it("a page the rules stopped states no needs-you line: the system rescues or sets it aside (owner O7)", () => {
     const root = panel("2026-09-10");
-    // The fixture's page was stopped by the hard rules, so that is the
-    // sentence — never the delivery one, which is false of a page that was
-    // never sent anywhere.
-    // `copy()` resolves to its key in this suite, so what is asserted is
-    // which key the line came from.
-    expect(root.querySelector('[data-testid="day-needs-you-line"]')?.textContent).toBe(
-      "publish.needs-you.rules"
-    );
-    expect(root.textContent).not.toContain("publish.needs-you.destination");
-    // And the registry's sentence is the founder's own case, never the
-    // delivery one.
-    expect(COPY["publish.needs-you.rules"]).toContain("writing rules");
+    expect(root.querySelector('[data-testid="day-needs-you-line"]')).toBeNull();
+    expect(root.textContent).not.toContain("publish.needs-you.");
   });
 
   it("a planned page offers Skip, and never Veto or Move", () => {

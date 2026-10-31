@@ -152,6 +152,8 @@ export const HOSTED_FONT_PRELOADS = 2 as const;
 
 // Publishing, destinations and verification
 export const PUBLISH_RETRY_BACKOFF_MIN = Object.freeze([5, 30, 180] as const);
+/** Owner O7: a publish tried to exhaustion is re-attempted once a day for this long, then it is critical. */
+export const DELIVERY_REATTEMPT_DAYS = 7 as const;
 export const DESTINATION_HEALTH_MAX_AGE_H = 24 as const;
 /** How long one destination's health check stands before the read path will
  *  run another: the smallest window that collapses an ordinary navigation

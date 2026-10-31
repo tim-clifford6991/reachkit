@@ -197,3 +197,14 @@ describe("a page that did not go out", () => {
     expect(db.rows("drafts")[0]?.state).toBe("approved");
   });
 });
+
+// Owner O7: the daily re-attempt of a page whose retries ran out goes through the same guarded edge, under its own name.
+describe("a re-attempt from needs_attention", () => {
+  it("takes needs_attention → publishing as the retry job, and delivers", async () => {
+    seed({ draft: { state: "needs_attention", transitions: [{ from: "failed", to: "needs_attention", reason: "retries_exhausted", at: "2026-09-14T00:00:00.000Z" }] } });
+    const outcome = await deliverApproved({ draftId: "d1", destinationId: "dest-1", at: AT, deps: openDeps(), by: { kind: "system", job: "publish/retry" } });
+    expect(outcome.kind).toBe("delivered");
+    const moves = db.rows("drafts")[0]!.transitions as { from: string; to: string; actor: unknown }[];
+    expect(moves[1]).toMatchObject({ from: "needs_attention", to: "publishing", actor: { kind: "system", job: "publish/retry" } });
+  });
+});

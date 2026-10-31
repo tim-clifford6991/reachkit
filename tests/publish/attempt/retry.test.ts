@@ -15,7 +15,7 @@ vi.mock("@/lib/db", () => ({ dbAdmin: () => db.client, db: () => db.client }));
 
 import { PUBLISH_RETRY_BACKOFF_MIN } from "@/lib/config/constants";
 import { RETRYABLE } from "@/lib/publish/attempt";
-import { MAX_RETRIES, decideRetry, scheduleRetry } from "@/lib/publish/attempt/retry";
+import { MAX_RETRIES, decideRetry, reattemptDue, scheduleRetry } from "@/lib/publish/attempt/retry";
 import type { Actor, FailureReason } from "@/lib/publish/types";
 
 const SYSTEM: Actor = { kind: "system", job: "publish/execute" };
@@ -196,5 +196,33 @@ describe("with publishing off a due retry is withheld, and the page is held in f
       draftId: "d1", siteId: "s1", reason: "network", attemptNo: 1, by: SYSTEM, at: AT, switchOn: false,
     });
     expect(db.rows("drafts")[0]?.publishable_since).toBe("2026-09-10T00:00:00.000Z");
+  });
+});
+
+// Owner O7: a publish tried to exhaustion is the system's to re-attempt, once a day, for seven days.
+describe("the daily re-attempt of a page whose retries ran out", () => {
+  const DAY = 86_400_000;
+  const FIRST = new Date(Date.UTC(2026, 9, 24, 16, 0, 0));
+  const rested = (reason: string, at: Date) => ({ from: "failed", to: "needs_attention", reason, at: at.toISOString() });
+  /** Rested on its retries since FIRST, last claimed a day before `now`. */
+  const page = (now: Date, reason = "retries_exhausted") => ({ state: "needs_attention", transitions: [rested(reason, FIRST)], claimedAt: new Date(now.getTime() - DAY) });
+
+  it("is due 23 h after its last claim while seven days old or less", () => {
+    const day7 = new Date(FIRST.getTime() + 7 * DAY);
+    expect(reattemptDue(page(day7), day7)).toBe(true);
+    expect(reattemptDue({ ...page(day7), claimedAt: new Date(day7.getTime() - 23 * 3_600_000) }, day7)).toBe(true);
+    expect(reattemptDue({ ...page(day7), claimedAt: new Date(day7.getTime() - 23 * 3_600_000 + 60_000) }, day7)).toBe(false);
+  });
+
+  it("is not due after day seven, when it waits on the customer", () => {
+    const day8 = new Date(FIRST.getTime() + 7 * DAY + 60_000);
+    expect(reattemptDue(page(day8), day8)).toBe(false);
+  });
+
+  it("an expired credential and a live edit are never re-attempted here", () => {
+    const day1 = new Date(FIRST.getTime() + DAY);
+    expect(reattemptDue(page(day1, "reason_needs_customer"), day1)).toBe(false);
+    expect(reattemptDue(page(day1, "live_edit"), day1)).toBe(false);
+    expect(reattemptDue({ ...page(day1), state: "failed" }, day1)).toBe(false);
   });
 });
