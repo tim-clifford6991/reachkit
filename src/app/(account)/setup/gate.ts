@@ -132,6 +132,7 @@ export const SETUP_INCOMPLETE_ALLOWLIST: readonly string[] = Object.freeze([
   // The way out (REQ-070 c2, REQ-076 c3). Settings is where cancelling,
   // resuming, exporting, invoices, sign-out and deletion all live.
   "/app/settings",
+  "/app/settings/billing",
   "/api/settings",
   "/api/export",
   "/api/account/*",
