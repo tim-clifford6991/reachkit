@@ -24,7 +24,9 @@ export async function captureLead(a: {
   if (!ADDRESS_FORM.test(email)) return { captured: false, reason: "invalid-address" };
 
   // Counted before the scan read, so an unknown scan id costs the same as a known one and a flood mails nobody.
-  if (!(await takeLimits("lead", { network: a.network, email, scanId: a.scanId }))) {
+  // Postgres reads any case, braces and hyphens of a uuid as one scan, so the cap counts its hex digits alone.
+  const scanKey = a.scanId.toLowerCase().replace(/[^0-9a-f]/g, "");
+  if (!(await takeLimits("lead", { network: a.network, email, scanId: scanKey }))) {
     return { captured: false, reason: "limited" };
   }
 

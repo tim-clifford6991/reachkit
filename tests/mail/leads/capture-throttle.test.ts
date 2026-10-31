@@ -101,6 +101,15 @@ describe("lead capture is throttled per address, network and scan, silently", ()
     expect(rowsFor("person5@example.com")).toBe(1);
   });
 
+  it("spellings of one scan id share the per-scan cap", async () => {
+    const id = "0b5e6c1a-9d2f-4e7b-8a3c-5f1d2e4b6a70";
+    const spellings = [id, id.toUpperCase(), `{${id}}`, id.replace(/-/g, ""), id.replace(/-/g, "").toUpperCase()];
+    // Postgres resolves every spelling to the one row.
+    for (const spelling of spellings) state.scans.set(spelling, "acme.example");
+    for (let i = 0; i < 10; i++) await lead(spellings[i % spellings.length] ?? id, `person${i}@example.com`, `203.0.113.${i}`);
+    expect(state.leads).toHaveLength(5);
+  });
+
   it("malformed is not counted", async () => {
     for (let i = 0; i < 12; i++) expect((await lead("scan-0", "not-an-address")).status).toBe(422);
     expect(limiterCalls).toBe(0);
