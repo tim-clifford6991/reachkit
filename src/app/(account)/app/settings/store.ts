@@ -11,17 +11,16 @@
 // (DECISIONS 2026-09-06, and #192's rule): `example.com` is IANA-reserved,
 // so no customer can hold the name that reaches it.
 //
-// **Two facts degrade; the other eight do not, and that asymmetry is the
+// **Two facts degrade; the other eight leave their panel unread, and that asymmetry is the
 // point.** A fixture value is a *claim* — a mode the customer never chose,
 // a date nobody measured — and a customer acting on one is worse off than a
 // customer told the product could not read it. Billing and destinations
 // have a stated degraded arm because REQ-097 c5 and c6 design one for them.
 // The rest have none: there is no honest way to draw a veto window or a
 // do-not-claim list that was not read, and a default in its place is the
-// same defect as the fixture with a different provenance. Those reads
-// propagate, and the route's own error boundary is what the customer meets
-// — a screen that failed, rather than a screen quietly stating settings
-// they never chose.
+// same defect as the fixture with a different provenance. Those reads are
+// named in `unread`, and every panel that states one draws its error line
+// while the tab's other panels, and billing, still draw.
 //
 // **Every read is bounded and made concurrently** (DECISIONS 2026-09-07,
 // #186): this screen is dynamic, so an unsettled read would hang it, and
@@ -30,19 +29,20 @@
 import type { DestinationView } from "@/lib/publish/types";
 import { now as clock } from "@/lib/config/now";
 import type { AppAccount } from "../_session/account";
-import type { AccountFacts, BillingFacts, SettingsFacts } from "./model";
+import { ACCOUNT_NOTE_KEYS } from "@/lib/account/identity/notes";
+import type { AccountFacts, BillingFacts, SettingsFacts, SettingsRead } from "./model";
 
 /** How long any one read may take before it is abandoned — for the two
  *  facts that degrade, into their stated arm; for the rest, into the
- *  screen's own failure. `src/middleware.ts` bounds its one request-path
+ *  error line of each panel that states it. `src/middleware.ts` bounds its one request-path
  *  read the same way and for the same reason. */
 const READ_DEADLINE_MS = 800;
 
-function withDeadline<T>(work: Promise<T>): Promise<T> {
+function withDeadline<T>(work: Promise<T>, name: string): Promise<T> {
   return Promise.race([
     work,
     new Promise<T>((_resolve, reject) =>
-      setTimeout(() => reject(new Error("settings read timed out")), READ_DEADLINE_MS)
+      setTimeout(() => reject(new Error(`settings read timed out: ${name}`)), READ_DEADLINE_MS)
     ),
   ]);
 }
@@ -57,9 +57,15 @@ function withDeadline<T>(work: Promise<T>): Promise<T> {
  * promptly as one that could not be reached. The deadline exists to bound
  * *the database*, so it starts where the database call does.
  */
-async function bounded<M, T>(load: () => Promise<M>, call: (loaded: M) => Promise<T>): Promise<T> {
-  const loaded = await load();
-  return withDeadline(call(loaded));
+async function bounded<M, T>(name: string, load: () => Promise<M>, call: (loaded: M) => Promise<T>): Promise<T> {
+  try {
+    const loaded = await load();
+    return await withDeadline(call(loaded), name);
+  } catch (error) {
+    // Named, so a slow database shows which read it starved.
+    console.warn(JSON.stringify({ event: "settings_read_failed", read: name, detail: String(error) }));
+    throw error;
+  }
 }
 
 /** A read that could not be made. `null` is not used for these: `null` is a
@@ -68,11 +74,12 @@ async function bounded<M, T>(load: () => Promise<M>, call: (loaded: M) => Promis
 export type Read<T> = { ok: true; value: T } | { ok: false };
 
 async function read<M, T>(
+  name: string,
   load: () => Promise<M>,
   call: (loaded: M) => Promise<T>
 ): Promise<Read<T>> {
   try {
-    return { ok: true, value: await bounded(load, call) };
+    return { ok: true, value: await bounded(name, load, call) };
   } catch {
     return { ok: false };
   }
@@ -91,8 +98,9 @@ const BILLING_SURFACE = "/app/settings";
  * c6's three sentences are what the degraded arm renders, and they already
  * exist as keys (#136).
  */
-async function readBilling(userId: string): Promise<BillingFacts> {
+export async function readBilling(userId: string): Promise<BillingFacts> {
   const summary = await read(
+    "billing",
     () => import("@/lib/account/billing"),
     ({ billingSummary }) => billingSummary(userId)
   );
@@ -116,6 +124,7 @@ export interface DestinationsFacts {
 
 async function readDestinations(siteId: string): Promise<DestinationsFacts> {
   const list = await read(
+    "destinations",
     () => import("@/lib/publish/destinations"),
     ({ listDestinations }) => listDestinations(siteId)
   );
@@ -127,7 +136,7 @@ async function readDestinations(siteId: string): Promise<DestinationsFacts> {
  * confirmation, and the note keys.
  *
  * A read that fails leaves the card unrenderable — there is no honest arm
- * for "we do not know your address" — so it propagates and the screen's own
+ * for "we do not know your address" — so it propagates and the card's own
  * failure states it. Until #228 it fell back to the fixture's founder, which
  * showed a real customer somebody else's address.
  *
@@ -137,13 +146,14 @@ async function readDestinations(siteId: string): Promise<DestinationsFacts> {
  */
 export async function readAccountFacts(userId: string): Promise<AccountFacts> {
   const card = await bounded(
+    "card",
     () => import("@/lib/account/identity"),
     ({ accountCard }) => accountCard(userId)
   );
   if (card === null) {
     // No row for the signed-in account. There is no arm of this card that
-    // states an address the product does not hold, so the screen fails
-    // rather than drawing one.
+    // states an address the product does not hold, so the card draws its
+    // error line rather than one.
     throw new Error(`settings: no account row for ${userId}`);
   }
   return {
@@ -157,7 +167,7 @@ export async function readAccountFacts(userId: string): Promise<AccountFacts> {
 /**
  * Everything §4.7 states about one real account.
  *
- * Ten reads, run together. Each is the module that owns the fact —
+ * Ten reads, run together, each settling on its own. Each is the module that owns the fact —
  * `readPublishingSettings` for the four §9 settings, `isPublishingOn` for
  * the switch, the generation store for the voice and the claim list, the
  * notifications module for the three toggles — so no fact on this screen is
@@ -171,30 +181,25 @@ export async function readLiveSettingsFacts(
   account: AppAccount & { timeZone: string }
 ): Promise<SettingsFacts> {
   const { siteId, userId } = account;
+  const unread: SettingsRead[] = [];
+  const settle = <T,>(name: SettingsRead, work: Promise<T>): Promise<T | undefined> =>
+    work.catch(() => {
+      unread.push(name);
+      return undefined;
+    });
 
-  const [
-    answers,
-    measured,
-    publishing,
-    publishingOn,
-    site,
-    notify,
-    pages,
-    billing,
-    destinations,
-    card,
-  ] =
+  const [answers, measured, publishing, publishingOn, site, notify, pages, billing, destinations, card] =
     await Promise.all([
-      bounded(() => import("@/lib/market/changes"), (m) => m.declaredAnswers(siteId)),
-      bounded(() => import("@/lib/market/changes"), (m) => m.measuredAnswers(siteId)),
-      bounded(() => import("@/lib/publish/settings"), (m) => m.readPublishingSettings(siteId)),
-      bounded(() => import("@/lib/publish/switch"), (m) => m.isPublishingOn(siteId)),
-      bounded(() => import("@/lib/generate/store"), (m) => m.generateStore().siteFacts(siteId)),
-      bounded(() => import("@/lib/mail/notifications"), (m) => m.readNotifyPrefs(userId)),
-      bounded(() => import("./pages"), (m) => m.livePageCount(siteId)),
+      settle("answers", bounded("answers", () => import("@/lib/market/changes"), (m) => m.declaredAnswers(siteId))),
+      settle("measured", bounded("measured", () => import("@/lib/market/changes"), (m) => m.measuredAnswers(siteId))),
+      settle("publishing", bounded("publishing", () => import("@/lib/publish/settings"), (m) => m.readPublishingSettings(siteId))),
+      settle("publishingOn", bounded("publishingOn", () => import("@/lib/publish/switch"), (m) => m.isPublishingOn(siteId))),
+      settle("site", bounded("site", () => import("@/lib/generate/store"), (m) => m.generateStore().siteFacts(siteId))),
+      settle("notify", bounded("notify", () => import("@/lib/mail/notifications"), (m) => m.readNotifyPrefs(userId))),
+      settle("pages", bounded("pages", () => import("./pages"), (m) => m.livePageCount(siteId))),
       readBilling(userId),
       readDestinations(siteId),
-      readAccountFacts(userId),
+      settle("card", readAccountFacts(userId)),
     ]);
 
   // REQ-071's pending change is a *computation*, never a record (ADR-030):
@@ -218,12 +223,12 @@ export async function readLiveSettingsFacts(
   // date in words, and a wall clock here would move a baseline the day the
   // sentence changed.
   const now = clock();
-  const [change] = pendingChanges({
+  const [change] = (answers === undefined || measured === undefined ? [] : pendingChanges({
     declared: answers,
     measured,
     now,
     timezone: account.timeZone,
-  }).filter((entry): entry is typeof entry & { kind: "domain" | "category" } =>
+  })).filter((entry): entry is typeof entry & { kind: "domain" | "category" } =>
     entry.kind === "domain" || entry.kind === "category"
   );
 
@@ -248,23 +253,23 @@ export async function readLiveSettingsFacts(
     // it told a customer who had named no market that theirs was user
     // onboarding software. A blank beside the label is the fact; the card
     // states it and offers the control that names one.
-    category: answers.category ?? "",
-    competitors: answers.rivals,
+    category: answers?.category ?? "",
+    competitors: answers?.rivals ?? [],
     measuredRivals: measured?.rivals ?? null,
     concluded: await concludedFor(siteId),
     ...(await localeFor(siteId)),
 
-    // §9's four publishing settings, and the switch.
-    mode: publishing.mode,
-    vetoHours: publishing.vetoHours,
-    publishTime: publishing.publishTime,
+    // §9's four publishing settings, and the switch; an unread one is never drawn.
+    mode: publishing?.mode ?? "autopilot",
+    vetoHours: publishing?.vetoHours ?? 0,
+    publishTime: publishing?.publishTime ?? "",
     timeZone: account.timeZone,
-    publishingEnabled: publishingOn,
+    publishingEnabled: publishingOn ?? false,
 
     voiceText: site?.voiceText ?? "",
     // Issue 1390. A read that fails is "not chosen": the select then shows
     // what ReachKit does, which is choose.
-    writingVoice: await bounded(() => import("@/lib/generate/store"), async (m) => m.generateStore().writingVoice(siteId)).catch(() => null),
+    writingVoice: await bounded("writingVoice", () => import("@/lib/generate/store"), async (m) => m.generateStore().writingVoice(siteId)).catch(() => null),
     doNotClaim: site?.doNotClaim ?? [],
 
     destinations: destinations.list,
@@ -274,11 +279,12 @@ export async function readLiveSettingsFacts(
     // evaluated.
     cnameTarget: (await import("@/lib/config/env")).env.HOSTED_EDGE_CNAME_TARGET,
 
-    ...card,
-    notifyPrefs: notify,
+    ...(card ?? { name: null, email: "", pendingEmail: null, noteKeys: ACCOUNT_NOTE_KEYS }),
+    notifyPrefs: notify ?? {},
 
     billing,
-    publishedPages: pages,
+    publishedPages: pages ?? 0,
+    unread,
   };
 }
 
@@ -304,7 +310,8 @@ async function localeFor(siteId: string): Promise<Pick<SettingsFacts, "locale">>
           .not("report", "is", null)
           .order("created_at", { ascending: false })
           .limit(1),
-      ])
+      ]),
+      "locale"
     );
     const row = site.data?.[0];
     const tags = newest.data?.[0]?.report?.locale?.alsoServes;
@@ -325,7 +332,7 @@ async function localeFor(siteId: string): Promise<Pick<SettingsFacts, "locale">>
 async function concludedFor(siteId: string): Promise<SettingsFacts["concluded"]> {
   try {
     const { readSiteMarket } = await import("@/lib/market/infer/stored");
-    const stored = (await readSiteMarket(siteId))?.stored ?? null;
+    const stored = (await withDeadline(readSiteMarket(siteId), "concluded"))?.stored ?? null;
     const current = stored?.current ?? null;
     if (stored === null || current === null) return null;
     return {

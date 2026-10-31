@@ -45,7 +45,8 @@
 import type { LinkMap } from "@/lib/known-content/link-map";
 import type { MonthGot } from "@/lib/account/billing";
 import { cache } from "react";
-import { assembleSettings, type SettingsModel } from "./model";
+import { assembleSettings, billingSummaryOf, type SettingsModel } from "./model";
+import type { BillingSummary } from "./billing";
 import { FIXTURE_MONTH_GOT, FIXTURE_SETTINGS_FACTS } from "./fixture";
 import { isReservedFixtureAccount, requireSetUpAccount } from "../_session/account";
 
@@ -68,6 +69,14 @@ export const readSettings = cache(async function readSettings(): Promise<Setting
 
   const { readLiveSettingsFacts } = await import("./store");
   return assembleSettings(await readLiveSettingsFacts(account));
+});
+
+/** The billing card alone: cancelling and fixing a card never wait on another settings read. */
+export const readBillingSummary = cache(async function readBillingSummary(): Promise<BillingSummary> {
+  const account = await requireSetUpAccount();
+  if (isReservedFixtureAccount(account)) return assembleSettings(FIXTURE_SETTINGS_FACTS).billing;
+  const { readBilling } = await import("./store");
+  return billingSummaryOf(await readBilling(account.userId), account.timeZone);
 });
 
 /**
