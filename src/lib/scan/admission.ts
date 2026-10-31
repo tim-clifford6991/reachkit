@@ -112,16 +112,19 @@ export type NetworkKey = string & { readonly __networkKey: unique symbol };
 
 const UNKNOWN_NETWORK_SEED = "unknown";
 
-/** Accepts the first entry of `x-forwarded-for`, truncates an IPv6 address
- *  to its /64 prefix (BP-023 decision 3: a single subscriber routinely
- *  holds a whole /64), and HMACs the result with `IP_HASH_SALT` — never the
- *  raw address itself. A null or unparseable header still yields a key — a
- *  stable one shared for every unparseable input, so a visitor with a
- *  malformed header is still counted rather than crashing the check — and
- *  this function never throws. */
-export function networkKeyOf(forwardedFor: string | null): NetworkKey {
+/** The platform's client address, for a check that never stores it. On Vercel a
+ *  client writes the first `x-forwarded-for` entry itself, so it is never read there. */
+export function clientAddressOf(headers: Pick<Headers, "get">): string | null {
+  const platform = firstEntry(headers.get("x-vercel-forwarded-for")) ?? firstEntry(headers.get("x-real-ip"));
+  return platform ?? (process.env.VERCEL === "1" ? null : firstEntry(headers.get("x-forwarded-for")));
+}
+
+/** Truncates IPv6 to its /64 (BP-023 decision 3) and HMACs with `IP_HASH_SALT`, never
+ *  keeping the raw address. A missing or unparseable address yields one shared
+ *  stable key, so a malformed header is still counted; this function never throws. */
+export function networkKeyOf(headers: Pick<Headers, "get">): NetworkKey {
   try {
-    const entry = firstForwardedEntry(forwardedFor);
+    const entry = clientAddressOf(headers);
     const seed = entry === null ? UNKNOWN_NETWORK_SEED : addressSeed(entry);
     return hashSeed(seed);
   } catch {
@@ -129,9 +132,8 @@ export function networkKeyOf(forwardedFor: string | null): NetworkKey {
   }
 }
 
-function firstForwardedEntry(forwardedFor: string | null): string | null {
-  if (!forwardedFor) return null;
-  const first = forwardedFor.split(",")[0]?.trim() ?? "";
+function firstEntry(header: string | null): string | null {
+  const first = header?.split(",")[0]?.trim() ?? "";
   return first.length > 0 ? first : null;
 }
 
@@ -147,9 +149,7 @@ function stripBrackets(host: string): string {
   return host.startsWith("[") && host.endsWith("]") ? host.slice(1, -1) : host;
 }
 
-/** The address's /64 network prefix, as its first four (of eight) 16-bit
- *  groups, fully expanded — `null` when the address does not expand to
- *  eight groups (defence in depth; `isIP` has already validated it). */
+/** The first four of eight expanded groups; `null` if it does not expand to eight. */
 function ipv6Prefix64(address: string): string | null {
   const groups = expandIPv6Groups(address);
   if (!groups || groups.length !== 8) return null;

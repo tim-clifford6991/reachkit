@@ -83,9 +83,9 @@ describe("business details for Google: only a label that says who runs the site"
 describe("the hourly brake", () => {
   it("stops one network after thirty checks in an hour, and lets it go after", () => {
     const at = 1_000_000;
-    for (let i = 0; i < 30; i++) expect(takeCheck("203.0.113.9", at + i)).toBe(true);
-    expect(takeCheck("203.0.113.9", at + 31)).toBe(false);
-    expect(takeCheck("198.51.100.4", at + 31)).toBe(true);
-    expect(takeCheck("203.0.113.9", at + 60 * 60 * 1000 + 31)).toBe(true);
+    for (let i = 0; i < 30; i++) expect(takeCheck(new Headers({ "x-forwarded-for": "203.0.113.9" }), at + i)).toBe(true);
+    expect(takeCheck(new Headers({ "x-forwarded-for": "203.0.113.9" }), at + 31)).toBe(false);
+    expect(takeCheck(new Headers({ "x-forwarded-for": "198.51.100.4" }), at + 31)).toBe(true);
+    expect(takeCheck(new Headers({ "x-forwarded-for": "203.0.113.9" }), at + 60 * 60 * 1000 + 31)).toBe(true);
   });
 });

@@ -460,6 +460,15 @@ export const localImportRules = {
     // (m) REQ-093 / ADR-010 decision 1: a surface's sentences are copy()'s.
     "no-voice-literal": noVoiceLiteral,
 
+    // A client writes the first x-forwarded-for entry itself, so one file decides which header to trust.
+    "no-client-address-header": textFenceRule([
+      {
+        pattern: /["'`](x-forwarded-for|x-real-ip|x-vercel-forwarded-for)["'`]/i,
+        message: "Read the client address through networkKeyOf or clientAddressOf in src/lib/scan/admission.ts, never from the header.",
+        code: true,
+      },
+    ]),
+
     // (n) BP-002: src/lib/db alone chooses how the database is reached.
     "no-create-client-outside-db": textFenceRule([
       { pattern: /createClient\(/, message: "BP-002: only src/lib/db calls createClient( — use db() or dbAdmin() from '@/lib/db'." },
@@ -564,6 +573,12 @@ export default tseslint.config(
     ignores: ["src/lib/db/**"],
     plugins: { local: localImportRules },
     rules: { "local/no-create-client-outside-db": "error" },
+  },
+  {
+    files: ["src/**/*.{ts,tsx}"],
+    ignores: ["src/lib/scan/admission.ts"],
+    plugins: { local: localImportRules },
+    rules: { "local/no-client-address-header": "error" },
   },
   {
     files: ["src/lib/db/index.ts"],

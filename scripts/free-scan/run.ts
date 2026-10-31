@@ -156,7 +156,7 @@ async function scanAsTheRouteDoes(domain: string, network: string): Promise<{ sc
   const startedAt = Date.now();
   const parsed = parseDomain(domain);
   if (!parsed.ok) return { scanId: null, refusal: `not a domain: ${parsed.problem}`, budgetEnded: false };
-  const claim = await claimFreeScanSlot({ domain: parsed.domain, network: networkKeyOf(network), fromIncompleteRescan: false });
+  const claim = await claimFreeScanSlot({ domain: parsed.domain, network: networkKeyOf(new Headers({ "x-forwarded-for": network })), fromIncompleteRescan: false });
   if (!claim.claimed) return { scanId: null, refusal: JSON.stringify(claim.refusal), budgetEnded: false };
 
   let timer: ReturnType<typeof setTimeout> | undefined;

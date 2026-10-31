@@ -107,8 +107,7 @@ async function resolve(rawSegment: string): Promise<AddressState> {
   // The visitor's network, hashed at the seam that owns the hashing — the
   // raw address never enters this file (BP-023: `networkKeyOf` never
   // returns one).
-  const forwardedFor = (await headers()).get("x-forwarded-for");
-  return resolveAddress({ rawSegment, network: networkKeyOf(forwardedFor) });
+  return resolveAddress({ rawSegment, network: networkKeyOf(await headers()) });
 }
 
 export default async function ScanAddressPage({
