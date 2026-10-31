@@ -18,7 +18,7 @@ const rule = (over: Partial<TitleRuleInputs> = {}): TitleRuleInputs => ({
   asks: false,
   rivals: ["Profound", "Peec AI"],
   places: [],
-  holds: "Seven tools compared. 7 options. Plans start at $29 a month. Our own page was named in 0 of 10 answers.",
+  holds: "Seven tools compared. 7 options. Plans start at $29 a month. Our own page was named in 0 of 10 answers.\n7",
   year: 2026,
   titles: [],
   description: DESCRIPTION,
@@ -148,7 +148,7 @@ describe("what a title is held to is read off the pack", () => {
   });
 
   it("the writer is shown the figures the pack states, and told a statement where the search is one", () => {
-    const brief = titleBrief(pack({ target: { question: "What is the best project management software?", searches: ["best project management software"] } }));
+    const brief = titleBrief(pack({ type: "offering", target: { question: "What is the best project management software?", searches: ["best project management software"] } }));
     expect(brief.figures).toEqual(["plan get 25 seats and unlimited"]);
     expect((brief.rules as string[]).join(" ")).toContain("never a question");
   });

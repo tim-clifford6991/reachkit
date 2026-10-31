@@ -415,10 +415,9 @@ export function pageParts(first: string = CLEAN_MARKDOWN, over: Partial<PagePart
   const heading = (index: number): string => `${t}: ${asks[index - 1]}`;
   return {
     // A title the check passes for `opportunity()`'s search and for the
-    // pack's own — a statement that leads with either and carries the
-    // grounded fact's number — and a description inside its 120–155
-    // characters.
-    titles: ["Project management software plan that fits a small team of 25"],
+    // pack's own — a statement that leads with either and carries a market
+    // claim's detail — and a description inside its 120–155 characters.
+    titles: ["Project management software plan that fits a small team, free"],
     slug: "which-tool-small-team",
     description:
       "A small team picks project management software by seat count: count who needs a login, then compare what each plan costs for that many seats.",
