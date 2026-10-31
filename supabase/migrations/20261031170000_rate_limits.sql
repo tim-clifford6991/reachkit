@@ -16,7 +16,7 @@ grant select, insert, update, delete on rate_limits to service_role;
 
 comment on table rate_limits is
   'Abuse-limit counts per scope, hashed key and fixed window, taken only through take_rate_limits. '
-  'dbAdmin()-only; BUILD §10 default-deny; no anon/authenticated policy by design.';
+  'dbAdmin()-only; default-deny; no anon/authenticated policy by design.';
 
 -- One round trip counts every key a request has. A refused take still counts,
 -- so a flood stays refused. About one call in a hundred sweeps windows older
