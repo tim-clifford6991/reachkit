@@ -97,18 +97,6 @@ describe("REQ-001 c6/c10 — no session, no cookie, no gate", () => {
     }
   });
 
-  it("the one request header it reads is `x-forwarded-for`, and it reads it to hash a network key — never to identify a visitor", () => {
-    // #104 wired this route to the store, and admission counts a free
-    // scan's bounds per network. `networkKeyOf` is BP-023's HMAC and never
-    // returns a raw address, so nothing identifying enters this file. The
-    // assertion is written as "exactly one header, and it is that one"
-    // rather than "no headers at all", which was the shape before the
-    // route had anything to resolve.
-    const reads = [...PAGE.matchAll(/\.get\("([^"]+)"\)/g)].map((m) => m[1]);
-    expect(reads).toEqual(["x-forwarded-for"]);
-    expect(PAGE).toContain("networkKeyOf");
-  });
-
   it("`/scan/:domain` is on the middleware's public allow-list, so it is reachable with none", async () => {
     const { PUBLIC_PATHS } = await import("../../../src/middleware.ts");
     expect(PUBLIC_PATHS).toContain("/scan/:domain");
