@@ -608,7 +608,7 @@ async function writePage(a: PageInput & { attempts: number; startedAt?: number }
     confirmed.factsOff
   );
   // What no page may repeat whole (issue 1249): the site's demo phrases —
-  // the ones kept with its knowledge base ride in `factsOff` — and its menus.
+  // the ones kept with its knowledge base ride in `factsOff`.
   const demoPhrases = [
     ...(await readDemoPhrases({ siteId: a.siteId, scanId: report.scanId }).catch(() => [])),
     ...confirmed.factsOff,
