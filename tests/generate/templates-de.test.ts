@@ -22,7 +22,7 @@ const rule = (over: Partial<TitleRuleInputs> = {}): TitleRuleInputs => ({
   follow: [],
   asks: false,
   places: ["Düsseldorf"],
-  holds: "5 Bäckereien. Die Lieferung ins Büro ist kostenlos.",
+  holds: "5 Bäckereien. Die Lieferung ins Büro ist kostenlos.\n5",
   year: 2026,
   titles: [],
   description: DESCRIPTION,
