@@ -16,9 +16,9 @@
 // it: a jsdom mount has no server. `copy()` resolves to its key, the
 // shell's convention — the assertions are about which key a line comes
 // from, never the owner's wording.
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import React, { act } from "react";
-import { createRoot } from "react-dom/client";
+import { createRoot, type Root } from "react-dom/client";
 import { applyEnvFixture } from "../../mail/env-fixture";
 import { SETS, competitorProps } from "./market-fixtures";
 
@@ -91,11 +91,15 @@ function settings(over: Partial<SettingsFacts> = {}) {
   return assembleSettings({ ...FIXTURE_SETTINGS_FACTS, timeZone: ZONE, ...over });
 }
 
+const roots: Root[] = [];
+
 async function mount(el: React.ReactElement): Promise<HTMLElement> {
   const container = document.createElement("div");
   document.body.appendChild(container);
+  const root = createRoot(container);
+  roots.push(root);
   await act(async () => {
-    createRoot(container).render(el);
+    root.render(el);
   });
   return container;
 }
@@ -165,6 +169,13 @@ const edit = (root: HTMLElement, control: "setting-domain" | "setting-category")
 
 const line = (root: HTMLElement): string =>
   root.querySelector('[data-testid="market-change-line"]')?.textContent ?? "";
+
+// A root left mounted can let React's scheduler run after jsdom is torn down.
+afterEach(async () => {
+  await act(async () => {
+    for (const root of roots.splice(0)) root.unmount();
+  });
+});
 
 beforeEach(() => {
   said.length = 0;
