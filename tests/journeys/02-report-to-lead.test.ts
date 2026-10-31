@@ -506,10 +506,10 @@ describe('"Email me the full page" → lead → first page → a follow-up that 
     // ~7¢ is the draft pipeline's under `CAP_DRAFT` — the port this
     // journey stands in for. Between the two, this path writes no
     // `fetches` row at all, and reaches Postgres only through the two
-    // declared stores.
+    // declared stores and the one count the shared limiter takes per lead.
     expect(db.queries.filter((query) => query.table === "fetches")).toEqual([]);
     expect(db.queries).toEqual([]);
-    expect(db.rpcCalls).toEqual([]);
+    expect(db.rpcCalls.map((call) => call.fn)).toEqual(["take_rate_limits"]);
 
     // The mails that did go out went through the one send seam to the one
     // vendor transport, and there were exactly four of them.

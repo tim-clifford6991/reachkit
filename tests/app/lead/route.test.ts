@@ -108,8 +108,8 @@ describe("every response body carries a CopyKey, never a sentence and never a ve
     const code = codeOf("src/app/api/lead/route.ts");
     const engineImports = [...code.matchAll(/from "(@\/lib\/[^"]+)"/g)].map((m) => m[1]);
     // The copy type is a type-only import of the registry's `CopyKey`; the
-    // one value import is the capture seam.
-    expect(engineImports).toEqual(["@/lib/presentation/copy", "@/lib/mail/leads"]);
+    // value imports are the capture seam and the client address's hash.
+    expect(engineImports).toEqual(["@/lib/presentation/copy", "@/lib/mail/leads", "@/lib/scan/admission"]);
   });
 });
 

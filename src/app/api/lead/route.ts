@@ -1,7 +1,7 @@
 // src/app/api/lead/route.ts — BUILD §4.2
 //
 // The transport adapter over lead capture. It reads exactly two fields from
-// the body, calls one exported function, and maps its two arms to a
+// the body, hashes the client address, calls one exported function, and maps its arms to a
 // response. It holds no lead logic: no address validation of its own beyond
 // what the body parse requires, no mail call, no sequence start, no clock
 // and no database access.
@@ -17,6 +17,7 @@
 // field that could be added to the form tomorrow and reach the engine.
 import type { CopyKey } from "@/lib/presentation/copy";
 import { captureLead } from "@/lib/mail/leads";
+import { networkKeyOf } from "@/lib/scan/admission";
 
 export type LeadResponse =
   | { ok: true; message: CopyKey }
@@ -66,18 +67,20 @@ export async function POST(request: Request): Promise<Response> {
   const body = readBody(parsed);
   if (!body.ok) return json(MALFORMED, { ok: false, message: RESPONSES.invalid });
 
-  const captured = await captureLead({ scanId: body.scanId, email: body.email });
-  if (captured.captured) {
-    console.log(JSON.stringify({ event: "api_lead", outcome: "accepted", scanId: body.scanId }));
+  const captured = await captureLead({
+    scanId: body.scanId,
+    email: body.email,
+    network: networkKeyOf(request.headers),
+  });
+  const outcome = captured.captured ? "accepted" : captured.reason;
+  // The visitor's address never appears in the log line.
+  console.log(JSON.stringify({ event: "api_lead", outcome, scanId: body.scanId }));
+
+  // A limited lead gets the accepted answer byte for byte, so the response says nothing about the limit.
+  if (outcome === "accepted" || outcome === "limited") {
     return json(ACCEPTED, { ok: true, message: RESPONSES.accepted });
   }
-
-  // The two refusal reasons, mapped totally. The visitor's address never
-  // appears in the log line.
-  console.log(
-    JSON.stringify({ event: "api_lead", outcome: captured.reason, scanId: body.scanId })
-  );
-  return captured.reason === "invalid-address"
+  return outcome === "invalid-address"
     ? json(INVALID_ADDRESS, { ok: false, message: RESPONSES.invalid })
     : json(STORE_UNAVAILABLE, { ok: false, message: RESPONSES.unavailable });
 }
