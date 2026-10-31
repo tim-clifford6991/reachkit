@@ -319,9 +319,9 @@ export function isPublicHost(hostOrUrl: string): boolean {
 const JOB_HOST = /^(jobs|careers?|karriere|stellen)\./;
 const JOB_SEGMENT = /^(jobs?|job-details|vacanc(y|ies)|careers?|stellen(angebote)?|stellenmarkt|jobsuche)$/;
 const JOB_TITLE =
-  /(?<![\p{L}\p{N}])(jobs?|careers?|vacanc(y|ies)|salary|salaries|apprenticeships?|traineeships?|how to become|recruit(ment|ers?|ing)|stellenangebote?|gehalt|ausbildung|emploi|empleos?|vacatures?)(?![\p{L}\p{N}])/iu;
+  /(?<![\p{L}\p{N}])(jobs?|careers?|vacanc(y|ies)|salary|salaries|apprenticeships?|traineeships?|how to become|stellenangebote?|gehalt|ausbildung|emploi|empleos?|vacatures?)(?![\p{L}\p{N}])/iu;
 /** A business whose market is job seekers: it recruits, staffs or trains. */
-const JOB_TRADE = /(?<![\p{L}\p{N}])(staffing|headhunt\p{L}*|employment agenc\p{L}*|training|courses?|bootcamps?|personalvermittlung|zeitarbeit|weiterbildung|recrutement|intérim|reclutamiento|formación|werving|uitzend\p{L}*)(?![\p{L}\p{N}])/iu;
+const JOB_TRADE = /(?<![\p{L}\p{N}])(recruit\p{L}*|staffing|headhunt\p{L}*|employment agenc\p{L}*|training|courses?|bootcamps?|personalvermittlung|zeitarbeit|weiterbildung|recrutement|intérim|reclutamiento|formación|werving|uitzend\p{L}*)(?![\p{L}\p{N}])/iu;
 
 export function isJobRow(row: { domain: string; url?: string; title?: string }): boolean {
   const parsed = parseDomain(row.domain);
