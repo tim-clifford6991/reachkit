@@ -400,16 +400,10 @@ function theMagicLink(): string {
   return found[1] as string;
 }
 
-/** The link opens a page with one button; pressing it posts the link's two
- *  values from that page. */
 async function followTheLink(tokenHash: string): ReturnType<typeof redeemRoute> {
-  return redeemRoute(
-    new NextRequest("https://app.example.com/auth/confirm/redeem", {
-      method: "POST",
-      headers: { origin: new URL(env.NEXT_PUBLIC_APP_URL).origin },
-      body: new URLSearchParams({ token_hash: tokenHash, type: "magiclink" }),
-    })
-  );
+  const body = new URLSearchParams({ token_hash: tokenHash, type: "magiclink" });
+  const headers = { origin: new URL(env.NEXT_PUBLIC_APP_URL).origin };
+  return redeemRoute(new NextRequest("https://app.example.com/auth/confirm/redeem", { method: "POST", headers, body }));
 }
 
 describe("Start → Checkout → webhook → magic link → /setup (JN-002 steps 1–2)", () => {

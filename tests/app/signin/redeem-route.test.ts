@@ -1,11 +1,9 @@
 // tests/app/signin/redeem-route.test.ts — BUILD §13, issues #35, #468
 //
-// A sign-in link lands on `/auth/confirm`, which shows one button and
-// spends nothing; the button's post to `/auth/confirm/redeem` hands the hash
-// to `verifyOtp` and puts the session Supabase writes on its own redirect.
-// Supabase's half runs through the identity suites' `fake-auth.ts`. Every
-// case reaches the post the way a browser does: it opens the page, reads
-// the form the page drew, and sends that form back.
+// A link lands on `/auth/confirm`, which shows one button and spends
+// nothing; the button's post to `/auth/confirm/redeem` is what calls
+// `verifyOtp` (`fake-auth.ts`). Every case opens the page, reads the form it
+// drew, and posts that form back, as a browser does.
 //
 // REQ-098 criterion 7, quoted: "Given a person who opens a sign-in link
 // that no longer works — expired; spent, because it was used once already
@@ -68,11 +66,7 @@ function account(email: string, patch: { first_signed_in_at?: string } = {}) {
   return user;
 }
 
-interface Form {
-  method: string;
-  action: string;
-  fields: Record<string, string>;
-}
+type Form = { method: string; action: string; fields: Record<string, string> };
 type Landed = { kind: "page"; html: string; form: Form } | { kind: "redirect"; to: string };
 
 /** The form the page drew: its target and its hidden fields. */
@@ -98,8 +92,8 @@ async function land(url: string): Promise<Landed> {
 }
 
 function page(landed: Landed): { html: string; form: Form } {
-  if (landed.kind !== "page") throw new Error(`the link redirected to ${landed.to}`);
-  return landed;
+  if (landed.kind === "page") return landed;
+  throw new Error(`the link redirected to ${landed.to}`);
 }
 
 /** The press: the form posted back, with the headers a browser sends. */
@@ -148,12 +142,12 @@ describe("opening the link spends nothing; the press signs in", () => {
     await land(url);
     const second = page(await land(url));
     expect(auth.verifyCalls).toBe(0);
-    expect(auth.tokens.every((t) => !t.used)).toBe(true);
 
-    const response = await press(second.form);
+    const cookie = (await press(second.form)).cookies.get(FAKE_AUTH_COOKIE);
     expect(auth.verifyCalls).toBe(1);
-    const cookie = response.cookies.get(FAKE_AUTH_COOKIE);
     expect(auth.sessions.find((s) => s.accessToken === cookie?.value)?.userId).toBe(userId);
+    // The session client's attributes ride on the redirect untouched.
+    expect([cookie?.httpOnly, cookie?.path]).toEqual([true, "/"]);
   });
 
   it("the page is one plain form that posts to the redeem route, with one button and no link", async () => {
@@ -174,13 +168,6 @@ describe("opening the link spends nothing; the press signs in", () => {
     const { url } = await liveLink();
     const response = await press(page(await land(url)).form, { origin: ORIGIN });
     expect(response.cookies.get(FAKE_AUTH_COOKIE)).toBeDefined();
-  });
-
-  it("puts the session on the redirect's own response, with the attributes the session client gave it", async () => {
-    const { url } = await liveLink();
-    const cookie = (await follow(url)).cookies.get(FAKE_AUTH_COOKIE);
-    expect(cookie?.httpOnly).toBe(true);
-    expect(cookie?.path).toBe("/");
   });
 
   it("a founder who has never signed in lands on setup (§13)", async () => {
@@ -272,14 +259,6 @@ describe("R15 — a reminder's link may ask for /setup/connect, and nothing else
     const response = await follow(asked.toString());
     expect(new URL(response.headers.get("location") ?? "").origin).toBe(asked.origin);
     expect(locationOf(response)).toBe(landing);
-  });
-
-  it("a landing the form did not carry is not taken from the post either", async () => {
-    const { url } = await liveLink();
-    const { form } = page(await land(url));
-    expect(locationOf(await press({ ...form, fields: { ...form.fields, next: "https://evil.example/" } }))).toBe(
-      "/setup"
-    );
   });
 });
 

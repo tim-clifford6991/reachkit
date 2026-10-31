@@ -1,7 +1,4 @@
-// tests/ui/confirm-form.test.tsx — the sign-in link's one button (board AuthConfirm).
-//
-// A second press would post a link the first press already spent, and land
-// the customer on the dead-link screen just after signing in.
+// A second press would post a link the first press spent, and land the customer on the dead-link screen.
 import { act } from "react";
 import { createRoot } from "react-dom/client";
 import { describe, expect, it } from "vitest";
@@ -16,9 +13,7 @@ describe("the confirm button", () => {
     const button = host.querySelector("button")!;
     expect(button.disabled).toBe(false);
 
-    act(() => {
-      form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
-    });
+    act(() => void form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true })));
 
     expect(button.disabled).toBe(true);
     expect(button.getAttribute("aria-busy")).toBe("true");
