@@ -31,10 +31,10 @@ import type { CopyPartition } from "../registry.ts";
 
 export const OFFER_COPY = Object.freeze({
   "price.amount": ["€49", { slots: {}, fixedBy: "REQ-022 c1" }],
-  "price.vat_included": ["VAT included", { slots: {}, fixedBy: "REQ-022 c1" }],
-  "price.interval": ["per month, VAT included", { slots: {}, fixedBy: "REQ-022 c1" }],
-  "offer.cadence.page": ["Up to {weekPages} pages a week for your site, new or updated", { slots: { weekPages: "text" }, fixedBy: "REQ-021 c2 · owner A1 2026-10-19" }],
-  "offer.cadence.movement": ["What moved, in your inbox {value}", { slots: { value: "text" }, fixedBy: "REQ-021 c2" }],
+  "price.vat_included": ["Tax included", { slots: {}, fixedBy: "REQ-022 c1" }],
+  "price.interval": ["a month · tax included", { slots: {}, fixedBy: "REQ-022 c1" }],
+  "offer.cadence.page": ["Up to {weekPages} pages a week, new or updated", { slots: { weekPages: "text" }, fixedBy: "REQ-021 c2 · owner A1 2026-10-19" }],
+  "offer.cadence.movement": ["A Monday email shows what went live and what moved.", { slots: {}, fixedBy: "REQ-021 c2" }],
   "offer.veto.window": ["Every page goes live on its own after {value}. You can edit or stop it before then.", { slots: { value: "text" }, fixedBy: "REQ-021 c2 · board PubReport · issue 1724" }],
   // Issue 1068, board R12-2: the price close's heading on the report.
   // Drafted; the owner corrects the wording.
@@ -102,8 +102,6 @@ export const OFFER_COPY = Object.freeze({
     { slots: {}, fixedBy: "SPEC.md §3 (2026-09-13)" },
   ],
 
-  // The values the `{value}` lines above take. The veto window carries its
-  // number from `VETO.defaultHours` through `{hours}`, so it is written once.
-  "offer.cadence.movement.value": ["every Monday", { slots: {}, fixedBy: "REQ-021 c2" }],
+  // The value the veto line above takes, its number from `VETO.defaultHours` through `{hours}`.
   "offer.veto.window.value": ["{hours} hours", { slots: { hours: "text" }, fixedBy: "REQ-021 c2" }],
 }) satisfies CopyPartition;

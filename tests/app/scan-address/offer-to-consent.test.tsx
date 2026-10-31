@@ -48,20 +48,21 @@ describe.each(["saas", "local"] as const)("the %s panel report, offer to consent
       " checks",
       "Edit or stop any page",
       "Live on your website by itself",
-      "Up to 7 pages a week for your site, new or updated",
+      "Up to 7 pages a week, new or updated",
       "Your market and your pages checked every Monday",
-      "What moved, in your inbox every Monday",
+      "A Monday email shows what went live and what moved.",
       "Every page goes live on its own after 24 hours. You can edit or stop it before then.",
       "Your part: about 10 minutes, once.",
       "What you do",
       "€49",
-      "per month, VAT included",
+      "a month · tax included",
       "Billed in euros. €49 is the total, wherever you are.",
       "Start ReachKit €49",
       "Cancel any time from Settings. No account before payment.",
       "Not ready? Get your first page free ↓",
-      "Everything else in your report · open any",
-      "What holds you back",
+      "More in your report",
+      "Site fixes",
+      "The 3 that cost you most, then 8 quick checks",
       "The complete method, free",
       "How to do it all yourself, step by step",
       "Where should we send it?",
@@ -82,7 +83,7 @@ describe.each(["saas", "local"] as const)("the %s panel report, offer to consent
     for (const old of ["AI readers blocked", "No sitemap", "Broken internal links", "Missing structured data", "GEO", "Unblock the AI readers"]) {
       expect(page).not.toContain(old);
     }
-    expectInOrder(page, ["Let AI in", "Write the missing pages", "Make pages AI can answer from"]);
+    expectInOrder(page, ["Let AI in", "Write the missing pages", "Make pages AI can quote"]);
     // The method is closed under its own name, like the sections around it.
     expect(html).toMatch(/<details id="method"[^>]*><summary/);
   });
@@ -97,7 +98,7 @@ describe("a site that turns AI readers away", () => {
     const page = text(renderReport(FIXTURE_REPORT));
     expectInOrder(page, [
       "AI shut out of your site",
-      "AI can’t use a page it is turned away from, or a page that tells Google and AI not to use it.",
+      "Your site blocks AI, or asks Google and AI to skip pages.",
     ]);
   });
 });

@@ -36,7 +36,7 @@ export function MethodSections(p: {
   const snippetPages = p.readers?.snippetPages ?? [];
   const trainingOptOut = p.readers?.trainingOptOut ?? [];
   return (
-    // Closed under its own name like What holds you back (board PubReport); a link into a step opens both.
+    // Closed under its own name like Site fixes (board PubReport); a link into a step opens both.
     <details id="method" className="collapse collapse-arrow scroll-mt-20 rounded-none" data-testid="report-method">
       <summary className="collapse-title min-h-0 px-px py-2 pe-10 after:end-2 after:top-6">
         <div className="flex items-center gap-3">

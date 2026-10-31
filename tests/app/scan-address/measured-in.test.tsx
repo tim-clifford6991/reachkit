@@ -38,16 +38,16 @@ describe("the measured-in line never calls a supported country or language unmea
   it.each(READINGS)("a site read as %o", (reading) => {
     const { locale, fellBack } = resolveLocale(reading);
     const line = measuredIn(fellBack === null ? locale : { ...locale, fellBack });
-    for (const name of SUPPORTED) expect(line ?? "").not.toContain(`does not measure ${name} yet`);
+    for (const name of SUPPORTED) expect(line ?? "").not.toContain(`don’t scan ${name} yet`);
   });
 
   it("a stored report of a supported country read in another language names the pair and suggests a rescan", () => {
     expect(measuredIn({ country: "GB", language: "en", fellBack: { country: "DE", language: null } })).toBe(
-      "Measured as searched in United Kingdom, in English, because your site read as English. ReachKit measures Germany in German: scan again to see it."
+      "Searched in United Kingdom, in English, because your site is in English. Scan again to see Germany in German."
     );
     for (const country of Object.keys(COUNTRIES)) {
       expect(measuredIn({ country: "GB", language: "en", fellBack: { country, language: "fr" } })).toContain(
-        `because your site read as French. ReachKit measures ${COUNTRIES[country as keyof typeof COUNTRIES].location} in`
+        `because your site is in French. Scan again to see ${COUNTRIES[country as keyof typeof COUNTRIES].location} in`
       );
     }
   });
@@ -55,19 +55,19 @@ describe("the measured-in line never calls a supported country or language unmea
   it("a German site read as English is measured in Germany, in German, and the line says only that", () => {
     const { locale, fellBack } = resolveLocale({ country: "DE", language: "en" });
     expect(measuredIn({ ...locale, ...(fellBack === null ? {} : { fellBack }) })).toBe(
-      "Measured as searched in Germany, in German. Your site reads as English; ReachKit measures Germany in German."
+      "Searched on Google in Germany, in German. Your site is in English, and we scan Germany in German."
     );
   });
 
   it("a supported language read in a country that does not use it names the pair", () => {
     expect(measuredIn({ country: "GB", language: "en", fellBack: { country: null, language: "de" } })).toBe(
-      "Measured as searched in United Kingdom, in English. Your site reads as German; ReachKit measures United Kingdom in English."
+      "Searched on Google in United Kingdom, in English. Your site is in German, and we scan United Kingdom in English."
     );
   });
 
   it("what is not on the list is still named unmeasured", () => {
     expect(measuredIn({ country: "GB", language: "en", fellBack: { country: "FR", language: "fr" } })).toBe(
-      "Measured as searched in United Kingdom, in English. ReachKit does not measure France in French yet."
+      "Searched on Google in United Kingdom, in English. We don’t scan France in French yet."
     );
   });
 });
@@ -86,8 +86,8 @@ describe("a site that declares other markets is told one is measured", () => {
 
   it.each([
     [0, null],
-    [1, "Your site also serves one other market. We measure the one this address is for; choose another at setup."],
-    [48, "Your site also serves 48 other markets. We measure the one this address is for; choose another at setup."],
+    [1, "Your site serves one more market. You can choose it at setup."],
+    [48, "Your site serves 48 more markets. You can choose another at setup."],
   ])("the free report at %i other markets", (n, said) => {
     const html = reportHtml({ country: "DE", language: "de", ...(n === 0 ? {} : { alsoServes: tags(n) }) });
     expect(lineOf(html, "report-also-serves")).toBe(said);
@@ -131,7 +131,7 @@ describe("a report measured in a guessed country says so, and offers the one cor
     );
   // The one control is the header's button; What we read only links to it.
   const offers = (page: string): number => page.split(`${copy("verdict.not-your-market")}</button>`).length - 1;
-  const GUESSED = "We couldn’t read your site, so we measured it in Google United States, in English.";
+  const GUESSED = "We couldn’t read your site, so we searched Google in United States, in English.";
   const blocked = { onPage: { kind: "unmeasured", reason: "undeterminable", because: "bot_protection", at: FIXTURE_REPORT.verdict.measuredAt } } as Partial<StoredReport>;
 
   it("a guessed locale renders the guessed line, and the correction once", () => {
@@ -143,7 +143,7 @@ describe("a report measured in a guessed country says so, and offers the one cor
 
   it("a guessed locale whose listing reads another country names it beside the one correction", () => {
     const page = html({ locale: { country: "US", language: "en", basis: "default", listingReads: "GB" } });
-    expect(lineOf(page, "report-measured-in")).toBe(`${GUESSED} Your Google listing reads as United Kingdom.`);
+    expect(lineOf(page, "report-measured-in")).toBe(`${GUESSED} Your Google listing says United Kingdom.`);
     expect(offers(page)).toBe(1);
   });
 

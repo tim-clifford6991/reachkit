@@ -155,7 +155,6 @@ const SCREEN_KEYS: readonly CopyKey[] = [
   "offer.cadence.page",
   "pricing.plan.checked",
   "offer.cadence.movement",
-  "offer.cadence.movement.value",
   "offer.veto.window",
   "offer.veto.window.value",
   "offer.start",

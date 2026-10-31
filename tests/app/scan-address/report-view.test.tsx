@@ -797,7 +797,8 @@ describe("board PubReport — each section under \"Everything else\" opens with 
 
   it("the holds subtitle reads while closed", () => {
     const summary = page.querySelector("#holds > summary");
-    expect(summary?.querySelector("h2 + p")?.text).toBe("problem.section.sub");
+    // The counts are the cards the section draws: three problems, then the eight checks.
+    expect(summary?.querySelector("h2 + p")?.text).toBe("problem.section.sub(3|8)");
     expect(page.querySelector("#holds > .collapse-content")?.text).not.toContain("problem.section.sub");
     expect(page.toString().split("problem.section.sub")).toHaveLength(2);
   });

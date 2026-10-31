@@ -78,7 +78,7 @@ The nav label, the heading in the docs and the screen name are the same word. Is
 | AI | `/app/ai-answers` | AI. “AI answers” until 2026-10-09 (#1363), then “AI Visibility” until 2026-10-15 (#1444); the route keeps the old word |
 | Competitors | `/app/rivals` | Competitors. “Rivals” was its label until 2026-10-15 (#1444); the route keeps the old word |
 
-- 2026-10-15  **Section, tab and mail names equal the bar names** (owner, #1444). The free report's verdict draws four bars — Readiness, Content, Google, AI — and its two sections are “Google” and “AI”; the app tabs and the mail sections carry the same words. A title is at most six words, one idea, no em-dash; a number is the figure and its explanation one line under it (`docs/SPEC.md` §0, 2026-10-15).
+- 2026-10-15  **Section, tab and mail names equal the bar names** (owner, #1444). The free report's verdict draws four bars — Readiness, Content, Google, AI (renamed Website basics and Answers questions, owner R4, `docs/spec/decisions/2026-10-31-2165.md`) — and its two sections are “Google” and “AI”; the app tabs and the mail sections carry the same words. A title is at most six words, one idea, no em-dash; a number is the figure and its explanation one line under it (`docs/SPEC.md` §0, 2026-10-15).
 - 2026-10-31  **Plain words** (owner O6, `docs/spec/decisions/2026-10-31-2145.md`). The retired names, the rule-4 words, the limits and the exempt keys and boards live in `scripts/lib/plain-words.mjs`; `tests/ui/design/strategy.test.ts` counts each key file and board, and a count only falls.
 
 ## Strategy the gate checks

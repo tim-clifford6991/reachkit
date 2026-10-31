@@ -56,14 +56,14 @@ describe.each(["saas", "local"] as const)("the re-scored line on the %s panel re
     const html = renderReport(rescored(which, { before: 53, after: 14, googleBefore: 100, googleAfter: 20 }));
     const line = html.slice(html.indexOf(LINE));
     expect(line).toContain("Oct 24, 2026");
-    expect(line).toMatch(/It read 53 before\./);
+    expect(line).toMatch(/It was 53\./);
     expect(html.indexOf('data-testid="report-score"')).toBeLessThan(html.indexOf(LINE));
   });
 
   it("reads the kept score column where the kept report cannot be read", () => {
     const html = renderReport(rescored(which, { before: 53, after: 14, googleBefore: 100, googleAfter: 20, previous: { version: 999 } }));
     expect(html).toContain(LINE);
-    expect(html.slice(html.indexOf(LINE))).toMatch(/It read 53 before\./);
+    expect(html.slice(html.indexOf(LINE))).toMatch(/It was 53\./);
   });
 
   it.each([

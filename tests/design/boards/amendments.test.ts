@@ -71,7 +71,7 @@ describe("the boards draw a ring for every score (E17)", () => {
 });
 
 describe("rows of squares are bars (E18, E20–E25)", () => {
-  it("PubReport's score parts are one bar each, and What holds you back draws no dot row (E19)", () => {
+  it("PubReport's score parts are one bar each, and Site fixes draws no dot row (E19)", () => {
     const root = board("PubReport");
     const parts = root.querySelector('ul[aria-label="The four parts of the score"]')!;
     expect(parts.querySelectorAll(".track")).toHaveLength(4);

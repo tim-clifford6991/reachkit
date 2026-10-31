@@ -70,7 +70,7 @@ const TERM_LINES: Readonly<Record<OfferTerms, () => readonly string[]>> = {
   report: () => [
     copy("offer.cadence.page", { weekPages: WEEK_PLAN.days }),
     copy("pricing.plan.checked"),
-    copy("offer.cadence.movement", { value: copy("offer.cadence.movement.value") }),
+    copy("offer.cadence.movement"),
     copy("offer.veto.window", {
       value: copy("offer.veto.window.value", { hours: String(VETO.defaultHours) }),
     }),

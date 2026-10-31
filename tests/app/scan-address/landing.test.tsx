@@ -415,18 +415,13 @@ describe('REQ-093 c1 (BP-022: "This node contains no string literal a person rea
   });
 });
 
-// The owner's exact strings for the five `landing.problem.*` keys
-// (2026-09-04 ruling, WO-070 `## Log`) — transcribed byte-exact from the
-// ruling's canonical source, never retyped by eye, on the same terms the
-// three 2026-09-03 strings below were entered into
-// `src/lib/presentation/copy/keys/report.ts`.
+// The five `landing.problem.*` lines, in plain words under owner ruling O6 (2026-10-31).
 const OWNER_PROBLEM_LINES: Record<string, string> = {
-  "landing.problem.empty": "Type your website’s address first — for example, example.com.",
-  "landing.problem.not-a-hostname": "That doesn’t look like a website address. Try the form example.com.",
-  "landing.problem.ip-literal":
-    "That’s a numeric address, not a website name. Type the name people visit, like example.com.",
-  "landing.problem.no-public-suffix": "That address is missing its ending — try example.com rather than example.",
-  "landing.problem.too-long": "That’s longer than any website address can be — check for extra text pasted in.",
+  "landing.problem.empty": "Type your website’s address, like example.com.",
+  "landing.problem.not-a-hostname": "That isn’t a website address. Try one like example.com.",
+  "landing.problem.ip-literal": "That’s a number, not a website name. Try one like example.com.",
+  "landing.problem.no-public-suffix": "That address has no ending. Try one like example.com.",
+  "landing.problem.too-long": "That’s too long for a website address. Check for extra text.",
 };
 
 describe('ADR-093 decision 6 — "every screen root is a `Surface`" (issue #62)', () => {
