@@ -9,7 +9,8 @@
 // software at all.
 //
 // **What is asked, and of what.** Only the sentences that name the business
-// — its title included — are sent, numbered, beside the knowledge base. A
+// — its title included, unless the title rule makes it name the business —
+// are sent, numbered, beside the knowledge base. A
 // sentence that does not name it claims nothing about it. The small tier
 // answers with the indexes of the sentences that claim a use, an audience or
 // a category the knowledge base does not support, and nothing else: the
@@ -56,7 +57,9 @@ const TABLE_LINE_RE = /^[ \t]*\|.*\|[ \t]*$/;
 const TABLE_RULE_RE = /^[ \t|:-]+$/;
 
 /** The sentences a fit check reads: the title and every sentence of the
- *  body that names the business, once each, in order. A table is read row
+ *  body that names the business, once each, in order. A title the title rule
+ *  makes name the business ("ReachKit vs Seobility") claims no fit and is
+ *  left out. A table is read row
  *  by row — the rules' own splitter takes a whole table as one block, and a
  *  whole comparison is not a claim about one business. */
 export function brandSentences(a: {
@@ -64,6 +67,7 @@ export function brandSentences(a: {
   markdown: string;
   businessName: string | null;
   domain: string;
+  titleOwed?: boolean;
 }): string[] {
   const tokens = brandTokens(a);
   const out: string[] = [];
@@ -72,7 +76,7 @@ export function brandSentences(a: {
   const rows = lines
     .filter((line) => TABLE_LINE_RE.test(line) && !TABLE_RULE_RE.test(line))
     .map((line) => renderOf(line).replace(/\s+/g, " ").trim());
-  for (const text of [a.title, ...sentencesOf(prose).map((sentence) => sentence.text), ...rows]) {
+  for (const text of [...(a.titleOwed === true ? [] : [a.title]), ...sentencesOf(prose).map((sentence) => sentence.text), ...rows]) {
     if (namesBrand(text, tokens) && !out.includes(text)) out.push(text);
   }
   return out.slice(0, FIT_CHECK_MAX_SENTENCES);
@@ -85,6 +89,8 @@ export async function fitCheck(
     markdown: string;
     businessName: string | null;
     domain: string;
+    /** The title rule requires the title to name the business. */
+    titleOwed?: boolean;
     /** The knowledge base the writer was handed, or absent where nothing was
      *  read or said of the business. */
     knowledge: PromptKnowledge | undefined;
