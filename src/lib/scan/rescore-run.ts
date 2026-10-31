@@ -24,6 +24,7 @@ import { rewrittenSiteName, storedSiteName } from "@/lib/site-profile/site-name"
 import { AI_ANSWER_SOURCES, AI_OVERVIEW_TEXT_MAX_CHARS } from "@/lib/vendors/dataforseo/types";
 import { OWN_FETCH_SOURCE, siteDocumentOf } from "@/lib/measure/own-fetch";
 import { readStoredReport } from "./report";
+import { homeOf, homeReadsFor, type HomeReadRow, type StoredRead } from "./home-reads";
 import {
   rehomeSite,
   rescoreScan,
@@ -38,6 +39,8 @@ import {
 import type { ScanStatus } from "./store";
 import { asksByItself, heldBecause, nextStep, type RunRecord, type ScoreMove } from "./derivation";
 
+export type { StoredRead };
+
 /** A `scans` row as stored, with its report's checksum. */
 export interface StoredScanRow {
   id: string;
@@ -51,13 +54,6 @@ export interface StoredScanRow {
   report: unknown;
   siteId: string | null;
   isCurrent: boolean;
-}
-
-/** A stored read of a site's home page (`fetches`). */
-export interface StoredRead {
-  source: "egress.safeFetch" | "on_page/instant_pages";
-  created_at: string;
-  payload: unknown;
 }
 
 /** One own-document read as `fetches` keeps it: its address and payload. */
@@ -163,8 +159,9 @@ export interface SiteWrite {
 
 export interface RescoreStore {
   scans(): Promise<readonly StoredScanRow[]>;
-  /** The home page reads stored for `https://<domain>/`. */
-  homeReads(domain: string): Promise<readonly StoredRead[]>;
+  /** The home page reads stored for `https://<domain>/`: the ones reports
+   *  measured at `onPageAt` are scored with, or every one where it is absent. */
+  homeReads(domain: string, onPageAt?: readonly number[]): Promise<readonly StoredRead[]>;
   sites(): Promise<readonly StoredSiteRow[]>;
   profiles(): Promise<readonly StoredProfileName[]>;
   /** Issue 1551: a paying site's scan's own-document reads (`fetches` under
@@ -264,22 +261,15 @@ function valuesKept(report: RescoreReport): void {
   }
 }
 
-function readAt(read: StoredRead): number {
-  const at = (read.payload as { readAt?: unknown } | null)?.readAt;
-  return typeof at === "string" ? Date.parse(at) : Number.NaN;
-}
-
-/** The home read the report's on-page facts came from: the newest read at
- *  or before them. */
-function homeOf(report: RescoreReport, reads: readonly StoredRead[]): { created_at: string; payload: unknown } | null {
-  if (report.onPage.kind === "unmeasured") return null;
-  const before = new Date(report.onPage.at).getTime();
-  let best: StoredRead | null = null;
-  for (const read of reads) {
-    if (read.source !== "egress.safeFetch" || !(readAt(read) <= before)) continue;
-    if (best === null || readAt(read) > readAt(best)) best = read;
+/** When the report's on-page facts were read; `null` where they were not, or
+ *  the report cannot be read. */
+function onPageAtOf(stored: unknown): number | null {
+  try {
+    const report = reportOf(stored);
+    return report.onPage.kind === "unmeasured" ? null : new Date(report.onPage.at).getTime();
+  } catch {
+    return null;
   }
-  return best === null ? null : { created_at: best.created_at, payload: best.payload };
 }
 
 /** One stored scan scored again; a report this build cannot read is listed,
@@ -301,7 +291,7 @@ export function rescoreRow(
     score: scan.score,
     drivers: driversOf(scan.drivers),
     report,
-    home: homeOf(report, reads),
+    home: report.onPage.kind === "unmeasured" ? null : homeOf(new Date(report.onPage.at).getTime(), reads),
     rendered: reads.filter((r) => r.source === "on_page/instant_pages").map((r) => ({ created_at: r.created_at, payload: r.payload })),
     siteName: said.siteName,
     answers: said.answers,
@@ -579,7 +569,7 @@ export async function rescoreStored(store: RescoreStore, o: RescoreOptions): Pro
   for (const scan of scans) byDomain.set(scan.domain, [...(byDomain.get(scan.domain) ?? []), scan]);
   for (const [domain, ofDomain] of byDomain) {
     // A domain's home reads are held only while its own scans are scored.
-    const reads = await store.homeReads(domain);
+    const reads = await store.homeReads(domain, ofDomain.flatMap((scan) => onPageAtOf(scan.report) ?? []));
     for (const scan of ofDomain) {
       const answers = scan.siteId !== null && scan.isCurrent ? await store.answers(scan.id) : [];
       const market = scan.siteId === null ? undefined : markets.get(scan.siteId);
@@ -795,15 +785,13 @@ export function databaseRescore(): RescoreQueue & RescoreStore {
         if ((page ?? []).length < PAGE) return out;
       }
     },
-    async homeReads(domain) {
-      const rows = checked(
-        await (await client())
-          .from<StoredRead>("fetches")
-          .select("source, created_at, payload")
-          .in("source", ["egress.safeFetch", "on_page/instant_pages"])
-          .eq("cache_key", `https://${domain}/`)
-      );
-      return rows ?? [];
+    async homeReads(domain, onPageAt) {
+      const db = await client();
+      const reads = <T>(columns: string) =>
+        db.from<T>("fetches").select(columns).in("source", ["egress.safeFetch", "on_page/instant_pages"]).eq("cache_key", `https://${domain}/`);
+      if (onPageAt === undefined) return checked(await reads<StoredRead>("source, created_at, payload")) ?? [];
+      const rows = checked(await reads<HomeReadRow>("id, source, created_at, read_at:payload->readAt")) ?? [];
+      return homeReadsFor(rows, onPageAt, async (ids) => checked(await reads<StoredRead>("source, created_at, payload").in("id", ids)) ?? []);
     },
     async sites() {
       const rows = checked(await (await client()).from<StoredSiteRow>("sites").select("id, domain, competitors, market"));
