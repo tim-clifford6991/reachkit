@@ -70,11 +70,11 @@ export const LAWS_COPY = Object.freeze({
     { law: "stopped-work", slots: { date: "date" }, fixedBy: "REQ-092 c4" },
   ],
   "stopped.work.no-time-promised": [
-    "No time is promised for the work to resume.",
+    "We can’t say yet when we’ll resume.",
     { law: "stopped-work", slots: {}, fixedBy: "REQ-092 c4" },
   ],
   "stopped.work.partial-pass": [
-    "This page was written from a scan cut short: part of it wasn’t done.",
+    "This page was written from a check that didn’t finish.",
     { law: "stopped-work", slots: {}, fixedBy: "REQ-092 c6" },
   ],
   "next-publish.stopped": ["ReachKit stopped its own work, so no page is scheduled.", { law: "next-publish", slots: {}, fixedBy: "REQ-092 c7" }],
@@ -84,7 +84,7 @@ export const LAWS_COPY = Object.freeze({
   ],
   // The hosted address is not connected yet, so no page can go live (the
   // OverviewDNS board's sidebar line). Drafted; the owner corrects it.
-  "next-publish.address-waiting": ["Waiting for your domain", { law: "next-publish", slots: {}, fixedBy: "issue 1595" }],
+  "next-publish.address-waiting": ["Waiting for your website", { law: "next-publish", slots: {}, fixedBy: "issue 1595" }],
   "next-publish.paused": ["Publishing is off.", { law: "next-publish", slots: {}, fixedBy: "REQ-040 c4" }],
   // A page is planned and not written yet (owner 2026-10-09, issue 1362).
   // It replaces the "nothing approved" cause: no customer approves a page.
@@ -141,9 +141,9 @@ export const LAWS_COPY = Object.freeze({
     "proposed by ReachKit · not yet written · {pageTitle}",
     { slots: { pageTitle: "text" }, fixedBy: "REQ-093 c2" },
   ],
-  "unmeasured.undeterminable": ["{what} couldn’t be measured: nothing came back that could be read.", { law: "unmeasured", slots: { what: "text" }, fixedBy: "REQ-004 c6" }],
-  "unmeasured.not-attempted": ["{what} wasn’t measured: the scan stopped early, before it got there.", { law: "unmeasured", slots: { what: "text" }, fixedBy: "REQ-004 c9" }],
-  "unmeasured.not-yet": ["{what} isn’t measured yet.", { law: "unmeasured", slots: { what: "text" }, fixedBy: "issue 1599 · drafted" }],
+  "unmeasured.undeterminable": ["We couldn’t check {what} this time.", { law: "unmeasured", slots: { what: "text" }, fixedBy: "REQ-004 c6" }],
+  "unmeasured.not-attempted": ["We didn’t check {what}, because the check stopped early.", { law: "unmeasured", slots: { what: "text" }, fixedBy: "REQ-004 c9" }],
+  "unmeasured.not-yet": ["We haven’t checked {what} yet.", { law: "unmeasured", slots: { what: "text" }, fixedBy: "issue 1599 · drafted" }],
   "unmeasured.dash": ["—", { law: "unmeasured", slots: {}, fixedBy: "REQ-004 c2" }],
   // The label the screen set draws over the three nav rows, in the eyebrow
   // role (S12, UI-SPEC §2's sidebar row). Approved as written (11a); the
@@ -155,7 +155,7 @@ export const LAWS_COPY = Object.freeze({
   // address and loses its old word. The key was `shell.nav.calendar`; a
   // renamed key rather than a re-worded one, so nothing can go on speaking
   // "Calendar" from a name that no longer means it.
-  "shell.nav.plan": ["Plan", { slots: {}, fixedBy: "SPEC §4 (2026-09-20)" }],
+  "shell.nav.plan": ["This week", { slots: {}, fixedBy: "owner R8 (2026-10-31)" }],
   "shell.nav.settings": ["Settings", { slots: {}, fixedBy: "REQ-040 c1" }],
   /** SPEC §4 (2026-09-20, #908) — the side panel that "collapses to an icon
    *  rail", and below the large breakpoint is a drawer. The checkbox that
@@ -193,7 +193,7 @@ export const LAWS_COPY = Object.freeze({
   /** SPEC §4 (2026-09-20) — the side panel's two shortcuts. Each is drawn
    *  only where it can act (SPEC §4, 2026-09-20: "a control that cannot act
    *  is not drawn"), so the blog link is absent until a blog is live. */
-  "shell.shortcut.blog": ["Visit your blog", { slots: {}, fixedBy: "issue 911" }],
+  "shell.shortcut.blog": ["Open your pages", { slots: {}, fixedBy: "issue 911" }],
   "shell.shortcut.help": ["Help", { slots: {}, fixedBy: "issue 911" }],
   "shell.publishing.mode.autopilot": ["Autopilot", { slots: {}, fixedBy: "REQ-040 c3" }],
   // What the mode is doing, under the mode's own word (UI-SPEC S12's
@@ -209,7 +209,7 @@ export const LAWS_COPY = Object.freeze({
   // is closed ("This module adds none"). So this key is the state sentence
   // only, and the owner decides whether c4 gains a cause.
   "shell.publishing.state.week-zero": [
-    "First page after the deep scan",
+    "First page after your first check",
     { slots: {}, fixedBy: "S13" },
   ],
   /** Issue #782: Overview and Calendar while the onboarding pass and the
@@ -236,26 +236,26 @@ export const LAWS_COPY = Object.freeze({
   /** Issue 1196 — the side panel's one status line for a pass: when its
    *  step began, and how it ended. Drafted in the registry's voice; the
    *  owner may correct them. */
-  "shell.pass.remeasure-head": ["Scanning your market again", { slots: {}, fixedBy: "issue 1196" }],
+  "shell.pass.remeasure-head": ["Checking your market again", { slots: {}, fixedBy: "issue 1196" }],
   "shell.pass.since": ["This step started at {time}.", { slots: { time: "text" }, fixedBy: "issue 1196" }],
   "shell.pass.ended.done": [
-    "Scan finished at {time}. Your screens show what it found.",
+    "Check finished at {time}. Your screens show what it found.",
     { slots: { time: "text" }, fixedBy: "issue 1196" },
   ],
   "shell.pass.ended.failed": [
-    "Scan failed at {time}, on our side. Nothing is needed from you; the next scan fills it in.",
+    "The check failed at {time}, on our side. The next check fills it in.",
     { slots: { time: "text" }, fixedBy: "issue 1196" },
   ],
   "shell.pass.ended.site-unreadable": [
-    "Scan failed at {time}: we couldn’t read your site. Check that it’s online, then scan again from Settings.",
+    "We couldn’t read your site at {time}. Check that it’s online, then check again in Settings.",
     { slots: { time: "text" }, fixedBy: "issue 1196" },
   ],
   "shell.pass.ended.time-ceiling": [
-    "Scan stopped at {time}: it ran out of time. What it measured is shown; the next scan fills in the rest.",
+    "The check ran out of time at {time}. The next check fills in the rest.",
     { slots: { time: "text" }, fixedBy: "issue 1196" },
   ],
   "shell.pass.ended.spend-ceiling": [
-    "Scan stopped at {time}: it reached its spending limit. What it measured is shown; the next scan fills in the rest.",
+    "The check hit its cost limit at {time}. The next check fills in the rest.",
     { slots: { time: "text" }, fixedBy: "issue 1196" },
   ],
   // Both approved as written by the screen set (ruling 11a): S12's domain
@@ -264,11 +264,11 @@ export const LAWS_COPY = Object.freeze({
   // Sep". Each slot the key already declared is spent by the sentence the
   // owner drew, so neither shape moved to fit the words.
   "shell.domain.measured-weeks": [
-    "Week {weeks} · scanned {on}",
+    "Week {weeks} · checked {on}",
     { slots: { weeks: "text", on: "date" }, fixedBy: "REQ-040 c6 · S12" },
   ],
   "shell.domain.not-measured": [
-    "not scanned yet · first due {due}",
+    "not checked yet · first on {due}",
     { slots: { due: "date" }, fixedBy: "REQ-040 c7 · S13" },
   ],
 }) satisfies CopyPartition;

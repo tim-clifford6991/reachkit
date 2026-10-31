@@ -346,7 +346,7 @@ describe("until the hosted address is live, the shell names no go-live time", ()
     expect(facts.next).toBeNull();
     const shell = assembleShell(facts);
     expect(shell.publishing).toEqual({ mode: "autopilot", next: null, because: "address_waiting" });
-    expect(publishingStatement(shell).line).toBe("Waiting for your domain");
+    expect(publishingStatement(shell).line).toBe("Waiting for your website");
   });
 
   it("live: the same page keeps its time and is the next publish", async () => {

@@ -116,12 +116,12 @@ describe("calendar — the built screen keeps the three contracts the frame set"
   }
 
   it("renders, and names itself from the destination's own registry key", async () => {
-    // SPEC §4 (2026-09-20, #914): "*Plan* is the calendar's on-screen
-    // name." Board Plan puts the name in the eyebrow, "Plan · week {n}",
-    // over the week's own heading and the line under it.
+    // Owner R8 (2026-10-31): the screen is "This week". Its heading carries the
+    // nav word, so the eyebrow ("Week {n}") never says it twice.
     const html = await calendarMarkup();
     expect(html).toMatch(/<span class="eyebrow">calendar\.eyebrow<\/span><h1[^>]*>calendar\.title<\/h1><p[^>]*>calendar\.head<\/p>/);
-    expect(COPY["calendar.eyebrow"].startsWith(`${COPY["shell.nav.plan"]} `)).toBe(true);
+    expect(COPY["calendar.title"].startsWith(COPY["shell.nav.plan"])).toBe(true);
+    expect(COPY["calendar.eyebrow"]).not.toContain(COPY["shell.nav.plan"]);
   });
 
   it("declares no Surface — the shell's layout owns this route's screen root", async () => {

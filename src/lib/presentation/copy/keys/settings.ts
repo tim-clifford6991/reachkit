@@ -118,7 +118,7 @@ export const SETTINGS_COPY = Object.freeze({
     "Next: {when}.",
     { slots: { when: "date" }, fixedBy: "issue 1750 (drafted)" },
   ],
-  "settings.business.flow.plan": ["See the plan", { slots: {}, fixedBy: "issue 1750 (drafted)" }],
+  "settings.business.flow.plan": ["See this week’s pages", { slots: {}, fixedBy: "issue 1750 (drafted)" }],
   // One sentence quoted from a live page, and which of the lists it uses.
   "settings.business.example.head": ["How it shows on a page", { slots: {}, fixedBy: "issue 1750 (drafted)" }],
   "settings.business.example.from.claims": ["from What you promise", { slots: {}, fixedBy: "issue 1750 (drafted)" }],
@@ -571,7 +571,7 @@ export const SETTINGS_COPY = Object.freeze({
   "settings.publishing.flow.emailed.note": ["With Read, Edit and Stop", { slots: {}, fixedBy: "issue 1751 · board SettingsPublishing · drafted" }],
   "settings.publishing.flow.window": ["{window} to read, edit or stop it", { slots: { window: "text" }, fixedBy: "issue 1751 · board SettingsPublishing · drafted" }],
   // "Plan" is the link to Plan.
-  "settings.publishing.flow.window.note": ["From the mail or from Plan. Do nothing and it goes live on its own.", { slots: {}, fixedBy: "issue 1751 · board SettingsPublishing · drafted" }],
+  "settings.publishing.flow.window.note": ["From the mail or from This week. Do nothing and it goes live on its own.", { slots: {}, fixedBy: "issue 1751 · board SettingsPublishing · drafted" }],
   "settings.publishing.flow.live": ["Goes live", { slots: {}, fixedBy: "issue 1751 · board SettingsPublishing · drafted" }],
   "settings.publishing.flow.paused": ["Paused: nothing goes live", { slots: {}, fixedBy: "issue 1751 · board SettingsPublishing · drafted" }],
   "settings.publishing.flow.note": ["This line follows the publish time and the time to stop a page, set below. Turn publishing off to pause every page at once.", { slots: {}, fixedBy: "issue 1751 · board SettingsPublishing · drafted" }],
@@ -713,7 +713,7 @@ export const SETTINGS_COPY = Object.freeze({
   "settings.notifications.draft-ready": ["A page is ready, before it goes live", { slots: {}, fixedBy: "issue 1574" }],
   // Under the switch while it is off: turning the mail off never holds a page.
   "settings.notifications.draft-ready.off": [
-    "Pages still go live on their day. You can stop them from Plan.",
+    "Pages still go live on their day. You can stop them from This week.",
     { slots: {}, fixedBy: "issue 1574" },
   ],
   "settings.notifications.published": ["When your first page goes live", { slots: {}, fixedBy: "decision 2026-10-19-1593 (drafted)" }],

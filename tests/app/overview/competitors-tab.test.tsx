@@ -87,7 +87,7 @@ describe("board AppCompetitors, on the account the layout sweep reads", () => {
   it("every board string is on the screen but for sample data, rulings and the shell's own chrome", async () => {
     const { html } = await render();
     const { missing } = compare(readFileSync(boardFile("AppCompetitors"), "utf8"), segments(html), readAllow("AppCompetitors"));
-    const chrome = ["ReachKit", "Overview", "Plan", "Settings", "Publishing on", "Google", "AI"];
+    const chrome = ["ReachKit", "Overview", "This week", "Settings", "Publishing on", "Google", "AI"];
     expect(missing.filter((s: string) => !chrome.includes(s))).toEqual([]);
   });
 });
