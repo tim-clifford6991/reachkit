@@ -23,7 +23,7 @@ const BOARD = readFileSync(boardFile("AppDraft"), "utf8");
 
 /** What the app shell draws around every `/app` screen: the route-level
  *  reading in `tests/ui/layout/parity.test.ts` holds these. */
-const SHELL = ["ReachKit", "Overview", "Plan", "Settings", "Publishing on", "Theme: light"];
+const SHELL = ["ReachKit", "Overview", "This week", "Settings", "Publishing on", "Theme: light"];
 
 function readArm(view: DraftView = VIEW): string {
   return renderToStaticMarkup(<DraftScreen view={view} generatedLabel="Written by ReachKit" />);

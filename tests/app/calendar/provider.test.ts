@@ -156,7 +156,7 @@ describe("supplyLine — at most one statement of supply, and never a composed o
     expect(line).not.toBe(TODO_COPY_MARKER);
     // The claim is the same claim; what is gone is the clause naming a date
     // the product does not have.
-    expect(line).toContain("Nothing worth publishing is left in your market");
+    expect(line).toContain("Nothing worth publishing is left");
     expect(line).not.toContain("since");
     expect(line).not.toContain("{");
     // And the dated arm still names its date.

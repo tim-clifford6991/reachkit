@@ -24,7 +24,7 @@ const BOARD = readFileSync(boardFile("PageDetail"), "utf8");
 
 /** What the app shell draws around every `/app` screen: the route-level
  *  reading in `tests/ui/layout/parity.test.ts` holds these. */
-const SHELL = ["ReachKit", "Overview", "Plan", "Settings", "Publishing on", "Theme: light"];
+const SHELL = ["ReachKit", "Overview", "This week", "Settings", "Publishing on", "Theme: light"];
 
 /** A customer's live page: the reserved account's fixture draws no Edit. */
 const CUSTOMER: DraftFacts = { ...PUBLISHED, live: { ...LIVE, edit: { kind: "editor" } } };

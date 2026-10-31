@@ -111,6 +111,7 @@ describe("/app/costs against board AppCosts", () => {
   it("leaves no board string missing but the shell's, with no allow line needed for the page's own words", () => {
     const own = readAllow("AppCosts").filter((line: { reason: string }) => !line.reason.includes("tests/app/costs/page.test.tsx"));
     const result = compare(readFileSync(boardFile("AppCosts"), "utf8"), segments(html), own);
-    expect(result.missing).toEqual(["ReachKit", "Overview", "Plan", "Settings", "Publishing on"]);
+    // The nav's "This week" is matched by the page's own "This week by activity", so only these shell strings miss.
+    expect(result.missing).toEqual(["ReachKit", "Overview", "Settings", "Publishing on"]);
   });
 });

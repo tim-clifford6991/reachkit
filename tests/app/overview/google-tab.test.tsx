@@ -159,7 +159,7 @@ describe("board AppGoogle, on the account the layout sweep reads", () => {
     const { html } = await render();
     const { missing } = compare(readFileSync(boardFile("AppGoogle"), "utf8"), segments(html), readAllow("AppGoogle"));
     // The sidebar and the tab bar are the layouts', which this render does not draw.
-    const chrome = ["ReachKit", "Overview", "Plan", "Settings", "Publishing on", "AI", "Competitors"];
+    const chrome = ["ReachKit", "Overview", "This week", "Settings", "Publishing on", "AI", "Competitors"];
     expect(missing.filter((s: string) => !chrome.includes(s))).toEqual([]);
   });
 });

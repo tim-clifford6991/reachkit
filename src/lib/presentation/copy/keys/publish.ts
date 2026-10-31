@@ -309,7 +309,7 @@ export const PUBLISH_COPY = Object.freeze({
    *  which `src/middleware.ts` gates: the reader was bounced to a sign-in
    *  wall with no word about why. It goes to `/signin` now and says so, so
    *  the word and the destination cannot come apart. Drafted (#759). */
-  "publish.veto.calendar": ["Sign in to open your plan", { slots: {}, fixedBy: "issue 937" }],
+  "publish.veto.calendar": ["Sign in to open This week", { slots: {}, fixedBy: "issue 937" }],
   /** The Veto board's line: other pages are unaffected, and the topic is dropped for good. */
   "publish.veto.stopped": [
     "Nothing else changes. Your other pages go ahead as usual. ReachKit won’t write this topic again.",
@@ -348,11 +348,11 @@ export const PUBLISH_COPY = Object.freeze({
   "publish.veto.alreadyUsed": ["This link was already used. The page is stopped.", { slots: {}, fixedBy: "REQ-057 c1" }],
   // The Veto board's lines; "stopped", not "taken down", per E7 (R12 B8).
   "publish.veto.expired": [
-    "The time to stop this page from your mail has passed, so it may be live now. Sign in to see it. A live page can be stopped from its page in Plan.",
+    "The time to stop this page from your mail has passed, so it may be live now. Sign in to see it. A live page can be stopped from its page in This week.",
     { slots: {}, fixedBy: "issue 1739 · E7" },
   ],
   "publish.veto.unknown": [
-    "This isn’t a link ReachKit can act on. Sign in to stop or edit a page from Plan.",
+    "This isn’t a link ReachKit can act on. Sign in to stop or edit a page from This week.",
     { slots: {}, fixedBy: "issue 1739" },
   ],
   // The heads of the arms where nothing was stopped; the line under each says why.
@@ -362,7 +362,7 @@ export const PUBLISH_COPY = Object.freeze({
   // The stop that did not go through: never says Stopped.
   "publish.veto.failed.head": ["Not stopped yet", { slots: {}, fixedBy: "issue 1739" }],
   "publish.veto.failed": [
-    "That didn’t go through, so the page is not stopped. Press Stop this page again, or sign in and stop it from Plan.",
+    "That didn’t go through, so the page is not stopped. Press Stop this page again, or sign in and stop it from This week.",
     { slots: {}, fixedBy: "issue 1739" },
   ],
   "publish.veto.failed.still": ["Still goes live {when}, unless stopped.", { slots: { when: "text" }, fixedBy: "issue 1739" }],
@@ -393,7 +393,7 @@ export const PUBLISH_COPY = Object.freeze({
   // Issue 1674: the Monday mail's link to a page planned but not written yet (drafted).
   "publish.veto.planned.title": ["Planned for {day}", { slots: { day: "text" }, fixedBy: "issue 1674 (drafted)" }],
   "publish.veto.written": [
-    "This page is written now. Sign in to read, edit or stop it from your plan.",
+    "This page is written now. Sign in to read, edit or stop it from This week.",
     { slots: {}, fixedBy: "issue 1674 (drafted)" },
   ],
 

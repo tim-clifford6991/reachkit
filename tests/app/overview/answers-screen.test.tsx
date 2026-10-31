@@ -74,11 +74,11 @@ describe("the question × engine grid", () => {
 
   it("the legend says the marks in DESIGN's words, and an unmeasured cell is never a zero or a no-answer", () => {
     const items = [...(grid().querySelector('[data-testid="answers-legend"]')?.children ?? [])].map((li) => li.textContent?.trim());
-    expect(items).toEqual(["Links to this page", "Mentions you, no link", "Mentions someone else", "No answer", "Not measured"]);
+    expect(items).toEqual(["Links to this page", "Mentions you, no link", "Mentions someone else", "No answer", "Not checked"]);
     const unmeasured = [...grid().querySelectorAll('[role="cell"][data-mark="not_measured"]')];
     expect(unmeasured.length).toBeGreaterThan(0);
     for (const cell of unmeasured) {
-      expect(cell.getAttribute("aria-label")).toContain("Not measured");
+      expect(cell.getAttribute("aria-label")).toContain("Not checked");
       expect(cell.getAttribute("aria-label")).not.toMatch(/\b0\b|No answer/);
     }
   });
