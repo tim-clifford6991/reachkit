@@ -51,6 +51,7 @@ const NO_INTENT = "20261006130000_opportunities_no_intent.sql";
 const WEEK_PLAN = "20261019160000_opportunities_week_plan.sql";
 const PLAN_REASON = "20261020120000_opportunities_plan_reason.sql";
 const STOPPED = "20261021120000_opportunities_stopped.sql";
+const UNREST_RULE_STOPS = "20261031150000_opportunities_unrest_rule_stops.sql";
 /** The drafts' move record, which the stop backfill reads. */
 const DRAFTS_PUBLISHING = "20260906120100_drafts_publishing.sql";
 const BASELINE_MIGRATION = path.join(MIGRATIONS, "00000000000001_baseline.sql");
@@ -500,6 +501,56 @@ describe("a topic the customer stopped is told apart from one a gate dismissed",
   it("RLS still denies anon", () => {
     expect(psqlRows("select relrowsecurity from pg_class where relname = 'opportunities';")).toEqual([["t"]]);
     expect(psqlRows("select count(*) from pg_policies where tablename = 'opportunities' and 'anon' = any(roles);")).toEqual([["0"]]);
+  });
+});
+
+describe("a topic a rule stop rested since 2026-10-17 is offered again, and no other row moves", () => {
+  const unrest = () => psql(["-v", "ON_ERROR_STOP=1", "-f", path.join(MIGRATIONS, UNREST_RULE_STOPS)]);
+  const restOf = (id: string) => psqlRows(`select rest_until is null from opportunities where id = '${id}';`)[0]?.[0];
+  /** Every row the migration may not change, as one digest. */
+  const untouched = (except: string) =>
+    psqlRows(
+      `select (select md5(string_agg(o::text, ',' order by o.id)) from opportunities o where o.id::text <> '${except}'), ` +
+        `(select md5(string_agg(d::text, ',' order by d.id)) from drafts d), (select count(*) from publications), ` +
+        `(select count(*) from opportunities), (select count(*) from drafts);`
+    )[0];
+  /** A topic rested until `until` by a move into `needs_attention` at `at`, for `reason` (both SQL timestamps). */
+  const rested = (ref: string, a: { reason: string; at?: string; until?: string; status?: string }) => {
+    const at = a.at ?? "now() - interval '2 days'";
+    const id = insert(familyRow("answer_page", { targetRef: ref, targetQuery: `search ${ref}`, status: a.status ?? "open" }));
+    psql(["-v", "ON_ERROR_STOP=1", "-c",
+      `update opportunities set ready = false, unready_reason = 'resting', rest_until = ${a.until ?? "now() + interval '26 days'"} where id = '${id}';`]);
+    const [draft] = psqlRows(
+      `insert into drafts (opportunity_id, site_id, state, title, transitions) values ('${id}', '${SITE_ID}', 'needs_attention', 't', ` +
+        `jsonb_build_array(jsonb_build_object('from', 'generating', 'to', 'needs_attention', 'reason', '${a.reason}', ` +
+        `'at', to_char(${at}, 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')))) returning id;`
+    );
+    return { id, draft: draft?.[0] ?? "" };
+  };
+
+  it("clears the rest a rules stop set, leaves every other rest, dismissed and done row, draft and publication as it was, and a second run changes nothing", () => {
+    const ruled = rested("unrest-ruled", { reason: "rules:no_demo_text,title" });
+    const step = rested("unrest-step", { reason: "step_failed:write" });
+    const reRested = rested("unrest-skipped-later", { reason: "rules:title", until: "now() + interval '28 days'" });
+    const before17 = "timestamptz '2026-10-16 18:00:00+00'";
+    const early = rested("unrest-before-17", { reason: "rules:title", at: before17, until: `${before17} + interval '28 days'` });
+    const afterFix = "timestamptz '2026-10-31 14:30:00+00'";
+    const genuine = rested("unrest-after-fix", { reason: "rules:title", at: afterFix, until: `${afterFix} + interval '28 days'` });
+    const stopped = rested("unrest-stopped", { reason: "rules:title" });
+    psql(["-v", "ON_ERROR_STOP=1", "-c", `update opportunities set stopped = true where id = '${stopped.id}';`]);
+    const dismissed = rested("unrest-dismissed", { reason: "rules:title", status: "dismissed" });
+    const done = rested("unrest-done", { reason: "rules:title", status: "done" });
+    psql(["-v", "ON_ERROR_STOP=1", "-c",
+      `insert into publications (draft_id, site_id, destination, mode) values ('${done.draft}', '${SITE_ID}', 'hosted', 'autopilot');`]);
+    const before = untouched(ruled.id);
+    unrest();
+    expect([ruled, step, reRested, early, genuine, stopped, dismissed, done].map(({ id }) => restOf(id))).toEqual(
+      ["t", "f", "f", "f", "f", "f", "f", "f"]
+    );
+    expect(untouched(ruled.id)).toEqual(before);
+    const once = untouched("");
+    unrest();
+    expect(untouched("")).toEqual(once);
   });
 });
 
