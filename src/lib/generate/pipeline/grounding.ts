@@ -259,14 +259,13 @@ export async function readAllFacts(a: FactRead): Promise<SourcedFact[]> {
 }
 
 /**
- * The site's demo phrases and menu lines (SPEC §7, D41 stage 4; issue 1249):
- * what its pages' example elements and its `nav`, `header` and `footer`
- * said. None of it is the business speaking, and a generated page that
- * repeats a line of it is stopped (`../rules/demo.ts`).
+ * The site's demo phrases (SPEC §7, D41 stage 4): what its pages' example
+ * elements said. None of it is the business speaking, and a generated page
+ * that repeats a line of it is stopped (`../rules/demo.ts`).
  */
 export async function readDemoPhrases(a: { siteId: string; scanId?: string }): Promise<string[]> {
   const measured = await readMeasuredText({ siteId: a.siteId, scanId: a.scanId });
-  return [...new Set(measured.flatMap((page) => [...(page.examples ?? []), ...(page.menus ?? [])]))];
+  return [...new Set(measured.flatMap((page) => [...(page.examples ?? [])]))];
 }
 
 /**

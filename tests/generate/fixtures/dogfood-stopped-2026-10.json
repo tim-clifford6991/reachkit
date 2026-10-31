@@ -1,0 +1,83 @@
+{
+  "source": "Public pages read 2026-10-31 with curl and src/lib/measure/prose.ts (menus), and the no_demo_text failures quoted in /root/projects/reports/no-content-diagnosis-2026-10-31.md (M2-M4). Not a database export: drafts rows are not included.",
+  "pages": [
+    "https://reachkit.app/",
+    "https://content.reachkit.app/how-to-rank-on-chatgpt",
+    "https://content.reachkit.app/best-answer-engine-optimization-services-for-ai-visibility"
+  ],
+  "menus": [
+    "ReachKit",
+    "How it works",
+    "Pricing",
+    "Free scans",
+    "Sign inFree scan",
+    "Sign in",
+    "Product",
+    "Free scanHow it worksPricingAboutSign in",
+    "Learn",
+    "Free scansCompareFree toolsTeardowns",
+    "Legal",
+    "PrivacyTermsImprint",
+    "Contact",
+    "hello@reachkit.app",
+    "© 2026 ReachKit. All rights reserved. · Own this site and want its report taken down? Write to remove@reachkit.app.",
+    "ReachKitVisit ReachKit",
+    "What do you need before you start?",
+    "What are the steps to rank on ChatGPT?",
+    "How do you check whether it worked?",
+    "What mistakes should you avoid?",
+    "What should you do next?",
+    "Questions buyers ask",
+    "How long does it take to get named in ChatGPT's answers?",
+    "Does ranking on ChatGPT replace ranking on Google?",
+    "Can I do this without publishing new pages?",
+    "What counts as a 'buyer question' worth targeting?",
+    "Do I need a developer to fix technical issues like a blocked AI reader?",
+    "Sources",
+    "Articles",
+    "How to rank on ChatGPT when buyers search your market",
+    "On this page",
+    "© ReachKitreachkit.appRSS",
+    "Why AI visibility matters for your business",
+    "Three approaches to getting found by AI",
+    "How to choose the right approach for your market",
+    "Best Answer Engine Optimization Services for AI Visibility"
+  ],
+  "noDemoTextFailures": [
+    {
+      "kind": "heading",
+      "markdown": "## How it works",
+      "from": "templates/offering.ts how-it-works section; reachkit.app header and footer nav"
+    },
+    {
+      "kind": "heading",
+      "markdown": "## What do you need before you start?",
+      "from": "templates/how-to.ts what_you_need; hosted article TOC"
+    },
+    {
+      "kind": "heading",
+      "markdown": "## How do you check whether it worked?",
+      "from": "templates/how-to.ts check; hosted article TOC"
+    },
+    {
+      "kind": "heading",
+      "markdown": "## What mistakes should you avoid?",
+      "from": "templates/how-to.ts mistakes; hosted article TOC"
+    },
+    {
+      "kind": "heading",
+      "markdown": "## What should you do next?",
+      "from": "templates/how-to.ts next_step; hosted article TOC"
+    },
+    {
+      "kind": "heading",
+      "markdown": "## What are the steps to rank on ChatGPT?",
+      "from": "a live page's heading; hosted article TOC"
+    },
+    {
+      "kind": "link",
+      "markdown": "- [Best Answer Engine Optimization Services for AI Visibility](https://content.reachkit.app/best-answer-engine-optimization-services-for-ai-visibility)",
+      "from": "internal link to a live page whose title is the hosted breadcrumb"
+    }
+  ]
+}
