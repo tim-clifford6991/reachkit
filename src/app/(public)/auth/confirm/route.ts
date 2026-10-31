@@ -35,7 +35,12 @@ import {
   type ConfirmType,
   type CookieToSet,
 } from "@/lib/account/identity";
-import { TOKEN_HASH_QUERY_KEY, TYPE_QUERY_KEY } from "@/lib/account/identity/addresses";
+import {
+  LANDING_QUERY_KEY,
+  TOKEN_HASH_QUERY_KEY,
+  TYPE_QUERY_KEY,
+  linkLandingOf,
+} from "@/lib/account/identity/addresses";
 
 function confirmTypeOf(value: string | null): ConfirmType | null {
   return value === "magiclink" || value === "email_change" ? value : null;
@@ -63,7 +68,8 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     return NextResponse.redirect(new URL(deadLinkPath(), request.url));
   }
 
-  const destination = redeemed.firstSignIn ? SETUP_PATH : APP_PATH;
+  const landing = linkLandingOf(request.nextUrl.searchParams.get(LANDING_QUERY_KEY));
+  const destination = landing ?? (redeemed.firstSignIn ? SETUP_PATH : APP_PATH);
   const response = NextResponse.redirect(new URL(destination, request.url));
   for (const cookie of written) {
     response.cookies.set(cookie.name, cookie.value, cookie.options);
