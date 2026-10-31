@@ -33,8 +33,10 @@
 // `./state.ts`, which both this file and the screen import.
 "use server";
 
+import { headers } from "next/headers";
 import { z } from "zod";
 import { requestMagicLink } from "@/lib/account/provisioning/magic-link";
+import { networkKeyOf } from "@/lib/scan/admission";
 import { EMAIL_FIELD, type SignInState } from "./state";
 
 const address = z.email();
@@ -50,6 +52,6 @@ export async function sendLink(_previous: SignInState, form: FormData): Promise<
     return { answer: "invalid", value };
   }
 
-  await requestMagicLink(value.trim());
+  await requestMagicLink(value.trim(), networkKeyOf(await headers()));
   return { answer: "requested", value, sentAt: Date.now() };
 }

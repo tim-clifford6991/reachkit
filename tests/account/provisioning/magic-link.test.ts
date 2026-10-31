@@ -13,6 +13,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { applyEnvFixture } from "../../mail/env-fixture";
+import type { NetworkKey } from "@/lib/scan/admission";
 import { sendCalls, sendMock, sendOutcome } from "../send-mock";
 
 applyEnvFixture();
@@ -38,6 +39,8 @@ const SOURCE = readFileSync(
   .replace(/\/\*[\s\S]*?\*\//g, "")
   .replace(/\/\/.*$/gm, "");
 
+const NETWORK = "a".repeat(64) as NetworkKey;
+
 let accounts = newMemoryAccounts();
 let vendor = newStripeDouble();
 let links = 0;
@@ -55,6 +58,8 @@ async function openAccount(email: string, patch: Record<string, unknown> = {}) {
 }
 
 beforeEach(() => {
+  // The shared limiter allows every request here; its limits are `tests/app/signin/throttle.test.ts`'s.
+  vi.stubGlobal("fetch", async () => new Response("true", { headers: { "content-type": "application/json" } }));
   links = 0;
   accounts = newMemoryAccounts();
   setAccountStore(memoryAccountStore(accounts));
@@ -68,12 +73,15 @@ beforeEach(() => {
   });
 });
 
-afterEach(() => registerSignInLinkIssuer(null));
+afterEach(() => {
+  registerSignInLinkIssuer(null);
+  vi.unstubAllGlobals();
+});
 
 describe('REQ-024 c4 — "when they ask for a new sign-in link using the address they paid with, then they are returned to where they left off … never to a dead end or a second checkout"', () => {
   it("an address with an account is sent a link", async () => {
     await openAccount("founder@acme.example");
-    await expect(requestMagicLink("founder@acme.example")).resolves.toEqual({ answered: true });
+    await expect(requestMagicLink("founder@acme.example", NETWORK)).resolves.toEqual({ answered: true });
     expect(links).toBe(1);
     expect(sendCalls[0]).toMatchObject({ kind: "magic-link", to: "founder@acme.example" });
   });
@@ -85,7 +93,7 @@ describe('REQ-024 c4 — "when they ask for a new sign-in link using the address
 
   it("an address in a different case resolves to the same account", async () => {
     await openAccount("founder@acme.example");
-    await expect(requestMagicLink("  FOUNDER@Acme.Example  ")).resolves.toEqual({ answered: true });
+    await expect(requestMagicLink("  FOUNDER@Acme.Example  ", NETWORK)).resolves.toEqual({ answered: true });
     expect(links).toBe(1);
   });
 });
@@ -93,8 +101,8 @@ describe('REQ-024 c4 — "when they ask for a new sign-in link using the address
 describe('SPEC §3 — "Sign-in copy is identical whatever the address, revealing nothing about who has an account" (issue 718)', () => {
   it("an unknown address is sent nothing, and answered exactly as an account is", async () => {
     await openAccount("founder@acme.example");
-    const known = await requestMagicLink("founder@acme.example");
-    const unknown = await requestMagicLink("stranger@nowhere.example");
+    const known = await requestMagicLink("founder@acme.example", NETWORK);
+    const unknown = await requestMagicLink("stranger@nowhere.example", NETWORK);
     expect(unknown).toEqual(known);
     expect(links).toBe(1);
     expect(sendCalls).toHaveLength(1);
@@ -102,7 +110,7 @@ describe('SPEC §3 — "Sign-in copy is identical whatever the address, revealin
 
   it("a completed payment with no account yet is answered the same, and sends nothing from here", async () => {
     vendor.listed = [{ id: "cs_held" }];
-    await expect(requestMagicLink("waiting@acme.example")).resolves.toEqual({ answered: true });
+    await expect(requestMagicLink("waiting@acme.example", NETWORK)).resolves.toEqual({ answered: true });
     expect(links).toBe(0);
     expect(sendCalls).toEqual([]);
   });
@@ -115,7 +123,7 @@ describe('SPEC §3 — "Sign-in copy is identical whatever the address, revealin
 describe('REQ-076 c5 / REQ-020 c4 — a lapsed customer is still sent a link and can still sign in', () => {
   it("an account whose plan lapsed is sent a link", async () => {
     await openAccount("lapsed@acme.example");
-    await expect(requestMagicLink("lapsed@acme.example")).resolves.toEqual({ answered: true });
+    await expect(requestMagicLink("lapsed@acme.example", NETWORK)).resolves.toEqual({ answered: true });
     expect(links).toBe(1);
   });
 
@@ -128,7 +136,7 @@ describe('REQ-076 c5 / REQ-020 c4 — a lapsed customer is still sent a link and
 });
 
 describe('REQ-020 c5 — nothing is said about any address until one is given', () => {
-  it("the function takes exactly one argument, and it is the address", () => {
-    expect(requestMagicLink.length).toBe(1);
+  it("the function takes the address and the network it is counted against, and nothing else", () => {
+    expect(requestMagicLink.length).toBe(2);
   });
 });
