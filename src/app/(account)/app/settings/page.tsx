@@ -12,8 +12,8 @@
 // (SPEC §7, 2026-10-10, #1393) is the last card: no Settings card sits beside
 // another (E38).
 //
-// This file is the composition and nothing else. It makes one read
-// (`readSettings`, request-cached) and hands the card the slice it states —
+// This file is the composition and nothing else. It makes the tab's reads,
+// each settling on its own, and hands each card the slice it states —
 // ARCHITECTURE rule 1: "Route handlers and server components are thin
 // adapters over a module's exported interface."
 //
@@ -26,8 +26,9 @@ import type { Metadata } from "next";
 import { copy } from "@/lib/presentation/copy";
 import { profileIsEmpty } from "@/lib/site-profile/business/confirm";
 import { readShell } from "../_shell/provider";
-import { readSettings } from "./provider";
+import { requireSetUpAccount } from "../_session/account";
 import { readBusiness } from "./business-provider";
+import { landed, Unread } from "./Unread";
 import { BusinessPanel } from "./panels/BusinessPanel";
 import { FactsPanel } from "./panels/FactsPanel";
 import { FlowPanel } from "./panels/FlowPanel";
@@ -49,22 +50,32 @@ import { WrittenFromPanel } from "./panels/WrittenFromPanel";
 export const metadata: Metadata = { title: copy("meta.app.settings.title") };
 
 export default async function SettingsBusinessTab(): Promise<React.JSX.Element> {
-  // Two reads, and they are two on purpose: `readSettings` is the model all
-  // seven tabs share, and `readBusiness` is this tab's alone — the site
-  // profile, the market reading, the customer's corrections and the
-  // grounding passages, which no other tab draws and none should pay for
-  // (`./business-provider.ts`). Both are request-cached.
-  const [settings, business, shell] = await Promise.all([readSettings(), readBusiness(), readShell()]);
-  const timeZone = settings.publishing.timeZone;
+  // `readBusiness` is this tab's alone — the site profile, the market
+  // reading, the customer's corrections and the grounding passages, which no
+  // other tab draws and none should pay for (`./business-provider.ts`). The
+  // zone is the session's own, so this tab needs no settings read.
+  const [account, business, shell] = await Promise.all([requireSetUpAccount(), landed(readBusiness(), "business"), landed(readShell(), "shell")]);
+  const timeZone = account.timeZone;
+  if (business === null) {
+    return (
+      <div className="flex min-w-0 flex-col gap-6" data-testid="settings-tab-panel-business">
+        <Unread testId="settings-unread-business" />
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-w-0 flex-col gap-6" data-testid="settings-tab-panel-business">
-      <FlowPanel
-        pagesRead={business.profile.pagesRead}
-        readAt={business.profile.readAt}
-        next={shell.publishing.next}
-        timeZone={timeZone}
-      />
+      {shell === null ? (
+        <Unread testId="settings-unread-flow" />
+      ) : (
+        <FlowPanel
+          pagesRead={business.profile.pagesRead}
+          readAt={business.profile.readAt}
+          next={shell.publishing.next}
+          timeZone={timeZone}
+        />
+      )}
       <BusinessPanel
         profile={business.profile}
         siteName={business.siteName}

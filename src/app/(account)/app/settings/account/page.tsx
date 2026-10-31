@@ -20,6 +20,8 @@ import type React from "react";
 import type { Metadata } from "next";
 import { copy } from "@/lib/presentation/copy";
 import { readSettings } from "../provider";
+import { readsLanded } from "../model";
+import { landed, Unread } from "../Unread";
 import { readShell } from "../../_shell/provider";
 import { Shortcuts } from "../../_shell/Shortcuts";
 import { AccountPanel } from "../panels/AccountPanel";
@@ -33,16 +35,19 @@ export const metadata: Metadata = { title: copy("meta.app.settings.account.title
 
 export default async function SettingsAccountTab(): Promise<React.JSX.Element> {
   // `readShell` is request-cached: the layout above already started it.
-  const [settings, shell] = await Promise.all([readSettings(), readShell()]);
+  const [all, shell] = await Promise.all([landed(readSettings(), "settings"), landed(readShell(), "shell")]);
+  const settings = readsLanded(all, "card", "pages");
 
   return (
     <div className="flex min-w-0 flex-col gap-6" data-testid="settings-tab-panel-account">
-      <AccountPanel account={settings.account} pages={settings.content.pages} />
-      <section className="card card-border bg-base-100 min-w-0" data-testid="settings-shortcuts">
-        <div className="card-body min-w-0 p-2">
-          <Shortcuts blog={shell.blog} />
-        </div>
-      </section>
+      {settings === null ? <Unread testId="settings-unread-account" /> : <AccountPanel account={settings.account} pages={settings.content.pages} />}
+      {shell === null ? <Unread testId="settings-unread-shortcuts" /> : (
+        <section className="card card-border bg-base-100 min-w-0" data-testid="settings-shortcuts">
+          <div className="card-body min-w-0 p-2">
+            <Shortcuts blog={shell.blog} />
+          </div>
+        </section>
+      )}
       <DangerZone />
     </div>
   );

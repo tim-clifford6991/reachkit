@@ -836,10 +836,8 @@ export const SETTINGS_COPY = Object.freeze({
   "settings.month.legend.planned": ["Planned this week", { slots: {}, fixedBy: "issue 1751 · board SettingsBilling · drafted" }],
   "settings.month.first": ["Your first page goes live {when}.", { slots: { when: "date" }, fixedBy: "issue 1751 · board SettingsBilling · drafted" }],
   "settings.month.detail": ["Show the detail", { slots: {}, fixedBy: "issue 1751 · board SettingsBilling · drafted" }],
-  "settings.month.unread": [
-    "This month could not be read just now. Your plan below is unaffected.",
-    { slots: {}, fixedBy: "E3 · drafted" },
-  ],
+  "settings.month.unread": ["This month could not be read just now. Your plan below is unaffected.", { slots: {}, fixedBy: "E3 · drafted" }],
+  "settings.panel.unread": ["This part didn’t load. Try again in a minute.", { slots: {}, fixedBy: "issue 2115 · drafted" }],
   "settings.month.note": [
     "Counted from your own pages and measurements. A page that went live is one that is on your address today. The searches and AI questions are the ones in Market and competitors.",
     { slots: {}, fixedBy: "E3 · board SettingsBilling · drafted" },

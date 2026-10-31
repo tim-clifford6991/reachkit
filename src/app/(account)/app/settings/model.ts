@@ -193,6 +193,7 @@ export interface SettingsModel {
   billing: BillingSummary;
   /** §4.7's "pages count" — how many of the customer's pages are published. */
   content: { pages: number };
+  unread: readonly SettingsRead[];
 }
 
 /**
@@ -307,6 +308,16 @@ export interface SettingsFacts {
   billing: BillingFacts;
   /** `publications` (§10) — the customer's live pages. */
   publishedPages: number;
+  /** The strict reads that failed; their fields hold no value, so a panel that states one draws its error line instead. */
+  unread?: readonly SettingsRead[];
+}
+
+/** The reads with no honest degraded arm, named so a panel can say which ones it states. */
+export type SettingsRead = "answers" | "measured" | "publishing" | "publishingOn" | "site" | "notify" | "pages" | "card";
+
+/** The model when every read a panel states landed, else `null` and the panel draws its error line. */
+export function readsLanded(settings: SettingsModel | null, ...reads: readonly SettingsRead[]): SettingsModel | null {
+  return settings !== null && reads.every((read) => !settings.unread.includes(read)) ? settings : null;
 }
 
 /**
@@ -390,6 +401,24 @@ export function localeChoices(current: Locale, alsoServes: readonly string[]): s
   return SUPPORTED_LOCALES.map(localeKey).sort((a, b) => Number(declared.has(b)) - Number(declared.has(a)));
 }
 
+/** The billing card from its facts alone, so the billing tab needs no other read. */
+export function billingSummaryOf(billing: BillingFacts, timeZone: string): BillingSummary {
+  return billing.readable
+    ? {
+        readable: true,
+        state: billing.state,
+        // The one place the paid-through instant becomes a day a customer
+        // reads, in the zone they stated. A card that formatted it would
+        // be a second formatter, and the two would disagree the day one
+        // of them was corrected.
+        accessUntil: formatDate(billing.paidThrough, timeZone),
+        surfaceHref: billing.surfaceHref,
+        refundUntil:
+          billing.refundUntil === null ? null : formatDate(billing.refundUntil, timeZone),
+      }
+    : { readable: false, surfaceHref: billing.surfaceHref };
+}
+
 export function assembleSettings(facts: SettingsFacts): SettingsModel {
   const market = {
     category: facts.category,
@@ -434,20 +463,8 @@ export function assembleSettings(facts: SettingsFacts): SettingsModel {
             },
       noteKeys: facts.noteKeys,
     },
-    billing: facts.billing.readable
-      ? {
-          readable: true,
-          state: facts.billing.state,
-          // The one place the paid-through instant becomes a day a customer
-          // reads, in the zone they stated. A card that formatted it would
-          // be a second formatter, and the two would disagree the day one
-          // of them was corrected.
-          accessUntil: formatDate(facts.billing.paidThrough, facts.timeZone),
-          surfaceHref: facts.billing.surfaceHref,
-          refundUntil:
-            facts.billing.refundUntil === null ? null : formatDate(facts.billing.refundUntil, facts.timeZone),
-        }
-      : { readable: false, surfaceHref: facts.billing.surfaceHref },
+    billing: billingSummaryOf(facts.billing, facts.timeZone),
     content: { pages: facts.publishedPages },
+    unread: facts.unread ?? [],
   };
 }

@@ -8,14 +8,14 @@ const LINE = "mail.winback.line" satisfies CopyKey;
 const ACTION = "mail.winback.action" satisfies CopyKey;
 const REASON = "mail.reason.winback" satisfies CopyKey;
 
-/** Once, 30 days after access ended: the way to Resume, in Settings. */
+/** Once, 30 days after access ended: the way to Resume, on the billing tab. */
 export function buildWinback(a: { email: string }): RetentionMail {
   return {
     subject: SUBJECT,
     blocks: [
       { block: "heading", text: SUBJECT },
       { block: "paragraph", text: LINE },
-      { block: "action", label: ACTION, href: appHref("/app/settings") },
+      { block: "action", label: ACTION, href: appHref("/app/settings/billing") },
     ],
     reason: REASON,
     optOut: optOutControlFor(a.email),

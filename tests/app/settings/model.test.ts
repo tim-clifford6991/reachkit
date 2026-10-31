@@ -106,6 +106,8 @@ describe("REQ-070 c1 — the model carries a value for each settable key and not
         "measuredRivals",
         "notifications",
         "publishing",
+        // Read-only: which reads failed, so their panels draw the error line.
+        "unread",
         "voice",
       ].sort()
     );
