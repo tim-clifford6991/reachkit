@@ -35,6 +35,7 @@ import { claimCheck, type ClaimVerdict } from "./claims/check";
 import { readRecordedFact } from "./fact";
 import { buildComparisonSet } from "./pipeline/comparison";
 import { allowedFacts, readAllFacts } from "./pipeline/grounding";
+import { siteRulesOf } from "./pipeline/battery";
 import { targetSearches } from "./pipeline";
 import {
   readRecordedRules,
@@ -48,7 +49,7 @@ import {
 import { pageTypeOf } from "@/lib/opportunities/page-type";
 import { runHardRules } from "./rules";
 import { renderOf } from "./rules/text";
-import type { RuleFailure, SiteRuleInputs } from "./rules/types";
+import type { RuleFailure } from "./rules/types";
 import { generateStore, type DraftRow } from "./store";
 
 /** A body past this is refused rather than truncated — truncating is losing
@@ -260,14 +261,7 @@ async function recheck(
     const source =
       recordedFact === null ? undefined : facts.find((sourced) => sourced.fact.passage === recordedFact.passage);
 
-    const measuredBrand =
-      report.market.kind === "unmeasured" ? null : (report.market.value.profile.brandTokens[0] ?? null);
-    const siteInputs: SiteRuleInputs = {
-      businessName: measuredBrand,
-      domain: site.domain,
-      doNotClaim: site.doNotClaim,
-      rivals: site.rivals,
-    };
+    const siteInputs = siteRulesOf(site, report);
 
     const marketFacts = recordedMarketFacts(meta);
     const outcome = await runHardRules(cost, {

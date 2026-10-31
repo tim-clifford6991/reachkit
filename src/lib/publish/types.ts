@@ -23,7 +23,7 @@ export type State =
 /** Who moved a page; a transition is never anonymous, and some edges are open to the customer only. */
 export type Actor =
   | { kind: "customer"; userId: string }
-  | { kind: "system"; job: "draft/generate" | "publish/execute" | "publish/verify" | "content/recheck" };
+  | { kind: "system"; job: "draft/generate" | "draft/recheck" | "publish/execute" | "publish/verify" | "content/recheck" };
 
 /** One entry of `drafts.transitions`, append-only: one per move, never rewritten, rendered by no surface. */
 export interface TransitionRecord {

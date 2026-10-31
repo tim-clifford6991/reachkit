@@ -348,6 +348,16 @@ describe("the named guards refuse the edge, each in its turn", () => {
     expect(result).toMatchObject({ failedGuard: "customer_initiated" });
   });
 
+  it("the daily re-check takes a stopped page into review only when its hard rules passed, appending one record", async () => {
+    const RECHECK: Actor = { kind: "system", job: "draft/recheck" };
+    const stopped = [{ from: "generating", to: "needs_attention", actor: { kind: "system", job: "draft/generate" }, reason: "rules:title", at: AT.toISOString() }];
+    seedDraft("needs_attention", { hard_rules_passed: false, transitions: stopped });
+    expect(await transition("d1", "in_review", RECHECK, { at: AT, deps: openDeps() })).toMatchObject({ failedGuard: "draft_passed_hard_rules" });
+    seedDraft("needs_attention", { transitions: stopped });
+    expect(await transition("d1", "in_review", RECHECK, { at: AT, reason: "recheck:title", deps: openDeps() })).toEqual({ ok: true, state: "in_review" });
+    expect(draftRow().transitions).toEqual([...stopped, { from: "needs_attention", to: "in_review", actor: RECHECK, reason: "recheck:title", at: AT.toISOString() }]);
+  });
+
   it("needs_attention → generating is refused for a draft that entered review", async () => {
     seedDraft("needs_attention", {
       transitions: [

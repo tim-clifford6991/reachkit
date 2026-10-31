@@ -139,6 +139,16 @@ describe("#1180 — a page the rules stopped, fixed by the founder, enters revie
     expect((draft().transitions as { actor: unknown }[]).at(-1)).toMatchObject({ actor: FOUNDER });
   });
 
+  it("the daily re-check opens the same window from needs_attention, tells the customer, and is approved only after it", async () => {
+    seed({ draft: { state: "needs_attention", transitions: STOPPED, scheduled_for: null } });
+    expect(await enterReview({ draftId: "d1", at: EVENING, by: { kind: "system", job: "draft/recheck" }, reason: "recheck:title" })).toEqual({ kind: "told" });
+    expect(draft()).toMatchObject({ state: "in_review", veto_deadline: new Date(EVENING.getTime() + VETO.defaultHours * HOUR).toISOString(), scheduled_for: "2026-09-03" });
+    expect(mail.sends).toHaveLength(1);
+    const DUE = new Date("2026-09-03T13:00:00.000Z");
+    expect(await dueApprovals(new Date(DUE.getTime() - HOUR))).toEqual([]);
+    expect(await dueApprovals(DUE)).toEqual([{ draftId: "d1", destinationId: "dest-1" }]);
+  });
+
   it("a page that was in review before is never sent back to it", async () => {
     seed({ draft: { state: "needs_attention", transitions: [{ to: "in_review" }, ...STOPPED] } });
     expect(await enterReview({ draftId: "d1", at: EVENING, by: FOUNDER })).toEqual({ kind: "not_entered", reason: "moved" });

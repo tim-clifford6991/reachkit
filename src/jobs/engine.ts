@@ -509,12 +509,9 @@ export async function finishReads(a: { readonly scanId: string; readonly now: Da
 // page is a state the calendar renders (§7 — "supply is the cap: never
 // invent an opportunity to fill a day"), not a job that failed.
 //
-// **A page that passed enters review in the same call** (issue 709). The
-// edge, the veto deadline it stamps and the draft-ready mail are the
-// publishing engine's (`publish/attempt/window.ts`); this seam is where the
-// tick's two obligations meet, as `verifyLive` below pairs a check with its
-// mail. A telling that could not leave is a degradation — the page is in
-// review and held until the customer is told — never a throw.
+// **A page that passed enters review in the same call** (issue 709), through
+// `publish/attempt/window.ts`. A telling that could not leave is a
+// degradation — the page is in review and held until told — never a throw.
 
 export async function generateDraft(a: {
   readonly siteId: string;
@@ -531,6 +528,9 @@ export async function generateDraft(a: {
   const { dayHold } = await import("@/lib/publish/daily");
   const held = await step("hold", () => dayHold(a.siteId, a.publishDate));
   if (held !== null) return { degraded: held };
+  // A stopped page that passes today's rules takes the date at 0¢, so the day's write answers `already_drafted`.
+  const { recheckStopped } = await import("@/lib/generate/recheck");
+  await step("recheck", async () => { const rescued = await recheckStopped(day); if (rescued !== null) await schedulePublish({ draftId: rescued }); return rescued; });
   const decided = await step("select", () => decideDayPage(day));
   // A date that already holds its draft is a day already done, not a
   // degraded tick.
