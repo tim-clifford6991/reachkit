@@ -23,6 +23,8 @@
 // so this file imports nothing from `src/lib/account/billing/**`, and the
 // eslint fence (`local/no-billing-internal-import`) makes that structural
 // rather than remembered.
+import { takeLimits } from "@/lib/limits";
+import type { NetworkKey } from "@/lib/scan/admission";
 import { accountStore } from "../store";
 import { sendSignInLink } from "./sign-in-mail";
 
@@ -31,8 +33,11 @@ export type MagicLinkAnswer = { readonly answered: true };
 
 const ANSWERED: MagicLinkAnswer = Object.freeze({ answered: true });
 
-export async function requestMagicLink(email: string): Promise<MagicLinkAnswer> {
+export async function requestMagicLink(email: string, network: NetworkKey): Promise<MagicLinkAnswer> {
   const address = email.trim().toLowerCase();
+
+  // Counted before the account read, so a limited request does the same work whether or not an account exists.
+  if (!(await takeLimits("sign_in", { network, email: address }))) return ANSWERED;
 
   const read = await accountStore().accountByEmail(address);
   if (read.ok && read.account !== null) {
