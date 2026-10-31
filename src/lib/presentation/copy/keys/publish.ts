@@ -50,11 +50,11 @@ export const PUBLISH_COPY = Object.freeze({
   // The `{state}` slot is the state the page still holds — the refusal
   // never leaves it somewhere else.
   "publish.action.refused.notATransition": [
-    "Nothing changed. This page is {state}, and that action isn’t open from there.",
+    "Nothing changed. That can’t be done while the page is {state}.",
     { slots: { state: "text" }, fixedBy: "REQ-056 c2" },
   ],
   "publish.action.refused.guard": [
-    "Nothing changed. This page stays {state} until what is holding it clears.",
+    "Nothing changed. This page stays {state} until the problem clears.",
     { slots: { state: "text" }, fixedBy: "REQ-056 c2" },
   ],
 
@@ -188,11 +188,11 @@ export const PUBLISH_COPY = Object.freeze({
   // Why a page needs the customer, one sentence per cause that can be critical (owner O7), from the page's own record
   // (`src/lib/publish/record/needs-you.ts`). Drafted under issue 759's ruling; the owner corrects the wording.
   "publish.needs-you.destination": [
-    "This page is written and couldn’t be delivered to your site. It goes out as soon as the connection to your site works again.",
+    "This page is written but couldn’t reach your site. It goes live once your site connects again.",
     { slots: {}, fixedBy: "issue 880" },
   ],
   "publish.needs-you.delivery": [
-    "We tried to publish this page several times and it didn’t go through. Check where your pages are published, and nothing is lost in the meantime.",
+    "We tried several times, but this page didn’t reach your site. Nothing is lost, so check your connection.",
     { slots: {}, fixedBy: "issue 880" },
   ],
   "publish.needs-you.live-edit": [
@@ -200,33 +200,33 @@ export const PUBLISH_COPY = Object.freeze({
     { slots: {}, fixedBy: "owner O7 (drafted)" },
   ],
   "publish.needs-you.unknown": [
-    "This page stopped before it went out and needs you. Read it to see where it got to, or write it again.",
+    "This page stopped before going live. Read it to see why, or write it again.",
     { slots: {}, fixedBy: "issue 880" },
   ],
   "publish.destination.line.never-connected": [
-    "Not connected yet. Your pages are held as drafts you can read until it is.",
+    "Not connected yet. Your pages wait here, and you can read them.",
     { slots: {}, fixedBy: "§9 · REQ-028 c5" },
   ],
-  "publish.destination.line.dns-unset": ["Waiting on your DNS record. Pages are held until it’s set; nothing is lost.", { slots: {}, fixedBy: "§9 · REQ-059 c2" }],
+  "publish.destination.line.dns-unset": ["Waiting for your setting. Pages wait until it works, and nothing is lost.", { slots: {}, fixedBy: "§9 · REQ-059 c2" }],
   "publish.destination.line.dns-elsewhere": [
-    "The DNS record points elsewhere, so pages are waiting. Point it at us and they go out.",
+    "Your setting points somewhere else, so pages are waiting. Fix it and they go live.",
     { slots: {}, fixedBy: "§9 · REQ-059 c2" },
   ],
   "publish.destination.line.credentials-expired": [
-    "The connection has expired. Your pages are held, nothing is lost, and reconnecting releases them.",
+    "The connection expired. Reconnect and your waiting pages go live.",
     { slots: {}, fixedBy: "§9 · REQ-074 c2" },
   ],
   "publish.destination.line.credentials-invalid": [
-    "Your site refused the credential. Pages are held and nothing is lost. Reconnect with a working application password.",
+    "Your site refused our password, so pages are waiting. Reconnect with a new application password.",
     { slots: {}, fixedBy: "§9 · REQ-074 c2" },
   ],
-  "publish.destination.line.unreachable": ["Your site couldn’t be reached. Pages are held, nothing is lost, and they go out once it answers again.", { slots: {}, fixedBy: "§9 · REQ-074 c2" }],
+  "publish.destination.line.unreachable": ["We couldn’t reach your site, so pages are waiting. They go live once it’s back.", { slots: {}, fixedBy: "§9 · REQ-074 c2" }],
   "publish.destination.line.destination-rejected": [
-    "Your site rejected the page. Pages are being held and nothing is lost; reconnect to try again.",
+    "Your site refused the page, so pages are waiting. Reconnect to try again.",
     { slots: {}, fixedBy: "§9 · REQ-074 c2" },
   ],
   "publish.destination.line.cannot-publish": [
-    "Connected, but the WordPress account ReachKit uses there isn’t allowed to publish. Give it an account that can.",
+    "Connected, but this WordPress account can’t publish. Use an account that can.",
     { slots: {}, fixedBy: "ADR-086 · REQ-060 c7" },
   ],
 
@@ -286,7 +286,7 @@ export const PUBLISH_COPY = Object.freeze({
   "publish.veto.calendar": ["Sign in to open This week", { slots: {}, fixedBy: "issue 937" }],
   /** The Veto board's line: other pages are unaffected, and the topic is dropped for good. */
   "publish.veto.stopped": [
-    "Nothing else changes. Your other pages go ahead as usual. ReachKit won’t write this topic again.",
+    "Your other pages go ahead as usual. We won’t write this topic again.",
     { slots: {}, fixedBy: "issue 1718" },
   ],
   /** The rest of the done arm's alert, after `publish.veto.done.head`'s
@@ -322,11 +322,11 @@ export const PUBLISH_COPY = Object.freeze({
   "publish.veto.alreadyUsed": ["This link was already used. The page is stopped.", { slots: {}, fixedBy: "REQ-057 c1" }],
   // The Veto board's lines; "stopped", not "taken down", per E7 (R12 B8).
   "publish.veto.expired": [
-    "The time to stop this page from your mail has passed, so it may be live now. Sign in to see it. A live page can be stopped from its page in This week.",
+    "The time to stop this page has passed, so it may be live. Sign in to stop it from This week.",
     { slots: {}, fixedBy: "issue 1739 · E7" },
   ],
   "publish.veto.unknown": [
-    "This isn’t a link ReachKit can act on. Sign in to stop or edit a page from This week.",
+    "Sign in to stop or edit a page from This week.",
     { slots: {}, fixedBy: "issue 1739" },
   ],
   // The heads of the arms where nothing was stopped; the line under each says why.
@@ -336,30 +336,17 @@ export const PUBLISH_COPY = Object.freeze({
   // The stop that did not go through: never says Stopped.
   "publish.veto.failed.head": ["Not stopped yet", { slots: {}, fixedBy: "issue 1739" }],
   "publish.veto.failed": [
-    "That didn’t go through, so the page is not stopped. Press Stop this page again, or sign in and stop it from This week.",
+    "That didn’t work, so the page isn’t stopped. Press Stop this page again, or sign in and stop it from This week.",
     { slots: {}, fixedBy: "issue 1739" },
   ],
   "publish.veto.failed.still": ["Still goes live {when}, unless stopped.", { slots: { when: "text" }, fixedBy: "issue 1739" }],
   // The ask arm: why the week chose the page, the window, and what Stop does.
   "publish.veto.why": ["Why ReachKit chose it:", { slots: {}, fixedBy: "issue 1739" }],
   "publish.veto.timeline.sent": ["Mail sent {at}", { slots: { at: "text" }, fixedBy: "issue 1739" }],
-  "publish.veto.before": ["You can stop it any time before then.", { slots: {}, fixedBy: "issue 1739" }],
   "publish.veto.consequence": [
     "It won’t go live, and this topic is dropped. Your other pages are not affected.",
     { slots: {}, fixedBy: "issue 1739" },
   ],
-  // SPEC §0's six-word title rule over the board's seven words (R12 B7).
-  "publish.veto.choices.title": ["What each choice does", { slots: {}, fixedBy: "issue 1739 · SPEC §0" }],
-  "publish.veto.choices.stop": ["You press Stop this page", { slots: {}, fixedBy: "issue 1739" }],
-  "publish.veto.choices.stop.1": ["It won’t go live.", { slots: {}, fixedBy: "issue 1739" }],
-  "publish.veto.choices.stop.2": ["This topic is dropped. ReachKit won’t write it again.", { slots: {}, fixedBy: "issue 1739" }],
-  "publish.veto.choices.stop.3": ["Your other pages go ahead as usual.", { slots: {}, fixedBy: "issue 1739" }],
-  "publish.veto.choices.none": ["You do nothing", { slots: {}, fixedBy: "issue 1739" }],
-  "publish.veto.choices.none.1": ["It goes live {when}, on its own.", { slots: { when: "text" }, fixedBy: "issue 1739" }],
-  "publish.veto.choices.none.1.unset": ["It goes live on its own.", { slots: {}, fixedBy: "issue 1739" }],
-  "publish.veto.choices.none.1.unconnected": ["It goes live once the setting works.", { slots: {}, fixedBy: "issue 1739 · Q11" }],
-  "publish.veto.choices.none.2": ["You can still edit or stop it until then.", { slots: {}, fixedBy: "issue 1739" }],
-  "publish.veto.choices.none.3": ["Nothing is needed from you.", { slots: {}, fixedBy: "issue 1739" }],
   // The stopped arm's week: each day's page, as Plan holds it.
   "publish.veto.week.title": ["This week, after your stop", { slots: {}, fixedBy: "issue 1739" }],
   "publish.veto.week.stopped": ["Stopped", { slots: {}, fixedBy: "issue 1739" }],
@@ -367,7 +354,7 @@ export const PUBLISH_COPY = Object.freeze({
   // Issue 1674: the Monday mail's link to a page planned but not written yet (drafted).
   "publish.veto.planned.title": ["Planned for {day}", { slots: { day: "text" }, fixedBy: "issue 1674 (drafted)" }],
   "publish.veto.written": [
-    "This page is written now. Sign in to read, edit or stop it from This week.",
+    "This page is written now. Sign in to edit or stop it from This week.",
     { slots: {}, fixedBy: "issue 1674 (drafted)" },
   ],
 

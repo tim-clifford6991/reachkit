@@ -41,7 +41,7 @@ import type React from "react";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { Check, CircleQuestionMark, CircleStop, Clock, Coffee, FileText, Info, Lock, MessageCircleWarning, X, type LucideIcon } from "lucide-react";
+import { Check, CircleQuestionMark, CircleStop, Clock, FileText, Info, Lock, MessageCircleWarning, type LucideIcon } from "lucide-react";
 import { StopButton } from "./StopButton";
 import { copy } from "@/lib/presentation/copy";
 import { previewVetoLink, redeemVetoLink, vetoLinkPath } from "@/lib/publish/publishable";
@@ -421,7 +421,7 @@ function Ask(p: { token: string; it: Omit<VetoPreview, "draftId">; failed?: bool
   const span = publishes === null ? null : timeline(p.it.mailedAt, publishes);
   const when = publishes === null ? null : writeMoment(publishes);
 
-  const ask = split(
+  return split(
     <>
       <Head className={EYEBROW}>
         <Clock size={16} strokeWidth={1.75} aria-hidden />
@@ -460,7 +460,6 @@ function Ask(p: { token: string; it: Omit<VetoPreview, "draftId">; failed?: bool
             )}
             <li className="step step-primary font-semibold">{copy("publish.veto.ask.head", { when: span.live })}</li>
           </ul>
-          <p className="text-base-content/70 text-xs">{copy("publish.veto.before")}</p>
         </div>
       )}
       {p.failed ? (
@@ -508,65 +507,6 @@ function Ask(p: { token: string; it: Omit<VetoPreview, "draftId">; failed?: bool
               volume: new Intl.NumberFormat(PAGE_LOCALE).format(p.it.volume),
             }),
     })
-  );
-
-  return (
-    <>
-      {ask}
-      <section aria-labelledby="veto-choices" className="bg-base-100 px-4 py-12 sm:px-8 lg:px-18">
-        <h2 id="veto-choices" className="mb-5">
-          {copy("publish.veto.choices.title")}
-        </h2>
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-          {choice({ text: copy("publish.veto.choices.stop"), icon: CircleStop, tone: "text-primary" }, [
-            { text: copy("publish.veto.choices.stop.1"), icon: X },
-            { text: copy("publish.veto.choices.stop.2"), icon: X },
-            { text: copy("publish.veto.choices.stop.3"), icon: Check },
-          ])}
-          {choice({ text: copy("publish.veto.choices.none"), icon: Coffee, tone: "text-success" }, [
-            {
-              text: p.it.unconnected
-                ? copy("publish.veto.choices.none.1.unconnected")
-                : when === null
-                  ? copy("publish.veto.choices.none.1.unset")
-                  : copy("publish.veto.choices.none.1", { when }),
-              icon: Check,
-            },
-            { text: copy("publish.veto.choices.none.2"), icon: Check },
-            { text: copy("publish.veto.choices.none.3"), icon: Check },
-          ])}
-        </div>
-      </section>
-    </>
-  );
-}
-
-type ChoiceLine = { text: string; icon: LucideIcon };
-
-/** One of the two choices: what the reader does, and the three things that
- *  follow. Only a tick is success-toned: a cross beside "It won't go live"
- *  says what is lost, not that something went well. */
-function choice(head: ChoiceLine & { tone: string }, lines: readonly ChoiceLine[]): React.JSX.Element {
-  return (
-    <div className="rounded-box border-base-300 flex flex-col gap-3 border p-4" data-testid="veto-choice">
-      <div className="flex items-center gap-2">
-        <head.icon size={20} strokeWidth={1.75} className={`${head.tone} flex-none`} aria-hidden />
-        <h3 className="text-base">{head.text}</h3>
-      </div>
-      <ul className="flex flex-col gap-2 text-sm">
-        {lines.map((line) => (
-          <li key={line.text} className="flex items-start gap-2">
-            <line.icon
-              size={20}
-              strokeWidth={1.75}
-              className={`${line.icon === Check ? "text-success" : "text-base-content/70"} flex-none`}
-              aria-hidden
-            />
-            <span>{line.text}</span>
-          </li>
-        ))}
-      </ul>
-    </div>
   );
 }
 

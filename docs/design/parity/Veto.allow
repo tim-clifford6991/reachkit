@@ -9,8 +9,6 @@ Mail sent 8:00 AM Goes live 4:00 PM	sample data: the told record's send time and
 Goes live on Monday	sample data: the publish weekday
 A burst pipe or a backed-up drain does most of its damage in the first hour. Here’s what to do before the plumber arrives, starting with the main shut-off valve.	sample data: the page's own opening
 Written for people who search “emergency plumber austin”, about 1,300 times a month.	sample data: the page's search and volume
-Your two choices, and what each does	SPEC §0 six-word title; owner R12 B7 ships "What each choice does"
-It goes live Mon 19 Oct, 4:00 PM, on its own.	sample data: the publish moment
 The button is disabled and spins. It never says Stopped until the page is stopped.	#1714: a designer's note on the busy state, an annotation
 Still goes live Mon 19 Oct, 4:00 PM, unless stopped.	sample data: the publish moment
 Planned for Wed 21 Oct	sample data: the planned day
