@@ -370,3 +370,22 @@ describe("the five keys the owner ruled 2026-09-11 (DECISIONS 2026-09-11, #516)"
     }
   });
 });
+
+describe("no shipped value is a drafting sentinel", () => {
+  const SENTINEL = /(?<![\p{L}\p{N}])(?:\((?:delete|cut|remove|drop)\)|todo|tbd|xxx|lorem)(?![\p{L}\p{N}])/iu;
+  const offenders = (partition: CopyPartition) => Object.entries(partition).filter(([, [value]]) => SENTINEL.test(value)).map(([key]) => key);
+
+  it("a value that is or holds a sentinel is caught", () => {
+    const fixture: CopyPartition = {
+      "fixture.gone": ["(delete)", { slots: {}, fixedBy: "x" }],
+      "fixture.held": ["Read this (CUT) first", { slots: {}, fixedBy: "x" }],
+      "fixture.todo": ["Price TBD", { slots: {}, fixedBy: "x" }],
+      "fixture.kept": ["Drop a pin, then todos and xxxl are words", { slots: {}, fixedBy: "x" }],
+    };
+    expect(offenders(fixture)).toEqual(["fixture.gone", "fixture.held", "fixture.todo"]);
+  });
+
+  it("every partition is free of them", async () => {
+    for (const [file, partition] of await loadPartitions()) expect(offenders(partition), file).toEqual([]);
+  });
+});
