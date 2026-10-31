@@ -8,23 +8,15 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { psql, psqlRows } from "../../db/substrate";
 
 const MIGRATIONS = path.resolve(import.meta.dirname, "../../../supabase/migrations");
-const APPLIED = [
-  "00000000000001_baseline.sql",
-  "00000000000002_rls.sql",
-  "20261031120000_users_signin_link_reuse.sql",
-];
+const APPLIED = ["00000000000001_baseline.sql", "00000000000002_rls.sql", "20261031120000_users_signin_link_reuse.sql"];
 
 function value(sql: string): string | undefined {
   return psqlRows(sql)[0]?.[0];
 }
 
 function resetSchema(): void {
-  psql([
-    "-v",
-    "ON_ERROR_STOP=1",
-    "-c",
-    "drop schema public cascade; create schema public; grant usage on schema public to anon, authenticated, service_role;",
-  ]);
+  const sql = "drop schema public cascade; create schema public; grant usage on schema public to anon, authenticated, service_role;";
+  psql(["-v", "ON_ERROR_STOP=1", "-c", sql]);
 }
 
 beforeAll(() => {
