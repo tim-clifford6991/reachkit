@@ -5,10 +5,11 @@
 // daisyUI classes in the route (DESIGN rule 1): `alert` for the notice,
 // `btn` for the one control; every module below is its own card.
 //
-// The order is SPEC §2's of 2026-10-07 (owner, issue 1328): the result and
-// the action first, everything longer closed beneath them.
-//   1. the head — what we read you as, the biggest gap, the jump chips —
-//      beside the score card (board PubReport).
+// The order is SPEC §2's of 2026-10-07 (owner, issue 1328), led since owner
+// R12 (2026-10-31) by who gets the buyers: the result and the action first,
+// everything longer closed beneath them.
+//   1. the head — what we read you as, who gets your buyers and the pages
+//      found, the biggest gap — beside the score card (board PubReport).
 //   2. who gets your buyers — two equal cards, side by side, AI · Google,
 //      each with its figure and a waffle of who was named. Each card's
 //      list is closed under the list's own name.
@@ -60,8 +61,8 @@ import { StillReading } from "./still-reading";
 import { ReadSection, whereLine } from "@/app/_business/WhatWeRead";
 import type { BusinessUnderstanding } from "@/lib/business/types";
 import { profileOfReport, understandBusiness } from "@/lib/business/understanding";
-import { BuyersSection } from "../_modules/buyers";
-import { TIMING, WEEK_PLAN } from "@/lib/config/constants";
+import { BuyersSection, HeadlineBlock } from "../_modules/buyers";
+import { TIMING } from "@/lib/config/constants";
 import { BOT_PROTECTION, HOME_TIMEOUT } from "@/lib/measure/challenge";
 // #103: the category has one home — the market the profile inferred.
 // `categoryOf` is the one derivation of it, and the screen reads it here
@@ -423,17 +424,13 @@ function readAsOf(report: StoredReport, understanding: BusinessUnderstanding | n
   ];
 }
 
-/** Owner A3 (2026-10-19): the pages the report found, under their count,
- *  ahead of the offer that writes them (board PubReport). */
+/** Owner A3 (2026-10-19): the pages the report found, ahead of the offer
+ *  that writes them; their count is said once, in the headline (owner R12). */
 function MissingPagesSection(p: { pages: readonly MissingPage[] | null; freeSearch: string | null }): React.JSX.Element | null {
-  const found = p.pages?.length ?? 0;
-  if (p.pages === null || found === 0) return null;
+  if (p.pages === null || p.pages.length === 0) return null;
   return (
     <section className="flex min-w-0 flex-col gap-3">
-      <p className="eyebrow">{copy("report.missing.eyebrow")}</p>
-      <h2 className="text-3xl font-bold">
-        {copy(found === 1 ? "report.offer.found.one" : "report.offer.found", { count: String(found) })}
-      </h2>
+      <h2 className="text-3xl font-bold">{copy("report.missing.title")}</h2>
       <MissingPagesList pages={p.pages} freeSearch={p.freeSearch} />
     </section>
   );
@@ -449,7 +446,7 @@ function offerOf(
   const named = missing !== undefined && missing.kind === "measured" && missing.value > 0;
   return {
     ...(named
-      ? { heading: copy("offer.found.heading"), line: copy("offer.found.line", { weekPages: String(WEEK_PLAN.days) }) }
+      ? { heading: copy("offer.found.heading"), line: copy("offer.found.line") }
       : {}),
     ...(report.freePage === null
       ? {}
@@ -573,7 +570,8 @@ export function ReportView(p: {
                 <MarketFromSearchLine report={report} />
               </>
             }
-            seeMissing={(missingPages?.length ?? 0) > 0 || (report.supply.missingPages.kind === "measured" && report.supply.missingPages.value > 0)}
+            top={<HeadlineBlock ai={report.aiAnswers} presence={report.presence} missing={missingPages?.length ?? 0} free={report.freePage !== null} />}
+            independent={copy("report.independent", { company: understanding?.name ?? report.domain })}
           />
         </div>
         <FinishingReadsLine report={report} />
@@ -581,7 +579,7 @@ export function ReportView(p: {
 
         {/* Issue 715: an absent card carries the address its retry posts
             to; the route asks `retryOffer` again from the row's own facts. */}
-        <BuyersSection ai={report.aiAnswers} presence={report.presence}>
+        <BuyersSection>
           {report.aiAnswers === null ? (
             <AiAnswersAbsent cutOff={cutOff} domain={report.domain} />
           ) : (

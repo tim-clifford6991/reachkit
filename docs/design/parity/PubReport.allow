@@ -48,12 +48,14 @@ Your free report sample	sample data: the board's sample tag beside the eyebrow
 Visibility Score sample	sample data: the board's sample tag beside the eyebrow
 sample	sample data: the board's sample tag beside the AI heading
 Scanned 19 Oct 2026 · Plumber. Searched on Google in the US, in English.	sample data: the date and the category are Harbor Plumbing's
-Biggest gap: your pages don’t answer buyers’ questions	SPEC §0 2026-10-15: a title is at most six words; owner R12 2026-10-22 B1 ships "Biggest gap: Content" and two lines
+An independent report by ReachKit. Harbor Plumbing has not endorsed it.	sample data: the company is Harbor Plumbing's
 Hard to find likely 22 to 32	sample data
 Website basics 6/10	sample data
 Answers questions 1/10	sample data
 Google 2/10	sample data
-Buyers are sent mostly to a national plumbing chain. You showed up 3 times out of 24. 1 AI answer + 2 Google searches	sample data
+Buyers are sent to a national plumbing chain	sample data
+You came up 3 times in 24 Google results and AI answers.	sample data
+We found 14 pages your site is missing. The first one is free.	sample data: Harbor Plumbing's 14; the fixture counts its own 7
 1 of 12 AI answers that mention you	sample data
 austinpipeworks.example 5	sample data
 capitolrooter.example 2	sample data
@@ -79,10 +81,9 @@ Hard to use on a phone Nothing to fix	sample data: the statuses are Harbor Plumb
 Harbor Plumbing finds a slab leak with listening equipment before opening any floor. from harborplumbing.com/slab-leaks The price depends on where the leak is and how it is reached…	owner R26 2026-10-23: stored first lines once written (tests/app/scan-address/first-page-preview.test.tsx)
 Drawn open as it looks when reached from “Get your first page free ↓”. It starts closed, like the sections above.	#1714: the board's own caption on how it draws the first page
 Every figure on this artboard is a sample for the fictional Harbor Plumbing, Austin. Competitor websites are fictional too.	sample data: the board's caption on its own sample
-The first lines. The full page comes by email. Written with Claude, an AI model, from your own site.	owner R26 2026-10-23: stored first lines once written (tests/app/scan-address/first-page-preview.test.tsx)
+The first lines, written by AI from your site. We email you the full page.	owner R26 2026-10-23: stored first lines once written (tests/app/scan-address/first-page-preview.test.tsx)
 480 times a month	sample data: the page's search volume is Harbor Plumbing's
 Cost guide	sample data: the board's type for Harbor Plumbing's page; the report names the Write types it can offer
-This report found 14 pages your site is missing sample	sample data: Harbor Plumbing's 14 pages and the board's sample tag; the fixture counts its own 7
 page 1 How much does slab leak repair cost in Austin? searched 480 times a month	sample data: Harbor Plumbing's buyer question and volume; the card shows the stored question (2026-10-24 E16)
 capitolrooter.example free · written for you	sample data: capitolrooter.example is Harbor Plumbing's rival; the free mark ships on the free card (tests/app/scan-address/missing-pages.test.tsx, #1968)
 page 2 Emergency plumber in Austin: what to do in the first hour searched 2,400 times a month	sample data: Harbor Plumbing's buyer question and volume; the card shows the stored question (2026-10-24 E16)

@@ -469,7 +469,6 @@ describe("SPEC §2, 2026-10-07 (issue 1328) — the result and the action first,
     const closed = closedParts(html);
     for (const key of [
       "ai-answers.questions.measured",
-      "ai-answers.method",
       "presence.absent-from.column.search",
       "problem.blocked-readers.title",
       "problem.missing-pages.title",

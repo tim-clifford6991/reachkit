@@ -128,17 +128,15 @@ describe("the scan in progress matches board PubScanning", () => {
       `${copy("stage.checking_your_presence", searches)} ${copy("stage.checking_your_presence.line")} ${copy("stage.status.working")} started 0:12`,
       `${copy("stage.asking_the_twelve")} ${copy("stage.asking_the_twelve.line")} ${copy("stage.status.next")}`,
       `${copy("stage.scoring")} ${copy("stage.scoring.line")} ${copy("stage.status.next")}`,
-      copy("scan.progress.caption"),
+      copy("scan.get.title"),
     ]);
   });
 
-  it("What you'll get: three steps, four items, and the line to How it works", async () => {
+  it("What you'll get: four items and the line to How it works, with no second telling of the steps", async () => {
     const screen = await partWay();
+    expect(screen.querySelector('[aria-labelledby="scan-get"] ol')).toBeNull();
     inOrder(screen, [
       copy("scan.get.title"),
-      copy("scan.get.step.1"),
-      copy("scan.get.step.2"),
-      copy("scan.get.step.3"),
       `${copy("scan.get.score")} ${copy("scan.get.score.line")}`,
       `${copy("scan.get.rivals")} ${copy("scan.get.rivals.line")}`,
       `${copy("scan.get.held")} ${copy("scan.get.held.line")}`,

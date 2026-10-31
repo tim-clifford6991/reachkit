@@ -64,6 +64,18 @@ const SCREEN_KEYS: readonly CopyKey[] = [
   "verdict.limiting.google.line",
   "verdict.limiting.ai.line",
   "verdict.limiting.presence.line",
+  // the headline: who gets the buyers, and the pages found (owner R12)
+  "report.top.title",
+  "report.top.title.you-lead",
+  "report.top.title.none",
+  "report.top.line",
+  "report.top.line.one",
+  "report.top.offer",
+  "report.top.offer.one",
+  "report.top.offer.no-free",
+  "report.top.offer.no-free.one",
+  "report.independent",
+  "verdict.score.split",
   "verdict.factor.foundations",
   "verdict.factor.answerability",
   "verdict.factor.google",
@@ -82,7 +94,6 @@ const SCREEN_KEYS: readonly CopyKey[] = [
   "ai-answers.source",
   "ai-answers.finding",
   "report.figure.of",
-  "ai-answers.method",
   "ai-answers.questions.title",
   // Issue 873: what this report measured, stated on the card.
   "ai-answers.questions.measured",
@@ -129,10 +140,13 @@ const SCREEN_KEYS: readonly CopyKey[] = [
   "method.title",
   "method.blocked-readers.title",
   "method.blocked-readers.body",
+  "method.blocked-readers.step.1",
   "method.missing-pages.title",
   "method.missing-pages.body",
+  "method.missing-pages.step.1",
   "method.unquotable-pages.title",
   "method.unquotable-pages.body",
+  "method.unquotable-pages.step.1",
   // 5 · free page
   "free-page.title",
   "free-page.badge",
@@ -156,34 +170,22 @@ const SCREEN_KEYS: readonly CopyKey[] = [
   "pricing.plan.checked",
   "offer.cadence.movement",
   "offer.veto.window",
-  "offer.veto.window.value",
   "offer.start",
   "pricing.plan.cancel",
   "offer.found.heading",
   "offer.found.line",
-  "offer.steps.scanned",
-  "offer.steps.write",
-  "offer.steps.progress",
-  "offer.chip.facts",
-  "offer.chip.checks",
-  "offer.chip.stop",
-  "offer.chip.live",
-  "offer.price.euros",
   "how.steps.part",
   "how.steps.part.more",
   "report.rest.eyebrow",
-  "method.section.sub",
   "check.broken-links.plain",
   "check.status.not-run",
   "free-page.consent",
   // the missing pages, an unbuilt count (owner A3, E1)
-  "report.offer.found",
-  "report.offer.found.one",
   "report.offer.free-path",
   "report.missing.volume",
   "report.missing.holder",
   "report.missing.all",
-  "report.missing.eyebrow",
+  "report.missing.title",
   "report.missing.lead",
   "unmeasured.not-yet",
   // the notices, the controls, the foot, the scanning stages
@@ -327,12 +329,12 @@ describe("what the owner is owed, stated rather than discovered", () => {
   });
 });
 
-describe("the offer says how many pages the report found missing (owner A3)", () => {
-  it.each(["saas", "local"] as const)("the %s panel report's offer heading carries its count, beside a free path", (which) => {
+describe("the headline says how many pages the report found missing (owner A3, R12)", () => {
+  it.each(["saas", "local"] as const)("the %s panel report's headline carries its count, and the offer a free path", (which) => {
     const report = panelReport(which);
     const html = renderReport(report);
-    const heading = copy("report.offer.found", { count: String(report.freePage!.totalPages) });
-    expect(html).toMatch(new RegExp(`<h2[^>]*>${heading}</h2>`));
+    const line = copy("report.top.offer", { count: String(report.freePage!.totalPages) });
+    expect(html).toMatch(new RegExp(`<a href="#start"[^>]*data-testid="report-top-offer">${line}</a>`));
     expect(html).toMatch(/<a href="#first-page"[^>]*data-testid="report-free-path"/);
   });
 });

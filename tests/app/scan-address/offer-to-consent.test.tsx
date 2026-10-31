@@ -35,42 +35,36 @@ describe.each(["saas", "local"] as const)("the %s panel report, offer to consent
   const html = renderReport(report);
   const page = text(html);
 
-  it("names the pages found, then offers to write them, as the board's offer card", () => {
+  it("lists the pages found, then offers to write them, as the board's offer card", () => {
     expectInOrder(page, [
-      copy("report.offer.found", { count: String(report.freePage!.totalPages) }),
-      "Let ReachKit write the missing pages",
-      "ReachKit writes them from facts on your own site and publishes up to 7 a week, on autopilot.",
-      "1 You’ve scanned",
-      "2 We choose and write",
-      "3 You see progress every Monday",
-      "Written from facts on your own site",
-      "Up to ",
-      " checks",
-      "Edit or stop any page",
-      "Live on your website by itself",
+      copy("report.missing.title"),
+      "We write these pages for you",
+      "Written from facts on your own site. All on autopilot.",
       "Up to 7 pages a week, new or updated",
       "Your market and your pages checked every Monday",
       "A Monday email shows what went live and what moved.",
-      "Every page goes live on its own after 24 hours. You can edit or stop it before then.",
+      "Stop or edit any page before it goes live.",
       "Your part: about 10 minutes, once.",
       "What you do",
       "€49",
       "a month · tax included",
-      "Billed in euros. €49 is the total, wherever you are.",
       "Start ReachKit €49",
       "Cancel any time from Settings. No account before payment.",
       "Not ready? Get your first page free ↓",
       "More in your report",
       "Site fixes",
       "The 3 that cost you most, then 8 quick checks",
-      "The complete method, free",
-      "How to do it all yourself, step by step",
+      "Do it yourself, free",
       "Where should we send it?",
       "Email me the full page",
       "We’ll email this page, then up to 3 short notes about your report. Unsubscribe in one click.",
     ]);
     expect(html).toContain('href="/how-it-works#you-do"');
     expect(page).not.toContain("cancel any time, yourself");
+    // Said once: no step strip, no chips repeating the terms, no second price line (owner O6).
+    for (const gone of ["You’ve scanned", "We choose and write", "Edit or stop any page", "Live on your website by itself", "Billed in euros", "How to do it all yourself"]) {
+      expect(page, gone).not.toContain(gone);
+    }
     // The guarantee waits for the launch gate (owner 2026-10-20, Q13).
     expect(page).not.toMatch(/money-back/i);
   });

@@ -127,7 +127,6 @@ describe("a report with no score", () => {
     expect(card.text).not.toMatch(/\b0\b/);
     const strip = parse(page).querySelector('[data-testid="gallery-strip"] figcaption')?.text ?? "";
     expect(strip).toContain(copy("gallery.strip.unscored.one", { n: "12", domain: "cedar-yoga.example" }));
-    expect(strip).toContain(copy("gallery.strip.range", { low: "25", high: "60" }));
   });
 });
 

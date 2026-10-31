@@ -1,16 +1,15 @@
-// Board PubReport, the top half: the head, what we read you as, the biggest
-// gap, the jump chips, the score card, and who gets your buyers with its AI
-// and Google panels, in the board's order and words. Against the real
+// Board PubReport, the top half: the head, what we read you as, the headline
+// of who gets your buyers (owner R12), the biggest gap, the score card, and
+// the AI and Google panels, in the board's order and words. Against the real
 // registry, on the reserved-name fixture and the customer panel's stored
 // reports (a SaaS and a local business). 0¢: nothing is measured.
 import { describe, expect, it } from "vitest";
 import { copy } from "@/lib/presentation/copy";
 import { FIXTURE_COLD_START_REPORT, FIXTURE_DEGRADED_REPORT, FIXTURE_REPORT } from "@/app/(public)/scan/[domain]/_fixture/states";
 import { answerQuoteOf } from "@/app/(public)/scan/[domain]/_modules/ai-answers";
-import { buyersOf } from "@/app/(public)/scan/[domain]/_modules/buyers";
+import { buyersOf, headlineOf } from "@/app/(public)/scan/[domain]/_modules/buyers";
 import type { StoredReport } from "@/lib/scan/report";
 import { segments } from "../../../scripts/design/parity.mjs";
-import { LIMITING_LINES } from "@/lib/presentation/bands";
 import { panelReport, renderReport, walkReport } from "./panel-report";
 
 /** The page's visible strings, one per block, as the parity check reads them. */
@@ -37,14 +36,15 @@ function expectInOrder(lines: readonly string[], texts: readonly string[]): void
 const ai = FIXTURE_REPORT.aiAnswers!;
 const presence = FIXTURE_REPORT.presence!;
 
-describe("the head reads as the board: domain, where it was measured, what we read, the gap, the chips, the score", () => {
+describe("the head reads as the board: domain, where it was measured, what we read, the headline, the gap, the score", () => {
   const lines = shown(FIXTURE_REPORT);
 
-  it("names the domain and says where it was measured in one line", () => {
+  it("names the domain, says where it was measured in one line, and that the report is independent", () => {
     expectInOrder(lines, [
       copy("report.eyebrow"),
       "example.com",
       `${copy("report.measured-at", { date: "Sep 5, 2026", category: "product analytics" })} ${copy("report.measurement")}`,
+      copy("report.independent", { company: "example" }),
     ]);
   });
 
@@ -60,32 +60,42 @@ describe("the head reads as the board: domain, where it was measured, what we re
     expect(head.filter((line) => line === copy("verdict.not-your-market"))).toHaveLength(1);
   });
 
-  it("names the biggest gap, its two lines and the way to the missing pages (owner R12 B1)", () => {
+  it("leads with who gets the buyers and the pages found, before the gap and the score ring (owner R12)", () => {
     expectInOrder(lines, [
+      copy("verdict.not-your-market"),
+      copy("report.top.title", { holder: "rival-one.example.net" }),
+      copy("report.top.line", { n: "4", m: "21" }),
+      copy("report.top.offer", { count: "7" }),
       copy("verdict.limiting.answerability"),
-      copy("verdict.limiting.answerability.line"),
-      copy("verdict.limiting.answerability.why"),
-      copy("report.gap.see-missing"),
+      copy("verdict.score.label"),
+      copy("report.buyers.title"),
     ]);
-  });
-
-  it("jumps to who gets your buyers, the missing pages, what holds you back and the first page, each a section on the page", () => {
     const html = renderReport(FIXTURE_REPORT);
-    const nav = /<nav aria-label="On this report"[\s\S]*?<\/nav>/.exec(html)?.[0] ?? "";
-    const chips = [...nav.matchAll(/<a href="#([^"]+)"[^>]*>([^<]+)<\/a>/g)].map((m) => [m[1], m[2]]);
-    expect(chips.map(([, label]) => label)).toEqual([
-      copy("report.jump.buyers"),
-      copy("report.missing.eyebrow"),
-      copy("problem.section.title"),
-      copy("report.jump.first-page"),
-    ]);
-    for (const [anchor] of chips) expect(html, `#${anchor} lands on the page`).toContain(`id="${anchor}"`);
+    expect(html.indexOf('data-testid="report-top"')).toBeLessThan(html.indexOf("radial-progress"));
+    expect(html).toMatch(/<a href="#start"[^>]*data-testid="report-top-offer">/);
+    expect(html).toContain('id="start"');
   });
 
-  it("the score card: its name, the band beside the range, what it is made of, and the four parts in tenths", () => {
+  it("names the biggest gap in its title and one line, and nothing after them", () => {
+    const gap = renderReport(FIXTURE_REPORT).match(/<section[^>]*data-testid="report-gap"[\s\S]*?<\/section>/)![0];
+    expect(segments(gap)).toEqual([copy("verdict.limiting.answerability"), copy("verdict.limiting.answerability.line")]);
+    expect(gap).not.toContain("<a ");
+  });
+
+  it("draws no jump chips: the page is short enough to read in order", () => {
+    const html = renderReport(FIXTURE_REPORT);
+    expect(html).not.toContain("<nav");
+    expect(html).not.toMatch(/<a href="#(buyers|holds|first-page)"[^>]*class="badge/);
+  });
+
+  it("the score card: its name, the band beside the open range, and closed under its name what it is made of in tenths", () => {
+    const split = renderReport(FIXTURE_REPORT).match(/<details[^>]*data-testid="verdict-split"[\s\S]*?<\/details>/)![0];
+    expect(split).not.toMatch(/<details[^>]* open/);
+    expect(segments(split)[0]).toBe(copy("verdict.score.split"));
     expectInOrder(lines, [
       copy("verdict.score.label"),
       `${copy("band.score.hard-to-find")} ${copy("verdict.estimate.range", { low: "25", high: "35" })}`,
+      copy("verdict.score.split"),
       copy("verdict.score.parts"),
       `${copy("verdict.factor.foundations")} 7/10`,
       `${copy("verdict.factor.answerability")} 2/10`,
@@ -94,26 +104,16 @@ describe("the head reads as the board: domain, where it was measured, what we re
     ]);
   });
 
-  it("the head comes before the score, and the score before who gets your buyers", () => {
-    expectInOrder(lines, [copy("report.read.as.title"), copy("report.jump.first-page"), copy("verdict.score.label"), copy("report.buyers.title")]);
-  });
 });
 
-describe("who gets your buyers today, and its two panels", () => {
+describe("who gets your buyers, and its two panels", () => {
   const lines = shown(FIXTURE_REPORT);
 
-  it("leads with its heading and the sentence naming who the buyers are sent to", () => {
-    const b = buyersOf(ai, presence);
-    expect(b).toEqual({ holder: "rival-one.example.net", ai: 3, google: 1, out: 21 });
-    expectInOrder(lines, [
-      copy("report.jump.buyers"),
-      copy("report.buyers.title"),
-      copy("report.buyers.lead"),
-      `${copy("report.buyers.summary", { holder: "rival-one.example.net", n: "4", m: "21" })} ${copy("report.buyers.split", {
-        ai: copy("report.buyers.split.ai", { n: "3" }),
-        google: copy("report.buyers.split.google.one", { n: "1" }),
-      })}`,
-    ]);
+  it("the section is its heading and the two panels: the headline above already said who leads", () => {
+    expect(buyersOf(ai, presence)).toEqual({ holder: "rival-one.example.net", ai: 3, google: 1, out: 21 });
+    const i = at(lines, copy("report.buyers.title"));
+    expect(lines[i + 1]).toBe(copy("ai-answers.title"));
+    expect(lines.filter((line) => line === copy("report.top.title", { holder: "rival-one.example.net" }))).toHaveLength(1);
   });
 
   it("the AI panel: the figure, what it counts, the waffle, one answer quoted as written, the questions", () => {
@@ -121,7 +121,7 @@ describe("who gets your buyers today, and its two panels", () => {
       copy("report.buyers.title"),
       copy("ai-answers.title"),
       `${copy("report.figure.of", { count: "3", total: "9" })} ${copy("ai-answers.finding")}`,
-      copy("ai-answers.source", { total: "12" }),
+      copy("ai-answers.source", { total: "12", answered: "9" }),
       copy("report.ai.waffle"),
       copy("report.ai.quote", { search: "product analytics tools" }),
       // One sentence, as written, never the whole answer.
@@ -188,20 +188,18 @@ describe("the states the board does not draw", () => {
     expect(answerQuoteOf(ai, [kept("**Acme** , the `leader` . Then more.")])?.text).toBe("Acme, the leader.");
   });
 
-  it("no competitor found: the sentence counts the customer alone", () => {
-    const lines = shown(FIXTURE_COLD_START_REPORT);
+  it("nobody found and the customer at zero: buyers can't find you yet, before the score", () => {
     const b = buyersOf(FIXTURE_COLD_START_REPORT.aiAnswers!, FIXTURE_COLD_START_REPORT.presence!);
-    expect(b.holder).toBeNull();
-    const n = b.ai + b.google;
-    const summary = lines.find((line) => line.startsWith(copy(n === 1 ? "report.buyers.summary.none.one" : "report.buyers.summary.none", { n: String(n), m: String(b.out) })));
-    expect(summary).toBeDefined();
+    expect(b).toMatchObject({ holder: null, ai: 0, google: 0 });
+    expectInOrder(shown(FIXTURE_COLD_START_REPORT), [copy("report.top.title.none"), copy("report.top.line", { n: "0", m: String(b.out) }), copy("verdict.score.label")]);
   });
 
-  it("a panel not measured: no sentence sums over the missing half, and no gap link without a missing page", () => {
+  it("a panel not measured: no headline, so no count is summed over the missing half or shown as 0", () => {
+    expect(headlineOf(FIXTURE_DEGRADED_REPORT.aiAnswers, FIXTURE_DEGRADED_REPORT.presence)).toBeNull();
     const lines = shown(FIXTURE_DEGRADED_REPORT);
     expect(at(lines, copy("report.buyers.title"))).toBeGreaterThan(-1);
-    expect(renderReport(FIXTURE_DEGRADED_REPORT)).not.toContain('data-testid="report-buyers-summary"');
-    expect(at(lines, copy("report.gap.see-missing"))).toBe(-1);
+    for (const key of ["report.top.title.none", "report.top.title.you-lead"] as const) expect(at(lines, copy(key))).toBe(-1);
+    expect(renderReport(FIXTURE_DEGRADED_REPORT)).not.toMatch(/data-testid="report-top"><h2/);
   });
 
   it("a stored report that kept Presence whole says three parts, not four", () => {
@@ -220,27 +218,26 @@ describe("the states the board does not draw", () => {
 });
 
 describe("the customer panel's stored reports, a SaaS and a local business", () => {
-  it("names no competitor the buyers go to when the customer was found more often than it", () => {
-    for (const [walk, domain] of [
-      ["2026-10-15-1441-after", "austinplumbery.com"],
-      ["2026-10-15", "alexander.co.uk"],
+  it("the customer found at least as often as every competitor leads, and is never told buyers can't find it", () => {
+    for (const [walk, domain, n, m] of [
+      ["2026-10-15-1441-after", "austinplumbery.com", "4", "6"],
+      ["2026-10-15", "alexander.co.uk", "5", "9"],
     ] as const) {
       const report = walkReport(walk, domain);
-      const b = buyersOf(report.aiAnswers!, report.presence!);
-      expect(b.holder, domain).toBeNull();
-      const n = b.ai + b.google;
-      const none = copy("report.buyers.summary.none", { n: String(n), m: String(b.out) });
-      expect(shown(report).some((line) => line.startsWith(none)), domain).toBe(true);
+      expect(buyersOf(report.aiAnswers!, report.presence!).holder, domain).toBeNull();
+      const lines = shown(report);
+      expectInOrder(lines, [copy("report.top.title.you-lead"), copy("report.top.line", { n, m }), copy("verdict.score.label")]);
+      expect(at(lines, copy("report.top.title.none")), domain).toBe(-1);
     }
   });
 
-  it("draws no count where both panels measured nothing", () => {
+  it("draws no headline where both panels measured nothing", () => {
     for (const domain of ["ifleeds.com", "flintplumb.com"]) {
       const report = walkReport("2026-10-15-1441-after", domain);
       expect(buyersOf(report.aiAnswers!, report.presence!).out, domain).toBe(0);
       const html = renderReport(report);
       expect(html, domain).toContain(`id="buyers-h"`);
-      expect(html, domain).not.toContain('data-testid="report-buyers-summary"');
+      expect(html, domain).not.toContain(copy("report.top.title.none"));
     }
   });
 
@@ -251,17 +248,15 @@ describe("the customer panel's stored reports, a SaaS and a local business", () 
     );
   });
 
-  it("every biggest gap says why it matters in words other than its line", () => {
-    for (const [factor, keys] of Object.entries(LIMITING_LINES)) expect(copy(keys.why), factor).not.toBe(copy(keys.line));
-  });
-
   for (const which of ["saas", "local"] as const) {
-    it(`${which}: the head, the chips and who gets your buyers draw from what was stored`, () => {
-      const lines = shown(panelReport(which));
+    it(`${which}: the head, the headline and who gets your buyers draw from what was stored`, () => {
+      const report = panelReport(which);
+      const lines = shown(report);
       expectInOrder(lines, [
         copy("report.read.as.title"),
         copy("verdict.not-your-market"),
-        copy("report.jump.first-page"),
+        copy("report.top.title", { holder: buyersOf(report.aiAnswers!, report.presence!).holder! }),
+        copy("report.top.offer", { count: String(report.freePage!.totalPages) }),
         copy("verdict.score.label"),
         copy("report.buyers.title"),
         copy("ai-answers.title"),

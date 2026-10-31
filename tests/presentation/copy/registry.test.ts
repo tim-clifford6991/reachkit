@@ -274,9 +274,7 @@ describe("the thirteen keys the owner ruled 2026-09-04 (WO-041 `## Log`, this da
       "Up to 7 pages a week, new or updated"
     );
     expect(copy("offer.cadence.movement")).toBe("A Monday email shows what went live and what moved.");
-    expect(copy("offer.veto.window", { value: "24 hours" })).toBe(
-      "Every page goes live on its own after 24 hours. You can edit or stop it before then."
-    );
+    expect(copy("offer.veto.window")).toBe("Stop or edit any page before it goes live.");
   });
 
   it("report — no-presence-yet line for the first page of the rival list", () => {

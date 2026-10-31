@@ -27,16 +27,12 @@ describe("every missing page is listed", () => {
 });
 
 describe("the section is named and says what each page is", () => {
-  it.each(["saas", "local"] as const)("the %s panel report names the section above its heading and leads the list", (which) => {
-    const report = panelReport(which);
-    const html = renderReport(report);
-    const heading = copy("report.offer.found", { count: String(report.freePage!.totalPages) });
-    const eyebrow = html.indexOf(`>${htmlText(copy("report.missing.eyebrow"))}</p>`);
-    const h2 = html.indexOf(`>${heading}</h2>`);
+  it.each(["saas", "local"] as const)("the %s panel report heads the section by its name, then the lead and the list", (which) => {
+    const html = renderReport(panelReport(which));
+    const h2 = html.indexOf(`>${htmlText(copy("report.missing.title"))}</h2>`);
     const lead = html.indexOf(`>${htmlText(copy("report.missing.lead"))}</p>`);
     const list = html.indexOf("<li", html.indexOf('data-testid="report-missing-pages"'));
-    expect(eyebrow).toBeGreaterThan(-1);
-    expect(eyebrow).toBeLessThan(h2);
+    expect(h2).toBeGreaterThan(-1);
     expect(h2).toBeLessThan(lead);
     expect(lead).toBeLessThan(list);
   });
@@ -117,10 +113,10 @@ describe("the example.com fixture draws its missing pages", () => {
     expect(pages.some((page) => page.holder !== null)).toBe(true);
   });
 
-  it("renders the list under its count, the free page's row first", () => {
+  it("says the count once, in the headline, and lists the free page's row first", () => {
     const html = renderReport(FIXTURE_REPORT);
     const list = html.slice(html.indexOf('data-testid="report-missing-pages"'));
-    expect(html).toContain(`>${htmlText(copy("report.offer.found", { count: "7" }))}</h2>`);
+    expect(html).toContain(`>${htmlText(copy("report.top.offer", { count: "7" }))}</a>`);
     const first = list.slice(list.indexOf("<li"), list.indexOf("</li>"));
     expect(first).toContain(htmlText(FIXTURE_REPORT.freePage!.target.keyword));
     expect(first).toContain(htmlText(copy("report.missing.free")));

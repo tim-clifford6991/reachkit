@@ -45,7 +45,7 @@ describe("the words a customer reads on four screens", () => {
 
   it("the scanning page's waiting line carries no em-dash", () => {
     const root = render(<AddressView state={{ kind: "scanning", domain: "harbor-plumbing.example" as never, scanId: "scan-1" }} />);
-    expect(root.textContent).toContain("Under a minute. This address is permanent, so you can come back to it.");
+    expect(root.textContent).toContain("This takes under a minute. Your report stays at this link.");
     expect(root.textContent).not.toContain("—");
   });
 

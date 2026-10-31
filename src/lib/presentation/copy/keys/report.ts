@@ -278,11 +278,7 @@ export const REPORT_COPY = Object.freeze({
   "scan.eyebrow": ["Your free scan", { slots: {}, fixedBy: "board PubScanning · issue 1725" }],
   "scan.head": ["Scanning {domain}", { slots: { domain: "text" }, fixedBy: "board PubScanning · issue 1725" }],
   "scan.progress.title": ["Progress", { slots: {}, fixedBy: "board PubScanning · issue 1725" }],
-  "scan.progress.caption": ["Each stage ticks off as it finishes. No percentage, no countdown.", { slots: {}, fixedBy: "board PubScanning · issue 1725" }],
   "scan.get.title": ["What you’ll get", { slots: {}, fixedBy: "board PubScanning · issue 1725" }],
-  "scan.get.step.1": ["1 You scan", { slots: {}, fixedBy: "board PubScanning · issue 1725" }],
-  "scan.get.step.2": ["2 We choose and write", { slots: {}, fixedBy: "board PubScanning · issue 1725" }],
-  "scan.get.step.3": ["3 You see progress every Monday", { slots: {}, fixedBy: "board PubScanning · issue 1725" }],
   "scan.get.score": ["Your Visibility Score", { slots: {}, fixedBy: "board PubScanning · issue 1725" }],
   "scan.get.score.line": ["out of 100", { slots: {}, fixedBy: "board PubScanning · issue 1725" }],
   "scan.get.rivals": ["Who shows up instead of you", { slots: {}, fixedBy: "board PubScanning · issue 1725" }],
@@ -308,10 +304,7 @@ export const REPORT_COPY = Object.freeze({
   "scan.filling.search.in": ["first page", { slots: {}, fixedBy: "board PubScanning · issue 1905" }],
   "scan.filling.search.out": ["not on first page", { slots: {}, fixedBy: "board PubScanning · issue 1905" }],
   "scan.filling.found": ["found", { slots: {}, fixedBy: "board PubScanning · issue 1725" }],
-  "scan.waiting.line": [
-    "Under a minute. This address is permanent, so you can come back to it.",
-    { slots: {}, fixedBy: "REQ-003 c1" },
-  ],
+  "scan.waiting.line": ["This takes under a minute. Your report stays at this link.", { slots: {}, fixedBy: "REQ-003 c1 · owner O6 2026-10-31" }],
   /** The line above the stages when a re-measure was started *from* a
    *  report that is already on screen (#935). It is not
    *  `scan.waiting.line` — that one tells a first-time visitor the address
@@ -325,7 +318,7 @@ export const REPORT_COPY = Object.freeze({
 
   // ── Module 2, left card — AI answers (REQ-006) ────────────────────────
   "ai-answers.title": ["AI", { slots: {}, fixedBy: "REQ-006 c1" }],
-  "ai-answers.source": ["= the {total} searches buyers make in your market, asked as a buyer asks AI.", { slots: { total: "text" }, fixedBy: "REQ-006 c9" }],
+  "ai-answers.source": ["We asked Google’s AI {total} buyer searches. It answered {answered}.", { slots: { total: "text", answered: "text" }, fixedBy: "REQ-006 c9 · owner O6 2026-10-31" }],
   // Issue 715: SPEC §2 — a category correction reuses the AI answers already
   // read, "and says so". Owner-owed.
   "ai-answers.coverage.cached-only": [
@@ -386,14 +379,6 @@ export const REPORT_COPY = Object.freeze({
   // REQ-006 c6's one written line: what was measured, and no second
   // engine named anywhere on the card. S2 draws it as the source chip at
   // the foot of the card.
-  // Issue 873: the count is the pass's, never the literal twelve. A free
-  // pass asks as many questions as its market yielded and its purse can pay
-  // to ask, so a card that said "12" over nine rows was stating a number
-  // the report did not have.
-  "ai-answers.method": [
-    "= your market’s {total} biggest searches, asked as a buyer asks AI.",
-    { slots: { total: "text" }, fixedBy: "REQ-006 c9 · issue 873" },
-  ],
   "ai-answers.questions.title": ["The {total} searches", { slots: { total: "text" }, fixedBy: "REQ-006 c9 · issue 873" }],
   // Issue 873: what this report measured, in one line, so a founder does
   // not count rows to find out.
@@ -457,7 +442,7 @@ export const REPORT_COPY = Object.freeze({
   // A figure: one count out of another, as each card's head states it.
   "report.figure.of": ["{count} of {total}", { slots: { count: "text", total: "text" }, fixedBy: "issue 1444" }],
   "presence.no-rivals": ["No competitor showed up in these searches.", { slots: {}, fixedBy: "REQ-008 c6" }],
-  "presence.absent-from.title": ["Searches where you’re missing", { slots: {}, fixedBy: "REQ-008 c4" }],
+  "presence.absent-from.title": ["Searches where you don’t show up", { slots: {}, fixedBy: "REQ-008 c4 · owner O6 2026-10-31" }],
   "presence.absent-from.column.search": ["Search", { slots: {}, fixedBy: "REQ-008 c4" }],
   "presence.absent-from.column.volume": ["Searches a month", { slots: {}, fixedBy: "REQ-008 c4" }],
   "presence.absent-from.column.holder": ["Who’s first", { slots: {}, fixedBy: "REQ-008 c4" }],
@@ -533,16 +518,27 @@ export const REPORT_COPY = Object.freeze({
   // Instructional text is allowed here and nowhere else on this screen.
   // S2's eyebrow over the three collapses. The collapses' instructional
   // prose is the owner's (approved 2026-09-10, #459).
-  "method.title": ["The complete method, free", { slots: {}, fixedBy: "REQ-009 c6" }],
-  "method.section.sub": ["How to do it all yourself, step by step", { slots: {}, fixedBy: "board PubReport · issue 1724" }],
+  "method.title": ["Do it yourself, free", { slots: {}, fixedBy: "REQ-009 c6 · owner O6 2026-10-31" }],
   "method.blocked-readers.title": ["Let AI in", { slots: {}, fixedBy: "board PubReport · issue 1724" }],
-  "method.blocked-readers.body": ["Open the robots.txt file at the root of your site; your host usually has a setting for it. Find the rules that turn away the readers AI answers are drawn from, and add the lines shown, so each one is let in. A page can also keep itself out of an answer: remove nosnippet or max-snippet:0 from its robots tag. If your home page carries a noindex rule, remove that too. Nothing else needs to change.", { slots: {}, fixedBy: "board PubReport · issue 1724" }],
+  "method.blocked-readers.body": ["Open your site’s robots.txt file. Your host usually has a setting for it.", { slots: {}, fixedBy: "board PubReport · owner O6 2026-10-31" }],
+  "method.blocked-readers.step.1": ["Add the lines shown, so AI tools are let in.", { slots: {}, fixedBy: "board PubReport · owner O6 2026-10-31" }],
+  "method.blocked-readers.step.2": ["Remove nosnippet or max-snippet:0 from any page that has it.", { slots: {}, fixedBy: "board PubReport · owner O6 2026-10-31" }],
+  "method.blocked-readers.step.3": ["If your home page says noindex, remove that too.", { slots: {}, fixedBy: "board PubReport · owner O6 2026-10-31" }],
   "method.blocked-readers.snippet-pages": ["AI answers can’t quote these pages:", { slots: {}, fixedBy: "SPEC §9 D14 · issue 1145" }],
   "method.blocked-readers.training-choice": ["Your robots.txt keeps {crawlers} out. That only stops AI training, so we don’t count it.", { slots: { crawlers: "text" }, fixedBy: "SPEC §9 D14 · issue 1145" }],
   "method.missing-pages.title": ["Write the missing pages", { slots: {}, fixedBy: "REQ-009 c6" }],
-  "method.missing-pages.body": ["Each missing page answers one question your buyers ask, where competitors show up and you don’t. Answer the question plainly in the first paragraph, then back it with facts from your own site: numbers, dates, names, each linked to where it lives. Put it at a plain address on your own website and link to it from a page that already does well. A few pages a week is a good pace; one a week still helps. ReachKit writes these for subscribers, but nothing here needs a subscription.", { slots: {}, fixedBy: "board PubReport · issue 1724" }],
+  "method.missing-pages.body": ["You don’t need ReachKit for any of this.", { slots: {}, fixedBy: "board PubReport · owner O6 2026-10-31" }],
+  "method.missing-pages.step.1": ["Answer the buyer’s question in the first lines.", { slots: {}, fixedBy: "board PubReport · owner O6 2026-10-31" }],
+  "method.missing-pages.step.2": ["Back it with facts from your own site, each one linked.", { slots: {}, fixedBy: "board PubReport · owner O6 2026-10-31" }],
+  "method.missing-pages.step.3": ["Put it on your own website, at a plain address.", { slots: {}, fixedBy: "board PubReport · owner O6 2026-10-31" }],
+  "method.missing-pages.step.4": ["Link to it from a page that already does well.", { slots: {}, fixedBy: "board PubReport · owner O6 2026-10-31" }],
+  "method.missing-pages.step.5": ["A few pages a week is a good pace. One a week still helps.", { slots: {}, fixedBy: "board PubReport · owner O6 2026-10-31" }],
   "method.unquotable-pages.title": ["Make pages AI can quote", { slots: {}, fixedBy: "REQ-009 c6" }],
-  "method.unquotable-pages.body": ["AI answers mention and link pages that answer a question directly. For each page that reads like a brochure: turn its headings into the questions a buyer would ask, put a direct answer of two or three sentences under each, and add evidence: a figure, a date, a source you link to. Keep the page’s address, so it keeps what it already does well.", { slots: {}, fixedBy: "board PubReport · issue 1724" }],
+  "method.unquotable-pages.body": ["AI quotes pages that answer a question directly.", { slots: {}, fixedBy: "board PubReport · owner O6 2026-10-31" }],
+  "method.unquotable-pages.step.1": ["Turn each heading into a question a buyer asks.", { slots: {}, fixedBy: "board PubReport · owner O6 2026-10-31" }],
+  "method.unquotable-pages.step.2": ["Put a direct answer of 2 or 3 sentences under it.", { slots: {}, fixedBy: "board PubReport · owner O6 2026-10-31" }],
+  "method.unquotable-pages.step.3": ["Add proof: a figure, a date, a source you link to.", { slots: {}, fixedBy: "board PubReport · owner O6 2026-10-31" }],
+  "method.unquotable-pages.step.4": ["Keep the page’s address, so it keeps what it has earned.", { slots: {}, fixedBy: "board PubReport · owner O6 2026-10-31" }],
 
   // ── Module 5, the free page card (REQ-010, BUILD §4.2's trade) ────────
   "free-page.title": ["Your first page, free", { slots: {}, fixedBy: "REQ-010 c1 · board PubReport" }],
@@ -557,7 +553,7 @@ export const REPORT_COPY = Object.freeze({
   "free-page.row.format": ["type of page", { slots: {}, fixedBy: "REQ-010 c1 · board PubReport · owner R26" }],
   // Shown only once the page is written: its stored first lines, a source they cite, and what they are.
   "free-page.source": ["from {source}", { slots: { source: "text" }, fixedBy: "board PubReport · owner R26" }],
-  "free-page.caption": ["The first lines. The full page comes by email. Written with Claude, an AI model, from your own site.", { slots: {}, fixedBy: "board PubReport · owner R26" }],
+  "free-page.caption": ["The first lines, written by AI from your site. We email you the full page.", { slots: {}, fixedBy: "board PubReport · owner R26 · owner O6 2026-10-31" }],
   // The format row's value, one per Write type the report can offer (issue 787,
   // drafted — the owner corrects the wording).
   "free-page.format.answer_page": ["An answer page", { slots: {}, fixedBy: "REQ-010 c1" }],
@@ -932,7 +928,6 @@ export const REPORT_COPY = Object.freeze({
   "gallery.strip.title": ["The {n} newest, by Visibility Score", { slots: { n: "text" }, fixedBy: "board PubScans · issue 1732" }],
   "gallery.strip.label": ["Scores of the {n} newest reports", { slots: { n: "text" }, fixedBy: "board PubScans · issue 1732" }],
   "gallery.strip.caption": ["Visibility Score: one number for how easy a business is to find, out of 100.", { slots: {}, fixedBy: "board PubScans · issue 1732" }],
-  "gallery.strip.range": ["Shown from {low} to {high}.", { slots: { low: "text", high: "text" }, fixedBy: "board PubScans · issue 1732" }],
   "gallery.strip.unscored.one": ["One of the {n}, {domain}, is not scored.", { slots: { n: "text", domain: "text" }, fixedBy: "board PubScans · issue 1732" }],
   "gallery.strip.unscored.many": ["{count} of the {n} are not scored.", { slots: { count: "text", n: "text" }, fixedBy: "board PubScans · issue 1732 · drafted" }],
   "gallery.list.heading": ["Free reports", { slots: {}, fixedBy: "board PubScans · issue 1732" }],
@@ -1032,11 +1027,8 @@ export const REPORT_COPY = Object.freeze({
     { slots: { place: "text", language: "text", country: "text" }, fixedBy: "SPEC §6 · D67 · issue 1480" },
   ],
 
-  // SPEC §2, owner A3 and E1 (2026-10-19): the offer leads with the pages
-  // the report found missing and lists every one. A3's heading and the
-  // board's eyebrow and lead are the owner's; the rest is drafted.
-  "report.offer.found": ["This report found {count} pages your site is missing", { slots: { count: "text" }, fixedBy: "owner A3 2026-10-19 · issue 1599" }],
-  "report.offer.found.one": ["This report found {count} page your site is missing", { slots: { count: "text" }, fixedBy: "owner A3 2026-10-19 · issue 1599" }],
+  // SPEC §2, owner A3 and E1 (2026-10-19): the report lists every page it
+  // found missing; the count is said once, in the headline (owner R12).
   "report.offer.free-path": ["Not ready? Get your first page free ↓", { slots: {}, fixedBy: "owner A3 2026-10-19 · issue 1599 · drafted" }],
   "report.missing.volume": ["searched {volume} times a month", { slots: { volume: "text" }, fixedBy: "owner E1 2026-10-19 · issue 1599 · drafted" }],
   "report.missing.holder": ["answered today by {holder}", { slots: { holder: "text" }, fixedBy: "owner E1 2026-10-19 · issue 1599 · drafted" }],
@@ -1050,14 +1042,13 @@ export const REPORT_COPY = Object.freeze({
   "report.missing.free": ["free · written for you", { slots: {}, fixedBy: "board PubReport · issue 1968" }],
   "report.missing.free.read": ["Read it free ↓", { slots: {}, fixedBy: "board PubReport · issue 1968" }],
   "report.rest.eyebrow": ["More in your report", { slots: {}, fixedBy: "board PubReport · issue 1724" }],
-  "report.missing.eyebrow": ["Pages you’re missing", { slots: {}, fixedBy: "board PubReport · issue 1599" }],
+  "report.missing.title": ["Pages you’re missing", { slots: {}, fixedBy: "board PubReport · owner R12 2026-10-31" }],
   "report.missing.lead": [
     "Each answers a question buyers ask. A competitor answers it today.",
     { slots: {}, fixedBy: "board PubReport · issue 1599" },
   ],
   // Board PubReport, the report's head (canvas V22): what we read the site
-  // as, the biggest gap's second line, the jump chips, the score's parts,
-  // and who gets the buyers. Drafted in the board's words; the owner corrects them.
+  // as, the headline of who gets the buyers, and the score's parts. Drafted in the board's words; the owner corrects them.
   "report.read.as.title": ["We read you as", { slots: {}, fixedBy: "board PubReport · issue 1723" }],
   "report.read.as.what": ["{category} · {kind}", { slots: { category: "text", kind: "text" }, fixedBy: "board PubReport · issue 1723" }],
   "report.read.as.locale": ["{language}, {country}", { slots: { language: "text", country: "text" }, fixedBy: "board PubReport · issue 1723" }],
@@ -1067,29 +1058,21 @@ export const REPORT_COPY = Object.freeze({
   "report.read.as.kind.professional-services": ["firm or agency", { slots: {}, fixedBy: "board PubReport · issue 1723 · drafted" }],
   "report.read.as.kind.software": ["software", { slots: {}, fixedBy: "board PubReport · issue 1723 · drafted" }],
   "report.read.as.kind.creator": ["courses, teaching or writing", { slots: {}, fixedBy: "board PubReport · issue 1723 · drafted" }],
-  "verdict.limiting.foundations.why": ["What Google and AI can’t read, they can’t show to buyers.", { slots: {}, fixedBy: "owner R12 2026-10-22 B1 · issue 1723 · drafted" }],
-  "verdict.limiting.answerability.why": ["Buyers ask, and your competitors’ pages answer.", { slots: {}, fixedBy: "owner R12 2026-10-22 B1 · board PubReport" }],
-  "verdict.limiting.google.why": ["Buyers search, and your competitors are on the first page.", { slots: {}, fixedBy: "owner R12 2026-10-22 B1 · issue 1723 · drafted" }],
-  "verdict.limiting.ai.why": ["Buyers ask AI, and the answers mention your competitors.", { slots: {}, fixedBy: "owner R12 2026-10-22 B1 · issue 1723 · drafted" }],
-  "verdict.limiting.presence.why": ["Buyers search and ask AI, and find your competitors instead.", { slots: {}, fixedBy: "owner R12 2026-10-22 B1 · issue 1723 · drafted" }],
-  "report.gap.see-missing": ["See the pages you’re missing ↓", { slots: {}, fixedBy: "board PubReport · issue 1723" }],
-  "report.jump.label": ["On this report", { slots: {}, fixedBy: "board PubReport · issue 1723" }],
-  "report.jump.buyers": ["Who gets your buyers", { slots: {}, fixedBy: "board PubReport · issue 1723" }],
-  "report.jump.first-page": ["Your first page, free", { slots: {}, fixedBy: "board PubReport · issue 1723" }],
   "verdict.estimate.range": ["likely {low} to {high}", { slots: { low: "text", high: "text" }, fixedBy: "board PubReport · issue 1723" }],
-  "verdict.score.parts": ["One number for how easy you are to find. It is made of four parts:", { slots: {}, fixedBy: "board PubReport · issue 1723" }],
-  "verdict.score.parts.three": ["One number for how easy you are to find. It is made of three parts:", { slots: {}, fixedBy: "board PubReport · issue 1723 · drafted" }],
-  "report.buyers.title": ["Who gets your buyers today", { slots: {}, fixedBy: "board PubReport · issue 1723" }],
-  "report.buyers.lead": ["We searched Google and asked AI what your buyers ask. This is who they were sent to.", { slots: {}, fixedBy: "board PubReport · issue 1723" }],
-  "report.buyers.summary": ["Buyers are sent mostly to {holder}. You showed up {n} times out of {m}.", { slots: { holder: "text", n: "text", m: "text" }, fixedBy: "board PubReport · issue 1723" }],
-  "report.buyers.summary.one": ["Buyers are sent mostly to {holder}. You showed up {n} time out of {m}.", { slots: { holder: "text", n: "text", m: "text" }, fixedBy: "board PubReport · issue 1723 · drafted" }],
-  "report.buyers.summary.none": ["You showed up {n} times out of {m}.", { slots: { n: "text", m: "text" }, fixedBy: "board PubReport · issue 1723 · drafted" }],
-  "report.buyers.summary.none.one": ["You showed up {n} time out of {m}.", { slots: { n: "text", m: "text" }, fixedBy: "board PubReport · issue 1723 · drafted" }],
-  "report.buyers.split": ["{ai} + {google}", { slots: { ai: "text", google: "text" }, fixedBy: "board PubReport · issue 1723" }],
-  "report.buyers.split.ai": ["{n} AI answers", { slots: { n: "text" }, fixedBy: "board PubReport · issue 1723 · drafted" }],
-  "report.buyers.split.ai.one": ["{n} AI answer", { slots: { n: "text" }, fixedBy: "board PubReport · issue 1723" }],
-  "report.buyers.split.google": ["{n} Google searches", { slots: { n: "text" }, fixedBy: "board PubReport · issue 1723" }],
-  "report.buyers.split.google.one": ["{n} Google search", { slots: { n: "text" }, fixedBy: "board PubReport · issue 1723 · drafted" }],
+  "verdict.score.split": ["How this score is split", { slots: {}, fixedBy: "board PubReport · owner R12 2026-10-31" }],
+  "verdict.score.parts": ["Four parts, combined into one score. They are not added up.", { slots: {}, fixedBy: "board PubReport · owner O6 2026-10-31" }],
+  "verdict.score.parts.three": ["Three parts, combined into one score. They are not added up.", { slots: {}, fixedBy: "board PubReport · owner O6 2026-10-31" }],
+  "report.top.title": ["Buyers are sent to {holder}", { slots: { holder: "text" }, fixedBy: "board PubReport · owner R12 2026-10-31" }],
+  "report.top.title.you-lead": ["Buyers find you most often", { slots: {}, fixedBy: "board PubReport · owner R12 2026-10-31" }],
+  "report.top.title.none": ["Buyers can’t find you yet", { slots: {}, fixedBy: "board PubReport · owner R12 2026-10-31" }],
+  "report.top.line": ["You came up {n} times in {m} Google results and AI answers.", { slots: { n: "text", m: "text" }, fixedBy: "board PubReport · owner R12 2026-10-31" }],
+  "report.top.line.one": ["You came up once in {m} Google results and AI answers.", { slots: { m: "text" }, fixedBy: "board PubReport · owner R12 2026-10-31 · drafted" }],
+  "report.top.offer": ["We found {count} pages your site is missing. The first one is free.", { slots: { count: "text" }, fixedBy: "board PubReport · owner R12 2026-10-31" }],
+  "report.top.offer.one": ["We found 1 page your site is missing. It’s yours free.", { slots: {}, fixedBy: "board PubReport · owner R12 2026-10-31" }],
+  "report.top.offer.no-free": ["We found {count} pages your site is missing.", { slots: { count: "text" }, fixedBy: "board PubReport · owner R12 2026-10-31" }],
+  "report.top.offer.no-free.one": ["We found 1 page your site is missing.", { slots: {}, fixedBy: "board PubReport · owner R12 2026-10-31 · drafted" }],
+  "report.independent": ["An independent report by ReachKit. {company} has not endorsed it.", { slots: { company: "text" }, fixedBy: "board PubReport · owner O6 2026-10-31" }],
+  "report.buyers.title": ["Who gets your buyers", { slots: {}, fixedBy: "board PubReport · owner R12 2026-10-31" }],
   "report.you": ["You", { slots: {}, fixedBy: "board PubReport · issue 1723" }],
   "report.ai.waffle": ["Who the answers mention. Each square is one answer.", { slots: {}, fixedBy: "board PubReport · issue 1723" }],
   "report.ai.quote": ["One answer, for {search}", { slots: { search: "text" }, fixedBy: "board PubReport · issue 1723" }],

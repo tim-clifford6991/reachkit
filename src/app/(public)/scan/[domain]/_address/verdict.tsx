@@ -1,9 +1,9 @@
 // BUILD §4.1 module 1 — the report's head (SPEC §2, board PubReport)
 //
 // The domain, when and where it was measured, what the scan read the
-// business as with its one correction, the biggest gap in its own card and
-// the jump chips; beside them the score in its own card, its band and
-// range, and its parts as `n/10` — Readiness, Content, Google and AI.
+// business as with its one correction, who gets the buyers (owner R12) and
+// the biggest gap in its own card; beside them the score in its own card,
+// its band and range, and its parts as `n/10`, closed under their name.
 //
 // daisyUI in the route (DESIGN rule 1): `card`, `radial-progress`, `badge`,
 // `progress`, `btn`. The value is spoken in tenths and the bar is drawn from
@@ -147,38 +147,21 @@ function ScoreRing(p: { score: number }): React.JSX.Element {
   );
 }
 
-/** The report's anchors the jump chips lead to, each one a section below. */
-const JUMPS: readonly { href: string; label: CopyKey }[] = [
-  { href: "#buyers", label: "report.jump.buyers" },
-  { href: "#start", label: "report.missing.eyebrow" },
-  { href: "#holds", label: "problem.section.title" },
-  { href: "#first-page", label: "report.jump.first-page" },
-];
-
-/** The biggest gap in its own card: its title, its line, and why, with the
- *  way to the pages the report found where it found any. */
-function GapCard(p: { factor: ShownFactor; seeMissing: boolean }): React.JSX.Element {
+/** The biggest gap in its own card: its title and its one line. */
+function GapCard(p: { factor: ShownFactor }): React.JSX.Element {
   const lines = LIMITING_LINES[p.factor];
   return (
     <section className="card card-border border-l-warning bg-base-100 border-l-4" data-testid="report-gap">
       <div className="card-body gap-1 p-5">
         <h2 className="text-lg font-semibold">{copy(lines.title)}</h2>
         <p>{copy(lines.line)}</p>
-        <p className="flex flex-wrap items-baseline gap-x-2">
-          <span>{copy(lines.why)}</span>
-          {p.seeMissing ? (
-            <a href="#start" className="link link-primary">
-              {copy("report.gap.see-missing")}
-            </a>
-          ) : null}
-        </p>
       </div>
     </section>
   );
 }
 
 /** The Visibility Score in its own card: the figure, its band and range,
- *  what it is made of, and the parts as `n/10`. */
+ *  and, closed, what it is made of and the parts as `n/10`. */
 function ScoreCard(p: { verdict: Verdict; limiting: ShownFactor | null; rescored?: { on: string; before: number } }): React.JSX.Element {
   const { verdict } = p;
   const scoreAndBand = verdict.scoreAndBand;
@@ -219,15 +202,16 @@ function ScoreCard(p: { verdict: Verdict; limiting: ShownFactor | null; rescored
             )}
           </>
         )}
-        <p className="text-base-content/70 text-center text-sm">
-          {copy(bars.length === 4 ? "verdict.score.parts" : "verdict.score.parts.three")}
-        </p>
         <MissingFactors verdict={verdict} />
-        <div className="grid w-full grid-cols-1 gap-4">
-          {bars.map((bar) => (
-            <DriverBar key={bar.factor} factor={bar.factor} value={bar.value} limiting={bar.factor === p.limiting} />
-          ))}
-        </div>
+        <details className="collapse collapse-arrow w-full rounded-none" data-testid="verdict-split">
+          <summary className="collapse-title min-h-0 px-0 py-2 pe-8 text-sm font-semibold after:end-2">{copy("verdict.score.split")}</summary>
+          <div className="collapse-content flex flex-col gap-4 px-0">
+            <p className="text-base-content/70 text-sm">{copy(bars.length === 4 ? "verdict.score.parts" : "verdict.score.parts.three")}</p>
+            {bars.map((bar) => (
+              <DriverBar key={bar.factor} factor={bar.factor} value={bar.value} limiting={bar.factor === p.limiting} />
+            ))}
+          </div>
+        </details>
       </div>
     </section>
   );
@@ -247,8 +231,10 @@ export function VerdictStrip(p: {
   readAs: readonly ReadAsChip[];
   /** The lines that say how the market was read, under what we read. */
   notes?: React.ReactNode;
-  /** Whether the report found pages the site is missing, for the gap's link. */
-  seeMissing: boolean;
+  /** Who gets the buyers and the pages found, above the gap (owner R12). */
+  top?: React.ReactNode;
+  /** That the report is ReachKit's, not the business's, under the meta line. */
+  independent: string;
   /** Where a re-score moved the score through the Google half: when, already formatted, and the score it read before. */
   rescored?: { on: string; before: number };
 }): React.JSX.Element {
@@ -273,6 +259,7 @@ export function VerdictStrip(p: {
             </Num>
             <span>{p.measurement ?? copy("report.measurement")}</span>
           </p>
+          <p className="text-base-content/70 text-xs">{p.independent}</p>
         </div>
 
         <div id="read-as" className="flex scroll-mt-20 flex-wrap items-center gap-2" data-testid="report-read-as">
@@ -293,16 +280,9 @@ export function VerdictStrip(p: {
           <CategoryCorrection domain={verdict.domain} offer={p.correction} />
         </div>
         {p.notes}
+        {p.top}
 
-        {limiting === null ? null : <GapCard factor={limiting} seeMissing={p.seeMissing} />}
-
-        <nav aria-label={copy("report.jump.label")} className="flex flex-wrap gap-2">
-          {JUMPS.map((jump) => (
-            <a key={jump.href} href={jump.href} className="badge badge-outline h-auto py-1 whitespace-normal">
-              {copy(jump.label)}
-            </a>
-          ))}
-        </nav>
+        {limiting === null ? null : <GapCard factor={limiting} />}
       </div>
 
       <ScoreCard verdict={verdict} limiting={limiting} {...(p.rescored === undefined ? {} : { rescored: p.rescored })} />

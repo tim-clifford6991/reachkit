@@ -39,7 +39,6 @@ const LANDING_PACE: readonly CopyKey[] = [
 
 /** The sentences that say how long a page waits before it goes live. */
 const WINDOW: readonly { key: CopyKey; slot: string }[] = [
-  { key: "offer.veto.window.value", slot: "hours" },
   { key: "offer.pricing.veto", slot: "hours" },
 ];
 
