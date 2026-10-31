@@ -17,12 +17,13 @@ export const MAX_RETRIES = PUBLISH_RETRY_BACKOFF_MIN.length;
  *  guards all still hold it. */
 export const REATTEMPT_BY: Actor = { kind: "system", job: "publish/retry" };
 
-/** Whether a page resting on a publish tried to exhaustion is re-attempted now: a day after its last claim, while the
+/** Whether a page resting on a publish tried to exhaustion is re-attempted now: 23 h after its last claim, while the
  *  cause is not yet critical. A destination the customer must fix is never re-attempted here. */
 export function reattemptDue(page: { state: unknown; transitions: unknown; claimedAt: Date }, now: Date): boolean {
-  const cause = page.state === "needs_attention" ? needsYouOf({ state: "needs_attention", transitions: page.transitions }) : null;
+  const cause = page.state === "needs_attention" ? needsYouOf({ state: "needs_attention", transitions: page.transitions, meta: null }) : null;
   if (cause?.kind !== "delivery" || critical(cause, now)) return false;
-  return now.getTime() - page.claimedAt.getTime() >= 86_400_000;
+  // 23 h, so an hourly tick that lands late never slips a whole day and seven days hold seven re-attempts.
+  return now.getTime() - page.claimedAt.getTime() >= 23 * 3_600_000;
 }
 
 export type RetryDecision =

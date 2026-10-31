@@ -81,6 +81,7 @@ describe("only a page that rests needing the customer has a cause", () => {
       needsYouOf({
         state: "needs_attention",
         transitions: [move("generating", "needs_attention", "rules:brand_gap")],
+        meta: null,
       })
     ).toEqual({ kind: "rules", rules: ["brand_gap"] });
   });
@@ -88,7 +89,7 @@ describe("only a page that rests needing the customer has a cause", () => {
   it("every other state has none — nothing is wanted of them", () => {
     for (const state of ["planned", "generating", "in_review", "approved", "published"] as const) {
       expect(
-        needsYouOf({ state, transitions: [move("generating", "needs_attention", "rules:brand_gap")] }),
+        needsYouOf({ state, transitions: [move("generating", "needs_attention", "rules:brand_gap")], meta: null }),
         state
       ).toBeNull();
     }
@@ -163,7 +164,7 @@ describe("what is critical for the customer", () => {
 
   it("a publish tried to exhaustion becomes critical after seven days, counted from its first rest", () => {
     const transitions = (first: string) => [rested("retries_exhausted", first), { from: "needs_attention", to: "publishing", at: "2026-10-30T08:00:00.000Z" }, rested("retries_exhausted", "2026-10-30T08:05:00.000Z")];
-    const cause = (first: string) => needsYouOf({ state: "needs_attention", transitions: transitions(first) });
+    const cause = (first: string) => needsYouOf({ state: "needs_attention", transitions: transitions(first), meta: null });
     expect(cause("2026-10-24T08:00:00.000Z")).toEqual({ kind: "delivery", since: "2026-10-24T08:00:00.000Z" });
     expect(critical(cause("2026-10-24T08:00:00.000Z"), NOW)).toBe(false);
     expect(critical(cause("2026-10-24T07:59:00.000Z"), NOW)).toBe(true);

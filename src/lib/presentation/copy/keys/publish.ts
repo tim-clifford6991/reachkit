@@ -196,7 +196,7 @@ export const PUBLISH_COPY = Object.freeze({
     { slots: {}, fixedBy: "issue 880" },
   ],
   "publish.needs-you.live-edit": [
-    "Your change to this live page breaks one of our checks. Open it to fix your words.",
+    "Your change to this page breaks one of our checks. Open it to fix your words.",
     { slots: {}, fixedBy: "owner O7 (drafted)" },
   ],
   "publish.needs-you.unknown": [

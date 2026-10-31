@@ -504,10 +504,11 @@ async function waitingItems(siteId: string): Promise<readonly WaitingItem[]> {
       created_at: string;
       veto_deadline: string | null;
       transitions: unknown;
+      meta: unknown;
     }>("drafts")
     // `transitions` is why the page needs them (issue 880), read off the
-    // same append-only column §9 records every move on.
-    .select("id, state, title, created_at, veto_deadline, transitions")
+    // same append-only column §9 records every move on; `meta`, whether it holds the customer's words.
+    .select("id, state, title, created_at, veto_deadline, transitions, meta")
     .eq("site_id", siteId)
     .in("state", ["in_review", "needs_attention"])
     .order("created_at", { ascending: true });
@@ -524,7 +525,7 @@ async function waitingItems(siteId: string): Promise<readonly WaitingItem[]> {
     // Issue 880: the page's own cause, so the alert states it and offers
     // the act that matches — never "Reconnect" for a page the writing
     // rules stopped.
-    cause: needsYouOf({ state: row.state as State, transitions: row.transitions }),
+    cause: needsYouOf({ state: row.state as State, transitions: row.transitions, meta: row.meta }),
     href: `/app/draft/${row.id}`,
   }));
 }

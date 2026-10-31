@@ -246,6 +246,7 @@ interface ScheduledDraftRow {
   veto_deadline: string | null;
   approved_at: string | null;
   transitions: unknown;
+  meta: unknown;
 }
 
 interface LivePublicationRow extends DispositionRow {
@@ -257,7 +258,7 @@ interface LivePublicationRow extends DispositionRow {
 }
 
 const SCHEDULED_COLUMNS =
-  "id, state, scheduled_for, title, opportunity_id, veto_deadline, approved_at, transitions";
+  "id, state, scheduled_for, title, opportunity_id, veto_deadline, approved_at, transitions, meta";
 
 function asDate(value: string | null): Date | null {
   if (value === null) return null;
@@ -324,7 +325,7 @@ export async function scheduledPagesFor(a: {
       approvedAt: asDate(row.approved_at),
       enteredReview: enteredReviewFrom(row.transitions),
       // From its own record, never its stage.
-      needsYou: needsYouOf({ state, transitions: row.transitions }),
+      needsYou: needsYouOf({ state, transitions: row.transitions, meta: row.meta }),
       // The address now; `readStandings` re-addresses its side of the join too, so a moved host never empties it.
       liveUrl:
         state === "published" && publication?.made_live_by_us === true && publication.live_url !== null

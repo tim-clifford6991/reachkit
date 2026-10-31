@@ -207,10 +207,11 @@ describe("the daily re-attempt of a page whose retries ran out", () => {
   /** Rested on its retries since FIRST, last claimed a day before `now`. */
   const page = (now: Date, reason = "retries_exhausted") => ({ state: "needs_attention", transitions: [rested(reason, FIRST)], claimedAt: new Date(now.getTime() - DAY) });
 
-  it("is due a day after its last claim while seven days old or less", () => {
+  it("is due 23 h after its last claim while seven days old or less", () => {
     const day7 = new Date(FIRST.getTime() + 7 * DAY);
     expect(reattemptDue(page(day7), day7)).toBe(true);
-    expect(reattemptDue({ ...page(day7), claimedAt: new Date(day7.getTime() - DAY + 60_000) }, day7)).toBe(false);
+    expect(reattemptDue({ ...page(day7), claimedAt: new Date(day7.getTime() - 23 * 3_600_000) }, day7)).toBe(true);
+    expect(reattemptDue({ ...page(day7), claimedAt: new Date(day7.getTime() - 23 * 3_600_000 + 60_000) }, day7)).toBe(false);
   });
 
   it("is not due after day seven, when it waits on the customer", () => {

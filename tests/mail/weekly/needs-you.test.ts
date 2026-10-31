@@ -73,6 +73,11 @@ describe("the Monday mail's needs-you line", () => {
     expect(await needsYouLines()).toBe(0);
   });
 
+  it("is told once when the customer edited one of those ten: the words are theirs to fix", async () => {
+    seed(RULES_ROWS.map((row, n) => (n === 0 ? { ...row, meta: { first_edited_at: "2026-10-30T09:00:00.000Z" } } : row)));
+    expect(await needsYouLines()).toBe(1);
+  });
+
   it("is told exactly once for an expired credential, beside those ten", async () => {
     seed([...RULES_ROWS, credentialsExpired]);
     expect(await needsYouLines()).toBe(1);

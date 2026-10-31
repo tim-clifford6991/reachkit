@@ -188,10 +188,10 @@ describe("a page resting on its exhausted retries", () => {
     transitions: [{ from: "failed", to: "needs_attention", reason, at: CLAIMED.toISOString() }],
   });
 
-  it("is offered a day after its last claim, as the retry job's own move", async () => {
+  it("is offered 23 h after its last claim, as the retry job's own move", async () => {
     seed({ draft: exhausted("retries_exhausted"), publication: { attempt_no: MAX_RETRIES + 1 } });
-    expect(await dueRetries(after(DAY - 1))).toEqual([]);
-    expect(await dueRetries(after(DAY))).toEqual([{ draftId: "d1", destinationId: "dest-1", by: { kind: "system", job: "publish/retry" } }]);
+    expect(await dueRetries(after(DAY - 61))).toEqual([]);
+    expect(await dueRetries(after(DAY - 60))).toEqual([{ draftId: "d1", destinationId: "dest-1", by: { kind: "system", job: "publish/retry" } }]);
   });
 
   it("is not offered once its first rest is more than seven days old", async () => {

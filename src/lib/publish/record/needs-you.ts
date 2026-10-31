@@ -40,7 +40,7 @@ export type NeedsYouCause =
   | { kind: "destination" }
   /** The publish was attempted the full three times and did not go. `since` is the first time it rested so, where read. */
   | { kind: "delivery"; since?: string }
-  /** The customer's own edit of a live page breaks a rule; their words wait on them. */
+  /** The customer's own words break a rule: an edit of a live page, or of a page the writing stopped. They wait on them. */
   | { kind: "live_edit" }
   /** The row records no reason this build can read. */
   | { kind: "unknown" };
@@ -95,10 +95,16 @@ export function needsYouCauseOf(reason: string | null): NeedsYouCause {
   return { kind: "unknown" };
 }
 
-/** The cause for a page resting in `needs_attention`; `null` in any other state. */
-export function needsYouOf(a: { state: State; transitions: unknown }): NeedsYouCause | null {
+/** The causes the writing stops a page with, which the daily re-check rescues or sets aside. */
+const WRITING_STOPS: ReadonlySet<NeedsYouKind> = new Set(["rules", "step", "adds", "elsewhere", "pack"]);
+
+/** The cause for a page resting in `needs_attention`; `null` in any other state. A stopped page the customer edited
+ *  holds their words, which no re-check touches, so it is theirs to act on. */
+export function needsYouOf(a: { state: State; transitions: unknown; meta: unknown }): NeedsYouCause | null {
   if (a.state !== "needs_attention") return null;
   const cause = needsYouCauseOf(restedReasonOf(a.transitions));
+  const edited = typeof (a.meta as { first_edited_at?: unknown } | null)?.first_edited_at === "string";
+  if (edited && WRITING_STOPS.has(cause.kind)) return { kind: "live_edit" };
   const since = cause.kind === "delivery" ? exhaustedSince(a.transitions) : null;
   return since === null ? cause : { kind: "delivery", since };
 }

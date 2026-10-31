@@ -239,6 +239,16 @@ describe("§4.5 — what has not been measured is said, not guessed", () => {
     expect(readAlerts(facts.waiting, new Date()).alerts.map((alert) => alert.vars.title)).toEqual(["Not delivered"]);
   });
 
+  it("a stopped page the customer edited is an alert: the words are theirs to fix (owner O7)", async () => {
+    const rested = [{ from: "generating", to: "needs_attention", reason: "rules:honest_row" }];
+    rows.set("drafts", [
+      { id: "d1", site_id: "site-1", state: "needs_attention", title: "Edited", created_at: "2026-10-17", transitions: rested, meta: { first_edited_at: "2026-10-18T09:00:00.000Z" } },
+      { id: "d2", site_id: "site-1", state: "needs_attention", title: "Untouched", created_at: "2026-10-17", transitions: rested, meta: {} },
+    ]);
+    const facts = await readOverviewFacts({ siteId: "site-1", timeZone: "America/New_York", domain: "example.com" });
+    expect(readAlerts(facts.waiting, new Date()).alerts.map((alert) => [alert.vars.title, alert.lineKey])).toEqual([["Edited", "publish.needs-you.live-edit"]]);
+  });
+
   it("the zone it states is the account's own", async () => {
     const facts = await readOverviewFacts({ siteId: "site-1", timeZone: "Europe/Dublin", domain: "example.com" });
     expect(facts.timeZone).toBe("Europe/Dublin");

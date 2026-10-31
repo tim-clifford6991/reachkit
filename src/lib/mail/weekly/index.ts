@@ -485,12 +485,12 @@ async function stampSent(scanId: string, at: Date): Promise<void> {
 async function oneNeedsYou(siteId: string, now: Date): Promise<WeeklyNeedsYou | undefined> {
   try {
     const { data, error } = await untyped()
-      .from<{ id: string; title: string | null; transitions: unknown }>("drafts")
-      .select("id, title, transitions")
+      .from<{ id: string; title: string | null; transitions: unknown; meta: unknown }>("drafts")
+      .select("id, title, transitions, meta")
       .eq("site_id", siteId)
       .eq("state", "needs_attention");
     if (error !== null) return undefined;
-    const row = data?.find((each) => critical(needsYouOf({ state: "needs_attention", transitions: each.transitions }), now));
+    const row = data?.find((each) => critical(needsYouOf({ state: "needs_attention", transitions: each.transitions, meta: each.meta }), now));
     if (row === undefined) return undefined;
     const title = (row.title ?? "").trim();
     return {

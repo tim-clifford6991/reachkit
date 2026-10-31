@@ -293,6 +293,15 @@ describe("what waits on the customer", () => {
     expect(facts.waiting).toBe(1);
   });
 
+  it("a stopped page the customer edited holds their words, so it waits on them (owner O7)", async () => {
+    const rested = [{ from: "generating", to: "needs_attention", reason: "rules:honest_row" }];
+    rows.set("drafts", [
+      { id: "d1", site_id: "site-1", state: "needs_attention", scheduled_for: null, transitions: rested, meta: { first_edited_at: "2026-10-30T09:00:00.000Z" } },
+      { id: "d2", site_id: "site-1", state: "needs_attention", scheduled_for: null, transitions: rested, meta: {} },
+    ]);
+    expect((await readShellFacts(SITE)).waiting).toBe(1);
+  });
+
   it("another site's drafts are never counted", async () => {
     rows.set("drafts", [
       { id: "d1", site_id: "site-other", state: "in_review", scheduled_for: null },
