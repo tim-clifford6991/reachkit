@@ -5,16 +5,9 @@
 // `verifyOtp` (`fake-auth.ts`). Every case opens the page, reads the form it
 // drew, and posts that form back, as a browser does.
 //
-// REQ-098 criterion 7, quoted: "Given a person who opens a sign-in link
-// that no longer works — expired; spent, because it was used once already
-// or because a later link they asked for replaced it; or never issued by
-// this product — when they open it, then they land on this screen and one
-// written line tells them the link can no longer be used ... that line and
-// the time it takes are the same whatever the reason".
-//
-// REQ-024 criterion 4, quoted: "then they are returned to where they left
-// off — setup if it is unfinished, otherwise onward into the product ...
-// never to a dead end or a second checkout."
+// REQ-098 criterion 7: an expired, spent or never-issued link gets one answer
+// whatever the reason. REQ-024 criterion 4: a good one returns them to setup
+// if it is unfinished, otherwise onward into the product.
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import { NextRequest, type NextResponse } from "next/server";
@@ -161,6 +154,13 @@ describe("opening the link spends nothing; the press signs in", () => {
     expect(html).toContain(COPY["signin.confirm.head"]);
     expect(html).toContain(COPY["signin.confirm.line"]);
     expect(html).toContain(COPY["signin.confirm.submit"]);
+  });
+
+  it("a browser without Sec-Fetch-Site (Safari < 16.4) that sends the real Origin signs in", async () => {
+    const { url } = await liveLink();
+    const response = await press(page(await land(url)).form, { origin: ORIGIN });
+    expect(response.cookies.get(FAKE_AUTH_COOKIE)).toBeDefined();
+    expect(auth.verifyCalls).toBe(1);
   });
 
   it("a post from a browser that blanked the Origin on its own page is ours as well", async () => {
