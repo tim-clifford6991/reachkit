@@ -6,14 +6,14 @@ const SUBJECT = "mail.paymentFailed.subject" satisfies CopyKey;
 const LINE = "mail.paymentFailed.line" satisfies CopyKey;
 const ACTION = "mail.paymentFailed.action" satisfies CopyKey;
 
-/** The renewal failed: the way to the billing card in Settings. */
+/** The renewal failed: the way to the billing tab, which needs no other settings read. */
 export function buildPaymentFailed(): RetentionMail {
   return {
     subject: SUBJECT,
     blocks: [
       { block: "heading", text: SUBJECT },
       { block: "paragraph", text: LINE },
-      { block: "action", label: ACTION, href: appHref("/app/settings") },
+      { block: "action", label: ACTION, href: appHref("/app/settings/billing") },
     ],
   };
 }
