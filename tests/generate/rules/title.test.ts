@@ -112,10 +112,12 @@ describe("the title check (D51, issue 1389)", () => {
     expect(titleFaults("How to unlock an iPhone in 10 minutes at home", phones)).toEqual([]);
   });
 
-  it("stops a title the site already has, and a meta description outside 120–155 characters", () => {
+  it("stops a title the site already has, and a page with no meta description, but never on its length (R-A)", () => {
     const titles = ["7 best AI visibility tools for small businesses (2026)"];
     expect(titleFaults("8 best AI visibility tools for small businesses (2026)", rule({ titles, holds: "8" }))).toContain("overlap");
-    expect(titleFaults("7 best AI visibility tools for small businesses (2026)", rule({ description: "Seven tools compared." }))).toEqual(["description"]);
+    expect(titleFaults("7 best AI visibility tools for small businesses (2026)", rule({ description: "Seven tools compared." }))).toEqual([]);
+    expect(titleFaults("7 best AI visibility tools for small businesses (2026)", rule({ description: `${DESCRIPTION} ${DESCRIPTION}` }))).toEqual([]);
+    expect(titleFaults("7 best AI visibility tools for small businesses (2026)", rule({ description: " " }))).toEqual(["description"]);
   });
 
   it("holds the H1 to the title: the same words pass, another promise does not", () => {
