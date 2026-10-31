@@ -79,6 +79,8 @@ export const META_COPY = Object.freeze({
      `next.config.ts`'s header half. */
   "meta.signin.title": ["Sign in · ReachKit", { slots: {}, fixedBy: "issue 326" }],
   "meta.signin.description": ["Enter the email you paid with and ReachKit sends you a sign-in link. No password.", { slots: {}, fixedBy: "issue 326" }],
+  "meta.confirm.title": ["Sign in to ReachKit", { slots: {}, fixedBy: "board AuthConfirm · issue 2099 · drafted" }],
+  "meta.confirm.description": ["Press the button to finish signing in.", { slots: {}, fixedBy: "board AuthConfirm · issue 2099 · drafted" }],
   /** The report's two carry `{domain}`: the address is per-domain, and a
    *  shared report link that unfurled as the same sentence for every domain
    *  would be the one place the product tells its reader nothing. The slot

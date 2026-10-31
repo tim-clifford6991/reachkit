@@ -119,6 +119,7 @@ The owner looks at `dev.reachkit.app` for taste: voice, and an asset only the ow
 | Sign in | `/signin` | [board](design/boards/canvas/AuthSignIn.dc.html) · [render](design/boards/canvas/renders/AuthSignIn.jpg) |
 | Check your email | `/signin` | [board](design/boards/canvas/AuthCheckEmail.dc.html) · [render](design/boards/canvas/renders/AuthCheckEmail.jpg) |
 | Link expired | `/signin` | [board](design/boards/canvas/AuthExpired.dc.html) · [render](design/boards/canvas/renders/AuthExpired.jpg) |
+| Sign in: one press | `/auth/confirm` | [board](design/boards/canvas/AuthConfirm.dc.html) · [render](design/boards/canvas/renders/AuthConfirm.jpg) |
 | Setup 1 of 3: Site, phone | `/setup` | [board](design/boards/canvas/Setup1.dc.html) · [render](design/boards/canvas/renders/Setup1.jpg) |
 | Setup 2 of 3: Check, phone | `/setup` | [board](design/boards/canvas/Setup2.dc.html) · [render](design/boards/canvas/renders/Setup2.jpg) |
 | Setup 3 of 3: Connect, phone (E11; the board's title still says *Publish*) | `/setup`, `/setup/connect` | [board](design/boards/canvas/Setup.dc.html) · [render](design/boards/canvas/renders/Setup.jpg) |

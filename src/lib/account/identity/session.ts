@@ -3,7 +3,7 @@
 // Reading the session on an authenticated request, and ending one.
 //
 // **The session is Supabase Auth's** (#468). Its cookie is written by
-// `@supabase/ssr` on a redemption (`/auth/confirm`) and refreshed by the
+// `@supabase/ssr` on a redemption (`/auth/confirm/redeem`) and refreshed by the
 // middleware; this module never mints, signs or parses one. Who is asking
 // is `getUser()`'s answer — Supabase verifying the token, not this process
 // believing a cookie.

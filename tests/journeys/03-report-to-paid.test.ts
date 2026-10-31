@@ -123,7 +123,7 @@ const { SETUP_PATH, APP_PATH, setupRedirectFor } = await import(
   "../../src/app/(account)/setup/gate"
 );
 const { POST: webhookRoute } = await import("../../src/app/api/stripe/webhook/route");
-const { GET: confirmRoute } = await import("../../src/app/(public)/auth/confirm/route");
+const { POST: redeemRoute } = await import("../../src/app/(public)/auth/confirm/redeem/route");
 
 const SCAN_ID = "scan-journey-03";
 const DOMAIN = "acme.com";
@@ -400,9 +400,15 @@ function theMagicLink(): string {
   return found[1] as string;
 }
 
-async function followTheLink(tokenHash: string): ReturnType<typeof confirmRoute> {
-  return confirmRoute(
-    new NextRequest(`https://app.example.com/auth/confirm?token_hash=${tokenHash}&type=magiclink`)
+/** The link opens a page with one button; pressing it posts the link's two
+ *  values from that page. */
+async function followTheLink(tokenHash: string): ReturnType<typeof redeemRoute> {
+  return redeemRoute(
+    new NextRequest("https://app.example.com/auth/confirm/redeem", {
+      method: "POST",
+      headers: { origin: new URL(env.NEXT_PUBLIC_APP_URL).origin },
+      body: new URLSearchParams({ token_hash: tokenHash, type: "magiclink" }),
+    })
   );
 }
 

@@ -136,6 +136,12 @@ export const SIGNIN_COPY = Object.freeze({
   "signin.sent.resend": ["Use a different email", { slots: {}, fixedBy: "issue 937" }],
   "signin.expired.head": ["This link no longer works", { slots: {}, fixedBy: "REQ-098 c7" }],
   "signin.expired.submit": ["Send a new link", { slots: {}, fixedBy: "REQ-098 c7" }],
+  // The page a link lands on: one press spends it (board AuthConfirm).
+  "signin.confirm.head": ["Sign in to ReachKit", { slots: {}, fixedBy: "board AuthConfirm · issue 2099" }],
+  "signin.confirm.submit": ["Sign in", { slots: {}, fixedBy: "board AuthConfirm · issue 2099" }],
+  "signin.confirm.line": ["Press the button to finish.", { slots: {}, fixedBy: "board AuthConfirm · issue 2099" }],
+  "signin.confirm.change.head": ["Confirm your new email", { slots: {}, fixedBy: "board AuthConfirm · issue 2099" }],
+  "signin.confirm.change.submit": ["Confirm", { slots: {}, fixedBy: "board AuthConfirm · issue 2099" }],
   // Why a link stops, in two figures (board AuthExpired).
   "signin.why.title": ["Why links stop working", { slots: {}, fixedBy: "board AuthExpired" }],
   "signin.why.window": ["Each link works for 24 hours", { slots: {}, fixedBy: "board AuthExpired" }],
