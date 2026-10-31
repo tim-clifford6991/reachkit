@@ -102,6 +102,7 @@ export const OFFER_COPY = Object.freeze({
     { slots: {}, fixedBy: "SPEC.md §3 (2026-09-13)" },
   ],
 
-  // The value the veto line above takes, its number from `VETO.defaultHours` through `{hours}`.
+  // The values the `{value}` lines above take. The veto window carries its
+  // number from `VETO.defaultHours` through `{hours}`, so it is written once.
   "offer.veto.window.value": ["{hours} hours", { slots: { hours: "text" }, fixedBy: "REQ-021 c2" }],
 }) satisfies CopyPartition;
