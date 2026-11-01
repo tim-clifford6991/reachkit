@@ -52,7 +52,7 @@ describe("ADR-042 — the mail that is the credential carries no opt-out", () =>
     // customer out of the product with no recovery channel.
     // `reason` is S20's footer line, not a stop control: it says why the
     // mail arrived, and this kind's says "you asked for this link".
-    expect(Object.keys(build()).sort()).toEqual(["blocks", "reason", "subject"]);
+    expect(Object.keys(build()).sort()).toEqual(["blocks", "preheader", "reason", "subject"]);
     expect(build().reason).toBe("mail.reason.magicLink");
   });
 });
@@ -105,7 +105,8 @@ const composedOnce = await (async () => {
 describe("#637 — the composed mail, as an inbox receives it", () => {
   const { html, text } = composedOnce;
   const inOrder = (body: string, parts: readonly string[]): void => {
-    const at = parts.map((part) => body.indexOf(part));
+    // React Email writes an apostrophe as `&#x27;`.
+    const at = parts.map((part) => body.replace(/&#x27;/g, "'").indexOf(part));
     expect(at.every((i) => i >= 0), `every part is present: ${at.join(",")}`).toBe(true);
     expect([...at].sort((a, b) => a - b)).toEqual(at);
   };

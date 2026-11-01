@@ -46,7 +46,7 @@ async function expectLine(
   expect(OWNER_OWED, key).not.toContain(key);
   const mail = await compose();
   expect(mail.text).toContain(rendered);
-  expect(mail.html).toContain(rendered);
+  expect(mail.html.replace(/&#x27;/g, "'")).toContain(rendered);
   expect(mail.text).not.toMatch(/\{[A-Za-z]+\}/);
   expect(mail.html).not.toMatch(/\{[A-Za-z]+\}/);
 }

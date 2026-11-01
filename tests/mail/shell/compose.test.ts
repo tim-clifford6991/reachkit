@@ -105,8 +105,7 @@ describe("BUILD §12 — every mail is composed once and wears one shell", () =>
       reason: null,
       optOut: null,
       imprint: writtenImprint(real),
-      plainTextNote: "plain-text version attached",
     });
-    expect(text).toContain(`ReachKit · ${real} · plain-text version attached`);
+    expect(text.split("\n").at(-1)).toBe(`ReachKit · ${real}`);
   });
 });

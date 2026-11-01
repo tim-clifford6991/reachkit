@@ -21,7 +21,7 @@ interface SentMail {
   to: string;
   userId?: string;
   subject: string;
-  subjectVars?: Record<string, string>;
+  preheader?: string;
   reason?: string;
   suppressible?: false;
   blocks: readonly { block: string; text?: string; label?: string; href?: string; vars?: Record<string, string> }[];
@@ -479,7 +479,7 @@ describe("issue #183 — the mail names the page, and says why §7 chose it", ()
     const composed = await composeMail({
       kind: "draft-ready",
       subject: m.subject as CopyKey,
-      subjectVars: m.subjectVars,
+      preheader: m.preheader as CopyKey | undefined,
       blocks: m.blocks as unknown as readonly MailBlock[],
       reason: m.reason as CopyKey | undefined,
     });
@@ -508,7 +508,7 @@ describe("a hosted address not connected yet: the mail names no go-live moment",
     expect(outcome).toEqual({ sent: true, id: "vendor-1" });
     const mail = sent[0]!;
     expect(mail.subject).toBe("mail.draftReady.waiting.subject");
-    expect(mail.subjectVars).not.toHaveProperty("publishesAt");
+    expect(mail.preheader).toBe("mail.draftReady.waiting.preheader");
     expect(mail.blocks.map((b) => b.text)).not.toContain("mail.draftReady.autopilotWindow");
     expect(mail.blocks.flatMap((b) => Object.keys(b.vars ?? {}))).not.toContain("publishesAt");
     expect(mail.blocks).toContainEqual(

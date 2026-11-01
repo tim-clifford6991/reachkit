@@ -2,23 +2,24 @@
 // Layout is `react-email`'s (padding on cells, a `width:100%` card with `max-width`); colours and fonts are `tokens.ts` names and
 // every sentence arrives rendered from `compose.ts`, so this file holds no hex, font stack or `copy()` call.
 import type { ReactNode } from "react";
-import { Body, Column, Container, Head, Html, Img, Link, Row, Section, Text } from "react-email";
+import { Body, Column, Container, Head, Html, Img, Link, Preview, Row, Section, Text } from "react-email";
 import { token } from "./tokens";
 
 export interface DocumentParts {
   /** The product's name, rendered from its copy key by `compose.ts`. */
   wordmark: string;
+  /** The inbox line after the subject, or `null` on a kind that names none. */
+  preheader: string | null;
   /** The blocks before the first action, as `blockNodes` built them. */
   rows: ReactNode;
   /** The blocks from the first action on; the whole-mail line stands before them, with the sections it is about. */
   actions: ReactNode;
   /** The line for a mail with nothing to report or an unmeasured week; `null` otherwise. */
   wholeMailLine: string | null;
-  /** S20's footer: the reason, the stop control, then wordmark · imprint · twin note.
+  /** S20's footer: the reason, the stop control, then wordmark · imprint.
    *  `reason` is `null` on the kinds `tests/mail/shell/footer.test.ts` names; `imprint` until it is written. */
   reason: string | null;
   imprint: string | null;
-  plainTextNote: string;
   /** The stop control, labelled by its mechanism in `compose.ts`, never by a template. */
   optOut: { href: string; label: string } | null;
   /** Footer links set before the stop control, on its line. */
@@ -102,9 +103,7 @@ function WholeMailLine({ line }: { line: string }): ReactNode {
 
 function Footer(parts: DocumentParts): ReactNode {
   const footerLinks = parts.optOut === null ? parts.links : [...parts.links, parts.optOut];
-  const band = [parts.wordmark, parts.imprint, parts.plainTextNote]
-    .filter((piece): piece is string => piece !== null && piece !== "")
-    .join(BAND_SEPARATOR);
+  const band = [parts.wordmark, parts.imprint].filter((piece): piece is string => piece !== null && piece !== "").join(BAND_SEPARATOR);
   return (
     // S20 sets the whole footer in mono, the reason line included.
     <Row>
@@ -141,6 +140,7 @@ export function MailDocument(parts: DocumentParts): ReactNode {
   return (
     <Html>
       <Head />
+      {parts.preheader === null ? null : <Preview>{parts.preheader}</Preview>}
       <Body style={{ background: token("--bg"), margin: 0, padding: PAGE_INSET }}>
         <Container style={{ maxWidth: CARD_WIDTH }}>
           <Section

@@ -32,6 +32,8 @@ export interface OptOutControl {
 interface ComposeCommon {
   subject: CopyKey;
   subjectVars?: CopyVars;
+  /** The inbox line after the subject; hidden in the body, so the plain-text twin does not carry it. */
+  preheader?: CopyKey;
   blocks: readonly MailBlock[];
   /** S20's footer line: why this mail arrived. Optional only for the kinds `tests/mail/shell/footer.test.ts` names. */
   reason?: CopyKey;
@@ -48,6 +50,7 @@ export type ComposeInput =
 
 export interface ComposedMail {
   subject: string;
+  preheader: string | null;
   html: string;
   text: string;
   omitted: readonly number[];
@@ -60,7 +63,6 @@ const WEEK_UNMEASURED = "mail.week_unmeasured" satisfies CopyKey;
 const WEEK_PARTLY_MEASURED = "mail.week_partly_measured" satisfies CopyKey;
 const WORDMARK = "mail.shell.wordmark" satisfies CopyKey;
 const IMPRINT = "mail.shell.imprint" satisfies CopyKey;
-const PLAIN_TEXT_NOTE = "mail.shell.plaintext_note" satisfies CopyKey;
 
 /** The stop labels, keyed by ADR-042's two mechanisms; closed so no template names a third. */
 const OPT_OUT_LABELS: Readonly<Record<OptOutControl["mechanism"], CopyKey>> = Object.freeze({
@@ -156,8 +158,8 @@ function partsOf(m: ComposeInput): ComposedMailParts {
     reason:
       m.reason === undefined || COPY[m.reason] === TODO_COPY_MARKER ? null : copy(m.reason, m.reasonVars),
     imprint,
-    plainTextNote: copy(PLAIN_TEXT_NOTE),
   };
+  const preheader = m.preheader === undefined ? null : copy(m.preheader);
 
   // Both renderers read `omit.ts`; this asserts no local edit made them disagree.
   if (htmlBody.omitted.join(",") !== textBody.omitted.join(",")) {
@@ -166,8 +168,10 @@ function partsOf(m: ComposeInput): ComposedMailParts {
 
   return {
     subject: copy(m.subject, m.subjectVars),
+    preheader,
     document: createElement(MailDocument, {
       ...footer,
+      preheader,
       rows: head.html.nodes,
       actions: tail.html.nodes,
       wholeMailLine: line,

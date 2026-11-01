@@ -17,6 +17,8 @@ interface SendCommon {
   to: string;
   subject: CopyKey;
   subjectVars?: CopyVars;
+  /** The inbox line after the subject, named by the template. */
+  preheader?: CopyKey;
   blocks: readonly MailBlock[];
   /** S20's footer line, named by the template that knows the occasion. */
   reason?: CopyKey;
@@ -166,6 +168,7 @@ function compose(m: SendInput): ReturnType<typeof composeMail> {
         kind: m.kind,
         subject: m.subject,
         subjectVars: m.subjectVars,
+        preheader: m.preheader,
         blocks: m.blocks,
         reason: m.reason,
         reasonVars: m.reasonVars,
@@ -177,6 +180,7 @@ function compose(m: SendInput): ReturnType<typeof composeMail> {
         kind: m.kind,
         subject: m.subject,
         subjectVars: m.subjectVars,
+        preheader: m.preheader,
         blocks: m.blocks,
         reason: m.reason,
         reasonVars: m.reasonVars,
