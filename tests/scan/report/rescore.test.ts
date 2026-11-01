@@ -76,6 +76,11 @@ function storeOf(scans: readonly FixtureScan[], sites: StoredSiteRow[] = [], pro
       const report = structuredClone(row.report) as Record<string, unknown>;
       const original = { previous: report.previous ?? structuredClone(report), previousColumns: report.previousColumns ?? { score: row.score, status: row.status, drivers: row.drivers } };
       for (const change of w.changes) {
+        if (change.path.length === 0) {
+          for (const key of Object.keys(report)) delete report[key];
+          Object.assign(report, JSON.parse(JSON.stringify(change.value)));
+          continue;
+        }
         let at = report as Record<string | number, unknown>;
         for (const key of change.path.slice(0, -1)) at = at[key] as Record<string | number, unknown>;
         at[change.path[change.path.length - 1]!] = JSON.parse(JSON.stringify(change.value));

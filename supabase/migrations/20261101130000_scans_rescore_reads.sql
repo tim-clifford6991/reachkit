@@ -5,7 +5,9 @@
 -- **`rescore_scan(...)`**, same signature: `jsonb_set` leaves a path whose
 -- parent is missing untouched and appends past an array's end, so each change
 -- is read back and the call raises (nothing written) where it did not land.
--- The caller can then trust a `true` without downloading the row again.
+-- The caller can then trust a `true` without downloading the row again. An
+-- empty path replaces the whole report: the re-score sends one for a blob of
+-- an older version, whose paths were found on the upgraded copy.
 --
 -- **`rescore_reports(...)`** is the re-score's read: the scan columns it
 -- scores, the report without the copy a re-score kept, and the stored
@@ -42,7 +44,11 @@ begin
   rewritten := stored.report - 'previous' - 'previousColumns' - 'rescoredAt' - 'rescoredBy';
   for change in select value from jsonb_array_elements(p_changes) loop
     target := array(select jsonb_array_elements_text(change->'path'));
-    rewritten := jsonb_set(rewritten, target, change->'value');
+    if cardinality(target) = 0 and jsonb_typeof(change->'value') = 'object' then
+      rewritten := change->'value';
+    else
+      rewritten := jsonb_set(rewritten, target, change->'value');
+    end if;
     if rewritten is null or rewritten #> target is distinct from change->'value' then
       raise exception 'rescore_scan: change at % did not land on scan %', change->'path', p_id;
     end if;
