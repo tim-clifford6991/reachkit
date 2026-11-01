@@ -8,6 +8,8 @@ export const WEEKLY_DUE_HOUR_LOCAL = 6 as const;              // site-local, nev
 
 // Account lifecycle
 export const SETUP_REMINDER_OFFSETS_H = Object.freeze([24, 72, 168] as const);
+/** What setup's three steps take, as the public pages and the setup reminder state it. */
+export const SETUP_MINUTES = 10 as const;
 // SPEC §8 Retention: win-back once at +30 d after access ends.
 export const RETENTION_MAIL = Object.freeze({
   winbackAfterAccessDays: 30,

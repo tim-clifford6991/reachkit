@@ -226,6 +226,7 @@ export async function sendSetupReminder(
     kind: "setup-reminder",
     to,
     subject: mail.subject,
+    preheader: mail.preheader,
     blocks: mail.blocks,
     reason: mail.reason,
   });

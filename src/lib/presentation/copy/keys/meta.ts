@@ -53,7 +53,7 @@ export const META_COPY = Object.freeze({
    *  readers. Read from one key rather than written twice (rule 2.4). */
   "meta.landing.description": ["Free scan, no account: see where Google and AI send buyers to your competitors, then let ReachKit publish up to {weekPages} pages a week, new or updated, to close the gap.", { slots: { weekPages: "text" }, fixedBy: "issue 326 · owner A1 2026-10-19" }],
   "meta.pricing.title": ["Pricing · €49 a month · ReachKit", { slots: {}, fixedBy: "issue 326" }],
-  "meta.pricing.description": ["One plan at €49 a month, VAT included: up to {weekPages} pages a week for your site, new or updated, a weekly scan of your market, and time to stop any page before it goes live.", { slots: { weekPages: "text" }, fixedBy: "issue 326 · owner A1 2026-10-19" }],
+  "meta.pricing.description": ["One plan at €49 a month, tax included: up to {weekPages} pages a week for your site, new or updated, a weekly scan of your market, and time to stop any page before it goes live.", { slots: { weekPages: "text" }, fixedBy: "issue 326 · owner A1 2026-10-19" }],
 
   /* ── The three legal pages ────────────────────────────────────────────
      Their on-screen headings are `legal.*.title` and are approved as
@@ -97,7 +97,7 @@ export const META_COPY = Object.freeze({
   "meta.about.description": ["Who builds ReachKit and why, and the rules it keeps about what it publishes.", { slots: {}, fixedBy: "issue 1396 · drafted" }],
   // Issue 1458: the pages Google still ranks from earlier versions. An article's own title and description are its data; the two slots below carry them.
   "meta.compare.title": ["Compare · ReachKit", { slots: {}, fixedBy: "issue 1458 · drafted" }],
-  "meta.compare.description": ["How ReachKit compares with SEO suites, on-page checkers and AI tools: what each does well, what ReachKit does instead, and when to pick which.", { slots: {}, fixedBy: "issue 1458 · drafted" }],
+  "meta.compare.description": ["How ReachKit compares with AI writing tools, Google research tools and page checkers: what each does well, what ReachKit does instead, and when to pick which.", { slots: {}, fixedBy: "issue 1458 · drafted" }],
   "meta.teardowns.title": ["Teardowns · ReachKit", { slots: {}, fixedBy: "issue 1458 · drafted" }],
   "meta.teardowns.description": ["How real products present themselves to buyers on Google and in AI answers, read from the outside, dated and revised.", { slots: {}, fixedBy: "issue 1458 · drafted" }],
   "meta.tools.title": ["Free SEO tools · ReachKit", { slots: {}, fixedBy: "issue 1458 · drafted" }],

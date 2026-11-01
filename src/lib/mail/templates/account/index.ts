@@ -10,11 +10,14 @@ import type { AccountMail } from "../magic-link";
 export type HostingEndOccasion = "access_ended" | "seven_days";
 
 const CHASE_SUBJECT = "mail.account.chase.subject" satisfies CopyKey;
+const CHASE_PREHEADER = "mail.account.chase.preheader" satisfies CopyKey;
 const CHASE_LINK_READY = "mail.account.chase.link_ready" satisfies CopyKey;
 const CHASE_NOT_OPEN_YET = "mail.account.chase.not_open_yet" satisfies CopyKey;
 const CHASE_ACTION = "mail.magicLink.action" satisfies CopyKey;
 const SECOND_PURCHASE_SUBJECT = "mail.account.second_purchase.subject" satisfies CopyKey;
+const SECOND_PURCHASE_PREHEADER = "mail.account.second_purchase.preheader" satisfies CopyKey;
 const ADDRESS_MOVED_SUBJECT = "mail.account.address_moved.subject" satisfies CopyKey;
+const ADDRESS_MOVED_PREHEADER = "mail.account.address_moved.preheader" satisfies CopyKey;
 const ADDRESS_MOVED = "mail.account.address_moved" satisfies CopyKey;
 const NO_SECOND_SUBSCRIPTION = "mail.account.no_second_subscription" satisfies CopyKey;
 const REACH_A_PERSON = "mail.account.reach_a_person" satisfies CopyKey;
@@ -122,9 +125,11 @@ const HOSTING_END_SUBJECT: Readonly<Record<HostingEndOccasion, CopyKey>> = Objec
   access_ended: "mail.account.hosting_end.access_ended.subject",
   seven_days: "mail.account.hosting_end.seven_days.subject",
 });
+const HOSTING_END_PREHEADER = "mail.account.hosting_end.preheader" satisfies CopyKey;
 const HOSTING_END_STOPS_ON = "mail.account.hosting_end.stops_on" satisfies CopyKey;
 const HOSTING_END_EXPORT_STAYS = "mail.account.hosting_end.export_stays" satisfies CopyKey;
 const BROKEN_SUBJECT = "mail.account.destinationBroken.subject" satisfies CopyKey;
+const BROKEN_PREHEADER = "mail.account.destinationBroken.preheader" satisfies CopyKey;
 const BROKEN_BODY = "mail.account.destinationBroken.body" satisfies CopyKey;
 const BROKEN_HELD = "mail.account.destinationBroken.held" satisfies CopyKey;
 const BROKEN_ACTION = "mail.account.destinationBroken.action" satisfies CopyKey;
@@ -133,6 +138,7 @@ const BROKEN_ACTION = "mail.account.destinationBroken.action" satisfies CopyKey;
 export function buildChaseWithLink(a: { href: string }): AccountMail {
   return {
     subject: CHASE_SUBJECT,
+    preheader: CHASE_PREHEADER,
     blocks: [
       { block: "paragraph", text: CHASE_LINK_READY },
       { block: "action", label: CHASE_ACTION, href: a.href },
@@ -145,6 +151,7 @@ export function buildChaseWithLink(a: { href: string }): AccountMail {
 export function buildChaseWithoutLink(): AccountMail {
   return {
     subject: CHASE_SUBJECT,
+    preheader: CHASE_PREHEADER,
     blocks: [
       { block: "paragraph", text: CHASE_NOT_OPEN_YET },
       { block: "notice", text: REACH_A_PERSON },
@@ -156,6 +163,7 @@ export function buildChaseWithoutLink(): AccountMail {
 export function buildSecondPurchase(): AccountMail {
   return {
     subject: SECOND_PURCHASE_SUBJECT,
+    preheader: SECOND_PURCHASE_PREHEADER,
     blocks: [
       { block: "paragraph", text: NO_SECOND_SUBSCRIPTION },
       { block: "notice", text: REACH_A_PERSON },
@@ -168,6 +176,7 @@ export function buildSecondPurchase(): AccountMail {
 export function buildAddressMoved(): AccountMail {
   return {
     subject: ADDRESS_MOVED_SUBJECT,
+    preheader: ADDRESS_MOVED_PREHEADER,
     blocks: [
       { block: "paragraph", text: ADDRESS_MOVED },
       { block: "notice", text: REACH_A_PERSON },
@@ -183,6 +192,7 @@ export function buildHostingEnd(a: {
 }): AccountMail {
   return {
     subject: HOSTING_END_SUBJECT[a.occasion],
+    preheader: HOSTING_END_PREHEADER,
     blocks: [
       { block: "paragraph", text: HOSTING_END_STOPS_ON, vars: { date: a.stopsOn } },
       { block: "paragraph", text: HOSTING_END_EXPORT_STAYS },
@@ -211,6 +221,7 @@ export function buildRenewalRefunded(a: {
 export function buildDestinationBroken(a: { held: number; href: string; at: Date }): AccountMail {
   return {
     subject: BROKEN_SUBJECT,
+    preheader: BROKEN_PREHEADER,
     blocks: [
       { block: "paragraph", text: BROKEN_BODY },
       { block: "stat", label: BROKEN_HELD, value: measured(a.held, a.at), format: "integer" },

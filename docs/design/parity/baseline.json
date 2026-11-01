@@ -1,7 +1,7 @@
 {
   "PubLanding": { "sha256": "edf52b49c9fb680065e1623f2473708ca31d8b82d788cdbb082804edc30db241", "missing": 0, "components": 43, "plainWords": 22 },
   "PubLandingPhone": { "sha256": "dd5225b6213e3ca6452b686100b0073a00df2ebda90c96e71fc9677b6aec1555", "missing": 0, "components": 43, "plainWords": 22 },
-  "PubHowItWorks": { "sha256": "f7457e048873d672d3c0a4106f651c8e1924aaf508dbbb9945eb11c5016c477c", "missing": 0, "components": 60, "plainWords": 53 },
+  "PubHowItWorks": { "sha256": "d2059b46f057db3bb689e8b07bf2219a86603e4a52d4cd976a8cb3498058e922", "missing": 0, "components": 60, "plainWords": 53 },
   "Pricing": { "sha256": "1dff78936be1a6a8c32ec93f712966fe3a07203adfc3602231d87342b93be38c", "missing": 0, "components": 38, "plainWords": 13 },
   "PubScanning": { "sha256": "6343e9f9612d856fa19a0842c2bd387d432b0a49ca180f875568fd671bf1b9f0", "missing": 0, "plainWords": 2 },
   "PubReport": { "sha256": "e488f929bb341b746f1baa5add00509fd6f236af6676f7437bac083e6bada3ec", "missing": 0, "components": 16, "plainWords": 10 },
@@ -26,7 +26,7 @@
   "Veto": { "sha256": "92cb0a8aba418cedc585b2a77eeb2cc06fc7029f1d7a1838db1afad605a37190", "missing": 0, "plainWords": 8 },
   "OptOut": { "sha256": "6978b7f02c974435019237ad240472b344004b9b628b786c6c8589b7c1ca26fe", "missing": 0, "plainWords": 2 },
   "Legal": { "sha256": "31da09aa0eb00b20a2bc12e6b525f82368d83027fbfd5f4f5328d9860bce98c4", "missing": 0, "components": 0 },
-  "MondayMail": { "sha256": "e70df64ae3b449e533171424276c4a94d0acb4f728fcdd2a8abee8b2515c239a", "missing": 0, "plainWords": 3 },
+  "MondayMail": { "sha256": "2d6c33f8dfc13d28830d2915e20431c8eb03b0fa593afd64e51ca432199fb6d8", "missing": 0, "plainWords": 2 },
   "Main": { "sha256": "de4ac225a1957a53484c264647e76f10cfb3827e1f26e1ca8ced96a384963939", "missing": 0, "components": 15, "plainWords": 12 },
   "OverviewDNS": { "sha256": "ccabe98c03c56aaf6f8bce92276565fb52d0a1095bc77003a30d80126add9dc3", "missing": 0, "plainWords": 6 },
   "AppGoogle": { "sha256": "b7d6941ea6293b587e19351dfeee126c64c28238dc1491d06570c20fc0571534", "missing": 0, "components": 20, "plainWords": 1 },

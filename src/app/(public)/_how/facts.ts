@@ -14,6 +14,7 @@ import {
   RESEARCH,
   RIVAL_DEMAND,
   RIVAL_PRESENCE,
+  SETUP_MINUTES,
   TRACKED_PROMPTS,
   VETO,
   WEEK_PLAN,
@@ -104,8 +105,7 @@ export const HOW_FACTS = Object.freeze({
   windowHours: VETO.defaultHours,
   windowMinDays: VETO.minDays,
   windowMaxDays: VETO.maxDays,
-  /** The setup time the public pages state; setup's three steps take it. */
-  setupMinutes: 10,
+  setupMinutes: SETUP_MINUTES,
   /** The time a site fix takes, as the free report's fix badges state it. */
   fixMinutes: 10,
   /** The results on Google's first page. */

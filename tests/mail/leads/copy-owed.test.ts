@@ -96,9 +96,9 @@ describe("every new sentence is a registry key, and every one of them is the own
     // is approved copy, so filling it here is transcription and not
     // invention. Each is asserted by its own words rather than by "not
     // empty", so a later edit that reworded one would fail here.
-    expect(COPY["mail.firstPage.subject"]).toBe("Your first page: {title}");
-    expect(COPY["mail.firstPage.target_search"]).toBe("target search");
-    expect(COPY["mail.firstPage.first_of_n"]).toContain("That’s page 1 of {pagesFound}");
+    expect(COPY["mail.firstPage.subject"]).toBe("Your free page is ready");
+    expect(COPY["mail.firstPage.target_search"]).toBe("search it answers");
+    expect(COPY["mail.firstPage.first_of_n"]).toContain("It's 1 of {pagesFound} pages");
     for (const key of WRITTEN_BY_THE_SET) expect(OWNER_OWED, key).not.toContain(key);
   });
 
@@ -128,7 +128,7 @@ describe("every new sentence is a registry key, and every one of them is the own
     // row's *label* — "target search" — with the search itself in the
     // row's value, where a datum belongs.
     expect(COPY_META["mail.firstPage.target_search"].slots).toEqual({});
-    expect(COPY_META["mail.firstPage.subject"].slots).toEqual({ title: "text" });
+    expect(COPY_META["mail.firstPage.subject"].slots).toEqual({});
     expect(COPY_META["mail.firstPage.first_of_n"].slots).toEqual({ pagesFound: "text" });
     for (const touch of [1, 2, 3] as const) {
       expect(COPY_META[`mail.nurture.body.${touch}` as CopyKey].slots).toEqual({ domain: "text" });

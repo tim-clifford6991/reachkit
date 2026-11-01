@@ -5,14 +5,19 @@
 import type { CopyKey } from "@/lib/presentation/copy";
 import type { PublishedTelling } from "@/lib/publish/verify/telling";
 import { CHECK_IDS, type CheckId } from "@/lib/publish/verify/checks";
-import type { SiteConditionKind, VerifyChecks } from "@/lib/publish/types";
+import type { SiteConditionKind, VerifyChecks, VerifyOutcome } from "@/lib/publish/types";
 import { measured, type Measured } from "@/lib/measure/measured";
 import type { MailBlock, VerdictRow } from "../../blocks/types";
 
-const SUBJECT = "mail.published.subject" satisfies CopyKey;
+/** One subject per outcome, so a page nobody found is never announced as live. */
+const SUBJECT: Readonly<Record<VerifyOutcome["outcome"], CopyKey>> = Object.freeze({
+  found: "mail.published.subject",
+  page_not_found: "mail.published.subject.not_found",
+  could_not_confirm: "mail.published.subject.not_confirmed",
+});
+const PREHEADER = "mail.published.preheader" satisfies CopyKey;
 const ADDRESS = "mail.published.address_label" satisfies CopyKey;
 const ACTION = "mail.published.action" satisfies CopyKey;
-const VERIFIED_LABEL = "mail.published.verified_label" satisfies CopyKey;
 const REASON = "mail.reason.published" satisfies CopyKey;
 const CHECKS_LABEL = "mail.published.checks_label" satisfies CopyKey;
 const CHECKS_EMPTY = "mail.published.checks_empty" satisfies CopyKey;
@@ -69,6 +74,7 @@ export interface PublishedMail {
   /** UI-SPEC S20's footer line: why this mail arrived. */
   readonly reason?: CopyKey;
   readonly subject: CopyKey;
+  readonly preheader: CopyKey;
   readonly blocks: readonly MailBlock[];
 }
 
@@ -84,14 +90,8 @@ export function buildPublished(a: {
     // S20's shape: one line, the fact rows, one solid button, with the address in a row rather than the button.
     // No heading yet: S20 heads it with the page title, which `PublishedTelling` does not carry from the `publications` row.
     { block: "paragraph", text: telling.copy, vars: { checkedAt } },
-    // The row's label is its own key: `telling.copy` carries `{checkedAt}`, and a facts label is read with no vars.
-    {
-      block: "facts",
-      items: [
-        { label: ADDRESS, value: telling.liveUrl },
-        { label: VERIFIED_LABEL, value: checkedAt },
-      ],
-    },
+    // The date is in the line above, so the address is the one fact row.
+    { block: "facts", items: [{ label: ADDRESS, value: telling.liveUrl }] },
     { block: "action", label: ACTION, href: telling.liveUrl },
   ];
 
@@ -113,5 +113,5 @@ export function buildPublished(a: {
     });
   }
 
-  return { subject: SUBJECT, reason: REASON, blocks };
+  return { subject: SUBJECT[telling.result.outcome], preheader: PREHEADER, reason: REASON, blocks };
 }

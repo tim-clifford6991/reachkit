@@ -84,7 +84,7 @@ describe("issue #376 — S20's footer, in both bodies", () => {
 
     const reason = mail.html.indexOf("Own this site");
     const link = mail.html.indexOf(`>${label}</a>`);
-    const band = mail.html.indexOf("plain-text version attached");
+    const band = mail.html.lastIndexOf(COPY["mail.shell.wordmark"]);
     expect(reason, "the reason line is missing").toBeGreaterThan(-1);
     expect(link, "the stop link is missing").toBeGreaterThan(reason);
     expect(band).toBeGreaterThan(link);
@@ -97,14 +97,14 @@ describe("issue #376 — S20's footer, in both bodies", () => {
     const textLink = text.indexOf(`${label}: ${href}`);
     expect(textReason).toBeGreaterThan(-1);
     expect(textLink).toBeGreaterThan(textReason);
-    expect(text.indexOf("plain-text version attached")).toBeGreaterThan(textLink);
+    expect(text.lastIndexOf(COPY["mail.shell.wordmark"])).toBeGreaterThan(textLink);
   });
 
   it("a mail with no reason still composes, and its footer is the band alone", async () => {
     // The arm the three kinds above take. It must not throw, and it must
     // not render an empty line where a sentence would go.
     const mail = await composeMail({ kind: "account", ...BASE });
-    expect(mail.html).toContain("plain-text version attached");
+    expect(mail.text.split("\n").at(-1)).toBe(COPY["mail.shell.wordmark"]);
     expect(mail.html).not.toContain("<p style=\"margin:0\"></p>");
   });
 
@@ -112,23 +112,21 @@ describe("issue #376 — S20's footer, in both bodies", () => {
     // The owner has not written the imprint yet; a customer must never read the placeholder.
     expect(COPY["mail.shell.imprint"]).toContain("[[");
     const mail = await composeMail({ kind: "report", ...BASE, reason: "mail.reason.report", reasonVars: { address: "x@y.z" } });
-    const band = [COPY["mail.shell.wordmark"], COPY["mail.shell.plaintext_note"]].join(" · ");
-    expect(mail.html).toContain(band);
     expect(mail.html).not.toContain(COPY["mail.shell.imprint"]);
     expect(mail.text).not.toContain(COPY["mail.shell.imprint"]);
-    // The text twin closes on the two-part band, with no empty line where the imprint was.
+    // The text twin closes on the wordmark alone, with no empty line or separator where the imprint was.
     expect(mail.text.split("\n").slice(-3)).toMatchInlineSnapshot(`
       [
         "————————————————————————",
         "Own this site and want the report taken down? Write to x@y.z.",
-        "ReachKit · plain-text version attached",
+        "ReachKit",
       ]
     `);
   });
 
   it("the reason line is the one place a mail says why it arrived", () => {
     // S20 puts the stop instruction inside the reason for a togglable
-    // kind — "switch off in Settings › Mail" — so these toggle kinds say how
+    // kind — "Turn it off in Settings › Mail" — so these toggle kinds say how
     // to stop without needing a second control. The Monday mail carries its
     // own Mail settings and Unsubscribe links instead
     // (`tests/mail/weekly/footer-links.test.tsx`).
@@ -136,7 +134,7 @@ describe("issue #376 — S20's footer, in both bodies", () => {
       "mail.reason.draftReady",
       "mail.reason.published",
     ] as const) {
-      expect(COPY[key]).toContain("switch off in Settings");
+      expect(COPY[key]).toContain("Turn it off in Settings › Mail.");
     }
     expect(COPY["mail.reason.nurture"]).toContain("Opt out");
   });
