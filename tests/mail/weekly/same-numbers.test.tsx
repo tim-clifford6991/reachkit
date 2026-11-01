@@ -40,6 +40,7 @@ vi.mock("@/lib/opportunities", async (importOriginal) => ({
 
 const { LIVE_ACCOUNT, resetAccount, signedInAs } = await import("../../app/account-door");
 const { default: OverviewPage } = await import("@/app/(account)/app/(tabs)/page");
+const { default: AiAnswersTabPage } = await import("@/app/(account)/app/(tabs)/ai-answers/page");
 const { sendWeeklyDigest } = await import("@/lib/mail/weekly");
 const { copy } = await import("@/lib/presentation/copy");
 const { readGoogleVisitWeeks } = await import("@/app/(account)/app/_overview/blog-reads-provider");
@@ -294,7 +295,7 @@ describe.each([
     expect(bars).toEqual([line?.before, line?.n]);
   });
 
-  it("Reputation, the score and the market are in the first Monday mail of a month only, as Overview's months read them", async () => {
+  it("the score, the market and AI mentions are in the first Monday mail of a month only, as the app reads them", async () => {
     seed(site, FIVE);
     db.seed("scans", [...db.rows("scans"), deepScan(27, 0)]);
     await mail(WEEK, NOW);
@@ -317,7 +318,10 @@ describe.each([
     expect(text(dom.querySelector('[data-testid="overview-tile-score"] .num')).replace(/ /gu, "")).toBe(`${read("mail.weekly.month.score").now}${of("100")}`.replace(/ /gu, ""));
     expect(text(dom.querySelector('[data-testid="overview-tile-market"]'))).toContain(`${read("mail.weekly.month.market").now} ${of("12")}`);
     expect(month["mail.weekly.month.reputation"]).toBe("11 of 46");
-    expect(text(dom.querySelector('[data-testid="overview-tile-reputation"]'))).toContain(`11 ${of("46")}`);
+    // Overview no longer repeats it (O6): the AI answers tab is the one place it is drawn.
+    const ai = new DOMParser().parseFromString(renderToStaticMarkup(await AiAnswersTabPage()), "text/html");
+    expect(dom.querySelector('[data-testid="overview-tile-reputation"]')).toBeNull();
+    expect(text(ai.querySelector('[data-testid="ai-reputation-count"]'))).toBe(copy("overview.prompts.rate.count", { n: "11", m: "46", weeks: "4" }));
   });
 });
 

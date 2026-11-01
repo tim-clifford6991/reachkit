@@ -34,7 +34,6 @@ import { SupplyNotice } from "./SupplyNotice";
 import { PublishedList, updateDays } from "./PublishedList";
 import { readPublishedFor } from "../_overview/content-provider";
 import { contentOf } from "@/lib/measure/published";
-import { readCategoryChoice } from "../_shell/remeasure";
 
 /** /app/calendar's own `<title>` (#945). Without it this screen announced
  *  nothing at all — the `(account)` layout's fallback is the floor, not
@@ -58,10 +57,6 @@ export default async function CalendarPage(): Promise<React.JSX.Element> {
   const [supplyNotice, stalled] = await Promise.all([readSupplyNotice(), readStalledWeek()]);
   const stalledStatement = stalledLine(stalled);
   const supplyStatement = supplyLine(supplyNotice, week.timeZone);
-  // Issue 837: a calendar empty because the market was too small offers the
-  // choice that fills it, unless the shell's panel already does.
-  const choice =
-    (onboarding.kind === "none" || onboarding.kind === "ended") && supplyNotice?.kind === "unmeasured" ? await readCategoryChoice() : null;
 
   // The footnote's two halves are owner-owed keys; an unwritten half renders
   // as nothing, never as a placeholder sentence.
@@ -82,28 +77,8 @@ export default async function CalendarPage(): Promise<React.JSX.Element> {
 
       <FirstPageNotice state={onboarding} />
       {/* §7's one statement of supply, at the calendar's top and nowhere
-          else: no cell and no day panel repeats it (issue 857). A market
-          never measured carries its two ways to measure again inline
-          (issue 1071), in place of the broader-categories card. */}
-      {supplyStatement === null ? null : (
-        <SupplyNotice
-          line={supplyStatement}
-          choice={
-            choice === null
-              ? null
-              : {
-                  suggestion: choice.suggestions[0] ?? null,
-                  tryLabel:
-                    choice.suggestions[0] === undefined
-                      ? null
-                      : copy("calendar.supply.try", { category: choice.suggestions[0] }),
-                  describe: copy("calendar.supply.describe"),
-                  own: copy("setup.remeasure.own"),
-                  submit: copy("setup.remeasure.submit"),
-                }
-          }
-        />
-      )}
+          else: no cell and no day panel repeats it (issue 857). */}
+      {supplyStatement === null ? null : <SupplyNotice line={supplyStatement} />}
       {/* Issue 1184: why pages stall, as one line under the statement of supply. */}
       {stalledStatement === null ? null : (
         <p className="min-w-0 text-sm wrap-anywhere" data-testid="calendar-stalled">

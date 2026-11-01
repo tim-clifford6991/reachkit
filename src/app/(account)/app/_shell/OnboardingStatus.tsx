@@ -132,7 +132,7 @@ export function FirstPageNotice(p: { state: OnboardingState }): React.JSX.Elemen
 /** Issue 837: the choice a market too small offers — broader categories and
  *  the founder's own words, each measuring the market again now. The words
  *  are written here; `CategoryChoice` only sends the press. */
-export function MarketChoice(p: { choice: CategoryChoiceModel }): React.JSX.Element {
+function MarketChoice(p: { choice: CategoryChoiceModel }): React.JSX.Element {
   return (
     <CategoryChoice
       suggestions={p.choice.suggestions}

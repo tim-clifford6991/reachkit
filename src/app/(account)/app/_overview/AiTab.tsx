@@ -299,7 +299,6 @@ export function Reputation(p: { model: PromptsModel; children: React.ReactNode }
             ? copy("overview.prompts.rate.band", { n, m, weeks, low: formatCount(percent(rate.low)), high: formatCount(percent(rate.high)) })
             : copy(firstMeasurement ? "overview.tile.mention-rate.first" : "overview.tile.mention-rate.early", { weeks: formatCount(MENTION_RATE_MIN_WEEKS) })}
         </p>
-        <h3 className="font-semibold">{copy("overview.prompts.share.title")}</h3>
         {p.model.shareOfVoice === null ? (
           <p className={`text-sm ${INK}`}>{copy("overview.prompts.share.none")}</p>
         ) : (

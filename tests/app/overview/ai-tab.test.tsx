@@ -70,7 +70,7 @@ describe("board AppAI, on the account the layout sweep reads", () => {
     const n = shell.weeks.kind === "counted" ? String(shell.weeks.weeks) : "";
     expect(text(head?.querySelector('[data-testid="ai-answers-eyebrow"]'))).toBe(copy("overview.tab.eyebrow", { n }));
     expect(text(head?.querySelector("h1"))).toBe(copy("overview.tile.ai-answers.label"));
-    expect(text(head?.querySelector('[data-testid="ai-answers-measured"]'))).toMatch(/^Measured /u);
+    expect(text(head?.querySelector('[data-testid="ai-answers-measured"]'))).toMatch(/^Checked /u);
   });
 
   it("three tiles, each with its figure and What this means closed under it, counted as Overview counts them", async () => {
@@ -145,7 +145,7 @@ describe("board AppAI, on the account the layout sweep reads", () => {
     expect([...(who?.querySelectorAll("h3") ?? [])].map(text)).toEqual([copy("overview.answers.who.reads"), copy("overview.answers.visits.label")]);
   });
 
-  it("reputation is Overview's month figure, and closes on the grid of the twelve", async () => {
+  it("Mentioned by AI is drawn here alone, and closes on the grid of the twelve", async () => {
     const [dom, overview] = await Promise.all([render(), readOverview()]);
     const model = await readPromptsAt(overview.months?.reading?.week ?? null);
     expect(model.kind).toBe("measured");
@@ -155,8 +155,8 @@ describe("board AppAI, on the account the layout sweep reads", () => {
     expect(text(card?.querySelector('[data-testid="ai-reputation-count"]'))).toBe(
       copy("overview.prompts.rate.count", { n: String(model.rate.linked + model.rate.named), m: String(model.rate.samples), weeks: "4" })
     );
+    // R6: no "Share of voice" title; the competitor bars open on their lead line.
     expect([...(card?.querySelectorAll("h3") ?? [])].map(text)).toEqual([
-      copy("overview.prompts.share.title"),
       copy("overview.prompts.list.title"),
       copy("overview.answers.grid.title"),
     ]);
