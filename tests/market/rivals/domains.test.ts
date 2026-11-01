@@ -135,7 +135,13 @@ describe("a page for job seekers and a public body are sources, read one way for
     expect(isJobRow({ domain: "example.com", url: "https://example.com/guide", title })).toBe(true);
   });
 
-  it.each(["What does a baker charge for a wedding cake", "Bäckerei Müller – was macht unser Brot besonders", "Job lot clearance sale"])(
+  it.each([
+    "What does a baker charge for a wedding cake",
+    "Bäckerei Müller – was macht unser Brot besonders",
+    "Job lot clearance sale",
+    "Smith Electrical | No Job Too Small | Leeds",
+    "Mode d'emploi du lave-vaisselle",
+  ])(
     "never reads a business's own title as a guide: %s",
     (title) => {
       expect(isJobRow({ domain: "example.com", url: "https://example.com/shop", title })).toBe(false);

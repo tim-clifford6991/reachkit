@@ -319,9 +319,9 @@ export function isPublicHost(hostOrUrl: string): boolean {
  *  or training path ("Baker | Your Career", "Ausbildung Bäcker/in"). */
 const JOB_HOST = /^(jobs|careers?|karriere|stellen)\./;
 const JOB_SEGMENT = /^(jobs?|job-details|vacanc(y|ies)|careers?|stellen(angebote)?|stellenmarkt|jobsuche)$/;
-// An occupation guide reads as one too ("What does a baker do", "Was macht ein Bäcker"); a job lot is goods.
+// An occupation guide reads as one too ("What does a baker do", "Was macht ein Bäcker"); a job lot, "no job too small" and a "mode d'emploi" do not.
 const JOB_TITLE =
-  /(?<![\p{L}\p{N}])(jobs?(?!\s+lots?(?![\p{L}\p{N}]))|careers?|vacanc(y|ies)|salary|salaries|apprenticeships?|traineeships?|how to become|what does an?\s+(?:[\p{L}-]+\s+){1,4}do|duties of an?|stellenangebote?|gehalt|ausbildung|was macht eine?|emploi|que fait une?|empleos?|qu[ée] hace una?|vacatures?|wat doet een)(?![\p{L}\p{N}])/iu;
+  /(?<![\p{L}\p{N}])(jobs?(?!\s+(?:lots?|too\s+small)(?![\p{L}\p{N}]))|careers?|vacanc(y|ies)|salary|salaries|apprenticeships?|traineeships?|how to become|what does an?\s+(?:[\p{L}-]+\s+){1,4}do|duties of an?|stellenangebote?|gehalt|ausbildung|was macht eine?|(?<!mode\s+d['’]\s*)emploi|que fait une?|empleos?|qu[ée] hace una?|vacatures?|wat doet een)(?![\p{L}\p{N}])/iu;
 /** A business whose market is job seekers: it recruits, staffs or trains. */
 const JOB_TRADE = /(?<![\p{L}\p{N}])(recruit\p{L}*|staffing|headhunt\p{L}*|employment agenc\p{L}*|training|courses?|bootcamps?|personalvermittlung|zeitarbeit|weiterbildung|recrutement|intérim|reclutamiento|formación|werving|uitzend\p{L}*)(?![\p{L}\p{N}])/iu;
 

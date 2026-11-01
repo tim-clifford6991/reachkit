@@ -456,6 +456,21 @@ describe("a site whose every top-ten page is a job, career or explainer page is 
     }
   });
 
+  it.each(["Smith Electrical | No Job Too Small", "Smith Electrical | Small jobs and rewiring"])("a local electrician's home page titled %j stays a rival", (title) => {
+    const home: Row = ["www.smithelectrical.co.uk", "https://www.smithelectrical.co.uk/", title];
+    const sparks: Row[] = [["www.leedssparks.co.uk", "https://www.leedssparks.co.uk/", "Leeds Sparks"], ["www.voltleeds.co.uk", "https://www.voltleeds.co.uk/", "Volt Leeds"]];
+    const both = [searched([home, ...sparks], []), searched([home, ...sparks], [])];
+    expect(deriveRivals({ serps: both, ownDomain: "customer.co.uk", local: true, category: "electrician" }).rivals.map((rival) => rival.domain)).toContain("smithelectrical.co.uk");
+  });
+
+  it("a software maker's own post asking what something does stays its rival nationally, and the career guide is still a source", () => {
+    const peos: Row[] = [["www.trinet.com", "https://www.trinet.com/peo", "TriNet PEO"], ["www.insperity.com", "https://www.insperity.com/", "Insperity"], ["www.adp.com", "https://www.adp.com/peo", "ADP TotalSource"]];
+    const post: Row = ["rippling.com", "https://rippling.com/blog/what-does-a-peo-do", "What Does a PEO Do? | Rippling"];
+    const { rivals, sources } = deriveRivals({ serps: [searched([post, guide, ...peos], [post[1]])], ownDomain: "justworks.com", category: "PEO" });
+    expect(rivals.map((rival) => rival.domain)).toContain("rippling.com");
+    expect(sources).toContain("bakingcareer.com.au");
+  });
+
   it("in a local market a site that only explains is a publisher; outside one it is a business explaining its market", () => {
     const only = [searched([explainer, ...shops], [explainer[1]]), searched([explainer, ...shops], [])];
     const rivalsOf = (local: boolean) => deriveRivals({ serps: only, ownDomain: "bakersdelight.com.au", local }).rivals.map((rival) => rival.domain);
