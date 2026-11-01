@@ -270,7 +270,7 @@ export const CHROME_COPY = Object.freeze({
 
   // The head and the four steps
   "how.eyebrow": ["How it works", { slots: {}, fixedBy: "issue 1597 · drafted" }],
-  "how.headline": ["You run your business. We work on getting it found.", { slots: {}, fixedBy: "issue 1597 · drafted" }],
+  "how.headline": ["You run your business. ReachKit works on getting it found.", { slots: {}, fixedBy: "issue 1597 · drafted" }],
   "how.lead": ["We research your business and competitors. Then every week we write and publish pages that help buyers find you.", { slots: {}, fixedBy: "issue 1597 · drafted" }],
   "how.detail": ["Show the detail", { slots: {}, fixedBy: "issue 1597 · drafted" }],
   "how.switch": ["Example business", { slots: {}, fixedBy: "issue 1597 · drafted" }],
