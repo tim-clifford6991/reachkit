@@ -151,7 +151,7 @@ export function missingPagesOf(report: StoredReport): readonly MissingPage[] | n
   return rankedFreePages(report).map((page) => ({
     search: page.targetQuery ?? "",
     volume: page.volume === null || page.volume.kind === "unmeasured" ? null : page.volume.value,
-    holder: page.evidence.family === "write" ? page.evidence.rival.domain : null,
+    holder: page.evidence.family === "write" ? (page.evidence.rival?.domain ?? null) : null,
     question: storedQuestionOf(report, page.targetQuery),
   }));
 }

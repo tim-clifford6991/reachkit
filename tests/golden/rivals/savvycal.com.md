@@ -19,7 +19,7 @@ From `scripts/panel/evidence/savvycal.com.json`: 24 stored searches, 5 rivals.
 | meeting scheduling software | — | — |
 | calendar scheduling tool | — | — |
 | meeting booking tool | answer_page | calendly.com |
-| best online appointment scheduling software | answer_page | research.com |
+| best online appointment scheduling software | answer_page | revenuehero.io |
 | automated meeting scheduler | — | — |
 | appointment scheduling software | — | — |
 | appointment scheduling calendar software | — | — |

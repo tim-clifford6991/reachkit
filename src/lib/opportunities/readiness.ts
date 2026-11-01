@@ -140,7 +140,7 @@ export function comparisonWithoutAsking(
     o.evidence.family === "earn" && o.evidence.source.surface === "ai_answer"
       ? o.evidence.rival.domain
       : o.source === "ai_gap" && "rival" in o.evidence
-        ? o.evidence.rival.domain
+        ? (o.evidence.rival?.domain ?? null)
         : null;
   return comparisonUnasked({
     query,

@@ -1,6 +1,7 @@
 // BUILD §4.2 — the two things this feature reads and does not own, as narrow ports: what to offer (§7) and the page itself (§8).
 // The defaults are real: the offer is the report's own `freePage`, so card and mail agree, and `./writer.ts` writes the page. The setters are the suites' door.
 import { measured, measuredZero, unmeasured, type Measured } from "@/lib/measure/measured";
+import { beatsOf } from "@/lib/opportunities/free-page";
 import { readStoredReport, type StoredReport } from "@/lib/scan/report";
 import { leadStore } from "./store";
 
@@ -46,6 +47,7 @@ const defaultOfferReader: OfferReader = async (scanId) => {
   if (page === null) return { read: true, page: null };
 
   const at = report.verdict.measuredAt;
+  const beats = beatsOf(report);
   return {
     read: true,
     page: {
@@ -55,7 +57,7 @@ const defaultOfferReader: OfferReader = async (scanId) => {
       // A real zero stays a zero (REQ-004 c12).
       volume: page.target.volume === 0 ? measuredZero(0, at) : measured(page.target.volume, at),
       // REQ-091 c3: a page found without a rival to name says so.
-      rival: page.beats === null ? unmeasured("undeterminable", at) : measured(page.beats, at),
+      rival: beats === null ? unmeasured("undeterminable", at) : measured(beats, at),
       format: page.format,
     },
   };

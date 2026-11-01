@@ -58,6 +58,7 @@ describe("the layout seed's opportunity rows", () => {
       if (evidence.volume.kind === "unmeasured") return;
       expect(evidence.volume.value).toBe(seededVolume(index));
 
+      if (evidence.rival === null) throw new Error("a seeded draft names its rival");
       expect(evidence.rival.domain.length).toBeGreaterThan(0);
       expectMeasured(evidence.rival.url);
       expectMeasured(evidence.rival.position);
