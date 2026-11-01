@@ -200,3 +200,22 @@ describe("pages 1 to 5 are cards, the rest dashed rows (2026-10-24 E16)", () => 
     expect(text(card!)).toContain(copy("report.missing.holder", { holder: "rival.example.net" }));
   });
 });
+
+describe("no business holds a search the report counts as missing, and nothing says one does", () => {
+  it("a stored free page that names a platform names who the missing pages say holds its search instead", () => {
+    const stored = panelReport("local");
+    const report = { ...stored, freePage: { ...stored.freePage!, beats: "google.com" } };
+    const html = renderReport(report);
+    const card = html.slice(html.indexOf('id="first-page"'));
+    const holder = missingPagesOf(report)!.find((page) => page.search === report.freePage.target.keyword)!.holder;
+    expect(card).not.toContain(">google.com<");
+    expect(card).toContain(holder === null ? htmlText(copy("place.report.first-page.rival")) : `>${holder}<`);
+  });
+
+  it("pages with no holder carry no holder line, and the lead claims no competitor", () => {
+    const pages: MissingPage[] = ["first search", "second search"].map((search) => ({ search, volume: 100, holder: null, question: null }));
+    const html = renderToStaticMarkup(<MissingPagesList pages={pages} freeSearch={null} />);
+    expect(html).not.toContain(htmlText(copy("report.missing.holder", { holder: "" }).trim()));
+    expect(parse(html).textContent.toLowerCase()).not.toContain("competitor");
+  });
+});

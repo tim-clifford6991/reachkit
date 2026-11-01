@@ -5,30 +5,12 @@
 // intended. 0¢: stored evidence only, and no vendor client is built.
 import "../../opportunities/env";
 import { describe, expect, it } from "vitest";
-import { isListingHost, isPlatformDomain, isPublicHost, isSourceRow, registrableDomain } from "@/lib/market/rivals/domains";
-import { writeCandidates } from "@/lib/opportunities/derive/write";
+import { isOthersPage, isOwnDomain, isPublicHost, isSourceRow, registrableDomain } from "@/lib/market/rivals/domains";
+import { sourceReadingOf, writeCandidates } from "@/lib/opportunities/derive/write";
+import { beatsOf, freePageOf } from "@/lib/opportunities/free-page";
+import { missingPagesOf } from "@/app/(public)/scan/[domain]/_problems/model";
 import { businessOf, panelDomains, storedPayloads } from "../plan/panel";
 import { panelReport } from "./panel";
-
-/** The sites whose stored searches name a holder that is no rival today: the
- *  holder is the first top-ten row not the site's own (wrong-rival F1, #2193).
- *  Each case is expected red until that fix lands. */
-const HOLDER_NOT_A_RIVAL: ReadonlySet<string> = new Set([
-  "alexander.co.uk",
-  "austinplumbery.com",
-  "baeckerei-hinkel.de",
-  "clearleft.com",
-  "fletcherelectric.co.uk",
-  "pdxsmiledesign.com",
-  "savvycal.com",
-  "streaksapp.com",
-  "wesbos.com",
-  "zunicafe.com",
-]);
-
-/** The sites whose stored searches hold a public body as their first row
- *  not the site's own, today's holder; the shared holder rule flips them. */
-const PUBLIC_HOLDER: ReadonlySet<string> = new Set(["clearleft.com"]);
 
 function holders(domain: string) {
   const { report, rivals } = panelReport(domain);
@@ -38,7 +20,7 @@ function holders(domain: string) {
   const searches = questions.map(({ search }) => {
     const candidate = byQuery.get(search.keyword);
     const evidence = candidate?.evidence;
-    return { search: search.keyword, type: candidate?.type ?? null, holder: evidence?.family === "write" ? evidence.rival.domain : null };
+    return { search: search.keyword, type: candidate?.type ?? null, holder: evidence?.family === "write" ? (evidence.rival?.domain ?? null) : null };
   });
   return { rivals, searches };
 }
@@ -67,18 +49,52 @@ describe("the golden rivals and holders of each panel site", () => {
   });
 });
 
-describe("every holder is a rival, never a listing or a platform", () => {
-  for (const domain of panelDomains()) {
-    (HOLDER_NOT_A_RIVAL.has(domain) ? it.fails : it)(domain, () => {
-      const { rivals, searches } = holders(domain);
-      const rivalSet = new Set(rivals.map((rival) => rival.domain));
-      for (const { search, holder } of searches) {
-        if (holder === null) continue;
-        expect(isListingHost(holder) || isPlatformDomain(holder), `${search}: ${holder}`).toBe(false);
-        expect(rivalSet.has(registrableDomain(holder) ?? holder), `${search}: ${holder}`).toBe(true);
+describe("each search's holder is the first business in Google's order, never a source", () => {
+  it.each(panelDomains())("%s", (domain) => {
+    const { report, rivals } = panelReport(domain);
+    const reading = sourceReadingOf(report, rivals.map((rival) => rival.domain));
+    const { searches } = holders(domain);
+    searches.forEach(({ search, type, holder }, index) => {
+      const serp = report.serps[index];
+      if (type === null || serp === undefined || serp.kind === "unmeasured") return;
+      const organic = serp.value.organic;
+      const at = holder === null ? organic.length : organic.findIndex((row) => registrableDomain(row.domain) === holder);
+      const row = organic[at];
+      if (holder !== null) {
+        expect(row === undefined || isSourceRow(row, reading), `${search}: ${holder}`).toBe(false);
+        expect(isOthersPage(row!, reading.local) && !reading.rivals!.includes(holder), `${search}: ${holder} is a page about others`).toBe(false);
       }
+      const before = organic.slice(0, at).filter((each) => !isOwnDomain(each.domain, domain) && !isSourceRow(each, reading));
+      expect(before.map((each) => each.domain), `${search}: a business ranks above ${holder ?? "no holder"}`).toEqual([]);
     });
-  }
+  });
+});
+
+describe("the free page and the missing pages name one holder for one search, as stored and as read back", () => {
+  it.each(panelDomains())("%s", (domain) => {
+    const { report } = panelReport(domain);
+    const freePage = freePageOf(report);
+    if (freePage === null) return;
+    const missing = missingPagesOf({ ...report, freePage });
+    expect(missing?.find((page) => page.search === freePage.target.keyword)?.holder ?? null).toBe(freePage.beats);
+    expect(beatsOf({ ...report, freePage })).toBe(freePage.beats);
+  });
+});
+
+describe("a rival offers its own business somewhere: not every page it holds is about others", () => {
+  it.each(panelDomains())("%s", (domain) => {
+    const { report, rivals } = panelReport(domain);
+    const local = sourceReadingOf(report).local;
+    const serps = [...storedPayloads(domain).values()].map(({ serp }) => serp);
+    const offers = (rival: string) =>
+      serps.some(
+        (serp) =>
+          serp.organic.some((row) => registrableDomain(row.domain) === rival && !isOthersPage(row, local)) ||
+          (serp.localPack ?? []).some((row) => registrableDomain(row.domain) === rival) ||
+          (serp.aiOverview.referenceUrls ?? []).some((url) => registrableDomain(url) === rival && !isOthersPage({ domain: url, url }, local))
+      );
+    expect(rivals.map((rival) => rival.domain).filter((rival) => !offers(rival))).toEqual([]);
+  });
 });
 
 describe("no public host is a rival or a holder", () => {
@@ -86,7 +102,7 @@ describe("no public host is a rival or a holder", () => {
     it(`${domain}: rivals`, () => {
       expect(holders(domain).rivals.map((rival) => rival.domain).filter((rival) => isPublicHost(rival))).toEqual([]);
     });
-    (PUBLIC_HOLDER.has(domain) ? it.fails : it)(`${domain}: holders`, () => {
+    it(`${domain}: holders`, () => {
       expect(holders(domain).searches.flatMap(({ holder }) => (holder !== null && isPublicHost(holder) ? [holder] : []))).toEqual([]);
     });
   }

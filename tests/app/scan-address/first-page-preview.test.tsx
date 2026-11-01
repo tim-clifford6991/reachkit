@@ -11,6 +11,8 @@ import type { StoredReport } from "@/lib/scan/report";
 import type { ScanFirstPage } from "@/lib/mail/leads/store";
 import { memoryStore, newMemoryState, type MemoryState } from "../../mail/leads/memory-store";
 import { panelReport } from "./panel-report";
+import { beatsOf } from "@/lib/opportunities/free-page";
+import { copy } from "@/lib/presentation/copy";
 
 vi.mock("@/lib/llm", () => {
   throw new Error("the report reached for the model");
@@ -85,7 +87,7 @@ describe("before the page is written", () => {
         const read = text(section);
         expect(read).toContain(free.target.keyword);
         expect(read).toContain(`${free.target.volume.toLocaleString("en-US")} times a month`);
-        expect(read).toContain(free.beats!);
+        expect(read).toContain(beatsOf(report) ?? copy("place.report.first-page.rival"));
         expect(section).not.toContain('data-testid="first-page-preview"');
         expect(read).not.toContain(CAPTION);
       });

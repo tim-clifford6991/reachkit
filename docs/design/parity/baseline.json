@@ -4,7 +4,7 @@
   "PubHowItWorks": { "sha256": "d2059b46f057db3bb689e8b07bf2219a86603e4a52d4cd976a8cb3498058e922", "missing": 0, "components": 60, "plainWords": 53 },
   "Pricing": { "sha256": "1dff78936be1a6a8c32ec93f712966fe3a07203adfc3602231d87342b93be38c", "missing": 0, "components": 38, "plainWords": 13 },
   "PubScanning": { "sha256": "6343e9f9612d856fa19a0842c2bd387d432b0a49ca180f875568fd671bf1b9f0", "missing": 0, "plainWords": 2 },
-  "PubReport": { "sha256": "e488f929bb341b746f1baa5add00509fd6f236af6676f7437bac083e6bada3ec", "missing": 0, "components": 16, "plainWords": 10 },
+  "PubReport": { "sha256": "b20d0a73e7c6dd3df61aec8d7088856fd95774adf870b0c9e845519f890370bb", "missing": 0, "components": 16, "plainWords": 10 },
   "PubAbout": { "sha256": "deca6c4148ada85affdba000f3c6f14b48e77e74ba1d7cb61e975a4659dca9bf", "missing": 0, "components": 32, "plainWords": 4 },
   "PubCompare": { "sha256": "b20dbf94586c7481984b1d7ddeabc012a9ae8d7d8c2c78440db92359a76bef89", "missing": 0, "components": 45, "plainWords": 41 },
   "PubCompareTool": { "sha256": "df2d82c4a392560ce75ffa23adc49ea47126f23a6e8d121d57f6a94588267f36", "missing": 0, "components": 69, "plainWords": 21 },

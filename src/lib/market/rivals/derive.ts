@@ -19,8 +19,8 @@
 // Domain normalisation, the platform partition and the own-domain test are
 // all `./domains`' — one implementation in the product, not two.
 import { BATTERY, RIVAL_SCORE } from "@/lib/config/constants";
-import type { MarketOrganicRow, MarketSerp } from "../views";
-import { isArticleRow, isArticleUrl, isExplainerTitle, isHomeUrl, isJobSearch, isOwnContentUrl, isOwnDomain, isPlaceTitle, isRoundupPage, isSourceDomain, pageKey, registrableDomain } from "./domains";
+import type { MarketSerp } from "../views";
+import { isArticleRow, isArticleUrl, isExplainerTitle, isHomeUrl, isJobSearch, isOthersPage, isOwnContentUrl, isOwnDomain, isPlaceTitle, isRoundupPage, isSourceDomain, pageClass, pageKey, registrableDomain } from "./domains";
 
 /** `band.ts`'s `RivalSizeBand`, spelled out: the free card's modules name no
  *  sizing module, not even for a type (§6.4, `size.test.ts`). */
@@ -162,9 +162,13 @@ export function deriveRivals(a: {
   // in the domain's own blog or resources (issue 1465): a software maker's
   // "15 best email platforms" in its blog is that business writing about
   // its market, while a review site's roundup is the site.
-  const isRoundup = (row: MarketOrganicRow): boolean =>
-    (isArticleRow(row) || (row.title !== undefined && isExplainerTitle(row.title))) &&
-    (local || row.url === undefined || !isOwnContentUrl(row.url));
+  // In a local market any page about others is a publisher's; outside one
+  // a directory's page is, and an article outside the domain's own blog.
+  const isRoundup = (row: { domain: string; url?: string; title?: string }): boolean =>
+    local
+      ? isOthersPage(row, true)
+      : pageClass(row) === "third_party" ||
+        ((isArticleRow(row) || (row.title !== undefined && isExplainerTitle(row.title))) && (row.url === undefined || !isOwnContentUrl(row.url)));
   // The share of a search's titled top ten that `test` holds, at least half.
   const mostly = (serp: MarketSerp, test: (title: string) => boolean): boolean => {
     const titles = serp.organic.flatMap((row) => (row.title === undefined ? [] : [row.title]));
@@ -278,14 +282,14 @@ export function deriveRivals(a: {
     }
 
     const countedCitations = new Set<string>();
-    // A domain the overview cites only for articles is cited as a
-    // publisher, not recommended as a product (issue 1417).
+    // A domain the overview cites only for pages about others — articles,
+    // lists, a directory's profiles — is cited as a publisher, not
+    // recommended as a product (issue 1417), as is an address a top ten
+    // shows as a list of others (issue 1476).
     const urls = serp.aiOverview.referenceUrls ?? [];
-    // A cited address a top ten shows as a list of others is an article too
-    // (issue 1476).
     const onlyArticles = (domain: string): boolean => {
       const own = urls.filter((url) => registrableDomain(url) === domain);
-      return own.length > 0 && own.every((url) => isArticleUrl(url) || isRoundupAddress(url));
+      return own.length > 0 && own.every((url) => isArticleUrl(url) || isRoundupAddress(url) || isRoundup({ domain: url, url }));
     };
     // The address it cited on this host, where the read kept one: a
     // marketplace's listing is no rival (issue 1465).

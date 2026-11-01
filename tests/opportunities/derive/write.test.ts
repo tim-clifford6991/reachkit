@@ -294,7 +294,46 @@ describe("evidence is copied out of the report, with its own dates", () => {
     const evidence = candidates[0]!.evidence;
     expect(evidence.family).toBe("write");
     if (evidence.family !== "write") throw new Error("unreachable");
-    expect(evidence.rival.domain).toBe("appcues.com");
+    expect(evidence.rival?.domain).toBe("appcues.com");
+  });
+});
+
+describe("the holder is the first row in Google's order that is a business, a rival or not", () => {
+  const holdersOf = (rows: readonly (readonly [string, string, string])[], rivals: readonly string[] = []) => {
+    const organic = rows.map(([domain, path, title], i) => ({ position: i + 1, domain, url: `https://${domain}${path}`, title }));
+    const report = reportOf(
+      { questions: [question({ search: search({ keyword: "bread" }) })], serps: [serp({ organic, aiOverview: { present: false, asynchronousAiOverview: false, referenceDomains: [] } })] },
+      { rivals: measured(rivals.map((domain) => ({ domain, top10Appearances: 1, aiCitations: 0, score: 1 })), AT) }
+    );
+    const counted = smallCounts(rows.map(([domain]) => domain.replace(/^(www|en)\./, "")));
+    return writeCandidates({ ...base, report, rankedCounts: counted }).candidates.map((c) => (c.evidence.family === "write" ? (c.evidence.rival?.domain ?? null) : undefined));
+  };
+  const bread = [
+    ["www.google.com", "/maps/search/bread", "Bakeries near you"],
+    ["en.wikipedia.org", "/wiki/Bread", "Bread - Wikipedia"],
+    ["www.recipetineats.com", "/bread-recipe/", "Easy bread recipe"],
+    ["www.woolworths.com.au", "/shop/browse/bakery", "Bakery | Woolworths"],
+  ] as const;
+
+  it("a map, an encyclopedia and a recipe are passed over for the shop that sells it, though it is no rival", () => {
+    expect(holdersOf(bread)).toEqual(["woolworths.com.au"]);
+  });
+
+  it("a rival that sells it holds it the same way", () => {
+    expect(holdersOf(bread, ["woolworths.com.au"])).toEqual(["woolworths.com.au"]);
+  });
+
+  it("a plumber third in a top ten held by a directory and a forum is the holder", () => {
+    const plumber = [
+      ["www.yelp.com", "/search?find_desc=plumber&find_loc=Austin", "THE BEST 10 Plumbing in Austin, TX"],
+      ["www.reddit.com", "/r/Austin/comments/1abc/plumber/", "Plumber recommendations? : r/Austin"],
+      ["austinwaterworksplumbing.com", "/", "Austin Waterworks Plumbing | 24 Hour Plumber"],
+    ] as const;
+    expect(holdersOf(plumber)).toEqual(["austinwaterworksplumbing.com"]);
+  });
+
+  it("a search only sources hold keeps its page, with no holder", () => {
+    expect(holdersOf(bread.slice(0, 3))).toEqual([null]);
   });
 });
 

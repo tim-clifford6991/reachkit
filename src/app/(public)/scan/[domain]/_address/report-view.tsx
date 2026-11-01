@@ -37,10 +37,8 @@ import { stillReading, type StoredReport } from "@/lib/scan/report";
 import type { CanonicalDomain } from "@/lib/scan/domain";
 import type { CorrectionOffer } from "@/lib/market/coherence/offer";
 import { AiAnswersAbsent, AiAnswersCard } from "../_modules/ai-answers";
-import {
-  GooglePresenceAbsent,
-  GooglePresenceCard,
-} from "../_modules/google-presence";
+import { GooglePresenceAbsent, GooglePresenceCard } from "../_modules/google-presence";
+import { beatsOf } from "@/lib/opportunities/free-page";
 import { FreePageAbsent, FreePageCard } from "../_modules/free-page";
 import { PricingCard } from "../_modules/pricing";
 import { MissingPagesList } from "../_modules/missing-pages";
@@ -663,7 +661,7 @@ export function ReportView(p: {
             <FreePageAbsent cutOff={cutOff} domain={report.domain} />
           ) : (
             <FreePageCard
-              section={report.freePage}
+              section={{ ...report.freePage, beats: beatsOf(report) }}
               question={storedQuestionOf(report, report.freePage.target.keyword)}
               scanId={report.scanId}
               domain={report.domain}

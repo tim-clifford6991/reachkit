@@ -82,7 +82,7 @@ export interface CalendarSite {
  *  else holds it and there is no rival at all. */
 function bestRival(choice: Choice, at: Date): BestRival | null {
   const evidence = choice.evidence;
-  if (evidence.family === "write") {
+  if (evidence.family === "write" && evidence.rival !== null) {
     return { domain: evidence.rival.domain, position: evidence.rival.position };
   }
   if (evidence.family === "earn") {

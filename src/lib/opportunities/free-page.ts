@@ -15,11 +15,12 @@
 //
 // **One candidate per search, and the count is of those.** "Page 1 of N" is
 // N searches with a page worth writing, never N rows for the same search.
+import { isSourceRow } from "@/lib/market/rivals/domains";
 import { fromStored } from "@/lib/presentation/generated";
 import type { FreePageSection, StoredReport } from "@/lib/scan/report";
 import { comparePrecedence } from "./cluster";
 import type { Candidate } from "./derive/candidate";
-import { writeCandidates } from "./derive/write";
+import { holderOf, sourceReadingOf, writeCandidates } from "./derive/write";
 import type { Opportunity, Winnability } from "./types";
 import { pointsOf, volumeOrder } from "./rank/points";
 import { demandBand } from "./winnability/band";
@@ -119,10 +120,22 @@ export function freePageOf(report: Omit<StoredReport, "freePage">): FreePageSect
       keyword: candidate.targetQuery ?? "",
       volume: candidate.volume === null || candidate.volume.kind === "unmeasured" ? 0 : candidate.volume.value,
     },
-    beats: evidence.family === "write" ? evidence.rival.domain : null,
+    beats: evidence.family === "write" ? (evidence.rival?.domain ?? null) : null,
     format: candidate.type,
     totalPages: pick.total,
   };
+}
+
+/** The business holding a stored free page's search, read off its stored
+ *  top ten by `holderOf`, as the missing pages read it; a stored holder with
+ *  no stored top ten stands only where it is no source. */
+export function beatsOf(report: StoredReport): string | null {
+  const page = report.freePage;
+  if (page === null || page.beats === null || report.questions.kind === "unmeasured") return null;
+  const serp = report.serps[report.questions.value.findIndex((question) => question.search.keyword === page.target.keyword)];
+  const reading = sourceReadingOf(report, report.rivals.kind === "unmeasured" ? [] : report.rivals.value.map((rival) => rival.domain));
+  if (serp === undefined || serp.kind === "unmeasured") return isSourceRow({ domain: page.beats }, reading) ? null : page.beats;
+  return holderOf(serp.value, report.domain, reading, report.verdict.measuredAt)?.domain ?? null;
 }
 
 export function freePageId(scanId: string, slug: string): string {

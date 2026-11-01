@@ -44,7 +44,8 @@ export function panelReport(domain: string): PanelReport {
     return { id: `q${n + 1}`, text: search, search: difficulty === undefined ? selected : { ...selected, difficulty }, phrasing: "template" };
   });
   const serps = stored.map(({ at, serp }) => measured(serp, at));
-  const local = businessOf(domain).serves !== null;
+  const serves = businessOf(domain).serves as { name: string } | null;
+  const local = serves !== null;
   const { category } = panelSite(domain).market;
   const { rivals, sources } = deriveRivals({ serps: stored.map(({ serp }) => serp), ownDomain: domain, local, category });
   const asked = measured(questions, AT);
@@ -56,7 +57,8 @@ export function panelReport(domain: string): PanelReport {
       serps,
       rivals: measured(rivals, AT),
       sources,
-      market: measured(marketSetOf({ profile: { ...PROFILE, category }, suggestions: [] }), AT),
+      // The town the panel serves, so the report reads local as its rivals were derived.
+      market: measured(marketSetOf({ profile: { ...PROFILE, category, ...(serves === null ? {} : { town: serves.name }) }, suggestions: [] }), AT),
       aiAnswers: answersSectionOf({ card, questions: asked, rivals, ownDomain: domain, measuredAt: AT }),
     })
   );
