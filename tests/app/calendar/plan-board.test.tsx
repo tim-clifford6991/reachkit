@@ -56,7 +56,7 @@ describe("board Plan, on the fixture account's week", () => {
     expect(text(head.querySelector("p"))).toBe("Chosen Monday, September 14. Each goes live on its day unless you stop it.");
   });
 
-  it("the four numbers: pages this week, live so far, spares kept ready, stopped by you", async () => {
+  it("the four numbers: pages this week, live so far, backup pages ready, stopped by you", async () => {
     const root = await fixturePage();
     const numbers = [...root.querySelectorAll('[data-testid="plan-numbers"] > div')].map((tile) =>
       [...tile.querySelectorAll('[data-testid$="-text"] > span')].map(text).join(" ")

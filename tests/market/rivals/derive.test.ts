@@ -8,6 +8,7 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { deriveRivals } from "../../../src/lib/market/rivals/derive.ts";
+import { isJobSearch } from "../../../src/lib/market/rivals/domains.ts";
 import { BATTERY, RIVAL_SCORE } from "../../../src/lib/config/constants.ts";
 import type { MarketSerp } from "../../../src/lib/market/views.ts";
 
@@ -421,5 +422,37 @@ describe("a public body and a job seeker's search give no rival, except to a bus
     const rivals = domains({ serps: [baker, warehouse], ownDomain: "agency.com.au", category: "recruitment agency" });
     expect(rivals).toEqual(expect.arrayContaining(["bakingcareer.com.au", "seek.com.au", "adecco.com.au"]));
     expect(rivals).not.toContain("yourcareer.gov.au");
+  });
+});
+
+describe("a row behind a Google redirect that names no site is nobody, and a search mostly of them is not read", () => {
+  const stored = JSON.parse(readFileSync(path.resolve(import.meta.dirname, "fixtures/au-baker-d149c119.json"), "utf8")) as { organic: MarketSerp["organic"] };
+  const baker: MarketSerp = { organic: stored.organic, aiOverview: { present: false, referenceDomains: [] } };
+  const wrapper = (position: number) => ({ position, domain: "", url: `https://google.com/goto?url=CAES${position}opaque`, title: "Hidden" });
+  const rows = (resolved: [domain: string, title: string][], hidden: number): MarketSerp => ({
+    organic: [...resolved.map(([domain, title], i) => ({ position: i + 1, domain, url: `https://${domain}/`, title })), ...Array.from({ length: hidden }, (_, i) => wrapper(resolved.length + i + 1))],
+    aiOverview: { present: false, referenceDomains: [] },
+  });
+  const jobs: [string, string][] = [["www.seek.com.au", "Baker Jobs - SEEK"], ["au.jora.com", "Baker Jobs - Jora"], ["www.brumbys.com.au", "Brumby's Bakeries"]];
+  const shops: [string, string][] = [["www.brumbys.com.au", "Brumby's Bakeries"], ["www.phillippas.com.au", "Phillippa's Bakery"], ["www.lunebakery.com", "Lune Croissanterie"]];
+  const rivalsOf = (serp: MarketSerp) => deriveRivals({ serps: [serp], ownDomain: "bakersdelight.com.au" }).rivals.map((rival) => rival.domain);
+
+  it("an unresolved row is never a rival or a source: the stored AU baker top ten (d149c119, 3 of 8 resolved) gives neither", () => {
+    const { rivals, sources } = deriveRivals({ serps: [baker, baker], ownDomain: "bakersdelight.com.au", category: "bread and bakery" });
+    expect(rivals).toEqual([]);
+    expect(sources).not.toContain("google.com");
+  });
+
+  it("3 of 8 resolved: the leftovers give no rival and no jobs reading, though alone they would", () => {
+    expect(rivalsOf(rows(shops, 5))).toEqual([]);
+    expect(rivalsOf(rows(shops, 0))).toEqual(["brumbys.com.au", "phillippas.com.au", "lunebakery.com"]);
+    expect(isJobSearch(rows(jobs, 5).organic, "bread and bakery")).toBe(false);
+    expect(isJobSearch(rows(jobs, 0).organic, "bread and bakery")).toBe(true);
+  });
+
+  it("6 of 8 resolved is read as today, over the resolved rows only", () => {
+    const six: [string, string][] = [...shops, ["www.coles.com.au", "Bread | Coles"], ["www.woolworths.com.au", "Bread | Woolworths"], ["www.seek.com.au", "Bakery Jobs - SEEK"]];
+    expect(rivalsOf(rows(six, 2))).toEqual(rivalsOf(rows(six, 0)));
+    expect(rivalsOf(rows(six, 2))).toHaveLength(5);
   });
 });

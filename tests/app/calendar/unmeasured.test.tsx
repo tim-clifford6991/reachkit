@@ -59,7 +59,7 @@ vi.mock("@/app/(account)/app/_overview/content-provider", () => ({
 // The pass has released the founder; the side panel is not this suite's.
 vi.mock("@/app/(account)/app/_shell/onboarding", () => ({ readOnboarding: async () => ({ kind: "none" }) }));
 
-// Issue 837: the broader categories the empty calendar offers.
+// Broader categories exist, so a chooser would have something to offer (R17 removes it).
 vi.mock("@/app/(account)/app/_shell/remeasure", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/app/(account)/app/_shell/remeasure")>()),
   readCategoryChoice: async () => ({ suggestions: ["bookkeeping software", "therapist accounting"] }),
@@ -191,20 +191,14 @@ describe("#784 — the calendar's one supply statement says which zero it is", (
     expect(await statement()).toBe(COPY["calendar.supply.unmeasured"]);
   });
 
-  it("a market never measured carries its two ways to measure again inline (issues 837, 1071)", async () => {
+  it("a market never measured offers no market chooser, and its line says where to change the market (R17)", async () => {
     setOpportunityStore(storeWith({ questions: 0, everHeld: false }));
     const page = render(await CalendarPage());
-    const notice = page.querySelector('[data-testid="calendar-supply-notice"]');
-    const choice = notice?.querySelector('[data-testid="calendar-market-choice"]');
-    const tries = [...(choice?.querySelectorAll('[data-testid="category-suggestion"]') ?? [])];
-    expect(tries.map((b) => b.getAttribute("value"))).toEqual(["bookkeeping software"]);
-    expect(tries[0]?.textContent).toContain("bookkeeping software");
-    expect(choice?.querySelector('[data-testid="category-describe"]')).not.toBeNull();
-    expect(page.querySelector('[data-testid="calendar-supply-statement"]')?.textContent).not.toMatch(/Monday/);
-
-    setOpportunityStore(storeWith({ questions: 12, everHeld: true }));
-    const used = render(await CalendarPage());
-    expect(used.querySelector('[data-testid="calendar-market-choice"]')).toBeNull();
+    expect(page.querySelector('[data-testid="calendar-market-choice"]')).toBeNull();
+    expect(page.querySelector('[data-testid="calendar-supply-notice"]')?.querySelector("form, button")).toBeNull();
+    expect(page.querySelector('[data-testid="calendar-supply-statement"]')?.textContent).toBe(
+      "We haven’t found enough searches in your market to plan pages yet. Name a broader one in Settings and we’ll check again."
+    );
   });
 
   it("issue 855: a pass stopped on its time ceiling is still being measured — never 'too small', and no broader category is offered", async () => {

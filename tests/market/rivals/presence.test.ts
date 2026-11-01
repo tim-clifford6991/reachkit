@@ -363,3 +363,28 @@ describe("who is first is a business, never a source", () => {
     expect(first(row, { rivals: [candidate("rival.co.uk")] })).toBe("rival.co.uk");
   });
 });
+
+describe("a search whose top ten hides its holders behind Google redirects", () => {
+  const stored = JSON.parse(readFileSync(path.resolve(import.meta.dirname, "fixtures/au-baker-d149c119.json"), "utf8")) as { organic: MarketSerp["organic"] };
+  const bakerSerp: MarketSerp = { organic: stored.organic, aiOverview: { present: false, referenceDomains: [] } };
+  const baker = measured(bakerSerp, AT);
+
+  it("stored AU baker top ten (d149c119): baker is not among the searches the customer does not show up on", () => {
+    const card = buildPresenceCard({
+      serps: [baker, ok(["rival-a.com"])],
+      selected: [search("baker", 9900), search("bread", 100)],
+      ownDomain: "bakersdelight.com.au",
+      rivals: [candidate("rival-a.com")],
+    });
+    expect(card.absentFrom.map((row) => row.keyword)).toEqual(["bread"]);
+    expect(card.measuredSearches).toBe(1);
+    expect(card.you.top10Count).toBe(0);
+  });
+
+  it("a resolved row of the customer's still counts as present", () => {
+    const shown = measured<MarketSerp>({ ...bakerSerp, organic: [...stored.organic, { position: 9, domain: "www.bakersdelight.com.au" }] }, AT);
+    const card = buildPresenceCard({ serps: [shown], selected: [search("baker", 9900)], ownDomain: "bakersdelight.com.au", rivals: [] });
+    expect(card.you.top10Count).toBe(1);
+    expect(card.mostSearched?.topHolder).toBeNull();
+  });
+});

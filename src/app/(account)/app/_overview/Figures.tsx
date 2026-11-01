@@ -7,14 +7,12 @@ import Link from "next/link";
 import { TrendingUp } from "lucide-react";
 import { copy } from "@/lib/presentation/copy";
 import type { BlogReadsModel } from "@/lib/publish/reads/model";
-import { ANSWER_RATE_WEEKS } from "@/lib/config/constants";
 import { GrowthLine } from "@/ui/charts/GrowthLine";
 import { PlaceLine } from "@/ui/charts/PlaceLine";
 import { ReadsBars } from "@/ui/charts/ReadsBars";
 import { formatCount, formatDay, SHELL_LOCALE } from "../_shell/format";
 import { FIRST_PAGE, type AiPages, type BestMover, type MonthsFacts } from "@/lib/measure/figures";
 import { shownKey } from "@/lib/measure/registry";
-import { percent, type PromptsModel } from "./prompts-model";
 
 /** Where each figure's rows are listed. */
 export const AI_PAGES_HREF = "/app/ai-answers";
@@ -162,13 +160,9 @@ function Measure(p: { label: string; figure: string; of: string | null; line: st
   );
 }
 
-/** Reputation counts the unbranded prompts' answers alone; `measurePrompts`
- *  leaves the branded ones out of the rate. */
-export function MonthsFigure(p: { months: MonthsFacts; reputation: PromptsModel; timeZone: string }): React.JSX.Element {
+export function MonthsFigure(p: { months: MonthsFacts; timeZone: string }): React.JSX.Element {
   const { reading, scan } = p.months;
   const next = formatDay(new Date(`${p.months.next}T12:00:00Z`), "UTC");
-  const rate = p.reputation.kind === "measured" ? p.reputation.rate : null;
-  const shown = p.reputation.kind === "measured" && p.reputation.rateShown;
   return (
     <section className={CARD} aria-labelledby={ID.months} data-testid={ID.months}>
       <div className={BODY}>
@@ -205,23 +199,10 @@ export function MonthsFigure(p: { months: MonthsFacts; reputation: PromptsModel;
                 mark={moveLine(scan.market, reading.market.top10)}
               />
             )}
-            {rate === null ? null : (
-              <Measure
-                testId={shownKey("overview-reputation")}
-                label={copy("overview.months.reputation")}
-                figure={`${formatCount(rate.linked + rate.named)} ${copy("overview.months.of", { of: formatCount(rate.samples) })}`}
-                of={null}
-                line={copy("overview.months.reputation.line", { weeks: formatCount(ANSWER_RATE_WEEKS) })}
-                mark={<progress className="progress progress-primary w-24 flex-none" value={rate.linked + rate.named} max={rate.samples} aria-hidden />}
-              />
-            )}
           </div>
         )}
         <p className={`text-xs ${INK}`} data-testid="overview-months-note">
           {copy("overview.months.note")}
-          {rate === null || !shown
-            ? null
-            : ` ${copy("overview.months.range", { low: formatCount(percent(rate.low)), high: formatCount(percent(rate.high)) })}`}
         </p>
       </div>
     </section>

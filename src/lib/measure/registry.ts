@@ -138,7 +138,7 @@ const LIST = (
       id: "mail-reputation",
       shown: { on: "mail", key: "mail.weekly.month.reputation" },
       definition:
-        "The overview-reputation figure, in the first mail of a month only: of the tracked prompts' AI answers over the {ANSWER_RATE_WEEKS} weeks to that Monday, how many named or linked the site, of every such answer read.",
+        "x of N, in the first mail of a month only: of the unbranded tracked prompts' AI answers over the {ANSWER_RATE_WEEKS} weeks to that Monday, how many named or linked the site; N is every such answer read, never the prompts. The AI answers tab shows the same count.",
       source: "src/lib/market/prompts/rate.ts#measurePrompts",
       cadence: "Monthly, in the first Monday mail of the month.",
     },
@@ -236,14 +236,6 @@ const LIST = (
       definition:
         "x of N: of the market's biggest searches the month's first Monday pass measured, how many show the site on Google's first page, beside the count at the customer's own scan.",
       source: "src/lib/measure/figures.ts#monthFiguresOf",
-      cadence: "Monthly, on the first Monday.",
-    },
-    {
-      id: "overview-reputation",
-      shown: { on: "tile", key: "overview-tile-reputation" },
-      definition:
-        "x of N: of the unbranded tracked prompts' AI answers read over the {ANSWER_RATE_WEEKS} weeks to the month's first Monday, how many named or linked the site; N is every such answer read, never the prompts. The range beside it is shown once {MENTION_RATE_MIN_WEEKS} weeks of the set exist.",
-      source: "src/lib/market/prompts/rate.ts#measurePrompts",
       cadence: "Monthly, on the first Monday.",
     },
   ]

@@ -36,7 +36,7 @@
 // fixtures.
 import { WRITE_VOLUME_FLOOR_PER_MONTH } from "@/lib/config/constants";
 import { EFFORT_BY_TYPE } from "@/lib/config/constants";
-import { isJobSearch, isOwnDomain, isSourceRow, registrableDomain, type SourceReading } from "@/lib/market/rivals/domains";
+import { isJobSearch, isOwnDomain, isSourceRow, ownPlaceIn, registrableDomain, resolvedRows, type SourceReading } from "@/lib/market/rivals/domains";
 import { measured } from "@/lib/measure/measured";
 import { measuredLocale } from "@/lib/locale/locales";
 import { localOfReport } from "@/lib/scan/cards";
@@ -75,7 +75,7 @@ export function sourceReadingOf(report: Omit<StoredReport, "freePage">, rivals: 
  *  not the customer's own and no source (`isSourceRow`); `null` where only
  *  sources hold it. */
 export function holderOf(serp: SerpResult, ownDomain: string, reading: SourceReading, at: Date): WriteRival | null {
-  const row = serp.organic.find((each) => !isOwnDomain(each.domain, ownDomain) && !isSourceRow(each, reading));
+  const row = resolvedRows(serp.organic)?.find((each) => !isOwnDomain(each.domain, ownDomain) && !isSourceRow(each, reading));
   return row === undefined ? null : { domain: registrableDomain(row.domain) ?? row.domain, url: measured(row.url, at), position: measured(row.position, at) };
 }
 
@@ -181,9 +181,7 @@ export function writeCandidates(a: WriteInput): DerivationResult {
         citedRival(answerCell.citedDomains, rivalSet) !== null
     );
 
-    const customerAbsent = !serp.organic.some((row) =>
-      isOwnDomain(registrableDomain(row.domain) ?? row.domain, ownDomain)
-    );
+    const customerAbsent = ownPlaceIn(serp.organic, ownDomain) === false;
 
     let type: OpportunityType | null = null;
     if (ignoredByTheAnswer) type = "answer_page";

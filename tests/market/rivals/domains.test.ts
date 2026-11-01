@@ -7,6 +7,9 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   isJobRow,
+  ownPlaceIn,
+  resolvedHost,
+  resolvedRows,
   isJobSearch,
   isSourceRow,
   pageClass,
@@ -166,5 +169,39 @@ describe("a page is read as what it is, whoever publishes it", () => {
     expect(isSourceRow(guide, { local: true })).toBe(true);
     expect(isSourceRow(guide, { local: false })).toBe(false);
     expect(isSourceRow(guide, { local: true, rivals: ["austinplumberco.com"] })).toBe(false);
+  });
+});
+
+describe("a result behind a Google redirect is resolved to its site or read as nobody's, never google.com", () => {
+  it("a goto row with a plain url= address resolves to its host", () => {
+    const url = `https://www.google.com/goto?url=${encodeURIComponent("https://www.seek.com.au/baker-jobs")}`;
+    expect(resolvedHost({ domain: "google.com", url })).toBe("seek.com.au");
+    expect(resolvedHost({ domain: "google.com.au", url: "https://google.com.au/url?q=https://bakersdelight.com.au/&sa=U" })).toBe("bakersdelight.com.au");
+  });
+
+  it("a goto row with a breadcrumb resolves to the breadcrumb host", () => {
+    expect(resolvedHost({ domain: "google.com", url: "https://google.com/goto?url=CAESmQEBk1Nw", breadcrumb: "https://www.bakersdelight.com.au › products" })).toBe("bakersdelight.com.au");
+  });
+
+  it("a token goto row with no breadcrumb is unresolved, not google.com", () => {
+    expect(resolvedHost({ domain: "google.com", url: "https://google.com/goto?url=CAESmQEBk1Nw", websiteName: "SEEK" })).toBeNull();
+    expect(resolvedHost({ domain: "", url: "https://google.com/goto?url=CAESmQEBk1Nw" })).toBeNull();
+    // Google's own pages stay Google's.
+    expect(resolvedHost({ domain: "support.google.com", url: "https://support.google.com/business/answer/1" })).toBe("support.google.com");
+  });
+
+  it("the customer's presence is not measured where a redirect row hides who holds it", () => {
+    const hidden = [{ domain: "google.com", url: "https://google.com/goto?url=CAES" }, { domain: "rival.com", url: "https://rival.com/" }];
+    expect(ownPlaceIn(hidden, "customer.com")).toBeNull();
+    expect(ownPlaceIn([...hidden, { domain: "www.customer.com" }], "customer.com")).toBe(true);
+    expect(ownPlaceIn(hidden.slice(1), "customer.com")).toBe(false);
+  });
+
+  it("a search's shares are not read where fewer than half its stored rows resolve", () => {
+    const wrapper = { domain: "google.com", url: "https://google.com/goto?url=CAES", title: "Baker Jobs - SEEK" };
+    const career = { domain: "careers.bakery.com.au", url: "https://careers.bakery.com.au/", title: "Baker jobs" };
+    expect(resolvedRows([career, wrapper, wrapper])).toBeNull();
+    expect(isJobSearch([career, career, career, wrapper, wrapper, wrapper, wrapper, wrapper], "bakery")).toBe(false);
+    expect(isJobSearch([career, career, career, career, wrapper, wrapper, wrapper, wrapper], "bakery")).toBe(true);
   });
 });

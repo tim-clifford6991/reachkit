@@ -24,6 +24,7 @@ import {
   type EndpointPaths,
   type OnVendorFailure,
 } from "./envelope";
+import { resolvedHost } from "@/lib/market/rivals/domains";
 import { placeCacheKey, type DataForSeoMode, type SerpDepth } from "./transport";
 import { AI_OVERVIEW_TEXT_MAX_CHARS, scopeKey, type CacheScope, type SerpAiOverview, type SerpOrganicRow, type SerpResult } from "./types";
 
@@ -104,14 +105,16 @@ export function parseSerp(result: unknown): SerpResult[] | undefined {
   const peopleAlsoAsk: string[] = [];
   const relatedSearches: string[] = [];
   // SPEC §6 (D67): the local pack rides on the same SERP; only businesses with a site are kept.
-  const localPack: { title: string; domain: string }[] = [];
+  const localPack: { title: string; domain: string; unresolved?: true }[] = [];
   for (const item of result.items) {
     if (!isRecord(item)) continue;
     if (item.type === "organic") {
       const position = asNumber(item.rank_group) ?? asNumber(item.rank_absolute);
       const domain = asString(item.domain)?.toLowerCase();
       if (position === undefined || !domain) continue;
-      organic.push({ position, domain, url: asString(item.url) ?? "", title: asString(item.title) ?? "" });
+      const url = asString(item.url) ?? "";
+      const host = resolvedHost({ domain, url, breadcrumb: asString(item.breadcrumb), websiteName: asString(item.website_name) });
+      organic.push({ position, domain: host ?? "", url, title: asString(item.title) ?? "", ...(host === null ? { unresolved: true as const } : {}) });
     } else if (item.type === "ai_overview") {
       aiOverview = parseAiOverview(item);
     } else if (item.type === "people_also_ask") {
@@ -120,9 +123,12 @@ export function parseSerp(result: unknown): SerpResult[] | undefined {
         if (question) peopleAlsoAsk.push(question);
       }
     } else if (item.type === "local_pack") {
-      const domain = asString(item.domain)?.toLowerCase();
+      const listed = asString(item.domain)?.toLowerCase();
       const title = asString(item.title)?.trim();
-      if (domain && title && !localPack.some((held) => held.domain === domain)) localPack.push({ title, domain });
+      if (!listed || !title) continue;
+      const domain = resolvedHost({ domain: listed, url: asString(item.url) });
+      if (domain === null) localPack.push({ title, domain: "", unresolved: true });
+      else if (!localPack.some((held) => held.domain === domain)) localPack.push({ title, domain });
     } else if (item.type === "related_searches") {
       for (const search of asArray(item.items)) {
         const text = asString(search)?.trim();

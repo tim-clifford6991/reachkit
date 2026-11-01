@@ -95,7 +95,7 @@ describe("Technical issues, as board AppIssues lays it out", () => {
     expect(textOf(markup, "issues-fine")).toBe(`31${copy("overview.issues.fine")}`);
     expect(markup).toContain(copy("overview.issues.affected", { pages: "9", problems: "3" }));
     expect(markup).toContain(copy("overview.issues.ours.hosted", { host: "blog.example.com" }));
-    expect(textOf(markup, "issues-legend")).toBe("3 phone4 slow2 broken links31 fine");
+    expect(textOf(markup, "issues-legend")).toBe("3 hard to use on a phone4 slow2 broken links31 fine");
     // The summary stands above the first problem card.
     expect(markup.indexOf('data-testid="issues-summary"')).toBeLessThan(markup.indexOf('data-testid="issue"'));
   });
