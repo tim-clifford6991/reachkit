@@ -4,23 +4,5 @@
     "fileMax": 600,
     "areas": { "src/lib/opportunities": 9000 },
     "tests": { "share": 0.5, "floor": 200 }
-  },
-  "plainWords": {
-    "bands": 0,
-    "calendar": 0,
-    "chrome": 19,
-    "danger": 0,
-    "draft": 1,
-    "landing": 0,
-    "laws": 0,
-    "mail": 34,
-    "meta": 18,
-    "offer": 0,
-    "overview": 5,
-    "publish": 4,
-    "report": 16,
-    "settings": 3,
-    "setup": 0,
-    "signin": 3
   }
 }

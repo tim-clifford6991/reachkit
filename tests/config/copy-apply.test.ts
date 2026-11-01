@@ -4,7 +4,6 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { apply } from "../../scripts/copy/apply.mjs";
-import { boardPlainWords } from "../../scripts/design/parity.mjs";
 
 const SPLIT = "We read every page of your site and then we score each thing we found on it for you.";
 const FILES = {
@@ -27,8 +26,7 @@ const FILES = {
 });
 `,
   "docs/design/boards/canvas/PubReport.dc.html": `<html><body><ul><li class="badge"><svg></svg>In and around Austin</li></ul><p>Old words</p><p>Your draft</p></body></html>\n`,
-  "docs/design/parity/baseline.json": `{\n  "PubReport": { "sha256": "0", "missing": 0, "components": 3, "plainWords": 9 }\n}\n`,
-  "scripts/budgets.json": `{\n  "plainWords": {\n    "chrome": 4,\n    "report": 9\n  }\n}\n`,
+  "docs/design/parity/baseline.json": `{\n  "PubReport": { "sha256": "0", "missing": 0, "components": 3 }\n}\n`,
   "tests/report/pin.test.ts": `expect(copy("report.split")).toBe("${SPLIT}");\nexpect(where).toBe('In and around {place}');\nexpect(run.state).toBe("Failed");\n`,
 };
 
@@ -106,16 +104,14 @@ describe("scripts/copy/apply.mjs", () => {
     const board = read("docs/design/boards/canvas/PubReport.dc.html");
     expect(board).toContain("<svg></svg>Near Austin</li>");
     const sha = createHash("sha256").update(board).digest("hex");
-    expect(JSON.parse(read("docs/design/parity/baseline.json")).PubReport).toEqual({ sha256: sha, missing: 0, components: 3, plainWords: boardPlainWords(board) });
+    expect(JSON.parse(read("docs/design/parity/baseline.json")).PubReport).toEqual({ sha256: sha, missing: 0, components: 3 });
   });
 
-  it("swaps exact test pins, lowers the touched budget, and writes nothing else", () => {
+  it("swaps exact test pins and writes nothing else, never a budget", () => {
     expect(read("tests/report/pin.test.ts")).toBe(`expect(copy("report.split")).toBe("We read your site and score it.");\nexpect(where).toBe('Near {place}');\nexpect(run.state).toBe("Failed");\n`);
-    expect(JSON.parse(read("scripts/budgets.json")).plainWords).toEqual({ chrome: 4, report: 0 });
     expect(result.written).toEqual([
       "docs/design/boards/canvas/PubReport.dc.html",
       "docs/design/parity/baseline.json",
-      "scripts/budgets.json",
       "src/lib/presentation/copy/keys/report.ts",
       "tests/report/pin.test.ts",
     ]);

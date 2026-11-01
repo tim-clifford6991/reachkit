@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-// Applies a drafted rewrite to the copy registry, its boards, their baseline rows, exact test pins and the
-// plainWords budgets. Anything it cannot prove safe goes to the printed manual list and is left alone.
+// Applies a drafted rewrite to the copy registry, its boards, their baseline rows and exact test pins.
+// Anything it cannot prove safe goes to the printed manual list and is left alone.
 //
 //     node scripts/copy/apply.mjs --lane L2 [--dry] rewrite-*.json
 //
@@ -9,13 +9,12 @@ import { createHash } from "node:crypto";
 import { readFileSync, readdirSync, writeFileSync, existsSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { entries, isExempt, keyFileCounts } from "../lib/plain-words.mjs";
-import { boardPlainWords, normalise, segments } from "../design/parity.mjs";
+import { entries, isExempt } from "../lib/plain-words.mjs";
+import { normalise, segments } from "../design/parity.mjs";
 
 const KEYS = "src/lib/presentation/copy/keys";
 const BOARDS = "docs/design/boards/canvas";
 const BASELINE = "docs/design/parity/baseline.json";
-const BUDGETS = "scripts/budgets.json";
 // One lane owns a key file at a time; L3 takes every other customer partition.
 const LANE_FILES = { L1: ["chrome", "meta"], L2: ["report", "offer", "bands"] };
 const laneOf = (file) => Object.keys(LANE_FILES).find((l) => LANE_FILES[l].includes(file)) ?? "L3";
@@ -124,13 +123,13 @@ export function apply({ root, lane, inputs, write = true }) {
     }
   }
 
-  // Each edited board's baseline row: a new sha and plainWords count; missing and components stay as committed.
+  // Each edited board's baseline row: a new sha; missing and components stay as committed.
   let baseline = readFileSync(at(BASELINE), "utf8");
   for (const [rel, html] of written) {
     const board = rel.startsWith(BOARDS) && path.basename(rel, ".dc.html");
     if (!board) continue;
     const sha = createHash("sha256").update(html).digest("hex");
-    baseline = baseline.replace(new RegExp(`("${board}": \\{ "sha256": ")[0-9a-f]+(".*?"plainWords": )\\d+`), `$1${sha}$2${boardPlainWords(html)}`);
+    baseline = baseline.replace(new RegExp(`("${board}": \\{ "sha256": ")[0-9a-f]+`), `$1${sha}`);
   }
   if (baseline !== readFileSync(at(BASELINE), "utf8")) written.set(BASELINE, baseline);
 
@@ -148,19 +147,8 @@ export function apply({ root, lane, inputs, write = true }) {
     if (text !== before) written.set(rel, text);
   }
 
-  // Lower each touched key file's plainWords budget to its measured count; a rise is listed, never written.
-  const budgets = readFileSync(at(BUDGETS), "utf8");
-  const ceilings = JSON.parse(budgets).plainWords ?? {};
-  const measured = keyFileCounts([...edits.keys()].map((f) => ({ name: f, source: files.get(f) })));
-  let nextBudgets = budgets;
-  for (const [file, n] of Object.entries(measured)) {
-    if (n > (ceilings[file] ?? 0)) manual.push({ what: `plainWords.${file}`, why: `rises to ${n}, over ${ceilings[file]}` });
-    else nextBudgets = nextBudgets.replace(new RegExp(`("plainWords": \\{[^}]*"${file}": )\\d+`), `$1${n}`);
-  }
-  if (nextBudgets !== budgets) written.set(BUDGETS, nextBudgets);
-
   if (write) for (const [rel, text] of written) writeFileSync(at(rel), text);
-  return { applied, manual, written: [...written.keys()].sort(), measured };
+  return { applied, manual, written: [...written.keys()].sort() };
 }
 
 function quote(text, q) {
@@ -174,12 +162,12 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
   if (!LANE_FILES[lane] && lane !== "L3") throw new Error("usage: apply.mjs --lane L1|L2|L3 [--dry] <json…>");
   const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
   const inputs = paths.map((p) => ({ name: path.basename(p), json: JSON.parse(readFileSync(p, "utf8")) }));
-  const { applied, manual, written, measured } = apply({ root, lane, inputs, write: !args.includes("--dry") });
+  const { applied, manual, written } = apply({ root, lane, inputs, write: !args.includes("--dry") });
   const cell = (s) => String(s).replace(/\|/g, "\\|").replace(/\n/g, "<br>");
   console.log(`| Key | Before | After | Source |\n|---|---|---|---|`);
   for (const r of applied) console.log(`| \`${r.key}\`${r.ownerRuled ? " (owner-ruled)" : ""} | ${cell(r.current)} | ${cell(r.proposed)} | ${r.source} |`);
   console.log(`\nmanual (${manual.length}):`);
   for (const m of manual) console.log(`- ${m.what}: ${m.why}`);
-  console.log(`\nplainWords: ${JSON.stringify(measured)}\nwritten: ${written.join(", ") || "none"}`);
+  console.log(`\nwritten: ${written.join(", ") || "none"}`);
   console.log(`applied ${applied.length}, manual ${manual.length}`);
 }
