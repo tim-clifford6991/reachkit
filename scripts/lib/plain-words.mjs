@@ -80,7 +80,7 @@ export const SOFT = [
   { name: "index", pattern: /\bindex(?:ed|ing|es)?\b/i },
   { name: "crawl", pattern: /\bcrawl/i },
   // The DNS steps of setup name the record they ask for.
-  { name: "CNAME", pattern: /\bCNAME\b/, allow: /^setup\.(?:zone|dns)\./ },
+  { name: "CNAME", pattern: /\bCNAME\b/, allow: /^setup\.(?:zone|dns|destination\.guide|connect\.steps)\./ },
   { name: "pass", pattern: /\b(?:deep |weekly |the |a )pass(?:es)?\b/i },
   { name: "re-score", pattern: /\bre-?scor/i },
   { name: "supply", pattern: /\bsupply\b/i },
