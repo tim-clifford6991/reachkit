@@ -31,30 +31,6 @@ import type { CopyKey } from "@/lib/presentation/copy";
    drawing is how a rejected drawing gets drawn again. The ruling's figures
    are `SPECIMEN_HERO` at the foot of this file; git holds the others. */
 
-/** The sign-in preview's example business: what a customer finds inside,
- *  drawn on a reserved domain so no stranger's site is ever shown. */
-export const SPECIMEN_SIGNIN = Object.freeze({
-  business: "Harbor Plumbing",
-  address: "help.harborplumbing.example",
-  week: 3,
-  found: 11,
-  live: 12,
-  showing: 5,
-  linked: 2,
-  asked: 12,
-  liveAt: "4:00 PM",
-});
-
-/** A fixed Monday, so the preview's weekday names never move. */
-const SIGNIN_WEEK_MONDAY = Date.UTC(2026, 9, 19);
-
-/** The seven weekday names of the preview's week, Monday first. */
-export function specimenSigninWeek(): readonly string[] {
-  return Array.from({ length: 7 }, (_, day) =>
-    new Date(SIGNIN_WEEK_MONDAY + day * 86_400_000).toLocaleDateString("en-US", { weekday: "short", timeZone: "UTC" })
-  );
-}
-
 /* ── The hero component's own figures (#935) ──────────────────────────────
    Owner ruling 2026-09-21: the landing hero is Round 11 `R11-H4-Week` —
    one card holding one week. Its numbers land here for this module's

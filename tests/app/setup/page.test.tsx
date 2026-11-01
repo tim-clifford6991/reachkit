@@ -99,7 +99,7 @@ describe("/setup", () => {
   it("REQ-021 c10's own line sits under the one control", async () => {
     const tree = await renderPage(() => import("@/app/(account)/setup/page"));
     expect(tree.querySelector('[data-testid="setup-footer-line"]')?.textContent).toBe(
-      "You can reach Settings, cancel or export at any time, without finishing setup."
+      "You can cancel or export in Settings at any time."
     );
   });
 

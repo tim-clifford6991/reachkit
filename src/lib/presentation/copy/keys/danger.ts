@@ -38,7 +38,7 @@ export const DANGER_COPY = Object.freeze({
   "danger.pause": ["Pause publishing", { slots: {}, fixedBy: "issue 1751 · board SettingsAccount · drafted" }],
   "danger.fact.live": ["Live pages", { slots: {}, fixedBy: "issue 1751 · board SettingsAccount · drafted" }],
   "danger.fact.new": ["New pages", { slots: {}, fixedBy: "issue 1751 · board SettingsAccount · drafted" }],
-  "danger.fact.kept": ["Account, drafts and plan", { slots: {}, fixedBy: "issue 1751 · board SettingsAccount · drafted" }],
+  "danger.fact.kept": ["Account, pages and settings", { slots: {}, fixedBy: "issue 1751 · board SettingsAccount · drafted" }],
   "danger.fact.export": ["Your pages exported to you", { slots: {}, fixedBy: "issue 1751 · board SettingsAccount · drafted" }],
   "danger.fact.undo": ["Can you undo it?", { slots: {}, fixedBy: "issue 1751 · board SettingsAccount · drafted" }],
   "danger.value.stay-up": ["Stay up", { slots: {}, fixedBy: "issue 1751 · board SettingsAccount · drafted" }],
@@ -47,14 +47,14 @@ export const DANGER_COPY = Object.freeze({
   "danger.value.not-needed": ["Not needed", { slots: {}, fixedBy: "issue 1751 · board SettingsAccount · drafted" }],
   "danger.value.one-switch": ["Yes, one switch", { slots: {}, fixedBy: "issue 1751 · board SettingsAccount · drafted" }],
   "danger.value.taken-down": ["Taken down", { slots: {}, fixedBy: "issue 1751 · board SettingsAccount · drafted" }],
-  "danger.value.none-off": ["None; publishing off", { slots: {}, fixedBy: "issue 1751 · board SettingsAccount · drafted" }],
+  "danger.value.none-off": ["None, publishing is off", { slots: {}, fixedBy: "issue 1751 · board SettingsAccount · drafted" }],
   "danger.value.first": ["First, before anything", { slots: {}, fixedBy: "issue 1751 · board SettingsAccount · drafted" }],
   "danger.value.turn-on": ["Yes, turn publishing on", { slots: {}, fixedBy: "issue 1751 · board SettingsAccount · drafted" }],
   "danger.value.none": ["None", { slots: {}, fixedBy: "issue 1751 · board SettingsAccount · drafted" }],
   "danger.value.closed": ["Closed for good", { slots: {}, fixedBy: "issue 1751 · board SettingsAccount · drafted" }],
   "danger.value.no": ["No", { slots: {}, fixedBy: "issue 1751 · board SettingsAccount · drafted" }],
-  "danger.unpublish-all.consequence": ["Takes every page down at every destination and switches publishing off. Your account, your drafts and your plan stay, and you can switch publishing on again later. Your pages are exported to you first.", { slots: {}, fixedBy: "REQ-079 c1" }],
-  "danger.delete-account.consequence": ["Takes every page down, ends the plan at once with no further charge, and closes the account for good. Your pages are exported to you first.", { slots: {}, fixedBy: "REQ-079 c1" }],
+  "danger.unpublish-all.consequence": ["We send your export first, then take every page down and pause publishing. Your account stays, and you can turn publishing on again.", { slots: {}, fixedBy: "REQ-079 c1" }],
+  "danger.delete-account.consequence": ["We send your export, then take every page down. Your account closes for good, with no more charges.", { slots: {}, fixedBy: "REQ-079 c1" }],
 
   // Issue #52 — the three lines the danger zone's own outcomes are told in.
   // The words are the owner's: REQ-079 states what each must convey and no

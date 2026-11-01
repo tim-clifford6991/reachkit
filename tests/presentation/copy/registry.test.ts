@@ -371,7 +371,10 @@ describe("the five keys the owner ruled 2026-09-11 (DECISIONS 2026-09-11, #516)"
 
 describe("no shipped value is a drafting sentinel", () => {
   const SENTINEL = /(?<![\p{L}\p{N}])(?:\((?:delete|cut|remove|drop)\)|todo|tbd|xxx|lorem)(?![\p{L}\p{N}])/iu;
-  const offenders = (partition: CopyPartition) => Object.entries(partition).filter(([, [value]]) => SENTINEL.test(value)).map(([key]) => key);
+  // An English partition holds [value, meta]; a translation under keys/<language>/ holds the value alone.
+  type Values = Readonly<Record<string, string | readonly [string, unknown]>>;
+  const offenders = (partition: Values) =>
+    Object.entries(partition).filter(([, entry]) => SENTINEL.test(typeof entry === "string" ? entry : entry[0])).map(([key]) => key);
 
   it("a value that is or holds a sentinel is caught", () => {
     const fixture: CopyPartition = {
@@ -381,9 +384,15 @@ describe("no shipped value is a drafting sentinel", () => {
       "fixture.kept": ["Drop a pin, then todos and xxxl are words", { slots: {}, fixedBy: "x" }],
     };
     expect(offenders(fixture)).toEqual(["fixture.gone", "fixture.held", "fixture.todo"]);
+    expect(offenders({ "x.gone": "(delete)", "x.kept": "Ausbildung" })).toEqual(["x.gone"]);
   });
 
-  it("every partition is free of them", async () => {
-    for (const [file, partition] of await loadPartitions()) expect(offenders(partition), file).toEqual([]);
+  it("every partition and every translation is free of them", async () => {
+    const files = fs.readdirSync(KEYS_DIR, { recursive: true, encoding: "utf8" }).filter((f) => f.endsWith(".ts")).sort();
+    expect(files).toContain("de/page.ts");
+    for (const file of files) {
+      const mod: Record<string, Values> = await import(/* @vite-ignore */ `../../../src/lib/presentation/copy/keys/${file}`);
+      for (const exported of Object.values(mod)) expect(offenders(exported), file).toEqual([]);
+    }
   });
 });

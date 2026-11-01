@@ -75,11 +75,11 @@ describe("Site, in the board's order and words", () => {
     inOrder(textOf(await mount("site")), [
       "ReachKit",
       "Site",
-      "Check",
+      "Details",
       "Connect",
-      "Step 1 of 3 about 10 minutes, once",
+      "Step 1 of 3 about 10 minutes of your time",
       "Is this your business?",
-      "Your free scan read this site. We write every page for it, so fix anything wrong now.",
+      "We write every page from this site. Fix anything wrong now.",
       "Your site",
       "Your website",
       "example.com",
@@ -88,16 +88,16 @@ describe("Site, in the board's order and words", () => {
       "Where your buyers are, and the language they search in",
       "Read from your site. Your pages are written in that language.",
       "The city or area you serve",
-      "Leave it empty if you sell across the country or online. A local business is checked where it works.",
-      "United States · in English We check what buyers here search and ask AI, and who they find instead of you.",
+      "Leave it empty if you sell nationwide or online.",
+      "United States · in English We check what buyers here search, and who they find instead of you.",
       "What happens next",
       "1 Confirm your site you are here Where your buyers are.",
-      "2 Check what we read Fix anything wrong, or carry on.",
-      "3 Connect your website One setting, copied from us.",
-      "After this, nothing to do Pages go live on their day. A Monday email shows what moved.",
+      "2 Confirm what we found Fix anything wrong, or carry on.",
+      "3 Connect your website One line, pasted where you bought your address.",
+      "After this, nothing to do Pages go live on their day. Your Monday mail shows what moved.",
       "Back",
       "Continue",
-      "You can reach Settings, cancel or export at any time, without finishing setup.",
+      "You can cancel or export in Settings at any time.",
     ]);
   });
 
@@ -129,11 +129,11 @@ describe("Check, in the board's order and words", () => {
   it("the status, where the founder is, the question, the lead, the figure, the four sections, then what happens next", async () => {
     inOrder(textOf(await mount("check")), [
       "Site",
-      "Check",
+      "Details",
       "Connect",
       "Checking your buyers and competitors · started ",
-      "Step 2 of 3 about 10 minutes, once",
-      "Here’s what we read",
+      "Step 2 of 3 about 10 minutes of your time",
+      "What we found on your site",
       "Every page we write uses this. Open a section to change it, or carry on.",
       "example.com 5 pages read",
       "Your site What we read Every page",
@@ -144,18 +144,18 @@ describe("Check, in the board's order and words", () => {
       "Who you serve",
       "What you promise",
       "Your market and competitors read ",
-      "ReachKit read this from your site and keeps it current each week. Change it only if it’s wrong.",
+      "We read this from your site and update it every Monday. Change it only if it’s wrong.",
       "Competitors 4 of 5",
       "Add a competitor",
-      "Your voice read ",
+      "How your pages sound read ",
       "How your pages sound",
-      "Things we should never say about you",
+      "Never say",
       "Five things only you know optional Answer any, or none.",
       "Optional. We use an answer in your pages as something you told us.",
       "Who buys from you, and why?",
       "What happens next",
       "Confirm your site Where your buyers are.",
-      "2 Check what we read you are here Fix anything wrong, or carry on.",
+      "2 Confirm what we found you are here Fix anything wrong, or carry on.",
       "After this, nothing to do",
       "Back",
       "Looks right",
@@ -179,7 +179,7 @@ describe("Check, in the board's order and words", () => {
     const root = await mount("check", { concluded: null });
     const line = root.querySelector('[data-testid="setup-market-concluded"] p')?.textContent;
     expect(line).toBe(
-      `${FIXTURE_SETUP_FACTS.measured?.report.category}. ReachKit read this from your site and keeps it current each week. Change it only if it’s wrong.`,
+      `${FIXTURE_SETUP_FACTS.measured?.report.category}. We read this from your site and update it every Monday. Change it only if it’s wrong.`,
     );
   });
 
@@ -208,7 +208,7 @@ describe("Check, in the board's order and words", () => {
 
   it("before the read lands, and a group nothing was read for, are said in the board's words", async () => {
     const texts = textOf(await mount("check", { measured: null, concluded: null, profile: null, market: null }));
-    expect(texts).toContain("We’re still reading your site. Carry on. What we find shows in Settings, where you can change it.");
+    expect(texts).toContain("We’re still reading your site, so carry on. You can change what we find in Settings.");
     expect(texts).toContain("Nothing read for this yet. Add what we missed.");
   });
 });
