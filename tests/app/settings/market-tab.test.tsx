@@ -132,7 +132,7 @@ describe.each([PLUMBER, SAAS])("$name: Your site and market, in the board's orde
   it("the title and lead, the website, then the market Found by ReachKit", () => {
     const root = market(c);
     expect(text(root.querySelector("h2"))).toBe("Your site and market");
-    expect(root.textContent).toContain("Where you’re measured, and against whom.");
+    expect(root.textContent).toContain("Where we check you, and against whom.");
     expect(text(root.querySelector('[data-testid="setting-domain"]'))).toContain(`Your website${c.domain}`);
     const line = root.querySelector('[data-testid="setting-category"]');
     expect(text(line)).toBe(`${c.category}Found by ReachKit from your site. Checked again every Monday.Change`);
@@ -140,25 +140,25 @@ describe.each([PLUMBER, SAAS])("$name: Your site and market, in the board's orde
 
   it("what your market sets: three wells from this account's stored counts, then the plan", () => {
     const sets = market(c).querySelector('[data-testid="market-sets"]');
-    expect(text(sets?.querySelector(".eyebrow"))).toBe("What your market sets, each Monday");
+    expect(text(sets?.querySelector(".eyebrow"))).toBe("What we check every Monday");
     expect([...(sets?.querySelectorAll("li") ?? [])].map(text)).toEqual([
       `${c.sets.searches} searches your buyers make most`,
       `${c.sets.questions} questions we ask AI for you`,
       `${c.competitors.length} competitors to compare`,
     ]);
-    expect(text(sets?.querySelector("p:last-child"))).toBe("Your plan of pages comes from these.See this week’s pages");
+    expect(text(sets?.querySelector("p:last-child"))).toBe("This week’s pages are chosen from these.See this week’s pages");
     expect(sets?.querySelector("a")?.getAttribute("href")).toBe("/app/calendar");
   });
 
-  it("the two consequences, then Scan again now with its line", () => {
+  it("the two consequences, then Check again now with its line", () => {
     const root = market(c);
     expect([...root.querySelectorAll('[data-testid="market-consequences"] li')].map(text)).toEqual([
-      "Change your website: your searches are rebuilt next Monday.",
-      "Change your market: we scan it again right away.",
+      "If you change your website, your searches restart next Monday.",
+      "If you change your market, we check it again right away.",
     ]);
-    expect(text(root.querySelector('[data-testid="market-remeasure-press"]'))).toBe("Scan again now");
+    expect(text(root.querySelector('[data-testid="market-remeasure-press"]'))).toBe("Check again now");
     expect(text(root.querySelector('[data-testid="market-remeasure-line"]'))).toBe(
-      "Scans your market again now. It rebuilds your searches, and your pages follow. It uses one of the few scans allowed each day."
+      "Checks your market again now. Your searches and pages follow."
     );
   });
 
@@ -201,14 +201,14 @@ describe.each([PLUMBER, SAAS])("$name: Your site and market, in the board's orde
     expect(none.querySelector('[data-testid="competitors-leaders"]')).toBeNull();
     const root = competitors(c, { leaders: ["nationalchain.example"] });
     expect(text(root.querySelector('[data-testid="competitors-leaders"]'))).toBe(
-      "Far larger in your searches, and not compared with you for now: nationalchain.example."
+      "For now we don’t compare you with nationalchain.example. They’re far larger."
     );
     const detail = root.querySelector('[data-testid="settings-competitors-detail"]');
     expect(text(detail?.querySelector("summary"))).toBe("Show the detail");
     expect([...(detail?.querySelectorAll("p") ?? [])].map(text)).toEqual([
-      `Google figures are from Monday 19 October: the ${c.sets.searches} searches your buyers make most. ` +
-        `AI figures are the last 4 weeks of answers to the ${c.sets.questions} questions a buyer in your market might ask AI.`,
-      "A competitor you add is measured from the next Monday scan. A competitor you remove is no longer compared with you; pages already planned stay planned.",
+      `Google figures from Monday 19 October, for your buyers’ ${c.sets.searches} top searches. ` +
+        `AI figures cover 4 weeks of answers to ${c.sets.questions} buyer questions.`,
+      "A competitor you add shows from the next Monday check. Pages already planned stay planned.",
     ]);
   });
 });

@@ -73,27 +73,27 @@ describe("Connect matches board Setup string for string", () => {
     expect(result.missing).toEqual([]);
   });
 
-  it("step 3: the head, how it connects, then where pages live", async () => {
-    inOrder(textOf(await connectStep()), [
+  it("step 3: the head, then where pages live, with no diagram of how it connects", async () => {
+    const step = textOf(await connectStep());
+    inOrder(step, [
       "Site",
-      "Check",
+      "Details",
       "Connect",
-      "Step 3 of 3 about 10 minutes, once",
+      "Step 3 of 3 about 10 minutes of your time",
       "Connect your website",
-      "How it connects",
-      `Your website example.com ${COPY["setup.connect.how.site.line"]}`,
-      `One setting, added once your part ${COPY["setup.connect.how.setting.line"]}`,
-      `Your pages, live ${HOST} ${COPY["setup.connect.how.live.line"]}`,
       "Where should pages live?",
-      `On a new address we run ${HOST} One setting, once. Recommended.`,
-      "On my WordPress site Pages go live on it. You make us a separate WordPress password.",
+      `On your web address, run by us ${HOST} One setting, once. Recommended.`,
+      "On my WordPress site Pages go live on your WordPress. You create an app password for us.",
     ]);
+    expect(step.join("\n")).not.toContain("How it connects");
   });
 
-  it("the connect screen: the record, the steps, after you add it, doing it later, then the week", () => {
-    inOrder(textOf(connectScreen()), [
-      "Copy this where example.com is managed",
-      "Usually the company you bought the address from.",
+  it("the connect screen: the record, the steps, doing it later, then the week, with no list of what happens after", () => {
+    const screen = textOf(connectScreen());
+    expect(screen.join("\n")).not.toContain("After you add it");
+    inOrder(screen, [
+      "Paste this where you bought example.com",
+      "Look for its DNS settings.",
       "Type CNAME",
       "Copy Type",
       "Name content",
@@ -101,25 +101,21 @@ describe("Connect matches board Setup string for string", () => {
       "Value edge.example.net",
       "Copy Value",
       "Show the steps",
-      "Sign in where your web address is managed.",
-      "Open its DNS settings and choose to add a record.",
+      "Sign in where you bought your web address.",
+      "Open the DNS settings and add a new record.",
       "Pick the type CNAME, then paste the name and the value above.",
       "Save. Come back here and press I’ve added it, check now.",
-      "Step by step for the company that manages your web address",
+      "Steps for where you bought your address",
       "I’ve added it, check now",
-      "After you add it",
-      "Your address is reserved Nobody else can take it.",
-      "We look for the setting On our own every hour, and whenever you press check now.",
-      "Your first page goes live On its day, once the setting is found.",
       "Do this later",
-      "If you do it later, we’ll remind you, and your first page waits for it. The setting is also on your Overview.",
+      "If you do it later, we’ll email you a reminder. Your first page waits for it.",
       "After this, nothing to do",
       "Mon",
       "Sun",
       "Every Monday we plan up to 7 pages, new or updated. Never filler.",
       "Each page goes live on its day, by itself.",
       "You can edit or stop any page before it goes live. You never have to.",
-      "You can reach Settings, cancel or export at any time, without finishing setup.",
+      "You can cancel or export in Settings at any time.",
     ]);
   });
 

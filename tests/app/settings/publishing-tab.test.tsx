@@ -58,14 +58,14 @@ describe("Settings › Publishing, on", () => {
       "How each page goes out Today’s page: Emergency plumber in Austin: what to do in the first hour"
     );
     expect(steps(doc)).toEqual([
-      "Written Sun, Oct 18, 4:00 PM Checked against your facts and your never-claim list",
-      "Emailed to you Sun, Oct 18, 4:00 PM With Read, Edit and Stop",
-      "1 day to read, edit or stop it From the mail or from This week. Do nothing and it goes live on its own.",
+      "Written Sun, Oct 18, 4:00 PM Checked against your facts and your Never say list",
+      "Emailed in your first week Sun, Oct 18, 4:00 PM Then in your Monday mail",
+      "1 day to edit or stop it From the mail or from This week. Do nothing and it goes live on its own.",
       "Goes live Mon, Oct 19, 4:00 PM blog.example.com",
     ]);
     expect(doc.querySelector('[data-testid="publishing-timeline"] a')?.getAttribute("href")).toBe("/app/calendar");
     expect(text(doc.querySelector('[data-testid="publishing-timeline"] > p'))).toBe(
-      "This line follows the publish time and the time to stop a page, set below. Turn publishing off to pause every page at once."
+      "Set the publish time and time to stop below. Turn publishing off to pause every page."
     );
   });
 
@@ -94,20 +94,20 @@ describe("Settings › Publishing, on", () => {
 
 it("a two-day time to stop a page moves Written and Emailed two days before it goes live", () => {
   expect(steps(tab({ vetoHours: 48 })).slice(0, 3)).toEqual([
-    "Written Sat, Oct 17, 4:00 PM Checked against your facts and your never-claim list",
-    "Emailed to you Sat, Oct 17, 4:00 PM With Read, Edit and Stop",
-    "2 days to read, edit or stop it From the mail or from This week. Do nothing and it goes live on its own.",
+    "Written Sat, Oct 17, 4:00 PM Checked against your facts and your Never say list",
+    "Emailed in your first week Sat, Oct 17, 4:00 PM Then in your Monday mail",
+    "2 days to edit or stop it From the mail or from This week. Do nothing and it goes live on its own.",
   ]);
 });
 
 it("paused, the card says so and the timeline's last step reads that nothing goes live", () => {
   const doc = tab({ enabled: false });
   expect(text(doc.querySelector('[data-testid="publishing-lead"]'))).toBe(
-    "Paused. No page goes live until you turn this back on. Your plan and pages are kept."
+    "Paused, so no page goes live. Your pages are kept."
   );
   expect(text(doc.querySelector('[data-testid="setting-publishing_enabled"]'))).toBe("Off");
   expect(steps(doc)[3]).toBe("Paused: nothing goes live blog.example.com");
-  expect(steps(doc)[0]).toBe("Written Checked against your facts and your never-claim list");
+  expect(steps(doc)[0]).toBe("Written Checked against your facts and your Never say list");
 });
 
 it("with no address of our own, Goes live names none and leaves no empty line", () => {

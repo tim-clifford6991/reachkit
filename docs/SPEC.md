@@ -184,7 +184,7 @@ A new dated ruling is its own file under `docs/spec/decisions/`, headed by the s
 
 ## §5 Onboarding
 
-**User gets** Three saved steps after payment, Site · Check · Connect (`docs/spec/decisions/2026-10-22-1737.md`): the rivals and market category ReachKit identified, each with its reason, which the founder may override but never has to (2026-10-02, D28), with the twelve questions read-only, publishing (hosted subdomain label they choose, or WordPress). Brand voice shown and editable. Then straight into the app, where the deep pass and the first page arrive in the background (2026-09-16).
+**User gets** Three saved steps after payment, Site · Details · Connect (`docs/spec/decisions/2026-10-22-1737.md`; the middle step renamed in `docs/spec/decisions/2026-10-31-2171.md`): the rivals and market category ReachKit identified, each with its reason, which the founder may override but never has to (2026-10-02, D28), with the twelve questions read-only, publishing (hosted subdomain label they choose, or WordPress). Brand voice shown and editable. Then straight into the app, where the deep pass and the first page arrive in the background (2026-09-16).
 
 **Rules**
 - An override (D28) that adds a sixth rival is refused with the limit named. An invalid rival the founder adds (not a domain, unreachable, own domain, duplicate) is refused in one line. An override that empties the market is refused in one line.

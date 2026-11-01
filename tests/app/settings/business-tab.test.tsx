@@ -108,7 +108,7 @@ describe.each(CUSTOMERS)("$name: What we know about the business", (c) => {
     const root = business(c);
     expect(text(root.querySelector("h2"))).toBe(`What we know about ${c.name}`);
     expect(root.textContent).toContain(
-      "Learned from your site. Change anything; your next page is written from what’s here."
+      "We read this from your site. Your next page follows any change you make."
     );
   });
 
