@@ -165,6 +165,43 @@ describe("condition 1 — seven cells, each with its page, its state and the sto
   });
 });
 
+describe("owner O7 — a page set aside is told plainly, and only a critical cause says Needs you", () => {
+  const withDay = (day: string, over: Partial<DraftOnDay>): CalendarFacts => {
+    const facts = fullWeek();
+    return { ...facts, drafts: facts.drafts.map((d) => (d.scheduledFor === day ? { ...d, draftId: `draft-${day}`, ...over } : d)) };
+  };
+
+  it("a page the re-check set aside reads Set aside · Didn’t pass our checks, grey, and offers nothing", () => {
+    const facts = withDay("2026-09-15", { state: "skipped", setAside: true });
+    const root = render(withNuqs(<CalendarView {...shown(assembleMonth(facts, FIXTURE_MONTH))} />, { day: "2026-09-15" }));
+    const day = root.querySelector('[data-testid="calendar-cell-2026-09-15"]')!;
+    const badge = day.querySelector('[data-testid="day-state"]')!;
+    expect([badge.getAttribute("data-state"), badge.textContent]).toEqual(["set_aside", COPY["calendar.day.set-aside"]]);
+    expect(badge.classList.contains("badge-ghost")).toBe(true);
+    expect(day.querySelector('[data-testid="cell-empty-line"]')?.textContent).toBe(COPY["calendar.empty.short.page-set-aside"]);
+    expect(day.textContent).not.toContain(COPY["calendar.day.stopped.line"]);
+    expect(day.querySelector('[data-testid="cell-stop"], [data-testid="cell-edit"]')).toBeNull();
+    const panel = root.querySelector('[data-testid="day-panel"]')!;
+    expect(panel.querySelector('[data-testid="day-empty-line"]')?.textContent).toBe(COPY["calendar.empty.page-set-aside"]);
+    expect(panel.querySelector('[data-testid="day-actions"]')).toBeNull();
+  });
+
+  it.each([
+    ["the writing rules stopped, unedited", "planned", { kind: "rules", rules: ["title"] }],
+    ["a publish tried out today, re-attempted daily", "planned", { kind: "delivery", since: "2026-09-15T12:00:00.000Z" }],
+    ["a destination the customer must fix", "needs_you", { kind: "destination" }],
+    ["the customer's own words", "needs_you", { kind: "live_edit" }],
+  ] as const)("a needs_attention page whose cause is %s is %s", (_case, stage, needsYou) => {
+    const facts = withDay("2026-09-15", { state: "needs_attention", needsYou });
+    const model = assembleMonth(facts, FIXTURE_MONTH);
+    expect(model.cells.find((cell) => cell.day === "2026-09-15")?.page?.stage).toBe(stage);
+    expect(model.counts.needs_you).toBe(stage === "needs_you" ? 1 : 0);
+    const root = render(withNuqs(<CalendarView {...shown(model)} />, { day: "2026-09-15" }));
+    const words = [root.querySelector('[data-testid="calendar-cell-2026-09-15"]')!.textContent, root.querySelector('[data-testid="panel-stage-word"]')?.textContent];
+    expect(words.some((text) => text?.includes(COPY["calendar.stage.needs-you"]))).toBe(stage === "needs_you");
+  });
+});
+
 describe("each page day draws the board's page sketch and icons", () => {
   const sketch = (day: Element): string | null => {
     const band = day.querySelector("svg.lucide-file-text")?.parentElement;

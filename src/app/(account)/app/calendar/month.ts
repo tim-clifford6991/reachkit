@@ -23,7 +23,7 @@ import type { NeedsYouCause } from "@/lib/publish/record/needs-you";
 import { accountFor, isLawCause, isSupplyCause, type EmptyAccount, type EmptyFacts, type HeldBySetting } from "./empty";
 import type { PageStanding } from "./day-number";
 import type { WorkStop } from "@/lib/presentation/stopped";
-import { STAGE_OF, type DayState, type State, type Stage, type StageFilter } from "./stages";
+import { stageOf, type DayState, type State, type Stage, type StageFilter } from "./stages";
 import { dayKeyOf, monthGrid, monthOf, planHorizonEnd, planWeek, type DayKey, type MonthKey } from "./dates";
 
 /** REQ-043 criterion 8's evidence, and §7's day-panel rows.
@@ -92,6 +92,8 @@ export interface DraftOnDay {
    *  it to decide which control the page earns — never its stage, which
    *  says only that something is wanted of them. */
   needsYou: NeedsYouCause | null;
+  /** The daily re-check set this page aside: it did not pass our checks, and its date says so, asking nothing. */
+  setAside?: boolean;
   /**
    * Where the site stands for this page's search, as §9's weekly judgement
    * recorded it (issue 930). `null` for a page that is not live, and for a
@@ -252,7 +254,8 @@ function pastAccount(facts: EmptyFacts): EmptyAccount | null {
   return account.cause === "unattributed" ? null : account;
 }
 
-function emptyFactsFor(day: DayKey, facts: CalendarFacts, cannotGoLive: State | null): EmptyFacts {
+function emptyFactsFor(day: DayKey, facts: CalendarFacts, draft: DraftOnDay | undefined): EmptyFacts {
+  const cannotGoLive: State | null = draft?.state ?? null;
   const instruction = facts.instructions[day];
   return {
     instruction: instruction === undefined ? null : { opportunityId: instruction },
@@ -261,7 +264,11 @@ function emptyFactsFor(day: DayKey, facts: CalendarFacts, cannotGoLive: State | 
     // narrowing is by that table rather than by a second list of state
     // names this file would have to keep in step.
     pageCannotGoLive:
-      cannotGoLive === "skipped" || cannotGoLive === "unpublished" ? cannotGoLive : null,
+      cannotGoLive === "skipped" && draft?.setAside === true
+        ? "set_aside"
+        : cannotGoLive === "skipped" || cannotGoLive === "unpublished"
+          ? cannotGoLive
+          : null,
     customerChangeHoldsPages: facts.customerChangeHoldsPages,
     // Site-wide and not per-date: a market answer under replacement holds
     // every date until the pass adopts it.
@@ -293,11 +300,11 @@ export function assembleMonth(facts: CalendarFacts, month: MonthKey): MonthModel
     // A page that is only planned past the horizon is not drawn: the pass
     // that decides that date has not run. A written draft is a fact and is.
     const draft = found !== undefined && when === "after" && found.draftId === null ? undefined : found;
-    const stage = draft === undefined ? null : STAGE_OF[draft.state];
+    const stage = draft === undefined ? null : stageOf(draft, facts.now);
     if (draft !== undefined && stage !== null) {
       return { ...base, page: { ...draft, stage }, empty: null };
     }
-    const dayFacts = emptyFactsFor(day, facts, draft?.state ?? null);
+    const dayFacts = emptyFactsFor(day, facts, draft);
     const empty = when === "past" ? pastAccount(dayFacts) : when === "plan" ? accountFor(dayFacts) : null;
     return { ...base, page: null, empty };
   });
@@ -403,6 +410,7 @@ export function dayStateOf(cell: DayCell): DayState | null {
     return cell.page.stage === "live" ? "live" : cell.page.stage === "planned" ? "planned" : "written";
   }
   const cause = cell.empty?.cause;
+  if (cause === "page_set_aside") return "set_aside";
   if (cause === "page_cannot_go_live" || cause === "reachkit_stopped" || cause === "instruction") return "stopped";
   if (cause === "supply_exhausted" || cause === "supply_unmeasured") return "skipped";
   return null;
