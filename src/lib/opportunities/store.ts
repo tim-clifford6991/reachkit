@@ -40,6 +40,7 @@ import type {
   Winnability,
 } from "./types";
 import { OUTSIZED, type PageType } from "./types";
+import { isSourceHost } from "@/lib/market/rivals/domains";
 import { topTenRowsOf, topTensOf } from "./cluster";
 import type { TopTenRead } from "./derive/top-ten-kind";
 import type { AskedBeside } from "./derive/topics";
@@ -383,7 +384,9 @@ export function dismissedSearchesOf(row: Pick<OpportunityRow, "target_query" | "
 }
 
 export function readOpportunity(row: OpportunityRow): Opportunity {
-  const evidence = reviveDates(row.evidence) as Evidence;
+  const stored = reviveDates(row.evidence) as Evidence;
+  // A row stored before rivals left sources out can still name one as its holder.
+  const evidence = stored.family === "write" && stored.rival !== null && isSourceHost(stored.rival.domain) ? { ...stored, rival: null } : stored;
   return {
     id: row.id,
     siteId: row.site_id,
@@ -414,12 +417,8 @@ export function readOpportunity(row: OpportunityRow): Opportunity {
 
 // ── The default, Postgres-backed store ──────────────────────────────────
 //
-// The generated `Database` type predates this node's columns (`target_ref`,
-// `status_changed_at`) and types `opportunities.target_query` as
-// non-nullable, which the core migration relaxes for the Fix family. One
-// narrow, explicitly cast boundary — the same worked-around gap
-// `src/lib/scan/report.ts` and `store.ts` already carry; regenerating
-// `types.generated.ts` is not this change's to do.
+// One cast boundary: the generated `Database` type lacks this table's newer
+// columns and types `target_query` as non-nullable, which Fix rows are not.
 
 interface QueryResult<T> {
   data: T[] | null;
