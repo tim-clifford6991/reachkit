@@ -266,9 +266,6 @@ export function FreePageCard(p: {
               {FORMAT_LINE[section.format] === undefined ? null : <span>{copy(FORMAT_LINE[section.format]!)}</span>}
             </Row>
           </dl>
-          <p className="text-base-content/70 grow-0 text-xs">
-            <Num phrase>{copy("free-page.of", { total: String(section.totalPages) })}</Num>
-          </p>
         </div>
         {/* REQ-010 c1's one control, and the one field it needs (issue 787). */}
         <div className="flex min-w-0 flex-col justify-center">
