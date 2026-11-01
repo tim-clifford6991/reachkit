@@ -54,7 +54,7 @@ export function llmsText(origin: string): string {
   return [
     `# ${copy("chrome.wordmark")}`,
     "",
-    `> ${copy("landing.subline", { weekPages: HOW_FACTS.weekPages })}`,
+    `> ${copy("landing.subline")}`,
     "",
     copy("about.why.problem"),
     "",
