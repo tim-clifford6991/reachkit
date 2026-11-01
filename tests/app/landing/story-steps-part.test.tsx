@@ -76,6 +76,12 @@ describe("the story card tells the hero's story in four frames and as few words 
     frames.forEach((frame, i) => expect(words(frame).filter((w) => !names.has(w)).length, `frame ${i + 1}`).toBeLessThanOrEqual(4));
   });
 
+  it("the frames say 3, 2, 4 and 3 words besides the example names, and the card never says SEO", () => {
+    const names = new Set([SPECIMEN_HERO_DOMAIN, SPECIMEN_HERO_RIVAL]);
+    expect(frames.map((frame) => words(frame).filter((w) => !names.has(w)).length)).toEqual([3, 2, 4, 3]);
+    expect(text(card)).not.toMatch(/SEO/);
+  });
+
   it("the first answer lights the rival beside an empty slot; the last lights you and dims the rival", () => {
     const lit = (frame: string) => frame.match(/badge-primary[^>]*>(?:<[^>]*>)*([^<]+)/)?.[1];
     expect(lit(frames[0]!)).toBe(SPECIMEN_HERO_RIVAL);

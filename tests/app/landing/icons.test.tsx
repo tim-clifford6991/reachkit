@@ -52,15 +52,32 @@ beforeEach(() => {
 });
 
 describe("the landing's icons are the boards'", () => {
-  it("the story card's four frames draw search, scan-search, file-text, trending-up in order", async () => {
+  it("the story card's four frames draw search, scan-search, file-text, trending-up in order, each at chrome size", async () => {
     const frames = (await render()).querySelectorAll('[data-testid="landing-story"] ol > li');
-    expect(frames.map((li) => glyphs(li.querySelector(".timeline-middle")!))).toEqual([["search"], ["scan-search"], ["file-text"], ["trending-up"]]);
+    const nodes = frames.map((li) => li.querySelector(".timeline-middle")!);
+    expect(nodes.map(glyphs)).toEqual([["search"], ["scan-search"], ["file-text"], ["trending-up"]]);
+    expect(nodes.map((node) => node.querySelector("svg")!.getAttribute("width"))).toEqual(["20", "20", "20", "20"]);
   });
 
-  it("we research draws your business and your competitors; the second page is live", async () => {
+  it("we research draws your business and your competitors; one page is live and the other is a bare page", async () => {
     const frames = (await render()).querySelectorAll('[data-testid="landing-story"] ol > li');
     expect(glyphs(frames[1]!.querySelector(".timeline-end")!)).toEqual(["building-2", "users"]);
-    expect(glyphs(frames[2]!.querySelector(".timeline-end")!)).toEqual(["file-text", "file-text", "circle-check"]);
+    expect(glyphs(frames[2]!.querySelector(".timeline-end")!)).toEqual(["file-text", "file-text"]);
+    expect(frames[2]!.querySelectorAll(".timeline-end svg")[1]!.classList.contains("text-base-content/70")).toBe(true);
+  });
+
+  it("the empty slot, the dimmed rival and Live are drawn on the white picture card so each shows", async () => {
+    const frames = (await render()).querySelectorAll('[data-testid="landing-story"] ol > li');
+    const onMini = (el: HTMLElement) => (el.parentNode as HTMLElement).classList.contains("bg-base-100");
+    const slot = frames[0]!.querySelector(".border-dashed")!;
+    expect(slot.classList.contains("border-base-content/50")).toBe(true);
+    expect(onMini(slot)).toBe(true);
+    const rival = frames[3]!.querySelector(".badge-ghost")!;
+    expect(rival.classList.contains("text-base-content/70")).toBe(true);
+    expect(onMini(rival)).toBe(true);
+    const live = frames[2]!.querySelector(".badge-success")!;
+    expect(live.classList.contains("badge-soft")).toBe(true);
+    expect(frames.map((li) => li.querySelectorAll(".bg-base-100").length)).toEqual([1, 1, 1, 1]);
   });
 
   it("the Why cards' tiles: sparkles, search, wrench, file-text", async () => {
