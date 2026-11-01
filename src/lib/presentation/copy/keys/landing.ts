@@ -11,6 +11,8 @@ export const LANDING_COPY = Object.freeze({
   "landing.hero.proof.report.open": ["See its real free report", { slots: {}, fixedBy: "board PubLanding v34 · owner 2026-11-01" }],
   "landing.hero.proof.blog": ["Our blog is written by ReachKit", { slots: {}, fixedBy: "board PubLanding v34 · owner 2026-11-01" }],
   "landing.hero.proof.blog.open": ["Read the articles", { slots: {}, fixedBy: "board PubLanding v34 · owner 2026-11-01" }],
+  "landing.hero.proof.scanned": ["{count}+ sites scanned", { slots: { count: "text" }, fixedBy: "board PubLanding v36 · owner 2026-11-01, issue 2249" }],
+  "landing.hero.proof.scanned.line": ["with the free scan", { slots: {}, fixedBy: "board PubLanding v36 · owner 2026-11-01, issue 2249" }],
   /** The label over the six kinds of business: a list label, not a heading. */
   "landing.hero.kinds.label": ["Works for any business with a website", { slots: {}, fixedBy: "board PubLanding v36 · owner 2026-11-01" }],
   /** The hero's story card: four frames, one example business, as few words as possible (owner O3). */

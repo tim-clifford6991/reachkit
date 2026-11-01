@@ -29,6 +29,7 @@ const db = vi.hoisted(() => ({
   scans: [] as ListingRow[],
   blocks: [] as { domain: string; blocked_at: string }[],
   reads: new Map<string, number>(),
+  rowsSent: 0,
 }));
 
 vi.mock("@/lib/db", () => {
@@ -36,8 +37,12 @@ vi.mock("@/lib/db", () => {
     const eq = new Map<string, unknown>();
     let term = "";
     let among: readonly unknown[] | null = null;
+    let head = false;
+    let without: readonly string[] = [];
     const self = {
-      select: () => self,
+      select: (_columns: string, options?: { head?: boolean }) => ((head = options?.head === true), self),
+      not: (column: string, operator: string, list: string) =>
+        (column === "domain" && operator === "in" ? (without = list.slice(1, -1).split(",")) : null, self),
       or: (filter: string) => ((term = /\*(.*?)\*/.exec(filter)?.[1] ?? ""), self),
       order: () => self,
       in: (column: string, values: readonly unknown[]) => (column === "category" ? (among = values) : null, self),
@@ -46,19 +51,23 @@ vi.mock("@/lib/db", () => {
       eq: (column: string, value: unknown) => (eq.set(column, value), self),
       then: (resolve: (r: unknown) => unknown, reject?: (e: unknown) => unknown) => {
         db.reads.set(table, (db.reads.get(table) ?? 0) + 1);
-        return Promise.resolve(answer(table, eq, term, among)).then(resolve, reject);
+        const result = answer(table, eq, term, among, without);
+        const sent = head ? { ...result, data: null } : result;
+        db.rowsSent += sent.data?.length ?? 0;
+        return Promise.resolve(sent).then(resolve, reject);
       },
     };
     return self;
   }
-  function answer(table: string, eq: Map<string, unknown>, term: string, among: readonly unknown[] | null) {
+  function answer(table: string, eq: Map<string, unknown>, term: string, among: readonly unknown[] | null, without: readonly string[]) {
     if (table === "free_scan_listing") {
       const blocked = new Set(db.blocks.map((b) => b.domain));
       const rows = db.scans
         .filter((r) => !blocked.has(r.domain))
         .filter((r) => r.domain.includes(term))
         .filter((r) => (among === null ? true : among.includes(r.category)))
-        .filter((r) => (eq.has("domain") ? r.domain === eq.get("domain") : true));
+        .filter((r) => (eq.has("domain") ? r.domain === eq.get("domain") : true))
+        .filter((r) => !without.includes(r.domain));
       return { data: rows, error: null, count: rows.length };
     }
     if (table === "domain_blocks") {
@@ -108,6 +117,7 @@ const VIEW = { search: "", kind: null, sort: "newest", shown: 16 } as const;
 beforeEach(() => {
   MemoryHandler.store.clear();
   db.reads.clear();
+  db.rowsSent = 0;
   db.blocks = [];
   db.scans = [scan("harbour.example", "2026-09-23T10:00:00.000Z"), scan("quay.example", "2026-09-22T10:00:00.000Z", "Plumbing")];
 });
@@ -200,6 +210,17 @@ describe("the gallery's cache", () => {
       ["quay.example", "local-service"],
       ["ledger.example", "software"],
     ]);
+  });
+
+  it("counts each listed site but ReachKit's own and the panel's, from one head read an hour that sends no rows", async () => {
+    const { scannedSites } = await import("@/lib/scan/gallery");
+    const strangers = Array.from({ length: 99 }, (_, n) => scan(`site-${n}.example`, "2026-10-01T10:00:00.000Z"));
+    db.scans = [...strangers, scan("reachkit.app", "2026-10-02T10:00:00.000Z"), scan("zunicafe.com", "2026-10-02T10:00:00.000Z")];
+    expect(await scannedSites()).toBe(99);
+    db.scans = [...db.scans, scan("site-99.example", "2026-10-03T10:00:00.000Z")];
+    expect(await scannedSites()).toBe(99);
+    expect(listingReads()).toBe(1);
+    expect(db.rowsSent).toBe(0);
   });
 
   it("rounds a requested card count down to whole pages, within the bound", async () => {
