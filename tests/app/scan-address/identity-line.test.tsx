@@ -14,6 +14,7 @@ import { parse } from "node-html-parser";
 import { BUSINESS_KIND_NAMES, type BusinessKind } from "@/lib/market/kinds";
 import { categoryOf } from "@/lib/scan/sections";
 import { panelReport, renderReport } from "./panel-report";
+import { FIXTURE_COLD_START_REPORT, FIXTURE_REPORT } from "@/app/(public)/scan/[domain]/_fixture/states";
 
 /** The structured-data row's markup, up to the next row. */
 function structuredRow(report: StoredReport): string {
@@ -72,4 +73,10 @@ describe("We read you as: the kind of business, then its industry", () => {
       }
     });
   }
+
+  it("the reserved-name preview reads as a real scan does, its kind first", () => {
+    for (const report of [FIXTURE_REPORT, FIXTURE_COLD_START_REPORT]) {
+      expect(readAsWhat(report)).toBe(`${copy("report.read.as.kind.software")} · ${categoryOf(report.market)!}`);
+    }
+  });
 });
