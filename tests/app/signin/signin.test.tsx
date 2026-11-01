@@ -82,6 +82,28 @@ async function renderWithKeysOnce(
   return html;
 }
 
+/** Renders one state against the **real** registry, so what is asserted
+ *  is the owner's own words and the marker where a sentence is still
+ *  owed. */
+async function renderReal(
+  state: SignInState,
+  searchParams: { link?: string } = {}
+): Promise<string> {
+  vi.resetModules();
+  vi.doMock(STATE_MODULE, async (importOriginal) => ({
+    ...(await importOriginal<Record<string, unknown>>()),
+    SIGN_IN_INITIAL: state,
+  }));
+  const { default: SignInPage } = (await import("@/app/(public)/signin/page.tsx")) as {
+    default: (p: { searchParams?: { link?: string } }) => React.JSX.Element;
+  };
+  const html = renderToStaticMarkup(<SignInPage searchParams={searchParams} />);
+  vi.doUnmock(STATE_MODULE);
+  // React escapes on the way out; compare against the text a browser
+  // reconstructs, not the wire bytes.
+  return html.replaceAll("&#x27;", "'").replaceAll("&amp;", "&").replaceAll("&quot;", '"');
+}
+
 describe('REQ-098 c1 — "Given a person with no session, when they reach ReachKit\'s sign-in address, then the screen presents one email input and one submit control and nothing else to fill in: no password field, no social sign-in, and no control that opens an account." — signin/shape', () => {
   it("exactly one input and exactly one submit control", async () => {
     const html = await renderWithKeys();
@@ -101,10 +123,9 @@ describe('REQ-098 c1 — "Given a person with no session, when they reach ReachK
     expect(form.toLowerCase()).not.toMatch(/google|github|apple|sso|oauth/);
   });
 
-  it("no control that opens an account: the only link on the screen is the one criterion 2 fixes, to the landing page", async () => {
+  it("no control that opens an account: the request arm links nowhere", async () => {
     const html = await renderWithKeys();
-    const hrefs = [...html.matchAll(/href="([^"]*)"/g)].map((m) => m[1]);
-    expect(hrefs).toEqual(["/"]);
+    expect(html).not.toContain("href=");
   });
 
   it("the screen reads no session and holds no account lookup of its own", () => {
@@ -112,17 +133,10 @@ describe('REQ-098 c1 — "Given a person with no session, when they reach ReachK
   });
 });
 
-describe('REQ-098 c2 — "then it carries these strings verbatim: the heading …; the body …; the email input\'s placeholder …; the submit control\'s label …; and beneath that control the line \'New to ReachKit? Start a free scan →\'" — signin/strings', () => {
-  it("carries the six keys those five strings live in, the last two composing one line", async () => {
+describe('REQ-098 c2 — "then it carries these strings verbatim: the heading …; the body …; the email input\'s placeholder …; the submit control\'s label …" (its fifth string cut by docs/spec/decisions/2026-11-01-2268.md) — signin/strings', () => {
+  it("carries the four keys those strings live in", async () => {
     const html = await renderWithKeys();
-    for (const key of [
-      "signin.heading",
-      "signin.body",
-      "signin.field.placeholder",
-      "signin.submit.label",
-      "signin.new.prompt",
-      "signin.new.link",
-    ]) {
+    for (const key of ["signin.heading", "signin.body", "signin.field.placeholder", "signin.submit.label"]) {
       expect(html, `${key} is not rendered`).toContain(key);
     }
   });
@@ -139,20 +153,6 @@ describe('REQ-098 c2 — "then it carries these strings verbatim: the heading �
     // Pinned here so a silent edit to a customer-visible string fails a
     // test rather than shipping.
     expect(copy("signin.submit.label")).toBe("Send my sign-in link");
-    expect(`${copy("signin.new.prompt")} ${copy("signin.new.link")}`).toBe(
-      "New to ReachKit? Start a free scan →"
-    );
-  });
-
-  it('"Start a free scan →" is the link, and it reaches the landing page (REQ-001)', async () => {
-    vi.resetModules();
-    const { copy } = await import("@/lib/presentation/copy");
-    const { default: SignInPage } = (await import("@/app/(public)/signin/page.tsx")) as {
-      default: (p: { searchParams?: { link?: string } }) => React.JSX.Element;
-    };
-    const html = renderToStaticMarkup(<SignInPage searchParams={{}} />);
-    expect(html).toContain(`href="/">${copy("signin.new.link")}`);
-    expect(html).toContain(copy("signin.new.prompt"));
   });
 });
 
@@ -174,6 +174,36 @@ describe('SPEC §3 — "Sign-in copy is identical whatever the address, revealin
     // again beside the answer would say the answer had not landed. (The
     // *dead-link* arm does carry one since #937 — there, nothing was taken.)
     expect(html.match(/<input/g)).toBeNull();
+  });
+
+  it("an address with an account and one without read the same sentence, word for word", async () => {
+    vi.resetModules();
+    const known = "owner@harborplumbing.example";
+    const unknown = "nobody@harborplumbing.example";
+    // Even a seam that told the two apart would not reach the screen.
+    const requestMagicLink = vi.fn(async (email: string) => (email === known ? { answered: true, account: "found" } : { answered: true }));
+    vi.doMock("@/lib/account/provisioning/magic-link", () => ({ requestMagicLink }));
+    vi.doMock("next/headers", () => ({ headers: async () => new Headers({ "x-forwarded-for": "203.0.113.7" }) }));
+    const { sendLink } = await import(ACTIONS_MODULE);
+    const { SIGN_IN_INITIAL } = await import(STATE_MODULE);
+    const ask = async (email: string): Promise<SignInState> => {
+      const form = new FormData();
+      form.set("email", email);
+      return sendLink(SIGN_IN_INITIAL, form);
+    };
+    const [a, b] = [await ask(known), await ask(unknown)];
+    vi.doUnmock("@/lib/account/provisioning/magic-link");
+    vi.doUnmock("next/headers");
+    expect(requestMagicLink).toHaveBeenCalledTimes(2);
+    const { COPY } = await import("@/lib/presentation/copy");
+    const sentence = "If that address has an account, a sign-in link is on its way.";
+    expect(COPY["signin.link_requested"]).toBe(sentence);
+    // The send time is the clock's, not the address's; the address is what they typed.
+    const read = async ({ answer, value }: SignInState): Promise<string> =>
+      (await renderReal({ answer, value })).replace(value, "ADDRESS");
+    const [shownA, shownB] = [await read(a), await read(b)];
+    expect(shownA).toContain(sentence);
+    expect(shownA).toBe(shownB);
   });
 
   it("the state has no answer that could tell an address with an account from one without", async () => {
@@ -283,50 +313,27 @@ describe('REQ-098 c7 — "Given a person who opens a sign-in link that no longer
 });
 
 describe("against the real registry — every arm renders, and nothing is invented", () => {
-  /** Renders one state against the **real** registry, so what is asserted
-   *  is the owner's own words and the marker where a sentence is still
-   *  owed. */
-  async function renderReal(
-    state: SignInState,
-    searchParams: { link?: string } = {}
-  ): Promise<string> {
-    vi.resetModules();
-    vi.doMock(STATE_MODULE, async (importOriginal) => ({
-      ...(await importOriginal<Record<string, unknown>>()),
-      SIGN_IN_INITIAL: state,
-    }));
-    const { default: SignInPage } = (await import("@/app/(public)/signin/page.tsx")) as {
-      default: (p: { searchParams?: { link?: string } }) => React.JSX.Element;
-    };
-    const html = renderToStaticMarkup(<SignInPage searchParams={searchParams} />);
-    vi.doUnmock(STATE_MODULE);
-    // React escapes on the way out; compare against the text a browser
-    // reconstructs, not the wire bytes.
-    return html.replaceAll("&#x27;", "'").replaceAll("&amp;", "&").replaceAll("&quot;", '"');
-  }
-
   it.each([
     { answer: "requested", value: "someone@example.com" },
     { answer: "invalid", value: "nope" },
     { answer: "none", value: "" },
-  ] as SignInState[])("renders in the %j state without throwing; the accent half holds only an answer", async (state) => {
-    const panel = state.answer === "requested" ? 1 : 0;
-    expect((await renderReal(state)).split('data-testid="signin-panel"')).toHaveLength(1 + panel);
-    await expect(renderReal(state, { link: "dead" })).resolves.toContain('data-testid="signin-panel"');
+  ] as SignInState[])("renders in the %j state without throwing, as one column with no side panel", async (state) => {
+    for (const html of [await renderReal(state), await renderReal(state, { link: "dead" })]) {
+      expect(html.match(/<main/g)).toHaveLength(1);
+      expect(html).not.toContain("<aside");
+    }
   });
 
-  it("the request arm carries criterion 2's five strings, byte for byte", async () => {
+  it("the request arm carries criterion 2's heading and body, byte for byte", async () => {
     const text = await renderReal({ answer: "none", value: "" });
     const { COPY } = await import("@/lib/presentation/copy");
     expect(text).toContain(COPY["signin.heading"]);
     expect(text).toContain(COPY["signin.body"]);
-    expect(text).toContain(COPY["signin.new.link"]);
   });
 
   it("the answered arm echoes the address they typed, and looks none up", async () => {
     const text = await renderReal({ answer: "requested", value: "someone@example.com" });
-    // `signin.sent.to` is the board's own line: "Sent to {address}".
-    expect(text).toContain("Sent to someone@example.com");
+    expect(text).toMatch(/<span[^>]*>Sent to<\/span><span[^>]*>someone@example.com<\/span>/);
   });
 
   it("every owed line on every arm is the marker, never a sentence somebody supplied", async () => {
@@ -353,40 +360,34 @@ describe("against the real registry — every arm renders, and nothing is invent
     // dead link learns nothing about the address it was issued for
     // (REQ-098 c7), including whether one was answered on this screen.
     // The three are the owner's approved sentences (2026-09-10, #459).
-    expect(text).toContain(`<h1>${COPY["signin.expired.head"]}</h1>`);
+    expect(text).toContain(`${COPY["signin.expired.head"]}</h1>`);
     expect(text).toContain(COPY["signin.link_dead"]);
     expect(text).toContain(COPY["signin.expired.submit"]);
     expect(text).not.toContain(COPY["signin.link_requested"]);
     expect(text).not.toContain("someone@example.com");
   });
 
-  it("the request arm is the form alone: no example dashboard beside it and no install chip", async () => {
-    const { COPY } = await import("@/lib/presentation/copy");
+  it("the request arm is the heading, the body and the form, and nothing else", async () => {
     const html = await renderReal({ answer: "none", value: "" });
     expect(html).not.toContain("<aside");
-    expect(html).not.toContain("Waiting inside");
-    expect(html).not.toContain("nothing to install");
-    expect(html).not.toContain("Example business");
-    expect(html).toContain(COPY["signin.chip.nopass"]);
-    expect(html).toContain(COPY["signin.chip.link"]);
-    expect(html).toContain(COPY["signin.how.title"]);
+    expect(html).not.toContain("<section");
+    expect(html.match(/class="card /g)).toHaveLength(1);
   });
 });
 
-describe("issue #1025 — the Round 7 full-width split, and the address is the field's own placeholder", () => {
+describe("one centred column, and the address is the field's own placeholder", () => {
   it("the screen draws its layout in Tailwind utilities: no rk-* class is left on it", () => {
     expect(PAGE_SOURCE).not.toMatch(/rk-/);
   });
 
-  it("an answered arm: the form is the main half and the accent panel the other, with no card around the two", async () => {
-    const html = await renderWithKeys({ state: { answer: "requested", value: "someone@example.com" } });
-    expect(html).toMatch(/<main class="[^"]*"/);
-    expect(html).toMatch(/<aside class="[^"]*bg-primary\/10[^"]*" data-testid="signin-panel"/);
-    // #986 drew the two halves as one bordered, rounded card at the wide
-    // measure; the owner's ruling on #937 is a split that runs edge to edge.
-    expect(html).not.toMatch(/class="card grid/);
-    expect(html).toContain('data-arm-compact="declared:');
-  });
+  it.each([{}, { state: { answer: "requested", value: "someone@example.com" } as SignInState }, { searchParams: { link: "dead" } }])(
+    "%j is one column centred in the main",
+    async (arm) => {
+      const html = await renderWithKeys(arm);
+      expect(html).toMatch(/<main class="[^"]*"><div class="mx-auto [^"]*max-w-120/);
+      expect(html).toContain('data-arm-compact="declared:');
+    }
+  );
 
   it("the answered arm offers the way back to the field, not a second solid button", async () => {
     const html = await renderWithKeys({ state: { answer: "requested", value: "someone@example.com" } });
@@ -410,6 +411,6 @@ describe("issue #1025 — the Round 7 full-width split, and the address is the f
     expect(input).toContain(`placeholder="${copy("signin.field.placeholder")}"`);
     expect(label.replace(/<input[^>]*>/, "").replace(/<[^>]+>/g, "")).toBe(copy("signin.field.label"));
     expect(input).not.toContain("aria-label");
-    expect(input).toContain('class="input w-full font-mono text-sm"');
+    expect(input).toContain('class="input w-full"');
   });
 });

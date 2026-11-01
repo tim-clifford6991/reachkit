@@ -52,8 +52,8 @@ describe("#1019 — what the customer is told is the lifetime Supabase enforces"
     expect(durationsIn(COPY["mail.magicLink.body"])).toEqual([hours]);
   });
 
-  it("the screen that sends it states the same span, and no other", () => {
-    expect(durationsIn(COPY["signin.sent.window"])).toEqual([hours]);
+  it("the screen a dead link lands on states the same span, and no other", () => {
+    expect(durationsIn(COPY["signin.link_dead"])).toEqual([hours]);
     const spans = Object.entries(COPY)
       .filter(([key]) => key.startsWith("signin."))
       .flatMap(([, sentence]) => durationsIn(sentence));

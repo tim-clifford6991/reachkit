@@ -155,9 +155,30 @@ p,li,dd{text-wrap:pretty}
 .mnav{display:none !important}
 @media (max-width:560px){header .pnav,.thm{display:none !important}.mnav{display:inline-flex !important}.wrap{padding-left:16px;padding-right:16px}.hero1{font-size:34px;line-height:1.12;letter-spacing:-0.035em}.lead{font-size:15px !important}.cardpad{padding:20px !important}}
 
+
+/* less-busy pass, 2026-11-01: type floor 12px, targets 44px, designer notes outside components */
+.eyebrow,.pill,.badge,.statetag,.tag,.src,.cap{font-size:12px}
+.btn-sm{min-height:44px;padding:0 14px}
+.dnote{border:1.5px dashed #c4c6dc;border-radius:14px;padding:20px;display:flex;flex-direction:column;gap:16px;color:#3a3d52;font-size:14px;background:rgba(255,255,255,.45);box-sizing:border-box;min-width:0}
+.dnote>.dnl{margin:0;font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#6a6b80}
+.dnote .dgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:16px;align-items:start}
+.dnote .st{display:flex;flex-direction:column;gap:12px;padding:16px;background:#ffffff;border:1px solid #e8e9f3;border-radius:12px;min-width:0}
+.dnote .st>.sl{margin:0;font-size:12px;font-weight:700;color:#6a6b80}
+.dnote p{margin:0}
+.nw{white-space:nowrap;word-break:normal !important}
+.okline{display:flex;gap:8px;align-items:flex-start;color:#1b765b;font-size:14px;margin:0}
+.errline{display:flex;gap:8px;align-items:flex-start;color:#b84029;font-size:14px;margin:0}
+.waitline{display:flex;gap:8px;align-items:flex-start;color:#945c22;font-size:14px;margin:0}
+.okline .ic,.errline .ic,.waitline .ic{margin-top:2px}
+
+.ftr ul{gap:0}
+.ftr ul a{display:inline-flex;align-items:center;min-height:44px}
+.authcol{max-width:480px;margin:0 auto;display:flex;flex-direction:column;gap:24px;min-width:0}
+.authsec{padding:72px 0 88px}
+@media (max-width:560px){.authsec{padding:40px 0 56px}}
 </style>
 </helmet>
-<div style="min-height: 900px; display: flex; flex-direction: column; font-family: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif; color: #1e2233; font-size: 15px; line-height: 1.55; word-spacing: .06em; background: #f3f4fb">
+<div style="min-height: 948px; display: flex; flex-direction: column; font-family: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif; color: #1e2233; font-size: 15px; line-height: 1.55; word-spacing: .06em; background: #f3f4fb">
 <header style="background: #ffffff; border-bottom: 1px solid #e8e9f3">
   <div class="wrap" style="display: flex; align-items: center; gap: 12px 24px; min-height: 68px; padding-top: 12px; padding-bottom: 12px">
     <a href="PubLanding.dc.html" style="display: flex; align-items: center; gap: 8px; color: #1e2233; font-weight: 800; font-size: 18px; letter-spacing: -0.01em; text-decoration: none; min-height: 44px"><svg viewBox="0 0 64 64" style="width: 28px; height: 28px; flex: none" aria-hidden="true"><defs><linearGradient id="hmf" x1="0.15" y1="1" x2="0.95" y2="0.1"><stop offset="0.38" stop-color="#ffffff"></stop><stop offset="1" stop-color="#ffffff" stop-opacity="0.12"></stop></linearGradient><clipPath id="hmc"><rect width="64" height="64" rx="15"></rect></clipPath></defs><g clip-path="url(#hmc)"><rect width="64" height="64" fill="#5b4be0"></rect><path d="M8 50 A24 24 0 0 1 56 50 Z" fill="url(#hmf)"></path></g></svg>ReachKit</a>
@@ -171,20 +192,18 @@ p,li,dd{text-wrap:pretty}
   </div>
 </header>
 <main>
-<section aria-labelledby="cf-h" style="padding: 64px 0 72px">
-  <div class="wrap" style="display: flex; flex-wrap: wrap; gap: 48px; align-items: flex-start">
-    <div style="flex: 1 1 400px; min-width: 0; max-width: 480px; display: flex; flex-direction: column; gap: 20px">
-      <span class="sq" style="background: #eeecfd; color: #5b4be0"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="width: 24px; height: 24px;" aria-hidden="true"><path d="m10 17 5-5-5-5"></path><path d="M15 12H3"></path><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path></svg></span>
-      <h1 id="cf-h" class="hero1">Sign in to ReachKit</h1>
-      <p class="lead">Press the button to finish.</p>
-      <form class="card" style="padding: 24px; display: flex; flex-direction: column; gap: 16px" method="post" action="Main.dc.html">
+<section class="authsec" aria-labelledby="au-h">
+  <div class="wrap"><div class="authcol">
+    <span class="sq" style="background: #eeecfd; color: #5b4be0"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="width: 24px; height: 24px;" aria-hidden="true"><path d="m10 17 5-5-5-5"></path><path d="M15 12H3"></path><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path></svg></span>
+    <h1 id="au-h" class="hero1">Sign in to ReachKit</h1>
+    <p class="lead" style="margin: 0">Press the button to finish.</p>
+    <form class="card" style="padding: 24px; display: flex; flex-direction: column; gap: 16px" method="post" action="Main.dc.html">
         <input type="hidden" name="token_hash" value="[from the link]">
         <input type="hidden" name="type" value="magiclink">
         <input type="hidden" name="landing" value="[from the link, #2149]">
         <button type="submit" class="btn block">Sign in <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="width: 20px; height: 20px;" aria-hidden="true"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg></button>
       </form>
-    </div>
-  </div>
+  </div></div>
 </section>
 </main>
 <footer class="ftr" style="background: #ffffff; border-top: 1px solid #e8e9f3; margin-top: auto">
@@ -193,7 +212,7 @@ p,li,dd{text-wrap:pretty}
       <div style="flex: 1.4 1 200px"><a href="PubLanding.dc.html" style="display: inline-flex; align-items: center; gap: 8px; color: #1e2233; font-weight: 800; font-size: 18px; text-decoration: none; min-height: 44px"><svg viewBox="0 0 64 64" style="width: 28px; height: 28px; flex: none" aria-hidden="true"><defs><linearGradient id="fmf" x1="0.15" y1="1" x2="0.95" y2="0.1"><stop offset="0.38" stop-color="#ffffff"></stop><stop offset="1" stop-color="#ffffff" stop-opacity="0.12"></stop></linearGradient><clipPath id="fmc"><rect width="64" height="64" rx="15"></rect></clipPath></defs><g clip-path="url(#fmc)"><rect width="64" height="64" fill="#5b4be0"></rect><path d="M8 50 A24 24 0 0 1 56 50 Z" fill="url(#fmf)"></path></g></svg>ReachKit</a></div>
 <div style="flex: 1 1 150px; min-width: 0"><h2 class="eyebrow">Product</h2><ul><li><a href="PubLanding.dc.html#landing-field">Free scan</a></li><li><a href="PubHowItWorks.dc.html">How it works</a></li><li><a href="Pricing.dc.html">Pricing</a></li><li><a href="PubAbout.dc.html">About</a></li><li><a href="AuthSignIn.dc.html">Sign in</a></li></ul></div>
 <div style="flex: 1 1 150px; min-width: 0"><h2 class="eyebrow">Learn</h2><ul><li><a href="PubScans.dc.html">Free scans</a></li><li><a href="PubCompare.dc.html">Compare</a></li><li><a href="PubTools.dc.html">Free tools</a></li><li><a href="PubTeardowns.dc.html">Teardowns</a></li><li><a href="#">Articles</a></li></ul></div>
-<div style="flex: 1 1 150px; min-width: 0"><h2 class="eyebrow">Legal</h2><ul><li><a href="Legal.dc.html">Privacy</a></li><li><a href="#">Terms</a></li><li><a href="#">Imprint</a><span class="tag">[after launch gate]</span></li><li><a href="#">Cancel your contract</a><span class="tag">[after launch gate]</span></li></ul></div>
+<div style="flex: 1 1 150px; min-width: 0"><h2 class="eyebrow">Legal</h2><ul><li><a href="Legal.dc.html">Privacy</a></li><li><a href="#">Terms</a></li><li><a href="#">Imprint</a></li><li><a href="#">Cancel your contract</a></li></ul></div>
 <div style="flex: 1 1 150px; min-width: 0"><h2 class="eyebrow">Contact</h2><ul><li><a href="#">hello@reachkit.app</a></li></ul></div>
     </div>
     <p class="muted" style="margin: 0; padding-top: 20px; border-top: 1px solid #e8e9f3; font-size: 13px; display: flex; flex-wrap: wrap; align-items: center"><span>© 2026 ReachKit · Want your site’s report removed?&nbsp;</span><a href="#" style="display: inline-flex; align-items: center; min-height: 44px">remove@reachkit.app</a></p>
@@ -201,7 +220,7 @@ p,li,dd{text-wrap:pretty}
 </footer>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":900}}'>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":948}}'>
 class Component extends DCLogic {
   renderVals() { return {}; }
 }

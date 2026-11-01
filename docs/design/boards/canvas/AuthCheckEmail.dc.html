@@ -155,9 +155,30 @@ p,li,dd{text-wrap:pretty}
 .mnav{display:none !important}
 @media (max-width:560px){header .pnav,.thm{display:none !important}.mnav{display:inline-flex !important}.wrap{padding-left:16px;padding-right:16px}.hero1{font-size:34px;line-height:1.12;letter-spacing:-0.035em}.lead{font-size:15px !important}.cardpad{padding:20px !important}}
 
+
+/* less-busy pass, 2026-11-01: type floor 12px, targets 44px, designer notes outside components */
+.eyebrow,.pill,.badge,.statetag,.tag,.src,.cap{font-size:12px}
+.btn-sm{min-height:44px;padding:0 14px}
+.dnote{border:1.5px dashed #c4c6dc;border-radius:14px;padding:20px;display:flex;flex-direction:column;gap:16px;color:#3a3d52;font-size:14px;background:rgba(255,255,255,.45);box-sizing:border-box;min-width:0}
+.dnote>.dnl{margin:0;font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#6a6b80}
+.dnote .dgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:16px;align-items:start}
+.dnote .st{display:flex;flex-direction:column;gap:12px;padding:16px;background:#ffffff;border:1px solid #e8e9f3;border-radius:12px;min-width:0}
+.dnote .st>.sl{margin:0;font-size:12px;font-weight:700;color:#6a6b80}
+.dnote p{margin:0}
+.nw{white-space:nowrap;word-break:normal !important}
+.okline{display:flex;gap:8px;align-items:flex-start;color:#1b765b;font-size:14px;margin:0}
+.errline{display:flex;gap:8px;align-items:flex-start;color:#b84029;font-size:14px;margin:0}
+.waitline{display:flex;gap:8px;align-items:flex-start;color:#945c22;font-size:14px;margin:0}
+.okline .ic,.errline .ic,.waitline .ic{margin-top:2px}
+
+.ftr ul{gap:0}
+.ftr ul a{display:inline-flex;align-items:center;min-height:44px}
+.authcol{max-width:480px;margin:0 auto;display:flex;flex-direction:column;gap:24px;min-width:0}
+.authsec{padding:72px 0 88px}
+@media (max-width:560px){.authsec{padding:40px 0 56px}}
 </style>
 </helmet>
-<div style="min-height: 1439px; display: flex; flex-direction: column; font-family: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif; color: #1e2233; font-size: 15px; line-height: 1.55; word-spacing: .06em; background: #f3f4fb">
+<div style="min-height: 1225px; display: flex; flex-direction: column; font-family: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif; color: #1e2233; font-size: 15px; line-height: 1.55; word-spacing: .06em; background: #f3f4fb">
 <header style="background: #ffffff; border-bottom: 1px solid #e8e9f3">
   <div class="wrap" style="display: flex; align-items: center; gap: 12px 24px; min-height: 68px; padding-top: 12px; padding-bottom: 12px">
     <a href="PubLanding.dc.html" style="display: flex; align-items: center; gap: 8px; color: #1e2233; font-weight: 800; font-size: 18px; letter-spacing: -0.01em; text-decoration: none; min-height: 44px"><svg viewBox="0 0 64 64" style="width: 28px; height: 28px; flex: none" aria-hidden="true"><defs><linearGradient id="hmf" x1="0.15" y1="1" x2="0.95" y2="0.1"><stop offset="0.38" stop-color="#ffffff"></stop><stop offset="1" stop-color="#ffffff" stop-opacity="0.12"></stop></linearGradient><clipPath id="hmc"><rect width="64" height="64" rx="15"></rect></clipPath></defs><g clip-path="url(#hmc)"><rect width="64" height="64" fill="#5b4be0"></rect><path d="M8 50 A24 24 0 0 1 56 50 Z" fill="url(#hmf)"></path></g></svg>ReachKit</a>
@@ -171,83 +192,19 @@ p,li,dd{text-wrap:pretty}
   </div>
 </header>
 <main>
-<section aria-labelledby="ce-h" style="padding: 64px 0 72px">
-  <div class="wrap" style="display: flex; flex-wrap: wrap; gap: 48px; align-items: flex-start">
-    <div style="flex: 1 1 400px; min-width: 0; max-width: 480px; display: flex; flex-direction: column; gap: 20px">
-      <span class="sq" style="background: #e7f6f0; color: #1b765b"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="width: 24px; height: 24px;" aria-hidden="true"><path d="m22 2-7 20-4-9-9-4Z"></path><path d="M22 2 11 13"></path></svg></span>
-      <h1 id="ce-h" class="hero1">Check your inbox</h1>
-      <p role="status" class="lead" style="margin: 0">If that address has an account, a sign-in link is on its way.</p>
-      <p class="well" style="margin: 0; padding: 12px 16px; font-size: 14px">Sent to <span class="num" style="font-size: 14px">dana@harborplumbing.com</span></p>
-      <div class="card" style="padding: 20px 20px; display: flex; flex-direction: column; gap: 12px">
-        <p style="margin: 0; font-weight: 700; font-size: 15px; display: flex; align-items: center; gap: 8px"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="width: 20px; height: 20px; color: #646579;" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v6l4 2"></path></svg>The link works for 24 hours</p>
-        <div style="display: flex; flex-direction: column; gap: 8px" aria-label="The link works for 24 hours, from 9:41 AM today to 9:41 AM tomorrow">
-  <div style="position: relative; height: 10px; border-radius: 999px; background: #eef0f8; overflow: hidden"><span style="position: absolute; left: 0; top: 0; bottom: 0; width: 3%; background: #1b765b; border-radius: 999px"></span></div>
-  <div style="display: flex; justify-content: space-between; gap: 8px; font-size: 12px"><span><span class="num" style="font-size: 12px; color: #1b765b; font-weight: 600; white-space: nowrap">Sent 9:41 AM</span></span><span class="num muted" style="font-size: 12px; text-align: right">Works until tomorrow, 9:41 AM</span></div>
-</div>
-        <p class="muted" style="margin: 0; font-size: 14px">A newer link replaces an older one. Not there in a minute? Check your spam folder.</p>
-      </div>
-      <a class="soft" href="AuthSignIn.dc.html" style="align-self: flex-start">Use a different email</a>
+<section class="authsec" aria-labelledby="au-h">
+  <div class="wrap"><div class="authcol">
+    <span class="sq" style="background: #e7f6f0; color: #1b765b"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="width: 24px; height: 24px;" aria-hidden="true"><path d="m22 2-7 20-4-9-9-4Z"></path><path d="M22 2 11 13"></path></svg></span>
+    <h1 id="au-h" class="hero1">Check your inbox</h1>
+    <p role="status" class="lead" style="margin: 0">If that address has an account, a sign-in link is on its way.</p>
+    <div class="card" style="padding: 20px 24px; display: flex; flex-direction: column; gap: 0">
+      <p style="margin: 0; padding: 12px 0; display: flex; flex-direction: column; gap: 2px"><span class="muted" style="font-size: 14px">Sent to</span><span class="num" style="font-size: 15px">dana@harborplumbing.com</span></p>
+      <p style="margin: 0; padding: 12px 0; border-top: 1px solid #e8e9f3; display: flex; flex-direction: column; gap: 2px"><span class="muted" style="font-size: 14px">Subject</span><strong>Your sign-in link</strong></p>
+      <p style="margin: 0; padding: 12px 0; border-top: 1px solid #e8e9f3; display: flex; flex-direction: column; gap: 2px"><span class="muted" style="font-size: 14px">Works until</span><span>Tomorrow, 9:41 AM</span></p>
     </div>
-    <div style="flex: 1 1 440px; min-width: 0; display: flex; flex-direction: column; gap: 16px">
-      <figure aria-label="What the sign-in email looks like in your inbox and when you open it" class="card cardpad" style="margin: 0; padding: 24px; display: flex; flex-wrap: wrap; gap: 24px; align-items: center; justify-content: center">
-  <figure aria-label="A phone showing the inbox: the newest mail is from ReachKit, subject Your sign-in link, at 9:41 AM" style="margin: 0 auto; width: 278px; max-width: 100%; display: flex; flex-direction: column; gap: 12px; align-items: center; flex: none">
-  <div data-mockup="phone" style="width: 278px; height: 584px; box-sizing: border-box; padding: 8px; border-radius: 39px; background: #1e2233; box-shadow: 0 0 0 1px rgba(24,24,48,.10), 0 24px 48px -20px rgba(24,24,48,.40); flex: none">
-    <div style="position: relative; width: 262px; height: 568px; border-radius: 31px; overflow: hidden; background: #ffffff; isolation: isolate">
-      <div style="position: absolute; left: 0; top: 0; width: 393px; height: 852px; transform: scale(0.66667); transform-origin: 0 0; display: flex; flex-direction: column; background: #ffffff; font-size: 15px; line-height: 1.45; word-spacing: 0">
-        <div aria-hidden="true" style="position: relative; height: 51px; background: #ffffff; color: #1e2233; flex: none"><span style="position: absolute; left: 0; width: 130px; top: 11px; height: 37px; display: flex; align-items: center; justify-content: center; font-size: 17px; font-weight: 600; letter-spacing: -0.01em; word-spacing: 0; font-variant-numeric: tabular-nums">9:41</span><span style="position: absolute; left: 50%; top: 11px; width: 134px; height: 37px; margin-left: -67px; border-radius: 999px; background: #1e2233"></span><span style="position: absolute; right: 0; width: 130px; top: 11px; height: 37px; display: flex; align-items: center; justify-content: center; gap: 6px"><svg viewBox="0 0 24 24" style="width: 20px; height: 20px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round;" aria-hidden="true"><path d="M2 20h.01"></path><path d="M7 20v-4"></path><path d="M12 20v-8"></path><path d="M17 20V8"></path><path d="M22 4v16"></path></svg><svg viewBox="0 0 24 24" style="width: 20px; height: 20px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round;" aria-hidden="true"><path d="M12 20h.01"></path><path d="M2 8.82a15 15 0 0 1 20 0"></path><path d="M5 12.859a10 10 0 0 1 14 0"></path><path d="M8.5 16.429a5 5 0 0 1 7 0"></path></svg><svg viewBox="0 0 24 24" style="width: 24px; height: 24px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round;" aria-hidden="true"><rect width="16" height="10" x="2" y="7" rx="2" ry="2"></rect><path d="M22 11v2"></path><path d="M6 11v2"></path><path d="M10 11v2"></path><path d="M14 11v2"></path></svg></span></div>
-        <div style="position: relative; flex: 1; min-height: 0; overflow: hidden"><div style="position: absolute; inset: 0; display: flex; flex-direction: column; background: #ffffff; color: #1e2233"><div style="display: flex; justify-content: space-between; align-items: center; height: 44px; padding: 0 16px; flex: none; color: #5b4be0; font-size: 17px"><span style="display: inline-flex; align-items: center; gap: 2px; margin-left: -12px"><svg viewBox="0 0 24 24" style="width: 24px; height: 24px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; stroke-width: 2.25;" aria-hidden="true"><path d="m15 18-6-6 6-6"></path></svg>Mailboxes</span><span>Edit</span></div>
-<p style="margin: 0; padding: 2px 16px 8px; font-size: 34px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.2; flex: none">Inbox</p>
-<div style="margin: 0 16px 12px; height: 36px; border-radius: 10px; background: #eef0f8; display: flex; align-items: center; gap: 8px; padding: 0 8px; color: #646579; font-size: 17px; flex: none"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="width: 20px; height: 20px;" aria-hidden="true"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg>Search</div>
-<div style="position: relative; display: grid; grid-template-columns: 1fr auto; gap: 2px 8px; padding: 12px 16px 12px 32px; border-top: 1px solid #e8e9f3; background: #eeecfd">
-  <span style="position: absolute; left: 11px; top: 19px; width: 11px; height: 11px; border-radius: 999px; background: #5b4be0"></span>
-  <strong style="font-size: 17px; font-weight: 700">ReachKit</strong><span style="font-size: 15px; color: #646579; display: inline-flex; align-items: center; gap: 2px">9:41 AM<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="width: 16px; height: 16px; color: #a3a4b8;transform: rotate(-90deg)" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></span>
-  <span style="grid-column: 1 / -1; font-size: 15px">Your sign-in link</span>
-  <span style="grid-column: 1 / -1; font-size: 15px; color: #646579">Sign in to ReachKit. The link works for 24 hours. Press it on any device.</span>
-</div>
-<div style="display: grid; grid-template-columns: 1fr auto; gap: 4px 8px; padding: 12px 16px 12px 32px; border-top: 1px solid #e8e9f3">
-  <span style="display: block; height: 14px; width: 38%; border-radius: 4px; background: #dcdeec; margin: 4px 0"></span><span style="display: block; height: 12px; width: 52px; border-radius: 4px; background: #e8e9f3; margin: 4px 0"></span>
-  <span style="grid-column: 1 / -1; display: block; height: 12px; width: 70%; border-radius: 4px; background: #e3e5f0; margin: 4px 0"></span>
-  <span style="grid-column: 1 / -1; display: block; height: 12px; width: 92%; border-radius: 4px; background: #eef0f8; margin: 4px 0"></span>
-  <span style="grid-column: 1 / -1; display: block; height: 12px; width: 60%; border-radius: 4px; background: #eef0f8; margin: 4px 0"></span>
-</div>
-<div style="display: grid; grid-template-columns: 1fr auto; gap: 4px 8px; padding: 12px 16px 12px 32px; border-top: 1px solid #e8e9f3">
-  <span style="display: block; height: 14px; width: 30%; border-radius: 4px; background: #dcdeec; margin: 4px 0"></span><span style="display: block; height: 12px; width: 52px; border-radius: 4px; background: #e8e9f3; margin: 4px 0"></span>
-  <span style="grid-column: 1 / -1; display: block; height: 12px; width: 62%; border-radius: 4px; background: #e3e5f0; margin: 4px 0"></span>
-  <span style="grid-column: 1 / -1; display: block; height: 12px; width: 88%; border-radius: 4px; background: #eef0f8; margin: 4px 0"></span>
-  <span style="grid-column: 1 / -1; display: block; height: 12px; width: 74%; border-radius: 4px; background: #eef0f8; margin: 4px 0"></span>
-</div>
-<div style="display: grid; grid-template-columns: 1fr auto; gap: 4px 8px; padding: 12px 16px 12px 32px; border-top: 1px solid #e8e9f3">
-  <span style="display: block; height: 14px; width: 44%; border-radius: 4px; background: #dcdeec; margin: 4px 0"></span><span style="display: block; height: 12px; width: 52px; border-radius: 4px; background: #e8e9f3; margin: 4px 0"></span>
-  <span style="grid-column: 1 / -1; display: block; height: 12px; width: 58%; border-radius: 4px; background: #e3e5f0; margin: 4px 0"></span>
-  <span style="grid-column: 1 / -1; display: block; height: 12px; width: 90%; border-radius: 4px; background: #eef0f8; margin: 4px 0"></span>
-  <span style="grid-column: 1 / -1; display: block; height: 12px; width: 48%; border-radius: 4px; background: #eef0f8; margin: 4px 0"></span>
-</div>
-<div style="display: grid; grid-template-columns: 1fr auto; gap: 4px 8px; padding: 12px 16px 12px 32px; border-top: 1px solid #e8e9f3">
-  <span style="display: block; height: 14px; width: 34%; border-radius: 4px; background: #dcdeec; margin: 4px 0"></span><span style="display: block; height: 12px; width: 52px; border-radius: 4px; background: #e8e9f3; margin: 4px 0"></span>
-  <span style="grid-column: 1 / -1; display: block; height: 12px; width: 66%; border-radius: 4px; background: #e3e5f0; margin: 4px 0"></span>
-  <span style="grid-column: 1 / -1; display: block; height: 12px; width: 84%; border-radius: 4px; background: #eef0f8; margin: 4px 0"></span>
-  <span style="grid-column: 1 / -1; display: block; height: 12px; width: 70%; border-radius: 4px; background: #eef0f8; margin: 4px 0"></span>
-</div>
-<div style="position: absolute; left: 0; right: 0; bottom: 0; height: 83px; background: #ffffff; border-top: 1px solid #e8e9f3; display: flex; justify-content: space-between; align-items: flex-start; padding: 10px 28px 0; box-sizing: border-box; color: #5b4be0"><span style="width: 24px"></span><span style="font-size: 12px; color: #1e2233">Updated just now</span><svg viewBox="0 0 24 24" style="width: 24px; height: 24px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round;" aria-hidden="true"><path d="M12 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.375 2.625a1 1 0 0 1 3 3l-9.013 9.014a2 2 0 0 1-.853.505l-2.873.84a.5.5 0 0 1-.62-.62l.84-2.873a2 2 0 0 1 .506-.852z"></path></svg></div></div></div>
-      </div>
-      <span aria-hidden="true" style="position: absolute; left: 50%; bottom: 6px; width: 94px; height: 5px; margin-left: -47px; border-radius: 999px; background: #1e2233"></span>
-    </div>
-  </div>
-  
-</figure>
-  <div style="flex: 1 1 180px; min-width: 0; display: flex; flex-direction: column; gap: 16px">
-    <p class="eyebrow" style="display: flex; align-items: center; gap: 8px"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="width: 16px; height: 16px; color: #646579;" aria-hidden="true"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"></polyline><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"></path></svg>Your inbox</p>
-    <p style="margin: 0; font-size: 14px; color: #3a3d52">From <strong>ReachKit</strong>, with the subject <strong>Your sign-in link</strong>.</p>
-    <div style="padding: 16px; border-radius: 12px; border: 1px solid #e8e9f3; display: flex; flex-direction: column; gap: 12px; align-items: flex-start">
-      <p class="eyebrow">Inside the email</p>
-      <p style="margin: 0; font-size: 16px; font-weight: 700">Sign in to ReachKit</p>
-      <span class="btn" style="pointer-events: none" aria-hidden="true">Sign in</span>
-      <p class="cap">Press it on any device. You land on your Overview.</p>
-    </div>
-  </div>
-</figure>
-    </div>
-  </div>
+    <p class="muted" style="margin: 0; font-size: 14px">Not there in a minute? Check your spam folder.</p>
+    <a class="soft" href="AuthSignIn.dc.html" style="align-self: flex-start">Use a different email</a>
+  </div></div>
 </section>
 </main>
 <footer class="ftr" style="background: #ffffff; border-top: 1px solid #e8e9f3; margin-top: auto">
@@ -256,7 +213,7 @@ p,li,dd{text-wrap:pretty}
       <div style="flex: 1.4 1 200px"><a href="PubLanding.dc.html" style="display: inline-flex; align-items: center; gap: 8px; color: #1e2233; font-weight: 800; font-size: 18px; text-decoration: none; min-height: 44px"><svg viewBox="0 0 64 64" style="width: 28px; height: 28px; flex: none" aria-hidden="true"><defs><linearGradient id="fmf" x1="0.15" y1="1" x2="0.95" y2="0.1"><stop offset="0.38" stop-color="#ffffff"></stop><stop offset="1" stop-color="#ffffff" stop-opacity="0.12"></stop></linearGradient><clipPath id="fmc"><rect width="64" height="64" rx="15"></rect></clipPath></defs><g clip-path="url(#fmc)"><rect width="64" height="64" fill="#5b4be0"></rect><path d="M8 50 A24 24 0 0 1 56 50 Z" fill="url(#fmf)"></path></g></svg>ReachKit</a></div>
 <div style="flex: 1 1 150px; min-width: 0"><h2 class="eyebrow">Product</h2><ul><li><a href="PubLanding.dc.html#landing-field">Free scan</a></li><li><a href="PubHowItWorks.dc.html">How it works</a></li><li><a href="Pricing.dc.html">Pricing</a></li><li><a href="PubAbout.dc.html">About</a></li><li><a href="AuthSignIn.dc.html">Sign in</a></li></ul></div>
 <div style="flex: 1 1 150px; min-width: 0"><h2 class="eyebrow">Learn</h2><ul><li><a href="PubScans.dc.html">Free scans</a></li><li><a href="PubCompare.dc.html">Compare</a></li><li><a href="PubTools.dc.html">Free tools</a></li><li><a href="PubTeardowns.dc.html">Teardowns</a></li><li><a href="#">Articles</a></li></ul></div>
-<div style="flex: 1 1 150px; min-width: 0"><h2 class="eyebrow">Legal</h2><ul><li><a href="Legal.dc.html">Privacy</a></li><li><a href="#">Terms</a></li><li><a href="#">Imprint</a><span class="tag">[after launch gate]</span></li><li><a href="#">Cancel your contract</a><span class="tag">[after launch gate]</span></li></ul></div>
+<div style="flex: 1 1 150px; min-width: 0"><h2 class="eyebrow">Legal</h2><ul><li><a href="Legal.dc.html">Privacy</a></li><li><a href="#">Terms</a></li><li><a href="#">Imprint</a></li><li><a href="#">Cancel your contract</a></li></ul></div>
 <div style="flex: 1 1 150px; min-width: 0"><h2 class="eyebrow">Contact</h2><ul><li><a href="#">hello@reachkit.app</a></li></ul></div>
     </div>
     <p class="muted" style="margin: 0; padding-top: 20px; border-top: 1px solid #e8e9f3; font-size: 13px; display: flex; flex-wrap: wrap; align-items: center"><span>© 2026 ReachKit · Want your site’s report removed?&nbsp;</span><a href="#" style="display: inline-flex; align-items: center; min-height: 44px">remove@reachkit.app</a></p>
@@ -264,7 +221,7 @@ p,li,dd{text-wrap:pretty}
 </footer>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1439}}'>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1225}}'>
 class Component extends DCLogic {
   renderVals() { return {}; }
 }

@@ -155,9 +155,30 @@ p,li,dd{text-wrap:pretty}
 .mnav{display:none !important}
 @media (max-width:560px){header .pnav,.thm{display:none !important}.mnav{display:inline-flex !important}.wrap{padding-left:16px;padding-right:16px}.hero1{font-size:34px;line-height:1.12;letter-spacing:-0.035em}.lead{font-size:15px !important}.cardpad{padding:20px !important}}
 
+
+/* less-busy pass, 2026-11-01: type floor 12px, targets 44px, designer notes outside components */
+.eyebrow,.pill,.badge,.statetag,.tag,.src,.cap{font-size:12px}
+.btn-sm{min-height:44px;padding:0 14px}
+.dnote{border:1.5px dashed #c4c6dc;border-radius:14px;padding:20px;display:flex;flex-direction:column;gap:16px;color:#3a3d52;font-size:14px;background:rgba(255,255,255,.45);box-sizing:border-box;min-width:0}
+.dnote>.dnl{margin:0;font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#6a6b80}
+.dnote .dgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:16px;align-items:start}
+.dnote .st{display:flex;flex-direction:column;gap:12px;padding:16px;background:#ffffff;border:1px solid #e8e9f3;border-radius:12px;min-width:0}
+.dnote .st>.sl{margin:0;font-size:12px;font-weight:700;color:#6a6b80}
+.dnote p{margin:0}
+.nw{white-space:nowrap;word-break:normal !important}
+.okline{display:flex;gap:8px;align-items:flex-start;color:#1b765b;font-size:14px;margin:0}
+.errline{display:flex;gap:8px;align-items:flex-start;color:#b84029;font-size:14px;margin:0}
+.waitline{display:flex;gap:8px;align-items:flex-start;color:#945c22;font-size:14px;margin:0}
+.okline .ic,.errline .ic,.waitline .ic{margin-top:2px}
+
+.ftr ul{gap:0}
+.ftr ul a{display:inline-flex;align-items:center;min-height:44px}
+.authcol{max-width:480px;margin:0 auto;display:flex;flex-direction:column;gap:24px;min-width:0}
+.authsec{padding:72px 0 88px}
+@media (max-width:560px){.authsec{padding:40px 0 56px}}
 </style>
 </helmet>
-<div style="min-height: 1472px; display: flex; flex-direction: column; font-family: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif; color: #1e2233; font-size: 15px; line-height: 1.55; word-spacing: .06em; background: #f3f4fb">
+<div style="min-height: 1413px; display: flex; flex-direction: column; font-family: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif; color: #1e2233; font-size: 15px; line-height: 1.55; word-spacing: .06em; background: #f3f4fb">
 <header style="background: #ffffff; border-bottom: 1px solid #e8e9f3">
   <div class="wrap" style="display: flex; align-items: center; gap: 12px 24px; min-height: 68px; padding-top: 12px; padding-bottom: 12px">
     <a href="PubLanding.dc.html" style="display: flex; align-items: center; gap: 8px; color: #1e2233; font-weight: 800; font-size: 18px; letter-spacing: -0.01em; text-decoration: none; min-height: 44px"><svg viewBox="0 0 64 64" style="width: 28px; height: 28px; flex: none" aria-hidden="true"><defs><linearGradient id="hmf" x1="0.15" y1="1" x2="0.95" y2="0.1"><stop offset="0.38" stop-color="#ffffff"></stop><stop offset="1" stop-color="#ffffff" stop-opacity="0.12"></stop></linearGradient><clipPath id="hmc"><rect width="64" height="64" rx="15"></rect></clipPath></defs><g clip-path="url(#hmc)"><rect width="64" height="64" fill="#5b4be0"></rect><path d="M8 50 A24 24 0 0 1 56 50 Z" fill="url(#hmf)"></path></g></svg>ReachKit</a>
@@ -171,63 +192,16 @@ p,li,dd{text-wrap:pretty}
   </div>
 </header>
 <main>
-<section aria-labelledby="si-h" style="padding: 64px 0 40px">
-  <div class="wrap" style="display: flex; flex-wrap: wrap; gap: 48px; align-items: center">
-    <div style="flex: 1 1 400px; min-width: 0; max-width: 480px; display: flex; flex-direction: column; gap: 20px">
-      <p class="eyebrow">Sign in</p>
-      <h1 id="si-h" class="hero1">Welcome back</h1>
-      <p class="lead" style="max-width: 440px">Enter the email you paid with. We’ll send you a sign-in link.</p>
-      <form class="card" style="padding: 24px; display: flex; flex-direction: column; gap: 16px" action="AuthCheckEmail.dc.html">
-        <div class="fld">
-  <label for="em">Your email</label>
-  <input class="inp" id="em" name="email" type="email" autocomplete="email" inputmode="email" placeholder="you@example.com" style="border-color: #d6d8e8">
-</div>
-        <button type="submit" class="btn block" >Send my sign-in link <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="width: 20px; height: 20px;" aria-hidden="true"><path d="m22 2-7 20-4-9-9-4Z"></path><path d="M22 2 11 13"></path></svg></button>
-        <p class="muted" style="margin: 0; font-size: 13px; display: flex; flex-wrap: wrap; gap: 4px 16px"><span style="display: inline-flex; align-items: center; gap: 4px"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="width: 16px; height: 16px; color: #1b765b;" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg>no password</span><span style="display: inline-flex; align-items: center; gap: 4px"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="width: 16px; height: 16px; color: #1b765b;" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg>link works 24 hours</span></p>
-        <p class="muted" style="margin: 0; font-size: 14px; padding-top: 16px; border-top: 1px solid #e8e9f3">New to ReachKit? <a href="PubLanding.dc.html#landing-field" style="font-weight: 600">Start a free scan&nbsp;→</a></p>
-      </form>
-    </div>
-  </div>
-</section>
-<section aria-labelledby="si-how" style="padding: 8px 0 40px">
-  <div class="wrap">
-    <div class="well" style="padding: 20px 24px; display: flex; flex-direction: column; gap: 16px">
-      <h2 id="si-how" class="eyebrow">How signing in works</h2>
-      <ol style="list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 16px 24px"><li style="flex: 1 1 220px; min-width: 0; display: flex; gap: 12px; align-items: flex-start">
-  <span class="chipn" style="width: 36px; height: 36px; font-size: 16px; border-radius: 10px">1</span>
-  <span style="display: flex; flex-direction: column; min-width: 0"><strong style="font-size: 15px; display: flex; align-items: center; gap: 8px">Type your email</strong><span class="muted" style="font-size: 13px">The one you paid with.</span></span>
-  <svg class="ic stepar" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="width: 20px; height: 20px; color: #c4c6dc;margin-top: 8px; margin-left: auto" aria-hidden="true"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg>
-</li><li style="flex: 1 1 220px; min-width: 0; display: flex; gap: 12px; align-items: flex-start">
-  <span class="chipn" style="width: 36px; height: 36px; font-size: 16px; border-radius: 10px">2</span>
-  <span style="display: flex; flex-direction: column; min-width: 0"><strong style="font-size: 15px; display: flex; align-items: center; gap: 8px">Open the link we send</strong><span class="muted" style="font-size: 13px">Subject: “Your sign-in link”.</span></span>
-  <svg class="ic stepar" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="width: 20px; height: 20px; color: #c4c6dc;margin-top: 8px; margin-left: auto" aria-hidden="true"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg>
-</li><li style="flex: 1 1 220px; min-width: 0; display: flex; gap: 12px; align-items: flex-start">
-  <span class="chipn" style="width: 36px; height: 36px; font-size: 16px; border-radius: 10px">3</span>
-  <span style="display: flex; flex-direction: column; min-width: 0"><strong style="font-size: 15px; display: flex; align-items: center; gap: 8px">You’re in</strong><span class="muted" style="font-size: 13px">On your Overview, with this week’s pages.</span></span>
-  
-</li></ol>
-    </div>
-  </div>
-</section>
-<section aria-labelledby="si-states" style="padding: 8px 0 64px">
-  <div class="wrap" style="display: flex; flex-direction: column; gap: 12px">
-    <h2 id="si-states" class="statetag" style="margin: 0">States of this form</h2>
-    <div style="display: flex; flex-wrap: wrap; gap: 16px">
-      <div class="card" style="flex: 1 1 340px; min-width: 0; padding: 20px; display: flex; flex-direction: column; gap: 12px">
-        <p class="eyebrow">Wrong address</p>
-        <div class="fld">
-  <label for="em2">Your email</label>
-  <input class="inp" id="em2" name="email" type="email" autocomplete="email" inputmode="email" placeholder="you@example.com" value="dana@harborplumbing" aria-describedby="em2-err" aria-invalid="true" style="border-color: #b84029">
-</div>
-        <p class="err" id="em2-err"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="width: 16px; height: 16px;margin-top: 2px" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M12 8v4"></path><path d="M12 16h.01"></path></svg>That doesn’t look like an email address. Check it and try again.</p>
-      </div>
-      <div class="card" style="flex: 1 1 340px; min-width: 0; padding: 20px; display: flex; flex-direction: column; gap: 12px">
-        <p class="eyebrow">Sending, after the press</p>
-        <button type="button" class="btn block" disabled style="opacity: .75; cursor: default"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="width: 20px; height: 20px;" aria-hidden="true"><path d="M21 12a9 9 0 1 1-6.219-8.56"></path></svg>Send my sign-in link</button>
-        <p class="muted" style="margin: 0; font-size: 13px">The button is disabled and spins until the link is sent. Then the next screen opens.</p>
-      </div>
-    </div>
-  </div>
+<section class="authsec" aria-labelledby="au-h">
+  <div class="wrap"><div class="authcol">
+    <h1 id="au-h" class="hero1">Welcome back</h1>
+    <p class="lead" style="margin: 0">Enter the email you paid with. We’ll send you a sign-in link.</p>
+    <form class="card" style="padding: 24px; display: flex; flex-direction: column; gap: 16px" action="AuthCheckEmail.dc.html">
+      <div class="fld"><label for="em">Your email</label><input class="inp" id="em" name="email" type="email" autocomplete="email" inputmode="email" placeholder="you@example.com" style="border-color: #d6d8e8"></div>
+      <button type="submit" class="btn block">Send my sign-in link</button>
+    </form>
+    <aside class="dnote note" aria-label="Designer note"><p class="dnl">Designer note: other states</p><div class="dgrid"><div class="st"><p class="sl">Wrong address</p><div class="fld"><label for="em2">Your email</label><input class="inp" id="em2" type="email" value="dana@harborplumbing" aria-invalid="true" aria-describedby="em2-err" style="border-color: #b84029"></div><p class="errline" id="em2-err"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="width: 16px; height: 16px;" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg><span>That doesn’t look like an email address. Check it and try again.</span></p></div><div class="st"><p class="sl">Sending, after the press</p><button type="button" class="btn block" disabled style="opacity: .75; cursor: default"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="width: 20px; height: 20px;" aria-hidden="true"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>Send my sign-in link</button></div></div></aside>
+  </div></div>
 </section>
 </main>
 <footer class="ftr" style="background: #ffffff; border-top: 1px solid #e8e9f3; margin-top: auto">
@@ -236,7 +210,7 @@ p,li,dd{text-wrap:pretty}
       <div style="flex: 1.4 1 200px"><a href="PubLanding.dc.html" style="display: inline-flex; align-items: center; gap: 8px; color: #1e2233; font-weight: 800; font-size: 18px; text-decoration: none; min-height: 44px"><svg viewBox="0 0 64 64" style="width: 28px; height: 28px; flex: none" aria-hidden="true"><defs><linearGradient id="fmf" x1="0.15" y1="1" x2="0.95" y2="0.1"><stop offset="0.38" stop-color="#ffffff"></stop><stop offset="1" stop-color="#ffffff" stop-opacity="0.12"></stop></linearGradient><clipPath id="fmc"><rect width="64" height="64" rx="15"></rect></clipPath></defs><g clip-path="url(#fmc)"><rect width="64" height="64" fill="#5b4be0"></rect><path d="M8 50 A24 24 0 0 1 56 50 Z" fill="url(#fmf)"></path></g></svg>ReachKit</a></div>
 <div style="flex: 1 1 150px; min-width: 0"><h2 class="eyebrow">Product</h2><ul><li><a href="PubLanding.dc.html#landing-field">Free scan</a></li><li><a href="PubHowItWorks.dc.html">How it works</a></li><li><a href="Pricing.dc.html">Pricing</a></li><li><a href="PubAbout.dc.html">About</a></li><li><a href="AuthSignIn.dc.html">Sign in</a></li></ul></div>
 <div style="flex: 1 1 150px; min-width: 0"><h2 class="eyebrow">Learn</h2><ul><li><a href="PubScans.dc.html">Free scans</a></li><li><a href="PubCompare.dc.html">Compare</a></li><li><a href="PubTools.dc.html">Free tools</a></li><li><a href="PubTeardowns.dc.html">Teardowns</a></li><li><a href="#">Articles</a></li></ul></div>
-<div style="flex: 1 1 150px; min-width: 0"><h2 class="eyebrow">Legal</h2><ul><li><a href="Legal.dc.html">Privacy</a></li><li><a href="#">Terms</a></li><li><a href="#">Imprint</a><span class="tag">[after launch gate]</span></li><li><a href="#">Cancel your contract</a><span class="tag">[after launch gate]</span></li></ul></div>
+<div style="flex: 1 1 150px; min-width: 0"><h2 class="eyebrow">Legal</h2><ul><li><a href="Legal.dc.html">Privacy</a></li><li><a href="#">Terms</a></li><li><a href="#">Imprint</a></li><li><a href="#">Cancel your contract</a></li></ul></div>
 <div style="flex: 1 1 150px; min-width: 0"><h2 class="eyebrow">Contact</h2><ul><li><a href="#">hello@reachkit.app</a></li></ul></div>
     </div>
     <p class="muted" style="margin: 0; padding-top: 20px; border-top: 1px solid #e8e9f3; font-size: 13px; display: flex; flex-wrap: wrap; align-items: center"><span>© 2026 ReachKit · Want your site’s report removed?&nbsp;</span><a href="#" style="display: inline-flex; align-items: center; min-height: 44px">remove@reachkit.app</a></p>
@@ -244,7 +218,7 @@ p,li,dd{text-wrap:pretty}
 </footer>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1472}}'>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1413}}'>
 class Component extends DCLogic {
   renderVals() { return {}; }
 }
