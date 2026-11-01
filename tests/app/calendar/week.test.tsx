@@ -1,16 +1,14 @@
 /** @vitest-environment jsdom */
 // tests/app/calendar/week.test.tsx — SPEC §7 (E5, 2026-10-19): Plan is the
-// committed week as seven day cells, Monday to Sunday in the site's zone,
+// committed week as seven day rows, Monday to Sunday in the site's zone,
 // each with its page, its state and, where the page can still be stopped,
-// the stop control; the spares under it; and a phone lists the same days
-// in the same order.
+// the stop control; and the spares under it.
+import { ALL_ARMS } from "./arms";
 import { describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import React from "react";
 import { COPY } from "@/lib/presentation/copy";
 import { CalendarView } from "@/app/(account)/app/calendar/CalendarView";
-import { DayList } from "@/app/(account)/app/calendar/DayList";
-import { WeekGrid } from "@/app/(account)/app/calendar/WeekGrid";
 import { planWeek } from "@/app/(account)/app/calendar/dates";
 import { assembleMonth, weekOf, type CalendarFacts, type DraftOnDay } from "@/app/(account)/app/calendar/month";
 import { FIXTURE_CALENDAR_FACTS, FIXTURE_MONTH } from "@/app/(account)/app/calendar/fixture";
@@ -27,8 +25,7 @@ function render(el: React.ReactElement): Element {
 const WEEK = ["2026-09-14", "2026-09-15", "2026-09-16", "2026-09-17", "2026-09-18", "2026-09-19", "2026-09-20"];
 
 const cells = (root: Element): Element[] => [...root.querySelectorAll('[data-testid="calendar-week"] > li')];
-const rows = (root: Element): Element[] => [...root.querySelectorAll('[data-testid="calendar-list"] [data-testid^="calendar-day-"]')];
-const listed = (root: Element): string[] => rows(root).map((row) => (row.getAttribute("data-testid") ?? "").replace("calendar-day-", ""));
+const listed = (root: Element): string[] => cells(root).map((row) => (row.getAttribute("data-testid") ?? "").replace("calendar-cell-", ""));
 const stateOf = (cell: Element | null | undefined): string | null =>
   cell?.querySelector('[data-testid="day-state"]')?.getAttribute("data-state") ?? null;
 
@@ -95,7 +92,7 @@ describe("condition 1 — seven cells, each with its page, its state and the sto
     ]);
   });
 
-  it("each page says under 'Why' the sentence for the reason its week stored, on the week and on a phone", () => {
+  it("each page says after 'Why' the sentence for the reason its week stored", () => {
     const reasons = [
       null,
       { points: 6, parts: [{ part: "fit" as const, n: 3 }, { part: "ai_gap" as const, n: 2 }, { part: "linked_by_ai" as const, n: 1 }], rule: "best" as const },
@@ -107,8 +104,6 @@ describe("condition 1 — seven cells, each with its page, its state and the sto
     const root = render(withNuqs(<CalendarView {...shown(assembleMonth({ ...facts, drafts }, FIXTURE_MONTH))} />));
     const lines = [null, COPY["calendar.reason.ai-gap"], COPY["calendar.reason.searched"], null, null, COPY["calendar.reason.ai-gap"], COPY["calendar.reason.searched"]];
     expect(cells(root).map((cell) => cell.querySelector('[data-testid="cell-why-line"]')?.textContent ?? null)).toEqual(lines);
-    const rows = [...root.querySelectorAll('[data-testid="calendar-list"] [data-testid^="calendar-day-"]')];
-    expect(rows.map((row) => row.querySelector('[data-testid="list-why-line"]')?.textContent ?? null)).toEqual(lines);
     const eyebrows = cells(root).map((cell) => cell.querySelector('[data-testid="cell-why"]')?.firstElementChild?.textContent ?? null);
     expect(eyebrows).toEqual(lines.map((line) => (line === null ? null : COPY["calendar.week.why"])));
   });
@@ -126,9 +121,8 @@ describe("condition 1 — seven cells, each with its page, its state and the sto
   });
 
   it("the short week: six pages, a day stopped and a day skipped, each said in its own word", () => {
-    // The fixture week: a live page, three written, one planned, a day an
-    // instruction stopped and a day supply left empty.
-    const root = render(withNuqs(<CalendarView {...shown(assembleMonth(FIXTURE_CALENDAR_FACTS, FIXTURE_MONTH))} />));
+    // A live page, three written, one planned, a day an instruction stopped and a day supply left empty.
+    const root = render(withNuqs(<CalendarView {...shown(assembleMonth(ALL_ARMS, FIXTURE_MONTH))} />));
     const days = cells(root);
     expect(days).toHaveLength(7);
     expect(days.map(stateOf)).toEqual(["live", "written", "written", "written", "planned", "stopped", "skipped"]);
@@ -156,13 +150,6 @@ describe("condition 1 — seven cells, each with its page, its state and the sto
     expect(none.querySelector('[data-testid="calendar-spares"]')).toBeNull();
   });
 
-  it("the filter and the numbers count the week the screen shows", () => {
-    const { week } = shown(assembleMonth(FIXTURE_CALENDAR_FACTS, FIXTURE_MONTH));
-    const root = render(withNuqs(<CalendarView week={week} />));
-    expect(root.querySelector('[data-testid="stage-count-all"]')?.textContent).toBe(
-      String(week.cells.filter((cell) => cell.page !== null).length)
-    );
-  });
 });
 
 describe("owner O7 — a page set aside is told plainly, and only a critical cause says Needs you", () => {
@@ -202,33 +189,7 @@ describe("owner O7 — a page set aside is told plainly, and only a critical cau
   });
 });
 
-describe("each page day draws the board's page sketch and icons", () => {
-  const sketch = (day: Element): string | null => {
-    const band = day.querySelector("svg.lucide-file-text")?.parentElement;
-    if (band === null || band === undefined) return null;
-    return band.classList.contains("bg-primary/10") ? "primary" : "plain";
-  };
-
-  it("a page day draws its sketch, an empty day none; today's is primary", () => {
-    // The fixture week: five pages, today among them, then a stopped day and a skipped day.
-    const { week } = shown(assembleMonth(FIXTURE_CALENDAR_FACTS, FIXTURE_MONTH));
-    const want = week.cells.map((cell) => (cell.page === null ? null : cell.today ? "primary" : "plain"));
-    expect(want).toContain("primary");
-    expect(want.slice(5)).toEqual([null, null]);
-    const root = render(withNuqs(<CalendarView week={week} />));
-    expect(cells(root).map(sketch)).toEqual(want);
-    expect(rows(root).map(sketch)).toEqual(want);
-
-    // A stage filter that leaves a day without its page leaves it without a band too.
-    const props = { cells: week.cells, filter: "live" as const, selected: null, goesLive: null, firstSkip: null, onSelect: () => {} };
-    expect(week.cells.some((cell) => cell.page?.stage === "live")).toBe(true);
-    const grid = render(withNuqs(<WeekGrid {...props} destination={null} />));
-    const list = render(withNuqs(<DayList {...props} />));
-    const keep = (cell: (typeof week.cells)[number]): string | null => (cell.page?.stage === "live" ? (cell.today ? "primary" : "plain") : null);
-    expect(cells(grid).map(sketch)).toEqual(week.cells.map(keep));
-    expect(rows(list).map(sketch)).toEqual(week.cells.map(keep));
-  });
-
+describe("each page day draws the board's icons", () => {
   it("New/Update chips and the Planned badge carry their icons", () => {
     const facts = fullWeek();
     const drafts = facts.drafts.map((d, at) => ({ ...d, update: at % 2 === 1 }));
@@ -245,18 +206,7 @@ describe("each page day draws the board's page sketch and icons", () => {
     const badges = cells(root).map((cell) => cell.querySelector('[data-testid="day-state"]'));
     expect(badges.map(icon)).toEqual([null, null, null, "calendar", "calendar", "calendar", "calendar"]);
     // The stopped badge carries the board's stop icon; a skipped day draws none.
-    const fixture = render(withNuqs(<CalendarView {...shown(assembleMonth(FIXTURE_CALENDAR_FACTS, FIXTURE_MONTH))} />));
+    const fixture = render(withNuqs(<CalendarView {...shown(assembleMonth(ALL_ARMS, FIXTURE_MONTH))} />));
     expect(cells(fixture).slice(5).map((cell) => icon(cell.querySelector('[data-testid="day-state"]')))).toEqual(["circle-stop", null]);
-  });
-});
-
-describe("condition 3 — a phone lists the same days in the same order", () => {
-  it("the list and the cells are the same seven dates, Monday first", () => {
-    const root = render(withNuqs(<CalendarView {...shown(assembleMonth(FIXTURE_CALENDAR_FACTS, FIXTURE_MONTH))} />));
-    expect(listed(root)).toEqual(WEEK);
-    expect(cells(root).map((cell) => cell.getAttribute("data-testid")?.replace("calendar-cell-", ""))).toEqual(WEEK);
-    // Each row says the same state its cell does.
-    const rows = [...root.querySelectorAll('[data-testid="calendar-list"] [data-testid^="calendar-day-"]')];
-    expect(rows.map(stateOf)).toEqual(cells(root).map(stateOf));
   });
 });

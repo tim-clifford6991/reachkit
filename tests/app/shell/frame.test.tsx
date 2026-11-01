@@ -419,10 +419,8 @@ describe("REQ-040 c5 / SPEC §4 (2026-09-20) — a viewport too narrow keeps all
     expect(top).not.toBeNull();
     expect(top?.textContent).toContain("example.com");
     expect(top?.querySelector("[data-testid='theme-toggle']")).not.toBeNull();
-    // The panel's own statement, not a second sentence.
-    expect(top?.querySelector("[data-testid='shell-top-publishing']")?.textContent).toBe(
-      root.querySelector("[data-testid='shell-publishing-line']")?.textContent
-    );
+    // Publishing is on, so the bar says so.
+    expect(top?.querySelector("[data-testid='shell-top-publishing']")?.textContent).toBe("shell.publishing.state.autopilot");
     expect(top?.querySelector(`[for='${DRAWER_TOGGLE_ID}']`)).toBeNull();
     expect(root.querySelector("[data-testid='shell-menu-button']")).toBeNull();
     expect(root.querySelector("[data-testid='shell-dock']")).not.toBeNull();

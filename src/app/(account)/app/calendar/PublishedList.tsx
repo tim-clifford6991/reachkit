@@ -1,15 +1,17 @@
 // Board Plan — "Live pages": every page published and standing, the rows
 // Overview's Content tile counts, each with how far it got on Google and in
-// AI answers as step dots, its label, and *Stop this page* (R9).
+// AI answers as step dots, its label under it, and *Stop this page* (R9).
 //
 // The rows are Overview's ladder (`@/lib/measure/page-ladder`), so a step is
-// read the one way on both screens; a step nothing read is "not measured",
-// never an empty dot. The first few show; the rest open under *Show all*.
+// read the one way on both screens. A page nothing has read yet says when it
+// went live and is too early to judge, never empty dots. The first few show;
+// the rest open under *Show all*.
 import type React from "react";
 import Link from "next/link";
 import { copy } from "@/lib/presentation/copy";
 import { formatCount, formatDate } from "../_shell/format";
 import type { ContentModel, PublishedPage } from "@/lib/measure/published";
+import type { CopyKey } from "@/lib/presentation/copy";
 import { pageLadderOf, type LadderRow, type StepDot } from "@/lib/measure/page-ladder";
 import { LabelBadge } from "../_shell/verdict";
 import { ENGINE_LABEL } from "../_shell/page-target-words";
@@ -62,9 +64,9 @@ function standingLines(row: LadderRow, page: PublishedPage | undefined, timeZone
       const weeks = Math.round((now.getTime() - Date.parse(reading.best.at)) / MS_PER_WEEK);
       out.push(copy("calendar.live.no-gain", { n, weeks: formatCount(weeks) }));
     } else if (up > 0) {
-      out.push(copy("calendar.live.place-up", { n, search: reading.place.query, up: formatCount(up), date: formatDate(new Date(reading.first!.at), timeZone) }));
+      out.push(copy("calendar.live.place-up", { n, up: formatCount(up), date: formatDate(new Date(reading.first!.at), timeZone) }));
     } else {
-      out.push(copy("calendar.live.place", { n, search: reading.place.query }));
+      out.push(copy("calendar.live.place", { n }));
     }
   } else if (reading.reached.found !== undefined) {
     out.push(copy("calendar.live.found", { date: formatDate(new Date(reading.reached.found), timeZone) }));
@@ -77,7 +79,12 @@ function standingLines(row: LadderRow, page: PublishedPage | undefined, timeZone
   return out;
 }
 
-function Dots(p: { dots: readonly StepDot[]; measured: boolean; caption: string; testId: string }): React.JSX.Element {
+/** Board Plan names the Google step a page shows in by where it shows: "in results". */
+function googleStep(step: CopyKey): CopyKey {
+  return step === "draft.ladder.showing" ? "calendar.live.showing" : step;
+}
+
+function Dots(p: { dots: readonly StepDot[]; caption: string; testId: string }): React.JSX.Element {
   return (
     <span className="flex min-w-0 items-center gap-2" data-testid={p.testId}>
       <span className="flex shrink-0 gap-1" aria-hidden>
@@ -85,8 +92,8 @@ function Dots(p: { dots: readonly StepDot[]; measured: boolean; caption: string;
           <span
             key={dot.name}
             aria-hidden
-            className={p.measured ? `status ${dot.reached ? "status-primary" : ""}` : "status border border-base-content/40 bg-transparent"}
-            data-reached={p.measured ? (dot.reached ? "yes" : "not-yet") : "unmeasured"}
+            className={`status ${dot.reached ? "status-primary" : ""}`}
+            data-reached={dot.reached ? "yes" : "not-yet"}
           />
         ))}
       </span>
@@ -105,32 +112,37 @@ function Row(p: {
   update: string | undefined;
 }): React.JSX.Element {
   const { row, page } = p;
-  const lines = standingLines(row, page, p.timeZone, p.now);
+  const lines = row.measured || page === undefined
+    ? standingLines(row, page, p.timeZone, p.now)
+    : [copy("calendar.live.unread", { date: formatDate(page.publishedAt, p.timeZone) })];
   if (p.update !== undefined) lines.push(copy("calendar.live.update", { day: p.update }));
   const stop = page?.draftId === undefined || page.url === null ? null : page.draftId;
   // No AI step yet: "not read yet" where AI reads are seen; a WordPress page has no read step.
   const none = page?.wordpress === true ? "draft.ladder.not-yet" : "calendar.live.ai-unread";
-  const ai = row.measured ? copy(row.ai ?? none) : copy("draft.ladder.unmeasured");
+  const ai = copy(row.ai ?? none);
   return (
     <li className="list-row min-w-0 items-start px-0" data-testid="plan-published-row" data-recent={p.recent ? "" : undefined}>
       <div className="list-col-grow flex min-w-0 flex-col gap-1">
         {row.href === null ? (
           <span className="min-w-0 font-semibold break-words">{row.title}</span>
         ) : (
-          <Link href={row.href} className="link link-hover min-w-0 font-semibold break-words">
+          <Link href={row.href} className="link link-primary link-hover min-w-0 font-semibold break-words">
             {row.title}
           </Link>
         )}
         {lines.length === 0 ? null : <p className="min-w-0 text-sm text-base-content/70">{lines.join(" ")}</p>}
-        <span className="flex min-w-0 flex-wrap gap-x-4 gap-y-1 text-xs text-base-content/70">
-          <Dots dots={row.dots.google} measured caption={copy("calendar.live.google", { step: copy(row.google) })} testId="plan-live-google" />
-          <Dots dots={row.dots.ai} measured={row.measured} caption={copy("calendar.live.ai", { step: ai })} testId="plan-live-ai" />
-        </span>
+        {row.measured ? (
+          <span className="flex min-w-0 flex-col gap-1 text-xs text-base-content/70">
+            <Dots dots={row.dots.google} caption={copy("calendar.live.google", { step: copy(googleStep(row.google)) })} testId="plan-live-google" />
+            <Dots dots={row.dots.ai} caption={copy("calendar.live.ai", { step: ai })} testId="plan-live-ai" />
+          </span>
+        ) : null}
+        {/* Unread, a page is too early to judge. */}
+        <LabelBadge label={row.label ?? "too_early"} className="mt-1 self-start" testId="plan-live-label" />
       </div>
-      {row.label === null && stop === null ? null : (
+      {stop === null ? null : (
         <span className="flex shrink-0 flex-col items-end gap-2">
-          {row.label === null ? null : <LabelBadge label={row.label} />}
-          {stop === null ? null : <TakeDownControl draftId={stop} mode="stop" words={p.words} />}
+          <TakeDownControl draftId={stop} mode="stop" words={p.words} />
         </span>
       )}
     </li>
@@ -157,12 +169,9 @@ export function PublishedList(p: {
   return (
     <section id={PUBLISHED_ID} className="card card-border min-w-0 scroll-mt-32 bg-base-100" aria-labelledby="plan-live-heading" data-testid="plan-published">
       <div className="card-body gap-3 p-4">
-        <div className="flex min-w-0 flex-wrap items-baseline gap-x-3 gap-y-1">
-          <h2 id="plan-live-heading" className="card-title text-base!">
-            {copy("calendar.live.title")}
-          </h2>
-          <span className="text-xs text-base-content/70">{copy("calendar.live.dots")}</span>
-        </div>
+        <h2 id="plan-live-heading" className="card-title text-base!">
+          {copy("calendar.live.title")}
+        </h2>
         {rows.length === 0 ? (
           <p className="text-sm text-base-content/70">{copy("calendar.live.none")}</p>
         ) : (
@@ -170,11 +179,8 @@ export function PublishedList(p: {
             <ul className="list min-w-0">{rows.slice(0, SHOWN).map(row)}</ul>
             {rows.length <= SHOWN ? null : (
               <details className="collapse min-w-0" data-testid="plan-live-more">
-                <summary className="collapse-title flex min-w-0 flex-wrap justify-between gap-x-3 px-0 text-sm">
-                  <span className="text-base-content/70">
-                    {copy("calendar.live.count", { n: formatCount(SHOWN), m: formatCount(rows.length) })}
-                  </span>
-                  <span className="link link-primary">{copy("calendar.live.all", { m: formatCount(rows.length) })}</span>
+                <summary className="collapse-title flex min-h-11 min-w-0 items-center px-0 text-sm">
+                  <span className="link link-primary font-semibold">{copy("calendar.live.all", { m: formatCount(rows.length) })}</span>
                 </summary>
                 <ul className="collapse-content list min-w-0 px-0">{rows.slice(SHOWN).map(row)}</ul>
               </details>
