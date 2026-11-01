@@ -23,7 +23,7 @@
 import { ABSENT_FROM_MAX } from "@/lib/config/constants";
 import type { Measured } from "@/lib/measure/measured";
 import type { MarketSerp, SelectedSearchView } from "../views";
-import { isOwnDomain, isSourceRow, registrableDomain, type SourceReading } from "./domains";
+import { isOwnDomain, isSourceRow, ownPlaceIn, registrableDomain, resolvedHost, resolvedRows, type SourceReading } from "./domains";
 import type { RivalCandidate } from "./derive";
 
 export interface PresenceCard {
@@ -61,7 +61,8 @@ interface MeasuredPair {
 
 function measuredPairs(
   serps: readonly Measured<MarketSerp>[],
-  selected: readonly SelectedSearchView[]
+  selected: readonly SelectedSearchView[],
+  ownDomain: string
 ): MeasuredPair[] {
   const pairs: MeasuredPair[] = [];
   for (let i = 0; i < serps.length; i += 1) {
@@ -69,6 +70,8 @@ function measuredPairs(
     const search = selected[i];
     if (measured === undefined || measured.kind === "unmeasured") continue;
     if (search === undefined) continue;
+    // A redirect row the customer may hold leaves its presence there unmeasured.
+    if (ownPlaceIn(rowsOf(measured.value), ownDomain) === null) continue;
     pairs.push({ serp: measured.value, search });
   }
   return pairs;
@@ -77,10 +80,14 @@ function measuredPairs(
 /** The registrable domains of one SERP's top ten and its local pack, which
  *  counts as the top ten does (D67, issue 1441). A row whose host does not
  *  parse is dropped, not counted as somebody. */
+function rowsOf(serp: MarketSerp): { domain: string; url?: string }[] {
+  return [...serp.organic, ...(serp.localPack ?? [])];
+}
+
 function topTenDomains(serp: MarketSerp): Set<string> {
   const domains = new Set<string>();
-  for (const row of [...serp.organic, ...(serp.localPack ?? [])]) {
-    const domain = registrableDomain(row.domain);
+  for (const row of rowsOf(serp)) {
+    const domain = registrableDomain(resolvedHost(row) ?? "");
     if (domain !== null) domains.add(domain);
   }
   return domains;
@@ -90,7 +97,7 @@ function topTenDomains(serp: MarketSerp): Set<string> {
  *  source rather than a business (`isSourceRow`: a platform, a public body,
  *  a job page or an article), or where no row carries position 1 at all. */
 function topHolderOf(serp: MarketSerp, reading: SourceReading): string | null {
-  const first = serp.organic.find((row) => row.position === 1);
+  const first = resolvedRows(serp.organic)?.find((row) => row.position === 1);
   return first === undefined || isSourceRow(first, reading) ? null : registrableDomain(first.domain);
 }
 
@@ -105,7 +112,7 @@ export function ownPresenceBySearch(a: {
   selected: readonly SelectedSearchView[];
   ownDomain: string;
 }): { keyword: string; present: boolean }[] {
-  const topTens = measuredPairs(a.serps, a.selected).map((pair) => ({ pair, domains: topTenDomains(pair.serp) }));
+  const topTens = measuredPairs(a.serps, a.selected, a.ownDomain).map((pair) => ({ pair, domains: topTenDomains(pair.serp) }));
   return ownPresenceOf(topTens, a.ownDomain).map(({ pair, present }) => ({ keyword: pair.search.keyword, present }));
 }
 
@@ -132,7 +139,7 @@ export function buildPresenceCard(a: {
   local?: boolean;
   sources?: readonly string[];
 }): PresenceCard {
-  const pairs = measuredPairs(a.serps, a.selected);
+  const pairs = measuredPairs(a.serps, a.selected, a.ownDomain);
   const topTens = pairs.map((pair) => ({ pair, domains: topTenDomains(pair.serp) }));
   const ownPresence = ownPresenceOf(topTens, a.ownDomain);
   const reading = { local: a.local === true, sources: a.sources ?? [], rivals: a.rivals.map((rival) => rival.domain) };
