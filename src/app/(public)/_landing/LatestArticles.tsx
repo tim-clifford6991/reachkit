@@ -29,7 +29,7 @@ export async function LatestArticles(): Promise<React.JSX.Element | null> {
           <h2 id={LABEL_ID}>{copy("landing.articles.heading")}</h2>
           <a
             href={own.index}
-            className="link link-hover link-primary group/all flex items-center gap-1 text-sm font-semibold"
+            className="link link-hover link-primary group/all flex min-h-11 items-center gap-1 text-sm font-semibold"
           >
             {copy("landing.articles.all")}
             <ArrowRight

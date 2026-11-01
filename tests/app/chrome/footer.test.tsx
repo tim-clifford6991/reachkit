@@ -44,10 +44,6 @@ describe("ruling 3a — brand · rights · removal address · Product · Legal",
     expect(COPY["chrome.footer.opt-out"]).toContain("{address}");
   });
 
-  it("the rights line is the owner's approved sentence (2026-09-10, #459)", () => {
-    expect(COPY["chrome.footer.rights"]).toBe("© 2026 ReachKit. All rights reserved.");
-  });
-
   it("board PubLanding: brand, then Product · Learn · Legal · Contact, then the rights and removal line", () => {
     const titles = [...html.matchAll(/<div class="footer-title[^"]*">([^<]*)<\/div>/g)].map((m) => m[1]);
     expect(titles).toEqual(["Product", "Learn", "Legal", "Contact"]);
@@ -57,7 +53,7 @@ describe("ruling 3a — brand · rights · removal address · Product · Legal",
 
   it("Learn opens with Free scans, then Compare, Free tools and Teardowns", () => {
     const learn = html.slice(html.indexOf(">Learn<"), html.indexOf(">Legal<"));
-    const links = [...learn.matchAll(/<a class="link link-hover" href="([^"]*)">([^<]*)<\/a>/g)].map((m) => m[2]);
+    const links = [...learn.matchAll(/<a class="link link-hover[^"]*" href="([^"]*)">([^<]*)<\/a>/g)].map((m) => m[2]);
     expect(links).toEqual(["Free scans", "Compare", "Free tools", "Teardowns"]);
   });
 

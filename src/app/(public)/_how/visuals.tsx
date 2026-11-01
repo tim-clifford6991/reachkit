@@ -46,8 +46,8 @@ import { HOW_FACTS } from "./facts";
 import { ExampleSwitch } from "./ExampleSwitch";
 import { EXAMPLES, LIVE_AT, REASON_COPY, weekDate, weekDays, weekSpan, type Example } from "./specimen";
 
-const ICON = { size: 16, strokeWidth: 1.75, "aria-hidden": true } as const;
-const CARD = "card card-border bg-base-100 min-w-0";
+export const ICON = { size: 16, strokeWidth: 1.75, "aria-hidden": true } as const;
+export const CARD = "card card-border bg-base-100 min-w-0";
 const SMALL = "text-base-content/70 text-xs";
 const LABEL = "text-primary text-xs font-semibold";
 const WELL = "rounded-box bg-base-200 flex min-w-0 flex-col gap-1 p-3";
@@ -633,7 +633,7 @@ export interface WhenStep {
   readonly icon: LucideIcon;
 }
 
-const WHEN_STEPS = (): readonly WhenStep[] =>
+export const WHEN_STEPS = (): readonly WhenStep[] =>
   WHEN.map(([step, icon]) => ({
     at: copy(`how.when.${step}.at` as CopyKey),
     what: copy(`how.when.${step}.what` as CopyKey),

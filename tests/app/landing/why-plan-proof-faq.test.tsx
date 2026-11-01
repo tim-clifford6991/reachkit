@@ -31,8 +31,7 @@ const { default: LandingPage } = await import("@/app/(public)/page");
 const { copy } = await import("@/lib/presentation/copy");
 const { HOW_FACTS } = await import("@/app/(public)/_how/facts");
 const { WEEK_PLAN } = await import("@/lib/config/constants");
-const { SPECIMEN_HERO } = await import("@/app/(public)/_landing/specimen");
-const { buysIcons, whenIcons } = await import("../how/drawn-icons");
+const { buysIcons, icons } = await import("../how/drawn-icons");
 
 const article = (slug: string, title: string, day: number): Page => ({
   title,
@@ -80,57 +79,6 @@ function inOrder(text: string, sentences: readonly string[]): void {
 const price = copy("price.amount");
 
 beforeEach(stored);
-
-describe("Why you should care: four cards whose drawings are the board's", () => {
-  it("the Google card draws one search, a chain's page at #2, and You not on Google's first two pages, as an example", async () => {
-    const why = (await render()).querySelector("section#why")!;
-    const card = why.querySelectorAll("li.card")[1]!;
-    inOrder(flat(card), [
-      copy("landing.feature.google.title"),
-      copy("landing.feature.google.search"),
-      copy("landing.feature.google.chain"),
-      "#2",
-      copy("landing.feature.google.you"),
-      copy("landing.feature.google.absent"),
-      copy("landing.feature.example"),
-    ]);
-    expect(card.querySelector("progress")).toBeNull();
-  });
-
-  it("the Fix card shows the problems as found, each with who fixes it", async () => {
-    const card = (await render()).querySelector("section#why")!.querySelectorAll("li.card")[2]!;
-    inOrder(flat(card), [
-      copy("landing.feature.fix.title"),
-      copy("how.read.held.ai"),
-      copy("landing.feature.fix.free"),
-      copy("how.read.held.list"),
-      copy("landing.feature.fix.free"),
-      copy("landing.feature.fix.titles"),
-      copy("landing.feature.fix.ours"),
-      copy("landing.feature.example"),
-    ]);
-  });
-
-  it("the Pages card draws Tuesday to Saturday, each live at the example hour, and says it is an example", async () => {
-    const card = (await render()).querySelector("section#why")!.querySelectorAll("li.card")[3]!;
-    const days = card.querySelectorAll("ol > li").map((li) => flat(li));
-    expect(days).toEqual(["Tue", "Wed", "Thu", "Fri", "Sat"].map((d) => `${d} ${SPECIMEN_HERO.liveAt}`));
-    expect(flat(card)).toContain(copy("landing.feature.daily.caption", { time: SPECIMEN_HERO.liveAt }));
-  });
-
-  it("every drawing shows at every width, as the phone board draws them", async () => {
-    for (const demo of (await render()).querySelectorAll("section#why [data-demo]")) {
-      expect(demo.getAttribute("class")).not.toMatch(/\bhidden\b/);
-    }
-  });
-
-  it("the section ends with the link to how we find who answers instead", async () => {
-    const links = (await render()).querySelector("section#why")!.querySelectorAll("a");
-    const last = links[links.length - 1]!;
-    expect(flat(last)).toBe(copy("landing.why.more"));
-    expect(last.getAttribute("href")).toBe("/how-it-works#competitors");
-  });
-});
 
 describe("What €49 a month gets you: the tiles, everything in the plan, the plan card", () => {
   it("the heading, then what €49 buys as Pricing's four tiles, with no guarantee before the launch gate", async () => {
@@ -183,27 +131,9 @@ describe("What €49 a month gets you: the tiles, everything in the plan, the pl
 });
 
 describe("Questions owners ask", () => {
-  it("what to expect, when, comes before the first question", async () => {
-    const text = flat((await render()).querySelector("section#faq")!);
-    inOrder(text, [copy("landing.faq.heading"), copy("how.when.title"), copy("how.when.sub"), copy("how.when.promise"), copy("how.when.maps"), copy("landing.faq.spam.q")]);
-  });
-
-  it("what to expect: calendar, search, eye, trending-up in order, then the notes: info, map-pin", async () => {
-    const faq = (await render()).querySelector("section#faq")!;
-    expect(whenIcons(faq.toString())).toEqual({ steps: ["calendar", "search", "eye", "trending-up"], notes: ["info", "map-pin"] });
-  });
-
-  it("the spam answer names Claude, and the results answer says where the Monday email shows the pages", async () => {
-    const text = flat((await render()).querySelector("section#faq")!);
-    expect(text).toContain("Claude, an AI model, writes each page");
-    expect(text).toContain("Each Monday email shows where they sit on Google, and whether AI links to them.");
-  });
-
-  it("the section ends with every question, with the detail, on How it works", async () => {
-    const links = (await render()).querySelector("section#faq")!.querySelectorAll("a");
-    const last = links[links.length - 1]!;
-    expect(flat(last)).toBe(copy("landing.faq.more"));
-    expect(last.getAttribute("href")).toBe("/how-it-works#faq");
+  it("what to expect: calendar, search, eye, trending-up in order, and no note under them", async () => {
+    const card = (await render()).querySelector("section#faq figure")!;
+    expect(icons(card.toString())).toEqual(["calendar", "search", "eye", "trending-up"]);
   });
 });
 

@@ -14,7 +14,7 @@ applyEnvFixture();
 import { ANSWER_RATE_WEEKS, BATTERY, CROSS_LINKS, PACE, TRACKED_PROMPTS, VETO, WEEK_PLAN } from "@/lib/config/constants";
 import { HARD_RULES } from "@/lib/generate/rules/types";
 import { COPY, copy, type CopyKey } from "@/lib/presentation/copy";
-import { COUNTRIES } from "@/lib/locale/locales";
+import { COUNTRIES, measuredCountryLists } from "@/lib/locale/locales";
 import type { LiveExamples } from "@/app/(public)/_how/examples";
 
 const live = vi.hoisted(() => ({ now: { report: null, page: null, founder: null } as unknown }));
@@ -105,15 +105,19 @@ describe("the head, the four steps and eleven sections in the board's order", ()
 });
 
 describe("every page that answers Does it work in German? names the countries ReachKit measures", () => {
-  it.each([
-    ["how it works", () => html],
-    ["the landing", () => renderToStaticMarkup(createElement(LandingPage, { searchParams: {} }))],
-  ])("%s", (_page, render) => {
-    const page = render();
+  const answer = (page: string): string => {
     const at = page.indexOf(copy("landing.faq.german.q"));
     expect(at).toBeGreaterThan(-1);
-    const answer = page.slice(at, page.indexOf("</details>", at));
-    for (const row of Object.values(COUNTRIES)) expect(answer).toContain(row.location);
+    return page.slice(at, page.indexOf("</details>", at));
+  };
+
+  it("how it works names every one", () => {
+    for (const row of Object.values(COUNTRIES)) expect(answer(html)).toContain(row.location);
+  });
+
+  it("the landing's short answer names the ones written in German", () => {
+    const landing = answer(renderToStaticMarkup(createElement(LandingPage, { searchParams: {} })));
+    expect(landing).toContain(measuredCountryLists().germanCountries);
   });
 });
 

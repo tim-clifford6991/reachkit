@@ -11,3 +11,5 @@ We find who buyers choose instead of you	SPEC §0 2026-10-15: a title is at most
 Every page is true to your business	SPEC §0 2026-10-15: a title is at most six words; R12 (owner 2026-10-22) ships Pages true to your business
 On your own web address. Software blog.tidyslot.example/stop-double-bookings	sample data: the software address is the Software arm of the switch (#1729)
 Articles	#1512: the footer links the content host's index only where stored rows name one; the sweep seeds none
+Yes, if it has a website: a local service, a shop, a restaurant, a firm, software or a creator. We check what your buyers search and ask AI, in your language, with your town if you serve one. Our pages help your website, not your Google Maps listing.	docs/spec/decisions/2026-10-31-2145.md (O6): three sentences over 15 words; ships the same facts in two shorter ones
+Our pages help your website, not your Google Maps listing.	docs/spec/decisions/2026-10-31-2145.md (O6): the last sentence of the answer above, which ships shortened

@@ -36,7 +36,6 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowRight, Check } from "lucide-react";
 import { Surface } from "@/ui/layout";
-import { HOSTED_RETENTION_DAYS } from "@/lib/config/constants";
 import { measuredCountryLists } from "@/lib/locale/locales";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { ScanForm } from "./_landing/ScanForm";
@@ -52,7 +51,8 @@ import { WALKTHROUGH_SRC, Walkthrough } from "./_landing/Walkthrough";
 import { KIND_ICON, KIND_WORD } from "./scans/kinds";
 import { BUSINESS_KIND_NAMES } from "@/lib/market/kinds";
 import { PlanBuys } from "./_how/buys";
-import { MondayEmail, WhatToExpect } from "./_how/visuals";
+import { MondayEmail } from "./_how/visuals";
+import { WhenSteps } from "./_how/visuals-when";
 import { EXAMPLES } from "./_how/specimen";
 import { BrandMark } from "@/app/_brand/Brand";
 import { FAQ_SECTION_ID, FIELD_SECTION_ID, HOW_SECTION_ID, PRICE_SECTION_ID, WHY_SECTION_ID } from "./_landing/sections";
@@ -89,18 +89,19 @@ const INCLUDED: readonly { key: CopyKey; vars?: Record<string, string> }[] = [
   { key: "landing.price.found" },
 ];
 
-/** The questions, in the board's order. The guarantee and *Cancel your
- *  contract* wait for the launch gate and are not drawn. */
-function questions(): readonly { id: string; vars?: Record<string, string>; more?: string }[] {
+/** The questions and their short answers, in the board's order; How it
+ *  works holds the full ones. The guarantee and *Cancel your contract* wait
+ *  for the launch gate and are not drawn. */
+function questions(): readonly { q: CopyKey; a: CopyKey; vars?: Record<string, string> }[] {
   return [
-    { id: "spam" },
-    { id: "approve", vars: { hours: String(HOW_FACTS.windowHours) } },
-    { id: "results", more: "/how-it-works#found" },
-    { id: "stop", vars: { days: String(HOSTED_RETENTION_DAYS) } },
-    { id: "local" },
-    { id: "start", vars: { minutes: String(HOW_FACTS.setupMinutes) } },
-    { id: "german", vars: measuredCountryLists() },
-    { id: "trial", vars: { price: PRICE() } },
+    { q: "landing.faq.spam.q", a: "landing.faq.spam.a" },
+    { q: "landing.faq.approve.q", a: "landing.faq.approve.short", vars: { hours: String(HOW_FACTS.windowHours) } },
+    { q: "landing.faq.results.q", a: "landing.faq.results.short" },
+    { q: "landing.faq.stop.q", a: "landing.faq.stop.short" },
+    { q: "landing.faq.any.q", a: "landing.faq.any.a" },
+    { q: "landing.faq.start.q", a: "landing.faq.start.a", vars: { minutes: String(HOW_FACTS.setupMinutes) } },
+    { q: "landing.faq.german.q", a: "landing.faq.german.short", vars: { germanCountries: measuredCountryLists().germanCountries } },
+    { q: "landing.faq.trial.q", a: "landing.faq.trial.short" },
   ];
 }
 
@@ -116,7 +117,8 @@ const LABEL = "text-xs font-semibold uppercase tracking-wide text-primary";
 /** Heading size and weight come from `type.css`'s element rules. */
 const HEADING = "mt-2 mb-3";
 const BODY = "text-base-content/70";
-const MORE = "link link-hover link-primary inline-flex items-center gap-1 text-sm font-semibold";
+/** `py-3` on a 20px line makes the link a 44px target. */
+const MORE = "link link-hover link-primary inline-flex items-center gap-1 py-3 text-sm font-semibold";
 
 function More(p: { href: string; label: string }): React.JSX.Element {
   return (
@@ -250,19 +252,14 @@ export default function LandingPage(props: {
         {/* ══ WHY YOU SHOULD CARE ══ */}
         <section id={WHY_SECTION_ID} className={`${SECTION} scroll-mt-16 bg-base-100`}>
           <div className={INNER}>
-            <div className="grid grid-cols-1 items-end gap-4 lg:grid-cols-2 lg:gap-12">
-              <div className="min-w-0">
-                <p className={LABEL}>{copy("landing.why.eyebrow")}</p>
-                <h2 className={HEADING}>{copy("landing.why.heading")}</h2>
-              </div>
-              <p className={`${BODY} min-w-0`}>{copy("landing.why.body")}</p>
+            <div className="max-w-2xl">
+              <p className={LABEL}>{copy("landing.why.eyebrow")}</p>
+              <h2 className={HEADING}>{copy("landing.why.heading")}</h2>
+              <p className={`${BODY} text-lg`}>{copy("landing.why.sub")}</p>
             </div>
-            <div className="mt-10">
+            <div className="mt-9">
               <Features />
             </div>
-            <p className="mt-6">
-              <More href="/how-it-works#competitors" label={copy("landing.why.more")} />
-            </p>
           </div>
         </section>
 
@@ -315,27 +312,24 @@ export default function LandingPage(props: {
 
         {/* ══ QUESTIONS ══ */}
         <section id={FAQ_SECTION_ID} className={`${SECTION} scroll-mt-16`}>
-          <div className={`${INNER} max-w-3xl`}>
-            <p className={LABEL}>{copy("landing.faq.eyebrow")}</p>
-            <h2 className={HEADING}>{copy("landing.faq.heading")}</h2>
-            <div className="mt-6">
-              <WhatToExpect />
+          <div className={`${INNER} flex flex-col items-start gap-6 lg:gap-8`}>
+            <h2 className="mb-0">{copy("landing.faq.heading")}</h2>
+            <div className="w-full">
+              <WhenSteps />
             </div>
-            <div className="mt-6 flex flex-col gap-2">
-              {questions().map((q) => (
-                <details key={q.id} className="collapse collapse-arrow card-border bg-base-100">
-                  <summary className="collapse-title font-semibold">{copy(`landing.faq.${q.id}.q` as CopyKey)}</summary>
-                  <div className="collapse-content flex flex-col items-start gap-3 text-sm text-base-content/70">
+            <div className="grid w-full grid-cols-1 items-start gap-3 lg:grid-cols-2 lg:gap-x-4">
+              {questions().map((item) => (
+                <details key={item.q} className="collapse collapse-arrow card-border bg-base-100 min-w-0">
+                  {/* 20px above and below a 24px line: each question is at least a 64px target. */}
+                  <summary className="collapse-title py-5 leading-6 font-semibold">{copy(item.q)}</summary>
+                  <div className="collapse-content text-base-content/70">
                     {/* The spam answer names the model that writes the pages, as the board does. */}
-                    <p data-disclosure={q.id === "spam" ? true : undefined}>{copy(`landing.faq.${q.id}.a` as CopyKey, q.vars)}</p>
-                    {q.more !== undefined && <More href={q.more} label={copy("landing.faq.results.more")} />}
+                    <p data-disclosure={item.a === "landing.faq.spam.a" ? true : undefined}>{copy(item.a, item.vars)}</p>
                   </div>
                 </details>
               ))}
             </div>
-            <p className="mt-6">
-              <More href="/how-it-works#faq" label={copy("landing.faq.more")} />
-            </p>
+            <More href="/how-it-works#faq" label={copy("landing.faq.more")} />
           </div>
         </section>
 
@@ -349,15 +343,10 @@ export default function LandingPage(props: {
         <section className="pb-16 lg:pb-24">
           <div className={INNER}>
             <div className="card card-border bg-primary/5">
-              <div className="card-body grid grid-cols-1 items-center gap-6 lg:grid-cols-[minmax(0,1fr)_auto] lg:gap-12 lg:p-12">
-                <div className="min-w-0">
-                  <h2 className="mb-3">{copy("landing.close.heading")}</h2>
-                  <p className={BODY}>{copy("landing.close.body", { price: PRICE() })}</p>
-                </div>
-                <div className="flex flex-col items-stretch gap-2 text-center lg:items-center">
-                  <FieldCta label={copy("landing.start.cta")} />
-                  <p className="font-mono text-xs text-base-content/70">{copy("landing.close.assurance")}</p>
-                </div>
+              <div className="card-body items-center gap-3.5 px-5 py-7 text-center lg:px-10 lg:py-12">
+                <h2 className="mb-0">{copy("landing.close.heading")}</h2>
+                <FieldCta label={copy("landing.start.cta")} />
+                <p className="text-xs text-base-content/70">{copy("landing.close.assurance")}</p>
               </div>
             </div>
           </div>
