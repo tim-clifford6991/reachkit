@@ -36,6 +36,7 @@ import { ArrowRight, Check, ShieldCheck } from "lucide-react";
 import { VETO, WEEK_PLAN } from "@/lib/config/constants";
 import { copy } from "@/lib/presentation/copy";
 import { HOW_FACTS } from "@/app/(public)/_how/facts";
+import { BrandMark } from "@/app/_brand/Brand";
 import { FLOAT } from "@/ui/lift";
 import { Num } from "../_address/measured";
 
@@ -76,13 +77,11 @@ const TERM_LINES: Readonly<Record<OfferTerms, () => readonly string[]>> = {
  *  line where there is one, Start, and the cancel line under it. */
 function PriceBox(p: {
   start: React.ReactNode;
-  interval: string;
   /** The pricing page's card sets the price flush left, as its board does. */
   left?: boolean;
   cancel: string;
   refused?: boolean;
   terms?: React.ReactNode;
-  note?: React.ReactNode;
   free?: React.ReactNode;
 }): React.JSX.Element {
   return (
@@ -92,9 +91,8 @@ function PriceBox(p: {
         <span className="text-5xl leading-none">
           <Num figure>{copy("price.amount")}</Num>
         </span>
-        <span className="text-base-content/70 text-sm">{p.interval}</span>
+        <span className="text-base-content/70 text-sm">{copy("price.interval")}</span>
       </div>
-      {p.note ?? null}
       {p.terms ?? null}
       {/* Issue #624: the vendor refused to open checkout. One written line
           on the offer itself, above the control that will try again. */}
@@ -171,39 +169,33 @@ export function PricingCard(
             </p>
           </div>
           <div className="bg-primary/5 rounded-box ring-primary/15 shrink-0 p-6 ring-1 lg:w-96">
-            <PriceBox start={control} interval={copy("price.interval")} cancel={cancel} refused={p.refused} free={p.free} />
+            <PriceBox start={control} cancel={cancel} refused={p.refused} free={p.free} />
           </div>
         </div>
       </section>
     );
   }
 
-  // The report's card opens on the price; the pricing page's names the plan
-  // first and states VAT in the landing's words until the owner rules on "tax".
+  // The report's card opens on the price; the pricing page's names the plan first.
   const named = terms === "pricing";
   return (
     <section className={`card bg-base-100 ${FLOAT}`}>
       <div className="card-body">
         {named ? (
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <h2 className="card-title">{copy("chrome.wordmark")}</h2>
+            <h2 className="card-title">
+              <BrandMark />
+              {copy("chrome.wordmark")}
+            </h2>
             <span className="badge badge-soft badge-primary">{copy("pricing.plan.badge")}</span>
           </div>
         ) : null}
         <PriceBox
           start={control}
-          interval={named ? copy("landing.price.month") : copy("price.interval")}
           left={named}
           cancel={cancel}
           refused={p.refused}
           terms={<Terms specs={specs} />}
-          note={
-            named ? (
-              <p className="text-base-content/70 -mt-3 text-sm">
-                {copy("landing.plan.terms")}
-              </p>
-            ) : null
-          }
           free={p.free}
         />
       </div>
