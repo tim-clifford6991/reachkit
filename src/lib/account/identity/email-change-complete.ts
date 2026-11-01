@@ -83,6 +83,7 @@ export async function completeEmailChange(a: {
     kind: "account",
     to: oldAddress,
     subject: mail.subject,
+    preheader: mail.preheader,
     blocks: mail.blocks,
   });
   if (!notice.sent) {

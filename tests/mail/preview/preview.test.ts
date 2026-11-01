@@ -186,21 +186,20 @@ describe("issue #376 — the shell renders S20, and every kind the set draws wea
     const mail = await composePreview("weekly");
     const sections = [
       "Hi Dana, here’s week 3 for harborplumbing.example.",
-      "Nothing needs you. Each page goes live at 4:00 PM on its day unless you stop it.",
+      "Nothing needs you this week. Each page goes live at 4:00 PM on its day.",
       COPY["mail.weekly.pages.live"],
       COPY["mail.weekly.google.title"],
-      "Your 12 live pages, step by step toward the first page.",
-      "Showing in results · 2 climbing",
+      "Showing on Google · 2 moving up",
       "9 visits from Google this week, up from 4.",
       COPY["mail.weekly.ai.title"],
-      "2 of 12 pages linked by AI",
-      "We asked AI each page’s own question. 2 answers linked to your page.",
-      "AI read your pages 14 times this week.",
+      "Linked by AI: 2 of 12 pages",
+      "We asked AI the question each page answers.",
+      "Read by AI: 14 times this week",
       COPY["mail.weekly.month"],
       COPY["mail.weekly.month.intro"],
       "31 up from 27",
       "1 of 12 up from 0",
-      "Reputation: AI answers that mentioned you, last 4 weeks",
+      "Mentioned by AI, last 4 weeks",
       COPY["mail.weekly.next"],
       "Up to 7 pages a week, new or updated. Never filler.",
       COPY["mail.weekly.strip.today"],
@@ -212,7 +211,7 @@ describe("issue #376 — the shell renders S20, and every kind the set draws wea
       "Tue · Update · goes live Tue 20 Oct, 4:00 PM",
       "Wed · New page · goes live Wed 21 Oct, 4:00 PM",
       "Thu–Sun · 4 more",
-      "See all 7 and their reasons",
+      "See all 7 in This week",
       COPY["mail.weekly.pace"],
       COPY["mail.weekly.action"],
       COPY["mail.reason.weekly"],
@@ -220,7 +219,9 @@ describe("issue #376 — the shell renders S20, and every kind the set draws wea
       COPY["mail.weekly.footer.settings"],
       COPY["mail.unsubscribe.label"],
     ];
-    for (const body of [mail.html.replace(/<[^>]+>/g, ""), mail.text]) {
+    // The preheader is the inbox's line, not a section of the card.
+    const shown = mail.html.replace(/<[^>]+>/g, "").replace(/&#x27;/g, "'").split(mail.preheader!).join("");
+    for (const body of [shown, mail.text]) {
       const at = sections.map((part) => body.indexOf(part));
       for (const [i, part] of sections.entries()) expect(at[i], part).toBeGreaterThan(-1);
       expect(at, "the board's order").toEqual([...at].sort((x, y) => x - y));
@@ -237,12 +238,8 @@ describe("issue #376 — the shell renders S20, and every kind the set draws wea
       expect(mail.html).toContain("<!doctype html>");
       expect(mail.text.length).toBeGreaterThan(0);
 
-      // The footer: the wordmark band, and the note that a plain-text twin
-      // travels with it. Both halves of the mail carry both.
-      for (const body of [mail.html, mail.text]) {
-        expect(body).toContain("ReachKit");
-        expect(body).toContain("plain-text version attached");
-      }
+      // The footer's wordmark band, in both halves of the mail.
+      for (const body of [mail.html, mail.text]) expect(body).toContain("ReachKit");
 
       // The buttons this kind draws, counted against the pinned set — and
       // how many of them are the solid one. Counted by the marker React

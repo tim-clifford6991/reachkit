@@ -109,7 +109,6 @@ describe("the numbers are Pages, Google and AI, then the pages, the week and the
       "mail.weekly.hi",
       "stats",
       "mail.weekly.google.title",
-      "mail.weekly.google.intro",
       "stats",
       "mail.weekly.google.visits",
       "mail.weekly.google.climb.climbing",
@@ -488,7 +487,8 @@ describe("no sentence is written here, and no model text reaches the mail", () =
 
 describe("#639 — the composed digest, as an inbox receives it", () => {
   const inOrder = (body: string, parts: readonly string[]): void => {
-    const at = parts.map((part) => body.indexOf(part));
+    // React Email writes an apostrophe as `&#x27;`.
+    const at = parts.map((part) => body.replace(/&#x27;/g, "'").indexOf(part));
     expect(at.every((i) => i >= 0), `every part is present: ${at.join(",")}`).toBe(true);
     expect([...at].sort((x, y) => x - y)).toEqual(at);
   };

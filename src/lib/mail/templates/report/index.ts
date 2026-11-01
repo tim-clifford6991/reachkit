@@ -11,6 +11,7 @@ import type { MailBlock } from "../../blocks/types";
 
 const SUBJECT = "mail.report.subject" satisfies CopyKey;
 const HEADING = "mail.report.heading" satisfies CopyKey;
+const PREHEADER = "mail.report.preheader" satisfies CopyKey;
 const BODY = "mail.report.body" satisfies CopyKey;
 const NEXT = "mail.report.next" satisfies CopyKey;
 const ACTION = "mail.report.action" satisfies CopyKey;
@@ -22,6 +23,7 @@ const REASON = "mail.reason.report" satisfies CopyKey;
 export interface ReportMail {
   readonly subject: CopyKey;
   readonly subjectVars: Readonly<Record<string, string | number>>;
+  readonly preheader: CopyKey;
   readonly blocks: readonly MailBlock[];
   readonly reason: CopyKey;
   readonly reasonVars: Readonly<Record<string, string | number>>;
@@ -51,6 +53,7 @@ export function buildReport(a: {
   return {
     subject: SUBJECT,
     subjectVars: { domain: facts.domain, score: facts.score, band: facts.band },
+    preheader: PREHEADER,
     reason: REASON,
     reasonVars: { address: a.removalAddress },
     blocks: [

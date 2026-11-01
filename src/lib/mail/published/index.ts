@@ -76,6 +76,7 @@ export async function sendPublishedMail(publicationId: string): Promise<Publishe
     to,
     userId: site.user_id,
     subject: mail.subject,
+    preheader: mail.preheader,
     blocks: mail.blocks,
     reason: mail.reason,
   });

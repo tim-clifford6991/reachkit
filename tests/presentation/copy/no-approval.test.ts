@@ -22,9 +22,6 @@ const ASKS_FOR_APPROVAL =
 const ALLOWED: Readonly<Record<string, string>> = {
   // A product name: the engine Microsoft Copilot, on the AI-readers table.
   "overview.blog.engine.copilot": "Microsoft Copilot is an AI engine's name",
-  // Setup is the customer's to finish, and it is setup that waits — no
-  // page is waiting on them, and nothing here is an approval.
-  "mail.setupReminder.body": "setup, not a page, is what waits",
   // The buyer's own question on the landing; its answer begins "No."
   "landing.faq.approve.q": "a buyer's question whose answer is no",
 };
