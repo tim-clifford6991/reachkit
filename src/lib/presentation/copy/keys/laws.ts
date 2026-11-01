@@ -60,7 +60,7 @@
 import type { CopyPartition } from "../registry.ts";
 
 export const LAWS_COPY = Object.freeze({
-  "stopped.work.line": ["ReachKit stopped its own work today, so no page was written. Nothing about your market changed.", { law: "stopped-work", slots: {}, fixedBy: "REQ-092 c1" }],
+  "stopped.work.line": ["We stopped our own work today, so no page was written. Your market didn’t change.", { law: "stopped-work", slots: {}, fixedBy: "REQ-092 c1" }],
   "stopped.work.needs-nothing": [
     "Nothing is needed from you. ReachKit picks up again on its own.",
     { law: "stopped-work", slots: {}, fixedBy: "REQ-092 c2" },
@@ -77,7 +77,7 @@ export const LAWS_COPY = Object.freeze({
     "This page was written from a check that didn’t finish.",
     { law: "stopped-work", slots: {}, fixedBy: "REQ-092 c6" },
   ],
-  "next-publish.stopped": ["ReachKit stopped its own work, so no page is scheduled.", { law: "next-publish", slots: {}, fixedBy: "REQ-092 c7" }],
+  "next-publish.stopped": ["We stopped our own work, so no page is scheduled.", { law: "next-publish", slots: {}, fixedBy: "REQ-092 c7" }],
   "next-publish.scheduled": [
     "Next page goes live {at}",
     { law: "next-publish", slots: { at: "date" }, fixedBy: "REQ-040 c4" },

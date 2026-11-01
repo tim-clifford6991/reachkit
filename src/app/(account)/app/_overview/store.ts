@@ -101,7 +101,7 @@ import type { State } from "@/lib/publish/types";
 import { issuesReading, waitingIssues, type IssuesReading, type WaitingItem } from "./alerts";
 import type { WaitingPageFacts, WaitingTarget } from "./waiting";
 import type { CopyKey } from "@/lib/presentation/copy";
-import { STAGE_FILTER_COPY_KEY, STAGE_OF } from "../calendar/stages";
+import { STAGE_FILTER_COPY_KEY, stageOf } from "../calendar/stages";
 
 export interface OverviewSite {
   siteId: string;
@@ -237,7 +237,7 @@ async function weekFor(
   const days = readWeek({ today: now, timeZone: site.timeZone }).days.map((day) =>
     dayKeyOf(day.date, CALENDAR_DAY_ZONE)
   );
-  return weekDrafts(site.siteId, days, dayKeyOf(now, site.timeZone));
+  return weekDrafts(site.siteId, days, now, dayKeyOf(now, site.timeZone));
 }
 
 interface WeekDrafts {
@@ -282,12 +282,13 @@ function enginesMeasured(report: StoredReport | null): readonly AnswerEngine[] {
 async function weekDrafts(
   siteId: string,
   week: readonly string[],
+  now: Date,
   today: string
 ): Promise<WeekDrafts> {
   const days = new Set(week);
   const { data, error } = await client()
-    .from<{ scheduled_for: string | null; opportunity_id: string | null; state: string }>("drafts")
-    .select("scheduled_for, opportunity_id, state")
+    .from<{ scheduled_for: string | null; opportunity_id: string | null; state: string; transitions: unknown; meta: unknown }>("drafts")
+    .select("scheduled_for, opportunity_id, state, transitions, meta")
     .eq("site_id", siteId);
   // A read that could not answer says nothing about either: every day then
   // carries the no-page word, which is what the strip can honestly say.
@@ -304,13 +305,11 @@ async function weekDrafts(
     .filter((row) => row.scheduled_for !== null && days.has(row.scheduled_for))
     .sort((x, y) => String(x.scheduled_for).localeCompare(String(y.scheduled_for)));
 
-  // The stage word per day, in the strip's own order. `STAGE_OF` is the
-  // calendar's one projection from §9's ten states onto the five stages; a
-  // state that occupies no date at all (`skipped`, `unpublished`) maps to
-  // `null`, and the day says it holds no page — which is true of it.
+  // The stage word per day, by the calendar's own `stageOf`; a state that occupies no date at all
+  // (`skipped`, `unpublished`) maps to `null`, and the day says it holds no page — which is true of it.
   const stageOfDay = new Map<string, CopyKey>();
   for (const row of rows) {
-    const stage = STAGE_OF[row.state as State];
+    const stage = stageOf({ state: row.state as State, needsYou: needsYouOf({ state: row.state as State, transitions: row.transitions, meta: row.meta }) }, now);
     if (stage === null || row.scheduled_for === null) continue;
     stageOfDay.set(row.scheduled_for, STAGE_FILTER_COPY_KEY[stage]);
   }

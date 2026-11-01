@@ -20,7 +20,7 @@ import { plannedStopToken } from "@/lib/opportunities/stop";
 import { whyOf } from "@/lib/opportunities/why";
 import { vetoLinkPath } from "@/lib/publish/publishable";
 import { scheduledPagesFor } from "@/lib/publish/record";
-import { critical, needsYouOf } from "@/lib/publish/record/needs-you";
+import { critical, needsYouOf, setAsideOf } from "@/lib/publish/record/needs-you";
 import { heldPages } from "@/lib/publish/switch";
 import { pauseTokenFor } from "@/lib/publish/switch/pause-link";
 import { readPublishingSettings } from "@/lib/publish/settings/settings";
@@ -251,9 +251,10 @@ function answerUrlOf(search: string): string {
 
 /** Overview's weekly figures, read at `now` with Overview's readers. Every read fails soft and says so; the mail is never held for one number. */
 async function weeklyNumbers(siteId: string, weekStart: string, now: Date): Promise<WeeklyNumbers> {
-  const [content, reads] = await Promise.all([
+  const [content, reads, setAside] = await Promise.all([
     readPublishedPages(siteId).then((pages) => contentOf({ pages, now })).catch(() => null),
     blogReadsOf(siteId, now),
+    setAsideLastWeek(siteId, weekStart).catch(() => 0),
   ]);
   const planned = await weekPages(siteId, weekStart).then(
     (n) => counted(n, now),
@@ -264,7 +265,7 @@ async function weeklyNumbers(siteId: string, weekStart: string, now: Date): Prom
   const ladder = content === null ? null : pageLadderOf(content.pages, now, weeks === null ? null : (weeks.at(-1)?.visits ?? 0));
   const before = weeks?.at(-2)?.visits;
   if (ladder === null) {
-    return { live: content === null ? unmeasured<number>("undeterminable", now) : counted(0, now), planned, ...(month === undefined ? {} : { month }) };
+    return { live: content === null ? unmeasured<number>("undeterminable", now) : counted(0, now), planned, setAside, ...(month === undefined ? {} : { month }) };
   }
   const live = (content?.pages ?? []).filter((page) => page.publishedAt <= now);
   const ai = aiPagesOf(live);
@@ -278,6 +279,7 @@ async function weeklyNumbers(siteId: string, weekStart: string, now: Date): Prom
   return {
     live: counted(ladder.live, now),
     planned,
+    setAside,
     google: {
       steps,
       early: showing === 0,
@@ -297,6 +299,17 @@ async function weeklyNumbers(siteId: string, weekStart: string, now: Date): Prom
     },
     ...(month === undefined ? {} : { month }),
   };
+}
+
+/** Pages the daily re-check set aside in the seven days before `weekStart`, so each is told on exactly one Monday. */
+async function setAsideLastWeek(siteId: string, weekStart: string): Promise<number> {
+  const to = Date.parse(`${weekStart}T00:00:00Z`);
+  const { data, error } = await untyped().from<{ transitions: unknown }>("drafts").select("transitions").eq("site_id", siteId).eq("state", "skipped");
+  if (error !== null) return 0;
+  return (data ?? []).filter((row) => {
+    const at = Date.parse(String((Array.isArray(row.transitions) ? (row.transitions as { at?: unknown }[]) : []).at(-1)?.at));
+    return setAsideOf({ state: "skipped", transitions: row.transitions }) && at >= to - 7 * 86_400_000 && at < to;
+  }).length;
 }
 
 async function weekPages(siteId: string, weekStart: string): Promise<number> {

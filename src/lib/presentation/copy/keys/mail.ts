@@ -290,11 +290,10 @@ export const MAIL_COPY = Object.freeze({
   // The one item waiting on them, and the button that opens it. The line
   // itself is the record's own — `mail.weekly.needsYou` states what kind of
   // thing it is, with the page's address in its slot.
-  "mail.weekly.needsYou": [
-    "One page needs you: {page}.",
-    { slots: { page: "text" }, fixedBy: "SPEC §8 2026-09-20" },
-  ],
+  "mail.weekly.needsYou": ["One page needs you: {page}.", { slots: { page: "text" }, fixedBy: "SPEC §8 2026-09-20" }],
   "mail.weekly.needsYou.action": ["Open the page", { slots: {}, fixedBy: "SPEC §8 2026-09-20" }],
+  "mail.weekly.setAside.one": ["1 page did not pass our checks. We set it aside and wrote the next one.", { slots: {}, fixedBy: "owner O7, issue 2164 (drafted)" }],
+  "mail.weekly.setAside.many": ["{n} pages did not pass our checks. We set them aside and wrote the next ones.", { slots: { n: "text" }, fixedBy: "owner O7, issue 2164 (drafted)" }],
   // The first row while the hosted address waits for its record, every
   // Monday until it is connected. Drafted (#759).
   "mail.weekly.connect": [

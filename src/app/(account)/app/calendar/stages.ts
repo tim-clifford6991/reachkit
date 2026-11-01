@@ -16,6 +16,7 @@
 // owns is the *projection*: five stages, and which state is shown as which.
 import type { CopyKey } from "@/lib/presentation/copy";
 import { STATES } from "@/lib/publish/machine/table";
+import { critical, type NeedsYouCause } from "@/lib/publish/record/needs-you";
 import type { State } from "@/lib/publish/types";
 import type { Tone } from "@/ui/types";
 
@@ -60,6 +61,13 @@ export const STAGE_OF: Readonly<Record<State, Stage | null>> = Object.freeze({
   skipped: null,
   unpublished: null,
 });
+
+/** The stage a page is shown at. A page resting for a cause that is not critical for the customer (owner O7) is the
+ *  system's to rescue or set aside, so it reads as planned, never Needs you; an unread cause stays Needs you. */
+export function stageOf(page: { state: State; needsYou: NeedsYouCause | null }, now: Date): Stage | null {
+  const stage = STAGE_OF[page.state];
+  return stage === "needs_you" && page.needsYou !== null && !critical(page.needsYou, now) ? "planned" : stage;
+}
 
 /** The word each filter is spoken from. Every one is a transcription of a
  *  word BUILD.md §4.6 itself prints — no renderer writes a stage's name. */
@@ -152,7 +160,7 @@ export const STAGE_BEACON: Readonly<Record<Stage, string>> = Object.freeze({
 
 /** Plan's five day states (SPEC §7, E5): what became of a day, in the
  *  customer's words rather than §9's. */
-export const DAY_STATES = ["planned", "written", "live", "stopped", "skipped"] as const;
+export const DAY_STATES = ["planned", "written", "live", "stopped", "skipped", "set_aside"] as const;
 export type DayState = (typeof DAY_STATES)[number];
 
 export const DAY_STATE_COPY_KEY: Readonly<Record<DayState, CopyKey>> = Object.freeze({
@@ -161,6 +169,7 @@ export const DAY_STATE_COPY_KEY: Readonly<Record<DayState, CopyKey>> = Object.fr
   live: "calendar.stage.live",
   stopped: "calendar.day.stopped",
   skipped: "calendar.day.skipped",
+  set_aside: "calendar.day.set-aside",
 });
 
 export const DAY_STATE_TONE: Readonly<Record<DayState, Tone>> = Object.freeze({
@@ -169,4 +178,5 @@ export const DAY_STATE_TONE: Readonly<Record<DayState, Tone>> = Object.freeze({
   live: "ok",
   stopped: "warn",
   skipped: "neutral",
+  set_aside: "neutral",
 });
