@@ -4,6 +4,7 @@
 // makes it true, so a sentence cannot outrun the product again.
 import "../../opportunities/env";
 import { describe, expect, it } from "vitest";
+import { PRICE_EUR_CENTS } from "@/lib/config/constants/costs";
 import { CONTENT_MIX, HOSTED_RETENTION_DAYS, HOSTING_END_REMINDER_DAYS, PACE, RATE_LIMITS, VETO, WEEK_PLAN } from "@/lib/config/constants";
 import { COPY, COPY_META, copy, type CopyKey } from "@/lib/presentation/copy";
 import { TRANSLATIONS } from "@/lib/presentation/copy/translated";
@@ -93,6 +94,14 @@ describe("up to a week's pages, new or updated (owner, A1, 2026-10-19)", () => {
     expect(copy("landing.pace", { weekPages: WEEK_PLAN.days })).toBe(
       `Up to ${WEEK_PLAN.days} pages a week, new or updated. Never filler.`
     );
+  });
+});
+
+describe("the pricing snippet states the price as /pricing does", () => {
+  it("names the plan's price and the page's tax wording", () => {
+    const tax = text("price.interval").split(" · ").at(-1) ?? "";
+    expect(tax).toBe("tax included");
+    expect(text("meta.pricing.description")).toContain(`€${PRICE_EUR_CENTS / 100} a month, ${tax}`);
   });
 });
 
