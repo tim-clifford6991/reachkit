@@ -66,6 +66,8 @@ function Section(p: {
   title: string;
   body?: string;
   band?: boolean;
+  /** What it shows sits beside the heading at desktop, not under it. */
+  beside?: boolean;
   children: React.ReactNode;
 }): React.JSX.Element {
   const heading = `${p.id}-h`;
@@ -75,7 +77,7 @@ function Section(p: {
       aria-labelledby={heading}
       className={`border-base-300 scroll-mt-16 border-t py-12 lg:py-20 ${p.band === true ? "bg-base-100" : ""}`}
     >
-      <div className={`${INNER} flex flex-col gap-8`}>
+      <div className={`${INNER} grid grid-cols-1 items-start gap-8 ${p.beside === true ? "lg:grid-cols-2 lg:gap-12" : ""}`}>
         <div className="flex flex-col gap-3">
           {p.eyebrow === undefined ? null : <p className="eyebrow">{p.eyebrow}</p>}
           <h2 id={heading}>{p.title}</h2>
@@ -169,7 +171,10 @@ export default function PricingPage(props: {
   return (
     <Surface
       arms={{
-        compact: { kind: "columns", count: 1 },
+        compact: {
+          kind: "declared",
+          note: "full-width bands: the head and its price card, week 1, the comparison, the questions, the closing card; each capped at max-w-6xl",
+        },
         medium: { kind: "same-as-below" },
         wide: { kind: "same-as-below" },
       }}
@@ -194,6 +199,7 @@ export default function PricingPage(props: {
         <Section
           id="week1"
           band
+          beside
           title={copy("pricing.first.title")}
           body={copy("pricing.first.body")}
         >

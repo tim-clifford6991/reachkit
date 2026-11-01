@@ -276,7 +276,8 @@ describe("the screen root (ADR-093; DECISIONS 2026-09-02)", () => {
   it("is one Surface with an arm declared for every band", async () => {
     const html = await render();
     expect(html.match(/data-surface=""/g)).toHaveLength(1);
-    expect(html).toContain('data-arm-compact="columns:1"');
+    // Full-width bands, as the landing and How it works declare (board Pricing).
+    expect(html).toMatch(/data-arm-compact="declared:full-width bands[^"]+"/);
     expect(html).toContain('data-arm-medium="same-as-below"');
     expect(html).toContain('data-arm-wide="same-as-below"');
   });

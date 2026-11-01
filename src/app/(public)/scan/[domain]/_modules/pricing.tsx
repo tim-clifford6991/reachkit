@@ -77,6 +77,8 @@ const TERM_LINES: Readonly<Record<OfferTerms, () => readonly string[]>> = {
 function PriceBox(p: {
   start: React.ReactNode;
   interval: string;
+  /** The pricing page's card sets the price flush left, as its board does. */
+  left?: boolean;
   cancel: string;
   refused?: boolean;
   terms?: React.ReactNode;
@@ -86,7 +88,7 @@ function PriceBox(p: {
   return (
     <div className="flex flex-col gap-4">
       {/* REQ-022 c1: "€49 per month and says that VAT is included". */}
-      <div className="flex flex-wrap items-baseline justify-center gap-2 text-center">
+      <div className={`flex flex-wrap items-baseline gap-2 ${p.left === true ? "" : "justify-center text-center"}`}>
         <span className="text-5xl leading-none">
           <Num figure>{copy("price.amount")}</Num>
         </span>
@@ -191,12 +193,13 @@ export function PricingCard(
         <PriceBox
           start={control}
           interval={named ? copy("landing.price.month") : copy("price.interval")}
+          left={named}
           cancel={cancel}
           refused={p.refused}
           terms={<Terms specs={specs} />}
           note={
             named ? (
-              <p className="text-base-content/70 text-center text-sm">
+              <p className="text-base-content/70 -mt-3 text-sm">
                 {copy("landing.plan.terms")}
               </p>
             ) : null
