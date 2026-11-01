@@ -607,7 +607,6 @@ export const REPORT_COPY = Object.freeze({
   "landing.why.sub": ["If you’re not in the answer, that buyer never meets you.", { slots: {}, fixedBy: "board PubLanding v34 · owner 2026-11-01" }],
   "landing.start.eyebrow": ["How it works", { slots: {}, fixedBy: "board Landing · issue 1596" }],
   "landing.start.heading": ["You scan. We write. You watch.", { slots: {}, fixedBy: "board Landing · issue 1596" }],
-  "landing.start.body": ["Three steps. The first is free and takes under a minute.", { slots: {}, fixedBy: "board Landing · issue 1596" }],
   "landing.start.cta": ["Scan my site for free", { slots: {}, fixedBy: "issue 266 · L25" }],
 
   // ── S1, the owner-approved screen set (2026-09-08) ────────────────────
@@ -631,13 +630,6 @@ export const REPORT_COPY = Object.freeze({
   "landing.hero.how": ["See how it works", { slots: {}, fixedBy: "board Landing · issue 1596" }],
   /** The pace (owner, A1, 2026-10-19). The number is `WEEK_PLAN.days`. */
   "landing.pace": ["Up to {weekPages} pages a week, new or updated. Never filler.", { slots: { weekPages: "text" }, fixedBy: "owner A1 · 2026-10-19" }],
-  /** Under the three steps: the loop, and the owner's one-time part. */
-  "landing.loop": ["Steps 2 and 3 repeat every week, without you", { slots: {}, fixedBy: "board Landing · issue 1726 · drafted" }],
-  "landing.part.once": ["Your part, once · about {minutes} minutes", { slots: { minutes: "text" }, fixedBy: "board Landing · issue 1726 · drafted" }],
-  "landing.part.answer": ["Answer a few questions", { slots: {}, fixedBy: "board Landing · issue 1726 · drafted" }],
-  "landing.part.done": ["Done", { slots: {}, fixedBy: "board Landing · issue 1726 · drafted" }],
-  "landing.part.after": ["Every week after: ReachKit", { slots: {}, fixedBy: "board Landing · issue 1726 · drafted" }],
-  "landing.part.body": ["Answer a few questions, then connect your site with one setting where your web address is managed (we show you what to copy), or your WordPress login. ReachKit’s part: everything after that.", { slots: {}, fixedBy: "board Landing · issue 1726 · drafted" }],
   "landing.how.full": ["How it works, in full", { slots: {}, fixedBy: "board Landing · issue 1726 · drafted" }],
   "landing.inside.buyers": ["{place} buyers", { slots: { place: "text" }, fixedBy: "board Landing · issue 1726 · drafted" }],
 
@@ -646,26 +638,18 @@ export const REPORT_COPY = Object.freeze({
    *  approved (11a); the three bodies are bracketed in the set, and are the
    *  owner's approved sentences (2026-09-10, #459). */
   "landing.step.1.title": ["Scan your site", { slots: {}, fixedBy: "board Landing · issue 1596" }],
-  "landing.step.1.body": ["Type your website. See who Google and AI send your buyers to instead of you, what holds your site back, and your first page, proposed free.", { slots: {}, fixedBy: "board Landing · issue 1596" }],
-  "landing.step.1.more": ["See what we research", { slots: {}, fixedBy: "board Landing · issue 1596" }],
+  "landing.step.1.body": ["Type your website. See who Google and AI pick instead of you, and what to fix first.", { slots: {}, fixedBy: "board PubLanding v34 · owner 2026-11-01" }],
   "landing.glance.rivals": ["Who buyers pick instead", { slots: {}, fixedBy: "board PubLanding · issue 1997 · drafted" }],
   "landing.glance.first": ["Your first page, proposed free:", { slots: {}, fixedBy: "board PubLanding · issue 1997 · drafted" }],
   "landing.mail.inbox": ["Inbox", { slots: {}, fixedBy: "board PubLanding · issue 1997" }],
-  "landing.glance.caption": ["{business} · example. It measures no site.", { slots: { business: "text" }, fixedBy: "board PubLanding · issue 1997" }],
-  // Step 2's approved-set pair told a founder to pick and confirm the market
-  // and the rivals. SPEC §5 (2026-10-02, D28) rules that out: ReachKit
-  // identifies both, and the founder may override them but never has to.
-  // Both sentences are drafted (issue 1308) for the owner to correct.
   "landing.step.2.title": ["We choose and write your pages", { slots: {}, fixedBy: "board Landing · issue 1596" }],
-  "landing.step.2.body": ["ReachKit checks what your buyers search and ask AI, and who answers them today. With what your site says about your business, it plans up to {weekPages} pages for the week. Each one is written from facts on your own site, checked, and put live on your own web address or your WordPress.", { slots: { weekPages: "text" }, fixedBy: "board Landing · issue 1596" }],
-  "landing.step.2.more": ["See how we pick and write your pages", { slots: {}, fixedBy: "board Landing · issue 1596" }],
+  "landing.step.2.body": ["Every Monday we plan up to {weekPages} pages. Each is written from facts on your site, then checked.", { slots: { weekPages: "text" }, fixedBy: "board PubLanding v34 · owner 2026-11-01" }],
   // Step 3's title is the one approved-set string on this screen the owner
   // has since replaced: the set promised a page a day, and the Autopilot
   // brief (DECISIONS 2026-09-10) rules that out — a page goes live when one
   // is ready, at most one a day. Approved 2026-09-11 (#516).
   "landing.step.3.title": ["You see progress", { slots: {}, fixedBy: "board Landing · issue 1596" }],
-  "landing.step.3.body": ["Each page goes live on its own day. Every Monday an email shows what went live, where your pages sit in Google, and whether AI answers now link to them.", { slots: {}, fixedBy: "board Landing · issue 1596" }],
-  "landing.step.3.more": ["See what you’ll see each Monday", { slots: {}, fixedBy: "board Landing · issue 1596" }],
+  "landing.step.3.body": ["Each page goes live on its own day. Every Monday an email shows what went live and what moved.", { slots: {}, fixedBy: "board PubLanding v34 · owner 2026-11-01" }],
 
   /* ── The hero component: "one week, one card" (#935) ──────────────────
      Owner ruling 2026-09-21: the landing hero is Round 11 `R11-H4-Week`.
@@ -684,14 +668,7 @@ export const REPORT_COPY = Object.freeze({
      which needs a business with a name — the board writes one, and the
      card's last line says in writing that it is an example and measures
      no site. The figures live in `_landing/specimen.ts`, which is the
-     product's one home for a drawn number that measures nothing; the
-     `{you}` slot below is filled from there, never from a visitor's
-     input. */
-  /** The pill at the head of the card. One sentence and one slot rather
-   *  than a word plus a dangling fragment: "Autopilot on" and "· since 12
-   *  Aug" are one claim, and a reader of the second half alone learns
-   *  nothing. */
-  "landing.hero.autopilot": ["Autopilot on since {since}", { slots: { since: "date" }, fixedBy: "issue 935 · drafted" }],
+     product's one home for a drawn number that measures nothing. */
   /** Tuesday to Saturday: five page titles, as this example business's
    *  week would produce them. Titles and not sentences — they are what the
    *  calendar shows, so they read as the product's own rows. */
@@ -703,17 +680,6 @@ export const REPORT_COPY = Object.freeze({
   /** The AI answer the week earned. `{you}` is the example business's own
    *  name, so the card can draw it as the reader's own and the sentence
    *  still reads whole without the drawing. */
-  "landing.hero.ai.answer": [
-    "…for a slab leak in Austin, try {you}, which lists its prices, or Austin Pipeworks.",
-    { slots: { you: "text" }, fixedBy: "issue 1596 · drafted" },
-  ],
-  /** The work line: the ruling's "how little the customer has to do",
-   *  said as two halves of one trade rather than a claim about effort. */
-  "landing.hero.work.you": ["You: about 10 minutes, once", { slots: {}, fixedBy: "board Landing · issue 1596" }],
-  "landing.hero.work.reachkit": [
-    "ReachKit: up to {weekPages} pages a week, checked every Monday",
-    { slots: { weekPages: "text" }, fixedBy: "board Landing · issue 1596" },
-  ],
   /** Under the card. `landing.hero.specimen.caption` above says the same
    *  thing of a card that named `example.com` and no business; this card
    *  names a business, so it says so of a business. */
@@ -723,25 +689,8 @@ export const REPORT_COPY = Object.freeze({
      Boards `R12-1-Landing`, `R12-8-Phone-landing`, `R12-10-Dark-landing`
      (SPEC §1, 2026-09-24). Where the board writes the sentence, it is the
      board's; `drafted` marks a line the board draws and this issue wrote. */
-  /** The hero preview's name and its three tabs. The app shows no weekly
-   *  score (SPEC §1, D22), so the preview draws none (issue 1393). */
+  /** Step 2's week: the preview's name. */
   "landing.inside.title": ["Inside ReachKit", { slots: {}, fixedBy: "board R12-1 · issue 1067" }],
-  "landing.inside.tab.week": ["This week", { slots: {}, fixedBy: "board R12-1 · issue 1067" }],
-  "landing.inside.tab.answers": ["AI answers", { slots: {}, fixedBy: "board R12-1 · issue 1067" }],
-  "landing.inside.tab.page": ["A page", { slots: {}, fixedBy: "board R12-1 · issue 1067" }],
-  /** *AI answers*: the line over the answer, and the one under it. */
-  "landing.inside.answers.head": ["What Google’s AI answers say now", { slots: {}, fixedBy: "board R12-1 · issue 1067" }],
-  "landing.inside.answers.monday": [
-    "Every month: how often AI answers mention you when buyers ask about your market, and which competitors they mention instead.",
-    { slots: {}, fixedBy: "board R12-1 · issue 1067" },
-  ],
-  /** *Your page*: the page waiting for the owner's read. */
-  "landing.inside.page.due": ["Goes live in {in} unless you stop it", { slots: { in: "text" }, fixedBy: "board R12-1 · issue 1067" }],
-  "landing.inside.page.why.label": ["Why this page:", { slots: {}, fixedBy: "board R12-1 · issue 1067" }],
-  "landing.inside.page.why.body": [
-    "people near you search it every month, and today a competitor answers them.",
-    { slots: {}, fixedBy: "board R12-1 · issue 1067" },
-  ],
   /** *Why you should care*: two cards, each a title, a line and a small
    *  drawing whose words follow it. */
   "landing.feature.ai.title": ["Get mentioned in AI answers", { slots: {}, fixedBy: "board PubLanding v34 · owner 2026-11-01" }],
@@ -768,20 +717,9 @@ export const REPORT_COPY = Object.freeze({
   "landing.step.3.tag": ["from week 1", { slots: {}, fixedBy: "board R12-1 · issue 1067" }],
   /** The closing band: its heading, and the line under its button. */
   "landing.close.heading": ["See who gets your buyers today.", { slots: {}, fixedBy: "board R12-1 · issue 1067" }],
-  /** *What {price} a month gets you*: what the one plan holds, and its card. */
   "landing.price.heading": ["What {price} a month gets you", { slots: { price: "text" }, fixedBy: "board Landing · issue 1596" }],
-  "landing.price.facts": ["Each page is written from facts on your site, with every fact linked to where it came from.", { slots: {}, fixedBy: "board Landing · issue 1596" }],
-  "landing.price.ready": ["In your first week, an email when each page is ready, saying which search it answers and who answers it today.", { slots: {}, fixedBy: "board Landing · issue 1596 · decision 2026-10-19-1593 (drafted)" }],
-  "landing.price.monday": ["Every Monday: where your pages sit in Google, which of your pages AI answers link to, and what is planned next.", { slots: {}, fixedBy: "board Landing · issue 1596" }],
-  "landing.price.competitors": ["Your competitors, up to {rivals}, watched every week.", { slots: { rivals: "text" }, fixedBy: "board Landing · issue 1596" }],
-  "landing.price.site": ["Your whole site checked for problems, with the fix for each.", { slots: {}, fixedBy: "board Landing · issue 1596" }],
-  "landing.price.all": ["Everything in the one plan", { slots: {}, fixedBy: "board PubLanding · issue 1727 · drafted" }],
-  /** Read from our own logs, so only where we run the address (owner R12 · B14). */
-  "landing.price.found": ["Which of your pages Google and Bing have found, on the address we run.", { slots: {}, fixedBy: "board PubLanding · issue 1727 · ruling R12 (B14)" }],
   "landing.price.month": ["a month", { slots: {}, fixedBy: "board PubLanding · issue 1727 · drafted" }],
-  "landing.price.see": ["See pricing", { slots: {}, fixedBy: "board PubLanding · issue 1727 · drafted" }],
   "landing.price.terms": ["{price} a month. One plan. Cancel any time.", { slots: { price: "text" }, fixedBy: "board Landing · issue 1596" }],
-  "landing.price.more": ["See how it compares", { slots: {}, fixedBy: "board Landing · issue 1596" }],
   /** The questions owners ask, each a question and its answer. */
   "landing.faq.eyebrow": ["Questions", { slots: {}, fixedBy: "board Landing · issue 1596" }],
   "landing.faq.heading": ["Questions owners ask", { slots: {}, fixedBy: "board Landing · issue 1596" }],

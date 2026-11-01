@@ -29,9 +29,7 @@ vi.mock("@/lib/scan/gallery", async (importOriginal) => ({
 
 const { default: LandingPage } = await import("@/app/(public)/page");
 const { copy } = await import("@/lib/presentation/copy");
-const { HOW_FACTS } = await import("@/app/(public)/_how/facts");
-const { WEEK_PLAN } = await import("@/lib/config/constants");
-const { buysIcons, icons } = await import("../how/drawn-icons");
+const { icons } = await import("../how/drawn-icons");
 
 const article = (slug: string, title: string, day: number): Page => ({
   title,
@@ -66,69 +64,8 @@ async function render(): Promise<HTMLElement> {
 /** An element's words, one space between elements, entities decoded. */
 const flat = (el: HTMLElement): string => parse(el.toString().replace(/</g, " <")).text.replace(/\s+/g, " ").trim();
 
-/** Every sentence is in `text`, each after the one before it. */
-function inOrder(text: string, sentences: readonly string[]): void {
-  let from = 0;
-  for (const s of sentences) {
-    const at = text.indexOf(s, from);
-    expect(at, s).toBeGreaterThan(-1);
-    from = at + s.length;
-  }
-}
-
-const price = copy("price.amount");
 
 beforeEach(stored);
-
-describe("What €49 a month gets you: the tiles, everything in the plan, the plan card", () => {
-  it("the heading, then what €49 buys as Pricing's four tiles, with no guarantee before the launch gate", async () => {
-    const weekly = (await render()).querySelector("section#weekly")!;
-    inOrder(flat(weekly), [
-      copy("landing.price.heading", { price }),
-      copy("pricing.buys", { price }),
-      `${copy("pricing.buys.pages", { weekPages: WEEK_PLAN.days })} ${copy("pricing.buys.pages.what")}`,
-      `${copy("pricing.buys.rivals", { rivals: HOW_FACTS.rivals })} ${copy("pricing.buys.rivals.what")}`,
-      `${copy("pricing.buys.mail")} ${copy("pricing.buys.mail.what")}`,
-      `${copy("pricing.buys.time", { minutes: HOW_FACTS.setupMinutes })} ${copy("pricing.buys.time.what")}`,
-    ]);
-    expect(weekly.querySelector(`ul[aria-label="${copy("pricing.buys", { price })}"]`)!.querySelectorAll("li")).toHaveLength(4);
-    expect(weekly.text).not.toMatch(/money-back/i);
-  });
-
-  it("what €49 buys: four tiles with file-text, users, inbox, timer", async () => {
-    const weekly = (await render()).querySelector("section#weekly")!;
-    expect(buysIcons(weekly.toString(), copy("pricing.buys", { price }))).toEqual(["file-text", "users", "inbox", "timer"]);
-  });
-
-  it("everything in the one plan: seven items, the last the pages Google and Bing found on the address we run", async () => {
-    const card = (await render()).querySelector("section#weekly h3")!.parentNode as HTMLElement;
-    expect(flat(card.querySelector("h3")!)).toBe(copy("landing.price.all"));
-    expect(card.querySelectorAll("li").map((li) => flat(li))).toEqual([
-      copy("landing.pace", { weekPages: String(HOW_FACTS.weekPages) }),
-      copy("landing.price.facts"),
-      copy("landing.price.ready"),
-      copy("landing.price.monday"),
-      copy("landing.price.competitors", { rivals: String(HOW_FACTS.rivals) }),
-      copy("landing.price.site"),
-      copy("landing.price.found"),
-    ]);
-  });
-
-  it("the plan card: ReachKit, One plan, €49 a month, the terms, a soft See pricing, then the full value", async () => {
-    const card = (await render()).querySelector('[data-testid="landing-price"]')!;
-    inOrder(flat(card), [
-      copy("chrome.wordmark"),
-      copy("pricing.plan.badge"),
-      `${price} ${copy("landing.price.month")}`,
-      copy("landing.price.terms", { price }),
-      copy("landing.price.see"),
-      copy("landing.price.more"),
-    ]);
-    const see = card.querySelectorAll("a").find((a) => flat(a) === copy("landing.price.see"))!;
-    expect(see.getAttribute("href")).toBe("/pricing");
-    expect(see.getAttribute("class")).toContain("btn-soft");
-  });
-});
 
 describe("Questions owners ask", () => {
   it("what to expect: calendar, search, eye, trending-up in order, and no note under them", async () => {

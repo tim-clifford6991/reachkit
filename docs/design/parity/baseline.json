@@ -1,6 +1,6 @@
 {
-  "PubLanding": { "sha256": "e94a56c805089c1e9e325c8d06090448818fc100da0c0bb3a73f87261eb4f30d", "missing": 20, "components": 26, "plainWords": 9 },
-  "PubLandingPhone": { "sha256": "b68a315023d2c622ca063c974a0ffe13b113cd27fe45841c5467a37723d6a5a6", "missing": 20, "components": 25, "plainWords": 9 },
+  "PubLanding": { "sha256": "e94a56c805089c1e9e325c8d06090448818fc100da0c0bb3a73f87261eb4f30d", "missing": 0, "components": 13, "plainWords": 9 },
+  "PubLandingPhone": { "sha256": "b68a315023d2c622ca063c974a0ffe13b113cd27fe45841c5467a37723d6a5a6", "missing": 0, "components": 13, "plainWords": 9 },
   "PubHowItWorks": { "sha256": "0e331477df94bb2c5f8effeb012561a3e810093a080a8209cbd846fa59c49f32", "missing": 0, "components": 59, "plainWords": 52 },
   "Pricing": { "sha256": "0b9ea159c9fb77713c6736efc690d31d5914151bee7a6ef0b0f3e8ae6cea9cd1", "missing": 0, "components": 36, "plainWords": 12 },
   "PubScanning": { "sha256": "eb6b2cf20e141d83626a2d8caff9db11db1663d46cbc468888d7d2123f0e327a", "missing": 0, "plainWords": 1 },

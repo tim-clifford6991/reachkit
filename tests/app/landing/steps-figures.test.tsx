@@ -1,6 +1,7 @@
-// The landing's step 1 and step 3 pictures, as boards PubLanding and PubLandingPhone
-// draw them: the free report at a glance and the Monday email on a phone, from the
-// plumber specimen. The "node" project, `renderToStaticMarkup`, the real registry.
+// The landing's three step pictures, as boards PubLanding and PubLandingPhone
+// draw them: the free report at a glance, three days inside ReachKit and the
+// Monday email as a card, from the plumber specimen. The "node" project, `renderToStaticMarkup`, the real registry.
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import React from "react";
@@ -8,6 +9,7 @@ import { parse, type HTMLElement } from "node-html-parser";
 import { copy } from "@/lib/presentation/copy";
 import LandingPage from "@/app/(public)/page";
 import { EXAMPLES, LIVE_AT } from "@/app/(public)/_how/specimen";
+import { boardFile, compare, readAllow, segments } from "../../../scripts/design/parity.mjs";
 
 const root = parse(renderToStaticMarkup(React.createElement(LandingPage, { searchParams: {} })));
 const steps = root.querySelectorAll("#how ol > li.card");
@@ -42,33 +44,46 @@ describe("the landing's step figures", () => {
       copy("landing.feature.fix.free"),
       copy("landing.feature.fix.free"),
     ]);
-    expect(textOf(glance?.querySelector("figcaption"))).toBe(
-      copy("landing.glance.caption", { business: plumber.business }),
-    );
+    expect(glance?.querySelector("figcaption")).toBeNull();
     expect(glance?.querySelectorAll("a, button")).toHaveLength(0);
   });
 
-  it("step 3 draws the Monday email on a phone, without the linked count", () => {
-    const phone = steps[2]?.querySelector(".mockup-phone");
-    expect(phone).toBeTruthy();
-    const text = textOf(phone);
-    for (const s of [
-      copy("landing.mail.inbox"),
-      copy("how.mail.subject"),
-      copy("how.mail.live", { n: plumber.mail.live }),
-      copy("how.mail.planned", { n: plumber.mail.planned }),
-      copy("how.mail.pages"),
-      ...plumber.plan.slice(0, 2).map((page) => page.title),
-    ]) {
-      expect(text, s).toContain(s);
-    }
-    const subject = phone?.querySelectorAll("p").find((p) => textOf(p) === copy("how.mail.subject"));
-    expect(subject?.querySelector("svg.lucide-inbox")?.getAttribute("aria-hidden")).toBe("true");
-    expect(phone?.querySelector("svg.lucide-mail")).toBeNull();
-    const calm = phone?.querySelectorAll("p").find((p) => textOf(p) === copy("how.mail.calm", { time: LIVE_AT }));
-    expect(calm?.querySelector("svg.lucide-circle-check")).toBeTruthy();
+  it("each picture draws the board's icons, in order, each hidden from a screen reader", () => {
+    const glyphs = (el: HTMLElement): string[] =>
+      el.querySelectorAll("svg.lucide").map((svg) => {
+        expect(svg.getAttribute("aria-hidden")).toBe("true");
+        return svg.classList.value.filter((c) => c.startsWith("lucide-")).at(-1)!.slice("lucide-".length);
+      });
+    expect(steps.map((step) => glyphs(step.querySelector("figure")!))).toEqual([
+      ["gift"],
+      ["search", "circle-check", "file-text", "file-text", "clock-4"],
+      ["mail", "circle-check"],
+    ]);
+  });
+
+  it("step 3 draws the Monday email as a card, without the linked count or a phone", () => {
+    const mail = steps[2]?.querySelector("figure.card");
+    expect(mail).toBeTruthy();
+    expect(steps[2]?.querySelector(".mockup-phone")).toBeNull();
+    const text = textOf(mail);
     expect(text).not.toContain(copy("how.mail.linked", { n: plumber.mail.linked, total: plumber.mail.live }));
-    expect(textOf(steps[2]?.querySelector("figcaption"))).toBe(copy("how.mail.caption"));
-    expect(steps[2]?.querySelectorAll("figure a, figure button")).toHaveLength(0);
+    expect(text).not.toContain(copy("landing.mail.inbox"));
+    expect(text).toContain(copy("landing.mail.row", { day: "Mon", time: LIVE_AT }));
+  });
+
+  it("every board string of the three figures ships, and no allow line excuses one but sample data or the row order", () => {
+    const ship = segments(root.toString());
+    for (const board of ["PubLanding", "PubLandingPhone"]) {
+      const html = parse(readFileSync(boardFile(board), "utf8"));
+      const figures = ["Your free report, at a glance", "Inside ReachKit: an example week", "The Monday email, an example"].map((label) =>
+        html.querySelector(`figure[aria-label="${label}"]`),
+      );
+      expect(figures.every(Boolean), board).toBe(true);
+      const allow = readAllow(board);
+      const { missing, allowed } = compare(figures.map(String).join(""), ship, allow);
+      expect(missing, board).toEqual([]);
+      const reasons = allowed.map((s: string) => allow.find((a: { string: string }) => a.string === s)?.reason);
+      expect(reasons.every((r: string | undefined) => r === "sample data" || r?.startsWith("#2247: one row, read in the phone board")), board).toBe(true);
+    }
   });
 });

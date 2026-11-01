@@ -5,7 +5,7 @@
 // project, `renderToStaticMarkup`, the real registry.
 import { describe, expect, it, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
-import { createElement, type ReactNode } from "react";
+import { createElement } from "react";
 import { parse } from "node-html-parser";
 import { applyEnvFixture } from "../../mail/env-fixture";
 
@@ -145,15 +145,16 @@ describe("each section has a picture, and a closed detail where the board draws 
   });
 });
 
-describe("the Plumber · Software switch, without JavaScript", () => {
-  it("the server markup draws the plumber's pictures, and the software firm only in the captions under them", () => {
+describe("one example business, with no switch (board v36)", () => {
+  it("the pictures draw the plumber only: no software firm, in a picture or a caption, and no switch", () => {
     const shown = text(html);
     expect(shown).toContain(EXAMPLES.plumber.search);
     expect(shown).toContain(EXAMPLES.plumber.page.title);
-    expect(shown).not.toContain(EXAMPLES.software.page.title);
-    expect(shown).not.toContain(EXAMPLES.software.answer);
-    for (const day of EXAMPLES.software.plan) if (day.title !== "") expect(shown).not.toContain(day.title);
-    expect(count(html, 'aria-pressed="true"')).toBe(count(html, `>${copy("how.switch.plumber")}</button>`));
+    const software = EXAMPLES.software;
+    for (const s of [software.page.title, software.answer, software.business, software.site]) expect(shown).not.toContain(s);
+    for (const day of software.plan) if (day.title !== "") expect(shown).not.toContain(day.title);
+    expect(shown).not.toMatch(/For software/);
+    expect(count(html, "aria-pressed")).toBe(0);
   });
 });
 
@@ -257,7 +258,7 @@ describe("only week 1 is emailed first, and competitors are watched (D3, B5)", (
 
   it("the landing's price card says competitors are watched", () => {
     const landing = text(renderToStaticMarkup(createElement(LandingPage, { searchParams: {} })));
-    expect(landing).toContain(`Your competitors, up to ${HOW_FACTS.rivals}, watched every week.`);
+    expect(landing).toContain(`Up to ${HOW_FACTS.rivals} competitors Watched every week.`);
     expect(landing).not.toContain("checked every week");
   });
 });
@@ -294,8 +295,6 @@ describe("/about reads the founder from stored rows", () => {
 describe("each section carries the board's added lines, in its own section", () => {
   const F = HOW_FACTS;
   const plumber = EXAMPLES.plumber;
-  const software = EXAMPLES.software;
-  const lower = (t: string): string => t.charAt(0).toLowerCase() + t.slice(1);
   const cases: [string, string[]][] = [
     ["top", [copy("how.steps.jump"), copy("how.step.4.when", { week: 1 })]],
     [
@@ -305,11 +304,6 @@ describe("each section carries the board's added lines, in its own section", () 
         copy("how.research.bullet.correct"),
         copy("how.research.bullet.fix", { minutes: F.fixMinutes }),
         copy("how.read.held.free", { minutes: F.fixMinutes }),
-        copy("how.read.caption", {
-          sell: lower(software.read.sell[0]),
-          buyers: lower(software.read.buyers[0]),
-          where: lower(software.read.where[0]),
-        }),
       ],
     ],
     [
@@ -320,8 +314,6 @@ describe("each section carries the board's added lines, in its own section", () 
         ...plumber.watched,
         copy("how.rivals.list.more", { n: F.rivals - plumber.watched.length }),
         copy("how.rivals.list.caption"),
-        copy("how.rivals.other.search", { search: software.search }),
-        copy("how.rivals.other.line", { leader: software.results[0]?.url ?? "", business: software.business }),
       ],
     ],
     [
@@ -363,12 +355,11 @@ describe("each section carries the board's added lines, in its own section", () 
         copy("how.part.one.line"),
         copy("how.part.pill.line"),
         plumber.partPage,
-        copy("how.part.caption", { business: software.business, area: software.area }),
         copy("how.control.act"),
       ],
     ],
     ["value", [copy("how.value.eyebrow"), copy("how.value.diy.cost.head"), copy("how.value.chart")]],
-    ["start", [copy("landing.field.label"), copy("how.start.caption.other", { business: software.business })]],
+    ["start", [copy("landing.field.label")]],
   ];
 
   it.each(cases)("%s", (id, lines) => {
@@ -409,36 +400,21 @@ describe("the AI sentence states the battery's real numbers (R15)", () => {
   });
 });
 
-type Tree = { props?: { id?: string; draw?: unknown; children?: unknown } };
-/** The elements under a node that pass a test, without rendering it. */
-function elements(node: unknown, pass: (n: Tree) => boolean): Tree[] {
-  if (Array.isArray(node)) return node.flatMap((child) => elements(child, pass));
-  if (node === null || typeof node !== "object") return [];
-  const el = node as Tree;
-  return [...(pass(el) ? [el] : []), ...elements(el.props?.children, pass)];
-}
-
 describe("#start draws the free report's glance as the board does", () => {
-  it("each example's glance has its score ring, its icon tiles and its AI bar", () => {
-    // The switch's software drawing is not in the first render, so each example is drawn from #start's own switch.
-    const [start] = elements(HowItWorksPage(), (n) => n.props?.id === "start");
-    const [switched] = elements(start?.props?.children, (n) => typeof n.props?.draw === "function");
-    const draw = switched?.props?.draw as (e: (typeof EXAMPLES)["plumber"]) => ReactNode;
-    expect(section("start")).toContain(renderToStaticMarkup(draw(EXAMPLES.plumber)));
-    for (const e of [EXAMPLES.plumber, EXAMPLES.software]) {
-      const glance = parse(renderToStaticMarkup(draw(e)))
-        .querySelectorAll("figure")
-        .find((f) => f.getAttribute("aria-label") === copy("how.start.glance"));
-      expect(glance, e.business).toBeDefined();
-      expect(glance?.querySelector(".radial-progress")?.getAttribute("style"), e.business).toContain(`--value:${e.report.score}`);
-      expect(glance?.querySelector(".rounded-field svg.lucide-sparkles"), e.business).not.toBeNull();
-      expect(glance?.querySelector(".rounded-field svg.lucide-file-text"), e.business).not.toBeNull();
-      const bar = glance?.querySelector("progress.progress-primary");
-      expect([bar?.getAttribute("value"), bar?.getAttribute("max"), bar?.getAttribute("aria-hidden")], e.business).toEqual([
-        String(e.report.mentioned),
-        String(e.report.asked),
-        "true",
-      ]);
-    }
+  it("the example's glance has its score ring, its icon tiles and its AI bar", () => {
+    const e = EXAMPLES.plumber;
+    const glance = parse(section("start"))
+      .querySelectorAll("figure")
+      .find((f) => f.getAttribute("aria-label") === copy("how.start.glance"));
+    expect(glance, e.business).toBeDefined();
+    expect(glance?.querySelector(".radial-progress")?.getAttribute("style"), e.business).toContain(`--value:${e.report.score}`);
+    expect(glance?.querySelector(".rounded-field svg.lucide-sparkles"), e.business).not.toBeNull();
+    expect(glance?.querySelector(".rounded-field svg.lucide-file-text"), e.business).not.toBeNull();
+    const bar = glance?.querySelector("progress.progress-primary");
+    expect([bar?.getAttribute("value"), bar?.getAttribute("max"), bar?.getAttribute("aria-hidden")], e.business).toEqual([
+      String(e.report.mentioned),
+      String(e.report.asked),
+      "true",
+    ]);
   });
 });

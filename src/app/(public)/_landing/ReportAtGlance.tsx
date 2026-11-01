@@ -1,22 +1,33 @@
-// Step 1's picture: what a free report opens on, drawn from the plumber specimen and captioned as an example.
+// Step 1's picture: what a free report opens on, headed by the scanned site's logo and domain, drawn from the plumber specimen.
 import type React from "react";
 import { Gift } from "lucide-react";
 import { copy } from "@/lib/presentation/copy";
 import { Num } from "../scan/[domain]/_address/measured";
 import { SCORE_RING } from "../_how/visuals";
 import { EXAMPLES } from "../_how/specimen";
+import { STEP_FIGURE } from "./sections";
+import { SiteMark } from "./SiteMark";
 
 const HOLDS = ["how.read.held.ai", "how.read.held.list"] as const;
 const LABEL = "text-primary text-xs font-semibold";
 const SMALL = "text-base-content/70 text-xs";
 
 export function ReportAtGlance(): React.JSX.Element {
-  const { business, report } = EXAMPLES.plumber;
+  const { site, report } = EXAMPLES.plumber;
   const [leader, ...others] = report.rivals;
   return (
-    <figure className="card card-border bg-base-100 min-w-0" aria-label={copy("how.start.glance")}>
-      <div className="card-body gap-3 p-4">
-        <p className={LABEL}>{copy("how.start.glance")}</p>
+    <figure className={STEP_FIGURE} aria-label={copy("how.start.glance")}>
+      <div className="card-body justify-between gap-3.5 p-5">
+        <div className="flex min-w-0 items-center gap-2.5">
+          {/* An example site has no stored logo, so it draws the fallback letter. */}
+          <SiteMark domain={site} hasLogo={false} small />
+          <span className="flex min-w-0 flex-col">
+            <span className="text-sm font-semibold">
+              <Num>{site}</Num>
+            </span>
+            <span className={LABEL}>{copy("landing.glance.free")}</span>
+          </span>
+        </div>
         <div className="flex min-w-0 items-center gap-3">
           <span
             aria-hidden
@@ -57,7 +68,6 @@ export function ReportAtGlance(): React.JSX.Element {
             <strong>{copy("landing.glance.first")}</strong> {report.firstPage}
           </span>
         </p>
-        <figcaption className={SMALL}>{copy("landing.glance.caption", { business })}</figcaption>
       </div>
     </figure>
   );

@@ -17,3 +17,5 @@ export const FAQ_SECTION_ID = "faq";
 
 /** ReachKit's own articles, the hero's blog proof links here. */
 export const ARTICLES_SECTION_ID = "articles";
+/** The three steps' figures share one frame, so each is the same height at a given width. */
+export const STEP_FIGURE = "card card-border bg-base-100 h-[450px] min-w-0 lg:h-[408px]";

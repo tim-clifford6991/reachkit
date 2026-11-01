@@ -13,23 +13,21 @@
 //      card (`Storyboard.tsx`); on a phone the story card comes last (board
 //      v36, decision 2026-11-01-2246);
 //   2. the walkthrough video, once its file exists (`Walkthrough.tsx`);
-//   3. the three steps, each linking to its How it works section, the
-//      second holding the *Inside ReachKit* preview, then the weekly loop
-//      and the owner's one-time part;
+//   3. the three steps, each beside its picture, and one link to How it works;
 //   4. *Why you should care* — four features (`Features.tsx`);
-//   5. what the one plan gets you: what it buys, everything in it, its card;
+//   5. what the one plan gets you: its cards, then the price band;
 //   6. what to expect when, and the questions owners ask;
 //   7. the newest three articles ReachKit published, where any are stored;
 //   8. the closing band, whose one button returns to the field.
 //
-// One solid button per section (DESIGN, the calm layer): the hero's Scan
-// and the closing band's button. Every other way on is a plain link.
+// One solid button per section (DESIGN, the calm layer): the hero's Scan,
+// the price band's and the closing band's. Every other way on is a plain link.
 //
 // The bands run the viewport's width (#1107), each keeping its content at
 // the footer's `max-w-6xl px-4`.
 //
-// A Server Component. It reads no session and no cookie. `ScanForm`,
-// `InsideTabs` and `FieldCta` are the client leaves.
+// A Server Component. It reads no session and no cookie. `ScanForm` and
+// `FieldCta` are the client leaves.
 import type React from "react";
 import { Suspense } from "react";
 import type { Metadata } from "next";
@@ -45,16 +43,14 @@ import { ReportAtGlance } from "./_landing/ReportAtGlance";
 import { Storyboard } from "./_landing/Storyboard";
 import { Features } from "./_landing/Features";
 import { FieldCta } from "./_landing/FieldCta";
+import { MondayCard } from "./_landing/MondayCard";
+import { PlanCards } from "./_landing/PlanCards";
 import { LatestArticles } from "./_landing/LatestArticles";
 import { HeroProof } from "./_landing/HeroProof";
 import { WALKTHROUGH_SRC, Walkthrough } from "./_landing/Walkthrough";
 import { KIND_ICON, KIND_WORD } from "./scans/kinds";
 import { BUSINESS_KIND_NAMES } from "@/lib/market/kinds";
-import { PlanBuys } from "./_how/buys";
-import { MondayEmail } from "./_how/visuals";
 import { WhenSteps } from "./_how/visuals-when";
-import { EXAMPLES } from "./_how/specimen";
-import { BrandMark } from "@/app/_brand/Brand";
 import { FAQ_SECTION_ID, FIELD_SECTION_ID, HOW_SECTION_ID, PRICE_SECTION_ID, WHY_SECTION_ID } from "./_landing/sections";
 import { HOW_FACTS } from "./_how/facts";
 import { PUBLIC_ROUTE_SEO } from "./_seo/routes";
@@ -66,28 +62,15 @@ type LandingSearchParams = { problem?: string; value?: string };
 const WEEK_PAGES = String(HOW_FACTS.weekPages);
 const PRICE = (): string => copy("price.amount");
 
-/** The three steps, each with the How it works section it opens. */
+/** The three steps, each with its picture. */
 const STEPS = [
-  { n: "1", title: "landing.step.1.title", body: "landing.step.1.body", tag: "landing.step.1.tag", more: "landing.step.1.more", href: "/how-it-works#research" },
-  { n: "2", title: "landing.step.2.title", body: "landing.step.2.body", tag: "landing.step.2.tag", more: "landing.step.2.more", href: "/how-it-works#pages" },
-  { n: "3", title: "landing.step.3.title", body: "landing.step.3.body", tag: "landing.step.3.tag", more: "landing.step.3.more", href: "/how-it-works#found" },
+  { n: "1", title: "landing.step.1.title", body: "landing.step.1.body", tag: "landing.step.1.tag", Figure: ReportAtGlance },
+  { n: "2", title: "landing.step.2.title", body: "landing.step.2.body", tag: "landing.step.2.tag", Figure: InsideReachKit },
+  { n: "3", title: "landing.step.3.title", body: "landing.step.3.body", tag: "landing.step.3.tag", Figure: MondayCard },
 ] as const;
 
 /** The offer under the field, one tick line each. */
 const offer = (): readonly string[] => [copy("landing.hero.offer.free"), copy("landing.hero.offer.price", { price: PRICE() })];
-
-/** The owner's part, once, in setup's order. */
-const PART = ["landing.part.answer", "how.part.three", "landing.part.done"] as const;
-
-/** What the one plan holds, after the pace. */
-const INCLUDED: readonly { key: CopyKey; vars?: Record<string, string> }[] = [
-  { key: "landing.price.facts" },
-  { key: "landing.price.ready" },
-  { key: "landing.price.monday" },
-  { key: "landing.price.competitors", vars: { rivals: String(HOW_FACTS.rivals) } },
-  { key: "landing.price.site" },
-  { key: "landing.price.found" },
-];
 
 /** The questions and their short answers, in the board's order; How it
  *  works holds the full ones. The guarantee and *Cancel your contract* wait
@@ -109,7 +92,6 @@ function questions(): readonly { q: CopyKey; a: CopyKey; vars?: Record<string, s
 const PRICE_TEST_ID = "landing-price";
 const PAGE_NAME = "landing";
 const KINDS_ID = "kinds";
-const VALUE_HREF = "/how-it-works#value";
 
 const SECTION = "border-t border-base-300 py-16 lg:py-24";
 const INNER = "mx-auto w-full max-w-6xl px-4";
@@ -195,57 +177,33 @@ export default function LandingPage(props: {
 
         {/* ══ THE THREE STEPS ══ */}
         <section id={HOW_SECTION_ID} className={`${SECTION} scroll-mt-16`}>
-          <div className={INNER}>
-            <div className="mx-auto max-w-2xl text-left lg:text-center">
+          <div className={`${INNER} flex flex-col gap-6 lg:gap-9`}>
+            <div className="max-w-2xl">
               <p className={LABEL}>{copy("landing.start.eyebrow")}</p>
               <h2 className={HEADING}>{copy("landing.start.heading")}</h2>
-              <p className={BODY}>{copy("landing.start.body")}</p>
             </div>
-            <ol className="mt-10 flex flex-col gap-4">
-              {STEPS.map((step) => (
-                <li key={step.n} className="card card-border bg-base-100 min-w-0">
-                  <div className="card-body grid grid-cols-1 gap-6 lg:grid-cols-2">
-                    <div className="flex min-w-0 flex-col items-start gap-2">
-                      <div className="flex items-center gap-2">
+            <ol className="flex flex-col gap-4 lg:gap-5">
+              {STEPS.map(({ n, title, body, tag, Figure }) => (
+                <li key={n} className="card card-border bg-base-100 min-w-0" data-step={n}>
+                  <div className="card-body grid grid-cols-1 gap-5 px-4 pt-5 pb-4 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] lg:items-start lg:gap-12 lg:p-8">
+                    <div className="flex min-w-0 flex-col items-start gap-3 px-1 lg:px-0 lg:pt-2">
+                      <div className="flex items-center gap-2.5">
                         <span className="bg-primary text-primary-content grid size-7 shrink-0 place-items-center rounded-full text-sm font-semibold">
-                          {step.n}
+                          {n}
                         </span>
-                        <span className="badge badge-soft badge-primary badge-sm font-mono">{copy(step.tag)}</span>
+                        <span className="badge badge-soft badge-primary badge-sm font-mono">{copy(tag)}</span>
                       </div>
-                      <h3 className="card-title">{copy(step.title)}</h3>
-                      <p className="text-sm text-base-content/70">{copy(step.body, { weekPages: WEEK_PAGES })}</p>
-                      <More href={step.href} label={copy(step.more)} />
+                      <h3 className="card-title">{copy(title)}</h3>
+                      <p className="max-w-sm text-base-content/70">{copy(body, { weekPages: WEEK_PAGES })}</p>
                     </div>
-                    {step.n === "1" && <ReportAtGlance />}
-                    {step.n === "2" && <InsideReachKit />}
-                    {step.n === "3" && MondayEmail(EXAMPLES.plumber, { linked: false })}
+                    <Figure />
                   </div>
                 </li>
               ))}
             </ol>
-            <p className="mt-6 text-center text-sm font-semibold">{copy("landing.loop")}</p>
-            <div className="card card-border bg-base-200 mt-6 min-w-0">
-              <div className="card-body gap-4">
-                <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
-                  <p className="font-semibold">
-                    {copy("landing.part.once", { minutes: String(HOW_FACTS.setupMinutes) })}
-                  </p>
-                  <ol className="steps text-xs">
-                    {PART.map((key) => (
-                      <li key={key} className="step step-primary">
-                        {copy(key)}
-                      </li>
-                    ))}
-                  </ol>
-                  <p className="text-sm font-semibold">{copy("landing.part.after")}</p>
-                </div>
-                <p className={`${BODY} text-sm`}>{copy("landing.part.body")}</p>
-              </div>
-            </div>
-            <div className="mt-6 flex flex-wrap items-center gap-x-6 gap-y-3">
-              <FieldCta label={copy("landing.start.cta")} soft />
+            <p>
               <More href="/how-it-works" label={copy("landing.how.full")} />
-            </div>
+            </p>
           </div>
         </section>
 
@@ -263,48 +221,24 @@ export default function LandingPage(props: {
           </div>
         </section>
 
-        {/* ══ WHAT THE ONE PLAN GETS YOU ══ */}
+        {/* ══ WHAT THE ONE PLAN GETS YOU ══ The band's button brings the field into view, so it adds no second submit. */}
         <section id={PRICE_SECTION_ID} className={`${SECTION} scroll-mt-16`}>
-          <div className={`${INNER} flex flex-col gap-8`}>
-            <h2 className={HEADING}>{copy("landing.price.heading", { price: PRICE() })}</h2>
-            <PlanBuys />
-            <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,1fr)_22rem] lg:gap-12">
-              <div className="card card-border bg-base-100 min-w-0">
-                <div className="card-body gap-4">
-                  <h3 className="card-title">{copy("landing.price.all")}</h3>
-                  <ul className="flex flex-col gap-3">
-                    <li className="flex items-start gap-2">
-                      <Check size={16} strokeWidth={1.75} className="text-success mt-1 shrink-0" aria-hidden />
-                      {copy("landing.pace", { weekPages: WEEK_PAGES })}
-                    </li>
-                    {INCLUDED.map((item) => (
-                      <li key={item.key} className="flex items-start gap-2">
-                        <Check size={16} strokeWidth={1.75} className="text-success mt-1 shrink-0" aria-hidden />
-                        {copy(item.key, item.vars)}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              </div>
-              <div className="card card-border bg-base-200 min-w-0" data-testid={PRICE_TEST_ID}>
-                <div className="card-body items-start gap-3">
-                  <div className="flex w-full flex-wrap items-center justify-between gap-2">
-                    <span className="flex items-center gap-2 font-extrabold">
-                      <BrandMark />
-                      {copy("chrome.wordmark")}
-                    </span>
-                    <span className="badge badge-soft badge-primary">{copy("pricing.plan.badge")}</span>
-                  </div>
+          <div className={`${INNER} flex flex-col gap-6 lg:gap-8`}>
+            <h2 className="m-0">{copy("landing.price.heading", { price: PRICE() })}</h2>
+            <PlanCards />
+            <div className="card card-border bg-primary/5 min-w-0" data-testid={PRICE_TEST_ID}>
+              <div className="card-body gap-5 px-5 py-6 sm:flex-row sm:items-center sm:justify-between lg:px-9 lg:py-7">
+                <div className="flex flex-wrap items-center gap-x-8 gap-y-3">
                   <p className="flex items-baseline gap-2">
-                    <span className="num text-4xl font-bold">{PRICE()}</span>
+                    <span className="num text-5xl font-semibold">{PRICE()}</span>
                     <span className="text-base-content/70">{copy("landing.price.month")}</span>
                   </p>
-                  <p className="text-sm text-base-content/70">{copy("landing.price.terms", { price: PRICE() })}</p>
-                  <Link href="/pricing" className="btn btn-primary btn-soft">
-                    {copy("landing.price.see")}
-                  </Link>
-                  <More href={VALUE_HREF} label={copy("landing.price.more")} />
+                  <p className="flex flex-col gap-1">
+                    <strong>{copy("landing.plan.one")}</strong>
+                    <span className="text-base-content/70">{copy("landing.plan.terms")}</span>
+                  </p>
                 </div>
+                <FieldCta label={copy("landing.start.cta")} />
               </div>
             </div>
           </div>

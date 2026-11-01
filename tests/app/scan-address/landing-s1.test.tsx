@@ -78,11 +78,10 @@ describe("the landing holds what the board holds, in order", () => {
 });
 
 describe("the pace, and the figures the scan runs on", () => {
-  const a1 = `Up to ${WEEK_PLAN.days} pages a week, new or updated. Never filler.`;
-
-  it("reads exactly the owner's A1 sentence, its number the week plan's", () => {
-    expect(copy("landing.pace", { weekPages: WEEK_PLAN.days })).toBe(a1);
-    expect(markup).toContain(drawn(a1));
+  it("the first plan card says the owner's A1 pace as a title and a line, its number the week plan's", () => {
+    expect(copy("landing.plan.pages", { weekPages: WEEK_PLAN.days })).toBe(`Up to ${WEEK_PLAN.days} pages a week`);
+    expect(markup).toContain(drawn(copy("landing.plan.pages", { weekPages: WEEK_PLAN.days })));
+    expect(markup).toContain(drawn(copy("landing.plan.pages.line")));
   });
 
   it("“up to” holds: the product cannot put more pages live in a week than it promises", () => {
@@ -98,25 +97,18 @@ describe("the pace, and the figures the scan runs on", () => {
     const landing = Object.entries(COPY as Record<string, string>).filter(([key]) => key.startsWith("landing."));
     for (const [key, value] of landing) expect(value, key).not.toMatch(/\b(?:up to|fewer than) \d/i);
     const pace = landing.filter(([, value]) => value.includes("{weekPages}")).map(([key]) => key);
-    expect(pace).toEqual(expect.arrayContaining(["landing.pace", "landing.step.2.body"]));
+    expect(pace).toEqual(expect.arrayContaining(["landing.plan.pages", "landing.step.2.body"]));
   });
 });
 
 describe("plain links into How it works", () => {
-  it("each step card opens its section", () => {
-    const steps = between('id="how"', drawn(copy("landing.loop")));
-    expect(hrefsIn(steps)).toEqual(["/how-it-works#research", "/how-it-works#pages", "/how-it-works#found"]);
-  });
-
-  it("the price card opens Pricing and the value section, and is not a second offer", () => {
-    const card = between('data-testid="landing-price"', "</section>");
-    expect(hrefsIn(card)).toEqual(["/pricing", "/how-it-works#value"]);
-    expect(card).not.toMatch(/<button\b|btn-primary"/);
+  it("the steps open How it works once, in full", () => {
+    expect(hrefsIn(between('id="how"', 'id="why"'))).toEqual(["/how-it-works"]);
   });
 
   it("each link is plain text, never a button", () => {
     const links = [...markup.matchAll(/<a\b[^>]*href="\/how-it-works#[^"]*"[^>]*>/g)].map((m) => m[0]);
-    expect(links).toHaveLength(5);
+    expect(links).toHaveLength(1);
     for (const link of links) expect(link).not.toMatch(/\bbtn\b/);
   });
 });

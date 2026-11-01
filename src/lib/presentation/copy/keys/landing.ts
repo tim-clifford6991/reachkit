@@ -1,5 +1,5 @@
 // The landing above How it works: the hero's offer and proof card, the story
-// card and the walkthrough (boards PubLanding and PubLandingPhone, version 36).
+// card and the walkthrough, then How it works and the plan (boards PubLanding and PubLandingPhone, version 36).
 import type { CopyPartition } from "../registry.ts";
 
 export const LANDING_COPY = Object.freeze({
@@ -42,4 +42,31 @@ export const LANDING_COPY = Object.freeze({
   /** The walkthrough band, drawn only once the video file exists. */
   "landing.walkthrough.eyebrow": ["Walkthrough", { slots: {}, fixedBy: "board PubLanding v34 · owner 2026-11-01" }],
   "landing.walkthrough.heading": ["See ReachKit in 2 minutes", { slots: {}, fixedBy: "board PubLanding v34 · owner 2026-11-01" }],
+  /** How it works: step 1's report header, step 2's days, step 3's Monday email (v36). */
+  "landing.glance.free": ["Free report", { slots: {}, fixedBy: "board PubLanding v36 · owner 2026-11-01" }],
+  "landing.inside.research": ["Research", { slots: {}, fixedBy: "board PubLanding v34 · owner 2026-11-01" }],
+  "landing.inside.new": ["New page", { slots: {}, fixedBy: "board PubLanding v34 · owner 2026-11-01" }],
+  "landing.inside.done": ["Done", { slots: {}, fixedBy: "board PubLanding v34 · owner 2026-11-01" }],
+  "landing.inside.tomorrow": ["Tomorrow", { slots: {}, fixedBy: "board PubLanding v34 · owner 2026-11-01" }],
+  "landing.mail.title": ["The Monday email", { slots: {}, fixedBy: "board PubLanding v34 · owner 2026-11-01" }],
+  "landing.mail.live": ["pages live", { slots: {}, fixedBy: "board PubLanding v34 · owner 2026-11-01" }],
+  "landing.mail.planned": ["planned this week", { slots: {}, fixedBy: "board PubLanding v34 · owner 2026-11-01" }],
+  "landing.mail.row": ["{day} · New page · live today, {time}", { slots: { day: "text", time: "text" }, fixedBy: "board PubLanding v34 · owner 2026-11-01" }],
+  /** *What {price} a month gets you*: each card a title and one line, then the price band; its terms are the wording `landing.trust` shipped. */
+  "landing.plan.pages": ["Up to {weekPages} pages a week", { slots: { weekPages: "text" }, fixedBy: "board PubLanding v34 · owner 2026-11-01" }],
+  "landing.plan.pages.line": ["New or updated. Never filler.", { slots: {}, fixedBy: "board PubLanding v34 · owner 2026-11-01" }],
+  "landing.plan.facts": ["Facts from your site", { slots: {}, fixedBy: "board PubLanding v34 · owner 2026-11-01" }],
+  "landing.plan.facts.line": ["Every fact linked to its source. Up to {checks} checks before a page goes live.", { slots: { checks: "text" }, fixedBy: "board PubLanding v34 · owner 2026-11-01" }],
+  "landing.plan.mail": ["An email every Monday", { slots: {}, fixedBy: "board PubLanding v34 · owner 2026-11-01" }],
+  "landing.plan.mail.line": ["What went live and what’s next. In week 1, one for each page too.", { slots: {}, fixedBy: "board PubLanding v34 · owner 2026-11-01" }],
+  "landing.plan.rivals": ["Up to {rivals} competitors", { slots: { rivals: "text" }, fixedBy: "board PubLanding v34 · owner 2026-11-01" }],
+  "landing.plan.rivals.line": ["Watched every week.", { slots: {}, fixedBy: "board PubLanding v34 · owner 2026-11-01" }],
+  "landing.plan.site": ["Site checks", { slots: {}, fixedBy: "board PubLanding v34 · owner 2026-11-01" }],
+  "landing.plan.site.line": ["Your whole site checked for problems, with the fix for each.", { slots: {}, fixedBy: "board Landing · issue 1596" }],
+  "landing.plan.tracking": ["Google and AI tracking", { slots: {}, fixedBy: "board PubLanding v34 · owner 2026-11-01" }],
+  "landing.plan.tracking.line": ["Where your pages sit in Google, and which ones AI answers link to.", { slots: {}, fixedBy: "board PubLanding v34 · owner 2026-11-01" }],
+  "landing.plan.time": ["{minutes} minutes, once", { slots: { minutes: "text" }, fixedBy: "board PubLanding v34 · owner 2026-11-01" }],
+  "landing.plan.time.line": ["Answer a few questions and connect your site. That’s your part.", { slots: {}, fixedBy: "board PubLanding v34 · owner 2026-11-01" }],
+  "landing.plan.one": ["One plan, everything in it", { slots: {}, fixedBy: "board PubLanding v34 · owner 2026-11-01" }],
+  "landing.plan.terms": ["VAT included. Cancel any time.", { slots: {}, fixedBy: "board PubLanding v34 · owner 2026-11-01" }],
 }) satisfies CopyPartition;
