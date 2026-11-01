@@ -14,9 +14,6 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { rescoreRow, type StoredRead, type StoredScanRow } from "../../../src/lib/scan/rescore-run";
-import { changesToWrite } from "../../../src/lib/scan/rescore-write";
-import { REPORT_VERSION } from "../../../src/lib/scan/report";
 import { psql, psqlRows } from "../../db/substrate";
 
 const MIGRATIONS = path.resolve(import.meta.dirname, "../../../supabase/migrations");
@@ -161,77 +158,36 @@ describe("rescore_scan — a true means every change landed", () => {
   });
 });
 
-interface StoredFixture {
-  createdAt: string;
-  status: StoredScanRow["status"];
-  score: number | null;
-  drivers: unknown;
-  report: Record<string, unknown>;
-  home: { created_at: string; payload: unknown } | null;
-  rendered: readonly { created_at: string; payload: unknown }[];
-}
-
-const GUSTO = (
-  JSON.parse(readFileSync(path.join(import.meta.dirname, "fixtures/rescore/gusto.com.json"), "utf8")) as { scans: StoredFixture[] }
-).scans[0]!;
+/** The writes `rescore-write.test.ts` computes for gusto.com's report wound
+ *  back to versions 6 and 12, kept so this suite imports no scan code. */
+const OLD_VERSIONS = JSON.parse(readFileSync(path.join(import.meta.dirname, "fixtures/rescore/old-versions.json"), "utf8")) as Record<
+  string,
+  {
+    stored: { status: string; score: number | null; drivers: unknown; report: Record<string, unknown> };
+    write: { changes: { path: string[]; value: Record<string, unknown> }[]; score: number | null; status: string; drivers: unknown };
+  }
+>;
 
 const lit = (json: unknown): string => `'${JSON.stringify(json).replaceAll("'", "''")}'::jsonb`;
 
-/** gusto.com's stored report as an older build wrote it: a version-6 blob
- *  carries none of the members versions 7 to 12 added. */
-function woundBack(version: 6 | 12): Record<string, unknown> {
-  const report = structuredClone(GUSTO.report);
-  if (version === 6) {
-    for (const key of ["siteIssues", "ownRankedRows", "measuredCategory", "pageQuestions", "blockedAgents"]) delete report[key];
-    delete (report.aiAnswers as Record<string, unknown>).reusedFrom;
-  }
-  return { ...report, version };
-}
-
-function storedRow(id: string): StoredScanRow {
-  const [domain, createdAt, status, score, drivers, report, md5] = psqlRows(
-    `select domain, to_json(created_at)#>>'{}', status, score, drivers::text, report::text, report_md5(s) from scans s where id = '${id}';`
-  )[0]!;
-  return {
-    id,
-    domain: domain!,
-    createdAt: createdAt!,
-    status: status as StoredScanRow["status"],
-    score: score === "" ? null : Number(score),
-    drivers: JSON.parse(drivers!) as unknown,
-    md5: md5!,
-    report: JSON.parse(report!) as unknown,
-    siteId: null,
-    isCurrent: false,
-  };
-}
-
-const READS: StoredRead[] = [
-  ...(GUSTO.home === null ? [] : [{ source: "egress.safeFetch" as const, ...GUSTO.home }]),
-  ...GUSTO.rendered.map((r) => ({ source: "on_page/instant_pages" as const, ...r })),
-];
-
 describe("rescore_scan — a re-score of an older blob, through the function", () => {
-  for (const version of [6, 12] as const) {
-    it(`a version-${version} blob takes the whole upgraded report, keeps the original, and a second re-score moves nothing`, () => {
-      const raw = woundBack(version);
+  for (const [version, { stored, write }] of Object.entries(OLD_VERSIONS)) {
+    it(`a version-${version} blob takes the whole upgraded report and keeps the original`, () => {
       const id = value(
-        `insert into scans (domain, tier, status, score, drivers, report, created_at) values ('gusto.com', 'free', '${GUSTO.status}', ${GUSTO.score ?? "null"}, ${lit(GUSTO.drivers)}, ${lit(raw)}, '${GUSTO.createdAt}') returning id;`
+        `insert into scans (domain, tier, status, score, drivers, report) values ('gusto.com', 'free', '${stored.status}', ${stored.score ?? "null"}, ${lit(stored.drivers)}, ${lit(stored.report)}) returning id;`
       )!;
-      const row = rescoreRow(storedRow(id), READS);
-      if (!("result" in row)) throw new Error(row.because);
-      const changes = changesToWrite(row).map((c) => ({ path: c.path.map(String), value: c.value }));
       const wrote = value(
-        `select rescore_scan('${id}', '${row.scan.md5}', ${lit(changes)}, ${row.result.score ?? "null"}, '${row.result.status}', ${lit(row.result.drivers)}, '2026-11-01T12:00:00.000Z', 'abc1234');`
+        `select rescore_scan('${id}', '${md5Of(id)}', ${lit(write.changes)}, ${write.score ?? "null"}, '${write.status}', ${lit(write.drivers)}, '2026-11-01T12:00:00.000Z', 'abc1234');`
       );
       expect(wrote).toBe("t");
-      const stored = storedRow(id).report as Record<string, unknown>;
-      expect(stored.version).toBe(REPORT_VERSION);
-      expect(stored.previous).toEqual(raw);
-      const again = rescoreRow(storedRow(id), READS);
-      if (!("result" in again)) throw new Error(again.because);
-      expect(again.result.changes).toEqual([]);
-      expect(again.result.score).toBe(row.result.score);
+      const report = JSON.parse(value(`select report from scans where id = '${id}';`)!) as Record<string, unknown>;
+      const { previous, previousColumns, rescoredAt, rescoredBy, ...rest } = report;
+      void rescoredAt;
+      void rescoredBy;
+      expect(rest).toEqual(write.changes[0]!.value);
+      expect(previous).toEqual(stored.report);
+      expect(previousColumns).toEqual({ score: stored.score, status: stored.status, drivers: stored.drivers });
+      expect(psqlRows(`select score, status from scans where id = '${id}';`)[0]).toEqual([String(write.score ?? ""), write.status]);
     });
   }
 });
