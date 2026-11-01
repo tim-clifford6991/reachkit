@@ -589,16 +589,11 @@ export async function trackedPromptsFollowRivals(a: { siteId: string; domain: st
   }
 }
 
-/** The rivals re-checked on the pass's own money (#1185). A failure
+/** The rivals re-checked on the pass's own money and stamped with its own date, never the clock's (#1185). A failure
  *  changes nothing and says so in the log; the pass goes on. */
-export async function recheckRivalsOf(a: {
-  siteId: string;
-  domain: string;
-  cost: CostContext;
-  report: StoredReport;
-}): Promise<void> {
+export async function recheckRivalsOf(a: { siteId: string; domain: string; cost: CostContext; report: StoredReport; at: Date }): Promise<void> {
   try {
-    await recheckRivals({ ...a, at: new Date() });
+    await recheckRivals(a);
     await trackedPromptsFollowRivals(a);
   } catch (error) {
     console.log(

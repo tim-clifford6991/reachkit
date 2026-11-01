@@ -139,7 +139,7 @@ function site(s: Site): {
       source === "site-knowledge"
         ? { parseOutcome: "success", value: reading, tokensIn: 400, tokensOut: 120, durationMs: 1 }
         : { billed: false, endpoint: source, vendorFailure: "not in tests" },
-    new Date(),
+    at(MONDAYS[0]!),
     "WEEKLY"
   );
   runScan.mockImplementation(async (call: { scanId: string; afterReport: (x: unknown) => Promise<void> }) => {
