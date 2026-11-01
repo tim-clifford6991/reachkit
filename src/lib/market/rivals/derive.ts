@@ -171,13 +171,10 @@ export function deriveRivals(a: {
       ? isOthersPage(row, true)
       : pageClass(row) === "third_party" ||
         ((isArticleRow(row) || (row.title !== undefined && isExplainerTitle(row.title))) && (row.url === undefined || !isOwnContentUrl(row.url)));
-  // A page for job seekers, unless they are this business's buyers, or in a local market one that explains a subject or an occupation:
-  // outside one a software maker explains its own market ("What does a CRM do"). A home page offers its business whatever its tagline says.
-  const isGuide = (row: { domain: string; url?: string; title?: string }): boolean => {
-    if (row.url !== undefined && isHomeUrl(row.url)) return !servesJobSeekers(a.category) && isJobRow({ domain: row.domain });
-    const ownPost = !local && row.url !== undefined && isOwnContentUrl(row.url);
-    return (!servesJobSeekers(a.category) && !ownPost && isJobRow(row)) || (local && row.title !== undefined && (isExplainerTitle(row.title) || isOccupationTitle(row.title)));
-  };
+  // A job page unless job seekers are its buyers (outside a local market not in its own blog), or locally an explainer or occupation guide; a home page only by a job host.
+  const jobs = !servesJobSeekers(a.category);
+  const isGuide = (row: { domain: string; url?: string; title?: string }): boolean =>
+    row.url !== undefined && isHomeUrl(row.url) ? jobs && isJobRow({ domain: row.domain }) : (jobs && (local || row.url === undefined || !isOwnContentUrl(row.url)) && isJobRow(row)) || (local && row.title !== undefined && (isExplainerTitle(row.title) || isOccupationTitle(row.title)));
   // The share of a search's titled top ten that `test` holds, at least half.
   const mostly = (serp: MarketSerp, test: (title: string) => boolean): boolean => {
     const titles = serp.organic.flatMap((row) => (row.title === undefined ? [] : [row.title]));
