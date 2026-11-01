@@ -22,7 +22,7 @@
 import { RIVAL_DEMAND } from "@/lib/config/constants";
 import type { MarketConclusion } from "../infer/types";
 import type { MarketSerp } from "../views";
-import { isOwnDomain, isPlatformDomain, registrableDomain } from "./domains";
+import { isOwnDomain, isPlatformDomain, registrableDomain, resolvedRows } from "./domains";
 
 interface Tally {
   /** How many of the pass's top tens hold this domain — once per SERP,
@@ -67,7 +67,7 @@ export function serpRivalCandidates(a: {
 
   for (const serp of a.serps) {
     const here: string[] = [];
-    for (const row of serp.organic) {
+    for (const row of resolvedRows(serp.organic) ?? []) {
       const domain = registrableDomain(row.domain);
       if (domain === null) continue;
       if (isOwnDomain(domain, a.ownDomain)) continue;
