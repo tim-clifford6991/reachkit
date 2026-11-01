@@ -214,6 +214,7 @@ function pageOn(a: {
     unpublishOutcome: a.page.unpublishOutcome,
     // Issue 880: why the page needs them, as §9's record derived it.
     needsYou: a.page.needsYou,
+    setAside: a.page.setAside,
     // Issue 930: this week's place, read and never re-measured.
     standing: a.standing,
     update: isUpdate(a.choice),

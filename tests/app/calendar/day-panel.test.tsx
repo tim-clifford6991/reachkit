@@ -356,7 +356,9 @@ describe("REQ-043 c9 — the panel renders exactly the projection, and adds noth
   });
 
   it("a page the rules stopped states no needs-you line: the system rescues or sets it aside (owner O7)", () => {
-    const root = panel("2026-09-10");
+    const cell = cellFor(MODEL, "2026-09-10")!;
+    const page = { ...cell.page!, needsYou: { kind: "rules" as const, rules: ["honest_row"] } };
+    const root = render(<DayPanelView cell={{ ...cell, page }} timeZone={FIXTURE_TIME_ZONE} stopped={MODEL.stopped} onClose={() => undefined} />);
     expect(root.querySelector('[data-testid="day-needs-you-line"]')).toBeNull();
     expect(root.textContent).not.toContain("publish.needs-you.");
   });

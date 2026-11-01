@@ -430,7 +430,7 @@ function PageDayPanel(p: {
   // (`skipped`, `unpublished`) — a stopped page — and the panel then shows
   // what an empty date shows and offers nothing, which is exactly what the
   // server renders once the re-read lands.
-  const stage = STAGE_OF[state];
+  const stage = state === page.state ? page.stage : STAGE_OF[state];
   const shown: DayCell =
     stage === null ? { ...cell, page: null } : { ...cell, page: { ...page, state, stage } };
 

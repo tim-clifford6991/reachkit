@@ -109,6 +109,13 @@ export function needsYouOf(a: { state: State; transitions: unknown; meta: unknow
   return since === null ? cause : { kind: "delivery", since };
 }
 
+/** Whether the daily re-check set the page aside: `skipped`, its last move carrying a `retired:<cause>` reason. */
+export function setAsideOf(a: { state: State; transitions: unknown }): boolean {
+  if (a.state !== "skipped" || !Array.isArray(a.transitions)) return false;
+  const reason = (a.transitions as TransitionLike[]).at(-1)?.reason;
+  return typeof reason === "string" && reason.startsWith("retired:");
+}
+
 /** When the page first rested with its publish tried to exhaustion, or `null`. */
 export function exhaustedSince(transitions: unknown): string | null {
   if (!Array.isArray(transitions)) return null;
