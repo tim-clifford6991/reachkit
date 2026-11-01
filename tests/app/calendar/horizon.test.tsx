@@ -99,7 +99,7 @@ describe("issue 857 — a thin market on a Wednesday", () => {
       COPY["calendar.supply.unmeasured"]
     );
     const text = root.textContent ?? "";
-    expect(text.split("couldn’t find enough searches").length - 1).toBe(1);
+    expect(text.split("found enough searches").length - 1).toBe(1);
     expect(text).not.toContain(COPY["calendar.empty.supply-unmeasured"]);
     expect(root.querySelectorAll('[data-testid="cell-empty-line"]')).toHaveLength(0);
   });

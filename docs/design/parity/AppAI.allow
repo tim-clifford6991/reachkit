@@ -14,12 +14,12 @@ Who is a good emergency plumber in Austin?	sample data
 Which Austin plumbers install tankless water heaters?	sample data
 Who can fix a slab leak in Austin?	sample data
 Theme: light	DESIGN.md: the /app shell's theme control is the Light / Dark / System dropdown named Theme (#681)
-Measured Monday 19 October.	sample data: the day is the account's own stored reading
+Checked Monday 19 October.	sample data: the day is the account's own stored reading
 of 12 pages asked	sample data: the count is the account's own asked pages
 14	sample data: the count is the account's own AI reads
 3 Sep 28 6 Oct 5 9 Oct 12 14 Oct 19 What this means	sample data: the weeks and reads are the account's own, drawn by Recharts (#1747)
 0 Sep 28 0 Oct 5 1 Oct 12 2 Oct 19 What this means	sample data: the weeks and visits are the account's own, drawn by Recharts (#1747)
-Each page’s own question, asked in Austin every Monday. The dots are its AI steps: read, linked, visit.	sample data: the fixture business sells beyond one place, so the lead names none (#1747)
+We ask each page’s question in Austin every Monday. Dots show read, linked and visit.	sample data: the fixture business sells beyond one place, so the lead names none (#1747)
 How to shut off water to a house in an emergency	sample data
 how do I shut off the water to my house in an emergency	sample data
 AI Overview No answer	E6 2026-10-24: board copy slip; the empty state reads "None on this search"
@@ -30,8 +30,8 @@ ChatGPT 8	sample data
 Perplexity 4	sample data
 Claude 2	sample data
 ChatGPT 2	sample data
-Reputation · mentioned in 11 of 184 AI answers, last 4 weeks first reading · checked monthly	sample data: the counts are the account's own month reading
-11 of 184 AI answers mentioned you in the last 4 weeks: between 3% and 10%, because answers vary.	sample data: the counts and range are the account's own month reading
+Mentioned by AI · mentioned in 11 of 184 AI answers, last 4 weeks first reading · checked monthly	sample data: the counts are the account's own month reading
+11 of 184 AI answers mentioned you in the last 4 weeks. Answers vary, so the true rate is 3% to 10%.	sample data: the counts and range are the account's own month reading
 How many of those 184 answers mentioned you, and each competitor.	sample data: the count is the account's own month reading
 You 11	sample data
 austinpipeworks.example 41	sample data

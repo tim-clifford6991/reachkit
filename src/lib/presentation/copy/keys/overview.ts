@@ -56,91 +56,8 @@ export const OVERVIEW_COPY = Object.freeze({
     "Part of this week wasn’t checked. What was checked shows its date.",
     { law: "no-presence-yet", slots: {}, fixedBy: "REQ-065 c4" },
   ],
-  // ── The growth module.
-  // The card head's right-hand chip (UI-SPEC S12: "re-measured Mon 1 Sep").
-  // The date is a slot — it is the measurement's own, read from the series,
-  // and the sidebar states the same one from the same `firstDueOn`/week.
-  "overview.growth.source.remeasured": [
-    "scanned again {on}",
-    { slots: { on: "date" }, fixedBy: "S12" },
-  ],
-  // The week-0 chart's own chip and footnote pair. The chip names the pass
-  // the single reading came from — the set is explicit that it is the deep
-  // pass and not a weekly measurement — and the right footnote says the
-  // weekly line has not begun, in place of the goal sentence the ordinary
-  // arm carries.
-  "overview.growth.source.deep-pass": [
-    "from the deep scan · {on}",
-    { slots: { on: "date" }, fixedBy: "S13" },
-  ],
-  "overview.growth.footnote.starting": [
-    "starting at {value}",
-    { slots: { value: "text" }, fixedBy: "S13" },
-  ],
-  "overview.growth.footnote.first-monday": [
-    "the line begins with the first Monday",
-    { slots: {}, fixedBy: "S13" },
-  ],
-  "overview.growth.footnote.start": ["started at {value}", { slots: { value: "text" }, fixedBy: "BUILD §4.5" }],
-  "overview.growth.footnote.goal": [
-    "At {goal} the big market searches unlock.",
-    { slots: { goal: "text" }, fixedBy: "BUILD §4.5" },
-  ],
-
-  // ── The three tiles (DECISIONS 2026-09-03: no composite score tile).
-  // Each name is §4.5's own; each meaning line is the owner's.
-  // ── The three tiles' week-0 lines (UI-SPEC S13). Each names when its
-  // own reading arrives, in place of a number nobody has measured — never
-  // a zero, which REQ-004 forbids as a reading that was not taken.
-  "overview.tile.score.first-due": [
-    "first scan due {due}",
-    { slots: { due: "date" }, fixedBy: "S13 · REQ-040 c7" },
-  ],
-  "overview.tile.ai-answers.first-pass": [
-    "scanned with the first weekly scan",
-    { slots: {}, fixedBy: "S13" },
-  ],
-  // #793: the deep pass is week 0. Where it measured the score or the AI
-  // answers, the tile shows that reading and names it as the starting
-  // measurement, with the date the weekly readings take over. Drafted
-  // (#759); the owner corrects the wording.
-  "overview.tile.starting": [
-    "first scan, {on} · weekly from {due}",
-    { slots: { on: "date", due: "date" }, fixedBy: "issue 793" },
-  ],
-  "overview.tile.pages.first-review": [
-    "first page goes live on its own",
-    { slots: {}, fixedBy: "S13 · issue 1362" },
-  ],
-
-  // ── The score tile (UI-SPEC S12, ruling 6a).
-  //
-  // What reaching `GOAL_VALUES.score` means, in the product's own words.
-  // The set prints no such line beside the score — it prints the band —
-  // so the words are the owner's (#460).
-  "overview.tile.score.means": ["At {goal} you’re Findable", { slots: { goal: "text" }, fixedBy: "BUILD §4.5" }],
-  // The card head of the growth chart still names the searches reading:
-  // the set moved that number off the tiles and onto its own card, and
-  // this key is the card's eyebrow now rather than a tile label.
-  // 2026-09-20 (#908/#915): the redesign names this tile "Searches you appear
-  // for" — the Overview tab's first linked tile, and the Search tab's own
-  // head. One key, reworded; drafted under issue 759's ruling and the
-  // owner's to correct.
-  "overview.tile.searches.label": ["Searches you appear for", { slots: {}, fixedBy: "issue 915" }],
+  // ── The tiles.
   "overview.tile.ai-answers.label": ["AI", { slots: {}, fixedBy: "BUILD §4.5" }],
-  "overview.tile.ai-answers.window": [
-    "mentioned in {weeks} of the last {of} weeks",
-    { slots: { weeks: "text", of: "text" }, fixedBy: "REQ-041 c12" },
-  ],
-  // Issue 867 (owner, 2026-09-17): the other engines this site's pages are
-  // measured on where the paid battery asked them. Drafted under issue 759's
-  // ruling; the owner corrects the wording.
-  "overview.tile.ai-answers.also-measured": [
-    "{engines} are measured on each page's own search.",
-    { slots: { engines: "text" }, fixedBy: "issue 867" },
-  ],
-  "overview.tile.ai-answers.means": ["Mentioned by AI in half the weeks.", { slots: {}, fixedBy: "REQ-041 c4" }],
-  "overview.tile.pages.label": ["Pages published", { slots: {}, fixedBy: "BUILD §4.5" }],
   // The set's own two lines on the pages tile, both unbracketed and so
   // approved (11a): the badge beside the count, and the dim line under it.
   // Both numbers are slots — the ranking count is measured and the three
@@ -149,17 +66,8 @@ export const OVERVIEW_COPY = Object.freeze({
     "{count} already showing on Google",
     { slots: { count: "text" }, fixedBy: "S12" },
   ],
-  "overview.tile.pages.too-early": [
-    "rest under {weeks} weeks, too early to judge",
-    { slots: { weeks: "text" }, fixedBy: "S12 · REQ-063 c2" },
-  ],
-  "overview.tile.pages.means": [
-    "About a month of pages, at up to {days} a week.",
-    { slots: { days: "text" }, fixedBy: "REQ-041 c4 · A1 2026-10-19" },
-  ],
 
   // §4.5's "goal: 6", with the number left to `GOAL_VALUES`.
-  "overview.goal": ["goal: {value}", { slots: { value: "text" }, fixedBy: "BUILD §4.5" }],
   "overview.delta.up": ["▲", { slots: {}, fixedBy: "BUILD §4.5" }],
   "overview.delta.down": ["▼", { slots: {}, fixedBy: "BUILD §4.5" }],
 
@@ -183,7 +91,7 @@ export const OVERVIEW_COPY = Object.freeze({
     { slots: {}, fixedBy: "board AppCompetitors (drafted)" },
   ],
   "overview.rivals.ahead.size": [
-    "Size means how many searches each site shows up for, against yours.",
+    "Size is how many searches a site shows up for.",
     { slots: {}, fixedBy: "board AppCompetitors (drafted)" },
   ],
   "overview.rivals.line.shrinking": [
@@ -219,7 +127,7 @@ export const OVERVIEW_COPY = Object.freeze({
   // removing them — the customer changes the set from the competitors card.
   // Drafted (issue 759); the owner corrects the wording.
   "overview.rivals.leaders": [
-    "Far larger competitors in your searches: {rivals}. They aren’t tracked against you for now.",
+    "We don’t compare you with far larger sites for now, like {rivals}.",
     { slots: { rivals: "text" }, fixedBy: "issue 858" },
   ],
   // The same sentence for the Rivals tab, where the line sits under bars
@@ -296,31 +204,31 @@ export const OVERVIEW_COPY = Object.freeze({
     { slots: { remaining: "text" }, fixedBy: "issue 1550 (drafted)" },
   ],
   /* ── Technical issues, the account's view of the checks it fixes (issue 1550, drafted) */
-  "overview.issues.title": ["Technical issues", { slots: {}, fixedBy: "issue 1550 (drafted)" }],
-  "overview.issues.lead": ["Problems on your own site that ReachKit can’t change. Fixing them is optional.", { slots: {}, fixedBy: "issue 1752 (drafted)" }],
-  "overview.issues.found": ["Found by the scan on {date}.", { slots: { date: "text" }, fixedBy: "issue 1752 (drafted)" }],
+  "overview.issues.title": ["Site fixes", { slots: {}, fixedBy: "issue 1550 (drafted)" }],
+  "overview.issues.lead": ["Optional fixes on your own site. We can’t make them for you.", { slots: {}, fixedBy: "issue 1752 (drafted)" }],
+  "overview.issues.found": ["Found in the check on {date}.", { slots: { date: "text" }, fixedBy: "issue 1752 (drafted)" }],
   "overview.issues.empty": ["Nothing on your site needs fixing. We check again on Monday.", { slots: {}, fixedBy: "issue 1752 (drafted)" }],
   "overview.issues.unscanned": ["Your site hasn’t been checked yet. What the first check finds shows here.", { slots: {}, fixedBy: "issue 1752 (drafted)" }],
-  "overview.issues.unreadable": ["Your latest scan could not be read just now. Open this page again in a minute.", { slots: {}, fixedBy: "issue 1550 (drafted)" }],
+  "overview.issues.unreadable": ["This list didn’t load. Try again in a minute.", { slots: {}, fixedBy: "issue 1550 (drafted)" }],
   "overview.issues.site": ["Applies to the whole site.", { slots: {}, fixedBy: "issue 1550 (drafted)" }],
   "overview.issues.seconds": ["{seconds} s", { slots: { seconds: "text" }, fixedBy: "issue 1550 (drafted)" }],
-  "overview.issues.slow-note": ["Each page took {seconds} seconds or more on two reads; the time shown is the quicker one.", { slots: { seconds: "text" }, fixedBy: "issue 1550 (drafted)" }],
+  "overview.issues.slow-note": ["Each took {seconds} seconds or more, twice. We show the quicker time.", { slots: { seconds: "text" }, fixedBy: "issue 1550 (drafted)" }],
   "overview.issues.read": ["Your site, {count} pages read", { slots: { count: "text" }, fixedBy: "issue 1752 (drafted)" }],
   "overview.issues.fine": ["pages with nothing to fix", { slots: {}, fixedBy: "issue 1752 (drafted)" }],
   "overview.issues.affected": ["{pages} pages have one of {problems} problems.", { slots: { pages: "text", problems: "text" }, fixedBy: "issue 1752 (drafted)" }],
   "overview.issues.affected.one-problem": ["{pages} pages have the problem below.", { slots: { pages: "text" }, fixedBy: "issue 1752 (drafted)" }],
   "overview.issues.affected.one-page": ["One page has a problem listed below.", { slots: {}, fixedBy: "issue 1752 (drafted)" }],
   "overview.issues.ours": ["Your ReachKit pages aren’t affected. We check them before they go live.", { slots: {}, fixedBy: "issue 1752 (drafted)" }],
-  "overview.issues.ours.hosted": ["Your ReachKit pages are not affected: they live on {host} and are checked before they go live.", { slots: { host: "text" }, fixedBy: "issue 1752 (drafted)" }],
+  "overview.issues.ours.hosted": ["Your ReachKit pages on {host} aren’t affected. We check them before they go live.", { slots: { host: "text" }, fixedBy: "issue 1752 (drafted)" }],
   "overview.issues.legend.noindex-pages": ["{count} hidden from Google", { slots: { count: "text" }, fixedBy: "issue 1752 (drafted)" }],
   "overview.issues.legend.slow-pages": ["{count} slow", { slots: { count: "text" }, fixedBy: "issue 1752 (drafted)" }],
   "overview.issues.legend.broken-links": ["{count} broken links", { slots: { count: "text" }, fixedBy: "issue 1752 (drafted)" }],
-  "overview.issues.legend.phone-usability": ["{count} phone", { slots: { count: "text" }, fixedBy: "issue 1752 (drafted)" }],
+  "overview.issues.legend.phone-usability": ["{count} hard to use on a phone", { slots: { count: "text" }, fixedBy: "issue 1752 (drafted)" }],
   "overview.issues.legend.ai-readers": ["{count} hidden from AI", { slots: { count: "text" }, fixedBy: "issue 1752 (drafted)" }],
   "overview.issues.legend.fine": ["{count} fine", { slots: { count: "text" }, fixedBy: "issue 1752 (drafted)" }],
   "overview.issues.share": ["{count} of {over} pages", { slots: { count: "text", over: "text" }, fixedBy: "issue 1752 (drafted)" }],
   "overview.issues.fix": ["The fix:", { slots: {}, fixedBy: "issue 1752 (drafted)" }],
-  "overview.issues.who": ["Who can do it: whoever looks after your website.", { slots: {}, fixedBy: "issue 1752 (drafted)" }],
+  "overview.issues.who": ["Whoever runs your website can do this.", { slots: {}, fixedBy: "issue 1752 (drafted)" }],
   "overview.issues.show": ["Show the {count} pages", { slots: { count: "text" }, fixedBy: "issue 1752 (drafted)" }],
   "overview.issues.show.one": ["Show the page", { slots: {}, fixedBy: "issue 1752 (drafted)" }],
   "overview.alerts.empty": ["Nothing needs you today.", { slots: {}, fixedBy: "REQ-041 c5" }],
@@ -329,7 +237,7 @@ export const OVERVIEW_COPY = Object.freeze({
   "overview.supply.exhausted": ["Nothing is left worth writing. Monday’s check looks for more.", { slots: {}, fixedBy: "REQ-095 c3" }],
   // issue 784 (issue 765's distinction, 2026-09-16): zero supply over a market that
   // was never measured is not "no pages left". Drafted under issue 759's ruling.
-  "overview.supply.unmeasured": ["Nothing in your market is ready to write yet. Pick a broader market and we’ll scan again right away.", { slots: {}, fixedBy: "issue 784" }],
+  "overview.supply.unmeasured": ["We haven’t found enough searches for your market yet. Name a broader one in Settings and we’ll check again.", { slots: {}, fixedBy: "issue 784" }],
   // issue 855: zero supply because the pass that should have filled it stopped
   // on a ceiling. Drafted under issue 759's ruling.
   "overview.supply.measuring": ["We’re still checking your market, so no pages are planned yet. Nothing is needed from you.", { slots: {}, fixedBy: "issue 855" }],
@@ -435,14 +343,6 @@ export const OVERVIEW_COPY = Object.freeze({
     { slots: {}, fixedBy: "SPEC §4 2026-09-20" },
   ],
 
-  // ── The three linked tiles. Each name is the tile's own; the chip beside
-  // it is the tab it opens, spoken from that tab's key.
-  "overview.tile.questions.label": ["Questions that mention you", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
-  // The window's own denominator, beside the count. Its own key because the
-  // "of" is a word and the number is `OVERVIEW_TRAILING_WEEKS`, which is a
-  // pin and is never written at a call site.
-  "overview.tile.ai-answers.of": ["of {of}", { slots: { of: "text" }, fixedBy: "SPEC §4 2026-09-20" }],
-
   // ── This week: the word a day carries when nothing is scheduled on it.
   // The five stage words are the calendar's own (`calendar.stage.*`).
   "overview.week.day.no-page": ["No page", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
@@ -459,7 +359,7 @@ export const OVERVIEW_COPY = Object.freeze({
   // from. No vendor and no cost — the date the pass was taken, and nothing
   // else.
   "overview.search.measured": [
-    "Measured {on}.",
+    "Checked {on}.",
     { slots: { on: "date" }, fixedBy: "SPEC §4 2026-09-20" },
   ],
 
@@ -469,7 +369,7 @@ export const OVERVIEW_COPY = Object.freeze({
   // that takes months. Drafted (#759).
   "overview.search.tile.your-pages": ["Your pages in Google", { slots: {}, fixedBy: "issue 1551 (drafted)" }],
   "overview.search.tile.your-pages.of": [
-    "of {of} pages showing in results",
+    "of {of} pages showing on Google",
     { slots: { of: "text" }, fixedBy: "board AppGoogle (drafted)" },
   ],
   "overview.search.tile.your-pages.split": [
@@ -486,7 +386,7 @@ export const OVERVIEW_COPY = Object.freeze({
     { slots: {}, fixedBy: "board AppGoogle (drafted)" },
   ],
   "overview.search.tile.searches.of": [
-    "of {of} searches on the first page",
+    "of {of} searches on Google’s first page",
     { slots: { of: "text" }, fixedBy: "board AppGoogle (drafted)" },
   ],
   "overview.search.tile.market.split": [
@@ -496,7 +396,7 @@ export const OVERVIEW_COPY = Object.freeze({
 
   // The column heads.
   "overview.search.column.search": ["Search", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
-  "overview.search.column.volume": ["A month", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
+  "overview.search.column.volume": ["Searches a month", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
   "overview.search.column.you": ["You", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
   "overview.search.column.rival": ["Best competitor", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
   "overview.search.column.status": ["What we’re doing", { slots: {}, fixedBy: "board AppGoogle (drafted)" }],
@@ -506,7 +406,7 @@ export const OVERVIEW_COPY = Object.freeze({
   "overview.search.status.live": ["Page is live", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
   "overview.search.status.your-review": ["Page scheduled", { slots: {}, fixedBy: "issue 1362" }],
   "overview.search.status.up-next": ["Up next", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
-  "overview.search.status.too-big": ["Too big for now", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
+  "overview.search.status.too-big": ["Too hard for now", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
   // A filter chip's whole text. It is one string because daisyUI's `filter`
   // draws a radio's own `aria-label`, so the word and its count reach the
   // screen as one attribute rather than as two elements.
@@ -533,7 +433,7 @@ export const OVERVIEW_COPY = Object.freeze({
   // The foot of the table: how much of it is on screen, in what order, and
   // the one control that shows the rest.
   "overview.search.showing": [
-    "{shown} of {total} · closest to the first page first",
+    "{shown} of {total} · closest to Google’s first page first",
     { slots: { shown: "text", total: "text" }, fixedBy: "board AppGoogle (drafted)" },
   ],
   "overview.search.show-all": ["Show all {total}", { slots: { total: "text" }, fixedBy: "SPEC §4 2026-09-20" }],
@@ -541,7 +441,7 @@ export const OVERVIEW_COPY = Object.freeze({
   // one whose market was too small. It claims neither: it says what is
   // true of the list, and the Overview's own supply statement says why.
   "overview.search.empty": [
-    "No searches are on file yet. They arrive with the first scan of your market.",
+    "No searches yet. They arrive with your first check.",
     { slots: {}, fixedBy: "SPEC §4 2026-09-20" },
   ],
 
@@ -554,7 +454,7 @@ export const OVERVIEW_COPY = Object.freeze({
   "overview.search.visits.none": ["none yet", { slots: {}, fixedBy: "board AppGoogle (drafted)" }],
   "overview.search.visits.chart": ["Visits from Google, week by week", { slots: {}, fixedBy: "board AppGoogle · E8 2026-10-24" }],
   "overview.search.visits.means": [
-    "People who arrived on your pages from a Google search, counted on your pages themselves. Shown once there is at least one.",
+    "People who came to your pages from Google. Shown once there is one.",
     { slots: {}, fixedBy: "board AppGoogle (drafted)" },
   ],
   "overview.search.pages.title": ["Each page in Google", { slots: {}, fixedBy: "board AppGoogle (drafted)" }],
@@ -598,7 +498,7 @@ export const OVERVIEW_COPY = Object.freeze({
   ],
   "overview.search.table.title": ["Your market’s searches", { slots: {}, fixedBy: "board AppGoogle (drafted)" }],
   "overview.search.table.lead": [
-    "What buyers in {place} search, who Google shows, and what ReachKit is doing about each.",
+    "What buyers in {place} search, who Google shows, and what we’re doing.",
     { slots: { place: "text" }, fixedBy: "board AppGoogle (drafted)" },
   ],
   // A business that sells beyond one place: the lead names none.
@@ -609,7 +509,7 @@ export const OVERVIEW_COPY = Object.freeze({
   "overview.search.doing.today": ["Goes live today", { slots: {}, fixedBy: "board AppGoogle (drafted)" }],
   "overview.search.doing.page": ["Page {day}", { slots: { day: "date" }, fixedBy: "board AppGoogle (drafted)" }],
   "overview.search.doing.update": ["Update {day}", { slots: { day: "date" }, fixedBy: "board AppGoogle (drafted)" }],
-  "overview.search.doing.climbing": ["Climbing, left alone", { slots: {}, fixedBy: "board AppGoogle (drafted)" }],
+  "overview.search.doing.climbing": ["Climbing, so we wait", { slots: {}, fixedBy: "board AppGoogle (drafted)" }],
 
   // ── 2026-09-20 (#908, #918): Overview › AI answers.
   //
@@ -627,11 +527,11 @@ export const OVERVIEW_COPY = Object.freeze({
   "overview.answers.pages-cited.label": ["Pages linked by AI", { slots: {}, fixedBy: "board AppAI (drafted)" }],
   "overview.answers.pages-cited.of": ["of {of} pages asked", { slots: { of: "text" }, fixedBy: "issue 1551 (drafted)" }],
   "overview.answers.pages-cited.means": [
-    "A page counts when the AI answer to its own question links to that page. Asked every Monday in ChatGPT and Google AI Mode, plus the AI Overview where the search has one.",
+    "A page counts when AI links to it in answer to its question. We ask ChatGPT and Google’s AI every Monday.",
     { slots: {}, fixedBy: "board AppAI (drafted)" },
   ],
   "overview.answers.pages-cited.none": [
-    "Shows once a page of yours is live and its question has been asked.",
+    "Shows once one of your pages is live and we’ve asked its question.",
     { slots: {}, fixedBy: "issue 1551 (drafted)" },
   ],
   // Board AppAI: the tiles, each page in AI answers, and which AI read and sent visits. Drafted (#759).
@@ -648,7 +548,7 @@ export const OVERVIEW_COPY = Object.freeze({
     { slots: { n: "text" }, fixedBy: "board AppAI (drafted)" },
   ],
   "overview.answers.reads.label": [
-    "AI reads",
+    "Read by AI",
     { slots: {}, fixedBy: "board AppAI (drafted)" },
   ],
   "overview.answers.reads.of": [
@@ -656,7 +556,7 @@ export const OVERVIEW_COPY = Object.freeze({
     { slots: {}, fixedBy: "board AppAI (drafted)" },
   ],
   "overview.answers.reads.means": [
-    "An AI app fetching one of your pages to answer someone. Training crawlers are not counted.",
+    "An AI app, like ChatGPT, opening your page to answer someone.",
     { slots: {}, fixedBy: "board AppAI (drafted)" },
   ],
   "overview.answers.visits.label": [
@@ -668,7 +568,7 @@ export const OVERVIEW_COPY = Object.freeze({
     { slots: {}, fixedBy: "board AppAI (drafted)" },
   ],
   "overview.answers.visits.means": [
-    "People who clicked through from an AI answer to your pages. At least: many AI apps don’t say where a visitor came from. Few for most businesses, so each one is a bonus.",
+    "People who came to your pages from an AI answer. The real number may be higher.",
     { slots: {}, fixedBy: "board AppAI (drafted)" },
   ],
   "overview.answers.visits.chart": [
@@ -680,7 +580,7 @@ export const OVERVIEW_COPY = Object.freeze({
     { slots: {}, fixedBy: "board AppAI (drafted)" },
   ],
   "overview.answers.pages.lead": [
-    "Each page’s own question, asked in {place} every Monday. The dots are its AI steps: read, linked, visit.",
+    "We ask each page’s question in {place} every Monday. Dots show read, linked and visit.",
     { slots: { place: "text" }, fixedBy: "board AppAI (drafted)" },
   ],
   "overview.answers.pages.lead.anywhere": [
@@ -716,7 +616,7 @@ export const OVERVIEW_COPY = Object.freeze({
     { slots: {}, fixedBy: "board AppAI (drafted)" },
   ],
   "overview.answers.who.reads.means": [
-    "An AI app fetching a page to answer someone.",
+    "An AI app opening a page to answer someone.",
     { slots: {}, fixedBy: "board AppAI (drafted)" },
   ],
   "overview.answers.who.visits.means": [
@@ -736,7 +636,7 @@ export const OVERVIEW_COPY = Object.freeze({
     { slots: {}, fixedBy: "SPEC §6 2026-09-20" },
   ],
   "overview.answers.grid.lead": [
-    "The {of} searches, asked of each engine. Opens as a grid.",
+    "Your {of} searches, asked of each AI. Opens as a grid.",
     { slots: { of: "text" }, fixedBy: "board AppAI (drafted)" },
   ],
   "overview.answers.grid.label": [
@@ -789,12 +689,7 @@ export const OVERVIEW_COPY = Object.freeze({
   // can correct it. No sentence states an AI position or sentiment.
   // The 95% range beside the figure: where the true rate very likely sits.
   // D58 (issue 1287, drafted): no rate is shown until two weeks of the
-  // current prompt set exist. The count stands beside its sample
-  // ("0" · "of 46 answers"), and one line says when the rate appears.
-  "overview.tile.mention-rate.early.of": [
-    "of {answers} answers",
-    { slots: { answers: "text" }, fixedBy: "SPEC §6 2026-10-06 D58 (drafted)" },
-  ],
+  // current prompt set exist, and one line says when the rate appears.
   "overview.tile.mention-rate.early": [
     "AI answers that mentioned you so far. A rate shows after {weeks} weeks.",
     { slots: { weeks: "text" }, fixedBy: "SPEC §6 2026-10-06 D58 (drafted)" },
@@ -809,11 +704,11 @@ export const OVERVIEW_COPY = Object.freeze({
   // The AI answers tab: the rate's own card. Issue 1551 (SEO review R5.1)
   // labels it as what it measures. Drafted (#759).
   "overview.prompts.rate.reputation": [
-    "How often AI mentions you when buyers ask for a business like yours. It follows mentions of you on other sites, so it moves over months.",
+    "How often AI mentions you when buyers ask for a business like yours. It moves over months.",
     { slots: {}, fixedBy: "board AppAI (drafted)" },
   ],
   "overview.prompts.rate.title": [
-    "Reputation",
+    "Mentioned by AI",
     { slots: {}, fixedBy: "board AppAI (drafted)" },
   ],
   "overview.prompts.rate.count": [
@@ -829,12 +724,11 @@ export const OVERVIEW_COPY = Object.freeze({
     { slots: {}, fixedBy: "board AppAI (drafted)" },
   ],
   "overview.prompts.rate.band": [
-    "{n} of {m} AI answers mentioned you in the last {weeks} weeks: between {low}% and {high}%, because answers vary.",
+    "{n} of {m} AI answers mentioned you in the last {weeks} weeks. Answers vary, so the true rate is {low}% to {high}%.",
     { slots: { n: "text", m: "text", weeks: "text", low: "text", high: "text" }, fixedBy: "board AppAI (drafted)" },
   ],
 
-  // Share of voice: the site beside its rivals, by answers that named each.
-  "overview.prompts.share.title": ["Share of voice", { slots: {}, fixedBy: "SPEC §4 2026-10-02 D22" }],
+  // The site beside its rivals, by answers that named each; the lead heads the block (owner R6).
   "overview.prompts.share.lead": [
     "How many of those {m} answers mentioned you, and each competitor.",
     { slots: { m: "text" }, fixedBy: "board AppAI (drafted)" },
@@ -855,7 +749,7 @@ export const OVERVIEW_COPY = Object.freeze({
     { slots: {}, fixedBy: "board AppAI (drafted)" },
   ],
   "overview.prompts.list.count": [
-    "{n} of the {m} questions a buyer in your market might ask. Questions with your name in them are left out of this count.",
+    "{n} of the {m} questions buyers in your market might ask. We leave out questions with your name.",
     { slots: { n: "text", m: "text" }, fixedBy: "board AppAI (drafted)" },
   ],
 
@@ -881,7 +775,7 @@ export const OVERVIEW_COPY = Object.freeze({
   // The first counting card: who holds a place on Google's first page for
   // the twelve searches the pass buys a top ten for.
   "overview.rivals.first-page.title": [
-    "Who’s on the first page",
+    "Who’s on Google’s first page",
     { slots: {}, fixedBy: "SPEC §4 2026-09-20" },
   ],
   "overview.rivals.first-page.lead": [
@@ -897,7 +791,7 @@ export const OVERVIEW_COPY = Object.freeze({
   // answers tab draws it, with the link to that tab beneath.
   "overview.rivals.named.title": ["Who AI answers mention", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
   "overview.rivals.named.lead": [
-    "Of {answers} AI answers to your buyers’ {questions} questions, last {weeks} weeks. Checked monthly.",
+    "From {answers} AI answers to {questions} buyer questions, over the last {weeks} weeks.",
     { slots: { answers: "text", questions: "text", weeks: "text" }, fixedBy: "board AppCompetitors (drafted)" },
   ],
   "overview.rivals.named.lead.none": [
@@ -939,11 +833,11 @@ export const OVERVIEW_COPY = Object.freeze({
   // counted are named under them (SPEC §4, 2026-10-09). Drafted (issue
   // 759); the owner corrects the wording.
   "overview.rivals.first-page.none": [
-    "None of your competitors is on the first page for these searches.",
+    "None of your competitors is on Google’s first page for these searches.",
     { slots: {}, fixedBy: "SPEC §4 2026-10-09" },
   ],
   "overview.rivals.first-page.none.holders": [
-    "None of your competitors is on the first page for these searches. The sites there most often: {holders}.",
+    "None of your competitors is on Google’s first page for these searches. Sites seen there most often include {holders}.",
     { slots: { holders: "text" }, fixedBy: "SPEC §4 2026-10-09" },
   ],
   "overview.rivals.named.none": [
@@ -975,7 +869,7 @@ export const OVERVIEW_COPY = Object.freeze({
     { slots: {}, fixedBy: "SPEC §4 2026-09-20" },
   ],
   "overview.rivals.table.empty": [
-    "No search on file is one a competitor wins and you don’t. That can change with the next weekly scan.",
+    "No competitor wins a search you’re missing. The next Monday check may find one.",
     { slots: {}, fixedBy: "SPEC §4 2026-09-20" },
   ],
   "overview.rivals.column.winner": ["Who wins it", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
@@ -993,7 +887,7 @@ export const OVERVIEW_COPY = Object.freeze({
     "Needs a page on your main site",
     { slots: {}, fixedBy: "SPEC §4 2026-09-20" },
   ],
-  "overview.rivals.status.too-big": ["Too big for now", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
+  "overview.rivals.status.too-big": ["Too hard for now", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
 
   // The chips over the table, and the foot under it.
   "overview.rivals.filter.label": ["Show one competitor", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
@@ -1021,10 +915,10 @@ export const OVERVIEW_COPY = Object.freeze({
     { slots: {}, fixedBy: "SPEC §5 2026-09-20 (drafted)" },
   ],
   "overview.connect.lead.ready": [
-    "It goes live once your domain is connected. Everything else is done.",
+    "It goes live once your website is connected. Everything else is done.",
     { slots: {}, fixedBy: "board OverviewDNS · issue 1811 (drafted)" },
   ],
-  "overview.connect.eyebrow": ["Needs you · about 10 minutes, once", { slots: {}, fixedBy: "SPEC §5 2026-09-20 (drafted)" }],
+  "overview.connect.eyebrow": ["Needs you · about 5 minutes, once", { slots: {}, fixedBy: "SPEC §5 2026-09-20 (drafted)" }],
   "overview.connect.title": ["Connect your website", { slots: {}, fixedBy: "board OverviewDNS · owner 2026-10-15 six words · issue 1811 (drafted)" }],
   "overview.connect.step.open": ["Open your domain settings", { slots: {}, fixedBy: "board OverviewDNS · issue 1811 (drafted)" }],
   "overview.connect.step.open.line": [
@@ -1049,22 +943,22 @@ export const OVERVIEW_COPY = Object.freeze({
   "overview.connect.checked": ["Checked {time}: not found yet.", { slots: { time: "text" }, fixedBy: "board OverviewDNS · issue 1811 (drafted)" }],
   "overview.connect.unchecked": ["Not found yet.", { slots: {}, fixedBy: "board OverviewDNS · issue 1811 (drafted)" }],
   "overview.connect.hourly": [
-    "We check every hour; this page updates when it works. A new setting can take up to a few hours to show.",
+    "We check every hour and update this page when it works. It can take a few hours.",
     { slots: {}, fixedBy: "board OverviewDNS · issue 1811 (drafted)" },
   ],
   "overview.connect.other": ["Other ways to connect", { slots: {}, fixedBy: "board OverviewDNS · issue 1811 (drafted)" }],
   "overview.connect.wordpress": [
-    "On WordPress? Connect it with a username and an app password instead, and skip this setting.",
+    "On WordPress? Connect with an app password instead.",
     { slots: {}, fixedBy: "board OverviewDNS · issue 1811 (drafted)" },
   ],
   "overview.connect.wordpress.link": ["Connect WordPress →", { slots: {}, fixedBy: "board OverviewDNS · issue 1811 (drafted)" }],
   "overview.connect.later": [
-    "The same setting is in your first page’s mail, so you can add it later from a desk.",
+    "The same setting is in your first page’s mail. You can add it later from a computer.",
     { slots: {}, fixedBy: "board OverviewDNS · owner R20 2026-10-22" },
   ],
   "overview.connect.page.eyebrow": ["Waiting to go live", { slots: {}, fixedBy: "board OverviewDNS · issue 1811 (drafted)" }],
   "overview.connect.page.line": [
-    "It goes live once the setting works. Only this first page is written until then; the week’s other pages follow.",
+    "It goes live once the setting works. We write the rest of your week after that.",
     { slots: {}, fixedBy: "Q11 · board OverviewDNS · issue 1811" },
   ],
   "overview.connect.page.read": ["Read or edit it →", { slots: {}, fixedBy: "board OverviewDNS · issue 1811 (drafted)" }],
@@ -1192,17 +1086,17 @@ export const OVERVIEW_COPY = Object.freeze({
   ],
   // Six words at most (SPEC §0; owner R12, B12).
   "overview.ladder.title": ["How far your {n} pages got", { slots: { n: "text" }, fixedBy: "issue 1605 (drafted)" }],
-  "overview.ladder.read": ["Read {on}", { slots: { on: "date" }, fixedBy: "issue 1605 (drafted)" }],
+  "overview.ladder.read": ["Checked {on}", { slots: { on: "date" }, fixedBy: "issue 1605 (drafted)" }],
   // A page published since the last reading is left out of each step's count.
-  "overview.ladder.unread": ["{k} not read yet", { slots: { k: "text" }, fixedBy: "issue 1876 (drafted)" }],
+  "overview.ladder.unread": ["{k} not checked yet", { slots: { k: "text" }, fixedBy: "issue 1876 (drafted)" }],
   "overview.ladder.google.sub": ["highest step each page has reached", { slots: {}, fixedBy: "issue 1605 (drafted)" }],
   "overview.ladder.ai.sub": ["counted apart from Google", { slots: {}, fixedBy: "issue 1605 (drafted)" }],
   "overview.ladder.step.live": ["of {n} on your own web address", { slots: { n: "text" }, fixedBy: "issue 1605 (drafted)" }],
-  "overview.ladder.step.found": ["of {n} Google fetched the page", { slots: { n: "text" }, fixedBy: "issue 1605 (drafted)" }],
-  "overview.ladder.step.showing": ["of {n} in the top 100 for its own search", { slots: { n: "text" }, fixedBy: "issue 1605 (drafted)" }],
-  "overview.ladder.step.first-page": ["of {n} places 1 to 10 in Google", { slots: { n: "text" }, fixedBy: "issue 1605 (drafted)" }],
-  "overview.ladder.step.read": ["of {n} an AI app fetched it to answer someone", { slots: { n: "text" }, fixedBy: "issue 1605 (drafted)" }],
-  "overview.ladder.step.linked": ["of {n} an AI answer to its own question links to it", { slots: { n: "text" }, fixedBy: "issue 1605 (drafted)" }],
+  "overview.ladder.step.found": ["of {n} found by Google", { slots: { n: "text" }, fixedBy: "issue 1605 (drafted)" }],
+  "overview.ladder.step.showing": ["of {n} showing on Google for its search", { slots: { n: "text" }, fixedBy: "issue 1605 (drafted)" }],
+  "overview.ladder.step.first-page": ["of {n} on Google’s first page", { slots: { n: "text" }, fixedBy: "issue 1605 (drafted)" }],
+  "overview.ladder.step.read": ["of {n} read by an AI app", { slots: { n: "text" }, fixedBy: "issue 1605 (drafted)" }],
+  "overview.ladder.step.linked": ["of {n} linked in an AI answer", { slots: { n: "text" }, fixedBy: "issue 1605 (drafted)" }],
   "overview.ladder.step.visit": ["of {n} someone came from an AI answer", { slots: { n: "text" }, fixedBy: "issue 1605 (drafted)" }],
   "overview.ladder.climbing": ["{n} climbing", { slots: { n: "text" }, fixedBy: "issue 1605 (drafted)" }],
   // Search Console's clicks are summed over the reading's window, not one week.
@@ -1216,13 +1110,13 @@ export const OVERVIEW_COPY = Object.freeze({
     { slots: {}, fixedBy: "issue 1605 (drafted)" },
   ],
   "overview.ladder.how.ai": [
-    "The AI steps are counted apart. An AI app can read a page within days, and an AI answer can link to a page before it reaches Google’s first page. Visits from AI are few for most businesses, so each one is a bonus, not a target.",
+    "AI can read a page within days, often before Google shows it. Visits from AI are few, so each is a bonus.",
     { slots: {}, fixedBy: "issue 1605 (drafted)" },
   ],
   // Before any page shows in results. Without server logs nothing says what
   // Google or an AI app fetched, so the short line names neither.
   "overview.ladder.week1": [
-    "Your first {live} pages are live, Google has found {found} and an AI app has read {read}. Showing in results usually takes weeks. Each step lights up here as it happens.",
+    "{live} pages are live, {found} found by Google and {read} read by AI. Showing on Google usually takes weeks.",
     { slots: { live: "text", found: "text", read: "text" }, fixedBy: "issue 1605 (drafted)" },
   ],
   "overview.ladder.week1.short": [
@@ -1234,7 +1128,7 @@ export const OVERVIEW_COPY = Object.freeze({
   "overview.head.eyebrow": ["Week {n} · {day}", { slots: { n: "text", day: "date" }, fixedBy: "issue 1744 (drafted)" }],
   "overview.head.title": ["Nothing needs you this week", { slots: {}, fixedBy: "issue 1744 (drafted)" }],
   "overview.head.lead.live": [
-    "{live} of your pages are live and {showing} already show in Google.",
+    "{live} pages are live, and {showing} already show on Google.",
     { slots: { live: "text", showing: "text" }, fixedBy: "issue 1744 (drafted)" },
   ],
   // No reading yet: how many show in Google is not known, so it is not said.
@@ -1264,7 +1158,7 @@ export const OVERVIEW_COPY = Object.freeze({
   "overview.fixes.see": ["See them →", { slots: {}, fixedBy: "issue 1744 (drafted)" }],
   "overview.today.live": ["Today’s page went live at {time}.", { slots: { time: "date" }, fixedBy: "issue 1744 (drafted)" }],
   "overview.paused.line": [
-    "Publishing is paused. No page goes live until you turn it back on. Your plan and pages are kept.",
+    "Publishing is paused, so no page goes live. Your pages are kept.",
     { slots: {}, fixedBy: "issue 1744 (drafted)" },
   ],
   "overview.paused.action": ["Turn publishing on", { slots: {}, fixedBy: "issue 1744 (drafted)" }],
@@ -1279,7 +1173,7 @@ export const OVERVIEW_COPY = Object.freeze({
   "overview.ai.reads.one": ["AI read your pages once this week.", { slots: {}, fixedBy: "issue 1615 (drafted)" }],
   "overview.ai.reads.none": ["No AI app read your pages this week.", { slots: {}, fixedBy: "issue 1615 (drafted)" }],
   "overview.ai.reads.who": [
-    "ChatGPT, Perplexity and other AI apps fetching a page to answer someone. Training crawlers are not counted.",
+    "Any AI app, like ChatGPT, opening a page to answer someone.",
     { slots: {}, fixedBy: "issue 1615 (drafted): no vendor or model name under a stop (REQ-092 c8)" },
   ],
   "overview.ai.reads.chart": ["Read by AI, week by week", { slots: {}, fixedBy: "issue 1615 (drafted)" }],
@@ -1301,23 +1195,14 @@ export const OVERVIEW_COPY = Object.freeze({
   "overview.months.first": ["First reading on {date}.", { slots: { date: "date" }, fixedBy: "issue 1615 (drafted)" }],
   "overview.months.of": ["of {of}", { slots: { of: "text" }, fixedBy: "issue 1615 (drafted)" }],
   "overview.months.score": ["Visibility Score", { slots: {}, fixedBy: "issue 1615 (drafted)" }],
-  "overview.months.score.up": ["up from {n} at your scan", { slots: { n: "text" }, fixedBy: "issue 1615 (drafted)" }],
+  "overview.months.score.up": ["up from {n} at your free scan", { slots: { n: "text" }, fixedBy: "issue 1615 (drafted)" }],
   "overview.months.score.down": ["down from {n} at your free scan", { slots: { n: "text" }, fixedBy: "issue 1615 (drafted)" }],
   "overview.months.score.same": ["same as at your free scan", { slots: {}, fixedBy: "issue 1615 (drafted)" }],
-  "overview.months.market": ["searches on the first page", { slots: {}, fixedBy: "issue 1615 (drafted)" }],
-  "overview.months.market.up": ["searches on the first page, up from {n}", { slots: { n: "text" }, fixedBy: "issue 1615 (drafted)" }],
+  "overview.months.market": ["searches on Google’s first page", { slots: {}, fixedBy: "issue 1615 (drafted)" }],
+  "overview.months.market.up": ["searches on Google’s first page, up from {n}", { slots: { n: "text" }, fixedBy: "issue 1615 (drafted)" }],
   "overview.months.market.down": ["searches on Google’s first page, down from {n}", { slots: { n: "text" }, fixedBy: "issue 1615 (drafted)" }],
-  "overview.months.reputation": ["Reputation", { slots: {}, fixedBy: "issue 1615 (drafted)" }],
-  "overview.months.reputation.line": [
-    "AI answers mentioned you, last {weeks} weeks",
-    { slots: { weeks: "text" }, fixedBy: "issue 1615 (drafted)" },
-  ],
   "overview.months.note": [
-    "These follow links and mentions from other sites, so they move over months, not weeks.",
+    "These grow with links and mentions on other sites. That takes months.",
     { slots: {}, fixedBy: "issue 1615 (drafted)" },
-  ],
-  "overview.months.range": [
-    "Reputation is the first reading: between {low}% and {high}%, because AI answers vary.",
-    { slots: { low: "text", high: "text" }, fixedBy: "issue 1615 (drafted)" },
   ],
 }) satisfies CopyPartition;

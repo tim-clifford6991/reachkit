@@ -18,8 +18,7 @@ import { contentOf } from "@/lib/measure/published";
 import { pageLadderOf } from "@/lib/measure/page-ladder";
 import { PageLadder } from "../_overview/PageLadder";
 import { overviewNotice, readOnboarding, readReleaseNotice } from "../_shell/onboarding";
-import { FirstPageNotice, MarketChoice, ReleaseNoticeLine } from "../_shell/OnboardingStatus";
-import { MARKET_TOO_SMALL, readCategoryChoice } from "../_shell/remeasure";
+import { FirstPageNotice, ReleaseNoticeLine } from "../_shell/OnboardingStatus";
 import { writtenLine } from "../_shell/written";
 import { formatDay, formatTime, SHELL_LOCALE } from "../_shell/format";
 import { copy } from "@/lib/presentation/copy";
@@ -30,7 +29,6 @@ import { WaitingPageCard } from "../_overview/WaitingPageCard";
 import { WeekWaiting } from "../_overview/WeekWaiting";
 import { OVERVIEW, REGION } from "../_overview/frame";
 import { readBlogReads, readGoogleVisits } from "../_overview/blog-reads-provider";
-import { readPromptsAt } from "../_overview/prompts-provider";
 import { aiPagesOf, bestMoverOf } from "@/lib/measure/figures";
 import { AiFigure, MonthsFigure, MoverFigure } from "../_overview/Figures";
 
@@ -71,13 +69,12 @@ export default async function OverviewPage(): Promise<React.JSX.Element> {
   // Plan's own week and day cards, reached at the call: Plan's modules reach the
   // market's, and this screen's graph holds no vendor client. Where it cannot be
   // read the week is not drawn and the rest stands.
-  const [thisWeek, blogReads, googleVisits, reputation] = await Promise.all([
+  const [thisWeek, blogReads, googleVisits] = await Promise.all([
     running
       ? null
       : import("../_overview/this-week").then(async (m) => ({ week: await m.readThisWeek(), ThisWeek: m.ThisWeek })).catch(() => null),
     readBlogReads(),
     readGoogleVisits(),
-    readPromptsAt(overview.months?.reading?.week ?? null),
   ]);
   const notice =
     onboarding.kind === "none" || onboarding.kind === "ended"
@@ -126,11 +123,6 @@ export default async function OverviewPage(): Promise<React.JSX.Element> {
   const fixes =
     overview.alerts.filter((alert) => alert.kind === "site_issue").length + (overview.issuesOverflow?.remaining ?? 0);
   const supply = weekPages === 0 && overview.supply !== undefined ? writtenLine(overview.supply.key, overview.supply.vars) : null;
-  // Issue 837: an empty week over a market too small offers the choice that
-  // fills it, unless the shell's panel already does.
-  const tooSmall = notice === MARKET_TOO_SMALL || overview.supply?.key === "overview.supply.unmeasured";
-  const settled = onboarding.kind === "none" || onboarding.kind === "ended";
-  const choice = weekPages === 0 && settled && tooSmall ? await readCategoryChoice() : null;
 
   return (
     <div className={OVERVIEW} data-testid="overview">
@@ -176,15 +168,10 @@ export default async function OverviewPage(): Promise<React.JSX.Element> {
         <div className="min-w-0" data-frame={REGION.week}>
           <thisWeek.ThisWeek week={week} scheduled={shell.publishing.next !== null} />
         </div>
-      ) : (
-        <>
-          {supply === null ? null : (
-            <p className="min-w-0 text-sm text-base-content/70" data-testid="overview-supply">
-              {supply}
-            </p>
-          )}
-          {choice === null ? null : <MarketChoice choice={choice} />}
-        </>
+      ) : supply === null ? null : (
+        <p className="min-w-0 text-sm text-base-content/70" data-testid="overview-supply">
+          {supply}
+        </p>
       )}
 
       {aiPages === null && !blogReads.show && mover === undefined ? null : (
@@ -193,7 +180,7 @@ export default async function OverviewPage(): Promise<React.JSX.Element> {
           <MoverFigure mover={mover} timeZone={shell.timeZone} />
         </div>
       )}
-      {overview.months === null ? null : <MonthsFigure months={overview.months} reputation={reputation} timeZone={shell.timeZone} />}
+      {overview.months === null ? null : <MonthsFigure months={overview.months} timeZone={shell.timeZone} />}
 
       {fixes === 0 ? null : (
         <section className="card card-border min-w-0 bg-base-100" data-testid="overview-fixes">
