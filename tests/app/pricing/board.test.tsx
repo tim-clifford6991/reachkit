@@ -184,7 +184,7 @@ describe("board Pricing — before you pay, and the free report", () => {
 
   it("two columns at desktop, the last question across both only when it would sit alone", () => {
     const before = root.querySelector("#before")!;
-    expect(before.querySelector("details")?.parentNode.classNames).toContain("lg:grid-cols-2");
+    expect(before.querySelector("details")?.parentNode?.classNames).toContain("lg:grid-cols-2");
     const spans = before.querySelectorAll("details").map((d) => d.classNames.includes("lg:col-span-2"));
     expect(spans).toEqual(spans.map((_, i) => spans.length % 2 === 1 && i === spans.length - 1));
   });
