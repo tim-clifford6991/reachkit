@@ -144,7 +144,7 @@ describe("S11 — the strip, the card and the two approved lines (issue #356)", 
       render(<ProgressStrip current="first-page" />).querySelectorAll("li")
     ).map((li) => li.textContent);
     expect(onWaiting).toEqual(onSetup);
-    expect(onSetup).toEqual(["Paid", "Setup", "First page"]);
+    expect(onSetup).toEqual(["Paid", "Setup", "First page live"]);
   });
 
   it("no row's own name states a duration — the time is a separate slot", () => {

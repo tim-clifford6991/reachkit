@@ -40,7 +40,7 @@ describe("the account card", () => {
   it("offers the export with no condition, saying what it holds, above sign out", () => {
     const exp = doc.querySelector('[data-testid="action-export"]')!;
     expect(text(exp.querySelector("div"))).toBe(
-      "Export everything Every page we wrote for you, 14 so far, live or not, as files with their images. Always available, whatever your plan."
+      "Export everything All 14 pages we wrote for you, as files with images. You can always download them."
     );
     expect(text(exp.querySelector("button"))).toBe("Export everything");
     expect(exp.querySelector("button")?.hasAttribute("disabled")).toBe(false);
@@ -70,9 +70,9 @@ describe("the danger zone", () => {
       ...[...li.querySelectorAll("li")].map(text),
     ]);
     expect(ways).toEqual([
-      ["Pause publishing", "Live pages Stay up", "New pages None until you turn it on", "Account, drafts and plan Kept", "Your pages exported to you Not needed", "Can you undo it? Yes, one switch"],
-      ["Take every page down", "Live pages Taken down", "New pages None; publishing off", "Account, drafts and plan Kept", "Your pages exported to you First, before anything", "Can you undo it? Yes, turn publishing on"],
-      ["Delete my account", "Live pages Taken down", "New pages None", "Account, drafts and plan Closed for good", "Your pages exported to you First, before anything", "Can you undo it? No"],
+      ["Pause publishing", "Live pages Stay up", "New pages None until you turn it on", "Account, pages and settings Kept", "Your pages exported to you Not needed", "Can you undo it? Yes, one switch"],
+      ["Take every page down", "Live pages Taken down", "New pages None, publishing is off", "Account, pages and settings Kept", "Your pages exported to you First, before anything", "Can you undo it? Yes, turn publishing on"],
+      ["Delete my account", "Live pages Taken down", "New pages None", "Account, pages and settings Closed for good", "Your pages exported to you First, before anything", "Can you undo it? No"],
     ]);
   });
 

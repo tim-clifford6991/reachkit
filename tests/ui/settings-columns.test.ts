@@ -133,7 +133,6 @@ const LAYOUTS: Readonly<Record<string, readonly string[]>> = {
   tiles: [TILES],
   wells: [WELLS],
   pair: ["grid-cols-1", "md:grid-cols-2"],
-  choices: ["grid-cols-1", "md:grid-cols-2", "xl:grid-cols-4"],
   steps: ["grid-cols-1", "md:grid-cols-3"],
   compare: ["grid-cols-1", "md:grid-cols-3"],
   week: ["grid-cols-4", "md:grid-cols-7"],

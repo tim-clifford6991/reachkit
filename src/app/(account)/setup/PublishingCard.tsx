@@ -21,7 +21,7 @@
 
 import type React from "react";
 import { useId, useRef, useState } from "react";
-import { Circle, CircleCheck, FileText, Globe, Layers, Milestone, Monitor, type LucideIcon } from "lucide-react";
+import { Circle, CircleCheck, Globe, Layers, type LucideIcon } from "lucide-react";
 import { copy } from "@/lib/presentation/copy";
 import {
   dnsRecordFor,
@@ -89,108 +89,64 @@ export function PublishingCard(p: {
   const host = p.siteDomain === null || p.label.trim() === "" ? null : `${p.label}.${p.siteDomain}`;
 
   return (
-    <>
-      {p.destination === "hosted" && p.siteDomain !== null && host !== null ? (
-        <HowItConnects domain={p.siteDomain} host={host} />
-      ) : null}
-      <section className="card bg-base-100 shadow-sm" data-testid={TEST_ID}>
-        <div className="card-body gap-4">
-          <h2 className="card-title text-base">{copy("setup.destination.where")}</h2>
+    <section className="card bg-base-100 shadow-sm" data-testid={TEST_ID}>
+      <div className="card-body gap-4">
+        <h2 className="card-title text-base">{copy("setup.destination.where")}</h2>
 
-          <div className="grid gap-3 sm:grid-cols-2" data-testid="setup-destination">
-            {p.cards.destination.map((option) => (
-              <Option
-                key={option.kind}
-                icon={DESTINATION_ICON[option.kind]}
-                title={copy(option.name)}
-                line={copy(option.copy)}
-                detail={option.kind === "hosted" ? host : null}
-                chosen={p.destination === option.kind}
-                onChoose={() => p.onDestination(option.kind)}
-                testId={`setup-destination-${option.kind}`}
-              >
-                {option.kind === "hosted" && "pending" in dns ? <DnsPendingLine dns={dns} /> : null}
-                {option.kind === "wordpress" ? <WordPressAsks domain={p.siteDomain} /> : null}
-              </Option>
-            ))}
-          </div>
-
-          {/* The label sits under the pair, not inside the hosted option:
-              that option is a button, and a field nested in a button is
-              neither valid markup nor operable by keyboard. */}
-          {p.destination === "hosted" ? (
-            <div className="flex flex-col gap-1.5" data-testid="setup-destination-label">
-              <label className="text-sm text-base-content/70" htmlFor={labelId}>
-                {copy("setup.destination.label.label")}
-              </label>
-              <input
-                id={labelId}
-                type="text"
-                name="label"
-                className={`input num w-full ${refusal === null ? "" : "input-error"}`}
-                value={p.label}
-                aria-invalid={refusal !== null}
-                onChange={(event) => {
-                  void draftLabel(event.target.value);
-                }}
-              />
-              {refusal === null ? null : (
-                <div role="alert" className="alert alert-error alert-soft text-sm">
-                  {copy(LABEL_REFUSAL_COPY[refusal])}
-                </div>
-              )}
-              {/* The record and its check are `/setup/connect`'s now (#924).
-                  What stands here is the one line saying the address is
-                  theirs and that connecting it comes next. */}
-              {"pending" in dns ? null : (
-                <p className="mt-2 text-sm text-base-content/70" data-testid="setup-dns-next">
-                  {copy("setup.destination.connect-next")}
-                </p>
-              )}
-            </div>
-          ) : null}
-        </div>
-      </section>
-    </>
-  );
-}
-
-/** Where the founder's site, the one setting and the pages sit, before the
- *  choice it explains. Hosted only: on WordPress there is no setting to add. */
-function HowItConnects(p: { domain: string; host: string }): React.JSX.Element {
-  const nodes = [
-    // The founder's one act carries the primary tile; their site and their pages are context.
-    { icon: Monitor, tile: "bg-base-200", title: copy("setup.connect.how.site"), value: p.domain, pill: null, line: copy("setup.connect.how.site.line") },
-    { icon: Milestone, tile: "bg-primary/10 text-primary", title: copy("setup.connect.how.setting"), value: null, pill: copy("setup.connect.how.yours"), line: copy("setup.connect.how.setting.line") },
-    { icon: FileText, tile: "bg-success/10 text-success", title: copy("setup.connect.how.live"), value: p.host, pill: null, line: copy("setup.connect.how.live.line") },
-  ];
-  return (
-    <figure className="card bg-base-100 shadow-sm" data-testid="setup-how">
-      <div className="card-body gap-3">
-        <figcaption className="eyebrow">{copy("setup.connect.how.title")}</figcaption>
-        <ul className="timeline timeline-vertical timeline-compact">
-          {nodes.map((node, index) => (
-            <li key={node.title}>
-              {index === 0 ? null : <hr />}
-              <div className="timeline-middle">
-                <span className={`${TILE} size-9 ${node.tile}`} aria-hidden>
-                  <node.icon size={20} strokeWidth={1.75} />
-                </span>
-              </div>
-              <div className="timeline-end mb-3 min-w-0">
-                <span className="flex flex-wrap items-center gap-2 font-medium">
-                  {node.title}
-                  {node.pill === null ? null : <span className="badge badge-sm badge-primary badge-soft">{node.pill}</span>}
-                </span>
-                {node.value === null ? null : <span className="num block text-sm wrap-anywhere">{node.value}</span>}
-                <span className={QUIET}>{node.line}</span>
-              </div>
-              {index === nodes.length - 1 ? null : <hr />}
-            </li>
+        <div className="grid gap-3 sm:grid-cols-2" data-testid="setup-destination">
+          {p.cards.destination.map((option) => (
+            <Option
+              key={option.kind}
+              icon={DESTINATION_ICON[option.kind]}
+              title={copy(option.name)}
+              line={copy(option.copy)}
+              detail={option.kind === "hosted" ? host : null}
+              chosen={p.destination === option.kind}
+              onChoose={() => p.onDestination(option.kind)}
+              testId={`setup-destination-${option.kind}`}
+            >
+              {option.kind === "hosted" && "pending" in dns ? <DnsPendingLine dns={dns} /> : null}
+              {option.kind === "wordpress" ? <WordPressAsks domain={p.siteDomain} /> : null}
+            </Option>
           ))}
-        </ul>
+        </div>
+
+        {/* The label sits under the pair, not inside the hosted option:
+            that option is a button, and a field nested in a button is
+            neither valid markup nor operable by keyboard. */}
+        {p.destination === "hosted" ? (
+          <div className="flex flex-col gap-1.5" data-testid="setup-destination-label">
+            <label className="text-sm text-base-content/70" htmlFor={labelId}>
+              {copy("setup.destination.label.label")}
+            </label>
+            <input
+              id={labelId}
+              type="text"
+              name="label"
+              className={`input num w-full ${refusal === null ? "" : "input-error"}`}
+              value={p.label}
+              aria-invalid={refusal !== null}
+              onChange={(event) => {
+                void draftLabel(event.target.value);
+              }}
+            />
+            {refusal === null ? null : (
+              <div role="alert" className="alert alert-error alert-soft text-sm">
+                {copy(LABEL_REFUSAL_COPY[refusal])}
+              </div>
+            )}
+            {/* The record and its check are `/setup/connect`'s now (#924).
+                What stands here is the one line saying the address is
+                theirs and that connecting it comes next. */}
+            {"pending" in dns ? null : (
+              <p className="mt-2 text-sm text-base-content/70" data-testid="setup-dns-next">
+                {copy("setup.destination.connect-next")}
+              </p>
+            )}
+          </div>
+        ) : null}
       </div>
-    </figure>
+    </section>
   );
 }
 
