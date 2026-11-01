@@ -10,11 +10,12 @@
 // reached while a scan is scored. The database reads and writes are the only
 // network this does, and they happen outside it.
 //
-// A dry run writes the summary only. An apply also writes each scan that
-// moves through `rescore_scan` (`supabase/migrations/20261014130000_scans_rescore.sql`):
-// only the moved paths, the replaced report under `report.previous`, the
-// stamps, and the report's checksum as the guard, so a scan written since it
-// was read is left alone and a second apply changes nothing.
+// A dry run, or an apply its guard holds, writes the summary only. An apply
+// writes each scan that moves through `rescore_scan`: only the moved paths,
+// the replaced report under `report.previous`, the stamps, and the report's
+// checksum as the guard, so a scan written since it was read is left alone and
+// a second apply changes nothing. The function raises on a change that did not
+// land, so only a scan left alone is read again.
 import { offline } from "@/lib/egress/offline";
 import type { Measured } from "@/lib/measure/measured";
 import type { Drivers, ScoreFactorName } from "@/lib/measure/score";
@@ -125,6 +126,8 @@ export interface RescoreStore {
 
 export interface RescoreOptions {
   apply: boolean;
+  /** Where set, the guard (issue 1481) is decided before any write. */
+  guard?: { unreadableBefore: number | null };
   /** The deployed commit. */
   version: string;
   /** The deployed derivation (issue 1481); `null` where the build carried none. */
@@ -149,6 +152,8 @@ export interface RescoreAnswer {
   stale: readonly string[];
   /** Every score the run moves, for the guard (issue 1481). */
   scoreMoves: readonly ScoreMove[];
+  /** Why the guard stopped the run, or the apply still lags; `null` otherwise. */
+  held: string | null;
   summary: string;
 }
 
@@ -494,9 +499,9 @@ function summaryOf(a: {
 
 // ── The run ─────────────────────────────────────────────────────────────
 
-/** Every stored scan and site rival set scored again; on apply, each one
- *  that moves written back. */
-export async function rescoreStored(store: RescoreStore, o: RescoreOptions): Promise<RescoreAnswer> {
+/** Every stored scan, site rival set and stored name read again by the
+ *  deployed code, nothing written. */
+async function readAll(store: RescoreStore) {
   const scans = await store.scans();
   const profiles = await store.profiles();
   const sites = await store.sites();
@@ -520,49 +525,55 @@ export async function rescoreStored(store: RescoreStore, o: RescoreOptions): Pro
       const answers = scan.siteId !== null && scan.isCurrent ? await store.answers(scan.id) : [];
       const market = scan.siteId === null ? undefined : markets.get(scan.siteId);
       const measured = scan.siteId === null ? undefined : measuredOf(await store.ownReads(scan));
-      const said = {
-        siteName: names.get(domain) ?? null,
-        answers,
-        ...(market === undefined ? {} : { market }),
-        ...(measured === undefined ? {} : { measured }),
-      };
+      const said = { siteName: names.get(domain) ?? null, answers, ...(market === undefined ? {} : { market }), ...(measured === undefined ? {} : { measured }) };
       const row = quietly(() => rescoreRow(scan, reads, said));
       if ("result" in row) rows.push(row);
       else unreadable.push(row);
     }
   }
   rows.sort((a, b) => a.scan.createdAt.localeCompare(b.scan.createdAt) || a.scan.id.localeCompare(b.scan.id));
+  const scoreOf = (m: RescoredMembers) => (m.verdict.scoreAndBand.kind === "unmeasured" ? null : m.verdict.scoreAndBand.value.score);
+  const scoreMoves = rows.map((row) => ({ domain: row.scan.domain, before: scoreOf(row.result.before), after: scoreOf(row.result.after) })).filter((m) => m.before !== m.after);
+  const ids = (pick: (row: Row) => boolean) => rows.filter(pick).map((row) => row.scan.id);
+  // A scan that stands as stored though the code reads it differently (issue 1504) stays stale once written.
+  const [moving, standing] = [ids(moves), ids((row) => row.result.stale)];
+  return { profiles, sites, renamed, rows, unreadable, scoreMoves, moving, standing, stale: [...new Set([...moving, ...standing])], movedSites: quietly(() => rehome(sites, rows)) };
+}
 
-  const movedSites = quietly(() => rehome(sites, rows));
-
+/** Every stored scan and site rival set scored again; on apply, each one
+ *  that moves written back unless the guard holds. */
+export async function rescoreStored(store: RescoreStore, o: RescoreOptions): Promise<RescoreAnswer> {
+  const { profiles, sites, renamed, rows, unreadable, scoreMoves, moving, standing, movedSites, ...read } = await readAll(store);
+  let held = o.guard === undefined ? null : heldBecause({ moves: scoreMoves, unreadable: unreadable.length, unreadableBefore: o.guard.unreadableBefore, afterApply: false, changed: 0 });
+  let stale = read.stale;
   let written: { scans: number; left: string[]; names: number } | null = null;
-  if (o.apply) {
+  if (o.apply && held === null) {
     written = { scans: 0, left: [], names: 0 };
     const at = o.at.toISOString();
     for (const row of rows.filter(moves)) {
-      const ok = await store.writeScan(scanWriteOf(row, at, o.version));
-      if (ok) written.scans += 1;
+      if (await store.writeScan(scanWriteOf(row, at, o.version))) written.scans += 1;
       else written.left.push(row.scan.id);
     }
     for (const { site, moved } of movedSites) await store.writeSite(siteWrite(site, moved, o));
     for (const name of renamed) if (await store.writeProfileName(name)) written.names += 1;
+    stale = standing;
+    if (written.left.length > 0) {
+      // A scan written since it was read may now read as the code does, or not.
+      const again = await readAll(store);
+      held = heldBecause({ moves: again.scoreMoves, unreadable: again.unreadable.length, unreadableBefore: unreadable.length, afterApply: true, changed: again.moving.length });
+      stale = again.stale;
+    }
   }
-
-  const scoreOf = (m: RescoredMembers): number | null =>
-    m.verdict.scoreAndBand.kind === "unmeasured" ? null : m.verdict.scoreAndBand.value.score;
   return {
     scansRead: rows.length + unreadable.length,
-    scansChanged: rows.filter(moves).length,
+    scansChanged: moving.length,
     sitesMoved: movedSites.length + renamed.length,
     scansWritten: written?.scans ?? 0,
     scansLeft: written?.left.length ?? 0,
     scansUnreadable: unreadable.length,
-    // A scan that stands as stored though the code reads it differently
-    // (issue 1504) is stale as one the apply left is.
-    stale: [...new Set([...(written === null ? rows.filter(moves).map((row) => row.scan.id) : written.left), ...rows.filter((row) => row.result.stale).map((row) => row.scan.id)])],
-    scoreMoves: rows
-      .map((row) => ({ domain: row.scan.domain, before: scoreOf(row.result.before), after: scoreOf(row.result.after) }))
-      .filter((m) => m.before !== m.after),
+    stale,
+    scoreMoves,
+    held,
     summary: quietly(() => summaryOf({ o, rows, unreadable, sites, movedSites, profiles, renamed, written, read: store.readBytes?.() })),
   };
 }
@@ -574,6 +585,8 @@ export async function rescoreStored(store: RescoreStore, o: RescoreOptions): Pro
 export interface RescoreRequest {
   id: string;
   mode: "dry" | "apply";
+  /** True where the tick asked it: its apply is guarded. */
+  auto?: boolean;
 }
 
 export interface RescoreQueue {
@@ -584,7 +597,7 @@ export interface RescoreQueue {
   runs(): Promise<readonly RunRecord[]>;
   /** A request the tick asks for itself (`auto`). */
   ask(mode: RescoreRequest["mode"], at: Date): Promise<void>;
-  answer(id: string, answer: RescoreAnswer & { held: string | null }, o: RescoreOptions): Promise<void>;
+  answer(id: string, answer: RescoreAnswer, o: RescoreOptions): Promise<void>;
   failed(id: string, error: string, o: Pick<RescoreOptions, "at" | "derivation">): Promise<void>;
 }
 
@@ -595,22 +608,13 @@ export async function answerRequest(
   o: Omit<RescoreOptions, "apply">,
   db: RescoreQueue & RescoreStore = databaseRescore()
 ): Promise<Pick<RescoreAnswer, "scansRead" | "scansChanged" | "sitesMoved" | "scansWritten" | "scansLeft">> {
-  const options: RescoreOptions = { ...o, apply: request.mode === "apply" };
   try {
-    const runs = await db.runs();
+    const before = (await db.runs()).filter((r) => r.finishedAt !== null && r.error === null && r.unreadable !== null).at(-1);
+    // A person's apply is how a held guard is moved on, so only the tick's is guarded.
+    const guarded = request.mode === "dry" || request.auto === true;
+    const options: RescoreOptions = { ...o, apply: request.mode === "apply", ...(guarded ? { guard: { unreadableBefore: before?.unreadable ?? null } } : {}) };
     const answer = await rescoreStored(db, options);
-    const before = runs.filter((r) => r.finishedAt !== null && r.error === null && r.unreadable !== null).at(-1);
-    const held =
-      request.mode === "apply"
-        ? null
-        : heldBecause({
-            moves: answer.scoreMoves,
-            unreadable: answer.scansUnreadable,
-            unreadableBefore: before?.unreadable ?? null,
-            afterApply: runs.some((r) => r.mode === "apply" && r.derivation === (o.derivation ?? null) && r.finishedAt !== null && r.error === null),
-            changed: answer.scansChanged,
-          });
-    await db.answer(request.id, { ...answer, held }, options);
+    await db.answer(request.id, answer, options);
     // The step's answer is stored between invocations: the counts, not the table.
     return { scansRead: answer.scansRead, scansChanged: answer.scansChanged, sitesMoved: answer.sitesMoved, scansWritten: answer.scansWritten, scansLeft: answer.scansLeft };
   } catch (error) {
@@ -620,9 +624,9 @@ export async function answerRequest(
 }
 
 /** The request this tick answers: the oldest one waiting, or, where none
- *  waits and production's deployed derivation is not settled, the next step
- *  the tick asks for itself (issue 1481). `held` where the guard, a check or
- *  a failure stopped it: nothing is asked, and the tick says so. */
+ *  waits and production's deployed derivation has no run, the guarded apply
+ *  the tick asks for itself (issue 1481). `held` where the guard or a failure
+ *  stopped it: nothing is asked, and the tick says so. */
 export async function claimRequest(
   at: Date,
   derivation: string | null,
@@ -814,8 +818,8 @@ export function databaseRescore(client: () => Promise<MinimalClient> = adminClie
       const db = await client();
       const waiting = checked(
         await db
-          .from<{ id: string; mode: RescoreRequest["mode"] }>("rescore_runs")
-          .select("id, mode")
+          .from<{ id: string }>("rescore_runs")
+          .select("id")
           .is("started_at", null)
           .order("requested_at", { ascending: true })
           .limit(1)
@@ -824,11 +828,11 @@ export function databaseRescore(client: () => Promise<MinimalClient> = adminClie
       if (next === undefined) return null;
       const claimed = checked(
         await db
-          .from<{ id: string; mode: RescoreRequest["mode"] }>("rescore_runs")
+          .from<RescoreRequest>("rescore_runs")
           .update({ started_at: at.toISOString() })
           .eq("id", next.id)
           .is("started_at", null)
-          .select("id, mode")
+          .select("id, mode, auto")
       );
       return claimed?.[0] ?? null;
     },
@@ -842,11 +846,9 @@ export function databaseRescore(client: () => Promise<MinimalClient> = adminClie
             finished_at: string | null;
             error: string | null;
             held: string | null;
-            scans_changed: number | null;
-            sites_moved: number | null;
             scans_unreadable: number | null;
           }>("rescore_runs")
-          .select("mode, derivation, requested_at, finished_at, error, held, scans_changed, sites_moved, scans_unreadable")
+          .select("mode, derivation, requested_at, finished_at, error, held, scans_unreadable")
           .order("requested_at", { ascending: true })
       );
       return (rows ?? []).map((r) => ({
@@ -856,8 +858,6 @@ export function databaseRescore(client: () => Promise<MinimalClient> = adminClie
         finishedAt: r.finished_at,
         error: r.error,
         held: r.held,
-        scansChanged: r.scans_changed,
-        sitesMoved: r.sites_moved,
         unreadable: r.scans_unreadable,
       }));
     },

@@ -7,19 +7,17 @@
 // `rescore_runs` row records the derivation it ran with, so the tick can tell
 // a deploy that changed how a scan is read from one that did not, and ask the
 // next step itself (owner, 2026-10-14, issue 1426: every derivation change
-// reaches every stored scan at 0¢; owner action is never a required step):
+// reaches every stored scan at 0¢; owner action is never a required step).
+// One download per derivation (SPEC issue 1481 (2) as amended 2026-11-01):
 //
-//   no run at this derivation            → a dry run
-//   a dry run that moves nothing         → settled
-//   a dry run whose guard holds          → the apply (held wins over both)
-//   an apply                             → a dry run that checks it
-//   a check that still finds moves, a
-//   held guard, or a run that failed     → held: nothing more is asked, and
+//   no run at this derivation            → the apply, guarded in memory
+//   a finished run                       → settled
+//   a held guard or a run that failed    → held: nothing more is asked, and
 //                                          the tick says so on every run
 //
-// The guard (`RESCORE_GUARD`): no score moves further than it allows, no
-// scored scan loses its number, and no scan this build cannot read beyond the
-// ones the run before could not read either.
+// The guard (`RESCORE_GUARD`), decided before any write: no score moves
+// further than it allows, no scored scan loses its number, and no scan this
+// build cannot read beyond the ones the run before could not read either.
 import { RESCORE_GUARD } from "@/lib/config/constants";
 
 /** The deployed derivation; `null` where the build carried none (a test, a
@@ -43,14 +41,12 @@ export interface RunRecord {
   finishedAt: string | null;
   error: string | null;
   held: string | null;
-  scansChanged: number | null;
-  sitesMoved: number | null;
   /** Stored scans that run could not read. */
   unreadable: number | null;
 }
 
 export type NextStep =
-  | { ask: "dry" | "apply" }
+  | { ask: "apply" }
   | { wait: true }
   | { settled: true }
   | { held: string };
@@ -60,29 +56,27 @@ export function nextStep(runs: readonly RunRecord[], derivation: string): NextSt
   if (runs.some((r) => r.finishedAt === null)) return { wait: true };
   const here = runs.filter((r) => r.derivation === derivation).sort((a, b) => a.requestedAt.localeCompare(b.requestedAt));
   const last = here.at(-1);
-  if (last === undefined) return { ask: "dry" };
+  if (last === undefined) return { ask: "apply" };
   if (last.error !== null) return { held: `the ${last.mode === "dry" ? "dry run" : "apply"} failed: ${last.error}` };
-  if (last.mode === "apply") return { ask: "dry" };
   if (last.held !== null) return { held: last.held };
-  if (last.scansChanged === 0 && last.sitesMoved === 0) return { settled: true };
-  return { ask: "apply" };
+  return { settled: true };
 }
 
-/** A scan whose score the dry run would change. `null` is no number. */
+/** A scan whose score the run would change. `null` is no number. */
 export interface ScoreMove {
   domain: string;
   before: number | null;
   after: number | null;
 }
 
-/** Why a dry run may not lead to an apply, or `null` where it may. */
+/** Why a run may not write, or `null` where it may. */
 export function heldBecause(a: {
   moves: readonly ScoreMove[];
   unreadable: number;
   /** The run before's count; `null` where no run recorded one. */
   unreadableBefore: number | null;
-  /** True where an apply already ran at this derivation: this dry run is
-   *  its check, and every move it still finds is the apply lagging. */
+  /** True where this read follows the run's own writes: every move it
+   *  still finds is the apply lagging. */
   afterApply: boolean;
   changed: number;
 }): string | null {
@@ -104,7 +98,7 @@ export function heldBecause(a: {
 
 /** Whether the deployed code reads this stored scan differently from its
  *  report (SPEC §2, issue 1481): the last finished run at the deployed
- *  derivation lists it, as one the dry run would move or the apply left.
+ *  derivation lists it, as one the run would move or the apply left.
  *  `false` where nothing says so, or nothing can be read — the report still
  *  renders. */
 export async function readsDifferently(scanId: string, derivation = deployedDerivation()): Promise<boolean> {

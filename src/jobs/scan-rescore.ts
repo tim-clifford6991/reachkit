@@ -3,14 +3,14 @@
 // Every stored scan and site rival set scored again by the deployed code,
 // where the data is (owner ruling 2026-10-14, SPEC §2). The request is a
 // `rescore_runs` row and this tick is what reads it. Since issue 1481 the
-// tick asks for it itself after a deploy that changed how a scan is read: a
-// dry run, the apply where its guard holds, and a dry run that checks the
-// apply (`src/lib/scan/derivation.ts`). The master session may still insert
-// one through the Supabase connector. A tick with nothing to do does nothing.
+// tick asks for it itself after a deploy that changed how a scan is read: one
+// apply, its guard decided in memory before any write, so every stored scan is
+// downloaded once (`src/lib/scan/derivation.ts`). The master session may still
+// insert one through the Supabase connector. A tick with nothing to do does nothing.
 //
-// A held re-score — the guard stopped the apply, the check found it lagging,
-// or a run failed — is `degraded` on every tick until a deploy or the master
-// session moves it on: the check that fails while stored scans lag the code.
+// A held re-score — the guard stopped the apply, a scan written since the read
+// still moves, or a run failed — is `degraded` on every tick until a deploy or
+// the master session moves it on: the check that fails while stored scans lag the code.
 //
 // The claim and the answer are steps of their own, so a retried answer is
 // the same request and a second tick cannot claim it again. The answer is
