@@ -827,8 +827,7 @@ export const MAIL_COPY = Object.freeze({
   // Issue 1298 (D63, drafted): the week's Google SERP reads that timed out.
   "mail.ops.incident.fact.serp-timeouts": ["Google SERP reads that timed out (timed out / all)", { slots: {}, fixedBy: "issue 1298 (drafted)" }],
   "mail.ops.incident.fact.serp-timeout-cost": ["Billed for timed-out SERP reads", { slots: {}, fixedBy: "issue 1298 (drafted)" }],
-  // Issue 1287 (D58, drafted): the passes one of their own health checks
-  // failed on. Owner-only, so the site is named.
+  // Issue 1287 (D58, drafted): the passes one of their own health checks failed on. Owner-only, so the site is named.
   "mail.ops.incident.health-week": ["These passes failed one of their own health checks in the last seven days. Their data is stored, and the headline numbers stay on the last healthy pass.", { slots: {}, fixedBy: "issue 1287 (drafted)" }],
   "mail.ops.incident.fact.health-check": ["Failed check", { slots: {}, fixedBy: "issue 1287 (drafted)" }],
   // Issue #799: a scheduled job has gone quiet for twice its interval.

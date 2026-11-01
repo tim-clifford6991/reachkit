@@ -4,11 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const reportIncident = vi.hoisted(() => vi.fn(async () => true));
 vi.mock("@/lib/mail/ops", () => ({ reportIncident }));
-vi.mock("@/lib/db", () => ({
-  dbAdmin: () => {
-    throw new Error("alerts.test: the store double stands in for the database");
-  },
-}));
+vi.mock("@/lib/db", () => ({ dbAdmin: () => ({}) }));
 
 import { alertSiteDay, setDraftDayStore, untoldMisses, type DraftDayStore } from "@/lib/publish/daily";
 
@@ -25,6 +21,9 @@ function memory(a: { drafts: { date: string; state: string }[]; delivered?: stri
   const days = new Map<string, { outcome: string | null; reason: string | null; missingAt: string | null; stallAt: string | null }>();
   const row = (date: string) => days.get(date) ?? { outcome: null, reason: null, missingAt: null, stallAt: null };
   const state = { delivered: a.delivered === undefined ? null : new Date(a.delivered) };
+  // Check and set with no await between them, as the conditional update is one statement.
+  const claim = (field: "missingAt" | "stallAt") => async (_id: string, date: string, at: Date) =>
+    row(date)[field] === null && Boolean(days.set(date, { ...row(date), [field]: at.toISOString() }));
   const store: DraftDayStore = {
     record: async (day) => void days.set(day.publishDate, { ...row(day.publishDate), outcome: day.outcome, reason: day.reason }),
     statesOn: async (_id, date) => a.drafts.filter((draft) => draft.date === date).map((draft) => draft.state),
@@ -37,18 +36,9 @@ function memory(a: { drafts: { date: string; state: string }[]; delivered?: stri
     },
     decidedOn: async (asked) => asked.filter((day) => days.get(day.publishDate)?.outcome != null),
     domainOf: async (id) => `${id}.example`,
-    // Check and set with no await between them, as the conditional update is one statement.
-    claimMissingAlert: async (_id, date, at) => {
-      if (row(date).missingAt !== null) return false;
-      days.set(date, { ...row(date), missingAt: at.toISOString() });
-      return true;
-    },
+    claimMissingAlert: claim("missingAt"),
     lastDeliveredAt: async () => state.delivered,
-    claimStallAlert: async (_id, date, at) => {
-      if (row(date).stallAt !== null) return false;
-      days.set(date, { ...row(date), stallAt: at.toISOString() });
-      return true;
-    },
+    claimStallAlert: claim("stallAt"),
     untoldBetween: async (from, to) =>
       [...days]
         .filter(([date, day]) => date >= from && date <= to && day.outcome !== null && day.missingAt === null)
