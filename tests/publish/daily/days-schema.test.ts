@@ -13,7 +13,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { psql, psqlRows } from "../../db/substrate";
 
 const MIGRATIONS = path.resolve(import.meta.dirname, "../../../supabase/migrations");
-const APPLIED = ["00000000000001_baseline.sql", "00000000000002_rls.sql", "20261015120000_jobs_draft_days.sql", "20261101120000_draft_days_stall_claim.sql"];
+const APPLIED = ["00000000000001_baseline.sql", "00000000000002_rls.sql", "20261015120000_jobs_draft_days.sql", "20261101120000_jobs_draft_days_stall_claim.sql"];
 
 function run(sql: string): void {
   psql(["-v", "ON_ERROR_STOP=1", "-c", sql]);

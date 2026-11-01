@@ -212,7 +212,7 @@ describe("#796 — a Monday's thin weekly passes are one owner digest", () => {
 
     expect(mails).toHaveLength(1);
     const html = String(mails[0]!.html);
-    expect(html).toContain("no alert went out for them");
+    expect(html).toContain("These days had no page, and no alert went out for them.");
     expect(html).toContain("plumber.example");
     expect(html).toContain("2026-09-08");
     expect(html).toContain("no_page/generate/rules");

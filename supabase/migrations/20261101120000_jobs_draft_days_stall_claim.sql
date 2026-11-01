@@ -1,4 +1,4 @@
--- supabase/migrations/20261101120000_draft_days_stall_claim.sql
+-- supabase/migrations/20261101120000_jobs_draft_days_stall_claim.sql
 --
 -- Expand-only: one nullable column. `stall_alerted_at` is when the owner
 -- was told a site has gone twice its cadence with no page delivered. It is
