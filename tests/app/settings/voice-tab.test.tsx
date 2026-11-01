@@ -23,7 +23,7 @@ vi.mock("@/app/(account)/app/settings/change-actions", async (importOriginal) =>
 const { assembleSettings } = await import("@/app/(account)/app/settings/model");
 const { FIXTURE_SETTINGS_FACTS } = await import("@/app/(account)/app/settings/fixture");
 const { VoicePanel } = await import("@/app/(account)/app/settings/panels/VoicePanel");
-const { WRITING_VOICE_AUTO, WRITING_VOICE_OPTIONS } = await import("@/app/(account)/app/settings/voice-state");
+const { WRITING_VOICE_OPTIONS } = await import("@/app/(account)/app/settings/voice-state");
 const { copy } = await import("@/lib/presentation/copy");
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -79,17 +79,16 @@ describe("board SettingsVoice: each section in the board's order and words", () 
     ]);
   });
 
-  it("who speaks: ReachKit's choice then the three voices, each with its example, then the note", async () => {
+  it("write as: the two voices, each with its example, then the note; length and the choice for each page are ReachKit's", async () => {
     const [, who] = cards(await mount());
+    expect(who!.textContent).not.toContain("Let ReachKit choose");
+    expect(who!.textContent).not.toContain("Short answers");
     inOrder(who!, [
-      copy("settings.voice.writing.auto"),
-      copy("settings.voice.writing.auto.example"),
+      copy("settings.voice.writing.label"),
       copy("settings.voice.writing.ours"),
       copy("settings.voice.writing.ours.example"),
       copy("settings.voice.writing.guide"),
       copy("settings.voice.writing.guide.example", { business: "Harbour Bike Repair" }),
-      copy("settings.voice.writing.short"),
-      copy("settings.voice.writing.short.example"),
       copy("settings.voice.writing.note"),
     ]);
   });
@@ -116,20 +115,20 @@ describe("the voice options are a radio list with the select's stored values, sa
   it("one radio per value the select offered, the stored one checked, and no select", async () => {
     const root = await mount({ writingVoice: "guide" });
     const radios = [...root.querySelectorAll<HTMLInputElement>('[data-testid="setting-writing_voice"] input[type="radio"]')];
-    expect(radios.map((r) => r.value)).toEqual([WRITING_VOICE_AUTO, ...WRITING_VOICE_OPTIONS.map((o) => o.voice)]);
+    expect(radios.map((r) => r.value)).toEqual(["ours", "guide"]);
     expect(radios.filter((r) => r.checked).map((r) => r.value)).toEqual(["guide"]);
     expect(root.querySelector("select")).toBeNull();
   });
 
-  it("an account that chose nothing has ReachKit's choice checked", async () => {
+  it("an account that chose nothing has no voice checked: ReachKit picks for each page", async () => {
     const root = await mount({ writingVoice: null });
-    expect(root.querySelector<HTMLInputElement>('input[type="radio"]:checked')?.value).toBe(WRITING_VOICE_AUTO);
+    expect(root.querySelector('input[type="radio"]:checked')).toBeNull();
   });
 
-  it.each([...WRITING_VOICE_OPTIONS.map((o) => o.voice), WRITING_VOICE_AUTO])(
+  it.each(WRITING_VOICE_OPTIONS.map((o) => o.voice))(
     "choosing %s saves that value at once",
     async (voice) => {
-      const root = await mount({ writingVoice: voice === WRITING_VOICE_AUTO ? "ours" : null });
+      const root = await mount({ writingVoice: null });
       sent.length = 0;
       await act(async () => {
         root.querySelector<HTMLInputElement>(`input[type="radio"][value="${voice}"]`)!.click();

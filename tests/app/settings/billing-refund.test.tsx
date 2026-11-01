@@ -67,10 +67,10 @@ describe("Settings › Billing — the cancel route and the first-14-days refund
     const doc = await billingCard(20);
     expect(line(doc, "billing-route")).toBe(route());
     expect(line(doc, "billing-refund")).toBeNull();
-    expect(line(doc, "billing-billed")).toBe("Billed in euros. Cancel any time; everything keeps running until the period ends.");
+    expect(line(doc, "billing-billed")).toBe("Billed in euros. Cancel any time, and it all runs until the period ends.");
   });
 
-  it("a cancelled plan says it, names the day everything runs to, and offers Resume my plan", () => {
+  it("a cancelled plan says it, names the day everything runs to, and offers Resume my subscription", () => {
     const html = renderToStaticMarkup(
       <BillingPanel
         billing={{ readable: true, state: "cancelled", accessUntil: "Nov 7, 2026", surfaceHref: "/app/settings", refundUntil: null }}
@@ -79,7 +79,7 @@ describe("Settings › Billing — the cancel route and the first-14-days refund
     const doc = new DOMParser().parseFromString(html, "text/html");
     expect(line(doc, "billing-cancelling")).toBe("Cancelled. Everything keeps running until Nov 7, 2026.");
     expect(line(doc, "billing-billed")).toBeNull();
-    expect(doc.querySelector('[data-testid="action-resume"] button')?.textContent).toBe("Resume my plan");
+    expect(doc.querySelector('[data-testid="action-resume"] button')?.textContent).toBe("Resume my subscription");
     expect(line(doc, "billing-state")).toBe(copy("settings.billing.cancelled"));
   });
 

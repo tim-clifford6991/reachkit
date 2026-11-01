@@ -58,7 +58,6 @@ export const SIGNIN_COPY = Object.freeze({
   // The three facts under the button, and the three steps under the split (board AuthSignIn).
   "signin.chip.nopass": ["no password", { slots: {}, fixedBy: "board AuthSignIn" }],
   "signin.chip.link": ["link works 24 hours", { slots: {}, fixedBy: "board AuthSignIn" }],
-  "signin.chip.install": ["nothing to install", { slots: {}, fixedBy: "board AuthSignIn" }],
   "signin.how.title": ["How signing in works", { slots: {}, fixedBy: "board AuthSignIn" }],
   "signin.how.email.head": ["Type your email", { slots: {}, fixedBy: "board AuthSignIn" }],
   "signin.how.email.line": ["The one you paid with.", { slots: {}, fixedBy: "board AuthSignIn" }],
@@ -154,26 +153,6 @@ export const SIGNIN_COPY = Object.freeze({
   "signin.why.newer.line": ["works for 24 hours", { slots: {}, fixedBy: "board AuthExpired" }],
   "signin.why.calm": ["Nothing in your account changed. Your pages carry on as planned.", { slots: {}, fixedBy: "board AuthExpired" }],
 
-  // ── The preview beside the form: what is waiting inside, on an example
-  // business (owner, E6, #1581). Drafted (#759).
-  "signin.preview.eyebrow": ["Waiting inside", { slots: {}, fixedBy: "issue 1601 · drafted" }],
-  "signin.preview.running": ["Running by itself", { slots: {}, fixedBy: "issue 1601 · drafted" }],
-  "signin.preview.week": ["Week {week}", { slots: { week: "text" }, fixedBy: "issue 1601 · drafted" }],
-  "signin.preview.google": ["Found by Google", { slots: {}, fixedBy: "issue 1601 · drafted" }],
-  "signin.preview.google.of": ["of {live} live pages", { slots: { live: "text" }, fixedBy: "issue 1601 · drafted" }],
-  "signin.preview.showing": ["Showing", { slots: {}, fixedBy: "issue 1601 · drafted" }],
-  "signin.preview.showing.of": ["in Google’s top 100", { slots: {}, fixedBy: "issue 1601 · drafted" }],
-  "signin.preview.ai": ["Linked by AI", { slots: {}, fixedBy: "issue 1601 · drafted" }],
-  "signin.preview.ai.of": ["of {asked} pages asked", { slots: { asked: "text" }, fixedBy: "issue 1601 · drafted" }],
-  "signin.preview.days.title": ["This week’s pages", { slots: {}, fixedBy: "issue 1601 · drafted" }],
-  "signin.preview.days.pace": ["up to {pages}, new or updated", { slots: { pages: "text" }, fixedBy: "issue 1601 · drafted" }],
-  "signin.preview.calm.head": ["Nothing needs you.", { slots: {}, fixedBy: "issue 1601 · drafted" }],
-  "signin.preview.calm.line": ["You can edit or stop any page before it goes live.", { slots: {}, fixedBy: "issue 1601 · drafted" }],
-  "signin.preview.example": ["Example business. It measures no site.", { slots: {}, fixedBy: "issue 1601 · drafted" }],
-  "signin.preview.example.inside": [
-    "Example business. It measures no site. Inside you see this week’s pages and how they’re doing.",
-    { slots: {}, fixedBy: "board AuthCheckEmail · AuthExpired" },
-  ],
   /** Under the sent alert (#937): what the link is good for, before a
    *  reader goes looking in a spam folder. Drafted (#759). */
   "signin.sent.terms": [

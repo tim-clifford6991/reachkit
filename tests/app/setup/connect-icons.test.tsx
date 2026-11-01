@@ -49,13 +49,8 @@ const icons = (el: Element | null | undefined): string[] =>
 const allHidden = (el: Element): boolean => [...el.querySelectorAll("svg.lucide")].every((svg) => svg.closest('[aria-hidden="true"]') !== null);
 
 describe("Setup's Connect step carries board Setup's icons", () => {
-  it("How it connects: monitor, a primary milestone, file-text", async () => {
-    const how = (await publishingStep()).querySelector('[data-testid="setup-how"]')!;
-    expect(icons(how)).toEqual(["monitor", "milestone", "file-text"]);
-    const milestone = how.querySelector("svg.lucide-milestone")!;
-    expect(milestone.closest(".text-primary")).not.toBeNull();
-    expect(milestone.closest("li")!.textContent).toContain(COPY["setup.connect.how.yours"]);
-    expect(allHidden(how)).toBe(true);
+  it("draws no diagram of how it connects", async () => {
+    expect((await publishingStep()).querySelector('[data-testid="setup-how"]')).toBeNull();
   });
 
   it("the destination options: globe for our address, layers for WordPress", async () => {
@@ -73,12 +68,10 @@ describe("Setup's Connect step carries board Setup's icons", () => {
     expect(heading!.querySelector("svg")).toBeNull();
   });
 
-  it("After you add it: check, search, file-text, and no status dot", async () => {
-    const what = (await connectScreen()).querySelector('[data-testid="setup-connect-what"]')!;
-    const stages = [...what.querySelectorAll('[data-testid="setup-connect-stage"]')];
-    expect(stages.map((stage) => icons(stage))).toEqual([["check"], ["search"], ["file-text"]]);
-    expect(stages.map((stage) => stage.getAttribute("data-state"))).toEqual(["done", "current", "pending"]);
-    expect(what.querySelector(".status")).toBeNull();
+  it("the connect screen draws no list of what happens after you add it", async () => {
+    const root = await connectScreen();
+    expect(root.querySelector('[data-testid="setup-connect-what"]')).toBeNull();
+    expect(root.querySelectorAll('[data-testid="setup-connect-stage"]')).toHaveLength(0);
   });
 
   it("After this: a coffee tile, and one file-text on each page day", async () => {

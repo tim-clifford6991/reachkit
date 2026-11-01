@@ -76,7 +76,7 @@ describe("SPEC §5 (docs/spec/decisions/2026-10-22-1737.md) — three saved step
   it("the indicator is three equal columns with one-word labels, and the current one is marked", () => {
     const steps = screenFor("check").querySelector('[data-testid="setup-steps"]');
     const columns = [...(steps?.querySelectorAll("li") ?? [])];
-    expect(columns.map((li) => (li.textContent ?? "").trim())).toEqual(["Site", "Check", "Connect"]);
+    expect(columns.map((li) => (li.textContent ?? "").trim())).toEqual(["Site", "Details", "Connect"]);
     for (const label of columns.map((li) => (li.textContent ?? "").trim())) {
       expect(label.split(/\s+/), label).toHaveLength(1);
     }
@@ -145,9 +145,9 @@ describe("SPEC §5 (docs/spec/decisions/2026-10-22-1737.md) — three saved step
 
   it("each step says where the founder is, out of three, and the time their own part takes", () => {
     expect(SETUP_STEPS.map((step) => screenFor(step).querySelector('[data-testid="setup-step-count"]')?.textContent)).toEqual([
-      "Step 1 of 3about 10 minutes, once",
-      "Step 2 of 3about 10 minutes, once",
-      "Step 3 of 3about 10 minutes, once",
+      "Step 1 of 3about 10 minutes of your time",
+      "Step 2 of 3about 10 minutes of your time",
+      "Step 3 of 3about 10 minutes of your time",
     ]);
   });
 
@@ -284,7 +284,7 @@ describe("Site — the address, where the buyers are, and the place (REQ-021 c6/
     expect(tree.querySelector('select[name="locale"]')).not.toBeNull();
     expect(tree.querySelector('input[name="place"]')).not.toBeNull();
     expect(tree.querySelector('[data-testid="setup-place-preview"]')?.textContent).toBe(
-      "United States · in EnglishWe check what buyers here search and ask AI, and who they find instead of you.",
+      "United States · in EnglishWe check what buyers here search, and who they find instead of you.",
     );
     expect(
       screenFor("site", { place: "Austin, TX" }).querySelector('[data-testid="setup-place-preview"]')?.textContent,
@@ -409,7 +409,7 @@ describe("Check — here's what we read, one section to open per part (docs/spec
     expect(sections.map((d) => d.querySelector("summary")?.textContent)).toEqual([
       `Your businessread${model().business.job?.text}`,
       `Your market and competitorsread${FIXTURE_SETUP_FACTS.concluded?.category} · ${FIXTURE_SETUP_FACTS.concluded?.rivals.length} competitors`,
-      `Your voiceread${(FIXTURE_SETUP_FACTS.profile?.voice?.text ?? "").split(/(?<=[.!?])\s/)[0]}`,
+      `How your pages soundread${(FIXTURE_SETUP_FACTS.profile?.voice?.text ?? "").split(/(?<=[.!?])\s/)[0]}`,
       "Five things only you knowoptionalAnswer any, or none.",
     ]);
     // A section nothing was read for carries no "read" pill.
@@ -687,13 +687,13 @@ describe("the panel beside the question (docs/spec/decisions/2026-10-22-1737.md)
       [...(screenFor(step).querySelectorAll('[data-testid="setup-next"] li') ?? [])].map((li) => li.textContent);
     expect(rail("site")).toEqual([
       "1Confirm your siteyou are hereWhere your buyers are.",
-      "2Check what we readFix anything wrong, or carry on.",
-      "3Connect your websiteOne setting, copied from us.",
-      "After this, nothing to doPages go live on their day. A Monday email shows what moved.",
+      "2Confirm what we foundFix anything wrong, or carry on.",
+      "3Connect your websiteOne line, pasted where you bought your address.",
+      "After this, nothing to doPages go live on their day. Your Monday mail shows what moved.",
     ]);
     expect(rail("check").slice(0, 2)).toEqual([
       "Confirm your siteWhere your buyers are.",
-      "2Check what we readyou are hereFix anything wrong, or carry on.",
+      "2Confirm what we foundyou are hereFix anything wrong, or carry on.",
     ]);
     for (const step of ["site", "check"] as const) {
       const panel = screenFor(step).querySelector('[data-testid="setup-panel"]');

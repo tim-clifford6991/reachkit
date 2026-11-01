@@ -55,7 +55,7 @@ describe("a period with pages, Monday mails and a finished pass", () => {
       "billing-month-planned",
     ]);
     expect(text(doc, "billing-month-live")).toBe("2 pages went live on help.harborplumbing.example");
-    expect(text(doc, "billing-month-reports")).toBe("2 Monday reports Oct 12 and Oct 19");
+    expect(text(doc, "billing-month-reports")).toBe("2 Monday mails Oct 12 and Oct 19");
     expect(text(doc, "billing-month-asked")).toBe("35 searches and AI questions 12 searches and 23 AI questions, checked each week");
     expect(text(doc, "billing-month-planned")).toBe("3 pages planned this week up to 7 a week, never filler");
   });

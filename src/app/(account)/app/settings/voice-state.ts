@@ -18,15 +18,12 @@ import type { CopyKey } from "@/lib/presentation/copy";
  *  sentence: it is the wire name a browser puts in `FormData`. */
 export const VOICE_FIELD = "voice_text";
 
-/** The native `name` on the page-voice select (SPEC §7, issue 1390), and
- *  the value that hands the choice back to ReachKit. */
+/** The native `name` on the page-voice choice (SPEC §7, issue 1390). */
 export const WRITING_VOICE_FIELD = "writing_voice";
-export const WRITING_VOICE_AUTO = "auto";
 
-/** The three voices a customer may fix, each with the keys of its option's
- *  words and its fixed example sentence. Type-only import: this file is a browser's too. */
+/** The two voices a customer may fix, each with the keys of its option's words and its fixed example sentence;
+ *  length is ReachKit's to pick. Type-only import: this file is a browser's too. */
 export const WRITING_VOICE_OPTIONS = [
   { voice: "ours", key: "settings.voice.writing.ours", example: "settings.voice.writing.ours.example" },
   { voice: "guide", key: "settings.voice.writing.guide", example: "settings.voice.writing.guide.example" },
-  { voice: "short", key: "settings.voice.writing.short", example: "settings.voice.writing.short.example" },
 ] as const satisfies readonly { voice: WritingVoice; key: CopyKey; example: CopyKey }[];

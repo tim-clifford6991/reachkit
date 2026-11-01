@@ -90,14 +90,13 @@ describe("each arm matches its board's screen string for string", () => {
 });
 
 describe("each section is on the screen in the board's order and words", () => {
-  it("sign in: the body, the three facts under the button, then how signing in works in three steps", async () => {
+  it("sign in: the body, the two facts under the button, then how signing in works in three steps", async () => {
     inOrder(textOf(await inBrowser({})), [
       "Enter the email you paid with. We’ll send you a sign-in link.",
       "Send my sign-in link",
-      "no password link works 24 hours nothing to install",
+      "no password link works 24 hours",
       "New to ReachKit?",
       "Start a free scan →",
-      "Waiting inside",
       "How signing in works",
       "Type your email",
       "The one you paid with.",
@@ -119,7 +118,6 @@ describe("each section is on the screen in the board's order and words", () => {
       "Your inbox",
       "Inside the email",
       "Press it on any device. You land on your Overview.",
-      "Example business. It measures no site. Inside you see this week’s pages and how they’re doing.",
     ]);
   });
 
@@ -141,7 +139,7 @@ describe("each section is on the screen in the board's order and words", () => {
 });
 
 describe("sign-in's board icons", () => {
-  it("Send on the submit, a Check per assurance, Link on Linked by AI, an arrow between the steps", async () => {
+  it("Send on the submit, a Check per assurance, an arrow between the steps", async () => {
     const screen = document.createElement("div");
     screen.innerHTML = await inBrowser({});
     const icons = (el: Element | null | undefined, name: string): number => el?.querySelectorAll(`svg.lucide-${name}`).length ?? 0;
@@ -151,10 +149,7 @@ describe("sign-in's board icons", () => {
     expect([...assurances!.children].map((chip) => [icons(chip, "check"), chip.querySelectorAll("svg").length])).toEqual([
       [1, 1],
       [1, 1],
-      [1, 1],
     ]);
-    const figures = screen.querySelector('[data-testid="signin-preview-figures"]');
-    expect([icons(figures, "link"), icons(screen, "link-2")]).toEqual([1, 0]);
     const steps = [...screen.querySelectorAll('section[aria-labelledby="signin-how"] ol > li')];
     expect(steps.map((step) => icons(step, "arrow-right"))).toEqual([1, 1, 0]);
     for (const svg of screen.querySelectorAll("svg")) expect(svg.getAttribute("aria-hidden")).toBe("true");
