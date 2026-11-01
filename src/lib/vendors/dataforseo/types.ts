@@ -127,6 +127,10 @@ export interface AiAnswer {
   citedDomains: readonly string[];
   /** The addresses it cited, where the vendor gave them: "your pages cited" is read from these. Absent on an older cached answer. */
   citedUrls?: readonly string[];
+  /** ChatGPT only: the web searches it ran to answer. Absent on AI Mode and on an answer stored before they were kept. */
+  fanOuts?: readonly string[];
+  /** ChatGPT only: the pages it retrieved, cited or not; never a citation. Absent where not measured. */
+  retrievedUrls?: readonly string[];
 }
 
 /**
