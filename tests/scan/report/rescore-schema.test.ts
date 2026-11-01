@@ -19,8 +19,10 @@ const MIGRATIONS = path.resolve(import.meta.dirname, "../../../supabase/migratio
 const APPLIED = [
   "00000000000001_baseline.sql",
   "00000000000002_rls.sql",
+  "20260904110000_scans_current.sql",
   "20261014130000_scans_rescore.sql",
   "20261017140000_scans_rescore_auto.sql",
+  "20261101130000_scans_rescore_reads.sql",
 ];
 
 function run(sql: string): void {
@@ -128,6 +130,62 @@ describe("rescore_scan — the production re-score's one write", () => {
   });
 });
 
+describe("rescore_scan — a true means every change landed", () => {
+  function call(id: string, md5: string, changes: unknown): string {
+    return `select rescore_scan('${id}', '${md5}', '${JSON.stringify(changes)}'::jsonb, null, 'degraded', null, '2026-11-01T12:00:00.000Z', 'abc1234');`;
+  }
+
+  it("raises and writes nothing where a change's parent is missing or its index is past the array", () => {
+    for (const lost of [
+      { path: ["missing", "child"], value: 1 },
+      { path: ["aiAnswers", "rows", "5"], value: { cell: "absent" } },
+    ]) {
+      const id = scan();
+      const before = value(`select report::text || score from scans where id = '${id}';`);
+      expect(raises(call(id, md5Of(id), [CHANGES[1], lost]))).toBe(true);
+      expect(value(`select report::text || score from scans where id = '${id}';`)).toBe(before);
+    }
+  });
+
+  it("a new key under a parent that exists lands, and a stale checksum still writes nothing", () => {
+    const id = scan();
+    const read = md5Of(id);
+    expect(rescore(id, read, [{ path: ["verdict", "fresh"], value: true }])).toBe(true);
+    expect(value(`select report->'verdict'->>'fresh' from scans where id = '${id}';`)).toBe("true");
+    expect(rescore(id, read, [{ path: ["complete"], value: false }])).toBe(false);
+    expect(value(`select report->>'complete' from scans where id = '${id}';`)).toBe("true");
+  });
+});
+
+describe("rescore_reports — the re-score's read, without the kept copy", () => {
+  it("returns a re-scored report without the four keys, with the checksum rescore_scan guards on", () => {
+    run("delete from scans;");
+    const first = scan();
+    const rescored = scan();
+    run(`update scans set created_at = created_at + interval '1 second' where id = '${rescored}';`);
+    run("insert into scans (domain, tier, status) values ('gusto.com', 'free', 'running');");
+    expect(rescore(rescored, md5Of(rescored), CHANGES)).toBe(true);
+    const rows = psqlRows("select id, report::text, report_md5 from rescore_reports();");
+    expect(rows.map((r) => r[0])).toEqual([first, rescored]);
+    const report = JSON.parse(rows[1]![1]!) as Record<string, unknown>;
+    for (const key of ["previous", "previousColumns", "rescoredAt", "rescoredBy"]) expect(report).not.toHaveProperty(key);
+    expect(report.complete).toBe(false);
+    expect(rows[1]![2]).toBe(md5Of(rescored));
+    expect(rescore(rescored, rows[1]![2]!, [{ path: ["complete"], value: true }])).toBe(true);
+  });
+
+  it("pages after (created_at, id), a page at a time", () => {
+    run("delete from scans;");
+    const ids = [scan(), scan(), scan()];
+    run(`update scans set created_at = '2026-11-01T00:00:00Z';`);
+    const all = psqlRows("select id, created_at from rescore_reports(null, null, 10);");
+    expect(all.map((r) => r[0])).toEqual([...ids].sort());
+    const [id, at] = all[0]!;
+    const page = psqlRows(`select id from rescore_reports('${at}', '${id}', 1);`);
+    expect(page.map((r) => r[0])).toEqual([all[1]![0]]);
+  });
+});
+
 describe("rescore_runs — the master session's request", () => {
   it("is a dry run unless it says apply, and says nothing else", () => {
     const id = value("insert into rescore_runs default values returning id;");
@@ -136,15 +194,17 @@ describe("rescore_runs — the master session's request", () => {
     expect(raises("insert into rescore_runs (mode) values ('wet');")).toBe(true);
   });
 
-  it("no customer's session reaches it, and neither function is theirs to call", () => {
+  it("no customer's session reaches it, and no function is theirs to call", () => {
     expect(value("select relrowsecurity from pg_class where relname = 'rescore_runs';")).toBe("t");
     expect(value("select count(*) from pg_policies where tablename = 'rescore_runs';")).toBe("0");
     for (const role of ["anon", "authenticated"]) {
       expect(value(`select has_function_privilege('${role}', 'rescore_scan(uuid, text, jsonb, integer, text, jsonb, text, text)', 'execute');`)).toBe("f");
       expect(value(`select has_function_privilege('${role}', 'report_md5(scans)', 'execute');`)).toBe("f");
+      expect(value(`select has_function_privilege('${role}', 'rescore_reports(timestamptz, uuid, integer)', 'execute');`)).toBe("f");
       expect(value(`select has_table_privilege('${role}', 'rescore_runs', 'select');`)).toBe("f");
     }
     expect(value("select has_function_privilege('service_role', 'rescore_scan(uuid, text, jsonb, integer, text, jsonb, text, text)', 'execute');")).toBe("t");
+    expect(value("select has_function_privilege('service_role', 'rescore_reports(timestamptz, uuid, integer)', 'execute');")).toBe("t");
   });
 });
 
