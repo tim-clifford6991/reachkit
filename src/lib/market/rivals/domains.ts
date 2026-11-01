@@ -509,6 +509,11 @@ function isGoogleHost(host: string): boolean {
   return /^google\.[a-z]{2,3}(\.[a-z]{2})?$/.test(registrableDomain(host) ?? "");
 }
 
+/** A host that is never a business's rival on any page or market: Google, a platform or listing, a public body or a school. */
+export function isSourceHost(host: string): boolean {
+  return isGoogleHost(host) || isSourceDomain(host, undefined, { local: false });
+}
+
 /** A Google redirect (`google.<tld>/goto`, `/url`) that stands where a result's own address should. */
 function googleWrapper(url: string | undefined): URL | null {
   try {
