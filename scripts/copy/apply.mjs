@@ -10,11 +10,11 @@ import { readFileSync, readdirSync, writeFileSync, existsSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { entries, isExempt } from "../lib/plain-words.mjs";
-import { normalise, segments } from "../design/parity.mjs";
+import { normalise, readBaseline, segments, writeBaseline } from "../design/parity.mjs";
 
 const KEYS = "src/lib/presentation/copy/keys";
 const BOARDS = "docs/design/boards/canvas";
-const BASELINE = "docs/design/parity/baseline.json";
+const PARITY = "docs/design/parity";
 // One lane owns a key file at a time; L3 takes every other customer partition.
 const LANE_FILES = { L1: ["chrome", "meta"], L2: ["report", "offer", "bands"] };
 const laneOf = (file) => Object.keys(LANE_FILES).find((l) => LANE_FILES[l].includes(file)) ?? "L3";
@@ -124,14 +124,13 @@ export function apply({ root, lane, inputs, write = true }) {
   }
 
   // Each edited board's baseline row: a new sha; missing and components stay as committed.
-  let baseline = readFileSync(at(BASELINE), "utf8");
+  const baselines = new Map();
   for (const [rel, html] of written) {
     const board = rel.startsWith(BOARDS) && path.basename(rel, ".dc.html");
-    if (!board) continue;
+    const row = board && readBaseline(board, at(PARITY));
     const sha = createHash("sha256").update(html).digest("hex");
-    baseline = baseline.replace(new RegExp(`("${board}": \\{ "sha256": ")[0-9a-f]+`), `$1${sha}`);
+    if (row && row.sha256 !== sha) baselines.set(board, { ...row, sha256: sha });
   }
-  if (baseline !== readFileSync(at(BASELINE), "utf8")) written.set(BASELINE, baseline);
 
   // A test pin that is exactly the old text in one literal is swapped; any longer fragment left is listed.
   // Under four words a literal ("failed") is as likely another test's own value, so it is never swapped.
@@ -147,8 +146,11 @@ export function apply({ root, lane, inputs, write = true }) {
     if (text !== before) written.set(rel, text);
   }
 
-  if (write) for (const [rel, text] of written) writeFileSync(at(rel), text);
-  return { applied, manual, written: [...written.keys()].sort() };
+  if (write) {
+    for (const [rel, text] of written) writeFileSync(at(rel), text);
+    for (const [board, row] of baselines) writeBaseline(board, row, at(PARITY));
+  }
+  return { applied, manual, written: [...written.keys(), ...[...baselines.keys()].map((b) => `${PARITY}/${b}.baseline.json`)].sort() };
 }
 
 function quote(text, q) {

@@ -10,6 +10,7 @@ import {
   compare,
   PARITY_DIR,
   readAllow,
+  readBaseline,
   segments,
   sha256,
   table,
@@ -28,10 +29,6 @@ interface Row {
 }
 
 const BOARDS = JSON.parse(readFileSync(path.join(PARITY_DIR, "boards.json"), "utf8")) as Record<string, Row>;
-const BASELINE = JSON.parse(readFileSync(path.join(PARITY_DIR, "baseline.json"), "utf8")) as Record<
-  string,
-  { sha256: string; missing: number; components?: number }
->;
 const ICONS = readIcons();
 
 function cookieFor(row: Row): string {
@@ -127,14 +124,15 @@ describe("design parity: a board's missing count only goes down", () => {
       const html = readFileSync(file, "utf8");
       const allow = readAllow(board);
       const sha = sha256(file);
+      const baseline = readBaseline(board);
       const result = compare(html, texts, allow);
-      summary.push(table(board, result, BASELINE[board]?.missing));
-      const verdicts = [verdict(board, result.missing, BASELINE[board], sha, result.unused)];
+      summary.push(table(board, result, baseline?.missing));
+      const verdicts = [verdict(board, result.missing, baseline, sha, result.unused)];
       // Mail and state rows have no page to count components on.
       if (row.read === "page" || row.read === "hosted") {
         const parts = compareComponents(html, shipPages(row), allow, ICONS);
-        summary.push(table(board, parts, BASELINE[board]?.components, `${board} components`));
-        verdicts.push(verdict(board, parts.missing, BASELINE[board], sha, parts.unused, "components"));
+        summary.push(table(board, parts, baseline?.components, `${board} components`));
+        verdicts.push(verdict(board, parts.missing, baseline, sha, parts.unused, "components"));
       }
       const message = verdicts.map((v) => v.message).join("\n");
       console.log(message);

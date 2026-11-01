@@ -104,8 +104,8 @@ describe("docs/design/parity/*.allow", () => {
   it("a page or hosted row with no components count fails, and names the line to commit", () => {
     const result = verdict("Board", [], { sha256: "x", missing: 0 }, "x", [], "components");
     expect(result.ok).toBe(false);
-    expect(result.message).toContain('Board has no "components" in docs/design/parity/baseline.json');
-    expect(result.message).toContain('"Board": { "sha256": "x", "missing": 0, "components": 0 }');
+    expect(result.message).toContain('Board has no "components" in docs/design/parity/Board.baseline.json');
+    expect(result.message).toContain('{ "sha256": "x", "missing": 0, "components": 0 }');
   });
 
   it("reads a board string that starts with # as a line, and a # line with no tab as a comment", () => {

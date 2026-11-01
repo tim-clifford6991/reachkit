@@ -26,7 +26,7 @@ const FILES = {
 });
 `,
   "docs/design/boards/canvas/PubReport.dc.html": `<html><body><ul><li class="badge"><svg></svg>In and around Austin</li></ul><p>Old words</p><p>Your draft</p></body></html>\n`,
-  "docs/design/parity/baseline.json": `{\n  "PubReport": { "sha256": "0", "missing": 0, "components": 3 }\n}\n`,
+  "docs/design/parity/PubReport.baseline.json": `{ "sha256": "0", "missing": 0, "components": 3 }\n`,
   "tests/report/pin.test.ts": `expect(copy("report.split")).toBe("${SPLIT}");\nexpect(where).toBe('In and around {place}');\nexpect(run.state).toBe("Failed");\n`,
 };
 
@@ -104,16 +104,43 @@ describe("scripts/copy/apply.mjs", () => {
     const board = read("docs/design/boards/canvas/PubReport.dc.html");
     expect(board).toContain("<svg></svg>Near Austin</li>");
     const sha = createHash("sha256").update(board).digest("hex");
-    expect(JSON.parse(read("docs/design/parity/baseline.json")).PubReport).toEqual({ sha256: sha, missing: 0, components: 3 });
+    expect(read("docs/design/parity/PubReport.baseline.json")).toBe(`{ "sha256": "${sha}", "missing": 0, "components": 3 }\n`);
   });
 
   it("swaps exact test pins and writes nothing else, never a budget", () => {
     expect(read("tests/report/pin.test.ts")).toBe(`expect(copy("report.split")).toBe("We read your site and score it.");\nexpect(where).toBe('Near {place}');\nexpect(run.state).toBe("Failed");\n`);
     expect(result.written).toEqual([
       "docs/design/boards/canvas/PubReport.dc.html",
-      "docs/design/parity/baseline.json",
+      "docs/design/parity/PubReport.baseline.json",
       "src/lib/presentation/copy/keys/report.ts",
       "tests/report/pin.test.ts",
     ]);
+  });
+});
+
+describe("two rewrites on different boards and key files", () => {
+  it("write disjoint files, so their pull requests never meet in one", () => {
+    const dir = mkdtempSync(path.join(tmpdir(), "copy-apply-pair-"));
+    const seed = {
+      "src/lib/presentation/copy/keys/report.ts": `export const REPORT_COPY = Object.freeze({\n  "report.lead": ["Old report words", { slots: {}, fixedBy: "x" }],\n});\n`,
+      "src/lib/presentation/copy/keys/offer.ts": `export const OFFER_COPY = Object.freeze({\n  "offer.lead": ["Old offer words", { slots: {}, fixedBy: "x" }],\n});\n`,
+      "docs/design/boards/canvas/PubReport.dc.html": `<html><body><p>Old report words</p></body></html>\n`,
+      "docs/design/boards/canvas/Pricing.dc.html": `<html><body><p>Old offer words</p></body></html>\n`,
+      "docs/design/parity/PubReport.baseline.json": `{ "sha256": "0", "missing": 0, "components": 3 }\n`,
+      "docs/design/parity/Pricing.baseline.json": `{ "sha256": "0", "missing": 0, "components": 36 }\n`,
+      "tests/keep.test.ts": "\n",
+    };
+    for (const [rel, text] of Object.entries(seed)) {
+      mkdirSync(path.dirname(path.join(dir, rel)), { recursive: true });
+      writeFileSync(path.join(dir, rel), text);
+    }
+    const run = (key: string, current: string, board: string) =>
+      apply({ root: dir, lane: "L2", inputs: [{ name: `${board}.json`, json: [{ key, current, proposed: "New words", board }] }], write: false }).written;
+    const a = run("report.lead", "Old report words", "PubReport");
+    const b = run("offer.lead", "Old offer words", "Pricing");
+    expect(a).toEqual(["docs/design/boards/canvas/PubReport.dc.html", "docs/design/parity/PubReport.baseline.json", "src/lib/presentation/copy/keys/report.ts"]);
+    expect(b).toEqual(["docs/design/boards/canvas/Pricing.dc.html", "docs/design/parity/Pricing.baseline.json", "src/lib/presentation/copy/keys/offer.ts"]);
+    expect(a.filter((rel) => b.includes(rel))).toEqual([]);
+    rmSync(dir, { recursive: true, force: true });
   });
 });

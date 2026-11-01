@@ -51,7 +51,7 @@ describe("what a pull request changed", () => {
 
   it.each([
     ["a canvas board", "docs/design/boards/canvas/X.dc.html"],
-    ["the parity baseline", "docs/design/parity/baseline.json"],
+    ["a board's parity baseline", "docs/design/parity/Pricing.baseline.json"],
     ["the parity script", "scripts/design/parity.mjs"],
   ])("%s alone runs the sweep", (_, file) => {
     expect(changes(file)).toMatchObject({ status: 0, ui: "true" });

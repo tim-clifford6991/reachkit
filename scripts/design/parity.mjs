@@ -4,16 +4,14 @@
 //
 //   node scripts/design/parity.mjs --board Pricing --url https://reachkit.app/pricing
 //   node scripts/design/parity.mjs --board Pricing --file page.html
-import { createHash } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { parse } from "node-html-parser";
 import { violations } from "../lib/plain-words.mjs";
+import { BOARDS_DIR, PARITY_DIR, baselineLine, baselineRel, boardFile, readBaseline } from "./baseline.mjs";
 
-const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
-export const BOARDS_DIR = path.join(ROOT, "docs/design/boards/canvas");
-export const PARITY_DIR = path.join(ROOT, "docs/design/parity");
+export { BOARDS_DIR, PARITY_DIR, baselineLine, boardFile, readBaseline, sha256, writeBaseline } from "./baseline.mjs";
 
 const SKIP = new Set(["style", "script", "svg", "head", "noscript", "template", "title", "helmet"]);
 const BLOCK = new Set([
@@ -195,26 +193,13 @@ export function unusedLine(board, u) {
   return `docs/design/parity/${board}.allow:${u.n ?? "?"} ${u.string} (${u.why ?? `delete it: ${u.ships ? "the string ships" : "the board does not draw it"}`})`;
 }
 
-export function boardFile(board, dir = BOARDS_DIR) {
-  return path.join(dir, `${board}.dc.html`);
-}
-
-export function sha256(file) {
-  return createHash("sha256").update(readFileSync(file)).digest("hex");
-}
-
-export function baselineLine(board, sha, missing, components) {
-  const counts = Object.entries({ missing, components }).filter(([, v]) => v !== undefined);
-  return `"${board}": { "sha256": "${sha}"${counts.map(([k, v]) => `, "${k}": ${v}`).join("")} }`;
-}
-
 /**
- * A board's count against `baseline.json`: never up, and every gain committed.
- * A changed board file passes only so CI can print the line to commit; tests/design/parity/fingerprints.test.ts refuses the merge until it is committed.
+ * A board's count against its `<Board>.baseline.json`: never up, and every gain committed.
+ * A changed board file passes only so CI can print the line to commit; scripts/hygiene.mjs (`audit`) refuses the merge until its sha is committed.
  * `key` names the count: board strings (`missing`) or board components (`components`).
  * @param {string} board
  * @param {string[]} missing
- * @param {{ sha256: string, missing: number, components?: number } | undefined} entry
+ * @param {{ sha256: string, missing?: number, components?: number } | undefined} entry
  * @param {string} sha
  * @param {{ string: string, n?: number, ships: boolean, why?: string }[]} [unused]
  * @param {"missing" | "components"} [key]
@@ -225,12 +210,13 @@ export function verdict(board, missing, entry, sha, unused = [], key = "missing"
     return { ok: false, message: `${board}: an allow line excuses nothing.\n${unused.map((u) => `  - ${unusedLine(board, u)}`).join("\n")}` };
   }
   const counts = { missing: entry?.missing, components: entry?.components, [key]: missing.length };
-  const line = baselineLine(board, sha, counts.missing, counts.components);
+  const rel = baselineRel(board);
+  const line = baselineLine({ sha256: sha, missing: counts.missing, components: counts.components });
   const list = missing.map((s) => `  - ${s}`).join("\n");
   const what = key === "missing" ? "board strings" : "board components";
-  if (!entry) return { ok: false, message: `${board} has no row in docs/design/parity/baseline.json. Commit:\n${line}` };
+  if (!entry) return { ok: false, message: `${board} has no ${rel}. Commit:\n${line}` };
   const baseline = entry[key];
-  if (baseline === undefined) return { ok: false, message: `${board} has no "${key}" in docs/design/parity/baseline.json. Commit:\n${line}` };
+  if (baseline === undefined) return { ok: false, message: `${board} has no "${key}" in ${rel}. Commit:\n${line}` };
   if (entry.sha256 !== sha) {
     return { ok: true, message: `${board}: the board file changed; ${missing.length} ${what} missing now. The next pull request on its route commits:\n${line}` };
   }
@@ -238,7 +224,7 @@ export function verdict(board, missing, entry, sha, unused = [], key = "missing"
     return { ok: false, message: `${board}: ${missing.length} ${what} missing, baseline ${baseline}. Missing:\n${list}` };
   }
   if (missing.length < baseline) {
-    return { ok: false, message: `${board}: ${missing.length} ${what} missing, below its baseline of ${baseline}. Lock the gain in docs/design/parity/baseline.json:\n${line}` };
+    return { ok: false, message: `${board}: ${missing.length} ${what} missing, below its baseline of ${baseline}. Lock the gain in ${rel}:\n${line}` };
   }
   return { ok: true, message: `${board}: ${missing.length} ${what} missing, as its baseline.` };
 }
@@ -286,9 +272,7 @@ async function main(argv) {
     html = readFileSync(file, "utf8");
   }
   const result = compare(readFileSync(boardPath, "utf8"), segments(html), readAllow(board, arg("--allow") ?? PARITY_DIR));
-  const baselineFile = path.join(PARITY_DIR, "baseline.json");
-  const baseline = existsSync(baselineFile) ? JSON.parse(readFileSync(baselineFile, "utf8"))[board]?.missing : undefined;
-  console.log(table(board, result, baseline));
+  console.log(table(board, result, readBaseline(board)?.missing));
   for (const u of result.unused) console.warn(`warning: unused allow line ${unusedLine(board, u)}`);
   return 0;
 }
