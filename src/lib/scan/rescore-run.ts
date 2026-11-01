@@ -24,6 +24,7 @@ import { rewrittenSiteName, storedSiteName } from "@/lib/site-profile/site-name"
 import { AI_ANSWER_SOURCES, AI_OVERVIEW_TEXT_MAX_CHARS } from "@/lib/vendors/dataforseo/types";
 import { OWN_FETCH_SOURCE, siteDocumentOf } from "@/lib/measure/own-fetch";
 import { readStoredReport } from "./report";
+import { scanWriteOf } from "./rescore-write";
 import { homeOf, homeReadsFor, type HomeReadRow, type StoredRead } from "./home-reads";
 import {
   rehomeSite,
@@ -594,17 +595,7 @@ export async function rescoreStored(store: RescoreStore, o: RescoreOptions): Pro
     written = { scans: 0, left: [], names: 0 };
     const at = o.at.toISOString();
     for (const row of rows.filter(moves)) {
-      const { result } = row;
-      const ok = await store.writeScan({
-        id: row.scan.id,
-        md5: row.scan.md5,
-        changes: result.changes,
-        score: result.score,
-        status: result.status,
-        drivers: result.drivers,
-        at,
-        by: o.version,
-      });
+      const ok = await store.writeScan(scanWriteOf(row, at, o.version));
       if (ok) written.scans += 1;
       else written.left.push(row.scan.id);
     }
