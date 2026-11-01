@@ -16,7 +16,6 @@ import { cardLabel, shortCauseFor } from "./card-lines";
 import { dayNumber, weekdayShort, type DayKey } from "./dates";
 import { DAY_OPEN, DAY_ROW, DAY_STATUS, REGION, WEEK_LIST } from "./frame";
 import { dayStateOf, type DayCell } from "./month";
-import type { StageFilter } from "./stages";
 
 /** The stop a row offers: `actionsFor`'s own stop command, so a row never
  *  offers a stop the day panel would not. */
@@ -33,9 +32,11 @@ function stateLineOf(cell: DayCell, firstSkip: boolean): "calendar.day.stopped.l
   return firstSkip ? "calendar.day.skipped.line" : null;
 }
 
+/** Plan draws every stage; Overview's week shares these parts. */
+const ALL = "all" as const;
+
 function DayRow(p: {
   cell: DayCell;
-  filter: StageFilter;
   /** The panel is on this day: chosen in the address, or implicit (today, open from `lg` only). */
   selected: "chosen" | "implicit" | null;
   destination: DestinationStanding | null;
@@ -44,13 +45,13 @@ function DayRow(p: {
   onSelect: (day: DayKey) => void;
 }): React.JSX.Element {
   const { cell } = p;
-  const page = pageShownBy(cell, p.filter);
-  const line = cardLineFor(cell, p.filter);
+  const page = pageShownBy(cell, ALL);
+  const line = cardLineFor(cell, ALL);
   const stop = page === null ? null : stopOf(cell, p.destination);
   const [busy, startTransition] = useTransition();
   const [stopped, setStopped] = useState(false);
   const today = page !== null && cell.today && p.goesLive !== null && (page.stage === "your_review" || page.stage === "scheduled");
-  const stateLine = page === null && p.filter === "all" ? stateLineOf(cell, p.firstSkip) : null;
+  const stateLine = page === null ? stateLineOf(cell, p.firstSkip) : null;
 
   function press(asked: { command: DayCommand; draftId: string }): void {
     startTransition(async () => {
@@ -120,11 +121,11 @@ function DayRow(p: {
             {copy("calendar.week.today", { time: p.goesLive! })}
           </span>
         ) : (
-          <DayStateBadge cell={cell} filter={p.filter} />
+          <DayStateBadge cell={cell} filter={ALL} />
         )}
         {stop === null || stopped ? null : (
           <span className="flex gap-1">
-            <Link href={`/app/draft/${stop.draftId}`} prefetch={true} className="btn btn-ghost min-h-11 px-2" data-testid="cell-edit">
+            <Link href={`/app/draft/${stop.draftId}`} prefetch={true} className="btn btn-ghost btn-primary min-h-11 px-2" data-testid="cell-edit">
               {copy("how.week.edit")}
             </Link>
             <button
@@ -145,7 +146,6 @@ function DayRow(p: {
 
 export function WeekGrid(p: {
   cells: readonly DayCell[];
-  filter: StageFilter;
   selected: DayKey | null;
   /** Nobody chose the open day, so below `lg`, where the panel is a sheet, it is not open. */
   implicit?: boolean;
@@ -160,7 +160,6 @@ export function WeekGrid(p: {
         <DayRow
           key={cell.day}
           cell={cell}
-          filter={p.filter}
           selected={cell.day !== p.selected ? null : p.implicit === true ? "implicit" : "chosen"}
           destination={p.destination}
           goesLive={p.goesLive}

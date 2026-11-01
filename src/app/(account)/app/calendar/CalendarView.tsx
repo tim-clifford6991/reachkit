@@ -1,5 +1,5 @@
-// SPEC §7 (E5, 2026-10-19) — the Plan screen's own state: which stage the
-// filter shows and which day the panel is open on.
+// SPEC §7 (E5, 2026-10-19) — the Plan screen's own state: which day the
+// panel is open on.
 //
 // **The open day lives in the address** (`nuqs`, `docs/DESIGN.md`'s library
 // list), so a day opened is linkable and survives a reload:
@@ -14,16 +14,13 @@
 "use client";
 
 import type React from "react";
-import { useState } from "react";
 import { parseAsString, useQueryState } from "nuqs";
 import { copy } from "@/lib/presentation/copy";
-import { StageFilter } from "./StageFilter";
 import { DayPanelView } from "./DayPanelView";
 import { WeekGrid } from "./WeekGrid";
-import { BODY, FILTERS, REGION, WEEK_CARD, WEEK_CARD_BODY, WEEK_HEADING_ID } from "./frame";
+import { BODY, REGION, WEEK_CARD, WEEK_CARD_BODY, WEEK_HEADING_ID } from "./frame";
 import type { DayKey } from "./dates";
 import { dayStateOf } from "./month";
-import type { StageFilter as StageFilterId } from "./stages";
 import type { WeekModel } from "./month";
 
 /** The `?day=` value that means "the founder closed the panel". A stated
@@ -43,7 +40,6 @@ export function CalendarView(p: {
   head?: React.ReactNode;
   foot?: React.ReactNode;
 }): React.JSX.Element {
-  const [filter, setFilter] = useState<StageFilterId>("all");
   // Nullable rather than defaulted, because **which day** and **who chose
   // it** are two facts and the second decides the phone. `null` is an
   // absent parameter; anything else is the founder's own.
@@ -64,17 +60,12 @@ export function CalendarView(p: {
 
   return (
     <>
-      <div className={FILTERS}>
-        <StageFilter counts={p.week.counts} selected={filter} onSelect={setFilter} />
-      </div>
-
       <div className={BODY} data-frame={REGION.body}>
         <section className={WEEK_CARD} aria-labelledby={p.head === undefined ? undefined : WEEK_HEADING_ID} data-testid="plan-week-card">
           <div className={WEEK_CARD_BODY}>
             {p.head}
             <WeekGrid
               cells={p.week.cells}
-              filter={filter}
               selected={selected}
               implicit={implicit}
               destination={p.week.destination}

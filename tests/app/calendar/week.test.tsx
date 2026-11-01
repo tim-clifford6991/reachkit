@@ -3,6 +3,7 @@
 // committed week as seven day rows, Monday to Sunday in the site's zone,
 // each with its page, its state and, where the page can still be stopped,
 // the stop control; and the spares under it.
+import { ALL_ARMS } from "./arms";
 import { describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import React from "react";
@@ -120,9 +121,8 @@ describe("condition 1 — seven cells, each with its page, its state and the sto
   });
 
   it("the short week: six pages, a day stopped and a day skipped, each said in its own word", () => {
-    // The fixture week: a live page, three written, one planned, a day an
-    // instruction stopped and a day supply left empty.
-    const root = render(withNuqs(<CalendarView {...shown(assembleMonth(FIXTURE_CALENDAR_FACTS, FIXTURE_MONTH))} />));
+    // A live page, three written, one planned, a day an instruction stopped and a day supply left empty.
+    const root = render(withNuqs(<CalendarView {...shown(assembleMonth(ALL_ARMS, FIXTURE_MONTH))} />));
     const days = cells(root);
     expect(days).toHaveLength(7);
     expect(days.map(stateOf)).toEqual(["live", "written", "written", "written", "planned", "stopped", "skipped"]);
@@ -150,13 +150,6 @@ describe("condition 1 — seven cells, each with its page, its state and the sto
     expect(none.querySelector('[data-testid="calendar-spares"]')).toBeNull();
   });
 
-  it("the filter and the numbers count the week the screen shows", () => {
-    const { week } = shown(assembleMonth(FIXTURE_CALENDAR_FACTS, FIXTURE_MONTH));
-    const root = render(withNuqs(<CalendarView week={week} />));
-    expect(root.querySelector('[data-testid="stage-count-all"]')?.textContent).toBe(
-      String(week.cells.filter((cell) => cell.page !== null).length)
-    );
-  });
 });
 
 describe("owner O7 — a page set aside is told plainly, and only a critical cause says Needs you", () => {
@@ -213,7 +206,7 @@ describe("each page day draws the board's icons", () => {
     const badges = cells(root).map((cell) => cell.querySelector('[data-testid="day-state"]'));
     expect(badges.map(icon)).toEqual([null, null, null, "calendar", "calendar", "calendar", "calendar"]);
     // The stopped badge carries the board's stop icon; a skipped day draws none.
-    const fixture = render(withNuqs(<CalendarView {...shown(assembleMonth(FIXTURE_CALENDAR_FACTS, FIXTURE_MONTH))} />));
+    const fixture = render(withNuqs(<CalendarView {...shown(assembleMonth(ALL_ARMS, FIXTURE_MONTH))} />));
     expect(cells(fixture).slice(5).map((cell) => icon(cell.querySelector('[data-testid="day-state"]')))).toEqual(["circle-stop", null]);
   });
 });

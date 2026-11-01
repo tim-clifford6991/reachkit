@@ -1,24 +1,16 @@
 // SPEC §4 (2026-09-20, #908) and §7 (E5) — Plan below its head, while it
-// waits: the stage filters, the week as its seven rows, and the day panel.
+// waits: the week as its seven rows, and the day panel.
 //
 // Every region is drawn with `frame.ts`'s classes, which are the ones
 // `CalendarView` and `WeekGrid` draw Plan with, so the same media queries
 // choose the same shape here that they choose when Plan lands (issue 1484).
 import type React from "react";
 import { Box, Waiting } from "../_shell/skeletons";
-import { BODY, DAY_OPEN, DAY_ROW, DAY_STATUS, FILTERS, REGION, WEEK_CARD, WEEK_CARD_BODY, WEEK_DAYS, WEEK_LIST } from "./frame";
+import { BODY, DAY_OPEN, DAY_ROW, DAY_STATUS, REGION, WEEK_CARD, WEEK_CARD_BODY, WEEK_DAYS, WEEK_LIST } from "./frame";
 
 export function PlanSkeleton(): React.JSX.Element {
   return (
     <Waiting className="flex min-w-0 flex-col gap-4" testId="plan-skeleton">
-      <div className={FILTERS}>
-        <div className="flex min-w-0 flex-wrap gap-2">
-          {["w-15", "w-20", "w-29", "w-28", "w-25", "w-28"].map((width, at) => (
-            <Box key={at} className={`h-8 rounded-full ${width}`} />
-          ))}
-        </div>
-      </div>
-
       <div className={BODY} data-frame={REGION.body}>
         <div className={WEEK_CARD}>
           <div className={WEEK_CARD_BODY}>

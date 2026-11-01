@@ -11,11 +11,8 @@
 // paint and once Plan has arrived — at 390 and 1280
 // (`tests/ui/layout/skeletons.test.ts`).
 
-/** The screen: head, filters and the week, one under another. */
+/** The screen: head and the week, one under another. */
 export const PLAN = "flex min-w-0 flex-col gap-4";
-
-/** The stage filters. */
-export const FILTERS = "flex min-w-0 flex-wrap items-center justify-between gap-x-4 gap-y-2";
 
 /** The week, and the day panel under it. */
 export const BODY = "grid min-w-0 items-start gap-4";
