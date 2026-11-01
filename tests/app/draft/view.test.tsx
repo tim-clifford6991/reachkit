@@ -1064,9 +1064,7 @@ describe("REQ-045 c5-c9 — the editor, its live preview, its autosave and its i
     expect(
       container.querySelector('[data-testid="draft-edit-back"] button')?.textContent
     ).toBe(copy("draft.edit.back"));
-    expect(container.querySelector('[data-testid="draft-edit-footnote"]')?.textContent).toBe(
-      copy("draft.edit.footnote")
-    );
+    expect(container.querySelector('[data-testid="draft-edit-footnote"]')?.textContent).toBe("Saves as you type. Every save is checked again, and the page waits until it passes.");
     // And it goes back: the read arm is what "Back to the draft" returns to.
     click("draft-edit-back");
     expect(container.querySelector('[data-testid="draft-editor"]')).toBeNull();

@@ -567,13 +567,10 @@ describe("the board's sections on the open arm, in its order and words", () => {
     }
   });
 
-  it("draws the window from the mail to the moment, and that it can be stopped before then", async () => {
-    const tree = await ask();
-    const rendered = text(tree);
+  it("draws the window from the mail to the moment", async () => {
+    const rendered = text(await ask());
     expect(rendered).toContain("Mail sent 6:00 AM");
     expect(rendered).toContain("Goes live 7:00 AM");
-    expect(rendered).toContain(COPY["publish.veto.before"]);
-    expect(BOARD).toContain(COPY["publish.veto.before"]);
   });
 
   it("a link sent with no mail names no send time, and a page with no moment draws no window", async () => {
@@ -600,39 +597,22 @@ describe("the board's sections on the open arm, in its order and words", () => {
     expect(BOARD).toContain(COPY["publish.veto.consequence"]);
   });
 
-  it("sets out what each choice does, under the six-word title", async () => {
+  it("says each choice once: under the button and in the do-nothing line, with no block repeating them", async () => {
     const tree = await ask();
-    expect(headingsOf(tree, "h2")).toContain(COPY["publish.veto.choices.title"]);
-    expect(headingsOf(tree, "h3")).toEqual(
-      expect.arrayContaining([COPY["publish.veto.choices.stop"], COPY["publish.veto.choices.none"]])
-    );
     const rendered = text(tree);
-    for (const key of [
-      "publish.veto.choices.stop.1",
-      "publish.veto.choices.stop.2",
-      "publish.veto.choices.stop.3",
-      "publish.veto.choices.none.2",
-      "publish.veto.choices.none.3",
-    ] as const) {
-      expect(rendered).toContain(COPY[key]);
-      expect(BOARD).toContain(COPY[key]);
-    }
-    expect(rendered).toContain("It goes live Tue 15 Sep, 7:00 AM, on its own.");
+    expect(rendered).toContain(COPY["publish.veto.consequence"]);
+    expect(rendered).toContain(COPY["publish.veto.ask.do-nothing"]);
+    expect(nodes(tree).some((node) => node.props?.["data-testid"] === "veto-choice")).toBe(false);
+    expect(headingsOf(tree, "h2")).toEqual([COPY["publish.veto.panel.heading"].replace("{day}", "Tuesday")]);
+    expect(rendered).not.toContain("It goes live Tue 15 Sep, 7:00 AM, on its own.");
   });
 
-  it("with no moment, doing nothing still says it goes live on its own, with no time", async () => {
-    previewAnswer = async () => ({ ok: true, preview: { ...LIVE_PREVIEW, publishes: null } });
-    expect(text(await ask())).toContain(COPY["publish.veto.choices.none.1.unset"]);
-  });
-
-  it("while the address is unconnected, no hour appears anywhere, open or failed, and doing nothing waits on the setting", async () => {
+  it("while the address is unconnected, no hour appears anywhere, open or failed", async () => {
     previewAnswer = async () => ({ ok: true, preview: { ...LIVE_PREVIEW, unconnected: true } });
     for (const query of [{}, { done: "1" }] as Record<string, string>[]) {
       const rendered = text(await ask(query));
       expect(rendered).not.toMatch(/\d:\d\d/);
       expect(rendered).toContain(COPY["publish.veto.ask.head.unconnected"]);
-      expect(rendered).toContain(COPY["publish.veto.choices.none.1.unconnected"]);
-      expect(rendered).not.toContain(COPY["publish.veto.choices.none.1.unset"]);
       if ("done" in query) expect(rendered).toContain(COPY["publish.veto.failed.head"]);
     }
   });
@@ -651,14 +631,10 @@ describe("the board's sections on the open arm, in its order and words", () => {
       COPY["publish.veto.why"],
       "best onboarding tools · searched about",
       "Mail sent 6:00 AM",
-      COPY["publish.veto.before"],
       COPY["publish.veto.ask.action"],
       COPY["publish.veto.consequence"],
       COPY["publish.veto.ask.do-nothing"],
       COPY["publish.veto.panel.heading"].replace("{day}", "Tuesday"),
-      COPY["publish.veto.choices.title"],
-      COPY["publish.veto.choices.stop"],
-      COPY["publish.veto.choices.none"],
     ]);
     expect(at.every((i) => i >= 0), JSON.stringify(at)).toBe(true);
     expect(at).toEqual([...at].sort((a, b) => a - b));
@@ -739,7 +715,7 @@ describe("every arm renders, each in its own words", () => {
     for (const key of ["publish.veto.used.head", "publish.veto.closed.head", "publish.veto.unknown.head", "publish.veto.unknown", "publish.veto.failed.head", "publish.veto.failed"] as const) {
       expect(BOARD.replace(/’/g, "'")).toContain(COPY[key].replace(/’/g, "'"));
     }
-    expect(COPY["publish.veto.expired"]).toContain("can be stopped from its page in This week");
+    expect(COPY["publish.veto.expired"]).toContain("Sign in to stop it from This week");
     expect(COPY["publish.veto.expired"]).not.toContain("taken down");
   });
 });
@@ -879,19 +855,6 @@ describe("each arm carries the board's marks", () => {
     // Only the re-read page says Stopped; the pressed button keeps its own word.
     expect(markup).toContain(COPY["publish.veto.ask.action"]);
     expect(markup).not.toContain(COPY["publish.veto.done.head"]);
-  });
-
-  it("the stop choice draws x, x, check under circle-stop; do nothing draws check ×3 under coffee", async () => {
-    const [stop, none] = nodes(await ask()).filter((node) => node.props?.["data-testid"] === "veto-choice");
-    const stopIcons = iconsOf(stop);
-    const noneIcons = iconsOf(none);
-    expect(stopIcons.map((i) => i.name)).toEqual(["circle-stop", "x", "x", "check"]);
-    expect(noneIcons.map((i) => i.name)).toEqual(["coffee", "check", "check", "check"]);
-    expect(noneIcons.filter((i) => i.name === "x")).toHaveLength(0);
-    // Only a tick is success-toned: a cross beside "It won't go live" is no good news.
-    for (const line of [...stopIcons.slice(1), ...noneIcons.slice(1)]) {
-      expect(line.cls.includes("text-success"), line.name).toBe(line.name === "check");
-    }
   });
 
   it("the stopped arm: file-text per page day, circle-stop on the stopped day, the won't-go-live pill, lock in the toolbar", async () => {

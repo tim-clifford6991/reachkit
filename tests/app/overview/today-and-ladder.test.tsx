@@ -363,7 +363,8 @@ describe.each([
     expect(text(ladder.querySelector("h2 + p"))).toBe(
       `${copy("overview.ladder.read", { on: "Monday, October 5" })} · ${copy("overview.ladder.unread", { k: "3" })}`
     );
-    expect(text(ladder).split(NOT_READ)).toHaveLength(2);
+    // An unread page's own row says it is not checked yet; no step says it for the pages short of it.
+    expect([...ladder.querySelectorAll("[data-step]")].filter((step) => text(step).includes(NOT_READ))).toEqual([]);
   });
 
   it("a mixed hosted and WordPress site counts each step over its own read pages", async () => {
