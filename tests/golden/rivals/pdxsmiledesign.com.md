@@ -19,7 +19,7 @@ From `scripts/panel/evidence/pdxsmiledesign.com.json`: 12 stored searches, 5 riv
 | family dentist portland | keyword_page | portlandfamilydentistry.com |
 | dental implants portland oregon | — | — |
 | dentist portland | — | — |
-| dentist portland tn | keyword_page | practo.com |
+| dentist portland tn | keyword_page | premdent.com |
 | dental clinic portland | — | — |
 | best dentist portland | — | — |
 | cosmetic dentist in portland oregon | — | — |

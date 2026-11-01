@@ -472,7 +472,7 @@ async function waitingTargetOf(
     // Earn target records the rival it is written to overtake; an Improve
     // target is the customer's own page, so nobody else holds it.
     answeredTodayBy:
-      evidence.family === "write" || evidence.family === "earn" ? [evidence.rival.domain] : [],
+      (evidence.family === "write" || evidence.family === "earn") && evidence.rival !== null ? [evidence.rival.domain] : [],
   };
 }
 

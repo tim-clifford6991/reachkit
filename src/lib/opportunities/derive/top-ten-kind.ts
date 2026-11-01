@@ -33,15 +33,15 @@ import { SHAPES } from "@/lib/locale/language";
 import type { BusinessKind } from "@/lib/market/kinds";
 import {
   isArticleRow,
-  isExplainerTitle,
   isJobRow,
-  isListingAddress,
   isListingHost,
   isMarketplaceHost,
-  isOwnContentUrl,
   isPublicHost,
+  isRankedTitle,
   isRoundupPage,
-  registrableDomain,
+  pageClass,
+  titleWords as words,
+  type PageClass,
 } from "@/lib/market/rivals/domains";
 import { CONTENT_MIX } from "@/lib/config/constants";
 import { isLocalSearch, saysNearMe } from "@/lib/locale/place";
@@ -99,24 +99,11 @@ export interface TopTenRow {
   title?: string;
 }
 
-function words(text: string): string {
-  return text.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim();
-}
-
-/** A title that ranks others in any language's words: a "best" beside a
- *  number ("Die 10 besten Elektriker", "beste Bäckerei 2026"). The rivals'
- *  own round-up reading knows English titles only. */
-function rankedList(title: string | undefined): boolean {
-  if (title === undefined) return false;
-  const text = words(title);
-  return SHAPES.best.test(text) && /\p{N}/u.test(text);
-}
-
 /** Whether one result is a business of `kind`, read off its own address and
  *  title. */
 export function resultIs(row: TopTenRow, kind: OtherKind): boolean {
   if (kind === "directory") return isListingHost(row.url ?? row.domain) || isListingHost(row.domain);
-  if (kind === "publisher") return !isListingHost(row.domain) && (isRoundupPage(row) || isArticleRow(row) || rankedList(row.title));
+  if (kind === "publisher") return !isListingHost(row.domain) && (isRoundupPage(row) || isArticleRow(row) || isRankedTitle(row.title));
   return row.title !== undefined && SHAPES.agency.test(words(row.title));
 }
 
@@ -175,74 +162,14 @@ export const OFFERING_TOP_TEN = Object.freeze({
   maxArticlesBesidePack: 3,
 });
 
-/** What one top-ten result is: a job page, a public body or a school, a
- *  third party that lists others, an article, or a provider's own page. */
-export type ResultClass = "job" | "public" | "third_party" | "article" | "provider";
+/** What one top-ten result is: a job page, a public body or a school, or
+ *  what its page is (`pageClass`). A marketplace lists others here. */
+export type ResultClass = "job" | "public" | PageClass;
 
-const SEARCH_PARAM = /^(find_desc|find_loc|q|query|search|s|k|keyword|what|where)$/;
-const DIRECTORY_SEGMENT =
-  /^(search|suche|find|directory|verzeichnis|branchen|firmen|companies|categories|listings?|profiles?|biz|doctor-locator|filialen|threads?|forums?|community|groups|questions)$/;
-const DIRECTORY_NAME = /agencies|companies|firms|directory|listings|branchenbuch|telefonbuch|^(best|top)\p{L}+s$/u;
-const ARTICLE_SEGMENT = /^(stories|story|features|maps|magazin(e)?|journal|news|presse|ratgeber|wissen|lexikon)$/;
-const QUESTION_TITLE = /\?\s*$|^(what|why|how|where|who|which|wie|was|warum|wo|welche)(?![\p{L}\p{N}])/iu;
-const NUMBERED_TITLE = /^\d+\s+(?!(hours?|stunden?)(?![\p{L}\p{N}]))\p{L}/iu;
-const BYLINE = /(?<![\p{L}\p{N}])(by|von)\s+\p{Lu}/u;
-const ARTICLE_HOST = /\.(blog|news|media|magazine)$|^(blog|news|magazin(e)?|journal)\./;
-
-function segmentsOf(url: string | undefined): { path: string[]; params: string[] } {
-  if (url === undefined) return { path: [], params: [] };
-  try {
-    const parsed = new URL(url);
-    return { path: parsed.pathname.toLowerCase().split("/").filter(Boolean), params: [...parsed.searchParams.keys()].map((key) => key.toLowerCase()) };
-  } catch {
-    return { path: [], params: [] };
-  }
-}
-
-/** The words of an address's last segment: its file ending and any part
- *  holding a digit (an id, a page number) are not words. */
-function slugWords(segment: string): number {
-  return segment.replace(/\.[a-z0-9]+$/, "").split("-").filter((part) => /^\p{L}+$/u.test(part)).length;
-}
-
-/**
- * One top-ten result's class, from its stored address and title alone: the
- * first that matches wins, so a directory's "THE BEST 10 PLUMBING" is a
- * third party, not an article. A provider's own page is what is left.
- */
 export function resultClass(row: TopTenRow): ResultClass {
-  const host = row.domain.toLowerCase().replace(/^www\./, "");
-  const { path, params } = segmentsOf(row.url);
-  const title = row.title ?? "";
   if (isJobRow(row)) return "job";
-  if (isPublicHost(host)) return "public";
-  const name = (registrableDomain(host) ?? host).split(".")[0] ?? "";
-  if (
-    isListingAddress(row.url ?? row.domain) ||
-    isListingHost(row.domain) ||
-    isMarketplaceHost(row.domain) ||
-    params.some((key) => SEARCH_PARAM.test(key)) ||
-    path.some((segment) => DIRECTORY_SEGMENT.test(segment)) ||
-    DIRECTORY_NAME.test(name)
-  )
-    return "third_party";
-  const last = path.at(-1) ?? "";
-  if (
-    isRoundupPage(row) ||
-    isArticleRow(row) ||
-    rankedList(row.title) ||
-    (title !== "" && (isExplainerTitle(title) || SHAPES.guide.test(words(title)))) ||
-    (row.url !== undefined && isOwnContentUrl(row.url)) ||
-    path.some((segment) => ARTICLE_SEGMENT.test(segment)) ||
-    /\/20\d\d\//.test(row.url ?? "") ||
-    slugWords(last) >= 6 ||
-    QUESTION_TITLE.test(title.trim()) ||
-    NUMBERED_TITLE.test(title.trim()) ||
-    BYLINE.test(title) ||
-    ARTICLE_HOST.test(host)
-  )
-    return "article";
-  return "provider";
+  if (isPublicHost(row.domain)) return "public";
+  return isMarketplaceHost(row.domain) ? "third_party" : pageClass(row);
 }
 
 /**

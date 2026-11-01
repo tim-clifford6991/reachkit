@@ -8,6 +8,8 @@ import { describe, expect, it } from "vitest";
 import {
   isJobRow,
   isJobSearch,
+  isSourceRow,
+  pageClass,
   isOwnDomain,
   isPlatformDomain,
   isPublicHost,
@@ -140,5 +142,29 @@ describe("a page for job seekers and a public body are sources, read one way for
     for (const category of ["recruitment agency", "staffing services", "web development courses", "Personalvermittlung"]) {
       expect(isJobSearch([job, job, shop], category), category).toBe(false);
     }
+  });
+});
+
+describe("a page is read as what it is, whoever publishes it", () => {
+  it("a publisher's course page offers its own business; its list of others does not", () => {
+    expect(pageClass({ domain: "campus.w3schools.com", url: "https://campus.w3schools.com/products/learn-web-design", title: "Learn Web Design" })).toBe("provider");
+    expect(pageClass({ domain: "www.7x7.com", url: "https://www.7x7.com/8-excellent-new-sf-restaurants-2674196847/maritime-boat-club", title: "8 Excellent New Restaurants to Try in San Francisco" })).toBe("article");
+  });
+
+  it("a home page offers its own business, whatever its title says", () => {
+    expect(pageClass({ domain: "dentistrybydesign.com", url: "https://dentistrybydesign.com/", title: "Dentistry by Design, office of Dr. Smith" })).toBe("provider");
+    expect(pageClass({ domain: "blog.example.com", url: "https://blog.example.com/", title: "Our blog" })).toBe("article");
+  });
+
+  it("a forum or a directory is a third party by its host as by its path", () => {
+    expect(pageClass({ domain: "community.example.com", url: "https://community.example.com/travel-forum/sf", title: "Restaurant suggestions" })).toBe("third_party");
+    expect(pageClass({ domain: "www.example.ai", url: "https://www.example.ai/companies/ux-agencies/brighton", title: "UX agencies" })).toBe("third_party");
+  });
+
+  it("a rival's page is never a source, and a page about others always is in a local market", () => {
+    const guide = { domain: "austinplumberco.com", url: "https://austinplumberco.com/blog/plumbing-basics/", title: "Plumbing Basics 101: A Guide For Beginners" };
+    expect(isSourceRow(guide, { local: true })).toBe(true);
+    expect(isSourceRow(guide, { local: false })).toBe(false);
+    expect(isSourceRow(guide, { local: true, rivals: ["austinplumberco.com"] })).toBe(false);
   });
 });

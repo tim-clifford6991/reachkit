@@ -1019,8 +1019,8 @@ export const REPORT_COPY = Object.freeze({
   "report.rest.eyebrow": ["More in your report", { slots: {}, fixedBy: "board PubReport · issue 1724" }],
   "report.missing.title": ["Pages you’re missing", { slots: {}, fixedBy: "board PubReport · owner R12 2026-10-31" }],
   "report.missing.lead": [
-    "Each answers a question buyers ask. A competitor answers it today.",
-    { slots: {}, fixedBy: "board PubReport · issue 1599" },
+    "Each one answers a question your buyers ask.",
+    { slots: {}, fixedBy: "board PubReport · issue 1599 · issue 2193" },
   ],
   // Board PubReport, the report's head (canvas V22): what we read the site
   // as, the headline of who gets the buyers, and the score's parts. Drafted in the board's words; the owner corrects them.
