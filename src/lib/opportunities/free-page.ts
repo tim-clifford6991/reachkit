@@ -93,15 +93,23 @@ export function bestFreePage(report: Omit<StoredReport, "freePage">): FreePagePi
   return pickOf(report, ranked[0], ranked.length);
 }
 
-/** The page the stored report proposed, so the lead gets the card it was
- *  shown even after the order changes; recomputed only where none is stored. */
-export function proposedFreePage(report: StoredReport): FreePagePick | null {
-  const ranked = rankedFreePages(report);
+/** The stored pick while it is still a candidate, so a page already shown,
+ *  mailed or written does not flip, and while the searches or the market it
+ *  was read from are unmeasured; otherwise the best one, or none. Pure. */
+export function currentFreePage(report: StoredReport): FreePageSection | null {
+  if (report.questions.kind === "unmeasured" || report.market.kind === "unmeasured") return report.freePage;
   const stored = report.freePage?.opportunityId;
-  const pick = pickOf(report, ranked.find((candidate) => freePageId(report.scanId, candidate.targetRef) === stored), ranked.length);
-  if (pick !== null) return pick;
-  console.log(JSON.stringify({ event: "free_page_pick", scanId: report.scanId, pick: "recomputed" }));
-  return bestFreePage(report);
+  if (rankedFreePages(report).some((candidate) => freePageId(report.scanId, candidate.targetRef) === stored)) return report.freePage;
+  return freePageOf(report);
+}
+
+/** The page the stored report proposed, as the lead reads it: the card it
+ *  was shown while that is still a candidate. */
+export function proposedFreePage(report: StoredReport): FreePagePick | null {
+  const current = currentFreePage(report);
+  if (current !== report.freePage) console.log(JSON.stringify({ event: "free_page_pick", scanId: report.scanId, pick: "recomputed" }));
+  const ranked = rankedFreePages(report);
+  return pickOf(report, ranked.find((candidate) => freePageId(report.scanId, candidate.targetRef) === current?.opportunityId), ranked.length);
 }
 
 /** The pick as the report's card reads it. The id is the scan's and the

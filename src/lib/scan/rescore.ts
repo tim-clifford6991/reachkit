@@ -42,6 +42,7 @@ import type { RivalCandidate } from "@/lib/market/rivals/derive";
 import { isOwnDomain, registrableDomain } from "@/lib/market/rivals/domains";
 import { brandOf } from "@/lib/market/questions/select";
 import { citedPagesOf } from "@/lib/market/prompts/answer";
+import { currentFreePage } from "@/lib/opportunities/free-page";
 import { statementsOf } from "@/lib/market/prompts/misstated";
 import type { Profile } from "@/lib/market/questions/profile-types";
 import type { PresenceCard } from "@/lib/market/rivals/presence";
@@ -90,6 +91,7 @@ export interface RescoreReport extends Pick<
   | "marketPrompts"
   | "locale"
   | "prompts"
+  | "freePage"
 > {
   /** The page questions beside the twelve (#919), whose AI-Overview cells
    *  count toward AI presence (issue 1551). Absent or `null`: none. */
@@ -160,6 +162,7 @@ export interface RescoredMembers {
   presence: PresenceCard | null;
   coherence: CoherenceVerdict;
   aiAnswers: RescoreAnswers | null;
+  freePage: StoredReport["freePage"];
 }
 
 /** One rewrite: a path into `scans.report` and the value it takes. */
@@ -205,6 +208,7 @@ function membersOf(r: RescoreReport): RescoredMembers {
     presence: r.presence,
     coherence: r.coherence,
     aiAnswers: r.aiAnswers,
+    freePage: r.freePage ?? null,
   };
 }
 
@@ -433,6 +437,9 @@ export function rescoreScan(scan: RescoreScan): Rescored {
     }
   }
 
+  // The run hands over the whole stored report; this type names only what a score reads.
+  after = { ...after, freePage: currentFreePage({ ...read, ...after, scanId: scan.id } as unknown as StoredReport) };
+
   const before = membersOf(r);
   const changes = [...changesOf(before, after), ...profileChanges(r, profile, reading), ...promptChanges(r, scan), ...servedChanges(r, scan)];
   // A new date is a change though `same` reads past dates: the whole
@@ -577,7 +584,7 @@ function changesOf(before: RescoredMembers, after: RescoredMembers): ReportChang
   const put = (path: readonly (string | number)[], from: unknown, to: unknown): void => {
     if (!same(from, to)) changes.push({ path, value: to });
   };
-  for (const key of ["verdict", "complete", "onPage", "siteIssues", "rivals", "sources", "presence", "coherence"] as const) {
+  for (const key of ["verdict", "complete", "onPage", "siteIssues", "rivals", "sources", "presence", "coherence", "freePage"] as const) {
     put([key], before[key], after[key]);
   }
   const was = before.aiAnswers;

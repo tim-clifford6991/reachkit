@@ -2,9 +2,9 @@
 // the scan measured and right-sized to the site.
 import "./env";
 import { describe, expect, it } from "vitest";
-import { beatsOf, freePageOf } from "../../src/lib/opportunities/free-page";
+import { beatsOf, currentFreePage, freePageOf } from "../../src/lib/opportunities/free-page";
 import { qualifyingDemand, winnableDemand } from "../../src/lib/opportunities/winnability/bars";
-import { measured } from "../../src/lib/measure/measured";
+import { measured, unmeasured } from "../../src/lib/measure/measured";
 import type { SerpResult } from "../../src/lib/vendors/dataforseo/types";
 import { AT, SCAN_ID, question, reportOf, search, serp } from "./fixtures";
 
@@ -88,5 +88,13 @@ describe("a stored free page names the business holding its search, as the missi
 
   it("a job page stored over a top ten of sources reads as none", () => {
     expect(beatsOf(storedWith("bakingcareer.com.au", [row(1, "bakingcareer.com.au", "Baking Career - Everything you need to know"), row(2, "www.yelp.com", "Bakers")]))).toBeNull();
+  });
+});
+
+describe("a stored free page is kept while what it was read from is not measured again", () => {
+  it("a report whose market is unmeasured keeps its stored page: not measured is never none", () => {
+    const report = reportOf({ questions: [question()], serps: [serp()] });
+    const page = freePageOf(report)!;
+    expect(currentFreePage({ ...report, market: unmeasured("not_attempted", AT), freePage: page })).toBe(page);
   });
 });
