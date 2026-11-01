@@ -59,12 +59,15 @@ describe("the boards draw a ring for every score (E17)", () => {
     expect(ring!.closest(".card")!.text).toContain("Your Visibility Score");
   });
 
-  it("the landing's real report row draws the site's mark and states the score, with no skeleton", () => {
+  // Decision 2026-11-01-2265: the row is ReachKit's own report, and states no score, so it draws no ring.
+  it("the landing's report row draws ReachKit's own mark beside reachkit.app, links the report, and states no score", () => {
     for (const name of ["PubLanding", "PubLandingPhone"]) {
-      const real = board(name).querySelectorAll("a").find((a) => a.text.includes("See its real free report"))!;
-      expect(real.querySelector('[data-slot="site-logo"]'), name).not.toBeNull();
-      expect(real.querySelectorAll(".sk"), name).toHaveLength(0);
-      expect(real.text, name).toMatch(/scores\s*62/);
+      const own = board(name).querySelectorAll('a[href="PubReport.dc.html"]').find((a) => a.text.includes("reachkit.app"))!;
+      expect(own, name).toBeDefined();
+      expect(own.querySelector('[data-slot="brand-mark"]'), name).not.toBeNull();
+      expect(own.querySelector('[data-slot="site-logo"]'), name).toBeNull();
+      expect(own.querySelectorAll(".sk"), name).toHaveLength(0);
+      expect(own.text, name).not.toMatch(/\d/);
     }
   });
 });

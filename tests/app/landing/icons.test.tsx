@@ -51,7 +51,7 @@ const glyphs = (el: HTMLElement): string[] =>
   });
 
 beforeEach(() => {
-  db.listed = new Map([["podia.com", 62]]);
+  db.listed = new Map([["reachkit.app", 62]]);
 });
 
 describe("the landing's icons are the boards'", () => {
@@ -102,15 +102,15 @@ describe("the landing's icons are the boards'", () => {
     expect(missing.classList.contains("text-error")).toBe(true);
   });
 
-  it("the proof card's report row draws the site's mark and states the score; unscored, no row", async () => {
-    const row = () => render().then((page) => page.querySelector('#landing-field a[href="/scan/podia.com"]'));
+  it("the proof card's report row draws ReachKit's own mark; unscored, no row", async () => {
+    const row = () => render().then((page) => page.querySelector('#landing-field a[href="/scan/reachkit.app"]'));
     const scored = (await row())!;
     expect(scored.querySelector(".radial-progress")).toBeNull();
-    expect(scored.querySelector("span.badge[aria-hidden]")!.text).toBe("P");
-    expect(scored.text).toContain(copy("landing.hero.proof.report", { domain: "podia.com", score: "62" }));
+    expect(scored.querySelectorAll('svg[data-testid="brand-mark"]')).toHaveLength(1);
+    expect(scored.text).toContain(copy("landing.hero.proof.report", { domain: "reachkit.app" }));
     expect(scored.querySelectorAll(".skeleton")).toHaveLength(0);
 
-    db.listed = new Map([["podia.com", null]]);
+    db.listed = new Map([["reachkit.app", null]]);
     expect(await row()).toBeNull();
   });
 

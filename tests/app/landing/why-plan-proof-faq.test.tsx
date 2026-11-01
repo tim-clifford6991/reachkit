@@ -41,7 +41,7 @@ const article = (slug: string, title: string, day: number): Page => ({
 function stored(): void {
   db.site = { siteId: "site-1", domain: "reachkit.app", host: "blog.reachkit.app" };
   db.pages = [article("newest", "The newest article", 17), article("second", "Second newest", 14), article("third", "Third newest", 10)];
-  db.listed = new Set(["podia.com"]);
+  db.listed = new Set(["reachkit.app"]);
 }
 
 function nothingStored(): void {

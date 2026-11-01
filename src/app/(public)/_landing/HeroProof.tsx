@@ -1,14 +1,14 @@
 // The hero's proof card: one row per stored proof, never a placeholder. The
 // count row needs at least 100 distinct sites scanned (owner, 2026-11-01);
-// the listed report's row needs its stored score and draws the site's own
-// mark; the blog's row needs a live article of ReachKit's own. With none of
+// the listed report's row is ReachKit's own report, drawn with our mark only
+// while it has a stored score; the blog's row needs a live article of ReachKit's own. With none of
 // them there is no card.
 import type React from "react";
 import Link from "next/link";
 import { ChevronRight, PenLine, ScanSearch } from "lucide-react";
 import { copy } from "@/lib/presentation/copy";
 import { ARTICLES_SECTION_ID } from "./sections";
-import { SiteMark } from "./SiteMark";
+import { BrandMark } from "@/app/_brand/Brand";
 
 const LINE = "flex min-h-18 items-center gap-3.5 px-4.5 py-3.5";
 const ROW = `${LINE} hover:bg-base-200`;
@@ -47,7 +47,9 @@ export async function HeroProof(): Promise<React.JSX.Element | null> {
       )}
       {report !== null && card !== null && (
         <Link href={`/scan/${report}`} className={ROW}>
-          <SiteMark domain={report} hasLogo={card.hasLogo} />
+          <span className="grid size-10 shrink-0 place-items-center">
+            <BrandMark size="lg" />
+          </span>
           <Lines title={copy("landing.hero.proof.report", { domain: report, score: String(card.score) })} line={copy("landing.hero.proof.report.open")} />
           {CHEVRON}
         </Link>

@@ -4,7 +4,7 @@ You scan. We write. You see it work.	SPEC §0 · R12 (B3): a title is at most si
 All articles →	#1512: the landing lists ReachKit's newest articles only where stored rows name some; the sweep seeds none
 Articles	#1512: the footer links the content host's index only where stored rows name one; the sweep seeds none
 sites scanned with the free scan	#2249: drawn from 100 distinct sites scanned; the sweep seeds none
-P podia.com scores 62 See its real free report	Q8: drawn only while podia.com's report is listed with a stored score; the sweep seeds none
+We run ReachKit on reachkit.app See its free report	docs/spec/decisions/2026-11-01-2265.md: drawn only while reachkit.app's free report is listed with a stored score; the sweep seeds none
 Our blog is written by ReachKit Read the articles	SPEC §1: drawn only where ReachKit's own site has a live article (#1512); the sweep seeds none
 Walkthrough	#1030: drawn once the owner's walkthrough file is in public/
 See ReachKit in 2 minutes	#1030: drawn once the owner's walkthrough file is in public/

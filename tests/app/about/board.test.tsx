@@ -16,7 +16,7 @@ const { default: AboutPage } = await import("@/app/(public)/about/page");
 const { copy } = await import("@/lib/presentation/copy");
 
 const STORED: LiveExamples = {
-  report: "podia.com",
+  report: "reachkit.app",
   page: { title: "A page that is live", url: "https://content.example.com/a-page" },
   founder: { name: "Ada", place: "Lisbon" },
 };
@@ -81,7 +81,7 @@ describe("/about draws stored rows only where they are stored", () => {
     const text = page.text;
     expect(text).toContain(copy("about.who.founder.place", { name: "Ada", place: "Lisbon" }));
     expect(page.querySelector('section#proof a[href="https://content.example.com/a-page"]')).not.toBeNull();
-    expect(page.querySelector('section#proof a[href="/scan/podia.com"]')).not.toBeNull();
+    expect(page.querySelector('section#proof a[href="/scan/reachkit.app"]')).not.toBeNull();
   });
 
   it("names no one and links nothing when nothing is stored, and still names the imprint", async () => {
