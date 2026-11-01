@@ -107,21 +107,21 @@ export function ScanForm(props: {
       <label htmlFor={fieldId} className="text-sm font-semibold">
         {props.words.fieldLabel}
       </label>
-      {/* One control: the field and its button joined (#1107), stacked on a phone. */}
-      <div className="join join-vertical w-full sm:join-horizontal">
+      {/* One control: the field and its button in one card (#1107), stacked on a phone. */}
+      <div className={`rounded-box border bg-base-100 flex flex-col gap-2 p-1.5 sm:flex-row ${problem ? "border-error" : "border-base-300"}`}>
         <input
           id={fieldId}
           type="text"
           name="value"
           placeholder={props.words.placeholder}
-          className={problem ? "input input-error join-item h-12 w-full min-w-0 sm:w-auto sm:flex-1" : "input join-item h-12 w-full min-w-0 sm:w-auto sm:flex-1"}
+          className="input input-ghost h-12 w-full min-w-0 placeholder:font-mono sm:flex-1"
           value={value}
           onChange={(e) => setValue(e.target.value)}
           aria-invalid={problem !== undefined}
           aria-describedby={problem ? problemId : undefined}
         />
         {/* The screen's one submit control and its one solid button. */}
-        <button type="submit" className="btn btn-primary join-item h-12 w-full sm:w-auto" disabled={submitting} aria-busy={submitting || undefined}>
+        <button type="submit" className="btn btn-primary h-12 w-full sm:w-auto" disabled={submitting} aria-busy={submitting || undefined}>
           {props.words.submit}
           <ArrowRight aria-hidden size={20} strokeWidth={1.75} />
         </button>

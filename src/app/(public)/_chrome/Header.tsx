@@ -113,7 +113,7 @@ function PhoneMenu(p: { signedIn: boolean }): React.JSX.Element {
     <div className="drawer drawer-end w-auto lg:hidden" data-testid="public-header-menu">
       <input id={MENU_TOGGLE_ID} type="checkbox" className="drawer-toggle" aria-label={copy("chrome.nav.menu")} />
       <div className="drawer-content">
-        <label htmlFor={MENU_TOGGLE_ID} className={`btn btn-ghost btn-square btn-sm ${MENU_FOCUS_RING}`}>
+        <label htmlFor={MENU_TOGGLE_ID} className={`btn btn-outline btn-square ${MENU_FOCUS_RING}`}>
           <Menu size={20} strokeWidth={1.75} aria-hidden />
         </label>
       </div>
