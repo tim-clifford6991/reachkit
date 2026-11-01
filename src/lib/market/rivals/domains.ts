@@ -301,12 +301,80 @@ export function isArticleRow(row: { url?: string; title?: string }): boolean {
   return (row.url !== undefined && isArticleUrl(row.url)) || (row.title !== undefined && LIST_TITLE.test(row.title));
 }
 
-/** Whether a domain is a university's or a school's, by the ending its
- *  country gives them (`.edu`, `.ac.uk`, `.edu.au`): it teaches, and is no
- *  business's rival (issue 1449). */
-export function isAcademicDomain(hostOrUrl: string): boolean {
+/** A government's, an army's or a public service's host (`.gov`, `.gov.au`,
+ *  `.gouv.fr`, `.gob.mx`, `nhs.uk`), or a university's or a school's
+ *  (`.edu`, `.ac.uk`, `.edu.au`): it informs or teaches, and is no
+ *  business's rival (issue 1449). Suffixes only, so a national agency on a
+ *  plain `.de` is not one. */
+const PUBLIC_HOST = /(^|\.)(gov|mil)(\.[a-z]{2})?$|(^|\.)(govt|gouv|gob)\.[a-z]{2}$|(^|\.)(gc\.ca|nhs\.uk|police\.uk|bund\.de|gv\.at|admin\.ch|europa\.eu)$/;
+export function isPublicHost(hostOrUrl: string): boolean {
+  const parsed = parseDomain(hostOrUrl);
   const domain = registrableDomain(hostOrUrl);
-  return domain !== null && /(?:\.edu|\.(?:ac|edu)\.[a-z]{2})$/.test(domain);
+  return parsed.ok && domain !== null && (PUBLIC_HOST.test(parsed.domain) || /(?:\.edu|\.(?:ac|edu)\.[a-z]{2})$/.test(domain));
+}
+
+/** A page for job seekers, by its host, its address or its title, in each
+ *  language the product reads: a job board, a vacancy, a salary, a career
+ *  or training path ("Baker | Your Career", "Ausbildung Bäcker/in"). */
+const JOB_HOST = /^(jobs|careers?|karriere|stellen)\./;
+const JOB_SEGMENT = /^(jobs?|job-details|vacanc(y|ies)|careers?|stellen(angebote)?|stellenmarkt|jobsuche)$/;
+const JOB_TITLE =
+  /(?<![\p{L}\p{N}])(jobs?|careers?|vacanc(y|ies)|salary|salaries|apprenticeships?|traineeships?|how to become|stellenangebote?|gehalt|ausbildung|emploi|empleos?|vacatures?)(?![\p{L}\p{N}])/iu;
+/** A business whose market is job seekers: it recruits, staffs or trains. */
+const JOB_TRADE = /(?<![\p{L}\p{N}])(recruit\p{L}*|staffing|headhunt\p{L}*|employment agenc\p{L}*|training|courses?|bootcamps?|personalvermittlung|zeitarbeit|weiterbildung|recrutement|intérim|reclutamiento|formación|werving|uitzend\p{L}*)(?![\p{L}\p{N}])/iu;
+
+export function isJobRow(row: { domain: string; url?: string; title?: string }): boolean {
+  const parsed = parseDomain(row.domain);
+  if (parsed.ok && JOB_HOST.test(parsed.domain)) return true;
+  if (row.title !== undefined && JOB_TITLE.test(row.title)) return true;
+  try {
+    return row.url !== undefined && new URL(row.url).pathname.toLowerCase().split("/").some((segment) => JOB_SEGMENT.test(segment));
+  } catch {
+    return false;
+  }
+}
+
+/** Whether a search is a job seeker's: at least half its titled
+ *  top ten are job pages. Never for a business that recruits, staffs or
+ *  trains, as its own category says: job seekers are its buyers. */
+export function isJobSearch(rows: readonly { domain: string; url?: string; title?: string }[], category: string | null | undefined): boolean {
+  if (category != null && (JOB_TITLE.test(category) || JOB_TRADE.test(category))) return false;
+  const titled = rows.slice(0, 10).filter((row) => row.title !== undefined);
+  return titled.length > 0 && titled.filter(isJobRow).length * 2 >= titled.length;
+}
+
+/** The partition `deriveRivals` applies to a domain: a platform or listing,
+ *  a public body or a school, a marketplace in a local market, or a
+ *  listing's address. */
+export function isSourceDomain(host: string, url: string | undefined, a: { local: boolean }): boolean {
+  return (
+    isPlatformDomain(host) ||
+    isPublicHost(host) ||
+    (a.local && isMarketplaceHost(host)) ||
+    (url !== undefined && isListingAddress(url))
+  );
+}
+
+/** A report's own reading of its searches: where it is local, which
+ *  domains it set aside as sources, and which it names as rivals. */
+export interface SourceReading {
+  local: boolean;
+  sources?: readonly string[];
+  rivals?: readonly string[];
+}
+
+/** Whether a top-ten row is a source rather than a business that holds the
+ *  search: a domain the rivals' partition sets aside or the report stored as
+ *  a source, or a page for job seekers, an article about others or an
+ *  explainer. A rival's row never is, whatever the page. Outside a local
+ *  market an article in a domain's own blog is that business's. A row
+ *  whose host does not parse is one. */
+export function isSourceRow(row: { domain: string; url?: string; title?: string }, a: SourceReading): boolean {
+  const domain = registrableDomain(row.domain);
+  if (domain !== null && a.rivals?.includes(domain) === true) return false;
+  if (domain === null || a.sources?.includes(domain) === true || isSourceDomain(row.domain, row.url, a) || isJobRow(row)) return true;
+  const article = isArticleRow(row) || (row.title !== undefined && isExplainerTitle(row.title));
+  return article && (a.local || row.url === undefined || !isOwnContentUrl(row.url));
 }
 
 /** Whether a domain is one of `MARKETPLACE_HOSTS`, or under one. */

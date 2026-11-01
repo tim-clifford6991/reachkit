@@ -376,3 +376,50 @@ describe("issue 1476 — an address a top ten shows as a list of others is cited
     expect(sources).toContain("tradechamber.org");
   });
 });
+
+describe("a public body and a job seeker's search give no rival, except to a business that recruits or trains", () => {
+  type Row = [domain: string, title: string];
+  const titled = (rows: Row[]): MarketSerp => ({
+    organic: rows.map(([domain, title], i) => ({ position: i + 1, domain, url: `https://${domain}/`, title })),
+    aiOverview: { present: false, referenceDomains: [] },
+  });
+  // An Australian occupation search: careers pages, job boards and a recruiter.
+  const baker = titled([
+    ["www.yourcareer.gov.au", "Baker | Your Career"],
+    ["bakingcareer.com.au", "Baking Career - Everything you need to know"],
+    ["www.seek.com.au", "Baker Jobs in Australia - SEEK"],
+    ["au.jora.com", "Baker Jobs in Australia (with Salaries) - Jora"],
+    ["www.hays.com.au", "Baker job description"],
+    ["www.brumbys.com.au", "Brumby's Bakeries | Fresh bread"],
+  ]);
+  const bread = titled([
+    ["www.woolworths.com.au", "Bread | Woolworths"],
+    ["www.coles.com.au", "Bread | Coles"],
+    ["www.phillippas.com.au", "Phillippa's Bakery"],
+    ["www.seek.com.au", "Bakery Jobs in Sydney - SEEK"],
+  ]);
+  const warehouse = titled([
+    ["www.seek.com.au", "Warehouse Jobs in Sydney NSW - SEEK"],
+    ["www.adecco.com.au", "Warehouse jobs Sydney | Adecco"],
+    ["www.randstad.com.au", "Warehouse Jobs in Sydney"],
+  ]);
+  const domains = (a: Parameters<typeof deriveRivals>[0]) => deriveRivals(a).rivals.map((rival) => rival.domain);
+
+  it("a government's host is a source wherever it ranks", () => {
+    const serps = [titled([["www.yourcareer.gov.au", "Bakers in Australia"], ["www.tn.gov", "Board of Dentistry"], ["www.brumbys.com.au", "Fresh bread"]])];
+    const { rivals, sources } = deriveRivals({ serps, ownDomain: "bakersdelight.com.au" });
+    expect(rivals.map((rival) => rival.domain)).toEqual(["brumbys.com.au"]);
+    expect(sources).toEqual(["yourcareer.gov.au", "tn.gov"]);
+  });
+
+  it("a bakery's mostly-jobs search gives no rival, and its bread search with one job row is kept", () => {
+    const rivals = domains({ serps: [baker, bread], ownDomain: "bakersdelight.com.au", category: "bakery" });
+    expect(rivals).toEqual(["woolworths.com.au", "coles.com.au", "phillippas.com.au", "seek.com.au"]);
+  });
+
+  it("a recruitment agency keeps the same searches' rivals", () => {
+    const rivals = domains({ serps: [baker, warehouse], ownDomain: "agency.com.au", category: "recruitment agency" });
+    expect(rivals).toEqual(expect.arrayContaining(["bakingcareer.com.au", "seek.com.au", "adecco.com.au"]));
+    expect(rivals).not.toContain("yourcareer.gov.au");
+  });
+});

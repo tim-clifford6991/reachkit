@@ -4,11 +4,11 @@ From `scripts/panel/evidence/alexander.co.uk.json`: 26 stored searches, 5 rivals
 
 | Rival | Top ten | AI citations | Score |
 |---|---|---|---|
-| ac-accounts.co.uk | 9 | 1 | 11 |
+| ac-accounts.co.uk | 8 | 1 | 10 |
 | mwa-accounting.co.uk | 8 | 0 | 8 |
-| legendfinancial.co.uk | 4 | 0 | 4 |
-| thomasandcointernational.com | 4 | 0 | 4 |
-| accountsandlegal.co.uk | 3 | 0 | 3 |
+| legendfinancial.co.uk | 3 | 0 | 3 |
+| thomasandcointernational.com | 3 | 0 | 3 |
+| accountsandlegal.co.uk | 2 | 0 | 2 |
 
 | Search | Type | Holder |
 |---|---|---|
@@ -34,7 +34,7 @@ From `scripts/panel/evidence/alexander.co.uk.json`: 26 stored searches, 5 rivals
 | best accountant manchester | keyword_page | accountsandlegal.co.uk |
 | tax services near me | — | — |
 | small business accountant manchester | keyword_page | a-wise.co.uk |
-| financial accountant manchester | keyword_page | accaglobal.com |
+| financial accountant manchester | — | — |
 | taxes near me | — | — |
 | property accountants near me | — | — |
 | tax planning manchester | — | — |

@@ -338,3 +338,28 @@ describe("D67, owner ruling 2026-10-15 (issue 1441) — the local pack counts as
     expect(card.absentFrom.map((a) => a.keyword)).toEqual(["emergency plumber leeds"]);
   });
 });
+
+describe("who is first is a business, never a source", () => {
+  const first = (row: { domain: string; url?: string; title?: string }, more: Partial<Parameters<typeof buildPresenceCard>[0]> = {}) =>
+    buildPresenceCard({
+      serps: [measured({ organic: [{ position: 1, ...row }], aiOverview: { present: false, referenceDomains: [] } }, AT)],
+      selected: [search("q", 900)],
+      ownDomain: "customer.com",
+      rivals: [],
+      ...more,
+    }).absentFrom[0]?.topHolder;
+
+  it("names no public body, job page, article or stored source at position 1", () => {
+    expect(first({ domain: "www.yourcareer.gov.au", title: "Bakers" })).toBeNull();
+    expect(first({ domain: "bakingcareer.com.au", title: "Baking Career - Everything you need to know" })).toBeNull();
+    expect(first({ domain: "eater.co.uk", title: "10 best bakeries in Leeds" })).toBeNull();
+    expect(first({ domain: "guide.co.uk", title: "Bakeries" }, { sources: ["guide.co.uk"] })).toBeNull();
+    expect(first({ domain: "www.brumbys.com.au", title: "Fresh bread" })).toBe("brumbys.com.au");
+  });
+
+  it("names a rival's list of others, as the rival holds the search", () => {
+    const row = { domain: "rival.co.uk", url: "https://rival.co.uk/top-10-agencies", title: "Top 10 agencies to hire" };
+    expect(first(row)).toBeNull();
+    expect(first(row, { rivals: [candidate("rival.co.uk")] })).toBe("rival.co.uk");
+  });
+});

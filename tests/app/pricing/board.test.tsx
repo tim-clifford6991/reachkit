@@ -16,10 +16,9 @@ const { default: PricingPage } = (await import("@/app/(public)/pricing/page")) a
 const { PricingCard } = await import("@/app/(public)/scan/[domain]/_modules/pricing");
 const { copy } = await import("@/lib/presentation/copy");
 const { BATTERY, VETO, WEEK_PLAN } = await import("@/lib/config/constants");
-const { HARD_RULES } = await import("@/lib/generate/rules/types");
 const { HOW_FACTS } = await import("@/app/(public)/_how/facts");
-const { AGENCY_BENCHMARK, EXAMPLES } = await import("@/app/(public)/_how/specimen");
-const { buysIcons, icons, weekCard, whenIcons } = await import("../how/drawn-icons");
+const { AGENCY_BENCHMARK } = await import("@/app/(public)/_how/specimen");
+const { buysIcons, icons, whenIcons } = await import("../how/drawn-icons");
 
 const html = renderToStaticMarkup(<PricingPage />);
 const root = parse(html);
@@ -42,8 +41,8 @@ const sections = [...html.matchAll(/<section id="([^"]+)"/g)].map((match, i, all
 const section = (id: string): string => sections.find((s) => s.id === id)?.markup ?? "";
 
 describe("board Pricing — the sections, in the board's order", () => {
-  it("top, one week, everything, week 1, compare, before you pay, the free report", () => {
-    expect(sections.map((s) => s.id)).toEqual(["top", "week", "included", "week1", "compare", "before", "start"]);
+  it("top, week 1, compare, before you pay, the free report", () => {
+    expect(sections.map((s) => s.id)).toEqual(["top", "week1", "compare", "before", "start"]);
   });
 });
 
@@ -74,7 +73,7 @@ describe("board Pricing — the head and the plan card", () => {
     const order = [
       copy("pricing.plan.badge"),
       copy("price.interval"),
-      copy("pricing.plan.billing", { price }),
+      copy("pricing.plan.billing"),
       copy("landing.pace", weekPages),
       copy("pricing.plan.chosen"),
       copy("pricing.plan.checked"),
@@ -94,22 +93,38 @@ describe("board Pricing — the head and the plan card", () => {
   it("the report's card states the same cancel line and none of the pricing page's billing line (board PubReport)", () => {
     const report = text(renderToStaticMarkup(<PricingCard />));
     expect(report).toContain(copy("pricing.plan.cancel"));
-    expect(report).not.toContain(copy("pricing.plan.billing", { price }));
+    expect(report).not.toContain(copy("pricing.plan.billing"));
   });
 
   it("shows no guarantee while the launch gate is shut (owner 2026-10-20, Q13)", () => {
     expect(text(html)).not.toMatch(/money-back|refund|change your mind/i);
+  });
+
+  it("under the card, what ReachKit doesn't do, Perplexity included (D7)", () => {
+    const top = section("top");
+    const after = top.slice(top.indexOf(text(copy("pricing.plan.scan"))));
+    expect(after).toContain(text(copy("pricing.all.not")));
+    for (const key of ["pricing.all.not.maps", "how.value.not.ads", "how.value.not.social", "how.value.not.perplexity", "how.value.not.sites", "how.value.not.promise"] as const) {
+      expect(after).toContain(copy(key));
+    }
+  });
+
+  it("says what €49 buys once: no week specimen, no grid of everything, no week-1 bullets", () => {
+    expect(root.querySelector("#week")).toBeNull();
+    expect(root.querySelector("#included")).toBeNull();
+    expect(section("week1")).not.toContain("Each Monday: the pages planned for your week.");
+  });
+
+  it("claims nothing Search Console would measure (D9)", () => {
+    expect(text(html)).not.toMatch(/Google found|Google and Bing have found|Google has found/);
   });
 });
 
 describe("board Pricing — only week 1 is emailed first (D3)", () => {
   const page = text(html);
 
-  it("says what week 1 emails, what follows, and that a page is yours to stop", () => {
-    expect(page).toContain("In week 1 we email each page. After that, the Monday email lists the week’s pages.");
-    expect(page).toContain("Edit or stop it before it goes live");
-    expect(page).toContain(`Each page goes live ${VETO.defaultHours} hours after it is written, unless you stop it.`);
-    expect(page).toContain("Written, goes live unless you stop it");
+  it("says a page is yours to stop before it goes live", () => {
+    expect(page).toContain(copy("offer.pricing.veto", { hours: String(VETO.defaultHours) }));
     expect(page).toContain(`up to ${BATTERY.COMPETITORS_MAX} competitors watched every Monday`);
   });
 
@@ -123,115 +138,11 @@ describe("board Pricing — only week 1 is emailed first (D3)", () => {
   });
 });
 
-describe("board Pricing — one week of your €49", () => {
-  const week = (): string => section("week");
-
-  it("the example plumber's week, day by day, with its key and its caption", () => {
-    expect(week()).toContain(copy("pricing.week.eyebrow"));
-    expect(week()).toContain(copy("pricing.week.title", { price }));
-    expect(week()).toContain(text(copy("pricing.week.body", weekPages)));
-    expect(week()).toContain(text(copy("how.week.name", { business: EXAMPLES.plumber.business })));
-    expect(week()).toContain("Mon 19 – Sun 25 Oct");
-    for (const day of EXAMPLES.plumber.plan) if (day.kind !== "skip") expect(week()).toContain(text(day.title));
-    expect(week()).toContain(copy("how.week.skip.why"));
-    for (const key of ["how.week.legend.live", "how.week.legend.emailed", "how.week.legend.update"] as const) {
-      expect(week()).toContain(copy(key));
-    }
-    expect(week()).toContain(copy("pricing.week.caption", { week: EXAMPLES.plumber.mail.week, ...weekPages }));
-  });
-
-  it("then where a page goes live, the email before it, and the Monday email", () => {
-    expect(week()).toContain(copy("pricing.week.address"));
-    expect(week()).toContain(text(copy("pricing.week.address.line")));
-    expect(week()).toContain(copy("pricing.week.emailed"));
-    expect(week()).toContain(copy("how.part.window", { hours: VETO.defaultHours }));
-    expect(week()).toContain(`${copy("pricing.week.mail")} Mon 19 Oct`);
-    expect(week()).toContain(copy("pricing.week.mail.climbing", { n: EXAMPLES.plumber.mail.climbing }));
-    expect(week()).toContain(copy("pricing.week.mail.calm"));
-  });
-
-  it("each page day in the week strip draws its sketch", () => {
-    const days = parse(html).querySelectorAll("#week ol > li");
-    const bands = days.map((li) => li.querySelectorAll("[aria-hidden]").filter((el) => el.querySelector("svg.lucide-file-text")));
-    expect(bands.map((b) => b.length)).toEqual(EXAMPLES.plumber.plan.map((day) => (day.kind === "skip" ? 0 : 1)));
-    expect(bands.map((b) => b.some((el) => el.classList.contains("text-primary")))).toEqual(
-      EXAMPLES.plumber.plan.map((day) => day.kind !== "skip" && day.state === "waiting")
-    );
-  });
-  it("the week legend: circle-check, clock, calendar, refresh-cw; planned badges carry calendar", () => {
-    const week = weekCard(root, "week", copy("how.week.planned"));
-    expect(week.legend).toEqual(["circle-check", "clock", "calendar", "refresh-cw"]);
-    const planned = EXAMPLES.plumber.plan.filter((day) => day.kind !== "skip" && day.state === "planned");
-    expect(week.planned).toEqual(planned.map(() => ["calendar"]));
-  });
-
-  it("each page day reads date, sketch, New or Update, title", () => {
-    const days = weekCard(root, "week", copy("how.week.planned")).days;
-    expect(days.map(([date, sketch]) => [/^\w{3} \d+$/.test(date ?? ""), sketch])).toEqual(days.map(() => [true, "sketch"]));
-    expect(days.map((day) => day.slice(2))).toEqual(
-      EXAMPLES.plumber.plan.flatMap((day) =>
-        day.kind === "skip" ? [] : [[copy(day.kind === "new" ? "how.week.new" : "how.week.update"), text(day.title).trim()]]
-      )
-    );
-  });
-
-  it("the week's side cards: globe (+ lock), clock, inbox", () => {
-    const cards = root.querySelectorAll("#week .card-body").slice(-3);
-    expect(cards.map((card) => icons(card.querySelector("p")?.outerHTML ?? "")[0])).toEqual(["globe", "clock", "inbox"]);
-    expect(icons(cards[0]?.querySelectorAll("p")[1]?.outerHTML ?? "")).toEqual(["lock"]);
-  });
-});
-
-describe("board Pricing — everything in the €49", () => {
-  const all = (): string => section("included");
-
-  it("the plan's tiles, each with how often it runs, and its figures from the constants", () => {
-    expect(all()).toContain(copy("pricing.all.title", { price }));
-    for (const key of ["research", "live", "stop", "mail", "fix", "language", "yours"]) {
-      expect(all()).toContain(text(copy(`pricing.all.${key}` as Parameters<typeof copy>[0])));
-    }
-    expect(all()).toContain(`Up to ${BATTERY.COMPETITORS_MAX}, taken from who shows up when your buyers search.`);
-    expect(all()).toContain(`${HOW_FACTS.searches} Google searches and ${HOW_FACTS.prompts} questions asked to AI`);
-    expect(all()).toContain(`Up to ${HARD_RULES.length} checks on every page`);
-    expect(all()).toContain(`Up to ${WEEK_PLAN.days} pages a week`);
-  });
-
-  it("every item in Everything has its board icon", () => {
-    const tiles = root.querySelectorAll("#included ul")[0]!.children.map((li) => {
-      const tile = li.querySelector("[aria-hidden]");
-      return [li.querySelector("h3")?.text, tile?.classNames.includes("rounded-field grid size-9") && tile.classList.contains("bg-base-200"), icons(tile?.outerHTML ?? "")];
-    });
-    const board = {
-      research: "building2", rivals: "users", asks: "message-square", pages: "file-text", checks: "shield-check", live: "globe",
-      stop: "pencil", mail: "inbox", fix: "wrench", language: "languages", yours: "download",
-    };
-    const vars = { rivals: HOW_FACTS.rivals, searches: HOW_FACTS.searches, prompts: HOW_FACTS.prompts, checks: HOW_FACTS.checks, ...weekPages };
-    expect(tiles).toEqual(
-      Object.entries(board).map(([key, icon]) => [text(copy(`pricing.all.${key}` as Parameters<typeof copy>[0], vars)).trim(), true, [icon]])
-    );
-  });
-
-  it("no tile claims what Search Console would measure (D9)", () => {
-    expect(all()).not.toMatch(/Google found|Google and Bing have found/);
-    expect(section("week1")).not.toMatch(/Google has found/);
-  });
-
-  it("and what ReachKit doesn't do", () => {
-    expect(all()).toContain(text(copy("pricing.all.not")));
-    for (const key of ["pricing.all.not.maps", "how.value.not.ads", "how.value.not.social", "how.value.not.perplexity", "how.value.not.sites", "how.value.not.promise"] as const) {
-      expect(all()).toContain(copy(key));
-    }
-  });
-});
-
 describe("board Pricing — what you see from week 1", () => {
   const first = (): string => section("week1");
 
   it("what week 1 shows, what takes longer, and the first months as time ranges", () => {
     expect(first()).toContain(copy("pricing.first.title"));
-    for (const key of ["pricing.first.plan", "pricing.first.live", "pricing.first.google", "pricing.first.ai"] as const) {
-      expect(first()).toContain(text(copy(key)));
-    }
     expect(first()).toContain(copy("pricing.first.longer"));
     expect(first()).toContain(copy("pricing.months.title"));
     expect(first()).toContain(copy("how.when.sub"));
@@ -275,10 +186,11 @@ describe("board Pricing — €49 against the other ways", () => {
     expect(compare()).toContain(`Cost ${AGENCY_BENCHMARK.fee} a month, the most common fee¹`);
     expect(compare()).toContain("Cost Hours, not money Your time, plus any AI writing tool");
     expect(compare()).toContain(copy("how.value.chart"));
-    expect(compare()).toContain("one scale, 0 to 1,000 a month");
+    expect(compare()).toContain("0 to 1,000 a month. $ and € are not converted.");
     expect(compare()).toContain(`An agency ${AGENCY_BENCHMARK.fee} a month¹`);
-    expect(compare()).toContain(`ReachKit ${price} a month, VAT included`);
-    expect(compare()).toContain(`¹ Most common SEO retainer, Ahrefs survey of ${AGENCY_BENCHMARK.providers} providers`);
+    expect(compare()).toContain(`ReachKit ${price} a month`);
+    expect(compare()).not.toContain("VAT included");
+    expect(compare()).toContain(`¹ Most common agency fee for this work, Ahrefs survey of ${AGENCY_BENCHMARK.providers} providers`);
     expect(compare()).toContain(text(copy("pricing.compare.limit")));
   });
 

@@ -170,7 +170,7 @@ function Head(): React.JSX.Element {
           <h1 id="top-h" className="t-hero">
             {copy("how.headline")}
           </h1>
-          <p className={`${BODY} text-lg`}>{copy("how.lead", minutes)}</p>
+          <p className={`${BODY} text-lg`}>{copy("how.lead")}</p>
           <ScanCta />
         </div>
         <Switched draw={TwoWeeks} />
@@ -297,12 +297,12 @@ function questions(): readonly Question[] {
     vars,
   });
   return [
-    landing("spam", { checks: F.checks, ...weekPages }),
-    landing("approve", { hours: F.windowHours, min: F.windowMinDays, max: F.windowMaxDays }),
+    landing("spam"),
+    landing("approve", { hours: F.windowHours }),
     landing("results"),
-    landing("start"),
+    landing("start", minutes),
     landing("stop", { days: String(HOSTED_RETENTION_DAYS) }),
-    landing("local", weekPages),
+    landing("local"),
     { q: "how.faq.software.q", a: "how.faq.software.a" },
     landing("german", measuredCountryLists()),
     landing("trial", { price: PRICE() }),
@@ -496,7 +496,7 @@ export default function HowItWorksPage(): React.JSX.Element {
           id="value"
           eyebrow={copy("how.value.eyebrow")}
           title={copy("how.value.title", { price: PRICE() })}
-          body={copy("how.value.body", weekPages)}
+          body={copy("how.value.body")}
           wide
         >
           <ValueFigure />

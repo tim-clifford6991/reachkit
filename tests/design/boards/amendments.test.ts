@@ -126,8 +126,8 @@ describe("How it works states the pages it read as text (E36)", () => {
 });
 
 describe("a page sketch is an icon band (E16)", () => {
-  it("each sketch on the five boards holds FileText, no skeleton bars, primary on the free page or today", () => {
-    for (const name of ["Main", "Plan", "Pricing", "PubHowItWorks", "PubReport"]) {
+  it("each sketch on the four boards holds FileText, no skeleton bars, primary on the free page or today", () => {
+    for (const name of ["Main", "Plan", "PubHowItWorks", "PubReport"]) {
       const sketches = board(name).querySelectorAll(".thumb");
       expect(sketches.length, name).toBeGreaterThan(0);
       for (const sketch of sketches) {
