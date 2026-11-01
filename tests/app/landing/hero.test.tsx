@@ -51,7 +51,7 @@ function stored(score: number | null = 62): void {
   db.logo = false;
   db.site = { siteId: "site-1", domain: "reachkit.app", host: "blog.reachkit.app" };
   db.pages = [{ title: "The newest article", liveUrl: "https://content.reachkit.app/newest", firstPublishedAt: new Date(Date.UTC(2026, 9, 17)), byline: null }];
-  db.listed = new Map([["podia.com", score]]);
+  db.listed = new Map([["reachkit.app", score]]);
   db.sites = 127;
 }
 
@@ -94,7 +94,7 @@ beforeEach(() => stored());
 describe("the hero, in the board's order", () => {
   it("h1, subline, the one field, the offer, the proof card, the kinds, then the story card", async () => {
     const html = hero(await render()).toString();
-    const at = ["<h1", copy("landing.subline"), "<form", copy("landing.hero.offer.free"), 'href="/scan/podia.com"', copy("landing.hero.kinds.label"), 'data-testid="landing-story"'].map((m) =>
+    const at = ["<h1", copy("landing.subline"), "<form", copy("landing.hero.offer.free"), 'href="/scan/reachkit.app"', copy("landing.hero.kinds.label"), 'data-testid="landing-story"'].map((m) =>
       html.indexOf(m),
     );
     expect(at.every((n) => n > -1), at.join(",")).toBe(true);
@@ -141,9 +141,9 @@ describe("the proof card draws only stored rows", () => {
   it("listed with an article: the report row, then the blog row, each a whole-row link with a chevron", async () => {
     const page = await render();
     const rows = proof(page)!.querySelectorAll("a");
-    expect(rows.map((a) => a.getAttribute("href"))).toEqual(["/scan/podia.com", "#articles"]);
+    expect(rows.map((a) => a.getAttribute("href"))).toEqual(["/scan/reachkit.app", "#articles"]);
     expect(rows.map(flat)).toEqual([
-      `P ${copy("landing.hero.proof.report", { domain: "podia.com", score: "62" })} ${copy("landing.hero.proof.report.open")}`,
+      `${copy("landing.hero.proof.report", { domain: "reachkit.app" })} ${copy("landing.hero.proof.report.open")}`,
       `${copy("landing.hero.proof.blog")} ${copy("landing.hero.proof.blog.open")}`,
     ]);
     expect(rows.map((a) => a.querySelectorAll("svg.lucide-chevron-right").length)).toEqual([1, 1]);
@@ -177,21 +177,29 @@ describe("the proof card draws only stored rows", () => {
     expect(kids(card).map(flat)).toEqual([`${copy("landing.hero.proof.scanned", { count: "100" })} ${copy("landing.hero.proof.scanned.line")}`]);
   });
 
-  it("the score is the stored row's: 71 stored is 71 drawn", async () => {
+  it("the row needs a stored score but prints no number (owner, 2026-11-01)", async () => {
     stored(71);
-    const report = proof(await render())!.querySelector('a[href="/scan/podia.com"]')!;
-    expect(flat(report)).toContain(copy("landing.hero.proof.report", { domain: "podia.com", score: "71" }));
+    const report = proof(await render())!.querySelector('a[href="/scan/reachkit.app"]')!;
+    expect(flat(report)).not.toMatch(/\d/);
   });
 
-  it("the report row draws podia.com's stored logo, or its letter where none is stored", async () => {
-    const mark = async () => proof(await render())!.querySelector('a[href="/scan/podia.com"] > span[aria-hidden]')!;
-    expect(flat(await mark())).toBe("P");
+  it("the report row draws ReachKit's own mark, never a stored logo or a letter", async () => {
     db.logo = true;
-    expect((await mark()).querySelector("img")!.getAttribute("src")).toBe("/scans/logo/podia.com");
+    const row = proof(await render())!.querySelector('a[href="/scan/reachkit.app"]')!;
+    expect(row.querySelectorAll('svg[data-testid="brand-mark"]')).toHaveLength(1);
+    expect(row.querySelector("img, .badge")).toBeNull();
+  });
+
+  it("a listed third-party report is never the example: only reachkit.app is", async () => {
+    db.listed = new Map([["podia.com", 90], ["example.com", 80]]);
+    expect(proof(await render())!.querySelector('a[href^="/scan/"]')).toBeNull();
+    db.listed.set("reachkit.app", 24);
+    const links = proof(await render())!.querySelectorAll('a[href^="/scan/"]');
+    expect(links.map((a) => a.getAttribute("href"))).toEqual(["/scan/reachkit.app"]);
   });
 
   it("a report no longer listed, or listed without a score, is no row; the blog row stays", async () => {
-    for (const listed of [new Map(), new Map([["podia.com", null]])]) {
+    for (const listed of [new Map(), new Map([["reachkit.app", null]])]) {
       db.listed = listed;
       const card = proof(await render())!;
       expect(card.querySelector('a[href^="/scan/"]')).toBeNull();

@@ -7,8 +7,9 @@ export const LANDING_COPY = Object.freeze({
   "landing.hero.offer.free": ["Free scan and first page", { slots: {}, fixedBy: "board PubLanding v34 · owner 2026-11-01" }],
   "landing.hero.offer.price": ["{price} a month, cancel any time", { slots: { price: "text" }, fixedBy: "board PubLanding v34 · owner 2026-11-01" }],
   /** The proof card: each row is drawn only from a stored row. */
-  "landing.hero.proof.report": ["{domain} scores {score}", { slots: { domain: "text", score: "text" }, fixedBy: "board PubLanding v34 · owner 2026-11-01" }],
-  "landing.hero.proof.report.open": ["See its real free report", { slots: {}, fixedBy: "board PubLanding v34 · owner 2026-11-01" }],
+  /** The caller also passes `score`: writing `{score}` here and declaring the slot shows it again. */
+  "landing.hero.proof.report": ["We run ReachKit on {domain}", { slots: { domain: "text" }, fixedBy: "owner 2026-11-01: our own report replaces the third-party example" }],
+  "landing.hero.proof.report.open": ["See its free report", { slots: {}, fixedBy: "owner 2026-11-01: our own report replaces the third-party example" }],
   "landing.hero.proof.blog": ["Our blog is written by ReachKit", { slots: {}, fixedBy: "board PubLanding v34 · owner 2026-11-01" }],
   "landing.hero.proof.blog.open": ["Read the articles", { slots: {}, fixedBy: "board PubLanding v34 · owner 2026-11-01" }],
   "landing.hero.proof.scanned": ["{count}+ sites scanned", { slots: { count: "text" }, fixedBy: "board PubLanding v36 · owner 2026-11-01, issue 2249" }],

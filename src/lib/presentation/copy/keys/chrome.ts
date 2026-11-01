@@ -579,7 +579,7 @@ export const CHROME_COPY = Object.freeze({
   "about.proof.eyebrow": ["Proof", { slots: {}, fixedBy: "issue 1731 · board PubAbout · drafted" }],
   "about.proof.title": ["See it on a real site", { slots: {}, fixedBy: "issue 1731 · board PubAbout · drafted" }],
   "about.proof.newest": ["The newest page on ReachKit’s own blog", { slots: {}, fixedBy: "issue 1731 · board PubAbout · drafted" }],
-  "about.proof.report": ["A real free report", { slots: {}, fixedBy: "issue 1731 · board PubAbout · drafted" }],
+  "about.proof.report": ["Our own free report", { slots: {}, fixedBy: "owner 2026-11-01: our own report replaces the third-party example" }],
   "about.proof.open": ["Open the report", { slots: {}, fixedBy: "issue 1731 · board PubAbout · drafted" }],
   "about.contact.title": ["Contact", { slots: {}, fixedBy: "issue 1731 · board PubAbout · drafted" }],
   "about.contact.lead": ["Questions? Write to", { slots: {}, fixedBy: "issue 1731 · board PubAbout · drafted" }],

@@ -18,9 +18,16 @@ import { personOf } from "@/app/(hosted)/hosted-page/[[...slug]]/seo";
 /** ReachKit's own domain, the one its preview hosts hang off. */
 const OWN_DOMAIN = PREVIEW_HOST_SUFFIX;
 
-/** The report the owner named as the example (issue 1396). It is linked
- *  only while it is listed, so a removed report is never the example. */
-const EXAMPLE_REPORT_DOMAIN = "podia.com";
+/** The only reports the site may feature: our own, and later customers who
+ *  consented. A third-party brand without consent is a legal risk. Each is
+ *  linked only while it is listed, so a removed report is never the example. */
+const EXAMPLE_REPORT_DOMAINS: readonly string[] = [OWN_DOMAIN];
+
+/** The first approved domain that is listed, or `null`. */
+async function exampleReport(): Promise<string | null> {
+  for (const domain of EXAMPLE_REPORT_DOMAINS) if (await isListed(domain)) return domain;
+  return null;
+}
 
 export interface LiveExamples {
   /** A listed free report's domain, or `null`. */
@@ -52,7 +59,7 @@ async function ownNewestPage(): Promise<Pick<LiveExamples, "page" | "founder">> 
 
 export async function readLiveExamples(): Promise<LiveExamples> {
   const [report, own] = await Promise.all([
-    isListed(EXAMPLE_REPORT_DOMAIN).then((listed) => (listed ? EXAMPLE_REPORT_DOMAIN : null)).catch(() => null),
+    exampleReport().catch(() => null),
     ownNewestPage().catch(() => NONE),
   ]);
   return { report, page: own.page, founder: own.founder };
