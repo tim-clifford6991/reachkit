@@ -247,6 +247,8 @@ describe("UI strategy: plain words (O6, docs/spec/decisions/2026-10-31-2145.md)"
     expect(rules("Ask [[owner: the name]], e.g. Acme. It is fine. Done.")).toEqual(["paragraph 3"]);
     expect(rules("{date}. {stage}. {title}", { key: "calendar.row.aria" })).toEqual([]);
     expect(rules("Add a CNAME record", { key: "setup.dns.record" })).toEqual([]);
+    for (const key of ["setup.destination.guide.godaddy.2", "setup.connect.steps.3"]) expect(rules("Add a CNAME record", { key }), key).toEqual([]);
+    expect(rules("Add a CNAME record", { key: "overview.anything" })).toEqual(["CNAME"]);
   });
 
   it("never counts an exempt key, file or board", () => {

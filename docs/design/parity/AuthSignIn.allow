@@ -1,4 +1,3 @@
-Harbor Plumbing help.harborplumbing.com	sample data
 Cancel your contract	owner 2026-10-20 Q13: shown once the launch gate opens
 Wrong address	#1736: annotation over the refused-address arm, which the screen shows after a press (REQ-098 c6)
 That doesn’t look like an email address. Check it and try again.	#1736: the refused-address line, shown only after a malformed address is sent (REQ-098 c6)

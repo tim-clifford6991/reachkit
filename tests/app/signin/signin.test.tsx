@@ -95,7 +95,7 @@ describe('REQ-098 c1 — "Given a person with no session, when they reach ReachK
   it("no password field and no social sign-in", async () => {
     const html = await renderWithKeys();
     expect(html.toLowerCase()).not.toContain("password");
-    // The form half is where a sign-in provider would sit; the preview beside it names Google as a search engine.
+    // The form half is where a sign-in provider would sit.
     const form = /<main[\s\S]*<\/main>/.exec(html)?.[0] ?? "";
     expect(form).toContain('type="submit"');
     expect(form.toLowerCase()).not.toMatch(/google|github|apple|sso|oauth/);
@@ -309,12 +309,10 @@ describe("against the real registry — every arm renders, and nothing is invent
     { answer: "requested", value: "someone@example.com" },
     { answer: "invalid", value: "nope" },
     { answer: "none", value: "" },
-  ] as SignInState[])("renders in the %j state without throwing", async (state) => {
-    // The accent half is on every arm — it is the half that never changes.
-    await expect(renderReal(state)).resolves.toContain('data-testid="signin-panel"');
-    await expect(renderReal(state, { link: "dead" })).resolves.toContain(
-      'data-testid="signin-panel"'
-    );
+  ] as SignInState[])("renders in the %j state without throwing; the accent half holds only an answer", async (state) => {
+    const panel = state.answer === "requested" ? 1 : 0;
+    expect((await renderReal(state)).split('data-testid="signin-panel"')).toHaveLength(1 + panel);
+    await expect(renderReal(state, { link: "dead" })).resolves.toContain('data-testid="signin-panel"');
   });
 
   it("the request arm carries criterion 2's five strings, byte for byte", async () => {
@@ -362,23 +360,16 @@ describe("against the real registry — every arm renders, and nothing is invent
     expect(text).not.toContain("someone@example.com");
   });
 
-  it("the preview is an example business on a reserved domain, in the app's own words (owner E6)", async () => {
+  it("the request arm is the form alone: no example dashboard beside it and no install chip", async () => {
     const { COPY } = await import("@/lib/presentation/copy");
-    const { SPECIMEN_SIGNIN } = await import("@/app/(public)/_landing/specimen");
-    const panel = /<aside[\s\S]*<\/aside>/.exec(await renderReal({ answer: "none", value: "" }))?.[0] ?? "";
-    expect(panel).toContain(SPECIMEN_SIGNIN.business);
-    expect(SPECIMEN_SIGNIN.address).toMatch(/\.example$/);
-    expect(panel).toContain(SPECIMEN_SIGNIN.address);
-    for (const key of ["signin.preview.google", "signin.preview.showing", "signin.preview.ai"] as const) {
-      expect(panel).toContain(COPY[key]);
-    }
-    for (const figure of [SPECIMEN_SIGNIN.found, SPECIMEN_SIGNIN.showing, SPECIMEN_SIGNIN.linked]) {
-      expect(panel).toContain(`>${figure}<`);
-    }
-    expect(panel).toContain(`of ${SPECIMEN_SIGNIN.live} live pages`);
-    expect(panel).toContain(COPY["signin.preview.example"]);
-    expect(panel).not.toMatch(/\bListed\b/);
-    expect(panel).not.toMatch(/\bnamed by AI\b/i);
+    const html = await renderReal({ answer: "none", value: "" });
+    expect(html).not.toContain("<aside");
+    expect(html).not.toContain("Waiting inside");
+    expect(html).not.toContain("nothing to install");
+    expect(html).not.toContain("Example business");
+    expect(html).toContain(COPY["signin.chip.nopass"]);
+    expect(html).toContain(COPY["signin.chip.link"]);
+    expect(html).toContain(COPY["signin.how.title"]);
   });
 });
 
@@ -387,22 +378,14 @@ describe("issue #1025 — the Round 7 full-width split, and the address is the f
     expect(PAGE_SOURCE).not.toMatch(/rk-/);
   });
 
-  it("the form is the main half and the accent panel the other, with no card around the two", async () => {
-    const html = await renderWithKeys();
+  it("an answered arm: the form is the main half and the accent panel the other, with no card around the two", async () => {
+    const html = await renderWithKeys({ state: { answer: "requested", value: "someone@example.com" } });
     expect(html).toMatch(/<main class="[^"]*"/);
     expect(html).toMatch(/<aside class="[^"]*bg-primary\/10[^"]*" data-testid="signin-panel"/);
     // #986 drew the two halves as one bordered, rounded card at the wide
     // measure; the owner's ruling on #937 is a split that runs edge to edge.
     expect(html).not.toMatch(/class="card grid/);
     expect(html).toContain('data-arm-compact="declared:');
-  });
-
-  it("the preview's week is seven days, the first going live and the rest planned", async () => {
-    const html = await renderWithKeys();
-    const week = /<ol[^>]*data-testid="signin-preview-week"[^>]*>([\s\S]*?)<\/ol>/.exec(html)?.[1] ?? "";
-    expect(week.match(/<li/g)).toHaveLength(7);
-    expect(week.match(/calendar\.stage\.planned/g)).toHaveLength(6);
-    expect(html).toContain("signin.preview.days.pace");
   });
 
   it("the answered arm offers the way back to the field, not a second solid button", async () => {

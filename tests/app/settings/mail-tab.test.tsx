@@ -102,7 +102,7 @@ describe("Settings › Mail", () => {
     const ready = row(await mailTab(), "draft-ready");
     expect(ready?.querySelector("input")?.hasAttribute("checked")).toBe(true);
     expect(text(ready)).toContain(
-      "One mail per page, 1 day before it goes live, with Read, Edit and Stop. It is sent until your first Monday mail. After that, the Monday mail lists each page with its day and Stop. Turn this on to keep both."
+      "One mail per page, 1 day before it goes live, until your first Monday mail. Turn this on to keep getting them."
     );
     expect(text(ready?.querySelector('[data-testid="notification-draft-ready-preview"]'))).toBe(
       "Your next page is written: Emergency plumber in Austin: what to do in the first hour Sun, Oct 18, 4:00 PM · goes live Mon, Oct 19, 4:00 PM"

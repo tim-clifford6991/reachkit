@@ -81,25 +81,6 @@ describe("the step's name", () => {
   });
 });
 
-describe("what happens as you do it", () => {
-  it("is three states — reserved, waiting, live — with waiting the current one", async () => {
-    const stages = [...(await render()).querySelectorAll('[data-testid="setup-connect-stage"]')];
-    expect(stages.map((s) => s.getAttribute("data-state"))).toEqual([
-      "done",
-      "current",
-      "pending",
-    ]);
-    const text = (await render()).textContent ?? "";
-    for (const key of [
-      "setup.connect.stage.reserved",
-      "setup.connect.stage.waiting",
-      "setup.connect.stage.live",
-    ] as const) {
-      expect(text).toContain(COPY[key]);
-    }
-  });
-});
-
 describe("doing it later", () => {
   it("is a real way out, and says why skipping is fine", async () => {
     const tree = await render();
