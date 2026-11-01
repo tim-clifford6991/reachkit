@@ -52,11 +52,7 @@ function engineDouble(): Record<string, unknown> {
     recordDraftDay: async () => {
       engineCalls.count += 1;
     },
-    alertMissingDrafts: async () => {
-      engineCalls.count += 1;
-      return 0;
-    },
-    alertStalledSites: async () => {
+    alertSiteDay: async () => {
       engineCalls.count += 1;
       return 0;
     },

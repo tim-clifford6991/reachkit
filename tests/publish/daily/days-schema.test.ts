@@ -13,7 +13,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { psql, psqlRows } from "../../db/substrate";
 
 const MIGRATIONS = path.resolve(import.meta.dirname, "../../../supabase/migrations");
-const APPLIED = ["00000000000001_baseline.sql", "00000000000002_rls.sql", "20261015120000_jobs_draft_days.sql"];
+const APPLIED = ["00000000000001_baseline.sql", "00000000000002_rls.sql", "20261015120000_jobs_draft_days.sql", "20261101120000_draft_days_stall_claim.sql"];
 
 function run(sql: string): void {
   psql(["-v", "ON_ERROR_STOP=1", "-c", sql]);
@@ -42,11 +42,11 @@ function site(): string {
 }
 
 /** The store's claim: seed the row if there is none, then mark it once. */
-function claim(siteId: string, date: string): boolean {
+function claim(siteId: string, date: string, column = "missing_alerted_at"): boolean {
   run(`insert into draft_days (site_id, publish_date) values ('${siteId}', '${date}') on conflict do nothing;`);
   return (
     value(
-      `with told as (update draft_days set missing_alerted_at = now() where site_id = '${siteId}' and publish_date = '${date}' and missing_alerted_at is null returning 1) select count(*) from told;`
+      `with told as (update draft_days set ${column} = now() where site_id = '${siteId}' and publish_date = '${date}' and ${column} is null returning 1) select count(*) from told;`
     ) === "1"
   );
 }
@@ -72,6 +72,15 @@ describe("draft_days — every draft day, with its reason", () => {
     // A date the due hour never recorded is told about too, once.
     expect(claim(id, "2026-10-16")).toBe(true);
     expect(claim(id, "2026-10-16")).toBe(false);
+  });
+
+  it("a stall is claimed once on the day last delivered, beside that day's own claim, and the next delivery's day claims anew", () => {
+    const id = site();
+    run(`insert into draft_days (site_id, publish_date, outcome, decided_at) values ('${id}', '2026-10-14', 'drafted', now());`);
+    expect(claim(id, "2026-10-14", "stall_alerted_at")).toBe(true);
+    expect(claim(id, "2026-10-14", "stall_alerted_at")).toBe(false);
+    expect(claim(id, "2026-10-14")).toBe(true);
+    expect(claim(id, "2026-10-20", "stall_alerted_at")).toBe(true);
   });
 
   it("refuses an outcome no tick writes, and a site is deleted only after its days (ADR-051)", () => {

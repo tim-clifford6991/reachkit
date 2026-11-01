@@ -10,8 +10,7 @@ vi.mock("@/lib/account/billing", () => ({ ensureActiveAccessGate: async () => {}
 vi.mock("@/lib/publish/daily", () => ({
   sitesForDailyTick: async () => ({ sites: [{ siteId: "s1", timeZone: "UTC", publishTime: "18:00", vetoHours: 24 }], held: null }),
   recordDraftDay,
-  alertMissingDrafts: async () => 0,
-  alertStalledSites: async () => 0,
+  alertSiteDay: async () => 0,
   missedDays: async () => [],
   dayHold: async () => null,
 }));
