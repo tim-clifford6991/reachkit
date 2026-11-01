@@ -298,10 +298,30 @@ beforeAll(async () => {
   await lint("export const warmUp = true;\n", "src/lib/measure/eslint-warm-up.ts");
 }, 60_000);
 
-describe("BP-006 NFR — fetch( is confined to src/lib/egress/** and src/lib/vendors/**", () => {
+describe("BP-006 — raw HTTP in server code is confined to src/lib/egress/** and the fixed-host vendor clients", () => {
   it("reports a fetch( call under src/lib/measure/", async () => {
     const result = await lint("export async function f() {\n  return fetch('https://x');\n}\n", "src/lib/measure/uses-fetch.ts");
     expect(result.messages.length).toBeGreaterThan(0);
+  }, ESLINT_BOOT_MS);
+
+  const FENCE = "local/no-fetch-outside-egress";
+  const fenced = (result: ESLint.LintResult) => result.messages.filter((m) => m.ruleId === FENCE);
+
+  it.each([
+    ["an https.request under src/lib/measure/", "import https from 'node:https';\nexport const f = () => https.request('https://x');\n", "src/lib/measure/raw.ts"],
+    ["a bare http import under src/lib/", "import http from 'http';\nexport const f = () => http.get('http://x');\n", "src/lib/measure/raw-http.ts"],
+    ["an undici import in a job", "import { request } from 'undici';\nexport const f = () => request('https://x');\n", "src/jobs/raw.ts"],
+    ["a node:tls require in middleware", "export const tls = require('node:tls');\n", "src/middleware.ts"],
+    ["a dynamic node:http2 import under src/lib/", "export const f = () => import('node:http2');\n", "src/lib/measure/raw-h2.ts"],
+    ["a fetch( in a route handler", "export async function GET() {\n  return fetch('https://x');\n}\n", "src/app/api/x/route.ts"],
+    ["a globalThis.fetch( in a job", "export const f = () => globalThis.fetch('https://x');\n", "src/jobs/raw-fetch.ts"],
+  ])("reports %s", async (_name, source, file) => {
+    expect(fenced(await lint(source, file))).toHaveLength(1);
+  }, ESLINT_BOOT_MS);
+
+  it("does not report the Resend client's node:https, whose host is fixed in code", async () => {
+    const result = await lint("import https from 'node:https';\nexport const f = () => https.request('https://x');\n", "src/lib/mail/vendor/resend.ts");
+    expect(fenced(result)).toEqual([]);
   }, ESLINT_BOOT_MS);
 
   it("does not report a fetch( call inside src/lib/egress/", async () => {

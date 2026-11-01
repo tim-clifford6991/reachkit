@@ -44,25 +44,40 @@ function importFenceRule(test, message) {
   };
 }
 
+/** Modules that open a socket themselves, so a request through them skips safeFetch's address check. */
+const RAW_HTTP_MODULES = new Set(["http", "https", "http2", "tls", "undici"]);
+
 /**
- * A single-purpose local rule factory for a bare-identifier call, e.g.
- * `fetch(...)`. Unlike `importFenceRule`, this needs no type information
- * either — a `CallExpression` whose callee is the identifier named `name`
- * is a lexical property of the AST, decidable without a type checker.
+ * Reports every raw way out of the server: `fetch(`, `globalThis.fetch(`, and
+ * an import or `require` of a socket-opening module (`node:` prefix or not).
  *
- * @param {string} name
  * @param {string} message
  */
-function callFenceRule(name, message) {
+function rawHttpFenceRule(message) {
+  const isRawModule = (spec) => typeof spec === "string" && RAW_HTTP_MODULES.has(spec.replace(/^node:/, ""));
   return {
     meta: { type: "problem", docs: { description: message } },
     create(context) {
       return {
         CallExpression(node) {
           const callee = node.callee;
-          if (callee.type === "Identifier" && callee.name === name) {
+          const globalFetch =
+            callee.type === "MemberExpression" &&
+            callee.object.type === "Identifier" &&
+            (callee.object.name === "globalThis" || callee.object.name === "global") &&
+            callee.property.type === "Identifier" &&
+            callee.property.name === "fetch";
+          const required =
+            callee.type === "Identifier" && callee.name === "require" && isRawModule(node.arguments[0]?.value);
+          if ((callee.type === "Identifier" && callee.name === "fetch") || globalFetch || required) {
             context.report({ node, message });
           }
+        },
+        ImportDeclaration(node) {
+          if (isRawModule(node.source.value)) context.report({ node, message });
+        },
+        ImportExpression(node) {
+          if (isRawModule(node.source.value)) context.report({ node, message });
         },
       };
     },
@@ -427,14 +442,10 @@ export const localImportRules = {
       "ADR-050: nothing outside src/lib/account/billing/** may import users.paid_through's reader or re-derive access from plan_status. Only src/lib/account/billing's own public interface (hasActiveAccess) may be imported elsewhere."
     ),
 
-    // (e) BP-006 NFR budget, verbatim: "A `fetch(` call anywhere else under
-    // `src/lib/` that is not BP-008's vendor client is a lint error."
-    // `src/lib/egress/**` is the audited boundary itself (BP-006);
-    // `src/lib/vendors/**` is BP-008's vendor client. Scoped below to every
-    // other `src/lib/**` file.
-    "no-fetch-outside-egress": callFenceRule(
-      "fetch",
-      "BP-006: a fetch( call anywhere under src/lib/ that is not src/lib/egress/** (the audited boundary) or src/lib/vendors/** (BP-008's vendor client) is a lint error — route it through safeFetch()."
+    // (e) BP-006: server code reaches the network only through safeFetch
+    // (`src/lib/egress/**`) or a fixed-host vendor client. Scoped below.
+    "no-fetch-outside-egress": rawHttpFenceRule(
+      "BP-006: server code may not call fetch(, globalThis.fetch( or import node:http/https/http2/tls or undici outside src/lib/egress/** and the fixed-host vendor clients — route it through safeFetch()."
     ),
 
     // (f) SPEC §6 (owner, 2026-10-15, issue 1443): screens and mail are
@@ -527,10 +538,11 @@ export default tseslint.config(
     rules: { "local/no-billing-internal-import": "error" },
   },
   {
-    // (e) — scoped to every src/lib/** file except the audited boundary
-    // itself and the vendor client.
-    files: ["src/lib/**/*.{ts,tsx}"],
-    ignores: ["src/lib/egress/**", "src/lib/vendors/**"],
+    // (e) — all server source; the screens' .tsx call only our own /api.
+    // Exempt: the audited boundary, and the vendor clients whose host is
+    // fixed in code (DataForSEO, Anthropic, Resend), so no SSRF can reach them.
+    files: ["src/**/*.ts", "src/lib/**/*.tsx"],
+    ignores: ["src/lib/egress/**", "src/lib/vendors/**", "src/lib/mail/vendor/resend.ts"],
     plugins: { local: localImportRules },
     rules: { "local/no-fetch-outside-egress": "error" },
   },
