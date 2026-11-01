@@ -18,7 +18,7 @@ export function ConfirmForm(p: {
       {Object.entries(p.fields).map(([name, value]) => (
         <input key={name} type="hidden" name={name} value={value} />
       ))}
-      <button type="submit" className="btn btn-primary btn-block" disabled={sent} aria-busy={sent || undefined}>
+      <button type="submit" className="btn btn-primary btn-block h-11" disabled={sent} aria-busy={sent || undefined}>
         {p.label}
         <ArrowRight size={20} strokeWidth={1.75} aria-hidden />
       </button>

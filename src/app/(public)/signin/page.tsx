@@ -101,7 +101,7 @@ export default function SignInPage(props: {
             autoComplete={EMAIL_HINT}
             inputMode={EMAIL_HINT}
             placeholder={copy("signin.field.placeholder")}
-            className={refused ? "input input-error w-full" : "input w-full"}
+            className={refused ? "input input-error h-11 w-full" : "input h-11 w-full"}
             name={EMAIL_FIELD}
             value={fieldValue}
             onChange={(e) => setTyped(e.target.value)}
@@ -114,7 +114,7 @@ export default function SignInPage(props: {
             {answer}
           </p>
         ) : null}
-        <button type="submit" className="btn btn-primary btn-block" disabled={pending} aria-busy={pending || undefined}>
+        <button type="submit" className="btn btn-primary btn-block h-11" disabled={pending} aria-busy={pending || undefined}>
           {pending ? <span className="loading loading-spinner loading-sm" aria-hidden /> : null}
           {submit}
         </button>
@@ -167,7 +167,7 @@ export default function SignInPage(props: {
                 </p>
               </div>
               <p className={`text-sm ${QUIET}`}>{copy("signin.sent.terms")}</p>
-              <Link href={SIGN_IN_PATH} className="btn btn-soft btn-primary self-start">
+              <Link href={SIGN_IN_PATH} className="btn btn-soft btn-primary h-11 self-start">
                 {copy("signin.sent.resend")}
               </Link>
             </>

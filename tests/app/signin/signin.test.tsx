@@ -411,6 +411,6 @@ describe("one centred column, and the address is the field's own placeholder", (
     expect(input).toContain(`placeholder="${copy("signin.field.placeholder")}"`);
     expect(label.replace(/<input[^>]*>/, "").replace(/<[^>]+>/g, "")).toBe(copy("signin.field.label"));
     expect(input).not.toContain("aria-label");
-    expect(input).toContain('class="input w-full"');
+    expect(input).toContain('class="input h-11 w-full"');
   });
 });
