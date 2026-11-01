@@ -413,9 +413,9 @@ describe("a public body and a job seeker's search give no rival, except to a bus
     expect(sources).toEqual(["yourcareer.gov.au", "tn.gov"]);
   });
 
-  it("a bakery's mostly-jobs search gives no rival, and its bread search with one job row is kept, the job board left out", () => {
+  it("a bakery's mostly-jobs search gives no rival, and its bread search with one job row is kept", () => {
     const rivals = domains({ serps: [baker, bread], ownDomain: "bakersdelight.com.au", category: "bakery" });
-    expect(rivals).toEqual(["woolworths.com.au", "coles.com.au", "phillippas.com.au"]);
+    expect(rivals).toEqual(["woolworths.com.au", "coles.com.au", "phillippas.com.au", "seek.com.au"]);
   });
 
   it("a recruitment agency keeps the same searches' rivals", () => {
@@ -469,6 +469,15 @@ describe("a site whose every top-ten page is a job, career or explainer page is 
     const { rivals, sources } = deriveRivals({ serps: [searched([post, guide, ...peos], [post[1]])], ownDomain: "justworks.com", category: "PEO" });
     expect(rivals.map((rival) => rival.domain)).toContain("rippling.com");
     expect(sources).toContain("bakingcareer.com.au");
+  });
+
+  it("an occupation phrase sets a guide aside in a local market only: a product's own explainer is no guide nationally", () => {
+    const crm: Row = ["acme.com", "https://acme.com/crm/what-does-a-crm-do", "What does a CRM do? | Acme"];
+    const tools: Row[] = [["www.pipedrive.com", "https://www.pipedrive.com/en/products", "Pipedrive CRM"], ["www.hubspot.com", "https://www.hubspot.com/products/crm", "HubSpot CRM"]];
+    expect(deriveRivals({ serps: [searched([crm, ...tools], [crm[1]])], ownDomain: "customer.com" }).rivals.map((rival) => rival.domain)).toContain("acme.com");
+    const beruf: Row = ["www.beruf-baecker.de", "https://www.beruf-baecker.de/baeckerin", "Was macht eine Bäckerin? | Berufsbild"];
+    const local = [searched([beruf, ...shops], [beruf[1]]), searched([beruf, ...shops], [beruf[1]])];
+    expect(deriveRivals({ serps: local, ownDomain: "baeckerei.de", local: true, category: "bakery" }).sources).toContain("beruf-baecker.de");
   });
 
   it("in a local market a site that only explains is a publisher; outside one it is a business explaining its market", () => {

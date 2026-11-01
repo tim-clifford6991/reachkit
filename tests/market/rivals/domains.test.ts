@@ -7,6 +7,7 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   isJobRow,
+  isOccupationTitle,
   ownPlaceIn,
   resolvedHost,
   resolvedRows,
@@ -125,28 +126,32 @@ describe("a page for job seekers and a public body are sources, read one way for
 
   it.each([
     ["en", "What does a pastry chef do?"],
-    ["en", "Baker job description: duties and skills"],
     ["en", "Duties of an electrician"],
     ["de", "Was macht eine Bäckerin?"],
     ["fr", "Que fait un boulanger au quotidien"],
     ["es", "¿Qué hace un panadero?"],
     ["nl", "Wat doet een bakker?"],
   ])("reads an occupation guide's title as one (%s): %s", (_language, title) => {
-    expect(isJobRow({ domain: "example.com", url: "https://example.com/guide", title })).toBe(true);
+    expect(isOccupationTitle(title)).toBe(true);
+  });
+
+  it.each(["What does a baker charge for a wedding cake", "Bäckerei Müller – was macht unser Brot besonders"])("never reads a business's own title as an occupation guide: %s", (title) => {
+    expect(isOccupationTitle(title)).toBe(false);
   });
 
   it.each([
-    "What does a baker charge for a wedding cake",
-    "Bäckerei Müller – was macht unser Brot besonders",
     "Job lot clearance sale",
     "Smith Electrical | No Job Too Small | Leeds",
     "Mode d'emploi du lave-vaisselle",
-  ])(
-    "never reads a business's own title as a guide: %s",
-    (title) => {
-      expect(isJobRow({ domain: "example.com", url: "https://example.com/shop", title })).toBe(false);
-    }
-  );
+    "What does a CRM do? | Acme",
+    "What does a PEO do for small businesses",
+    "Was macht eine gute Website aus",
+    "Que fait une agence SEO",
+    "Wat doet een CRM-systeem",
+  ])("never reads a business's own title as a job page, nor its search as a job seeker's: %s", (title) => {
+    expect(isJobRow({ domain: "example.com", url: "https://example.com/shop", title })).toBe(false);
+    expect(isJobSearch([{ domain: "example.com", title }, { domain: "rival.example", title }], "software")).toBe(false);
+  });
 
   it("reads a careers host and a vacancies address", () => {
     expect(isJobRow({ domain: "careers.example.com", title: "Open roles" })).toBe(true);

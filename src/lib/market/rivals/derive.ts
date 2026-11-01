@@ -20,7 +20,7 @@
 // all `./domains`' — one implementation in the product, not two.
 import { BATTERY, RIVAL_SCORE } from "@/lib/config/constants";
 import type { MarketSerp } from "../views";
-import { isArticleRow, isArticleUrl, isExplainerTitle, isHomeUrl, isJobRow, isJobSearch, isOthersPage, isOwnContentUrl, isOwnDomain, isPlaceTitle, isRoundupPage, isSourceDomain, pageClass, pageKey, registrableDomain, resolvedRows, servesJobSeekers } from "./domains";
+import { isArticleRow, isArticleUrl, isExplainerTitle, isHomeUrl, isJobRow, isJobSearch, isOccupationTitle, isOthersPage, isOwnContentUrl, isOwnDomain, isPlaceTitle, isRoundupPage, isSourceDomain, pageClass, pageKey, registrableDomain, resolvedRows, servesJobSeekers } from "./domains";
 
 /** `band.ts`'s `RivalSizeBand`, spelled out: the free card's modules name no
  *  sizing module, not even for a type (§6.4, `size.test.ts`). */
@@ -171,12 +171,12 @@ export function deriveRivals(a: {
       ? isOthersPage(row, true)
       : pageClass(row) === "third_party" ||
         ((isArticleRow(row) || (row.title !== undefined && isExplainerTitle(row.title))) && (row.url === undefined || !isOwnContentUrl(row.url)));
-  // A page for job seekers, unless they are this business's buyers, or in a local market one that explains a subject: outside one a
-  // software maker explains its own market in its own blog. A home page offers its business whatever its tagline says; only a job host is one.
+  // A page for job seekers, unless they are this business's buyers, or in a local market one that explains a subject or an occupation:
+  // outside one a software maker explains its own market ("What does a CRM do"). A home page offers its business whatever its tagline says.
   const isGuide = (row: { domain: string; url?: string; title?: string }): boolean => {
     if (row.url !== undefined && isHomeUrl(row.url)) return !servesJobSeekers(a.category) && isJobRow({ domain: row.domain });
     const ownPost = !local && row.url !== undefined && isOwnContentUrl(row.url);
-    return (!servesJobSeekers(a.category) && !ownPost && isJobRow(row)) || (local && row.title !== undefined && isExplainerTitle(row.title));
+    return (!servesJobSeekers(a.category) && !ownPost && isJobRow(row)) || (local && row.title !== undefined && (isExplainerTitle(row.title) || isOccupationTitle(row.title)));
   };
   // The share of a search's titled top ten that `test` holds, at least half.
   const mostly = (serp: MarketSerp, test: (title: string) => boolean): boolean => {
