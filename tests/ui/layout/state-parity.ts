@@ -9,6 +9,7 @@ import {
   compare,
   PARITY_DIR,
   readAllow,
+  readBaseline,
   segments,
   sha256,
   table,
@@ -33,13 +34,10 @@ export function stateParity(
 ): { ok: boolean; message: string; table: string; missing: string[] } {
   const parityDir = dirs.parity ?? PARITY_DIR;
   const file = boardFile(board, dirs.boards ?? BOARDS_DIR);
-  const baseline = JSON.parse(readFileSync(path.join(parityDir, "baseline.json"), "utf8")) as Record<
-    string,
-    { sha256: string; missing: number }
-  >;
+  const baseline = readBaseline(board, parityDir);
   const result = compare(screenOf(board, readFileSync(file, "utf8")), htmls.flatMap((html) => segments(html)), readAllow(board, parityDir));
-  const { ok, message } = verdict(board, result.missing, baseline[board], sha256(file), result.unused);
-  return { ok, message, table: table(board, result, baseline[board]?.missing), missing: result.missing };
+  const { ok, message } = verdict(board, result.missing, baseline, sha256(file), result.unused);
+  return { ok, message, table: table(board, result, baseline?.missing), missing: result.missing };
 }
 
 /** Why a `state` row of boards.json would go unread: no render test, or one that never checks this board. */

@@ -3,7 +3,7 @@ import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { boardFile, sha256 } from "../../../scripts/design/parity.mjs";
+import { boardFile, sha256, writeBaseline } from "../../../scripts/design/parity.mjs";
 import { expectStateParity, STATE_SUMMARY_HEAD, stateParity } from "../../ui/layout/state-parity";
 
 const BOARD = `<header><a>ReachKit</a> <a>Pricing</a></header>
@@ -25,7 +25,7 @@ const summary = (): string => readFileSync(path.join(dir, "summary.md"), "utf8")
 beforeEach(() => {
   dir = mkdtempSync(path.join(tmpdir(), "state-parity-"));
   writeFileSync(boardFile("OptOutFixture", dir), BOARD);
-  writeFileSync(path.join(dir, "baseline.json"), JSON.stringify({ OptOutFixture: { sha256: sha256(boardFile("OptOutFixture", dir)), missing: 0 } }));
+  writeBaseline("OptOutFixture", { sha256: sha256(boardFile("OptOutFixture", dir)), missing: 0 }, dir);
   writeFileSync(path.join(dir, "summary.md"), "");
   process.env.GITHUB_STEP_SUMMARY = path.join(dir, "summary.md");
 });
