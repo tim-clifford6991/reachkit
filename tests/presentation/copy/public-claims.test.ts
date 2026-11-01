@@ -29,7 +29,6 @@ const WEEK_PACE_SHORT: readonly CopyKey[] = ["pricing.all.pages", "plan.single"]
 /** The landing states its pace as the owner's A1 sentence (2026-10-19). */
 const LANDING_PACE: readonly CopyKey[] = [
   "landing.pace",
-  "landing.subline",
   "landing.step.2.body",
   "landing.feature.daily.body",
   "landing.hero.work.reachkit",
