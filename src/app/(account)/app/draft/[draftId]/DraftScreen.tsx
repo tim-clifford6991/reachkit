@@ -78,7 +78,8 @@ import { kindWord } from "../../calendar/card-lines";
 import { NO_LINK_RECORD, linksOnPage } from "./links-panel";
 import { useDebounced } from "./useDebounced";
 import { SHAPE } from "./shape";
-import { stageChipOf, wordCount, type ClaimState, type DraftView } from "./model";
+import { wordCount, type ClaimState, type DraftView } from "./model";
+import { stageChipOf } from "./stage";
 import { NO_CHECKS, type RecordedChecks } from "@/lib/generate/rules/types";
 
 /** The three fields the founder edits (#789), as one value: the buffer, the

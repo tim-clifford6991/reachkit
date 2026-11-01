@@ -31,7 +31,7 @@ const as = (moves: Row[], meta: Row = {}): Row => ({
   site_id: SITE.siteId,
   state: moves.at(-1)?.to ?? PAGE.state,
   meta: { ...PAGE.meta, ...meta },
-  transitions: [...PAGE.transitions, ...moves],
+  transitions: [...((PAGE.transitions ?? []) as Row[]), ...moves],
   claim_check: null,
   veto_deadline: null,
   told: null,
@@ -82,6 +82,7 @@ describe("the draft screen names a page's stage as This week does (owner O7)", (
   it.each(CASES)("a page %s reads the same on the draft screen and in the calendar's month read", async (_case, _stage, row) => {
     const root = await chip(row);
     const [page] = await scheduledPagesFor({ siteId: SITE.siteId, from: "2026-10-01", to: "2026-10-31", now: NOW });
+    if (page === undefined) throw new Error("the calendar's month read did not find the stored page");
     const calendar = page.setAside ? "set_aside" : stageOf(page, NOW);
     expect(root.querySelector('[data-testid^="draft-stage-"]')?.getAttribute("data-testid")).toBe(`draft-stage-${calendar}`);
   });
