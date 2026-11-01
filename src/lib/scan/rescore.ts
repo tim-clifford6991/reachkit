@@ -42,7 +42,7 @@ import type { RivalCandidate } from "@/lib/market/rivals/derive";
 import { isOwnDomain, registrableDomain } from "@/lib/market/rivals/domains";
 import { brandOf } from "@/lib/market/questions/select";
 import { citedPagesOf } from "@/lib/market/prompts/answer";
-import { currentFreePage } from "@/lib/opportunities/free-page";
+import { freePageChanges } from "@/lib/opportunities/free-page";
 import { statementsOf } from "@/lib/market/prompts/misstated";
 import type { Profile } from "@/lib/market/questions/profile-types";
 import type { PresenceCard } from "@/lib/market/rivals/presence";
@@ -91,7 +91,6 @@ export interface RescoreReport extends Pick<
   | "marketPrompts"
   | "locale"
   | "prompts"
-  | "freePage"
 > {
   /** The page questions beside the twelve (#919), whose AI-Overview cells
    *  count toward AI presence (issue 1551). Absent or `null`: none. */
@@ -162,7 +161,6 @@ export interface RescoredMembers {
   presence: PresenceCard | null;
   coherence: CoherenceVerdict;
   aiAnswers: RescoreAnswers | null;
-  freePage: StoredReport["freePage"];
 }
 
 /** One rewrite: a path into `scans.report` and the value it takes. */
@@ -208,16 +206,7 @@ function membersOf(r: RescoreReport): RescoredMembers {
     presence: r.presence,
     coherence: r.coherence,
     aiAnswers: r.aiAnswers,
-    freePage: r.freePage ?? null,
   };
-}
-
-/** The search-presence driver from the presence card counted again over
- *  the stored SERPs, or `null` where no search was measured or no card was
- *  stored: then the stored driver stands until the next scan. */
-function searchPresenceFrom(card: PresenceCard | null, serps: RescoreReport["serps"], at: Date): Measured<number> | null {
-  if (card === null || card.measuredSearches === 0) return null;
-  return searchPresenceOf({ card, serps, at });
 }
 
 /** The cards over the stored SERPs, where the pass that stored them got as
@@ -373,7 +362,7 @@ export function rescoreScan(scan: RescoreScan): Rescored {
   if (stale) kept.push(KEPT_TOWN_BOUGHT);
   const cards = cardsAfter(read, scan, kept);
 
-  const searchPresence = searchPresenceFrom(cards.presence, r.serps, at);
+  const searchPresence = cards.presence === null || cards.presence.measuredSearches === 0 ? null : searchPresenceOf({ card: cards.presence, serps: r.serps, at });
   if (searchPresence === null) kept.push("search presence: the report kept no measured search, so its stored value stands");
   // Issue 1551: the page questions' stored AI-Overview cells count beside
   // the twelve's, read as stored. A report written before the section has
@@ -437,11 +426,10 @@ export function rescoreScan(scan: RescoreScan): Rescored {
     }
   }
 
-  // The run hands over the whole stored report; this type names only what a score reads.
-  after = { ...after, freePage: currentFreePage({ ...read, ...after, scanId: scan.id } as unknown as StoredReport) };
-
   const before = membersOf(r);
-  const changes = [...changesOf(before, after), ...profileChanges(r, profile, reading), ...promptChanges(r, scan), ...servedChanges(r, scan)];
+  // The run hands over the whole stored report; its type names only what a score reads.
+  const freePage = freePageChanges({ ...read, ...after, scanId: scan.id } as unknown as StoredReport);
+  const changes = [...changesOf(before, after), ...profileChanges(r, profile, reading), ...promptChanges(r, scan), ...servedChanges(r, scan), ...freePage];
   // A new date is a change though `same` reads past dates: the whole
   // verdict is written again, every member of it carrying that date.
   if (at.getTime() !== new Date(r.verdict.measuredAt).getTime() && !changes.some((c) => c.path.length === 1 && c.path[0] === "verdict")) {
@@ -584,7 +572,7 @@ function changesOf(before: RescoredMembers, after: RescoredMembers): ReportChang
   const put = (path: readonly (string | number)[], from: unknown, to: unknown): void => {
     if (!same(from, to)) changes.push({ path, value: to });
   };
-  for (const key of ["verdict", "complete", "onPage", "siteIssues", "rivals", "sources", "presence", "coherence", "freePage"] as const) {
+  for (const key of ["verdict", "complete", "onPage", "siteIssues", "rivals", "sources", "presence", "coherence"] as const) {
     put([key], before[key], after[key]);
   }
   const was = before.aiAnswers;

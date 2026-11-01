@@ -35,20 +35,12 @@ export interface FreePagePick {
   readonly total: number;
 }
 
-function ownRankedOf(report: Omit<StoredReport, "freePage">): number {
-  return report.ownRanked.kind === "unmeasured" ? 0 : report.ownRanked.value;
-}
-
-function bandOf(candidate: Candidate, ownRanked: number, sized: boolean): Winnability {
-  if (sized) return candidate.fitBand ?? "not-yet";
-  const volume = candidate.volume === null || candidate.volume.kind === "unmeasured" ? 0 : candidate.volume.value;
-  return demandBand({ volume, ownRanked });
-}
+const volumeOf = (candidate: Candidate): number => (candidate.volume === null || candidate.volume.kind === "unmeasured" ? 0 : candidate.volume.value);
 
 /** The right-sized Write targets the report measured, best first. Pure. */
 export function rankedFreePages(report: Omit<StoredReport, "freePage">): Candidate[] {
   if (report.questions.kind === "unmeasured" || report.market.kind === "unmeasured") return [];
-  const ownRanked = ownRankedOf(report);
+  const ownRanked = report.ownRanked.kind === "unmeasured" ? 0 : report.ownRanked.value;
   const sized = report.rivalSizes.kind !== "unmeasured";
   const rankedCounts = rankedCountsFromSizes(
     report.rivalSizes.kind === "unmeasured" ? [] : report.rivalSizes.value,
@@ -64,7 +56,7 @@ export function rankedFreePages(report: Omit<StoredReport, "freePage">): Candida
 
   const ranked = candidates
     .map((candidate) => {
-      const band = bandOf(candidate, ownRanked, sized);
+      const band: Winnability = sized ? (candidate.fitBand ?? "not-yet") : demandBand({ volume: volumeOf(candidate), ownRanked });
       const { points } = pointsOf(candidate, { cited: new Set(), prompts: [] });
       return { candidate, band, points };
     })
@@ -86,21 +78,19 @@ function pickOf(report: Omit<StoredReport, "freePage">, candidate: Candidate | u
   return question === undefined ? null : { candidate, question, total };
 }
 
-/** The best right-sized Write target the report measured, or `null` where it
- *  measured none. Pure. */
-export function bestFreePage(report: Omit<StoredReport, "freePage">): FreePagePick | null {
-  const ranked = rankedFreePages(report);
-  return pickOf(report, ranked[0], ranked.length);
-}
-
 /** The stored pick while it is still a candidate, so a page already shown,
  *  mailed or written does not flip, and while the searches or the market it
  *  was read from are unmeasured; otherwise the best one, or none. Pure. */
 export function currentFreePage(report: StoredReport): FreePageSection | null {
   if (report.questions.kind === "unmeasured" || report.market.kind === "unmeasured") return report.freePage;
-  const stored = report.freePage?.opportunityId;
-  if (rankedFreePages(report).some((candidate) => freePageId(report.scanId, candidate.targetRef) === stored)) return report.freePage;
-  return freePageOf(report);
+  const ids = rankedFreePages(report).map((candidate) => freePageId(report.scanId, candidate.targetRef));
+  return ids.includes(report.freePage?.opportunityId ?? "") ? report.freePage : freePageOf(report);
+}
+
+/** The re-score's rewrite of a stored free page: none while its pick stands. */
+export function freePageChanges(report: StoredReport): { path: string[]; value: unknown }[] {
+  const current = currentFreePage(report);
+  return current === report.freePage ? [] : [{ path: ["freePage"], value: current }];
 }
 
 /** The page the stored report proposed, as the lead reads it: the card it
@@ -112,11 +102,12 @@ export function proposedFreePage(report: StoredReport): FreePagePick | null {
   return pickOf(report, ranked.find((candidate) => freePageId(report.scanId, candidate.targetRef) === current?.opportunityId), ranked.length);
 }
 
-/** The pick as the report's card reads it. The id is the scan's and the
- *  slug's: a free report persists no opportunity row, and the card needs one
- *  identity per proposed page. */
+/** The best right-sized Write target as the report's card reads it, or `null`
+ *  where it measured none. The id is the scan's and the slug's: a free report
+ *  persists no opportunity row, and the card needs one identity per page. */
 export function freePageOf(report: Omit<StoredReport, "freePage">): FreePageSection | null {
-  const pick = bestFreePage(report);
+  const ranked = rankedFreePages(report);
+  const pick = pickOf(report, ranked[0], ranked.length);
   if (pick === null) return null;
   const { candidate } = pick;
   const evidence = candidate.evidence;
@@ -126,7 +117,7 @@ export function freePageOf(report: Omit<StoredReport, "freePage">): FreePageSect
     slug: fromStored("opportunities.proposed_slug", candidate.targetRef),
     target: {
       keyword: candidate.targetQuery ?? "",
-      volume: candidate.volume === null || candidate.volume.kind === "unmeasured" ? 0 : candidate.volume.value,
+      volume: volumeOf(candidate),
     },
     beats: evidence.family === "write" ? (evidence.rival?.domain ?? null) : null,
     format: candidate.type,

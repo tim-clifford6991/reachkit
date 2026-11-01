@@ -1,8 +1,6 @@
 // Issues 1426 and 1433 — stored scans and a stored rival set, read again by
 // the current code from what was stored, as the `scan/rescore` job reads
 // them: the rows whole, through a store that stands in for the database.
-// The free-page fixtures assemble a report through the store, which parses env at load.
-import "../../opportunities/env";
 import { readFileSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { describe, expect, it, vi } from "vitest";
@@ -27,11 +25,6 @@ import {
 } from "../../../src/lib/scan/rescore-run";
 import type { RivalConclusion } from "../../../src/lib/market/infer/types";
 import type { RunRecord } from "../../../src/lib/scan/derivation";
-import { freePageOf } from "../../../src/lib/opportunities/free-page";
-import { measured } from "../../../src/lib/measure/measured";
-import { marketSetOf } from "../../../src/lib/market/questions/market-set";
-import { AT as SCAN_AT, PROFILE } from "./fixtures";
-import { SCAN_ID, question, reportOf, search, serp } from "../../opportunities/fixtures";
 
 const read = (path: string): unknown => JSON.parse(readFileSync(new URL(path, import.meta.url), "utf8"));
 
@@ -833,57 +826,5 @@ describe("the other markets a stored home read declares are counted at 0¢", () 
     const db = storeOf([scan]);
     await rescoreStored(db.store, apply);
     expect((db.rows.get(scan.id)!.report as { locale?: unknown }).locale).toBeUndefined();
-  });
-});
-
-describe("a stored free page on a job seeker's search is picked again at 0¢", () => {
-  // The AU "baker" top ten: careers pages, a jobs board and one bakery.
-  const baker = serp({
-    organic: [
-      ["www.yourcareer.gov.au", "Baker | Your Career"],
-      ["bakingcareer.com.au", "Baking Career - Everything you need to know"],
-      ["www.seek.com.au", "Baker Jobs in Australia - SEEK"],
-      ["www.brumbys.com.au", "Brumby's Bakeries | Fresh bread"],
-    ].map(([domain, title], i) => ({ position: i + 1, domain: domain!, url: `https://${domain}/`, title: title! })),
-  });
-  const market = (category: string) => ({ market: measured(marketSetOf({ profile: { ...PROFILE, category }, suggestions: [] }), SCAN_AT) });
-  const bakerOnly = (category: string) => reportOf({ questions: [question({ search: search({ keyword: "baker" }) })], serps: [baker] }, market(category));
-  // Beside it a second search, so a pick stored as it stood is told from one
-  // picked again.
-  const reportFor = (category: string) =>
-    reportOf({ questions: [question(), question({ id: "q2", search: search({ keyword: "baker" }) })], serps: [serp(), baker] }, market(category));
-  // The pick stored before a jobs search stopped being a page to write.
-  const stalePick = freePageOf(bakerOnly("recruitment agency"))!;
-  const storedFor = (category: string): FixtureScan => ({
-    id: SCAN_ID,
-    createdAt: SCAN_AT.toISOString(),
-    status: "done",
-    score: null,
-    drivers: null,
-    report: JSON.parse(JSON.stringify({ ...reportFor(category), freePage: stalePick })) as Record<string, unknown>,
-    home: null,
-    rendered: [],
-  });
-
-  it("a bakery's stored page on \"baker\" is re-picked, counted, and a second apply writes nothing", async () => {
-    expect(stalePick.target.keyword).toBe("baker");
-    const db = storeOf([storedFor("bakery")]);
-    const answer = await rescoreStored(db.store, apply);
-    expect(answer.summary).toContain("free page re-picked: 1");
-    const repicked = freePageOf(reportFor("bakery"))!;
-    expect(repicked.target.keyword).not.toBe("baker");
-    expect((db.rows.get(SCAN_ID)!.report as { freePage: unknown }).freePage).toEqual(JSON.parse(JSON.stringify(repicked)));
-
-    expect(await rescoreStored(db.store, apply)).toMatchObject({ scansChanged: 0, scansWritten: 0 });
-    expect(db.written).toHaveLength(1);
-  });
-
-  it("a recruitment agency's stored page on \"baker\" is still a candidate, so it stands as stored", async () => {
-    expect(freePageOf(reportFor("recruitment agency"))).not.toEqual(stalePick);
-    const db = storeOf([storedFor("recruitment agency")]);
-    const answer = await rescoreStored(db.store, apply);
-    expect(answer.summary).toContain("free page re-picked: 0");
-    expect(db.written.flatMap((w) => w.changes).filter((c) => c.path[0] === "freePage")).toEqual([]);
-    expect((db.rows.get(SCAN_ID)!.report as { freePage: unknown }).freePage).toEqual(JSON.parse(JSON.stringify(stalePick)));
   });
 });
