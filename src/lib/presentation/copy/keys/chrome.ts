@@ -486,7 +486,7 @@ export const CHROME_COPY = Object.freeze({
 
   // value
   "how.value.title": ["{price} a month, everything included", { slots: { price: "text" }, fixedBy: "issue 1597 · drafted" }],
-  "how.value.body": ["One plan. No contract, and you can cancel any time.", { slots: {}, fixedBy: "issue 1597 · drafted" }],
+  "how.value.body": ["One plan, tax included. No contract, and you can cancel any time.", { slots: {}, fixedBy: "issue 1597 · drafted" }],
   "how.value.eyebrow": ["What it’s worth", { slots: {}, fixedBy: "board How it works · issue 1729 · drafted" }],
   "how.value.jobs": ["Who does the {jobs} jobs", { slots: { jobs: "text" }, fixedBy: "board How it works · board Pricing" }],
   "how.value.job.research": ["research", { slots: {}, fixedBy: "board How it works · board Pricing" }],

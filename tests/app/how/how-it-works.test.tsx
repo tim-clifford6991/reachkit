@@ -186,6 +186,13 @@ describe("the calls to action", () => {
     expect(count(html, copy("offer.start.priced"))).toBe(1);
     expect(count(section("value"), 'data-testid="how-checkout"')).toBe(1);
   });
+
+  it("the section that holds the checkout states the price is a month and tax included", () => {
+    const value = text(section("value"));
+    expect(section("value")).toContain('data-testid="how-checkout"');
+    expect(value).toContain("tax included");
+    expect(value).toContain("a month");
+  });
 });
 
 describe("no figure is typed into copy", () => {
