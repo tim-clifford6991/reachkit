@@ -11,8 +11,8 @@
 //                    reading put "what is the best seo software" first.
 //   keyword_page     "Rival top-20 for a query >=10/mo; customer absent"
 //                    — no organic row in the bought top ten is on the
-//                    customer's domain, and the search clears the volume
-//                    floor.
+//                    customer's domain, a business holds one (not sources
+//                    alone), and the search clears the volume floor.
 //   comparison_page  "Gap query names a rival or contains vs/alternative"
 //                    — the search's own words say so.
 //   format_page      **not derived here.** "Rivals have a page type
@@ -186,8 +186,7 @@ export function writeCandidates(a: WriteInput): DerivationResult {
     let type: OpportunityType | null = null;
     if (ignoredByTheAnswer) type = "answer_page";
     else if (customerAbsent && namesARival(query, rivalDomains)) type = "comparison_page";
-    else if (customerAbsent && question.search.volume >= WRITE_VOLUME_FLOOR_PER_MONTH)
-      type = "keyword_page";
+    else if (customerAbsent && rival !== null && question.search.volume >= WRITE_VOLUME_FLOOR_PER_MONTH) type = "keyword_page";
     if (type === null) return;
 
     // The competition bar gates `keyword_page` only (SPEC §6, 2026-09-15).

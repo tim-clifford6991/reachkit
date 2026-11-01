@@ -335,8 +335,14 @@ describe("the holder is the first row in Google's order that is a business, a ri
     expect(holdersOf(plumber)).toEqual(["austinwaterworksplumbing.com"]);
   });
 
-  it("a search only sources hold keeps its page, with no holder", () => {
-    expect(holdersOf(bread.slice(0, 3))).toEqual([null]);
+  it("a search only sources hold proposes no keyword page", () => {
+    const sources = [
+      ["en.wikipedia.org", "/wiki/Bread", "Bread - Wikipedia"],
+      ["www.health.gov.au", "/topics/food/bread", "Bread and cereals"],
+      ["www.yourcareer.gov.au", "/occupations/351111/baker", "Baker | Your Career"],
+      ["www.instagram.com", "/bakerbleu/", "Baker Bleu (@bakerbleu) • Instagram"],
+    ] as const;
+    expect(holdersOf(sources)).toEqual([]);
   });
 });
 
