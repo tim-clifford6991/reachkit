@@ -451,6 +451,12 @@ describe("the landing and pricing heads state the owner's A1 week (2026-10-19)",
     expect(llms).toContain(copy("pricing.subline", { weekPages: WEEK_PLAN.days }));
     expect(llms).toContain(week);
   });
+
+  it("llms.txt's third line is the landing subline", async () => {
+    const { llmsText } = await import("@/app/(public)/_library/feeds");
+    const { copy } = await import("@/lib/presentation/copy");
+    expect(llmsText(ORIGIN!).split("\n")[2]).toBe(`> ${copy("landing.subline")}`);
+  });
 });
 
 describe("the two indexing documents the app host serves", () => {
