@@ -155,6 +155,7 @@ export async function beginEmailChange(
     kind: "magic-link",
     to: candidate,
     subject: mail.subject,
+    preheader: mail.preheader,
     blocks: mail.blocks,
     reason: mail.reason,
   });

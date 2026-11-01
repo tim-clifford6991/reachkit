@@ -311,7 +311,7 @@ describe("the thirteen keys the owner ruled 2026-09-04 (WO-041 `## Log`, this da
     expect(copy("signin.field.placeholder")).toBe("you@example.com");
     expect(copy("free-page.email.placeholder")).toBe("you@yourdomain.example");
     expect(copy("lead.invalid_address")).toBe(
-      "That doesn’t look like an email address. Try the form you@example.com."
+      "That isn’t an email address. Try one like you@example.com."
     );
   });
 

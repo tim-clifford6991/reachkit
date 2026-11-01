@@ -54,6 +54,7 @@ export async function chaseSignIn(sessionId: string, now: Date = new Date()): Pr
     kind: "account",
     to: account.email,
     subject: mail.subject,
+    preheader: mail.preheader,
     blocks: mail.blocks,
   });
   if (!sent.sent) return { chased: false, because: "mail" };

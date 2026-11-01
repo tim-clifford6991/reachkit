@@ -20,7 +20,6 @@ export interface TextFrameParts {
   reason: string | null;
   /** `null` until the imprint is written. */
   imprint: string | null;
-  plainTextNote: string;
   /** The stop control, where this kind carries one. */
   optOut: { href: string; label: string } | null;
   /** Footer links written before the stop control. */
@@ -42,9 +41,7 @@ export function frameText(parts: TextFrameParts): string {
   for (const link of parts.links) footer.push(`${link.label}: ${link.href}`);
   if (parts.optOut !== null) footer.push(`${parts.optOut.label}: ${parts.optOut.href}`);
   footer.push(
-    [parts.wordmark, parts.imprint, parts.plainTextNote]
-      .filter((piece): piece is string => piece !== null && piece !== "")
-      .join(BAND_SEPARATOR)
+    [parts.wordmark, parts.imprint].filter((piece): piece is string => piece !== null && piece !== "").join(BAND_SEPARATOR)
   );
   bands.push(footer.join("\n"));
 

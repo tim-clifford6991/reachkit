@@ -7,12 +7,15 @@ import type { MailBlock } from "../../blocks/types";
 const SUBJECT = "mail.magicLink.subject" satisfies CopyKey;
 const HEADING = "mail.magicLink.heading" satisfies CopyKey;
 const BODY = "mail.magicLink.body" satisfies CopyKey;
+const PREHEADER = "mail.magicLink.preheader" satisfies CopyKey;
 const ACTION = "mail.magicLink.action" satisfies CopyKey;
 const FACT_FOR = "mail.magicLink.fact.for" satisfies CopyKey;
 const REASON = "mail.reason.magicLink" satisfies CopyKey;
 
 export interface AccountMail {
   readonly subject: CopyKey;
+  /** The inbox line after the subject; absent only where its sentence waits on review. */
+  readonly preheader?: CopyKey;
   readonly blocks: readonly MailBlock[];
   /** S20's footer line; absent only on the kinds `tests/mail/shell/footer.test.ts` names. */
   readonly reason?: CopyKey;
@@ -23,6 +26,7 @@ export interface AccountMail {
 export function buildMagicLink(a: { href: string; address: string }): AccountMail {
   return {
     subject: SUBJECT,
+    preheader: PREHEADER,
     reason: REASON,
     blocks: [
       { block: "heading", text: HEADING },

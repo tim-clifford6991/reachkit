@@ -137,7 +137,7 @@ export async function sendDraftReadyMail(a: {
     to: account.email,
     userId: account.userId,
     subject: mail.subject,
-    subjectVars: mail.subjectVars,
+    preheader: mail.preheader,
     blocks: mail.blocks,
     reason: mail.reason,
     // §4.7's switch is asked except at autopilot with a zero window, where this mail is the whole telling; `isUnsuppressible` decides (REQ-057 c7).

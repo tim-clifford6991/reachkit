@@ -6,6 +6,7 @@ import { optOutControlFor, type LeadMail } from "../first-page";
 
 /** Named once, so the string-literal sweep never reads a key field as a written sentence. */
 const SUBJECT = "mail.firstPageUnavailable.subject" satisfies CopyKey;
+const PREHEADER = "mail.firstPageUnavailable.preheader" satisfies CopyKey;
 
 export function buildFirstPageUnavailable(a: {
   email: string;
@@ -13,6 +14,7 @@ export function buildFirstPageUnavailable(a: {
 }): LeadMail {
   return {
     subject: SUBJECT,
+    preheader: PREHEADER,
     blocks: [{ block: "notice", text: a.causeLine }],
     optOut: optOutControlFor(a.email),
   };

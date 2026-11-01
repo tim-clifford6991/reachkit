@@ -135,6 +135,7 @@ export async function sendWeeklyDigest(a: {
     to: recipient.email,
     userId: recipient.userId,
     subject: mail.subject,
+    preheader: mail.preheader,
     blocks: mail.blocks,
     reason: mail.reason,
     measurement,

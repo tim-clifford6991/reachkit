@@ -16,6 +16,7 @@ import { issueChangeRows } from "../../blocks/site-issues";
 import type { CopyVars, FactRow, ListRow, MailBlock, StatRow, VerdictRow } from "../../blocks/types";
 
 const SUBJECT = "mail.weekly.subject" satisfies CopyKey;
+const PREHEADER = "mail.weekly.preheader" satisfies CopyKey;
 const ACTION = "mail.weekly.action" satisfies CopyKey;
 const REASON = "mail.reason.weekly" satisfies CopyKey;
 
@@ -32,7 +33,6 @@ const CONNECT_ACTION = "mail.weekly.connect.action" satisfies CopyKey;
 const LIVE = shownKey("mail-pages-live") satisfies CopyKey;
 const PLANNED = shownKey("mail-pages-planned") satisfies CopyKey;
 const GOOGLE = "mail.weekly.google.title" satisfies CopyKey;
-const GOOGLE_INTRO = "mail.weekly.google.intro" satisfies CopyKey;
 const SHOWING_CLIMBING = "mail.weekly.google.showing.climbing" satisfies CopyKey;
 const OF_LIVE = "mail.weekly.google.of" satisfies CopyKey;
 const GOOGLE_EARLY = "mail.weekly.google.early" satisfies CopyKey;
@@ -123,6 +123,7 @@ export interface WeeklyMail {
   /** UI-SPEC S20's footer line: why this mail arrived. */
   readonly reason?: CopyKey;
   readonly subject: CopyKey;
+  readonly preheader: CopyKey;
   readonly blocks: readonly MailBlock[];
 }
 
@@ -203,6 +204,7 @@ export function buildWeekly(a: {
   const g = a.greeting;
   return {
     subject: SUBJECT,
+    preheader: PREHEADER,
     reason: REASON,
     blocks: [
       ...(g === undefined
@@ -281,7 +283,6 @@ function numberBlocks(n: WeeklyNumbers): readonly MailBlock[] {
   if (g !== undefined) {
     const steps = g.early ? g.steps.filter((step) => step.name === "draft.ladder.found") : g.steps;
     blocks.push({ block: "heading", text: GOOGLE });
-    if (n.live.kind !== "unmeasured") blocks.push({ block: "paragraph", text: GOOGLE_INTRO, vars: { n: formatStat(n.live, "integer") } });
     if (steps.length > 0) {
       blocks.push({
         block: "stats",
@@ -313,7 +314,7 @@ function numberBlocks(n: WeeklyNumbers): readonly MailBlock[] {
       const linked = formatStat(n.ai.linked, "integer");
       blocks.push(
         { block: "paragraph", text: AI_LINKED, vars: { n: linked, of: String(n.ai.asked) } },
-        { block: "paragraph", text: AI_ASKED, vars: { n: linked } }
+        { block: "paragraph", text: AI_ASKED }
       );
     }
     if (n.ai.reads !== undefined && n.ai.reads.kind !== "unmeasured") {
@@ -378,7 +379,7 @@ function weekBlocks(next: Measured<readonly WeeklyNext[]>, calendar: WeeklyCalen
         });
   return [
     { block: "heading", text: NEXT },
-    { block: "paragraph", text: NEXT_INTRO, vars: { n: String(WEEK_PLAN.days) } },
+    { block: "paragraph", text: NEXT_INTRO, vars: { weekPages: String(WEEK_PLAN.days) } },
     ...(strip.length === 0 ? [] : [{ block: "facts", items: strip } as const]),
     { block: "list", items: mapMeasuredRows(next, (pages) => nextRows(pages, calendar)), emptyLine: NEXT_NONE },
   ];

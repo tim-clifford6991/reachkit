@@ -13,6 +13,8 @@ import type { FactRow, MailBlock } from "../../blocks/types";
 
 const SUBJECT = "mail.draftReady.subject" satisfies CopyKey;
 const WAITING_SUBJECT = "mail.draftReady.waiting.subject" satisfies CopyKey;
+const PREHEADER = "mail.draftReady.preheader" satisfies CopyKey;
+const WAITING_PREHEADER = "mail.draftReady.waiting.preheader" satisfies CopyKey;
 const ADDRESS_NOT_CONNECTED = "mail.draftReady.dest.addressNotConnected" satisfies CopyKey;
 const ADDRESS_NOT_CONNECTED_NO_RECORD = "mail.draftReady.dest.addressNotConnected.noRecord" satisfies CopyKey;
 const RECORD_TYPE = "mail.draftReady.record.type" satisfies CopyKey;
@@ -59,7 +61,7 @@ export interface DraftReadyMail {
   /** UI-SPEC S20's footer line: why this mail arrived. */
   readonly reason?: CopyKey;
   readonly subject: CopyKey;
-  readonly subjectVars: Readonly<Record<string, string | number>>;
+  readonly preheader: CopyKey;
   readonly blocks: readonly MailBlock[];
 }
 
@@ -163,12 +165,9 @@ export function buildDraftReady(a: {
     blocks.push({ block: "notice", text: STOP_NOTE });
   }
 
-  // The subject names the moment and the page, both already here, so a composable mail cannot fail on its subject.
   return {
     subject: waitsForAddress ? WAITING_SUBJECT : SUBJECT,
-    subjectVars: waitsForAddress
-      ? { title: a.page?.title ?? "" }
-      : { publishesAt: a.publishesAt ?? "", title: a.page?.title ?? "" },
+    preheader: waitsForAddress ? WAITING_PREHEADER : PREHEADER,
     reason: REASON,
     blocks,
   };

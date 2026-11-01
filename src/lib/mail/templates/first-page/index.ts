@@ -11,6 +11,7 @@ import { optOutTokenFor } from "../../leads/optout";
 
 // Keys hoisted and checked by `satisfies CopyKey`, so the string-literal sweep never reads a key field as a written sentence.
 const SUBJECT = "mail.firstPage.subject" satisfies CopyKey;
+const PREHEADER = "mail.firstPage.preheader" satisfies CopyKey;
 const TARGET_SEARCH = "mail.firstPage.target_search" satisfies CopyKey;
 const FIRST_OF_N = "mail.firstPage.first_of_n" satisfies CopyKey;
 const HEADING = "mail.firstPage.heading" satisfies CopyKey;
@@ -18,8 +19,8 @@ const REASON = "mail.reason.firstPage" satisfies CopyKey;
 
 export interface LeadMail {
   readonly subject: CopyKey;
-  /** The subject's own slots, where the set's subject names the page. */
-  readonly subjectVars?: Readonly<Record<string, string | number>>;
+  /** The inbox line after the subject; absent only where its sentence waits on review. */
+  readonly preheader?: CopyKey;
   readonly blocks: readonly MailBlock[];
   /** UI-SPEC S20's footer line: why this mail arrived. */
   readonly reason?: CopyKey;
@@ -61,7 +62,7 @@ export function buildFirstPage(a: {
 }): LeadMail {
   return {
     subject: SUBJECT,
-    subjectVars: { title: a.pageTitle },
+    preheader: PREHEADER,
     reason: REASON,
     blocks: [
       // S20 heads the mail with the page's own title: the page is what the reader came for.
