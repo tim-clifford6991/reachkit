@@ -49,7 +49,7 @@ describe.each(["saas", "local"] as const)("the %s panel report, offer to consent
       "€49",
       "a month · tax included",
       "Start ReachKit €49",
-      "Cancel any time from Settings. No account before payment.",
+      "Cancel any time from Settings.",
       "Not ready? Get your first page free ↓",
       "More in your report",
       "Site fixes",

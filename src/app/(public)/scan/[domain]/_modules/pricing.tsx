@@ -36,6 +36,7 @@ import { ArrowRight, Check, ShieldCheck } from "lucide-react";
 import { VETO, WEEK_PLAN } from "@/lib/config/constants";
 import { copy } from "@/lib/presentation/copy";
 import { HOW_FACTS } from "@/app/(public)/_how/facts";
+import { BrandMark } from "@/app/_brand/Brand";
 import { FLOAT } from "@/ui/lift";
 import { Num } from "../_address/measured";
 
@@ -64,7 +65,7 @@ const TERM_LINES: Readonly<Record<OfferTerms, () => readonly string[]>> = {
   pricing: () => [
     copy("landing.pace", { weekPages: WEEK_PLAN.days }),
     copy("pricing.plan.chosen"),
-    copy("pricing.plan.checked"),
+    copy("pricing.plan.rivals", { rivals: String(HOW_FACTS.rivals) }),
     copy("pricing.plan.mail"),
     // The window is the pin's, in both wordings: one home, two sentences.
     copy("offer.pricing.veto", { hours: String(VETO.defaultHours) }),
@@ -76,22 +77,22 @@ const TERM_LINES: Readonly<Record<OfferTerms, () => readonly string[]>> = {
  *  line where there is one, Start, and the cancel line under it. */
 function PriceBox(p: {
   start: React.ReactNode;
+  /** The pricing page's card sets the price flush left, as its board does. */
+  left?: boolean;
   cancel: string;
   refused?: boolean;
   terms?: React.ReactNode;
-  note?: React.ReactNode;
   free?: React.ReactNode;
 }): React.JSX.Element {
   return (
     <div className="flex flex-col gap-4">
       {/* REQ-022 c1: "€49 per month and says that VAT is included". */}
-      <div className="flex flex-wrap items-baseline justify-center gap-2 text-center">
+      <div className={`flex flex-wrap items-baseline gap-2 ${p.left === true ? "" : "justify-center text-center"}`}>
         <span className="text-5xl leading-none">
           <Num figure>{copy("price.amount")}</Num>
         </span>
         <span className="text-base-content/70 text-sm">{copy("price.interval")}</span>
       </div>
-      {p.note ?? null}
       {p.terms ?? null}
       {/* Issue #624: the vendor refused to open checkout. One written line
           on the offer itself, above the control that will try again. */}
@@ -175,30 +176,26 @@ export function PricingCard(
     );
   }
 
-  // The report's card opens on the price; the pricing page's names the plan
-  // and how it is billed first (board Pricing).
+  // The report's card opens on the price; the pricing page's names the plan first.
   const named = terms === "pricing";
   return (
     <section className={`card bg-base-100 ${FLOAT}`}>
       <div className="card-body">
         {named ? (
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <h2 className="card-title">{copy("chrome.wordmark")}</h2>
+            <h2 className="card-title">
+              <BrandMark />
+              {copy("chrome.wordmark")}
+            </h2>
             <span className="badge badge-soft badge-primary">{copy("pricing.plan.badge")}</span>
           </div>
         ) : null}
         <PriceBox
           start={control}
+          left={named}
           cancel={cancel}
           refused={p.refused}
           terms={<Terms specs={specs} />}
-          note={
-            named ? (
-              <p className="text-base-content/70 text-center text-sm">
-                {copy("pricing.plan.billing")}
-              </p>
-            ) : null
-          }
           free={p.free}
         />
       </div>

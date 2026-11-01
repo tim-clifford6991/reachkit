@@ -167,15 +167,17 @@ describe('REQ-021 c4 — "Given a surface that offers ReachKit away from any rep
   it("every sentence the surface speaks resolves through copy() in that one component", async () => {
     const html = await render();
     const { copy } = await import("@/lib/presentation/copy");
-    const { VETO, WEEK_PLAN } = await import("@/lib/config/constants");
+    const { BATTERY, VETO, WEEK_PLAN } = await import("@/lib/config/constants");
     expect(html).toContain(copy("price.amount"));
+    // The report's price line, and no second VAT line under it (board Pricing v36).
     expect(html).toContain(copy("price.interval"));
+    expect(html).not.toContain(copy("landing.plan.terms"));
     expect(html).toContain(copy("offer.start"));
     // The plan card's five rows, in the board's words; the window carries
     // the pin from `constants.ts` through its slot.
     expect(html).toContain(copy("landing.pace", { weekPages: WEEK_PLAN.days }));
     expect(html).toContain(copy("pricing.plan.chosen"));
-    expect(html).toContain(copy("pricing.plan.checked"));
+    expect(html).toContain(copy("pricing.plan.rivals", { rivals: String(BATTERY.COMPETITORS_MAX) }));
     expect(html).toContain(copy("pricing.plan.mail"));
     expect(html).toContain(copy("offer.pricing.veto", { hours: String(VETO.defaultHours) }));
     expect(html).toContain(copy("pricing.subline", { weekPages: WEEK_PLAN.days }));
@@ -273,7 +275,8 @@ describe("the screen root (ADR-093; DECISIONS 2026-09-02)", () => {
   it("is one Surface with an arm declared for every band", async () => {
     const html = await render();
     expect(html.match(/data-surface=""/g)).toHaveLength(1);
-    expect(html).toContain('data-arm-compact="columns:1"');
+    // Full-width bands, as the landing and How it works declare (board Pricing).
+    expect(html).toMatch(/data-arm-compact="declared:full-width bands[^"]+"/);
     expect(html).toContain('data-arm-medium="same-as-below"');
     expect(html).toContain('data-arm-wide="same-as-below"');
   });

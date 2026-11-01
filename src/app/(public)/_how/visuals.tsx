@@ -626,17 +626,14 @@ export const WHEN_STEPS = (): readonly WhenStep[] =>
     icon,
   }));
 
-/** `#found`: what moves when, as time ranges and never as dates. Pricing
- *  draws the same card with its own first days and no Maps line. */
-export function WhatToExpect(
-  p: { title?: string; steps?: readonly WhenStep[]; maps?: boolean } = {}
-): React.JSX.Element {
-  const steps = p.steps ?? WHEN_STEPS();
+/** `#found`: what moves when, as time ranges and never as dates. */
+export function WhatToExpect(): React.JSX.Element {
+  const steps = WHEN_STEPS();
   return (
     <div className={CARD}>
       <div className="card-body gap-3">
         <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <h3 className="text-base font-semibold">{p.title ?? copy("how.when.title")}</h3>
+          <h3 className="text-base font-semibold">{copy("how.when.title")}</h3>
           <span className={SMALL}>{copy("how.when.sub")}</span>
         </div>
         <ul className="timeline timeline-vertical timeline-compact min-w-0">
@@ -658,12 +655,10 @@ export function WhatToExpect(
           <Info {...ICON} className="mt-0.5 shrink-0" />
           {copy("how.when.promise")}
         </p>
-        {p.maps === false ? null : (
-          <p className={`${SMALL} flex items-start gap-2`}>
-            <MapPin {...ICON} className="shrink-0" />
-            {copy("how.when.maps")}
-          </p>
-        )}
+        <p className={`${SMALL} flex items-start gap-2`}>
+          <MapPin {...ICON} className="shrink-0" />
+          {copy("how.when.maps")}
+        </p>
       </div>
     </div>
   );
