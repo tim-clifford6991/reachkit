@@ -11,12 +11,13 @@
 // A daisyUI `navbar` row over one line, in a bar of one fixed height
 // (`bar.ts`), because the tab bars stick directly under it.
 //
-// The domain can be any length and is a value, so it is mono and clamped to
-// one line; the brand and the control are fixed-width and never give way.
-// The publishing line is a sentence, clamped to one line with its whole
-// text in `title`.
+// The brand and the theme control on the first row; the domain and whether
+// publishing is on under them, as board Plan draws the bar. The domain can be
+// any length and is a value, so it is mono and clamped to one line. While
+// publishing is not on, the line says why in the panel's own sentence,
+// clamped to one line with its whole text in `title`.
 import type React from "react";
-import { Send } from "lucide-react";
+import { copy } from "@/lib/presentation/copy";
 import { Brand } from "@/app/_brand/Brand";
 import { ThemeToggle } from "@/app/_theme/ThemeToggle";
 import { themeNames } from "@/app/_theme/names";
@@ -25,7 +26,8 @@ import { publishingStatement } from "./PublishingCard";
 import type { ShellModel } from "./model";
 
 export function TopBar(p: { shell: ShellModel }): React.JSX.Element {
-  const { line } = publishingStatement(p.shell);
+  const on = p.shell.publishing.next !== null;
+  const line = on ? copy("shell.publishing.state.autopilot") : publishingStatement(p.shell).line;
   return (
     <header
       className={`border-base-300 bg-base-100 flex min-w-0 flex-col justify-center gap-2 border-b px-4 ${TOP_BAR}`}
@@ -35,15 +37,18 @@ export function TopBar(p: { shell: ShellModel }): React.JSX.Element {
         <span className="shrink-0">
           <Brand href="/app" />
         </span>
-        <span className="num min-w-0 flex-1 truncate text-end text-xs opacity-70" title={p.shell.domain}>
-          {p.shell.domain}
-        </span>
+        <span className="flex-1" />
         <ThemeToggle names={themeNames()} />
       </div>
-      <p className="flex min-w-0 items-center gap-1.5 text-xs" data-testid="shell-top-publishing">
-        <Send size={14} strokeWidth={1.75} className="text-success shrink-0" aria-hidden />
-        <span className="text-base-content/70 min-w-0 truncate" title={line}>
-          {line}
+      <p className="flex min-w-0 items-center gap-3 text-xs">
+        <span className="num min-w-0 shrink truncate text-base-content/70" title={p.shell.domain}>
+          {p.shell.domain}
+        </span>
+        <span className="flex min-w-0 items-center gap-1.5 font-semibold" data-testid="shell-top-publishing">
+          <span className={`status shrink-0 ${on ? "status-success" : "status-warning"}`} aria-hidden />
+          <span className="min-w-0 truncate" title={line}>
+            {line}
+          </span>
         </span>
       </p>
     </header>

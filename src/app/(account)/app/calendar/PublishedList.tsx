@@ -1,15 +1,17 @@
 // Board Plan — "Live pages": every page published and standing, the rows
 // Overview's Content tile counts, each with how far it got on Google and in
-// AI answers as step dots, its label, and *Stop this page* (R9).
+// AI answers as step dots, its label under it, and *Stop this page* (R9).
 //
 // The rows are Overview's ladder (`@/lib/measure/page-ladder`), so a step is
-// read the one way on both screens; a step nothing read is "not measured",
-// never an empty dot. The first few show; the rest open under *Show all*.
+// read the one way on both screens. A page nothing has read yet says when it
+// went live and is too early to judge, never empty dots. The first few show;
+// the rest open under *Show all*.
 import type React from "react";
 import Link from "next/link";
 import { copy } from "@/lib/presentation/copy";
 import { formatCount, formatDate } from "../_shell/format";
 import type { ContentModel, PublishedPage } from "@/lib/measure/published";
+import type { CopyKey } from "@/lib/presentation/copy";
 import { pageLadderOf, type LadderRow, type StepDot } from "@/lib/measure/page-ladder";
 import { LabelBadge } from "../_shell/verdict";
 import { ENGINE_LABEL } from "../_shell/page-target-words";
@@ -77,7 +79,12 @@ function standingLines(row: LadderRow, page: PublishedPage | undefined, timeZone
   return out;
 }
 
-function Dots(p: { dots: readonly StepDot[]; measured: boolean; caption: string; testId: string }): React.JSX.Element {
+/** Board Plan names the Google step a page shows in by where it shows: "in results". */
+function googleStep(step: CopyKey): CopyKey {
+  return step === "draft.ladder.showing" ? "calendar.live.showing" : step;
+}
+
+function Dots(p: { dots: readonly StepDot[]; caption: string; testId: string }): React.JSX.Element {
   return (
     <span className="flex min-w-0 items-center gap-2" data-testid={p.testId}>
       <span className="flex shrink-0 gap-1" aria-hidden>
@@ -85,8 +92,8 @@ function Dots(p: { dots: readonly StepDot[]; measured: boolean; caption: string;
           <span
             key={dot.name}
             aria-hidden
-            className={p.measured ? `status ${dot.reached ? "status-primary" : ""}` : "status border border-base-content/40 bg-transparent"}
-            data-reached={p.measured ? (dot.reached ? "yes" : "not-yet") : "unmeasured"}
+            className={`status ${dot.reached ? "status-primary" : ""}`}
+            data-reached={dot.reached ? "yes" : "not-yet"}
           />
         ))}
       </span>
@@ -105,32 +112,37 @@ function Row(p: {
   update: string | undefined;
 }): React.JSX.Element {
   const { row, page } = p;
-  const lines = standingLines(row, page, p.timeZone, p.now);
+  const lines = row.measured || page === undefined
+    ? standingLines(row, page, p.timeZone, p.now)
+    : [copy("calendar.live.unread", { date: formatDate(page.publishedAt, p.timeZone) })];
   if (p.update !== undefined) lines.push(copy("calendar.live.update", { day: p.update }));
   const stop = page?.draftId === undefined || page.url === null ? null : page.draftId;
   // No AI step yet: "not read yet" where AI reads are seen; a WordPress page has no read step.
   const none = page?.wordpress === true ? "draft.ladder.not-yet" : "calendar.live.ai-unread";
-  const ai = row.measured ? copy(row.ai ?? none) : copy("draft.ladder.unmeasured");
+  const ai = copy(row.ai ?? none);
   return (
     <li className="list-row min-w-0 items-start px-0" data-testid="plan-published-row" data-recent={p.recent ? "" : undefined}>
       <div className="list-col-grow flex min-w-0 flex-col gap-1">
         {row.href === null ? (
           <span className="min-w-0 font-semibold break-words">{row.title}</span>
         ) : (
-          <Link href={row.href} className="link link-hover min-w-0 font-semibold break-words">
+          <Link href={row.href} className="link link-primary link-hover min-w-0 font-semibold break-words">
             {row.title}
           </Link>
         )}
         {lines.length === 0 ? null : <p className="min-w-0 text-sm text-base-content/70">{lines.join(" ")}</p>}
-        <span className="flex min-w-0 flex-wrap gap-x-4 gap-y-1 text-xs text-base-content/70">
-          <Dots dots={row.dots.google} measured caption={copy("calendar.live.google", { step: copy(row.google) })} testId="plan-live-google" />
-          <Dots dots={row.dots.ai} measured={row.measured} caption={copy("calendar.live.ai", { step: ai })} testId="plan-live-ai" />
-        </span>
+        {row.measured ? (
+          <span className="flex min-w-0 flex-col gap-1 text-xs text-base-content/70">
+            <Dots dots={row.dots.google} caption={copy("calendar.live.google", { step: copy(googleStep(row.google)) })} testId="plan-live-google" />
+            <Dots dots={row.dots.ai} caption={copy("calendar.live.ai", { step: ai })} testId="plan-live-ai" />
+          </span>
+        ) : null}
+        {/* Unread, a page is too early to judge. */}
+        <LabelBadge label={row.label ?? "too_early"} className="mt-1 self-start" testId="plan-live-label" />
       </div>
-      {row.label === null && stop === null ? null : (
+      {stop === null ? null : (
         <span className="flex shrink-0 flex-col items-end gap-2">
-          {row.label === null ? null : <LabelBadge label={row.label} />}
-          {stop === null ? null : <TakeDownControl draftId={stop} mode="stop" words={p.words} />}
+          <TakeDownControl draftId={stop} mode="stop" words={p.words} />
         </span>
       )}
     </li>

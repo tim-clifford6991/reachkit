@@ -3,6 +3,7 @@
 // and the states drawn in place of the today card. Driven through the real
 // `/app` page — for the reserved fixture account the layout sweep reads, and
 // for a live account over stored rows — and through Plan's own week assembly.
+import { ALL_ARMS } from "../calendar/arms";
 import { applyEnvFixture } from "../../mail/env-fixture";
 
 applyEnvFixture();
@@ -164,7 +165,7 @@ describe("a week card, from Plan's own week assembly", () => {
   const plan = (() => {
     const root = document.createElement("div");
     root.innerHTML = renderToStaticMarkup(
-      <WeekGrid cells={week.cells} filter="all" selected={null} destination={week.destination} goesLive={null} firstSkip={null} onSelect={() => {}} />
+      <WeekGrid cells={week.cells} selected={null} destination={week.destination} goesLive={null} firstSkip={null} onSelect={() => {}} />
     );
     return root;
   })();
@@ -231,8 +232,8 @@ describe("a week card, from Plan's own week assembly", () => {
 
 describe("a day with nothing worth writing", () => {
   it("is told in place of the today card, and only on that day", () => {
-    // Sunday the 20th is a day the fixture's supply leaves empty.
-    const on = (day: string, now: Date) => weekListOf(weekOf([assembleMonth({ ...FIXTURE_CALENDAR_FACTS, now }, "2026-09")], day))!;
+    // Sunday the 20th is a day used-up supply leaves empty.
+    const on = (day: string, now: Date) => weekListOf(weekOf([assembleMonth({ ...ALL_ARMS, now }, "2026-09")], day))!;
     const sunday = on("2026-09-20", new Date(Date.UTC(2026, 8, 20, 14, 0, 0)));
     expect(sunday.skippedToday).toBe(true);
     expect(sunday.days.find((day) => day.cell.day === "2026-09-20")?.cell.page).toBeNull();

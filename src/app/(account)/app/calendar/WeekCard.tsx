@@ -2,6 +2,7 @@
 // handed to `CalendarView`: the range and when pages go live; then the next
 // Monday and how the week was chosen.
 import type React from "react";
+import { ChevronDown, RefreshCw } from "lucide-react";
 import { WEEK_PLAN } from "@/lib/config/constants";
 import { copy } from "@/lib/presentation/copy";
 import { formatCount } from "../_shell/format";
@@ -45,20 +46,17 @@ export function WeekFoot(p: { next: string }): React.JSX.Element {
   const n = formatCount(WEEK_PLAN.days);
   return (
     <>
-      <p
-        className="rounded-box bg-base-200 p-3 text-sm"
-        data-testid="plan-next"
-      >
-        {copy("calendar.next", { date: p.next, n })}
+      <p className="flex min-w-0 items-start gap-2 rounded-box bg-base-200 p-3 text-sm" data-testid="plan-next">
+        <RefreshCw aria-hidden className="mt-0.5 size-4 shrink-0 text-primary" />
+        <span className="min-w-0">{copy("calendar.next", { date: p.next, n })}</span>
       </p>
-      <details
-        className="collapse collapse-arrow bg-base-200"
-        data-testid="plan-chosen"
-      >
-        <summary className="collapse-title font-semibold">
+      {/* A quiet link that opens in place, as the board draws it: no box, a chevron that turns. */}
+      <details className="group min-w-0" data-testid="plan-chosen">
+        <summary className="link link-primary flex min-h-11 w-fit cursor-pointer list-none items-center gap-1.5 text-sm font-semibold no-underline [&::-webkit-details-marker]:hidden">
+          <ChevronDown aria-hidden className="size-4 shrink-0 transition-transform group-open:rotate-180" />
           {copy("calendar.chosen.title")}
         </summary>
-        <p className="collapse-content text-sm">
+        <p className="text-sm">
           {copy("calendar.chosen.body", { n })} {copy("calendar.chosen.stored")}
         </p>
       </details>

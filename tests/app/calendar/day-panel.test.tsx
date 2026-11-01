@@ -4,6 +4,7 @@
 // WO-168 `## Test plan`: today selected on open, the five "Why this page"
 // facts, the provenance line, the empty arm, and the action projection
 // rendered.
+import { ALL_ARMS } from "./arms";
 import { describe, expect, it, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import React from "react";
@@ -30,7 +31,7 @@ function render(el: React.ReactElement): Element {
   return container;
 }
 
-const MODEL = assembleMonth(FIXTURE_CALENDAR_FACTS, FIXTURE_MONTH);
+const MODEL = assembleMonth(ALL_ARMS, FIXTURE_MONTH);
 
 function panel(day: string): Element {
   const cell = cellFor(MODEL, day);

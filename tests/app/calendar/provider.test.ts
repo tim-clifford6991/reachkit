@@ -96,11 +96,8 @@ describe("a real site reads its own rows and never the fixture", () => {
   });
 
   it("the reserved fixture account reads its own fixed depth without a database", async () => {
-    expect(await provider.readSupplyNotice()).toEqual({
-      kind: "exhausted",
-      days: 0,
-      since: null,
-    });
+    // Its supply holds the week's spares, so there is nothing to state.
+    expect(await provider.readSupplyNotice()).toBeNull();
     expect(supplyNotice).not.toHaveBeenCalled();
   });
 });

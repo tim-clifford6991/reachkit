@@ -38,9 +38,6 @@
 //                                    spelling BP-019 decision 6 blessed for
 //                                    'not-yet' → "Not yet". No word is added
 //                                    and none is dropped.
-//   `calendar.footnote.planned`    — §4.6's footnote, verbatim: "planned pages
-//                                    are written the evening before from
-//                                    Monday's measurements", sentence-cased.
 //
 // Six were owner-owed and empty until #460, because no sentence existed to
 // transcribe:
@@ -257,26 +254,6 @@ export const CALENDAR_COPY = Object.freeze({
   "calendar.why.engine.line": [
     "{engine}: {standing}",
     { slots: { engine: "text", standing: "text" }, fixedBy: "issue 867" },
-  ],
-
-  // §4.6's footnote. The first half is the section's own sentence; the
-  // second is the supply rule stated to the builder, and the customer's
-  // wording of it is the owner's.
-  // Both halves are the approved S14's own footnote, verbatim (ruling
-  // 11a): "Planned pages are written the evening before, from Monday's
-  // measurements. When opportunities run out, future days are empty — the
-  // calendar is never padded." The supply half was owner-owed and empty
-  // until the set worded it; the planned half gains the set's comma.
-  // Issue 1337: a page is no longer written at one evening hour. It is
-  // written a full time-to-stop before its day's publish time, so the
-  // planned half is drafted again for the owner to correct.
-  "calendar.footnote.planned": [
-    "We write each page before its day, so you have time to stop it.",
-    { slots: {}, fixedBy: "BUILD §4.6" },
-  ],
-  "calendar.footnote.supply": [
-    "When nothing is worth writing, a day stays empty. We never write filler.",
-    { slots: {}, fixedBy: "BUILD §4.6" },
   ],
 
   // Issue 857 (owner, 2026-09-17): the plan reaches only the day before the
@@ -520,6 +497,8 @@ export const CALENDAR_COPY = Object.freeze({
   "calendar.live.update": ["Update goes live {day}.", { slots: { day: "text" }, fixedBy: "board Plan v36, issue 2273 (drafted)" }],
   "calendar.live.found": ["Found by Google {date}. Not in results yet.", { slots: { date: "text" }, fixedBy: "board Plan v36, issue 2273 (drafted)" }],
   "calendar.live.ai-unread": ["not read yet", { slots: {}, fixedBy: "board Plan (drafted)" }],
+  "calendar.live.showing": ["Showing in results", { slots: {}, fixedBy: "board Plan v36, issue 2273 (drafted)" }],
+  "calendar.live.unread": ["Live since {date}. We check it on Monday.", { slots: { date: "text" }, fixedBy: "board Plan v36, issue 2273 (drafted)" }],
   "calendar.live.all": ["Show all {m} live pages", { slots: { m: "text" }, fixedBy: "board Plan v36, issue 2273 (drafted)" }],
   "calendar.live.none": ["No page is live yet. Each shows here once it goes live, with how far it has got.", { slots: {}, fixedBy: "board Plan (drafted)" }],
 }) satisfies CopyPartition;
