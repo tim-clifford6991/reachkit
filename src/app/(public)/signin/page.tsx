@@ -24,6 +24,8 @@ const LEAD = "text-base-content/80 sm:text-lg";
 const QUIET = "text-base-content/70";
 const CARD = "card border border-base-300 bg-base-100 shadow-(--shadow-card) flex flex-col";
 const FACT = "flex flex-col gap-0.5 py-3";
+const SUBMIT =
+  "btn btn-primary btn-block h-11 text-(length:--t-body) disabled:border-primary disabled:bg-primary disabled:text-primary-content disabled:opacity-75";
 const MARK = "grid size-11 flex-none place-items-center rounded-box";
 const ICON = { size: 24, strokeWidth: 1.75, "aria-hidden": true } as const;
 
@@ -114,7 +116,8 @@ export default function SignInPage(props: {
             {answer}
           </p>
         ) : null}
-        <button type="submit" className="btn btn-primary btn-block h-11 text-(length:--t-body)" disabled={pending} aria-busy={pending || undefined}>
+        {/* While it sends, the button stays the primary, faded, as the board draws it; daisyUI's disabled grey reads as broken. */}
+        <button type="submit" className={SUBMIT} disabled={pending} aria-busy={pending || undefined}>
           {pending ? <span className="loading loading-spinner loading-sm" aria-hidden /> : null}
           {submit}
         </button>
@@ -167,7 +170,7 @@ export default function SignInPage(props: {
                 </p>
               </div>
               <p className={`text-sm ${QUIET}`}>{copy("signin.sent.terms")}</p>
-              <Link href={SIGN_IN_PATH} className="btn btn-soft btn-primary h-11 self-start text-(length:--t-body)">
+              <Link href={SIGN_IN_PATH} className="btn btn-soft btn-primary h-11 self-start border-transparent text-(length:--t-body)">
                 {copy("signin.sent.resend")}
               </Link>
             </>
