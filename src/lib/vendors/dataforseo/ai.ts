@@ -59,10 +59,23 @@ export function parseAiMode(result: unknown): AiAnswer[] | undefined {
   return [];
 }
 
+/** Caps on what a stored ChatGPT answer keeps of its searches and reads, so each payload grows by about 2 KB at most. */
+export const AI_FAN_OUTS_MAX = 8;
+export const AI_RETRIEVED_MAX = 20;
+
+/** Absent where the vendor sent no list, so an older or search-less answer stays "not measured", never "none". */
+function searchedAndRead(item: Record<string, unknown>): Pick<AiAnswer, "fanOuts" | "retrievedUrls"> {
+  const fanOuts = Array.isArray(item.fan_out_queries)
+    ? [...new Set(item.fan_out_queries.flatMap((q) => asString(q)?.trim() || []))].slice(0, AI_FAN_OUTS_MAX)
+    : undefined;
+  const retrievedUrls = Array.isArray(item.search_results) ? referenceUrls(item.search_results).slice(0, AI_RETRIEVED_MAX) : undefined;
+  return { ...(fanOuts ? { fanOuts } : {}), ...(retrievedUrls ? { retrievedUrls } : {}) };
+}
+
 /** The ChatGPT scraper's result: an item carrying `markdown` and `sources`
  *  — "the sources the model actually cited or relied on in its final
  *  answer" — which is what counts as a citation; `search_results` (what
- *  it retrieved, cited or not) deliberately does not. */
+ *  it retrieved, cited or not) never does, and is kept apart as `retrievedUrls`. */
 export function parseLlmScraper(result: unknown): AiAnswer[] | undefined {
   if (!isRecord(result)) return undefined;
   if (result.items === null || result.items === undefined) return [];
@@ -72,7 +85,7 @@ export function parseLlmScraper(result: unknown): AiAnswer[] | undefined {
     const text = asString(item.markdown) ?? asString(item.text);
     const cited = referenceDomains(item.sources);
     if (!text && cited.length === 0) continue;
-    return [{ answered: true, text: text ?? "", citedDomains: cited, citedUrls: referenceUrls(item.sources) }];
+    return [{ answered: true, text: text ?? "", citedDomains: cited, citedUrls: referenceUrls(item.sources), ...searchedAndRead(item) }];
   }
   return [];
 }
