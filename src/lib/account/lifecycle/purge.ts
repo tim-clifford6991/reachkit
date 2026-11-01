@@ -77,6 +77,9 @@ const PURGE_ORDER: readonly {
   // of this customer's pages. Before the pages, because a draft's calls name
   // its row (issue 1478); every one of them is keyed to one of this site's
   // scans.
+  // What the re-score read off those rows (`fetch_facts`): keyed to its
+  // read with no cascade, so it goes first, by the scan its read is under.
+  { table: "fetch_facts", column: "scan_id", from: "scanIds" },
   { table: "fetches", column: "scan_id", from: "scanIds" },
   // The pages themselves — body and `grounded_fact` alike. REQ-050 c1 keeps
   // a grounding passage "unchanged from then on"; its retention ends here,

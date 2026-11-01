@@ -19,7 +19,7 @@ const page = (url: string, created_at: string, scan_id: string | null = null, ht
 });
 
 /** The requests that downloaded payloads to refresh facts. */
-const payloadRequests = (answered: ReturnType<typeof fakeClient>["answered"]) => answered.filter((a) => a.table === "fetches" && a.columns === "id, cache_key, payload");
+const payloadRequests = (answered: ReturnType<typeof fakeClient>["answered"]) => answered.filter((a) => a.table === "fetches" && a.columns === "id, scan_id, cache_key, payload");
 
 describe("a paying scan's live pages are read only as the reads it scores with", () => {
   // 4 live pages read 3 times each; 5 scans that each read one page of their own.

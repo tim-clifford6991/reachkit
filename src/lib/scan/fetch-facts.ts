@@ -51,10 +51,10 @@ export function factsLoader(client: () => Promise<MinimalClient>, version: strin
     }
     const missing = ids.filter((id) => !out.has(id));
     if (missing.length === 0) return out;
-    const rows = got(await db.from<{ id: string; cache_key: string; payload: unknown }>("fetches").select("id, cache_key, payload").in("id", missing), true) ?? [];
+    const rows = got(await db.from<{ id: string; scan_id: string; cache_key: string; payload: unknown }>("fetches").select("id, scan_id, cache_key, payload").in("id", missing), true) ?? [];
     const at = new Date().toISOString();
     const derived = offline("scan/rescore", "A page's facts are read from its stored payload.", () =>
-      rows.map((r) => ({ fetch_id: r.id, facts_version: version, facts: pageFactsOf(r.cache_key, r.payload), computed_at: at }))
+      rows.map((r) => ({ fetch_id: r.id, scan_id: r.scan_id, facts_version: version, facts: pageFactsOf(r.cache_key, r.payload), computed_at: at }))
     );
     for (const row of derived) out.set(row.fetch_id, row.facts);
     if (version !== null && derived.length > 0) checked(await db.from("fetch_facts").upsert(derived, { onConflict: "fetch_id" }));

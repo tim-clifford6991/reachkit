@@ -599,7 +599,7 @@ kept at the deployed `RK_FACTS_VERSION`, the same fingerprint over the extractor
 downloaded once and its facts kept, so only the first run after an extractor change reads pages;
 the summary's `read ≈ N MB (facts refresh ≈ M MB)` line says how much it read and how much of that
 was pages read for their facts. `fetch_facts` is a cache: a row is never trusted at another version,
-deleting a `fetches` row deletes its facts, and dropping every row costs one refresh. Production's tick,
+the account purge deletes a scan's facts by `scan_id` before its `fetches` rows (no cascade, ADR-051), and dropping every row costs one refresh. Production's tick,
 every 15 minutes, finds no run at the deployed derivation and asks one apply itself
 (`auto = true`; decision `docs/spec/decisions/2026-11-01-2254.md`). That run scores every stored
 scan in memory and decides the guard before it writes anything (`RESCORE_GUARD` in
