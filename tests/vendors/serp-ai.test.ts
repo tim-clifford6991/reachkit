@@ -456,6 +456,56 @@ describe("BUILD §6.2 — the paid battery's two engines and their pinned prices
     expect(result.value.citedDomains).not.toContain("retrieved-not-cited.com");
   });
 
+  it("parseLlmScraper keeps the distinct fan-outs and every retrieved page, and cites only `sources`", () => {
+    const [answer] = ai.parseLlmScraper({
+      items: [
+        {
+          markdown: "ChatGPT's answer …",
+          fan_out_queries: ["best crm for agencies", "  best crm for agencies ", "crm pricing compared"],
+          search_results: [
+            { url: "https://cited-one.test/guide" },
+            { url: "https://retrieved-a.test/a" },
+            { url: "https://retrieved-b.test/b" },
+            { url: "https://retrieved-c.test/c" },
+          ],
+          sources: [{ domain: "cited-one.test", url: "https://cited-one.test/guide" }, { url: "https://cited-two.test/page" }],
+        },
+      ],
+    }) ?? [];
+
+    expect(answer?.fanOuts).toEqual(["best crm for agencies", "crm pricing compared"]);
+    expect(answer?.retrievedUrls).toHaveLength(4);
+    expect(answer?.citedUrls).toEqual(["https://cited-one.test/guide", "https://cited-two.test/page"]);
+    expect(answer?.citedDomains).toEqual(["cited-one.test", "cited-two.test"]);
+  });
+
+  it("parseLlmScraper leaves both absent, never `[]`, on an item that carries neither list", () => {
+    const [answer] = ai.parseLlmScraper({ items: [{ markdown: "An answer.", sources: [{ url: "https://cited-one.test/" }] }] }) ?? [];
+
+    expect(answer).toBeDefined();
+    expect(answer).not.toHaveProperty("fanOuts");
+    expect(answer).not.toHaveProperty("retrievedUrls");
+  });
+
+  it("parseLlmScraper caps what it keeps, and parseAiMode keeps neither", () => {
+    const many = Array.from({ length: 30 }, (_, i) => i);
+    const [chatgpt] = ai.parseLlmScraper({
+      items: [
+        {
+          markdown: "An answer.",
+          fan_out_queries: many.map((i) => `search ${i}`),
+          search_results: many.map((i) => ({ url: `https://retrieved-${i}.test/` })),
+        },
+      ],
+    }) ?? [];
+    const [aiMode] = ai.parseAiMode({ items: [aiOverviewItem({ async: false, domains: ["cited-one.test"] })] }) ?? [];
+
+    expect(chatgpt?.fanOuts).toHaveLength(ai.AI_FAN_OUTS_MAX);
+    expect(chatgpt?.retrievedUrls).toHaveLength(ai.AI_RETRIEVED_MAX);
+    expect(aiMode).not.toHaveProperty("fanOuts");
+    expect(aiMode).not.toHaveProperty("retrievedUrls");
+  });
+
   it("an engine that gave no answer is the `zero` arm carrying `answered: false`", async () => {
     stubVendorFetch(() => envelope({ items: [] }));
     const { ctx } = fakeCostContext();

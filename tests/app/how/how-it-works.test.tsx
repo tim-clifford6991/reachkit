@@ -69,6 +69,10 @@ describe("the head, the four steps and eleven sections in the board's order", ()
     expect(html).toContain(`<h1 id="top-h" class="t-hero">${copy("how.headline")}</h1>`);
   });
 
+  it("names ReachKit in the headline, as its title does", () => {
+    expect(html.match(/<h1[^>]*>([^<]*)<\/h1>/)?.[1]).toContain("ReachKit");
+  });
+
   it("has the eleven anchors in order", () => {
     expect(sections().map((s) => s.id)).toEqual([
       "top",
