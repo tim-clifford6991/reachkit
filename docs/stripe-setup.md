@@ -104,8 +104,11 @@ Two other places will take them:
    purchase with no report behind it.
 6. A `magic-link` mail leaves for the paying address. It is late or absent before #325.
 7. Opening the link lands on `/auth/confirm`, which shows one **Sign in** button and spends
-   nothing. Pressing it sets the session and redirects a never-signed-in customer to `/setup`. A link lasts 24 hours and issuing a new one spends every
-   older one.
+   nothing, so a mail scanner that opens it signs nobody in. Only that button's post from this
+   deployment's own page signs in; a post from anywhere else spends nothing. Pressing it sets the
+   session and redirects a never-signed-in customer to `/setup`. A link lasts 24 hours and works
+   once. Asking again within 15 minutes re-sends the same link; after that a new link replaces the
+   older one, which then answers **This link no longer works**.
 
 ## 8. The three checks after it
 

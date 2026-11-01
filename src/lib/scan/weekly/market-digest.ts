@@ -24,7 +24,8 @@
 // many of the week before's pages stopped on the way to review and how often
 // each cause stopped one — the seven dates before `week_start`, which is the
 // last week every zone has finished. A read that fails leaves the count out
-// and never holds the digest back.
+// and never holds the digest back. The same dates' days with no page that no
+// alert was sent for, each with its reason, are listed after them.
 //
 // **What the week cost** (issue 1286, D57). The same mail carries that same
 // week's cost (`./cost-week`): per site a measurement and a page written,
@@ -109,6 +110,30 @@ async function stoppedBefore(weekStart: string): Promise<StoppedWeek | null> {
     };
   } catch (error) {
     console.warn(JSON.stringify({ event: "market_digest_stopped_unread", error: error instanceof Error ? error.name : "unknown" }));
+    return null;
+  }
+}
+
+type UntoldWeek = NonNullable<Extract<OpsIncident, { occasion: "market-too-small-week" }>["untold"]>;
+
+/** The week before `weekStart`'s days with no page that no alert was sent for, or `null` where there is none or they
+ *  could not be read. */
+async function untoldBefore(weekStart: string): Promise<UntoldWeek | null> {
+  try {
+    const { untoldMisses } = await import("@/lib/publish/daily");
+    const days = await untoldMisses({ from: addDays(weekStart, -7), to: addDays(weekStart, -1) });
+    if (days.length === 0) return null;
+    const sites = await untyped()
+      .from<SiteRow>("sites")
+      .select("id, domain")
+      .in("id", [...new Set(days.map((day) => day.siteId))]);
+    if (sites.error) throw new Error(sites.error.message);
+    const domains = new Map((sites.data ?? []).map((site) => [site.id, site.domain]));
+    return days
+      .map((day) => ({ domain: domains.get(day.siteId) ?? "unknown", date: day.publishDate, reason: day.reason }))
+      .sort((a, b) => a.domain.localeCompare(b.domain) || a.date.localeCompare(b.date));
+  } catch (error) {
+    console.warn(JSON.stringify({ event: "market_digest_untold_unread", error: error instanceof Error ? error.name : "unknown" }));
     return null;
   }
 }
@@ -203,15 +228,17 @@ export async function sendMarketDigest(weekStart: string, now: Date): Promise<bo
   }
 
   const stopped = await stoppedBefore(weekStart);
+  const untold = await untoldBefore(weekStart);
   const costs = await costBefore(weekStart);
   const unhealthy = await unhealthyBefore(weekStart);
-  if (tooSmall.length > 0 || stopped !== null || costs !== null || unhealthy !== null) {
+  if (tooSmall.length > 0 || stopped !== null || untold !== null || costs !== null || unhealthy !== null) {
     const { reportIncident } = await import("@/lib/mail/ops");
     const accepted = await reportIncident({
       occasion: "market-too-small-week",
       weekStart,
       scanIds: tooSmall,
       ...(stopped === null ? {} : { stopped }),
+      ...(untold === null ? {} : { untold }),
       ...(costs === null ? {} : { costs }),
       ...(unhealthy === null ? {} : { unhealthy }),
     });
@@ -225,6 +252,6 @@ export async function sendMarketDigest(weekStart: string, now: Date): Promise<bo
     .in("id", ids)
     .is("market_digest_at", null);
   if (stamped.error) throw new Error(`sendMarketDigest: could not stamp the week: ${stamped.error.message}`);
-  console.log(JSON.stringify({ event: "market_digest", weekStart, read: ids.length, tooSmall: tooSmall.length, stoppedSites: stopped?.sites.length ?? 0, costs: costs !== null, drifting: costs?.drift?.sources.length ?? 0, unhealthy: unhealthy?.length ?? 0 }));
+  console.log(JSON.stringify({ event: "market_digest", weekStart, read: ids.length, tooSmall: tooSmall.length, stoppedSites: stopped?.sites.length ?? 0, untold: untold?.length ?? 0, costs: costs !== null, drifting: costs?.drift?.sources.length ?? 0, unhealthy: unhealthy?.length ?? 0 }));
   return true;
 }

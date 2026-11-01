@@ -25,8 +25,7 @@ vi.mock("@/lib/publish/daily", () => ({
   sitesForDailyTick: () => selection(),
   // Issue 1455's day record and publish-time check, tested where they live.
   recordDraftDay: async () => {},
-  alertMissingDrafts: async () => 0,
-  alertStalledSites: async () => 0,
+  alertSiteDay: async () => 0,
   missedDays: async () => [],
   dayHold: async () => null,
 }));

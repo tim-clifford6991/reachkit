@@ -53,7 +53,7 @@ import {
   IMPROVE_POSITION_BAND,
   THIN_PAGE_VISIBLE_CHARS,
 } from "@/lib/config/constants";
-import { isOwnDomain, registrableDomain } from "@/lib/market/rivals/domains";
+import { isOwnDomain, registrableDomain, resolvedHost, resolvedRows } from "@/lib/market/rivals/domains";
 import { measured } from "@/lib/measure/measured";
 import type { StoredReport } from "@/lib/scan/report";
 import type { InventoryRow } from "@/lib/site-profile/types";
@@ -141,7 +141,7 @@ export function improveCandidates(a: ImproveInput): DerivationResult {
 
     const owned: OwnedRanking[] = [];
     for (const row of serp.organic) {
-      if (!isOwnDomain(registrableDomain(row.domain) ?? row.domain, ownDomain)) continue;
+      if (!isOwnDomain(resolvedHost(row) ?? "", ownDomain)) continue;
       owned.push({ url: row.url, position: row.position, exact: true, topical: topical(row.url, topic) });
     }
     for (const row of ranked) {
@@ -162,7 +162,8 @@ export function improveCandidates(a: ImproveInput): DerivationResult {
     const ignoredByTheAnswer = cell !== undefined && cell.kind === "answered" && !cell.namesCustomer;
 
     const chosen = inBand
-      .filter((row) => !claimed.has(canonicalUrl(row.url)))
+      // A ranking read through Google's redirect is the customer's, but its address is Google's, never a page to change.
+      .filter((row) => !claimed.has(canonicalUrl(row.url)) && isOwnDomain(row.url, ownDomain))
       .map((row): { row: OwnedRanking; type: "expand_page" | "answerable_page"; shortfall: Shortfall } | null => {
         if (home !== null && canonicalUrl(row.url) === canonicalUrl(home.url) && home.visibleChars < THIN_PAGE_VISIBLE_CHARS) {
           return { row, type: "expand_page", shortfall: { kind: "thin", words: measured(home.visibleChars, at) } };
@@ -186,11 +187,7 @@ export function improveCandidates(a: ImproveInput): DerivationResult {
     // Improve type is one, so otherwise the band is recorded and never
     // drops a page.
     const sizing = {
-      top10RankedCounts: rankedCountsFor(
-        serp.organic.map((organic) => registrableDomain(organic.domain) ?? organic.domain),
-        a.rankedCounts,
-        at
-      ),
+      top10RankedCounts: rankedCountsFor((resolvedRows(serp.organic) ?? []).map((organic) => registrableDomain(organic.domain) ?? organic.domain), a.rankedCounts, at),
       ownRanked: a.ownRanked,
       volume: question.search.volume,
     };

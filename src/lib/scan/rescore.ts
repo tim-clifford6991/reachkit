@@ -42,6 +42,7 @@ import type { RivalCandidate } from "@/lib/market/rivals/derive";
 import { isOwnDomain, registrableDomain } from "@/lib/market/rivals/domains";
 import { brandOf } from "@/lib/market/questions/select";
 import { citedPagesOf } from "@/lib/market/prompts/answer";
+import { freePageChanges } from "@/lib/opportunities/free-page";
 import { statementsOf } from "@/lib/market/prompts/misstated";
 import type { Profile } from "@/lib/market/questions/profile-types";
 import type { PresenceCard } from "@/lib/market/rivals/presence";
@@ -208,14 +209,6 @@ function membersOf(r: RescoreReport): RescoredMembers {
   };
 }
 
-/** The search-presence driver from the presence card counted again over
- *  the stored SERPs, or `null` where no search was measured or no card was
- *  stored: then the stored driver stands until the next scan. */
-function searchPresenceFrom(card: PresenceCard | null, serps: RescoreReport["serps"], at: Date): Measured<number> | null {
-  if (card === null || card.measuredSearches === 0) return null;
-  return searchPresenceOf({ card, serps, at });
-}
-
 /** The cards over the stored SERPs, where the pass that stored them got as
  *  far as counting them; otherwise the stored members stand. */
 function cardsAfter(
@@ -369,7 +362,7 @@ export function rescoreScan(scan: RescoreScan): Rescored {
   if (stale) kept.push(KEPT_TOWN_BOUGHT);
   const cards = cardsAfter(read, scan, kept);
 
-  const searchPresence = searchPresenceFrom(cards.presence, r.serps, at);
+  const searchPresence = cards.presence === null || cards.presence.measuredSearches === 0 ? null : searchPresenceOf({ card: cards.presence, serps: r.serps, at });
   if (searchPresence === null) kept.push("search presence: the report kept no measured search, so its stored value stands");
   // Issue 1551: the page questions' stored AI-Overview cells count beside
   // the twelve's, read as stored. A report written before the section has
@@ -434,7 +427,9 @@ export function rescoreScan(scan: RescoreScan): Rescored {
   }
 
   const before = membersOf(r);
-  const changes = [...changesOf(before, after), ...profileChanges(r, profile, reading), ...promptChanges(r, scan), ...servedChanges(r, scan)];
+  // The run hands over the whole stored report; its type names only what a score reads.
+  const freePage = freePageChanges({ ...read, ...after, scanId: scan.id } as unknown as StoredReport);
+  const changes = [...changesOf(before, after), ...profileChanges(r, profile, reading), ...promptChanges(r, scan), ...servedChanges(r, scan), ...freePage];
   // A new date is a change though `same` reads past dates: the whole
   // verdict is written again, every member of it carrying that date.
   if (at.getTime() !== new Date(r.verdict.measuredAt).getTime() && !changes.some((c) => c.path.length === 1 && c.path[0] === "verdict")) {

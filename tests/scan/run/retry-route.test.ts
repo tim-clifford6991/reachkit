@@ -252,4 +252,29 @@ describe("the report's per-part retry, through the real route and the real pass 
     expect(response.status).toBe(400);
     expect(db.queries.filter((q) => q.verb === "insert")).toHaveLength(0);
   });
+
+  it("a retry that measured the twelve and the market stores the page it derives, or none; one that did not keeps the carried page", async () => {
+    const carried: StoredReport["freePage"] = {
+      opportunityId: `${RETRIED}:baker`,
+      title: { source: "model", text: "Where can I find a baker?" },
+      slug: { source: "model", text: "baker" },
+      target: { keyword: "baker", volume: 90 },
+      beats: null,
+      format: "answer_page",
+      totalPages: 1,
+    };
+    const retried = async (over: Parameters<typeof fullSections>[0]) => {
+      vi.clearAllMocks();
+      afterTasks.length = 0;
+      row = { report: storedCutOff({ freePage: carried, ...over }), cost_cents: 1 };
+      await post("ai_answers");
+      await afterTasks[0]!();
+      return (storeCurrentReport.mock.calls.at(-1) as unknown as [{ report: StoredReport }])[0].report;
+    };
+    const measuredPass = await retried({});
+    expect(measuredPass.market.kind).not.toBe("unmeasured");
+    expect(measuredPass.freePage).toBeNull();
+    expect((await retried({ market: unmeasured("not_attempted", AT) })).freePage).toEqual(carried);
+  });
 });
+
