@@ -64,7 +64,7 @@ export default async function ConfirmPage(p: {
     >
       <main className="px-4 pt-10 pb-14 sm:px-6 sm:pt-18 sm:pb-22">
         <div className="mx-auto flex w-full min-w-0 max-w-120 flex-col gap-6">
-          <span className="grid size-11 flex-none place-items-center rounded-box bg-primary/10 text-primary">
+          <span className="grid size-11 flex-none place-items-center rounded-box bg-(--accent-bg) text-primary">
             <Icon size={24} strokeWidth={1.75} aria-hidden />
           </span>
           <h1 className="t-hero">{copy(arm.head)}</h1>

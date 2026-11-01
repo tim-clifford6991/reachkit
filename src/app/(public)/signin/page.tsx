@@ -22,7 +22,7 @@ const SECTION = "px-4 pt-10 pb-14 sm:px-6 sm:pt-18 sm:pb-22";
 const COLUMN = "mx-auto flex w-full min-w-0 max-w-120 flex-col gap-6";
 const LEAD = "text-base-content/80 sm:text-lg";
 const QUIET = "text-base-content/70";
-const CARD = "card border border-base-300 bg-base-100 flex flex-col";
+const CARD = "card border border-base-300 bg-base-100 shadow-(--shadow-card) flex flex-col";
 const FACT = "flex flex-col gap-0.5 py-3";
 const MARK = "grid size-11 flex-none place-items-center rounded-box";
 const ICON = { size: 24, strokeWidth: 1.75, "aria-hidden": true } as const;
@@ -114,7 +114,7 @@ export default function SignInPage(props: {
             {answer}
           </p>
         ) : null}
-        <button type="submit" className="btn btn-primary btn-block h-11" disabled={pending} aria-busy={pending || undefined}>
+        <button type="submit" className="btn btn-primary btn-block h-11 text-(length:--t-body)" disabled={pending} aria-busy={pending || undefined}>
           {pending ? <span className="loading loading-spinner loading-sm" aria-hidden /> : null}
           {submit}
         </button>
@@ -134,7 +134,7 @@ export default function SignInPage(props: {
         <div className={COLUMN}>
           {deadLink ? (
             <>
-              <span className={`${MARK} bg-warning/10 text-warning`} data-tone="warning">
+              <span className={`${MARK} bg-(--warn-bg) text-warning`} data-tone="warning">
                 <Clock {...ICON} />
               </span>
               <h1 className="t-hero">{copy("signin.expired.head")}</h1>
@@ -143,7 +143,7 @@ export default function SignInPage(props: {
             </>
           ) : answered ? (
             <>
-              <span className={`${MARK} bg-success/10 text-success`} data-tone="ok" data-testid="signin-chip">
+              <span className={`${MARK} bg-(--ok-bg) text-success`} data-tone="ok" data-testid="signin-chip">
                 <Send {...ICON} />
               </span>
               <h1 className="t-hero">{copy("signin.sent.head")}</h1>

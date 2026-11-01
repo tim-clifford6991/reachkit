@@ -14,11 +14,11 @@ export function ConfirmForm(p: {
 }): React.JSX.Element {
   const [sent, setSent] = useState(false);
   return (
-    <form method="post" action={p.action} className="card border border-base-300 bg-base-100 flex flex-col gap-4 p-6" onSubmit={() => setSent(true)}>
+    <form method="post" action={p.action} className="card border border-base-300 bg-base-100 shadow-(--shadow-card) flex flex-col gap-4 p-6" onSubmit={() => setSent(true)}>
       {Object.entries(p.fields).map(([name, value]) => (
         <input key={name} type="hidden" name={name} value={value} />
       ))}
-      <button type="submit" className="btn btn-primary btn-block h-11" disabled={sent} aria-busy={sent || undefined}>
+      <button type="submit" className="btn btn-primary btn-block h-11 text-(length:--t-body)" disabled={sent} aria-busy={sent || undefined}>
         {p.label}
         <ArrowRight size={20} strokeWidth={1.75} aria-hidden />
       </button>
