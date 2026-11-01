@@ -46,8 +46,8 @@ import { HOW_FACTS } from "./facts";
 import { ExampleSwitch } from "./ExampleSwitch";
 import { EXAMPLES, LIVE_AT, REASON_COPY, weekDate, weekDays, weekSpan, type Example } from "./specimen";
 
-const ICON = { size: 16, strokeWidth: 1.75, "aria-hidden": true } as const;
-const CARD = "card card-border bg-base-100 min-w-0";
+export const ICON = { size: 16, strokeWidth: 1.75, "aria-hidden": true } as const;
+export const CARD = "card card-border bg-base-100 min-w-0";
 const SMALL = "text-base-content/70 text-xs";
 const LABEL = "text-primary text-xs font-semibold";
 const WELL = "rounded-box bg-base-200 flex min-w-0 flex-col gap-1 p-3";
@@ -633,59 +633,24 @@ export interface WhenStep {
   readonly icon: LucideIcon;
 }
 
-const WHEN_STEPS = (): readonly WhenStep[] =>
+export const WHEN_STEPS = (): readonly WhenStep[] =>
   WHEN.map(([step, icon]) => ({
     at: copy(`how.when.${step}.at` as CopyKey),
     what: copy(`how.when.${step}.what` as CopyKey),
     icon,
   }));
 
-/** The landing's bar over each column: done, under way, under way, not yet sure. */
-const WHEN_BAR = [
-  "bg-success/15 border-success/30",
-  "bg-primary/10 border-primary/20",
-  "bg-primary/10 border-primary/20",
-  "border-dashed border-primary/50",
-] as const;
-
 /** `#found`: what moves when, as time ranges and never as dates. Pricing
- *  draws the same card with its own first days and no Maps line. The
- *  landing (`promise: false`) draws the four steps alone, in columns from
- *  `lg`, its last step without the line after it. */
+ *  draws the same card with its own first days and no Maps line. */
 export function WhatToExpect(
-  p: { title?: string; steps?: readonly WhenStep[]; maps?: boolean; promise?: boolean } = {}
+  p: { title?: string; steps?: readonly WhenStep[]; maps?: boolean } = {}
 ): React.JSX.Element {
   const steps = p.steps ?? WHEN_STEPS();
-  const title = p.title ?? copy("how.when.title");
-  if (p.promise === false) {
-    const short = steps.map((step, i) => (i === steps.length - 1 ? { ...step, what: copy("landing.when.top") } : step));
-    return (
-      <figure className={CARD} aria-label={title}>
-        <div className="card-body gap-3 lg:gap-6">
-          <h3 className="text-base font-semibold">{title}</h3>
-          <ol className="divide-base-300 grid grid-cols-1 divide-y lg:grid-cols-4 lg:gap-7 lg:divide-y-0">
-            {short.map((step, i) => (
-              <li key={step.at} className="flex min-w-0 items-start gap-3.5 py-3.5 lg:flex-col lg:gap-3 lg:py-0">
-                <span aria-hidden className={`hidden h-2 w-full rounded-full border lg:block ${WHEN_BAR[i] ?? WHEN_BAR[1]}`} />
-                <span className="rounded-field bg-primary/10 text-primary grid size-8 shrink-0 place-items-center">
-                  <step.icon {...ICON} />
-                </span>
-                <span className="flex min-w-0 flex-col gap-1">
-                  <span className="font-semibold">{step.at}</span>
-                  <span className="text-base-content/70">{step.what}</span>
-                </span>
-              </li>
-            ))}
-          </ol>
-        </div>
-      </figure>
-    );
-  }
   return (
     <div className={CARD}>
       <div className="card-body gap-3">
         <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <h3 className="text-base font-semibold">{title}</h3>
+          <h3 className="text-base font-semibold">{p.title ?? copy("how.when.title")}</h3>
           <span className={SMALL}>{copy("how.when.sub")}</span>
         </div>
         <ul className="timeline timeline-vertical timeline-compact min-w-0">

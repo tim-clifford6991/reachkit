@@ -51,7 +51,8 @@ import { WALKTHROUGH_SRC, Walkthrough } from "./_landing/Walkthrough";
 import { KIND_ICON, KIND_WORD } from "./scans/kinds";
 import { BUSINESS_KIND_NAMES } from "@/lib/market/kinds";
 import { PlanBuys } from "./_how/buys";
-import { MondayEmail, WhatToExpect } from "./_how/visuals";
+import { MondayEmail } from "./_how/visuals";
+import { WhenSteps } from "./_how/visuals-when";
 import { EXAMPLES } from "./_how/specimen";
 import { BrandMark } from "@/app/_brand/Brand";
 import { FAQ_SECTION_ID, FIELD_SECTION_ID, HOW_SECTION_ID, PRICE_SECTION_ID, WHY_SECTION_ID } from "./_landing/sections";
@@ -314,7 +315,7 @@ export default function LandingPage(props: {
           <div className={`${INNER} flex flex-col items-start gap-6 lg:gap-8`}>
             <h2 className="mb-0">{copy("landing.faq.heading")}</h2>
             <div className="w-full">
-              <WhatToExpect promise={false} />
+              <WhenSteps />
             </div>
             <div className="grid w-full grid-cols-1 items-start gap-3 lg:grid-cols-2 lg:gap-x-4">
               {questions().map((item) => (
