@@ -151,8 +151,8 @@ describe('REQ-021 c4 — "Given a surface that offers ReachKit away from any rep
     // holds is unchanged: no term the card states is restated here.
     expect(PAGE_BODY).toContain("PricingCard");
     expect(readFileSync(REPORT_VIEW_PATH, "utf8")).toContain("PricingCard");
-    // The price itself fills the board's section titles ("One week of your
-    // €49"); every term the card states stays the card's.
+    // The price itself fills the section titles ("€49 against the other
+    // ways"); every term the card states stays the card's.
     for (const term of [
       "price.interval",
       "offer.cadence",
