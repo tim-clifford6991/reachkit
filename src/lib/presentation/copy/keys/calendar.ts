@@ -308,7 +308,7 @@ export const CALENDAR_COPY = Object.freeze({
   // never held an opportunity — is not "used up". Its own line, in the cell
   // and the panel alike. Drafted and shipped under #759's ruling.
   "calendar.empty.supply-unmeasured": [
-    "We couldn’t find enough searches for your market yet. Pick a broader market and we’ll scan again right away.",
+    "We haven’t found enough searches for your market yet. Name a broader one in Settings and we’ll check again.",
     { slots: {}, fixedBy: "REQ-043 c3" },
   ],
   // S15's `empty` arm leads with a chip carrying this word, so a date with
@@ -369,16 +369,9 @@ export const CALENDAR_COPY = Object.freeze({
   ],
   // issue 784: the same statement over a market that was never measured (issue 765)
   // — there was nothing to use up. Drafted under issue 759's ruling.
-  "calendar.supply.unmeasured": ["We couldn’t find enough searches in your market to plan pages yet. Pick a broader market and we’ll scan again right away.", { slots: {}, fixedBy: "issue 784" }],
+  "calendar.supply.unmeasured": ["We haven’t found enough searches in your market to plan pages yet. Name a broader one in Settings and we’ll check again.", { slots: {}, fixedBy: "issue 784" }],
   // issue 855: the same zero while the market is still being measured — a pass
   // stopped on a ceiling, measured again. Drafted under issue 759's ruling.
-  // Issue 1071 (board R12-5-Plan): the unmeasured notice carries its two
-  // actions inline — the first broader category, and the founder's own
-  // words. Drafted under issue 759's ruling; the owner corrects the wording.
-  "calendar.supply.try": ["Try “{category}”", { slots: { category: "text" }, fixedBy: "issue 1071" }],
-  "calendar.supply.describe": ["Describe it yourself", { slots: {}, fixedBy: "issue 1071" }],
-  // Issue 1071: the header's way back to the month and day it is now.
-  "calendar.month.today": ["Today", { slots: {}, fixedBy: "issue 1071" }],
   "calendar.supply.measuring": ["We’re still checking your market, so no pages are planned yet. Nothing is needed from you.", { slots: {}, fixedBy: "issue 855" }],
   // Issue 881 (owner's dogfood, 2026-09-18): the site holds targets and
   // every one of them is outsized for it — the day is empty for a reason
@@ -508,7 +501,7 @@ export const CALENDAR_COPY = Object.freeze({
   "calendar.head.undated": ["Each goes live on its day unless you stop it.", { slots: {}, fixedBy: "board Plan (drafted)" }],
   "calendar.first-week": ["Your first week is being chosen. It shows here by Monday morning, with a reason for each page.", { slots: {}, fixedBy: "board Plan (drafted)" }],
   "calendar.numbers.live": ["pages live so far", { slots: {}, fixedBy: "board Plan (drafted)" }],
-  "calendar.numbers.spares": ["spares kept ready", { slots: {}, fixedBy: "board Plan (drafted)" }],
+  "calendar.numbers.spares": ["backup pages ready", { slots: {}, fixedBy: "board Plan (drafted)" }],
   "calendar.numbers.stopped": ["stopped by you", { slots: {}, fixedBy: "board Plan (drafted)" }],
   "calendar.numbers.unread": ["couldn’t load", { slots: {}, fixedBy: "board Plan (drafted)" }],
   "calendar.week.time": ["Every page goes live at {time}, {place} time", { slots: { time: "text", place: "text" }, fixedBy: "board Plan (drafted)" }],
@@ -520,10 +513,10 @@ export const CALENDAR_COPY = Object.freeze({
   "calendar.next": ["{date}: we check your searches, pages and competitors again, and choose the next {n}.", { slots: { date: "text", n: "text" }, fixedBy: "owner R12 B10 (drafted)" }],
   "calendar.chosen.title": ["How this week’s pages were chosen", { slots: {}, fixedBy: "board Plan (drafted)" }],
   "calendar.chosen.body": [
-    "Each Monday ReachKit reads where your pages stand in Google and in AI answers, what your competitors win, and what your business offers. It then picks the {n} pages most likely to bring you buyers: new pages for searches nobody on your site answers yet, and updates to pages that have stopped gaining. A page that is still climbing is left alone.",
+    "Every Monday we check where your pages stand on Google and in AI answers. Then we pick the {n} pages most likely to bring you buyers.",
     { slots: { n: "text" }, fixedBy: "board Plan (drafted)" },
   ],
-  "calendar.chosen.stored": ["The reason under each day is the one ReachKit stored when it chose the page.", { slots: {}, fixedBy: "board Plan (drafted)" }],
+  "calendar.chosen.stored": ["Each reason is the one we saved when we chose the page.", { slots: {}, fixedBy: "board Plan (drafted)" }],
   // Why the week holds a page, as a sentence from its most specific stored part.
   "calendar.reason.near-page-one": ["Your page is close to Google’s first page for this search. This update adds what the pages above cover.", { slots: {}, fixedBy: "board Plan (drafted)" }],
   "calendar.reason.not-moving": ["Your page has not moved in 8 weeks. This rewrite matches what Google now shows for it.", { slots: {}, fixedBy: "board Plan (drafted)" }],
@@ -535,7 +528,7 @@ export const CALENDAR_COPY = Object.freeze({
   "calendar.day.stopped.line": ["Stopped by you. The other days are not affected.", { slots: {}, fixedBy: "board Plan (drafted)" }],
   "calendar.day.skipped.line": ["Nothing worth writing for this day, so no page. We skip a day, never fill it.", { slots: {}, fixedBy: "board Plan (drafted)" }],
   "calendar.live.title": ["Live pages", { slots: {}, fixedBy: "board Plan (drafted)" }],
-  "calendar.live.dots": ["dots are steps. Google: live, found, showing, first page. AI: read, linked, visit.", { slots: {}, fixedBy: "board Plan (drafted)" }],
+  "calendar.live.dots": ["Dots show each step: live, found, showing, first page, then read, linked, visit.", { slots: {}, fixedBy: "board Plan (drafted)" }],
   "calendar.live.google": ["Google: {step}", { slots: { step: "text" }, fixedBy: "board Plan (drafted)" }],
   "calendar.live.ai": ["AI: {step}", { slots: { step: "text" }, fixedBy: "board Plan (drafted)" }],
   "calendar.live.place": ["Place {n} for “{search}”.", { slots: { n: "text", search: "text" }, fixedBy: "board Plan (drafted)" }],

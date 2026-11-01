@@ -12,10 +12,10 @@ garbage disposal repair austin 210 a month Up next	sample data
 210	sample data
 low water pressure austin 140 a month Up next	sample data
 140	sample data
-plumber austin 6,600 a month Too big for now	sample data
+plumber austin 6,600 a month Too hard for now	sample data
 6,600	sample data
 Theme: light	DESIGN.md: the /app shell's theme control is the Light / Dark / System dropdown named Theme (#681)
-Measured Monday 19 October.	sample data: the day is the account's own stored reading
+Checked Monday 19 October.	sample data: the day is the account's own stored reading
 austinpipeworks.example 3 of 12	sample data
 capitolrooter.example 2 of 12	sample data
 a home-improvement store 1 of 12	sample data
@@ -24,7 +24,7 @@ You’re not the top result on any of the 12 yet. You’re on Google’s first p
 austinpipeworks.example 5	sample data
 capitolrooter.example 4	sample data
 You were on 0 of 12 when you started.	sample data: the count is the account's own first week
-Of 184 AI answers to your buyers’ 23 questions, last 4 weeks. Checked monthly.	sample data: the counts are the account's own month reading
+From 184 AI answers to 23 buyer questions, over the last 4 weeks.	sample data: the counts are the account's own month reading
 You 11	sample data
 austinpipeworks.example 41	sample data
 capitolrooter.example 29	sample data
@@ -34,7 +34,7 @@ Goes live today	sample data: the fixture's Plan week holds none of these searche
 slab leak repair cost austin 260 a month Page Wed 21	sample data
 Page Wed 21	sample data: the day is the account's own Plan week
 Page Fri 23	sample data: the day is the account's own Plan week
-Too big for now	sample data: the fixture's too-big rows sit past the first nine, behind Show all (#1747)
+Too hard for now	sample data: the fixture's too-big rows sit past the first nine, behind Show all (#1747)
 4.2× your size from 4.6×	sample data: the ratios are the account's own competitors
 2.8× your size no clear change	sample data: the ratios are the account's own competitors
-Size means how many searches each site shows up for, against yours. Far larger competitors in your searches: a national plumbing chain. They aren’t tracked against you for now.	sample data: the far-larger names are the account's own
+Size is how many searches a site shows up for. We don’t compare you with far larger sites for now, like a national plumbing chain.	sample data: the far-larger names are the account's own
