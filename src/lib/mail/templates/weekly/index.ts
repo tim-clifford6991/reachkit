@@ -32,6 +32,10 @@ const CONNECT = "mail.weekly.connect" satisfies CopyKey;
 const CONNECT_ACTION = "mail.weekly.connect.action" satisfies CopyKey;
 const LIVE = shownKey("mail-pages-live") satisfies CopyKey;
 const PLANNED = shownKey("mail-pages-planned") satisfies CopyKey;
+const SET_ASIDE = {
+  true: { one: "mail.weekly.setAside.one", many: "mail.weekly.setAside.many" },
+  false: { one: "mail.weekly.setAside.one.unreplaced", many: "mail.weekly.setAside.many.unreplaced" },
+} as const satisfies Record<string, Record<string, CopyKey>>;
 const GOOGLE = "mail.weekly.google.title" satisfies CopyKey;
 const SHOWING_CLIMBING = "mail.weekly.google.showing.climbing" satisfies CopyKey;
 const OF_LIVE = "mail.weekly.google.of" satisfies CopyKey;
@@ -142,6 +146,8 @@ export type GoogleStep = ReturnType<typeof shownKey<"mail-google-found" | "mail-
 export interface WeeklyNumbers {
   readonly live: Measured<number>;
   readonly planned: Measured<number>;
+  /** Pages the daily re-check set aside last week, and whether a next page was there to write; absent or 0, no line. */
+  readonly setAside?: { readonly n: number; readonly replaced: boolean };
   /** Absent where no page is live: Overview then draws no ladder. */
   readonly google?: {
     /** Each step over the pages it can be read on; unmeasured where none was read. */
@@ -279,6 +285,10 @@ function numberBlocks(n: WeeklyNumbers): readonly MailBlock[] {
       ],
     },
   ];
+  // Told once, with nothing asked: no link and no button follow it (owner O7).
+  const aside = n.setAside;
+  if (aside?.n === 1) blocks.push({ block: "paragraph", text: SET_ASIDE[`${aside.replaced}`].one });
+  else if (aside !== undefined && aside.n > 1) blocks.push({ block: "paragraph", text: SET_ASIDE[`${aside.replaced}`].many, vars: { n: String(aside.n) } });
   const g = n.google;
   if (g !== undefined) {
     const steps = g.early ? g.steps.filter((step) => step.name === "draft.ladder.found") : g.steps;

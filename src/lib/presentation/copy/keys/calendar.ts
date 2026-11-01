@@ -121,6 +121,7 @@ export const CALENDAR_COPY = Object.freeze({
   "calendar.day.written": ["Written", { slots: {}, fixedBy: "SPEC §7 2026-10-19 E5 (drafted)" }],
   "calendar.day.stopped": ["Stopped", { slots: {}, fixedBy: "SPEC §7 2026-10-19 E5 (drafted)" }],
   "calendar.day.skipped": ["Skipped", { slots: {}, fixedBy: "SPEC §7 2026-10-19 E5 (drafted)" }],
+  "calendar.day.set-aside": ["Set aside", { slots: {}, fixedBy: "owner O7, issue 2164 (drafted)" }],
   "calendar.week.stop": ["Stop", { slots: {}, fixedBy: "SPEC §7 2026-10-19 E7 (drafted)" }],
   // Why the week holds a page: its most specific reason, one line.
   "calendar.week.why.near-page-one": ["Close to Google’s first page", { slots: {}, fixedBy: "SPEC §7 2026-10-19 C3 (drafted)" }],
@@ -288,6 +289,7 @@ export const CALENDAR_COPY = Object.freeze({
   // words are the owner's.
   "calendar.empty.instruction": ["This date holds a fix on your own site. Only you can make it.", { slots: {}, fixedBy: "REQ-043 c5" }],
   "calendar.empty.page-cannot-go-live": ["The page for this date was stopped or taken down, so it won’t go live. No page replaces it.", { slots: {}, fixedBy: "REQ-043 c4" }],
+  "calendar.empty.page-set-aside": ["This page didn’t pass our checks, so we set it aside. Nothing is needed from you.", { slots: {}, fixedBy: "owner O7, issue 2164 (drafted)" }],
   // #754 (owner 2026-09-16): the one held line offered both causes when the
   // app knows which it is. Split into one line per setting — and a host
   // waiting for its CNAME points at the record Settings shows. Drafted and
@@ -295,7 +297,7 @@ export const CALENDAR_COPY = Object.freeze({
   "calendar.empty.customer-change-holds-pages.publishing-off": ["Publishing is off, so this page is waiting. Turn it on in Settings and pages resume.", { slots: {}, fixedBy: "REQ-043 c4" }],
   "calendar.empty.customer-change-holds-pages.destination-pending-dns": ["Your website isn’t connected yet, so this page waits. It goes live once the setting works.", { slots: {}, fixedBy: "REQ-043 c4" }],
   "calendar.empty.customer-change-holds-pages.destination-disconnected": ["Your website isn’t connected, so this page waits. Reconnect in Settings and pages resume.", { slots: {}, fixedBy: "REQ-043 c4" }],
-  "calendar.empty.page-held": ["The page for this date was held while ReachKit’s own work was stopped. It still publishes, in turn, once work resumes.", { slots: {}, fixedBy: "REQ-092 c5" }],
+  "calendar.empty.page-held": ["We stopped our own work, so this page waited. It goes live, in turn, once we start again.", { slots: {}, fixedBy: "REQ-092 c5" }],
   // The day panel's whole account of an exhausted supply — S15's `empty`
   // arm, verbatim (ruling 11a, issue #354). Its cell states the first line
   // alone, from `cause.supply-exhausted` above (#209).
@@ -426,6 +428,7 @@ export const CALENDAR_COPY = Object.freeze({
   // in half. Drafted under issue 759's ruling; the owner corrects them.
   "calendar.empty.short.instruction": ["Your fix", { slots: {}, fixedBy: "issue 930" }],
   "calendar.empty.short.page-cannot-go-live": ["Stopped", { slots: {}, fixedBy: "issue 930" }],
+  "calendar.empty.short.page-set-aside": ["Didn’t pass our checks", { slots: {}, fixedBy: "owner O7, issue 2164 (drafted)" }],
   "calendar.empty.short.change-holds-pages": ["On hold", { slots: {}, fixedBy: "issue 930" }],
   "calendar.empty.short.customer-change-holds-pages": ["Held back", { slots: {}, fixedBy: "issue 930" }],
   "calendar.empty.short.page-held": ["Held back", { slots: {}, fixedBy: "issue 930" }],

@@ -226,12 +226,9 @@ const DRAFTS: readonly DraftOnDay[] = Object.entries(SCHEDULE).map(([day, state]
           : { kind: "never", because: "no_live_address" },
     unpublishOutcome: state === "unpublished" ? "removed" : null,
     // Issue 880: the fixture's one page that needs the founder is the
-    // `needs_attention` one, and the §8 hard rules are what stopped it —
-    // the owner's own dogfood case, on a hosted destination.
-    needsYou:
-      state === "needs_attention"
-        ? { kind: "rules" as const, rules: ["no_private_figure", "honest_row"] }
-        : null,
+    // `needs_attention` one, held on the founder's own edit: a cause critical
+    // for them (owner O7), so it still says Needs you.
+    needsYou: state === "needs_attention" ? { kind: "live_edit" as const } : null,
     // Issue 930: where the site stands for this page's search this week.
     // Only a live page has one, and only where the week measured it.
     standing: state === "published" ? (STANDINGS[day] ?? null) : null,

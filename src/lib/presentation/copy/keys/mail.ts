@@ -290,17 +290,16 @@ export const MAIL_COPY = Object.freeze({
   // The one item waiting on them, and the button that opens it. The line
   // itself is the record's own — `mail.weekly.needsYou` states what kind of
   // thing it is, with the page's address in its slot.
-  "mail.weekly.needsYou": [
-    "One page needs you: {page}.",
-    { slots: { page: "text" }, fixedBy: "SPEC §8 2026-09-20" },
-  ],
+  "mail.weekly.needsYou": ["One page needs you: {page}.", { slots: { page: "text" }, fixedBy: "SPEC §8 2026-09-20" }],
   "mail.weekly.needsYou.action": ["Open the page", { slots: {}, fixedBy: "SPEC §8 2026-09-20" }],
+  // A replacement is claimed only while there is a next page to write.
+  "mail.weekly.setAside.one": ["One page didn’t pass our checks. We set it aside and wrote the next one.", { slots: {}, fixedBy: "owner O7, issue 2164 (drafted)" }],
+  "mail.weekly.setAside.many": ["{n} pages didn’t pass our checks. We set them aside and wrote the next ones.", { slots: { n: "text" }, fixedBy: "owner O7, issue 2164 (drafted)" }],
+  "mail.weekly.setAside.one.unreplaced": ["One page didn’t pass our checks, so we set it aside.", { slots: {}, fixedBy: "owner O7, issue 2164 (drafted)" }],
+  "mail.weekly.setAside.many.unreplaced": ["{n} pages didn’t pass our checks, so we set them aside.", { slots: { n: "text" }, fixedBy: "owner O7, issue 2164 (drafted)" }],
   // The first row while the hosted address waits for its record, every
   // Monday until it is connected. Drafted (#759).
-  "mail.weekly.connect": [
-    "Your pages are written but can't go live at {host} yet. Add one line at the company you bought your address from.",
-    { slots: { host: "text" }, fixedBy: "SPEC §5 2026-09-20 (drafted)" },
-  ],
+  "mail.weekly.connect": ["Your pages are written but can't go live at {host} yet. Add one line at the company you bought your address from.", { slots: { host: "text" }, fixedBy: "SPEC §5 2026-09-20 (drafted)" }],
   "mail.weekly.connect.action": ["Connect your website", { slots: {}, fixedBy: "SPEC §5 2026-09-20 (drafted)" }],
   // SPEC §8 2026-09-29 (D16, issue 1147): the tracked questions whose
   // answer names the site this week and did not the week before, each by
