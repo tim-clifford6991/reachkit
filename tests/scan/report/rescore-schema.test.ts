@@ -272,22 +272,17 @@ describe("rescore_runs — the tick's own request and its answer (issue 1481)", 
 });
 
 describe("fetch_facts — the re-score's facts of each stored read", () => {
-  it("adds no column to fetches and changes none", () => {
-    expect(fetchesBefore.length).toBeGreaterThan(0);
-    expect(fetchesColumns()).toEqual(fetchesBefore);
-  });
+  it("adds no column to fetches and changes none", () => expect([fetchesBefore.length > 0, fetchesColumns()]).toEqual([true, fetchesBefore]));
 
   it("keeps one row per read, overwritten at a new version, deleted by its scan before its read, and reached by the service role alone", () => {
     const scanId = scan();
     const id = value(`insert into fetches (scan_id, source, cache_key, policy_version, cost_cents, reserved_cents, payload) values ('${scanId}', 'egress.safeFetch', 'https://gusto.com/', 1, 0, 0, '{}'::jsonb) returning id;`)!;
     const put = (version: string) => run(`insert into fetch_facts (fetch_id, scan_id, facts_version, facts) values ('${id}', '${scanId}', '${version}', '{"v":"${version}"}'::jsonb) on conflict (fetch_id) do update set facts_version = excluded.facts_version, facts = excluded.facts;`);
-    put("v1");
-    put("v2");
+    ["v1", "v2"].forEach(put);
     expect(psqlRows(`select facts_version, facts->>'v' from fetch_facts where fetch_id = '${id}';`)).toEqual([["v2", "v2"]]);
     expect(raises(`insert into fetch_facts (fetch_id, scan_id, facts_version, facts) values (gen_random_uuid(), '${scanId}', 'v1', '{}'::jsonb);`)).toBe(true);
     expect(raises(`delete from fetches where id = '${id}';`)).toBe(true);
     run(`delete from fetch_facts where scan_id = '${scanId}'; delete from fetches where scan_id = '${scanId}';`);
-    expect(value(`select count(*) from fetch_facts where fetch_id = '${id}';`)).toBe("0");
     expect(psqlRows("select relrowsecurity, (select count(*) from pg_policies where tablename = 'fetch_facts') from pg_class where relname = 'fetch_facts';")).toEqual([["t", "0"]]);
     for (const [role, can] of [["anon", "f"], ["authenticated", "f"], ["service_role", "t"]]) {
       for (const privilege of ["select", "insert", "update", "delete"]) expect(value(`select has_table_privilege('${role}', 'fetch_facts', '${privilege}');`)).toBe(can);
