@@ -59,13 +59,7 @@ import {
 } from "../../_shell/format";
 import { writtenLine } from "../../_shell/written";
 import { COMMAND_TARGET, publishing } from "../../calendar/publishing";
-import {
-  STAGE_FILTER_COPY_KEY,
-  STAGE_BEACON,
-  STAGE_OF,
-  STAGE_TONE,
-  TONE_BADGE,
-} from "../../calendar/stages";
+import { STAGE_OF, TONE_BADGE } from "../../calendar/stages";
 import { say } from "../../../../_toast/say";
 import { CLAIM_COPY_KEY, CLAIM_TONE, claimAfterSave } from "./claim";
 import { DecidePanel } from "./DecidePanel";
@@ -84,7 +78,7 @@ import { kindWord } from "../../calendar/card-lines";
 import { NO_LINK_RECORD, linksOnPage } from "./links-panel";
 import { useDebounced } from "./useDebounced";
 import { SHAPE } from "./shape";
-import { wordCount, type ClaimState, type DraftView } from "./model";
+import { stageChipOf, wordCount, type ClaimState, type DraftView } from "./model";
 import { NO_CHECKS, type RecordedChecks } from "@/lib/generate/rules/types";
 
 /** The three fields the founder edits (#789), as one value: the buffer, the
@@ -440,11 +434,10 @@ export function DraftScreen(p: {
       ? writtenLine("draft.claim.matched", { entry: claim.matchedEntry })
       : null;
 
-  /** The stage, spoken through the calendar's own projection so the two
-   *  surfaces cannot call one state by two names. `null` for a state that
-   *  occupies no date at all, which draws no chip rather than an unnamed
-   *  one — and is what a stopped page reads as the moment Stop is pressed. */
-  const stage = STAGE_OF[state];
+  /** The stage as This week names the page read; a press in flight projects its asked-for state through the calendar's
+   *  table, as the day panel does. `null` draws no chip, which is what a stopped page reads as the moment Stop is pressed. */
+  const stage = state === view.state ? view.stage : STAGE_OF[state];
+  const chip = stage === null ? null : stageChipOf(stage);
   /** A new page or an update of one the site has; nothing where unread. */
   const update = view.target.kind !== "unknown" && (view.target.kind === "fix" || view.target.update === true);
   const KindIcon = update ? RefreshCw : Plus;
@@ -472,9 +465,9 @@ export function DraftScreen(p: {
   /** The stage badge, with the stage's dot — which pulses on *Your review*
    *  and *Live*, the calm layer's one loop (`STAGE_BEACON`). */
   const stageBadge =
-    stage === null ? null : (
+    chip === null ? null : (
       <span
-        className={`badge badge-soft ${TONE_BADGE[STAGE_TONE[stage]]}`}
+        className={`badge badge-soft ${TONE_BADGE[chip.tone]}`}
         data-testid={`draft-stage-${stage}`}
       >
         {/* Ready draws the board's tick; every other stage keeps its dot. */}
@@ -482,11 +475,11 @@ export function DraftScreen(p: {
           <CircleCheck className="size-3.5 shrink-0" strokeWidth={1.75} aria-hidden />
         ) : (
           <span
-            className={`size-1.5 shrink-0 rounded-full bg-current ${STAGE_BEACON[stage]}`}
+            className={`size-1.5 shrink-0 rounded-full bg-current ${chip.beacon}`}
             aria-hidden
           />
         )}
-        {copy(STAGE_FILTER_COPY_KEY[stage])}
+        {copy(chip.word)}
       </span>
     );
 

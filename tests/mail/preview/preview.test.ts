@@ -188,6 +188,7 @@ describe("issue #376 — the shell renders S20, and every kind the set draws wea
       "Hi Dana, here’s week 3 for harborplumbing.example.",
       "Nothing needs you this week. Each page goes live at 4:00 PM on its day.",
       COPY["mail.weekly.pages.live"],
+      COPY["mail.weekly.setAside.one"],
       COPY["mail.weekly.google.title"],
       "Showing on Google · 2 moving up",
       "9 visits from Google this week, up from 4.",

@@ -58,7 +58,8 @@ import {
   recordedChecks,
 } from "@/lib/generate/record";
 import type { PublishingMode } from "../../_shell/model";
-import type { State } from "../../calendar/stages";
+import { stageOf, type State } from "../../calendar/stages";
+import { needsYouOf, setAsideOf } from "@/lib/publish/record/needs-you";
 import { pageRecordFor } from "@/lib/publish/record";
 import { readingOf } from "@/lib/measure/page-reading";
 import { verdict } from "@/lib/opportunities/verdicts/verdict";
@@ -542,6 +543,10 @@ export async function readDraftRow(a: {
     linkRecord: linkRecordAt(row.meta),
     domain: a.site.domain,
     state: row.state as State,
+    // From the same record and clock This week reads, so the two cannot name one page twice (owner O7).
+    stage: setAsideOf({ state: row.state as State, transitions: row.transitions })
+      ? "set_aside"
+      : stageOf({ state: row.state as State, needsYou: needsYouOf({ state: row.state as State, transitions: row.transitions, meta: row.meta }) }, at),
     // The fact §9's `never_entered_review` guard reads (#1180).
     enteredReview:
       Array.isArray(row.transitions) &&

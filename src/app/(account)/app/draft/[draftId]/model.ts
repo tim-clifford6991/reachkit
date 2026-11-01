@@ -30,7 +30,8 @@ import type { PageType, PlanReason } from "@/lib/opportunities/types";
 import { weekStartFor } from "@/lib/scan/weekly/week";
 import type { RecordedChecks } from "@/lib/generate/rules/types";
 import type { PublishingMode } from "../../_shell/model";
-import type { State } from "../../calendar/stages";
+import { DAY_STATE_COPY_KEY, DAY_STATE_TONE, STAGE_BEACON, STAGE_FILTER_COPY_KEY, STAGE_OF, STAGE_TONE, type Stage, type State } from "../../calendar/stages";
+import type { Tone } from "@/ui/types";
 import { factPresentIn } from "./grounded";
 
 /** REQ-045 criterion 3's four outcomes. `nothing_to_check` is the empty
@@ -301,6 +302,8 @@ export interface DraftView {
    *  label truthful and what an unedited page's copy-out is identical to. */
   bodyMdGenerated: string;
   state: State;
+  /** The chip This week draws for `state`; `null` draws none. */
+  stage: DraftStage;
   /** Whether the page ever entered review (#1180): a stopped page that
    *  never did may be edited, written again or skipped. */
   enteredReview: boolean;
@@ -422,6 +425,16 @@ export interface KnownCheck {
 
 /** Everything the draft view reads, before it is a model. One shape, so the
  *  fixture and a future query answer the same question. */
+/** A page's stage, or This week's grey *Set aside* day for one the daily re-check set aside. */
+export type DraftStage = Stage | "set_aside" | null;
+
+/** The chip's word, tone and dot for a stage, in This week's words. */
+export function stageChipOf(stage: Stage | "set_aside"): { word: CopyKey; tone: Tone; beacon: string } {
+  return stage === "set_aside"
+    ? { word: DAY_STATE_COPY_KEY.set_aside, tone: DAY_STATE_TONE.set_aside, beacon: "" }
+    : { word: STAGE_FILTER_COPY_KEY[stage], tone: STAGE_TONE[stage], beacon: STAGE_BEACON[stage] };
+}
+
 export interface DraftFacts {
   draftId: string;
   title: string;
@@ -433,6 +446,8 @@ export interface DraftFacts {
   bodyMd: string;
   bodyMdGenerated: string;
   state: State;
+  /** The stage This week names the page at, from its record (owner O7); absent reads `state` through `STAGE_OF`. */
+  stage?: DraftStage;
   /** Whether §9's record shows the page in review at any point (#1180). */
   enteredReview: boolean;
   /** Set on the first save that changed the text; `null` on a draft the
@@ -543,6 +558,7 @@ export function assembleDraft(facts: DraftFacts): DraftView {
     bodyMd: facts.bodyMd,
     bodyMdGenerated: facts.bodyMdGenerated,
     state: facts.state,
+    stage: facts.stage ?? STAGE_OF[facts.state],
     enteredReview: facts.enteredReview,
     authorship:
       facts.firstEditedAt === null
