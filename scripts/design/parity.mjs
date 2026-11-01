@@ -203,8 +203,8 @@ export function sha256(file) {
   return createHash("sha256").update(readFileSync(file)).digest("hex");
 }
 
-export function baselineLine(board, sha, missing, components, plainWords) {
-  const counts = Object.entries({ missing, components, plainWords }).filter(([, v]) => v !== undefined);
+export function baselineLine(board, sha, missing, components) {
+  const counts = Object.entries({ missing, components }).filter(([, v]) => v !== undefined);
   return `"${board}": { "sha256": "${sha}"${counts.map(([k, v]) => `, "${k}": ${v}`).join("")} }`;
 }
 
@@ -214,7 +214,7 @@ export function baselineLine(board, sha, missing, components, plainWords) {
  * `key` names the count: board strings (`missing`) or board components (`components`).
  * @param {string} board
  * @param {string[]} missing
- * @param {{ sha256: string, missing: number, components?: number, plainWords?: number } | undefined} entry
+ * @param {{ sha256: string, missing: number, components?: number } | undefined} entry
  * @param {string} sha
  * @param {{ string: string, n?: number, ships: boolean, why?: string }[]} [unused]
  * @param {"missing" | "components"} [key]
@@ -225,7 +225,7 @@ export function verdict(board, missing, entry, sha, unused = [], key = "missing"
     return { ok: false, message: `${board}: an allow line excuses nothing.\n${unused.map((u) => `  - ${unusedLine(board, u)}`).join("\n")}` };
   }
   const counts = { missing: entry?.missing, components: entry?.components, [key]: missing.length };
-  const line = baselineLine(board, sha, counts.missing, counts.components, entry?.plainWords);
+  const line = baselineLine(board, sha, counts.missing, counts.components);
   const list = missing.map((s) => `  - ${s}`).join("\n");
   const what = key === "missing" ? "board strings" : "board components";
   if (!entry) return { ok: false, message: `${board} has no row in docs/design/parity/baseline.json. Commit:\n${line}` };

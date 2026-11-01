@@ -3,7 +3,7 @@ import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } f
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { budgetFindings, unresolvedCitations } from "../../scripts/lib/budgets.mjs";
+import { budgetFindings, plainWordsFindings, unresolvedCitations } from "../../scripts/lib/budgets.mjs";
 
 const ROOT = path.resolve(__dirname, "../..");
 const dirs: string[] = [];
@@ -46,6 +46,25 @@ describe("budgetFindings", () => {
   });
 });
 
+describe("plainWordsFindings", () => {
+  const rise = (name: string, from: number, to: number) =>
+    `plain words: ${name} rises from ${from} to ${to} findings; the count only goes down (docs/spec/decisions/2026-10-31-2145.md)`;
+
+  it("fails a count raised above the base's", () => {
+    expect(plainWordsFindings({ base: { report: 54, chrome: 3 }, head: { report: 55, chrome: 3 } })).toEqual([rise("report", 54, 55)]);
+  });
+
+  it("keeps a lowered count: the base holds the last merged number, so a rise from it fails", () => {
+    expect(plainWordsFindings({ base: { report: 40 }, head: { report: 41 } })).toEqual([rise("report", 40, 41)]);
+    expect(plainWordsFindings({ base: { report: 40 }, head: { report: 40 } })).toEqual([]);
+    expect(plainWordsFindings({ base: { report: 40 }, head: { report: 12 } })).toEqual([]);
+  });
+
+  it("gives a new key file or board no ceiling", () => {
+    expect(plainWordsFindings({ base: {}, head: { newfile: 9 } })).toEqual([]);
+  });
+});
+
 describe("hygiene reads scripts/budgets.json", () => {
   function repo() {
     const dir = mkdtempSync(path.join(tmpdir(), "hygiene-budgets-"));
@@ -83,7 +102,7 @@ describe("hygiene reads scripts/budgets.json", () => {
 describe("hygiene holds the line budgets against the pull request's base", () => {
   const BUDGETS = path.join(ROOT, "scripts/budgets.json");
   const lines = (n: number, tag = "a") => Array.from({ length: n }, (_, i) => `// ${tag} ${i}`).join("\n") + "\n";
-  const findings = (out: string) => out.split("\n").filter((l) => /lines|budgets\.json/.test(l));
+  const findings = (out: string) => out.split("\n").filter((l) => /lines|budgets\.json|plain words/.test(l));
 
   function seeded() {
     const dir = mkdtempSync(path.join(tmpdir(), "hygiene-lines-"));
@@ -112,7 +131,7 @@ describe("hygiene holds the line budgets against the pull request's base", () =>
       git("commit", "-q", "--allow-empty", "-m", "pr");
       return findings(spawnSync(process.execPath, [path.join(dir, "scripts/hygiene.mjs")], { encoding: "utf8" }).stdout);
     };
-    return { write, pr };
+    return { write, git, pr };
   }
 
   it("fails each seeded growth and passes each shrink, swap and proportionate test", () => {
@@ -133,6 +152,21 @@ describe("hygiene holds the line budgets against the pull request's base", () =>
     expect(r.pr(() => r.write("src/big.ts", lines(699)))).toEqual([]);
     expect(r.pr(() => r.write("src/big.ts", lines(700).replace(/^\/\/ a [0-4]$/gm, "// b")))).toEqual([]);
     expect(r.pr(() => (r.write("tests/a.test.ts", lines(300)), r.write("src/feature.ts", lines(600))))).toEqual([]);
+  });
+
+  it("fails a key file whose plain-words count rises from the base, and passes a fall or an exempt file", () => {
+    const r = seeded();
+    const keys = (name: string, value: string) =>
+      r.write(`src/lib/presentation/copy/keys/${name}.ts`, `export const C = Object.freeze({\n  "${name}.a": ["${value}", { slots: {} }],\n});\n`);
+    keys("report", "Better SEO");
+    keys("review", "Better SEO");
+    r.git("add", "-A");
+    r.git("commit", "-q", "-m", "keys");
+    expect(r.pr(() => keys("report", "Better SEO for your index"))).toEqual([
+      "- repo: plain words: report rises from 1 to 2 findings; the count only goes down (docs/spec/decisions/2026-10-31-2145.md)",
+    ]);
+    expect(r.pr(() => keys("report", "Your site"))).toEqual([]);
+    expect(r.pr(() => keys("review", "Better SEO for your index"))).toEqual([]);
   });
 
   it("changes a lines number only beside a new dated decision file", () => {

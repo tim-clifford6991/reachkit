@@ -11,11 +11,13 @@
 // the copy registry, the text written straight into JSX under `src/app`,
 // `src/ui` and the mail shell, the sentences of the mail code, and the boards.
 // A `{slot}` is a value, not a word, so it is never read as one.
+import { spawnSync } from "node:child_process";
 import { readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import ts from "typescript";
 import { describe, expect, it } from "vitest";
-import { boardPlainWords, boardStrings, BOARDS_DIR, PARITY_DIR } from "../../../scripts/design/parity.mjs";
+import { boardPlainWords, boardStrings, BOARDS_DIR } from "../../../scripts/design/parity.mjs";
+import { plainWordsFindings } from "../../../scripts/lib/budgets.mjs";
 import { EXEMPT_BOARDS, entries, isExempt, keyFileCounts, retiredIn, SOFT, TITLE_KEY, violations } from "../../../scripts/lib/plain-words.mjs";
 import { read, SRC_DIR, walkFiles } from "./vocabulary";
 
@@ -227,8 +229,6 @@ describe("UI strategy: titles and retired names (#1463)", () => {
 });
 
 describe("UI strategy: plain words (O6, docs/spec/decisions/2026-10-31-2145.md)", () => {
-  const budgets = JSON.parse(read("scripts/budgets.json")) as { plainWords: Record<string, number> };
-  const baseline = JSON.parse(read("docs/design/parity/baseline.json")) as Record<string, { plainWords?: number }>;
   const rules = (text: string, options?: { key?: string; heading?: boolean }) => violations(text, options).map((v) => v.word ?? `${v.rule} ${v.n}`);
 
   it("counts a long sentence, a long paragraph, a long heading and each soft word", () => {
@@ -262,21 +262,29 @@ describe("UI strategy: plain words (O6, docs/spec/decisions/2026-10-31-2145.md)"
     expect(EXEMPT_BOARDS.test("PubReport")).toBe(false);
   });
 
-  it("each key file's count is at most its budget, and every key file has exactly one budget", () => {
-    const measured = keyFileCounts(keyFiles());
-    expect(Object.keys(budgets.plainWords).sort()).toEqual(Object.keys(measured).sort());
-    const over = Object.entries(measured).flatMap(([file, n]) => (n > (budgets.plainWords[file] ?? 0) ? [`${file}: ${n}, budget ${budgets.plainWords[file]}`] : []));
-    expect(over).toEqual([]);
-    for (const [file, n] of Object.entries(measured)) if (n < (budgets.plainWords[file] ?? 0)) console.info(`lower plainWords.${file} in scripts/budgets.json to ${n}`);
-  });
-
-  it("each board's count equals its baseline row, and an exempt board has none", () => {
-    const boards = readdirSync(BOARDS_DIR).filter((f) => f.endsWith(".dc.html")).map((f) => f.slice(0, -".dc.html".length));
-    const off = boards.flatMap((board) => {
-      const want = EXEMPT_BOARDS.test(board) ? undefined : boardPlainWords(readFileSync(path.join(BOARDS_DIR, `${board}.dc.html`), "utf8"));
-      return baseline[board]?.plainWords === want ? [] : [`${board}: ${want}, baseline ${baseline[board]?.plainWords} in ${path.relative(REPO_ROOT, PARITY_DIR)}/baseline.json`];
+  // audit has no node_modules to parse a board, so the board half of the ratchet runs here against the base commit.
+  const git = (...args: string[]) => spawnSync("git", ["-C", REPO_ROOT, ...args], { encoding: "utf8" });
+  it.skipIf(git("rev-parse", "--verify", "-q", "HEAD^1").status !== 0)("no board's count rises above the base commit's", () => {
+    const rel = path.relative(REPO_ROOT, BOARDS_DIR);
+    const touched = git("diff", "--name-only", "HEAD^1", "--", rel).stdout.split("\n").map((f) => path.basename(f, ".dc.html"))
+      .filter((board) => board && !EXEMPT_BOARDS.test(board));
+    const counts = (source: (board: string) => string | null) =>
+      Object.fromEntries(touched.flatMap((board) => {
+        const html = source(board);
+        return html === null ? [] : [[board, boardPlainWords(html)]];
+      }));
+    const base = counts((board) => {
+      const shown = git("show", `HEAD^1:${rel}/${board}.dc.html`);
+      return shown.status === 0 ? shown.stdout : null;
     });
-    expect(off).toEqual([]);
+    const head = counts((board) => {
+      try {
+        return readFileSync(path.join(BOARDS_DIR, `${board}.dc.html`), "utf8");
+      } catch {
+        return null;
+      }
+    });
+    expect(plainWordsFindings({ base, head })).toEqual([]);
   });
 
   it("a board does not use a retired name", () => {

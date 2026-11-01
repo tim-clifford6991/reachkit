@@ -9,7 +9,8 @@ import { existsSync, lstatSync, readFileSync, readdirSync, unlinkSync, writeFile
 import path from "node:path";
 import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
-import { budgetFindings, isMeasured, lineCount, lineFindings } from "./lib/budgets.mjs";
+import { budgetFindings, isMeasured, lineCount, lineFindings, plainWordsFindings } from "./lib/budgets.mjs";
+import { keyFileCounts } from "./lib/plain-words.mjs";
 import { mainCheckoutFinding } from "./lib/main-checkout.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -313,6 +314,23 @@ function checkBudgets(texts) {
   const lines = new Map(texts.filter((t) => isMeasured(t.rel)).map((t) => [t.rel, lineCount(t.text)]));
   for (const { rel } of changes) if (!lines.has(rel)) lines.set(rel, lineCount(readRel(rel) ?? ""));
   for (const finding of lineFindings({ budget: budgets?.lines, changes, lines })) add("repo", finding);
+  checkPlainWords(diff);
+}
+
+// The base holds the last merged count, so no number is stored and a gain is kept the moment it merges.
+function checkPlainWords(diff) {
+  const KEYS = "src/lib/presentation/copy/keys/";
+  const touched = diff("--name-only", "--", KEYS).stdout.split("\n").filter((rel) => rel.endsWith(".ts"));
+  const at = (source) => touched.flatMap((rel) => {
+    const text = source(rel);
+    return text === null ? [] : [{ name: rel.slice(KEYS.length), source: text }];
+  });
+  const base = keyFileCounts(at((rel) => {
+    const shown = run("git", ["-C", ROOT, "show", `HEAD^1:${rel}`]);
+    return shown.ok ? shown.stdout : null;
+  }));
+  const head = keyFileCounts(at(readRel));
+  for (const finding of plainWordsFindings({ base, head })) add("repo", finding);
 }
 
 // Issue 1482: a Coherence registry parent stays open while its row stands.

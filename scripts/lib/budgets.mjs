@@ -68,6 +68,14 @@ export function budgetFindings({ budgets, base, files, decided = false }) {
   return findings;
 }
 
+// Plain-words counts per key file or board, measured at the base and at the head: a count may fall and never rise.
+// A name the base does not have is new and has no ceiling yet.
+export function plainWordsFindings({ base, head }) {
+  return Object.entries(head)
+    .filter(([name, n]) => name in base && n > base[name])
+    .map(([name, n]) => `plain words: ${name} rises from ${base[name]} to ${n} findings; the count only goes down (docs/spec/decisions/2026-10-31-2145.md)`);
+}
+
 const MEASURED = /^(?:src|tests|scripts)\/.*\.(?:ts|tsx|mjs|js|css)$/;
 
 export function isMeasured(rel) {
