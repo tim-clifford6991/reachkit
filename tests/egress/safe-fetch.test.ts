@@ -132,6 +132,47 @@ describe("safeFetch · DNS pinning (BP-006: resolve, check, connect to that reso
     expect(outcome).toMatchObject({ ok: false, reason: "blocked_by_policy" });
     expect(calls).toHaveLength(0);
   });
+
+  it.each(["http://[::1]/", "http://[::ffff:a9fe:a9fe]/", "http://metadata.example.com/latest/meta-data/"])(
+    "refuses %s by the address policy and opens no socket",
+    async (url) => {
+      const { safeFetch } = await import("../../src/lib/egress/safe-fetch");
+      // A bracketed literal must never reach the resolver; a name resolves to the metadata address.
+      vi.spyOn(dns.promises, "lookup").mockImplementation((async (host: string) => {
+        if (host.startsWith("[")) throw Object.assign(new Error("not a name"), { code: "ENOTFOUND" });
+        return { address: "169.254.169.254", family: 4 };
+      }) as unknown as typeof dns.promises.lookup);
+      const { calls } = installTransport([]);
+
+      expect(await safeFetch(url)).toMatchObject({ ok: false, reason: "blocked_by_policy" });
+      expect(calls).toHaveLength(0);
+    }
+  );
+
+  it("refuses a redirect to a bracketed IPv6 metadata address before a second connection", async () => {
+    const { safeFetch } = await import("../../src/lib/egress/safe-fetch");
+    vi.spyOn(dns.promises, "lookup").mockImplementation((async (host: string) => {
+      if (host.startsWith("[")) throw Object.assign(new Error("not a name"), { code: "ENOTFOUND" });
+      return { address: "93.184.216.34", family: 4 };
+    }) as unknown as typeof dns.promises.lookup);
+    const { calls } = installTransport([
+      { type: "response", statusCode: 302, headers: { location: "http://[fd00:ec2::254]/latest/meta-data/" } },
+    ]);
+
+    expect(await safeFetch("https://example.com/")).toMatchObject({ ok: false, reason: "blocked_by_policy" });
+    expect(calls).toHaveLength(1);
+  });
+
+  it("connects to a public IPv6 literal at that address, with the bracketed Host header", async () => {
+    const { safeFetch } = await import("../../src/lib/egress/safe-fetch");
+    const lookupSpy = vi.spyOn(dns.promises, "lookup");
+    const { calls } = installTransport([okResponse()]);
+
+    expect((await safeFetch("http://[2606:4700::1]/")).ok).toBe(true);
+    expect(lookupSpy).not.toHaveBeenCalled();
+    expect(calls[0]?.host).toBe("2606:4700::1");
+    expect((calls[0]?.headers as Record<string, string>)?.Host).toBe("[2606:4700::1]");
+  });
 });
 
 describe("safeFetch · never throws", () => {

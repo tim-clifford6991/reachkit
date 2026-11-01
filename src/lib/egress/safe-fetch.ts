@@ -185,8 +185,10 @@ type ResolveResult =
  *  Exported for `dns.ts`'s `resolvesInDns`, so "does this name resolve" is
  *  answered by the same lookup this module connects on. */
 export async function resolveAddress(hostname: string, remainingMs: number): Promise<ResolveResult> {
-  const family = isIP(hostname);
-  if (family !== 0) return { kind: "resolved", address: hostname, family };
+  // WHATWG URL keeps the brackets on an IPv6 host, so the literal reaches the address policy only without them.
+  const literal = hostname.startsWith("[") && hostname.endsWith("]") ? hostname.slice(1, -1) : hostname;
+  const family = isIP(literal);
+  if (family !== 0) return { kind: "resolved", address: literal, family };
 
   let timer: ReturnType<typeof setTimeout>;
   const timeout = new Promise<ResolveResult>((resolve) => {
