@@ -38,6 +38,6 @@ describe("the AI sentence follows the constants", () => {
       unbranded,
     });
     expect(shown).toContain(sentence);
-    expect(shown).toContain(`count 6 weeks together: up to ${TRACKED_PROMPTS.ENGINES * unbranded * 6} answers to the ${unbranded} questions`);
+    expect(shown).toContain(`6 weeks give up to ${TRACKED_PROMPTS.ENGINES * unbranded * 6} answers to ${unbranded} questions`);
   });
 });
