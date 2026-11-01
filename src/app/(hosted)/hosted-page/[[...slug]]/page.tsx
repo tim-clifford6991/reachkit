@@ -82,11 +82,11 @@ import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import type React from "react";
-import { livePagesForSite, type HostedPage } from "@/lib/publish/destinations/hosted";
+import { livePagesForSite } from "@/lib/publish/destinations/hosted";
 import { resolveHost } from "../../resolve-host";
 import { businessOf } from "./article";
 import type { HostedBusiness } from "./chrome";
-import { HostedIndex, indexPageCount, pageOf, queryOf } from "./listing";
+import { HostedIndex, indexPageCount, pageOf, queryOf, type IndexedPage } from "./listing";
 import { indexMetadata } from "./seo";
 
 /** This route is not cached: it reads the Host header and the index's
@@ -105,32 +105,35 @@ function isIndex(slug: readonly string[] | undefined): boolean {
 interface IndexResolved {
   business: HostedBusiness;
   canonical: string;
-  pages: HostedPage[];
+  pages: IndexedPage[];
 }
 
 /** The index's one resolution per request: the site this Host serves and
- *  every live page of it, or `null` for any Host that is not a site. */
-const loadIndex = cache(async (): Promise<IndexResolved | null> => {
+ *  every live page of it, with bodies only for a search, or `null` for any
+ *  Host that is not a site. */
+const loadIndex = cache(async (search: boolean): Promise<IndexResolved | null> => {
   const host = (await headers()).get("host") ?? "";
   const disposition = await resolveHost(host);
   if (disposition.kind !== "site") return null;
   const [business, pages] = await Promise.all([
     businessOf(disposition),
-    livePagesForSite(disposition.siteId, disposition.host),
+    search ? livePagesForSite(disposition.siteId, disposition.host, { withBody: true }) : livePagesForSite(disposition.siteId, disposition.host),
   ]);
   return { business, canonical: `https://${disposition.host}/`, pages };
 });
 
 type Search = Promise<Record<string, string | string[] | undefined>> | undefined;
 
-/** The search and the page of the index this address asks for. A page past
- *  the last one is `null`: it answers 404 (issue 1514), never the last
+/** The index, the search and the page of it this address asks for. A page
+ *  past the last one is `null`: it answers 404 (issue 1514), never the last
  *  page under another address. */
-async function listOf(index: IndexResolved, searchParams: Search): Promise<{ query: string; page: number } | null> {
+async function listOf(searchParams: Search): Promise<(IndexResolved & { query: string; page: number }) | null> {
   const search = await searchParams;
   const query = queryOf(search?.q);
+  const index = await loadIndex(query !== "");
+  if (index === null) return null;
   const page = pageOf(search?.page);
-  return page > indexPageCount(index.pages, query) ? null : { query, page };
+  return page > indexPageCount(index.pages, query) ? null : { ...index, query, page };
 }
 
 export async function generateMetadata({
@@ -142,11 +145,9 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { slug } = await params;
   if (!isIndex(slug)) return {};
-  const index = await loadIndex();
-  if (index === null) return {};
-  const list = await listOf(index, searchParams);
+  const list = await listOf(searchParams);
   if (list === null) return {};
-  return indexMetadata({ ...index, ...list });
+  return indexMetadata(list);
 }
 
 export default async function HostedPageRoute({
@@ -160,10 +161,8 @@ export default async function HostedPageRoute({
   // Any other address here cannot name a page (a deeper path, a dotted
   // name): 404, never another customer's page and never a ReachKit page.
   if (!isIndex(slug)) notFound();
-  const index = await loadIndex();
   // An unknown or stopped Host has no index either: the same 404.
-  if (index === null) notFound();
-  const list = await listOf(index, searchParams);
+  const list = await listOf(searchParams);
   if (list === null) notFound();
-  return <HostedIndex {...index} {...list} />;
+  return <HostedIndex {...list} />;
 }

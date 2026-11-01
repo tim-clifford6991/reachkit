@@ -111,7 +111,7 @@ export async function hostedModuleMock(
     // one reads a database these sweeps must never reach.
     hostedSiteForHostname: async () => null,
     livePageBySlug: async (_siteId: string, slug: string) =>
-      slug === HOSTED_SWEEP_SLUG ? HOSTED_SWEEP_PAGE : null,
+      slug === HOSTED_SWEEP_SLUG ? { page: HOSTED_SWEEP_PAGE, others: [] } : null,
     livePagesForSite: async () => [HOSTED_SWEEP_PAGE],
     hostedIdentity: async (a: { domain: string }) => ({ name: a.domain, logoType: null, line: null }),
     hostedAddress: async () => ({ state: "none", publicationId: null }),

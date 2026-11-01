@@ -19,7 +19,7 @@
 // link or colour.
 import type React from "react";
 import { copy } from "@/lib/presentation/copy/reader";
-import type { HostedPage } from "@/lib/publish/destinations/hosted";
+import type { HostedListing } from "@/lib/publish/destinations/hosted";
 import { Surface } from "@/ui/layout";
 import { actionsOf, BusinessLine, CompactAction, Glyph, HostedFooter, HostedHeader, type HostedBusiness } from "./chrome";
 import { indexHref, writeDate } from "./present";
@@ -31,13 +31,16 @@ export function queryOf(raw: string | string[] | undefined): string {
   return (value ?? "").trim();
 }
 
+/** A listed page, with its body where a search read one. */
+export type IndexedPage = HostedListing & { bodyMd?: string };
+
 /** The pages a query keeps: every term, case-insensitively, somewhere in the
  *  title, the description or the body. An empty query keeps every page. */
-export function matchPages(pages: readonly HostedPage[], query: string): HostedPage[] {
+export function matchPages(pages: readonly IndexedPage[], query: string): IndexedPage[] {
   const terms = query.toLowerCase().split(/\s+/).filter((term) => term !== "");
   if (terms.length === 0) return [...pages];
   return pages.filter((page) => {
-    const text = `${page.title}\n${page.description ?? ""}\n${page.bodyMd}`.toLowerCase();
+    const text = `${page.title}\n${page.description ?? ""}\n${page.bodyMd ?? ""}`.toLowerCase();
     return terms.every((term) => text.includes(term));
   });
 }
@@ -55,7 +58,7 @@ export function pageOf(raw: string | string[] | undefined): number {
 
 /** How many pages one search of the index runs to: the newest page leads
  *  the first page of the whole list, and the rest are twelve a page. */
-export function indexPageCount(pages: readonly HostedPage[], query: string): number {
+export function indexPageCount(pages: readonly IndexedPage[], query: string): number {
   const matched = matchPages(pages, query);
   const rest = query === "" ? matched.slice(1) : matched;
   return Math.max(1, Math.ceil(rest.length / INDEX_PAGE_SIZE));
@@ -63,20 +66,20 @@ export function indexPageCount(pages: readonly HostedPage[], query: string): num
 
 /** A topic two or more live pages share: the page that leads it, and the rest. */
 interface Topic {
-  lead: HostedPage;
-  rest: HostedPage[];
+  lead: IndexedPage;
+  rest: IndexedPage[];
 }
 
-function byTitle(a: HostedPage, b: HostedPage): number {
+function byTitle(a: IndexedPage, b: IndexedPage): number {
   return a.title.localeCompare(b.title, undefined, { sensitivity: "base" });
 }
 
 /** Every live page once, for "All guides" (owner R1, 2026-10-22): the topics
  *  (SPEC §6 clusters) two or more pages share, largest first, and every other
  *  page in one A–Z list. A topic is led by its offering page, else its oldest. */
-export function guidesByTopic(pages: readonly HostedPage[]): { topics: Topic[]; loose: HostedPage[] } {
-  const byCluster = new Map<string, HostedPage[]>();
-  const loose: HostedPage[] = [];
+export function guidesByTopic(pages: readonly IndexedPage[]): { topics: Topic[]; loose: IndexedPage[] } {
+  const byCluster = new Map<string, IndexedPage[]>();
+  const loose: IndexedPage[] = [];
   for (const page of pages) {
     const cluster = page.cluster ?? null;
     if (cluster === null) loose.push(page);
@@ -99,7 +102,7 @@ export function guidesByTopic(pages: readonly HostedPage[]): { topics: Topic[]; 
   return { topics, loose: loose.sort(byTitle) };
 }
 
-function GuideLinks({ pages }: { pages: readonly HostedPage[] }): React.JSX.Element {
+function GuideLinks({ pages }: { pages: readonly IndexedPage[] }): React.JSX.Element {
   return (
     <ul className="list-disc space-y-1 pl-5 text-sm">
       {pages.map((entry) => (
@@ -114,7 +117,7 @@ function GuideLinks({ pages }: { pages: readonly HostedPage[] }): React.JSX.Elem
 }
 
 /** "All guides": every live page one click from the index, by topic. */
-function AllGuides({ pages }: { pages: readonly HostedPage[] }): React.JSX.Element {
+function AllGuides({ pages }: { pages: readonly IndexedPage[] }): React.JSX.Element {
   const { topics, loose } = guidesByTopic(pages);
   return (
     <section aria-labelledby="all-guides" className="mt-12">
@@ -152,7 +155,7 @@ function AllGuides({ pages }: { pages: readonly HostedPage[] }): React.JSX.Eleme
 }
 
 /** The date a card states: the day the page was last published. */
-function CardDate({ page }: { page: HostedPage }): React.JSX.Element {
+function CardDate({ page }: { page: IndexedPage }): React.JSX.Element {
   return (
     <p className="text-base-content/70 grow-0 text-sm">
       <time dateTime={page.publishedAt.toISOString().slice(0, 10)}>
@@ -173,7 +176,7 @@ export function HostedIndex({
   /** The index's own address on the customer's host. */
   canonical: string;
   /** Every live page, newest first. */
-  pages: readonly HostedPage[];
+  pages: readonly IndexedPage[];
   query: string;
   /** The page of the list asked for, from 1. */
   page: number;

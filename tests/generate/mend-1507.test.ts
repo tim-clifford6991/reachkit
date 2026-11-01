@@ -33,7 +33,7 @@ vi.mock("@/lib/publish/machine", () => ({ transition: async (_: string, to: stri
 // would: newest first.
 vi.mock("@/lib/publish/db", () => {
   const chain: Record<string, unknown> = { then: (resolve: (value: unknown) => unknown) => resolve({ data: publications, error: null }) };
-  for (const step of ["from", "select", "eq", "not", "is", "order"]) chain[step] = () => chain;
+  for (const step of ["from", "select", "eq", "not", "is", "order", "limit"]) chain[step] = () => chain;
   return { publishDb: () => chain };
 });
 
@@ -122,12 +122,12 @@ describe("a live page mended through the refresh path", () => {
       published_at: publishedAt,
       mode: "autopilot",
       sites: { domain: "reachkit.app", category: null, timezone: null },
-      drafts: { title: "t", body_md: id, attribution: null, meta, grounded_fact: null, opportunity_id: "o", opportunities: { id: "o", target_query: "q", scans: null } },
+      drafts: { title: "t", body_md: id, attribution: null, meta, dated_as: meta.datedAs ?? null, grounded_fact: null, opportunity_id: "o", opportunities: { id: "o", target_query: "q", scans: null } },
     });
     publications.splice(0, publications.length, row("mended", "2026-11-11T07:00:00.000Z", { datedAs: WENT_LIVE.toISOString() }), row("written", WENT_LIVE.toISOString(), {}));
-    const { livePagesForSite } = await import("../../src/lib/publish/destinations/hosted/store");
+    const { livePageBySlug, livePagesForSite } = await import("../../src/lib/publish/destinations/hosted/store");
     const [page] = await livePagesForSite(SITE_ID, "content.reachkit.app");
-    expect(page?.bodyMd).toBe("mended");
+    expect((await livePageBySlug(SITE_ID, B.liveUrl.split("/").pop()!, "content.reachkit.app"))?.page.bodyMd).toBe("mended");
     expect(page?.publishedAt.toISOString()).toBe(WENT_LIVE.toISOString());
     expect(page?.firstPublishedAt.toISOString()).toBe(WENT_LIVE.toISOString());
     // A version the writer changed is dated when it went live, as before.

@@ -38,7 +38,7 @@ describe("a customer's new version of a hosted page", () => {
     });
 
     const page = await livePageBySlug(SAAS_HOSTED.siteId, "onboarding-checklist", SAAS_HOSTED.hostname!);
-    expect(page?.bodyMd).toContain(NEW_WORDS);
+    expect(page?.page.bodyMd).toContain(NEW_WORDS);
     expect(db.rows("publications").filter((row) => row.live_url === SAAS_HOSTED.liveUrl)).toHaveLength(2);
     const [listed] = await livePagesForSite(SAAS_HOSTED.siteId, SAAS_HOSTED.hostname!);
     // The updated date, `dateModified` and `lastmod` move; the published date does not.

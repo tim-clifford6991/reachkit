@@ -44,6 +44,7 @@ export type {
   FaqEntry,
   HostedGrounding,
   HostedIdentity,
+  HostedListing,
   HostedPage,
   HostedPublisher,
   HostedSite,

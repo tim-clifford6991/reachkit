@@ -239,14 +239,14 @@ describe("WO-028's NFR — invalidation is immediate and never waits on a TTL", 
     expect(revalidated.map((r) => r.tag)).toContain(tags.site("site-1"));
   });
 
-  it("unpublishing clears both tags", async () => {
+  it("unpublishing clears the site's, ReachKit's own articles' and the page's tags", async () => {
     await HOSTED_ADAPTER.unpublish(PUB, {});
-    expect(revalidated.map((r) => r.tag)).toEqual([tags.site("site-1"), tags.page("pub-1")]);
+    expect(revalidated.map((r) => r.tag)).toEqual([tags.site("site-1"), tags.ownArticles, tags.page("pub-1")]);
   });
 
   it("every clear asks for no stale window at all — `{ expire: 0 }`, never a profile", () => {
     invalidateHosted({ siteId: "s", publicationId: "p" });
-    expect(revalidated).toHaveLength(2);
+    expect(revalidated).toHaveLength(3);
     for (const call of revalidated) expect(call.profile).toEqual({ expire: 0 });
   });
 
@@ -279,7 +279,7 @@ describe("§9's page record — five members, and none of them fabricated", () =
   it("a live page records opportunity id, target query, measurement date, mode and live URL", async () => {
     seedOnePublishedPage();
     const page = await livePageBySlug("site-1", "a-page", "content.example.com");
-    expect(page?.record).toEqual({
+    expect(page?.page.record).toEqual({
       opportunityId: "opp-1",
       targetQuery: "best onboarding tools",
       measuredOn: new Date("2026-08-28T00:00:00.000Z"),
@@ -292,8 +292,8 @@ describe("§9's page record — five members, and none of them fabricated", () =
     seedOnePublishedPage();
     db.seed("scans", []);
     const page = await livePageBySlug("site-1", "a-page", "content.example.com");
-    expect(page?.record.measuredOn).toBeNull();
-    expect(page?.record.targetQuery).toBe("best onboarding tools");
+    expect(page?.page.record.measuredOn).toBeNull();
+    expect(page?.page.record.targetQuery).toBe("best onboarding tools");
   });
 });
 
@@ -359,7 +359,7 @@ describe("the description is read from stored meta (issue 697)", () => {
   it("a live page carries its draft's description", async () => {
     seedOnePublishedPage();
     const page = await livePageBySlug("site-1", "a-page", "content.example.com");
-    expect(page?.description).toBe("What the page answers.");
+    expect(page?.page.description).toBe("What the page answers.");
   });
 
   it("an absent, blank or non-string description is none, never an empty tag", () => {
