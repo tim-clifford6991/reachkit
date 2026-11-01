@@ -14,7 +14,8 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { changesToWrite, rescoreRow, type StoredRead, type StoredScanRow } from "../../../src/lib/scan/rescore-run";
+import { rescoreRow, type StoredRead, type StoredScanRow } from "../../../src/lib/scan/rescore-run";
+import { changesToWrite } from "../../../src/lib/scan/rescore-write";
 import { REPORT_VERSION } from "../../../src/lib/scan/report";
 import { psql, psqlRows } from "../../db/substrate";
 
