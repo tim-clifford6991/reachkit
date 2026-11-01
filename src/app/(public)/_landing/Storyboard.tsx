@@ -40,7 +40,7 @@ function Frame(p: { n: number; Icon: LucideIcon; children: React.ReactNode }): R
         <p.Icon {...NODE} />
       </span>
       <span className="flex min-w-0 flex-col gap-0.5">
-        <span className="font-bold">{copy(`landing.story.${p.n}.title` as CopyKey)}</span>
+        <span className="text-[0.9375rem] leading-[1.3] font-bold tracking-[-0.01em] whitespace-nowrap">{copy(`landing.story.${p.n}.title` as CopyKey)}</span>
         <span className="text-base-content/70 text-xs">{copy(`landing.story.${p.n}.when` as CopyKey)}</span>
       </span>
       <div className={`${MINI} col-span-2 @md:col-span-1`}>{p.children}</div>
