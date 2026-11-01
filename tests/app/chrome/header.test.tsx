@@ -145,7 +145,7 @@ describe("SPEC §1, 2026-09-24 (#1066) — the banner and the nav", () => {
     const html = markup(ELSEWHERE);
     expect(html.indexOf('data-testid="public-banner"')).toBeLessThan(html.indexOf('data-testid="public-header"'));
     const banner = html.slice(html.indexOf('data-testid="public-banner"'), html.indexOf('data-testid="public-header"'));
-    expect(COPY["chrome.banner"]).toBe("Every free report proposes your first page. Leave your email and we write it for you, free.");
+    expect(COPY["chrome.banner"]).toBe("Your first page is free. We’ll email it to you.");
     const at = [COPY["chrome.banner.tag"], COPY["chrome.banner"], COPY["landing.submit.label"], COPY["chrome.banner.short"]].map((w) => banner.indexOf(`>${w}<`));
     expect(at.every((i) => i > 0)).toBe(true);
     expect([...at].sort((x, y) => x - y)).toEqual(at);

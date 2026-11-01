@@ -5,6 +5,8 @@ import { WRITE_VOLUME_FLOOR_PER_MONTH } from "../../../src/lib/config/constants"
 import { writeCandidates } from "../../../src/lib/opportunities/derive/write";
 import { difficultyCeiling } from "../../../src/lib/opportunities/winnability/bars";
 import { measured } from "../../../src/lib/measure/measured";
+import { marketSetOf } from "../../../src/lib/market/questions/market-set";
+import { PROFILE } from "../../scan/report/fixtures";
 import {
   AT,
   SCAN_ID,
@@ -324,5 +326,35 @@ describe("at most one Write candidate per search", () => {
     });
     const { candidates } = writeCandidates({ ...base, report, rankedCounts: smallCounts() });
     expect(candidates).toHaveLength(1);
+  });
+});
+
+describe("a job seeker's search proposes no page, except to a business that recruits or trains", () => {
+  const rows = [
+    ["www.yourcareer.gov.au", "Baker | Your Career"],
+    ["bakingcareer.com.au", "Baking Career - Everything you need to know"],
+    ["www.seek.com.au", "Baker Jobs in Australia - SEEK"],
+    ["www.brumbys.com.au", "Brumby's Bakeries | Fresh bread"],
+  ] as const;
+  const baker = serp({
+    organic: rows.map(([domain, title], i) => ({ position: i + 1, domain, url: `https://${domain}/`, title })),
+    aiOverview: { present: false, asynchronousAiOverview: false, referenceDomains: [] },
+  });
+  const candidatesFor = (category: string) =>
+    writeCandidates({
+      ...base,
+      report: reportOf(
+        { questions: [question({ search: search({ keyword: "baker" }) })], serps: [baker] },
+        { market: measured(marketSetOf({ profile: { ...PROFILE, category }, suggestions: [] }), AT) }
+      ),
+      rankedCounts: smallCounts(["yourcareer.gov.au", "bakingcareer.com.au", "seek.com.au", "brumbys.com.au"]),
+    }).candidates.map((candidate) => candidate.targetQuery);
+
+  it("a bakery gets no page for its jobs search", () => {
+    expect(candidatesFor("bakery")).toEqual([]);
+  });
+
+  it("a recruitment agency keeps it", () => {
+    expect(candidatesFor("recruitment agency")).toEqual(["baker"]);
   });
 });

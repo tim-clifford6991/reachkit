@@ -6,8 +6,11 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import {
+  isJobRow,
+  isJobSearch,
   isOwnDomain,
   isPlatformDomain,
+  isPublicHost,
   registrableDomain,
 } from "../../../src/lib/market/rivals/domains.ts";
 import { PLATFORM_DOMAINS } from "../../../src/lib/config/constants.ts";
@@ -103,6 +106,39 @@ describe("all/are-pure", () => {
       expect(() => registrableDomain(input)).not.toThrow();
       expect(() => isPlatformDomain(input)).not.toThrow();
       expect(() => isOwnDomain(input, "example.com")).not.toThrow();
+    }
+  });
+});
+
+describe("a page for job seekers and a public body are sources, read one way for the rivals and the topics", () => {
+  it("reads job and careers pages by their titles, in English and German", () => {
+    for (const title of ["Baker | Your Career", "Baking Career - Everything you need to know", "Baker Jobs in Australia - SEEK", "Ausbildung Bäcker/in"]) {
+      expect(isJobRow({ domain: "example.com.au", title }), title).toBe(true);
+    }
+    expect(isJobRow({ domain: "example.com.au", title: "Fresh bread, baked daily" })).toBe(false);
+  });
+
+  it("reads a careers host and a vacancies address", () => {
+    expect(isJobRow({ domain: "careers.example.com", title: "Open roles" })).toBe(true);
+    expect(isJobRow({ domain: "example.com", url: "https://example.com/vacancies/baker-123", title: "Baker" })).toBe(true);
+    expect(isJobRow({ domain: "example.com", url: "https://example.com/bread", title: "Baker" })).toBe(false);
+  });
+
+  it("reads a government, a university or a public service by its suffix, never a business beside it", () => {
+    for (const host of ["yourcareer.gov.au", "www.tn.gov", "irs.gov", "x.govt.nz", "x.gouv.fr", "x.gob.mx", "uni.ac.uk", "x.edu"]) {
+      expect(isPublicHost(host), host).toBe(true);
+    }
+    for (const host of ["bakery.com.au", "govtech.com", "gobakery.mx", "example.fr"]) expect(isPublicHost(host), host).toBe(false);
+  });
+
+  it("a search is a job seeker's at half its titled top ten, and never for a business that recruits or trains", () => {
+    const job = { domain: "seek.example", title: "Baker Jobs" };
+    const shop = { domain: "bakery.com.au", title: "Bread" };
+    expect(isJobSearch([job, job, shop, shop], "bakery")).toBe(true);
+    expect(isJobSearch([job, shop, shop], "bakery")).toBe(false);
+    expect(isJobSearch([job, job, { domain: "untitled.example" }, shop], "bakery")).toBe(true);
+    for (const category of ["recruitment agency", "staffing services", "web development courses", "Personalvermittlung"]) {
+      expect(isJobSearch([job, job, shop], category), category).toBe(false);
     }
   });
 });

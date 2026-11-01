@@ -20,7 +20,7 @@
 // all `./domains`' — one implementation in the product, not two.
 import { BATTERY, RIVAL_SCORE } from "@/lib/config/constants";
 import type { MarketOrganicRow, MarketSerp } from "../views";
-import { isAcademicDomain, isArticleRow, isArticleUrl, isExplainerTitle, isHomeUrl, isListingAddress, isMarketplaceHost, isOwnContentUrl, isOwnDomain, isPlaceTitle, isPlatformDomain, isRoundupPage, pageKey, registrableDomain } from "./domains";
+import { isArticleRow, isArticleUrl, isExplainerTitle, isHomeUrl, isJobSearch, isOwnContentUrl, isOwnDomain, isPlaceTitle, isRoundupPage, isSourceDomain, pageKey, registrableDomain } from "./domains";
 
 /** `band.ts`'s `RivalSizeBand`, spelled out: the free card's modules name no
  *  sizing module, not even for a type (§6.4, `size.test.ts`). */
@@ -149,6 +149,9 @@ export function deriveRivals(a: {
    *  one of the site's rivals, and near ones come before middle ones before
    *  those nobody sized. Absent (the free path): the score order alone. */
   sizes?: ReadonlyMap<string, SizeBand>;
+  /** The business's own category: one that recruits, staffs or trains keeps
+   *  the searches of job seekers. Absent reads as none. */
+  category?: string | null;
 }): { rivals: RivalCandidate[]; sources: string[] } {
   // Whether the market is local is the site's own reach (`readsLocal`),
   // never the map alone: a national bookkeeping or forms company is shown a
@@ -196,16 +199,11 @@ export function deriveRivals(a: {
     const domain = registrableDomain(host);
     if (domain === null) return null;
     if (isOwnDomain(domain, a.ownDomain)) return null;
-    // A university teaches, and a marketplace lists the businesses a local
-    // buyer goes to: neither is a local business's rival (issue 1449). A
-    // marketplace's page of one product is a listing wherever it ranks
-    // (issue 1465).
-    if (
-      isPlatformDomain(host) ||
-      isAcademicDomain(host) ||
-      (local && isMarketplaceHost(host)) ||
-      (url !== undefined && isListingAddress(url))
-    ) {
+    // A public body or a university informs, and a marketplace lists the
+    // businesses a local buyer goes to: none is a local business's rival
+    // (issue 1449). A marketplace's page of one product is a listing
+    // wherever it ranks (issue 1465).
+    if (isSourceDomain(host, url, { local })) {
       toSources(domain);
       return null;
     }
@@ -238,6 +236,9 @@ export function deriveRivals(a: {
     // collaboration suite) finds what is called that, not what this market
     // buys (issue 1468).
     if (isNamesakeSearch(serp)) return;
+    // A search whose top ten is mostly job pages ("baker") is a job
+    // seeker's, and its employers and agencies are no bakery's rivals.
+    if (isJobSearch(serp.organic, a.category)) return;
     // A search whose top ten mostly explains a subject ("What is a PEO?",
     // "11 types of web pages") asks what something is (issue 1468).
     const informational = mostly(serp, isExplainerTitle);

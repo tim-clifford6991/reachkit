@@ -186,6 +186,13 @@ describe("the calls to action", () => {
     expect(count(html, copy("offer.start.priced"))).toBe(1);
     expect(count(section("value"), 'data-testid="how-checkout"')).toBe(1);
   });
+
+  it("the section that holds the checkout states the price is a month and tax included", () => {
+    const value = text(section("value"));
+    expect(section("value")).toContain('data-testid="how-checkout"');
+    expect(value).toContain("tax included");
+    expect(value).toContain("a month");
+  });
 });
 
 describe("no figure is typed into copy", () => {
@@ -256,8 +263,8 @@ describe("what the page says about itself", () => {
 
   it("states the links a page carries in the constants' own figures", () => {
     const links = text(section("true"));
-    expect(links).toContain(`${CROSS_LINKS.SITE_MIN} to ${CROSS_LINKS.SITE_MAX} links`);
-    expect(links).toContain(`up to ${CROSS_LINKS.BACK_PAGES_MAX} of your earlier pages`);
+    expect(links).toContain(`${CROSS_LINKS.SITE_MIN} to ${CROSS_LINKS.SITE_MAX} of your other pages`);
+    expect(links).toContain(`up to ${CROSS_LINKS.BACK_PAGES_MAX} older pages`);
   });
 
   it("still links every free report", () => {
