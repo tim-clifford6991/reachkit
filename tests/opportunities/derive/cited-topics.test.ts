@@ -106,7 +106,7 @@ describe("a competitor's page that AI links becomes a topic, for a local busines
     { domain: "savvycal.com", url: "https://calendly.com/scheduling/meeting-polls", rival: "calendly.com", topic: "meeting polls", held: SCHEDULER, searchRivals: ["calendly.com"] },
   ])("$domain: the page $url → $topic", async ({ domain, url, rival, topic, held, searchRivals }) => {
     judge(topic);
-    const serps = storedSerps(domain);
+    const serps = storedSerps(domain, "every");
     state.asked = [...serps].map(([term, read]) => ({ term, peopleAlsoAsk: [], related: [], at: read.at }));
     const report = reportOf(
       { questions: [question()], serps: [serp()] },
@@ -124,7 +124,7 @@ describe("a competitor's page that AI links becomes a topic, for a local busines
 
   it("the plumber's linked Roto-Rooter page is written as an offering page, by the results page bought for its search", async () => {
     judge("emergency plumber");
-    const serps = storedSerps("austinplumbery.com");
+    const serps = storedSerps("austinplumbery.com", "every");
     state.asked = [...serps].map(([term, read]) => ({ term, peopleAlsoAsk: [], related: [], at: read.at }));
     state.market = PLUMBER;
     const report = reportOf(

@@ -9,7 +9,8 @@ import { isOthersPage, isOwnDomain, isPublicHost, isSourceRow, registrableDomain
 import { sourceReadingOf, writeCandidates } from "@/lib/opportunities/derive/write";
 import { beatsOf, freePageOf } from "@/lib/opportunities/free-page";
 import { missingPagesOf } from "@/app/(public)/scan/[domain]/_problems/model";
-import { businessOf, panelDomains, storedPayloads } from "../plan/panel";
+import { businessOf, marketOfKey, panelDomains, storedEvidence, storedPayloads } from "../plan/panel";
+import type { SerpResult } from "@/lib/vendors/dataforseo/types";
 import { panelReport } from "./panel";
 
 function holders(domain: string) {
@@ -46,6 +47,23 @@ function render(domain: string): string {
 describe("the golden rivals and holders of each panel site", () => {
   it.each(panelDomains())("%s", async (domain) => {
     await expect(render(domain)).toMatchFileSnapshot(`./${domain}.md`);
+  });
+});
+
+describe("each site's report reads one market, its newest pass's, as a pass stores one", () => {
+  // The market of the stored row each of the report's SERPs was read from.
+  const marketsOf = (domain: string) => {
+    const stored = storedEvidence(domain).filter((row) => row.source === "serp/google/organic");
+    const marketOf = (organic: unknown) => marketOfKey(stored.find((row) => JSON.stringify((row.payload?.[0] as SerpResult | undefined)?.organic) === JSON.stringify(organic))!.cache_key);
+    return new Set(panelReport(domain).report.serps.flatMap((serp) => (serp.kind === "unmeasured" ? [] : [marketOf(serp.value.organic)])));
+  };
+
+  it.each(panelDomains())("%s", (domain) => {
+    expect(marketsOf(domain).size).toBe(1);
+  });
+
+  it("baeckerei-hinkel.de reads Düsseldorf in German", () => {
+    expect([...marketsOf("baeckerei-hinkel.de")]).toEqual(["Germany|de|Dusseldorf,North Rhine-Westphalia,Germany"]);
   });
 });
 

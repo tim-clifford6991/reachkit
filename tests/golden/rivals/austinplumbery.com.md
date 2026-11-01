@@ -1,6 +1,6 @@
 # austinplumbery.com
 
-From `scripts/panel/evidence/austinplumbery.com.json`: 37 stored searches, 5 rivals.
+From `scripts/panel/evidence/austinplumbery.com.json`: 17 stored searches, 5 rivals.
 
 | Rival | Top ten | AI citations | Score |
 |---|---|---|---|
@@ -8,31 +8,11 @@ From `scripts/panel/evidence/austinplumbery.com.json`: 37 stored searches, 5 riv
 | reliantplumbing.com | 9 | 5 | 19 |
 | radiantplumbing.com | 7 | 0 | 7 |
 | austinsgreatestplumbing.com | 7 | 0 | 7 |
-| clarkekentplumbing.com | 5 | 3 | 11 |
+| clarkekentplumbing.com | 4 | 3 | 10 |
 
 | Search | Type | Holder |
 |---|---|---|
-| plumbing repair services | — | — |
-| home services plumbing | — | — |
-| residential plumbing services | — | — |
-| plumbing repair and maintenance | — | — |
-| residential plumber near me | — | — |
-| plumber repair service near me | — | — |
-| austin emergency plumbing | — | — |
-| emergency plumbing repair | — | — |
-| services plumbing | — | — |
-| plumbing repair services near me | — | — |
-| commercial plumbing services | — | — |
-| emergency plumbing fix | — | — |
-| drain cleaning service | — | — |
-| local plumber | — | — |
-| plumbing repair | — | — |
-| fix leaking pipe | — | — |
-| plumbing services | — | — |
 | plumber austin | — | — |
-| water heater repair | — | — |
-| emergency plumber | — | — |
-| clogged drain repair | — | — |
 | best plumber austin | — | — |
 | austin emergency plumber | — | — |
 | emergency plumber austin texas | — | — |

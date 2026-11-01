@@ -92,10 +92,19 @@ export function storedEvidence(domain: string): { source: string; cache_key: str
   return evidence.sort((a, b) => a.created_at.localeCompare(b.created_at));
 }
 
-/** The newest stored organic SERP, whole, for each search the site's passes bought. */
-export function storedPayloads(domain: string): Map<string, { search: string; at: Date; serp: SerpResult }> {
+/** A SERP row's market: the `cache_key` fields between the search and `aio:` (country, language, place). */
+export function marketOfKey(cacheKey: string): string {
+  const fields = cacheKey.split("|").slice(1);
+  const aio = fields.findIndex((field) => field.startsWith("aio:"));
+  return (aio < 0 ? fields : fields.slice(0, aio)).join("|");
+}
+
+/** Each search's newest stored organic SERP, whole, in the market of the site's newest SERP, as one pass stores one market; `every` reads each search in any market. */
+export function storedPayloads(domain: string, markets: "newest" | "every" = "newest"): Map<string, { search: string; at: Date; serp: SerpResult }> {
   const serps = new Map<string, { search: string; at: Date; serp: SerpResult }>();
-  for (const row of storedEvidence(domain).filter((entry) => entry.source === "serp/google/organic")) {
+  const rows = storedEvidence(domain).filter((entry) => entry.source === "serp/google/organic");
+  const market = rows.length === 0 ? null : marketOfKey(rows.at(-1)!.cache_key);
+  for (const row of rows.filter((entry) => markets === "every" || marketOfKey(entry.cache_key) === market)) {
     const serp = row.payload?.[0] as SerpResult | undefined;
     if (serp === undefined || (serp.organic ?? []).length === 0) continue;
     const search = row.cache_key.split("|")[0]!;
@@ -104,10 +113,10 @@ export function storedPayloads(domain: string): Map<string, { search: string; at
   return serps;
 }
 
-/** The newest stored organic SERP for each search the site's passes bought. */
-export function storedSerps(domain: string): Map<string, TopTenRead> {
+/** Each search's newest stored organic SERP, as `storedPayloads` reads it. */
+export function storedSerps(domain: string, markets: "newest" | "every" = "newest"): Map<string, TopTenRead> {
   const serps = new Map<string, TopTenRead>();
-  for (const [key, { at, serp }] of storedPayloads(domain)) {
+  for (const [key, { at, serp }] of storedPayloads(domain, markets)) {
     serps.set(key, { at, rows: serp.organic, localPack: (serp.localPack ?? []).length > 0 });
   }
   return serps;

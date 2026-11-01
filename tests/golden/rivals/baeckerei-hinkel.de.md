@@ -1,6 +1,6 @@
 # baeckerei-hinkel.de
 
-From `scripts/panel/evidence/baeckerei-hinkel.de.json`: 36 stored searches, 5 rivals.
+From `scripts/panel/evidence/baeckerei-hinkel.de.json`: 16 stored searches, 5 rivals.
 
 | Rival | Top ten | AI citations | Score |
 |---|---|---|---|
@@ -12,26 +12,6 @@ From `scripts/panel/evidence/baeckerei-hinkel.de.json`: 36 stored searches, 5 ri
 
 | Search | Type | Holder |
 |---|---|---|
-| the artisan bakery | keyword_page | seamless.com |
-| local bakery near me for bread | keyword_page | albertsonsmarket.com |
-| local bakery sourdough | keyword_page | le-sourdough-haven.com |
-| local gluten free bakery | keyword_page | — |
-| bakery craft | keyword_page | dillons.com |
-| local bakery shop near me | keyword_page | cakes.com |
-| what is artisan bakery | keyword_page | salemfoodtours.com |
-| local sourdough bakery near me | keyword_page | madisonsourdough.com |
-| best local bakery near me | keyword_page | — |
-| artisan bakery | — | — |
-| best bakery for bread near me | keyword_page | artsbakeryglendale.com |
-| best fresh bread near me | keyword_page | labreabakery.com |
-| bakery near me | — | — |
-| best bakery near me | — | — |
-| fresh bread near me | — | — |
-| best sourdough bakery near me | keyword_page | — |
-| best bakery shop near me | keyword_page | classicbakery.com |
-| best bakery near me near me | keyword_page | sweetmelissapatisserie.rocks |
-| local bakery | — | — |
-| sourdough bakery near me | — | — |
 | bester bäcker düsseldorf | — | — |
 | bio bäckerei düsseldorf | — | — |
 | traditionsbäcker in meiner nähe | — | — |

@@ -19,9 +19,9 @@ import { memoryStore, newMemoryState } from "./memory-store";
 import { AT, SITE_ID } from "./fixtures";
 import { businessOf, storedSerps } from "../golden/plan/panel";
 
-/** The newest stored SERP a panel site's passes bought for `search`. */
+/** The newest stored SERP a panel site's passes bought for `search`, in any market. */
 function storedSerp(domain: string, search: string): TopTenRead {
-  const held = storedSerps(domain).get(queryKey(search));
+  const held = storedSerps(domain, "every").get(queryKey(search));
   if (held === undefined) throw new Error(`no stored SERP for ${domain}: ${search}`);
   return { ...held, at: AT };
 }

@@ -1,6 +1,6 @@
 # alexander.co.uk
 
-From `scripts/panel/evidence/alexander.co.uk.json`: 26 stored searches, 5 rivals.
+From `scripts/panel/evidence/alexander.co.uk.json`: 14 stored searches, 5 rivals.
 
 | Rival | Top ten | AI citations | Score |
 |---|---|---|---|
@@ -12,18 +12,6 @@ From `scripts/panel/evidence/alexander.co.uk.json`: 26 stored searches, 5 rivals
 
 | Search | Type | Holder |
 |---|---|---|
-| tax efficient business structure | — | — |
-| chartered accountant | — | — |
-| business tax advice | — | — |
-| company tax return | — | — |
-| reduce corporation tax | — | — |
-| small business accountant uk | — | — |
-| tax planning for companies | keyword_page | — |
-| best chartered accountant | — | — |
-| chartered accountant vs | — | — |
-| best accountant for small business | keyword_page | wendroffcpa.com |
-| best accountant for small business near me | keyword_page | cpafirmnyc.com |
-| accountant for small business | — | — |
 | accountancy firm manchester | — | — |
 | accountants in manchester uk | — | — |
 | tax accountant near me | — | — |
