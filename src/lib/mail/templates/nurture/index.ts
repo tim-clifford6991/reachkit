@@ -1,6 +1,7 @@
 // BUILD §4.2 — at most three touches a domain per address, at 24h, 72h and 168h, stopping on conversion or opt-out.
 // Each touch's subject and line are indexed by a touch-number type with no fourth entry, so a fourth touch does not compile.
 // The one lead kind registered `stoppable: 'opt-out'`: the address-wide suppression store exists to stop this mail.
+import { WEEK_PLAN } from "@/lib/config/constants";
 import { env } from "@/lib/config/env";
 import type { CopyKey } from "@/lib/presentation/copy";
 import { optOutControlFor, type LeadMail } from "../first-page";
@@ -40,7 +41,7 @@ export function buildNurture(a: {
     blocks: [
       // Opens on its subject line, so the inbox row and the mail's first line cannot differ.
       { block: "heading", text: SUBJECTS[index] as CopyKey },
-      { block: "paragraph", text: BODIES[index] as CopyKey, vars: { domain: a.domain } },
+      { block: "paragraph", text: BODIES[index] as CopyKey, vars: { domain: a.domain, weekPages: String(WEEK_PLAN.days) } },
       // S20's one solid button on this mail is the offer.
       { block: "action", label: ACTION, href: offerHref() },
     ],
