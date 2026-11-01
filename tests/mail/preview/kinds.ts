@@ -272,6 +272,7 @@ export async function composePreview(kind: PreviewKind): Promise<PreviewMail> {
         numbers: {
           live: measured(12, AT),
           planned: measured(7, AT),
+          setAside: { n: 1, replaced: true },
           google: {
             steps: (["draft.ladder.found", "draft.ladder.showing", "draft.ladder.first-page"] as const).map((name, i) => ({
               name,

@@ -30,7 +30,8 @@ import type { PageType, PlanReason } from "@/lib/opportunities/types";
 import { weekStartFor } from "@/lib/scan/weekly/week";
 import type { RecordedChecks } from "@/lib/generate/rules/types";
 import type { PublishingMode } from "../../_shell/model";
-import type { State } from "../../calendar/stages";
+import { STAGE_OF, type State } from "../../calendar/stages";
+import type { Standing } from "./stage";
 import { factPresentIn } from "./grounded";
 
 /** REQ-045 criterion 3's four outcomes. `nothing_to_check` is the empty
@@ -281,7 +282,7 @@ export const NO_RULE_FACTS: RuleFacts = Object.freeze({
   pageType: null,
 });
 
-export interface DraftView {
+export interface DraftView extends Required<Standing> {
   draftId: string;
   title: string;
   /** The meta description (`drafts.meta.description`), which the founder
@@ -301,9 +302,6 @@ export interface DraftView {
    *  label truthful and what an unedited page's copy-out is identical to. */
   bodyMdGenerated: string;
   state: State;
-  /** Whether the page ever entered review (#1180): a stopped page that
-   *  never did may be edited, written again or skipped. */
-  enteredReview: boolean;
   authorship: Authorship;
   grounded: Grounded;
   claim: ClaimState;
@@ -422,7 +420,7 @@ export interface KnownCheck {
 
 /** Everything the draft view reads, before it is a model. One shape, so the
  *  fixture and a future query answer the same question. */
-export interface DraftFacts {
+export interface DraftFacts extends Standing {
   draftId: string;
   title: string;
   description: string;
@@ -433,8 +431,6 @@ export interface DraftFacts {
   bodyMd: string;
   bodyMdGenerated: string;
   state: State;
-  /** Whether §9's record shows the page in review at any point (#1180). */
-  enteredReview: boolean;
   /** Set on the first save that changed the text; `null` on a draft the
    *  customer has not edited. */
   firstEditedAt: Date | null;
@@ -544,6 +540,7 @@ export function assembleDraft(facts: DraftFacts): DraftView {
     bodyMdGenerated: facts.bodyMdGenerated,
     state: facts.state,
     enteredReview: facts.enteredReview,
+    stage: facts.stage ?? STAGE_OF[facts.state],
     authorship:
       facts.firstEditedAt === null
         ? { edited: false }

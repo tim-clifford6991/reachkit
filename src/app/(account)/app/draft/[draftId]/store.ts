@@ -60,6 +60,7 @@ import {
 import type { PublishingMode } from "../../_shell/model";
 import type { State } from "../../calendar/stages";
 import { pageRecordFor } from "@/lib/publish/record";
+import { standingAtRead } from "./stage";
 import { readingOf } from "@/lib/measure/page-reading";
 import { verdict } from "@/lib/opportunities/verdicts/verdict";
 import { takeDownStanding } from "@/lib/publish/take-down/standing";
@@ -542,10 +543,7 @@ export async function readDraftRow(a: {
     linkRecord: linkRecordAt(row.meta),
     domain: a.site.domain,
     state: row.state as State,
-    // The fact §9's `never_entered_review` guard reads (#1180).
-    enteredReview:
-      Array.isArray(row.transitions) &&
-      row.transitions.some((move: { to?: unknown } | null) => move?.to === "in_review"),
+    ...standingAtRead({ state: row.state as State, transitions: row.transitions, meta: row.meta }, at),
     firstEditedAt: firstEdited === null ? null : new Date(firstEdited),
     // §8's recorded fact, from its own column and through the one reader
     // (`@/lib/generate/fact`). `null` where generation recorded no
