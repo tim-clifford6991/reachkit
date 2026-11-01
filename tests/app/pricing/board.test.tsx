@@ -212,8 +212,7 @@ describe("board Pricing — before you pay, and the free report", () => {
       "landing.faq.approve.q",
       "landing.faq.results.q",
       "landing.faq.stop.q",
-      "landing.faq.local.q",
-      "how.faq.software.q",
+      "landing.faq.any.q",
     ].map((key) => before.indexOf(text(copy(key as Parameters<typeof copy>[0]))));
     expect(asked.every((i) => i >= 0)).toBe(true);
     expect([...asked].sort((a, b) => a - b)).toEqual(asked);

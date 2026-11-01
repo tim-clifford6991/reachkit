@@ -85,9 +85,9 @@ describe("the landing's icons are the boards'", () => {
     expect(week!.querySelector(".badge-success")!.classList.contains("badge-soft")).toBe(true);
   });
 
-  it("the Why cards' tiles: sparkles, search, wrench, file-text", async () => {
+  it("the Why cards' tiles: sparkles, search", async () => {
     const cards = (await render()).querySelectorAll("section#why li.card");
-    expect(cards.map((card) => glyphs(card.querySelector("h3")!))).toEqual([["sparkles"], ["search"], ["wrench"], ["file-text"]]);
+    expect(cards.map((card) => glyphs(card.querySelector("h3")!))).toEqual([["sparkles"], ["search"]]);
   });
 
   it("the AI card draws who is mentioned and who is not", async () => {

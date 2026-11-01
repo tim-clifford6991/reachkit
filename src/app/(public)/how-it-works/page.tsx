@@ -289,7 +289,7 @@ function ValueFigure(): React.JSX.Element {
 
 type Question = { q: CopyKey; a: CopyKey; vars?: Record<string, string | number> };
 
-/** The questions: the landing's answers word for word, plus software. */
+/** The questions: the landing's full answers, word for word. */
 function questions(): readonly Question[] {
   const landing = (id: string, vars?: Question["vars"]): Question => ({
     q: `landing.faq.${id}.q` as CopyKey,
@@ -302,8 +302,7 @@ function questions(): readonly Question[] {
     landing("results"),
     landing("start", minutes),
     landing("stop", { days: String(HOSTED_RETENTION_DAYS) }),
-    landing("local"),
-    { q: "how.faq.software.q", a: "how.faq.software.a" },
+    landing("any"),
     landing("german", measuredCountryLists()),
     landing("trial", { price: PRICE() }),
   ];

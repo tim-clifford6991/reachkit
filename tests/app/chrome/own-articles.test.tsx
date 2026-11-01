@@ -5,7 +5,7 @@
 // there is no link.
 import "../../generate/env";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { COPY } from "@/lib/presentation/copy";
+import { COPY, copy } from "@/lib/presentation/copy";
 import { settledMarkup } from "../shell/settled";
 
 type Page = { title: string; liveUrl: string; firstPublishedAt: Date };
@@ -56,7 +56,7 @@ beforeEach(() => {
 describe("the footer links ReachKit's articles (issue 1512)", () => {
   it("a plain link to the content host's index, labelled as the articles", async () => {
     const html = await settledMarkup(<Footer />);
-    expect(html).toContain(`<a href="https://content.reachkit.app/" class="link link-hover">${COPY["chrome.nav.articles"]}</a>`);
+    expect(html).toMatch(new RegExp(`<a href="https://content.reachkit.app/" class="link link-hover[^"]*">${COPY["chrome.nav.articles"]}</a>`));
     expect(asked).toEqual(["reachkit.app"]);
   });
 
@@ -65,6 +65,16 @@ describe("the footer links ReachKit's articles (issue 1512)", () => {
     const html = await settledMarkup(<Footer />);
     expect(html).not.toContain("content.reachkit.app");
     expect(html).not.toContain(`>${COPY["chrome.nav.articles"]}<`);
+  });
+});
+
+describe("the footer's last line", () => {
+  it("reads the rights and the removal sentence, its address the one registry value and a mail link", async () => {
+    const html = await settledMarkup(<Footer />);
+    const line = html.slice(html.lastIndexOf("<p"), html.lastIndexOf("</p>"));
+    const text = line.replace(/<[^>]*>/g, "").replace(/&#x27;/g, "'");
+    expect(text).toBe(`${COPY["chrome.footer.rights"]} · ${copy("chrome.footer.opt-out", { address: COPY["removal.address"] })}`);
+    expect(line).toContain(`href="mailto:${COPY["removal.address"]}"`);
   });
 });
 

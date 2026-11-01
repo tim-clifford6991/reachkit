@@ -82,10 +82,10 @@ export const CHROME_COPY = Object.freeze({
     // The address is a slot, not a literal: `removal.address` (REQ-002 c1)
     // is its one home in the registry, and a second copy here would be a
     // second place to change it. The sentence is the set's, as written.
-    "Own this site and want its report taken down? Write to {address}.",
-    { slots: { address: "text" }, fixedBy: "the approved screen set · 3a" },
+    "Want your site’s report removed? {address}",
+    { slots: { address: "text" }, fixedBy: "board PubLanding v36 · owner 2026-11-01" },
   ],
-  "chrome.footer.rights": ["© 2026 ReachKit. All rights reserved.", { slots: {}, fixedBy: "issue 266" }],
+  "chrome.footer.rights": ["© 2026 ReachKit", { slots: {}, fixedBy: "board PubLanding v36 · owner 2026-11-01" }],
 
   /* ── The pricing page (board Pricing) ─────────────────────────────── */
   "pricing.title": ["One plan. Everything included.", { slots: {}, fixedBy: "board Pricing · issue 1722" }],
@@ -458,6 +458,8 @@ export const CHROME_COPY = Object.freeze({
   "how.when.showing.what": ["Pages start showing when people search.", { slots: {}, fixedBy: "issue 1597 · drafted" }],
   "how.when.top.at": ["Months", { slots: {}, fixedBy: "issue 1597 · drafted" }],
   "how.when.top.what": ["Some reach Google’s first page. Not every page gets there.", { slots: {}, fixedBy: "issue 1597 · drafted" }],
+  /** The landing ends the timeline here; How it works and Pricing add the line after it. */
+  "landing.when.top": ["Some reach Google’s first page.", { slots: {}, fixedBy: "board PubLanding v34 · owner 2026-11-01" }],
   "how.when.promise": ["No one can guarantee a place on Google, and we never promise one.", { slots: {}, fixedBy: "issue 1597 · drafted" }],
   "how.when.maps": ["Searches with a map show Google Maps listings first. Your Maps listing and reviews count most there.", { slots: {}, fixedBy: "issue 1597 · drafted" }],
   "how.monday.measure": ["Every Monday. We check the {searches} searches and ask each page’s own question again.", { slots: { searches: "text" }, fixedBy: "board How it works · issue 1729 · drafted" }],
@@ -527,8 +529,6 @@ export const CHROME_COPY = Object.freeze({
   "how.never.hide": ["Hide text on a page.", { slots: {}, fixedBy: "issue 1597 · drafted" }],
 
   // faq
-  "how.faq.software.q": ["Will it work for software or online businesses?", { slots: {}, fixedBy: "issue 1597 · drafted" }],
-  "how.faq.software.a": ["Yes. We check what your buyers search and ask AI, in your language. Your pages answer them before they pick a tool.", { slots: {}, fixedBy: "issue 1597 · drafted" }],
 
   // start
   "how.start.body": ["Type your website. In under a minute, see who gets your buyers and what to fix.", { slots: {}, fixedBy: "issue 1597 · drafted" }],
@@ -602,7 +602,7 @@ export const CHROME_COPY = Object.freeze({
   "chrome.nav.teardowns": ["Teardowns", { slots: {}, fixedBy: "issue 1458 · drafted" }],
   // Issue 1512: ReachKit's own published articles, on its content host, linked from the footer and the landing.
   "chrome.nav.articles": ["Articles", { slots: {}, fixedBy: "issue 1512 · drafted" }],
-  "landing.articles.heading": ["Latest articles", { slots: {}, fixedBy: "issue 1512 · drafted" }],
+  "landing.articles.heading": ["Written by ReachKit", { slots: {}, fixedBy: "board PubLanding v34 · owner 2026-11-01" }],
   "landing.articles.all": ["All articles", { slots: {}, fixedBy: "issue 1512 · drafted" }],
   "library.sources": ["Sources", { slots: {}, fixedBy: "issue 1458 · drafted" }],
   "library.checked": ["Facts checked on {date}.", { slots: { date: "text" }, fixedBy: "issue 1458 · drafted" }],

@@ -64,7 +64,7 @@ describe("S1 — the landing's chips carry the icons the approved set draws", ()
     // One icon per concept (2026-10-24 E29): the story frames are an answer
     // (search), research (scan-search) into your business (building-2) and
     // your competitors (users), pages (file-text) and being found
-    // (trending-up); AI is sparkles; the fix card is a wrench; the AI
+    // (trending-up); AI is sparkles; the AI
     // drawing ticks who is named and crosses who is not.
     //
     // Version 34 (decision 2026-11-01-2246): the story week marks Planned
@@ -88,21 +88,20 @@ describe("S1 — the landing's chips carry the icons the approved set draws", ()
       "Sparkles",
       "TrendingUp",
       "Users",
-      "Wrench",
       "Zap",
     ]);
   });
 
-  it("the four feature cards take sparkles, search, wrench and file, in that order (E29)", () => {
+  it("the two feature cards take sparkles and search, in that order (E29)", () => {
     const source = read("app/(public)/_landing/Features.tsx");
     const order = [...source.matchAll(/body: "landing\.feature\.\w+\.body", Icon: (\w+)/g)].map((m) => m[1]);
-    expect(order).toEqual(["Sparkles", "Search", "Wrench", "FileText"]);
+    expect(order).toEqual(["Sparkles", "Search"]);
   });
 
   it("each card head takes its glyph, at lucide stroke 1.75", () => {
     expect(read("app/(public)/_landing/InsideReachKit.tsx")).toMatch(/<Zap size=\{16\} strokeWidth=\{1\.75\}/);
     expect(read("app/(public)/_landing/InsideReachKit.tsx")).toMatch(/<MessageSquare size=\{16\} strokeWidth=\{1\.75\}/);
-    expect(read("app/(public)/_landing/Features.tsx")).toMatch(/<Icon size=\{16\} strokeWidth=\{1\.75\}/);
+    expect(read("app/(public)/_landing/Features.tsx")).toMatch(/<Icon size=\{20\} strokeWidth=\{1\.75\}/);
   });
 
   it("the hero's own control carries the one arrow the v36 board draws on it, and no other glyph", () => {

@@ -31,7 +31,6 @@ const WEEK_PACE_SHORT: readonly CopyKey[] = ["plan.single"];
 const LANDING_PACE: readonly CopyKey[] = [
   "landing.pace",
   "landing.step.2.body",
-  "landing.feature.daily.body",
   "landing.hero.work.reachkit",
   ...WEEK_PACE,
   ...WEEK_PACE_SHORT,
@@ -160,8 +159,6 @@ describe("“ReachKit rewrites” is said only with where it is true", () => {
     const rewrites = Object.entries(COPY as Record<string, string>).filter(([, value]) => /\bReachKit rewrites\b/.test(value));
     expect(rewrites.length).toBeGreaterThan(0);
     for (const [key, value] of rewrites) expect(value, key).toContain("WordPress");
-    // The landing's row beside “Missing titles rewritten”.
-    expect(text("landing.feature.fix.ours")).toContain("WordPress");
   });
 
   it("and the two checks the report gives that doer are the two WordPress has a field for", () => {

@@ -188,8 +188,7 @@ function questions(): readonly Question[] {
     landing("approve", { hours: F.windowHours }),
     landing("results"),
     landing("stop", { days: String(HOSTED_RETENTION_DAYS) }),
-    landing("local"),
-    { q: "how.faq.software.q", a: "how.faq.software.a" },
+    landing("any"),
   ];
 }
 

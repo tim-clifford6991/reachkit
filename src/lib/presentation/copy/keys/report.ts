@@ -604,7 +604,7 @@ export const REPORT_COPY = Object.freeze({
   "landing.subline": ["We research your business and competitors, then write pages that get you found, on autopilot.", { slots: {}, fixedBy: "owner O2 · 2026-10-31" }],
   "landing.why.eyebrow": ["Why you should care", { slots: {}, fixedBy: "issue 266 · L11" }],
   "landing.why.heading": ["Buyers ask AI what to use.", { slots: {}, fixedBy: "issue 266 · L12" }],
-  "landing.why.body": ["The answer names a few businesses. If yours isn’t one, that buyer never meets you.", { slots: {}, fixedBy: "issue 266 · L13" }],
+  "landing.why.sub": ["If you’re not in the answer, that buyer never meets you.", { slots: {}, fixedBy: "board PubLanding v34 · owner 2026-11-01" }],
   "landing.start.eyebrow": ["How it works", { slots: {}, fixedBy: "board Landing · issue 1596" }],
   "landing.start.heading": ["You scan. We write. You watch.", { slots: {}, fixedBy: "board Landing · issue 1596" }],
   "landing.start.body": ["Three steps. The first is free and takes under a minute.", { slots: {}, fixedBy: "board Landing · issue 1596" }],
@@ -742,13 +742,10 @@ export const REPORT_COPY = Object.freeze({
     "people near you search it every month, and today a competitor answers them.",
     { slots: {}, fixedBy: "board R12-1 · issue 1067" },
   ],
-  /** *Why you should care*: four features, each a title, a line and a
-   *  small drawing whose words follow it. */
-  "landing.feature.ai.title": ["Pages AI answers can link to", { slots: {}, fixedBy: "board R12-1 · issue 1067" }],
-  "landing.feature.ai.body": [
-    "Every Monday we ask AI your buyers’ questions. You see if it mentions you, or a competitor.",
-    { slots: {}, fixedBy: "board R12-1 · issue 1067" },
-  ],
+  /** *Why you should care*: two cards, each a title, a line and a small
+   *  drawing whose words follow it. */
+  "landing.feature.ai.title": ["Get mentioned in AI answers", { slots: {}, fixedBy: "board PubLanding v34 · owner 2026-11-01" }],
+  "landing.feature.ai.body": ["Every Monday we ask AI your buyers’ questions. You see if it names you, or a competitor.", { slots: {}, fixedBy: "board PubLanding v34 · owner 2026-11-01" }],
   /** The AI card's drawing: one answer, who it mentions, and the business it leaves out. */
   "landing.feature.ai.ask": ["Who’s a good emergency plumber in Austin?", { slots: {}, fixedBy: "board Landing · issue 1596" }],
   "landing.feature.ai.mentions": ["An AI answer mentions", { slots: {}, fixedBy: "board Landing · issue 1596" }],
@@ -764,33 +761,13 @@ export const REPORT_COPY = Object.freeze({
   "landing.feature.google.chain": ["a national plumbing chain’s page", { slots: {}, fixedBy: "board PubLanding · issue 1727 · drafted" }],
   "landing.feature.google.you": ["You", { slots: {}, fixedBy: "board PubLanding · issue 1727 · drafted" }],
   "landing.feature.google.absent": ["not on Google’s first two pages", { slots: {}, fixedBy: "board PubLanding · issue 1727 · drafted" }],
-  "landing.feature.fix.title": ["Site fixes", { slots: {}, fixedBy: "board R12-1 · issue 1067" }],
-  "landing.feature.fix.body": [
-    "The free report lists what holds your site back, each with a 10-minute fix. On WordPress, we fix missing titles for you.",
-    { slots: {}, fixedBy: "board R12-1 · issue 1067" },
-  ],
-  "landing.feature.fix.titles": ["Missing titles rewritten", { slots: {}, fixedBy: "board R12-1 · issue 1067" }],
   "landing.feature.fix.free": ["Free fix · 10 min", { slots: {}, fixedBy: "board R12-1 · issue 1067" }],
-  "landing.feature.fix.ours": ["ReachKit, on WordPress", { slots: {}, fixedBy: "board R12-1 · issue 1067" }],
-  "landing.feature.daily.title": ["Pages written for you, every week", { slots: {}, fixedBy: "board R12-1 · issue 1067" }],
-  "landing.feature.daily.body": [
-    "Up to {weekPages} a week, new or updated, from facts on your site. Each goes live after {hours} hours unless you stop it.",
-    { slots: { weekPages: "text", hours: "text" }, fixedBy: "board Landing · issue 1596" },
-  ],
-  "landing.feature.daily.caption": ["a page live on its own day, at {time} · example", { slots: { time: "text" }, fixedBy: "board PubLanding · issue 1727 · drafted" }],
-  /** Under each sample drawing: it is an example, never a fact about the reader's site. */
-  "landing.feature.example": ["example", { slots: {}, fixedBy: "board PubLanding · issue 1727 · drafted" }],
-  "landing.why.more": ["See how we find your competitors", { slots: {}, fixedBy: "board PubLanding · issue 1727 · drafted" }],
   /** *What to do next*: the time each step takes. */
   "landing.step.1.tag": ["free · under a minute", { slots: {}, fixedBy: "board R12-1 · issue 1067" }],
   "landing.step.2.tag": ["every Monday", { slots: {}, fixedBy: "board R12-1 · issue 1067" }],
   "landing.step.3.tag": ["from week 1", { slots: {}, fixedBy: "board R12-1 · issue 1067" }],
-  /** The closing band: its heading, its line, and the line under its button. */
+  /** The closing band: its heading, and the line under its button. */
   "landing.close.heading": ["See who gets your buyers today.", { slots: {}, fixedBy: "board R12-1 · issue 1067" }],
-  "landing.close.body": [
-    "The report is free and yours to keep. ReachKit is {price} a month when you want the pages.",
-    { slots: { price: "text" }, fixedBy: "board R12-1 · issue 1067" },
-  ],
   /** *What {price} a month gets you*: what the one plan holds, and its card. */
   "landing.price.heading": ["What {price} a month gets you", { slots: { price: "text" }, fixedBy: "board Landing · issue 1596" }],
   "landing.price.facts": ["Each page is written from facts on your site, with every fact linked to where it came from.", { slots: {}, fixedBy: "board Landing · issue 1596" }],
@@ -816,8 +793,8 @@ export const REPORT_COPY = Object.freeze({
   "landing.faq.results.a": ["Your pages go live in week 1. Each Monday email shows where they sit on Google, and whether AI links to them.", { slots: {}, fixedBy: "board Landing · issue 1596" }],
   "landing.faq.stop.q": ["What if I want to stop?", { slots: {}, fixedBy: "board Landing · issue 1596" }],
   "landing.faq.stop.a": ["Cancel any time from Settings, and you’re not charged again. Section four of our Terms says when your access ends. Pages on your WordPress stay where they are. Pages on the blog address we run for you stay live for {days} days after your access ends, and we email you a week before they stop. Your export of every page stays available, with no end date.", { slots: { days: "text" }, fixedBy: "board Landing · issue 1596 · ruling D5 · ruling R22" }],
-  "landing.faq.local.q": ["Will it work for a local business?", { slots: {}, fixedBy: "board Landing · issue 1596" }],
-  "landing.faq.local.a": ["Yes, we track the searches local buyers make, including ones with your town. Our pages help your website, not your Google Maps listing.", { slots: {}, fixedBy: "board Landing · issue 1596" }],
+  "landing.faq.any.q": ["Will it work for my business?", { slots: {}, fixedBy: "board PubLanding v36 · owner 2026-11-01" }],
+  "landing.faq.any.a": ["Yes, if it has a website: a local service, shop, restaurant, firm, software or creator. We help your website where buyers search and ask AI, not your Google Maps listing.", { slots: {}, fixedBy: "board PubLanding v36 · owner 2026-11-01" }],
   "landing.faq.start.q": ["What do I need to start?", { slots: {}, fixedBy: "board Landing · issue 1596" }],
   "landing.faq.start.a": ["A website and about {minutes} minutes. After you pay, copy one line to connect it, or log in with WordPress.", { slots: { minutes: "text" }, fixedBy: "board Landing · issue 1596" }],
   "landing.faq.german.q": ["Does it work in German?", { slots: {}, fixedBy: "board Landing · issue 1596" }],
@@ -827,7 +804,12 @@ export const REPORT_COPY = Object.freeze({
   ],
   "landing.faq.trial.q": ["Why is there no free trial?", { slots: {}, fixedBy: "board Landing · issue 1596" }],
   "landing.faq.trial.a": ["The scan and your first page are free, so you see the work first. Then it’s one plan at {price} a month.", { slots: { price: "text" }, fixedBy: "board Landing · issue 1596" }],
-  "landing.faq.results.more": ["See it week by week", { slots: {}, fixedBy: "board Landing · issue 1596" }],
+  /** The landing's short answers; How it works and Pricing keep the full ones above. */
+  "landing.faq.approve.short": ["No. Each page goes live by itself {hours} hours after it is written. You can edit or stop it first.", { slots: { hours: "text" }, fixedBy: "board PubLanding v34 · owner 2026-11-01" }],
+  "landing.faq.results.short": ["Your pages go live in week 1. Each Monday email shows where they sit on Google and whether AI links to them.", { slots: {}, fixedBy: "board PubLanding v34 · owner 2026-11-01" }],
+  "landing.faq.stop.short": ["Cancel any time in Settings; you’re not charged again. Your export of every page stays available.", { slots: {}, fixedBy: "board PubLanding v34 · owner 2026-11-01" }],
+  "landing.faq.german.short": ["Yes, sites in {germanCountries} are checked and written in German. Everywhere else gets English.", { slots: { germanCountries: "text" }, fixedBy: "board PubLanding v34 · owner 2026-11-01" }],
+  "landing.faq.trial.short": ["The scan and your first page are free, so you see the work first.", { slots: {}, fixedBy: "board PubLanding v34 · owner 2026-11-01" }],
   "landing.faq.more": ["See all questions", { slots: {}, fixedBy: "board PubLanding · issue 1727 · drafted" }],
   "landing.close.assurance": ["free · no account · under a minute", { slots: {}, fixedBy: "board R12-1 · issue 1067" }],
 
