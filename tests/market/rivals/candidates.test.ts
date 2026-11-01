@@ -144,3 +144,21 @@ describe("D64 (issue 1301): only an on-market candidate is sized", () => {
     expect(onMarketCandidates({ candidates, market: null, answers: [] })).toEqual([]);
   });
 });
+
+describe("a top ten Google hides behind its redirects names no candidate", () => {
+  const stored = JSON.parse(readFileSync(path.resolve(import.meta.dirname, "fixtures/au-baker-d149c119.json"), "utf8")) as { organic: MarketSerp["organic"] };
+
+  it("stored AU baker top ten (d149c119): never google.com, and the search adds no candidate", () => {
+    const picked = serpRivalCandidates({
+      serps: [{ ...serp([]), organic: stored.organic }, serp(["brumbys.com.au"])],
+      ownDomain: "bakersdelight.com.au",
+      max: MANY,
+    });
+    expect(picked).toEqual(["brumbys.com.au"]);
+  });
+
+  it("a redirect that carries its site's address is that site", () => {
+    const organic = [{ position: 1, domain: "google.com", url: "https://google.com/goto?url=https://www.brumbys.com.au/" }];
+    expect(serpRivalCandidates({ serps: [{ ...serp([]), organic }], ownDomain: "bakersdelight.com.au", max: MANY })).toEqual(["brumbys.com.au"]);
+  });
+});

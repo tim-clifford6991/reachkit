@@ -6,7 +6,7 @@
 // a missing half. The section below holds the two cards under its heading.
 import type React from "react";
 import { copy } from "@/lib/presentation/copy";
-import { registrableDomain } from "@/lib/market/rivals/domains";
+import { registrableDomain, resolvedHost } from "@/lib/market/rivals/domains";
 import type { AiAnswersSection, PresenceSection, StoredReport } from "@/lib/scan/report";
 
 /** One search is one buyer's question: a rival found on a single one is not where buyers are sent. */
@@ -29,7 +29,7 @@ export function buyersOf(ai: AiAnswersSection, presence: PresenceSection, serps:
   for (const rival of ai.rivals) rival.cells.forEach((c, i) => (c.kind === "answered" && c.citedDomains.length > 0 ? add(rival.domain, i) : undefined));
   serps.forEach((serp, i) => {
     if (serp.kind === "unmeasured") return;
-    const shown = new Set([...serp.value.organic, ...(serp.value.localPack ?? [])].map((row) => registrableDomain(row.domain)));
+    const shown = new Set([...serp.value.organic.map(resolvedHost), ...(serp.value.localPack ?? []).map((row) => row.domain)].map((host) => registrableDomain(host ?? "")));
     for (const rival of presence.rivals) if (shown.has(rival.domain)) add(rival.domain, i);
   });
   let holder: string | null = null;
