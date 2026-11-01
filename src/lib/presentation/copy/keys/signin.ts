@@ -1,82 +1,22 @@
 // BUILD §2.5 — the sign-in prompt's sentences.
-// src/lib/presentation/copy/keys/signin.ts — REQ-098, REQ-020 c4 (issue #19)
+// src/lib/presentation/copy/keys/signin.ts — REQ-098, boards AuthSignIn, AuthCheckEmail, AuthExpired, AuthConfirm.
 //
-// The sign-in screen's sentences — the thirteenth partition, added under the
-// same rule `offer.ts` records for the twelfth (see its header): BP-020
-// decision 5 named eleven partitions before the seven BP-001-owned surfaces
-// existed, and the sign-in screen's sentences have no module in that list.
-// Declared here, where the partition list is written once anyway, so
-// `registry.ts` keeps exactly one author.
-//
-// **Six values are REQ-098 c2's own strings.** The six are not
-// this file's invention: REQ-098 criterion 2 states them *verbatim* — "then
-// it carries these strings verbatim: the heading …; the body …; the email
-// input's placeholder …; the submit control's label …; and beneath that
-// control the line 'New to ReachKit? Start a free scan →'" — and REQ-098's
-// own rationale records them as the owner's transcription from the live
-// page. Transcribing an approved requirement's own quoted string is the
-// footing `unmeasured.dash` ("—", REQ-004 c2) and `mail.shell.wordmark`
-// ("ReachKit") already stand on. Byte note, flagged rather than silently
-// normalised: REQ-098 c2 writes "we'll" with U+0027 APOSTROPHE, where the
-// owner's 2026-09-04 ruling sheet declares U+2019 as the convention. The
-// requirement's own bytes are what is transcribed here; the owner may
-// normalise it in one line.
-//
-// The five remaining values are the ones REQ-098's third open question names
-// as "written nowhere" — the link-sent line (c3), REQ-020 criterion 4's two
-// answers (already booked against `signin.payment_held` and
-// `signin.no_account` by BP-032's `requestMagicLink`), the malformed-address
-// line (c6) and the dead-link line (c7, BP-061's `redeemLink` lineKey). Each
-// carried `CLAUDE.md`'s `TODO(copy)` marker until the owner approved its
-// sentence on 2026-09-10 (#459).
-//
-// The line the field's visible *label* renders is not among criterion 2's
-// six: the requirement fixes the placeholder and says nothing about a
-// label, and `Input` requires one with no default (BP-018 decision 2). The
-// surface reuses `signin.field.placeholder` for both, exactly as
-// `src/app/(public)/page.tsx` reuses `landing.field.label` for both, and no
-// seventh key is minted here to hold a sentence nobody has written.
-//
-// 2026-09-10, issue #459: the owner approved the drafted copy for
-// every key this partition still owed ("copy proposal approved"; proposal
-// sheet artifact 546f45a0-a996-4d25-b85e-fb03fda7b102), and the 10 approved
-// strings are applied here byte for byte.
-//
-// Issue 718 (SPEC §3, "Sign-in copy is identical whatever the address"):
-// the link-sent line and REQ-020 criterion 4's two answers are retired for
-// one line every address gets, `signin.link_requested`, which is
-// `TODO(copy)` until the owner writes it.
+// What REQ-098 c2 fixes verbatim, and where canvas v36 cut it, is in
+// docs/spec/decisions/2026-11-01-2268.md. Every address gets the same
+// answer, `signin.link_requested` (SPEC §3).
 import type { CopyPartition } from "../registry.ts";
 
 export const SIGNIN_COPY = Object.freeze({
   "signin.heading": ["Welcome back", { slots: {}, fixedBy: "REQ-098 c2" }],
-  "signin.eyebrow": ["Sign in", { slots: {}, fixedBy: "board AuthSignIn · drafted" }],
   "signin.body": [
     "Enter the email you paid with. We’ll send you a sign-in link.",
     { slots: {}, fixedBy: "board AuthSignIn" },
   ],
-  // The three facts under the button, and the three steps under the split (board AuthSignIn).
-  "signin.chip.nopass": ["no password", { slots: {}, fixedBy: "board AuthSignIn" }],
-  "signin.chip.link": ["link works 24 hours", { slots: {}, fixedBy: "board AuthSignIn" }],
-  "signin.how.title": ["How signing in works", { slots: {}, fixedBy: "board AuthSignIn" }],
-  "signin.how.email.head": ["Type your email", { slots: {}, fixedBy: "board AuthSignIn" }],
-  "signin.how.email.line": ["The one you paid with.", { slots: {}, fixedBy: "board AuthSignIn" }],
-  "signin.how.open.head": ["Open the link we send", { slots: {}, fixedBy: "board AuthSignIn" }],
-  "signin.how.open.line": ["Subject: “Your sign-in link”.", { slots: {}, fixedBy: "board AuthSignIn" }],
-  "signin.how.in.head": ["You’re in", { slots: {}, fixedBy: "board AuthSignIn" }],
-  "signin.how.in.line": ["On your Overview, with this week’s pages.", { slots: {}, fixedBy: "board AuthSignIn" }],
   "signin.field.label": ["Your email", { slots: {}, fixedBy: "issue 1574" }],
   "signin.field.placeholder": ["you@example.com", { slots: {}, fixedBy: "REQ-098 c2" }],
   /** Changed 2026-09-21 (#937): "Send my link" → the board's own word,
    *  which says which link. Drafted (#759). */
   "signin.submit.label": ["Send my sign-in link", { slots: {}, fixedBy: "issue 937" }],
-  // Criterion 2's last string is one line with a link inside it — "New to
-  // ReachKit? Start a free scan →", "whose 'Start a free scan →' is a
-  // link". Two keys, because one of the two halves is an anchor and the
-  // other is not; concatenated with a single space they are the line the
-  // criterion quotes, byte for byte.
-  "signin.new.prompt": ["New to ReachKit?", { slots: {}, fixedBy: "REQ-098 c2" }],
-  "signin.new.link": ["Start a free scan →", { slots: {}, fixedBy: "REQ-098 c2" }],
 
   // REQ-098 open question 3's five lines — the owner's approved sentences
   // (2026-09-10, #459).
@@ -90,7 +30,7 @@ export const SIGNIN_COPY = Object.freeze({
   ],
   "signin.address.invalid": ["That doesn’t look like an email address. Check it and try again.", { slots: {}, fixedBy: "REQ-098 c6" }],
   "signin.link_dead": [
-    "Sign-in links work for 24 hours, and only the newest one works. Ask for a new one below. It goes to the email you paid with.",
+    "Links work for 24 hours, and only the newest one works. Nothing in your account changed.",
     { slots: {}, fixedBy: "REQ-098 c7 · board AuthExpired" },
   ],
 
@@ -102,31 +42,15 @@ export const SIGNIN_COPY = Object.freeze({
   // form — so the five lines above keep their jobs and only the frame
   // around them is new.
   //
-  // The two heads and the two controls are bracketed in the set and are
-  // the owner's approved sentences (2026-09-10, #459); `signin.sent.to` is not, and is approved as written
-  // (ruling 11a). Its `{address}` is what the visitor typed, echoed back —
-  // never one this screen looked up, which is why it takes a slot rather
-  // than naming an account.
+  // The two heads and the two controls are the owner's approved sentences
+  // (2026-09-10, #459). The address beside `signin.sent.to` is what the
+  // visitor typed, echoed back, never one this screen looked up.
   "signin.sent.head": ["Check your inbox", { slots: {}, fixedBy: "REQ-098 c3" }],
-  "signin.sent.to": ["Sent to {address}", { slots: { address: "text" }, fixedBy: "REQ-098 c3 · board AuthCheckEmail" }],
-  // The link's 24 hours, as the reader's own clock reads them (board AuthCheckEmail).
-  "signin.sent.window": ["The link works for 24 hours", { slots: {}, fixedBy: "board AuthCheckEmail" }],
-  "signin.sent.at": ["Sent {time}", { slots: { time: "text" }, fixedBy: "board AuthCheckEmail" }],
-  "signin.sent.until": ["Works until tomorrow, {time}", { slots: { time: "text" }, fixedBy: "board AuthCheckEmail" }],
-  // The mail as it lands, drawn in a phone (board AuthCheckEmail); subject and heading are the mail's own keys.
-  "signin.inbox.mailboxes": ["Mailboxes", { slots: {}, fixedBy: "board AuthCheckEmail" }],
-  "signin.inbox.edit": ["Edit", { slots: {}, fixedBy: "board AuthCheckEmail" }],
-  "signin.inbox.title": ["Inbox", { slots: {}, fixedBy: "board AuthCheckEmail" }],
-  "signin.inbox.search": ["Search", { slots: {}, fixedBy: "board AuthCheckEmail" }],
-  "signin.inbox.snippet": [
-    "Sign in to ReachKit. The link works for 24 hours. Press it on any device.",
-    { slots: {}, fixedBy: "board AuthCheckEmail" },
-  ],
-  "signin.inbox.updated": ["Updated just now", { slots: {}, fixedBy: "board AuthCheckEmail" }],
-  "signin.inbox.eyebrow": ["Your inbox", { slots: {}, fixedBy: "board AuthCheckEmail" }],
-  "signin.inbox.from": ["From ReachKit, with the subject Your sign-in link.", { slots: {}, fixedBy: "board AuthCheckEmail" }],
-  "signin.inbox.inside": ["Inside the email", { slots: {}, fixedBy: "board AuthCheckEmail" }],
-  "signin.inbox.press": ["Press it on any device. You land on your Overview.", { slots: {}, fixedBy: "board AuthCheckEmail" }],
+  "signin.sent.to": ["Sent to", { slots: {}, fixedBy: "REQ-098 c3 · board AuthCheckEmail" }],
+  "signin.sent.subject": ["Subject", { slots: {}, fixedBy: "board AuthCheckEmail · issue 2268" }],
+  "signin.sent.until": ["Works until", { slots: {}, fixedBy: "board AuthCheckEmail · issue 2268" }],
+  // `{time}` is the send time plus `SIGNIN_LINK_TTL_H`, on the reader's clock.
+  "signin.sent.until.time": ["Tomorrow, {time}", { slots: { time: "text" }, fixedBy: "board AuthCheckEmail · issue 2268" }],
   /** Changed 2026-09-21 (#937). "Send another link" named the wrong act:
    *  the control returns to the empty field, and the reason a reader
    *  presses it is that they typed the wrong address — a second link to
@@ -135,29 +59,17 @@ export const SIGNIN_COPY = Object.freeze({
   "signin.sent.resend": ["Use a different email", { slots: {}, fixedBy: "issue 937" }],
   "signin.expired.head": ["This link no longer works", { slots: {}, fixedBy: "REQ-098 c7" }],
   "signin.expired.submit": ["Send a new link", { slots: {}, fixedBy: "REQ-098 c7" }],
+  "signin.expired.field": ["The email you paid with", { slots: {}, fixedBy: "board AuthExpired · issue 2268" }],
   // The page a link lands on: one press spends it (board AuthConfirm).
   "signin.confirm.head": ["Sign in to ReachKit", { slots: {}, fixedBy: "board AuthConfirm · issue 2099" }],
   "signin.confirm.submit": ["Sign in", { slots: {}, fixedBy: "board AuthConfirm · issue 2099" }],
   "signin.confirm.line": ["Press the button to finish.", { slots: {}, fixedBy: "board AuthConfirm · issue 2099" }],
   "signin.confirm.change.head": ["Confirm your new email", { slots: {}, fixedBy: "board AuthConfirm · issue 2099" }],
   "signin.confirm.change.submit": ["Confirm", { slots: {}, fixedBy: "board AuthConfirm · issue 2099" }],
-  // Why a link stops, in two figures (board AuthExpired).
-  "signin.why.title": ["Why links stop working", { slots: {}, fixedBy: "board AuthExpired" }],
-  "signin.why.window": ["Each link works for 24 hours", { slots: {}, fixedBy: "board AuthExpired" }],
-  "signin.why.sent": ["Sent", { slots: {}, fixedBy: "board AuthExpired" }],
-  "signin.why.stops": ["24 hours later: stops working", { slots: {}, fixedBy: "board AuthExpired" }],
-  "signin.why.newest": ["Only the newest link works", { slots: {}, fixedBy: "board AuthExpired" }],
-  "signin.why.older.head": ["Older link", { slots: {}, fixedBy: "board AuthExpired" }],
-  "signin.why.older.line": ["no longer works", { slots: {}, fixedBy: "board AuthExpired" }],
-  "signin.why.newer.head": ["Newest link", { slots: {}, fixedBy: "board AuthExpired" }],
-  "signin.why.newer.line": ["works for 24 hours", { slots: {}, fixedBy: "board AuthExpired" }],
-  "signin.why.calm": ["Nothing in your account changed. Your pages carry on as planned.", { slots: {}, fixedBy: "board AuthExpired" }],
 
-  /** Under the sent alert (#937): what the link is good for, before a
-   *  reader goes looking in a spam folder. Drafted (#759). */
+  /** Under the sent facts: before a reader goes looking in a spam folder. */
   "signin.sent.terms": [
-    "A newer link replaces an older one. Not there in a minute? Check your spam folder.",
+    "Not there in a minute? Check your spam folder.",
     { slots: {}, fixedBy: "board AuthCheckEmail" },
   ],
-
 }) satisfies CopyPartition;

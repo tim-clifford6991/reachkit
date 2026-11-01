@@ -57,18 +57,18 @@ export default async function ConfirmPage(p: {
   return (
     <Surface
       arms={{
-        compact: { kind: "declared", note: "one column: the mark, the heading, one line and one button" },
+        compact: { kind: "declared", note: "one centred column: the mark, the heading, one line and one button" },
         medium: { kind: "same-as-below" },
         wide: { kind: "same-as-below" },
       }}
     >
-      <main className="mx-auto w-full min-w-0 max-w-6xl px-4 py-16">
-        <div className="flex w-full max-w-120 flex-col gap-5">
-          <span className="grid size-12 flex-none place-items-center rounded-box bg-primary/10 text-primary">
+      <main className="px-4 pt-10 pb-14 sm:px-6 sm:pt-18 sm:pb-22">
+        <div className="mx-auto flex w-full min-w-0 max-w-120 flex-col gap-6">
+          <span className="grid size-11 flex-none place-items-center rounded-box bg-(--accent-bg) text-primary">
             <Icon size={24} strokeWidth={1.75} aria-hidden />
           </span>
-          <h1>{copy(arm.head)}</h1>
-          <p className="text-lg text-base-content/70">{copy("signin.confirm.line")}</p>
+          <h1 className="t-hero">{copy(arm.head)}</h1>
+          <p className="text-base-content/80 sm:text-lg">{copy("signin.confirm.line")}</p>
           <ConfirmForm action={REDEEM_PATH} fields={fields} label={copy(arm.submit)} />
         </div>
       </main>

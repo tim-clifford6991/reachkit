@@ -1,14 +1,12 @@
-// src/app/(public)/signin/page.tsx — SPEC §3, `Canvas: Sign in`.
+// src/app/(public)/signin/page.tsx — SPEC §3, boards AuthSignIn, AuthCheckEmail, AuthExpired.
 //
-// One screen with three arms — the request form, the answered arm, the
-// dead-link arm — between the public header and footer. The answered arm
-// and the dead-link arm split edge to edge: the interaction on the left, and
-// on the right the inbox or why links stop. Under the request arm, how
-// signing in works. No password field, no social sign-in, no account control.
+// One centred column with three arms — the request form, the answered arm,
+// the dead-link arm — between the public header and footer. No password
+// field, no social sign-in, no account control.
 "use client";
 
 import Link from "next/link";
-import { ArrowRight, Check, ChevronLeft, Clock, Mail, Search, Send, X } from "lucide-react";
+import { CircleAlert, Clock, Send } from "lucide-react";
 import { use, useActionState, useState, useSyncExternalStore } from "react";
 import { Surface } from "@/ui/layout";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
@@ -20,48 +18,16 @@ import { EMAIL_FIELD, SIGN_IN_INITIAL, type SignInState } from "./state";
 /** The autofill token and the keyboard the field asks for. */
 const EMAIL_HINT = "email";
 
-/** The layout, named once: two halves edge to edge, no border and no
- *  radius (#1025 — #986 drew them as one rounded card at the wide measure,
- *  which the owner rejected). The surface declares its own edges, so the
- *  split runs to the viewport and grows to meet the footer; the grid's
- *  one row stretches both halves to the same height. */
-const SPLIT = "grid grid-cols-1 lg:grid-cols-2";
-const HALF = "flex items-center justify-center px-4 py-12 sm:px-8 lg:px-18 lg:py-16";
-/**
- * The accent half: an accent **tint**, with the screen's own ink on it.
- *
- * `--primary-content` on a saturated ground is under the contrast floor
- * (#937), so the half is a light tint carrying ordinary ink, with the
- * app's own white tile on top of it — a ground its text passes against by
- * construction. No opacity is spent on any sentence here.
- */
-const PANEL = `${HALF} bg-primary/10`;
-/** The interaction half: the white of the board, not the page ground. */
-const FORM_HALF = `${HALF} bg-base-100`;
-const COLUMN = "flex w-full max-w-100 flex-col gap-5";
-const PANEL_COLUMN = "flex w-full max-w-lg flex-col gap-5";
-const HEAD_GROUP = "flex flex-col gap-2";
+const SECTION = "px-4 pt-10 pb-14 sm:px-6 sm:pt-18 sm:pb-22";
+const COLUMN = "mx-auto flex w-full min-w-0 max-w-120 flex-col gap-6";
+const LEAD = "text-base-content/80 sm:text-lg";
 const QUIET = "text-base-content/70";
-/** The answered arm's mark: a success-tinted square, as `R7-S2` draws it. */
-const CHIP_OK = "grid size-12 flex-none place-items-center rounded-box bg-success/10 text-success";
-/** A card on the tint: the app's own card, not a glass panel. */
-const TILE = "card @container bg-base-100 flex flex-col gap-4 p-4 shadow-(--shadow-card) sm:p-5";
-const WELL = "rounded-box bg-base-200 flex min-w-0 flex-col gap-1 p-3";
-const ICON = { size: 16, strokeWidth: 1.75, "aria-hidden": true } as const;
-/** A card on the white half, holding the form or one of the answered arms' facts. */
-const FACT_CARD = "card border border-base-300 bg-base-100 flex flex-col gap-3 p-4";
-/** The dead-link arm's mark: a warning-tinted square beside the answered arm's success one. */
-const CHIP_WARN = "grid size-12 flex-none place-items-center rounded-box bg-warning/10 text-warning";
-
-/** The facts under the request button, each one a promise kept. */
-const CHIPS = ["signin.chip.nopass", "signin.chip.link"] as const satisfies readonly CopyKey[];
-
-/** How signing in works, in the order the reader does it. */
-const STEPS = [
-  { head: "signin.how.email.head", line: "signin.how.email.line" },
-  { head: "signin.how.open.head", line: "signin.how.open.line" },
-  { head: "signin.how.in.head", line: "signin.how.in.line" },
-] as const satisfies readonly { head: CopyKey; line: CopyKey }[];
+const CARD = "card border border-base-300 bg-base-100 shadow-(--shadow-card) flex flex-col";
+const FACT = "flex flex-col gap-0.5 py-3";
+const SUBMIT =
+  "btn btn-primary btn-block h-11 text-(length:--t-body) disabled:border-primary disabled:bg-primary disabled:text-primary-content disabled:opacity-75";
+const MARK = "grid size-11 flex-none place-items-center rounded-box";
+const ICON = { size: 24, strokeWidth: 1.75, "aria-hidden": true } as const;
 
 /** The clock the copy is written in; the zone is left to the reader's browser. */
 const TIME_LOCALE = "en-US";
@@ -69,11 +35,11 @@ const MS_PER_HOUR = 3_600_000;
 const clock = (at: number): string => new Intl.DateTimeFormat(TIME_LOCALE, { hour: "numeric", minute: "2-digit" }).format(at);
 const subscribeNever = () => () => {};
 
-/** The send time and its end, written only once the browser runs: a server render cannot know the reader's zone. */
-function useReaderClock(sentAt: number | undefined): { sent: string; until: string } | undefined {
+/** When the link stops, written only once the browser runs: a server render cannot know the reader's zone. */
+function useLinkEnd(sentAt: number | undefined): string | undefined {
   const inBrowser = useSyncExternalStore(subscribeNever, () => true, () => false);
   if (!inBrowser || sentAt === undefined) return undefined;
-  return { sent: clock(sentAt), until: clock(sentAt + SIGNIN_LINK_TTL_H * MS_PER_HOUR) };
+  return clock(sentAt + SIGNIN_LINK_TTL_H * MS_PER_HOUR);
 }
 
 type SignInSearchParams = Partial<Record<typeof LINK_QUERY_KEY, string>>;
@@ -86,9 +52,7 @@ const ANSWER_COPY_KEY = {
   requested: "signin.link_requested",
 } as const satisfies Record<SignInState["answer"], CopyKey | undefined>;
 
-/** This screen's own address, for the two controls that lead back to its
- *  form: a link to `/signin` with no query clears the dead-link marker, and
- *  it is the same value `src/middleware.ts` redirects to. */
+/** A link here with no query clears the dead-link marker; `src/middleware.ts` redirects to the same path. */
 const SIGN_IN_PATH = "/signin";
 
 function isPromise<T>(value: Promise<T> | T | undefined): value is Promise<T> {
@@ -99,9 +63,7 @@ function isPromise<T>(value: Promise<T> | T | undefined): value is Promise<T> {
   );
 }
 
-/** Accepts a real `searchParams` Promise (production) or an already-plain
- *  object (this file's own tests), on the terms `src/app/(public)/page.tsx`
- *  established: it calls `use()` conditionally on the caller's own shape. */
+/** Accepts a real `searchParams` Promise (production) or an already-plain object (this file's own tests). */
 function useSignInSearchParams(
   searchParams: Promise<SignInSearchParams> | SignInSearchParams | undefined
 ): SignInSearchParams {
@@ -116,278 +78,111 @@ export default function SignInPage(props: {
   const [state, formAction, pending] = useActionState(sendLink, SIGN_IN_INITIAL);
   const [typed, setTyped] = useState<string | undefined>(undefined);
 
-  // What is in the field wins while they are typing, and what the action
-  // carried back stands in for it on the pass where there is no client
-  // runtime to have typed into.
+  // What is in the field wins while they are typing; what the action carried back stands in before that.
   const value = typed ?? state.value;
 
   const deadLink = params[LINK_QUERY_KEY] === DEAD_LINK_MARKER;
-  // **The dead-link arm's field starts empty.** A reader who followed a
-  // link that no longer works has typed nothing, so there is nothing of
-  // theirs to carry forward — and `state.value` on that pass is whatever
-  // the last action happened to hold, which is an address this screen
-  // would then be echoing at a reader who never entered it. REQ-098 c7's
-  // line is the same whatever the reason; so is its field. What they type
-  // here is kept, because that is theirs.
+  // A reader holding a dead link typed nothing here, so the field never echoes an address they did not enter.
   const fieldValue = deadLink ? (typed ?? "") : value;
   const answerKey = ANSWER_COPY_KEY[state.answer];
   const answer = answerKey === undefined ? undefined : copy(answerKey);
-  // Every well-formed address is the answered arm, with the same line —
-  // whether or not it has an account (SPEC §3). A refusal of the value
-  // itself keeps the form, with what they typed intact.
+  // Every well-formed address gets the answered arm and the same line, whether or not it has an account (SPEC §3).
   const answered = state.answer === "requested";
-  const times = useReaderClock(state.sentAt);
+  const until = useLinkEnd(state.sentAt);
+  const refused = answer !== undefined && !answered;
 
-  /** The one form this screen has, under whichever word the arm drawing it
-   *  uses: *Send my sign-in link* on a first visit, *Send a new link* to a
-   *  reader whose link is dead. One field, one submit, one action — §3's
-   *  "sign-in copy is identical whatever the address" is about the words,
-   *  and this is the other half of it: the same door, however you arrived. */
-  function askForLink(label: string, facts: boolean): React.JSX.Element {
+  /** The one form, under whichever words the arm uses: the same door, however the reader arrived. */
+  function askForLink(label: string, submit: string): React.JSX.Element {
     return (
       // `noValidate`: a malformed address gets the product's own sentence, not the browser's bubble.
-      <form action={formAction} className={FACT_CARD} noValidate>
-        <label className="flex flex-col gap-1">
-          <span className="text-sm font-medium">{copy("signin.field.label")}</span>
+      <form action={formAction} className={`${CARD} gap-4 p-6`} noValidate>
+        <label className="flex flex-col gap-1.5">
+          <span className="text-sm font-semibold">{label}</span>
           <input
             type="email"
             autoComplete={EMAIL_HINT}
             inputMode={EMAIL_HINT}
             placeholder={copy("signin.field.placeholder")}
-            className="input w-full font-mono text-sm"
+            className={refused ? "input input-error h-11 w-full" : "input h-11 w-full"}
             name={EMAIL_FIELD}
             value={fieldValue}
             onChange={(e) => setTyped(e.target.value)}
+            aria-invalid={refused || undefined}
           />
         </label>
-        {/* The screen's one solid primary, full width — and the only solid
-            button on it. */}
-        <button type="submit" className="btn btn-primary btn-block" disabled={pending} aria-busy={pending || undefined}>
-          {label}
-          {pending ? <span className="loading loading-spinner loading-xs" aria-hidden /> : <Send {...ICON} />}
-        </button>
-        {/* Where the *value* was refused. The answered arm carries its own line. */}
-        {answer === undefined || answered ? null : (
-          <p className={QUIET} aria-live="polite">
+        {refused ? (
+          <p className="flex items-start gap-2 text-sm text-error" aria-live="polite">
+            <CircleAlert size={16} strokeWidth={1.75} className="mt-0.5 flex-none" aria-hidden />
             {answer}
           </p>
-        )}
-        {facts ? (
-          <p className={`flex flex-wrap gap-x-4 gap-y-1 text-sm ${QUIET}`}>
-            {CHIPS.map((key) => (
-              <span key={key} className="flex items-center gap-1">
-                <Check {...ICON} size={14} className="text-success" />
-                {copy(key)}
-              </span>
-            ))}
-          </p>
         ) : null}
-        <p className={`flex flex-wrap items-center gap-1 text-sm ${QUIET}`}>
-          <span>{copy("signin.new.prompt")}</span>
-          <Link href="/" className="link link-primary font-semibold">
-            {copy("signin.new.link")}
-          </Link>
-        </p>
+        {/* While it sends, the button stays the primary, faded, as the board draws it; daisyUI's disabled grey reads as broken. */}
+        <button type="submit" className={SUBMIT} disabled={pending} aria-busy={pending || undefined}>
+          {pending ? <span className="loading loading-spinner loading-sm" aria-hidden /> : null}
+          {submit}
+        </button>
       </form>
     );
   }
 
   return (
-    // The surface declares its own edges: the split is the viewport's width
-    // and fills what the header and footer leave (`surface.css`).
     <Surface
       arms={{
-        compact: { kind: "declared", note: "full-width split: the form, then the accent panel; two halves from 1024" },
+        compact: { kind: "declared", note: "one centred column: the heading, one line and one card" },
         medium: { kind: "same-as-below" },
         wide: { kind: "same-as-below" },
       }}
     >
-      <div className={deadLink || answered ? SPLIT : "grid"}>
-        <main className={FORM_HALF}>
-          <div className={COLUMN}>
-            {deadLink ? (
-              /* The dead-link arm (`R7-S3`). The line is the same whatever
-                 the reason, read from a marker that carries none, and the
-                 field is right here: one form, under this arm's own word. */
-              <>
-                <span className={CHIP_WARN} data-tone="warning">
-                  <Clock size={20} strokeWidth={1.75} aria-hidden />
-                </span>
-                <div className={HEAD_GROUP}>
-                  <h1>{copy("signin.expired.head")}</h1>
-                  <p className={QUIET}>{copy("signin.link_dead")}</p>
-                </div>
-                {askForLink(copy("signin.expired.submit"), false)}
-              </>
-            ) : answered ? (
-              /* The answered arm (`R7-S2`). The address is the one they
-                 typed, echoed back, never one this screen looked up (§3:
-                 the copy is identical whatever the address). */
-              <>
-                <span className={CHIP_OK} data-tone="ok" data-testid="signin-chip">
-                  <Send size={20} strokeWidth={1.75} aria-hidden />
-                </span>
-                <div className={HEAD_GROUP}>
-                  <h1>{copy("signin.sent.head")}</h1>
-                  <p role="status" aria-live="polite" className={QUIET}>
-                    {answer}
-                  </p>
-                </div>
-                <p className={`${WELL} text-sm wrap-anywhere`}>{copy("signin.sent.to", { address: value })}</p>
-                <div className={FACT_CARD} data-testid="signin-sent-window">
-                  <p className="flex items-center gap-2 font-semibold">
-                    <Clock {...ICON} />
-                    {copy("signin.sent.window")}
-                  </p>
-                  <progress className="progress progress-success" value={3} max={100} aria-hidden />
+      <main className={SECTION}>
+        <div className={COLUMN}>
+          {deadLink ? (
+            <>
+              <span className={`${MARK} bg-(--warn-bg) text-warning`} data-tone="warning">
+                <Clock {...ICON} />
+              </span>
+              <h1 className="t-hero">{copy("signin.expired.head")}</h1>
+              <p className={LEAD}>{copy("signin.link_dead")}</p>
+              {askForLink(copy("signin.expired.field"), copy("signin.expired.submit"))}
+            </>
+          ) : answered ? (
+            <>
+              <span className={`${MARK} bg-(--ok-bg) text-success`} data-tone="ok" data-testid="signin-chip">
+                <Send {...ICON} />
+              </span>
+              <h1 className="t-hero">{copy("signin.sent.head")}</h1>
+              <p role="status" aria-live="polite" className={LEAD}>
+                {answer}
+              </p>
+              {/* The address is the one they typed, echoed back, never one this screen looked up. */}
+              <div className={`${CARD} divide-y divide-base-300 px-6 py-5`} data-testid="signin-sent-facts">
+                <p className={FACT}>
+                  <span className={`text-sm ${QUIET}`}>{copy("signin.sent.to")}</span>
+                  <span className="num break-all">{value}</span>
+                </p>
+                <p className={FACT}>
+                  <span className={`text-sm ${QUIET}`}>{copy("signin.sent.subject")}</span>
+                  <strong>{copy("mail.magicLink.subject")}</strong>
+                </p>
+                <p className={FACT}>
+                  <span className={`text-sm ${QUIET}`}>{copy("signin.sent.until")}</span>
                   {/* Written by the reader's browser: blank on a server render, never a guessed zone. */}
-                  <p className="flex flex-wrap justify-between gap-2 text-xs">
-                    <span className="num font-semibold">
-                      {times ? copy("signin.sent.at", { time: times.sent }) : null}
-                    </span>
-                    <span className={`num ${QUIET}`}>{times ? copy("signin.sent.until", { time: times.until }) : null}</span>
-                  </p>
-                  <p className={`text-sm ${QUIET}`}>{copy("signin.sent.terms")}</p>
-                </div>
-                <Link href={SIGN_IN_PATH} className="btn btn-soft btn-primary self-start">
-                  {copy("signin.sent.resend")}
-                </Link>
-              </>
-            ) : (
-              <>
-                <div className={HEAD_GROUP}>
-                  <p className="eyebrow">{copy("signin.eyebrow")}</p>
-                  <h1>{copy("signin.heading")}</h1>
-                  <p className={QUIET}>{copy("signin.body")}</p>
-                </div>
-                {askForLink(copy("signin.submit.label"), true)}
-              </>
-            )}
-          </div>
-        </main>
-
-        {/* The accent half holds the fact that answers an answered arm; the request arm has none. */}
-        {deadLink || answered ? (
-          <aside className={PANEL} data-testid="signin-panel">
-            <div className={PANEL_COLUMN}>
-              {deadLink ? (
-                <section className={TILE} aria-labelledby="signin-why">
-                  <h2 id="signin-why" className="eyebrow">
-                    {copy("signin.why.title")}
-                  </h2>
-                  <div className="flex flex-col gap-2">
-                    <p className="flex items-center gap-2 font-semibold">
-                      <Clock {...ICON} />
-                      {copy("signin.why.window")}
-                    </p>
-                    <progress className="progress progress-warning" value={100} max={100} aria-hidden />
-                    <p className="flex flex-wrap justify-between gap-2 text-xs">
-                      <span className={QUIET}>{copy("signin.why.sent")}</span>
-                      <span className="font-semibold">{copy("signin.why.stops")}</span>
-                    </p>
-                  </div>
-                  <div className="flex flex-col gap-2">
-                    <p className="flex items-center gap-2 font-semibold">
-                      <Mail {...ICON} />
-                      {copy("signin.why.newest")}
-                    </p>
-                    <div className="grid grid-cols-1 gap-2 @sm:grid-cols-2">
-                      <span className="rounded-box bg-base-200 flex items-center gap-2 p-3 text-sm">
-                        <X {...ICON} className="flex-none text-error" />
-                        <span>
-                          <strong>{copy("signin.why.older.head")}</strong>
-                          <br />
-                          <span className={QUIET}>{copy("signin.why.older.line")}</span>
-                        </span>
-                      </span>
-                      <span className="rounded-box bg-success/10 flex items-center gap-2 p-3 text-sm">
-                        <Check {...ICON} className="flex-none text-success" />
-                        <span>
-                          <strong>{copy("signin.why.newer.head")}</strong>
-                          <br />
-                          <span className={QUIET}>{copy("signin.why.newer.line")}</span>
-                        </span>
-                      </span>
-                    </div>
-                  </div>
-                  <p className={`text-sm ${QUIET}`}>{copy("signin.why.calm")}</p>
-                </section>
-              ) : answered ? (
-                <section className={TILE} aria-labelledby="signin-inbox">
-                  <div className="flex flex-col items-center gap-4 @md:flex-row @md:items-start">
-                    {/* The mail as it lands: daisyUI's phone, holding the inbox row the mail makes. */}
-                    <div className="mockup-phone border-base-300 w-52 flex-none" aria-hidden>
-                      <div className="mockup-phone-camera" />
-                      <div className="mockup-phone-display bg-base-100 text-base-content flex flex-col gap-2 px-6 pt-12 pb-8 text-left text-xs">
-                        <span className="flex justify-between text-primary">
-                          <span className="flex items-center">
-                            <ChevronLeft {...ICON} size={14} />
-                            {copy("signin.inbox.mailboxes")}
-                          </span>
-                          <span>{copy("signin.inbox.edit")}</span>
-                        </span>
-                        <span className="text-2xl font-bold">{copy("signin.inbox.title")}</span>
-                        <span className={`rounded-box bg-base-200 flex items-center gap-1 px-2 py-1 ${QUIET}`}>
-                          <Search {...ICON} size={12} />
-                          {copy("signin.inbox.search")}
-                        </span>
-                        <span className="border-b border-base-300 flex flex-col gap-0.5 py-2">
-                          <span className="flex justify-between">
-                            <strong>{copy("mail.shell.wordmark")}</strong>
-                            <span className={QUIET}>{times?.sent}</span>
-                          </span>
-                          <span>{copy("mail.magicLink.subject")}</span>
-                          <span className={QUIET}>{copy("signin.inbox.snippet")}</span>
-                        </span>
-                        <span className={`mt-auto text-center ${QUIET}`}>{copy("signin.inbox.updated")}</span>
-                      </div>
-                    </div>
-                    <div className="flex min-w-0 flex-col gap-3">
-                      <h2 id="signin-inbox" className="eyebrow flex items-center gap-1">
-                        <Mail {...ICON} size={14} />
-                        {copy("signin.inbox.eyebrow")}
-                      </h2>
-                      <p className="text-sm">{copy("signin.inbox.from")}</p>
-                      <div className={WELL}>
-                        <h3 className="eyebrow">{copy("signin.inbox.inside")}</h3>
-                        <p className="font-semibold">{copy("mail.magicLink.heading")}</p>
-                        <span className="badge badge-primary self-start" aria-hidden>
-                          {copy("mail.magicLink.action")}
-                        </span>
-                        <p className={`text-xs ${QUIET}`}>{copy("signin.inbox.press")}</p>
-                      </div>
-                    </div>
-                  </div>
-                </section>
-              ) : null}
-            </div>
-          </aside>
-        ) : null}
-      </div>
-
-      {deadLink || answered ? null : (
-        <section className="bg-base-100 px-4 pb-12 sm:px-8 lg:px-18" aria-labelledby="signin-how">
-          <div className="rounded-box bg-base-200 mx-auto flex max-w-5xl flex-col gap-3 p-5">
-            <h2 id="signin-how" className="eyebrow">
-              {copy("signin.how.title")}
-            </h2>
-            <ol className="grid grid-cols-1 gap-3 md:grid-cols-3">
-              {STEPS.map(({ head, line }, index) => (
-                <li key={head} className="flex items-start gap-3">
-                  <span className="badge badge-primary badge-soft flex-none">{index + 1}</span>
-                  <span className="flex flex-col">
-                    <strong>{copy(head)}</strong>
-                    <span className={`text-sm ${QUIET}`}>{copy(line)}</span>
-                  </span>
-                  {index < STEPS.length - 1 ? (
-                    <ArrowRight {...ICON} size={20} className="mt-1 ms-auto hidden flex-none text-base-content/30 md:block" />
-                  ) : null}
-                </li>
-              ))}
-            </ol>
-          </div>
-        </section>
-      )}
+                  <span>{until ? copy("signin.sent.until.time", { time: until }) : null}</span>
+                </p>
+              </div>
+              <p className={`text-sm ${QUIET}`}>{copy("signin.sent.terms")}</p>
+              <Link href={SIGN_IN_PATH} className="btn btn-soft btn-primary h-11 self-start border-transparent text-(length:--t-body)">
+                {copy("signin.sent.resend")}
+              </Link>
+            </>
+          ) : (
+            <>
+              <h1 className="t-hero">{copy("signin.heading")}</h1>
+              <p className={LEAD}>{copy("signin.body")}</p>
+              {askForLink(copy("signin.field.label"), copy("signin.submit.label"))}
+            </>
+          )}
+        </div>
+      </main>
     </Surface>
   );
 }

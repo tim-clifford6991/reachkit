@@ -1,7 +1,7 @@
 /** @vitest-environment jsdom */
 // `/signin` and its sent and dead-link arms against boards AuthSignIn,
 // AuthCheckEmail and AuthExpired: each arm rendered as the browser draws it,
-// read with the parity check's own reader, and its times on the reader's clock.
+// read with the parity check's own reader, and its end time on the reader's clock.
 import { readFileSync } from "node:fs";
 import { act } from "react";
 import { createRoot } from "react-dom/client";
@@ -89,87 +89,93 @@ describe("each arm matches its board's screen string for string", () => {
   });
 });
 
-describe("each section is on the screen in the board's order and words", () => {
-  it("sign in: the body, the two facts under the button, then how signing in works in three steps", async () => {
+describe("each arm is one card, in the board's order and words", () => {
+  it("sign in: the heading, the body, then the form card", async () => {
     inOrder(textOf(await inBrowser({})), [
+      "Welcome back",
       "Enter the email you paid with. We’ll send you a sign-in link.",
+      "Your email",
       "Send my sign-in link",
-      "no password link works 24 hours",
-      "New to ReachKit?",
-      "Start a free scan →",
-      "How signing in works",
-      "Type your email",
-      "The one you paid with.",
-      "Open the link we send",
-      "Subject: “Your sign-in link”.",
-      "You’re in",
-      "On your Overview, with this week’s pages.",
     ]);
   });
 
-  it("check email: sent to, the 24 hours and its strip, the terms, the inbox, inside the email", async () => {
-    inOrder(textOf(await inBrowser({ state: SENT })), [
+  it("check email: the answer, one card of three facts, the spam line, the way back", async () => {
+    const html = await inBrowser({ state: SENT });
+    inOrder(textOf(html), [
+      "Check your inbox",
+      "If that address has an account, a sign-in link is on its way.",
       "Sent to dana@harborplumbing.example",
-      "The link works for 24 hours",
-      "Sent 9:41 AM Works until tomorrow, 9:41 AM",
-      "A newer link replaces an older one. Not there in a minute? Check your spam folder.",
+      "Subject Your sign-in link",
+      "Works until Tomorrow, 9:41 AM",
+      "Not there in a minute? Check your spam folder.",
       "Use a different email",
-      "Your sign-in link Sign in to ReachKit. The link works for 24 hours. Press it on any device.",
-      "Your inbox",
-      "Inside the email",
-      "Press it on any device. You land on your Overview.",
     ]);
+    const screen = document.createElement("div");
+    screen.innerHTML = html;
+    expect(screen.querySelectorAll(".card")).toHaveLength(1);
+    expect(screen.querySelectorAll('[data-testid="signin-sent-facts"] > p')).toHaveLength(3);
   });
 
-  it("expired: the body, why links stop working in two figures, and that nothing changed", async () => {
-    inOrder(textOf(await inBrowser({ searchParams: { link: "dead" } })), [
-      "Sign-in links work for 24 hours, and only the newest one works. Ask for a new one below. It goes to the email you paid with.",
+  it("expired: the heading, the lead that nothing changed, then the field under its own label", async () => {
+    const { copy } = await import("@/lib/presentation/copy");
+    const screen = document.createElement("div");
+    screen.innerHTML = await inBrowser({ searchParams: { link: "dead" } });
+    inOrder(textOf(screen.innerHTML), [
+      "This link no longer works",
+      "Links work for 24 hours, and only the newest one works. Nothing in your account changed.",
+      "The email you paid with",
       "Send a new link",
-      "Why links stop working",
-      "Each link works for 24 hours",
-      "Sent 24 hours later: stops working",
-      "Only the newest link works",
-      "Older link",
-      "no longer works",
-      "Newest link",
-      "works for 24 hours",
-      "Nothing in your account changed. Your pages carry on as planned.",
     ]);
+    expect(screen.querySelector("form label span")?.textContent).toBe(copy("signin.expired.field"));
+    expect(screen.querySelectorAll(".card")).toHaveLength(1);
   });
+
+  it.each([{}, { state: SENT }, { searchParams: { link: "dead" } }] as Arm[])(
+    "no phone, no progress bar, no second column and no free-scan link on %j",
+    async (arm) => {
+      const screen = document.createElement("div");
+      screen.innerHTML = await inBrowser(arm);
+      expect(screen.querySelector(".mockup-phone, progress, aside")).toBeNull();
+      expect(screen.textContent).not.toContain("Start a free scan");
+    }
+  );
 });
 
 describe("sign-in's board icons", () => {
-  it("Send on the submit, a Check per assurance, an arrow between the steps", async () => {
+  it("no icon on an idle submit, Send on the sent mark, Clock on the expired mark", async () => {
+    const icons = (html: string, name: string): number => {
+      const screen = document.createElement("div");
+      screen.innerHTML = html;
+      for (const svg of screen.querySelectorAll("svg")) expect(svg.getAttribute("aria-hidden")).toBe("true");
+      return screen.querySelectorAll(`svg.lucide-${name}`).length;
+    };
+    const request = await inBrowser({});
+    expect(request).not.toContain("<svg");
+    expect(icons(await inBrowser({ state: SENT }), "send")).toBe(1);
+    expect(icons(await inBrowser({ searchParams: { link: "dead" } }), "clock")).toBe(1);
+  });
+
+  it("a refused address marks the field and says why between it and the button", async () => {
     const screen = document.createElement("div");
-    screen.innerHTML = await inBrowser({});
-    const icons = (el: Element | null | undefined, name: string): number => el?.querySelectorAll(`svg.lucide-${name}`).length ?? 0;
-    const submit = screen.querySelector('form button[type="submit"]');
-    expect([icons(submit, "send"), icons(submit, "arrow-right")]).toEqual([1, 0]);
-    const assurances = [...screen.querySelectorAll("form p")].find((p) => p.textContent?.includes("no password"));
-    expect([...assurances!.children].map((chip) => [icons(chip, "check"), chip.querySelectorAll("svg").length])).toEqual([
-      [1, 1],
-      [1, 1],
-    ]);
-    const steps = [...screen.querySelectorAll('section[aria-labelledby="signin-how"] ol > li')];
-    expect(steps.map((step) => icons(step, "arrow-right"))).toEqual([1, 1, 0]);
-    for (const svg of screen.querySelectorAll("svg")) expect(svg.getAttribute("aria-hidden")).toBe("true");
+    screen.innerHTML = await inBrowser({ state: { answer: "invalid", value: "dana@harborplumbing" } });
+    expect(screen.querySelector("input")?.getAttribute("aria-invalid")).toBe("true");
+    const line = screen.querySelector("label + p");
+    expect(line?.textContent).toBe("That doesn’t look like an email address. Check it and try again.");
+    expect(line?.querySelector("svg.lucide-circle-alert")).not.toBeNull();
+    expect(line?.nextElementSibling?.tagName).toBe("BUTTON");
   });
 });
 
-describe("the times are the reader's own, written by the browser", () => {
+describe("Works until is the reader's own clock, written by the browser", () => {
   it("the same send reads on each reader's clock", async () => {
-    expect(textOf(await inBrowser({ state: SENT }, "America/New_York"))).toContain(
-      "Sent 9:41 AM Works until tomorrow, 9:41 AM"
-    );
-    expect(textOf(await inBrowser({ state: SENT }, "Asia/Tokyo"))).toContain(
-      "Sent 10:41 PM Works until tomorrow, 10:41 PM"
-    );
+    expect(textOf(await inBrowser({ state: SENT }, "America/New_York"))).toContain("Works until Tomorrow, 9:41 AM");
+    expect(textOf(await inBrowser({ state: SENT }, "Asia/Tokyo"))).toContain("Works until Tomorrow, 10:41 PM");
   });
 
   it("a server render writes no time, so no zone is guessed", async () => {
     process.env.TZ = "America/New_York";
     const html = renderToStaticMarkup(await loadPage({ state: SENT }));
-    expect(html).toContain("The link works for 24 hours");
+    expect(html).toContain("Works until");
     expect(html).not.toMatch(/\d:\d\d [AP]M/);
   });
 });
