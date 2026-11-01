@@ -1,0 +1,14 @@
+{
+  "source": "scan d149c119 (bakersdelight.com.au, AU), search \"baker\": its 8 stored top-ten rows as the master's read-only SELECT of 2026-11-01 listed them on issue 2217, trimmed to position, domain, url and title. Each wrapper row keeps the stored shape, an opaque token with no plain address and no breadcrumb.",
+  "keyword": "baker",
+  "organic": [
+    { "position": 1, "domain": "google.com", "url": "https://google.com/goto?url=CAESmQEBk1Nw2Lr8bQkVq3sY0aJdX1p", "title": "Baker Skateboards – baker skateboards" },
+    { "position": 2, "domain": "google.com", "url": "https://google.com/goto?url=CAESjgEBk1Nw7Hq2cTfRz8LmW4oPeY", "title": "Bakers Delight" },
+    { "position": 3, "domain": "www.yourcareer.gov.au", "url": "https://www.yourcareer.gov.au/occupations/351111/baker", "title": "Baker" },
+    { "position": 4, "domain": "en.wikipedia.org", "url": "https://en.wikipedia.org/wiki/Baker", "title": "Baker" },
+    { "position": 5, "domain": "google.com", "url": "https://google.com/goto?url=CAESkAEBk1Nw3Vd9aRpLs2UxQ6nTb", "title": "Baker Bleu (@bakerbleu) • Instagram" },
+    { "position": 6, "domain": "google.com", "url": "https://google.com/goto?url=CAESlgEBk1Nw5Kc1eWgHy7NoJ0rSu", "title": "Baker Skateboards" },
+    { "position": 7, "domain": "google.com", "url": "https://google.com/goto?url=CAESmAEBk1Nw9Mf4bZtDq6PiV2kXc", "title": "Baker Jobs in All Adelaide SA - Oct 2026 - SEEK" },
+    { "position": 8, "domain": "bakingcareer.com.au", "url": "https://bakingcareer.com.au/what-does-a-baker-do/", "title": "What does a baker do" }
+  ]
+}

@@ -440,3 +440,35 @@ describe("issue 1357 — an AI Overview whose sources were not loaded", () => {
     expect(built.answeredSearches).toBe(1);
   });
 });
+
+describe("an answer citing a page behind a Google redirect that names no site", () => {
+  const wrapped = "https://google.com/goto?url=CAESmQEBk1Nw";
+  const overview = (referenceDomains: string[], referenceUrls?: string[]): Measured<MarketSerp> =>
+    measured({ organic: [], aiOverview: { present: true, referenceDomains, ...(referenceUrls === undefined ? {} : { referenceUrls }) } }, AT);
+
+  it("an unresolved citation is not an ignored answer", () => {
+    const built = card({
+      serps: [
+        overview(["rival.com", ""]),
+        // As stored before: the redirect read as google.com.
+        overview(["rival.com", "google.com"], ["https://rival.com/a", wrapped]),
+        ok(["rival.com"]),
+      ],
+    });
+    expect(built.rows.map((row) => row.cell)).toEqual([
+      { kind: "unmeasured", reason: "undeterminable", because: "citation_unresolved" },
+      { kind: "unmeasured", reason: "undeterminable", because: "citation_unresolved" },
+      { kind: "answered", citedDomains: ["rival.com"], namesCustomer: false },
+    ]);
+    expect(built.measuredSearches).toBe(1);
+
+    const battery = withBattery([ok(null)], [{ aiMode: answer(["rival.com", ""]), chatgpt: answer(["rival.com"]) }]);
+    expect(battery.rows[0]?.engines.map((engine) => engine.cell.kind)).toEqual(["no_answer", "unmeasured", "answered"]);
+  });
+
+  it("an answer that names the customer through a resolved citation stays answered and named", () => {
+    const built = card({ serps: [overview(["customer.com", ""]), overview(["google.com"], ["https://support.google.com/business/answer/1"])] });
+    expect(built.rows[0]?.cell).toMatchObject({ kind: "answered", namesCustomer: true });
+    expect(built.rows[1]?.cell).toMatchObject({ kind: "answered", citedDomains: ["google.com"] });
+  });
+});
