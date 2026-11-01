@@ -13,6 +13,7 @@
 // costs one read per view per window and a removal still shows at once.
 import { unstable_cache } from "next/cache";
 import { kindOfProfile } from "@/lib/business/retrofit";
+import { PREVIEW_HOST_SUFFIX } from "@/lib/config/constants";
 import { dbAdmin } from "@/lib/db";
 import type { BusinessKind } from "@/lib/market/kinds";
 import { isProtectionName } from "@/lib/measure/challenge";
@@ -20,6 +21,7 @@ import { isPlaceholder } from "@/lib/measure/placeholder";
 import { brandName, domainBrand } from "@/lib/site-profile/site-name";
 import { challengedHomes } from "./challenged";
 import { removalsMark } from "./removal";
+import panel from "../../../docs/walk/panel/sites.json";
 
 export const GALLERY_SORTS = ["newest", "highest", "lowest", "az"] as const;
 export type GallerySort = (typeof GALLERY_SORTS)[number];
@@ -71,7 +73,8 @@ interface MinimalResult<T> {
   count?: number | null;
 }
 interface MinimalQuery<T> extends PromiseLike<MinimalResult<T>> {
-  select(columns: string, options?: { count: "exact" }): MinimalQuery<T>;
+  select(columns: string, options?: { count: "exact"; head?: boolean }): MinimalQuery<T>;
+  not(column: string, operator: "in", value: string): MinimalQuery<T>;
   eq(column: string, value: unknown): MinimalQuery<T>;
   or(filter: string): MinimalQuery<T>;
   order(
@@ -306,6 +309,23 @@ export async function readRecent(n: number): Promise<readonly StripEntry[]> {
     hasLogo: row.has_logo,
   }));
 }
+
+/** ReachKit's own site and the panel's are scanned by us, not by an owner. */
+export const UNCOUNTED_DOMAINS: readonly string[] = [PREVIEW_HOST_SUFFIX, ...panel.sites.map((site) => site.domain)];
+
+async function countListed(): Promise<number> {
+  // A head request: the database counts the view's one row per domain and sends no rows.
+  const { count, error } = await untyped()
+    .from<{ domain: string }>("free_scan_listing")
+    .select("domain", { count: "exact", head: true })
+    .not("domain", "in", `(${UNCOUNTED_DOMAINS.join(",")})`);
+  if (error) throw new Error(`gallery: could not count the scanned sites: ${error.message}`);
+  return count ?? 0;
+}
+
+/** How many distinct sites the free scan has listed, read at most once an
+ *  hour: a count the landing rounds down needs no fresher read. */
+export const scannedSites = unstable_cache(countListed, ["scanned-sites"], { revalidate: 3600 });
 
 /** Whether a domain is listed today — the logo route's one question, so a
  *  removed or unreadable site's logo leaves with its card. */

@@ -21,6 +21,7 @@ const db = vi.hoisted(() => ({
   pages: [] as Page[],
   listed: new Map<string, number | null>(),
   logo: false,
+  sites: 0,
 }));
 
 vi.mock("next/navigation", async (importOriginal) => ({ ...(await importOriginal<object>()), usePathname: () => "/" }));
@@ -32,6 +33,7 @@ vi.mock("@/lib/publish/destinations/hosted/store", () => ({
 vi.mock("@/lib/scan/gallery", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/scan/gallery")>()),
   isListed: async (domain: string) => db.listed.has(domain),
+  scannedSites: async () => db.sites,
   listedCard: async (domain: string) => {
     const score = db.listed.get(domain) ?? null;
     return score === null ? null : { score, hasLogo: db.logo };
@@ -50,12 +52,14 @@ function stored(score: number | null = 62): void {
   db.site = { siteId: "site-1", domain: "reachkit.app", host: "blog.reachkit.app" };
   db.pages = [{ title: "The newest article", liveUrl: "https://content.reachkit.app/newest", firstPublishedAt: new Date(Date.UTC(2026, 9, 17)), byline: null }];
   db.listed = new Map([["podia.com", score]]);
+  db.sites = 127;
 }
 
 function nothingStored(): void {
   db.site = null;
   db.pages = [];
   db.listed = new Map();
+  db.sites = 0;
 }
 
 /** The settled document, each streamed boundary put back where its placeholder sits, as the browser does. */
@@ -78,7 +82,9 @@ const hero = (page: HTMLElement): HTMLElement => page.querySelector("section#lan
 const column = (page: HTMLElement): HTMLElement => page.querySelector("h1")!.parentNode as HTMLElement;
 const kids = (el: HTMLElement): HTMLElement[] => el.childNodes.filter((n): n is HTMLElement => n.nodeType === 1);
 const proof = (page: HTMLElement): HTMLElement | null =>
-  kids(column(page)).find((el) => el.querySelector('a[href^="/scan/"], a[href="#articles"]') !== null) ?? null;
+  kids(column(page)).find((el) => el.querySelector('a[href^="/scan/"], a[href="#articles"], svg.lucide-scan-search') !== null) ?? null;
+/** The count row: the card's row that is no link. */
+const scannedRow = (page: HTMLElement): HTMLElement | null => (proof(page) === null ? null : (kids(proof(page)!).find((el) => el.rawTagName === "div") ?? null));
 const frames = (page: HTMLElement): HTMLElement[] => page.querySelectorAll('[data-testid="landing-story"] ol > li');
 /** A frame's picture card: the last element of its row. */
 const mini = (li: HTMLElement): HTMLElement => kids(li).at(-1)!;
@@ -142,6 +148,33 @@ describe("the proof card draws only stored rows", () => {
     ]);
     expect(rows.map((a) => a.querySelectorAll("svg.lucide-chevron-right").length)).toEqual([1, 1]);
     expect(page.querySelector("section#articles")).not.toBeNull();
+  });
+
+  it("from 100 sites scanned the count row comes first, rounded down to a ten, and is no link", async () => {
+    for (const [sites, shown] of [[100, "100"], [127, "120"], [1004, "1000"]] as const) {
+      db.sites = sites;
+      const row = scannedRow(await render())!;
+      expect(flat(row)).toBe(`${copy("landing.hero.proof.scanned", { count: shown })} ${copy("landing.hero.proof.scanned.line")}`);
+      expect(row.querySelectorAll("svg.lucide-scan-search")).toHaveLength(1);
+      expect(row.querySelector("a")).toBeNull();
+    }
+    expect(kids(proof(await render())!).map((el) => el.rawTagName)).toEqual(["div", "a", "a"]);
+  });
+
+  it("below 100 sites scanned, or with no count read, there is no count row and never a 0", async () => {
+    for (const sites of [99, 0]) {
+      db.sites = sites;
+      const page = await render();
+      expect(scannedRow(page)).toBeNull();
+      expect(flat(proof(page)!)).not.toContain(copy("landing.hero.proof.scanned.line"));
+    }
+  });
+
+  it("the count alone is a card of one row", async () => {
+    nothingStored();
+    db.sites = 100;
+    const card = proof(await render())!;
+    expect(kids(card).map(flat)).toEqual([`${copy("landing.hero.proof.scanned", { count: "100" })} ${copy("landing.hero.proof.scanned.line")}`]);
   });
 
   it("the score is the stored row's: 71 stored is 71 drawn", async () => {
