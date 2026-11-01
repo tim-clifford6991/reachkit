@@ -2,9 +2,10 @@
 // the scan measured and right-sized to the site.
 import "./env";
 import { describe, expect, it } from "vitest";
-import { freePageOf } from "../../src/lib/opportunities/free-page";
+import { beatsOf, freePageOf } from "../../src/lib/opportunities/free-page";
 import { qualifyingDemand, winnableDemand } from "../../src/lib/opportunities/winnability/bars";
 import { measured } from "../../src/lib/measure/measured";
+import type { SerpResult } from "../../src/lib/vendors/dataforseo/types";
 import { AT, SCAN_ID, question, reportOf, search, serp } from "./fixtures";
 
 const noAnswer = serp({ aiOverview: { present: false, asynchronousAiOverview: false, referenceDomains: [] } });
@@ -68,5 +69,24 @@ describe("the free report offers the best right-sized Write target it measured",
       }
     );
     expect(freePageOf(report)).toBeNull();
+  });
+});
+
+describe("a stored free page names the business holding its search, as the missing pages do", () => {
+  const report = reportOf({ questions: [question()], serps: [serp()] });
+  const page = freePageOf(report)!;
+  const row = (position: number, domain: string, title: string) => ({ position, domain, url: `https://${domain}/`, title });
+  const storedWith = (beats: string, organic: SerpResult["organic"]) => ({ ...reportOf({ questions: [question()], serps: [serp({ organic })] }), freePage: { ...page, beats } });
+
+  it("a business stored as the one it beats stays it", () => {
+    expect(beatsOf({ ...report, freePage: page })).toBe("appcues.com");
+  });
+
+  it("a platform stored before the rule gives way to the first business below it", () => {
+    expect(beatsOf(storedWith("google.com", [row(1, "www.google.com", "Maps"), row(2, "appcues.com", "Appcues")]))).toBe("appcues.com");
+  });
+
+  it("a job page stored over a top ten of sources reads as none", () => {
+    expect(beatsOf(storedWith("bakingcareer.com.au", [row(1, "bakingcareer.com.au", "Baking Career - Everything you need to know"), row(2, "www.yelp.com", "Bakers")]))).toBeNull();
   });
 });

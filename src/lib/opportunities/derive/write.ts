@@ -36,14 +36,15 @@
 // fixtures.
 import { WRITE_VOLUME_FLOOR_PER_MONTH } from "@/lib/config/constants";
 import { EFFORT_BY_TYPE } from "@/lib/config/constants";
-import { isJobSearch, isOwnDomain, registrableDomain } from "@/lib/market/rivals/domains";
-import { measured, type Measured } from "@/lib/measure/measured";
+import { isJobSearch, isOwnDomain, isSourceRow, registrableDomain, type SourceReading } from "@/lib/market/rivals/domains";
+import { measured } from "@/lib/measure/measured";
 import { measuredLocale } from "@/lib/locale/locales";
+import { localOfReport } from "@/lib/scan/cards";
 import type { StoredReport } from "@/lib/scan/report";
 import type { SerpResult } from "@/lib/vendors/dataforseo/types";
 import { assess, rightSizedBand } from "../winnability/band";
 import { rankedCountsFor, type RankedCounts } from "../winnability/counts";
-import { FAMILY_OF, noRejections, type Evidence, type OpportunityType, type TopicSource } from "../types";
+import { FAMILY_OF, noRejections, type Evidence, type OpportunityType, type TopicSource, type WriteRival } from "../types";
 import { emptyDerivation, slugify, type Candidate, type DerivationResult } from "./candidate";
 import { targetFactsOf } from "./target";
 import { sourceOf } from "./topics";
@@ -65,20 +66,17 @@ interface WriteInput {
   brands?: readonly string[];
 }
 
-/** The rival row a Write candidate points at: the best-placed organic
- *  result that is not the customer's own. `null` where the SERP had none —
- *  a top ten made entirely of the customer's own pages is not a gap. */
-function bestRival(
-  serp: SerpResult,
-  ownDomain: string,
-  at: Date
-): { domain: string; url: Measured<string>; position: Measured<number> } | null {
-  for (const row of serp.organic) {
-    const domain = registrableDomain(row.domain) ?? row.domain;
-    if (isOwnDomain(domain, ownDomain)) continue;
-    return { domain, url: measured(row.url, at), position: measured(row.position, at) };
-  }
-  return null;
+/** How a report tells a source from a business on its own searches. */
+export function sourceReadingOf(report: Omit<StoredReport, "freePage">, rivals: Iterable<string> = []): SourceReading {
+  return { local: localOfReport(report), sources: report.sources, rivals: [...rivals] };
+}
+
+/** Who holds a search: the first organic row, in Google's order, that is
+ *  not the customer's own and no source (`isSourceRow`); `null` where only
+ *  sources hold it. */
+export function holderOf(serp: SerpResult, ownDomain: string, reading: SourceReading, at: Date): WriteRival | null {
+  const row = serp.organic.find((each) => !isOwnDomain(each.domain, ownDomain) && !isSourceRow(each, reading));
+  return row === undefined ? null : { domain: registrableDomain(row.domain) ?? row.domain, url: measured(row.url, at), position: measured(row.position, at) };
 }
 
 /** The rival cited by an AI answer that ignored the customer: the first
@@ -131,6 +129,7 @@ export function writeCandidates(a: WriteInput): DerivationResult {
       .map((domain) => registrableDomain(domain) ?? domain)
       .filter((domain) => !isOwnDomain(domain, ownDomain))
   );
+  const reading = sourceReadingOf(report, rivalSet);
 
   const result: DerivationResult = {
     candidates: [],
@@ -165,8 +164,9 @@ export function writeCandidates(a: WriteInput): DerivationResult {
     };
     const verdict = assess(sizing);
 
-    const rival = bestRival(serp, ownDomain, at);
-    if (rival === null) return;
+    // A top ten made entirely of the customer's own pages is not a gap.
+    if (serp.organic.every((row) => isOwnDomain(row.domain, ownDomain))) return;
+    const rival = holderOf(serp, ownDomain, reading, at);
 
     // Every answer column the pass measured, not only the AI Overview
     // (issue 858): a long-tail search often has no Overview at all, while

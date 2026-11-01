@@ -53,6 +53,11 @@ export function reachOfReport(r: {
   };
 }
 
+/** Whether a stored report's market is local, as its rivals were read. */
+export function localOfReport(r: Parameters<typeof reachOfReport>[0] & { serps: readonly Measured<MarketSerp>[] }): boolean {
+  return readsLocal({ ...reachOfReport(r), serps: r.serps.flatMap((serp) => (serp.kind === "unmeasured" ? [] : [serp.value])) });
+}
+
 function reachProfileOf(profile: StoredReachProfile): ReachProfile {
   return {
     ...(profile.town === undefined ? {} : { town: profile.town }),

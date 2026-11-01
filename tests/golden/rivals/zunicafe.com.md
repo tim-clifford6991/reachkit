@@ -19,14 +19,14 @@ From `scripts/panel/evidence/zunicafe.com.json`: 29 stored searches, 5 rivals.
 | best fine dining in san francisco | — | — |
 | fine dining san francisco | — | — |
 | michelin star restaurants san francisco | — | — |
-| best upscale restaurants in san francisco | keyword_page | 7x7.com |
+| best upscale restaurants in san francisco | keyword_page | wineberserkers.com |
 | best fine dining restaurants in san francisco | — | — |
 | california cuisine san francisco | — | — |
 | fancy restaurants san francisco | — | — |
 | best restaurants san francisco | — | — |
 | farm to table restaurants san francisco | — | — |
 | upscale restaurants san francisco | — | — |
-| best michelin star restaurants san francisco | keyword_page | virginatlantic.com |
+| best michelin star restaurants san francisco | keyword_page | — |
 | top brunch places in san francisco | — | — |
 | top brunch spots in san francisco | — | — |
 | restaurants in san francisco | — | — |
