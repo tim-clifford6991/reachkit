@@ -1,7 +1,7 @@
 /** @vitest-environment jsdom */
-// tests/app/calendar/plan-board.test.tsx — board Plan: the head, the four
-// numbers, the week card with its range, go-live time, chips, why sentences,
-// legend, next Monday and how the week was chosen, in the board's order; and
+// tests/app/calendar/plan-board.test.tsx — board Plan: the head, the week
+// card with its range, go-live time, one row per day (date, page and why,
+// status), next Monday and how the week was chosen, in the board's order; and
 // the states the board names (a day stopped, a day skipped, the first week,
 // an address not yet working).
 import { applyEnvFixture } from "../../mail/env-fixture";
@@ -56,40 +56,46 @@ describe("board Plan, on the fixture account's week", () => {
     expect(text(head.querySelector("p"))).toBe("Chosen Monday, September 14. Each goes live on its day unless you stop it.");
   });
 
-  it("the four numbers: pages this week, live so far, backup pages ready, stopped by you", async () => {
+  it("the week is one list of seven rows in date order, each its date, page title, one why line and one status", async () => {
     const root = await fixturePage();
-    const numbers = [...root.querySelectorAll('[data-testid="plan-numbers"] > div')].map((tile) =>
-      [...tile.querySelectorAll('[data-testid$="-text"] > span')].map(text).join(" ")
+    const lists = root.querySelectorAll('[data-testid="plan-week-card"] ol, [data-testid="plan-week-card"] ul');
+    // One shape at every width: no second list for a phone, and no row hidden by a breakpoint.
+    expect(lists).toHaveLength(1);
+    const rows = [...lists[0]!.children];
+    expect(rows.every((row) => row.tagName === "LI")).toBe(true);
+    expect(rows.map((row) => row.getAttribute("data-testid"))).toEqual(
+      ["14", "15", "16", "17", "18", "19", "20"].map((d) => `calendar-cell-2026-09-${d}`)
     );
-    expect(numbers).toEqual([
-      `5 ${COPY["calendar.numbers.week"]}`,
-      expect.stringMatching(new RegExp(`^\\d+ ${COPY["calendar.numbers.live"]}$`)),
-      `2 ${COPY["calendar.numbers.spares"]}`,
-      `0 ${COPY["calendar.numbers.stopped"]}`,
-    ]);
+    expect(rows.map((row) => text(row.querySelector('[data-testid="cell-date"]')))).toEqual(["Mon 14", "Tue 15", "Wed 16", "Thu 17", "Fri 18", "Sat 19", "Sun 20"]);
+    for (const row of rows.filter((row) => !row.hasAttribute("data-empty"))) {
+      expect(row.querySelectorAll('[data-testid="cell-label"]'), row.id).toHaveLength(1);
+      expect(row.querySelectorAll('[data-testid="cell-why-line"]').length).toBeLessThanOrEqual(1);
+      expect(row.querySelectorAll('[data-testid="day-state"], [data-testid="cell-goes-live"]')).toHaveLength(1);
+      // The why is one line: its label sits inline in the same line, never a block above it.
+      const why = row.querySelector('[data-testid="cell-why"]');
+      if (why !== null) expect(why.firstElementChild?.tagName).toBe("SPAN");
+      expect(row.querySelector("svg.lucide-file-text")).toBeNull();
+    }
+    expect(rows.filter((row) => row.querySelector('[data-testid="cell-why-line"]') !== null).length).toBeGreaterThan(0);
+    expect(root.querySelector('[class*="lg:hidden"], [class*="lg:grid"]')).toBeNull();
   });
 
-  it("each plan count opens with its icon tile", async () => {
+  it("draws no numbers strip, no New/Update legend, no dots legend and no Runs by itself", async () => {
     const root = await fixturePage();
-    const tiles = [...root.querySelectorAll('[data-testid="plan-numbers"] > div')].map((tile) => tile.querySelector(".card-body")!.firstElementChild!);
-    expect(tiles.map((tile) => [tile.getAttribute("aria-hidden"), tile.className, tile.querySelector("svg")?.getAttribute("class")])).toEqual(
-      ["calendar", "globe", "list", "circle-stop"].map((icon) => [
-        "true",
-        "rounded-field grid size-9 shrink-0 place-items-center bg-base-200",
-        expect.stringMatching(new RegExp(`\\blucide-${icon}\\b.*\\bsize-5\\b`)),
-      ])
-    );
-    expect(tiles.map((tile) => tile.querySelector("svg")?.getAttribute("stroke-width"))).toEqual(["1.75", "1.75", "1.75", "1.75"]);
+    expect(root.querySelector('[data-testid="plan-numbers"]')).toBeNull();
+    expect(root.querySelector('[data-testid="plan-legend"]')).toBeNull();
+    expect(root.textContent).not.toContain(COPY["how.week.auto"]);
+    expect(root.textContent).not.toContain("Dots show");
+    expect(root.querySelector('[data-testid="card-number"]')).toBeNull();
   });
 
-  it("the week card: its range, that it runs by itself, and when every page goes live in the site's zone", async () => {
+  it("the week card: its range, and when every page goes live in the site's zone", async () => {
     const card = (await fixturePage()).querySelector('[data-testid="plan-week-card"]')!;
     expect(text(card.querySelector("h2"))).toBe("Mon, September 14 – Sun, September 20");
     expect(card.getAttribute("aria-labelledby")).toBe(card.querySelector("h2")?.id);
-    expect(card.textContent).toContain(COPY["how.week.auto"]);
     // The fixture account has a stop on file, so its own page promises no time.
     expect(card.querySelector('[data-testid="plan-week-time"]')).toBeNull();
-    expect(text(board({}).querySelector('[data-testid="plan-week-time"]'))).toBe("Every page goes live at 9:00 AM, New York time");
+    expect(text(board({}).querySelector('[data-testid="plan-week-time"]'))).toBe("Each goes live at 9:00 AM, New York time");
   });
 
   it("each page carries its New or Update chip, and today's page says when it goes live beside Edit and Stop", async () => {
@@ -113,23 +119,17 @@ describe("board Plan, on the fixture account's week", () => {
     expect(text(cell.querySelector('[data-testid="cell-why-line"]'))).toBe(COPY["calendar.reason.searched"]);
   });
 
-  it("under the days: the legend, the next Monday's pass, and how this week's pages were chosen", async () => {
+  it("under the days: the next Monday's pass, and how this week's pages were chosen in one paragraph", async () => {
     const card = (await fixturePage()).querySelector('[data-testid="plan-week-card"]')!;
-    expect([...card.querySelectorAll('[data-testid="plan-legend"] > span')].map(text)).toEqual([
-      `${COPY["calendar.chip.new"]} ${COPY["calendar.legend.new"]}`,
-      `${COPY["calendar.card.update"]} ${COPY["calendar.legend.update"]}`,
-    ]);
-    expect(text(card.querySelector('[data-testid="plan-next"]'))).toBe(
-      "Monday, September 21: we check your searches, pages and competitors again, and choose the next 7."
-    );
+    expect(text(card.querySelector('[data-testid="plan-next"]'))).toBe("Monday, September 21: we check again and pick the next 7.");
     const chosen = card.querySelector('[data-testid="plan-chosen"]')!;
     expect(text(chosen.querySelector("summary"))).toBe(COPY["calendar.chosen.title"]);
-    expect([...chosen.querySelectorAll("p")].map(text)).toEqual([copy("calendar.chosen.body", { n: "7" }), COPY["calendar.chosen.stored"]]);
+    expect([...chosen.querySelectorAll("p")].map(text)).toEqual([`${copy("calendar.chosen.body", { n: "7" })} ${COPY["calendar.chosen.stored"]}`]);
   });
 
-  it("the sections stand in the board's order: head, numbers, week, spares, then the live pages", async () => {
+  it("the sections stand in the board's order: head, week, spares, then the live pages", async () => {
     const root = await fixturePage();
-    const order = ["plan-head", "plan-numbers", "plan-week-card", "plan-legend", "plan-next", "plan-chosen", "calendar-spares", "plan-published"].map(
+    const order = ["plan-head", "plan-week-card", "plan-next", "plan-chosen", "calendar-spares", "plan-published"].map(
       (id) => root.querySelector(`[data-testid="${id}"]`)
     );
     expect(order.every((el) => el !== null)).toBe(true);
@@ -143,19 +143,18 @@ describe("Live pages: each page's steps as dots, its standing and its label", ()
   const rows = (root: Element): Element[] => [...root.querySelectorAll('[data-testid="plan-published-row"]')];
   const byTitle = (root: Element, title: string): Element => rows(root).find((row) => row.textContent?.includes(title))!;
 
-  it("is headed Live pages with what the dots are, shows four, and opens the rest under Show all", async () => {
+  it("is headed Live pages, shows four, and opens the rest under Show all", async () => {
     const live = (await fixturePage()).querySelector('[data-testid="plan-published"]')!;
     expect(text(live.querySelector("h2"))).toBe(COPY["calendar.live.title"]);
-    expect(live.textContent).toContain(COPY["calendar.live.dots"]);
     expect(rows(live)).toHaveLength(17);
     expect(live.querySelectorAll(':scope > .card-body > ul > [data-testid="plan-published-row"]')).toHaveLength(4);
     const more = live.querySelector('[data-testid="plan-live-more"] summary')!;
-    expect([...more.children].map(text)).toEqual(["4 of 17 live pages", "Show all 17"]);
+    expect([...more.children].map(text)).toEqual(["Show all 17 live pages"]);
   });
 
-  it("a page in results says its place, how far it rose and since when, and its dots reach Showing", async () => {
+  it("a page in results says its place, how far it rose and since when, never its search again, and its dots reach Showing", async () => {
     const row = byTitle(await fixturePage(), "How to price a small project");
-    expect(row.querySelector("p")?.textContent).toMatch(/^Place 36 for “crm onboarding checklist”, up 14 since \w{3} \d+, 2026\.$/);
+    expect(row.querySelector("p")?.textContent).toMatch(/^Place 36, up 14 since \w{3} \d+, 2026\.$/);
     expect(text(row.querySelector('[data-testid="plan-live-google"]'))).toBe(`Google: ${COPY["draft.ladder.showing"]}`);
     expect([...row.querySelectorAll('[data-testid="plan-live-google"] [data-reached]')].map((dot) => dot.getAttribute("data-reached"))).toEqual([
       "yes",
@@ -168,7 +167,7 @@ describe("Live pages: each page's steps as dots, its standing and its label", ()
 
   it("a page found but not in results says when Google found it", async () => {
     const row = byTitle(await fixturePage(), "Late payment reminders that work");
-    expect(row.querySelector("p")?.textContent).toMatch(/^Found by Google on \w{3} \d+, 2026\. Not in results yet\.$/);
+    expect(row.querySelector("p")?.textContent).toMatch(/^Found by Google \w{3} \d+, 2026\. Not in results yet\.$/);
   });
 
   it("a page an answer engine linked says which one", async () => {
@@ -215,7 +214,7 @@ describe("the states board Plan names", () => {
     expect(paused.querySelector('[data-testid="calendar-cell-2026-09-15"] [data-testid="day-kind"]')).not.toBeNull();
     expect(paused.querySelector('[data-testid="cell-goes-live"]')).toBeNull();
     expect(paused.querySelector('[data-testid="plan-week-time"]')).toBeNull();
-    expect(paused.textContent).not.toContain("Every page goes live at");
+    expect(paused.textContent).not.toContain("Each goes live at");
   });
 
   it("while ReachKit has stopped its own work, today's page and the week card name no go-live time", () => {
@@ -223,7 +222,7 @@ describe("the states board Plan names", () => {
     expect(stopped.querySelector('[data-testid="calendar-cell-2026-09-15"] [data-testid="day-kind"]')).not.toBeNull();
     expect(stopped.querySelector('[data-testid="cell-goes-live"]')).toBeNull();
     expect(stopped.querySelector('[data-testid="plan-week-time"]')).toBeNull();
-    expect(stopped.textContent).not.toContain("Every page goes live at");
+    expect(stopped.textContent).not.toContain("Each goes live at");
   });
 
   it("before the first commit the head says the first week is being chosen; a short week counts its real pages", () => {

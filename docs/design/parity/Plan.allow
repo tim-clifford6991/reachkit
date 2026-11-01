@@ -1,5 +1,4 @@
 harborplumbing.com	sample data
-12	sample data
 Mon 19 – Sun 25 October	sample data
 Low water pressure in an Austin house: causes	sample data
 Gas line repair permits in Austin	sample data
@@ -8,23 +7,28 @@ Water heater repair or replace: an Austin guide	sample data
 Sewer line camera inspection in Austin	sample data
 Theme: light	DESIGN.md: the /app shell's theme control is the Light / Dark / System dropdown named Theme (#681)
 This week’s 7 pages	sample data: the fixture week holds 5 pages, and the H1 counts the real week
-Chosen Monday 19 October. Each goes live on its day unless you stop it. Up to 7 pages a week, new or updated. Never filler.	owner R12 B11: the lead is cut to its first two sentences (SPEC §0, 20 words); the H1 and the numbers already say how many
-Runs by itself Every page goes live at 4:00 PM, Austin time	sample data: the time and place are the site's own publish time and zone, and none is named while ReachKit is stopped (REQ-092 c7)
-Mon 19 New Emergency plumber in Austin: what to do in the first hour Why Your core service, and AI answers link to a competitor’s service page for it. Goes live	sample data
-today, 4:00 PM	sample data: the site's own publish time, and none is named while ReachKit is stopped (REQ-092 c7)
 Tue 20 Update Toilet repair in Austin: running, leaking or clogged Why Your page stopped gaining at place 18 for 3 weeks. This update adds what the pages above it cover. Planned	sample data
 Wed 21 New How much does slab leak repair cost in Austin? Why Buyers in Austin ask Google this before they call, and no page of yours answers it. Planned	sample data
 Thu 22 New Burst pipe in winter: shut-off, damage and repair Why Google AI Mode linked your page on shutting off water. This one builds on it. Planned	sample data
 Fri 23 New Drain cleaning in Austin: when a plunger isn’t enough Why Your core service, and Google shows it searched in Austin every month. Planned	sample data
 Sat 24 New Water softener or filter: which an Austin home needs Why AI answers link to a competitor’s guide for this question. Yours can answer it from your own work. Planned	sample data
 Sun 25 Update Sewer line camera inspection: what it shows and costs Why Your page has not moved in 8 weeks. This rewrite matches what Google now shows for it. Planned	sample data
-Monday 26 October: we measure your searches, pages and competitors again, and choose the next 7.	owner R12 B10: "we check", not "we measure" (SPEC §0, #1695); the date is the next Monday of the week shown
 Garbage disposal repair or replace	sample data
 How to shut off water to a house in an emergency	sample data
-Place 11 for “how to shut off water to a house”, up 30 since Oct 5. Linked by Google AI Mode on its own question.	sample data
-Place 18, no gain in 3 weeks. An update goes live Tue 20.	sample data: the day is the stored update's own, and none is named while ReachKit is stopped (REQ-092 c7)
-Found by Google on Oct 14. Not in results yet.	sample data
-Place 48, no gain in 8 weeks. An update goes live Sun 25.	sample data: the day is the stored update's own, and none is named while ReachKit is stopped (REQ-092 c7)
 Not moving	sample data: no fixture page has stopped moving; the label ships from review.label.not_moving
-4 of 12 live pages	sample data
-Show all 12	sample data
+Chosen Monday 19 October. Each goes live on its day unless you stop it.	sample data: the date is the stored week's own
+Each goes live at 4:00 PM, Austin time	sample data: the time and place are the site's own publish time and zone, and none is named while ReachKit is stopped (REQ-092 c7)
+Mon 19 New Emergency plumber in Austin: what to do in the first hour Why Your core service, and AI answers link to a competitor’s service page for it. Goes live today, 4:00 PM	sample data: the time is the site's own publish time, and none is named while ReachKit is stopped (REQ-092 c7)
+Monday 26 October: we check again and pick the next 7.	sample data: the date is the next Monday of the week shown
+Place 11, up 30 since Oct 5. Linked by Google AI Mode.	sample data
+Place 18, flat for 3 weeks. Update goes live Tue 20.	sample data: the day is the stored update's own, and none is named while ReachKit is stopped (REQ-092 c7)
+Found by Google Oct 14. Not in results yet.	sample data: the date is the stored reading's own
+Place 48, flat for 8 weeks. Update goes live Sun 25.	sample data: the day is the stored update's own, and none is named while ReachKit is stopped (REQ-092 c7)
+Show all 12 live pages	sample data
+Google: Showing in results AI: Linked by AI	sample data: the step words are the page ladder's shared keys (draft.ladder.*), read the same on Overview and the page screen (#2273)
+Google: Showing in results AI: Read by AI	sample data: the step words are the page ladder's shared keys (draft.ladder.*), read the same on Overview and the page screen (#2273)
+component:icon:calendar 4	sample data: the fixture week holds fewer Planned days than the board's
+component:icon:plus 1	sample data: the fixture week holds fewer new pages than the board's
+component:icon:refresh-cw 2	sample data: the fixture week holds fewer updates than the board's
+component:icon:clock-4 1	sample data: no fixture page among the first four live pages is Too early
+component:icon:minus 1	sample data: no fixture page among the first four live pages is Not moving

@@ -131,8 +131,8 @@ export const CALENDAR_COPY = Object.freeze({
   "calendar.week.why.searched": ["Searched every month", { slots: {}, fixedBy: "SPEC §7 2026-10-19 C3 (drafted)" }],
   "calendar.week.why.asked": ["Buyers ask this", { slots: {}, fixedBy: "SPEC §7 2026-10-19 C3 (drafted)" }],
   "calendar.week.why.fit": ["A close fit for your business", { slots: {}, fixedBy: "SPEC §7 2026-10-19 C3 (drafted)" }],
-  "calendar.spares.title": ["Backup pages", { slots: {}, fixedBy: "SPEC §7 2026-10-19 E5 (drafted)" }],
-  "calendar.spares.note": ["Used only if a day’s page can’t be written.", { slots: {}, fixedBy: "SPEC §7 2026-10-19 E5 (drafted)" }],
+  "calendar.spares.title": ["backup pages", { slots: {}, fixedBy: "board Plan v36, issue 2273 (drafted)" }],
+  "calendar.spares.note": ["used if a day’s page can’t be written", { slots: {}, fixedBy: "board Plan v36, issue 2273 (drafted)" }],
 
   // §4.6's stage-appropriate actions.
   "calendar.action.read-full-page": ["Read the full page", { slots: {}, fixedBy: "BUILD §4.6" }],
@@ -467,20 +467,6 @@ export const CALENDAR_COPY = Object.freeze({
   "calendar.panel.search": ["Search", { slots: {}, fixedBy: "issue 930" }],
   "calendar.panel.close": ["Close", { slots: {}, fixedBy: "issue 930" }],
 
-  // Issue 1364 (owner, 2026-10-09): Plan opens with its numbers, each a
-  // stage word and a count, of this week. Drafted (#759).
-  "calendar.numbers.week": ["pages this week", { slots: {}, fixedBy: "board Plan (drafted)" }],
-
-
-  // The one note under the month: what the number on a live card is. It is
-  // not a supply statement and does not repeat one — it explains a value,
-  // which is the only thing on the card a founder cannot read off the word
-  // beside it.
-  "calendar.note.live-number": [
-    "On live pages the number is this week's Google position.",
-    { slots: {}, fixedBy: "issue 930" },
-  ],
-
   // 2026-09-06, issue #50 (REQ-043 c12). The three grounds on which the
   // day panel says a way through leads nowhere **in place of** offering
   // it. Three keys, three sentences, all the owner's.
@@ -502,24 +488,18 @@ export const CALENDAR_COPY = Object.freeze({
   "calendar.title.one": ["This week’s page", { slots: {}, fixedBy: "board Plan (drafted)" }],
   "calendar.title.none": ["This week’s pages", { slots: {}, fixedBy: "board Plan (drafted)" }],
   "calendar.head.undated": ["Each goes live on its day unless you stop it.", { slots: {}, fixedBy: "board Plan (drafted)" }],
-  "calendar.first-week": ["Your first week is being chosen. It shows here by Monday morning, with a reason for each page.", { slots: {}, fixedBy: "board Plan (drafted)" }],
-  "calendar.numbers.live": ["pages live so far", { slots: {}, fixedBy: "board Plan (drafted)" }],
-  "calendar.numbers.spares": ["backup pages ready", { slots: {}, fixedBy: "board Plan (drafted)" }],
-  "calendar.numbers.stopped": ["stopped by you", { slots: {}, fixedBy: "board Plan (drafted)" }],
-  "calendar.numbers.unread": ["couldn’t load", { slots: {}, fixedBy: "board Plan (drafted)" }],
-  "calendar.week.time": ["Every page goes live at {time}, {place} time", { slots: { time: "text", place: "text" }, fixedBy: "board Plan (drafted)" }],
+  "calendar.first-week": ["Your first week is being chosen. It shows here by Monday morning.", { slots: {}, fixedBy: "board Plan v36, issue 2273 (drafted)" }],
+  "calendar.week.time": ["Each goes live at {time}, {place} time", { slots: { time: "text", place: "text" }, fixedBy: "board Plan v36, issue 2273 (drafted)" }],
   "calendar.week.why": ["Why", { slots: {}, fixedBy: "board Plan (drafted)" }],
   "calendar.week.today": ["Goes live today, {time}", { slots: { time: "text" }, fixedBy: "board Plan (drafted)" }],
   "calendar.chip.new": ["New", { slots: {}, fixedBy: "board Plan (drafted)" }],
-  "calendar.legend.new": ["a page you don’t have yet", { slots: {}, fixedBy: "board Plan (drafted)" }],
-  "calendar.legend.update": ["a better version of a page you have", { slots: {}, fixedBy: "board Plan (drafted)" }],
-  "calendar.next": ["{date}: we check your searches, pages and competitors again, and choose the next {n}.", { slots: { date: "text", n: "text" }, fixedBy: "owner R12 B10 (drafted)" }],
+  "calendar.next": ["{date}: we check again and pick the next {n}.", { slots: { date: "text", n: "text" }, fixedBy: "board Plan v36, issue 2273 (drafted)" }],
   "calendar.chosen.title": ["How this week’s pages were chosen", { slots: {}, fixedBy: "board Plan (drafted)" }],
   "calendar.chosen.body": [
-    "Every Monday we check where your pages stand on Google and in AI answers. Then we pick the {n} pages most likely to bring you buyers.",
-    { slots: { n: "text" }, fixedBy: "board Plan (drafted)" },
+    "Every Monday we check where your pages stand on Google and in AI answers. Then we pick the {n} most likely to bring you buyers.",
+    { slots: { n: "text" }, fixedBy: "board Plan v36, issue 2273 (drafted)" },
   ],
-  "calendar.chosen.stored": ["Each reason is the one we saved when we chose the page.", { slots: {}, fixedBy: "board Plan (drafted)" }],
+  "calendar.chosen.stored": ["Each reason is the one saved when the page was chosen.", { slots: {}, fixedBy: "board Plan v36, issue 2273 (drafted)" }],
   // Why the week holds a page, as a sentence from its most specific stored part.
   "calendar.reason.near-page-one": ["Your page is close to Google’s first page for this search. This update adds what the pages above cover.", { slots: {}, fixedBy: "board Plan (drafted)" }],
   "calendar.reason.not-moving": ["Your page has not moved in 8 weeks. This rewrite matches what Google now shows for it.", { slots: {}, fixedBy: "board Plan (drafted)" }],
@@ -528,20 +508,18 @@ export const CALENDAR_COPY = Object.freeze({
   "calendar.reason.searched": ["Buyers search for this every month.", { slots: {}, fixedBy: "board Plan (drafted)" }],
   "calendar.reason.asked": ["Buyers ask this question before they buy.", { slots: {}, fixedBy: "board Plan (drafted)" }],
   "calendar.reason.fit": ["A close fit for what your business offers.", { slots: {}, fixedBy: "board Plan (drafted)" }],
-  "calendar.day.stopped.line": ["Stopped by you. The other days are not affected.", { slots: {}, fixedBy: "board Plan (drafted)" }],
-  "calendar.day.skipped.line": ["Nothing worth writing for this day, so no page. We skip a day, never fill it.", { slots: {}, fixedBy: "board Plan (drafted)" }],
+  "calendar.day.stopped.line": ["Stopped by you. Other days are not affected.", { slots: {}, fixedBy: "board Plan v36, issue 2273 (drafted)" }],
+  "calendar.day.skipped.line": ["Nothing worth writing for this day, so no page.", { slots: {}, fixedBy: "board Plan v36, issue 2273 (drafted)" }],
   "calendar.live.title": ["Live pages", { slots: {}, fixedBy: "board Plan (drafted)" }],
-  "calendar.live.dots": ["Dots show each step: live, found, showing, first page, then read, linked, visit.", { slots: {}, fixedBy: "board Plan (drafted)" }],
   "calendar.live.google": ["Google: {step}", { slots: { step: "text" }, fixedBy: "board Plan (drafted)" }],
   "calendar.live.ai": ["AI: {step}", { slots: { step: "text" }, fixedBy: "board Plan (drafted)" }],
-  "calendar.live.place": ["Place {n} for “{search}”.", { slots: { n: "text", search: "text" }, fixedBy: "board Plan (drafted)" }],
-  "calendar.live.place-up": ["Place {n} for “{search}”, up {up} since {date}.", { slots: { n: "text", search: "text", up: "text", date: "text" }, fixedBy: "board Plan (drafted)" }],
-  "calendar.live.no-gain": ["Place {n}, no gain in {weeks} weeks.", { slots: { n: "text", weeks: "text" }, fixedBy: "board Plan (drafted)" }],
-  "calendar.live.linked": ["Linked by {engines} on its own question.", { slots: { engines: "text" }, fixedBy: "board Plan (drafted)" }],
-  "calendar.live.update": ["An update goes live {day}.", { slots: { day: "text" }, fixedBy: "board Plan (drafted)" }],
-  "calendar.live.found": ["Found by Google on {date}. Not in results yet.", { slots: { date: "text" }, fixedBy: "board Plan (drafted)" }],
+  "calendar.live.place": ["Place {n}.", { slots: { n: "text" }, fixedBy: "board Plan v36, issue 2273 (drafted)" }],
+  "calendar.live.place-up": ["Place {n}, up {up} since {date}.", { slots: { n: "text", up: "text", date: "text" }, fixedBy: "board Plan v36, issue 2273 (drafted)" }],
+  "calendar.live.no-gain": ["Place {n}, flat for {weeks} weeks.", { slots: { n: "text", weeks: "text" }, fixedBy: "board Plan v36, issue 2273 (drafted)" }],
+  "calendar.live.linked": ["Linked by {engines}.", { slots: { engines: "text" }, fixedBy: "board Plan v36, issue 2273 (drafted)" }],
+  "calendar.live.update": ["Update goes live {day}.", { slots: { day: "text" }, fixedBy: "board Plan v36, issue 2273 (drafted)" }],
+  "calendar.live.found": ["Found by Google {date}. Not in results yet.", { slots: { date: "text" }, fixedBy: "board Plan v36, issue 2273 (drafted)" }],
   "calendar.live.ai-unread": ["not read yet", { slots: {}, fixedBy: "board Plan (drafted)" }],
-  "calendar.live.count": ["{n} of {m} live pages", { slots: { n: "text", m: "text" }, fixedBy: "board Plan (drafted)" }],
-  "calendar.live.all": ["Show all {m}", { slots: { m: "text" }, fixedBy: "board Plan (drafted)" }],
+  "calendar.live.all": ["Show all {m} live pages", { slots: { m: "text" }, fixedBy: "board Plan v36, issue 2273 (drafted)" }],
   "calendar.live.none": ["No page is live yet. Each shows here once it goes live, with how far it has got.", { slots: {}, fixedBy: "board Plan (drafted)" }],
 }) satisfies CopyPartition;

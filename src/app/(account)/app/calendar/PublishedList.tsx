@@ -62,9 +62,9 @@ function standingLines(row: LadderRow, page: PublishedPage | undefined, timeZone
       const weeks = Math.round((now.getTime() - Date.parse(reading.best.at)) / MS_PER_WEEK);
       out.push(copy("calendar.live.no-gain", { n, weeks: formatCount(weeks) }));
     } else if (up > 0) {
-      out.push(copy("calendar.live.place-up", { n, search: reading.place.query, up: formatCount(up), date: formatDate(new Date(reading.first!.at), timeZone) }));
+      out.push(copy("calendar.live.place-up", { n, up: formatCount(up), date: formatDate(new Date(reading.first!.at), timeZone) }));
     } else {
-      out.push(copy("calendar.live.place", { n, search: reading.place.query }));
+      out.push(copy("calendar.live.place", { n }));
     }
   } else if (reading.reached.found !== undefined) {
     out.push(copy("calendar.live.found", { date: formatDate(new Date(reading.reached.found), timeZone) }));
@@ -157,12 +157,9 @@ export function PublishedList(p: {
   return (
     <section id={PUBLISHED_ID} className="card card-border min-w-0 scroll-mt-32 bg-base-100" aria-labelledby="plan-live-heading" data-testid="plan-published">
       <div className="card-body gap-3 p-4">
-        <div className="flex min-w-0 flex-wrap items-baseline gap-x-3 gap-y-1">
-          <h2 id="plan-live-heading" className="card-title text-base!">
-            {copy("calendar.live.title")}
-          </h2>
-          <span className="text-xs text-base-content/70">{copy("calendar.live.dots")}</span>
-        </div>
+        <h2 id="plan-live-heading" className="card-title text-base!">
+          {copy("calendar.live.title")}
+        </h2>
         {rows.length === 0 ? (
           <p className="text-sm text-base-content/70">{copy("calendar.live.none")}</p>
         ) : (
@@ -170,11 +167,8 @@ export function PublishedList(p: {
             <ul className="list min-w-0">{rows.slice(0, SHOWN).map(row)}</ul>
             {rows.length <= SHOWN ? null : (
               <details className="collapse min-w-0" data-testid="plan-live-more">
-                <summary className="collapse-title flex min-w-0 flex-wrap justify-between gap-x-3 px-0 text-sm">
-                  <span className="text-base-content/70">
-                    {copy("calendar.live.count", { n: formatCount(SHOWN), m: formatCount(rows.length) })}
-                  </span>
-                  <span className="link link-primary">{copy("calendar.live.all", { m: formatCount(rows.length) })}</span>
+                <summary className="collapse-title flex min-h-11 min-w-0 items-center px-0 text-sm">
+                  <span className="link link-primary font-semibold">{copy("calendar.live.all", { m: formatCount(rows.length) })}</span>
                 </summary>
                 <ul className="collapse-content list min-w-0 px-0">{rows.slice(SHOWN).map(row)}</ul>
               </details>
