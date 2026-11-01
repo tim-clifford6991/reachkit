@@ -55,7 +55,7 @@ describe("the head reads as the board: domain, where it was measured, what we re
   it("says what we read you as, with the market's language and country, and offers the correction once", () => {
     expectInOrder(lines, [
       copy("report.read.as.title"),
-      "product analytics",
+      copy("report.read.as.what", { kind: copy("report.read.as.kind.software"), category: "product analytics" }),
       "product teams",
       copy("report.read.as.locale", { language: "English", country: "United States" }),
       copy("verdict.not-your-market"),
