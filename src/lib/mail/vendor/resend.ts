@@ -1,6 +1,6 @@
 // BUILD §12 · §15 — the one Resend request, carrying both bodies, so the text alternative cannot be a forgotten second send.
 // Nothing here throws: every failure becomes a `VendorResult`, so an unsendable mail never takes down its job.
-// Not `safeFetch()`: that guards customer-supplied URLs and is GET-only, and this host is ours. `node:https` keeps the `no-fetch-outside-egress` fence.
+// Not `safeFetch()`: that guards customer-supplied URLs, and this host is fixed in code; eslint.config.mjs exempts this file from `no-fetch-outside-egress`.
 // Logs carry no address or body; a truncated digest correlates sends without reaching anyone.
 import https from "node:https";
 import { createHash } from "node:crypto";
