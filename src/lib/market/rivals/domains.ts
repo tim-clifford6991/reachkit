@@ -335,12 +335,12 @@ export function isJobRow(row: { domain: string; url?: string; title?: string }):
   }
 }
 
-/** Whether a search is a job seeker's: at least half its titled
+/** Whether a search is a job seeker's: at least half its titled, resolved
  *  top ten are job pages. Never for a business that recruits, staffs or
  *  trains, as its own category says: job seekers are its buyers. */
 export function isJobSearch(rows: readonly { domain: string; url?: string; title?: string }[], category: string | null | undefined): boolean {
   if (category != null && (JOB_TITLE.test(category) || JOB_TRADE.test(category))) return false;
-  const titled = rows.slice(0, 10).filter((row) => row.title !== undefined);
+  const titled = (resolvedRows(rows.slice(0, 10)) ?? []).filter((row) => row.title !== undefined);
   return titled.length > 0 && titled.filter(isJobRow).length * 2 >= titled.length;
 }
 
@@ -492,4 +492,62 @@ export function nameLetters(text: string): string {
   return (text.normalize("NFKD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/ß/g, "ss").match(/[\p{L}\p{N}]+/gu) ?? [])
     .filter((word) => !JOINERS.has(word))
     .join("");
+}
+
+/** Google's own hosts, on any of its country domains. */
+function isGoogleHost(host: string): boolean {
+  return /^google\.[a-z]{2,3}(\.[a-z]{2})?$/.test(registrableDomain(host) ?? "");
+}
+
+/** A Google redirect (`google.<tld>/goto`, `/url`) that stands where a result's own address should. */
+function googleWrapper(url: string | undefined): URL | null {
+  try {
+    const parsed = new URL(url ?? "");
+    return isGoogleHost(parsed.hostname) && /^\/(goto|url)\/?$/.test(parsed.pathname) ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+/** The host a shown address names: "https://www.seek.com.au › jobs", a bare host, an address. */
+function shownHost(text: string | undefined): string | null {
+  const first = text?.split(/\s+[›>]\s+/)[0]?.trim();
+  if (!first || /\s/.test(first)) return null;
+  const parsed = parseDomain(first);
+  return parsed.ok && registrableDomain(parsed.domain) !== null && !isGoogleHost(parsed.domain) ? parsed.domain : null;
+}
+
+/** The site a result belongs to. A result behind a Google redirect reads its
+ *  plain `url=`/`q=` address, else the host the result shows, else nothing:
+ *  `null` is a row whose site is not known, never google.com. */
+export function resolvedHost(row: { domain: string; url?: string; breadcrumb?: string; websiteName?: string }): string | null {
+  const wrapper = googleWrapper(row.url);
+  if (wrapper === null) return row.domain === "" ? null : row.domain;
+  const plain = ["url", "q"].map((key) => wrapper.searchParams.get(key) ?? "").find((value) => /^https?:\/\//i.test(value));
+  return [plain, row.breadcrumb, row.domain, row.websiteName].map(shownHost).find((host) => host !== null) ?? null;
+}
+
+/** A search's top ten on resolved sites only, each row carrying its site.
+ *  Where fewer than half of the rows stored resolve, the rest would read the
+ *  redirect rather than the market, so the organic reading is not measured. */
+export function resolvedRows<T extends { domain: string; url?: string }>(rows: readonly T[]): T[] | null {
+  const read = rows.flatMap((row) => {
+    const host = resolvedHost(row);
+    return host === null ? [] : [{ ...row, domain: host }];
+  });
+  return read.length * 2 < rows.length ? null : read;
+}
+
+/** Whether the customer holds a place in a top ten; `null` where it holds no
+ *  resolved row and a row did not resolve, since that row may be its own. */
+export function ownPlaceIn(rows: readonly { domain: string; url?: string }[], ownDomain: string): boolean | null {
+  const hosts = rows.map(resolvedHost);
+  if (hosts.some((host) => host !== null && isOwnDomain(host, ownDomain))) return true;
+  return hosts.includes(null) ? null : false;
+}
+
+/** Whether an answer cites a page whose site is not known: a reference read
+ *  with no host, or, as stored before, a Google host beside a redirect that resolves to nothing. */
+export function citesUnresolved(hosts: readonly string[], urls: readonly string[] = []): boolean {
+  return hosts.includes("") || (hosts.some(isGoogleHost) && urls.some((url) => googleWrapper(url) !== null && resolvedHost({ domain: "", url }) === null));
 }

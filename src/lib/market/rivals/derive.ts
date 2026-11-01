@@ -20,7 +20,7 @@
 // all `./domains`' — one implementation in the product, not two.
 import { BATTERY, RIVAL_SCORE } from "@/lib/config/constants";
 import type { MarketSerp } from "../views";
-import { isArticleRow, isArticleUrl, isExplainerTitle, isHomeUrl, isJobSearch, isOthersPage, isOwnContentUrl, isOwnDomain, isPlaceTitle, isRoundupPage, isSourceDomain, pageClass, pageKey, registrableDomain } from "./domains";
+import { isArticleRow, isArticleUrl, isExplainerTitle, isHomeUrl, isJobSearch, isOthersPage, isOwnContentUrl, isOwnDomain, isPlaceTitle, isRoundupPage, isSourceDomain, pageClass, pageKey, registrableDomain, resolvedRows } from "./domains";
 
 /** `band.ts`'s `RivalSizeBand`, spelled out: the free card's modules name no
  *  sizing module, not even for a type (§6.4, `size.test.ts`). */
@@ -230,7 +230,11 @@ export function deriveRivals(a: {
     return (key !== null && roundupPages.has(key)) || isRoundupPage({ url });
   };
 
-  a.serps.forEach((serp, index) => {
+  a.serps.forEach((stored, index) => {
+    // Rows behind a Google redirect name nobody; too many of them and the search is not read.
+    const organic = resolvedRows(stored.organic);
+    if (organic === null) return;
+    const serp = { ...stored, organic };
     // Issue 1468: in a national market, a search whose top ten is mostly
     // pages of one place each ("Office Space in Merced, CA") looks for
     // another town's businesses, and none of them is this one's rival.

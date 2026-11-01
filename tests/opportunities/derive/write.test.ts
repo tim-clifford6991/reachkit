@@ -1,6 +1,9 @@
 // BUILD §7 — the Write family, from measured evidence only.
 import "../env";
+import { readFileSync } from "node:fs";
+import path from "node:path";
 import { describe, expect, it } from "vitest";
+import type { SerpResult } from "../../../src/lib/vendors/dataforseo/types";
 import { WRITE_VOLUME_FLOOR_PER_MONTH } from "../../../src/lib/config/constants";
 import { writeCandidates } from "../../../src/lib/opportunities/derive/write";
 import { difficultyCeiling } from "../../../src/lib/opportunities/winnability/bars";
@@ -395,5 +398,37 @@ describe("a job seeker's search proposes no page, except to a business that recr
 
   it("a recruitment agency keeps it", () => {
     expect(candidatesFor("recruitment agency")).toEqual(["baker"]);
+  });
+});
+
+describe("a top ten Google hides behind its redirects measures neither the customer's absence nor a holder", () => {
+  const stored = JSON.parse(readFileSync(path.resolve(import.meta.dirname, "../../market/rivals/fixtures/au-baker-d149c119.json"), "utf8")) as { organic: SerpResult["organic"] };
+  const noAnswer = { present: false, asynchronousAiOverview: false, referenceDomains: [] };
+  const counted = smallCounts(["google.com", "yourcareer.gov.au", "wikipedia.org", "bakingcareer.com.au", "brumbys.com.au", "appcues.com"]);
+  const candidatesOn = (organic: SerpResult["organic"], aiOverview: SerpResult["aiOverview"] = noAnswer) =>
+    writeCandidates({
+      ...base,
+      report: reportOf(
+        { questions: [question({ search: search({ keyword: "baker" }) })], serps: [serp({ organic, aiOverview })] },
+        { market: measured(marketSetOf({ profile: { ...PROFILE, category: "bread and bakery" }, suggestions: [] }), AT) }
+      ),
+      rankedCounts: counted,
+    }).candidates;
+
+  it("stored AU baker top ten (d149c119): no baker candidate for a bread and bakery profile", () => {
+    expect(candidatesOn(stored.organic)).toEqual([]);
+  });
+
+  it("an unresolved row is never evidence.rival", () => {
+    // Half resolved: read, and an AI answer that ignored the customer still makes a page.
+    const organic = [stored.organic[1]!, { position: 3, domain: "www.brumbys.com.au", url: "https://www.brumbys.com.au/", title: "Brumby's Bakeries" }];
+    const [only] = candidatesOn(organic, { present: true, asynchronousAiOverview: true, referenceDomains: ["appcues.com"] });
+    expect(only?.type).toBe("answer_page");
+    expect(only?.evidence.family === "write" ? only.evidence.rival?.domain : undefined).toBe("brumbys.com.au");
+  });
+
+  it("an unresolved citation is never an ignored answer", () => {
+    const organic = [{ position: 1, domain: "www.brumbys.com.au", url: "https://www.brumbys.com.au/", title: "Brumby's Bakeries" }];
+    expect(candidatesOn(organic, { present: true, asynchronousAiOverview: true, referenceDomains: ["appcues.com", ""] }).map((c) => c.type)).toEqual(["keyword_page"]);
   });
 });

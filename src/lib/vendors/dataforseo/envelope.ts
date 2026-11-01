@@ -15,6 +15,7 @@ import { isVendorFailure } from "@/lib/costs";
 import { VENDOR } from "@/lib/config/constants";
 import { measured, measuredZero, unmeasured, type Measured } from "@/lib/measure/measured";
 import type { Locale } from "@/lib/locale/locales";
+import { resolvedHost } from "@/lib/market/rivals/domains";
 import { sendGet, sendRequest, type DataForSeoMode, type SerpDepth, type TransportFailure } from "./transport";
 
 /** Task-level status codes the queue flow reads, vendor-documented. */
@@ -539,18 +540,19 @@ function logCostMismatch(source: string, ledgeredCents: number, vendorCents: num
 
 /** A vendor reference's domain: the documented `domain` field, else the
  *  host of its `url`. Lower-cased and trimmed only — canonicalisation is
- *  the consumer's (`src/lib/market/rivals/domains.ts`). */
+ *  the consumer's (`src/lib/market/rivals/domains.ts`). A reference behind a
+ *  Google redirect that names no site is `""`, so an answer still shows it cited one. */
 export function referenceDomain(ref: unknown): string | undefined {
   if (!isRecord(ref)) return undefined;
-  const direct = asString(ref.domain);
-  if (direct) return direct.trim().toLowerCase();
   const url = asString(ref.url);
-  if (!url) return undefined;
+  let domain = asString(ref.domain)?.trim().toLowerCase();
   try {
-    return new URL(url).hostname.toLowerCase();
+    domain ||= url ? new URL(url).hostname.toLowerCase() : undefined;
   } catch {
     return undefined;
   }
+  if (!domain) return undefined;
+  return resolvedHost({ domain, url, websiteName: asString(ref.source) }) ?? "";
 }
 
 /** Addresses from a list of references, de-duplicated in vendor order.
@@ -569,7 +571,7 @@ export function referenceDomains(refs: unknown): string[] {
   const seen = new Set<string>();
   for (const ref of asArray(refs)) {
     const domain = referenceDomain(ref);
-    if (domain) seen.add(domain);
+    if (domain !== undefined) seen.add(domain);
   }
   return [...seen];
 }
