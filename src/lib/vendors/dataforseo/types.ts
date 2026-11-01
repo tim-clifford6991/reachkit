@@ -58,9 +58,12 @@ export interface CompetitorRow {
  *  `transport.ts`, never a caller argument). */
 export interface SerpOrganicRow {
   position: number;
+  /** Empty where the row is `unresolved`. */
   domain: string;
   url: string;
   title: string;
+  /** Google sent the result through its redirect and the response named no site for it: the row is nobody's. */
+  unresolved?: true;
 }
 
 /** The AI Overview element of one SERP, if Google served one. Not cosmetic: `serpOrganic`'s `settleCents` reads
@@ -102,7 +105,7 @@ export interface SerpResult {
   /** The businesses Google's local pack shows on this SERP that have a site
    *  of their own (SPEC §6, D67). Absent where it showed
    *  none: a search that is not asked of a place has no pack. */
-  localPack?: readonly { title: string; domain: string }[];
+  localPack?: readonly { title: string; domain: string; unresolved?: true }[];
 }
 
 /** `serpNews` — one result of a Google News search (SPEC §7, D48): the

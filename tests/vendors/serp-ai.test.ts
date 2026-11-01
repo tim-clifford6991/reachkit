@@ -96,6 +96,26 @@ describe('BUILD §6.2 — "the free AI matrix rides here at 0¢ extra": one call
     });
   });
 
+  it("parseSerp keeps an unresolved wrapper row in place", () => {
+    const goto = "https://google.com/goto?url=CAESmQEBk1Nw";
+    const [parsed] = serp.parseSerp({
+      items: [
+        { type: "organic", rank_group: 1, domain: "google.com", url: goto, title: "Baker Jobs - SEEK", website_name: "SEEK" },
+        { type: "organic", rank_group: 2, domain: "google.com", url: goto, title: "Bakers Delight", breadcrumb: "https://www.bakersdelight.com.au › products" },
+        organic(3, "rival-one.com"),
+        { type: "local_pack", domain: "google.com", url: goto, title: "A bakery" },
+        { type: "ai_overview", items: [{ references: [{ domain: "google.com", url: goto, source: "SEEK" }, { domain: "rival-one.com", url: "https://rival-one.com/cited" }] }] },
+      ],
+    })!;
+    expect(parsed!.organic).toEqual([
+      { position: 1, domain: "", url: goto, title: "Baker Jobs - SEEK", unresolved: true },
+      { position: 2, domain: "bakersdelight.com.au", url: goto, title: "Bakers Delight" },
+      { position: 3, domain: "rival-one.com", url: "https://rival-one.com/p", title: "rival-one.com page" },
+    ]);
+    expect(parsed!.localPack).toEqual([{ title: "A bakery", domain: "", unresolved: true }]);
+    expect(parsed!.aiOverview.referenceDomains).toEqual(["", "rival-one.com"]);
+  });
+
   it("reads the SERP's People also ask and related searches, and a call that asks for them is keyed apart (D61)", async () => {
     stubVendorFetch(() =>
       envelope({
