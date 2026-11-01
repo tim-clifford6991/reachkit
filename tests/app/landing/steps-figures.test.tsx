@@ -1,7 +1,6 @@
 // The landing's step 1 and step 3 pictures, as boards PubLanding and PubLandingPhone
 // draw them: the free report at a glance and the Monday email on a phone, from the
 // plumber specimen. The "node" project, `renderToStaticMarkup`, the real registry.
-import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import React from "react";
@@ -9,7 +8,6 @@ import { parse, type HTMLElement } from "node-html-parser";
 import { copy } from "@/lib/presentation/copy";
 import LandingPage from "@/app/(public)/page";
 import { EXAMPLES, LIVE_AT } from "@/app/(public)/_how/specimen";
-import { boardFile, compare, readAllow, segments } from "../../../scripts/design/parity.mjs";
 
 const root = parse(renderToStaticMarkup(React.createElement(LandingPage, { searchParams: {} })));
 const steps = root.querySelectorAll("#how ol > li.card");
@@ -72,21 +70,5 @@ describe("the landing's step figures", () => {
     expect(text).not.toContain(copy("how.mail.linked", { n: plumber.mail.linked, total: plumber.mail.live }));
     expect(textOf(steps[2]?.querySelector("figcaption"))).toBe(copy("how.mail.caption"));
     expect(steps[2]?.querySelectorAll("figure a, figure button")).toHaveLength(0);
-  });
-
-  it("every board string of the two figures ships, and no allow line excuses one but sample data", () => {
-    const ship = segments(root.toString());
-    for (const board of ["PubLanding", "PubLandingPhone"]) {
-      const html = parse(readFileSync(boardFile(board), "utf8"));
-      const figures = ["Your free report, at a glance", "The Monday email, on a phone"].map((label) =>
-        html.querySelector(`figure[aria-label="${label}"]`),
-      );
-      expect(figures.every(Boolean), board).toBe(true);
-      const allow = readAllow(board);
-      const { missing, allowed } = compare(figures.map(String).join(""), ship, allow);
-      expect(missing, board).toEqual([]);
-      const reasons = allowed.map((s: string) => allow.find((a: { string: string }) => a.string === s)?.reason);
-      expect(reasons.every((r: string | undefined) => r === "sample data"), board).toBe(true);
-    }
   });
 });

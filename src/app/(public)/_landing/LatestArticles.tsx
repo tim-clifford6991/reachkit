@@ -13,6 +13,7 @@ import { ArrowRight } from "lucide-react";
 import { copy } from "@/lib/presentation/copy";
 import { writePageDate } from "@/lib/publish/render/byline";
 import { readOwnArticles } from "../_chrome/own-articles";
+import { ARTICLES_SECTION_ID } from "./sections";
 
 const LABEL_ID = "latest-articles";
 const SECTION = "pb-16 lg:pb-24";
@@ -22,7 +23,7 @@ export async function LatestArticles(): Promise<React.JSX.Element | null> {
   const own = await readOwnArticles();
   if (own === null) return null;
   return (
-    <section aria-labelledby={LABEL_ID} className={SECTION}>
+    <section id={ARTICLES_SECTION_ID} aria-labelledby={LABEL_ID} className={`${SECTION} scroll-mt-16`}>
       <div className={INNER}>
         <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
           <h2 id={LABEL_ID}>{copy("landing.articles.heading")}</h2>

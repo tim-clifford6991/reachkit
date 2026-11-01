@@ -13,7 +13,8 @@
 // `keys/meta.ts` is the fifteenth, issue #326: every public route's
 // document title, description and share-image alt. `keys/review.ts` is the
 // sixteenth: the owner's review screen. `keys/ops.ts` is the seventeenth: the
-// owner-only lines of the operations mails.) `COPY` and `COPY_META` are frozen object literals in the bundle,
+// owner-only lines of the operations mails. `keys/landing.ts` is the
+// eighteenth: the landing above How it works.) `COPY` and `COPY_META` are frozen object literals in the bundle,
 // never a fetch, a template store or an i18n catalogue (REQ-093 criterion
 // 5): with every language model unavailable, every value here still reads
 // the same, because nothing here ever reached for one.
@@ -41,6 +42,7 @@ import { CHROME_COPY } from "./keys/chrome.ts";
 import { META_COPY } from "./keys/meta.ts";
 import { REVIEW_COPY } from "./keys/review.ts";
 import { OPS_COPY } from "./keys/ops.ts";
+import { LANDING_COPY } from "./keys/landing.ts";
 
 export interface CopyMeta {
   /** Which cross-cutting law, if any, governs this sentence. The conformance
@@ -87,6 +89,7 @@ const ENTRIES = {
   ...META_COPY,
   ...REVIEW_COPY,
   ...OPS_COPY,
+  ...LANDING_COPY,
 } as const satisfies Record<string, readonly [string, CopyMeta]>;
 
 type Entries = typeof ENTRIES;

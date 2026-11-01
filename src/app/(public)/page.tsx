@@ -8,15 +8,16 @@
 // **The order is the owner's of 2026-10-19** (board *Landing*, decision
 // `2026-10-19-1596`), one story with one example business, below the chrome
 // the group layout draws:
-//   1. the hero — title, subline, the one field — beside the story card
-//      (`Storyboard.tsx`), with the trust strip under both; on a phone the
-//      trust strip comes before the story card (board *PubLandingPhone*);
-//   2. the three steps, each linking to its How it works section, the
+//   1. the hero — title, subline, the one field, the offer, the proof card
+//      (`HeroProof.tsx`) and the six kinds of business — beside the story
+//      card (`Storyboard.tsx`); on a phone the story card comes last (board
+//      v36, decision 2026-11-01-2246);
+//   2. the walkthrough video, once its file exists (`Walkthrough.tsx`);
+//   3. the three steps, each linking to its How it works section, the
 //      second holding the *Inside ReachKit* preview, then the weekly loop
 //      and the owner's one-time part;
-//   3. *Why you should care* — four features (`Features.tsx`);
-//   4. what the one plan gets you: what it buys, everything in it, its card;
-//   5. a real report and a real page, where stored (`RealSite.tsx`);
+//   4. *Why you should care* — four features (`Features.tsx`);
+//   5. what the one plan gets you: what it buys, everything in it, its card;
 //   6. what to expect when, and the questions owners ask;
 //   7. the newest three articles ReachKit published, where any are stored;
 //   8. the closing band, whose one button returns to the field.
@@ -46,7 +47,10 @@ import { Storyboard } from "./_landing/Storyboard";
 import { Features } from "./_landing/Features";
 import { FieldCta } from "./_landing/FieldCta";
 import { LatestArticles } from "./_landing/LatestArticles";
-import { RealSite } from "./_landing/RealSite";
+import { HeroProof } from "./_landing/HeroProof";
+import { WALKTHROUGH_SRC, Walkthrough } from "./_landing/Walkthrough";
+import { KIND_ICON, KIND_WORD } from "./scans/kinds";
+import { BUSINESS_KIND_NAMES } from "@/lib/market/kinds";
 import { PlanBuys } from "./_how/buys";
 import { MondayEmail, WhatToExpect } from "./_how/visuals";
 import { EXAMPLES } from "./_how/specimen";
@@ -68,6 +72,9 @@ const STEPS = [
   { n: "2", title: "landing.step.2.title", body: "landing.step.2.body", tag: "landing.step.2.tag", more: "landing.step.2.more", href: "/how-it-works#pages" },
   { n: "3", title: "landing.step.3.title", body: "landing.step.3.body", tag: "landing.step.3.tag", more: "landing.step.3.more", href: "/how-it-works#found" },
 ] as const;
+
+/** The offer under the field, one tick line each. */
+const offer = (): readonly string[] => [copy("landing.hero.offer.free"), copy("landing.hero.offer.price", { price: PRICE() })];
 
 /** The owner's part, once, in setup's order. */
 const PART = ["landing.part.answer", "how.part.three", "landing.part.done"] as const;
@@ -99,6 +106,8 @@ function questions(): readonly { id: string; vars?: Record<string, string>; more
 
 /** Bound to names: the copy sweep reads a bare JSX attribute string as voice. */
 const PRICE_TEST_ID = "landing-price";
+const PAGE_NAME = "landing";
+const KINDS_ID = "kinds";
 const VALUE_HREF = "/how-it-works#value";
 
 const SECTION = "border-t border-base-300 py-16 lg:py-24";
@@ -136,31 +145,51 @@ export default function LandingPage(props: {
         wide: { kind: "same-as-below" },
       }}
     >
-      <main className="flex flex-col">
+      {/* `data-page` lets the shared header hide the announcement bar on this page only. */}
+      <main className="flex flex-col" data-page={PAGE_NAME}>
         <JsonLd blocks={homeSchemas()} />
         {/* ══ HERO ══ */}
-        <section id={FIELD_SECTION_ID} className="scroll-mt-20 pt-12 pb-10 lg:pt-16 lg:pb-12">
-          <div className={`${INNER} grid grid-cols-1 items-start gap-10 lg:grid-cols-2 lg:gap-12`}>
-            <div className="flex min-w-0 flex-col items-center text-center lg:items-start lg:text-left">
+        <section id={FIELD_SECTION_ID} className="scroll-mt-20 pt-6 pb-12 lg:pt-10 lg:pb-22">
+          <div className={`${INNER} grid grid-cols-1 items-center gap-8 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)] lg:gap-12`}>
+            <div className="flex min-w-0 flex-col items-start gap-5 lg:gap-6">
               <h1 className="t-hero">{copy("landing.headline")}</h1>
-              <p className="mt-4 max-w-xl text-lg text-base-content/70">{copy("landing.subline")}</p>
-              <div className="mt-8 w-full max-w-xl">
+              <p className="text-lg text-base-content/70">{copy("landing.subline")}</p>
+              <div className="w-full">
                 <ScanForm searchParams={props.searchParams} words={scanFormWords()} />
               </div>
-              <p className="mt-3 font-mono text-xs text-base-content/70">{copy("landing.hero.assurance")}</p>
-              <p className="mt-2 text-sm font-semibold">{copy("landing.hero.what")}</p>
-              <p className="mt-2 text-sm text-base-content/70">{copy("landing.hero.for")}</p>
-              <p className="mt-4">
-                <More href="/how-it-works" label={copy("landing.hero.how")} />
-              </p>
+              <ul className="flex flex-col gap-1.5">
+                {offer().map((line) => (
+                  <li key={line} className="flex items-center gap-2">
+                    <Check size={18} strokeWidth={1.75} className="text-success shrink-0" aria-hidden />
+                    {line}
+                  </li>
+                ))}
+              </ul>
+              <Suspense fallback={null}>
+                <HeroProof />
+              </Suspense>
+              <div className="flex flex-col gap-2">
+                <p id={KINDS_ID} className="text-sm font-bold">
+                  {copy("landing.hero.kinds.label")}
+                </p>
+                <ul aria-labelledby={KINDS_ID} className="flex flex-wrap gap-1.5">
+                  {BUSINESS_KIND_NAMES.map((kind) => {
+                    const Icon = KIND_ICON[kind];
+                    return (
+                      <li key={kind} className="badge badge-outline border-base-300 h-8 gap-1.5 font-semibold">
+                        <Icon size={16} strokeWidth={1.75} className="text-primary" aria-hidden />
+                        {copy(KIND_WORD[kind])}
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
             </div>
-            {/* Before the story card on a phone, under both on a wide screen. */}
-            <p className="text-center text-sm text-base-content/70 lg:order-last lg:col-span-2">
-              {copy("landing.trust", { price: PRICE(), checks: String(HOW_FACTS.checks) })}
-            </p>
             <Storyboard />
           </div>
         </section>
+
+        <Walkthrough src={WALKTHROUGH_SRC} />
 
         {/* ══ THE THREE STEPS ══ */}
         <section id={HOW_SECTION_ID} className={`${SECTION} scroll-mt-16`}>
@@ -283,11 +312,6 @@ export default function LandingPage(props: {
             </div>
           </div>
         </section>
-
-        {/* ══ A REAL SITE ══ Nothing stored, no band. */}
-        <Suspense fallback={null}>
-          <RealSite />
-        </Suspense>
 
         {/* ══ QUESTIONS ══ */}
         <section id={FAQ_SECTION_ID} className={`${SECTION} scroll-mt-16`}>

@@ -24,7 +24,7 @@ describe("S1 — the landing's chips carry the icons the approved set draws", ()
     "app/(public)/_landing/Storyboard.tsx",
     "app/(public)/_landing/Features.tsx",
     "app/(public)/_landing/ScanForm.tsx",
-    "app/(public)/_landing/RealSite.tsx",
+    "app/(public)/_landing/HeroProof.tsx",
   ] as const;
 
   /** Every lucide name the landing imports, deduplicated. */
@@ -66,16 +66,22 @@ describe("S1 — the landing's chips carry the icons the approved set draws", ()
     // your competitors (users), pages (file-text) and being found
     // (trending-up); AI is sparkles; the fix card is a wrench; the AI
     // drawing ticks who is named and crosses who is not.
+    //
+    // Version 34 (decision 2026-11-01-2246): the story week marks Planned
+    // with a calendar, the proof card's rows end in a chevron and the blog's
+    // tile is a pen; the real-site cards and their globe are gone.
     expect(iconsImported()).toEqual([
       "ArrowRight",
       "Building2",
+      "Calendar",
       "Check",
+      "ChevronRight",
       "CircleCheck",
       "CircleX",
       "Clock",
       "FileText",
-      "Globe",
       "MessageSquare",
+      "PenLine",
       "ScanSearch",
       "Search",
       "Send",

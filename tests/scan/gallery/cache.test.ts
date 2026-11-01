@@ -177,6 +177,14 @@ describe("the gallery's cache", () => {
     expect(await listedScore("harbour.example")).toBeNull();
   });
 
+  it("states a listed domain's card: its score and whether its logo is stored", async () => {
+    const { listedCard } = await import("@/lib/scan/gallery");
+    db.scans = [...db.scans, { ...scan("logo.example", "2026-09-21T10:00:00.000Z"), has_logo: true }];
+    expect(await listedCard("logo.example")).toEqual({ score: 47, hasLogo: true });
+    expect(await listedCard("harbour.example")).toEqual({ score: 47, hasLogo: false });
+    expect(await listedCard("nowhere.example")).toBeNull();
+  });
+
   it("lists under a kind only the reports whose stored category names it, and a category that names none under none", async () => {
     const { readGallery } = await import("@/lib/scan/gallery");
     db.scans = [...db.scans, scan("ledger.example", "2026-09-21T10:00:00.000Z", "payroll software")];

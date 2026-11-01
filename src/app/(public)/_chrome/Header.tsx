@@ -75,13 +75,13 @@ const MENU_FOCUS_RING = [
   "[.drawer-toggle:focus-visible~*_&]:outline-primary",
 ].join(" ");
 
-/** The strip above the header. Hidden before paint once dismissed. */
+/** The strip above the header. Hidden before paint once dismissed, and on the landing, whose offer carries it. */
 function Banner(): React.JSX.Element {
   return (
     <div
       role="region"
       aria-label={copy("chrome.banner.label")}
-      className="bg-primary text-primary-content relative text-sm [[data-banner=off]_&]:hidden"
+      className="bg-primary text-primary-content relative text-sm [[data-banner=off]_&]:hidden [body:has(main[data-page=landing])_&]:hidden"
       data-testid="public-banner"
     >
       <p className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-3 gap-y-1 py-2 ps-4 pe-12 sm:justify-center sm:px-12">

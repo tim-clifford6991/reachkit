@@ -27,8 +27,11 @@ export function iconShape(svg) {
 
 export const shapeHash = (shape) => createHash("sha1").update(shape).digest("hex").slice(0, 8);
 
+// A site's own logo slot draws a placeholder mark, never a lucide icon.
 const annotated = (el) => {
-  for (let n = el.parentNode; n; n = n.parentNode) if (OUTSIDE.some((c) => n.classList?.contains(c))) return true;
+  for (let n = el.parentNode; n; n = n.parentNode) {
+    if (OUTSIDE.some((c) => n.classList?.contains(c)) || n.getAttribute?.("data-slot") === "site-logo") return true;
+  }
   return false;
 };
 

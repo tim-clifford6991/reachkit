@@ -628,22 +628,9 @@ export const REPORT_COPY = Object.freeze({
   "landing.field.placeholder": ["yourdomain.com", { slots: {}, fixedBy: "approved set S1 · 11a" }],
   /** The line under the field. Approved (11a). */
   "landing.hero.assurance": ["free · no account · under a minute", { slots: {}, fixedBy: "board Landing · issue 1596" }],
-  /** Under the field: what the free click gives, who it is for, and the way to read more. */
-  "landing.hero.what": ["See who Google and AI send your buyers to instead of you.", { slots: {}, fixedBy: "board Landing · issue 1596" }],
-  "landing.hero.for": ["Works for local services, shops, restaurants, firms, software and creators.", { slots: {}, fixedBy: "board Landing · issue 1596" }],
   "landing.hero.how": ["See how it works", { slots: {}, fixedBy: "board Landing · issue 1596" }],
-  /** The strip under the hero. The guarantee joins it only once refunds are live (#1042). */
-  "landing.trust": ["{price} a month, VAT included · Cancel any time · Up to {checks} checks before any page goes live", { slots: { price: "text", checks: "text" }, fixedBy: "board Landing · issue 1596" }],
   /** The pace (owner, A1, 2026-10-19). The number is `WEEK_PLAN.days`. */
   "landing.pace": ["Up to {weekPages} pages a week, new or updated. Never filler.", { slots: { weekPages: "text" }, fixedBy: "owner A1 · 2026-10-19" }],
-  /** The hero's story card: four frames, one example business, as few words as possible (owner O3). */
-  "landing.story.title": ["How ReachKit works for you", { slots: {}, fixedBy: "board Landing · issue 1596" }],
-  "landing.story.1.title": ["Competitors get found", { slots: {}, fixedBy: "board Landing · issue 1596" }],
-  "landing.story.2.title": ["We research", { slots: {}, fixedBy: "board Landing · issue 1596" }],
-  "landing.story.3.title": ["We write pages", { slots: {}, fixedBy: "board Landing · issue 1596" }],
-  "landing.story.4.title": ["You get found", { slots: {}, fixedBy: "board Landing · issue 1596" }],
-  "landing.story.2.more": ["+{more} more", { slots: { more: "text" }, fixedBy: "board Landing · issue 1726 · drafted" }],
-  "landing.story.3.live": ["Live", { slots: {}, fixedBy: "board PubLanding · owner O3 · 2026-10-31" }],
   /** Under the three steps: the loop, and the owner's one-time part. */
   "landing.loop": ["Steps 2 and 3 repeat every week, without you", { slots: {}, fixedBy: "board Landing · issue 1726 · drafted" }],
   "landing.part.once": ["Your part, once · about {minutes} minutes", { slots: { minutes: "text" }, fixedBy: "board Landing · issue 1726 · drafted" }],
@@ -816,9 +803,6 @@ export const REPORT_COPY = Object.freeze({
   "landing.price.found": ["Which of your pages Google and Bing have found, on the address we run.", { slots: {}, fixedBy: "board PubLanding · issue 1727 · ruling R12 (B14)" }],
   "landing.price.month": ["a month", { slots: {}, fixedBy: "board PubLanding · issue 1727 · drafted" }],
   "landing.price.see": ["See pricing", { slots: {}, fixedBy: "board PubLanding · issue 1727 · drafted" }],
-  /** *See it on a real site*: ReachKit's own newest live page, beside the listed report. */
-  "landing.real.page": ["A real page ReachKit wrote, live now", { slots: {}, fixedBy: "board PubLanding · issue 1727 · drafted" }],
-  "landing.real.page.line": ["ReachKit’s own blog is written by ReachKit, the same way.", { slots: {}, fixedBy: "board PubLanding · issue 1727 · drafted" }],
   "landing.price.terms": ["{price} a month. One plan. Cancel any time.", { slots: { price: "text" }, fixedBy: "board Landing · issue 1596" }],
   "landing.price.more": ["See how it compares", { slots: {}, fixedBy: "board Landing · issue 1596" }],
   /** The questions owners ask, each a question and its answer. */
@@ -912,10 +896,10 @@ export const REPORT_COPY = Object.freeze({
   // One word per kind of business (`src/lib/market/kinds.ts`).
   "gallery.kind.local-service": ["Local services", { slots: {}, fixedBy: "board PubScans · issue 1732" }],
   "gallery.kind.shop": ["Shops", { slots: {}, fixedBy: "board PubScans · issue 1732" }],
-  "gallery.kind.hospitality": ["Restaurants & cafés", { slots: {}, fixedBy: "board PubScans · issue 1732" }],
-  "gallery.kind.professional-services": ["Firms", { slots: {}, fixedBy: "board PubScans · issue 1732" }],
+  "gallery.kind.hospitality": ["Restaurants & venues", { slots: {}, fixedBy: "board PubScans v36 · owner 2026-11-01" }],
+  "gallery.kind.professional-services": ["Agencies & firms", { slots: {}, fixedBy: "board PubScans v36 · owner 2026-11-01" }],
   "gallery.kind.software": ["Software", { slots: {}, fixedBy: "board PubScans · issue 1732" }],
-  "gallery.kind.creator": ["Creators", { slots: {}, fixedBy: "board PubScans · issue 1732" }],
+  "gallery.kind.creator": ["Creators & courses", { slots: {}, fixedBy: "board PubScans v36 · owner 2026-11-01" }],
   "gallery.showing": ["Showing {shown} of {total} reports", { slots: { shown: "text", total: "text" }, fixedBy: "issue 1069 · R12-3" }],
   "gallery.sort.label": ["Sort", { slots: {}, fixedBy: "issue 1069 · R12-3" }],
   "gallery.sort.newest": ["Newest first", { slots: {}, fixedBy: "issue 1069 · R12-3" }],

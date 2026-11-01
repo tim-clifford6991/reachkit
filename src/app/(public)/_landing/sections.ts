@@ -14,3 +14,6 @@ export const HOW_SECTION_ID = "how";
 /** The plan and the questions, in the board's names. */
 export const PRICE_SECTION_ID = "weekly";
 export const FAQ_SECTION_ID = "faq";
+
+/** ReachKit's own articles, the hero's blog proof links here. */
+export const ARTICLES_SECTION_ID = "articles";

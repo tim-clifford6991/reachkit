@@ -1,6 +1,7 @@
 // The landing's story card as board PubLanding draws it: each node beside its
 // title, the picture card beside the title once the card is wide and under it
-// on a phone, and the card centred under the centred hero text below desktop.
+// on a phone, the card centred under the hero text below desktop and the wider
+// column beside it on desktop.
 import { describe, expect, it } from "vitest";
 import { checkContainment, checkNoClippingOrTruncation, checkNoHorizontalScroll, MONO_FONT_FAMILY } from "./checks";
 import { getBaseURL, withPage } from "./browser";
@@ -40,9 +41,9 @@ async function measure(width: number): Promise<{ theme: string; geometry: Geomet
           heroText: box(document.querySelector("h1")!.parentElement),
           frames: [...card!.querySelectorAll("ol > li")].map((li) => ({
             li: box(li),
-            node: box(li.querySelector(".timeline-middle")),
-            title: box(li.querySelector(".timeline-end > p")),
-            mini: box(li.querySelector(".timeline-end > :last-child")),
+            node: box(li.querySelector(":scope > .rounded-full")),
+            title: box(li.querySelector(":scope > .flex-col")),
+            mini: box(li.querySelector(":scope > div")),
           })),
         };
       });
@@ -66,7 +67,7 @@ async function measure(width: number): Promise<{ theme: string; geometry: Geomet
 const centre = (b: Box): number => (b.left + b.right) / 2;
 
 describe("the landing's story card frames, light and dark", () => {
-  it.each([390, 768, 1023, 1280])("at %ipx nothing overflows and each node sits beside its title, with no empty start column", async (width) => {
+  it.each([390, 768, 1023, 1280])("at %ipx nothing overflows and each node sits beside its title", async (width) => {
     for (const { theme, geometry, offenders } of await measure(width)) {
       expect(offenders, theme).toEqual([]);
       expect(geometry.frames, theme).toHaveLength(4);
@@ -79,7 +80,10 @@ describe("the landing's story card frames, light and dark", () => {
         if (width === 1280) expect(f.mini.left, at).toBeGreaterThan(f.title.right);
       }
       if (width === 768 || width === 1023) expect(Math.abs(centre(geometry.card) - centre(geometry.heroText)), theme).toBeLessThanOrEqual(4);
-      if (width === 1280) expect(geometry.card.right - geometry.card.left, theme).toBeCloseTo(geometry.heroText.right - geometry.heroText.left, 0);
+      if (width === 1280) {
+        expect(geometry.card.left, theme).toBeGreaterThan(geometry.heroText.right);
+        expect(geometry.card.right - geometry.card.left, theme).toBeGreaterThan(geometry.heroText.right - geometry.heroText.left);
+      }
     }
   }, 180_000);
 });
