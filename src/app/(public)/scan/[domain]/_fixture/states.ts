@@ -422,10 +422,7 @@ const COLD_QUESTIONS: readonly StoredQuestion[] = COLD_SEARCHES.map((search, ind
 
 /** Three of the twelve returned no AI answer; the nine that did named no
  *  brand at all. */
-function coldCellFor(index: number): AnswerCell {
-  if (index >= 9) return { kind: "no_answer" };
-  return { kind: "answered", citedDomains: [], namesCustomer: false };
-}
+const coldCellFor = (index: number): AnswerCell => (index >= 9 ? { kind: "no_answer" } : { kind: "answered", citedDomains: [], namesCustomer: false });
 
 export const FIXTURE_COLD_START_REPORT: StoredReport = {
   ...FIXTURE_REPORT,
