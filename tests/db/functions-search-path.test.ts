@@ -193,10 +193,12 @@ describe('advisor `rls_enabled_no_policy` — the tables that are policy-less by
     // `job_error_mails` is the job runner's once-a-Berlin-day claim on a failing job's owner mail.
     // `signin_links` is the live sign-in link, sealed, read and written only by identity.
     // `rate_limits` is the shared abuse-limit count, reached only through `take_rate_limits`.
+    // `fetch_facts` is the re-score's cache of what it reads off each `fetches` row.
     expect(policyLess).toEqual([
       "domain_blocks",
       "draft_days",
       "email_suppressions",
+      "fetch_facts",
       "fetches",
       "job_error_mails",
       "job_runs",

@@ -16,7 +16,7 @@ import {
   type StoredSiteRow,
 } from "../../../src/lib/scan/rescore-run";
 import type { RivalConclusion } from "../../../src/lib/market/infer/types";
-import { apply, dry, fixture, md5, read, storeOf, type FixtureScan } from "./rescore-store";
+import { apply, dry, fixture, md5, ownOf, read, readOf, storeOf, type FixtureScan } from "./rescore-store";
 
 describe("gusto.com's scan of 8 October (issue 1418): measured off Cloudflare's page, read again", () => {
   it("the dry run says what a new scan would — no score, degraded — and writes nothing", async () => {
@@ -188,13 +188,13 @@ describe("the network, while a scan is scored", () => {
     }) as unknown as typeof fetch;
     try {
       const db = storeOf([fixture("gusto.com")]);
-      // A stored home read whose payload reaches for the network when read.
+      // A stored home read whose facts reach for the network when read.
       const reaching: StoredRead = {
         source: "egress.safeFetch",
         created_at: "2026-10-08T13:52:02.242483+00:00",
-        get payload() {
+        get facts() {
           void fetch("https://gusto.com/");
-          return {};
+          return readOf("gusto.com", "egress.safeFetch", { created_at: "", payload: {} }).facts;
         },
       };
       const store: RescoreStore = { ...db.store, homeReads: async () => [reaching] };
@@ -500,19 +500,16 @@ describe("issue 1504: a free scan's town its profile no longer reads stands wher
 describe("issue 1551: a paid scan's Content is read again over its measured pages, from their stored reads", () => {
   const scan = fixture("zapier.com");
   const home = scan.home!;
-  const page = (url: string, html: string, created_at = "2026-10-06T03:44:00Z") => ({
-    url,
-    created_at,
-    payload: { url, status: 200, html, bytes: html.length, readAt: created_at },
-  });
+  const page = (url: string, html: string, created_at = "2026-10-06T03:44:00Z") =>
+    ownOf({ url, created_at, payload: { url, status: 200, html, bytes: html.length, readAt: created_at } });
   const ARTICLE = "<html><body><h2>How do I connect two apps?</h2><p>Pick 2 apps and 1 trigger.</p><h2>Is it free?</h2><p>Yes, for 100 tasks.</p></body></html>";
   const own = [
-    { url: "https://zapier.com/", created_at: home.created_at, payload: home.payload },
+    ownOf({ url: "https://zapier.com/", created_at: home.created_at, payload: home.payload }),
     page("https://zapier.com/sitemap.xml", '<?xml version="1.0"?><urlset><url><loc>https://zapier.com/apps</loc></url></urlset>'),
     ...Array.from({ length: 4 }, (_, i) => page(`https://zapier.com/guide-${i}`, ARTICLE)),
   ];
   const ours = "https://content.zapier.com/how-to-connect-apps";
-  const homeRead = [{ source: "egress.safeFetch" as const, ...home }];
+  const homeRead = [readOf("zapier.com", "egress.safeFetch", home)];
   const paid = () => {
     const report = { ...structuredClone(scan.report), tier: "weekly" };
     const db = storeOf([{ ...scan, report }]);
@@ -525,7 +522,7 @@ describe("issue 1551: a paid scan's Content is read again over its measured page
     const measured = measuredOf({ own, ours: [ours], oursReads: [page(ours, ARTICLE, "2026-10-05T07:00:00Z"), page(ours, "<html></html>", "2026-10-07T00:00:00Z")] })!;
     // The fixture's stored home keeps no bytes; the home is never a measured page either way.
     expect(measured.pages).toEqual([ours, ...own.slice(2).map((r) => r.url)]);
-    expect(measured.reads.get(ours)).toEqual(page(ours, ARTICLE, "2026-10-05T07:00:00Z").payload);
+    expect(measured.reads.get(ours)).toEqual(page(ours, ARTICLE, "2026-10-05T07:00:00Z").facts);
     expect(measuredOf({ own: [], ours: [ours], oursReads: [] })).toBeUndefined();
   });
 

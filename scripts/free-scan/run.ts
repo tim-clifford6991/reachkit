@@ -26,7 +26,6 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { CAPS, TIMING } from "@/lib/config/constants";
 import { offline } from "@/lib/egress/offline";
-import { couldBeChallenge } from "@/lib/measure/challenge";
 import { promptSiteName } from "@/lib/market/prompts/generate";
 import { isOwnDomain } from "@/lib/market/rivals/domains";
 import type { Measured } from "@/lib/measure/measured";
@@ -35,6 +34,7 @@ import { parseDomain } from "@/lib/scan/domain";
 import { readStoredReport, type StoredReport } from "@/lib/scan/report";
 import { databaseRescore, moves, rescoreRow, type StoredRead, type StoredScanRow } from "@/lib/scan/rescore-run";
 import type { StoredAnswer } from "@/lib/scan/rescore";
+import { pageFactsOf } from "@/lib/scan/page-facts";
 import { storedSiteName } from "@/lib/site-profile/site-name";
 import { commitOf, psql, rebuild, waitForSchema } from "../local-run.mjs";
 import { appendSpend } from "../spend-log.mjs";
@@ -274,17 +274,6 @@ function shownOf(domain: string, scan: Row | null): Omit<SiteResult, "cents" | "
   };
 }
 
-/** A home read as the re-score needs it. Its page is read only where the
- *  response could be a protection's page (`couldBeChallenge`); elsewhere
- *  the page is dropped, so a run's file does not carry every site's HTML. */
-function keptRead(read: StoredRead): StoredRead {
-  const doc = read.payload as { status?: unknown; bytes?: unknown; headers?: unknown; html?: unknown } | null;
-  if (doc === null || typeof doc.status !== "number" || typeof doc.bytes !== "number" || typeof doc.html !== "string") return read;
-  const headers = doc.headers !== null && typeof doc.headers === "object" ? (doc.headers as Record<string, string>) : {};
-  if (couldBeChallenge({ status: doc.status, bytes: doc.bytes, headers })) return read;
-  return { ...read, payload: { ...doc, html: "" } };
-}
-
 /** The rows the production re-score reads for this scan, through its own store. */
 async function rescoreInputs(domain: string, scanId: string): Promise<SiteResult["stored"]> {
   const store = databaseRescore();
@@ -293,7 +282,7 @@ async function rescoreInputs(domain: string, scanId: string): Promise<SiteResult
   const profile = (await store.profiles()).find((p) => p.domain === domain);
   return {
     scan,
-    reads: (await store.homeReads(domain)).map(keptRead),
+    reads: [...(await store.homeReads(domain))],
     siteName: profile === undefined ? null : promptSiteName(storedSiteName(profile, profile.home_title), domain),
     // As the re-score asks: a site's current scan alone carries the battery's
     // answers, and a free scan belongs to no site.
@@ -458,13 +447,13 @@ export async function main(o: Options): Promise<number> {
   return notRun.length === 0 && sites.every((site) => site.stored !== null) ? 0 : 1;
 }
 
-/** `--recheck`: that date's stored scans scored again by the current code,
- *  through the production re-score's own path. No database, no vendor, 0¢. */
-/** A stored run with its home reads kept as `keptRead` keeps them. */
-export function trimmed(run: StoredRun): StoredRun {
-  return { ...run, sites: run.sites.map((site) => (site.stored === null ? site : { ...site, stored: { ...site.stored, reads: site.stored.reads.map(keptRead) } })) };
+/** A run stored before reads were kept as facts holds their payloads. */
+function factsOfStored(domain: string, reads: readonly (StoredRead | (Omit<StoredRead, "facts"> & { payload: unknown }))[]): StoredRead[] {
+  return reads.map((read) => ("facts" in read ? read : { source: read.source, created_at: read.created_at, facts: pageFactsOf(`https://${domain}/`, read.payload) }));
 }
 
+/** `--recheck`: that date's stored scans scored again by the current code,
+ *  through the production re-score's own path. No database, no vendor, 0¢. */
 export function recheck(o: Options): number {
   const dir = path.join(o.root, "docs/walk/free");
   const file = path.join(dir, `${o.date}.json`);
@@ -486,7 +475,7 @@ export function recheck(o: Options): number {
       const log = console.log;
       console.log = () => undefined;
       try {
-        return rescoreRow(scan, reads, { siteName, answers });
+        return rescoreRow(scan, factsOfStored(site.domain, reads), { siteName, answers });
       } finally {
         console.log = log;
       }

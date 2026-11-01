@@ -591,7 +591,15 @@ the re-score executes to score a scan, followed name by name through imports and
 comments or layout. Types and a lazy `import()` are not followed, so the vendor transport, the copy
 registry and the constants it never reads are not among them; `node scripts/derivation.mjs --files`
 lists the files it reads from). Each run reads every stored report
-once, and per domain only the home reads those reports are scored with. Production's tick,
+once, and per domain only the home reads those reports are scored with. It scores each stored read
+from its facts in `fetch_facts` (`src/lib/scan/page-facts.ts`: on-page facts, the pricing link, the
+markets it declares, whether it was a protection's or error page or a render that drew the site),
+kept at the deployed `RK_FACTS_VERSION`, the same fingerprint over the extractor files alone
+(`node scripts/derivation.mjs` prints both). A read with no facts at that version has its payload
+downloaded once and its facts kept, so only the first run after an extractor change reads pages;
+the summary's `read ≈ N MB (facts refresh ≈ M MB)` line says how much it read and how much of that
+was pages read for their facts. `fetch_facts` is a cache: a row is never trusted at another version,
+the account purge deletes a scan's facts by `scan_id` before its `fetches` rows (no cascade, ADR-051), and dropping every row costs one refresh. Production's tick,
 every 15 minutes, finds no run at the deployed derivation and asks one apply itself
 (`auto = true`; decision `docs/spec/decisions/2026-11-01-2254.md`). That run scores every stored
 scan in memory and decides the guard before it writes anything (`RESCORE_GUARD` in

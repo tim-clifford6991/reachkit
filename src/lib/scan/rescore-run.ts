@@ -10,6 +10,9 @@
 // reached while a scan is scored. The database reads and writes are the only
 // network this does, and they happen outside it.
 //
+// Each stored read is scored from its facts (`fetch-facts.ts`), which are
+// a cache outside these writes.
+//
 // A dry run, or an apply its guard holds, writes the summary only. An apply
 // writes each scan that moves through `rescore_scan`: only the moved paths,
 // the replaced report under `report.previous`, the stamps, and the report's
@@ -24,10 +27,11 @@ import { promptSiteName } from "@/lib/market/prompts/generate";
 import { rewrittenSiteName, storedSiteName } from "@/lib/site-profile/site-name";
 import { AI_ANSWER_SOURCES, AI_OVERVIEW_TEXT_MAX_CHARS } from "@/lib/vendors/dataforseo/types";
 import { OWN_FETCH_SOURCE } from "@/lib/measure/own-fetch";
+import { checked, factsLoader, type MinimalClient, type MinimalResult } from "./fetch-facts";
 import { readStoredReport } from "./report";
 import { scanWriteOf } from "./rescore-write";
 import { homeOf, homeReadsFor, type HomeReadRow, type StoredRead } from "./home-reads";
-import { livePagesAt, measuredOf, oursPicked, onceById, type OwnReadRow, type OwnReads, type StoredPublication } from "./own-reads";
+import { livePagesAt, measuredOf, oursPicked, type OwnReadRow, type OwnReads, type StoredPublication } from "./own-reads";
 import {
   rehomeSite,
   rescoreScan,
@@ -40,7 +44,7 @@ import {
   type StoredAnswer,
 } from "./rescore";
 import type { ScanStatus } from "./store";
-import { asksByItself, heldBecause, nextStep, type RunRecord, type ScoreMove } from "./derivation";
+import { asksByItself, deployedFactsVersion, heldBecause, nextStep, type RunRecord, type ScoreMove } from "./derivation";
 
 export type { StoredRead };
 export { livePagesAt, measuredOf, type OwnRead, type OwnReads, type StoredPublication } from "./own-reads";
@@ -120,8 +124,9 @@ export interface RescoreStore {
   writeSite(write: SiteWrite): Promise<void>;
   /** False where the stored name is no longer `from`: nothing written. */
   writeProfileName(write: ProfileNameWrite): Promise<boolean>;
-  /** The JSON length of every row downloaded so far, an estimate of egress. */
-  readBytes?(): number;
+  /** The JSON length of every row downloaded so far, an estimate of egress,
+   *  and the part of it that was payloads read to refresh their facts. */
+  readBytes?(): { read: number; refresh: number };
 }
 
 export interface RescoreOptions {
@@ -241,7 +246,7 @@ export function rescoreRow(
     drivers: driversOf(scan.drivers),
     report,
     home: report.onPage.kind === "unmeasured" ? null : homeOf(new Date(report.onPage.at).getTime(), reads),
-    rendered: reads.filter((r) => r.source === "on_page/instant_pages").map((r) => ({ created_at: r.created_at, payload: r.payload })),
+    rendered: reads.filter((r) => r.source === "on_page/instant_pages").map((r) => ({ created_at: r.created_at, facts: r.facts })),
     siteName: said.siteName,
     answers: said.answers,
     startedAt: scan.createdAt,
@@ -453,7 +458,7 @@ function summaryOf(a: {
   profiles: readonly StoredProfileName[];
   renamed: readonly ProfileNameWrite[];
   written: { scans: number; left: readonly string[]; names: number } | null;
-  read: number | undefined;
+  read: { read: number; refresh: number } | undefined;
 }): string {
   return [
     `# Re-score of ${a.rows.length + a.unreadable.length} stored scans, by ${a.o.version}, ${a.o.apply ? "applied" : "dry run"} at ${a.o.at.toISOString()}`,
@@ -465,7 +470,9 @@ function summaryOf(a: {
     "## Totals",
     "",
     ...totals(a.rows, a.unreadable),
-    ...(a.read === undefined ? [] : [`- read ≈ ${(a.read / 1e6).toFixed(2)} MB (est.: the JSON length of the rows this run downloaded)`]),
+    ...(a.read === undefined
+      ? []
+      : [`- read ≈ ${(a.read.read / 1e6).toFixed(2)} MB (facts refresh ≈ ${(a.read.refresh / 1e6).toFixed(2)} MB), est.: the JSON length of the rows this run downloaded`]),
     ...(a.written === null
       ? ["- Written: nothing (a dry run)"]
       : [
@@ -644,35 +651,7 @@ export async function claimRequest(
 
 // ── The database ────────────────────────────────────────────────────────
 
-/** `rescore_runs`, `report_md5` and `rescore_scan` are not in the generated
- *  `Database` type — the same narrow cast `src/jobs/heartbeat.ts` documents. */
-interface MinimalResult<T> {
-  data: T | null;
-  error: { message: string } | null;
-}
-interface MinimalQuery<T> extends PromiseLike<MinimalResult<T[]>> {
-  select(columns: string): MinimalQuery<T>;
-  update(values: Record<string, unknown>): MinimalQuery<T>;
-  insert(values: Record<string, unknown>): MinimalQuery<T>;
-  eq(column: string, value: unknown): MinimalQuery<T>;
-  in(column: string, values: readonly unknown[]): MinimalQuery<T>;
-  is(column: string, value: null): MinimalQuery<T>;
-  not(column: string, operator: string, value: unknown): MinimalQuery<T>;
-  order(column: string, options: { ascending: boolean }): MinimalQuery<T>;
-  range(from: number, to: number): MinimalQuery<T>;
-  limit(n: number): MinimalQuery<T>;
-}
-interface MinimalClient {
-  from<T>(table: string): MinimalQuery<T>;
-  rpc<T>(fn: string, args: Record<string, unknown>): PromiseLike<MinimalResult<T>>;
-}
-
 const PAGE = 25;
-
-function checked<T>(result: MinimalResult<T>): T {
-  if (result.error !== null) throw new Error(result.error.message);
-  return result.data as T;
-}
 
 interface ScanRecord {
   id: string;
@@ -692,22 +671,24 @@ async function adminClient(): Promise<MinimalClient> {
   return dbAdmin() as unknown as MinimalClient;
 }
 
-type FetchRecord = OwnReadRow & { payload: unknown };
-
 /** The database, through `dbAdmin()` imported at the call: a static import
- *  would put a database client on every graph this module is on. */
-export function databaseRescore(client: () => Promise<MinimalClient> = adminClient): RescoreQueue & RescoreStore {
-  let bytes = 0;
-  const got = <T>(result: MinimalResult<T>): T => {
+ *  would put a database client on every graph this module is on. `facts`
+ *  is the version the stored facts are trusted at; with none, every read's
+ *  facts are derived from its payload and none is kept. */
+export function databaseRescore(client: () => Promise<MinimalClient> = adminClient, facts: string | null = deployedFactsVersion()): RescoreQueue & RescoreStore {
+  const bytes = { read: 0, refresh: 0 };
+  const got = <T>(result: MinimalResult<T>, refresh = false): T => {
     const data = checked(result);
-    bytes += JSON.stringify(data ?? null).length;
+    const n = JSON.stringify(data ?? null).length;
+    bytes.read += n;
+    if (refresh) bytes.refresh += n;
     return data;
   };
-  const read = (row: FetchRecord) => ({ id: row.id, url: row.cache_key, created_at: row.created_at, payload: row.payload });
   const ownFetches = <T>(db: MinimalClient, columns: string) => db.from<T>("fetches").select(columns).eq("source", OWN_FETCH_SOURCE);
-  const oursLoaded = onceById(async (ids) => (got(await ownFetches<FetchRecord>(await client(), "id, cache_key, created_at, payload").in("id", ids)) ?? []).map(read));
+  // One loader for the run: the home and own-page lookups share it, so no row is asked for twice.
+  const factsById = factsLoader(client, facts, got);
   return {
-    readBytes: () => bytes,
+    readBytes: () => ({ ...bytes }),
     async scans() {
       const db = await client();
       const out: StoredScanRow[] = [];
@@ -734,11 +715,17 @@ export function databaseRescore(client: () => Promise<MinimalClient> = adminClie
     },
     async homeReads(domain, onPageAt) {
       const db = await client();
-      const reads = <T>(columns: string) =>
-        db.from<T>("fetches").select(columns).in("source", ["egress.safeFetch", "on_page/instant_pages"]).eq("cache_key", `https://${domain}/`);
-      if (onPageAt === undefined) return got(await reads<StoredRead>("source, created_at, payload")) ?? [];
-      const rows = got(await reads<HomeReadRow>("id, source, created_at, read_at:payload->readAt")) ?? [];
-      return homeReadsFor(rows, onPageAt, async (ids) => got(await reads<StoredRead>("source, created_at, payload").in("id", ids)) ?? []);
+      const rows = got(await db.from<HomeReadRow>("fetches").select("id, source, created_at, read_at:payload->readAt").in("source", ["egress.safeFetch", "on_page/instant_pages"]).eq("cache_key", `https://${domain}/`)) ?? [];
+      const byId = new Map(rows.map((r) => [r.id, r] as const));
+      const load = async (ids: readonly string[]): Promise<StoredRead[]> => {
+        const found = await factsById(ids);
+        return ids.flatMap((id) => {
+          const row = byId.get(id)!;
+          const f = found.get(id);
+          return f === undefined ? [] : [{ source: row.source, created_at: row.created_at, facts: f }];
+        });
+      };
+      return onPageAt === undefined ? load(rows.map((r) => r.id)) : homeReadsFor(rows, onPageAt, load);
     },
     async sites() {
       const rows = got(await (await client()).from<StoredSiteRow>("sites").select("id, domain, competitors, market"));
@@ -751,8 +738,7 @@ export function databaseRescore(client: () => Promise<MinimalClient> = adminClie
       return rows ?? [];
     },
     async ownReads(scan) {
-      const own =
-        got(await ownFetches<FetchRecord>(await client(), "id, cache_key, created_at, payload").eq("scan_id", scan.id).order("created_at", { ascending: true })) ?? [];
+      const own = got(await ownFetches<OwnReadRow>(await client(), "id, cache_key, created_at").eq("scan_id", scan.id).order("created_at", { ascending: true })) ?? [];
       if (scan.siteId === null || own.length === 0) return { own: [], ours: [], oursReads: [] };
       const publications = got(
         await (await client())
@@ -763,8 +749,13 @@ export function databaseRescore(client: () => Promise<MinimalClient> = adminClie
       );
       const ours = livePagesAt(publications ?? [], scan.createdAt);
       const rows = ours.length === 0 ? [] : (got(await ownFetches<OwnReadRow>(await client(), "id, cache_key, created_at").in("cache_key", ours)) ?? []);
-      const oursReads = await oursLoaded(oursPicked(rows, own));
-      return { own: own.map(read), ours, oursReads } satisfies OwnReads;
+      const picked = new Set(oursPicked(rows, own));
+      const found = await factsById([...own.map((r) => r.id), ...picked]);
+      const asRead = (r: OwnReadRow) => {
+        const f = found.get(r.id);
+        return f === undefined ? [] : [{ url: r.cache_key, created_at: r.created_at, facts: f }];
+      };
+      return { own: own.flatMap(asRead), ours, oursReads: rows.filter((r) => picked.has(r.id)).flatMap(asRead) } satisfies OwnReads;
     },
     async answers(scanId) {
       const rows = got(

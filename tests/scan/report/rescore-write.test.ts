@@ -8,6 +8,7 @@ import { describe, expect, it } from "vitest";
 import { REPORT_VERSION } from "../../../src/lib/scan/report";
 import { rescoreRow, type Row, type StoredRead, type StoredScanRow } from "../../../src/lib/scan/rescore-run";
 import { scanWriteOf } from "../../../src/lib/scan/rescore-write";
+import { readsOf } from "./rescore-store";
 
 interface StoredFixture {
   id: string;
@@ -24,10 +25,7 @@ const GUSTO = (
   JSON.parse(readFileSync(path.join(import.meta.dirname, "fixtures/rescore/gusto.com.json"), "utf8")) as { scans: StoredFixture[] }
 ).scans[0]!;
 
-const READS: StoredRead[] = [
-  ...(GUSTO.home === null ? [] : [{ source: "egress.safeFetch" as const, ...GUSTO.home }]),
-  ...GUSTO.rendered.map((r) => ({ source: "on_page/instant_pages" as const, ...r })),
-];
+const READS: StoredRead[] = readsOf(GUSTO, "gusto.com");
 
 /** gusto.com's stored report as an older build wrote it: a version-6 blob
  *  carries none of the members versions 7 to 12 added. */

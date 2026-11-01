@@ -7,7 +7,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { kindOfProfile, kindOfWords, linesOfCategory, retrofitReading } from "../../src/lib/business/retrofit";
 import { profileOfReport, understandBusiness } from "../../src/lib/business/understanding";
 import { DEFAULT_LOCALE } from "../../src/lib/locale/locales";
-import { rescoreRow, type StoredScanRow } from "../../src/lib/scan/rescore-run";
+import { rescoreRow, type StoredRead, type StoredScanRow } from "../../src/lib/scan/rescore-run";
+import { readOf } from "../scan/report/rescore-store";
 
 beforeEach(() => {
   vi.spyOn(console, "log").mockImplementation(() => {});
@@ -15,7 +16,7 @@ beforeEach(() => {
 
 interface WalkSite {
   domain: string;
-  stored: { scan: Omit<StoredScanRow, "domain" | "md5" | "siteId" | "isCurrent">; reads: [] } | null;
+  stored: { scan: Omit<StoredScanRow, "domain" | "md5" | "siteId" | "isCurrent">; reads: { source: StoredRead["source"]; created_at: string; payload: unknown }[] } | null;
 }
 
 /** The free scans of 2026-10-15, stored before issue 1454 asked the profile
@@ -26,7 +27,7 @@ function rescored(domain: string) {
   const site = WALK.find((s) => s.domain === domain && s.stored !== null)!;
   const stored = JSON.parse(JSON.stringify(site.stored!.scan)) as NonNullable<WalkSite["stored"]>["scan"];
   const scan: StoredScanRow = { ...stored, domain, md5: "", siteId: null, isCurrent: false };
-  const row = rescoreRow(scan, site.stored!.reads ?? []);
+  const row = rescoreRow(scan, (site.stored!.reads ?? []).map((read) => readOf(domain, read.source, read)));
   if (!("result" in row)) throw new Error(row.because);
   return { scan, row };
 }

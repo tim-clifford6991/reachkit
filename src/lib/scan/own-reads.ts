@@ -2,14 +2,14 @@
 // reads them, and the stored reads of ReachKit's live pages it
 // keeps: the newest of each address at or before the scan's last own read.
 // The rest of the history changes no score, so it is never downloaded.
-import { siteDocumentOf } from "@/lib/measure/own-fetch";
+import type { PageFacts } from "./page-facts";
 import type { RescoreScan } from "./rescore";
 
-/** One own-document read as `fetches` keeps it: its address and payload. */
+/** One own-document read as `fetches` keeps it: its address and its facts. */
 export interface OwnRead {
   url: string;
   created_at: string;
-  payload: unknown;
+  facts: PageFacts;
 }
 
 /** What `measuredOf` reads a scan's measured pages from. */
@@ -46,9 +46,6 @@ export function livePagesAt(publications: readonly StoredPublication[], at: stri
     .map((p) => p.live_url);
 }
 
-/** A sitemap or feed is a document the crawl read, not a page of the site. */
-const NOT_A_PAGE_RE = /^\s*(?:<\?xml|<urlset|<sitemapindex|<rss|<feed)/i;
-
 function lastOf(own: readonly { created_at: string }[]): string {
   return own.reduce((max, read) => (read.created_at > max ? read.created_at : max), own[0]!.created_at);
 }
@@ -63,17 +60,12 @@ function lastOf(own: readonly { created_at: string }[]): string {
  */
 export function measuredOf(r: OwnReads): RescoreScan["measured"] {
   if (r.own.length === 0) return undefined;
-  const reads = new Map<string, unknown>();
-  for (const read of r.own) reads.set(read.url, read.payload);
+  const reads = new Map<string, PageFacts>();
+  for (const read of r.own) reads.set(read.url, read.facts);
   const last = lastOf(r.own);
   const older = [...r.oursReads].filter((read) => read.created_at <= last).sort((a, b) => b.created_at.localeCompare(a.created_at));
-  for (const read of older) if (!reads.has(read.url)) reads.set(read.url, read.payload);
-  const crawled = r.own
-    .filter((read) => {
-      const document = siteDocumentOf(read.payload);
-      return document !== null && !NOT_A_PAGE_RE.test(document.html);
-    })
-    .map((read) => read.url);
+  for (const read of older) if (!reads.has(read.url)) reads.set(read.url, read.facts);
+  const crawled = r.own.filter((read) => read.facts.page).map((read) => read.url);
   return { pages: [...new Set([...r.ours, ...crawled])], reads };
 }
 
@@ -87,13 +79,21 @@ export function oursPicked(rows: readonly OwnReadRow[], own: readonly { created_
   return rows.filter((r) => newest.get(r.cache_key) === r.created_at).map((r) => r.id);
 }
 
-/** `load` asked once per read for a run: a read several scans keep is
- *  downloaded once. */
-export function onceById(load: (ids: readonly string[]) => Promise<readonly (OwnRead & { id: string })[]>) {
-  const held = new Map<string, OwnRead>();
-  return async (ids: readonly string[]): Promise<OwnRead[]> => {
-    const missing = ids.filter((id) => !held.has(id));
-    if (missing.length > 0) for (const { id, ...read } of await load(missing)) held.set(id, read);
-    return ids.flatMap((id) => held.get(id) ?? []);
+/** `load` asked once per id for a run: a read several scans keep, or a
+ *  home that is also a scan's own read, is asked for once. */
+export function onceById<T>(load: (ids: readonly string[]) => Promise<ReadonlyMap<string, T>>) {
+  const held = new Map<string, T | null>();
+  return async (ids: readonly string[]): Promise<Map<string, T>> => {
+    const missing = [...new Set(ids.filter((id) => !held.has(id)))];
+    if (missing.length > 0) {
+      const got = await load(missing);
+      for (const id of missing) held.set(id, got.get(id) ?? null);
+    }
+    const out = new Map<string, T>();
+    for (const id of ids) {
+      const value = held.get(id);
+      if (value !== undefined && value !== null) out.set(id, value);
+    }
+    return out;
   };
 }

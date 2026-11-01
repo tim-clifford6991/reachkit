@@ -24,7 +24,13 @@ const APPLIED = [
   "20261014130000_scans_rescore.sql",
   "20261017140000_scans_rescore_auto.sql",
   "20261101130000_scans_rescore_reads.sql",
+  "20260903080000_fetches.sql",
+  "20261101140000_fetches_facts.sql",
 ];
+const FACTS = "20261101140000_fetches_facts.sql";
+
+const fetchesColumns = () => psqlRows("select column_name, data_type, is_nullable, coalesce(column_default, '') from information_schema.columns where table_name = 'fetches' order by ordinal_position;");
+let fetchesBefore: string[][] = [];
 
 function run(sql: string): void {
   psql(["-v", "ON_ERROR_STOP=1", "-c", sql]);
@@ -82,7 +88,10 @@ const CHANGES = [
 
 beforeAll(() => {
   resetSchema();
-  for (const file of APPLIED) psql(["-v", "ON_ERROR_STOP=1", "-f", path.join(MIGRATIONS, file)]);
+  for (const file of APPLIED) {
+    if (file === FACTS) fetchesBefore = fetchesColumns();
+    psql(["-v", "ON_ERROR_STOP=1", "-f", path.join(MIGRATIONS, file)]);
+  }
 });
 
 afterAll(() => {
@@ -259,5 +268,24 @@ describe("rescore_runs — the tick's own request and its answer (issue 1481)", 
       "0",
     ]);
     expect(value(`select '${scanId}'::uuid = any(stale_scans) from rescore_runs where id = '${id}';`)).toBe("t");
+  });
+});
+
+describe("fetch_facts — the re-score's facts of each stored read", () => {
+  it("adds no column to fetches and changes none", () => expect([fetchesBefore.length > 0, fetchesColumns()]).toEqual([true, fetchesBefore]));
+
+  it("keeps one row per read, overwritten at a new version, deleted by its scan before its read, and reached by the service role alone", () => {
+    const scanId = scan();
+    const id = value(`insert into fetches (scan_id, source, cache_key, policy_version, cost_cents, reserved_cents, payload) values ('${scanId}', 'egress.safeFetch', 'https://gusto.com/', 1, 0, 0, '{}'::jsonb) returning id;`)!;
+    const put = (version: string) => run(`insert into fetch_facts (fetch_id, scan_id, facts_version, facts) values ('${id}', '${scanId}', '${version}', '{"v":"${version}"}'::jsonb) on conflict (fetch_id) do update set facts_version = excluded.facts_version, facts = excluded.facts;`);
+    ["v1", "v2"].forEach(put);
+    expect(psqlRows(`select facts_version, facts->>'v' from fetch_facts where fetch_id = '${id}';`)).toEqual([["v2", "v2"]]);
+    expect(raises(`insert into fetch_facts (fetch_id, scan_id, facts_version, facts) values (gen_random_uuid(), '${scanId}', 'v1', '{}'::jsonb);`)).toBe(true);
+    expect(raises(`delete from fetches where id = '${id}';`)).toBe(true);
+    run(`delete from fetch_facts where scan_id = '${scanId}'; delete from fetches where scan_id = '${scanId}';`);
+    expect(psqlRows("select relrowsecurity, (select count(*) from pg_policies where tablename = 'fetch_facts') from pg_class where relname = 'fetch_facts';")).toEqual([["t", "0"]]);
+    for (const [role, can] of [["anon", "f"], ["authenticated", "f"], ["service_role", "t"]]) {
+      for (const privilege of ["select", "insert", "update", "delete"]) expect(value(`select has_table_privilege('${role}', 'fetch_facts', '${privilege}');`)).toBe(can);
+    }
   });
 });

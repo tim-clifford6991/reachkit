@@ -27,6 +27,13 @@ export function deployedDerivation(): string | null {
   return value === undefined || value === "" ? null : value;
 }
 
+/** The deployed facts version (`fetch_facts.facts_version`); `null` where
+ *  the build carried none, which keeps no facts. */
+export function deployedFactsVersion(): string | null {
+  const value = process.env.RK_FACTS_VERSION;
+  return value === undefined || value === "" ? null : value;
+}
+
 /** Only production's own tick asks: dev reads the same database (one
  *  Supabase project) with code that may be ahead of production's. */
 export function asksByItself(): boolean {
