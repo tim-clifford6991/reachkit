@@ -6,9 +6,9 @@ From `scripts/panel/evidence/clearleft.com.json`: 22 stored searches, 5 rivals.
 |---|---|---|---|
 | uxstudioteam.com | 6 | 1 | 8 |
 | uxconnections.com | 3 | 2 | 7 |
-| digitalmarketplace.service.gov.uk | 2 | 2 | 6 |
 | interface-design.co.uk | 2 | 2 | 6 |
 | koos.agency | 2 | 2 | 6 |
+| revenuebase.ai | 4 | 1 | 6 |
 
 | Search | Type | Holder |
 |---|---|---|
@@ -24,13 +24,13 @@ From `scripts/panel/evidence/clearleft.com.json`: 22 stored searches, 5 rivals.
 | digital design agency | keyword_page | goodfirms.co |
 | design strategy consulting | — | — |
 | digital product design agency | — | — |
-| ux design agency brighton | — | — |
+| ux design agency brighton | answer_page | revenuebase.ai |
 | user experience consultancy | answer_page | tomstarley.co.uk |
 | user experience research agency | answer_page | zeeframes.com |
 | digital design service | — | — |
-| user research agency | answer_page | digitalmarketplace.service.gov.uk |
+| user research agency | keyword_page | digitalmarketplace.service.gov.uk |
 | strategic design consultancy | answer_page | manyone.com |
 | digital design consultancy | answer_page | dexigner.com |
-| ux service | answer_page | ux4sight.com |
+| ux service | — | — |
 | ux consultancy | answer_page | uxconsultancy.com |
-| design thinking consultancy | — | — |
+| design thinking consultancy | answer_page | cmce.org.uk |

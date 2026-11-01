@@ -5,7 +5,8 @@
 // stored SERP (`../plan/panel.ts`), at the volume and difficulty the newest
 // stored keyword read gave it (none read: 0). A site the panel lists a place
 // for is measured in that town. The site has no ranked pages and no sized
-// rivals, as on a free pass. 0¢: nothing is measured.
+// rivals, as on a free pass, and its category is its newest run's. 0¢: nothing is measured.
+import { marketSetOf } from "@/lib/market/questions/market-set";
 import { buildAiAnswersCard } from "@/lib/market/questions/matrix";
 import type { Question } from "@/lib/market/questions/phrase";
 import { deriveRivals, type RivalCandidate } from "@/lib/market/rivals/derive";
@@ -14,8 +15,8 @@ import type { StoredReport } from "@/lib/scan/report";
 import { answersSectionOf } from "@/lib/scan/sections";
 import { assembleReport } from "@/lib/scan/store";
 import type { CanonicalDomain } from "@/lib/scan/domain";
-import { AT, fullSections } from "../../scan/report/fixtures";
-import { businessOf, storedEvidence, storedPayloads } from "../plan/panel";
+import { AT, PROFILE, fullSections } from "../../scan/report/fixtures";
+import { businessOf, panelSite, storedEvidence, storedPayloads } from "../plan/panel";
 
 type KeywordRead = { keyword: string; searchVolume?: number | null; difficulty?: number | null };
 
@@ -44,7 +45,8 @@ export function panelReport(domain: string): PanelReport {
   });
   const serps = stored.map(({ at, serp }) => measured(serp, at));
   const local = businessOf(domain).serves !== null;
-  const { rivals, sources } = deriveRivals({ serps: stored.map(({ serp }) => serp), ownDomain: domain, local });
+  const { category } = panelSite(domain).market;
+  const { rivals, sources } = deriveRivals({ serps: stored.map(({ serp }) => serp), ownDomain: domain, local, category });
   const asked = measured(questions, AT);
   const card = buildAiAnswersCard({ questions, serps, ownDomain: domain, coverage: "async_included" });
   const report = assembleReport(
@@ -54,6 +56,7 @@ export function panelReport(domain: string): PanelReport {
       serps,
       rivals: measured(rivals, AT),
       sources,
+      market: measured(marketSetOf({ profile: { ...PROFILE, category }, suggestions: [] }), AT),
       aiAnswers: answersSectionOf({ card, questions: asked, rivals, ownDomain: domain, measuredAt: AT }),
     })
   );
