@@ -24,6 +24,7 @@
 // visible inside it is one the product itself renders on that screen").
 // What is here is figures, dates and a week's shape.
 import type { CopyKey } from "@/lib/presentation/copy";
+import { WEEK_PLAN } from "@/lib/config/constants";
 
 /* The S1 hero's own two — a six-week growth series and three tiles — went
    with `HeroShot.tsx` when the owner replaced that hero (2026-09-21,
@@ -129,6 +130,16 @@ export const SPECIMEN_HERO_CITED = ["harborplumbing.example", "austinpipeworks.e
 
 /** The competitor the example business's buyers pick instead. */
 export const SPECIMEN_HERO_RIVAL = "austinpipeworks.example";
+
+/** The story card's example data: the search both engines answer, and the
+ *  week's first three pages with one live of the week's plan. Swapping the
+ *  example business swaps these with its name and domains. */
+export const SPECIMEN_HERO_QUERY = "plumber in Austin";
+export const SPECIMEN_HERO_WEEK = Object.freeze({
+  live: 1,
+  planned: WEEK_PLAN.days,
+  pages: ["Slab leaks", "Tankless heaters", "Drain cleaning"] as const,
+});
 
 /** The town the example business's buyers live in. */
 export const SPECIMEN_HERO_PLACE = "Austin";

@@ -75,13 +75,13 @@ const MENU_FOCUS_RING = [
   "[.drawer-toggle:focus-visible~*_&]:outline-primary",
 ].join(" ");
 
-/** The strip above the header. Hidden before paint once dismissed. */
+/** The strip above the header. Hidden before paint once dismissed, and on the landing, whose offer carries it. */
 function Banner(): React.JSX.Element {
   return (
     <div
       role="region"
       aria-label={copy("chrome.banner.label")}
-      className="bg-primary text-primary-content relative text-sm [[data-banner=off]_&]:hidden"
+      className="bg-primary text-primary-content relative text-sm [[data-banner=off]_&]:hidden [body:has(main[data-page=landing])_&]:hidden"
       data-testid="public-banner"
     >
       <p className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-3 gap-y-1 py-2 ps-4 pe-12 sm:justify-center sm:px-12">
@@ -113,7 +113,7 @@ function PhoneMenu(p: { signedIn: boolean }): React.JSX.Element {
     <div className="drawer drawer-end w-auto lg:hidden" data-testid="public-header-menu">
       <input id={MENU_TOGGLE_ID} type="checkbox" className="drawer-toggle" aria-label={copy("chrome.nav.menu")} />
       <div className="drawer-content">
-        <label htmlFor={MENU_TOGGLE_ID} className={`btn btn-ghost btn-square btn-sm ${MENU_FOCUS_RING}`}>
+        <label htmlFor={MENU_TOGGLE_ID} className={`btn btn-outline btn-square ${MENU_FOCUS_RING}`}>
           <Menu size={20} strokeWidth={1.75} aria-hidden />
         </label>
       </div>
@@ -173,7 +173,7 @@ export function Header(p: { entry?: AppEntry }): React.JSX.Element {
             </span>
             {entry === null ? (
               <>
-                <Link href="/signin" className="btn btn-ghost btn-sm hidden sm:inline-flex">
+                <Link href="/signin" className="btn btn-ghost px-2">
                   {copy("chrome.nav.signin")}
                 </Link>
                 <HeaderCta label={copy("chrome.cta.start")} />

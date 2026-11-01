@@ -1,7 +1,7 @@
 // The landing draws the icons boards PubLanding and PubLandingPhone name, one
-// per concept (AI is sparkles, your business is building-2), the real report's
-// card draws its stored score as a ring and states it in text, and the FAQ's
-// questions carry none.
+// per concept (AI is sparkles, your business is building-2), the proof card's
+// report row draws the site's mark and states its stored score in text, the
+// kinds row draws the gallery's six, and the FAQ's questions carry none.
 // The store and the gallery are the database seam; nothing else is replaced.
 import "../../generate/env";
 import React from "react";
@@ -21,7 +21,10 @@ vi.mock("@/lib/publish/destinations/hosted/store", () => ({
 vi.mock("@/lib/scan/gallery", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/scan/gallery")>()),
   isListed: async (domain: string) => db.listed.has(domain),
-  listedScore: async (domain: string) => db.listed.get(domain) ?? null,
+  listedCard: async (domain: string) => {
+    const score = db.listed.get(domain) ?? null;
+    return score === null ? null : { score, hasLogo: false };
+  },
 }));
 
 const { default: LandingPage } = await import("@/app/(public)/page");
@@ -52,32 +55,34 @@ beforeEach(() => {
 });
 
 describe("the landing's icons are the boards'", () => {
-  it("the story card's four frames draw search, scan-search, file-text, trending-up in order, each at chrome size", async () => {
-    const frames = (await render()).querySelectorAll('[data-testid="landing-story"] ol > li');
-    const nodes = frames.map((li) => li.querySelector(".timeline-middle")!);
+  const story = async () => (await render()).querySelector('[data-testid="landing-story"]')!;
+  const minis = (card: HTMLElement) => card.querySelectorAll("ol > li").map((li) => li.querySelector(":scope > div")!);
+
+  it("the story card's four nodes draw search, scan-search, file-text, trending-up in order", async () => {
+    const nodes = (await story()).querySelectorAll("ol > li > span.rounded-full");
     expect(nodes.map(glyphs)).toEqual([["search"], ["scan-search"], ["file-text"], ["trending-up"]]);
-    expect(nodes.map((node) => node.querySelector("svg")!.getAttribute("width"))).toEqual(["20", "20", "20", "20"]);
+    expect(nodes.map((node) => node.querySelector("svg")!.getAttribute("width"))).toEqual(["18", "18", "18", "18"]);
   });
 
-  it("we research draws your business and your competitors; one page is live and the other is a bare page", async () => {
-    const frames = (await render()).querySelectorAll('[data-testid="landing-story"] ol > li');
-    expect(glyphs(frames[1]!.querySelector(".timeline-end")!)).toEqual(["building-2", "users"]);
-    expect(glyphs(frames[2]!.querySelector(".timeline-end")!)).toEqual(["file-text", "file-text"]);
-    expect(frames[2]!.querySelectorAll(".timeline-end svg")[1]!.classList.contains("text-base-content/70")).toBe(true);
+  it("the header draws the business's own mark, no icon; each frame's picture draws the board's icons", async () => {
+    const card = await story();
+    expect(glyphs(card.querySelector(":scope > div")!)).toEqual([]);
+    expect(minis(card).map(glyphs)).toEqual([
+      ["search", "sparkles"],
+      ["building-2", "users", "search", "sparkles"],
+      ["file-text", "circle-check", "file-text", "clock", "file-text", "calendar"],
+      ["search", "sparkles"],
+    ]);
+    expect(card.querySelector("figcaption")).toBeNull();
   });
 
-  it("the empty slot, the dimmed rival and Live are drawn on the white picture card so each shows", async () => {
-    const frames = (await render()).querySelectorAll('[data-testid="landing-story"] ol > li');
-    const onMini = (el: HTMLElement) => (el.parentNode as HTMLElement).classList.contains("bg-base-100");
-    const slot = frames[0]!.querySelector(".border-dashed")!;
-    expect(slot.classList.contains("border-base-content/50")).toBe(true);
-    expect(onMini(slot)).toBe(true);
-    const rival = frames[3]!.querySelector(".badge-ghost")!;
-    expect(rival.classList.contains("text-base-content/70")).toBe(true);
-    expect(onMini(rival)).toBe(true);
-    const live = frames[2]!.querySelector(".badge-success")!;
-    expect(live.classList.contains("badge-soft")).toBe(true);
-    expect(frames.map((li) => li.querySelectorAll(".bg-base-100").length)).toEqual([1, 1, 1, 1]);
+  it("only the live page's file is primary; the dashed slot and the dimmed competitor keep their contrast", async () => {
+    const [first, , week, last] = minis(await story());
+    const files = week!.querySelectorAll("svg.lucide-file-text");
+    expect(files.map((svg) => svg.classList.contains("text-primary"))).toEqual([true, false, false]);
+    expect(first!.querySelector(".border-dashed")!.classList.contains("border-base-content/50")).toBe(true);
+    expect(last!.querySelectorAll(".text-base-content\\/70").length).toBeGreaterThan(0);
+    expect(week!.querySelector(".badge-success")!.classList.contains("badge-soft")).toBe(true);
   });
 
   it("the Why cards' tiles: sparkles, search, wrench, file-text", async () => {
@@ -97,21 +102,21 @@ describe("the landing's icons are the boards'", () => {
     expect(missing.classList.contains("text-error")).toBe(true);
   });
 
-  it("the real report's card draws its score ring and states the score; unscored, neither", async () => {
-    const card = () => render().then((page) => page.querySelector('section[aria-labelledby="proof"] a[href="/scan/podia.com"]')!);
-    const scored = await card();
-    const ring = scored.querySelector(".radial-progress")!;
-    expect(ring.getAttribute("aria-hidden")).toBe("true");
-    expect(ring.getAttribute("style")).toContain("--value:62");
-    expect(scored.text).toContain(`${copy("verdict.score.label")} 62 ${copy("verdict.score.of")}`);
+  it("the proof card's report row draws the site's mark and states the score; unscored, no row", async () => {
+    const row = () => render().then((page) => page.querySelector('#landing-field a[href="/scan/podia.com"]'));
+    const scored = (await row())!;
+    expect(scored.querySelector(".radial-progress")).toBeNull();
+    expect(scored.querySelector("span.badge[aria-hidden]")!.text).toBe("P");
+    expect(scored.text).toContain(copy("landing.hero.proof.report", { domain: "podia.com", score: "62" }));
     expect(scored.querySelectorAll(".skeleton")).toHaveLength(0);
 
     db.listed = new Map([["podia.com", null]]);
-    const unscored = await card();
-    expect(unscored.querySelector(".radial-progress")).toBeNull();
-    expect(unscored.text).not.toContain(copy("verdict.score.of"));
-    expect(unscored.text).not.toContain("62");
-    expect(unscored.text).toContain(copy("about.proof.open"));
+    expect(await row()).toBeNull();
+  });
+
+  it("the kinds row draws the gallery's six icons: wrench, store, utensils, briefcase, laptop, video", async () => {
+    const kinds = (await render()).querySelector('#landing-field ul[aria-labelledby="kinds"]')!;
+    expect(kinds.querySelectorAll("li").map(glyphs)).toEqual([["wrench"], ["store"], ["utensils"], ["briefcase"], ["laptop"], ["video"]]);
   });
 
   it("the FAQ summaries carry no lucide icon", async () => {

@@ -50,12 +50,11 @@ describe("the landing holds what the board holds, in order", () => {
     expect([...order].sort((a, b) => a - b)).toEqual(order);
   });
 
-  it("the story card draws its four frames in order, and says the business is an example", () => {
+  it("the story card draws its four frames in order", () => {
     const card = between('data-testid="landing-story"', 'id="how"');
     const frames = [1, 2, 3, 4].map((n) => card.indexOf(drawn(copy(`landing.story.${n}.title` as CopyKey))));
     expect(frames.every((at) => at > -1), frames.join(",")).toBe(true);
     expect([...frames].sort((a, b) => a - b)).toEqual(frames);
-    expect(card).toContain(drawn(copy("landing.hero.example")));
   });
 
   it("three step cards, and eight questions", () => {

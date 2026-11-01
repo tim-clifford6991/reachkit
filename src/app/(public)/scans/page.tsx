@@ -24,17 +24,11 @@ import Link from "next/link";
 import {
   ArrowRight,
   ArrowUpDown,
-  Briefcase,
   ChartColumn,
   ChevronDown,
   FileText,
   LayoutGrid,
-  Laptop,
   Search,
-  Store,
-  Utensils,
-  Video,
-  Wrench,
   type LucideIcon,
 } from "lucide-react";
 import { Surface } from "@/ui/layout";
@@ -63,6 +57,7 @@ import { LearnClose, ScanJump } from "../_library/parts";
 import { PUBLIC_ROUTE_SEO } from "../_seo/routes";
 import { staticMetadata } from "../_seo/metadata";
 import { SiteIcon } from "./SiteIcon";
+import { KIND_ICON, KIND_WORD } from "./kinds";
 
 export const metadata: Metadata = staticMetadata(PUBLIC_ROUTE_SEO.scans);
 
@@ -179,24 +174,6 @@ function LogoTile(p: { entry: GalleryEntry }): React.JSX.Element {
     />
   );
 }
-
-const KIND_WORD: Readonly<Record<BusinessKind, CopyKey>> = {
-  "local-service": "gallery.kind.local-service",
-  shop: "gallery.kind.shop",
-  hospitality: "gallery.kind.hospitality",
-  "professional-services": "gallery.kind.professional-services",
-  software: "gallery.kind.software",
-  creator: "gallery.kind.creator",
-};
-
-const KIND_ICON: Readonly<Record<BusinessKind, LucideIcon>> = {
-  "local-service": Wrench,
-  shop: Store,
-  hospitality: Utensils,
-  "professional-services": Briefcase,
-  software: Laptop,
-  creator: Video,
-};
 
 /** A score in its ring with its band, or "Not scored": a report with no score never reads 0 and draws no ring. */
 function ScoreLine(p: { score: number | null }): React.JSX.Element {

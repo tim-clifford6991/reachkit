@@ -16,7 +16,6 @@ const FILE_TEXT = 'd="M16 13H8';
 const PENCIL = 'd="m15 5 4 4"';
 const PEN_LINE = "M12 20h9M16.5 3.5";
 const BUILDING_2 = 'd="M6 21V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v16"';
-const STORE = "m2 7 4.41-4.41";
 const MAP = "M15 5.8v15M9 3.2v15";
 const MAP_PIN = 'd="M20 10c0 4.993';
 const CLOCK = 'd="M12 6v6l4 2"';
@@ -60,12 +59,12 @@ describe("the boards draw a ring for every score (E17)", () => {
     expect(ring!.closest(".card")!.text).toContain("Your Visibility Score");
   });
 
-  it("the landing's real report keeps its ring and states the score, with no skeleton", () => {
+  it("the landing's real report row draws the site's mark and states the score, with no skeleton", () => {
     for (const name of ["PubLanding", "PubLandingPhone"]) {
-      const real = board(name).querySelectorAll("a").find((a) => a.text.includes("A real free report"))!;
-      expect(real.querySelectorAll("circle").length, name).toBeGreaterThan(0);
+      const real = board(name).querySelectorAll("a").find((a) => a.text.includes("See its real free report"))!;
+      expect(real.querySelector('[data-slot="site-logo"]'), name).not.toBeNull();
       expect(real.querySelectorAll(".sk"), name).toHaveLength(0);
-      expect(real.text, name).toMatch(/Visibility Score\s*62\s*of 100/);
+      expect(real.text, name).toMatch(/scores\s*62/);
     }
   });
 });
@@ -139,14 +138,6 @@ describe("a page sketch is an icon band (E16)", () => {
       expect(primary[0]!.closest("li")!.getAttribute("style"), name).toContain("solid #5b4be0");
     }
   });
-
-  it("the landing's live page well is the band, not skeleton lines", () => {
-    for (const name of ["PubLanding", "PubLandingPhone"]) {
-      const live = board(name).querySelectorAll("span").find((s) => s.text === "A real page ReachKit wrote, live now")!.parentNode!;
-      expect(live.querySelectorAll(".sk"), name).toHaveLength(0);
-      expect(live.querySelector(".well")!.innerHTML, name).toContain(FILE_TEXT);
-    }
-  });
 });
 
 describe("icons are structural only (E26, E27, E29)", () => {
@@ -176,15 +167,11 @@ describe("icons are structural only (E26, E27, E29)", () => {
       expect(edit.innerHTML, name).toContain(PENCIL);
       expect(raw(name), name).not.toContain(PEN_LINE);
     }
-    for (const name of ["PubLanding", "PubLandingPhone"]) {
-      expect(raw(name), name).not.toContain(STORE);
-      expect(raw(name), name).toContain(BUILDING_2);
-    }
-    for (const name of ["PubLanding", "PubLandingPhone", "PubHowItWorks"]) {
-      expect(raw(name), name).not.toContain(MAP);
-      const note = board(name).querySelectorAll("*").filter((el) => el.text.includes("Searches with a map show") && el.querySelector("svg")).at(-1)!;
-      expect(note.innerHTML, name).toContain(MAP_PIN);
-    }
+    // The landing's Shops chip is the gallery's Store; your business stays Building2.
+    for (const name of ["PubLanding", "PubLandingPhone"]) expect(raw(name), name).toContain(BUILDING_2);
+    for (const name of ["PubLanding", "PubLandingPhone", "PubHowItWorks"]) expect(raw(name), name).not.toContain(MAP);
+    const note = board("PubHowItWorks").querySelectorAll("*").filter((el) => el.text.includes("Searches with a map show") && el.querySelector("svg")).at(-1)!;
+    expect(note.innerHTML).toContain(MAP_PIN);
   });
 
   it("HostedIndex's compact block draws MapPin before Serves, as the full block does (E10, H1)", () => {

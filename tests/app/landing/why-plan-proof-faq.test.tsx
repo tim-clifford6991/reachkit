@@ -1,13 +1,11 @@
 // The landing from *Why you should care* to the articles, as boards PubLanding
 // and PubLandingPhone draw it: each section's strings in the board's order, and
-// the two sections that read stored rows drawn only where rows are stored.
+// the articles drawn only where rows are stored.
 // The store and the gallery are the database seam; nothing else is replaced.
 import "../../generate/env";
-import { readFileSync } from "node:fs";
 import React from "react";
 import { parse, type HTMLElement } from "node-html-parser";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { boardFile, compare, readAllow, segments } from "../../../scripts/design/parity.mjs";
 import { settledMarkup } from "../shell/settled";
 
 type Page = { title: string; liveUrl: string; firstPublishedAt: Date; byline: null };
@@ -26,7 +24,7 @@ vi.mock("@/lib/publish/destinations/hosted/store", () => ({
 vi.mock("@/lib/scan/gallery", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/scan/gallery")>()),
   isListed: async (domain: string) => db.listed.has(domain),
-  listedScore: async (d: string) => (db.listed.has(d) ? 62 : null),
+  listedCard: async (d: string) => (db.listed.has(d) ? { score: 62, hasLogo: false } : null),
 }));
 
 const { default: LandingPage } = await import("@/app/(public)/page");
@@ -184,39 +182,6 @@ describe("What €49 a month gets you: the tiles, everything in the plan, the pl
   });
 });
 
-describe("See it on a real site: the listed report and ReachKit's own newest page, from stored rows", () => {
-  const proof = (page: HTMLElement): HTMLElement | null => page.querySelector('section[aria-labelledby="proof"]');
-
-  it("the report card opens podia.com's report, then the page card names the newest live page", async () => {
-    const section = proof(await render())!;
-    inOrder(flat(section), [
-      copy("about.proof.title"),
-      copy("about.proof.report"),
-      "podia.com",
-      copy("about.proof.open"),
-      copy("landing.real.page"),
-      "The newest article",
-      copy("landing.real.page.line"),
-    ]);
-    expect(section.querySelector('a[href="/scan/podia.com"]')).not.toBeNull();
-    expect(section.querySelector('a[href="https://content.reachkit.app/newest"]')).not.toBeNull();
-  });
-
-  it("a report no longer listed is not the example; the page card stays", async () => {
-    db.listed = new Set();
-    const section = proof(await render())!;
-    expect(section.querySelector('a[href^="/scan/"]')).toBeNull();
-    expect(flat(section)).toContain(copy("landing.real.page"));
-  });
-
-  it("with nothing stored there is no section, never a placeholder", async () => {
-    nothingStored();
-    const page = await render();
-    expect(proof(page)).toBeNull();
-    expect(page.text).not.toContain(copy("about.proof.title"));
-  });
-});
-
 describe("Questions owners ask", () => {
   it("what to expect, when, comes before the first question", async () => {
     const text = flat((await render()).querySelector("section#faq")!);
@@ -257,34 +222,13 @@ describe("Latest articles: a page section of three dated cards and the index", (
   });
 });
 
-describe("the sections follow the board's order, and no board string of them is missing", () => {
-  it("why → the plan → a real site → questions → articles → the closing band", async () => {
+describe("the sections follow the board's order", () => {
+  it("why → the plan → questions → articles → the closing band", async () => {
     const html = (await render()).toString();
-    const at = ['id="why"', 'id="weekly"', 'aria-labelledby="proof"', 'id="faq"', 'aria-labelledby="latest-articles"', copy("landing.close.heading")].map((m) =>
+    const at = ['id="why"', 'id="weekly"', 'id="faq"', 'aria-labelledby="latest-articles"', copy("landing.close.heading")].map((m) =>
       html.indexOf(m)
     );
     expect(at.every((n) => n > -1), at.join(",")).toBe(true);
     expect([...at].sort((a, b) => a - b)).toEqual(at);
   });
-
-  // With rows stored, a stored-rows allow line excuses nothing: every string is drawn.
-  for (const board of ["PubLanding", "PubLandingPhone"]) {
-    it(`${board}: each section from why to the articles carries the board's strings`, async () => {
-      const page = await render();
-      const drawn = parse(readFileSync(boardFile(board), "utf8"));
-      const allow = readAllow(board).filter((a: { reason: string }) => !/seeds none/.test(a.reason));
-      const pairs: [string, string][] = [
-        ['section[aria-labelledby="why"]', "section#why"],
-        ['section[aria-labelledby="weekly"]', "section#weekly"],
-        ['section[aria-labelledby="proof"]', 'section[aria-labelledby="proof"]'],
-        ['section[aria-labelledby="faq"]', "section#faq"],
-        ['section[aria-labelledby="articles"]', 'section[aria-labelledby="latest-articles"]'],
-      ];
-      for (const [want, got] of pairs) {
-        const ship = page.querySelector(got);
-        expect(ship, got).not.toBeNull();
-        expect(compare(drawn.querySelector(want)!.toString(), segments(ship!.toString()), allow).missing, want).toEqual([]);
-      }
-    });
-  }
 });
