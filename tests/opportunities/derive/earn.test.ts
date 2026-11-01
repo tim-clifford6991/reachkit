@@ -1,7 +1,11 @@
 // SPEC §0 · issue 478 — the Earn family: a platform names a rival and not the
 // customer, and the answer is a citable asset on the customer's own domain.
 import "../env";
+import { readFileSync } from "node:fs";
+import path from "node:path";
 import { describe, expect, it } from "vitest";
+import type { SerpResult } from "../../../src/lib/vendors/dataforseo/types";
+import type { CanonicalDomain } from "../../../src/lib/scan/domain";
 import { earnAssetFor, earnCandidates } from "../../../src/lib/opportunities/derive/earn";
 import { onePerSearch } from "../../../src/lib/opportunities/derive";
 import { writeCandidates } from "../../../src/lib/opportunities/derive/write";
@@ -85,5 +89,30 @@ describe("one search plans one page: Improve, then Earn, then Write", () => {
     const write = writeCandidates({ ...base, report, rankedCounts: counts() }).candidates;
     expect(write).toHaveLength(1);
     expect(onePerSearch([...earn, ...write]).map((c) => c.type)).toEqual(["listed_page"]);
+  });
+});
+
+describe("a top ten Google hides behind its redirects never reads the customer as absent", () => {
+  const stored = JSON.parse(readFileSync(path.resolve(import.meta.dirname, "../../market/rivals/fixtures/au-baker-d149c119.json"), "utf8")) as { organic: SerpResult["organic"] };
+  const onBaker = (organic: SerpResult["organic"]) =>
+    earnCandidates({
+      ...base,
+      report: {
+        ...reportOf({
+          questions: [question({ search: search({ keyword: "baker" }) })],
+          serps: [serp({ organic, aiOverview: { present: false, asynchronousAiOverview: false, referenceDomains: [] } })],
+        }),
+        domain: "bakersdelight.com.au" as CanonicalDomain,
+      },
+      rankedCounts: smallCounts(["google.com", "yourcareer.gov.au", "wikipedia.org", "bakingcareer.com.au"]),
+    }).candidates;
+
+  it("stored AU baker top ten (d149c119): no Earn row, so none claims bakersdelight.com.au is absent", () => {
+    expect(onBaker(stored.organic)).toEqual([]);
+  });
+
+  it("the same top ten without its redirects still yields its search-result row", () => {
+    const plain = stored.organic.filter((row) => row.domain !== "google.com");
+    expect(onBaker(plain).map((c) => (c.evidence.family === "earn" ? c.evidence.rival.domain : null))).toEqual(["yourcareer.gov.au"]);
   });
 });

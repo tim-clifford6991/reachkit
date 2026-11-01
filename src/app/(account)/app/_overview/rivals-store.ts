@@ -36,7 +36,7 @@ import type { StoredReport } from "@/lib/scan/report";
 import type { SerpResult } from "@/lib/vendors/dataforseo/types";
 import { previousWeekStart, readWeekScans, weekStartFor } from "@/lib/scan/weekly";
 import { OVERVIEW_TRAILING_WEEKS, RIVAL_PRESENCE } from "@/lib/config/constants";
-import { isPlatformDomain, registrableDomain } from "@/lib/market/rivals/domains";
+import { isPlatformDomain, registrableDomain, resolvedRows } from "@/lib/market/rivals/domains";
 import { trackedRivals } from "@/lib/market/rivals/tracked";
 import {
   counted,
@@ -84,28 +84,14 @@ export async function readRivalFacts(site: RivalsSite, at: Date): Promise<Rivals
   const firstPage = new Map<string, number>();
   let firstPageOf = 0;
   for (const serp of serps) {
-    if (serp.kind === "unmeasured") continue;
+    if (serp.kind === "unmeasured" || resolvedRows(serp.value.organic) === null) continue;
     firstPageOf += 1;
     for (const domain of domains) {
       if (onFirstPage(serp.value, domain)) firstPage.set(domain, (firstPage.get(domain) ?? 0) + 1);
     }
   }
 
-  // ── Who holds place 1 on each of the twelve: the customer, a tracked
-  // rival, or any other site by its registrable domain.
-  const top = new Map<string, number>();
-  const searches: string[] = [];
-  const questions = report?.questions;
-  const twelve = questions === undefined || questions.kind === "unmeasured" ? [] : questions.value;
-  twelve.forEach((question, i) => {
-    const serp = report?.serps[i];
-    if (serp === undefined || serp.kind === "unmeasured") return;
-    searches.push(question.search.keyword);
-    const first = [...serp.value.organic].sort((a, b) => a.position - b.position)[0];
-    if (first === undefined) return;
-    const holder = domains.find((domain) => isTheirs(domain, [first.domain])) ?? registrableDomain(first.domain) ?? first.domain;
-    top.set(holder, (top.get(holder) ?? 0) + 1);
-  });
+  const { holders: top, searches } = firstPlacesOf(report, domains);
 
   // ── The searches the rivals win and the site does not.
   const own = new Set((report?.ownRankedRows ?? []).map((row) => row.keyword.trim().toLowerCase()));
@@ -148,12 +134,33 @@ export async function readRivalFacts(site: RivalsSite, at: Date): Promise<Rivals
   };
 }
 
+/** Who holds place 1 on each of the twelve: the customer, a tracked rival,
+ *  or any other site by its registrable domain. A search whose top ten Google
+ *  hides is left out, never held by google.com or by no one. */
+export function firstPlacesOf(report: StoredReport | null, domains: readonly string[]): { holders: Map<string, number>; searches: string[] } {
+  const holders = new Map<string, number>();
+  const searches: string[] = [];
+  const questions = report?.questions;
+  const twelve = questions === undefined || questions.kind === "unmeasured" ? [] : questions.value;
+  twelve.forEach((question, i) => {
+    const serp = report?.serps[i];
+    const organic = serp === undefined || serp.kind === "unmeasured" ? null : resolvedRows(serp.value.organic);
+    if (organic === null) return;
+    searches.push(question.search.keyword);
+    const first = organic.sort((a, b) => a.position - b.position)[0];
+    if (first === undefined) return;
+    const holder = domains.find((domain) => isTheirs(domain, [first.domain])) ?? registrableDomain(first.domain) ?? first.domain;
+    holders.set(holder, (holders.get(holder) ?? 0) + 1);
+  });
+  return { holders, searches };
+}
+
 /** Whether a domain holds a first-page place on one measured search: one
  *  of the ten, or the local pack above them (SPEC §6, D67) — the same
  *  reading the rivals are chosen by (issue 1365). */
 export function onFirstPage(serp: SerpResult, domain: string): boolean {
   return (
-    serp.organic.some((row) => row.position <= FIRST_PAGE && isTheirs(domain, [row.domain])) ||
+    (resolvedRows(serp.organic) ?? []).some((row) => row.position <= FIRST_PAGE && isTheirs(domain, [row.domain])) ||
     (serp.localPack ?? []).some((row) => isTheirs(domain, [row.domain]))
   );
 }
@@ -172,8 +179,10 @@ export function holdersOf(
   const tally = new Map<string, { places: number; best: number }>();
   for (const serp of serps) {
     if (serp.kind === "unmeasured") continue;
+    const organic = resolvedRows(serp.value.organic);
+    if (organic === null) continue;
     const here = new Map<string, number>();
-    for (const row of [...(serp.value.localPack ?? []).map((local) => ({ ...local, position: 0 })), ...serp.value.organic]) {
+    for (const row of [...(serp.value.localPack ?? []).map((local) => ({ ...local, position: 0 })), ...organic]) {
       if (row.position > FIRST_PAGE) continue;
       const domain = registrableDomain(row.domain);
       if (domain === null || here.has(domain) || isPlatformDomain(row.domain)) continue;
@@ -201,7 +210,7 @@ export function holdersOf(
  * from: the top tens the pass actually bought. Every other row states the
  * dash, which is what REQ-004 asks of a reading nobody took.
  */
-function positionsOf(
+export function positionsOf(
   report: StoredReport | null,
   tracked: readonly string[]
 ): ReadonlyMap<string, Measured<number>> {
@@ -213,7 +222,7 @@ function positionsOf(
     if (serp === undefined || serp.kind === "unmeasured") return;
     const key = question.search.keyword.trim().toLowerCase();
     for (const rival of tracked) {
-      const row = serp.value.organic.find((organic) => isTheirs(rival, [organic.domain]));
+      const row = resolvedRows(serp.value.organic)?.find((organic) => isTheirs(rival, [organic.domain]));
       if (row === undefined) continue;
       places.set(`${rival}\u0000${key}`, measured(row.position, report.verdict.measuredAt));
     }

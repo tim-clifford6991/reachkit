@@ -81,7 +81,7 @@ vi.mock("@/lib/presentation/copy", async (importOriginal) => {
 // mocking the hook is all the server-side tree needs.
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
 
-const { NURTURE_H, NURTURE_MAX_TOUCHES, SEQUENCE_START_DEADLINE_DAYS } = await import(
+const { NURTURE_H, NURTURE_MAX_TOUCHES, SEQUENCE_START_DEADLINE_DAYS, WEEK_PLAN } = await import(
   "../../src/lib/config/constants"
 );
 const { AddressView } = await import("../../src/app/(public)/scan/[domain]/_address/view");
@@ -420,9 +420,10 @@ describe('"Email me the full page" → lead → first page → a follow-up that 
       "mail.nurture.subject.2",
       "mail.nurture.subject.3",
     ]);
+    // Every touch is sent the week's pages; only touch 1's sentence states them.
     for (const [index, touch] of touches.entries()) {
       expect(touch.to).toEqual([NORMALISED]);
-      expect(touch.html).toContain(`mail.nurture.body.${index + 1}(${DOMAIN})`);
+      expect(touch.html).toContain(`mail.nurture.body.${index + 1}(${DOMAIN},${WEEK_PLAN.days})`);
     }
 
     // Three and no fourth: the row is terminal and later runs send nothing.

@@ -18,7 +18,7 @@ vi.mock("@/lib/mail/send", () => sendMock());
 
 const { advanceOneTouch, advanceSequences } = await import("../../../src/lib/mail/leads/sequence");
 const { setLeadStore } = await import("../../../src/lib/mail/leads/store");
-const { NURTURE_H, NURTURE_MAX_TOUCHES } = await import("../../../src/lib/config/constants");
+const { NURTURE_H, NURTURE_MAX_TOUCHES, WEEK_PLAN } = await import("../../../src/lib/config/constants");
 
 let state: MemoryState;
 
@@ -75,7 +75,7 @@ describe("the touch is composed through the real shell and handed to the send se
     // other string it draws here is bracketed and stays the owner's.
     expect(sendCalls[0]?.blocks).toEqual([
       { block: "heading", text: "mail.nurture.subject.1" },
-      { block: "paragraph", text: "mail.nurture.body.1", vars: { domain: "acme.com" } },
+      { block: "paragraph", text: "mail.nurture.body.1", vars: { domain: "acme.com", weekPages: String(WEEK_PLAN.days) } },
       {
         block: "action",
         label: "mail.nurture.action",

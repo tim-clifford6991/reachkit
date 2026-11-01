@@ -883,7 +883,7 @@ sequence is written from. On dev use `https://dev.reachkit.app`; on production, 
    ReachKit** and one **Sign in** button, and sets no cookie. Press it: the post to
    `/auth/confirm/redeem` answers `303` to `/app` (to `/setup` on a first-ever sign-in), one
    `sb-…-auth-token` cookie set on that same redirect, and `/app` rendering the dashboard with
-   *Overview · Plan · Settings*.
+   *Overview · This week · Settings*.
 5. **Use it twice.** Re-open the same confirm URL and press again: `303` to `/signin?link=dead`, no
    cookie, and the screen **This link no longer works** with the request form on it (**Send a new
    link**). A spent link, a link superseded by a newer one and a token this product never issued

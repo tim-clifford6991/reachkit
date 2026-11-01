@@ -122,24 +122,14 @@ export async function recordDraftDay(a: {
   await record({ ...a });
 }
 
-/** Tells the owner about each of these sites whose publish time falls in
- *  `hour` with no page for the day, once a date (issue 1455). Never throws. */
-export async function alertMissingDrafts(a: {
-  readonly sites: DailySelection["sites"];
+/** At the end of a site's run, tells the owner at most once when nothing
+ *  of the site's is going out: a publish time passed with no page, or a
+ *  stall. Never throws. */
+export async function alertSiteDay(a: {
+  readonly site: DailySelection["sites"][number];
   readonly hour: Date;
 }): Promise<number> {
-  const { alertMissingDrafts: alert } = await import("@/lib/publish/daily");
-  return alert(a);
-}
-
-/** Tells the owner about each of these sites whose publish time falls in
- *  `hour` and that has gone twice its cadence with no page delivered
- *  (issue 1536). Never throws. */
-export async function alertStalledSites(a: {
-  readonly sites: DailySelection["sites"];
-  readonly hour: Date;
-}): Promise<number> {
-  const { alertStalledSites: alert } = await import("@/lib/publish/daily");
+  const { alertSiteDay: alert } = await import("@/lib/publish/daily");
   return alert(a);
 }
 

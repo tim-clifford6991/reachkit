@@ -2,6 +2,8 @@
 // survivor per cluster, Improve before Earn before Write, and a day filled
 // only by a row that passed readiness.
 import "./env";
+import { readFileSync } from "node:fs";
+import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { KEYWORD_PAGE_MIN_VOLUME } from "../../src/lib/config/constants";
 import { measured } from "../../src/lib/measure/measured";
@@ -13,11 +15,13 @@ import { rankOpen } from "../../src/lib/opportunities/rank/open";
 import { setOpportunityStore, type OpportunityRow } from "../../src/lib/opportunities/store";
 import { restTopic } from "../../src/lib/opportunities/drafted";
 import { supplyDepth } from "../../src/lib/opportunities/plan";
-import { assessReadiness, canUpdateFrom } from "../../src/lib/opportunities/readiness";
+import { assessReadiness, canUpdateFrom, ownRanksFrom } from "../../src/lib/opportunities/readiness";
+import type { SerpResult } from "../../src/lib/vendors/dataforseo/types";
+import type { CanonicalDomain } from "../../src/lib/scan/domain";
 import { UNREADY_REASONS, type Opportunity, type UnreadyReason } from "../../src/lib/opportunities/types";
 import type { KnownMatch } from "../../src/lib/known-content/types";
 import { memoryStore, newMemoryState, type MemoryState } from "./memory-store";
-import { AT, PROFILE, SITE_ID } from "./fixtures";
+import { AT, PROFILE, SITE_ID, question, reportOf, search, serp } from "./fixtures";
 
 const BRANDS = ["acme", "appcues"];
 
@@ -431,5 +435,21 @@ describe("supply and next-work see only ready rows, in Improve > Earn > Write or
     expect(state.rows[0]!.unready_reason).toBe("no_grounding_fact");
     expect(await rankOpen(SITE_ID)).toEqual([]);
     expect((await supplyDepth(SITE_ID)).unused).toBe(0);
+  });
+});
+
+describe("a search counts as one an owned URL ranks for only on a row read as the customer's", () => {
+  const stored = JSON.parse(readFileSync(path.resolve(import.meta.dirname, "../market/rivals/fixtures/au-baker-d149c119.json"), "utf8")) as { organic: SerpResult["organic"] };
+  const ranksOn = (organic: SerpResult["organic"], domain: string) =>
+    ownRanksFrom({ ...reportOf({ questions: [question({ search: search({ keyword: "baker" }) })], serps: [serp({ organic })] }), domain: domain as CanonicalDomain })("baker");
+  const bakersDelight = { position: 2, domain: "google.com", url: "https://google.com/goto?url=https://www.bakersdelight.com.au/", title: "Bakers Delight" };
+
+  it("the AU baker top ten (d149c119) with the customer behind the redirect: baker is ranked", () => {
+    expect(ranksOn([...stored.organic.slice(0, 1), bakersDelight, ...stored.organic.slice(2)], "bakersdelight.com.au")).toBe(true);
+  });
+
+  it("stored AU baker top ten (d149c119): neither ranked from an unresolved row, nor for google.com", () => {
+    expect(ranksOn(stored.organic, "bakersdelight.com.au")).toBe(false);
+    expect(ranksOn(stored.organic, "google.com")).toBe(false);
   });
 });

@@ -5,6 +5,7 @@
 // `src/lib/market` never imports `src/lib/scan`'s report (the cycle
 // `market/setup/state.ts` explains).
 import type { EvidenceAnswer, EvidencePage, EvidenceTopTen, MarketEvidence } from "@/lib/market/infer/evidence";
+import { resolvedHost } from "@/lib/market/rivals/domains";
 import type { PlaceSignals } from "@/lib/locale/place";
 import type { Measured } from "@/lib/measure/measured";
 import type { AnswerCell, StoredReport } from "./report";
@@ -17,7 +18,7 @@ export interface EvidenceReport {
     rows: readonly { question: { search: string }; cell: AnswerCell; engines: readonly { cell: AnswerCell }[] }[];
   } | null;
   serps: readonly Measured<{
-    organic: readonly { domain: string; title?: string }[];
+    organic: readonly { domain: string; url?: string; title?: string }[];
     localPack?: readonly { domain: string; title?: string }[];
   }>[];
   measuredCategory: string | null;
@@ -64,9 +65,9 @@ function topTensOf(report: EvidenceReport | null, own: string): EvidenceTopTen[]
     const here = new Set<string>();
     // D67: a business in the local pack is found for this search as one
     // in the top ten is.
-    for (const row of [...serp.value.organic, ...(serp.value.localPack ?? [])]) {
+    for (const row of [...serp.value.organic.map((each) => ({ ...each, domain: resolvedHost(each) ?? "" })), ...(serp.value.localPack ?? [])]) {
       const domain = bare(row.domain);
-      if (domain === own || here.has(domain)) continue;
+      if (domain === "" || domain === own || here.has(domain)) continue;
       here.add(domain);
       const seen = tally.get(domain);
       if (seen === undefined) tally.set(domain, { domain, appearances: 1, title: row.title ?? "" });

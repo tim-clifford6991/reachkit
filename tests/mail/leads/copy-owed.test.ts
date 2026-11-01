@@ -130,7 +130,8 @@ describe("every new sentence is a registry key, and every one of them is the own
     expect(COPY_META["mail.firstPage.target_search"].slots).toEqual({});
     expect(COPY_META["mail.firstPage.subject"].slots).toEqual({});
     expect(COPY_META["mail.firstPage.first_of_n"].slots).toEqual({ pagesFound: "text" });
-    for (const touch of [1, 2, 3] as const) {
+    expect(COPY_META["mail.nurture.body.1"].slots).toEqual({ domain: "text", weekPages: "text" });
+    for (const touch of [2, 3] as const) {
       expect(COPY_META[`mail.nurture.body.${touch}` as CopyKey].slots).toEqual({ domain: "text" });
     }
   });

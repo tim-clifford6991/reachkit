@@ -13,8 +13,8 @@ import { DOER_OF } from "@/lib/site-issues/types";
 
 const text = (key: CopyKey): string => (COPY as Record<string, string>)[key] ?? "";
 
-/** The mails still state the cadence as a page every day. */
-const CADENCE: readonly CopyKey[] = ["mail.nurture.body.1", "mail.winback.line"];
+/** The mails that state the pace say the A1 week, which retired the 2026-10-10 "every day". */
+const MAIL_PACE: readonly CopyKey[] = ["mail.nurture.body.1", "mail.winback.line"];
 
 /** Every public sentence that states the pace says the owner's A1 week. */
 const WEEK_PACE: readonly CopyKey[] = [
@@ -49,11 +49,7 @@ describe("a page every day, new or updated (owner, 2026-10-10)", () => {
 
   it("fewer new pages a week than days, so some days are updates and the sentence must say so", () => {
     expect(PACE.NEW_PAGES_PER_WEEK).toBeLessThan(CONTENT_MIX.WINDOW_DAYS);
-    for (const key of CADENCE) {
-      const said = text(key);
-      expect(said, key).toMatch(/new (?:page )?(?:or|,)|\bupdated?\b/i);
-      expect(said, key).toMatch(/every day|some days/i);
-    }
+    for (const key of MAIL_PACE) expect(text(key), key).toMatch(/new or updated/);
   });
 
   it("no sentence, long or short, promises a new page each day or counts pages by the day", () => {
@@ -89,11 +85,23 @@ describe("up to a week's pages, new or updated (owner, A1, 2026-10-19)", () => {
       expect(copy(key, { weekPages: WEEK_PLAN.days }), key).toMatch(new RegExp(`up to ${WEEK_PLAN.days} pages a week`, "i"));
     }
     for (const key of WEEK_PACE) expect(text(key), key).toMatch(/new or updated/);
+    for (const key of MAIL_PACE) {
+      expect(Object.keys(COPY_META[key].slots), key).toContain("weekPages");
+      expect(copy(key, { domain: "example.com", weekPages: WEEK_PLAN.days }), key).toMatch(new RegExp(`up to ${WEEK_PLAN.days} pages a week, new or updated`, "i"));
+      expect(text(key), key).not.toMatch(/every day/);
+    }
     // The report's closing heading leaves the count to the offer's rows under it.
     expect(text("offer.close.heading")).not.toMatch(/every day|a day\b/i);
     expect(copy("landing.pace", { weekPages: WEEK_PLAN.days })).toBe(
       `Up to ${WEEK_PLAN.days} pages a week, new or updated. Never filler.`
     );
+  });
+
+  it("no mail says a page every day", () => {
+    const offenders = Object.entries(COPY as Record<string, string>)
+      .filter(([key, value]) => key.startsWith("mail.") && /a page every day|every day, new/i.test(value))
+      .map(([key]) => key);
+    expect(offenders).toEqual([]);
   });
 });
 
@@ -137,7 +145,7 @@ describe("the time to stop a page is the pin, never a typed number", () => {
   });
 
   it("no cadence sentence types a number of hours", () => {
-    for (const key of [...CADENCE, ...WEEK_PACE, ...WEEK_PACE_SHORT, "offer.close.heading" as const]) expect(text(key), key).not.toMatch(/\d+ ?(?:hours|h)\b/);
+    for (const key of [...MAIL_PACE, ...WEEK_PACE, ...WEEK_PACE_SHORT, "offer.close.heading" as const]) expect(text(key), key).not.toMatch(/\d+ ?(?:hours|h)\b/);
   });
 });
 
