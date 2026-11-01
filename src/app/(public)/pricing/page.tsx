@@ -16,7 +16,7 @@
 // 2026-10-20, Q13).
 import React, { use } from "react";
 import type { Metadata } from "next";
-import { CircleCheck, Eye, Inbox, Search, Timer, TrendingUp, X } from "lucide-react";
+import { CircleCheck, CircleStop, Clock4, Eye, Gift, Inbox, Pen, Plug, Search, Store, Timer, TrendingUp, X, type LucideIcon } from "lucide-react";
 import { Surface } from "@/ui/layout";
 import { WEEK_PLAN } from "@/lib/config/constants";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
@@ -142,22 +142,23 @@ function FromWeekOne(): React.JSX.Element {
   return <WhatToExpect title={copy("pricing.months.title")} steps={steps} notes={false} />;
 }
 
-type Question = { q: CopyKey; a: CopyKey; vars?: Record<string, string | number> };
+type Question = { q: CopyKey; a: CopyKey; icon: LucideIcon; vars?: Record<string, string | number> };
 
 /** The questions asked before paying, in the landing's words. */
 function questions(): readonly Question[] {
-  const landing = (id: string, vars?: Question["vars"]): Question => ({
+  const landing = (id: string, icon: LucideIcon, vars?: Question["vars"]): Question => ({
     q: `landing.faq.${id}.q` as CopyKey,
     a: `landing.faq.${id}.a` as CopyKey,
+    icon,
     vars,
   });
   return [
-    landing("trial", { price: price() }),
-    landing("start", { minutes: F.setupMinutes }),
-    landing("approve", { hours: F.windowHours }),
-    landing("results"),
-    { q: "landing.faq.stop.q", a: "landing.faq.stop.short" },
-    landing("any"),
+    landing("trial", Gift, { price: price() }),
+    landing("start", Plug, { minutes: F.setupMinutes }),
+    landing("approve", Pen, { hours: F.windowHours }),
+    landing("results", Clock4),
+    { q: "landing.faq.stop.q", a: "landing.faq.stop.short", icon: CircleStop },
+    landing("any", Store),
   ];
 }
 
@@ -219,8 +220,13 @@ export default function PricingPage(props: {
                 className={`collapse collapse-arrow card-border bg-base-100 min-w-0 ${all.length % 2 === 1 && i === all.length - 1 ? "lg:col-span-2" : ""}`}
               >
                 {/* 20px above and below a 24px line: each question is at least a 64px target. */}
-                <summary className="collapse-title py-5 leading-6 font-semibold">{copy(item.q)}</summary>
-                <div className="collapse-content text-base-content/70 text-sm">
+                <summary className="collapse-title flex items-center gap-3 py-5 leading-6 font-semibold">
+                  <span className="rounded-field bg-primary/10 text-primary grid size-9 shrink-0 place-items-center">
+                    <item.icon size={20} strokeWidth={1.75} aria-hidden />
+                  </span>
+                  {copy(item.q)}
+                </summary>
+                <div className="collapse-content text-base-content/70 ps-16 text-sm">
                   <p>{copy(item.a, item.vars)}</p>
                 </div>
               </details>
@@ -235,7 +241,8 @@ export default function PricingPage(props: {
             className="card card-border bg-primary/5 scroll-mt-16"
           >
             <div className="card-body items-center gap-4 px-5 py-10 text-center lg:px-10">
-              <p className="eyebrow">{copy("pricing.plan.unsure")}</p>
+              {/* The tint over the light canvas sits under the eyebrow ink's 4.5:1, so this one is darker. */}
+              <p className="eyebrow text-base-content/70!">{copy("pricing.plan.unsure")}</p>
               <h2 id={`${START_ID}-h`} className="m-0">
                 {copy("pricing.close.title")}
               </h2>
