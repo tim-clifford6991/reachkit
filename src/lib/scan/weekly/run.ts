@@ -139,7 +139,7 @@ export async function runWeekly(a: {
             const checkedAt = await readSiteMarket(a.siteId).then((site) => site?.stored.rivalsCheckedAt, () => undefined);
             if (rivalsDue(checkedAt, weekStart, zone)) {
               const { recheckRivalsOf } = await import("../market-conclusion");
-              await recheckRivalsOf({ siteId: a.siteId, domain: a.domain, cost, report });
+              await recheckRivalsOf({ siteId: a.siteId, domain: a.domain, cost, report, at: a.now });
             }
           }
         } finally {

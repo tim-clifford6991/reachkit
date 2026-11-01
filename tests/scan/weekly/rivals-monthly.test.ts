@@ -90,7 +90,7 @@ function site(a: { domain: string; inForce: string[]; derived: string[]; waiting
   const report = JSON.parse(
     JSON.stringify({
       ...assembleReport({ ...fullSections(), tier: "weekly" }),
-      rivals: { kind: "measured", value: a.derived.map((domain) => ({ domain, top10Appearances: 2, aiCitations: 1, score: 4 })), at: new Date() },
+      rivals: { kind: "measured", value: a.derived.map((domain) => ({ domain, top10Appearances: 2, aiCitations: 1, score: 4 })), at: at(OCTOBER[0]!) },
     })
   ) as unknown;
   const market = {
@@ -124,7 +124,7 @@ function site(a: { domain: string; inForce: string[]; derived: string[]; waiting
       source === "rival-inference"
         ? { parseOutcome: "success", value: { candidates }, tokensIn: 100, tokensOut: 50, durationMs: 1 }
         : { billed: false, endpoint: source, vendorFailure: "not in tests" },
-    new Date(),
+    at(OCTOBER[0]!),
     "WEEKLY"
   );
   // The cap's refusal and a ledger that throws, as `withCostContext` gives them.
@@ -143,9 +143,7 @@ function site(a: { domain: string; inForce: string[]; derived: string[]; waiting
   return {
     ctx: fake,
     rivalCalls: () => fake.calls.filter((c) => c.source === "rival-inference").length,
-    rivalCall: (next) => {
-      how = next;
-    },
+    rivalCall: (next) => void (how = next),
   };
 }
 
@@ -196,6 +194,8 @@ describe.each(SITES)("$domain: competitors re-checked monthly from stored rows",
     rivalCall("answered");
     await monday(domain, OCTOBER[1]!);
     expect(rivalCalls()).toBe(1);
+    // The re-check is stamped with the pass's date, not the clock's.
+    expect((DB.rows.get("sites")![0] as { market: { rivalsCheckedAt?: string } }).market.rivalsCheckedAt).toBe(at(OCTOBER[1]!).toISOString());
   });
 
   it("no model call when the derived competitors are the ones in force keeps it not due for the rest of the month", async () => {
