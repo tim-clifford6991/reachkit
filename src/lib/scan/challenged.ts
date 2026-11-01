@@ -34,6 +34,7 @@ import { unmeasured } from "@/lib/measure/measured";
 import { isStoredDocument, OWN_FETCH_SOURCE, RENDERED_FETCH_SOURCE, renderedDocumentOf } from "@/lib/measure/own-fetch";
 import { computeScore, limitingFactorOf, type ScoreFactors } from "@/lib/measure/score";
 import { checkSite } from "@/lib/site-issues/checks";
+import type { PageFacts } from "./page-facts";
 import type { StoredReport } from "./report";
 
 interface LightRow {
@@ -171,21 +172,27 @@ function drawnSince(rendered: readonly { created_at: string; payload: unknown }[
   return rendered.some((row) => new Date(row.created_at).getTime() >= ledgeredAt && renderedDocumentOf(row.payload) !== null);
 }
 
+/** Whether a stored plain read was a protection's page, as `challengedHomes`
+ *  judges one: the half of its answer a single read decides. */
+export function protectionPage(payload: unknown): boolean {
+  if (!isStoredDocument(payload)) return false;
+  if (!couldBeChallenge({ status: payload.status, bytes: payload.bytes, headers: headersOf(payload.headers) })) return false;
+  return challengeOf(payload) !== null;
+}
+
 /**
- * `challengedHomes`' answer for one stored home read, from rows already in
- * hand (issue 1426): the re-score reads them from an export, not the
- * database. True where the read was a protection's page and no rendered read
- * since drew the site.
+ * `challengedHomes`' answer for one stored home read, from the facts of
+ * reads already in hand (issue 1426): the re-score reads them from stored
+ * rows, not the database. True where the read was a protection's page and no
+ * rendered read since drew the site.
  */
 export function readAsProtection(a: {
-  home: { created_at: string; payload: unknown } | null;
-  rendered: readonly { created_at: string; payload: unknown }[];
+  home: { created_at: string; facts: Pick<PageFacts, "protection"> } | null;
+  rendered: readonly { created_at: string; facts: Pick<PageFacts, "drawn"> }[];
 }): boolean {
-  if (a.home === null || !isStoredDocument(a.home.payload)) return false;
-  const doc = a.home.payload;
-  if (!couldBeChallenge({ status: doc.status, bytes: doc.bytes, headers: headersOf(doc.headers) })) return false;
-  if (challengeOf(doc) === null) return false;
-  return !drawnSince(a.rendered, new Date(a.home.created_at).getTime());
+  if (a.home === null || !a.home.facts.protection) return false;
+  const since = new Date(a.home.created_at).getTime();
+  return !a.rendered.some((row) => new Date(row.created_at).getTime() >= since && row.facts.drawn);
 }
 
 /**

@@ -1,5 +1,5 @@
 import type { NextConfig } from "next";
-import { derivation } from "./scripts/derivation.mjs";
+import { derivation, factsVersion } from "./scripts/derivation.mjs";
 
 // BP-001's own file (`code:` glob `next.config.ts`). WO-001 step 3 and the
 // file plan: typed config; `serverExternalPackages` for the Supabase admin
@@ -94,8 +94,9 @@ const nextConfig: NextConfig = {
   serverExternalPackages: ["@supabase/supabase-js", "@tailwindcss/postcss", "@tailwindcss/oxide", "lightningcss"],
   // Issue 1481: the deployment's derivation — a fingerprint of the files the
   // re-score reads a scan with. The `scan/rescore` tick asks for a dry run
-  // and an apply by itself when it finds no run at this value.
-  env: { RK_DERIVATION: derivation() },
+  // and an apply by itself when it finds no run at this value. The facts
+  // version keys the stored page facts it scores from (`fetch_facts`).
+  env: { RK_DERIVATION: derivation(), RK_FACTS_VERSION: factsVersion() },
   // Issue 1514: each route group has its own root layout, so a hosted page
   // can state its site's language on `<html>`. An address no route matches
   // then has no root layout to render in; `src/app/global-not-found.tsx` is

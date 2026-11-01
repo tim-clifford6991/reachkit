@@ -6,7 +6,7 @@ import { appendFileSync, cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, w
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { derivation, derivationFiles } from "../../scripts/derivation.mjs";
+import { derivation, derivationFiles, factsFiles, factsVersion } from "../../scripts/derivation.mjs";
 import { claimRequest, type RescoreQueue } from "../../src/lib/scan/rescore-run";
 import { nextStep, type RunRecord } from "../../src/lib/scan/derivation";
 
@@ -158,5 +158,19 @@ describe("the re-score's derivation", () => {
       [[run({ finishedAt: null })], { wait: true }],
     ];
     for (const [runs, step] of table) expect(nextStep(runs, "d1")).toEqual(step);
+  });
+});
+
+describe("the facts version: the code a stored read's facts are derived with", () => {
+  it("is the extractors the re-score reads a page with, not its scoring; a scoring change keeps it, an extractor change moves it", () => {
+    const files = factsFiles();
+    expect(files).toEqual(expect.arrayContaining(["src/lib/scan/page-facts.ts", "src/lib/measure/parse.ts", "src/lib/measure/challenge.ts", "src/lib/locale/read.ts"]));
+    expect(files.filter((file) => !derivationFiles().includes(file) || /rescore|score\.ts|verdict/.test(file))).toEqual([]);
+    const root = copied();
+    const [derived, facts] = [derivation(root), factsVersion(root)];
+    appendFileSync(join(root, "src/lib/measure/score.ts"), 'void "scored again";\n');
+    expect([derivation(root) === derived, factsVersion(root) === facts]).toEqual([false, true]);
+    appendFileSync(join(root, "src/lib/measure/parse.ts"), 'void "parsed again";\n');
+    expect(factsVersion(root)).not.toBe(facts);
   });
 });

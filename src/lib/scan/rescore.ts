@@ -25,9 +25,8 @@
 import { retrofitReading, type Retrofit } from "@/lib/business/retrofit";
 import { aiPresenceOf, aiPresenceRangeOf, aiSampleOf, classifyReferences, foundationsOf, searchPresenceOf, searchPresenceRangeOf } from "@/lib/measure/drivers";
 import { isProtectionName } from "@/lib/measure/challenge";
-import { contentOf, detectPricingUrl, measuredPagesOf, storedFactsOf } from "@/lib/measure/pages";
-import { isStoredDocument } from "@/lib/measure/own-fetch";
-import { marketsServed } from "@/lib/locale/read";
+import { contentOf, measuredPagesOf } from "@/lib/measure/pages";
+import { marketsServedFrom } from "@/lib/locale/read";
 import { measured, unmeasured, type Measured } from "@/lib/measure/measured";
 import { foldSerps, outcomeOf, type InputOutcome, type ScanInput } from "@/lib/measure/partition";
 import type { OnPageFacts } from "@/lib/measure/parse";
@@ -51,6 +50,7 @@ import { AI_ANSWER_SOURCES, type RankedRow } from "@/lib/vendors/dataforseo/type
 import { cardsOf, placeStands, reachOfReport } from "./cards";
 import { readAsProtection, unreadByProtection } from "./challenged";
 import { marketEvidence, type EvidenceReport } from "./market-evidence";
+import { onPageOf, type PageFacts } from "./page-facts";
 import { localeOfReport, type AnswerCell, type EngineCell, type PromptAnswer, type StoredReport } from "./report";
 import { rivalCellsOf } from "./sections";
 import type { ScanStatus } from "./store";
@@ -113,10 +113,10 @@ export interface RescoreScan {
   /** `scans.drivers`: the four quantities the stored score was composed of. */
   drivers: Drivers | null;
   report: RescoreReport;
-  /** The home read the report's on-page facts came from (`fetches`), and
-   *  the rendered reads of that page; `null` where it is no longer stored. */
-  home: { created_at: string; payload: unknown } | null;
-  rendered: readonly { created_at: string; payload: unknown }[];
+  /** The facts of the home read the report's on-page facts came from, and
+   *  of that page's rendered reads; `null` where it is no longer stored. */
+  home: { created_at: string; facts: PageFacts } | null;
+  rendered: readonly { created_at: string; facts: PageFacts }[];
   /** The site's name as an AI answer is read for it (`promptSiteName` over
    *  the stored profile), `null` where no profile is stored (issue 1420). */
   siteName: string | null;
@@ -130,9 +130,9 @@ export interface RescoreScan {
   /** Issue 1551: the site's measured pages as this scan's own reads hold
    *  them — the pages ReachKit had live when it ran, newest first, then the
    *  pages it read itself, in the order it read them — and each address's
-   *  stored read, the home's and the pricing page's among them. Absent where
-   *  the scan ledgered no read of its own: Content stands as stored. */
-  measured?: { pages: readonly string[]; reads: ReadonlyMap<string, unknown> };
+   *  stored read's facts, the home's and the pricing page's among them. Absent
+   *  where the scan ledgered no read of its own: Content stands as stored. */
+  measured?: { pages: readonly string[]; reads: ReadonlyMap<string, PageFacts> };
   /** When the scan was asked for (`scans.created_at`): a report dated
    *  before it was dated by a stored read of a page (issue 1392), and is
    *  dated again by it (issue 1479). Absent, the stored date stands. */
@@ -273,13 +273,13 @@ export const KEPT_CONTENT_PAGES = "content: some of the pages it would read have
 function contentFrom(r: RescoreReport, scan: RescoreScan, at: Date, kept: string[]): Measured<number> | null {
   const m = scan.measured;
   if (m === undefined || r.onPage.kind === "unmeasured") return null;
-  const home = scan.home?.payload;
+  const home = scan.home?.facts;
   // A home read as the vendor's browser drew it is not the stored read here.
-  if (!isStoredDocument(home) || scan.rendered.length > 0) {
+  if (home === undefined || !home.document || scan.rendered.length > 0) {
     kept.push(KEPT_CONTENT_UNREAD);
     return null;
   }
-  const pricingUrl = detectPricingUrl(home.html, `https://${r.domain}/`);
+  const pricingUrl = home.pricingUrl;
   const pricing = pricingUrl === null ? null : m.reads.get(pricingUrl);
   if (pricing === undefined) {
     kept.push(KEPT_CONTENT_UNREAD);
@@ -290,8 +290,8 @@ function contentFrom(r: RescoreReport, scan: RescoreScan, at: Date, kept: string
   const urls = measuredPagesOf({ tier: r.tier, domain: r.domain, pricingUrl, pages: m.pages.filter((url) => m.reads.has(url)) });
   return contentOf({
     onPage: r.onPage,
-    pricing: pricing === null ? null : storedFactsOf(pricing, at),
-    pages: urls.map((url) => storedFactsOf(m.reads.get(url), at)),
+    pricing: pricing === null ? null : onPageOf(pricing, at),
+    pages: urls.map((url) => onPageOf(m.reads.get(url)!, at)),
     at,
   });
 }
@@ -442,10 +442,10 @@ export function rescoreScan(scan: RescoreScan): Rescored {
 /** The other markets the stored home read declares (`marketsServed`),
  *  counted again at 0¢; a report whose home read is gone keeps what it has. */
 function servedChanges(r: RescoreReport, scan: Pick<RescoreScan, "home">): ReportChange[] {
-  const home = scan.home?.payload;
-  if (!isStoredDocument(home)) return [];
+  const served = scan.home?.facts.served;
+  if (served == null) return [];
   const measured = localeOfReport(r);
-  const alsoServes = marketsServed({ domain: r.domain, html: home.html, measured });
+  const alsoServes = marketsServedFrom(served, measured);
   const stored = r.locale?.alsoServes ?? [];
   if (alsoServes.length === stored.length && alsoServes.every((tag, i) => tag === stored[i])) return [];
   const locale: Record<string, unknown> = { ...(r.locale ?? { country: measured.country, language: measured.language }) };

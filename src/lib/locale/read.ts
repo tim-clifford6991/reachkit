@@ -313,16 +313,30 @@ function ownLinksOf(root: HTMLElement, base: string, host: string): URL[] {
  * only the bytes handed to it.
  */
 export function marketsServed(a: { domain: string; html: string; measured: Locale }): string[] {
+  return marketsServedFrom(servedSignalsOf(a), a.measured);
+}
+
+/** What `marketsServed` reads off a home document before it knows the
+ *  market measured, so a stored read is parsed once and not per report. */
+export interface ServedSignals {
+  /** Its hreflang values, each once, in document order. */
+  alternates: string[];
+  /** Its same-host locale paths, each once; read only where it has no hreflang. */
+  paths: string[];
+  /** The countries the same name's other endings name, each once. */
+  countries: string[];
+}
+
+export function servedSignalsOf(a: { domain: string; html: string }): ServedSignals {
   const base = `https://${a.domain}/`;
   const root = parse(a.html, { blockTextElements: { script: false, style: false, noscript: false } });
-  const measured = measuredBy(a.measured);
-  const alternates = alternatesOf(root, base);
-  if (alternates.length > 0) return [...new Set(alternates.map((each) => each.tag))].filter((tag) => tag !== "x-default" && !measured(tag));
+  const alternates = [...new Set(alternatesOf(root, base).map((each) => each.tag))];
+  if (alternates.length > 0) return { alternates, paths: [], countries: [] };
 
   const host = bareHost(a.domain);
   const name = host.split(".")[0]!;
-  const paths = new Set(ownLinksOf(root, base, host).flatMap((url) => pathLocaleOf(url.pathname) ?? []));
-  const endings = new Set<string>();
+  const paths = [...new Set(ownLinksOf(root, base, host).flatMap((url) => pathLocaleOf(url.pathname) ?? []))];
+  const countries = new Set<string>();
   for (const link of root.querySelectorAll("a[href]")) {
     let url: URL;
     try {
@@ -334,10 +348,17 @@ export function marketsServed(a: { domain: string; html: string; measured: Local
     const other = bareHost(url.hostname);
     if (other !== host && other.split(".")[0] === name) {
       const country = countryOfDomain(other);
-      if (country !== null && country !== a.measured.country) endings.add(`und-${country.toLowerCase()}`);
+      if (country !== null) countries.add(country);
     }
   }
-  return [...(paths.size >= 2 ? [...paths] : []), ...endings].filter((tag) => !measured(tag));
+  return { alternates, paths, countries: [...countries] };
+}
+
+export function marketsServedFrom(s: ServedSignals, measured: Locale): string[] {
+  const isMeasured = measuredBy(measured);
+  if (s.alternates.length > 0) return s.alternates.filter((tag) => tag !== "x-default" && !isMeasured(tag));
+  const endings = new Set(s.countries.filter((country) => country !== measured.country).map((country) => `und-${country.toLowerCase()}`));
+  return [...(s.paths.length >= 2 ? s.paths : []), ...endings].filter((tag) => !isMeasured(tag));
 }
 
 /**

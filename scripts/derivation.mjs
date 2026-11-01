@@ -18,12 +18,17 @@
 // re-score reaches the database) and code outside `src/lib` are not part of
 // it. Plain JavaScript, so the build can import it without TypeScript; the
 // parser is the `typescript` package the build already has.
+//
+// The same walk from `src/lib/scan/page-facts.ts` alone is the facts version
+// (`RK_FACTS_VERSION`): the code a stored read's facts are derived with, so a
+// scoring change that leaves it alone reads no stored page again.
 import { createHash } from "node:crypto";
 import { existsSync, readFileSync, statSync } from "node:fs";
 import { dirname, join, relative, resolve } from "node:path";
 import ts from "typescript";
 
 const ENTRY = "src/lib/scan/rescore-run.ts";
+const FACTS_ENTRY = "src/lib/scan/page-facts.ts";
 const SCOPE = "src/lib/";
 const ALL = "*";
 
@@ -126,7 +131,7 @@ function parse(root, file) {
 }
 
 /** The statement texts the entry executes, by repository-relative file. */
-function walk(root) {
+function walk(root, entry = ENTRY) {
   const modules = new Map();
   const kept = new Map();
   const answers = new Map();
@@ -184,7 +189,7 @@ function walk(root) {
     for (const star of giving) keep(file, star.via);
     return giving.length > 0;
   };
-  need(join(root, ENTRY), ALL);
+  need(join(root, entry), ALL);
   const executed = new Map();
   for (const [file, mod] of modules) {
     const order = [...mod.statements, ...mod.stars.map((s) => s.via), ...[...mod.exports.values()].map((e) => e.via)];
@@ -200,8 +205,8 @@ export function derivationFiles(root = process.cwd()) {
 }
 
 /** Twelve hex characters: the same executed code gives the same value. */
-export function derivation(root = process.cwd()) {
-  const executed = walk(root);
+export function derivation(root = process.cwd(), entry = ENTRY) {
+  const executed = walk(root, entry);
   const hash = createHash("sha256");
   for (const file of [...executed.keys()].sort()) {
     hash.update(file).update("\0");
@@ -210,8 +215,19 @@ export function derivation(root = process.cwd()) {
   return hash.digest("hex").slice(0, 12);
 }
 
+/** The files a stored read's facts are derived with. */
+export function factsFiles(root = process.cwd()) {
+  return [...walk(root, FACTS_ENTRY).keys()].sort();
+}
+
+/** The fingerprint of that code alone. */
+export function factsVersion(root = process.cwd()) {
+  return derivation(root, FACTS_ENTRY);
+}
+
 if (import.meta.url === `file://${process.argv[1]}`) {
   const files = derivationFiles();
   if (process.argv.includes("--files")) for (const file of files) console.log(file);
   console.log(`${derivation()} (${files.length} files)`);
+  console.log(`facts ${factsVersion()} (${factsFiles().length} files)`);
 }
