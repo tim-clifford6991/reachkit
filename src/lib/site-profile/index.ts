@@ -46,7 +46,7 @@ import type { OurPages } from "@/lib/known-content/ours";
 import { captureLogo } from "./logo";
 import type { InventoryRow, SiteProfile } from "./types";
 
-export { readSiteProfile, adoptVoiceText, saveVoiceText, saveWritingVoice, readSiteLogo } from "./store";
+export { readSiteProfile, adoptVoiceText, saveVoiceText, saveWritingVoice, readSiteLogo, hasSiteLogo } from "./store";
 export type { MainSite, MainSiteLink } from "./main-site-row";
 export { iconWorthy, type SiteLogo } from "./logo";
 export { type SiteReading } from "./summary";

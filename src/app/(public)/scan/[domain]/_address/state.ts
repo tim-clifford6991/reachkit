@@ -128,4 +128,6 @@ export type AddressState =
       readsDifferently?: boolean;
       /** R26: the scan's free page once a lead caused it to be written. Absent before. */
       writtenPage?: WrittenPage;
+      /** Whether the scan kept the site's logo; absent draws the letter tile. */
+      hasLogo?: boolean;
     };

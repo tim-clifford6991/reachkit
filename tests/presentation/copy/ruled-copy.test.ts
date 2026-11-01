@@ -6,7 +6,8 @@
 // values are the owner's, byte for byte), quoted verbatim in the work
 // order's own `## Test plan` table. The owner's naming ruling of 2026-10-15
 // (issue 1444) supersedes that sheet's wording: the fixture holds the new
-// values, and `control.correction-retry`, which nothing rendered, is gone.
+// values, and `control.correction-retry`, which nothing rendered, is gone, as
+// is `removal.line.on-report`, whose address the public footer names.
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -36,21 +37,6 @@ describe('REQ-002 c1 — "Given any report, when it renders, then it names in wr
   it("copy('removal.address') returns the ruled value and does not throw", () => {
     expect(() => copy("removal.address")).not.toThrow();
     expect(copy("removal.address")).toBe(RULING.strings["removal.address"]);
-  });
-
-  it("removal.line.on-report declares exactly { address: 'text' }", () => {
-    expect(COPY_META["removal.line.on-report"].slots).toEqual({ address: "text" });
-  });
-
-  it("copy() throws naming 'address' when it is not supplied, and renders with no marker left when it is", () => {
-    expect(() => copy("removal.line.on-report")).toThrow("address");
-    const rendered = copy("removal.line.on-report", { address: copy("removal.address") });
-    expect(rendered).not.toContain("{");
-  });
-
-  it("the rendered line contains copy('removal.address')", () => {
-    const rendered = copy("removal.line.on-report", { address: copy("removal.address") });
-    expect(rendered).toContain(copy("removal.address"));
   });
 });
 
@@ -287,14 +273,14 @@ describe('REQ-001 c7 — "Given a visitor on a completed report, when they use t
   });
 });
 
-describe("Constitution §1 (decision-rights table, \"Customer-visible strings\" — owner) with rule 1.2 — ruled-copy/fidelity · the seventeen values are the owner's, byte for byte", () => {
+describe("Constitution §1 (decision-rights table, \"Customer-visible strings\" — owner) with rule 1.2 — ruled-copy/fidelity · the sixteen values are the owner's, byte for byte", () => {
   const KEYS = Object.keys(RULING.strings) as CopyKey[];
 
-  it("the ruling names exactly seventeen keys", () => {
-    expect(KEYS.length).toBe(17);
+  it("the ruling names exactly sixteen keys", () => {
+    expect(KEYS.length).toBe(16);
   });
 
-  it("the seventeen carry 8 U+2019, no U+2014 (issue 1444: no em-dash in a title), and zero U+0027 between them", () => {
+  it("the sixteen carry 8 U+2019, no U+2014 (issue 1444: no em-dash in a title), and zero U+0027 between them", () => {
     const joined = KEYS.map((key) => COPY[key]).join("");
     const apostrophes = [...joined].filter((ch) => ch === "’").length;
     const dashes = [...joined].filter((ch) => ch === "—").length;
@@ -312,7 +298,7 @@ describe("Constitution §1 (decision-rights table, \"Customer-visible strings\" 
     }
   });
 
-  it("none of the seventeen is owner-owed any longer", () => {
+  it("none of the sixteen is owner-owed any longer", () => {
     for (const key of KEYS) {
       expect(OWNER_OWED).not.toContain(key);
     }

@@ -1,17 +1,17 @@
 // src/app/(public)/scan/[domain]/_address/removal.tsx — BUILD §4.1, REQ-002,
 // ADR-002 (carries WO-067's file plan, which WO-282 superseded)
 //
-// Removal on written request, rendered. Two views and one response shape,
-// over the three copy keys the owner ruled on 2026-09-04
-// (`src/lib/presentation/copy/keys/report.ts`):
+// Removal on written request, rendered. One view and one response shape,
+// over two copy keys the owner ruled on 2026-09-04
+// (`src/lib/presentation/copy/keys/report.ts`); REQ-002 c1's line on every
+// report is the public footer's (`_chrome/Footer.tsx`):
 //
 //   `removal.address`         the one address, written once, nowhere else
-//   `removal.line.on-report`  REQ-002 c1, at the foot of every report
 //   `removal.line.removed`    REQ-002 c3, the whole of a removed address
 //
 // **One address, from one key.** `removalAddress()` below is the single
-// call site of `removal.address` in the whole product, and both views read
-// it. The address on a live report and the address on the removed line can
+// call site of `removal.address` in this module, and the footer resolves the
+// same key. The address on a live report and the address on the removed line can
 // therefore never differ — REQ-002 c3 requires the removed line to name
 // "the address criterion 1 names", and here that is not a convention to
 // keep but the same string, resolved once.
@@ -69,14 +69,6 @@ import type { CanonicalDomain } from "@/lib/scan/domain";
  *  from parts, never templated from a domain, never read from `env`. */
 function removalAddress(): string {
   return copy("removal.address");
-}
-
-/** REQ-002 c1 — "Given any report, when it renders, then it names in
- *  writing the address to which a request to remove the report about that
- *  domain is sent". Sits at the foot of every report; takes no props,
- *  because the address does not vary by domain, visitor or tier. */
-export function RemovalAddressLine(): React.JSX.Element {
-  return <p>{copy("removal.line.on-report", { address: removalAddress() })}</p>;
 }
 
 /** REQ-002 c3 — the body a removed domain's report address serves: the

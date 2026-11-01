@@ -271,9 +271,8 @@ describe('"Email me the full page" → lead → first page → a follow-up that 
       }) as never
     );
 
-    // The card, its count, the proposed page and the control.
+    // The card, the proposed page and the control.
     expect(html).toContain("free-page.title");
-    expect(html).toContain("free-page.of(7)");
     expect(html).toContain(THE_PAGE.title);
     expect(html).toContain(THE_PAGE.targetQuery);
     expect(html).toContain(THE_PAGE.rival);

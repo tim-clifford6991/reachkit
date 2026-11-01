@@ -10,7 +10,7 @@ import type { LucideIcon } from "lucide-react";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { FLOAT } from "@/ui/lift";
 import { Num } from "../scan/[domain]/_address/measured";
-import { SiteMark } from "./SiteMark";
+import { SiteMark } from "@/ui/SiteMark";
 import { SPECIMEN_HERO_BUSINESS, SPECIMEN_HERO_DOMAIN, SPECIMEN_HERO_QUERY, SPECIMEN_HERO_RIVAL, SPECIMEN_HERO_WEEK } from "./specimen";
 
 /** Bound to a name: the copy sweep reads a bare JSX attribute string as voice. */

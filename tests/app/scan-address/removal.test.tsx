@@ -23,10 +23,10 @@ import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { COPY, copy } from "@/lib/presentation/copy";
+import { Footer } from "@/app/(public)/_chrome/Footer";
 import type { CanonicalDomain } from "@/lib/scan/domain";
 import {
   REMOVED_RESPONSE_INIT,
-  RemovalAddressLine,
   RemovedView,
 } from "@/app/(public)/scan/[domain]/_address/removal";
 
@@ -83,19 +83,10 @@ function code(text: string): string {
 const INTERACTIVE_TAGS = ["button", "form", "input", "select", "textarea", "label", "option"];
 
 describe('REQ-002 c1 — "Given any report, when it renders, then it names in writing the address to which a request to remove the report about that domain is sent, readable by a visitor with no account, session, or payment."', () => {
-  it("the line at the foot of a report names the address, resolved from `removal.address`", () => {
-    const html = renderToStaticMarkup(React.createElement(RemovalAddressLine));
+  it("the public footer under every report names the address, resolved from `removal.address`", () => {
+    const html = renderToStaticMarkup(React.createElement(Footer));
     expect(html).toContain(COPY["removal.address"]);
-  });
-
-  it("renders the `removal.line.on-report` sentence with its slot filled — no `{address}` placeholder survives", () => {
-    const html = renderToStaticMarkup(React.createElement(RemovalAddressLine));
     expect(html).not.toContain("{address}");
-    expect(html).toContain(COPY["removal.line.on-report"].split("{address}")[0]);
-  });
-
-  it("takes no props at all — nothing about the visitor can change the address", () => {
-    expect(RemovalAddressLine.length).toBe(0);
   });
 
   it("neither view reads a cookie, a session or a header", () => {
@@ -139,8 +130,8 @@ describe("one address, from one key", () => {
     expect(literals).toEqual([]);
   });
 
-  it("the removed line and the report's own line name the same address", () => {
-    const onReport = renderToStaticMarkup(React.createElement(RemovalAddressLine));
+  it("the removed line and the report's footer name the same address", () => {
+    const onReport = renderToStaticMarkup(React.createElement(Footer));
     const removed = renderToStaticMarkup(React.createElement(RemovedView, { domain: DOMAIN }));
     const address = COPY["removal.address"];
     expect(onReport).toContain(address);

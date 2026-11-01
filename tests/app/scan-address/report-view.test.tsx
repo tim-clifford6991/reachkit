@@ -32,7 +32,7 @@ vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: () => {} }) }))
 
 import { ReportView } from "@/app/(public)/scan/[domain]/_address/report-view";
 import ReportLoading from "@/app/(public)/scan/[domain]/loading";
-import { RemovalAddressLine, RemovedView } from "@/app/(public)/scan/[domain]/_address/removal";
+import { RemovedView } from "@/app/(public)/scan/[domain]/_address/removal";
 import {
   FIXTURE_COLD_START_REPORT,
   FIXTURE_DEGRADED_REPORT,
@@ -43,9 +43,6 @@ import type { CanonicalDomain } from "@/lib/scan/domain";
 import type { CorrectionOffer } from "@/lib/market/coherence/offer";
 import type { StoredReport } from "@/lib/scan/report";
 import { parse, type HTMLElement } from "node-html-parser";
-import { ReadSection, WhatWeRead } from "@/app/_business/WhatWeRead";
-import type { BusinessUnderstanding } from "@/lib/business/types";
-import { understandBusiness } from "@/lib/business/understanding";
 
 
 function render(
@@ -424,7 +421,6 @@ describe("SPEC §2, 2026-10-07 (issue 1328) — the result and the action first,
     "problem.blocked-readers.title", // 4 · problem cards
     "method.blocked-readers.title", // 5 · DIY collapses
     "free-page.title", // 6 · free page
-    "removal.line.on-report", // the foot
   ];
 
   /** The markup of every outermost `details` on the page, each cut at its
@@ -561,7 +557,6 @@ describe("REQ-004 c10/c11 — an absent section is named, and the rest stays usa
   it("the modules that could be produced are still there", () => {
     expect(html).toContain("problem.missing-pages.title");
     expect(html).toContain("price.amount");
-    expect(html).toContain("removal.line.on-report");
   });
 
   it("offers the missing part again on each absent card, and once in the notice", () => {
@@ -677,8 +672,8 @@ describe("REQ-004 c5 — nothing is hidden, blurred or paywalled", () => {
 });
 
 describe("REQ-002 c1/c3 — one removal address, two surfaces", () => {
-  it("every report names it at the foot", () => {
-    expect(render(FIXTURE_REPORT)).toContain("removal.line.on-report(removal.address)");
+  it("the report's main holds no removal line: the public footer under it names the address", () => {
+    expect(parse(render(FIXTURE_REPORT)).querySelector("main")?.text).not.toContain("removal.");
   });
 
   it("the removed arm names the same address, from the same key", () => {
@@ -701,10 +696,6 @@ describe("REQ-002 c1/c3 — one removal address, two surfaces", () => {
     expect([...html.matchAll(/href="([^"]*)"/g)].map((m) => m[1])).toEqual(["/"]);
   });
 
-  it("the foot line and the removed line resolve the address from one key", () => {
-    const foot = renderToStaticMarkup(React.createElement(RemovalAddressLine));
-    expect(foot).toContain("removal.address");
-  });
 });
 
 describe("issue 715 — SPEC §2: what was measured, what was reused, what the ceiling cut off", () => {
@@ -784,7 +775,6 @@ describe("board PubReport — each section under \"Everything else\" opens with 
   it("each closed section opens with its board icon", () => {
     expect(tiled(page.querySelector("#holds > summary"), "wrench")).not.toBeNull();
     expect(tiled(page.querySelector("#method > summary"), "list-checks")).not.toBeNull();
-    expect(tiled(page.querySelector('[data-testid="what-we-read"] > summary'), "globe")).not.toBeNull();
     expect(tiled(page.querySelector('[data-testid="report-first-page"] > summary'), "gift")).not.toBeNull();
   });
 
@@ -800,60 +790,9 @@ describe("board PubReport — each section under \"Everything else\" opens with 
     expect(page.querySelector("#holds > .collapse-content")?.text).not.toContain("problem.section.sub");
     expect(page.toString().split("problem.section.sub")).toHaveLength(2);
   });
-
-  it("What we read draws no tile where the caller does not ask for one", () => {
-    const understanding = understandBusiness({ domain: "flixbus.de", profile: null, locale: { country: "DE", language: "de" }, alsoServes: 0 });
-    const card = parse(renderToStaticMarkup(React.createElement(WhatWeRead, { understanding, editHref: "/app/settings/business" })));
-    expect(card.querySelector("svg.lucide-globe")).toBeNull();
-  });
 });
 
-describe("board PubReport — What we read and the first page say what they hold while closed", () => {
-  const OFFERED: CorrectionOffer = { offered: true, as: "first" };
-  const fixtureUnderstanding = understandBusiness({
-    domain: "harbor.example.com",
-    profile: null,
-    locale: { country: "US", language: "en" },
-    alsoServes: 0,
-  });
-  const read = (u: BusinessUnderstanding, correction: CorrectionOffer = OFFERED): HTMLElement =>
-    parse(renderToStaticMarkup(React.createElement(ReadSection, { understanding: u, correction })));
-  const subtitleOf = (section: HTMLElement): string | null =>
-    section.querySelector("details#read > summary h2 + p")?.text ?? null;
-
-  it("What we read is closed under its own name", () => {
-    const page = parse(render(FIXTURE_REPORT));
-    const section = page.querySelector('details#read[data-testid="what-we-read"]');
-    expect(section?.hasAttribute("open")).toBe(false);
-    expect(section?.querySelector("summary h2")?.text).toBe("report.read.title");
-    expect(section?.querySelector(".collapse-content > dl")).not.toBeNull();
-  });
-
-  it("What we read says whose reading it is while closed", () => {
-    const u: BusinessUnderstanding = { ...fixtureUnderstanding, name: "Harbor Plumbing", kind: "local-service", where: { ...fixtureUnderstanding.where, place: { name: "Austin" } } };
-    expect(subtitleOf(read(u))).toBe("Harbor Plumbing · report.read.as.kind.local-service · Austin");
-    expect(subtitleOf(read({ ...u, kind: null, where: { ...u.where, place: null } }))).toBe("Harbor Plumbing");
-    const none = read({ ...u, name: null, kind: null, where: { ...u.where, place: null } });
-    expect(none.querySelector("details#read > summary h2")).not.toBeNull();
-    expect(none.querySelector("details#read > summary p")).toBeNull();
-  });
-
-  it("What we read links to the one correction while it is offered", () => {
-    const page = parse(render(FIXTURE_REPORT));
-    const link = page.querySelector('details#read + a[href="#read-as"]');
-    expect(page.querySelector('details#read summary a')).toBeNull();
-    expect(link?.text).toBe("verdict.not-your-market");
-    expect(link?.classList.contains("min-h-11")).toBe(true);
-    expect(page.querySelector('#read-as[data-testid="report-read-as"]')).not.toBeNull();
-    // One control: the header's button is the only element that opens the field.
-    expect(page.querySelectorAll("button").filter((b) => b.text === "verdict.not-your-market")).toHaveLength(1);
-    for (const because of ["used", "exhausted", "in_progress", "report_too_old", "domain_removed"] as const) {
-      const closed = parse(render(FIXTURE_REPORT, null, { kind: "none" }, { offered: false, because }));
-      expect(closed.querySelector('a[href="#read-as"]'), because).toBeNull();
-      expect(closed.querySelector("#read-as"), because).not.toBeNull();
-    }
-  });
-
+describe("board PubReport — the first page says what it holds while closed", () => {
   it("the first page says its question while closed", () => {
     const asked = FIXTURE_REPORT.aiAnswers!.rows.find((row) => row.question.search === FIXTURE_REPORT.freePage!.target.keyword);
     expect(asked).toBeDefined();
@@ -869,12 +808,5 @@ describe("board PubReport — What we read and the first page say what they hold
     const bare = parse(render(unasked)).querySelector('[data-testid="report-first-page"] > summary');
     expect(bare?.text).not.toContain(asked!.question.wording.text);
     expect(bare?.querySelector("h2 + p")?.text).toBe(FIXTURE_REPORT.freePage!.target.keyword);
-  });
-
-  it("WhatWeRead without the report's section renders as before", () => {
-    expect(renderToStaticMarkup(React.createElement(WhatWeRead, { understanding: fixtureUnderstanding }))).toMatchSnapshot();
-    expect(
-      renderToStaticMarkup(React.createElement(WhatWeRead, { understanding: fixtureUnderstanding, editHref: "/app/settings/business" }))
-    ).toMatchSnapshot();
   });
 });

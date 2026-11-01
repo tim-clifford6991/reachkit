@@ -99,7 +99,6 @@ export const REPORT_COPY = Object.freeze({
   "verdict.limiting.presence": ["Biggest gap: Google and AI", { slots: {}, fixedBy: "REQ-004 c2 · issue 1444" }],
   "verdict.limiting.presence.line": ["Buyers rarely find you on Google or in AI answers.", { slots: {}, fixedBy: "REQ-004 c2 · issue 1444" }],
   "removal.address": ["remove@reachkit.app", { slots: {}, fixedBy: "REQ-002 c1" }],
-  "removal.line.on-report": ["Own this site and want this report taken down? Write to {address}.", { slots: { address: "text" }, fixedBy: "REQ-002 c1" }],
   "removal.line.removed": ["The site’s owner asked us to remove this report. To scan {domain} again, write to {address}.", { slots: { domain: "text", address: "text" }, fixedBy: "REQ-002 c3" }],
   "notice.incomplete": ["We couldn’t scan {what}, so this report is incomplete.", { slots: { what: "text" }, fixedBy: "REQ-001 c14" }],
   "notice.measurement-failed": ["The last scan didn’t finish, so nothing changed.", { slots: {}, fixedBy: "REQ-001 c16" }],
@@ -127,27 +126,13 @@ export const REPORT_COPY = Object.freeze({
   // SPEC §2 (issue 1450): the site's pages were read and the model gave no
   // profile of them, so the market was read from its listing. Short on
   // purpose (master review on #1451). Drafted (#759).
-  // Issue 1454: what ReachKit read of the business, in one short card on
-  // the free report and on the app's Overview. Drafted (#759).
+  // Issue 1454: the scanning page's section title, and where the business sells. Drafted (#759).
   "report.read.title": ["What we read", { slots: {}, fixedBy: "SPEC §2 · issue 1454" }],
-  "report.read.name": ["Name", { slots: {}, fixedBy: "SPEC §2 · issue 1454" }],
-  "report.read.sells": ["What you sell", { slots: {}, fixedBy: "SPEC §2 · issue 1454" }],
-  "report.read.buyers": ["Who buys", { slots: {}, fixedBy: "SPEC §2 · issue 1454" }],
-  "report.read.where": ["Where", { slots: {}, fixedBy: "SPEC §2 · issue 1454" }],
   "report.read.where.local": ["In and around {place}", { slots: { place: "text" }, fixedBy: "SPEC §2 · issue 1454" }],
   "report.read.where.national": ["Across {country}", { slots: { country: "text" }, fixedBy: "SPEC §2 · issue 1454" }],
   "report.read.where.international": ["Online, in more than one country", { slots: {}, fixedBy: "SPEC §2 · issue 1454" }],
   "report.read.where.measured": ["Searched in {country}", { slots: { country: "text" }, fixedBy: "SPEC §2 · issue 1454" }],
   "report.read.where.unread": ["Not found yet. Searched in {country}", { slots: { country: "text" }, fixedBy: "SPEC §2 · issue 1470" }],
-  "report.read.kind": ["What it is", { slots: {}, fixedBy: "SPEC §2 · issue 1470" }],
-  "report.read.kind.local-service": ["A local service, done in person", { slots: {}, fixedBy: "SPEC §2 · issue 1470" }],
-  "report.read.kind.shop": ["A shop", { slots: {}, fixedBy: "SPEC §2 · issue 1470" }],
-  "report.read.kind.hospitality": ["A restaurant, café, bar or hotel", { slots: {}, fixedBy: "SPEC §2 · issue 1470" }],
-  "report.read.kind.professional-services": ["A firm or agency", { slots: {}, fixedBy: "SPEC §2 · issue 1470" }],
-  "report.read.kind.software": ["Software or an online service", { slots: {}, fixedBy: "SPEC §2 · issue 1470" }],
-  "report.read.kind.creator": ["Courses, teaching or writing", { slots: {}, fixedBy: "SPEC §2 · issue 1470" }],
-  "report.read.none": ["Not found yet", { slots: {}, fixedBy: "SPEC §2 · issue 1454" }],
-  "report.read.edit": ["Correct it in Settings", { slots: {}, fixedBy: "SPEC §4 · issue 1454" }],
   "report.market.from-listing": ["We read your market from your Google listing.", { slots: {}, fixedBy: "SPEC §2 · issue 1450" }],
   "report.market.from-search": ["We couldn’t read your pages, so we found your market on Google.", { slots: {}, fixedBy: "SPEC §2 · issue 1387" }],
   // Issue 898. The site read and its market did not — the profile call or
@@ -543,7 +528,6 @@ export const REPORT_COPY = Object.freeze({
   // ── Module 5, the free page card (REQ-010, BUILD §4.2's trade) ────────
   "free-page.title": ["Your first page, free", { slots: {}, fixedBy: "REQ-010 c1 · board PubReport" }],
   "free-page.badge": ["free", { slots: {}, fixedBy: "REQ-010 c1" }],
-  "free-page.of": ["1 of the {total} pages we found.", { slots: { total: "text" }, fixedBy: "REQ-010 c1" }],
   // The facts list, in the board's order and words (owner R26).
   "free-page.row.target": ["answers", { slots: {}, fixedBy: "REQ-010 c1 · board PubReport · owner R26" }],
   "free-page.row.searched": ["searched", { slots: {}, fixedBy: "board PubReport · owner R26" }],
@@ -929,14 +913,14 @@ export const REPORT_COPY = Object.freeze({
   // Board PubReport, the report's head (canvas V22): what we read the site
   // as, the headline of who gets the buyers, and the score's parts. Drafted in the board's words; the owner corrects them.
   "report.read.as.title": ["We read you as", { slots: {}, fixedBy: "board PubReport · issue 1723" }],
-  "report.read.as.what": ["{category} · {kind}", { slots: { category: "text", kind: "text" }, fixedBy: "board PubReport · issue 1723" }],
+  "report.read.as.what": ["{kind} · {category}", { slots: { category: "text", kind: "text" }, fixedBy: "board PubReport v36 · owner 2026-11-01" }],
   "report.read.as.locale": ["{language}, {country}", { slots: { language: "text", country: "text" }, fixedBy: "board PubReport · issue 1723" }],
-  "report.read.as.kind.local-service": ["local service", { slots: {}, fixedBy: "board PubReport · issue 1723" }],
-  "report.read.as.kind.shop": ["shop", { slots: {}, fixedBy: "board PubReport · issue 1723 · drafted" }],
-  "report.read.as.kind.hospitality": ["restaurant, café, bar or hotel", { slots: {}, fixedBy: "board PubReport · issue 1723 · drafted" }],
-  "report.read.as.kind.professional-services": ["firm or agency", { slots: {}, fixedBy: "board PubReport · issue 1723 · drafted" }],
-  "report.read.as.kind.software": ["software", { slots: {}, fixedBy: "board PubReport · issue 1723 · drafted" }],
-  "report.read.as.kind.creator": ["courses, teaching or writing", { slots: {}, fixedBy: "board PubReport · issue 1723 · drafted" }],
+  "report.read.as.kind.local-service": ["Local service", { slots: {}, fixedBy: "board PubReport v36 · owner 2026-11-01 · drafted" }],
+  "report.read.as.kind.shop": ["Shop", { slots: {}, fixedBy: "board PubReport v36 · owner 2026-11-01 · drafted" }],
+  "report.read.as.kind.hospitality": ["Restaurant or venue", { slots: {}, fixedBy: "board PubReport v36 · owner 2026-11-01 · drafted" }],
+  "report.read.as.kind.professional-services": ["Agency or firm", { slots: {}, fixedBy: "board PubReport v36 · owner 2026-11-01 · drafted" }],
+  "report.read.as.kind.software": ["Software", { slots: {}, fixedBy: "board PubReport v36 · owner 2026-11-01 · drafted" }],
+  "report.read.as.kind.creator": ["Creator or course", { slots: {}, fixedBy: "board PubReport v36 · owner 2026-11-01 · drafted" }],
   "verdict.estimate.range": ["likely {low} to {high}", { slots: { low: "text", high: "text" }, fixedBy: "board PubReport · issue 1723" }],
   "verdict.score.split": ["How this score is split", { slots: {}, fixedBy: "board PubReport · owner R12 2026-10-31" }],
   "verdict.score.parts": ["Four parts, combined into one score. They are not added up.", { slots: {}, fixedBy: "board PubReport · owner O6 2026-10-31" }],
