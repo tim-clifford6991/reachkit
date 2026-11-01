@@ -580,7 +580,7 @@ pass's own log lines.
 ### Re-scoring every stored scan
 
 After **every deploy that changes scoring, rivals or markets**, every stored scan is re-scored
-(owner, 2026-10-14, issue 1426; SPEC §2): a dry run, then an apply. It costs 0¢. It runs in
+(owner, 2026-10-14, issue 1426; SPEC §2) by one guarded apply. It costs 0¢. It runs in
 production as the `scan/rescore` job (issue 1433), with the deployed code, reading the rows
 themselves. It asks no model, and the network is refused while each scan is scored. Nothing is
 exported, and no change is typed back through the connector.
@@ -592,12 +592,16 @@ comments or layout. Types and a lazy `import()` are not followed, so the vendor 
 registry and the constants it never reads are not among them; `node scripts/derivation.mjs --files`
 lists the files it reads from). Each run reads every stored report
 once, and per domain only the home reads those reports are scored with. Production's tick,
-every 15 minutes, finds no run at the deployed derivation and asks a dry run itself
-(`auto = true`). A dry run that moves nothing settles it. Where the dry run's guard holds
-(`RESCORE_GUARD` in `src/lib/config/constants.ts`: no score moves more than 15 points, no scored
-scan loses its number, no more unreadable scans than the run before), the next tick asks the
-apply, and the tick after it a dry run that checks the apply. A deploy whose fingerprint did not
-change asks nothing. Dev's ticks never ask: it reads the same database with newer code.
+every 15 minutes, finds no run at the deployed derivation and asks one apply itself
+(`auto = true`; decision `docs/spec/decisions/2026-11-01-2254.md`). That run scores every stored
+scan in memory and decides the guard before it writes anything (`RESCORE_GUARD` in
+`src/lib/config/constants.ts`: no score moves more than 15 points, no scored scan loses its
+number, no more unreadable scans than the run before). Where the guard stops it, it writes
+nothing. Where the guard passes, it writes, and `rescore_scan` raises on a change that did not
+land, so no check run follows. Only when a scan was written by someone else between the read and
+the write does the run read the stored scans again. Any finished run settles the derivation: one
+`rescore_runs` row per scoring deploy. A deploy whose fingerprint did not change asks nothing.
+Dev's ticks never ask: it reads the same database with newer code.
 
 Where it stands at the deployed derivation:
 
@@ -607,13 +611,13 @@ select requested_at, mode, auto, derivation, finished_at, scans_changed, scans_l
 from rescore_runs order by requested_at desc limit 6;
 ```
 
-**A held run.** `held` says why the guard stopped the apply, or that the check still found scans
-moving after it; `error` says a run failed. Nothing more is asked at that derivation, and every
-tick records `scan/rescore` as `degraded` at `rescore-held` in `job_runs` until it moves on. Each
-public report in `stale_scans` says when it was read and that the reading has changed since. Read
-the summary (step 2 below). If the moves are the change you meant, ask the apply by hand (step 3);
-the tick then asks the check itself. If they are not, the fix is a code change, and its deploy is a
-new derivation that starts over.
+**A held run.** `held` says why the guard stopped the apply before it wrote anything, or that a
+scan written after the read still moves; `error` says a run failed. Nothing more is asked at that
+derivation, and every tick records `scan/rescore` as `degraded` at `rescore-held` in `job_runs`
+until it moves on. Each public report in `stale_scans` says when it was read and that the reading
+has changed since. Read the summary (step 2 below). If the moves are the change you meant, ask the
+apply by hand (step 3). A person's apply is not guarded, and it settles the derivation. If they
+are not, the fix is a code change, and its deploy is a new derivation that starts over.
 
 To ask by hand, as before:
 
@@ -636,7 +640,9 @@ To ask by hand, as before:
    `scans_left` counts the scans written after the read and left alone. Ask again for those. A moved
    site rival set keeps its old rivals under `market.rescored`. A stored name is written only where
    it is still the one the job read; the summary lists each one's before and after.
-4. **Check**: ask for another dry run. `scans_changed` and `sites_moved` read 0.
+4. **No check run is needed.** `rescore_scan` raises on a change that did not land, and the apply
+   reads again any scan it left alone. A dry run still may be asked; `scans_changed` and
+   `sites_moved` read 0.
 
 What it cannot recompute it leaves as stored and lists: Answerability on every scan (a report keeps
 the home page's facts, not the pages beyond it), search presence where a report of version 8 or

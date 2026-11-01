@@ -8,6 +8,7 @@ import { dirname, join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { derivation, derivationFiles } from "../../scripts/derivation.mjs";
 import { claimRequest, type RescoreQueue } from "../../src/lib/scan/rescore-run";
+import { nextStep, type RunRecord } from "../../src/lib/scan/derivation";
 
 const roots: string[] = [];
 afterEach(() => {
@@ -118,7 +119,7 @@ describe("the re-score's derivation", () => {
     expect(files.every((file: string) => file.startsWith("src/lib/"))).toBe(true);
   });
 
-  it("a deploy that changes only the vendor's transport asks a settled derivation nothing, so no stored scan is read; one that changes the re-score asks a dry run", async () => {
+  it("a deploy that changes only the vendor's transport asks a settled derivation nothing, so no stored scan is read; one that changes the re-score asks the apply", async () => {
     const root = copied();
     const settled = derivation(root);
     appendFileSync(join(root, "src/lib/vendors/dataforseo/transport.ts"), "export const deployed = 1;\n");
@@ -132,7 +133,7 @@ describe("the re-score's derivation", () => {
     const queue: RescoreQueue = {
       claim: async () => null,
       runs: async () => [
-        { mode: "dry", derivation: settled, requestedAt: "2026-10-25T04:22:00Z", finishedAt: "2026-10-25T04:23:00Z", error: null, held: null, scansChanged: 0, sitesMoved: 0, unreadable: 0 },
+        { mode: "apply", derivation: settled, requestedAt: "2026-10-25T04:22:00Z", finishedAt: "2026-10-25T04:23:00Z", error: null, held: null, unreadable: 0 },
       ],
       ask: async (mode) => void asked.push(mode),
       answer: async () => undefined,
@@ -142,6 +143,20 @@ describe("the re-score's derivation", () => {
     await expect(claimRequest(at, transport, queue, true)).resolves.toBeNull();
     expect(asked).toEqual([]);
     await claimRequest(at, scoring, queue, true);
-    expect(asked).toEqual(["dry"]);
+    expect(asked).toEqual(["apply"]);
+  });
+
+  it("asks one apply at a new derivation, and nothing after a run there finished, held or failed", () => {
+    const run = (r: Partial<RunRecord>): RunRecord => ({ mode: "apply", derivation: "d1", requestedAt: "2026-11-01T10:00:00Z", finishedAt: "2026-11-01T10:01:00Z", error: null, held: null, unreadable: 0, ...r });
+    const table: [readonly RunRecord[], ReturnType<typeof nextStep>][] = [
+      [[], { ask: "apply" }],
+      [[run({ derivation: "d0" })], { ask: "apply" }],
+      [[run({})], { settled: true }],
+      [[run({ mode: "dry" })], { settled: true }],
+      [[run({ held: "zapier.com moves 20 points" })], { held: "zapier.com moves 20 points" }],
+      [[run({ error: "timeout" })], { held: "the apply failed: timeout" }],
+      [[run({ finishedAt: null })], { wait: true }],
+    ];
+    for (const [runs, step] of table) expect(nextStep(runs, "d1")).toEqual(step);
   });
 });

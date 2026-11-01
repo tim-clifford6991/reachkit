@@ -1,106 +1,22 @@
 // Issues 1426 and 1433 — stored scans and a stored rival set, read again by
 // the current code from what was stored, as the `scan/rescore` job reads
 // them: the rows whole, through a store that stands in for the database.
-import { readFileSync } from "node:fs";
-import { createHash } from "node:crypto";
 import { describe, expect, it, vi } from "vitest";
 import { offline } from "../../../src/lib/egress/offline";
 import { KEPT_CONTENT_PAGES, KEPT_NO_OVERVIEW_TEXT, KEPT_TOWN_BOUGHT, rehomeSite } from "../../../src/lib/scan/rescore";
 import {
-  answerRequest,
-  claimRequest,
   livePagesAt,
   measuredOf,
   rescoreRow,
   rescoreStored,
-  type RescoreQueue,
   type RescoreStore,
-  type ProfileNameWrite,
-  type ScanWrite,
-  type SiteWrite,
   type StoredProfileName,
   type StoredRead,
   type StoredScanRow,
   type StoredSiteRow,
 } from "../../../src/lib/scan/rescore-run";
 import type { RivalConclusion } from "../../../src/lib/market/infer/types";
-import type { RunRecord } from "../../../src/lib/scan/derivation";
-
-const read = (path: string): unknown => JSON.parse(readFileSync(new URL(path, import.meta.url), "utf8"));
-
-interface FixtureScan {
-  id: string;
-  createdAt: string;
-  status: StoredScanRow["status"];
-  score: number | null;
-  drivers: unknown;
-  report: Record<string, unknown>;
-  home: { created_at: string; payload: unknown } | null;
-  rendered: readonly { created_at: string; payload: unknown }[];
-}
-
-/** A scan as #1429's fixtures stored it. */
-const fixture = (domain: string): FixtureScan =>
-  (read(`./fixtures/rescore/${domain}.json`) as { scans: FixtureScan[] }).scans[0]!;
-
-const md5 = (report: unknown): string => createHash("md5").update(JSON.stringify(report)).digest("hex");
-
-/** The database as the job reads and writes it: `rescore_scan`'s guard and
- *  its path-level rewrite, applied to rows held here. */
-function storeOf(scans: readonly FixtureScan[], sites: StoredSiteRow[] = [], profiles: StoredProfileName[] = []) {
-  const rows = new Map<string, StoredScanRow>();
-  const reads = new Map<string, StoredRead[]>();
-  for (const s of scans) {
-    const domain = String(s.report.domain);
-    rows.set(s.id, { ...s, domain, md5: md5(s.report), report: structuredClone(s.report), siteId: null, isCurrent: false });
-    reads.set(domain, [
-      ...(reads.get(domain) ?? []),
-      ...(s.home === null ? [] : [{ source: "egress.safeFetch" as const, ...s.home }]),
-      ...s.rendered.map((r) => ({ source: "on_page/instant_pages" as const, ...r })),
-    ]);
-  }
-  const written: ScanWrite[] = [];
-  const sitesWritten: SiteWrite[] = [];
-  const namesWritten: ProfileNameWrite[] = [];
-  const store: RescoreStore = {
-    scans: async () => [...rows.values()].map((r) => structuredClone(r)),
-    homeReads: async (domain) => reads.get(domain) ?? [],
-    ownReads: async () => ({ own: [], ours: [], oursReads: [] }),
-    sites: async () => sites,
-    profiles: async () => profiles.map((p) => ({ ...p })),
-    answers: async () => [],
-    async writeScan(w) {
-      const row = rows.get(w.id)!;
-      if (row.md5 !== w.md5) return false;
-      written.push(w);
-      const report = structuredClone(row.report) as Record<string, unknown>;
-      const original = { previous: report.previous ?? structuredClone(report), previousColumns: report.previousColumns ?? { score: row.score, status: row.status, drivers: row.drivers } };
-      for (const change of w.changes) {
-        let at = report as Record<string | number, unknown>;
-        for (const key of change.path.slice(0, -1)) at = at[key] as Record<string | number, unknown>;
-        at[change.path[change.path.length - 1]!] = JSON.parse(JSON.stringify(change.value));
-      }
-      const next = { ...report, ...original, rescoredAt: w.at, rescoredBy: w.by };
-      rows.set(w.id, { ...row, report: next, md5: md5(next), score: w.score, status: w.status, drivers: JSON.parse(JSON.stringify(w.drivers)) });
-      return true;
-    },
-    async writeSite(w) {
-      sitesWritten.push(w);
-    },
-    async writeProfileName(w) {
-      const row = profiles.find((p) => p.domain === w.domain);
-      if (row === undefined || row.site_name !== w.from) return false;
-      row.site_name = w.to;
-      namesWritten.push(w);
-      return true;
-    },
-  };
-  return { store, rows, written, sitesWritten, namesWritten };
-}
-
-const at = new Date("2026-10-14T12:00:00Z");
-const dry = { apply: false, version: "abc1234", at };
-const apply = { apply: true, version: "abc1234", at };
+import { apply, dry, fixture, md5, read, storeOf, type FixtureScan } from "./rescore-store";
 
 describe("gusto.com's scan of 8 October (issue 1418): measured off Cloudflare's page, read again", () => {
   it("the dry run says what a new scan would — no score, degraded — and writes nothing", async () => {
@@ -535,159 +451,6 @@ describe("the score's range spans a Google share counted over few searches, re-s
     const db = storeOf([scan]);
     await rescoreStored(db.store, apply);
     expect(verdictWritten(db).estimate).toEqual({ low: 67, high: 67, confidence: "rough" });
-  });
-});
-
-describe("issue 1481: a deploy that changes how a scan is read is followed by a dry run, then an apply, with nobody asking", () => {
-  const DERIVATION = "f026342a5919";
-
-  /** `rescore_runs` as the tick reads and writes it, over the store above. */
-  function queueOf(db: ReturnType<typeof storeOf>) {
-    const runs: (RunRecord & { id: string; started: boolean; auto: boolean; stale: readonly string[] | null })[] = [];
-    let asked = 0;
-    const queue: RescoreQueue & RescoreStore = {
-      ...db.store,
-      async claim() {
-        const next = runs.find((r) => !r.started);
-        if (next === undefined) return null;
-        next.started = true;
-        return { id: next.id, mode: next.mode };
-      },
-      runs: async () => runs.map((r) => ({ ...r })),
-      async ask(mode, when) {
-        asked += 1;
-        runs.push({
-          id: `run-${asked}`,
-          mode,
-          auto: true,
-          started: false,
-          derivation: null,
-          requestedAt: new Date(when.getTime() + asked).toISOString(),
-          finishedAt: null,
-          error: null,
-          held: null,
-          scansChanged: null,
-          sitesMoved: null,
-          unreadable: null,
-          stale: null,
-        });
-      },
-      async answer(id, a, o) {
-        Object.assign(runs.find((r) => r.id === id)!, {
-          finishedAt: o.at.toISOString(),
-          derivation: o.derivation ?? null,
-          held: a.held,
-          scansChanged: a.scansChanged,
-          sitesMoved: a.sitesMoved,
-          unreadable: a.scansUnreadable,
-          stale: a.stale,
-        });
-      },
-      async failed(id, error, o) {
-        Object.assign(runs.find((r) => r.id === id)!, { finishedAt: o.at.toISOString(), error, derivation: o.derivation ?? null });
-      },
-    };
-    /** One tick of `scan/rescore` in production at the deployed derivation. */
-    async function tick(derivation = DERIVATION) {
-      const request = await claimRequest(at, derivation, queue, true);
-      if (request !== null && "id" in request) await answerRequest(request, { version: "abc1234", derivation, at }, queue);
-      return request;
-    }
-    return { queue, runs, tick };
-  }
-
-  /** zapier.com's stored scan with a stored score of 40: read again it is 47,
-   *  a move the guard expects. */
-  const near = ((): FixtureScan => {
-    const s = fixture("zapier.com");
-    const report = structuredClone(s.report) as Record<string, unknown> & { verdict: { scoreAndBand: { value: { score: number } } } };
-    report.verdict.scoreAndBand.value.score = 40;
-    return { ...s, score: 40, report };
-  })();
-
-  it("asks the dry run, then the apply where the guard holds, then a dry run that finds nothing left", async () => {
-    const db = storeOf([near]);
-    const { runs, tick } = queueOf(db);
-
-    await tick();
-    expect(runs.map((r) => [r.mode, r.auto, r.derivation, r.held, r.scansChanged])).toEqual([["dry", true, DERIVATION, null, 1]]);
-    expect(runs[0]!.stale).toEqual([near.id]);
-    expect(db.written).toEqual([]);
-
-    await tick();
-    expect(runs[1]).toMatchObject({ mode: "apply", auto: true, derivation: DERIVATION, scansChanged: 1, stale: [] });
-    expect(db.written[0]).toMatchObject({ id: near.id, score: 47, by: "abc1234" });
-    expect((db.rows.get(near.id)!.report as { rescoredBy?: string }).rescoredBy).toBe("abc1234");
-
-    await tick();
-    expect(runs[2]).toMatchObject({ mode: "dry", auto: true, scansChanged: 0, held: null, stale: [] });
-
-    // Settled: the next tick at the same derivation asks nothing.
-    await expect(tick()).resolves.toBeNull();
-    expect(runs).toHaveLength(3);
-  });
-
-  it("a deploy that does not change the derivation asks nothing again; one that does starts over", async () => {
-    const db = storeOf([near]);
-    const { runs, tick } = queueOf(db);
-    for (let i = 0; i < 4; i += 1) await tick();
-    expect(runs).toHaveLength(3);
-    await tick("0a1b2c3d4e5f");
-    expect(runs.at(-1)).toMatchObject({ mode: "dry", derivation: "0a1b2c3d4e5f", scansChanged: 0 });
-    await expect(tick("0a1b2c3d4e5f")).resolves.toBeNull();
-  });
-
-  it("holds the apply where a score moves further than the guard allows, or loses its number, and says why on every tick", async () => {
-    const db = storeOf([fixture("gusto.com"), fixture("zapier.com")]);
-    const { runs, tick } = queueOf(db);
-    await tick();
-    expect(runs[0]!.held).toBe("zapier.com moves 20 points (27 → 47), more than 15; gusto.com loses its score (0 → none)");
-    expect(runs[0]!.stale).toEqual([fixture("zapier.com").id, fixture("gusto.com").id]);
-    await expect(tick()).resolves.toEqual({ held: runs[0]!.held });
-    await expect(tick()).resolves.toEqual({ held: runs[0]!.held });
-    expect(runs).toHaveLength(1);
-    expect(db.written).toEqual([]);
-  });
-
-  it("holds where the build cannot read a stored scan the run before could", async () => {
-    const db = storeOf([near]);
-    const { queue, runs, tick } = queueOf(db);
-    const unreadable: RescoreQueue & RescoreStore = {
-      ...queue,
-      scans: async () => [...(await queue.scans()), { ...(await queue.scans())[0]!, id: "00000000-0000-0000-0000-000000000001", report: "not a report" }],
-    };
-    for (let i = 0; i < 3; i += 1) await tick("0a1b2c3d4e5f");
-    expect(runs.at(-1)).toMatchObject({ unreadable: 0, scansChanged: 0 });
-    const writes = db.written.length;
-    const request = await claimRequest(at, DERIVATION, unreadable, true);
-    if (request === null || !("id" in request)) throw new Error("no request");
-    await answerRequest(request, { version: "abc1234", derivation: DERIVATION, at }, unreadable);
-    expect(runs.at(-1)!.held).toBe("1 stored scans this build cannot read, 0 before");
-    await expect(claimRequest(at, DERIVATION, unreadable, true)).resolves.toEqual({ held: runs.at(-1)!.held });
-    expect(db.written).toHaveLength(writes);
-  });
-
-  it("a check that still finds moves after the apply is the apply lagging: held, and the scans it names stay stale", async () => {
-    const db = storeOf([near]);
-    const lagging: RescoreStore = { ...db.store, writeScan: async () => false };
-    const { queue, runs } = queueOf(db);
-    const q = { ...queue, writeScan: lagging.writeScan };
-    for (let i = 0; i < 3; i += 1) {
-      const request = await claimRequest(at, DERIVATION, q, true);
-      if (request !== null && "id" in request) await answerRequest(request, { version: "abc1234", derivation: DERIVATION, at }, q);
-    }
-    expect(runs.map((r) => r.mode)).toEqual(["dry", "apply", "dry"]);
-    expect(runs[1]).toMatchObject({ stale: [near.id] });
-    expect(runs[2]!.held).toBe("after the apply, 1 scan still reads differently from the deployed code");
-    await expect(claimRequest(at, DERIVATION, q, true)).resolves.toEqual({ held: runs[2]!.held });
-  });
-
-  it("a request the master session inserted is answered first, and outside production nothing is asked", async () => {
-    const db = storeOf([near]);
-    const { queue, runs } = queueOf(db);
-    await expect(claimRequest(at, DERIVATION, queue, false)).resolves.toBeNull();
-    await expect(claimRequest(at, null, queue, true)).resolves.toBeNull();
-    expect(runs).toEqual([]);
   });
 });
 
