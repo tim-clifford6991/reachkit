@@ -36,7 +36,7 @@
 // fixtures.
 import { WRITE_VOLUME_FLOOR_PER_MONTH } from "@/lib/config/constants";
 import { EFFORT_BY_TYPE } from "@/lib/config/constants";
-import { isOwnDomain, registrableDomain } from "@/lib/market/rivals/domains";
+import { isJobSearch, isOwnDomain, registrableDomain } from "@/lib/market/rivals/domains";
 import { measured, type Measured } from "@/lib/measure/measured";
 import { measuredLocale } from "@/lib/locale/locales";
 import type { StoredReport } from "@/lib/scan/report";
@@ -125,6 +125,7 @@ export function writeCandidates(a: WriteInput): DerivationResult {
   const rivalDomains =
     report.rivals.kind === "unmeasured" ? [] : report.rivals.value.map((rival) => rival.domain);
   const answerRows = report.aiAnswers?.rows ?? [];
+  const category = report.market.kind === "unmeasured" ? null : report.market.value.profile.category;
   const rivalSet = new Set(
     [...rivalDomains, ...(a.marketRivals ?? [])]
       .map((domain) => registrableDomain(domain) ?? domain)
@@ -139,7 +140,8 @@ export function writeCandidates(a: WriteInput): DerivationResult {
 
   report.questions.value.forEach((question, index) => {
     const serpAt = report.serps[index];
-    if (serpAt === undefined || serpAt.kind === "unmeasured") return;
+    // A job seeker's search is not a buyer's, for any page.
+    if (serpAt === undefined || serpAt.kind === "unmeasured" || isJobSearch(serpAt.value.organic, category)) return;
     const serp = serpAt.value;
     const query = question.search.keyword;
     const volume = measured(question.search.volume, at);

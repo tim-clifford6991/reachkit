@@ -99,7 +99,7 @@ export function cardsOf(a: {
     for (const size of a.rivalSizes.value) if (size.state === "sized" && size.band !== undefined) sizes.set(size.domain, size.band);
   }
   const local = a.reach !== undefined && readsLocal({ ...a.reach, serps: readSerps });
-  const derivation = deriveRivals({ serps: readSerps, ownDomain: a.ownDomain, sizes, local });
+  const derivation = deriveRivals({ serps: readSerps, ownDomain: a.ownDomain, sizes, local, category: a.reach?.profile?.category });
 
   return {
     rivals: derivation.rivals,
@@ -109,6 +109,8 @@ export function cardsOf(a: {
       selected: a.selected ?? a.questions.map((question) => question.search),
       ownDomain: a.ownDomain,
       rivals: derivation.rivals,
+      local,
+      sources: derivation.sources,
     }),
     card: buildAiAnswersCard({
       questions: a.questions,

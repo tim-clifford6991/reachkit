@@ -5,9 +5,9 @@
 // intended. 0¢: stored evidence only, and no vendor client is built.
 import "../../opportunities/env";
 import { describe, expect, it } from "vitest";
-import { isListingHost, isPlatformDomain, registrableDomain } from "@/lib/market/rivals/domains";
+import { isListingHost, isPlatformDomain, isPublicHost, isSourceRow, registrableDomain } from "@/lib/market/rivals/domains";
 import { writeCandidates } from "@/lib/opportunities/derive/write";
-import { panelDomains } from "../plan/panel";
+import { businessOf, panelDomains, storedPayloads } from "../plan/panel";
 import { panelReport } from "./panel";
 
 /** The sites whose stored searches name a holder that is no rival today: the
@@ -25,6 +25,10 @@ const HOLDER_NOT_A_RIVAL: ReadonlySet<string> = new Set([
   "wesbos.com",
   "zunicafe.com",
 ]);
+
+/** The sites whose stored searches hold a public body as their first row
+ *  not the site's own, today's holder; the shared holder rule flips them. */
+const PUBLIC_HOLDER: ReadonlySet<string> = new Set(["clearleft.com"]);
 
 function holders(domain: string) {
   const { report, rivals } = panelReport(domain);
@@ -75,4 +79,49 @@ describe("every holder is a rival, never a listing or a platform", () => {
       }
     });
   }
+});
+
+describe("no public host is a rival or a holder", () => {
+  for (const domain of panelDomains()) {
+    it(`${domain}: rivals`, () => {
+      expect(holders(domain).rivals.map((rival) => rival.domain).filter((rival) => isPublicHost(rival))).toEqual([]);
+    });
+    (PUBLIC_HOLDER.has(domain) ? it.fails : it)(`${domain}: holders`, () => {
+      expect(holders(domain).searches.flatMap(({ holder }) => (holder !== null && isPublicHost(holder) ? [holder] : []))).toEqual([]);
+    });
+  }
+});
+
+describe("the panel's top tens: a source row is set aside and a business's row is not", () => {
+  // Every row these hold on any panel site is a source.
+  const SOURCES = ["yelp.com", "pinterest.com", "tripadvisor.com", "practo.com", "mybuilder.com", "reddit.com", "ubereats.com", "google.com"];
+  // Each holds a search on some panel site as a business.
+  const BUSINESSES = ["jpelectricalleeds.co.uk", "portlandfamilydentistry.com", "calendly.com", "inkbox.com"];
+  const rows = panelDomains().flatMap((site) => {
+    const { report, rivals } = panelReport(site);
+    const reading = { local: businessOf(site).serves !== null, sources: report.sources, rivals: rivals.map((rival) => rival.domain) };
+    return [...storedPayloads(site).values()].flatMap(({ serp }) =>
+      serp.organic.map((row) => ({ site, row, domain: registrableDomain(row.domain), source: isSourceRow(row, reading), rival: reading.rivals.includes(registrableDomain(row.domain) ?? "") }))
+    );
+  });
+
+  it.each(SOURCES)("%s is a source on every row", (name) => {
+    const held = rows.filter(({ domain }) => domain === name);
+    expect(held.length).toBeGreaterThan(0);
+    expect(held.filter(({ source }) => !source).map(({ site, row }) => `${site}: ${row.title}`)).toEqual([]);
+  });
+
+  it("a public body is a source on every row", () => {
+    const held = rows.filter(({ row }) => isPublicHost(row.domain));
+    expect(held.length).toBeGreaterThan(0);
+    expect(held.every(({ source }) => source)).toBe(true);
+  });
+
+  it.each(BUSINESSES)("%s holds a row as a business", (name) => {
+    expect(rows.some(({ domain, source }) => domain === name && !source)).toBe(true);
+  });
+
+  it("a report rival's row is never a source", () => {
+    expect(rows.filter(({ rival, source }) => rival && source)).toEqual([]);
+  });
 });
