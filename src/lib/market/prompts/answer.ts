@@ -71,6 +71,17 @@ export function citedPagesOf(citedUrls: readonly string[], ownDomain: string): s
   return [...pages];
 }
 
+/** ChatGPT read the page while answering but did not link it; `null` where the answer kept no reads, so unknown is never "not found". */
+export function foundNotLinked(
+  answer: { readonly citedUrls?: readonly string[]; readonly retrievedUrls?: readonly string[] },
+  pageUrl: string
+): boolean | null {
+  if (answer.retrievedUrls === undefined || answer.citedUrls === undefined) return null;
+  const page = pageOf(pageUrl);
+  const holds = (urls: readonly string[]) => page !== null && urls.some((url) => pageOf(url) === page);
+  return holds(answer.retrievedUrls) && !holds(answer.citedUrls);
+}
+
 export function readPromptAnswer(a: {
   text: string;
   citedDomains: readonly string[];

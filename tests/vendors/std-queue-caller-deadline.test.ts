@@ -155,3 +155,30 @@ describe("a caller's own ceiling bounds the standard queue's wait (issue 902)", 
     expect(result.kind).not.toBe("unmeasured");
   });
 });
+
+describe("a queued ChatGPT ask read again keeps what the first call keeps", () => {
+  it("collectAiAnswer's answer carries the fan-outs and retrieved pages", async () => {
+    stubVendorFetch(() =>
+      envelope({
+        items: [
+          {
+            markdown: "Try these.",
+            fan_out_queries: ["onboarding software for startups"],
+            search_results: [{ url: "https://retrieved-a.test/a" }],
+            sources: [{ url: "https://cited-one.test/" }],
+          },
+        ],
+      })
+    );
+    vi.useFakeTimers();
+
+    const pending = ai.collectAiAnswer({ engine: "chatgpt", taskId: "queued-902", untilMs: Date.now() + ceilingMs() });
+    await vi.advanceTimersByTimeAsync(constants.VENDOR.stdQueuePollIntervalS * 1000 * 2);
+    const collected = await pending;
+
+    expect(collected.kind).toBe("answer");
+    if (collected.kind !== "answer") throw new Error("unreachable");
+    expect(collected.rows[0]?.fanOuts).toEqual(["onboarding software for startups"]);
+    expect(collected.rows[0]?.retrievedUrls).toEqual(["https://retrieved-a.test/a"]);
+  });
+});
