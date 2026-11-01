@@ -123,6 +123,25 @@ describe("a page for job seekers and a public body are sources, read one way for
     expect(isJobRow({ domain: "example.com.au", title: "Fresh bread, baked daily" })).toBe(false);
   });
 
+  it.each([
+    ["en", "What does a pastry chef do?"],
+    ["en", "Baker job description: duties and skills"],
+    ["en", "Duties of an electrician"],
+    ["de", "Was macht eine Bäckerin?"],
+    ["fr", "Que fait un boulanger au quotidien"],
+    ["es", "¿Qué hace un panadero?"],
+    ["nl", "Wat doet een bakker?"],
+  ])("reads an occupation guide's title as one (%s): %s", (_language, title) => {
+    expect(isJobRow({ domain: "example.com", url: "https://example.com/guide", title })).toBe(true);
+  });
+
+  it.each(["What does a baker charge for a wedding cake", "Bäckerei Müller – was macht unser Brot besonders", "Job lot clearance sale"])(
+    "never reads a business's own title as a guide: %s",
+    (title) => {
+      expect(isJobRow({ domain: "example.com", url: "https://example.com/shop", title })).toBe(false);
+    }
+  );
+
   it("reads a careers host and a vacancies address", () => {
     expect(isJobRow({ domain: "careers.example.com", title: "Open roles" })).toBe(true);
     expect(isJobRow({ domain: "example.com", url: "https://example.com/vacancies/baker-123", title: "Baker" })).toBe(true);

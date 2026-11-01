@@ -20,7 +20,7 @@
 // all `./domains`' — one implementation in the product, not two.
 import { BATTERY, RIVAL_SCORE } from "@/lib/config/constants";
 import type { MarketSerp } from "../views";
-import { isArticleRow, isArticleUrl, isExplainerTitle, isHomeUrl, isJobSearch, isOthersPage, isOwnContentUrl, isOwnDomain, isPlaceTitle, isRoundupPage, isSourceDomain, pageClass, pageKey, registrableDomain, resolvedRows } from "./domains";
+import { isArticleRow, isArticleUrl, isExplainerTitle, isHomeUrl, isJobRow, isJobSearch, isOthersPage, isOwnContentUrl, isOwnDomain, isPlaceTitle, isRoundupPage, isSourceDomain, pageClass, pageKey, registrableDomain, resolvedRows, servesJobSeekers } from "./domains";
 
 /** `band.ts`'s `RivalSizeBand`, spelled out: the free card's modules name no
  *  sizing module, not even for a type (§6.4, `size.test.ts`). */
@@ -55,6 +55,8 @@ interface Tally {
    *  others (`isRoundup`). */
   organicRows: number;
   roundupRows: number;
+  /** Its organic rows that are for job seekers or explain a subject (`isGuide`). */
+  guideRows: number;
   /** Its best place in an organic top ten, and among an AI overview's
    *  citations; `NO_POSITION` where it holds none. */
   bestPosition: number;
@@ -169,6 +171,9 @@ export function deriveRivals(a: {
       ? isOthersPage(row, true)
       : pageClass(row) === "third_party" ||
         ((isArticleRow(row) || (row.title !== undefined && isExplainerTitle(row.title))) && (row.url === undefined || !isOwnContentUrl(row.url)));
+  // A page for job seekers, unless they are this business's buyers, or in a local market one that explains a subject: outside one a software maker explains its own market.
+  const isGuide = (row: { domain: string; url?: string; title?: string }): boolean =>
+    (!servesJobSeekers(a.category) && isJobRow(row)) || (local && row.title !== undefined && isExplainerTitle(row.title) && (row.url === undefined || !isHomeUrl(row.url)));
   // The share of a search's titled top ten that `test` holds, at least half.
   const mostly = (serp: MarketSerp, test: (title: string) => boolean): boolean => {
     const titles = serp.organic.flatMap((row) => (row.title === undefined ? [] : [row.title]));
@@ -182,7 +187,7 @@ export function deriveRivals(a: {
   const tally = (domain: string): Tally => {
     const existing = tallies.get(domain);
     if (existing) return existing;
-    const fresh: Tally = { domain, top10Appearances: 0, aiCitations: 0, searches: new Set(), offered: new Set(), localPack: 0, organicRows: 0, roundupRows: 0, bestPosition: NO_POSITION, bestCitation: NO_POSITION };
+    const fresh: Tally = { domain, top10Appearances: 0, aiCitations: 0, searches: new Set(), offered: new Set(), localPack: 0, organicRows: 0, roundupRows: 0, guideRows: 0, bestPosition: NO_POSITION, bestCitation: NO_POSITION };
     tallies.set(domain, fresh);
     productDomains += 1;
     return fresh;
@@ -262,6 +267,7 @@ export function deriveRivals(a: {
       t.organicRows += 1;
       t.bestPosition = Math.min(t.bestPosition, row.position);
       if (isRoundup(row)) t.roundupRows += 1;
+      if (isGuide(row)) t.guideRows += 1;
       if (countedTop10.has(domain)) continue;
       countedTop10.add(domain);
       t.top10Appearances += 1;
@@ -339,6 +345,7 @@ export function deriveRivals(a: {
     const banded = sizes.has(t.domain) && sizes.get(t.domain) !== "far";
     const publisher =
       (t.localPack === 0 && t.organicRows > 0 && t.roundupRows === t.organicRows && t.aiCitations === 0) ||
+      (t.localPack === 0 && t.organicRows > 0 && t.guideRows === t.organicRows) ||
       (t.offered.size === 0 && t.searches.size < 2);
     if (publisher) {
       if (!seenSources.has(t.domain)) platforms -= 1;

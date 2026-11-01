@@ -413,15 +413,54 @@ describe("a public body and a job seeker's search give no rival, except to a bus
     expect(sources).toEqual(["yourcareer.gov.au", "tn.gov"]);
   });
 
-  it("a bakery's mostly-jobs search gives no rival, and its bread search with one job row is kept", () => {
+  it("a bakery's mostly-jobs search gives no rival, and its bread search with one job row is kept, the job board left out", () => {
     const rivals = domains({ serps: [baker, bread], ownDomain: "bakersdelight.com.au", category: "bakery" });
-    expect(rivals).toEqual(["woolworths.com.au", "coles.com.au", "phillippas.com.au", "seek.com.au"]);
+    expect(rivals).toEqual(["woolworths.com.au", "coles.com.au", "phillippas.com.au"]);
   });
 
   it("a recruitment agency keeps the same searches' rivals", () => {
     const rivals = domains({ serps: [baker, warehouse], ownDomain: "agency.com.au", category: "recruitment agency" });
     expect(rivals).toEqual(expect.arrayContaining(["bakingcareer.com.au", "seek.com.au", "adecco.com.au"]));
     expect(rivals).not.toContain("yourcareer.gov.au");
+  });
+});
+
+describe("a site whose every top-ten page is a job, career or explainer page is a publisher, whatever the overviews cite", () => {
+  type Row = [domain: string, url: string, title: string];
+  const searched = (rows: Row[], cited: string[]): MarketSerp => ({
+    organic: rows.map(([domain, url, title], i) => ({ position: i + 1, domain, url, title })),
+    aiOverview: { present: true, referenceDomains: cited.map((url) => new URL(url).hostname), referenceUrls: cited },
+  });
+  const guide: Row = ["bakingcareer.com.au", "https://bakingcareer.com.au/what-does-a-baker-do/", "What does a baker do? | Baking Career"];
+  const shops: Row[] = [
+    ["www.phillippas.com.au", "https://www.phillippas.com.au/", "Phillippa's Bakery"],
+    ["www.lunebakery.com", "https://www.lunebakery.com/", "Lune Croissanterie"],
+  ];
+  const product: Row = ["www.brumbys.com.au", "https://www.brumbys.com.au/products/sourdough", "Sourdough Loaf | Brumby's"];
+  const explainer: Row = ["www.brumbys.com.au", "https://www.brumbys.com.au/sourdough-starter", "What is a sourdough starter?"];
+  const serps = [searched([guide, product, ...shops], [guide[1]]), searched([guide, explainer, ...shops], [guide[1], explainer[1]])];
+  const derived = (a: { local: boolean }) => deriveRivals({ serps, ownDomain: "bakersdelight.com.au", category: "bakery", ...a });
+
+  it("a career guide with one organic row and one AI citation is no rival", () => {
+    const { rivals, sources } = deriveRivals({ serps: [searched([guide, ...shops], [guide[1]])], ownDomain: "bakersdelight.com.au", category: "bakery" });
+    expect(rivals.map((rival) => rival.domain)).toEqual(["phillippas.com.au", "lunebakery.com"]);
+    expect(sources).toContain("bakingcareer.com.au");
+  });
+
+  it("a rival bakery's own product page still counts", () => {
+    for (const local of [true, false]) {
+      const { rivals, sources } = derived({ local });
+      expect(rivals.map((rival) => rival.domain), String(local)).toContain("brumbys.com.au");
+      expect(rivals.map((rival) => rival.domain), String(local)).not.toContain("bakingcareer.com.au");
+      expect(sources, String(local)).toContain("bakingcareer.com.au");
+    }
+  });
+
+  it("in a local market a site that only explains is a publisher; outside one it is a business explaining its market", () => {
+    const only = [searched([explainer, ...shops], [explainer[1]]), searched([explainer, ...shops], [])];
+    const rivalsOf = (local: boolean) => deriveRivals({ serps: only, ownDomain: "bakersdelight.com.au", local }).rivals.map((rival) => rival.domain);
+    expect(rivalsOf(true)).not.toContain("brumbys.com.au");
+    expect(rivalsOf(false)).toContain("brumbys.com.au");
   });
 });
 
