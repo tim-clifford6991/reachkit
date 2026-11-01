@@ -43,6 +43,7 @@ export async function sendSignInLink(a: {
     kind: "magic-link",
     to: a.email,
     subject: mail.subject,
+    preheader: mail.preheader,
     blocks: mail.blocks,
     reason: mail.reason,
   });

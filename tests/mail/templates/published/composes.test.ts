@@ -96,20 +96,10 @@ describe("issue #457 — the found arm composes once its paragraph is written", 
     expect(text).not.toContain("{checkedAt}");
   });
 
-  it("the fact row reads the approved word, and the date is its value", () => {
+  it("the date is said once, in the paragraph, and the one fact row is the address", () => {
     const { text } = renderBlocksText(mail().blocks);
-    expect(text).toContain(`verified: ${STAMP}`);
-  });
-
-  it("the label is its own key — the paragraph's key is never read as one", () => {
-    const facts = mail().blocks.find((b) => b.block === "facts");
-    if (facts?.block !== "facts") throw new Error("unreachable");
-    expect(facts.items.map((item) => item.label)).toEqual([
-      "mail.published.address_label",
-      "mail.published.verified_label",
-    ]);
-    // Ruling 11a: S20 draws this row "verified", unbracketed, so the word
-    // is the set's and not a sentence this test invented.
-    expect(COPY["mail.published.verified_label"]).toBe("verified");
+    expect(text.split(STAMP)).toHaveLength(2);
+    const facts = mail().blocks.filter((b) => b.block === "facts");
+    expect(facts).toEqual([{ block: "facts", items: [{ label: "mail.published.address_label", value: LIVE_URL }] }]);
   });
 });

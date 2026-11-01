@@ -15,7 +15,7 @@ describe("#1121 — the mail head shows the logo in every inbox", () => {
         wholeMailLine: null,
         reason: null,
         imprint: null,
-        plainTextNote: "",
+        preheader: null,
         optOut: null,
         links: [],
       })

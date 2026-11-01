@@ -80,6 +80,7 @@ export async function sendHostingEndNotice(siteId: string): Promise<HostingNotic
     kind: "account",
     to: site.owner_email,
     subject: mail.subject,
+    preheader: mail.preheader,
     blocks: mail.blocks,
   });
   if (!result.sent) return { sent: false, because: "mail" };

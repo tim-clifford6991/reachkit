@@ -188,7 +188,7 @@ export async function composePreview(kind: PreviewKind): Promise<PreviewMail> {
     case "magic-link": {
       const { buildMagicLink } = await import("../../../src/lib/mail/templates/magic-link");
       const mail = buildMagicLink({ href: `${APP}/signin?t=preview`, address: "you@example.com" });
-      return composeMail({ kind, subject: mail.subject, blocks: mail.blocks, reason: mail.reason });
+      return composeMail({ kind, subject: mail.subject, preheader: mail.preheader, blocks: mail.blocks, reason: mail.reason });
     }
     case "report": {
       const { buildReport } = await import("../../../src/lib/mail/templates/report");
@@ -208,6 +208,7 @@ export async function composePreview(kind: PreviewKind): Promise<PreviewMail> {
         kind,
         subject: mail.subject,
         subjectVars: mail.subjectVars,
+        preheader: mail.preheader,
         blocks: mail.blocks,
         reason: mail.reason,
         reasonVars: mail.reasonVars,
@@ -226,7 +227,7 @@ export async function composePreview(kind: PreviewKind): Promise<PreviewMail> {
       return composeMail({
         kind,
         subject: mail.subject,
-        subjectVars: mail.subjectVars,
+        preheader: mail.preheader,
         blocks: mail.blocks,
         reason: mail.reason,
         optOut: mail.optOut,
@@ -245,7 +246,7 @@ export async function composePreview(kind: PreviewKind): Promise<PreviewMail> {
       return composeMail({
         kind,
         subject: mail.subject,
-        subjectVars: mail.subjectVars,
+        preheader: mail.preheader,
         blocks: mail.blocks,
         reason: mail.reason,
       });
@@ -256,6 +257,7 @@ export async function composePreview(kind: PreviewKind): Promise<PreviewMail> {
       return composeMail({
         kind,
         subject: mail.subject,
+        preheader: mail.preheader,
         blocks: mail.blocks,
         reason: mail.reason,
         optOut: UNSUBSCRIBE,
@@ -295,6 +297,7 @@ export async function composePreview(kind: PreviewKind): Promise<PreviewMail> {
       return composeMail({
         kind,
         subject: mail.subject,
+        preheader: mail.preheader,
         blocks: mail.blocks,
         reason: mail.reason,
         measurement: { state: "complete" },
@@ -308,6 +311,7 @@ export async function composePreview(kind: PreviewKind): Promise<PreviewMail> {
       return composeMail({
         kind,
         subject: mail.subject,
+        preheader: mail.preheader,
         blocks: mail.blocks,
         reason: mail.reason,
         optOut: mail.optOut,
@@ -332,6 +336,7 @@ export async function composeUnmeasuredWeek(): Promise<PreviewMail> {
   return composeMail({
     kind: "weekly",
     subject: mail.subject,
+    preheader: mail.preheader,
     blocks: mail.blocks,
     reason: mail.reason,
     measurement: { state: "none", nextDueOn: new Date("2026-09-14T06:00:00.000Z") },
@@ -355,7 +360,7 @@ export async function composeWaitingForAddress(): Promise<PreviewMail> {
     page: PREVIEW_PAGE,
     record: { type: "CNAME", name: "help", value: "hosted.example.net" },
   });
-  return composeMail({ kind: "draft-ready", subject: mail.subject, subjectVars: mail.subjectVars, blocks: mail.blocks, reason: mail.reason });
+  return composeMail({ kind: "draft-ready", subject: mail.subject, preheader: mail.preheader, blocks: mail.blocks, reason: mail.reason });
 }
 
 /** SPEC §8's retention mails (issue 641). Their lines are owner-owed, so a
@@ -433,6 +438,7 @@ export async function composeRemainingPreview(
       return composeMail({
         kind,
         subject: mail.subject,
+        preheader: mail.preheader,
         blocks: mail.blocks,
         reason: mail.reason,
         optOut: mail.optOut,
@@ -441,7 +447,7 @@ export async function composeRemainingPreview(
     case "setup-reminder": {
       const { buildSetupReminder } = await import("../../../src/lib/mail/templates/setup-reminder");
       const mail = buildSetupReminder({ signInHref: `${APP}/signin?t=preview&next=/app/setup` });
-      return composeMail({ kind, subject: mail.subject, blocks: mail.blocks, reason: mail.reason });
+      return composeMail({ kind, subject: mail.subject, preheader: mail.preheader, blocks: mail.blocks, reason: mail.reason });
     }
     case "account": {
       // The 15-minute chase with a link — SPEC §8's Onboarding row is where
@@ -451,7 +457,7 @@ export async function composeRemainingPreview(
       // account, a broken destination) wear this same shell.
       const { buildChaseWithLink } = await import("../../../src/lib/mail/templates/account");
       const mail = buildChaseWithLink({ href: `${APP}/signin?t=preview` });
-      return composeMail({ kind, subject: mail.subject, blocks: mail.blocks, reason: mail.reason });
+      return composeMail({ kind, subject: mail.subject, preheader: mail.preheader, blocks: mail.blocks, reason: mail.reason });
     }
     case "ops": {
       // §6.5's spend ceiling, which is the occasion the register row cites.

@@ -7,8 +7,10 @@ import type { OptOutControl } from "../shell/compose";
 /** Each opens on its subject line as a heading, so the inbox row and the first line cannot differ. */
 export interface RetentionMail {
   readonly subject: CopyKey;
+  readonly preheader: CopyKey;
   readonly blocks: readonly MailBlock[];
   readonly reason?: CopyKey;
+  readonly reasonVars?: Readonly<Record<string, string | number>>;
   /** Present on the kinds the address-wide opt-out stops. */
   readonly optOut?: OptOutControl;
 }

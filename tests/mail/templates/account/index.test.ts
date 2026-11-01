@@ -75,6 +75,7 @@ describe('REQ-077 c3 (issue #35) — the address has moved, and the old one is t
   it("says so, and names a way to reach a person", () => {
     expect(buildAddressMoved()).toEqual({
       subject: "mail.account.address_moved.subject",
+      preheader: "mail.account.address_moved.preheader",
       blocks: [
         { block: "paragraph", text: "mail.account.address_moved" },
         { block: "notice", text: "mail.account.reach_a_person" },

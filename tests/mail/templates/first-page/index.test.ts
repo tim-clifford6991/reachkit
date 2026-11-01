@@ -43,7 +43,7 @@ describe('REQ-010 c4 — "it contains the complete page in a copy-ready form, th
       vars: { title: "How Acme compares to Rival" },
     });
     expect(mail.subject).toBe("mail.firstPage.subject");
-    expect(mail.subjectVars).toEqual({ title: "How Acme compares to Rival" });
+    expect(mail.preheader).toBe("mail.firstPage.preheader");
     expect(mail.reason).toBe("mail.reason.firstPage");
   });
 
