@@ -573,8 +573,8 @@ export const REPORT_COPY = Object.freeze({
     { law: "no-presence-yet", slots: {}, fixedBy: "REQ-010 c1" },
   ],
   "landing.headline": [
-    "Get found on Google and AI.",
-    { slots: {}, fixedBy: "REQ-001 c1" },
+    "Google and AI find your competitors. Why not you?",
+    { slots: {}, fixedBy: "REQ-001 c1 · owner O1 · 2026-10-31" },
   ],
   "landing.field.label": ["Your website", { slots: {}, fixedBy: "REQ-001 c1" }],
   "landing.submit.label": ["Scan my site", { slots: {}, fixedBy: "REQ-001 c1" }],
@@ -601,9 +601,9 @@ export const REPORT_COPY = Object.freeze({
   //
   // L7–L10 were the demo video block. Issue 1396 replaced the frame with
   // *What happens every day* (`landing.day.*` in `chrome.ts`).
-  "landing.subline": ["We research your business and your competitors, then put up to {weekPages} pages a week live on your site, while you get on with business.", { slots: { weekPages: "text" }, fixedBy: "board Landing · issue 1596" }],
+  "landing.subline": ["We research your business and competitors, then write pages that get you found, on autopilot.", { slots: {}, fixedBy: "owner O2 · 2026-10-31" }],
   "landing.why.eyebrow": ["Why you should care", { slots: {}, fixedBy: "issue 266 · L11" }],
-  "landing.why.heading": ["Your competitors are being found.", { slots: {}, fixedBy: "issue 266 · L12" }],
+  "landing.why.heading": ["Buyers ask AI what to use.", { slots: {}, fixedBy: "issue 266 · L12" }],
   "landing.why.body": ["The answer names a few businesses. If yours isn’t one, that buyer never meets you.", { slots: {}, fixedBy: "issue 266 · L13" }],
   "landing.start.eyebrow": ["How it works", { slots: {}, fixedBy: "board Landing · issue 1596" }],
   "landing.start.heading": ["You scan. We write. You watch.", { slots: {}, fixedBy: "board Landing · issue 1596" }],
@@ -636,39 +636,14 @@ export const REPORT_COPY = Object.freeze({
   "landing.trust": ["{price} a month, VAT included · Cancel any time · Up to {checks} checks before any page goes live", { slots: { price: "text", checks: "text" }, fixedBy: "board Landing · issue 1596" }],
   /** The pace (owner, A1, 2026-10-19). The number is `WEEK_PLAN.days`. */
   "landing.pace": ["Up to {weekPages} pages a week, new or updated. Never filler.", { slots: { weekPages: "text" }, fixedBy: "owner A1 · 2026-10-19" }],
-  /** The hero's story card: five frames, one example business. */
+  /** The hero's story card: four frames, one example business, as few words as possible (owner O3). */
   "landing.story.title": ["How ReachKit works for you", { slots: {}, fixedBy: "board Landing · issue 1596" }],
-  "landing.story.1.title": ["Your business", { slots: {}, fixedBy: "board Landing · issue 1596" }],
-  "landing.story.1.line": ["Your website is the start. Nothing to fill in.", { slots: {}, fixedBy: "board Landing · issue 1596" }],
-  "landing.story.2.title": ["We research it", { slots: {}, fixedBy: "board Landing · issue 1596" }],
-  "landing.story.2.line": ["What you do, who buys, and who they pick instead.", { slots: {}, fixedBy: "board Landing · issue 1596" }],
-  "landing.story.3.title": ["Pages go live every week", { slots: {}, fixedBy: "board Landing · issue 1596" }],
-  "landing.story.3.line": ["Written from your site. Never filler.", { slots: {}, fixedBy: "board Landing · issue 1596" }],
-  "landing.story.4.title": ["Found on Google and AI", { slots: {}, fixedBy: "board Landing · issue 1596" }],
-  "landing.story.4.line": ["An example of the goal, not a promise.", { slots: {}, fixedBy: "board Landing · issue 1596" }],
-  "landing.story.5.title": ["You get on with business", { slots: {}, fixedBy: "board Landing · issue 1596" }],
-  "landing.story.5.line": ["A Monday email shows what moved.", { slots: {}, fixedBy: "board Landing · issue 1726" }],
-  /** The story card's sample rows: one example business, never a measurement. */
-  "landing.story.2.what": ["What you do:", { slots: {}, fixedBy: "board Landing · issue 1726 · drafted" }],
-  "landing.story.2.services": ["plumbing repairs, water heaters", { slots: {}, fixedBy: "board Landing · issue 1726 · drafted" }],
-  "landing.story.2.who": ["Who buys:", { slots: {}, fixedBy: "board Landing · issue 1726 · drafted" }],
-  "landing.story.2.buyers": ["homeowners in {place}", { slots: { place: "text" }, fixedBy: "board Landing · issue 1726 · drafted" }],
-  "landing.story.2.rival": ["Picked instead:", { slots: {}, fixedBy: "board Landing · issue 1726 · drafted" }],
+  "landing.story.1.title": ["Competitors get found", { slots: {}, fixedBy: "board Landing · issue 1596" }],
+  "landing.story.2.title": ["We research", { slots: {}, fixedBy: "board Landing · issue 1596" }],
+  "landing.story.3.title": ["We write pages", { slots: {}, fixedBy: "board Landing · issue 1596" }],
+  "landing.story.4.title": ["You get found", { slots: {}, fixedBy: "board Landing · issue 1596" }],
   "landing.story.2.more": ["+{more} more", { slots: { more: "text" }, fixedBy: "board Landing · issue 1726 · drafted" }],
-  "landing.story.3.page.1": ["Slab leak repair cost in {place}", { slots: { place: "text" }, fixedBy: "board Landing · issue 1726 · drafted" }],
-  "landing.story.3.page.2": ["Water heater repair in {place}", { slots: { place: "text" }, fixedBy: "board Landing · issue 1726 · drafted" }],
-  "landing.story.3.live": ["Live {time}", { slots: { time: "text" }, fixedBy: "board Landing · issue 1726 · drafted" }],
-  "landing.story.3.pace": ["up to {weekPages} a week, new or updated", { slots: { weekPages: "text" }, fixedBy: "board Landing · issue 1726 · drafted" }],
-  "landing.story.4.quote": ["AI: “… try {business} …”", { slots: { business: "text" }, fixedBy: "board Landing · issue 1726 · drafted" }],
-  "landing.story.5.day": ["Your day:", { slots: {}, fixedBy: "board Landing · issue 1726 · drafted" }],
-  "landing.story.5.job": ["burst pipe call-out, 7 a.m.", { slots: {}, fixedBy: "board Landing · issue 1726 · drafted" }],
-  "landing.story.5.mail": ["Monday email:", { slots: {}, fixedBy: "board Landing · issue 1726 · drafted" }],
-  /** The phone's compact strip under the hero: the story card's five frames in two or three words. */
-  "landing.flow.1": ["Your business", { slots: {}, fixedBy: "board Landing · issue 1726 · drafted" }],
-  "landing.flow.2": ["We research", { slots: {}, fixedBy: "board Landing · issue 1726 · drafted" }],
-  "landing.flow.3": ["Pages go live", { slots: {}, fixedBy: "board Landing · issue 1726 · drafted" }],
-  "landing.flow.4": ["Found on Google and AI", { slots: {}, fixedBy: "board Landing · issue 1726 · drafted" }],
-  "landing.flow.5": ["You run your business", { slots: {}, fixedBy: "board Landing · issue 1726 · drafted" }],
+  "landing.story.3.live": ["Live", { slots: {}, fixedBy: "board PubLanding · owner O3 · 2026-10-31" }],
   /** Under the three steps: the loop, and the owner's one-time part. */
   "landing.loop": ["Steps 2 and 3 repeat every week, without you", { slots: {}, fixedBy: "board Landing · issue 1726 · drafted" }],
   "landing.part.once": ["Your part, once · about {minutes} minutes", { slots: { minutes: "text" }, fixedBy: "board Landing · issue 1726 · drafted" }],
@@ -755,7 +730,7 @@ export const REPORT_COPY = Object.freeze({
   /** Under the card. `landing.hero.specimen.caption` above says the same
    *  thing of a card that named `example.com` and no business; this card
    *  names a business, so it says so of a business. */
-  "landing.hero.example": ["Example business. It measures no site.", { slots: {}, fixedBy: "board Landing · issue 1596" }],
+  "landing.hero.example": ["Example. Not a promise.", { slots: {}, fixedBy: "board Landing · issue 1596" }],
 
   /* ── The landing in its 2026-09-24 order (#1067) ─────────────────────
      Boards `R12-1-Landing`, `R12-8-Phone-landing`, `R12-10-Dark-landing`

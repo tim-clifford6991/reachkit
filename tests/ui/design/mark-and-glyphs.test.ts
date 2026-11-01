@@ -61,8 +61,9 @@ describe("S1 — the landing's chips carry the icons the approved set draws", ()
     // PubLanding's Pages card ticks each day a page goes live (circle check),
     // and its real-site cards take the file and the globe.
     //
-    // One icon per concept (2026-10-24 E29): the story frames are your
-    // business (building-2), research (scan-search) and being found
+    // One icon per concept (2026-10-24 E29): the story frames are an answer
+    // (search), research (scan-search) into your business (building-2) and
+    // your competitors (users), pages (file-text) and being found
     // (trending-up); AI is sparkles; the fix card is a wrench; the AI
     // drawing ticks who is named and crosses who is not.
     expect(iconsImported()).toEqual([
@@ -72,7 +73,6 @@ describe("S1 — the landing's chips carry the icons the approved set draws", ()
       "CircleCheck",
       "CircleX",
       "Clock",
-      "Coffee",
       "FileText",
       "Globe",
       "MessageSquare",
@@ -81,6 +81,7 @@ describe("S1 — the landing's chips carry the icons the approved set draws", ()
       "Send",
       "Sparkles",
       "TrendingUp",
+      "Users",
       "Wrench",
       "Zap",
     ]);
