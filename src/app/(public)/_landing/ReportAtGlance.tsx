@@ -6,7 +6,7 @@ import { Num } from "../scan/[domain]/_address/measured";
 import { SCORE_RING } from "../_how/visuals";
 import { EXAMPLES } from "../_how/specimen";
 import { STEP_FIGURE } from "./sections";
-import { SiteMark } from "./SiteMark";
+import { SiteMark } from "@/ui/SiteMark";
 
 const HOLDS = ["how.read.held.ai", "how.read.held.list"] as const;
 const LABEL = "text-primary text-xs font-semibold";
@@ -20,7 +20,7 @@ export function ReportAtGlance(): React.JSX.Element {
       <div className="card-body justify-between gap-3.5 p-5">
         <div className="flex min-w-0 items-center gap-2.5">
           {/* An example site has no stored logo, so it draws the fallback letter. */}
-          <SiteMark domain={site} hasLogo={false} small />
+          <SiteMark domain={site} hasLogo={false} size={32} />
           <span className="flex min-w-0 flex-col">
             <span className="text-sm font-semibold">
               <Num>{site}</Num>
