@@ -35,7 +35,7 @@
   "Plan": { "sha256": "bab96bf72d3c9c8721e6166da3e61b7147dad050286197e3bcd7f8d72b5e8ba5", "missing": 0, "components": 9, "plainWords": 16 },
   "PageDetail": { "sha256": "5d4d878521a6d1ac20badf8eb746d62ebe9b8a574d377073f53b6df9500ff155", "missing": 0, "components": 7, "plainWords": 8 },
   "AppDraft": { "sha256": "10049dc2d4629bd8319c28a9b801b1a5d98cbbee11a1d48126f650bb199e29c3", "missing": 0, "components": 15, "plainWords": 18 },
-  "AppIssues": { "sha256": "7808004cd15ed351cf0633c9a813d334b0d2c0e9b8419dd599a3ee7d2dfe11f0", "missing": 0, "components": 2, "plainWords": 2 },
+  "AppIssues": { "sha256": "d42c0059b883d7b7a5e61971670aa22195c764c8cc22db3e79b3a7ebf9ee410c", "missing": 0, "components": 2, "plainWords": 2 },
   "AppCosts": { "sha256": "4f60d37e0c0dedd7a7a90609d1c8b5658517b9a45ec6518edf468378118e2e86", "missing": 0, "components": 13 },
   "Review": { "sha256": "028b8d210e76101444493b8ecc46901ca41a5947d4f2609dfbe435acf83151bf", "missing": 47, "components": 10 },
   "SettingsIndex": { "sha256": "90a9ca51e25e5d722da82b770891f53788b0344ea6cfdbf1efc7a8e64c8433f3", "missing": 0, "components": 5, "plainWords": 1 },
