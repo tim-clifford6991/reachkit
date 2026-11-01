@@ -21,6 +21,9 @@ describe("S1 — the landing's chips carry the icons the approved set draws", ()
   const LANDING_FILES = [
     "app/(public)/page.tsx",
     "app/(public)/_landing/InsideReachKit.tsx",
+    "app/(public)/_landing/ReportAtGlance.tsx",
+    "app/(public)/_landing/MondayCard.tsx",
+    "app/(public)/_landing/PlanCards.tsx",
     "app/(public)/_landing/Storyboard.tsx",
     "app/(public)/_landing/Features.tsx",
     "app/(public)/_landing/ScanForm.tsx",
@@ -70,6 +73,12 @@ describe("S1 — the landing's chips carry the icons the approved set draws", ()
     // Version 34 (decision 2026-11-01-2246): the story week marks Planned
     // with a calendar, the proof card's rows end in a chevron and the blog's
     // tile is a pen; the real-site cards and their globe are gone.
+    //
+    // The steps and the plan (v36): step 1 is a gift; step 2's days are
+    // research (search) and pages (file-text), done (circle-check) or
+    // tomorrow (clock-4); step 3's email is a mail; the plan cards take
+    // file-plus, link, mail, users, wrench, sparkles and timer. The tabbed
+    // preview's zap, message and send are gone.
     expect(iconsImported()).toEqual([
       "ArrowRight",
       "Building2",
@@ -79,16 +88,20 @@ describe("S1 — the landing's chips carry the icons the approved set draws", ()
       "CircleCheck",
       "CircleX",
       "Clock",
+      "Clock4",
+      "FilePlus",
       "FileText",
-      "MessageSquare",
+      "Gift",
+      "Link",
+      "Mail",
       "PenLine",
       "ScanSearch",
       "Search",
-      "Send",
       "Sparkles",
+      "Timer",
       "TrendingUp",
       "Users",
-      "Zap",
+      "Wrench",
     ]);
   });
 
@@ -99,8 +112,6 @@ describe("S1 — the landing's chips carry the icons the approved set draws", ()
   });
 
   it("each card head takes its glyph, at lucide stroke 1.75", () => {
-    expect(read("app/(public)/_landing/InsideReachKit.tsx")).toMatch(/<Zap size=\{16\} strokeWidth=\{1\.75\}/);
-    expect(read("app/(public)/_landing/InsideReachKit.tsx")).toMatch(/<MessageSquare size=\{16\} strokeWidth=\{1\.75\}/);
     expect(read("app/(public)/_landing/Features.tsx")).toMatch(/<Icon size=\{20\} strokeWidth=\{1\.75\}/);
   });
 

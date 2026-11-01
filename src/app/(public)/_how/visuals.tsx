@@ -1,6 +1,5 @@
 // How it works' pictures: each one draws a single example business from
-// `specimen.ts` in daisyUI parts, so the Plumber · Software switch renders it
-// twice and shows one. No sentence lives here; ReachKit's words are `how.*`.
+// `specimen.ts` in daisyUI parts. No sentence lives here; ReachKit's words are `how.*`.
 import type React from "react";
 import {
   ArrowDown,
@@ -43,8 +42,7 @@ import { HARD_RULES } from "@/lib/generate/rules/types";
 import { PageSketch } from "@/ui/PageSketch";
 import { Num } from "../scan/[domain]/_address/measured";
 import { HOW_FACTS } from "./facts";
-import { ExampleSwitch } from "./ExampleSwitch";
-import { EXAMPLES, LIVE_AT, REASON_COPY, weekDate, weekDays, weekSpan, type Example } from "./specimen";
+import { LIVE_AT, REASON_COPY, weekDate, weekDays, weekSpan, type Example } from "./specimen";
 
 export const ICON = { size: 16, strokeWidth: 1.75, "aria-hidden": true } as const;
 export const CARD = "card card-border bg-base-100 min-w-0";
@@ -60,18 +58,6 @@ export const SCORE_RING =
   "radial-progress text-primary after:hidden shadow-[inset_0_0_0_5px_var(--color-base-200)] [--thickness:5px]";
 /** The icon tile a figure opens with. */
 export const ICON_TILE = "rounded-field grid size-9 flex-none place-items-center bg-base-200";
-
-/** A visual drawn for both example businesses, the plumber shown first. */
-export function Switched(p: { draw: (e: Example) => React.ReactNode }): React.JSX.Element {
-  return (
-    <ExampleSwitch
-      label={copy("how.switch")}
-      names={{ plumber: copy("how.switch.plumber"), software: copy("how.switch.software") }}
-      plumber={p.draw(EXAMPLES.plumber)}
-      software={p.draw(EXAMPLES.software)}
-    />
-  );
-}
 
 function ExampleLine(): React.JSX.Element {
   return <p className={SMALL}>{copy("landing.hero.example")}</p>;

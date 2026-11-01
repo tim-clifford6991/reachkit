@@ -10,3 +10,7 @@ Walkthrough	#1030: drawn once the owner's walkthrough file is in public/
 See ReachKit in 2 minutes	#1030: drawn once the owner's walkthrough file is in public/
 Play the walkthrough video	#1030: drawn once the owner's walkthrough file is in public/
 Yes, if it has a website: a local service, a shop, a restaurant, a firm, software or a creator. We check what your buyers search and ask AI, in your language, with your town if you serve one. Our pages help your website, not your Google Maps listing.	docs/spec/decisions/2026-10-31-2145.md (O6): three sentences over 15 words; ships the same facts in two shorter ones
+Money-back guarantee	owner 2026-10-20 Q13: shown once the launch gate opens
+14 days to ask for your money back.	owner 2026-10-20 Q13: shown once the launch gate opens
+component:icon:shield-check 1	owner 2026-10-20 Q13: the money-back card is shown once the launch gate opens
+Written by ReachKit	#1512: the landing lists ReachKit's newest articles only where stored rows name some; the sweep seeds none

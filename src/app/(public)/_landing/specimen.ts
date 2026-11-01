@@ -49,8 +49,7 @@ import { WEEK_PLAN } from "@/lib/config/constants";
    registry; what is here is numbers, dates and a business's name. */
 
 /** The one place the example business is named. A business name is a
- *  value, not a sentence: it fills `landing.hero.ai.answer`'s `{you}`
- *  slot, and the card's last line says in writing that it is an example. */
+ *  value, not a sentence, so it lives here and never in the registry. */
 export const SPECIMEN_HERO_BUSINESS = "Harbor Plumbing";
 
 /** The week's own figures. Monday's counts are the product's own
@@ -58,6 +57,8 @@ export const SPECIMEN_HERO_BUSINESS = "Harbor Plumbing";
 export const SPECIMEN_HERO = Object.freeze({
   /** The hour a page goes live, as the day cells show it. */
   liveAt: "4:00 PM",
+  /** The hour the Monday email arrives. */
+  mailAt: "8:00 AM",
 });
 
 /** BUILD §6.3a / DECISIONS 2026-08-28: US-English only, one location
@@ -67,21 +68,11 @@ export const SPECIMEN_HERO = Object.freeze({
  *  call for the same reason). */
 const SPECIMEN_LOCALE = "en-US";
 
-/** The Monday the specimen week starts on, and the day autopilot was
- *  switched on. Fixed dates in UTC: a week derived from `new Date()` would
- *  redraw itself every day and no sweep could hold it still. */
+/** The Monday the specimen week starts on. A fixed date in UTC: a week
+ *  derived from `new Date()` would redraw itself every day and no sweep
+ *  could hold it still. */
 const HERO_WEEK_MONDAY = Date.UTC(2026, 7, 31);
-const HERO_AUTOPILOT_SINCE = Date.UTC(2026, 7, 12);
 const MS_PER_DAY = 86_400_000;
-
-/** "12 Aug" — the day the pill names. */
-export function specimenAutopilotSince(): string {
-  return new Date(HERO_AUTOPILOT_SINCE).toLocaleDateString(SPECIMEN_LOCALE, {
-    day: "numeric",
-    month: "short",
-    timeZone: "UTC",
-  });
-}
 
 /** One cell of the hero's week: its weekday word and the page that went
  *  live on it. Monday carries no page — it is the day that measures — and
@@ -124,10 +115,6 @@ export function specimenHeroWeek(): SixDays {
 export const SPECIMEN_HERO_DOMAIN = "harborplumbing.example";
 export const SPECIMEN_HERO_BLOG = "help.harborplumbing.example";
 
-/** *AI answers*: the search asked, and the sites the answer cites. */
-export const SPECIMEN_HERO_SEARCH = "slab leak repair cost austin";
-export const SPECIMEN_HERO_CITED = ["harborplumbing.example", "austinpipeworks.example"] as const;
-
 /** The competitor the example business's buyers pick instead. */
 export const SPECIMEN_HERO_RIVAL = "austinpipeworks.example";
 
@@ -143,9 +130,6 @@ export const SPECIMEN_HERO_WEEK = Object.freeze({
 
 /** The town the example business's buyers live in. */
 export const SPECIMEN_HERO_PLACE = "Austin";
-
-/** *Your page*: how long until the waiting page goes live. */
-export const SPECIMEN_HERO_DUE = "6h 12m";
 
 /** The four feature cards' drawings. */
 export const SPECIMEN_FEATURES = Object.freeze({

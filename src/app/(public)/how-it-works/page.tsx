@@ -2,15 +2,13 @@
 // 2026-10-20-1597). The head and its four-step strip, then ten sections, each
 // with an outcome heading, a short body and one picture; six of them close
 // with a *Show the detail* that holds the precise figures, where the board
-// draws one. The pictures draw an example business, a plumber or a software
-// firm, picked by a switch; a caption under a picture says what the other
-// business's picture reads.
+// draws one. The pictures draw one example business, Harbor Plumbing.
 //
 // No figure is typed: every number is a slot filled from `_how/facts.ts` or
 // the rules registry, and the example's own numbers come from
 // `_how/specimen.ts`. It says once that pages are written with an AI model.
 //
-// A Server Component. `ExampleSwitch` is the one client leaf.
+// A Server Component.
 import type React from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -35,7 +33,6 @@ import {
   PageWithSources,
   QuestionList,
   ReportGlance,
-  Switched,
   TwoWeeks,
   WeekOfPages,
   WhatToExpect,
@@ -67,9 +64,8 @@ const minutes = { minutes: F.setupMinutes };
 const weekPages = { weekPages: F.weekPages };
 /** The week a customer first sees the work: their first. */
 const FIRST_WEEK = { week: 1 };
-/** The business each picture's caption names as the other one. */
-const SOFTWARE = EXAMPLES.software;
-const lower = (text: string): string => text.charAt(0).toLowerCase() + text.slice(1);
+/** The one example business every picture draws. */
+const EXAMPLE = EXAMPLES.plumber;
 
 /** The four steps, each opening the section that tells it. */
 const STEPS = [
@@ -173,7 +169,7 @@ function Head(): React.JSX.Element {
           <p className={`${BODY} text-lg`}>{copy("how.lead")}</p>
           <ScanCta />
         </div>
-        <Switched draw={TwoWeeks} />
+        {TwoWeeks(EXAMPLE)}
       </div>
       <div className={`${INNER} mt-12`}>
         <h2 className="text-lg">{copy("how.steps.jump")}</h2>
@@ -317,20 +313,6 @@ const aiSentenceSlots = (): Record<string, string | number> => ({
   unbranded: F.unbranded,
 });
 
-/** The software firm's search, under the plumber's: who is first, and who is missing. */
-function SoftwareRivals(): React.JSX.Element {
-  return (
-    <div className="rounded-box bg-base-200 flex min-w-0 flex-col gap-1 p-4 text-sm">
-      <p className="flex flex-wrap items-center gap-2">
-        <span className="badge badge-ghost badge-sm">{copy("how.switch.software")}</span>
-        <span className="num">{SOFTWARE.site}</span>
-      </p>
-      <p className="font-semibold">{copy("how.rivals.other.search", { search: SOFTWARE.search })}</p>
-      <p>{copy("how.rivals.other.line", { leader: SOFTWARE.results[0]?.url ?? "", business: SOFTWARE.business })}</p>
-    </div>
-  );
-}
-
 export default function HowItWorksPage(): React.JSX.Element {
   return (
     <Surface
@@ -365,14 +347,7 @@ export default function HowItWorksPage(): React.JSX.Element {
             </Detail>
           }
         >
-          <Switched draw={AsWeRead} />
-          <p className={SMALL}>
-            {copy("how.read.caption", {
-              sell: lower(SOFTWARE.read.sell[0]),
-              buyers: lower(SOFTWARE.read.buyers[0]),
-              where: lower(SOFTWARE.read.where[0]),
-            })}
-          </p>
+          {AsWeRead(EXAMPLE)}
         </Section>
 
         <Section
@@ -393,8 +368,7 @@ export default function HowItWorksPage(): React.JSX.Element {
             </Detail>
           }
         >
-          <Switched draw={WhoGetsThem} />
-          <SoftwareRivals />
+          {WhoGetsThem(EXAMPLE)}
         </Section>
 
         <Section
@@ -411,20 +385,11 @@ export default function HowItWorksPage(): React.JSX.Element {
             </Detail>
           }
         >
-          <Switched draw={QuestionList} />
-          <p className={SMALL}>
-            {copy("how.pick.software", {
-              list: SOFTWARE.questions
-                .filter((q) => q.reason !== "off")
-                .slice(0, 3)
-                .map((q) => q.search)
-                .join(", "),
-            })}
-          </p>
+          {QuestionList(EXAMPLE)}
         </Section>
 
         <Section id="pages" eyebrow={eyebrow(3)} title={copy("how.week.title")} body={copy("how.week.body", weekPages)} wide>
-          <Switched draw={WeekOfPages} />
+          {WeekOfPages(EXAMPLE)}
           <div className="rounded-box bg-primary/5 flex flex-col items-start gap-3 p-6 lg:flex-row lg:items-center lg:justify-between">
             <p className="font-semibold">{copy("how.week.cta")}</p>
             <ScanCta />
@@ -444,7 +409,7 @@ export default function HowItWorksPage(): React.JSX.Element {
             </Detail>
           }
         >
-          <Switched draw={PageWithSources} />
+          {PageWithSources(EXAMPLE)}
           <p className={`${SMALL} inline-flex items-center gap-1.5`} data-testid={DISCLOSURE_TEST_ID}>
             <Sparkles size={16} strokeWidth={1.75} aria-hidden className="text-primary shrink-0" />
             {copy("how.disclosure")}
@@ -466,8 +431,8 @@ export default function HowItWorksPage(): React.JSX.Element {
           }
         >
           <div className="grid min-w-0 grid-cols-1 items-start gap-4 md:grid-cols-2">
-            <Switched draw={MondayEmail} />
-            <Switched draw={WhatWeWorkToward} />
+            {MondayEmail(EXAMPLE)}
+            {WhatWeWorkToward(EXAMPLE)}
           </div>
           <WhatToExpect />
         </Section>
@@ -487,8 +452,7 @@ export default function HowItWorksPage(): React.JSX.Element {
             </Detail>
           }
         >
-          <Switched draw={YourPart} />
-          <p className={SMALL}>{copy("how.part.caption", { business: SOFTWARE.business, area: SOFTWARE.area })}</p>
+          {YourPart(EXAMPLE)}
         </Section>
 
         <Section
@@ -540,8 +504,7 @@ export default function HowItWorksPage(): React.JSX.Element {
             <ScanForm words={scanFormWords(copy("landing.start.cta"))} />
             <p className="font-mono text-xs text-base-content/70">{copy("landing.hero.assurance")}</p>
           </div>
-          <Switched draw={ReportGlance} />
-          <p className={SMALL}>{copy("how.start.caption.other", { business: SOFTWARE.business })}</p>
+          {ReportGlance(EXAMPLE)}
         </Section>
       </main>
     </Surface>
