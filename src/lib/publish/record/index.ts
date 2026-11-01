@@ -16,7 +16,7 @@ import { publishDb } from "../db";
 import { hostedAddressesNow } from "../destinations/hosted/store";
 import type { State, UnpublishOutcome, VerifyDisposition } from "../types";
 import { dispositionOf, DISPOSITION_COLUMNS, type DispositionRow } from "../verify/due";
-import { needsYouOf, type NeedsYouCause } from "./needs-you";
+import { needsYouOf, setAsideOf, type NeedsYouCause } from "./needs-you";
 
 /** How an address may be spoken of, by the page's current state: two keys, never one with the tense interpolated. */
 export type AddressLabel =
@@ -235,6 +235,8 @@ export interface ScheduledPage {
   readonly unpublishOutcome: UnpublishOutcome | null;
   /** Why the page needs the customer, from its transitions; `null` in any other state. */
   readonly needsYou: NeedsYouCause | null;
+  /** Whether the daily re-check set the page aside, from its transitions. */
+  readonly setAside: boolean;
 }
 
 interface ScheduledDraftRow {
@@ -326,6 +328,7 @@ export async function scheduledPagesFor(a: {
       enteredReview: enteredReviewFrom(row.transitions),
       // From its own record, never its stage.
       needsYou: needsYouOf({ state, transitions: row.transitions, meta: row.meta }),
+      setAside: setAsideOf({ state, transitions: row.transitions }),
       // The address now; `readStandings` re-addresses its side of the join too, so a moved host never empties it.
       liveUrl:
         state === "published" && publication?.made_live_by_us === true && publication.live_url !== null
