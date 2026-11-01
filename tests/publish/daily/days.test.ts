@@ -13,7 +13,7 @@ vi.mock("@/lib/db", () => ({
   },
 }));
 
-import { alertMissingDrafts, recordDraftDay, setDraftDayStore, type DraftDayStore } from "@/lib/publish/daily";
+import { alertSiteDay, recordDraftDay, setDraftDayStore, type DraftDayStore } from "@/lib/publish/daily";
 
 // reachkit.app: 09:00 in Berlin is 07:00 UTC in October.
 const SITE = { siteId: "site-1", timeZone: "Europe/Berlin", publishTime: "09:00", vetoHours: 24 };
@@ -35,6 +35,11 @@ function memory(drafts: { date: string; state: string }[]) {
     async statesOn(_siteId, date) {
       return drafts.filter((draft) => draft.date === date).map((draft) => draft.state);
     },
+    async goingOutFrom(_siteId, date) {
+      return drafts.some((draft) => draft.date >= date && ["in_review", "approved", "publishing", "published"].includes(draft.state));
+    },
+    untoldBetween: async () => [],
+    pagesBetween: async () => [],
     async draftedBefore(_siteId, date) {
       return drafts.some((draft) => draft.date < date);
     },
@@ -76,7 +81,7 @@ describe("the publish time is checked, and a day with no page is told (issue 145
     setDraftDayStore(store);
     await recordDraftDay({ siteId: "site-1", publishDate: "2026-10-15", outcome: "no_page", reason: "generate:no_opportunity", at: new Date("2026-10-14T07:00:00Z") });
 
-    expect(await alertMissingDrafts({ sites: [SITE], hour: PUBLISH_HOUR })).toBe(1);
+    expect(await alertSiteDay({ site: SITE, hour: PUBLISH_HOUR })).toBe(1);
     expect(reportIncident).toHaveBeenCalledWith({
       occasion: "no-draft-at-publish",
       domain: "reachkit.app",
@@ -84,15 +89,8 @@ describe("the publish time is checked, and a day with no page is told (issue 145
       reason: "no_page:generate:no_opportunity",
     });
     // A second delivery of the same hour tells nobody again.
-    expect(await alertMissingDrafts({ sites: [SITE], hour: PUBLISH_HOUR })).toBe(0);
+    expect(await alertSiteDay({ site: SITE, hour: PUBLISH_HOUR })).toBe(0);
     expect(reportIncident).toHaveBeenCalledTimes(1);
-  });
-
-  it("is asked only in the hour the site's publish time falls in", async () => {
-    setDraftDayStore(memory([{ date: "2026-10-14", state: "published" }]).store);
-    expect(await alertMissingDrafts({ sites: [SITE], hour: new Date("2026-10-15T06:00:00Z") })).toBe(0);
-    expect(await alertMissingDrafts({ sites: [SITE], hour: new Date("2026-10-15T08:00:00Z") })).toBe(0);
-    expect(reportIncident).not.toHaveBeenCalled();
   });
 
   it.each([
@@ -101,24 +99,24 @@ describe("the publish time is checked, and a day with no page is told (issue 145
     ["a page the customer stopped", "skipped"],
   ])("a day with %s is not told", async (_label, state) => {
     setDraftDayStore(memory([{ date: "2026-10-14", state: "published" }, { date: "2026-10-15", state }]).store);
-    expect(await alertMissingDrafts({ sites: [SITE], hour: PUBLISH_HOUR })).toBe(0);
+    expect(await alertSiteDay({ site: SITE, hour: PUBLISH_HOUR })).toBe(0);
   });
 
   it("a page the checks stopped is told: it is not going out", async () => {
     setDraftDayStore(memory([{ date: "2026-10-14", state: "published" }, { date: "2026-10-15", state: "needs_attention" }]).store);
-    expect(await alertMissingDrafts({ sites: [SITE], hour: PUBLISH_HOUR })).toBe(1);
+    expect(await alertSiteDay({ site: SITE, hour: PUBLISH_HOUR })).toBe(1);
     expect(reportIncident.mock.calls[0]?.[0]).toMatchObject({ reason: "state:needs_attention" });
   });
 
   it("a site's first day, before any page is dated, is not told", async () => {
     setDraftDayStore(memory([]).store);
-    expect(await alertMissingDrafts({ sites: [SITE], hour: PUBLISH_HOUR })).toBe(0);
+    expect(await alertSiteDay({ site: SITE, hour: PUBLISH_HOUR })).toBe(0);
   });
 
   it("a store that fails costs the tick nothing", async () => {
     const { store } = memory([{ date: "2026-10-14", state: "published" }]);
     setDraftDayStore({ ...store, statesOn: () => Promise.reject(new Error("down")), record: () => Promise.reject(new Error("down")) });
     await expect(recordDraftDay({ siteId: "site-1", publishDate: "2026-10-15", outcome: "failed", reason: "TypeError", at: PUBLISH_HOUR })).resolves.toBeUndefined();
-    await expect(alertMissingDrafts({ sites: [SITE], hour: PUBLISH_HOUR })).resolves.toBe(0);
+    await expect(alertSiteDay({ site: SITE, hour: PUBLISH_HOUR })).resolves.toBe(0);
   });
 });

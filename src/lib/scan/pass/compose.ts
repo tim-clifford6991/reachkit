@@ -262,7 +262,8 @@ export function composeReport(a: {
   const statedPlace = m?.stated === undefined ? null : statedPlaceOf(m.stated);
   const report: StoredReport = {
     ...assembled,
-    freePage: freePageOf(assembled) ?? carried?.freePage ?? null,
+    freePage:
+      assembled.questions.kind === "unmeasured" || assembled.market.kind === "unmeasured" ? (carried?.freePage ?? null) : freePageOf(assembled),
     ...(measuredIn === null ? {} : { locale: s.placeFrom === null ? measuredIn : { ...measuredIn, placeFrom: s.placeFrom } }),
     ...(statedPlace === null ? {} : { statedPlace }),
     ...(s.marketFrom === null || market.kind === "unmeasured" ? {} : { marketFrom: s.marketFrom }),

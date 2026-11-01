@@ -814,6 +814,7 @@ export const MAIL_COPY = Object.freeze({
   "mail.ops.incident.drafts-stopped-week": ["These sites had pages stop before review last week. Each lists the pages that stopped out of the pages written, and how many pages each cause stopped.", { slots: {}, fixedBy: "issue 1184 (drafted)" }],
   "mail.ops.incident.fact.stopped": ["Stopped / written", { slots: {}, fixedBy: "issue 1184 (drafted)" }],
   "mail.ops.incident.fact.cause": ["Cause", { slots: {}, fixedBy: "issue 1184 (drafted)" }],
+  "mail.ops.incident.untold-days-week": ["These days had no page, and no alert went out for them. Each shows the site, the date and the recorded cause.", { slots: {}, fixedBy: "issue 2221 (drafted)" }],
   // Issue 1286 (D57): what the week cost, on the same Monday digest.
   "mail.ops.incident.costs-week": ["What last week cost. Each site lists the average cost of one measurement and of one page written, stopped pages included, with how many there were. Free scans and smoke tests are counted apart.", { slots: {}, fixedBy: "issue 1286 (drafted)" }],
   "mail.ops.incident.fact.cost-measurement": ["Cost per measurement", { slots: {}, fixedBy: "issue 1286 (drafted)" }],
@@ -825,8 +826,7 @@ export const MAIL_COPY = Object.freeze({
   // Issue 1298 (D63, drafted): the week's Google SERP reads that timed out.
   "mail.ops.incident.fact.serp-timeouts": ["Google SERP reads that timed out (timed out / all)", { slots: {}, fixedBy: "issue 1298 (drafted)" }],
   "mail.ops.incident.fact.serp-timeout-cost": ["Billed for timed-out SERP reads", { slots: {}, fixedBy: "issue 1298 (drafted)" }],
-  // Issue 1287 (D58, drafted): the passes one of their own health checks
-  // failed on. Owner-only, so the site is named.
+  // Issue 1287 (D58, drafted): the passes one of their own health checks failed on. Owner-only, so the site is named.
   "mail.ops.incident.health-week": ["These passes failed one of their own health checks in the last seven days. Their data is stored, and the headline numbers stay on the last healthy pass.", { slots: {}, fixedBy: "issue 1287 (drafted)" }],
   "mail.ops.incident.fact.health-check": ["Failed check", { slots: {}, fixedBy: "issue 1287 (drafted)" }],
   // Issue #799: a scheduled job has gone quiet for twice its interval.

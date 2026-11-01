@@ -43,8 +43,7 @@
 //     deliveries running together rewrite one row rather than writing two.
 import {
   activeSites,
-  alertMissingDrafts,
-  alertStalledSites,
+  alertSiteDay,
   generateDraft,
   noticeBrokenDestination,
   recordDraftDay,
@@ -61,13 +60,24 @@ import type { JobDefinition, JobInput, Outcome } from "./types";
  *  per site, decided from the tick's hour, so the minute changes no draft. */
 export const DRAFT_TICK_CRON = "3 * * * *";
 
-/** One site's due hour, as its run reads it from the event. */
-function siteDay(data: JobInput["data"]): { siteId: string; publishDate: string; hour: Date } {
-  const { siteId, publishDate, hour } = data;
+type Site = Awaited<ReturnType<typeof activeSites>>["sites"][number];
+
+/** One site's due hour, as its run reads it from the event, and its clock where the event carries it. */
+function siteDay(data: JobInput["data"]): { siteId: string; publishDate: string; hour: Date; site: Site | null } {
+  const { siteId, publishDate, hour, timeZone, publishTime, vetoHours } = data;
   if (typeof siteId !== "string" || typeof publishDate !== "string" || typeof hour !== "string") {
     throw new TypeError("draft/generate: a site run needs siteId, publishDate and hour");
   }
-  return { siteId, publishDate, hour: new Date(hour) };
+  const clocked = typeof timeZone === "string" && typeof publishTime === "string" && typeof vetoHours === "number";
+  return { siteId, publishDate, hour: new Date(hour), site: clocked ? { siteId, timeZone, publishTime, vetoHours } : null };
+}
+
+/** The event a due day is sent as: the site's clock rides along, so its run can check the publish time. */
+function dayEvent(site: Site, day: { publishDate: string; hour: Date }) {
+  return {
+    key: `draft:${site.siteId}:${day.publishDate}`,
+    data: { siteId: site.siteId, publishDate: day.publishDate, hour: day.hour.toISOString(), timeZone: site.timeZone, publishTime: site.publishTime, vetoHours: site.vetoHours },
+  };
 }
 
 /** One site's page for one date: the breakage notice, the page in its own
@@ -75,7 +85,7 @@ function siteDay(data: JobInput["data"]): { siteId: string; publishDate: string;
  *  the event names, so a queued or caught-up run still ends it at or
  *  before the publish time. */
 async function draftSite(input: JobInput): Promise<Outcome> {
-  const { siteId, publishDate, hour } = siteDay(input.data);
+  const { siteId, publishDate, hour, site } = siteDay(input.data);
   const step = input.step ?? ((_name, body) => body());
   try {
     // BUILD §9's one mail per breakage, before the page this site's broken
@@ -90,6 +100,8 @@ async function draftSite(input: JobInput): Promise<Outcome> {
         ? { siteId, publishDate, outcome: "no_page", reason: result.degraded, at: hour }
         : { siteId, publishDate, outcome: "drafted", reason: null, at: hour }
     );
+    // Last, so a page the recheck rescued or the review let through is seen and nothing it covered is mailed.
+    if (site !== null) await step("alert", () => alertSiteDay({ site, hour }));
     return "degraded" in result ? { outcome: "degraded", subjectId: siteId, step: result.degraded } : { outcome: "ran", subjectId: siteId };
   } catch (error) {
     const reason = error instanceof Error ? error.name : "unknown";
@@ -123,17 +135,11 @@ export const draftGenerate: JobDefinition = {
     // The window a due page opens is counted from the tick's own hour, so
     // it ends at or before the publish time however late the tick arrived.
     const hour = tickHour(input.now);
-    // Issue 1455: a site whose publish time falls in this hour with no page
-    // for the day is told to the owner, whatever site is due to draft.
-    await alertMissingDrafts({ sites: selection.sites, hour });
-    // Issue 1536: and one that has gone twice its cadence with no page
-    // delivered, which no single day's mail says.
-    await alertStalledSites({ sites: selection.sites, hour });
     const dueNow = selection.sites
       .filter((site) => isDraftDue(hour, site))
-      .map((site) => ({ siteId: site.siteId, publishDate: nextPublishDate(hour, site), hour }));
+      .map((site) => ({ site, siteId: site.siteId, publishDate: nextPublishDate(hour, site), hour }));
     const missed = await missedDays(
-      selection.sites.flatMap((site) => openDraftDays(hour, site).map((day) => ({ siteId: site.siteId, ...day })))
+      selection.sites.flatMap((site) => openDraftDays(hour, site).map((day) => ({ site, siteId: site.siteId, ...day })))
     );
     const due = [...dueNow, ...missed];
     if (due.length === 0) {
@@ -144,10 +150,7 @@ export const draftGenerate: JobDefinition = {
 
     const sent = await sendSubjects(
       input,
-      due.map((day) => ({
-        key: `draft:${day.siteId}:${day.publishDate}`,
-        data: { siteId: day.siteId, publishDate: day.publishDate, hour: day.hour.toISOString() },
-      })),
+      due.map((day) => dayEvent(day.site, day)),
       draftSite
     );
     return settle([...regenerated, ...sent], null);

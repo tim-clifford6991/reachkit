@@ -443,7 +443,7 @@ function totals(rows: readonly Row[], unreadable: readonly { id: string; because
     `- Score moves on ${deltas.length}: ${up.length} up (${up.join(", ") || "none"}), ${down.length} down (${down.join(", ") || "none"})`,
     `- Score becomes unmeasured (no number): ${unscored}; becomes measured: ${scored}`,
     `- Band changes: ${count((row) => bandText(row.result.before) !== bandText(row.result.after))}`,
-    `- Rivals change: ${count(touched("rivals"))}; presence card: ${count(touched("presence"))}; AI answers: ${count(touched("aiAnswers"))}; coherence: ${count(touched("coherence"))}`,
+    `- Rivals change: ${count(touched("rivals"))}; presence card: ${count(touched("presence"))}; AI answers: ${count(touched("aiAnswers"))}; coherence: ${count(touched("coherence"))}; free page re-picked: ${count(touched("freePage"))}`,
     `- Verdict rewritten without a score move (factors, limiting factor or unread inputs): ${count((row) => touched("verdict")(row) && scoreText(row.result.before) === scoreText(row.result.after))}`,
     `- Status changes: ${count((row) => row.scan.status !== row.result.status)}`,
   ];

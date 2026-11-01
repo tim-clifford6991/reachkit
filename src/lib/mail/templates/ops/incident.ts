@@ -43,6 +43,8 @@ export type OpsIncident =
         // the rows the vendor priced.
         drift?: { over: number; sources: readonly { source: string; billedCents: number; estimatedCents: number }[] } | null;
       };
+      // Days with no page that were not mailed, because a later page was going out, each with its `draft_days` reason.
+      untold?: readonly { domain: string; date: string; reason: string }[];
       // Passes a health check failed, each with the check and what it found.
       unhealthy?: readonly {
         scanId: string;
@@ -53,7 +55,8 @@ export type OpsIncident =
   // No error: a scheduled job has not run for twice its interval. Job id, last run and interval in minutes.
   | { occasion: "job-stale"; jobId: string; lastRunAt: string; intervalMinutes: number }
   // No error: a paying site's publish time passed with no page. Owner-only, so the site is named; the reason is its `draft_days` code.
-  | { occasion: "no-draft-at-publish"; domain: string; date: string; reason: string }
+  // A stall told in the same hour rides the same mail.
+  | { occasion: "no-draft-at-publish"; domain: string; date: string; reason: string; stalled?: { lastDelivered: string; days: number } }
   // No error: an autopilot site has gone twice its cadence with no page. Owner-only, so the site is named.
   | { occasion: "autopilot-stalled"; domain: string; lastDelivered: string; days: number }
   // No error: the writing rules stopped one draft twice. Each rule of the last attempt, with its breaking sentences where it points at them.
@@ -75,6 +78,7 @@ const HEADING = "mail.ops.incident.heading" satisfies CopyKey;
 const STOPPED_WEEK = "mail.ops.incident.drafts-stopped-week" satisfies CopyKey;
 const COSTS_WEEK = "mail.ops.incident.costs-week" satisfies CopyKey;
 const HEALTH_WEEK = "mail.ops.incident.health-week" satisfies CopyKey;
+const UNTOLD_WEEK = "mail.ops.incident.untold-days-week" satisfies CopyKey;
 const DRIFT_WEEK = "ops.cost-drift.week" satisfies CopyKey;
 
 const BODY: Readonly<Record<OpsIncident["occasion"], CopyKey>> = Object.freeze({
@@ -153,15 +157,12 @@ function factsOf(incident: OpsIncident): FactRow[] {
     return [
       { label: "mail.ops.incident.fact.site", value: closedDomain(incident.domain) },
       { label: "mail.ops.incident.fact.date", value: closedDate(incident.date) },
-      { label: "mail.ops.incident.fact.cause", value: closedName(incident.reason.replace(/[^A-Za-z0-9_/-]/g, "/").slice(0, 64)) },
+      { label: "mail.ops.incident.fact.cause", value: closedReason(incident.reason) },
+      ...(incident.stalled === undefined ? [] : stallFacts(incident.stalled)),
     ];
   }
   if (incident.occasion === "autopilot-stalled") {
-    return [
-      { label: "mail.ops.incident.fact.site", value: closedDomain(incident.domain) },
-      { label: "mail.ops.incident.fact.last-delivered", value: closedDate(incident.lastDelivered) },
-      { label: "mail.ops.incident.fact.days-without", value: count(incident.days) },
-    ];
+    return [{ label: "mail.ops.incident.fact.site", value: closedDomain(incident.domain) }, ...stallFacts(incident)];
   }
   if (incident.occasion === "vendor-low") {
     return [
@@ -197,6 +198,18 @@ function factsOf(incident: OpsIncident): FactRow[] {
     case "boot-refused":
       return [{ label: "mail.ops.incident.fact.check", value: closedName(incident.check) }, error];
   }
+}
+
+/** A `draft_days` reason code, its separators kept. */
+function closedReason(reason: string): string {
+  return closedName(reason.replace(/[^A-Za-z0-9_/-]/g, "/").slice(0, 64));
+}
+
+function stallFacts(stalled: { lastDelivered: string; days: number }): FactRow[] {
+  return [
+    { label: "mail.ops.incident.fact.last-delivered", value: closedDate(stalled.lastDelivered) },
+    { label: "mail.ops.incident.fact.days-without", value: count(stalled.days) },
+  ];
 }
 
 function count(value: number): string {
@@ -251,7 +264,7 @@ function driftFacts(drift: NonNullable<WeekCosts["drift"]>): FactRow[] {
 /** The Monday digest: each part drawn only where it has something to say. */
 function weekBlocks(incident: Extract<OpsIncident, { occasion: "market-too-small-week" }>): MailBlock[] {
   const blocks: MailBlock[] = [];
-  if (incident.scanIds.length > 0 || (incident.stopped === undefined && incident.costs === undefined && incident.unhealthy === undefined)) {
+  if (incident.scanIds.length > 0 || (incident.stopped === undefined && incident.untold === undefined && incident.costs === undefined && incident.unhealthy === undefined)) {
     blocks.push({ block: "paragraph", text: BODY[incident.occasion] }, { block: "facts", items: factsOf(incident) });
   }
   if (incident.stopped !== undefined) {
@@ -267,6 +280,19 @@ function weekBlocks(incident: Extract<OpsIncident, { occasion: "market-too-small
             ...site.causes.map((cause): FactRow => ({ label: "mail.ops.incident.fact.cause", value: `${closedName(cause.cause)}: ${count(cause.count)}` })),
           ]),
         ],
+      }
+    );
+  }
+  if (incident.untold !== undefined) {
+    blocks.push(
+      { block: "paragraph", text: UNTOLD_WEEK },
+      {
+        block: "facts",
+        items: incident.untold.flatMap((day): FactRow[] => [
+          { label: "mail.ops.incident.fact.site", value: closedDomain(day.domain) },
+          { label: "mail.ops.incident.fact.date", value: closedDate(day.date) },
+          { label: "mail.ops.incident.fact.cause", value: closedReason(day.reason) },
+        ]),
       }
     );
   }
