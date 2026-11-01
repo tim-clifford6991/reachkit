@@ -22,6 +22,7 @@ import SearchLoading from "../../../src/app/(account)/app/(tabs)/search/loading"
 import RivalsLoading from "../../../src/app/(account)/app/(tabs)/rivals/loading";
 import AiAnswersLoading from "../../../src/app/(account)/app/(tabs)/ai-answers/loading";
 import CalendarLoading from "../../../src/app/(account)/app/calendar/loading";
+import { DAY_ROW, WEEK_LIST } from "../../../src/app/(account)/app/calendar/frame";
 import DraftLoading from "../../../src/app/(account)/app/draft/[draftId]/loading";
 import SettingsLoading from "../../../src/app/(account)/app/settings/loading";
 
@@ -135,16 +136,14 @@ describe("Plan waits in the shape of the Plan that arrives (issue 1320)", () => 
     expect(COPY["calendar.title"].startsWith(COPY["shell.nav.plan"])).toBe(true);
   });
 
-  it("is the week's list below lg and its seven cells from it (E5)", () => {
-    // The loaded screen's own media queries (`CalendarView`, through
-    // `frame.ts`): the list is `lg:hidden`, the cells `hidden lg:grid`.
-    expect(PLAN).toMatch(/class="lg:hidden"><div class="list [^"]*" data-testid="plan-skeleton-list"/);
-    expect(part("plan-skeleton-grid")).toMatch(/\bhidden\b.*grid-cols-7.*lg:grid/);
+  it("is the week as one list at every width, as the loaded screen draws it", () => {
+    expect(part("plan-skeleton-list")).toContain(`class="${WEEK_LIST}"`);
+    expect(PLAN).not.toMatch(/lg:hidden|lg:grid/);
     // The day panel has a place wherever the loaded screen opens one.
     expect(part("plan-skeleton-panel")).toMatch(/\bhidden\b.*lg:flex/);
   });
 
   it("draws the seven days the week that arrives draws, Monday to Sunday", () => {
-    expect(occurrences(PLAN, "list-row")).toBe(7);
+    expect(occurrences(PLAN, `class="${DAY_ROW}"`)).toBe(7);
   });
 });

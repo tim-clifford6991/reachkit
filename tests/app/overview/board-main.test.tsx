@@ -169,11 +169,10 @@ describe("a week card, from Plan's own week assembly", () => {
     return root;
   })();
 
-  it("Overview draws the week as 7 day cards, each Plan's own, today's primary", () => {
+  it("Overview draws the week as 7 day cards, today's primary", () => {
     const cards = [...dom.querySelectorAll('[data-testid="overview-week"] ol > li')];
     expect(cards.map((li) => li.getAttribute("data-testid"))).toEqual(week.cells.map((cell) => `calendar-cell-${cell.day}`));
     expect(cards).toHaveLength(7);
-    for (const cell of week.cells) expect(card(dom, cell.day)?.className, cell.day).toBe(card(plan, cell.day)?.className);
     const today = card(dom, week.today)!;
     expect(today.className).toContain("border-primary");
     expect(today.querySelector('[aria-hidden="true"].rounded-box')?.className).toContain("bg-primary/10");
@@ -221,11 +220,6 @@ describe("a week card, from Plan's own week assembly", () => {
       );
     }
     expect(week.cells.some((cell) => cell.page === null)).toBe(true);
-  });
-
-  it("Overview's week cards draw no demand beside the date, though Plan's do", () => {
-    expect(plan.querySelectorAll('[data-testid="card-number"]').length).toBeGreaterThan(0);
-    expect(dom.querySelectorAll('[data-testid="overview-week"] [data-testid="card-number"]')).toHaveLength(0);
   });
 
   it("a short week says its real count", () => {

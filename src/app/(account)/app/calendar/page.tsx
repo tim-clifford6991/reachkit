@@ -1,4 +1,4 @@
-// SPEC §7 — Plan, at `/app/calendar`: the committed week as seven days
+// SPEC §7 — Plan, at `/app/calendar`: the committed week as one row per day
 // (E5, 2026-10-19), its spares under it, and every page published.
 //
 // The screen reads the week once — `readWeek`, request-cached — and hands
@@ -20,7 +20,6 @@ import { copy } from "@/lib/presentation/copy";
 import { writtenLine } from "../_shell/written";
 import { CalendarView } from "./CalendarView";
 import { PlanHead, planHeadWords } from "./PlanHead";
-import { PlanNumbers } from "./PlanNumbers";
 import { WeekFoot, WeekHead, weekGoesLive } from "./WeekCard";
 import { addDays, longDate, weekRange } from "./dates";
 import { zonePlace } from "../settings/format";
@@ -65,15 +64,6 @@ export default async function CalendarPage(): Promise<React.JSX.Element> {
   return (
     <div className={PLAN}>
       <PlanHead words={planHeadWords(head, week.counts.all)} />
-
-      <PlanNumbers
-        figures={{
-          week: week.counts.all,
-          live: content === null ? null : content.pages.length,
-          spares: week.spares.length,
-          stopped: week.cells.filter((cell) => cell.empty?.cause === "page_cannot_go_live").length,
-        }}
-      />
 
       <FirstPageNotice state={onboarding} />
       {/* §7's one statement of supply, at the calendar's top and nowhere

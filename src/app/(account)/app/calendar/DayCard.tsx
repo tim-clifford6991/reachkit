@@ -1,8 +1,7 @@
 // SPEC §7 (2026-09-20, #908, issue 930) — the parts a day draws, shared by
-// the week's cells (`WeekGrid`), the phone list (`DayList`) and Overview's
-// week: the page a stage filter leaves, the two words an empty day says, the
-// day's one number (`day-number.ts` decides which), the New or Update chip,
-// the lines under a day and the day card itself.
+// Plan's week rows (`WeekGrid`) and Overview's week cards: the page a stage
+// filter leaves, the two words an empty day says, the New or Update chip,
+// the state badge, and Overview's day card itself.
 //
 // The clamped title carries `rk-cal-label` and the two-word reason
 // `rk-cal-empty` — the truncations this screen declared to the layout sweep
@@ -12,7 +11,6 @@ import { Calendar, CircleStop, Plus, RefreshCw, type LucideIcon } from "lucide-r
 import { PageSketch } from "@/ui/PageSketch";
 import { copy } from "@/lib/presentation/copy";
 import { horizonShortFor, shortCauseFor } from "./card-lines";
-import { dayNumberOf, type DayNumber } from "./day-number";
 import { dayNumber, weekdayShort } from "./dates";
 import { dayStateOf, type DayCell, type PageOnDay } from "./month";
 import { DAY_STATE_COPY_KEY, DAY_STATE_TONE, TONE_BADGE, type DayState, type StageFilter } from "./stages";
@@ -38,56 +36,6 @@ export function cardLineFor(cell: DayCell, filter: StageFilter): string | null {
   return shortCauseFor(cell) ?? horizonShortFor(cell);
 }
 
-/**
- * The one number, as the card writes it. `null` where there is none — the
- * card then draws nothing at all in that corner rather than a dash, which
- * would read as a measurement of nothing.
- *
- * **It never clamps.** `docs/DESIGN.md`: "a number is never clamped, so the
- * box changes instead" — and the layout sweep says the same thing
- * mechanically, failing a truncated *value* whether or not its class is
- * allow-listed. The box here cannot change, because it is one of seven
- * equal columns, so the number has to fit instead: the owner's rule for
- * this card is that a five-digit demand fits an 88px column, which is what
- * the compact notation (`12.4k/mo`) and the 11px mono face are for. A
- * number that did not fit would be reported as a containment offender,
- * which is the right way for this to fail.
- */
-export function CardNumber(p: { value: DayNumber }): React.JSX.Element | null {
-  const value = p.value;
-  if (value.kind === "none") return null;
-  return (
-    <span
-      // `ml-auto` here and not on a wrapper around it: a flex item that
-      // only holds this one is a second box to contain it in, and it is
-      // the box that came up short at 88px.
-      // `/4` is the line box, and it is the point: the head row is a fixed
-      // 16px so that a card with a number and a card without are the same
-      // shape, and an arbitrary `text-[11px]` sets the size alone and
-      // inherits the body's 1.55 leading — a 17px line box inside a 16px
-      // row, which is a containment offender in the vertical.
-      className="num ml-auto shrink-0 whitespace-nowrap text-[11px]/4 opacity-70"
-      data-testid="card-number"
-      data-number-kind={value.kind}
-    >
-      {value.text}
-      {value.kind === "position" && value.change !== null && value.change !== 0 ? (
-        // A search position is better the smaller it is, so a rise in the
-        // results is a fall in the number. The arrow states the direction
-        // the founder reads and the figure is its size, never a signed
-        // integer they have to interpret.
-        <span data-testid="card-change">
-          {value.change > 0 ? " ▲" : " ▼"}
-          {Math.abs(value.change)}
-        </span>
-      ) : null}
-    </span>
-  );
-}
-
-const CELL = "cell";
-const LIST = "list";
-
 /** What a page is, as the board's chip: New, or Update. */
 export function KindChip(p: { update: boolean }): React.JSX.Element {
   const Icon = p.update ? RefreshCw : Plus;
@@ -111,25 +59,22 @@ export function DayLines(p: {
   firstSkip: boolean;
   /** A stage filter is on, so an empty day says nothing. */
   filtered: boolean;
-  /** The phone list spells its test hooks `list-*`, the week `cell-*`. */
-  phone: boolean;
 }): React.JSX.Element | null {
   const { cell, page } = p;
-  const prefix = p.phone ? LIST : CELL;
   if (page !== null) {
     const today = cell.today && p.goesLive !== null && (page.stage === "your_review" || page.stage === "scheduled");
     return (
       <>
         {page.whyLine === null ? null : (
-          <span className="flex min-w-0 flex-col" data-testid={`${prefix}-why`}>
+          <span className="flex min-w-0 flex-col" data-testid="cell-why">
             <span className="text-xs font-semibold uppercase tracking-wide text-base-content/70">{copy("calendar.week.why")}</span>
-            <span className="min-w-0 text-xs wrap-anywhere" data-testid={`${prefix}-why-line`}>
+            <span className="min-w-0 text-xs wrap-anywhere" data-testid="cell-why-line">
               {page.whyLine}
             </span>
           </span>
         )}
         {today ? (
-          <span className="min-w-0 text-xs font-semibold" data-testid={`${prefix}-goes-live`}>
+          <span className="min-w-0 text-xs font-semibold" data-testid="cell-goes-live">
             {copy("calendar.week.today", { time: p.goesLive! })}
           </span>
         ) : null}
@@ -139,7 +84,7 @@ export function DayLines(p: {
   if (p.filtered) return null;
   const line = cell.empty?.cause === "page_cannot_go_live" ? "calendar.day.stopped.line" : p.firstSkip ? "calendar.day.skipped.line" : null;
   return line === null ? null : (
-    <span className="min-w-0 text-xs wrap-anywhere text-base-content/70" data-testid={`${prefix}-state-line`}>
+    <span className="min-w-0 text-xs wrap-anywhere text-base-content/70" data-testid="cell-state-line">
       {copy(line)}
     </span>
   );
@@ -172,9 +117,8 @@ export function DayStateBadge(p: { cell: DayCell; filter: StageFilter }): React.
   );
 }
 
-/** One day as a card: its date and number, its page's sketch, chip and title
- *  or the empty day's two words, its lines, then `controls`. Plan wraps the
- *  day in `open` to select it; Overview draws it as is. */
+/** One day as a card: its date, its page's sketch, chip and title
+ *  or the empty day's two words, its lines, then `controls`. Overview's week draws it. */
 export function DayCardView(p: {
   cell: DayCell;
   page: PageOnDay | null;
@@ -183,19 +127,13 @@ export function DayCardView(p: {
   firstSkip: boolean;
   filtered: boolean;
   selected: boolean;
-  open?: (day: React.JSX.Element) => React.JSX.Element;
   controls: React.ReactNode;
-  // Overview's board draws no demand beside the date; Plan's does.
-  number?: boolean;
 }): React.JSX.Element {
   const { cell, page, line } = p;
   const day = (
     <>
-      <span className="flex min-w-0 flex-wrap items-center gap-1">
-        <span className="num shrink-0 text-xs font-semibold" data-testid="cell-date">
-          {weekdayShort(cell.day)} {dayNumber(cell.day)}
-        </span>
-        {p.number === false ? null : <CardNumber value={dayNumberOf(page)} />}
+      <span className="num shrink-0 text-xs font-semibold" data-testid="cell-date">
+        {weekdayShort(cell.day)} {dayNumber(cell.day)}
       </span>
       {page === null ? null : <PageSketch primary={cell.today} />}
       {page === null ? (
@@ -215,7 +153,7 @@ export function DayCardView(p: {
           </span>
         </>
       )}
-      <DayLines cell={cell} page={page} goesLive={p.goesLive} firstSkip={p.firstSkip} filtered={p.filtered} phone={false} />
+      <DayLines cell={cell} page={page} goesLive={p.goesLive} firstSkip={p.firstSkip} filtered={p.filtered} />
     </>
   );
   return (
@@ -230,7 +168,7 @@ export function DayCardView(p: {
       data-empty={page === null ? "" : undefined}
     >
       <div className="card-body min-w-0 gap-2 p-2">
-        {p.open === undefined ? <div className="flex min-w-0 flex-col gap-1">{day}</div> : p.open(day)}
+        <div className="flex min-w-0 flex-col gap-1">{day}</div>
         <div className="mt-auto flex min-w-0 flex-wrap items-center gap-1">{p.controls}</div>
       </div>
     </li>

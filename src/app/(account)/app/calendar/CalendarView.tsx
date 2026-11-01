@@ -8,11 +8,9 @@
 //   ?day=none        the panel, closed, at every width.
 //   (absent)         **open on today from `lg` up, closed below it** (owner,
 //                    PR #961): below `lg` the panel is a sheet over the
-//                    list, and a phone must land on its plan, not a sheet.
+//                    week, and a phone must land on its plan, not a sheet.
 //
-// One DOM, two shapes of the same seven days: the cells from `lg`
-// (`WeekGrid`), a list below it (`DayList`). The choice is a media query,
-// so it is right before any script runs.
+// The week is one row per day at every width (`WeekGrid`).
 "use client";
 
 import type React from "react";
@@ -22,8 +20,7 @@ import { copy } from "@/lib/presentation/copy";
 import { StageFilter } from "./StageFilter";
 import { DayPanelView } from "./DayPanelView";
 import { WeekGrid } from "./WeekGrid";
-import { DayList } from "./DayList";
-import { BODY, FILTERS, REGION, WEEK_CARD, WEEK_CARD_BODY, WEEK_HEADING_ID, WEEK_SHOWN } from "./frame";
+import { BODY, FILTERS, REGION, WEEK_CARD, WEEK_CARD_BODY, WEEK_HEADING_ID } from "./frame";
 import type { DayKey } from "./dates";
 import { dayStateOf } from "./month";
 import type { StageFilter as StageFilterId } from "./stages";
@@ -67,13 +64,8 @@ export function CalendarView(p: {
 
   return (
     <>
-      {/* The filters, and the one note about the week: what the number on
-          a live card is. §7 (issue 857) states supply once, at the top. */}
       <div className={FILTERS}>
         <StageFilter counts={p.week.counts} selected={filter} onSelect={setFilter} />
-        <p className="text-xs opacity-70" data-testid="calendar-live-number-note">
-          {copy("calendar.note.live-number")}
-        </p>
       </div>
 
       <div className={BODY} data-frame={REGION.body}>
@@ -84,23 +76,12 @@ export function CalendarView(p: {
               cells={p.week.cells}
               filter={filter}
               selected={selected}
+              implicit={implicit}
               destination={p.week.destination}
               goesLive={goesLive}
               firstSkip={firstSkip}
               onSelect={(next) => openDay(next)}
             />
-            <div className={WEEK_SHOWN}>
-              <DayList
-                cells={p.week.cells}
-                filter={filter}
-                // The list is drawn below `lg`, where an implicitly open day
-                // is a closed panel — so it marks none.
-                selected={implicit ? null : selected}
-                goesLive={goesLive}
-                firstSkip={firstSkip}
-                onSelect={(next) => openDay(next)}
-              />
-            </div>
             {p.foot}
           </div>
         </section>

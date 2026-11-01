@@ -48,34 +48,27 @@ describe("REQ-043 c7, read as 'from lg up' — an absent ?day is open on a deskt
   //
   // One DOM: the difference is `hidden lg:flex` on the implicitly-open
   // panel, and which selection each shape of the month is handed.
-  it("a day nobody asked for is drawn, marked hidden below lg, and marks nothing in the list", () => {
+  it("a day nobody asked for is drawn, marked hidden below lg, and its row rings only from lg", () => {
     const root = render(withNuqs(<CalendarView {...shown(MODEL)} />));
     const panel = root.querySelector('[data-testid="day-panel"]');
     expect(panel).not.toBeNull();
     expect(panel?.className).toContain("hidden lg:flex");
     expect(panel?.hasAttribute("data-implicit")).toBe(true);
-    // The grid is drawn from `lg` up, where this day *is* open.
-    expect(
-      root.querySelector(`[data-testid="calendar-cell-${MODEL.today}"] > div > button`)?.getAttribute("aria-current")
-    ).toBe("date");
-    // The list is drawn below it, where it is not — today is still marked
-    // as today, and no row claims to be the open one.
-    expect(
-      root.querySelector(`[data-testid="calendar-day-${MODEL.today}"]`)?.hasAttribute("data-today")
-    ).toBe(true);
-    expect(
-      root.querySelectorAll('[data-testid^="calendar-day-"][aria-current="date"]')
-    ).toHaveLength(0);
+    const row = root.querySelector(`[data-testid="calendar-cell-${MODEL.today}"]`)!;
+    expect(row.querySelector(":scope > button")?.getAttribute("aria-current")).toBe("date");
+    expect(row.className.split(" ")).toEqual(expect.arrayContaining(["lg:ring-2"]));
+    expect(row.className.split(" ")).not.toContain("ring-2");
   });
 
-  it("a day the address names is open at every width, and the list marks it", () => {
+  it("a day the address names is open at every width, and its row is ringed at every width", () => {
     const root = render(withNuqs(<CalendarView {...shown(MODEL)} />, { day: "2026-09-18" }));
     const panel = root.querySelector('[data-testid="day-panel"]');
     expect(panel?.className).not.toContain("hidden lg:flex");
     expect(panel?.hasAttribute("data-implicit")).toBe(false);
-    expect(
-      root.querySelector('[data-testid="calendar-day-2026-09-18"]')?.getAttribute("aria-current")
-    ).toBe("date");
+    const row = root.querySelector('[data-testid="calendar-cell-2026-09-18"]')!;
+    expect(row.querySelector(":scope > button")?.getAttribute("aria-current")).toBe("date");
+    expect(row.className.split(" ")).toContain("ring-2");
+    expect(root.querySelectorAll('[data-testid^="calendar-cell-"] [aria-current="date"]')).toHaveLength(1);
   });
 
   it("?day=none is closed at every width — the founder's own act, and it sticks", () => {
@@ -96,7 +89,7 @@ describe("REQ-043 c7 — today is the selected day when the calendar opens", () 
     expect(title).toBe(todayCell?.page?.title);
     // And the grid marks the same day as the selected one.
     expect(
-      root.querySelector(`[data-testid="calendar-cell-${MODEL.today}"] > div > button`)?.getAttribute("aria-current")
+      root.querySelector(`[data-testid="calendar-cell-${MODEL.today}"] > button`)?.getAttribute("aria-current")
     ).toBe("date");
   });
 
@@ -109,7 +102,7 @@ describe("REQ-043 c7 — today is the selected day when the calendar opens", () 
     expect(nz.today).toBe("2026-09-16");
     const root = render(withNuqs(<CalendarView {...shown(nz)} />));
     expect(
-      root.querySelector('[data-testid="calendar-cell-2026-09-16"] > div > button')?.getAttribute("aria-current")
+      root.querySelector('[data-testid="calendar-cell-2026-09-16"] > button')?.getAttribute("aria-current")
     ).toBe("date");
   });
 });
