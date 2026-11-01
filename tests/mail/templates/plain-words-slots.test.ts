@@ -30,6 +30,14 @@ describe("each changed slot is filled by its template", () => {
     expect(text).toContain(`${COPY["mail.weekly.ai.asked"]}\n`);
   });
 
+  it("the nurture and win-back mails state the week's pages, as the Monday mail does", async () => {
+    const week = new RegExp(`up to ${WEEK_PLAN.days} pages a week, new or updated`, "i");
+    for (const mail of [await composeAnyKind("nurture"), await composeRetentionPreview("win-back")]) {
+      expect(mail.text).toMatch(week);
+      expect(mail.html).not.toContain("{weekPages}");
+    }
+  });
+
   it("no subject carries a model-written title", () => {
     const page = { title: "A title the model wrote", markdown: "Body." };
     const telling = { kind: "interval", copy: "mail.draftReady.autopilotWindow", publishesAt: new Date(), destination: null, stopAction: { token: "t" } };

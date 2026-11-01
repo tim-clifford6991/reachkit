@@ -33,6 +33,7 @@ const {
 } = await import("./kinds");
 const { COPY, TODO_COPY_MARKER } = await import("../../../src/lib/presentation/copy");
 const { MAIL_KINDS } = await import("../../../src/lib/mail/kinds");
+const { WEEK_PLAN } = await import("../../../src/lib/config/constants");
 
 /** Where a preview run writes its files, or `null` for an assertion-only
  *  run — which is what CI does. */
@@ -147,7 +148,7 @@ describe("issue #376 — the shell renders S20, and every kind the set draws wea
       for (const body of [mail.html, mail.text]) expect(body, kind).toContain(COPY[label]);
     }
     expect((await composePreview("nurture")).text).toContain(
-      COPY["mail.nurture.body.1"].replace("{domain}", "example.com")
+      COPY["mail.nurture.body.1"].replace("{domain}", "example.com").replace("{weekPages}", String(WEEK_PLAN.days))
     );
   });
 

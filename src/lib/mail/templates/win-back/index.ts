@@ -1,5 +1,5 @@
 // SPEC §8, Retention — the `win-back` mail. Every sentence is a key, and `sendEmail` refuses one still carrying `TODO(copy)`.
-import { RETENTION_MAIL } from "@/lib/config/constants";
+import { RETENTION_MAIL, WEEK_PLAN } from "@/lib/config/constants";
 import type { CopyKey } from "@/lib/presentation/copy";
 import { appHref, type RetentionMail } from "../../retention/mail";
 import { optOutControlFor } from "../first-page";
@@ -17,7 +17,7 @@ export function buildWinback(a: { email: string }): RetentionMail {
     preheader: PREHEADER,
     blocks: [
       { block: "heading", text: SUBJECT },
-      { block: "paragraph", text: LINE },
+      { block: "paragraph", text: LINE, vars: { weekPages: String(WEEK_PLAN.days) } },
       { block: "action", label: ACTION, href: appHref("/app/settings/billing") },
     ],
     reason: REASON,
