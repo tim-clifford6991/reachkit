@@ -626,11 +626,8 @@ export const WHEN_STEPS = (): readonly WhenStep[] =>
     icon,
   }));
 
-/** `#found`: what moves when, as time ranges and never as dates. Pricing
- *  draws the same card with its own first days and none of its notes. */
-export function WhatToExpect(
-  p: { title?: string; steps?: readonly WhenStep[]; notes?: boolean } = {}
-): React.JSX.Element {
+/** `#found`: what moves when, as time ranges and never dates; Pricing draws it with its own days and no notes. */
+export function WhatToExpect(p: { title?: string; steps?: readonly WhenStep[]; notes?: boolean } = {}): React.JSX.Element {
   const steps = p.steps ?? WHEN_STEPS();
   return (
     <div className={CARD}>
