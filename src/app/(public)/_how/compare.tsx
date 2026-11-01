@@ -30,8 +30,16 @@ const ROWS = ["jobs", "time", "covers", "cost"] as const;
 /** The chart's one scale, in the currency each fee is written in. */
 const SCALE_MAX = 1000;
 
-export function ThreeWays(): React.JSX.Element {
+/** With `caption`, the short comparison: no covers row and no chart, the
+ *  chart's source moved into the caption. */
+export function ThreeWays(p: { caption?: string } = {}): React.JSX.Element {
   const price = copy("price.amount");
+  const rows = p.caption === undefined ? ROWS : ROWS.filter((row) => row !== "covers");
+  const source = (
+    <a href={AGENCY_BENCHMARK.url} className="link" target="_blank" rel="noopener">
+      {copy("how.value.source", { providers: AGENCY_BENCHMARK.providers, year: AGENCY_BENCHMARK.year })}
+    </a>
+  );
   const vars = { minutes: HOW_FACTS.setupMinutes, price, fee: AGENCY_BENCHMARK.fee, jobs: JOBS.length };
   const ours = PRICE_EUR_CENTS / 100;
   return (
@@ -49,7 +57,7 @@ export function ThreeWays(): React.JSX.Element {
                   <Icon {...ICON} />
                   {copy(way.name)}
                 </h3>
-                {ROWS.map((row) => (
+                {rows.map((row) => (
                   <div key={row} className="flex flex-col gap-1">
                     <p className="flex flex-col">
                       <span className="text-base-content/70 text-xs">{copy(`how.value.${row}` as CopyKey, vars)}</span>
@@ -74,31 +82,33 @@ export function ThreeWays(): React.JSX.Element {
           );
         })}
       </div>
-      <figure className="card card-border bg-base-100 min-w-0">
-        <div className="card-body gap-4">
-          <div className="flex flex-wrap items-baseline justify-between gap-2">
-            <h3 className="text-base font-semibold">{copy("how.value.chart")}</h3>
-            <span className="text-base-content/70 text-xs">{copy("how.value.chart.scale", { min: 0, max: SCALE_MAX.toLocaleString("en-US") })}</span>
+      {p.caption === undefined ? (
+        <figure className="card card-border bg-base-100 min-w-0">
+          <div className="card-body gap-4">
+            <div className="flex flex-wrap items-baseline justify-between gap-2">
+              <h3 className="text-base font-semibold">{copy("how.value.chart")}</h3>
+              <span className="text-base-content/70 text-xs">{copy("how.value.chart.scale", { min: 0, max: SCALE_MAX.toLocaleString("en-US") })}</span>
+            </div>
+            <CostBars
+              max={SCALE_MAX}
+              rows={[
+                {
+                  name: copy("how.value.agency"),
+                  value: copy("how.value.chart.agency", { fee: AGENCY_BENCHMARK.fee }),
+                  span: [AGENCY_BENCHMARK.low, AGENCY_BENCHMARK.high],
+                },
+                { name: copy("how.value.diy"), value: copy("how.value.diy.time"), span: null },
+                { name: copy("chrome.wordmark"), value: copy("how.value.ours.cost", vars), span: [0, ours], you: true },
+              ]}
+            />
+            <figcaption className="text-base-content/70 text-xs">{source}</figcaption>
           </div>
-          <CostBars
-            max={SCALE_MAX}
-            rows={[
-              {
-                name: copy("how.value.agency"),
-                value: copy("how.value.chart.agency", { fee: AGENCY_BENCHMARK.fee }),
-                span: [AGENCY_BENCHMARK.low, AGENCY_BENCHMARK.high],
-              },
-              { name: copy("how.value.diy"), value: copy("how.value.diy.time"), span: null },
-              { name: copy("chrome.wordmark"), value: copy("how.value.ours.cost", vars), span: [0, ours], you: true },
-            ]}
-          />
-          <figcaption className="text-base-content/70 text-xs">
-            <a href={AGENCY_BENCHMARK.url} className="link" target="_blank" rel="noopener">
-              {copy("how.value.source", { providers: AGENCY_BENCHMARK.providers, year: AGENCY_BENCHMARK.year })}
-            </a>
-          </figcaption>
-        </div>
-      </figure>
+        </figure>
+      ) : (
+        <p className="text-base-content/70 text-sm">
+          {p.caption} {source}
+        </p>
+      )}
     </div>
   );
 }
