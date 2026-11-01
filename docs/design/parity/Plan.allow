@@ -27,8 +27,8 @@ Place 48, flat for 8 weeks. Update goes live Sun 25.	sample data: the day is the
 Show all 12 live pages	sample data
 Google: Showing in results AI: Linked by AI	sample data: the step words are the page ladder's shared keys (draft.ladder.*), read the same on Overview and the page screen (#2273)
 Google: Showing in results AI: Read by AI	sample data: the step words are the page ladder's shared keys (draft.ladder.*), read the same on Overview and the page screen (#2273)
-component:icon:calendar 4	sample data: the fixture week holds fewer Planned days than the board's
-component:icon:plus 1	sample data: the fixture week holds fewer new pages than the board's
-component:icon:refresh-cw 2	sample data: the fixture week holds fewer updates than the board's
-component:icon:clock-4 1	sample data: no fixture page among the first four live pages is Too early
-component:icon:minus 1	sample data: no fixture page among the first four live pages is Not moving
+component:icon:calendar 4	#2273: the icon ships on every Planned day, and the fixture week holds fewer than the board's
+component:icon:plus 1	#2273: the icon ships on every new page, and the fixture week holds fewer than the board's
+component:icon:refresh-cw 2	#2273: the icon ships on every update, and the fixture week holds fewer than the board's
+component:icon:clock-4 1	#2273: Too early draws the shared verdict badge's Clock, read the same on Overview and the page screen
+component:icon:minus 1	#2273: the icon ships on a Not moving live page, and no fixture page among the first four is one
