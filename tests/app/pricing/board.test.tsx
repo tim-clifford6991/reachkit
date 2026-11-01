@@ -182,6 +182,12 @@ describe("board Pricing — before you pay, and the free report", () => {
     expect(page).not.toContain("What exactly do I pay?");
   });
 
+  it("each question draws its own icon to its left: gift, plug, pen, clock-4, circle-stop, store", () => {
+    const summaries = root.querySelectorAll("#before summary");
+    expect(summaries.map((s) => icons(s.outerHTML))).toEqual([["gift"], ["plug"], ["pen"], ["clock4"], ["circle-stop"], ["store"]]);
+    for (const s of summaries) expect(s.firstElementChild?.querySelector("svg")?.getAttribute("aria-hidden")).toBe("true");
+  });
+
   it("two columns at desktop, the last question across both only when it would sit alone", () => {
     const before = root.querySelector("#before")!;
     expect(before.querySelector("details")?.parentNode?.classNames).toContain("lg:grid-cols-2");
