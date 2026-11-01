@@ -205,7 +205,9 @@ describe("icons are structural only (E26, E27, E29)", () => {
   it("PubReport's We read you as draws Tag, MapPin and Languages, and the buyer chip no icon (E44)", () => {
     const chips = board("PubReport").querySelectorAll("#read-as li");
     expect(chips.map((li) => boardIcons(li.innerHTML).map((icon) => icon.name))).toEqual([["tag"], [], ["map-pin"], ["languages"]]);
-    expect(chips.map((li) => li.text)).toEqual(["Plumber · local service", "Homeowners", "In and around Austin", "English, United States"]);
+    // The kind chip and the locale chip are the registry's own sentences, filled with the specimen's facts.
+    expect(chips[0]!.text).toBe(copy("report.read.as.what", { kind: copy("report.read.as.kind.shop"), category: "loose leaf tea" }));
+    expect(chips[3]!.text).toBe(copy("report.read.as.locale", { language: "English", country: "United States" }));
   });
 });
 
