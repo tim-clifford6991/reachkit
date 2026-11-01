@@ -181,7 +181,7 @@ describe("#784 — a market too small is told, and a never-measured zero is not 
     expect(tree.innerHTML).not.toContain(COPY["overview.supply.exhausted"]);
   });
 
-  it("after week zero, a weekly pass that found the market too small is told on Overview", async () => {
+  it("after week zero, a weekly pass that found the market too small is told on Overview, with no chooser", async () => {
     shell.weekZero = false;
     current.report = reportWith(0);
     setOpportunityStore(storeWith({ unused: 0, questions: 0, everHeld: true }));
@@ -189,8 +189,8 @@ describe("#784 — a market too small is told, and a never-measured zero is not 
 
     expect(text(tree, "shell-onboarding-notice")).toBeNull();
     expect(text(tree, "overview-supply")).toBe(COPY["overview.supply.unmeasured"]);
-    // Issue 837: Overview offers the choice itself once the panel does not.
-    expect(tree.querySelector('[data-testid="overview"] [data-testid="category-choice"]')).not.toBeNull();
+    // R17: Overview offers no market chooser of its own.
+    expect(tree.querySelector('[data-testid="overview"] [data-testid="category-choice"]')).toBeNull();
   });
 
   it("a market that had pages and used them up still reads exhausted, with no notice", async () => {

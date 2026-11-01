@@ -13,7 +13,6 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { fakeDb, type FakeDb, type Row } from "../../publish/harness";
 import { LOCAL, SAAS, stored, weekWith } from "../../measure/reading-fixture";
 import { assembleReading, readingOf, type PageReading } from "@/lib/measure/page-reading";
-import { assemblePrompts } from "@/app/(account)/app/_overview/prompts-model";
 import { boardFile, compare, readAllow, segments } from "../../../scripts/design/parity.mjs";
 
 const db: FakeDb = fakeDb();
@@ -234,20 +233,8 @@ describe("Measures that move over months", () => {
     scan: { score: 27 as number | null, market: 0 as number | null },
     next: "2026-11-02",
   };
-  /** Two weeks of answers: 23 unbranded prompts asked twice each, and the two branded ones apart. */
-  const window = {
-    prompts: [],
-    weeks: ["2026-09-28", "2026-10-05"].map((weekStart) => ({
-      weekStart,
-      asks: 50,
-      samples: [
-        ...Array.from({ length: 46 }, (_, i) => ({ promptId: `u${i % 23}`, kind: "category" as const, named: i < 3, linked: i === 0, ownUrls: [], rivals: [] })),
-        ...Array.from({ length: 4 }, (_, i) => ({ promptId: `b${i % 2}`, kind: "branded" as const, named: true, linked: false, ownUrls: [], rivals: [] })),
-      ],
-    })),
-  };
-  const draw = (m: typeof months | { reading: null; scan: typeof months.scan; next: string }, rep = assemblePrompts(window)): Document =>
-    new DOMParser().parseFromString(renderToStaticMarkup(MonthsFigure({ months: m, reputation: rep, timeZone: ZONE })), "text/html");
+  const draw = (m: typeof months | { reading: null; scan: typeof months.scan; next: string }): Document =>
+    new DOMParser().parseFromString(renderToStaticMarkup(MonthsFigure({ months: m, timeZone: ZONE })), "text/html");
 
   it("labels each figure months-scale, against the scan, with the next first Monday", () => {
     const dom = draw(months);
@@ -262,25 +249,15 @@ describe("Measures that move over months", () => {
     expect(text(dom.querySelector('[data-testid="overview-months-note"]'))).toContain(copy("overview.months.note"));
   });
 
-  it("Reputation is mentions of the stored unbranded answers, M the real count of them, with its margin", () => {
-    const rep = assemblePrompts(window);
-    const answers = window.weeks.flatMap((w) => w.samples).filter((s) => s.kind !== "branded");
-    const mentioned = answers.filter((s) => s.named || s.linked).length;
-    const tile = text(draw(months, rep).querySelector('[data-testid="overview-tile-reputation"]'));
-    expect(tile).toContain(`${mentioned} ${copy("overview.months.of", { of: String(answers.length) })}`);
-    expect(answers.length).toBe(92);
-    expect(tile).toContain(copy("overview.months.reputation.line", { weeks: "4" }));
-    if (rep.kind !== "measured") throw new Error("the window was read");
-    expect(text(draw(months, rep).querySelector('[data-testid="overview-months-note"]'))).toContain(
-      copy("overview.months.range", { low: String(Math.round(rep.rate.low * 100)), high: String(Math.round(rep.rate.high * 100)) })
-    );
+  it("holds two figures, score and market; AI mentions are the AI tab's alone (O6, say it once)", () => {
+    const tiles = [...draw(months).querySelectorAll('[data-testid^="overview-tile-"]')].map((tile) => tile.getAttribute("data-testid"));
+    expect(tiles).toEqual(["overview-tile-score", "overview-tile-market"]);
   });
 
   it("before the first month's reading it names the day, and draws no figure", () => {
-    const dom = draw({ reading: null, scan: months.scan, next: "2026-11-02" }, { kind: "none" });
+    const dom = draw({ reading: null, scan: months.scan, next: "2026-11-02" });
     expect(text(dom.querySelector('[data-testid="overview-months-next"]'))).toBe(copy("overview.months.first", { date: "Monday, November 2" }));
-    expect(dom.querySelector('[data-testid^="overview-tile-score"]')).toBeNull();
-    expect(dom.querySelector('[data-testid="overview-tile-reputation"]')).toBeNull();
+    expect(dom.querySelector('[data-testid^="overview-tile-"]')).toBeNull();
   });
 
   /** The decorative two-point line a tile ends in, or none. */
@@ -294,14 +271,6 @@ describe("Measures that move over months", () => {
   it("market tile draws its two-point line, from a scan that measured 0 but never from one that measured nothing", () => {
     expect(lineIn(draw(months), "market")?.getAttribute("data-points")).toBe("2");
     expect(lineIn(draw({ ...months, scan: { ...months.scan, market: null } }), "market")).toBeNull();
-  });
-
-  it("reputation tile draws a bar at mentions of samples", () => {
-    const rep = assemblePrompts(window);
-    if (rep.kind !== "measured") throw new Error("the window was read");
-    const bar = draw(months, rep).querySelector('[data-testid="overview-tile-reputation"] progress');
-    expect(bar?.getAttribute("aria-hidden")).toBe("true");
-    expect([bar?.getAttribute("value"), bar?.getAttribute("max")]).toEqual([String(rep.rate.linked + rep.rate.named), String(rep.rate.samples)]);
   });
 
   it("a figure at its scan's own value says so, and one below says down", () => {
@@ -319,7 +288,7 @@ describe("board Main: the figure sections", () => {
     const { missing } = compare(board, segments(html), readAllow("Main"));
     const all = compare(board, [], []).missing;
     const from = all.indexOf("Your pages in AI answers");
-    const to = all.findIndex((s: string) => s.startsWith("These follow links"));
+    const to = all.findIndex((s: string) => s.startsWith("These grow with links"));
     expect([from, to].every((i) => i > -1)).toBe(true);
     const sections = new Set(all.slice(from, to + 1));
     expect(missing.filter((s: string) => sections.has(s))).toEqual([]);

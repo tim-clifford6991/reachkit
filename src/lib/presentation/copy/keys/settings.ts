@@ -570,7 +570,6 @@ export const SETTINGS_COPY = Object.freeze({
   "settings.publishing.flow.emailed": ["Emailed in your first week", { slots: {}, fixedBy: "issue 1751 · board SettingsPublishing · drafted" }],
   "settings.publishing.flow.emailed.note": ["Then in your Monday mail", { slots: {}, fixedBy: "issue 1751 · board SettingsPublishing · drafted" }],
   "settings.publishing.flow.window": ["{window} to edit or stop it", { slots: { window: "text" }, fixedBy: "issue 1751 · board SettingsPublishing · drafted" }],
-  // "Plan" is the link to Plan.
   "settings.publishing.flow.window.note": ["From the mail or from This week. Do nothing and it goes live on its own.", { slots: {}, fixedBy: "issue 1751 · board SettingsPublishing · drafted" }],
   "settings.publishing.flow.live": ["Goes live", { slots: {}, fixedBy: "issue 1751 · board SettingsPublishing · drafted" }],
   "settings.publishing.flow.paused": ["Paused: nothing goes live", { slots: {}, fixedBy: "issue 1751 · board SettingsPublishing · drafted" }],

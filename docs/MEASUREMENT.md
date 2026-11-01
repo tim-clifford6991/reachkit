@@ -13,7 +13,6 @@ A number nobody measured is never shown as 0: each definition says what is shown
 | overview-best-mover | `overview-tile-mover` | The live page whose place on its own search rose most since the reading before, of those above where they were first seen: its place, and the places gained since it was first seen. A week where none rose says so; with no place read there is no figure. | `src/lib/measure/figures.ts#bestMoverOf` | Weekly, each Monday's pass. |
 | overview-score-month | `overview-tile-score` | The Visibility Score the weekly pass of the month's first Monday stored, beside the score at the customer's own scan. Before the first such pass there is no figure, and the day it is taken is named. | `src/lib/measure/figures.ts#monthFiguresOf` | Monthly, on the first Monday. |
 | overview-market-month | `overview-tile-market` | x of N: of the market's biggest searches the month's first Monday pass measured, how many show the site on Google's first page, beside the count at the customer's own scan. | `src/lib/measure/figures.ts#monthFiguresOf` | Monthly, on the first Monday. |
-| overview-reputation | `overview-tile-reputation` | x of N: of the unbranded tracked prompts' AI answers read over the 4 weeks to the month's first Monday, how many named or linked the site; N is every such answer read, never the prompts. The range beside it is shown once 2 weeks of the set exist. | `src/lib/market/prompts/rate.ts#measurePrompts` | Monthly, on the first Monday. |
 
 ## Monday mail
 
@@ -32,7 +31,7 @@ A number nobody measured is never shown as 0: each definition says what is shown
 | mail-ai-reads | `mail.weekly.ai.reads` | The overview-ai-reads figure, read by the same function over the last 7 days. Only on a hosted blog with a page live. | `src/lib/publish/reads/model.ts#assembleBlogReads` | Weekly, in the Monday mail. |
 | mail-score-month | `mail.weekly.month.score` | The overview-score-month figure, in the first mail of a month only, with its change since the customer's scan. | `src/lib/measure/figures.ts#monthFiguresOf` | Monthly, in the first Monday mail of the month. |
 | mail-market-month | `mail.weekly.month.market` | The overview-market-month figure, in the first mail of a month only, with its change since the customer's scan. | `src/lib/measure/figures.ts#monthFiguresOf` | Monthly, in the first Monday mail of the month. |
-| mail-reputation | `mail.weekly.month.reputation` | The overview-reputation figure, in the first mail of a month only: of the tracked prompts' AI answers over the 4 weeks to that Monday, how many named or linked the site, of every such answer read. | `src/lib/market/prompts/rate.ts#measurePrompts` | Monthly, in the first Monday mail of the month. |
+| mail-reputation | `mail.weekly.month.reputation` | x of N, in the first mail of a month only: of the unbranded tracked prompts' AI answers over the 4 weeks to that Monday, how many named or linked the site; N is every such answer read, never the prompts. The AI answers tab shows the same count. | `src/lib/market/prompts/rate.ts#measurePrompts` | Monthly, in the first Monday mail of the month. |
 
 ## Free report
 

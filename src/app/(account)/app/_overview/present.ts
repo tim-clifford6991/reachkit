@@ -18,13 +18,9 @@
 // Numerals are formatted with the site's locale-free grouping — every
 // numeral on this screen renders inside `.num` (`src/ui/type.css`), which is
 // the one mechanism §2.3's mono rule is enforced through.
-import { WEEK_PLAN } from "@/lib/config/constants";
 import type { Measured, UnmeasuredReason } from "@/lib/measure/measured";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { renderMeasured } from "@/lib/presentation/measured";
-import { writtenLine } from "../_shell/written";
-import { GOALS } from "./goals";
-import type { HeadlineNumber } from "./model";
 
 /** The two lines REQ-004 c6 and c9 name, keyed by the reason. */
 const UNMEASURED_LINE: Readonly<Record<UnmeasuredReason, CopyKey>> = Object.freeze({
@@ -88,30 +84,6 @@ export function renderValue(m: Measured<number>, subjectKey: CopyKey): RenderedV
   return rendered.line === undefined
     ? { text: rendered.text, isDash: rendered.isDash }
     : { text: rendered.text, isDash: rendered.isDash, line: rendered.line };
-}
-
-/** §4.5's data rule, resolved: "every value carries its delta or its goal,
- *  never bare." The delta where a previous measurement exists and produced
- *  one; otherwise the goal, which always exists. */
-export type Carried =
-  | { kind: "delta"; markKey: CopyKey; text: string }
-  | { kind: "goal"; text: string; means: string | null };
-
-export function carriedBy(headline: HeadlineNumber<number>, subjectKey: CopyKey): Carried {
-  const delta = headline.delta;
-  if (delta !== undefined && delta.kind !== "unmeasured") {
-    return {
-      kind: "delta",
-      markKey: delta.value < 0 ? "overview.delta.down" : "overview.delta.up",
-      text: renderValue({ ...delta, value: Math.abs(delta.value) }, subjectKey).text,
-    };
-  }
-  const goal = GOALS[headline.goal];
-  return {
-    kind: "goal",
-    text: copy("overview.goal", { value: formatCount(goal.value) }),
-    means: writtenLine(goal.meansKey, { goal: formatCount(goal.value), days: String(WEEK_PLAN.days) }),
-  };
 }
 
 /** A filter chip on the Search and Rivals tables, as the calm layer draws it
