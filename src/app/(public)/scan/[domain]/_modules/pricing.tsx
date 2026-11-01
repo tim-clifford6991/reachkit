@@ -64,7 +64,7 @@ const TERM_LINES: Readonly<Record<OfferTerms, () => readonly string[]>> = {
   pricing: () => [
     copy("landing.pace", { weekPages: WEEK_PLAN.days }),
     copy("pricing.plan.chosen"),
-    copy("pricing.plan.checked"),
+    copy("pricing.plan.rivals", { rivals: String(HOW_FACTS.rivals) }),
     copy("pricing.plan.mail"),
     // The window is the pin's, in both wordings: one home, two sentences.
     copy("offer.pricing.veto", { hours: String(VETO.defaultHours) }),
@@ -76,6 +76,7 @@ const TERM_LINES: Readonly<Record<OfferTerms, () => readonly string[]>> = {
  *  line where there is one, Start, and the cancel line under it. */
 function PriceBox(p: {
   start: React.ReactNode;
+  interval: string;
   cancel: string;
   refused?: boolean;
   terms?: React.ReactNode;
@@ -89,7 +90,7 @@ function PriceBox(p: {
         <span className="text-5xl leading-none">
           <Num figure>{copy("price.amount")}</Num>
         </span>
-        <span className="text-base-content/70 text-sm">{copy("price.interval")}</span>
+        <span className="text-base-content/70 text-sm">{p.interval}</span>
       </div>
       {p.note ?? null}
       {p.terms ?? null}
@@ -168,7 +169,7 @@ export function PricingCard(
             </p>
           </div>
           <div className="bg-primary/5 rounded-box ring-primary/15 shrink-0 p-6 ring-1 lg:w-96">
-            <PriceBox start={control} cancel={cancel} refused={p.refused} free={p.free} />
+            <PriceBox start={control} interval={copy("price.interval")} cancel={cancel} refused={p.refused} free={p.free} />
           </div>
         </div>
       </section>
@@ -176,7 +177,7 @@ export function PricingCard(
   }
 
   // The report's card opens on the price; the pricing page's names the plan
-  // and how it is billed first (board Pricing).
+  // first and states VAT in the landing's words until the owner rules on "tax".
   const named = terms === "pricing";
   return (
     <section className={`card bg-base-100 ${FLOAT}`}>
@@ -189,13 +190,14 @@ export function PricingCard(
         ) : null}
         <PriceBox
           start={control}
+          interval={named ? copy("landing.price.month") : copy("price.interval")}
           cancel={cancel}
           refused={p.refused}
           terms={<Terms specs={specs} />}
           note={
             named ? (
               <p className="text-base-content/70 text-center text-sm">
-                {copy("pricing.plan.billing")}
+                {copy("landing.plan.terms")}
               </p>
             ) : null
           }

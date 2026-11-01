@@ -167,15 +167,18 @@ describe('REQ-021 c4 — "Given a surface that offers ReachKit away from any rep
   it("every sentence the surface speaks resolves through copy() in that one component", async () => {
     const html = await render();
     const { copy } = await import("@/lib/presentation/copy");
-    const { VETO, WEEK_PLAN } = await import("@/lib/config/constants");
+    const { BATTERY, VETO, WEEK_PLAN } = await import("@/lib/config/constants");
     expect(html).toContain(copy("price.amount"));
-    expect(html).toContain(copy("price.interval"));
+    // VAT in the landing's words, never the report's "tax included" (owner 2026-11-01).
+    expect(html).toContain(copy("landing.price.month"));
+    expect(html).toContain(copy("landing.plan.terms"));
+    expect(html).not.toContain(copy("price.interval"));
     expect(html).toContain(copy("offer.start"));
     // The plan card's five rows, in the board's words; the window carries
     // the pin from `constants.ts` through its slot.
     expect(html).toContain(copy("landing.pace", { weekPages: WEEK_PLAN.days }));
     expect(html).toContain(copy("pricing.plan.chosen"));
-    expect(html).toContain(copy("pricing.plan.checked"));
+    expect(html).toContain(copy("pricing.plan.rivals", { rivals: String(BATTERY.COMPETITORS_MAX) }));
     expect(html).toContain(copy("pricing.plan.mail"));
     expect(html).toContain(copy("offer.pricing.veto", { hours: String(VETO.defaultHours) }));
     expect(html).toContain(copy("pricing.subline", { weekPages: WEEK_PLAN.days }));
