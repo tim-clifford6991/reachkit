@@ -16,7 +16,7 @@
 // 2026-10-20, Q13).
 import React, { use } from "react";
 import type { Metadata } from "next";
-import { CircleCheck, CircleStop, Clock4, Eye, Gift, Inbox, Pen, Plug, Search, Store, Timer, TrendingUp, X, type LucideIcon } from "lucide-react";
+import { CircleCheck, CircleStop, Clock4, Eye, Gift, Mail, Pen, Plug, Search, Store, Timer, TrendingUp, X, type LucideIcon } from "lucide-react";
 import { Surface } from "@/ui/layout";
 import { WEEK_PLAN } from "@/lib/config/constants";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
@@ -24,7 +24,6 @@ import { PricingCard } from "../scan/[domain]/_modules/pricing";
 import { ScanForm } from "../_landing/ScanForm";
 import { scanFormWords } from "../_landing/scan-form-words";
 import { HOW_FACTS as F } from "../_how/facts";
-import { WhatToExpect } from "../_how/visuals";
 import { ThreeWays } from "../_how/compare";
 import { PUBLIC_ROUTE_SEO } from "../_seo/routes";
 import { staticMetadata } from "../_seo/metadata";
@@ -129,17 +128,41 @@ function NotDone(): React.JSX.Element {
 }
 
 function FromWeekOne(): React.JSX.Element {
+  // The first three steps are ReachKit's own work, so they read as done; the rest wait on Google.
   const steps = [
-    { at: copy("pricing.months.day1.at"), what: copy("pricing.months.day1.what", { minutes: F.setupMinutes }), icon: Timer },
-    { at: copy("pricing.months.day2.at"), what: copy("pricing.months.day2.what"), icon: CircleCheck },
-    { at: copy("pricing.months.monday.at"), what: copy("pricing.months.monday.what"), icon: Inbox },
+    { at: copy("pricing.months.day1.at"), what: copy("pricing.months.day1.what", { minutes: F.setupMinutes }), icon: Timer, ours: true },
+    { at: copy("pricing.months.day2.at"), what: copy("pricing.months.day2.what"), icon: CircleCheck, ours: true },
+    { at: copy("pricing.months.monday.at"), what: copy("pricing.months.monday.what"), icon: Mail, ours: true },
     ...([["found", Search], ["showing", Eye], ["top", TrendingUp]] as const).map(([step, icon]) => ({
       at: copy(`how.when.${step}.at`),
       what: copy(`how.when.${step}.what`),
       icon,
+      ours: false,
     })),
   ];
-  return <WhatToExpect title={copy("pricing.months.title")} steps={steps} notes={false} />;
+  return (
+    <div className="card card-border bg-base-100 min-w-0">
+      <div className="card-body gap-3">
+        <h3 className="text-base font-semibold">{copy("pricing.months.title")}</h3>
+        <ul className="timeline timeline-vertical timeline-compact timeline-snap-icon min-w-0 [&>li]:[--timeline-col-start:0]">
+          {steps.map((step, i) => (
+            <li key={step.at}>
+              {i > 0 ? <hr className="bg-base-300 w-px" /> : null}
+              <div className={`timeline-middle rounded-field grid size-9 place-items-center ${step.ours ? "bg-success/10 text-success" : "bg-primary/10 text-primary"}`}>
+                <step.icon size={18} strokeWidth={1.75} aria-hidden />
+              </div>
+              {/* The last step is dashed: some pages get there, not every one. */}
+              <div className={`timeline-end mb-4 ms-3 flex min-w-0 flex-col ${i === steps.length - 1 ? "rounded-box border-primary/30 border border-dashed px-3 py-1.5" : ""}`}>
+                <span className="font-bold">{step.at}</span>
+                <span className="text-sm">{step.what}</span>
+              </div>
+              {i < steps.length - 1 ? <hr className="bg-base-300 w-px" /> : null}
+            </li>
+          ))}
+        </ul>
+      </div>
+    </div>
+  );
 }
 
 type Question = { q: CopyKey; a: CopyKey; icon: LucideIcon; vars?: Record<string, string | number> };
@@ -241,13 +264,11 @@ export default function PricingPage(props: {
             className="card card-border bg-primary/5 scroll-mt-16"
           >
             <div className="card-body items-center gap-4 px-5 py-10 text-center lg:px-10">
-              {/* The tint over the light canvas sits under the eyebrow ink's 4.5:1, so this one is darker. */}
-              <p className="eyebrow text-base-content/70!">{copy("pricing.plan.unsure")}</p>
-              <h2 id={`${START_ID}-h`} className="m-0">
-                {copy("pricing.close.title")}
+              <h2 id={`${START_ID}-h`} className="m-0 max-w-md">
+                {copy("pricing.plan.unsure")} {copy("pricing.close.title")}
               </h2>
               <div className="w-full max-w-xl text-left">
-                <ScanForm words={scanFormWords(copy("landing.start.cta"))} />
+                <ScanForm words={scanFormWords(copy("landing.start.cta"))} inline />
               </div>
               <p className="text-base-content/70 text-sm">{copy("landing.close.assurance")}</p>
             </div>

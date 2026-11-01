@@ -626,15 +626,15 @@ export const WHEN_STEPS = (): readonly WhenStep[] =>
     icon,
   }));
 
-/** `#found`: what moves when, as time ranges and never dates; Pricing draws it with its own days and no notes. */
-export function WhatToExpect(p: { title?: string; steps?: readonly WhenStep[]; notes?: boolean } = {}): React.JSX.Element {
-  const steps = p.steps ?? WHEN_STEPS();
+/** `#found`: what moves when, as time ranges and never as dates. */
+export function WhatToExpect(): React.JSX.Element {
+  const steps = WHEN_STEPS();
   return (
     <div className={CARD}>
       <div className="card-body gap-3">
         <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <h3 className="text-base font-semibold">{p.title ?? copy("how.when.title")}</h3>
-          {p.notes === false ? null : <span className={SMALL}>{copy("how.when.sub")}</span>}
+          <h3 className="text-base font-semibold">{copy("how.when.title")}</h3>
+          <span className={SMALL}>{copy("how.when.sub")}</span>
         </div>
         <ul className="timeline timeline-vertical timeline-compact min-w-0">
           {steps.map((step, i) => (
@@ -651,18 +651,14 @@ export function WhatToExpect(p: { title?: string; steps?: readonly WhenStep[]; n
             </li>
           ))}
         </ul>
-        {p.notes === false ? null : (
-          <>
-            <p className="flex items-start gap-2 text-sm font-semibold">
-              <Info {...ICON} className="mt-0.5 shrink-0" />
-              {copy("how.when.promise")}
-            </p>
-            <p className={`${SMALL} flex items-start gap-2`}>
-              <MapPin {...ICON} className="shrink-0" />
-              {copy("how.when.maps")}
-            </p>
-          </>
-        )}
+        <p className="flex items-start gap-2 text-sm font-semibold">
+          <Info {...ICON} className="mt-0.5 shrink-0" />
+          {copy("how.when.promise")}
+        </p>
+        <p className={`${SMALL} flex items-start gap-2`}>
+          <MapPin {...ICON} className="shrink-0" />
+          {copy("how.when.maps")}
+        </p>
       </div>
     </div>
   );

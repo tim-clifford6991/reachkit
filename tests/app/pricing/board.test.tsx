@@ -63,11 +63,12 @@ describe("board Pricing — the head and the price card", () => {
     for (const cut of ["no contract", "no setup fee", "Billed in euros", "No account before payment"]) expect(page).not.toContain(cut);
   });
 
-  it("the card names the plan, the price with VAT, its five ticks, Start, the cancel line and the free path", () => {
+  it("the card names the plan beside its mark, the price with tax, its five ticks, Start, the cancel line and the free path", () => {
+    expect(root.querySelector("#top .card-title [data-testid=brand-mark]")).not.toBeNull();
+    expect(root.querySelector("#top .card-title")?.text.trim()).toBe(copy("chrome.wordmark"));
     expectInOrder(section("top"), [
       copy("pricing.plan.badge"),
-      `${price} ${copy("landing.price.month")}`,
-      copy("landing.plan.terms"),
+      `${price} ${copy("price.interval")}`,
       copy("landing.pace", weekPages),
       "Pages chosen from what buyers search and ask AI",
       `Up to ${BATTERY.COMPETITORS_MAX} competitors watched every Monday`,
@@ -86,17 +87,16 @@ describe("board Pricing — the head and the price card", () => {
     expect(root.querySelector("#top .btn")?.classNames).toContain("btn-primary");
   });
 
-  it("says VAT included, never tax included, and no money-back while the launch gate is shut (owner 2026-11-01; 2026-10-20 Q13)", () => {
-    expect(page).toContain("VAT included");
-    expect(page).not.toMatch(/tax included/i);
+  it("states tax once, on the price line, and no money-back while the launch gate is shut (2026-10-20 Q13)", () => {
+    expect(page.split("tax included").length - 1).toBe(1);
+    expect(page).not.toContain(copy("landing.plan.terms"));
     expect(page).not.toMatch(/money-back|refund|change your mind/i);
   });
 
-  it("the report's card keeps its own price line and none of the pricing page's VAT line (board PubReport)", () => {
+  it("the report's card says the same price line and the same cancel line (board PubReport)", () => {
     const report = text(renderToStaticMarkup(<PricingCard />));
-    expect(report).toContain(copy("price.interval"));
+    expect(report).toContain(`${price} ${copy("price.interval")}`);
     expect(report).toContain("Cancel any time from Settings.");
-    expect(report).not.toContain(copy("landing.plan.terms"));
     expect(report).not.toMatch(/one click/i);
   });
 
@@ -134,9 +134,16 @@ describe("board Pricing — what you see from week 1", () => {
     }
   });
 
-  it("the first months: timer, circle-check, inbox, search, eye, trending-up", () => {
+  it("the first months: timer, circle-check, mail, search, eye, trending-up", () => {
     const week1 = html.slice(html.indexOf('<section id="week1"'), html.indexOf('<section id="compare"'));
-    expect(whenIcons(week1)).toEqual({ steps: ["timer", "circle-check", "inbox", "search", "eye", "trending-up"], notes: [] });
+    expect(whenIcons(week1)).toEqual({ steps: ["timer", "circle-check", "mail", "search", "eye", "trending-up"], notes: [] });
+  });
+
+  it("each icon sits in a tile on the line, ReachKit's three steps tinted done, and only Months in a dashed box", () => {
+    const steps = root.querySelectorAll("#week1 .timeline > li");
+    expect(steps.map((li) => li.querySelector(".timeline-middle")?.classNames.includes("bg-success/10"))).toEqual([true, true, true, false, false, false]);
+    expect(steps.map((li) => li.querySelector(".timeline-end")?.classNames.includes("border-dashed"))).toEqual([false, false, false, false, false, true]);
+    expect(steps.at(-1)?.querySelector(".timeline-end")?.text).toContain(copy("how.when.top.at"));
   });
 });
 
@@ -150,10 +157,26 @@ describe("board Pricing — €49 against the other ways", () => {
     expect(compare()).toContain("Who does the 5 jobs You do all 5, every week");
     for (const job of ["research", "choose", "write", "publish", "check results"]) expect(compare()).toContain(job);
     expect(compare()).toContain(`Cost ${AGENCY_BENCHMARK.fee} a month, the most common fee¹`);
+    expect(compare()).toContain(`Cost ${price} a month`);
     expect(compare()).toContain("Cost Hours, not money Your time, plus any AI writing tool");
     expect(compare()).toContain(
       `${text(copy("pricing.compare.limit"))} ¹ Most common agency fee for this work, Ahrefs survey of ${AGENCY_BENCHMARK.providers} providers, ${AGENCY_BENCHMARK.year}`
     );
+  });
+
+  it("each way has a header tile over a divider, its jobs as chips coloured by whose work it is, and its cost as a figure over a line", () => {
+    const cards = root.querySelectorAll("#compare article");
+    expect(cards.map((c) => c.querySelector("h3")?.text)).toEqual(["Do it yourself", "An agency", "ReachKit"]);
+    expect(cards.map((c) => c.querySelector("h3")?.parentNode?.classNames.includes("border-b"))).toEqual([true, true, true]);
+    expect(cards.map((c) => c.querySelector("h3")?.parentNode?.classNames.includes("bg-primary/10"))).toEqual([false, false, true]);
+    expect(cards.map((c) => c.querySelectorAll("li.badge").every((b) => b.classNames.includes("badge-warning")))).toEqual([true, false, false]);
+    expect(cards.map((c) => c.querySelectorAll("li.badge").every((b) => b.classNames.includes("badge-primary")))).toEqual([false, false, true]);
+    // The cost row: its label, the figure, and a plain line under it.
+    const costs = cards.map((c) => c.querySelectorAll("p").at(-1)!.querySelectorAll(":scope > span"));
+    expect(costs.map(([, figure]) => figure!.text.trim())).toEqual([copy("how.value.diy.cost.head"), AGENCY_BENCHMARK.fee, price]);
+    expect(icons(costs[0]![1]!.outerHTML)).toEqual(["clock4"]);
+    expect(costs[2]![1]!.classNames).toContain("text-primary");
+    expect(costs.map(([, , line]) => /font-(bold|semibold)/.test(line!.classNames))).toEqual([false, false, false]);
   });
 
   it("draws no compare lead, no Also covers row and no cost chart", () => {
@@ -195,9 +218,11 @@ describe("board Pricing — before you pay, and the free report", () => {
     expect(spans).toEqual(spans.map((_, i) => spans.length % 2 === 1 && i === spans.length - 1));
   });
 
-  it("closes on the free scan: the field, its button and its promise, and nothing under it", () => {
+  it("closes on one heading, the free scan with its own-width button, and its promise, and nothing under it", () => {
     const start = section("start");
-    expect(start).toContain(`${copy("pricing.plan.unsure")} ${copy("pricing.close.title")}`);
+    expect(root.querySelector("#start h2")?.text.trim()).toBe(`${copy("pricing.plan.unsure")} ${copy("pricing.close.title")}`);
+    expect(root.querySelector("#start .eyebrow")).toBeNull();
+    expect(root.querySelector("#start button[type=submit]")?.classNames).not.toContain("w-full");
     expectInOrder(start, [copy("landing.field.label"), copy("landing.start.cta"), copy("landing.close.assurance")]);
     expect(html).toContain(`placeholder="${copy("landing.field.placeholder")}"`);
     expect(page).not.toContain("Type your website.");

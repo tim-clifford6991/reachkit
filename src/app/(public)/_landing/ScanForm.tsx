@@ -64,6 +64,8 @@ export function ScanForm(props: {
    *  renders it — `scanFormWords()` in `./scan-form-words.ts`, which also
    *  carries the one word a caller may replace (S8's "Scan it"). */
   words: ScanFormWords;
+  /** The button keeps its own width on a phone, where the field is a closing card's and not the hero's. */
+  inline?: boolean;
 }): React.JSX.Element {
   const initial = useLandingSearchParams(props.searchParams);
   const initialProblem = isDomainProblem(initial.problem, props.words.problem)
@@ -121,7 +123,7 @@ export function ScanForm(props: {
           aria-describedby={problem ? problemId : undefined}
         />
         {/* The screen's one submit control and its one solid button. */}
-        <button type="submit" className="btn btn-primary h-12 w-full sm:w-auto" disabled={submitting} aria-busy={submitting || undefined}>
+        <button type="submit" className={`btn btn-primary h-12 sm:w-auto ${props.inline === true ? "self-start" : "w-full"}`} disabled={submitting} aria-busy={submitting || undefined}>
           {props.words.submit}
           <ArrowRight aria-hidden size={20} strokeWidth={1.75} />
         </button>

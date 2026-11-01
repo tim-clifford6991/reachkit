@@ -476,7 +476,7 @@ export const CHROME_COPY = Object.freeze({
   "how.value.agency.jobs": ["They do; you brief and review", { slots: {}, fixedBy: "issue 1597 · drafted" }],
   "how.value.agency.time": ["A briefing call, then reviews", { slots: {}, fixedBy: "issue 1597 · drafted" }],
   "how.value.agency.covers": ["Often yes", { slots: {}, fixedBy: "issue 1597 · drafted" }],
-  "how.value.agency.cost": ["{fee} a month, the most common fee¹", { slots: { fee: "text" }, fixedBy: "issue 1597 · drafted" }],
+  "how.value.agency.cost": ["a month, the most common fee¹", { slots: {}, fixedBy: "board How it works · board Pricing v36" }],
   "how.value.ours.jobs": ["We do all {jobs}, every week", { slots: { jobs: "text" }, fixedBy: "issue 1597 · drafted" }],
   "how.value.ours.time": ["About {minutes} minutes, once", { slots: { minutes: "text" }, fixedBy: "issue 1597 · drafted" }],
   "how.value.ours.covers": ["No", { slots: {}, fixedBy: "issue 1597 · drafted" }],

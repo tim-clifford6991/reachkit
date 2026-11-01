@@ -169,10 +169,9 @@ describe('REQ-021 c4 — "Given a surface that offers ReachKit away from any rep
     const { copy } = await import("@/lib/presentation/copy");
     const { BATTERY, VETO, WEEK_PLAN } = await import("@/lib/config/constants");
     expect(html).toContain(copy("price.amount"));
-    // VAT in the landing's words, never the report's "tax included" (owner 2026-11-01).
-    expect(html).toContain(copy("landing.price.month"));
-    expect(html).toContain(copy("landing.plan.terms"));
-    expect(html).not.toContain(copy("price.interval"));
+    // The report's price line, and no second VAT line under it (board Pricing v36).
+    expect(html).toContain(copy("price.interval"));
+    expect(html).not.toContain(copy("landing.plan.terms"));
     expect(html).toContain(copy("offer.start"));
     // The plan card's five rows, in the board's words; the window carries
     // the pin from `constants.ts` through its slot.
