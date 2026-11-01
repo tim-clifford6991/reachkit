@@ -42,8 +42,7 @@ function engineDouble(): Record<string, unknown> {
     regenerateDraft: record("regenerateDraft", done),
     // Issue 1455: the day's reason, and the publish-time check.
     recordDraftDay: record("recordDraftDay", undefined),
-    alertMissingDrafts: record("alertMissingDrafts", 0),
-    alertStalledSites: record("alertStalledSites", 0),
+    alertSiteDay: record("alertSiteDay", 0),
     missedDays: record("missedDays", []),
     publishApproved: record("publishApproved", done),
     publishDue: record("publishDue", done),
@@ -258,7 +257,7 @@ describe("draft/generate — the site's own due hour, the date its window ends o
     expect(outcome).toEqual({ outcome: "ran", subjectId: null });
   });
 
-  it("keeps each due site's day and its reason, and checks every site's publish time (issue 1455)", async () => {
+  it("keeps each due site's day and its reason, then checks its publish time in the site's own run, not the tick", async () => {
     results.set("generateDraft", { degraded: "generate:no_opportunity" });
     const job = await definition("draft/generate");
     await job.run({ data: {}, now: EVENING_UTC });
@@ -268,11 +267,10 @@ describe("draft/generate — the site's own due hour, the date its window ends o
         arg: { siteId: "site-1", publishDate: "2026-09-08", outcome: "no_page", reason: "generate:no_opportunity", at: EVENING_UTC },
       },
     ]);
-    expect(calls.filter((c) => c.fn === "alertMissingDrafts")).toEqual([
-      {
-        fn: "alertMissingDrafts",
-        arg: { sites: [{ siteId: "site-1", timeZone: "UTC", publishTime: "18:00", vetoHours: 24 }], hour: EVENING_UTC },
-      },
+    const fns = calls.map((c) => c.fn);
+    expect(fns.indexOf("alertSiteDay")).toBeGreaterThan(fns.indexOf("recordDraftDay"));
+    expect(calls.filter((c) => c.fn === "alertSiteDay")).toEqual([
+      { fn: "alertSiteDay", arg: { site: { siteId: "site-1", timeZone: "UTC", publishTime: "18:00", vetoHours: 24 }, hour: EVENING_UTC } },
     ]);
   });
 

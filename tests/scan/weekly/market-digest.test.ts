@@ -193,6 +193,32 @@ describe("#796 — a Monday's thin weekly passes are one owner digest", () => {
     expect(row(HEALTHY).market_digest_at).not.toBeNull();
   });
 
+  it("a day with no page that no alert told is in the digest with its cause; a told day, a held day and a day with its page are not", async () => {
+    const SITE = "ffffffff-ffff-4fff-8fff-ffffffffffff";
+    const day = (date: string, outcome: string, reason: string | null, told: string | null = null) => ({
+      site_id: SITE, publish_date: date, outcome, reason, missing_alerted_at: told,
+    });
+    db.seed("scans", [weekly(HEALTHY, false)]);
+    db.seed("sites", [{ id: SITE, domain: "plumber.example" }]);
+    db.seed("draft_days", [
+      day("2026-09-08", "no_page", "generate:rules"),
+      day("2026-09-09", "no_page", "generate:no_opportunity", "2026-09-09T07:00:00.000Z"),
+      day("2026-09-10", "no_page", "waiting_for_address"),
+      day("2026-09-11", "drafted", null),
+    ]);
+    db.seed("drafts", [{ id: "d5", site_id: SITE, scheduled_for: "2026-09-11", state: "published", transitions: [] }]);
+
+    await tick();
+
+    expect(mails).toHaveLength(1);
+    const html = String(mails[0]!.html);
+    expect(html).toContain("These days had no page, and no alert went out for them.");
+    expect(html).toContain("plumber.example");
+    expect(html).toContain("2026-09-08");
+    expect(html).toContain("no_page/generate/rules");
+    for (const quiet of ["2026-09-09", "2026-09-10", "2026-09-11"]) expect(html).not.toContain(quiet);
+  });
+
   it("issue 1286: the digest says what the week before cost, per site, with free scans and smoke tests apart", async () => {
     const SITE = "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee";
     const scan = (over: Row): Row => ({ status: "done", week_start: null, market_digest_at: null, report: null, smoke: false, ...over });
