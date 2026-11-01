@@ -320,7 +320,8 @@ export default function LandingPage(props: {
             <div className="grid w-full grid-cols-1 items-start gap-3 lg:grid-cols-2 lg:gap-x-4">
               {questions().map((item) => (
                 <details key={item.q} className="collapse collapse-arrow card-border bg-base-100 min-w-0">
-                  <summary className="collapse-title py-5 font-semibold">{copy(item.q)}</summary>
+                  {/* 20px above and below a 24px line: each question is at least a 64px target. */}
+                  <summary className="collapse-title py-5 leading-6 font-semibold">{copy(item.q)}</summary>
                   <div className="collapse-content text-base-content/70">
                     {/* The spam answer names the model that writes the pages, as the board does. */}
                     <p data-disclosure={item.a === "landing.faq.spam.a" ? true : undefined}>{copy(item.a, item.vars)}</p>
