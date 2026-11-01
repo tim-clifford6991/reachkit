@@ -54,7 +54,7 @@
 // are `../rivals/domains`' — one implementation in the product, not two.
 import { classifyReferences, namesOrLinks } from "@/lib/measure/drivers";
 import type { Measured } from "@/lib/measure/measured";
-import { isOwnDomain, registrableDomain } from "../rivals/domains";
+import { citesUnresolved, isOwnDomain, registrableDomain } from "../rivals/domains";
 import type { MarketAiAnswer, MarketSerp, QuestionView } from "../views";
 
 export type AnswerCell =
@@ -204,13 +204,23 @@ export function overviewCellFor(measured: Measured<MarketSerp> | undefined, ownD
   const overview = measured.value.aiOverview;
   const citedDomains = citedDomainsOf(overview.referenceDomains);
   const urls = overview.referenceUrls;
-  return {
-    kind: "answered",
-    citedDomains,
-    namesCustomer: citedDomains.some((domain) => isOwnDomain(domain, ownDomain)),
-    ...(urls === undefined ? {} : { ownUrls: ownUrlsOf(urls, ownDomain) }),
-    ...namedOf(overview.referenceDomains, ownDomain, { urls, text: overview.text, siteName }),
-  };
+  return unlessUnresolved(
+    {
+      kind: "answered",
+      citedDomains,
+      namesCustomer: citedDomains.some((domain) => isOwnDomain(domain, ownDomain)),
+      ...(urls === undefined ? {} : { ownUrls: ownUrlsOf(urls, ownDomain) }),
+      ...namedOf(overview.referenceDomains, ownDomain, { urls, text: overview.text, siteName }),
+    },
+    overview.referenceDomains,
+    urls
+  );
+}
+
+/** An answer that cites a page of an unknown site and does not name the
+ *  customer may have cited the customer there: not measured, never ignored. */
+function unlessUnresolved(cell: AnswerCell & { kind: "answered"; ownUrls?: readonly string[] }, hosts: readonly string[], urls: readonly string[] | undefined): AnswerCell {
+  return !namesOrLinks(cell) && citesUnresolved(hosts, urls) ? { kind: "unmeasured", reason: "undeterminable", because: "citation_unresolved" } : cell;
 }
 
 /** `named` on an answered cell: `classifyReferences`' mention, the score's. */
@@ -258,12 +268,16 @@ function cellForAnswer(answer: Measured<MarketAiAnswer> | undefined, ownDomain: 
   if (!answer.value.answered) return { kind: "no_answer" };
 
   const citedDomains = citedDomainsOf(answer.value.citedDomains);
-  return {
-    kind: "answered",
-    citedDomains,
-    namesCustomer: citedDomains.some((domain) => isOwnDomain(domain, ownDomain)),
-    ...namedOf(answer.value.citedDomains, ownDomain, { urls: answer.value.citedUrls, text: answer.value.text, siteName }),
-  };
+  return unlessUnresolved(
+    {
+      kind: "answered",
+      citedDomains,
+      namesCustomer: citedDomains.some((domain) => isOwnDomain(domain, ownDomain)),
+      ...namedOf(answer.value.citedDomains, ownDomain, { urls: answer.value.citedUrls, text: answer.value.text, siteName }),
+    },
+    answer.value.citedDomains,
+    answer.value.citedUrls
+  );
 }
 
 /**
