@@ -62,15 +62,18 @@ const RANGES: Record<Exclude<AddressClass, "public">, Cidr[]> = {
     { net: "100.64.0.0", prefix: 10, family: 4 }, // carrier-grade NAT
     { net: "192.0.0.0", prefix: 24, family: 4 }, // IETF protocol assignments
     { net: "192.0.2.0", prefix: 24, family: 4 }, // TEST-NET-1
+    { net: "192.88.99.0", prefix: 24, family: 4 }, // deprecated 6to4 relay anycast
     { net: "198.18.0.0", prefix: 15, family: 4 }, // benchmarking
     { net: "198.51.100.0", prefix: 24, family: 4 }, // TEST-NET-2
     { net: "203.0.113.0", prefix: 24, family: 4 }, // TEST-NET-3
     { net: "240.0.0.0", prefix: 4, family: 4 }, // reserved for future use
     { net: "255.255.255.255", prefix: 32, family: 4 }, // limited broadcast
-    { net: "::", prefix: 128, family: 6 }, // unspecified address
+    { net: "::", prefix: 96, family: 6 }, // unspecified and IPv4-compatible (embeds any IPv4)
     { net: "64:ff9b::", prefix: 96, family: 6 }, // NAT64 well-known prefix
     { net: "100::", prefix: 64, family: 6 }, // discard-only
+    { net: "2001::", prefix: 32, family: 6 }, // Teredo, embeds an IPv4 address
     { net: "2001:db8::", prefix: 32, family: 6 }, // documentation
+    { net: "2002::", prefix: 16, family: 6 }, // 6to4, embeds an IPv4 address
   ],
 };
 
