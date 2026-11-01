@@ -9,9 +9,8 @@
 // `2026-10-19-1596`), one story with one example business, below the chrome
 // the group layout draws:
 //   1. the hero — title, subline, the one field — beside the story card
-//      (`Storyboard.tsx`), with the trust strip under both; on a phone a
-//      five-step strip sits under the subline and the trust strip comes
-//      before the story card (board *PubLandingPhone*);
+//      (`Storyboard.tsx`), with the trust strip under both; on a phone the
+//      trust strip comes before the story card (board *PubLandingPhone*);
 //   2. the three steps, each linking to its How it works section, the
 //      second holding the *Inside ReachKit* preview, then the weekly loop
 //      and the owner's one-time part;
@@ -69,9 +68,6 @@ const STEPS = [
   { n: "2", title: "landing.step.2.title", body: "landing.step.2.body", tag: "landing.step.2.tag", more: "landing.step.2.more", href: "/how-it-works#pages" },
   { n: "3", title: "landing.step.3.title", body: "landing.step.3.body", tag: "landing.step.3.tag", more: "landing.step.3.more", href: "/how-it-works#found" },
 ] as const;
-
-/** The phone's strip under the hero: the story card's five frames, short. */
-const FLOW = ["landing.flow.1", "landing.flow.2", "landing.flow.3", "landing.flow.4", "landing.flow.5"] as const;
 
 /** The owner's part, once, in setup's order. */
 const PART = ["landing.part.answer", "how.part.three", "landing.part.done"] as const;
@@ -150,14 +146,7 @@ export default function LandingPage(props: {
           <div className={`${INNER} grid grid-cols-1 items-start gap-10 lg:grid-cols-2 lg:gap-12`}>
             <div className="flex min-w-0 flex-col items-center text-center lg:items-start lg:text-left">
               <h1 className="t-hero">{copy("landing.headline")}</h1>
-              <p className="mt-4 max-w-xl text-lg text-base-content/70">{copy("landing.subline", { weekPages: WEEK_PAGES })}</p>
-              <ol className="steps mt-6 w-full text-xs lg:hidden" aria-label={copy("landing.story.title")}>
-                {FLOW.map((key) => (
-                  <li key={key} className="step step-primary">
-                    {copy(key)}
-                  </li>
-                ))}
-              </ol>
+              <p className="mt-4 max-w-xl text-lg text-base-content/70">{copy("landing.subline")}</p>
               <div className="mt-8 w-full max-w-xl">
                 <ScanForm searchParams={props.searchParams} words={scanFormWords()} />
               </div>

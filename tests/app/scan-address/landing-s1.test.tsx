@@ -50,9 +50,9 @@ describe("the landing holds what the board holds, in order", () => {
     expect([...order].sort((a, b) => a - b)).toEqual(order);
   });
 
-  it("the story card draws its five frames in order, and says the business is an example", () => {
+  it("the story card draws its four frames in order, and says the business is an example", () => {
     const card = between('data-testid="landing-story"', 'id="how"');
-    const frames = [1, 2, 3, 4, 5].map((n) => card.indexOf(drawn(copy(`landing.story.${n}.title` as CopyKey))));
+    const frames = [1, 2, 3, 4].map((n) => card.indexOf(drawn(copy(`landing.story.${n}.title` as CopyKey))));
     expect(frames.every((at) => at > -1), frames.join(",")).toBe(true);
     expect([...frames].sort((a, b) => a - b)).toEqual(frames);
     expect(card).toContain(drawn(copy("landing.hero.example")));
@@ -99,7 +99,7 @@ describe("the pace, and the figures the scan runs on", () => {
     const landing = Object.entries(COPY as Record<string, string>).filter(([key]) => key.startsWith("landing."));
     for (const [key, value] of landing) expect(value, key).not.toMatch(/\b(?:up to|fewer than) \d/i);
     const pace = landing.filter(([, value]) => value.includes("{weekPages}")).map(([key]) => key);
-    expect(pace).toEqual(expect.arrayContaining(["landing.pace", "landing.subline", "landing.step.2.body", "landing.feature.daily.body"]));
+    expect(pace).toEqual(expect.arrayContaining(["landing.pace", "landing.step.2.body", "landing.feature.daily.body"]));
   });
 });
 

@@ -52,15 +52,15 @@ beforeEach(() => {
 });
 
 describe("the landing's icons are the boards'", () => {
-  it("the story card's five frames draw building-2, scan-search, file-text, trending-up, coffee in order", async () => {
+  it("the story card's four frames draw search, scan-search, file-text, trending-up in order", async () => {
     const frames = (await render()).querySelectorAll('[data-testid="landing-story"] ol > li');
-    expect(frames.map((li) => glyphs(li.querySelector(".timeline-middle")!))).toEqual([
-      ["building-2"],
-      ["scan-search"],
-      ["file-text"],
-      ["trending-up"],
-      ["coffee"],
-    ]);
+    expect(frames.map((li) => glyphs(li.querySelector(".timeline-middle")!))).toEqual([["search"], ["scan-search"], ["file-text"], ["trending-up"]]);
+  });
+
+  it("we research draws your business and your competitors; the second page is live", async () => {
+    const frames = (await render()).querySelectorAll('[data-testid="landing-story"] ol > li');
+    expect(glyphs(frames[1]!.querySelector(".timeline-end")!)).toEqual(["building-2", "users"]);
+    expect(glyphs(frames[2]!.querySelector(".timeline-end")!)).toEqual(["file-text", "file-text", "circle-check"]);
   });
 
   it("the Why cards' tiles: sparkles, search, wrench, file-text", async () => {
