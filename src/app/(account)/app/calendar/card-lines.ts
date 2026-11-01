@@ -44,6 +44,7 @@ export const EMPTY_SHORT_COPY_KEY: Readonly<Record<EmptyCause, CopyKey>> = Objec
   instruction: "calendar.empty.short.instruction",
   reachkit_stopped: "calendar.empty.short.reachkit-stopped",
   page_cannot_go_live: "calendar.empty.short.page-cannot-go-live",
+  page_set_aside: "calendar.empty.short.page-set-aside",
   customer_change_holds_pages: "calendar.empty.short.customer-change-holds-pages",
   change_holds_generation: "calendar.empty.short.change-holds-pages",
   page_held: "calendar.empty.short.page-held",

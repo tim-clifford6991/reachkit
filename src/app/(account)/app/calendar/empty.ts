@@ -34,6 +34,8 @@ export type EmptyAccount =
   | { cause: "instruction"; opportunityId: string }
   | { cause: "reachkit_stopped" }
   | { cause: "page_cannot_go_live"; state: "skipped" | "unpublished" }
+  /** The daily re-check set the date's page aside (owner O7): told once, plainly, with nothing asked. */
+  | { cause: "page_set_aside" }
   | { cause: "customer_change_holds_pages"; setting: HeldBySetting }
   /** REQ-071 c11 (issue #204): a market answer the customer replaced is
    *  holding generation until the pass that adopts it. It carries the one
@@ -99,6 +101,7 @@ export type EmptyCause = EmptyAccount["cause"];
 export const EMPTY_PRECEDENCE: readonly EmptyCause[] = Object.freeze([
   "instruction",
   "reachkit_stopped",
+  "page_set_aside",
   "page_cannot_go_live",
   "customer_change_holds_pages",
   "change_holds_generation",
@@ -120,8 +123,8 @@ export interface EmptyFacts {
    *  a pass that ended degraded or failed is not a stop). */
   reachkitStopped: boolean;
   /** A draft on this date in a state that occupies no date (`STAGE_OF` maps
-   *  both to `null`), or `null` where there is no such draft. */
-  pageCannotGoLive: "skipped" | "unpublished" | null;
+   *  both to `null`), `set_aside` for a skipped page the re-check set aside, or `null` where there is no such draft. */
+  pageCannotGoLive: "skipped" | "unpublished" | "set_aside" | null;
   /** A change the customer saved that holds pages back, or `null`. */
   customerChangeHoldsPages: HeldBySetting | null;
   /** REQ-071 c11: the market answer being replaced, and the date pages
@@ -200,6 +203,7 @@ export function isLawCause(cause: EmptyCause): cause is "reachkit_stopped" {
 export const EMPTY_COPY_KEY: Record<OneLineCause, CopyKey> = {
   instruction: "calendar.empty.instruction",
   page_cannot_go_live: "calendar.empty.page-cannot-go-live",
+  page_set_aside: "calendar.empty.page-set-aside",
   change_holds_generation: "calendar.empty.change-holds-pages",
   page_held: "calendar.empty.page-held",
   supply_unmeasured: "calendar.empty.supply-unmeasured",
@@ -290,8 +294,11 @@ export function accountFor(facts: EmptyFacts): EmptyAccount {
       case "reachkit_stopped":
         if (facts.reachkitStopped) return { cause: "reachkit_stopped" };
         break;
+      case "page_set_aside":
+        if (facts.pageCannotGoLive === "set_aside") return { cause: "page_set_aside" };
+        break;
       case "page_cannot_go_live":
-        if (facts.pageCannotGoLive !== null) {
+        if (facts.pageCannotGoLive === "skipped" || facts.pageCannotGoLive === "unpublished") {
           return { cause: "page_cannot_go_live", state: facts.pageCannotGoLive };
         }
         break;

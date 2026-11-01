@@ -20,10 +20,11 @@ const NOTHING: EmptyFacts = {
 };
 
 describe("ADR-061 — the precedence is data, and it is the one ADR-061 states", () => {
-  it("is instruction → reachkit_stopped → page_cannot_go_live → customer_change_holds_pages → change_holds_generation → page_held → supply_unmeasured → supply_exhausted → unattributed", () => {
+  it("is instruction → reachkit_stopped → page_set_aside → page_cannot_go_live → customer_change_holds_pages → change_holds_generation → page_held → supply_unmeasured → supply_exhausted → unattributed", () => {
     expect([...EMPTY_PRECEDENCE]).toEqual([
       "instruction",
       "reachkit_stopped",
+      "page_set_aside",
       "page_cannot_go_live",
       "customer_change_holds_pages",
       // #204: below the switch the customer can undo with a click, because
