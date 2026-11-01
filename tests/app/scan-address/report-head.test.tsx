@@ -3,7 +3,11 @@
 // the AI and Google panels, in the board's order and words. Against the real
 // registry, on the reserved-name fixture and the customer panel's stored
 // reports (a SaaS and a local business). 0¢: nothing is measured.
+import { readFileSync } from "node:fs";
+import path from "node:path";
 import { describe, expect, it } from "vitest";
+import { measured } from "@/lib/measure/measured";
+import type { SerpResult } from "@/lib/vendors/dataforseo/types";
 import { copy } from "@/lib/presentation/copy";
 import { FIXTURE_COLD_START_REPORT, FIXTURE_DEGRADED_REPORT, FIXTURE_REPORT } from "@/app/(public)/scan/[domain]/_fixture/states";
 import { answerQuoteOf } from "@/app/(public)/scan/[domain]/_modules/ai-answers";
@@ -319,4 +323,20 @@ describe("the customer panel's stored reports, a SaaS and a local business", () 
       ]);
     });
   }
+});
+
+describe("who buyers see is read off each result's own site", () => {
+  const stored = JSON.parse(readFileSync(path.resolve(import.meta.dirname, "../../market/rivals/fixtures/au-baker-d149c119.json"), "utf8")) as { organic: SerpResult["organic"] };
+  const behindGoogle = { position: 2, domain: "google.com", url: "https://google.com/goto?url=https://www.brumbys.com.au/", title: "Brumby's Bakeries" };
+  const baker = measured<SerpResult>({ organic: [stored.organic[0]!, behindGoogle, ...stored.organic.slice(2)], aiOverview: { present: false, asynchronousAiOverview: false, referenceDomains: [] } }, FIXTURE_REPORT.verdict.measuredAt);
+  const rival = (domain: string) => ({ ...presence.rivals[0]!, domain });
+
+  it("the AU baker top ten (d149c119): a rival behind a redirect is shown for baker, and google.com never is", () => {
+    const buyers = buyersOf(
+      { ...ai, rivals: [], customerCitations: 0 },
+      { ...presence, you: { ...presence.you, top10Count: 0 }, rivals: [rival("google.com"), rival("brumbys.com.au")] },
+      [baker, baker]
+    );
+    expect(buyers.holder).toBe("brumbys.com.au");
+  });
 });

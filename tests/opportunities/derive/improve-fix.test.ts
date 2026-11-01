@@ -1,7 +1,10 @@
 // BUILD §7 — the Improve family, and the Fix family that is an
 // instruction and never a page.
 import "../env";
+import { readFileSync } from "node:fs";
+import path from "node:path";
 import { describe, expect, it } from "vitest";
+import type { SerpResult } from "../../../src/lib/vendors/dataforseo/types";
 import {
   AI_READER_AGENTS,
   IMPROVE_POSITION_BAND,
@@ -387,5 +390,33 @@ describe("SPEC §7 (2026-09-16): update candidates are the site's own pages, not
     expect(
       improveCandidates({ ...base, report, rankedCounts: smallCounts() }).candidates.map((c) => c.targetRef)
     ).toEqual([POST, TOURS]);
+  });
+});
+
+describe("Improve reads a row behind Google's redirect as its own site", () => {
+  const stored = JSON.parse(readFileSync(path.resolve(import.meta.dirname, "../../market/rivals/fixtures/au-baker-d149c119.json"), "utf8")) as { organic: SerpResult["organic"] };
+  const own = (position: number) => ({ position, domain: "google.com", url: `https://google.com/goto?url=${encodeURIComponent(ON_PAGE.url)}`, title: "Us" });
+  const improveOn = (organic: SerpResult["organic"], rankedCounts = smallCounts()) =>
+    improveCandidates({
+      ...base,
+      report: reportOf(
+        { questions: [question()], serps: [serp({ organic, aiOverview: { present: false, asynchronousAiOverview: false, referenceDomains: [] } })] },
+        { onPage: measured(facts({ visibleChars: 400 }), AT) }
+      ),
+      rankedCounts,
+    }).candidates;
+
+  it("the customer at 2 behind a redirect is an owned ranking: already top three, nothing to improve", () => {
+    expect(improveOn([own(2), ...rankingSerp(5).organic])).toEqual([]);
+  });
+
+  it("an owned ranking behind a redirect is never the page to change", () => {
+    expect(improveOn([own(6), { position: 1, domain: "appcues.com", url: "https://appcues.com/a", title: "A" }])).toEqual([]);
+  });
+
+  it("stored AU baker rows (d149c119): google.com is left out of the sizing", () => {
+    const bandOn = (organic: SerpResult["organic"], sized: string) => improveOn(organic, smallCounts([sized]))[0]?.fitBand;
+    expect(bandOn([stored.organic[0]!, ...rankingSerp(5).organic], "google.com")).toBe(bandOn(rankingSerp(5).organic, "google.com"));
+    expect(bandOn(rankingSerp(5).organic, "google.com")).not.toBe(bandOn(rankingSerp(5).organic, "appcues.com"));
   });
 });

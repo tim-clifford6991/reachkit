@@ -34,7 +34,7 @@ import { SHAPES } from "@/lib/locale/language";
 import { KEYWORD_PAGE_MIN_VOLUME, TOPIC_FIT } from "@/lib/config/constants";
 import { classifyIntent, type PlacedBusiness } from "@/lib/market/questions/select";
 import type { Profile } from "@/lib/market/questions/profile";
-import { isOwnDomain, registrableDomain } from "@/lib/market/rivals/domains";
+import { ownPlaceIn, registrableDomain } from "@/lib/market/rivals/domains";
 import type { StoredReport } from "@/lib/scan/report";
 import { addressesOwnPage, type HostedOwnPages } from "@/lib/publish/destinations/hosted/own-page";
 import { opportunityStore, readOpportunity } from "./store";
@@ -216,7 +216,7 @@ export function ownRanksFrom(report: StoredReport | null): (query: string) => bo
   report.questions.value.forEach((question, index) => {
     const serp = report.serps[index];
     if (serp === undefined || serp.kind === "unmeasured") return;
-    if (serp.value.organic.some((row) => isOwnDomain(registrableDomain(row.domain) ?? row.domain, own))) {
+    if (ownPlaceIn(serp.value.organic, own) === true) {
       ranked.add(question.search.keyword.trim().toLowerCase());
     }
   });

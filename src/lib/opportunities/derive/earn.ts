@@ -27,7 +27,7 @@
 // Winnability is Write's own `assess` over the same top ten, so an Earn row
 // carries the same band a Write row for that search would.
 import { EFFORT_BY_TYPE } from "@/lib/config/constants";
-import { isOwnDomain, isPlatformDomain, registrableDomain } from "@/lib/market/rivals/domains";
+import { isOwnDomain, isPlatformDomain, ownPlaceIn, registrableDomain, resolvedRows } from "@/lib/market/rivals/domains";
 import { measured } from "@/lib/measure/measured";
 import { measuredLocale } from "@/lib/locale/locales";
 import type { StoredReport } from "@/lib/scan/report";
@@ -89,17 +89,17 @@ export function earnCandidates(a: EarnInput): DerivationResult {
     if (serpAt === undefined || serpAt.kind === "unmeasured") return;
     const serp = serpAt.value;
     const query = question.search.keyword;
-    const organicHosts = serp.organic.map((row) => row.domain);
+    // A row Google hides may be the customer's, so the search is not measured either way.
+    const ownPlace = ownPlaceIn(serp.organic, ownDomain);
+    if (ownPlace === null) return;
+    const organicHosts = (resolvedRows(serp.organic) ?? []).map((row) => row.domain);
 
     const cell = answerRows[index]?.cell;
     const fromAnswer =
       cell !== undefined && cell.kind === "answered" && !cell.namesCustomer
         ? sourceAndRival(cell.citedDomains, ownDomain)
         : null;
-    const customerAbsent = !organicHosts.some((host) =>
-      isOwnDomain(registrableDomain(host) ?? host, ownDomain)
-    );
-    const fromSearch = fromAnswer === null && customerAbsent ? sourceAndRival(organicHosts, ownDomain) : null;
+    const fromSearch = fromAnswer === null && !ownPlace ? sourceAndRival(organicHosts, ownDomain) : null;
     const found = fromAnswer ?? fromSearch;
     if (found === null) return;
 
