@@ -286,7 +286,7 @@ describe("the thirteen keys the owner ruled 2026-09-04 (WO-041 `## Log`, this da
       "We stopped our own work today, so no page was written. Your market didn’t change."
     );
     expect(copy("stopped.work.needs-nothing")).toBe(
-      "Nothing is needed from you. ReachKit picks up again on its own."
+      "Nothing is needed from you. We start again on our own."
     );
   });
 

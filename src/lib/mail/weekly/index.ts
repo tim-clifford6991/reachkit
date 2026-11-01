@@ -14,7 +14,7 @@ import { measured, measuredZero, unmeasured, type Measured } from "@/lib/measure
 import { pageLadderOf } from "@/lib/measure/page-ladder";
 import { contentOf } from "@/lib/measure/published";
 import { readPublishedPages } from "@/lib/measure/published-store";
-import { committedWeek, opportunityById, weeklyDigest } from "@/lib/opportunities";
+import { committedWeek, opportunityById, supplyDepth, weeklyDigest } from "@/lib/opportunities";
 import { placedByDay, plannedByDay, serviceWeek } from "@/lib/opportunities/days";
 import { plannedStopToken } from "@/lib/opportunities/stop";
 import { whyOf } from "@/lib/opportunities/why";
@@ -254,7 +254,7 @@ async function weeklyNumbers(siteId: string, weekStart: string, now: Date): Prom
   const [content, reads, setAside] = await Promise.all([
     readPublishedPages(siteId).then((pages) => contentOf({ pages, now })).catch(() => null),
     blogReadsOf(siteId, now),
-    setAsideLastWeek(siteId, weekStart).catch(() => 0),
+    setAsideLastWeek(siteId, weekStart, now).catch(() => undefined),
   ]);
   const planned = await weekPages(siteId, weekStart).then(
     (n) => counted(n, now),
@@ -265,7 +265,7 @@ async function weeklyNumbers(siteId: string, weekStart: string, now: Date): Prom
   const ladder = content === null ? null : pageLadderOf(content.pages, now, weeks === null ? null : (weeks.at(-1)?.visits ?? 0));
   const before = weeks?.at(-2)?.visits;
   if (ladder === null) {
-    return { live: content === null ? unmeasured<number>("undeterminable", now) : counted(0, now), planned, setAside, ...(month === undefined ? {} : { month }) };
+    return { live: content === null ? unmeasured<number>("undeterminable", now) : counted(0, now), planned, ...(setAside === undefined ? {} : { setAside }), ...(month === undefined ? {} : { month }) };
   }
   const live = (content?.pages ?? []).filter((page) => page.publishedAt <= now);
   const ai = aiPagesOf(live);
@@ -279,7 +279,7 @@ async function weeklyNumbers(siteId: string, weekStart: string, now: Date): Prom
   return {
     live: counted(ladder.live, now),
     planned,
-    setAside,
+    ...(setAside === undefined ? {} : { setAside }),
     google: {
       steps,
       early: showing === 0,
@@ -301,15 +301,19 @@ async function weeklyNumbers(siteId: string, weekStart: string, now: Date): Prom
   };
 }
 
-/** Pages the daily re-check set aside in the seven days before `weekStart`, so each is told on exactly one Monday. */
-async function setAsideLastWeek(siteId: string, weekStart: string): Promise<number> {
+/** Pages the daily re-check set aside in the seven days before `weekStart`, so each is told on exactly one Monday, and
+ *  whether a next page is there to write: with supply used up or unread, no replacement is claimed. */
+async function setAsideLastWeek(siteId: string, weekStart: string, now: Date): Promise<WeeklyNumbers["setAside"]> {
   const to = Date.parse(`${weekStart}T00:00:00Z`);
   const { data, error } = await untyped().from<{ transitions: unknown }>("drafts").select("transitions").eq("site_id", siteId).eq("state", "skipped");
-  if (error !== null) return 0;
-  return (data ?? []).filter((row) => {
+  if (error !== null) return undefined;
+  const n = (data ?? []).filter((row) => {
     const at = Date.parse(String((Array.isArray(row.transitions) ? (row.transitions as { at?: unknown }[]) : []).at(-1)?.at));
     return setAsideOf({ state: "skipped", transitions: row.transitions }) && at >= to - 7 * 86_400_000 && at < to;
   }).length;
+  if (n === 0) return undefined;
+  const replaced = await supplyDepth(siteId, now).then((depth) => depth.unused > 0, () => false);
+  return { n, replaced };
 }
 
 async function weekPages(siteId: string, weekStart: string): Promise<number> {

@@ -62,11 +62,11 @@ import type { CopyPartition } from "../registry.ts";
 export const LAWS_COPY = Object.freeze({
   "stopped.work.line": ["We stopped our own work today, so no page was written. Your market didn’t change.", { law: "stopped-work", slots: {}, fixedBy: "REQ-092 c1" }],
   "stopped.work.needs-nothing": [
-    "Nothing is needed from you. ReachKit picks up again on its own.",
+    "Nothing is needed from you. We start again on our own.",
     { law: "stopped-work", slots: {}, fixedBy: "REQ-092 c2" },
   ],
   "stopped.work.resumes-on": [
-    "ReachKit expects to pick up again on {date}.",
+    "We expect to start again on {date}.",
     { law: "stopped-work", slots: { date: "date" }, fixedBy: "REQ-092 c4" },
   ],
   "stopped.work.no-time-promised": [
