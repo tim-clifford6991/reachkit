@@ -173,7 +173,7 @@ export function Header(p: { entry?: AppEntry }): React.JSX.Element {
             </span>
             {entry === null ? (
               <>
-                <Link href="/signin" className="btn btn-ghost btn-sm hidden sm:inline-flex">
+                <Link href="/signin" className="btn btn-ghost px-2">
                   {copy("chrome.nav.signin")}
                 </Link>
                 <HeaderCta label={copy("chrome.cta.start")} />

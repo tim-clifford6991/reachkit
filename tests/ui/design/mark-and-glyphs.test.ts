@@ -105,11 +105,10 @@ describe("S1 — the landing's chips carry the icons the approved set draws", ()
     expect(read("app/(public)/_landing/Features.tsx")).toMatch(/<Icon size=\{16\} strokeWidth=\{1\.75\}/);
   });
 
-  it("the hero's own control carries no glyph — the set draws none on it", () => {
-    // The card idiom's landing put `Search` in the hero CTA; the approved
-    // set draws the field and a plain solid pill. A glyph the drawing does
-    // not have is an addition, and additions are what this file catches.
-    expect(read("app/(public)/_landing/ScanForm.tsx")).not.toContain("lucide-react");
+  it("the hero's own control carries the one arrow the v36 board draws on it, and no other glyph", () => {
+    // A glyph the drawing does not have is an addition, and additions are what this file catches.
+    const source = read("app/(public)/_landing/ScanForm.tsx");
+    expect([...source.matchAll(/import \{ ([^}]+) \} from "lucide-react"/g)].map((m) => m[1])).toEqual(["ArrowRight"]);
   });
 });
 

@@ -66,7 +66,7 @@ function ToField(p: { className: string; children: React.ReactNode }): React.JSX
  */
 export function HeaderCta(p: { label: string }): React.JSX.Element {
   return (
-    <ToField className="btn btn-primary btn-sm">
+    <ToField className="btn btn-primary">
       {p.label}
       <ArrowRight aria-hidden size={16} strokeWidth={1.75} />
     </ToField>

@@ -23,6 +23,7 @@
 "use client";
 
 import { use, useId, useState, type FormEvent } from "react";
+import { ArrowRight } from "lucide-react";
 import type { ScanFormWords } from "./scan-form-words";
 import type { DomainProblem } from "@/lib/scan/domain";
 import type { StartScanResponse } from "@/app/api/scan/route";
@@ -103,25 +104,26 @@ export function ScanForm(props: {
 
   return (
     <form action="/api/scan" method="post" onSubmit={handleSubmit} className="flex w-full flex-col gap-2">
-      <label htmlFor={fieldId} className="eyebrow">
+      <label htmlFor={fieldId} className="text-sm font-semibold">
         {props.words.fieldLabel}
       </label>
-      {/* One control: the field and its button joined (#1107). */}
-      <div className="join w-full">
+      {/* One control: the field and its button joined (#1107), stacked on a phone. */}
+      <div className="join join-vertical w-full sm:join-horizontal">
         <input
           id={fieldId}
           type="text"
           name="value"
           placeholder={props.words.placeholder}
-          className={problem ? "input input-error join-item w-auto min-w-0 flex-1" : "input join-item w-auto min-w-0 flex-1"}
+          className={problem ? "input input-error join-item h-12 w-full min-w-0 sm:w-auto sm:flex-1" : "input join-item h-12 w-full min-w-0 sm:w-auto sm:flex-1"}
           value={value}
           onChange={(e) => setValue(e.target.value)}
           aria-invalid={problem !== undefined}
           aria-describedby={problem ? problemId : undefined}
         />
         {/* The screen's one submit control and its one solid button. */}
-        <button type="submit" className="btn btn-primary join-item" disabled={submitting} aria-busy={submitting || undefined}>
+        <button type="submit" className="btn btn-primary join-item h-12 w-full sm:w-auto" disabled={submitting} aria-busy={submitting || undefined}>
           {props.words.submit}
+          <ArrowRight aria-hidden size={20} strokeWidth={1.75} />
         </button>
       </div>
       {problem ? (

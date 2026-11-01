@@ -210,7 +210,8 @@ describe("the story card: four frames, the board's words and no footer", () => {
   it("frame 1 lights the competitor above a dashed You; frame 4 lights you with You beside it and dims the competitor", async () => {
     const [first, , , last] = frames(await render()).map(mini);
     const slot = first!.querySelector(".border-dashed")!;
-    expect(flat(slot)).toBe(copy("landing.story.you"));
+    expect(flat(slot)).toBe(`– ${copy("landing.story.you")}`);
+    expect(slot.querySelector("[data-unmeasured]")).not.toBeNull();
     expect(slot.hasAttribute("aria-hidden")).toBe(false);
     expect(flat(first!.querySelector(".bg-primary")!)).toBe(`1 ${SPECIMEN_HERO_RIVAL}`);
     expect(flat(last!.querySelector(".bg-primary")!)).toBe(`1 ${SPECIMEN_HERO_DOMAIN} ${copy("landing.story.you")}`);

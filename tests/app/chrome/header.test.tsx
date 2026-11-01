@@ -171,15 +171,15 @@ describe("SPEC §1, 2026-09-24 (#1066) — the banner and the nav", () => {
       const solid = primaries(html);
       expect(solid).toHaveLength(1);
       expect(solid[0]).not.toContain("btn-outline");
-      expect(html).toContain('<a class="btn btn-ghost btn-sm hidden sm:inline-flex" href="/signin">');
+      expect(html).toContain('<a class="btn btn-ghost px-2" href="/signin">');
     }
   });
 
   it("on the landing Start free is a button that focuses the field, never a second submit; elsewhere it links to the field", () => {
     const landing = markup(LANDING);
-    expect(landing).toMatch(/<button type="button" class="btn btn-primary btn-sm">/);
+    expect(landing).toMatch(/<button type="button" class="btn btn-primary">/);
     expect(landing).not.toContain('type="submit"');
-    expect(markup(ELSEWHERE)).toContain('<a class="btn btn-primary btn-sm" href="/#landing-field">');
+    expect(markup(ELSEWHERE)).toContain('<a class="btn btn-primary" href="/#landing-field">');
   });
 
   it("the theme control is one button, Switch to dark theme, in the bar and in the drawer, with no Theme label", () => {

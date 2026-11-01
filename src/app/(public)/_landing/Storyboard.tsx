@@ -24,6 +24,8 @@ const RANK = "w-3.5 shrink-0 text-center text-xs";
 /** The two places an answer ranks, bound to names: the copy rule reads a bare attribute string as voice. */
 const FIRST = "1";
 const SECOND = "2";
+/** You hold no place yet: the board's dash, marked as a value not measured. */
+const NO_RANK = "–";
 const ICON = { size: 16, strokeWidth: 1.75, "aria-hidden": true } as const;
 const SMALL = { ...ICON, size: 12 } as const;
 const STATUS = { ...ICON, size: 14 } as const;
@@ -92,8 +94,10 @@ function Answer(p: { lit: string; you: boolean }): React.JSX.Element {
         <Rank n={SECOND} name={SPECIMEN_HERO_RIVAL} className="border-base-content/20 text-base-content/70 border" />
       ) : (
         <span className={`${ROW} border-base-content/50 text-base-content/70 border border-dashed`}>
-          {/* No rank yet: the word starts where a rank's name would. */}
-          <span className="ms-6 text-sm font-semibold">{you}</span>
+          <span className={RANK}>
+            <Num unmeasured>{NO_RANK}</Num>
+          </span>
+          <span className="text-sm font-semibold">{you}</span>
         </span>
       )}
     </span>
