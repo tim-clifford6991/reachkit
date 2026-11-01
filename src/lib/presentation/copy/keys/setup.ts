@@ -42,12 +42,12 @@ export const SETUP_COPY = Object.freeze({
    *  export with setup unfinished. */
   /** Issue 1196: a step whose request never came back. Drafted; the owner
    *  may correct it. */
-  "setup.refused.could-not-ask": ["We couldn’t reach ReachKit just now, so this step wasn’t saved. Check your connection and press again.", { slots: {}, fixedBy: "issue 1196" }],
+  "setup.refused.could-not-ask": ["This step wasn’t saved. Check your connection and press again.", { slots: {}, fixedBy: "issue 1196" }],
   "setup.refused.no-access": ["We found no subscription on this account, so setup can’t start. You can still cancel or export in Settings.", { slots: {}, fixedBy: "REQ-025 c5" }],
   // ── The progress strip (UI-SPEC S10 · S11, issue #356) ──────────────
   "setup.progress.paid": ["Paid", { slots: {}, fixedBy: "S10 · 11a" }],
   "setup.progress.setup": ["Setup", { slots: {}, fixedBy: "S10 · 11a" }],
-  "setup.progress.first-page": ["First page", { slots: {}, fixedBy: "S10 · 11a" }],
+  "setup.progress.first-page": ["First page live", { slots: {}, fixedBy: "S10 · 11a" }],
 
   // ── The two arms' own lines (UI-SPEC S10, issue #356) ───────────────
   "setup.address.assurance": [
@@ -59,7 +59,7 @@ export const SETUP_COPY = Object.freeze({
     { slots: {}, fixedBy: "S10 · REQ-026 c3" },
   ],
   "setup.footer.line": [
-    "You can reach Settings, cancel or export at any time, without finishing setup.",
+    "You can cancel or export in Settings at any time.",
     { slots: {}, fixedBy: "S10 · REQ-021 c10" },
   ],
 
@@ -75,7 +75,7 @@ export const SETUP_COPY = Object.freeze({
   /** REQ-021 c9 and c10 in one line: it says the address cannot be
    *  reached, names one way to reach a person, and tells the founder they
    *  can cancel without finishing setup. */
-  "setup.address.refused.unreachable": ["We can’t reach that website. Check the spelling, or write to hello@reachkit.app and a person will help. You can cancel from Settings without finishing setup.", { slots: {}, fixedBy: "REQ-021 c10" }],
+  "setup.address.refused.unreachable": ["We can’t reach that website. Check the spelling, or write to hello@reachkit.app for help.", { slots: {}, fixedBy: "REQ-021 c10" }],
   "setup.address.missing": ["Enter your website to start.", { slots: {}, fixedBy: "REQ-021 c7" }],
 
   // ── Your market (REQ-026) ───────────────────────────────────────────
@@ -95,7 +95,7 @@ export const SETUP_COPY = Object.freeze({
     { slots: {}, fixedBy: "SPEC §5 2026-10-02 D28, issue 1185" },
   ],
   "setup.market.concluded": [
-    "ReachKit read this from your site and keeps it current each week. Change it only if it’s wrong.",
+    "We read this from your site and update it every Monday. Change it only if it’s wrong.",
     { slots: {}, fixedBy: "SPEC §5 2026-10-02 D28, issue 1185" },
   ],
   /** REQ-026 c10, first limb: waiting on the market, never "none found". */
@@ -130,11 +130,11 @@ export const SETUP_COPY = Object.freeze({
   // No mode pair and no mode title (SPEC §7, #476): the card is headed with
   // `settings.publishing.title`.
   "setup.destination.where": ["Where should pages live?", { slots: {}, fixedBy: "board Setup · issue 1738" }],
-  "setup.destination.hosted.name": ["On a new address we run", { slots: {}, fixedBy: "board Setup · issue 1738" }],
+  "setup.destination.hosted.name": ["On your web address, run by us", { slots: {}, fixedBy: "board Setup · issue 1738" }],
   "setup.destination.hosted": ["One setting, once. Recommended.", { slots: {}, fixedBy: "board Setup · issue 1738" }],
   "setup.destination.wordpress.name": ["On my WordPress site", { slots: {}, fixedBy: "board Setup · issue 1738" }],
   "setup.destination.wordpress": [
-    "Pages go live on it. You make us a separate WordPress password.",
+    "Pages go live on your WordPress. You create an app password for us.",
     { slots: {}, fixedBy: "board Setup · issue 1738" },
   ],
   /** Issue 759 (owner ruling 2026-09-16): where that provider is — beside
@@ -318,14 +318,14 @@ export const SETUP_COPY = Object.freeze({
   // and shipped under the owner ruling of 2026-09-16 (#759); the owner
   // corrects the wording.
   "setup.zone.head": ["Setting your time zone", { slots: {}, fixedBy: "board SetupZone · issue 1738" }],
-  "setup.zone.line": ["ReachKit shows every date in your own time zone, so it needs yours before the app opens. Your browser is telling us now.", { slots: {}, fixedBy: "issue 753" }],
+  "setup.zone.line": ["We show every date in your time zone. Your browser is telling us yours now.", { slots: {}, fixedBy: "issue 753" }],
   "setup.zone.why": ["Why it matters", { slots: {}, fixedBy: "board SetupZone · issue 1738" }],
   /** Names no hour: this screen shows before the address is connected (owner Q11, 2026-10-20). */
   "setup.zone.example": ["Every date and hour is in your time", { slots: {}, fixedBy: "board SetupZone · issue 1738" }],
   "setup.zone.example.not": ["Not someone else’s.", { slots: {}, fixedBy: "board SetupZone · issue 1738" }],
   "setup.zone.once": ["This takes a few seconds and happens once. Nothing to press.", { slots: {}, fixedBy: "board SetupZone · issue 1738" }],
   /** Shown once the browser has said nothing for ten seconds; the support address follows it as a link. */
-  "setup.zone.slow": ["Your browser hasn’t told us its time zone yet. Reload this page. If you still see this, write to", { slots: {}, fixedBy: "board SetupZone · issue 1738" }],
+  "setup.zone.slow": ["We don’t have your time zone yet. Reload this page, or write to", { slots: {}, fixedBy: "board SetupZone · issue 1738" }],
 
   // ── Your voice (SPEC.md §5, 2026-09-12; renamed 2026-09-17, issue 839) ─
   //
@@ -400,7 +400,7 @@ export const SETUP_COPY = Object.freeze({
   // issue 759's ruling; the owner corrects the wording.
   "setup.remeasure.suggested": ["Broader markets to try", { slots: {}, fixedBy: "issue 837" }],
   "setup.remeasure.own": ["Or describe your market in your own words", { slots: {}, fixedBy: "issue 837" }],
-  "setup.remeasure.submit": ["Scan again now", { slots: {}, fixedBy: "issue 837" }],
+  "setup.remeasure.submit": ["Check again now", { slots: {}, fixedBy: "issue 837" }],
   "setup.remeasure.refused.empty": ["Type a market, or pick one of the suggestions.", { slots: {}, fixedBy: "issue 837" }],
   "setup.remeasure.refused.running": ["We’re already checking your market. Your pages follow when it’s done.", { slots: {}, fixedBy: "issue 837" }],
   "setup.remeasure.refused.daily-limit": ["You can check again after {time}.", { slots: { time: "text" }, fixedBy: "issue 837" }],
@@ -422,21 +422,21 @@ export const SETUP_COPY = Object.freeze({
 
   /** The one-word labels on the daisyUI `steps` indicator, three equal columns. */
   "setup.step.site": ["Site", { slots: {}, fixedBy: "SPEC §5 (2026-09-20, issue 908)" }],
-  "setup.step.check": ["Check", { slots: {}, fixedBy: "SPEC §5 · board Setup2 · issue 1737" }],
+  "setup.step.check": ["Details", { slots: {}, fixedBy: "SPEC §5 · board Setup2 · issue 1737" }],
   "setup.step.publishing": ["Connect", { slots: {}, fixedBy: "owner E11 · issue 1601" }],
 
   /** Where the founder is, and the time the founder's own part takes — never ReachKit's work (SPEC §5, 2026-09-21). */
   "setup.step.count": ["Step {n} of {total}", { slots: { n: "text", total: "text" }, fixedBy: "SPEC §5 · board Setup1 · issue 1737" }],
-  "setup.step.time": ["about 10 minutes, once", { slots: {}, fixedBy: "SPEC §5 · board Setup1 · issue 1737" }],
+  "setup.step.time": ["about 10 minutes of your time", { slots: {}, fixedBy: "SPEC §5 · board Setup1 · issue 1737" }],
 
   /** One question per step — the screen's `<h1>`. */
   "setup.step.site.question": ["Is this your business?", { slots: {}, fixedBy: "issue 922" }],
-  "setup.step.check.question": ["Here’s what we read", { slots: {}, fixedBy: "SPEC §5 · board Setup2 · issue 1737" }],
+  "setup.step.check.question": ["What we found on your site", { slots: {}, fixedBy: "SPEC §5 · board Setup2 · issue 1737" }],
   "setup.step.publishing.question": ["Connect your website", { slots: {}, fixedBy: "owner E11 · issue 1601" }],
 
   /** The line under each question. */
   "setup.step.site.line": [
-    "Your free scan read this site. We write every page for it, so fix anything wrong now.",
+    "We write every page from this site. Fix anything wrong now.",
     { slots: {}, fixedBy: "SPEC §5 · board Setup1 · issue 1737" },
   ],
   "setup.step.check.line": [
@@ -469,11 +469,11 @@ export const SETUP_COPY = Object.freeze({
   "setup.check.business": ["Your business", { slots: {}, fixedBy: "SPEC §5 · board Setup2 · issue 1737" }],
   "setup.check.market": ["Your market and competitors", { slots: {}, fixedBy: "SPEC §5 · board Setup2 · issue 1737" }],
   "setup.check.market.summary": ["{market} · {n} competitors", { slots: { market: "text", n: "text" }, fixedBy: "SPEC §5 · board Setup2 · issue 1737" }],
-  "setup.check.voice": ["Your voice", { slots: {}, fixedBy: "SPEC §5 · board Setup2 · issue 1737" }],
+  "setup.check.voice": ["How your pages sound", { slots: {}, fixedBy: "SPEC §5 · board Setup2 · issue 1737" }],
   "setup.check.asks.summary": ["Answer any, or none.", { slots: {}, fixedBy: "SPEC §5 · board Setup2 · issue 1737" }],
   /** Before the profile crawl has read a page. */
   "setup.check.unread": [
-    "We’re still reading your site. Carry on. What we find shows in Settings, where you can change it.",
+    "We’re still reading your site, so carry on. You can change what we find in Settings.",
     { slots: {}, fixedBy: "SPEC §5 · board Setup2 · issue 1737" },
   ],
 
@@ -482,12 +482,12 @@ export const SETUP_COPY = Object.freeze({
   "setup.next.here": ["you are here", { slots: {}, fixedBy: "SPEC §5 · board Setup1 · issue 1737" }],
   "setup.next.site": ["Confirm your site", { slots: {}, fixedBy: "SPEC §5 · board Setup1 · issue 1737" }],
   "setup.next.site.line": ["Where your buyers are.", { slots: {}, fixedBy: "SPEC §5 · board Setup1 · issue 1737" }],
-  "setup.next.check": ["Check what we read", { slots: {}, fixedBy: "SPEC §5 · board Setup1 · issue 1737" }],
+  "setup.next.check": ["Confirm what we found", { slots: {}, fixedBy: "SPEC §5 · board Setup1 · issue 1737" }],
   "setup.next.check.line": ["Fix anything wrong, or carry on.", { slots: {}, fixedBy: "SPEC §5 · board Setup1 · issue 1737" }],
   "setup.next.publishing": ["Connect your website", { slots: {}, fixedBy: "SPEC §5 · board Setup1 · issue 1737" }],
-  "setup.next.publishing.line": ["One setting, copied from us.", { slots: {}, fixedBy: "SPEC §5 · board Setup1 · issue 1737" }],
+  "setup.next.publishing.line": ["One line, pasted where you bought your address.", { slots: {}, fixedBy: "SPEC §5 · board Setup1 · issue 1737" }],
   "setup.next.after": ["After this, nothing to do", { slots: {}, fixedBy: "SPEC §5 · board Setup1 · issue 1737" }],
-  "setup.next.after.line": ["Pages go live on their day. A Monday email shows what moved.", { slots: {}, fixedBy: "SPEC §5 · board Setup1 · issue 1737" }],
+  "setup.next.after.line": ["Pages go live on their day. Your Monday mail shows what moved.", { slots: {}, fixedBy: "SPEC §5 · board Setup1 · issue 1737" }],
 
   // ── Step two: what we learned about your business ───────────────────
   //
@@ -597,7 +597,7 @@ export const SETUP_COPY = Object.freeze({
   /** The second list on the voice step — the claims the site never makes
    *  and ReachKit must not start making (`VoiceSummary.claimsToAvoid`). */
   "setup.voice.never": [
-    "Things we should never say about you",
+    "Never say",
     { slots: {}, fixedBy: "SPEC §5 (2026-09-20, issue 908)" },
   ],
 
@@ -630,7 +630,6 @@ export const SETUP_COPY = Object.freeze({
   // Every sentence below is **drafted** under the owner's 2026-09-16 ruling
   // (#759) and the PR names each one so the owner can correct it.
 
-
   // The blog mock-up's own lead line: the market the scan read, where it
   // read one. A market it did not read is a `skeleton`, never this line
   // with a guess in it.
@@ -661,65 +660,35 @@ export const SETUP_COPY = Object.freeze({
     "Paste one line at the company you bought your web address from.",
     { slots: {}, fixedBy: "SPEC §5 2026-09-20" },
   ],
-  // The two ways onward. Neither is a lesser path, and the note beside the
-  // timeline says so.
+  // The two ways onward. Neither is a lesser path, and the note under them says so.
   "setup.connect.later": ["Do this later", { slots: {}, fixedBy: "SPEC §5 2026-09-20" }],
   "setup.connect.onward.live": ["Connected. Go to your Overview", { slots: {}, fixedBy: "SPEC §5 2026-09-20" }],
   "setup.connect.skipping": [
-    "If you do it later, we’ll remind you, and your first page waits for it. The setting is also on your Overview.",
+    "If you do it later, we’ll email you a reminder. Your first page waits for it.",
     { slots: {}, fixedBy: "board Setup · issue 1738" },
   ],
-
-  // What happens while the founder does it: three states, each a title and
-  // the line under it.
-  "setup.connect.what": ["After you add it", { slots: {}, fixedBy: "board Setup · issue 1738" }],
-  "setup.connect.stage.reserved": ["Your address is reserved", { slots: {}, fixedBy: "SPEC §5 2026-09-20" }],
-  "setup.connect.stage.reserved.line": [
-    "Nobody else can take it.",
-    { slots: {}, fixedBy: "SPEC §5 2026-09-20" },
-  ],
-  "setup.connect.stage.waiting": ["We look for the setting", { slots: {}, fixedBy: "SPEC §5 2026-09-20" }],
-  "setup.connect.stage.waiting.line": [
-    "On our own every hour, and whenever you press check now.",
-    { slots: {}, fixedBy: "board Setup · issue 1738" },
-  ],
-  "setup.connect.stage.live": ["Your first page goes live", { slots: {}, fixedBy: "board Setup · issue 1738" }],
-  "setup.connect.stage.live.line": [
-    "On its day, once the setting is found.",
-    { slots: {}, fixedBy: "board Setup · issue 1738" },
-  ],
-
-  // How the address connects: the founder's site, the one setting, the pages.
-  "setup.connect.how.title": ["How it connects", { slots: {}, fixedBy: "board Setup · issue 1738" }],
-  "setup.connect.how.site": ["Your website", { slots: {}, fixedBy: "board Setup · issue 1738" }],
-  "setup.connect.how.site.line": ["Stays exactly as it is.", { slots: {}, fixedBy: "board Setup · issue 1738" }],
-  "setup.connect.how.setting": ["One setting, added once", { slots: {}, fixedBy: "board Setup · issue 1738" }],
-  "setup.connect.how.yours": ["your part", { slots: {}, fixedBy: "board Setup · issue 1738" }],
-  "setup.connect.how.setting.line": ["Where your web address is managed. We show you what to copy.", { slots: {}, fixedBy: "board Setup · issue 1738" }],
-  "setup.connect.how.live": ["Your pages, live", { slots: {}, fixedBy: "board Setup · issue 1738" }],
-  "setup.connect.how.live.line": ["On your own web address. We run it for you.", { slots: {}, fixedBy: "board Setup · issue 1738" }],
 
   // The record, as three rows to copy, and the steps behind one press.
-  "setup.connect.record.title": ["Copy this where {domain} is managed", { slots: { domain: "text" }, fixedBy: "board Setup · issue 1738" }],
-  "setup.connect.record.usually": ["Usually the company you bought the address from.", { slots: {}, fixedBy: "board Setup · issue 1738" }],
+  "setup.connect.record.title": ["Paste this where you bought {domain}", { slots: { domain: "text" }, fixedBy: "board Setup · issue 1738" }],
+  "setup.connect.record.usually": ["Look for its DNS settings.", { slots: {}, fixedBy: "board Setup · issue 1738" }],
   /** A copy button's name: `{field}` is the row's own label. */
   "setup.connect.record.copy": ["Copy {field}", { slots: { field: "text" }, fixedBy: "board Setup · issue 1738" }],
   "setup.connect.steps": ["Show the steps", { slots: {}, fixedBy: "board Setup · issue 1738" }],
-  "setup.connect.steps.1": ["Sign in where your web address is managed.", { slots: {}, fixedBy: "board Setup · issue 1738" }],
-  "setup.connect.steps.2": ["Open its DNS settings and choose to add a record.", { slots: {}, fixedBy: "board Setup · issue 1738" }],
+  "setup.connect.steps.1": ["Sign in where you bought your web address.", { slots: {}, fixedBy: "board Setup · issue 1738" }],
+  "setup.connect.steps.2": ["Open the DNS settings and add a new record.", { slots: {}, fixedBy: "board Setup · issue 1738" }],
   "setup.connect.steps.3": ["Pick the type CNAME, then paste the name and the value above.", { slots: {}, fixedBy: "board Setup · issue 1738" }],
   "setup.connect.steps.4": ["Save. Come back here and press I’ve added it, check now.", { slots: {}, fixedBy: "board Setup · issue 1738" }],
-  "setup.connect.steps.guide": ["Step by step for the company that manages your web address", { slots: {}, fixedBy: "board Setup · issue 1738" }],
+  "setup.connect.steps.guide": ["Steps for where you bought your address", { slots: {}, fixedBy: "board Setup · issue 1738" }],
 
   // The press and its two answers on this screen.
   "setup.connect.check": ["I’ve added it, check now", { slots: {}, fixedBy: "board Setup · issue 1738" }],
   "setup.connect.notfound.title": ["Not found yet", { slots: {}, fixedBy: "board Setup · issue 1738" }],
   "setup.connect.notfound": [
-    "We can’t see the setting yet. A new setting can take a while to reach everyone. We look again on our own every hour, so you can leave this page.",
+    "We can’t see the setting yet. We check every hour, so you can leave this page.",
     { slots: {}, fixedBy: "board Setup · issue 1738" },
   ],
   "setup.connect.connected": [
-    "Connected. Your first page goes live on its day. There’s nothing more for you to do.",
+    "Connected. Your first page goes live on its day, with nothing more to do.",
     { slots: {}, fixedBy: "board Setup · issue 1738" },
   ],
 
@@ -735,13 +704,13 @@ export const SETUP_COPY = Object.freeze({
   "setup.locale.option": ["{country} · {language}", { slots: { country: "text", language: "text" }, fixedBy: "SPEC §6 · D66 · issue 1311" }],
   "setup.place.label": ["The city or area you serve", { slots: {}, fixedBy: "SPEC §6 · D67 · issue 1318" }],
   "setup.place.note": [
-    "Leave it empty if you sell across the country or online. A local business is checked where it works.",
+    "Leave it empty if you sell nationwide or online.",
     { slots: {}, fixedBy: "SPEC §6 · D67 · issue 1318" },
   ],
   /** Where and in what the founder's answers above are checked: the place, else the country. */
   "setup.place.preview": ["{area} · in {language}", { slots: { area: "text", language: "text" }, fixedBy: "SPEC §5 · board Setup1 · issue 1737" }],
   "setup.place.preview.line": [
-    "We check what buyers here search and ask AI, and who they find instead of you.",
+    "We check what buyers here search, and who they find instead of you.",
     { slots: {}, fixedBy: "SPEC §5 · board Setup1 · issue 1737" },
   ],
   "setup.locale.note": [

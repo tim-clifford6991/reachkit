@@ -33,6 +33,16 @@ describe("policy/classifyAddress · one case per named class", () => {
     ["192.0.2.1", "reserved (TEST-NET-1)", "reserved"],
     ["255.255.255.255", "reserved (broadcast)", "reserved"],
     ["2001:db8::1", "reserved (documentation)", "reserved"],
+    ["172.31.255.255", "private (RFC 1918, last address)", "private"],
+    ["169.254.169.254", "link-local (cloud metadata)", "link_local"],
+    ["fd00:ec2::254", "private (cloud metadata, IPv6)", "private"],
+    ["100.100.100.200", "reserved (cloud metadata, CGNAT)", "reserved"],
+    ["192.0.0.192", "reserved (cloud metadata, IETF)", "reserved"],
+    ["::ffff:7f00:1", "loopback (IPv4-mapped, hex)", "loopback"],
+    ["::127.0.0.1", "reserved (IPv4-compatible)", "reserved"],
+    ["2002:7f00:1::", "reserved (6to4)", "reserved"],
+    ["2001::1", "reserved (Teredo)", "reserved"],
+    ["192.88.99.1", "reserved (6to4 relay anycast)", "reserved"],
   ];
 
   it.each(cases)("%s (%s) classifies as %s", (ip, _label, expected) => {
@@ -41,6 +51,8 @@ describe("policy/classifyAddress · one case per named class", () => {
 
   it("a normal public address classifies as public and is not blocked", () => {
     expect(classifyAddress("93.184.216.34")).toBe("public");
+    expect(classifyAddress("172.32.0.1")).toBe("public");
+    expect(classifyAddress("2606:4700::1")).toBe("public");
     expect(checkAddress("93.184.216.34")).toEqual({ ok: true });
   });
 
@@ -206,6 +218,50 @@ describe("safeFetch · policy refusal opens no socket", () => {
     // second hop's private address is refused before a second connection.
     expect(calls).toHaveLength(1);
   });
+
+  it.each(["http://[::1]/", "http://[::ffff:a9fe:a9fe]/", "http://metadata.example.com/latest/meta-data/"])(
+    "refuses %s by the address policy and opens no socket",
+    async (url) => {
+      vi.restoreAllMocks();
+      const { safeFetch } = await import("../../src/lib/egress/safe-fetch");
+      // A bracketed literal must never reach the resolver; a name resolves to the metadata address.
+      vi.spyOn(dns.promises, "lookup").mockImplementation((async (host: unknown) => {
+        if (String(host).startsWith("[")) throw Object.assign(new Error("not a name"), { code: "ENOTFOUND" });
+        return { address: "169.254.169.254", family: 4 };
+      }) as unknown as typeof dns.promises.lookup);
+      const { calls } = installTransport([]);
+
+      expect(await safeFetch(url)).toMatchObject({ ok: false, reason: "blocked_by_policy" });
+      expect(calls).toHaveLength(0);
+    }
+  );
+
+  it("refuses a redirect to a bracketed IPv6 metadata address before a second connection", async () => {
+    vi.restoreAllMocks();
+    const { safeFetch } = await import("../../src/lib/egress/safe-fetch");
+    vi.spyOn(dns.promises, "lookup").mockImplementation((async (host: unknown) => {
+      if (String(host).startsWith("[")) throw Object.assign(new Error("not a name"), { code: "ENOTFOUND" });
+      return { address: "93.184.216.34", family: 4 };
+    }) as unknown as typeof dns.promises.lookup);
+    const { calls } = installTransport([
+      { type: "response", statusCode: 302, headers: { location: "http://[fd00:ec2::254]/latest/meta-data/" } },
+    ]);
+
+    expect(await safeFetch("https://example.com/")).toMatchObject({ ok: false, reason: "blocked_by_policy" });
+    expect(calls).toHaveLength(1);
+  });
+
+  it("connects to a public IPv6 literal at that address, with the bracketed Host header", async () => {
+    vi.restoreAllMocks();
+    const { safeFetch } = await import("../../src/lib/egress/safe-fetch");
+    const lookupSpy = vi.spyOn(dns.promises, "lookup");
+    const { calls } = installTransport([{ type: "response", statusCode: 200, bodyChunks: [Buffer.from("hi")] }]);
+
+    expect((await safeFetch("http://[2606:4700::1]/")).ok).toBe(true);
+    expect(lookupSpy).not.toHaveBeenCalled();
+    expect(calls[0]?.host).toBe("2606:4700::1");
+    expect((calls[0]?.headers as Record<string, string>)?.Host).toBe("[2606:4700::1]");
+  });
 });
 
 // ── The lint rule (BP-006 NFR: "a `fetch(` call anywhere else under
@@ -242,10 +298,30 @@ beforeAll(async () => {
   await lint("export const warmUp = true;\n", "src/lib/measure/eslint-warm-up.ts");
 }, 60_000);
 
-describe("BP-006 NFR — fetch( is confined to src/lib/egress/** and src/lib/vendors/**", () => {
+describe("BP-006 — raw HTTP in server code is confined to src/lib/egress/** and the fixed-host vendor clients", () => {
   it("reports a fetch( call under src/lib/measure/", async () => {
     const result = await lint("export async function f() {\n  return fetch('https://x');\n}\n", "src/lib/measure/uses-fetch.ts");
     expect(result.messages.length).toBeGreaterThan(0);
+  }, ESLINT_BOOT_MS);
+
+  const FENCE = "local/no-fetch-outside-egress";
+  const fenced = (result: ESLint.LintResult) => result.messages.filter((m) => m.ruleId === FENCE);
+
+  it.each([
+    ["an https.request under src/lib/measure/", "import https from 'node:https';\nexport const f = () => https.request('https://x');\n", "src/lib/measure/raw.ts"],
+    ["a bare http import under src/lib/", "import http from 'http';\nexport const f = () => http.get('http://x');\n", "src/lib/measure/raw-http.ts"],
+    ["an undici import in a job", "import { request } from 'undici';\nexport const f = () => request('https://x');\n", "src/jobs/raw.ts"],
+    ["a node:tls require in middleware", "export const tls = require('node:tls');\n", "src/middleware.ts"],
+    ["a dynamic node:http2 import under src/lib/", "export const f = () => import('node:http2');\n", "src/lib/measure/raw-h2.ts"],
+    ["a fetch( in a route handler", "export async function GET() {\n  return fetch('https://x');\n}\n", "src/app/api/x/route.ts"],
+    ["a globalThis.fetch( in a job", "export const f = () => globalThis.fetch('https://x');\n", "src/jobs/raw-fetch.ts"],
+  ])("reports %s", async (_name, source, file) => {
+    expect(fenced(await lint(source, file))).toHaveLength(1);
+  }, ESLINT_BOOT_MS);
+
+  it("does not report the Resend client's node:https, whose host is fixed in code", async () => {
+    const result = await lint("import https from 'node:https';\nexport const f = () => https.request('https://x');\n", "src/lib/mail/vendor/resend.ts");
+    expect(fenced(result)).toEqual([]);
   }, ESLINT_BOOT_MS);
 
   it("does not report a fetch( call inside src/lib/egress/", async () => {

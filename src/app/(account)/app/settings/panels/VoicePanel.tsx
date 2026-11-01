@@ -34,7 +34,7 @@ import { saveVoiceAction, saveWritingVoiceAction } from "../change-actions";
 import { say } from "@/app/_toast/say";
 import { addClaimAction, removeClaimAction } from "../panel-actions";
 import { CLAIM_FIELD } from "../panel-state";
-import { VOICE_FIELD, WRITING_VOICE_AUTO, WRITING_VOICE_FIELD, WRITING_VOICE_OPTIONS } from "../voice-state";
+import { VOICE_FIELD, WRITING_VOICE_FIELD, WRITING_VOICE_OPTIONS } from "../voice-state";
 import { SAVED_BADGE_CLASS, useSetting } from "./useSetting";
 import type { SettingsModel } from "../model";
 
@@ -67,7 +67,7 @@ export function VoicePanel(p: {
   }
   // SPEC §7 (owner, 2026-10-10; issue 1390): who speaks on their pages.
   // Saved as it is chosen: one radio list, no second press.
-  const [writing, setWriting] = useState<string>(p.settings.voice.writing ?? WRITING_VOICE_AUTO);
+  const [writing, setWriting] = useState<string | null>(p.settings.voice.writing);
   const [savingWriting, startSavingWriting] = useTransition();
   function chooseWriting(value: string): void {
     setWriting(value);
@@ -137,8 +137,8 @@ export function VoicePanel(p: {
           {/* SPEC §7 (owner, 2026-10-10; issue 1390): who speaks on their pages, saved as it is chosen. */}
           <fieldset className="flex min-w-0 flex-col gap-3" data-testid="setting-writing_voice" disabled={savingWriting}>
             <legend className="card-title mb-3 min-w-0 wrap-anywhere text-base">{copy("settings.voice.writing.label")}</legend>
-            <div className="grid min-w-0 grid-cols-1 gap-2 md:grid-cols-2 xl:grid-cols-4" data-layout="choices">
-              {VOICE_CHOICES.map((choice) => {
+            <div className="grid min-w-0 grid-cols-1 gap-2 md:grid-cols-2" data-layout="pair">
+              {WRITING_VOICE_OPTIONS.map((choice) => {
                 const chosen = writing === choice.voice;
                 return (
                   <label
@@ -241,12 +241,6 @@ export function VoicePanel(p: {
 }
 
 const ICON = { size: 16, strokeWidth: 1.75, "aria-hidden": true } as const;
-
-/** Every voice on offer, ReachKit's own choice first, each with its fixed example sentence. */
-const VOICE_CHOICES = [
-  { voice: WRITING_VOICE_AUTO, key: "settings.voice.writing.auto", example: "settings.voice.writing.auto.example" },
-  ...WRITING_VOICE_OPTIONS,
-] as const;
 
 /** The same paragraph without and with a note: fixed words, labelled as an example. */
 function NoteExample(): React.JSX.Element {
