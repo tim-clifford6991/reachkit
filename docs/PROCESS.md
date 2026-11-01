@@ -29,9 +29,9 @@ The repository and the GitHub issues are the only record. A chat, a memory file,
 | **Owner** | Product, copy, secrets, answers, tests live on `dev.reachkit.app`. Does not read ticket piles. |
 | **Engineer** | One session, one issue. Issue → docs if behaviour changed → implement with libraries → PR with Conditions, Overlaps and Surfaces. Never merges or deploys (owner, 2026-10-19). |
 | **Architect** | Sets the build order, dependencies, hot-file rules and the proof for each step. Advises; never implements. |
-| **Product manager** | Turns an approved plan step into a ready issue (Conditions, Invariants, Surfaces, Overlaps), classifies feedback under Coherence, sequences waves of at most 3 engineers, keeps the delivery status and verifies each condition in production after deploy. |
+| **Product manager** | Turns an approved plan step into a ready issue (Conditions, Invariants, Surfaces, Overlaps), classifies feedback under Coherence, sequences waves of at most 4 engineers while 2.5 GB is free (owner, 2026-10-31), keeps the delivery status and verifies each condition in production after deploy. |
 | **Release QA** | Before a merge: each condition proven, CI green, overlaps tested together, migration order; returns GO or NO-GO with the head SHA. After a deploy, only when it carries a migration, a new or changed Inngest job or a paid path, or the deployer's production check is red: Ready, Inngest synced, smoke, errors, conditions in production; returns PASS or FAIL. Otherwise the deployer's logged production check is the PASS (owner, 2026-10-31). |
-| **Orchestrator** | Merges on GO with `--match-head-commit`, applies migrations in the order step 4 gives, deploys, syncs Inngest. Holds no implementation. |
+| **Orchestrator** | Merges on GO with `--match-head-commit`, applies migrations in the order step 4 gives, deploys, syncs Inngest. Holds no implementation. The master session restarts fresh each day and after each wave from `/root/ops/reachkit/handoff/master.md`, rewrites that file before it ends, and never `--continue`s a master across days. It waits only on `/root/ops/reachkit/bin/master-watch.sh`, never by polling Herdr, `gh pr checks` or a sleep loop. It never stalls on the owner: it asks, then keeps working the handoff queue, and when the queue is empty the product manager drafts the next wave (owner, 2026-10-31). |
 
 Delivery flow (owner, 2026-10-19): approved plan step → architect (order, proof) → product manager (issue) → engineer (PR) → release QA (GO) → orchestrator (merge, migration, deploy) → deployer's production check (PASS; release QA only for a migration, a job, a paid path or a red check) → product manager (accepted). The agent definitions live in `~/.claude/agents/`, named in `CLAUDE.md`. The orchestration session holds no implementation and no state. It writes the decision into the repository before anyone builds it. One engineer per issue, in a clean context. The next issue is a new session.
 
@@ -54,7 +54,7 @@ Every owner decision is a dated line in a decision file under `docs/spec/decisio
 | `audit` (SPEC/code/tests still agree + runtime `npm audit`) | **Yes** |
 | `schema · RLS (live Postgres)` | **Yes** |
 | `no overflow · axe (390 / 768 / 1280, light and dark)` | **Yes** — sweeps where a screen can change, success with a reason otherwise |
-| Production smoke (`scripts/smoke.sh`) | **Yes** for a production deploy, by hand |
+| Production smoke (`scripts/smoke.sh --free`) | **Yes** for a production deploy, run by `deployer.sh` |
 
 `no overflow · axe` renders every `(public)` and `(account)` screen in a real browser, hydrated, at 390, 768 and 1280, and every `/app` screen at 1023 too, in light and dark, and runs `@axe-core/playwright` on the same page. It fails on an element wider than its container, on text its card cuts off, on a chart that did not fit or did not draw, on a serious or critical axe finding, and on a skeleton of `/app`, `/app/calendar` or `/setup` whose columns or rows differ from the screen that arrives (#1484). It takes no screenshot and keeps no baseline. The strategy list in `docs/DESIGN.md` is checked with it, by `tests/ui/design/strategy.test.ts` on the same code change. The owner looks at the live site for taste.
 
@@ -109,8 +109,8 @@ New fixtures are synthetic: no copied third-party page, no real person's address
 2. **One dogfood site.** Live tests run on `reachkit.app`, plus at most one control site.
 3. **A live vendor call needs the master session's approval first.** An engineer asks on its issue, naming the calls, the sites and the cap, and waits for the master session's comment before any paid DataForSEO or model call. The cap defaults to 20¢ per issue. The pull request reports the spend.
 4. **€2 a day across all live testing, judged on what the vendors billed.** Spend is recorded in USD cents and the cap is converted at the rate in `constants.ts`. `npm run costs` shows billed beside recorded and judges the cap on billed spend where it is known, recorded spend where it is not (`docs/RUNBOOK.md` §8). Paid calls made by a script on the box are in `/root/ops/reachkit/spend.jsonl`. It warns at €1.50. Run it before a live test. An agent that would exceed the cap stops and asks the owner first.
-5. **At most three implementation agents at once.** No new issue is started while a proof is pending.
-6. **One smoke test per deploy batch.**
+5. **At most 4 engineers at once while 2.5 GB is free (owner, 2026-10-31).** No new issue is started while a proof is pending.
+6. **One smoke check per deploy.**
 7. **The Monday weekly pass is the default live proof.**
 
 Every change to market understanding, the knowledge base, rivals, terms, measured searches or topics passes `npm run panel` before the owner is asked to measure. A pass on reachkit.app alone is not proof. The panel is `docs/walk/panel/sites.json`. It runs only when a change touches how markets, rivals, terms, measured searches or topics are read, on at most five sites a run, after a 0¢ `--recheck` of the stored run could not answer the question. Its cap is 100¢ a run unless the issue states another. `npm run panel -- --recheck --date <date>` judges a stored run again for 0¢ (`docs/RUNBOOK.md` §4).
