@@ -253,7 +253,7 @@ export async function afterDeepReport(a: {
       // SPEC §6 (owner D28, #1185): the rivals, re-checked from this
       // pass's own answers before anything is derived against them.
       const { recheckRivalsOf } = await import("../market-conclusion");
-      await recheckRivalsOf({ siteId: a.siteId, domain: a.domain, cost, report });
+      await recheckRivalsOf({ siteId: a.siteId, domain: a.domain, cost, report, at: new Date() });
       try {
         await deriveForPass(cost, {
           tier: "deep",
