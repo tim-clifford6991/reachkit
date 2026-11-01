@@ -386,7 +386,7 @@ export function dismissedSearchesOf(row: Pick<OpportunityRow, "target_query" | "
 export function readOpportunity(row: OpportunityRow): Opportunity {
   const stored = reviveDates(row.evidence) as Evidence;
   // A row stored before rivals left sources out can still name one as its holder.
-  const evidence = stored.family === "write" && stored.rival !== null && isSourceHost(stored.rival.domain) ? { ...stored, rival: null } : stored;
+  const evidence = stored.family === "write" && stored.rival != null && isSourceHost(stored.rival.domain) ? { ...stored, rival: null } : stored;
   return {
     id: row.id,
     siteId: row.site_id,

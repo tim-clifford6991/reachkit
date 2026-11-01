@@ -22,4 +22,11 @@ describe("a stored Write rival is read as no rival when it is a source", () => {
       position: { kind: "measured", value: 2, at: new Date(AT) },
     });
   });
+
+  it("a row stored with no rival field reads as it was stored", () => {
+    const row = storedWriteRow("bulle-baeckerei.de");
+    const evidence = { ...(row.evidence as Record<string, unknown>) };
+    delete evidence.rival;
+    expect(readOpportunity({ ...row, evidence }).evidence).not.toHaveProperty("rival");
+  });
 });
