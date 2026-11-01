@@ -14,6 +14,7 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import React from "react";
+import { parse } from "node-html-parser";
 
 vi.mock("@/lib/presentation/copy", () => ({
   copy: (key: string, vars?: Record<string, string>) =>
@@ -283,5 +284,28 @@ describe("the fixture resolution, on reserved names only (#104)", () => {
     const state = fixtureFor("degraded.example.com");
     if (state.kind !== "report") throw new Error("unreachable");
     expect(state.report.supply.missingPages.kind).toBe("zero");
+  });
+});
+
+describe("board PubReport v36 — the cut blocks are gone from every report state", () => {
+  const reports = ["example.com", "degraded.example.com", "cold-start.example.com"].map((domain) => [domain, render(fixtureFor(domain))] as const);
+
+  it("no sample pill, no What we read, no page-count line and no removal line in the report's main", () => {
+    for (const [domain, html] of reports) {
+      const main = parse(html).querySelector("main")!;
+      expect(main, domain).not.toBeNull();
+      expect(main.querySelectorAll(".badge").map((b) => b.text.trim().toLowerCase()), domain).not.toContain("sample");
+      expect(main.querySelector('[data-testid="what-we-read"]'), domain).toBeNull();
+      expect(main.toString(), domain).not.toContain("report.read.title");
+      expect(main.toString(), domain).not.toContain("free-page.of");
+      expect(main.toString(), domain).not.toContain("removal.");
+    }
+  });
+
+  it("Not your market? Correct it is one link button 44px tall", () => {
+    const buttons = parse(render(fixtureFor("example.com"))).querySelectorAll("button").filter((b) => b.text === "verdict.not-your-market");
+    expect(buttons).toHaveLength(1);
+    expect(buttons[0]!.classList.contains("btn-link")).toBe(true);
+    expect(buttons[0]!.classList.contains("min-h-11")).toBe(true);
   });
 });

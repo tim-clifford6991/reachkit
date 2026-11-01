@@ -89,7 +89,7 @@ export function CategoryCorrection(p: { domain: CanonicalDomain; offer: Correcti
     return (
       <button
         type="button"
-        className="btn btn-ghost btn-xs"
+        className="btn btn-link h-auto min-h-11 px-0 text-sm font-semibold no-underline"
         aria-expanded={false}
         onClick={() => setStep({ kind: "open", sending: false, refused: null })}
       >

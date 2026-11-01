@@ -1,7 +1,7 @@
 // BUILD §4.1 — the report, whole
 //
-// The six modules, at most one notice, exactly one control
-// (or none), and the removal address at the foot. A screen composition,
+// The six modules, at most one notice and exactly one control (or none);
+// the removal address is the public footer's. A screen composition,
 // daisyUI classes in the route (DESIGN rule 1): `alert` for the notice,
 // `btn` for the one control; every module below is its own card.
 //
@@ -48,7 +48,6 @@ import { identityReading } from "@/lib/site-issues/checks";
 import { MethodSections } from "../_problems/method";
 import { answerReadersOf, cardsOf, missingPagesOf, PROBLEM_ORDER, storedQuestionOf, type MissingPage, type ProblemCard, type ProblemName } from "../_problems/model";
 import { unblockLines } from "../_problems/unblock";
-import { RemovalAddressLine } from "./removal";
 import type { AddressControl, AddressNotice, WrittenPage } from "./state";
 import { refusalLine } from "./refusal";
 import { VerdictStrip, type ReadAsChip } from "./verdict";
@@ -56,7 +55,7 @@ import { rescoredOf } from "./rescored";
 import { RescanControl } from "./rescan";
 import { startReportCheckout } from "./checkout";
 import { StillReading } from "./still-reading";
-import { ReadSection, whereLine } from "@/app/_business/WhatWeRead";
+import { whereLine } from "@/app/_business/WhatWeRead";
 import type { BusinessUnderstanding } from "@/lib/business/types";
 import { profileOfReport, understandBusiness } from "@/lib/business/understanding";
 import { BuyersSection, HeadlineBlock } from "../_modules/buyers";
@@ -408,7 +407,7 @@ function whereOf(understanding: BusinessUnderstanding | null): { badge: string |
 function readAsOf(report: StoredReport, understanding: BusinessUnderstanding | null, where: string | null): ReadAsChip[] {
   const category = categoryOf(report.market);
   const kind = understanding?.kind == null ? null : copy(`report.read.as.kind.${understanding.kind}`);
-  const what = category !== null && kind !== null ? copy("report.read.as.what", { category, kind }) : (category ?? kind);
+  const what = category !== null && kind !== null ? copy("report.read.as.what", { kind, category }) : (kind ?? category);
   const measured = measuredLocale(report);
   const locale = copy("report.read.as.locale", {
     language: new Intl.DisplayNames(REPORT_TAG, { type: "language" }).of(measured.language) ?? measured.language,
@@ -472,6 +471,7 @@ export function ReportView(p: {
     correction: CorrectionOffer;
     readsDifferently?: boolean;
     writtenPage?: WrittenPage;
+    hasLogo?: boolean;
   };
   checkoutRefused?: boolean;
 }): React.JSX.Element {
@@ -570,6 +570,7 @@ export function ReportView(p: {
             }
             top={<HeadlineBlock ai={report.aiAnswers} presence={report.presence} serps={report.serps} missing={missingPages?.length ?? 0} free={report.freePage !== null} />}
             independent={copy("report.independent", { company: understanding?.name ?? report.domain })}
+            hasLogo={p.state.hasLogo === true}
           />
         </div>
         <FinishingReadsLine report={report} />
@@ -644,14 +645,6 @@ export function ReportView(p: {
           />
         </div>
 
-        {/* Issue 1454: what the scan read of the business, in full, where the
-            board puts it — after the method, before the first page. */}
-        {understanding === null ? null : (
-          <div className="col-span-full">
-            <ReadSection understanding={understanding} correction={correction} />
-          </div>
-        )}
-
         {/* The giveaway is a full-width row (UI-SPEC S2). The proposal is
             closed under the card's own name (issue 1328); a report with no
             page to propose is not closed, because its one line is the whole
@@ -668,10 +661,6 @@ export function ReportView(p: {
               written={p.state.writtenPage}
             />
           )}
-        </div>
-
-        <div className="text-base-content/70 col-span-full text-center text-xs">
-          <RemovalAddressLine />
         </div>
       </main>
     </Surface>

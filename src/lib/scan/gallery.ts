@@ -20,7 +20,7 @@ import { isProtectionName } from "@/lib/measure/challenge";
 import { isPlaceholder } from "@/lib/measure/placeholder";
 import { brandName, domainBrand } from "@/lib/site-profile/site-name";
 import { challengedHomes } from "./challenged";
-import { removalsMark } from "./removal";
+import { isRemovedWith, removalsMark } from "./removal";
 import panel from "../../../docs/walk/panel/sites.json";
 
 export const GALLERY_SORTS = ["newest", "highest", "lowest", "az"] as const;
@@ -74,7 +74,8 @@ interface MinimalResult<T> {
 }
 interface MinimalQuery<T> extends PromiseLike<MinimalResult<T>> {
   select(columns: string, options?: { count: "exact"; head?: boolean }): MinimalQuery<T>;
-  not(column: string, operator: "in", value: string): MinimalQuery<T>;
+  not(column: string, operator: "in" | "is", value: string | null): MinimalQuery<T>;
+  is(column: string, value: boolean | null): MinimalQuery<T>;
   eq(column: string, value: unknown): MinimalQuery<T>;
   or(filter: string): MinimalQuery<T>;
   order(
@@ -337,6 +338,22 @@ export async function isListed(domain: string): Promise<boolean> {
     .limit(1);
   if (error)
     throw new Error(`gallery: could not read ${domain}: ${error.message}`);
+  return (data?.length ?? 0) > 0;
+}
+
+/** Whether a domain's report page is served, listed or not: not removed,
+ *  and a current scan holds its report. The logo route's one question, so a
+ *  takedown takes the picture down with the report. */
+export async function servesReport(domain: string): Promise<boolean> {
+  if (await isRemovedWith(dbAdmin(), domain)) return false;
+  const { data, error } = await untyped()
+    .from<{ id: string }>("scans")
+    .select("id")
+    .eq("domain", domain)
+    .is("is_current", true)
+    .not("report", "is", null)
+    .limit(1);
+  if (error) throw new Error(`gallery: could not read ${domain}'s report: ${error.message}`);
   return (data?.length ?? 0) > 0;
 }
 

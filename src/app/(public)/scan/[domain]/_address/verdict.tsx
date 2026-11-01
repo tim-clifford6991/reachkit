@@ -1,6 +1,6 @@
 // BUILD §4.1 module 1 — the report's head (SPEC §2, board PubReport)
 //
-// The domain, when and where it was measured, what the scan read the
+// The site's mark and domain, when and where it was measured, what the scan read the
 // business as with its one correction, who gets the buyers (owner R12) and
 // the biggest gap in its own card; beside them the score in its own card,
 // its band and range, and its parts as `n/10`, closed under their name.
@@ -22,6 +22,7 @@ import { LIMITING_LINES, SCORE_BANDS } from "@/lib/presentation/bands";
 import { shownLimitingOf, type ShownFactor, type Verdict } from "@/lib/measure/verdict";
 import type { Measured } from "@/lib/measure/measured";
 import type { CorrectionOffer } from "@/lib/market/coherence/offer";
+import { SiteMark } from "@/ui/SiteMark";
 import { CategoryCorrection } from "./correction";
 import { dash, Num, unmeasuredLineFor } from "./measured";
 
@@ -237,6 +238,8 @@ export function VerdictStrip(p: {
   independent: string;
   /** Where a re-score moved the score through the Google half: when, already formatted, and the score it read before. */
   rescored?: { on: string; before: number };
+  /** Whether the scan kept the site's logo; otherwise its letter tile. */
+  hasLogo?: boolean;
 }): React.JSX.Element {
   const { verdict } = p;
   const limiting = shownLimitingOf(verdict);
@@ -248,9 +251,12 @@ export function VerdictStrip(p: {
           <p className="eyebrow">{copy("report.eyebrow")}</p>
           {/* The domain is what this report is *about*, so it is the
               page's `<h1>` (owner ruling 2026-09-23, #328). */}
-          <h1 className="min-w-0 overflow-x-auto text-3xl font-semibold">
-            <Num>{verdict.domain}</Num>
-          </h1>
+          <div className="flex min-w-0 items-center gap-3.5">
+            <SiteMark domain={verdict.domain} hasLogo={p.hasLogo === true} size={56} />
+            <h1 className="min-w-0 overflow-x-auto text-3xl font-semibold">
+              <Num>{verdict.domain}</Num>
+            </h1>
+          </div>
           <p className="text-base-content/70 flex flex-wrap gap-x-1 text-sm">
             <Num phrase>
               {p.category === null

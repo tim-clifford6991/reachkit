@@ -39,6 +39,7 @@ import { leadStore } from "@/lib/mail/leads/store";
 import { RUNNING_ROW_BOUND_S } from "@/lib/scan/stuck";
 import { parseDomain, type CanonicalDomain } from "@/lib/scan/domain";
 import { readCurrentReport, type StoredReport } from "@/lib/scan/report";
+import { hasSiteLogo } from "@/lib/site-profile/store";
 import { readsDifferently } from "@/lib/scan/derivation";
 import { correctionOffer, type CorrectionOffer } from "@/lib/market/coherence/offer";
 import type { AddressControl, AddressNotice, AddressRefusal, AddressState, WrittenPage } from "./state";
@@ -258,6 +259,12 @@ export async function resolveAddress(a: {
   if (report !== null) {
     const correction = correctionStateOf(report);
     const offer = correctionOfferOn(report, now);
+    // A logo read that fails draws the letter tile, never an error.
+    const [differently, hasLogo, written] = await Promise.all([
+      readsDifferently(report.scanId),
+      hasSiteLogo(domain).catch(() => false),
+      writtenPageOf(report),
+    ]);
     return {
       kind: "report",
       report,
@@ -269,8 +276,9 @@ export async function resolveAddress(a: {
         now,
       }),
       correction: offer,
-      readsDifferently: await readsDifferently(report.scanId),
-      ...(await writtenPageOf(report)),
+      readsDifferently: differently,
+      hasLogo,
+      ...written,
     };
   }
 

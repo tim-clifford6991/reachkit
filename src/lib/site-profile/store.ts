@@ -41,6 +41,7 @@ interface MinimalQuery<T> extends PromiseLike<MinimalResult<T>> {
   update(values: Record<string, unknown>): MinimalQuery<T>;
   eq(column: string, value: unknown): MinimalQuery<T>;
   is(column: string, value: unknown): MinimalQuery<T>;
+  not(column: string, operator: "is", value: null): MinimalQuery<T>;
   limit(n: number): MinimalQuery<T>;
 }
 interface MinimalClient {
@@ -257,6 +258,18 @@ export async function readSiteLogo(domain: string): Promise<{ bytes: Buffer; typ
   const type = LOGO_TYPES.find((t) => t === row.logo_type);
   if (type === undefined || !row.logo_image.startsWith("\\x")) return null;
   return { bytes: Buffer.from(row.logo_image.slice(2), "hex"), type };
+}
+
+/** Whether a logo is stored for the domain, read without its bytes. */
+export async function hasSiteLogo(domain: string): Promise<boolean> {
+  const { data, error } = await untyped()
+    .from<{ domain: string }>("site_profiles")
+    .select("domain")
+    .eq("domain", domain)
+    .not("logo_image", "is", null)
+    .limit(1);
+  if (error) throw new Error(`site profile: could not read whether ${domain} has a logo: ${error.message}`);
+  return (data?.length ?? 0) > 0;
 }
 
 /** What the scan read of the main site (issue 1511), written beside the

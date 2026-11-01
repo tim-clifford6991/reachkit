@@ -150,7 +150,6 @@ const SCREEN_KEYS: readonly CopyKey[] = [
   // 5 · free page
   "free-page.title",
   "free-page.badge",
-  "free-page.of",
   "free-page.email.label",
   "free-page.email.placeholder",
   "free-page.row.target",
@@ -199,7 +198,6 @@ const SCREEN_KEYS: readonly CopyKey[] = [
   "control.rescan-incomplete",
   "control.retry",
   "removal.address",
-  "removal.line.on-report",
   "removal.line.removed",
   "stage.reading_your_site",
   "stage.reading_access_rules",
