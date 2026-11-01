@@ -1,4 +1,4 @@
-// BUILD §9 — the hosted edge's two cache tags, and the one call that clears them: invalidation on publish and unpublish is
+// BUILD §9 — the hosted edge's cache tags, and the one call that clears them: invalidation on publish and unpublish is
 // immediate, a 410 is never served from a stale cache, and a takedown never waits on a TTL.
 // Only a live article is cached (SPEC §7, `src/app/(hosted)/hosted-live/[host]/[slug]`); `src/middleware.ts` decides the
 // 410 before the cache, and the index, sitemap, robots, feed and 410 render per request.
@@ -7,13 +7,15 @@
 // `{ expire: 0 }`, never the deprecated one-argument form nor `"max"`: stale content is never served after a takedown.
 import { revalidateTag, unstable_cache } from "next/cache";
 
-/** The two tags the hosted surface reads under, named here because their callers are in `src/lib/`, which may not
+/** The tags the hosted surface reads under, named here because their callers are in `src/lib/`, which may not
  *  import `src/app/` (ARCHITECTURE rule 6). */
 export const tags = Object.freeze({
   /** Everything served for one site: its pages and its sitemap. */
   site: (siteId: string): string => `hosted:site:${siteId}`,
   /** One published page. */
   page: (publicationId: string): string => `hosted:page:${publicationId}`,
+  /** ReachKit's own articles, as the public footer and landing list them: any publish or takedown may be one of them. */
+  ownArticles: "hosted:own-articles",
 });
 
 /** Puts one page's two tags on the render that awaits this, so `invalidateHosted` clears it. */
@@ -34,5 +36,6 @@ export function invalidateHosted(a: { siteId: string; publicationId?: string }):
     }
   };
   clear(tags.site(a.siteId));
+  clear(tags.ownArticles);
   if (a.publicationId !== undefined) clear(tags.page(a.publicationId));
 }

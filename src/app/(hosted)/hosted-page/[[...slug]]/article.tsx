@@ -31,9 +31,10 @@ import {
 } from "@/lib/publish/render/markdown";
 import {
   hostedIdentity,
-  livePagesForSite,
+  livePageBySlug,
   retiredSlugsForSite,
   taggedForHosted,
+  type HostedListing,
   type HostedPage,
 } from "@/lib/publish/destinations/hosted";
 import { slugOf } from "@/lib/publish/destinations/hosted/moved";
@@ -64,7 +65,7 @@ export interface Resolved {
   page: HostedPage;
   canonical: string;
   /** The site's other live pages, newest first. */
-  others: HostedPage[];
+  others: HostedListing[];
   business: HostedBusiness;
   /** The slugs of this host that answer 410 (issue 1506): a link to one is
    *  unwrapped. Absent reads as none. */
@@ -93,14 +94,13 @@ async function loadArticle(host: string, slug: string): Promise<Resolved | null>
   // either route is reached. A page never renders for either.
   if (disposition.kind !== "site") return null;
 
-  // The site's whole list, which the page is found in and its related
-  // guides are chosen from: one read, the same one the sitemap makes.
-  const pages = await livePagesForSite(disposition.siteId, disposition.host);
-  const page = pages.find((candidate) => candidate.slug === slug);
-  if (page === undefined) return null;
+  // The sitemap's list, which the page and its related guides come from, and this page's body alone.
+  const found = await livePageBySlug(disposition.siteId, slug, disposition.host);
+  if (found === null) return null;
+  const { page, others } = found;
   return {
     page,
-    others: pages.filter((candidate) => candidate !== page),
+    others,
     business: await businessOf(disposition),
     retired: await retiredSlugsForSite(disposition.siteId),
     moved: await movedSlugsForSite(disposition.siteId),
@@ -223,7 +223,7 @@ const RELATED_GUIDES = 3;
 
 /** The site's other live pages closest to this one's topic, then newest —
  *  `others` is already newest first and the sort is stable. */
-function relatedGuides(page: HostedPage, others: readonly HostedPage[]): HostedPage[] {
+function relatedGuides(page: HostedPage, others: readonly HostedListing[]): HostedListing[] {
   const about = `${page.title} ${page.record.targetQuery}`;
   return others
     .map((other) => ({ other, score: topicSimilarity(about, other.title) }))

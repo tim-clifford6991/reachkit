@@ -11,7 +11,7 @@
 import type { Metadata } from "next";
 import type { Language } from "@/lib/locale/locales";
 import { copy, copyInto, readerLanguage, readerTag } from "@/lib/presentation/copy/reader";
-import type { HostedPage } from "@/lib/publish/destinations/hosted";
+import type { HostedListing, HostedPage } from "@/lib/publish/destinations/hosted";
 import { OG_SIZE } from "@/app/(public)/_seo/og-card";
 import { INDEX_PATH, LOGO_PATH, mainSiteOf, type HostedBusiness } from "./chrome";
 import { pageAuthorOf } from "./author";
@@ -263,7 +263,7 @@ export function breadcrumbSchema(a: {
 export function blogSchema(a: {
   business: HostedBusiness;
   canonical: string;
-  listed: readonly HostedPage[];
+  listed: readonly HostedListing[];
 }): string {
   const origin = originOf(a.canonical);
   const site = `${a.canonical}#website`;

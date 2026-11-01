@@ -9,9 +9,11 @@
 //
 // **Nothing stored, nothing linked.** A deployment with no such site, no
 // live page, or a database that does not answer draws neither the footer
-// link nor the landing's list. One read per request: the footer and the
-// landing share it.
+// link nor the landing's list. One read an hour, or after a publish or a
+// takedown clears its tag, and the footer and the landing share it.
 import { cache } from "react";
+import { unstable_cache } from "next/cache";
+import { tags } from "@/lib/publish/destinations/hosted/cache";
 import { PREVIEW_HOST_SUFFIX } from "@/lib/config/constants";
 import { INDEX_PATH } from "@/app/(hosted)/hosted-page/[[...slug]]/chrome";
 
@@ -45,9 +47,24 @@ async function read(): Promise<OwnArticles | null> {
   return { index: `https://${host}${INDEX_PATH}`, latest };
 }
 
+const cachedRead = unstable_cache(read, ["own-articles"], { revalidate: 3600, tags: [tags.ownArticles] });
+
+async function readCached(): Promise<OwnArticles | null> {
+  let held: OwnArticles | null;
+  try {
+    held = await cachedRead();
+  } catch (error) {
+    // Outside a Next request there is no data cache to hold it, so the read runs uncached.
+    if (!(error instanceof Error && error.message.includes("incrementalCache missing"))) throw error;
+    held = await read();
+  }
+  // The data cache stores JSON, so a cached date comes back a string.
+  return held === null ? null : { ...held, latest: held.latest.map((entry) => ({ ...entry, published: new Date(entry.published) })) };
+}
+
 export const readOwnArticles = cache(async (): Promise<OwnArticles | null> => {
   try {
-    return await read();
+    return await readCached();
   } catch (error) {
     // The links are not the page's job: a failed read drops them, never the
     // page they sit on.

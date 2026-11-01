@@ -53,7 +53,7 @@ vi.mock("@/lib/publish/destinations/hosted", async () => {
     hostedSiteForDomain: async (domain: string) =>
       domain === "example.com" ? { siteId: "site-1", domain, host: `content.${domain}` } : null,
     hostedSiteForHostname: async () => null,
-    livePageBySlug: async () => state.page,
+    livePageBySlug: async () => (state.page === null ? null : { page: state.page, others: [] }),
     livePagesForSite: async () => (state.page === null ? [] : [state.page]),
     taggedForHosted: async () => undefined,
     hostedIdentity: async (a: { domain: string }) => ({ name: a.domain, logoType: null, line: null }),

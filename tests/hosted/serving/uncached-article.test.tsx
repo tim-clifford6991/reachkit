@@ -35,6 +35,10 @@ vi.mock("@/lib/publish/destinations/hosted", () => ({
   hostedSiteForDomain: async (domain: string) =>
     domain === "example.com" ? { siteId: "site-1", domain, host: `content.${domain}` } : null,
   livePagesForSite: async () => state.pages,
+  livePageBySlug: async (_siteId: string, slug: string) => {
+    const page = (state.pages as { slug: string }[]).find((candidate) => candidate.slug === slug);
+    return page === undefined ? null : { page, others: state.pages.filter((other) => other !== page) };
+  },
   retiredSlugsForSite: async () => new Set<string>(),
   hostedIdentity: async () => ({ name: "Harbor Plumbing", logoType: null, line: null }),
   taggedForHosted: async () => undefined,

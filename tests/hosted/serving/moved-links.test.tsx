@@ -55,7 +55,7 @@ vi.mock("@/lib/publish/destinations/hosted", async () => {
     retiredSlugsForSite: async () => new Set<string>(),
     hostedSiteForDomain: async (domain: string) => (domain === "example.com" ? { siteId: "site-1", domain, host: `content.${domain}` } : null),
     hostedSiteForHostname: async () => null,
-    livePageBySlug: async () => pageD,
+    livePageBySlug: async () => ({ page: pageD, others: [] }),
     livePagesForSite: async () => [pageD],
     hostedIdentity: async (a: { domain: string }) => ({ name: a.domain, logoType: null, line: null }),
     hostedAddress: async () => ({ state: "none", publicationId: null }),

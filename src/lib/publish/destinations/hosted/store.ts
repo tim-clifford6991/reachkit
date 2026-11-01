@@ -13,9 +13,11 @@ import { hostFor } from "./label";
 import { addressOf, slugOf as addressSlug, type AddressRow, type HostedAddress } from "./moved";
 import type { HostedOwnPages } from "./own-page";
 import { storedSiteName } from "@/lib/site-profile/site-name";
+import { datedAt, emptyToNull, readDescription, readHeading, readSectionHeading } from "./page-fields";
 import { mainSiteOf, type MainSite } from "@/lib/site-profile/main-site-row";
 
 export { readFaq, type FaqEntry } from "../../render/faq";
+export { readDescription } from "./page-fields";
 
 /** A site as the edge sees it, with nothing about its owner. */
 export interface HostedSite {
@@ -49,23 +51,18 @@ export interface HostedPublisher {
  *  `null` renders the body whole and unmarked. */
 export type HostedGrounding = RecordedFact;
 
-/** One live hosted page. `slug` is the published address's last segment. `liveUrl` is that slug on the host addressed
- *  now (SPEC §7), since the host is the site's and can move, so the canonical, the sitemap entry and the record agree. */
-export interface HostedPage {
+/** One live hosted page as a list draws it, with no body. `slug` is the published address's last segment. `liveUrl` is
+ *  that slug on the host addressed now (SPEC §7), since the host is the site's and can move, so the canonical, the
+ *  sitemap entry and the record agree. */
+export interface HostedListing {
   publicationId: string;
   siteId: string;
   slug: string;
   title: string;
   /** The H1 (SPEC §7, D51) from `drafts.meta.heading`, or `null` where the title is the heading. */
   heading: string | null;
-  bodyMd: string;
   /** `drafts.meta.description`, or `null`. */
   description: string | null;
-  faq: readonly FaqEntry[];
-  /** What the page is grounded in, or `null` where nothing was recorded. */
-  grounded: HostedGrounding | null;
-  /** SPEC §7: the made-with note's two numbers, or `null` where the row records neither. */
-  made: MadeCounts | null;
   /** Whose page it is: the header, eyebrow, byline and footer come from this alone. */
   publisher: HostedPublisher;
   /** SPEC §7: the byline as generation recorded it (`drafts.attribution`), or `null`. */
@@ -73,10 +70,6 @@ export interface HostedPage {
   /** Written as the business's own service or product page
    *  (`drafts.meta.contentType`); absent reads as not. */
   offering?: boolean;
-  /** The heading of an offering page's "Where and when" section, as
-   *  generation recorded it (`drafts.meta.sections`); absent or `null` where
-   *  it recorded none. */
-  whereWhen?: string | null;
   /** SPEC §0 business fit of the page's opportunity, 0–3, or `null` where
    *  no pass judged it: only a 3 earns the compact block. */
   businessFit?: number | null;
@@ -90,6 +83,20 @@ export interface HostedPage {
   firstPublishedAt: Date;
   liveUrl: string;
   record: PublishedPageRecord;
+}
+
+/** One live hosted page whole, as its article renders it. */
+export interface HostedPage extends HostedListing {
+  bodyMd: string;
+  faq: readonly FaqEntry[];
+  /** What the page is grounded in, or `null` where nothing was recorded. */
+  grounded: HostedGrounding | null;
+  /** SPEC §7: the made-with note's two numbers, or `null` where the row records neither. */
+  made: MadeCounts | null;
+  /** The heading of an offering page's "Where and when" section, as
+   *  generation recorded it (`drafts.meta.sections`); absent or `null` where
+   *  it recorded none. */
+  whereWhen?: string | null;
 }
 
 interface SiteRow {
@@ -113,10 +120,12 @@ interface PublicationRow {
   sites: { domain: string | null; category: string | null; timezone: string | null } | null;
   drafts: {
     title: string | null;
-    body_md: string | null;
     attribution: string | null;
-    meta: Record<string, unknown> | null;
-    grounded_fact: Record<string, unknown> | null;
+    heading: string | null;
+    description: string | null;
+    dated_as: string | null;
+    content_type: string | null;
+    body_md?: string | null;
     opportunity_id: string;
     opportunities: {
       id: string;
@@ -128,12 +137,15 @@ interface PublicationRow {
   } | null;
 }
 
-/** The one select list for a live page, through the two relationships §9's record needs. */
-const PAGE_COLUMNS =
+/** The list's one select, through the two relationships §9's record needs: only the meta fields a list draws, never a
+ *  body, the grounded fact or the whole meta, since every list read would carry each page's text. */
+const LIST_COLUMNS = (body: boolean): string =>
   "id, site_id, live_url, published_at, mode, " +
   // The publisher's three and nothing else off `sites`: name, eyebrow, and the byline date's zone.
   "sites!inner(domain, category, timezone), " +
-  "drafts!inner(title, body_md, attribution, meta, grounded_fact, opportunity_id, " +
+  "drafts!inner(title, attribution, opportunity_id, " +
+  "heading:meta->>heading, description:meta->>description, dated_as:meta->>datedAs, content_type:meta->>contentType, " +
+  (body ? "body_md, " : "") +
   "opportunities!inner(id, target_query, business_fit, cluster_key, scans(created_at)))";
 
 /** The site served on this domain, or `null`: exact match, no fallback, so an unknown Host 404s by construction. */
@@ -178,7 +190,7 @@ function slugOf(liveUrl: string): string | null {
   return slug === "" ? null : slug;
 }
 
-function toPage(row: PublicationRow, host: string): HostedPage | null {
+function toListing(row: PublicationRow, host: string): HostedListing | null {
   const draft = row.drafts;
   const opportunity = draft?.opportunities ?? null;
   if (draft === null || opportunity === null) return null;
@@ -191,32 +203,28 @@ function toPage(row: PublicationRow, host: string): HostedPage | null {
   // No domain, no publisher and no address: `null`, never a page with a blank for the customer's name.
   if (domain === null || domain.trim() === "") return null;
 
-  // The one composer, on the host that resolved: see `HostedPage.liveUrl`.
+  // The one composer, on the host that resolved: see `HostedListing.liveUrl`.
   const liveUrl = liveUrlOnHost({ host, slug });
+  const meta = { heading: draft.heading, description: draft.description, datedAs: draft.dated_as };
 
   return {
     publicationId: row.id,
     siteId: row.site_id,
     slug,
     title: draft.title ?? "",
-    heading: readHeading(draft.meta),
-    bodyMd: draft.body_md ?? "",
-    description: readDescription(draft.meta),
-    faq: readFaq(draft.meta),
-    grounded: readRecordedFact(draft.grounded_fact),
-    made: madeCounts(draft.meta, domain),
+    heading: readHeading(meta),
+    description: readDescription(meta),
     publisher: {
       name: domain,
       category: emptyToNull(row.sites?.category ?? null),
       timeZone: emptyToNull(row.sites?.timezone ?? null),
     },
     byline: emptyToNull(draft.attribution ?? null),
-    offering: draft.meta?.contentType === "offering",
-    whereWhen: readSectionHeading(draft.meta, "where_when"),
+    offering: draft.content_type === "offering",
     businessFit: opportunity.business_fit ?? null,
     cluster: opportunity.cluster_key ?? null,
-    publishedAt: datedAt(draft.meta) ?? new Date(row.published_at),
-    firstPublishedAt: datedAt(draft.meta) ?? new Date(row.published_at),
+    publishedAt: datedAt(meta) ?? new Date(row.published_at),
+    firstPublishedAt: datedAt(meta) ?? new Date(row.published_at),
     liveUrl,
     record: {
       opportunityId: opportunity.id,
@@ -309,52 +317,15 @@ export async function hostedIdentity(a: { siteId: string; domain: string }): Pro
   }
 }
 
-/** `drafts.meta.description`, read defensively: blank is none, never an empty meta tag. */
-export function readDescription(meta: Record<string, unknown> | null): string | null {
-  const raw = meta?.description;
-  if (typeof raw !== "string") return null;
-  const text = raw.replace(/\s+/g, " ").trim();
-  return text === "" ? null : text;
-}
-
-/** The heading generation recorded for one of the template's sections, or
- *  `null` where `drafts.meta.sections` holds none for it. */
-function readSectionHeading(meta: Record<string, unknown> | null, key: string): string | null {
-  const sections = meta?.sections;
-  if (!Array.isArray(sections)) return null;
-  const found = sections.find((section): section is { key: string; heading: string } => section?.key === key && typeof section.heading === "string");
-  return found === undefined ? null : emptyToNull(found.heading);
-}
-
-/** The date a mended version keeps (SPEC §7): a version that only repaired its predecessor in code is dated as it, so
- *  its updated date, `dateModified` and `lastmod` do not move. `null` for every other version. */
-function datedAt(meta: Record<string, unknown> | null): Date | null {
-  const raw = meta?.datedAs;
-  if (typeof raw !== "string") return null;
-  const at = new Date(raw);
-  return Number.isNaN(at.getTime()) ? null : at;
-}
-
-/** `drafts.meta.heading`, read the same way. */
-function readHeading(meta: Record<string, unknown> | null): string | null {
-  const raw = meta?.heading;
-  if (typeof raw !== "string") return null;
-  const text = raw.replace(/\s+/g, " ").trim();
-  return text === "" ? null : text;
-}
-
-/** A stated value, or `null`: an empty string would draw an empty eyebrow. */
-function emptyToNull(value: string | null): string | null {
-  return value === null || value.trim() === "" ? null : value;
-}
-
 /** Every live hosted page, newest first, on `host`: the sitemap is exactly this list and the render finds its page in
  *  it. `host` is an argument (SPEC §7), so a page states the address it answers at by construction. One page per
- *  address: the newest live row at a slug, never listed beside the versions it replaced. */
-export async function livePagesForSite(siteId: string, host: string): Promise<HostedPage[]> {
+ *  address: the newest live row at a slug, never listed beside the versions it replaced. Bodies only for a search. */
+export async function livePagesForSite(siteId: string, host: string): Promise<HostedListing[]>;
+export async function livePagesForSite(siteId: string, host: string, a: { withBody: true }): Promise<(HostedListing & { bodyMd: string })[]>;
+export async function livePagesForSite(siteId: string, host: string, a?: { withBody: true }): Promise<HostedListing[]> {
   const { data, error } = await publishDb()
     .from<PublicationRow>("publications")
-    .select(PAGE_COLUMNS)
+    .select(LIST_COLUMNS(a?.withBody === true))
     .eq("site_id", siteId)
     .eq("destination", "hosted")
     .not("published_at", "is", null)
@@ -362,10 +333,11 @@ export async function livePagesForSite(siteId: string, host: string): Promise<Ho
     .order("published_at", { ascending: false });
   if (error !== null || data === null) return [];
   // The first row at a slug is the page; later ones are older versions, giving its first date.
-  const bySlug = new Map<string, HostedPage>();
+  const bySlug = new Map<string, HostedListing>();
   for (const row of data) {
-    const page = toPage(row, host);
-    if (page === null) continue;
+    const listing = toListing(row, host);
+    if (listing === null) continue;
+    const page = a?.withBody === true ? { ...listing, bodyMd: row.drafts?.body_md ?? "" } : listing;
     const newest = bySlug.get(page.slug);
     if (newest === undefined) bySlug.set(page.slug, page);
     else if (page.publishedAt < newest.firstPublishedAt) newest.firstPublishedAt = page.publishedAt;
@@ -373,14 +345,31 @@ export async function livePagesForSite(siteId: string, host: string): Promise<Ho
   return [...bySlug.values()];
 }
 
-/** One live page by slug, matched here since the query builder has no pattern operator; §9's ceilings keep the list small. */
+/** One live page whole, by slug, and the site's other pages as listed: the list, then the one body, by its publication. */
 export async function livePageBySlug(
   siteId: string,
   slug: string,
   host: string
-): Promise<HostedPage | null> {
+): Promise<{ page: HostedPage; others: HostedListing[] } | null> {
   const pages = await livePagesForSite(siteId, host);
-  return pages.find((page) => page.slug === slug) ?? null;
+  const listing = pages.find((page) => page.slug === slug);
+  if (listing === undefined) return null;
+  const { data, error } = await publishDb()
+    .from<{ drafts: { body_md: string | null; meta: Record<string, unknown> | null; grounded_fact: Record<string, unknown> | null } | null }>("publications")
+    .select("drafts!inner(body_md, meta, grounded_fact)")
+    .eq("id", listing.publicationId)
+    .limit(1);
+  const draft = error === null ? (data?.[0]?.drafts ?? null) : null;
+  if (draft === null) return null;
+  const page: HostedPage = {
+    ...listing,
+    bodyMd: draft.body_md ?? "",
+    faq: readFaq(draft.meta),
+    grounded: readRecordedFact(draft.grounded_fact),
+    made: madeCounts(draft.meta, listing.publisher.name),
+    whereWhen: readSectionHeading(draft.meta, "where_when"),
+  };
+  return { page, others: pages.filter((other) => other !== listing) };
 }
 
 export type { HostedAddress, HostedAddressState } from "./moved";
