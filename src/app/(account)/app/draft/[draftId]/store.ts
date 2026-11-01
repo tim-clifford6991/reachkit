@@ -366,7 +366,7 @@ async function targetOf(opportunityId: string | null): Promise<DraftTarget> {
     target,
     why: {
       fit: choice.businessFit === 3 ? "answer" : choice.businessFit === 2 ? "helps" : null,
-      rival: evidence.family === "write" || evidence.family === "earn" ? evidence.rival.domain : null,
+      rival: evidence.family === "write" || evidence.family === "earn" ? (evidence.rival?.domain ?? null) : null,
       planReason: choice.planReason ?? null,
     },
     update: evidence.family === "improve",

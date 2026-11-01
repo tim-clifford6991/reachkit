@@ -239,12 +239,16 @@ export interface TargetFacts {
   engines: readonly TargetEngine[];
 }
 
+/** The business a Write page is written to overtake; `null` where only
+ *  sources hold its search. */
+export type WriteRival = { domain: string; url: Measured<string>; position: Measured<number> };
+
 export type Evidence =
   | {
       family: "write";
       query: string;
       volume: Measured<number>;
-      rival: { domain: string; url: Measured<string>; position: Measured<number> };
+      rival: WriteRival | null;
       /** issue 867. Absent on a row derived before it. */
       target?: TargetFacts;
       /** Issue 1519: a "People also ask" question or related search the

@@ -23,6 +23,7 @@
 import { parse as pslParse } from "psl";
 import { parseDomain } from "@/lib/scan/domain";
 import { PLATFORM_DOMAINS } from "@/lib/config/constants";
+import { SHAPES } from "@/lib/locale/language";
 
 /** eTLD+1, lower-cased. Accepts a bare host or a full URL (scheme, userinfo,
  *  port, path, query and a trailing dot are all stripped by `parseDomain`).
@@ -365,16 +366,100 @@ export interface SourceReading {
 
 /** Whether a top-ten row is a source rather than a business that holds the
  *  search: a domain the rivals' partition sets aside or the report stored as
- *  a source, or a page for job seekers, an article about others or an
- *  explainer. A rival's row never is, whatever the page. Outside a local
- *  market an article in a domain's own blog is that business's. A row
- *  whose host does not parse is one. */
+ *  a source, or a page for job seekers or about others. A rival's row never
+ *  is, whatever the page. A row whose host does not parse is one. */
 export function isSourceRow(row: { domain: string; url?: string; title?: string }, a: SourceReading): boolean {
   const domain = registrableDomain(row.domain);
   if (domain !== null && a.rivals?.includes(domain) === true) return false;
   if (domain === null || a.sources?.includes(domain) === true || isSourceDomain(row.domain, row.url, a) || isJobRow(row)) return true;
-  const article = isArticleRow(row) || (row.title !== undefined && isExplainerTitle(row.title));
-  return article && (a.local || row.url === undefined || !isOwnContentUrl(row.url));
+  return isOthersPage(row, a.local);
+}
+
+/** Whether a page lists or writes about others rather than offers its own
+ *  business's: outside a local market an article in a domain's own blog is
+ *  that business's. */
+export function isOthersPage(row: { domain: string; url?: string; title?: string }, local: boolean): boolean {
+  const kind = pageClass(row);
+  return kind === "third_party" || (kind === "article" && (local || row.url === undefined || !isOwnContentUrl(row.url)));
+}
+
+/** What one page is, read off its address and title alone: a third party
+ *  that lists others, an article, or a provider's own page — a product, a
+ *  course, a price or a booking page, whoever publishes it. */
+export type PageClass = "third_party" | "article" | "provider";
+
+const SEARCH_PARAM = /^(find_desc|find_loc|q|query|search|s|k|keyword|what|where)$/;
+const DIRECTORY_SEGMENT =
+  /^(search|suche|find|directory|verzeichnis|branchen|firmen|companies|categories|listings?|profiles?|biz|doctor-locator|filialen|threads?|forums?|community|groups|questions)$/;
+const DIRECTORY_NAME = /agencies|companies|firms|directory|listings|branchenbuch|telefonbuch|^(best|top)\p{L}+s$/u;
+const ARTICLE_SEGMENT = /^(stories|story|features|maps|magazin(e)?|journal|news|presse|ratgeber|wissen|lexikon)$/;
+const QUESTION_TITLE = /\?\s*$|^(what|why|how|where|who|which|wie|was|warum|wo|welche)(?![\p{L}\p{N}])/iu;
+const NUMBERED_TITLE = /^\d+\s+(?!(hours?|stunden?)(?![\p{L}\p{N}]))\p{L}/iu;
+const BYLINE = /(?<![\p{L}\p{N}])(by|von)\s+\p{Lu}/u;
+const ARTICLE_HOST = /\.(blog|news|media|magazine)$|^(blog|news|magazin(e)?|journal)\./;
+
+function segmentsOf(url: string | undefined): { path: string[]; params: string[] } {
+  if (url === undefined) return { path: [], params: [] };
+  try {
+    const parsed = new URL(url);
+    return { path: parsed.pathname.toLowerCase().split("/").filter(Boolean), params: [...parsed.searchParams.keys()].map((key) => key.toLowerCase()) };
+  } catch {
+    return { path: [], params: [] };
+  }
+}
+
+/** The words of an address's last segment: its file ending and any part
+ *  holding a digit (an id, a page number) are not words. */
+function slugWords(segment: string): number {
+  return segment.replace(/\.[a-z0-9]+$/, "").split("-").filter((part) => /^\p{L}+$/u.test(part)).length;
+}
+
+export function titleWords(text: string): string {
+  return text.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim();
+}
+
+/** A title that ranks others in any language's words: a "best" beside a
+ *  number ("Die 10 besten Elektriker", "beste Bäckerei 2026"). */
+export function isRankedTitle(title: string | undefined): boolean {
+  if (title === undefined) return false;
+  const text = titleWords(title);
+  return SHAPES.best.test(text) && /\p{N}/u.test(text);
+}
+
+/** One page's class: the first that matches wins, so a directory's "THE
+ *  BEST 10 PLUMBING" is a third party, not an article. */
+export function pageClass(row: { domain: string; url?: string; title?: string }): PageClass {
+  const parsed = parseDomain(row.domain);
+  const host = parsed.ok ? parsed.domain : row.domain.toLowerCase();
+  const { path, params } = segmentsOf(row.url);
+  const title = (row.title ?? "").trim();
+  const name = (registrableDomain(host) ?? host).split(".")[0] ?? "";
+  if (
+    isListingAddress(row.url ?? row.domain) ||
+    isListingHost(row.domain) ||
+    params.some((key) => SEARCH_PARAM.test(key)) ||
+    [host.split(".")[0] ?? "", ...path].some((segment) => DIRECTORY_SEGMENT.test(segment)) ||
+    DIRECTORY_NAME.test(name)
+  )
+    return "third_party";
+  // A home page offers its own business, whatever its title says.
+  if (row.url !== undefined && isHomeUrl(row.url) && !ARTICLE_HOST.test(host)) return "provider";
+  if (
+    isRoundupPage(row) ||
+    isArticleRow(row) ||
+    isRankedTitle(row.title) ||
+    (title !== "" && (isExplainerTitle(title) || SHAPES.guide.test(titleWords(title)))) ||
+    (row.url !== undefined && isOwnContentUrl(row.url)) ||
+    path.some((segment) => ARTICLE_SEGMENT.test(segment)) ||
+    /\/20\d\d\//.test(row.url ?? "") ||
+    slugWords(path.at(-1) ?? "") >= 6 ||
+    QUESTION_TITLE.test(title) ||
+    NUMBERED_TITLE.test(title) ||
+    BYLINE.test(title) ||
+    ARTICLE_HOST.test(host)
+  )
+    return "article";
+  return "provider";
 }
 
 /** Whether a domain is one of `MARKETPLACE_HOSTS`, or under one. */

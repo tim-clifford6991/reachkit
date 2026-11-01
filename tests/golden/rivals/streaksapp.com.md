@@ -22,7 +22,7 @@ From `scripts/panel/evidence/streaksapp.com.json`: 14 stored searches, 5 rivals.
 | daily habit tracker app | — | — |
 | habit building app | — | — |
 | daily habit tracker | — | — |
-| habit tracker app review | answer_page | reddit.com |
+| habit tracker app review | answer_page | zapier.com |
 | habit tracker app | — | — |
 | habit builder app | comparison_page | zapier.com |
-| track daily habits | answer_page | google.com |
+| track daily habits | answer_page | reclaim.ai |

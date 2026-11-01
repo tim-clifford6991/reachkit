@@ -170,15 +170,11 @@ export async function readSearchFacts(site: SearchSite, at: Date): Promise<Searc
       // the rival whose page holds the answer today; an Improve target is
       // the customer's own page, so no rival holds it.
       rival:
-        evidence.family === "write" || evidence.family === "earn"
-          ? {
-              domain: evidence.rival.domain,
-              position:
-                evidence.family === "write"
-                  ? evidence.rival.position
-                  : unmeasured<number>("not_attempted", opportunity.createdAt),
-            }
-          : null,
+        evidence.family === "write"
+          ? evidence.rival && { domain: evidence.rival.domain, position: evidence.rival.position }
+          : evidence.family === "earn"
+            ? { domain: evidence.rival.domain, position: unmeasured<number>("not_attempted", opportunity.createdAt) }
+            : null,
       change: verdicts.get(opportunity.id) ?? { kind: "none" },
       ...(placeByOpportunity.has(opportunity.id) ? { position: placeByOpportunity.get(opportunity.id) } : {}),
     });
