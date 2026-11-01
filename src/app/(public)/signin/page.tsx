@@ -167,7 +167,7 @@ export default function SignInPage(props: {
                 </p>
               </div>
               <p className={`text-sm ${QUIET}`}>{copy("signin.sent.terms")}</p>
-              <Link href={SIGN_IN_PATH} className="btn btn-soft btn-primary h-11 self-start">
+              <Link href={SIGN_IN_PATH} className="btn btn-soft btn-primary h-11 self-start text-(length:--t-body)">
                 {copy("signin.sent.resend")}
               </Link>
             </>
