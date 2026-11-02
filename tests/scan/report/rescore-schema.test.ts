@@ -26,6 +26,7 @@ const APPLIED = [
   "20261101130000_scans_rescore_reads.sql",
   "20260903080000_fetches.sql",
   "20261101140000_fetches_facts.sql",
+  "20261102120000_fetches_text.sql",
 ];
 const FACTS = "20261101140000_fetches_facts.sql";
 
@@ -286,6 +287,27 @@ describe("fetch_facts — the re-score's facts of each stored read", () => {
     expect(psqlRows("select relrowsecurity, (select count(*) from pg_policies where tablename = 'fetch_facts') from pg_class where relname = 'fetch_facts';")).toEqual([["t", "0"]]);
     for (const [role, can] of [["anon", "f"], ["authenticated", "f"], ["service_role", "t"]]) {
       for (const privilege of ["select", "insert", "update", "delete"]) expect(value(`select has_table_privilege('${role}', 'fetch_facts', '${privilege}');`)).toBe(can);
+    }
+  });
+});
+
+describe("fetch_text — the grounding's text of each stored read", () => {
+  it("adds no column to fetches and changes none", () => expect(fetchesColumns()).toEqual(fetchesBefore));
+
+  it("keeps one row per read with its timestamp as written, deleted by its scan before its read, and reached by the service role alone", () => {
+    const scanId = scan();
+    const id = value(`insert into fetches (scan_id, source, cache_key, policy_version, cost_cents, reserved_cents, payload) values ('${scanId}', 'egress.safeFetch', 'https://gusto.com/', 1, 0, 0, '{}'::jsonb) returning id;`)!;
+    const put = (version: string) => run(`insert into fetch_text (fetch_id, scan_id, text_version, url, read_at, rendered, document, text, examples, questions) values ('${id}', '${scanId}', '${version}', 'https://gusto.com/', '2026-11-02T09:00:00.123Z', false, true, 'Payroll ${version}', '[]'::jsonb, '[]'::jsonb) on conflict (fetch_id) do update set text_version = excluded.text_version, text = excluded.text;`);
+    ["t1", "t2"].forEach(put);
+    expect(psqlRows(`select text_version, text, read_at from fetch_text where fetch_id = '${id}';`)).toEqual([["t2", "Payroll t2", "2026-11-02T09:00:00.123Z"]]);
+    expect(raises(`insert into fetch_text (fetch_id, scan_id, text_version, url, read_at, rendered, document, text, examples, questions) values (gen_random_uuid(), '${scanId}', 't1', 'u', 'r', false, false, '', '[]'::jsonb, '[]'::jsonb);`)).toBe(true);
+    expect(raises(`delete from fetches where id = '${id}';`)).toBe(true);
+    run(`delete from fetch_text where scan_id = '${scanId}'; delete from fetches where scan_id = '${scanId}';`);
+    expect(value(`select count(*) from fetches where scan_id = '${scanId}';`)).toBe("0");
+    expect(value("select count(*) from pg_indexes where tablename = 'fetch_text' and indexdef like '%(scan_id)%';")).toBe("1");
+    expect(psqlRows("select relrowsecurity, (select count(*) from pg_policies where tablename = 'fetch_text') from pg_class where relname = 'fetch_text';")).toEqual([["t", "0"]]);
+    for (const [role, can] of [["anon", "f"], ["authenticated", "f"], ["service_role", "t"]]) {
+      for (const privilege of ["select", "insert", "update", "delete"]) expect(value(`select has_table_privilege('${role}', 'fetch_text', '${privilege}');`)).toBe(can);
     }
   });
 });

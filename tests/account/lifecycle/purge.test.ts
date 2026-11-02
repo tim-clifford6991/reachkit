@@ -80,6 +80,15 @@ describe("REQ-079 c7 — the enumerated sweep, one case per named class", () => 
     });
   });
 
+  it("the text derived from those reads goes with them, by the scan it was read under", async () => {
+    await purgeAccount("u-1");
+    expect(state.deleted.find((step) => step.table === "fetch_text")).toEqual({
+      table: "fetch_text",
+      column: "scan_id",
+      values: ["scan-1"],
+    });
+  });
+
   it("the danger-zone ticket goes with the account", async () => {
     await purgeAccount("u-1");
     expect(tables()).toContain("danger_tickets");
@@ -98,6 +107,7 @@ describe("REQ-079 c7 — the enumerated sweep, one case per named class", () => 
     before("drafts", "opportunities");
     before("opportunities", "scans");
     before("fetch_facts", "fetches");
+    before("fetch_text", "fetches");
     before("fetches", "scans");
     before("leads", "scans");
     before("scans", "sites");
