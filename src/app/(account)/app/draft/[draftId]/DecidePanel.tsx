@@ -54,8 +54,9 @@ import { SHAPE } from "./shape";
  *  nothing is asked of the reader, so nothing on the rail should hurry them. */
 function GoesLive(p: { at: Date; timeZone: string }): React.JSX.Element {
   return (
-    <p className="rounded-box bg-base-200 min-w-0 p-4 text-sm max-md:hidden" data-testid="draft-goes-live">
-      {copy("draft.decide.goes-live", { at: formatDateTime(p.at, p.timeZone) })}
+    <p className="rounded-box bg-base-200 flex min-w-0 flex-col gap-1 p-4 max-md:hidden" data-testid="draft-goes-live">
+      <span className="eyebrow text-primary">{copy("draft.decide.goes-live")}</span>
+      <span className="text-lg font-bold">{formatDateTime(p.at, p.timeZone)}</span>
     </p>
   );
 }

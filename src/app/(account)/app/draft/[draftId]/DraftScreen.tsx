@@ -54,7 +54,6 @@ import { ArrowLeft, Check, CircleCheck, LoaderCircle, Plus, RefreshCw, TriangleA
 import {
   formatCount,
   formatDate,
-  formatDateTime,
   formatTime,
 } from "../../_shell/format";
 import { writtenLine } from "../../_shell/written";
@@ -540,11 +539,7 @@ export function DraftScreen(p: {
       // head above the frame, because nothing of ours belongs on a page
       // about to stand on their domain.
       source={sourceLine}
-      caption={
-        state === "in_review" && view.doNothing.publishesAt !== null
-          ? copy("draft.preview.caption", { at: formatDateTime(view.doNothing.publishesAt, view.timeZone) })
-          : copy("draft.preview.caption.plain")
-      }
+      caption={copy("draft.preview.caption")}
     />
   );
 
@@ -802,13 +797,8 @@ export function DraftScreen(p: {
       </>
     );
 
-  const written =
-    view.writtenAt === null
-      ? copy("draft.words", { words: formatCount(wordCount(bodyMd)) })
-      : copy("draft.written", {
-          at: formatDateTime(view.writtenAt, view.timeZone),
-          words: formatCount(wordCount(bodyMd)),
-        });
+  // The day's timeline carries when it was written, so the header states the length alone.
+  const written = copy("draft.words", { words: formatCount(wordCount(bodyMd)) });
 
   return (
     // **Room under the page for the Decide bar** (owner's review of #931).
@@ -822,7 +812,7 @@ export function DraftScreen(p: {
       data-testid="draft-view"
     >
       <nav data-testid="draft-back">
-        <Link href="/app/calendar" prefetch={true} className="btn btn-sm btn-ghost">
+        <Link href="/app/calendar" prefetch={true} className={SHAPE.back}>
           <ArrowLeft size={16} strokeWidth={1.75} aria-hidden />
           {copy("draft.back")}
         </Link>

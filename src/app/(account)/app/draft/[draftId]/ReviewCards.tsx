@@ -654,7 +654,6 @@ export function ChecksCard(p: { list: CheckList }): React.JSX.Element | null {
   const ordered = [...rows].sort((a, b) => FIRST[a.status] - FIRST[b.status]);
   const shown = ordered.slice(0, CHECKS_SHOWN);
   const rest = ordered.slice(CHECKS_SHOWN);
-  const allPassed = counts !== null && counts.failed === 0 && !rows.some((row) => row.status === "pending");
   return (
     <section className={NOTE.card} data-testid="draft-checks">
       <div className={NOTE.pad}>
@@ -667,7 +666,6 @@ export function ChecksCard(p: { list: CheckList }): React.JSX.Element | null {
                   ? copy("draft.checks.title")
                   : copy("draft.checks.headline", { passed: counts.passed, total: counts.total })}
               </span>
-              {allPassed ? <span className="badge badge-soft badge-success badge-sm">{copy("draft.checks.all-passed")}</span> : null}
             </h2>
           </summary>
           <div className={CLOSED.body}>

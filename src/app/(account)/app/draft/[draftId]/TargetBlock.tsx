@@ -50,19 +50,35 @@ function SearchRows(p: { target: Target }): React.JSX.Element {
   );
 }
 
-/** The card, in each of the three states a draft's target can be in. */
-export function WhyThisPage(p: { target: DraftTarget }): React.JSX.Element {
+/** The card, in each of the three states a draft's target can be in. With
+ *  `children` it is a live page's: the icon heads the title, and the
+ *  controls follow the reason under a rule (board `PageDetail`). */
+export function WhyThisPage(p: { target: DraftTarget; children?: React.ReactNode }): React.JSX.Element {
   const { target } = p;
+  const stacked = p.children !== undefined;
+  const tile = (
+    <span className="bg-primary/10 text-primary rounded-box grid size-9 shrink-0 place-items-center" aria-hidden>
+      <Search size={18} strokeWidth={1.75} />
+    </span>
+  );
+  const title = (
+    <h2 id="draft-why-title" className="text-base font-semibold">
+      {copy("draft.why.title")}
+    </h2>
+  );
   return (
     <section className={NOTE.card} aria-labelledby="draft-why-title" data-testid="draft-why">
-      <div className="card-body min-w-0 flex-row items-start gap-3 p-5">
-        <span className="bg-primary/10 text-primary rounded-box grid size-9 shrink-0 place-items-center" aria-hidden>
-          <Search size={18} strokeWidth={1.75} />
-        </span>
+      <div className={`card-body min-w-0 gap-3 p-5 ${stacked ? "" : "flex-row items-start"}`}>
+        {stacked ? (
+          <span className="flex min-w-0 items-center gap-2.5">
+            {tile}
+            {title}
+          </span>
+        ) : (
+          tile
+        )}
         <div className="flex min-w-0 flex-1 flex-col gap-2">
-          <h2 id="draft-why-title" className="text-base font-semibold">
-            {copy("draft.why.title")}
-          </h2>
+          {stacked ? null : title}
           {target.kind === "target" ? (
             <>
               {reasonLines(target).map((line) => (
@@ -78,6 +94,7 @@ export function WhyThisPage(p: { target: DraftTarget }): React.JSX.Element {
             </p>
           )}
         </div>
+        {stacked ? <div className="border-base-300 border-t pt-4">{p.children}</div> : null}
       </div>
     </section>
   );

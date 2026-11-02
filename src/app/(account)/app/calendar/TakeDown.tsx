@@ -23,6 +23,8 @@ export interface ControlWords {
   refused: string;
 }
 
+// E7's ghost in warning, with the board's light edge; full width on a phone.
+const STOP = "btn btn-ghost btn-warning border-warning/30 min-h-11 max-sm:w-full";
 const QUIET = "link link-warning link-hover inline-flex min-h-11 items-center gap-1.5 self-start text-sm no-underline";
 
 export function TakeDownControl(p: {
@@ -52,7 +54,7 @@ export function TakeDownControl(p: {
   return (
     <button
       type="button"
-      className={p.quiet === true ? QUIET : p.mode === "stop" ? "btn btn-sm btn-ghost btn-warning" : "btn btn-sm btn-soft"}
+      className={p.quiet === true ? QUIET : p.mode === "stop" ? STOP : "btn btn-soft min-h-11"}
       data-testid={p.mode === "stop" ? "take-down" : "put-back"}
       aria-describedby={p.describedBy}
       disabled={busy}

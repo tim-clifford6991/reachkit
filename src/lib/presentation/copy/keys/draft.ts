@@ -184,7 +184,7 @@ export const DRAFT_COPY = Object.freeze({
   // owner corrects the wording.
   "draft.adds.title": ["What this page adds", { slots: {}, fixedBy: "issue 1143 (drafted)" }],
   "draft.adds.lead": [
-    "What it says that today’s top pages don’t.",
+    "What it says that the pages ranking today don’t.",
     { slots: {}, fixedBy: "issue 1143 (drafted)" },
   ],
   "draft.adds.none": [
@@ -319,18 +319,10 @@ export const DRAFT_COPY = Object.freeze({
     { slots: {}, fixedBy: "REQ-045 c1" },
   ],
 
-  // S16's provenance line, under the title: when the page was written and
-  // roughly how long it is. Two arms, because the first fact can be absent
-  // — a draft row carries its `created_at`, but a view assembled from facts
-  // that record none states the length alone rather than a stand-in date.
-  // The tilde is the set's own: a word count is a count of words, not of
-  // what a destination will render.
-  "draft.written": [
-    "Written {at} · about {words} words",
-    { slots: { at: "date", words: "text" }, fixedBy: "S16 (11a)" },
-  ],
+  // S16's provenance line, under the title: roughly how long the page is.
+  // When it was written is the day's timeline's, so it is not said twice.
   "draft.words": [
-    "about {words} words",
+    "About {words} words",
     { slots: { words: "text" }, fixedBy: "S16 (11a)" },
   ],
 
@@ -344,10 +336,7 @@ export const DRAFT_COPY = Object.freeze({
   "draft.checks.title": ["Checks", { slots: {}, fixedBy: "S16 (11a)" }],
 
   // The rail's go-live line: an absolute time in the site's zone, and no clock.
-  "draft.decide.goes-live": [
-    "Goes live {at}. Nothing is needed from you.",
-    { slots: { at: "date" }, fixedBy: "issue 1574" },
-  ],
+  "draft.decide.goes-live": ["Goes live", { slots: {}, fixedBy: "issue 1574 · board AppDraft v36" }],
 
   // SPEC §7 (2026-10-10, issue 1394): the Checks list. The headline is the
   // glance; the closed note under it holds every hard rule in plain words,
@@ -525,7 +514,7 @@ export const DRAFT_COPY = Object.freeze({
     { slots: {}, fixedBy: "SPEC §7 · issue 789" },
   ],
   "draft.edit.rules-held": [
-    "Your edit breaks a page rule, so this page won’t go live yet. Your words are saved.",
+    "This edit breaks a page rule, so the page won’t go live until it passes. Your words are saved.",
     { slots: {}, fixedBy: "SPEC §7 · issue 789" },
   ],
   // #1180: a page the rules stopped, fixed by the founder, enters review
@@ -810,11 +799,11 @@ export const DRAFT_COPY = Object.freeze({
   "draft.live.places": ["{n} places", { slots: { n: "text" }, fixedBy: "issue 1749 (drafted)" }],
   "draft.live.places.one": ["one place", { slots: {}, fixedBy: "issue 1749 (drafted)" }],
   "draft.live.up": ["Up {places} since {date}.", { slots: { places: "text", date: "date" }, fixedBy: "issue 1749 (drafted)" }],
-  "draft.live.up.near": ["Up {places} since {date}, {gap} from Google’s first page.", { slots: { places: "text", date: "date", gap: "text" }, fixedBy: "issue 1749 (drafted)" }],
+  "draft.live.up.near": ["Up {places} since {date}, {gap} from the first page.", { slots: { places: "text", date: "date", gap: "text" }, fixedBy: "issue 1749 (drafted)" }],
   "draft.live.down": ["Down {places} since {date}.", { slots: { places: "text", date: "date" }, fixedBy: "issue 1749 (drafted)" }],
   "draft.live.same": ["The same place as on {date}.", { slots: { date: "date" }, fixedBy: "issue 1749 (drafted)" }],
   "draft.live.furthest": ["{step} on {date}. Not in results yet.", { slots: { step: "text", date: "date" }, fixedBy: "issue 1749 (drafted)" }],
-  "draft.live.visits": ["{n} visits from Google in the last {days} days. Checked {date}.", { slots: { n: "text", days: "text", date: "date" }, fixedBy: "issue 1749 (drafted)" }],
+  "draft.live.visits": ["{n} visits from Google in the last {days} days.", { slots: { n: "text", days: "text" }, fixedBy: "issue 1749 (drafted)" }],
   "draft.live.band": ["shaded band: Google’s first page", { slots: {}, fixedBy: "issue 1749 (drafted)" }],
   "draft.live.chart": ["Its place on Google, week by week", { slots: {}, fixedBy: "issue 1749 (drafted)" }],
   "draft.ladder.google": ["On Google", { slots: {}, fixedBy: "issue 1749 (drafted)" }],
@@ -827,18 +816,16 @@ export const DRAFT_COPY = Object.freeze({
   "draft.ladder.linked": ["Linked by AI", { slots: {}, fixedBy: "issue 1749 (drafted)" }],
   "draft.ladder.visit": ["Visit from AI", { slots: {}, fixedBy: "issue 1749 (drafted)" }],
   "draft.ladder.places": ["place {from} → {to}", { slots: { from: "text", to: "text" }, fixedBy: "issue 1749 (drafted)" }],
+  "draft.live.first-page": ["First page", { slots: {}, fixedBy: "board PageDetail v36 (drafted)" }],
   "draft.ladder.unmeasured": ["not checked yet", { slots: {}, fixedBy: "issue 1749 (drafted)" }],
   "draft.ladder.not-yet": ["not yet", { slots: {}, fixedBy: "issue 1749 (drafted)" }],
-  "draft.next.title": ["What happens next:", { slots: {}, fixedBy: "issue 1749 (drafted)" }],
-  "draft.next.working": ["it’s working, so we leave it alone. If it slips, we update it for you.", { slots: {}, fixedBy: "issue 1749 (drafted)" }],
-  "draft.next.climbing": ["it’s still climbing, so we leave it alone. If it slips, we update it for you.", { slots: {}, fixedBy: "issue 1749 (drafted)" }],
+  "draft.next.title": ["Next:", { slots: {}, fixedBy: "issue 1749 (drafted)" }],
+  "draft.next.working": ["working, so we leave it alone. If it slips, it gets an update.", { slots: {}, fixedBy: "issue 1749 (drafted)" }],
+  "draft.next.climbing": ["still climbing, so we leave it alone. If it slips, it gets an update.", { slots: {}, fixedBy: "issue 1749 (drafted)" }],
   "draft.next.not_moving": ["it has stopped gaining, so a Monday check may pick it for an update.", { slots: {}, fixedBy: "issue 1749 (drafted)" }],
   "draft.next.too_early": ["it’s too early to tell. We check it again every Monday.", { slots: {}, fixedBy: "issue 1749 (drafted)" }],
   "draft.next.unmeasured": ["we check it on Google and in AI answers every Monday.", { slots: {}, fixedBy: "issue 1749 (drafted)" }],
-  "draft.live.open": ["Open the live page →", { slots: {}, fixedBy: "issue 1749 (drafted)" }],
-  "draft.live.controls": ["Your controls", { slots: {}, fixedBy: "issue 1749 (drafted)" }],
-  "draft.live.runs": ["This page runs by itself. You can still change it.", { slots: {}, fixedBy: "issue 1749 (drafted)" }],
-  "draft.live.stop-note": ["Stop takes this page off your site and drops its topic. To pause every page, use", { slots: {}, fixedBy: "issue 1749 (drafted)" }],
+  "draft.live.stop-note": ["Stop takes this page off your site and drops its topic. To pause every page:", { slots: {}, fixedBy: "issue 1749 (drafted)" }],
   "draft.live.pause-link": ["Settings › Publishing", { slots: {}, fixedBy: "issue 1749 (drafted)" }],
   "draft.stop.done": ["Stopped. This page is off your site.", { slots: {}, fixedBy: "issue 1749 (drafted)" }],
   "draft.stop.refused": ["That didn’t work, so the page is still live. Try again.", { slots: {}, fixedBy: "issue 1749 (drafted)" }],
@@ -851,20 +838,15 @@ export const DRAFT_COPY = Object.freeze({
   "draft.put-back.refused": ["That didn’t work, so the page is still off your site. Try again.", { slots: {}, fixedBy: "issue 1749 (drafted)" }],
   // The draft screen as board AppDraft draws it (canvas V22, issue 1748).
   // Drafted under issue 759's ruling; the owner corrects the wording.
-  "draft.preview.caption": [
-    "Preview, as it will look on your site. Goes live {at}.",
-    { slots: { at: "date" }, fixedBy: "issue 1748 (drafted)" },
-  ],
-  "draft.preview.caption.plain": ["Preview, as it will look on your site.", { slots: {}, fixedBy: "issue 1748 (drafted)" }],
+  "draft.preview.caption": ["Preview on your site", { slots: {}, fixedBy: "board AppDraft v36 (drafted)" }],
   "draft.search.title": ["The search and who answers it", { slots: {}, fixedBy: "issue 1748 (drafted)" }],
   "draft.search.query": ["The search", { slots: {}, fixedBy: "issue 1748 (drafted)" }],
-  "draft.search.volume": ["Searches a month", { slots: {}, fixedBy: "issue 1748 (drafted)" }],
+  "draft.search.volume": ["Searched a month", { slots: {}, fixedBy: "issue 1748 (drafted)" }],
   "draft.search.rival": ["Who answers it today", { slots: {}, fixedBy: "issue 1748 (drafted)" }],
   "draft.search-result.caption": [
-    "An example of how Google may show it. Google can choose other words.",
+    "Google can choose other words.",
     { slots: {}, fixedBy: "issue 1748 (drafted)" },
   ],
-  "draft.checks.all-passed": ["All passed", { slots: {}, fixedBy: "issue 1748 (drafted)" }],
   "draft.checks.more": ["and {n} more", { slots: { n: "text" }, fixedBy: "issue 1748 (drafted)" }],
   "draft.checks.decided": [
     "A page that fails a check twice never goes live.",
@@ -879,5 +861,5 @@ export const DRAFT_COPY = Object.freeze({
   "draft.day.written": ["Written and checked", { slots: {}, fixedBy: "issue 1748 (drafted)" }],
   "draft.day.emailed": ["Emailed to you", { slots: {}, fixedBy: "issue 1748 (drafted)" }],
   "draft.day.live": ["Goes live on your site", { slots: {}, fixedBy: "issue 1748 (drafted)" }],
-  "draft.day.reading": ["First check on Google and AI", { slots: {}, fixedBy: "issue 1748 (drafted)" }],
+  "draft.day.reading": ["First reading in Google and AI", { slots: {}, fixedBy: "issue 1748 (drafted)" }],
 }) satisfies CopyPartition;

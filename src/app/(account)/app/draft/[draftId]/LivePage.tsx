@@ -1,8 +1,9 @@
 // SPEC §7 — a live page's own screen (board `PageDetail`): back to Plan, the
 // title with when it went live and its label, this week in Google, how far
-// it has got on Google and in AI answers, what happens next, why this page,
-// the page as it stands, and Stop. After a Stop (R9) the controls leave and
-// one line stays, with Put it back while a hosted page's window is open.
+// it has got on Google and in AI answers, what happens next, then why this
+// page with Edit and Stop under the reason. The header's address opens the
+// page itself. After a Stop (R9) the controls leave and one line stays, with
+// Put it back while a hosted page's window is open.
 //
 // Every value is the weekly pass's stored reading (`search_reading`); a step
 // nothing has read says so and is never drawn as reached or as 0. On
@@ -23,8 +24,8 @@ import { ENGINE_LABEL } from "../../_shell/page-target-words";
 import { TakeDownControl } from "../../calendar/TakeDown";
 import { putBackWords, stopWords } from "../../calendar/take-down-words";
 import type { DraftView, LiveFacts } from "./model";
-import { PublishedPageView } from "./PublishedPageView";
 import { NOTE } from "./ReviewCards";
+import { SHAPE } from "./shape";
 import { WhyThisPage } from "./TargetBlock";
 
 const NEXT: Readonly<Record<Label, CopyKey>> = {
@@ -36,10 +37,12 @@ const NEXT: Readonly<Record<Label, CopyKey>> = {
 
 const PAUSE_HREF = "/app/settings/publishing";
 const LADDER = {
-  google: { title: "draft.ladder.google", testId: "live-ladder-google", icon: Check },
-  ai: { title: "draft.ladder.ai", testId: "live-ladder-ai", icon: Sparkles },
-} as const satisfies Record<string, { title: CopyKey; testId: string; icon: LucideIcon }>;
+  google: { title: "draft.ladder.google", testId: "live-ladder-google", icon: Check, reached: "step-success" },
+  ai: { title: "draft.ladder.ai", testId: "live-ladder-ai", icon: Sparkles, reached: "step-primary" },
+} as const satisfies Record<string, { title: CopyKey; testId: string; icon: LucideIcon; reached: string }>;
 const STOP_NOTE_ID = "live-stop-note";
+// Full width on a phone, side by side from `sm`, each a 44px target.
+const EDIT = "btn btn-soft btn-primary min-h-11 max-sm:w-full";
 const WEEK_ID = "live-week";
 
 /** One step of the ladder: reached on a date, not yet, or not measured. */
@@ -72,11 +75,11 @@ function googleSteps(live: LiveFacts, timeZone: string): Step[] {
   const steps: Step[] = [{ key: "draft.ladder.live", at: formatDate(live.since, timeZone), detail: null }];
   if (!live.wordpress) steps.push({ key: "draft.ladder.found", at: dateOf(reached.found, timeZone), detail: null });
   steps.push({
-    key: "draft.ladder.showing",
+    key: "calendar.live.showing",
     at: dateOf(reached.showing, timeZone),
     detail: moved ? copy("draft.ladder.places", { from: formatCount(reading.first!.place), to: formatCount(reading.place!.value) }) : null,
   });
-  steps.push({ key: "draft.ladder.first-page", at: dateOf(reached.firstPage, timeZone), detail: null });
+  steps.push({ key: "draft.live.first-page", at: dateOf(reached.firstPage, timeZone), detail: null });
   return steps;
 }
 
@@ -91,7 +94,7 @@ function aiSteps(live: LiveFacts, timeZone: string): Step[] {
   return steps;
 }
 
-function Ladder(p: { title: CopyKey; steps: readonly Step[]; measured: boolean; testId: string; icon: LucideIcon }): React.JSX.Element {
+function Ladder(p: { title: CopyKey; steps: readonly Step[]; measured: boolean; testId: string; icon: LucideIcon; reached: string }): React.JSX.Element {
   const Icon = p.icon;
   return (
     <div className="flex min-w-0 flex-col gap-2" data-testid={p.testId}>
@@ -100,15 +103,18 @@ function Ladder(p: { title: CopyKey; steps: readonly Step[]; measured: boolean; 
         {p.steps.map((step) => {
           const reached = step.at !== null;
           return (
-            <li key={step.key} className={`step${reached ? " step-primary" : ""}`} data-reached={reached ? "yes" : "not-yet"}>
+            <li key={step.key} className={`step max-md:min-h-11 ${reached ? p.reached : ""}`} data-reached={reached ? "yes" : "not-yet"}>
               {reached ? (
                 <span className="step-icon">
                   <Icon size={16} strokeWidth={1.75} aria-hidden />
                 </span>
               ) : null}
-              <span className="block font-semibold">{copy(step.key)}</span>
-              <span className="num num-phrase block text-xs text-base-content/70">
-                {step.detail ?? step.at ?? copy(p.measured ? "draft.ladder.not-yet" : "draft.ladder.unmeasured")}
+              {/* A phone reads each step as a row, its date at the end; from `md` the date sits under the step. */}
+              <span className="flex w-full min-w-0 items-center justify-between gap-3 md:flex-col md:gap-0">
+                <span className="font-semibold">{copy(step.key)}</span>
+                <span className="text-xs text-base-content/70" data-testid="live-step-at">
+                  {step.detail ?? step.at ?? copy(p.measured ? "draft.ladder.not-yet" : "draft.ladder.unmeasured")}
+                </span>
               </span>
             </li>
           );
@@ -167,7 +173,6 @@ function ThisWeek(p: { live: LiveFacts; timeZone: string }): React.JSX.Element {
             {copy("draft.live.visits", {
               n: formatCount(reading.google.clicks),
               days: formatCount(SEARCH_READING_WINDOW_D),
-              date: formatDate(new Date(reading.at), timeZone),
             })}
           </p>
         )}
@@ -200,11 +205,11 @@ function EditControl(p: { edit: LiveFacts["edit"]; onEdit: () => void }): React.
     </>
   );
   return p.edit.kind === "version" ? (
-    <Link href={`/app/draft/${p.edit.draftId}`} className="btn btn-sm btn-soft" data-testid="live-edit">
+    <Link href={`/app/draft/${p.edit.draftId}`} className={EDIT} data-testid="live-edit">
       {inner}
     </Link>
   ) : (
-    <button type="button" className="btn btn-sm btn-soft" data-testid="live-edit" onClick={p.onEdit}>
+    <button type="button" className={EDIT} data-testid="live-edit" onClick={p.onEdit}>
       {inner}
     </button>
   );
@@ -217,7 +222,7 @@ export function LivePage(p: { view: DraftView; live: LiveFacts; onEdit: () => vo
   return (
     <div className="flex min-w-0 flex-col gap-6" data-testid="draft-view">
       <nav data-testid="draft-back">
-        <Link href="/app/calendar" prefetch={true} className="btn btn-sm btn-ghost">
+        <Link href="/app/calendar" prefetch={true} className={SHAPE.back}>
           <ArrowLeft size={16} strokeWidth={1.75} aria-hidden />
           {copy("draft.back")}
         </Link>
@@ -241,7 +246,7 @@ export function LivePage(p: { view: DraftView; live: LiveFacts; onEdit: () => vo
           {live.label === null ? <span className="badge badge-ghost">{copy("review.label.unmeasured")}</span> : <LabelBadge label={live.label} />}
         </p>
         {stopped ? null : (
-          <a href={live.url} target="_blank" rel="noopener" className="link link-hover num min-w-0 wrap-anywhere" data-testid="live-address">
+          <a href={live.url} target="_blank" rel="noopener" className="link link-primary link-hover min-w-0 font-mono text-sm break-all" data-testid="live-address">
             {live.url}
             <ExternalLink size={14} strokeWidth={1.75} className="ms-1 inline align-baseline" aria-hidden />
             <span className="sr-only"> {copy("draft.live.new-tab")}</span>
@@ -267,22 +272,9 @@ export function LivePage(p: { view: DraftView; live: LiveFacts; onEdit: () => vo
         </div>
       </section>
 
-      <div className="grid min-w-0 gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)]">
-        <WhyThisPage target={view.target} />
-        <div className="flex min-w-0 flex-col gap-2" data-testid="live-preview">
-          <PublishedPageView title={view.title} bodyMd={view.bodyMd} grounded={view.grounded} publisher={view.publisher} />
-          {stopped ? null : (
-            <a href={live.url} target="_blank" rel="noopener" className="link link-primary text-sm font-semibold" data-testid="live-open">
-              {copy("draft.live.open")}
-              <span className="sr-only"> {copy("draft.live.new-tab")}</span>
-            </a>
-          )}
-        </div>
-      </div>
-
-      {standing?.kind === "stopped" ? (
-        <section className={NOTE.card} aria-label={copy("draft.live.controls")} data-testid="live-stopped-state">
-          <div className="card-body min-w-0 items-start gap-3 p-6 text-sm">
+      <WhyThisPage target={view.target}>
+        {standing?.kind === "stopped" ? (
+          <div className="flex min-w-0 flex-col items-start gap-3 text-sm" data-testid="live-stopped-state">
             <p>{copy("draft.stopped.line")}</p>
             {standing.wordpress ? <p data-testid="live-stopped-wordpress">{copy("draft.stopped.wordpress")}</p> : null}
             {standing.putBackUntil === null ? null : (
@@ -294,24 +286,21 @@ export function LivePage(p: { view: DraftView; live: LiveFacts; onEdit: () => vo
               </>
             )}
           </div>
-        </section>
-      ) : (
-        <section className={NOTE.card} aria-label={copy("draft.live.controls")} data-testid="live-controls">
-          <div className="card-body min-w-0 items-start gap-3 p-6">
-            <p className="text-sm text-base-content/70">{copy("draft.live.runs")}</p>
+        ) : (
+          <div className="flex min-w-0 flex-col gap-3" data-testid="live-controls">
             <div className="flex flex-wrap gap-3">
               <EditControl edit={live.edit} onEdit={p.onEdit} />
               <TakeDownControl draftId={view.draftId} mode="stop" words={stopWords()} describedBy={STOP_NOTE_ID} />
             </div>
-            <p id={STOP_NOTE_ID} className="text-xs text-base-content/70" data-testid="live-stop-note">
+            <p id={STOP_NOTE_ID} className="text-sm text-base-content/70" data-testid="live-stop-note">
               {copy("draft.live.stop-note")}
-              <Link href={PAUSE_HREF} className="link ms-1">
+              <Link href={PAUSE_HREF} className="link link-primary ms-1">
                 {copy("draft.live.pause-link")}
               </Link>
             </p>
           </div>
-        </section>
-      )}
+        )}
+      </WhyThisPage>
     </div>
   );
 }

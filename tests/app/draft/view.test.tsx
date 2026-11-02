@@ -331,7 +331,7 @@ describe("REQ-045 c4 — told when the page goes live on its own, and able to ed
     const at = VIEW.doNothing.publishesAt;
     if (at === null) throw new Error("the fixture is on autopilot with a window");
     const box = root.querySelector('[data-testid="draft-goes-live"]');
-    expect(box?.textContent).toBe(copy("draft.decide.goes-live", { at: formatDateTime(at, VIEW.timeZone) }));
+    expect(box?.textContent).toBe(`${copy("draft.decide.goes-live")}${formatDateTime(at, VIEW.timeZone)}`);
     expect(box?.className).not.toMatch(/warning|error/);
     // The phone bar has no countdown, so its one line carries the time.
     expect(textOf(root, "draft-do-nothing-bar")).toContain("Sep 16, 2026");
@@ -376,19 +376,10 @@ describe("S16 — the card the approved set draws", () => {
     expect(textOf(root, "draft-generated-label")).toBe(LABEL);
   });
 
-  it("the provenance line states when the page was written and roughly how long it is", () => {
+  it("the provenance line states how long the page is and no date: the day's timeline has it", () => {
     const written = textOf(markup(), "draft-written");
-    // The two facts, not the sentence: the date is formatted in the site's
-    // zone and the count is grouped by the shell's one locale, so what is
-    // asserted here is that both reached the line.
-    expect(written).toContain("2026");
-    expect(written).toContain(String(VIEW.bodyMd.trim().split(/\s+/).length));
-  });
-
-  it("a view with no written date states the length alone, never a stand-in date", () => {
-    const written = textOf(markup({ ...VIEW, writtenAt: null }), "draft-written");
+    expect(written).toBe(copy("draft.words", { words: String(VIEW.bodyMd.trim().split(/\s+/).length) }));
     expect(written).not.toContain("2026");
-    expect(written).toContain("words");
   });
 
   it("the source line sits inside the page's own article, where the hosted page serves it", () => {
@@ -487,9 +478,9 @@ describe("a published page on an autopilot site renders at all", () => {
   // assertion — `markup` throws if it does not.
   const PUBLISHED = assembleDraft(factsFor(FIXTURE_PUBLISHED_DRAFT_ID));
 
-  it("draws the page, and no `what happens if you do nothing` box, because nothing does", () => {
+  it("draws the live page's screen, and no `what happens if you do nothing` box, because nothing does", () => {
     const root = markup(PUBLISHED);
-    expect(root.querySelector('[data-testid="draft-body"]')).not.toBeNull();
+    expect(root.querySelector('[data-testid="live-week"]')).not.toBeNull();
     expect(root.querySelector('[data-testid="draft-do-nothing"]')).toBeNull();
     expect(root.querySelector('[data-testid="draft-do-nothing-bar"]')).toBeNull();
     expect(root.querySelector('[data-testid="draft-goes-live"]')).toBeNull();
