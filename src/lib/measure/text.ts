@@ -6,13 +6,14 @@
 // second read of the customer's own server at draft time, and without a
 // second copy of the text anywhere.
 //
-// **It fetches nothing and stores nothing.** No `safeFetch`, no vendor
-// call, no write. A site that serves an empty JavaScript shell has its
-// pages' rendered reads beside the shells (SPEC §6, issue 1374), marked
-// `rendered`. The extractor is `prose.ts`'s `prose`: the document
-// the measurement scored, without its navigation, header, footer, buttons
-// or example widgets (SPEC §5, 2026-09-29, #1130), because what is read
-// back here is what a page quotes as a fact about the business.
+// **It fetches nothing.** No `safeFetch`, no vendor call; its one write is
+// the derived text a deployment keeps in `fetch_text` (`text-store.ts`).
+// A site that serves an empty JavaScript shell has its pages' rendered reads
+// beside the shells (SPEC §6, issue 1374), marked `rendered`. The extractor
+// is `prose.ts`'s `prose`: the document the measurement scored, without its
+// navigation, header, footer, buttons or example widgets (SPEC §5,
+// 2026-09-29, #1130), because what is read back here is what a page quotes
+// as a fact about the business.
 //
 // The horizon is the site's own scans, plus the free scans of the same
 // domain: a site with no scans returns `[]` — a legitimate empty, not an
@@ -24,8 +25,8 @@
 // it, a deep pass run inside the own-document window has no text at all,
 // and a paid site grounds no fact and starts no draft.
 import { dbAdmin } from "@/lib/db";
-import { OWN_FETCH_SOURCE, RENDERED_FETCH_SOURCE, renderedDocumentOf, siteDocumentOf } from "./own-fetch";
-import { prose } from "./prose";
+import { OWN_FETCH_SOURCE, RENDERED_FETCH_SOURCE } from "./own-fetch";
+import { measuredTextOf, storedText, textRowOf, type TextClient } from "./text-store";
 
 export interface MeasuredText {
   url: string;
@@ -149,10 +150,15 @@ export async function readDomainText(domain: string, read?: TextRead): Promise<M
 
 async function textOfScans(scanIds: readonly string[]): Promise<MeasuredText[]> {
   const client = dbAdmin();
+  const sources = [OWN_FETCH_SOURCE, RENDERED_FETCH_SOURCE];
+  // The deployment carries the text version; without one every read's text comes from its payload.
+  const version = process.env.RK_TEXT_VERSION;
+  if (version) return (await storedText(client as unknown as TextClient, scanIds, sources, version)).sort(compareMeasuredText);
+
   const rows = await (client as unknown as MinimalClient)
     .from<OwnFetchRow>("fetches")
     .select("scan_id, source, payload")
-    .in("source", [OWN_FETCH_SOURCE, RENDERED_FETCH_SOURCE])
+    .in("source", sources)
     .in("scan_id", scanIds);
   if (rows.error) {
     throw new Error(`text.ts: read from fetches failed: ${rows.error.message}`);
@@ -163,18 +169,8 @@ async function textOfScans(scanIds: readonly string[]): Promise<MeasuredText[]> 
     // A `null` payload is a ledgered failed read (`own-fetch.ts`) — no
     // text was measured, so none is returned. Any other shape under this
     // source is skipped the same way, never thrown on.
-    const rendered = row.source === RENDERED_FETCH_SOURCE;
-    const document = rendered ? renderedDocumentOf(row.payload) : siteDocumentOf(row.payload);
-    if (document === null) continue;
-    const read = prose(document.html);
-    out.push({
-      url: document.url,
-      text: read.text,
-      measuredAt: new Date(document.readAt),
-      examples: read.examples,
-      questions: read.questions,
-      ...(rendered ? { rendered: true as const } : {}),
-    });
+    const text = measuredTextOf(textRowOf(row.source, row.payload));
+    if (text !== null) out.push(text);
   }
   return out.sort(compareMeasuredText);
 }

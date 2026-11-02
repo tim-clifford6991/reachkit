@@ -6,7 +6,7 @@ import { appendFileSync, cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, w
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { derivation, derivationFiles, factsFiles, factsVersion } from "../../scripts/derivation.mjs";
+import { derivation, derivationFiles, factsFiles, factsVersion, textFiles, textVersion } from "../../scripts/derivation.mjs";
 import { claimRequest, type RescoreQueue } from "../../src/lib/scan/rescore-run";
 import { nextStep, type RunRecord } from "../../src/lib/scan/derivation";
 
@@ -172,5 +172,23 @@ describe("the facts version: the code a stored read's facts are derived with", (
     expect([derivation(root) === derived, factsVersion(root) === facts]).toEqual([false, true]);
     appendFileSync(join(root, "src/lib/measure/parse.ts"), 'void "parsed again";\n');
     expect(factsVersion(root)).not.toBe(facts);
+  });
+});
+
+describe("the text version: the code and the parser a stored read's text is derived with", () => {
+  it("moves when a file in its walk or the pinned parser changes, and not for scoring or another dependency", () => {
+    expect(textFiles()).toEqual(expect.arrayContaining(["src/lib/measure/text.ts", "src/lib/measure/text-store.ts", "src/lib/measure/own-fetch.ts", "src/lib/measure/prose.ts"]));
+    const root = copied();
+    cpSync("package.json", join(root, "package.json"));
+    const text = textVersion(root);
+    expect(textVersion(root)).toBe(text);
+    appendFileSync(join(root, "src/lib/measure/score.ts"), 'void "scored again";\n');
+    edit(root, "package.json", '"next": "', '"next": "0.');
+    expect(textVersion(root)).toBe(text);
+    edit(root, "package.json", '"node-html-parser": "', '"node-html-parser": "0.');
+    const parser = textVersion(root);
+    expect(parser).not.toBe(text);
+    appendFileSync(join(root, "src/lib/measure/prose.ts"), 'void "read again";\n');
+    expect(textVersion(root)).not.toBe(parser);
   });
 });
