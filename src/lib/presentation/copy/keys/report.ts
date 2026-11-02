@@ -131,8 +131,6 @@ export const REPORT_COPY = Object.freeze({
   "report.read.where.local": ["In and around {place}", { slots: { place: "text" }, fixedBy: "SPEC §2 · issue 1454" }],
   "report.read.where.national": ["Across {country}", { slots: { country: "text" }, fixedBy: "SPEC §2 · issue 1454" }],
   "report.read.where.international": ["Online, in more than one country", { slots: {}, fixedBy: "SPEC §2 · issue 1454" }],
-  "report.read.where.measured": ["Searched in {country}", { slots: { country: "text" }, fixedBy: "SPEC §2 · issue 1454" }],
-  "report.read.where.unread": ["Not found yet. Searched in {country}", { slots: { country: "text" }, fixedBy: "SPEC §2 · issue 1470" }],
   "report.market.from-listing": ["We read your market from your Google listing.", { slots: {}, fixedBy: "SPEC §2 · issue 1450" }],
   "report.market.from-search": ["We couldn’t read your pages, so we found your market on Google.", { slots: {}, fixedBy: "SPEC §2 · issue 1387" }],
   // Issue 898. The site read and its market did not — the profile call or
@@ -190,7 +188,7 @@ export const REPORT_COPY = Object.freeze({
   // are not this key's: the category is a measured value and the
   // correction is a control. Two arms, because a scan that never
   // determined a category names none and guesses none (REQ-094 c1).
-  "report.measured-at": ["Scanned {date} · {category}.", { slots: { date: "text", category: "text" }, fixedBy: "REQ-004 c1" }],
+  "report.measured-at": ["Scanned {date} · {what}.", { slots: { date: "text", what: "text" }, fixedBy: "REQ-004 c1 · board PubReport v36" }],
   "report.measured-at.no-category": ["Scanned {date}.", { slots: { date: "text" }, fixedBy: "REQ-094 c1" }],
   // Issue 715: SPEC §2 — "Measurement is US Google in English, stated in one
   // always-visible line." Owner-owed.
@@ -892,15 +890,11 @@ export const REPORT_COPY = Object.freeze({
 
   // SPEC §2, owner A3 and E1 (2026-10-19): the report lists every page it
   // found missing; the count is said once, in the headline (owner R12).
-  "report.offer.free-path": ["Not ready? Get your first page free ↓", { slots: {}, fixedBy: "owner A3 2026-10-19 · issue 1599 · drafted" }],
+  "report.offer.free-path.lead": ["Not ready?", { slots: {}, fixedBy: "board PubReport v36 · owner 2026-11-01" }],
+  "report.offer.free-path": ["Get your first page free ↓", { slots: {}, fixedBy: "board PubReport v36 · owner 2026-11-01" }],
   "report.missing.volume": ["searched {volume} times a month", { slots: { volume: "text" }, fixedBy: "owner E1 2026-10-19 · issue 1599 · drafted" }],
   "report.missing.holder": ["answered today by {holder}", { slots: { holder: "text" }, fixedBy: "owner E1 2026-10-19 · issue 1599 · drafted" }],
   "report.missing.all": ["All {count}, nothing hidden.", { slots: { count: "text" }, fixedBy: "board PubReport · owner Q3 2026-10-20 · issue 1599" }],
-  "report.missing.all.six": ["All 6, nothing hidden. Page 6 shows its search.", { slots: {}, fixedBy: "board PubReport · 2026-10-24 E16 · issue 1982" }],
-  "report.missing.all.rest": [
-    "All {count}, nothing hidden. Pages 6 to {count} show their search.",
-    { slots: { count: "text" }, fixedBy: "board PubReport · 2026-10-24 E16 · issue 1982" },
-  ],
   "report.missing.page": ["page {n}", { slots: { n: "text" }, fixedBy: "board PubReport · 2026-10-24 E16 · issue 1982" }],
   "report.missing.free": ["free · written for you", { slots: {}, fixedBy: "board PubReport · issue 1968" }],
   "report.missing.free.read": ["Read it free ↓", { slots: {}, fixedBy: "board PubReport · issue 1968" }],

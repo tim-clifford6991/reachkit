@@ -239,6 +239,7 @@ export const FIXTURE_REPORT: StoredReport = {
         job: "measure how people use the product",
         offeringType: "software",
         kind: "software",
+        reach: "international",
         audienceTerms: ["product teams", "founders"],
         namedRivals: [...RIVALS],
         vocabulary: ["analytics", "funnel", "cohort"],
@@ -282,7 +283,7 @@ export const FIXTURE_REPORT: StoredReport = {
               present: true,
               asynchronousAiOverview: true,
               referenceDomains: [RIVALS[0], RIVALS[1]],
-              text: "For a small team, many start with Rival One or Rival Two, which need no data warehouse. Both have a free plan.",
+              text: "For a small team, many start with **Rival One** or **Rival Two**, which need no data warehouse. Both have a free plan.",
             },
           },
           MEASURED_AT

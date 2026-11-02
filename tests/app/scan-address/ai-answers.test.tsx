@@ -262,10 +262,12 @@ describe("the AI-answers matrix as CSS grid (issue 730, DESIGN rule 2)", () => {
     for (const paint of muted) expect(missed).not.toContain(paint);
   });
 
-  it("the red ring is the customer's absent cell alone; a rival's is neutral, and cited cells take the series tokens", () => {
-    const ringed = cells.filter((c) => c.paint.includes("border-error")).map((c) => c.name);
-    expect(ringed).toEqual(["acme.com · 1", "acme.com · 3"]);
-    expect(cells.find((c) => c.name === "one.com · 1")?.paint).toContain("bg-(--chart-rival)");
+  it("no square is red; an empty one is the same for every row, and the customer's filled one is full primary (board PubReport v36)", () => {
+    expect(cells.filter((c) => c.paint.includes("error"))).toEqual([]);
+    const empty = (name: string) => cells.find((c) => c.name === name)?.paint;
+    expect(empty("acme.com · 1")).toBe(empty("one.com · 3"));
+    expect(cells.find((c) => c.name === "one.com · 1")?.paint).toContain("bg-primary/60");
+    expect(html).not.toContain('role="columnheader"');
   });
 });
 

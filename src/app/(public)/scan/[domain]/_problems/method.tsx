@@ -15,7 +15,7 @@
 // opens the collapse around it; the robots lines a founder pastes live
 // here, under the method that says where to paste them.
 import type React from "react";
-import { ListChecks } from "lucide-react";
+import { List } from "lucide-react";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { METHOD_ANCHOR, PasteBlock } from "./cards";
 import type { ProblemName } from "./model";
@@ -50,16 +50,16 @@ export function MethodSections(p: {
   const trainingOptOut = p.readers?.trainingOptOut ?? [];
   return (
     // Closed under its own name like Site fixes (board PubReport); a link into a step opens both.
-    <details id="method" className="collapse collapse-arrow scroll-mt-20 rounded-none" data-testid="report-method">
-      <summary className="collapse-title min-h-0 px-px py-2 pe-10 after:end-2 after:top-6">
+    <details id="method" className="collapse collapse-arrow card-border bg-base-100 scroll-mt-20" data-testid="report-method">
+      <summary className="collapse-title">
         <div className="flex items-center gap-3">
-          <span aria-hidden className="rounded-field grid size-9 shrink-0 place-items-center bg-base-200">
-            <ListChecks className="size-5" strokeWidth={1.75} />
+          <span aria-hidden className="rounded-field text-primary grid size-9 shrink-0 place-items-center bg-(--accent-bg)">
+            <List className="size-5" strokeWidth={1.75} />
           </span>
-          <h2 className="min-w-0 text-2xl font-bold">{copy("method.title")}</h2>
+          <h2 className="min-w-0 text-xl font-bold">{copy("method.title")}</h2>
         </div>
       </summary>
-      <div className="collapse-content flex min-w-0 flex-col gap-2 px-px">
+      <div className="collapse-content flex min-w-0 flex-col gap-2">
         {p.for.map((problem) => {
           const lines = p.lines?.[problem];
           return (

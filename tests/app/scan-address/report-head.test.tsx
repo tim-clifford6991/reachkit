@@ -5,6 +5,7 @@
 // reports (a SaaS and a local business). 0¢: nothing is measured.
 import { readFileSync } from "node:fs";
 import path from "node:path";
+import { parse } from "node-html-parser";
 import { describe, expect, it } from "vitest";
 import { measured } from "@/lib/measure/measured";
 import type { SerpResult } from "@/lib/vendors/dataforseo/types";
@@ -47,7 +48,8 @@ describe("the head reads as the board: domain, where it was measured, what we re
     expectInOrder(lines, [
       copy("report.eyebrow"),
       "example.com",
-      `${copy("report.measured-at", { date: "Sep 5, 2026", category: "product analytics" })} ${copy("report.measurement")}`,
+      // The kind leads the line (board PubReport v36); its date is written as every public page writes one.
+      `${copy("report.measured-at", { date: "5 Sep 2026", what: copy("report.read.as.kind.software") })} ${copy("report.measurement")}`,
       copy("report.independent", { company: "example" }),
     ]);
   });
@@ -153,7 +155,7 @@ describe("who gets your buyers, and its two panels", () => {
     const html = renderReport(FIXTURE_REPORT);
     const waffle = html.slice(html.indexOf('data-testid="presence-waffle"'));
     const rows = [...waffle.matchAll(/role="rowheader"[^>]*>([\s\S]*?)<\/span><div/g)].map((m) => m[1]!.replace(/<[^>]+>/g, " ").trim());
-    const tallies = [...waffle.matchAll(/<span class="num pl-2[^"]*">(\d+)<\/span>/g)].map((m) => m[1]);
+    const tallies = [...waffle.matchAll(/<span class="text-sm font-bold tabular-nums">(\d+)<\/span>/g)].map((m) => m[1]);
     expect(rows.slice(0, 4).map((row) => row.replace(/\s+/g, " "))).toEqual([
       "rival-one.example.net",
       "rival-two.example.net",
@@ -180,7 +182,7 @@ describe("the states the board does not draw", () => {
   it("an answer whose first sentence runs past one quote is not cut; the next kept answer is used", () => {
     const long = kept(`${"word ".repeat(60)}end.`);
     expect(answerQuoteOf(ai, [long])).toBeNull();
-    expect(answerQuoteOf(ai, [long, kept("Short and true. Then more.")])).toEqual({ search: ai.rows[1]!.question.search, text: "Short and true." });
+    expect(answerQuoteOf(ai, [long, kept("Short and true. Then more.")])).toEqual({ search: ai.rows[1]!.question.search, text: "Short and true.", bold: [] });
   });
 
   it("a word that starts with a mark keeps its space, and its dot does not end the sentence", () => {
@@ -190,6 +192,13 @@ describe("the states the board does not draw", () => {
 
   it("a space before a closing mark and the markdown marks are still removed", () => {
     expect(answerQuoteOf(ai, [kept("**Acme** , the `leader` . Then more.")])?.text).toBe("Acme, the leader.");
+  });
+
+  it("the names the answer itself set in bold are drawn bold, and only those in the quoted sentence (board PubReport v36)", () => {
+    expect(answerQuoteOf(ai, [kept("Many start with **Acme** or **Beta**. Then **Gamma**.")])?.bold).toEqual(["Acme", "Beta"]);
+    const quote = parse(renderReport(FIXTURE_REPORT)).querySelector('[data-testid="ai-answers-quote"] blockquote')!;
+    expect(quote.querySelectorAll("strong").map((s) => s.text)).toEqual(["Rival One", "Rival Two"]);
+    expect(quote.text).not.toContain("*");
   });
 
   it("nobody found and the customer at zero: buyers can't find you yet, before the score", () => {

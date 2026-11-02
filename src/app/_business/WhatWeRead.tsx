@@ -1,25 +1,16 @@
-// SPEC §2 and §4 — where the business sells, and the other markets it
-// declares, worded once for the report's head and the app's settings.
+// SPEC §2 and §4 — where the business sells, as the report's chip, and the
+// other markets it declares, for the app's settings.
 import type React from "react";
 import { COUNTRIES } from "@/lib/locale/locales";
 import type { BusinessUnderstanding } from "@/lib/business/types";
 import { copy } from "@/lib/presentation/copy";
 
-/** Where the business sells, in one line. */
-export function whereLine(where: BusinessUnderstanding["where"]): string {
-  const country = COUNTRIES[where.country].location;
+/** Where the business sells, or null where nothing stored says: a local
+ *  business with no town is the measured market's own chip already. */
+export function whereLine(where: BusinessUnderstanding["where"]): string | null {
   if (where.place !== null) return copy("report.read.where.local", { place: where.place.name });
-  switch (where.reach) {
-    case "national":
-      return copy("report.read.where.national", { country });
-    case "international":
-      return copy("report.read.where.international");
-    case "local":
-      return copy("report.read.where.measured", { country });
-    case null:
-      // Issue 1470: a stored scan whose reach nothing stored decides.
-      return copy("report.read.where.unread", { country });
-  }
+  if (where.reach === "national") return copy("report.read.where.national", { country: COUNTRIES[where.country].location });
+  return where.reach === "international" ? copy("report.read.where.international") : null;
 }
 
 /** In the app: the other markets the site declares, where it declares any. */

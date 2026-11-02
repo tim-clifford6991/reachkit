@@ -41,11 +41,9 @@ describe.each(["saas", "local"] as const)("the %s panel report, offer to consent
       "We write these pages for you",
       "Written from facts on your own site. All on autopilot.",
       "Up to 7 pages a week, new or updated",
-      "Your market and your pages checked every Monday",
       "A Monday email shows what went live and what moved.",
       "Stop or edit any page before it goes live.",
       "Your part: about 10 minutes, once.",
-      "What you do",
       "€49",
       "a month · tax included",
       "Start ReachKit €49",
@@ -59,7 +57,9 @@ describe.each(["saas", "local"] as const)("the %s panel report, offer to consent
       "Email me the full page",
       "We’ll email this page, then up to 3 short notes about your report. Unsubscribe in one click.",
     ]);
-    expect(html).toContain('href="/how-it-works#you-do"');
+    // Board PubReport v36 cuts the Monday-check line, the link to what you do and the account line.
+    expect(html).not.toContain('href="/how-it-works#you-do"');
+    for (const cut of ["checked every Monday", "No account before payment."]) expect(page, cut).not.toContain(cut);
     expect(page).not.toContain("cancel any time, yourself");
     // Said once: no step strip, no chips repeating the terms, no second price line (owner O6).
     for (const gone of ["You’ve scanned", "We choose and write", "Edit or stop any page", "Live on your website by itself", "Billed in euros", "How to do it all yourself"]) {

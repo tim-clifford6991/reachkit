@@ -21,6 +21,7 @@ import { copy } from "@/lib/presentation/copy";
 import type { PresenceSection } from "@/lib/scan/report";
 import type { CanonicalDomain } from "@/lib/scan/domain";
 import type { RetryPart } from "@/lib/scan/retry";
+import { LinkSummary } from "../_address/link-summary";
 import { dash, Num } from "../_address/measured";
 import { RetryPartControl } from "../_address/retry-part";
 import { AnswerMatrix, type MatrixRow } from "./ai-answers";
@@ -44,8 +45,10 @@ function Head(p: { right?: React.ReactNode }): React.JSX.Element {
   // The card's name is its heading, under the section's own (board PubReport).
   return (
     <div className="flex flex-wrap items-center justify-between gap-2">
-      <h3 className="flex items-center gap-2 text-lg font-semibold">
-        <Search size={18} strokeWidth={1.75} aria-hidden />
+      <h3 className="flex items-center gap-2.5 text-lg font-semibold">
+        <span aria-hidden className="rounded-field grid size-8 place-items-center bg-base-200">
+          <Search size={16} strokeWidth={1.75} />
+        </span>
         {copy("presence.title")}
       </h3>
       {p.right}
@@ -73,10 +76,11 @@ function waffleRow(name: string, count: number, measured: number, you: boolean):
 function MostSearched(p: { most: NonNullable<PresenceSection["mostSearched"]> }): React.JSX.Element {
   const slots = { search: p.most.keyword, volume: volumeOf(p.most.volume) };
   return (
-    <p className="bg-base-200 rounded-box grow-0 px-3.5 py-3 text-sm" data-testid="presence-most-searched">
-      {p.most.topHolder === null
-        ? copy("report.google.most.none", slots)
-        : copy("report.google.most", { ...slots, holder: p.most.topHolder })}
+    <p className="bg-base-200 rounded-box flex grow-0 items-start gap-2.5 px-3.5 py-3 text-sm" data-testid="presence-most-searched">
+      <Search aria-hidden className="mt-0.5 size-4 shrink-0" strokeWidth={1.75} />
+      <span className="min-w-0">
+        {p.most.topHolder === null ? copy("report.google.most.none", slots) : copy("report.google.most", { ...slots, holder: p.most.topHolder })}
+      </span>
     </p>
   );
 }
@@ -113,23 +117,21 @@ export function GooglePresenceCard(p: { section: PresenceSection }): React.JSX.E
           <p className="grow-0 text-sm">{copy("presence.no-rivals")}</p>
         ) : (
           <div className="flex min-w-0 flex-col gap-1">
-            <p className="grow-0 text-base-content/70 text-xs">{copy("report.google.waffle")}</p>
-            <div className="min-w-0 overflow-x-auto" tabIndex={0} role="region" aria-label={copy("presence.title")}>
-              <AnswerMatrix rows={rows} label={copy("presence.title")} testId={PRESENCE_WAFFLE_TEST_ID} />
-            </div>
+            <p className="eyebrow grow-0">{copy("report.google.waffle")}</p>
+            <AnswerMatrix rows={rows} label={copy("presence.title")} testId={PRESENCE_WAFFLE_TEST_ID} />
           </div>
         )}
         {section.mostSearched === undefined ? null : <MostSearched most={section.mostSearched} />}
         {/* SPEC §2 (owner, 2026-10-07, issue 1328): the card is its finding
             and its waffle; the searches open from their own name. */}
-        <details className="collapse collapse-arrow border-base-300 border" data-testid="presence-absent-from">
-          <summary className="collapse-title">
-            <span className="eyebrow">{absentTitle}</span>
-            <span className="text-base-content/70 ms-2 inline-flex text-sm">
+        <details className="group border-base-300 border-t pt-2" data-testid="presence-absent-from">
+          <LinkSummary>
+            {absentTitle}
+            <span className="text-base-content/70 font-normal">
               <Num>{String(section.absentFrom.length)}</Num>
             </span>
-          </summary>
-          <div className="collapse-content min-w-0">
+          </LinkSummary>
+          <div className="min-w-0 pt-2">
             {/* **One table, two shapes (#956).** From `sm` it is the three-column
                 table it has always been, in the wrap that lets a wide row scroll.
                 Below `sm` there is no scroller at all — a column pushed off the

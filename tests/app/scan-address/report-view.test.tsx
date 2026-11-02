@@ -42,6 +42,7 @@ import type { AddressControl, AddressNotice } from "@/app/(public)/scan/[domain]
 import type { CanonicalDomain } from "@/lib/scan/domain";
 import type { CorrectionOffer } from "@/lib/market/coherence/offer";
 import type { StoredReport } from "@/lib/scan/report";
+import { writePageDate } from "@/lib/publish/render/byline";
 import { parse, type HTMLElement } from "node-html-parser";
 
 
@@ -138,13 +139,13 @@ describe("SPEC §2 (issue 1481) — a report the deployed code reads differently
   it("says when it was read and that the reading has changed since, once", () => {
     const html = stale(FIXTURE_REPORT, true);
     expect(count(html, "report.reads-differently(")).toBe(1);
-    const readOn = FIXTURE_REPORT.verdict.measuredAt.toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" });
+    const readOn = writePageDate(FIXTURE_REPORT.verdict.measuredAt, null);
     expect(html).toContain(`report.reads-differently(${readOn})`);
   });
 
   it("dates a re-scored report by its re-score, and says nothing where the reading has not changed", () => {
     const rescoredAt = new Date("2026-10-16T09:00:00Z");
-    expect(stale({ ...FIXTURE_REPORT, rescoredAt }, true)).toContain("report.reads-differently(Oct 16, 2026)");
+    expect(stale({ ...FIXTURE_REPORT, rescoredAt }, true)).toContain("report.reads-differently(16 Oct 2026)");
     expect(stale(FIXTURE_REPORT, false)).not.toContain("report.reads-differently");
     expect(stale(FIXTURE_REPORT)).not.toContain("report.reads-differently");
   });
@@ -726,7 +727,7 @@ describe("issue 715 — SPEC §2: what was measured, what was reused, what the c
     });
     // The date in the report's one locale, not the ISO instant the blob
     // stores — and the key's slot, so the sentence stays the registry's.
-    expect(reused).toContain("ai-answers.reused-from(Sep 2, 2026)");
+    expect(reused).toContain("ai-answers.reused-from(2 Sep 2026)");
     expect(reused).not.toContain("2026-09-02T09:00:00.000Z");
   });
 
@@ -774,7 +775,7 @@ describe("board PubReport — each section under \"Everything else\" opens with 
 
   it("each closed section opens with its board icon", () => {
     expect(tiled(page.querySelector("#holds > summary"), "wrench")).not.toBeNull();
-    expect(tiled(page.querySelector("#method > summary"), "list-checks")).not.toBeNull();
+    expect(tiled(page.querySelector("#method > summary"), "list")).not.toBeNull();
     expect(tiled(page.querySelector('[data-testid="report-first-page"] > summary'), "gift")).not.toBeNull();
   });
 

@@ -83,7 +83,7 @@ export function HeadlineBlock(p: { ai: AiAnswersSection | null; presence: Presen
         </>
       )}
       {offer === null ? null : (
-        <a href="#start" className="link link-primary font-semibold" data-testid="report-top-offer">
+        <a href="#start" className="link link-hover link-primary font-semibold" data-testid="report-top-offer">
           {offer}
         </a>
       )}
@@ -93,7 +93,8 @@ export function HeadlineBlock(p: { ai: AiAnswersSection | null; presence: Presen
 
 export function BuyersSection(p: { children: React.ReactNode }): React.JSX.Element {
   return (
-    <section id="buyers" aria-labelledby="buyers-h" className="col-span-full grid scroll-mt-20 grid-cols-subgrid gap-y-5">
+    // A white band the screen's width, between the tinted head and the pages: the shadow paints the band, the clip keeps it to its own height.
+    <section id="buyers" aria-labelledby="buyers-h" className="bg-base-100 col-span-full grid scroll-mt-20 grid-cols-subgrid gap-y-5 py-10 shadow-[0_0_0_100vmax_var(--color-base-100)] [clip-path:inset(0_-100vmax)]">
       <h2 id="buyers-h" className="col-span-full text-2xl font-bold">
         {copy("report.buyers.title")}
       </h2>

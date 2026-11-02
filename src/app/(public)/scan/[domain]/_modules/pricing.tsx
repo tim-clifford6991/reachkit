@@ -58,7 +58,6 @@ export type OfferTerms = "report" | "pricing";
 const TERM_LINES: Readonly<Record<OfferTerms, () => readonly string[]>> = {
   report: () => [
     copy("offer.cadence.page", { weekPages: WEEK_PLAN.days }),
-    copy("pricing.plan.checked"),
     copy("offer.cadence.movement"),
     copy("offer.veto.window"),
   ],
@@ -79,6 +78,8 @@ function PriceBox(p: {
   start: React.ReactNode;
   /** The pricing page's card sets the price flush left, as its board does. */
   left?: boolean;
+  /** The report's close: a rule sets the free path apart. */
+  close?: boolean;
   cancel: string;
   refused?: boolean;
   terms?: React.ReactNode;
@@ -103,6 +104,7 @@ function PriceBox(p: {
       ) : null}
       {p.start}
       <p className="text-base-content/70 text-center text-xs">{p.cancel}</p>
+      {p.close === true && p.free !== undefined ? <div className="divider my-0" /> : null}
       {p.free ?? null}
     </div>
   );
@@ -151,22 +153,16 @@ export function PricingCard(
 
   if (p.close === true) {
     return (
-      <section className={`card bg-base-100 ${FLOAT}`}>
-        <div className="card-body gap-8 p-6 md:p-10 lg:flex-row lg:items-center lg:gap-12">
+      <section className="card border border-(--accent-line) bg-(--accent-bg)">
+        <div className="card-body gap-8 p-5 md:p-10 lg:flex-row lg:items-center lg:gap-12">
           <div className="flex min-w-0 flex-1 flex-col gap-4">
             <h2 className="text-3xl font-bold">{p.heading ?? copy("offer.close.heading")}</h2>
             {p.line === undefined ? null : <p className="max-w-prose">{p.line}</p>}
             <Terms specs={specs} />
-            <p className="text-base-content/70 flex flex-wrap gap-x-1 text-sm">
-              <span>{copy("how.steps.part", { minutes: String(HOW_FACTS.setupMinutes) })}</span>
-              <a href="/how-it-works#you-do" className="link link-primary inline-flex items-center gap-1 font-semibold">
-                {copy("how.steps.part.more")}
-                <ArrowRight size={14} strokeWidth={1.75} aria-hidden />
-              </a>
-            </p>
+            <p className="text-base-content/70 text-sm">{copy("how.steps.part", { minutes: String(HOW_FACTS.setupMinutes) })}</p>
           </div>
-          <div className="bg-primary/5 rounded-box ring-primary/15 shrink-0 p-6 ring-1 lg:w-96">
-            <PriceBox start={control} cancel={cancel} refused={p.refused} free={p.free} />
+          <div className={`bg-base-100 rounded-box shrink-0 p-6 lg:w-96 ${FLOAT}`}>
+            <PriceBox start={control} close cancel={cancel} refused={p.refused} free={p.free} />
           </div>
         </div>
       </section>

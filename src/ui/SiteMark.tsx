@@ -1,9 +1,10 @@
 // A site's own mark beside its name: its stored logo, served from our origin,
-// or its first letter on one of six theme tints picked from the domain.
+// or its first letter on one of the theme's three tints, picked from the domain.
 // Decorative: the name or domain is always written beside it.
 import type React from "react";
 
-const TINTS = ["badge-primary", "badge-success", "badge-info", "badge-secondary", "badge-accent", "badge-neutral"] as const;
+// Only the colour slots `theme.css` declares; an undeclared slot draws grey.
+const TINTS = ["badge-primary", "badge-success", "badge-warning"] as const;
 /** Literal classes per drawn size, so Tailwind sees each one. */
 const BOX = {
   20: "size-5 rounded-sm text-[0.625rem]",

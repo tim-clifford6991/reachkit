@@ -47,15 +47,15 @@ const FORMAT_LINE: Readonly<Record<string, CopyKey>> = Object.freeze({
 
 function Head(p: { right?: React.ReactNode; subtitle?: React.ReactNode }): React.JSX.Element {
   return (
-    <div className="flex flex-wrap items-center gap-3">
-      <span aria-hidden className="rounded-field grid size-9 shrink-0 place-items-center bg-base-200">
+    <div className="flex items-start gap-3">
+      <span aria-hidden className="rounded-field text-primary grid size-9 shrink-0 place-items-center bg-(--accent-bg)">
         <Gift className="size-5" strokeWidth={1.75} />
       </span>
-      <div className="min-w-0">
-        <h2 className="text-2xl font-bold">{copy("free-page.title")}</h2>
+      <div className="flex min-w-0 flex-1 flex-col items-start gap-1">
+        <h2 className="text-xl font-bold">{copy("free-page.title")}</h2>
         {p.subtitle ?? null}
+        {p.right ?? null}
       </div>
-      {p.right ?? null}
     </div>
   );
 }
@@ -223,7 +223,7 @@ export function FreePageCard(p: {
     >
       <summary className="collapse-title">
         <Head
-          right={<span className="badge badge-soft badge-primary badge-sm">{copy("free-page.badge")}</span>}
+          right={<span className="badge badge-soft badge-success badge-sm">{copy("free-page.badge")}</span>}
           subtitle={
             <p className="text-base-content/70 flex flex-wrap gap-x-2 text-sm font-normal">
               {asked === null ? <Num phrase>{section.target.keyword}</Num> : <span>{asked[0].text}</span>}
