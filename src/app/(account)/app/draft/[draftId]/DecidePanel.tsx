@@ -93,7 +93,7 @@ function DayTimeline(p: { steps: readonly DayStep[] }): React.JSX.Element {
     <ul className="timeline timeline-vertical timeline-compact min-w-0" aria-label={copy("draft.day.title")} data-testid="draft-day">
       {p.steps.map((step, at) => (
         <li key={step.key} data-testid={`draft-day-${step.key}`}>
-          {at === 0 ? null : <hr className={step.done ? "bg-success" : undefined} />}
+          {at === 0 ? null : <hr className="bg-base-300" />}
           <div className={`timeline-middle grid size-[22px] place-items-center rounded-full ${DOT[step.done ? "done" : step.key === "live" ? "next" : "later"]}`}>
             {step.done ? <CircleCheck size={16} strokeWidth={2} aria-hidden /> : step.key === "live" ? <Clock4 size={16} strokeWidth={2} aria-hidden /> : null}
           </div>
@@ -101,7 +101,7 @@ function DayTimeline(p: { steps: readonly DayStep[] }): React.JSX.Element {
             <span className="block font-semibold">{copy(`draft.day.${step.key}`)}</span>
             <span className="block text-base-content/70">{step.at}</span>
           </div>
-          {at === p.steps.length - 1 ? null : <hr className={step.done ? "bg-success" : undefined} />}
+          {at === p.steps.length - 1 ? null : <hr className="bg-base-300" />}
         </li>
       ))}
     </ul>

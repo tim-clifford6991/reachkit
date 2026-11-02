@@ -176,6 +176,8 @@ describe("the draft's board icons", () => {
     expect(dot("live").className).toContain("bg-primary");
     expect(dot("reading").className).toContain("border-base-300");
     expect(dot("reading").querySelector("svg")).toBeNull();
+    // The rail is one flat neutral line on every step, done or not.
+    expect([...day.querySelectorAll("hr")].every((hr) => hr.className === "bg-base-300")).toBe(true);
   });
 
   it("the header's Ready is the primary pill, and the AI label and the claim outcome stay (REQ-093 c2, REQ-045 c3)", () => {
