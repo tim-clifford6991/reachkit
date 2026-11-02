@@ -31,13 +31,13 @@ export function PlaceDots(p: {
           ticks={[...ticks]}
           tickLine={false}
           axisLine={false}
-          tick={{ fill: PAINT.tick, fontSize: 11, className: "num" }}
+          tick={{ fill: PAINT.tick, fontSize: 12, className: "num" }}
         />
         <YAxis type={KEY.number} dataKey={KEY.row} domain={[-1, 1]} hide />
         <ReferenceArea x1={1} x2={p.firstPage} fill={PAINT.band} fillOpacity={0.12} stroke={KEY.none} ifOverflow={KEY.hidden} />
         <Scatter data={p.before.map(dot)} fill={PAINT.surface} stroke={PAINT.you} strokeWidth={1.5} isAnimationActive={false} />
         <Scatter data={p.now.map(dot)} fill={PAINT.you} isAnimationActive={false}>
-          <LabelList dataKey={KEY.place} position={KEY.top} fill={PAINT.you} fontSize={11} className="num" />
+          <LabelList dataKey={KEY.place} position={KEY.top} fill={PAINT.you} fontSize={12} className="num" />
         </Scatter>
       </ScatterChart>
       <ul className="sr-only">

@@ -118,7 +118,7 @@ function Mark(p: { item: BusinessItem }): React.JSX.Element | null {
       : null;
   if (key === null) return null;
   return (
-    <span className={`text-[10px] font-semibold uppercase ${p.item.isNew ? "text-primary" : "text-base-content/70"}`}>
+    <span className={`text-xs font-semibold uppercase ${p.item.isNew ? "text-primary" : "text-base-content/70"}`}>
       {copy(key)}
     </span>
   );

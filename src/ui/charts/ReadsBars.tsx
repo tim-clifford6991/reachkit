@@ -23,9 +23,9 @@ export function ReadsBars(p: { weeks: readonly WeekCount[]; label: string }): Re
         margin={{ top: 16, right: 4, bottom: 0, left: 4 }}
         style={{ width: "100%", aspectRatio: 200 / 80 }}
       >
-        <XAxis dataKey={KEY.name} axisLine={false} tickLine={false} interval={0} tick={{ fontSize: 10, fill: PAINT.ink }} className="num" />
+        <XAxis dataKey={KEY.name} axisLine={false} tickLine={false} interval={0} tick={{ fontSize: 12, fill: PAINT.ink }} className="num" />
         <Bar dataKey={KEY.count} fill={PAINT.you} radius={[4, 4, 0, 0]} maxBarSize={26} {...SERIES_DRAW}>
-          <LabelList dataKey={KEY.count} position={KEY.top} fontSize={11} fill={PAINT.ink} className="num" />
+          <LabelList dataKey={KEY.count} position={KEY.top} fontSize={12} fill={PAINT.ink} className="num" />
         </Bar>
       </BarChart>
       <ul className="sr-only">

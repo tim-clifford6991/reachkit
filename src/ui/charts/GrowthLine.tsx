@@ -164,7 +164,7 @@ export function GrowthLine(
             strokeDasharray={TARGET_DASH}
             // At the **left** end of the dashed line: the right end is
             // where the series ends, and its own value label sits there.
-            label={{ value: p.target.label, position: KEY.target, fill: PAINT.goal, className: "num", fontSize: 11 }}
+            label={{ value: p.target.label, position: KEY.target, fill: PAINT.goal, className: "num", fontSize: 12 }}
           />
         ) : null}
         {last ? (

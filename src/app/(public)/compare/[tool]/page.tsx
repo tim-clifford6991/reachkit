@@ -155,7 +155,7 @@ function DoesWell(p: { c: Comparison }): React.JSX.Element {
               <span className="chat-bubble chat-bubble-primary">{c.ask}</span>
             </span>
             <span className="chat chat-start">
-              <span className="chat-header">{copy("compare.item.assistant")}</span>
+              <span className="chat-header text-xs">{copy("compare.item.assistant")}</span>
               <span className="chat-bubble w-14" aria-hidden />
             </span>
           </div>

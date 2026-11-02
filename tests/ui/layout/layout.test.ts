@@ -204,7 +204,7 @@ describe(`layout sweep — ${routes.length} route(s) × ${widths().length} width
   // `tests/ui/layout-tokens.test.ts` against the literals every
   // stylesheet writes; what a *route* has to carry is the floor check 4
   // reads, and it is now `--t-eyebrow`, the approved set's name for the
-  // same 11px rung.
+  // same rung, 12px since canvas v36.
   //
   // One case per route (#1018), like every other case in this file.
   for (const route of routes) {
@@ -230,7 +230,7 @@ describe(`layout sweep — ${routes.length} route(s) × ${widths().length} width
           tokens.floor,
           `${route.path}: --t-eyebrow must be declared`,
         ).not.toBe("");
-        expect(parseFloat(tokens.floor)).toBe(11);
+        expect(parseFloat(tokens.floor)).toBe(12);
         expect(parseFloat(tokens.read)).toBe(704);
         expect(parseFloat(tokens.wide)).toBe(BAND_MIN.wide - 2 * 32);
       },

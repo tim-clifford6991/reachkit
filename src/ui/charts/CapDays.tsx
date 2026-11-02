@@ -11,7 +11,7 @@ import { SERIES_DRAW } from "@/ui/motion";
 const PAINT = { bar: "var(--chart-you)", line: "var(--color-base-content)", ink: "currentColor" } as const;
 const KEY = { name: "name", value: "value", figure: "figure", top: "top", label: "insideTopLeft" } as const;
 const WARN_DASH = "4 4";
-const TICK = { fontSize: 11, fill: PAINT.ink } as const;
+const TICK = { fontSize: 12, fill: PAINT.ink } as const;
 
 export interface CapBar {
   /** The day as its tick reads. */

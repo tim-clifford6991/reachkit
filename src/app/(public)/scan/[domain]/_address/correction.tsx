@@ -128,7 +128,7 @@ export function CategoryCorrection(p: { domain: CanonicalDomain; offer: Correcti
         </div>
         <p className="label">{copy("correction.line")}</p>
         <div>
-          <button type="button" className="btn btn-ghost btn-xs" onClick={() => setStep({ kind: "closed" })}>
+          <button type="button" className="btn btn-ghost btn-xs text-xs" onClick={() => setStep({ kind: "closed" })}>
             {copy("correction.cancel")}
           </button>
         </div>

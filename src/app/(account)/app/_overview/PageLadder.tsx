@@ -161,12 +161,13 @@ export function PageLadder(p: { ladder: Model; reads: BlogReadsModel }): React.J
             {copy("overview.ladder.week1", { live: formatCount(ladder.week1.live) })}
           </p>
         )}
-        <details className="group min-w-0">
-          <summary className="link link-primary link-hover inline-flex min-h-11 cursor-pointer list-none items-center gap-2 text-sm font-semibold no-underline">
+        {/* daisyUI's collapse keeps the closed body out of the layout; the chevron leads, as drawn. */}
+        <details className="collapse group min-w-0 rounded-none">
+          <summary className="collapse-title link link-primary link-hover inline-flex min-h-11 items-center gap-2 p-0 text-sm font-semibold no-underline">
             <ChevronDown className="size-4 shrink-0 transition-transform group-open:rotate-180" strokeWidth={1.75} aria-hidden />
             {copy("overview.ladder.how.title")}
           </summary>
-          <div className="flex min-w-0 flex-col gap-1 pt-1 text-sm">
+          <div className="collapse-content flex min-w-0 flex-col gap-1 px-0 text-sm">
             <p>{copy("overview.ladder.how.google")}</p>
             <p>{copy("overview.ladder.how.ai")}</p>
           </div>
