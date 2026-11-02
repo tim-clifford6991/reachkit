@@ -123,7 +123,7 @@ export function ScanForm(props: {
           aria-describedby={problem ? problemId : undefined}
         />
         {/* The screen's one submit control and its one solid button. */}
-        <button type="submit" className={`btn btn-primary h-12 sm:w-auto ${props.inline === true ? "self-start" : "w-full"}`} disabled={submitting} aria-busy={submitting || undefined}>
+        <button type="submit" className={`btn btn-primary h-12 ${props.inline === true ? "self-start" : "w-full"} sm:w-auto`} disabled={submitting} aria-busy={submitting || undefined}>
           {props.words.submit}
           <ArrowRight aria-hidden size={20} strokeWidth={1.75} />
         </button>
