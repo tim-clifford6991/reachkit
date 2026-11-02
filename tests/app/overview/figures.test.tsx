@@ -12,7 +12,7 @@ import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vite
 import { renderToStaticMarkup } from "react-dom/server";
 import { fakeDb, type FakeDb, type Row } from "../../publish/harness";
 import { LOCAL, SAAS, stored, weekWith } from "../../measure/reading-fixture";
-import { assembleReading, readingOf, type PageReading } from "@/lib/measure/page-reading";
+import { assembleReading, type PageReading } from "@/lib/measure/page-reading";
 import { boardFile, compare, readAllow, segments } from "../../../scripts/design/parity.mjs";
 
 const db: FakeDb = fakeDb();
@@ -145,27 +145,37 @@ describe.each([
   ["a SaaS site", SAAS],
   ["a local business", LOCAL],
 ])("Overview's figures on %s", (_, site) => {
-  it("Your pages in AI answers counts the stored readings whose own question was asked and linked, and opens them", async () => {
-    const pubs = seed(site, FIVE);
+  it("this week's AI reads are one line under the AI ladder, against last week's, opening the AI tab; there is no AI card", async () => {
+    seed(site, FIVE);
     db.seed("publication_reads", [...READS]);
-    const ai = (await render()).querySelector('[data-testid="overview-ai"]');
+    const dom = await render();
+    expect(dom.querySelector('[data-testid="overview-ai"]')).toBeNull();
+    const line = dom.querySelector('[data-testid="overview-ladder-ai"] ~ [data-testid="overview-ai-line"]');
+    // This week's answer fetches, not the indexer's, against the week before's.
+    expect(text(line)).toBe(`${copy("overview.ai.line.reads", { n: "7" })} ${copy("overview.ai.line.up", { n: "5" })}`);
+    expect(text(line?.querySelector('[data-testid="overview-tile-ai-reads"]'))).toBe(copy("overview.ai.line.reads", { n: "7" }));
+    expect(linkOf(line)).toBe(AI_PAGES_HREF);
+  });
 
-    const readings = pubs.map((pub) => readingOf(pub.search_reading)).filter((r): r is PageReading => r !== null);
-    const asked = readings.filter((r) => r.linkedBy !== null);
-    const linked = asked.filter((r) => (r.linkedBy ?? []).length > 0);
-    expect([asked.length, linked.length]).toEqual([4, 1]);
-    expect(text(ai?.querySelector("h2"))).toBe(copy("overview.ai.title"));
-    expect(text(ai?.querySelector('[data-testid="overview-tile-ai-linked"]'))).toBe(String(linked.length));
-    expect(text(ai)).toContain(copy("overview.ai.linked.of", { of: String(asked.length) }));
-    expect(text(ai)).toContain(copy("overview.ai.linked.own", { n: String(linked.length) }));
-    expect(text(ai)).toContain(copy("overview.ai.linked.not-yet", { n: String(asked.length - linked.length) }));
-    expect(linkOf(ai)).toBe(AI_PAGES_HREF);
-    expect(text(ai?.querySelector("a"))).toBe(copy("overview.ai.each"));
+  it("14 answer fetches this week against 9 the week before is the board's one line", async () => {
+    seed(site, FIVE);
+    db.seed("publication_reads", [
+      { site_id: SITE_ID, publication_id: "p0", day: "2026-09-29", engine: "chatgpt", kind: "answer_fetch", hits: 9 },
+      { site_id: SITE_ID, publication_id: "p1", day: "2026-10-06", engine: "claude", kind: "answer_fetch", hits: 14 },
+    ]);
+    const dom = await render();
+    expect(text(dom.querySelector('[data-testid="overview-ai-line"]'))).toBe(
+      `${copy("overview.ai.line.reads", { n: "14" })} ${copy("overview.ai.line.up", { n: "9" })}`
+    );
+    expect(text(dom.body)).not.toContain("Your pages in AI answers");
+  });
 
-    // This week's answer fetches, not the indexer's, and the weeks before as bars.
-    expect(text(ai?.querySelector('[data-testid="overview-tile-ai-reads"]'))).toBe(copy("overview.ai.reads", { n: "7" }));
-    expect(text(ai)).toContain(copy("overview.ai.reads.who"));
-    expect([...(ai?.querySelectorAll("figure li") ?? [])].map((li) => text(li))).toEqual(["Sep 26 · 5", "Oct 3 · 7"]);
+  it("with no week before counted, the line says this is the first, never up from 0", async () => {
+    seed(site, FIVE);
+    db.seed("publication_reads", [{ site_id: SITE_ID, publication_id: "p1", day: "2026-10-06", engine: "claude", kind: "answer_fetch", hits: 14 }]);
+    const line = text((await render()).querySelector('[data-testid="overview-ai-line"]'));
+    expect(line).toBe(`${copy("overview.ai.line.reads", { n: "14" })} ${copy("overview.ai.line.first")}`);
+    expect(line).not.toContain(copy("overview.ai.line.up", { n: "" }).trim());
   });
 
   it("Best mover this week is the page that rose most since the week before, counted from where it was first seen", async () => {
@@ -204,30 +214,28 @@ describe.each([
     expect(text(dom.body)).not.toContain(copy("overview.ladder.visits", { n: "0" }));
   });
 
-  it("on WordPress the reads are not drawn, never 0, and the linked pages still are", async () => {
+  it("on WordPress the reads are not drawn, never 0", async () => {
     seed(site, FIVE, { hosted: false });
     db.seed("publication_reads", [...READS]);
-    const ai = (await render()).querySelector('[data-testid="overview-ai"]');
-    expect(ai?.querySelector('[data-testid="overview-tile-ai-reads"]')).toBeNull();
-    expect(ai?.querySelector("figure")).toBeNull();
-    expect(text(ai?.querySelector('[data-testid="overview-tile-ai-linked"]'))).toBe("1");
+    const dom = await render();
+    expect(dom.querySelector('[data-testid="overview-ai-line"]')).toBeNull();
+    expect(dom.querySelector('[data-testid="overview-tile-ai-reads"]')).toBeNull();
   });
 });
 
 describe("the AI tab reads Overview's figures with the same reader", () => {
-  it("its tiles count this week's fetches and the pages linked as Overview does", async () => {
+  it("its reads tile counts this week's fetches as Overview's line does", async () => {
     seed(SAAS, FIVE);
     db.seed("publication_reads", [...READS]);
     const overview = await render();
     const { default: AiTab } = await import("@/app/(account)/app/(tabs)/ai-answers/page");
     const tab = new DOMParser().parseFromString(renderToStaticMarkup(await AiTab()), "text/html");
     expect(text(tab.querySelector('[data-testid="ai-tile-reads-value"]'))).toBe("7");
-    expect(text(tab.querySelector('[data-testid="ai-tile-linked-value"]'))).toBe(text(overview.querySelector('[data-testid="overview-tile-ai-linked"]')));
-    expect(text(overview.querySelector('[data-testid="overview-tile-ai-reads"]'))).toBe(copy("overview.ai.reads", { n: "7" }));
+    expect(text(overview.querySelector('[data-testid="overview-tile-ai-reads"]'))).toBe(copy("overview.ai.line.reads", { n: "7" }));
   });
 });
 
-describe("Measures that move over months", () => {
+describe("Checked monthly", () => {
   const months = {
     reading: { week: "2026-10-05", score: 31, market: { top10: 1, of: 12 } },
     scan: { score: 27 as number | null, market: 0 as number | null },
@@ -239,14 +247,14 @@ describe("Measures that move over months", () => {
   it("labels each figure months-scale, against the scan, with the next first Monday", () => {
     const dom = draw(months);
     expect(text(dom.querySelector("h2"))).toBe(copy("overview.months.title"));
-    expect(text(dom.querySelector('[data-testid="overview-months-next"]'))).toBe(copy("overview.months.checked", { date: "Monday, November 2" }));
+    expect(text(dom.querySelector('[data-testid="overview-months-next"]'))).toBe(copy("overview.months.checked", { date: "Mon 2 Nov" }));
+    expect(dom.querySelector('[data-testid="overview-months-note"]')).toBeNull();
     const score = text(dom.querySelector('[data-testid="overview-tile-score"]'));
-    expect(text(dom.querySelector('[data-testid="overview-tile-score"] .num'))).toMatch(new RegExp(`^31 ?${copy("overview.months.of", { of: "100" })}$`));
+    expect(text(dom.querySelector('[data-testid="overview-tile-score"] [data-testid="overview-months-figure"]'))).toMatch(new RegExp(`^31 ?${copy("overview.months.of", { of: "100" })}$`));
     expect(score).toContain(copy("overview.months.score.up", { n: "27" }));
     const market = text(dom.querySelector('[data-testid="overview-tile-market"]'));
     expect(market).toContain(`1 ${copy("overview.months.of", { of: "12" })}`);
     expect(market).toContain(copy("overview.months.market.up", { n: "0" }));
-    expect(text(dom.querySelector('[data-testid="overview-months-note"]'))).toContain(copy("overview.months.note"));
   });
 
   it("holds two figures, score and market; AI mentions are the AI tab's alone (O6, say it once)", () => {
@@ -256,7 +264,7 @@ describe("Measures that move over months", () => {
 
   it("before the first month's reading it names the day, and draws no figure", () => {
     const dom = draw({ reading: null, scan: months.scan, next: "2026-11-02" });
-    expect(text(dom.querySelector('[data-testid="overview-months-next"]'))).toBe(copy("overview.months.first", { date: "Monday, November 2" }));
+    expect(text(dom.querySelector('[data-testid="overview-months-next"]'))).toBe(copy("overview.months.first", { date: "Mon 2 Nov" }));
     expect(dom.querySelector('[data-testid^="overview-tile-"]')).toBeNull();
   });
 
@@ -287,10 +295,11 @@ describe("board Main: the figure sections", () => {
     const board = readFileSync(boardFile("Main"), "utf8");
     const { missing } = compare(board, segments(html), readAllow("Main"));
     const all = compare(board, [], []).missing;
-    const from = all.indexOf("Your pages in AI answers");
-    const to = all.findIndex((s: string) => s.startsWith("These grow with links"));
+    // From the best mover to the line before the site's own fixes.
+    const from = all.indexOf("Best mover this week");
+    const to = all.findIndex((s: string) => s.includes("for your own site"));
     expect([from, to].every((i) => i > -1)).toBe(true);
-    const sections = new Set(all.slice(from, to + 1));
+    const sections = new Set(all.slice(from, to));
     expect(missing.filter((s: string) => sections.has(s))).toEqual([]);
   });
 });

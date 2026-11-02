@@ -106,7 +106,7 @@ const LIST = (
       id: "mail-ai-linked",
       shown: { on: "mail", key: "mail.weekly.ai.linked" },
       definition:
-        "The overview-ai-linked figure, read by the same function: of the live pages whose own question was asked, how many the answer linked. Before any is asked, the mail says it is too early.",
+        "x of N: of the live pages whose own question was asked, how many the AI answer to that question linked, read off each page's stored weekly reading. Before any is asked, the mail says it is too early.",
       source: "src/lib/measure/figures.ts#aiPagesOf",
       cadence: "Weekly, in the Monday mail.",
     },
@@ -199,18 +199,10 @@ const LIST = (
       cadence: "Each free scan.",
     },
     {
-      id: "overview-ai-linked",
-      shown: { on: "tile", key: "overview-tile-ai-linked" },
-      definition:
-        "x of N: of the live pages whose own question was asked, how many the AI answer to that question linked, read off each page's stored weekly reading. Before any page's question is asked there is no figure.",
-      source: "src/lib/measure/figures.ts#aiPagesOf",
-      cadence: "Weekly, each Monday's pass.",
-    },
-    {
       id: "overview-ai-reads",
       shown: { on: "tile", key: "overview-tile-ai-reads" },
       definition:
-        "Times an answer engine fetched a hosted page to answer someone over the last {BLOG_READS_WINDOW_D} days, with one bar per week kept; training crawlers and search indexers are not counted. Only on a hosted blog with a page live; anywhere else there is no figure.",
+        "Times an answer engine fetched a hosted page to answer someone over the last {BLOG_READS_WINDOW_D} days, beside the week before where one was counted; training crawlers and search indexers are not counted. Only on a hosted blog with a page live; anywhere else there is no figure.",
       source: "src/lib/publish/reads/model.ts#assembleBlogReads",
       cadence: "As the pages are read.",
     },

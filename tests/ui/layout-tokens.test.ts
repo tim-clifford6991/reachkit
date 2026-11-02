@@ -41,11 +41,9 @@ const ROOT_LAYOUT_TSX = path.resolve(
   "../../src/app/_root/document.tsx",
 );
 
-/** Ruling 10a (UI-SPEC §1): "type 15 / 13 / 12 / 11.5 / 11 … nothing under
- *  11px". `--t-eyebrow` is the 11, and it is the floor ADR-093 decision 3
- *  named `--t-floor` before the owner approved a set with its own name for
- *  the same rung. */
-const T_FLOOR_PX = 11;
+/** Canvas v36's 12px text floor, raised from ruling 10a's 11. `--t-eyebrow`
+ *  is the floor ADR-093 decision 3 named `--t-floor`. */
+const T_FLOOR_PX = 12;
 
 /** Ruling 10a's four, and the only four: "breakpoints 640 / 768 / 1024 /
  *  1280". 1024 and 1280 are also `BAND_MIN.medium` and `BAND_MIN.wide`,
@@ -121,7 +119,7 @@ describe("ruling 10a — every media query in the product is one of the four rul
     expect(offenders, offenders.join("\n")).toEqual([]);
   });
 
-  it("--t-eyebrow is 11px — the floor of ruling 10a's ladder, never lower", () => {
+  it("--t-eyebrow is the 12px floor, never lower", () => {
     expect(decls.get("--t-eyebrow")).toBe(`${T_FLOOR_PX}px`);
   });
 

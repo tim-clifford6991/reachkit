@@ -7,7 +7,15 @@ import type React from "react";
 import { Line, LineChart, ReferenceArea, XAxis, YAxis } from "recharts";
 import { SERIES_DRAW } from "@/ui/motion";
 
-const PAINT = { you: "var(--chart-you)", band: "var(--chart-goal)", surface: "var(--color-base-100)" } as const;
+const PAINT = {
+  you: "var(--chart-you)",
+  band: "var(--chart-goal)",
+  surface: "var(--color-base-100)",
+  ink: "var(--color-base-content)",
+  rule: "var(--color-base-300)",
+} as const;
+/** Each reading's day under its point, in the values' face at the 12px floor. */
+const TICK = { fontSize: 12, fill: PAINT.ink, className: "num" } as const;
 const KEY = { name: "name", place: "place", top: "top", none: "none", hidden: "hidden" } as const;
 
 export interface PlaceReading {
@@ -27,10 +35,10 @@ export function PlaceLine(p: {
       <LineChart
         responsive
         data={[...p.readings]}
-        margin={{ top: 20, right: 16, bottom: 4, left: 16 }}
-        style={{ width: "100%", aspectRatio: 300 / 90 }}
+        margin={{ top: 20, right: 24, bottom: 4, left: 24 }}
+        style={{ width: "100%", aspectRatio: 300 / 110 }}
       >
-        <XAxis dataKey={KEY.name} hide />
+        <XAxis dataKey={KEY.name} tick={TICK} tickLine={false} axisLine={{ stroke: PAINT.rule }} interval={0} />
         <YAxis hide reversed domain={[1, deepest]} />
         <ReferenceArea y1={1} y2={p.firstPage} fill={PAINT.band} fillOpacity={0.12} stroke={KEY.none} ifOverflow={KEY.hidden} />
         <Line
@@ -40,7 +48,7 @@ export function PlaceLine(p: {
           strokeWidth={2.25}
           dot={{ r: 3, fill: PAINT.you, stroke: PAINT.surface, strokeWidth: 2 }}
           activeDot={false}
-          label={{ position: KEY.top, fill: PAINT.you, className: "num", fontSize: 12 }}
+          label={{ position: KEY.top, fill: PAINT.ink, className: "num", fontSize: 12 }}
         />
       </LineChart>
       <ul className="sr-only">

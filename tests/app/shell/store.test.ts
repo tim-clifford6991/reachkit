@@ -271,7 +271,7 @@ describe("the four causes are read as four facts", () => {
 });
 
 describe("what waits on the customer", () => {
-  it("counts only the two states that wait on them", async () => {
+  it("counts only a page that needs the customer: a page in review is on its way (SPEC §4 2026-10-17, #1477)", async () => {
     rows.set("drafts", [
       { id: "d1", site_id: "site-1", state: "in_review", scheduled_for: null },
       { id: "d2", site_id: "site-1", state: "needs_attention", scheduled_for: null },
@@ -279,7 +279,9 @@ describe("what waits on the customer", () => {
       { id: "d4", site_id: "site-1", state: "published", scheduled_for: null },
     ]);
     const facts = await readShellFacts(SITE);
-    expect(facts.waiting).toBe(2);
+    expect(facts.waiting).toBe(1);
+    // The side panel's card still names the page in review.
+    expect(facts.review?.draftId).toBe("d1");
   });
 
   it("issue 1477: a page the writing stopped waits on nobody; one that could not be delivered still does", async () => {
@@ -322,6 +324,16 @@ describe("the site's own facts are carried through, never a fixture's", () => {
   it("the weeks come from §11's own rows, asked for this site", async () => {
     await readShellFacts(SITE);
     expect(measuredWeeksOf).toHaveBeenCalledWith(expect.objectContaining({ site: SITE }));
+  });
+
+  it("the site's mark is its logo only where its own stored profile keeps one", async () => {
+    expect((await readShellFacts(SITE)).hasLogo).toBe(false);
+    rows.set("site_profiles", [{ domain: "other.test", logo_type: "image/png" }]);
+    expect((await readShellFacts(SITE)).hasLogo).toBe(false);
+    rows.set("site_profiles", [{ domain: "acme.test", logo_type: null }]);
+    expect((await readShellFacts(SITE)).hasLogo).toBe(false);
+    rows.set("site_profiles", [{ domain: "acme.test", logo_type: "image/png" }]);
+    expect((await readShellFacts(SITE)).hasLogo).toBe(true);
   });
 });
 

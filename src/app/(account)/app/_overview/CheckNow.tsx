@@ -80,12 +80,12 @@ export function CheckNow(p: {
           <RefreshCw aria-hidden size={16} strokeWidth={1.75} />
           {copy("overview.connect.check")}
         </button>
-        <Link className="link link-primary text-sm" href={SETTINGS_TAB_HREF.publishing} data-testid="connect-guide">
+        <Link className="link link-primary link-hover inline-flex min-h-11 items-center text-sm font-semibold no-underline" href={SETTINGS_TAB_HREF.publishing} data-testid="connect-guide">
           {copy("overview.connect.guide")}
         </Link>
       </div>
       <p role="status" className="flex min-w-0 items-start gap-2 text-sm" data-testid="connect-status">
-        <Clock aria-hidden size={16} strokeWidth={1.75} className="mt-0.5 shrink-0" />
+        <Clock aria-hidden size={16} strokeWidth={1.75} className="mt-0.5 shrink-0 text-warning" />
         <span className="min-w-0">
           <strong className="me-1" data-testid="connect-checked">
             {checked}

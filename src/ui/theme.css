@@ -69,7 +69,7 @@
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
 
   /* Type: the eyebrow, the body steps and the four heading steps. */
-  --t-eyebrow: 11px;
+  --t-eyebrow: 12px;
 
   /* Headings */
   --h1: 31px;

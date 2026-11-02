@@ -268,12 +268,9 @@ describe.each([
     const badge = text(dom.querySelector('li[data-step="draft.ladder.showing"] .badge'));
     expect(climbing === undefined ? "" : copy("overview.ladder.climbing", { n: String(climbing) })).toBe(badge);
     expect(text(dom.querySelector('[data-testid="overview-ladder-visits"]'))).toBe(
-      copy("overview.ladder.visits", { n: String(said("mail.weekly.google.visits.down")?.n) })
+      `${copy("overview.ladder.visits", { n: String(said("mail.weekly.google.visits.down")?.n) })} ${copy("overview.ladder.this-week")}`
     );
-    const linked = said("mail.weekly.ai.linked");
-    expect(text(dom.querySelector('[data-testid="overview-tile-ai-linked"]'))).toBe(String(linked?.n));
-    expect(text(dom.querySelector('[data-testid="overview-ai"]'))).toContain(copy("overview.ai.linked.of", { of: String(linked?.of) }));
-    expect(text(dom.querySelector('[data-testid="overview-tile-ai-reads"]'))).toBe(copy("overview.ai.reads", { n: String(said("mail.weekly.ai.reads")?.n) }));
+    expect(text(dom.querySelector('[data-testid="overview-tile-ai-reads"]'))).toBe(copy("overview.ai.line.reads", { n: String(said("mail.weekly.ai.reads")?.n) }));
 
     const climb = sent[0]!.blocks.find((block) => block.block === "paragraph" && block.text.startsWith("mail.weekly.google.climb"));
     const mover = dom.querySelector('[data-testid="overview-mover"]');
@@ -315,7 +312,7 @@ describe.each([
     expect(text(dom.querySelector('[data-testid="overview-tile-score"]'))).toContain(copy("overview.months.score.up", { n: read("mail.weekly.month.score").was }));
     expect(text(dom.querySelector('[data-testid="overview-tile-market"]'))).toContain(copy("overview.months.market.up", { n: read("mail.weekly.month.market").was }));
     expect([read("mail.weekly.month.score").was, read("mail.weekly.month.market").was]).toEqual(["27", "0"]);
-    expect(text(dom.querySelector('[data-testid="overview-tile-score"] .num')).replace(/ /gu, "")).toBe(`${read("mail.weekly.month.score").now}${of("100")}`.replace(/ /gu, ""));
+    expect(text(dom.querySelector('[data-testid="overview-tile-score"] [data-testid="overview-months-figure"]')).replace(/ /gu, "")).toBe(`${read("mail.weekly.month.score").now}${of("100")}`.replace(/ /gu, ""));
     expect(text(dom.querySelector('[data-testid="overview-tile-market"]'))).toContain(`${read("mail.weekly.month.market").now} ${of("12")}`);
     expect(month["mail.weekly.month.reputation"]).toBe("11 of 46");
     // Overview no longer repeats it (O6): the AI answers tab is the one place it is drawn.

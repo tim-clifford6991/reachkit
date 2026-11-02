@@ -25,7 +25,7 @@ export const MAIL_TOKENS = Object.freeze({
   "--t-body": "15px",
   "--t-sm": "13px",
   "--t-xs": "12px",
-  "--t-eyebrow": "11px",
+  "--t-eyebrow": "12px",
   "--font-ui": '"Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif',
   "--font-mono": '"JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace',
 

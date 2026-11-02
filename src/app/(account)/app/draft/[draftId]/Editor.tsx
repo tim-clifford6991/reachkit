@@ -504,7 +504,7 @@ export function Editor(p: {
                   <button
                     key={frame}
                     type="button"
-                    className={`btn btn-xs join-item ${p.frame === frame ? "bg-primary/10 text-primary" : "btn-ghost"}`}
+                    className={`btn btn-xs join-item text-xs ${p.frame === frame ? "bg-primary/10 text-primary" : "btn-ghost"}`}
                     aria-pressed={p.frame === frame}
                     onClick={() => p.onFrame(frame)}
                     data-testid={`draft-editor-frame-${frame}`}

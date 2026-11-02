@@ -47,6 +47,7 @@ const MONDAY = (day: number): Date => new Date(Date.UTC(2026, 8, day, 6, 0, 0));
  *  is not a stop. */
 export const COLD_START_SHELL_FACTS: ShellFacts = Object.freeze({
   domain: COLD_START_DOMAIN,
+  hasLogo: false,
   timeZone: "America/New_York",
   mode: "autopilot",
   weeks: Object.freeze([]),

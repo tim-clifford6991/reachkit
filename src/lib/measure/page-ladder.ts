@@ -12,33 +12,33 @@ type StepKey = keyof Reached | "live";
 interface StepDef {
   step: StepKey;
   name: CopyKey;
-  line: CopyKey;
   /** Only server logs show it, so a WordPress page cannot be read on it. */
   logs: boolean;
 }
 
 const GOOGLE: readonly StepDef[] = [
-  { step: "live", name: "draft.ladder.live", line: "overview.ladder.step.live", logs: false },
-  { step: "found", name: "draft.ladder.found", line: "overview.ladder.step.found", logs: true },
-  { step: "showing", name: "draft.ladder.showing", line: "overview.ladder.step.showing", logs: false },
-  { step: "firstPage", name: "draft.ladder.first-page", line: "overview.ladder.step.first-page", logs: false },
+  { step: "live", name: "draft.ladder.live", logs: false },
+  { step: "found", name: "draft.ladder.found", logs: true },
+  { step: "showing", name: "draft.ladder.showing", logs: false },
+  { step: "firstPage", name: "draft.ladder.first-page", logs: false },
 ];
 
 const AI: readonly StepDef[] = [
-  { step: "readByAi", name: "draft.ladder.read", line: "overview.ladder.step.read", logs: true },
-  { step: "linkedByAi", name: "draft.ladder.linked", line: "overview.ladder.step.linked", logs: false },
-  { step: "aiVisit", name: "draft.ladder.visit", line: "overview.ladder.step.visit", logs: true },
+  { step: "readByAi", name: "draft.ladder.read", logs: true },
+  { step: "linkedByAi", name: "draft.ladder.linked", logs: false },
+  { step: "aiVisit", name: "draft.ladder.visit", logs: true },
 ];
 
 export interface StepFigure {
   /** Its place on its own ladder, from 1. */
   n: number;
   name: CopyKey;
-  line: CopyKey;
   /** Pages that reached it; `null` where no page it can be read on was read. */
   count: number | null;
   /** The pages it can be read on that have a reading; "live" counts every live page. */
   of: number;
+  /** Every live page it can be read on, read or not: Overview's one "of N". */
+  on: number;
 }
 
 export interface LadderRow {
@@ -62,8 +62,6 @@ export interface StepDot {
 
 export interface PageLadder {
   live: number;
-  /** The newest reading's instant; `null` where no page was read. */
-  readAt: Date | null;
   /** Live pages with no reading yet, so a step's `of` can sit below `live`. */
   unread: number;
   google: StepFigure[];
@@ -71,8 +69,8 @@ export interface PageLadder {
   climbing: number;
   /** Visits from Google search this week, counted on the hosted pages; `null` where none can be counted. */
   visits: number | null;
-  /** Before any page shows in results: what has lit up so far. */
-  week1: { live: number; found: number | null; read: number | null } | null;
+  /** Before any page shows in results: how many pages are live. */
+  week1: { live: number } | null;
   rows: LadderRow[];
 }
 
@@ -86,7 +84,7 @@ function figures(defs: readonly StepDef[], pages: readonly PublishedPage[]): Ste
     if (on.length === 0) return [];
     const read = def.step === "live" ? on : on.filter((page) => page.reading != null);
     const count = read.length === 0 ? null : read.filter((page) => reached(page, def.step)).length;
-    return [{ n: i + 1, name: def.name, line: def.line, count, of: read.length }];
+    return [{ n: i + 1, name: def.name, count, of: read.length, on: on.length }];
   });
 }
 
@@ -112,16 +110,12 @@ export function pageLadderOf(all: readonly PublishedPage[], now: Date, visits: n
   const showing = countOf(google, "draft.ladder.showing");
   return {
     live: pages.length,
-    readAt: readings.length === 0 ? null : new Date(Math.max(...readings.map((r) => Date.parse(r.at)))),
     unread: pages.length - readings.length,
     google,
     ai,
     climbing: readings.filter((r) => verdict(r, now) === "climbing").length,
     visits,
-    week1:
-      (showing ?? 0) === 0 && pages.length > 1
-        ? { live: pages.length, found: countOf(google, "draft.ladder.found"), read: countOf(ai, "draft.ladder.read") }
-        : null,
+    week1: (showing ?? 0) === 0 && pages.length > 1 ? { live: pages.length } : null,
     rows: pages.map((page) => ({
       id: page.id,
       title: page.title,

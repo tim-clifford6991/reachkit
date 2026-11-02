@@ -135,15 +135,18 @@ async function waiting(siteId: string): Promise<{ count: number; review: Waiting
     .in("state", WAITING_STATES);
   if (error !== null || data === null) return { count: 0, review: null };
 
-  // The count is Overview's: a page in review, or one whose cause is critical (owner O7).
-  const rows = data.filter((row) => row.state === "in_review" || critical(needsYouOf({ state: row.state as State, transitions: row.transitions, meta: row.meta }), clock()));
+  // The card holds the page in review or one whose cause is critical (owner O7);
+  // the count only the latter, the pages that wait on the customer (SPEC §4 2026-10-17, #1477).
+  const needsYou = (row: WaitingDraftRow): boolean =>
+    row.state !== "in_review" && critical(needsYouOf({ state: row.state as State, transitions: row.transitions, meta: row.meta }), clock());
+  const rows = data.filter((row) => row.state === "in_review" || needsYou(row));
   const pages = rows.map(waitingPage);
   // A page with no time yet sorts last: a time the customer can act before
   // is more urgent than one nobody has set.
   const soonest = [...pages].sort(
     (a, b) => (a.goesLiveAt?.getTime() ?? Infinity) - (b.goesLiveAt?.getTime() ?? Infinity)
   )[0];
-  return { count: rows.length, review: soonest ?? null };
+  return { count: data.filter(needsYou).length, review: soonest ?? null };
 }
 
 function waitingPage(row: WaitingDraftRow): WaitingPage {
@@ -227,6 +230,17 @@ async function hostedAddressWaiting(siteId: string): Promise<boolean> {
   return host !== null && host.state !== "live";
 }
 
+/** Whether the site's own logo is stored: the one column the free scan's
+ *  profile keeps it by. A read that fails draws the letter mark. */
+async function logoStored(domain: string): Promise<boolean> {
+  const { data, error } = await client()
+    .from<{ logo_type: string | null }>("site_profiles")
+    .select("logo_type")
+    .eq("domain", domain)
+    .limit(1);
+  return error === null && data?.[0]?.logo_type != null;
+}
+
 /** How many pages this site has planned and not written yet, and how many
  *  it has that a publish could still reach at all — §4.4's `not_written`
  *  and `nothing_planned`, from one read. */
@@ -244,7 +258,7 @@ async function plannedCounts(siteId: string): Promise<{ unwritten: number; reach
 /**
  * Everything §4.4's frame states about one real account.
  *
- * Seven reads, all of them projections, run together: nothing here depends on
+ * Eight reads, all of them projections, run together: nothing here depends on
  * anything else here, and a screen that waited on them in sequence would be
  * six round trips deep before it drew a sidebar.
  */
@@ -262,7 +276,7 @@ export async function readShellFacts(site: ShellSite): Promise<ShellFacts> {
     hostedAddressWaiting(site.siteId),
   ]);
 
-  const [weeks, firstDueOn, waits, blog, next, planned, stopped] = await Promise.all([
+  const [weeks, firstDueOn, waits, blog, next, planned, stopped, hasLogo] = await Promise.all([
     measuredWeeksOf({ site, now }),
     nextDueOn({ siteId: site.siteId, now }),
     waiting(site.siteId),
@@ -270,10 +284,12 @@ export async function readShellFacts(site: ShellSite): Promise<ShellFacts> {
     nextScheduled(site.siteId, publishingOn && !addressWaiting),
     plannedCounts(site.siteId),
     readStop(),
+    logoStored(site.domain),
   ]);
 
   return {
     domain: site.domain,
+    hasLogo,
     timeZone: site.timeZone,
     mode: site.mode,
     weeks,

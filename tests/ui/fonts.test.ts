@@ -485,18 +485,14 @@ describe("BUILD §2.3 — the type scale, asserted against the clause", () => {
     }
   });
 
-  it("eyebrow: uppercase, --t-eyebrow — the 11 at the bottom of 10a's ladder", () => {
-    // §2.3 states the eyebrow as a range, 10.5–11px. A range is the one
-    // thing a token cannot express, and ruling 10a closed it: "nothing under
-    // 11px". The rule reads the rung; the value is asserted off `theme.css`,
-    // and it is the top of §2.3's range, so the clause still holds.
+  it("eyebrow: uppercase, --t-eyebrow — the 12px floor of canvas v36", () => {
+    // The rule reads the rung; the value is asserted off `theme.css`.
     const rules = Array.from(parseCss(typeCssSource())) as CSSStyleRule[];
     const eyebrow = rules.find((r) => r.selectorText === ".eyebrow");
     expect(eyebrow).toBeTruthy();
     expect(eyebrow!.style.getPropertyValue("text-transform")).toBe("uppercase");
     expect(eyebrow!.style.getPropertyValue("font-size")).toBe("var(--t-eyebrow)");
     const size = Number.parseFloat(themeRootTokens().get("--t-eyebrow") ?? "");
-    expect(size).toBeGreaterThanOrEqual(10.5);
-    expect(size).toBeLessThanOrEqual(11);
+    expect(size).toBe(12);
   });
 });

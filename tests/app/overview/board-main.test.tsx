@@ -49,7 +49,7 @@ const { readOverview } = await import("@/app/(account)/app/_overview/provider");
 const { planToday, readWeek } = await import("@/app/(account)/app/calendar/provider");
 const { assembleMonth, weekOf } = await import("@/app/(account)/app/calendar/month");
 const { FIXTURE_CALENDAR_FACTS } = await import("@/app/(account)/app/calendar/fixture");
-const { addDays, cardDate } = await import("@/app/(account)/app/calendar/dates");
+const { addDays, dayNumber } = await import("@/app/(account)/app/calendar/dates");
 const { WeekGrid } = await import("@/app/(account)/app/calendar/WeekGrid");
 const { formatDay, formatTime } = await import("@/app/(account)/app/_shell/format");
 
@@ -93,18 +93,38 @@ describe("board Main, on the account the layout sweep reads", () => {
     );
   });
 
+  it("one AI line under the AI ladder and no AI card; the blocks the board cut are gone", async () => {
+    const { dom } = await render();
+    expect(dom.querySelector('[data-testid="overview-ai"]')).toBeNull();
+    expect(text(dom.body)).not.toContain("Your pages in AI answers");
+    expect(dom.querySelector('[data-testid="overview-ladder-ai"] ~ [data-testid="overview-ai-line"]')).not.toBeNull();
+    // Today's card is its time, its title and what Stop does: no "nothing is needed" line.
+    const today = [...(dom.querySelectorAll('[data-testid="overview-waiting"] p') ?? [])].map((p) => p.getAttribute("data-testid"));
+    expect(today).toEqual(["overview-waiting-when", "overview-waiting-title", "overview-stop-note"]);
+    // No per-page list under the ladder, no "checked" date beside its title, no months note.
+    expect(dom.querySelector('[data-testid="overview-ladder-row"]')).toBeNull();
+    expect(dom.querySelector('[data-testid="overview-ladder"] h2 + p')).toBeNull();
+    expect(dom.querySelector('[data-testid="overview-months-note"]')).toBeNull();
+    // The figures are one row of two from lg: best mover, then the monthly measures.
+    const figures = dom.querySelector('[data-frame="overview-figures"]');
+    expect([...(figures?.children ?? [])].map((el) => el.getAttribute("data-testid"))).toEqual(["overview-mover", "overview-months"]);
+  });
+
   it("the score carries no confidence word, though the account's stored estimate is rough", async () => {
     const [{ dom }, overview] = await Promise.all([render(), readOverview()]);
     expect(overview.score.estimate?.confidence).toBe("rough");
     expect(text(dom.body)).not.toMatch(/\b(rough|close) estimate\b/iu);
   });
 
-  it("this week's pages are Plan's week: a card for each day, its title on each day with a page, then the next Monday", async () => {
+  it("this week's pages are Plan's week: a row for each day, its title on each day with a page, then the next Monday", async () => {
     const [{ dom }, week] = await Promise.all([render(), planToday().then(readWeek)]);
     const card = dom.querySelector('[data-testid="overview-week"]');
     const withPage = week.cells.filter((cell) => cell.page !== null);
+    const next = addDays(week.cells[0]!.day, 7);
+    const month = (day: string): string => new Intl.DateTimeFormat("en-US", { timeZone: "UTC", month: "short" }).format(new Date(`${day}T00:00:00Z`));
     expect(text(card?.querySelector("h2"))).toBe(copy("overview.week.pages", { n: String(withPage.length) }));
-    expect(text(card)).toContain(copy("how.week.auto"));
+    // "Runs by itself" is cut: the week says what it holds, not that it is automatic.
+    expect(text(card)).not.toContain(copy("how.week.auto"));
     const why = [...(card?.querySelectorAll("a") ?? [])].find((a) => text(a) === copy("overview.week.calendar-link"));
     expect(why?.getAttribute("href")).toBe("/app/calendar");
     const cards = [...(card?.querySelectorAll("ol > li") ?? [])];
@@ -113,7 +133,7 @@ describe("board Main, on the account the layout sweep reads", () => {
       withPage.map((cell) => cell.page!.title)
     );
     expect(text(card?.querySelector('[data-testid="overview-week-next"]'))).toBe(
-      copy("overview.week.next", { date: cardDate(addDays(week.cells[0]!.day, 7)), n: String(week.cells.length) })
+      copy("overview.week.next", { date: `${dayNumber(next)} ${month(next)}`, n: String(week.cells.length) })
     );
   });
 
@@ -124,8 +144,10 @@ describe("board Main, on the account the layout sweep reads", () => {
     const line = dom.querySelector('[data-testid="overview-fixes"]');
     expect(text(line)).toContain(copy("overview.fixes.line", { n: String(fixes) }));
     expect(text(line)).toContain(copy("overview.fixes.optional"));
-    expect(line?.querySelector("a")?.getAttribute("href")).toBe("/app/issues");
-    expect(text(line?.querySelector("a"))).toBe(copy("overview.fixes.see"));
+    // The whole line is the one link, as the board draws it.
+    expect(line?.tagName).toBe("A");
+    expect(line?.getAttribute("href")).toBe("/app/issues");
+    expect(text(line)).toContain(copy("overview.fixes.see"));
   });
 
   it("every board string of the head, this week's pages and the site-fix line is on the screen, but for sample data and rulings", async () => {
@@ -140,9 +162,9 @@ describe("board Main, on the account the layout sweep reads", () => {
       return all.slice(start, end === -1 ? undefined : end + 1);
     };
     const mine = new Set([
-      ...span((s) => s.startsWith("Week "), (s) => s.includes("chosen")),
+      ...span((s) => s.startsWith("Week "), (s) => s.includes("picked")),
       ...span((s) => s.startsWith("This week’s"), (s) => s.startsWith("Next Monday")),
-      ...span((s) => s.includes("worth fixing"), () => true),
+      ...span((s) => s.includes("for your own site"), () => true),
     ]);
     expect(mine.size).toBeGreaterThan(15);
     expect(missing.filter((s: string) => mine.has(s))).toEqual([]);
@@ -170,16 +192,13 @@ describe("a week card, from Plan's own week assembly", () => {
     return root;
   })();
 
-  it("Overview draws the week as 7 day cards, today's primary", () => {
+  it("Overview draws the week as 7 days, today's primary, with no page thumbnails", () => {
     const cards = [...dom.querySelectorAll('[data-testid="overview-week"] ol > li')];
     expect(cards.map((li) => li.getAttribute("data-testid"))).toEqual(week.cells.map((cell) => `calendar-cell-${cell.day}`));
     expect(cards).toHaveLength(7);
     const today = card(dom, week.today)!;
     expect(today.className).toContain("border-primary");
-    expect(today.querySelector('[aria-hidden="true"].rounded-box')?.className).toContain("bg-primary/10");
-    for (const cell of week.cells.filter((c) => c.page !== null && c.day !== week.today)) {
-      expect(card(dom, cell.day)?.querySelector('[aria-hidden="true"].rounded-box')?.className, cell.day).toContain("bg-base-200");
-    }
+    for (const li of cards) expect(li.querySelector('[aria-hidden="true"].rounded-box'), li.getAttribute("data-testid") ?? "").toBeNull();
   });
 
   it("today's card goes live with Edit and Stop links on its own page", () => {
@@ -194,10 +213,10 @@ describe("a week card, from Plan's own week assembly", () => {
     expect(card(dom, today.day)?.querySelector("button")).toBeNull();
   });
 
-  it("with publishing not scheduled, today's card shows Plan's state and neither link", () => {
+  it("with publishing not scheduled, today's card shows Plan's state, no time, and still Plan's Edit and Stop", () => {
     const today = card(overview(false), week.today);
     expect(today?.querySelector('[data-testid="overview-week-goes-live"]')).toBeNull();
-    expect(today?.querySelectorAll("a")).toHaveLength(0);
+    expect([...(today?.querySelectorAll("a") ?? [])].map(text)).toEqual([copy("how.week.edit"), copy("calendar.week.stop")]);
     expect(today?.querySelector('[data-testid="day-state"]')?.innerHTML).toBe(card(plan, week.today)?.querySelector('[data-testid="day-state"]')?.innerHTML);
   });
 
@@ -223,10 +242,51 @@ describe("a week card, from Plan's own week assembly", () => {
     expect(week.cells.some((cell) => cell.page === null)).toBe(true);
   });
 
+  it("Edit and Stop sit on the one row Plan offers them on, and a live row carries Plan's quiet Stop", () => {
+    const withEdit = week.cells.filter((cell) => card(dom, cell.day)?.querySelector('[data-testid="overview-week-next-controls"]'));
+    expect(withEdit.map((cell) => cell.day)).toEqual([week.today]);
+    expect(card(plan, week.today)?.querySelector('[data-testid="cell-stop"]')).not.toBeNull();
+    for (const cell of week.cells.filter((c) => c.page?.stage === "live" && c.page.liveUrl !== null)) {
+      expect(text(card(dom, cell.day)?.querySelector("button")), cell.day).toBe(copy("draft.action.veto"));
+    }
+    for (const cell of week.cells.filter((c) => c.page?.stage !== "live" && c.day !== week.today)) {
+      expect(card(dom, cell.day)?.querySelector("a, button"), cell.day).toBeNull();
+    }
+  });
+
+  it("the next page with no stored moment of its own goes live at the site's publish time, in place of its state", () => {
+    const plain = weekOf([assembleMonth(FIXTURE_CALENDAR_FACTS, "2026-09")], "2026-09-15");
+    const draw = (time: string | null): Element | null =>
+      card(new DOMParser().parseFromString(renderToStaticMarkup(<ThisWeek week={weekListOf(plain, time)!} scheduled />), "text/html"), plain.today);
+    const timed = draw("4:00 PM");
+    expect(text(timed?.querySelector('[data-testid="overview-week-goes-live"]'))).toContain(copy("overview.week.today-at", { time: "4:00 PM" }));
+    expect(timed?.querySelector('[data-testid="day-state"]')).toBeNull();
+    // No time promised (the address does not work, or work is stopped): Plan's state word stands.
+    expect(draw(null)?.querySelector('[data-testid="day-state"]')).not.toBeNull();
+  });
+
   it("a short week says its real count", () => {
     const pages = week.cells.filter((cell) => cell.page !== null).length;
     expect(pages).toBeLessThan(week.cells.length);
     expect(text(dom.querySelector("h2"))).toBe(copy("overview.week.pages", { n: String(pages) }));
+  });
+});
+
+describe("today's card names when its page goes live in one short line", () => {
+  // Thursday 8 October 2026, 10:00 UTC.
+  const now = new Date(Date.UTC(2026, 9, 8, 10, 0, 0));
+  const when = async (goesLiveAt: Date): Promise<string> => {
+    const { WaitingPageCard } = await import("@/app/(account)/app/_overview/WaitingPageCard");
+    const html = renderToStaticMarkup(
+      <WaitingPageCard page={{ draftId: "d1", title: "A page", href: "/app/draft/d1", goesLiveAt } as never} scheduled timeZone="UTC" now={now} />
+    );
+    return text(new DOMParser().parseFromString(html, "text/html").querySelector('[data-testid="overview-waiting-when"]'));
+  };
+
+  it("today, tomorrow, or the day: no year, no zone and no second sentence", async () => {
+    expect(await when(new Date(Date.UTC(2026, 9, 8, 16, 0)))).toBe(copy("overview.today.eyebrow", { time: "4:00 PM" }));
+    expect(await when(new Date(Date.UTC(2026, 9, 9, 16, 0)))).toBe(copy("overview.today.eyebrow.tomorrow", { time: "4:00 PM" }));
+    expect(await when(new Date(Date.UTC(2026, 9, 12, 16, 0)))).toBe(copy("overview.today.eyebrow.on", { day: "Mon 12 Oct", time: "4:00 PM" }));
   });
 });
 

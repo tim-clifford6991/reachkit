@@ -97,8 +97,9 @@ describe("rows of squares are bars (E18, E20–E25)", () => {
     }
   });
 
-  it("the AI linked tile on Main and AppAI is one bar, not 12 squares (E20, E23)", () => {
-    for (const name of ["Main", "AppAI"]) {
+  it("the AI linked tile on AppAI is one bar, not 12 squares (E20, E23); Main's v36 board has no AI tile", () => {
+    expect(raw("Main")).not.toContain("width: 22px; height: 22px");
+    for (const name of ["AppAI"]) {
       expect(raw(name), name).not.toContain("width: 22px; height: 22px");
       const tile = board(name).querySelectorAll("p").find((p) => p.text === "Your pages in AI answers" || p.text === "Pages linked by AI")!.parentNode!;
       expect(tile.querySelectorAll(".track"), name).toHaveLength(1);
@@ -136,8 +137,9 @@ describe("How it works states the pages it read as text (E36)", () => {
 });
 
 describe("a page sketch is an icon band (E16)", () => {
-  it("each sketch on the three boards holds FileText, no skeleton bars, primary on the free page or today", () => {
-    for (const name of ["Main", "PubHowItWorks", "PubReport"]) {
+  it("each sketch on the two boards holds FileText, no skeleton bars, primary on the free page or today; Main's v36 week has none", () => {
+    expect(board("Main").querySelectorAll(".thumb")).toHaveLength(0);
+    for (const name of ["PubHowItWorks", "PubReport"]) {
       const sketches = board(name).querySelectorAll(".thumb");
       expect(sketches.length, name).toBeGreaterThan(0);
       for (const sketch of sketches) {

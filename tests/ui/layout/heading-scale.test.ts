@@ -215,7 +215,8 @@ function measureHeadings(): Measured[] {
     let classSized = false;
     if (sizeBearing.length > 0 && el.parentElement) {
       probePx = sizeOfProbe(el.parentElement, el.className);
-      classSized = probePx !== sizeOfProbe(el.parentElement, "");
+      // The eyebrow is its own rung at every viewport, even where it matches the size around it.
+      classSized = sizeBearing.includes("eyebrow") || probePx !== sizeOfProbe(el.parentElement, "");
     }
     return {
       tag: el.tagName.toLowerCase(),

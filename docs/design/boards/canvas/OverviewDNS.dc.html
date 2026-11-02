@@ -14,7 +14,7 @@
 body{margin:0;background:#f3f4fb}
 a{color:#5b4be0;text-decoration:none}a:hover{color:#4a3bc9;text-decoration:underline}
 .card{background:#ffffff;border:1px solid #e8e9f3;border-radius:14px;box-shadow:0 0 0 1px rgba(24,24,48,.06),0 1px 2px rgba(24,24,48,.04)}
-.eyebrow{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#6a6b80;margin:0}
+.eyebrow{font-size: 12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#6a6b80;margin:0}
 .fig{font-size:36px;font-weight:600;line-height:1;font-variant-numeric:tabular-nums;margin:0;letter-spacing:-0.01em}
 .muted{color:#646579}
 .num{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:13px;word-break:normal;overflow-wrap:anywhere;word-spacing:0}
@@ -122,9 +122,25 @@ h1,h2,h3,.h1{text-wrap:balance}p,li{text-wrap:pretty}
 @media (max-width: 640px){
   main{padding:16px 16px 24px !important}
 }
+/* calm pass 2026-11-01: 12px floor, 44px targets, mobile stacking */
+.eyebrow{font-size:12px}
+.sm{min-height:44px}
+.pill{min-height:44px}
+.nav a{min-height:44px;box-sizing:border-box}
+.tabs a{min-height:44px;box-sizing:border-box;display:inline-flex;align-items:center}
+.closed>summary{min-height:44px;box-sizing:border-box}
+.lnk{display:inline-flex;align-items:center;min-height:44px;font-size:14px;font-weight:600}
+.publine{min-height:44px}
+.mbar .publine{min-height:24px}
+.dnote{border:1.5px dashed #c4c6dc;border-radius:12px;padding:12px 14px;color:#6a6b80;font-size:13px;line-height:1.5;margin:0}
+.dnote b{color:#3a3d52}
+@media (max-width: 640px){.card{padding:20px 16px !important}}
+/* 44px hit areas without moving the layout */
+main a:not(.btn):not(.card):not(.lnk):not(.soft):not(.mini):not(.tabs a),footer li>a{padding-block:12px;margin-block:-12px}
+footer li>a{display:inline-block;padding-block:13px;margin-block:-13px}
 </style>
 </helmet>
-<div style="min-height: 1644px; display: flex; flex-wrap: wrap; font-family: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif; color: #1e2233; font-size: 15px; line-height: 1.55; word-spacing: .06em; background: #f3f4fb">
+<div style="min-height: 1569px; display: flex; flex-wrap: wrap; font-family: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif; color: #1e2233; font-size: 15px; line-height: 1.55; word-spacing: .06em; background: #f3f4fb">
   <nav class="nav" aria-label="Main" style="flex: 1 1 220px; max-width: 240px; box-sizing: border-box; padding: 24px 16px; background: #ffffff; border-right: 1px solid #e8e9f3; display: flex; flex-direction: column; gap: 4px">
     <a href="Main.dc.html" style="display: flex; align-items: center; gap: 8px; padding: 0 12px 20px; color: #1e2233; font-weight: 800; font-size: 18px; letter-spacing: -0.01em">
       <svg viewBox="0 0 64 64" style="width: 28px; height: 28px; stroke: none" aria-hidden="true"><defs><linearGradient id="odf" x1="0.15" y1="1" x2="0.95" y2="0.1"><stop offset="0.38" stop-color="#ffffff"></stop><stop offset="1" stop-color="#ffffff" stop-opacity="0.12"></stop></linearGradient><clipPath id="odc"><rect width="64" height="64" rx="15"></rect></clipPath></defs><g clip-path="url(#odc)"><rect width="64" height="64" fill="#5b4be0"></rect><path d="M8 50 A24 24 0 0 1 56 50 Z" fill="url(#odf)"></path></g></svg>ReachKit</a>
@@ -133,28 +149,28 @@ h1,h2,h3,.h1{text-wrap:balance}p,li{text-wrap:pretty}
     <a href="SettingsIndex.dc.html"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"></path></svg>Settings</a>
     <div style="margin-top: auto; padding: 12px; font-size: 13px; display: flex; flex-direction: column; gap: 6px">
       <a href="SettingsPublishing.dc.html" class="publine"><i style="background: #945c22"></i>Waiting for your website</a>
-      <span class="num muted">harborplumbing.com</span>
+      <span style="display: inline-flex; align-items: center; gap: 8px; min-width: 0"><span data-slot="site-logo" aria-hidden="true" style="width: 20px; height: 20px; border-radius: 5px; flex: none; display: inline-flex; align-items: center; justify-content: center; background: #ffffff; box-shadow: inset 0 0 0 1px #e8e9f3"><svg viewBox="0 0 24 24" style="width: 14px; height: 14px" aria-hidden="true"><rect x="2" y="2" width="20" height="20" rx="5" fill="#3b3fb6"></rect><rect x="6.5" y="12" width="3" height="5.5" rx="1" fill="#ffffff"></rect><rect x="10.5" y="9" width="3" height="8.5" rx="1" fill="#ffffff"></rect><rect x="14.5" y="6.5" width="3" height="11" rx="1" fill="#ffffff"></rect></svg></span><span class="num muted" style="min-width: 0">tallyroom.example</span></span>
     </div>
   </nav>
   <header class="mbar" aria-label="ReachKit">
     <div class="row"><a href="Main.dc.html" class="brand"><svg viewBox="0 0 64 64" style="width: 28px; height: 28px; stroke: none" aria-hidden="true"><defs><linearGradient id="odmf" x1="0.15" y1="1" x2="0.95" y2="0.1"><stop offset="0.38" stop-color="#ffffff"></stop><stop offset="1" stop-color="#ffffff" stop-opacity="0.12"></stop></linearGradient><clipPath id="odmc"><rect width="64" height="64" rx="15"></rect></clipPath></defs><g clip-path="url(#odmc)"><rect width="64" height="64" fill="#5b4be0"></rect><path d="M8 50 A24 24 0 0 1 56 50 Z" fill="url(#odmf)"></path></g></svg>ReachKit</a><button type="button" class="theme" aria-label="Theme: light"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"></path></svg></button></div>
-    <div class="line"><span class="num muted">harborplumbing.com</span><a href="SettingsPublishing.dc.html" class="publine"><i style="background: #945c22"></i>Waiting for your website</a></div>
+    <div class="line"><span style="display: inline-flex; align-items: center; gap: 8px; min-width: 0"><span data-slot="site-logo" aria-hidden="true" style="width: 20px; height: 20px; border-radius: 5px; flex: none; display: inline-flex; align-items: center; justify-content: center; background: #ffffff; box-shadow: inset 0 0 0 1px #e8e9f3"><svg viewBox="0 0 24 24" style="width: 14px; height: 14px" aria-hidden="true"><rect x="2" y="2" width="20" height="20" rx="5" fill="#3b3fb6"></rect><rect x="6.5" y="12" width="3" height="5.5" rx="1" fill="#ffffff"></rect><rect x="10.5" y="9" width="3" height="8.5" rx="1" fill="#ffffff"></rect><rect x="14.5" y="6.5" width="3" height="11" rx="1" fill="#ffffff"></rect></svg></span><span class="num muted" style="min-width: 0">tallyroom.example</span></span><a href="SettingsPublishing.dc.html" class="publine"><i style="background: #945c22"></i>Waiting for your website</a></div>
   </header>
 
   <main style="flex: 999 1 560px; min-width: 0; box-sizing: border-box; padding: 40px; display: flex; flex-direction: column; gap: 28px; max-width: 1040px">
 
-    <header style="display: flex; flex-direction: column; gap: 6px"><div class="hrow"><span class="eyebrow">Overview · day 2</span></div><h1 class="h1">Your first page is ready</h1><div class="leadrow">It goes live once your website is connected. Everything else is done.</div></header>
+    <header style="display: flex; flex-direction: column; gap: 6px"><div class="hrow"><span class="eyebrow">Overview · day 2</span></div><h1 class="h1">Your first page is ready</h1><div class="leadrow">It goes live once your website is connected.</div></header>
     <nav class="tabs" aria-label="Overview sections"><a href="#" aria-current="page">Overview</a><a href="AppGoogle.dc.html">Google</a><a href="AppAI.dc.html">AI</a><a href="AppCompetitors.dc.html">Competitors</a></nav>
 
     <section class="card" aria-labelledby="dns" style="padding: 24px; display: flex; flex-direction: column; gap: 18px; border-color: #fbe1c6; background: #fff3e6">
       <div style="display: flex; flex-direction: column; gap: 4px">
         <p class="eyebrow" style="color: #945c22">Needs you · about 5 minutes, once</p>
-        <h2 id="dns" class="h2">Add one setting where your web address is managed</h2>
+        <h2 id="dns" class="h2">Add one setting to your domain</h2>
       </div>
       <ol aria-label="What the setting does" style="list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 10px">
-        <li style="background: #ffffff; border: 1px solid #fbe1c6; border-radius: 12px; padding: 14px; display: flex; gap: 10px; align-items: flex-start"><span class="chipn">1</span><span style="font-size: 14px"><strong>Open your domain settings</strong><br><span class="muted">Where you bought harborplumbing.com, such as GoDaddy or Namecheap.</span></span></li>
-        <li style="background: #ffffff; border: 1px solid #fbe1c6; border-radius: 12px; padding: 14px; display: flex; gap: 10px; align-items: flex-start"><span class="chipn">2</span><span style="font-size: 14px"><strong>Paste the three values</strong><br><span class="muted">Copy each one from the box below.</span></span></li>
-        <li style="background: #ffffff; border: 1px solid #fbe1c6; border-radius: 12px; padding: 14px; display: flex; gap: 10px; align-items: flex-start"><span class="chipn" style="background: #1b765b"><svg class="ic" viewBox="0 0 24 24" style="width: 16px; height: 16px;" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg></span><span style="font-size: 14px"><strong>We do the rest</strong><br><span class="muted">Your pages appear on your own web address, under help.</span></span></li>
+        <li style="background: #ffffff; border: 1px solid #fbe1c6; border-radius: 12px; padding: 14px; display: flex; gap: 10px; align-items: flex-start"><span class="chipn">1</span><span style="font-size: 14px"><strong>Open your domain settings</strong><br><span class="muted">Where you bought tallyroom.example.</span></span></li>
+        <li style="background: #ffffff; border: 1px solid #fbe1c6; border-radius: 12px; padding: 14px; display: flex; gap: 10px; align-items: flex-start"><span class="chipn">2</span><span style="font-size: 14px"><strong>Paste the three values</strong></span></li>
+        <li style="background: #ffffff; border: 1px solid #fbe1c6; border-radius: 12px; padding: 14px; display: flex; gap: 10px; align-items: flex-start"><span class="chipn" style="background: #1b765b"><svg class="ic" viewBox="0 0 24 24" style="width: 16px; height: 16px;" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg></span><span style="font-size: 14px"><strong>We do the rest</strong><br><span class="muted">Your pages appear on help.tallyroom.example.</span></span></li>
       </ol>
       <dl style="margin: 0; display: grid; grid-template-columns: max-content minmax(0, 1fr) max-content; gap: 10px 16px; align-items: center; background: #ffffff; border: 1px solid #e8e9f3; border-radius: 9px; padding: 16px">
         <dt class="muted" style="font-size: 14px">Type</dt><dd style="margin: 0" class="num">CNAME</dd><dd style="margin: 0"><button type="button" class="btn quiet sm" style="padding: 0 8px"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>Copy<span class="sr"> the type</span></button></dd>
@@ -163,33 +179,33 @@ h1,h2,h3,.h1{text-wrap:balance}p,li{text-wrap:pretty}
       </dl>
       <div style="display: flex; gap: 12px 16px; flex-wrap: wrap; align-items: center">
         <button type="button" class="btn primary"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"></path><path d="M21 3v5h-5"></path><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"></path><path d="M8 16H3v5"></path></svg>I’ve added it, check now</button>
-        <a href="#" style="font-weight: 600; font-size: 14px">Step-by-step for GoDaddy, Namecheap, Cloudflare&nbsp;→</a>
+        <a href="#" style="font-weight: 600; font-size: 14px">Step-by-step for your domain host&nbsp;→</a>
       </div>
-      <p role="status" style="margin: 0; font-size: 14px; display: flex; gap: 8px; align-items: flex-start"><span style="color: #945c22; display: inline-flex; margin-top: 3px"><svg class="ic" viewBox="0 0 24 24" style="width: 16px; height: 16px;" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v6l4 2"></path></svg></span><span><strong>Checked 9:00 AM: not found yet.</strong> <span class="muted">We check every hour and update this page when it works. It can take a few hours.</span></span></p>
-      <details class="det"><summary><svg class="ic" viewBox="0 0 24 24" style="width: 16px; height: 16px;" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg>Other ways to connect</summary><div class="body"><p>On WordPress? Connect with an app password instead. <a href="SettingsPublishing.dc.html">Connect WordPress&nbsp;→</a></p><p>The same setting is in your first page’s mail. You can add it later from a computer.</p></div></details>
+      <p role="status" style="margin: 0; font-size: 14px; display: flex; gap: 8px; align-items: flex-start"><span style="color: #945c22; display: inline-flex; margin-top: 3px"><svg class="ic" viewBox="0 0 24 24" style="width: 16px; height: 16px;" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v6l4 2"></path></svg></span><span><strong>Checked 9:00 AM: not found yet.</strong> <span class="muted">We check every hour. It can take a few hours.</span></span></p>
+      <details class="det"><summary><svg class="ic" viewBox="0 0 24 24" style="width: 16px; height: 16px;" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg>Other ways to connect</summary><div class="body"><p>On WordPress? Connect with an app password instead. <a href="SettingsPublishing.dc.html">Connect WordPress&nbsp;→</a></p><p>The setting is also in your mail, to add later from a computer.</p></div></details>
     </section>
 
     <section class="card" aria-labelledby="waiting" style="padding: 22px 24px; display: flex; flex-wrap: wrap; gap: 20px; align-items: center">
       <div aria-hidden="true" style="flex: 1 1 540px; max-width: 540px; min-width: 0">
-        <div class="bframe" data-mock="browser" style="aspect-ratio: 16 / 10;"><div class="bbar" data-bar><span class="bdots" aria-hidden="true"><span></span><span></span><span></span></span><span class="burl" data-url><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg><b>help.harborplumbing.com/emergency-plumber-austin</b></span></div><div class="bbody"><div style="padding: 16px 18px; display: flex; flex-direction: column; gap: 8px"><span class="eyebrow" style="font-size: 10px">Harbor Plumbing · Austin</span><span style="font-weight: 700; font-size: 16px; line-height: 1.3; letter-spacing: -0.01em">Emergency plumber in Austin: what to do in the first hour</span><span style="font-size: 12px; line-height: 1.5; color: #3a3d52">If water is spreading, shut off the main valve first. In most Austin homes it sits where the water line enters the house.</span><span style="font-weight: 700; font-size: 13px; margin-top: 4px">1. Stop the water</span><span style="height: 6px; border-radius: 3px; background: #eef0f8; width: 92%; flex: none"></span><span style="height: 6px; border-radius: 3px; background: #eef0f8; width: 84%; flex: none"></span><span style="height: 6px; border-radius: 3px; background: #eef0f8; width: 70%; flex: none"></span><span style="font-weight: 700; font-size: 13px; margin-top: 4px">2. Turn off the water heater</span><span style="height: 6px; border-radius: 3px; background: #eef0f8; width: 88%; flex: none"></span><span style="height: 6px; border-radius: 3px; background: #eef0f8; width: 78%; flex: none"></span><span style="height: 6px; border-radius: 3px; background: #eef0f8; width: 60%; flex: none"></span><span style="font-weight: 700; font-size: 13px; margin-top: 4px">3. Call, and say what you see</span><span style="height: 6px; border-radius: 3px; background: #eef0f8; width: 90%; flex: none"></span><span style="height: 6px; border-radius: 3px; background: #eef0f8; width: 72%; flex: none"></span></div></div></div>
+        <div class="bframe" data-mock="browser" style="aspect-ratio: 16 / 10;"><div class="bbar" data-bar><span class="bdots" aria-hidden="true"><span></span><span></span><span></span></span><span class="burl" data-url><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg><b>help.tallyroom.example/chase-late-invoice</b></span></div><div class="bbody"><div style="padding: 16px 18px; display: flex; flex-direction: column; gap: 8px"><span class="eyebrow" style="font-size: 12px">Tallyroom</span><span style="font-weight: 700; font-size: 16px; line-height: 1.3; letter-spacing: -0.01em">How to chase a late invoice, politely</span><span style="font-size: 12px; line-height: 1.5; color: #3a3d52">Send a short, friendly reminder the day after the due date, with the invoice attached and a link to pay.</span><span style="font-weight: 700; font-size: 13px; margin-top: 4px">1. Send a reminder</span><span style="height: 6px; border-radius: 3px; background: #eef0f8; width: 92%; flex: none"></span><span style="height: 6px; border-radius: 3px; background: #eef0f8; width: 84%; flex: none"></span><span style="height: 6px; border-radius: 3px; background: #eef0f8; width: 70%; flex: none"></span><span style="font-weight: 700; font-size: 13px; margin-top: 4px">2. Call after a week</span><span style="height: 6px; border-radius: 3px; background: #eef0f8; width: 88%; flex: none"></span><span style="height: 6px; border-radius: 3px; background: #eef0f8; width: 78%; flex: none"></span><span style="height: 6px; border-radius: 3px; background: #eef0f8; width: 60%; flex: none"></span><span style="font-weight: 700; font-size: 13px; margin-top: 4px">3. Add a late fee, if your terms allow</span><span style="height: 6px; border-radius: 3px; background: #eef0f8; width: 90%; flex: none"></span><span style="height: 6px; border-radius: 3px; background: #eef0f8; width: 72%; flex: none"></span></div></div></div>
       </div>
       <div style="flex: 1 1 300px; min-width: 0; display: flex; flex-direction: column; gap: 6px">
         <p class="eyebrow" id="waiting">Waiting to go live</p>
-        <p style="margin: 0; font-weight: 700">Emergency plumber in Austin: what to do in the first hour</p>
-        <p class="muted" style="margin: 0; font-size: 14px">It goes live once the setting works. We write the rest of your week after that.</p>
+        <p style="margin: 0; font-weight: 700">How to chase a late invoice, politely</p>
+        
         <a href="AppDraft.dc.html" style="font-size: 14px; font-weight: 600">Read or edit it&nbsp;→</a>
       </div>
     </section>
 
-    <p class="muted" style="margin: 0; font-size: 14px">Your progress starts here once your first page is live.</p>
+    <p class="muted" style="margin: 0; font-size: 14px">Progress shows here once your first page is live.</p>
 
-    <section class="states" aria-label="Other states of this screen"><p class="eyebrow">Other states</p><div class="state"><span class="eyebrow">After the setting works · toast</span><span>“Connected. help.harborplumbing.com is ready, and your first page goes live on its day at 4:00 PM.” The warning card leaves; the Overview takes its weekly shape.</span></div><div class="state"><span class="eyebrow">Check finds a wrong value</span><span>“We found a setting for help, but it points to another address. Change its value to hosted.reachkit.app.”</span></div></section>
+    <section class="states" aria-label="Other states of this screen"><p class="eyebrow">Other states</p><div class="state"><span class="eyebrow">After the setting works</span><span>Toast: “Connected. Your first page goes live on its day at 4:00 PM.” This card leaves; the weekly Overview takes over.</span></div><div class="state"><span class="eyebrow">Check finds a wrong value</span><span>“The setting for help points to another address. Change its value to hosted.reachkit.app.”</span></div></section>
 
   </main>
   <nav class="dock" aria-label="Main"><a href="#" aria-current="page"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 10l9-7 9 7v10a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"></path></svg>Overview</a><a href="Plan.dc.html"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"></rect><path d="M16 2v4M8 2v4M3 10h18"></path></svg>This week</a><a href="SettingsIndex.dc.html"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"></path></svg>Settings</a></nav>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1644}}'>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1569}}'>
 class Component extends DCLogic {
   renderVals() { return {}; }
 }

@@ -10,10 +10,17 @@
 // paint and once Overview has arrived — at 390 and 1280
 // (`tests/ui/layout/skeletons.test.ts`).
 
-/** The screen: one column, in the board's order. */
-export const OVERVIEW = "flex min-w-0 flex-col gap-6";
+/** The screen: its parts join the tabs' column, so the head can sit above the tabs as the board draws it. */
+export const OVERVIEW = "contents";
+
+/** The notices and the head, drawn above the tabs. */
+export const HEAD = "-order-1 flex min-w-0 flex-col gap-6";
+
+/** Best mover beside the measures checked monthly, from `lg`. */
+export const FIGURES = "grid min-w-0 gap-6 lg:grid-cols-2";
 
 /** The regions the layout gate compares, by name. */
 export const REGION = {
   week: "overview-week",
+  figures: "overview-figures",
 } as const;
