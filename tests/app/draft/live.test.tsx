@@ -1,5 +1,5 @@
 /** @vitest-environment jsdom */
-// tests/app/draft/live.test.tsx — board `PageDetail` (canvas V22), issue 1749
+// tests/app/draft/live.test.tsx — board `PageDetail` (canvas v36)
 //
 // A live page's own screen against its board, by the same reading the
 // `no overflow · axe` gate makes (`scripts/design/parity.mjs`): every string
@@ -45,6 +45,10 @@ function at(root: Element, testId: string): Element {
   return found;
 }
 
+/** A ladder step as read: its name, then its date or standing. */
+const stepText = (li: Element): string =>
+  `${li.querySelector('[data-testid="live-step-name"]')?.textContent}${li.querySelector('[data-testid="live-step-at"]')?.textContent}`;
+
 const before = (a: Element, b: Element): boolean => (a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING) !== 0;
 
 describe("board PageDetail: every string it draws is on the screen", () => {
@@ -80,19 +84,19 @@ describe("board PageDetail: the sections, in its order and words", () => {
     expect(at(week, "live-moved").textContent).toBe(
       copy("draft.live.up.near", { places: copy("draft.live.places", { n: "17" }), date: "Sep 21, 2026", gap: copy("draft.live.places", { n: "14" }) })
     );
-    expect(at(week, "live-visits").textContent).toBe(copy("draft.live.visits", { n: "3", days: "28", date: "Oct 5, 2026" }));
+    expect(at(week, "live-visits").textContent).toBe(copy("draft.live.visits", { n: "3", days: "28" }));
     expect(at(week, "live-chart").textContent).toContain(copy("draft.live.band"));
   });
 
   it("the ladder with dates: four steps on Google, three in AI answers", () => {
-    const google = [...at(host, "live-ladder-google").querySelectorAll("li")].map((li) => li.textContent);
+    const google = [...at(host, "live-ladder-google").querySelectorAll("li")].map(stepText);
     expect(google).toEqual([
       `${copy("draft.ladder.live")}Sep 14, 2026`,
       `${copy("draft.ladder.found")}Sep 16, 2026`,
-      `${copy("draft.ladder.showing")}${copy("draft.ladder.places", { from: "41", to: "24" })}`,
-      `${copy("draft.ladder.first-page")}${copy("draft.ladder.not-yet")}`,
+      `${copy("calendar.live.showing")}${copy("draft.ladder.places", { from: "41", to: "24" })}`,
+      `${copy("draft.live.first-page")}${copy("draft.ladder.not-yet")}`,
     ]);
-    const ai = [...at(host, "live-ladder-ai").querySelectorAll("li")].map((li) => li.textContent);
+    const ai = [...at(host, "live-ladder-ai").querySelectorAll("li")].map(stepText);
     expect(ai).toEqual([
       `${copy("draft.ladder.read")}Sep 17, 2026`,
       `${copy("draft.ladder.linked")}Oct 5, 2026 · ${copy("ai-answers.engine.ai-mode")}`,
@@ -100,17 +104,38 @@ describe("board PageDetail: the sections, in its order and words", () => {
     ]);
   });
 
-  it("what happens next, why this page with the search, the page and its live link, then the controls", () => {
+  it("what happens next, then why this page: the reason, the search, then Edit and Stop and what Stop does", () => {
     const next = at(host, "live-next");
     expect(next.textContent).toBe(`${copy("draft.next.title")} ${copy("draft.next.climbing")}`);
     const why = at(host, "draft-why");
-    expect(why.querySelector("summary")?.textContent).toBe(copy("draft.search.title"));
-    const open = at(host, "live-open");
-    expect(open.textContent).toBe(`${copy("draft.live.open")} ${copy("draft.live.new-tab")}`);
-    const controls = at(host, "live-controls");
-    expect(controls.textContent).toContain(copy("draft.live.runs"));
-    expect(before(at(host, "live-week"), next) && before(next, why) && before(why, at(host, "published-view"))).toBe(true);
-    expect(before(at(host, "published-view"), open) && before(open, controls)).toBe(true);
+    const search = at(why, "draft-search");
+    expect(search.querySelector("summary")?.textContent).toBe(copy("draft.search.title"));
+    const controls = at(why, "live-controls");
+    const stop = at(controls, "take-down");
+    const note = at(controls, "live-stop-note");
+    expect(before(at(host, "live-week"), next) && before(next, why)).toBe(true);
+    expect(before(search, controls) && before(at(controls, "live-edit"), stop) && before(stop, note)).toBe(true);
+    expect(note.textContent).toBe(`${copy("draft.live.stop-note")} ${copy("draft.live.pause-lead")}${copy("draft.live.pause-link")}`);
+    expect(note.querySelector("a")?.getAttribute("href")).toBe("/app/settings/publishing");
+    expect(stop.getAttribute("aria-describedby")).toBe(note.id);
+  });
+
+  it("the search opens from a quiet link, and a step not reached is its number in a dashed ring, with no rail", () => {
+    const summary = at(host, "draft-search").querySelector("summary")!;
+    expect(summary.className).toContain("link-primary");
+    expect(summary.className).not.toContain("bg-base-200");
+    expect(summary.firstElementChild?.getAttribute("class")).toContain("lucide-chevron-down");
+    const google = at(host, "live-ladder-google");
+    expect(google.querySelector(".steps, .step")).toBeNull();
+    const pending = [...google.querySelectorAll('li[data-reached="not-yet"]')];
+    expect(pending.map((li) => li.firstElementChild!.textContent)).toEqual(["4"]);
+    expect(pending[0]!.firstElementChild!.className).toContain("border-dashed");
+  });
+
+  it("draws no separate controls card and no page preview: the header's address opens the page", () => {
+    expect([...host.querySelectorAll("section")].map((card) => card.dataset.testid)).toEqual(["live-week", "draft-why"]);
+    expect(host.querySelector(".mockup-browser, [data-testid='published-view'], [data-testid='draft-body']")).toBeNull();
+    expect(host.querySelectorAll(`a[href="${LIVE.url}"]`)).toHaveLength(1);
     expect(host.querySelector('[data-testid="draft-decide"]')).toBeNull();
   });
 });
@@ -128,9 +153,9 @@ describe("the arms the board does not draw", () => {
 
   it("never read: each unread step says not measured, and nothing reads as 0", () => {
     const host = render(withLive({ reading: null, label: null }));
-    const google = [...at(host, "live-ladder-google").querySelectorAll("li")].map((li) => li.textContent);
+    const google = [...at(host, "live-ladder-google").querySelectorAll("li")].map(stepText);
     expect(google.slice(1)).toEqual(
-      ["draft.ladder.found", "draft.ladder.showing", "draft.ladder.first-page"].map((key) => `${copy(key as never)}${copy("draft.ladder.unmeasured")}`)
+      ["draft.ladder.found", "calendar.live.showing", "draft.live.first-page"].map((key) => `${copy(key as never)}${copy("draft.ladder.unmeasured")}`)
     );
     expect(host.querySelector('[data-testid="live-visits"]')).toBeNull();
     expect(at(host, "live-badges").textContent).toContain(copy("review.label.unmeasured"));
@@ -140,8 +165,8 @@ describe("the arms the board does not draw", () => {
   it("the index state on Found by Google: the date found, not yet, or not measured", () => {
     const foundStep = (live: Partial<LiveFacts>) =>
       [...at(render(withLive(live)), "live-ladder-google").querySelectorAll("li")].find(
-        (li) => li.querySelector("span:not(.step-icon)")?.textContent === copy("draft.ladder.found")
-      )?.lastElementChild?.textContent;
+        (li) => li.querySelector('[data-testid="live-step-name"]')?.textContent === copy("draft.ladder.found")
+      )?.querySelector('[data-testid="live-step-at"]')?.textContent;
     const unfound = { ...LIVE.reading!.reached, found: undefined };
     expect(foundStep({})).toBe("Sep 16, 2026");
     expect(foundStep({ reading: { ...LIVE.reading!, reached: unfound } })).toBe(copy("draft.ladder.not-yet"));
@@ -151,8 +176,8 @@ describe("the arms the board does not draw", () => {
   it("WordPress: Found by Google, Read by AI, the AI visit and the visits line are not drawn", () => {
     const host = render(withLive({ wordpress: true }));
     const steps = host.querySelectorAll('[data-testid^="live-ladder-"] li');
-    const words = [...steps].map((li) => li.querySelector("span:not(.step-icon)")?.textContent);
-    expect(words).toEqual([copy("draft.ladder.live"), copy("draft.ladder.showing"), copy("draft.ladder.first-page"), copy("draft.ladder.linked")]);
+    const words = [...steps].map((li) => li.querySelector('[data-testid="live-step-name"]')?.textContent);
+    expect(words).toEqual([copy("draft.ladder.live"), copy("calendar.live.showing"), copy("draft.live.first-page"), copy("draft.ladder.linked")]);
     expect(host.querySelector('[data-testid="live-visits"]')).toBeNull();
   });
 });
@@ -188,7 +213,7 @@ describe("the live page's board icons", () => {
 
   it("a reached step draws its ladder's icon: the tick on Google, sparkles in AI answers", () => {
     const icons = (testId: string) =>
-      [...at(host, testId).querySelectorAll("li")].map((li) => li.querySelector(".step-icon svg")?.getAttribute("class") ?? null);
+      [...at(host, testId).querySelectorAll("li")].map((li) => li.querySelector('[data-testid="live-step-icon"] svg')?.getAttribute("class") ?? null);
     expect(icons("live-ladder-google").map((c) => c?.includes("lucide-check") ?? null)).toEqual([true, true, true, null]);
     expect(icons("live-ladder-ai").map((c) => c?.includes("lucide-sparkles") ?? null)).toEqual([true, true, null]);
   });
@@ -196,8 +221,8 @@ describe("the live page's board icons", () => {
   it("an unmeasured step keeps its words and draws no reached icon", () => {
     const unread = render(withLive({ reading: null, label: null }));
     const steps = [...unread.querySelectorAll('[data-testid^="live-ladder-"] li')].slice(1);
-    expect(steps.every((li) => li.querySelector(".step-icon") === null)).toBe(true);
-    expect(steps.every((li) => li.textContent!.endsWith(copy("draft.ladder.unmeasured")))).toBe(true);
+    expect(steps.every((li) => li.querySelector('[data-testid="live-step-icon"]') === null)).toBe(true);
+    expect(steps.every((li) => stepText(li).endsWith(copy("draft.ladder.unmeasured")))).toBe(true);
   });
 
   it("what happens next draws the refresh, not the bulb", () => {

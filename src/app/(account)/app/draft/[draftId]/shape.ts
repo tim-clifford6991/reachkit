@@ -11,4 +11,6 @@ export const SHAPE = Object.freeze({
   page: "flex min-w-0 flex-col gap-4 xl:col-start-1 xl:row-start-1",
   decide: "min-w-0 xl:col-start-2 xl:row-span-2 xl:row-start-1",
   notes: "flex min-w-0 flex-col gap-4 xl:col-start-1 xl:row-start-2",
+  // Back to This week is a link, not a button, at a 44px target.
+  back: "link link-primary link-hover inline-flex min-h-11 items-center gap-1.5 text-sm font-semibold no-underline",
 });

@@ -25,7 +25,7 @@
 // a value and carries `.num`, so where it will not fit the box grows taller
 // (`src/ui/type.css` states that rule and why).
 import type React from "react";
-import { Check, Link, LoaderCircle, Minus, Quote, Search, ShieldCheck, Sparkles, X } from "lucide-react";
+import { Check, LoaderCircle, Minus, X } from "lucide-react";
 import { copy } from "@/lib/presentation/copy";
 import { formatDate } from "../../_shell/format";
 import { CLOSED } from "../../_overview/present";
@@ -42,7 +42,8 @@ import {
 
 /** The eyebrow every card on this screen heads itself with. Matches the
  *  rows already on it rather than minting a second heading style. */
-const CARD_HEAD = "eyebrow flex items-center gap-2";
+// A note is named by its title in sentence case, with no leading icon (board AppDraft v36).
+const CARD_HEAD = "text-sm font-semibold";
 
 /**
  * A note under the page (SPEC §7, 2026-10-07, issue 1325): a card that is
@@ -109,7 +110,6 @@ export function SearchResult(p: {
         <details className={CLOSED.root}>
           <summary className={CLOSED.head}>
             <h2 className={CARD_HEAD}>
-              <Search size={14} strokeWidth={1.75} aria-hidden />
               {copy("draft.search-result.title")}
             </h2>
           </summary>
@@ -177,7 +177,6 @@ export function WrittenFromCard(p: {
         <details className={CLOSED.root}>
           <summary className={CLOSED.head}>
             <h2 className={CARD_HEAD}>
-              <Quote size={14} strokeWidth={1.75} aria-hidden />
               {copy("draft.written-from.title")}
             </h2>
           </summary>
@@ -463,7 +462,6 @@ export function WhatAddsCard(p: { adds: PageAdds | undefined }): React.JSX.Eleme
         <details className={CLOSED.root} open={ask}>
           <summary className={CLOSED.head}>
             <h2 className={CARD_HEAD}>
-              <Sparkles size={14} strokeWidth={1.75} aria-hidden />
               {copy("draft.adds.title")}
             </h2>
           </summary>
@@ -541,7 +539,6 @@ export function LinksCard(p: { links: PageLinks }): React.JSX.Element | null {
         <details className={CLOSED.root}>
           <summary className={CLOSED.head}>
             <h2 className={CARD_HEAD}>
-              <Link size={14} strokeWidth={1.75} aria-hidden />
               {copy("draft.links.title")}
             </h2>
           </summary>
@@ -654,20 +651,17 @@ export function ChecksCard(p: { list: CheckList }): React.JSX.Element | null {
   const ordered = [...rows].sort((a, b) => FIRST[a.status] - FIRST[b.status]);
   const shown = ordered.slice(0, CHECKS_SHOWN);
   const rest = ordered.slice(CHECKS_SHOWN);
-  const allPassed = counts !== null && counts.failed === 0 && !rows.some((row) => row.status === "pending");
   return (
     <section className={NOTE.card} data-testid="draft-checks">
       <div className={NOTE.pad}>
         <details className={CLOSED.root}>
           <summary className={CLOSED.head}>
             <h2 className={CARD_HEAD}>
-              <ShieldCheck size={14} strokeWidth={1.75} aria-hidden />
               <span data-testid="draft-checks-headline">
                 {counts === null
                   ? copy("draft.checks.title")
                   : copy("draft.checks.headline", { passed: counts.passed, total: counts.total })}
               </span>
-              {allPassed ? <span className="badge badge-soft badge-success badge-sm">{copy("draft.checks.all-passed")}</span> : null}
             </h2>
           </summary>
           <div className={CLOSED.body}>

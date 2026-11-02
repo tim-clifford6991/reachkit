@@ -7,8 +7,8 @@
 // content"). The rail asks for nothing: the time it goes live, stated and
 // never ticking, leads, then Edit (soft) and Stop (ghost warning), the
 // line saying what Stop does, the day's timeline and the two copy-out
-// buttons. No control on it is a solid primary. Below `md` the bar
-// says the same thing in one line with the time in it.
+// buttons (SPEC §7: one serialiser for screen, copy-as-HTML and
+// copy-as-Markdown). No control on it is a solid primary.
 //
 // A daisyUI card in an `<aside>`, the same box the calendar's day panel
 // stands in: beside the page and sticky from `xl`, in flow under it below —
@@ -24,8 +24,7 @@
 // **One set of controls.** There is no phone copy of the buttons: the same
 // ones are lifted out of flow by `max-md:` classes, and from `md` up every
 // such class is inert. A second copy would be a second thing to keep in step
-// with §9's transition table. The do-nothing sentence is the one thing said
-// twice, in two wordings for two widths, because the phone has no go-live box.
+// with §9's transition table.
 //
 // **Nothing here decides which controls exist.** `draftActionsFor` projects
 // them from §9's transition table, so this rail and the calendar's day panel
@@ -40,10 +39,9 @@
 "use client";
 
 import type React from "react";
-import { CircleCheck, CircleStop, Clock, Pencil, RotateCcw } from "lucide-react";
+import { CircleCheck, CircleStop, Clock4, Pencil, RotateCcw } from "lucide-react";
 import { copy } from "@/lib/presentation/copy";
 import { formatDate, formatDateTime } from "../../_shell/format";
-import { writtenLine } from "../../_shell/written";
 import { draftActionsFor, type DraftCommand } from "./actions";
 import { CopyOut } from "./CopyOut";
 import type { State } from "../../calendar/stages";
@@ -54,8 +52,9 @@ import { SHAPE } from "./shape";
  *  nothing is asked of the reader, so nothing on the rail should hurry them. */
 function GoesLive(p: { at: Date; timeZone: string }): React.JSX.Element {
   return (
-    <p className="rounded-box bg-base-200 min-w-0 p-4 text-sm max-md:hidden" data-testid="draft-goes-live">
-      {copy("draft.decide.goes-live", { at: formatDateTime(p.at, p.timeZone) })}
+    <p className="rounded-box bg-base-200 flex min-w-0 flex-col gap-1 p-4" data-testid="draft-goes-live">
+      <span className="eyebrow text-primary">{copy("draft.decide.goes-live")}</span>
+      <span className="text-lg font-bold">{formatDateTime(p.at, p.timeZone)}</span>
     </p>
   );
 }
@@ -82,20 +81,27 @@ function daySteps(view: DraftView, publishesAt: Date): DayStep[] {
   return steps;
 }
 
+// Done is filled success, the next moment filled primary, a later one an empty ring.
+const DOT = {
+  done: "bg-success text-success-content",
+  next: "bg-primary text-primary-content",
+  later: "border-base-300 bg-base-100 border-2",
+} as const;
+
 function DayTimeline(p: { steps: readonly DayStep[] }): React.JSX.Element {
   return (
     <ul className="timeline timeline-vertical timeline-compact min-w-0" aria-label={copy("draft.day.title")} data-testid="draft-day">
       {p.steps.map((step, at) => (
         <li key={step.key} data-testid={`draft-day-${step.key}`}>
-          {at === 0 ? null : <hr className={step.done ? "bg-success" : undefined} />}
-          <div className={`timeline-middle ${step.done ? "text-success" : step.key === "live" ? "text-primary" : "text-base-content/70"}`}>
-            {step.done ? <CircleCheck size={18} strokeWidth={1.75} aria-hidden /> : <Clock size={18} strokeWidth={1.75} aria-hidden />}
+          {at === 0 ? null : <hr className="bg-base-300" />}
+          <div className={`timeline-middle grid size-[22px] place-items-center rounded-full ${DOT[step.done ? "done" : step.key === "live" ? "next" : "later"]}`}>
+            {step.done ? <CircleCheck size={16} strokeWidth={2} aria-hidden /> : step.key === "live" ? <Clock4 size={16} strokeWidth={2} aria-hidden /> : null}
           </div>
           <div className="timeline-end mb-3 min-w-0 text-sm">
             <span className="block font-semibold">{copy(`draft.day.${step.key}`)}</span>
             <span className="block text-base-content/70">{step.at}</span>
           </div>
-          {at === p.steps.length - 1 ? null : <hr className={step.done ? "bg-success" : undefined} />}
+          {at === p.steps.length - 1 ? null : <hr className="bg-base-300" />}
         </li>
       ))}
     </ul>
@@ -129,14 +135,6 @@ export function DecidePanel(p: {
    *  pressed the controls leave and so does it. */
   const counting = publishesAt !== null && actions.length > 0;
 
-  /** The bar's one line (below `md`): the sentence with the time in it,
-   *  because a phone has no room for the go-live box. */
-  const barLine =
-    view.doNothing.key === null
-      ? null
-      : publishesAt === null
-        ? writtenLine(view.doNothing.key)
-        : writtenLine(view.doNothing.key, { at: formatDateTime(publishesAt, view.timeZone) });
   const stops = actions.some((action) => action.kind === "command" && action.command === "veto");
 
   return (
@@ -149,7 +147,7 @@ export function DecidePanel(p: {
       data-testid="draft-decide"
     >
       <div className="card-body min-w-0 gap-4 p-5">
-        <h2 className="eyebrow max-md:hidden">{copy("draft.decide.title")}</h2>
+        <h2 className="text-base font-semibold">{copy("draft.decide.title")}</h2>
 
         {counting && publishesAt !== null ? (
           <GoesLive at={publishesAt} timeZone={view.timeZone} />
@@ -170,18 +168,6 @@ export function DecidePanel(p: {
           aria-label={copy("draft.decide.title")}
           data-testid="draft-decide-bar"
         >
-          {barLine === null ? null : (
-            // **One clamped line, and the clamp is on the prose**: the
-            // clamping element holds its own text node and is not in the
-            // mono face, which is what `tests/ui/layout/checks.ts` asks.
-            <p
-              className="min-w-0 truncate text-center text-xs text-base-content/70 md:hidden"
-              data-testid="draft-do-nothing-bar"
-            >
-              {barLine}
-            </p>
-          )}
-
           {actions.length === 0 ? null : (
             <div
               className="grid grid-cols-1 gap-2 max-md:auto-cols-fr max-md:grid-flow-col max-md:grid-cols-none"
@@ -192,7 +178,7 @@ export function DecidePanel(p: {
                   <button
                     key={action.key}
                     type="button"
-                    className="btn btn-sm btn-soft"
+                    className="btn btn-soft btn-primary min-h-11"
                     data-testid={`draft-action-${action.key}`}
                     onClick={p.onEdit}
                   >
@@ -203,7 +189,7 @@ export function DecidePanel(p: {
                   <button
                     key={action.key}
                     type="button"
-                    className="btn btn-sm btn-ghost btn-warning"
+                    className="btn btn-ghost btn-warning border-warning/30 min-h-11"
                     data-testid={`draft-action-${action.key}`}
                     aria-describedby={action.command === "veto" ? STOP_NOTE_ID : undefined}
                     disabled={p.deciding}
@@ -220,7 +206,7 @@ export function DecidePanel(p: {
                   <button
                     key={action.key}
                     type="button"
-                    className="btn btn-sm btn-soft"
+                    className="btn btn-soft min-h-11"
                     data-testid={`draft-action-${action.key}`}
                     disabled={p.deciding}
                     onClick={() => p.onCommand("regenerate")}

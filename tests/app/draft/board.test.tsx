@@ -1,5 +1,5 @@
 /** @vitest-environment jsdom */
-// tests/app/draft/board.test.tsx — board `AppDraft` (canvas V22), issue 1748
+// tests/app/draft/board.test.tsx — board `AppDraft` (canvas v36)
 //
 // The draft screen before it goes live, against its board, by the same
 // reading the `no overflow · axe` gate makes (`scripts/design/parity.mjs`):
@@ -67,7 +67,8 @@ describe("board AppDraft: every string it draws is on the screen", () => {
 
   it("each allow line names a string the board draws, so none excuses nothing", () => {
     const { allowed } = compare(BOARD, [], readAllow("AppDraft"));
-    expect(allowed.length).toBe(readAllow("AppDraft").length);
+    // A component line is read by the route's component count, not by this string reading.
+    expect(allowed.length).toBe(readAllow("AppDraft").filter((a: { string: string }) => !a.string.startsWith("component:")).length);
   });
 });
 
@@ -75,32 +76,33 @@ describe("board AppDraft: the read arm, in the board's order", () => {
   const host = document.createElement("div");
   host.innerHTML = readArm();
 
-  it("back to Plan, the title, then the badges and when it was written", () => {
+  it("back to Plan, the title, then the badges and the length, with no write time", () => {
     const back = at(host, "draft-back");
     expect(back.textContent).toBe(copy("draft.back"));
     const title = at(host, "draft-title");
     expect(before(back, title)).toBe(true);
     expect(before(title, at(host, "draft-claim"))).toBe(true);
     expect(at(host, "draft-kind").textContent).toBe(copy("calendar.card.new-page"));
-    expect(at(host, "draft-written").textContent).toMatch(/· about \d[\d,]* words$/);
+    expect(at(host, "draft-written").textContent).toMatch(/^About \d[\d,]* words$/);
   });
 
   it("why this page, then the preview with its caption", () => {
     const why = at(host, "draft-why");
     expect(why.querySelector("h2")?.textContent).toBe(copy("draft.why.title"));
     const caption = at(host, "published-view-lead");
-    expect(caption.textContent).toBe(copy("draft.preview.caption", { at: "Sep 16, 2026, 10:00 AM EDT" }));
+    expect(caption.textContent).toBe(copy("draft.preview.caption"));
     expect(before(why, caption)).toBe(true);
   });
 
-  it("the checks name their first five, the rest one level down, and how we decided", () => {
+  it("the checks name their first five, the rest one level down, and how we decided; the count is the only badge", () => {
     const checks = at(host, "draft-checks");
     const shown = checks.querySelectorAll(':scope details > div [data-testid^="draft-check-"]');
     expect(shown.length - at(checks, "draft-checks-more").querySelectorAll('[data-testid^="draft-check-"]').length).toBe(5);
     expect(at(checks, "draft-checks-more").querySelector("summary")?.textContent).toBe(
       copy("draft.checks.more", { n: String(shown.length - 5) })
     );
-    expect(checks.textContent).toContain(copy("draft.checks.all-passed"));
+    expect(at(checks, "draft-checks-headline").textContent).toMatch(/^Checks: \d+ of \d+ passed$/);
+    expect(checks.querySelector("summary .badge")).toBeNull();
     expect(checks.textContent).toContain(copy("draft.checks.decided"));
   });
 
@@ -114,6 +116,7 @@ describe("board AppDraft: the read arm, in the board's order", () => {
     const stop = at(rail, "draft-action-draft.action.veto");
     const note = at(rail, "draft-stop-note");
     expect(edit.textContent).toBe("Edit this page");
+    expect(at(rail, "draft-goes-live").textContent).toBe(`${copy("draft.decide.goes-live")}Sep 16, 2026, 10:00 AM EDT`);
     expect(before(at(rail, "draft-goes-live"), edit)).toBe(true);
     expect(before(edit, stop) && before(stop, note) && before(note, at(rail, "draft-day"))).toBe(true);
   });
@@ -159,11 +162,29 @@ describe("the draft's board icons", () => {
     expect(toolbar?.textContent).toContain(new URL(VIEW.publisher.url).host);
   });
 
-  it("the links card is headed by the link, never the retired link-2 (E29)", () => {
+  it("each closed note is named by its title alone: sentence case, no leading icon (v36)", () => {
     const linked = readHost({ ...VIEW, bodyMd: `${VIEW.bodyMd}\n\nSee [the full study](https://example.org/study).\n` });
-    const head = at(linked, "draft-links").querySelector("h2");
-    expect(head?.querySelector("svg.lucide-link")).not.toBeNull();
-    expect(linked.querySelector("svg.lucide-link-2")).toBeNull();
+    const heads = [...at(linked, "draft-notes").querySelectorAll("summary h2")];
+    expect(heads.length).toBeGreaterThanOrEqual(5);
+    expect(heads.every((h) => h.querySelector("svg") === null && !h.className.includes("eyebrow"))).toBe(true);
+  });
+
+  it("the page's day: done steps filled success, going live filled primary, the first reading an empty ring", () => {
+    const day = at(readHost(), "draft-day");
+    const dot = (step: string) => at(day, `draft-day-${step}`).querySelector(".timeline-middle")!;
+    expect(dot("written").className).toContain("bg-success");
+    expect(dot("live").className).toContain("bg-primary");
+    expect(dot("reading").className).toContain("border-base-300");
+    expect(dot("reading").querySelector("svg")).toBeNull();
+    // The rail is one flat neutral line on every step, done or not.
+    expect([...day.querySelectorAll("hr")].every((hr) => hr.className === "bg-base-300")).toBe(true);
+  });
+
+  it("the header's Ready is the primary pill, and the AI label and the claim outcome stay (REQ-093 c2, REQ-045 c3)", () => {
+    const host = readHost();
+    expect(at(host, "draft-stage-your_review").className).toContain("badge-primary");
+    expect(at(host, "draft-generated-label").textContent).toBe("Written by ReachKit");
+    expect(host.querySelector('[data-testid^="draft-claim-"]')).not.toBeNull();
   });
 
   it("a page that broke a rule says so behind the warning sign", () => {
