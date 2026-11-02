@@ -195,11 +195,25 @@ describe("Live pages: each page's steps as dots, its standing and its label", ()
     expect(row.querySelector("p")?.textContent).toContain(copy("calendar.live.linked", { engines: COPY["ai-answers.engine.chatgpt"] }));
   });
 
-  it("a page never read says when it went live and that it is too early, with no dots", async () => {
+  it("a page never read says when it went live, is too early, and draws both dot rows empty, not checked and not read", async () => {
     const row = byTitle(await fixturePage(), "What an onboarding checklist should hold");
     expect(row.querySelector("p")?.textContent).toMatch(/^Live since \w{3} \d+, 2026\. We check it on Monday\.$/);
-    expect(row.querySelector("[data-reached]")).toBeNull();
+    expect([...row.querySelectorAll("[data-reached]")].map((dot) => dot.getAttribute("data-reached"))).toEqual(expect.arrayContaining(["not-yet"]));
+    expect(row.querySelector('[data-reached="yes"]')).toBeNull();
+    expect(text(row.querySelector('[data-testid="plan-live-google"]'))).toBe("Google: not checked yet");
+    expect(text(row.querySelector('[data-testid="plan-live-ai"]'))).toBe("AI: not read yet");
     expect(text(row.querySelector('[data-testid="plan-live-label"]'))).toBe(COPY["review.label.too_early"]);
+  });
+
+  it("every live row draws a Google and an AI dot row, and its Stop is a quiet link under its label", async () => {
+    for (const row of rows(await fixturePage())) {
+      for (const id of ["plan-live-google", "plan-live-ai"]) expect(row.querySelector(`[data-testid="${id}"] [data-reached]`), id).not.toBeNull();
+      const stop = row.querySelector('[data-testid="take-down"]');
+      if (stop === null) continue;
+      expect(stop.classList.contains("link")).toBe(true);
+      expect(stop.classList.contains("btn")).toBe(false);
+      expect(row.querySelector('[data-testid="plan-live-label"]')?.compareDocumentPosition(stop)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+    }
   });
 
   it("every row carries its label under it, and its title is a primary link", async () => {
@@ -214,11 +228,18 @@ describe("Live pages: each page's steps as dots, its standing and its label", ()
 });
 
 describe("the states board Plan names", () => {
+  it("only the next page's row offers Edit and Stop; every other row opens its day", async () => {
+    const week = (await fixturePage()).querySelector('[data-testid="calendar-week"]')!;
+    const offering = [...week.querySelectorAll("li")].filter((li) => li.querySelector('[data-testid="cell-edit"], [data-testid="cell-stop"]') !== null);
+    expect(offering.map((li) => li.getAttribute("data-testid"))).toEqual(["calendar-cell-2026-09-15"]);
+    for (const li of week.querySelectorAll("li")) expect(li.querySelector("button")).not.toBeNull();
+  });
+
   it("a day stopped by the customer says so, and that the other days are not affected", () => {
     const drafts = FIXTURE_CALENDAR_FACTS.drafts.map((d) => (d.scheduledFor === "2026-09-16" ? { ...d, state: "skipped" as const } : d));
     const root = render(withNuqs(<CalendarView {...shown(assembleMonth({ ...FIXTURE_CALENDAR_FACTS, drafts }, FIXTURE_MONTH))} />));
     const cell = root.querySelector('[data-testid="calendar-cell-2026-09-16"]')!;
-    expect(text(cell.querySelector('[data-testid="cell-state-line"]'))).toBe(COPY["calendar.day.stopped.line"]);
+    expect(text(cell.querySelector('[data-testid="cell-state-line"]'))).toBe("Stopped by you on Wed 16. Other days are not affected.");
     expect(cell.querySelector('[data-testid="cell-label"]')).toBeNull();
   });
 

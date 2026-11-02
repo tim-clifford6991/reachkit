@@ -485,7 +485,7 @@ export const CALENDAR_COPY = Object.freeze({
   "calendar.reason.searched": ["Buyers search for this every month.", { slots: {}, fixedBy: "board Plan (drafted)" }],
   "calendar.reason.asked": ["Buyers ask this question before they buy.", { slots: {}, fixedBy: "board Plan (drafted)" }],
   "calendar.reason.fit": ["A close fit for what your business offers.", { slots: {}, fixedBy: "board Plan (drafted)" }],
-  "calendar.day.stopped.line": ["Stopped by you. Other days are not affected.", { slots: {}, fixedBy: "board Plan v36, issue 2273 (drafted)" }],
+  "calendar.day.stopped.line": ["Stopped by you on {day}. Other days are not affected.", { slots: { day: "text" }, fixedBy: "board Plan v36, issue 2273 (drafted)" }],
   "calendar.day.skipped.line": ["Nothing worth writing for this day, so no page.", { slots: {}, fixedBy: "board Plan v36, issue 2273 (drafted)" }],
   "calendar.live.title": ["Live pages", { slots: {}, fixedBy: "board Plan (drafted)" }],
   "calendar.live.google": ["Google: {step}", { slots: { step: "text" }, fixedBy: "board Plan (drafted)" }],

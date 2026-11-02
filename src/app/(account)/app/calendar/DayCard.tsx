@@ -82,12 +82,18 @@ export function DayLines(p: {
     );
   }
   if (p.filtered) return null;
-  const line = cell.empty?.cause === "page_cannot_go_live" ? "calendar.day.stopped.line" : p.firstSkip ? "calendar.day.skipped.line" : null;
+  const line = stateLineOf(cell, p.firstSkip);
   return line === null ? null : (
     <span className="min-w-0 text-xs wrap-anywhere text-base-content/70" data-testid="cell-state-line">
-      {copy(line)}
+      {line}
     </span>
   );
+}
+
+/** What a day with no page says in its place: the day the customer stopped, else the week's first skip. */
+export function stateLineOf(cell: DayCell, firstSkip: boolean): string | null {
+  if (cell.empty?.cause === "page_cannot_go_live") return copy("calendar.day.stopped.line", { day: `${weekdayShort(cell.day)} ${dayNumber(cell.day)}` });
+  return firstSkip ? copy("calendar.day.skipped.line") : null;
 }
 
 /** The icon a state badge opens with, only where board Plan draws one. */

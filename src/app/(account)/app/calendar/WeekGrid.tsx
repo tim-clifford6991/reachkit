@@ -1,7 +1,7 @@
 // SPEC §7 (E5, 2026-10-19) — Plan's committed week, Monday to Sunday in the
 // site's zone, as one row per day at every width (board Plan): the date, the
-// page with its one quiet line of why, then its status, and where the page
-// can still be stopped, Edit and Stop (E7).
+// page with its one quiet line of why, then its status, and on the next page
+// to go live, Edit and Stop (E7).
 "use client";
 
 import type React from "react";
@@ -11,7 +11,7 @@ import { copy } from "@/lib/presentation/copy";
 import { say } from "../../../_toast/say";
 import { actionsFor, type DayCommand, type DestinationStanding } from "./actions";
 import { ANSWER_COPY_KEY, ask } from "./DayPanelView";
-import { DayStateBadge, KindChip, cardLineFor, pageShownBy } from "./DayCard";
+import { DayStateBadge, KindChip, cardLineFor, pageShownBy, stateLineOf } from "./DayCard";
 import { cardLabel, shortCauseFor } from "./card-lines";
 import { dayNumber, weekdayShort, type DayKey } from "./dates";
 import { DAY_OPEN, DAY_ROW, DAY_STATUS, REGION, WEEK_LIST } from "./frame";
@@ -26,12 +26,6 @@ function stopOf(cell: DayCell, destination: DestinationStanding | null): { comma
   return found?.kind === "command" ? { command: found.command, draftId: found.draftId } : null;
 }
 
-/** What a day with no page says in its place: a stopped day, else the week's first skip. */
-function stateLineOf(cell: DayCell, firstSkip: boolean): "calendar.day.stopped.line" | "calendar.day.skipped.line" | null {
-  if (cell.empty?.cause === "page_cannot_go_live") return "calendar.day.stopped.line";
-  return firstSkip ? "calendar.day.skipped.line" : null;
-}
-
 /** Plan draws every stage; Overview's week shares these parts. */
 const ALL = "all" as const;
 
@@ -42,12 +36,14 @@ function DayRow(p: {
   destination: DestinationStanding | null;
   goesLive: string | null;
   firstSkip: boolean;
+  /** The next page to go live: the one row that offers Edit and Stop in place. */
+  next: boolean;
   onSelect: (day: DayKey) => void;
 }): React.JSX.Element {
   const { cell } = p;
   const page = pageShownBy(cell, ALL);
   const line = cardLineFor(cell, ALL);
-  const stop = page === null ? null : stopOf(cell, p.destination);
+  const stop = p.next ? stopOf(cell, p.destination) : null;
   const [busy, startTransition] = useTransition();
   const [stopped, setStopped] = useState(false);
   const today = page !== null && cell.today && p.goesLive !== null && (page.stage === "your_review" || page.stage === "scheduled");
@@ -110,7 +106,7 @@ function DayRow(p: {
           )}
           {stateLine === null ? null : (
             <span className="min-w-0 text-sm wrap-anywhere text-base-content/70" data-testid="cell-state-line">
-              {copy(stateLine)}
+              {stateLine}
             </span>
           )}
         </span>
@@ -154,6 +150,8 @@ export function WeekGrid(p: {
   firstSkip: DayKey | null;
   onSelect: (day: DayKey) => void;
 }): React.JSX.Element {
+  // Edit and Stop sit only on the next page's row, as the board draws it; every other row opens its day, where they are.
+  const next = p.cells.find((cell) => pageShownBy(cell, ALL) !== null && stopOf(cell, p.destination) !== null)?.day ?? null;
   return (
     <ol className={WEEK_LIST} data-testid="calendar-week" data-frame={REGION.week}>
       {p.cells.map((cell) => (
@@ -164,6 +162,7 @@ export function WeekGrid(p: {
           destination={p.destination}
           goesLive={p.goesLive}
           firstSkip={cell.day === p.firstSkip}
+          next={cell.day === next}
           onSelect={p.onSelect}
         />
       ))}

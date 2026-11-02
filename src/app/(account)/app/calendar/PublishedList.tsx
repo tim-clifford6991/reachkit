@@ -84,6 +84,11 @@ function googleStep(step: CopyKey): CopyKey {
   return step === "draft.ladder.showing" ? "calendar.live.showing" : step;
 }
 
+/** Nothing has read the page yet, so no step is reached. */
+function unread(dots: readonly StepDot[], measured: boolean): readonly StepDot[] {
+  return measured ? dots : dots.map((dot) => ({ ...dot, reached: false }));
+}
+
 function Dots(p: { dots: readonly StepDot[]; caption: string; testId: string }): React.JSX.Element {
   return (
     <span className="flex min-w-0 items-center gap-2" data-testid={p.testId}>
@@ -119,7 +124,8 @@ function Row(p: {
   const stop = page?.draftId === undefined || page.url === null ? null : page.draftId;
   // No AI step yet: "not read yet" where AI reads are seen; a WordPress page has no read step.
   const none = page?.wordpress === true ? "draft.ladder.not-yet" : "calendar.live.ai-unread";
-  const ai = copy(row.ai ?? none);
+  const ai = copy(row.measured ? (row.ai ?? none) : none);
+  const google = copy(row.measured ? googleStep(row.google) : "draft.ladder.unmeasured");
   return (
     <li className="list-row min-w-0 items-start px-0" data-testid="plan-published-row" data-recent={p.recent ? "" : undefined}>
       <div className="list-col-grow flex min-w-0 flex-col gap-1">
@@ -131,20 +137,14 @@ function Row(p: {
           </Link>
         )}
         {lines.length === 0 ? null : <p className="min-w-0 text-sm text-base-content/70">{lines.join(" ")}</p>}
-        {row.measured ? (
-          <span className="flex min-w-0 flex-col gap-1 text-xs text-base-content/70">
-            <Dots dots={row.dots.google} caption={copy("calendar.live.google", { step: copy(googleStep(row.google)) })} testId="plan-live-google" />
-            <Dots dots={row.dots.ai} caption={copy("calendar.live.ai", { step: ai })} testId="plan-live-ai" />
-          </span>
-        ) : null}
+        <span className="flex min-w-0 flex-col gap-1 text-xs text-base-content/70">
+          <Dots dots={unread(row.dots.google, row.measured)} caption={copy("calendar.live.google", { step: google })} testId="plan-live-google" />
+          <Dots dots={unread(row.dots.ai, row.measured)} caption={copy("calendar.live.ai", { step: ai })} testId="plan-live-ai" />
+        </span>
         {/* Unread, a page is too early to judge. */}
         <LabelBadge label={row.label ?? "too_early"} className="mt-1 self-start" testId="plan-live-label" />
+        {stop === null ? null : <TakeDownControl draftId={stop} mode="stop" words={p.words} quiet />}
       </div>
-      {stop === null ? null : (
-        <span className="flex shrink-0 flex-col items-end gap-2">
-          <TakeDownControl draftId={stop} mode="stop" words={p.words} />
-        </span>
-      )}
     </li>
   );
 }
