@@ -102,8 +102,8 @@ describe("the time-zone screen", () => {
   it("zone draws one status card with the spinner beside its line, and no figure", async () => {
     const root = await mount(<ZoneScreen />);
     const card = root.querySelector('[data-testid="setup-zone"]')!;
-    expect(icons(card)).toEqual([]);
-    expect(card.querySelector(".loading-spinner")?.getAttribute("aria-hidden")).toBe("true");
+    expect(icons(card)).toEqual(["loader-circle"]);
+    expect(card.querySelector("svg.lucide-loader-circle")?.getAttribute("aria-hidden")).toBe("true");
     expect(card.textContent).toBe(`${COPY["setup.zone.line"]} ${COPY["setup.zone.once"]}`);
     expect(root.querySelector("figure")).toBeNull();
   });
