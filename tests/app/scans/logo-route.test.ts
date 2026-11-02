@@ -1,13 +1,14 @@
 // SPEC §2 #1058 as amended 2026-11-01: `/scans/logo/{domain}` serves the
 // stored logo of any domain whose report page is served, listed in the
-// gallery or not, and nothing for a removed or never-scanned one. Only the
+// gallery or not, or whose scan is running, and nothing for a removed or
+// never-scanned one. Only the
 // database is a double; it answers each read by the filters it was given.
 import "../../generate/env";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const PNG = Buffer.from("89504e470d0a1a0a0000000d49484452", "hex");
 
-interface ScanRow { domain: string; is_current: boolean; report: object | null; tier: string; stopped_reason: string | null }
+interface ScanRow { domain: string; is_current: boolean; report: object | null; tier: string; stopped_reason: string | null; status?: string }
 
 const db = vi.hoisted(() => ({
   scans: [] as ScanRow[],
@@ -85,6 +86,19 @@ describe("the logo route serves every public report's logo", () => {
 
   it("a domain whose current scan holds no report answers 404", async () => {
     scanned("fernwoodtea.example", { report: null });
+    expect((await get("fernwoodtea.example")).status).toBe(404);
+  });
+
+  it("a scan still running answers its logo, so the scanning screen draws it before the report", async () => {
+    scanned("fernwoodtea.example", { report: null, is_current: false, status: "running" });
+    const response = await get("fernwoodtea.example");
+    expect(response.status).toBe(200);
+    expect(Buffer.from(await response.arrayBuffer()).equals(PNG)).toBe(true);
+  });
+
+  it("a removed domain answers 404 even while a scan of it runs", async () => {
+    scanned("fernwoodtea.example", { report: null, is_current: false, status: "running" });
+    db.blocks.push({ domain: "fernwoodtea.example" });
     expect((await get("fernwoodtea.example")).status).toBe(404);
   });
 });

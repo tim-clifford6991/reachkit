@@ -341,20 +341,18 @@ export async function isListed(domain: string): Promise<boolean> {
   return (data?.length ?? 0) > 0;
 }
 
-/** Whether a domain's report page is served, listed or not: not removed,
- *  and a current scan holds its report. The logo route's one question, so a
- *  takedown takes the picture down with the report. */
-export async function servesReport(domain: string): Promise<boolean> {
+/** Whether a domain's address is served, listed or not: not removed, and a
+ *  current scan holds its report or a scan of it is running. The logo
+ *  route's one question, so a takedown takes the picture down with the report. */
+export async function servesAddress(domain: string): Promise<boolean> {
   if (await isRemovedWith(dbAdmin(), domain)) return false;
-  const { data, error } = await untyped()
-    .from<{ id: string }>("scans")
-    .select("id")
-    .eq("domain", domain)
-    .is("is_current", true)
-    .not("report", "is", null)
-    .limit(1);
-  if (error) throw new Error(`gallery: could not read ${domain}'s report: ${error.message}`);
-  return (data?.length ?? 0) > 0;
+  const [report, running] = await Promise.all([
+    untyped().from<{ id: string }>("scans").select("id").eq("domain", domain).is("is_current", true).not("report", "is", null).limit(1),
+    untyped().from<{ id: string }>("scans").select("id").eq("domain", domain).eq("status", "running").limit(1),
+  ]);
+  const error = report.error ?? running.error;
+  if (error) throw new Error(`gallery: could not read ${domain}'s scans: ${error.message}`);
+  return (report.data?.length ?? 0) + (running.data?.length ?? 0) > 0;
 }
 
 /** A listed domain's score as its gallery card states it: `null` where it is

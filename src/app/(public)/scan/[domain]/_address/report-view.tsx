@@ -55,6 +55,7 @@ import { rescoredOf } from "./rescored";
 import { RescanControl } from "./rescan";
 import { startReportCheckout } from "./checkout";
 import { StillReading } from "./still-reading";
+import { kindAndIndustry } from "./read-as";
 import { whereLine } from "@/app/_business/WhatWeRead";
 import { writePageDate } from "@/lib/publish/render/byline";
 import type { BusinessUnderstanding } from "@/lib/business/types";
@@ -391,9 +392,8 @@ function pasteLinesOf(cards: readonly ProblemCard[], problem: ProblemName): read
 /** What the scan read the business as, one badge each: what it is, who
  *  buys, where, and the market it was measured in. A field nothing was read
  *  for draws no badge. */
-function readAsOf(report: StoredReport, understanding: BusinessUnderstanding | null, kind: string | null): ReadAsChip[] {
-  const category = categoryOf(report.market);
-  const what = category !== null && kind !== null ? copy("report.read.as.what", { kind, category }) : (kind ?? category);
+function readAsOf(report: StoredReport, understanding: BusinessUnderstanding | null): ReadAsChip[] {
+  const what = kindAndIndustry(understanding?.kind, categoryOf(report.market));
   const where = understanding === null ? null : whereLine(understanding.where);
   const measured = measuredLocale(report);
   const locale = copy("report.read.as.locale", {
@@ -545,7 +545,7 @@ export function ReportView(p: {
             correction={correction}
             {...(measurement === null ? {} : { measurement })}
             {...(rescored === null ? {} : { rescored: { on: formatMeasuredOn(rescored.at), before: rescored.before } })}
-            readAs={readAsOf(report, understanding, kind)}
+            readAs={readAsOf(report, understanding)}
             notes={
               <>
                 <MeasuredInLine report={report} />

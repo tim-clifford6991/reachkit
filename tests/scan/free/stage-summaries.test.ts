@@ -106,8 +106,15 @@ function inItsTown(report: StoredReport): StoredReport {
   return { ...report, locale: { country: "US", language: "en", place: { name: "Austin", region: "Texas", location: "Austin,Texas,United States" } } } as StoredReport;
 }
 
+/** A read whose profile names the kind of business, as a pass after #1470 stores it. */
+function asKind(report: StoredReport, kind: string): StoredReport {
+  if (report.market.kind === "unmeasured") throw new Error("a panel read with no market");
+  return { ...report, market: { ...report.market, value: { ...report.market.value, profile: { ...report.market.value.profile, kind } } } } as StoredReport;
+}
+
 const PANEL = {
   saas: () => walkReport("2026-10-15-1449-after", "savvycal.com"),
+  "saas, its profile read as software": () => asKind(walkReport("2026-10-15-1449-after", "savvycal.com"), "software"),
   local: () => walkReport("2026-10-15", "austinplumbery.com"),
   "local, one reader shut out and one search found": () => withReaderOutAndOneFound(walkReport("2026-10-15", "austinplumbery.com")),
 };
@@ -191,8 +198,15 @@ describe("each finished stage carries what it found, and the report says the sam
       // Who buys and where: what the report's read-as chips draw from the stored report.
       const reading = understandBusiness({ domain: report.domain, profile: profileOfReport(report), locale: measuredLocale(report) });
       expect(at("reading_your_market").buyer).toBe(reading.buyers[0]);
+      // The kind the report's first read-as chip names, so the waiting screen names it first.
+      expect(at("reading_your_market").kind).toBe(reading.kind ?? undefined);
+      if (which.endsWith("read as software")) expect(at("reading_your_market").kind).toBe("software");
       // Where: the town the report was measured in, else the one its reading names.
       expect(at("reading_your_market").place).toBe(report.locale?.place?.name ?? reading.where.place?.name);
+      // A site with no town: how far it sells, so the waiting screen names it as the report does.
+      if (reading.where.place === null && report.locale?.place === undefined && reading.where.reach !== "local") {
+        expect(at("reading_your_market").reach).toBe(reading.where.reach ?? undefined);
+      }
       // 0¢: every doubled vendor and model port is asked as often as the report needs, and no more.
       for (const port of [measureDomain, buildSiteProfileWithCrawl, deriveProfile, deriveMarketSet, phraseQuestions]) expect(port).toHaveBeenCalledOnce();
       expect(serpOrganic).toHaveBeenCalledTimes(report.questions.kind === "unmeasured" ? 0 : report.questions.value.length);
@@ -207,7 +221,9 @@ describe("each finished stage carries what it found, and the report says the sam
       // The other stages name no field of their own.
       for (const stage of ["reading_your_site", "checking_your_presence", "scoring"]) expect(Object.keys(at(stage)).filter((k) => k !== "pagesRead")).toEqual([]);
       expect(Object.keys(at("reading_access_rules")).filter((k) => k !== "pagesRead")).toEqual(["readers"]);
-      expect(Object.keys(at("reading_your_market")).filter((k) => k !== "pagesRead")).toEqual(["category", "buyer", ...(report.locale?.place === undefined && reading.where.place === null ? [] : ["place"])]);
+      const town = report.locale?.place !== undefined || reading.where.place !== null;
+      const wide = !town && (reading.where.reach === "national" || reading.where.reach === "international");
+      expect(Object.keys(at("reading_your_market")).filter((k) => k !== "pagesRead")).toEqual(["category", ...(reading.kind === null ? [] : ["kind"]), "buyer", ...(town ? ["place"] : wide ? ["reach", "country"] : [])]);
     });
   }
 

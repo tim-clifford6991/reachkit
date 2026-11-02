@@ -118,14 +118,11 @@ const VERCEL_LIVE_SOCKET = "wss://ws-us3.pusher.com";
 const STRIPE_CHECKOUT = "https://checkout.stripe.com";
 const STRIPE_BILLING = "https://billing.stripe.com";
 
-/** The pages that draw a listed site by its own icon, read from the site
- *  itself where no logo is stored — the landing's strip and the gallery
- *  (#1110 §6, #1108): only there may an
- *  image come from any `https:` origin. An image cannot run script, and
- *  the `<img>` sends no referrer (`scans/SiteIcon.tsx`). The meta tag
- *  preview draws the share image the checked page names, on the same terms
- *  (issue 1458). */
-export const SITE_ICON_PATHS: readonly string[] = ["/", "/scans", "/tools/meta-preview"];
+/** The pages that draw an image from the site being checked: the meta tag
+ *  preview draws the share image the checked page names (issue 1458), so
+ *  only there may an image come from any `https:` origin. An image cannot
+ *  run script. */
+export const SITE_ICON_PATHS: readonly string[] = ["/tools/meta-preview"];
 
 /** 16 CSPRNG bytes, base64 — inside the character class Next's own
  *  extractor accepts (`/^'nonce-([A-Za-z0-9+/_-]+={0,2})'$/`). Web Crypto

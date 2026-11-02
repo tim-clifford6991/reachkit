@@ -1,17 +1,17 @@
 // SPEC §2 2026-09-24 (#1058), amended 2026-11-01 — a public report's logo,
 // from our own origin.
 //
-// The report's head, the gallery's cards and the landing draw each site's
-// logo from here, never from the site itself: the bytes were read once, by
-// the scan (`src/lib/site-profile/logo.ts`), and a visitor's browser asks
-// ReachKit for them. A domain whose report is not served — removed through
+// The report's head, the scan that becomes it, the gallery's cards and the
+// landing draw each site's logo from here, never from the site itself: the
+// bytes were read once, by the scan (`src/lib/site-profile/logo.ts`), and a
+// visitor's browser asks ReachKit for them. A domain whose address shows nothing — removed through
 // the removal address, or never scanned — has no logo here, so a takedown
 // takes the picture down with the report.
 //
 // The type is the one sniffed from the bytes when they were stored. An SVG
 // is served under a sandboxing policy of its own: drawn by an `<img>` it
 // runs nothing anyway, and opened directly it still runs nothing.
-import { servesReport } from "@/lib/scan/gallery";
+import { servesAddress } from "@/lib/scan/gallery";
 import { readSiteLogo } from "@/lib/site-profile";
 
 export const dynamic = "force-dynamic";
@@ -28,7 +28,7 @@ export async function GET(
 ): Promise<Response> {
   const domain = decodeURIComponent((await ctx.params).domain).toLowerCase();
   if (!/^[a-z0-9.-]{1,253}$/.test(domain)) return NOT_FOUND();
-  if (!(await servesReport(domain))) return NOT_FOUND();
+  if (!(await servesAddress(domain))) return NOT_FOUND();
   const logo = await readSiteLogo(domain);
   if (logo === null) return NOT_FOUND();
   return new Response(new Uint8Array(logo.bytes), {

@@ -3,7 +3,7 @@
 // classes in place, no wrapper of a daisyUI part.
 import type React from "react";
 import Link from "next/link";
-import { ArrowRight, Calendar, FileText, Inbox, RefreshCw, Search, Sparkles, User, type LucideIcon } from "lucide-react";
+import { ArrowRight, RefreshCw, Sparkles, User, Wallet, type LucideIcon } from "lucide-react";
 import { Surface } from "@/ui/layout";
 import { SITE_PROFILE } from "@/lib/config/constants";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
@@ -63,7 +63,7 @@ type Row = readonly [CopyKey, CopyKey];
 
 /** The two-column section above the loop: what this page gives, beside what ReachKit gives your site. */
 interface Weekly {
-  readonly eyebrow: CopyKey;
+  readonly eyebrow?: CopyKey;
   readonly title: CopyKey;
   readonly lead: CopyKey;
   readonly them: CopyKey;
@@ -73,7 +73,7 @@ interface Weekly {
 
 /** The icons a board draws on its close: one per loop step, and one per compare side. */
 interface Icons {
-  readonly steps: readonly [LucideIcon, LucideIcon, LucideIcon, LucideIcon];
+  readonly steps?: readonly [LucideIcon, LucideIcon, LucideIcon, LucideIcon];
   readonly them: LucideIcon;
   readonly us: LucideIcon;
 }
@@ -83,9 +83,12 @@ interface Close {
   /** Drawn where the board draws them. */
   readonly icons?: Icons;
   readonly heading?: CopyKey;
-  readonly lead: CopyKey;
+  /** The line under the field's heading; the short close has none. */
+  readonly lead?: CopyKey;
   /** About ends on the field and a link to How it works, without the report card. */
   readonly glance: boolean;
+  /** The close as canvas v36 draws it: no 4-step figure, only your part and the price, and the field alone in a tinted band. */
+  readonly short?: true;
 }
 
 const TEARDOWN_ROW_1: Row = ["library.close.teardown.1.them", "library.close.teardown.1.us"];
@@ -186,7 +189,6 @@ const CLOSE = {
   },
   scans: {
     weekly: {
-      eyebrow: "library.close.scans.eyebrow",
       title: "library.close.scans.title",
       lead: "library.close.scans.lead",
       them: "library.close.scans.them",
@@ -197,9 +199,9 @@ const CLOSE = {
         ["library.close.scans.3.them", "library.close.scans.3.us"],
       ],
     },
-    lead: "how.start.body",
-    glance: true,
-    icons: { steps: [Search, Calendar, FileText, Inbox], them: User, us: Sparkles },
+    glance: false,
+    short: true,
+    icons: { them: User, us: Sparkles },
   },
 } as const satisfies Record<string, Close>;
 
@@ -345,9 +347,35 @@ export function LearnLoop(
   );
 }
 
+/** Your part and the price, without the loop's figure. */
+function YourPart(): React.JSX.Element {
+  const line = "flex min-w-0 flex-[1_1_17rem] items-start gap-2.5";
+  const icon = "text-primary mt-0.5 flex-none";
+  return (
+    <div className="rounded-box bg-base-200 flex min-w-0 flex-wrap gap-x-10 gap-y-3 px-5 py-4">
+      <p className={line}>
+        <User size={20} strokeWidth={1.75} aria-hidden className={icon} />
+        <span>
+          <strong>{copy("library.close.part.label")}</strong> {copy("library.close.part.once", FIGURES)}
+        </span>
+      </p>
+      <p className={line}>
+        <Wallet size={20} strokeWidth={1.75} aria-hidden className={icon} />
+        <span>
+          <strong>{copy("library.close.price.lead", { price: copy("price.amount") })}</strong> {copy("library.close.price.rest")}
+          <Link href={HOW_HREF} className="link link-primary ms-1 inline-flex min-h-11 items-center gap-1 font-semibold no-underline">
+            {copy("landing.hero.how")}
+            <ArrowRight size={14} strokeWidth={1.75} aria-hidden />
+          </Link>
+        </span>
+      </p>
+    </div>
+  );
+}
+
 /** The weekly section's words, resolved. */
 export interface WeeklyWords {
-  readonly eyebrow: string;
+  readonly eyebrow?: string;
   readonly title: string;
   readonly lead: string;
   readonly them: string;
@@ -368,12 +396,14 @@ function Side(p: { text: string; className: string; Icon?: LucideIcon }): React.
 }
 
 /** What this page gives beside what ReachKit gives, the weekly loop, and your part. */
-export function WeeklyLoop(p: { w: WeeklyWords; icons?: Icons }): React.JSX.Element {
+export function WeeklyLoop(p: { w: WeeklyWords; icons?: Icons; short?: true }): React.JSX.Element {
   const w = p.w;
   return (
     <section className="flex min-w-0 flex-col gap-4">
       <div className="flex min-w-0 flex-col gap-2">
-        <span className="text-base-content/70 text-xs font-semibold tracking-wide uppercase">{w.eyebrow}</span>
+        {w.eyebrow === undefined ? null : (
+          <span className="text-base-content/70 text-xs font-semibold tracking-wide uppercase">{w.eyebrow}</span>
+        )}
         <h2 className="break-words">{w.title}</h2>
         <p>{w.lead}</p>
       </div>
@@ -395,14 +425,14 @@ export function WeeklyLoop(p: { w: WeeklyWords; icons?: Icons }): React.JSX.Elem
           </ul>
         </div>
       </div>
-      <LearnLoop detail={w.detail} steps={p.icons?.steps} />
+      {p.short ? <YourPart /> : <LearnLoop detail={w.detail} steps={p.icons?.steps} />}
     </section>
   );
 }
 
 function wordsOf(w: Weekly): WeeklyWords {
   return {
-    eyebrow: copy(w.eyebrow),
+    ...(w.eyebrow === undefined ? {} : { eyebrow: copy(w.eyebrow) }),
     title: copy(w.title),
     lead: copy(w.lead, FIGURES),
     them: copy(w.them),
@@ -426,28 +456,38 @@ export function LearnClose(p: { variant: LearnCloseVariant; domain?: string }): 
     p.domain === undefined ? copy("landing.start.cta") : copy("library.close.scan.domain", { domain: p.domain });
   return (
     <div className="mt-6 flex min-w-0 flex-col gap-6" data-testid="learn-close" data-variant={p.variant}>
-      {close.weekly === undefined ? null : <WeeklyLoop w={wordsOf(close.weekly)} icons={close.icons} />}
-      <section id={START_ID} className={`${CARD} bg-base-200 scroll-mt-20`}>
-        <div className={BODY}>
-          <h2>{copy(close.heading ?? "landing.close.heading")}</h2>
-          <p>{copy(close.lead, FIGURES)}</p>
-          <ScanForm words={scanFormWords(submit)} searchParams={p.domain === undefined ? undefined : { value: p.domain }} />
-          <p className={`${SMALL} flex flex-wrap gap-x-3`}>
-            <span>{copy("landing.hero.assurance")}</span>
-            {close.glance ? null : (
-              <Link href={HOW_HREF} className="link link-primary">
-                {copy("about.how")}
-              </Link>
-            )}
-          </p>
-          {close.glance
-            ? ReportGlance(
-                EXAMPLES.plumber,
-                copy("library.close.glance", { business: EXAMPLES.plumber.business, software: EXAMPLES.software.business })
-              )
-            : null}
-        </div>
-      </section>
+      {close.weekly === undefined ? null : <WeeklyLoop w={wordsOf(close.weekly)} icons={close.icons} short={close.short} />}
+      {close.short ? (
+        <section id={START_ID} aria-labelledby="start-h" className="rounded-box border-primary/20 bg-primary/10 flex scroll-mt-20 flex-col items-center gap-3.5 border px-5 py-8 text-center sm:px-10 sm:py-12">
+          <h2 id="start-h">{copy(close.heading ?? "landing.close.heading")}</h2>
+          <div className="w-full max-w-xl text-start">
+            <ScanForm words={scanFormWords(submit)} searchParams={p.domain === undefined ? undefined : { value: p.domain }} />
+          </div>
+          <p className={SMALL}>{copy("landing.hero.assurance")}</p>
+        </section>
+      ) : (
+        <section id={START_ID} className={`${CARD} bg-base-200 scroll-mt-20`}>
+          <div className={BODY}>
+            <h2>{copy(close.heading ?? "landing.close.heading")}</h2>
+            {close.lead === undefined ? null : <p>{copy(close.lead, FIGURES)}</p>}
+            <ScanForm words={scanFormWords(submit)} searchParams={p.domain === undefined ? undefined : { value: p.domain }} />
+            <p className={`${SMALL} flex flex-wrap gap-x-3`}>
+              <span>{copy("landing.hero.assurance")}</span>
+              {close.glance ? null : (
+                <Link href={HOW_HREF} className="link link-primary">
+                  {copy("about.how")}
+                </Link>
+              )}
+            </p>
+            {close.glance
+              ? ReportGlance(
+                  EXAMPLES.plumber,
+                  copy("library.close.glance", { business: EXAMPLES.plumber.business, software: EXAMPLES.software.business })
+                )
+              : null}
+          </div>
+        </section>
+      )}
     </div>
   );
 }

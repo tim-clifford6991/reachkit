@@ -19,7 +19,6 @@
 // not (`_seo/routes.ts`).
 import type React from "react";
 import type { Metadata } from "next";
-import Image from "next/image";
 import Link from "next/link";
 import {
   ArrowRight,
@@ -36,7 +35,7 @@ import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { SCORE_BANDS } from "@/lib/presentation/bands";
 import { bandOf, type BandHandle } from "@/lib/measure/bands";
 import { BUSINESS_KIND_NAMES, isBusinessKind, type BusinessKind } from "@/lib/market/kinds";
-import { BAND_TONE } from "@/ui/bands";
+import { BAND_TONE, RING_TONE } from "@/ui/bands";
 import { BADGE } from "@/app/(account)/app/_overview/badges";
 import {
   GALLERY_MOST as MOST,
@@ -52,11 +51,11 @@ import { ScoreStrip } from "@/ui/charts/ScoreStrip";
 import { ScanForm } from "../_landing/ScanForm";
 import { scanFormWords } from "../_landing/scan-form-words";
 import { EXAMPLES } from "../_how/specimen";
-import { SCORE_RING } from "../_how/visuals";
+import { RING_TRACK } from "../_how/visuals";
 import { LearnClose, ScanJump } from "../_library/parts";
 import { PUBLIC_ROUTE_SEO } from "../_seo/routes";
 import { staticMetadata } from "../_seo/metadata";
-import { SiteIcon } from "./SiteIcon";
+import { SiteMark } from "@/ui/SiteMark";
 import { KIND_ICON, KIND_WORD } from "./kinds";
 
 export const metadata: Metadata = staticMetadata(PUBLIC_ROUTE_SEO.scans);
@@ -66,12 +65,10 @@ export const metadata: Metadata = staticMetadata(PUBLIC_ROUTE_SEO.scans);
 // site removed a minute ago, is already right here.
 export const dynamic = "force-dynamic";
 
-/** Attribute values, never sentences — bound to names because the copy
- *  sweep reads a bare JSX attribute string as product voice. The logo is
- *  decorative: the company's name is written beside it. */
-const IMG = { alt: "", loading: "lazy" } as const;
+/** An attribute value, never a sentence: the copy sweep reads a bare JSX attribute string as product voice. */
 const SEARCH_AUTOCOMPLETE = "off";
-const LOOK = "card";
+/** Where the score sits in "{score} of {max}", so the figure is drawn large and the rest small. */
+const SCORE_SLOT = "\u0000";
 /** Where a free report lives, as the example report's address bar reads it. */
 const REPORT_HOST = "reachkit.app";
 /** The strip holds the newest reports, at most this many. */
@@ -147,51 +144,31 @@ function formatDay(at: Date): string {
   });
 }
 
-/** The site's own logo, served from our origin; with none stored, the
- *  site's own icon, then its first letter (`SiteIcon`, #1110 §6). */
-function LogoTile(p: { entry: GalleryEntry }): React.JSX.Element {
-  if (p.entry.hasLogo) {
-    return (
-      <span className="bg-base-100 border-base-300 flex size-12 flex-none items-center justify-center rounded-box border p-1.5 sm:size-14">
-        <Image
-          src={`/scans/logo/${encodeURIComponent(p.entry.domain)}`}
-          alt={IMG.alt}
-          width={48}
-          height={48}
-          unoptimized
-          loading={IMG.loading}
-          className="size-full object-contain"
-        />
-      </span>
-    );
-  }
-  return (
-    <SiteIcon
-      domain={p.entry.domain}
-      look={LOOK}
-      letter={Array.from(p.entry.company.trim())[0]?.toUpperCase() ?? ""}
-      noLogo={copy("gallery.card.no-logo")}
-    />
-  );
-}
-
-/** A score in its ring with its band, or "Not scored": a report with no score never reads 0 and draws no ring. */
+/** A score in its band's ring, the figure large over its band, or "Not scored": a report with no score never reads 0 and draws no ring. */
 function ScoreLine(p: { score: number | null }): React.JSX.Element {
   if (p.score === null) {
     return <p className="text-base-content/70 text-sm">{copy("gallery.card.no-score")}</p>;
   }
+  return <ScoreFigure score={p.score} />;
+}
+
+function ScoreFigure(p: { score: number }): React.JSX.Element {
   const band = bandOf(p.score);
-  const score = copy("gallery.card.score", { score: String(p.score), max: String(SCORE_MAX) });
+  const max = String(SCORE_MAX);
+  const [, rest = ""] = copy("gallery.card.score", { score: SCORE_SLOT, max }).split(SCORE_SLOT);
   return (
     <div className="flex items-center gap-3">
       <div
         role="img"
-        aria-label={score}
-        className={`${SCORE_RING} flex-none [--size:3rem]`}
+        aria-label={copy("gallery.card.score", { score: String(p.score), max })}
+        className={`${RING_TRACK} ${RING_TONE[BAND_TONE[band]]} flex-none [--size:3rem]`}
         style={{ "--value": p.score } as React.CSSProperties}
       />
-      <p className="flex flex-wrap items-center gap-2">
-        <span className="num text-lg font-semibold">{score}</span>
+      <p className="flex flex-col items-start gap-0.5">
+        <span>
+          <span className="text-2xl font-extrabold">{p.score}</span>
+          <span className="text-base-content/70 text-xs font-semibold">{rest}</span>
+        </span>
         <span className={`${BADGE[BAND_TONE[band]]} badge-sm`}>{copy(SCORE_BANDS[band])}</span>
       </p>
     </div>
@@ -212,7 +189,7 @@ function Card(p: { entry: GalleryEntry }): React.JSX.Element {
       >
         <div className="card-body gap-2 p-4">
           <div className="flex min-w-0 items-center gap-3">
-            <LogoTile entry={entry} />
+            <SiteMark domain={entry.domain} hasLogo={entry.hasLogo} size={44} />
             <div className="flex min-w-0 flex-col">
               {/* Names wrap rather than clamp: the gate reads a clamp as a
                   cut, and a card may grow a line. */}
@@ -226,7 +203,7 @@ function Card(p: { entry: GalleryEntry }): React.JSX.Element {
             {Kind === null ? null : <Kind size={16} strokeWidth={1.75} aria-hidden className="flex-none" />}
             <span className="min-w-0 break-words">{meta}</span>
           </p>
-          <span className="text-base-content/70 mt-auto hidden items-center gap-1 text-sm sm:inline-flex">
+          <span className="text-primary mt-auto inline-flex min-h-11 items-center gap-1 self-start text-sm font-semibold">
             {copy("gallery.card.view")}
             <ArrowRight
               size={14}
@@ -307,7 +284,7 @@ function NewestStrip(p: { entries: readonly GalleryEntry[] }): React.JSX.Element
     unscored.length === 0
       ? null
       : unscored.length === 1
-        ? copy("gallery.strip.unscored.one", { n, domain: unscored[0]!.domain })
+        ? copy("gallery.strip.unscored.one", { domain: unscored[0]!.domain })
         : copy("gallery.strip.unscored.many", { count: String(unscored.length), n }),
   ]
     .filter((part) => part !== null)
@@ -350,13 +327,11 @@ const INSIDE = [1, 2, 3, 4] as const;
 /** The four questions every free report answers, on the example business's report. */
 function InsideReport(): React.JSX.Element {
   const e = EXAMPLES.plumber;
-  const band = bandOf(e.report.score);
-  const well = "rounded-box bg-base-200 flex min-w-0 flex-col gap-1 p-3";
-  const step = "badge badge-soft badge-primary badge-sm";
+  const well = "rounded-box bg-base-200 flex min-w-0 items-start gap-2.5 p-3";
+  const step = "badge badge-primary size-6 flex-none rounded-full p-0 text-xs font-extrabold";
   return (
     <section aria-labelledby="inside-h" className="mx-auto flex w-full max-w-6xl min-w-0 flex-col gap-6 px-4 py-12">
       <div className="flex min-w-0 flex-col gap-2">
-        <p className="eyebrow">{copy("gallery.inside.eyebrow")}</p>
         <h2 id="inside-h">{copy("gallery.inside.heading")}</h2>
         <p className="text-base-content/70 max-w-2xl">{copy("gallery.inside.lead")}</p>
       </div>
@@ -368,56 +343,49 @@ function InsideReport(): React.JSX.Element {
             </div>
           </div>
           <div className="grid min-w-0 grid-cols-1 gap-2 p-4 sm:grid-cols-2">
-            <div className={well}>
+            <div className={`${well} items-center`}>
               <span className={step} aria-hidden>{INSIDE[0]}</span>
-              <span className="flex flex-wrap items-center gap-2">
-                <span
-                  aria-hidden
-                  className={`${SCORE_RING} [--size:3rem]`}
-                  style={{ "--value": e.report.score } as React.CSSProperties}
-                />
-                <span className="num text-lg font-semibold">
-                  {copy("gallery.card.score", { score: String(e.report.score), max: String(SCORE_MAX) })}
-                </span>
-                <span className={`${BADGE[BAND_TONE[band]]} badge-sm`}>{copy(SCORE_BANDS[band])}</span>
-              </span>
+              <ScoreFigure score={e.report.score} />
             </div>
             <div className={well}>
               <span className={step} aria-hidden>{INSIDE[1]}</span>
-              <span className="font-semibold">{copy("gallery.inside.rivals")}</span>
-              {e.watched.map((rival) => (
-                <span key={rival} className="text-base-content/70 font-mono text-xs break-all">{rival}</span>
-              ))}
+              <span className="flex min-w-0 flex-col gap-1">
+                <span className="text-sm font-semibold">{copy("gallery.inside.rivals")}</span>
+                {e.watched.map((rival) => (
+                  <span key={rival} className="text-base-content/70 font-mono text-xs break-all">{rival}</span>
+                ))}
+              </span>
             </div>
             <div className={well}>
               <span className={step} aria-hidden>{INSIDE[2]}</span>
-              <span className="font-semibold">{copy("how.rivals.tally", { n: e.tally.n, total: e.tally.total })}</span>
-              <progress aria-hidden className="progress progress-primary" value={e.tally.n} max={e.tally.total} />
+              <span className="flex min-w-0 flex-1 flex-col gap-2">
+                <span className="text-sm font-semibold">{copy("how.rivals.tally", { n: e.tally.n, total: e.tally.total })}</span>
+                <progress aria-hidden className="progress progress-primary" value={e.tally.n} max={e.tally.total} />
+              </span>
             </div>
             <div className={well}>
               <span className={step} aria-hidden>{INSIDE[3]}</span>
-              <span className="font-semibold">{copy("how.start.missing", { n: e.report.missing })}</span>
-              <span className="text-base-content/70 flex min-w-0 items-start gap-1.5 text-sm">
-                <FileText size={16} strokeWidth={1.75} aria-hidden className="mt-0.5 flex-none" />
-                <span className="min-w-0 break-words">{e.page.title}</span>
+              <span className="flex min-w-0 flex-col gap-1">
+                <span className="text-sm font-semibold">{copy("how.start.missing", { n: e.report.missing })}</span>
+                <span className="text-base-content/70 flex min-w-0 items-start gap-1.5 text-sm">
+                  <FileText size={16} strokeWidth={1.75} aria-hidden className="mt-0.5 flex-none" />
+                  <span className="min-w-0 break-words">{e.page.title}</span>
+                </span>
               </span>
             </div>
           </div>
         </div>
-        <ol className="card bg-base-100 shadow-(--shadow-card) flex min-w-0 flex-col gap-3 p-5">
+        <ol className="card bg-base-100 shadow-(--shadow-card) divide-base-300 flex min-w-0 flex-col divide-y px-5 py-2">
           {INSIDE.map((n) => (
-            <li key={n} className="flex min-w-0 gap-3">
+            <li key={n} className="flex min-w-0 gap-2.5 py-2.5">
               <span className={step} aria-hidden>{n}</span>
               <span className="flex min-w-0 flex-col">
-                <strong>{copy(`gallery.inside.${n}.title` as CopyKey)}</strong>
+                <strong className="text-sm">{copy(`gallery.inside.${n}.title` as CopyKey)}</strong>
                 <span className="text-base-content/70 text-sm">{copy(`gallery.inside.${n}.line` as CopyKey)}</span>
               </span>
             </li>
           ))}
         </ol>
-        <figcaption className="text-base-content/70 text-sm lg:col-span-2">
-          {copy("library.close.example", { business: e.business })}
-        </figcaption>
       </figure>
     </section>
   );
@@ -513,7 +481,7 @@ export default async function ScansPage(props: {
                         <Link
                           href={href(view, { kind: pill.kind, shown: PAGE })}
                           aria-current={current ? "true" : undefined}
-                          className={`btn btn-sm rounded-full font-medium whitespace-nowrap ${current ? "border-base-content bg-base-content text-base-100" : "btn-ghost"}`}
+                          className={`btn h-11 rounded-full font-medium whitespace-nowrap ${current ? "border-base-content bg-base-content text-base-100" : "btn-ghost"}`}
                         >
                           <pill.Icon size={16} strokeWidth={1.75} aria-hidden />
                           {pill.label}
@@ -608,9 +576,6 @@ export default async function ScansPage(props: {
                   <ScanJump />
                 </div>
               </div>
-              <p className="text-base-content/70 text-center text-sm">
-                {copy("gallery.removal", { address: copy("removal.address") })}
-              </p>
             </div>
           </div>
         </section>

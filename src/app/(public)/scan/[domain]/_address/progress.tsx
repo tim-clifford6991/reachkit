@@ -20,8 +20,8 @@
 // the document: the server resolves the address again, now finds a stored
 // report, and the `report` arm replaces this one in place.
 //
-// daisyUI `steps steps-vertical` in the route (DESIGN rule 1); a finished
-// stage's bead carries lucide's check at stroke 1.75.
+// One row per stage, as board PubScanning draws it: a bead with the stage's
+// lucide icon (a check once finished), its words, and its status.
 //
 // The stream is `GET /api/scan/{scanId}/progress` (server-sent events),
 // which serialises `@/lib/scan/stages`' own `StageEvent` verbatim.
@@ -39,7 +39,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Check } from "lucide-react";
+import { Check, Globe, Search, ShieldCheck, Sparkles, TrendingUp, Users, type LucideIcon } from "lucide-react";
 import { BATTERY } from "@/lib/config/constants";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import type { StageEvent, StageName, StageSummary } from "@/lib/scan/stages";
@@ -65,6 +65,33 @@ const STAGE_LINE = {
   asking_the_twelve: "stage.asking_the_twelve.line",
   scoring: "stage.scoring.line",
 } as const satisfies Record<StageName, CopyKey>;
+
+/** Each stage's bead, the same icon as the report card it fills. */
+const STAGE_ICON = {
+  reading_your_site: Globe,
+  reading_access_rules: ShieldCheck,
+  reading_your_market: Users,
+  checking_your_presence: Search,
+  asking_the_twelve: Sparkles,
+  scoring: TrendingUp,
+} as const satisfies Record<StageName, LucideIcon>;
+
+const BEAD: Record<StageState, string> = {
+  done: "badge-soft badge-success",
+  active: "bg-primary text-primary-content border-primary",
+  pending: "border-base-300 text-base-content/70 bg-transparent border-[1.5px]",
+};
+const ROW: Record<StageState, string> = {
+  done: "",
+  active: "bg-primary/10 rounded-field -mx-3.5 border-transparent px-3.5",
+  pending: "",
+};
+const TITLE: Record<StageState, string> = { done: "font-semibold", active: "font-bold", pending: "text-base-content/70" };
+const STATUS: Record<StageState, { key: CopyKey; className: string }> = {
+  done: { key: "stage.status.done", className: "badge-success badge-soft" },
+  active: { key: "stage.status.working", className: "badge-primary badge-soft" },
+  pending: { key: "stage.status.next", className: "badge-ghost" },
+};
 
 /** The searches a free scan checks, from the battery's own count. */
 export const SEARCHES = { searches: String(BATTERY.QUESTIONS) };
@@ -221,44 +248,38 @@ export function ScanProgress(p: {
   const stages = p.stages ?? own;
 
   return (
-    <ol className="steps steps-vertical">
+    <ol className="flex flex-col" data-testid="scan-stages">
       {STAGES.map((stage) => {
         const seconds = stages.elapsed[stage];
         const from = stages.entered[stage];
         const state = stageState(stages, stage);
+        const Icon = state === "done" ? Check : STAGE_ICON[stage];
+        const status = STATUS[state];
         return (
           <li
             key={stage}
-            className={state === "done" ? "step step-success" : state === "active" ? "step step-primary" : "step"}
+            className={`border-base-300 flex flex-wrap items-center gap-x-3 gap-y-1.5 border-t py-3 ${ROW[state]} ${state === "done" ? "motion-safe:animate-rise" : ""}`}
             data-state={state}
             aria-current={state === "active" ? "step" : undefined}
           >
-            {state === "done" ? (
-              <span className="step-icon" aria-hidden>
-                <Check size={16} strokeWidth={1.75} aria-hidden />
-              </span>
-            ) : null}
-            {/* A stage rises into its finished state as it finishes (the calm
-                layer's motion, #1059); reduced motion draws it in place. */}
-            <span
-              className={`flex w-full flex-wrap items-start justify-between gap-x-3 gap-y-1 text-start ${state === "done" ? "motion-safe:animate-rise" : ""}`}
-            >
-              <span className="flex min-w-0 flex-col">
-                <span>{copy(STAGE_KEY[stage], SEARCHES)}</span>
-                <span className="text-base-content/70 text-sm">{copy(STAGE_LINE[stage])}</span>
-              </span>
-              <span className="flex items-center gap-2">
-                <span className={`badge badge-sm ${state === "done" ? "badge-success badge-soft" : state === "active" ? "badge-primary badge-soft" : "badge-ghost"}`}>
-                  {copy(state === "done" ? "stage.status.done" : state === "active" ? "stage.status.working" : "stage.status.next")}
-                </span>
-                {/* Only a finished stage has a duration and only the running one a start; a stage ahead has neither. */}
-                {state === "done" && seconds !== undefined ? (
-                  <span className="text-base-content/70 text-xs">{copy("stage.elapsed", { seconds: String(seconds) })}</span>
-                ) : null}
-                {state === "active" && from !== undefined ? (
-                  <span className="text-base-content/70 text-xs">{copy("stage.started", { time: clock(Math.round(from)) })}</span>
-                ) : null}
-              </span>
+            {/* A stage rises into its finished state as it finishes (the calm layer's motion, #1059); reduced motion draws it in place. */}
+            <span aria-hidden className={`badge size-8 flex-none rounded-full p-0 ${BEAD[state]}`}>
+              <Icon size={16} strokeWidth={1.75} />
+            </span>
+            <span className="flex min-w-0 flex-1 flex-col">
+              <span className={TITLE[state]}>{copy(STAGE_KEY[stage], SEARCHES)}</span>
+              <span className="text-base-content/70 text-xs">{copy(STAGE_LINE[stage])}</span>
+            </span>
+            {/* On a phone every status sits under its stage's words, so the title keeps the row's width and a stage finishing never changes its row's height. */}
+            <span className="flex basis-full items-center gap-2.5 ps-11 sm:basis-auto sm:flex-col sm:items-end sm:gap-0.5 sm:ps-0">
+              <span className={`badge badge-sm ${status.className}`}>{copy(status.key)}</span>
+              {/* Only a finished stage has a duration and only the running one a start; a stage ahead has neither. */}
+              {state === "done" && seconds !== undefined ? (
+                <span className="num text-base-content/70 text-xs">{copy("stage.elapsed", { seconds: String(seconds) })}</span>
+              ) : null}
+              {state === "active" && from !== undefined ? (
+                <span className="num text-base-content/70 text-xs">{copy("stage.started", { time: clock(Math.round(from)) })}</span>
+              ) : null}
             </span>
           </li>
         );

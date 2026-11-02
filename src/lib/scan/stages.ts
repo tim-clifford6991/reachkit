@@ -56,6 +56,8 @@
 // without itself touching a database.
 import { dbAdmin } from "@/lib/db";
 import { BATTERY, TIMING } from "@/lib/config/constants";
+import { isBusinessKind, type BusinessKind } from "@/lib/market/kinds";
+import { isCountry, type Country } from "@/lib/locale/locales";
 import type { Ending } from "./ceilings";
 
 // ── StageName, STAGES — BP-023 decision 7 ───────────────────────────────
@@ -103,10 +105,15 @@ export interface StageSummary {
   /** Pages the site's crawl read; never 0, which would read as measured. */
   pagesRead?: number;
   category?: string;
+  /** The kind of business the market read, so the screen names it before the report. */
+  kind?: BusinessKind;
   /** Who buys, as the report's reading words it: a phrase, never cut. */
   buyer?: string;
   /** The town a local site sells in; absent for a site that sells wider. */
   place?: string;
+  /** How far a site with no town sells, and the country that reach is read in. */
+  reach?: "national" | "international";
+  country?: Country;
   readers?: { google: "in" | "out"; ai: "in" | "out" };
   searches?: readonly { words: string; onPageOne: boolean }[];
 }
@@ -126,9 +133,12 @@ export function asSummary(value: unknown): StageSummary | undefined {
   const out: { -readonly [K in keyof StageSummary]: StageSummary[K] } = {};
   if (typeof v.pagesRead === "number" && Number.isInteger(v.pagesRead) && v.pagesRead >= 1) out.pagesRead = v.pagesRead;
   if (typeof v.category === "string" && v.category.trim() !== "" && v.category.length <= CATEGORY_MAX) out.category = v.category;
+  if (typeof v.kind === "string" && isBusinessKind(v.kind)) out.kind = v.kind;
   // Past its cap a phrase is dropped, never cut, so the screen never shows half of one.
   if (typeof v.buyer === "string" && v.buyer.trim() !== "" && v.buyer.length <= BUYER_MAX) out.buyer = v.buyer;
   if (typeof v.place === "string" && v.place.trim() !== "" && v.place.length <= PLACE_MAX) out.place = v.place;
+  if (v.reach === "national" || v.reach === "international") out.reach = v.reach;
+  if (isCountry(v.country)) out.country = v.country;
   const readers = v.readers as Record<string, unknown> | null | undefined;
   if (typeof readers === "object" && readers !== null && isReader(readers.google) && isReader(readers.ai)) {
     out.readers = { google: readers.google, ai: readers.ai };

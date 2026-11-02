@@ -19,6 +19,11 @@ export type SiteMarkSize = keyof typeof BOX;
 /** Attribute values, never sentences: the copy rule reads a bare attribute string as voice. */
 const IMG = { alt: "", lazy: "lazy", eager: "eager" } as const;
 
+/** Where the stored logo is served from our own origin. */
+export function siteLogoSrc(domain: string): string {
+  return `/scans/logo/${encodeURIComponent(domain)}`;
+}
+
 /** The same domain always gets the same tint. */
 export function tintOf(domain: string): (typeof TINTS)[number] {
   const sum = [...domain].reduce((n, ch) => n + ch.charCodeAt(0), 0);
@@ -34,7 +39,7 @@ export function SiteMark(p: { domain: string; hasLogo: boolean; size?: SiteMarkS
         {/* A plain <img>: the logo route already serves a small stored file. */}
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src={`/scans/logo/${encodeURIComponent(p.domain)}`}
+          src={siteLogoSrc(p.domain)}
           alt={IMG.alt}
           loading={size >= 48 ? IMG.eager : IMG.lazy}
           width={size}

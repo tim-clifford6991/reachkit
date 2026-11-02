@@ -114,7 +114,7 @@ describe("the scans close draws its own icons", () => {
 
 describe("every close with the glance draws its ring, icon tiles and AI bar", () => {
   const e = EXAMPLES.plumber.report;
-  it.each(PAGES.map((page) => page.variant).filter((variant) => variant !== "about"))("%s", (variant) => {
+  it.each(PAGES.map((page) => page.variant).filter((variant) => variant !== "about" && variant !== "scans"))("%s", (variant) => {
     const page = parse(renderToStaticMarkup(createElement(LearnClose, { variant: variant as "about" })));
     const glance = page.querySelector(`figure[aria-label="${copy("how.start.glance")}"]`);
     expect(glance?.querySelector(".radial-progress")?.getAttribute("style")).toContain(`--value:${e.score}`);
@@ -128,8 +128,8 @@ describe("every close with the glance draws its ring, icon tiles and AI bar", ()
     ]);
   });
 
-  it("about ends without the glance", () => {
-    const page = parse(renderToStaticMarkup(createElement(LearnClose, { variant: "about" })));
+  it.each(["about", "scans"] as const)("%s ends without the glance", (variant) => {
+    const page = parse(renderToStaticMarkup(createElement(LearnClose, { variant })));
     expect(page.querySelector(`figure[aria-label="${copy("how.start.glance")}"]`)).toBeNull();
   });
 });

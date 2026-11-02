@@ -161,7 +161,7 @@ describe("issue #331 — the policy itself", () => {
     expect(policy).not.toContain("upgrade-insecure-requests");
   });
 
-  it("an image may come from any https origin on the gallery only, where a site is drawn by its own icon", () => {
+  it("an image may come from any https origin only where the meta preview draws a checked page's share image", () => {
     expect(directive("img-src").split(" ")).not.toContain("https:");
     expect(contentSecurityPolicy("N", false, true).split("; ").find((d) => d.startsWith("img-src"))?.split(" ")).toContain("https:");
   });

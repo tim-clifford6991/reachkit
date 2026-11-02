@@ -25,3 +25,12 @@ export const BAND_TONE: Readonly<Record<BandHandle, Tone>> = Object.freeze({
   findable: "ok",
   dominant: "ok",
 });
+
+/** A score ring is drawn in its band's colour, as the badge beside it is. */
+export const RING_TONE: Readonly<Record<Tone, string>> = Object.freeze({
+  accent: "text-primary",
+  ok: "text-success",
+  warn: "text-warning",
+  bad: "text-error",
+  neutral: "text-base-content/70",
+});

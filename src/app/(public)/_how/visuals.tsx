@@ -54,8 +54,8 @@ const SMALL_ICON = { size: 12, strokeWidth: 1.75, "aria-hidden": true } as const
 /** Both example weeks rest on their last day. */
 const DAY_OFF = 6;
 /** A score's ring as the free report draws it, sized by the caller with `[--size:…]`. */
-export const SCORE_RING =
-  "radial-progress text-primary after:hidden shadow-[inset_0_0_0_5px_var(--color-base-200)] [--thickness:5px]";
+export const RING_TRACK = "radial-progress after:hidden shadow-[inset_0_0_0_5px_var(--color-base-200)] [--thickness:5px]";
+export const SCORE_RING = `${RING_TRACK} text-primary`;
 /** The icon tile a figure opens with. */
 export const ICON_TILE = "rounded-field grid size-9 flex-none place-items-center bg-base-200";
 

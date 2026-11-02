@@ -14,7 +14,7 @@ import type { GalleryEntry } from "@/lib/scan/gallery";
  *  was scored, and older reports enough to fill the strip. */
 const ENTRIES: readonly GalleryEntry[] = [
   { domain: "harborplumbing.example", company: "Harbor Plumbing", score: 27, category: "emergency plumbing", kind: "local-service", scannedAt: new Date("2026-10-19T09:00:00Z"), hasLogo: false },
-  { domain: "tidyslot.example", company: "Tidyslot", score: 56, category: "booking software", kind: "software", scannedAt: new Date("2026-10-19T08:00:00Z"), hasLogo: false },
+  { domain: "tidyslot.example", company: "Tidyslot", score: 56, category: "booking software", kind: "software", scannedAt: new Date("2026-10-19T08:00:00Z"), hasLogo: true },
   { domain: "cedar-yoga.example", company: "cedar-yoga.example", score: null, category: null, kind: null, scannedAt: new Date("2026-10-18T08:00:00Z"), hasLogo: false },
   ...Array.from({ length: 9 }, (_, i) => ({
     domain: `older-${i}.example`,
@@ -59,11 +59,13 @@ function boardSection(id: string, drop?: string): string {
 describe("/scans matches board PubScans", () => {
   it.each([
     ["the heading, the count, the scan field and the score strip", "top-h", undefined],
-    ["the reports: kind of business, search, sort, the cards and the removal line", "list", "empty"],
+    ["the reports: kind of business, search, sort and the cards", "list", "empty"],
     ["what every free report shows", "inside-h", undefined],
+    ["the weekly rows, your part and the price", "weekly-h", undefined],
+    ["the field at the foot", "start-h", undefined],
   ])("carries every string of %s", async (_name, id, drop) => {
     // The board's own sample reports' initials; this render's reports are other businesses.
-    const sample = ["C", "P"].map((string) => ({ string }));
+    const sample = ["C", "P", "T"].map((string) => ({ string }));
     const { missing } = compare(boardSection(id, drop), segments(await render()), [...readAllow("PubScans"), ...sample]);
     expect(missing).toEqual([]);
   });
@@ -119,6 +121,56 @@ describe("the kind of business", () => {
   });
 });
 
+describe("the board's cuts (canvas v36)", () => {
+  it("no removal line, no eyebrow over the report's four questions, no example caption, no 4-step figure, no glance and no lead over the field", async () => {
+    const page = parse(await render());
+    const text = segments(page.outerHTML);
+    expect(text.some((line) => line.includes(copy("removal.address")))).toBe(false);
+    expect(page.querySelector('section[aria-labelledby="inside-h"] .eyebrow')).toBeNull();
+    expect(page.querySelector('section[aria-labelledby="inside-h"] figcaption')).toBeNull();
+    const close = page.querySelector('[data-variant="scans"]')!;
+    expect(close.querySelector('[data-testid="learn-loop"]')).toBeNull();
+    expect(close.querySelector("#start figure")).toBeNull();
+    expect(close.querySelector("#start .stat")).toBeNull();
+    expect(text).not.toContain(copy("how.start.body"));
+    expect(text).not.toContain(copy("about.how"));
+  });
+});
+
+describe("each card's mark and the 44px targets", () => {
+  it("every one of the 12 cards draws a 44px mark: the stored logo where one is kept, else its letter on a tint", async () => {
+    const cards = parse(await render()).querySelectorAll('[data-testid="gallery-cards"] > li');
+    expect(cards).toHaveLength(12);
+    for (const [i, card] of cards.entries()) {
+      const entry = ENTRIES[i]!;
+      const mark = card.querySelector("span.size-11")!;
+      expect(mark, entry.domain).not.toBeNull();
+      if (entry.hasLogo) {
+        const img = mark.querySelector("img")!;
+        expect([img.getAttribute("src"), img.getAttribute("width")]).toEqual([`/scans/logo/${entry.domain}`, "44"]);
+      } else {
+        expect(mark.text).toBe(entry.domain[0]!.toUpperCase());
+        expect(mark.classList.contains("badge-soft")).toBe(true);
+      }
+      // The site's own icon is never read from the site.
+      expect(card.querySelector('img[src^="https:"]')).toBeNull();
+    }
+  });
+
+  it("six kind chips in BUSINESS_KINDS order, worded as gallery.kind.*, and View report on every card, each 44px", async () => {
+    const { BUSINESS_KIND_NAMES } = await import("@/lib/market/kinds");
+    const page = parse(await render());
+    const chips = page.querySelectorAll("nav[aria-label] a").slice(1);
+    expect(chips.map((a) => a.text)).toEqual(BUSINESS_KIND_NAMES.map((kind) => copy(`gallery.kind.${kind}`)));
+    for (const chip of chips) expect(chip.classList.contains("h-11")).toBe(true);
+    for (const card of page.querySelectorAll('[data-testid="gallery-cards"] > li')) {
+      const view = card.querySelectorAll("span").find((span) => span.text === copy("gallery.card.view"))!;
+      expect(view.classList.contains("min-h-11")).toBe(true);
+      expect(view.classList.contains("hidden")).toBe(false);
+    }
+  });
+});
+
 describe("a report with no score", () => {
   it("reads Not scored on its card, never 0, and the strip names it rather than drawing it", async () => {
     const page = await render();
@@ -126,7 +178,7 @@ describe("a report with no score", () => {
     expect(segments(card.outerHTML)).toContain(copy("gallery.card.no-score"));
     expect(card.text).not.toMatch(/\b0\b/);
     const strip = parse(page).querySelector('[data-testid="gallery-strip"] figcaption')?.text ?? "";
-    expect(strip).toContain(copy("gallery.strip.unscored.one", { n: "12", domain: "cedar-yoga.example" }));
+    expect(strip).toContain(copy("gallery.strip.unscored.one", { domain: "cedar-yoga.example" }));
   });
 });
 
@@ -178,24 +230,12 @@ describe("the board's rings and icons", () => {
     expect(title?.text).toBe(EXAMPLES.plumber.page.title);
   });
 
-  it("at-a-glance tiles carry their icons", async () => {
-    const glance = parse(await render()).querySelector('[data-variant="scans"] #start figure');
-    const stats = glance?.querySelectorAll(".stat") ?? [];
-    expect(stats).toHaveLength(3);
-    expect(stats[0]!.querySelector(".radial-progress")).not.toBeNull();
-    expect(stats[1]!.querySelector(".rounded-field svg.lucide-sparkles")).not.toBeNull();
-    expect(stats[2]!.querySelector(".rounded-field svg.lucide-file-text")).not.toBeNull();
-    // The AI figure carries the bar; the pages figure carries none.
-    expect(stats[1]!.querySelector("progress")).not.toBeNull();
-    expect(stats[2]!.querySelector("progress")).toBeNull();
-  });
-
-  it("after the report carries its icons", async () => {
+  it("the close keeps its rows, your part and the price, each with its icon", async () => {
     const close = parse(await render()).querySelector('[data-variant="scans"]')!;
-    const steps = close.querySelectorAll('[data-testid="learn-loop"] ol > li');
-    expect(steps.map((li) => li.querySelector(".rounded-field svg")?.getAttribute("class"))).toEqual(
-      ["search", "calendar", "file-text", "inbox"].map((name) => `lucide lucide-${name}`)
-    );
+    const part = segments(close.outerHTML);
+    expect(part).toContain(`${copy("library.close.part.label")} ${copy("library.close.part.once", { minutes: "10" })}`);
+    expect(close.querySelector("svg.lucide-user + span strong")?.text).toBe(copy("library.close.part.label"));
+    expect(close.querySelector("svg.lucide-wallet + span strong")?.text).toBe(copy("library.close.price.lead", { price: copy("price.amount") }));
     const rows = close.querySelectorAll("ul.divide-y > li");
     expect(rows.length).toBeGreaterThan(0);
     for (const row of rows) {
