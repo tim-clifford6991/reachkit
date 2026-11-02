@@ -63,7 +63,7 @@ describe("Setup's Connect step carries board Setup's icons", () => {
   });
 
   it("Where should pages live? carries no icon: a hosting choice is not AI", async () => {
-    const heading = [...(await publishingStep()).querySelectorAll("h2")].find((h) => h.textContent === COPY["setup.destination.where"]);
+    const heading = [...(await publishingStep()).querySelectorAll("legend")].find((h) => h.textContent === COPY["setup.destination.where"]);
     expect(heading).toBeDefined();
     expect(heading!.querySelector("svg")).toBeNull();
   });
@@ -74,13 +74,12 @@ describe("Setup's Connect step carries board Setup's icons", () => {
     expect(root.querySelectorAll('[data-testid="setup-connect-stage"]')).toHaveLength(0);
   });
 
-  it("After this: a coffee tile, and one file-text on each page day", async () => {
+  it("After this: a check before each line, and no day strip", async () => {
     const week = (await connectScreen()).querySelector('[data-testid="setup-connect-week"]')!;
-    const heading = [...week.querySelectorAll("h2")].find((h) => h.textContent === COPY["setup.next.after"])!;
-    expect(icons(heading.parentElement)).toEqual(["coffee"]);
-    const days = [...week.querySelectorAll("ol > li")];
-    expect(days).toHaveLength(7);
-    expect(days.map((day) => icons(day))).toEqual(days.map(() => ["file-text"]));
+    const lines = [...week.querySelectorAll("li")];
+    expect(lines).toHaveLength(4);
+    expect(lines.map((line) => icons(line))).toEqual(lines.map(() => ["check"]));
+    expect(week.querySelector("ol")).toBeNull();
     expect(allHidden(week)).toBe(true);
   });
 
@@ -100,12 +99,13 @@ describe("Setup's Connect step carries board Setup's icons", () => {
 });
 
 describe("the time-zone screen", () => {
-  it("zone draws clock beside the time it explains", async () => {
-    const why = (await mount(<ZoneScreen />)).querySelector('[data-testid="setup-zone-why"]')!;
-    const clock = why.querySelector("svg.lucide-clock");
-    expect(clock).not.toBeNull();
-    expect(clock!.getAttribute("aria-hidden")).toBe("true");
-    expect(clock!.parentElement!.textContent).toContain(COPY["setup.zone.example"]);
+  it("zone draws one status card with the spinner beside its line, and no figure", async () => {
+    const root = await mount(<ZoneScreen />);
+    const card = root.querySelector('[data-testid="setup-zone"]')!;
+    expect(icons(card)).toEqual(["loader-circle"]);
+    expect(card.querySelector("svg.lucide-loader-circle")?.getAttribute("aria-hidden")).toBe("true");
+    expect(card.textContent).toBe(COPY["setup.zone.line"]);
+    expect(root.querySelector("figure")).toBeNull();
   });
 
   it("the slow line opens with clock, before its sentence", async () => {

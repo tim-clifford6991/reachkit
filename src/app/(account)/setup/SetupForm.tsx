@@ -36,12 +36,11 @@
 "use client";
 
 import type React from "react";
-import { useEffect, useState, useSyncExternalStore, useTransition } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { parseAsStringLiteral, useQueryState } from "nuqs";
-import { ArrowLeft, Check, Clock } from "lucide-react";
+import { Clock4 } from "lucide-react";
 import { Surface } from "@/ui/layout";
-import { Brand } from "@/app/_brand/Brand";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import {
   onMarketConcluded,
@@ -57,23 +56,19 @@ import { CheckStep } from "./CheckStep";
 import { SiteCard } from "./MarketCard";
 import { PublishingCard } from "./PublishingCard";
 import { PassStatusLine } from "./PassStatusLine";
-import { SetupPanel } from "./SetupPanel";
 import {
   BAR,
-  BAR_ACTIONS,
   BAR_INNER,
   BODY,
-  COLUMNS,
   FRAME,
+  PRIMARY,
   QUESTION,
   QUESTION_HEAD,
-  QUIET,
   REGION,
   SETUP_ARMS,
-  STEPS,
 } from "./frame";
+import { SetupHeader } from "./SetupHeader";
 import {
-  isLastStep,
   nextStep,
   previousStep,
   SETUP_STEPS,
@@ -83,6 +78,9 @@ import {
 import type { SetupScreenModel } from "./_setup/facts";
 import type { SetupRefusal, SetupResult, SetupStepResult, SetupSubmission } from "./submit";
 import type { ResolveDomainResponse } from "@/app/api/setup/domain/route";
+import type { HostnameState } from "@/lib/publish/destinations/hosted/hostname";
+import { CheckConnection } from "../_destination/CheckConnection";
+import { CHECK_WORDS } from "./connect/parts";
 import type { SeekRivalsResponse } from "@/app/api/setup/rivals/route";
 
 /** Every refusal the founder can be shown, as a written line. `SetupResult`'s
@@ -102,32 +100,22 @@ const REFUSAL_COPY = {
   CopyKey
 >;
 
-/** Each step's one-word label, its question and the line under it. */
+/** Each step's question and the line under it. */
 const STEP_COPY = {
-  site: { label: "setup.step.site", question: "setup.step.site.question", line: "setup.step.site.line" },
-  check: { label: "setup.step.check", question: "setup.step.check.question", line: "setup.step.check.line" },
-  publishing: {
-    label: "setup.step.publishing",
-    question: "setup.step.publishing.question",
-    line: "setup.step.publishing.line",
-  },
-} as const satisfies Record<SetupStepId, { label: CopyKey; question: CopyKey; line: CopyKey }>;
+  site: { question: "setup.step.site.question", line: "setup.step.site.line" },
+  check: { question: "setup.step.check.question", line: "setup.step.check.line" },
+  publishing: { question: "setup.step.publishing.question", line: "setup.step.publishing.line" },
+} as const satisfies Record<SetupStepId, { question: CopyKey; line: CopyKey }>;
 
 /** The clock Check's status line is written in; the zone is the reader's browser's. */
 const TIME_LOCALE = "en-US";
 const subscribeNever = () => () => {};
 
-/** Where the finish leads. Internal route names, not customer-visible
- *  strings.
- *
- *  Straight into the app, the pass already running (issue #782) — except
- *  for a founder publishing to the hosted blog, who is carried to the one
- *  step that comes after setup: the DNS record (#924, SPEC §5 2026-09-20).
- *  That screen sends them on itself for a host that is already live or has
- *  no record to make, so this never lands anybody on a screen about
- *  nothing, and *Do this later* on it leads here. */
+/** The step's one primary, whichever control it is: a test hook, not a sentence. */
+const ONWARDS_TEST_ID = "setup-onwards";
+
+/** Where leaving setup leads: the app, the pass already running (issue #782). An internal route name. */
 const APP_PATH = "/app";
-const CONNECT_PATH = "/setup/connect";
 
 const ICON = { strokeWidth: 1.75, "aria-hidden": true } as const;
 
@@ -186,6 +174,10 @@ export function SetupForm(p: { model: SetupScreenModel }): React.JSX.Element {
   // Issue 1196: React's pending state, so the step's button is disabled and
   // spins from the press until the step answers or the screen moves on.
   const [saving, startSaving] = useTransition();
+  // Whether the last step is saved, so a second check does not save it again.
+  const finished = useRef(false);
+  // What the founder's last check said of the hosted address; `undefined` is "not asked".
+  const [connection, setConnection] = useState<HostnameState | undefined>(undefined);
 
   // The address given and the market known, as the server is asked about
   // them. The screen opens settled — a free upgrade's rivals came with the
@@ -296,35 +288,41 @@ export function SetupForm(p: { model: SetupScreenModel }): React.JSX.Element {
     return (await response.json()) as T;
   }
 
-  /** Leaving the step forward: the step's own save, then the next step — or,
-   *  on the last, the finish. */
+  /** The last step's save: the whole submission (REQ-025 c1). `true` once
+   *  setup is complete, or was already (REQ-025 c4); a refusal is said under the step. */
+  async function finish(): Promise<boolean> {
+    if (finished.current) return true;
+    const carried = submission();
+    if (!carried.ok) {
+      setRefusal(carried.because);
+      return false;
+    }
+    try {
+      const answer = await post<SetupResult>({ step: "finish", ...carried.submission });
+      if (answer.ok || answer.refused === "already_complete") {
+        finished.current = true;
+        setRefusal(null);
+        return true;
+      }
+      setRefusal(answer.refused);
+    } catch {
+      // The request never came back: said, not swallowed.
+      setRefusal("could_not_ask");
+    }
+    return false;
+  }
+
+  /** Saving the last step and going into the app: WordPress's Continue, and the hosted address's *Do this later*. */
+  async function finishAndLeave(): Promise<void> {
+    if (await finish()) router.push(APP_PATH);
+  }
+
+  /** Leaving the step forward: the step's own save, then the next step. */
   async function onwards(): Promise<void> {
     const after = nextStep(step);
 
     if (after === null) {
-      const carried = submission();
-      if (!carried.ok) {
-        setRefusal(carried.because);
-        return;
-      }
-      try {
-        const answer = await post<SetupResult>({ step: "finish", ...carried.submission });
-        // Issue #782: the finish leads straight into the app, where the side
-        // panel says which step of the pass is under way. A founder who had
-        // already completed setup goes to the same place (REQ-025 c4).
-        if (answer.ok || answer.refused === "already_complete") {
-          // #924: the hosted blog's address still needs one DNS record, and
-          // that is its own step now rather than a control on the step
-          // before. Every other destination goes straight into the app, as
-          // it always did.
-          router.push(destination === "hosted" ? CONNECT_PATH : APP_PATH);
-          return;
-        }
-        setRefusal(answer.refused);
-      } catch {
-        // The request never came back: said, not swallowed.
-        setRefusal("could_not_ask");
-      }
+      await finishAndLeave();
       return;
     }
 
@@ -373,146 +371,91 @@ export function SetupForm(p: { model: SetupScreenModel }): React.JSX.Element {
           Date.parse(p.model.passStartedAt),
         )
       : null;
-  // Where their pages will be read: the hosted blog at
-  // `<label>.<their domain>`, or their own WordPress site at the domain
-  // they gave. `null` before there is an address to compose either from.
-  const blogAddress =
-    state.siteDomain === null
-      ? null
-      : destination === "wordpress" || label.trim() === ""
-        ? state.siteDomain
-        : `${label}.${state.siteDomain}`;
+  // The site's own mark stands beside its domain only while the domain is the one the profile was read for.
+  const profile = p.model.profile;
+  const hasLogo = profile?.hasLogo === true && profile.domain === state.siteDomain;
 
   return (
     // The page frame (owner's review of #938): at least the viewport tall,
     // with the action bar as its last row — so the bar lands on the bottom
-    // of a short page and at the end of a long one, and the page can never
-    // carry a blank band under it. The `Surface` above it holds the band's
-    // gutter and the ruled measure; the bar sits outside it, which is what
-    // lets it run edge to edge on a phone.
+    // of a short page and stays pinned over a long one.
     <div className={FRAME}>
+      <SetupHeader step={step}>
+        {step === "check" && started !== null ? (
+          <p className="text-(length:--t-sm) text-base-content/80" role="status" data-testid="setup-check-status">
+            {copy("setup.check.status", { time: started })}
+          </p>
+        ) : null}
+        {step === "publishing" ? (
+          <PassStatusLine stage={p.model.passStage} channel={p.model.passChannel} started={started} />
+        ) : null}
+      </SetupHeader>
+
       <Surface arms={SETUP_ARMS}>
-        {/* `pb-28` is the bar's own height and a little over: the content
-            scrolls *behind* a pinned bar, so the last line of it has to
-            clear the bar rather than pass under it. */}
         <main className={BODY} data-testid="setup-form" data-step={step}>
-          <Brand href="/app" />
-          {/* SPEC §5 and docs/DESIGN.md: a daisyUI `steps` with one-word
-              labels, three equal columns at every width. */}
-          <ul className={STEPS} data-testid="setup-steps" data-current={step} data-frame={REGION.steps}>
-            {SETUP_STEPS.map((id, index) => {
-              const done = index < at;
-              const current = index === at;
-              return (
-                <li
-                  key={id}
-                  className={done || current ? "step step-primary" : "step"}
-                  data-state={done ? "done" : current ? "active" : "pending"}
-                  aria-current={current ? "step" : undefined}
-                >
-                  {done ? (
-                    <span className="step-icon">
-                      <Check {...ICON} size={16} />
-                    </span>
-                  ) : null}
-                  {copy(STEP_COPY[id].label)}
-                </li>
-              );
-            })}
-          </ul>
-          {step === "check" && started !== null ? (
-            <p className={QUIET} role="status" data-testid="setup-check-status">
-              {copy("setup.check.status", { time: started })}
-            </p>
-          ) : null}
-
-          {/* The question column and the panel that matches it. Below the large
-              breakpoint there is one column, and the panel follows the
-              question — which is what SPEC §5 asks for on a phone. */}
-          {/* `grid-cols-1` rather than an implicit column: an implicit track is
-              sized `minmax(auto, …)`, so one wide child's min-content would push
-              the whole row past the screen. `minmax(0, 1fr)` is what makes the
-              column the screen's and the content's problem to fit. */}
-          {/* The calm layer (#1059, #1091): the two columns stretch to one
-              height, so the panel stands as tall as the step beside it; and
-              the step change rises in — the column is keyed on the step, so
-              each step mounts fresh (as its own card always did) and takes
-              `animate-rise` once. Reduced motion draws it in place. */}
-          <div className={COLUMNS} data-frame={REGION.columns}>
-            <div key={step} className={`${QUESTION} motion-safe:animate-rise`}>
-              <div className={QUESTION_HEAD}>
-                <p className="flex flex-wrap items-center gap-2 text-sm" data-testid="setup-step-count">
-                  <span className="font-medium">
-                    {copy("setup.step.count", { n: String(at + 1), total: String(SETUP_STEPS.length) })}
-                  </span>
-                  <span className="badge badge-ghost badge-sm">
-                    <Clock {...ICON} size={12} />
-                    {copy("setup.step.time")}
-                  </span>
-                </p>
-                <h1 className="text-xl font-semibold wrap-anywhere">{copy(STEP_COPY[step].question)}</h1>
-                <p className={QUIET} data-testid="setup-step-line">
-                  {copy(STEP_COPY[step].line)}
-                </p>
-              </div>
-
+          {/* The step is keyed, so each step mounts fresh and rises in once; reduced motion draws it in place. */}
+          <div key={step} className={`${QUESTION} motion-safe:animate-rise`} data-frame={REGION.columns}>
+            <div className={QUESTION_HEAD}>
               {step === "site" ? (
-                <SiteCard
-                  state={state}
-                  setState={setState}
-                  resolveDomain={resolveDomain}
-                  locale={locale}
-                  setLocale={setLocale}
-                  place={place.value}
-                  setPlace={(value, by) => setPlace({ value, answered: by === "founder" || value !== "" })}
-                />
+                <p className="flex items-center gap-1.5 text-sm text-base-content/70" data-testid="setup-step-time">
+                  <Clock4 {...ICON} size={16} />
+                  {copy("setup.step.time")}
+                </p>
               ) : null}
-
-              {step === "check" ? (
-                <CheckStep
-                  state={state}
-                  setState={setState}
-                  questions={p.model.questions}
-                  competitorsMax={p.model.competitorsMax}
-                  resolveDomain={resolveDomain}
-                  pagesRead={pagesRead}
-                  draft={business}
-                  onDraft={setBusiness}
-                  job={job}
-                  onJob={setJob}
-                  answers={answers}
-                  onAnswers={setAnswers}
-                  profile={p.model.profile}
-                  voice={voiceDraft}
-                  onVoice={setVoiceDraft}
-                />
-              ) : null}
-
-              {step === "publishing" ? (
-                <PublishingCard
-                  cards={p.model.cards}
-                  siteDomain={state.siteDomain}
-                  cnameTarget={p.model.cnameTarget}
-                  destination={destination}
-                  onDestination={setDestination}
-                  label={label}
-                  onLabel={setLabel}
-                />
-              ) : null}
+              <h1 className="text-(length:--h1) leading-tight tracking-[-0.03em] wrap-anywhere">{copy(STEP_COPY[step].question)}</h1>
+              <p className="text-base-content/80" data-testid="setup-step-line">
+                {copy(STEP_COPY[step].line)}
+              </p>
             </div>
 
-            <SetupPanel
-              market={settledCategory(state)}
-              status={
-                <PassStatusLine
-                  stage={p.model.passStage}
-                  channel={p.model.passChannel}
-                />
-              }
-              step={step}
-              blogAddress={blogAddress}
-              businessName={p.model.profile?.siteName ?? null}
-            />
+            {step === "site" ? (
+              <SiteCard
+                state={state}
+                setState={setState}
+                resolveDomain={resolveDomain}
+                hasLogo={hasLogo}
+                locale={locale}
+                setLocale={setLocale}
+                place={place.value}
+                setPlace={(value, by) => setPlace({ value, answered: by === "founder" || value !== "" })}
+              />
+            ) : null}
+
+            {step === "check" ? (
+              <CheckStep
+                state={state}
+                setState={setState}
+                questions={p.model.questions}
+                competitorsMax={p.model.competitorsMax}
+                resolveDomain={resolveDomain}
+                pagesRead={pagesRead}
+                hasLogo={hasLogo}
+                draft={business}
+                onDraft={setBusiness}
+                job={job}
+                onJob={setJob}
+                answers={answers}
+                onAnswers={setAnswers}
+                profile={p.model.profile}
+                voice={voiceDraft}
+                onVoice={setVoiceDraft}
+              />
+            ) : null}
+
+            {step === "publishing" ? (
+              <PublishingCard
+                cards={p.model.cards}
+                siteDomain={state.siteDomain}
+                cnameTarget={p.model.cnameTarget}
+                destination={destination}
+                onDestination={setDestination}
+                label={label}
+                onLabel={setLabel}
+                onLater={() => startSaving(finishAndLeave)}
+                busy={saving}
+                {...(connection === undefined ? {} : { connection })}
+              />
+            ) : null}
           </div>
 
           {refusal === null ? null : (
@@ -527,59 +470,52 @@ export function SetupForm(p: { model: SetupScreenModel }): React.JSX.Element {
         </main>
       </Surface>
 
-      {/* SPEC §5 (2026-09-20): on a phone the actions are pinned to the
-          bottom. Edge to edge, solid, with one hairline over it — a strip
-          inset from both edges reads as floating, and the customer's own
-          page shows past it (owner's review of #938). The outer padding is
-          the band's own gutter plus `main`'s, so Back and the primary stand
-          exactly under the question they belong to, and the inner box is
-          the ruled measure — all without this row sitting inside the
-          `Surface`, which would inset its background with it. */}
-      {/* A `<footer>`, not a `<div>` (#328): this row stands outside the
-          `Surface`'s `<main>` — deliberately, for the background above —
-          so as a `<div>` it was screen content belonging to no landmark at
-          all (`region`, on every step). It is the screen's footer in
-          every sense: the step's two controls and the standing line under
-          them. The element changes; nothing it draws does. */}
+      {/* A `<footer>` (#328): it stands outside the `Surface`'s `<main>`, so
+          as a `<div>` it was content in no landmark at all. Edge to edge and
+          pinned, so the step's action is always on screen (SPEC §5, 2026-09-20). */}
       <footer className={BAR}>
         <div className={BAR_INNER} data-frame={REGION.bar}>
-          <div className={BAR_ACTIONS}>
-            <button
-              type="button"
-              className="btn btn-ghost"
-              disabled={at === 0 || saving}
-              onClick={back}
-            >
-              <ArrowLeft {...ICON} size={20} />
+          {at === 0 ? null : (
+            <button type="button" className="btn btn-ghost h-11 text-(length:--t-body) text-primary" disabled={saving} onClick={back}>
               {copy("setup.back")}
             </button>
-            {/* The screen's one solid primary. */}
+          )}
+          {/* The screen's one solid primary. On the hosted address it is the check, which saves the step first. */}
+          {step === "publishing" && destination === "hosted" ? (
+            <div className="grid min-w-0 flex-1">
+              <CheckConnection
+                draft={null}
+                words={CHECK_WORDS}
+                pressClass={`${PRIMARY} self-end`}
+                prepare={finish}
+                pressTestId={ONWARDS_TEST_ID}
+                onAnswer={(answer) => {
+                  if (answer.outcome === "asked") setConnection(answer.state);
+                }}
+              />
+            </div>
+          ) : (
             <button
               type="button"
-              className="btn btn-primary"
+              className={`${PRIMARY} ms-auto`}
               disabled={saving}
               aria-busy={saving}
-              data-testid="setup-onwards"
+              data-testid={ONWARDS_TEST_ID}
               onClick={() => startSaving(onwards)}
             >
               {saving ? <span className="loading loading-spinner loading-sm" aria-hidden /> : null}
               {copy(onwardsLabel(step))}
             </button>
-          </div>
-          {/* REQ-021 c10 — said once, under the controls it is about. */}
-          <p className={`text-center ${QUIET}`} data-testid="setup-footer-line">
-            {copy("setup.footer.line")}
-          </p>
+          )}
         </div>
       </footer>
     </div>
   );
 }
 
-/** What the one primary reads: "Looks right" leaves Check; the last step finishes. */
+/** What the one primary reads: "Looks right" leaves Check; every other step continues. */
 function onwardsLabel(step: SetupStepId): CopyKey {
-  if (step === "check") return "setup.check.confirm";
-  return isLastStep(step) ? "setup.finish" : "setup.continue";
+  return step === "check" ? "setup.check.confirm" : "setup.continue";
 }
 
 /** The label the hosted card was composed with — the founder's own, or the

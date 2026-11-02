@@ -123,6 +123,13 @@ describe("the stored profile is what the screens read", () => {
     expect(profile?.voice?.claimsToAvoid).toEqual(["the leading"]);
   });
 
+  it("says whether a pass kept the site's logo, in the same one read", async () => {
+    db = fakeProfileDb({ site_profiles: [profileRow({ logo_type: "image/png" })] });
+    expect((await readSiteProfile(DOMAIN))?.hasLogo).toBe(true);
+    db = fakeProfileDb({ site_profiles: [profileRow({ logo_type: null })] });
+    expect((await readSiteProfile(DOMAIN))?.hasLogo).toBe(false);
+  });
+
   it("answers null for a domain no pass has read", async () => {
     expect(await readSiteProfile("never-scanned.example")).toBeNull();
   });

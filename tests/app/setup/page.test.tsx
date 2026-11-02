@@ -65,7 +65,7 @@ describe("/setup", () => {
     expect(surfaces).toHaveLength(1);
     const root = surfaces[0]!;
     expect(root.getAttribute("data-arm-compact")).toBe("columns:1");
-    expect(root.getAttribute("data-arm-medium")).toBe("columns:2");
+    expect(root.getAttribute("data-arm-medium")).toBe("same-as-below");
     expect(root.getAttribute("data-arm-wide")).toBe("same-as-below");
   });
 
@@ -96,11 +96,45 @@ describe("/setup", () => {
     expect(steps?.querySelectorAll("li")).toHaveLength(3);
   });
 
-  it("REQ-021 c10's own line sits under the one control", async () => {
-    const tree = await renderPage(() => import("@/app/(account)/setup/page"));
-    expect(tree.querySelector('[data-testid="setup-footer-line"]')?.textContent).toBe(
-      "You can cancel or export in Settings at any time."
-    );
+  it("a business that sells online leaves the city empty and Continue still carries it on, sending no place", async () => {
+    const { createRoot } = await import("react-dom/client");
+    const { act } = await import("react");
+    const { SetupForm } = await import("@/app/(account)/setup/SetupForm");
+    const { assembleSetup } = await import("@/app/(account)/setup/_setup/facts");
+    const { FIXTURE_SETUP_FACTS } = await import("@/app/(account)/setup/_setup/fixture");
+    (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+    // The fixture is the software kind, and nothing was read for where it serves.
+    expect(FIXTURE_SETUP_FACTS.market?.offeringType).toBe("software");
+    expect(FIXTURE_SETUP_FACTS.place).toBe("");
+
+    const posted: Record<string, unknown>[] = [];
+    vi.stubGlobal("fetch", vi.fn(async (_url: string, init: RequestInit) => {
+      posted.push(JSON.parse(String(init.body)) as Record<string, unknown>);
+      return Response.json({ ok: true });
+    }));
+    const container = document.createElement("div");
+    const root = createRoot(container);
+    try {
+      await act(async () =>
+        root.render(
+          <NuqsTestingAdapter searchParams={{ step: "site" }}>
+            <SetupForm model={assembleSetup(FIXTURE_SETUP_FACTS)} />
+          </NuqsTestingAdapter>,
+        ),
+      );
+      expect(container.querySelector<HTMLInputElement>('input[name="place"]')?.value).toBe("");
+      const onwards = container.querySelector<HTMLButtonElement>('[data-testid="setup-onwards"]')!;
+      expect(onwards.disabled).toBe(false);
+      await act(async () => onwards.click());
+      await vi.waitFor(() =>
+        expect(container.querySelector('[data-testid="setup-form"]')?.getAttribute("data-step")).toBe("check"),
+      );
+      expect(posted).toEqual([{ step: "site", domain: "example.com", locale: "US/en" }]);
+      expect(container.querySelector('[data-testid="setup-submit-refusal"]')).toBeNull();
+    } finally {
+      act(() => root.unmount());
+      vi.unstubAllGlobals();
+    }
   });
 
   it("sits outside the /app shell — no sidebar, no tab bar, no publishing card", async () => {
@@ -110,7 +144,7 @@ describe("/setup", () => {
     }
   });
 
-  it("waits in the step's own regions — indicator, question, panel, bar (#1327)", async () => {
+  it("waits in the step's own regions — header, step bar, question, bar (#1327)", async () => {
     const { SetupSkeleton } = await import("@/app/(account)/setup/SetupSkeleton");
     const waiting = document.createElement("div");
     waiting.innerHTML = renderToStaticMarkup(<SetupSkeleton />);
@@ -120,37 +154,31 @@ describe("/setup", () => {
     const layout = (el: Element | null | undefined) =>
       (el?.getAttribute("class") ?? "missing").split(" ").filter((c) => !c.startsWith("motion-safe:")).join(" ");
     const regions = (tree: Element) => {
-      const steps = tree.querySelector("ul.steps");
-      const columns = steps?.nextElementSibling;
+      const steps = tree.querySelector('[data-frame="setup-steps"]');
+      const question = tree.querySelector('[data-frame="setup-columns"]');
       return {
         frame: layout(tree.firstElementChild),
-        body: layout(steps?.parentElement),
+        header: layout(tree.querySelector("header")),
+        headerInner: layout(steps?.parentElement),
         steps: `${layout(steps)} × ${steps?.children.length}`,
-        columns: `${layout(columns)} × ${columns?.children.length}`,
-        question: layout(columns?.children[0]),
-        panel: layout(columns?.children[1]),
+        body: layout(question?.parentElement),
+        question: layout(question),
         bar: layout(tree.querySelector("footer")),
-        barActions: layout(tree.querySelector("footer > div > div")),
+        barInner: layout(tree.querySelector("footer > div")),
       };
     };
     expect(regions(waiting)).toEqual(regions(step));
-
-    // The bar's sentence is the same before and after; nothing spins.
-    expect(waiting.querySelector("footer p")?.textContent).toBe(
-      step.querySelector('[data-testid="setup-footer-line"]')?.textContent,
-    );
     expect(waiting.querySelector(".loading")).toBeNull();
     expect(waiting.querySelector('[role="status"][aria-busy="true"]')).not.toBeNull();
   });
 
-  it("the publishing step shows no record — it is its own step after setup (#924)", async () => {
-    // Owner, 2026-09-20, reversing #757. The record's own screen, and the
-    // property that its target is the deployment's binding rather than a
-    // literal in a card, are `tests/app/setup/connect.test.tsx`'s.
+  it("the Connect step carries the record, its Value the deployment's own edge binding (#2270)", async () => {
+    // The fixture env's target and the fixture customer's host happen to read alike;
+    // tests/app/setup/screen.test.tsx holds the two apart with a target unlike the host.
     const tree = await renderPage(() => import("@/app/(account)/setup/page"), {
       step: "publishing",
     });
-    expect(tree.querySelector('[data-testid="dns-record"]')).toBeNull();
-    expect(tree.querySelector('[data-testid="setup-dns-next"]')).not.toBeNull();
+    const value = [...tree.querySelectorAll('[data-testid="setup-record"] > div')][2];
+    expect(value?.querySelector(".num")?.textContent).toBe(process.env.HOSTED_EDGE_CNAME_TARGET);
   });
 });

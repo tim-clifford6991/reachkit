@@ -71,34 +71,30 @@ describe("Site and Check match their boards string for string", () => {
 });
 
 describe("Site, in the board's order and words", () => {
-  it("the steps, where the founder is, the question, the lead, the three questions and the preview, then what happens next", async () => {
-    inOrder(textOf(await mount("site")), [
+  it("the steps, the time once, the question, the lead, then the website, where the buyers are and the city, then Continue", async () => {
+    const texts = textOf(await mount("site"));
+    inOrder(texts, [
       "ReachKit",
       "Site",
       "Details",
       "Connect",
-      "Step 1 of 3 about 10 minutes of your time",
+      "About 10 minutes, once",
       "Is this your business?",
-      "We write every page from this site. Fix anything wrong now.",
-      "Your site",
+      "We write every page from this site. Fix anything wrong.",
       "Your website",
       "example.com",
       "Change",
-      "The site your free report checked. Keep it, or change it.",
-      "Where your buyers are, and the language they search in",
-      "Read from your site. Your pages are written in that language.",
-      "The city or area you serve",
+      "Where your buyers are",
+      "United States · English",
+      "Your pages are written in this language.",
+      "City or area you serve",
       "Leave it empty if you sell nationwide or online.",
-      "United States · in English We check what buyers here search, and who they find instead of you.",
-      "What happens next",
-      "1 Confirm your site you are here Where your buyers are.",
-      "2 Confirm what we found Fix anything wrong, or carry on.",
-      "3 Connect your website One line, pasted where you bought your address.",
-      "After this, nothing to do Pages go live on their day. Your Monday mail shows what moved.",
-      "Back",
       "Continue",
-      "You can cancel or export in Settings at any time.",
     ]);
+    const screen = texts.join("\n");
+    for (const cut of ["Step 1 of 3", "What happens next", "You can cancel or export", "Your site\n", "Back"]) {
+      expect(screen, cut).not.toContain(cut);
+    }
   });
 
   it("an address that does not resolve is refused in the board's words", async () => {
@@ -126,40 +122,39 @@ describe("Site, in the board's order and words", () => {
 });
 
 describe("Check, in the board's order and words", () => {
-  it("the status, where the founder is, the question, the lead, the figure, the four sections, then what happens next", async () => {
-    inOrder(textOf(await mount("check")), [
+  it("the steps, the status, the question, the lead, the read line, the four sections, then Back and Looks right", async () => {
+    const texts = textOf(await mount("check"));
+    inOrder(texts, [
       "Site",
       "Details",
       "Connect",
       "Checking your buyers and competitors · started ",
-      "Step 2 of 3 about 10 minutes of your time",
       "What we found on your site",
-      "Every page we write uses this. Open a section to change it, or carry on.",
-      "example.com 5 pages read",
-      "Your site What we read Every page",
-      "Your business read ",
+      "Open a section to change it, or carry on.",
+      "example.com · 5 pages read",
+      "Your business ",
       "We never invent prices, people or reviews. If a fact isn’t on your site, it won’t be in your pages.",
       "What you do",
       "What you sell",
       "Who you serve",
       "What you promise",
-      "Your market and competitors read ",
+      "Your market and competitors ",
       "We read this from your site and update it every Monday. Change it only if it’s wrong.",
       "Competitors 4 of 5",
       "Add a competitor",
-      "How your pages sound read ",
+      "How your pages sound ",
       "How your pages sound",
       "Never say",
-      "Five things only you know optional Answer any, or none.",
+      "Five things only you know Answer any, or none.",
       "Optional. We use an answer in your pages as something you told us.",
       "Who buys from you, and why?",
-      "What happens next",
-      "Confirm your site Where your buyers are.",
-      "2 Confirm what we found you are here Fix anything wrong, or carry on.",
-      "After this, nothing to do",
       "Back",
       "Looks right",
     ]);
+    const screen = texts.join("\n");
+    for (const cut of ["Step 2 of 3", "What happens next", "Your site What we read Every page", "Your business read", "know optional"]) {
+      expect(screen, cut).not.toContain(cut);
+    }
   });
 
   it("the pass's start is on the reader's clock, and no line is drawn with no pass running", async () => {
@@ -210,5 +205,34 @@ describe("Check, in the board's order and words", () => {
     const texts = textOf(await mount("check", { measured: null, concluded: null, profile: null, market: null }));
     expect(texts).toContain("We’re still reading your site, so carry on. You can change what we find in Settings.");
     expect(texts).toContain("Nothing read for this yet. Add what we missed.");
+  });
+});
+
+describe("the site's own mark beside its domain, on Site and Check", () => {
+  const LOGO = "/scans/logo/example.com";
+  const withLogo = { profile: { ...FIXTURE_SETUP_FACTS.profile!, hasLogo: true } };
+  /** The row that holds the domain: Site's address well, or Check's read line. */
+  const markRow = (root: HTMLElement, step: "site" | "check"): Element =>
+    step === "site"
+      ? root.querySelector('[data-testid="setup-address-value"]')!.parentElement!
+      : root.querySelector('[data-testid="setup-check-read"]')!;
+
+  it.each(["site", "check"] as const)("%s: a stored logo is drawn from our own origin beside the domain", async (step) => {
+    const root = await mount(step, withLogo);
+    const row = markRow(root, step);
+    expect(row.querySelector("img")?.getAttribute("src")).toBe(LOGO);
+    expect(row.querySelector("img")?.closest('[aria-hidden="true"]')).not.toBeNull();
+  });
+
+  it.each(["site", "check"] as const)("%s: with no stored logo, the domain's first letter stands in its place", async (step) => {
+    const root = await mount(step);
+    const row = markRow(root, step);
+    expect(row.querySelector("img")).toBeNull();
+    expect(row.querySelector('[aria-hidden="true"].badge')?.textContent).toBe("E");
+  });
+
+  it("a logo read for another domain is not drawn beside a new one", async () => {
+    const root = await mount("site", { profile: { ...FIXTURE_SETUP_FACTS.profile!, domain: "other.example", hasLogo: true } });
+    expect(root.querySelector("img")).toBeNull();
   });
 });

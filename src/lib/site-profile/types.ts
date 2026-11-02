@@ -83,6 +83,8 @@ export interface SiteProfile {
    *  rather than derived from a list it may not have loaded. */
   pagesRead: number;
   refreshedAt: Date;
+  /** Whether a pass kept the site's own logo, served from `/scans/logo/{domain}`. Absent where nobody read it. */
+  hasLogo?: boolean;
 }
 
 /** The counts a screen renders beside the inventory: one entry per purpose

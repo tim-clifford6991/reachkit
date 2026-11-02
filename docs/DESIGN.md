@@ -47,7 +47,7 @@ The current look of every screen, drawn on board [`Calm`](design/boards/R12-0-Ca
   4. **Failed or refused.** One line beside the control that was pressed says why: a rate limit, a check that could not run, a vendor outage.
   5. **Nothing silent.** Any action that can take longer than about a second shows this pattern. No work runs without a visible state.
 
-  Built from daisyUI `loading`, `alert` and `btn`, lucide icons, and `sonner`, with no wrapper component. *No loading screens* (SPEC §4) still applies to routes, which use skeletons. The spinner appears only inside a pressed button.
+  Built from daisyUI `loading`, `alert` and `btn`, lucide icons, and `sonner`, with no wrapper component. *No loading screens* (SPEC §4) still applies to routes, which use skeletons. The spinner appears only inside a pressed button, and on the one screen that is itself the wait: setup's time-zone card, which has no button (board SetupZone v36, #2270).
 
 ## Closed sentences
 

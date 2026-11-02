@@ -18,12 +18,10 @@ const PEN_LINE = "M12 20h9M16.5 3.5";
 const BUILDING_2 = 'd="M6 21V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v16"';
 const MAP = "M15 5.8v15M9 3.2v15";
 const MAP_PIN = 'd="M20 10c0 4.993';
-const CLOCK = 'd="M12 6v6l4 2"';
 const BOOK_OPEN = 'd="M12 5v16"';
 const FLAME = "M8.5 14.5A2.5";
 const MESSAGE_CIRCLE_WARNING = 'd="M2.992 16.342';
 const LOADER = "M21 12a9 9 0 1 1-6.219-8.56";
-const GLOBE = ["M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20", "M2 12h20"];
 const GLANCE = ["PubAnswer", "PubCompare", "PubCompareTool", "PubHowItWorks", "PubTeardown", "PubTeardowns", "PubToolMeta", "PubToolOnPage", "PubTools", "PubScans"];
 
 /** A row of squares: an element whose children are all empty spans, `min` or more. */
@@ -185,23 +183,6 @@ describe("icons are structural only (E26, E27, E29)", () => {
     expect(compact.text).toContain("24-hour emergency calls. Serves Austin, TX.Sample");
   });
 
-  it("Setup1's Where your buyers are is a MapPin band beside its words, not a map drawing (E30)", () => {
-    const figure = board("Setup1").querySelector('figure[aria-label^="Where your buyers are"]')!;
-    expect(figure.querySelectorAll("svg")).toHaveLength(1);
-    const band = figure.querySelector('.well[aria-hidden="true"]')!;
-    expect(band.innerHTML).toContain(MAP_PIN);
-    expect(band.text).toBe("");
-    expect(figure.text).toContain(copy("setup.place.preview.line"));
-  });
-  it("SetupZone's Why it matters draws lucide Clock beside its example, not a clock drawing (E29)", () => {
-    const figure = board("SetupZone").querySelector('figure[aria-label^="Why it matters"]')!;
-    const svgs = figure.querySelectorAll("svg");
-    expect(svgs).toHaveLength(1);
-    expect(svgs[0]!.getAttribute("viewBox")).toBe("0 0 24 24");
-    expect(svgs[0]!.innerHTML).toContain(CLOCK);
-    expect(svgs[0]!.parentNode!.querySelector("strong")).toBe(figure.querySelector("strong"));
-  });
-
   it("PubReport's We read you as draws Tag, MapPin and Languages, and the buyer chip no icon (E44)", () => {
     const chips = board("PubReport").querySelectorAll("#read-as li");
     expect(chips.map((li) => boardIcons(li.innerHTML).map((icon) => icon.name))).toEqual([["tag"], [], ["map-pin"], ["languages"]]);
@@ -243,15 +224,15 @@ describe("the loader is drawn only inside a button (DESIGN.md › Busy and done,
     const outside = BOARDS.flatMap((name) =>
       board(name)
         .querySelectorAll(`path[d="${LOADER}"]`)
-        .filter((p) => !p.closest("button, .btn"))
+        // SetupZone's waiting card is the one screen that is itself the wait (#2270).
+        .filter((p) => !p.closest("button, .btn") && !(name === "SetupZone" && p.closest('[role="status"]')))
         .map(() => name),
     );
     expect(outside).toEqual([]);
   });
 
-  it("SetupZone's status card draws Globe", () => {
+  it("SetupZone's status card draws the loader, the one screen that is itself the wait", () => {
     const icon = board("SetupZone").querySelector('[role="status"] svg')!;
-    expect(icon.querySelector('circle[r="10"]')).not.toBeNull();
-    expect(icon.querySelectorAll("path").map((p) => p.getAttribute("d"))).toEqual(GLOBE);
+    expect(icon.querySelectorAll("path").map((p) => p.getAttribute("d"))).toEqual([LOADER]);
   });
 });
