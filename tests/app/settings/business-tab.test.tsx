@@ -219,9 +219,9 @@ describe("Content we already know about: three places, and a blog not read is ne
 });
 
 describe("icons (ux 2026-10-24 E24, E28, S1)", () => {
-  it("Read my site again now carries RefreshCw and Reword carries Pencil", () => {
+  it("Read my site again now carries RefreshCcw and Reword carries Pencil", () => {
     const root = business(PLUMBER);
-    expect(root.querySelector('[data-testid="business-read-again"] svg.lucide-refresh-cw')).not.toBeNull();
+    expect(root.querySelector('[data-testid="business-read-again"] svg.lucide-refresh-ccw')).not.toBeNull();
     expect(root.querySelector('[data-testid="business-job"] svg.lucide-pencil')).not.toBeNull();
   });
 

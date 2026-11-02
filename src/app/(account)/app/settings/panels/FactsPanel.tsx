@@ -28,6 +28,7 @@
 "use client";
 
 import type React from "react";
+import { Quote } from "lucide-react";
 import { copy } from "@/lib/presentation/copy";
 import type { QuotableFact } from "@/lib/site-profile/business/types";
 import {
@@ -65,6 +66,7 @@ function Fact(p: {
       data-testid="business-fact"
       data-fact-on={fact.on ? "yes" : "no"}
     >
+      <Quote size={16} strokeWidth={1.75} className="mt-1 text-base-content/70" aria-hidden />
       <div className="flex min-w-0 grow flex-col gap-1">
         <p className={`min-w-0 wrap-anywhere ${fact.on ? "" : "text-base-content/70 line-through"}`}>
           {copy("settings.business.facts.quote", { passage: fact.passage })}

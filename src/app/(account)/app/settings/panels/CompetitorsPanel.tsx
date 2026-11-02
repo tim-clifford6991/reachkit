@@ -83,7 +83,7 @@ const rivalInitials = (domain: string): string => {
 function Avatar(p: { domain: string }): React.JSX.Element {
   return (
     <span className="avatar avatar-placeholder" aria-hidden>
-      <span className="size-11 rounded-field bg-base-200 font-bold">{rivalInitials(p.domain)}</span>
+      <span className="grid size-11 place-items-center rounded-field bg-base-200 font-bold">{rivalInitials(p.domain)}</span>
     </span>
   );
 }

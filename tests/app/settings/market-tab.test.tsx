@@ -199,8 +199,8 @@ describe.each([PLUMBER, SAAS])("$name: Your site and market, in the board's orde
 });
 
 describe("the market tab's board icons", () => {
-  it("only Check again now carries an icon on the market card: RefreshCw", () => {
-    expect(icons(market(PLUMBER))).toEqual(["lucide-refresh-cw"]);
+  it("only Check again now carries an icon on the market card: RefreshCcw", () => {
+    expect(icons(market(PLUMBER))).toEqual(["lucide-refresh-ccw"]);
   });
 
   it("each card: an initials avatar, no badge on a found rival, no bar, X on Remove; Plus on Add", () => {

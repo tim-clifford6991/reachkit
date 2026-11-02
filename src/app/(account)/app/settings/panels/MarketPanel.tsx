@@ -30,7 +30,7 @@
 "use client";
 
 import type React from "react";
-import { RefreshCw } from "lucide-react";
+import { RefreshCcw } from "lucide-react";
 import { useState, useTransition } from "react";
 import { say } from "@/app/_toast/say";
 import { copy } from "@/lib/presentation/copy";
@@ -353,7 +353,7 @@ export function MarketPanel(p: {
               {measuring ? (
                 <span className="loading loading-spinner loading-xs" aria-hidden />
               ) : (
-                <RefreshCw size={16} strokeWidth={1.75} aria-hidden />
+                <RefreshCcw size={16} strokeWidth={1.75} aria-hidden />
               )}
               {copy("settings.market.remeasure.action")}
             </button>

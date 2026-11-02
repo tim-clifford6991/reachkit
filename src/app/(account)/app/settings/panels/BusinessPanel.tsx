@@ -13,7 +13,7 @@
 
 import type React from "react";
 import { useState, useTransition } from "react";
-import { Pencil, Plus, RefreshCw, X } from "lucide-react";
+import { Pencil, Plus, RefreshCcw, X } from "lucide-react";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { say } from "@/app/_toast/say";
 import {
@@ -266,7 +266,7 @@ function ReadAgain(p: { profile: BusinessProfile; timeZone: string }): React.JSX
           onClick={readAgain}
           data-testid="business-read-again"
         >
-          {busy ? <span className="loading loading-spinner loading-xs" aria-hidden /> : <RefreshCw size={16} strokeWidth={1.75} aria-hidden />}
+          {busy ? <span className="loading loading-spinner loading-xs" aria-hidden /> : <RefreshCcw size={16} strokeWidth={1.75} aria-hidden />}
           {copy("settings.business.read-again")}
         </button>
       </div>
