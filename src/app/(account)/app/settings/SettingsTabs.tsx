@@ -47,7 +47,7 @@ export function SettingsTabs(): React.JSX.Element {
               href={SETTINGS_TAB_HREF[tab]}
               prefetch={true}
               className={`tab sm:whitespace-nowrap max-sm:h-auto max-sm:min-h-11 max-sm:justify-start max-sm:rounded-field max-sm:border max-sm:border-base-300 max-sm:bg-base-100 max-sm:px-3 max-sm:py-1 max-sm:text-left max-sm:before:hidden ${
-                onThisTab ? "tab-active max-sm:border-primary/30 max-sm:bg-primary/10" : ""
+                onThisTab ? "tab-active text-primary max-sm:border-primary/30 max-sm:bg-primary/10" : ""
               }`}
               data-testid={`settings-tab-${tab}`}
               aria-current={onThisTab ? "page" : undefined}

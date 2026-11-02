@@ -313,24 +313,20 @@ export function MarketPanel(p: {
             name={copy("settings.market.your-market")}
             testId="setting-category"
             below={
-              editing === "category"
-                ? editingField("category")
-                : overridden
-                  ? note("settings.market.overridden")
-                  : standing
-                    ? note("settings.market.consequence.market")
-                    : null
+              editing === "category" ? (
+                editingField("category")
+              ) : (
+                // The board stacks the market: its name, then Change, then what a change does.
+                <>
+                  <span className="min-w-0 font-semibold wrap-anywhere">{p.market.category}</span>
+                  <button type="button" className={`${OUTLINE} self-start`} onClick={() => open("category")}>
+                    {copy("settings.change")}
+                  </button>
+                  {overridden ? note("settings.market.overridden") : standing ? note("settings.market.consequence.market") : null}
+                </>
+              )
             }
-          >
-            {editing === "category" ? null : (
-              <>
-                <span className="min-w-0 font-semibold wrap-anywhere">{p.market.category}</span>
-                <button type="button" className={OUTLINE} onClick={() => open("category")}>
-                  {copy("settings.change")}
-                </button>
-              </>
-            )}
-          </SettingRow>
+          />
 
           <SettingRow name={copy("settings.market.sets.title")} testId="market-sets" below={
             <ul className="flex min-w-0 flex-col gap-1">

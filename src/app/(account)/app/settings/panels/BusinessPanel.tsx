@@ -28,7 +28,7 @@ import {
 } from "../business-actions";
 import { remeasureNowAction } from "../change-actions";
 import { MARKET_REMEASURE_INITIAL, type MarketRemeasureState } from "../market-state";
-import { formatDate } from "../../_shell/format";
+import { formatShortDay } from "../../_shell/format";
 import { writtenLine } from "../../_shell/written";
 import {
   BUSINESS_ITEM_FIELD,
@@ -247,21 +247,36 @@ function ReadAgain(p: { profile: BusinessProfile; timeZone: string }): React.JSX
 
   const line = failed ? copy("settings.answer.could-not-ask") : remeasure.answer === "refused" ? remeasure.line : null;
   const { readAt, pagesRead } = p.profile;
-  const on = readAt === null ? null : formatDate(readAt, p.timeZone);
+  // The boards' date: "Mon 12 Oct 2026", mono.
+  const on =
+    readAt === null
+      ? null
+      : `${formatShortDay(readAt, p.timeZone)} ${new Intl.DateTimeFormat("en", { timeZone: p.timeZone, year: "numeric" }).format(readAt)}`;
+  const readLine =
+    on === null
+      ? copy("settings.business.read-never")
+      : pagesRead === null
+        ? copy("settings.business.read-at", { on })
+        : copy("settings.business.read-line", { on, count: String(pagesRead) });
+  const at = on === null ? -1 : readLine.indexOf(on);
 
   return (
     <div className="flex min-w-0 flex-col gap-2 border-t border-base-300 pt-5">
       <div className="flex min-w-0 flex-wrap items-center justify-between gap-x-4 gap-y-3">
         <p className="text-sm text-base-content/70 wrap-anywhere" data-testid="business-read-line">
-          {on === null
-            ? copy("settings.business.read-never")
-            : pagesRead === null
-              ? copy("settings.business.read-at", { on })
-              : copy("settings.business.read-line", { on, count: String(pagesRead) })}
+          {at === -1 ? (
+            readLine
+          ) : (
+            <>
+              {readLine.slice(0, at)}
+              <span className="num whitespace-nowrap">{on}</span>
+              {readLine.slice(at + on!.length)}
+            </>
+          )}
         </p>
         <button
           type="button"
-          className="btn btn-soft btn-primary min-h-11"
+          className="btn btn-soft btn-primary border-primary/30 min-h-11"
           disabled={busy}
           onClick={readAgain}
           data-testid="business-read-again"

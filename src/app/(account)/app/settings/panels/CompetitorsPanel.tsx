@@ -234,7 +234,7 @@ export function CompetitorsPanel(p: {
                   </label>
                   <input
                     id="add-competitor-field"
-                    className={refusalLine === null ? "input num w-full" : "input input-error num w-full"}
+                    className={refusalLine === null ? "input w-full" : "input input-error w-full"}
                     name={RIVAL_FIELD}
                     placeholder={copy("settings.competitors.placeholder")}
                     value={value}

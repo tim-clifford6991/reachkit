@@ -8,7 +8,7 @@ import { CUSTOMERS, PLUMBER, type Customer } from "./business-fixtures";
 
 applyEnvFixture();
 
-const { formatDate } = await import("@/app/(account)/app/_shell/format");
+const { formatShortDay } = await import("@/app/(account)/app/_shell/format");
 const { BusinessPanel } = await import("@/app/(account)/app/settings/panels/BusinessPanel");
 const { KnowledgePanel } = await import("@/app/(account)/app/settings/panels/KnowledgePanel");
 const { FactsPanel } = await import("@/app/(account)/app/settings/panels/FactsPanel");
@@ -82,11 +82,11 @@ describe.each(CUSTOMERS)("$name: What we read from your site", (c) => {
     expect(text(promises?.querySelector('[data-testid="business-open-add-claims"]'))).toBe("Add");
   });
 
-  it("closes on the last read and the existing re-read", () => {
+  it("closes on the last read, its date mono in the boards' form, and the existing re-read", () => {
     const root = business(c);
-    expect(text(root.querySelector('[data-testid="business-read-line"]'))).toBe(
-      `Last read ${formatDate(c.profile.readAt!, TZ)} · ${c.profile.pagesRead} pages`
-    );
+    const on = `${formatShortDay(c.profile.readAt!, TZ)} ${c.profile.readAt!.getUTCFullYear()}`;
+    expect(text(root.querySelector('[data-testid="business-read-line"]'))).toBe(`Last read ${on} · ${c.profile.pagesRead} pages`);
+    expect(text(root.querySelector('[data-testid="business-read-line"] .num'))).toBe(on);
     expect(text(root.querySelector('[data-testid="business-read-again"]'))).toBe("Read my site again now");
   });
 
