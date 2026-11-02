@@ -312,8 +312,7 @@ export const SETUP_COPY = Object.freeze({
   // and shipped under the owner ruling of 2026-09-16 (#759); the owner
   // corrects the wording.
   "setup.zone.head": ["Setting your time zone", { slots: {}, fixedBy: "board SetupZone · issue 1738" }],
-  "setup.zone.line": ["So every date shows in your time.", { slots: {}, fixedBy: "issue 753" }],
-  "setup.zone.once": ["A few seconds, once. Nothing to press.", { slots: {}, fixedBy: "board SetupZone v36 · issue 2270" }],
+  "setup.zone.line": ["So every date shows in your time. A few seconds, once, with nothing to press.", { slots: {}, fixedBy: "board SetupZone v36 · O6 · issue 2270" }],
   /** Shown once the browser has said nothing for ten seconds; the support address follows it as a link. */
   "setup.zone.slow": ["We don’t have your time zone yet. Reload this page, or write to", { slots: {}, fixedBy: "board SetupZone · issue 1738" }],
 
@@ -618,7 +617,7 @@ export const SETUP_COPY = Object.freeze({
   // The week after setup. No go-live hour: the address is not connected yet (Q11).
   "setup.connect.week.1": ["Every Monday we plan up to 7 pages, new or updated.", { slots: {}, fixedBy: "board Setup · issue 1738" }],
   "setup.connect.week.2": ["Each page goes live on its day, by itself.", { slots: {}, fixedBy: "board Setup · issue 1738" }],
-  "setup.wordpress.later": ["You’ll connect it in Settings › Publishing with your site address, username and an app password.", { slots: {}, fixedBy: "SPEC §5 · board Setup v36 · issue 2270" }],
+  "setup.wordpress.later": ["You’ll connect it in Settings › Publishing, with your site address, username and an app password.", { slots: {}, fixedBy: "SPEC §5 · board Setup v36 · issue 2270" }],
   "setup.connect.week.3": ["You can edit or stop any page first. You never have to.", { slots: {}, fixedBy: "board Setup · issue 1738" }],
   "setup.connect.week.4": ["Cancel or export in Settings at any time.", { slots: {}, fixedBy: "board Setup v36 · issue 2270" }],
 

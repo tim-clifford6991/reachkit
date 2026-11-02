@@ -37,9 +37,7 @@ export function ZoneScreen(): React.JSX.Element {
             {/* The one spinner outside a pressed button: the screen itself is the wait (DESIGN › Busy and done).
                 The board's lucide arc, which still reads as a spinner when motion is reduced and it stands still. */}
             <LoaderCircle aria-hidden size={20} strokeWidth={1.75} className="mt-0.5 shrink-0 text-primary motion-safe:animate-spin" />
-            <p>
-              {copy("setup.zone.line")} {copy("setup.zone.once")}
-            </p>
+            <p>{copy("setup.zone.line")}</p>
           </div>
           <ZoneSlow line={copy("setup.zone.slow")} address={address} />
         </main>

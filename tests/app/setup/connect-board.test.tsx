@@ -172,7 +172,7 @@ describe("the time-zone screen matches board SetupZone", () => {
     inOrder(textOf(await zone()), [
       "ReachKit",
       "Setting your time zone",
-      "So every date shows in your time. A few seconds, once. Nothing to press.",
+      "So every date shows in your time. A few seconds, once, with nothing to press.",
     ]);
     expect((await zone()).querySelector("button")).toBeNull();
     expect((await zone()).querySelector("h1")?.textContent).toBe("Setting your time zone");

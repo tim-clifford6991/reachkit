@@ -104,7 +104,7 @@ describe("the time-zone screen", () => {
     const card = root.querySelector('[data-testid="setup-zone"]')!;
     expect(icons(card)).toEqual(["loader-circle"]);
     expect(card.querySelector("svg.lucide-loader-circle")?.getAttribute("aria-hidden")).toBe("true");
-    expect(card.textContent).toBe(`${COPY["setup.zone.line"]} ${COPY["setup.zone.once"]}`);
+    expect(card.textContent).toBe(COPY["setup.zone.line"]);
     expect(root.querySelector("figure")).toBeNull();
   });
 
