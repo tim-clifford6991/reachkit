@@ -1,6 +1,7 @@
 // SPEC §4 (board Main) — the Overview tab, at `/app`, in the board's order:
-// the head, today's page (or the line or card in its place), how far the live
-// pages got, this week's pages, and the one optional line about the
+// the head (above the tabs), today's page (or the line or card in its place),
+// how far the live pages got with this week's AI reads, this week's pages, the
+// best mover beside the monthly measures, and the one optional line about the
 // customer's own site.
 //
 // **Every read is a stored one.** No module fetches for itself, so the render
@@ -11,6 +12,7 @@
 import type React from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
+import { Wrench } from "lucide-react";
 import { readShell } from "../_shell/provider";
 import { readOverview } from "../_overview/provider";
 import { readPublished } from "../_overview/content-provider";
@@ -27,10 +29,10 @@ import { ISSUES_HREF } from "../_overview/alerts";
 import { OverviewHead } from "../_overview/OverviewHead";
 import { WaitingPageCard } from "../_overview/WaitingPageCard";
 import { WeekWaiting } from "../_overview/WeekWaiting";
-import { OVERVIEW, REGION } from "../_overview/frame";
+import { FIGURES, HEAD, OVERVIEW, REGION } from "../_overview/frame";
 import { readBlogReads, readGoogleVisits } from "../_overview/blog-reads-provider";
-import { aiPagesOf, bestMoverOf } from "@/lib/measure/figures";
-import { AiFigure, MonthsFigure, MoverFigure } from "../_overview/Figures";
+import { bestMoverOf } from "@/lib/measure/figures";
+import { MonthsFigure, MoverFigure } from "../_overview/Figures";
 
 export const metadata: Metadata = { title: copy("meta.app.overview.title") };
 
@@ -84,7 +86,6 @@ export default async function OverviewPage(): Promise<React.JSX.Element> {
   const content = contentOf(published);
   const ladder = content === null ? null : pageLadderOf(content.pages, published.now, googleVisits);
   const live = content?.pages.filter((page) => page.publishedAt <= published.now) ?? [];
-  const aiPages = aiPagesOf(live);
   const mover = bestMoverOf(live, published.now);
   const week = thisWeek?.week ?? null;
   const weekPages = week?.pages ?? 0;
@@ -126,21 +127,22 @@ export default async function OverviewPage(): Promise<React.JSX.Element> {
 
   return (
     <div className={OVERVIEW} data-testid="overview">
-      <FirstPageNotice state={onboarding} />
-      <ReleaseNoticeLine noticeKey={notice} />
-
-      <OverviewHead
-        eyebrow={eyebrow}
-        title={needs === null ? copy("overview.head.title") : copy(needs.key, needs.vars)}
-        action={needs === null ? null : { label: copy(needs.actionKey), href: needs.href }}
-        lead={lead === "" ? null : lead}
-      />
+      <div className={HEAD}>
+        <FirstPageNotice state={onboarding} />
+        <ReleaseNoticeLine noticeKey={notice} />
+        <OverviewHead
+          eyebrow={eyebrow}
+          title={needs === null ? copy("overview.head.title") : copy(needs.key, needs.vars)}
+          action={needs === null ? null : { label: copy(needs.actionKey), href: needs.href }}
+          lead={lead === "" ? null : lead}
+        />
+      </div>
 
       {paused ? (
         <section className="card card-border min-w-0 bg-base-100" data-testid="overview-paused">
           <div className="card-body min-w-0 gap-3 p-4 sm:p-5 md:flex-row md:items-center md:justify-between">
             <p className="min-w-0">{copy("overview.paused.line")}</p>
-            <Link className="btn btn-soft btn-sm shrink-0" href={PUBLISHING_SETTINGS} prefetch={true}>
+            <Link className="btn btn-soft btn-sm min-h-11 shrink-0" href={PUBLISHING_SETTINGS} prefetch={true}>
               {copy("overview.paused.action")}
             </Link>
           </div>
@@ -158,7 +160,7 @@ export default async function OverviewPage(): Promise<React.JSX.Element> {
         </p>
       )}
 
-      {ladder === null ? null : <PageLadder ladder={ladder} timeZone={shell.timeZone} />}
+      {ladder === null ? null : <PageLadder ladder={ladder} reads={blogReads} />}
 
       {running ? (
         <div className="min-w-0" data-frame={REGION.week}>
@@ -174,24 +176,26 @@ export default async function OverviewPage(): Promise<React.JSX.Element> {
         </p>
       )}
 
-      {aiPages === null && !blogReads.show && mover === undefined ? null : (
-        <div className="grid min-w-0 gap-6 lg:grid-cols-2">
-          <AiFigure pages={aiPages} reads={blogReads} />
+      {mover === undefined && overview.months === null ? null : (
+        <div className={FIGURES} data-frame={REGION.figures}>
           <MoverFigure mover={mover} timeZone={shell.timeZone} />
+          {overview.months === null ? null : <MonthsFigure months={overview.months} timeZone={shell.timeZone} />}
         </div>
       )}
-      {overview.months === null ? null : <MonthsFigure months={overview.months} timeZone={shell.timeZone} />}
 
       {fixes === 0 ? null : (
-        <section className="card card-border min-w-0 bg-base-100" data-testid="overview-fixes">
-          <p className="card-body min-w-0 flex-row flex-wrap items-baseline gap-x-2 gap-y-1 p-4 text-sm">
-            <strong>{fixes === 1 ? copy("overview.fixes.line.one") : copy("overview.fixes.line", { n: String(fixes) })}</strong>
-            <span className="text-base-content/70">{copy("overview.fixes.optional")}</span>
-            <Link className="link font-semibold" href={ISSUES_HREF} prefetch={true}>
-              {copy("overview.fixes.see")}
-            </Link>
-          </p>
-        </section>
+        <Link className="card card-border min-w-0 bg-base-100 hover:border-primary" href={ISSUES_HREF} prefetch={true} data-testid="overview-fixes">
+          <span className="card-body min-w-0 flex-row flex-wrap items-center gap-x-3.5 gap-y-2.5 px-5 py-3.5 text-sm">
+            <span className="grid size-8 shrink-0 place-items-center rounded-field bg-base-200 text-base-content/70" aria-hidden>
+              <Wrench className="size-5" strokeWidth={1.75} />
+            </span>
+            <span className="min-w-0 flex-[1_1_18rem]">
+              <strong>{fixes === 1 ? copy("overview.fixes.line.one") : copy("overview.fixes.line", { n: String(fixes) })}</strong>
+              <span className="text-base-content/70">{` ${copy("overview.fixes.optional")}`}</span>
+            </span>
+            <span className="font-semibold text-primary">{copy("overview.fixes.see")}</span>
+          </span>
+        </Link>
       )}
     </div>
   );

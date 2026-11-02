@@ -1,14 +1,13 @@
 // SPEC §7 (2026-09-20, #908, issue 930) — the parts a day draws, shared by
-// Plan's week rows (`WeekGrid`) and Overview's week cards: the page a stage
-// filter leaves, the two words an empty day says, the New or Update chip,
-// the state badge, and Overview's day card itself.
+// Plan's week rows (`WeekGrid`) and Overview's week (`ThisWeek`): the page a
+// stage filter leaves, the two words an empty day says, the New or Update
+// chip and the state badge.
 //
 // The clamped title carries `rk-cal-label` and the two-word reason
 // `rk-cal-empty` — the truncations this screen declared to the layout sweep
 // in #354.
 import type React from "react";
 import { Calendar, CircleStop, Plus, RefreshCw, type LucideIcon } from "lucide-react";
-import { PageSketch } from "@/ui/PageSketch";
 import { copy } from "@/lib/presentation/copy";
 import { SITE_CHECK_TITLE } from "@/lib/presentation/site-issues";
 import { horizonShortFor, shortCauseFor } from "./card-lines";
@@ -51,49 +50,6 @@ export function KindChip(p: { update: boolean }): React.JSX.Element {
   );
 }
 
-/** The lines a day adds under its page or in its place: why the week holds
- *  the page, when today's page goes live, or what a stopped or skipped day
- *  means. `goesLive` is absent while the address does not work, so no time
- *  is promised. */
-export function DayLines(p: {
-  cell: DayCell;
-  page: PageOnDay | null;
-  goesLive: string | null;
-  /** The week's first skipped day says what a skip is; the others do not repeat it. */
-  firstSkip: boolean;
-  /** A stage filter is on, so an empty day says nothing. */
-  filtered: boolean;
-}): React.JSX.Element | null {
-  const { cell, page } = p;
-  if (page !== null) {
-    const today = cell.today && p.goesLive !== null && (page.stage === "your_review" || page.stage === "scheduled");
-    return (
-      <>
-        {page.whyLine === null ? null : (
-          <span className="flex min-w-0 flex-col" data-testid="cell-why">
-            <span className="text-xs font-semibold uppercase tracking-wide text-base-content/70">{copy("calendar.week.why")}</span>
-            <span className="min-w-0 text-xs wrap-anywhere" data-testid="cell-why-line">
-              {page.whyLine}
-            </span>
-          </span>
-        )}
-        {today ? (
-          <span className="min-w-0 text-xs font-semibold" data-testid="cell-goes-live">
-            {copy("calendar.week.today", { time: p.goesLive! })}
-          </span>
-        ) : null}
-      </>
-    );
-  }
-  if (p.filtered) return null;
-  const line = stateLineOf(cell, p.firstSkip);
-  return line === null ? null : (
-    <span className="min-w-0 text-xs wrap-anywhere text-base-content/70" data-testid="cell-state-line">
-      {line}
-    </span>
-  );
-}
-
 /** What a day with no page says in its place: the day the customer stopped, else the week's first skip. */
 export function stateLineOf(cell: DayCell, firstSkip: boolean): string | null {
   if (cell.empty?.cause === "page_cannot_go_live") return copy("calendar.day.stopped.line", { day: `${weekdayShort(cell.day)} ${dayNumber(cell.day)}` });
@@ -124,63 +80,5 @@ export function DayStateBadge(p: { cell: DayCell; filter: StageFilter }): React.
       {Icon === undefined ? null : <Icon aria-hidden className="size-3" />}
       {copy(DAY_STATE_COPY_KEY[state])}
     </span>
-  );
-}
-
-/** One day as a card: its date, its page's sketch, chip and title
- *  or the empty day's two words, its lines, then `controls`. Overview's week draws it. */
-export function DayCardView(p: {
-  cell: DayCell;
-  page: PageOnDay | null;
-  line: string | null;
-  goesLive: string | null;
-  firstSkip: boolean;
-  filtered: boolean;
-  selected: boolean;
-  controls: React.ReactNode;
-}): React.JSX.Element {
-  const { cell, page, line } = p;
-  const day = (
-    <>
-      <span className="num shrink-0 text-xs font-semibold" data-testid="cell-date">
-        {weekdayShort(cell.day)} {dayNumber(cell.day)}
-      </span>
-      {page === null ? null : <PageSketch primary={cell.today} />}
-      {page === null ? (
-        line === null ? null : (
-          <span
-            className="rk-cal-empty line-clamp-2 min-w-0 text-xs wrap-anywhere opacity-70"
-            data-testid={shortCauseFor(cell) !== null ? "cell-empty-line" : "calendar-horizon-marker"}
-          >
-            {line}
-          </span>
-        )
-      ) : (
-        <>
-          <KindChip update={page.update} />
-          <span className="rk-cal-label line-clamp-3 min-w-0 text-sm font-semibold leading-tight wrap-anywhere" data-testid="cell-label">
-            {page.title}
-          </span>
-        </>
-      )}
-      <DayLines cell={cell} page={page} goesLive={p.goesLive} firstSkip={p.firstSkip} filtered={p.filtered} />
-    </>
-  );
-  return (
-    <li
-      className={[
-        "card card-border min-w-0 bg-base-100",
-        dayStateOf(cell) === "skipped" ? "border-dashed" : "",
-        p.selected ? "ring-2 ring-inset ring-primary" : cell.today ? "border-primary" : "",
-      ].join(" ")}
-      data-testid={`calendar-cell-${cell.day}`}
-      data-today={cell.today ? "" : undefined}
-      data-empty={page === null ? "" : undefined}
-    >
-      <div className="card-body min-w-0 gap-2 p-2">
-        <div className="flex min-w-0 flex-col gap-1">{day}</div>
-        <div className="mt-auto flex min-w-0 flex-wrap items-center gap-1">{p.controls}</div>
-      </div>
-    </li>
   );
 }

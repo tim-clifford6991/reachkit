@@ -227,6 +227,17 @@ async function hostedAddressWaiting(siteId: string): Promise<boolean> {
   return host !== null && host.state !== "live";
 }
 
+/** Whether the site's own logo is stored: the one column the free scan's
+ *  profile keeps it by. A read that fails draws the letter mark. */
+async function logoStored(domain: string): Promise<boolean> {
+  const { data, error } = await client()
+    .from<{ logo_type: string | null }>("site_profiles")
+    .select("logo_type")
+    .eq("domain", domain)
+    .limit(1);
+  return error === null && data?.[0]?.logo_type != null;
+}
+
 /** How many pages this site has planned and not written yet, and how many
  *  it has that a publish could still reach at all — §4.4's `not_written`
  *  and `nothing_planned`, from one read. */
@@ -244,7 +255,7 @@ async function plannedCounts(siteId: string): Promise<{ unwritten: number; reach
 /**
  * Everything §4.4's frame states about one real account.
  *
- * Seven reads, all of them projections, run together: nothing here depends on
+ * Eight reads, all of them projections, run together: nothing here depends on
  * anything else here, and a screen that waited on them in sequence would be
  * six round trips deep before it drew a sidebar.
  */
@@ -262,7 +273,7 @@ export async function readShellFacts(site: ShellSite): Promise<ShellFacts> {
     hostedAddressWaiting(site.siteId),
   ]);
 
-  const [weeks, firstDueOn, waits, blog, next, planned, stopped] = await Promise.all([
+  const [weeks, firstDueOn, waits, blog, next, planned, stopped, hasLogo] = await Promise.all([
     measuredWeeksOf({ site, now }),
     nextDueOn({ siteId: site.siteId, now }),
     waiting(site.siteId),
@@ -270,10 +281,12 @@ export async function readShellFacts(site: ShellSite): Promise<ShellFacts> {
     nextScheduled(site.siteId, publishingOn && !addressWaiting),
     plannedCounts(site.siteId),
     readStop(),
+    logoStored(site.domain),
   ]);
 
   return {
     domain: site.domain,
+    hasLogo,
     timeZone: site.timeZone,
     mode: site.mode,
     weeks,

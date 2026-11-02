@@ -26,7 +26,7 @@ import type React from "react";
 import { Suspense, use } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Calendar, Settings, TrendingUp, type LucideIcon } from "lucide-react";
+import { Calendar, House, Settings, type LucideIcon } from "lucide-react";
 import { copy } from "@/lib/presentation/copy";
 import {
   DESTINATIONS,
@@ -40,7 +40,7 @@ import {
 /** Each destination's glyph. A `Record` over the one tuple, so a fourth
  *  destination without a glyph is a compile error. */
 export const DESTINATION_ICON: Record<Destination, LucideIcon> = {
-  overview: TrendingUp,
+  overview: House,
   calendar: Calendar,
   settings: Settings,
 };
@@ -119,7 +119,7 @@ export function SidebarNav(p: {
                 // carries the word itself and needs neither.
                 className={[
                   here ? HERE : "",
-                  rail ? "tooltip tooltip-right relative size-12 content-center items-center justify-center p-0" : "",
+                  rail ? "tooltip tooltip-right relative size-12 content-center items-center justify-center p-0" : "min-h-11 items-center",
                 ]
                   .filter(Boolean)
                   .join(" ")}

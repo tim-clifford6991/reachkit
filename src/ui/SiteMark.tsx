@@ -7,7 +7,7 @@ import type React from "react";
 const TINTS = ["badge-primary", "badge-success", "badge-warning"] as const;
 /** Literal classes per drawn size, so Tailwind sees each one. */
 const BOX = {
-  20: "size-5 rounded-sm text-[0.625rem]",
+  20: "size-5 rounded-sm text-xs",
   32: "size-8 rounded-field text-sm",
   36: "size-9 rounded-field text-base",
   40: "size-10 rounded-field text-lg",

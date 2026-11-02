@@ -36,6 +36,13 @@ export function formatDay(at: Date, timeZone: string): string {
   return new Intl.DateTimeFormat(SHELL_LOCALE, { timeZone, weekday: "long", day: "numeric", month: "long" }).format(at);
 }
 
+/** A day in short, weekday first and month last: "Mon 16 Nov", as the boards write it. */
+export function formatShortDay(at: Date, timeZone: string): string {
+  const parts = new Intl.DateTimeFormat(SHELL_LOCALE, { timeZone, weekday: "short", day: "numeric", month: "short" }).formatToParts(at);
+  const part = (type: Intl.DateTimeFormatPartTypes): string => parts.find((p) => p.type === type)?.value ?? "";
+  return `${part("weekday")} ${part("day")} ${part("month")}`;
+}
+
 /** REQ-040 c3's "date and time of the next scheduled publish", in the
  *  site's zone, with the zone itself named — a time with no zone beside it
  *  is a time the customer has to guess about. */

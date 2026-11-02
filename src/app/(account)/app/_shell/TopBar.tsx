@@ -11,7 +11,7 @@
 // A daisyUI `navbar` row over one line, in a bar of one fixed height
 // (`bar.ts`), because the tab bars stick directly under it.
 //
-// The brand and the theme control on the first row; the domain and whether
+// The brand and the theme control on the first row; the site's mark, the domain and whether
 // publishing is on under them, as board Plan draws the bar. The domain can be
 // any length and is a value, so it is mono and clamped to one line. While
 // publishing is not on, the line says why in the panel's own sentence,
@@ -19,6 +19,7 @@
 import type React from "react";
 import { copy } from "@/lib/presentation/copy";
 import { Brand } from "@/app/_brand/Brand";
+import { SiteMark } from "@/ui/SiteMark";
 import { ThemeToggle } from "@/app/_theme/ThemeToggle";
 import { themeNames } from "@/app/_theme/names";
 import { TOP_BAR } from "./bar";
@@ -42,8 +43,11 @@ export function TopBar(p: { shell: ShellModel }): React.JSX.Element {
         </span>
       </div>
       <p className="flex min-w-0 items-center gap-3 text-xs">
-        <span className="num min-w-0 shrink truncate text-base-content/70" title={p.shell.domain}>
-          {p.shell.domain}
+        <span className="flex min-w-0 shrink items-center gap-2">
+          <SiteMark domain={p.shell.domain} hasLogo={p.shell.hasLogo} size={20} />
+          <span className="num min-w-0 truncate text-base-content/70" title={p.shell.domain}>
+            {p.shell.domain}
+          </span>
         </span>
         <span className="flex min-w-0 items-center gap-1.5 font-semibold" data-testid="shell-top-publishing">
           <span className={`status shrink-0 ${on ? "status-success" : "status-warning"}`} aria-hidden />

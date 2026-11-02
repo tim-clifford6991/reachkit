@@ -323,6 +323,16 @@ describe("the site's own facts are carried through, never a fixture's", () => {
     await readShellFacts(SITE);
     expect(measuredWeeksOf).toHaveBeenCalledWith(expect.objectContaining({ site: SITE }));
   });
+
+  it("the site's mark is its logo only where its own stored profile keeps one", async () => {
+    expect((await readShellFacts(SITE)).hasLogo).toBe(false);
+    rows.set("site_profiles", [{ domain: "other.test", logo_type: "image/png" }]);
+    expect((await readShellFacts(SITE)).hasLogo).toBe(false);
+    rows.set("site_profiles", [{ domain: "acme.test", logo_type: null }]);
+    expect((await readShellFacts(SITE)).hasLogo).toBe(false);
+    rows.set("site_profiles", [{ domain: "acme.test", logo_type: "image/png" }]);
+    expect((await readShellFacts(SITE)).hasLogo).toBe(true);
+  });
 });
 
 describe("until the hosted address is live, the shell names no go-live time", () => {

@@ -27,6 +27,7 @@ const MONDAY = (day: number): Date => new Date(Date.UTC(2026, 8, day, 6, 0, 0));
 
 const BASE: ShellFacts = {
   domain: "example.com",
+  hasLogo: false,
   timeZone: "America/New_York",
   mode: "autopilot",
   weeks: [

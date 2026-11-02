@@ -29,6 +29,8 @@ export const FIXTURE_DOMAIN = "example.com";
 
 export const FIXTURE_SHELL_FACTS: ShellFacts = Object.freeze({
   domain: FIXTURE_DOMAIN,
+  // A reserved name has no stored logo: its mark is the letter tile.
+  hasLogo: false,
   // REQ-073 c1's one stored preference. `SERP_LOCATION` fixes the MVP at
   // US-English (DECISIONS 2026-08-28), so the fixture's site sits in a US
   // zone rather than the machine's.

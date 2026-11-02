@@ -12,8 +12,8 @@ export function OverviewHead(p: {
   lead: string | null;
 }): React.JSX.Element {
   return (
-    <header className="flex min-w-0 flex-col gap-1" data-testid="overview-head">
-      <p className="num text-xs font-semibold uppercase tracking-wide text-base-content/70" data-testid="overview-head-eyebrow">
+    <header className="flex min-w-0 flex-col gap-1.5" data-testid="overview-head">
+      <p className="eyebrow" data-testid="overview-head-eyebrow">
         {p.eyebrow}
       </p>
       <h1 className="min-w-0">{p.title}</h1>
@@ -23,7 +23,7 @@ export function OverviewHead(p: {
         </p>
       )}
       {p.action === null ? null : (
-        <Link className="btn btn-soft btn-warning btn-sm self-start" href={p.action.href} prefetch={true}>
+        <Link className="btn btn-soft btn-warning btn-sm min-h-11 self-start" href={p.action.href} prefetch={true}>
           {p.action.label}
         </Link>
       )}

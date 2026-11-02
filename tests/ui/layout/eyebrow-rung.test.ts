@@ -118,7 +118,7 @@ async function measure(urlPath: string): Promise<Measurement> {
 describe("the eyebrow rung computes as DESIGN.md states it, on a public and an account screen", () => {
   for (const urlPath of [PUBLIC_ROUTE, ACCOUNT_ROUTE]) {
     it(
-      `${urlPath}: 11px, uppercase, .1em, 700, --ink-3`,
+      `${urlPath}: 12px, uppercase, .1em, 700, --ink-3`,
       async () => {
         const { eyebrows, expectedPx, expectedInk } = await measure(urlPath);
         // Rule 5.5: an assertion that ran over nothing is a pass that means
@@ -126,7 +126,7 @@ describe("the eyebrow rung computes as DESIGN.md states it, on a public and an a
         expect(eyebrows.length, `${urlPath} rendered no .eyebrow`).toBeGreaterThan(0);
         // The token's own value, read off `:root` in the same document — so
         // the rung is not a second copy of the ladder written down here.
-        expect(expectedPx, `${SIZE_TOKEN} must be the ladder's floor`).toBe(11);
+        expect(expectedPx, `${SIZE_TOKEN} must be the ladder's floor`).toBe(12);
 
         for (const eyebrow of eyebrows) {
           const where = `${urlPath}: "${eyebrow.text}"`;

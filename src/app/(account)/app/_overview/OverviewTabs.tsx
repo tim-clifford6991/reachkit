@@ -42,7 +42,7 @@ export function OverviewTabs(): React.JSX.Element {
               key={tab}
               href={TAB_HREF[tab]}
               prefetch={true}
-              className={`tab whitespace-nowrap ${here ? "tab-active" : ""}`}
+              className={`tab min-h-11 whitespace-nowrap ${here ? "tab-active" : ""}`}
               data-testid={`overview-tab-${tab}`}
               aria-current={here ? "page" : undefined}
             >

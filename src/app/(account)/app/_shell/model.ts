@@ -43,6 +43,8 @@ export interface WaitingPage {
 
 export interface ShellModel {
   domain: string;
+  /** Whether the site's own logo is stored, so its mark is the logo and not its first letter. */
+  hasLogo: boolean;
   /** The zone every date and time the shell states is expressed in
    *  (REQ-073 c1: captured once, stored as one preference). */
   timeZone: string;
@@ -71,6 +73,7 @@ export interface ShellModel {
  *  fixture and a future query answer the same question. */
 export interface ShellFacts {
   domain: string;
+  hasLogo: boolean;
   timeZone: string;
   mode: PublishingMode;
   weeks: readonly MeasuredWeek[];
@@ -109,6 +112,7 @@ export function assembleShell(facts: ShellFacts): ShellModel {
 
   return {
     domain: facts.domain,
+    hasLogo: facts.hasLogo,
     timeZone: facts.timeZone,
     weeks,
     waiting: facts.waiting,

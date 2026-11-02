@@ -1,17 +1,14 @@
-// SPEC §4 (owner, 2026-10-19, the simple model; board Main) — this week's AI
-// and Google figures side by side, then the ones that move over months. Each
-// figure is counted over the rows its link opens; a figure nothing measured is
-// left out, never drawn as 0.
+// SPEC §4 (owner, 2026-10-19, the simple model; board Main) — this week's best
+// mover beside the measures checked monthly. Each figure is counted over the
+// rows its link opens; a figure nothing measured is left out, never drawn as 0.
 import type React from "react";
 import Link from "next/link";
 import { TrendingUp } from "lucide-react";
 import { copy } from "@/lib/presentation/copy";
-import type { BlogReadsModel } from "@/lib/publish/reads/model";
 import { GrowthLine } from "@/ui/charts/GrowthLine";
 import { PlaceLine } from "@/ui/charts/PlaceLine";
-import { ReadsBars } from "@/ui/charts/ReadsBars";
-import { formatCount, formatDay, SHELL_LOCALE } from "../_shell/format";
-import { FIRST_PAGE, type AiPages, type BestMover, type MonthsFacts } from "@/lib/measure/figures";
+import { formatCount, formatShortDay, SHELL_LOCALE } from "../_shell/format";
+import { FIRST_PAGE, type BestMover, type MonthsFacts } from "@/lib/measure/figures";
 import { shownKey } from "@/lib/measure/registry";
 
 /** Where each figure's rows are listed. */
@@ -21,66 +18,12 @@ export const GOOGLE_PAGES_HREF = "/app/search?show=live";
 const INK = "text-base-content/70";
 const CARD = "card card-border min-w-0 bg-base-100";
 const BODY = "card-body min-w-0 gap-3 p-5";
-const READS_CHART = copy("overview.ai.reads.chart");
-const ID = { ai: "overview-ai", mover: "overview-mover", months: "overview-months" } as const;
+const ID = { mover: "overview-mover", months: "overview-months" } as const;
 const MOVER_CHART = copy("draft.live.chart");
 
 /** "Oct 5": a week or a reading as the figures name it. */
 export function shortDay(at: Date, timeZone: string): string {
   return new Intl.DateTimeFormat(SHELL_LOCALE, { timeZone, month: "short", day: "numeric" }).format(at);
-}
-
-function readsLine(n: number): string {
-  if (n === 0) return copy("overview.ai.reads.none");
-  return n === 1 ? copy("overview.ai.reads.one") : copy("overview.ai.reads", { n: formatCount(n) });
-}
-
-export function AiFigure(p: { pages: AiPages | null; reads: BlogReadsModel }): React.JSX.Element | null {
-  const reads = p.reads.show && p.reads.fetches.kind !== "unmeasured" ? p.reads : null;
-  if (p.pages === null && reads === null) return null;
-  return (
-    <section className={CARD} aria-labelledby={ID.ai} data-testid={ID.ai}>
-      <div className={BODY}>
-        <h2 id={ID.ai} className="eyebrow">
-          {copy("overview.ai.title")}
-        </h2>
-        {p.pages === null ? null : (
-          <>
-            <p className="flex min-w-0 flex-wrap items-baseline gap-2.5">
-              <span className="num text-4xl font-semibold" data-testid={shownKey("overview-ai-linked")}>
-                {formatCount(p.pages.linked.length)}
-              </span>
-              <span className={`text-sm ${INK}`}>{copy("overview.ai.linked.of", { of: formatCount(p.pages.asked.length) })}</span>
-            </p>
-            <progress className="progress progress-primary w-full" value={p.pages.linked.length} max={p.pages.asked.length} aria-hidden />
-            <p className={`flex min-w-0 flex-wrap gap-x-3.5 gap-y-1 text-xs ${INK}`}>
-              <span>{copy("overview.ai.linked.own", { n: formatCount(p.pages.linked.length) })}</span>
-              <span>{copy("overview.ai.linked.not-yet", { n: formatCount(p.pages.asked.length - p.pages.linked.length) })}</span>
-            </p>
-          </>
-        )}
-        {reads === null || reads.fetches.kind === "unmeasured" ? null : (
-          <div className="flex min-w-0 flex-wrap items-end gap-x-5 gap-y-3 border-t border-base-300 pt-3">
-            <div className="flex min-w-0 flex-1 basis-36 flex-col gap-1">
-              <p className="text-sm" data-testid={shownKey("overview-ai-reads")}>
-                {readsLine(reads.fetches.value)}
-              </p>
-              <p className={`text-xs ${INK}`}>{copy("overview.ai.reads.who")}</p>
-            </div>
-            {reads.weekly.length < 2 ? null : (
-              <ReadsBars
-                label={READS_CHART}
-                weeks={reads.weekly.map((week) => ({ name: shortDay(new Date(`${week.start}T12:00:00Z`), "UTC"), count: week.fetches }))}
-              />
-            )}
-          </div>
-        )}
-        <Link className="link mt-auto text-sm font-semibold" href={AI_PAGES_HREF} prefetch={true}>
-          {copy("overview.ai.each")}
-        </Link>
-      </div>
-    </section>
-  );
 }
 
 /** `undefined` where no page holds a place yet: nothing to say about moving. */
@@ -101,9 +44,9 @@ export function MoverFigure(p: { mover: BestMover | null | undefined; timeZone: 
           <>
             <p className="num min-w-0 wrap-anywhere">{mover.search}</p>
             <p className="flex min-w-0 flex-wrap items-baseline gap-2.5">
-              <span className="num text-4xl font-semibold" data-testid={shownKey("overview-best-mover")}>
+              <Link className="link link-hover text-4xl leading-none font-semibold tracking-tight tabular-nums" href={GOOGLE_PAGES_HREF} prefetch={true} data-testid={shownKey("overview-best-mover")}>
                 {formatCount(mover.place)}
-              </span>
+              </Link>
               <span className={`text-sm ${INK}`}>{copy("overview.mover.place")}</span>
               <span className="badge badge-soft badge-success gap-1">
                 <TrendingUp size={16} strokeWidth={1.75} aria-hidden />
@@ -119,14 +62,14 @@ export function MoverFigure(p: { mover: BestMover | null | undefined; timeZone: 
                   { name: shortDay(new Date(mover.readAt), p.timeZone), place: mover.place },
                 ]}
               />
-              <p className={`text-xs ${INK}`}>{copy("draft.live.band")}</p>
+              <p className={`flex items-center gap-1.5 text-xs ${INK}`}>
+                <span className="h-2 w-3 shrink-0 rounded-xs border border-(--chart-goal)/40 bg-(--chart-goal)/15" aria-hidden />
+                {copy("draft.live.band")}
+              </p>
             </div>
             {mover.climbing ? <p className="text-sm">{copy("overview.mover.climbing")}</p> : null}
           </>
         )}
-        <Link className="link mt-auto text-sm font-semibold" href={GOOGLE_PAGES_HREF} prefetch={true}>
-          {copy("overview.mover.each")}
-        </Link>
       </div>
     </section>
   );
@@ -149,7 +92,7 @@ function Measure(p: { label: string; figure: string; of: string | null; line: st
     <div className="flex min-w-0 flex-1 basis-60 items-center justify-between gap-3 rounded-box bg-base-200 px-3.5 py-3" data-testid={p.testId}>
       <div className="min-w-0">
         <p className="eyebrow">{p.label}</p>
-        <p className="num text-2xl font-bold">
+        <p className="text-2xl font-bold tabular-nums" data-testid="overview-months-figure">
           {p.figure}
           {p.of === null ? null : <span className={`ms-1.5 text-sm font-semibold ${INK}`}>{p.of}</span>}
         </p>
@@ -162,12 +105,12 @@ function Measure(p: { label: string; figure: string; of: string | null; line: st
 
 export function MonthsFigure(p: { months: MonthsFacts; timeZone: string }): React.JSX.Element {
   const { reading, scan } = p.months;
-  const next = formatDay(new Date(`${p.months.next}T12:00:00Z`), "UTC");
+  const next = formatShortDay(new Date(`${p.months.next}T12:00:00Z`), "UTC");
   return (
     <section className={CARD} aria-labelledby={ID.months} data-testid={ID.months}>
       <div className={BODY}>
         <div className="flex min-w-0 flex-wrap items-baseline justify-between gap-1.5">
-          <h2 id={ID.months} className="text-lg font-semibold">
+          <h2 id={ID.months} className="text-xl font-bold tracking-tight">
             {copy("overview.months.title")}
           </h2>
           <span className={`text-xs ${INK}`} data-testid="overview-months-next">
@@ -201,9 +144,6 @@ export function MonthsFigure(p: { months: MonthsFacts; timeZone: string }): Reac
             )}
           </div>
         )}
-        <p className={`text-xs ${INK}`} data-testid="overview-months-note">
-          {copy("overview.months.note")}
-        </p>
       </div>
     </section>
   );
