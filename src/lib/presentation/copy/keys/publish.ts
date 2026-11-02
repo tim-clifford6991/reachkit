@@ -253,26 +253,18 @@ export const PUBLISH_COPY = Object.freeze({
   ],
   // Owner ruling Q11 (2026-10-20): no go-live time while the address is unconnected.
   "publish.veto.ask.head.unconnected": ["Goes live once your website is connected", { slots: {}, fixedBy: "issue 1739 · Q11" }],
-  "publish.veto.ask.row.search": ["search", { slots: {}, fixedBy: "S6 (11a)" }],
-  "publish.veto.ask.row.site": ["address", { slots: {}, fixedBy: "S6 (11a)" }],
-  "publish.veto.ask.row.volume": ["{query} · searched about {volume} times a month", { slots: { query: "text", volume: "text" }, fixedBy: "issue 1600 · drafted" }],
+  "publish.veto.ask.row.search": ["Search", { slots: {}, fixedBy: "board Veto v36 · issue 2275" }],
+  // After the search itself, which is set in the code face as the board draws it.
+  "publish.veto.ask.row.volume": ["· searched about {volume} times a month", { slots: { volume: "text" }, fixedBy: "issue 1600 · board Veto v36 · issue 2275" }],
   "publish.veto.ask.action": ["Stop this page", { slots: {}, fixedBy: "REQ-057 c1 · S6 (11a)" }],
-  /** Changed 2026-09-21 (#937). The second half said the page could be
-   *  read and edited "in the app" and offered no way there — on a screen
-   *  served with no session, to a reader who arrived from a mail. That is
-   *  the same dead end `publish.veto.calendar` below had, in prose. The
-   *  sentence keeps what it promises and the offer becomes a control, so
-   *  a reader who wants the page can reach it. Drafted (#759). */
+  // Board Veto v36: the choice not to act, then the way to the page.
   "publish.veto.ask.do-nothing": [
-    "Do nothing and it goes live on its own. You can edit or stop it until then.",
-    { slots: {}, fixedBy: "issue 937" },
+    "Do nothing and it goes live on its own.",
+    { slots: {}, fixedBy: "board Veto v36 · issue 2275" },
   ],
-  /** The offer that used to be the tail of the sentence above, as a link
-   *  to `/signin` — the door a signed-out reader can actually open.
-   *  Drafted (#759). */
   "publish.veto.ask.signin": [
-    "Sign in to read or change it",
-    { slots: {}, fixedBy: "issue 937" },
+    "Sign in to edit it",
+    { slots: {}, fixedBy: "board Veto v36 · issue 2275" },
   ],
   "publish.veto.done.head": ["Stopped", { slots: {}, fixedBy: "S6 (11a)" }],
   // SPEC §4 (2026-09-20, #914): *Plan* is the calendar's on-screen name.
@@ -286,8 +278,8 @@ export const PUBLISH_COPY = Object.freeze({
   "publish.veto.calendar": ["Sign in to open This week", { slots: {}, fixedBy: "issue 937" }],
   /** The Veto board's line: other pages are unaffected, and the topic is dropped for good. */
   "publish.veto.stopped": [
-    "Your other pages go ahead as usual. We won’t write this topic again.",
-    { slots: {}, fixedBy: "issue 1718" },
+    "Your other pages go ahead. ReachKit won’t write this topic again.",
+    { slots: {}, fixedBy: "board Veto v36 · issue 2275" },
   ],
   /** The rest of the done arm's alert, after `publish.veto.done.head`'s
    *  "Stopped" — two keys because the board bolds the first word and reads
@@ -295,39 +287,17 @@ export const PUBLISH_COPY = Object.freeze({
    *  make the bold a matter of where a full stop happens to fall.
    *  Drafted (#759). */
   "publish.veto.done.line": ["This page won’t go live.", { slots: {}, fixedBy: "issue 937" }],
-  /** The accent half's heading over the page it shows (#1025, Round 7
-   *  `R7-S4`). `{day}` is the weekday it publishes, in the site's zone —
-   *  the same moment the head on the left writes. Transcribed from the
-   *  board, for the owner to confirm. */
-  "publish.veto.panel.heading": [
-    "Goes live on {day}",
-    { slots: { day: "text" }, fixedBy: "issue 1025" },
-  ],
-  /** The same heading on the stopped arm (#1025, `R7-S5`). The board
-   *  repeats the ask arm's "goes live on …", which is false once the page
-   *  is stopped; this says what is true instead. Drafted (#759). */
-  "publish.veto.panel.heading.stopped": [
-    "This is the page you stopped.",
-    { slots: {}, fixedBy: "issue 1025" },
-  ],
   /** The pill on the stopped page in the accent half, as the board draws it. */
   "publish.veto.panel.stopped": ["Won’t go live", { slots: {}, fixedBy: "issue 2002" }],
-  /** Under the page the accent half shows (#1025, `R7-S4`): what it was
-   *  written for, and how often that is searched. Transcribed from the
-   *  board, for the owner to confirm. */
-  "publish.veto.panel.caption": [
-    "Written for people who search “{query}”, about {volume} times a month.",
-    { slots: { query: "text", volume: "text" }, fixedBy: "issue 1025" },
-  ],
   "publish.veto.alreadyUsed": ["This link was already used. The page is stopped.", { slots: {}, fixedBy: "REQ-057 c1" }],
-  // The Veto board's lines; "stopped", not "taken down", per E7 (R12 B8).
+  // Board Veto v36's line, with "stop" for its "take it down" (E7: Stop is Stop everywhere).
   "publish.veto.expired": [
-    "The time to stop this page has passed, so it may be live. Sign in to stop it from This week.",
-    { slots: {}, fixedBy: "issue 1739 · E7" },
+    "The time to stop it from your mail has passed, so it may be live. Sign in to stop it from This week.",
+    { slots: {}, fixedBy: "board Veto v36 · E7 · issue 2275" },
   ],
   "publish.veto.unknown": [
-    "Sign in to stop or edit a page from This week.",
-    { slots: {}, fixedBy: "issue 1739" },
+    "ReachKit can’t act on this link. Sign in to stop or edit a page.",
+    { slots: {}, fixedBy: "board Veto v36 · issue 2275" },
   ],
   // The heads of the arms where nothing was stopped; the line under each says why.
   "publish.veto.closed.head": ["This link has closed", { slots: {}, fixedBy: "issue 1739" }],
@@ -336,21 +306,17 @@ export const PUBLISH_COPY = Object.freeze({
   // The stop that did not go through: never says Stopped.
   "publish.veto.failed.head": ["Not stopped yet", { slots: {}, fixedBy: "issue 1739" }],
   "publish.veto.failed": [
-    "That didn’t work, so the page isn’t stopped. Press Stop this page again, or sign in and stop it from This week.",
-    { slots: {}, fixedBy: "issue 1739" },
+    "That didn’t go through. Press Stop this page again, or sign in to stop it.",
+    { slots: {}, fixedBy: "board Veto v36 · issue 2275" },
   ],
   "publish.veto.failed.still": ["Still goes live {when}, unless stopped.", { slots: { when: "text" }, fixedBy: "issue 1739" }],
   // The ask arm: why the week chose the page, the window, and what Stop does.
   "publish.veto.why": ["Why ReachKit chose it:", { slots: {}, fixedBy: "issue 1739" }],
   "publish.veto.timeline.sent": ["Mail sent {at}", { slots: { at: "text" }, fixedBy: "issue 1739" }],
   "publish.veto.consequence": [
-    "It won’t go live, and this topic is dropped. Your other pages are not affected.",
-    { slots: {}, fixedBy: "issue 1739" },
+    "It won’t go live and the topic is dropped. Other pages are not affected.",
+    { slots: {}, fixedBy: "board Veto v36 · issue 2275" },
   ],
-  // The stopped arm's week: each day's page, as Plan holds it.
-  "publish.veto.week.title": ["This week, after your stop", { slots: {}, fixedBy: "issue 1739" }],
-  "publish.veto.week.stopped": ["Stopped", { slots: {}, fixedBy: "issue 1739" }],
-  "publish.veto.week.ahead": ["Goes ahead", { slots: {}, fixedBy: "issue 1739" }],
   // Issue 1674: the Monday mail's link to a page planned but not written yet (drafted).
   "publish.veto.planned.title": ["Planned for {day}", { slots: { day: "text" }, fixedBy: "issue 1674 (drafted)" }],
   "publish.veto.written": [

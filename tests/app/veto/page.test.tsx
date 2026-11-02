@@ -22,7 +22,7 @@ import type React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { applyEnvFixture } from "../../mail/env-fixture";
 import { codeOf } from "../../mail/leads/source";
-import type { PreviewResult, RedeemResult, VetoPreview, WeekDay } from "../../../src/lib/publish/publishable";
+import type { PreviewResult, RedeemResult, VetoPreview } from "../../../src/lib/publish/publishable";
 import type { PlannedPreview } from "../../../src/lib/opportunities/stop";
 import { expectStateParity } from "../../ui/layout/state-parity";
 
@@ -58,8 +58,8 @@ const LIVE_PREVIEW: VetoPreview = {
 const LIVE: PreviewResult = { ok: true, preview: LIVE_PREVIEW };
 
 /** A spent token: the page it was bound to, as the preview reads it back. */
-function spent(title: string | null, week: readonly WeekDay[] | null = null): PreviewResult {
-  return { ok: false, reason: "used", title, domain: "example.com", excerpt: LIVE_PREVIEW.excerpt, week };
+function spent(title: string | null): PreviewResult {
+  return { ok: false, reason: "used", title, domain: "example.com", excerpt: LIVE_PREVIEW.excerpt, week: null };
 }
 
 let previewAnswer: (token: string) => Promise<PreviewResult> = async () => LIVE;
@@ -294,7 +294,9 @@ describe("the ask arm — what the set draws, in its own order", () => {
   });
 
   it("the search row carries its monthly volume, grouped, as the set draws it", async () => {
-    expect(text(await ask())).toContain("best onboarding tools · searched about 2,400 times a month");
+    const rendered = text(await ask());
+    expect(rendered).toContain('"best onboarding tools"');
+    expect(rendered).toContain('"· searched about 2,400 times a month"');
   });
 
   it("a volume nobody measured leaves the search standing alone, and never prints a zero", async () => {
@@ -313,20 +315,17 @@ describe("the ask arm — what the set draws, in its own order", () => {
       ok: true,
       preview: { ...LIVE_PREVIEW, volume: 0 },
     });
-    expect(text(await ask())).toContain("best onboarding tools · searched about 0 times a month");
+    const rendered = text(await ask());
+    expect(rendered).toContain('"best onboarding tools"');
+    expect(rendered).toContain('"· searched about 0 times a month"');
   });
 
   it("a site that states no zone states no moment, rather than one in a zone nobody chose", async () => {
-    // REQ-073 c1: the product never picks a zone on the customer's behalf.
-    // The seam answers `publishes: null` there, and the head falls back to
-    // the control's own word rather than writing an instant in UTC.
-    previewAnswer = async () => ({
-      ok: true,
-      preview: { ...LIVE_PREVIEW, publishes: null },
-    });
-    const eyebrow = String(eyebrowOf(await ask()));
-    expect(eyebrow).toBe(COPY["publish.veto.ask.action"]);
-    expect(eyebrow).not.toContain("UTC");
+    // REQ-073 c1: the seam answers `publishes: null`, and the title leads alone.
+    previewAnswer = async () => ({ ok: true, preview: { ...LIVE_PREVIEW, publishes: null } });
+    const tree = await ask();
+    expect(eyebrowOf(tree)).toBeUndefined();
+    expect(text(tree)).not.toContain("UTC");
   });
 
   it("one solid control, labelled as the set labels it, and one quiet line under it", async () => {
@@ -403,12 +402,11 @@ describe("the done arm, and the refusals that wear its shape", () => {
     // title, its site and its opening, on the accent half.
     previewAnswer = async () => spent("How teams pick an onboarding tool");
     const tree = await ask({ done: "1" });
-    expect(headingsOf(tree, "h3")).toEqual(["How teams pick an onboarding tool"]);
+    // The page as it reads, a line in the mock page, so the screen's only heading is Stopped.
+    expect(text(byTestId(tree, "veto-page-title") as unknown as React.ReactNode)).toContain("How teams pick an onboarding tool");
+    expect(headingsOf(tree, "h2")).toEqual([]);
     expect(text(tree)).toContain("example.com");
     expect(text(tree)).toContain(LIVE_PREVIEW.excerpt);
-    // It is not going live any more, so the half does not say it is: its
-    // heading says what is true instead.
-    expect(headingsOf(tree, "h2")).toEqual([COPY["publish.veto.panel.heading.stopped"]]);
   });
 
   it("warn is never a fill: a refusal is a line, and only the confirmed stop is tinted", async () => {
@@ -474,6 +472,9 @@ describe("the done arm, and the refusals that wear its shape", () => {
     expect(headingsOf(tree, "h2")).toContain(COPY["publish.veto.failed.head"]);
     expect(text(tree)).toContain(COPY["publish.veto.failed"]);
     expect(text(tree)).toContain("Still goes live Tue 15 Sep, 7:00 AM, unless stopped.");
+    // The moment is stated once, by that line: no eyebrow and no window repeat it.
+    expect(eyebrowOf(tree)).toBeUndefined();
+    expect(byTestId(tree, "veto-timeline")).toBeUndefined();
     expect(headingsOf(tree, "h1")).not.toContain(COPY["publish.veto.done.head"]);
   });
 
@@ -597,16 +598,6 @@ describe("the board's sections on the open arm, in its order and words", () => {
     expect(BOARD).toContain(COPY["publish.veto.consequence"]);
   });
 
-  it("says each choice once: under the button and in the do-nothing line, with no block repeating them", async () => {
-    const tree = await ask();
-    const rendered = text(tree);
-    expect(rendered).toContain(COPY["publish.veto.consequence"]);
-    expect(rendered).toContain(COPY["publish.veto.ask.do-nothing"]);
-    expect(nodes(tree).some((node) => node.props?.["data-testid"] === "veto-choice")).toBe(false);
-    expect(headingsOf(tree, "h2")).toEqual([COPY["publish.veto.panel.heading"].replace("{day}", "Tuesday")]);
-    expect(rendered).not.toContain("It goes live Tue 15 Sep, 7:00 AM, on its own.");
-  });
-
   it("while the address is unconnected, no hour appears anywhere, open or failed", async () => {
     previewAnswer = async () => ({ ok: true, preview: { ...LIVE_PREVIEW, unconnected: true } });
     for (const query of [{}, { done: "1" }] as Record<string, string>[]) {
@@ -629,53 +620,49 @@ describe("the board's sections on the open arm, in its order and words", () => {
       "Goes live Tue 15 Sep, 7:00 AM",
       LIVE_PREVIEW.title!,
       COPY["publish.veto.why"],
-      "best onboarding tools · searched about",
+      "· searched about",
       "Mail sent 6:00 AM",
       COPY["publish.veto.ask.action"],
       COPY["publish.veto.consequence"],
       COPY["publish.veto.ask.do-nothing"],
-      COPY["publish.veto.panel.heading"].replace("{day}", "Tuesday"),
     ]);
     expect(at.every((i) => i >= 0), JSON.stringify(at)).toBe(true);
     expect(at).toEqual([...at].sort((a, b) => a - b));
   });
 });
 
-describe("every arm renders, each in its own words", () => {
-  const WEEK = [
-    { date: "2026-09-14", stopped: false },
-    { date: "2026-09-15", stopped: true },
-    { date: "2026-09-16", stopped: false },
-    { date: "2026-09-17", stopped: null },
-    { date: "2026-09-18", stopped: false },
-    { date: "2026-09-19", stopped: false },
-    { date: "2026-09-20", stopped: false },
-  ];
+const PLANNED: PlannedPreview = {
+  ok: true,
+  planned: { query: LIVE_PREVIEW.query, volume: LIVE_PREVIEW.volume, domain: "example.com", day: "2026-09-16", reason: null },
+};
 
-  it("stopped: the follow line, then this week after the stop, day by day", async () => {
-    previewAnswer = async () => spent("How teams pick an onboarding tool", WEEK);
-    const tree = await ask({ done: "1" });
-    const strip = nodes(tree).find((node) => node.props?.["data-testid"] === "veto-week");
-    expect(strip).toBeDefined();
-    expect(headingsOf(strip as React.ReactNode, "h2")).toEqual([COPY["publish.veto.week.title"]]);
-    const cells = nodes(strip as React.ReactNode)
-      .filter((node) => node.type === "li")
-      .map((li) =>
-        nodes(li as unknown as React.ReactNode)
-          .filter((node) => node.type === "span")
-          .map((span) => String(span.props.children))
-      );
-    expect(cells.map((cell) => cell[0])).toEqual(["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]);
-    expect(cells[1]).toContain(COPY["publish.veto.week.stopped"]);
-    expect(cells[0]).toContain(COPY["publish.veto.week.ahead"]);
-    // A day with no page claims nothing: never "Goes ahead", never "Stopped".
-    expect(cells[3]).toEqual(["Thu"]);
-    const [line, title] = order(tree, [COPY["publish.veto.stopped"], COPY["publish.veto.week.title"]]);
-    expect(line).toBeGreaterThanOrEqual(0);
-    expect(title).toBeGreaterThan(line!);
+/** Each state the board draws, reached as a reader reaches it. */
+const STATES: [string, () => Promise<React.ReactNode>][] = [
+  ["planned", async () => ask()],
+  ["busy", async () => ((formStatus.pending = true), ask())],
+  ["stopped", async () => ((previewAnswer = async () => spent("How teams pick an onboarding tool")), ask({ done: "1" }))],
+  ["failed", async () => ask({ done: "1" })],
+  ["not written yet", async () => ((plannedAnswer = async () => PLANNED), VetoPage({ params: { token: "planned.token" }, searchParams: {} }))],
+  ["already used", async () => ((previewAnswer = async () => spent(null)), ask())],
+  ["expired or live", async () => ((previewAnswer = async () => ({ ok: false, reason: "expired" })), ask())],
+  ["not recognised", async () => ((previewAnswer = async () => ({ ok: false, reason: "unknown" })), ask())],
+];
+
+describe("every arm renders, each in its own words", () => {
+  it.each(STATES)("%s: each choice is stated once — one Stop, one way to sign in, one do-nothing line at most", async (_state, reach) => {
+    const tree = await reach();
+    const seen = JSON.parse(text(tree)) as string[];
+    const times = (s: string) => seen.filter((said) => said === s).length;
+    expect(times(COPY["publish.veto.ask.action"])).toBeLessThanOrEqual(1);
+    expect(linksOf(tree).filter((link) => link.props.href === "/signin")).toHaveLength(1);
+    // Stop and doing nothing are stated by one line each, never again by a second block.
+    const stillGoesLive = seen.some((said) => said.startsWith("Still goes live"));
+    const sayings = [COPY["publish.veto.ask.do-nothing"], COPY["publish.veto.consequence"]].map(times);
+    expect(sayings.every((n) => n <= 1)).toBe(true);
+    if (stillGoesLive || buttonsOf(tree).length === 0) expect(sayings).toEqual([0, 0]);
   });
 
-  it("stopped with a week it could not read draws no strip", async () => {
+  it("stopped draws no week strip", async () => {
     previewAnswer = async () => spent("How teams pick an onboarding tool");
     expect(nodes(await ask({ done: "1" })).some((node) => node.props?.["data-testid"] === "veto-week")).toBe(false);
   });
@@ -695,18 +682,13 @@ describe("every arm renders, each in its own words", () => {
 
   it("parity: Veto reads its rendered arms", async () => {
     const arms: React.ReactNode[] = [await ask(), await ask({ done: "1" })];
-    // The board's week: the stopped page on Monday, every other day going ahead.
-    const week = WEEK.map((day, i) => ({ date: day.date, stopped: i === 0 }));
-    previewAnswer = async () => spent("How teams pick an onboarding tool", week);
+    previewAnswer = async () => spent("How teams pick an onboarding tool");
     arms.push(await ask({ done: "1" }));
     for (const reason of ["used", "expired", "unknown"] as const) {
       previewAnswer = async () => (reason === "used" ? spent(null) : { ok: false, reason });
       arms.push(await ask());
     }
-    plannedAnswer = async () => ({
-      ok: true,
-      planned: { query: LIVE_PREVIEW.query, volume: LIVE_PREVIEW.volume, domain: "example.com", day: "2026-09-16", reason: null },
-    });
+    plannedAnswer = async () => PLANNED;
     arms.push(await VetoPage({ params: { token: "planned.token" }, searchParams: {} }));
     expectStateParity("Veto", arms.map((arm) => renderToStaticMarkup(arm as React.ReactElement)));
   });
@@ -736,27 +718,18 @@ describe("the Round 7 split (R7-S4/S5, #1025): the interaction left, the page ri
     }
   });
 
-  it("the ask arm's half is the page that goes live: the day, the page, and what it was written for", async () => {
+  it("the ask arm's half is the page that goes live, with no heading or caption repeating the left", async () => {
     const tree = await ask();
     const aside = nodes(tree).find((node) => node.type === "aside") as unknown as React.ReactNode;
-    // 05:00 UTC is 07:00 in Berlin on Tuesday 15 September.
-    expect(headingsOf(aside, "h2")).toEqual([
-      COPY["publish.veto.panel.heading"].replace("{day}", "Tuesday"),
-    ]);
-    expect(headingsOf(aside, "h3")).toEqual([LIVE_PREVIEW.title]);
-    expect(text(tree)).toContain(LIVE_PREVIEW.excerpt);
-    expect(text(tree)).toContain(
-      COPY["publish.veto.panel.caption"].replace("{query}", "best onboarding tools").replace("{volume}", "2,400")
-    );
+    expect(text(byTestId(tree, "veto-page-title") as unknown as React.ReactNode)).toContain(LIVE_PREVIEW.title!);
+    expect(headingsOf(aside, "h2")).toEqual([]);
+    expect(text(aside)).toContain(LIVE_PREVIEW.excerpt);
+    expect(text(aside)).not.toContain("times a month");
   });
 
   it("a half with no moment or no measured volume says neither, rather than guessing", async () => {
     previewAnswer = async () => ({ ok: true, preview: { ...LIVE_PREVIEW, publishes: null, volume: null } });
     const tree = await ask();
-    // No day to name, so no heading over the half: the page's title steps
-    // up to be its `<h2>` rather than leave a level skipped (#328).
-    const aside = nodes(tree).find((node) => node.type === "aside") as unknown as React.ReactNode;
-    expect(headingsOf(aside, "h2")).toEqual([LIVE_PREVIEW.title]);
     expect(text(tree)).not.toContain("times a month");
   });
 
@@ -833,11 +806,6 @@ describe("the address: public, and never indexed", () => {
 });
 
 describe("each arm carries the board's marks", () => {
-  const WEEK = [
-    { date: "2026-09-14", stopped: false },
-    { date: "2026-09-15", stopped: true },
-    { date: "2026-09-16", stopped: null },
-  ];
   /** Any success-tinted node: the mark only a confirmed stop earns. */
   const successChips = (tree: React.ReactNode): Node[] => nodes(tree).filter((node) => classOf(node).includes("bg-success"));
 
@@ -857,11 +825,9 @@ describe("each arm carries the board's marks", () => {
     expect(markup).not.toContain(COPY["publish.veto.done.head"]);
   });
 
-  it("the stopped arm: file-text per page day, circle-stop on the stopped day, the won't-go-live pill, lock in the toolbar", async () => {
-    previewAnswer = async () => spent("How teams pick an onboarding tool", WEEK);
+  it("the stopped arm: the won't-go-live pill, lock in the toolbar", async () => {
+    previewAnswer = async () => spent("How teams pick an onboarding tool");
     const tree = await ask({ done: "1" });
-    const days = nodes(byTestId(tree, "veto-week") as unknown as React.ReactNode).filter((node) => node.type === "li");
-    expect(days.map((day) => iconsOf(day).map((i) => i.name))).toEqual([["file-text"], ["circle-stop"], []]);
 
     const panel = byTestId(tree, "veto-panel");
     const markup = renderToStaticMarkup(panel as unknown as React.ReactElement);

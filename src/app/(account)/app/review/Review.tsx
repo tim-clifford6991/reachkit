@@ -16,7 +16,11 @@ const SEP = ": ";
 const TABS = "review-tab";
 const WEEK = "week";
 const PAGES = "pages";
-const TABLE = "table table-sm";
+// Below `sm` each row stacks, as the board draws it at 390; from `sm` the Page column keeps its width.
+const TABLE = "table table-sm max-sm:block";
+const STACK = "max-sm:block";
+const ROW = "max-sm:block max-sm:border-b max-sm:border-base-300 max-sm:py-2";
+const CELL = "max-sm:block max-sm:border-0 max-sm:py-1";
 const NUM = "tabular-nums";
 const MUTED = "text-sm text-base-content/70";
 
@@ -65,7 +69,7 @@ function pageWord(row: CommittedRow): string {
 
 function Head(p: { cols: readonly CopyKey[] }): React.JSX.Element {
   return (
-    <thead className="text-base-content/70">
+    <thead className="text-base-content/70 max-sm:hidden">
       <tr>
         {p.cols.map((key) => (
           <th key={key} scope={COL}>
@@ -91,18 +95,20 @@ function Committed(p: { domain: string; rows: readonly CommittedRow[] }): React.
     <Scroll label={p.domain}>
       <table className={TABLE} data-testid="review-week">
         <Head cols={["review.col.day", "review.col.page", "review.col.search", "review.col.points", "review.col.why"]} />
-        <tbody>
+        <tbody className={STACK}>
           {p.rows.map((row) => (
-            <tr key={row.place}>
-              <td className="whitespace-nowrap">{row.day === null ? copy("review.spare") : WEEKDAY.format(dateOf(row.day))}</td>
-              <td>
+            <tr key={row.place} className={ROW}>
+              <td className={`${CELL} whitespace-nowrap max-sm:text-xs max-sm:font-semibold max-sm:uppercase max-sm:text-base-content/70`}>
+                {row.day === null ? copy("review.spare") : WEEKDAY.format(dateOf(row.day))}
+              </td>
+              <td className={`${CELL} sm:min-w-40`} data-testid="review-page">
                 <span className="flex flex-col">
                   <strong>{pageWord(row)}</strong>
                   <span className="font-mono text-xs text-base-content/70">{row.type}</span>
                 </span>
               </td>
-              <td className="font-mono break-words">{cell(row.search)}</td>
-              <td>
+              <td className={`${CELL} font-mono break-words`}>{cell(row.search)}</td>
+              <td className={CELL}>
                 <span className="flex flex-col gap-1">
                   <strong className={NUM}>{cell(row.points)}</strong>
                   <span className="flex flex-wrap gap-1">
@@ -115,7 +121,7 @@ function Committed(p: { domain: string; rows: readonly CommittedRow[] }): React.
                   </span>
                 </span>
               </td>
-              <td>
+              <td className={`${CELL} sm:min-w-50`}>
                 <span className="flex flex-col gap-1">
                   <span>{whyLineOf({ points: row.points ?? 0, parts: [...row.parts], rule: null }) ?? NONE}</span>
                   <span className="text-xs text-base-content/70">{copy("review.why.rule", { rule: cell(row.rule) })}</span>
@@ -133,9 +139,7 @@ function NotChosen(p: { rows: readonly NotChosenRow[] }): React.JSX.Element {
   return (
     <details className="collapse collapse-arrow min-w-0 rounded-none">
       <summary className="collapse-title min-h-0 p-0 pe-10 text-sm font-medium">
-        {/* Inline spans keep the board's sentence one run for the parity reading. */}
-        <span>{copy("review.rejected.title", { count: String(p.rows.length) })}</span>
-        <span className="block text-xs font-normal">{copy("review.rejected.lead")}</span>
+        {copy("review.rejected.title", { count: String(p.rows.length) })}
       </summary>
       <ul className="collapse-content min-w-0 list-disc px-0 ps-5 pt-2 text-sm">
         {p.rows.map((row, n) => (
@@ -210,8 +214,8 @@ function Tabs(p: { sites: readonly ReviewSite[] }): React.JSX.Element {
   return (
     <div className="group flex min-w-0 flex-col gap-4">
       <div role="radiogroup" aria-label={copy("review.tabs")} className="tabs tabs-border min-w-0">
-        <input type="radio" name={TABS} value={WEEK} className="tab" aria-label={copy("review.tab.week")} defaultChecked />
-        <input type="radio" name={TABS} value={PAGES} className="tab" aria-label={copy("review.tab.pages")} />
+        <input type="radio" name={TABS} value={WEEK} className="tab min-h-11" aria-label={copy("review.tab.week")} defaultChecked />
+        <input type="radio" name={TABS} value={PAGES} className="tab min-h-11" aria-label={copy("review.tab.pages")} />
       </div>
       <div className="flex min-w-0 flex-col gap-4 group-has-[[value=pages]:checked]:hidden" data-testid="review-tab-week">
         {p.sites.map((site) => (

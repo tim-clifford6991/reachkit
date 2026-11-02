@@ -21,7 +21,7 @@ const render = (sites: readonly ReviewSite[] | null) => renderToStaticMarkup(Rea
 
 /** The committed week's table. */
 const weekTable = (html: string) => html.split('data-testid="review-week"')[1]?.split("</table>")[0] ?? "";
-const committedRows = (html: string) => (weekTable(html).match(/<tbody>[\s\S]*<\/tbody>/)?.[0].match(/<tr/g) ?? []).length;
+const committedRows = (html: string) => (weekTable(html).match(/<tbody[^>]*>[\s\S]*<\/tbody>/)?.[0].match(/<tr/g) ?? []).length;
 const text = (html: string) => html.replace(/<[^>]+>/g, " ").replace(/&amp;/g, "&").replace(/\s+/g, " ");
 
 describe("a site with a committed week", () => {
@@ -55,8 +55,26 @@ describe("a site with a committed week", () => {
     const title = copy("review.rejected.title", { count: String(saas.week.rejected.length) });
     const summary = html.match(/<summary[^>]*>([\s\S]*?)<\/summary>/)?.[1] ?? "";
     expect(summary).not.toMatch(/<(p|div)[\s>]/);
-    expect(text(summary).trim()).toBe(`${title} ${copy("review.rejected.lead")}`);
+    expect(text(summary).trim()).toBe(title);
+    expect(title).toBe(`Not chosen (${saas.week.rejected.length}), and why`);
     for (const row of saas.week.rejected) expect(text(html)).toContain(`${row.search!} : ${row.reason}`);
+  });
+});
+
+describe("the board's cuts and its 390 shape", () => {
+  const html = render([site("savvycal.com")]);
+
+  it("heads the why column Why, with no caption saying who reads it", () => {
+    expect(copy("review.col.why")).toBe("Why");
+    expect(html).not.toContain("as the customer reads it");
+  });
+
+  it("each row stacks below sm, and from sm the Page column keeps a minimum width", () => {
+    expect(weekTable(html)).toMatch(/<thead class="[^"]*max-sm:hidden/);
+    const pages = [...weekTable(html).matchAll(/<td class="([^"]*)" data-testid="review-page"/g)].map((m) => m[1]!);
+    expect(pages).toHaveLength(committedRows(html));
+    for (const cls of pages) expect(cls).toMatch(/\bsm:min-w-\d+/);
+    expect(html).toMatch(/<tr class="max-sm:block max-sm:border-b/);
   });
 });
 

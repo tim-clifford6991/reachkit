@@ -41,11 +41,11 @@ import type React from "react";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { Check, CircleQuestionMark, CircleStop, Clock, FileText, Info, Lock, MessageCircleWarning, type LucideIcon } from "lucide-react";
+import { Check, CircleQuestionMark, CircleStop, Clock, Info, Lock, MessageCircleWarning, type LucideIcon } from "lucide-react";
 import { StopButton } from "./StopButton";
 import { copy } from "@/lib/presentation/copy";
 import { previewVetoLink, redeemVetoLink, vetoLinkPath } from "@/lib/publish/publishable";
-import type { PreviewResult, VetoPreview, WeekDay } from "@/lib/publish/publishable";
+import type { PreviewResult, VetoPreview } from "@/lib/publish/publishable";
 import type { PlanReason } from "@/lib/opportunities/types";
 import { whyLineOf } from "@/app/(account)/app/calendar/card-lines";
 import { formatTime } from "@/app/(account)/app/_shell/format";
@@ -195,12 +195,13 @@ const FORM_HALF = `${HALF} bg-base-100`;
 const COLUMN = "flex w-full max-w-100 flex-col gap-5";
 const PANEL_COLUMN = "flex w-full max-w-lg flex-col gap-5";
 const EYEBROW = "flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-base-content/70";
-const ROW_LABEL = "text-xs font-semibold uppercase tracking-wide text-base-content/70";
 /** The stopped arm's mark: a success-tinted square, as `R7-S5` draws it. */
 const CHIP = "grid size-12 flex-none place-items-center rounded-box";
 const CHIP_OK = `${CHIP} bg-success/10 text-success`;
 /** A link that could not be spent is not good news: a neutral square. */
 const CHIP_QUIET = `${CHIP} bg-base-200 text-base-content/70`;
+/** The window's two ends are dots, as the board draws them, not numbered steps. */
+const DOT = "";
 
 /**
  * The heading and line for a link that cannot be spent; only a spent link
@@ -288,13 +289,6 @@ function timeline(mailedAt: Date | null, publishes: { at: Date; timeZone: string
   return { sent: mailedAt === null ? null : write(mailedAt), live: write(publishes.at) };
 }
 
-/** The weekday the page publishes, written whole (`Sunday`) in the zone the
- *  customer publishes in — the accent half's heading reads it, and it is the
- *  same instant and zone as `writeMoment`, so the two cannot disagree. */
-function writeWeekday(publishes: { at: Date; timeZone: string }): string {
-  return new Intl.DateTimeFormat(PAGE_LOCALE, { timeZone: publishes.timeZone, weekday: "long" }).format(publishes.at);
-}
-
 /**
  * The set's search row: the search, and how often it is searched.
  *
@@ -303,9 +297,15 @@ function writeWeekday(publishes: { at: Date; timeZone: string }): string {
  * a result and prints as one, exactly as the `first-page` mail's own row
  * does with the same pair.
  */
-function writeSearch(query: string, volume: number | null): string {
-  if (volume === null) return query;
-  return copy("publish.veto.ask.row.volume", { query, volume: new Intl.NumberFormat(PAGE_LOCALE).format(volume) });
+function writeSearch(query: string, volume: number | null): React.JSX.Element {
+  return (
+    <>
+      <span className="font-mono">{query}</span>
+      {volume === null ? null : (
+        <span className="ms-1">{copy("publish.veto.ask.row.volume", { volume: new Intl.NumberFormat(PAGE_LOCALE).format(volume) })}</span>
+      )}
+    </>
+  );
 }
 
 /** Where a reader who has stopped a page is sent to reach their plan.
@@ -331,71 +331,61 @@ function split(left: React.ReactNode, panel: React.ReactNode | null): React.JSX.
 }
 
 /**
- * The accent half (`R7-S4`/`S5`): the page itself, in a daisyUI
- * `mockup-browser` — its site in the bar, its title and its opening under
- * it. Every value is the preview's own, from the draft the token is bound
- * to; nothing is drawn where the draft carries nothing, and a draft that
- * carries none of the three gets no half at all.
- *
- * The opening is plain text from the preview — quoted, never rendered: this
- * page is served with no session, and a preview is not the place to draw a
- * heading or a link the body happened to carry.
+ * The accent half: the page itself in a daisyUI `mockup-browser`, from the
+ * draft the token is bound to. A draft that carries none of the three gets no
+ * half. The opening is quoted as plain text, never rendered: this page has no session.
  */
-function pagePanel(p: {
-  heading: string | null;
-  domain: string | null;
-  title: string | null;
-  excerpt: string | null;
-  caption: string | null;
-  stopped?: boolean;
-}): React.JSX.Element | null {
+function pagePanel(p: { domain: string | null; title: string | null; excerpt: string | null; stopped?: boolean }): React.JSX.Element | null {
   if (p.domain === null && p.title === null && p.excerpt === null) return null;
-  // The title sits one level under whatever heads this half, so no level
-  // is skipped (#328): under the panel's own `<h2>` it is an `<h3>`; with
-  // no panel heading it is the `<h2>` under the screen's `<h1>`.
-  const Title = p.heading === null ? "h2" : "h3";
   return (
     <aside className={PANEL} data-testid="veto-panel">
       <div className={PANEL_COLUMN}>
-        {p.heading === null ? null : <h2 className="text-primary">{p.heading}</h2>}
         <div className="mockup-browser bg-base-100 shadow-(--shadow-card)">
           <div className="mockup-browser-toolbar">
             {/* The address is clamped by the box that holds it, in the UI
                 face: a site name can be any length. */}
-            <div className="input w-full min-w-0">
+            <div className="border-base-300 bg-base-100 flex w-full min-w-0 items-center gap-2 rounded-full border px-3 py-1 text-sm">
               <Lock size={16} strokeWidth={1.75} className="flex-none" aria-hidden />
               <span className="truncate">{p.domain ?? ""}</span>
             </div>
           </div>
-          <div className="border-base-300 flex flex-col gap-3 border-t px-6 py-6">
+          <div className="border-base-300 flex flex-col gap-2 border-t p-4">
             {p.stopped ? (
               <span className="badge badge-ghost gap-1 self-start">
                 <CircleStop size={16} strokeWidth={1.75} aria-hidden />
                 {copy("publish.veto.panel.stopped")}
               </span>
             ) : null}
-            {p.title === null ? null : <Title>{p.title}</Title>}
+            {/* The page as it will read, not a heading of this screen. */}
+            {p.title === null ? null : <p className={`font-bold ${p.stopped ? "text-base-content/70" : ""}`} data-testid="veto-page-title">{p.title}</p>}
             {p.excerpt === null ? null : (
-              <p className="text-sm" data-testid="veto-excerpt">
+              <p className="text-base-content/70 text-sm" data-testid="veto-excerpt">
                 {p.excerpt}
               </p>
             )}
           </div>
         </div>
-        {p.caption === null ? null : <p className="text-primary text-sm">{p.caption}</p>}
       </div>
     </aside>
   );
 }
 
+/** The quiet way into the plan: a signed-out reader reaches it through `/signin`. */
+function signInLink(): React.JSX.Element {
+  return (
+    <Link href={SIGN_IN_PATH} className="btn btn-soft btn-primary min-h-11 self-start">
+      {copy("publish.veto.calendar")}
+    </Link>
+  );
+}
+
 /** The ask arm: what the board draws, in its own order. `failed` is the
- *  reader back from a stop that did not land: the same page, saying so. */
-function Ask(p: { token: string; it: Omit<VetoPreview, "draftId">; failed?: boolean }): React.JSX.Element {
+ *  reader back from a stop that did not land; `planned` is the Monday mail's
+ *  page not written yet. Both draw the board's short card: Stop, then the plan. */
+function Ask(p: { token: string; it: Omit<VetoPreview, "draftId">; failed?: boolean; planned?: boolean }): React.JSX.Element {
   async function stop(): Promise<void> {
     "use server";
-    // The write, behind an act. Its result is not read here: the page
-    // re-reads the token on the way back, so what the reader is told is what
-    // the store says now rather than what this call returned.
+    // The page re-reads the token on the way back, so the reader is told what the store says now.
     await redeem(p.token);
     redirect(`${vetoLinkPath(p.token)}?${DONE}=1`);
   }
@@ -405,28 +395,26 @@ function Ask(p: { token: string; it: Omit<VetoPreview, "draftId">; failed?: bool
   const head = p.it.unconnected
     ? copy("publish.veto.ask.head.unconnected")
     : publishes === null
-      ? copy("publish.veto.ask.action")
+      ? null
       : copy("publish.veto.ask.head", { when: writeMoment(publishes) });
-
-  // **Whichever line names this screen is its `<h1>`** (owner ruling
-  // 2026-09-23, #328). Where the token resolves to a draft, the draft's
-  // title is what the screen is about and the eyebrow is its kicker; where
-  // it does not, the eyebrow *is* the only thing naming the screen, and a
-  // page with no `<h1>` gives a reader moving by headings nothing to land
-  // on. So the element follows the content and the classes do not move:
-  // `EYEBROW` carries every size, weight and colour either way, so nothing
-  // on screen changes.
+  // The line naming the screen is its `<h1>` (#328): the title, or with none the eyebrow.
+  const when = publishes === null ? null : writeMoment(publishes);
+  // A failed stop states its moment once, in its own still-goes-live line.
+  const restated = p.failed === true && when !== null && p.it.title !== null;
+  const eyebrow = restated ? null : (head ?? (p.it.title === null ? copy("publish.veto.ask.action") : null));
   const Head = p.it.title === null ? "h1" : "p";
   const why = writeReason(p.it.reason);
-  const span = publishes === null ? null : timeline(p.it.mailedAt, publishes);
-  const when = publishes === null ? null : writeMoment(publishes);
+  const span = publishes === null || restated ? null : timeline(p.it.mailedAt, publishes);
+  const short = p.failed === true || p.planned === true;
 
   return split(
     <>
-      <Head className={EYEBROW}>
-        <Clock size={16} strokeWidth={1.75} aria-hidden />
-        {head}
-      </Head>
+      {eyebrow === null ? null : (
+        <Head className={EYEBROW}>
+          <Clock size={16} strokeWidth={1.75} aria-hidden />
+          {eyebrow}
+        </Head>
+      )}
       {p.it.title === null ? null : <h1>{p.it.title}</h1>}
       {why === null ? null : (
         <p className="rounded-box bg-base-200 flex items-start gap-3 px-4 py-3 text-sm" data-testid="veto-why">
@@ -436,42 +424,34 @@ function Ask(p: { token: string; it: Omit<VetoPreview, "draftId">; failed?: bool
           </span>
         </p>
       )}
-      {p.it.query === null && p.it.domain === null ? null : (
-        <dl className="rounded-box bg-base-200 flex flex-col gap-2 px-4 py-3">
-          {p.it.query === null ? null : (
-            <div className="flex justify-between gap-3">
-              <dt className={ROW_LABEL}>{copy("publish.veto.ask.row.search")}</dt>
-              <dd className="font-mono text-sm">{writeSearch(p.it.query, p.it.volume)}</dd>
-            </div>
-          )}
-          {p.it.domain === null ? null : (
-            <div className="flex justify-between gap-3">
-              <dt className={ROW_LABEL}>{copy("publish.veto.ask.row.site")}</dt>
-              <dd className="font-mono text-sm">{p.it.domain}</dd>
-            </div>
-          )}
+      {p.it.query === null ? null : (
+        <dl className="flex gap-3 text-sm">
+          <dt className="text-base-content/70">{copy("publish.veto.ask.row.search")}</dt>
+          <dd className="min-w-0">{writeSearch(p.it.query, p.it.volume)}</dd>
         </dl>
       )}
       {span === null ? null : (
-        <div className="flex flex-col gap-2" data-testid="veto-timeline">
-          <ul className="steps w-full text-xs">
-            {span.sent === null ? null : (
-              <li className="step step-primary">{copy("publish.veto.timeline.sent", { at: span.sent })}</li>
-            )}
-            <li className="step step-primary font-semibold">{copy("publish.veto.ask.head", { when: span.live })}</li>
-          </ul>
-        </div>
+        <ul className="steps w-full text-xs" data-testid="veto-timeline">
+          {span.sent === null ? null : (
+            <li className="step step-primary" data-content={DOT}>
+              {copy("publish.veto.timeline.sent", { at: span.sent })}
+            </li>
+          )}
+          <li className="step step-primary font-semibold" data-content={DOT}>
+            {copy("publish.veto.ask.head", { when: span.live })}
+          </li>
+        </ul>
       )}
       {p.failed ? (
-        <div role="alert" className="rounded-box border-error flex flex-col gap-2 border px-4 py-3" data-testid="veto-failed">
+        <div role="alert" className="rounded-box border-base-300 flex flex-col gap-3 border p-4" data-testid="veto-failed">
           {/* Warn is edge and ink, never a fill. */}
           <span className={`${CHIP} border-warning text-warning border`} data-tone="warn" data-testid="veto-failed-chip">
             <MessageCircleWarning size={20} strokeWidth={1.75} aria-hidden />
           </span>
-          <h2 className="text-error text-base">{copy("publish.veto.failed.head")}</h2>
+          <h2 className="text-base">{copy("publish.veto.failed.head")}</h2>
           <p className="text-sm">{copy("publish.veto.failed")}</p>
           {when === null ? null : (
-            <p className="flex items-center gap-2 text-sm">
+            <p className="rounded-box bg-base-200 flex items-center gap-2 px-3 py-2 text-sm">
               <Clock size={16} strokeWidth={1.75} className="flex-none" aria-hidden />
               <span>{copy("publish.veto.failed.still", { when })}</span>
             </p>
@@ -480,33 +460,21 @@ function Ask(p: { token: string; it: Omit<VetoPreview, "draftId">; failed?: bool
       ) : null}
       <form action={stop} className="flex flex-col gap-2">
         {/* The screen's one solid button. */}
-        <StopButton label={copy("publish.veto.ask.action")} />
-        <p className="text-base-content/70 text-sm">{copy("publish.veto.consequence")}</p>
+        <StopButton label={copy("publish.veto.ask.action")} block={!short} />
+        {short ? null : <p className="text-base-content/70 text-sm">{copy("publish.veto.consequence")}</p>}
       </form>
-      {/* The sentence, and the offer it used to end with as a control. A
-          reader who does not want to stop the page may well want to read
-          it — and "in the app" with nothing to press was a dead end. */}
-      <p className="text-base-content/70 flex flex-wrap items-center gap-1 text-sm">
-        <span>{copy("publish.veto.ask.do-nothing")}</span>
-        <Link href={SIGN_IN_PATH} className="link link-primary font-semibold">
-          {copy("publish.veto.ask.signin")}
-        </Link>
-      </p>
+      {short ? (
+        signInLink()
+      ) : (
+        <p className="text-base-content/70 border-base-300 border-t pt-3 text-sm">
+          {copy("publish.veto.ask.do-nothing")}
+          <Link href={SIGN_IN_PATH} className="link link-primary ms-1 font-semibold">
+            {copy("publish.veto.ask.signin")}
+          </Link>
+        </p>
+      )}
     </>,
-    pagePanel({
-      heading:
-        publishes === null ? null : copy("publish.veto.panel.heading", { day: writeWeekday(publishes) }),
-      domain: p.it.domain,
-      title: p.it.title,
-      excerpt: p.it.excerpt,
-      caption:
-        p.it.query === null || p.it.volume === null
-          ? null
-          : copy("publish.veto.panel.caption", {
-              query: p.it.query,
-              volume: new Intl.NumberFormat(PAGE_LOCALE).format(p.it.volume),
-            }),
-    })
+    p.planned ? null : pagePanel({ domain: p.it.domain, title: p.it.title, excerpt: p.it.excerpt })
   );
 }
 
@@ -530,8 +498,6 @@ function Told(p: {
   /** The reader pressed the control and it worked. A refusal reaches this
    *  component with `confirmed` unset. */
   confirmed?: boolean;
-  /** The stopped page's week, where it could be read. */
-  week?: readonly WeekDay[] | null;
   /** A refusal's neutral mark, where the board draws one. */
   icon?: LucideIcon;
 }): React.JSX.Element {
@@ -545,15 +511,11 @@ function Told(p: {
           </span>
           <div role="status" className="flex flex-col gap-2">
             <h1>{p.head}</h1>
-            <p className="text-base-content/70">{copy("publish.veto.done.line")}</p>
+            <p>{copy("publish.veto.done.line")}</p>
           </div>
         </>
       ) : (
-        // The same rule as `Ask` above (#328): the line that names the
-        // screen is its `<h1>`. The split puts the draft's title in the
-        // accent half, never in this column, so on the arms that are not
-        // the confirmation this eyebrow is the only name the screen has.
-        // `EYEBROW` carries the appearance either way.
+        // As in `Ask` (#328): with no title in this column, the head is the screen's `<h1>`.
         <>
           {Icon === null ? null : (
             <span className={CHIP_QUIET} data-testid="veto-refused-chip">
@@ -563,63 +525,14 @@ function Told(p: {
           <h1 className={EYEBROW}>{p.head}</h1>
         </>
       )}
-      <p className="text-base-content/70 text-sm" data-testid="veto-message">
+      <p data-testid="veto-message">
         {p.message}
       </p>
-      {p.week === undefined || p.week === null ? null : weekStrip(p.week)}
-      {/* **It goes to `/signin`, not to the plan** (#937). This page takes
-          no session by construction — the token *is* the authority — so a
-          link straight into the app bounced a signed-out reader to a
-          sign-in wall with no word about why. The control says what it
-          will do instead. */}
-      <Link href={SIGN_IN_PATH} className="btn btn-soft btn-primary btn-block">
-        {copy("publish.veto.calendar")}
-      </Link>
+      {/* `/signin`, not the plan (#937): this page takes no session, so a link into the app hit a wall. */}
+      {signInLink()}
     </>,
-    p.page === null
-      ? null
-      : pagePanel({
-          // Not the ask arm's "goes live on …": this page no longer does.
-          heading: p.confirmed ? copy("publish.veto.panel.heading.stopped") : null,
-          caption: null,
-          stopped: p.confirmed === true,
-          ...p.page,
-        })
+    p.page === null ? null : pagePanel({ stopped: p.confirmed === true, ...p.page })
   );
-}
-
-/** The board's "This week, after your stop": a day with no page names only the day. */
-function weekStrip(week: readonly WeekDay[]): React.JSX.Element {
-  return (
-    <div className="flex flex-col gap-2" data-testid="veto-week">
-      <h2 className="text-sm">{copy("publish.veto.week.title")}</h2>
-      <ul className="grid grid-cols-7 gap-1 text-center text-xs">
-        {week.map((day) => (
-          <li
-            key={day.date}
-            className={`rounded-box flex flex-col gap-1 border py-2 wrap-break-word ${day.stopped ? "border-base-300 bg-base-200 border-dashed font-semibold" : "border-base-300"}`}
-          >
-            <span className="text-base-content/70">{weekdayOf(day.date)}</span>
-            {day.stopped === null ? null : (
-              <>
-                {day.stopped ? (
-                  <CircleStop size={16} strokeWidth={1.75} className="mx-auto" aria-hidden />
-                ) : (
-                  <FileText size={16} strokeWidth={1.75} className="mx-auto" aria-hidden />
-                )}
-                <span>{copy(day.stopped ? "publish.veto.week.stopped" : "publish.veto.week.ahead")}</span>
-              </>
-            )}
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
-}
-
-/** `Mon` for a `YYYY-MM-DD`: a date carries no zone, so it is read in UTC. */
-function weekdayOf(date: string): string {
-  return new Intl.DateTimeFormat(PAGE_LOCALE, { timeZone: "UTC", weekday: "short" }).format(new Date(`${date}T00:00:00Z`));
 }
 
 export default async function VetoPage(p: {
@@ -642,7 +555,6 @@ export default async function VetoPage(p: {
           head={copy("publish.veto.done.head")}
           page={{ title: result.title, domain: result.domain, excerpt: result.excerpt }}
           message={copy("publish.veto.stopped")}
-          week={result.week}
         />
       </Surface>
     );
@@ -660,7 +572,7 @@ export default async function VetoPage(p: {
   // Back from the control with the link still live: the stop did not land.
   return (
     <Surface arms={ARMS}>
-      <Ask token={token} it={result.preview} failed={query[DONE] !== undefined} />
+      <Ask token={token} it={result.preview} failed={query[DONE] !== undefined} planned={isPlannedStopToken(token)} />
     </Surface>
   );
 }

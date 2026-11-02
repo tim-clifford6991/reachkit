@@ -87,7 +87,8 @@ describe("the stop link to a page not written yet", () => {
     const seen = strings(tree);
     expect(seen).toContain(COPY["publish.veto.planned.title"].replace("{day}", formatMailDay(DAY)));
     expect(seen.some((s) => s.startsWith("slab leak repair cost"))).toBe(true);
-    expect(seen).toContain("harbor-plumbing.example");
+    // The board's short card: no page half, since nothing is written to show.
+    expect(nodes(tree).some((node) => node.type === "aside")).toBe(false);
     expect(status()).toBe("open");
   });
 
