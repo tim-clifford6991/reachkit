@@ -25,6 +25,8 @@ export interface WeekDay {
   href: string | null;
   /** The next page to go live: the one row with Edit and Stop, as on Plan. */
   next: boolean;
+  /** The site's publish time on the next page's day, as Plan states it; `null` where none is promised. */
+  goesLiveAt: string | null;
   /** A live page's draft, which its row can take down; `null` otherwise. */
   liveDraft: string | null;
 }
@@ -62,16 +64,25 @@ const QUIET = "link link-hover inline-flex min-h-11 items-center text-sm no-unde
  *  then Edit and Stop on its own screen; a live page's quiet Stop; else the badge. */
 function DayControls(p: { day: WeekDay; timeZone: string; scheduled: boolean; words: ControlWords }): React.JSX.Element {
   const { day } = p;
-  const goesLive = p.scheduled ? day.goesLiveToday : null;
+  // The page's own moment, else, on the next page, the site's publish time on its day.
+  const time = !p.scheduled ? null : day.goesLiveToday !== null ? formatTime(day.goesLiveToday, p.timeZone) : day.goesLiveAt;
+  const when =
+    time === null
+      ? null
+      : day.cell.today
+        ? copy("overview.week.today-at", { time })
+        : day.goesLiveAt !== null
+          ? copy("overview.week.on-at", { day: dayName(day.cell.day), time })
+          : null;
   return (
-    <span className="flex min-w-0 flex-col items-start" data-testid={goesLive === null ? undefined : "overview-week-goes-live"}>
-      {goesLive === null ? (
+    <span className="flex min-w-0 flex-col items-start" data-testid={when === null ? undefined : "overview-week-goes-live"}>
+      {when === null ? (
         <DayStateBadge cell={day.cell} filter={ALL} />
       ) : (
         <span className="text-xs font-semibold">
           {copy("overview.week.goes-live")}
           <br />
-          {copy("overview.week.today-at", { time: formatTime(goesLive, p.timeZone) })}
+          {when}
         </span>
       )}
       {!day.next || day.href === null ? null : (

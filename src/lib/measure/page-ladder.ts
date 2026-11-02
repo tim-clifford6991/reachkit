@@ -37,6 +37,8 @@ export interface StepFigure {
   count: number | null;
   /** The pages it can be read on that have a reading; "live" counts every live page. */
   of: number;
+  /** Every live page it can be read on, read or not: Overview's one "of N". */
+  on: number;
 }
 
 export interface LadderRow {
@@ -82,7 +84,7 @@ function figures(defs: readonly StepDef[], pages: readonly PublishedPage[]): Ste
     if (on.length === 0) return [];
     const read = def.step === "live" ? on : on.filter((page) => page.reading != null);
     const count = read.length === 0 ? null : read.filter((page) => reached(page, def.step)).length;
-    return [{ n: i + 1, name: def.name, count, of: read.length }];
+    return [{ n: i + 1, name: def.name, count, of: read.length, on: on.length }];
   });
 }
 

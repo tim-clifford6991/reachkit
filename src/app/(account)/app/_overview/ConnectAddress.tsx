@@ -4,7 +4,7 @@
 // first page waiting to go live. No line names a go-live time (Q11).
 import type React from "react";
 import Link from "next/link";
-import { Check } from "lucide-react";
+import { Check, ChevronDown } from "lucide-react";
 import { copy } from "@/lib/presentation/copy";
 import { nameInZone } from "@/lib/publish/destinations/hosted/dns-guide";
 import { CopyValue } from "../../_destination/CnameRecord";
@@ -16,7 +16,11 @@ import type { WaitingPage } from "./waiting";
 
 const DAY_MS = 86_400_000;
 const QUIET = "text-sm text-base-content/70";
-const MARKER = "badge badge-primary size-7 shrink-0 font-bold";
+/** A step's number tile; the last step's is the success check. */
+const MARKER = "grid size-7 shrink-0 place-items-center rounded-field text-sm font-extrabold tabular-nums";
+/** The needs-you ground the board tints this card with, and its inner boxes. */
+const NEEDS_YOU = "card border border-warning/25 min-w-0 bg-[color-mix(in_oklab,var(--color-warning)_8%,var(--color-base-100))]";
+const INNER = "rounded-box border border-warning/25 bg-base-100";
 
 /** The site-local day the screen is on, counted from the day the address was
  *  set up as day 1; `null` where that day is not known. */
@@ -26,14 +30,18 @@ function connectDay(since: Date | null, today: Date, timeZone: string): number |
   return Number.isFinite(days) && days >= 0 ? days + 1 : null;
 }
 
-function Step(p: { marker: React.ReactNode; title: string; line: string }): React.JSX.Element {
+function Step(p: { marker: React.ReactNode; tone: string; title: string; line: string | null }): React.JSX.Element {
   return (
-    <li className="flex min-w-0 items-start gap-3" data-testid="connect-step">
-      <span className={MARKER}>{p.marker}</span>
+    <li className={`flex min-w-0 items-start gap-2.5 p-3.5 ${INNER}`} data-testid="connect-step">
+      <span className={`${MARKER} ${p.tone}`}>{p.marker}</span>
       <span className="min-w-0 text-sm">
         <strong>{p.title}</strong>
-        <br />
-        <span className="text-base-content/70 wrap-anywhere">{p.line}</span>
+        {p.line === null ? null : (
+          <>
+            <br />
+            <span className="text-base-content/70 wrap-anywhere">{p.line}</span>
+          </>
+        )}
       </span>
     </li>
   );
@@ -48,7 +56,6 @@ export function ConnectAddress(p: {
 }): React.JSX.Element {
   const { record } = p.connect;
   const dot = p.connect.hostname.indexOf(".");
-  const label = p.connect.hostname.slice(0, dot);
   const domain = p.connect.hostname.slice(dot + 1);
   const day = connectDay(p.connect.since, p.today, p.timeZone);
   const fields = [
@@ -61,36 +68,35 @@ export function ConnectAddress(p: {
     <>
       {/* Above the tabs, as every Overview board draws its head (`frame.ts`). */}
       <header className="-order-1 flex min-w-0 flex-col gap-1" data-testid="overview-head">
-        {day === null ? null : (
-          <p className="eyebrow" data-testid="overview-day">
-            {copy("overview.connect.day", { n: String(day) })}
-          </p>
-        )}
+        <p className="eyebrow" data-testid="overview-day">
+          {day === null ? copy("overview.connect.eyebrow.plain") : copy("overview.connect.day", { n: String(day) })}
+        </p>
         <h1 className="min-w-0">{copy(p.page === null ? "overview.connect.head" : "overview.connect.head.ready")}</h1>
         <p className="min-w-0 text-base-content/70" data-testid="overview-head-note">
           {copy(p.page === null ? "overview.connect.lead" : "overview.connect.lead.ready")}
         </p>
       </header>
 
-      <section className="card card-border min-w-0 bg-base-100" data-testid="overview-connect">
-        <div className="card-body min-w-0 gap-4 p-4 sm:p-5">
+      <section className={NEEDS_YOU} data-testid="overview-connect">
+        <div className="card-body min-w-0 gap-4 p-4 sm:p-6">
           <div className="flex min-w-0 flex-col gap-1">
-            <p className="eyebrow">{copy("overview.connect.eyebrow")}</p>
-            <h2 className="card-title">{copy("overview.connect.title")}</h2>
+            <p className="text-xs font-bold tracking-[0.1em] text-warning uppercase">{copy("overview.connect.eyebrow")}</p>
+            <h2 className="text-xl font-bold tracking-tight">{copy("overview.connect.title")}</h2>
           </div>
 
-          <ol className="flex min-w-0 flex-col gap-3" data-testid="connect-steps">
-            <Step marker={1} title={copy("overview.connect.step.open")} line={copy("overview.connect.step.open.line", { domain })} />
-            <Step marker={2} title={copy("overview.connect.step.paste")} line={copy("overview.connect.step.paste.line")} />
+          <ol className="grid min-w-0 grid-cols-[repeat(auto-fit,minmax(12rem,1fr))] gap-2.5" data-testid="connect-steps">
+            <Step marker={1} tone="bg-primary text-primary-content" title={copy("overview.connect.step.open")} line={copy("overview.connect.step.open.line", { domain })} />
+            <Step marker={2} tone="bg-primary text-primary-content" title={copy("overview.connect.step.paste")} line={null} />
             <Step
-              marker={<Check aria-hidden size={16} strokeWidth={1.75} />}
+              marker={<Check aria-hidden size={16} strokeWidth={2.25} />}
+              tone="bg-success text-success-content"
               title={copy("overview.connect.step.rest")}
-              line={copy("overview.connect.step.rest.line", { label })}
+              line={copy("overview.connect.step.rest.line", { host: p.connect.hostname })}
             />
           </ol>
 
           <dl
-            className="grid min-w-0 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-4 gap-y-1 rounded-box bg-base-200 p-3 text-sm"
+            className="grid min-w-0 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-4 gap-y-1 rounded-box border border-base-300 bg-base-100 p-3 text-sm"
             data-testid="dns-record"
             data-host={record.name}
           >
@@ -109,8 +115,11 @@ export function ConnectAddress(p: {
 
           <CheckNow checkedAt={p.connect.checkedAt?.toISOString() ?? null} timeZone={p.timeZone} />
 
-          <details className="collapse collapse-arrow min-w-0" data-testid="connect-other">
-            <summary className="collapse-title px-0 text-sm font-semibold">{copy("overview.connect.other")}</summary>
+          <details className="collapse group min-w-0 rounded-none" data-testid="connect-other">
+            <summary className="collapse-title link link-primary link-hover inline-flex min-h-11 items-center gap-2 p-0 text-sm font-semibold no-underline">
+              <ChevronDown className="size-4 shrink-0 transition-transform group-open:rotate-180" strokeWidth={1.75} aria-hidden />
+              {copy("overview.connect.other")}
+            </summary>
             <div className={`collapse-content flex flex-col gap-2 px-0 ${QUIET}`}>
               <p>
                 <span className="me-1">{copy("overview.connect.wordpress")}</span>
@@ -146,8 +155,7 @@ export function ConnectAddress(p: {
             <p className="min-w-0 truncate font-semibold" title={p.page.title} data-testid="overview-waiting-title">
               {p.page.title}
             </p>
-            <p className={QUIET}>{copy("overview.connect.page.line")}</p>
-            <Link className="link link-primary self-start text-sm" href={p.page.href} data-testid="overview-waiting-read">
+            <Link className="link link-primary link-hover inline-flex min-h-11 items-center self-start text-sm font-semibold no-underline" href={p.page.href} data-testid="overview-waiting-read">
               {copy("overview.connect.page.read")}
             </Link>
             </div>

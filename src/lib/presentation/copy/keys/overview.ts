@@ -903,6 +903,8 @@ export const OVERVIEW_COPY = Object.freeze({
   // SPEC §5 (2026-09-20): Overview while the address waits for its DNS
   // record, as board OverviewDNS draws it. No line names a go-live time:
   // none is true until it is live (Q11). Drafted (#759); the PR names each.
+  // No day is known where the address's start was not stored: the screen's name alone.
+  "overview.connect.eyebrow.plain": ["Overview", { slots: {}, fixedBy: "board OverviewDNS v36, issue 2272 (drafted)" }],
   "overview.connect.day": ["Overview · day {n}", { slots: { n: "text" }, fixedBy: "board OverviewDNS · issue 1811 (drafted)" }],
   "overview.connect.head": ["Your pages wait for your website", { slots: {}, fixedBy: "SPEC §5 2026-09-20 (drafted)" }],
   "overview.connect.head.ready": ["Your first page is ready", { slots: {}, fixedBy: "board OverviewDNS · issue 1811 (drafted)" }],
@@ -911,36 +913,35 @@ export const OVERVIEW_COPY = Object.freeze({
     { slots: {}, fixedBy: "SPEC §5 2026-09-20 (drafted)" },
   ],
   "overview.connect.lead.ready": [
-    "It goes live once your website is connected. Everything else is done.",
-    { slots: {}, fixedBy: "board OverviewDNS · issue 1811 (drafted)" },
+    "It goes live once your website is connected.",
+    { slots: {}, fixedBy: "board OverviewDNS v36, issue 2272 (drafted)" },
   ],
   "overview.connect.eyebrow": ["Needs you · about 5 minutes, once", { slots: {}, fixedBy: "SPEC §5 2026-09-20 (drafted)" }],
-  "overview.connect.title": ["Connect your website", { slots: {}, fixedBy: "board OverviewDNS · owner 2026-10-15 six words · issue 1811 (drafted)" }],
+  "overview.connect.title": ["Add one setting to your domain", { slots: {}, fixedBy: "board OverviewDNS v36, issue 2272 (drafted) · owner 2026-10-15 six words" }],
   "overview.connect.step.open": ["Open your domain settings", { slots: {}, fixedBy: "board OverviewDNS · issue 1811 (drafted)" }],
   "overview.connect.step.open.line": [
-    "Where you bought {domain}, such as GoDaddy or Namecheap.",
-    { slots: { domain: "text" }, fixedBy: "board OverviewDNS · issue 1811 (drafted)" },
+    "Where you bought {domain}.",
+    { slots: { domain: "text" }, fixedBy: "board OverviewDNS v36, issue 2272 (drafted)" },
   ],
   "overview.connect.step.paste": ["Paste the three values", { slots: {}, fixedBy: "board OverviewDNS · issue 1811 (drafted)" }],
-  "overview.connect.step.paste.line": ["Copy each one from the box below.", { slots: {}, fixedBy: "board OverviewDNS · issue 1811 (drafted)" }],
   "overview.connect.step.rest": ["We do the rest", { slots: {}, fixedBy: "board OverviewDNS · issue 1811 (drafted)" }],
   "overview.connect.step.rest.line": [
-    "Your pages appear on your own web address, under {label}.",
-    { slots: { label: "text" }, fixedBy: "board OverviewDNS · issue 1811 (drafted)" },
+    "Your pages appear on {host}.",
+    { slots: { host: "text" }, fixedBy: "board OverviewDNS v36, issue 2272 (drafted)" },
   ],
   "overview.connect.copy.type": ["Copy the type", { slots: {}, fixedBy: "board OverviewDNS · issue 1811 (drafted)" }],
   "overview.connect.copy.name": ["Copy the name", { slots: {}, fixedBy: "board OverviewDNS · issue 1811 (drafted)" }],
   "overview.connect.copy.value": ["Copy the value", { slots: {}, fixedBy: "board OverviewDNS · issue 1811 (drafted)" }],
   "overview.connect.check": ["I’ve added it, check now", { slots: {}, fixedBy: "board OverviewDNS · issue 1811 (drafted)" }],
   "overview.connect.guide": [
-    "Step-by-step for GoDaddy, Namecheap, Cloudflare →",
-    { slots: {}, fixedBy: "board OverviewDNS · issue 1811 (drafted)" },
+    "Step-by-step for your domain host →",
+    { slots: {}, fixedBy: "board OverviewDNS v36, issue 2272 (drafted)" },
   ],
   "overview.connect.checked": ["Checked {time}: not found yet.", { slots: { time: "text" }, fixedBy: "board OverviewDNS · issue 1811 (drafted)" }],
   "overview.connect.unchecked": ["Not found yet.", { slots: {}, fixedBy: "board OverviewDNS · issue 1811 (drafted)" }],
   "overview.connect.hourly": [
-    "We check every hour and update this page when it works. It can take a few hours.",
-    { slots: {}, fixedBy: "board OverviewDNS · issue 1811 (drafted)" },
+    "We check every hour. It can take a few hours.",
+    { slots: {}, fixedBy: "board OverviewDNS v36, issue 2272 (drafted)" },
   ],
   "overview.connect.other": ["Other ways to connect", { slots: {}, fixedBy: "board OverviewDNS · issue 1811 (drafted)" }],
   "overview.connect.wordpress": [
@@ -949,18 +950,14 @@ export const OVERVIEW_COPY = Object.freeze({
   ],
   "overview.connect.wordpress.link": ["Connect WordPress →", { slots: {}, fixedBy: "board OverviewDNS · issue 1811 (drafted)" }],
   "overview.connect.later": [
-    "The same setting is in your first page’s mail. You can add it later from a computer.",
-    { slots: {}, fixedBy: "board OverviewDNS · owner R20 2026-10-22" },
+    "The setting is also in your mail, to add later from a computer.",
+    { slots: {}, fixedBy: "board OverviewDNS v36, issue 2272 (drafted) · owner R20 2026-10-22" },
   ],
   "overview.connect.page.eyebrow": ["Waiting to go live", { slots: {}, fixedBy: "board OverviewDNS · issue 1811 (drafted)" }],
-  "overview.connect.page.line": [
-    "It goes live once the setting works. We write the rest of your week after that.",
-    { slots: {}, fixedBy: "Q11 · board OverviewDNS · issue 1811" },
-  ],
   "overview.connect.page.read": ["Read or edit it →", { slots: {}, fixedBy: "board OverviewDNS · issue 1811 (drafted)" }],
   "overview.connect.progress": [
-    "Your progress starts here once your first page is live.",
-    { slots: {}, fixedBy: "SPEC §5 2026-09-20 (drafted)" },
+    "Progress shows here once your first page is live.",
+    { slots: {}, fixedBy: "SPEC §5 2026-09-20 · board OverviewDNS v36, issue 2272 (drafted)" },
   ],
 
   // SPEC §4 (2026-09-20, #908), issue 912 — the first day after setup.
@@ -1129,6 +1126,7 @@ export const OVERVIEW_COPY = Object.freeze({
   "overview.week.pages": ["This week’s {n} pages", { slots: { n: "text" }, fixedBy: "issue 1744 (drafted)" }],
   "overview.week.goes-live": ["Goes live", { slots: {}, fixedBy: "issue 1744 (drafted)" }],
   "overview.week.today-at": ["today, {time}", { slots: { time: "date" }, fixedBy: "issue 1744 (drafted)" }],
+  "overview.week.on-at": ["{day}, {time}", { slots: { day: "date", time: "date" }, fixedBy: "board Main v36, issue 2272 (drafted)" }],
   "overview.week.next": [
     "Next Monday, {date}, we pick the next {n}.",
     { slots: { date: "date", n: "text" }, fixedBy: "issue 1744 (drafted) · owner R12 B9 · board Main v36" },

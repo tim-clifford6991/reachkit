@@ -82,9 +82,8 @@ function boardOrder(customer: { label: string; domain: string }): string[] {
     copy("overview.connect.step.open"),
     copy("overview.connect.step.open.line", { domain: customer.domain }),
     copy("overview.connect.step.paste"),
-    copy("overview.connect.step.paste.line"),
     copy("overview.connect.step.rest"),
-    copy("overview.connect.step.rest.line", { label: customer.label }),
+    copy("overview.connect.step.rest.line", { host: `${customer.label}.${customer.domain}` }),
     "Type",
     "CNAME",
     "Name",
@@ -101,7 +100,6 @@ function boardOrder(customer: { label: string; domain: string }): string[] {
     copy("overview.connect.later"),
     copy("overview.connect.page.eyebrow"),
     TITLE,
-    copy("overview.connect.page.line"),
     copy("overview.connect.page.read"),
     copy("overview.connect.progress"),
   ];

@@ -12,9 +12,9 @@ export { ThisWeek } from "./ThisWeek";
 const stoppable = (cell: DayCell, week: WeekModel): boolean =>
   actionsFor(cell, week.destination).some((action) => action.kind === "command" && (action.command === "veto" || action.command === "skip"));
 
-function dayOf(cell: DayCell, week: WeekModel, next: boolean): WeekDay {
+function dayOf(cell: DayCell, week: WeekModel, next: boolean, time: string | null): WeekDay {
   const { page } = cell;
-  if (page === null) return { cell, goesLiveToday: null, href: null, next: false, liveDraft: null };
+  if (page === null) return { cell, goesLiveToday: null, href: null, next: false, goesLiveAt: null, liveDraft: null };
   const at = next || page.stage === "your_review" || page.stage === "scheduled" ? (page.vetoDeadline ?? page.publishAt) : null;
   return {
     // Why a page was chosen is Plan's to say; Overview links there instead.
@@ -22,12 +22,14 @@ function dayOf(cell: DayCell, week: WeekModel, next: boolean): WeekDay {
     goesLiveToday: at !== null && dayKeyOf(at, week.timeZone) === week.today ? at : null,
     href: page.draftId === null ? null : `/app/draft/${page.draftId}`,
     next,
+    // The next page goes live on its day at the site's publish time, where Plan would name one.
+    goesLiveAt: next ? time : null,
     // A live page can be taken down from its row, as on Plan's live list.
     liveDraft: page.stage === "live" && page.liveUrl !== null ? page.draftId : null,
   };
 }
 
-export function weekListOf(week: WeekModel): WeekList | null {
+export function weekListOf(week: WeekModel, time: string | null = null): WeekList | null {
   const first = week.cells[0];
   const last = week.cells.at(-1);
   if (first === undefined || last === undefined) return null;
@@ -42,11 +44,15 @@ export function weekListOf(week: WeekModel): WeekList | null {
     skippedToday: today !== undefined && dayStateOf(today) === "skipped",
     firstSkip: week.cells.find((cell) => dayStateOf(cell) === "skipped")?.day ?? null,
     pages: week.cells.filter((cell) => cell.page !== null).length,
-    days: week.cells.map((cell) => dayOf(cell, week, cell.day === next)),
+    days: week.cells.map((cell) => dayOf(cell, week, cell.day === next, time)),
   };
 }
 
 export async function readThisWeek(): Promise<WeekList | null> {
-  const { planToday, readWeek } = await import("../calendar/provider");
-  return weekListOf(await readWeek(await planToday()));
+  const [{ planToday, readPlanHead, readWeek }, { weekGoesLive }] = await Promise.all([
+    import("../calendar/provider"),
+    import("../calendar/WeekCard"),
+  ]);
+  const [week, head] = await Promise.all([planToday().then(readWeek), readPlanHead()]);
+  return weekListOf(week, weekGoesLive(week, head.publishTime));
 }

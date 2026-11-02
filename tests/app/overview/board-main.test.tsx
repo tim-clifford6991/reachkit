@@ -254,6 +254,17 @@ describe("a week card, from Plan's own week assembly", () => {
     }
   });
 
+  it("the next page with no stored moment of its own goes live at the site's publish time, in place of its state", () => {
+    const plain = weekOf([assembleMonth(FIXTURE_CALENDAR_FACTS, "2026-09")], "2026-09-15");
+    const draw = (time: string | null): Element | null =>
+      card(new DOMParser().parseFromString(renderToStaticMarkup(<ThisWeek week={weekListOf(plain, time)!} scheduled />), "text/html"), plain.today);
+    const timed = draw("4:00 PM");
+    expect(text(timed?.querySelector('[data-testid="overview-week-goes-live"]'))).toContain(copy("overview.week.today-at", { time: "4:00 PM" }));
+    expect(timed?.querySelector('[data-testid="day-state"]')).toBeNull();
+    // No time promised (the address does not work, or work is stopped): Plan's state word stands.
+    expect(draw(null)?.querySelector('[data-testid="day-state"]')).not.toBeNull();
+  });
+
   it("a short week says its real count", () => {
     const pages = week.cells.filter((cell) => cell.page !== null).length;
     expect(pages).toBeLessThan(week.cells.length);

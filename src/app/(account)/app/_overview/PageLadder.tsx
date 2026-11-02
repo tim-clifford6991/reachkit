@@ -70,13 +70,6 @@ function Line(p: { strong: string; rest: string; testId: string; href: string; f
   );
 }
 
-/** What follows a step's figure: "of N" over the pages checked; on Live, while some
- *  pages are not checked yet, how many, so every "of N" on the ladder is one count. */
-function ofLine(step: StepFigure, unread: number): string {
-  if (step.name === "draft.ladder.live" && unread > 0) return copy("overview.ladder.unread", { k: formatCount(unread) });
-  return copy("overview.ladder.of", { n: formatCount(step.of) });
-}
-
 function Steps(p: { title: CopyKey; steps: readonly StepFigure[]; climbing: number; unread: number; testId: string; href: string }): React.JSX.Element {
   return (
     <div className="flex min-w-0 flex-col gap-3" data-testid={p.testId}>
@@ -103,13 +96,19 @@ function Steps(p: { title: CopyKey; steps: readonly StepFigure[]; climbing: numb
                     <Link className="link link-hover text-4xl leading-none font-semibold tracking-tight tabular-nums" href={p.href} prefetch={true}>
                       {formatCount(step.count)}
                     </Link>
-                    <span className="text-sm text-base-content/70">{ofLine(step, p.unread)}</span>
+                    <span className="text-sm text-base-content/70">{copy("overview.ladder.of", { n: formatCount(step.on) })}</span>
                   </span>
                   {step.of === 0 ? null : (
-                    <progress className="progress progress-primary col-span-2 h-2.5 w-full bg-base-200 lg:col-span-1" value={step.count} max={step.of} aria-hidden />
+                    <progress className="progress progress-primary col-span-2 h-2.5 w-full bg-base-200 lg:col-span-1" value={step.count} max={step.on} aria-hidden />
                   )}
                 </>
               )}
+              {/* Each "of N" is every live page; the pages no reading has reached yet are said once, here. */}
+              {step.name === "draft.ladder.live" && p.unread > 0 ? (
+                <span className="col-span-2 text-xs text-base-content/70 lg:col-span-1" data-testid="overview-ladder-unread">
+                  {copy("overview.ladder.unread", { k: formatCount(p.unread) })}
+                </span>
+              ) : null}
               {step.name === "draft.ladder.showing" && p.climbing > 0 ? (
                 <span className={`${LABEL.climbing.badge} col-span-2 justify-self-start lg:col-span-1`}>
                   <Climbing className="size-3.5 shrink-0" strokeWidth={1.75} aria-hidden />

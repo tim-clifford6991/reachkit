@@ -274,12 +274,12 @@ describe.each([
     const reached = (pick: (r: PageReading) => boolean): number => read.filter(pick).length;
     const expected: Record<keyof typeof STEP_ICON, { value: number; max: number }> = {
       "draft.ladder.live": { value: pubs.length, max: pubs.length },
-      "draft.ladder.found": { value: reached((r) => r.reached.found !== undefined), max: read.length },
-      "draft.ladder.showing": { value: reached((r) => r.reached.showing !== undefined), max: read.length },
-      "draft.ladder.first-page": { value: reached((r) => r.reached.firstPage !== undefined), max: read.length },
-      "draft.ladder.read": { value: reached((r) => r.reached.readByAi !== undefined), max: read.length },
-      "draft.ladder.linked": { value: reached((r) => r.reached.linkedByAi !== undefined), max: read.length },
-      "draft.ladder.visit": { value: reached((r) => r.reached.aiVisit !== undefined), max: read.length },
+      "draft.ladder.found": { value: reached((r) => r.reached.found !== undefined), max: pubs.length },
+      "draft.ladder.showing": { value: reached((r) => r.reached.showing !== undefined), max: pubs.length },
+      "draft.ladder.first-page": { value: reached((r) => r.reached.firstPage !== undefined), max: pubs.length },
+      "draft.ladder.read": { value: reached((r) => r.reached.readByAi !== undefined), max: pubs.length },
+      "draft.ladder.linked": { value: reached((r) => r.reached.linkedByAi !== undefined), max: pubs.length },
+      "draft.ladder.visit": { value: reached((r) => r.reached.aiVisit !== undefined), max: pubs.length },
     };
     const { dom } = await render();
     for (const step of dom.querySelectorAll('[data-testid="overview-ladder"] [data-step]')) {
@@ -319,30 +319,31 @@ describe.each([
     const ladder = dom.querySelector('[data-testid="overview-ladder"]')!;
     const line = (key: Parameters<typeof copy>[0]): string => text(ladder.querySelector(`[data-step="${key}"] a ~ span`));
     expect(text(ladder.querySelector('[data-step="draft.ladder.live"] a'))).toBe("12");
-    // Live says how many wait for a reading, so every "of N" on the ladder is the 9 read.
-    expect(line("draft.ladder.live")).toBe(copy("overview.ladder.unread", { k: "3" }));
+    // Every "of N" is the 12 live pages, the head's own number; Live says once that 3 wait for a reading.
+    expect(line("draft.ladder.live")).toBe(copy("overview.ladder.of", { n: "12" }));
+    expect(text(ladder.querySelector('[data-step="draft.ladder.live"] [data-testid="overview-ladder-unread"]'))).toBe(copy("overview.ladder.unread", { k: "3" }));
     // The nine read pages were all fetched: 9 of 9, not 9 of 12.
     expect(text(ladder.querySelector('[data-step="draft.ladder.found"] a'))).toBe("9");
-    expect(line("draft.ladder.found")).toBe(copy("overview.ladder.of", { n: "9" }));
-    expect(line("draft.ladder.showing")).toBe(copy("overview.ladder.of", { n: "9" }));
-    expect(line("draft.ladder.linked")).toBe(copy("overview.ladder.of", { n: "9" }));
+    expect(line("draft.ladder.found")).toBe(copy("overview.ladder.of", { n: "12" }));
+    expect(line("draft.ladder.showing")).toBe(copy("overview.ladder.of", { n: "12" }));
+    expect(line("draft.ladder.linked")).toBe(copy("overview.ladder.of", { n: "12" }));
     expect(ladder.querySelector("h2 + p")).toBeNull();
     const ofs = [...ladder.querySelectorAll("[data-step] a ~ span")].map(text).filter((t) => t.startsWith(copy("overview.ladder.of", { n: "" }).trim()));
-    expect(new Set(ofs)).toEqual(new Set([copy("overview.ladder.of", { n: "9" })]));
+    expect(new Set(ofs)).toEqual(new Set([copy("overview.ladder.of", { n: "12" })]));
     // Only Live says how many wait; no other step says it for the pages short of it.
     expect([...ladder.querySelectorAll("[data-step]")].filter((step) => text(step).includes(NOT_READ)).map((step) => step.getAttribute("data-step"))).toEqual([
       "draft.ladder.live",
     ]);
   });
 
-  it("a mixed hosted and WordPress site counts each step over its own read pages", async () => {
+  it("a mixed hosted and WordPress site counts each step over the live pages it can be read on", async () => {
     seedPages(panel, TWELVE, { unread: 3, destination: (i) => (i < 4 ? "wordpress" : "hosted") });
     const { dom } = await render();
     const ladder = dom.querySelector('[data-testid="overview-ladder"]')!;
     // Found is read on the hosted pages only: p4 to p8 have a reading, all fetched.
     expect(text(ladder.querySelector('[data-step="draft.ladder.found"] a'))).toBe("5");
-    expect(text(ladder.querySelector('[data-step="draft.ladder.found"] a ~ span'))).toBe(copy("overview.ladder.of", { n: "5" }));
-    expect(text(ladder.querySelector('[data-step="draft.ladder.showing"] a ~ span'))).toBe(copy("overview.ladder.of", { n: "9" }));
+    expect(text(ladder.querySelector('[data-step="draft.ladder.found"] a ~ span'))).toBe(copy("overview.ladder.of", { n: "8" }));
+    expect(text(ladder.querySelector('[data-step="draft.ladder.showing"] a ~ span'))).toBe(copy("overview.ladder.of", { n: "12" }));
     expect(text(ladder)).toContain(copy("overview.ladder.unread", { k: "3" }));
   });
 
@@ -376,7 +377,7 @@ describe.each([
     expect(text(dom.querySelector('[data-step="draft.ladder.showing"] a'))).toBe("0");
   });
 
-  it("week 1 with pages not read yet: found and read count over the read pages, and the head says how many wait", async () => {
+  it("week 1 with pages not read yet: found is of every live page, and Live says how many wait", async () => {
     const five: Shape[] = [
       { place: null, crawled: true, aiReads: 2, aiVisits: 0, clicks: null },
       { place: null, crawled: true, aiReads: 0, aiVisits: 0, clicks: null },
@@ -390,7 +391,7 @@ describe.each([
       copy("overview.ladder.week1", { live: "5" })
     );
     expect(text(dom.querySelector('[data-step="draft.ladder.found"] a'))).toBe("2");
-    expect(text(dom.querySelector('[data-step="draft.ladder.found"] a ~ span'))).toBe(copy("overview.ladder.of", { n: "3" }));
+    expect(text(dom.querySelector('[data-step="draft.ladder.found"] a ~ span'))).toBe(copy("overview.ladder.of", { n: "5" }));
     expect(text(dom.querySelector('[data-testid="overview-ladder"]'))).toContain(copy("overview.ladder.unread", { k: "2" }));
   });
 
