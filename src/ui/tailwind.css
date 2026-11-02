@@ -290,10 +290,20 @@ body {
   }
 }
 
-/* Below `lg` the app's dock floats over the page's foot, so a control reached by keyboard
- * stops above it rather than under it (WCAG 2.4.11). */
+/* Below `lg` the app's top bar sticks over the page's head and its dock floats over its foot, and Settings'
+ * tab bar sticks under the top bar (#1339): a control reached by keyboard stops clear of all three (WCAG 2.4.11). */
 @media (width < 64rem) {
   html:has(.dock) {
+    scroll-padding-top: 5rem;
     scroll-padding-bottom: 6rem;
+  }
+  html:has([data-testid="settings-tabs"]) {
+    scroll-padding-top: 8rem;
+  }
+}
+/* On a phone the seven tabs are four rows. */
+@media (width < 40rem) {
+  html:has([data-testid="settings-tabs"]) {
+    scroll-padding-top: 17.5rem;
   }
 }

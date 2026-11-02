@@ -7,8 +7,8 @@
 // the marked tab could sit past the right edge (#925). Scrolling it into
 // view fixed that, but four of the seven tabs were still off-screen with
 // nothing to say they existed (#1101, the 2026-09-25 shell review). Below
-// `sm` the bar is now a 2-column grid of 44px boxes in the page's flow (canvas
-// v36), so there is nothing to scroll, nothing hidden and nothing stuck under the top bar.
+// `sm` the bar wraps two 44px boxes to a row (canvas v36), so there is nothing to
+// scroll and nothing hidden, and it still sticks under the top bar (#1339).
 //
 // Every check the layout suite already ran passed on both defects: nothing
 // overflowed the screen, the row contained its content perfectly and simply
@@ -107,7 +107,7 @@ for (const width of PHONE_BANDS_PX) {
     for (const tab of SETTINGS_TABS) {
       const href = SETTINGS_TAB_HREF[tab];
       it(
-        `${href}: all ${SETTINGS_TABS.length} tabs in a 2-column grid inside the bar, none scrolled, not sticky, its own tab marked, each ${TARGET_PX}px tall`,
+        `${href}: all ${SETTINGS_TABS.length} tabs two to a row inside the bar, none scrolled, sticky, its own tab marked, each ${TARGET_PX}px tall`,
         async () => {
           const seen = await withPage(
             width,
@@ -125,7 +125,7 @@ for (const width of PHONE_BANDS_PX) {
           expect(seen.scrolling, `${href} at ${width}px: the bar scrolls sideways`).toEqual([]);
           expect(seen.short, `${href} at ${width}px: tabs under ${TARGET_PX}px`).toEqual([]);
           expect(seen.columns, `${href} at ${width}px: the tabs' columns`).toBe(2);
-          expect(seen.position, `${href} at ${width}px: the bar stays in the page's flow`).toBe("static");
+          expect(seen.position, `${href} at ${width}px: the bar sticks under the top bar (#1339)`).toBe("sticky");
         },
         PER_ROUTE_BROWSER_MS
       );

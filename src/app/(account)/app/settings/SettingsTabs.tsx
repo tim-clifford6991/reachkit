@@ -1,7 +1,7 @@
 // SPEC §4 (2026-09-20, #908): the seven tabs, drawn once for all seven routes.
 // Links, not a widget, so the browser's back button moves between them; `aria-current` marks the one open.
-// Below `sm` the bar wraps into two 44px boxes a row, in the page's flow (canvas v36), so all seven are on
-// screen; from `sm` up they are one row that scrolls sideways rather than widen the screen (#1101).
+// The bar sticks directly under the top bar (SPEC §4, 2026-10-08, #1339). Below `sm` it wraps into two 44px
+// boxes a row (canvas v36), so all seven are on screen; from `sm` up they are one row that scrolls sideways rather than widen the screen (#1101).
 // Where the row scrolls, the current tab is brought into view on mount, and again once the web font is in,
 // because the faces load with `display: swap` and the row is measured in the fallback face first (#976).
 "use client";
@@ -10,6 +10,7 @@ import React, { useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { copy } from "@/lib/presentation/copy";
+import { UNDER_TOP_BAR } from "../_shell/bar";
 import {
   SETTINGS_TABS,
   SETTINGS_TAB_COPY_KEY,
@@ -33,7 +34,7 @@ export function SettingsTabs(): React.JSX.Element {
 
   return (
     <nav
-      className="min-w-0 sm:overflow-x-auto"
+      className={`min-w-0 sm:overflow-x-auto ${UNDER_TOP_BAR}`}
       aria-label={copy("settings.tabs.label")}
       data-testid="settings-tabs"
     >
