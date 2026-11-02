@@ -1,5 +1,6 @@
 // A closed section's name as board PubReport draws it: a primary link with
-// its chevron on the left, turning when the `details` it heads is open.
+// its chevron on the left, turning when the `details` it heads is open. The
+// content under it is `hidden group-open:…`, so a closed one lays out no box.
 import type React from "react";
 import { ChevronDown } from "lucide-react";
 

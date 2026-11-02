@@ -215,7 +215,7 @@ function ScoreCard(p: { verdict: Verdict; limiting: ShownFactor | null; rescored
         <MissingFactors verdict={verdict} />
         <details className="group border-base-300 w-full border-t pt-2" data-testid="verdict-split">
           <LinkSummary>{copy("verdict.score.split")}</LinkSummary>
-          <div className="flex flex-col gap-4 pt-2">
+          <div className="hidden flex-col gap-4 pt-2 group-open:flex">
             <p className="text-base-content/70 text-sm">{copy(bars.length === 4 ? "verdict.score.parts" : "verdict.score.parts.three")}</p>
             {bars.map((bar) => (
               <DriverBar key={bar.factor} factor={bar.factor} value={bar.value} limiting={bar.factor === p.limiting} />

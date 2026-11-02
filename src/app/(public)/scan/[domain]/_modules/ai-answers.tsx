@@ -537,7 +537,7 @@ export function AiAnswersCard(p: {
           <LinkSummary>
             {partial ? copy("ai-answers.questions.title.partial", { total, measured }) : copy("report.ai.asked", { total })}
           </LinkSummary>
-          <div className="flex min-w-0 flex-col gap-4 pt-2">
+          <div className="hidden min-w-0 flex-col gap-4 pt-2 group-open:flex">
             <AnswerColumns rows={section.rows} />
             {/* Issue 873: what was measured, stated rather than counted off
                 the rows. */}

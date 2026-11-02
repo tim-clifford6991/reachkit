@@ -131,7 +131,7 @@ export function GooglePresenceCard(p: { section: PresenceSection }): React.JSX.E
               <Num>{String(section.absentFrom.length)}</Num>
             </span>
           </LinkSummary>
-          <div className="min-w-0 pt-2">
+          <div className="hidden min-w-0 pt-2 group-open:block">
             {/* **One table, two shapes (#956).** From `sm` it is the three-column
                 table it has always been, in the wrap that lets a wide row scroll.
                 Below `sm` there is no scroller at all — a column pushed off the
