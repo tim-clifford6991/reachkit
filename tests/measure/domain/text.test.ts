@@ -53,7 +53,6 @@ interface FetchRow {
 interface QueryLog {
   table: string;
   method: string;
-  values?: readonly string[];
 }
 
 /** A chainable double of the two reads this module makes, recording every
@@ -79,7 +78,7 @@ function fakeDb(a: { scans: ScanRow[]; fetches: FetchRow[]; error?: { table: str
         return self;
       },
       in(column: string, values: readonly string[]) {
-        log.push({ table, method: `in(${column})`, values });
+        log.push({ table, method: `in(${column})` });
         inFilters.push({ column, values });
         return self;
       },
@@ -136,7 +135,7 @@ describe('BP-010 decision 4 — "Nothing new is stored: BP-007\'s `fetches` row 
     expect(log.map((entry) => entry.method).every((method) => /^(select|eq|in)\(/.test(method))).toBe(true);
   });
 
-  it("it reads the site's scans, its domain's free scans, then each source's rows in a light pass and the chosen rows' text", async () => {
+  it("it is three indexed reads — the site's scans, its domain's free scans, then their own-fetch rows", async () => {
     const { log } = useDb({
       scans: [{ id: "scan-1", site_id: SITE }],
       fetches: [{ scan_id: "scan-1", source: OWN_FETCH_SOURCE, payload: storedDocument("https://a.example/", HOME_HTML, READ_AT) }],
@@ -144,16 +143,11 @@ describe('BP-010 decision 4 — "Nothing new is stored: BP-007\'s `fetches` row 
     await readMeasuredText({ siteId: SITE });
     // select + eq(site_id), then select + eq(tier) + in(domain)
     expect(log.filter((entry) => entry.table === "scans")).toHaveLength(5);
-    expect(log.filter((entry) => entry.table === "fetches").map((entry) => entry.method)).toEqual([
-      "select(id, url:payload->url, readAt:payload->readAt, status:payload->status)",
-      "eq(source)",
-      "in(scan_id)",
-      "select(id, url:payload->url, status:payload->status, html:payload->html, readAt:payload->readAt, headers:payload->headers)",
-      "in(id)",
-      "select(id, url:payload->0->url, readAt:payload->0->readAt, status:payload->0->status)",
-      "eq(source)",
-      "in(scan_id)",
-    ]);
+    const fetches = log.filter((entry) => entry.table === "fetches").map((entry) => entry.method);
+    expect(fetches.slice(1)).toEqual(["in(source)", "in(scan_id)"]);
+    // Only the document's fields: never the bare payload, `bytes` or the rest of a vendor item.
+    const columns = (fetches[0] ?? "").slice("select(".length, -1).split(", ").map((spec) => spec.split(":").at(-1));
+    expect(columns).toEqual(["source", ...["", "0->"].flatMap((at) => ["url", "status", "html", "readAt", "headers"].map((field) => `payload->${at}${field}`))]);
   });
 });
 
@@ -284,8 +278,7 @@ describe("issue 1374 — a site drawn by JavaScript is read back as a browser dr
       ],
     });
     const all = await readMeasuredText({ siteId: SITE });
-    // The weekly shell supersedes the deep pass's shell of the same URL; the rendered read stands beside it.
-    expect(all.map((page) => [page.text === "", page.rendered ?? false])).toEqual([[true, false], [false, true]]);
+    expect(all.map((page) => [page.text === "", page.rendered ?? false])).toEqual([[true, false], [false, true], [true, false]]);
     expect(all[1]?.text).toContain("It reads the page & counts what is there.");
 
     const weekly = await readMeasuredText({ siteId: SITE, scanId: "scan-weekly" });
@@ -314,33 +307,37 @@ describe("#1130 — the re-read text is the page's prose, never its chrome or it
   });
 });
 
-describe("the read takes only the fields it uses, and each URL's newest usable read", () => {
+describe("the narrowed read returns main's rows, row for row", () => {
   const SITE_URL = "https://harborplumbing.example";
   const [T1, T2, T3] = ["2026-09-01", "2026-09-08", "2026-09-15"].map((day) => new Date(`${day}T08:00:00.000Z`)) as [Date, Date, Date];
-  const page = (title: string, body: string) => `<html><body><main><h1>${title}</h1><p>${body}</p></main></body></html>`;
+  // Every page carries the same paragraph, which grounding's chrome threshold weighs against the row count.
+  const page = (title: string, body: string) =>
+    `<html><body><main><h1>${title}</h1><p>${body}</p><p>Call Harbor Plumbing any day of the week for a same-day visit from a licensed plumber.</p></main></body></html>`;
   const own = (scan: string, path: string, html: string, at: Date, status = 200): FetchRow => ({
     scan_id: scan,
     source: OWN_FETCH_SOURCE,
-    payload: toStoredDocument({ ok: true, status, url: `${SITE_URL}${path}`, html, bytes: html.length, readAt: at, headers: {} }),
+    payload: toStoredDocument({ ok: true, status, url: `${SITE_URL}${path}`, html, bytes: html.length, readAt: at, headers: { server: "nginx" } }),
   });
   const HOME = page("Harbor Plumbing in Austin", "We replace tankless water heaters in one day and quote the price before work starts.");
-  // A free scan, a deep pass and two weekly re-reads; the newest read of two pages is a 403 or a rate-limit body.
+  const SHELL = '<html><body><div id="root"></div></body></html>';
+  // A free scan, a deep pass and two weekly re-reads: repeated reads, a 403, a rate-limit body, an empty shell after real text.
   const SCANS: ScanRow[] = ["free-1", "deep-1", "week-1", "week-2"].map((id) => ({ id, site_id: id === "free-1" ? null : SITE, domain: "harborplumbing.example", tier: id === "free-1" ? "free" : "deep" }));
   const FETCHES: FetchRow[] = [
     own("free-1", "/", HOME, T1),
     own("week-1", "/", HOME, T2),
-    own("week-2", "/", HOME, T3),
+    own("week-2", "/", page("Harbor Plumbing in Austin", "Tankless water heaters replaced in one day, priced before we start."), T3),
     own("deep-1", "/services", page("Drain cleaning", "Every drain call includes a camera inspection so you see the blockage we clear."), T1),
     own("week-2", "/services", "<html><body>Forbidden</body></html>", T3, 403),
     own("deep-1", "/about", page("About Harbor", "The company was started by two licensed plumbers who grew up on the east side of town."), T1),
     own("week-2", "/about", "local_rate_limited", T3),
-    own("deep-1", "/emergency", '<html><body><div id="root"></div></body></html>', T1),
-    { scan_id: "deep-1", source: RENDERED_FETCH_SOURCE, payload: [storedDocument(`${SITE_URL}/emergency`, page("Emergency repairs", "A plumber reaches most Austin addresses within ninety minutes of your call."), T2)] },
+    own("deep-1", "/emergency", page("Emergency repairs", "A plumber reaches most Austin addresses within ninety minutes of your call."), T1),
+    own("week-1", "/emergency", SHELL, T2),
+    { scan_id: "week-1", source: RENDERED_FETCH_SOURCE, payload: [storedDocument(`${SITE_URL}/emergency`, page("Emergency repairs", "Burst pipe? A plumber reaches most Austin addresses within ninety minutes."), T2)] },
     { scan_id: "deep-1", source: RENDERED_FETCH_SOURCE, payload: { vendorFailure: "timeout", endpoint: RENDERED_FETCH_SOURCE, billed: true } },
     { scan_id: "deep-1", source: OWN_FETCH_SOURCE, payload: null },
   ];
 
-  /** The read before this change, kept as the reference: every row's whole payload, each one a page. */
+  /** main's read, kept as the reference: every row's whole payload. */
   const fullPayloadText = (rows: readonly FetchRow[]): MeasuredText[] =>
     rows
       .flatMap((row) => {
@@ -351,34 +348,14 @@ describe("the read takes only the fields it uses, and each URL's newest usable r
       })
       .sort((a, b) => a.measuredAt.getTime() - b.measuredAt.getTime() || (a.url < b.url ? -1 : a.url > b.url ? 1 : 0));
 
-  it("(i, ii) never selects the bare payload or bytes, and the text pass asks for at most one row per URL", async () => {
-    const { log } = useDb({ scans: SCANS, fetches: FETCHES });
-    await readMeasuredText({ siteId: SITE });
-    const selects = log.filter((entry) => entry.table === "fetches" && entry.method.startsWith("select("));
-    expect(selects.length).toBeGreaterThan(0);
-    for (const { method } of selects) {
-      expect(method.slice(7, -1).split(",").map((spec) => spec.trim().split(":").at(-1)), method).not.toContain("payload");
-      expect(method).not.toMatch(/bytes/);
-    }
-    const textPasses = log.filter((entry) => entry.method === "in(id)").map((entry) => entry.values ?? []);
-    const urls = new Set(fullPayloadText(FETCHES).map((row) => row.url));
-    expect(textPasses[0]?.length).toBeLessThanOrEqual(urls.size);
-    expect(textPasses.flat().length).toBeLessThan(FETCHES.length);
-  });
-
-  it("(iii, iv) a refused newest read leaves the older good text; own and rendered reads of a URL both stand; it is today's read less the superseded ones", async () => {
+  it("readMeasuredText keeps every re-read, refusal-skip and rendered flag exactly as the full-payload read", async () => {
     useDb({ scans: SCANS, fetches: FETCHES });
-    const now = await readMeasuredText({ siteId: SITE });
-    const of = (path: string) => now.filter((row) => row.url === `${SITE_URL}${path}`).map((row) => [row.measuredAt.toISOString(), row.rendered ?? false, row.text !== ""]);
-    expect(of("/services")).toEqual([[T1.toISOString(), false, true]]);
-    expect(of("/about")).toEqual([[T1.toISOString(), false, true]]);
-    expect(of("/")).toEqual([[T3.toISOString(), false, true]]);
-    expect(of("/emergency")).toEqual([[T1.toISOString(), false, false], [T2.toISOString(), true, true]]);
     const before = fullPayloadText(FETCHES);
-    expect(now).toEqual(before.filter((row) => !before.some((other) => other.url === row.url && other.rendered === row.rendered && other.measuredAt > row.measuredAt)));
+    expect(before.filter((row) => row.url === `${SITE_URL}/`)).toHaveLength(3);
+    expect(await readMeasuredText({ siteId: SITE })).toEqual(before);
   });
 
-  it("readAllFacts quotes the same passages, pages and dates through the new read as through the full-payload read", async () => {
+  it("readAllFacts quotes the same passages, pages and dates, with the same chrome threshold", async () => {
     useDb({ scans: SCANS, fetches: FETCHES });
     const now = await (await import("../../../src/lib/generate/pipeline/grounding")).readAllFacts({ siteId: SITE });
     vi.resetModules();
@@ -386,17 +363,12 @@ describe("the read takes only the fields it uses, and each URL's newest usable r
     try {
       const before = await (await import("../../../src/lib/generate/pipeline/grounding")).readAllFacts({ siteId: SITE });
       expect(before.length).toBeGreaterThan(0);
+      // Four of eight rows carry it: not over half, so it is quoted; counting each URL once would drop it.
+      expect(now.some((fact) => fact.fact.passage.includes("same-day visit"))).toBe(true);
       expect(now).toEqual(before);
     } finally {
       vi.doUnmock("@/lib/measure/text");
       vi.resetModules();
     }
-  });
-
-  it("a URL whose every read is refused has no page, and the fallback stops", async () => {
-    const { log } = useDb({ scans: [{ id: "scan-1", site_id: SITE }], fetches: [own("scan-1", "/x", "local_rate_limited", T1), own("scan-1", "/x", "local_rate_limited", T2), own("scan-1", "/x", "Too many", T3, 429)] });
-    expect(await readMeasuredText({ siteId: SITE })).toEqual([]);
-    // The 429 is never read for text; the two rate-limit bodies are read once each.
-    expect(log.filter((entry) => entry.method === "in(id)").map((entry) => entry.values?.length)).toEqual([1, 1]);
   });
 });

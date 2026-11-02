@@ -47,7 +47,7 @@
 // against the real registry.
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { captureMail } from "./harness";
-import { fakeDb, installTransitionRpc, project, withIds, type FakeDb, type Row, installSiteSpendRpc } from "../publish/harness";
+import { fakeDb, installTransitionRpc, project, type FakeDb, type Row, installSiteSpendRpc } from "../publish/harness";
 
 const db: FakeDb = fakeDb();
 
@@ -82,7 +82,7 @@ function fetchesBuilder() {
     single: () => Promise.resolve({ data: null, error: null }),
     then(resolve: (value: { data: unknown[]; error: null }) => unknown) {
       if (verb === "insert") return Promise.resolve({ data: [], error: null }).then(resolve);
-      const rows = withIds(db.rows("fetches")).filter((row) =>
+      const rows = db.rows("fetches").filter((row) =>
         filters.every((f) => {
           if (f.op === "eq") return row[f.column] === f.value;
           if (f.op === "in") return (f.value as unknown[]).includes(row[f.column]);

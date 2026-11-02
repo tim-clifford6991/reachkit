@@ -10,7 +10,7 @@
 import { applyEnvFixture } from "../mail/env-fixture";
 import { project } from "./select";
 
-export { project, withIds } from "./select";
+export { project } from "./select";
 
 // The publishing subsystem seals destination credentials
 // (`src/lib/publish/destinations/config/seal.ts`), and `src/lib/config/env`

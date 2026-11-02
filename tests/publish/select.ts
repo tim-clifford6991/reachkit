@@ -18,12 +18,3 @@ export function project(columns: string, row: Row): Row {
   }
   return out;
 }
-
-/** Gives each stored row the `id` its column default would have, so a read by id finds it. */
-export function withIds(rows: Row[]): Row[] {
-  rows.forEach((row, at) => {
-    row.id ??= `row-${at}`;
-  });
-  return rows;
-}
-
