@@ -22,7 +22,7 @@ function Card(p: { page: MissingPage; n: number; free: boolean }): React.JSX.Ele
       <div className="card-body gap-2">
         <span className="num text-base-content/70 text-xs">{copy("report.missing.page", { n: String(p.n) })}</span>
         <PageSketch primary={p.free} />
-        <span className="font-semibold">{asked === null ? page.search : asked[0].text}</span>
+        <span className="text-[0.9375rem] leading-snug font-semibold">{asked === null ? page.search : asked[0].text}</span>
         {asked === null ? null : <Num phrase>{asked[1].text}</Num>}
         {page.volume === null ? null : (
           <span className="text-base-content/70 text-xs">{copy("report.missing.volume", { volume: page.volume.toLocaleString("en-US") })}</span>
@@ -40,7 +40,7 @@ function Card(p: { page: MissingPage; n: number; free: boolean }): React.JSX.Ele
               <Gift aria-hidden="true" className="size-3.5 shrink-0" strokeWidth={1.75} />
               {copy("report.missing.free")}
             </span>
-            <a href={`#${FIRST_PAGE_ANCHOR}`} className="link link-primary text-sm font-semibold">
+            <a href={`#${FIRST_PAGE_ANCHOR}`} className="link link-hover link-primary text-sm font-semibold">
               {copy("report.missing.free.read")}
             </a>
           </span>
@@ -55,17 +55,14 @@ function Row(p: { page: MissingPage; n: number }): React.JSX.Element {
     <li className="rounded-box border-base-300 bg-base-100 flex min-w-0 items-center gap-2 border border-dashed px-3 py-2">
       <span className="num text-base-content/70 shrink-0 text-xs">{p.n}</span>
       <FileText aria-hidden="true" className="text-base-content/70 size-4 shrink-0" strokeWidth={1.75} />
-      <span className="min-w-0 font-mono text-sm break-words">{p.page.search}</span>
+      <span className="min-w-0 font-mono text-xs break-words">{p.page.search}</span>
     </li>
   );
 }
 
 function tally(count: number): string | null {
   // "All 1" reads as a miscount, so a single page carries no tally line.
-  if (count < 2) return null;
-  if (count <= CARDS) return copy("report.missing.all", { count: String(count) });
-  if (count === CARDS + 1) return copy("report.missing.all.six");
-  return copy("report.missing.all.rest", { count: String(count) });
+  return count < 2 ? null : copy("report.missing.all", { count: String(count) });
 }
 
 /** Every missing page, open, under the line that says none is hidden. The

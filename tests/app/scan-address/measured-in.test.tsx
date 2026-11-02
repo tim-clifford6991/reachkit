@@ -5,7 +5,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import React from "react";
 import { ReportView } from "@/app/(public)/scan/[domain]/_address/report-view";
 import { FIXTURE_REPORT } from "@/app/(public)/scan/[domain]/_fixture/states";
-import { AlsoServesNote, WhatWeRead } from "@/app/_business/WhatWeRead";
+import { AlsoServesNote } from "@/app/_business/WhatWeRead";
 import { understandBusiness } from "@/lib/business/understanding";
 import { copy } from "@/lib/presentation/copy";
 import { COUNTRIES, LANGUAGES, countriesMeasuredIn, resolveLocale, type LocaleReading } from "@/lib/locale/locales";
@@ -103,11 +103,10 @@ describe("a site that declares other markets is told one is measured", () => {
     expect(lineOf(renderToStaticMarkup(React.createElement(AlsoServesNote, { n })), "also-serves")).toBe(said);
   });
 
-  it("Overview's card says it from the newest pass's count, and the free report's card does not repeat it", () => {
+  it("the app says it from the newest pass's count", () => {
     const understanding = understandBusiness({ domain: "flixbus.de", profile: null, locale: { country: "DE", language: "de" }, alsoServes: 48 });
-    const app = renderToStaticMarkup(React.createElement(WhatWeRead, { understanding, editHref: "/app/settings/business" }));
+    const app = renderToStaticMarkup(React.createElement(AlsoServesNote, { n: understanding.where.alsoServes }));
     expect(lineOf(app, "also-serves")).toContain("48 other markets");
-    expect(renderToStaticMarkup(React.createElement(WhatWeRead, { understanding }))).not.toContain("also-serves");
   });
 
   it("each line is at most 20 words", () => {
@@ -129,7 +128,7 @@ describe("a report measured in a guessed country says so, and offers the one cor
         state: { report: { ...FIXTURE_REPORT, ...report }, notice: null, control: { kind: "none" }, correction: { offered: true, as: "first" } },
       })
     );
-  // The one control is the header's button; What we read only links to it.
+  // The one control is the header's button.
   const offers = (page: string): number => page.split(`${copy("verdict.not-your-market")}</button>`).length - 1;
   const GUESSED = "We couldn’t read your site, so we searched Google in United States, in English.";
   const blocked = { onPage: { kind: "unmeasured", reason: "undeterminable", because: "bot_protection", at: FIXTURE_REPORT.verdict.measuredAt } } as Partial<StoredReport>;

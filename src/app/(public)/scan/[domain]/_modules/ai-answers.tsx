@@ -3,7 +3,7 @@
 // The answers that mention the customer, out of those that appeared; the
 // searches they were asked for; a waffle of who the answers mention — one
 // square per answer, each row named and tallied, the customer's own row
-// last and ringed red where it was left out; one answer quoted as written;
+// last in a tinted block; one answer quoted as written;
 // and closed beneath them the questions. The waffle is CSS grid
 // (`AnswerMatrix` below, DESIGN rule 2: a grid that is not a series), and
 // takes its tallies **already written** from this card, so the drawing and
@@ -46,10 +46,12 @@
 //
 import type React from "react";
 import { Sparkles } from "lucide-react";
+import { LinkSummary } from "../_address/link-summary";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { SCORE_ESTIMATE } from "@/lib/config/constants";
 import { namesOrLinks } from "@/lib/measure/drivers";
 import { renderQuestion } from "@/lib/presentation/generated";
+import { writePageDate } from "@/lib/publish/render/byline";
 import type {
   AiAnswersSection,
   AnswerCell,
@@ -59,7 +61,7 @@ import type {
 } from "@/lib/scan/report";
 import type { CanonicalDomain } from "@/lib/scan/domain";
 import type { RetryPart } from "@/lib/scan/retry";
-import { dash, Num } from "../_address/measured";
+import { dash, MonoIn, Num, SLOT } from "../_address/measured";
 import { RetryPartControl } from "../_address/retry-part";
 
 /** Which part this card's retry re-runs. A bound handle, not an inline
@@ -68,9 +70,8 @@ import { RetryPartControl } from "../_address/retry-part";
  *  a handle that will be flagged by it.*/
 const AI_ANSWERS_PART: RetryPart = "ai_answers";
 
-/** Issue 715: the reuse date in the report's one locale, the same
- *  `en-US` / `{year, month: short, day}` shape `report-view.tsx` formats
- *  the measurement date in. Written here rather than threaded down from
+/** Issue 715: the reuse date as `report-view.tsx` writes the measurement
+ *  date, "2 Sep 2026". Written here rather than threaded down from
  *  there because it is a *different* date — the report has one measurement
  *  date and any number of reuse dates — and a second parameter on this card
  *  called `on` beside `measuredOn` would be two dates a caller could swap.
@@ -81,7 +82,7 @@ function formatReusedOn(iso: string): string {
   const at = new Date(iso);
   return Number.isNaN(at.getTime())
     ? iso
-    : at.toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" });
+    : writePageDate(at, null);
 }
 
 function citedCount(cells: readonly AnswerCell[]): number {
@@ -255,26 +256,20 @@ export interface MatrixRow {
 /** The grid's root, found by the landing specimen's and the report's tests. */
 export const MATRIX_TEST_ID = "ai-matrix";
 
-/** Paint from the theme's chart tokens. The customer's absent cell is the
- *  one red ring (§4.1, §2.5: red is the customer's problem shown to them);
- *  no rival cell can reach it. */
+/** Board PubReport v36: a filled square is light primary, the customer's
+ *  full primary; an empty one is the same for every row, never red. */
 function cellClass(cell: MatrixCell, you: boolean): string {
-  if (cell === "muted") return "border border-dashed border-base-300 bg-base-200";
-  if (cell === "cited") return you ? "bg-(--chart-you)" : "bg-(--chart-rival)";
-  return you ? "border-2 border-error" : "border border-base-300 bg-base-100";
+  if (cell === "muted") return "border border-dashed border-base-300";
+  if (cell === "cited") return you ? "bg-primary" : "bg-primary/60";
+  return "bg-base-200 ring-1 ring-inset ring-base-300";
 }
 
 /**
- * §4.1's dot matrix: rows × questions, a name and a count on every row, a
- * question number under every column. Server-rendered markup — the
- * surrounding card scrolls it rather than shrinking a domain (§2.3 never
- * shortens a value).
- *
- * `w-fit`, not `w-max` (#1041): at max-content every dot column took its
- * full 1.25rem, so the grid was ~490px in the 430px half-width card at
- * 1024 and the card scrolled with a domain clipped mid-value. Fit-content
- * lets the dot columns give way down to their 0.75rem floor first — the
- * names and counts never shrink — and scrolls only below that, at 320.
+ * The dot matrix: each row its name on a line, then a square per question
+ * with the count at its right; the customer's row last, in a tinted block,
+ * "You" above its domain. The squares share the row's width and shrink
+ * before anything clips, so nothing here scrolls; a domain wraps anywhere
+ * in the mono face (DESIGN, 2026-10-15).
  */
 export function AnswerMatrix(p: {
   rows: readonly MatrixRow[];
@@ -283,36 +278,31 @@ export function AnswerMatrix(p: {
   label: string;
   testId?: string;
 }): React.JSX.Element {
-  const width = p.questions?.length ?? Math.max(...p.rows.map((row) => row.cells.length), 1);
-  const columns = { gridTemplateColumns: `auto repeat(${Math.max(width, 1)}, minmax(0.75rem, 1.25rem)) auto` };
+  const width = Math.max(p.questions?.length ?? 0, ...p.rows.map((row) => row.cells.length), 1);
+  const squares = { gridTemplateColumns: `repeat(${width}, minmax(0, 1rem))` };
   const cellName = (row: MatrixRow, c: number): string => (p.questions === undefined ? row.name : `${row.name} · ${p.questions[c] ?? ""}`);
   return (
-    <div role="table" aria-label={p.label} data-testid={p.testId ?? MATRIX_TEST_ID} className="grid w-fit items-center gap-x-1 gap-y-1.5" style={columns}>
+    <div role="table" aria-label={p.label} data-testid={p.testId ?? MATRIX_TEST_ID} className="flex min-w-0 flex-col">
       {p.rows.map((row) => (
-        <div role="row" key={row.name} className="contents">
-          <span role="rowheader" className={`pr-2 text-right text-xs whitespace-nowrap ${row.you ? "text-(--chart-you)" : "text-base-content/70"}`}>
-            {row.you ? <span className="pr-1 font-semibold">{copy("report.you")}</span> : null}
-            <span className="num">{row.name}</span>
+        <div
+          role="row"
+          key={row.name}
+          className={`grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1.5 ${row.you ? "rounded-box mt-1 bg-(--accent-bg) p-2.5" : "border-base-300 border-t py-2.5"}`}
+        >
+          <span role="rowheader" className="col-span-2 flex min-w-0 flex-col text-sm">
+            {row.you ? <span className="text-primary font-bold">{copy("report.you")}</span> : null}
+            <span className="font-mono text-xs break-all">{row.name}</span>
           </span>
-          {row.cells.map((cell, c) => (
-            <div role="cell" key={c} data-cell={cell} title={cellName(row, c)} aria-label={cellName(row, c)}>
-              <div aria-hidden="true" className={`aspect-square rounded-sm ${cellClass(cell, row.you)}`} />
-            </div>
-          ))}
-          <span className={`num pl-2 text-right text-xs ${row.you ? "text-(--chart-you)" : "text-base-content/70"}`}>{row.count}</span>
+          <div className="grid min-w-0 gap-1" style={squares}>
+            {row.cells.map((cell, c) => (
+              <div role="cell" key={c} data-cell={cell} title={cellName(row, c)} aria-label={cellName(row, c)}>
+                <div aria-hidden="true" className={`aspect-square rounded-[3px] ${cellClass(cell, row.you)}`} />
+              </div>
+            ))}
+          </div>
+          <span className="text-sm font-bold tabular-nums">{row.count}</span>
         </div>
       ))}
-      {p.questions === undefined ? null : (
-        <div role="row" className="contents">
-          <div aria-hidden="true" />
-          {p.questions.map((q, c) => (
-            <span role="columnheader" key={c} className="num border-t border-base-300 pt-1 text-center text-(length:--t-eyebrow) text-base-content/70">
-              {q}
-            </span>
-          ))}
-          <div aria-hidden="true" />
-        </div>
-      )}
     </div>
   );
 }
@@ -370,8 +360,10 @@ function Head(p: { right?: React.ReactNode }): React.JSX.Element {
   // The card's name is its heading, under the section's own (board PubReport).
   return (
     <div className="flex flex-wrap items-center justify-between gap-2">
-      <h3 className="flex items-center gap-2 text-lg font-semibold">
-        <Sparkles size={18} strokeWidth={1.75} aria-hidden />
+      <h3 className="flex items-center gap-2.5 text-lg font-semibold">
+        <span aria-hidden className="rounded-field text-primary grid size-8 place-items-center bg-(--accent-bg)">
+          <Sparkles size={16} strokeWidth={1.75} />
+        </span>
         {copy("ai-answers.title")}
       </h3>
       {p.right}
@@ -389,22 +381,39 @@ function plainOf(text: string | undefined): string | undefined {
 }
 
 /** One AI answer's first sentence, quoted as it was written, with the search
- *  it was asked for. The first answer that named a competitor and kept its
- *  text; `null` where no answer kept any, so nothing is ever made up. */
+ *  it was asked for and the names the answer itself set in bold. The first
+ *  answer that named a competitor and kept its text; `null` where no answer
+ *  kept any, so nothing is ever made up. */
 export function answerQuoteOf(
   section: AiAnswersSection,
   serps: StoredReport["serps"]
-): { search: string; text: string } | null {
+): { search: string; text: string; bold: readonly string[] } | null {
   for (const [i, row] of section.rows.entries()) {
     if (row.cell.kind !== "answered" || row.cell.citedDomains.length === 0) continue;
     const serp = serps[i];
-    const text = serp !== undefined && serp.kind !== "unmeasured" ? plainOf(serp.value.aiOverview.text) : undefined;
-    if (text === undefined || text === "") continue;
+    const raw = serp !== undefined && serp.kind !== "unmeasured" ? serp.value.aiOverview.text : undefined;
+    const text = plainOf(raw);
+    if (raw === undefined || text === undefined || text === "") continue;
     const sentence = /^[\s\S]*?[.!?](?=\s|$)/.exec(text)?.[0] ?? text;
     if (sentence.length > QUOTE_MAX) continue;
-    return { search: row.question.search, text: sentence };
+    const bold = [...raw.matchAll(/\*\*([^*]+)\*\*/g)].map((m) => m[1]!.trim()).filter((name) => name !== "" && sentence.includes(name));
+    return { search: row.question.search, text: sentence, bold: [...new Set(bold)] };
   }
   return null;
+}
+
+/** The quote inside its quotation marks, the names its answer set in bold drawn bold. */
+function Quoted(p: { sentence: string; text: string; bold: readonly string[] }): React.JSX.Element {
+  const [open = "", close = ""] = p.sentence.split(SLOT);
+  const names = p.bold.length === 0 ? null : new RegExp(`(${p.bold.map((name) => name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|")})`);
+  const parts = names === null ? [p.text] : p.text.split(names);
+  return (
+    <>
+      {open}
+      {parts.map((part, i) => (p.bold.includes(part) ? <strong key={i}>{part}</strong> : part))}
+      {close}
+    </>
+  );
 }
 
 /** One question: its number, the wording through `renderQuestion`, the
@@ -513,39 +522,29 @@ export function AiAnswersCard(p: {
           </p>
         )}
 
-        {/* The waffle scrolls rather than shrinking its labels, so it is
-            reachable from a keyboard (#947): a named region and a tab stop. */}
         <div className="flex min-w-0 flex-col gap-1">
-          <p className="grow-0 text-base-content/70 text-xs">{copy("report.ai.waffle")}</p>
-          <div className="min-w-0 overflow-x-auto" tabIndex={0} role="region" aria-label={copy("ai-answers.title")}>
-            <AnswerMatrix
-              rows={matrixRows(section)}
-              questions={section.rows.map((row) => String(row.question.n))}
-              label={copy("ai-answers.title")}
-            />
-          </div>
+          <p className="eyebrow grow-0">{copy("report.ai.waffle")}</p>
+          <AnswerMatrix rows={matrixRows(section)} questions={section.rows.map((row) => String(row.question.n))} label={copy("ai-answers.title")} />
         </div>
 
         {quote === null ? null : (
-          <figure className="flex flex-col gap-1" data-testid="ai-answers-quote">
+          <figure className="rounded-box flex flex-col gap-1 bg-base-200 px-3.5 py-3" data-testid="ai-answers-quote">
             <figcaption className="text-base-content/70 text-xs">
-              <Num phrase>{copy("report.ai.quote", { search: quote.search })}</Num>
+              <MonoIn sentence={copy("report.ai.quote", { search: SLOT })} value={quote.search} />
             </figcaption>
-            <blockquote className="border-base-300 border-l-2 ps-3 text-sm">{quote.text}</blockquote>
+            <blockquote className="text-sm">
+              <Quoted sentence={copy("report.ai.quote.said", { quote: SLOT })} text={quote.text} bold={quote.bold} />
+            </blockquote>
           </figure>
         )}
 
         {/* SPEC §2 (owner, 2026-10-07, issue 1328): the questions open from
             their own name, in a `details` that opens with no script. */}
-        <details className="collapse collapse-arrow border-base-300 border" data-testid="ai-answers-questions">
-          <summary className="collapse-title">
-            <span className="eyebrow">
-              {partial
-                ? copy("ai-answers.questions.title.partial", { total, measured })
-                : copy("report.ai.asked", { total })}
-            </span>
-          </summary>
-          <div className="collapse-content flex min-w-0 flex-col gap-4">
+        <details className="group border-base-300 border-t pt-2" data-testid="ai-answers-questions">
+          <LinkSummary>
+            {partial ? copy("ai-answers.questions.title.partial", { total, measured }) : copy("report.ai.asked", { total })}
+          </LinkSummary>
+          <div className="hidden min-w-0 flex-col gap-4 pt-2 group-open:flex">
             <AnswerColumns rows={section.rows} />
             {/* Issue 873: what was measured, stated rather than counted off
                 the rows. */}

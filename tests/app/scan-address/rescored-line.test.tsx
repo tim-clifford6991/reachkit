@@ -55,7 +55,7 @@ describe.each(["saas", "local"] as const)("the re-scored line on the %s panel re
   it("names the date and the score it read before, beside the score", () => {
     const html = renderReport(rescored(which, { before: 53, after: 14, googleBefore: 100, googleAfter: 20 }));
     const line = html.slice(html.indexOf(LINE));
-    expect(line).toContain("Oct 24, 2026");
+    expect(line).toContain("24 Oct 2026");
     expect(line).toMatch(/It was 53\./);
     expect(html.indexOf('data-testid="report-score"')).toBeLessThan(html.indexOf(LINE));
   });

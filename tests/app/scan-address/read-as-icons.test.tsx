@@ -1,6 +1,7 @@
-// Board PubReport, "We read you as": each chip draws the one icon its fact
-// means (E44, E29) — Tag on what it is, MapPin on a town, Languages on the
-// market measured — and the buyer chip draws none. A chip that would hold
+// Board PubReport v36, "We read you as": each chip draws the one icon its fact
+// means (E29: the board's choice wins) — Tag on what it is, MapPin on where it
+// sells, a town or a country, Languages on the market measured — and the
+// buyer chip draws none. A chip that would hold
 // nothing is not drawn, nor is its icon. The customer panel's stored
 // reports, a local business and a SaaS. 0¢: nothing is measured.
 import { describe, expect, it } from "vitest";
@@ -24,7 +25,8 @@ function chips(report: StoredReport): { icon: string | null; text: string; attrs
   const list = parse(renderReport(report)).querySelector('[data-testid="report-read-as"] ul');
   expect(list, "the read-as list is drawn").not.toBeNull();
   return list!.querySelectorAll("li").map((li) => {
-    expect(li.classList.value).toEqual(expect.arrayContaining(["badge", "badge-outline", "h-auto", "whitespace-normal"]));
+    expect(li.classList.value).toEqual(expect.arrayContaining(["badge", "bg-base-100", "font-semibold", "h-auto", "whitespace-normal"]));
+    expect(li.classList.value).not.toContain("badge-outline");
     const svgs = li.querySelectorAll("svg");
     expect(svgs.length, "one icon at most").toBeLessThan(2);
     const svg = svgs[0];
@@ -46,9 +48,9 @@ describe("the report's read-as chips draw the board's icons", () => {
     }
   });
 
-  it("a national SaaS with no buyer read: no buyer chip, and its country-wide reach takes no MapPin", () => {
+  it("a national SaaS with no buyer read: no buyer chip, and its country-wide reach takes MapPin as a town does", () => {
     const drawn = chips(nationalSaas());
-    expect(drawn.map((c) => c.icon)).toEqual(["lucide-tag", null, "lucide-languages"]);
+    expect(drawn.map((c) => c.icon)).toEqual(["lucide-tag", "lucide-map-pin", "lucide-languages"]);
     expect(drawn[1]!.text).toMatch(/^Across /);
     expect(drawn.every((c) => c.text.length > 0)).toBe(true);
   });

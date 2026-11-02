@@ -157,13 +157,12 @@ describe("a table or grid on the report scrolls inside its own wrap, or stacks s
     for (const grid of grids) expect(grid, grid).not.toContain("items-start");
   });
 
-  it("the presence card's waffle is the AI card's grid, and scrolls inside its own wrap as that grid does", () => {
-    // One square per search, a name and a tally per row (board PubReport):
-    // the same CSS grid the AI card draws, so at 320px it scrolls in its
-    // named wrap rather than shrinking a domain.
+  it("the presence card's waffle is the AI card's grid, and the table below it still stacks", () => {
+    // One square per search, a name and a tally per row (board PubReport v36):
+    // the same grid the AI card draws, its squares sharing the row's width, so
+    // it fits its card and nothing scrolls (the layout gate measures that).
     const source = read("google-presence.tsx");
     expect(source).toContain("<AnswerMatrix");
-    expect(WRAP.test(source)).toBe(true);
     expect(wrapped(source), "the table below it still answers §2.2, by stacking").toBe(true);
   });
 

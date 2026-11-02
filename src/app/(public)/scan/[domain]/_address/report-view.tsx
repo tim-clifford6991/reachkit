@@ -1,7 +1,7 @@
 // BUILD §4.1 — the report, whole
 //
-// The six modules, at most one notice, exactly one control
-// (or none), and the removal address at the foot. A screen composition,
+// The six modules, at most one notice and exactly one control (or none);
+// the removal address is the public footer's. A screen composition,
 // daisyUI classes in the route (DESIGN rule 1): `alert` for the notice,
 // `btn` for the one control; every module below is its own card.
 //
@@ -46,9 +46,8 @@ import { CheckCards, ProblemCards } from "../_problems/cards";
 import { checkCardsOf, readingsOf } from "../_problems/checks";
 import { identityReading } from "@/lib/site-issues/checks";
 import { MethodSections } from "../_problems/method";
-import { answerReadersOf, cardsOf, missingPagesOf, PROBLEM_ORDER, storedQuestionOf, type MissingPage, type ProblemCard, type ProblemName } from "../_problems/model";
+import { answerReadersOf, cardsOf, missingPagesOf, PROBLEM_ORDER, type MissingPage, type ProblemCard, type ProblemName } from "../_problems/model";
 import { unblockLines } from "../_problems/unblock";
-import { RemovalAddressLine } from "./removal";
 import type { AddressControl, AddressNotice, WrittenPage } from "./state";
 import { refusalLine } from "./refusal";
 import { VerdictStrip, type ReadAsChip } from "./verdict";
@@ -56,7 +55,8 @@ import { rescoredOf } from "./rescored";
 import { RescanControl } from "./rescan";
 import { startReportCheckout } from "./checkout";
 import { StillReading } from "./still-reading";
-import { ReadSection, whereLine } from "@/app/_business/WhatWeRead";
+import { whereLine } from "@/app/_business/WhatWeRead";
+import { writePageDate } from "@/lib/publish/render/byline";
 import type { BusinessUnderstanding } from "@/lib/business/types";
 import { profileOfReport, understandBusiness } from "@/lib/business/understanding";
 import { BuyersSection, HeadlineBlock } from "../_modules/buyers";
@@ -68,8 +68,9 @@ import { BOT_PROTECTION, HOME_TIMEOUT } from "@/lib/measure/challenge";
 import { categoryOf, trainingOptOutOf } from "@/lib/scan/sections";
 
 /** The report is read in English, whatever it was measured in (SPEC §6,
- *  owner 2026-10-15, issue 1443), so its dates and the names of countries
- *  and languages are written in that one locale. */
+ *  owner 2026-10-15, issue 1443), so the names of countries and languages
+ *  are written in that one locale; its dates read as every public page
+ *  writes one, "19 Oct 2026". */
 const REPORT_TAG = "en-US";
 
 /** The factor's own name, for the notice line that lists what was not
@@ -83,11 +84,7 @@ const FACTOR_NAME_KEY: Readonly<Record<ScoreFactorName, CopyKey>> =
   });
 
 function formatMeasuredOn(at: Date): string {
-  return at.toLocaleDateString(REPORT_TAG, {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  });
+  return writePageDate(at, null);
 }
 
 /** The drivers the pass could not measure, named in the notice's own slot.
@@ -391,24 +388,13 @@ function pasteLinesOf(cards: readonly ProblemCard[], problem: ProblemName): read
   return fix?.kind === "paste" ? fix.lines : undefined;
 }
 
-/** Where the business sells, as a badge where it names a place or a country
- *  of its own; an international or unread reach is a line under the badges,
- *  and a local one with no town is the market's own badge already. */
-function whereOf(understanding: BusinessUnderstanding | null): { badge: string | null; line: string | null } {
-  if (understanding === null) return { badge: null, line: null };
-  const { where } = understanding;
-  if (where.place !== null || where.reach === "national") return { badge: whereLine(where), line: null };
-  if (where.reach === "international" || where.reach === null) return { badge: null, line: whereLine(where) };
-  return { badge: null, line: null };
-}
-
 /** What the scan read the business as, one badge each: what it is, who
  *  buys, where, and the market it was measured in. A field nothing was read
  *  for draws no badge. */
-function readAsOf(report: StoredReport, understanding: BusinessUnderstanding | null, where: string | null): ReadAsChip[] {
+function readAsOf(report: StoredReport, understanding: BusinessUnderstanding | null, kind: string | null): ReadAsChip[] {
   const category = categoryOf(report.market);
-  const kind = understanding?.kind == null ? null : copy(`report.read.as.kind.${understanding.kind}`);
-  const what = category !== null && kind !== null ? copy("report.read.as.what", { category, kind }) : (category ?? kind);
+  const what = category !== null && kind !== null ? copy("report.read.as.what", { kind, category }) : (kind ?? category);
+  const where = understanding === null ? null : whereLine(understanding.where);
   const measured = measuredLocale(report);
   const locale = copy("report.read.as.locale", {
     language: new Intl.DisplayNames(REPORT_TAG, { type: "language" }).of(measured.language) ?? measured.language,
@@ -417,7 +403,7 @@ function readAsOf(report: StoredReport, understanding: BusinessUnderstanding | n
   return [
     ...(what === null ? [] : [{ kind: "what" as const, text: what }]),
     ...(understanding?.buyers[0] === undefined ? [] : [{ kind: "buyer" as const, text: understanding.buyers[0] }]),
-    ...(where === null ? [] : [{ kind: understanding?.where.place == null ? ("reach" as const) : ("place" as const), text: where }]),
+    ...(where === null ? [] : [{ kind: "where" as const, text: where }]),
     { kind: "measured" as const, text: locale },
   ];
 }
@@ -450,9 +436,12 @@ function offerOf(
       ? {}
       : {
           free: (
-            <a href="#first-page" className="link link-primary text-center text-sm" data-testid="report-free-path">
-              {copy("report.offer.free-path")}
-            </a>
+            <p className="flex flex-wrap justify-center gap-x-1 text-sm">
+              {copy("report.offer.free-path.lead")}
+              <a href="#first-page" className="link link-hover link-primary font-semibold" data-testid="report-free-path">
+                {copy("report.offer.free-path")}
+              </a>
+            </p>
           ),
         }),
   };
@@ -472,6 +461,7 @@ export function ReportView(p: {
     correction: CorrectionOffer;
     readsDifferently?: boolean;
     writtenPage?: WrittenPage;
+    hasLogo?: boolean;
   };
   checkoutRefused?: boolean;
 }): React.JSX.Element {
@@ -489,7 +479,7 @@ export function ReportView(p: {
   const profile = profileOfReport(report);
   const understanding =
     profile === null ? null : understandBusiness({ domain: report.domain, profile, locale: measuredLocale(report) });
-  const where = whereOf(understanding);
+  const kind = understanding?.kind == null ? null : copy(`report.read.as.kind.${understanding.kind}`);
 
   return (
     // ADR-093 decision 6: the report is a screen, so it is a screen root,
@@ -550,19 +540,14 @@ export function ReportView(p: {
         <div className="col-span-full">
           <VerdictStrip
             verdict={report.verdict}
-            category={categoryOf(report.market)}
+            what={kind ?? categoryOf(report.market)}
             measuredOn={measuredOn}
             correction={correction}
             {...(measurement === null ? {} : { measurement })}
             {...(rescored === null ? {} : { rescored: { on: formatMeasuredOn(rescored.at), before: rescored.before } })}
-            readAs={readAsOf(report, understanding, where.badge)}
+            readAs={readAsOf(report, understanding, kind)}
             notes={
               <>
-                {where.line === null ? null : (
-                  <p className="text-base-content/70 text-sm" data-testid="report-read-where">
-                    {where.line}
-                  </p>
-                )}
                 <MeasuredInLine report={report} />
                 <AlsoServesLine report={report} />
                 <MarketFromSearchLine report={report} />
@@ -570,6 +555,7 @@ export function ReportView(p: {
             }
             top={<HeadlineBlock ai={report.aiAnswers} presence={report.presence} serps={report.serps} missing={missingPages?.length ?? 0} free={report.freePage !== null} />}
             independent={copy("report.independent", { company: understanding?.name ?? report.domain })}
+            hasLogo={p.state.hasLogo === true}
           />
         </div>
         <FinishingReadsLine report={report} />
@@ -612,21 +598,20 @@ export function ReportView(p: {
             then SPEC §9's eight checks as one list (#570) — a check that
             could not run has a grey dot and its why-line. Closed under its
             own name since issue 1328: daisyUI `collapse` on a `details`, so
-            it is in the first response and opens with no script. `px-px`
-            keeps the cards' 1px ring inside the collapse's clip. */}
-        <details id="holds" className="collapse collapse-arrow col-span-full scroll-mt-20 rounded-none" data-testid="report-problems">
-          <summary className="collapse-title min-h-0 px-px py-2 pe-10 after:end-2 after:top-6">
+            it is in the first response and opens with no script. */}
+        <details id="holds" className="collapse collapse-arrow card-border bg-base-100 col-span-full scroll-mt-20" data-testid="report-problems">
+          <summary className="collapse-title">
             <div className="flex items-center gap-3">
-              <span aria-hidden className="rounded-field grid size-9 shrink-0 place-items-center bg-base-200">
+              <span aria-hidden className="rounded-field text-primary grid size-9 shrink-0 place-items-center bg-(--accent-bg)">
                 <Wrench className="size-5" strokeWidth={1.75} />
               </span>
               <div className="min-w-0">
-                <h2 className="text-2xl font-bold">{copy("problem.section.title")}</h2>
+                <h2 className="text-xl font-bold">{copy("problem.section.title")}</h2>
                 <p className="text-base-content/70 text-sm font-normal">{copy("problem.section.sub", { problems: String(cards.length), checks: String(checks.length) })}</p>
               </div>
             </div>
           </summary>
-          <div className="collapse-content flex min-w-0 flex-col gap-3 px-px">
+          <div className="collapse-content flex min-w-0 flex-col gap-3">
             <ProblemCards cards={cards} firstPage={report.freePage !== null} />
             <CheckCards cards={checks} />
           </div>
@@ -644,14 +629,6 @@ export function ReportView(p: {
           />
         </div>
 
-        {/* Issue 1454: what the scan read of the business, in full, where the
-            board puts it — after the method, before the first page. */}
-        {understanding === null ? null : (
-          <div className="col-span-full">
-            <ReadSection understanding={understanding} correction={correction} />
-          </div>
-        )}
-
         {/* The giveaway is a full-width row (UI-SPEC S2). The proposal is
             closed under the card's own name (issue 1328); a report with no
             page to propose is not closed, because its one line is the whole
@@ -662,16 +639,11 @@ export function ReportView(p: {
           ) : (
             <FreePageCard
               section={{ ...report.freePage, beats: beatsOf(report) }}
-              question={storedQuestionOf(report, report.freePage.target.keyword)}
               scanId={report.scanId}
               domain={report.domain}
               written={p.state.writtenPage}
             />
           )}
-        </div>
-
-        <div className="text-base-content/70 col-span-full text-center text-xs">
-          <RemovalAddressLine />
         </div>
       </main>
     </Surface>

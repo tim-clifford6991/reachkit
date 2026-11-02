@@ -38,6 +38,9 @@
   --color-warning: #945c22;
   --warn-bg: #fff3e6;
   --warn-line: #fbe1c6;
+  /* The report's biggest-gap rule (board PubReport v36, owner 2026-11-02). Decorative: the card's ring,
+   * heading and icon carry it, so it is 2.14:1 on light base-100 and 8.13:1 on dark (WCAG 1.4.11). */
+  --warn-rule: #e7a35c;
   --color-error: #b84029;
 
   /* Series — the only two chart colours, plus the goal marker */
@@ -101,6 +104,7 @@
     --color-warning: #e6b45a;
     --warn-bg: rgb(230 180 90/.12);
     --warn-line: rgb(230 180 90/.28);
+    --warn-rule: #e7a35c;
     --color-error: #f0907a;
 
     --chart-you: #5f7ff2;
@@ -133,6 +137,7 @@
   --color-warning: #e6b45a;
   --warn-bg: rgb(230 180 90/.12);
   --warn-line: rgb(230 180 90/.28);
+  --warn-rule: #e7a35c;
   --color-error: #f0907a;
 
   --chart-you: #5f7ff2;

@@ -150,7 +150,8 @@ describe("pages 1 to 5 are cards, the rest dashed rows (2026-10-24 E16)", () => 
       expect(row.querySelector('svg.lucide-file-text[aria-hidden="true"]')).not.toBeNull();
       expect(row.querySelector(".font-mono")!.textContent).toBe(`search ${i + 6}`);
     });
-    expect(text(root)).toContain(copy("report.missing.all.rest", { count: "14" }));
+    expect(text(root)).toContain(copy("report.missing.all", { count: "14" }));
+    expect(text(root)).not.toContain("show their search");
   });
 
   it("3 pages draw 3 cards and no rows", () => {
@@ -162,12 +163,12 @@ describe("pages 1 to 5 are cards, the rest dashed rows (2026-10-24 E16)", () => 
     expect(text(root)).not.toContain("Pages 6 to");
   });
 
-  it("the tally names the rows: none for 1, the six line for 6", () => {
+  it("the tally ends at nothing hidden, whatever the count, and one page carries none (board PubReport v36)", () => {
     expect(text(draw(listed(1)))).not.toContain(copy("report.missing.all", { count: "1" }));
     const six = draw(listed(6));
     expect(rows(six)).toHaveLength(1);
-    expect(text(six)).toContain(copy("report.missing.all.six"));
-    expect(text(six)).not.toContain("Pages 6 to");
+    expect(text(six)).toContain(copy("report.missing.all", { count: "6" }));
+    expect(text(six)).not.toContain("shows its search");
   });
 
   it("only the free card is outlined and linked", () => {

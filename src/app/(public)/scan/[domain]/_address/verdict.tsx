@@ -1,6 +1,6 @@
 // BUILD §4.1 module 1 — the report's head (SPEC §2, board PubReport)
 //
-// The domain, when and where it was measured, what the scan read the
+// The site's mark and domain, when and where it was measured, what the scan read the
 // business as with its one correction, who gets the buyers (owner R12) and
 // the biggest gap in its own card; beside them the score in its own card,
 // its band and range, and its parts as `n/10`, closed under their name.
@@ -14,7 +14,7 @@
 // value. A factor with no value draws no bar — a track at zero would claim a
 // measurement of zero.
 import type React from "react";
-import { Languages, MapPin, Tag, type LucideIcon } from "lucide-react";
+import { Languages, MapPin, Tag, TrendingUp, type LucideIcon } from "lucide-react";
 import { BAND_TONE } from "@/ui/bands";
 import type { Tone } from "@/ui/types";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
@@ -22,15 +22,17 @@ import { LIMITING_LINES, SCORE_BANDS } from "@/lib/presentation/bands";
 import { shownLimitingOf, type ShownFactor, type Verdict } from "@/lib/measure/verdict";
 import type { Measured } from "@/lib/measure/measured";
 import type { CorrectionOffer } from "@/lib/market/coherence/offer";
+import { SiteMark } from "@/ui/SiteMark";
 import { CategoryCorrection } from "./correction";
+import { LinkSummary } from "./link-summary";
 import { dash, Num, unmeasuredLineFor } from "./measured";
 
-/** One reading in "We read you as": what it is, who buys, a town or a
- *  country-wide reach, and the market measured. */
-export type ReadAsChip = { kind: "what" | "buyer" | "place" | "reach" | "measured"; text: string };
+/** One reading in "We read you as": what it is, who buys, where it sells,
+ *  and the market measured. */
+export type ReadAsChip = { kind: "what" | "buyer" | "where" | "measured"; text: string };
 
-// One icon per concept (E29, E44): MapPin is a town only, and the buyer takes none because Users means competitors.
-const READ_AS_ICON: Record<ReadAsChip["kind"], LucideIcon | null> = { what: Tag, buyer: null, place: MapPin, reach: null, measured: Languages };
+// One icon per concept, as board PubReport v36 draws them (E29): MapPin is where it sells, and the buyer takes none because Users means competitors.
+const READ_AS_ICON: Record<ReadAsChip["kind"], LucideIcon | null> = { what: Tag, buyer: null, where: MapPin, measured: Languages };
 
 /** A bar's own name, for the `{what}` slot of the two unmeasured lines and
  *  for its own label. */
@@ -65,6 +67,16 @@ const BADGE_TONE: Readonly<Record<Tone, string>> = Object.freeze({
   bad: "badge-error",
   neutral: "badge-ghost",
 });
+
+/** The ring is drawn in its band's colour, as the badge under it is. */
+const RING_TONE: Readonly<Record<Tone, string>> = Object.freeze({
+  accent: "text-primary",
+  ok: "text-success",
+  warn: "text-warning",
+  bad: "text-error",
+  neutral: "text-base-content/70",
+});
+
 
 /** One line per factor with no value, naming which of the two reasons
  *  applies. The count follows `Verdict.missing` exactly. */
@@ -127,21 +139,19 @@ function DriverBar(p: { factor: ShownFactor; value: Measured<number>; limiting: 
  *  1436). The number inside is the one `<Num figure>`; the ring is its
  *  drawing, so it is hidden from a reader that already has the figure and
  *  "of 100". */
-function ScoreRing(p: { score: number }): React.JSX.Element {
+function ScoreRing(p: { score: number; tone: Tone }): React.JSX.Element {
   return (
     <div className="relative grid size-40 place-items-center">
       <div
         aria-hidden
-        className="radial-progress text-primary motion-safe:animate-ring absolute after:hidden inset-0 shadow-[inset_0_0_0_12px_var(--color-base-200)] [--size:10rem] [--thickness:12px]"
+        className={`radial-progress ${RING_TONE[p.tone]} motion-safe:animate-ring absolute after:hidden inset-0 shadow-[inset_0_0_0_12px_var(--color-base-200)] [--size:10rem] [--thickness:12px]`}
         style={{ "--value": p.score } as React.CSSProperties}
       />
       <div className="relative flex flex-col items-center">
         <span className="text-5xl leading-none">
           <Num figure>{p.score}</Num>
         </span>
-        <span className="text-base-content/70 text-xs">
-          <Num>{copy("verdict.score.of")}</Num>
-        </span>
+        <span className="text-base-content/70 text-sm">{copy("verdict.score.of")}</span>
       </div>
     </div>
   );
@@ -151,10 +161,13 @@ function ScoreRing(p: { score: number }): React.JSX.Element {
 function GapCard(p: { factor: ShownFactor }): React.JSX.Element {
   const lines = LIMITING_LINES[p.factor];
   return (
-    <section className="card card-border border-l-warning bg-base-100 border-l-4" data-testid="report-gap">
-      <div className="card-body gap-1 p-5">
-        <h2 className="text-lg font-semibold">{copy(lines.title)}</h2>
-        <p>{copy(lines.line)}</p>
+    <section className="card card-border border-l-(--warn-rule) bg-base-100 border-l-4" data-testid="report-gap">
+      <div className="card-body flex-row items-start gap-3 p-5">
+        <TrendingUp aria-hidden className="text-warning mt-1 size-5 shrink-0" strokeWidth={1.75} />
+        <div className="flex min-w-0 flex-col gap-1">
+          <h2 className="text-lg font-semibold">{copy(lines.title)}</h2>
+          <p>{copy(lines.line)}</p>
+        </div>
       </div>
     </section>
   );
@@ -169,7 +182,7 @@ function ScoreCard(p: { verdict: Verdict; limiting: ShownFactor | null; rescored
   return (
     <section className="card bg-base-100 shadow-(--shadow-card) min-w-0" data-testid="report-score">
       <div className="card-body items-center gap-4 p-6">
-        <p className="eyebrow">{copy("verdict.score.label")}</p>
+        <p className="eyebrow self-start">{copy("verdict.score.label")}</p>
         {scoreAndBand.kind === "unmeasured" ? (
           <span className="text-5xl leading-none">
             <Num unmeasured figure>
@@ -178,20 +191,15 @@ function ScoreCard(p: { verdict: Verdict; limiting: ShownFactor | null; rescored
           </span>
         ) : (
           <>
-            <ScoreRing score={scoreAndBand.value.score} />
+            <ScoreRing score={scoreAndBand.value.score} tone={BAND_TONE[scoreAndBand.value.band]} />
             <p className="flex flex-wrap items-center justify-center gap-2">
-              <span className={`badge ${BADGE_TONE[BAND_TONE[scoreAndBand.value.band]]}`}>
+              <span className={`badge badge-soft ${BADGE_TONE[BAND_TONE[scoreAndBand.value.band]]}`}>
                 {copy(SCORE_BANDS[scoreAndBand.value.band])}
               </span>
               {/* A report scored before issue 1439 carries no range and draws none. */}
               {verdict.estimate === undefined ? null : (
                 <span className="text-base-content/70 text-sm" data-testid="verdict-estimate">
-                  <Num phrase>
-                    {copy("verdict.estimate.range", {
-                      low: String(verdict.estimate.low),
-                      high: String(verdict.estimate.high),
-                    })}
-                  </Num>
+                  {copy("verdict.estimate.range", { low: String(verdict.estimate.low), high: String(verdict.estimate.high) })}
                 </span>
               )}
             </p>
@@ -203,9 +211,9 @@ function ScoreCard(p: { verdict: Verdict; limiting: ShownFactor | null; rescored
           </>
         )}
         <MissingFactors verdict={verdict} />
-        <details className="collapse collapse-arrow w-full rounded-none" data-testid="verdict-split">
-          <summary className="collapse-title min-h-0 px-0 py-2 pe-8 text-sm font-semibold after:end-2">{copy("verdict.score.split")}</summary>
-          <div className="collapse-content flex flex-col gap-4 px-0">
+        <details className="group border-base-300 w-full border-t pt-2" data-testid="verdict-split">
+          <LinkSummary chevron={false}>{copy("verdict.score.split")}</LinkSummary>
+          <div className="hidden flex-col gap-4 pt-2 group-open:flex">
             <p className="text-base-content/70 text-sm">{copy(bars.length === 4 ? "verdict.score.parts" : "verdict.score.parts.three")}</p>
             {bars.map((bar) => (
               <DriverBar key={bar.factor} factor={bar.factor} value={bar.value} limiting={bar.factor === p.limiting} />
@@ -219,7 +227,8 @@ function ScoreCard(p: { verdict: Verdict; limiting: ShownFactor | null; rescored
 
 export function VerdictStrip(p: {
   verdict: Verdict;
-  category: string | null;
+  /** What the business is: its kind where one was read, else its category. */
+  what: string | null;
   /** Already formatted by the one caller that owns the report's one date. */
   measuredOn: string;
   /** Whether the category correction is on offer (SPEC §2, #786). */
@@ -237,9 +246,13 @@ export function VerdictStrip(p: {
   independent: string;
   /** Where a re-score moved the score through the Google half: when, already formatted, and the score it read before. */
   rescored?: { on: string; before: number };
+  /** Whether the scan kept the site's logo; otherwise its letter tile. */
+  hasLogo?: boolean;
 }): React.JSX.Element {
   const { verdict } = p;
   const limiting = shownLimitingOf(verdict);
+  // The head's date is in the UI face, as board PubReport v36 draws it (ux-designer 2026-11-02).
+  const meta = p.what === null ? copy("report.measured-at.no-category", { date: p.measuredOn }) : copy("report.measured-at", { date: p.measuredOn, what: p.what });
 
   return (
     <div className="grid gap-6 md:grid-cols-[minmax(0,1fr)_minmax(0,20rem)] md:items-start">
@@ -248,27 +261,27 @@ export function VerdictStrip(p: {
           <p className="eyebrow">{copy("report.eyebrow")}</p>
           {/* The domain is what this report is *about*, so it is the
               page's `<h1>` (owner ruling 2026-09-23, #328). */}
-          <h1 className="min-w-0 overflow-x-auto text-3xl font-semibold">
-            <Num>{verdict.domain}</Num>
-          </h1>
-          <p className="text-base-content/70 flex flex-wrap gap-x-1 text-sm">
-            <Num phrase>
-              {p.category === null
-                ? copy("report.measured-at.no-category", { date: p.measuredOn })
-                : copy("report.measured-at", { date: p.measuredOn, category: p.category })}
-            </Num>
-            <span>{p.measurement ?? copy("report.measurement")}</span>
+          <div className="flex min-w-0 items-center gap-3.5">
+            <SiteMark domain={verdict.domain} hasLogo={p.hasLogo === true} size={56} />
+            <h1 className="min-w-0 overflow-x-auto text-3xl font-semibold">
+              <Num>{verdict.domain}</Num>
+            </h1>
+          </div>
+          <p className="text-base-content/70 text-sm">
+            {meta} <span>{p.measurement ?? copy("report.measurement")}</span>
           </p>
           <p className="text-base-content/70 text-xs">{p.independent}</p>
         </div>
 
-        <div id="read-as" className="flex scroll-mt-20 flex-wrap items-center gap-2" data-testid="report-read-as">
+        <div id="read-as" className="flex scroll-mt-20 flex-col items-start gap-2" data-testid="report-read-as">
           <span className="text-base-content/70 text-sm">{copy("report.read.as.title")}</span>
-          <ul className="flex flex-wrap gap-1.5">
+          {/* The market measured takes its own line, as the board draws it: then the line
+              a chip falls to does not hang on whether the 600 face has arrived yet. */}
+          <ul className="flex flex-wrap gap-1.5 after:order-1 after:basis-full">
             {p.readAs.map(({ kind, text }) => {
               const Icon = READ_AS_ICON[kind];
               return (
-                <li key={text} className="badge badge-outline h-auto py-0.5 whitespace-normal">
+                <li key={text} className={`badge border-base-300 bg-base-100 h-auto min-h-7 px-3 py-0.5 font-semibold whitespace-normal ${kind === "measured" ? "order-2" : ""}`}>
                   {Icon === null ? null : <Icon size={14} strokeWidth={1.75} className="shrink-0" aria-hidden />}
                   {text}
                 </li>

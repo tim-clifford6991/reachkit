@@ -12,7 +12,6 @@
     "unmeasured.undeterminable": "{what} couldn’t be measured: nothing came back that could be read.",
     "unmeasured.not-attempted": "{what} wasn’t measured: the scan stopped early, before it got there.",
     "removal.address": "remove@reachkit.app",
-    "removal.line.on-report": "Own this site and want this report taken down? Write to {address}.",
     "removal.line.removed": "This report was removed at the site owner’s request. To make {domain} scannable again, write to {address}.",
     "notice.incomplete": "This report is incomplete: {what} wasn’t measured.",
     "notice.measurement-failed": "The last measurement didn’t finish, so nothing new was stored.",
