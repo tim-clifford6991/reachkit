@@ -10,7 +10,6 @@ import fixture from "../fixtures/dogfood-stopped-2026-10.json";
 import { readDemoPhrases } from "../../../src/lib/generate/pipeline/grounding";
 import { checkDemoText } from "../../../src/lib/generate/rules/demo";
 import { OWN_FETCH_SOURCE, toStoredDocument } from "../../../src/lib/measure/own-fetch";
-import { project } from "../../publish/select";
 
 const DEMO = "Demo data · An example business";
 // The real menu lines in the page's chrome, beside one demo widget in its body.
@@ -27,8 +26,7 @@ function storedSite(): void {
     fetches: [{ scan_id: "scan-1", source: OWN_FETCH_SOURCE, payload: toStoredDocument({ ok: true, status: 200, url: "https://reachkit.app/", html, bytes: html.length, readAt: new Date("2026-10-31T09:00:00Z"), headers: {} }) }],
   };
   const query = (table: keyof typeof rows) => {
-    let columns = "";
-    const self = { select: (selected: string) => ((columns = selected), self), eq: () => self, in: () => self, then: (resolve: (r: unknown) => unknown) => Promise.resolve(resolve({ data: rows[table].map((row) => project(columns, row)), error: null })) };
+    const self = { select: () => self, eq: () => self, in: () => self, then: (resolve: (r: unknown) => unknown) => Promise.resolve(resolve({ data: rows[table], error: null })) };
     return self;
   };
   vi.mocked(dbAdmin).mockReturnValue({ from: query } as unknown as ReturnType<typeof dbAdmin>);

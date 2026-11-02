@@ -71,7 +71,7 @@
 // `COPY` itself is left real.
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { captureMail } from "./harness";
-import { fakeDb, installTransitionRpc, project, type FakeDb, type Row, installSiteSpendRpc } from "../publish/harness";
+import { fakeDb, installTransitionRpc, type FakeDb, type Row, installSiteSpendRpc } from "../publish/harness";
 
 const db: FakeDb = fakeDb();
 
@@ -84,9 +84,9 @@ const db: FakeDb = fakeDb();
  *  (this journey spends fresh: nothing it asks for was asked before). */
 function fetchesBuilder() {
   const filters: { op: string; column: string; value: unknown }[] = [];
-  let [verb, columns]: ["select" | "insert", string] = ["select", ""];
+  let verb: "select" | "insert" = "select";
   const self = {
-    select: (selected: string) => ((columns = selected), self),
+    select: () => self,
     insert(values: Row) {
       verb = "insert";
       db.tables.get("fetches")?.push({ ...values });
@@ -120,7 +120,7 @@ function fetchesBuilder() {
           return false;
         })
       );
-      return Promise.resolve({ data: rows.map((row) => project(columns, row)), error: null }).then(resolve);
+      return Promise.resolve({ data: rows, error: null }).then(resolve);
     },
   };
   return self;

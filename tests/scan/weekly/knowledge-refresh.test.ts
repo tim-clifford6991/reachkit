@@ -11,7 +11,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { DB, captureLog } from "./harness";
 import { cachedCostContext, type FakeContext } from "../../vendors/harness";
 import { OWN_FETCH_SOURCE } from "@/lib/measure/own-fetch";
-import { project } from "../../publish/select";
 
 const runScan = vi.fn();
 const spendOnStoredReport = vi.fn();
@@ -120,7 +119,7 @@ function site(s: Site): {
     if (statement.table === "site_profiles") return statement.verb === "update" ? (Object.assign(profile, statement.values), []) : [profile];
     if (statement.table === "fetches" && statement.verb === "select") {
       const sources = statement.filters.find(([column]) => column === "source")?.[1];
-      return Array.isArray(sources) && sources.includes(OWN_FETCH_SOURCE) ? ledger.map((row) => project(statement.columns ?? "", row)) : [];
+      return Array.isArray(sources) && sources.includes(OWN_FETCH_SOURCE) ? ledger : [];
     }
     return statement.table === "scans" && statement.verb === "select" ? [scan] : null;
   };

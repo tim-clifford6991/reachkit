@@ -24,7 +24,7 @@
 // it, a deep pass run inside the own-document window has no text at all,
 // and a paid site grounds no fact and starts no draft.
 import { dbAdmin } from "@/lib/db";
-import { OWN_FETCH_SOURCE, RENDERED_FETCH_SOURCE, siteDocumentOf } from "./own-fetch";
+import { OWN_FETCH_SOURCE, RENDERED_FETCH_SOURCE, renderedDocumentOf, siteDocumentOf } from "./own-fetch";
 import { prose } from "./prose";
 
 export interface MeasuredText {
@@ -46,29 +46,10 @@ export interface MeasuredText {
 // `src/lib/costs/ledger.ts` names and works around); the narrow builder
 // below is the cast boundary — nothing else in this file bypasses the
 // generated client.
-/** The document fields only, under `own…` for an own read and `drawn…` for a rendered read's one-row list. */
-type OwnFetchRow = { source: string } & Record<string, unknown>;
-
-/** What the document check and `prose()` read; never `bytes` or the rest of a vendor item. */
-const DOCUMENT_FIELDS = ["url", "status", "html", "readAt", "headers"] as const;
-const COLUMNS = [
-  "source",
-  ...DOCUMENT_FIELDS.map((field) => `own${field}:payload->${field}`),
-  ...DOCUMENT_FIELDS.map((field) => `drawn${field}:payload->0->${field}`),
-].join(", ");
-
-/** The stored document back from its fields; `bytes` is not read, so it is the html's own length. */
-function payloadOf(row: OwnFetchRow, at: "own" | "drawn"): unknown {
-  const html = row[`${at}html`];
-  const headers = row[`${at}headers`];
-  return {
-    url: row[`${at}url`],
-    status: row[`${at}status`],
-    html,
-    bytes: typeof html === "string" ? html.length : null,
-    readAt: row[`${at}readAt`],
-    ...(headers === null || headers === undefined ? {} : { headers }),
-  };
+interface OwnFetchRow {
+  scan_id: string;
+  source: string;
+  payload: unknown;
 }
 interface QueryResult<T> {
   data: T[] | null;
@@ -170,7 +151,7 @@ async function textOfScans(scanIds: readonly string[]): Promise<MeasuredText[]> 
   const client = dbAdmin();
   const rows = await (client as unknown as MinimalClient)
     .from<OwnFetchRow>("fetches")
-    .select(COLUMNS)
+    .select("scan_id, source, payload")
     .in("source", [OWN_FETCH_SOURCE, RENDERED_FETCH_SOURCE])
     .in("scan_id", scanIds);
   if (rows.error) {
@@ -183,7 +164,7 @@ async function textOfScans(scanIds: readonly string[]): Promise<MeasuredText[]> 
     // text was measured, so none is returned. Any other shape under this
     // source is skipped the same way, never thrown on.
     const rendered = row.source === RENDERED_FETCH_SOURCE;
-    const document = siteDocumentOf(payloadOf(row, rendered ? "drawn" : "own"));
+    const document = rendered ? renderedDocumentOf(row.payload) : siteDocumentOf(row.payload);
     if (document === null) continue;
     const read = prose(document.html);
     out.push({

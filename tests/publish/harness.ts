@@ -8,9 +8,6 @@
 // drains in. A mock that answered from a fixed list would pass whether or
 // not any of them held.
 import { applyEnvFixture } from "../mail/env-fixture";
-import { project } from "./select";
-
-export { project } from "./select";
 
 // The publishing subsystem seals destination credentials
 // (`src/lib/publish/destinations/config/seal.ts`), and `src/lib/config/env`
@@ -95,6 +92,18 @@ function matches(row: Row, filters: RecordedQuery["filters"]): boolean {
  *  means. */
 function names(columns: string, relation: string): boolean {
   return columns.includes(`${relation}(`) || columns.includes(`${relation}!inner(`);
+}
+
+/** `alias:column->>key`, as PostgREST answers it: the key's value as text, under the alias. */
+function project(columns: string, row: Row): Row {
+  const out = { ...row };
+  for (const [, alias, column, key] of columns.matchAll(/(\w+):(\w+)->>(\w+)/g)) {
+    const held = row[column as string];
+    if (held === undefined || alias! in row) continue;
+    const value = (held as Record<string, unknown> | null)?.[key as string];
+    out[alias as string] = value === undefined || value === null ? null : typeof value === "string" ? value : JSON.stringify(value);
+  }
+  return out;
 }
 
 function embed(db: FakeDb, table: string, columns: string, row: Row): Row {

@@ -47,7 +47,7 @@
 // against the real registry.
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { captureMail } from "./harness";
-import { fakeDb, installTransitionRpc, project, type FakeDb, type Row, installSiteSpendRpc } from "../publish/harness";
+import { fakeDb, installTransitionRpc, type FakeDb, type Row, installSiteSpendRpc } from "../publish/harness";
 
 const db: FakeDb = fakeDb();
 
@@ -56,9 +56,9 @@ const db: FakeDb = fakeDb();
  *  rest of the week reads — journey 05's builder, for the same reason. */
 function fetchesBuilder() {
   const filters: { op: string; column: string; value: unknown }[] = [];
-  let [verb, columns]: ["select" | "insert", string] = ["select", ""];
+  let verb: "select" | "insert" = "select";
   const self = {
-    select: (selected: string) => ((columns = selected), self),
+    select: () => self,
     insert(values: Row) {
       verb = "insert";
       db.rows("fetches").push({ ...values });
@@ -91,7 +91,7 @@ function fetchesBuilder() {
           return false;
         })
       );
-      return Promise.resolve({ data: rows.map((row) => project(columns, row)), error: null }).then(resolve);
+      return Promise.resolve({ data: rows, error: null }).then(resolve);
     },
   };
   return self;

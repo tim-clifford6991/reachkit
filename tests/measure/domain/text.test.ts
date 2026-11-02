@@ -15,7 +15,6 @@ vi.mock("@/lib/db", () => ({ dbAdmin: dbAdminMock }));
 import { dbAdmin } from "@/lib/db";
 import { OWN_FETCH_SOURCE, RENDERED_FETCH_SOURCE, renderedDocumentOf, siteDocumentOf, toStoredDocument } from "../../../src/lib/measure/own-fetch.ts";
 import { prose } from "../../../src/lib/measure/prose.ts";
-import { project } from "../../publish/select";
 import { readMeasuredText, type MeasuredText } from "../../../src/lib/measure/text.ts";
 
 const SOURCE_PATH = path.resolve(import.meta.dirname, "../../../src/lib/measure/text.ts");
@@ -65,11 +64,9 @@ function fakeDb(a: { scans: ScanRow[]; fetches: FetchRow[]; error?: { table: str
   function builder(table: string) {
     const filters: { column: string; value: unknown }[] = [];
     const inFilters: { column: string; values: readonly string[] }[] = [];
-    let selected = "";
     const self = {
       select(columns: string) {
         log.push({ table, method: `select(${columns})` });
-        selected = columns;
         return self;
       },
       eq(column: string, value: unknown) {
@@ -88,13 +85,13 @@ function fakeDb(a: { scans: ScanRow[]; fetches: FetchRow[]; error?: { table: str
         if (a.error && a.error.table === table) {
           return Promise.resolve(resolve({ data: null, error: { message: a.error.message } }));
         }
-        const rows = (table === "scans" ? a.scans : table === "fetches" ? a.fetches.map((row, at) => ({ id: `fetch-${at}`, ...row })) : []) as unknown as Record<string, unknown>[];
+        const rows = (table === "scans" ? a.scans : table === "fetches" ? a.fetches : []) as unknown as Record<string, unknown>[];
         const kept = rows.filter(
           (row) =>
             filters.every((f) => row[f.column] === f.value) &&
             inFilters.every((f) => f.values.includes(row[f.column] as string))
         );
-        return Promise.resolve(resolve({ data: kept.map((row) => project(selected, row)), error: null }));
+        return Promise.resolve(resolve({ data: kept, error: null }));
       },
     };
     return self;
@@ -143,11 +140,11 @@ describe('BP-010 decision 4 — "Nothing new is stored: BP-007\'s `fetches` row 
     await readMeasuredText({ siteId: SITE });
     // select + eq(site_id), then select + eq(tier) + in(domain)
     expect(log.filter((entry) => entry.table === "scans")).toHaveLength(5);
-    const fetches = log.filter((entry) => entry.table === "fetches").map((entry) => entry.method);
-    expect(fetches.slice(1)).toEqual(["in(source)", "in(scan_id)"]);
-    // Only the document's fields: never the bare payload, `bytes` or the rest of a vendor item.
-    const columns = (fetches[0] ?? "").slice("select(".length, -1).split(", ").map((spec) => spec.split(":").at(-1));
-    expect(columns).toEqual(["source", ...["", "0->"].flatMap((at) => ["url", "status", "html", "readAt", "headers"].map((field) => `payload->${at}${field}`))]);
+    expect(log.filter((entry) => entry.table === "fetches").map((entry) => entry.method)).toEqual([
+      "select(scan_id, source, payload)",
+      "in(source)",
+      "in(scan_id)",
+    ]);
   });
 });
 
@@ -307,7 +304,7 @@ describe("#1130 — the re-read text is the page's prose, never its chrome or it
   });
 });
 
-describe("the narrowed read returns main's rows, row for row", () => {
+describe("every stored read is a page: re-reads, refusals and rendered reads, row for row", () => {
   const SITE_URL = "https://harborplumbing.example";
   const [T1, T2, T3] = ["2026-09-01", "2026-09-08", "2026-09-15"].map((day) => new Date(`${day}T08:00:00.000Z`)) as [Date, Date, Date];
   // Every page carries the same paragraph, which grounding's chrome threshold weighs against the row count.
@@ -337,7 +334,7 @@ describe("the narrowed read returns main's rows, row for row", () => {
     { scan_id: "deep-1", source: OWN_FETCH_SOURCE, payload: null },
   ];
 
-  /** main's read, kept as the reference: every row's whole payload. */
+  /** The reference, written out: every row whose document passes the check is a page. */
   const fullPayloadText = (rows: readonly FetchRow[]): MeasuredText[] =>
     rows
       .flatMap((row) => {
@@ -348,7 +345,7 @@ describe("the narrowed read returns main's rows, row for row", () => {
       })
       .sort((a, b) => a.measuredAt.getTime() - b.measuredAt.getTime() || (a.url < b.url ? -1 : a.url > b.url ? 1 : 0));
 
-  it("readMeasuredText keeps every re-read, refusal-skip and rendered flag exactly as the full-payload read", async () => {
+  it("readMeasuredText keeps every re-read, skips each refused one and flags each rendered one", async () => {
     useDb({ scans: SCANS, fetches: FETCHES });
     const before = fullPayloadText(FETCHES);
     expect(before.filter((row) => row.url === `${SITE_URL}/`)).toHaveLength(3);
