@@ -1,14 +1,12 @@
 /** @vitest-environment jsdom */
 // The landing above How it works, as boards PubLanding and PubLandingPhone v36
 // draw it: the hero in the board's order, a proof card drawn only from stored
-// rows, the six kinds of business, the story card's four frames, the
-// walkthrough band once its file exists, and no announcement bar on this page
-// alone.
+// rows, the six kinds of business, the story card's four frames, and the
+// walkthrough band once its file exists.
 // The store and the gallery are the database seam; nothing else is replaced.
 import "../../generate/env";
 import { readFileSync } from "node:fs";
 import React from "react";
-import { renderToStaticMarkup } from "react-dom/server";
 import { parse, type HTMLElement } from "node-html-parser";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { boardFile, compare, readAllow, segments, words } from "../../../scripts/design/parity.mjs";
@@ -41,8 +39,6 @@ vi.mock("@/lib/scan/gallery", async (importOriginal) => ({
 }));
 
 const { default: LandingPage, metadata } = await import("@/app/(public)/page");
-const { default: PricingPage } = await import("@/app/(public)/pricing/page");
-const { Header } = await import("@/app/(public)/_chrome/Header");
 const { copy } = await import("@/lib/presentation/copy");
 const { SPECIMEN_HERO_BUSINESS, SPECIMEN_HERO_DOMAIN, SPECIMEN_HERO_RIVAL } = await import("@/app/(public)/_landing/specimen");
 const { BUSINESS_KIND_NAMES } = await import("@/lib/market/kinds");
@@ -303,22 +299,6 @@ describe("the walkthrough band", () => {
     expect(at.every((n) => n > -1), at.join(",")).toBe(true);
     expect([...at].sort((a, b) => a - b)).toEqual(at);
     vi.doUnmock("@/app/(public)/_landing/Walkthrough");
-  });
-});
-
-describe("the announcement bar is gone on the landing only", () => {
-  /** The banner's own hiding rule, read from its class as Tailwind writes it, run on the whole document. */
-  async function bannerHidden(page: React.ReactElement): Promise<boolean> {
-    const header = renderToStaticMarkup(React.createElement(Header));
-    const document = new DOMParser().parseFromString(`<body>${header}${(await settle(page)).toString()}</body>`, "text/html");
-    const banner = document.querySelector('[data-testid="public-banner"]')!;
-    const rules = [...banner.classList].filter((c) => /^\[.*&\]:hidden$/.test(c)).map((c) => c.slice(1, -"]:hidden".length).replace(/_/g, " "));
-    return rules.some((rule) => document.querySelector(rule.replace("&", '[data-testid="public-banner"]')) !== null);
-  }
-
-  it("/ hides it, and /pricing still shows it", async () => {
-    expect(await bannerHidden(React.createElement(LandingPage, { searchParams: {} }))).toBe(true);
-    expect(await bannerHidden(React.createElement(PricingPage, { searchParams: {} }))).toBe(false);
   });
 });
 

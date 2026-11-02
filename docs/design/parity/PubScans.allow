@@ -4,7 +4,6 @@ L	sample data
 D	sample data
 G	sample data
 H	sample data
-Cancel your contract	owner 2026-10-20 Q13: shown once the launch gate opens
 A report is one look. ReachKit keeps going.	SPEC 2026-10-15 (#1444): a title is at most six words, so it ships as "Reports look once. ReachKit keeps going." (#1728)
 Bupa	sample data: the board's own sample reports; tests/app/scans/board.test.tsx reads a card's score, band, kind, category and day
 bupa.co.uk	sample data: the board's own sample reports; tests/app/scans/board.test.tsx reads a card's score, band, kind, category and day

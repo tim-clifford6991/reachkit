@@ -89,3 +89,64 @@ describe("owner 2026-10-20 (Q1) — three header links on every public route", (
     expect(found).toEqual({ bar: LINKS, menu: LINKS });
   }, 60_000);
 });
+
+/** The widths board v36 is drawn at: the phone, the tablet and the desk. */
+const BOARD_WIDTHS = [390, 768, 1280] as const;
+
+describe("board v36 — the full wordmark on every public route, signed out", () => {
+  // The web font at each board width with room to spare, and the fallback font a slow or blocked font load shows at 390.
+  const cases = [...PUBLIC_PATHS, "/signin"].flatMap((path) => [
+    ...BOARD_WIDTHS.map((width) => [path, width, "web font", 4] as const),
+    [path, 390, "fallback font", 0] as const,
+  ]);
+
+  it.each(cases)("wordmark not truncated: %s at %ipx in the %s", async (path, width, font, spare) => {
+    const baseURL = getBaseURL();
+    if (!baseURL) throw new Error("tests/ui/layout/public-header.test.ts: no app server is running.");
+    const word = await withPage(width, async (page) => {
+      if (font === "fallback font") await page.route(/\.woff2(\?.*)?$/, (route) => route.abort());
+      await page.goto(baseURL + path, { waitUntil: "load" });
+      await page.evaluate(() => document.fonts.ready);
+      return page.evaluate(() => {
+        const span = document.querySelector<HTMLElement>('[data-testid="public-brand"] span:last-child')!;
+        const column = span.closest("nav > div")!.getBoundingClientRect();
+        const text = document.createRange();
+        text.selectNodeContents(span);
+        const bar = document.querySelector<HTMLElement>('[data-testid="public-header"] nav')!;
+        return {
+          text: span.textContent,
+          fits: span.scrollWidth <= span.clientWidth,
+          spare: column.right - (span.getBoundingClientRect().left + text.getBoundingClientRect().width),
+          oneRow: bar.scrollHeight <= bar.clientHeight,
+        };
+      });
+    });
+    expect({ ...word, spare: undefined }).toEqual({ text: COPY["chrome.wordmark"], fits: true, spare: undefined, oneRow: true });
+    expect(word.spare).toBeGreaterThanOrEqual(spare);
+  }, 60_000);
+});
+
+describe("board v36 — the current page's link is in the primary ink", () => {
+  it.each([
+    [1280, '[data-testid="public-header"] nav > div > ul'],
+    [390, '[data-testid="public-header-menu"] .drawer-side'],
+  ] as const)("Pricing at %ipx, in %s, takes --color-primary", async (width, scope) => {
+    const baseURL = getBaseURL();
+    if (!baseURL) throw new Error("tests/ui/layout/public-header.test.ts: no app server is running.");
+    const inks = await withPage(width, async (page) => {
+      await page.emulateMedia({ colorScheme: "light" });
+      await page.goto(baseURL + "/pricing", { waitUntil: "domcontentloaded" });
+      if (width === 390) {
+        await page.locator('[data-testid="public-header-menu"] label.btn').click();
+        await page.locator(`${scope} a[aria-current]`).waitFor({ state: "visible" });
+      }
+      return page.evaluate((where) => {
+        const probe = document.body.appendChild(document.createElement("span"));
+        probe.style.color = "var(--color-primary)";
+        const links = [...document.querySelectorAll(`${where} a[aria-current="page"]`)];
+        return { current: links.map((a) => getComputedStyle(a).color), primary: [getComputedStyle(probe).color] };
+      }, scope);
+    });
+    expect(inks.current).toEqual(inks.primary);
+  }, 60_000);
+});
