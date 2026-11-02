@@ -142,7 +142,7 @@ describe("how it works draws its board icons in every section", () => {
   });
 
   it("the compare: you, an agency, and ReachKit with sparkles", () => {
-    const heads = [...within("#value").querySelectorAll("article h3")].map((h) => icons(h)[0] ?? "");
+    const heads = [...within("#value").querySelectorAll("article h3")].map((h) => icons(h.parentElement!)[0] ?? "");
     expect(heads).toEqual(["user", "building-2", "sparkles"]);
   });
 });

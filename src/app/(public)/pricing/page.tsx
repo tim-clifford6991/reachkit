@@ -1,9 +1,9 @@
 // src/app/(public)/pricing/page.tsx — BUILD §4.1 module 6, REQ-021 c4/c5 (issue #19)
 //
-// The one price surface away from any report (board Pricing): the plan and
-// what €49 buys, what ReachKit doesn't do, what to expect from week 1, the
-// comparison with the other ways, the questions asked before paying, and the
-// free scan for anyone not ready yet.
+// The one price surface away from any report (board Pricing): the plan card
+// and what ReachKit doesn't do, what to expect from week 1, the comparison
+// with the other ways, the questions asked before paying, and the free scan
+// for anyone not ready yet.
 //
 // The offer is `PricingCard`, the report's own component in its `pricing`
 // wording, so the two surfaces state the same price and one Start (REQ-021
@@ -11,20 +11,19 @@
 // The scan field at the foot is the landing's own form, a second path that
 // asks for a website and never for an account.
 //
-// No figure is typed: counts come from `_how/facts.ts` and the constants. The 14-day guarantee and its rows wait
-// for the launch gate (owner 2026-10-20, Q13).
+// No figure is typed: counts come from `_how/facts.ts` and the constants. The
+// money-back line and the refund answer wait for the launch gate (owner
+// 2026-10-20, Q13).
 import React, { use } from "react";
 import type { Metadata } from "next";
-import { Check, CircleCheck, Eye, Inbox, Info, Search, Timer, TrendingUp, X } from "lucide-react";
+import { CircleCheck, CircleStop, Clock4, Eye, Gift, Mail, Pen, Plug, Search, Store, Timer, TrendingUp, X, type LucideIcon } from "lucide-react";
 import { Surface } from "@/ui/layout";
-import { HOSTED_RETENTION_DAYS, WEEK_PLAN } from "@/lib/config/constants";
+import { WEEK_PLAN } from "@/lib/config/constants";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { PricingCard } from "../scan/[domain]/_modules/pricing";
 import { ScanForm } from "../_landing/ScanForm";
 import { scanFormWords } from "../_landing/scan-form-words";
 import { HOW_FACTS as F } from "../_how/facts";
-import { WhatToExpect } from "../_how/visuals";
-import { PlanBuys } from "../_how/buys";
 import { ThreeWays } from "../_how/compare";
 import { PUBLIC_ROUTE_SEO } from "../_seo/routes";
 import { staticMetadata } from "../_seo/metadata";
@@ -55,8 +54,6 @@ const START_ID = "start";
 
 const INNER = "mx-auto w-full max-w-6xl px-4";
 const LEAD = "text-base-content/70 max-w-2xl text-lg";
-const SMALL = "text-base-content/70 text-sm";
-const ICON = { size: 16, strokeWidth: 1.75, "aria-hidden": true } as const;
 
 const price = (): string => copy("price.amount");
 const weekPages = { weekPages: WEEK_PLAN.days };
@@ -68,6 +65,8 @@ function Section(p: {
   title: string;
   body?: string;
   band?: boolean;
+  /** What it shows sits beside the heading at desktop, not under it. */
+  beside?: boolean;
   children: React.ReactNode;
 }): React.JSX.Element {
   const heading = `${p.id}-h`;
@@ -77,7 +76,7 @@ function Section(p: {
       aria-labelledby={heading}
       className={`border-base-300 scroll-mt-16 border-t py-12 lg:py-20 ${p.band === true ? "bg-base-100" : ""}`}
     >
-      <div className={`${INNER} flex flex-col gap-8`}>
+      <div className={`${INNER} grid grid-cols-1 items-start gap-8 ${p.beside === true ? "lg:grid-cols-2 lg:gap-12" : ""}`}>
         <div className="flex flex-col gap-3">
           {p.eyebrow === undefined ? null : <p className="eyebrow">{p.eyebrow}</p>}
           <h2 id={heading}>{p.title}</h2>
@@ -86,23 +85,6 @@ function Section(p: {
         {p.children}
       </div>
     </section>
-  );
-}
-
-/** What €49 a month buys, then the plan's three terms. */
-function Buys(): React.JSX.Element {
-  return (
-    <div className="flex flex-col gap-3">
-      <PlanBuys />
-      <p className={`${SMALL} flex flex-wrap gap-x-4 gap-y-1`}>
-        {(["pricing.chip.contract", "pricing.chip.setup", "pricing.chip.cancel"] as const).map((key) => (
-          <span key={key} className="flex items-center gap-1">
-            <Check {...ICON} className="text-success" />
-            {copy(key)}
-          </span>
-        ))}
-      </p>
-    </div>
   );
 }
 
@@ -146,49 +128,60 @@ function NotDone(): React.JSX.Element {
 }
 
 function FromWeekOne(): React.JSX.Element {
+  // The first three steps are ReachKit's own work, so they read as done; the rest wait on Google.
   const steps = [
-    { at: copy("pricing.months.day1.at"), what: copy("pricing.months.day1.what", { minutes: F.setupMinutes }), icon: Timer },
-    { at: copy("pricing.months.day2.at"), what: copy("pricing.months.day2.what"), icon: CircleCheck },
-    { at: copy("pricing.months.monday.at"), what: copy("pricing.months.monday.what"), icon: Inbox },
+    { at: copy("pricing.months.day1.at"), what: copy("pricing.months.day1.what", { minutes: F.setupMinutes }), icon: Timer, ours: true },
+    { at: copy("pricing.months.day2.at"), what: copy("pricing.months.day2.what"), icon: CircleCheck, ours: true },
+    { at: copy("pricing.months.monday.at"), what: copy("pricing.months.monday.what"), icon: Mail, ours: true },
     ...([["found", Search], ["showing", Eye], ["top", TrendingUp]] as const).map(([step, icon]) => ({
       at: copy(`how.when.${step}.at`),
       what: copy(`how.when.${step}.what`),
       icon,
+      ours: false,
     })),
   ];
   return (
-    <div className="grid min-w-0 grid-cols-1 items-start gap-8 lg:grid-cols-2">
-      <div className="flex min-w-0 flex-col gap-4">
-        <div className="rounded-box bg-base-200 flex items-start gap-3 p-4">
-          <Info {...ICON} className="mt-1 shrink-0" />
-          <div className="flex flex-col gap-1">
-            <h3 className="text-sm font-semibold">{copy("pricing.first.longer")}</h3>
-            <p className="text-sm">{copy("pricing.first.longer.line")}</p>
-          </div>
-        </div>
+    <div className="card card-border bg-base-100 min-w-0">
+      <div className="card-body gap-3">
+        <h3 className="text-base font-semibold">{copy("pricing.months.title")}</h3>
+        <ul className="timeline timeline-vertical timeline-compact timeline-snap-icon min-w-0 [&>li]:[--timeline-col-start:0]">
+          {steps.map((step, i) => (
+            <li key={step.at}>
+              {i > 0 ? <hr className="bg-base-300 w-px" /> : null}
+              <div className={`timeline-middle rounded-field grid size-9 place-items-center ${step.ours ? "bg-success/10 text-success" : "bg-primary/10 text-primary"}`}>
+                <step.icon size={18} strokeWidth={1.75} aria-hidden />
+              </div>
+              {/* The last step is dashed: some pages get there, not every one. */}
+              <div className={`timeline-end mb-4 ms-3 flex min-w-0 flex-col ${i === steps.length - 1 ? "rounded-box border-primary/30 border border-dashed px-3 py-1.5" : ""}`}>
+                <span className="font-bold">{step.at}</span>
+                <span className="text-sm">{step.what}</span>
+              </div>
+              {i < steps.length - 1 ? <hr className="bg-base-300 w-px" /> : null}
+            </li>
+          ))}
+        </ul>
       </div>
-      <WhatToExpect title={copy("pricing.months.title")} steps={steps} maps={false} />
     </div>
   );
 }
 
-type Question = { q: CopyKey; a: CopyKey; vars?: Record<string, string | number> };
+type Question = { q: CopyKey; a: CopyKey; icon: LucideIcon; vars?: Record<string, string | number> };
 
-/** The questions asked before paying, the landing's answers where they are the same. */
+/** The questions asked before paying, in the landing's words. */
 function questions(): readonly Question[] {
-  const landing = (id: string, vars?: Question["vars"]): Question => ({
+  const landing = (id: string, icon: LucideIcon, vars?: Question["vars"]): Question => ({
     q: `landing.faq.${id}.q` as CopyKey,
     a: `landing.faq.${id}.a` as CopyKey,
+    icon,
     vars,
   });
   return [
-    { q: "pricing.faq.pay.q", a: "pricing.faq.pay.a", vars: { price: price() } },
-    landing("trial", { price: price() }),
-    landing("start", { minutes: F.setupMinutes }),
-    landing("approve", { hours: F.windowHours }),
-    landing("results"),
-    landing("stop", { days: String(HOSTED_RETENTION_DAYS) }),
-    landing("any"),
+    landing("trial", Gift, { price: price() }),
+    landing("start", Plug, { minutes: F.setupMinutes }),
+    landing("approve", Pen, { hours: F.windowHours }),
+    landing("results", Clock4),
+    { q: "landing.faq.stop.q", a: "landing.faq.stop.short", icon: CircleStop },
+    landing("any", Store),
   ];
 }
 
@@ -202,7 +195,10 @@ export default function PricingPage(props: {
   return (
     <Surface
       arms={{
-        compact: { kind: "columns", count: 1 },
+        compact: {
+          kind: "declared",
+          note: "full-width bands: the head and its price card, week 1, the comparison, the questions, the closing card; each capped at max-w-6xl",
+        },
         medium: { kind: "same-as-below" },
         wide: { kind: "same-as-below" },
       }}
@@ -216,7 +212,6 @@ export default function PricingPage(props: {
                 {copy("pricing.title")}
               </h1>
               <p className={LEAD}>{copy("pricing.subline", weekPages)}</p>
-              <Buys />
             </div>
             <div className="flex min-w-0 flex-col gap-4">
               <PricingCard startAction={startCheckout} terms="pricing" refused={refused} free={<FreeFirst />} />
@@ -228,28 +223,33 @@ export default function PricingPage(props: {
         <Section
           id="week1"
           band
+          beside
           title={copy("pricing.first.title")}
           body={copy("pricing.first.body")}
         >
           <FromWeekOne />
         </Section>
 
-        <Section
-          id="compare"
-          eyebrow={copy("pricing.compare.eyebrow")}
-          title={copy("pricing.compare.title", { price: price() })}
-          body={copy("pricing.compare.body")}
-        >
-          <ThreeWays />
-          <p className={SMALL}>{copy("pricing.compare.limit")}</p>
+        <Section id="compare" eyebrow={copy("pricing.compare.eyebrow")} title={copy("pricing.compare.title", { price: price() })}>
+          <ThreeWays caption={copy("pricing.compare.limit")} />
         </Section>
 
-        <Section id="before" band eyebrow={copy("landing.faq.eyebrow")} title={copy("pricing.faq.title")}>
-          <div className="flex flex-col gap-2">
-            {questions().map((item) => (
-              <details key={item.q} className="collapse collapse-arrow card-border bg-base-100 min-w-0">
-                <summary className="collapse-title font-semibold">{copy(item.q)}</summary>
-                <div className="collapse-content text-base-content/70 text-sm">
+        <Section id="before" title={copy("pricing.faq.title")}>
+          <div className="grid grid-cols-1 items-start gap-3 lg:grid-cols-2 lg:gap-x-4">
+            {questions().map((item, i, all) => (
+              <details
+                key={item.q}
+                // An odd last question spans both columns, so the grid has no hole.
+                className={`collapse collapse-arrow card-border bg-base-100 min-w-0 ${all.length % 2 === 1 && i === all.length - 1 ? "lg:col-span-2" : ""}`}
+              >
+                {/* 20px above and below a 24px line: each question is at least a 64px target. */}
+                <summary className="collapse-title flex items-center gap-3 py-5 leading-6 font-semibold">
+                  <span className="rounded-field bg-primary/10 text-primary grid size-9 shrink-0 place-items-center">
+                    <item.icon size={20} strokeWidth={1.75} aria-hidden />
+                  </span>
+                  {copy(item.q)}
+                </summary>
+                <div className="collapse-content text-base-content/70 ps-16 text-sm">
                   <p>{copy(item.a, item.vars)}</p>
                 </div>
               </details>
@@ -257,19 +257,23 @@ export default function PricingPage(props: {
           </div>
         </Section>
 
-        <section id={START_ID} aria-labelledby={`${START_ID}-h`} className="border-base-300 scroll-mt-16 border-t py-12 lg:py-20">
-          <div className="mx-auto flex w-full max-w-xl flex-col gap-4 px-4">
-            <div className="flex flex-col gap-3">
-              <p className="eyebrow">{copy("pricing.plan.unsure")}</p>
-              <h2 id={`${START_ID}-h`}>{copy("pricing.close.title")}</h2>
+        <div className={`${INNER} pb-16`}>
+          <section
+            id={START_ID}
+            aria-labelledby={`${START_ID}-h`}
+            className="card card-border bg-primary/5 scroll-mt-16"
+          >
+            <div className="card-body items-center gap-4 px-5 py-10 text-center lg:px-10">
+              <h2 id={`${START_ID}-h`} className="m-0 max-w-md">
+                {copy("pricing.plan.unsure")} {copy("pricing.close.title")}
+              </h2>
+              <div className="w-full max-w-xl text-left">
+                <ScanForm words={scanFormWords(copy("landing.start.cta"))} inline />
+              </div>
+              <p className="text-base-content/70 text-sm">{copy("landing.close.assurance")}</p>
             </div>
-            <p className="text-base-content/70">{copy("pricing.close.body")}</p>
-            <ScanForm words={scanFormWords(copy("landing.start.cta"))} />
-            <p className={SMALL}>{copy("landing.close.assurance")}</p>
-          </div>
-        </section>
-
-        <p className="text-base-content/70 mx-auto max-w-xl px-4 pb-12 text-center text-sm">{copy("pricing.footnote")}</p>
+          </section>
+        </div>
       </main>
     </Surface>
   );
