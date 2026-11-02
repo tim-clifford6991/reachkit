@@ -319,15 +319,20 @@ describe.each([
     const ladder = dom.querySelector('[data-testid="overview-ladder"]')!;
     const line = (key: Parameters<typeof copy>[0]): string => text(ladder.querySelector(`[data-step="${key}"] a ~ span`));
     expect(text(ladder.querySelector('[data-step="draft.ladder.live"] a'))).toBe("12");
-    expect(line("draft.ladder.live")).toBe(copy("overview.ladder.of", { n: "12" }));
+    // Live says how many wait for a reading, so every "of N" on the ladder is the 9 read.
+    expect(line("draft.ladder.live")).toBe(copy("overview.ladder.unread", { k: "3" }));
     // The nine read pages were all fetched: 9 of 9, not 9 of 12.
     expect(text(ladder.querySelector('[data-step="draft.ladder.found"] a'))).toBe("9");
     expect(line("draft.ladder.found")).toBe(copy("overview.ladder.of", { n: "9" }));
     expect(line("draft.ladder.showing")).toBe(copy("overview.ladder.of", { n: "9" }));
     expect(line("draft.ladder.linked")).toBe(copy("overview.ladder.of", { n: "9" }));
-    expect(text(ladder.querySelector("h2 + p"))).toBe(copy("overview.ladder.unread", { k: "3" }));
-    // The head says how many wait; no step says it for the pages short of it.
-    expect([...ladder.querySelectorAll("[data-step]")].filter((step) => text(step).includes(NOT_READ))).toEqual([]);
+    expect(ladder.querySelector("h2 + p")).toBeNull();
+    const ofs = [...ladder.querySelectorAll("[data-step] a ~ span")].map(text).filter((t) => t.startsWith(copy("overview.ladder.of", { n: "" }).trim()));
+    expect(new Set(ofs)).toEqual(new Set([copy("overview.ladder.of", { n: "9" })]));
+    // Only Live says how many wait; no other step says it for the pages short of it.
+    expect([...ladder.querySelectorAll("[data-step]")].filter((step) => text(step).includes(NOT_READ)).map((step) => step.getAttribute("data-step"))).toEqual([
+      "draft.ladder.live",
+    ]);
   });
 
   it("a mixed hosted and WordPress site counts each step over its own read pages", async () => {

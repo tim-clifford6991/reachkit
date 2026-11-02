@@ -300,10 +300,6 @@ export const OVERVIEW_COPY = Object.freeze({
   // of thing and a chart with no name is a chart a screen reader skips.
 
   // ── The page waiting for review.
-  "overview.waiting.goes-live": [
-    "Goes live {at}, unless you stop it.",
-    { slots: { at: "date" }, fixedBy: "SPEC §4 2026-09-20" },
-  ],
   // A page in review with no window running: nothing publishes it on a
   // clock, so the line states no time.
   "overview.waiting.waits": ["Its go-live time isn’t set yet.", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
@@ -1079,7 +1075,9 @@ export const OVERVIEW_COPY = Object.freeze({
   // ── Today's page and the ladder (owner E4, 2026-10-19; board Main). Each
   // step is the stored reading's own; drafted (#759), the owner corrects it.
   "overview.today.eyebrow": ["Goes live today at {time}", { slots: { time: "date" }, fixedBy: "issue 1605 (drafted)" }],
-    "overview.today.stop-note": [
+  "overview.today.eyebrow.tomorrow": ["Goes live tomorrow at {time}", { slots: { time: "date" }, fixedBy: "board Main v36, issue 2272 (drafted)" }],
+  "overview.today.eyebrow.on": ["Goes live {day} at {time}", { slots: { day: "date", time: "date" }, fixedBy: "board Main v36, issue 2272 (drafted)" }],
+  "overview.today.stop-note": [
     "Stop: it won’t go live. Tomorrow’s page is not affected.",
     { slots: {}, fixedBy: "issue 1605 (drafted) · board Main v36, issue 2272" },
   ],

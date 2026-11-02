@@ -5,9 +5,9 @@ import type React from "react";
 import Link from "next/link";
 import { Clock4, Eye } from "lucide-react";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
-import { formatDateTime, formatTime } from "../_shell/format";
+import { formatDateTime, formatShortDay, formatTime } from "../_shell/format";
 import { writtenLine } from "../_shell/written";
-import { dayKeyOf } from "../calendar/dates";
+import { addDays, dayKeyOf } from "../calendar/dates";
 import { StopThisPage } from "./StopThisPage";
 import type { WaitingPage } from "./waiting";
 
@@ -16,13 +16,17 @@ const READ_ACTION = "overview.alert.pending-veto.action" satisfies CopyKey;
 
 function When(p: { goesLiveAt: Date | null; timeZone: string; now: Date }): React.JSX.Element | null {
   if (p.goesLiveAt === null) return <>{writtenLine("overview.waiting.waits")}</>;
-  const absolute = formatDateTime(p.goesLiveAt, p.timeZone);
+  const time = formatTime(p.goesLiveAt, p.timeZone);
+  const day = dayKeyOf(p.goesLiveAt, p.timeZone);
+  const today = dayKeyOf(p.now, p.timeZone);
   const line =
-    dayKeyOf(p.goesLiveAt, p.timeZone) === dayKeyOf(p.now, p.timeZone)
-      ? writtenLine("overview.today.eyebrow", { time: formatTime(p.goesLiveAt, p.timeZone) })
-      : writtenLine("overview.waiting.goes-live", { at: absolute });
+    day === today
+      ? writtenLine("overview.today.eyebrow", { time })
+      : day === addDays(today, 1)
+        ? writtenLine("overview.today.eyebrow.tomorrow", { time })
+        : writtenLine("overview.today.eyebrow.on", { day: formatShortDay(p.goesLiveAt, p.timeZone), time });
   return (
-    <time dateTime={p.goesLiveAt.toISOString()} title={absolute}>
+    <time dateTime={p.goesLiveAt.toISOString()} title={formatDateTime(p.goesLiveAt, p.timeZone)}>
       {line}
     </time>
   );

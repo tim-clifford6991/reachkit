@@ -59,7 +59,8 @@ export function ConnectAddress(p: {
 
   return (
     <>
-      <header className="flex min-w-0 flex-col gap-1" data-testid="overview-head">
+      {/* Above the tabs, as every Overview board draws its head (`frame.ts`). */}
+      <header className="-order-1 flex min-w-0 flex-col gap-1" data-testid="overview-head">
         {day === null ? null : (
           <p className="eyebrow" data-testid="overview-day">
             {copy("overview.connect.day", { n: String(day) })}

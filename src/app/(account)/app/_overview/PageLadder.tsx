@@ -70,7 +70,14 @@ function Line(p: { strong: string; rest: string; testId: string; href: string; f
   );
 }
 
-function Steps(p: { title: CopyKey; steps: readonly StepFigure[]; climbing: number; testId: string; href: string }): React.JSX.Element {
+/** What follows a step's figure: "of N" over the pages checked; on Live, while some
+ *  pages are not checked yet, how many, so every "of N" on the ladder is one count. */
+function ofLine(step: StepFigure, unread: number): string {
+  if (step.name === "draft.ladder.live" && unread > 0) return copy("overview.ladder.unread", { k: formatCount(unread) });
+  return copy("overview.ladder.of", { n: formatCount(step.of) });
+}
+
+function Steps(p: { title: CopyKey; steps: readonly StepFigure[]; climbing: number; unread: number; testId: string; href: string }): React.JSX.Element {
   return (
     <div className="flex min-w-0 flex-col gap-3" data-testid={p.testId}>
       <h3 className="text-base font-bold">{copy(p.title)}</h3>
@@ -96,7 +103,7 @@ function Steps(p: { title: CopyKey; steps: readonly StepFigure[]; climbing: numb
                     <Link className="link link-hover text-4xl leading-none font-semibold tracking-tight tabular-nums" href={p.href} prefetch={true}>
                       {formatCount(step.count)}
                     </Link>
-                    <span className="text-sm text-base-content/70">{copy("overview.ladder.of", { n: formatCount(step.of) })}</span>
+                    <span className="text-sm text-base-content/70">{ofLine(step, p.unread)}</span>
                   </span>
                   {step.of === 0 ? null : (
                     <progress className="progress progress-primary col-span-2 h-2.5 w-full bg-base-200 lg:col-span-1" value={step.count} max={step.of} aria-hidden />
@@ -123,13 +130,8 @@ export function PageLadder(p: { ladder: Model; reads: BlogReadsModel }): React.J
   return (
     <section className="card card-border min-w-0 bg-base-100" data-testid="overview-ladder">
       <div className="card-body min-w-0 gap-4 p-4 sm:p-6">
-        <div className="flex min-w-0 flex-wrap items-baseline justify-between gap-x-4">
-          <h2 className="text-xl font-bold tracking-tight">{copy("overview.ladder.title", { n: formatCount(ladder.live) })}</h2>
-          {ladder.unread === 0 ? null : (
-            <p className="text-sm text-base-content/70">{copy("overview.ladder.unread", { k: formatCount(ladder.unread) })}</p>
-          )}
-        </div>
-        <Steps {...GOOGLE} steps={ladder.google} climbing={ladder.climbing} />
+        <h2 className="text-xl font-bold tracking-tight">{copy("overview.ladder.title", { n: formatCount(ladder.live) })}</h2>
+        <Steps {...GOOGLE} steps={ladder.google} climbing={ladder.climbing} unread={ladder.unread} />
         {ladder.visits !== null && ladder.visits > 0 ? (
           <Line
             strong={copy("overview.ladder.visits", { n: formatCount(ladder.visits) })}
@@ -139,7 +141,7 @@ export function PageLadder(p: { ladder: Model; reads: BlogReadsModel }): React.J
           />
         ) : null}
         <div className="flex min-w-0 flex-col gap-3 border-t border-base-300 pt-4">
-          <Steps {...AI} steps={ladder.ai} climbing={0} />
+          <Steps {...AI} steps={ladder.ai} climbing={0} unread={0} />
           {ai === null ? null : ai.now === 0 ? (
             <p className="text-sm" data-testid="overview-ai-line">
               {copy("overview.ai.reads.none")}

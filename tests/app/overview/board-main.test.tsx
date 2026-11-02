@@ -103,8 +103,7 @@ describe("board Main, on the account the layout sweep reads", () => {
     expect(today).toEqual(["overview-waiting-when", "overview-waiting-title", "overview-stop-note"]);
     // No per-page list under the ladder, no "checked" date beside its title, no months note.
     expect(dom.querySelector('[data-testid="overview-ladder-row"]')).toBeNull();
-    const beside = dom.querySelector('[data-testid="overview-ladder"] h2 + p');
-    if (beside !== null) expect(text(beside)).toBe(copy("overview.ladder.unread", { k: text(beside).split(" ")[0]! }));
+    expect(dom.querySelector('[data-testid="overview-ladder"] h2 + p')).toBeNull();
     expect(dom.querySelector('[data-testid="overview-months-note"]')).toBeNull();
     // The figures are one row of two from lg: best mover, then the monthly measures.
     const figures = dom.querySelector('[data-frame="overview-figures"]');
@@ -214,10 +213,10 @@ describe("a week card, from Plan's own week assembly", () => {
     expect(card(dom, today.day)?.querySelector("button")).toBeNull();
   });
 
-  it("with publishing not scheduled, today's card shows Plan's state and neither link", () => {
+  it("with publishing not scheduled, today's card shows Plan's state, no time, and still Plan's Edit and Stop", () => {
     const today = card(overview(false), week.today);
     expect(today?.querySelector('[data-testid="overview-week-goes-live"]')).toBeNull();
-    expect(today?.querySelectorAll("a")).toHaveLength(0);
+    expect([...(today?.querySelectorAll("a") ?? [])].map(text)).toEqual([copy("how.week.edit"), copy("calendar.week.stop")]);
     expect(today?.querySelector('[data-testid="day-state"]')?.innerHTML).toBe(card(plan, week.today)?.querySelector('[data-testid="day-state"]')?.innerHTML);
   });
 
@@ -243,10 +242,40 @@ describe("a week card, from Plan's own week assembly", () => {
     expect(week.cells.some((cell) => cell.page === null)).toBe(true);
   });
 
+  it("Edit and Stop sit on the one row Plan offers them on, and a live row carries Plan's quiet Stop", () => {
+    const withEdit = week.cells.filter((cell) => card(dom, cell.day)?.querySelector('[data-testid="overview-week-next-controls"]'));
+    expect(withEdit.map((cell) => cell.day)).toEqual([week.today]);
+    expect(card(plan, week.today)?.querySelector('[data-testid="cell-stop"]')).not.toBeNull();
+    for (const cell of week.cells.filter((c) => c.page?.stage === "live" && c.page.liveUrl !== null)) {
+      expect(text(card(dom, cell.day)?.querySelector("button")), cell.day).toBe(copy("draft.action.veto"));
+    }
+    for (const cell of week.cells.filter((c) => c.page?.stage !== "live" && c.day !== week.today)) {
+      expect(card(dom, cell.day)?.querySelector("a, button"), cell.day).toBeNull();
+    }
+  });
+
   it("a short week says its real count", () => {
     const pages = week.cells.filter((cell) => cell.page !== null).length;
     expect(pages).toBeLessThan(week.cells.length);
     expect(text(dom.querySelector("h2"))).toBe(copy("overview.week.pages", { n: String(pages) }));
+  });
+});
+
+describe("today's card names when its page goes live in one short line", () => {
+  // Thursday 8 October 2026, 10:00 UTC.
+  const now = new Date(Date.UTC(2026, 9, 8, 10, 0, 0));
+  const when = async (goesLiveAt: Date): Promise<string> => {
+    const { WaitingPageCard } = await import("@/app/(account)/app/_overview/WaitingPageCard");
+    const html = renderToStaticMarkup(
+      <WaitingPageCard page={{ draftId: "d1", title: "A page", href: "/app/draft/d1", goesLiveAt } as never} scheduled timeZone="UTC" now={now} />
+    );
+    return text(new DOMParser().parseFromString(html, "text/html").querySelector('[data-testid="overview-waiting-when"]'));
+  };
+
+  it("today, tomorrow, or the day: no year, no zone and no second sentence", async () => {
+    expect(await when(new Date(Date.UTC(2026, 9, 8, 16, 0)))).toBe(copy("overview.today.eyebrow", { time: "4:00 PM" }));
+    expect(await when(new Date(Date.UTC(2026, 9, 9, 16, 0)))).toBe(copy("overview.today.eyebrow.tomorrow", { time: "4:00 PM" }));
+    expect(await when(new Date(Date.UTC(2026, 9, 12, 16, 0)))).toBe(copy("overview.today.eyebrow.on", { day: "Mon 12 Oct", time: "4:00 PM" }));
   });
 });
 
