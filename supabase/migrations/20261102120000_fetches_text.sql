@@ -1,4 +1,4 @@
--- supabase/migrations/20261102120000_fetch_text.sql
+-- supabase/migrations/20261102120000_fetches_text.sql
 --
 -- Expand-only: one new table, nothing in `fetches` added or changed.
 --

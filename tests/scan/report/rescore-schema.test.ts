@@ -26,7 +26,7 @@ const APPLIED = [
   "20261101130000_scans_rescore_reads.sql",
   "20260903080000_fetches.sql",
   "20261101140000_fetches_facts.sql",
-  "20261102120000_fetch_text.sql",
+  "20261102120000_fetches_text.sql",
 ];
 const FACTS = "20261101140000_fetches_facts.sql";
 
