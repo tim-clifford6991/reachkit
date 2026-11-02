@@ -4,10 +4,10 @@
 import type React from "react";
 import { ChevronDown } from "lucide-react";
 
-export function LinkSummary(p: { children: React.ReactNode }): React.JSX.Element {
+export function LinkSummary(p: { children: React.ReactNode; chevron?: boolean }): React.JSX.Element {
   return (
     <summary className="text-primary flex cursor-pointer list-none items-center gap-2 py-2 text-sm font-semibold [&::-webkit-details-marker]:hidden">
-      <ChevronDown aria-hidden className="size-4 shrink-0 transition-transform group-open:rotate-180" strokeWidth={1.75} />
+      {p.chevron === false ? null : <ChevronDown aria-hidden className="size-4 shrink-0 transition-transform group-open:rotate-180" strokeWidth={1.75} />}
       {p.children}
     </summary>
   );

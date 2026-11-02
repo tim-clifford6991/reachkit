@@ -31,14 +31,32 @@ describe.each(Object.entries(REPORTS))("the %s report", (_, report) => {
     expect(ring.classList.contains(ink!)).toBe(true);
   });
 
-  it("each closed list is a primary link with its chevron on the left, never a bordered box", () => {
+  it("each closed list is a primary link, never a bordered box; the two lists carry their chevron on the left, the score's split none", () => {
     for (const id of ["verdict-split", "ai-answers-questions", "presence-absent-from"]) {
       const details = page.querySelector(`details[data-testid="${id}"]`)!;
       const summary = details.querySelector("summary")!;
       expect(details.classList.contains("collapse-arrow"), id).toBe(false);
       expect(summary.classList.contains("text-primary"), id).toBe(true);
-      expect((summary.firstChild as HTMLElement).classList.contains("lucide-chevron-down"), id).toBe(true);
+      const chevron = summary.querySelector("svg.lucide-chevron-down");
+      if (id === "verdict-split") expect(chevron, id).toBeNull();
+      else expect(summary.firstChild as HTMLElement, id).toBe(chevron);
       expect(details.querySelector(".eyebrow"), id).toBeNull();
+    }
+  });
+
+  it("the score's label sits at the card's left", () => {
+    expect(page.querySelector('[data-testid="report-score"] .eyebrow')!.classList.contains("self-start")).toBe(true);
+  });
+
+  it("the head's date, the quote's caption and the most-searched line set only their search or date as the board does", () => {
+    const meta = page.querySelector('[data-testid="report-read-as"]')!.parentNode!.querySelector("p.text-sm")!;
+    expect(meta.querySelector(".num")).toBeNull();
+    for (const testid of ["ai-answers-quote", "presence-most-searched"]) {
+      const box = page.querySelector(`[data-testid="${testid}"]`);
+      if (box === null) continue;
+      const mono = box.querySelectorAll(".num");
+      expect(mono, testid).toHaveLength(1);
+      expect(box.text.length, testid).toBeGreaterThan(mono[0]!.text.length + 10);
     }
   });
 

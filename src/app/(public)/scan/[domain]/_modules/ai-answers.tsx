@@ -61,7 +61,7 @@ import type {
 } from "@/lib/scan/report";
 import type { CanonicalDomain } from "@/lib/scan/domain";
 import type { RetryPart } from "@/lib/scan/retry";
-import { dash, Num } from "../_address/measured";
+import { dash, MonoIn, Num, SLOT } from "../_address/measured";
 import { RetryPartControl } from "../_address/retry-part";
 
 /** Which part this card's retry re-runs. A bound handle, not an inline
@@ -402,11 +402,18 @@ export function answerQuoteOf(
   return null;
 }
 
-/** The quote with the names its answer set in bold drawn bold. */
-function Emphasised(p: { text: string; bold: readonly string[] }): React.ReactNode {
-  if (p.bold.length === 0) return p.text;
-  const names = new RegExp(`(${p.bold.map((name) => name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|")})`);
-  return p.text.split(names).map((part, i) => (p.bold.includes(part) ? <strong key={i}>{part}</strong> : part));
+/** The quote inside its quotation marks, the names its answer set in bold drawn bold. */
+function Quoted(p: { sentence: string; text: string; bold: readonly string[] }): React.JSX.Element {
+  const [open = "", close = ""] = p.sentence.split(SLOT);
+  const names = p.bold.length === 0 ? null : new RegExp(`(${p.bold.map((name) => name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|")})`);
+  const parts = names === null ? [p.text] : p.text.split(names);
+  return (
+    <>
+      {open}
+      {parts.map((part, i) => (p.bold.includes(part) ? <strong key={i}>{part}</strong> : part))}
+      {close}
+    </>
+  );
 }
 
 /** One question: its number, the wording through `renderQuestion`, the
@@ -523,10 +530,10 @@ export function AiAnswersCard(p: {
         {quote === null ? null : (
           <figure className="rounded-box flex flex-col gap-1 bg-base-200 px-3.5 py-3" data-testid="ai-answers-quote">
             <figcaption className="text-base-content/70 text-xs">
-              <Num phrase>{copy("report.ai.quote", { search: quote.search })}</Num>
+              <MonoIn sentence={copy("report.ai.quote", { search: SLOT })} value={quote.search} />
             </figcaption>
             <blockquote className="text-sm">
-              <Emphasised text={quote.text} bold={quote.bold} />
+              <Quoted sentence={copy("report.ai.quote.said", { quote: SLOT })} text={quote.text} bold={quote.bold} />
             </blockquote>
           </figure>
         )}

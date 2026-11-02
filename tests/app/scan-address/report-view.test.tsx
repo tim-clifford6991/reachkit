@@ -794,20 +794,10 @@ describe("board PubReport — each section under \"Everything else\" opens with 
 });
 
 describe("board PubReport — the first page says what it holds while closed", () => {
-  it("the first page says its question while closed", () => {
-    const asked = FIXTURE_REPORT.aiAnswers!.rows.find((row) => row.question.search === FIXTURE_REPORT.freePage!.target.keyword);
-    expect(asked).toBeDefined();
+  it("the first page's subtitle is the page's own title, with no search beside it (board PubReport v36)", () => {
     const summary = parse(render(FIXTURE_REPORT)).querySelector('[data-testid="report-first-page"] > summary');
     expect(summary?.querySelector("h2")?.text).toBe("free-page.title");
-    expect(summary?.text).toContain(asked!.question.wording.text);
-    expect(summary?.querySelector(".num")?.text).toBe(FIXTURE_REPORT.freePage!.target.keyword);
-
-    const unasked: StoredReport = {
-      ...FIXTURE_REPORT,
-      aiAnswers: { ...FIXTURE_REPORT.aiAnswers!, rows: FIXTURE_REPORT.aiAnswers!.rows.filter((row) => row !== asked) },
-    };
-    const bare = parse(render(unasked)).querySelector('[data-testid="report-first-page"] > summary');
-    expect(bare?.text).not.toContain(asked!.question.wording.text);
-    expect(bare?.querySelector("h2 + p")?.text).toBe(FIXTURE_REPORT.freePage!.target.keyword);
+    expect(summary?.querySelector("h2 + p")?.text).toBe(FIXTURE_REPORT.freePage!.title.text);
+    expect(summary?.querySelector(".num")).toBeNull();
   });
 });

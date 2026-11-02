@@ -933,6 +933,7 @@ export const REPORT_COPY = Object.freeze({
   "report.you": ["You", { slots: {}, fixedBy: "board PubReport · issue 1723" }],
   "report.ai.waffle": ["Who the answers mention. Each square is one answer.", { slots: {}, fixedBy: "board PubReport · issue 1723" }],
   "report.ai.quote": ["One answer, for {search}", { slots: { search: "text" }, fixedBy: "board PubReport · issue 1723" }],
+  "report.ai.quote.said": ["“{quote}”", { slots: { quote: "text" }, fixedBy: "board PubReport v36 · ux-designer 2026-11-02" }],
   "report.ai.asked": ["The {total} searches we asked", { slots: { total: "text" }, fixedBy: "board PubReport · issue 1723" }],
   "report.google.waffle": ["Who is on Google’s first page. Each square is one search.", { slots: {}, fixedBy: "board PubReport · issue 1723" }],
   "report.google.most": ["Most searched: {search}, about {volume} times a month. First on Google: {holder}.", { slots: { search: "text", volume: "text", holder: "text" }, fixedBy: "board PubReport · issue 1723" }],

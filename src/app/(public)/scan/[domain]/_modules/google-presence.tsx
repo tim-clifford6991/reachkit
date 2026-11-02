@@ -22,7 +22,7 @@ import type { PresenceSection } from "@/lib/scan/report";
 import type { CanonicalDomain } from "@/lib/scan/domain";
 import type { RetryPart } from "@/lib/scan/retry";
 import { LinkSummary } from "../_address/link-summary";
-import { dash, Num } from "../_address/measured";
+import { dash, MonoIn, Num, SLOT } from "../_address/measured";
 import { RetryPartControl } from "../_address/retry-part";
 import { AnswerMatrix, type MatrixRow } from "./ai-answers";
 
@@ -74,12 +74,15 @@ function waffleRow(name: string, count: number, measured: number, you: boolean):
 
 /** The biggest search, its volume, and who is first on it, where stored. */
 function MostSearched(p: { most: NonNullable<PresenceSection["mostSearched"]> }): React.JSX.Element {
-  const slots = { search: p.most.keyword, volume: volumeOf(p.most.volume) };
+  const slots = { search: SLOT, volume: volumeOf(p.most.volume) };
   return (
     <p className="bg-base-200 rounded-box flex grow-0 items-start gap-2.5 px-3.5 py-3 text-sm" data-testid="presence-most-searched">
       <Search aria-hidden className="mt-0.5 size-4 shrink-0" strokeWidth={1.75} />
       <span className="min-w-0">
-        {p.most.topHolder === null ? copy("report.google.most.none", slots) : copy("report.google.most", { ...slots, holder: p.most.topHolder })}
+        <MonoIn
+          sentence={p.most.topHolder === null ? copy("report.google.most.none", slots) : copy("report.google.most", { ...slots, holder: p.most.topHolder })}
+          value={p.most.keyword}
+        />
       </span>
     </p>
   );

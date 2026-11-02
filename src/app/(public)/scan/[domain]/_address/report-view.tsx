@@ -46,7 +46,7 @@ import { CheckCards, ProblemCards } from "../_problems/cards";
 import { checkCardsOf, readingsOf } from "../_problems/checks";
 import { identityReading } from "@/lib/site-issues/checks";
 import { MethodSections } from "../_problems/method";
-import { answerReadersOf, cardsOf, missingPagesOf, PROBLEM_ORDER, storedQuestionOf, type MissingPage, type ProblemCard, type ProblemName } from "../_problems/model";
+import { answerReadersOf, cardsOf, missingPagesOf, PROBLEM_ORDER, type MissingPage, type ProblemCard, type ProblemName } from "../_problems/model";
 import { unblockLines } from "../_problems/unblock";
 import type { AddressControl, AddressNotice, WrittenPage } from "./state";
 import { refusalLine } from "./refusal";
@@ -639,7 +639,6 @@ export function ReportView(p: {
           ) : (
             <FreePageCard
               section={{ ...report.freePage, beats: beatsOf(report) }}
-              question={storedQuestionOf(report, report.freePage.target.keyword)}
               scanId={report.scanId}
               domain={report.domain}
               written={p.state.writtenPage}

@@ -77,8 +77,6 @@ const RING_TONE: Readonly<Record<Tone, string>> = Object.freeze({
   neutral: "text-base-content/70",
 });
 
-/** Where the date sits in the meta line, so the date alone is set in mono. */
-const DATE_SLOT = "\u0000";
 
 /** One line per factor with no value, naming which of the two reasons
  *  applies. The count follows `Verdict.missing` exactly. */
@@ -184,7 +182,7 @@ function ScoreCard(p: { verdict: Verdict; limiting: ShownFactor | null; rescored
   return (
     <section className="card bg-base-100 shadow-(--shadow-card) min-w-0" data-testid="report-score">
       <div className="card-body items-center gap-4 p-6">
-        <p className="eyebrow">{copy("verdict.score.label")}</p>
+        <p className="eyebrow self-start">{copy("verdict.score.label")}</p>
         {scoreAndBand.kind === "unmeasured" ? (
           <span className="text-5xl leading-none">
             <Num unmeasured figure>
@@ -214,7 +212,7 @@ function ScoreCard(p: { verdict: Verdict; limiting: ShownFactor | null; rescored
         )}
         <MissingFactors verdict={verdict} />
         <details className="group border-base-300 w-full border-t pt-2" data-testid="verdict-split">
-          <LinkSummary>{copy("verdict.score.split")}</LinkSummary>
+          <LinkSummary chevron={false}>{copy("verdict.score.split")}</LinkSummary>
           <div className="hidden flex-col gap-4 pt-2 group-open:flex">
             <p className="text-base-content/70 text-sm">{copy(bars.length === 4 ? "verdict.score.parts" : "verdict.score.parts.three")}</p>
             {bars.map((bar) => (
@@ -253,8 +251,8 @@ export function VerdictStrip(p: {
 }): React.JSX.Element {
   const { verdict } = p;
   const limiting = shownLimitingOf(verdict);
-  const meta = p.what === null ? copy("report.measured-at.no-category", { date: DATE_SLOT }) : copy("report.measured-at", { date: DATE_SLOT, what: p.what });
-  const [before = "", after = ""] = meta.split(DATE_SLOT);
+  // The head's date is in the UI face, as board PubReport v36 draws it (ux-designer 2026-11-02).
+  const meta = p.what === null ? copy("report.measured-at.no-category", { date: p.measuredOn }) : copy("report.measured-at", { date: p.measuredOn, what: p.what });
 
   return (
     <div className="grid gap-6 md:grid-cols-[minmax(0,1fr)_minmax(0,20rem)] md:items-start">
@@ -270,9 +268,7 @@ export function VerdictStrip(p: {
             </h1>
           </div>
           <p className="text-base-content/70 text-sm">
-            {before}
-            <Num>{p.measuredOn}</Num>
-            {after} <span>{p.measurement ?? copy("report.measurement")}</span>
+            {meta} <span>{p.measurement ?? copy("report.measurement")}</span>
           </p>
           <p className="text-base-content/70 text-xs">{p.independent}</p>
         </div>

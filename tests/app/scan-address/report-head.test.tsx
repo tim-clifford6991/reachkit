@@ -130,8 +130,8 @@ describe("who gets your buyers, and its two panels", () => {
       copy("ai-answers.source", { total: "12", answered: "9" }),
       copy("report.ai.waffle"),
       copy("report.ai.quote", { search: "product analytics tools" }),
-      // One sentence, as written, never the whole answer.
-      "For a small team, many start with Rival One or Rival Two, which need no data warehouse.",
+      // One sentence, as written, never the whole answer, inside its quotation marks.
+      copy("report.ai.quote.said", { quote: "For a small team, many start with Rival One or Rival Two, which need no data warehouse." }),
       copy("report.ai.asked", { total: "12" }),
     ]);
   });

@@ -135,3 +135,21 @@ export function ratio(part: number, whole: number): string {
 export function dash(): string {
   return copy("unmeasured.dash");
 }
+
+/** Where a sentence's one value sits, so that value alone is set in mono. */
+const SLOT = "\u0000";
+
+/** A sentence in the UI face with its one search or domain in mono: the
+ *  sentence is written with `SLOT` in that value's place. */
+export function MonoIn(p: { sentence: string; value: string }): React.JSX.Element {
+  const [before = "", after = ""] = p.sentence.split(SLOT);
+  return (
+    <>
+      {before}
+      <Num phrase>{p.value}</Num>
+      {after}
+    </>
+  );
+}
+
+export { SLOT };

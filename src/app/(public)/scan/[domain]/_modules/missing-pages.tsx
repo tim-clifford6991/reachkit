@@ -22,7 +22,7 @@ function Card(p: { page: MissingPage; n: number; free: boolean }): React.JSX.Ele
       <div className="card-body gap-2">
         <span className="num text-base-content/70 text-xs">{copy("report.missing.page", { n: String(p.n) })}</span>
         <PageSketch primary={p.free} />
-        <span className="font-semibold">{asked === null ? page.search : asked[0].text}</span>
+        <span className="text-[0.9375rem] leading-snug font-semibold">{asked === null ? page.search : asked[0].text}</span>
         {asked === null ? null : <Num phrase>{asked[1].text}</Num>}
         {page.volume === null ? null : (
           <span className="text-base-content/70 text-xs">{copy("report.missing.volume", { volume: page.volume.toLocaleString("en-US") })}</span>

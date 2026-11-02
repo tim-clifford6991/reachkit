@@ -23,7 +23,7 @@ import type React from "react";
 import { Gift, Link } from "lucide-react";
 import { NURTURE_MAX_TOUCHES } from "@/lib/config/constants";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
-import { fromStored, renderGenerated, renderQuestion, type GeneratedText } from "@/lib/presentation/generated";
+import { fromStored, renderGenerated } from "@/lib/presentation/generated";
 import { inlineText, parseMarkdown, type Inline } from "@/lib/publish/render/markdown";
 import type { FreePageSection } from "@/lib/scan/report";
 import type { CanonicalDomain } from "@/lib/scan/domain";
@@ -179,8 +179,6 @@ function FirstLines(p: { address: string; title: string; lines: Line[]; label: s
 
 export function FreePageCard(p: {
   section: FreePageSection;
-  /** The stored question phrased from the page's search, where the report holds one. */
-  question: GeneratedText | null;
   scanId: string;
   domain: string;
   written?: WrittenPage;
@@ -207,8 +205,6 @@ export function FreePageCard(p: {
   const slug = renderGenerated(section.slug, written ?? proposed);
   const address = `${p.domain}/${slug.text}`;
   const body = written === null ? null : renderGenerated(written.body, written);
-  // REQ-093: the subtitle is the buyer's stored question beside its search, never the model's title.
-  const asked = p.question === null ? null : renderQuestion({ wording: p.question, provenance: section.target.keyword });
 
   return (
     // Board `R12-2-Report` (#1068): the proposal on the left, the one field
@@ -224,11 +220,9 @@ export function FreePageCard(p: {
       <summary className="collapse-title">
         <Head
           right={<span className="badge badge-soft badge-success badge-sm">{copy("free-page.badge")}</span>}
+          // The page's own title, as board PubReport v36 draws it (ux-designer 2026-11-02, reversing E32's question and search).
           subtitle={
-            <p className="text-base-content/70 flex flex-wrap gap-x-2 text-sm font-normal">
-              {asked === null ? <Num phrase>{section.target.keyword}</Num> : <span>{asked[0].text}</span>}
-              {asked === null ? null : <Num phrase>{asked[1].text}</Num>}
-            </p>
+            <p className="text-base-content/70 text-sm font-normal">{title.text}</p>
           }
         />
       </summary>
