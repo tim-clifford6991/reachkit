@@ -56,7 +56,7 @@ function measureCards(root: string): Seen {
 }
 
 /** What a measurement breaks, as lines; empty where the tab keeps every rule. */
-function offences(seen: Seen, width: number, tab: string): string[] {
+function offences(seen: Seen, width: number): string[] {
   const out: string[] = [];
   if (seen.cards === 0) out.push("no card was measured");
   const first = seen.lefts[0] ?? 0;
@@ -106,7 +106,7 @@ for (const tab of SETTINGS_TABS) {
             { extraHTTPHeaders: { Cookie: getAccountCookie() } }
           );
           for (const [theme, measured] of seen) {
-            expect(offences(measured, width, tab), `${href} @ ${width}px ${theme}`).toEqual([]);
+            expect(offences(measured, width), `${href} @ ${width}px ${theme}`).toEqual([]);
             // The week is what Mail is checked for; a tab that lost it would pass vacuously.
             if (tab === "mail") expect(measured.weekTracks, `${href} @ ${width}px ${theme}`).not.toBeNull();
             if (tab === "business") expect(measured.wellsTracks, `${href} @ ${width}px ${theme}`).not.toBeNull();
@@ -133,7 +133,7 @@ async function canary(width: number, body: string): Promise<string[]> {
     await page.setContent(`<!doctype html><html><head>${CANARY_STYLE}</head><body>${body}</body></html>`);
     return page.evaluate(measureCards, "#panel");
   });
-  return offences(seen, width, "canary");
+  return offences(seen, width);
 }
 
 describe("the ruler sees what it is for (canaries)", () => {
